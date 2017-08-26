@@ -169,7 +169,16 @@ defmodule Inspect.Algebra do
 
   # Functional interface to "doc" records
 
-  @type t :: :doc_nil | doc_line | doc_cons | doc_nest | doc_break | doc_group | doc_color | binary
+  @type t ::
+          :doc_nil
+          | doc_line
+          | doc_cons
+          | doc_nest
+          | doc_break
+          | doc_group
+          | doc_color
+          | doc_next_fits
+          | binary
 
   @typep doc_cons :: {:doc_cons, t, t}
   defmacrop doc_cons(left, right) do
@@ -196,6 +205,11 @@ defmodule Inspect.Algebra do
     quote do: {:doc_group, unquote(group)}
   end
 
+  @typep doc_next_fits :: {:doc_next_fits, t}
+  defmacrop doc_next_fits(group) do
+    quote do: {:doc_next_fits, unquote(group)}
+  end
+
   @typep doc_color :: {:doc_color, t, IO.ANSI.ansidata}
   defmacrop doc_color(doc, color) do
     quote do: {:doc_color, unquote(doc), unquote(color)}
@@ -218,7 +232,8 @@ defmodule Inspect.Algebra do
       is_binary(unquote(doc)) or
       unquote(doc) == :doc_nil or
       (is_tuple(unquote(doc)) and
-       elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group, :doc_color, :doc_line])
+       elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group,
+                                 :doc_color, :doc_line, :doc_next_fits])
     end
   end
 
@@ -385,17 +400,44 @@ defmodule Inspect.Algebra do
     doc_break(string, :strict)
   end
 
+  @doc """
+  Annotates that the next break, including lines,
+  in the document will mark it as a fit.
+  """
+  @spec next_break_fits(t) :: doc_next_fits
+  def next_break_fits(doc) when is_doc(doc) do
+    doc_next_fits(doc)
+  end
 
+  @doc """
+  Introduces a flex break.
+
+  A flex break still causes a group to break, like
+  a regular break, but it is re-evaluated when the
+  documented is processed.
+
+  This function is used by `surround/4` and friends
+  to the maximum amount of entries on the same line.
+  """
+  @spec flex_break(binary) :: doc_break
   def flex_break(string \\ " ") when is_binary(string) do
     doc_break(string, :flex)
   end
 
+  @doc """
+  Glues two documents (`doc1` and `doc2`) inserting a
+  `flex_break/1` given by `break_string` between them.
+
+  This function is used by `surround/4` and friends
+  to the maximum amount of entries on the same line.
+  """
+  @spec flex_glue(t, binary, t) :: t
   def flex_glue(doc1, break_string \\ " ", doc2) when is_binary(break_string) do
     concat(doc1, concat(flex_break(break_string), doc2))
   end
 
   @doc ~S"""
-  Glues two documents (`doc1` and `doc2`) together inserting the given
+  Glues two documents (`doc1` and `doc2`) inserting the given
   break `break_string` between them.
 
   For more information on how the break is inserted, see `break/1`.
@@ -669,17 +711,22 @@ defmodule Inspect.Algebra do
     format(width, 0, [{0, :flat, group(doc)}])
   end
 
-  # Record representing the document mode to be rendered
+  # Type representing the document mode to be rendered
   #
   #   * break - represents a fitted document with breaks as breaks
   #   * flat - represents a fitted document with breaks as flats
+  #   * last - represents a document being fitted that will fit in the next break
   #
-  @typep mode :: :break | :flat
+  @typep mode :: :break | :flat | :last
 
   @spec fits?(integer, integer, [{integer, mode, t}]) :: boolean
   defp fits?(_, k, _) when k < 0,                          do: false
   defp fits?(_, _, []),                                    do: true
   defp fits?(w, k, [{_, _, :doc_nil} | t]),                do: fits?(w, k, t)
+  defp fits?(w, k, [{i, _, doc_next_fits(x)} | t]),        do: fits?(w, k, [{i, :last, x} | t])
+  defp fits?(w, k, [{i, :last, doc_group(x)} | t]),        do: fits?(w, k, [{i, :last, x} | t])
+  defp fits?(_, _, [{_, :last, doc_break(_, _)} | _]),     do: true
+  defp fits?(_, _, [{_, :last, doc_line(_)} | _]),         do: true
   defp fits?(_, _, [{_, _, doc_line(:hard)} | _]),         do: false
   defp fits?(w, _, [{i, _, doc_line(:soft)} | t]),         do: fits?(w, w - i, t)
   defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),          do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
@@ -698,6 +745,7 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   defp format(w, k, [{i, m, doc_color(x, c)} | t]),     do: [ansi(c) | format(w, k, [{i, m, x} | t])]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, (k + byte_size(s)), t)]
+  defp format(w, k, [{i, m, doc_next_fits(x)} | t]),    do: format(w, k, [{i, m, x} | t])
 
   # Flex breaks are not conditional to the mode
   defp format(w, k, [{i, _, doc_break(s, :flex)} | t]) do
@@ -731,9 +779,9 @@ defmodule Inspect.Algebra do
   # Groups must do the fitting decision.
   defp format(w, k, [{i, _, doc_group(x)} | t]) do
     if w == :infinity or fits?(w, w - k, [{i, :flat, x} | t]) do
-      format w, k, [{i, :flat, x} | t]
+      format(w, k, [{i, :flat, x} | t])
     else
-      format w, k, [{i, :break, x} | t]
+      format(w, k, [{i, :break, x} | t])
     end
   end
 
