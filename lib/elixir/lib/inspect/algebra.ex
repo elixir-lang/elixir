@@ -643,12 +643,13 @@ defmodule Inspect.Algebra do
       ["[", "a", "\n ", "b", "]"]
 
   """
+  # TODO: Reflect the @break default and nesting for flex on the formatter
   @spec surround(t, t, t, keyword()) :: t
   def surround(left, doc, right, opts \\ [])
       when is_doc(left) and is_doc(doc) and is_doc(right) and is_list(opts) do
     case Keyword.get(opts, :break, @break) do
       :flex ->
-        concat(concat(left, nest(doc, :cursor)), right)
+        concat(concat(left, nest(doc, 1)), right)
       :strict ->
         group(glue(nest(glue(left, "", doc), 2), "", right))
     end

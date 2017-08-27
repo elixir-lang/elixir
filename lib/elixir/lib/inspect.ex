@@ -101,7 +101,7 @@ defimpl Inspect, for: BitString do
     left = color("<<", :binary, opts)
     right = color(">>", :binary, opts)
     inner = each_bit(bitstring, opts.limit, opts)
-    surround(left, inner, right)
+    surround(left, nest(inner, 1), right)
   end
 
   defp each_bit(_, 0, _) do
