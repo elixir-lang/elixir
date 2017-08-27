@@ -186,7 +186,7 @@ tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_
   case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
     {ok, NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      Token = {sigil, {Line, {Column, NewColumn}, nil}, S, Parts, Modifiers, [H, H, H]},
+      Token = {sigil, {Line, {Column, NewColumn}, nil}, S, Parts, Modifiers, <<H, H, H>>},
       tokenize(Final, NewLine, NewColumn, Scope, [Token | Tokens]);
     {error, Reason} ->
       {error, Reason, Original, Tokens}
@@ -196,7 +196,7 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
   case elixir_interpolation:extract(Line, Column + 3, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      Token = {sigil, {Line, {Column, NewColumn}, nil}, S, Parts, Modifiers, [H]},
+      Token = {sigil, {Line, {Column, NewColumn}, nil}, S, Parts, Modifiers, <<H>>},
       tokenize(Final, NewLine, NewColumn, Scope, [Token | Tokens]);
     {error, Reason} ->
       Sigil = [$~, S, H],
