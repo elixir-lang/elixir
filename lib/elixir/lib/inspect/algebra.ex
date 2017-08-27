@@ -784,14 +784,14 @@ defmodule Inspect.Algebra do
   @spec fits?(integer, integer, [{integer, mode, t}]) :: boolean
   defp fits?(w, k, _) when k > w,                           do: false
   defp fits?(_, _, []),                                     do: true
-  defp fits?(w, k, [{_, _, :doc_nil} | t]),                 do: fits?(w, k, t)
-  defp fits?(w, _, [{i, _, :doc_line} | t]),                do: fits?(w, i, t)
-  defp fits?(w, k, [{i, _, doc_cancel_break(x)} | t]),      do: fits?(w, k, [{i, :cancel, x} | t])
   defp fits?(_, _, [{_, :cancel, :doc_line} | _]),          do: true
   defp fits?(_, _, [{_, :cancel, doc_break(_, _)} | _]),    do: true
   defp fits?(w, k, [{i, :cancel, doc_group(x)} | t]),       do: fits?(w, k, [{i, :cancel, x} | t])
   defp fits?(w, k, [{i, :cancel, doc_force_break(x)} | t]), do: fits?(w, k, [{i, :cancel, x} | t])
+  defp fits?(w, k, [{i, _, doc_cancel_break(x)} | t]),      do: fits?(w, k, [{i, :cancel, x} | t])
   defp fits?(_, _, [{_, _, doc_force_break(_)} | _]),       do: false
+  defp fits?(w, k, [{_, _, :doc_nil} | t]),                 do: fits?(w, k, t)
+  defp fits?(w, _, [{i, _, :doc_line} | t]),                do: fits?(w, i, t)
   defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),           do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
   defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),          do: fits?(w, k, [{i, m, x} | t])
   defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]),   do: fits?(w, k, [{i, m, x} | t])
