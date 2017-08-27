@@ -28,6 +28,7 @@ defmodule Calendar.ISO do
   @seconds_per_hour 60 * 60
   @seconds_per_day 24 * 60 * 60 # Note that this does _not_ handle leap seconds.
   @microseconds_per_second 1_000_000
+  @parts_per_day @seconds_per_day * @microseconds_per_second
 
   @days_per_nonleap_year 365
   @days_per_leap_year 366
@@ -92,11 +93,11 @@ defmodule Calendar.ISO do
   @spec time_to_day_fraction(Calendar.hour, Calendar.minute,
                              Calendar.second, Calendar.microsecond) :: Calendar.day_fraction
   def time_to_day_fraction(0, 0, 0, {0, _}) do
-    {0, 86400000000}
+    {0, @parts_per_day}
   end
   def time_to_day_fraction(hour, minute, second, {microsecond, _}) do
     combined_seconds = hour * @seconds_per_hour + minute * @seconds_per_minute + second
-    {combined_seconds * @microseconds_per_second + microsecond, @seconds_per_day * @microseconds_per_second}
+    {combined_seconds * @microseconds_per_second + microsecond, @parts_per_day}
   end
 
   @doc """
@@ -114,7 +115,7 @@ defmodule Calendar.ISO do
   @spec time_from_day_fraction(Calendar.day_fraction) ::
         {Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond}
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
-    total_microseconds = div(parts_in_day * @seconds_per_day * @microseconds_per_second, parts_per_day)
+    total_microseconds = div(parts_in_day * @parts_per_day, parts_per_day)
     {hours, rest_microseconds1} = div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
     {minutes, rest_microseconds2} = div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
     {seconds, microseconds} = div_mod(rest_microseconds2, @microseconds_per_second)
@@ -445,8 +446,8 @@ defmodule Calendar.ISO do
 
   @doc false
   def iso_days_to_unit({days, {parts, ppd}}, unit) do
-    day_microseconds = days * @seconds_per_day * @microseconds_per_second
-    microseconds = div(parts * @seconds_per_day * @microseconds_per_second, ppd)
+    day_microseconds = days * @parts_per_day
+    microseconds = div(parts * @parts_per_day, ppd)
     System.convert_time_unit(day_microseconds + microseconds, :microsecond, unit)
   end
 
