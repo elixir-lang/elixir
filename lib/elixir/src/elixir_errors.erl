@@ -84,6 +84,8 @@ parse_error(Line, File, <<"syntax error before: ">>, <<"eol">>) ->
 parse_error(Line, File, <<"syntax error before: ">>, <<"'end'">>) ->
   raise(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
+%% TODO: Remove workarounds for sigils, aliases, binaries and interpolation.
+
 %% Produce a human-readable message for errors before a sigil
 parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full) ->
   {sigil, _, Sigil, [Content | _], _, _} = parse_erl_term(Full),
