@@ -171,10 +171,10 @@ defmodule Kernel.RaiseTest do
     test "with higher precedence than catch" do
       result = try do
         raise "an exception"
-      catch
-        _, _ -> false
       rescue
         _ -> true
+      catch
+        _, _ -> false
       end
 
       assert result
