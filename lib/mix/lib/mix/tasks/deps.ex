@@ -113,6 +113,10 @@ defmodule Mix.Tasks.Deps do
     * `:in_umbrella` - when `true`, sets a path dependency pointing to
       "../#{app}", sharing the same environment as the current application
 
+  ### Hex options (`:hex`)
+  
+  See the [Hex usage documentation](https://hex.pm/docs/usage) for Hex options.
+
   ## Deps task
 
   `mix deps` task lists all dependencies in the following format:
