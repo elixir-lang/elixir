@@ -1052,7 +1052,7 @@ defmodule Kernel do
 
   """
   @spec (+value) :: value when value: number
-  def (+value) do
+  def +value do
     :erlang.+(value)
   end
 
@@ -1071,7 +1071,7 @@ defmodule Kernel do
   @spec (-pos_integer) :: neg_integer
   @spec (-neg_integer) :: pos_integer
   @spec (-float) :: float
-  def (-value) do
+  def -value do
     :erlang.-(value)
   end
 
@@ -1202,7 +1202,7 @@ defmodule Kernel do
   """
   @spec not(true) :: false
   @spec not(false) :: true
-  def not(value) do
+  def not value do
     :erlang.not(value)
   end
 

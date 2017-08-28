@@ -942,7 +942,7 @@ tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) 
       Reason = {Line, invalid_character_error("alias", hd(Special)), AtomName},
       {error, Reason, AtomName ++ Rest, Tokens};
     true ->
-      AliasesToken = {aliases, {Line, {Column, Column + Length}, nil}, [Atom]},
+      AliasesToken = {alias, {Line, {Column, Column + Length}, nil}, Atom},
       tokenize(Rest, Line, Column + Length, Scope, [AliasesToken | Tokens])
   end.
 
