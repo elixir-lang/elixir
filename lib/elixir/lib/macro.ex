@@ -765,7 +765,7 @@ defmodule Macro do
     "(" <> to_string(expr, fun) <> ")"
   end
   defp module_to_string({_, _, [_ | _] = args} = expr, fun) do
-    if args |> List.last |> kw_blocks?() do
+    if kw_blocks?(List.last(args)) do
       "(" <> to_string(expr, fun) <> ")"
     else
       to_string(expr, fun)
