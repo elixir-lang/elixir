@@ -162,6 +162,7 @@ no_parens_expr -> no_parens_many_expr : '$1'.
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3' ++ '$4').
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
+block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> dot_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3').
 
 matched_op_expr -> match_op_eol matched_expr : {'$1', '$2'}.
