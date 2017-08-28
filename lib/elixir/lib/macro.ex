@@ -621,7 +621,7 @@ defmodule Macro do
 
   # Splat when
   def to_string({:when, _, args} = ast, fun) do
-    {left, right} = :elixir_utils.split_last(args)
+    {left, right} = split_last(args)
     fun.(ast, "(" <> Enum.map_join(left, ", ", &to_string(&1, fun)) <> ") when " <> to_string(right, fun))
   end
 
@@ -664,7 +664,7 @@ defmodule Macro do
     with :error <- unary_call(ast, fun),
          :error <- binary_call(ast, fun),
          :error <- sigil_call(ast, fun) do
-      {list, last} = :elixir_utils.split_last(args)
+      {list, last} = split_last(args)
       fun.(ast, case kw_blocks?(last) do
         true  -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
         false -> call_to_string_with_args(target, args, fun)
@@ -765,8 +765,7 @@ defmodule Macro do
     "(" <> to_string(expr, fun) <> ")"
   end
   defp module_to_string({_, _, [_ | _] = args} = expr, fun) do
-    {_, last} = :elixir_utils.split_last(args)
-    if kw_blocks?(last) do
+    if args |> List.last |> kw_blocks?() do
       "(" <> to_string(expr, fun) <> ")"
     else
       to_string(expr, fun)
@@ -859,7 +858,7 @@ defmodule Macro do
   end
 
   defp args_to_string(args, fun) do
-    {list, last} = :elixir_utils.split_last(args)
+    {list, last} = split_last(args)
 
     if last != [] and Inspect.List.keyword?(last) do
       prefix =
@@ -957,6 +956,14 @@ defmodule Macro do
 
   defp comma_join_or_empty_paren(left, fun, _) do
     Enum.map_join(left, ", ", &to_string(&1, fun)) <> " "
+  end
+
+  defp split_last([]) do
+    {[], []}
+  end
+  defp split_last(args) do
+    {left, [right]} = Enum.split(args, -1)
+    {left, right}
   end
 
   defp adjust_new_lines(block, replacement) do
