@@ -250,6 +250,8 @@ defmodule MacroTest do
     test "remote call" do
       assert Macro.to_string(quote do: foo.bar(1, 2, 3)) == "foo.bar(1, 2, 3)"
       assert Macro.to_string(quote do: foo.bar([1, 2, 3])) == "foo.bar([1, 2, 3])"
+      assert Macro.to_string(quote do: (foo do :ok end).bar([1, 2, 3])) ==
+             "(foo() do\n  :ok\nend).bar([1, 2, 3])"
     end
 
     test "atom remote call" do
@@ -446,8 +448,8 @@ defmodule MacroTest do
     end
 
     test "unary operators" do
-      assert Macro.to_string(quote do: not 1) == "not 1"
-      assert Macro.to_string(quote do: not foo) == "not foo"
+      assert Macro.to_string(quote do: not 1) == "not(1)"
+      assert Macro.to_string(quote do: not foo) == "not(foo)"
       assert Macro.to_string(quote do: -1) == "-1"
       assert Macro.to_string(quote do: + + 1) == "+(+1)"
       assert Macro.to_string(quote do: !(foo > bar)) == "!(foo > bar)"
