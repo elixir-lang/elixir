@@ -154,12 +154,12 @@ dot_newline_operator_test() ->
    {int, {2, {2, 3}, 1}, "1"}] = tokenize("foo.#bar\n+1", [{preserve_comments, true}]).
 
 aliases_test() ->
-  [{'aliases', {1, {1, 4}, nil}, ['Foo']}] = tokenize("Foo"),
-  [{'aliases', {1, {1, 4}, nil}, ['Foo']},
+  [{'alias', {1, {1, 4}, nil}, 'Foo'}] = tokenize("Foo"),
+  [{'alias', {1, {1, 4}, nil}, 'Foo'},
    {'.', {1, {4, 5}, nil}},
-   {'aliases', {1, {5, 8}, nil}, ['Bar']},
+   {'alias', {1, {5, 8}, nil}, 'Bar'},
    {'.', {1, {8, 9}, nil}},
-   {'aliases', {1, {9, 12}, nil}, ['Baz']}] = tokenize("Foo.Bar.Baz").
+   {'alias', {1, {9, 12}, nil}, 'Baz'}] = tokenize("Foo.Bar.Baz").
 
 string_test() ->
   [{bin_string, {1, {1, 6}, nil}, [<<"foo">>]}] = tokenize("\"foo\""),

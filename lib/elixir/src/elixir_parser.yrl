@@ -31,7 +31,7 @@ Nonterminals
 Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
   paren_identifier do_identifier block_identifier
-  fn 'end' aliases
+  fn 'end' alias
   atom atom_safe atom_unsafe bin_string list_string sigil
   bin_heredoc list_heredoc
   dot_call_op op_identifier
@@ -288,13 +288,13 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 %% Blocks
 
 do_block -> do_eoe 'end' :
-              [[{handle_literal(do, '$1', [{keyword, true}]), handle_literal(nil, '$1')}]].
+              [[{handle_literal(do, '$1', [{format, keyword}]), handle_literal(nil, '$1')}]].
 do_block -> do_eoe stab end_eoe :
-              [[{handle_literal(do, '$1', [{keyword, true}]), build_stab(reverse('$2'))}]].
+              [[{handle_literal(do, '$1', [{format, keyword}]), build_stab(reverse('$2'))}]].
 do_block -> do_eoe block_list 'end' :
-              [[{handle_literal(do, '$1', [{keyword, true}]), handle_literal(nil, '$1')} | '$2']].
+              [[{handle_literal(do, '$1', [{format, keyword}]), handle_literal(nil, '$1')} | '$2']].
 do_block -> do_eoe stab_eoe block_list 'end' :
-              [[{handle_literal(do, '$1', [{keyword, true}]), build_stab(reverse('$2'))} | '$3']].
+              [[{handle_literal(do, '$1', [{format, keyword}]), build_stab(reverse('$2'))} | '$3']].
 
 eoe -> eol : '$1'.
 eoe -> ';' : '$1'.
@@ -339,9 +339,9 @@ stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', nil}.
 
 block_item -> block_eoe stab_eoe :
-                {handle_literal(?exprs('$1'), '$1', [{keyword, true}]), build_stab(reverse('$2'))}.
+                {handle_literal(?exprs('$1'), '$1', [{format, keyword}]), build_stab(reverse('$2'))}.
 block_item -> block_eoe :
-                {handle_literal(?exprs('$1'), '$1', [{keyword, true}]), handle_literal(nil, '$1')}.
+                {handle_literal(?exprs('$1'), '$1', [{format, keyword}]), handle_literal(nil, '$1')}.
 
 block_list -> block_item : ['$1'].
 block_list -> block_item block_list : ['$1' | '$2'].
@@ -441,8 +441,8 @@ dot_op -> '.' eol : '$1'.
 dot_identifier -> identifier : '$1'.
 dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
-dot_alias -> aliases : {'__aliases__', meta_from_token('$1', 0), ?exprs('$1')}.
-dot_alias -> matched_expr dot_op aliases : build_dot_alias('$2', '$1', '$3').
+dot_alias -> alias : build_alias('$1', [], '$1').
+dot_alias -> matched_expr dot_op alias : build_dot_alias('$2', '$1', '$3').
 dot_alias -> matched_expr dot_op dot_alias_container : build_dot_container('$2', '$1', '$3').
 
 dot_alias_container -> open_curly '}' : [].
@@ -521,12 +521,12 @@ call_args_parens -> open_paren call_args_parens_base ',' kw close_paren : revers
 
 % KV
 
-kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', [{keyword, true}]).
-kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', [{keyword, true}]).
-kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, [{keyword, true}]).
-kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, [{keyword, true}]).
-kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, [{keyword, true}]).
-kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{keyword, true}]).
+kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
+kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
+kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, [{format, keyword}]).
+kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, [{format, keyword}]).
+kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, [{format, keyword}]).
+kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{format, keyword}]).
 
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
@@ -623,7 +623,6 @@ Erlang code.
 -compile([{hipe, [{regalloc, linear_scan}]}]).
 -import(lists, [reverse/1, reverse/2]).
 
-meta_from_token(Token, Counter) -> [{counter, Counter} | meta_from_token(Token)].
 meta_from_token(Token) -> meta_from_location(?location(Token)).
 
 meta_from_location({Line, {Column, EndColumn}, _})
@@ -686,12 +685,20 @@ build_block(Exprs) ->
 
 %% Dots
 
-build_dot_alias(Dot, {'__aliases__', _, Left}, {'aliases', _, Right}) ->
-  {'__aliases__', meta_from_token(Dot), Left ++ Right};
-build_dot_alias(_Dot, Atom, {'aliases', _, _} = Token) when is_atom(Atom) ->
-  throw_bad_atom(Token);
-build_dot_alias(Dot, Other, {'aliases', _, Right}) ->
-  {'__aliases__', meta_from_token(Dot), [Other | Right]}.
+build_alias(Dot, Left, {'alias', _, Right}) ->
+  Meta =
+    case get(wrap_literals_in_blocks) of
+      true -> [{format, alias}] ++ meta_from_token(Dot);
+      false -> meta_from_token(Dot)
+    end,
+  {'__aliases__', Meta, Left ++ [Right]}.
+
+build_dot_alias(Dot, {'__aliases__', _, Left}, Right) ->
+  build_alias(Dot, Left, Right);
+build_dot_alias(_Dot, Atom, Right) when is_atom(Atom) ->
+  throw_bad_atom(Right);
+build_dot_alias(Dot, Expr, Right) ->
+  build_alias(Dot, [Expr], Right).
 
 build_dot_container(Dot, Left, Right) ->
   Meta = meta_from_token(Dot),

@@ -96,12 +96,6 @@ parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>>
   Message = <<"syntax error before: sigil \~", Sigil, " starting with content '", Content2/binary, "'">>,
   raise(Line, File, 'Elixir.SyntaxError', Message);
 
-%% Aliases are wrapped in ['']
-parse_error(Line, File, Error, <<"['", _/binary>> = Full) when is_binary(Error) ->
-  [AliasAtom] = parse_erl_term(Full),
-  Alias = atom_to_binary(AliasAtom, utf8),
-  raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Alias/binary>>);
-
 %% Binaries (and interpolation) are wrapped in [<<...>>]
 parse_error(Line, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) ->
   Term = case parse_erl_term(Full) of

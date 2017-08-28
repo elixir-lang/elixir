@@ -27,7 +27,7 @@ defmodule Kernel.ErrorsTest do
       '"hello" "world"'
 
     assert_eval_raise SyntaxError,
-      "nofile:1: syntax error before: Foobar",
+      "nofile:1: syntax error before: 'Foobar'",
       '1 Foobar'
 
     assert_eval_raise SyntaxError,
