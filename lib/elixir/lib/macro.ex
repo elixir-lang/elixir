@@ -581,9 +581,9 @@ defmodule Macro do
     fun.(ast, map)
   end
 
-  def to_string({:%, _, [structname, map]} = ast, fun) do
+  def to_string({:%, _, [struct_name, map]} = ast, fun) do
     {:%{}, _, args} = map
-    struct = "%" <> to_string(structname, fun) <> "{" <> map_to_string(args, fun) <> "}"
+    struct = "%" <> to_string(struct_name, fun) <> "{" <> map_to_string(args, fun) <> "}"
     fun.(ast, struct)
   end
 
@@ -755,17 +755,31 @@ defmodule Macro do
     <<?", parts::binary, ?">>
   end
 
-  defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, [])
-  defp module_to_string(other, fun), do: call_to_string(other, fun)
-
-  defp unary_call({:not, _, [arg]} = ast, fun)  do
-    {:ok, fun.(ast, "not " <> to_string(arg, fun))}
+  defp module_to_string(atom, _fun) when is_atom(atom) do
+    inspect(atom, [])
+  end
+  defp module_to_string({:&, _, [val]} = expr, fun) when not is_integer(val) do
+    "(" <> to_string(expr, fun) <> ")"
+  end
+  defp module_to_string({:fn, _, _} = expr, fun) do
+    "(" <> to_string(expr, fun) <> ")"
+  end
+  defp module_to_string({_, _, [_ | _] = args} = expr, fun) do
+    {_, last} = :elixir_utils.split_last(args)
+    if kw_blocks?(last) do
+      "(" <> to_string(expr, fun) <> ")"
+    else
+      to_string(expr, fun)
+    end
+  end
+  defp module_to_string(expr, fun) do
+    to_string(expr, fun)
   end
 
   defp unary_call({op, _, [arg]} = ast, fun) when is_atom(op) do
     case Identifier.unary_op(op) do
       {_, _} ->
-        if op_expr?(arg) do
+        if op == :not or op_expr?(arg) do
           {:ok, fun.(ast, Atom.to_string(op) <> "(" <> to_string(arg, fun) <> ")")}
         else
           {:ok, fun.(ast, Atom.to_string(op) <> to_string(arg, fun))}
@@ -825,10 +839,6 @@ defmodule Macro do
 
   defp call_to_string(atom, _fun) when is_atom(atom),
     do: Atom.to_string(atom)
-  defp call_to_string({:., _, [{:&, _, [val]} = arg]}, fun) when not is_integer(val),
-    do: "(" <> module_to_string(arg, fun) <> ")."
-  defp call_to_string({:., _, [{:fn, _, _} = arg]}, fun),
-    do: "(" <> module_to_string(arg, fun) <> ")."
   defp call_to_string({:., _, [arg]}, fun),
     do: module_to_string(arg, fun) <> "."
   defp call_to_string({:., _, [left, right]}, fun) when is_atom(right),
