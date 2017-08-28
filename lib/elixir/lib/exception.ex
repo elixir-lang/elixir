@@ -331,6 +331,10 @@ defmodule Exception do
       when is_list(maybe_stacktrace) and maybe_stacktrace !== [] do
     try do
       Enum.map(maybe_stacktrace, &format_stacktrace_entry/1)
+    catch
+      :error, _ ->
+        # Not a stacktrace, was an exit.
+        format_exit_reason(reason)
     else
       formatted_stacktrace ->
         # Assume a non-empty list formattable as stacktrace is a
@@ -338,10 +342,6 @@ defmodule Exception do
         message = "an exception was raised:" <> joiner <>
           format_banner(:error, exception, maybe_stacktrace)
         Enum.join([message | formatted_stacktrace], joiner <> <<"    ">>)
-    catch
-      :error, _ ->
-        # Not a stacktrace, was an exit.
-        format_exit_reason(reason)
     end
   end
 
@@ -365,16 +365,16 @@ defmodule Exception do
       when length(args) < 256 do
     try do
       format_mfa(mod, fun, args)
+    catch
+      :error, _ ->
+        # Not an mfa, was an exit.
+        format_exit_reason(reason)
     else
       mfa ->
         # Assume tuple formattable as an mfa is an mfa, so exit was caused by
         # failed mfa.
         "exited in: " <> mfa <> joiner <>
           "** (EXIT) " <> format_exit(reason2, joiner <> <<"    ">>)
-    catch
-      :error, _ ->
-        # Not an mfa, was an exit.
-        format_exit_reason(reason)
     end
   end
 
