@@ -602,11 +602,11 @@ defmodule Mix.Project do
             Code.compiler_options(relative_paths: false)
             _ = Code.load_file(file)
             get()
-          after
-            Code.compiler_options(relative_paths: true)
           else
             ^old_proj -> Mix.raise "Could not find a Mix project at #{file}"
             new_proj  -> {new_proj, file}
+          after
+            Code.compiler_options(relative_paths: true)
           end
         else
           push(nil, file, app)
