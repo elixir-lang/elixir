@@ -299,7 +299,7 @@ defmodule ExUnit do
 
   defp put_seed(opts) do
     Keyword.put_new_lazy(opts, :seed, fn ->
-      :os.timestamp |> elem(2)
+      rem :os.system_time, 1_000_000
     end)
   end
 
