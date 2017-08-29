@@ -25,13 +25,13 @@ defmodule Logger.Case do
   def wait_for_logger() do
     try do
       :gen_event.which_handlers(Logger)
-    else
-      _ ->
-        :ok
     catch
       :exit, _ ->
         Process.sleep(10)
         wait_for_logger()
+    else
+      _ ->
+        :ok
     end
   end
 
