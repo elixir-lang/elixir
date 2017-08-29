@@ -109,7 +109,7 @@ defmodule ExUnit.Assertions do
     # is not nil nor false. We need to rewrite the if
     # to avoid silly warnings though.
     return =
-      no_warning(quote do
+      suppress_warning(quote do
         case right do
           x when x in [nil, false] ->
             raise ExUnit.AssertionError,
@@ -121,7 +121,7 @@ defmodule ExUnit.Assertions do
       end)
 
     match_expr =
-      no_warning(quote do
+      suppress_warning(quote do
         case right do
           unquote(left) ->
             unquote(return)
@@ -401,6 +401,40 @@ defmodule ExUnit.Assertions do
           quote(do: unquote(left) = received)
       end
 
+    pattern_finder =
+      quote do
+        fn message ->
+          unquote(suppress_warning(quote do
+            case message do
+              unquote(pattern) ->
+                _ = unquote(vars)
+                true
+
+              _ ->
+                false
+            end
+          end))
+        end
+      end
+
+    failure_message_hit =
+      failure_message || quote do
+        """
+        Found message matching #{unquote(binary)} after #{timeout}ms.
+
+        This means the message was delivered too close to the timeout value, you may want to either:
+
+          1. Give an increased timeout to `assert_receive/2`
+          2. Increase the default timeout to all `assert_receive` in your
+             test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
+        """
+      end
+
+    failure_message_miss =
+      failure_message || quote do
+        "No message matching #{unquote(binary)} after #{timeout}ms."
+      end
+
     quote do
       timeout = unquote(timeout)
 
@@ -412,29 +446,10 @@ defmodule ExUnit.Assertions do
           timeout ->
             {:messages, messages} = Process.info(self(), :messages)
 
-            pattern_finder = fn message ->
-              case message do
-                unquote(pattern) ->
-                  _ = unquote(vars)
-                  true
-                _ ->
-                  false
-              end
-            end
-
-            if Enum.any?(messages, pattern_finder) do
-              flunk(unquote(failure_message) || """
-              Found message matching #{unquote(binary)} after #{timeout}ms.
-
-              This means the message was delivered too close to the timeout value, you may want to either:
-
-                1. Give an increased timeout to `assert_receive/2`
-                2. Increase the default timeout to all `assert_receive` in your
-                   test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
-              """)
+            if Enum.any?(messages, unquote(pattern_finder)) do
+              flunk(unquote(failure_message_hit))
             else
-              failure_message = unquote(failure_message) || "No message matching #{unquote(binary)} after #{timeout}ms."
-              flunk(failure_message <>
+              flunk(unquote(failure_message_miss) <>
                     ExUnit.Assertions.__pins__(unquote(pins)) <>
                     ExUnit.Assertions.__mailbox__(messages))
             end
@@ -515,7 +530,7 @@ defmodule ExUnit.Assertions do
     |> elem(1)
   end
 
-  defp no_warning({name, meta, [expr, [do: clauses]]}) do
+  defp suppress_warning({name, meta, [expr, [do: clauses]]}) do
     clauses = Enum.map clauses, fn {:->, meta, args} ->
       {:->, [generated: true] ++ meta, args}
     end
