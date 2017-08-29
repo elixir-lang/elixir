@@ -8,7 +8,7 @@ defmodule Inspect.AlgebraTest do
   import Inspect.Algebra
 
   defp render(doc, limit) do
-    format(doc, limit) |> IO.iodata_to_binary
+    doc |> group() |> format(limit) |> IO.iodata_to_binary
   end
 
   test "empty doc" do
