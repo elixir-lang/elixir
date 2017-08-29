@@ -179,6 +179,12 @@ defmodule ExUnit.AssertionsTest do
     :hello = assert_receive :hello
   end
 
+  test "assert receive accepts custom failure message" do
+    send self(), :hello
+    assert_receive message, 0, "failure message"
+    :hello = message
+  end
+
   test "assert receive with message in mailbox after timeout, but before reading mailbox tells user to increase timeout" do
     parent = self()
     # This is testing a race condition, so it's not
@@ -297,7 +303,7 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test "assert received leaks" do
+  test "assert received binds variables" do
     send self(), {:hello, :world}
     assert_received {:hello, world}
     :world = world
