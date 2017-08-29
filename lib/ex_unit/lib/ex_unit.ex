@@ -299,7 +299,13 @@ defmodule ExUnit do
 
   defp put_seed(opts) do
     Keyword.put_new_lazy(opts, :seed, fn ->
-      rem :os.system_time, 1_000_000
+      # We're using `rem System.system_time()` here
+      # instead of directly using :os.timestamp or using the
+      # :microsecond argument because the VM on Windows has... odd...
+      # precision. Calling with :microsecond will give us a multiple
+      # of 1000. Calling without it gives actual microsecond precision.
+      # Yeah, it's weird.
+      rem System.system_time(), 1_000_000
     end)
   end
 
