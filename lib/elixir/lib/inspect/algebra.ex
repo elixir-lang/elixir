@@ -187,6 +187,7 @@ defmodule Inspect.Algebra do
           | doc_color
           | doc_force
           | doc_cancel
+          | doc_collapse
 
   @typep doc_string :: {:doc_string, t, non_neg_integer}
   defmacrop doc_string(string, length) do
@@ -223,6 +224,11 @@ defmodule Inspect.Algebra do
     quote do: {:doc_force, unquote(group)}
   end
 
+  @typep doc_collapse :: {:doc_collapse, pos_integer()}
+  defmacrop doc_collapse(count) do
+    quote do: {:doc_collapse, unquote(count)}
+  end
+
   @typep doc_color :: {:doc_color, t, IO.ANSI.ansidata}
   defmacrop doc_color(doc, color) do
     quote do: {:doc_color, unquote(doc), unquote(color)}
@@ -246,7 +252,7 @@ defmodule Inspect.Algebra do
       unquote(doc) in [:doc_nil, :doc_line] or
       (is_tuple(unquote(doc)) and
        elem(unquote(doc), 0) in [:doc_string, :doc_cons, :doc_nest, :doc_break, :doc_group,
-                                 :doc_color, :doc_force, :doc_cancel])
+                                 :doc_color, :doc_force, :doc_cancel, :doc_collapse])
     end
   end
 
@@ -461,6 +467,15 @@ defmodule Inspect.Algebra do
   @spec break(binary) :: doc_break
   def break(string \\ " ") when is_binary(string) do
     doc_break(string, :strict)
+  end
+
+  @doc """
+  Collapse any new lines and whitespace following this
+  node and emitting up to `max` new lines.
+  """
+  @spec collapse_lines(pos_integer) :: doc_collapse
+  def collapse_lines(max) when is_integer(max) and max > 0 do
+    doc_collapse(max)
   end
 
   @doc """
@@ -817,6 +832,7 @@ defmodule Inspect.Algebra do
 
   defp fits?(w, k, [{_, _, :doc_nil} | t]),                  do: fits?(w, k, t)
   defp fits?(w, _, [{i, _, :doc_line} | t]),                 do: fits?(w, i, t)
+  defp fits?(w, _, [{i, _, doc_collapse(_)} | t]),           do: fits?(w, i, t)
   defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),            do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
   defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),           do: fits?(w, k, [{i, m, x} | t])
   defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]),    do: fits?(w, k, [{i, m, x} | t])
@@ -838,6 +854,7 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
   defp format(w, k, [{i, m, doc_force(x)} | t]),        do: format(w, k, [{i, m, x} | t])
   defp format(w, k, [{i, m, doc_cancel(x, _)} | t]),    do: format(w, k, [{i, m, x} | t])
+  defp format(w, _, [{i, _, doc_collapse(max)} | t]),   do: collapse(format(w, i, t), max, 0, i)
 
   # Flex breaks are not conditional to the mode
   defp format(w, k, [{i, _, doc_break(s, :flex)} | t]) do
@@ -875,6 +892,16 @@ defmodule Inspect.Algebra do
     else
       format(w, k, [{i, :break, x} | t])
     end
+  end
+
+  defp collapse(["\n" <> _ | t], max, count, i) do
+    collapse(t, max, count + 1, i)
+  end
+  defp collapse(["" | t], max, count, i) do
+    collapse(t, max, count, i)
+  end
+  defp collapse(t, max, count, i) do
+    [:binary.copy("\n", min(max, count)) <> :binary.copy(" ", i) | t]
   end
 
   defp apply_nesting(_, k, :cursor), do: k
