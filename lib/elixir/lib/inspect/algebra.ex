@@ -194,7 +194,7 @@ defmodule Inspect.Algebra do
     quote do: {:doc_cons, unquote(left), unquote(right)}
   end
 
-  @typep doc_nest :: {:doc_nest, t, :cursor | non_neg_integer, :always | :break}
+  @typep doc_nest :: {:doc_nest, t, :cursor | :reset | non_neg_integer, :always | :break}
   defmacrop doc_nest(doc, indent, always_or_break) do
     quote do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)}
   end
@@ -392,7 +392,7 @@ defmodule Inspect.Algebra do
   If `level` is an integer, that's the indentation appended
   to line breaks whenever they occur. If the level is `:cursor`,
   the current position of the "cursor" in the document becomes
-  the nesting.
+  the nesting. If the level is `:reset`, it is set back to 0.
 
   `mode` can be `:always`, which means nesting always happen,
   or `:break`, which means nesting only happens inside a group
@@ -410,6 +410,10 @@ defmodule Inspect.Algebra do
 
   def nest(doc, :cursor, mode) when is_doc(doc) and mode in [:always, :break] do
     doc_nest(doc, :cursor, mode)
+  end
+
+  def nest(doc, :reset, mode) when is_doc(doc) and mode in [:always, :break] do
+    doc_nest(doc, :reset, mode)
   end
 
   def nest(doc, 0, _mode) when is_doc(doc) do
@@ -852,6 +856,7 @@ defmodule Inspect.Algebra do
   end
 
   defp apply_nesting(_, k, :cursor), do: k
+  defp apply_nesting(_, _, :reset), do: 0
   defp apply_nesting(i, _, j), do: i + j
 
   defp ansi(color) do
