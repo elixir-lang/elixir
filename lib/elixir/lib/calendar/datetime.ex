@@ -445,14 +445,14 @@ defmodule DateTime do
   ## Examples
 
       iex> DateTime.from_iso8601!("2015-01-23T00:00:00.000000Z")
-      DateTime<2015-01-23 00:00:00.000000Z>
+      #DateTime<2015-01-23 00:00:00.000000Z>
       iex> DateTime.from_iso8601!("2015:01:23")
-      ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
+      ** (ArgumentError) cannot parse "2015:01:23" as datetime, reason: :invalid_format
   """
   @spec from_iso8601!(String.t) :: t
   def from_iso8601!(string, calendar \\ Calendar.ISO) do
     case from_iso8601(string, calendar) do
-      {:ok, value} ->
+      {:ok, value, _offset} ->
         value
       {:error, reason} ->
         raise ArgumentError, "cannot parse #{inspect string} as datetime, reason: #{inspect reason}"
