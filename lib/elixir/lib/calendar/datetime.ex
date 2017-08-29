@@ -437,7 +437,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Parses the extended "DateTimes" format described by
+  Parses the extended "Date and time of day" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
   Raises if the format is invalid.
