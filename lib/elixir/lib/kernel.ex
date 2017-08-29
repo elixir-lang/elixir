@@ -1793,13 +1793,14 @@ defmodule Kernel do
   @spec inspect(Inspect.t, keyword) :: String.t
   def inspect(term, opts \\ []) when is_list(opts) do
     opts = struct(Inspect.Opts, opts)
-    limit = case opts.pretty do
-      true  -> opts.width
-      false -> :infinity
-    end
-    IO.iodata_to_binary(
-      Inspect.Algebra.format(Inspect.Algebra.to_doc(term, opts), limit)
-    )
+    limit =
+      case opts.pretty do
+        true  -> opts.width
+        false -> :infinity
+      end
+
+    doc = Inspect.Algebra.group(Inspect.Algebra.to_doc(term, opts))
+    IO.iodata_to_binary(Inspect.Algebra.format(doc, limit))
   end
 
   @doc """
