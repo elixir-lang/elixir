@@ -859,7 +859,7 @@ defmodule Inspect.Algebra do
 
   # Groups must do the fitting decision.
   defp format(w, k, [{i, _, doc_group(x)} | t]) do
-    if w == :infinity or fits?(w, k, [{i, :flat, x} | t]) do
+    if w == :infinity or fits?(w, k, [{i, :flat, x}]) do
       format(w, k, [{i, :flat, x} | t])
     else
       format(w, k, [{i, :break, x} | t])
