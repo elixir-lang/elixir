@@ -115,12 +115,14 @@ defmodule Inspect.Algebra do
 
   The functions `nest/2`, `space/2` and `line/2` help you put the
   document together into a rigid structure. However, the document
-  algebra gets interesting when using functions like `break/1`, which
-  converts the given string into a line break depending on how much space
-  there is to print. Let's glue two docs together with a break and then
-  render it:
+  algebra gets interesting when using functions like `glue/3` and
+  `group/1`. A glue inserts a break between two documents. A group
+  indicates a document that must fit the current line, otherwise
+  breaks are rendered as new lines. Let's glue two docs together
+  with a break, group it and then render it:
 
       iex> doc = Inspect.Algebra.glue("a", " ", "b")
+      iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 80)
       ["a", " ", "b"]
 
@@ -128,6 +130,7 @@ defmodule Inspect.Algebra do
   a line limit. Once we do, it is replaced by a newline:
 
       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
+      iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 10)
       ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
 
@@ -326,6 +329,7 @@ defmodule Inspect.Algebra do
   does not format to width 9 without breaks:
 
       iex> doc = Inspect.Algebra.glue("olá", " ", "mundo")
+      iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 9)
       ["olá", "\n", "mundo"]
 
@@ -334,6 +338,7 @@ defmodule Inspect.Algebra do
 
       iex> string = Inspect.Algebra.string("olá")
       iex> doc = Inspect.Algebra.glue(string, " ", "mundo")
+      iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 9)
       ["olá", " ", "mundo"]
 
@@ -401,6 +406,7 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = Inspect.Algebra.nest(Inspect.Algebra.glue("hello", "world"), 5)
+      iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 5)
       ["hello", "\n     ", "world"]
 
@@ -446,6 +452,7 @@ defmodule Inspect.Algebra do
 
       iex> break = Inspect.Algebra.break("\t")
       iex> doc = Inspect.Algebra.concat([String.duplicate("a", 20), break, "b"])
+      iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 10)
       ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
 
@@ -651,6 +658,7 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = Inspect.Algebra.surround("[", Inspect.Algebra.glue("a", "b"), "]")
+      iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 3)
       ["[", "a", "\n ", "b", "]"]
 
@@ -763,18 +771,21 @@ defmodule Inspect.Algebra do
   and returns an IO data representation of the best layout for the
   document to fit in the given width.
 
+  The document starts flat (without breaks) until a group is found.
+
   ## Examples
 
       iex> doc = Inspect.Algebra.glue("hello", " ", "world")
-      iex> Inspect.Algebra.format(doc, 30) |> IO.iodata_to_binary()
+      iex> doc = Inspect.Algebra.group(doc)
+      iex> doc |> Inspect.Algebra.format(30) |> IO.iodata_to_binary()
       "hello world"
-      iex> Inspect.Algebra.format(doc, 10) |> IO.iodata_to_binary()
+      iex> doc |> Inspect.Algebra.format(10) |> IO.iodata_to_binary()
       "hello\nworld"
 
   """
   @spec format(t, non_neg_integer | :infinity) :: iodata
   def format(doc, width) when is_doc(doc) and (width == :infinity or width >= 0) do
-    format(width, 0, [{0, :flat, group(doc)}])
+    format(width, 0, [{0, :flat, doc}])
   end
 
   # Type representing the document mode to be rendered
