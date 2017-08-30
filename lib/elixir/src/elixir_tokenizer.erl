@@ -438,10 +438,10 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when ?is_horizontal_space(T) -
 % End of line
 
 tokenize(";" ++ Rest, Line, Column, Scope, []) ->
-  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, {Column, Column + 1}, nil}}]);
+  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, {Column, Column + 1}, 0}}]);
 
 tokenize(";" ++ Rest, Line, Column, Scope, [Top | _] = Tokens) when element(1, Top) /= ';' ->
-  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, {Column, Column + 1}, nil}} | Tokens]);
+  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, {Column, Column + 1}, 0}} | Tokens]);
 
 tokenize("\\" = Original, Line, _Column, _Scope, Tokens) ->
   {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
@@ -671,10 +671,14 @@ handle_space_sensitive_tokens(String, Line, Column, Scope, Tokens) ->
 
 %% Helpers
 
-eol(_Line, _Column, [{';', _} | _] = Tokens) -> Tokens;
-eol(_Line, _Column, [{',', _} | _] = Tokens) -> Tokens;
-eol(_Line, _Column, [{eol, _} | _] = Tokens) -> Tokens;
-eol(Line, Column, Tokens) -> [{eol, {Line, {Column, Column + 1}, nil}} | Tokens].
+eol(_Line, _Column, [{',', _} | _] = Tokens) ->
+  Tokens;
+eol(_Line, _Column, [{';', {Line, Column, Count}} | Tokens]) ->
+  [{';', {Line, Column, Count + 1}} | Tokens];
+eol(_Line, _Column, [{eol, {Line, Column, Count}} | Tokens]) ->
+  [{eol, {Line, Column, Count + 1}} | Tokens];
+eol(Line, Column, Tokens) ->
+  [{eol, {Line, {Column, Column + 1}, 1}} | Tokens].
 
 unsafe_to_atom(Part, Line, #elixir_tokenizer{}) when
     is_binary(Part) andalso size(Part) > 255;

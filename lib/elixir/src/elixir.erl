@@ -282,7 +282,7 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
         {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
       after
         erase(elixir_parser_file),
-        erase(wrap_literals_in_blocks)
+        erase(elixir_formatter_metadata)
       end;
     {error, {Line, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
       {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
@@ -302,11 +302,7 @@ to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
 to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, utf8).
 
 handle_parsing_opts(File, Opts) ->
-  WrapLiteralsInBlocks =
-    case lists:keyfind(wrap_literals_in_blocks, 1, Opts) of
-      {wrap_literals_in_blocks, true} -> true;
-      _ -> false
-    end,
-
+  FormatterMetadata =
+    lists:keyfind(formatter_metadata, 1, Opts) == {formatter_metadata, true},
   put(elixir_parser_file, File),
-  put(wrap_literals_in_blocks, WrapLiteralsInBlocks).
+  put(elixir_formatter_metadata, FormatterMetadata).
