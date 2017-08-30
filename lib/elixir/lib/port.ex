@@ -246,6 +246,40 @@ defmodule Port do
   end
 
   @doc """
+  Starts monitoring the given `port` from the calling process.
+
+  Once the monitored port process dies, a message is delivered to the
+  monitoring process in the shape of:
+
+      {:DOWN, ref, :port, object, reason}
+
+  where:
+
+    * `ref` is a monitor reference returned by this function;
+    * `object` is either the `port` being monitored (when monitoring by port id)
+    or `{name, node}` (when monitoring by a port name);
+    * `reason` is the exit reason.
+
+  See `:erlang.monitor/2` for more info.
+  """
+  @spec monitor(port) :: reference
+  def monitor(port) do
+    :erlang.monitor(:port, port)
+  end
+
+  @doc """
+  Demonitors the monitor identifies by the given `reference`.
+
+  If `monitor_ref` is a reference which the calling process
+  obtained by calling `monitor/1`, that monitoring is turned off.
+  If the monitoring is already turned off, nothing happens.
+
+  See `:erlang.demonitor/2` for more info.
+  """
+  @spec demonitor(reference, options :: [:flush | :info]) :: boolean
+  defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
+
+  @doc """
   Returns a list of all ports in the current node.
 
   Inlined by the compiler.
