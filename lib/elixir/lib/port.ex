@@ -270,7 +270,7 @@ defmodule Port do
   end
 
   @doc """
-  Demonitors the monitor identifies by the given `reference`.
+  Demonitors the monitor identified by the given `reference`.
 
   If `monitor_ref` is a reference which the calling process
   obtained by calling `monitor/1`, that monitoring is turned off.
