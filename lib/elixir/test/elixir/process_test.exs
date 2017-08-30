@@ -24,11 +24,6 @@ defmodule ProcessTest do
     assert Process.group_leader == another
   end
 
-  test "monitoring functions are inlined by the compiler" do
-    assert expand(quote(do: Process.monitor(pid())), __ENV__) ==
-           quote(do: :erlang.monitor(:process, pid()))
-  end
-
   test "sleep/1" do
     assert Process.sleep(0) == :ok
   end
