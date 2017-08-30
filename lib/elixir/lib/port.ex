@@ -261,6 +261,8 @@ defmodule Port do
     * `reason` is the exit reason.
 
   See `:erlang.monitor/2` for more info.
+
+  Inlined by the compiler.
   """
   @spec monitor(port) :: reference
   def monitor(port) do
@@ -275,6 +277,8 @@ defmodule Port do
   If the monitoring is already turned off, nothing happens.
 
   See `:erlang.demonitor/2` for more info.
+
+  Inlined by the compiler.
   """
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
   defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
