@@ -28,6 +28,22 @@ defmodule ProcessTest do
     assert Process.sleep(0) == :ok
   end
 
+  test "whereis/1" do
+    {:ok, pid} = Agent.start_link((fn -> 1 end), name: :zap)
+    assert Process.whereis(:zap) == pid
+  end
+
+  test "whereis/1 with Registry" do
+    Registry.start_link(keys: :unique, name: Registry.ViaTest)
+    name = {:via, Registry, {Registry.ViaTest, "agent"}}
+    {:ok, pid } = Agent.start(fn -> 0 end, name: name)
+
+    assert Process.whereis(name) == pid
+    assert Process.whereis({:via, Registry, {Registry.ViaTest, :none}}) == nil
+
+  end
+
+
   test "info/2" do
     pid = spawn fn -> Process.sleep(1000) end
     assert Process.info(pid, :priority) == {:priority, :normal}

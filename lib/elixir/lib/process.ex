@@ -526,8 +526,20 @@ defmodule Process do
   See `:erlang.whereis/1` for more info.
   """
   @spec whereis(atom) :: pid | port | nil
-  def whereis(name) do
+  def whereis(name) when is_atom(name) do
     nillify :erlang.whereis(name)
+  end
+
+  @doc """
+  Returns the PID or port identifier registered inside a `Registry` under `name` or `nil` if the
+  `name` is not registered.
+
+  See `Registry.whereis_name/1` for more info.
+  """
+  @spec whereis({:via, Registry, {atom, any}}) :: pid | port | nil
+  def whereis({:via, Registry, {registry, _key} = name}) when is_atom(registry) do
+    result = Registry.whereis_name name
+    if result == :undefined, do: nil, else: result
   end
 
   @doc """
