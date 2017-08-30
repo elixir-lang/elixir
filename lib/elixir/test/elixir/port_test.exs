@@ -18,4 +18,17 @@ defmodule PortTest do
     assert Port.info(port, :registered_name) == nil
     assert Port.info(port) == nil
   end
+
+  test "monitoring functions are inlined by the compiler" do
+    assert expand(quote(do: Port.monitor(port())), __ENV__) ==
+           quote(do: :erlang.monitor(:port, port()))
+
+    assert expand(quote(do: Port.demonitor(port())), __ENV__) ==
+           quote(do: :erlang.demonitor(port()))
+  end
+
+  defp expand(expr, env) do
+    {expr, _env} = :elixir_expand.expand(expr, env)
+    expr
+  end
 end
