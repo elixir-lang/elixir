@@ -173,7 +173,13 @@ defmodule Registry do
 
   ## Via callbacks
 
-  @doc false
+  @doc """
+  Returns the PID or port identifier registered under `key` or `:undefined` if the
+  `key` is not registered.
+
+  See `Process.whereis/1` for more info.
+  """
+  @spec whereis_name({atom, any}) :: pid | port | :undefined
   def whereis_name({registry, key}) do
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
