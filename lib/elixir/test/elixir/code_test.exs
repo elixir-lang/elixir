@@ -125,12 +125,12 @@ defmodule CodeTest do
     end
   end
 
-  test "string_to_quoted!/2 raises with the :existing_atoms_only option" do
+  test "string_to_quoted!/2 raises with :existing_atoms_only" do
     assert catch_error(Code.string_to_quoted!(":there_is_no_such_atom", existing_atoms_only: true)) == :badarg
   end
 
-  test "string_to_quoted/2 with the :wrap_literals_in_blocks option set to true" do
-    string_to_quoted = &Code.string_to_quoted!(&1, wrap_literals_in_blocks: true)
+  test "string_to_quoted/2 with :formatter_metadata wraps literals in blocks" do
+    string_to_quoted = &Code.string_to_quoted!(&1, formatter_metadata: true)
 
     assert string_to_quoted.(~s("one")) ==
            {:__block__, [format: :string, line: 1], ["one"]}
@@ -160,6 +160,30 @@ defmodule CodeTest do
            {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}
     assert string_to_quoted.("'''\nhello\n'''") ==
            {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}
+  end
+
+  test "string_to_quoted/2 with :formatter_metadata adds newlines to blocks" do
+    file = """
+    one;two
+    three
+
+    four
+
+
+    five
+    """
+
+    assert Code.string_to_quoted!(file, formatter_metadata: true) == {
+             :__block__,
+             [],
+             [
+               {:one, [line: 1], nil},
+               {:two, [newlines: 0, line: 1], nil},
+               {:three, [newlines: 1, line: 2], nil},
+               {:four, [newlines: 2, line: 4], nil},
+               {:five, [newlines: 3, line: 7], nil}
+             ]
+           }
   end
 
   test "compile source" do

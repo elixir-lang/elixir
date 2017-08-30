@@ -81,15 +81,15 @@ Nonassoc 330 dot_identifier.
 %%% MAIN FLOW OF EXPRESSIONS
 
 grammar -> eoe : {'__block__', meta_from_token('$1'), []}.
-grammar -> expr_list : to_block('$1').
-grammar -> eoe expr_list : to_block('$2').
-grammar -> expr_list eoe : to_block('$1').
-grammar -> eoe expr_list eoe : to_block('$2').
+grammar -> expr_list : build_block(reverse('$1')).
+grammar -> eoe expr_list : build_block(reverse('$2')).
+grammar -> expr_list eoe : build_block(reverse('$1')).
+grammar -> eoe expr_list eoe : build_block(reverse('$2')).
 grammar -> '$empty' : {'__block__', [], []}.
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
-expr_list -> expr_list eoe expr : ['$3' | '$1'].
+expr_list -> expr_list eoe expr : [annotate_newlines('$2', '$3') | '$1'].
 
 expr -> matched_expr : '$1'.
 expr -> no_parens_expr : '$1'.
@@ -261,7 +261,7 @@ access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
 access_expr -> max_expr : '$1'.
 
-%% Augment integer literals with representation format if wrap_literals_in_blocks option is true
+%% Augment integer literals with representation format if formatter_metadata option is true
 number -> int : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
 number -> float : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
 
@@ -313,7 +313,7 @@ block_eoe -> block_identifier : '$1'.
 block_eoe -> block_identifier eoe : '$1'.
 
 stab -> stab_expr : ['$1'].
-stab -> stab eoe stab_expr : ['$3' | '$1'].
+stab -> stab eoe stab_expr : [annotate_newlines('$2', '$3') | '$1'].
 
 stab_eoe -> stab : '$1'.
 stab_eoe -> stab eoe : '$1'.
@@ -612,6 +612,7 @@ map -> struct_op map_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4
 Erlang code.
 
 -define(file(), get(elixir_parser_file)).
+-define(formatter_metadata(), get(elixir_formatter_metadata)).
 -define(id(Token), element(1, Token)).
 -define(location(Token), element(2, Token)).
 -define(exprs(Token), element(3, Token)).
@@ -634,7 +635,7 @@ handle_literal(Literal, Token) ->
   handle_literal(Literal, Token, []).
 
 handle_literal(Literal, Token, ExtraMeta) ->
-  case get(wrap_literals_in_blocks) of
+  case ?formatter_metadata() of
     true -> {'__block__', ExtraMeta ++ meta_from_token(Token), [Literal]};
     false -> Literal
   end.
@@ -683,11 +684,19 @@ build_block([Expr]) ->
 build_block(Exprs) ->
   {'__block__', [], Exprs}.
 
+annotate_newlines({_, {_, _, Count}}, {Left, Meta, Right}) when is_list(Meta) ->
+  case ?formatter_metadata() of
+    true -> {Left, [{newlines, Count} | Meta], Right};
+    false -> {Left, Meta, Right}
+  end;
+annotate_newlines(_, Expr) ->
+  Expr.
+
 %% Dots
 
 build_alias(Dot, Left, {'alias', _, Right}) ->
   Meta =
-    case get(wrap_literals_in_blocks) of
+    case ?formatter_metadata() of
       true -> [{format, alias}] ++ meta_from_token(Dot);
       false -> meta_from_token(Dot)
     end,
@@ -764,7 +773,7 @@ build_bin_string({bin_string, _Location, [H]} = Token, ExtraMeta) when is_binary
   handle_literal(H, Token, ExtraMeta);
 build_bin_string({bin_string, Location, Args}, ExtraMeta) ->
   Meta =
-    case get(wrap_literals_in_blocks) of
+    case ?formatter_metadata() of
       true -> ExtraMeta ++ meta_from_location(Location);
       false -> meta_from_location(Location)
     end,
@@ -775,7 +784,7 @@ build_list_string({list_string, _Location, [H]} = Token, ExtraMeta) when is_bina
 build_list_string({list_string, Location, Args}, ExtraMeta) ->
   Meta = meta_from_location(Location),
   MetaWithExtra =
-    case get(wrap_literals_in_blocks) of
+    case ?formatter_metadata() of
       true -> ExtraMeta ++ Meta;
       false -> Meta
     end,
@@ -787,7 +796,7 @@ build_quoted_atom({_, _Location, [H]} = Token, Safe, ExtraMeta) when is_binary(H
 build_quoted_atom({_, Location, Args}, Safe, ExtraMeta) ->
   Meta = meta_from_location(Location),
   MetaWithExtra =
-    case get(wrap_literals_in_blocks) of
+    case ?formatter_metadata() of
       true -> ExtraMeta ++ Meta;
       false -> Meta
     end,
@@ -839,8 +848,8 @@ build_stab(Meta, [], Marker, Temp, Acc) ->
 %% from such blocks.
 unwrap_splice([{'__block__', [], [{unquote_splicing, _, _}] = Splice}]) ->
   Splice;
-
-unwrap_splice(Other) -> Other.
+unwrap_splice(Other) ->
+  Other.
 
 unwrap_when(Args) ->
   case elixir_utils:split_last(Args) of
@@ -849,9 +858,6 @@ unwrap_when(Args) ->
     {_, _} ->
       Args
   end.
-
-to_block([One]) -> One;
-to_block(Other) -> {'__block__', [], reverse(Other)}.
 
 %% Warnings and errors
 
