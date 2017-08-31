@@ -145,10 +145,10 @@ build_reduce(Clauses, Expr, {nil, Ann} = Into, Acc, S) ->
   ListExpr = {cons, Ann, Expr, Acc},
   elixir_erl:remote(Ann, lists, reverse,
     [build_reduce_clause(Clauses, ListExpr, Into, Acc, S)]);
-build_reduce(Clauses, Expr, {bin, _, _} = Into, Acc, S) ->
-  {bin, Ann, Elements} = Expr,
-  BinExpr = {bin, Ann, [{bin_element, Ann, Acc, default, [bitstring]} | Elements]},
-  build_reduce_clause(Clauses, BinExpr, Into, Acc, S).
+build_reduce(Clauses, Expr, {bin, Ann, _} = Into, Acc, S) ->
+  BinExpr = {cons, Ann, Acc, Expr},
+  elixir_erl:remote(Ann, erlang, iolist_to_binary,
+    [build_reduce_clause(Clauses, BinExpr, Into, Acc, S)]).
 
 build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
