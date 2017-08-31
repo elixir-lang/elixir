@@ -323,17 +323,17 @@ stab_eoe -> stab eoe : '$1'.
 stab_expr -> expr :
                '$1'.
 stab_expr -> stab_op_eol_and_expr :
-               build_op(element(1, '$1'), [], element(2, '$1')).
+               build_stab_op('$1', [], element(2, '$1')).
 stab_expr -> empty_paren stab_op_eol_and_expr :
-               build_op(element(1, '$2'), [], element(2, '$2')).
+               build_stab_op('$2', [], element(2, '$2')).
 stab_expr -> empty_paren when_op expr stab_op_eol_and_expr :
-               build_op(element(1, '$4'), [{'when', meta_from_token('$2'), ['$3']}], element(2, '$4')).
+               build_stab_op('$4', [{'when', meta_from_token('$2'), ['$3']}], element(2, '$4')).
 stab_expr -> call_args_no_parens_all stab_op_eol_and_expr :
-               build_op(element(1, '$2'), unwrap_when(unwrap_splice('$1')), element(2, '$2')).
+               build_stab_op('$2', unwrap_when(unwrap_splice('$1')), element(2, '$2')).
 stab_expr -> stab_parens_many stab_op_eol_and_expr :
-               build_op(element(1, '$2'), unwrap_splice('$1'), element(2, '$2')).
+               build_stab_op('$2', unwrap_splice('$1'), element(2, '$2')).
 stab_expr -> stab_parens_many when_op expr stab_op_eol_and_expr :
-               build_op(element(1, '$4'), [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], element(2, '$4')).
+               build_stab_op('$4', [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], element(2, '$4')).
 
 stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', nil}.
@@ -356,17 +356,17 @@ close_paren -> eol ')' : '$2'.
 empty_paren -> open_paren ')' : '$1'.
 
 open_bracket  -> '['     : '$1'.
-open_bracket  -> '[' eol : '$1'.
+open_bracket  -> '[' eol : set_eol('$1').
 close_bracket -> ']'     : '$1'.
 close_bracket -> eol ']' : '$2'.
 
 open_bit  -> '<<'     : '$1'.
-open_bit  -> '<<' eol : '$1'.
+open_bit  -> '<<' eol : set_eol('$1').
 close_bit -> '>>'     : '$1'.
 close_bit -> eol '>>' : '$2'.
 
 open_curly  -> '{'     : '$1'.
-open_curly  -> '{' eol : '$1'.
+open_curly  -> '{' eol : set_eol('$1').
 close_curly -> '}'     : '$1'.
 close_curly -> eol '}' : '$2'.
 
@@ -419,7 +419,7 @@ when_op_eol -> when_op : '$1'.
 when_op_eol -> when_op eol : '$1'.
 
 stab_op_eol -> stab_op : '$1'.
-stab_op_eol -> stab_op eol : '$1'.
+stab_op_eol -> stab_op eol : set_eol('$1').
 
 at_op_eol -> at_op : '$1'.
 at_op_eol -> at_op eol : '$1'.
@@ -624,10 +624,11 @@ Erlang code.
 -compile([{hipe, [{regalloc, linear_scan}]}]).
 -import(lists, [reverse/1, reverse/2]).
 
-meta_from_token(Token) -> meta_from_location(?location(Token)).
+meta_from_token(Token) ->
+  meta_from_location(?location(Token)).
 
-meta_from_location({Line, {Column, EndColumn}, _})
-  when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}].
+meta_from_location({Line, {_Column, _EndColumn}, _}) when is_integer(Line) ->
+  [{line, Line}].
 
 %% Handle metadata in literals
 
@@ -657,21 +658,22 @@ build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
 
 build_list(Marker, Args) ->
-  {handle_literal(Args, Marker), ?location(Marker)}.
+  {handle_literal(Args, Marker, eol_pair(Marker)), ?location(Marker)}.
 
 build_tuple(Marker, [Left, Right]) ->
-  handle_literal({Left, Right}, Marker);
+  handle_literal({Left, Right}, Marker, eol_pair(Marker));
 build_tuple(Marker, Args) ->
-  {'{}', meta_from_token(Marker), Args}.
+  {'{}', eol_pair(Marker) ++ meta_from_token(Marker), Args}.
 
 build_bit(Marker, Args) ->
-  {'<<>>', meta_from_token(Marker), Args}.
+  {'<<>>', eol_pair(Marker) ++ meta_from_token(Marker), Args}.
 
 build_map(Marker, Args) ->
-  {'%{}', meta_from_token(Marker), Args}.
+  {'%{}', eol_pair(Marker) ++ meta_from_token(Marker), Args}.
 
 build_map_update(Marker, {Pipe, Left, Right}, Extra) ->
-  {'%{}', meta_from_token(Marker), [build_op(Pipe, Left, Right ++ Extra)]}.
+  Op = build_op(Pipe, Left, Right ++ Extra),
+  {'%{}', eol_pair(Marker) ++ meta_from_token(Marker), [Op]}.
 
 %% Blocks
 
@@ -684,7 +686,24 @@ build_block([Expr]) ->
 build_block(Exprs) ->
   {'__block__', [], Exprs}.
 
-annotate_newlines({_, {_, _, Count}}, {Left, Meta, Right}) when is_list(Meta) ->
+%% End of line and newlines
+
+eol_pair(Token) ->
+  case ?formatter_metadata() of
+    true ->
+      case ?location(Token) of
+        {_Line, _Pair, eol} -> [{eol, true}];
+        _ -> []
+      end;
+    false ->
+      []
+  end.
+
+set_eol(Token) ->
+  {Line, Column, nil} = ?location(Token),
+  setelement(2, Token, {Line, Column, eol}).
+
+annotate_newlines({_, {_, _, Count}}, {Left, Meta, Right}) when is_integer(Count), is_list(Meta) ->
   case ?formatter_metadata() of
     true -> {Left, [{newlines, Count} | Meta], Right};
     false -> {Left, Meta, Right}
@@ -838,6 +857,9 @@ build_stab(Meta, [H | T], Marker, Temp, Acc) ->
 build_stab(Meta, [], Marker, Temp, Acc) ->
   H = {'->', Meta, [Marker, build_block(reverse(Temp))]},
   reverse([H | Acc]).
+
+build_stab_op({Token, _}, Left, Right) ->
+  {'->', eol_pair(Token) ++ meta_from_token(Token), [Left, Right]}.
 
 %% Every time the parser sees a (unquote_splicing())
 %% it assumes that a block is being spliced, wrapping
