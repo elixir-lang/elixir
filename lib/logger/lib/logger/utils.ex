@@ -138,13 +138,8 @@ defmodule Logger.Utils do
     width: :none
   }
 
-  defp handle_format_spec(%{control_char: char} = spec, opts)
-       when char in 'wWpP' do
-    %{
-      args: args,
-      width: width,
-      strings: strings?
-    } = spec
+  defp handle_format_spec(%{control_char: char} = spec, opts) when char in 'wWpP' do
+    %{args: args, width: width, strings: strings?} = spec
 
     opts = %{
       opts |
