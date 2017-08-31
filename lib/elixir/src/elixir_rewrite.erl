@@ -146,6 +146,8 @@ inline(?port, close, 1) -> {erlang, port_close};
 inline(?port, command, 2) -> {erlang, port_command};
 inline(?port, command, 3) -> {erlang, port_command};
 inline(?port, connect, 2) -> {erlang, port_connect};
+inline(?port, demonitor, 1) -> {erlang, demonitor};
+inline(?port, demonitor, 2) -> {erlang, demonitor};
 inline(?port, list, 0) -> {erlang, ports};
 
 inline(?string, to_float, 1) -> {erlang, binary_to_float};
@@ -211,6 +213,8 @@ rewrite(?process, send_after, [Dest, Msg, Time]) ->
   {erlang, send_after, [Time, Dest, Msg]};
 rewrite(?process, send_after, [Dest, Msg, Time, Opts]) ->
   {erlang, send_after, [Time, Dest, Msg, Opts]};
+rewrite(?port, monitor, [Arg]) ->
+  {erlang, monitor, [port, Arg]};
 rewrite(?string, to_atom, [Arg]) ->
   {erlang, binary_to_atom, [Arg, utf8]};
 rewrite(?string, to_existing_atom, [Arg]) ->
