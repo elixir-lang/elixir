@@ -18,4 +18,15 @@ defmodule PortTest do
     assert Port.info(port, :registered_name) == nil
     assert Port.info(port) == nil
   end
+
+  test "monitor/1 does monitor the given port" do
+    port = Port.open({:spawn, "echo monitor_test"}, [:binary])
+
+    assert ref = Port.monitor(port)
+
+    assert_receive {^port, {:data, "monitor_test\n"}}
+    assert_receive {:DOWN, ^ref, :port, ^port, :normal}
+
+    assert Port.demonitor(ref) == true
+  end
 end
