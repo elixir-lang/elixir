@@ -84,22 +84,37 @@ defmodule Logger.Utils do
   Receives a format string and arguments and replace `~p`,
   `~P`, `~w` and `~W` by its inspected variants.
   """
-  def inspect(format, args, truncate, opts \\ %Inspect.Opts{})
-
-  def inspect(format, args, truncate, opts) when is_atom(format) do
-    do_inspect(Atom.to_charlist(format), args, truncate, opts)
+  def inspect(format, args, truncate, opts \\ %Inspect.Opts{}) do
+    format
+    |> scan_inspect(args, truncate, opts)
+    |> :io_lib.unscan_format()
   end
 
-  def inspect(format, args, truncate, opts) when is_binary(format) do
-    do_inspect(:binary.bin_to_list(format), args, truncate, opts)
+  @doc """
+  Receives a format string and arguments, scans them, and then replace `~p`,
+  `~P`, `~w` and `~W` by its inspected variants.
+
+  For information about format scanning and how to consume them,
+  check `:io_lib.scan_format/2`
+  """
+  def scan_inspect(format, args, truncate, opts \\ %Inspect.Opts{})
+
+  def scan_inspect(format, args, truncate, opts) when is_atom(format) do
+    do_scan_inspect(Atom.to_charlist(format), args, truncate, opts)
   end
 
-  def inspect(format, args, truncate, opts) when is_list(format) do
-    do_inspect(format, args, truncate, opts)
+  def scan_inspect(format, args, truncate, opts) when is_binary(format) do
+    do_scan_inspect(:binary.bin_to_list(format), args, truncate, opts)
   end
 
-  defp do_inspect(format, [], _truncate, _opts), do: {format, []}
-  defp do_inspect(format, args, truncate, opts) do
+  def scan_inspect(format, args, truncate, opts) when is_list(format) do
+    do_scan_inspect(format, args, truncate, opts)
+  end
+
+  defp do_scan_inspect(format, [], _truncate, _opts) do
+    :io_lib.scan_format(format, [])
+  end
+  defp do_scan_inspect(format, args, truncate, opts) do
     # A pre-pass that removes binaries from
     # arguments according to the truncate limit.
     {args, _} = Enum.map_reduce(args, truncate, fn arg, acc ->
@@ -112,18 +127,17 @@ defmodule Logger.Utils do
 
     format
     |> :io_lib.scan_format(args)
-    |> do_inspect(opts, [])
-    |> :io_lib.unscan_format()
+    |> handle_format_list(opts, [])
   end
 
-  defp do_inspect([], _opts, acc),
+  defp handle_format_list([], _opts, acc),
     do: :lists.reverse(acc)
-  defp do_inspect([map | t], opts, acc) when is_map(map),
-    do: do_inspect(t, opts, [handle_format_map(map, opts) | acc])
-  defp do_inspect([h | t], opts, acc),
-    do: do_inspect(t, opts, [h | acc])
+  defp handle_format_list([spec | t], opts, acc) when is_map(spec),
+    do: handle_format_list(t, opts, [handle_format_spec(spec, opts) | acc])
+  defp handle_format_list([h | t], opts, acc),
+    do: handle_format_list(t, opts, [h | acc])
 
-  @inspected_format_map %{
+  @inspected_format_spec %{
     adjust: :right,
     args: [],
     control_char: ?s,
@@ -134,18 +148,18 @@ defmodule Logger.Utils do
     width: :none
   }
 
-  defp handle_format_map(%{control_char: char} = map, opts) when char in 'wWpP',
-    do: %{@inspected_format_map | args: [inspect_data(map, opts)]}
-  defp handle_format_map(map, _opts),
-    do: map
+  defp handle_format_spec(%{control_char: char} = spec, opts) when char in 'wWpP',
+    do: %{@inspected_format_spec | args: [inspect_data(spec, opts)]}
+  defp handle_format_spec(spec, _opts),
+    do: spec
 
-  defp inspect_data(%{strings: false} = map, opts) do
-    map
+  defp inspect_data(%{strings: false} = spec, opts) do
+    spec
     |> Map.delete(:strings)
     |> inspect_data(%{opts | charlists: :as_lists})
   end
-  defp inspect_data(%{width: width} = map, opts) do
-    map
+  defp inspect_data(%{width: width} = spec, opts) do
+    spec
     |> Map.delete(:width)
     |> inspect_data(%{opts | width: width})
   end
