@@ -393,7 +393,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec monitor(pid | {reg_name :: atom, node :: atom} | reg_name :: atom) :: reference
+  @spec monitor(pid | {name :: atom, node :: atom} | name :: atom) :: reference
   def monitor(item) do
     :erlang.monitor(:process, item)
   end

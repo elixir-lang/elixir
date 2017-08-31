@@ -24,6 +24,14 @@ defmodule ProcessTest do
     assert Process.group_leader == another
   end
 
+  # In contrast with other inlined functions,
+  # it is important to test that monitor/1 is inlined,
+  # this way we gain the monitor receive optimisation.
+  test "monitor/1 is inlined" do
+    assert expand(quote(do: Process.monitor(pid())), __ENV__) ==
+           quote(do: :erlang.monitor(:process, pid()))
+  end
+
   test "sleep/1" do
     assert Process.sleep(0) == :ok
   end
