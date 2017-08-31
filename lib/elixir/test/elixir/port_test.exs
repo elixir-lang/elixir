@@ -19,14 +19,16 @@ defmodule PortTest do
     assert Port.info(port) == nil
   end
 
-  test "monitor/1 does monitor the given port" do
-    port = Port.open({:spawn, "echo monitor_test"}, [:binary])
+  # In contrast with other inlined functions,
+  # it is important to test that monitor/1 is inlined,
+  # this way we gain the monitor receive optimisation.
+  test "monitor/1 is inlined" do
+    assert expand(quote(do: Port.monitor(port())), __ENV__) ==
+           quote(do: :erlang.monitor(:port, port()))
+  end
 
-    assert ref = Port.monitor(port)
-
-    assert_receive {^port, {:data, "monitor_test\n"}}
-    assert_receive {:DOWN, ^ref, :port, ^port, :normal}
-
-    assert Port.demonitor(ref) == true
+  defp expand(expr, env) do
+    {expr, _env} = :elixir_expand.expand(expr, env)
+    expr
   end
 end
