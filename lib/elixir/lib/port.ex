@@ -93,7 +93,7 @@ defmodule Port do
 
   Although the above is handy, it means it is impossible to invoke an executable
   that has whitespaces on its name or in any of its arguments. For those reasons,
-  most times it is preferrable to execute `:spawn_executable`.
+  most times it is preferable to execute `:spawn_executable`.
 
   ### spawn_executable
 

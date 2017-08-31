@@ -4283,7 +4283,7 @@ defmodule Kernel do
         use DefaultMod
 
         def foo do
-          "Overriden"
+          "Overridden"
         end
       end
 

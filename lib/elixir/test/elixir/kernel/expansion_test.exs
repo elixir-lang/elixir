@@ -1063,7 +1063,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises on size or unit for literal strings" do
-      assert_raise CompileError, ~r"literal string in bitstring supports only endianess and type specifiers", fn ->
+      assert_raise CompileError, ~r"literal string in bitstring supports only endianness and type specifiers", fn ->
         expand(quote do: <<"foo"::32>>)
       end
     end
@@ -1097,7 +1097,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises for conflicting specifiers" do
-      assert_raise CompileError, ~r"conflicting endianess specification for bit field", fn ->
+      assert_raise CompileError, ~r"conflicting endianness specification for bit field", fn ->
         expand(quote do: <<1::little-big>>)
       end
 

@@ -304,7 +304,7 @@ defmodule ExUnit.DocTestTest.Haiku do
   @moduledoc """
   This module describes the ancient Japanese poem form known as Haiku.
 
-  The Inspect protocol has been overriden for `%Haiku{}`
+  The Inspect protocol has been overridden for `%Haiku{}`
   so that Haikus are shown in a pretty-printed fashion.
 
   This module is part of the DocTest test suite,
