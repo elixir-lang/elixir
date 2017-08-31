@@ -10,15 +10,15 @@ defmodule Kernel.ExpansionTest do
 
   describe "__block__" do
     test "expands to nil when empty" do
-      assert expand(quote do: __block__()) == nil
+      assert expand(quote do: unquote(:__block__)()) == nil
     end
 
     test "expands to argument when arity is 1" do
-      assert expand(quote do: __block__(1)) == 1
+      assert expand(quote do: unquote(:__block__)(1)) == 1
     end
 
     test "is recursive to argument when arity is 1" do
-      assert expand(quote do: __block__(_ = 1, __block__(2))) == quote do: __block__(_ = 1, 2)
+      assert expand(quote do: unquote(:__block__)(_ = 1, unquote(:__block__)(2))) == quote do: __block__(_ = 1, 2)
     end
 
     test "accumulates vars" do
