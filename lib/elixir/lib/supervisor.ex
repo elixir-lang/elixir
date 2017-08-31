@@ -140,7 +140,7 @@ defmodule Supervisor do
   When a supervisor shuts down, it terminates all children in the opposite
   order they are listed. The termination happens by sending a shutdown exit
   signal to the child process and then awaiting for a time interval, which
-  defaults to 5000 miliseconds, for the child process to terminate. If the
+  defaults to 5000 milliseconds, for the child process to terminate. If the
   child process does not terminate, it is abruptly terminated with reason
   `:brutal_kill`. The shutdown time can be configured in the child specification
   which is detailed in the next section.
@@ -205,7 +205,7 @@ defmodule Supervisor do
   and the `:shutdown` is `:infinity`. Still, if you need to customize
   a certain behaviour, you can do so by defining your own `child_spec/1`
   function or by passing options on `use`. For example, to specify a
-  `GenServer` with a shutdown limit of 10 seconds (10_000 miliseconds),
+  `GenServer` with a shutdown limit of 10 seconds (10_000 milliseconds),
   one might do:
 
       use GenServer, shutdown: 10_000
@@ -219,12 +219,12 @@ defmodule Supervisor do
     * `:brutal_kill` - the child process is unconditionally terminated
       using `Process.exit(child, :kill)`.
 
-    * any integer >= 0 - the amount of time in miliseconds that the
+    * any integer >= 0 - the amount of time in milliseconds that the
       supervisor will wait for children to terminate after emitting a
       `Process.exit(child, :shutdown)` signal. If the child process is
       not trapping exits, the initial `:shutdown` signal will terminate
       the child process immediately. If the child process is trapping
-      exits, it has the given amount of time in miliseconds to terminate.
+      exits, it has the given amount of time in milliseconds to terminate.
       If it doesn't terminate within the specified time, the child process
       is unconditionally terminated by the supervisor via
       `Process.exit(child, :kill)`.

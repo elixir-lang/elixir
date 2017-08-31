@@ -121,7 +121,7 @@ allows_fast_compilation({'__block__', _, Exprs}) ->
 allows_fast_compilation({defmodule, _, _}) -> true;
 allows_fast_compilation(_) -> false.
 
-%% Bootstraper
+%% Bootstrapper
 
 bootstrap() ->
   {ok, _} = application:ensure_all_started(elixir),

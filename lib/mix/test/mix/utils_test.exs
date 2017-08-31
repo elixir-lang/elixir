@@ -66,7 +66,7 @@ defmodule Mix.UtilsTest do
 
   @windows? match?({:win32, _}, :os.type)
   unless @windows? do
-    test "symlink or copy erases wrong symblinks" do
+    test "symlink or copy erases wrong symlinks" do
       in_fixture "archive", fn ->
         File.mkdir_p!("_build/archive")
         Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))

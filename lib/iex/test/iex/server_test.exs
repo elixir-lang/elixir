@@ -18,7 +18,7 @@ defmodule IEx.ServerTest do
   end
 
   describe "take_over" do
-    test "allows take over of the shell during boot" do
+    test "allows takeover of the shell during boot" do
       assert capture_io("Y\na+b", fn ->
         server = self()
         boot([], fn ->
@@ -28,7 +28,7 @@ defmodule IEx.ServerTest do
       end) =~ "dbg(1)> "
     end
 
-    test "continues if take over is refused" do
+    test "continues if takeover is refused" do
       assert capture_io("N\n", fn ->
         server = self()
         boot([], fn ->
@@ -49,7 +49,7 @@ defmodule IEx.ServerTest do
     end
   end
 
-  test "pry wraps around take over" do
+  test "pry wraps around takeover" do
     require IEx
     assert capture_io(fn ->
       assert IEx.pry == {:error, :no_iex}

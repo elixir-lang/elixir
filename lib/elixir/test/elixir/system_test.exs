@@ -105,7 +105,7 @@ defmodule SystemTest do
 
     @echo "echo-elixir-test"
 
-    test "cmd/2 with absolute and relative paths win" do
+    test "cmd/2 with absolute and relative Windows paths" do
       echo = tmp_path(@echo)
       File.mkdir_p! Path.dirname(echo)
       File.cp! System.find_executable("cmd"), echo
@@ -136,7 +136,7 @@ defmodule SystemTest do
 
     @echo "echo-elixir-test"
 
-    test "cmd/2 with absolute and relative paths ynix" do
+    test "cmd/2 with absolute and relative Unix paths" do
       echo = tmp_path(@echo)
       File.mkdir_p! Path.dirname(echo)
       File.cp! System.find_executable("echo"), echo

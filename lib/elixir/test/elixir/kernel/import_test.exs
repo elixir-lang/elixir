@@ -114,7 +114,7 @@ defmodule Kernel.ImportTest do
 
   import Bitwise, only: :macros
 
-  test "conflicing imports with only and except" do
+  test "conflicting imports with only and except" do
     import Bitwise, only: :macros, except: [bnot: 1]
     import MessedBitwise, only: [bnot: 1]
     assert bnot(0) == 0

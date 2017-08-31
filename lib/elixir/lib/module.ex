@@ -326,7 +326,7 @@ defmodule Module do
     * the function/macro name
     * the list of quoted arguments
     * the list of quoted guards
-    * the squoted function body
+    * the quoted function body
 
   Note the hook receives the quoted arguments and it is invoked before
   the function is stored in the module. So `Module.defines?/2` will return
@@ -680,8 +680,8 @@ defmodule Module do
     {simplify_var(var, nil), acc}
   end
 
-  # If we have only the varible as argument, it also gets
-  # higher priority. However, if the variable starts with
+  # If we have only the variable as argument, it also gets
+  # higher priority. However, if the variable starts with an
   # underscore, we give it a secondary context (Elixir) with
   # lower priority.
   defp simplify_signature({var, _, atom}, acc) when is_atom(atom) do

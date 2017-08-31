@@ -37,7 +37,7 @@ defmodule Calendar do
 
   This is the amount of days including the fractional part that has passed of
   the last day since 0000-01-01+00:00T00:00.00000 in ISO 8601 notation (also
-  known as midnight 1 January BC 1 of the Proleptic Gregorian Calendar).
+  known as midnight 1 January BC 1 of the proleptic Gregorian calendar).
 
   The `parts_per_day` represent how many subparts the current day is subdivided in
   (for different calendars, picking a different `parts_per_day` might make sense).

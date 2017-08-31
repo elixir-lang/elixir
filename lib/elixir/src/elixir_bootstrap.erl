@@ -1,5 +1,5 @@
 %% An Erlang module that behaves like an Elixir module
-%% used for bootstraping.
+%% used for bootstrapping.
 -module(elixir_bootstrap).
 -export(['MACRO-def'/2, 'MACRO-def'/3, 'MACRO-defp'/3, 'MACRO-defmodule'/3,
          'MACRO-defmacro'/2, 'MACRO-defmacro'/3, 'MACRO-defmacrop'/3,

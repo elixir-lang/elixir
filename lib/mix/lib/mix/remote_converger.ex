@@ -26,7 +26,7 @@ defmodule Mix.RemoteConverger do
 
   @doc """
   Called after all convergers have run so that the remote
-  converger can perform clean up.
+  converger can perform cleanup.
   """
   @callback post_converge() :: any
 
