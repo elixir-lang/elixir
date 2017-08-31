@@ -135,7 +135,7 @@ newline_test() ->
    {'.', {2, {1, 2}, nil}},
    {identifier, {2, {2, 5}, nil}, bar}]  = tokenize("foo\n.bar"),
   [{int, {1, {1, 2}, 1}, "1"},
-   {two_op, {2, {1, 3}, nil}, '++'},
+   {two_op, {2, {1, 3}, eol}, '++'},
    {int, {2, {3, 4}, 2}, "2"}]  = tokenize("1\n++2").
 
 dot_newline_operator_test() ->

@@ -1401,7 +1401,7 @@ defmodule Kernel.SpecialForms do
       {:__block__, [], [1, 2, 3]}
 
   """
-  defmacro __block__(args), do: error!([args])
+  defmacro unquote(:__block__)(args), do: error!([args])
 
   @doc """
   Captures or creates an anonymous function.
@@ -1511,7 +1511,7 @@ defmodule Kernel.SpecialForms do
     3. When the head element of aliases is the atom `:Elixir`, no expansion happens.
 
   """
-  defmacro __aliases__(args), do: error!([args])
+  defmacro unquote(:__aliases__)(args), do: error!([args])
 
   @doc """
   Calls the overridden function when overriding it with `Kernel.defoverridable/1`.

@@ -441,7 +441,7 @@ dot_op -> '.' eol : '$1'.
 dot_identifier -> identifier : '$1'.
 dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
-dot_alias -> alias : build_alias('$1', [], '$1').
+dot_alias -> alias : build_alias('$1').
 dot_alias -> matched_expr dot_op alias : build_dot_alias('$2', '$1', '$3').
 dot_alias -> matched_expr dot_op dot_alias_container : build_dot_container('$2', '$1', '$3').
 
@@ -718,20 +718,15 @@ annotate_newlines(_, Expr) ->
 
 %% Dots
 
-build_alias(Dot, Left, {'alias', _, Right}) ->
-  Meta =
-    case ?formatter_metadata() of
-      true -> [{format, alias}] ++ meta_from_token(Dot);
-      false -> meta_from_token(Dot)
-    end,
-  {'__aliases__', Meta, Left ++ [Right]}.
+build_alias({'alias', Location, Alias}) ->
+  {'__aliases__', meta_from_location(Location), [Alias]}.
 
-build_dot_alias(Dot, {'__aliases__', _, Left}, Right) ->
-  build_alias(Dot, Left, Right);
+build_dot_alias(_Dot, {'__aliases__', Meta, Left}, {'alias', _, Right}) ->
+  {'__aliases__', Meta, Left ++ [Right]};
 build_dot_alias(_Dot, Atom, Right) when is_atom(Atom) ->
   throw_bad_atom(Right);
-build_dot_alias(Dot, Expr, Right) ->
-  build_alias(Dot, [Expr], Right).
+build_dot_alias(Dot, Expr, {'alias', _, Right}) ->
+  {'__aliases__', meta_from_token(Dot), [Expr, Right]}.
 
 build_dot_container(Dot, Left, Right) ->
   Meta = meta_from_token(Dot),
