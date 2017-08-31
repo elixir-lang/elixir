@@ -81,16 +81,6 @@ defmodule Logger.Utils do
   end
 
   @doc """
-  Receives a format string and arguments and replace `~p`,
-  `~P`, `~w` and `~W` by its inspected variants.
-  """
-  def inspect(format, args, truncate, opts \\ %Inspect.Opts{}) do
-    format
-    |> scan_inspect(args, truncate, opts)
-    |> :io_lib.unscan_format()
-  end
-
-  @doc """
   Receives a format string and arguments, scans them, and then replace `~p`,
   `~P`, `~w` and `~W` by its inspected variants.
 
@@ -148,35 +138,35 @@ defmodule Logger.Utils do
     width: :none
   }
 
-  defp handle_format_spec(%{control_char: char} = spec, opts) when char in 'wWpP',
-    do: %{@inspected_format_spec | args: [inspect_data(spec, opts)]}
-  defp handle_format_spec(spec, _opts),
-    do: spec
+  defp handle_format_spec(%{control_char: char} = spec, opts)
+       when char in 'wWpP' do
+    %{
+      args: args,
+      width: width,
+      strings: strings?
+    } = spec
 
-  defp inspect_data(%{strings: false} = spec, opts) do
-    spec
-    |> Map.delete(:strings)
-    |> inspect_data(%{opts | charlists: :as_lists})
-  end
-  defp inspect_data(%{width: width} = spec, opts) do
-    spec
-    |> Map.delete(:width)
-    |> inspect_data(%{opts | width: width})
-  end
-  defp inspect_data(%{control_char: ?W, args: [data, limit]}, opts) do
-    do_inspect_data(data, %{opts | limit: limit, width: :infinity})
-  end
-  defp inspect_data(%{control_char: ?w, args: [data]}, opts) do
-    do_inspect_data(data, %{opts | width: :infinity})
-  end
-  defp inspect_data(%{control_char: ?P, args: [data, limit]}, opts) do
-    do_inspect_data(data, %{opts | limit: limit})
-  end
-  defp inspect_data(%{control_char: ?p, args: [data]}, opts) do
-    do_inspect_data(data, opts)
-  end
+    opts = %{
+      opts |
+      charlists: inspect_charlists(strings?, opts),
+      limit: inspect_limit(char, args, opts),
+      width: inspect_width(char, width),
+    }
 
-  defp do_inspect_data(data, opts) do
+    %{@inspected_format_spec | args: [inspect_data(args, opts)]}
+  end
+  defp handle_format_spec(spec, _opts), do: spec
+
+  defp inspect_charlists(false, _), do: :as_lists
+  defp inspect_charlists(_, opts), do: opts.charlists
+
+  defp inspect_limit(char, [_, limit], _) when char in 'WP', do: limit
+  defp inspect_limit(_, _, opts), do: opts.limit
+
+  defp inspect_width(char, _) when char in 'wW', do: :infinity
+  defp inspect_width(_, width), do: width
+
+  defp inspect_data([data | _], opts) do
     data
     |> Inspect.Algebra.to_doc(opts)
     |> Inspect.Algebra.format(opts.width)

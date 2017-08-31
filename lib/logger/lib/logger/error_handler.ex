@@ -141,10 +141,11 @@ defmodule Logger.ErrorHandler do
   end
 
   defp translate([], _min_level, _level, :format, {format, args}, truncate) do
-    {:ok,
-     format
-     |> Logger.Utils.scan_inspect(args, truncate)
-     |> :io_lib.build_text()}
+    msg =
+      format
+      |> Logger.Utils.scan_inspect(args, truncate)
+      |> :io_lib.build_text()
+    {:ok, msg}
   end
 
   defp translate([], _min_level, _level, :report, {_type, data}, _truncate) do
