@@ -487,7 +487,7 @@ defmodule Inspect.Algebra do
   also ignore any `force_break/1`.
 
   When disabled, it behaves as usual and it will ignore
-  any furtger `cancel_break/2` instruction.
+  any further `cancel_break/2` instruction.
   """
   @spec cancel_break(t) :: doc_cancel
   def cancel_break(doc, mode \\ @cancel_break) when is_doc(doc) do
