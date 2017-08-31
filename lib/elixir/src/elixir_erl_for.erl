@@ -146,9 +146,7 @@ build_reduce(Clauses, Expr, {nil, Ann} = Into, Acc, S) ->
   elixir_erl:remote(Ann, lists, reverse,
     [build_reduce_clause(Clauses, ListExpr, Into, Acc, S)]);
 build_reduce(Clauses, Expr, {bin, _, _} = Into, Acc, S) ->
-  {bin, Ann, Elements} = Expr,
-  BinExpr = {bin, Ann, [{bin_element, Ann, Acc, default, [bitstring]} | Elements]},
-  build_reduce_clause(Clauses, BinExpr, Into, Acc, S).
+  build_reduce_clause(Clauses, Expr, Into, Acc, S).
 
 build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
@@ -245,11 +243,8 @@ comprehension_kind({bin, _, []}) -> bc.
 comprehension_generator(enum) -> generate;
 comprehension_generator(bin) -> b_generate.
 
-comprehension_expr({bin, _, []}, {bin, _, _} = Expr) ->
+comprehension_expr({bin, _, []}, Expr) ->
   {inline, Expr};
-comprehension_expr({bin, Ann, []}, Expr) ->
-  BinExpr = {bin, Ann, [{bin_element, Ann, Expr, default, [bitstring]}]},
-  {inline, BinExpr};
 comprehension_expr({nil, _}, Expr) ->
   {inline, Expr};
 comprehension_expr(false, Expr) ->
