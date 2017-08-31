@@ -144,7 +144,6 @@ defmodule IO do
   Writes `item` to the given `device`.
 
   By default the `device` is the standard output.
-  It returns `:ok` if it succeeds.
 
   ## Examples
 
