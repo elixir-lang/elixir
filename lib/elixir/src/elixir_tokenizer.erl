@@ -303,7 +303,8 @@ tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 3, Scope, [Token | Tokens]);
 
 tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 2, Scope, add_token_with_nl({assoc_op, {Line, {Column, Column + 2}, nil}, '=>'}, Tokens));
+  Token = {assoc_op, {Line, {Column, Column + 2}, previous_was_eol(Tokens)}, '=>'},
+  tokenize(Rest, Line, Column + 2, Scope, add_token_with_eol(Token, Tokens));
 
 % ## Three token operators
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
@@ -597,8 +598,8 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
       Token = {identifier, {Line, {Column, Column + Length}, nil}, Op},
       tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]);
     {Remaining, Extra} ->
-      Token = {Kind, {Line, {Column, Column + Length}, nil}, Op},
-      tokenize(Remaining, Line, Column + Length + Extra, Scope, add_token_with_nl(Token, Tokens))
+      Token = {Kind, {Line, {Column, Column + Length}, previous_was_eol(Tokens)}, Op},
+      tokenize(Remaining, Line, Column + Length + Extra, Scope, add_token_with_eol(Token, Tokens))
   end.
 
 handle_comments(CommentTokens, Tokens, Scope) ->
@@ -628,7 +629,7 @@ handle_dot([$., T | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens
 
 % ## Exception for .( as it needs to be treated specially in the parser
 handle_dot([$., $( | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) ->
-  TokensSoFar = add_token_with_nl({dot_call_op, {Line, {DotColumn, DotColumn + 1}, nil}, '.'}, Tokens),
+  TokensSoFar = add_token_with_eol({dot_call_op, {Line, {DotColumn, DotColumn + 1}, nil}, '.'}, Tokens),
   tokenize([$( | Rest], Line + Counter, Column + 2, Scope, handle_comments(CommentTokens, TokensSoFar, Scope));
 
 handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when ?is_quote(H) ->
@@ -637,7 +638,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens, Comme
       case unsafe_to_atom(Part, Line, Scope) of
         {ok, Atom} ->
           Token = check_call_identifier(Line + Counter, Column, max(NewColumn - Column, 0), Atom, Rest),
-          TokensSoFar = add_token_with_nl({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
+          TokensSoFar = add_token_with_eol({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
           tokenize(Rest, NewLine, NewColumn, Scope, [Token | handle_comments(CommentTokens, TokensSoFar, Scope)]);
         {error, Reason} ->
           {error, Reason, Original, Tokens}
@@ -647,12 +648,12 @@ handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens, Comme
   end;
 
 handle_dot([$. | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) ->
-  TokensSoFar = add_token_with_nl({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
+  TokensSoFar = add_token_with_eol({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
   tokenize(Rest, Line + Counter, Column + 1, Scope, handle_comments(CommentTokens, TokensSoFar, Scope)).
 
 handle_call_identifier(Rest, Line, Column, DotColumn, Length, Op, Scope, Tokens, CommentTokens, Counter) ->
   {_, {NewLine, {_, NewColumn}, _}, _} = Token = check_call_identifier(Line + Counter, Column, Length, Op, Rest),
-  TokensSoFar = add_token_with_nl({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
+  TokensSoFar = add_token_with_eol({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
   tokenize(Rest, NewLine, NewColumn, Scope, [Token | handle_comments(CommentTokens, TokensSoFar, Scope)]).
 
 % ## Ambiguous unary/binary operators tokens
@@ -983,9 +984,12 @@ check_call_identifier(Line, Column, Length, Atom, [$[ | _]) ->
 check_call_identifier(Line, Column, Length, Atom, _Rest) ->
   {identifier, {Line, {Column, Column + Length}, nil}, Atom}.
 
-add_token_with_nl({unary_op, _, _} = Left, T) -> [Left | T];
-add_token_with_nl(Left, [{eol, _} | T]) -> [Left | T];
-add_token_with_nl(Left, T) -> [Left | T].
+add_token_with_eol({unary_op, _, _} = Left, T) -> [Left | T];
+add_token_with_eol(Left, [{eol, _} | T]) -> [Left | T];
+add_token_with_eol(Left, T) -> [Left | T].
+
+previous_was_eol([{eol, _} | _]) -> eol;
+previous_was_eol(_) -> nil.
 
 %% Error handling
 
@@ -1073,13 +1077,13 @@ check_keyword(_Line, _Column, _Length, _Atom, [{'.', _} | _], _Rest) ->
   nomatch;
 check_keyword(DoLine, DoColumn, _Length, do,
               [{Identifier, {Line, {Column, EndColumn}, Meta}, Atom} | T], _Rest) when Identifier == identifier ->
-  {ok, add_token_with_nl({do, {DoLine, {DoColumn, DoColumn + 2}, nil}},
+  {ok, add_token_with_eol({do, {DoLine, {DoColumn, DoColumn + 2}, nil}},
        [{do_identifier, {Line, {Column, EndColumn}, Meta}, Atom} | T])};
 check_keyword(_Line, _Column, _Length, do, [{'fn', _} | _], _Rest) ->
   {error, do_with_fn_error("unexpected token \"do\""), "do"};
 check_keyword(Line, Column, _Length, do, Tokens, _Rest) ->
   case do_keyword_valid(Tokens) of
-    true  -> {ok, add_token_with_nl({do, {Line, {Column, Column + 2}, nil}}, Tokens)};
+    true  -> {ok, add_token_with_eol({do, {Line, {Column, Column + 2}, nil}}, Tokens)};
     false -> {error, invalid_do_error("unexpected token \"do\""), "do"}
   end;
 check_keyword(Line, Column, Length, Atom, Tokens, Rest) ->
@@ -1095,7 +1099,7 @@ check_keyword(Line, Column, Length, Atom, Tokens, Rest) ->
         {[$/ | _], _} ->
           {ok, [{identifier, {Line, {Column, Column + Length}, nil}, Atom} | Tokens]};
         _ ->
-          {ok, add_token_with_nl({Kind, {Line, {Column, Column + Length}, nil}, Atom}, Tokens)}
+          {ok, add_token_with_eol({Kind, {Line, {Column, Column + Length}, previous_was_eol(Tokens)}, Atom}, Tokens)}
       end
   end.
 
