@@ -16,7 +16,7 @@ defmodule IO.Stream do
 
     * `device`        - the IO device
     * `raw`           - a boolean indicating if bin functions should be used
-    * `line_or_bytes` - if reading should read lines or a given amount of bytes
+    * `line_or_bytes` - if reading should read lines or a given number of bytes
 
   It is worth noting that an IO stream has side effects and every time you go
   over the stream you may get different results.

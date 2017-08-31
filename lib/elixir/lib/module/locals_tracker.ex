@@ -156,7 +156,7 @@ defmodule Module.LocalsTracker do
   end
 
   # Collect all unused definitions based on the private
-  # given also accounting the expected amount of default
+  # given, also accounting the expected number of default
   # clauses a private function have.
   @doc false
   def collect_unused_locals(ref, private) do
