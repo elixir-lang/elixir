@@ -323,17 +323,17 @@ stab_eoe -> stab eoe : '$1'.
 stab_expr -> expr :
                '$1'.
 stab_expr -> stab_op_eol_and_expr :
-               build_stab_op('$1', [], element(2, '$1')).
+               build_op(element(1, '$1'), [], element(2, '$1')).
 stab_expr -> empty_paren stab_op_eol_and_expr :
-               build_stab_op('$2', [], element(2, '$2')).
+               build_op(element(1, '$2'), [], element(2, '$2')).
 stab_expr -> empty_paren when_op expr stab_op_eol_and_expr :
-               build_stab_op('$4', [{'when', meta_from_token('$2'), ['$3']}], element(2, '$4')).
+               build_op(element(1, '$4'), [{'when', meta_from_token('$2'), ['$3']}], element(2, '$4')).
 stab_expr -> call_args_no_parens_all stab_op_eol_and_expr :
-               build_stab_op('$2', unwrap_when(unwrap_splice('$1')), element(2, '$2')).
+               build_op(element(1, '$2'), unwrap_when(unwrap_splice('$1')), element(2, '$2')).
 stab_expr -> stab_parens_many stab_op_eol_and_expr :
-               build_stab_op('$2', unwrap_splice('$1'), element(2, '$2')).
+               build_op(element(1, '$2'), unwrap_splice('$1'), element(2, '$2')).
 stab_expr -> stab_parens_many when_op expr stab_op_eol_and_expr :
-               build_stab_op('$4', [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], element(2, '$4')).
+               build_op(element(1, '$4'), [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], element(2, '$4')).
 
 stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', nil}.
@@ -431,7 +431,7 @@ rel_op_eol -> rel_op : '$1'.
 rel_op_eol -> rel_op eol : '$1'.
 
 arrow_op_eol -> arrow_op : '$1'.
-arrow_op_eol -> arrow_op eol : '$1'.
+arrow_op_eol -> arrow_op eol : set_eol('$1').
 
 % Dot operator
 
@@ -649,6 +649,11 @@ number_value({_, {_, _, Value}, _}) ->
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
   %% TODO: Deprecate "not left in right" rearrangement on 1.7
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
+
+build_op({arrow_op, Location, Op} = Token, Left, Right) ->
+  {Op, eol_pair(Token) ++ meta_from_location(Location), [Left, Right]};
+build_op({stab_op, Location, Op} = Token, Left, Right) ->
+  {Op, eol_pair(Token) ++ meta_from_location(Location), [Left, Right]};
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 build_op({_Kind, Location, Op}, Left, Right) ->
@@ -857,9 +862,6 @@ build_stab(Meta, [H | T], Marker, Temp, Acc) ->
 build_stab(Meta, [], Marker, Temp, Acc) ->
   H = {'->', Meta, [Marker, build_block(reverse(Temp))]},
   reverse([H | Acc]).
-
-build_stab_op({Token, _}, Left, Right) ->
-  {'->', eol_pair(Token) ++ meta_from_token(Token), [Left, Right]}.
 
 %% Every time the parser sees a (unquote_splicing())
 %% it assumes that a block is being spliced, wrapping
