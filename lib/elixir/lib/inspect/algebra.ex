@@ -156,7 +156,7 @@ defmodule Inspect.Algebra do
   a group does not fit, all strict breaks are treated as breaks. The flex
   breaks however are re-evaluated and may still be rendered as spaces.
 
-  This implementation also adds `force_break/1` and `cancel_break/2` which
+  This implementation also adds `force_break/1` and `next_break_fits/2` which
   give more control over the document fitting.
 
   Custom pretty printers can be implemented using the documents returned
@@ -171,7 +171,7 @@ defmodule Inspect.Algebra do
   @tail_separator " |"
   @newline "\n"
   @break :flex
-  @cancel_break :enabled
+  @next_break_fits :enabled
 
   # Functional interface to "doc" records
 
@@ -186,7 +186,7 @@ defmodule Inspect.Algebra do
           | doc_group
           | doc_color
           | doc_force
-          | doc_cancel
+          | doc_fits
           | doc_collapse
 
   @typep doc_string :: {:doc_string, t, non_neg_integer}
@@ -214,9 +214,9 @@ defmodule Inspect.Algebra do
     quote do: {:doc_group, unquote(group)}
   end
 
-  @typep doc_cancel :: {:doc_cancel, t, :enabled | :disabled}
-  defmacrop doc_cancel(group, mode) do
-    quote do: {:doc_cancel, unquote(group), unquote(mode)}
+  @typep doc_fits :: {:doc_fits, t, :enabled | :disabled}
+  defmacrop doc_fits(group, mode) do
+    quote do: {:doc_fits, unquote(group), unquote(mode)}
   end
 
   @typep doc_force :: {:doc_force, t}
@@ -252,7 +252,7 @@ defmodule Inspect.Algebra do
       unquote(doc) in [:doc_nil, :doc_line] or
       (is_tuple(unquote(doc)) and
        elem(unquote(doc), 0) in [:doc_string, :doc_cons, :doc_nest, :doc_break, :doc_group,
-                                 :doc_color, :doc_force, :doc_cancel, :doc_collapse])
+                                 :doc_color, :doc_force, :doc_fits, :doc_collapse])
     end
   end
 
@@ -487,11 +487,11 @@ defmodule Inspect.Algebra do
   also ignore any `force_break/1`.
 
   When disabled, it behaves as usual and it will ignore
-  any further `cancel_break/2` instruction.
+  any further `next_break_fits/2` instruction.
   """
-  @spec cancel_break(t) :: doc_cancel
-  def cancel_break(doc, mode \\ @cancel_break) when is_doc(doc) do
-    doc_cancel(doc, mode)
+  @spec next_break_fits(t) :: doc_fits
+  def next_break_fits(doc, mode \\ @next_break_fits) when is_doc(doc) do
+    doc_fits(doc, mode)
   end
 
   @doc """
@@ -811,24 +811,24 @@ defmodule Inspect.Algebra do
   #
   #   * break - represents a fitted document with breaks as breaks
   #   * flat - represents a fitted document with breaks as flats
-  #   * cancel - represents a document being fitted that will cancel (fit) the next break
-  #   * no_cancel - represents a document being fitted that will not accept cancelations
+  #   * next_fits - represents a document being fitted that will cancel (fit) the next break
+  #   * no_fitting - represents a document being fitted that will not accept next break fits
   #
-  @typep mode :: :break | :flat | :cancel | :no_cancel
+  @typep mode :: :break | :flat | :next_fits | :no_fitting
 
   @spec fits?(integer, integer, [{integer, mode, t}]) :: boolean
   defp fits?(w, k, _) when k > w,                            do: false
   defp fits?(_, _, []),                                      do: true
 
-  defp fits?(w, k, [{i, _, doc_cancel(x, :disabled)} | t]),  do: fits?(w, k, [{i, :no_cancel, x} | t])
-  defp fits?(w, k, [{i, :no_cancel, doc_group(x)} | t]),     do: fits?(w, k, [{i, :no_cancel, x} | t])
-  defp fits?(w, k, [{i, :no_cancel, doc_cancel(x, _)} | t]), do: fits?(w, k, [{i, :no_cancel, x} | t])
+  defp fits?(w, k, [{i, _, doc_fits(x, :disabled)} | t]),    do: fits?(w, k, [{i, :no_fitting, x} | t])
+  defp fits?(w, k, [{i, :no_fitting, doc_group(x)} | t]),    do: fits?(w, k, [{i, :no_fitting, x} | t])
+  defp fits?(w, k, [{i, :no_fitting, doc_fits(x, _)} | t]),  do: fits?(w, k, [{i, :no_fitting, x} | t])
 
-  defp fits?(w, k, [{i, _, doc_cancel(x, :enabled)} | t]),   do: fits?(w, k, [{i, :cancel, x} | t])
-  defp fits?(w, k, [{i, :cancel, doc_force(x)} | t]),        do: fits?(w, k, [{i, :cancel, x} | t])
-  defp fits?(w, k, [{i, :cancel, doc_group(x)} | t]),        do: fits?(w, k, [{i, :cancel, x} | t])
-  defp fits?(_, _, [{_, :cancel, doc_break(_, _)} | _]),     do: true
-  defp fits?(_, _, [{_, :cancel, :doc_line} | _]),           do: true
+  defp fits?(w, k, [{i, _, doc_fits(x, :enabled)} | t]),     do: fits?(w, k, [{i, :next_fits, x} | t])
+  defp fits?(w, k, [{i, :next_fits, doc_force(x)} | t]),     do: fits?(w, k, [{i, :next_fits, x} | t])
+  defp fits?(w, k, [{i, :next_fits, doc_group(x)} | t]),     do: fits?(w, k, [{i, :next_fits, x} | t])
+  defp fits?(_, _, [{_, :next_fits, doc_break(_, _)} | _]),  do: true
+  defp fits?(_, _, [{_, :next_fits, :doc_line} | _]),        do: true
 
   defp fits?(w, k, [{_, _, :doc_nil} | t]),                  do: fits?(w, k, t)
   defp fits?(w, _, [{i, _, :doc_line} | t]),                 do: fits?(w, i, t)
@@ -853,7 +853,7 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{_, _, doc_string(s, l)} | t]),    do: [s | format(w, k + l, t)]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
   defp format(w, k, [{i, m, doc_force(x)} | t]),        do: format(w, k, [{i, m, x} | t])
-  defp format(w, k, [{i, m, doc_cancel(x, _)} | t]),    do: format(w, k, [{i, m, x} | t])
+  defp format(w, k, [{i, m, doc_fits(x, _)} | t]),      do: format(w, k, [{i, m, x} | t])
   defp format(w, _, [{i, _, doc_collapse(max)} | t]),   do: collapse(format(w, i, t), max, 0, i)
 
   # Flex breaks are not conditional to the mode
