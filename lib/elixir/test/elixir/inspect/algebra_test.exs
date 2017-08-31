@@ -218,16 +218,16 @@ defmodule Inspect.AlgebraTest do
     assert force_break(empty()) == {:doc_force, empty()}
 
     # Consistent with definitions
-    assert cancel_break("ab") == {:doc_cancel, "ab", :enabled}
-    assert cancel_break(empty()) == {:doc_cancel, empty(), :enabled}
-    assert cancel_break("ab", :disabled) == {:doc_cancel, "ab", :disabled}
-    assert cancel_break(empty(), :disabled) == {:doc_cancel, empty(), :disabled}
+    assert next_break_fits("ab") == {:doc_fits, "ab", :enabled}
+    assert next_break_fits(empty()) == {:doc_fits, empty(), :enabled}
+    assert next_break_fits("ab", :disabled) == {:doc_fits, "ab", :disabled}
+    assert next_break_fits(empty(), :disabled) == {:doc_fits, empty(), :disabled}
 
     # Consistent formatting
     doc = force_break(concat(glue(glue(glue("hello", "a"), "b"), "c"), "d"))
     assert render(doc, 20) == "hello\na\nb\ncd"
-    assert render(cancel_break(doc, :enabled), 20) == "hello a b cd"
-    assert render(cancel_break(cancel_break(doc, :enabled), :disabled), 20) == "hello\na\nb\ncd"
+    assert render(next_break_fits(doc, :enabled), 20) == "hello a b cd"
+    assert render(next_break_fits(next_break_fits(doc, :enabled), :disabled), 20) == "hello\na\nb\ncd"
   end
 
   test "formatting groups with lines" do
