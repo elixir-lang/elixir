@@ -131,9 +131,4 @@ defmodule ProcessTest do
 
     Process.flag(:trap_exit, trap)
   end
-
-  defp expand(expr, env) do
-    {expr, _env} = :elixir_expand.expand(expr, env)
-    expr
-  end
 end
