@@ -117,15 +117,8 @@ defmodule Logger.Utils do
 
     format
     |> :io_lib.scan_format(args)
-    |> handle_format_list(opts, [])
+    |> Enum.map(&handle_format_spec(&1, opts))
   end
-
-  defp handle_format_list([], _opts, acc),
-    do: :lists.reverse(acc)
-  defp handle_format_list([spec | t], opts, acc) when is_map(spec),
-    do: handle_format_list(t, opts, [handle_format_spec(spec, opts) | acc])
-  defp handle_format_list([h | t], opts, acc),
-    do: handle_format_list(t, opts, [h | acc])
 
   @inspected_format_spec %{
     adjust: :right,
