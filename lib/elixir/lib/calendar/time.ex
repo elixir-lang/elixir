@@ -321,61 +321,38 @@ defmodule Time do
   end
 
   @doc """
-  Builds a time from a specified `amount` of `unit`s elapsed since midnight.
+  Adds the `number` of `unit`s to the given `time`.
 
-  This function accepts the `amount` measured according to `Calendar.ISO`.
+  This function accepts the `number` measured according to `Calendar.ISO`.
+  The time is returned in the same calendar as it was given in.
 
-  ## Examples
-
-      iex> Time.from_midnight(27000)
-      {:ok, ~T[07:30:00.000000]}
-      iex> Time.from_midnight(86399999999, :microsecond)
-      {:ok, ~T[23:59:59.999999]}
-      iex> Time.from_midnight(86400)
-      {:error, :invalid_time}
-      iex> Time.from_midnight(-60)
-      {:ok, ~T[23:59:00.000000]}
-
-  """
-  @spec from_midnight(integer, System.time_unit, Calendar.calendar) :: {:ok, t} | {:error, atom}
-  def from_midnight(amount, unit \\ :second, calendar \\ Calendar.ISO) when is_integer(amount) do
-    ppd = System.convert_time_unit(86400, :second, unit)
-    parts = if amount < 0, do: amount + ppd, else: amount
-    {hour, minute, second, microsecond} = Calendar.ISO.time_from_day_fraction({parts, ppd})
-    with {:ok, time} <- new(hour, minute, second, microsecond, Calendar.ISO) do
-      convert(time, calendar)
-    end
-  end
-
-  @doc """
-  Same as `from_midnight/3`, but raises an exception in case of failure.
+  Note the result value represents time of day,
+  meaning that it is cyclic and will never go over 24 hours.
 
   ## Examples
 
-      iex> Time.from_midnight!(27000)
-      ~T[07:30:00.000000]
-      iex> Time.from_midnight!(86399999999, :microsecond)
-      ~T[23:59:59.999999]
-      iex> Time.from_midnight!(86400)
-      ** (ArgumentError) cannot convert 86400 second(s) to time, reason: :invalid_time
-      iex> Time.from_midnight!(-60)
-      ~T[23:59:00.000000]
+      iex> Time.add(~T[10:00:00], 27000)
+      ~T[17:30:00.000000]
+      iex> Time.add(~T[11:00:00.005], 2400)
+      ~T[11:40:00.005000]
+      iex> Time.add(~T[00:00:00], 86399999, :millisecond)
+      ~T[23:59:59.999000]
+      iex> Time.add(~T[17:10:05], 86400)
+      ~T[17:10:05.000000]
+      iex> Time.add(~T[23:00:00], -60)
+      ~T[22:59:00.000000]
 
   """
-  @spec from_midnight!(integer, System.time_unit, Calendar.calendar) :: t
-  def from_midnight!(amount, unit \\ :second, calendar \\ Calendar.ISO) do
-    case from_midnight(amount, unit, calendar) do
-      {:ok, time} ->
-        time
-      {:error, reason} ->
-        message =
-          if is_integer(unit) do
-            "cannot convert #{div(amount, unit)} second(s) to time, reason: #{inspect(reason)}"
-          else
-            "cannot convert #{amount} #{Atom.to_string(unit)}(s) to time, reason: #{inspect(reason)}"
-          end
-        raise ArgumentError, message
-    end
+  @spec add(Calendar.time, integer, System.time_unit) :: t
+  def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
+    number = System.convert_time_unit(number, unit, :microsecond)
+    iso_days = {0, to_day_fraction(time)}
+    total = Calendar.ISO.iso_days_to_unit(iso_days, :microsecond) + number
+    iso_ppd = 86400000000
+    parts = Integer.mod(total, iso_ppd)
+
+    {hour, minute, second, microsecond} = calendar.time_from_day_fraction({parts, iso_ppd})
+    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
   end
 
   @doc """
