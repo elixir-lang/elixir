@@ -108,4 +108,38 @@ defmodule MapSetTest do
     list = MapSet.to_list(MapSet.new(5..120))
     assert Enum.sort(list) == Enum.to_list(5..120)
   end
+
+  test "pre-1.5 MapSet compatibility" do
+    result = v1_mapset(1..5) |> MapSet.new()
+    assert MapSet.equal?(result, MapSet.new(1..5))
+
+    result = MapSet.put(v1_mapset(1..5), 6)
+    assert MapSet.equal?(result, MapSet.new(1..6))
+
+    result = MapSet.union(v1_mapset(1..5), MapSet.new(6..10))
+    assert MapSet.equal?(result, MapSet.new(1..10))
+
+    result = MapSet.intersection(v1_mapset(1..10), MapSet.new(6..15))
+    assert MapSet.equal?(result, MapSet.new(6..10))
+
+    result = MapSet.difference(v1_mapset(1..10), MapSet.new(6..50))
+    assert MapSet.equal?(result, MapSet.new(1..5))
+
+    result = MapSet.delete(v1_mapset(1..10), 1)
+    assert MapSet.equal?(result, MapSet.new(2..10))
+
+    assert MapSet.size(v1_mapset(1..5)) == 5
+    assert MapSet.to_list(v1_mapset(1..5)) == Enum.to_list(1..5)
+
+    assert MapSet.disjoint?(v1_mapset(1..5), MapSet.new(10..15))
+    refute MapSet.disjoint?(v1_mapset(1..5), MapSet.new(5..10))
+
+    assert MapSet.subset?(v1_mapset(3..7), MapSet.new(1..10))
+    refute MapSet.subset?(v1_mapset(7..12), MapSet.new(1..10))
+  end
+
+  defp v1_mapset(enumerable) do
+    map = Enum.reduce(enumerable, %{}, &Map.put(&2, &1, true))
+    %{__struct__: MapSet, map: map}
+  end
 end
