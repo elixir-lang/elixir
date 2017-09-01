@@ -98,6 +98,7 @@ defmodule Tuple do
   Inlined by the compiler.
 
   ## Examples
+  
       iex> tuple = {:foo, :bar}
       iex> Tuple.append(tuple, :baz)
       {:foo, :bar, :baz}
