@@ -152,7 +152,7 @@ defmodule Supervisor.Spec do
       `:simple_one_for_one`. You can learn more about strategies
       in the `Supervisor` module docs.
 
-    * `:max_restarts` - the maximum amount of restarts allowed in
+    * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
 
     * `:max_seconds` - the time frame in which `:max_restarts` applies.

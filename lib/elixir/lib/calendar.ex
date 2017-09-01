@@ -35,7 +35,7 @@ defmodule Calendar do
   @typedoc """
   The internal date format that is used when converting between calendars.
 
-  This is the amount of days including the fractional part that has passed of
+  This is the number of days including the fractional part that has passed of
   the last day since 0000-01-01+00:00T00:00.00000 in ISO 8601 notation (also
   known as midnight 1 January BC 1 of the Proleptic Gregorian Calendar).
 

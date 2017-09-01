@@ -45,8 +45,8 @@ defmodule NaiveDateTime do
   ## Using epochs
 
   The `add/3` and `diff/3` functions can be used for computing with
-  date times or retrieving the amount of seconds betweens instants.
-  For example, if there is an interest in computing the amount of
+  date times or retrieving the number of seconds between instants.
+  For example, if there is an interest in computing the number of
   seconds from the Unix epoch (1970-01-01 00:00:00):
 
       iex> NaiveDateTime.diff(~N[2010-04-17 14:00:00], ~N[1970-01-01 00:00:00])

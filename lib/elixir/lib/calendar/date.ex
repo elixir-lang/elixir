@@ -36,8 +36,8 @@ defmodule Date do
   ## Using epochs
 
   The `add/2` and `diff/2` functions can be used for computing dates
-  or retrieving the amount of days betweens instants. For example, if there
-  is an interest in computing the amount of days from the Unix epoch
+  or retrieving the number of days between instants. For example, if there
+  is an interest in computing the number of days from the Unix epoch
   (1970-01-01):
 
       iex> Date.diff(~D[2010-04-17], ~D[1970-01-01])
