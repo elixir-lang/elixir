@@ -88,7 +88,7 @@ defmodule IEx.PryTest do
         assert IEx.Pry.break(URI, :unknown, 2) == {:error, :unknown_function_arity}
       end
 
-      test "errors for non elixir modules" do
+      test "errors for non-Elixir modules" do
         assert IEx.Pry.break(:elixir, :unknown, 2) == {:error, :non_elixir_module}
       end
     end

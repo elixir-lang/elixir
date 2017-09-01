@@ -215,7 +215,7 @@ defmodule Mix.Compilers.Test do
             do: module,
             into: MapSet.new()
 
-      stale_modules = find_all_dependant_on(stale_modules, elixir_manifest_entries.source, elixir_manifest_entries.module)
+      stale_modules = find_all_dependent_on(stale_modules, elixir_manifest_entries.source, elixir_manifest_entries.module)
 
       for module <- stale_modules,
           source(source: source, runtime_references: r, compile_references: c) <- test_sources,
@@ -227,27 +227,27 @@ defmodule Mix.Compilers.Test do
     end
   end
 
-  defp find_all_dependant_on(modules, sources, all_modules, resolved \\ MapSet.new()) do
+  defp find_all_dependent_on(modules, sources, all_modules, resolved \\ MapSet.new()) do
     new_modules =
       for module <- modules,
           module not in resolved,
-          dependant_module <- dependant_modules(module, all_modules, sources),
-          do: dependant_module,
+          dependent_module <- dependent_modules(module, all_modules, sources),
+          do: dependent_module,
           into: modules
 
     if MapSet.size(new_modules) == MapSet.size(modules) do
       new_modules
     else
-      find_all_dependant_on(new_modules, sources, all_modules, modules)
+      find_all_dependent_on(new_modules, sources, all_modules, modules)
     end
   end
 
-  defp dependant_modules(module, modules, sources) do
+  defp dependent_modules(module, modules, sources) do
     for CE.source(source: source, runtime_references: r, compile_references: c) <- sources,
         module in r or module in c,
-        CE.module(sources: sources, module: dependant_module) <- modules,
+        CE.module(sources: sources, module: dependent_module) <- modules,
         source in sources,
-        do: dependant_module
+        do: dependent_module
   end
 
   ## ParallelRequire callback

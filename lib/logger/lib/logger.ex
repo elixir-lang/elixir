@@ -682,7 +682,7 @@ defmodule Logger do
 
   The macros `debug/2`, `warn/2`, `info/2`, and `error/2` are
   preferred over this macro as they can automatically eliminate
-  the call to `Logger` alotgether at compile time if desired
+  the call to `Logger` altogether at compile time if desired
   (see the documentation for the `Logger` module).
   """
   defmacro log(level, chardata_or_fun, metadata \\ []) do

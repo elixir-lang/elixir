@@ -22,7 +22,7 @@ defmodule Kernel.AliasTest do
     assert Nested2.value == 1
   end
 
-  test "overwriten alias" do
+  test "overwritten alias" do
     assert alias(List, as: Nested) == List
     assert Nested.flatten([[13]]) == [13]
   end

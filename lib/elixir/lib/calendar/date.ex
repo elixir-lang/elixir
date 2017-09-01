@@ -422,7 +422,7 @@ defmodule Date do
   end
 
   @doc """
-  Converts the given `date` from it's calendar to the given `calendar`.
+  Converts the given `date` from its calendar to the given `calendar`.
 
   Returns `{:ok, date}` if the calendars are compatible,
   or `{:error, :incompatible_calendars}` if they are not.
@@ -482,7 +482,7 @@ defmodule Date do
   @doc """
   Adds the number of days to the given `date`.
 
-  The days are counted as gregorian days. The date is returned in the same
+  The days are counted as Gregorian days. The date is returned in the same
   calendar as it was given in.
 
   ## Examples
@@ -505,7 +505,7 @@ defmodule Date do
   @doc """
   Calculates the difference between two dates, in a full number of days.
 
-  It returns the number of gregorian days between the dates. Only `Date`
+  It returns the number of Gregorian days between the dates. Only `Date`
   structs that follow the same or compatible calendars can be compared
   this way. If two calendars are not compatible, it will raise.
 

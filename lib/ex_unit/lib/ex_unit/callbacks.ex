@@ -32,7 +32,7 @@ defmodule ExUnit.Callbacks do
   linked to the test process will also exit, although asynchronously. Therefore
   it is preferred to use `start_supervised/2` to guarantee synchronous termination.
 
-  Here is a run down of the life-cycle of the test process:
+  Here is a rundown of the life-cycle of the test process:
 
     1. the test process is spawned
     2. it runs `setup/2` callbacks

@@ -38,7 +38,7 @@ defmodule Mix.Tasks.DepsPathTest do
   end
 
   @tag apps: [:raw_sample]
-  test "compiles ands runs even if lock does not match" do
+  test "compiles and runs even if lock does not match" do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->

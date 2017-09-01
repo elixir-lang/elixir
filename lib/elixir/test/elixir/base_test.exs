@@ -474,11 +474,11 @@ defmodule BaseTest do
     end
   end
 
-  test "decode32/2 with one pad and :pading to false" do
+  test "decode32/2 with one pad and :padding to false" do
     assert {:ok, "foob"} == decode32("MZXW6YQ", padding: false)
   end
 
-  test "decode32!/2 with one pad and :pading to false" do
+  test "decode32!/2 with one pad and :padding to false" do
     assert "foob" == decode32!("MZXW6YQ", padding: false)
   end
 

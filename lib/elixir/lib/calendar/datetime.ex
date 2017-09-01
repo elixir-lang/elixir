@@ -647,7 +647,7 @@ defmodule DateTime do
     end
   end
 
-  defp to_iso_days(%{calendar: calendar,year: year, month: month, day: day,
+  defp to_iso_days(%{calendar: calendar, year: year, month: month, day: day,
                      hour: hour, minute: minute, second: second, microsecond: microsecond}) do
     calendar.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
   end
