@@ -427,7 +427,7 @@ defmodule StreamTest do
     # sending it a halt would cause it to return the
     # inner stream was halted, forcing flat_map to get
     # the next value from the outer stream, evaluate it,
-    # get annother inner stream, just to halt it.
+    # get another inner stream, just to halt it.
     assert [1, 2] # 2 should never be used
            |> Stream.flat_map(fn 1 -> Stream.repeatedly(fn -> 1 end) end)
            |> Stream.flat_map(fn 1 -> Stream.repeatedly(fn -> 1 end) end)

@@ -253,7 +253,7 @@ defmodule IEx.Autocomplete do
   ## Helpers
 
   defp usable_as_unquoted_module?(name) do
-    # Convertion to atom is not a problem because
+    # Conversion to atom is not a problem because
     # it is only called with existing modules names.
     Code.Identifier.classify(String.to_atom(name)) != :other
   end
