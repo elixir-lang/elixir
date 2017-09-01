@@ -26,7 +26,7 @@ defmodule Regex do
 
       ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
 
-  may return `true` or `false` depending on your machine, endianess,
+  may return `true` or `false` depending on your machine, endianness,
   available optimizations and others. You can, however, retrieve the source
   of a compiled regular expression by accessing the `source` field, and then
   compare those directly:
@@ -40,7 +40,7 @@ defmodule Regex do
   different OTP releases, as OTP releases may update the underlying regular
   expression engine at any time.
 
-  For such reasons, we always recomend precompiling Elixir projects using
+  For such reasons, we always recommend precompiling Elixir projects using
   the OTP version meant to run in production. In case cross-compilation is
   really necessary, you can manually invoke `Regex.recompile/1` or `Regex.
   recompile!/1` to perform a runtime version check and recompile the regex

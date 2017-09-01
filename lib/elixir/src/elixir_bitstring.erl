@@ -81,13 +81,13 @@ expand_specs(ExprType, Meta, Info, E, RequireSize) ->
       unit => default,
       sign => default,
       type => default,
-      endianess => default},
-  #{size := Size, unit := Unit, type := Type, endianess := Endianess, sign := Sign} =
+      endianness => default},
+  #{size := Size, unit := Unit, type := Type, endianness := Endianness, sign := Sign} =
     expand_each_spec(Meta, unpack_specs(Info, []), Default, E),
   MergedType = type(Meta, ExprType, Type, E),
   validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, E),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, E),
-  [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianess, Sign, SizeAndUnit, E),
+  [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, SizeAndUnit, E),
   lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T).
 
 type(_, default, default, _) ->
@@ -147,9 +147,9 @@ unpack_specs({Expr, Meta, Args}, Acc) when is_atom(Expr) ->
 unpack_specs(Other, Acc) ->
   [Other | Acc].
 
-validate_spec(big, [])       -> {endianess, big};
-validate_spec(little, [])    -> {endianess, little};
-validate_spec(native, [])    -> {endianess, native};
+validate_spec(big, [])       -> {endianness, big};
+validate_spec(little, [])    -> {endianness, little};
+validate_spec(native, [])    -> {endianness, native};
 validate_spec(size, [Size])  -> {size, Size};
 validate_spec(unit, [Unit])  -> {unit, Unit};
 validate_spec(integer, [])   -> {type, integer};
@@ -194,28 +194,28 @@ size_and_unit(_Meta, _ExprType, Size, Unit, _E) ->
 add_arg(_Key, default, Spec) -> Spec;
 add_arg(Key, Arg, Spec) -> [{Key, [], [Arg]} | Spec].
 
-build_spec(Meta, Size, Unit, Type, Endianess, Sign, Spec, E) when Type == utf8; Type == utf16; Type == utf32 ->
+build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == utf8; Type == utf16; Type == utf32 ->
   if
     Size /= default; Unit /= default ->
       form_error(Meta, ?key(E, file), ?MODULE, bittype_utf);
     Sign /= default ->
       form_error(Meta, ?key(E, file), ?MODULE, bittype_signed);
     true ->
-      add_spec(Type, add_spec(Endianess, Spec))
+      add_spec(Type, add_spec(Endianness, Spec))
   end;
 
-build_spec(Meta, _Size, Unit, Type, _Endianess, Sign, Spec, E) when Type == binary; Type == bitstring ->
+build_spec(Meta, _Size, Unit, Type, _Endianness, Sign, Spec, E) when Type == binary; Type == bitstring ->
   if
     Type == bitstring, Unit /= default, Unit /= 1 ->
       form_error(Meta, ?key(E, file), ?MODULE, {bittype_mismatch, Unit, 1, unit});
     Sign /= default ->
       form_error(Meta, ?key(E, file), ?MODULE, bittype_signed);
     true ->
-      %% Endianess is supported but has no effect, so we just ignore it.
+      %% Endianness is supported but has no effect, so we just ignore it.
       add_spec(Type, Spec)
   end;
 
-build_spec(Meta, Size, Unit, Type, Endianess, Sign, Spec, E) when Type == integer; Type == float ->
+build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == integer; Type == float ->
   NumberSize = number_size(Size, Unit),
   if
     Type == float, is_integer(NumberSize), NumberSize /= 32, NumberSize /= 64 ->
@@ -223,7 +223,7 @@ build_spec(Meta, Size, Unit, Type, Endianess, Sign, Spec, E) when Type == intege
     Size == default, Unit /= default ->
       form_error(Meta, ?key(E, file), ?MODULE, bittype_unit);
     true ->
-      add_spec(Type, add_spec(Endianess, add_spec(Sign, Spec)))
+      add_spec(Type, add_spec(Endianness, add_spec(Sign, Spec)))
   end.
 
 number_size(Size, default) when is_integer(Size) -> Size;
@@ -240,7 +240,7 @@ format_error(bittype_literal_bitstring) ->
   "literal <<>> in bitstring supports only type specifiers, which must be one of: "
     "binary or bitstring";
 format_error(bittype_literal_string) ->
-  "literal string in bitstring supports only endianess and type specifiers, which must be one of: "
+  "literal string in bitstring supports only endianness and type specifiers, which must be one of: "
     "little, big, native, utf8, utf16, utf32, bits, bytes, binary or bitstring";
 format_error(bittype_utf) ->
   "size and unit are not supported on utf types";
