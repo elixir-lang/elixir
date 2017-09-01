@@ -495,17 +495,15 @@ defmodule Process do
     :erlang.register(name, pid_or_port)
   catch
     :error, :badarg when node(pid_or_port) != node()  ->
-      message = "could not register the #{pid_or_port pid_or_port} because it belongs to another node"
+      message = "could not register #{inspect pid_or_port} because it belongs to another node"
       :erlang.error ArgumentError.exception(message), [pid_or_port, name]
     :error, :badarg ->
-      message = "could not register the #{pid_or_port pid_or_port} with " <>
-                "name #{inspect name}. Or it is not alive, or the name is already " <>
-                "taken, or it has already been given another name"
+      message =
+        "could not register #{inspect pid_or_port} with " <>
+        "name #{inspect name}. Or it is not alive, or the name is already " <>
+        "taken, or it has already been given another name"
       :erlang.error ArgumentError.exception(message), [pid_or_port, name]
   end
-
-  defp pid_or_port(pid) when is_pid(pid), do: "pid #{inspect pid}"
-  defp pid_or_port(port) when is_port(port), do: "port #{inspect port}"
 
   @doc """
   Removes the registered `name`, associated with a PID
