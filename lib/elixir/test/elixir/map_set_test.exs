@@ -139,7 +139,7 @@ defmodule MapSetTest do
   end
 
   defp map_set_v1(enumerable) do
-    map = Map.new(1..5, &{&1, true})
+    map = Map.new(enumerable, &{&1, true})
     %{__struct__: MapSet, map: map}
   end
 end
