@@ -657,7 +657,7 @@ defmodule GenServer do
     * `:name` - used for name registration as described in the "Name
       registration" section of the module documentation
 
-    * `:timeout` - if present, the server is allowed to spend the given amount of
+    * `:timeout` - if present, the server is allowed to spend the given number of
       milliseconds initializing or it will be terminated and the start function
       will return `{:error, :timeout}`
 

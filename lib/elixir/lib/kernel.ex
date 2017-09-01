@@ -48,11 +48,11 @@ defmodule Kernel do
     * `Atom` - literal constants with a name (`true`, `false`, and `nil` are atoms)
     * `Float` - numbers with floating point precision
     * `Integer` - whole numbers (not fractions)
-    * `List` - collections of a variable amount of elements (linked lists)
+    * `List` - collections of a variable number of elements (linked lists)
     * `Map` - collections of key-value pairs
     * `Process` - light-weight threads of execution
     * `Port` - mechanisms to interact with the external world
-    * `Tuple` - collections of fixed amount of elements
+    * `Tuple` - collections of a fixed number of elements
 
   There are three data-types without an accompanying module:
 

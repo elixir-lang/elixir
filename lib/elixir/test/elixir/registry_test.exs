@@ -17,7 +17,7 @@ defmodule RegistryTest do
     describe "unique #{describe}" do
       @describetag keys: :unique, partitions: partitions
 
-      test "starts configured amount of partitions", %{registry: registry, partitions: partitions} do
+      test "starts configured number of partitions", %{registry: registry, partitions: partitions} do
         assert length(Supervisor.which_children(registry)) == partitions
       end
 
@@ -241,7 +241,7 @@ defmodule RegistryTest do
     describe "duplicate #{describe}" do
       @describetag keys: :duplicate, partitions: partitions
 
-      test "starts configured amount of partitions", %{registry: registry, partitions: partitions} do
+      test "starts configured number of partitions", %{registry: registry, partitions: partitions} do
         assert length(Supervisor.which_children(registry)) == partitions
       end
 

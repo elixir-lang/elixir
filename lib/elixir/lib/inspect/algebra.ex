@@ -510,7 +510,7 @@ defmodule Inspect.Algebra do
   documented is processed.
 
   This function is used by `surround/4` and friends
-  to the maximum amount of entries on the same line.
+  to the maximum number of entries on the same line.
   """
   @spec flex_break(binary) :: doc_break
   def flex_break(string \\ " ") when is_binary(string) do
@@ -522,7 +522,7 @@ defmodule Inspect.Algebra do
   `flex_break/1` given by `break_string` between them.
 
   This function is used by `surround/4` and friends
-  to the maximum amount of entries on the same line.
+  to the maximum number of entries on the same line.
   """
   @spec flex_glue(t, binary, t) :: t
   def flex_glue(doc1, break_string \\ " ", doc2) when is_binary(break_string) do

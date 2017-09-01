@@ -625,7 +625,7 @@ defmodule Task do
       end
 
   In the example above, we create tasks that sleep from 1
-  up to 10 seconds and return the amount of seconds they slept.
+  up to 10 seconds and return the number of seconds they slept.
   If you execute the code all at once, you should see 1 up to 5
   printed, as those were the tasks that have replied in the
   given time. All other tasks will have been shut down using
