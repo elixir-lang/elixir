@@ -351,7 +351,8 @@ defmodule MapSet do
     %{map_set | map: Map.merge(map1, map2)}
   end
   def union(%MapSet{map: map1}, %MapSet{map: map2}) do
-    new_from_list(Map.keys(map1) ++ Map.keys(map2), [])
+    map = new_from_list(Map.keys(map1) ++ Map.keys(map2), [])
+    %MapSet{map: map}
   end
 
   @compile {:inline, [order_by_size: 2]}
