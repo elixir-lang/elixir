@@ -109,37 +109,37 @@ defmodule MapSetTest do
     assert Enum.sort(list) == Enum.to_list(5..120)
   end
 
-  test "pre-1.5 MapSet compatibility" do
-    result = v1_mapset(1..5) |> MapSet.new()
+  test "MapSet v1 compatibility" do
+    result = 1..5 |> map_set_v1() |> MapSet.new()
     assert MapSet.equal?(result, MapSet.new(1..5))
 
-    result = MapSet.put(v1_mapset(1..5), 6)
+    result = MapSet.put(map_set_v1(1..5), 6)
     assert MapSet.equal?(result, MapSet.new(1..6))
 
-    result = MapSet.union(v1_mapset(1..5), MapSet.new(6..10))
+    result = MapSet.union(map_set_v1(1..5), MapSet.new(6..10))
     assert MapSet.equal?(result, MapSet.new(1..10))
 
-    result = MapSet.intersection(v1_mapset(1..10), MapSet.new(6..15))
+    result = MapSet.intersection(map_set_v1(1..10), MapSet.new(6..15))
     assert MapSet.equal?(result, MapSet.new(6..10))
 
-    result = MapSet.difference(v1_mapset(1..10), MapSet.new(6..50))
+    result = MapSet.difference(map_set_v1(1..10), MapSet.new(6..50))
     assert MapSet.equal?(result, MapSet.new(1..5))
 
-    result = MapSet.delete(v1_mapset(1..10), 1)
+    result = MapSet.delete(map_set_v1(1..10), 1)
     assert MapSet.equal?(result, MapSet.new(2..10))
 
-    assert MapSet.size(v1_mapset(1..5)) == 5
-    assert MapSet.to_list(v1_mapset(1..5)) == Enum.to_list(1..5)
+    assert MapSet.size(map_set_v1(1..5)) == 5
+    assert MapSet.to_list(map_set_v1(1..5)) == Enum.to_list(1..5)
 
-    assert MapSet.disjoint?(v1_mapset(1..5), MapSet.new(10..15))
-    refute MapSet.disjoint?(v1_mapset(1..5), MapSet.new(5..10))
+    assert MapSet.disjoint?(map_set_v1(1..5), MapSet.new(10..15))
+    refute MapSet.disjoint?(map_set_v1(1..5), MapSet.new(5..10))
 
-    assert MapSet.subset?(v1_mapset(3..7), MapSet.new(1..10))
-    refute MapSet.subset?(v1_mapset(7..12), MapSet.new(1..10))
+    assert MapSet.subset?(map_set_v1(3..7), MapSet.new(1..10))
+    refute MapSet.subset?(map_set_v1(7..12), MapSet.new(1..10))
   end
 
-  defp v1_mapset(enumerable) do
-    map = Enum.reduce(enumerable, %{}, &Map.put(&2, &1, true))
+  defp map_set_v1(enumerable) do
+    map = Map.new(1..5, &{&1, true})
     %{__struct__: MapSet, map: map}
   end
 end
