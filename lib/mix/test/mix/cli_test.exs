@@ -83,8 +83,8 @@ defmodule Mix.CLITest do
   test "--help smoke test", context do
     in_tmp context.test, fn ->
       output = mix ~w[--help]
-      assert output =~ ~r/mix compile\s+# Compiles source files/
-      refute output =~ "mix invalid"
+      assert output =~ "Mix is a build tool for Elixir"
+      assert output =~ "mix help TASK"
     end
   end
 
