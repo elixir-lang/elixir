@@ -1642,7 +1642,7 @@ defmodule Enum do
   in the `enumerable` as its only argument. Returns a tuple with the first list
   containing all the elements in `enumerable` for which applying `fun` returned
   a truthy value, and a second list with all the elements for which applying
-  `fun` returned a falsey value (`false` or `nil`).
+  `fun` returned a falsy value (`false` or `nil`).
 
   The elements in both the returned lists are in the same relative order as they
   were in the original enumerable (if such enumerable was ordered, e.g., a

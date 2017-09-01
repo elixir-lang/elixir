@@ -135,7 +135,7 @@ load_struct(Meta, Name, Args, InContext, E) ->
         %% local function will fail. In this case, we need to fallback to
         %% the regular dispatching since the module will be available if
         %% the table has not been deleted (unless compilation of that
-        %% module failed which then should cause this call to fail too).
+        %% module failed which should then cause this call to fail too).
         try
           apply(LocalFun, Args)
         catch

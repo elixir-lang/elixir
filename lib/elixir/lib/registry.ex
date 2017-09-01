@@ -811,7 +811,7 @@ defmodule Registry do
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
     # Notice we write first to the pid ets table because it will
-    # always be able to do the clean up. If we register first to the
+    # always be able to do the cleanup. If we register first to the
     # key one and the process crashes, the key will stay there forever.
     Process.link(pid_server)
     true = :ets.insert(pid_ets, {self, key, key_ets})

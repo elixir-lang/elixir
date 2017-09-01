@@ -20,7 +20,7 @@ defmodule Mix.Tasks.LoadconfigTest do
       :ok = :application.load({:application, :my_app, [vsn: '1.0.0', env: [key: :app]]})
       assert Application.fetch_env(:my_app, :key) == {:ok, :project}
 
-      # laodconfig can be called multiple times
+      # loadconfig can be called multiple times
       # Later values should have higher precedence
       Mix.Task.run "loadconfig", [fixture_path("configs/good_config.exs")]
       assert Application.fetch_env(:my_app, :key) == {:ok, :value}

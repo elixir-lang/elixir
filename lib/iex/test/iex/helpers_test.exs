@@ -80,7 +80,7 @@ defmodule IEx.HelpersTest do
                      fn -> break!(URI, :unknown, 2) end
       end
 
-      test "errors for non elixir modules" do
+      test "errors for non-Elixir modules" do
         assert_raise RuntimeError,
                      "could not set breakpoint, module :elixir was not written in Elixir",
                      fn -> break!(:elixir, :unknown, 2) end
@@ -672,7 +672,7 @@ defmodule IEx.HelpersTest do
         Sample.run
       end
 
-      assert l(:non_existent_module) == {:error, :nofile}
+      assert l(:nonexistent_module) == {:error, :nofile}
 
       filename = "sample.ex"
       with_file filename, test_module_code(), fn ->
@@ -695,7 +695,7 @@ defmodule IEx.HelpersTest do
 
   describe "nl" do
     test "loads a given module on the given nodes" do
-      assert nl(:non_existent_module) == {:error, :nofile}
+      assert nl(:nonexistent_module) == {:error, :nofile}
       assert nl([node()], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}
       assert nl([:nosuchnode@badhost], Enum) == {:ok, [{:nosuchnode@badhost, :badrpc, :nodedown}]}
       capture_log fn ->
@@ -705,9 +705,9 @@ defmodule IEx.HelpersTest do
   end
 
   describe "r" do
-    test "raises when reloading a non existent module" do
-      assert_raise ArgumentError, "could not load nor find module: :non_existent_module", fn ->
-        r :non_existent_module
+    test "raises when reloading a nonexistent module" do
+      assert_raise ArgumentError, "could not load nor find module: :nonexistent_module", fn ->
+        r :nonexistent_module
       end
     end
 

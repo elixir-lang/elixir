@@ -156,7 +156,7 @@ defmodule Mix do
       [clean: ["clean", &clean_extra/1]]
 
   Where `&clean_extra/1` would be a function in your `mix.exs`
-  with extra clean up logic.
+  with extra cleanup logic.
 
   Note aliases do not show up on `mix help`.
   Aliases defined in the current project do not affect its dependencies and aliases defined in dependencies are not accessible from the current project.

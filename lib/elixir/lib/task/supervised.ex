@@ -424,7 +424,7 @@ defmodule Task.Supervised do
         stream_monitor_loop(running_tasks, config)
 
       # The parent process is telling us to stop because the stream is being
-      # closed. In this case, we forcely kill all spawned processes and then
+      # closed. In this case, we forcibly kill all spawned processes and then
       # exit gracefully ourselves.
       {:stop, ^monitor_ref} ->
         Process.flag(:trap_exit, true)
@@ -438,7 +438,7 @@ defmodule Task.Supervised do
 
       # The parent process went down with a given reason. We kill all the
       # spawned processes (that are also linked) with the same reason, and then
-      # exit ourself with the same reason.
+      # exit ourselves with the same reason.
       {:DOWN, ^parent_ref, _, _, reason} ->
         for {_ref, %{type: :link, pid: pid}} <- running_tasks do
           Process.exit(pid, reason)
