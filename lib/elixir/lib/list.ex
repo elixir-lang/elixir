@@ -240,8 +240,7 @@ defmodule List do
   """
   @spec last([elem]) :: nil | elem when elem: var
   def last([]), do: nil
-  def last([head]), do: head
-  def last([_ | tail]), do: last(tail)
+  def last(list), do: :erlang.hd(:lists.reverse(list))
 
   @doc """
   Receives a list of tuples and returns the first tuple
