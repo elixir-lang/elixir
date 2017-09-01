@@ -13,7 +13,8 @@ defmodule Mix.CLI do
 
     case check_for_shortcuts(args) do
       :help ->
-        proceed(["help"])
+        Mix.shell.info "Mix is a build tool for Elixir"
+        display_usage()
       :version ->
         display_version()
       nil ->
@@ -38,8 +39,10 @@ defmodule Mix.CLI do
   end
 
   defp get_task(["-" <> _ | _]) do
-    Mix.shell.error "** (Mix) Mix requires a task name when passing flags, " <>
-                    "try invoking \"mix #{Mix.Project.config[:default_task]}\" instead"
+    task = "mix #{Mix.Project.config[:default_task]}"
+    Mix.shell.error "** (Mix) Mix only recognizes the flags --help and --version.\n" <>
+                    "You may have wanted to invoke a task instead, such as #{inspect(task)}"
+    display_usage()
     exit({:shutdown, 1})
   end
 
@@ -51,17 +54,7 @@ defmodule Mix.CLI do
     case Mix.Project.get do
       nil ->
         Mix.shell.error "** (Mix) \"mix\" with no arguments must be executed in a directory with a mix.exs file"
-        Mix.shell.info """
-
-        Usage: mix [task]
-
-        Examples:
-
-            mix             - Invokes the default task (current: "mix run")
-            mix new PATH    - Creates a new Elixir project at the given path
-            mix help        - Lists all available tasks
-            mix help TASK   - Prints documentation for a given task
-        """
+        display_usage()
         exit({:shutdown, 1})
       _ ->
         {Mix.Project.config[:default_task], []}
@@ -130,17 +123,34 @@ defmodule Mix.CLI do
     end
   end
 
-  defp display_version() do
+  defp display_version do
     IO.puts :erlang.system_info(:system_version)
     IO.puts "Mix " <> System.build_info[:build]
   end
 
+  defp display_usage do
+    Mix.shell.info """
+
+    Usage: mix [task]
+
+    Examples:
+
+        mix             - Invokes the default task (mix run) in a project
+        mix new PATH    - Creates a new Elixir project at the given path
+        mix help        - Lists all available tasks
+        mix help TASK   - Prints documentation for a given task
+
+    The --help and --version flags can be given instead of a task for usage and versioning information.
+    """
+  end
+
   # Check for --help or --version in the args
-  defp check_for_shortcuts([first_arg | _]) when first_arg in ["--help", "-h"],
+  defp check_for_shortcuts([arg]) when arg in ["--help", "-h"],
     do: :help
 
-  defp check_for_shortcuts([first_arg | _]) when first_arg in ["--version", "-v"],
+  defp check_for_shortcuts([arg]) when arg in ["--version", "-v"],
     do: :version
 
-  defp check_for_shortcuts(_), do: nil
+  defp check_for_shortcuts(_),
+    do: nil
 end
