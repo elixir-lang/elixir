@@ -153,6 +153,27 @@ defmodule Mix.UmbrellaTest do
     Mix.env(:test)
   end
 
+  test "loads umbrella child optional dependencies" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project :umbrella, ".", fn _ ->
+        File.write! "apps/bar/mix.exs", """
+        defmodule Bar.MixProject do
+          use Mix.Project
+
+          def project do
+            [app: :bar,
+             version: "0.1.0",
+             deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo"), optional: true}]]
+          end
+        end
+        """
+
+        Mix.Tasks.Deps.run []
+        assert_received {:mix_shell, :info, ["* git_repo " <> _]}
+      end
+    end
+  end
+
   test "loads umbrella sibling dependencies with :in_umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
