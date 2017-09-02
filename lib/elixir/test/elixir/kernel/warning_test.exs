@@ -841,19 +841,7 @@ defmodule Kernel.WarningTest do
       end
       """
     end)
-    assert output_with_warning =~ ~s("catch" should always come after "rescue" in a try/do block)
-    output_withot_warning = capture_err(fn ->
-      Code.eval_string """
-      try do
-        :trying
-      rescue
-        _ -> :error
-      catch
-        _ -> :caught
-      end
-      """
-    end)
-    assert output_withot_warning =~ ""
+    assert output_with_warning =~ ~s("catch" should always come after "rescue" in a try block)
   end
 
   defp purge(list) when is_list(list) do

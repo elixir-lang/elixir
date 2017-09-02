@@ -184,16 +184,12 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
   RaiseError = fun(Key) ->
     form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'try', Key})
   end,
-  CatchBeforeRescueWarn = fun() ->
-    Message = "\"catch\" should always come after \"rescue\" in a try/do block",
-    elixir_errors:warn(?line(Meta), ?key(E, file), Message)
-  end,
   ok = assert_at_most_once('do', Opts, 0, RaiseError),
   ok = assert_at_most_once('rescue', Opts, 0, RaiseError),
   ok = assert_at_most_once('catch', Opts, 0, RaiseError),
   ok = assert_at_most_once('else', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
-  check_catch_after_rescue(Opts, false, CatchBeforeRescueWarn),
+  ok = warn_catch_before_rescue(Opts, Meta, E, false),
   {lists:map(fun(X) -> expand_try(Meta, X, E) end, Opts), E}.
 
 expand_try(_Meta, {'do', Expr}, E) ->
@@ -303,13 +299,15 @@ assert_at_most_once(Kind, [{Kind, _} | Rest], Count, Fun) ->
 assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
   assert_at_most_once(Kind, Rest, Count, Fun).
 
-check_catch_after_rescue([], _, _) -> ok;
-check_catch_after_rescue([{'rescue', _} | _], true, WarnFun) ->
-  WarnFun();
-check_catch_after_rescue([{'catch', _} | Rest], _, Fun) ->
-  check_catch_after_rescue(Rest, true, Fun);
-check_catch_after_rescue([_ | Rest], Found, Fun) ->
-  check_catch_after_rescue(Rest, Found, Fun).
+warn_catch_before_rescue([], _, _, _) -> ok;
+warn_catch_before_rescue([{'rescue', _} | _], Meta, E, true) ->
+  Message = "\"catch\" should always come after \"rescue\" in a try block",
+  elixir_errors:warn(?line(Meta), ?key(E, file), Message),
+  ok;
+warn_catch_before_rescue([{'catch', _} | Rest], Meta, E, _) ->
+  warn_catch_before_rescue(Rest, Meta, E, true);
+warn_catch_before_rescue([_ | Rest], Meta, E, Found) ->
+  warn_catch_before_rescue(Rest, Meta, E, Found).
 
 format_error({bad_or_missing_clauses, {Kind, Key}}) ->
   io_lib:format("expected -> clauses for :~ts in \"~ts\"", [Key, Kind]);
