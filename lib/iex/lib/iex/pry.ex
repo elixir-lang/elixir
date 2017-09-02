@@ -413,6 +413,6 @@ defmodule IEx.Pry do
   end
 
   defp instrumented?(module) do
-    module.module_info(:attributes)[:iex_pry] == [true]
+    module.__info__(:attributes)[:iex_pry] == [true]
   end
 end
