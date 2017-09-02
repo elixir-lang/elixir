@@ -40,8 +40,18 @@ guard({'when', Meta, [Left, Right]}, E) ->
   {ELeft, EL}  = guard(Left, E),
   {ERight, ER} = guard(Right, EL),
   {{'when', Meta, [ELeft, ERight]}, ER};
-guard(Other, E) ->
-  elixir_expand:expand(Other, E).
+guard(Guard, E) ->
+  warn_zero_length_guard(Guard, E),
+  elixir_expand:expand(Guard, E).
+
+warn_zero_length_guard({'==', Meta, [{length, _, [{Var, _, _}]}, 0]}, E) ->
+  MessageFmt = "`length(~p) == 0` is a bad practice! Use `~p == []` instead!",
+  elixir_errors:warn(?line(Meta), ?key(E, file), io_lib:format(MessageFmt, [Var, Var]));
+warn_zero_length_guard({Op, _, [L, R]}, E) when Op == 'or'; Op == 'and' ->
+  warn_zero_length_guard(L, E),
+  warn_zero_length_guard(R, E);
+warn_zero_length_guard(_, _) ->
+  ok.
 
 %% Case
 
