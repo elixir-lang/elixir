@@ -88,7 +88,7 @@ expand({'__aliases__', _Meta, List}, _Aliases, _LexicalTracker) ->
 ensure_loaded(_Meta, 'Elixir.Kernel', _E) -> ok;
 ensure_loaded(Meta, Ref, E) ->
   try
-    Ref:module_info(compile)
+    Ref:module_info(module)
   catch
     error:undef ->
       Kind = case lists:member(Ref, ?key(E, context_modules)) of
