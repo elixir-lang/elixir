@@ -830,7 +830,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "catch comes before rescue in try block" do
-    output_with_warning = capture_err(fn ->
+    output = capture_err(fn ->
       Code.eval_string """
       try do
         :trying
@@ -841,7 +841,7 @@ defmodule Kernel.WarningTest do
       end
       """
     end)
-    assert output_with_warning =~ ~s("catch" should always come after "rescue" in a try block)
+    assert output =~ ~s("catch" should always come after "rescue" in try)
   end
 
   defp purge(list) when is_list(list) do

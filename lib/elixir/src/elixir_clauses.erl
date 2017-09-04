@@ -301,7 +301,7 @@ assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
 
 warn_catch_before_rescue([], _, _, _) -> ok;
 warn_catch_before_rescue([{'rescue', _} | _], Meta, E, true) ->
-  Message = "\"catch\" should always come after \"rescue\" in a try block",
+  Message = "\"catch\" should always come after \"rescue\" in try",
   elixir_errors:warn(?line(Meta), ?key(E, file), Message),
   ok;
 warn_catch_before_rescue([{'catch', _} | Rest], Meta, E, _) ->
