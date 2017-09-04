@@ -419,7 +419,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "`length(v) == 0` is a bad practice! Use `v == []` instead!"
+    end) =~ "\"length(v) == 0\" is discouraged since it has to traverse the whole list to check if it is empty or not. Prefer \"v == []\" instead"
   after
     purge Sample
   end

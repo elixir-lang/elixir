@@ -41,12 +41,22 @@ guard({'when', Meta, [Left, Right]}, E) ->
   {ERight, ER} = guard(Right, EL),
   {{'when', Meta, [ELeft, ERight]}, ER};
 guard(Guard, E) ->
-  warn_zero_length_guard(Guard, E),
-  elixir_expand:expand(Guard, E).
+  {EGuard, EG} = elixir_expand:expand(Guard, E),
+  ok = warn_zero_length_guard(EGuard, EG),
+  {EGuard, EG}.
 
-warn_zero_length_guard({'==', Meta, [{length, _, [{Var, _, _}]}, 0]}, E) ->
-  MessageFmt = "`length(~p) == 0` is a bad practice! Use `~p == []` instead!",
-  elixir_errors:warn(?line(Meta), ?key(E, file), io_lib:format(MessageFmt, [Var, Var]));
+warn_zero_length_guard(
+  {
+    {'.', _, [erlang, '==']},
+    Meta,
+    [{{'.', _, [erlang, length]}, _, [Arg]}, 0]
+  },
+  E
+) ->
+  ArgS = 'Elixir.Macro':to_string(Arg),
+  MessageFmt = "\"length(~ts) == 0\" is discouraged since it has to traverse the whole list to check if it is empty or not. Prefer \"~ts == []\" instead",
+  elixir_errors:warn(?line(Meta), ?key(E, file), io_lib:format(MessageFmt, [ArgS, ArgS])),
+  ok;
 warn_zero_length_guard({Op, _, [L, R]}, E) when Op == 'or'; Op == 'and' ->
   warn_zero_length_guard(L, E),
   warn_zero_length_guard(R, E);
