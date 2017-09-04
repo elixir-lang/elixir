@@ -189,6 +189,7 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
   ok = assert_at_most_once('catch', Opts, 0, RaiseError),
   ok = assert_at_most_once('else', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
+  ok = warn_catch_before_rescue(Opts, Meta, E, false),
   {lists:map(fun(X) -> expand_try(Meta, X, E) end, Opts), E}.
 
 expand_try(_Meta, {'do', Expr}, E) ->
@@ -297,6 +298,16 @@ assert_at_most_once(Kind, [{Kind, _} | Rest], Count, Fun) ->
   assert_at_most_once(Kind, Rest, Count + 1, Fun);
 assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
   assert_at_most_once(Kind, Rest, Count, Fun).
+
+warn_catch_before_rescue([], _, _, _) -> ok;
+warn_catch_before_rescue([{'rescue', _} | _], Meta, E, true) ->
+  Message = "\"catch\" should always come after \"rescue\" in try",
+  elixir_errors:warn(?line(Meta), ?key(E, file), Message),
+  ok;
+warn_catch_before_rescue([{'catch', _} | Rest], Meta, E, _) ->
+  warn_catch_before_rescue(Rest, Meta, E, true);
+warn_catch_before_rescue([_ | Rest], Meta, E, Found) ->
+  warn_catch_before_rescue(Rest, Meta, E, Found).
 
 format_error({bad_or_missing_clauses, {Kind, Key}}) ->
   io_lib:format("expected -> clauses for :~ts in \"~ts\"", [Key, Kind]);
