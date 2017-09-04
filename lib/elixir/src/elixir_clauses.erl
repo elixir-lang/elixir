@@ -42,7 +42,7 @@ guard({'when', Meta, [Left, Right]}, E) ->
   {{'when', Meta, [ELeft, ERight]}, ER};
 guard(Guard, E) ->
   {EGuard, EG} = elixir_expand:expand(Guard, E),
-  ok = warn_zero_length_guard(EGuard, EG),
+  warn_zero_length_guard(EGuard, EG),
   {EGuard, EG}.
 
 warn_zero_length_guard(
@@ -53,10 +53,11 @@ warn_zero_length_guard(
   },
   E
 ) ->
-  ArgS = 'Elixir.Macro':to_string(Arg),
-  MessageFmt = "\"length(~ts) == 0\" is discouraged since it has to traverse the whole list to check if it is empty or not. Prefer \"~ts == []\" instead",
-  elixir_errors:warn(?line(Meta), ?key(E, file), io_lib:format(MessageFmt, [ArgS, ArgS])),
-  ok;
+  ArgString = 'Elixir.Macro':to_string(Arg),
+  Message = io_lib:format("\"length(~ts) == 0\" is discouraged since it has to "
+                          "traverse the whole list to check if it is empty or not. "
+                          "Prefer \"~ts == []\" instead", [ArgString, ArgString]),
+  elixir_errors:warn(?line(Meta), ?key(E, file), Message);
 warn_zero_length_guard({Op, _, [L, R]}, E) when Op == 'or'; Op == 'and' ->
   warn_zero_length_guard(L, E),
   warn_zero_length_guard(R, E);
