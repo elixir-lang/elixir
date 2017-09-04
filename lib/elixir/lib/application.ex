@@ -22,7 +22,7 @@ defmodule Application do
   Starting an application is done via the "application module callback", which
   is a module that defines the `start/2` function. The `start/2` function should
   then start a supervisor, which is often called as the top-level supervisor, since
-  it sits at the root of a potentially log supervision tree. When the system is
+  it sits at the root of a potentially long supervision tree. When the system is
   shutting down, all applications shut down their top-level supervisor, which
   terminates children in the opposite order they are started.
 
