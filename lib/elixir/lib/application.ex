@@ -9,17 +9,57 @@ defmodule Application do
   Applications are defined with an application file named `APP.app` where
   `APP` is the application name, usually in `underscore_case`. The application
   file must reside in the same `ebin` directory as the compiled modules of the
-  application.
+  application. In Elixir, the Mix build tool is responsible for compiling your
+  source code and generating your application `.app` file. You can learn more
+  about the generation of `.app` files by typing `mix help compile.app`.
 
-  In Elixir, Mix is responsible for compiling your source code and
-  generating your application `.app` file. Furthermore, Mix is also
-  responsible for configuring, starting and stopping your application
-  and its dependencies. For this reason, this documentation will focus
-  on the remaining aspects of your application: the application environment
-  and the application callback module.
+  Once your application is compiled, running your system is a matter of starting
+  your current application and its dependencies. Differently from other languages,
+  Elixir does not have a `main` procedure that is responsible for starting your
+  system. Instead, you start one or more applications, each with their own
+  initialization and termination logic.
 
-  You can learn more about Mix generation of `.app` files by typing
-  `mix help compile.app`.
+  Starting an application is done via the "application module callback", which
+  is a module that defines the `start/2` function. The `start/2` function should
+  then start a supervisor, which is often called as the top-level supervisor, since
+  it sits at the root of a potentially long supervision tree. When the system is
+  shutting down, all applications shut down their top-level supervisor, which
+  terminates children in the opposite order they are started.
+
+  We have mentioned the Mix build tool is responsible for compiling applications,
+  but it is also capable of running applications. For example, `mix test`
+  automatically starts your application dependencies and your application itself
+  before your test runs. `mix run --no-halt` also boots your current project and
+  can be used to start a long running system. See `mix help run`.
+
+  Developers can also use tools like [Distillery](https://github.com/bitwalker/distillery)
+  that build **releases**. Releases are able to package all of your source code
+  as well as the Erlang VM into a single directory. Releases also give you explicit
+  control over how each application is started and in which order. They also provide
+  a more streamlined mechanism for starting and stopping systems, debugging, logging,
+  as well as system monitoring.
+
+  Finally, Elixir provides tools such as escripts and archives, which are
+  different mechanisms for packaging your application. Those are typically used
+  when tools must be shared between developers and not as deployment options.
+  See `mix help archive.build` and `mix help escript.build` for more detail.
+
+  Shutting down a live system cleanly can be done by calling `System.stop/1`.
+  It will shut down all applications in the opposite order they are started.
+  Each application will then shutdown its top-level supervisor, if one is
+  available, which then shuts down its children.
+
+  From Erlang/OTP 19.1, a SIGTERM from the operating system will automatically
+  translate to `System.stop/0`. Erlang/OTP 20 gives user more explicit control
+  over OS signals via the `:os.set_signal/2` function.
+
+  Applications also provide an "application environment", which is how
+  applications are configured. The application environment can either be set
+  statically, via a configuration file, or dynamically via `put_env/3` and
+  friends.
+
+  Over the next sections, we will cover the "application environment" and
+  the "application module callback" in more detail.
 
   ## Application environment
 
@@ -40,9 +80,13 @@ defmodule Application do
       Application.get_env(:APP_NAME, :hello)
       #=> :world
 
-  It is also possible to put and delete values from the application value,
-  including new values that are not defined in the environment file (although
-  this should be avoided).
+  Applications and dependencies in Mix projects are typically configured
+  via the `config/config.exs` file. For example, someone using your
+  application can configure the `:hello` key as follows:
+
+      config :APP_NAME, hello: :brand_new_world
+
+  It is also possible to configure applications dynamically via `put_env/3`.
 
   Keep in mind that each application is responsible for its environment.
   Do not use the functions in this module for directly accessing or modifying
@@ -78,8 +122,8 @@ defmodule Application do
 
   The `type` argument passed to `start/2` is usually `:normal` unless in a
   distributed setup where application takeovers and failovers are configured.
-  This particular aspect of applications is explained in more detail in the
-  OTP documentation:
+  Distributed applications is beyond the scope of this documentation. For those
+  interested on the topic, please access the OTP documentation:
 
     * [`:application` module](http://www.erlang.org/doc/man/application.html)
     * [Applications – OTP Design Principles](http://www.erlang.org/doc/design_principles/applications.html)
