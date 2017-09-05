@@ -818,21 +818,18 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
-  test "Kernel.def fails when rescue, else or catch don't have clauses" do
+  test "def fails when rescue, else or catch don't have clauses" do
     assert_eval_raise CompileError,
       ~r"expected -> clauses for :else in \"def\"",
       """
-      defmodule A do
-        def hi do
-          e()
+      defmodule Example do
+        def foo do
+          bar()
         else
-          x()
+          baz()
         end
       end
       """
-  after
-    :code.purge A
-    :code.delete A
   end
 
   defp bad_remote_call(x), do: x.foo
