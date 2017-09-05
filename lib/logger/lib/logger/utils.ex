@@ -88,23 +88,16 @@ defmodule Logger.Utils do
   check `:io_lib.scan_format/2`
   """
   def scan_inspect(format, args, truncate, opts \\ %Inspect.Opts{})
-
   def scan_inspect(format, args, truncate, opts) when is_atom(format) do
-    do_scan_inspect(Atom.to_charlist(format), args, truncate, opts)
+    scan_inspect(Atom.to_charlist(format), args, truncate, opts)
   end
-
   def scan_inspect(format, args, truncate, opts) when is_binary(format) do
-    do_scan_inspect(:binary.bin_to_list(format), args, truncate, opts)
+    scan_inspect(:binary.bin_to_list(format), args, truncate, opts)
   end
-
-  def scan_inspect(format, args, truncate, opts) when is_list(format) do
-    do_scan_inspect(format, args, truncate, opts)
-  end
-
-  defp do_scan_inspect(format, [], _truncate, _opts) do
+  def scan_inspect(format, [], _truncate, _opts) when is_list(format) do
     :io_lib.scan_format(format, [])
   end
-  defp do_scan_inspect(format, args, truncate, opts) do
+  def scan_inspect(format, args, truncate, opts) when is_list(format) do
     # A pre-pass that removes binaries from
     # arguments according to the truncate limit.
     {args, _} = Enum.map_reduce(args, truncate, fn arg, acc ->
