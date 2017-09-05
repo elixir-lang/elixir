@@ -171,8 +171,8 @@ def_to_clauses(Kind, Meta, _Args, _Guards, nil, E) ->
   elixir_errors:form_error(Meta, ?key(E, file), elixir_expand, {missing_option, Kind, [do]});
 def_to_clauses(_Kind, Meta, Args, Guards, [{do, Body}], _E) ->
   [{Meta, Args, Guards, Body}];
-def_to_clauses(_Kind, Meta, Args, Guards, Body, _E) ->
-  [{Meta, Args, Guards, {'try', Meta, [Body]}}].
+def_to_clauses(Kind, Meta, Args, Guards, Body, _E) ->
+  [{Meta, Args, Guards, {'try', [{origin,  Kind} | Meta], [Body]}}].
 
 run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
   Callbacks = ets:lookup_element(elixir_module:data_table(Module), on_definition, 2),
