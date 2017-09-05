@@ -22,7 +22,7 @@ defmodule Task.Supervisor do
   @doc false
   def child_spec(arg) do
     %{
-      id: Task.Supervivsor,
+      id: Task.Supervisor,
       start: {Task.Supervisor, :start_link, [arg]},
       type: :supervisor
     }
