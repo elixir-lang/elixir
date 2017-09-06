@@ -4,7 +4,11 @@ defmodule Logger.UtilsTest do
   import Logger.Utils
 
   import Kernel, except: [inspect: 2]
-  defp inspect(format, args), do: Logger.Utils.inspect(format, args, 10)
+  defp inspect(format, args) do
+    format
+    |> Logger.Utils.scan_inspect(args, 10)
+    |> :io_lib.unscan_format()
+  end
 
   test "truncate/2" do
     # ASCII binaries
