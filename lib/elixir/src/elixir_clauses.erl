@@ -282,13 +282,21 @@ expand_with_export(Meta, Kind, _Fun, {Key, _}, _Acc, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
 
 %% Expands all -> pairs in a given key but do not keep the overall vars.
-expand_without_export(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) ->
+expand_without_export(Meta, Kind, Fun, Clauses, E) ->
+  NewKind =
+    case lists:keyfind(origin, 1, Meta) of
+      {origin, Origin} -> Origin;
+      _ -> Kind
+    end,
+  expand_without_export_origin(Meta, NewKind, Fun, Clauses, E).
+
+expand_without_export_origin(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
     {EClause, _} = clause(Meta, {Kind, Key}, Fun, Clause, E),
     EClause
   end,
   {Key, lists:map(Transformer, Clauses)};
-expand_without_export(Meta, Kind, _Fun, {Key, _}, E) ->
+expand_without_export_origin(Meta, Kind, _Fun, {Key, _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
 
 assert_at_most_once(_Kind, [], _Count, _Fun) -> ok;
