@@ -45,18 +45,13 @@ guard(Guard, E) ->
   warn_zero_length_guard(EGuard, EG),
   {EGuard, EG}.
 
-warn_zero_length_guard(
-  {
-    {'.', _, [erlang, '==']},
-    Meta,
-    [{{'.', _, [erlang, length]}, _, [Arg]}, 0]
-  },
-  E
-) ->
+warn_zero_length_guard({{'.', _, [erlang, '==']}, Meta,
+                        [{{'.', _, [erlang, length]}, _, [Arg]}, 0]}, E) ->
   ArgString = 'Elixir.Macro':to_string(Arg),
   Message = io_lib:format("\"length(~ts) == 0\" is discouraged since it has to "
                           "traverse the whole list to check if it is empty or not. "
-                          "Prefer \"~ts == []\" instead", [ArgString, ArgString]),
+                          "Prefer to pattern match on an empty list or use "
+                          "\"~ts == []\" as a guard", [ArgString, ArgString]),
   elixir_errors:warn(?line(Meta), ?key(E, file), Message);
 warn_zero_length_guard({Op, _, [L, R]}, E) when Op == 'or'; Op == 'and' ->
   warn_zero_length_guard(L, E),
