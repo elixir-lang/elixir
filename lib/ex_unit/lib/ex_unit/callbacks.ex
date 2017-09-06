@@ -285,6 +285,40 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
+  Same as `start_supervised/2` but returns the PID on success and raises if
+  not started porperly.
+  """
+  @spec start_supervised!(Supervisor.child_spec | module | {module, term}, keyword) :: pid
+  def start_supervised!(child_spec_or_module, opts \\ []) do
+    case start_supervised(child_spec_or_module, opts) do
+      {:ok, pid} ->
+        pid
+      {:ok, pid, _info} ->
+        pid
+      {:error, {{:EXIT, {error, stack}}, _info}} ->
+        raise """
+        Failed to start child #{inspect child_spec_or_module}.
+
+        Reason: Exception
+        Details:
+
+            #{Exception.format(:error, error, stack)}
+
+        """
+      {:error, error} ->
+        raise """
+        Failed to start child #{inspect child_spec_or_module}.
+
+        Reason: Unknown
+        Details:
+
+            #{inspect error}
+
+        """
+    end
+  end
+
+  @doc """
   Stops a child process started via `start_supervised/2`.
 
   This function expects the `id` in the child specification.
