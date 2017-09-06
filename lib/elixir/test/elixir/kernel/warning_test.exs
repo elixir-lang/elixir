@@ -406,6 +406,24 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test "`length(list) == 0` in guard" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        def list_case do
+          v = []
+          case v do
+            _ when length(v) == 0 -> :ok
+            _ -> :fail
+          end
+        end
+      end
+      """
+    end) =~ "\"length(v) == 0\" is discouraged since it has to traverse the whole list to check if it is empty or not"
+  after
+    purge Sample
+  end
+
   test "previous clause always matches" do
     assert capture_err(fn ->
       Code.eval_string """
