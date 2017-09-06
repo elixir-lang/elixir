@@ -81,25 +81,23 @@ defmodule Logger.Utils do
   end
 
   @doc """
-  Receives a format string and arguments and replace `~p`,
+  Receives a format string and arguments, scans them, and then replace `~p`,
   `~P`, `~w` and `~W` by its inspected variants.
+
+  For information about format scanning and how to consume them,
+  check `:io_lib.scan_format/2`
   """
-  def inspect(format, args, truncate, opts \\ %Inspect.Opts{})
-
-  def inspect(format, args, truncate, opts) when is_atom(format) do
-    do_inspect(Atom.to_charlist(format), args, truncate, opts)
+  def scan_inspect(format, args, truncate, opts \\ %Inspect.Opts{})
+  def scan_inspect(format, args, truncate, opts) when is_atom(format) do
+    scan_inspect(Atom.to_charlist(format), args, truncate, opts)
   end
-
-  def inspect(format, args, truncate, opts) when is_binary(format) do
-    do_inspect(:binary.bin_to_list(format), args, truncate, opts)
+  def scan_inspect(format, args, truncate, opts) when is_binary(format) do
+    scan_inspect(:binary.bin_to_list(format), args, truncate, opts)
   end
-
-  def inspect(format, args, truncate, opts) when is_list(format) do
-    do_inspect(format, args, truncate, opts)
+  def scan_inspect(format, [], _truncate, _opts) when is_list(format) do
+    :io_lib.scan_format(format, [])
   end
-
-  defp do_inspect(format, [], _truncate, _opts), do: {format, []}
-  defp do_inspect(format, args, truncate, opts) do
+  def scan_inspect(format, args, truncate, opts) when is_list(format) do
     # A pre-pass that removes binaries from
     # arguments according to the truncate limit.
     {args, _} = Enum.map_reduce(args, truncate, fn arg, acc ->
@@ -109,129 +107,50 @@ defmodule Logger.Utils do
         {arg, acc}
       end
     end)
-    do_inspect(format, args, [], [], opts)
+
+    format
+    |> :io_lib.scan_format(args)
+    |> Enum.map(&handle_format_spec(&1, opts))
   end
 
-  defp do_inspect([?~ | t], args, used_format, used_args, opts) do
-    {t, args, cc_format, cc_args} = collect_cc(:width, t, args, [?~], [], opts)
-    do_inspect(t, args, cc_format ++ used_format, cc_args ++ used_args, opts)
+  @inspected_format_spec %{
+    adjust: :right,
+    args: [],
+    control_char: ?s,
+    encoding: :unicode,
+    pad_char: ?\s,
+    precision: :none,
+    strings: true,
+    width: :none
+  }
+
+  defp handle_format_spec(%{control_char: char} = spec, opts) when char in 'wWpP' do
+    %{args: args, width: width, strings: strings?} = spec
+
+    opts = %{
+      opts |
+      charlists: inspect_charlists(strings?, opts),
+      limit: inspect_limit(char, args, opts),
+      width: inspect_width(char, width),
+    }
+
+    %{@inspected_format_spec | args: [inspect_data(args, opts)]}
   end
+  defp handle_format_spec(spec, _opts), do: spec
 
-  defp do_inspect([h | t], args, used_format, used_args, opts),
-    do: do_inspect(t, args, [h | used_format], used_args, opts)
+  defp inspect_charlists(false, _), do: :as_lists
+  defp inspect_charlists(_, opts), do: opts.charlists
 
-  defp do_inspect([], [], used_format, used_args, _opts),
-    do: {:lists.reverse(used_format), :lists.reverse(used_args)}
+  defp inspect_limit(char, [_, limit], _) when char in 'WP', do: limit
+  defp inspect_limit(_, _, opts), do: opts.limit
 
-  ## width
+  defp inspect_width(char, _) when char in 'wW', do: :infinity
+  defp inspect_width(_, width), do: width
 
-  defp collect_cc(:width, [?- | t], args, used_format, used_args, opts),
-    do: collect_value(:width, t, args, [?- | used_format], used_args, opts, :precision)
-
-  defp collect_cc(:width, t, args, used_format, used_args, opts),
-    do: collect_value(:width, t, args, used_format, used_args, opts, :precision)
-
-  ## precision
-
-  defp collect_cc(:precision, [?. | t], args, used_format, used_args, opts),
-    do: collect_value(:precision, t, args, [?. | used_format], used_args, opts, :pad_char)
-
-  defp collect_cc(:precision, t, args, used_format, used_args, opts),
-    do: collect_cc(:pad_char, t, args, used_format, used_args, opts)
-
-  ## pad char
-
-  defp collect_cc(:pad_char, [?., ?* | t], [arg | args], used_format, used_args, opts),
-    do: collect_cc(:encoding, t, args, [?*, ?. | used_format], [arg | used_args], opts)
-
-  defp collect_cc(:pad_char, [?., p | t], args, used_format, used_args, opts),
-    do: collect_cc(:encoding, t, args, [p, ?. | used_format], used_args, opts)
-
-  defp collect_cc(:pad_char, t, args, used_format, used_args, opts),
-    do: collect_cc(:encoding, t, args, used_format, used_args, opts)
-
-  ## encoding
-
-  defp collect_cc(:encoding, [?l | t], args, used_format, used_args, opts),
-    do: collect_cc(:done, t, args, [?l | used_format], used_args, %{opts | charlists: :as_lists})
-
-  defp collect_cc(:encoding, [?t | t], args, used_format, used_args, opts),
-    do: collect_cc(:done, t, args, [?t | used_format], used_args, opts)
-
-  defp collect_cc(:encoding, t, args, used_format, used_args, opts),
-    do: collect_cc(:done, t, args, used_format, used_args, opts)
-
-  ## done
-
-  defp collect_cc(:done, [?W | t], [data, limit | args], _used_format, _used_args, opts),
-    do: collect_inspect(t, args, data, %{opts | limit: limit, width: :infinity})
-
-  defp collect_cc(:done, [?w | t], [data | args], _used_format, _used_args, opts),
-    do: collect_inspect(t, args, data, %{opts | width: :infinity})
-
-  defp collect_cc(:done, [?P | t], [data, limit | args], _used_format, _used_args, opts),
-    do: collect_inspect(t, args, data, %{opts | limit: limit})
-
-  defp collect_cc(:done, [?p | t], [data | args], _used_format, _used_args, opts),
-    do: collect_inspect(t, args, data, opts)
-
-  defp collect_cc(:done, [h | t], args, used_format, used_args, _opts) do
-    {args, used_args} = collect_cc(h, args, used_args)
-    {t, args, [h | used_format], used_args}
-  end
-
-  defp collect_cc(?x, [a, prefix | args], used), do: {args, [prefix, a | used]}
-  defp collect_cc(?X, [a, prefix | args], used), do: {args, [prefix, a | used]}
-  defp collect_cc(?s, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?e, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?f, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?g, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?b, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?B, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?+, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?#, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?c, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?i, [a | args], used), do: {args, [a | used]}
-  defp collect_cc(?~, args, used), do: {args, used}
-  defp collect_cc(?n, args, used), do: {args, used}
-
-  defp collect_inspect(t, args, data, opts) do
-    data =
-      data
-      |> Inspect.Algebra.to_doc(opts)
-      |> Inspect.Algebra.format(opts.width)
-    {t, args, 'st~', [data]}
-  end
-
-  defp collect_value(current, [?* | t], [arg | args], used_format, used_args, opts, next)
-      when is_integer(arg) do
-    collect_cc(next, t, args, [?* | used_format], [arg | used_args],
-               put_value(opts, current, arg))
-  end
-
-  defp collect_value(current, [c | t], args, used_format, used_args, opts, next)
-      when is_integer(c) and c >= ?0 and c <= ?9 do
-    {t, c} = collect_value([c | t], [])
-    collect_cc(next, t, args, c ++ used_format, used_args,
-               put_value(opts, current, c |> :lists.reverse |> List.to_integer))
-  end
-
-  defp collect_value(_current, t, args, used_format, used_args, opts, next),
-    do: collect_cc(next, t, args, used_format, used_args, opts)
-
-  defp collect_value([c | t], buffer)
-    when is_integer(c) and c >= ?0 and c <= ?9,
-    do: collect_value(t, [c | buffer])
-
-  defp collect_value(other, buffer),
-    do: {other, buffer}
-
-  defp put_value(opts, key, value) do
-    if Map.has_key?(opts, key) do
-      Map.put(opts, key, value)
-    else
-      opts
-    end
+  defp inspect_data([data | _], opts) do
+    data
+    |> Inspect.Algebra.to_doc(opts)
+    |> Inspect.Algebra.format(opts.width)
   end
 
   @doc """
