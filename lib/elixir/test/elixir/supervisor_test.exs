@@ -41,7 +41,6 @@ defmodule SupervisorTest do
   test "generates child_spec/1" do
     assert Stack.Sup.child_spec([:hello]) == %{
       id: Stack.Sup,
-      restart: :permanent,
       start: {Stack.Sup, :start_link, [[:hello]]},
       type: :supervisor
     }
@@ -50,8 +49,7 @@ defmodule SupervisorTest do
       use Supervisor,
           id: :id,
           restart: :temporary,
-          start: {:foo, :bar, []},
-          shutdown: 5000 # ignored
+          start: {:foo, :bar, []}
 
       def init(arg) do
         arg

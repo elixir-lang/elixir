@@ -21,10 +21,7 @@ defmodule AgentTest do
 
     assert MyAgent.child_spec([:hello]) == %{
       id: MyAgent,
-      restart: :permanent,
-      shutdown: 5000,
-      start: {MyAgent, :start_link, [[:hello]]},
-      type: :worker
+      start: {MyAgent, :start_link, [[:hello]]}
     }
 
     defmodule CustomAgent do
@@ -39,8 +36,7 @@ defmodule AgentTest do
       id: :id,
       restart: :temporary,
       shutdown: :infinity,
-      start: {:foo, :bar, []},
-      type: :worker
+      start: {:foo, :bar, []}
     }
   end
 
