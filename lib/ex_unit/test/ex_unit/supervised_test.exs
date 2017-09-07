@@ -6,8 +6,42 @@ defmodule ExUnit.SupervisedTest do
   defmodule MyAgent do
     use Agent
 
+    def start_link(:error) do
+      {:error, "Because of reasons"}
+    end
+    def start_link(:exception) do
+      raise "Because of exceptions"
+    end
     def start_link(arg) do
       Agent.start_link(fn -> arg end, name: __MODULE__)
+    end
+  end
+
+  test "returns error if the supervised process returns error tuple" do
+    {:error, error} = start_supervised({MyAgent, :error})
+    assert {"Because of reasons", _info} = error
+    assert_raise RuntimeError, """
+    Failed to start child {ExUnit.SupervisedTest.MyAgent, :error}.
+
+    Reason: Unknown
+    Error: "Because of reasons"
+    """, fn ->
+      start_supervised!({MyAgent, :error})
+    end
+  end
+  test "returns error if the supervised process raises exception" do
+    {:error, {{:EXIT, {exception, _}}, _}} = start_supervised({MyAgent, :exception})
+    assert exception == %RuntimeError{message: "Because of exceptions"}
+    pattern = """
+    Failed to start child \\{ExUnit.SupervisedTest.MyAgent, :exception\\}.
+
+    Reason: Exception
+    Error:
+
+        \\*\\* \\(RuntimeError\\) Because of exceptions
+    """
+    assert_raise RuntimeError, Regex.compile!(pattern), fn ->
+      start_supervised!({MyAgent, :exception})
     end
   end
 

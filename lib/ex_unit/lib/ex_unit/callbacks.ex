@@ -300,20 +300,17 @@ defmodule ExUnit.Callbacks do
         Failed to start child #{inspect child_spec_or_module}.
 
         Reason: Exception
-        Details:
+        Error:
 
             #{Exception.format(:error, error, stack)}
 
         """
-      {:error, error} ->
+      {:error, {error, _info}} ->
         raise """
         Failed to start child #{inspect child_spec_or_module}.
 
         Reason: Unknown
-        Details:
-
-            #{inspect error}
-
+        Error: #{inspect error}
         """
     end
   end
