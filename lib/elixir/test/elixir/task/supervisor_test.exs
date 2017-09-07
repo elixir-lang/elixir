@@ -22,6 +22,16 @@ defmodule Task.SupervisorTest do
     number
   end
 
+  def sleep_and_return_ancestor(number, _another_arg \\ nil) do
+      Process.sleep(number)
+
+      {:dictionary, dictionary} = Process.info(self(), :dictionary)
+
+      dictionary
+      |> Keyword.get(:"$ancestors")
+      |> List.first()
+  end
+
   test "can be supervised directly", config do
     assert {:ok, _} =
            Supervisor.start_link([{Task.Supervisor, name: config.test}], strategy: :one_for_one)
@@ -238,6 +248,33 @@ defmodule Task.SupervisorTest do
              |> Enum.take(1) ==
              [ok: 0]
       refute_received _
+    end
+
+    test "streams an enumerable with fun and supervisor fun", %{supervisor: supervisor} do
+      {:ok, other_supervisor} = Task.Supervisor.start_link()
+
+      assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
+             |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+             |> Enum.to_list ==
+             [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
+    end
+
+    test "streams an enumerable with mfa and supervisor fun", %{supervisor: supervisor} do
+      {:ok, other_supervisor} = Task.Supervisor.start_link()
+
+      assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
+             |> Task.Supervisor.async_stream(1..4, __MODULE__, :sleep_and_return_ancestor, [], @opts)
+             |> Enum.to_list ==
+             [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
+    end
+
+    test "streams an enumerable with mfa with args and supervisor fun", %{supervisor: supervisor} do
+      {:ok, other_supervisor} = Task.Supervisor.start_link()
+
+      assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
+             |> Task.Supervisor.async_stream(1..4, __MODULE__, :sleep_and_return_ancestor, [:another_arg], @opts)
+             |> Enum.to_list ==
+             [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
     end
   end
 
