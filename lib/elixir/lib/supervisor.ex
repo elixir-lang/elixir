@@ -457,20 +457,20 @@ defmodule Supervisor do
 
   @doc false
   defmacro __using__(opts) do
-    quote location: :keep, bind_quoted: [opts: opts] do
-      @behaviour Supervisor
+    quote location: :keep do
       import Supervisor.Spec
-
-      spec = [
-        id: opts[:id] || __MODULE__,
-        start: Macro.escape(opts[:start]) || quote(do: {__MODULE__, :start_link, [arg]}),
-        restart: opts[:restart] || :permanent,
-        type: :supervisor
-      ]
+      @behaviour Supervisor
+      @opts unquote(opts)
 
       @doc false
       def child_spec(arg) do
-        %{unquote_splicing(spec)}
+        default = %{
+          id: __MODULE__,
+          start: {__MODULE__, :start_link, [arg]},
+          type: :supervisor
+        }
+
+        Supervisor.child_spec(default, @opts)
       end
 
       defoverridable child_spec: 1
