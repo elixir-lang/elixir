@@ -157,7 +157,7 @@ defmodule Kernel.GuardTest do
 
       # Slightly unique errors
 
-      assert_raise ArgumentError, ~r"expects a compile-time list", fn ->
+      assert_raise ArgumentError, ~r{invalid args for operator "in"}, fn ->
         defmodule RuntimeListUsage do
           defguard foo(bar, baz) when bar in baz
         end
