@@ -238,7 +238,7 @@ defmodule Kernel.ErrorsTest do
 
   test "different defs with defaults" do
     assert_eval_raise CompileError,
-      "nofile:3: def hello/3 defaults conflicts with def hello/2",
+      "nofile:3: def hello/3 defaults conflicts with hello/2",
       ~C'''
       defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults1 do
         def hello(a, b \\ nil), do: a + b
@@ -247,7 +247,7 @@ defmodule Kernel.ErrorsTest do
       '''
 
     assert_eval_raise CompileError,
-      "nofile:3: def hello/2 conflicts with defaults from def hello/3",
+      "nofile:3: def hello/2 conflicts with defaults from hello/3",
       ~C'''
       defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults2 do
         def hello(a, b \\ nil, c \\ nil), do: a + b + c
