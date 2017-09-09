@@ -34,10 +34,11 @@ local_for(Module, Name, Arity, Kinds) ->
 
 %% Take a definition out of the table
 
-take_definition(Module, Tuple) ->
+take_definition(Module, {Name, Arity} = Tuple) ->
   Table = elixir_module:defs_table(Module),
   case ets:take(Table, {def, Tuple}) of
-    [Result] ->
+    [{{def, Tuple}, _, _, _, _, {Defaults, _, _}} = Result] ->
+      ets:delete_object(Table, {{default, Name}, Arity, Defaults}),
       {Result, [Clause || {_, Clause} <- ets:take(Table, {clauses, Tuple})]};
     [] ->
       false
