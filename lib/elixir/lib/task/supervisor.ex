@@ -319,23 +319,17 @@ defmodule Task.Supervisor do
   end
 
   defp supervisor_fun(supervisor, {_module, _fun, _args})
-      when is_function(supervisor, 1) do
-    fn {_module, _fun, [entry | _rest_args]} ->
-      supervisor.(entry)
-    end
+       when is_function(supervisor, 1) do
+    fn {_module, _fun, [entry | _rest_args]} -> supervisor.(entry) end
   end
 
   defp supervisor_fun(supervisor, fun)
-      when is_function(supervisor, 1) and is_function(fun, 1) do
-    fn {_erlang, _apply, [_fun, [entry]]} ->
-      supervisor.(entry)
-    end
+       when is_function(supervisor, 1) and is_function(fun, 1) do
+    fn {_erlang, _apply, [_fun, [entry]]} -> supervisor.(entry) end
   end
 
   defp supervisor_fun(supervisor, _fun) do
-    fn _mfa ->
-      supervisor
-    end
+    fn _mfa -> supervisor end
   end
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
