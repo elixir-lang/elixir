@@ -186,6 +186,13 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
   Tuple   = {Name, Arity},
   HasBody = Clauses =/= [],
 
+  if
+    Defaults > 0 ->
+      ets:insert(Defs, {{default, Name}, Arity, Defaults});
+    true ->
+      ok
+  end,
+
   MaxDefaults =
     case ets:take(Defs, {def, Tuple}) of
       [{_, StoredKind, StoredMeta, StoredFile, StoredCheck,
@@ -194,14 +201,14 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
         (Check and StoredCheck) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Data, StoredMeta, StoredFile),
         check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody),
-        {max(Defaults, StoredDefaults), HasBody, Defaults};
+        max(Defaults, StoredDefaults);
       [] ->
-        {Defaults, HasBody, Defaults}
+        Defaults
     end,
 
   Check andalso ets:insert(Data, {?last_def, Tuple}),
   ets:insert(Defs, [{{clauses, Tuple}, Clause} || Clause <- Clauses]),
-  ets:insert(Defs, {{def, Tuple}, Kind, Meta, File, Check, MaxDefaults}).
+  ets:insert(Defs, {{def, Tuple}, Kind, Meta, File, Check, {MaxDefaults, HasBody, Defaults}}).
 
 %% Handling of defaults
 
@@ -271,7 +278,7 @@ check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, 0, _) when Defa
 check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true) when LastDefaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause without defaults
-check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _, _, _) -> [].
+check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _, _, _) -> ok.
 
 warn_bodyless_function(Check, _Meta, _File, Module, _Kind, _Tuple)
     when Check == false; Module == 'Elixir.Module' ->
@@ -289,12 +296,11 @@ invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
 invalid_arg(_) -> true.
 
 check_previous_defaults(Meta, Module, Name, Arity, Kind, Defaults, E) ->
-  Matches = ets:match(elixir_module:defs_table(Module),
-                      {{def, {Name, '$2'}}, '$1', '_', '_', '_', {'$3', '_', '_'}}),
+  Matches = ets:lookup(elixir_module:defs_table(Module), {default, Name}),
   [begin
      elixir_errors:form_error(Meta, ?key(E, file), ?MODULE,
-       {defs_with_defaults, Name, {Kind, Arity}, {K, A}})
-   end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
+       {defs_with_defaults, Kind, Name, Arity, A})
+   end || {_, A, D} <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 
 defaults_conflict(A, D, Arity, Defaults) ->
   ((Arity >= (A - D)) andalso (Arity < A)) orelse
@@ -324,13 +330,13 @@ format_error({bodyless_clause, Kind, {Name, Arity}}) ->
 format_error({no_module, {Kind, Name, Arity}}) ->
   io_lib:format("cannot define function outside module, invalid scope for ~ts ~ts/~B", [Kind, Name, Arity]);
 
-format_error({defs_with_defaults, Name, {Kind, Arity}, {K, A}}) when Arity > A ->
-  io_lib:format("~ts ~ts/~B defaults conflicts with ~ts ~ts/~B",
-    [Kind, Name, Arity, K, Name, A]);
+format_error({defs_with_defaults, Kind, Name, Arity, A}) when Arity > A ->
+  io_lib:format("~ts ~ts/~B defaults conflicts with ~ts/~B",
+    [Kind, Name, Arity, Name, A]);
 
-format_error({defs_with_defaults, Name, {Kind, Arity}, {K, A}}) when Arity < A ->
-  io_lib:format("~ts ~ts/~B conflicts with defaults from ~ts ~ts/~B",
-    [Kind, Name, Arity, K, Name, A]);
+format_error({defs_with_defaults, Kind, Name, Arity, A}) when Arity < A ->
+  io_lib:format("~ts ~ts/~B conflicts with defaults from ~ts/~B",
+    [Kind, Name, Arity, Name, A]);
 
 format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
   io_lib:format(""
