@@ -304,7 +304,7 @@ defmodule Registry do
   @doc false
   def child_spec(opts) do
     %{
-      id: Registry,
+      id: Keyword.get(opts, :name, Registry),
       start: {Registry, :start_link, [opts]},
       type: :supervisor
     }
