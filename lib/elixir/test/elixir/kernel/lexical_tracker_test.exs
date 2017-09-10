@@ -172,6 +172,7 @@ defmodule Kernel.LexicalTrackerTest do
           &R.func/0
           &Remote.func/0
           &Integer.is_even/1
+          %Macro.Env{line: 0}
           %Macro.Env{}
         end
 
@@ -183,6 +184,7 @@ defmodule Kernel.LexicalTrackerTest do
 
         &is_record/1; def b(a), do: is_record(a)
 
+        %Macro.Env{line: 0}
         %Macro.Env{}
 
         Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
@@ -196,15 +198,15 @@ defmodule Kernel.LexicalTrackerTest do
     assert {15, Record, :is_record, 1} in compile_remote_calls
     assert {18, Integer, :is_even, 1} in compile_remote_calls
     assert {19, Macro.Env, :__struct__, 1} in compile_remote_calls
-    assert {22, Record, :extract, 2} in compile_remote_calls
-    assert {23, Record, :is_record, 1} in compile_remote_calls
-    assert {24, Remote, :func, 0} in compile_remote_calls
+    assert {23, Record, :extract, 2} in compile_remote_calls
+    assert {24, Record, :is_record, 1} in compile_remote_calls
     assert {25, Remote, :func, 0} in compile_remote_calls
-    assert {26, Integer, :is_even, 1} in compile_remote_calls
-    assert {28, Kernel, :def, 2} in compile_remote_calls
-    assert {28, Record, :is_record, 1} in compile_remote_calls
-    assert {30, Macro.Env, :__struct__, 1} in compile_remote_calls
-    assert {32, Kernel.LexicalTracker, :remote_dispatches, 1} in compile_remote_calls
+    assert {26, Remote, :func, 0} in compile_remote_calls
+    assert {27, Integer, :is_even, 1} in compile_remote_calls
+    assert {29, Kernel, :def, 2} in compile_remote_calls
+    assert {29, Record, :is_record, 1} in compile_remote_calls
+    assert {31, Macro.Env, :__struct__, 1} in compile_remote_calls
+    assert {34, Kernel.LexicalTracker, :remote_dispatches, 1} in compile_remote_calls
 
     runtime_remote_calls = unroll_dispatches(runtime_remote_calls)
     assert {7, Record, :extract, 2} in runtime_remote_calls
@@ -216,7 +218,7 @@ defmodule Kernel.LexicalTrackerTest do
     assert {16, Remote, :func, 0} in runtime_remote_calls
     assert {17, Remote, :func, 0} in runtime_remote_calls
     assert {18, :erlang, :==, 2} in runtime_remote_calls
-    assert {28, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {29, :erlang, :is_tuple, 1} in runtime_remote_calls
   end
 
   defp unroll_dispatches(dispatches) do
