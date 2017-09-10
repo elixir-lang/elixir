@@ -33,9 +33,8 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
 
   case validate_struct(ELeft, Context) of
     true when is_atom(ELeft) ->
-      %% We always record structs when they are expanded
-      %% as they expect the reference at compile time.
-      elixir_lexical:record_remote(ELeft, '__struct__', 1, nil, ?line(Meta), ?key(E, lexical_tracker)),
+      %% Record compile-time dependency on struct if struct keys are present
+      MapArgs == [] orelse elixir_lexical:record_remote(ELeft, '__struct__', 1, nil, ?line(Meta), ?key(E, lexical_tracker)),
 
       %% We also include the current module because it won't be present
       %% in context module in case the module name is defined dynamically.
