@@ -22,14 +22,18 @@ defmodule Task.SupervisorTest do
     number
   end
 
-  def sleep_and_return_ancestor(number, _another_arg \\ nil) do
-      Process.sleep(number)
+  def sleep_and_return_ancestor(number, :another_arg) do
+    sleep_and_return_ancestor(number)
+  end
 
-      {:dictionary, dictionary} = Process.info(self(), :dictionary)
+  def sleep_and_return_ancestor(number) do
+    Process.sleep(number)
 
-      dictionary
-      |> Keyword.get(:"$ancestors")
-      |> List.first()
+    {:dictionary, dictionary} = Process.info(self(), :dictionary)
+
+    dictionary
+    |> Keyword.get(:"$ancestors")
+    |> List.first()
   end
 
   test "can be supervised directly", config do
