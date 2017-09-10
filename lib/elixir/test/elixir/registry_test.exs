@@ -526,7 +526,7 @@ defmodule RegistryTest do
     end
   end
 
-  test "child_spec ID" do
+  test "child_spec/1 uses :name as :id" do
     assert %{id: :custom_name} = Registry.child_spec([name: :custom_name])
     assert %{id: Registry} = Registry.child_spec([])
   end
