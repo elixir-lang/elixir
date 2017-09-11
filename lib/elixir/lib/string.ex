@@ -1121,6 +1121,16 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
+  When an empty string is provided as a `pattern`, the function will treat it as
+  an implicit empty string between each character and the string will be
+  interspersed. If an empty string is provided as `replacement` the `subject`
+  will be returned:
+
+      iex> String.replace("ELIXIR", "", ".")
+      ".E.L.I.X.I.R."
+
+      iex> String.replace("ELIXIR", "", "")
+      "ELIXIR"
   """
   @spec replace(t, pattern | Regex.t, t, keyword) :: t
   def replace(subject, pattern, replacement, options \\ [])
