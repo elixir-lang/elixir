@@ -13,6 +13,7 @@
   * [Inspect] Add `:strict` and `:flex` breaks to `Inspect.Algebra`
   * [Stream] Add `Stream.intersperse/2`
   * [String] Update to Unicode 10
+  * [String] Allow using empty string as `match` argument to `String.replace_leading` and `String.replace_tailing`
 
 #### Mix
 

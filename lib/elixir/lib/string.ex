@@ -632,12 +632,8 @@ defmodule String do
   @doc """
   Replaces all leading occurrences of `match` by `replacement` of `match` in `string`.
 
-  Returns the string untouched if there are no occurrences.
-
-  If `match` is `""`, this function raises an `ArgumentError` exception: this
-  happens because this function replaces **all** the occurrences of `match` at
-  the beginning of `string`, and it's impossible to replace "multiple"
-  occurrences of `""`.
+  Returns the string untouched if there is no match. If `match` is an empty
+  string (`""`), `replacement` is just prepended to `string`.
 
   ## Examples
 
@@ -646,6 +642,9 @@ defmodule String do
       iex> String.replace_leading("hello hello world", "hello ", "")
       "world"
 
+      iex> String.replace_leading("world", "", "hello ")
+      "hello world"
+
       iex> String.replace_leading("hello world", "hello ", "ola ")
       "ola world"
       iex> String.replace_leading("hello hello world", "hello ", "ola ")
@@ -653,12 +652,9 @@ defmodule String do
 
   """
   @spec replace_leading(t, t, t) :: t | no_return
+  def replace_leading(string, "", replacement), do: replacement <> string
   def replace_leading(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
-    if match == "" do
-      raise ArgumentError, "cannot use an empty string as the match to replace"
-    end
-
     prefix_size = byte_size(match)
     suffix_size = byte_size(string) - prefix_size
     replace_leading(string, match, replacement, prefix_size, suffix_size, 0)
@@ -680,12 +676,8 @@ defmodule String do
   @doc """
   Replaces all trailing occurrences of `match` by `replacement` in `string`.
 
-  Returns the string untouched if there are no occurrences.
-
-  If `match` is `""`, this function raises an `ArgumentError` exception: this
-  happens because this function replaces **all** the occurrences of `match` at
-  the end of `string`, and it's impossible to replace "multiple" occurrences of
-  `""`.
+  Returns the string untouched if there is no match. If `match` is an empty
+  string (`""`), `replacement` is just appended to `string`.
 
   ## Examples
 
@@ -694,6 +686,9 @@ defmodule String do
       iex> String.replace_trailing("hello world world", " world", "")
       "hello"
 
+      iex> String.replace_trailing("hello", "", " world")
+      "hello world"
+
       iex> String.replace_trailing("hello world", " world", " mundo")
       "hello mundo"
       iex> String.replace_trailing("hello world world", " world", " mundo")
@@ -701,12 +696,9 @@ defmodule String do
 
   """
   @spec replace_trailing(t, t, t) :: t | no_return
+  def replace_trailing(string, "", replacement), do: string <> replacement
   def replace_trailing(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
-    if match == "" do
-      raise ArgumentError, "cannot use an empty string as the match to replace"
-    end
-
     suffix_size = byte_size(match)
     prefix_size = byte_size(string) - suffix_size
     replace_trailing(string, match, replacement, prefix_size, suffix_size, 0)
