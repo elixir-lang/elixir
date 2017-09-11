@@ -1123,7 +1123,12 @@ defmodule String do
 
   """
   @spec replace(t, pattern | Regex.t, t, keyword) :: t
-  def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
+  def replace(subject, pattern, replacement, options \\ [])
+  def replace(subject, "", "", _), do: subject
+  def replace(subject, "", replacement, options) do
+    replace(subject, ~r//, replacement, options)
+  end
+  def replace(subject, pattern, replacement, options) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])
     else
