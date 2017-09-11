@@ -1126,7 +1126,11 @@ defmodule String do
   def replace(subject, pattern, replacement, options \\ [])
   def replace(subject, "", "", _), do: subject
   def replace(subject, "", replacement, options) do
-    replace(subject, ~r//, replacement, options)
+    if Keyword.get(options, :global, true) do
+      IO.iodata_to_binary [replacement | intersperse(subject, replacement)]
+    else
+      replacement <> subject
+    end
   end
   def replace(subject, pattern, replacement, options) when is_binary(replacement) do
     if Regex.regex?(pattern) do
@@ -1134,6 +1138,13 @@ defmodule String do
     else
       opts = translate_replace_options(options)
       :binary.replace(subject, pattern, replacement, opts)
+    end
+  end
+
+  defp intersperse(subject, replacement) do
+    case next_grapheme(subject) do
+      {current, rest} -> [current, replacement | intersperse(rest, replacement)]
+      nil -> []
     end
   end
 
