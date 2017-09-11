@@ -123,8 +123,8 @@ defmodule IEx.HelpersTest do
   end
 
   describe "open" do
-    @iex_helpers Path.expand("../../lib/iex/helpers.ex", __DIR__)
-    @elixir_erl Path.expand("../../../elixir/src/elixir.erl", __DIR__)
+    @iex_helpers "iex/lib/iex/helpers.ex"
+    @elixir_erl "elixir/src/elixir.erl"
     @editor System.get_env("ELIXIR_EDITOR")
 
     test "opens __FILE__ and __LINE__" do
@@ -137,48 +137,48 @@ defmodule IEx.HelpersTest do
 
     test "opens Elixir module" do
       assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~
-             ~r/#{@iex_helpers}:1/
+             ~r/#{@iex_helpers}:1$/
     end
 
     test "opens function" do
       assert capture_iex("open(h)") |> maybe_trim_quotes() =~
-             ~r/#{@iex_helpers}:\d+/
+             ~r/#{@iex_helpers}:\d+$/
     end
 
     test "opens function/arity" do
       assert capture_iex("open(b/1)") |> maybe_trim_quotes() =~
-             ~r/#{@iex_helpers}:\d+/
+             ~r/#{@iex_helpers}:\d+$/
       assert capture_iex("open(h/0)") |> maybe_trim_quotes() =~
-             ~r/#{@iex_helpers}:\d+/
+             ~r/#{@iex_helpers}:\d+$/
     end
 
     test "opens module.function" do
       assert capture_iex("open(IEx.Helpers.b)") |> maybe_trim_quotes() =~
-             ~r/#{@iex_helpers}:\d+/
+             ~r/#{@iex_helpers}:\d+$/
       assert capture_iex("open(IEx.Helpers.h)") |> maybe_trim_quotes() =~
-             ~r/#{@iex_helpers}:\d+/
+             ~r/#{@iex_helpers}:\d+$/
     end
 
     test "opens module.function/arity" do
       assert capture_iex("open(IEx.Helpers.b/1)") |> maybe_trim_quotes() =~
-             ~r/#{@iex_helpers}:\d+/
+             ~r/#{@iex_helpers}:\d+$/
       assert capture_iex("open(IEx.Helpers.h/0)") |> maybe_trim_quotes() =~
-             ~r/#{@iex_helpers}:\d+/
+             ~r/#{@iex_helpers}:\d+$/
     end
 
     test "opens Erlang module" do
       assert capture_iex("open(:elixir)") |> maybe_trim_quotes() =~
-             ~r/#{@elixir_erl}:\d+/
+             ~r/#{@elixir_erl}:\d+$/
     end
 
     test "opens Erlang module.function" do
       assert capture_iex("open(:elixir.start)") |> maybe_trim_quotes() =~
-             ~r/#{@elixir_erl}:\d+/
+             ~r/#{@elixir_erl}:\d+$/
     end
 
     test "opens Erlang module.function/arity" do
       assert capture_iex("open(:elixir.start/2)") |> maybe_trim_quotes() =~
-             ~r/#{@elixir_erl}:\d+/
+             ~r/#{@elixir_erl}:\d+$/
     end
 
     test "errors if module is not available" do

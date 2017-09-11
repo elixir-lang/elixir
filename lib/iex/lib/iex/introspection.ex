@@ -114,7 +114,8 @@ defmodule IEx.Introspection do
   defp open_mfa(module, fun, arity) do
     with {:module, _} <- Code.ensure_loaded(module),
          source when is_list(source) <- module.module_info(:compile)[:source] do
-      open_abstract_code(module, fun, arity, List.to_string(source))
+      source = rewrite_elixir_source(module, source)
+      open_abstract_code(module, fun, arity, source)
     else
       _ -> :error
     end
@@ -155,6 +156,21 @@ defmodule IEx.Introspection do
         end
       _ ->
         {file, module_pair, fa_pair}
+    end
+  end
+
+  defp rewrite_elixir_source(module, source) do
+    case :application.get_application(module) do
+      {:ok, app} when app in [:eex, :elixir, :ex_unit, :iex, :logger, :mix] ->
+        {in_app, [lib_or_src | _]} =
+          source
+          |> Path.split()
+          |> Enum.reverse()
+          |> Enum.split_while(& &1 not in ["lib", "src"])
+
+        Application.app_dir(app, Path.join([lib_or_src | Enum.reverse(in_app)]))
+      _ ->
+        List.to_string(source)
     end
   end
 
