@@ -620,38 +620,50 @@ defmodule Supervisor do
       e in UndefinedFunctionError ->
         case System.stacktrace do
           [{^module, :child_spec, [^arg], _} | _] ->
-            raise ArgumentError, """
-            The module #{inspect module} was given as a child to a supervisor
-            but it does not implement child_spec/1.
+            if :erlang.function_exported(module, :module_info, 0) do
+              raise ArgumentError, """
+              The module #{inspect module} was given as a child to a supervisor
+              but it does not implement child_spec/1.
 
-            If you own the given module, please define a child_spec/1 function
-            that receives an argument and returns a child specification as a map.
-            For example:
+              If you own the given module, please define a child_spec/1 function
+              that receives an argument and returns a child specification as a map.
+              For example:
 
-                def child_spec(opts) do
+                  def child_spec(opts) do
+                    %{
+                      id: __MODULE__,
+                      start: {__MODULE__, :start_link, [opts]},
+                      type: :worker,
+                      restart: :permanent,
+                      shutdown: 500
+                    }
+                  end
+
+              Note that "use Agent", "use GenServer" and so on automatically define
+              this function for you.
+
+              However, if you don't own the given module and it doesn't implement
+              child_spec/1, instead of passing the module name directly as a supervisor
+              child, you will have to pass a child specification as a map:
+
                   %{
-                    id: __MODULE__,
-                    start: {__MODULE__, :start_link, [opts]},
-                    type: :worker,
-                    restart: :permanent,
-                    shutdown: 500
+                    id: #{inspect module},
+                    start: {#{inspect module}, :start_link, [arg1, arg2]}
                   }
-                end
 
-            Note that "use Agent", "use GenServer" and so on automatically define
-            this function for you.
+              See the Supervisor documentation for more information.
+              """
+            else
+              raise ArgumentError, """
+              The module #{inspect module} does not exist thus it cannot be used as a
+              supervised module.
 
-            However, if you don't own the given module and it doesn't implement
-            child_spec/1, instead of passing the module name directly as a supervisor
-            child, you will have to pass a child specification as a map:
+              Usual causes are missing an alias for the module in the current scope,
+              wrong name of the module, or missing a dependency.
 
-                %{
-                  id: #{inspect module},
-                  start: {#{inspect module}, :start_link, [arg1, arg2]}
-                }
-
-            See the Supervisor documentation for more information.
-            """
+              See the Supervisor documentation for more information.
+              """
+            end
           stack ->
             reraise e, stack
         end
