@@ -341,9 +341,6 @@ defmodule String do
 
   Splitting on empty patterns returns graphemes:
 
-      iex> String.split("abc", ~r{})
-      ["a", "b", "c", ""]
-
       iex> String.split("abc", "")
       ["a", "b", "c", ""]
 
@@ -1121,14 +1118,41 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
+  When an empty string is provided as a `pattern`, the function will treat it as
+  an implicit empty string between each grapheme and the string will be
+  interspersed. If an empty string is provided as `replacement` the `subject`
+  will be returned:
+
+      iex> String.replace("ELIXIR", "", ".")
+      ".E.L.I.X.I.R."
+
+      iex> String.replace("ELIXIR", "", "")
+      "ELIXIR"
+
   """
   @spec replace(t, pattern | Regex.t, t, keyword) :: t
-  def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
+  def replace(subject, pattern, replacement, options \\ [])
+  def replace(subject, "", "", _), do: subject
+  def replace(subject, "", replacement, options) do
+    if Keyword.get(options, :global, true) do
+      IO.iodata_to_binary [replacement | intersperse(subject, replacement)]
+    else
+      replacement <> subject
+    end
+  end
+  def replace(subject, pattern, replacement, options) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])
     else
       opts = translate_replace_options(options)
       :binary.replace(subject, pattern, replacement, opts)
+    end
+  end
+
+  defp intersperse(subject, replacement) do
+    case next_grapheme(subject) do
+      {current, rest} -> [current, replacement | intersperse(rest, replacement)]
+      nil -> []
     end
   end
 
