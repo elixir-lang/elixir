@@ -160,7 +160,9 @@ defmodule Task.Supervisor do
   started, the function will be invoked with the stream entry that the
   to-be-spawned task will process as its argument. The function should
   return a supervisor pid or name, which will be used to spawn the task. This
-  can be used to dynamically assign stream entries to supervisors.
+  can be used to dynamically assign stream entries to supervisors. One
+  use case for this functionality is the distribution of tasks over multiple
+  nodes in a distributed environment.
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
