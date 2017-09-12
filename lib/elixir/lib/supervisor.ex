@@ -620,38 +620,7 @@ defmodule Supervisor do
       e in UndefinedFunctionError ->
         case System.stacktrace do
           [{^module, :child_spec, [^arg], _} | _] ->
-            raise ArgumentError, """
-            The module #{inspect module} was given as a child to a supervisor
-            but it does not implement child_spec/1.
-
-            If you own the given module, please define a child_spec/1 function
-            that receives an argument and returns a child specification as a map.
-            For example:
-
-                def child_spec(opts) do
-                  %{
-                    id: __MODULE__,
-                    start: {__MODULE__, :start_link, [opts]},
-                    type: :worker,
-                    restart: :permanent,
-                    shutdown: 500
-                  }
-                end
-
-            Note that "use Agent", "use GenServer" and so on automatically define
-            this function for you.
-
-            However, if you don't own the given module and it doesn't implement
-            child_spec/1, instead of passing the module name directly as a supervisor
-            child, you will have to pass a child specification as a map:
-
-                %{
-                  id: #{inspect module},
-                  start: {#{inspect module}, :start_link, [arg1, arg2]}
-                }
-
-            See the Supervisor documentation for more information.
-            """
+            raise ArgumentError, child_spec_error(module)
           stack ->
             reraise e, stack
         end
@@ -674,6 +643,45 @@ defmodule Supervisor do
 
     Got: #{inspect other}
     """
+  end
+
+  defp child_spec_error(module) do
+    if Code.ensure_loaded?(module) do
+      """
+      The module #{inspect module} was given as a child to a supervisor
+      but it does not implement child_spec/1.
+
+      If you own the given module, please define a child_spec/1 function
+      that receives an argument and returns a child specification as a map.
+      For example:
+
+          def child_spec(opts) do
+            %{
+              id: __MODULE__,
+              start: {__MODULE__, :start_link, [opts]},
+              type: :worker,
+              restart: :permanent,
+              shutdown: 500
+            }
+          end
+
+      Note that "use Agent", "use GenServer" and so on automatically define
+      this function for you.
+
+      However, if you don't own the given module and it doesn't implement
+      child_spec/1, instead of passing the module name directly as a supervisor
+      child, you will have to pass a child specification as a map:
+
+          %{
+            id: #{inspect module},
+            start: {#{inspect module}, :start_link, [arg1, arg2]}
+          }
+
+      See the Supervisor documentation for more information.
+      """
+    else
+      "The module #{inspect module} was given as a child to a supervisor but it does not exist."
+    end
   end
 
   @doc """

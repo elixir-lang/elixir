@@ -78,7 +78,11 @@ defmodule SupervisorTest do
                                        restart: :permanent, shutdown: :infinity) ==
            %{id: :foo, start: {:foo, :bar, []}, restart: :permanent, shutdown: :infinity}
 
-    assert_raise ArgumentError, ~r"The module Unknown was given as a child", fn ->
+    assert_raise ArgumentError, ~r"The module SupervisorTest was given as a child.*\nbut it does not implement"m, fn ->
+      Supervisor.child_spec(SupervisorTest, [])
+    end
+
+    assert_raise ArgumentError, ~r"The module Unknown was given as a child.*but it does not exist"m, fn ->
       Supervisor.child_spec(Unknown, [])
     end
 
