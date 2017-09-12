@@ -1045,8 +1045,9 @@ check_terminator({E, {Line, _, _}}, [{Start, {StartLine, {_, _}, _}} | _]) when
   MessageSuffix = io_lib:format("\" at line ~B", [Line]),
   {error, {StartLine, {MessagePrefix, MessageSuffix}, [atom_to_list(E)]}};
 
-check_terminator({E, Line}, []) when
-    E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
+%% We do not prematurely raise on end because it is likelly the
+%% whole code is inside do/end, so the parser raises better errors.
+check_terminator({E, Line}, []) when E == ')'; E == ']'; E == '}'; E == '>>' ->
   {error, {Line, "unexpected token: ", atom_to_list(E)}};
 
 check_terminator(_, Terminators) ->
