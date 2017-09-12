@@ -341,9 +341,6 @@ defmodule String do
 
   Splitting on empty patterns returns graphemes:
 
-      iex> String.split("abc", ~r{})
-      ["a", "b", "c", ""]
-
       iex> String.split("abc", "")
       ["a", "b", "c", ""]
 
@@ -1122,7 +1119,7 @@ defmodule String do
       "a[,,]b[,,]c"
 
   When an empty string is provided as a `pattern`, the function will treat it as
-  an implicit empty string between each character and the string will be
+  an implicit empty string between each grapheme and the string will be
   interspersed. If an empty string is provided as `replacement` the `subject`
   will be returned:
 
@@ -1131,6 +1128,7 @@ defmodule String do
 
       iex> String.replace("ELIXIR", "", "")
       "ELIXIR"
+
   """
   @spec replace(t, pattern | Regex.t, t, keyword) :: t
   def replace(subject, pattern, replacement, options \\ [])
