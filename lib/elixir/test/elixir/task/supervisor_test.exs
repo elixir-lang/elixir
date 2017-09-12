@@ -28,7 +28,6 @@ defmodule Task.SupervisorTest do
 
   def sleep_and_return_ancestor(number) do
     Process.sleep(number)
-
     {:dictionary, dictionary} = Process.info(self(), :dictionary)
 
     dictionary
