@@ -56,17 +56,21 @@ defmodule StringTest do
     assert String.split(" a b c ", " ", trim: true, parts: 1) == [" a b c "]
     assert String.split(" a b c ", " ", trim: true, parts: 2) == ["a",  "b c "]
 
-    assert String.split("abé", "") == ["a", "b", "é", ""]
-    assert String.split("abé", "", parts: :infinity) == ["a", "b", "é", ""]
+    assert String.split("abé", "") == ["", "a", "b", "é", ""]
+    assert String.split("abé", "", parts: :infinity) == ["", "a", "b", "é", ""]
     assert String.split("abé", "", parts: 1) == ["abé"]
-    assert String.split("abé", "", parts: 2) == ["a", "bé"]
-    assert String.split("abé", "", parts: 10) == ["a", "b", "é", ""]
+    assert String.split("abé", "", parts: 2) == ["", "abé"]
+    assert String.split("abé", "", parts: 3) == ["", "a", "bé"]
+    assert String.split("abé", "", parts: 4) == ["", "a", "b", "é"]
+    assert String.split("abé", "", parts: 5) == ["", "a", "b", "é", ""]
+    assert String.split("abé", "", parts: 10) == ["", "a", "b", "é", ""]
     assert String.split("abé", "", trim: true) == ["a", "b", "é"]
     assert String.split("abé", "", trim: true, parts: :infinity) == ["a", "b", "é"]
     assert String.split("abé", "", trim: true, parts: 2) == ["a", "bé"]
+    assert String.split("abé", "", trim: true, parts: 3) == ["a", "b", "é"]
+    assert String.split("abé", "", trim: true, parts: 4) == ["a", "b", "é"]
 
-    assert String.split("noël", "") == ["n", "o", "ë", "l", ""]
-
+    assert String.split("noël", "") == ["", "n", "o", "ë", "l", ""]
     assert String.split("x-", "-", parts: 2, trim: true) == ["x"]
     assert String.split("x-x-", "-", parts: 3, trim: true) == ["x", "x"]
   end
