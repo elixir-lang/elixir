@@ -273,9 +273,9 @@ max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
 max_expr -> dot_alias : '$1'.
 
-bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2').
-bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2').
-bracket_arg -> open_bracket container_expr ',' close_bracket : build_list('$1', '$2').
+bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2', '$3').
+bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2', '$3').
+bracket_arg -> open_bracket container_expr ',' close_bracket : build_list('$1', '$2', '$4').
 
 bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> access_expr bracket_arg : build_access('$1', '$2').
@@ -358,17 +358,17 @@ empty_paren -> open_paren ')' : '$1'.
 open_bracket  -> '['     : '$1'.
 open_bracket  -> '[' eol : set_eol('$1').
 close_bracket -> ']'     : '$1'.
-close_bracket -> eol ']' : '$2'.
+close_bracket -> eol ']' : set_eol('$2').
 
 open_bit  -> '<<'     : '$1'.
 open_bit  -> '<<' eol : set_eol('$1').
 close_bit -> '>>'     : '$1'.
-close_bit -> eol '>>' : '$2'.
+close_bit -> eol '>>' : set_eol('$2').
 
 open_curly  -> '{'     : '$1'.
 open_curly  -> '{' eol : set_eol('$1').
 close_curly -> '}'     : '$1'.
-close_curly -> eol '}' : '$2'.
+close_curly -> eol '}' : set_eol('$2').
 
 % Operators
 
@@ -547,18 +547,18 @@ list_args -> container_args_base : reverse('$1').
 list_args -> container_args_base ',' : reverse('$1').
 list_args -> container_args_base ',' kw : reverse('$1', '$3').
 
-list -> open_bracket ']' : build_list('$1', []).
-list -> open_bracket list_args close_bracket : build_list('$1', '$2').
+list -> open_bracket ']' : build_list('$1', [], '$2').
+list -> open_bracket list_args close_bracket : build_list('$1', '$2', '$3').
 
 % Tuple
 
-tuple -> open_curly '}' : build_tuple('$1', []).
-tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2').
+tuple -> open_curly '}' : build_tuple('$1', [], '$2').
+tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2', '$3').
 
 % Bitstrings
 
-bit_string -> open_bit '>>' : build_bit('$1', []).
-bit_string -> open_bit container_args close_bit : build_bit('$1', '$2').
+bit_string -> open_bit '>>' : build_bit('$1', [], '$2').
+bit_string -> open_bit container_args close_bit : build_bit('$1', '$2', '$3').
 
 % Map and structs
 
@@ -592,16 +592,16 @@ assoc -> assoc_base ',' : reverse('$1').
 map_op -> '%{}' : '$1'.
 map_op -> '%{}' eol : '$1'.
 
-map_close -> kw close_curly : '$1'.
-map_close -> assoc close_curly : '$1'.
-map_close -> assoc_base ',' kw close_curly : reverse('$1', '$3').
+map_close -> kw close_curly : {'$1', '$2'}.
+map_close -> assoc close_curly : {'$1', '$2'}.
+map_close -> assoc_base ',' kw close_curly : {reverse('$1', '$3'), '$4'}.
 
-map_args -> open_curly '}' : build_map('$1', []).
-map_args -> open_curly map_close : build_map('$1', '$2').
-map_args -> open_curly assoc_update close_curly : build_map_update('$1', '$2', []).
-map_args -> open_curly assoc_update ',' close_curly : build_map_update('$1', '$2', []).
-map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2', '$4').
-map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', []).
+map_args -> open_curly '}' : build_map('$1', [], '$2').
+map_args -> open_curly map_close : build_map('$1', element(1, '$2'), element(2, '$2')).
+map_args -> open_curly assoc_update close_curly : build_map_update('$1', '$2', '$3', []).
+map_args -> open_curly assoc_update ',' close_curly : build_map_update('$1', '$2', '$4', []).
+map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2', element(2, '$4'), element(1, '$4')).
+map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', '$3', []).
 
 struct_op -> '%' : '$1'.
 
@@ -651,9 +651,9 @@ build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(U
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
 build_op({arrow_op, Location, Op} = Token, Left, Right) ->
-  {Op, eol_pair(Token) ++ meta_from_location(Location), [Left, Right]};
+  {Op, eol_pair(Token, Token) ++ meta_from_location(Location), [Left, Right]};
 build_op({stab_op, Location, Op} = Token, Left, Right) ->
-  {Op, eol_pair(Token) ++ meta_from_location(Location), [Left, Right]};
+  {Op, eol_pair(Token, Token) ++ meta_from_location(Location), [Left, Right]};
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 build_op({_Kind, Location, Op}, Left, Right) ->
@@ -662,23 +662,23 @@ build_op({_Kind, Location, Op}, Left, Right) ->
 build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
 
-build_list(Marker, Args) ->
-  {handle_literal(Args, Marker, eol_pair(Marker)), ?location(Marker)}.
+build_list(Left, Args, Right) ->
+  {handle_literal(Args, Left, eol_pair(Left, Right)), ?location(Left)}.
 
-build_tuple(Marker, [Left, Right]) ->
-  handle_literal({Left, Right}, Marker, eol_pair(Marker));
-build_tuple(Marker, Args) ->
-  {'{}', eol_pair(Marker) ++ meta_from_token(Marker), Args}.
+build_tuple(Left, [Arg1, Arg2], Right) ->
+  handle_literal({Arg1, Arg2}, Left, eol_pair(Left, Right));
+build_tuple(Left, Args, Right) ->
+  {'{}', eol_pair(Left, Right) ++ meta_from_token(Left), Args}.
 
-build_bit(Marker, Args) ->
-  {'<<>>', eol_pair(Marker) ++ meta_from_token(Marker), Args}.
+build_bit(Left, Args, Right) ->
+  {'<<>>', eol_pair(Left, Right) ++ meta_from_token(Left), Args}.
 
-build_map(Marker, Args) ->
-  {'%{}', eol_pair(Marker) ++ meta_from_token(Marker), Args}.
+build_map(Left, Args, Right) ->
+  {'%{}', eol_pair(Left, Right) ++ meta_from_token(Left), Args}.
 
-build_map_update(Marker, {Pipe, Left, Right}, Extra) ->
-  Op = build_op(Pipe, Left, Right ++ Extra),
-  {'%{}', eol_pair(Marker) ++ meta_from_token(Marker), [Op]}.
+build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
+  Op = build_op(Pipe, Struct, Map ++ Extra),
+  {'%{}', eol_pair(Left, Right) ++ meta_from_token(Left), [Op]}.
 
 %% Blocks
 
@@ -693,11 +693,11 @@ build_block(Exprs) ->
 
 %% End of line and newlines
 
-eol_pair(Token) ->
+eol_pair(Left, Right) ->
   case ?formatter_metadata() of
     true ->
-      case ?location(Token) of
-        {_Line, _Pair, eol} -> [{eol, true}];
+      case {?location(Left), ?location(Right)} of
+        {{_, _, eol}, {_, _, eol}} -> [{eol, true}];
         _ -> []
       end;
     false ->
