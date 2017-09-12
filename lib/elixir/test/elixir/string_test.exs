@@ -365,6 +365,11 @@ defmodule StringTest do
 
     assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1") == "a,bb,cc"
     assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1", global: false) == "a,bb,c"
+
+    assert String.replace("elixir", "", "") == "elixir"
+    assert String.replace("ELIXIR", "", ".") == ".E.L.I.X.I.R."
+    assert String.replace("ELIXIR", "", ".", global: true) == ".E.L.I.X.I.R."
+    assert String.replace("ELIXIR", "", ".", global: false) == ".ELIXIR"
   end
 
   test "duplicate/2" do
