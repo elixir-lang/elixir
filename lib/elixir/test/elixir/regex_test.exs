@@ -211,11 +211,17 @@ defmodule RegexTest do
     assert Regex.split(~r/([ln])/, "Erlang", include_captures: true) == ["Er", "l", "a", "n", "g"]
     assert Regex.split(~r/([kw])/, "Elixir", include_captures: true) == ["Elixir"]
 
-    parts = ["Elixir"]
-    assert Regex.split(~r/([Ee]lixir)/, "Elixir", include_captures: true, trim: true) == parts
+    assert Regex.split(~r/([Ee]lixir)/, "Elixir", include_captures: true, trim: true) ==
+             ["Elixir"]
 
-    parts = ["", "Elixir", ""]
-    assert Regex.split(~r/([Ee]lixir)/, "Elixir", include_captures: true, trim: false) == parts
+    assert Regex.split(~r/([Ee]lixir)/, "Elixir", include_captures: true, trim: false) ==
+             ["", "Elixir", ""]
+
+    assert Regex.split(~r//, "abc", include_captures: true) ==
+             ["", "", "a", "", "b", "", "c", "", ""]
+
+    assert Regex.split(~r/a/, "abc", include_captures: true) == ["", "a", "bc"]
+    assert Regex.split(~r/c/, "abc", include_captures: true) == ["ab", "c", ""]
   end
 
   test "replace/3,4" do

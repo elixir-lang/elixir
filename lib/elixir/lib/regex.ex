@@ -439,7 +439,7 @@ defmodule Regex do
       ["abc"]
 
       iex> Regex.split(~r{}, "abc")
-      ["a", "b", "c", ""]
+      ["", "a", "b", "c", ""]
 
       iex> Regex.split(~r{a(?<second>b)c}, "abc")
       ["", ""]
@@ -509,17 +509,13 @@ defmodule Regex do
     new_offset = pos + length
     keep = pos - offset
 
-    if keep == 0 and length == 0 do
-      do_split([h | t], string, new_offset, counter, trim, true)
-    else
-      <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> =
-        string
+    <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> =
+      string
 
-      if keep == 0 and (length == 0 or trim) do
-        [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
-      else
-        [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
-      end
+    if keep == 0 and trim do
+      [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
+    else
+      [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
     end
   end
 
@@ -527,7 +523,7 @@ defmodule Regex do
     new_offset = pos + length
     keep = pos - offset
 
-    if keep == 0 and (length == 0 or trim) do
+    if keep == 0 and trim do
       do_split([h | t], string, new_offset, counter, trim, false)
     else
       <<_::binary-size(offset), part::binary-size(keep), _::binary>> = string
