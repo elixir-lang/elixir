@@ -339,19 +339,19 @@ defmodule String do
       iex> String.split("abc", ~r{b}, include_captures: true)
       ["a", "b", "c"]
 
-  Splitting on empty patterns returns graphemes:
-
-      iex> String.split("abc", ~r{})
-      ["a", "b", "c", ""]
+  Splitting on empty string returns graphemes:
 
       iex> String.split("abc", "")
-      ["a", "b", "c", ""]
+      ["", "a", "b", "c", ""]
 
       iex> String.split("abc", "", trim: true)
       ["a", "b", "c"]
 
-      iex> String.split("abc", "", parts: 2)
-      ["a", "bc"]
+      iex> String.split("abc", "", parts: 1)
+      ["abc"]
+
+      iex> String.split("abc", "", parts: 3)
+      ["", "a", "bc"]
 
   A precompiled pattern can also be given:
 
@@ -367,7 +367,18 @@ defmodule String do
     Regex.split(pattern, string, options)
   end
 
-  def split(string, pattern, []) when is_binary(string) and pattern != "" do
+  def split(string, "", options) when is_binary(string) do
+    parts = Keyword.get(options, :parts, :infinity)
+    index = parts_to_index(parts)
+    trim = Keyword.get(options, :trim, false)
+    if trim == false and index != 1 do
+      ["" | split_empty(string, trim, index - 1)]
+    else
+      split_empty(string, trim, index)
+    end
+  end
+
+  def split(string, pattern, []) when is_tuple(pattern) or is_binary(string) do
     :binary.split(string, pattern, [:global])
   end
 
@@ -381,12 +392,21 @@ defmodule String do
   defp parts_to_index(:infinity),                      do: 0
   defp parts_to_index(n) when is_integer(n) and n > 0, do: n
 
+  defp split_empty("", true, 1), do: []
+  defp split_empty(string, _, 1), do: [string]
+  defp split_empty(string, trim, count) do
+    case next_grapheme(string) do
+      {h, t} -> [h | split_empty(t, trim, count - 1)]
+      nil -> split_empty("", trim, 1)
+    end
+  end
+
   defp split_each("", _pattern, true, 1), do: []
   defp split_each(string, _pattern, _trim, 1) when is_binary(string), do: [string]
   defp split_each(string, pattern, trim, count) do
     case do_splitter(string, pattern, trim) do
       {h, t} -> [h | split_each(t, pattern, trim, count - 1)]
-      nil    -> []
+      nil -> []
     end
   end
 
@@ -411,26 +431,37 @@ defmodule String do
       ["1", "2", "3", "4"]
 
       iex> String.splitter("abcd", "") |> Enum.take(10)
-      ["a", "b", "c", "d", ""]
+      ["", "a", "b", "c", "d", ""]
 
       iex> String.splitter("abcd", "", trim: true) |> Enum.take(10)
       ["a", "b", "c", "d"]
 
   """
   @spec splitter(t, pattern, keyword) :: Enumerable.t
-  def splitter(string, pattern, options \\ []) do
+  def splitter(string, pattern, options \\ [])
+
+  def splitter(string, "", options) do
+    if Keyword.get(options, :trim, false) do
+      Stream.unfold(string, &next_grapheme/1)
+    else
+      Stream.unfold(:match, &do_empty_splitter(&1, string))
+    end
+  end
+
+  def splitter(string, pattern, options) do
     pattern = maybe_compile_pattern(pattern)
-    trim    = Keyword.get(options, :trim, false)
+    trim = Keyword.get(options, :trim, false)
     Stream.unfold(string, &do_splitter(&1, pattern, trim))
   end
 
-  defp do_splitter(:nomatch, _pattern, _), do: nil
-  defp do_splitter("", _pattern, true),    do: nil
-  defp do_splitter("", _pattern, false),   do: {"", :nomatch}
+  defp do_empty_splitter(:match, string), do: {"", string}
+  defp do_empty_splitter(:nomatch, _string), do: nil
+  defp do_empty_splitter("", _), do: {"", :nomatch}
+  defp do_empty_splitter(string, _), do: next_grapheme(string)
 
-  defp do_splitter(bin, "", _trim) do
-    next_grapheme(bin)
-  end
+  defp do_splitter(:nomatch, _pattern, _), do: nil
+  defp do_splitter("", _pattern, false), do: {"", :nomatch}
+  defp do_splitter("", _pattern, true), do: nil
 
   defp do_splitter(bin, pattern, trim) do
     case :binary.split(bin, pattern) do
@@ -440,7 +471,6 @@ defmodule String do
     end
   end
 
-  defp maybe_compile_pattern(""), do: ""
   defp maybe_compile_pattern(pattern) when is_tuple(pattern), do: pattern
   defp maybe_compile_pattern(pattern), do: :binary.compile_pattern(pattern)
 
