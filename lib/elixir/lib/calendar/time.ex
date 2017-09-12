@@ -321,6 +321,41 @@ defmodule Time do
   end
 
   @doc """
+  Adds the `number` of `unit`s to the given `time`.
+
+  This function accepts the `number` measured according to `Calendar.ISO`.
+  The time is returned in the same calendar as it was given in.
+
+  Note the result value represents the time of day, meaning that it is cyclic,
+  for instance, it will never go over 24 hours for the ISO calendar.
+
+  ## Examples
+
+      iex> Time.add(~T[10:00:00], 27000)
+      ~T[17:30:00.000000]
+      iex> Time.add(~T[11:00:00.005], 2400)
+      ~T[11:40:00.005000]
+      iex> Time.add(~T[00:00:00], 86399999, :millisecond)
+      ~T[23:59:59.999000]
+      iex> Time.add(~T[17:10:05], 86400)
+      ~T[17:10:05.000000]
+      iex> Time.add(~T[23:00:00], -60)
+      ~T[22:59:00.000000]
+
+  """
+  @spec add(Calendar.time, integer, System.time_unit) :: t
+  def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
+    number = System.convert_time_unit(number, unit, :microsecond)
+    iso_days = {0, to_day_fraction(time)}
+    total = Calendar.ISO.iso_days_to_unit(iso_days, :microsecond) + number
+    iso_ppd = 86400000000
+    parts = Integer.mod(total, iso_ppd)
+
+    {hour, minute, second, microsecond} = calendar.time_from_day_fraction({parts, iso_ppd})
+    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
+  end
+
+  @doc """
   Compares two time structs.
 
   Returns `:gt` if first time is later than the second
