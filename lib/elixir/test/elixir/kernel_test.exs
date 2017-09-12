@@ -467,7 +467,6 @@ defmodule KernelTest do
       assert Kernel.__info__(:module) == Kernel
       assert is_list Kernel.__info__(:compile)
       assert is_list Kernel.__info__(:attributes)
-      assert is_list Kernel.__info__(:exports)
     end
   end
 
