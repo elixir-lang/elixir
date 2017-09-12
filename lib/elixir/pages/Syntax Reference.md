@@ -4,6 +4,15 @@ Elixir syntax was designed to have a straightforward conversion to an abstract s
 
 This document covers all of Elixir syntax constructs as a reference and then discuss their exact AST representation.
 
+## Reserved words
+
+Those are the reserved words in the Elixir language. They are detailed throughout this guide but summed up here for convenience:
+
+  * `true`, `false`, `nil` - used as atoms
+  * `when`, `and`, `or`, `not`, `in` - used as operators
+  * `fn` - used for anonymous function definitions
+  * `do`, `end`, `catch`, `rescue`, `after`, `else` - used in do/end blocks
+
 ## Data types
 
 ### Numbers
@@ -17,8 +26,6 @@ Atoms in Elixir start with a colon (`:`) which must be followed by non-combining
 All operators in Elixir are also valid atoms. Valid examples are `:foo`, `:FOO`, `:foo_42`, `:foo@bar` and `:++`. Invalid examples are `:@foo` (`@` is not allowed at start), `:123` (numbers are not allowed at start) and `:(*)` (not a valid operator).
 
 If the colon is followed by a double- or single-quote, the atom can be made of any character, such as `:"++olá++"`.
-
-### `true`, `false`, and `nil`
 
 `true`, `false`, and `nil` are reserved words that are represented by the atoms `:true`, `:false` and `:nil` respectively.
 
@@ -43,6 +50,10 @@ Data structures such as lists, tuples, and binaries are marked respectively by t
 Maps use the `%{...}` notation and each key-value is given by pairs marked with `=>`, such as `%{"hello" => 1, 2 => "world"}`.
 
 Both keyword lists (list of two-element tuples where the first element is atom) and maps with atom keys support a keyword notation where the colon character `:` is moved to the end of the atom. `%{hello: "world"}` is equivalent to `%{:hello => "world"}` and `[foo: :bar]` is equivalent to `[{:foo, :bar}]`. This notation is a syntax sugar that emits the same AST representation. It will be explained in later sections.
+
+### Structs
+
+Structs built on the map syntax by passing the struct name between `%` and `{`. For example, `%User{...}`.
 
 ## Expressions
 
@@ -115,9 +126,29 @@ fn
 end
 ```
 
-### Access syntax
+### Sigils
 
-Elixir supports `expr[args]`, such as `foo[:bar]`, which is often refered as the access syntax. See the `Access` module for more information.
+Sigils start with `~` and are followed by a letter and one of the following pairs:
+
+  * `(` and `)`
+  * `{` and `}`
+  * `[` and `]`
+  * `<` and `>`
+  * `"` and `"`
+  * `'` and `'`
+  * `|` and `|`
+  * `/` and `/`
+
+After closing the pair, zero or more ASCII letters can be given as a modifier. Sigils are expressed as non-qualified calls prefixed with `sigil_` where the first argument is the sigil contents as a string and the second argument is a list of integers as modifiers:
+
+If the sigil letter is in uppercase, no interpolation is allowed in the sigil, otherwise its contents may be dynamic. Compare the results of the sigils below for more information:
+
+```elixir
+~s/f#{"o"}o/
+~S/f#{"o"}o/
+```
+
+Sigils are useful to encode text with their own escaping rules, such as regular expressions, datetimes, etc.
 
 ## The Elixir AST
 
@@ -318,17 +349,6 @@ end
 #=> {:fn, [], [{:->, [], [[1, 2], 3]}, {:->, [], [[4, 5], 6]}]}
 ```
 
-### Access syntax
-
-The access syntax is represented as a call to `Access.get/2`:
-
-```elixir
-quote do
-  opts[arg]
-end
-#=> {{:., [], [Access, :get]}, [], [{:opts, [], Elixir}, {:arg, [], Elixir}]}
-```
-
 ## Syntactic sugar
 
 All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that "desugar" to one of the constructs explored above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence.
@@ -354,7 +374,18 @@ Elixir allows integers to contain `_` to separate digits and provides convenienc
 #=> 233 (Unicode codepoint)
 ```
 
-Those constructs exist only at the syntax level. All of the examples above are represented as integers in the AST.
+Those constructs exist only at the syntax level. All of the examples above are represented as their underlying integers in the AST.
+
+### Access syntax
+
+The access syntax is represented as a call to `Access.get/2`:
+
+```elixir
+quote do
+  opts[arg]
+end
+#=> {{:., [], [Access, :get]}, [], [{:opts, [], Elixir}, {:arg, [], Elixir}]}
+```
 
 ### Optional parentheses
 
@@ -369,46 +400,7 @@ end
 
 The above is treated the same as `sum(1, 2, 3)` by the parser.
 
-The same applies to qualified calls such as `Foo.bar(1, 2, 3)`, which is the same as `Foo.bar 1, 2, 3`. However, remember parentheses are not optional for non-qualified calls with no arguments, such as `sum()`. Removing the parentheses for `sum` causes it to be represented as the variable `sum`, changing its semantics.
-
-### Sigils
-
-Sigils start with `~` and are followed by a letter and one of the following pairs:
-
-  * `(` and `)`
-  * `{` and `}`
-  * `[` and `]`
-  * `<` and `>`
-  * `"` and `"`
-  * `'` and `'`
-  * `|` and `|`
-  * `/` and `/`
-
-After closing the pair, zero or more ASCII letters can be given as a modifier. Sigils are expressed as non-qualified calls prefixed with `sigil_` where the first argument is the sigil contents as a string and the second argument is a list of integers as modifiers:
-
-```elixir
-quote do
-  ~r/foo/
-end
-#=> {:sigil_r, [], [{:<<>>, [], ["foo"]}, []]}
-
-quote do
-  ~m/foo/abc
-end
-#=> {:sigil_m, [], [{:<<>>, [], ["foo"]}, 'abc']}
-```
-
-If the sigil letter is in uppercase, no interpolation is allowed in the sigil, otherwise its contents may be dynamic. Compare the quotes below for more information:
-
-```elixir
-quote do
-  ~r/f#{"o"}o/
-end
-
-quote do
-  ~R/f#{"o"}o/
-end
-```
+The same applies to qualified calls such as `Foo.bar(1, 2, 3)`, which is the same as `Foo.bar 1, 2, 3`. However, remember parentheses are not optional for non-qualified calls with no arguments, such as `sum()`. Removing the parentheses for `sum` causes it to be represented as the variable `sum`, which means they would be no longer equivalent.
 
 ### Keywords
 
