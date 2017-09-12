@@ -326,8 +326,8 @@ defmodule Time do
   This function accepts the `number` measured according to `Calendar.ISO`.
   The time is returned in the same calendar as it was given in.
 
-  Note the result value represents time of day,
-  meaning that it is cyclic and will never go over 24 hours.
+  Note the result value represents the time of day, meaning that it is cyclic,
+  for instance, it will never go over 24 hours for the ISO calendar.
 
   ## Examples
 
