@@ -324,9 +324,10 @@ defmodule ExUnit.Case do
         end
       end
 
-  When using Mix, you can run all tests in a describe block as:
+  When using Mix, you can run all tests in a describe block (starting at line 123) as either:
 
       mix test --only describe:"String.capitalize/1"
+      mix test path/to/file:123
 
   Note describe blocks cannot be nested. Instead of relying on hierarchy
   for composition, developers should build on top of named setups. For
@@ -376,12 +377,14 @@ defmodule ExUnit.Case do
 
       @ex_unit_describe message
       @ex_unit_used_describes message
+      @ex_unit_describe_line __ENV__.line
       Module.delete_attribute(__ENV__.module, :describetag)
 
       try do
         unquote(block)
       after
         @ex_unit_describe nil
+        @ex_unit_describe_line nil
         Module.delete_attribute(__ENV__.module, :describetag)
       end
     end
@@ -431,11 +434,12 @@ defmodule ExUnit.Case do
     tag = Module.delete_attribute(mod, :tag)
     async = Module.get_attribute(mod, :ex_unit_async)
 
-    {name, describe, describetag} =
+    {name, describe, describe_line, describetag} =
       if describe = Module.get_attribute(mod, :ex_unit_describe) do
-        {:"#{type} #{describe} #{name}", describe, Module.get_attribute(mod, :describetag)}
+        dline = Module.get_attribute(mod, :ex_unit_describe_line)
+        {:"#{type} #{describe} #{name}", describe, dline, Module.get_attribute(mod, :describetag)}
       else
-        {:"#{type} #{name}", nil, []}
+        {:"#{type} #{name}", nil, nil, []}
       end
 
     if Module.defines?(mod, {name, 1}) do
@@ -446,8 +450,8 @@ defmodule ExUnit.Case do
       (tags ++ tag ++ describetag ++ moduletag)
       |> normalize_tags
       |> validate_tags
-      |> Map.merge(%{line: line, file: file, registered: registered,
-                     async: async, describe: describe, type: type})
+      |> Map.merge(%{line: line, file: file, registered: registered, async: async,
+                     describe: describe, describe_line: describe_line, type: type})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)

@@ -54,4 +54,16 @@ defmodule ExUnit.CaseTest do
     assert context.registered.foo == nil
     assert context.registered.bar == []
   end
+
+  describe "describe block" do
+    test "sets describe tag and line", context do
+      describe_line = __ENV__.line - 2
+      assert context.describe == "describe block"
+      assert context.describe_line == describe_line
+    end
+
+    test "is prepended to title", context do
+      assert context.test == :"test describe block is prepended to title"
+    end
+  end
 end
