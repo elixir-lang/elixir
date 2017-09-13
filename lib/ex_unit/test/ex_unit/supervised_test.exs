@@ -21,10 +21,8 @@ defmodule ExUnit.SupervisedTest do
     {:error, error} = start_supervised({MyAgent, :error})
     assert {"Because of reasons", _info} = error
     assert_raise RuntimeError, """
-    Failed to start child:
-
-    ExUnit.SupervisedTest.MyAgent.start_link(:error)
-    "Because of reasons"
+    Failed to start child with the spec {ExUnit.SupervisedTest.MyAgent, :error}.
+    Reason: "Because of reasons"
     """, fn ->
       start_supervised!({MyAgent, :error})
     end
@@ -34,10 +32,8 @@ defmodule ExUnit.SupervisedTest do
     {:error, {{:EXIT, {exception, _}}, _}} = start_supervised({MyAgent, :exception})
     assert exception == %RuntimeError{message: "Because of exceptions"}
     pattern = """
-    Failed to start child:
-
-    ExUnit.SupervisedTest.MyAgent.start_link\\(:exception\\)
-    an exception was raised:
+    Failed to start child with the spec {ExUnit.SupervisedTest.MyAgent, :exception}.
+    Reason: an exception was raised:
         \\*\\* \\(RuntimeError\\) Because of exceptions
     """
     assert_raise RuntimeError, Regex.compile!(pattern), fn ->

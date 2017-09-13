@@ -297,29 +297,18 @@ defmodule ExUnit.Callbacks do
         pid
       {:error, reason} ->
         raise """
-        Failed to start child:
-
-        #{format_start_error_reason(reason)}
+        Failed to start child with the spec #{inspect child_spec_or_module}.
+        Reason: #{start_supervised_error(reason)}
         """
     end
   end
 
-  defp format_start_error_reason({{:EXIT, reason}, info}),
-    do: format_start_error_reason(reason, info)
-  defp format_start_error_reason({reason, info}),
-    do: format_start_error_reason(reason, info)
-  defp format_start_error_reason(reason),
+  defp start_supervised_error({{:EXIT, reason}, _info}),
     do: Exception.format_exit(reason)
-
-  defp format_start_error_reason(reason, info) do
-    inspect_info(info) <> Exception.format_exit(reason)
-  end
-
-  defp inspect_info({_, _, _, {m, f, a}, _, _, _, _})
-       when is_atom(m) and is_atom(f) and (is_integer(a) or is_list(a)),
-    do: Exception.format_mfa(m, f, a) <> "\n"
-  defp inspect_info(_),
-    do: ""
+  defp start_supervised_error({reason, _info}),
+    do: Exception.format_exit(reason)
+  defp start_supervised_error(reason),
+    do: Exception.format_exit(reason)
 
   @doc """
   Stops a child process started via `start_supervised/2`.
