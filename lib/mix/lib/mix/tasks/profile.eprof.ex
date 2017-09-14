@@ -43,35 +43,33 @@ defmodule Mix.Tasks.Profile.Eprof do
 
   Example output:
 
-      FUNCTION                                        CALLS     % TIME [uS / CALLS]
-      ----------------------------------------------- ----- ----- ---- [----------]
-      :erlang.make_fun/3                                  1 11.11    2 [      2.00]
-      :erlang.apply/2                                     1 11.11    2 [      2.00]
-      Enum.reduce_range_inc/4                             5 11.11    2 [      0.40]
-      Enum.each/2                                         1 11.11    2 [      2.00]
-      String.Chars.Integer.to_string/1                    5 11.11    2 [      0.40]
-      anonymous fn/0 in :elixir_compiler_5.__FILE__/1     1 11.11    2 [      2.00]
-      :erlang.integer_to_binary/1                         5 16.67    3 [      0.60]
-      anonymous fn/3 in Enum.each/2                       5 16.67    3 [      0.60]
-      ----------------------------------------------- ----- ----- ---- [----------]
-      Total                                              24 100.0   18 [      0.75]
+      #                                               CALLS     % TIME µS/CALL
+      Total                                              24 100.0   26    1.08
+      Enum.reduce_range_inc/4                             5  3.85    1    0.20
+      :erlang.make_fun/3                                  1  7.69    2    2.00
+      Enum.each/2                                         1  7.69    2    2.00
+      anonymous fn/0 in :elixir_compiler_0.__FILE__/1     1  7.69    2    2.00
+      :erlang.integer_to_binary/1                         5 15.39    4    0.80
+      :erlang.apply/2                                     1 15.39    4    4.00
+      anonymous fn/3 in Enum.each/2                       5 19.23    5    1.00
+      String.Chars.Integer.to_string/1                    5 23.08    6    1.20
+
       Profile done over 8 matching functions
 
-  The default output contains data gathered from all matching functions. Each row
-  contains the function call, followed by the number of times that the function was
-  called, then by the percentage of time that the call uses, then the total time
-  for that function in microseconds, and, finally, the average time per call in
-  microseconds. The footer contains the sums of the partial results and the average
-  time for all the function calls listed.
+  The default output contains data gathered from all matching functions. The first
+  row after the header contains the sums of the partial results and the average time
+  for all the function calls listed. The following rows contain the function call,
+  followed by the number of times that the function was called, then by the percentage
+  of time that the call uses, then the total time for that function in microseconds,
+  and, finally, the average time per call in microseconds.
 
   When `--matching` option is specified, call count tracing will be started only for
   the functions matching the given pattern:
 
-      FUNCTION                                        CALLS     % TIME [uS / CALLS]
-      ----------------------------------------------- ----- ----- ---- [----------]
-      String.Chars.Integer.to_string/1                    5 100.0    2 [      0.40]
-      ----------------------------------------------- ----- ----- ---- [----------]
-      Total                                               5 100.0    2 [      0.40]
+      #                                               CALLS     % TIME µS/CALL
+      Total                                               5 100.0    6    1.20
+      String.Chars.Integer.to_string/1                    5 100.0    6    1.20
+
       Profile done over 1 matching functions
 
   The pattern can be a module name, such as `String` to count all calls to that module,
@@ -134,7 +132,7 @@ defmodule Mix.Tasks.Profile.Eprof do
 
   defp profile_and_analyse(fun, opts) do
     if Keyword.get(opts, :warmup, true) do
-      IO.puts "Warmup..."
+      IO.puts "Warmup...\n"
       fun.()
     end
 
@@ -200,23 +198,22 @@ defmodule Mix.Tasks.Profile.Eprof do
     {function_count, call_results, call_count, total_time}
   end
 
-  @header ["FUNCTION", "CALLS", "%", "TIME", "µS / CALLS"]
+  @header ["#", "CALLS", "%", "TIME", "µS/CALL"]
 
   defp print_output({0, _, _, _}), do: print_function_count(0)
 
   defp print_output({function_count, call_results, call_count, total_time}) do
     formatted_rows = Enum.map(call_results, &(format_row(&1, total_time)))
-    formatted_footer = format_footer(total_time, call_count)
+    formatted_total = format_total(total_time, call_count)
 
     column_lengths = column_lengths(@header, formatted_rows)
 
-    formatted_separator = format_separator(column_lengths)
-
     print_row(@header, column_lengths)
-    print_row(formatted_separator, column_lengths)
+    print_row(formatted_total, column_lengths)
     Enum.each(formatted_rows, &(print_row(&1, column_lengths)))
-    print_row(formatted_separator, column_lengths)
-    print_row(formatted_footer, column_lengths)
+
+    IO.puts ""
+
     print_function_count(function_count)
   end
 
@@ -230,15 +227,10 @@ defmodule Mix.Tasks.Profile.Eprof do
     [mfa, count, time_percentage, time, time_per_call]
   end
 
-  defp format_footer(total_time, total_count) do
+  defp format_total(total_time, total_count) do
     time_per_call = :erlang.float_to_binary(total_time / total_count, [{:decimals, 2}])
 
     ["Total", Integer.to_string(total_count), "100.00", Integer.to_string(total_time), time_per_call]
-  end
-
-  @separator "-"
-  defp format_separator(column_lengths) do
-    Enum.map(column_lengths, &(String.duplicate(@separator, &1)))
   end
 
   defp column_lengths(header, rows) do
@@ -254,12 +246,12 @@ defmodule Mix.Tasks.Profile.Eprof do
   defp max({a, b}) when a >= b, do: a
   defp max({_, b}), do: b
 
-  @format "~-*s ~*s ~*s ~*s [~*s]~n"
+  @format "~-*s ~*s ~*s ~*s ~*s~n"
 
   defp print_row(row, column_lengths) do
     to_print =
       column_lengths
-      |> Stream.zip(row)
+      |> Stream.zip(Stream.map(row, &String.to_charlist/1))
       |> Enum.flat_map(&Tuple.to_list/1)
 
     :io.format(@format, to_print)
