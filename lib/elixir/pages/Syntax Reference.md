@@ -33,7 +33,7 @@ If the colon is followed by a double- or single-quote, the atom can be made of a
 
 Single-line strings in Elixir are written between double-quotes, such as `"foo"`. Any double-quote inside the string must be escaped with `\ `. Strings support Unicode characters and are stored in UTF-8 encoding.
 
-Multi-line strings in Elixir are written with three double-quotes, and can have unescaped quotes within them. The resulting string will end with a newline. The indentation of the line with the initial `"""` on it is used to strip indentation from the inner string. For example:
+Multi-line strings in Elixir are written with three double-quotes, and can have unescaped quotes within them. The resulting string will end with a newline. The indentation of the last `"""` is used to strip indentation from the inner string. For example:
 
 ```
 iex> test = """
@@ -43,7 +43,7 @@ iex> test = """
 ...>     test
 ...> """
 "    this\n    is\n    a\n    test\n"
-iex>     test = """
+iex> test = """
 ...>     This
 ...>     Is
 ...>     A
