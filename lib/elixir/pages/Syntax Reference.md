@@ -31,13 +31,34 @@ If the colon is followed by a double- or single-quote, the atom can be made of a
 
 ### Strings
 
-Strings in Elixir are written between double-quotes, such as `"foo"`. Any double-quote inside the string must be escaped with `\ `. Strings support Unicode characters and are stored in UTF-8 encoding.
+Single-line strings in Elixir are written between double-quotes, such as `"foo"`. Any double-quote inside the string must be escaped with `\ `. Strings support Unicode characters and are stored as UTF-8 encoded binaries.
+
+Multi-line strings in Elixir are written with three double-quotes, and can have unescaped quotes within them. The resulting string will end with a newline. The indentation of the last `"""` is used to strip indentation from the inner string. For example:
+
+```
+iex> test = """
+...>     this
+...>     is
+...>     a
+...>     test
+...> """
+"    this\n    is\n    a\n    test\n"
+iex> test = """
+...>     This
+...>     Is
+...>     A
+...>     Test
+...>     """
+"This\nIs\nA\nTest\n"
+```
 
 Strings are always represented as themselves in the AST.
 
 ### Charlists
 
 Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are a list of integers, each integer representing a Unicode character.
+
+Multi-line charlists are written with three single-quotes (`'''`), the same multi-line strings are.
 
 Charlists are always represented as themselves in the AST.
 
