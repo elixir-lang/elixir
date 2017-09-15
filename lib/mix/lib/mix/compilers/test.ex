@@ -263,7 +263,9 @@ defmodule Mix.Compilers.Test do
   ## ParallelRequire callback
 
   defp each_module(pid, cwd, source, module, _binary) do
-    {compile_references, runtime_references} = Kernel.LexicalTracker.remote_references(module)
+    {compile_references, struct_references, runtime_references} =
+      Kernel.LexicalTracker.remote_references(module)
+
     external = get_external_resources(module, cwd)
     source = Path.relative_to(source, cwd)
 
@@ -277,7 +279,7 @@ defmodule Mix.Compilers.Test do
       new_source =
         source(
           source: source,
-          compile_references: compile_references,
+          compile_references: compile_references ++ struct_references,
           runtime_references: runtime_references,
           external: external
         )

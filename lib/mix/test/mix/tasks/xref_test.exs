@@ -706,7 +706,7 @@ defmodule Mix.Tasks.XrefTest do
     """)
   end
 
-  test "graph: exclude" do
+  test "graph: exclude many" do
     assert_graph(~w[--exclude lib/c.ex --exclude lib/b.ex], """
     lib/a.ex
     lib/d.ex
@@ -714,27 +714,13 @@ defmodule Mix.Tasks.XrefTest do
     """)
   end
 
-  test "graph: exclude 1" do
+  test "graph: exclude one" do
     assert_graph(~w[--exclude lib/d.ex], """
     lib/a.ex
     └── lib/b.ex
         └── lib/a.ex
     lib/b.ex
     lib/c.ex
-    """)
-  end
-
-  test "graph: dot format" do
-    assert_graph(~w[--format dot], true, """
-    digraph "xref graph" {
-      "lib/a.ex"
-      "lib/a.ex" -> "lib/b.ex"
-      "lib/b.ex" -> "lib/a.ex"
-      "lib/b.ex"
-      "lib/c.ex"
-      "lib/d.ex"
-      "lib/d.ex" -> "lib/a.ex" [label="(compile)"]
-    }
     """)
   end
 
@@ -789,16 +775,42 @@ defmodule Mix.Tasks.XrefTest do
       end
       """)
 
-      assert Mix.Task.run("xref", ["graph"]) == :ok
+      assert Mix.Task.run("xref", ["graph", "--format", "dot"]) == :ok
 
-      expected = """
-      Compiling 2 files (.ex)
-      Generated sample app
-      lib/a.ex
-      lib/b.ex
-      """
+      assert File.read!("xref_graph.dot") === """
+             digraph "xref graph" {
+               "lib/a.ex"
+               "lib/b.ex"
+             }
+             """
+    end
+  end
 
-      assert ^expected = receive_until_no_messages([])
+  test "graph: with struct" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def fun do
+          %B{}
+        end
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        defstruct []
+      end
+      """)
+
+      assert Mix.Task.run("xref", ["graph", "--format", "dot"]) == :ok
+
+      assert File.read!("xref_graph.dot") === """
+             digraph "xref graph" {
+               "lib/a.ex"
+               "lib/a.ex" -> "lib/b.ex" [label="(struct)"]
+               "lib/b.ex"
+             }
+             """
     end
   end
 
@@ -841,7 +853,7 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
-  defp assert_graph(opts \\ [], dot \\ false, expected) do
+  defp assert_graph(opts \\ [], expected) do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
@@ -875,15 +887,8 @@ defmodule Mix.Tasks.XrefTest do
 
       assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
 
-      result =
-        if dot do
-          File.read!("xref_graph.dot")
-        else
-          assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
-                   receive_until_no_messages([])
-
-          result
-        end
+      assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
+               receive_until_no_messages([])
 
       assert normalize_graph_output(result) == normalize_graph_output(expected)
     end

@@ -383,7 +383,7 @@ defmodule Mix.Tasks.Xref do
   defp excluded(opts) do
     opts
     |> Keyword.get_values(:exclude)
-    |> Enum.flat_map(&[{&1, nil}, {&1, "(compile)"}, {&1, "(runtime)"}])
+    |> Enum.flat_map(&[{&1, nil}, {&1, :compile}, {&1, :struct}])
   end
 
   defp file_references() do
@@ -398,26 +398,39 @@ defmodule Mix.Tasks.Xref do
     all_modules = MapSet.new(module_sources, &elem(&1, 0))
 
     Map.new(module_sources, fn {current, source} ->
-      source(runtime_references: runtime, compile_references: compile, source: file) = source
+      source(
+        runtime_references: runtime,
+        struct_references: structs,
+        compile_references: compile,
+        source: file
+      ) = source
 
       compile_references =
-        for module <- compile,
-            module != current,
-            module in all_modules,
-            module_sources[module] != source,
-            do: {source(module_sources[module], :source), "(compile)"},
-            into: %{}
+        modules_to_nodes(compile, :compile, current, source, module_sources, all_modules)
+
+      struct_references =
+        modules_to_nodes(structs, :struct, current, source, module_sources, all_modules)
 
       runtime_references =
-        for module <- runtime,
-            module != current,
-            module in all_modules,
-            module_sources[module] != source,
-            do: {source(module_sources[module], :source), nil},
-            into: %{}
+        modules_to_nodes(runtime, nil, current, source, module_sources, all_modules)
 
-      {file, runtime_references |> Map.merge(compile_references) |> Enum.to_list()}
+      references =
+        runtime_references
+        |> Map.merge(struct_references)
+        |> Map.merge(compile_references)
+        |> Enum.to_list()
+
+      {file, references}
     end)
+  end
+
+  defp modules_to_nodes(modules, label, current, source, module_sources, all_modules) do
+    for module <- modules,
+        module != current,
+        module in all_modules,
+        module_sources[module] != source,
+        do: {source(module_sources[module], :source), label},
+        into: %{}
   end
 
   defp write_graph(file_references, excluded, opts) do
@@ -453,6 +466,7 @@ defmodule Mix.Tasks.Xref do
 
     callback = fn {file, type} ->
       children = Map.get(file_references, file, [])
+      type = type && "(#{type})"
       {{file, type}, children -- excluded}
     end
 
