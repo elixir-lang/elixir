@@ -144,7 +144,10 @@ format_error(Module, Desc) ->
 %% Helpers
 
 format_var(Var) ->
-  lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)).
+  case lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)) of
+    "V" ++ Rest -> Rest;
+    Rest -> Rest
+  end.
 
 protocol_or_behaviour(Module) ->
   case is_protocol(Module) of
