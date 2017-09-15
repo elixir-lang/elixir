@@ -76,7 +76,7 @@ defmodule Mix.Dep.Lock do
 
   defp resolve_merge_conflicts(lockfile) do
     File.rm!(lockfile)
-    Mix.Tasks.Deps.Get.run()
+    Mix.Tasks.Deps.Get.run []
 
     Mix.shell.error "Found and resolved merge conflicts in #{lockfile}. " <>
                     "Please check your version control for the changes."
