@@ -1,23 +1,21 @@
 defmodule Dialyzer.With do
   def with_else do
-    with :ok <- ok_or_error(),
-         :ok <- ok_or_other_error() do
+    with :ok <- ok_or_error_with_atom(),
+         :ok <- ok_or_error_with_string() do
       :ok
     else
-      :error ->
-        :error
-      :other_error ->
-        :other_error
+      {:error, msg} when is_atom(msg) -> :error
+      {:error, _msg} -> :error
     end
   end
 
-  @spec ok_or_error() :: :ok | :error
-  defp ok_or_error do
-    Enum.random([:ok, :error])
+  @spec ok_or_error_with_atom() :: :ok | {:error, atom()}
+  defp ok_or_error_with_atom do
+    Enum.random([:ok, {:error, :err}])
   end
 
-  @spec ok_or_other_error() :: :ok | :other_error
-  defp ok_or_other_error do
-    Enum.random([:ok, :other_error])
+  @spec ok_or_error_with_string() :: :ok | {:error, String.t}
+  defp ok_or_error_with_string do
+    Enum.random([:ok, {:error, "err"}])
   end
 end
