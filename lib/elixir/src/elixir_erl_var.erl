@@ -69,9 +69,15 @@ build(Key, #elixir_erl{counter=Counter} = S) ->
       {ok, Val} -> Val + 1;
       error -> 1
     end,
-  {list_to_atom(atom_to_list(Key) ++ "@" ++ integer_to_list(Cnt)),
+  {list_to_atom(var_name_to_list(Key) ++ "@" ++ integer_to_list(Cnt)),
    Cnt,
    S#elixir_erl{counter=maps:put(Key, Cnt, Counter)}}.
+
+var_name_to_list(Var) ->
+  case atom_to_list(Var) of
+    "_" ++ _ = List -> List;
+    List -> [$V | List]
+  end.
 
 warn_unsafe_var(Meta, File, Name, Safe) ->
   case (not Safe) andalso (lists:keyfind(generated, 1, Meta) /= {generated, true}) of
