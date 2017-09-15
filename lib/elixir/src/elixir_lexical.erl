@@ -4,6 +4,7 @@
   record_alias/4, record_alias/2,
   record_import/6, record_import/5,
   record_remote/3, record_remote/6,
+  record_struct/3,
   format_error/1
 ]).
 -include("elixir.hrl").
@@ -49,6 +50,9 @@ record_remote(Module, EnvFunction, Ref) ->
 
 record_remote(Module, Function, Arity, EnvFunction, Line, Ref) ->
   if_tracker(Ref, fun(Pid) -> ?tracker:remote_dispatch(Pid, Module, {Function, Arity}, Line, mode(EnvFunction)), ok end).
+
+record_struct(Module, Line, Ref) ->
+  if_tracker(Ref, fun(Pid) -> ?tracker:remote_struct(Pid, Module, Line), ok end).
 
 %% HELPERS
 

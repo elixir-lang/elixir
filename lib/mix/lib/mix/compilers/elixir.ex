@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v7
+  @manifest_vsn :v8
 
   import Record
 
@@ -10,6 +10,7 @@ defmodule Mix.Compilers.Elixir do
     source: nil,
     size: 0,
     compile_references: [],
+    struct_references: [],
     runtime_references: [],
     compile_dispatches: [],
     runtime_dispatches: [],
@@ -180,12 +181,17 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp each_module(pid, cwd, source, module, binary) do
-    {compile_references, runtime_references} = Kernel.LexicalTracker.remote_references(module)
+    {compile_references, struct_references, runtime_references} =
+      Kernel.LexicalTracker.remote_references(module)
 
     compile_references =
       compile_references
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
+
+    struct_references =
+      struct_references
+      |> List.delete(module)
 
     runtime_references =
       runtime_references
@@ -228,6 +234,7 @@ defmodule Mix.Compilers.Elixir do
         source: source,
         size: :filelib.file_size(source),
         compile_references: compile_references,
+        struct_references: struct_references,
         runtime_references: runtime_references,
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
@@ -317,9 +324,9 @@ defmodule Mix.Compilers.Elixir do
                           {rest, stale, changed}, sources_records) do
     {compile_references, runtime_references} =
       Enum.reduce(sources, {[], []}, fn source, {compile_acc, runtime_acc} ->
-        source(compile_references: compile_refs, runtime_references: runtime_refs) =
+        source(compile_references: compile_refs, struct_references: struct_refs, runtime_references: runtime_refs) =
           List.keyfind(sources_records, source, source(:source))
-        {compile_refs ++ compile_acc, runtime_refs ++ runtime_acc}
+        {struct_refs ++ compile_refs ++ compile_acc, runtime_refs ++ runtime_acc}
       end)
 
     cond do
