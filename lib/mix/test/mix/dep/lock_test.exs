@@ -54,9 +54,10 @@ defmodule Mix.Dep.LockTest do
         "baz": {:hex, :baz, "0.1.0"},
       }
       """
-      assert_raise Mix.Error, ~r/Your mix\.lock contains merge conflicts/, fn ->
-        Mix.Dep.Lock.read()
-      end
+      Mix.Dep.Lock.read()
+      message = "Found and resolved merge conflicts in mix.lock. " <>
+                "Please check your version control for the changes."
+      assert_received {:mix_shell, :error, [^message]}
     end
   end
 end
