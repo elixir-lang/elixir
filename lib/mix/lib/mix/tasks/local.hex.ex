@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Local.Hex do
 
     should_install? =
       if Keyword.get(opts, :if_missing, false) do
-        Code.ensure_loaded?(Hex)
+        !Code.ensure_loaded?(Hex)
       else
         true
       end
