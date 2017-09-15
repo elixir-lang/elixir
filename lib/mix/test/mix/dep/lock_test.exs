@@ -55,7 +55,7 @@ defmodule Mix.Dep.LockTest do
       }
       """
       Mix.Dep.Lock.read()
-      message = "Found and resolved merge conflicts in mix.lock. " <>
+      message = "Found and attempted to resolve merge conflicts in mix.lock. " <>
                 "Please check your version control for the changes."
       assert_received {:mix_shell, :error, [^message]}
     end

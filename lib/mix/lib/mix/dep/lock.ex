@@ -78,12 +78,7 @@ defmodule Mix.Dep.Lock do
     File.rm!(lockfile)
     Mix.Tasks.Deps.Get.run []
 
-    Mix.shell.error "Found and resolved merge conflicts in #{lockfile}. " <>
+    Mix.shell.error "Found and attempted to resolve merge conflicts in #{lockfile}. " <>
                     "Please check your version control for the changes."
-
-    if contains_merge_conflicts(File.read!(lockfile)) do
-      Mix.raise "We attempted to auto-resolve merge conflicts in #{lockfile} but failed. Please resolve the conflicts " <>
-                "manually and run the command again"
-    end
   end
 end
