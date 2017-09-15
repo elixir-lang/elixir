@@ -169,8 +169,28 @@ translate({for, Meta, [_ | _] = Args}, S) ->
 
 translate({with, Meta, [_ | _] = Args}, S) ->
   {Exprs, [{do, Do} | Opts]} = elixir_utils:split_last(Args),
-  {ElseClause, SE} = translate_with_else(Meta, Opts, S),
-  {With, SD} = translate_with_do(Exprs, Do, ElseClause, elixir_erl_var:mergec(S, SE)),
+  {ElseFn, SEF} = translate_with_else(Meta, Opts, S),
+
+  Generated = ?generated(Meta),
+  Ann = ?ann(Generated),
+
+  {With, SD} = case ElseFn of
+    {clause, _, _, _, _} ->
+      translate_with_do(Exprs, Do, ElseFn, SEF);
+    {'fun', _, _} ->
+      {ElseVarErl, SEV} = elixir_erl_var:assign(Generated, else, ?var_context, SEF),
+      ElseVarEx = {else, Generated, ?var_context},
+      {ElseVar, _} = translate(ElseVarEx, SEV),
+
+      MatchElse = {match, Ann, ElseVarErl, ElseFn},
+
+      {ClauseVarName, _, SC} = elixir_erl_var:build('_', SEV),
+      ClauseVar = {var, Ann, ClauseVarName},
+      ElseClause = {clause, Ann, [ClauseVar], [], [{call, Ann, ElseVar, [ClauseVar]}]},
+
+      {WithClause, SWC} = translate_with_do(Exprs, Do, ElseClause, SC),
+      {{block, Ann, [MatchElse, WithClause]}, SWC}
+  end,
   {With, elixir_erl_var:mergec(S, SD)};
 
 %% Variables
@@ -389,17 +409,14 @@ translate_with_else(Meta, [], S) ->
   {{clause, Ann, [Var], [], [Var]}, SC};
 translate_with_else(Meta, [{else, Else}], S) ->
   Generated = ?generated(Meta),
-  ElseVarEx = {else, Generated, ?var_context},
-  {ElseVarErl, SV} = elixir_erl_var:assign(Generated, else, ?var_context, S),
 
   RaiseVar = {catch_all, Generated, ?var_context},
   RaiseExpr = {{'.', Generated, [erlang, error]}, Generated, [{with_clause, RaiseVar}]},
   RaiseClause = {'->', Generated, [[RaiseVar], RaiseExpr]},
 
   GeneratedElse = [{'->', ?generated(ElseMeta), ElseArgs} || {'->', ElseMeta, ElseArgs} <- Else],
-  Case = {'case', [{export_vars, false} | Generated], [ElseVarEx, [{do, GeneratedElse ++ [RaiseClause]}]]},
-  {TranslatedCase, SC} = elixir_erl_pass:translate(Case, SV),
-  {{clause, ?ann(Generated), [ElseVarErl], [], [TranslatedCase]}, SC}.
+  Fn = {fn, Generated, GeneratedElse ++ [RaiseClause]},
+  elixir_erl_pass:translate(Fn, S).
 
 translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], Do, Else, S) ->
   {Args, Guards} = elixir_utils:extract_guards(Left),
