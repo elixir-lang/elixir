@@ -34,7 +34,7 @@ defmodule Mix.Dep.Lock do
   def read() do
     case File.read(lockfile()) do
       {:ok, info} ->
-        assert_no_merge_conflicts_in_lockfile(lockfile(), info)
+        auto_merge_conflicts_in_lockfile(lockfile(), info)
         case Code.eval_string(info, [], file: lockfile()) do
           {lock, _binding} when is_map(lock)  -> lock
           {_, _binding} -> %{}
@@ -64,10 +64,23 @@ defmodule Mix.Dep.Lock do
     Mix.Project.config[:lockfile]
   end
 
-  defp assert_no_merge_conflicts_in_lockfile(lockfile, info) do
-    if String.contains?(info, ~w(<<<<<<< ======= >>>>>>>)) do
-      Mix.raise "Your #{lockfile} contains merge conflicts. Please resolve the conflicts " <>
-                "and run the command again"
+  defp auto_merge_conflicts_in_lockfile(lockfile, info) do
+    if contains_merge_conflicts(info) do
+      resolve_merge_conflicts(lockfile)
+    end
+  end
+
+  defp contains_merge_conflicts(contents) do
+    String.contains?(contents, ~w(<<<<<<< ======= >>>>>>>))
+  end
+
+  defp resolve_merge_conflicts(lockfile) do
+    File.rm!(lockfile)
+    Mix.Tasks.Deps.Get.run()
+
+    if contains_merge_conflicts(File.read!(lockfile)) do
+      Mix.raise "We attempted to auto-resolve merge conflicts in #{lockfile} but failed. Please resolve the conflicts " <>
+                "manually and run the command again"
     end
   end
 end
