@@ -52,9 +52,9 @@ defmodule Mix.Dep.Lock do
     unless map == read() do
       lines =
         for {app, rev} <- Enum.sort(map), rev != nil do
-          ~s("#{app}": #{inspect rev, limit: :infinity})
+          ~s(  "#{app}": #{inspect rev, limit: :infinity},\n)
         end
-      File.write! lockfile(), "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
+      File.write! lockfile(), "%{\n#{lines}}\n"
       touch_manifest()
     end
     :ok

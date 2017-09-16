@@ -16,6 +16,21 @@ defmodule Mix.Dep.LockTest do
     end
   end
 
+  test "each dep in the lockfile is on it's own line and in same format", context do
+    in_tmp context.test, fn ->
+      Mix.Dep.Lock.write %{
+        foo: {:hex, :foo, "0.1.0"},
+        bar: {:hex, :bar, "0.1.0"}
+      }
+      assert File.read!("mix.lock") == ~S"""
+      %{
+        "bar": {:hex, :bar, "0.1.0"},
+        "foo": {:hex, :foo, "0.1.0"},
+      }
+      """
+    end
+  end
+
   test "does not touch manifest file there is no change", context do
     in_tmp context.test, fn ->
       Mix.Dep.Lock.write %{foo: :bar, bar: :bat}
@@ -29,13 +44,15 @@ defmodule Mix.Dep.LockTest do
   test "raises a proper error for merge conflicts", context do
     in_tmp context.test, fn ->
       File.write "mix.lock", ~S"""
-      %{"dep": {:hex, :dep, "0.1.0"},
+      %{
+        "dep": {:hex, :dep, "0.1.0"},
       <<<<<<< HEAD
         "foo": {:hex, :foo, "0.1.0"},
       =======
         "bar": {:hex, :bar, "0.1.0"},
       >>>>>>> foobar
-        "baz": {:hex, :baz, "0.1.0"}}
+        "baz": {:hex, :baz, "0.1.0"},
+      }
       """
       assert_raise Mix.Error, ~r/Your mix\.lock contains merge conflicts/, fn ->
         Mix.Dep.Lock.read()
