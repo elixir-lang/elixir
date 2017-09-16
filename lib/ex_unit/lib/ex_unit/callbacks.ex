@@ -286,7 +286,7 @@ defmodule ExUnit.Callbacks do
 
   @doc """
   Same as `start_supervised/2` but returns the PID on success and raises if
-  not started porperly.
+  not started properly.
   """
   @spec start_supervised!(Supervisor.child_spec | module | {module, term}, keyword) :: pid
   def start_supervised!(child_spec_or_module, opts \\ []) do
