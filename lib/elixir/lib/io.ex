@@ -186,11 +186,9 @@ defmodule IO do
 
       IO.puts "Hello World!"
       #=> Hello World!
-      #=> :ok
 
       IO.puts :stderr, "error"
       #=> error
-      #=> :ok
 
   """
   @spec puts(device, chardata | String.Chars.t) :: :ok
