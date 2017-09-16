@@ -181,7 +181,6 @@ defmodule IO do
   By default the `device` is the standard output.  It returns `:ok`
   if it succeeds.
 
-
   ## Examples
 
       IO.puts "Hello World!"
