@@ -54,7 +54,7 @@ defmodule Mix.Dep.Lock do
         for {app, rev} <- Enum.sort(map), rev != nil do
           ~s(  "#{app}": #{inspect rev, limit: :infinity},\n)
         end
-      File.write! lockfile(), "%{\n#{lines}}\n"
+      File.write! lockfile(), ["%{\n", lines, "}\n"]
       touch_manifest()
     end
     :ok
