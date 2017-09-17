@@ -143,7 +143,7 @@ defmodule IO do
   @doc """
   Writes `item` to the given `device`.
 
-  By default the `device` is the standard output.
+  By default, the `device` is the standard output.
 
   ## Examples
 
