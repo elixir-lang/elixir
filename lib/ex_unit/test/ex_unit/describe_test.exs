@@ -99,4 +99,11 @@ defmodule ExUnit.DescribeTest do
     assert context.setup_tag == :from_module
     assert context.test == :"test attributes from outside describe"
   end
+
+  describe "describe block" do
+    test "sets describe_line", context do
+      describe_line = __ENV__.line - 2
+      assert context.describe_line == describe_line
+    end
+  end
 end

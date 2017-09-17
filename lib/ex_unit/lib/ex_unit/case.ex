@@ -375,16 +375,14 @@ defmodule ExUnit.Case do
           :ok
       end
 
-      @ex_unit_describe message
+      @ex_unit_describe {__ENV__.line, message}
       @ex_unit_used_describes message
-      @ex_unit_describe_line __ENV__.line
       Module.delete_attribute(__ENV__.module, :describetag)
 
       try do
         unquote(block)
       after
         @ex_unit_describe nil
-        @ex_unit_describe_line nil
         Module.delete_attribute(__ENV__.module, :describetag)
       end
     end
@@ -435,11 +433,11 @@ defmodule ExUnit.Case do
     async = Module.get_attribute(mod, :ex_unit_async)
 
     {name, describe, describe_line, describetag} =
-      if describe = Module.get_attribute(mod, :ex_unit_describe) do
-        dline = Module.get_attribute(mod, :ex_unit_describe_line)
-        {:"#{type} #{describe} #{name}", describe, dline, Module.get_attribute(mod, :describetag)}
-      else
-        {:"#{type} #{name}", nil, nil, []}
+      case Module.get_attribute(mod, :ex_unit_describe) do
+        {dline, dname} ->
+          {:"#{type} #{dname} #{name}", dname, dline, Module.get_attribute(mod, :describetag)}
+        _ ->
+          {:"#{type} #{name}", nil, nil, []}
       end
 
     if Module.defines?(mod, {name, 1}) do
