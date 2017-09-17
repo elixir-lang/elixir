@@ -178,7 +178,7 @@ defmodule IO do
   Writes `item` to the given `device`, similar to `write/2`,
   but adds a newline at the end.
 
-  By default the `device` is the standard output.  It returns `:ok`
+  By default the `device` is the standard output. It returns `:ok`
   if it succeeds.
 
   ## Examples
