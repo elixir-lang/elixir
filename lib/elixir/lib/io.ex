@@ -143,7 +143,7 @@ defmodule IO do
   @doc """
   Writes `item` to the given `device`.
 
-  By default the `device` is the standard output.
+  By default, the `device` is the standard output.
 
   ## Examples
 
@@ -177,6 +177,18 @@ defmodule IO do
   @doc """
   Writes `item` to the given `device`, similar to `write/2`,
   but adds a newline at the end.
+
+  By default, the `device` is the standard output. It returns `:ok`
+  if it succeeds.
+
+  ## Examples
+
+      IO.puts "Hello World!"
+      #=> Hello World!
+
+      IO.puts :stderr, "error"
+      #=> error
+
   """
   @spec puts(device, chardata | String.Chars.t) :: :ok
   def puts(device \\ :stdio, item) do
