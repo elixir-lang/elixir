@@ -162,8 +162,7 @@ defmodule ExUnit.Callbacks do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
       defp unquote(name)(unquote(var)), unquote(block)
-      describe_name = @ex_unit_describe && @ex_unit_describe |> elem(1)
-      @ex_unit_setup [{name, describe_name} | @ex_unit_setup]
+      @ex_unit_setup [{name, @ex_unit_describe} | @ex_unit_setup]
     end
   end
 
@@ -323,8 +322,7 @@ defmodule ExUnit.Callbacks do
                              "a list of callback names, got: #{inspect k}"
       end
 
-      describe_name = describe && describe |> elem(1)
-      {k, describe_name}
+      {k, describe}
     end |> Enum.reverse()
   end
 
@@ -410,7 +408,7 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  defp compile_merge({callback, describe}) do
+  defp compile_merge({callback, {_line, describe}}) do
     quote do
       if unquote(describe) == describe do
         unquote(compile_merge({callback, nil}))

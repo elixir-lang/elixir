@@ -324,9 +324,12 @@ defmodule ExUnit.Case do
         end
       end
 
-  When using Mix, you can run all tests in a describe block (starting at line 123) as either:
+  When using Mix, you can run all tests in a describe block by name:
 
       mix test --only describe:"String.capitalize/1"
+
+  or by passing the exact line the describe block starts:
+
       mix test path/to/file:123
 
   Note describe blocks cannot be nested. Instead of relying on hierarchy
