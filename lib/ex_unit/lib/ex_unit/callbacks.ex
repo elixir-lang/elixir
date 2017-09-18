@@ -408,7 +408,7 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  defp compile_merge({callback, describe}) do
+  defp compile_merge({callback, {_line, describe}}) do
     quote do
       if unquote(describe) == describe do
         unquote(compile_merge({callback, nil}))

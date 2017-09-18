@@ -324,9 +324,13 @@ defmodule ExUnit.Case do
         end
       end
 
-  When using Mix, you can run all tests in a describe block as:
+  When using Mix, you can run all tests in a describe block by name:
 
       mix test --only describe:"String.capitalize/1"
+
+  or by passing the exact line the describe block starts on:
+
+      mix test path/to/file:123
 
   Note describe blocks cannot be nested. Instead of relying on hierarchy
   for composition, developers should build on top of named setups. For
@@ -374,7 +378,7 @@ defmodule ExUnit.Case do
           :ok
       end
 
-      @ex_unit_describe message
+      @ex_unit_describe {__ENV__.line, message}
       @ex_unit_used_describes message
       Module.delete_attribute(__ENV__.module, :describetag)
 
@@ -431,11 +435,12 @@ defmodule ExUnit.Case do
     tag = Module.delete_attribute(mod, :tag)
     async = Module.get_attribute(mod, :ex_unit_async)
 
-    {name, describe, describetag} =
-      if describe = Module.get_attribute(mod, :ex_unit_describe) do
-        {:"#{type} #{describe} #{name}", describe, Module.get_attribute(mod, :describetag)}
-      else
-        {:"#{type} #{name}", nil, []}
+    {name, describe, describe_line, describetag} =
+      case Module.get_attribute(mod, :ex_unit_describe) do
+        {line, describe} ->
+          {:"#{type} #{describe} #{name}", describe, line, Module.get_attribute(mod, :describetag)}
+        _ ->
+          {:"#{type} #{name}", nil, nil, []}
       end
 
     if Module.defines?(mod, {name, 1}) do
@@ -446,8 +451,8 @@ defmodule ExUnit.Case do
       (tags ++ tag ++ describetag ++ moduletag)
       |> normalize_tags
       |> validate_tags
-      |> Map.merge(%{line: line, file: file, registered: registered,
-                     async: async, describe: describe, type: type})
+      |> Map.merge(%{line: line, file: file, registered: registered, async: async,
+                     describe: describe, describe_line: describe_line, type: type})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)
