@@ -328,7 +328,7 @@ defmodule ExUnit.Case do
 
       mix test --only describe:"String.capitalize/1"
 
-  or by passing the exact line the describe block starts:
+  or by passing the exact line the describe block starts on:
 
       mix test path/to/file:123
 
