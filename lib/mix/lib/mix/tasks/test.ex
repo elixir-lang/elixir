@@ -117,8 +117,10 @@ defmodule Mix.Tasks.Test do
 
       mix test --only line:12 test/some/particular/file_test.exs
 
-  Note that line filter takes the closest test on or before the given line number.
-  In the case a single file contains more than one test module (test case),
+  If the given line starts a `describe` block, the line filter runs all tests in it.
+  Otherwise, it runs the closest test on or before the given line number.
+
+  Note that in the case a single file contains more than one test module (test case),
   line filter applies to every test case before the given line number, thus more
   than one test might be taken for the run.
 

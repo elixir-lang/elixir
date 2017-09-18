@@ -100,10 +100,17 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:line, line}, %{line: _} = tags, collection) do
+  defp has_tag({:line, line}, %{line: _, describe_line: describe_line} = tags, collection) do
     line = to_integer(line)
-    tags.line <= line and
-      closest_test_before_line(line, collection).tags.line == tags.line
+    cond do
+      describe_line == line ->
+        true
+      describe_block?(line, collection) ->
+        false
+      true ->
+        tags.line <= line and
+          closest_test_before_line(line, collection).tags.line == tags.line
+    end
   end
 
   defp has_tag({key, %Regex{} = value}, tags, _collection) when is_atom(key) do
@@ -131,6 +138,12 @@ defmodule ExUnit.Filters do
   defp compare(tag1, "Elixir." <> tag2), do: compare(tag1, tag2)
   defp compare(tag, tag), do: true
   defp compare(_, _), do: false
+
+  defp describe_block?(line, collection) do
+    Enum.any?(collection, fn %ExUnit.Test{tags: %{describe_line: describe_line}} ->
+      line == describe_line
+    end)
+  end
 
   defp closest_test_before_line(line, collection) do
     Enum.min_by(collection, fn %ExUnit.Test{tags: %{line: test_line}} ->
