@@ -102,8 +102,7 @@ defmodule ExUnit.DescribeTest do
 
   describe "describe block" do
     test "sets describe_line", context do
-      describe_line = __ENV__.line - 2
-      assert context.describe_line == describe_line
+      assert context.describe_line == __ENV__.line - 2
     end
   end
 end

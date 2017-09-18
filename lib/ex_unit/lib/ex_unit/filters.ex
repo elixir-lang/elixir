@@ -105,7 +105,7 @@ defmodule ExUnit.Filters do
     cond do
       describe_line == line ->
         true
-      is_describe_block?(line, collection) ->
+      describe_block?(line, collection) ->
         false
       true ->
         tags.line <= line and
@@ -139,7 +139,7 @@ defmodule ExUnit.Filters do
   defp compare(tag, tag), do: true
   defp compare(_, _), do: false
 
-  defp is_describe_block?(line, collection) do
+  defp describe_block?(line, collection) do
     Enum.any?(collection, fn %ExUnit.Test{tags: %{describe_line: describe_line}} ->
       line == describe_line
     end)

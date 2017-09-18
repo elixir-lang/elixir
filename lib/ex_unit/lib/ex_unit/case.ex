@@ -437,8 +437,8 @@ defmodule ExUnit.Case do
 
     {name, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
-        {dline, dname} ->
-          {:"#{type} #{dname} #{name}", dname, dline, Module.get_attribute(mod, :describetag)}
+        {line, describe} ->
+          {:"#{type} #{describe} #{name}", describe, line, Module.get_attribute(mod, :describetag)}
         _ ->
           {:"#{type} #{name}", nil, nil, []}
       end
