@@ -6,9 +6,47 @@ defmodule ExUnit.SupervisedTest do
   defmodule MyAgent do
     use Agent
 
+    def start_link(:error) do
+      {:error, "some error"}
+    end
+
+    def start_link(:exception) do
+      raise "some exception"
+    end
+
     def start_link(arg) do
       Agent.start_link(fn -> arg end, name: __MODULE__)
     end
+  end
+
+  test "returns error if the supervised process returns an error tuple" do
+    {:error, error} = start_supervised({MyAgent, :error})
+    assert {"some error", _info} = error
+
+    message =
+      "failed to start child with the spec {ExUnit.SupervisedTest.MyAgent, :error}.\n" <>
+      "Reason: \"some error\""
+
+    assert_raise RuntimeError, message, fn ->
+      start_supervised!({MyAgent, :error})
+    end
+  end
+
+  test "returns error if the supervised process raises an exception" do
+    {:error, {{:EXIT, {exception, _}}, _}} = start_supervised({MyAgent, :exception})
+    assert exception == %RuntimeError{message: "some exception"}
+
+    message =
+      "failed to start child with the spec {ExUnit.SupervisedTest.MyAgent, :exception}.\n" <>
+      "Reason: an exception was raised:\n" <>
+      "    ** (RuntimeError) some exception"
+
+    exception =
+      assert_raise RuntimeError, fn ->
+        start_supervised!({MyAgent, :exception})
+      end
+
+    assert String.starts_with?(Exception.message(exception), message)
   end
 
   test "starts a supervised process that terminates before on_exit" do
