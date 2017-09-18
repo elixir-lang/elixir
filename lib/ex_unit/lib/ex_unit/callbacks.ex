@@ -296,10 +296,8 @@ defmodule ExUnit.Callbacks do
       {:ok, pid, _info} ->
         pid
       {:error, reason} ->
-        raise """
-        Failed to start child with the spec #{inspect child_spec_or_module}.
-        Reason: #{start_supervised_error(reason)}
-        """
+        raise "failed to start child with the spec #{inspect child_spec_or_module}.\n" <>
+              "Reason: #{start_supervised_error(reason)}"
     end
   end
 
