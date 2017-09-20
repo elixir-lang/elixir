@@ -33,7 +33,7 @@ defmodule Kernel.ParallelCompilerTest do
     fixture = fixture_path("parallel_struct/undef.ex")
     expected_msg = "Undef.__struct__/1 is undefined, cannot expand struct Undef"
     assert capture_io(fn ->
-      assert {:error, [{^fixture, 3, msg}]} = Kernel.ParallelCompiler.files([fixture], return_errors: true)
+      assert {:error, [{^fixture, 3, msg}], []} = Kernel.ParallelCompiler.files([fixture], return_errors: true)
       assert msg =~ expected_msg
     end) =~ expected_msg
   end
@@ -49,7 +49,7 @@ defmodule Kernel.ParallelCompilerTest do
     fixture = fixture_path("parallel_compiler/bat.ex")
     expected_msg = "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
     assert capture_io(fn ->
-      assert {:error, [{^fixture, 7, msg}]} = Kernel.ParallelCompiler.files([fixture], return_errors: true)
+      assert {:error, [{^fixture, 7, msg}], []} = Kernel.ParallelCompiler.files([fixture], return_errors: true)
       assert msg =~ expected_msg
     end) =~ "== Compilation error"
   end
@@ -62,7 +62,8 @@ defmodule Kernel.ParallelCompilerTest do
     msg = capture_io(fn ->
       assert {:error,
               [{^bar, nil, "deadlocked waiting on module FooDeadlock"},
-               {^foo, nil, "deadlocked waiting on module BarDeadlock"}]
+               {^foo, nil, "deadlocked waiting on module BarDeadlock"}],
+              []
              } = Kernel.ParallelCompiler.files(fixtures, return_errors: true)
     end)
 
@@ -85,7 +86,8 @@ defmodule Kernel.ParallelCompilerTest do
       msg = capture_io :stderr, fn ->
         assert {:error,
                 [{^fixture, 3,
-                  "this clause cannot match because a previous clause at line 2 always matches"}]
+                  "this clause cannot match because a previous clause at line 2 always matches"}],
+                []
                } = Kernel.ParallelCompiler.files([fixture], return_errors: true)
       end
 
