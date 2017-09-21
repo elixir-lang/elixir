@@ -140,7 +140,7 @@ defmodule Inspect.Algebra do
   precompute the document size.
 
   Finally, this module also contains Elixir related functions, a bit
-  tied to Elixir formatting, namely `surround/3` and `surround_many/5`.
+  tied to Elixir formatting, such as `to_doc/2`.
 
   ## Implementation details
 
@@ -167,7 +167,7 @@ defmodule Inspect.Algebra do
 
   """
 
-  @surround_separator ","
+  @container_separator ","
   @tail_separator " |"
   @newline "\n"
   @break :flex
@@ -256,6 +256,8 @@ defmodule Inspect.Algebra do
     end
   end
 
+  # Elixir + Inspect.Opts conveniences
+
   @doc """
   Converts an Elixir term to an algebra document
   according to the `Inspect` protocol.
@@ -309,6 +311,117 @@ defmodule Inspect.Algebra do
   def to_doc(arg, %Inspect.Opts{} = opts) do
     Inspect.inspect(arg, opts)
   end
+
+  @doc ~S"""
+  Wraps `collection` in `left` and `right` according to limit and contents.
+
+  It uses the given `left` and `right` documents as surrounding and the
+  separator document `separator` to separate items in `docs`. If all entries
+  in the collection are simple documents (texts or strings), then this function
+  attempts to put as much as possible on the same line. If they are not simple,
+  only one entry is shown per line if they do not fit.
+
+  The limit in the given `Inspect.Opts` is respected and when reached this
+  function stops processing and outputs `"..."` instead.
+
+  ## Options
+
+    * `:separator` - the separator used between each doc
+    * `:break` - when set to `:strict`, always break between each element. Defaults to
+      `:flex` which breaks only when necessary and if all elements are text-based
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]",
+      ...>         %Inspect.Opts{limit: :infinity}, fn i, _opts -> to_string(i) end)
+      iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary
+      "[1,\n 2,\n 3,\n 4,\n 5]"
+
+      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]",
+      ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end)
+      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
+      "[1, 2, 3, ...]"
+
+      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]",
+      ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end, separator: "!")
+      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
+      "[1! 2! 3! ...]"
+
+  """
+  @spec container_doc(t, [any], t, Inspect.Opts.t, (term, Inspect.Opts.t -> t), keyword()) :: t
+  def container_doc(left, collection, right, inspect, fun, opts \\ [])
+      when is_doc(left) and is_list(collection) and is_doc(right) and
+             is_function(fun, 2) and is_list(opts) do
+    case collection do
+      [] ->
+        concat(left, right)
+
+      _ ->
+        separator = Keyword.get(opts, :separator, @container_separator)
+        flex? = Keyword.get(opts, :break, @break) == :flex
+        {docs, simple?} = container_each(collection, inspect.limit, inspect, fun, [], flex?)
+        docs = fold_doc(docs, &join(&1, &2, simple?, separator))
+
+        case simple? do
+          true -> concat(concat(left, nest(docs, :cursor)), right)
+          false -> group(glue(nest(glue(left, "", docs), 2), "", right))
+        end
+    end
+  end
+
+  defp container_each([], _limit, _opts, _fun, acc, simple?) do
+    {:lists.reverse(acc), simple?}
+  end
+
+  defp container_each(_, 0, _opts, _fun, acc, simple?) do
+    {:lists.reverse(["..." | acc]), simple?}
+  end
+
+  defp container_each([term | terms], limit, opts, fun, acc, simple?) when is_list(terms) do
+    limit = decrement(limit)
+    doc = fun.(term, %{opts | limit: limit})
+    container_each(terms, limit, opts, fun, [doc | acc], simple? and simple?(doc))
+  end
+
+  defp container_each([left | right], limit, opts, fun, acc, simple?) do
+    limit = decrement(limit)
+    left = fun.(left, %{opts | limit: limit})
+    right = fun.(right, %{opts | limit: limit})
+    simple? = simple? and simple?(left) and simple?(right)
+
+    doc = join(left, right, simple?, @tail_separator)
+    {:lists.reverse([doc | acc]), simple?}
+  end
+
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter), do: counter - 1
+
+  defp join(:doc_nil, :doc_nil, _, _), do: :doc_nil
+  defp join(left, :doc_nil, _, _), do: left
+  defp join(:doc_nil, right, _, _), do: right
+  defp join(left, right, true, sep), do: flex_glue(concat(left, sep), right)
+  defp join(left, right, false, sep), do: glue(concat(left, sep), right)
+
+  defp simple?(doc_cons(left, right)), do: simple?(left) and simple?(right)
+  defp simple?(doc_color(doc, _)), do: simple?(doc)
+  defp simple?(doc_string(_, _)), do: true
+  defp simple?(:doc_nil), do: true
+  defp simple?(other), do: is_binary(other)
+
+  @doc false
+  # TODO: Deprecate on Elixir v1.8
+  def surround(left, doc, right) when is_doc(left) and is_doc(doc) and is_doc(right) do
+    concat(concat(left, nest(doc, 1)), right)
+  end
+
+  @doc false
+  # TODO: Deprecate on Elixir v1.8
+  def surround_many(left, docs, right, %Inspect.Opts{} = inspect, fun, separator \\ @container_separator)
+      when is_doc(left) and is_list(docs) and is_doc(right) and is_function(fun, 2) do
+    container_doc(left, docs, right, inspect, fun, separator: separator)
+  end
+
+  # Algebra API
 
   @doc """
   Returns a document entity used to represent nothingness.
@@ -509,7 +622,7 @@ defmodule Inspect.Algebra do
   a regular break, but it is re-evaluated when the
   documented is processed.
 
-  This function is used by `surround/4` and friends
+  This function is used by `container_doc/4` and friends
   to the maximum number of entries on the same line.
   """
   @spec flex_break(binary) :: doc_break
@@ -521,7 +634,7 @@ defmodule Inspect.Algebra do
   Glues two documents (`doc1` and `doc2`) inserting a
   `flex_break/1` given by `break_string` between them.
 
-  This function is used by `surround/4` and friends
+  This function is used by `container_doc/6` and friends
   to the maximum number of entries on the same line.
   """
   @spec flex_glue(t, binary, t) :: t
@@ -660,128 +773,6 @@ defmodule Inspect.Algebra do
     do: doc
   def fold_doc([doc | docs], folder_fun) when is_function(folder_fun, 2),
     do: folder_fun.(doc, fold_doc(docs, folder_fun))
-
-  # Elixir conveniences
-
-  @doc ~S"""
-  Surrounds a document with characters.
-
-  Puts the given document `doc` between the `left` and `right` documents enclosing
-  and nesting it. The document is marked as a group, to show the maximum as
-  possible concisely together.
-
-  ## Options
-
-    * `:break` - controls if the break is `:strict` or `:flex`, see `group/2`
-
-  ## Examples
-
-      iex> doc = Inspect.Algebra.surround("[", Inspect.Algebra.glue("a", "b"), "]")
-      iex> doc = Inspect.Algebra.group(doc)
-      iex> Inspect.Algebra.format(doc, 3)
-      ["[", "a", "\n ", "b", "]"]
-
-  """
-  # TODO: Reflect the @break default and nesting for flex on the formatter
-  @spec surround(t, t, t, keyword()) :: t
-  def surround(left, doc, right, opts \\ [])
-      when is_doc(left) and is_doc(doc) and is_doc(right) and is_list(opts) do
-    case Keyword.get(opts, :break, @break) do
-      :flex ->
-        concat(concat(left, nest(doc, 1)), right)
-      :strict ->
-        group(glue(nest(glue(left, "", doc), 2), "", right))
-    end
-  end
-
-  @doc ~S"""
-  Maps and glues a collection of items.
-
-  It uses the given `left` and `right` documents as surrounding and the
-  separator document `separator` to separate items in `docs`. A limit can be
-  passed: when this limit is reached, this function stops gluing and outputs
-  `"..."` instead.
-
-  ## Options
-
-    * `:separator` - the separator used between each doc
-
-  Plus all options in `surround/4`.
-
-  ## Examples
-
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]",
-      ...>         %Inspect.Opts{limit: :infinity}, fn i, _opts -> to_string(i) end)
-      iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary
-      "[1,\n 2,\n 3,\n 4,\n 5]"
-
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]",
-      ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end)
-      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
-      "[1, 2, 3, ...]"
-
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]",
-      ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end, "!")
-      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
-      "[1! 2! 3! ...]"
-
-  """
-  @spec surround_many(t, [any], t, Inspect.Opts.t, (term, Inspect.Opts.t -> t), keyword) :: t
-  def surround_many(left, docs, right, %Inspect.Opts{} = inspect, fun, opts \\ [])
-      when is_doc(left) and is_list(docs) and is_doc(right) and is_function(fun, 2) do
-    cond do
-      is_list(opts) ->
-        {separator, opts} = Keyword.pop(opts, :separator, @surround_separator)
-        surround_many(left, docs, right, inspect, fun, separator, opts)
-      is_doc(opts) ->
-        # TODO: Deprecate on Elixir v1.8
-        surround_many(left, docs, right, inspect, fun, opts, [])
-    end
-  end
-
-  defp surround_many(left, [], right, _inspect, _fun, _sep, _opts) do
-    concat(left, right)
-  end
-
-  defp surround_many(left, docs, right, inspect, fun, sep, opts) do
-    break = Keyword.get(opts, :break, @break)
-    surround(left, surround_each(docs, inspect.limit, inspect, fun, break, sep), right, opts)
-  end
-
-  defp surround_each(_, 0, _opts, _fun, _break, _sep) do
-    "..."
-  end
-
-  defp surround_each([], _limit, _opts, _fun, _break, _sep) do
-    :doc_nil
-  end
-
-  defp surround_each([h], limit, opts, fun, _break, _sep) do
-    fun.(h, %{opts | limit: limit})
-  end
-
-  defp surround_each([h | t], limit, opts, fun, break, sep) when is_list(t) do
-    limit = decrement(limit)
-    h = fun.(h, %{opts | limit: limit})
-    t = surround_each(t, limit, opts, fun, break, sep)
-    do_join(h, t, break, sep)
-  end
-
-  defp surround_each([h | t], limit, opts, fun, break, _sep) do
-    limit = decrement(limit)
-    h = fun.(h, %{opts | limit: limit})
-    t = fun.(t, %{opts | limit: limit})
-    do_join(h, t, break, @tail_separator)
-  end
-
-  defp do_join(:doc_nil, :doc_nil, _, _), do: :doc_nil
-  defp do_join(h, :doc_nil, _, _), do: h
-  defp do_join(:doc_nil, t, _, _), do: t
-  defp do_join(h, t, :strict, sep), do: glue(concat(h, sep), t)
-  defp do_join(h, t, :flex, sep), do: flex_glue(concat(h, sep), t)
-
-  defp decrement(:infinity), do: :infinity
-  defp decrement(counter),   do: counter - 1
 
   @doc ~S"""
   Formats a given document for a given width.
