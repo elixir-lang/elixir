@@ -117,8 +117,8 @@ defimpl Inspect, for: BitString do
   end
 
   defp each_bit(<<h, t::bitstring>>, counter, opts) do
-    glue(concat(Inspect.Integer.inspect(h, opts), ","),
-         each_bit(t, decrement(counter), opts))
+    flex_glue(concat(Inspect.Integer.inspect(h, opts), ","),
+              each_bit(t, decrement(counter), opts))
   end
 
   defp each_bit(bitstring, _counter, opts) do
