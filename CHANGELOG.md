@@ -27,6 +27,10 @@
 
 ### 3. Soft deprecations (no warnings emitted)
 
+  * [Inspect.Algebra] `surround/3` and `surround_many/6` are deprecated in favor of `container_doc/6`
+  * [Kernel.ParallelCompiler] `files/2` and `files_to_path/3` are deprecated in favor of `compile/2` and `compile_to_path/3`
+  * [Kernel.ParallelRequire] `files/2` is deprecated in favor of `Kernel.ParallelCompiler.require/2`
+
 ### 4. Deprecations
 
 #### Elixir
