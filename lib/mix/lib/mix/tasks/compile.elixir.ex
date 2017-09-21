@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--warnings-as-errors` - treats warnings in the current project as errors and
       return a non-zero exit code
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
-      (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.files/2`)
+      (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
     * `--all-warnings` - prints warnings even from files that do not need to be recompiled
 
   ## Configuration

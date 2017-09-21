@@ -163,20 +163,21 @@ defmodule IEx.Helpers do
 
     {erls, exs} = Enum.split_with(found, &String.ends_with?(&1, ".erl"))
 
-    erl_modules = Enum.map(erls, fn(source) ->
-      {module, binary} = compile_erlang(source)
-      unless path == :in_memory do
-        base = source |> Path.basename |> Path.rootname
-        File.write!(Path.join(path, base <> ".beam"), binary)
-      end
-      module
-    end)
+    erl_modules =
+      Enum.map(erls, fn(source) ->
+        {module, binary} = compile_erlang(source)
+        if path != :in_memory do
+          base = source |> Path.basename |> Path.rootname
+          File.write!(Path.join(path, base <> ".beam"), binary)
+        end
+        module
+      end)
 
-    ex_modules = try do
-      compile_elixir(exs, path)
-    catch
-      _, _ -> raise CompileError
-    end
+    ex_modules =
+      case compile_elixir(exs, path) do
+        {:ok, modules, _} -> modules
+        {:error, _, _} -> raise CompileError
+      end
 
     erl_modules ++ ex_modules
   end
@@ -1011,8 +1012,8 @@ defmodule IEx.Helpers do
     end
   end
 
-  defp compile_elixir(exs, :in_memory), do: Kernel.ParallelCompiler.files(exs)
-  defp compile_elixir(exs, path), do: Kernel.ParallelCompiler.files_to_path(exs, path)
+  defp compile_elixir(exs, :in_memory), do: Kernel.ParallelCompiler.compile(exs)
+  defp compile_elixir(exs, path), do: Kernel.ParallelCompiler.compile_to_path(exs, path)
 
   # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do

@@ -20,6 +20,8 @@ defmodule Kernel.ParallelRequireTest do
       assert msg =~ "Execution failed due to warnings while using the --warnings-as-errors option\n"
     after
       Code.compiler_options(warnings_as_errors: warnings_as_errors)
+      :code.purge(WarningsSample)
+      :code.delete(WarningsSample)
     end
   end
 end

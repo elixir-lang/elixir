@@ -466,7 +466,7 @@ defmodule Code do
   Returns a list of tuples where the first element is the module name
   and the second one is its byte code (as a binary).
 
-  For compiling many files at once, check `Kernel.ParallelCompiler.files/2`.
+  For compiling many files at once, check `Kernel.ParallelCompiler.compile/2`.
   """
   def compile_string(string, file \\ "nofile") when is_binary(file) do
     :elixir_compiler.string to_charlist(string), file

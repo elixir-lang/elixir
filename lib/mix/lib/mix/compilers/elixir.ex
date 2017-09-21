@@ -156,18 +156,22 @@ defmodule Mix.Compilers.Elixir do
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
-      _ = Kernel.ParallelCompiler.files stale,
-            [each_module: &each_module(pid, cwd, &1, &2, &3),
-             each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-             each_warning: &each_warning(pid, cwd, &1, &2, &3),
-             long_compilation_threshold: long_compilation_threshold,
-             dest: dest] ++ extra
-      Agent.cast pid, fn {modules, sources, warnings} ->
-        write_manifest(manifest, modules, sources, dest, timestamp)
-        {modules, sources, warnings}
-      end
+      Kernel.ParallelCompiler.compile stale,
+        [each_module: &each_module(pid, cwd, &1, &2, &3),
+         each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+         each_warning: &each_warning(pid, cwd, &1, &2, &3),
+         long_compilation_threshold: long_compilation_threshold,
+         dest: dest] ++ extra
     after
       Agent.stop(pid, :normal, :infinity)
+    else
+      {:ok, _, _} ->
+        Agent.cast pid, fn {modules, sources, warnings} ->
+          write_manifest(manifest, modules, sources, dest, timestamp)
+          {modules, sources, warnings}
+        end
+      {:error, _, _} ->
+        exit({:shutdown, 1})
     end
 
     :ok
