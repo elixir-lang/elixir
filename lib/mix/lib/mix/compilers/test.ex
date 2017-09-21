@@ -48,7 +48,11 @@ defmodule Mix.Compilers.Test do
         task = Task.async(ExUnit, :run, [])
 
         try do
-          Kernel.ParallelRequire.files(test_files, parallel_require_callbacks)
+          case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
+            {:ok, _, _} -> :ok
+            {:error, _, _} -> exit({:shutdown, 1})
+          end
+
           ExUnit.Server.modules_loaded()
           %{failures: failures} = results = Task.await(task, :infinity)
 

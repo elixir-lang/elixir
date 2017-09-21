@@ -126,9 +126,14 @@ defmodule Mix.Tasks.Run do
   defp process_load(opts, expr_evaluator) do
     require_runner =
       if opts[:parallel] do
-        &Kernel.ParallelRequire.files/1
+        fn files ->
+          case Kernel.ParallelCompiler.require(files) do
+            {:ok, _, _} -> :ok
+            {:error, _, _} -> exit({:shutdown, 1})
+          end
+        end
       else
-        fn(files) -> Enum.each(files, &Code.require_file/1) end
+        fn files -> Enum.each(files, &Code.require_file/1) end
       end
 
     Enum.each opts, fn
