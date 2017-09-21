@@ -86,11 +86,10 @@ defmodule Mix.Compilers.Elixir do
         compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts)
       removed != [] ->
         write_manifest(manifest, modules, sources, dest, timestamp)
+        {:ok, warning_diagnostics(sources)}
       true ->
-        :ok
+        {:noop, warning_diagnostics(sources)}
     end
-
-    {stale, removed}
   end
 
   defp mtimes_and_sizes(sources) do
@@ -166,15 +165,16 @@ defmodule Mix.Compilers.Elixir do
       Agent.stop(pid, :normal, :infinity)
     else
       {:ok, _, _} ->
-        Agent.cast pid, fn {modules, sources, warnings} ->
+        Agent.get pid, fn {modules, sources, _} ->
           write_manifest(manifest, modules, sources, dest, timestamp)
-          {modules, sources, warnings}
+          {:ok, warning_diagnostics(sources)}
         end
-      {:error, _, _} ->
-        exit({:shutdown, 1})
+      {:error, errors, _} ->
+        Agent.get pid, fn {_, sources, _} ->
+          error_diagnostics = Enum.map(errors, &(diagnostic(&1, :error)))
+          {:error, warning_diagnostics(sources) ++ error_diagnostics}
+        end
     end
-
-    :ok
   end
 
   defp set_compiler_opts(opts) do
@@ -375,6 +375,24 @@ defmodule Mix.Compilers.Elixir do
         :elixir_errors.warn(line, file, message)
       end
     end
+  end
+
+  defp warning_diagnostics(sources) do
+    Enum.flat_map(sources, fn source(source: source, warnings: warnings) ->
+      for {line, message} <- warnings do
+        diagnostic({source, line, message}, :warning)
+      end
+    end)
+  end
+
+  defp diagnostic({file, line, message}, severity) do
+    %Mix.Task.Compiler.Diagnostic{
+      file: Path.absname(file),
+      position: line,
+      message: to_string(message),
+      severity: severity,
+      compiler_name: "Elixir"
+    }
   end
 
   ## Manifest handling
