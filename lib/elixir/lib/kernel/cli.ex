@@ -433,7 +433,10 @@ defmodule Kernel.CLI do
             else
               []
             end
-          Kernel.ParallelCompiler.files_to_path(files, config.output, opts)
+          case Kernel.ParallelCompiler.compile_to_path(files, config.output, opts) do
+            {:ok, _, _} -> :ok
+            {:error, _, _} -> exit({:shutdown, 1})
+          end
         end
       {:missing, missing} ->
         {:error, "No files matched pattern(s) #{Enum.join(missing, ",")}"}
