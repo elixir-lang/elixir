@@ -106,6 +106,7 @@ defmodule Inspect.BitStringTest do
 
   test "bitstring" do
     assert inspect(<<1::12-integer-signed>>) == "<<0, 1::size(4)>>"
+    assert inspect(<<1, 2, 3, 4, 5>>, pretty: true, width: 10) == "<<1, 2, 3,\n  4, 5>>"
   end
 
   test "binary" do
@@ -144,11 +145,14 @@ defmodule Inspect.BitStringTest do
     assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries) == "<<106, 111, 104, 110, 193, 100, 111, 101>>"
     assert inspect(<<"john">>, binaries: :as_binaries) == "<<106, 111, 104, 110>>"
     assert inspect(<<193>>, binaries: :as_binaries) == "<<193>>"
+
     # base: :hex is recognized
     assert inspect("abc", binaries: :as_binary, base: :hex) == "<<0x61, 0x62, 0x63>>"
+
     # any base other than :decimal implies binaries: :as_binaries
     assert inspect("abc", base: :hex) == "<<0x61, 0x62, 0x63>>"
     assert inspect("abc", base: :octal) == "<<0o141, 0o142, 0o143>>"
+
     # size is still represented as decimal
     assert inspect(<<10, 11, 12::4>>, base: :hex) == "<<0xA, 0xB, 0xC::size(4)>>"
   end
@@ -159,8 +163,10 @@ defmodule Inspect.BitStringTest do
 
   test "printable limit" do
     assert inspect("hello world", printable_limit: 4) == ~s("hell" <> ...)
+
     # non printable characters after the limit don't matter
     assert inspect("hello world" <> <<0>>, printable_limit: 4) == ~s("hell" <> ...)
+
     # non printable strings aren't affected by printable limit
     assert inspect(<<0,1,2,3,4>>, printable_limit: 3) == ~s(<<0, 1, 2, 3, 4>>)
   end
