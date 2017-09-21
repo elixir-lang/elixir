@@ -372,10 +372,13 @@ defmodule URI do
 
   Note this function expects a well-formed URI and does not perform
   any validation. See the "Examples" section below for examples of how
-  `URI.parse/1` can be used to parse a wide range of URIs.
+  `URI.parse/1` and `URI.parse/2` can be used to parse a wide range of URIs.
 
-  This function uses the parsing regular expression as defined
+  This function (by default) uses the parsing regular expression as defined
   in [RFC 3986, Appendix B](https://tools.ietf.org/html/rfc3986#appendix-B).
+  If you pass `:loose` as second argument it will use a regular expression
+  which doesn't require `//` to be in the URI. This is useful for some schemes
+  like `mailto`, `about` and `sip`.
 
   When a URI is given without a port, the value returned by
   `URI.default_port/1` for the URI's scheme is used for the `:port` field.
@@ -402,18 +405,39 @@ defmodule URI do
       %URI{authority: nil, fragment: nil, host: nil, path: "foo/bar",
            port: nil, query: nil, scheme: nil, userinfo: nil}
 
+      iex> URI.parse("mailto:info@elixir-lang.org", :loose)
+      %URI{authority: "info@elixir-lang.org", fragment: nil, host: "elixir-lang.org",
+           path: nil, port: nil, query: nil, scheme: "mailto", userinfo: "info"}
+
+      iex> URI.parse("sip:alice@sipserver", :loose)
+      %URI{authority: "alice@sipserver", fragment: nil, host: "sipserver", path: nil, port: nil,
+           query: nil, scheme: "sip", userinfo: "alice"}
   """
-  @spec parse(t | binary) :: t
-  def parse(uri)
+  @spec parse(t | binary, atom) :: t
+  def parse(uri, method \\ :strict)
 
-  def parse(%URI{} = uri), do: uri
+  def parse(%URI{} = uri, _), do: uri
 
-  def parse(string) when is_binary(string) do
+  def parse(string, :strict) when is_binary(string) do
     # From https://tools.ietf.org/html/rfc3986#appendix-B
     regex = Regex.recompile!(~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i)
     parts = Regex.run(regex, string)
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
+    parsed_parts_to_struct(scheme, authority, path, query, fragment)
+  end
+
+  def parse(string, :loose) when is_binary(string) do
+    # Modified version of https://tools.ietf.org/html/rfc3986#appendix-B, omitting '//' as some schemes
+    # don't require it, see second bullet point under: https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax
+    regex = Regex.recompile!(~r/^(([a-z][a-z0-9\+\-\.]*):)?([^\/?#]*)?([^?#]*)(\?([^#]*))?(#(.*))?/i)
+    parts = Regex.run(regex, string)
+
+    destructure [_, _, scheme, authority, path, _, query, _, fragment], parts
+    parsed_parts_to_struct(scheme, authority, path, query, fragment)
+  end
+
+  defp parsed_parts_to_struct(scheme, authority, path, query, fragment) do
     scheme = nillify(scheme)
     authority = nillify(authority)
     path = nillify(path)
