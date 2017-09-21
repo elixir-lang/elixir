@@ -92,7 +92,7 @@ defmodule Task do
   Opposite to `GenServer`, `Agent` and `Supervisor`, a Task has
   a default `:restart` of `:temporary`. This means the task will
   not be restarted even if it crashes. If you desire the task to
-  be restarted for non-successful exists, do:
+  be restarted for non-successful exits, do:
 
       use Task, restart: :transient
 
