@@ -31,9 +31,6 @@ defmodule Kernel.ParallelCompiler do
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
 
-    * `:each_warning` - for each warning, invokes the callback passing
-      the file, line number, and warning message
-
     * `:dest` - the destination directory for the BEAM files. When using `files/2`,
       this information is only used to properly annotate the BEAM files before
       they are loaded into memory. If you want a file to actually be written to
@@ -66,9 +63,6 @@ defmodule Kernel.ParallelCompiler do
 
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
-
-    * `:each_warning` - for each warning, invokes the callback passing
-      the file, line number, and warning message
 
   """
   def require(files, options \\ []) when is_list(options) do
@@ -301,11 +295,6 @@ defmodule Kernel.ParallelCompiler do
       {:warning, file, line, message} ->
         file = if file, do: Path.absname(file), else: nil
         message = :unicode.characters_to_binary(message)
-
-        if callback = Keyword.get(options, :each_warning) do
-          callback.(file, line, message)
-        end
-
         warning = {file, line, message}
         wait_for_messages(%{state | warnings: [warning | state.warnings]})
 
