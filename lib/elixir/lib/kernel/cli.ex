@@ -411,7 +411,12 @@ defmodule Kernel.CLI do
     files = filter_patterns(pattern)
 
     if files != [] do
-      wrapper fn -> Kernel.ParallelRequire.files(files) end
+      wrapper fn ->
+        case Kernel.ParallelCompiler.require(files) do
+          {:ok, _, _} -> :ok
+          {:error, _, _} -> exit({:shutdown, 1})
+        end
+      end
     else
       {:error, "-pr : No files matched pattern #{pattern}"}
     end
