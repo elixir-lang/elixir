@@ -1,7 +1,7 @@
 defmodule ExUnit.SeedManager do
   use Agent
-  
-  @type seed :: :rand.state
+
+  @type seed :: integer
 
   @spec start_link(keyword) :: {:ok, pid}
   def start_link(_opts) do
@@ -13,13 +13,13 @@ defmodule ExUnit.SeedManager do
     Agent.stop(__MODULE__)
   end
 
-  @spec get() :: seed
+  @spec get() :: integer
   def get do
     test_pid = self()
     Agent.get(__MODULE__, &Map.fetch!(&1, test_pid))
   end
 
-  @spec put(seed) :: :ok
+  @spec put(integer) :: :ok
   def put(seed) do
     test_pid = self()
     Agent.update(__MODULE__, &Map.put(&1, test_pid, seed))

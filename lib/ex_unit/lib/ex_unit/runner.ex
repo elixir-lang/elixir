@@ -262,8 +262,9 @@ defmodule ExUnit.Runner do
   end
 
   defp generate_test_seed(%{seed: seed}, %ExUnit.Test{module: module, name: name}) do
-    seed_state = :rand.seed_s(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
-    :ok = ExUnit.SeedManager.put(seed_state)
+    state = :rand.seed_s(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
+    {seed, _new_state} = :rand.uniform_s(1_000_000, state)
+    :ok = ExUnit.SeedManager.put(seed)
   end
 
   defp receive_test_reply(test, test_pid, test_ref, timeout) do

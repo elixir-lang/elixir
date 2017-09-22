@@ -432,13 +432,11 @@ defmodule ExUnitTest do
       ExUnit.configure seed: 1
 
       test "generated seed is always the same" do
-        {random, _state} = :rand.uniform_s(1_000_000, ExUnit.seed())
-        assert random == 832_912
+        assert ExUnit.seed() == 832_912
       end
 
       test "generated seed is different for other test" do
-        {random, _state} = :rand.uniform_s(1_000_000, ExUnit.seed())
-        assert random == 358_606
+        assert ExUnit.seed() == 358_606
       end
     end
 
