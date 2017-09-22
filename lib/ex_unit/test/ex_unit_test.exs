@@ -425,26 +425,37 @@ defmodule ExUnitTest do
     end)
   end
 
-  test "seed is predictable and different for each test" do
+  test "seed is predictable and different for each test, even " do
+    global_seed = ExUnit.configuration()[:seed]
+    ExUnit.configure seed: 1
+
     defmodule PredictableSeedTest do
       use ExUnit.Case, async: true
 
-      ExUnit.configure seed: 1
-
-      test "generated seed is always the same" do
-        assert ExUnit.seed() == 832_912
+      test "generated seed is always the same in the same module and test" do
+        assert :rand.uniform(1_000_000) == 192_138
       end
 
       test "generated seed is different for other test" do
-        assert ExUnit.seed() == 358_606
+        assert :rand.uniform(1_000_000) == 358_606
+      end
+    end
+
+    defmodule DifferentModuleWithDifferentSeedTest do
+      use ExUnit.Case, async: true
+
+      test "generated seed is always the same in the same module and test" do
+        assert :rand.uniform(1_000_000) == 874_839
       end
     end
 
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-      assert ExUnit.run == %{failures: 0, skipped: 0, total: 2}
-    end) =~ "2 tests, 0 failures"
+      assert ExUnit.run == %{failures: 0, skipped: 0, total: 3}
+    end) =~ "3 tests, 0 failures"
+
+    ExUnit.configure seed: global_seed
   end
 
   defp on_exit_reload_config(extra \\ []) do

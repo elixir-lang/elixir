@@ -249,9 +249,6 @@ defmodule ExUnit.Runner do
           end)
 
         send parent, {self(), :test_finished, %{test | time: us}}
-
-        ExUnit.SeedManager.delete()
-
         exit(:shutdown)
       end)
 
@@ -262,9 +259,7 @@ defmodule ExUnit.Runner do
   end
 
   defp generate_test_seed(%{seed: seed}, %ExUnit.Test{module: module, name: name}) do
-    state = :rand.seed_s(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
-    {seed, _new_state} = :rand.uniform_s(1_000_000, state)
-    :ok = ExUnit.SeedManager.put(seed)
+    :rand.seed(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
   end
 
   defp receive_test_reply(test, test_pid, test_ref, timeout) do
