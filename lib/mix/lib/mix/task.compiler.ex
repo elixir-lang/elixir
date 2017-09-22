@@ -44,10 +44,11 @@ defmodule Mix.Task.Compiler do
 
     @typedoc """
     Severity of a diagnostic:
-    * `:error`: An issue that caused compilation to fail
-    * `:warning`: An issue that did not cause failure but suggests the programmer may have made a mistake
-    * `:hint`: A suggestion for style or good practices that is not as severe as a warning
-    * `:information`: Any other information relevant to compilation that does not fit into the above categories
+
+      * `:error`: An issue that caused compilation to fail
+      * `:warning`: An issue that did not cause failure but suggests the programmer may have made a mistake
+      * `:hint`: A suggestion for style or good practices that is not as severe as a warning
+      * `:information`: Any other information relevant to compilation that does not fit into the above categories
     """
     @type severity :: :error | :warning | :information | :hint
 
