@@ -151,29 +151,29 @@ defmodule Mix.Compilers.Elixir do
 
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
-    {:ok, pid} = Agent.start_link(fn -> {modules, sources, %{}} end)
+    {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
       Kernel.ParallelCompiler.compile stale,
         [each_module: &each_module(pid, cwd, &1, &2, &3),
          each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-         each_warning: &each_warning(pid, cwd, &1, &2, &3),
          long_compilation_threshold: long_compilation_threshold,
          dest: dest] ++ extra
     after
       Agent.stop(pid, :normal, :infinity)
     else
-      {:ok, _, _} ->
-        Agent.get pid, fn {modules, sources, _} ->
+      {:ok, _, warnings} ->
+        Agent.get pid, fn {modules, sources} ->
+          sources = apply_warnings(sources, warnings)
           write_manifest(manifest, modules, sources, dest, timestamp)
           {:ok, warning_diagnostics(sources)}
         end
-      {:error, errors, _} ->
-        Agent.get pid, fn {_, sources, _} ->
-          error_diagnostics = Enum.map(errors, &(diagnostic(&1, :error)))
-          {:error, warning_diagnostics(sources) ++ error_diagnostics}
-        end
+      {:error, errors, warnings} ->
+        errors = Enum.map(errors, &diagnostic(&1, :error))
+        warnings = Enum.map(warnings, &diagnostic(&1, :warning)) ++
+          Agent.get(pid, fn {_, sources} -> warning_diagnostics(sources) end)
+        {:error, warnings ++ errors}
     end
   end
 
@@ -209,7 +209,7 @@ defmodule Mix.Compilers.Elixir do
     source   = Path.relative_to(source, cwd)
     external = get_external_resources(module, cwd)
 
-    Agent.cast pid, fn {modules, sources, warnings} ->
+    Agent.cast pid, fn {modules, sources} ->
       source_external = case List.keyfind(sources, source, source(:source)) do
         source(external: old_external) -> external ++ old_external
         nil -> external
@@ -236,12 +236,12 @@ defmodule Mix.Compilers.Elixir do
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
         external: source_external,
-        warnings: Map.get(warnings, source, [])
+        warnings: []
       )
 
       modules = List.keystore(modules, module, module(:module), new_module)
       sources = List.keystore(sources, source, source(:source), new_source)
-      {modules, sources, warnings}
+      {modules, sources}
     end
   end
 
@@ -269,15 +269,6 @@ defmodule Mix.Compilers.Elixir do
 
   defp each_long_compilation(source, threshold) do
     Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
-  end
-
-  defp each_warning(pid, cwd, file, line, message) do
-    Agent.cast pid, fn {modules, sources, warnings} ->
-      source_path = Path.relative_to(file, cwd)
-      warning = {line, message}
-      warnings = Map.update(warnings, source_path, [warning], &([warning | &1]))
-      {modules, sources, warnings}
-    end
   end
 
   ## Resolution
@@ -377,19 +368,26 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
+  defp apply_warnings(sources, warnings) do
+    warnings = Enum.group_by(warnings, &elem(&1, 0), &({elem(&1, 1), elem(&1, 2)}))
+    for source(source: source_path, warnings: source_warnings) = s <- sources do
+      source(s, warnings: Map.get(warnings, Path.absname(source_path), source_warnings))
+    end
+  end
+
   defp warning_diagnostics(sources) do
     Enum.flat_map(sources, fn source(source: source, warnings: warnings) ->
       for {line, message} <- warnings do
-        diagnostic({source, line, message}, :warning)
+        diagnostic({Path.absname(source), line, message}, :warning)
       end
     end)
   end
 
   defp diagnostic({file, line, message}, severity) do
     %Mix.Task.Compiler.Diagnostic{
-      file: Path.absname(file),
+      file: file,
       position: line,
-      message: to_string(message),
+      message: message,
       severity: severity,
       compiler_name: "Elixir"
     }
