@@ -328,7 +328,7 @@ defmodule ExUnit.Runner do
   end
 
   defp shuffle(%{seed: seed}, list) do
-    _ = :rand.seed(@rand_algorithm, {3172, 9814, seed})
+    _ = :rand.seed(@rand_algorithm, {seed, seed, seed})
     Enum.shuffle(list)
   end
 
