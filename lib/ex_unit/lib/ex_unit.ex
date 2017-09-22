@@ -142,7 +142,8 @@ defmodule ExUnit do
     children = [
       ExUnit.Server,
       ExUnit.CaptureServer,
-      ExUnit.OnExitHandler
+      ExUnit.OnExitHandler,
+      ExUnit.SeedManager
     ]
 
     opts = [strategy: :one_for_one, name: ExUnit.Supervisor]
@@ -326,5 +327,9 @@ defmodule ExUnit do
       max = opts[:max_cases] -> max
       true -> System.schedulers_online * 2
     end
+  end
+
+  def seed() do
+    ExUnit.SeedManager.get()
   end
 end

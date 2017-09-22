@@ -3,6 +3,8 @@ defmodule ExUnit.Runner do
 
   alias ExUnit.EventManager, as: EM
 
+  @rand_algorithm :exsplus
+
   def run(opts, load_us) do
     {opts, config} = configure(opts)
 
@@ -234,6 +236,8 @@ defmodule ExUnit.Runner do
       spawn_monitor(fn ->
         ExUnit.OnExitHandler.register(self())
 
+        generate_test_seed(config, test)
+
         {us, test} =
           :timer.tc(fn ->
             case exec_test_setup(test, context) do
@@ -245,6 +249,9 @@ defmodule ExUnit.Runner do
           end)
 
         send parent, {self(), :test_finished, %{test | time: us}}
+
+        ExUnit.SeedManager.delete()
+
         exit(:shutdown)
       end)
 
@@ -252,6 +259,11 @@ defmodule ExUnit.Runner do
     test = receive_test_reply(test, test_pid, test_ref, timeout)
 
     exec_on_exit(test, test_pid, timeout)
+  end
+
+  defp generate_test_seed(%{seed: seed}, %ExUnit.Test{module: module, name: name}) do
+    seed_state = :rand.seed_s(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
+    :ok = ExUnit.SeedManager.put(seed_state)
   end
 
   defp receive_test_reply(test, test_pid, test_ref, timeout) do
@@ -315,7 +327,7 @@ defmodule ExUnit.Runner do
   end
 
   defp shuffle(%{seed: seed}, list) do
-    _ = :rand.seed(:exsplus, {3172, 9814, seed})
+    _ = :rand.seed(@rand_algorithm, {3172, 9814, seed})
     Enum.shuffle(list)
   end
 
