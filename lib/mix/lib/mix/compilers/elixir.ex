@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v7
+  @manifest_vsn :v8
 
   import Record
 
@@ -361,7 +361,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp show_warnings(sources) do
     for source(source: source, warnings: warnings) <- sources do
-      file = Path.join(File.cwd!, source)
+      file = Path.absname(source)
       for {line, message} <- warnings do
         :elixir_errors.warn(line, file, message)
       end
@@ -404,7 +404,7 @@ defmodule Mix.Compilers.Elixir do
     else
       [@manifest_vsn | data] ->
         split_manifest(data, compile_path)
-      [v | data] when v in [:v4, :v5, :v6] ->
+      [v | data] when v in [:v4, :v5, :v6, :v7] ->
         for module(beam: beam) <- data, do: File.rm(Path.join(compile_path, beam))
         {[], []}
       _ ->
