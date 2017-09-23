@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
       write_no_func()
 
       assert_warn_no_func fn ->
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         assert Mix.Tasks.Compile.Xref.run([]) == :noop
       end
 
@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
       write_no_func()
 
       assert_warn_no_func fn ->
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         assert Mix.Tasks.Compile.Xref.run([]) == :noop
       end
 
@@ -70,7 +70,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
       write_no_func()
 
       assert_warn_no_func fn ->
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         assert catch_exit(Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"])) == {:shutdown, 1}
       end
     end
@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
   test "does not exit if warnings-as-errors and no warnings" do
     in_fixture "no_mixfile", fn ->
       assert_no_warn fn ->
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         assert Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"]) == :noop
       end
     end
