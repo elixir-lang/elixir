@@ -279,6 +279,49 @@ defmodule Task.SupervisorTest do
              |> Enum.to_list ==
              [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
     end
+
+    test "streams an enumerable with fun and executes supervisor fun in monitor process", %{supervisor: supervisor} do
+      parent = self()
+
+      supervisor_fun =
+        fn _i ->
+          {:links, links} = Process.info(self(), :links)
+          assert parent in links
+          send parent, {parent, self()}
+          supervisor
+        end
+
+      assert supervisor_fun
+             |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+             |> Enum.to_list ==
+             [ok: supervisor, ok: supervisor, ok: supervisor, ok: supervisor]
+
+      receive do
+        {^parent, linked} ->
+          for _ <- 1..3, do: assert_received {^parent, ^linked}
+      after
+        0 ->
+          flunk "Did not receive any message from monitor process."
+      end
+    end
+
+    test "streams an enumerable with fun and bad supervisor fun" do
+      Process.flag(:trap_exit, true)
+
+      assert {{%RuntimeError{message: "bad"}, _stacktrace}, _mfa} =
+        catch_exit fn _i -> raise "bad" end
+                   |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+                   |> Stream.run()
+
+      refute_received _
+
+      assert {{:noproc, _stacktrace}, _mfa} =
+        catch_exit fn _i -> :not_a_supervisor end
+                   |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+                   |> Stream.run()
+
+      refute_received _
+    end
   end
 
   describe "async_stream_nolink" do

@@ -157,12 +157,13 @@ defmodule Task.Supervisor do
   linked to the current process, similarly to `async/4`.
 
   You may also provide a function as the `supervisor`. Before each task is
-  started, the function will be invoked with the stream entry that the
-  to-be-spawned task will process as its argument. The function should
-  return a supervisor pid or name, which will be used to spawn the task. This
-  can be used to dynamically assign stream entries to supervisors. One
-  use case for this functionality is the distribution of tasks over multiple
-  nodes in a distributed environment.
+  started, the function will be invoked (in a new process which is linked to
+  the current process) with the stream entry that the to-be-spawned task will
+  process as its argument. The function should return a supervisor pid or name,
+  which will be used to spawn the task. This allows one to dynamically start
+  tasks in different locations in the supervision tree(s) on the local (or
+  another) node. Notably, this enables the distribution of concurrent stream
+  tasks over multiple nodes.
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
