@@ -222,7 +222,10 @@ defmodule ExUnit do
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
       calls, defaults to `100` milliseconds;
 
-    * `:seed` - an integer seed value to randomize the test suite;
+    * `:seed` - an integer seed value to randomize the test suite. Note that this seed
+    is also mixed with the test name and the test module to create a new unique seed
+    for the `:rand` module, that ensure randomness between tests, but predictable
+    and reproducible results;
 
     * `:slowest` - prints timing information for the N slowest tests. Running
       ExUnit with slow test reporting automatically runs in `trace` mode. It
