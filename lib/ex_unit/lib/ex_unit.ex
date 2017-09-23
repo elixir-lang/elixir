@@ -224,7 +224,7 @@ defmodule ExUnit do
 
     * `:seed` - an integer seed value to randomize the test suite. This seed
       is also mixed with the test module and name to create a new unique seed
-      on every test, which is automatically feed into the `:rand` module. This
+      on every test, which is automatically fed into the `:rand` module. This
       provides randomness between tests, but predictable and reproducible results;
 
     * `:slowest` - prints timing information for the N slowest tests. Running
