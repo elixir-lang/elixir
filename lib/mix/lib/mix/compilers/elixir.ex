@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v7
+  @manifest_vsn :v8
 
   import Record
 
@@ -86,11 +86,10 @@ defmodule Mix.Compilers.Elixir do
         compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts)
       removed != [] ->
         write_manifest(manifest, modules, sources, dest, timestamp)
+        {:ok, warning_diagnostics(sources)}
       true ->
-        :ok
+        {:noop, warning_diagnostics(sources)}
     end
-
-    {stale, removed}
   end
 
   defp mtimes_and_sizes(sources) do
@@ -152,29 +151,30 @@ defmodule Mix.Compilers.Elixir do
 
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
-    {:ok, pid} = Agent.start_link(fn -> {modules, sources, %{}} end)
+    {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
       Kernel.ParallelCompiler.compile stale,
         [each_module: &each_module(pid, cwd, &1, &2, &3),
          each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-         each_warning: &each_warning(pid, cwd, &1, &2, &3),
          long_compilation_threshold: long_compilation_threshold,
          dest: dest] ++ extra
     after
       Agent.stop(pid, :normal, :infinity)
     else
-      {:ok, _, _} ->
-        Agent.cast pid, fn {modules, sources, warnings} ->
+      {:ok, _, warnings} ->
+        Agent.get pid, fn {modules, sources} ->
+          sources = apply_warnings(sources, warnings)
           write_manifest(manifest, modules, sources, dest, timestamp)
-          {modules, sources, warnings}
+          {:ok, warning_diagnostics(sources)}
         end
-      {:error, _, _} ->
-        exit({:shutdown, 1})
+      {:error, errors, warnings} ->
+        errors = Enum.map(errors, &diagnostic(&1, :error))
+        warnings = Enum.map(warnings, &diagnostic(&1, :warning)) ++
+          Agent.get(pid, fn {_, sources} -> warning_diagnostics(sources) end)
+        {:error, warnings ++ errors}
     end
-
-    :ok
   end
 
   defp set_compiler_opts(opts) do
@@ -209,7 +209,7 @@ defmodule Mix.Compilers.Elixir do
     source   = Path.relative_to(source, cwd)
     external = get_external_resources(module, cwd)
 
-    Agent.cast pid, fn {modules, sources, warnings} ->
+    Agent.cast pid, fn {modules, sources} ->
       source_external = case List.keyfind(sources, source, source(:source)) do
         source(external: old_external) -> external ++ old_external
         nil -> external
@@ -236,12 +236,12 @@ defmodule Mix.Compilers.Elixir do
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
         external: source_external,
-        warnings: Map.get(warnings, source, [])
+        warnings: []
       )
 
       modules = List.keystore(modules, module, module(:module), new_module)
       sources = List.keystore(sources, source, source(:source), new_source)
-      {modules, sources, warnings}
+      {modules, sources}
     end
   end
 
@@ -269,15 +269,6 @@ defmodule Mix.Compilers.Elixir do
 
   defp each_long_compilation(source, threshold) do
     Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
-  end
-
-  defp each_warning(pid, cwd, file, line, message) do
-    Agent.cast pid, fn {modules, sources, warnings} ->
-      source_path = Path.relative_to(file, cwd)
-      warning = {line, message}
-      warnings = Map.update(warnings, source_path, [warning], &([warning | &1]))
-      {modules, sources, warnings}
-    end
   end
 
   ## Resolution
@@ -370,11 +361,36 @@ defmodule Mix.Compilers.Elixir do
 
   defp show_warnings(sources) do
     for source(source: source, warnings: warnings) <- sources do
-      file = Path.join(File.cwd!, source)
+      file = Path.absname(source)
       for {line, message} <- warnings do
         :elixir_errors.warn(line, file, message)
       end
     end
+  end
+
+  defp apply_warnings(sources, warnings) do
+    warnings = Enum.group_by(warnings, &elem(&1, 0), &({elem(&1, 1), elem(&1, 2)}))
+    for source(source: source_path, warnings: source_warnings) = s <- sources do
+      source(s, warnings: Map.get(warnings, Path.absname(source_path), source_warnings))
+    end
+  end
+
+  defp warning_diagnostics(sources) do
+    Enum.flat_map(sources, fn source(source: source, warnings: warnings) ->
+      for {line, message} <- warnings do
+        diagnostic({Path.absname(source), line, message}, :warning)
+      end
+    end)
+  end
+
+  defp diagnostic({file, line, message}, severity) do
+    %Mix.Task.Compiler.Diagnostic{
+      file: file,
+      position: line,
+      message: message,
+      severity: severity,
+      compiler_name: "Elixir"
+    }
   end
 
   ## Manifest handling
@@ -388,7 +404,7 @@ defmodule Mix.Compilers.Elixir do
     else
       [@manifest_vsn | data] ->
         split_manifest(data, compile_path)
-      [v | data] when v in [:v4, :v5, :v6] ->
+      [v | data] when v in [:v4, :v5, :v6, :v7] ->
         for module(beam: beam) <- data, do: File.rm(Path.join(compile_path, beam))
         {[], []}
       _ ->
