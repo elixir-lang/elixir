@@ -572,8 +572,9 @@ defmodule Kernel.SpecialForms do
       import List, only: [flatten: 1]
       import String, except: [split: 2]
 
-  Notice that calling `except` for a previously declared `import/2`
-  simply filters the previously imported elements. For example:
+  Notice that calling `except` is always exclusive on a previously
+  declared `import/2`. If there is no previous import, then it applies
+  to all functions and macros in the module. For example:
 
       import List, only: [flatten: 1, keyfind: 4]
       import List, except: [flatten: 1]
