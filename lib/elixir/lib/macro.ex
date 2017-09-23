@@ -509,12 +509,14 @@ defmodule Macro do
   end
 
   @doc """
-  Converts the given expression to a binary.
+  Converts the given expression AST to a string.
 
   The given `fun` is called for every node in the AST with two arguments: the
   AST of the node being printed and the string representation of that same
   node. The return value of this function is used as the final string
   representation for that AST node.
+
+  This function discards all formatting of the original code.
 
   ## Examples
 
