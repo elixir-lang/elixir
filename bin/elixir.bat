@@ -88,7 +88,7 @@ if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 &
 if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 && shift)
 if """"=="%par:--logger-otp-reports=%"  (set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift)
 if """"=="%par:--logger-sasl-reports=%" (set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift)
-if """"=="%par:--erl=%"                 (set beforeExtra=%beforeExtra% %~1 && shift)
+if """"=="%par:--erl=%"                 (set "beforeExtra=%beforeExtra% %~1" && shift)
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
