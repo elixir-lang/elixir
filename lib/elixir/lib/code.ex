@@ -276,7 +276,9 @@ defmodule Code do
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    :elixir.string_to_quoted(to_charlist(string), line, file, opts)
+    with {:ok, tokens} <- :elixir.string_to_tokens(to_charlist(string), line, file, opts) do
+      :elixir.tokens_to_quoted(tokens, file, opts)
+    end
   end
 
   @doc """

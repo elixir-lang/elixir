@@ -3,7 +3,7 @@
 -module(elixir).
 -behaviour(application).
 -export([start_cli/0,
-  string_to_quoted/4, 'string_to_quoted!'/4,
+  string_to_tokens/4, tokens_to_quoted/3, 'string_to_quoted!'/4,
   env_for_eval/1, env_for_eval/2, quoted_to_erl/2, quoted_to_erl/3,
   eval/2, eval/3, eval_forms/3, eval_forms/4, eval_quoted/3]).
 -include("elixir.hrl").
@@ -269,31 +269,39 @@ quoted_to_erl(Quoted, Env, Scope) ->
 
 %% Converts a given string (charlist) into quote expression
 
-string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
+string_to_tokens(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, [{file, File} | Opts]) of
     {ok, _Line, _Column, Tokens} ->
-      handle_parsing_opts(File, Opts),
-      try elixir_parser:parse(Tokens) of
-        {ok, Forms} -> {ok, Forms};
-        {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
-        {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
-      catch
-        {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
-        {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
-      after
-        erase(elixir_parser_file),
-        erase(elixir_formatter_metadata)
-      end;
+      {ok, Tokens};
     {error, {Line, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
       {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
     {error, {Line, Error, Token}, _Rest, _SoFar} ->
       {error, {Line, to_binary(Error), to_binary(Token)}}
   end.
 
+tokens_to_quoted(Tokens, File, Opts) ->
+  handle_parsing_opts(File, Opts),
+  try elixir_parser:parse(Tokens) of
+    {ok, Forms} -> {ok, Forms};
+    {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
+    {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
+  catch
+    {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
+    {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
+  after
+    erase(elixir_parser_file),
+    erase(elixir_formatter_metadata)
+  end.
+
 'string_to_quoted!'(String, StartLine, File, Opts) ->
-  case string_to_quoted(String, StartLine, File, Opts) of
-    {ok, Forms} ->
-      Forms;
+  case string_to_tokens(String, StartLine, File, Opts) of
+    {ok, Tokens} ->
+      case tokens_to_quoted(Tokens, File, Opts) of
+        {ok, Forms} ->
+          Forms;
+        {error, {Line, Error, Token}} ->
+          elixir_errors:parse_error(Line, File, Error, Token)
+      end;
     {error, {Line, Error, Token}} ->
       elixir_errors:parse_error(Line, File, Error, Token)
   end.
