@@ -17,7 +17,11 @@ defmodule Kernel.ImplTest do
   end
 
   defmodule Behaviour do
-    @callback foo :: any
+    @callback foo() :: any
+  end
+
+  defmodule BehaviourWithArgument do
+    @callback foo(any) :: any
   end
 
   defmodule MacroBehaviour do
@@ -283,6 +287,20 @@ defmodule Kernel.ImplTest do
       end
       """
     end) =~ "got \"@impl Kernel.ImplTest.MacroBehaviour\" for function bar/0 but this behaviour was not declared with @behaviour"
+  end
+
+  test "does not warn for @impl when using default arguments" do
+    assert capture_err(fn ->
+      Code.eval_string ~S"""
+      defmodule Kernel.ImplTest.ImplAttributes do
+        @behaviour Kernel.ImplTest.Behaviour
+        @behaviour Kernel.ImplTest.BehaviourWithArgument
+
+        @impl true
+        def foo(args \\ []), do: args
+      end
+      """
+    end) == ""
   end
 
   test "does not warn for no @impl when overriding callback" do
