@@ -1194,7 +1194,7 @@ defmodule Module do
     case :ets.take(table, :impl) do
       [{:impl, value, _, _}] ->
         impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
-        {total, defaults} = args_count(args)
+        {total, defaults} = args_count(args, 0, 0)
 
         impl = for arity <- total..(total - defaults), into: impls do
           {{name, arity}, kind, line, file, value}
@@ -1208,15 +1208,13 @@ defmodule Module do
     :ok
   end
 
-  defp args_count(args), do: args_count(args, {0, 0})
-
-  defp args_count([], counts), do: counts
-  defp args_count([{:\\, _, _} | tail], {total, defaults}) do
-    args_count(tail, {total + 1, defaults + 1})
+  defp args_count([{:\\, _, _} | tail], total, defaults) do
+    args_count(tail, total + 1, defaults + 1)
   end
-  defp args_count([_head | tail], {total, defaults}) do
-    args_count(tail, {total + 1, defaults})
+  defp args_count([_head | tail], total, defaults) do
+    args_count(tail, total + 1, defaults)
   end
+  defp args_count([], total, defaults), do: {total, defaults}
 
   @doc false
   def check_behaviours_and_impls(env, table, all_definitions, overridable_pairs) do
