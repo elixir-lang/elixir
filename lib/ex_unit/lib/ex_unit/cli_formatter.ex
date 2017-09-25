@@ -162,8 +162,8 @@ defmodule ExUnit.CLIFormatter do
     |> Enum.map(&format_slow_test/1)
   end
 
-  defp format_slow_test(%ExUnit.Test{name: name, time: time}) do
-    "  * #{name} (#{format_us(time)}ms)\n"
+  defp format_slow_test(%ExUnit.Test{name: name, time: time, module: module}) do
+    "  * #{name} (#{format_us(time)}ms) (#{inspect module})\n"
   end
 
   defp extract_slowest_tests(%{slowest: slowest, test_timings: timings} = _config) do
