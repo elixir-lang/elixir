@@ -909,7 +909,10 @@ format_error(underscore_in_cond) ->
   "unbound variable _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";
 format_error({invalid_expr_in_guard, Kind}) ->
-  io_lib:format("invalid expression in guard, ~ts is not allowed in guards", [Kind]);
+  Message =
+    "invalid expression in guard, ~ts is not allowed in guards. To learn more about "
+    "guards, visit: https://hexdocs.pm/elixir/guards.html",
+  io_lib:format(Message, [Kind]);
 format_error({invalid_pattern_in_match, Kind}) ->
   io_lib:format("invalid pattern in match, ~ts is not allowed in matches", [Kind]);
 format_error({invalid_expr_in_scope, Scope, Kind}) ->
