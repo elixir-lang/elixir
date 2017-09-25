@@ -34,7 +34,7 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compile a project with mixfile" do
     in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -43,13 +43,13 @@ defmodule Mix.Tasks.CompileTest do
 
       # Noop
       Mix.Task.clear
-      assert Mix.Tasks.Compile.run(["--verbose"]) == :noop
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
       # Noop consolidates protocols if folder is missing
       File.rm_rf("_build/dev/lib/sample/consolidated")
       Mix.Task.clear
-      assert Mix.Tasks.Compile.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert File.regular? "_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam"
 
@@ -90,12 +90,33 @@ defmodule Mix.Tasks.CompileTest do
       end
       """)
 
-      assert Mix.Tasks.Compile.run([]) == :ok
+      assert Mix.Tasks.Compile.run([]) == {:ok, []}
       try do
         assert capture_log([metadata: [:application]], &A.info/0) =~ "application=sample"
       after
         purge [A]
       end
+    end
+  end
+
+  test "returns errors from compilers when --return-errors is set" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def my_fn(), do: $$$
+      end
+      """)
+
+      file = Path.absname("lib/a.ex")
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert {:error, [%Mix.Task.Compiler.Diagnostic{
+          file: ^file,
+          severity: :error,
+          position: 2,
+          message: "** (SyntaxError) lib/a.ex:2:" <> _,
+          compiler_name: "Elixir"
+        }]} = Mix.Tasks.Compile.run(["--return-errors"])
+      end)
     end
   end
 end

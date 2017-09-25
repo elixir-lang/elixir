@@ -135,7 +135,7 @@ defmodule Mix.Tasks.Deps.Compile do
       try do
         res = Mix.Task.run("compile", ["--no-deps", "--no-archives-check",
                                        "--no-elixir-version-check", "--no-warnings-as-errors"])
-        :ok in List.wrap(res)
+        match?({:ok, _}, res)
       catch
         kind, reason ->
           stacktrace = System.stacktrace
