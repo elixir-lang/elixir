@@ -433,11 +433,11 @@ defmodule ExUnitTest do
       use ExUnit.Case, async: true
 
       test "generated seed is always the same in the same module and test" do
-        assert :rand.uniform(1_000_000) == 192_138
+        assert :rand.uniform(1_000_000) == 622_983
       end
 
       test "generated seed is different for other test" do
-        assert :rand.uniform(1_000_000) == 358_606
+        assert :rand.uniform(1_000_000) == 783_982
       end
     end
 
@@ -445,7 +445,7 @@ defmodule ExUnitTest do
       use ExUnit.Case, async: true
 
       test "generated seed is always the same in the same module and test" do
-        assert :rand.uniform(1_000_000) == 874_839
+        assert :rand.uniform(1_000_000) == 358_099
       end
     end
 
