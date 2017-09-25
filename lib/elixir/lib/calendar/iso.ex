@@ -16,7 +16,6 @@ defmodule Calendar.ISO do
   @behaviour Calendar
 
   @unix_epoch 62167219200
-  @unix_epoch_microseconds 1_000_000 * @unix_epoch
   @unix_start 1_000_000 * -@unix_epoch
   @unix_end 1_000_000 * (315569519999 - @unix_epoch)
   @unix_range_microseconds @unix_start..@unix_end
@@ -344,9 +343,11 @@ defmodule Calendar.ISO do
   def from_unix(integer, unit) when is_integer(integer) do
     total = System.convert_time_unit(integer, unit, :microsecond)
     if total in @unix_range_microseconds do
+      microseconds = Integer.mod(total, @microseconds_per_second)
+      seconds = @unix_epoch + Integer.floor_div(total, @microseconds_per_second)
       precision = precision_for_unit(unit)
-      {date, time, microsecond} = iso_microseconds_to_datetime(@unix_epoch_microseconds + total)
-      {:ok, date, time, {microsecond, precision}}
+      {date, time} = iso_seconds_to_datetime(seconds)
+      {:ok, date, time, {microseconds, precision}}
     else
       {:error, :invalid_unix_time}
     end
@@ -556,13 +557,12 @@ defmodule Calendar.ISO do
     {12, day_of_year - (334 + extra_day)}
   end
 
-  defp iso_microseconds_to_datetime(microseconds) do
-    {days, rest_microseconds} = div_mod(microseconds, @parts_per_day)
-    {seconds, rest_microseconds} = div_mod(rest_microseconds, @microseconds_per_second)
+  defp iso_seconds_to_datetime(seconds) do
+    {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
 
     date = date_from_iso_days(days)
-    time = seconds_to_time(seconds)
-    {date, time, rest_microseconds}
+    time = seconds_to_time(rest_seconds)
+    {date, time}
   end
 
   defp seconds_to_time(seconds) when seconds in 0..(@seconds_per_day - 1) do
