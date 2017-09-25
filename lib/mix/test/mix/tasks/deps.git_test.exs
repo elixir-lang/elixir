@@ -174,7 +174,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/.fetch")
 
       # We can compile just fine
-      assert Mix.Tasks.Compile.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
 
       # Clear up to prepare for the update
       Mix.Task.clear

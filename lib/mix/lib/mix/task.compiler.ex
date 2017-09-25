@@ -108,4 +108,37 @@ defmodule Mix.Task.Compiler do
       @behaviour Mix.Task.Compiler
     end
   end
+
+  # Compilers can return just a status, a status and diagnostics,
+  # or a list of these (if it's recursive). This normalizes the
+  # results to always be in the form of `{status, [diagnostics]}`
+  @doc false
+  def normalize_result(result) when is_list(result) do
+    result
+    |> Enum.map(&normalize_result/1)
+    |> Enum.reduce(&combine_results/2)
+  end
+
+  def normalize_result(result) do
+    case result do
+      {status, diagnostics}
+          when status in [:ok, :noop, :error] and is_list(diagnostics) ->
+        {status, diagnostics}
+      :ok ->
+        {:ok, []}
+      _ ->
+        {:noop, []}
+    end
+  end
+
+  defp combine_results({status1, diagnostics1}, {status2, diagnostics2}) do
+    new_status =
+      cond do
+        status1 == :error or status2 == :error -> :error
+        status1 == :ok or status2 == :ok -> :ok
+        true -> :noop
+      end
+
+    {new_status, diagnostics1 ++ diagnostics2}
+  end
 end

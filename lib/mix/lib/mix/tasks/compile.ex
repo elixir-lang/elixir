@@ -1,12 +1,13 @@
 defmodule Mix.Tasks.Compile do
-  use Mix.Task
+  use Mix.Task.Compiler
 
   @shortdoc "Compiles source files"
 
   @moduledoc """
   A meta task that compiles source files.
 
-  It simply runs the compilers registered in your project.
+  It simply runs the compilers registered in your project and returns
+  a tuple with the compilation status and a list of diagnostics.
 
   ## Configuration
 
@@ -46,9 +47,10 @@ defmodule Mix.Tasks.Compile do
     * `--no-archives-check` - skips checking of archives
     * `--no-deps-check`     - skips checking of dependencies
     * `--force`             - forces compilation
+    * `--return-errors`     - return error status and diagnostics
+                              instead of exiting on error
 
   """
-  @spec run(OptionParser.argv) :: :ok | :noop
   def run(["--list"]) do
     loadpaths!()
     _ = Mix.Task.load_all
@@ -82,15 +84,18 @@ defmodule Mix.Tasks.Compile do
     Mix.Project.get!
     Mix.Task.run "loadpaths", args
 
-    res = Mix.Task.run "compile.all", args
-    res = if :ok in List.wrap(res), do: :ok, else: :noop
+    {res, diagnostics} = Mix.Task.Compiler.normalize_result(Mix.Task.run("compile.all", args))
+    if res == :error and not("--return-errors" in args), do: exit({:shutdown, 1})
 
-    if consolidate_protocols?(res) do
-      Mix.Task.run "compile.protocols", args
-      :ok
-    else
-      res
-    end
+    res =
+      if consolidate_protocols?(res) do
+        Mix.Task.run "compile.protocols", args
+        :ok
+      else
+        res
+      end
+
+    {res, diagnostics}
   end
 
   # Loadpaths without checks because compilers may be defined in deps.
@@ -106,6 +111,9 @@ defmodule Mix.Tasks.Compile do
   defp consolidate_protocols?(:noop) do
     config = Mix.Project.config
     config[:consolidate_protocols] and not File.exists?(Mix.Project.consolidation_path(config))
+  end
+  defp consolidate_protocols?(:error) do
+    false
   end
 
   @doc """

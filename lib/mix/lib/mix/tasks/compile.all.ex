@@ -15,13 +15,9 @@ defmodule Mix.Tasks.Compile.All do
     Mix.Project.build_structure
 
     with_logger_app fn ->
-      res =
-        Enum.map(Mix.Tasks.Compile.compilers(), fn(compiler) ->
-          Mix.Task.run("compile.#{compiler}", args)
-        end)
-
+      res = do_compile(Mix.Tasks.Compile.compilers(), args)
       true = Code.prepend_path(Mix.Project.compile_path)
-      if :ok in res, do: :ok, else: :noop
+      res
     end
   end
 
@@ -41,4 +37,31 @@ defmodule Mix.Tasks.Compile.All do
       end
     end
   end
+
+  defp do_compile(compilers, args) do
+    do_compile(compilers, args, :noop, [])
+  end
+
+  defp do_compile([], _, status, diagnostics) do
+    {status, diagnostics}
+  end
+
+  defp do_compile([compiler | rest], args, status, diagnostics) do
+    {new_status, new_diagnostics} = run_compiler(compiler, args)
+    diagnostics = diagnostics ++ new_diagnostics
+
+    case new_status do
+      :error ->
+        {:error, diagnostics}
+      :ok ->
+        do_compile(rest, args, :ok, diagnostics)
+      :noop ->
+        do_compile(rest, args, status, diagnostics)
+    end
+  end
+
+  defp run_compiler(compiler, args) do
+    Mix.Task.Compiler.normalize_result(Mix.Task.run("compile.#{compiler}", args))
+  end
+
 end
