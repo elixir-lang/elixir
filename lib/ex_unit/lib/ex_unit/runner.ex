@@ -3,7 +3,7 @@ defmodule ExUnit.Runner do
 
   alias ExUnit.EventManager, as: EM
 
-  @rand_algorithm :exsplus
+  @rand_algorithm :exs1024
 
   def run(opts, load_us) do
     {opts, config} = configure(opts)
