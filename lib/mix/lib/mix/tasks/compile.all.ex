@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Compile.All do
     Mix.Project.build_structure
 
     with_logger_app fn ->
-      res = do_compile(Mix.Tasks.Compile.compilers(), args)
+      res = do_compile(Mix.Tasks.Compile.compilers(), args, :noop, [])
       true = Code.prepend_path(Mix.Project.compile_path)
       res
     end
@@ -38,10 +38,6 @@ defmodule Mix.Tasks.Compile.All do
     end
   end
 
-  defp do_compile(compilers, args) do
-    do_compile(compilers, args, :noop, [])
-  end
-
   defp do_compile([], _, status, diagnostics) do
     {status, diagnostics}
   end
@@ -61,7 +57,6 @@ defmodule Mix.Tasks.Compile.All do
   end
 
   defp run_compiler(compiler, args) do
-    Mix.Task.Compiler.normalize_result(Mix.Task.run("compile.#{compiler}", args))
+    Mix.Task.Compiler.normalize Mix.Task.run("compile.#{compiler}", args), compiler
   end
-
 end

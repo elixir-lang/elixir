@@ -83,9 +83,15 @@ defmodule Mix.Tasks.Compile do
   def run(args) do
     Mix.Project.get!
     Mix.Task.run "loadpaths", args
+    {res, diagnostics} =
+      Mix.Task.run("compile.all", args)
+      |> List.wrap
+      |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
+      |> Enum.reduce(&merge_diagnostics/2)
 
-    {res, diagnostics} = Mix.Task.Compiler.normalize_result(Mix.Task.run("compile.all", args))
-    if res == :error and not("--return-errors" in args), do: exit({:shutdown, 1})
+    if res == :error and "--return-errors" not in args do
+      exit({:shutdown, 1})
+    end
 
     res =
       if consolidate_protocols?(res) do
@@ -96,6 +102,17 @@ defmodule Mix.Tasks.Compile do
       end
 
     {res, diagnostics}
+  end
+
+  defp merge_diagnostics({status1, diagnostics1}, {status2, diagnostics2}) do
+    new_status =
+      cond do
+        status1 == :error or status2 == :error -> :error
+        status1 == :ok or status2 == :ok -> :ok
+        true -> :noop
+      end
+
+    {new_status, diagnostics1 ++ diagnostics2}
   end
 
   # Loadpaths without checks because compilers may be defined in deps.
