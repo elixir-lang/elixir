@@ -304,7 +304,9 @@ defmodule ExUnit do
       # :microsecond argument because the VM on Windows has odd
       # precision. Calling with :microsecond will give us a multiple
       # of 1000. Calling without it gives actual microsecond precision.
-      rem System.system_time(), 1_000_000
+      System.system_time()
+      |> System.convert_time_unit(:native, :microsecond)
+      |> rem(1_000_000)
     end)
   end
 
