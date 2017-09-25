@@ -22,6 +22,19 @@ defmodule Task.SupervisorTest do
     number
   end
 
+  def sleep_and_return_ancestor(number, :another_arg) do
+    sleep_and_return_ancestor(number)
+  end
+
+  def sleep_and_return_ancestor(number) do
+    Process.sleep(number)
+    {:dictionary, dictionary} = Process.info(self(), :dictionary)
+
+    dictionary
+    |> Keyword.get(:"$ancestors")
+    |> List.first()
+  end
+
   test "can be supervised directly", config do
     assert {:ok, _} =
            Supervisor.start_link([{Task.Supervisor, name: config.test}], strategy: :one_for_one)
@@ -237,6 +250,76 @@ defmodule Task.SupervisorTest do
              |> Task.Supervisor.async_stream([0, :infinity, :infinity, :infinity], &sleep/1, @opts)
              |> Enum.take(1) ==
              [ok: 0]
+      refute_received _
+    end
+
+    test "streams an enumerable with fun and supervisor fun", %{supervisor: supervisor} do
+      {:ok, other_supervisor} = Task.Supervisor.start_link()
+
+      assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
+             |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+             |> Enum.to_list ==
+             [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
+    end
+
+    test "streams an enumerable with mfa and supervisor fun", %{supervisor: supervisor} do
+      {:ok, other_supervisor} = Task.Supervisor.start_link()
+
+      assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
+             |> Task.Supervisor.async_stream(1..4, __MODULE__, :sleep_and_return_ancestor, [], @opts)
+             |> Enum.to_list ==
+             [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
+    end
+
+    test "streams an enumerable with mfa with args and supervisor fun", %{supervisor: supervisor} do
+      {:ok, other_supervisor} = Task.Supervisor.start_link()
+
+      assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
+             |> Task.Supervisor.async_stream(1..4, __MODULE__, :sleep_and_return_ancestor, [:another_arg], @opts)
+             |> Enum.to_list ==
+             [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
+    end
+
+    test "streams an enumerable with fun and executes supervisor fun in monitor process", %{supervisor: supervisor} do
+      parent = self()
+
+      supervisor_fun =
+        fn _i ->
+          {:links, links} = Process.info(self(), :links)
+          assert parent in links
+          send parent, {parent, self()}
+          supervisor
+        end
+
+      assert supervisor_fun
+             |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+             |> Enum.to_list ==
+             [ok: supervisor, ok: supervisor, ok: supervisor, ok: supervisor]
+
+      receive do
+        {^parent, linked} ->
+          for _ <- 1..3, do: assert_received {^parent, ^linked}
+      after
+        0 ->
+          flunk "Did not receive any message from monitor process."
+      end
+    end
+
+    test "streams an enumerable with fun and bad supervisor fun" do
+      Process.flag(:trap_exit, true)
+
+      assert {{%RuntimeError{message: "bad"}, _stacktrace}, _mfa} =
+        catch_exit fn _i -> raise "bad" end
+                   |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+                   |> Stream.run()
+
+      refute_received _
+
+      assert {{:noproc, _stacktrace}, _mfa} =
+        catch_exit fn _i -> :not_a_supervisor end
+                   |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+                   |> Stream.run()
+
       refute_received _
     end
   end
