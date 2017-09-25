@@ -11,14 +11,19 @@ defmodule Mix.Tasks.Compile.LeexTest do
 
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_leex", fn ->
-      File.write! "src/zzz.xrl", """
+      file = Path.absname("src/zzz.xrl")
+      File.write! file, """
       oops.
       """
 
-      assert_raise Mix.Error, fn ->
-        capture_io fn ->
-          Mix.Tasks.Compile.Leex.run ["--force"]
-        end
+      capture_io fn ->
+        assert {:error, [%Mix.Task.Compiler.Diagnostic{
+          compiler_name: "leex",
+          file: ^file,
+          message: "missing Definitions",
+          position: 1,
+          severity: :error
+        }]} = Mix.Tasks.Compile.Leex.run(["--force"])
       end
 
       assert File.regular?("src/test_ok.erl")
@@ -27,25 +32,25 @@ defmodule Mix.Tasks.Compile.LeexTest do
 
   test "compiles src/test_ok.xrl" do
     in_fixture "compile_leex", fn ->
-      assert Mix.Tasks.Compile.Leex.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Leex.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/test_ok.xrl"]}
       assert File.regular?("src/test_ok.erl")
 
-      assert Mix.Tasks.Compile.Leex.run(["--verbose"]) == :noop
+      assert Mix.Tasks.Compile.Leex.run(["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled src/test_ok.xrl"]}
 
-      assert Mix.Tasks.Compile.Leex.run(["--force", "--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Leex.run(["--force", "--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/test_ok.xrl"]}
     end
   end
 
   test "removes old artifact files" do
     in_fixture "compile_leex", fn ->
-      assert Mix.Tasks.Compile.Leex.run([]) == :ok
+      assert Mix.Tasks.Compile.Leex.run([]) == {:ok, []}
       assert File.regular?("src/test_ok.erl")
 
       File.rm!("src/test_ok.xrl")
-      assert Mix.Tasks.Compile.Leex.run([]) == :ok
+      assert Mix.Tasks.Compile.Leex.run([]) == {:ok, []}
       refute File.regular?("src/test_ok.erl")
     end
   end

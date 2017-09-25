@@ -6,9 +6,7 @@ defmodule Mix.Tasks.Compile.Yecc do
   @manifest ".compile.yecc"
 
   # These options can't be controlled with :yecc_options.
-  @forced_opts [report: true,
-                return_errors: false,
-                return_warnings: false]
+  @forced_opts [report: true, return: true]
 
   @moduledoc """
   Compiles Yecc source files.

@@ -6,9 +6,7 @@ defmodule Mix.Tasks.Compile.Leex do
   @manifest ".compile.leex"
 
   # These options can't be controlled with :leex_options.
-  @forced_opts [report: true,
-                return_errors: false,
-                return_warnings: false]
+  @forced_opts [report: true, return: true]
 
   @moduledoc """
   Compiles Leex source files.
