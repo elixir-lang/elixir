@@ -343,10 +343,11 @@ defmodule Calendar.ISO do
   def from_unix(integer, unit) when is_integer(integer) do
     total = System.convert_time_unit(integer, unit, :microsecond)
     if total in @unix_range_microseconds do
-      microsecond = rem(total, 1_000_000)
+      microseconds = Integer.mod(total, @microseconds_per_second)
+      seconds = @unix_epoch + Integer.floor_div(total, @microseconds_per_second)
       precision = precision_for_unit(unit)
-      {date, time} = iso_seconds_to_datetime(@unix_epoch + div(total, 1_000_000))
-      {:ok, date, time, {microsecond, precision}}
+      {date, time} = iso_seconds_to_datetime(seconds)
+      {:ok, date, time, {microseconds, precision}}
     else
       {:error, :invalid_unix_time}
     end
