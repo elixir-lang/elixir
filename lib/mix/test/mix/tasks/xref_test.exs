@@ -272,7 +272,7 @@ defmodule Mix.Tasks.XrefTest do
       File.write!("lib/a.ex", contents)
 
       assert capture_io(:stderr, fn ->
-        assert Mix.Task.run("xref", ["warnings"]) == :error
+        assert Mix.Task.run("xref", ["warnings"]) != []
       end) == expected
     end
   end
@@ -282,7 +282,7 @@ defmodule Mix.Tasks.XrefTest do
       File.write!("lib/a.ex", contents)
 
       assert capture_io(:stderr, fn ->
-        assert Mix.Task.run("xref", ["warnings"]) == :ok
+        assert Mix.Task.run("xref", ["warnings"]) == []
       end) == ""
     end
   end

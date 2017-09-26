@@ -129,11 +129,7 @@ defmodule Mix.Tasks.Xref do
   ## Modes
 
   defp warnings() do
-    if unreachable(&print_warnings/2) == [] do
-      :ok
-    else
-      :error
-    end
+    List.flatten(unreachable(&warnings/2))
   end
 
   defp unreachable() do
@@ -223,21 +219,23 @@ defmodule Mix.Tasks.Xref do
 
   ## Print warnings
 
-  defp print_warnings(file, entries) do
+  defp warnings(file, entries) do
     prefix = IO.ANSI.format([:yellow, "warning: "])
-    entries
-    |> Enum.sort()
-    |> Enum.each(&IO.write(:stderr, [prefix, format_warning(file, &1), ?\n]))
+    Enum.map(Enum.sort(entries), fn entry ->
+      message = message(entry)
+      lines = elem(entry, 0)
+      IO.write(:stderr, [prefix, message, ?\n, format_file_lines(file, lines), ?\n])
+      {file, lines, message}
+    end)
   end
 
-  defp format_warning(file, {lines, :unknown_function, module, function, arity, exports}) do
-    message = UndefinedFunctionError.function_not_exported(module, function, arity, exports)
-    [message, "\n", format_file_lines(file, lines)]
+  defp message({_lines, :unknown_function, module, function, arity, exports}) do
+    UndefinedFunctionError.function_not_exported(module, function, arity, exports)
   end
 
-  defp format_warning(file, {lines, :unknown_module, module, function, arity, _}) do
+  defp message({_lines, :unknown_module, module, function, arity, _}) do
     ["function ", Exception.format_mfa(module, function, arity),
-     " is undefined (module #{inspect module} is not available)\n" | format_file_lines(file, lines)]
+     " is undefined (module #{inspect module} is not available)"]
   end
 
   defp format_file_lines(file, [line]) do

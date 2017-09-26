@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
       [xref_manifest] = Mix.Tasks.Compile.Xref.manifests()
 
       assert_no_warn fn ->
-        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+        assert Mix.Tasks.Compile.Xref.run([]) == {:noop, []}
         refute File.exists? xref_manifest
       end
     end
@@ -29,17 +29,17 @@ defmodule Mix.Tasks.Compile.XrefTest do
 
       assert_warn_no_func fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
-        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+        assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([])
       end
 
       assert_no_warn fn ->
-        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+        assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([])
       end
 
       Mix.Task.reenable("xref")
 
       assert_warn_no_func fn ->
-        assert Mix.Tasks.Compile.Xref.run(["--force"]) == :noop
+        assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--force"])
       end
     end
   end
@@ -50,7 +50,14 @@ defmodule Mix.Tasks.Compile.XrefTest do
 
       assert_warn_no_func fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
-        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+        file = Path.absname("lib/a.ex")
+        assert {:noop, [%Mix.Task.Compiler.Diagnostic{
+          compiler_name: "Xref",
+          file: ^file,
+          message: "function B.no_func/0 is undefined or private",
+          position: 2,
+          severity: :warning
+        }]} = Mix.Tasks.Compile.Xref.run([])
       end
 
       [manifest] = Mix.Tasks.Compile.Elixir.manifests()
@@ -60,7 +67,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
       Mix.Task.reenable("xref")
 
       assert_warn_no_func fn ->
-        assert Mix.Tasks.Compile.Xref.run([]) == :noop
+        assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([])
       end
     end
   end
@@ -71,16 +78,18 @@ defmodule Mix.Tasks.Compile.XrefTest do
 
       assert_warn_no_func fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
-        assert catch_exit(Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"])) == {:shutdown, 1}
+        assert {:error, [%Mix.Task.Compiler.Diagnostic{
+          severity: :error
+        }]} = Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"])
       end
     end
   end
 
-  test "does not exit if warnings-as-errors and no warnings" do
+  test "does not return error status if warnings-as-errors and no warnings" do
     in_fixture "no_mixfile", fn ->
       assert_no_warn fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
-        assert Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"]) == :noop
+        assert Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"]) == {:noop, []}
       end
     end
   end

@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Compile.Xref do
 
   @recursive true
   @manifest ".compile.xref"
+  @manifest_vsn :v1
 
   @moduledoc """
   Performs remote dispatch checking.
@@ -28,28 +29,34 @@ defmodule Mix.Tasks.Compile.Xref do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
 
-    if needs_xref?(opts) do
-      if should_exit?(run_xref(), opts) do
-        exit({:shutdown, 1})
+    warnings =
+      if needs_xref?(opts) do
+        run_xref()
+      else
+        read_manifest()
       end
-      write_manifest()
+
+    if warnings != [] and warnings_as_errors(opts) do
+      {:error, to_diagnostics(warnings, :error)}
+    else
+      {:noop, to_diagnostics(warnings, :warning)}
     end
-
-    :noop
-  end
-
-  defp run_xref do
-    Mix.Task.run("xref", ["warnings"])
   end
 
   defp needs_xref?(opts) do
     !!opts[:force] or Mix.Utils.stale?(E.manifests(), manifests())
   end
 
-  defp should_exit?(:error, opts),
-    do: warnings_as_errors(opts) == true
-  defp should_exit?(_, _opts),
-    do: false
+  defp run_xref do
+    timestamp = :calendar.universal_time()
+    warnings = Mix.Task.run("xref", ["warnings"])
+    if warnings == :noop do
+      []
+    else
+      write_manifest(warnings, timestamp)
+      warnings
+    end
+  end
 
   defp warnings_as_errors(opts) do
     Keyword.get_lazy(opts, :warnings_as_errors, fn ->
@@ -63,8 +70,20 @@ defmodule Mix.Tasks.Compile.Xref do
   def manifests, do: [manifest()]
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
-  defp write_manifest do
-    File.touch(manifest())
+  defp write_manifest(warnings, timestamp) do
+    File.write!(manifest(), :erlang.term_to_binary({@manifest_vsn, warnings}))
+    File.touch(manifest(), timestamp)
+  end
+
+  defp read_manifest() do
+    try do
+      manifest() |> File.read!() |> :erlang.binary_to_term()
+    rescue
+      _ -> []
+    else
+      {@manifest_vsn, data} when is_list(data) -> data
+      _ -> []
+    end
   end
 
   @doc """
@@ -72,5 +91,19 @@ defmodule Mix.Tasks.Compile.Xref do
   """
   def clean do
     File.rm manifest()
+  end
+
+  defp to_diagnostics(warnings, severity) do
+    Enum.flat_map(warnings, fn {file, lines, message} ->
+      for line <- lines do
+        %Mix.Task.Compiler.Diagnostic{
+          compiler_name: "Xref",
+          file: Path.absname(file),
+          message: to_string(message),
+          position: line,
+          severity: severity
+        }
+      end
+    end)
   end
 end
