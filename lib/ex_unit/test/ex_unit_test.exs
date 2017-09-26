@@ -425,7 +425,7 @@ defmodule ExUnitTest do
     end)
   end
 
-  test "seed is predictable and different for each test, even " do
+  test "seed is predictable and different for each test" do
     global_seed = ExUnit.configuration()[:seed]
     ExUnit.configure seed: 1
 
