@@ -129,7 +129,7 @@ defmodule Mix.Tasks.Xref do
   ## Modes
 
   defp warnings() do
-    List.flatten(unreachable(&warnings/2))
+    {:ok, List.flatten(unreachable(&warnings/2))}
   end
 
   defp unreachable() do

@@ -49,12 +49,12 @@ defmodule Mix.Tasks.Compile.Xref do
 
   defp run_xref do
     timestamp = :calendar.universal_time()
-    warnings = Mix.Task.run("xref", ["warnings"])
-    if warnings == :noop do
-      []
-    else
-      write_manifest(warnings, timestamp)
-      warnings
+    case Mix.Task.run("xref", ["warnings"]) do
+      :noop ->
+        []
+      {:ok, warnings} ->
+        write_manifest(warnings, timestamp)
+        warnings
     end
   end
 
@@ -94,16 +94,15 @@ defmodule Mix.Tasks.Compile.Xref do
   end
 
   defp to_diagnostics(warnings, severity) do
-    Enum.flat_map(warnings, fn {file, lines, message} ->
-      for line <- lines do
-        %Mix.Task.Compiler.Diagnostic{
-          compiler_name: "Xref",
-          file: Path.absname(file),
-          message: to_string(message),
-          position: line,
-          severity: severity
-        }
-      end
-    end)
+    for {file, lines, message} <- warnings,
+        line <- lines do
+      %Mix.Task.Compiler.Diagnostic{
+        compiler_name: "Xref",
+        file: Path.absname(file),
+        message: to_string(message),
+        position: line,
+        severity: severity
+      }
+    end
   end
 end
