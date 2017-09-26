@@ -9,7 +9,9 @@ defmodule ProcessTest do
     assert Process.put(:foo, :bar) == nil
     assert Process.put(:foo, :baz) == :bar
 
-    assert Process.get_keys() == [:foo]
+    assert Enum.member?(Process.get_keys(), :foo)
+    refute Enum.member?(Process.get_keys(), :bar)
+    refute Enum.member?(Process.get_keys(), :baz)
     assert Process.get_keys(:bar) == []
     assert Process.get_keys(:baz) == [:foo]
 
