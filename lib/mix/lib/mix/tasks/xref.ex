@@ -129,7 +129,7 @@ defmodule Mix.Tasks.Xref do
   ## Modes
 
   defp warnings() do
-    {:ok, List.flatten(unreachable(&warnings/2))}
+    {:ok, unreachable(&warnings/2)}
   end
 
   defp unreachable() do
@@ -221,12 +221,14 @@ defmodule Mix.Tasks.Xref do
 
   defp warnings(file, entries) do
     prefix = IO.ANSI.format([:yellow, "warning: "])
-    Enum.map(Enum.sort(entries), fn entry ->
-      message = message(entry)
-      lines = elem(entry, 0)
-      IO.write(:stderr, [prefix, message, ?\n, format_file_lines(file, lines), ?\n])
-      {file, lines, message}
-    end)
+    warnings =
+      Enum.map(Enum.sort(entries), fn entry ->
+        message = message(entry)
+        lines = elem(entry, 0)
+        IO.write(:stderr, [prefix, message, ?\n, format_file_lines(file, lines), ?\n])
+        {lines, message}
+      end)
+    {file, warnings}
   end
 
   defp message({_lines, :unknown_function, module, function, arity, exports}) do
