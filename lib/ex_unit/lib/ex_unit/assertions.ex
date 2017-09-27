@@ -79,12 +79,12 @@ defmodule ExUnit.Assertions do
   Similarly, if a match expression is given, it will report
   any failure in terms of that match. Given
 
-      assert [one] = [two]
+      assert [1] = [2]
 
   you'll see:
 
       match (=) failed
-      code:  [one] = [two]
+      code:  [1] = [2]
       right: [2]
 
   Keep in mind that `assert` does not change its semantics
