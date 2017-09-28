@@ -59,6 +59,10 @@
 
   * [ExUnit.Formatter] `:case_started` and `:case_finished` events are deprecated in favor of `:module_started` and `:module_finished`
 
+#### Mix
+
+  * [Mix.Shell] The `cmd/2` callback is deprecated in favor of `System.cmd/3` and `Mix.Shell.cmd/3`
+
 ### 4. Deprecations
 
 #### Elixir

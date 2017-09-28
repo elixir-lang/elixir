@@ -66,9 +66,22 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Executes the given command and forwards its messages to
-  the current process.
+  Returns a collectable to be used along side System.cmd.
   """
+  def into do
+    fun = fn
+      :ok, {:cont, data} ->
+        print_app()
+        send self(), {:mix_shell, :run, [data]}
+        :ok
+      :ok, _ ->
+        :ok
+    end
+    {:ok, fun}
+  end
+
+  @doc false
+  # TODO: Deprecate on Elixir v1.8
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
     Mix.Shell.cmd(command, opts, fn(data) ->
