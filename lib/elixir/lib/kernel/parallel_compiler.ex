@@ -420,11 +420,13 @@ defmodule Kernel.ParallelCompiler do
     line
   end
 
-  defp get_line(file, reason, [{_, _, _, []} | stack]) do
-    get_line(file, reason, stack)
+  defp get_line(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
+    if Keyword.get(info, :file) == to_charlist(file) do
+      Keyword.get(info, :line)
+    end
   end
 
-  defp get_line(file, _reason, [{_, _, _, info} | _]) do
+  defp get_line(file, :undef, [{_, _, _, info} | _]) do
     if Keyword.get(info, :file) == to_charlist(file) do
       Keyword.get(info, :line)
     end
