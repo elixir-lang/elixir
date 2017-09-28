@@ -81,6 +81,10 @@ defmodule Kernel.FnTest do
     assert is_function &and/2
   end
 
+  test "capture precedence in cons" do
+    assert [&IO.puts/1 | &IO.puts/2] == [(&IO.puts/1) | (&IO.puts/2)]
+  end
+
   test "capture with variable module" do
     mod = List
     assert (&mod.flatten(&1)).([1, [2], 3]) == [1, 2, 3]
