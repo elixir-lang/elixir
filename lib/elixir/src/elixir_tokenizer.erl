@@ -684,7 +684,7 @@ eol(Line, Column, Tokens) ->
 unsafe_to_atom(Part, Line, #elixir_tokenizer{}) when
     is_binary(Part) andalso size(Part) > 255;
     is_list(Part) andalso length(Part) > 255 ->
-  {error, {Line, "atom length must be less than system limit", ":"}};
+  {error, {Line, "atom length must be less than system limit: ", [$: | Part]}};
 unsafe_to_atom(Binary, _Line, #elixir_tokenizer{existing_atoms_only=true}) when is_binary(Binary) ->
   {ok, binary_to_existing_atom(Binary, utf8)};
 unsafe_to_atom(Binary, _Line, #elixir_tokenizer{}) when is_binary(Binary) ->

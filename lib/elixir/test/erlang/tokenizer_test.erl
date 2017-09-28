@@ -62,7 +62,7 @@ quoted_atom_test() ->
 
 oversized_atom_test() ->
   OversizedAtom = [$: | string:copies("a", 256)],
-  {1, "atom length must be less than system limit", ":"} = tokenize_error(OversizedAtom).
+  {1, "atom length must be less than system limit: ", OversizedAtom} = tokenize_error(OversizedAtom).
 
 op_atom_test() ->
   [{atom, {1, {1, 6}, nil}, f0_1}] = tokenize(":f0_1").
