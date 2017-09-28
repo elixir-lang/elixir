@@ -150,6 +150,12 @@ defmodule EExTest do
       end
     end
 
+    test "when middle expression is found without a start expression" do
+      assert_raise EEx.SyntaxError, "nofile:1: unexpected middle of expression <% else %>", fn ->
+        EEx.compile_string "<% if true %> foo<% else %>bar<% end %>"
+      end
+    end
+
     test "when end expression is found without a start expression" do
       assert_raise EEx.SyntaxError, "nofile:1: unexpected end of expression <% end %>",  fn ->
         EEx.compile_string "foo <% end %>"
