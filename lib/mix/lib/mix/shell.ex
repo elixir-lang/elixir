@@ -4,35 +4,61 @@ defmodule Mix.Shell do
   """
 
   @doc """
-  Prints the given message to the shell.
+  Prints the given ANSI message to the shell.
   """
-  @callback info(message :: IO.ANSI.ansidata) :: any
+  @callback info(message :: IO.ANSI.ansidata) :: :ok
 
   @doc """
-  Prints the given error to the shell.
+  Prints the given ANSI error to the shell.
   """
-  @callback error(message :: IO.ANSI.ansidata) :: any
+  @callback error(message :: IO.ANSI.ansidata) :: :ok
+
+  @doc """
+  Writes data directly into the shell.
+  """
+  @callback write(message :: binary) :: :ok
 
   @doc """
   Prompts the user for input.
   """
-  @callback prompt(message :: String.t) :: String.t
+  @callback prompt(message :: binary) :: binary
 
   @doc """
   Prompts the user for confirmation.
   """
-  @callback yes?(message :: String.t) :: boolean
-
-  @doc """
-  Returns a collectable to be used when executing commands.
-  """
-  @callback into :: Collectable.t
+  @callback yes?(message :: binary) :: boolean
 
   @doc """
   Prints the current application to the shell if
   it was not printed yet.
   """
-  @callback print_app() :: any
+  @callback print_app() :: :ok
+
+  @doc """
+  A collectable shell struct.
+  """
+  defstruct [print_app?: true]
+
+  defimpl Collectable do
+    def into(%Mix.Shell{print_app?: print_app?} = original) do
+      fun = fn
+        {:cont, shell}, {:cont, data} ->
+          shell.write(data)
+          {:cont, shell}
+        {:print, shell}, {:cont, data} ->
+          shell.print_app()
+          shell.write(data)
+          {:cont, shell}
+        _, _ ->
+          original
+      end
+
+      case print_app? do
+        true -> {{:print, Mix.shell}, fun}
+        false -> {{:cont, Mix.shell}, fun}
+      end
+    end
+  end
 
   @doc """
   Returns the printable app name.

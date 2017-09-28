@@ -66,28 +66,11 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Returns a collectable to be used along side System.cmd.
+  Forwards the message to the current process.
   """
-  def into do
-    fun = fn
-      :ok, {:cont, data} ->
-        print_app()
-        send self(), {:mix_shell, :run, [data]}
-        :ok
-      :ok, _ ->
-        :ok
-    end
-    {:ok, fun}
-  end
-
-  @doc false
-  # TODO: Deprecate on Elixir v1.8
-  def cmd(command, opts \\ []) do
-    print_app? = Keyword.get(opts, :print_app, true)
-    Mix.Shell.cmd(command, opts, fn(data) ->
-      if print_app?, do: print_app()
-      send self(), {:mix_shell, :run, [data]}
-    end)
+  def write(data) do
+    send self(), {:mix_shell, :write, [data]}
+    :ok
   end
 
   @doc """
@@ -96,6 +79,7 @@ defmodule Mix.Shell.Process do
   def info(message) do
     print_app()
     send self(), {:mix_shell, :info, [format(message)]}
+    :ok
   end
 
   @doc """
@@ -104,6 +88,7 @@ defmodule Mix.Shell.Process do
   def error(message) do
     print_app()
     send self(), {:mix_shell, :error, [format(message)]}
+    :ok
   end
 
   defp format(message) do
@@ -167,5 +152,15 @@ defmodule Mix.Shell.Process do
     after
       0 -> raise "no shell process input given for yes?/1"
     end
+  end
+
+  @doc false
+  # TODO: Deprecate on Elixir v1.8
+  def cmd(command, opts \\ []) do
+    print_app? = Keyword.get(opts, :print_app, true)
+    Mix.Shell.cmd(command, opts, fn(data) ->
+      if print_app?, do: print_app()
+      send self(), {:mix_shell, :run, [data]}
+    end)
   end
 end
