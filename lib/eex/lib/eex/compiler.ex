@@ -53,13 +53,18 @@ defmodule EEx.Compiler do
     generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], %{state | line: line})
   end
 
-  defp generate_buffer([{:middle_expr, line, modifier, chars} | t], buffer, scope, state) do
+  defp generate_buffer([{:middle_expr, line, modifier, chars} | t], buffer, [_ | _] = scope, state) do
     message = "unexpected beginning of EEx tag \"<%#{modifier}\" on \"<%#{modifier}#{chars}%>\", " <>
               "please remove \"#{modifier}\" accordingly"
     :elixir_errors.warn line, state.file, message
     generate_buffer([{:middle_expr, line, '', chars} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
+  end
+
+  defp generate_buffer([{:middle_expr, line, _, chars} | _], _buffer, [], state) do
+    raise EEx.SyntaxError, message: "unexpected middle of expression <%#{chars}%>",
+                           file: state.file, line: line
   end
 
   defp generate_buffer([{:end_expr, line, '', chars} | rest], buffer, [current | _], state) do
