@@ -438,4 +438,50 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end)
     end
   end
+
+  test "does not use incorrect line number when error originates in another file" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def fun(arg), do: arg / 2
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def fun(arg) do
+          A.fun(arg)
+          :ok
+        end
+      end
+      B.fun(:not_a_number)
+      """)
+
+      import ExUnit.CaptureIO
+      UndefinedFunctionError
+      capture_io(fn ->
+        file = Path.absname("lib/b.ex")
+        assert {:error, [%{file: ^file, position: nil}]} = Mix.Tasks.Compile.Elixir.run([])
+      end)
+    end
+  end
+
+  test "gets correct line number for UndefinedFunctionError" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        Bogus.fun()
+      end
+      """)
+
+      file = Path.absname("lib/a.ex")
+      import ExUnit.CaptureIO
+      capture_io(fn ->
+        assert {:error, [%{
+          file: ^file,
+          position: 2
+        }]} = Mix.Tasks.Compile.Elixir.run([])
+      end)
+    end
+  end
 end
