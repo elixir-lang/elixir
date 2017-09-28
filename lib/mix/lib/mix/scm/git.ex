@@ -228,7 +228,7 @@ defmodule Mix.SCM.Git do
     :ok
   end
 
-  defp git!(args, into \\ Mix.shell.into) do
+  defp git!(args, into \\ %Mix.Shell{}) do
     case System.cmd("git", args, into: into, stderr_to_stdout: true) do
       {response, 0} -> response
       {_, _} -> Mix.raise "Command \"git #{Enum.join(args, " ")}\" failed"

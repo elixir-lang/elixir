@@ -9,9 +9,9 @@ defmodule Mix.Tasks.CmdTest do
         Mix.Task.run "cmd", ["echo", "hello"]
         nl = os_newline()
         assert_received {:mix_shell, :info, ["==> bar"]}
-        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :write, ["hello" <> ^nl]}
         assert_received {:mix_shell, :info, ["==> foo"]}
-        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :write, ["hello" <> ^nl]}
       end)
     end
   end
@@ -22,9 +22,9 @@ defmodule Mix.Tasks.CmdTest do
         Mix.Task.run "cmd", ["--app", "bar", "echo", "hello"]
         nl = os_newline()
         assert_received {:mix_shell, :info, ["==> bar"]}
-        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :write, ["hello" <> ^nl]}
         refute_received {:mix_shell, :info, ["==> foo"]}
-        refute_received {:mix_shell, :run, ["hello" <> ^nl]}
+        refute_received {:mix_shell, :write, ["hello" <> ^nl]}
       end)
     end
   end

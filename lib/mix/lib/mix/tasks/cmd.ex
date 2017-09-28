@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Cmd do
   def run(args) do
     {args, apps} = parse_apps(args, [])
     if apps == [] or Mix.Project.config[:app] in apps do
-      case Mix.Shell.cmd(Enum.join(args, " "), into: Mix.shell.into) do
+      case Mix.Shell.cmd(Enum.join(args, " "), into: %Mix.Shell{}) do
         0 -> :ok
         status -> exit(status)
       end

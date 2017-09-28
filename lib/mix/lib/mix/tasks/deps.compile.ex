@@ -227,7 +227,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_command(%Mix.Dep{app: app, opts: opts}, config, command, print_app?, env \\ []) do
     File.cd!(opts[:dest], fn ->
       env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")}] ++ env
-      if Mix.shell.cmd(command, print_app: print_app?, env: env) != 0 do
+      if Mix.Shell.cmd(command, env: env, into: %Mix.Shell{print_app?: print_app?}) != 0 do
         Mix.raise "Could not compile dependency #{inspect app}, \"#{command}\" command failed. " <>
           "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
           "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""

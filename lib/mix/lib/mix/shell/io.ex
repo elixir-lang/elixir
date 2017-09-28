@@ -15,34 +15,16 @@ defmodule Mix.Shell.IO do
     if name = Mix.Shell.printable_app_name do
       IO.puts "==> #{name}"
     end
+    :ok
   end
 
   @doc """
-  Returns a collectable to be used along side System.cmd.
+  Writes data directly into the shell.
   """
-  def into do
-    fun = fn
-      :ok, {:cont, data} ->
-        print_app()
-        IO.write(data)
-      :ok, _ ->
-        :ok
-    end
-    {:ok, fun}
-  end
-
-  @doc false
-  # TODO: Deprecate on Elixir v1.8
-  def cmd(command, opts \\ []) do
-    print_app? = Keyword.get(opts, :print_app, true)
-    Mix.Shell.cmd(command, opts, fn data ->
-      if print_app?, do: print_app()
-      IO.write(data)
-    end)
-  end
+  defdelegate write(data), to: IO
 
   @doc """
-  Prints the given message to the shell followed by a newline.
+  Prints the given ANSI message to the shell followed by a newline.
   """
   def info(message) do
     print_app()
@@ -50,7 +32,7 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
-  Prints the given error to the shell followed by a newline.
+  Prints the given ANSI error to the shell followed by a newline.
   """
   def error(message) do
     print_app()
@@ -81,5 +63,15 @@ defmodule Mix.Shell.IO do
 
   defp red(message) do
     [:red, :bright, message]
+  end
+
+  @doc false
+  # TODO: Deprecate on Elixir v1.8
+  def cmd(command, opts \\ []) do
+    print_app? = Keyword.get(opts, :print_app, true)
+    Mix.Shell.cmd(command, opts, fn data ->
+      if print_app?, do: print_app()
+      IO.write(data)
+    end)
   end
 end
