@@ -214,10 +214,12 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  @rev_command 'git --git-dir=.git config remote.origin.url && git --git-dir=.git rev-parse --verify --quiet HEAD'
+
   defp get_rev_info do
     destructure [origin, rev],
-      :os.cmd('git --git-dir=.git config remote.origin.url && git --git-dir=.git rev-parse --verify --quiet HEAD')
-      |> IO.iodata_to_binary
+      :os.cmd(@rev_command)
+      |> List.to_string()
       |> String.split("\n", trim: true)
     %{origin: origin, rev: rev}
   end
@@ -257,7 +259,7 @@ defmodule Mix.SCM.Git do
       :error ->
         version =
           :os.cmd('git --version')
-          |> IO.iodata_to_binary
+          |> List.to_string()
           |> parse_version
 
         Mix.State.put(:git_version, version)
