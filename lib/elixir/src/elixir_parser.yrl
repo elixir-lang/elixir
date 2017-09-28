@@ -55,13 +55,13 @@ Expect 3.
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
-Nonassoc  30 capture_op_eol.  %% &
 Left      40 in_match_op_eol. %% <-, \\ (allowed in matches along =)
 Right     50 when_op_eol.     %% when
 Right     60 type_op_eol.     %% ::
 Right     70 pipe_op_eol.     %% |
 Right     80 assoc_op_eol.    %% =>
 Right     90 match_op_eol.    %% =
+Nonassoc 100 capture_op_eol.  %% &
 Left     130 or_op_eol.       %% ||, |||, or
 Left     140 and_op_eol.      %% &&, &&&, and
 Left     150 comp_op_eol.     %% ==, !=, =~, ===, !==

@@ -20,13 +20,13 @@ Operator                                                                        
 `==` `!=` `=~` `===` `!==`                                                               | Left to right
 `&&` `&&&` `and`                                                                         | Left to right
 `\|\|` `\|\|\|` `or`                                                                     | Left to right
+`&`                                                                                      | Unary
 `=`                                                                                      | Right to left
 `=>`                                                                                     | Right to left
 `\|`                                                                                     | Right to left
 `::`                                                                                     | Right to left
 `when`                                                                                   | Right to left
 `<-`, `\\`                                                                               | Left to right
-`&`                                                                                      | Unary
 
 ## Comparison operators
 

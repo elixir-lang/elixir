@@ -14,7 +14,7 @@ defmodule Code.Identifier do
   def unary_op(op) do
     cond do
       op in [:&] ->
-        {:non_associative, 30}
+        {:non_associative, 100}
       op in [:!, :^, :not, :+, :-, :~~~] ->
         {:non_associative, 300}
       op in [:@] ->
