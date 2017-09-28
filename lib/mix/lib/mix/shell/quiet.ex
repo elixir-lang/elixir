@@ -15,8 +15,14 @@ defmodule Mix.Shell.Quiet do
   defdelegate print_app, to: Mix.Shell.IO
 
   @doc """
-  Executes the given command quietly without outputting anything.
+  Returns a collectable to be used along side System.cmd.
   """
+  def into do
+    {:ok, fn :ok, _ -> :ok end}
+  end
+
+  @doc false
+  # TODO: Deprecate on Elixir v1.8
   def cmd(command, opts \\ []) do
     Mix.Shell.cmd(command, opts, fn data -> data end)
   end

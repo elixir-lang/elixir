@@ -87,8 +87,8 @@ defmodule Mix.SCM.Git do
     File.rm_rf!(path)
     File.mkdir_p!(path)
     File.cd!(path, fn ->
-      git!("init --quiet")
-      git!("--git-dir=.git remote add origin \"#{opts[:git]}\"")
+      git!(["init", "--quiet"])
+      git!(["--git-dir=.git", "remote", "add", "origin", opts[:git]])
       checkout(path, opts)
     end)
   end
@@ -105,20 +105,17 @@ defmodule Mix.SCM.Git do
     update_origin(opts[:git])
 
     # Fetch external data
-    [
-      "--git-dir=.git fetch --force --quiet",
-      progress_switch(git_version()),
-      tags_switch(opts[:tag])
-    ]
-    |> IO.iodata_to_binary()
+    ["--git-dir=.git", "fetch", "--force", "--quiet"]
+    |> Kernel.++(progress_switch(git_version()))
+    |> Kernel.++(tags_switch(opts[:tag]))
     |> git!()
 
     # Migrate the Git repo
     rev = get_lock_rev(opts[:lock], opts) || get_opts_rev(opts)
-    git!("--git-dir=.git checkout --quiet #{rev}")
+    git!(["--git-dir=.git", "checkout", "--quiet", rev])
 
     if opts[:submodules] do
-      git!("--git-dir=.git submodule update --init --recursive")
+      git!(["--git-dir=.git", "submodule", "update", "--init", "--recursive"])
     end
 
     # Get the new repo lock
@@ -138,13 +135,13 @@ defmodule Mix.SCM.Git do
     cond do
       sparse = opts[:sparse] ->
         sparse_check(git_version())
-        git!("--git-dir=.git config core.sparsecheckout true")
+        git!(["--git-dir=.git", "config", "core.sparsecheckout", "true"])
         File.mkdir_p!(".git/info")
         File.write!(".git/info/sparse-checkout", sparse)
       File.exists?(".git/info/sparse-checkout") ->
         File.write!(".git/info/sparse-checkout", "*")
-        git!("--git-dir=.git read-tree -mu HEAD")
-        git!("--git-dir=.git config core.sparsecheckout false")
+        git!(["--git-dir=.git", "read-tree", "-mu", "HEAD"])
+        git!(["--git-dir=.git", "config", "core.sparsecheckout", "false"])
         File.rm(".git/info/sparse-checkout")
       true ->
         :ok
@@ -160,11 +157,11 @@ defmodule Mix.SCM.Git do
   end
 
   defp progress_switch(version) do
-    if {1, 7, 1} <= version, do: " --progress", else: ""
+    if {1, 7, 1} <= version, do: ["--progress"], else: []
   end
 
-  defp tags_switch(nil), do: ""
-  defp tags_switch(_), do: " --tags"
+  defp tags_switch(nil), do: []
+  defp tags_switch(_), do: ["--tags"]
 
   ## Helpers
 
@@ -214,26 +211,28 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  @rev_command 'git --git-dir=.git config remote.origin.url && git --git-dir=.git rev-parse --verify --quiet HEAD'
-
   defp get_rev_info do
-    destructure [origin, rev],
-      :os.cmd(@rev_command)
-      |> List.to_string()
-      |> String.split("\n", trim: true)
-    %{origin: origin, rev: rev}
+    # Those commands can fail and we don't want to raise.
+    with {origin, 0} <-
+           System.cmd("git", ["--git-dir=.git", "config", "remote.origin.url"]),
+         {rev, 0} <-
+           System.cmd("git", ["--git-dir=.git", "rev-parse", "--verify", "--quiet", "HEAD"]) do
+      %{origin: String.trim(origin), rev: String.trim(rev)}
+    else
+      _ -> %{origin: nil, rev: nil}
+    end
   end
 
   defp update_origin(location) do
-    git!(~s(--git-dir=.git config remote.origin.url "#{location}"))
+    git!(["--git-dir=.git", "config", "remote.origin.url", location])
     :ok
   end
 
-  defp git!(command) do
-    if Mix.shell.cmd("git " <> command) != 0 do
-      Mix.raise "Command \"git #{command}\" failed"
+  defp git!(args, into \\ Mix.shell.into) do
+    case System.cmd("git", args, into: into, stderr_to_stdout: true) do
+      {response, 0} -> response
+      {_, _} -> Mix.raise "Command \"git #{Enum.join(args, " ")}\" failed"
     end
-    :ok
   end
 
   defp assert_git! do
@@ -258,8 +257,8 @@ defmodule Mix.SCM.Git do
         version
       :error ->
         version =
-          :os.cmd('git --version')
-          |> List.to_string()
+          ["--version"]
+          |> git!("")
           |> parse_version
 
         Mix.State.put(:git_version, version)

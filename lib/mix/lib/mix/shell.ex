@@ -24,27 +24,9 @@ defmodule Mix.Shell do
   @callback yes?(message :: String.t) :: boolean
 
   @doc """
-  Executes the given command and returns its exit status.
+  Returns a collectable to be used when executing commands.
   """
-  @callback cmd(command :: String.t) :: integer
-
-  @doc """
-  Executes the given command and returns its exit status.
-
-  ## Options
-
-    * `:print_app` - when `false`, does not print the app name
-      when the command outputs something
-
-    * `:stderr_to_stdout` - when `false`, does not redirect
-      stderr to stdout
-
-    * `:quiet` - when `true`, do not print the command output
-
-    * `:env` - environment options to the executed command
-
-  """
-  @callback cmd(command :: String.t, options :: keyword) :: integer
+  @callback into :: Collectable.t
 
   @doc """
   Prints the current application to the shell if
@@ -67,11 +49,42 @@ defmodule Mix.Shell do
     Mix.ProjectStack.printable_app_name
   end
 
+  @doc false
+  def cmd(command, options, callback) when is_function(callback, 1) do
+    callback =
+      if Keyword.get(options, :quiet, false) do
+        fn x -> x end
+      else
+        callback
+      end
+
+    fun =
+      fn
+        :ok, {:cont, data} ->
+          callback.(data)
+          :ok
+        :ok, _ ->
+          :ok
+      end
+
+    cmd(command, [into: {:ok, fun}] ++ options)
+  end
+
+  # TODO: Deprecate on Mix v1.8
+  def cmd(command, callback) when is_function(callback, 1) do
+    cmd(command, [], callback)
+  end
+
   @doc """
-  An implementation of the command callback that
-  is shared across different shells.
+  Executes the given `string` as a shell command.
+
+    * `:into` - a collectable to print the result to, defaults to `""`
+    * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true
+    * `:env` - a list of environment variables, defaults to `[]`
+
   """
-  def cmd(command, options \\ [], callback) do
+  def cmd(command, options) when is_binary(command) and is_list(options) do
+    collectable = Keyword.get(options, :into, "")
     env = validate_env(Keyword.get(options, :env, []))
 
     args =
@@ -81,25 +94,19 @@ defmodule Mix.Shell do
         []
       end
 
-    callback =
-      if Keyword.get(options, :quiet, false) do
-        fn x -> x end
-      else
-        callback
-      end
-
     port = Port.open({:spawn, shell_command(command)},
                      [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args])
 
-    do_cmd(port, callback)
+    {acc, callback} = Collectable.into(collectable)
+    do_cmd(port, acc, callback)
   end
 
-  defp do_cmd(port, callback) do
+  defp do_cmd(port, acc, callback) do
     receive do
       {^port, {:data, data}} ->
-        callback.(data)
-        do_cmd(port, callback)
+        do_cmd(port, callback.(acc, {:cont, data}), callback)
       {^port, {:exit_status, status}} ->
+        callback.(acc, :done)
         status
     end
   end
@@ -109,7 +116,8 @@ defmodule Mix.Shell do
   defp shell_command(command) do
     case :os.type do
       {:unix, _} ->
-        command = command
+        command =
+          command
           |> String.replace("\"", "\\\"")
           |> String.to_charlist
         'sh -c "' ++ command ++ '"'

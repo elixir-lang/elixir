@@ -18,9 +18,21 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
-  Executes the given command and prints its output
-  to stdout as it comes.
+  Returns a collectable to be used along side System.cmd.
   """
+  def into do
+    fun = fn
+      :ok, {:cont, data} ->
+        print_app()
+        IO.write(data)
+      :ok, _ ->
+        :ok
+    end
+    {:ok, fun}
+  end
+
+  @doc false
+  # TODO: Deprecate on Elixir v1.8
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
     Mix.Shell.cmd(command, opts, fn data ->

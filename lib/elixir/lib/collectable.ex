@@ -106,3 +106,9 @@ defimpl Collectable, for: Map do
     end}
   end
 end
+
+defimpl Collectable, for: Tuple do
+  def into({_, fun} = tuple) when is_function(fun, 2) do
+    tuple
+  end
+end
