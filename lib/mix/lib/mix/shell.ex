@@ -76,6 +76,7 @@ defmodule Mix.Shell do
   end
 
   @doc false
+  # TODO: Deprecate on Mix v1.8
   def cmd(command, options, callback) when is_function(callback, 1) do
     callback =
       if Keyword.get(options, :quiet, false) do
@@ -84,19 +85,14 @@ defmodule Mix.Shell do
         callback
       end
 
-    fun =
-      fn
-        :ok, {:cont, data} ->
-          callback.(data)
-          :ok
-        :ok, _ ->
-          :ok
-      end
+    fun = fn
+      _, {:cont, data} -> callback.(data)
+      _, _ -> :ok
+    end
 
-    cmd(command, [into: {:ok, fun}] ++ options)
+    cmd(command, options, :ok, fun)
   end
 
-  # TODO: Deprecate on Mix v1.8
   def cmd(command, callback) when is_function(callback, 1) do
     cmd(command, [], callback)
   end
@@ -111,6 +107,11 @@ defmodule Mix.Shell do
   """
   def cmd(command, options) when is_binary(command) and is_list(options) do
     collectable = Keyword.get(options, :into, "")
+    {acc, callback} = Collectable.into(collectable)
+    cmd(command, options, acc, callback)
+  end
+
+  defp cmd(command, options, acc, callback) do
     env = validate_env(Keyword.get(options, :env, []))
 
     args =
@@ -123,14 +124,13 @@ defmodule Mix.Shell do
     port = Port.open({:spawn, shell_command(command)},
                      [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args])
 
-    {acc, callback} = Collectable.into(collectable)
-    do_cmd(port, acc, callback)
+    port_read(port, acc, callback)
   end
 
-  defp do_cmd(port, acc, callback) do
+  defp port_read(port, acc, callback) do
     receive do
       {^port, {:data, data}} ->
-        do_cmd(port, callback.(acc, {:cont, data}), callback)
+        port_read(port, callback.(acc, {:cont, data}), callback)
       {^port, {:exit_status, status}} ->
         callback.(acc, :done)
         status
