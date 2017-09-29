@@ -887,7 +887,19 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test "defguard overriding macro" do
+  test "unused private guard" do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        defguardp foo(bar, baz) when bar + baz
+      end
+      """
+    end) =~ "macro foo/2 is unused\n"
+  after
+    purge Sample
+  end
+
+  test "defguard overriding defmacro" do
     capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -900,12 +912,38 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test "macro overriding defguard" do
+  test "defmacro overriding defguard" do
     capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         defguard foo(baz) when baz == :baz
         defmacro foo(bar), do: bar == :bar
+      end
+      """
+    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+  after
+    purge Sample
+  end
+
+  test "defguardp overriding defmacrop" do
+    capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defmacrop foo(bar), do: bar == :bar
+        defguardp foo(baz) when baz == :baz
+      end
+      """
+    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+  after
+    purge Sample
+  end
+
+  test "defmacrop overriding defguardp" do
+    capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+      defguardp foo(baz) when baz == :baz
+        defmacrop foo(bar), do: bar == :bar
       end
       """
     end) =~ "this clause cannot match because a previous clause at line 2 always matches"

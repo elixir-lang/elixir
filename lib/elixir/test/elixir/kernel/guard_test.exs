@@ -9,19 +9,49 @@ defmodule Kernel.GuardTest do
       defmodule Success, do: defguard foo(bar, baz) when bar + baz
     end
 
+    test "successfully defines private guard" do
+      defmodule PrivateSuccess do
+        defguardp foo(bar, baz) when bar + baz
+        def fizz(a, b) when foo(a, b), do: :buzz
+      end
+    end
+
     test "doesn't unquote unspecified variables" do
       assert_raise CompileError, ~r"undefined function", fn ->
         defmodule UnspecifiedVariable, do: defguard foo(bar, baz) when bar + fizzbuzz()
       end
     end
 
-    test "defines guards that work inside and outside guard clauses" do
+    test "defguard defines guards that work inside and outside guard clauses" do
       defmodule Integer.Guards do
         defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
+
+        def is_even_and_large?(value) when is_even(value) and value > 100, do: true
+        def is_even_and_large?(_), do: false
       end
 
       defmodule Integer.Utils do
         import Integer.Guards
+
+        def is_even_and_small?(value) do
+          if is_even(value) and value <= 100, do: true, else: false
+        end
+      end
+
+      assert Integer.Guards.is_even_and_large?(102)
+      refute Integer.Guards.is_even_and_large?(98)
+      refute Integer.Guards.is_even_and_large?(99)
+      refute Integer.Guards.is_even_and_large?(103)
+
+      assert Integer.Utils.is_even_and_small?(98)
+      refute Integer.Utils.is_even_and_small?(99)
+      refute Integer.Utils.is_even_and_small?(102)
+      refute Integer.Utils.is_even_and_small?(103)
+    end
+
+    test "defguardp defines private guards that work inside and outside guard clauses" do
+      defmodule Integer.Private.Guards do
+        defguardp is_even(value) when is_integer(value) and rem(value, 2) == 0
 
         def is_even_and_large?(value) when is_even(value) and value > 100, do: true
         def is_even_and_large?(_), do: false
@@ -31,15 +61,34 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert Integer.Utils.is_even_and_large?(102)
-      refute Integer.Utils.is_even_and_large?(98)
-      refute Integer.Utils.is_even_and_large?(99)
-      refute Integer.Utils.is_even_and_large?(103)
+      assert Integer.Private.Guards.is_even_and_large?(102)
+      refute Integer.Private.Guards.is_even_and_large?(98)
+      refute Integer.Private.Guards.is_even_and_large?(99)
+      refute Integer.Private.Guards.is_even_and_large?(103)
 
-      assert Integer.Utils.is_even_and_small?(98)
-      refute Integer.Utils.is_even_and_small?(99)
-      refute Integer.Utils.is_even_and_small?(102)
-      refute Integer.Utils.is_even_and_small?(103)
+      assert Integer.Private.Guards.is_even_and_small?(98)
+      refute Integer.Private.Guards.is_even_and_small?(99)
+      refute Integer.Private.Guards.is_even_and_small?(102)
+      refute Integer.Private.Guards.is_even_and_small?(103)
+
+      assert_raise CompileError, ~r"cannot invoke local is_even/1 inside guard", fn ->
+        defmodule Integer.Private.Guard.Utils do
+          import Integer.Private.Guards
+
+          def is_even_and_large?(value) when is_even(value) and value > 100, do: true
+          def is_even_and_large?(_), do: false
+        end
+      end
+
+      assert_raise CompileError, ~r"undefined function is_even/1", fn ->
+        defmodule Integer.Private.Function.Utils do
+          import Integer.Private.Guards
+
+          def is_even_and_small?(value) do
+            if is_even(value) and value <= 100, do: true, else: false
+          end
+        end
+      end
     end
 
     test "requires a proper macro name" do
@@ -74,6 +123,27 @@ defmodule Kernel.GuardTest do
         defmodule OverridenPrivateFunUsage do
           defmacrop foo(bar), do: bar
           defguard foo(bar) when bar
+        end
+      end
+
+      assert_raise CompileError, ~r"defmacrop (.*?) already defined as def", fn ->
+        defmodule OverridenFunUsage do
+          def foo(bar), do: bar
+          defguardp foo(bar) when bar
+        end
+      end
+
+      assert_raise CompileError, ~r"defmacrop (.*?) already defined as defp", fn ->
+        defmodule OverridenPrivateFunUsage do
+          defp foo(bar), do: bar
+          defguardp foo(bar) when bar
+        end
+      end
+
+      assert_raise CompileError, ~r"defmacrop (.*?) already defined as defmacro", fn ->
+        defmodule OverridenPrivateFunUsage do
+          defmacro foo(bar), do: bar
+          defguardp foo(bar) when bar
         end
       end
 

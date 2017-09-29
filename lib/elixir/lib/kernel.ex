@@ -4322,26 +4322,25 @@ defmodule Kernel do
   """
   @spec defguard(Macro.t) :: Macro.t | no_return
   defmacro defguard(guard) do
+    define_guard(:defmacro, guard, __CALLER__)
+  end
+
+  @spec defguardp(Macro.t) :: Macro.t | no_return
+  defmacro defguardp(guard) do
+    define_guard(:defmacrop, guard, __CALLER__)
+  end
+
+  defp define_guard(kind, guard, env) do
     {call, impl} = :elixir_utils.extract_guards(guard)
     case Macro.decompose_call(call) do
-      {name, args} ->
-        do_defguard(call, name, args, impl, __CALLER__)
+      {_name, args} ->
+        {^args, refs} = extract_refs_from_args(args)
+        _valid? = :elixir_expand.expand(impl, %{env | context: :guard, vars: refs})
+        expr = Kernel.Utils.defguard(impl, refs)
+        define(kind, call, [do: expr], env)
       _invalid_definition ->
         raise ArgumentError, message: "invalid syntax in defguard #{Macro.to_string call}"
     end
-  end
-
-  defp do_defguard(_call, name, args, _impl = [], env) do
-    message = :elixir_def.format_error({:bodyless_clause, :defguard, {name, length(args)}})
-    backtrace = Macro.Env.stacktrace(env)
-    IO.warn message, backtrace
-  end
-
-  defp do_defguard(call, _name, args, impl, env) do
-    {^args, refs} = extract_refs_from_args(args)
-    _valid? = :elixir_expand.expand(impl, %{env | context: :guard, vars: refs})
-    expr = Kernel.Utils.defguard(impl, refs)
-    define(:defmacro, call, [do: expr], env)
   end
 
   defp extract_refs_from_args(args) do
