@@ -89,7 +89,7 @@ defmodule IEx.Helpers do
       Code.delete_path(consolidation)
       purge_protocols(consolidation)
 
-      result = Mix.Task.run("compile")
+      {result, _} = Mix.Task.run("compile")
 
       # Reenable consolidation and allow them to be loaded.
       Code.prepend_path(consolidation)
