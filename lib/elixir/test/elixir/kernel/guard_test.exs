@@ -3,23 +3,15 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.GuardTest do
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureIO
-
   describe "Kernel.defguard usage" do
 
     test "successfully defines guard" do
       defmodule Success, do: defguard foo(bar, baz) when bar + baz
     end
 
-    test "doesn't obscure unused variables" do
-      assert capture_io(:stderr, fn ->
-        defmodule UnusedVariable, do: defguard foo(bar, baz) when bar
-      end) =~ ~r"variable (.*?) is unused"
-    end
-
     test "doesn't unquote unspecified variables" do
       assert_raise CompileError, ~r"undefined function", fn ->
-        defmodule UnspecifiedVariable, do: defguard foo(bar, baz) when foo + bar + fizzbuzz
+        defmodule UnspecifiedVariable, do: defguard foo(bar, baz) when bar + fizzbuzz()
       end
     end
 
@@ -64,13 +56,6 @@ defmodule Kernel.GuardTest do
 
     test "handles overriding appropriately" do
 
-      assert capture_io(:stderr, fn ->
-        defmodule OverridenImportUsage do
-          import Record
-          defguard is_record(baz) when baz
-        end
-      end) =~ "unused import Record"
-
       assert_raise CompileError, ~r"defmacro (.*?) already defined as def", fn ->
         defmodule OverridenFunUsage do
           def foo(bar), do: bar
@@ -92,26 +77,6 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert capture_io(:stderr, fn ->
-        defmodule OverridenMacroUsage do
-          defmacro foo(bar), do: bar == :bar
-          defguard foo(baz) when baz == :baz
-        end
-      end) =~ ~r"this clause cannot match because a previous clause (.*?) always matches"
-
-      assert capture_io(:stderr, fn ->
-        defmodule OverridenGuardUsage do
-          defguard foo(baz) when baz == :baz
-          defmacro foo(bar), do: bar == :bar
-        end
-      end) =~ ~r"this clause cannot match because a previous clause (.*?) always matches"
-
-    end
-
-    test "warns without an implementation" do
-      assert capture_io(:stderr, fn ->
-        defmodule ImplementationlessUsage, do: defguard foo(bar)
-      end) =~ "implementation not provided for predefined defguard"
     end
 
     test "does not accept a block" do
