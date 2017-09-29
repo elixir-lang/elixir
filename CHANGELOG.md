@@ -156,6 +156,36 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
+## v1.5.2 (2017-09-29)
+
+### 1. Enhacements
+
+#### Elixir
+
+  * [Kernel] Optimize function definition with multiple clauses by not traversing the internal clauses table
+  * [Kernel] Warn if unary operators are followed by new lines
+  * [Registry] Use the name of the Registry as its `:id` in the `child_spec/1` function
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [DateTime] Fix negative microsecond result when passing negative Unix epochs to `from_unix/2`
+  * [Kernel] Improve error message for oversized atoms
+  * [Kernel] Ensure `@impl` attribute also propagates to clauses from default arguments
+  * [Kernel] Emit proper error for unknown vars inside binary pattern in match
+
+#### IEx
+
+  * [IEx] Do not crash IEx unexpectedly on `System.stop/0`
+  * [IEx.Helpers] Ensure exiting a breakpoint set inside a breakpoint does not terminate the shell unexpectedly
+
+#### Mix
+
+  * [mix local.hex] Ensure `--if-missing` flag works as advertised
+  * [mix test] Do not trigger additional error reports when there is a failure when loading test files
+  * [Mix.SCM.Git] Ensure errors when invoking `git` propagate correctly
+
 ## v1.5.1 (2017-08-01)
 
 ### 1. Enhancements
@@ -171,7 +201,7 @@ This release brings further improvements to Calendar types. It adds arithmetic a
 
 #### Mix
 
-  * [mix profile.*] Allow profile tasks to run without a project
+  * [mix profile] Allow profile tasks to run without a project
 
 ### 2. Bug fixes
 
