@@ -219,8 +219,8 @@ defmodule Mix.Tasks.Profile.Eprof do
 
   defp format_row({{module, function, arity}, {count, time}}, total_time) do
     mfa = Exception.format_mfa(module, function, arity)
-    time_percentage = :erlang.float_to_binary(100 * time / total_time, [{:decimals, 2}])
-    time_per_call = :erlang.float_to_binary(time / count, [{:decimals, 2}])
+    time_percentage = :erlang.float_to_binary(100 * divide(time, total_time), [{:decimals, 2}])
+    time_per_call = :erlang.float_to_binary(divide(time, count), [{:decimals, 2}])
     count = Integer.to_string(count)
     time = Integer.to_string(time)
 
@@ -228,10 +228,13 @@ defmodule Mix.Tasks.Profile.Eprof do
   end
 
   defp format_total(total_time, total_count) do
-    time_per_call = :erlang.float_to_binary(total_time / total_count, [{:decimals, 2}])
+    time_per_call = :erlang.float_to_binary(divide(total_time, total_count), [{:decimals, 2}])
 
     ["Total", Integer.to_string(total_count), "100.00", Integer.to_string(total_time), time_per_call]
   end
+
+  defp divide(_, 0), do: 0.0
+  defp divide(t, n), do: t / n
 
   defp column_lengths(header, rows) do
     max_lengths = Enum.map(header, &String.length/1)
