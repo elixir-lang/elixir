@@ -32,4 +32,4 @@ This document simply outlines the release process:
 
 * VERSION
 * CHANGELOG.md
-* src/elixir.app.src (not lib/elixir/src/elixir.app.src)
+* lib/elixir/src/elixir.app.src
