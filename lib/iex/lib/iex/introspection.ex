@@ -163,7 +163,7 @@ defmodule IEx.Introspection do
         Application.app_dir(app, rewrite_source(source))
       _ ->
         beam_path = :code.which(module)
-        if List.starts_with?(beam_path, :code.root_dir()) do
+        if is_list(beam_path) and List.starts_with?(beam_path, :code.root_dir()) do
           app_vsn = beam_path |> Path.dirname() |> Path.dirname() |> Path.basename()
 
           Path.join([:code.root_dir(), "lib", app_vsn, rewrite_source(source)])

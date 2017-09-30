@@ -241,6 +241,13 @@ defmodule IEx.HelpersTest do
              "Could not open: :httpc.request/10. Function/macro is not available."
     end
 
+    test "errors if module is in-memory" do
+      assert capture_iex("defmodule Foo, do: nil ; open(Foo)") =~
+             ~r"Invalid arguments for open helper:"
+    after
+      cleanup_modules([Foo])
+    end
+
     test "opens the current pry location" do
       assert capture_iex("open()", [], env: %{__ENV__ | line: 3}) |> maybe_trim_quotes() ==
              "#{__ENV__.file}:3"
