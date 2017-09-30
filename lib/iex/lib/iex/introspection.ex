@@ -113,19 +113,27 @@ defmodule IEx.Introspection do
 
   defp open_mfa(module, fun, arity) do
     with {:module, _} <- Code.ensure_loaded(module),
-         source when is_list(source) <- module.module_info(:compile)[:source] do
-      source = rewrite_source(module, source)
-      open_abstract_code(module, fun, arity, source)
+         beam_path when is_list(beam_path) <- :code.which(module),
+         source_path when is_list(source_path) <- module.module_info(:compile)[:source] do
+      source_path = rewrite_source(module, source_path)
+      open_abstract_code(module, fun, arity, source_path, beam_path)
     else
-      _ -> :error
+      :preloaded ->
+        beam_path = :code.where_is_file(Atom.to_charlist(module) ++ :code.objfile_extension())
+        {:ok, source_path} = :filelib.find_source(beam_path)
+        open_abstract_code(module, fun, arity, List.to_string(source_path), beam_path)
+      :in_memory ->
+        source_path = module.module_info(:compile)[:source]
+        open_abstract_code(module, fun, arity, source_path, nil)
+      _ ->
+        :error
     end
   end
 
-  defp open_abstract_code(module, fun, arity, source) do
+  defp open_abstract_code(_module, fun, arity, source, beam_path) do
     fun = Atom.to_string(fun)
 
-    with beam when is_list(beam) <- :code.which(module),
-         {:ok, {_, [abstract_code: {:raw_abstract_v1, code}]}} <- :beam_lib.chunks(beam, [:abstract_code]) do
+    with {:ok, {_, [abstract_code: {:raw_abstract_v1, code}]}} <- :beam_lib.chunks(beam_path, [:abstract_code]) do
       {_, module_pair, fa_pair} =
         Enum.reduce(code, {source, nil, nil}, &open_abstract_code_reduce(&1, &2, fun, arity))
       {source, module_pair, fa_pair}

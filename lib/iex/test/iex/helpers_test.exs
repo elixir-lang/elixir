@@ -128,6 +128,7 @@ defmodule IEx.HelpersTest do
     {:ok, vsn} = :application.get_key(:stdlib, :vsn)
     @lists_erl "lib/stdlib-#{vsn}/src/lists.erl"
     @httpc_erl "src/http_client/httpc.erl"
+    @init_erl "src/init.erl"
     @editor System.get_env("ELIXIR_EDITOR")
 
     test "opens __FILE__ and __LINE__" do
@@ -214,9 +215,19 @@ defmodule IEx.HelpersTest do
              ~r/#{@httpc_erl}:\d+$/
     end
 
-    test "errors OTP preloaded module" do
-      assert capture_iex("open(:init)") ==
-             "Could not open: :init. Module is not available."
+    test "opens OTP preloaded module" do
+      assert capture_iex("open(:init)") |> maybe_trim_quotes() =~
+             ~r/#{@init_erl}:\d+$/
+    end
+
+    test "opens OTP preloaded module.function" do
+      assert capture_iex("open(:init.get_status)") |> maybe_trim_quotes() =~
+             ~r/#{@init_erl}:\d+$/
+    end
+
+    test "opens OTP preloaded module.function/arity" do
+      assert capture_iex("open(:init.get_status/0)") |> maybe_trim_quotes() =~
+             ~r/#{@init_erl}:\d+$/
     end
 
     test "errors if module is not available" do
@@ -233,6 +244,8 @@ defmodule IEx.HelpersTest do
              "Could not open: :lists.unknown. Function/macro is not available."
       assert capture_iex("open(:httpc.unknown)") ==
              "Could not open: :httpc.unknown. Function/macro is not available."
+      assert capture_iex("open(:init.unknown)") ==
+             "Could not open: :init.unknown. Function/macro is not available."
     end
 
     test "errors if module.function/arity is not available" do
@@ -244,6 +257,8 @@ defmodule IEx.HelpersTest do
              "Could not open: :lists.reverse/10. Function/macro is not available."
       assert capture_iex("open(:httpc.request/10)") ==
              "Could not open: :httpc.request/10. Function/macro is not available."
+      assert capture_iex("open(:init.get_status/10)") ==
+             "Could not open: :init.get_status/10. Function/macro is not available."
     end
 
     test "errors if module is in-memory" do
