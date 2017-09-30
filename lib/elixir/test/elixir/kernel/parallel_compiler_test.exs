@@ -90,6 +90,44 @@ defmodule Kernel.ParallelCompilerTest do
         :code.delete(WarningsSample)
       end
     end
+
+    test "does not use incorrect line number when error originates in another file" do
+      file_a = tmp_path("error_line_a.ex")
+      File.write!(file_a, """
+      defmodule A do
+        def fun(arg), do: arg / 2
+      end
+      """)
+
+      file_b = tmp_path("error_line_b.ex")
+      File.write!(file_b, """
+      defmodule B do
+        def fun(arg) do
+          A.fun(arg)
+          :ok
+        end
+      end
+      B.fun(:not_a_number)
+      """)
+
+      capture_io(fn ->
+        assert {:error, [{^file_b, nil, _}], _} =
+          Kernel.ParallelCompiler.compile([file_a, file_b])
+      end)
+    end
+
+    test "gets correct line number for UndefinedFunctionError" do
+      file = tmp_path("undef_error.ex")
+      File.write!(file, """
+      defmodule UndefErrorLine do
+        Bogus.fun()
+      end
+      """)
+
+      capture_io(fn ->
+        assert {:error, [{^file, 2, _}], _} = Kernel.ParallelCompiler.compile([file])
+      end)
+    end
   end
 
   describe "require" do
