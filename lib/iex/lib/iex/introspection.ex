@@ -120,8 +120,12 @@ defmodule IEx.Introspection do
     else
       :preloaded ->
         beam_path = :code.where_is_file(Atom.to_charlist(module) ++ :code.objfile_extension())
-        {:ok, source_path} = :filelib.find_source(beam_path)
-        open_abstract_code(module, fun, arity, List.to_string(source_path), beam_path)
+        case :filelib.find_source(beam_path) do
+          {:ok, source_path} ->
+            open_abstract_code(module, fun, arity, List.to_string(source_path), beam_path)
+          _ ->
+            :error
+        end
       :in_memory ->
         source_path = module.module_info(:compile)[:source]
         open_abstract_code(module, fun, arity, source_path, nil)
