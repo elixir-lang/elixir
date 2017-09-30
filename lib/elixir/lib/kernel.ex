@@ -4308,15 +4308,22 @@ defmodule Kernel do
       end
 
       defmodule Collatz do
-        @moduledoc "Tools for working with the Collatz Conjecture."
+        @moduledoc "Tools for working with the Collatz sequence."
         import Integer.Guards
 
         @doc "Determines the number of steps `n` takes to reach `1`."
-        def steps(n) when n > 0, do: steps(n, 0)
+        # If this function never converges, please let me know what `n` you used.
+        def converge(n) when n > 0, do: step(n, 0)
 
-        defp step(1, step_count), do: step_count
-        defp step(n, step_count) when is_even(n), do: step(div(n, 2), step_count + 1)
-        defp step(n, step_count), do: step(3*n + 1, step_count + 1)
+        defp step(1, step_count) do
+          step_count
+        end
+        defp step(n, step_count) when is_even(n) do
+          step(div(n, 2), step_count + 1)
+        end
+        defp step(n, step_count) do
+          step(3*n + 1, step_count + 1)
+        end
       end
 
   """
@@ -4325,20 +4332,32 @@ defmodule Kernel do
     define_guard(:defmacro, guard, __CALLER__)
   end
 
+  @doc """
+  Generates a private macro suitable for use in guard expressions.
+
+  It raises at compile time if the definition uses expressions that aren't
+  allowed in guards, and otherwise creates a private macro that can be used both inside
+  or outside guards.
+
+  """
   @spec defguardp(Macro.t) :: Macro.t | no_return
   defmacro defguardp(guard) do
     define_guard(:defmacrop, guard, __CALLER__)
   end
 
   defp define_guard(kind, guard, env) do
-    {call, impl} = :elixir_utils.extract_guards(guard)
-    case Macro.decompose_call(call) do
-      {_name, args} ->
-        {^args, refs} = extract_refs_from_args(args)
-        _valid? = :elixir_expand.expand(impl, %{env | context: :guard, vars: refs})
-        expr = Kernel.Utils.defguard(impl, refs)
-        define(kind, call, [do: expr], env)
-      _invalid_definition ->
+    case :elixir_utils.extract_guards(guard) do
+      {call, impl} when length(impl) < 2 ->
+        case Macro.decompose_call(call) do
+          {_name, args} ->
+            {^args, refs} = extract_refs_from_args(args)
+            _valid? = :elixir_expand.expand(impl, %{env | context: :guard, vars: refs})
+            expr = Kernel.Utils.defguard(impl, refs)
+            define(kind, call, [do: expr], env)
+          _invalid_definition ->
+            raise ArgumentError, message: "invalid syntax in defguard #{Macro.to_string call}"
+        end
+      {call, _multiple_impls} ->
         raise ArgumentError, message: "invalid syntax in defguard #{Macro.to_string call}"
     end
   end

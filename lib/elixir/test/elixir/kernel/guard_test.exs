@@ -16,12 +16,6 @@ defmodule Kernel.GuardTest do
       end
     end
 
-    test "doesn't unquote unspecified variables" do
-      assert_raise CompileError, ~r"undefined function", fn ->
-        defmodule UnspecifiedVariable, do: defguard foo(bar, baz) when bar + fizzbuzz()
-      end
-    end
-
     test "defguard defines guards that work inside and outside guard clauses" do
       defmodule Integer.Guards do
         defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
@@ -147,6 +141,14 @@ defmodule Kernel.GuardTest do
         end
       end
 
+    end
+
+    test "does not allow multiple guard clauses" do
+      assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
+        defmodule MultiGuardUsage do
+          defguardp foo(bar, baz) when bar == 1 when baz == 2
+        end
+      end
     end
 
     test "does not accept a block" do
