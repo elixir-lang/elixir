@@ -18,7 +18,7 @@ defmodule Agent do
       defmodule Mix.TasksServer do
         use Agent
 
-        def start_link do
+        def start_link(_) do
           Agent.start_link(fn -> MapSet.new end, name: __MODULE__)
         end
 
