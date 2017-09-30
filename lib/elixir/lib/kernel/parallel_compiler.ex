@@ -410,13 +410,29 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp to_error(file, kind, reason, stack) do
+    line = get_line(file, reason, stack)
     file = Path.absname(file)
-    line = get_line(reason, stack)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
     {file, line, message}
   end
 
-  defp get_line(%{line: line}, _stack) when is_integer(line) and line > 0, do: line
-  defp get_line(_reason, [{_, _, _, info} | _]), do: Keyword.get(info, :line)
-  defp get_line(_reason, _stack), do: nil
+  defp get_line(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
+    line
+  end
+
+  defp get_line(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
+    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
+      Keyword.get(info, :line)
+    end
+  end
+
+  defp get_line(file, _reason, [{_, _, _, info} | _]) do
+    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
+      Keyword.get(info, :line)
+    end
+  end
+
+  defp get_line(_, _, _) do
+    nil
+  end
 end
