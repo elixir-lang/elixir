@@ -115,7 +115,7 @@ defmodule Logger do
       is evaluated even if the level of the call is lower than
       `:level`. For this reason, messages that are expensive to
       compute should be wrapped in 0-arity anonymous functions that are
-      evaluated only when the `:label` option demands it.
+      evaluated only when the `:level` option demands it.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e., it defaults to `false`).
