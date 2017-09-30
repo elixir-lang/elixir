@@ -214,6 +214,11 @@ defmodule IEx.HelpersTest do
              ~r/#{@httpc_erl}:\d+$/
     end
 
+    test "errors OTP preloaded module" do
+      assert capture_iex("open(:init)") ==
+             "Could not open: :init. Module is not available."
+    end
+
     test "errors if module is not available" do
       assert capture_iex("open(:unknown)") ==
              "Could not open: :unknown. Module is not available."
