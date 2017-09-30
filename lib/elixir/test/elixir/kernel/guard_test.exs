@@ -16,6 +16,83 @@ defmodule Kernel.GuardTest do
       end
     end
 
+    test "guards can be used in other macros in the same module" do
+      defmodule Guards.In.Macros do
+        defguard is_foo(atom) when atom == :foo
+        defmacro is_foobar(atom) when is_foo(atom) do
+          quote bind_quoted: [atom: atom], do: is_foo(atom)
+        end
+      end
+    end
+
+    test "guards can be used in other funs in the same module" do
+      defmodule Guards.In.Funs do
+        defguard is_foo(atom) when atom == :foo
+        def is_foobar(atom) when is_foo(atom) do
+          is_foo(atom)
+        end
+      end
+    end
+
+    test "funs can be used in other guards in the same module" do
+      defmodule Funs.In.Guards do
+        def is_foo(atom), do: atom == :foo
+        defguard is_foobar(atom) when is_foo(atom) or atom == :bar
+      end
+    end
+
+    test "macros can be used in other guards in the same module" do
+      defmodule Macros.In.Guards do
+        defmacro is_foo(atom) do
+          quote do
+            case Macro.Env.in_guard?(__CALLER__) do
+              true -> unquote(atom) == :foo
+              false -> atom = unquote(atom)
+                       atom == :foo
+            end
+          end
+        end
+        defguard is_foobar(atom) when is_foo(atom) or atom == :bar
+      end
+    end
+
+    test "guards can be used in other guards in the same module" do
+      defmodule Guards.In.Guards do
+        defguard is_foo(atom) when atom == :foo
+        defguard is_foobar(atom) when is_foo(atom) or atom == :bar
+      end
+    end
+
+    # The below works––and is supposed to be equivalent to the above.
+    # However it doesn't look like any defguard is getting enough context about
+    # the caller env to recognize that the above 3 cases should be valid,
+    # raising CompileError undefined function is_foo/1.
+    # I suspect that inaccurate information is being provided to :elixir_expand.expand/2,
+    # making it think these are remote, rather than local, calls, based on the backtrace
+    # through :elixir_expand.expand_remote/7.
+    test "macros can be used in other macros" do
+      defmodule Macros.In.Macros do
+        defmacro is_foo(atom) do
+          quote do
+            case Macro.Env.in_guard?(__CALLER__) do
+              true -> unquote(atom) == :foo
+              false -> atom = unquote(atom)
+                       atom == :foo
+            end
+          end
+        end
+        defmacro is_foobar(atom) do
+          quote do
+            case Macro.Env.in_guard?(__CALLER__) do
+              true -> is_foo(unquote(atom)) or unquote(atom) == :bar
+              false -> atom = unquote(atom)
+                       is_foo(atom) or atom == :bar
+            end
+          end
+        end
+      end
+    end
+
     test "permits default values in args" do
       defmodule Default.Args do
         defguard is_divisible(value, remainder \\ 2)

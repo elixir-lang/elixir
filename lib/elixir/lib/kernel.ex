@@ -4354,7 +4354,7 @@ defmodule Kernel do
             {^args, refs} = extract_refs_from_args(args)
             _valid? = :elixir_expand.expand(impl, %{env | context: :guard, vars: refs})
             expr = Kernel.Utils.defguard(impl, refs)
-            define(kind, call, [do: expr], %{env | context: :guard})
+            define(kind, call, [do: expr], env)
           _invalid_definition ->
             raise ArgumentError, message: "invalid syntax in defguard #{Macro.to_string call}"
         end
