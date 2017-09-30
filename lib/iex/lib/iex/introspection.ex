@@ -114,7 +114,7 @@ defmodule IEx.Introspection do
   defp open_mfa(module, fun, arity) do
     with {:module, _} <- Code.ensure_loaded(module),
          source when is_list(source) <- module.module_info(:compile)[:source] do
-      source = rewrite_elixir_source(module, source)
+      source = rewrite_source(module, source)
       open_abstract_code(module, fun, arity, source)
     else
       _ -> :error
@@ -137,12 +137,6 @@ defmodule IEx.Introspection do
 
   defp open_abstract_code_reduce(entry, {file, module_pair, fa_pair}, fun, arity) do
     case entry do
-      {:attribute, _, :file, {ann_file, _}} ->
-        if Path.type(ann_file) == :absolute do
-          {List.to_string(ann_file), module_pair, fa_pair}
-        else
-          {file, module_pair, fa_pair}
-        end
       {:attribute, ann, :module, _} ->
         {file, {file, :erl_anno.line(ann)}, fa_pair}
       {:function, ann, ann_fun, ann_arity, _} ->
@@ -159,19 +153,33 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp rewrite_elixir_source(module, source) do
-    case :application.get_application(module) do
-      {:ok, app} when app in [:eex, :elixir, :ex_unit, :iex, :logger, :mix] ->
-        {in_app, [lib_or_src | _]} =
-          source
-          |> Path.split()
-          |> Enum.reverse()
-          |> Enum.split_while(& &1 not in ["lib", "src"])
+  @elixir_apps ~w(eex elixir ex_unit iex logger mix)a
+  @otp_apps ~w(kernel stdlib)a
+  @apps @elixir_apps ++ @otp_apps
 
-        Application.app_dir(app, Path.join([lib_or_src | Enum.reverse(in_app)]))
+  defp rewrite_source(module, source) do
+    case :application.get_application(module) do
+      {:ok, app} when app in @apps ->
+        Application.app_dir(app, rewrite_source(source))
       _ ->
-        List.to_string(source)
+        beam_path = :code.which(module)
+
+        if is_list(beam_path) and List.starts_with?(beam_path, :code.root_dir()) do
+          app_vsn = beam_path |> Path.dirname() |> Path.dirname() |> Path.basename()
+          Path.join([:code.root_dir(), "lib", app_vsn, rewrite_source(source)])
+        else
+          List.to_string(source)
+        end
     end
+  end
+
+  defp rewrite_source(source) do
+    {in_app, [lib_or_src | _]} =
+      source
+      |> Path.split()
+      |> Enum.reverse()
+      |> Enum.split_while(& &1 not in ["lib", "src"])
+    Path.join([lib_or_src | Enum.reverse(in_app)])
   end
 
   @doc """

@@ -125,6 +125,9 @@ defmodule IEx.HelpersTest do
   describe "open" do
     @iex_helpers "iex/lib/iex/helpers.ex"
     @elixir_erl "elixir/src/elixir.erl"
+    {:ok, vsn} = :application.get_key(:stdlib, :vsn)
+    @lists_erl "lib/stdlib-#{vsn}/src/lists.erl"
+    @httpc_erl "src/http_client/httpc.erl"
     @editor System.get_env("ELIXIR_EDITOR")
 
     test "opens __FILE__ and __LINE__" do
@@ -181,6 +184,41 @@ defmodule IEx.HelpersTest do
              ~r/#{@elixir_erl}:\d+$/
     end
 
+    test "opens OTP lists module" do
+      assert capture_iex("open(:lists)") |> maybe_trim_quotes() =~
+             ~r/#{@lists_erl}:\d+$/
+    end
+
+    test "opens OTP lists module.function" do
+      assert capture_iex("open(:lists.reverse)") |> maybe_trim_quotes() =~
+             ~r/#{@lists_erl}:\d+$/
+    end
+
+    test "opens OTP lists module.function/arity" do
+      assert capture_iex("open(:lists.reverse/1)") |> maybe_trim_quotes() =~
+             ~r/#{@lists_erl}:\d+$/
+    end
+
+    test "opens OTP httpc module" do
+      assert capture_iex("open(:httpc)") |> maybe_trim_quotes() =~
+             ~r/#{@httpc_erl}:\d+$/
+    end
+
+    test "opens OTP httpc module.function" do
+      assert capture_iex("open(:httpc.request)") |> maybe_trim_quotes() =~
+             ~r/#{@httpc_erl}:\d+$/
+    end
+
+    test "opens OTP httpc module.function/arity" do
+      assert capture_iex("open(:httpc.request/1)") |> maybe_trim_quotes() =~
+             ~r/#{@httpc_erl}:\d+$/
+    end
+
+    test "errors OTP preloaded module" do
+      assert capture_iex("open(:init)") ==
+             "Could not open: :init. Module is not available."
+    end
+
     test "errors if module is not available" do
       assert capture_iex("open(:unknown)") ==
              "Could not open: :unknown. Module is not available."
@@ -191,6 +229,10 @@ defmodule IEx.HelpersTest do
              "Could not open: :unknown.unknown. Module is not available."
       assert capture_iex("open(:elixir.unknown)") ==
              "Could not open: :elixir.unknown. Function/macro is not available."
+      assert capture_iex("open(:lists.unknown)") ==
+             "Could not open: :lists.unknown. Function/macro is not available."
+      assert capture_iex("open(:httpc.unknown)") ==
+             "Could not open: :httpc.unknown. Function/macro is not available."
     end
 
     test "errors if module.function/arity is not available" do
@@ -198,6 +240,17 @@ defmodule IEx.HelpersTest do
              "Could not open: :unknown.start/10. Module is not available."
       assert capture_iex("open(:elixir.start/10)") ==
              "Could not open: :elixir.start/10. Function/macro is not available."
+      assert capture_iex("open(:lists.reverse/10)") ==
+             "Could not open: :lists.reverse/10. Function/macro is not available."
+      assert capture_iex("open(:httpc.request/10)") ==
+             "Could not open: :httpc.request/10. Function/macro is not available."
+    end
+
+    test "errors if module is in-memory" do
+      assert capture_iex("defmodule Foo, do: nil ; open(Foo)") =~
+             ~r"Invalid arguments for open helper:"
+    after
+      cleanup_modules([Foo])
     end
 
     test "opens the current pry location" do
