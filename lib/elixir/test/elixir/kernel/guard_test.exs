@@ -3,7 +3,7 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.GuardTest do
   use ExUnit.Case, async: true
 
-  describe "Kernel.defguard usage" do
+  describe "Kernel.defguard(p) usage" do
 
     test "successfully defines guard" do
       defmodule Success, do: defguard foo(bar, baz) when bar + baz
@@ -14,6 +14,41 @@ defmodule Kernel.GuardTest do
         defguardp foo(bar, baz) when bar + baz
         def fizz(a, b) when foo(a, b), do: :buzz
       end
+    end
+
+    test "permits default values in args" do
+      defmodule Default.Args do
+        defguard is_divisible(value, remainder \\ 2)
+          when is_integer(value) and rem(value, remainder) == 0
+      end
+    end
+
+    test "doesn't allow matching in args" do
+
+      assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
+        defmodule Integer.Args do
+          defguard foo(value, 1) when is_integer(value)
+        end
+      end
+
+      assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
+        defmodule String.Args do
+          defguard foo(value, "string") when is_integer(value)
+        end
+      end
+
+      assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
+        defmodule Atom.Args do
+          defguard foo(value, :atom) when is_integer(value)
+        end
+      end
+
+      assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
+        defmodule Tuple.Args do
+          defguard foo(value, {foo, bar}) when is_integer(value)
+        end
+      end
+
     end
 
     test "defguard defines guards that work inside and outside guard clauses" do

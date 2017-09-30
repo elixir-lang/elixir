@@ -4350,16 +4350,28 @@ defmodule Kernel do
       {call, impl} when length(impl) < 2 ->
         case Macro.decompose_call(call) do
           {_name, args} ->
+            validate_variable_only_args!(call, args)
             {^args, refs} = extract_refs_from_args(args)
             _valid? = :elixir_expand.expand(impl, %{env | context: :guard, vars: refs})
             expr = Kernel.Utils.defguard(impl, refs)
-            define(kind, call, [do: expr], env)
+            define(kind, call, [do: expr], %{env | context: :guard})
           _invalid_definition ->
             raise ArgumentError, message: "invalid syntax in defguard #{Macro.to_string call}"
         end
       {call, _multiple_impls} ->
         raise ArgumentError, message: "invalid syntax in defguard #{Macro.to_string call}"
     end
+  end
+
+  defp validate_variable_only_args!(call, args) do
+    Enum.each(args, fn
+      {ref, _meta, context}
+        when is_atom(ref) and is_atom(context) -> :ok
+      {:\\, _m1, [{ref, _m2, context}, _default]}
+        when is_atom(ref) and is_atom(context) -> :ok
+      _match ->
+        raise ArgumentError, message: "invalid syntax in defguard #{Macro.to_string call}"
+    end)
   end
 
   defp extract_refs_from_args(args) do
