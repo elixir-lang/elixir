@@ -44,16 +44,20 @@ defmodule Supervisor do
   and to get the top of the stack by pattern matching.
 
   We can now start a supervisor that will start and supervise our
-  stack process as follows:
+  stack process. The first step is to define a list of **child
+  specifications** that control how each child behaves. Each child
+  specification is a map, as shown below:
 
-      # Start the supervisor with the stack as a single child.
-      #
-      # The first element of the tuple is the module containing
-      # the child implementation, the second is the argument
-      # given to start_link, in this case a stack with `:hello`.
-      {:ok, pid} = Supervisor.start_link([
-        {Stack, [:hello]}
-      ], strategy: :one_for_one)
+      children = [
+        # The Stack is a child started via Stack.start_link([:hello])
+        %{
+          id: Stack,
+          start: {Stack, :start_link, [[:hello]]}
+        }
+      ]
+
+      # Now we start the supervisor with the children and a strategy
+      {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
       # After started, we can query the supervisor for information
       Supervisor.count_children(pid)
@@ -93,57 +97,92 @@ defmodule Supervisor do
   The rest of this document will cover how child processes are started,
   how they can be specified, different supervision strategies and more.
 
-  ## The initialization process
+  ## child_spec/1
 
-  In the previous section, we have started a supervisor with one child:
+  When starting a supervisor, we pass a list of child specifications.
+  Those specifications are maps that tell how the supervisor should
+  start, stop and restart each of its children:
 
-      Supervisor.start_link([
+      %{
+        id: Stack,
+        start: {Stack, :start_link, [[:hello]]}
+      }
+
+  The map above defines a supervisor with `:id` of `Stack` that is started
+  by calling `Stack.start_link([:hello])`. There are other options we can
+  set in the specification and we will explore those in the next sections.
+
+  For now, however, we want to clarify that specifying the child specification
+  for each child as a map is repetitive and error prone. That's why Elixir
+  allows you to simply pass the module name or a tuple with the module name
+  and the `start_link` argument instead of the child specification:
+
+      children = [
         {Stack, [:hello]}
-      ], strategy: :one_for_one)
+      ]
 
-  The first argument given to `start_link` is a list of children.
-  In the example above, we have passed a tuple, where the child is
-  implemented by the `Stack` module and receives an initial argument
-  of `[:hello]` on `Stack.start_link/1`.
+  In this case, the supervisor will invoke `Stack.child_spec([:hello])` which
+  then returns the child specification. It is also possible to simply pass the
+  `Stack` module as a child:
 
-  Generally speaking, starting the child process happens in three steps:
+      children = [
+        Stack # equivalent to {Stack, []}
+      ]
 
-    1. First the supervisor calls `Stack.child_spec([:hello])`. This
-       function must return a **child specification** which describes
-       how the `Stack` process is supervised. When you `use GenServer`,
-       a `child_spec/1` is automatically defined for you but we will see
-       when and how it can be configured. This function is called once
-       when the supervisor starts (or in case of hot code upgrades).
+  The advantage of this approach is that you can now share your `Stack` service
+  with other developers and they can add it directly to their supervision tree
+  without worrying about the low-level details of the service.
 
-    2. The **child specification** tells the supervisor which function
-       to invoke to start the child process. By default, it is the
-       `start_link/1` function, receiving the same argument and defined
-       in the same module as the `child_spec/1` function. This function
-       is called every time a new child process is necessary. For example,
-       when we crashed a `Stack` in the previous session,
-       `Stack.start_link([:hello])` was called once more to start a new stack.
+  In case you need to access or modify how a service runs, you can use the
+  `child_spec/2` function defined in this module. To run the stack with a different
+  `:id`:
 
-    3. Finally, `Stack.start_link/1` starts a new process that runs
-      `Stack.init/1`, which is responsible for setting a process that
-       will react to messages.
+      children = [
+        Supervisor.child_spec({Stack, [:hello]}, id: MyStack)
+      ]
 
-  In summary, when the `Supervisor.start_link(children, opts)` is called,
-  it traverses the list of children and retrieves their `child_spec/1`.
-  Then each child specification describes how each child is started,
-  typically via the `start_link/1` function. After the supervisor process
-  starts, it starts each child process in the order they are defined. Each
-  child process typically executes the `init` callback as its first step.
-  The `init` callback is where we initialize and configure the child process.
+  We can see the child specification the call above returns:
 
-  ## The shutdown process
+      Supervisor.child_spec({Stack, [:hello]}, id: MyStack)
+      #=> %{id: MyStack, start: {Stack, :start_link, [[:hello]]}}
+
+  The `child_spec/1` function was automatically defined in our `Stack` module
+  by `use GenServer`. You can also configure the GenServer to use a different
+  `:id` or to use a `:shutdown` value of 10 seconds (10_000 milliseconds) when
+  the `Stack` is defined:
+
+      use GenServer, id: MyStack
+      use GenServer, shutdown: 10_000
+
+  Let's learn more about how supervisors start and shutdown.
+
+  ## Start and shutdown
+
+  When the supervisor starts, it traverses all children and retrieves
+  each child specification. It is at this moment `{Stack, [:hello]}`
+  becomes a child specification by calling `Stack.child_spec([:hello])`.
+
+  Then the supervisor starts each child in the order they are defined.
+  This is done by calling the function defined under the `:start` key
+  in the child specification and typically defaults to `start_link/1`.
+
+  The `start_link/1` (or a custom) is then called for each child process.
+  The `start_link/1` function must return `{:ok, pid}` where `pid` is the
+  process identifier of a new process that is linked to the supervisor.
+  The child process usually starts its work by executing the `init/1`
+  callback. Generally speaking, the `init` callback is where we initialize
+  and configure the child process.
+
+  The shutdown process happens in reverse order.
 
   When a supervisor shuts down, it terminates all children in the opposite
   order they are listed. The termination happens by sending a shutdown exit
-  signal to the child process and then awaiting for a time interval, which
-  defaults to 5000 milliseconds, for the child process to terminate. If the
-  child process does not terminate, it is abruptly terminated with reason
-  `:brutal_kill`. The shutdown time can be configured in the child specification
-  which is detailed in the next section.
+  signal, via `Process.exit(child_pid, :shutdown)`, to the child process and
+  then awaiting for a time interval for the child process to terminate. This
+  interval defaults to 5000 milliseconds. If the child process does not
+  terminate in this interval, the supervisor abruptly terminates the child
+  with reason `:brutal_kill`. The shutdown time can be configured in the
+  child specification which is fully detailed in the next section.
 
   If the child process is not trapping exits, it will shutdown immediately
   when it receives the first exit signal. If the child process is trapping
@@ -157,21 +196,13 @@ defmodule Supervisor do
   the proper `:shutdown` value, ensuring it terminates within a reasonable
   interval.
 
+  Now that we understand the start and shutdown process, let's take a
+  complete look at all of the options provided in the child specification.
+
   ## Child specification
 
-  The child specification describes how the supervisor should start and
-  supervise a child process. We have learned that, when we invoked
-  `use GenServer`, a `Stack.child_spec/1` was automatically defined for
-  us. Let's invoke it and see what it returns:
-
-      Stack.child_spec([:hello])
-      #=> %{
-      #=>   id: Stack,
-      #=>   start: {Stack, :start_link, [[:hello]]},
-      #=>   restart: :permanent,
-      #=>   shutdown: 5000,
-      #=>   type: :worker
-      #=> }
+  The child specification describes how the supervisor start, shutdown and
+  restart child processes.
 
   The child specification contains 5 keys. The first two are required
   and the remaining ones are optional:
@@ -199,25 +230,14 @@ defmodule Supervisor do
   There is a sixth key, called `:modules`, which is rarely changed and
   it is set automatically based on the value in `:start`.
 
-  Most times, the behaviour module you are implementing will take care
-  of setting up a proper `child_spec/1` for you. For example, `use Supervisor`
-  will define a `child_spec/1` where the `:type` is set to `:supervisor`
-  and the `:shutdown` is `:infinity`. Still, if you need to customize
-  a certain behaviour, you can do so by defining your own `child_spec/1`
-  function or by passing options on `use`. For example, to specify a
-  `GenServer` with a shutdown limit of 10 seconds (10_000 milliseconds),
-  one might do:
-
-      use GenServer, shutdown: 10_000
-
   Let's understand what the `:shutdown` and `:restart` options control.
 
   ### Shutdown values (:shutdown)
 
   The following shutdown values are supported in the `:shutdown` option:
 
-    * `:brutal_kill` - the child process is unconditionally terminated
-      using `Process.exit(child, :kill)`.
+    * `:brutal_kill` - the child process is unconditionally and immediately
+      terminated using `Process.exit(child, :kill)`.
 
     * any integer >= 0 - the amount of time in milliseconds that the
       supervisor will wait for children to terminate after emitting a
@@ -256,7 +276,7 @@ defmodule Supervisor do
       `:normal`, `:shutdown` or `{:shutdown, term}`.
 
   For a more complete understanding of the exit reasons and their
-  impact, see the "Exit reasons" section next.
+  impact, see the "Exit reasons and restarts" section next.
 
   ## Exit reasons and restarts
 
@@ -348,20 +368,22 @@ defmodule Supervisor do
         {Stack, [:hello]}
       ], strategy: :one_for_one)
 
-  However, children can be specified in three different formats and
-  supervisors support different options. Let's formally define those.
+  Although we have mentioned that the supervisor automatically expands
+  `{Stack, [:hello]}` to a child specification by calling
+  `Stack.child_spec([:hello])`, we haven't formally defined all of the
+  arguments accepted by `start_link/2` and `init/2`. Let's rectify that
+  now.
 
   The first argument given to `start_link/2` is a list of children which may
   be either:
 
-    * a module - such as `Stack`. In this case, it is equivalent to passing
-      `{Stack, []}` (which means `Stack.child_spec/1` is invoked with an empty
-      keywords list)
+    * a map representing the child specification itself - as outlined in the
+      "Child specification" section
     * a tuple with a module as first element and the start argument as second -
-      such as `{Stack, [:hello]}`. When such format is used, the supervisor
-      will retrieve the child specification from the given module.
-    * a map representing the child specification itself - such as the child
-      specification map outlined in the previous section.
+      such as `{Stack, [:hello]}`. In this case, `Stack.child_spec([:hello])`
+      is called to retrieve the child specification
+    * a module - such as `Stack`. In this case, `Stack.child_spec([])`
+      is called to retrieve the child specification
 
   The second argument is a keyword list of options:
 
