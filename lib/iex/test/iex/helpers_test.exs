@@ -125,6 +125,7 @@ defmodule IEx.HelpersTest do
   describe "open" do
     @iex_helpers "iex/lib/iex/helpers.ex"
     @elixir_erl "elixir/src/elixir.erl"
+    @otp_erl "lib/erlang/lib/stdlib-3.4/src/math.erl"
     @editor System.get_env("ELIXIR_EDITOR")
 
     test "opens __FILE__ and __LINE__" do
@@ -181,6 +182,21 @@ defmodule IEx.HelpersTest do
              ~r/#{@elixir_erl}:\d+$/
     end
 
+    test "opens OTP module" do
+      assert capture_iex("open(:math)") |> maybe_trim_quotes() =~
+             ~r/#{@otp_erl}:\d+$/
+    end
+
+    test "opens OTP module.function" do
+      assert capture_iex("open(:math.pow)") |> maybe_trim_quotes() =~
+             ~r/#{@otp_erl}:\d+$/
+    end
+
+    test "opens OTP module.function/arity" do
+      assert capture_iex("open(:math.pow/2)") |> maybe_trim_quotes() =~
+             ~r/#{@otp_erl}:\d+$/
+    end
+
     test "errors if module is not available" do
       assert capture_iex("open(:unknown)") ==
              "Could not open: :unknown. Module is not available."
@@ -191,6 +207,8 @@ defmodule IEx.HelpersTest do
              "Could not open: :unknown.unknown. Module is not available."
       assert capture_iex("open(:elixir.unknown)") ==
              "Could not open: :elixir.unknown. Function/macro is not available."
+      assert capture_iex("open(:math.unknown)") ==
+             "Could not open: :math.unknown. Function/macro is not available."
     end
 
     test "errors if module.function/arity is not available" do
@@ -198,6 +216,8 @@ defmodule IEx.HelpersTest do
              "Could not open: :unknown.start/10. Module is not available."
       assert capture_iex("open(:elixir.start/10)") ==
              "Could not open: :elixir.start/10. Function/macro is not available."
+      assert capture_iex("open(:math.pow/10)") ==
+             "Could not open: :math.pow/10. Function/macro is not available."
     end
 
     test "opens the current pry location" do

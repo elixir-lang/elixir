@@ -114,7 +114,7 @@ defmodule IEx.Introspection do
   defp open_mfa(module, fun, arity) do
     with {:module, _} <- Code.ensure_loaded(module),
          source when is_list(source) <- module.module_info(:compile)[:source] do
-      source = rewrite_elixir_source(module, source)
+      source = rewrite_source(module, source)
       open_abstract_code(module, fun, arity, source)
     else
       _ -> :error
@@ -159,9 +159,19 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp rewrite_elixir_source(module, source) do
+  @elixir_apps ~w(eex elixir ex_unit iex logger mix)a
+  @otp_apps ~w(
+    asn1 common_test compiler cosEvent cosEventDomain cosFileTransfer
+    cosNotification cosProperty cosTime cosTransactions crypto debugger dialyzer
+    diameter edoc eldap erl_docgen erl_interface erts et eunit hipe ic inets
+    kernel megaco mnesia observer orber os_mon otp_mibs parsetools public_key
+    reltool runtime_tools sasl snmp ssh ssl stdlib syntax_tools tools wx xmerl
+  )a
+  @apps @elixir_apps ++ @otp_apps
+
+  defp rewrite_source(module, source) do
     case :application.get_application(module) do
-      {:ok, app} when app in [:eex, :elixir, :ex_unit, :iex, :logger, :mix] ->
+      {:ok, app} when app in @apps ->
         {in_app, [lib_or_src | _]} =
           source
           |> Path.split()
