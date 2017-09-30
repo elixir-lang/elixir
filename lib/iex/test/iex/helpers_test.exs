@@ -125,7 +125,7 @@ defmodule IEx.HelpersTest do
   describe "open" do
     @iex_helpers "iex/lib/iex/helpers.ex"
     @elixir_erl "elixir/src/elixir.erl"
-    @otp_erl "lib/erlang/lib/stdlib-3.4/src/math.erl"
+    @otp_erl "src/math.erl"
     @editor System.get_env("ELIXIR_EDITOR")
 
     test "opens __FILE__ and __LINE__" do
