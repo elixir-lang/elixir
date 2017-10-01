@@ -157,7 +157,7 @@ format_error({unloaded_module, Module}) ->
 format_error({scheduled_module, Module}) ->
   io_lib:format(
     "module ~ts is not loaded but was defined. This happens when you depend on "
-    "a module in the same context it is defined. For example:\n"
+    "a module in the same context in which it is defined. For example:\n"
     "\n"
     "    defmodule MyApp do\n"
     "      defmodule Mod do\n"
@@ -176,7 +176,7 @@ format_error({scheduled_module, Module}) ->
     "    end\n"
     "\n"
     "If the module is defined at the top-level and you are trying to "
-    "use it at the top-level, such is not supported by Elixir",
+    "use it at the top-level, this is not supported by Elixir",
     [inspect(Module)]);
 
 format_error({circular_module, Module}) ->
@@ -191,8 +191,8 @@ format_error({circular_module, Module}) ->
     "      end\n"
     "    end\n"
     "\n"
-    "In the example above, the new Supervisor conflicts with Elixir's. "
-    "This may be fixed by using the fully qualified name on definition:\n"
+    "In the example above, the new Supervisor conflicts with Elixir's Supervisor. "
+    "This may be fixed by using the fully qualified name in the definition:\n"
     "\n"
     "    defmodule MyApp.Supervisor do\n"
     "      use Supervisor\n"
