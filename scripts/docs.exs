@@ -4,11 +4,16 @@
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 
-    "Data Types": [
+    "Data & Behaviours": [
       Access,
       Atom,
       Base,
       Bitwise,
+      Calendar,
+      Calendar.ISO,
+      Date,
+      Date.Range,
+      DateTime,
       Enum,
       Exception,
       Float,
@@ -17,24 +22,16 @@
       List,
       Map,
       MapSet,
+      NaiveDateTime,
       Range,
       Record,
       Regex,
       Stream,
       String,
+      Time,
       Tuple,
       URI,
       Version,
-    ],
-
-    "Date & Time": [
-      Calendar,
-      Calendar.ISO,
-      Date,
-      Date.Range,
-      DateTime,
-      NaiveDateTime,
-      Time,
     ],
 
     "IO & System": [
@@ -49,6 +46,14 @@
       Port,
       StringIO,
       System,
+    ],
+
+    "Modules & Code": [
+      Code,
+      Kernel.ParallelCompiler,
+      Macro,
+      Macro.Env,
+      Module,
     ],
 
     "Processes & Applications": [
@@ -72,14 +77,6 @@
       List.Chars,
       Protocol,
       String.Chars,
-    ],
-
-    "Code": [
-      Code,
-      Kernel.ParallelCompiler,
-      Macro,
-      Macro.Env,
-      Module,
     ],
 
     "Deprecated": [
