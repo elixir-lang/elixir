@@ -1,6 +1,6 @@
 defmodule Behaviour do
   @moduledoc """
-  This module has been deprecated.
+  WARNING: this module is deprecated.
 
   Instead of `defcallback/1` and `defmacrocallback/1`, the `@callback` and
   `@macrocallback` module attributes can be used (respectively). See the
