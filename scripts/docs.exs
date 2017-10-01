@@ -40,14 +40,6 @@
       Time,
     ],
 
-    "Code": [
-      Code,
-      Kernel.ParallelCompiler,
-      Macro,
-      Macro.Env,
-      Module,
-    ],
-
     "IO & System": [
       File,
       File.Stat,
@@ -72,6 +64,14 @@
       Supervisor,
       Task,
       Task.Supervisor,
+    ],
+
+    "Code": [
+      Code,
+      Kernel.ParallelCompiler,
+      Macro,
+      Macro.Env,
+      Module,
     ],
 
     "Deprecated": [
