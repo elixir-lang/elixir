@@ -4,7 +4,7 @@
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 
-    "Data Types": [
+    "Data & Functions": [
       Access,
       Atom,
       Base,
@@ -19,8 +19,6 @@
       List,
       Map,
       MapSet,
-      Port,
-      Process,
       Protocol,
       Range,
       Record,
@@ -59,15 +57,17 @@
       IO.Stream,
       OptionParser,
       Path,
+      Port,
       StringIO,
       System,
     ],
 
-    "OTP": [
+    "Processes & Applications": [
       Agent,
       Application,
       GenServer,
       Node,
+      Process,
       Registry,
       Supervisor,
       Task,
