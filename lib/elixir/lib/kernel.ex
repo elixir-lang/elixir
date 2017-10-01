@@ -123,6 +123,23 @@ defmodule Kernel do
     * `Task` - a process that performs computations
     * `Task.Supervisor` - a supervisor for managing tasks exclusively
 
+  ### Supporting documents
+
+  Elixir documentation also includes supporting documents under the
+  "Pages" section. Those are:
+
+    * [Deprecations](deprecations.html) - lists all deprecated functions,
+      when they were deprecated and alternatives
+    * [Guards](guards.html) - lists all available guards and extensions
+    * [Naming Conventions](naming-conventions.html) - naming conventions
+      for Elixir code
+    * [Operators](operators.html) - lists all Elixir operators and their
+      precedence
+    * [Syntax Reference](syntax-reference.html) - the language syntax reference
+    * [Unicode Syntax](unicode-syntax.html) - outline Elixir support for Unicode
+    * [Writing Documentation](writing-documentation.html) - guidelines for
+      writing documentation in Elixir.
+
   ## Inlining
 
   Some of the functions described in this module are inlined by
