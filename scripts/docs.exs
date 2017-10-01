@@ -12,14 +12,11 @@
       Enum,
       Exception,
       Float,
-      Inspect.Algebra,
-      Inspect.Opts,
       Integer,
       Keyword,
       List,
       Map,
       MapSet,
-      Protocol,
       Range,
       Record,
       Regex,
@@ -64,6 +61,17 @@
       Supervisor,
       Task,
       Task.Supervisor,
+    ],
+
+    "Protocols": [
+      Collectable,
+      Enumerable,
+      Inspect,
+      Inspect.Algebra,
+      Inspect.Opts,
+      List.Chars,
+      Protocol,
+      String.Chars,
     ],
 
     "Code": [
