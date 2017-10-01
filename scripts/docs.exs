@@ -4,7 +4,7 @@
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 
-    "Data & Functions": [
+    "Data Types": [
       Access,
       Atom,
       Base,

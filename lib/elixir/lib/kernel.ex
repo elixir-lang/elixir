@@ -26,7 +26,7 @@ defmodule Kernel do
   cannot be skipped. These are described in `Kernel.SpecialForms`.
 
   This module provides a variety of code definition, flow-control
-  and data-type functionality. For example, new processes can be
+  and data type functionality. For example, new processes can be
   created with `spawn/1`, modules can be defined with `defmodule/2`,
   short-circuit operators are found in `&&/2` and `||/2`, numbers
   can be added with `+/2`, and more. This module also contains all
@@ -39,7 +39,8 @@ defmodule Kernel do
   `Kernel` provides the basic capabilities the Elixir standard library
   is built on top of. It is recommended to explore the standard library
   for advanced functionality. Here are the main groups of modules in the
-  standard library (this list is not a complete reference).
+  standard library (this list is not a complete reference, see the
+  documentation sidebar for all entries).
 
   ### Built-in types
 
@@ -54,23 +55,21 @@ defmodule Kernel do
     * `Port` - mechanisms to interact with the external world
     * `Tuple` - collections of a fixed number of elements
 
-  There are three data-types without an accompanying module:
+  There are three data types without an accompanying module:
 
     * Bitstrings - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
       When the number of bits is divisible by 8, they are called binaries and can
-      be manipulated with the Erlang
-      [`:binary` module](http://erlang.org/doc/man/binary.html)
+      be manipulated with Erlang's `:binary` module
     * Function - a reference to code chunk, created with the `Kernel.SpecialForms.fn/2`
       special form
     * Reference - a unique value in the runtime system, created with `make_ref/0`
 
-  ### Data-types
+  ### Data types
 
-  Elixir also provides other data-types that are built on top of the types
-  listed above.
+  Elixir also provides other data types that are built on top of the types
+  listed above. Some of them are:
 
     * `Date` - `year-month-day` structs in a given calendar
-    * `Time` - `hour:minute:second` structs in a given calendar
     * `DateTime` - date and time with timezone in a given calendar
     * `Exception` - data raised from errors and unexpected scenarios
     * `MapSet` - unordered collections of unique elements
@@ -79,12 +78,13 @@ defmodule Kernel do
     * `Range` - inclusive ranges between two integers
     * `Regex` - regular expressions
     * `String` - UTF-8 encoded binaries representing characters
+    * `Time` - `hour:minute:second` structs in a given calendar
     * `URI` - representation of URIs that identify resources
     * `Version` - representation of versions and requirements
 
   ### System modules
 
-  Modules that interface with the underlying system:
+  Modules that interface with the underlying system, such as:
 
     * `IO` - handles input and output
     * `File` - interacts with the underlying file system
@@ -94,31 +94,34 @@ defmodule Kernel do
   ### Protocols
 
   Protocols add polymorphic dispatch to Elixir. They are contracts
-  implementable by data-types. See `defprotocol/2` for more information on
+  implementable by data types. See `defprotocol/2` for more information on
   protocols. Elixir provides the following protocols in the standard library:
 
     * `Collectable` - collects data into a data type
     * `Enumerable` - handles collections in Elixir. The `Enum` module
       provides eager functions for working with collections, the `Stream`
       module provides lazy functions
-    * `Inspect` - converts data-types into their programming language
+    * `Inspect` - converts data types into their programming language
       representation
-    * `List.Chars` - converts data-types to their outside world
+    * `List.Chars` - converts data types to their outside world
       representation as char lists (non-programming based)
-    * `String.Chars` - converts data-types to their outside world
+    * `String.Chars` - converts data types to their outside world
       representation as strings (non-programming based)
 
-  ### Process-based functionality
+  ### Process-based and application-centric functionality
 
   The following modules build on top of processes to provide concurrency,
   fault-tolerance, and more.
 
     * `Agent` - a process that encapsulates mutable state
+    * `Application` - functions for starting, stopping and configuring
+      applications
     * `GenServer` - a generic client-server API
     * `Registry` - a key-value process-based storage
     * `Supervisor` - a process that is responsible for starting,
       supervising and shutting down other processes
     * `Task` - a process that performs computations
+    * `Task.Supervisor` - a supervisor for managing tasks exclusively
 
   ## Inlining
 
