@@ -441,13 +441,14 @@ defmodule Task do
   @doc """
   Awaits a task reply and returns it.
 
-  A timeout, in milliseconds, can be given with default value
-  of `5000`. In case the task process dies, this function will
-  exit with the same reason as the task.
+  In case the task process dies, the current process will exit with the same
+  reason as the task.
 
-  If the timeout is exceeded, `await` will exit; however,
-  the task will continue to run. When the calling process exits, its
-  exit signal will terminate the task if it is not trapping exits.
+  A timeout, in milliseconds, can be given with default value of `5000`. If the
+  timeout is exceeded, then the current process will exit. If the task process
+  is linked to the current process which is the case when a task is started with
+  `async`, then the task process will also exit. If the task process is trapping
+  exits or not linked to the current process, then it will continue to run.
 
   This function assumes the task's monitor is still active or the monitor's
   `:DOWN` message is in the message queue. If it has been demonitored, or the
