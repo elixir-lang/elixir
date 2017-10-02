@@ -682,7 +682,7 @@ defmodule Task do
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
   `{:exit, reason}` if the task died, otherwise `nil`.
 
-  The shutdown method is either a timeout or `:brutal_kill`. In case
+  The second argument is either a timeout or `:brutal_kill`. In case
   of a `timeout`, a `:shutdown` exit signal is sent to the task process
   and if it does not exit within the timeout, it is killed. With `:brutal_kill`
   the task is killed straight away. In case the task terminates abnormally
