@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
   @recursive true
   @manifest ".compile.yecc"
+  @switches [force: :boolean, all_warnings: :boolean]
 
   # These options can't be controlled with :yecc_options.
   @forced_opts [report: true, return: true]
@@ -20,6 +21,9 @@ defmodule Mix.Tasks.Compile.Yecc do
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
+
+    * `--all-warnings` - prints warnings even from files that do not need to be
+      recompiled
 
   ## Configuration
 
@@ -39,7 +43,7 @@ defmodule Mix.Tasks.Compile.Yecc do
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     project = Mix.Project.config
 

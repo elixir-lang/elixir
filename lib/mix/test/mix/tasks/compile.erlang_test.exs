@@ -127,4 +127,31 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       end
     end
   end
+
+  test "prints warnings from stale files with --all-warnings" do
+    in_fixture "compile_erlang", fn ->
+      file = Path.absname("src/has_warning.erl")
+      File.write! file, """
+      -module(has_warning).
+      my_fn() -> ok.
+      """
+
+      capture_io fn -> Mix.Tasks.Compile.Erlang.run([]) end
+
+      output = capture_io fn ->
+        assert {:noop, _} = Mix.Tasks.Compile.Erlang.run(["--all-warnings"])
+      end
+      assert output == "src/has_warning.erl:2: Warning: function my_fn/0 is unused\n"
+
+      # Should not print old warnings after fixing
+      File.write! file, """
+      -module(has_warning).
+      """
+      ensure_touched(file)
+      output = capture_io fn ->
+        Mix.Tasks.Compile.Erlang.run(["--all-warnings"])
+      end
+      assert output == ""
+    end
+  end
 end

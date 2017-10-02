@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   @recursive true
   @manifest ".compile.erlang"
+  @switches [force: :boolean, all_warnings: :boolean]
 
   @moduledoc """
   Compiles Erlang source files.
@@ -23,6 +24,9 @@ defmodule Mix.Tasks.Compile.Erlang do
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
+
+    * `--all-warnings` - prints warnings even from files that do not need to be
+      recompiled
 
   ## Configuration
 
@@ -53,7 +57,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
     project      = Mix.Project.config
     source_paths = project[:erlc_paths]
     Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)

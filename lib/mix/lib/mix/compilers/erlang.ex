@@ -89,6 +89,17 @@ defmodule Mix.Compilers.Erlang do
       not Enum.any?(mappings, fn {_status, _mapping_src, mapping_dest} -> mapping_dest == dest end)
     end) |> Enum.map(&elem(&1, 0))
 
+    # Remove manifest entries with no source
+    Enum.each(removed, &File.rm/1)
+    verbose = opts[:verbose]
+
+    # Clear stale and removed files from manifest
+    entries = Enum.reject(entries, fn {dest, _warnings} ->
+      dest in removed || Enum.any?(stale, fn {_, stale_dest} -> dest == stale_dest end)
+    end)
+
+    if opts[:all_warnings], do: show_warnings(entries)
+
     if stale == [] && removed == [] do
       {:noop, manifest_warnings(entries)}
     else
@@ -99,15 +110,6 @@ defmodule Mix.Compilers.Erlang do
       # can be accessed still during compilation (for behaviours
       # and what not).
       Code.prepend_path(Mix.Project.compile_path)
-
-      # Remove manifest entries with no source
-      Enum.each(removed, &File.rm/1)
-      verbose = opts[:verbose]
-
-      # Clear stale and removed files from manifest
-      entries = Enum.reject(entries, fn {dest, _warnings} ->
-        dest in removed || Enum.any?(stale, fn {_, stale_dest} -> dest == stale_dest end)
-      end)
 
       # Compile stale files and print the results
       {status, new_entries, warnings, errors} =
@@ -259,6 +261,14 @@ defmodule Mix.Compilers.Erlang do
         compiler_name: to_string(module),
         details: data
       }
+    end
+  end
+
+  defp show_warnings(entries) do
+    for {_, warnings} <- entries,
+        {file, issues} <- warnings,
+        {line, module, message} <- issues do
+      IO.puts("#{file}:#{line}: Warning: #{module.format_error(message)}")
     end
   end
 end
