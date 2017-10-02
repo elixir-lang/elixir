@@ -23,7 +23,7 @@ defmodule Mix.Compilers.Erlang do
       compile manifest, [{"src", dest}], :lfe, :beam, opts, fn
         input, output ->
           :lfe_comp.file(to_erl_file(input),
-                         [output_dir: Path.dirname(output)])
+                         [{output_dir, Path.dirname(output)}, :return])
       end
 
   The command above will:
@@ -40,9 +40,9 @@ defmodule Mix.Compilers.Erlang do
     4. remove any output in the manifest that does not
        have an equivalent source
 
-  The callback must return `{:ok, mod}` or `:error` in case
-  of error. An error is raised at the end if any of the
-  files failed to compile.
+  The callback must return `{:ok, term, warnings}` or
+  `{:error, errors, warnings}` in case of error. This function returns
+  `{status, diagnostics}` as specified in `Mix.Task.Compiler`.
   """
   def compile(manifest, mappings, src_ext, dest_ext, opts, callback) when is_list(opts) do
     force = opts[:force]
@@ -209,6 +209,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp do_compile({input, output}, callback, timestamp, verbose) do
+    # TODO: Deprecate {:ok, _} and :error return on Elixir v1.8
     case callback.(input, output) do
       {:ok, _, warnings} ->
         File.touch!(output, timestamp)
@@ -216,7 +217,18 @@ defmodule Mix.Compilers.Erlang do
         {:ok, [{output, warnings}], warnings, []}
       {:error, errors, warnings} ->
         {:error, [], warnings, errors}
+      {:ok, _} = result ->
+        warn_invalid_result(result)
+        {:ok, [], []}
+      :error = result ->
+        warn_invalid_result(result)
+        {:error, [], []}
     end
+  end
+
+  defp warn_invalid_result(result) do
+    IO.warn "callback given to #{inspect __MODULE__} returned #{inspect result}. " <>
+            "Expected {:ok, term, warnings} or {:error, errors, warnings}"
   end
 
   defp combine_results(result1, result2) do
@@ -233,17 +245,16 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp to_diagnostics(warnings_or_errors, severity) do
-    Enum.flat_map(warnings_or_errors, fn {file, issues} ->
-      for {line, module, data} <- issues do
-        %Mix.Task.Compiler.Diagnostic{
-          file: Path.absname(file),
-          position: line,
-          message: to_string(module.format_error(data)),
-          severity: severity,
-          compiler_name: to_string(module),
-          details: data
-        }
-      end
-    end)
+    for {file, issues} <- warnings_or_errors,
+        {line, module, data} <- issues do
+      %Mix.Task.Compiler.Diagnostic{
+        file: Path.absname(file),
+        position: line,
+        message: to_string(module.format_error(data)),
+        severity: severity,
+        compiler_name: to_string(module),
+        details: data
+      }
+    end
   end
 end
