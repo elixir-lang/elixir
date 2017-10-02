@@ -344,11 +344,12 @@ defmodule Protocol do
            [{:type, line, :product, [{:atom, 0, :consolidated?}]},
             {:atom, 0, true}]}
         {:type, line, :fun, [{:type, _, :product, [{:atom, _, :impls}]}, _]} ->
+          impls = for mod <- types, do: {:atom, 0, mod}
           {:type, line, :fun,
            [{:type, line, :product, [{:atom, 0, :impls}]},
             {:type, 0, :tuple,
              [{:atom, 0, :consolidated},
-              {:type, 0, :list, [{:type, 0, :module, []}]}]}]}
+              {:type, 0, :list, [{:type, 0, :union, impls}]}]}]}
         other -> other
       end
     end
