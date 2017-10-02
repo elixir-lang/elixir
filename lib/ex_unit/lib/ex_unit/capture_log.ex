@@ -99,9 +99,9 @@ defmodule ExUnit.CaptureLog do
     case :proc_lib.start(__MODULE__, :init_proxy, [pid, opts, self()]) do
       :ok ->
         :ok
-      other ->
+      {:error, reason} ->
         mfa = {ExUnit.CaptureLog, :add_capture, [pid, opts]}
-        exit({other, mfa})
+        exit({reason, mfa})
     end
   end
 
@@ -115,8 +115,8 @@ defmodule ExUnit.CaptureLog do
           {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
           {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
         end
-      other ->
-        :proc_lib.init_ack(other)
+      {:error, exit_reason} ->
+        :proc_lib.init_ack({:error, exit_reason})
     end
   end
 

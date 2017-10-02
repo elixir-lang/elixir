@@ -81,6 +81,17 @@ defmodule ExUnit.CaptureLogTest do
     end
   end
 
+  test "exit with noproc when the logger is down" do
+    Application.stop(:logger)
+    try do
+      assert {:noproc, {ExUnit.CaptureLog, :add_capture, [pid, [level: nil]]}} =
+        catch_exit(capture_log(fn -> Logger.info "one" end))
+      assert is_pid(pid)
+    after
+      Application.ensure_all_started(:logger)
+    end
+  end
+
   defp wait_capture_removal() do
     case :gen_event.which_handlers(Logger) do
       [Logger.Config] -> :ok
