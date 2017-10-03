@@ -223,18 +223,11 @@ defmodule Mix.Compilers.Erlang do
         {:ok, [{output, warnings}], warnings, []}
       {:error, errors, warnings} ->
         {:error, [], warnings, errors}
-      {:ok, _} = result ->
-        warn_invalid_result(result)
+      {:ok, _} ->
         {:ok, [], []}
-      :error = result ->
-        warn_invalid_result(result)
+      :error ->
         {:error, [], []}
     end
-  end
-
-  defp warn_invalid_result(result) do
-    IO.warn "callback given to #{inspect __MODULE__} returned #{inspect result}. " <>
-            "Expected {:ok, term, warnings} or {:error, errors, warnings}"
   end
 
   defp combine_results(result1, result2) do
