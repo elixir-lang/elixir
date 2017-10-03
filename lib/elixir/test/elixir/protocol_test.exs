@@ -418,4 +418,27 @@ defmodule Protocol.ConsolidationTest do
       Sample.ok(:foo)
     end
   end
+
+  test "consolidation updates __protocol__/1 spec" do
+    {:ok, {Sample, [{:abstract_code, {:raw_abstract_v1, forms}}]}} =
+      :beam_lib.chunks(@sample_binary, [:abstract_code])
+
+    for {:attribute, _line, :spec, {{:__protocol__, 1}, funspecs}} <- forms,
+        {:type, _line, :fun, [{:type, _, :product, [{:atom, _, clause}]}, return_type]} <- funspecs do
+      # Only check that :consolidated? and :impls types changed after consolidation.
+      # This prevents underspec warnings in dialyzer on consolidated protocols.
+      case clause do
+        :consolidated? ->
+          assert {:atom, _, true} = return_type
+        :impls ->
+          {:type, _, :tuple, tuple_args} = return_type
+          assert [
+                   {:atom, _, :consolidated},
+                   {:type, _, :list, [{:type, _, :union, [{:atom, _, ImplStruct}]}]}
+                 ] = tuple_args
+        _ ->
+          :ok
+      end
+    end
+  end
 end
