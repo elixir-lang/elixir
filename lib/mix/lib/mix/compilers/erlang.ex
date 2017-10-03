@@ -25,8 +25,8 @@ defmodule Mix.Compilers.Erlang do
           res = :lfe_comp.file(to_erl_file(input),
                                [{output_dir, Path.dirname(output)}, :return])
           case res do
+            {:ok, result, warnings} -> {ok, result, warnings}
             {:error, _, errors, warnings} -> {:error, errors, warnings}
-            _ -> res
           end
       end
 
