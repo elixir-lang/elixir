@@ -115,8 +115,10 @@ defmodule ExUnit.CaptureLog do
           {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
           {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
         end
-      {:error, exit_reason} ->
-        :proc_lib.init_ack({:error, exit_reason})
+      {:EXIT, reason} ->
+        :proc_lib.init_ack({:error, reason})
+      {:error, reason} ->
+        :proc_lib.init_ack({:error, reason})
     end
   end
 
