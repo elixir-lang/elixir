@@ -64,15 +64,22 @@ defmodule Mix.Tasks.CompileTest do
     in_fixture "no_mixfile", fn ->
       import ExUnit.CaptureIO
 
+      file = Path.absname("src/a.erl")
       File.mkdir! "src"
-      File.write! "src/a.erl", """
+      File.write! file, """
       -module(b).
       def b(), do: b
       """
-      assert File.regular?("src/a.erl")
+      assert File.regular?(file)
 
-      assert_raise Mix.Error, fn ->
-        capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
+      capture_io fn ->
+        assert {:error, [%Mix.Task.Compiler.Diagnostic{
+          compiler_name: "erl_parse",
+          file: ^file,
+          message: "syntax error before: b",
+          position: 2,
+          severity: :error
+        }]} = Mix.Tasks.Compile.run ["--force", "--return-errors"]
       end
 
       refute File.regular?("ebin/Elixir.A.beam")
