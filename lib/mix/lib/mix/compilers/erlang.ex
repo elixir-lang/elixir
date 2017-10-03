@@ -20,14 +20,9 @@ defmodule Mix.Compilers.Erlang do
       manifest = Path.join Mix.Project.manifest_path, ".compile.lfe"
       dest = Mix.Project.compile_path
 
-      compile manifest, [{"src", dest}], :lfe, :beam, opts, fn
-        input, output ->
-          res = :lfe_comp.file(to_erl_file(input),
-                               [{output_dir, Path.dirname(output)}, :return])
-          case res do
-            {:ok, result, warnings} -> {ok, result, warnings}
-            {:error, _, errors, warnings} -> {:error, errors, warnings}
-          end
+      compile manifest, [{"src", dest}], :lfe, :beam, opts, fn input, output ->
+        :lfe_comp.file(to_erl_file(input),
+                       [{output_dir, Path.dirname(output)}, :return])
       end
 
   The command above will:
