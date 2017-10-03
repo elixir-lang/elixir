@@ -1,6 +1,8 @@
 defmodule Mix.Compilers.Erlang do
   @moduledoc false
 
+  @manifest_vsn :v1
+
   @doc """
   Compiles the files in `mappings` with given extensions into
   the destination, automatically invoking the callback for each
@@ -18,10 +20,9 @@ defmodule Mix.Compilers.Erlang do
       manifest = Path.join Mix.Project.manifest_path, ".compile.lfe"
       dest = Mix.Project.compile_path
 
-      compile manifest, [{"src", dest}], :lfe, :beam, opts, fn
-        input, output ->
-          :lfe_comp.file(to_erl_file(input),
-                         [output_dir: Path.dirname(output)])
+      compile manifest, [{"src", dest}], :lfe, :beam, opts, fn input, output ->
+        :lfe_comp.file(to_erl_file(input),
+                       [{output_dir, Path.dirname(output)}, :return])
       end
 
   The command above will:
@@ -38,9 +39,9 @@ defmodule Mix.Compilers.Erlang do
     4. remove any output in the manifest that does not
        have an equivalent source
 
-  The callback must return `{:ok, mod}` or `:error` in case
-  of error. An error is raised at the end if any of the
-  files failed to compile.
+  The callback must return `{:ok, term, warnings}` or
+  `{:error, errors, warnings}` in case of error. This function returns
+  `{status, diagnostics}` as specified in `Mix.Task.Compiler`.
   """
   def compile(manifest, mappings, src_ext, dest_ext, opts, callback) when is_list(opts) do
     force = opts[:force]
@@ -79,12 +80,23 @@ defmodule Mix.Compilers.Erlang do
 
     # Files to remove are the ones in the manifest
     # but they no longer have a source
-    removed = Enum.filter(entries, fn entry ->
-      not Enum.any?(mappings, fn {_status, _src, dest} -> dest == entry end)
+    removed = Enum.filter(entries, fn {dest, _} ->
+      not Enum.any?(mappings, fn {_status, _mapping_src, mapping_dest} -> mapping_dest == dest end)
+    end) |> Enum.map(&elem(&1, 0))
+
+    # Remove manifest entries with no source
+    Enum.each(removed, &File.rm/1)
+    verbose = opts[:verbose]
+
+    # Clear stale and removed files from manifest
+    entries = Enum.reject(entries, fn {dest, _warnings} ->
+      dest in removed || Enum.any?(stale, fn {_, stale_dest} -> dest == stale_dest end)
     end)
 
+    if opts[:all_warnings], do: show_warnings(entries)
+
     if stale == [] && removed == [] do
-      :noop
+      {:noop, manifest_warnings(entries)}
     else
       Mix.Utils.compiling_n(length(stale), ext)
       Mix.Project.ensure_structure()
@@ -94,32 +106,23 @@ defmodule Mix.Compilers.Erlang do
       # and what not).
       Code.prepend_path(Mix.Project.compile_path)
 
-      # Remove manifest entries with no source
-      Enum.each(removed, &File.rm/1)
-      verbose = opts[:verbose]
-
       # Compile stale files and print the results
-      results =
-        for {input, output} <- stale do
-          result = callback.(input, output)
+      {status, new_entries, warnings, errors} =
+        stale
+        |> Enum.map(&do_compile(&1, callback, timestamp, verbose))
+        |> Enum.reduce({:ok, [], [], []}, &combine_results/2)
 
-          with {:ok, _} <- result do
-            File.touch!(output, timestamp)
-            verbose && Mix.shell.info "Compiled #{input}"
-          end
+      write_manifest(manifest, entries ++ new_entries, timestamp)
 
-          result
-        end
-
-      # Write final entries to manifest
-      entries = (entries -- removed) ++ Enum.map(stale, &elem(&1, 1))
-      write_manifest(manifest, :lists.usort(entries), timestamp)
-
-      # Raise if any error, return :ok otherwise
-      if :error in results do
-        Mix.raise "Encountered compilation errors"
+      # Return status and diagnostics
+      warnings = manifest_warnings(entries) ++ to_diagnostics(warnings, :warning)
+      case status do
+        :ok ->
+          {:ok, warnings}
+        :error ->
+          errors = to_diagnostics(errors, :error)
+          {:error, warnings ++ errors}
       end
-      :ok
     end
   end
 
@@ -188,16 +191,72 @@ defmodule Mix.Compilers.Erlang do
     artifact |> Path.basename |> Path.rootname
   end
 
+  # The manifest file contains a list of {dest, warnings} tuples
   defp read_manifest(file) do
-    case File.read(file) do
-      {:ok, contents} -> String.split(contents, "\n")
-      {:error, _} -> []
+    try do
+      file |> File.read!() |> :erlang.binary_to_term()
+    rescue
+      _ -> []
+    else
+      {@manifest_vsn, data} when is_list(data) -> data
+      _ -> []
     end
   end
 
   defp write_manifest(file, entries, timestamp) do
     Path.dirname(file) |> File.mkdir_p!
-    File.write!(file, Enum.join(entries, "\n"))
+    File.write!(file, :erlang.term_to_binary({@manifest_vsn, entries}))
     File.touch!(file, timestamp)
+  end
+
+  defp do_compile({input, output}, callback, timestamp, verbose) do
+    # TODO: Deprecate {:ok, _} and :error return on Elixir v1.8
+    case callback.(input, output) do
+      {:ok, _, warnings} ->
+        File.touch!(output, timestamp)
+        verbose && Mix.shell.info "Compiled #{input}"
+        {:ok, [{output, warnings}], warnings, []}
+      {:error, errors, warnings} ->
+        {:error, [], warnings, errors}
+      {:ok, _} ->
+        {:ok, [], []}
+      :error ->
+        {:error, [], []}
+    end
+  end
+
+  defp combine_results(result1, result2) do
+    {status1, new_entries1, warnings1, errors1} = result1
+    {status2, new_entries2, warnings2, errors2} = result2
+    status = if status1 == :error or status2 == :error, do: :error, else: :ok
+    {status, new_entries1 ++ new_entries2, warnings1 ++ warnings2, errors1 ++ errors2}
+  end
+
+  defp manifest_warnings(entries) do
+    Enum.flat_map(entries, fn {_, warnings} ->
+      to_diagnostics(warnings, :warning)
+    end)
+  end
+
+  defp to_diagnostics(warnings_or_errors, severity) do
+    for {file, issues} <- warnings_or_errors,
+        {line, module, data} <- issues do
+      %Mix.Task.Compiler.Diagnostic{
+        file: Path.absname(file),
+        position: line,
+        message: to_string(module.format_error(data)),
+        severity: severity,
+        compiler_name: to_string(module),
+        details: data
+      }
+    end
+  end
+
+  defp show_warnings(entries) do
+    for {_, warnings} <- entries,
+        {file, issues} <- warnings,
+        {line, module, message} <- issues do
+      IO.puts("#{file}:#{line}: Warning: #{module.format_error(message)}")
+    end
   end
 end

@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   @recursive true
   @manifest ".compile.erlang"
+  @switches [force: :boolean, all_warnings: :boolean]
 
   @moduledoc """
   Compiles Erlang source files.
@@ -23,6 +24,9 @@ defmodule Mix.Tasks.Compile.Erlang do
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
+
+    * `--all-warnings` - prints warnings even from files that do not need to be
+      recompiled
 
   ## Configuration
 
@@ -53,7 +57,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
     project      = Mix.Project.config
     source_paths = project[:erlc_paths]
     Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
@@ -70,7 +74,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     unless is_list(erlc_options) do
       Mix.raise ":erlc_options should be a list of options, got: #{inspect(erlc_options)}"
     end
-    erlc_options = erlc_options ++ [:report, outdir: compile_path, i: include_path]
+    erlc_options = erlc_options ++ [:return, :report, outdir: compile_path, i: include_path]
     erlc_options = Enum.map erlc_options, fn
       {kind, dir} when kind in [:i, :outdir] ->
         {kind, to_erl_file(dir)}
@@ -95,12 +99,10 @@ defmodule Mix.Tasks.Compile.Erlang do
 
         file = to_erl_file(Path.rootname(input, ".erl"))
         case :compile.file(file, erlc_options) do
-          {:ok, module} ->
-            {:ok, module}
-          :error ->
-            :error
           {:error, :badarg} ->
             Mix.raise "Compiling Erlang #{inspect file} failed with ArgumentError, probably because of invalid :erlc_options"
+          result ->
+            result
         end
     end)
   end

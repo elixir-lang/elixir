@@ -4,11 +4,10 @@ defmodule Mix.Tasks.Compile.Leex do
 
   @recursive true
   @manifest ".compile.leex"
+  @switches [force: :boolean, verbose: :boolean, all_warnings: :boolean]
 
   # These options can't be controlled with :leex_options.
-  @forced_opts [report: true,
-                return_errors: false,
-                return_warnings: false]
+  @forced_opts [report: true, return: true]
 
   @moduledoc """
   Compiles Leex source files.
@@ -22,6 +21,9 @@ defmodule Mix.Tasks.Compile.Leex do
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
+
+    * `--all-warnings` - prints warnings even from files that do not need to be
+      recompiled
 
   ## Configuration
 
@@ -41,7 +43,7 @@ defmodule Mix.Tasks.Compile.Leex do
   """
   @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     project = Mix.Project.config
 
