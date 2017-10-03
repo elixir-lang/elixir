@@ -99,6 +99,8 @@ defmodule ExUnit.CaptureLog do
     case :proc_lib.start(__MODULE__, :init_proxy, [pid, opts, self()]) do
       :ok ->
         :ok
+      :noproc ->
+        raise "cannot capture_log/2 because the :logger application was not started"
       {:error, reason} ->
         mfa = {ExUnit.CaptureLog, :add_capture, [pid, opts]}
         exit({reason, mfa})
@@ -120,6 +122,8 @@ defmodule ExUnit.CaptureLog do
       {:error, reason} ->
         :proc_lib.init_ack({:error, reason})
     end
+  catch
+    :exit, :noproc -> :proc_lib.init_ack(:noproc)
   end
 
   defp remove_capture(pid) do

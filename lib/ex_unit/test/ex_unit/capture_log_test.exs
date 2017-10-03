@@ -85,9 +85,9 @@ defmodule ExUnit.CaptureLogTest do
     Logger.App.stop()
     on_exit fn -> Logger.App.start() end
 
-    assert {:noproc, {ExUnit.CaptureLog, :add_capture, [pid, [level: nil]]}} =
-      catch_exit(capture_log(fn -> Logger.info "one" end))
-    assert is_pid(pid)
+    assert_raise RuntimeError, "cannot capture_log/2 because the :logger application was not started", fn ->
+      capture_log(fn -> Logger.info "one" end)
+    end
   end
 
   defp wait_capture_removal() do
