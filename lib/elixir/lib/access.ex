@@ -799,7 +799,7 @@ defmodule Access do
 
   An error is raised if the predicate is not a function or is of the incorrect arity:
 
-      iex> get_in([], [Access.find(fn a, b -> a == b end)])
+      iex> get_in([], [Access.find(10)])
       ** (FunctionClauseError) no function clause matching in Access.find/1
 
   An error is raised if the accessed structure is not a list:
@@ -807,7 +807,7 @@ defmodule Access do
       iex> get_in(%{}, [Access.find(fn a -> a == 10 end)])
       ** (RuntimeError) Access.find/1 expected a list, got: %{}
   """
-  def find(func) when is_function(func, 1) do
+  def find(func) when is_function(func) do
     fn(op, data, next) -> find(op, data, func, next) end
   end
 
