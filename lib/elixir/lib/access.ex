@@ -738,7 +738,7 @@ defmodule Access do
 
   An error is raised if the predicate is not a function or is of the incorrect arity:
 
-      iex> get_in([], [Access.filter(fn a, b -> a == b end)])
+      iex> get_in([], [Access.filter(5)])
       ** (FunctionClauseError) no function clause matching in Access.filter/1
 
   An error is raised if the accessed structure is not a list:
@@ -746,7 +746,7 @@ defmodule Access do
       iex> get_in(%{}, [Access.filter(fn a -> a == 10 end)])
       ** (RuntimeError) Access.filter/1 expected a list, got: %{}
   """
-  def filter(func) when is_function(func, 1) do
+  def filter(func) when is_function(func) do
     fn(op, data, next) -> filter(op, data, func, next) end
   end
 
@@ -760,67 +760,6 @@ defmodule Access do
 
   defp filter(_op, data, _func, _next) do
     raise "Access.filter/1 expected a list, got: #{inspect data}"
-  end
-
-  @doc ~S"""
-  Returns a function that accesses all elements of a list that match the provided predicate.
-
-  The returned function is typically passed as an accessor to `Kernel.get_in/2`,
-  `Kernel.get_and_update_in/3`, and friends.
-
-  ## Examples
-
-      iex> list = [%{name: "john", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]
-      iex> get_in(list, [Access.find(&(&1.salary >= 20)), :name])
-      "mary"
-      iex> get_and_update_in(list, [Access.find(&(&1.salary <= 20)), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
-      ...> end)
-      {"john", [%{name: "JOHN", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]}
-
-  `find/1` can also be used to pop elements out of a list or
-  a key inside of a list:
-
-      iex> list = [%{name: "john", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]
-      iex> pop_in(list, [Access.find(&(&1.salary >= 20))])
-      {%{name: "mary", salary: 20}, [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
-      iex> pop_in(list, [Access.find(&(&1.salary >= 20)), :name])
-      {"mary", [%{name: "john", salary: 10}, %{salary: 20}, %{name: "francine", salary: 30}]}
-
-  When no match is found, an empty list is returned and the update function is never called
-
-      iex> list = [%{name: "john", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]
-      iex> get_in(list, [Access.find(&(&1.salary >= 50)), :name])
-      nil
-      iex> get_and_update_in(list, [Access.find(&(&1.salary >= 50)), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
-      ...> end)
-      {nil, [%{name: "john", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]}
-
-  An error is raised if the predicate is not a function or is of the incorrect arity:
-
-      iex> get_in([], [Access.find(10)])
-      ** (FunctionClauseError) no function clause matching in Access.find/1
-
-  An error is raised if the accessed structure is not a list:
-
-      iex> get_in(%{}, [Access.find(fn a -> a == 10 end)])
-      ** (RuntimeError) Access.find/1 expected a list, got: %{}
-  """
-  def find(func) when is_function(func) do
-    fn(op, data, next) -> find(op, data, func, next) end
-  end
-
-  defp find(:get, data, func, next) when is_list(data) do
-    data |> Enum.find(func) |> next.()
-  end
-
-  defp find(:get_and_update, data, func, next) when is_list(data) do
-    get_and_update_found(data, func, next, [])
-  end
-
-  defp find(_op, data, _func, _next) do
-    raise "Access.find/1 expected a list, got: #{inspect data}"
   end
 
   defp get_and_update_where([head | rest], func, next, updates, gets) do
@@ -838,20 +777,5 @@ defmodule Access do
 
   defp get_and_update_where([], _func, _next, updates, gets) do
     {:lists.reverse(gets), :lists.reverse(updates)}
-  end
-
-  defp get_and_update_found([head | rest], func, next, updates) do
-    if func.(head) do
-      case next.(head) do
-        {get, update} -> {get, :lists.reverse([update | updates], rest)}
-        :pop -> {head, :lists.reverse(updates, rest)}
-      end
-    else
-      get_and_update_found(rest, func, next, [head | updates])
-    end
-  end
-
-  defp get_and_update_found([], _index, _next, updates) do
-    {nil, :lists.reverse(updates)}
   end
 end
