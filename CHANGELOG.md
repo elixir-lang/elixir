@@ -68,6 +68,8 @@
 #### Elixir
 
   * [Enum] `Enum.partition/2` is deprecated in favor of `Enum.split_with/2`
+  * [Keyword] `Keyword.replace/3` is deprecated in favor of `Keyword.fetch/2` and `Keyword.put/3`
+  * [Map] `Map.replace/3` is deprecated in favor of `Map.fetch/2` and `Map.put/3`
 
 ## v1.5
 

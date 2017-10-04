@@ -280,20 +280,7 @@ defmodule Map do
     end
   end
 
-  @doc """
-  Alters the value stored under `key` to `value`, but only
-  if the entry `key` already exists in `map`.
-
-  ## Examples
-
-      iex> Map.replace(%{a: 1, b: 2}, :a, 3)
-      %{a: 3, b: 2}
-
-      iex> Map.replace(%{a: 1}, :b, 2)
-      %{a: 1}
-
-  """
-  @spec replace(map, key, value) :: map
+  @doc false
   def replace(map, key, value) do
     case map do
       %{^key => _value} ->

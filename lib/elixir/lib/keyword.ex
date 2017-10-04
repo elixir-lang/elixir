@@ -594,23 +594,7 @@ defmodule Keyword do
     end
   end
 
-  @doc """
-  Alters the value stored under `key` to `value`, but only
-  if the entry `key` already exists in the keyword list.
-
-  In the case a value is stored multiple times in the keyword list,
-  later occurrences are removed.
-
-  ## Examples
-
-      iex> Keyword.replace([a: 1, b: 2, a: 4], :a, 3)
-      [a: 3, b: 2]
-
-      iex> Keyword.replace([a: 1], :b, 2)
-      [a: 1]
-
-  """
-  @spec replace(t, key, value) :: t
+  @doc false
   def replace(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> [{key, value} | delete(keywords, key)]
