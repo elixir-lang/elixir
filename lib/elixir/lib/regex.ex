@@ -416,6 +416,7 @@ defmodule Regex do
       given pattern.
 
     * `:trim` - when `true`, removes empty strings (`""`) from the result.
+      Defaults to `false`.
 
     * `:on` - specifies which captures to split the string on, and in what
       order. Defaults to `:first` which means captures inside the regex do not
