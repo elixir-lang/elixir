@@ -837,7 +837,7 @@ defmodule Access do
   end
 
   defp get_and_update_where([], _func, _next, updates, gets) do
-    {:list.reverse(gets), :lists.reverse(updates)}
+    {:lists.reverse(gets), :lists.reverse(updates)}
   end
 
   defp get_and_update_found([head | rest], func, next, updates) do
