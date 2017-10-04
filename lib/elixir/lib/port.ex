@@ -84,9 +84,9 @@ defmodule Port do
   The `:spawn` tuple receives a binary that is going to be executed as a
   full invocation. For example, we can use it to invoke "echo hello" directly:
 
-      iex> port = Port.open({:spawn, "echo oops"}, [:binary])
+      iex> port = Port.open({:spawn, "echo hello"}, [:binary])
       iex> flush()
-      {#Port<0.1444>, {:data, "oops\n"}}
+      {#Port<0.1444>, {:data, "hello\n"}}
 
   `:spawn` will retrieve the program name from the argument and traverse your
   OS `$PATH` environment variable looking for a matching program.
