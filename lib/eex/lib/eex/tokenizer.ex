@@ -124,7 +124,7 @@ defmodule EEx.Tokenizer do
     # token and, if so, it is not followed by an "end"
     # token. If this is the case, we are on a start expr.
     case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
-      {:ok, _line, _column, tokens} ->
+      {:ok, tokens} ->
         tokens   = Enum.reverse(tokens)
         fn_index = fn_index(tokens)
 

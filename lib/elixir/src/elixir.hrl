@@ -35,6 +35,6 @@
   unescape=true,
   check_terminators=true,
   existing_atoms_only=false,
-  preserve_comments=false,
+  preserve_comments=nil,
   identifier_tokenizer=elixir_tokenizer
 }).

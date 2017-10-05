@@ -124,7 +124,7 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{existing_atoms_only=ExistingAtomsOnly};
       ({check_terminators, CheckTerminators}, Acc) when is_boolean(CheckTerminators) ->
         Acc#elixir_tokenizer{check_terminators=CheckTerminators};
-      ({preserve_comments, PreserveComments}, Acc) when is_boolean(PreserveComments) ->
+      ({preserve_comments, PreserveComments}, Acc) when is_function(PreserveComments) ->
         Acc#elixir_tokenizer{preserve_comments=PreserveComments};
       ({unescape, Unescape}, Acc) when is_boolean(Unescape) ->
         Acc#elixir_tokenizer{unescape=Unescape};
@@ -137,8 +137,8 @@ tokenize(String, Line, Column, Opts) ->
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
-tokenize([], Line, Column, #elixir_tokenizer{terminators=[]}, Tokens) ->
-  {ok, Line, Column, lists:reverse(Tokens)};
+tokenize([], _Line, _Column, #elixir_tokenizer{terminators=[]}, Tokens) ->
+  {ok, lists:reverse(Tokens)};
 
 tokenize([], EndLine, _Column, #elixir_tokenizer{terminators=[{Start, {StartLine, {_, _}, _}} | _]}, Tokens) ->
   End     = terminator(Start),
@@ -171,14 +171,9 @@ tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
 % Comments
 
 tokenize([$# | String], Line, Column, Scope, Tokens) ->
-  {Rest, Comment, Length} = tokenize_comment(String, [$#], 1),
-  case Scope#elixir_tokenizer.preserve_comments of
-    true  ->
-      CommentToken = {comment, {Line, {Column, Column + Length}, nil}, Comment},
-      tokenize(Rest, Line, Column + Length, Scope, [CommentToken | Tokens]);
-    false ->
-      tokenize(Rest, Line, Column, Scope, Tokens)
-  end;
+  {Rest, Comment} = tokenize_comment(String, [$#]),
+  preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
+  tokenize(Rest, Line, Column, Scope, reset_eol(Tokens));
 
 % Sigils
 
@@ -474,8 +469,9 @@ tokenize([$% | T], Line, Column, Scope, Tokens) ->
   tokenize(T, Line, Column + 1, Scope, [{'%', {Line, {Column, Column + 1}, nil}} | Tokens]);
 
 tokenize([$. | T], Line, Column, Scope, Tokens) ->
-  {Rest, Counter, Offset, CommentTokens} = strip_dot_space(T, 0, Column + 1, Line, []),
-  handle_dot([$. | Rest], Line, Offset - 1, Column, Scope, Tokens, CommentTokens, Counter);
+  DotInfo = {Line, {Column, Column + 1}, nil},
+  {Rest, EndLine, EndColumn} = strip_dot_space(T, Line, Column + 1, [{'.', DotInfo}| Tokens], Scope),
+  handle_dot([$. | Rest], EndLine, EndColumn, DotInfo, Scope, Tokens);
 
 % Identifiers
 
@@ -520,18 +516,18 @@ strip_horizontal_space([H | T], Counter) when ?is_horizontal_space(H) ->
 strip_horizontal_space(T, Counter) ->
   {T, Counter}.
 
-strip_dot_space(T, Counter, Column, StartLine, Tokens) ->
+strip_dot_space(T, Line, Column, Tokens, Scope) ->
   case strip_horizontal_space(T) of
     {"#" ++ R, _} ->
-      {Rest, Comment, Length} = tokenize_comment(R, [$#], 1),
-      CommentToken = {comment, {StartLine + Counter, {Column, Column + Length}, nil}, Comment},
-      strip_dot_space(Rest, Counter, 1, StartLine, [CommentToken | Tokens]);
+      {Rest, Comment} = tokenize_comment(R, [$#]),
+      preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
+      strip_dot_space(Rest, Line, 1, reset_eol(Tokens), Scope);
     {"\r\n" ++ Rest, _} ->
-      strip_dot_space(Rest, Counter + 1, 1, StartLine, Tokens);
+      strip_dot_space(Rest, Line + 1, 1, eol(Line, Column, Tokens), Scope);
     {"\n" ++ Rest, _} ->
-      strip_dot_space(Rest, Counter + 1, 1, StartLine, Tokens);
+      strip_dot_space(Rest, Line + 1, 1, eol(Line, Column, Tokens), Scope);
     {Rest, Length} ->
-      {Rest, Counter, Column + Length, Tokens}
+      {Rest, Line, Column + Length}
   end.
 
 handle_char(7)   -> {"\\a", "alert"};
@@ -602,44 +598,38 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
       tokenize(Remaining, Line, Column + Length + Extra, Scope, add_token_with_eol(Token, Tokens))
   end.
 
-handle_comments(CommentTokens, Tokens, Scope) ->
-  case Scope#elixir_tokenizer.preserve_comments of
-    true  -> lists:append(CommentTokens, Tokens);
-    false -> Tokens
-  end.
-
 % ## Three Token Operators
-handle_dot([$., T1, T2, T3 | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when
+handle_dot([$., T1, T2, T3 | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
     ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3) ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 3, list_to_atom([T1, T2, T3]), Scope, Tokens, CommentTokens, Counter);
+  handle_call_identifier(Rest, Line, Column, DotInfo, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators
-handle_dot([$., T1, T2 | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when
+handle_dot([$., T1, T2 | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
     ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2);
     ?type_op(T1, T2) ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 2, list_to_atom([T1, T2]), Scope, Tokens, CommentTokens, Counter);
+  handle_call_identifier(Rest, Line, Column, DotInfo, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
-handle_dot([$., T | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when
+handle_dot([$., T | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
     ?rel_op(T); ?match_op(T); ?pipe_op(T) ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 1, list_to_atom([T]), Scope, Tokens, CommentTokens, Counter);
+  handle_call_identifier(Rest, Line, Column, DotInfo, 1, list_to_atom([T]), Scope, Tokens);
 
 % ## Exception for .( as it needs to be treated specially in the parser
-handle_dot([$., $( | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) ->
-  TokensSoFar = add_token_with_eol({dot_call_op, {Line, {DotColumn, DotColumn + 1}, nil}, '.'}, Tokens),
-  tokenize([$( | Rest], Line + Counter, Column + 2, Scope, handle_comments(CommentTokens, TokensSoFar, Scope));
+handle_dot([$., $( | Rest], Line, Column, DotInfo, Scope, Tokens) ->
+  TokensSoFar = add_token_with_eol({dot_call_op, DotInfo, '.'}, Tokens),
+  tokenize([$( | Rest], Line, Column + 2, Scope, TokensSoFar);
 
-handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) when ?is_quote(H) ->
-  case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
+handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?is_quote(H) ->
+  case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
     {NewLine, NewColumn, [Part], Rest} when is_binary(Part) ->
       case unsafe_to_atom(Part, Line, Scope) of
         {ok, Atom} ->
-          Token = check_call_identifier(Line + Counter, Column, max(NewColumn - Column, 0), Atom, Rest),
-          TokensSoFar = add_token_with_eol({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
-          tokenize(Rest, NewLine, NewColumn, Scope, [Token | handle_comments(CommentTokens, TokensSoFar, Scope)]);
+          Token = check_call_identifier(Line, Column, max(NewColumn - Column, 0), Atom, Rest),
+          TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
+          tokenize(Rest, NewLine, NewColumn, Scope, [Token | TokensSoFar]);
         {error, Reason} ->
           {error, Reason, Original, Tokens}
       end;
@@ -647,14 +637,14 @@ handle_dot([$., H | T] = Original, Line, Column, DotColumn, Scope, Tokens, Comme
       interpolation_error(Reason, Original, Tokens, " (for function name starting at line ~B)", [Line])
   end;
 
-handle_dot([$. | Rest], Line, Column, DotColumn, Scope, Tokens, CommentTokens, Counter) ->
-  TokensSoFar = add_token_with_eol({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
-  tokenize(Rest, Line + Counter, Column + 1, Scope, handle_comments(CommentTokens, TokensSoFar, Scope)).
+handle_dot([$. | Rest], Line, Column, DotInfo, Scope, Tokens) ->
+  TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
+  tokenize(Rest, Line, Column, Scope, TokensSoFar).
 
-handle_call_identifier(Rest, Line, Column, DotColumn, Length, Op, Scope, Tokens, CommentTokens, Counter) ->
-  {_, {NewLine, {_, NewColumn}, _}, _} = Token = check_call_identifier(Line + Counter, Column, Length, Op, Rest),
-  TokensSoFar = add_token_with_eol({'.', {Line, {DotColumn, DotColumn + 1}, nil}}, Tokens),
-  tokenize(Rest, NewLine, NewColumn, Scope, [Token | handle_comments(CommentTokens, TokensSoFar, Scope)]).
+handle_call_identifier(Rest, Line, Column, DotInfo, Length, Op, Scope, Tokens) ->
+  {_, {NewLine, {_, NewColumn}, _}, _} = Token = check_call_identifier(Line, Column, Length, Op, Rest),
+  TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
+  tokenize(Rest, NewLine, NewColumn, Scope, [Token | TokensSoFar]).
 
 % ## Ambiguous unary/binary operators tokens
 handle_space_sensitive_tokens([Sign, NotMarker | T], Line, Column, Scope, [{Identifier, _, _} = H | Tokens]) when
@@ -878,14 +868,25 @@ tokenize_bin(Rest, Acc, Length) ->
 
 %% Comments
 
-tokenize_comment("\r\n" ++ _ = Rest, Acc, Length) ->
-  {Rest, lists:reverse(Acc), Length};
-tokenize_comment("\n" ++ _ = Rest, Acc, Length) ->
-  {Rest, lists:reverse(Acc), Length};
-tokenize_comment([H | Rest], Acc, Length) ->
-  tokenize_comment(Rest, [H | Acc], Length + 1);
-tokenize_comment([], Acc, Length) ->
-  {[], lists:reverse(Acc), Length}.
+reset_eol([{eol, {Line, Column, _}} | Rest]) -> [{eol, {Line, Column, 0}} | Rest];
+reset_eol(Rest) -> Rest.
+
+tokenize_comment("\r\n" ++ _ = Rest, Acc) ->
+  {Rest, lists:reverse(Acc)};
+tokenize_comment("\n" ++ _ = Rest, Acc) ->
+  {Rest, lists:reverse(Acc)};
+tokenize_comment([H | Rest], Acc) ->
+  tokenize_comment(Rest, [H | Acc]);
+tokenize_comment([], Acc) ->
+  {[], lists:reverse(Acc)}.
+
+preserve_comments(Line, Column, Tokens, Comment, Rest, Scope) ->
+  case Scope#elixir_tokenizer.preserve_comments of
+    Fun when is_function(Fun) ->
+      Fun(Line, Column, Tokens, Comment, Rest);
+    nil ->
+      ok
+  end.
 
 %% Identifiers
 
