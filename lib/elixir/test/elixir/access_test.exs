@@ -86,4 +86,25 @@ defmodule AccessTest do
       Access.pop(struct(Sample, []), :name)
     end
   end
+
+  describe "filter/1" do
+    @test_list [1, 2, 3, 4, 5, 6]
+
+    test "filters in get_in" do
+      assert get_in(@test_list, [Access.filter(&(&1 > 3))]) == [4, 5, 6]
+    end
+
+    test "retains order in get_and_update_in/1" do
+      assert get_and_update_in(@test_list, [Access.filter(&(&1 == 3 || &1 == 2))], &({&1 * 2, &1})) == {[4, 6], [1, 2, 3, 4, 5, 6]}
+    end
+
+    test "retains order in pop_in/1" do
+      assert pop_in(@test_list, [Access.filter(&(&1 == 3 || &1 == 2))]) == {[2, 3], [1, 4, 5, 6]}
+    end
+
+    test "chains with other access functions" do
+      mixed_map_and_list = %{foo: Enum.map(@test_list, &(%{value: &1}))}
+      assert get_in(mixed_map_and_list, [:foo, Access.filter(&(&1.value <= 3)), :value]) == [1, 2, 3]
+    end
+  end
 end
