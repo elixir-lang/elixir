@@ -27,51 +27,51 @@ extract_interpolations_with_escaped_interpolation_test() ->
 
 extract_interpolations_with_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 7}, nil}, [{atom, {1, {4, 6}, nil}, o}]},
+   {{1, {2, 7}, 1}, [{atom, {1, {4, 6}, nil}, o}]},
    <<"o">>] = extract_interpolations("f#{:o}o").
 
 extract_interpolations_with_two_interpolations_test() ->
   [<<"f">>,
-   {{1, {2, 7}, nil}, [{atom, {1, {4, 6}, nil}, o}]}, {{1, {7, 12}, nil}, [{atom, {1, {9, 11}, nil}, o}]},
+   {{1, {2, 7}, 1}, [{atom, {1, {4, 6}, nil}, o}]}, {{1, {7, 12}, 1}, [{atom, {1, {9, 11}, nil}, o}]},
    <<"o">>] = extract_interpolations("f#{:o}#{:o}o").
 
 extract_interpolations_with_only_two_interpolations_test() ->
-  [{{1, {1, 6}, nil}, [{atom, {1, {3, 5}, nil}, o}]},
-   {{1, {6, 11}, nil}, [{atom, {1, {8, 10}, nil}, o}]}] = extract_interpolations("#{:o}#{:o}").
+  [{{1, {1, 6}, 1}, [{atom, {1, {3, 5}, nil}, o}]},
+   {{1, {6, 11}, 1}, [{atom, {1, {8, 10}, nil}, o}]}] = extract_interpolations("#{:o}#{:o}").
 
 extract_interpolations_with_tuple_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 8}, nil}, [{'{', {1, {4, 5}, nil}}, {int, {1, {5, 6}, 1}, "1"}, {'}', {1, {6, 7}, nil}}]},
+   {{1, {2, 8}, 1}, [{'{', {1, {4, 5}, nil}}, {int, {1, {5, 6}, 1}, "1"}, {'}', {1, {6, 7}, nil}}]},
    <<"o">>] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 3}, nil}, [{int, {1, {4, 5}, 1}, "1"}, {eol, {1, {5, 6}, 1}}, {int, {2, {1, 2}, 2}, "2"}]},
+   {{1, {2, 3}, 2}, [{int, {1, {4, 5}, 1}, "1"}, {eol, {1, {5, 6}, 1}}, {int, {2, {1, 2}, 2}, "2"}]},
     <<"o">>] = extract_interpolations("f#{1\n2}o").
 
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 10}, nil}, [{bin_string, {1, {4, 9}, nil}, [<<"f}o">>]}]},
+   {{1, {2, 10}, 1}, [{bin_string, {1, {4, 9}, nil}, [<<"f}o">>]}]},
    <<"o">>] = extract_interpolations("f#{\"f}o\"}o").
 
 extract_interpolations_with_left_curly_inside_string_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 10}, nil}, [{bin_string, {1, {4, 9}, nil}, [<<"f{o">>]}]},
+   {{1, {2, 10}, 1}, [{bin_string, {1, {4, 9}, nil}, [<<"f{o">>]}]},
    <<"o">>] = extract_interpolations("f#{\"f{o\"}o").
 
 extract_interpolations_with_escaped_quote_inside_string_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 11}, nil}, [{bin_string, {1, {4, 10}, nil}, [<<"f\"o">>]}]},
+   {{1, {2, 11}, 1}, [{bin_string, {1, {4, 10}, nil}, [<<"f\"o">>]}]},
    <<"o">>] = extract_interpolations("f#{\"f\\\"o\"}o").
 
 extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
   [<<"f">>,
-   {{1, {2, 8}, nil}, [{int, {1, {4, 5}, 1}, "1"}, {rel_op, {1, {5, 6}, nil}, '<'}, {int, {1, {6, 7}, 2}, "2"}]},
+   {{1, {2, 8}, 1}, [{int, {1, {4, 5}, 1}, "1"}, {rel_op, {1, {5, 6}, nil}, '<'}, {int, {1, {6, 7}, 2}, "2"}]},
    <<"o">>] = extract_interpolations("f#{1<2}o").
 
 extract_interpolations_with_an_escaped_character_test() ->
   [<<"f">>,
-   {{1, {2, 17}, nil}, [{int, {1, {4, 7}, 7}, "?\\a"}, {rel_op, {1, {8, 9}, nil}, '>'}, {int, {1, {10, 13}, 7}, "?\\a"}]}
+   {{1, {2, 17}, 1}, [{int, {1, {4, 7}, 7}, "?\\a"}, {rel_op, {1, {8, 9}, nil}, '>'}, {int, {1, {10, 13}, 7}, "?\\a"}]}
    ] = extract_interpolations("f#{?\\a > ?\\a   }").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
