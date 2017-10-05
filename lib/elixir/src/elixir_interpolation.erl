@@ -50,7 +50,7 @@ extract(Line, Column, Scope, true, [$#, ${ | Rest], Buffer, Output, Last) ->
       extract(EndLine, EndColumn, Scope, true, NewRest, [], Output2, Last);
     {error, Reason, _, _} ->
       {error, Reason};
-    {ok, _EndLine, _EndColumn, _} ->
+    {ok, _} ->
       {error, {string, Line, "missing interpolation terminator:}", []}}
   end;
 

@@ -5,7 +5,7 @@ tokenize(String) ->
   tokenize(String, []).
 
 tokenize(String, Opts) ->
-  {ok, _Line, _Column, Result} = elixir_tokenizer:tokenize(String, 1, Opts),
+  {ok, Result} = elixir_tokenizer:tokenize(String, 1, Opts),
   Result.
 
 tokenize_error(String) ->
@@ -93,16 +93,6 @@ float_test() ->
   OversizedFloat = string:copies("9", 310) ++ ".0",
   {1, "invalid float number ", OversizedFloat} = tokenize_error(OversizedFloat).
 
-comments_test() ->
-  [{int, {1, {1, 2}, 1}, "1"},
-   {eol, {1, {3, 4}, 1}},
-   {int, {2, {1, 2}, 2}, "2"}] = tokenize("1 # Comment\n2"),
-  [{int, {1, {1, 2}, 1}, "1"},
-   {comment, {1, {3, 12}, nil}, "# Comment"},
-   {eol, {1, {12, 13}, 1}},
-   {int, {2, {1, 2}, 2}, "2"}] = tokenize("1 # Comment\n2", [{preserve_comments, true}]),
-  [{comment, {1, {1, 10}, nil}, "# Comment"}] = tokenize("# Comment", [{preserve_comments, true}]).
-
 identifier_test() ->
   [{identifier, {1, {1, 4}, nil}, abc}] = tokenize("abc "),
   [{identifier, {1, {1, 5}, nil}, 'abc?'}] = tokenize("abc?"),
@@ -146,12 +136,7 @@ dot_newline_operator_test() ->
   [{identifier, {1, {1, 4}, nil}, foo},
    {'.', {1, {4, 5}, nil}},
    {identifier, {2, {1, 2}, nil}, '+'},
-   {int, {2, {2, 3}, 1}, "1"}] = tokenize("foo.#bar\n+1"),
-  [{identifier, {1, {1, 4}, nil}, foo},
-   {'.', {1, {4, 5}, nil}},
-   {comment, {1, {5, 9}, nil}, "#bar"},
-   {identifier, {2, {1, 2}, nil}, '+'},
-   {int, {2, {2, 3}, 1}, "1"}] = tokenize("foo.#bar\n+1", [{preserve_comments, true}]).
+   {int, {2, {2, 3}, 1}, "1"}] = tokenize("foo.#bar\n+1").
 
 aliases_test() ->
   [{'alias', {1, {1, 4}, nil}, 'Foo'}] = tokenize("Foo"),
