@@ -177,7 +177,7 @@ chars_test() ->
   [{int, {1, {1, 4}, 92}, "?\\\\"}] = tokenize("?\\\\").
 
 interpolation_test() ->
-  [{bin_string, {1, {1, 9}, nil}, [<<"f">>, {{1, {3, 8}, nil}, [{identifier, {1, {5, 7}, nil}, oo}]}]},
+  [{bin_string, {1, {1, 9}, nil}, [<<"f">>, {{1, {3, 8}, 1}, [{identifier, {1, {5, 7}, nil}, oo}]}]},
    {two_op, {1, {10, 12}, nil}, '<>'},
    {bin_string, {1, {13, 15}, nil}, [<<>>]}] = tokenize("\"f#{oo}\" <> \"\"").
 
