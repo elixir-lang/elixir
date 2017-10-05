@@ -709,32 +709,32 @@ defmodule Access do
 
   ## Examples
 
-      iex> list = [%{name: "john", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]
-      iex> get_in(list, [Access.filter(&(&1.salary >= 20)), :name])
-      ["mary", "francine"]
+      iex> list = [%{name: "john", salary: 10},  %{name: "francine", salary: 30}]
+      iex> get_in(list, [Access.filter(&(&1.salary > 20)), :name])
+      ["francine"]
       iex> get_and_update_in(list, [Access.filter(&(&1.salary <= 20)), :name], fn
       ...>   prev -> {prev, String.upcase(prev)}
       ...> end)
-      {["john", "mary"], [%{name: "JOHN", salary: 10}, %{name: "MARY", salary: 20}, %{name: "francine", salary: 30}]}
+      {["john"], [%{name: "JOHN", salary: 10}, %{name: "francine", salary: 30}]}
 
   `filter/1` can also be used to pop elements out of a list or
   a key inside of a list:
 
-      iex> list = [%{name: "john", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> pop_in(list, [Access.filter(&(&1.salary >= 20))])
-      {[%{name: "mary", salary: 20}, %{name: "francine", salary: 30}], [%{name: "john", salary: 10}]}
+      {[%{name: "francine", salary: 30}], [%{name: "john", salary: 10}]}
       iex> pop_in(list, [Access.filter(&(&1.salary >= 20)), :name])
-      {["mary", "francine"], [%{name: "john", salary: 10}, %{salary: 20}, %{salary: 30}]}
+      {["francine"], [%{name: "john", salary: 10}, %{salary: 30}]}
 
   When no match is found, an empty list is returned and the update function is never called
 
-      iex> list = [%{name: "john", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.filter(&(&1.salary >= 50)), :name])
       []
       iex> get_and_update_in(list, [Access.filter(&(&1.salary >= 50)), :name], fn
       ...>   prev -> {prev, String.upcase(prev)}
       ...> end)
-      {[], [%{name: "john", salary: 10}, %{name: "mary", salary: 20}, %{name: "francine", salary: 30}]}
+      {[], [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
 
   An error is raised if the predicate is not a function or is of the incorrect arity:
 
@@ -746,6 +746,7 @@ defmodule Access do
       iex> get_in(%{}, [Access.filter(fn a -> a == 10 end)])
       ** (RuntimeError) Access.filter/1 expected a list, got: %{}
   """
+  @spec filter(((term) -> boolean)) :: access_fun(data :: list, get_value :: list)
   def filter(func) when is_function(func) do
     fn(op, data, next) -> filter(op, data, func, next) end
   end
@@ -755,27 +756,27 @@ defmodule Access do
   end
 
   defp filter(:get_and_update, data, func, next) when is_list(data) do
-    get_and_update_where(data, func, next, [], [])
+    get_and_update_filter(data, func, next, [], [])
   end
 
   defp filter(_op, data, _func, _next) do
     raise "Access.filter/1 expected a list, got: #{inspect data}"
   end
 
-  defp get_and_update_where([head | rest], func, next, updates, gets) do
+  defp get_and_update_filter([head | rest], func, next, updates, gets) do
     if func.(head) do
       case next.(head) do
         {get, update} ->
-          get_and_update_where(rest, func, next, [update | updates], [get | gets])
+          get_and_update_filter(rest, func, next, [update | updates], [get | gets])
         :pop ->
-          get_and_update_where(rest, func, next, updates, [head | gets])
+          get_and_update_filter(rest, func, next, updates, [head | gets])
       end
     else
-      get_and_update_where(rest, func, next, [head | updates], gets)
+      get_and_update_filter(rest, func, next, [head | updates], gets)
     end
   end
 
-  defp get_and_update_where([], _func, _next, updates, gets) do
+  defp get_and_update_filter([], _func, _next, updates, gets) do
     {:lists.reverse(gets), :lists.reverse(updates)}
   end
 end
