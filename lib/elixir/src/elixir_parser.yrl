@@ -828,9 +828,13 @@ string_parts(Parts) ->
   [string_part(Part) || Part <- Parts].
 string_part(Binary) when is_binary(Binary) ->
   Binary;
-string_part({Location, Tokens}) ->
+string_part({{Line, _, EndLine}, Tokens}) ->
   Form = string_tokens_parse(Tokens),
-  Meta = meta_from_location(Location),
+  Meta =
+    case ?formatter_metadata() of
+      true -> [{line, Line}, {end_line, EndLine}];
+      false -> [{line, Line}]
+    end,
   {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}, {binary, Meta, nil}]}.
 
 string_tokens_parse(Tokens) ->

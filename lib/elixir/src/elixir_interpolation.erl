@@ -46,7 +46,7 @@ extract(Line, Column, Scope, true, [$#, ${ | Rest], Buffer, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
   case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope) of
     {error, {{EndLine, {_, EndColumn}, _}, _, "}"}, [$} | NewRest], Tokens} ->
-      Output2 = build_interpol(Line, Column, EndColumn, Tokens, Output1),
+      Output2 = build_interpol(Line, Column, EndLine, EndColumn, Tokens, Output1),
       extract(EndLine, EndColumn, Scope, true, NewRest, [], Output2, Last);
     {error, Reason, _, _} ->
       {error, Reason};
@@ -210,5 +210,5 @@ build_string(_Line, [], Output) -> Output;
 build_string(_Line, Buffer, Output) ->
   [elixir_utils:characters_to_binary(lists:reverse(Buffer)) | Output].
 
-build_interpol(Line, Column, EndColumn, Buffer, Output) ->
-  [{{Line, {Column, EndColumn}, nil}, lists:reverse(Buffer)} | Output].
+build_interpol(Line, Column, EndLine, EndColumn, Buffer, Output) ->
+  [{{Line, {Column, EndColumn}, EndLine}, lists:reverse(Buffer)} | Output].
