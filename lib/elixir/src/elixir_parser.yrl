@@ -890,7 +890,7 @@ build_stab(Meta, [], Marker, Temp, Acc) ->
 %% case, we don't actually want the block, since it is
 %% an arg style call. unwrap_splice unwraps the splice
 %% from such blocks.
-unwrap_splice([{'__block__', [], [{unquote_splicing, _, _}] = Splice}]) ->
+unwrap_splice([{'__block__', _, [{unquote_splicing, _, _}] = Splice}]) ->
   Splice;
 unwrap_splice(Other) ->
   Other.
