@@ -186,7 +186,7 @@ returns_boolean({'cond', _, [[{do, Clauses}]]}) ->
     ({'->', _, [_, Expr]}) -> returns_boolean(Expr)
   end, Clauses);
 
-returns_boolean({'__block__', [], Exprs}) ->
+returns_boolean({'__block__', _, Exprs}) ->
   returns_boolean(lists:last(Exprs));
 
 returns_boolean(_) -> false.
