@@ -245,7 +245,7 @@ access_expr -> open_paren stab ';' close_paren : build_stab('$1', reverse('$2'),
 access_expr -> open_paren ';' stab ';' close_paren : build_stab('$1', reverse('$3'), '$5').
 access_expr -> open_paren ';' stab close_paren : build_stab('$1', reverse('$3'), '$4').
 access_expr -> open_paren ';' close_paren : build_stab('$1', [], '$3').
-access_expr -> empty_paren : warn_empty_paren('$1'), nil.
+access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', [], []}.
 access_expr -> number : '$1'.
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
@@ -968,6 +968,7 @@ warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
     "an expression is always required on the right side of ->. "
     "Please provide a value after ->").
 
+%% TODO: Make this an error on Elixir v2.0.
 warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_ | _], [_ | _]}) ->
   elixir_errors:warn(Line, ?file(),
     io_lib:format(
