@@ -239,12 +239,12 @@ no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
 access_expr -> capture_op_eol int : build_unary_op('$1', number_value('$2')).
-access_expr -> fn_eoe stab end_eoe : build_fn('$1', reverse('$2')).
-access_expr -> open_paren stab close_paren : build_stab(reverse('$2')).
-access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
-access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
-access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
-access_expr -> open_paren ';' close_paren : build_stab([]).
+access_expr -> fn_eoe stab end_eoe : build_fn('$1', reverse('$2'), '$3').
+access_expr -> open_paren stab close_paren : build_stab('$1', reverse('$2'), '$3').
+access_expr -> open_paren stab ';' close_paren : build_stab('$1', reverse('$2'), '$4').
+access_expr -> open_paren ';' stab ';' close_paren : build_stab('$1', reverse('$3'), '$5').
+access_expr -> open_paren ';' stab close_paren : build_stab('$1', reverse('$3'), '$4').
+access_expr -> open_paren ';' close_paren : build_stab('$1', [], '$3').
 access_expr -> empty_paren : warn_empty_paren('$1'), nil.
 access_expr -> number : '$1'.
 access_expr -> list : element(1, '$1').
@@ -622,13 +622,26 @@ Erlang code.
 %% The following directive is needed for (significantly) faster
 %% compilation of the generated .erl file by the HiPE compiler
 -compile([{hipe, [{regalloc, linear_scan}]}]).
+-compile({inline, meta_from_token/1, meta_from_location/1, line_from_location/1}).
 -import(lists, [reverse/1, reverse/2]).
+
+meta_from_token_with_endline(Begin, End) ->
+  case ?formatter_metadata() of
+    true ->
+      [{line, line_from_location(?location(Begin))},
+       {end_line, line_from_location(?location(End))}];
+    false ->
+      meta_from_token(Begin)
+  end.
 
 meta_from_token(Token) ->
   meta_from_location(?location(Token)).
 
-meta_from_location({Line, {_Column, _EndColumn}, _}) when is_integer(Line) ->
-  [{line, Line}].
+meta_from_location(Location) ->
+  [{line, line_from_location(Location)}].
+
+line_from_location({Line, {_Column, _EndColumn}, _}) when is_integer(Line) ->
+  Line.
 
 %% Handle metadata in literals
 
@@ -762,10 +775,10 @@ build_identifier({_, Location, Identifier}, Args) ->
 
 %% Fn
 
-build_fn(Op, [{'->', _, [_, _]} | _] = Stab) ->
-  {fn, meta_from_token(Op), build_stab(Stab)};
-build_fn(Op, _Stab) ->
-  throw(meta_from_token(Op), "expected clauses to be defined with -> inside: ", "'fn'").
+build_fn(Fn, [{'->', _, [_, _]} | _] = Stab, End) ->
+  {fn, meta_from_token_with_endline(Fn, End), build_stab(Stab)};
+build_fn(Fn, _Stab, _End) ->
+  throw(meta_from_token(Fn), "expected clauses to be defined with -> inside: ", "'fn'").
 
 %% Access
 
@@ -848,8 +861,16 @@ string_tokens_parse(Tokens) ->
 build_stab([{'->', Meta, [Left, Right]} | T]) ->
   build_stab(Meta, T, Left, [Right], []);
 
-build_stab(Else) ->
-  build_block(Else).
+build_stab(Other) ->
+  build_block(Other).
+
+build_stab(Before, Stab, After) ->
+  case build_stab(Stab) of
+    {'__block__', _, Block} ->
+      {'__block__', meta_from_token_with_endline(Before, After), Block};
+    Other ->
+      Other
+  end.
 
 build_stab(Old, [{'->', New, [Left, Right]} | T], Marker, Temp, Acc) ->
   H = {'->', Old, [Marker, build_block(reverse(Temp))]},
