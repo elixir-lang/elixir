@@ -321,12 +321,16 @@ tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T
   handle_op(Rest, Line, Column, arrow_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Containers + punctuation tokens
+tokenize([$, | Rest], Line, Column, Scope, Tokens) ->
+  Token = {',', {Line, {Column, Column + 1}, 0}},
+  handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
+
 tokenize([T, T | Rest], Line, Column, Scope, Tokens) when T == $<; T == $> ->
   Token = {list_to_atom([T, T]), {Line, {Column, Column + 2}, nil}},
   handle_terminator(Rest, Line, Column + 2, Scope, Token, Tokens);
 
 tokenize([T | Rest], Line, Column, Scope, Tokens) when T == $(;
-    T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
+    T == ${; T == $}; T == $[; T == $]; T == $) ->
   Token = {list_to_atom([T]), {Line, {Column, Column + 1}, nil}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
 
@@ -662,8 +666,8 @@ handle_space_sensitive_tokens(String, Line, Column, Scope, Tokens) ->
 
 %% Helpers
 
-eol(_Line, _Column, [{',', _} | _] = Tokens) ->
-  Tokens;
+eol(_Line, _Column, [{',', {Line, Column, Count}} | Tokens]) ->
+  [{',', {Line, Column, Count + 1}} | Tokens];
 eol(_Line, _Column, [{';', {Line, Column, Count}} | Tokens]) ->
   [{';', {Line, Column, Count + 1}} | Tokens];
 eol(_Line, _Column, [{eol, {Line, Column, Count}} | Tokens]) ->

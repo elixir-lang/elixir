@@ -153,9 +153,9 @@ defmodule CodeTest do
     assert string_to_quoted.(":one") ==
            {:__block__, [line: 1], [:one]}
     assert string_to_quoted.("[1]") ==
-           {:__block__, [line: 1], [[{:__block__, [original: '1', line: 1], [1]}]]}
+           {:__block__, [end_line: 1, line: 1], [[{:__block__, [original: '1', line: 1], [1]}]]}
     assert string_to_quoted.("{:ok, :test}") ==
-           {:__block__, [line: 1], [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]}
+           {:__block__, [end_line: 1, line: 1], [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]}
     assert string_to_quoted.(~s("""\nhello\n""")) ==
            {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}
     assert string_to_quoted.("'''\nhello\n'''") ==

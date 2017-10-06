@@ -193,7 +193,7 @@ capture_test() ->
   [{capture_op, {1, {1, 2}, nil}, '&'},
    {unary_op, {1, {2, 5}, nil}, 'not'},
    {int, {1, {6, 7}, 1}, "1"},
-   {',', {1, {7, 8}, nil}},
+   {',', {1, {7, 8}, 0}},
    {int, {1, {9, 10}, 2}, "2"}] = tokenize("&not 1, 2").
 
 vc_merge_conflict_test() ->
