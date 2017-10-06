@@ -664,9 +664,9 @@ build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(U
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
 build_op({arrow_op, Location, Op} = Token, Left, Right) ->
-  {Op, eol_pair(Token, Token) ++ meta_from_location(Location), [Left, Right]};
+  {Op, eol_op(Token) ++ meta_from_location(Location), [Left, Right]};
 build_op({stab_op, Location, Op} = Token, Left, Right) ->
-  {Op, eol_pair(Token, Token) ++ meta_from_location(Location), [Left, Right]};
+  {Op, eol_op(Token) ++ meta_from_location(Location), [Left, Right]};
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 build_op({_Kind, Location, Op}, Left, Right) ->
@@ -710,7 +710,18 @@ eol_pair(Left, Right) ->
   case ?formatter_metadata() of
     true ->
       case {?location(Left), ?location(Right)} of
-        {{_, _, eol}, {_, _, eol}} -> [{eol, true}];
+        {{_, _, eol}, {Line, _, eol}} -> [{eol, true}, {end_line, Line}];
+        {_, {Line, _, _}} -> [{end_line, Line}]
+      end;
+    false ->
+      []
+  end.
+
+eol_op(Token) ->
+  case ?formatter_metadata() of
+    true ->
+      case ?location(Token) of
+        {_, _, eol} -> [{eol, true}];
         _ -> []
       end;
     false ->
