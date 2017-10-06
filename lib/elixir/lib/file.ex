@@ -1282,7 +1282,7 @@ defmodule File do
   @doc """
   Returns the list of files in the given directory.
 
-  Returns `{:ok, [files]}` in case of success,
+  Returns `{:ok, files}` in case of success,
   `{:error, reason}` otherwise.
   """
   @spec ls(Path.t) :: {:ok, [binary]} | {:error, posix}
