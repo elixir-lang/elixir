@@ -556,12 +556,16 @@ defmodule Kernel.TypespecTest do
   test "@callback(callback)" do
     bytecode = test_module do
       @callback my_fun(integer) :: integer
+      @callback my_fun(list) :: list
       @callback my_fun() :: integer
       @callback my_fun(integer, integer) :: {integer, integer}
     end
 
     assert [{{:my_fun, 0}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :integer, []}]}]},
-            {{:my_fun, 1}, [{:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}]},
+            {{:my_fun, 1}, [
+               {:type, _, :fun, [{:type, _, :product, [{:type, _, :list, []}]}, {:type, _, :list, []}]},
+               {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}
+             ]},
             {{:my_fun, 2}, [{:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}, {:type, _, :integer, []}]}, {:type, _, :tuple, [{:type, _, :integer, []}, {:type, _, :integer, []}]}]}]}] =
            callbacks(bytecode)
   end
