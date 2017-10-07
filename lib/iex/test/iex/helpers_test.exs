@@ -390,6 +390,26 @@ defmodule IEx.HelpersTest do
       """
     end
 
+    test "lists callback with multiple clauses" do
+      filename = "multiple_clauses_callback.ex"
+      content = """
+      defmodule MultipleClauseCallback do
+        @callback test(:foo) :: integer
+        @callback test(:bar) :: [integer]
+      end
+      """
+
+      with_file filename, content, fn ->
+        assert c(filename, ".") |> Enum.sort == [MultipleClauseCallback]
+        assert capture_io(fn -> b MultipleClauseCallback end) =~ """
+        @callback test(:foo) :: integer()
+        @callback test(:bar) :: [integer()]
+        """
+      end
+    after
+      cleanup_modules([MultipleClauseCallback])
+    end
+
     test "prints callback documentation" do
       assert capture_io(fn -> b Mix.Task.stop end) == "No documentation for Mix.Task.stop was found\n"
       assert capture_io(fn -> b Mix.Task.run end) =~ "* @callback run(command_line_args :: [binary()]) :: any()\n\nA task needs to implement `run`"
