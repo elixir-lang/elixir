@@ -250,7 +250,7 @@ defmodule Code do
 
     * Lists, tuples, bitstrings, maps, and structs will be broken into
       multiple lines if they are followed by a newline in the opening
-      bracker and preceeded by a new lie in the closing bracker. For
+      bracket and preceded by a new line in the closing bracket. For
       example with a newline after `[` and before `]` for lists
 
     * Pipeline operators, like `|>` and others with the same precedence,
