@@ -738,7 +738,7 @@ eol_op(Token) ->
   end.
 
 set_eol(Token) ->
-  {Line, Column, nil} = ?location(Token),
+  {Line, Column, _} = ?location(Token),
   setelement(2, Token, {Line, Column, eol}).
 
 annotate_newlines({_, {_, _, Count}}, {Left, Meta, Right}) when is_integer(Count), is_list(Meta) ->
