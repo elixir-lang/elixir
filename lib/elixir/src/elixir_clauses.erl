@@ -115,7 +115,7 @@ expand_cond(Meta, {Key, _}, _Acc, E) ->
   {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_receive(Meta, X, Acc, EE) end, [], Opts),
   {EClauses, elixir_env:mergev(EVars, E)}.
 
-expand_receive(_Meta, {'do', nil} = Do, Acc, _E) ->
+expand_receive(_Meta, {'do', {'__block__', _, []}} = Do, Acc, _E) ->
   {Do, Acc};
 expand_receive(Meta, {'do', _} = Do, Acc, E) ->
   Fun = expand_one(Meta, 'receive', 'do', fun head/2),
