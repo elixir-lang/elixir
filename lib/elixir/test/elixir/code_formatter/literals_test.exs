@@ -91,8 +91,11 @@ defmodule Code.Formatter.LiteralsTest do
       assert_format ~S[:"double \" quote"], ~S[:"double \" quote"]
     end
 
-    test "with unicode" do
-      assert_same ~S[:ólá]
+    # TODO: Remove this check once we depend only on 20
+    if :erlang.system_info(:otp_release) >= '20' do
+      test "with unicode" do
+        assert_same ~S[:ólá]
+      end
     end
 
     test "does not reformat aliases" do

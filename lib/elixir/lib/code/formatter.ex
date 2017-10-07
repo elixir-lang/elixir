@@ -1243,7 +1243,7 @@ defmodule Code.Formatter do
   end
 
   defp float_to_algebra(text) do
-    [int_part, decimal_part] = :string.split(text, '.')
+    {int_part, [?. |decimal_part]} = Enum.split_while(text, &(&1 != ?.))
 
     decimal_part =
       decimal_part
