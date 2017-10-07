@@ -288,13 +288,17 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 %% Blocks
 
 do_block -> do_eoe 'end' :
-              [[{handle_literal(do, '$1', [{format, block}]), handle_literal(nil, '$1')}]].
+              [[{handle_literal(do, '$1', end_meta('$2')),
+                 {'__block__', [], []}}]].
 do_block -> do_eoe stab end_eoe :
-              [[{handle_literal(do, '$1', [{format, block}]), build_stab(reverse('$2'))}]].
+              [[{handle_literal(do, '$1', end_meta('$3')),
+                 build_stab(reverse('$2'))}]].
 do_block -> do_eoe block_list 'end' :
-              [[{handle_literal(do, '$1', [{format, block}]), handle_literal(nil, '$1')} | '$2']].
+              [[{handle_literal(do, '$1', end_meta('$3')),
+                 {'__block__', [], []}} | '$2']].
 do_block -> do_eoe stab_eoe block_list 'end' :
-              [[{handle_literal(do, '$1', [{format, block}]), build_stab(reverse('$2'))} | '$3']].
+              [[{handle_literal(do, '$1', end_meta('$4')),
+                 build_stab(reverse('$2'))} | '$3']].
 
 eoe -> eol : '$1'.
 eoe -> ';' : '$1'.
@@ -339,9 +343,11 @@ stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', nil}.
 
 block_item -> block_eoe stab_eoe :
-                {handle_literal(?exprs('$1'), '$1', [{format, block}]), build_stab(reverse('$2'))}.
+                {handle_literal(?exprs('$1'), '$1', [{format, block}]),
+                 build_stab(reverse('$2'))}.
 block_item -> block_eoe :
-                {handle_literal(?exprs('$1'), '$1', [{format, block}]), handle_literal(nil, '$1')}.
+                {handle_literal(?exprs('$1'), '$1', [{format, block}]),
+                 {'__block__', [], []}}.
 
 block_list -> block_item : ['$1'].
 block_list -> block_item block_list : ['$1' | '$2'].
@@ -622,7 +628,7 @@ Erlang code.
 %% The following directive is needed for (significantly) faster
 %% compilation of the generated .erl file by the HiPE compiler
 -compile([{hipe, [{regalloc, linear_scan}]}]).
--compile({inline, meta_from_token/1, meta_from_location/1, line_from_location/1}).
+-compile({inline, meta_from_token/1, meta_from_location/1, line_from_location/1, end_meta/1}).
 -import(lists, [reverse/1, reverse/2]).
 
 meta_from_token_with_endline(Begin, End) ->
@@ -642,6 +648,9 @@ meta_from_location(Location) ->
 
 line_from_location({Line, {_Column, _EndColumn}, _}) when is_integer(Line) ->
   Line.
+
+end_meta(Token) ->
+  [{format, block}, {end_line, line_from_location(?location(Token))}].
 
 %% Handle metadata in literals
 
