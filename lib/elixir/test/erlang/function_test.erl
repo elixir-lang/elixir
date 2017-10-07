@@ -13,6 +13,10 @@ function_stab_end_test() ->
   {_, [{a, Fun3}]} = eval("a = fn -> 1 + 2 end"),
   3 = Fun3().
 
+function_stab_newlines_test() ->
+  {_, [{a, Fun3}]} = eval("a = fn\n->\n1 + 2\nend"),
+  3 = Fun3().
+
 function_stab_many_test() ->
   {_, [{a, Fun}]} = eval("a = fn\n{:foo, x} -> x\n{:bar, x} -> x\nend"),
   1 = Fun({foo, 1}),
