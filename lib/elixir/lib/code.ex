@@ -178,6 +178,157 @@ defmodule Code do
   end
 
   @doc """
+  Formats the given code `string`.
+
+  The formatter receives a string representing Elixir code and
+  returns iodata representing the formatted code according to
+  pre-defined rules.
+
+  ## Options
+
+    * `:file` - the file which contains the string, used for error
+      reporting
+
+    * `:line` - the line the string starts, used for error reporting
+
+    * `:line_length` - the line length to aim for when formatting
+      the document. Defaults to 98.
+
+    * `:locals_without_parens` - a keyword list of name and arity
+      pairs that should be kept without parens whenever possible.
+      The arity may be the atom `:*`, which implies all arities of
+      that name. The formatter already includes a list of functions
+      and this option augments this list.
+
+    * `:rename_deprecated_at` - rename all known deprecated functions
+      at the given version to their non-deprecated equivalent. It
+      expects a valid `Version` which is usually the minimum Elixir
+      version supported by the project.
+
+  ## Design principles
+
+  The formatter was designed under three principles.
+
+  First, the formatter never changes the semantics of the code by
+  default. This means the input AST and the output AST are equivalent.
+  Optional behaviour, such as `:rename_deprecated_at`, is allowed to
+  break this guarantee.
+
+  The second principle is to provide as little configuration as possible.
+  This eases the formatter adoption by removing contention points while
+  making sure a single style is followed consistently by the community as
+  a whole.
+
+  The formatter does not hard code names. The formatter will not behave
+  specially because a function is named `defmodule`, `def`, etc. This
+  principle mirrors Elixir's goal of being an extensible language where
+  developers can extend the language with new constructs as if they were
+  part of the language. When it is absolutely necessary to change behaviour
+  based on the name, this behaviour should be configurable, such as the
+  `:locals_without_parens` option.
+
+  ## Keeping input formatting
+
+  The formatter respects the input format in some cases. Those are
+  listed below:
+
+    * Insignificant digits in numbers are kept as is. The formatter
+      however always inserts underscores for decimal numbers with more
+      than 5 digits and converts hexadecimal digits to uppercase
+
+    * Strings, charlists, atoms and sigils are kept as is. No character
+      is automatically escaped or unescaped. The choice of delimiter is
+      also respected from the input
+
+    * Newlines inside blocks are kept as in the input except for:
+      1) expressions that take multiple lines will always have an empty
+      line before and after and 2) empty lines are always squeezed
+      together into a single empty line
+
+    * The choice between `:do` keyword and `do/end` blocks is left
+      to the user
+
+    * Lists, tuples, bitstrings, maps, and structs will be broken into
+      multiple lines if they are followed by a newline in the opening
+      bracker and preceeded by a new lie in the closing bracker. For
+      example with a newline after `[` and before `]` for lists
+
+    * Pipeline operators, like `|>` and others with the same precedence,
+      will span multiple lines if they spanned multiple lines in the input
+
+  The behaviours above are not guaranteed. We may remove or add new
+  rules in the future. The goal of documenting them is to provide better
+  understanding on what to expect from the formatter.
+
+  ## Code comments
+
+  The formatter also formats code comments in a way to guarantee a space
+  is always added between the start of the comments (#) and the next
+  character.
+
+  The formatter also extracts all trailing comments to their previous line.
+  For example, the code below
+
+      hello # world
+
+  will be rewritten to
+
+      # world
+      hello
+
+  Because code comments are handled apart from the code representation (AST),
+  there are some situations where code comments are seen as ambiguous by the
+  code formatter. For example, the comment in the anonymous function below
+
+      fn
+        arg1 ->
+          body1
+          # comment
+
+        arg2 ->
+          body2
+      end
+
+  and in this one
+
+      fn
+        arg1 ->
+          body1
+
+        # comment
+        arg2 ->
+          body2
+      end
+
+  are considered equivalent because the formatter strips all original formatting.
+  In such cases, the code formatter will always format to the latter.
+  """
+  def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
+    line_length = Keyword.get(opts, :line_length, 98)
+
+    string
+    |> Code.Formatter.to_algebra!(opts)
+    |> Inspect.Algebra.format(line_length)
+  end
+
+  @doc """
+  Formats a file.
+
+  See `format_string!/2` for more information on code formatting and
+  available options.
+  """
+  def format_file!(file, opts \\ []) when is_binary(file) and is_list(opts) do
+    file
+    |> File.read!
+    |> format_string!([file: file, line: 1] ++ opts)
+    |> cons_newline()
+  end
+
+  defp cons_newline(arg) do
+    [arg, ?\n]
+  end
+
+  @doc """
   Evaluates the quoted contents.
 
   **Warning**: Calling this function inside a macro is considered bad
@@ -306,7 +457,7 @@ defmodule Code do
   byte code, `eval_file` simply evaluates the file contents and returns the
   evaluation result and its bindings.
   """
-  def eval_file(file, relative_to \\ nil) do
+  def eval_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     eval_string File.read!(file), [], [file: file, line: 1]
   end
@@ -466,7 +617,9 @@ defmodule Code do
   Compiles the given string.
 
   Returns a list of tuples where the first element is the module name
-  and the second one is its byte code (as a binary).
+  and the second one is its byte code (as a binary). A `file` can be
+  given as second argument which will be used for reporting warnings
+  and errors.
 
   For compiling many files at once, check `Kernel.ParallelCompiler.compile/2`.
   """
@@ -478,7 +631,9 @@ defmodule Code do
   Compiles the quoted expression.
 
   Returns a list of tuples where the first element is the module name and
-  the second one is its byte code (as a binary).
+  the second one is its byte code (as a binary). A `file` can be
+  given as second argument which will be used for reporting warnings
+  and errors.
   """
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
     :elixir_compiler.quoted quoted, file
