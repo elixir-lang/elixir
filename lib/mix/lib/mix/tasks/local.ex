@@ -7,7 +7,6 @@ defmodule Mix.Tasks.Local do
   Lists local tasks.
   """
 
-  @spec run([]) :: :ok
   def run([]) do
     shell   = Mix.shell
     modules = Mix.Local.archives_tasks

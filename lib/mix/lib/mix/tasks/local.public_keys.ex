@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Local.PublicKeys do
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
   """
-  @spec run(OptionParser.argv) :: true
+
   def run(argv) do
     {opts, argv} =
       OptionParser.parse!(argv, switches: [force: :boolean, detailed: :boolean])

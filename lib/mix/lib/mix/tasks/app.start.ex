@@ -38,7 +38,6 @@ defmodule Mix.Tasks.App.Start do
     * `--no-start` - does not start applications after compilation
 
   """
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
     config = Mix.Project.config

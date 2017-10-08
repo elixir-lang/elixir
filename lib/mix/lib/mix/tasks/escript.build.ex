@@ -120,7 +120,6 @@ defmodule Mix.Tasks.Escript.Build do
   @switches [force: :boolean, compile: :boolean,
              deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean]
 
-  @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     Mix.Project.get!
     {opts, _} = OptionParser.parse!(args, strict: @switches)

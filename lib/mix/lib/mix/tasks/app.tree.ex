@@ -32,7 +32,6 @@ defmodule Mix.Tasks.App.Tree do
 
   @default_excluded [:kernel, :stdlib, :compiler]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Task.run "compile"
 

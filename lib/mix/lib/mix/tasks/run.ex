@@ -50,7 +50,6 @@ defmodule Mix.Tasks.Run do
 
   """
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, p: :parallel, e: :eval, c: :config],

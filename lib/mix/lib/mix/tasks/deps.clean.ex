@@ -25,7 +25,6 @@ defmodule Mix.Tasks.Deps.Clean do
   @switches [unlock: :boolean, all: :boolean, only: :string, unused: :boolean,
              build: :boolean]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
     {opts, apps, _} = OptionParser.parse(args, switches: @switches)

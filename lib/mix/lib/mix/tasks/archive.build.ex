@@ -46,7 +46,6 @@ defmodule Mix.Tasks.Archive.Build do
              deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean,
              include_dot_files: :boolean]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, _} = OptionParser.parse!(args, aliases: [o: :output, i: :input], strict: @switches)
 

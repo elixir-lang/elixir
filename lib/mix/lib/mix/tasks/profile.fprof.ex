@@ -111,7 +111,6 @@ defmodule Mix.Tasks.Profile.Fprof do
              details: :boolean, callers: :boolean, sort: :string, elixir_version_check: :boolean,
              warmup: :boolean, parallel_require: :keep]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, p: :parallel, e: :eval, c: :config],

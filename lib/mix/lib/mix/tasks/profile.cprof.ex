@@ -94,7 +94,6 @@ defmodule Mix.Tasks.Profile.Cprof do
              module: :string, start: :boolean, archives_check: :boolean, warmup: :boolean,
              elixir_version_check: :boolean, parallel_require: :keep]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args,
       aliases: [r: :require, p: :parallel, e: :eval, c: :config],

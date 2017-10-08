@@ -15,7 +15,6 @@ defmodule Mix.Tasks.Archive do
   variable to different locations based on a particular
   Elixir installation.
   """
-  @spec run(OptionParser.argv) :: :ok
   def run(_) do
     Mix.Local.path_for(:archive)
     |> Path.join("*")

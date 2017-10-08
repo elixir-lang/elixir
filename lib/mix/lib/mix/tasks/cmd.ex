@@ -20,7 +20,6 @@ defmodule Mix.Tasks.Cmd do
   Aborts when a command exits with a non-zero status.
   """
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {args, apps} = parse_apps(args, [])
     if apps == [] or Mix.Project.config[:app] in apps do

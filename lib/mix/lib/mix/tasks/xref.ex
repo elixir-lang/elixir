@@ -98,10 +98,6 @@ defmodule Mix.Tasks.Xref do
              elixir_version_check: :boolean, exclude: :keep, format: :string,
              source: :string, sink: :string]
 
-  @doc """
-  Runs this task.
-  """
-  @spec run(OptionParser.argv) :: :ok | :error
   def run(args) do
     {opts, args} =
       OptionParser.parse!(args, strict: @switches)
