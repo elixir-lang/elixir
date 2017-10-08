@@ -32,7 +32,6 @@ defmodule Mix.Tasks.Deps.Tree do
   """
   @switches [only: :string, exclude: :keep, format: :string]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
     {opts, args, _} = OptionParser.parse(args, switches: @switches)

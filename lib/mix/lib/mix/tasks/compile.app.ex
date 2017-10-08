@@ -104,7 +104,6 @@ defmodule Mix.Tasks.Compile.App do
       MyApp.start_phase(:finish, :normal, [])
 
   """
-  @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 

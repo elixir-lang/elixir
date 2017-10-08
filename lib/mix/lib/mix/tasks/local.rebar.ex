@@ -39,8 +39,9 @@ defmodule Mix.Tasks.Local.Rebar do
   If you want to change the [default mirror](https://repo.hex.pm)
   to use for fetching `rebar` please set the `HEX_MIRROR` environment variable.
   """
+
   @switches [force: :boolean, sha512: :string]
-  @spec run(OptionParser.argv) :: true
+
   def run(argv) do
     {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 

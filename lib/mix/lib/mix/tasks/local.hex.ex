@@ -29,7 +29,6 @@ defmodule Mix.Tasks.Local.Hex do
   """
   @switches [if_missing: :boolean, force: :boolean]
 
-  @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     {opts, _} = OptionParser.parse!(argv, switches: @switches)
 

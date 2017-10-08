@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     * `--no-compile` - does not compile dependencies
 
   """
-  @spec run(OptionParser.argv) :: :ok
+
   def run(args) do
     all = Mix.Dep.cached()
     unless "--no-deps-check" in args do

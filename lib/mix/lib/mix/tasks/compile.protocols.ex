@@ -40,7 +40,6 @@ defmodule Mix.Tasks.Compile.Protocols do
       true
 
   """
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     config = Mix.Project.config
     Mix.Task.run "compile", args

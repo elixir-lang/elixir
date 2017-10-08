@@ -178,7 +178,6 @@ defmodule Mix.Tasks.Test do
 
   @cover [output: "cover", tool: Cover]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches)
 

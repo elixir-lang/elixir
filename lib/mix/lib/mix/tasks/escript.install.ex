@@ -56,9 +56,8 @@ defmodule Mix.Tasks.Escript.Install do
   @behaviour Mix.Local.Installer
 
   @escript_file_mode 0o555 # only read and execute permissions
-
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
-  @spec run(OptionParser.argv) :: boolean
+
   def run(argv) do
     Mix.Local.Installer.install(__MODULE__, argv, @switches)
   end

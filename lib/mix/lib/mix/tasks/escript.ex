@@ -12,7 +12,6 @@ defmodule Mix.Tasks.Escript do
 
   use Bitwise
 
-  @spec run(OptionParser.argv) :: :ok
   def run(_) do
     escripts_path = Mix.Local.path_for(:escript)
     escripts_path

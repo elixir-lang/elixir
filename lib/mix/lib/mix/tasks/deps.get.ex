@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Deps.Get do
     * `--only` - only fetches dependencies for given environment
     * `--no-archives-check` - does not check archives before fetching deps
   """
-  @spec run(OptionParser.argv) :: :ok
+
   def run(args) do
     unless "--no-archives-check" in args do
       Mix.Task.run "archive.check", args

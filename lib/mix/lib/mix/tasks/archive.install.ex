@@ -56,7 +56,6 @@ defmodule Mix.Tasks.Archive.Install do
   @behaviour Mix.Local.Installer
 
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
-  @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     Mix.Local.Installer.install(__MODULE__, argv, @switches)
   end
