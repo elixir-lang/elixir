@@ -4,7 +4,7 @@ defmodule EEx.MixProject do
   def project do
     [
       app: :eex,
-      version: System.version,
+      version: System.version(),
       build_per_environment: false
     ]
   end

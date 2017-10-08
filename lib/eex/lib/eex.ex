@@ -112,13 +112,13 @@ defmodule EEx do
   """
   defmacro function_from_string(kind, name, source, args \\ [], options \\ []) do
     quote bind_quoted: binding() do
-      info = Keyword.merge [file: __ENV__.file, line: __ENV__.line], options
-      args = Enum.map args, fn arg -> {arg, [line: info[:line]], nil} end
+      info = Keyword.merge([file: __ENV__.file, line: __ENV__.line], options)
+      args = Enum.map(args, fn arg -> {arg, [line: info[:line]], nil} end)
       compiled = EEx.compile_string(source, info)
 
       case kind do
-        :def  -> def(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
-        :defp -> defp(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
+        :def -> def unquote(name)(unquote_splicing(args)), do: unquote(compiled)
+        :defp -> defp unquote(name)(unquote_splicing(args)), do: unquote(compiled)
       end
     end
   end
@@ -149,15 +149,15 @@ defmodule EEx do
   """
   defmacro function_from_file(kind, name, file, args \\ [], options \\ []) do
     quote bind_quoted: binding() do
-      info = Keyword.merge options, [file: file, line: 1]
-      args = Enum.map args, fn arg -> {arg, [line: 1], nil} end
+      info = Keyword.merge(options, file: file, line: 1)
+      args = Enum.map(args, fn arg -> {arg, [line: 1], nil} end)
       compiled = EEx.compile_file(file, info)
 
       @external_resource file
       @file file
       case kind do
-        :def  -> def(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
-        :defp -> defp(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
+        :def -> def unquote(name)(unquote_splicing(args)), do: unquote(compiled)
+        :defp -> defp unquote(name)(unquote_splicing(args)), do: unquote(compiled)
       end
     end
   end
@@ -166,7 +166,7 @@ defmodule EEx do
   Gets a string `source` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
-  @spec compile_string(String.t, keyword) :: Macro.t | no_return
+  @spec compile_string(String.t(), keyword) :: Macro.t() | no_return
   def compile_string(source, options \\ []) when is_binary(source) and is_list(options) do
     EEx.Compiler.compile(source, options)
   end
@@ -175,9 +175,9 @@ defmodule EEx do
   Gets a `filename` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
-  @spec compile_file(String.t, keyword) :: Macro.t | no_return
+  @spec compile_file(String.t(), keyword) :: Macro.t() | no_return
   def compile_file(filename, options \\ []) when is_binary(filename) and is_list(options) do
-    options = Keyword.merge options, [file: filename, line: 1]
+    options = Keyword.merge(options, file: filename, line: 1)
     compile_string(File.read!(filename), options)
   end
 
@@ -190,7 +190,7 @@ defmodule EEx do
       "foo baz"
 
   """
-  @spec eval_string(String.t, keyword, keyword) :: any
+  @spec eval_string(String.t(), keyword, keyword) :: any
   def eval_string(source, bindings \\ [], options \\ [])
       when is_binary(source) and is_list(bindings) and is_list(options) do
     compiled = compile_string(source, options)
@@ -209,10 +209,10 @@ defmodule EEx do
       EEx.eval_file "sample.eex", [bar: "baz"] #=> "foo baz"
 
   """
-  @spec eval_file(String.t, keyword, keyword) :: any
+  @spec eval_file(String.t(), keyword, keyword) :: any
   def eval_file(filename, bindings \\ [], options \\ [])
       when is_binary(filename) and is_list(bindings) and is_list(options) do
-    options  = Keyword.put options, :file, filename
+    options = Keyword.put(options, :file, filename)
     compiled = compile_file(filename, options)
     do_eval(compiled, bindings, options)
   end

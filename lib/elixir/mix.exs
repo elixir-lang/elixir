@@ -4,7 +4,7 @@ defmodule Elixir.MixProject do
   def project do
     [
       app: :elixir,
-      version: System.version,
+      version: System.version(),
       build_per_environment: false
     ]
   end
