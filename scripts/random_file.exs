@@ -6,7 +6,7 @@ defmodule RandomFile do
   def run(args) do
     popper =
       if "--alphabetically" in args do
-        &Enum.split(&1, 1)
+        &{hd(&1), tl(&1)}
       else
         fn collection ->
           random = Enum.random(collection)
@@ -30,7 +30,7 @@ defmodule RandomFile do
 
     IO.write("Checking #{file}... ")
     input = File.read!(file)
-    output = IO.iodata_to_binary([Code.format_string!(file, opts), ?\n])
+    output = IO.iodata_to_binary([Code.format_string!(input, opts), ?\n])
 
     if input == output do
       IO.puts("already formatted.")
