@@ -22,9 +22,12 @@ script:
   - make compile
   - rm -rf .git
   - make test
+  - bin/elixir bin/mix format --dry-run --check-equivalent
   - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
 notifications:
   recipients:
-    - jose.valim@plataformatec.com.br
+    - jose.valim@gmail.com
     - eric.meadows.jonsson@gmail.com
+    - lexmag@me.com
+    - an.leopardi@gmail.com

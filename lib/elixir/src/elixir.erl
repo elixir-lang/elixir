@@ -35,16 +35,15 @@ start(_Type, _Args) ->
       error   -> [binary]
     end,
 
-  OTPRelease = string:to_integer(erlang:system_info(otp_release)),
-
   %% Whenever we change this check, we should also change escript.build.
-  case OTPRelease of
-    {Num, _} when Num >= 19 ->
-      ok;
-    _ ->
-      io:format(standard_error, "unsupported Erlang version, expected Erlang 19+~n", []),
-      erlang:halt(1)
-  end,
+  OTPRelease =
+    case string:to_integer(erlang:system_info(otp_release)) of
+      {Num, _} when Num >= 19 ->
+        Num;
+      _ ->
+        io:format(standard_error, "unsupported Erlang version, expected Erlang 19+~n", []),
+        erlang:halt(1)
+    end,
 
   %% We need to make sure the re module is preloaded
   %% to make function_exported checks on it fast.
@@ -83,7 +82,7 @@ start(_Type, _Args) ->
   %% TODO: Remove OTPRelease check once we support OTP 20+.
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
     {module, Mod} when OTPRelease >= 20 -> Mod;
-    {error, _} -> elixir_tokenizer
+    _ -> elixir_tokenizer
   end,
 
   URIConfig = [{{uri, <<"ftp">>}, 21},
