@@ -521,9 +521,9 @@ call_args_parens_base -> call_args_parens_base ',' call_args_parens_expr : ['$3'
 
 call_args_parens -> empty_paren : [].
 call_args_parens -> open_paren no_parens_expr close_paren : ['$2'].
-call_args_parens -> open_paren kw close_paren : ['$2'].
+call_args_parens -> open_paren kw_base close_paren : [reverse('$2')].
 call_args_parens -> open_paren call_args_parens_base close_paren : reverse('$2').
-call_args_parens -> open_paren call_args_parens_base ',' kw close_paren : reverse(['$4' | '$2']).
+call_args_parens -> open_paren call_args_parens_base ',' kw_base close_paren : reverse([reverse('$4') | '$2']).
 
 % KV
 
