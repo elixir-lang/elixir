@@ -1,4 +1,9 @@
 [
+  inputs: [
+    "lib/*/{lib,unicode,test}/**/*.{ex,exs}",
+    "lib/*/mix.exs"
+  ],
+
   locals_without_parens: [
     # Formatter tests
     assert_format: 2,
