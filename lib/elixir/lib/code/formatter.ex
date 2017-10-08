@@ -90,6 +90,8 @@ defmodule Code.Formatter do
     assert_receive: 3,
     assert_received: 1,
     assert_received: 2,
+    property: 1,
+    property: 2,
     refute: 1,
     refute: 2,
     refute_in_delta: 3,
@@ -98,7 +100,11 @@ defmodule Code.Formatter do
     refute_receive: 2,
     refute_receive: 3,
     refute_received: 1,
-    refute_received: 2
+    refute_received: 2,
+    setup: 1,
+    setup: 2,
+    test: 1,
+    test: 2
   ]
 
   @locals_without_parens MapSet.new(locals_without_parens)

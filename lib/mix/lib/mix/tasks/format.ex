@@ -23,14 +23,14 @@ defmodule Mix.Tasks.Format do
       formatter. This option is recommended if you are automatically
       formatting files.
 
-    * `--dry-run` - do not save files after formatting
+    * `--dry-run` - do not save files after formatting.
 
-    * `--print` - write formatted files to stdout instead of saving to disk
+    * `--print` - write formatted files to stdout instead of saving to disk.
 
     * `--dot-formatter` - the file with formatter configuration.
-      Defaults to `.formatter.exs` if one is available, see next section
+      Defaults to `.formatter.exs` if one is available, see next section.
 
-  If any of the "check" flags are given and a check fails, the formatted
+  If any of the `--check-*` flags are given and a check fails, the formatted
   contents won't be written to disk nor printed to stdout (if the `--print`
   flag is given).
 
