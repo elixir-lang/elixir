@@ -291,6 +291,31 @@ defmodule Code.Formatter.CallsTest do
       assert_same "foo bar", locals_without_parens: [foo: :*]
     end
 
+    test "without parens on unique argument" do
+      assert_same "foo(all 1, 2, 3)"
+      assert_same "foo(bar, all(1, 2, 3))"
+      assert_same "check all 1, 2, 3"
+      assert_same "check foo, all(1, 2, 3)"
+
+      assert_same """
+      check all 1, 2, 3 do
+        :ok
+      end
+      """
+
+      assert_same """
+      check foo, all(1, 2, 3) do
+        :ok
+      end
+      """
+
+      assert_same """
+      check (all 1, 2, 3 do
+               :ok
+             end)
+      """
+    end
+
     test "call on call" do
       assert_same "unquote(call)()"
       assert_same "unquote(call)(one, two)"
