@@ -90,6 +90,8 @@ defmodule Code.Formatter do
     assert_receive: 3,
     assert_received: 1,
     assert_received: 2,
+    check: 1,
+    check: 2,
     property: 1,
     property: 2,
     refute: 1,
@@ -352,7 +354,7 @@ defmodule Code.Formatter do
   # %name{foo: 1}
   # %name{bar | foo: 1}
   defp quoted_to_algebra({:%, _, [name, {:%{}, meta, args}]}, _context, state) do
-    {name_doc, state} = quoted_to_algebra(name, :argument, state)
+    {name_doc, state} = quoted_to_algebra(name, :parens_arg, state)
     map_to_algebra(meta, name_doc, args, state)
   end
 
@@ -557,7 +559,7 @@ defmodule Code.Formatter do
   end
 
   defp unary_op_to_algebra(op, _meta, arg, context, state) do
-    {doc, state} = quoted_to_algebra(arg, if_operand_or_block(context, :operand), state)
+    {doc, state} = quoted_to_algebra(arg, force_many_args_or_operand(context, :operand), state)
 
     # not and ! are nestable, all others are not.
     wrapped_doc =
@@ -616,8 +618,8 @@ defmodule Code.Formatter do
          nesting
        ) do
     op_info = Code.Identifier.binary_op(op)
-    left_context = if_operand_or_block(context, :argument)
-    right_context = if_operand_or_block(context, :operand)
+    left_context = force_many_args_or_operand(context, :parens_arg)
+    right_context = force_many_args_or_operand(context, :operand)
 
     {left, state} =
       binary_operand_to_algebra(left_arg, left_context, state, op, op_info, :left, 2)
@@ -742,7 +744,7 @@ defmodule Code.Formatter do
   # @Foo
   # @Foo.Bar
   defp module_attribute_to_algebra(_meta, {:__aliases__, _, [_, _ | _]} = quoted, _context, state) do
-    {doc, state} = quoted_to_algebra(quoted, :argument, state)
+    {doc, state} = quoted_to_algebra(quoted, :parens_arg, state)
     {concat(concat("@(", doc), ")"), state}
   end
 
@@ -752,7 +754,7 @@ defmodule Code.Formatter do
        when is_atom(name) and name not in [:__block__, :__aliases__] do
     if Code.Identifier.classify(name) == :callable_local do
       {{call_doc, state}, wrap_in_parens?} =
-        call_args_to_algebra(args, context, :skip_unless_argument, false, state)
+        call_args_to_algebra(args, context, :skip_unless_many_args, false, state)
 
       doc =
         "@#{name}"
@@ -870,7 +872,7 @@ defmodule Code.Formatter do
 
   # call(call)(arguments)
   defp remote_to_algebra({target, _, args}, context, state) do
-    {target_doc, state} = quoted_to_algebra(target, :no_parens, state)
+    {target_doc, state} = quoted_to_algebra(target, :no_parens_arg, state)
 
     {{call_doc, state}, wrap_in_parens?} =
       call_args_to_algebra(args, context, :required, true, state)
@@ -919,18 +921,18 @@ defmodule Code.Formatter do
 
   defp remote_target_to_algebra({:fn, _, [_ | _]} = quoted, state) do
     # This change is not semantically required but for beautification.
-    {doc, state} = quoted_to_algebra(quoted, :no_parens, state)
+    {doc, state} = quoted_to_algebra(quoted, :no_parens_arg, state)
     {wrap_in_parens(doc), state}
   end
 
   defp remote_target_to_algebra(quoted, state) do
-    quoted_to_algebra_with_parens_if_necessary(quoted, :no_parens, state)
+    quoted_to_algebra_with_parens_if_necessary(quoted, :no_parens_arg, state)
   end
 
   # function(arguments)
   defp local_to_algebra(fun, args, context, state) when is_atom(fun) do
     skip_parens =
-      if skip_parens?(fun, args, state), do: :skip_unless_argument, else: :skip_if_do_end
+      if skip_parens?(fun, args, state), do: :skip_unless_many_args, else: :skip_if_do_end
 
     {{call_doc, state}, wrap_in_parens?} =
       call_args_to_algebra(args, context, skip_parens, true, state)
@@ -947,7 +949,7 @@ defmodule Code.Formatter do
 
   # parens may one of:
   #
-  #   * :skip_unless_argument - skips parens unless we are the argument context
+  #   * :skip_unless_many_args - skips parens unless we are the argument context
   #   * :skip_if_do_end - skip parens if we are do-end
   #   * :required - never skip parens
   #
@@ -972,18 +974,27 @@ defmodule Code.Formatter do
 
       {blocks_doc, state} = do_end_blocks_to_algebra(blocks, state)
       call_doc = call_doc |> space(blocks_doc) |> line("end") |> force_break()
-      {{call_doc, state}, context == :no_parens}
+      {{call_doc, state}, context in [:no_parens_arg, :no_parens_one_arg]}
     else
-      no_parens? = parens == :skip_unless_argument and context in [:block, :operand]
+      no_parens? =
+        parens == :skip_unless_many_args and
+          context in [:block, :operand, :no_parens_one_arg, :parens_one_arg]
+
       res = call_args_to_algebra_without_blocks(args, last, no_parens?, list_to_keyword?, state)
       {res, false}
     end
   end
 
   defp call_args_to_algebra_without_blocks(left, right, skip_parens?, list_to_keyword?, state) do
-    context = if skip_parens?, do: :no_parens, else: :argument
     multiple_generators? = multiple_generators?([right | left])
     {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?)
+
+    context =
+      if left == [] and not keyword? do
+        if skip_parens?, do: :no_parens_one_arg, else: :parens_one_arg
+      else
+        if skip_parens?, do: :no_parens_arg, else: :parens_arg
+      end
 
     if left != [] and keyword? and skip_parens? and not multiple_generators? do
       call_args_to_algebra_with_no_parens_keywords(left, right, context, state)
@@ -1166,25 +1177,25 @@ defmodule Code.Formatter do
   end
 
   defp bitstring_segment_to_algebra({{:::, _, [segment, spec]}, i}, state, last) do
-    {doc, state} = quoted_to_algebra(segment, :argument, state)
+    {doc, state} = quoted_to_algebra(segment, :parens_arg, state)
     {spec, state} = bitstring_spec_to_algebra(spec, state)
     doc = concat(concat(doc, "::"), wrap_in_parens_if_inspected_atom(spec))
     {bitstring_wrap_parens(doc, i, last), state}
   end
 
   defp bitstring_segment_to_algebra({segment, i}, state, last) do
-    {doc, state} = quoted_to_algebra(segment, :argument, state)
+    {doc, state} = quoted_to_algebra(segment, :parens_arg, state)
     {bitstring_wrap_parens(doc, i, last), state}
   end
 
   defp bitstring_spec_to_algebra({op, _, [left, right]}, state) when op in [:-, :*] do
     {left, state} = bitstring_spec_to_algebra(left, state)
-    {right, state} = quoted_to_algebra_with_parens_if_necessary(right, :argument, state)
+    {right, state} = quoted_to_algebra_with_parens_if_necessary(right, :parens_arg, state)
     {concat(concat(left, Atom.to_string(op)), right), state}
   end
 
   defp bitstring_spec_to_algebra(spec, state) do
-    quoted_to_algebra_with_parens_if_necessary(spec, :argument, state)
+    quoted_to_algebra_with_parens_if_necessary(spec, :parens_arg, state)
   end
 
   defp bitstring_wrap_parens(doc, i, last) do
@@ -1206,16 +1217,16 @@ defmodule Code.Formatter do
 
   defp list_to_algebra(meta, args, state) do
     {args_doc, state} =
-      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :argument, &2))
+      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
 
     {surround("[", args_doc, "]"), state}
   end
 
   defp map_to_algebra(meta, name_doc, [{:|, _, [left, right]}], state) do
-    {left_doc, state} = quoted_to_algebra(left, :argument, state)
+    {left_doc, state} = quoted_to_algebra(left, :parens_arg, state)
 
     {right_doc, state} =
-      args_to_algebra_with_comments(right, meta, state, &quoted_to_algebra(&1, :argument, &2))
+      args_to_algebra_with_comments(right, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
 
     args_doc = group(glue(left_doc, concat("| ", nest(right_doc, 2))))
     name_doc = "%" |> concat(name_doc) |> concat("{")
@@ -1224,7 +1235,7 @@ defmodule Code.Formatter do
 
   defp map_to_algebra(meta, name_doc, args, state) do
     {args_doc, state} =
-      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :argument, &2))
+      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
 
     name_doc = "%" |> concat(name_doc) |> concat("{")
     {surround(name_doc, args_doc, "}"), state}
@@ -1232,7 +1243,7 @@ defmodule Code.Formatter do
 
   defp tuple_to_algebra(meta, args, state) do
     {args_doc, state} =
-      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :argument, &2))
+      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
 
     {surround("{", args_doc, "}"), state}
   end
@@ -1522,7 +1533,7 @@ defmodule Code.Formatter do
   defp clause_args_to_algebra([{:when, meta, args}], min_line, state) do
     {args, right} = split_last(args)
     left = {:special, :clause_args, [args, min_line]}
-    binary_op_to_algebra(:when, "when", meta, left, right, :no_parens, state)
+    binary_op_to_algebra(:when, "when", meta, left, right, :no_parens_arg, state)
   end
 
   # fn a, b, c -> e end
@@ -1531,7 +1542,7 @@ defmodule Code.Formatter do
   end
 
   defp clause_args_to_algebra(args, min_line, state) do
-    arg_to_algebra = &quoted_to_algebra(&1, :no_parens, &2)
+    arg_to_algebra = &quoted_to_algebra(&1, :no_parens_arg, &2)
     args_to_algebra_with_comments(args, [line: min_line], state, arg_to_algebra)
   end
 
@@ -1651,9 +1662,12 @@ defmodule Code.Formatter do
 
   ## Quoted helpers
 
-  defp if_operand_or_block(:operand, choice), do: choice
-  defp if_operand_or_block(:block, choice), do: choice
-  defp if_operand_or_block(other, _choice), do: other
+  defp force_many_args_or_operand(:no_parens_one_arg, _choice), do: :no_parens_arg
+  defp force_many_args_or_operand(:parens_one_arg, _choice), do: :parens_arg
+  defp force_many_args_or_operand(:no_parens_arg, _choice), do: :no_parens_arg
+  defp force_many_args_or_operand(:parens_arg, _choice), do: :parens_arg
+  defp force_many_args_or_operand(:operand, choice), do: choice
+  defp force_many_args_or_operand(:block, choice), do: choice
 
   defp quoted_to_algebra_with_parens_if_necessary(ast, context, state) do
     {doc, state} = quoted_to_algebra(ast, context, state)
