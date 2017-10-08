@@ -652,6 +652,14 @@ defmodule Code.Formatter.OperatorsTest do
            end)
       """, @short_length
     end
+
+    test "do not rewrite lists to keyword lists" do
+      assert_same """
+      @foo [
+        bar: baz
+      ]
+      """
+    end
   end
 
   describe "capture" do

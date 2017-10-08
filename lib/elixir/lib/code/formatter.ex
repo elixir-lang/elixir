@@ -69,6 +69,7 @@ defmodule Code.Formatter do
     defexception: 1,
     defoverridable: 1,
     defstruct: 1,
+    destructure: 2,
     raise: 1,
     raise: 2,
     if: 2,
@@ -79,7 +80,25 @@ defmodule Code.Formatter do
     # Testing
     all: :*,
     assert: 1,
-    assert: 2
+    assert: 2,
+    assert_in_delta: 3,
+    assert_in_delta: 4,
+    assert_raise: 2,
+    assert_raise: 3,
+    assert_receive: 1,
+    assert_receive: 2,
+    assert_receive: 3,
+    assert_received: 1,
+    assert_received: 2,
+    refute: 1,
+    refute: 2,
+    refute_in_delta: 3,
+    refute_in_delta: 4,
+    refute_receive: 1,
+    refute_receive: 2,
+    refute_receive: 3,
+    refute_received: 1,
+    refute_received: 2
   ]
 
   @locals_without_parens MapSet.new(locals_without_parens)
@@ -88,8 +107,8 @@ defmodule Code.Formatter do
   Checks if two strings are equivalent.
   """
   def equivalent(string1, string2) when is_binary(string1) and is_binary(string2) do
-    quoted1 = :elixir.string_to_quoted!(to_charlist(string1), "nofile", 1, [])
-    quoted2 = :elixir.string_to_quoted!(to_charlist(string2), "nofile", 1, [])
+    quoted1 = :elixir.string_to_quoted!(to_charlist(string1), 1, "nofile", [])
+    quoted2 = :elixir.string_to_quoted!(to_charlist(string2), 1, "nofile", [])
 
     case not_equivalent(quoted1, quoted2) do
       {left, right} -> {:error, left, right}
@@ -727,7 +746,7 @@ defmodule Code.Formatter do
        when is_atom(name) and name not in [:__block__, :__aliases__] do
     if Code.Identifier.classify(name) == :callable_local do
       {{call_doc, state}, wrap_in_parens?} =
-        call_args_to_algebra(args, context, :skip_unless_argument, state)
+        call_args_to_algebra(args, context, :skip_unless_argument, false, state)
 
       doc =
         "@#{name}"
@@ -810,7 +829,7 @@ defmodule Code.Formatter do
     {target_doc, state} = remote_target_to_algebra(target, state)
 
     {{call_doc, state}, wrap_in_parens?} =
-      call_args_to_algebra(args, context, :skip_if_do_end, state)
+      call_args_to_algebra(args, context, :skip_if_do_end, true, state)
 
     doc = concat(concat(target_doc, "."), call_doc)
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
@@ -836,7 +855,7 @@ defmodule Code.Formatter do
     fun = remote_fun_to_algebra(target, fun, length(args), state)
 
     {{call_doc, state}, wrap_in_parens?} =
-      call_args_to_algebra(args, context, :skip_if_do_end, state)
+      call_args_to_algebra(args, context, :skip_if_do_end, true, state)
 
     doc = concat(concat(target_doc, "."), concat(string(fun), call_doc))
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
@@ -846,7 +865,9 @@ defmodule Code.Formatter do
   # call(call)(arguments)
   defp remote_to_algebra({target, _, args}, context, state) do
     {target_doc, state} = quoted_to_algebra(target, :no_parens, state)
-    {{call_doc, state}, wrap_in_parens?} = call_args_to_algebra(args, context, :required, state)
+
+    {{call_doc, state}, wrap_in_parens?} =
+      call_args_to_algebra(args, context, :required, true, state)
 
     doc = concat(target_doc, call_doc)
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
@@ -905,7 +926,8 @@ defmodule Code.Formatter do
     skip_parens =
       if skip_parens?(fun, args, state), do: :skip_unless_argument, else: :skip_if_do_end
 
-    {{call_doc, state}, wrap_in_parens?} = call_args_to_algebra(args, context, skip_parens, state)
+    {{call_doc, state}, wrap_in_parens?} =
+      call_args_to_algebra(args, context, skip_parens, true, state)
 
     doc =
       fun
@@ -919,15 +941,15 @@ defmodule Code.Formatter do
 
   # parens may one of:
   #
-  #   * :skip_if_block - skips parens if we are inside the block context
+  #   * :skip_unless_argument - skips parens unless we are the argument context
   #   * :skip_if_do_end - skip parens if we are do-end
   #   * :required - never skip parens
   #
-  defp call_args_to_algebra([], _context, _parens, state) do
+  defp call_args_to_algebra([], _context, _parens, _list_to_keyword?, state) do
     {{"()", state}, false}
   end
 
-  defp call_args_to_algebra(args, context, parens, state) do
+  defp call_args_to_algebra(args, context, parens, list_to_keyword?, state) do
     {args, last} = split_last(args)
 
     if blocks = do_end_blocks(last) do
@@ -938,22 +960,24 @@ defmodule Code.Formatter do
 
           _ ->
             {args, last} = split_last(args)
-            call_args_to_algebra_without_do_end_blocks(args, last, parens != :required, state)
+            no_parens? = parens != :required
+            call_args_to_algebra_without_blocks(args, last, no_parens?, list_to_keyword?, state)
         end
 
       {blocks_doc, state} = do_end_blocks_to_algebra(blocks, state)
       call_doc = call_doc |> space(blocks_doc) |> line("end") |> force_break()
       {{call_doc, state}, context == :no_parens}
     else
-      skip_parens? = parens == :skip_unless_argument and context in [:block, :operand]
-      {call_args_to_algebra_without_do_end_blocks(args, last, skip_parens?, state), false}
+      no_parens? = parens == :skip_unless_argument and context in [:block, :operand]
+      res = call_args_to_algebra_without_blocks(args, last, no_parens?, list_to_keyword?, state)
+      {res, false}
     end
   end
 
-  defp call_args_to_algebra_without_do_end_blocks(left, right, skip_parens?, state) do
+  defp call_args_to_algebra_without_blocks(left, right, skip_parens?, list_to_keyword?, state) do
     context = if skip_parens?, do: :no_parens, else: :argument
     multiple_generators? = multiple_generators?([right | left])
-    {keyword?, right} = last_arg_to_keyword(right)
+    {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?)
 
     if left != [] and keyword? and skip_parens? and not multiple_generators? do
       call_args_to_algebra_with_no_parens_keywords(left, right, context, state)
@@ -1243,7 +1267,7 @@ defmodule Code.Formatter do
   end
 
   defp float_to_algebra(text) do
-    {int_part, [?. |decimal_part]} = Enum.split_while(text, &(&1 != ?.))
+    {int_part, [?. | decimal_part]} = Enum.split_while(text, &(&1 != ?.))
 
     decimal_part =
       decimal_part
@@ -1761,15 +1785,15 @@ defmodule Code.Formatter do
     false
   end
 
-  defp last_arg_to_keyword([_ | _] = arg) do
+  defp last_arg_to_keyword([_ | _] = arg, _list_to_keyword?) do
     {keyword?(arg), arg}
   end
 
-  defp last_arg_to_keyword({:__block__, _, [[_ | _] = arg]} = block) do
+  defp last_arg_to_keyword({:__block__, _, [[_ | _] = arg]} = block, true) do
     if keyword?(arg), do: {true, arg}, else: {false, block}
   end
 
-  defp last_arg_to_keyword(arg) do
+  defp last_arg_to_keyword(arg, _list_to_keyword?) do
     {false, arg}
   end
 
