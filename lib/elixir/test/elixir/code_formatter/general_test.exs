@@ -678,7 +678,7 @@ bar)
       """
     end
 
-    test "as funciton arguments" do
+    test "as function arguments" do
       assert_same """
       fun(
         (

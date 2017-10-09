@@ -180,4 +180,16 @@ defmodule Code.Formatter.IntegrationTest do
     end)
     """
   end
+
+  test "long comprehension" do
+    assert_same """
+    for %{app: app, opts: opts, top_level: true} <- Mix.Dep.cached(),
+        Keyword.get(opts, :app, true),
+        Keyword.get(opts, :runtime, true),
+        not Keyword.get(opts, :optional, false),
+        app not in included_applications,
+        app not in included_applications,
+        do: app
+    """
+  end
 end
