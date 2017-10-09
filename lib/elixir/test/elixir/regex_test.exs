@@ -211,9 +211,8 @@ defmodule RegexTest do
     assert Regex.split(~r/([ln])/, "Erlang", include_captures: true) == ["Er", "l", "a", "n", "g"]
     assert Regex.split(~r/([kw])/, "Elixir", include_captures: true) == ["Elixir"]
 
-    assert Regex.split(~r/([Ee]lixir)/, "Elixir", include_captures: true, trim: true) == [
-             "Elixir"
-           ]
+    parts = ["Elixir"]
+    assert Regex.split(~r/([Ee]lixir)/, "Elixir", include_captures: true, trim: true) == parts
 
     parts = ["", "Elixir", ""]
     assert Regex.split(~r/([Ee]lixir)/, "Elixir", include_captures: true, trim: false) == parts
