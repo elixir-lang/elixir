@@ -376,7 +376,7 @@ specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms) ->
     end, #{}, Entries),
 
   maps:fold(fun(NameArity, ExprsLines, Acc) ->
-    {Exprs, Lines} = lists:unzip(lists:reverse(ExprsLines)),
+    {Exprs, Lines} = lists:unzip(ExprsLines),
     Line = lists:min(Lines),
 
     {Key, Value} =

@@ -437,9 +437,7 @@ defmodule IEx.Introspection do
   defp print_callback_docs(name, kind, doc, key, callbacks, printer) do
     {_, specs} = List.keyfind(callbacks, key, 0)
 
-    specs
-    |> Enum.reverse()
-    |> Enum.map(fn(spec) ->
+    Enum.each(specs, fn(spec) ->
       definition =
         Typespec.spec_to_ast(name, spec)
         |> Macro.prewalk(&drop_macro_env/1)
