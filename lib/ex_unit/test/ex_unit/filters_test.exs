@@ -66,13 +66,13 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 10, describe_line: 7}, tests) == :ok
 
     assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
-             {:error, "due to os filter"}
+             {:error, "due to line filter"}
 
     assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 3, describe_line: 2}, tests) ==
-             {:error, "due to os filter"}
+             {:error, "due to line filter"}
 
     assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 5, describe_line: nil}, tests) ==
-             {:error, "due to os filter"}
+             {:error, "due to line filter"}
   end
 
   test "parsing filters" do
