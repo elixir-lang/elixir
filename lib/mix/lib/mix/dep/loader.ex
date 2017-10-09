@@ -36,6 +36,19 @@ defmodule Mix.Dep.Loader do
     only != nil and env not in List.wrap(only)
   end
 
+  def with_system_env(%Mix.Dep{system_env: []}, callback), do: callback.()
+
+  def with_system_env(%Mix.Dep{system_env: system_env}, callback) do
+    env = System.get_env()
+
+    try do
+      System.put_env(system_env)
+      callback.()
+    after
+      System.put_env(env)
+    end
+  end
+
   @doc """
   Loads the given dependency information, including its
   latest status and children.
@@ -161,7 +174,8 @@ defmodule Mix.Dep.Loader do
       app: app,
       requirement: req,
       status: scm_status(scm, opts),
-      opts: Keyword.put_new(opts, :env, :prod)
+      opts: Keyword.put_new(opts, :env, :prod),
+      system_env: Keyword.get(opts, :system_env, [])
     }
   end
 
