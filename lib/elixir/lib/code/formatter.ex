@@ -1000,7 +1000,7 @@ defmodule Code.Formatter do
   end
 
   defp call_args_to_algebra_without_blocks(left, right, skip_parens?, list_to_keyword?, state) do
-    multiple_generators? = multiple_generators?([right | left])
+    generators_count = count_generators([right | left])
     {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?)
 
     context =
@@ -1010,7 +1010,7 @@ defmodule Code.Formatter do
         if skip_parens?, do: :no_parens_arg, else: :parens_arg
       end
 
-    if left != [] and keyword? and skip_parens? and not multiple_generators? do
+    if left != [] and keyword? and skip_parens? and generators_count == 0 do
       call_args_to_algebra_with_no_parens_keywords(left, right, context, state)
     else
       {left, right} =
@@ -1034,7 +1034,7 @@ defmodule Code.Formatter do
             end
 
           args_doc =
-            if multiple_generators? do
+            if generators_count > 1 do
               force_break(args_doc)
             else
               args_doc
@@ -1080,8 +1080,8 @@ defmodule Code.Formatter do
       end)
   end
 
-  defp multiple_generators?(args) do
-    Enum.count(args, &match?({:<-, _, [_, _]}, &1)) >= 2
+  defp count_generators(args) do
+    Enum.count(args, &match?({:<-, _, [_, _]}, &1))
   end
 
   defp do_end_blocks([{{:__block__, meta, [:do]}, _} | _] = blocks) do
