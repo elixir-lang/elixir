@@ -864,14 +864,17 @@ defmodule Code.Formatter do
 
   # Mod.function()
   # var.function
-  defp remote_to_algebra({{:., _, [target, fun]}, _, []}, _context, state) when is_atom(fun) do
+  defp remote_to_algebra({{:., _, [target, fun]}, meta, []}, _context, state) when is_atom(fun) do
     {target_doc, state} = remote_target_to_algebra(target, state)
     fun = remote_fun_to_algebra(target, fun, 0, state)
 
-    if remote_target_is_a_module?(target) do
-      {target_doc |> concat(".") |> concat(string(fun)) |> concat("()"), state}
+    target_doc = target_doc |> concat(".") |> concat(string(fun))
+    add_parens? = remote_target_is_a_module?(target) or not Keyword.get(meta, :no_parens, false)
+
+    if add_parens? do
+      {concat(target_doc, "()"), state}
     else
-      {target_doc |> concat(".") |> concat(string(fun)), state}
+      {target_doc, state}
     end
   end
 

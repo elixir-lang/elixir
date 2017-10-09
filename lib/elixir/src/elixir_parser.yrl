@@ -230,7 +230,7 @@ no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_id
 no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
 no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
 no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil).
-no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
+no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil, [{no_parens, true}]).
 
 %% From this point on, we just have constructs that can be
 %% used with the access syntax. Notice that (dot_)identifier
