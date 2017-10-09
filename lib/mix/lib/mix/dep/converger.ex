@@ -184,10 +184,12 @@ defmodule Mix.Dep.Converger do
             {:unloaded, dep, children} ->
               {dep, rest, lock} = callback.(put_lock(dep, lock), rest, lock)
 
-              # After we invoke the callback (which may actually check out the
-              # dependency), we load the dependency including its latest info
-              # and children information.
-              {Mix.Dep.Loader.load(dep, children), rest, lock}
+              Mix.Dep.Loader.with_system_env(dep, fn ->
+                # After we invoke the callback (which may actually check out the
+                # dependency), we load the dependency including its latest info
+                # and children information.
+                {Mix.Dep.Loader.load(dep, children), rest, lock}
+              end)
           end
 
         {acc, rest, lock} =
