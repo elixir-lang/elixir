@@ -161,9 +161,9 @@ no_parens_expr -> no_parens_many_expr : '$1'.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3' ++ '$4').
-block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
-block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> dot_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2', [{no_parens, true}]).
+block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3', [{no_parens, true}]).
+block_expr -> dot_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3', [{no_parens, true}]).
 
 matched_op_expr -> match_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> add_op_eol matched_expr : {'$1', '$2'}.
@@ -221,14 +221,14 @@ no_parens_op_expr -> arrow_op_eol no_parens_many_expr : warn_pipe('$1', '$2'), {
 %% Allow when (and only when) with keywords
 no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
 
-no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
-no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
+no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_identifier('$1', '$2', [{no_parens, true}]).
+no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_identifier('$1', '$2', [{no_parens, true}]).
 
-no_parens_many_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
-no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
+no_parens_many_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2', [{no_parens, true}]).
+no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2', [{no_parens, true}]).
 
-no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2').
-no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2').
+no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
+no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
 no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil).
 no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
 
@@ -794,6 +794,15 @@ build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
 
 build_identifier({_, Location, Identifier}, Args) ->
   {Identifier, meta_from_location(Location), Args}.
+
+build_identifier(Expr, Args, Extra) ->
+  case ?formatter_metadata() of
+    true ->
+      {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, Args),
+      {BuiltExpr, Extra ++ BuiltMeta, BuiltArgs};
+    false ->
+      build_identifier(Expr, Args)
+  end.
 
 %% Fn
 

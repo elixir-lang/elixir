@@ -426,11 +426,11 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra(
-         {:__block__, _meta, [{:unquote_splicing, _, [_] = args}]},
+         {:__block__, _meta, [{:unquote_splicing, meta, [_] = args}]},
          context,
          state
        ) do
-    {doc, state} = local_to_algebra(:unquote_splicing, args, context, state)
+    {doc, state} = local_to_algebra(:unquote_splicing, meta, args, context, state)
     {wrap_in_parens(doc), state}
   end
 
@@ -482,7 +482,7 @@ defmodule Code.Formatter do
     with :error <- maybe_sigil_to_algebra(fun, meta, args, state),
          :error <- maybe_unary_op_to_algebra(fun, meta, args, context, state),
          :error <- maybe_binary_op_to_algebra(fun, meta, args, context, state),
-         do: local_to_algebra(fun, args, context, state)
+         do: local_to_algebra(fun, meta, args, context, state)
   end
 
   defp quoted_to_algebra({_, _, args} = quoted, context, state) when is_list(args) do
@@ -943,9 +943,9 @@ defmodule Code.Formatter do
   end
 
   # function(arguments)
-  defp local_to_algebra(fun, args, context, state) when is_atom(fun) do
+  defp local_to_algebra(fun, meta, args, context, state) when is_atom(fun) do
     skip_parens =
-      if skip_parens?(fun, args, state), do: :skip_unless_many_args, else: :skip_if_do_end
+      if skip_parens?(fun, meta, args, state), do: :skip_unless_many_args, else: :skip_if_do_end
 
     {{call_doc, state}, wrap_in_parens?} =
       call_args_to_algebra(args, context, skip_parens, true, state)
@@ -1070,10 +1070,11 @@ defmodule Code.Formatter do
     {doc, state}
   end
 
-  defp skip_parens?(fun, args, %{locals_without_parens: locals_without_parens}) do
+  defp skip_parens?(fun, meta, args, %{locals_without_parens: locals_without_parens}) do
     length = length(args)
 
     length > 0 and
+      Keyword.get(meta, :no_parens, false) and
       Enum.any?(locals_without_parens, fn {key, val} ->
         key == fun and (val == :* or val == length)
       end)
