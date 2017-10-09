@@ -575,10 +575,13 @@ defimpl String.Chars, for: URI do
     # Based on https://tools.ietf.org/html/rfc3986#section-5.3
     authority = extract_authority(uri)
 
-    if(scheme, do: scheme <> ":", else: "") <>
-      if(authority, do: "//" <> authority, else: "") <>
-      if(path, do: path, else: "") <>
-      if(query, do: "?" <> query, else: "") <> if(fragment, do: "#" <> fragment, else: "")
+    IO.iodata_to_binary([
+      if(scheme, do: [scheme, ?:], else: []),
+      if(authority, do: ["//" | authority], else: []),
+      if(path, do: path, else: []),
+      if(query, do: ["?" | query], else: []),
+      if(fragment, do: ["#" | fragment], else: [])
+    ])
   end
 
   defp extract_authority(%{host: nil, authority: authority}) do
@@ -590,8 +593,10 @@ defimpl String.Chars, for: URI do
     # https://tools.ietf.org/html/rfc3986#appendix-A, a "host" can have a colon
     # in it only if it's an IPv6 or "IPvFuture" address, so if there's a colon
     # in the host we can safely surround it with [].
-    if(userinfo, do: userinfo <> "@", else: "") <>
-      if(String.contains?(host, ":"), do: "[" <> host <> "]", else: host) <>
-      if(port, do: ":" <> Integer.to_string(port), else: "")
+    [
+      if(userinfo, do: [userinfo | "@"], else: []),
+      if(String.contains?(host, ":"), do: ["[", host | "]"], else: host),
+      if(port, do: [":" | Integer.to_string(port)], else: [])
+    ]
   end
 end
