@@ -62,6 +62,24 @@ defmodule Code.Formatter.ContainersTest do
       # Doesn't preserve this because only the beginning has a newline
       assert_format "{\nfoo, bar, baz}", "{foo, bar, baz}"
     end
+
+    test "preserves user choice even when it fits with trailing comma" do
+      bad = """
+      {
+        :hello,
+        :foo,
+        :bar,
+      }
+      """
+
+      assert_format bad, """
+      {
+        :hello,
+        :foo,
+        :bar
+      }
+      """
+    end
   end
 
   describe "lists" do
@@ -168,6 +186,24 @@ defmodule Code.Formatter.ContainersTest do
       # Doesn't preserve this because only the beginning has a newline
       assert_format "[\nfoo, bar, baz]", "[foo, bar, baz]"
     end
+
+    test "preserves user choice even when it fits with trailing comma" do
+      bad = """
+      [
+        :hello,
+        :foo,
+        :bar,
+      ]
+      """
+
+      assert_format bad, """
+      [
+        :hello,
+        :foo,
+        :bar
+      ]
+      """
+    end
   end
 
   describe "bitstrings" do
@@ -222,6 +258,24 @@ defmodule Code.Formatter.ContainersTest do
 
       # Doesn't preserve this because only the beginning has a newline
       assert_format "<<\nfoo, bar, baz>>", "<<foo, bar, baz>>"
+    end
+
+    test "preserves user choice even when it fits with trailing comma" do
+      bad = """
+      <<
+        :hello,
+        :foo,
+        :bar,
+      >>
+      """
+
+      assert_format bad, """
+      <<
+        :hello,
+        :foo,
+        :bar
+      >>
+      """
     end
   end
 
@@ -308,6 +362,24 @@ defmodule Code.Formatter.ContainersTest do
       # Doesn't preserve this because only the beginning has a newline
       assert_format "%{\nfoo: 1, bar: 2}", "%{foo: 1, bar: 2}"
     end
+
+    test "preserves user choice even when it fits with trailing comma" do
+      bad = """
+      %{
+        :hello,
+        :foo,
+        :bar,
+      }
+      """
+
+      assert_format bad, """
+      %{
+        :hello,
+        :foo,
+        :bar
+      }
+      """
+    end
   end
 
   describe "maps with update" do
@@ -354,7 +426,6 @@ defmodule Code.Formatter.ContainersTest do
       """
     end
   end
-
 
   describe "structs" do
     test "without arguments" do
