@@ -504,7 +504,7 @@ defmodule Code.Formatter do
   # key => value
   defp quoted_to_algebra({left, right}, context, state) do
     if keyword_key?(left) do
-      {left, state} =
+      {left_doc, state} =
         case left do
           {:__block__, _, [atom]} when is_atom(atom) ->
             {atom |> Code.Identifier.inspect_as_key() |> string(), state}
@@ -513,12 +513,12 @@ defmodule Code.Formatter do
             interpolation_to_algebra(entries, @double_quote, state, "\"", "\": ")
         end
 
-      {right, state} = quoted_to_algebra(right, context, state)
-      {concat(left, right), state}
+      {right_doc, state} = quoted_to_algebra(right, context, state)
+      {concat(left_doc, group(right_doc)), state}
     else
-      {left, state} = quoted_to_algebra(left, context, state)
-      {right, state} = quoted_to_algebra(right, context, state)
-      {left |> concat(" => ") |> concat(right), state}
+      {left_doc, state} = quoted_to_algebra(left, context, state)
+      {right_doc, state} = quoted_to_algebra(right, context, state)
+      {left_doc |> concat(" => ") |> concat(group(right_doc)), state}
     end
   end
 
@@ -653,7 +653,7 @@ defmodule Code.Formatter do
           op_string = op_string <> " "
           doc = glue(left, concat(op_string, nest_by_length(right, op_string)))
           doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
-          if op_info == parent_info, do: doc, else: group(doc)
+          if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
 
         op in @right_new_line_before_binary_operators ->
           op_string = op_string <> " "
@@ -676,7 +676,8 @@ defmodule Code.Formatter do
             end
 
           doc = glue(left, concat(op_string, right))
-          if is_nil(parent_info) or op_info == parent_info, do: doc, else: group(doc)
+          doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
+          if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
 
         true ->
           with_next_break_fits(next_break_fits?(right_arg), right, fn right ->

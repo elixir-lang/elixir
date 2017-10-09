@@ -393,7 +393,7 @@ three_op_eol -> three_op : '$1'.
 three_op_eol -> three_op eol : '$1'.
 
 pipe_op_eol -> pipe_op : '$1'.
-pipe_op_eol -> pipe_op eol : '$1'.
+pipe_op_eol -> pipe_op eol : next_is_eol('$1').
 
 capture_op_eol -> capture_op : '$1'.
 capture_op_eol -> capture_op eol : '$1'.
@@ -422,7 +422,7 @@ type_op_eol -> type_op : '$1'.
 type_op_eol -> type_op eol : '$1'.
 
 when_op_eol -> when_op : '$1'.
-when_op_eol -> when_op eol : '$1'.
+when_op_eol -> when_op eol : next_is_eol('$1').
 
 stab_op_eol -> stab_op : '$1'.
 stab_op_eol -> stab_op eol : next_is_eol('$1').
@@ -674,9 +674,7 @@ build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(U
   %% TODO: Deprecate "not left in right" rearrangement on 1.7
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
-build_op({arrow_op, Location, Op} = Token, Left, Right) ->
-  {Op, eol_op(Token) ++ meta_from_location(Location), [Left, Right]};
-build_op({stab_op, Location, Op} = Token, Left, Right) ->
+build_op({EolOp, Location, Op} = Token, Left, Right) when EolOp == arrow_op; EolOp == stab_op; EolOp == pipe_op; EolOp == when_op ->
   {Op, eol_op(Token) ++ meta_from_location(Location), [Left, Right]};
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
