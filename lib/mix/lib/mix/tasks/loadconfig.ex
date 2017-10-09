@@ -17,22 +17,24 @@ defmodule Mix.Tasks.Loadconfig do
   """
 
   def run(args) do
-    config = Mix.Project.config
+    config = Mix.Project.config()
 
     cond do
       file = Enum.at(args, 0) ->
-        load file
-      File.regular?(config[:config_path]) or (config[:config_path] != "config/config.exs") ->
-        load config[:config_path]
+        load(file)
+
+      File.regular?(config[:config_path]) or config[:config_path] != "config/config.exs" ->
+        load(config[:config_path])
+
       true ->
         :ok
     end
 
-    Mix.Task.reenable "loadconfig"
+    Mix.Task.reenable("loadconfig")
   end
 
   defp load(file) do
-    apps = Mix.Config.persist Mix.Config.read!(file)
+    apps = Mix.Config.persist(Mix.Config.read!(file))
     Mix.ProjectStack.configured_applications(apps)
     :ok
   end
