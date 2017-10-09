@@ -61,10 +61,8 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:middle_expr, line, '', chars} | rest], buffer, [current | scope], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
-
-    generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], %{
-      state | line: line
-    })
+    state = %{state | line: line}
+    generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], state)
   end
 
   defp generate_buffer(
