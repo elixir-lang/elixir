@@ -282,7 +282,7 @@ defmodule Port do
   Inlined by the compiler.
   """
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
-  defdelegate(demonitor(monitor_ref, options \\ []), to: :erlang)
+  defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
 
   @doc """
   Returns a list of all ports in the current node.
