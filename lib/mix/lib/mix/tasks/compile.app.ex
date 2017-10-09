@@ -231,9 +231,8 @@ defmodule Mix.Tasks.Compile.App do
       {:maxT, value} ->
         unless value == :infinity or is_integer(value) do
           Mix.raise(
-            "Application maximum time (:maxT) is not an integer or :infinity, got: #{
+            "Application maximum time (:maxT) is not an integer or :infinity, got: " <>
               inspect(value)
-            }"
           )
         end
 
@@ -247,36 +246,32 @@ defmodule Mix.Tasks.Compile.App do
       {:registered, value} ->
         unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
           Mix.raise(
-            "Application registered processes (:registered) should be a list of atoms, got: #{
+            "Application registered processes (:registered) should be a list of atoms, got: " <>
               inspect(value)
-            }"
           )
         end
 
       {:included_applications, value} ->
         unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
           Mix.raise(
-            "Application included applications (:included_applications) should be a list of atoms, got: #{
+            "Application included applications (:included_applications) should be a list of atoms, got: " <>
               inspect(value)
-            }"
           )
         end
 
       {:extra_applications, value} ->
         unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
           Mix.raise(
-            "Application extra applications (:extra_applications) should be a list of atoms, got: #{
+            "Application extra applications (:extra_applications) should be a list of atoms, got: " <>
               inspect(value)
-            }"
           )
         end
 
       {:applications, value} ->
         unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
           Mix.raise(
-            "Application applications (:applications) should be a list of atoms, got: #{
+            "Application applications (:applications) should be a list of atoms, got: " <>
               inspect(value)
-            }"
           )
         end
 
@@ -290,9 +285,8 @@ defmodule Mix.Tasks.Compile.App do
       {:start_phases, value} ->
         unless Keyword.keyword?(value) do
           Mix.raise(
-            "Application start phases (:start_phases) should be a keyword list, got: #{
+            "Application start phases (:start_phases) should be a keyword list, got: " <>
               inspect(value)
-            }"
           )
         end
 
@@ -304,9 +298,8 @@ defmodule Mix.Tasks.Compile.App do
 
       {:mod, value} ->
         Mix.raise(
-          "Application callback module (:mod) should be either [] or {module, start_args}, got: #{
+          "Application callback module (:mod) should be either [] or {module, start_args}, got: " <>
             inspect(value)
-          }"
         )
 
       _ ->
