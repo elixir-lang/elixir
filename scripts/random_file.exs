@@ -3,6 +3,13 @@
 defmodule RandomFile do
   @pattern "lib/*/{lib,unicode,test}/**/*.{ex,exs}"
 
+  def run(["--stat"]) do
+    files = Path.wildcard(@pattern)
+    {opts, _} = Code.eval_file(".formatter.exs")
+    formatted = Enum.filter(files, &formatted?(&1, opts))
+    IO.puts "#{length(formatted)} out of #{length(files)} files formatted"
+  end
+
   def run(args) do
     popper =
       if "--alphabetically" in args do
@@ -27,12 +34,9 @@ defmodule RandomFile do
 
   defp random_file(collection, popper, opts) do
     {file, collection} = popper.(collection)
-
     IO.write("Checking #{file}... ")
-    input = File.read!(file)
-    output = IO.iodata_to_binary([Code.format_string!(input, opts), ?\n])
 
-    if input == output do
+    if formatted?(file, opts) do
       IO.puts("already formatted.")
       random_file(collection, popper, opts)
     else
@@ -50,6 +54,12 @@ defmodule RandomFile do
       Have fun!
       """)
     end
+  end
+
+  defp formatted?(file, opts) do
+    input = File.read!(file)
+    output = IO.iodata_to_binary([Code.format_string!(input, opts), ?\n])
+    input == output
   end
 end
 
