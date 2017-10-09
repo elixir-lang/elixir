@@ -670,6 +670,9 @@ defmodule Inspect.Algebra do
   Documents in a group are attempted to be rendered together
   to the best of the renderer ability.
 
+  The group mode can also be set to `:inherit`, which means it
+  automatically breaks if the parent group has broken too.
+
   ## Examples
 
       iex> doc = Inspect.Algebra.group(
