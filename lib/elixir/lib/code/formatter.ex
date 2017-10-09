@@ -1374,7 +1374,7 @@ defmodule Code.Formatter do
   ## Anonymous functions
 
   # fn -> block end
-  defp anon_fun_to_algebra([{:"->", meta, [[], body]}], _min_line, max_line, state) do
+  defp anon_fun_to_algebra([{:"->", meta, [[], body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
@@ -1383,6 +1383,7 @@ defmodule Code.Formatter do
       |> glue(body_doc)
       |> nest(2)
       |> glue("end")
+      |> maybe_force_clauses(clauses)
       |> group()
 
     {doc, state}
@@ -1392,7 +1393,7 @@ defmodule Code.Formatter do
   # fn x ->
   #   y
   # end
-  defp anon_fun_to_algebra([{:"->", meta, [args, body]}], _min_line, max_line, state) do
+  defp anon_fun_to_algebra([{:"->", meta, [args, body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
@@ -1405,6 +1406,7 @@ defmodule Code.Formatter do
       |> glue(body_doc)
       |> nest(2)
       |> glue("end")
+      |> maybe_force_clauses(clauses)
       |> group()
 
     {doc, state}
@@ -1424,7 +1426,7 @@ defmodule Code.Formatter do
   ## Type functions
 
   # (-> block)
-  defp type_fun_to_algebra([{:"->", meta, [[], body]}], _min_line, max_line, state) do
+  defp type_fun_to_algebra([{:"->", meta, [[], body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
@@ -1432,6 +1434,7 @@ defmodule Code.Formatter do
       "(-> "
       |> concat(nest(body_doc, :cursor))
       |> concat(")")
+      |> maybe_force_clauses(clauses)
       |> group()
 
     {doc, state}
@@ -1440,7 +1443,7 @@ defmodule Code.Formatter do
   # (x -> y)
   # (x ->
   #    y)
-  defp type_fun_to_algebra([{:"->", meta, [args, body]}], _min_line, max_line, state) do
+  defp type_fun_to_algebra([{:"->", meta, [args, body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
@@ -1455,6 +1458,7 @@ defmodule Code.Formatter do
       |> group()
       |> concat(clause_doc)
       |> wrap_in_parens()
+      |> maybe_force_clauses(clauses)
       |> group()
 
     {doc, state}
