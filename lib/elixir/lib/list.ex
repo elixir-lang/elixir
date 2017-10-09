@@ -799,6 +799,9 @@ defmodule List do
       iex> List.to_string([0x0061, "bc"])
       "abc"
 
+      iex> List.to_string([0x0064, "ee", ['p']])
+      "deep"
+
   """
   @spec to_string(:unicode.charlist) :: String.t
   def to_string(list) when is_list(list) do
