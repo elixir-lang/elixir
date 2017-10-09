@@ -1,1 +1,1 @@
-ExUnit.start [trace: "--trace" in System.argv]
+ExUnit.start(trace: "--trace" in System.argv())
