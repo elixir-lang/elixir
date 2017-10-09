@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Shell.QuietTest do
   use MixTest.Case
@@ -7,15 +7,11 @@ defmodule Mix.Shell.QuietTest do
   import Mix.Shell.Quiet
 
   test "prints nothing to stdio when info is invoked" do
-    assert capture_io(fn ->
-      info "hello"
-    end) == ""
+    assert capture_io(fn -> info("hello") end) == ""
   end
 
   test "prints error message to stderr" do
-    assert capture_io(:stderr, fn ->
-      error "hello"
-    end) =~ "hello"
+    assert capture_io(:stderr, fn -> error("hello") end) =~ "hello"
   end
 
   test "asks the user with yes?" do
@@ -38,7 +34,7 @@ defmodule Mix.Shell.QuietTest do
   end
 
   defp wont_print_sample do
-    Mix.Project.push nil
-    Mix.Project.push MixTest.Case.Sample
+    Mix.Project.push(nil)
+    Mix.Project.push(MixTest.Case.Sample)
   end
 end

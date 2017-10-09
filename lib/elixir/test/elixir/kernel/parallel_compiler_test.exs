@@ -92,6 +92,8 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "does not use incorrect line number when error originates in another file" do
+      File.mkdir_p!(tmp_path())
+
       file_a = tmp_path("error_line_a.ex")
       File.write!(file_a, """
       defmodule A do
@@ -117,6 +119,8 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "gets correct line number for UndefinedFunctionError" do
+      File.mkdir_p!(tmp_path())
+
       file = tmp_path("undef_error.ex")
       File.write!(file, """
       defmodule UndefErrorLine do

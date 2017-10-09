@@ -19,7 +19,10 @@ defmodule Kernel.SpecialForms do
   defmacrop error!(args) do
     quote do
       _ = unquote(args)
-      message = "Elixir's special forms are expanded by the compiler and must not be invoked directly"
+
+      message =
+        "Elixir's special forms are expanded by the compiler and must not be invoked directly"
+
       :erlang.error(RuntimeError.exception(message))
     end
   end
@@ -697,7 +700,7 @@ defmodule Kernel.SpecialForms do
       1
 
   """
-  defmacro ^(var), do: error!([var])
+  defmacro ^var, do: error!([var])
 
   @doc """
   Matches the value on the right against the pattern on the left.

@@ -10,10 +10,12 @@ defmodule Logger.WatcherSupervisor do
   def start_link({m, f, a}) do
     case Supervisor.start_link(__MODULE__, [], name: @name) do
       {:ok, _} = ok ->
-        _ = for {mod, handler, args} <- apply(m, f, a) do
+        for {mod, handler, args} <- apply(m, f, a) do
           {:ok, _} = watch(mod, handler, args)
         end
+
         ok
+
       {:error, _} = error ->
         error
     end
@@ -24,10 +26,12 @@ defmodule Logger.WatcherSupervisor do
   """
   def unwatch(mod, handler) do
     child_id = {__MODULE__, {mod, handler}}
+
     case Supervisor.terminate_child(@name, child_id) do
       :ok ->
-         _ = Supervisor.delete_child(@name, child_id)
+        _ = Supervisor.delete_child(@name, child_id)
         :ok
+
       {:error, _} = error ->
         error
     end
@@ -49,6 +53,7 @@ defmodule Logger.WatcherSupervisor do
       {:error, :already_present} ->
         _ = Supervisor.delete_child(@name, id)
         watch(mod, handler, args)
+
       other ->
         other
     end

@@ -43,7 +43,7 @@ defmodule Logger.Config do
   end
 
   def translate_backend(:console), do: Logger.Backends.Console
-  def translate_backend(other),    do: other
+  def translate_backend(other), do: other
 
   def __data__() do
     try do
@@ -54,6 +54,7 @@ defmodule Logger.Config do
     else
       nil ->
         raise "cannot use Logger, the :logger application is not running"
+
       data ->
         data
     end
@@ -102,6 +103,7 @@ defmodule Logger.Config do
     case compute_mode(state) do
       ^mode ->
         {:ok, state}
+
       new_mode ->
         {:ok, persist(%{state | mode: new_mode})}
     end
@@ -112,9 +114,10 @@ defmodule Logger.Config do
   end
 
   def handle_call({:configure, options}, state) do
-    Enum.each options, fn {key, value} ->
+    Enum.each(options, fn {key, value} ->
       Application.put_env(:logger, key, value)
-    end
+    end)
+
     {:ok, :ok, compute_state(state.mode)}
   end
 
@@ -164,8 +167,10 @@ defmodule Logger.Config do
     cond do
       len > state.sync_threshold and state.mode == :async ->
         :sync
+
       len < state.async_threshold and state.mode == :sync ->
         :async
+
       true ->
         state.mode
     end
@@ -179,25 +184,32 @@ defmodule Logger.Config do
   defp update_translators(%{translators: translators} = state, fun) do
     translators = fun.(translators)
     Application.put_env(:logger, :translators, translators)
-    persist %{state | translators: translators}
+    persist(%{state | translators: translators})
   end
 
   defp compute_state(mode) do
-    level       = Application.get_env(:logger, :level)
-    utc_log     = Application.get_env(:logger, :utc_log)
-    truncate    = Application.get_env(:logger, :truncate)
+    level = Application.get_env(:logger, :level)
+    utc_log = Application.get_env(:logger, :utc_log)
+    truncate = Application.get_env(:logger, :truncate)
     translators = Application.get_env(:logger, :translators)
 
-    sync_threshold  = Application.get_env(:logger, :sync_threshold)
+    sync_threshold = Application.get_env(:logger, :sync_threshold)
     async_threshold = trunc(sync_threshold * 0.75)
 
-    state = %{level: level, mode: mode, truncate: truncate,
-              utc_log: utc_log, sync_threshold: sync_threshold,
-              async_threshold: async_threshold, translators: translators}
+    state = %{
+      level: level,
+      mode: mode,
+      truncate: truncate,
+      utc_log: utc_log,
+      sync_threshold: sync_threshold,
+      async_threshold: async_threshold,
+      translators: translators
+    }
 
     case compute_mode(state) do
       ^mode ->
         persist(state)
+
       new_mode ->
         persist(%{state | mode: new_mode})
     end

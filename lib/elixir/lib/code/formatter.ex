@@ -114,7 +114,12 @@ defmodule Code.Formatter do
     setup: 1,
     setup: 2,
     test: 1,
-    test: 2
+    test: 2,
+
+    # Mix config
+    config: 2,
+    config: 3,
+    import_config: 1
   ]
 
   @locals_without_parens MapSet.new(locals_without_parens)
@@ -421,11 +426,11 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra(
-         {:__block__, _meta, [{:unquote_splicing, _, [_] = args}]},
+         {:__block__, _meta, [{:unquote_splicing, meta, [_] = args}]},
          context,
          state
        ) do
-    {doc, state} = local_to_algebra(:unquote_splicing, args, context, state)
+    {doc, state} = local_to_algebra(:unquote_splicing, meta, args, context, state)
     {wrap_in_parens(doc), state}
   end
 
@@ -477,7 +482,7 @@ defmodule Code.Formatter do
     with :error <- maybe_sigil_to_algebra(fun, meta, args, state),
          :error <- maybe_unary_op_to_algebra(fun, meta, args, context, state),
          :error <- maybe_binary_op_to_algebra(fun, meta, args, context, state),
-         do: local_to_algebra(fun, args, context, state)
+         do: local_to_algebra(fun, meta, args, context, state)
   end
 
   defp quoted_to_algebra({_, _, args} = quoted, context, state) when is_list(args) do
@@ -499,7 +504,7 @@ defmodule Code.Formatter do
   # key => value
   defp quoted_to_algebra({left, right}, context, state) do
     if keyword_key?(left) do
-      {left, state} =
+      {left_doc, state} =
         case left do
           {:__block__, _, [atom]} when is_atom(atom) ->
             {atom |> Code.Identifier.inspect_as_key() |> string(), state}
@@ -508,12 +513,12 @@ defmodule Code.Formatter do
             interpolation_to_algebra(entries, @double_quote, state, "\"", "\": ")
         end
 
-      {right, state} = quoted_to_algebra(right, context, state)
-      {concat(left, right), state}
+      {right_doc, state} = quoted_to_algebra(right, context, state)
+      {concat(left_doc, group(right_doc)), state}
     else
-      {left, state} = quoted_to_algebra(left, context, state)
-      {right, state} = quoted_to_algebra(right, context, state)
-      {left |> concat(" => ") |> concat(right), state}
+      {left_doc, state} = quoted_to_algebra(left, context, state)
+      {right_doc, state} = quoted_to_algebra(right, context, state)
+      {left_doc |> concat(" => ") |> concat(group(right_doc)), state}
     end
   end
 
@@ -648,7 +653,7 @@ defmodule Code.Formatter do
           op_string = op_string <> " "
           doc = glue(left, concat(op_string, nest_by_length(right, op_string)))
           doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
-          if op_info == parent_info, do: doc, else: group(doc)
+          if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
 
         op in @right_new_line_before_binary_operators ->
           op_string = op_string <> " "
@@ -671,7 +676,8 @@ defmodule Code.Formatter do
             end
 
           doc = glue(left, concat(op_string, right))
-          if is_nil(parent_info) or op_info == parent_info, do: doc, else: group(doc)
+          doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
+          if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
 
         true ->
           with_next_break_fits(next_break_fits?(right_arg), right, fn right ->
@@ -711,8 +717,8 @@ defmodule Code.Formatter do
       cond do
         # If the operator has the same precedence as the parent and is on
         # the correct side, we respect the nesting rule to avoid multiple
-        # nestings.
-        parent_prec == prec and parent_assoc == side ->
+        # nestings. This only applies for left associativity or same operator.
+        parent_prec == prec and parent_assoc == side and (side == :left or op == parent_op) ->
           binary_op_to_algebra(op, op_string, meta, left, right, context, state, op_info, nesting)
 
         # If the parent requires parens or the precedence is inverted or
@@ -938,9 +944,9 @@ defmodule Code.Formatter do
   end
 
   # function(arguments)
-  defp local_to_algebra(fun, args, context, state) when is_atom(fun) do
+  defp local_to_algebra(fun, meta, args, context, state) when is_atom(fun) do
     skip_parens =
-      if skip_parens?(fun, args, state), do: :skip_unless_many_args, else: :skip_if_do_end
+      if skip_parens?(fun, meta, args, state), do: :skip_unless_many_args, else: :skip_if_do_end
 
     {{call_doc, state}, wrap_in_parens?} =
       call_args_to_algebra(args, context, skip_parens, true, state)
@@ -1065,10 +1071,10 @@ defmodule Code.Formatter do
     {doc, state}
   end
 
-  defp skip_parens?(fun, args, %{locals_without_parens: locals_without_parens}) do
+  defp skip_parens?(fun, meta, args, %{locals_without_parens: locals_without_parens}) do
     length = length(args)
 
-    length > 0 and
+    length > 0 and Keyword.get(meta, :no_parens, false) and
       Enum.any?(locals_without_parens, fn {key, val} ->
         key == fun and (val == :* or val == length)
       end)

@@ -16,7 +16,7 @@ defmodule Mix.PublicKey do
   @doc """
   Returns the filesystem path for public keys.
   """
-  def public_keys_path, do: Path.join(Mix.Utils.mix_home, "public_keys")
+  def public_keys_path, do: Path.join(Mix.Utils.mix_home(), "public_keys")
 
   @doc """
   Returns all public keys as a list.
@@ -24,7 +24,7 @@ defmodule Mix.PublicKey do
   def public_keys do
     path = public_keys_path()
 
-    [{"in-memory public key for Elixir v#{System.version}", @in_memory_key}] ++
+    [{"in-memory public key for Elixir v#{System.version()}", @in_memory_key}] ++
       case File.ls(path) do
         {:ok, keys} -> Enum.map(keys, &{&1, File.read!(Path.join(path, &1))})
         {:error, _} -> []
@@ -39,21 +39,21 @@ defmodule Mix.PublicKey do
     :public_key.pem_entry_decode(rsa_public_key)
   rescue
     _ ->
-      Mix.raise """
+      Mix.raise("""
       Could not decode public key: #{id}. The public key contents are shown below.
 
       #{key}
 
       Public keys must be valid and be in the PEM format
-      """
+      """)
   end
 
   @doc """
   Verifies the given binary has the proper signature using the system public keys.
   """
   def verify(binary, hash, signature) do
-    Enum.any? public_keys(), fn {id, key} ->
-      :public_key.verify binary, hash, signature, decode!(id, key)
-    end
+    Enum.any?(public_keys(), fn {id, key} ->
+      :public_key.verify(binary, hash, signature, decode!(id, key))
+    end)
   end
 end
