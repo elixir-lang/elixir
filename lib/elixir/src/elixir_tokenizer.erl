@@ -325,13 +325,20 @@ tokenize([$, | Rest], Line, Column, Scope, Tokens) ->
   Token = {',', {Line, {Column, Column + 1}, 0}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
 
-tokenize([T, T | Rest], Line, Column, Scope, Tokens) when T == $<; T == $> ->
-  Token = {list_to_atom([T, T]), {Line, {Column, Column + 2}, nil}},
+tokenize([$<, $< | Rest], Line, Column, Scope, Tokens) ->
+  Token = {'<<', {Line, {Column, Column + 2}, nil}},
   handle_terminator(Rest, Line, Column + 2, Scope, Token, Tokens);
 
-tokenize([T | Rest], Line, Column, Scope, Tokens) when T == $(;
-    T == ${; T == $}; T == $[; T == $]; T == $) ->
+tokenize([$>, $> | Rest], Line, Column, Scope, Tokens) ->
+  Token = {'>>', {Line, {Column, Column + 2}, previous_was_eol(Tokens)}},
+  handle_terminator(Rest, Line, Column + 2, Scope, Token, Tokens);
+
+tokenize([T | Rest], Line, Column, Scope, Tokens) when T == $(; T == ${; T == $[ ->
   Token = {list_to_atom([T]), {Line, {Column, Column + 1}, nil}},
+  handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
+
+tokenize([T | Rest], Line, Column, Scope, Tokens) when T == $); T == $}; T == $] ->
+  Token = {list_to_atom([T]), {Line, {Column, Column + 1}, previous_was_eol(Tokens)}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
 
 % ## Two Token Operators
@@ -993,7 +1000,9 @@ add_token_with_eol({unary_op, _, _} = Left, T) -> [Left | T];
 add_token_with_eol(Left, [{eol, _} | T]) -> [Left | T];
 add_token_with_eol(Left, T) -> [Left | T].
 
-previous_was_eol([{eol, _} | _]) -> eol;
+previous_was_eol([{',', {_, _, Count}} | _]) when Count > 0 -> eol;
+previous_was_eol([{';', {_, _, Count}} | _]) when Count > 0 -> eol;
+previous_was_eol([{eol, {_, _, Count}} | _]) when Count > 0 -> eol;
 previous_was_eol(_) -> nil.
 
 %% Error handling

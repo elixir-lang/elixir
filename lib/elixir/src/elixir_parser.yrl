@@ -362,19 +362,19 @@ close_paren -> eol ')' : '$2'.
 empty_paren -> open_paren ')' : '$1'.
 
 open_bracket  -> '['     : '$1'.
-open_bracket  -> '[' eol : set_eol('$1').
+open_bracket  -> '[' eol : next_is_eol('$1').
 close_bracket -> ']'     : '$1'.
-close_bracket -> eol ']' : set_eol('$2').
+close_bracket -> eol ']' : '$2'.
 
 open_bit  -> '<<'     : '$1'.
-open_bit  -> '<<' eol : set_eol('$1').
+open_bit  -> '<<' eol : next_is_eol('$1').
 close_bit -> '>>'     : '$1'.
-close_bit -> eol '>>' : set_eol('$2').
+close_bit -> eol '>>' : '$2'.
 
 open_curly  -> '{'     : '$1'.
-open_curly  -> '{' eol : set_eol('$1').
+open_curly  -> '{' eol : next_is_eol('$1').
 close_curly -> '}'     : '$1'.
-close_curly -> eol '}' : set_eol('$2').
+close_curly -> eol '}' : '$2'.
 
 % Operators
 
@@ -425,7 +425,7 @@ when_op_eol -> when_op : '$1'.
 when_op_eol -> when_op eol : '$1'.
 
 stab_op_eol -> stab_op : '$1'.
-stab_op_eol -> stab_op eol : set_eol('$1').
+stab_op_eol -> stab_op eol : next_is_eol('$1').
 
 at_op_eol -> at_op : '$1'.
 at_op_eol -> at_op eol : '$1'.
@@ -437,7 +437,7 @@ rel_op_eol -> rel_op : '$1'.
 rel_op_eol -> rel_op eol : '$1'.
 
 arrow_op_eol -> arrow_op : '$1'.
-arrow_op_eol -> arrow_op eol : set_eol('$1').
+arrow_op_eol -> arrow_op eol : next_is_eol('$1').
 
 % Dot operator
 
@@ -737,7 +737,7 @@ eol_op(Token) ->
       []
   end.
 
-set_eol(Token) ->
+next_is_eol(Token) ->
   {Line, Column, _} = ?location(Token),
   setelement(2, Token, {Line, Column, eol}).
 
