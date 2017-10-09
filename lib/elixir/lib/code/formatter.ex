@@ -1431,13 +1431,13 @@ defmodule Code.Formatter do
 
   ## Type functions
 
-  # (-> block)
+  # (() -> block)
   defp type_fun_to_algebra([{:"->", meta, [[], body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
     doc =
-      "(-> "
+      "(() -> "
       |> concat(nest(body_doc, :cursor))
       |> concat(")")
       |> maybe_force_clauses(clauses)
