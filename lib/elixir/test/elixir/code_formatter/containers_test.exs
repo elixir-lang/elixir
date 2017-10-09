@@ -234,6 +234,19 @@ defmodule Code.Formatter.ContainersTest do
       assert_format "<< 1 :: 2 - unit(3) - 4 / 5 >>", "<<1::2-unit(3)-(4 / 5)>>"
     end
 
+   test "in comprehensions" do
+      assert_format "<< 0, 1 :: 1 <- x >>", "<<0, 1::1 <- x>>"
+      assert_format "<< 0, 1 :: 2 + 3 <- x >>", "<<0, 1::(2 + 3) <- x>>"
+      assert_format "<< 0, 1 :: 2 - integer <- x >>", "<<0, 1::2-integer <- x>>"
+      assert_format "<< 0, 1 :: 2 - unit(3) <- x >>", "<<0, 1::2-unit(3) <- x>>"
+      assert_format "<< 0, 1 :: 2 * 3 - unit(4) <- x >>", "<<0, 1::2*3-unit(4) <- x>>"
+      assert_format "<< 0, 1 :: 2 - unit(3) - 4 / 5 <- x >>", "<<0, 1::2-unit(3)-(4 / 5) <- x>>"
+
+      assert_same "<<(<<y>> <- <<x>>)>>"
+      assert_same "<<(y <- <<x>>)>>"
+      assert_same "<<(<<y>> <- x)>>"
+    end
+
     test "is strict on line limits" do
       bad = "<<1, 2, 3, 4>>"
       good = """

@@ -305,6 +305,10 @@ defmodule Code.Formatter do
     {group(doc), state}
   end
 
+  defp quoted_to_algebra({:special, :bitstring_segment, [arg, last]}, _context, state) do
+    bitstring_segment_to_algebra({arg, -1}, state, last)
+  end
+
   defp quoted_to_algebra({var, _meta, var_context}, _context, state) when is_atom(var_context) do
     {var |> Atom.to_string() |> string(), state}
   end
@@ -1188,6 +1192,12 @@ defmodule Code.Formatter do
       |> args_to_algebra_with_comments(meta, state, &bitstring_segment_to_algebra(&1, &2, last))
 
     {surround("<<", args_doc, ">>"), state}
+  end
+
+  defp bitstring_segment_to_algebra({{:<-, meta, [left, right]}, i}, state, last) do
+    left = {:special, :bitstring_segment, [left, last]}
+    {doc, state} = quoted_to_algebra({:<-, meta, [left, right]}, :parens_arg, state)
+    {bitstring_wrap_parens(doc, i, last), state}
   end
 
   defp bitstring_segment_to_algebra({{:::, _, [segment, spec]}, i}, state, last) do
