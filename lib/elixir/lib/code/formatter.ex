@@ -716,8 +716,8 @@ defmodule Code.Formatter do
       cond do
         # If the operator has the same precedence as the parent and is on
         # the correct side, we respect the nesting rule to avoid multiple
-        # nestings.
-        parent_prec == prec and parent_assoc == side ->
+        # nestings. This only applies for left associativity or same operator.
+        parent_prec == prec and parent_assoc == side and (side == :left or op == parent_op) ->
           binary_op_to_algebra(op, op_string, meta, left, right, context, state, op_info, nesting)
 
         # If the parent requires parens or the precedence is inverted or
@@ -1073,8 +1073,7 @@ defmodule Code.Formatter do
   defp skip_parens?(fun, meta, args, %{locals_without_parens: locals_without_parens}) do
     length = length(args)
 
-    length > 0 and
-      Keyword.get(meta, :no_parens, false) and
+    length > 0 and Keyword.get(meta, :no_parens, false) and
       Enum.any?(locals_without_parens, fn {key, val} ->
         key == fun and (val == :* or val == length)
       end)
