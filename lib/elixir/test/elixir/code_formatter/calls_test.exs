@@ -288,7 +288,9 @@ defmodule Code.Formatter.CallsTest do
     test "without parens from option" do
       assert_format "foo bar", "foo(bar)"
       assert_same "foo bar", locals_without_parens: [foo: 1]
+      assert_same "foo(bar)", locals_without_parens: [foo: 1]
       assert_same "foo bar", locals_without_parens: [foo: :*]
+      assert_same "foo(bar)", locals_without_parens: [foo: :*]
     end
 
     test "without parens on unique argument" do
@@ -305,6 +307,12 @@ defmodule Code.Formatter.CallsTest do
 
       assert_same """
       check foo, all(1, 2, 3) do
+        :ok
+      end
+      """
+
+      assert_same """
+      check all(1, 2, 3) do
         :ok
       end
       """
