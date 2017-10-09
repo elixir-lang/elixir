@@ -99,9 +99,8 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:end_expr, line, modifier, chars} | t], buffer, [_ | _] = scope, state) do
     message =
-      "unexpected beginning of EEx tag \"<%#{modifier}\" on end of expression \"<%#{modifier}#{
-        chars
-      }%>\", " <> "please remove \"#{modifier}\" accordingly"
+      "unexpected beginning of EEx tag \"<%#{modifier}\" on end of " <>
+        "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.warn(line, state.file, message)
     generate_buffer([{:end_expr, line, '', chars} | t], buffer, scope, state)
@@ -133,11 +132,10 @@ defmodule EEx.Compiler do
     new_lines = List.duplicate(?\n, line - state.line)
     key = length(state.quoted)
     placeholder = '__EEX__(' ++ Integer.to_charlist(key) ++ ');'
+    count = current ++ placeholder ++ new_lines ++ chars
+    new_state = %{state | quoted: [{key, state.engine.handle_end(buffer)} | state.quoted]}
 
-    {
-      current ++ placeholder ++ new_lines ++ chars,
-      %{state | quoted: [{key, state.engine.handle_end(buffer)} | state.quoted]}
-    }
+    {count, new_state}
   end
 
   # Look text ahead on expressions
