@@ -52,7 +52,7 @@ defmodule Calendar.Holocene do
   end
 
   @impl true
-  defdelegate(time_to_string(hour, minute, second, microsecond), to: Calendar.ISO)
+  defdelegate time_to_string(hour, minute, second, microsecond), to: Calendar.ISO
 
   @impl true
   def day_rollover_relative_to_midnight_utc(), do: {0, 1}
@@ -79,19 +79,19 @@ defmodule Calendar.Holocene do
   end
 
   @impl true
-  defdelegate(time_from_day_fraction(day_fraction), to: Calendar.ISO)
+  defdelegate time_from_day_fraction(day_fraction), to: Calendar.ISO
 
   @impl true
-  defdelegate(time_to_day_fraction(hour, minute, second, microsecond), to: Calendar.ISO)
+  defdelegate time_to_day_fraction(hour, minute, second, microsecond), to: Calendar.ISO
 
   @impl true
-  defdelegate(leap_year?(year), to: Calendar.ISO)
+  defdelegate leap_year?(year), to: Calendar.ISO
 
   @impl true
-  defdelegate(days_in_month(year, month), to: Calendar.ISO)
+  defdelegate days_in_month(year, month), to: Calendar.ISO
 
   @impl true
-  defdelegate(day_of_week(year, month, day), to: Calendar.ISO)
+  defdelegate day_of_week(year, month, day), to: Calendar.ISO
 
   @impl true
   def valid_date?(year, month, day) do
@@ -99,5 +99,5 @@ defmodule Calendar.Holocene do
   end
 
   @impl true
-  defdelegate(valid_time?(hour, minute, second, microsecond), to: Calendar.ISO)
+  defdelegate valid_time?(hour, minute, second, microsecond), to: Calendar.ISO
 end
