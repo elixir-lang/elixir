@@ -3,16 +3,16 @@ defmodule Logger.Backends.Console do
 
   @behaviour :gen_event
 
-  defstruct format: nil,
-            metadata: nil,
-            level: nil,
+  defstruct buffer: [],
+            buffer_size: 0,
             colors: nil,
             device: nil,
+            format: nil,
+            level: nil,
             max_buffer: nil,
-            buffer_size: 0,
-            buffer: [],
-            ref: nil,
-            output: nil
+            metadata: nil,
+            output: nil,
+            ref: nil
 
   def init(:console) do
     config = Application.get_env(:logger, :console)
