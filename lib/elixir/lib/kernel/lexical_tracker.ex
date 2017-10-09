@@ -111,14 +111,23 @@ defmodule Kernel.LexicalTracker do
   # Callbacks
 
   def init(dest) do
-    {:ok, %{directives: %{}, references: %{}, compile: %{}, runtime: %{}, dest: dest, cache: %{}}}
+    state = %{
+      directives: %{},
+      references: %{},
+      compile: %{},
+      runtime: %{},
+      dest: dest,
+      cache: %{}
+    }
+
+    {:ok, state}
   end
 
   @doc false
   def handle_call({:unused, tag}, _from, state) do
     directives =
       for {{^tag, module_or_mfa}, marker} <- state.directives, is_integer(marker),
-        do: {module_or_mfa, marker}
+          do: {module_or_mfa, marker}
 
     {:reply, Enum.sort(directives), state}
   end
