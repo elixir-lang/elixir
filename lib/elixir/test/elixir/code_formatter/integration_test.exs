@@ -230,4 +230,11 @@ defmodule Code.Formatter.IntegrationTest do
         into: %{}
     """
   end
+
+  test "next break fits followed by inline tuple" do
+    assert_same """
+    assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
+             {:error, "due to line filter"}
+    """
+  end
 end
