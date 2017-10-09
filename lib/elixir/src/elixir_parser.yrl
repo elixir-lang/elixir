@@ -522,8 +522,10 @@ call_args_parens_base -> call_args_parens_base ',' call_args_parens_expr : ['$3'
 call_args_parens -> empty_paren : [].
 call_args_parens -> open_paren no_parens_expr close_paren : ['$2'].
 call_args_parens -> open_paren kw_base close_paren : [reverse('$2')].
+call_args_parens -> open_paren kw_base ',' close_paren : warn_trailing_comma('$3'), [reverse('$2')].
 call_args_parens -> open_paren call_args_parens_base close_paren : reverse('$2').
 call_args_parens -> open_paren call_args_parens_base ',' kw_base close_paren : reverse([reverse('$4') | '$2']).
+call_args_parens -> open_paren call_args_parens_base ',' kw_base ',' close_paren : warn_trailing_comma('$5'), reverse([reverse('$4') | '$2']).
 
 % KV
 
@@ -983,13 +985,13 @@ warn_empty_paren({_, {Line, _, _}}) ->
     "to pass an empty block, pass a value instead, such as a nil or an atom").
 
 %% TODO: Make this an error on Elixir v2.0.
-warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
+warn_empty_stab_clause({stab_op, {Line, _, _}, '->'}) ->
   elixir_errors:warn(Line, ?file(),
     "an expression is always required on the right side of ->. "
     "Please provide a value after ->").
 
 %% TODO: Make this an error on Elixir v2.0.
-warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_ | _], [_ | _]}) ->
+warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
   elixir_errors:warn(Line, ?file(),
     io_lib:format(
       "parentheses are required when piping into a function call. For example:\n\n"
@@ -1002,3 +1004,9 @@ warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_ | _], [_ | _]}) ->
   );
 warn_pipe(_Token, _) ->
   ok.
+
+%% TODO: Make this an error on Elixir v2.0.
+warn_trailing_comma({',', {Line, _, _}}) ->
+  elixir_errors:warn(Line, ?file(),
+    "trailing commas are not allowed inside function/macro call arguments"
+  ).
