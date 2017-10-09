@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.ProtocolsTest do
   use MixTest.Case
@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   @old {{2010, 1, 1}, {0, 0, 0}}
 
   test "compiles and consolidates local protocols", context do
-    Mix.Project.push MixTest.Case.Sample
+    Mix.Project.push(MixTest.Case.Sample)
 
     in_tmp context.test, fn ->
       File.mkdir_p!("lib")
@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         def foo(a, b)
       end
       """)
+
       assert compile_elixir_and_protocols() == :ok
       mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
 
@@ -27,13 +28,18 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         def foo(a, b), do: a + b
       end
       """)
+
       assert compile_elixir_and_protocols() == :ok
-      assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") != @old
+
+      assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") !=
+               @old
 
       # Delete a local implementation
       File.rm!("lib/impl.ex")
       assert compile_elixir_and_protocols() == :ok
-      assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") != @old
+
+      assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") !=
+               @old
 
       # Delete a local protocol
       File.rm!("lib/protocol.ex")
@@ -43,7 +49,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   end
 
   test "compiles after converting a protocol into a standard module", context do
-    Mix.Project.push MixTest.Case.Sample
+    Mix.Project.push(MixTest.Case.Sample)
 
     in_tmp context.test, fn ->
       File.mkdir_p!("lib")
@@ -59,6 +65,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         def foo(a), do: a
       end
       """)
+
       assert compile_elixir_and_protocols() == :ok
       mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
       File.rm!("lib/protocol.ex")
@@ -68,6 +75,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       defmodule Compile.Protocol do
       end
       """)
+
       assert compile_elixir_and_protocols() == :noop
 
       # Delete a local protocol
@@ -78,7 +86,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   end
 
   test "compiles and consolidates deps protocols", context do
-    Mix.Project.push MixTest.Case.Sample
+    Mix.Project.push(MixTest.Case.Sample)
 
     in_tmp context.test, fn ->
       File.mkdir_p!("lib")
@@ -98,6 +106,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         end
       end
       """)
+
       assert compile_elixir_and_protocols() == :ok
       assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") != @old
 
