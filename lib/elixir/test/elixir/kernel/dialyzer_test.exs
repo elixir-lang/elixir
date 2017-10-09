@@ -127,9 +127,8 @@ defmodule Kernel.DialyzerTest do
         :ok
 
       warnings ->
-        flunk(
-          IO.chardata_to_string(for warn <- warnings, do: [:dialyzer.format_warning(warn), ?\n])
-        )
+        formatted = for warn <- warnings, do: [:dialyzer.format_warning(warn), ?\n]
+        formatted |> IO.chardata_to_string() |> flunk()
     end
   end
 
