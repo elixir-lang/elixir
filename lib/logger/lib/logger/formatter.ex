@@ -94,7 +94,7 @@ defmodule Logger.Formatter do
   defp compile_code(key) when key in @valid_patterns, do: key
 
   defp compile_code(key) when is_atom(key) do
-    raise ArgumentError, message: "$#{key} is an invalid format pattern."
+    raise ArgumentError, "$#{key} is an invalid format pattern."
   end
 
   @doc """
