@@ -114,7 +114,7 @@ defmodule Mix.Tasks.Deps do
       "../#{app}", sharing the same environment as the current application
 
   ### Hex options (`:hex`)
-  
+
   See the [Hex usage documentation](https://hex.pm/docs/usage) for Hex options.
 
   ## Deps task
@@ -130,24 +130,26 @@ defmodule Mix.Tasks.Deps do
     * `--all` - checks all dependencies, regardless of specified environment
 
   """
-  @spec run(OptionParser.argv) :: :ok
+  @spec run(OptionParser.argv()) :: :ok
   def run(args) do
-    Mix.Project.get!
+    Mix.Project.get!()
     {opts, _, _} = OptionParser.parse(args)
-    loaded_opts  = if opts[:all], do: [], else: [env: Mix.env]
+    loaded_opts = if opts[:all], do: [], else: [env: Mix.env()]
 
-    shell = Mix.shell
+    shell = Mix.shell()
 
-    Enum.each loaded(loaded_opts), fn %Mix.Dep{scm: scm, manager: manager} = dep ->
-      dep   = check_lock(dep)
+    Enum.each(loaded(loaded_opts), fn dep ->
+      %Mix.Dep{scm: scm, manager: manager} = dep
+      dep = check_lock(dep)
       extra = if manager, do: " (#{manager})", else: ""
 
-      shell.info "* #{format_dep(dep)}#{extra}"
+      shell.info("* #{format_dep(dep)}#{extra}")
+
       if formatted = scm.format_lock(dep.opts) do
-        shell.info "  locked at #{formatted}"
+        shell.info("  locked at #{formatted}")
       end
 
-      shell.info "  #{format_status dep}"
-    end
+      shell.info("  #{format_status(dep)}")
+    end)
   end
 end
