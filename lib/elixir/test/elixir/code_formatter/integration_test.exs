@@ -221,4 +221,13 @@ defmodule Code.Formatter.IntegrationTest do
         do: app
     """
   end
+
+  test "short comprehensions" do
+    assert_same """
+    for {protocol, :protocol, _beam} <- removed_metadata,
+        remove_consolidated(protocol, output),
+        do: {protocol, true},
+        into: %{}
+    """
+  end
 end
