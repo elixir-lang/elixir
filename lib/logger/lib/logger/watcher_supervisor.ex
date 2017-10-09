@@ -10,10 +10,9 @@ defmodule Logger.WatcherSupervisor do
   def start_link({m, f, a}) do
     case Supervisor.start_link(__MODULE__, [], name: @name) do
       {:ok, _} = ok ->
-        _ =
-          for {mod, handler, args} <- apply(m, f, a) do
-            {:ok, _} = watch(mod, handler, args)
-          end
+        for {mod, handler, args} <- apply(m, f, a) do
+          {:ok, _} = watch(mod, handler, args)
+        end
 
         ok
 
