@@ -15,11 +15,8 @@ defmodule Set do
   defmacrop target(set) do
     quote do
       case unquote(set) do
-        %module{} ->
-          module
-
-        set ->
-          unsupported_set(set)
+        %module{} -> module
+        set -> unsupported_set(set)
       end
     end
   end
