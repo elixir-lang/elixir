@@ -1,10 +1,9 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule BaseTest do
   use ExUnit.Case, async: true
 
   doctest Base
-
   import Base
 
   test "encode16/1" do
@@ -17,7 +16,8 @@ defmodule BaseTest do
     assert "666F6F626172" == encode16("foobar")
     assert "A1B2C3D4E5F67891" == encode16(<<161, 178, 195, 212, 229, 246, 120, 145>>)
 
-    assert "a1b2c3d4e5f67891" == encode16(<<161, 178, 195, 212, 229, 246, 120, 145>>, case: :lower)
+    assert "a1b2c3d4e5f67891" ==
+             encode16(<<161, 178, 195, 212, 229, 246, 120, 145>>, case: :lower)
   end
 
   test "decode16/1" do
@@ -30,8 +30,11 @@ defmodule BaseTest do
     assert {:ok, "foobar"} == decode16("666F6F626172")
     assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("A1B2C3D4E5F67891")
 
-    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("a1b2c3d4e5f67891", case: :lower)
-    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("a1B2c3D4e5F67891", case: :mixed)
+    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} ==
+             decode16("a1b2c3d4e5f67891", case: :lower)
+
+    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} ==
+             decode16("a1B2c3D4e5F67891", case: :mixed)
   end
 
   test "decode16!/1" do
@@ -44,8 +47,11 @@ defmodule BaseTest do
     assert "foobar" == decode16!("666F6F626172")
     assert <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("A1B2C3D4E5F67891")
 
-    assert <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("a1b2c3d4e5f67891", case: :lower)
-    assert  <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("a1B2c3D4e5F67891", case: :mixed)
+    assert <<161, 178, 195, 212, 229, 246, 120, 145>> ==
+             decode16!("a1b2c3d4e5f67891", case: :lower)
+
+    assert <<161, 178, 195, 212, 229, 246, 120, 145>> ==
+             decode16!("a1B2c3D4e5F67891", case: :mixed)
   end
 
   test "decode16/1 errors on non-alphabet digit" do
@@ -58,9 +64,11 @@ defmodule BaseTest do
     assert_raise ArgumentError, "non-alphabet digit found: \"K\" (byte 75)", fn ->
       decode16!("66KF")
     end
+
     assert_raise ArgumentError, "non-alphabet digit found: \"f\" (byte 102)", fn ->
       decode16!("66ff")
     end
+
     assert_raise ArgumentError, "non-alphabet digit found: \"F\" (byte 70)", fn ->
       decode16!("66FF", case: :lower)
     end
@@ -90,7 +98,9 @@ defmodule BaseTest do
 
   test "encode64/1 with no pad" do
     assert "QWxhZGRpbjpvcGVuIHNlc2Ft" == encode64("Aladdin:open sesam")
-    assert "MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9" == encode64(<<"0123456789!@#0^&*();:<>,. []{}">>)
+
+    assert "MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9" ==
+             encode64(<<"0123456789!@#0^&*();:<>,. []{}">>)
   end
 
   test "encode64/1 with one pad and ignoring padding" do
@@ -149,14 +159,18 @@ defmodule BaseTest do
 
   test "decode64/1 errors on whitespace unless there's ignore: :whitespace" do
     assert :error == decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
-    assert {:ok, "Aladdin:open sesam"} == decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
+
+    assert {:ok, "Aladdin:open sesam"} ==
+             decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
   end
 
   test "decode64!/1 errors on whitespace unless there's ignore: :whitespace" do
     assert_raise ArgumentError, "non-alphabet digit found: \"\\n\" (byte 10)", fn ->
       decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
     end
-    assert "Aladdin:open sesam" == decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
+
+    assert "Aladdin:open sesam" ==
+             decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
   end
 
   test "decode64/1 errors on incorrect padding" do
@@ -215,7 +229,9 @@ defmodule BaseTest do
 
   test "url_encode64/1 with no pad" do
     assert "QWxhZGRpbjpvcGVuIHNlc2Ft" == url_encode64("Aladdin:open sesam")
-    assert "MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9" == url_encode64(<<"0123456789!@#0^&*();:<>,. []{}">>)
+
+    assert "MDEyMzQ1Njc4OSFAIzBeJiooKTs6PD4sLiBbXXt9" ==
+             url_encode64(<<"0123456789!@#0^&*();:<>,. []{}">>)
   end
 
   test "url_encode64/2 with two pads and ignoring padding" do
@@ -269,14 +285,18 @@ defmodule BaseTest do
 
   test "url_decode64/1,2 error on whitespace unless there's ignore: :whitespace" do
     assert :error == url_decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
-    assert {:ok, "Aladdin:open sesam"} == url_decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
+
+    assert {:ok, "Aladdin:open sesam"} ==
+             url_decode64("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
   end
 
   test "url_decode64!/1,2 error on whitespace unless there's ignore: :whitespace" do
     assert_raise ArgumentError, "non-alphabet digit found: \"\\n\" (byte 10)", fn ->
       url_decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
     end
-    assert "Aladdin:open sesam" == url_decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
+
+    assert "Aladdin:open sesam" ==
+             url_decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
   end
 
   test "url_decode64/1 errors on non-alphabet digit" do
@@ -300,7 +320,8 @@ defmodule BaseTest do
   end
 
   test "url_decode64/2 with two pads and ignoring padding" do
-    assert {:ok, "Aladdin:open sesame"} == url_decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ", padding: false)
+    assert {:ok, "Aladdin:open sesame"} ==
+             url_decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ", padding: false)
   end
 
   test "url_decode64!/2 with two pads and ignoring padding" do
@@ -456,9 +477,11 @@ defmodule BaseTest do
     assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
       decode32!("MZX)6YTB")
     end
+
     assert_raise ArgumentError, "non-alphabet digit found: \"m\" (byte 109)", fn ->
       decode32!("mzxw6ytboi======")
     end
+
     assert_raise ArgumentError, "non-alphabet digit found: \"M\" (byte 77)", fn ->
       decode32!("MZXW6YTBOI======", case: :lower)
     end
@@ -647,9 +670,11 @@ defmodule BaseTest do
     assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
       hex_decode32!("CPN)UOJ1")
     end
+
     assert_raise ArgumentError, "non-alphabet digit found: \"c\" (byte 99)", fn ->
       hex_decode32!("cpnmuoj1e8======")
     end
+
     assert_raise ArgumentError, "non-alphabet digit found: \"C\" (byte 67)", fn ->
       hex_decode32!("CPNMUOJ1E8======", case: :lower)
     end
@@ -752,14 +777,16 @@ defmodule BaseTest do
   end
 
   test "encode then decode is identity" do
-    for {encode, decode} <- [{&encode16/2, &decode16!/2},
-                             {&encode32/2, &decode32!/2},
-                             {&hex_encode32/2, &hex_decode32!/2},
-                             {&encode64/2, &decode64!/2},
-                             {&url_encode64/2, &url_decode64!/2}],
+    for {encode, decode} <- [
+          {&encode16/2, &decode16!/2},
+          {&encode32/2, &decode32!/2},
+          {&hex_encode32/2, &hex_decode32!/2},
+          {&encode64/2, &decode64!/2},
+          {&url_encode64/2, &url_decode64!/2}
+        ],
         encode_case <- [:upper, :lower],
         decode_case <- [:upper, :lower, :mixed],
-        (encode_case == decode_case) or (decode_case == :mixed),
+        encode_case == decode_case or decode_case == :mixed,
         pad? <- [true, false],
         len <- 0..256 do
       data =
@@ -770,10 +797,11 @@ defmodule BaseTest do
 
       expected =
         data
-        |> encode.([case: encode_case, pad: pad?])
-        |> decode.([case: decode_case, pad: pad?])
+        |> encode.(case: encode_case, pad: pad?)
+        |> decode.(case: decode_case, pad: pad?)
 
-      assert data == expected, "identity did not match for #{inspect data} when #{inspect encode} (#{encode_case})"
+      assert data == expected,
+             "identity did not match for #{inspect(data)} when #{inspect(encode)} (#{encode_case})"
     end
   end
 end
