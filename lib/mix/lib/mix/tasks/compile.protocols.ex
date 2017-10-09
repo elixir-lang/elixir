@@ -197,9 +197,10 @@ defmodule Mix.Tasks.Compile.Protocols do
     removed_metadata = old_metadata -- new_metadata
 
     removed_protocols =
-      for {protocol, :protocol, _beam} <- removed_metadata, remove_consolidated(protocol, output),
-        do: {protocol, true},
-        into: %{}
+      for {protocol, :protocol, _beam} <- removed_metadata,
+          remove_consolidated(protocol, output),
+          do: {protocol, true},
+          into: %{}
 
     protocols =
       for {_, {:impl, protocol}, _beam} <- removed_metadata,
