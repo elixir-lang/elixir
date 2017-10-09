@@ -1,15 +1,15 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule IO.ANSI.DocsTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureIO
 
   def format_heading(str) do
-    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.trim_trailing
+    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.trim_trailing()
   end
 
   def format(str) do
-    capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.trim_trailing
+    capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.trim_trailing()
   end
 
   test "heading is formatted" do
@@ -280,27 +280,27 @@ defmodule IO.ANSI.DocsTest do
 
   test "escaping of underlines within links does not escape surrounding text" do
     result = format("_emphasis_ (https://en.wikipedia.org/wiki/ANSI_escape_code) more _emphasis_")
-    assert result == "\e[4memphasis\e[0m (https://en.wikipedia.org/wiki/ANSI_escape_code) more \e[4memphasis\e[0m\n\e[0m"
+
+    assert result ==
+             "\e[4memphasis\e[0m (https://en.wikipedia.org/wiki/ANSI_escape_code) more \e[4memphasis\e[0m\n\e[0m"
   end
 
   test "lone thing that looks like a table line isn't" do
-    assert format("one\n2 | 3\ntwo\n") ==
-           "one 2 | 3 two\n\e[0m"
+    assert format("one\n2 | 3\ntwo\n") == "one 2 | 3 two\n\e[0m"
   end
 
   test "lone table line at end of input isn't" do
-    assert format("one\n2 | 3") ==
-           "one 2 | 3\n\e[0m"
+    assert format("one\n2 | 3") == "one 2 | 3\n\e[0m"
   end
 
   test "two successive table lines are a table" do
-    assert format("a | b\none | two\n") ==
-           "a   | b  \none | two\n\e[0m"  # note spacing
+    # note spacing
+    assert format("a | b\none | two\n") == "a   | b  \none | two\n\e[0m"
   end
 
   test "table with heading" do
     assert format("column 1 | and 2\n-- | --\na | b\none | two\n") ==
-           "\e[7mcolumn 1 | and 2\e[0m\na        | b    \none      | two  \n\e[0m"
+             "\e[7mcolumn 1 | and 2\e[0m\na        | b    \none      | two  \n\e[0m"
   end
 
   test "table with heading alignment" do
@@ -310,29 +310,28 @@ defmodule IO.ANSI.DocsTest do
         a    |  even    | c\none | odd | three
     """
 
-    expected = """
-    \e[7m\
-    column 1 |   2   | and three\e[0m
-           a | even  | c\s\s\s\s\s\s\s\s
-         one |  odd  | three\s\s\s\s
-    \e[0m
-    """ |> String.trim_trailing
+    expected =
+      """
+      \e[7mcolumn 1 |   2   | and three\e[0m
+             a | even  | c\s\s\s\s\s\s\s\s
+           one |  odd  | three\s\s\s\s
+      \e[0m
+      """
+      |> String.trim_trailing()
 
     assert format(table) == expected
   end
 
   test "table with formatting in cells" do
-    assert format("`a` | _b_\nc | d") ==
-           "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
+    assert format("`a` | _b_\nc | d") == "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
   end
 
   test "table with variable number of columns" do
-    assert format("a | b | c\nd | e") ==
-           "a | b | c\nd | e |  \n\e[0m"
+    assert format("a | b | c\nd | e") == "a | b | c\nd | e |  \n\e[0m"
   end
 
   test "one reference link label per line" do
     assert format("  [id]: //example.com\n  [Elixir]:  http://elixir-lang.org") ==
-           "  [id]: //example.com\n  [Elixir]:  http://elixir-lang.org"
+             "  [id]: //example.com\n  [Elixir]:  http://elixir-lang.org"
   end
 end
