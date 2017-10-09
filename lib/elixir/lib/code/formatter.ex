@@ -49,11 +49,15 @@ defmodule Code.Formatter do
     # Special forms
     alias: 1,
     alias: 2,
+    case: 2,
+    cond: 1,
     import: 1,
     import: 2,
     require: 1,
     require: 2,
     for: :*,
+    receive: 1,
+    try: 1,
     with: :*,
 
     # Kernel
