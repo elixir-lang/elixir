@@ -311,8 +311,8 @@ bar)
 
   describe "anonymous functions types" do
     test "with a single clause and no arguments" do
-      assert_format "(->:ok)", "(-> :ok)"
-      assert_same "(-> :really_long_atom)", @short_length
+      assert_format "(->:ok)", "(() -> :ok)"
+      assert_same "(() -> :really_long_atom)", @short_length
       assert_same "(() when node() == :nonode@nohost -> true)"
     end
 
@@ -678,7 +678,7 @@ bar)
       """
     end
 
-    test "as funciton arguments" do
+    test "as function arguments" do
       assert_same """
       fun(
         (

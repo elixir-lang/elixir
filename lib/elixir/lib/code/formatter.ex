@@ -1050,7 +1050,7 @@ defmodule Code.Formatter do
   defp call_args_to_algebra_with_no_parens_keywords(left, right, context, state) do
     {left_doc, state} = args_to_algebra(left, state, &quoted_to_algebra(&1, context, &2))
     {right_doc, state} = quoted_to_algebra(right, context, state)
-    right_doc = break(" ") |> concat(right_doc) |> group()
+    right_doc = break(" ") |> concat(right_doc) |> group(:inherit)
 
     doc =
       with_next_break_fits(true, right_doc, fn right_doc ->
@@ -1431,13 +1431,13 @@ defmodule Code.Formatter do
 
   ## Type functions
 
-  # (-> block)
+  # (() -> block)
   defp type_fun_to_algebra([{:"->", meta, [[], body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
     doc =
-      "(-> "
+      "(() -> "
       |> concat(nest(body_doc, :cursor))
       |> concat(")")
       |> maybe_force_clauses(clauses)

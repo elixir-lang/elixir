@@ -209,9 +209,9 @@ defmodule Inspect.Algebra do
     quote do: {:doc_break, unquote(break), unquote(mode)}
   end
 
-  @typep doc_group :: {:doc_group, t}
-  defmacrop doc_group(group) do
-    quote do: {:doc_group, unquote(group)}
+  @typep doc_group :: {:doc_group, t, :inherit | :self}
+  defmacrop doc_group(group, mode) do
+    quote do: {:doc_group, unquote(group), unquote(mode)}
   end
 
   @typep doc_fits :: {:doc_fits, t, :enabled | :disabled}
@@ -670,6 +670,9 @@ defmodule Inspect.Algebra do
   Documents in a group are attempted to be rendered together
   to the best of the renderer ability.
 
+  The group mode can also be set to `:inherit`, which means it
+  automatically breaks if the parent group has broken too.
+
   ## Examples
 
       iex> doc = Inspect.Algebra.group(
@@ -695,8 +698,8 @@ defmodule Inspect.Algebra do
 
   """
   @spec group(t) :: doc_group
-  def group(doc) when is_doc(doc) do
-    doc_group(doc)
+  def group(doc, mode \\ :self) when is_doc(doc) do
+    doc_group(doc, mode)
   end
 
   @doc ~S"""
@@ -812,12 +815,12 @@ defmodule Inspect.Algebra do
   defp fits?(_, _, []),                                      do: true
 
   defp fits?(w, k, [{i, _, doc_fits(x, :disabled)} | t]),    do: fits?(w, k, [{i, :no_fitting, x} | t])
-  defp fits?(w, k, [{i, :no_fitting, doc_group(x)} | t]),    do: fits?(w, k, [{i, :no_fitting, x} | t])
+  defp fits?(w, k, [{i, :no_fitting, doc_group(x, _)} | t]), do: fits?(w, k, [{i, :no_fitting, x} | t])
   defp fits?(w, k, [{i, :no_fitting, doc_fits(x, _)} | t]),  do: fits?(w, k, [{i, :no_fitting, x} | t])
 
   defp fits?(w, k, [{i, _, doc_fits(x, :enabled)} | t]),     do: fits?(w, k, [{i, :next_fits, x} | t])
   defp fits?(w, k, [{i, :next_fits, doc_force(x)} | t]),     do: fits?(w, k, [{i, :next_fits, x} | t])
-  defp fits?(w, k, [{i, :next_fits, doc_group(x)} | t]),     do: fits?(w, k, [{i, :next_fits, x} | t])
+  defp fits?(w, k, [{i, :next_fits, doc_group(x, _)} | t]),  do: fits?(w, k, [{i, :next_fits, x} | t])
   defp fits?(_, _, [{_, :next_fits, doc_break(_, _)} | _]),  do: true
   defp fits?(_, _, [{_, :next_fits, :doc_line} | _]),        do: true
 
@@ -828,7 +831,7 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),           do: fits?(w, k, [{i, m, x} | t])
   defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]),    do: fits?(w, k, [{i, m, x} | t])
   defp fits?(w, k, [{i, m, doc_nest(x, j, _)} | t]),         do: fits?(w, k, [{apply_nesting(i, k, j), m, x} | t])
-  defp fits?(w, k, [{i, _, doc_group(x)} | t]),              do: fits?(w, k, [{i, :flat, x} | t])
+  defp fits?(w, k, [{i, _, doc_group(x, _)} | t]),           do: fits?(w, k, [{i, :flat, x} | t])
   defp fits?(w, k, [{_, _, doc_string(_, l)} | t]),          do: fits?(w, k + l, t)
   defp fits?(w, k, [{_, _, s} | t]) when is_binary(s),       do: fits?(w, k + byte_size(s), t)
   defp fits?(_, _, [{_, _, doc_force(_)} | _]),              do: false
@@ -877,7 +880,11 @@ defmodule Inspect.Algebra do
   end
 
   # Groups must do the fitting decision.
-  defp format(w, k, [{i, _, doc_group(x)} | t]) do
+  defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t]) do
+    format(w, k, [{i, :break, x} | t])
+  end
+
+  defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
     if w == :infinity or fits?(w, k, [{i, :flat, x}]) do
       format(w, k, [{i, :flat, x} | t])
     else

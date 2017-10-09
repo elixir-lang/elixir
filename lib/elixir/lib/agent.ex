@@ -210,7 +210,7 @@ defmodule Agent do
       %RuntimeError{message: "oops"}
 
   """
-  @spec start_link((() -> term), GenServer.options) :: on_start
+  @spec start_link((() -> term), GenServer.options()) :: on_start
   def start_link(fun, options \\ []) when is_function(fun, 0) do
     GenServer.start_link(Agent.Server, fun, options)
   end
@@ -222,7 +222,7 @@ defmodule Agent do
   instead of an anonymous function; `fun` in `module` will be called with the
   given arguments `args` to initialize the state.
   """
-  @spec start_link(module, atom, [any], GenServer.options) :: on_start
+  @spec start_link(module, atom, [any], GenServer.options()) :: on_start
   def start_link(module, fun, args, options \\ []) do
     GenServer.start_link(Agent.Server, {module, fun, args}, options)
   end
@@ -239,7 +239,7 @@ defmodule Agent do
       42
 
   """
-  @spec start((() -> term), GenServer.options) :: on_start
+  @spec start((() -> term), GenServer.options()) :: on_start
   def start(fun, options \\ []) when is_function(fun, 0) do
     GenServer.start(Agent.Server, fun, options)
   end
@@ -249,7 +249,7 @@ defmodule Agent do
 
   See `start_link/4` for more information.
   """
-  @spec start(module, atom, [any], GenServer.options) :: on_start
+  @spec start(module, atom, [any], GenServer.options()) :: on_start
   def start(module, fun, args, options \\ []) do
     GenServer.start(Agent.Server, {module, fun, args}, options)
   end

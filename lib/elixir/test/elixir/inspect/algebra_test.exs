@@ -174,12 +174,25 @@ defmodule Inspect.AlgebraTest do
 
   test "group doc" do
     # Consistent with definitions
-    assert group("ab") == {:doc_group, "ab"}
-    assert group(empty()) == {:doc_group, empty()}
+    assert group("ab") == {:doc_group, "ab", :self}
+    assert group(empty()) == {:doc_group, empty(), :self}
 
     # Consistent formatting
     doc = concat(glue(glue(glue("hello", "a"), "b"), "c"), "d")
     assert render(group(doc), 5) == "hello\na\nb\ncd"
+  end
+
+  test "group doc with inherit" do
+    # Consistent with definitions
+    assert group("ab", :inherit) == {:doc_group, "ab", :inherit}
+    assert group(empty(), :inherit) == {:doc_group, empty(), :inherit}
+
+    # Consistent formatting
+    doc = concat(glue(glue(group(glue("a", "b"), :self), "c"), "d"), "hello")
+    assert render(group(doc), 5) == "a b\nc\ndhello"
+
+    doc = concat(glue(glue(group(glue("a", "b"), :inherit), "c"), "d"), "hello")
+    assert render(group(doc), 5) == "a\nb\nc\ndhello"
   end
 
   test "collapse lines" do
