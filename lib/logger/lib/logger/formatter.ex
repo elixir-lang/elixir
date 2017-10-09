@@ -58,12 +58,9 @@ defmodule Logger.Formatter do
   def prune([]), do: []
   def prune(_), do: @replacement
 
-  defp prune_binary(<<h::utf8, t::binary>>, acc),
-   do: prune_binary(t, <<acc::binary, h::utf8>>)
-  defp prune_binary(<<_, t::binary>>, acc),
-   do: prune_binary(t, <<acc::binary, @replacement>>)
-  defp prune_binary(<<>>, acc),
-   do: acc
+  defp prune_binary(<<h::utf8, t::binary>>, acc), do: prune_binary(t, <<acc::binary, h::utf8>>)
+  defp prune_binary(<<_, t::binary>>, acc), do: prune_binary(t, <<acc::binary, @replacement>>)
+  defp prune_binary(<<>>, acc), do: acc
 
   @doc ~S"""
   Compiles a format string into a data structure that the `format/5` can handle.
