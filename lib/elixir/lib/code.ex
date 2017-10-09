@@ -17,7 +17,7 @@ defmodule Code do
 
   """
   def loaded_files do
-    :elixir_code_server.call :loaded
+    :elixir_code_server.call(:loaded)
   end
 
   @doc """
@@ -36,7 +36,7 @@ defmodule Code do
 
   """
   def unload_files(files) do
-    :elixir_code_server.cast {:unload_files, files}
+    :elixir_code_server.cast({:unload_files, files})
   end
 
   @doc """
@@ -56,7 +56,7 @@ defmodule Code do
 
   """
   def append_path(path) do
-    :code.add_pathz(to_charlist(Path.expand path))
+    :code.add_pathz(to_charlist(Path.expand(path)))
   end
 
   @doc """
@@ -76,7 +76,7 @@ defmodule Code do
 
   """
   def prepend_path(path) do
-    :code.add_patha(to_charlist(Path.expand path))
+    :code.add_patha(to_charlist(Path.expand(path)))
   end
 
   @doc """
@@ -95,7 +95,7 @@ defmodule Code do
 
   """
   def delete_path(path) do
-    :code.del_path(to_charlist(Path.expand path))
+    :code.del_path(to_charlist(Path.expand(path)))
   end
 
   @doc """
@@ -167,13 +167,13 @@ defmodule Code do
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
-    {value, binding, _env, _scope} = :elixir.eval to_charlist(string), binding, Map.to_list(env)
+    {value, binding, _env, _scope} = :elixir.eval(to_charlist(string), binding, Map.to_list(env))
     {value, binding}
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    {value, binding, _env, _scope} = :elixir.eval to_charlist(string), binding, opts
+    {value, binding, _env, _scope} = :elixir.eval(to_charlist(string), binding, opts)
     {value, binding}
   end
 
@@ -369,21 +369,21 @@ defmodule Code do
   def eval_quoted(quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(quoted, binding, %Macro.Env{} = env) do
-    {value, binding, _env, _scope} = :elixir.eval_quoted quoted, binding, Map.to_list(env)
+    {value, binding, _env, _scope} = :elixir.eval_quoted(quoted, binding, Map.to_list(env))
     {value, binding}
   end
 
   def eval_quoted(quoted, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    {value, binding, _env, _scope} = :elixir.eval_quoted quoted, binding, opts
+    {value, binding, _env, _scope} = :elixir.eval_quoted(quoted, binding, opts)
     {value, binding}
   end
 
   defp validate_eval_opts(opts) do
     if f = opts[:functions], do: validate_imports(:functions, f)
-    if m = opts[:macros],    do: validate_imports(:macros, m)
-    if a = opts[:aliases],   do: validate_aliases(:aliases, a)
-    if r = opts[:requires],  do: validate_requires(:requires, r)
+    if m = opts[:macros], do: validate_imports(:macros, m)
+    if a = opts[:aliases], do: validate_aliases(:aliases, a)
+    if r = opts[:requires], do: validate_requires(:requires, r)
   end
 
   defp validate_requires(kind, requires) do
@@ -395,24 +395,31 @@ defmodule Code do
   end
 
   defp validate_aliases(kind, aliases) do
-    valid = is_list(aliases) and Enum.all?(aliases, fn {k, v} ->
-      is_atom(k) and is_atom(v)
-    end)
+    valid =
+      is_list(aliases) and
+        Enum.all?(aliases, fn {k, v} ->
+          is_atom(k) and is_atom(v)
+        end)
 
     unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{module, module}]"
+      raise ArgumentError,
+            "expected :#{kind} option given to eval in the format: [{module, module}]"
     end
   end
 
   defp validate_imports(kind, imports) do
-    valid = is_list(imports) and Enum.all?(imports, fn {k, v} ->
-      is_atom(k) and is_list(v) and Enum.all?(v, fn {name, arity} ->
-        is_atom(name) and is_integer(arity)
-      end)
-    end)
+    valid =
+      is_list(imports) and
+        Enum.all?(imports, fn {k, v} ->
+          is_atom(k) and is_list(v) and
+            Enum.all?(v, fn {name, arity} ->
+              is_atom(name) and is_integer(arity)
+            end)
+        end)
 
     unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{module, [{name, arity}]}]"
+      raise ArgumentError,
+            "expected :#{kind} option given to eval in the format: [{module, [{name, arity}]}]"
     end
   end
 
@@ -439,8 +446,9 @@ defmodule Code do
   representation.
   """
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
-    file = Keyword.get opts, :file, "nofile"
-    line = Keyword.get opts, :line, 1
+    file = Keyword.get(opts, :file, "nofile")
+    line = Keyword.get(opts, :line, 1)
+
     with {:ok, tokens} <- :elixir.string_to_tokens(to_charlist(string), line, file, opts) do
       :elixir.tokens_to_quoted(tokens, file, opts)
     end
@@ -457,8 +465,8 @@ defmodule Code do
   Check `string_to_quoted/2` for options information.
   """
   def string_to_quoted!(string, opts \\ []) when is_list(opts) do
-    file = Keyword.get opts, :file, "nofile"
-    line = Keyword.get opts, :line, 1
+    file = Keyword.get(opts, :file, "nofile")
+    line = Keyword.get(opts, :line, 1)
     :elixir.string_to_quoted!(to_charlist(string), line, file, opts)
   end
 
@@ -473,7 +481,7 @@ defmodule Code do
   """
   def eval_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
-    eval_string File.read!(file), [], [file: file, line: 1]
+    eval_string(File.read!(file), [], file: file, line: 1)
   end
 
   @doc """
@@ -497,9 +505,9 @@ defmodule Code do
   """
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
-    :elixir_code_server.call {:acquire, file}
-    loaded = :elixir_compiler.file file
-    :elixir_code_server.cast {:loaded, file}
+    :elixir_code_server.call({:acquire, file})
+    loaded = :elixir_compiler.file(file)
+    :elixir_code_server.cast({:loaded, file})
     loaded
   end
 
@@ -535,13 +543,17 @@ defmodule Code do
     file = find_file(file, relative_to)
 
     case :elixir_code_server.call({:acquire, file}) do
-      :loaded  ->
+      :loaded ->
         nil
-      {:queued, ref}  ->
-        receive do {:elixir_code_server, ^ref, :loaded} -> nil end
+
+      {:queued, ref} ->
+        receive do
+          {:elixir_code_server, ^ref, :loaded} -> nil
+        end
+
       :proceed ->
-        loaded = :elixir_compiler.file file
-        :elixir_code_server.cast {:loaded, file}
+        loaded = :elixir_compiler.file(file)
+        :elixir_code_server.cast({:loaded, file})
         loaded
     end
   end
@@ -559,7 +571,7 @@ defmodule Code do
 
   """
   def compiler_options do
-    :elixir_config.get :compiler_options
+    :elixir_config.get(:compiler_options)
   end
 
   @doc """
@@ -613,18 +625,20 @@ defmodule Code do
   def compiler_options(opts) do
     available = available_compiler_options()
 
-    Enum.each(opts, fn({key, value}) ->
+    Enum.each(opts, fn {key, value} ->
       cond do
         key not in available ->
           raise "unknown compiler option: #{inspect(key)}"
+
         not is_boolean(value) ->
           raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
+
         true ->
           :ok
       end
     end)
 
-    :elixir_config.update :compiler_options, &Enum.into(opts, &1)
+    :elixir_config.update(:compiler_options, &Enum.into(opts, &1))
   end
 
   @doc """
@@ -638,7 +652,7 @@ defmodule Code do
   For compiling many files at once, check `Kernel.ParallelCompiler.compile/2`.
   """
   def compile_string(string, file \\ "nofile") when is_binary(file) do
-    :elixir_compiler.string to_charlist(string), file
+    :elixir_compiler.string(to_charlist(string), file)
   end
 
   @doc """
@@ -650,7 +664,7 @@ defmodule Code do
   and errors.
   """
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
-    :elixir_compiler.quoted quoted, file
+    :elixir_compiler.quoted(quoted, file)
   end
 
   @doc """
@@ -706,7 +720,7 @@ defmodule Code do
 
   """
   @spec ensure_loaded(module) ::
-        {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
+          {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
   end
@@ -742,17 +756,19 @@ defmodule Code do
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
   @spec ensure_compiled(module) ::
-        {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
+          {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
         if is_pid(:erlang.get(:elixir_compiler_pid)) and
-           Kernel.ErrorHandler.ensure_compiled(module, :module) do
+             Kernel.ErrorHandler.ensure_compiled(module, :module) do
           {:module, module}
         else
           error
         end
-      other -> other
+
+      other ->
+        other
     end
   end
 
@@ -815,7 +831,8 @@ defmodule Code do
       {_module, bin, _beam_path} ->
         do_get_docs(bin, kind)
 
-      :error -> nil
+      :error ->
+        nil
     end
   end
 
@@ -830,19 +847,18 @@ defmodule Code do
       {:ok, {_module, [{@docs_chunk, bin}]}} ->
         lookup_docs(:erlang.binary_to_term(bin), kind)
 
-      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} -> nil
+      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
+        nil
     end
   end
 
-  defp lookup_docs({:elixir_docs_v1, docs}, kind),
-    do: do_lookup_docs(docs, kind)
+  defp lookup_docs({:elixir_docs_v1, docs}, kind), do: do_lookup_docs(docs, kind)
 
   # unsupported chunk version
   defp lookup_docs(_, _), do: nil
 
   defp do_lookup_docs(docs, :all), do: docs
-  defp do_lookup_docs(docs, kind),
-    do: Keyword.get(docs, kind)
+  defp do_lookup_docs(docs, kind), do: Keyword.get(docs, kind)
 
   ## Helpers
 
@@ -850,11 +866,12 @@ defmodule Code do
   #
   # If the file is found, returns its path in binary, fails otherwise.
   defp find_file(file, relative_to) do
-    file = if relative_to do
-      Path.expand(file, relative_to)
-    else
-      Path.expand(file)
-    end
+    file =
+      if relative_to do
+        Path.expand(file, relative_to)
+      else
+        Path.expand(file)
+      end
 
     if File.regular?(file) do
       file
