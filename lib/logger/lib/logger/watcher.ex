@@ -22,6 +22,7 @@ defmodule Logger.Watcher do
       {:error, :module_not_found} ->
         res = :gen_event.add_sup_handler(mod, handler, args)
         do_init(res, mod, handler)
+
       _ ->
         init({mod, handler, args})
     end
@@ -31,13 +32,15 @@ defmodule Logger.Watcher do
     case res do
       :ok ->
         {:ok, {mod, handler}}
+
       {:error, :ignore} ->
         # Can't return :ignore as a transient child under a one_for_one.
         # Instead return ok and then immediately exit normally - using a fake
         # message.
         send(self(), {:gen_event_EXIT, handler, :normal})
         {:ok, {mod, handler}}
-      {:error, reason}  ->
+
+      {:error, reason} ->
         {:stop, reason}
     end
   end
@@ -49,8 +52,17 @@ defmodule Logger.Watcher do
   end
 
   def handle_info({:gen_event_EXIT, handler, reason}, {mod, handler} = state) do
-    _ = Logger.error ":gen_event handler #{inspect handler} installed at #{inspect mod}\n" <>
-                 "** (exit) #{format_exit(reason)}"
+    message = [
+      ":gen_event handler ",
+      inspect(handler),
+      " installed at ",
+      inspect(mod),
+      ?\n,
+      "** (exit) ",
+      format_exit(reason)
+    ]
+
+    _ = Logger.error(message)
     {:stop, reason, state}
   end
 
