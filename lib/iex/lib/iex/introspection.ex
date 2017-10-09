@@ -383,7 +383,7 @@ defmodule IEx.Introspection do
     case get_callback_docs(mod) do
       {callbacks, docs} ->
         docs
-        |> Stream.filter(filter)
+        |> Enum.filter(filter)
         |> Enum.map(fn
           {{fun, arity}, _, :macrocallback, doc} ->
             print_callback_docs(fun, :macrocallback, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
