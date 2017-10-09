@@ -94,7 +94,7 @@ defmodule Logger.Backends.ConsoleTest do
       end)
 
     assert log =~ "file=#{file}"
-    assert log =~ "line=#{line + 3}"
+    assert log =~ "line=#{line + 4}"
     assert log =~ "module=#{inspect(mod)}"
     assert log =~ "function=#{name}/#{arity}"
     assert log =~ "dynamic_metadata=5 user_id=11"
