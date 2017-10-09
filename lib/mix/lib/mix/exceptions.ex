@@ -7,23 +7,27 @@ defmodule Mix.NoTaskError do
   end
 
   defp msg(task) do
-    msg = "The task #{inspect task} could not be found"
+    msg = "The task #{inspect(task)} could not be found"
+
     case did_you_mean(task) do
       {mod, ^task, _score} ->
-        msg <> " because the module is named #{inspect mod} instead of " <>
-               "#{expected_mod_name(task)} as expected. " <>
-               "Please rename it and try again"
+        msg <>
+          " because the module is named #{inspect(mod)} instead of " <>
+          "#{expected_mod_name(task)} as expected. " <> "Please rename it and try again"
 
       {_mod, similar, score} when score > 0.8 ->
-        msg <> ". Did you mean #{inspect similar}?"
+        msg <> ". Did you mean #{inspect(similar)}?"
 
-      _otherwise -> msg
+      _otherwise ->
+        msg
     end
   end
 
   defp did_you_mean(task) do
-    Mix.Task.load_all # Ensure all tasks are loaded
-    Mix.Task.all_modules
+    # Ensure all tasks are loaded
+    Mix.Task.load_all()
+
+    Mix.Task.all_modules()
     |> Enum.map(&{&1, Mix.Task.task_name(&1)})
     |> Enum.reduce({nil, nil, 0}, &max_similar(&1, task, &2))
   end
@@ -43,7 +47,7 @@ defmodule Mix.InvalidTaskError do
 
   def exception(opts) do
     task = opts[:task]
-    %Mix.InvalidTaskError{task: task, message: "The task #{inspect task} does not export run/1"}
+    %Mix.InvalidTaskError{task: task, message: "The task #{inspect(task)} does not export run/1"}
   end
 end
 
@@ -51,17 +55,22 @@ defmodule Mix.ElixirVersionError do
   defexception [:target, :expected, :actual, :message, mix: true]
 
   def exception(opts) do
-    target   = opts[:target]
-    actual   = opts[:actual]
+    target = opts[:target]
+    actual = opts[:actual]
     expected = opts[:expected]
-    message  = "You're trying to run #{inspect target} on Elixir v#{actual} but it " <>
-               "has declared in its mix.exs file it supports only Elixir #{expected}"
+
+    message =
+      "You're trying to run #{inspect(target)} on Elixir v#{actual} but it " <>
+        "has declared in its mix.exs file it supports only Elixir #{expected}"
+
     %Mix.ElixirVersionError{target: target, expected: expected, actual: actual, message: message}
   end
 end
 
 defmodule Mix.NoProjectError do
-  message = "Could not find a Mix.Project, please ensure you are running Mix in a directory with a mix.exs file"
+  message =
+    "Could not find a Mix.Project, please ensure you are running Mix in a directory with a mix.exs file"
+
   defexception message: message, mix: true
 end
 
