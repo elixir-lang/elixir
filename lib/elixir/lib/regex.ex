@@ -155,6 +155,7 @@ defmodule Regex do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
         {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: doc_opts}}
+
       error ->
         error
     end
@@ -185,6 +186,7 @@ defmodule Regex do
     case Map.get(regex, :re_version, :error) do
       ^version ->
         {:ok, regex}
+
       _ ->
         %{source: source, opts: opts} = regex
         compile(source, opts, version)
@@ -226,7 +228,7 @@ defmodule Regex do
       false
 
   """
-  @spec match?(t, String.t) :: boolean
+  @spec match?(t, String.t()) :: boolean
   def match?(%Regex{re_pattern: compiled}, string) when is_binary(string) do
     :re.run(string, compiled, [{:capture, :none}]) == :match
   end
@@ -275,12 +277,12 @@ defmodule Regex do
   def run(regex, string, options \\ [])
 
   def run(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
-    return   = Keyword.get(options, :return, :binary)
+    return = Keyword.get(options, :return, :binary)
     captures = Keyword.get(options, :capture, :all)
 
     case :re.run(string, compiled, [{:capture, captures, return}]) do
       :nomatch -> nil
-      :match   -> []
+      :match -> []
       {:match, results} -> results
     end
   end
@@ -302,7 +304,7 @@ defmodule Regex do
       nil
 
   """
-  @spec named_captures(t, String.t, [term]) :: map | nil
+  @spec named_captures(t, String.t(), [term]) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
@@ -327,7 +329,7 @@ defmodule Regex do
       "foo"
 
   """
-  @spec source(t) :: String.t
+  @spec source(t) :: String.t()
   def source(%Regex{source: source}) do
     source
   end
@@ -341,7 +343,7 @@ defmodule Regex do
       "m"
 
   """
-  @spec opts(t) :: String.t
+  @spec opts(t) :: String.t()
   def opts(%Regex{opts: opts}) do
     opts
   end
@@ -355,7 +357,7 @@ defmodule Regex do
       ["foo"]
 
   """
-  @spec names(t) :: [String.t]
+  @spec names(t) :: [String.t()]
   def names(%Regex{re_pattern: re_pattern}) do
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
@@ -389,13 +391,13 @@ defmodule Regex do
       [["$"], ["£"], ["€"]]
 
   """
-  @spec scan(t, String.t, [term]) :: [[String.t]]
+  @spec scan(t, String.t(), [term]) :: [[String.t()]]
   def scan(regex, string, options \\ [])
 
   def scan(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
-    return   = Keyword.get(options, :return, :binary)
+    return = Keyword.get(options, :return, :binary)
     captures = Keyword.get(options, :capture, :all)
-    options  = [{:capture, captures, return}, :global]
+    options = [{:capture, captures, return}, :global]
 
     case :re.run(string, compiled, options) do
       :match -> []
@@ -452,7 +454,7 @@ defmodule Regex do
       ["a", "b", "c"]
 
   """
-  @spec split(t, String.t, [term]) :: [String.t]
+  @spec split(t, String.t(), [term]) :: [String.t()]
   def split(regex, string, options \\ [])
 
   def split(%Regex{}, "", opts) do
@@ -465,24 +467,29 @@ defmodule Regex do
 
   def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) and is_list(opts) do
     on = Keyword.get(opts, :on, :first)
+
     case :re.run(string, compiled, [:global, capture: on]) do
       {:match, matches} ->
-        do_split(matches, string, 0,
-                 parts_to_index(Keyword.get(opts, :parts, :infinity)),
-                 Keyword.get(opts, :trim, false),
-                 Keyword.get(opts, :include_captures, false))
+        index = parts_to_index(Keyword.get(opts, :parts, :infinity))
+        trim = Keyword.get(opts, :trim, false)
+        include_captures = Keyword.get(opts, :include_captures, false)
+        do_split(matches, string, 0, index, trim, include_captures)
+
       :match ->
         [string]
+
       :nomatch ->
         [string]
     end
   end
 
-  defp parts_to_index(:infinity),                      do: 0
+  defp parts_to_index(:infinity), do: 0
   defp parts_to_index(n) when is_integer(n) and n > 0, do: n
 
-  defp do_split(_, string, offset, _counter, true, _with_captures) when byte_size(string) <= offset,
-    do: []
+  defp do_split(_, string, offset, _counter, true, _with_captures)
+       when byte_size(string) <= offset do
+    []
+  end
 
   defp do_split(_, string, offset, 1, _trim, _with_captures),
     do: [binary_part(string, offset, byte_size(string) - offset)]
@@ -490,8 +497,10 @@ defmodule Regex do
   defp do_split([], string, offset, _counter, _trim, _with_captures),
     do: [binary_part(string, offset, byte_size(string) - offset)]
 
-  defp do_split([[{pos, _} | h] | t], string, offset, counter, trim, with_captures) when pos - offset < 0,
-    do: do_split([h | t], string, offset, counter, trim, with_captures)
+  defp do_split([[{pos, _} | h] | t], string, offset, counter, trim, with_captures)
+       when pos - offset < 0 do
+    do_split([h | t], string, offset, counter, trim, with_captures)
+  end
 
   defp do_split([[] | t], string, offset, counter, trim, with_captures),
     do: do_split(t, string, offset, counter, trim, with_captures)
@@ -503,7 +512,8 @@ defmodule Regex do
     if keep == 0 and length == 0 do
       do_split([h | t], string, new_offset, counter, trim, true)
     else
-      <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> = string
+      <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> =
+        string
 
       if keep == 0 and (length == 0 or trim) do
         [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
@@ -570,7 +580,7 @@ defmodule Regex do
       "Abcadc"
 
   """
-  @spec replace(t, String.t, String.t | (... -> String.t), [term]) :: String.t
+  @spec replace(t, String.t(), String.t() | (... -> String.t()), [term]) :: String.t()
   def replace(regex, string, replacement, options \\ [])
 
   def replace(regex, string, replacement, options)
@@ -579,7 +589,7 @@ defmodule Regex do
   end
 
   def replace(regex, string, replacement, options)
-      when is_binary(string) and is_function(replacement) and is_list(options)  do
+      when is_binary(string) and is_function(replacement) and is_list(options) do
     {:arity, arity} = :erlang.fun_info(replacement, :arity)
     do_replace(regex, string, {replacement, arity}, options)
   end
@@ -591,15 +601,16 @@ defmodule Regex do
     case :re.run(string, compiled, opts) do
       :nomatch ->
         string
+
       {:match, [mlist | t]} when is_list(mlist) ->
-        apply_list(string, replacement, [mlist | t]) |> IO.iodata_to_binary
+        apply_list(string, replacement, [mlist | t]) |> IO.iodata_to_binary()
+
       {:match, slist} ->
-        apply_list(string, replacement, [slist]) |> IO.iodata_to_binary
+        apply_list(string, replacement, [slist]) |> IO.iodata_to_binary()
     end
   end
 
-  defp precompile_replacement(""),
-    do: []
+  defp precompile_replacement(""), do: []
 
   defp precompile_replacement(<<?\\, ?g, ?{, rest::binary>>) when byte_size(rest) > 0 do
     {ns, <<?}, rest::binary>>} = pick_int(rest)
@@ -619,6 +630,7 @@ defmodule Regex do
     case precompile_replacement(rest) do
       [head | t] when is_binary(head) ->
         [<<x, head::binary>> | t]
+
       other ->
         [<<x>> | other]
     end
@@ -672,8 +684,10 @@ defmodule Regex do
       cond do
         is_binary(part) ->
           part
+
         part >= tuple_size(indexes) ->
           ""
+
         true ->
           get_index(string, elem(indexes, part))
       end
@@ -713,11 +727,11 @@ defmodule Regex do
       "\\\\what\\ if"
 
   """
-  @spec escape(String.t) :: String.t
+  @spec escape(String.t()) :: String.t()
   def escape(string) when is_binary(string) do
     string
     |> escape(_length = 0, string)
-    |> IO.iodata_to_binary
+    |> IO.iodata_to_binary()
   end
 
   @escapable '.^$*+?()[]{}|#-\\\t\n\v\f\r\s'
@@ -752,7 +766,7 @@ defmodule Regex do
   def unescape_map(?t), do: ?\t
   def unescape_map(?v), do: ?\v
   def unescape_map(?a), do: ?\a
-  def unescape_map(_),  do: false
+  def unescape_map(_), do: false
 
   # Private Helpers
 
@@ -761,12 +775,15 @@ defmodule Regex do
   defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended | acc])
   defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline | acc])
   defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy | acc])
-  defp translate_options(<<?s, t::binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
+
+  defp translate_options(<<?s, t::binary>>, acc),
+    do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
+
   defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline | acc])
 
   # TODO: Remove on 2.0
   defp translate_options(<<?r, t::binary>>, acc) do
-    IO.warn "the /r modifier in regular expressions is deprecated, please use /U instead"
+    IO.warn("the /r modifier in regular expressions is deprecated, please use /U instead")
     translate_options(t, [:ungreedy | acc])
   end
 
