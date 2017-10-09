@@ -9,20 +9,20 @@ defmodule Mix.RemoteConverger do
   Returns `true` if given dependency is handled by
   remote converger.
   """
-  @callback remote?(Mix.Dep.t) :: boolean
+  @callback remote?(Mix.Dep.t()) :: boolean
 
   @doc """
   Runs the remote converger.
 
   Return updated lock.
   """
-  @callback converge([Mix.Dep.t], map) :: map
+  @callback converge([Mix.Dep.t()], map) :: map
 
   @doc """
   Returns child dependencies the converger has for the
   dependency. This list should filter the loaded children.
   """
-  @callback deps(Mix.Dep.t, map) :: [atom]
+  @callback deps(Mix.Dep.t(), map) :: [atom]
 
   @doc """
   Called after all convergers have run so that the remote
