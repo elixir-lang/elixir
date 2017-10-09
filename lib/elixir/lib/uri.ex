@@ -7,20 +7,25 @@ defmodule URI do
   according to [RFC 3986](https://tools.ietf.org/html/rfc3986).
   """
 
-  defstruct scheme: nil, path: nil, query: nil,
-            fragment: nil, authority: nil,
-            userinfo: nil, host: nil, port: nil
+  defstruct scheme: nil,
+            path: nil,
+            query: nil,
+            fragment: nil,
+            authority: nil,
+            userinfo: nil,
+            host: nil,
+            port: nil
 
   @type t :: %__MODULE__{
-    scheme: nil | binary,
-    path: nil | binary,
-    query: nil | binary,
-    fragment: nil | binary,
-    authority: nil | binary,
-    userinfo: nil | binary,
-    host: nil | binary,
-    port: nil | :inet.port_number,
-  }
+          scheme: nil | binary,
+          path: nil | binary,
+          query: nil | binary,
+          fragment: nil | binary,
+          authority: nil | binary,
+          userinfo: nil | binary,
+          host: nil | binary,
+          port: nil | :inet.port_number()
+        }
 
   import Bitwise
 
@@ -93,16 +98,15 @@ defmodule URI do
   end
 
   defp encode_kv_pair({key, _}) when is_list(key) do
-    raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect key}"
+    raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect(key)}"
   end
 
   defp encode_kv_pair({_, value}) when is_list(value) do
-    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect value}"
+    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect(value)}"
   end
 
   defp encode_kv_pair({key, value}) do
-    encode_www_form(Kernel.to_string(key)) <>
-      "=" <> encode_www_form(Kernel.to_string(value))
+    encode_www_form(Kernel.to_string(key)) <> "=" <> encode_www_form(Kernel.to_string(value))
   end
 
   @doc """
@@ -129,7 +133,7 @@ defmodule URI do
 
   # TODO: Remove on 2.0
   def decode_query(query, %_{} = dict) when is_binary(query) do
-    IO.warn "URI.decode_query/2 is deprecated, please use URI.decode_query/1"
+    IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
     decode_query_into_dict(query, dict)
   end
 
@@ -139,7 +143,7 @@ defmodule URI do
 
   # TODO: Remove on 2.0
   def decode_query(query, dict) when is_binary(query) do
-    IO.warn "URI.decode_query/2 is deprecated, please use URI.decode_query/1"
+    IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
     decode_query_into_dict(query, dict)
   end
 
@@ -147,6 +151,7 @@ defmodule URI do
     case decode_next_query_pair(query) do
       nil ->
         map
+
       {{key, value}, rest} ->
         decode_query_into_map(rest, Map.put(map, key, value))
     end
@@ -156,6 +161,7 @@ defmodule URI do
     case decode_next_query_pair(query) do
       nil ->
         dict
+
       {{key, value}, rest} ->
         # Avoid warnings about Dict being deprecated
         dict_module = Dict
@@ -175,7 +181,7 @@ defmodule URI do
       [{"foo", "1"}, {"bar", "2"}]
 
   """
-  @spec query_decoder(binary) :: Enumerable.t
+  @spec query_decoder(binary) :: Enumerable.t()
   def query_decoder(query) when is_binary(query) do
     Stream.unfold(query, &decode_next_query_pair/1)
   end
@@ -188,13 +194,13 @@ defmodule URI do
     {undecoded_next_pair, rest} =
       case :binary.split(query, "&") do
         [next_pair, rest] -> {next_pair, rest}
-        [next_pair]       -> {next_pair, ""}
+        [next_pair] -> {next_pair, ""}
       end
 
     next_pair =
       case :binary.split(undecoded_next_pair, "=") do
         [key, value] -> {decode_www_form(key), decode_www_form(value)}
-        [key]        -> {decode_www_form(key), nil}
+        [key] -> {decode_www_form(key), nil}
       end
 
     {next_pair, rest}
@@ -231,10 +237,7 @@ defmodule URI do
   """
   @spec char_unreserved?(char) :: boolean
   def char_unreserved?(char) when char in 0..0x10FFFF do
-    char in ?0..?9 or
-      char in ?a..?z or
-      char in ?A..?Z or
-      char in '~_-.'
+    char in ?0..?9 or char in ?a..?z or char in ?A..?Z or char in '~_-.'
   end
 
   @doc """
@@ -328,7 +331,7 @@ defmodule URI do
     unpercent(uri, "", false)
   catch
     :malformed_uri ->
-      raise ArgumentError, "malformed URI #{inspect uri}"
+      raise ArgumentError, "malformed URI #{inspect(uri)}"
   end
 
   @doc """
@@ -345,7 +348,7 @@ defmodule URI do
     unpercent(string, "", true)
   catch
     :malformed_uri ->
-      raise ArgumentError, "malformed URI #{inspect string}"
+      raise ArgumentError, "malformed URI #{inspect(string)}"
   end
 
   defp unpercent(<<?+, tail::binary>>, acc, spaces = true) do
@@ -355,11 +358,13 @@ defmodule URI do
   defp unpercent(<<?%, hex1, hex2, tail::binary>>, acc, spaces) do
     unpercent(tail, <<acc::binary, bsl(hex_to_dec(hex1), 4) + hex_to_dec(hex2)>>, spaces)
   end
+
   defp unpercent(<<?%, _::binary>>, _acc, _spaces), do: throw(:malformed_uri)
 
   defp unpercent(<<head, tail::binary>>, acc, spaces) do
     unpercent(tail, <<acc::binary, head>>, spaces)
   end
+
   defp unpercent(<<>>, acc, _spaces), do: acc
 
   defp hex_to_dec(n) when n in ?A..?F, do: n - ?A + 10
@@ -410,7 +415,11 @@ defmodule URI do
 
   def parse(string) when is_binary(string) do
     # From https://tools.ietf.org/html/rfc3986#appendix-B
-    regex = Regex.recompile!(~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i)
+    regex =
+      Regex.recompile!(
+        ~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i
+      )
+
     parts = Regex.run(regex, string)
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
@@ -421,12 +430,17 @@ defmodule URI do
     {userinfo, host, port} = split_authority(authority)
 
     scheme = scheme && String.downcase(scheme)
-    port   = port || (scheme && default_port(scheme))
+    port = port || (scheme && default_port(scheme))
 
     %URI{
-      scheme: scheme, path: path, query: query,
-      fragment: fragment, authority: authority,
-      userinfo: userinfo, host: host, port: port
+      scheme: scheme,
+      path: path,
+      query: query,
+      fragment: fragment,
+      authority: authority,
+      userinfo: userinfo,
+      host: host,
+      port: port
     }
   end
 
@@ -482,29 +496,34 @@ defmodule URI do
   def merge(%URI{authority: nil}, _rel) do
     raise ArgumentError, "you must merge onto an absolute URI"
   end
+
   def merge(_base, %URI{scheme: rel_scheme} = rel) when rel_scheme != nil do
     %{rel | path: remove_dot_segments_from_path(rel.path)}
   end
+
   def merge(base, %URI{authority: authority} = rel) when authority != nil do
     %{rel | scheme: base.scheme, path: remove_dot_segments_from_path(rel.path)}
   end
+
   def merge(%URI{} = base, %URI{path: rel_path} = rel) when rel_path in ["", nil] do
     %{base | query: rel.query || base.query, fragment: rel.fragment}
   end
+
   def merge(%URI{} = base, %URI{} = rel) do
     new_path = merge_paths(base.path, rel.path)
     %{base | path: new_path, query: rel.query, fragment: rel.fragment}
   end
+
   def merge(base, rel) do
     merge(parse(base), parse(rel))
   end
 
-  defp merge_paths(nil, rel_path),
-    do: merge_paths("/", rel_path)
-  defp merge_paths(_, "/" <> _ = rel_path),
-    do: remove_dot_segments_from_path(rel_path)
+  defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
+  defp merge_paths(_, "/" <> _ = rel_path), do: remove_dot_segments_from_path(rel_path)
+
   defp merge_paths(base_path, rel_path) do
     [_ | base_segments] = path_to_segments(base_path)
+
     path_to_segments(rel_path)
     |> Kernel.++(base_segments)
     |> remove_dot_segments([])
@@ -522,63 +541,62 @@ defmodule URI do
     |> Enum.join("/")
   end
 
-  defp remove_dot_segments([], [head, ".." | acc]),
-    do: remove_dot_segments([], [head | acc])
-  defp remove_dot_segments([], acc),
-    do: acc
-  defp remove_dot_segments(["." | tail], acc),
-    do: remove_dot_segments(tail, acc)
+  defp remove_dot_segments([], [head, ".." | acc]), do: remove_dot_segments([], [head | acc])
+  defp remove_dot_segments([], acc), do: acc
+  defp remove_dot_segments(["." | tail], acc), do: remove_dot_segments(tail, acc)
+
   defp remove_dot_segments([head | tail], ["..", ".." | _] = acc),
     do: remove_dot_segments(tail, [head | acc])
-  defp remove_dot_segments(segments, [_, ".." | acc]),
-    do: remove_dot_segments(segments, acc)
-  defp remove_dot_segments([head | tail], acc),
-    do: remove_dot_segments(tail, [head | acc])
+
+  defp remove_dot_segments(segments, [_, ".." | acc]), do: remove_dot_segments(segments, acc)
+  defp remove_dot_segments([head | tail], acc), do: remove_dot_segments(tail, [head | acc])
 
   defp path_to_segments(path) do
     [head | tail] = String.split(path, "/")
     reverse_and_discard_empty(tail, [head])
   end
 
-  defp reverse_and_discard_empty([], acc),
-    do: acc
-  defp reverse_and_discard_empty([head], acc),
-    do: [head | acc]
-  defp reverse_and_discard_empty(["" | tail], acc),
-    do: reverse_and_discard_empty(tail, acc)
+  defp reverse_and_discard_empty([], acc), do: acc
+  defp reverse_and_discard_empty([head], acc), do: [head | acc]
+  defp reverse_and_discard_empty(["" | tail], acc), do: reverse_and_discard_empty(tail, acc)
+
   defp reverse_and_discard_empty([head | tail], acc),
     do: reverse_and_discard_empty(tail, [head | acc])
 end
 
 defimpl String.Chars, for: URI do
-  def to_string(%{scheme: scheme, port: port, path: path,
-                  query: query, fragment: fragment} = uri) do
+  def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do
     uri =
       case scheme && URI.default_port(scheme) do
         ^port -> %{uri | port: nil}
-        _     -> uri
+        _ -> uri
       end
 
     # Based on https://tools.ietf.org/html/rfc3986#section-5.3
     authority = extract_authority(uri)
 
-    if(scheme, do: scheme <> ":", else: "") <>
-      if(authority, do: "//" <> authority, else: "") <>
-      if(path, do: path, else: "") <>
-      if(query, do: "?" <> query, else: "") <>
-      if(fragment, do: "#" <> fragment, else: "")
+    IO.iodata_to_binary([
+      if(scheme, do: [scheme, ?:], else: []),
+      if(authority, do: ["//" | authority], else: []),
+      if(path, do: path, else: []),
+      if(query, do: ["?" | query], else: []),
+      if(fragment, do: ["#" | fragment], else: [])
+    ])
   end
 
   defp extract_authority(%{host: nil, authority: authority}) do
     authority
   end
+
   defp extract_authority(%{host: host, userinfo: userinfo, port: port}) do
     # According to the grammar at
     # https://tools.ietf.org/html/rfc3986#appendix-A, a "host" can have a colon
     # in it only if it's an IPv6 or "IPvFuture" address, so if there's a colon
     # in the host we can safely surround it with [].
-    if(userinfo, do: userinfo <> "@", else: "") <>
-      if(String.contains?(host, ":"), do: "[" <> host <> "]", else: host) <>
-      if(port, do: ":" <> Integer.to_string(port), else: "")
+    [
+      if(userinfo, do: [userinfo | "@"], else: []),
+      if(String.contains?(host, ":"), do: ["[", host | "]"], else: host),
+      if(port, do: [":" | Integer.to_string(port)], else: [])
+    ]
   end
 end
