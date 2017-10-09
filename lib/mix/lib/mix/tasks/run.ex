@@ -51,11 +51,25 @@ defmodule Mix.Tasks.Run do
   """
 
   def run(args) do
-    {opts, head} = OptionParser.parse_head!(args,
-      aliases: [r: :require, p: :parallel, e: :eval, c: :config],
-      strict: [parallel: :boolean, require: :keep, eval: :keep, config: :keep, mix_exs: :boolean,
-               halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean,
-               archives_check: :boolean, elixir_version_check: :boolean, parallel_require: :keep])
+    {opts, head} =
+      OptionParser.parse_head!(
+        args,
+        aliases: [r: :require, p: :parallel, e: :eval, c: :config],
+        strict: [
+          parallel: :boolean,
+          require: :keep,
+          eval: :keep,
+          config: :keep,
+          mix_exs: :boolean,
+          halt: :boolean,
+          compile: :boolean,
+          deps_check: :boolean,
+          start: :boolean,
+          archives_check: :boolean,
+          elixir_version_check: :boolean,
+          parallel_require: :keep
+        ]
+      )
 
     run(args, opts, head, &Code.eval_string/1, &Code.require_file/1)
     unless Keyword.get(opts, :halt, true), do: Process.sleep(:infinity)
@@ -63,16 +77,25 @@ defmodule Mix.Tasks.Run do
   end
 
   @doc false
-  @spec run(OptionParser.argv, keyword, OptionParser.argv,
-            (String.t -> term()), (String.t -> term())) :: :ok
+  @spec run(
+          OptionParser.argv(),
+          keyword,
+          OptionParser.argv(),
+          (String.t() -> term()),
+          (String.t() -> term())
+        ) :: :ok
   def run(args, opts, head, expr_evaluator, file_evaluator) do
     # TODO: Remove on v2.0
     opts =
       Enum.flat_map(opts, fn
         {:parallel_require, value} ->
-          IO.warn "the --parallel-require option is deprecated in favour of using " <>
-            "--parallel to make all requires parallel and --require VAL for requiring"
+          IO.warn(
+            "the --parallel-require option is deprecated in favour of using " <>
+              "--parallel to make all requires parallel and --require VAL for requiring"
+          )
+
           [require: value, parallel: true]
+
         opt ->
           [opt]
       end)
@@ -90,14 +113,18 @@ defmodule Mix.Tasks.Run do
     # Start app after rewriting System.argv,
     # but before requiring and evaling.
     cond do
-      Mix.Project.get ->
-        Mix.Task.run "app.start", args
+      Mix.Project.get() ->
+        Mix.Task.run("app.start", args)
+
       "--no-mix-exs" in args ->
         :ok
+
       true ->
-        Mix.raise "Cannot execute \"mix run\" without a Mix.Project, " <>
-                  "please ensure you are running Mix in a directory with a mix.exs file " <>
-                  "or pass the --no-mix-exs flag"
+        Mix.raise(
+          "Cannot execute \"mix run\" without a Mix.Project, " <>
+            "please ensure you are running Mix in a directory with a mix.exs file " <>
+            "or pass the --no-mix-exs flag"
+        )
     end
 
     process_load(opts, expr_evaluator)
@@ -106,7 +133,7 @@ defmodule Mix.Tasks.Run do
       if File.regular?(file) do
         file_evaluator.(file)
       else
-        Mix.raise "No such file: #{file}"
+        Mix.raise("No such file: #{file}")
       end
     end
 
@@ -114,12 +141,13 @@ defmodule Mix.Tasks.Run do
   end
 
   defp process_config(opts) do
-    Enum.each opts, fn
+    Enum.each(opts, fn
       {:config, value} ->
-        Mix.Task.run "loadconfig", [value]
+        Mix.Task.run("loadconfig", [value])
+
       _ ->
         :ok
-    end
+    end)
   end
 
   defp process_load(opts, expr_evaluator) do
@@ -135,19 +163,22 @@ defmodule Mix.Tasks.Run do
         fn files -> Enum.each(files, &Code.require_file/1) end
       end
 
-    Enum.each opts, fn
+    Enum.each(opts, fn
       {:require, value} ->
         case filter_patterns(value) do
           [] ->
-            Mix.raise "No files matched pattern #{inspect value} given to --require"
+            Mix.raise("No files matched pattern #{inspect(value)} given to --require")
+
           filtered ->
             require_runner.(filtered)
         end
+
       {:eval, value} ->
         expr_evaluator.(value)
+
       _ ->
         :ok
-    end
+    end)
   end
 
   defp filter_patterns(pattern) do
