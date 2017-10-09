@@ -170,7 +170,7 @@ defmodule IEx.Autocomplete do
     variables = expand_variable(hint, server)
     imports = imports_from_env(server)
     module_funs = get_module_funs(Kernel.SpecialForms)
-    funs = match_module_funs(imports ++ funs, hint)
+    funs = match_module_funs(imports ++ module_funs, hint)
     format_expansion(variables ++ funs, hint)
   end
 
@@ -309,23 +309,24 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_module_funs(funs, hint) do
-    for({fun, arity} <- funs, name = Atom.to_string(fun), String.starts_with?(name, hint), do: %{
-      kind: :function,
-      name: name,
-      arity: arity
-    })
-    |> Enum.sort_by(&{&1.name, &1.arity})
+    for {fun, arity} <- funs,
+        name = Atom.to_string(fun),
+        String.starts_with?(name, hint),
+        do: %{
+              kind: :function,
+              name: name,
+              arity: arity
+            }
+            |> Enum.sort_by(&{&1.name, &1.arity})
   end
 
   defp match_map_fields(map, hint) do
-    for(
-      {key, value}
-      when is_atom(key) <- Map.to_list(map),
-      key = Atom.to_string(key),
-      String.starts_with?(key, hint),
-      do: %{kind: :map_key, name: key, value_is_map: is_map(value)}
-    )
-    |> Enum.sort_by(& &1.name)
+    for {key, value}
+        when is_atom(key) <- Map.to_list(map),
+        key = Atom.to_string(key),
+        String.starts_with?(key, hint),
+        do: %{kind: :map_key, name: key, value_is_map: is_map(value)}
+            |> Enum.sort_by(& &1.name)
   end
 
   defp get_module_funs(mod) do
