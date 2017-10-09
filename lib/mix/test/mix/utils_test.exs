@@ -5,7 +5,7 @@ end
 
 defmodule Mix.UtilsTest do
   use MixTest.Case
-  doctest(Mix.Utils)
+  doctest Mix.Utils
 
   test "command to module" do
     assert Mix.Utils.command_to_module("cheers", Mix.Tasks) == {:module, Mix.Tasks.Cheers}
@@ -48,29 +48,25 @@ defmodule Mix.UtilsTest do
   end
 
   test "symlink or copy" do
-    fun = fn ->
+    in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
       assert_ebin_symlinked_or_copied(result)
     end
-
-    in_fixture("archive", fun)
   end
 
   test "symlink or copy removes previous directories" do
-    fun(fn ->
+    in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive/ebin")
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
       assert_ebin_symlinked_or_copied(result)
-    end)
-
-    in_fixture("archive", fun)
+    end
   end
 
   @windows? match?({:win32, _}, :os.type())
   unless @windows? do
     test "symlink or copy erases wrong symlinks" do
-      fun = fn ->
+      in_fixture "archive", fn ->
         File.mkdir_p!("_build/archive")
         Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
 
@@ -79,8 +75,6 @@ defmodule Mix.UtilsTest do
 
         assert_ebin_symlinked_or_copied(result)
       end
-
-      in_fixture("archive", fun)
     end
   end
 
@@ -120,10 +114,10 @@ defmodule Mix.UtilsTest do
         assert actual_link == expected_link
 
       _ ->
-        message =
+        msg =
           "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect(result)}"
 
-        flunk(message)
+        flunk(msg)
     end
   end
 end
