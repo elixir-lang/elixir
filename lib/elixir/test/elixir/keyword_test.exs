@@ -3,7 +3,7 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule KeywordTest do
   use ExUnit.Case, async: true
 
-  doctest(Keyword)
+  doctest Keyword
 
   test "has a literal syntax" do
     assert [B: 1] == [{:B, 1}]
@@ -17,7 +17,7 @@ defmodule KeywordTest do
   end
 
   test "supports optional comma" do
-    [a: 1, b: 2, c: 3]
+    assert Code.eval_string("[a: 1, b: 2, c: 3,]") == {[a: 1, b: 2, c: 3], []}
   end
 
   test "implements (almost) all functions in Map" do
@@ -76,20 +76,19 @@ defmodule KeywordTest do
     end
 
     # duplicate keys in keywords1 are kept if key is not present in keywords2
-    assert Keyword.merge([a: 1, b: 2, a: 3], c: 11, d: 12) == [a: 1, b: 2, a: 3, c: 11, d: 12]
-    assert Keyword.merge([a: 1, b: 2, a: 3], a: 11) == [b: 2, a: 11]
+    result = [a: 1, b: 2, a: 3, c: 11, d: 12]
+    assert Keyword.merge([a: 1, b: 2, a: 3], c: 11, d: 12) == result
+
+    result = [b: 2, a: 11]
+    assert Keyword.merge([a: 1, b: 2, a: 3], a: 11) == result
 
     # duplicate keys in keywords2 are always kept
-    assert Keyword.merge([a: 1, b: 2], c: 11, c: 12, d: 13) == [a: 1, b: 2, c: 11, c: 12, d: 13]
+    result = [a: 1, b: 2, c: 11, c: 12, d: 13]
+    assert Keyword.merge([a: 1, b: 2], c: 11, c: 12, d: 13) == result
 
     # any key in keywords1 is removed if key is present in keyword2
-    assert Keyword.merge([a: 1, b: 2, c: 3, c: 4], c: 11, c: 12, d: 13) == [
-             a: 1,
-             b: 2,
-             c: 11,
-             c: 12,
-             d: 13
-           ]
+    result = [a: 1, b: 2, c: 11, c: 12, d: 13]
+    assert Keyword.merge([a: 1, b: 2, c: 3, c: 4], c: 11, c: 12, d: 13) == result
   end
 
   test "merge/3" do
@@ -130,33 +129,19 @@ defmodule KeywordTest do
     end
 
     # duplicate keys in keywords1 are left untouched if key is not present in keywords2
-    assert Keyword.merge([a: 1, b: 2, a: 3], [c: 11, d: 12], fun) == [
-             a: 1,
-             b: 2,
-             a: 3,
-             c: 11,
-             d: 12
-           ]
+    result = [a: 1, b: 2, a: 3, c: 11, d: 12]
+    assert Keyword.merge([a: 1, b: 2, a: 3], [c: 11, d: 12], fun) == result
 
-    assert Keyword.merge([a: 1, b: 2, a: 3], [a: 11], fun) == [b: 2, a: 12]
+    result = [b: 2, a: 12]
+    assert Keyword.merge([a: 1, b: 2, a: 3], [a: 11], fun) == result
 
     # duplicate keys in keywords2 are always kept
-    assert Keyword.merge([a: 1, b: 2], [c: 11, c: 12, d: 13], fun) == [
-             a: 1,
-             b: 2,
-             c: 11,
-             c: 12,
-             d: 13
-           ]
+    result = [a: 1, b: 2, c: 11, c: 12, d: 13]
+    assert Keyword.merge([a: 1, b: 2], [c: 11, c: 12, d: 13], fun) == result
 
     # every key in keywords1 is replaced with fun result if key is present in keyword2
-    assert Keyword.merge([a: 1, b: 2, c: 3, c: 4], [c: 11, c: 50, d: 13], fun) == [
-             a: 1,
-             b: 2,
-             c: 14,
-             c: 54,
-             d: 13
-           ]
+    result = [a: 1, b: 2, c: 14, c: 54, d: 13]
+    assert Keyword.merge([a: 1, b: 2, c: 3, c: 4], [c: 11, c: 50, d: 13], fun) == result
   end
 
   test "merge/2 and merge/3 behave exactly the same way" do
