@@ -212,20 +212,19 @@ defmodule Mix.Tasks.Compile.App do
       {:description, value} ->
         unless is_list(value) do
           Mix.raise(
-            "Application description (:description) is not a character list, got: #{
+            "Application description (:description) is not a character list, got: " <>
               inspect(value)
-            }"
           )
         end
 
       {:id, value} ->
         unless is_list(value) do
-          Mix.raise("Application id (:id) is not a character list, got: #{inspect(value)}")
+          Mix.raise("Application id (:id) is not a character list, got: " <> inspect(value))
         end
 
       {:vsn, value} ->
         unless is_list(value) do
-          Mix.raise("Application vsn (:vsn) is not a character list, got: #{inspect(value)}")
+          Mix.raise("Application vsn (:vsn) is not a character list, got: " <> inspect(value))
         end
 
       {:maxT, value} ->
@@ -239,7 +238,7 @@ defmodule Mix.Tasks.Compile.App do
       {:modules, value} ->
         unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
           Mix.raise(
-            "Application modules (:modules) should be a list of atoms, got: #{inspect(value)}"
+            "Application modules (:modules) should be a list of atoms, got: " <> inspect(value)
           )
         end
 
@@ -278,7 +277,7 @@ defmodule Mix.Tasks.Compile.App do
       {:env, value} ->
         unless Keyword.keyword?(value) do
           Mix.raise(
-            "Application environment (:env) should be a keyword list, got: #{inspect(value)}"
+            "Application environment (:env) should be a keyword list, got: " <> inspect(value)
           )
         end
 
@@ -316,7 +315,8 @@ defmodule Mix.Tasks.Compile.App do
         Keyword.get(opts, :app, true),
         Keyword.get(opts, :runtime, true),
         not Keyword.get(opts, :optional, false),
-        app not in included_applications, do: app
+        app not in included_applications,
+        do: app
   end
 
   defp normalize_apps(apps, properties, config) do

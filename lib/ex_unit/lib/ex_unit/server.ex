@@ -49,7 +49,7 @@ defmodule ExUnit.Server do
   end
 
   # Called once after all async modules have been sent and reverts the state.
-  def handle_call(:take_sync_modules, from, state) do
+  def handle_call(:take_sync_modules, _from, state) do
     %{waiting: nil, loaded: :done, async_modules: []} = state
     {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
   end
