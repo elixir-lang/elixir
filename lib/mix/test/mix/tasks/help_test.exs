@@ -18,7 +18,7 @@ defmodule Mix.Tasks.HelpTest do
     in_tmp context.test, fn ->
       Mix.Tasks.Help.run([])
 
-      {_, _, [output]} = assert_received {:mix_shell, :info, [_]}
+      assert_received {:mix_shell, :info, [output]}
       assert output =~ ~r/^mix\s+# Runs the default task \(current: \"mix run\"\)/m
     end
   end
@@ -90,8 +90,10 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "bad arguments" do
-    assert_raise Mix.Error,
-                 "Unexpected arguments, expected \"mix help\" or \"mix help TASK\"",
-                 fn -> Mix.Tasks.Help.run(["foo", "bar"]) end
+    message = "Unexpected arguments, expected \"mix help\" or \"mix help TASK\""
+
+    assert_raise Mix.Error, message, fn ->
+      Mix.Tasks.Help.run(["foo", "bar"])
+    end
   end
 end
