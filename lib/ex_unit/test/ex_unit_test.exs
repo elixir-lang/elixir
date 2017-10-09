@@ -34,7 +34,7 @@ defmodule ExUnitTest do
           exit(:foo)
         end)
 
-        receive(after: (1000 -> :ok))
+        receive after: (1000 -> :ok)
       end
     end
 
