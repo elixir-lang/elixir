@@ -563,8 +563,8 @@ defmodule Kernel.TypespecTest do
 
     assert [{{:my_fun, 0}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :integer, []}]}]},
             {{:my_fun, 1}, [
-               {:type, _, :fun, [{:type, _, :product, [{:type, _, :list, []}]}, {:type, _, :list, []}]},
-               {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}
+               {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]},
+               {:type, _, :fun, [{:type, _, :product, [{:type, _, :list, []}]}, {:type, _, :list, []}]}
              ]},
             {{:my_fun, 2}, [{:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}, {:type, _, :integer, []}]}, {:type, _, :tuple, [{:type, _, :integer, []}, {:type, _, :integer, []}]}]}]}] =
            callbacks(bytecode)
@@ -582,10 +582,11 @@ defmodule Kernel.TypespecTest do
            callbacks(bytecode)
 
     assert [{{:my_fun, 1}, [
+             {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]},
              {:type, _, :fun, [{:type, _, :product, [
                {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :charlist}, []]}]},
                {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :charlist}, []]}]},
-             {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}]}] =
+            ]}] =
            specs(bytecode)
   end
 
