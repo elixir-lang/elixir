@@ -389,7 +389,7 @@ defmodule Task do
       Enum.to_list(stream)
 
   """
-  @spec async_stream(Enumerable.t, module, atom, [term], keyword) :: Enumerable.t
+  @spec async_stream(Enumerable.t(), module, atom, [term], keyword) :: Enumerable.t()
   def async_stream(enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
     build_stream(enumerable, {module, function, args}, options)
@@ -414,7 +414,7 @@ defmodule Task do
 
   See `async_stream/5` for discussion, options, and more examples.
   """
-  @spec async_stream(Enumerable.t, (term -> term), keyword) :: Enumerable.t
+  @spec async_stream(Enumerable.t(), (term -> term), keyword) :: Enumerable.t()
   def async_stream(enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(enumerable, fun, options)
   end
@@ -484,6 +484,7 @@ defmodule Task do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
         reply
+
       {:DOWN, ^ref, _, proc, reason} ->
         exit({reason(reason, proc), {__MODULE__, :await, [task, timeout]}})
     after
@@ -497,17 +498,19 @@ defmodule Task do
   # TODO: Remove on 2.0
   # (hard-deprecated in elixir_dispatch)
   def find(tasks, {ref, reply}) when is_reference(ref) do
-    Enum.find_value tasks, fn
+    Enum.find_value(tasks, fn
       %Task{ref: ^ref} = task ->
         Process.demonitor(ref, [:flush])
         {reply, task}
+
       %Task{} ->
         nil
-    end
+    end)
   end
 
   def find(tasks, {:DOWN, ref, _, proc, reason} = msg) when is_reference(ref) do
     find = fn %Task{ref: task_ref} -> task_ref == ref end
+
     if Enum.find(tasks, find) do
       exit({reason(reason, proc), {__MODULE__, :find, [tasks, msg]}})
     end
@@ -557,7 +560,7 @@ defmodule Task do
   handle this case and return the result.
   """
   @spec yield(t, timeout) :: {:ok, term} | {:exit, term} | nil
-  def yield(task, timeout \\ 5_000)
+  def yield(task, timeout \\ 5000)
 
   def yield(%Task{owner: owner} = task, _) when owner != self() do
     raise ArgumentError, invalid_owner_error(task)
@@ -568,8 +571,10 @@ defmodule Task do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
         {:ok, reply}
+
       {:DOWN, ^ref, _, proc, :noconnection} ->
         exit({reason(:noconnection, proc), {__MODULE__, :yield, [task, timeout]}})
+
       {:DOWN, ^ref, _, _, reason} ->
         {:exit, reason}
     after
@@ -636,6 +641,7 @@ defmodule Task do
   def yield_many(tasks, timeout \\ 5000) do
     timeout_ref = make_ref()
     timer_ref = Process.send_after(self(), timeout_ref, timeout)
+
     try do
       yield_many(tasks, timeout_ref, :infinity)
     catch
@@ -665,11 +671,9 @@ defmodule Task do
 
       ^timeout_ref ->
         [{task, nil} | yield_many(rest, timeout_ref, 0)]
-
     after
       timeout ->
         [{task, nil} | yield_many(rest, timeout_ref, 0)]
-
     end
   end
 
@@ -701,10 +705,10 @@ defmodule Task do
   `{:exit, :noproc}` as the result or exit reason can not be determined.
   """
   @spec shutdown(t, timeout | :brutal_kill) :: {:ok, term} | {:exit, term} | nil
-  def shutdown(task, shutdown \\ 5_000)
+  def shutdown(task, shutdown \\ 5000)
 
   def shutdown(%Task{pid: nil} = task, _) do
-    raise ArgumentError, "task #{inspect task} does not have an associated task process"
+    raise ArgumentError, "task #{inspect(task)} does not have an associated task process"
   end
 
   def shutdown(%Task{owner: owner} = task, _) when owner != self() do
@@ -718,8 +722,10 @@ defmodule Task do
     case shutdown_receive(task, mon, :brutal_kill, :infinity) do
       {:down, proc, :noconnection} ->
         exit({reason(:noconnection, proc), {__MODULE__, :shutdown, [task, :brutal_kill]}})
+
       {:down, _, reason} ->
         {:exit, reason}
+
       result ->
         result
     end
@@ -728,11 +734,14 @@ defmodule Task do
   def shutdown(%Task{pid: pid} = task, timeout) do
     mon = Process.monitor(pid)
     exit(pid, :shutdown)
+
     case shutdown_receive(task, mon, :shutdown, timeout) do
       {:down, proc, :noconnection} ->
         exit({reason(:noconnection, proc), {__MODULE__, :shutdown, [task, timeout]}})
+
       {:down, _, reason} ->
         {:exit, reason}
+
       result ->
         result
     end
@@ -741,17 +750,17 @@ defmodule Task do
   ## Helpers
 
   defp reason(:noconnection, proc), do: {:nodedown, monitor_node(proc)}
-  defp reason(reason, _),           do: reason
+  defp reason(reason, _), do: reason
 
   defp monitor_node(pid) when is_pid(pid), do: node(pid)
-  defp monitor_node({_, node}),            do: node
+  defp monitor_node({_, node}), do: node
 
   # spawn a process to ensure task gets exit signal if process dies from exit signal
   # between unlink and exit.
   defp exit(task, reason) do
     caller = self()
     ref = make_ref()
-    enforcer = spawn(fn() -> enforce_exit(task, reason, caller, ref) end)
+    enforcer = spawn(fn -> enforce_exit(task, reason, caller, ref) end)
     Process.unlink(task)
     Process.exit(task, reason)
     send(enforcer, {:done, ref})
@@ -760,8 +769,9 @@ defmodule Task do
 
   defp enforce_exit(pid, reason, caller, ref) do
     mon = Process.monitor(caller)
+
     receive do
-      {:done, ^ref}          -> :ok
+      {:done, ^ref} -> :ok
       {:DOWN, ^mon, _, _, _} -> Process.exit(pid, reason)
     end
   end
@@ -771,12 +781,15 @@ defmodule Task do
       {:DOWN, ^mon, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
         Process.demonitor(ref, [:flush])
         flush_reply(ref)
+
       {:DOWN, ^mon, _, _, :killed} when type == :brutal_kill ->
         Process.demonitor(ref, [:flush])
         flush_reply(ref)
+
       {:DOWN, ^mon, _, proc, :noproc} ->
         reason = flush_noproc(ref, proc, type)
         flush_reply(ref) || reason
+
       {:DOWN, ^mon, _, proc, reason} ->
         Process.demonitor(ref, [:flush])
         flush_reply(ref) || {:down, proc, reason}
@@ -799,8 +812,10 @@ defmodule Task do
     receive do
       {:DOWN, ^ref, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
         nil
+
       {:DOWN, ^ref, _, _, :killed} when type == :brutal_kill ->
         nil
+
       {:DOWN, ^ref, _, _, reason} ->
         {:down, proc, reason}
     after
@@ -811,6 +826,6 @@ defmodule Task do
   end
 
   defp invalid_owner_error(task) do
-    "task #{inspect task} must be queried from the owner but was queried from #{inspect self()}"
+    "task #{inspect(task)} must be queried from the owner but was queried from #{inspect(self())}"
   end
 end
