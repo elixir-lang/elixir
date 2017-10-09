@@ -212,17 +212,10 @@ defmodule Dict do
   defmacrop target(dict) do
     quote do
       case unquote(dict) do
-        %module{} ->
-          module
-
-        %{} ->
-          Map
-
-        dict when is_list(dict) ->
-          Keyword
-
-        dict ->
-          unsupported_dict(dict)
+        %module{} -> module
+        %{} -> Map
+        dict when is_list(dict) -> Keyword
+        dict -> unsupported_dict(dict)
       end
     end
   end
