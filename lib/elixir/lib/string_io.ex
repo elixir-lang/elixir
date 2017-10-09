@@ -265,16 +265,12 @@ defmodule StringIO do
 
       {:split, count} ->
         {result, remainder} = :erlang.split_binary(input, count)
-
         {result, state_after_read(state, remainder, prompt, 1)}
 
       {:replace_split, count} ->
         {result, remainder} = :erlang.split_binary(input, count)
-
-        {
-          binary_part(result, 0, byte_size(result) - 2) <> "\n",
-          state_after_read(state, remainder, prompt, 1)
-        }
+        result = binary_part(result, 0, byte_size(result) - 2) <> "\n"
+        {result, state_after_read(state, remainder, prompt, 1)}
 
       :error ->
         {{:error, :collect_line}, state}
@@ -360,11 +356,8 @@ defmodule StringIO do
   end
 
   defp state_after_read(%{capture_prompt: true, output: output} = state, remainder, prompt, count) do
-    %{
-      state
-      | input: remainder,
-        output: <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>
-    }
+    output = <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>
+    %{state | input: remainder, output: output}
   end
 
   defp bytes_until_eol("", _, count), do: {:split, count}
