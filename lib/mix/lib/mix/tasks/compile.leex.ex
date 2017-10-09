@@ -44,22 +44,22 @@ defmodule Mix.Tasks.Compile.Leex do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    project = Mix.Project.config
+    project = Mix.Project.config()
 
     source_paths = project[:erlc_paths]
     Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
     mappings = Enum.zip(source_paths, source_paths)
 
     options = project[:leex_options] || []
+
     unless is_list(options) do
-      Mix.raise ":leex_options should be a list of options, got: #{inspect(options)}"
+      Mix.raise(":leex_options should be a list of options, got: #{inspect(options)}")
     end
 
-    Erlang.compile(manifest(), mappings, :xrl, :erl, opts, fn
-      input, output ->
-        Erlang.ensure_application!(:parsetools, input)
-        options = options ++ @forced_opts ++ [scannerfile: Erlang.to_erl_file(output)]
-        :leex.file(Erlang.to_erl_file(input), options)
+    Erlang.compile(manifest(), mappings, :xrl, :erl, opts, fn input, output ->
+      Erlang.ensure_application!(:parsetools, input)
+      options = options ++ @forced_opts ++ [scannerfile: Erlang.to_erl_file(output)]
+      :leex.file(Erlang.to_erl_file(input), options)
     end)
   end
 
@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Compile.Leex do
   Returns Leex manifests.
   """
   def manifests, do: [manifest()]
-  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @doc """
   Cleans up compilation artifacts.
