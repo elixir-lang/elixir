@@ -250,8 +250,7 @@ defmodule Code do
 
     * Lists, tuples, bitstrings, maps, and structs will be broken into
       multiple lines if they are followed by a newline in the opening
-      bracket and preceded by a new line in the closing bracket. For
-      example with a newline after `[` and before `]` for lists
+      bracket and preceded by a new line in the closing bracket
 
     * Pipeline operators, like `|>` and others with the same precedence,
       will span multiple lines if they spanned multiple lines in the input
@@ -259,6 +258,28 @@ defmodule Code do
   The behaviours above are not guaranteed. We may remove or add new
   rules in the future. The goal of documenting them is to provide better
   understanding on what to expect from the formatter.
+
+  ## Forcing multi-line lists, maps, tuples, etc
+
+  As mentioned in the previous section, lists, tuples, bitstrings, maps,
+  and structs will be broken into multiple lines if they are followed by
+  a newline in the opening bracket and preceded by a new line in the
+  closing bracket lines. This means that
+
+      [foo,
+       bar]
+
+  will be formatted as
+
+      [foo, bar]
+
+  since there is no newline immediately after `[` and before `]`. The
+  following, however, will always be formatted in multiple lines:
+
+      [
+        foo,
+        bar
+      ]
 
   ## Code comments
 
