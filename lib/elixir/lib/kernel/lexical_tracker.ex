@@ -72,6 +72,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
+  def remote_struct(pid, module, line) when is_atom(module) do
+    :gen_server.cast(pid, {:remote_struct, module, line})
+  end
+
+  @doc false
   def import_dispatch(pid, module, fa, line, mode) when is_atom(module) do
     :gen_server.cast(pid, {:import_dispatch, module, fa, line, mode})
   end
@@ -125,7 +130,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:remote_references, _from, state) do
-    {:reply, partition(Enum.to_list(state.references), [], []), state}
+    {:reply, partition(Enum.to_list(state.references), [], [], []), state}
   end
 
   def handle_call(:remote_dispatches, _from, state) do
@@ -146,6 +151,12 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:remote_reference, module, mode}, state) do
     {:noreply, %{state | references: add_reference(state.references, module, mode)}}
+  end
+
+  def handle_cast({:remote_struct, module, line}, state) do
+    references = add_reference(state.references, module, :struct)
+    state = add_remote_dispatch(state, module, {:__struct__, 1}, line, :compile)
+    {:noreply, %{state | references: references}}
   end
 
   def handle_cast({:remote_dispatch, module, fa, line, mode}, state) do
@@ -205,12 +216,14 @@ defmodule Kernel.LexicalTracker do
     {:ok, state}
   end
 
-  defp partition([{remote, :compile} | t], compile, runtime),
-    do: partition(t, [remote | compile], runtime)
-  defp partition([{remote, :runtime} | t], compile, runtime),
-    do: partition(t, compile, [remote | runtime])
-  defp partition([], compile, runtime),
-    do: {compile, runtime}
+  defp partition([{remote, :compile} | t], compile, struct, runtime),
+    do: partition(t, [remote | compile], struct, runtime)
+  defp partition([{remote, :runtime} | t], compile, struct, runtime),
+    do: partition(t, compile, struct, [remote | runtime])
+  defp partition([{remote, :struct} | t], compile, struct, runtime),
+    do: partition(t, compile, [remote | struct], runtime)
+  defp partition([], compile, struct, runtime),
+    do: {compile, struct, runtime}
 
   # Callbacks helpers
 
@@ -218,6 +231,12 @@ defmodule Kernel.LexicalTracker do
     do: map_put_new(module, :runtime, references)
   defp add_reference(references, module, :compile) when is_atom(module),
     do: :maps.put(module, :compile, references)
+  defp add_reference(references, module, :struct) when is_atom(module) do
+    case :maps.find(module, references) do
+      {:ok, :compile} -> references
+      _ -> :maps.put(module, :struct, references)
+    end
+  end
 
   defp add_remote_dispatch(state, module, fa, line, mode) when is_atom(module) do
     map_update mode, %{module => %{fa => [line]}}, state, fn mode_dispatches ->
