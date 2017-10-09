@@ -1084,10 +1084,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1)
-      %{3 => ["ant", "cat"], 7 => ["buffalo"], 5 => ["dingo"]}
+      %{3 => ["ant", "cat"], 5 => ["dingo"], 7 => ["buffalo"]}
 
       iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1, &String.first/1)
-      %{3 => ["a", "c"], 7 => ["b"], 5 => ["d"]}
+      %{3 => ["a", "c"], 5 => ["d"], 7 => ["b"]}
 
   """
   @spec group_by(t, (element -> any), (element -> any)) :: map
