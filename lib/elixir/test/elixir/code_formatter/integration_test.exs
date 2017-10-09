@@ -109,6 +109,35 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "spec with when keywords and |" do
+    assert_same """
+    @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
+          when dest: pid | port | atom | {atom, node},
+               msg: any,
+               option: :noconnect | :nosuspend
+    """
+
+    assert_same """
+    @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
+          when dest: pid
+                     | port
+                     | atom
+                     | {atom, node}
+                     | and_a_really_long_type_to_force_a_line_break
+                     | followed_by_another_really_long_type
+    """
+  end
+
+  test "multiple whens with new lines" do
+    assert_same """
+    def sleep(timeout)
+        when is_integer(timeout) and timeout >= 0
+        when timeout == :infinity do
+      receive after: (timeout -> :ok)
+    end
+    """
+  end
+
   test "function with operator and pipeline" do
     assert_same """
     defp apply_next_break_fits?({fun, meta, args}) when is_atom(fun) and is_list(args) do
