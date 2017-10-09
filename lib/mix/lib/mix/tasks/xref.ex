@@ -94,13 +94,19 @@ defmodule Mix.Tasks.Xref do
 
   """
 
-  @switches [compile: :boolean, deps_check: :boolean, archives_check: :boolean,
-             elixir_version_check: :boolean, exclude: :keep, format: :string,
-             source: :string, sink: :string]
+  @switches [
+    compile: :boolean,
+    deps_check: :boolean,
+    archives_check: :boolean,
+    elixir_version_check: :boolean,
+    exclude: :keep,
+    format: :string,
+    source: :string,
+    sink: :string
+  ]
 
   def run(args) do
-    {opts, args} =
-      OptionParser.parse!(args, strict: @switches)
+    {opts, args} = OptionParser.parse!(args, strict: @switches)
 
     Mix.Task.run("loadpaths")
 
@@ -111,14 +117,18 @@ defmodule Mix.Tasks.Xref do
     case args do
       ["warnings"] ->
         warnings()
+
       ["unreachable"] ->
         unreachable()
+
       ["callers", callee] ->
         callers(callee)
+
       ["graph"] ->
         graph(opts)
+
       _ ->
-        Mix.raise "xref doesn't support this command. For more information run \"mix help xref\""
+        Mix.raise("xref doesn't support this command. For more information run \"mix help xref\"")
     end
   end
 
@@ -186,14 +196,19 @@ defmodule Mix.Tasks.Xref do
     cond do
       excluded?(module, func, arity, excludes) ->
         nil
+
       skip?(module, func, arity) ->
         nil
+
       exports == :unknown_module ->
         {Enum.sort(lines), :unknown_module, module, func, arity, nil}
+
       is_atom(exports) and not function_exported?(module, func, arity) ->
         {Enum.sort(lines), :unknown_function, module, func, arity, nil}
+
       is_list(exports) and {func, arity} not in exports ->
         {Enum.sort(lines), :unknown_function, module, func, arity, exports}
+
       true ->
         nil
     end
@@ -209,7 +224,12 @@ defmodule Mix.Tasks.Xref do
 
   defp format_entry(file, {lines, _, module, function, arity, _}) do
     for line <- lines do
-      [Exception.format_file_line(file, line), ?\s, Exception.format_mfa(module, function, arity), ?\n]
+      [
+        Exception.format_file_line(file, line),
+        ?\s,
+        Exception.format_mfa(module, function, arity),
+        ?\n
+      ]
     end
   end
 
@@ -217,6 +237,7 @@ defmodule Mix.Tasks.Xref do
 
   defp warnings(file, entries) do
     prefix = IO.ANSI.format([:yellow, "warning: "])
+
     warnings =
       Enum.map(Enum.sort(entries), fn entry ->
         message = message(entry)
@@ -224,6 +245,7 @@ defmodule Mix.Tasks.Xref do
         IO.write(:stderr, [prefix, message, ?\n, format_file_lines(file, lines), ?\n])
         {lines, message}
       end)
+
     {file, warnings}
   end
 
@@ -232,8 +254,11 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp message({_lines, :unknown_module, module, function, arity, _}) do
-    ["function ", Exception.format_mfa(module, function, arity),
-     " is undefined (module #{inspect module} is not available)"]
+    [
+      "function ",
+      Exception.format_mfa(module, function, arity),
+      " is undefined (module #{inspect(module)} is not available)"
+    ]
   end
 
   defp format_file_lines(file, [line]) do
@@ -241,8 +266,10 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_file_lines(file, lines) do
-    ["Found at #{length(lines)} locations:\n" |
-     Enum.map(lines, &format_file_line(file, &1))]
+    [
+      "Found at #{length(lines)} locations:\n"
+      | Enum.map(lines, &format_file_line(file, &1))
+    ]
   end
 
   defp format_file_line(file, line) do
@@ -262,8 +289,7 @@ defmodule Mix.Tasks.Xref do
     maybe_protocol = Module.concat(maybe_protocol)
     maybe_builtin = Module.concat(maybe_builtin)
 
-    maybe_builtin in @protocol_builtins and
-      Code.ensure_loaded?(maybe_protocol) and
+    maybe_builtin in @protocol_builtins and Code.ensure_loaded?(maybe_protocol) and
       function_exported?(maybe_protocol, :__protocol__, 1)
   end
 
@@ -299,10 +325,10 @@ defmodule Mix.Tasks.Xref do
           filter.({module, func, arity}),
           do: {module, func, arity, lines}
 
-    Enum.reduce calls, %{}, fn {module, func, arity, lines}, merged_calls ->
+    Enum.reduce(calls, %{}, fn {module, func, arity, lines}, merged_calls ->
       lines = MapSet.new(lines)
       Map.update(merged_calls, {module, func, arity}, lines, &MapSet.union(&1, lines))
-    end
+    end)
   end
 
   ## Print callers
@@ -314,8 +340,14 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_call(file, {{module, func, arity}, lines}) do
-    for line <- Enum.sort(lines),
-      do: [file, ":", to_string(line), ": ", Exception.format_mfa(module, func, arity), ?\n]
+    for line <- Enum.sort(lines), do: [
+      file,
+      ":",
+      to_string(line),
+      ": ",
+      Exception.format_mfa(module, func, arity),
+      ?\n
+    ]
   end
 
   ## "Callers" helpers
@@ -324,12 +356,16 @@ defmodule Mix.Tasks.Xref do
     case Mix.Utils.parse_mfa(callee) do
       {:ok, mfa_list} ->
         mfa_list_length = length(mfa_list)
+
         fn {module, function, arity} ->
           mfa_list == Enum.take([module, function, arity], mfa_list_length)
         end
+
       :error ->
-        Mix.raise "xref callers CALLEE expects Module, Module.function, or Module.function/arity, " <>
-                  "got: " <> callee
+        Mix.raise(
+          "xref callers CALLEE expects Module, Module.function, or Module.function/arity, " <>
+            "got: " <> callee
+        )
     end
   end
 
@@ -352,14 +388,15 @@ defmodule Mix.Tasks.Xref do
 
     all_modules = MapSet.new(module_sources, &elem(&1, 0))
 
-    Map.new module_sources, fn {module, source} ->
+    Map.new(module_sources, fn {module, source} ->
       source(runtime_references: runtime, compile_references: compile, source: file) = source
+
       compile_references =
         compile
         |> MapSet.new()
         |> MapSet.delete(module)
         |> MapSet.intersection(all_modules)
-        |> Enum.filter(&module_sources[&1] != source)
+        |> Enum.filter(&(module_sources[&1] != source))
         |> Enum.map(&{source(module_sources[&1], :source), "(compile)"})
 
       runtime_references =
@@ -367,11 +404,11 @@ defmodule Mix.Tasks.Xref do
         |> MapSet.new()
         |> MapSet.delete(module)
         |> MapSet.intersection(all_modules)
-        |> Enum.filter(&module_sources[&1] != source)
+        |> Enum.filter(&(module_sources[&1] != source))
         |> Enum.map(&{source(module_sources[&1], :source), nil})
 
       {file, compile_references ++ runtime_references}
-    end
+    end)
   end
 
   defp write_graph(file_references, excluded, opts) do
@@ -384,23 +421,25 @@ defmodule Mix.Tasks.Xref do
           if file_references[source] do
             {[{source, nil}], file_references}
           else
-            Mix.raise "Source could not be found: #{source}"
+            Mix.raise("Source could not be found: #{source}")
           end
 
         {nil, sink} ->
           if file_references[sink] do
             file_references = filter_for_sink(file_references, sink)
+
             roots =
               file_references
               |> Map.delete(sink)
               |> Enum.map(&{elem(&1, 0), nil})
+
             {roots -- excluded, file_references}
           else
-            Mix.raise "Sink could not be found: #{sink}"
+            Mix.raise("Sink could not be found: #{sink}")
           end
 
         {_, _} ->
-          Mix.raise "mix xref graph expects only one of --source and --sink"
+          Mix.raise("mix xref graph expects only one of --source and --sink")
       end
 
     callback =
@@ -410,8 +449,8 @@ defmodule Mix.Tasks.Xref do
       end
 
     if opts[:format] == "dot" do
-      Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph",
-                                 root, callback, opts)
+      Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph", root, callback, opts)
+
       """
       Generated "xref_graph.dot" in the current directory. To generate a PNG:
 
@@ -420,7 +459,7 @@ defmodule Mix.Tasks.Xref do
       For more options see http://www.graphviz.org/.
       """
       |> String.trim_trailing()
-      |> Mix.shell.info()
+      |> Mix.shell().info()
     else
       Mix.Utils.print_tree(root, callback, opts)
     end
@@ -434,22 +473,23 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp do_filter_for_sink(file_references, new_nodes, acc) do
-    Enum.reduce new_nodes, acc, fn {new_node_name, _type}, acc ->
+    Enum.reduce(new_nodes, acc, fn {new_node_name, _type}, acc ->
       new_nodes = file_references[new_node_name]
+
       if acc[new_node_name] || !new_nodes do
         acc
       else
         do_filter_for_sink(file_references, new_nodes, Map.put(acc, new_node_name, new_nodes))
       end
-    end
+    end)
   end
 
   defp invert_references(file_references) do
-    Enum.reduce file_references, %{}, fn {file, references}, acc ->
-      Enum.reduce references, acc, fn {reference, type}, acc ->
+    Enum.reduce(file_references, %{}, fn {file, references}, acc ->
+      Enum.reduce(references, acc, fn {reference, type}, acc ->
         Map.update(acc, reference, [{file, type}], &[{file, type} | &1])
-      end
-    end
+      end)
+    end)
   end
 
   ## Helpers
