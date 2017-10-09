@@ -94,6 +94,8 @@ defmodule Code.Formatter do
     assert_received: 2,
     check: 1,
     check: 2,
+    doctest: 1,
+    doctest: 2,
     property: 1,
     property: 2,
     refute: 1,
