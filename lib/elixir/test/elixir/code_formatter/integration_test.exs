@@ -172,4 +172,12 @@ defmodule Code.Formatter.IntegrationTest do
     neighbours = for({_, _} = t <- neighbours, do: t) |> :sets.from_list()
     """
   end
+
+  test "long expression with single line anonymous function" do
+    assert_same """
+    for_many(uniq_list_of(integer(1..10000)), fn list ->
+      assert Enum.uniq(list) == list
+    end)
+    """
+  end
 end
