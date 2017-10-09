@@ -4,22 +4,22 @@ defmodule Mix.Dep.ElixirSCM do
   @manifest ".compile.elixir_scm"
   @manifest_vsn :v2
 
-  def manifest(manifest_path \\ Mix.Project.manifest_path) do
+  def manifest(manifest_path \\ Mix.Project.manifest_path()) do
     Path.join(manifest_path, @manifest)
   end
 
-  def update(manifest_path \\ Mix.Project.manifest_path) do
-    config = Mix.Project.config
+  def update(manifest_path \\ Mix.Project.manifest_path()) do
+    config = Mix.Project.config()
     File.mkdir_p!(manifest_path)
 
     manifest_data =
-      {@manifest_vsn, {System.version, :erlang.system_info(:otp_release)}, config[:build_scm]}
+      {@manifest_vsn, {System.version(), :erlang.system_info(:otp_release)}, config[:build_scm]}
       |> :erlang.term_to_binary()
 
     File.write!(manifest(manifest_path), manifest_data)
   end
 
-  def read(manifest_path \\ Mix.Project.manifest_path) do
+  def read(manifest_path \\ Mix.Project.manifest_path()) do
     case File.read(manifest(manifest_path)) do
       {:ok, contents} ->
         try do
@@ -28,6 +28,7 @@ defmodule Mix.Dep.ElixirSCM do
         rescue
           _ -> {:ok, {"1.0.0", '17'}, nil}
         end
+
       _ ->
         :error
     end
