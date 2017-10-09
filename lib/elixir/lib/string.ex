@@ -206,7 +206,7 @@ defmodule String do
   @type t :: binary
   @type codepoint :: t
   @type grapheme :: t
-  @type pattern :: t | [t] | :binary.cp
+  @type pattern :: t | [t] | :binary.cp()
 
   @doc """
   Checks if a string contains only printable characters.
@@ -238,11 +238,13 @@ defmodule String do
       printable?(rest, decrement(counter))
     end
   end
+
   for char <- '\n\r\t\v\b\f\e\d\a' do
     def printable?(<<unquote(char), rest::binary>>, counter) do
       printable?(rest, decrement(counter))
     end
   end
+
   def printable?(<<char::utf8, rest::binary>>, counter)
       when char in 0xA0..0xD7FF
       when char in 0xE000..0xFFFD
@@ -253,7 +255,7 @@ defmodule String do
   def printable?(binary, _) when is_binary(binary), do: false
 
   defp decrement(:infinity), do: :infinity
-  defp decrement(counter),   do: counter - 1
+  defp decrement(counter), do: counter - 1
 
   @doc ~S"""
   Divides a string into substrings at each Unicode whitespace
@@ -357,7 +359,7 @@ defmodule String do
       ["1", "2", "3", "4"]
 
   """
-  @spec split(t, pattern | Regex.t, keyword) :: [t]
+  @spec split(t, pattern | Regex.t(), keyword) :: [t]
   def split(string, pattern, options \\ [])
 
   def split(string, %Regex{} = pattern, options) when is_binary(string) do
@@ -369,21 +371,22 @@ defmodule String do
   end
 
   def split(string, pattern, options) when is_binary(string) do
-    parts   = Keyword.get(options, :parts, :infinity)
-    trim    = Keyword.get(options, :trim, false)
+    parts = Keyword.get(options, :parts, :infinity)
+    trim = Keyword.get(options, :trim, false)
     pattern = maybe_compile_pattern(pattern)
     split_each(string, pattern, trim, parts_to_index(parts))
   end
 
-  defp parts_to_index(:infinity),                      do: 0
+  defp parts_to_index(:infinity), do: 0
   defp parts_to_index(n) when is_integer(n) and n > 0, do: n
 
   defp split_each("", _pattern, true, 1), do: []
   defp split_each(string, _pattern, _trim, 1) when is_binary(string), do: [string]
+
   defp split_each(string, pattern, trim, count) do
     case do_splitter(string, pattern, trim) do
       {h, t} -> [h | split_each(t, pattern, trim, count - 1)]
-      nil    -> []
+      nil -> []
     end
   end
 
@@ -414,16 +417,16 @@ defmodule String do
       ["a", "b", "c", "d"]
 
   """
-  @spec splitter(t, pattern, keyword) :: Enumerable.t
+  @spec splitter(t, pattern, keyword) :: Enumerable.t()
   def splitter(string, pattern, options \\ []) do
     pattern = maybe_compile_pattern(pattern)
-    trim    = Keyword.get(options, :trim, false)
+    trim = Keyword.get(options, :trim, false)
     Stream.unfold(string, &do_splitter(&1, pattern, trim))
   end
 
   defp do_splitter(:nomatch, _pattern, _), do: nil
-  defp do_splitter("", _pattern, true),    do: nil
-  defp do_splitter("", _pattern, false),   do: {"", :nomatch}
+  defp do_splitter("", _pattern, true), do: nil
+  defp do_splitter("", _pattern, false), do: {"", :nomatch}
 
   defp do_splitter(bin, "", _trim) do
     next_grapheme(bin)
@@ -480,8 +483,9 @@ defmodule String do
 
   def split_at(string, position) when is_integer(position) and position < 0 do
     position = length(string) + position
+
     case position >= 0 do
-      true  -> do_split_at(string, position)
+      true -> do_split_at(string, position)
       false -> {"", string}
     end
   end
@@ -661,10 +665,19 @@ defmodule String do
     replace_leading(string, match, replacement, prefix_size, suffix_size, 0)
   end
 
-  defp replace_leading(string, match, replacement, prefix_size, suffix_size, acc) when suffix_size >= 0 do
+  defp replace_leading(string, match, replacement, prefix_size, suffix_size, acc)
+       when suffix_size >= 0 do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::binary>> when prefix == match ->
-        replace_leading(suffix, match, replacement, prefix_size, suffix_size - prefix_size, acc + 1)
+        replace_leading(
+          suffix,
+          match,
+          replacement,
+          prefix_size,
+          suffix_size - prefix_size,
+          acc + 1
+        )
+
       _ ->
         prepend_unless_empty(duplicate(replacement, acc), string)
     end
@@ -709,10 +722,19 @@ defmodule String do
     replace_trailing(string, match, replacement, prefix_size, suffix_size, 0)
   end
 
-  defp replace_trailing(string, match, replacement, prefix_size, suffix_size, acc) when prefix_size >= 0 do
+  defp replace_trailing(string, match, replacement, prefix_size, suffix_size, acc)
+       when prefix_size >= 0 do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::binary>> when suffix == match ->
-        replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size, acc + 1)
+        replace_trailing(
+          prefix,
+          match,
+          replacement,
+          prefix_size - suffix_size,
+          suffix_size,
+          acc + 1
+        )
+
       _ ->
         append_unless_empty(string, duplicate(replacement, acc))
     end
@@ -756,6 +778,7 @@ defmodule String do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::binary>> when prefix == match ->
         prepend_unless_empty(replacement, suffix)
+
       _ ->
         string
     end
@@ -796,6 +819,7 @@ defmodule String do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::binary>> when suffix == match ->
         append_unless_empty(prefix, replacement)
+
       _ ->
         string
     end
@@ -1015,15 +1039,17 @@ defmodule String do
 
   defp pad(kind, string, count, padding) do
     string_len = length(string)
+
     if string_len >= count do
       string
     else
       filler = build_filler(count - string_len, padding, padding, 0, [])
+
       case kind do
         :leading -> [filler | string]
         :trailing -> [string | filler]
       end
-      |> IO.iodata_to_binary
+      |> IO.iodata_to_binary()
     end
   end
 
@@ -1033,15 +1059,17 @@ defmodule String do
     rem_filler =
       rem(count, size)
       |> build_filler(source, source, 0, [])
+
     filler =
       filler
-      |> IO.iodata_to_binary
+      |> IO.iodata_to_binary()
       |> duplicate(div(count, size) + 1)
+
     [filler | rem_filler]
   end
 
   defp build_filler(count, source, [elem | rest], size, filler)
-      when is_binary(elem) do
+       when is_binary(elem) do
     build_filler(count - 1, source, rest, size + 1, [filler | elem])
   end
 
@@ -1130,16 +1158,18 @@ defmodule String do
       "ELIXIR"
 
   """
-  @spec replace(t, pattern | Regex.t, t, keyword) :: t
+  @spec replace(t, pattern | Regex.t(), t, keyword) :: t
   def replace(subject, pattern, replacement, options \\ [])
   def replace(subject, "", "", _), do: subject
+
   def replace(subject, "", replacement, options) do
     if Keyword.get(options, :global, true) do
-      IO.iodata_to_binary [replacement | intersperse(subject, replacement)]
+      IO.iodata_to_binary([replacement | intersperse(subject, replacement)])
     else
       replacement <> subject
     end
   end
+
   def replace(subject, pattern, replacement, options) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])
@@ -1157,10 +1187,7 @@ defmodule String do
   end
 
   defp translate_replace_options(options) do
-    global =
-      if Keyword.get(options, :global) != false,
-        do: [:global],
-        else: []
+    global = if Keyword.get(options, :global) != false, do: [:global], else: []
 
     insert =
       if insert = Keyword.get(options, :insert_replaced),
@@ -1369,6 +1396,7 @@ defmodule String do
 
   defp do_chunk(string, acc, chunk, flag, pred_fn) do
     {cp, rest} = next_codepoint(string)
+
     if pred_fn.(cp) != flag do
       do_chunk(rest, [chunk | acc], cp, not flag, pred_fn)
     else
@@ -1422,7 +1450,7 @@ defmodule String do
   def next_grapheme(binary) do
     case next_grapheme_size(binary) do
       {size, rest} -> {:binary.part(binary, 0, size), rest}
-      nil          -> nil
+      nil -> nil
     end
   end
 
@@ -1532,15 +1560,16 @@ defmodule String do
 
   def at(string, position) when is_integer(position) and position < 0 do
     position = length(string) + position
+
     case position >= 0 do
-      true  -> do_at(string, position)
+      true -> do_at(string, position)
       false -> nil
     end
   end
 
   defp do_at(string, position) do
     case String.Unicode.split_at(string, position) do
-      {_, nil}  -> nil
+      {_, nil} -> nil
       {_, rest} -> first(rest)
     end
   end
@@ -1590,7 +1619,9 @@ defmodule String do
 
   def slice(string, start, len) when start >= 0 and len >= 0 do
     case String.Unicode.split_at(string, start) do
-      {_, nil} -> ""
+      {_, nil} ->
+        ""
+
       {start_bytes, rest} ->
         {len_bytes, _} = String.Unicode.split_at(rest, len)
         binary_part(string, start_bytes, len_bytes)
@@ -1599,8 +1630,9 @@ defmodule String do
 
   def slice(string, start, len) when start < 0 and len >= 0 do
     start = length(string) + start
+
     case start >= 0 do
-      true  -> slice(string, start, len)
+      true -> slice(string, start, len)
       false -> ""
     end
   end
@@ -1653,7 +1685,7 @@ defmodule String do
       ""
 
   """
-  @spec slice(t, Range.t) :: t
+  @spec slice(t, Range.t()) :: t
 
   def slice(string, range)
 
@@ -1663,6 +1695,7 @@ defmodule String do
     case String.Unicode.split_at(string, first) do
       {_, nil} ->
         ""
+
       {start_bytes, _} ->
         binary_part(string, start_bytes, byte_size(string) - start_bytes)
     end
@@ -1680,12 +1713,12 @@ defmodule String do
     {bytes, length} = do_acc_bytes(next_grapheme_size(string), [], 0)
 
     first = add_if_negative(first, length)
-    last  = add_if_negative(last, length)
+    last = add_if_negative(last, length)
 
     if first < 0 or first > last or first > length do
       ""
     else
-      last  = min(last + 1, length)
+      last = min(last + 1, length)
       bytes = Enum.drop(bytes, length - last)
       first = last - first
       {length_bytes, start_bytes} = Enum.split(bytes, first)
@@ -1778,7 +1811,7 @@ defmodule String do
     string_size = byte_size(string)
     suffix_size = byte_size(suffix)
     scope = {string_size - suffix_size, suffix_size}
-    (suffix_size <= string_size) and (:nomatch != :binary.match(string, suffix, [scope: scope]))
+    suffix_size <= string_size and :nomatch != :binary.match(string, suffix, scope: scope)
   end
 
   @doc """
@@ -1793,7 +1826,7 @@ defmodule String do
       false
 
   """
-  @spec match?(t, Regex.t) :: boolean
+  @spec match?(t, Regex.t()) :: boolean
   def match?(string, regex) do
     Regex.match?(regex, string)
   end
@@ -1890,7 +1923,7 @@ defmodule String do
       :my_atom
 
   """
-  @spec to_atom(String.t) :: atom
+  @spec to_atom(String.t()) :: atom
   def to_atom(string) do
     :erlang.binary_to_atom(string, :utf8)
   end
@@ -1913,7 +1946,7 @@ defmodule String do
       ** (ArgumentError) argument error
 
   """
-  @spec to_existing_atom(String.t) :: atom
+  @spec to_existing_atom(String.t()) :: atom
   def to_existing_atom(string) do
     :erlang.binary_to_existing_atom(string, :utf8)
   end
@@ -1929,7 +1962,7 @@ defmodule String do
       123
 
   """
-  @spec to_integer(String.t) :: integer
+  @spec to_integer(String.t()) :: integer
   def to_integer(string) do
     :erlang.binary_to_integer(string)
   end
@@ -1945,7 +1978,7 @@ defmodule String do
       1023
 
   """
-  @spec to_integer(String.t, 2..36) :: integer
+  @spec to_integer(String.t(), 2..36) :: integer
   def to_integer(string, base) do
     :erlang.binary_to_integer(string, base)
   end
@@ -1971,7 +2004,7 @@ defmodule String do
       #=> ** (ArgumentError) argument error
 
   """
-  @spec to_float(String.t) :: float
+  @spec to_float(String.t()) :: float
   def to_float(string) do
     :erlang.binary_to_float(string)
   end
@@ -2003,11 +2036,11 @@ defmodule String do
     {chars2, len2} = chars_and_length(string2)
 
     case match(chars1, len1, chars2, len2) do
-      {0, _trans} -> 0.0
+      {0, _trans} ->
+        0.0
+
       {comm, trans} ->
-        ((comm / len1) +
-         (comm / len2) +
-         ((comm - trans) / comm)) / 3
+        (comm / len1 + comm / len2 + (comm - trans) / comm) / 3
     end
   end
 
@@ -2042,7 +2075,9 @@ defmodule String do
 
   defp submatch(char, chars, {pre, _} = range, state, idx) do
     case detect(char, chars, range) do
-      nil -> {chars, state}
+      nil ->
+        {chars, state}
+
       {subidx, chars} ->
         {chars, proceed(state, idx - pre + subidx)}
     end
@@ -2053,10 +2088,9 @@ defmodule String do
   end
 
   defp detect(_char, _chars, 0, _idx, _acc), do: nil
-  defp detect(_char, [], _lim, _idx, _acc),  do: nil
+  defp detect(_char, [], _lim, _idx, _acc), do: nil
 
-  defp detect(char, [char | rest], _lim, idx, acc),
-    do: {idx, Enum.reverse(acc, [nil | rest])}
+  defp detect(char, [char | rest], _lim, idx, acc), do: {idx, Enum.reverse(acc, [nil | rest])}
 
   defp detect(char, [other | rest], lim, idx, acc),
     do: detect(char, rest, lim - 1, idx + 1, [other | acc])
@@ -2086,8 +2120,8 @@ defmodule String do
   def myers_difference(string1, string2) do
     List.myers_difference(graphemes(string1), graphemes(string2))
     |> Enum.map(fn {kind, chars} ->
-      {kind, IO.iodata_to_binary(chars)}
-    end)
+         {kind, IO.iodata_to_binary(chars)}
+       end)
   end
 
   # TODO: Remove by 2.0
