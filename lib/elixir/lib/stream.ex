@@ -1445,26 +1445,13 @@ defmodule Stream do
         do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
 
       {list, next_acc} when is_list(list) ->
-        do_list_resource(
-          next_acc,
-          next_fun,
-          {:cont, acc},
-          fun,
-          after_fun,
-          &Enumerable.List.reduce(list, &1, fun)
-        )
+        reduce = &Enumerable.List.reduce(list, &1, fun)
+        do_list_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun, reduce)
 
       {enum, next_acc} ->
         inner = &do_resource_each(&1, &2, fun)
-
-        do_enum_resource(
-          next_acc,
-          next_fun,
-          {:cont, acc},
-          fun,
-          after_fun,
-          &Enumerable.reduce(enum, &1, inner)
-        )
+        reduce = &Enumerable.reduce(enum, &1, inner)
+        do_enum_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun, reduce)
     end
   end
 
@@ -1612,13 +1599,8 @@ defimpl Enumerable, for: Stream do
 
   defp do_reduce(%Stream{enum: enum, funs: funs, accs: accs, done: done}, acc, fun) do
     composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
-
-    do_each(
-      &Enumerable.reduce(enum, &1, composed),
-      done && {done, fun},
-      :lists.reverse(accs),
-      acc
-    )
+    reduce = &Enumerable.reduce(enum, &1, composed)
+    do_each(reduce, done && {done, fun}, :lists.reverse(accs), acc)
   end
 
   defp do_each(reduce, done, accs, {command, acc}) do
