@@ -139,7 +139,7 @@ defmodule Port do
       done
       kill -KILL $pid
 
-
+  
   Now instead of:
 
       Port.open({:spawn_executable, "/path/to/program"},
@@ -152,10 +152,11 @@ defmodule Port do
 
   """
 
-  @type name :: {:spawn, charlist | binary} |
-                {:spawn_driver, charlist | binary} |
-                {:spawn_executable, charlist | atom} |
-                {:fd, non_neg_integer, non_neg_integer}
+  @type name ::
+          {:spawn, charlist | binary}
+          | {:spawn_driver, charlist | binary}
+          | {:spawn_executable, charlist | atom}
+          | {:fd, non_neg_integer, non_neg_integer}
 
   @doc """
   Opens a port given a tuple `name` and a list of `options`.
@@ -223,7 +224,7 @@ defmodule Port do
   For more information, see `:erlang.port_info/1`.
   """
   def info(port) do
-    nillify :erlang.port_info(port)
+    nillify(:erlang.port_info(port))
   end
 
   @doc """
@@ -242,7 +243,7 @@ defmodule Port do
   end
 
   def info(port, item) do
-    nillify :erlang.port_info(port, item)
+    nillify(:erlang.port_info(port, item))
   end
 
   @doc """
@@ -281,7 +282,7 @@ defmodule Port do
   Inlined by the compiler.
   """
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
-  defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
+  defdelegate(demonitor(monitor_ref, options \\ []), to: :erlang)
 
   @doc """
   Returns a list of all ports in the current node.
@@ -290,10 +291,10 @@ defmodule Port do
   """
   @spec list :: [port]
   def list do
-    :erlang.ports
+    :erlang.ports()
   end
 
   @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
-  defp nillify(other),      do: other
+  defp nillify(other), do: other
 end
