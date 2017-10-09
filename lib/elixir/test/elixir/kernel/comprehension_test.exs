@@ -11,14 +11,13 @@ defmodule Kernel.ComprehensionTest do
 
     defimpl Collectable do
       def into(struct) do
-        {
-          struct,
-          fn
-            _, {:cont, x} -> Process.put(:into_cont, [x | Process.get(:into_cont)])
-            _, :done -> Process.put(:into_done, true)
-            _, :halt -> Process.put(:into_halt, true)
-          end
-        }
+        fun = fn
+          _, {:cont, x} -> Process.put(:into_cont, [x | Process.get(:into_cont)])
+          _, :done -> Process.put(:into_done, true)
+          _, :halt -> Process.put(:into_halt, true)
+        end
+
+        {struct, fun}
       end
     end
   end
@@ -260,7 +259,7 @@ defmodule Kernel.ComprehensionTest do
   test "binary for comprehensions with variable size" do
     s = 16
     bin = <<1, 2, 3, 4, 5, 6>>
-    assert for(<<x :: size(s) <- bin>>, into: "", do: to_bin(div(x, 2))) == <<129, 130, 131>>
+    assert for(<<x::size(s) <- bin>>, into: "", do: to_bin(div(x, 2))) == <<129, 130, 131>>
   end
 
   test "binary for comprehensions where value is not used" do
