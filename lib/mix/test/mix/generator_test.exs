@@ -1,13 +1,13 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.GeneratorTest do
   use MixTest.Case
 
   import Mix.Generator
 
-  embed_text :foo,     "foo"
-  embed_text :self,    from_file: __ENV__.file
-  embed_template :bar, "<%= @a + @b %>"
+  embed_text(:foo, "foo")
+  embed_text(:self, from_file: __ENV__.file)
+  embed_template(:bar, "<%= @a + @b %>")
 
   test "embed text" do
     assert foo_text() == "foo"
@@ -23,7 +23,7 @@ defmodule Mix.GeneratorTest do
 
   test "create file" do
     in_tmp "create_file", fn ->
-      create_file "foo", "HELLO"
+      create_file("foo", "HELLO")
       assert File.read!("foo") == "HELLO"
       assert_received {:mix_shell, :info, ["* creating foo"]}
     end
@@ -31,9 +31,9 @@ defmodule Mix.GeneratorTest do
 
   test "force create file" do
     in_tmp "create_file", fn ->
-      File.write! "foo", "HELLO"
+      File.write!("foo", "HELLO")
 
-      create_file "foo", "WORLD", force: true
+      create_file("foo", "WORLD", force: true)
       assert File.read!("foo") == "WORLD"
 
       refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
@@ -43,10 +43,10 @@ defmodule Mix.GeneratorTest do
 
   test "create with conflict returning true" do
     in_tmp "create_file", fn ->
-      File.write! "foo", "HELLO"
-      send self(), {:mix_shell_input, :yes?, true}
+      File.write!("foo", "HELLO")
+      send(self(), {:mix_shell_input, :yes?, true})
 
-      create_file "foo", "WORLD"
+      create_file("foo", "WORLD")
       assert File.read!("foo") == "WORLD"
 
       assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
@@ -55,10 +55,10 @@ defmodule Mix.GeneratorTest do
 
   test "create with conflict returning false" do
     in_tmp "create_file", fn ->
-      File.write! "foo", "HELLO"
-      send self(), {:mix_shell_input, :yes?, false}
+      File.write!("foo", "HELLO")
+      send(self(), {:mix_shell_input, :yes?, false})
 
-      create_file "foo", "WORLD"
+      create_file("foo", "WORLD")
       assert File.read!("foo") == "HELLO"
 
       assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
