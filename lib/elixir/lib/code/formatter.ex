@@ -114,7 +114,12 @@ defmodule Code.Formatter do
     setup: 1,
     setup: 2,
     test: 1,
-    test: 2
+    test: 2,
+
+    # Mix config
+    config: 2,
+    config: 3,
+    import_config: 1
   ]
 
   @locals_without_parens MapSet.new(locals_without_parens)
