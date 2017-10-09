@@ -5,9 +5,9 @@ defmodule Logger.App do
 
   @doc false
   def start(_type, _args) do
-    otp_reports?  = Application.get_env(:logger, :handle_otp_reports)
+    otp_reports? = Application.get_env(:logger, :handle_otp_reports)
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
-    threshold     = Application.get_env(:logger, :discard_threshold_for_error_logger)
+    threshold = Application.get_env(:logger, :discard_threshold_for_error_logger)
     error_handler = {:error_logger, Logger.ErrorHandler, {otp_reports?, sasl_reports?, threshold}}
 
     children = [
@@ -28,10 +28,10 @@ defmodule Logger.App do
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        handlers = [error_logger_tty_h: otp_reports?,
-                    sasl_report_tty_h: sasl_reports?]
+        handlers = [error_logger_tty_h: otp_reports?, sasl_report_tty_h: sasl_reports?]
         delete_handlers(handlers)
         {:ok, sup, config}
+
       {:error, _} = error ->
         Logger.Config.delete(config)
         error
@@ -47,6 +47,7 @@ defmodule Logger.App do
   def stop(config) do
     Logger.Config.deleted_handlers()
     |> add_handlers()
+
     Logger.Config.delete(config)
   end
 
@@ -77,6 +78,7 @@ defmodule Logger.App do
       for {handler, delete?} <- handlers,
           delete? && :error_logger.delete_report_handler(handler) != {:error, :module_not_found},
           do: handler
+
     [] = Logger.Config.deleted_handlers(to_delete)
     :ok
   end
