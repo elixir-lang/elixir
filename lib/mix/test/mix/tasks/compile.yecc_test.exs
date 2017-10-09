@@ -18,18 +18,15 @@ defmodule Mix.Tasks.Compile.YeccTest do
       """)
 
       capture_io(fn ->
-        assert {
-                 :error,
-                 [
-                   %Mix.Task.Compiler.Diagnostic{
-                     compiler_name: "yecc",
-                     file: ^file,
-                     message: "syntax error before: '.'",
-                     position: 1,
-                     severity: :error
-                   }
-                 ]
-               } = Mix.Tasks.Compile.Yecc.run(["--force"])
+        assert {:error, [diagnostic]} = Mix.Tasks.Compile.Yecc.run(["--force"])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 compiler_name: "yecc",
+                 file: ^file,
+                 message: "syntax error before: '.'",
+                 position: 1,
+                 severity: :error
+               } = diagnostic
       end)
 
       assert File.regular?("src/test_ok.erl")
