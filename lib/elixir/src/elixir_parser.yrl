@@ -161,9 +161,9 @@ no_parens_expr -> no_parens_many_expr : '$1'.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3' ++ '$4').
-block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
-block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> dot_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2', [{no_parens, true}]).
+block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3', [{no_parens, true}]).
+block_expr -> dot_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3', [{no_parens, true}]).
 
 matched_op_expr -> match_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> add_op_eol matched_expr : {'$1', '$2'}.
@@ -221,14 +221,14 @@ no_parens_op_expr -> arrow_op_eol no_parens_many_expr : warn_pipe('$1', '$2'), {
 %% Allow when (and only when) with keywords
 no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
 
-no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
-no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
+no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_identifier('$1', '$2', [{no_parens, true}]).
+no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_identifier('$1', '$2', [{no_parens, true}]).
 
-no_parens_many_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
-no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
+no_parens_many_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2', [{no_parens, true}]).
+no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2', [{no_parens, true}]).
 
-no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2').
-no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2').
+no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
+no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
 no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil).
 no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
 
@@ -393,7 +393,7 @@ three_op_eol -> three_op : '$1'.
 three_op_eol -> three_op eol : '$1'.
 
 pipe_op_eol -> pipe_op : '$1'.
-pipe_op_eol -> pipe_op eol : '$1'.
+pipe_op_eol -> pipe_op eol : next_is_eol('$1').
 
 capture_op_eol -> capture_op : '$1'.
 capture_op_eol -> capture_op eol : '$1'.
@@ -422,7 +422,7 @@ type_op_eol -> type_op : '$1'.
 type_op_eol -> type_op eol : '$1'.
 
 when_op_eol -> when_op : '$1'.
-when_op_eol -> when_op eol : '$1'.
+when_op_eol -> when_op eol : next_is_eol('$1').
 
 stab_op_eol -> stab_op : '$1'.
 stab_op_eol -> stab_op eol : next_is_eol('$1').
@@ -674,9 +674,7 @@ build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(U
   %% TODO: Deprecate "not left in right" rearrangement on 1.7
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
-build_op({arrow_op, Location, Op} = Token, Left, Right) ->
-  {Op, eol_op(Token) ++ meta_from_location(Location), [Left, Right]};
-build_op({stab_op, Location, Op} = Token, Left, Right) ->
+build_op({EolOp, Location, Op} = Token, Left, Right) when EolOp == arrow_op; EolOp == stab_op; EolOp == pipe_op; EolOp == when_op ->
   {Op, eol_op(Token) ++ meta_from_location(Location), [Left, Right]};
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
@@ -794,6 +792,15 @@ build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
 
 build_identifier({_, Location, Identifier}, Args) ->
   {Identifier, meta_from_location(Location), Args}.
+
+build_identifier(Expr, Args, Extra) ->
+  case ?formatter_metadata() of
+    true ->
+      {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, Args),
+      {BuiltExpr, Extra ++ BuiltMeta, BuiltArgs};
+    false ->
+      build_identifier(Expr, Args)
+  end.
 
 %% Fn
 

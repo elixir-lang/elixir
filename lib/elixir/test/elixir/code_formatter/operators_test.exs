@@ -209,6 +209,10 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format bad, good, @short_length
     end
 
+    test "with multiple of the different entry, same precedence and right associative" do
+      assert_format "foo ++ bar ++ baz -- bat", "foo ++ bar ++ (baz -- bat)"
+    end
+
     test "preserves user choice even when it fits" do
       assert_same """
       foo
@@ -414,7 +418,6 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with required parens skips on no parens" do
-      assert_same "1..2 ++ 3..4"
       assert_same "1..2 |> 3..4"
     end
 

@@ -70,26 +70,29 @@ defmodule Macro.Env do
   @opaque match_vars :: vars | :warn | :apply
   @opaque prematch_vars :: vars | nil
 
-  @type t :: %{__struct__: __MODULE__,
-               module: atom,
-               file: file,
-               line: line,
-               function: name_arity | nil,
-               context: context,
-               requires: requires,
-               aliases: aliases,
-               functions: functions,
-               macros: macros,
-               macro_aliases: aliases,
-               context_modules: context_modules,
-               vars: vars,
-               export_vars: export_vars,
-               match_vars: match_vars,
-               prematch_vars: prematch_vars,
-               lexical_tracker: lexical_tracker}
+  @type t :: %{
+          __struct__: __MODULE__,
+          module: atom,
+          file: file,
+          line: line,
+          function: name_arity | nil,
+          context: context,
+          requires: requires,
+          aliases: aliases,
+          functions: functions,
+          macros: macros,
+          macro_aliases: aliases,
+          context_modules: context_modules,
+          vars: vars,
+          export_vars: export_vars,
+          match_vars: match_vars,
+          prematch_vars: prematch_vars,
+          lexical_tracker: lexical_tracker
+        }
 
   def __struct__ do
-    %{__struct__: __MODULE__,
+    %{
+      __struct__: __MODULE__,
       module: nil,
       file: "nofile",
       line: 0,
@@ -105,11 +108,12 @@ defmodule Macro.Env do
       lexical_tracker: nil,
       export_vars: nil,
       match_vars: :warn,
-      prematch_vars: nil}
+      prematch_vars: nil
+    }
   end
 
   def __struct__(kv) do
-    Enum.reduce kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end
+    Enum.reduce(kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end)
   end
 
   @doc """
@@ -118,6 +122,7 @@ defmodule Macro.Env do
   """
   @spec location(t) :: keyword
   def location(env)
+
   def location(%{__struct__: Macro.Env, file: file, line: line}) do
     [file: file, line: line]
   end
@@ -146,8 +151,10 @@ defmodule Macro.Env do
     cond do
       is_nil(env.module) ->
         [{:elixir_compiler, :__FILE__, 1, relative_location(env)}]
+
       is_nil(env.function) ->
         [{env.module, :__MODULE__, 0, relative_location(env)}]
+
       true ->
         {name, arity} = env.function
         [{env.module, name, arity, relative_location(env)}]
