@@ -410,9 +410,9 @@ defmodule IEx.Introspection do
         |> Enum.filter(filter)
         |> Enum.map(fn
           {{fun, arity}, _, :macrocallback, doc} ->
-            print_callback_doc(fun, :macrocallback, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
+            print_callback_docs(fun, :macrocallback, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
           {{fun, arity}, _, kind, doc} ->
-            print_callback_doc(fun, kind, doc, {fun, arity}, callbacks, printer)
+            print_callback_docs(fun, kind, doc, {fun, arity}, callbacks, printer)
         end)
         |> case do
           [] -> :not_found
@@ -434,15 +434,19 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp print_callback_doc(name, kind, doc, key, callbacks, printer) do
-    {_, [spec | _]} = List.keyfind(callbacks, key, 0)
+  defp print_callback_docs(name, kind, doc, key, callbacks, printer) do
+    {_, specs} = List.keyfind(callbacks, key, 0)
 
-    definition =
-      Typespec.spec_to_ast(name, spec)
-      |> Macro.prewalk(&drop_macro_env/1)
-      |> Macro.to_string
+    specs
+    |> Enum.reverse()
+    |> Enum.map(fn(spec) ->
+      definition =
+        Typespec.spec_to_ast(name, spec)
+        |> Macro.prewalk(&drop_macro_env/1)
+        |> Macro.to_string
 
-    printer.("@#{kind} #{definition}", doc)
+      printer.("@#{kind} #{definition}", doc)
+    end)
   end
 
   defp drop_macro_env({name, meta, [{:::, _, [_, {{:., _, [Macro.Env, :t]}, _, _}]} | args]}),
