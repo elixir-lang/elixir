@@ -684,7 +684,9 @@ defmodule Code.Formatter do
           if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
 
         true ->
-          with_next_break_fits(next_break_fits?(right_arg), right, fn right ->
+          next_break_fits? = next_break_fits?(right_arg) and not Keyword.get(meta, :eol, false)
+
+          with_next_break_fits(next_break_fits?, right, fn right ->
             op_string = " " <> op_string
             concat(left, group(nest(glue(op_string, group(right)), nesting, :break)))
           end)
