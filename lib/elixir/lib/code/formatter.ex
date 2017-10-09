@@ -72,6 +72,8 @@ defmodule Code.Formatter do
     destructure: 2,
     raise: 1,
     raise: 2,
+    reraise: 2,
+    reraise: 3,
     if: 2,
     unless: 2,
     use: 1,
