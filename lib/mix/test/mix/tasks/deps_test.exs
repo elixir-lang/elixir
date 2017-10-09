@@ -721,14 +721,10 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run([])
 
-      assert_received {
-        :mix_shell,
-        :error,
-        [
-          "warning: the dependency :ok is duplicated at the top level, " <>
-            "please remove one of them"
-        ]
-      }
+      msg =
+        "warning: the dependency :ok is duplicated at the top level, please remove one of them"
+
+      assert_received {:mix_shell, :error, [^msg]}
 
       msg = "* ok 0.1.0 (deps/ok) (mix)"
       assert_received {:mix_shell, :info, [^msg]}
