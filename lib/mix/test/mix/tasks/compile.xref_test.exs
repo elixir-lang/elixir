@@ -75,12 +75,8 @@ defmodule Mix.Tasks.Compile.XrefTest do
 
       assert_warn_no_func(fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
-
         assert {:error, [diagnostic]} = Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"])
-
-        assert %Mix.Task.Compiler.Diagnostic{
-                 severity: :error
-               } = diagnostic
+        assert %Mix.Task.Compiler.Diagnostic{severity: :error} = diagnostic
       end)
     end
   end
