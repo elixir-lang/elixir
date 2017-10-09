@@ -228,7 +228,7 @@ defmodule Mix.Dep.Converger do
         if other_app == app and other.top_level and dep.top_level do
           Mix.shell().error(
             "warning: the dependency #{inspect(dep.app)} is " <>
-              "duplicated at the top level, please remove one " <> "of them"
+              "duplicated at the top level, please remove one of them"
           )
         end
 
