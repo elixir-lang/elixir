@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.TaskTest do
   use MixTest.Case
@@ -17,7 +17,9 @@ defmodule Mix.TaskTest do
       Mix.Task.run("unknown")
     end
 
-    assert_raise Mix.NoTaskError, "The task \"helli\" could not be found. Did you mean \"hello\"?", fn ->
+    message = "The task \"helli\" could not be found. Did you mean \"hello\"?"
+
+    assert_raise Mix.NoTaskError, message, fn ->
       Mix.Task.run("helli")
     end
 
@@ -25,35 +27,38 @@ defmodule Mix.TaskTest do
       Mix.Task.run("invalid")
     end
 
-    misnamed_message =
+    message =
       "The task \"acronym.http\" could not be found because the module is named " <>
-      "Mix.Tasks.Acronym.HTTP instead of Mix.Tasks.Acronym.Http as expected. " <>
-      "Please rename it and try again"
-    assert_raise Mix.NoTaskError, misnamed_message, fn ->
+        "Mix.Tasks.Acronym.HTTP instead of Mix.Tasks.Acronym.Http as expected. " <>
+        "Please rename it and try again"
+
+    assert_raise Mix.NoTaskError, message, fn ->
       Mix.Task.run("acronym.http")
     end
   end
 
   test "run/2 converts OptionParser.ParseError into Mix errors" do
-    assert_raise Mix.Error,
-                 "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option", fn ->
+    message = "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option"
+
+    assert_raise Mix.Error, message, fn ->
       Mix.Task.run("hello", ["--parser", "--unknown"])
     end
 
-    Mix.Task.clear
+    Mix.Task.clear()
 
-    assert_raise Mix.Error,
-                 "Could not invoke task \"hello\": 1 error found!\n--int : Expected type integer, got \"foo\"", fn ->
+    message =
+      "Could not invoke task \"hello\": 1 error found!\n--int : Expected type integer, got \"foo\""
+
+    assert_raise Mix.Error, message, fn ->
       Mix.Task.run("hello", ["--parser", "--int", "foo"])
     end
   end
 
   test "run/2 outputs task debug info if Mix.debug? is true" do
-    Mix.shell Mix.Shell.IO
+    Mix.shell(Mix.Shell.IO)
     Mix.debug(true)
 
-    assert ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("hello") end) =~
-      "** Running mix hello"
+    assert ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("hello") end) =~ "** Running mix hello"
   after
     Mix.shell(Mix.Shell.Process)
     Mix.debug(false)
@@ -68,6 +73,7 @@ defmodule Mix.TaskTest do
           use Mix.Task
           def run(_), do: "Hello, World"
         end
+
       :code.purge(Mix.Tasks.TaskHello)
       :code.delete(Mix.Tasks.TaskHello)
 
@@ -76,7 +82,7 @@ defmodule Mix.TaskTest do
       end
 
       # Clean up the tasks and copy it into deps
-      Mix.TasksServer.clear
+      Mix.TasksServer.clear()
       File.mkdir_p!("_build/dev/lib/sample/ebin")
       File.write!("_build/dev/lib/sample/ebin/Elixir.Mix.Tasks.TaskHello.beam", bin)
 
@@ -84,7 +90,7 @@ defmodule Mix.TaskTest do
       assert Mix.Task.run("task_hello") == "Hello, World"
 
       # The compile task should not have run yet
-      assert Mix.TasksServer.run({:task, "compile", Mix.Project.get})
+      assert Mix.TasksServer.run({:task, "compile", Mix.Project.get()})
     end
   end
 
@@ -97,13 +103,13 @@ defmodule Mix.TaskTest do
       end
 
       # Check if compile task have run
-      refute Mix.TasksServer.run({:task, "compile", Mix.Project.get})
+      refute Mix.TasksServer.run({:task, "compile", Mix.Project.get()})
     end
   end
 
   test "clear/0" do
     assert Mix.Task.run("hello") == "Hello, World!"
-    Mix.Task.clear
+    Mix.Task.clear()
     assert Mix.Task.run("hello") == "Hello, World!"
   end
 
@@ -116,12 +122,12 @@ defmodule Mix.TaskTest do
   test "reenable/1 for recursive inside umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        assert [:ok, :ok] = Mix.Task.run "clean"
-        assert :noop      = Mix.Task.run "clean"
+        assert [:ok, :ok] = Mix.Task.run("clean")
+        assert :noop = Mix.Task.run("clean")
 
-        Mix.Task.reenable "clean"
-        assert [:ok, :ok] = Mix.Task.run "clean"
-        assert :noop      = Mix.Task.run "clean"
+        Mix.Task.reenable("clean")
+        assert [:ok, :ok] = Mix.Task.run("clean")
+        assert :noop = Mix.Task.run("clean")
       end)
     end
   end
@@ -129,8 +135,9 @@ defmodule Mix.TaskTest do
   test "reenable/1 for non-recursive inside umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        assert [:ok, :ok] = Mix.Task.run "clean"
-        assert :ok = Mix.Task.run "loadpaths" # loadpaths is not recursive
+        assert [:ok, :ok] = Mix.Task.run("clean")
+        # loadpaths is not recursive
+        assert :ok = Mix.Task.run("loadpaths")
       end)
     end
   end
@@ -143,9 +150,9 @@ defmodule Mix.TaskTest do
   test "rerun/1 for umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        assert [:ok, :ok] = Mix.Task.run "clean"
-        assert :noop      = Mix.Task.run "clean"
-        assert [:ok, :ok] = Mix.Task.rerun "clean"
+        assert [:ok, :ok] = Mix.Task.run("clean")
+        assert :noop = Mix.Task.run("clean")
+        assert [:ok, :ok] = Mix.Task.rerun("clean")
       end)
     end
   end
@@ -166,23 +173,23 @@ defmodule Mix.TaskTest do
     assert Mix.Task.alias?(:sample) == false
     assert Mix.Task.alias?("sample") == false
 
-    Mix.Project.push MixTest.Case.Sample
+    Mix.Project.push(MixTest.Case.Sample)
     assert Mix.Task.alias?(:sample) == true
     assert Mix.Task.alias?("sample") == true
     assert Mix.Task.alias?("another") == false
   after
-    Mix.Project.pop
+    Mix.Project.pop()
   end
 
   test "all_modules/0" do
-    Mix.Task.load_all
-    modules = Mix.Task.all_modules
+    Mix.Task.load_all()
+    modules = Mix.Task.all_modules()
     assert Mix.Tasks.Hello in modules
     assert Mix.Tasks.Compile in modules
   end
 
   test "moduledoc/1" do
-    Code.prepend_path MixTest.Case.tmp_path("beams")
+    Code.prepend_path(MixTest.Case.tmp_path("beams"))
     assert Mix.Task.moduledoc(Mix.Tasks.Hello) == "A test task.\n"
   end
 
