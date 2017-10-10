@@ -345,15 +345,11 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
         # Noop when there is no runtime dependency
-        ensure_touched(
-          "_build/dev/lib/foo/ebin/Elixir.Foo.beam",
-          File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
-        )
+        mtime = File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
 
-        ensure_touched(
-          "_build/dev/lib/foo/.compile.elixir",
-          File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
-        )
+        mtime = File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/.compile.elixir", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
@@ -368,15 +364,11 @@ defmodule Mix.UmbrellaTest do
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Noop for runtime dependencies
-        ensure_touched(
-          "_build/dev/lib/foo/ebin/Elixir.Foo.beam",
-          File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
-        )
+        mtime = File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
 
-        ensure_touched(
-          "_build/dev/lib/foo/.compile.elixir",
-          File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
-        )
+        mtime = File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/.compile.elixir", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
@@ -386,15 +378,11 @@ defmodule Mix.UmbrellaTest do
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for compile time dependencies
-        ensure_touched(
-          "_build/dev/lib/foo/ebin/Elixir.Foo.beam",
-          File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
-        )
+        mtime = File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
 
-        ensure_touched(
-          "_build/dev/lib/foo/.compile.elixir",
-          File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
-        )
+        mtime = File.stat!("_build/dev/lib/bar/.compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/.compile.elixir", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
@@ -422,18 +410,14 @@ defmodule Mix.UmbrellaTest do
         # Mark protocol as outdated
         File.touch!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam", {{2010, 1, 1}, {0, 0, 0}})
 
-        ensure_touched(
-          "_build/dev/lib/foo/ebin/Elixir.Foo.beam",
-          File.stat!("_build/dev/lib/bar/consolidated/.compile.protocols").mtime
-        )
+        mtime = File.stat!("_build/dev/lib/bar/consolidated/.compile.protocols").mtime
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
 
         assert Mix.Tasks.Compile.Protocols.run([]) == :ok
 
         # Check new timestamp
-        assert File.stat!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam").mtime > {
-                 {2010, 1, 1},
-                 {0, 0, 0}
-               }
+        mtime = File.stat!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam").mtime
+        assert mtime > {{2010, 1, 1}, {0, 0, 0}}
       end)
     end)
   end
