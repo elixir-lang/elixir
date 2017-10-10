@@ -11,16 +11,15 @@ defmodule Logger.ErrorHandler do
     # and then trying to reach it will lead to crashes. So we send a
     # message to a PID, instead of named process, to avoid crashes on
     # send since this handler will be removed soon by the supervisor.
-    state =
-      %{
-        otp: otp?,
-        sasl: sasl?,
-        threshold: threshold,
-        logger: Process.whereis(Logger),
-        last_length: 0,
-        last_time: :os.timestamp(),
-        dropped: 0
-      }
+    state = %{
+      otp: otp?,
+      sasl: sasl?,
+      threshold: threshold,
+      logger: Process.whereis(Logger),
+      last_length: 0,
+      last_time: :os.timestamp(),
+      dropped: 0
+    }
 
     {:ok, state}
   end
@@ -94,10 +93,8 @@ defmodule Logger.ErrorHandler do
 
       # Mode is always async to avoid clogging the error_logger
       meta = [pid: ensure_pid(pid), error_logger: ensure_type(type)]
-
-      tuple = {Logger, message, Logger.Utils.timestamp(utc_log?), meta}
-
-      :gen_event.notify(state.logger, {level, Process.group_leader(), tuple})
+      event = {Logger, message, Logger.Utils.timestamp(utc_log?), meta}
+      :gen_event.notify(state.logger, {level, Process.group_leader(), event})
     end
 
     :ok
