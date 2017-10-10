@@ -1273,10 +1273,27 @@ defmodule Module do
     behaviours = :ets.lookup_element(table, :behaviour, 2)
     impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
 
+    check_behaviours(env, behaviours, all_definitions)
+
     if impls != [] do
       non_implemented_callbacks = check_impls(behaviours, impls)
       warn_missing_impls(env, non_implemented_callbacks, all_definitions, overridable_pairs)
     end
+  end
+
+  defp check_behaviours(env, behaviours, all_definitions) do
+    Enum.each(behaviours, fn behaviour ->
+      cond do
+        function_exported?(behaviour, :behaviour_info, 1) ->
+          Enum.each(behaviour.behaviour_info(:callbacks), fn callback ->
+            nil
+          end)
+        function_exported?(behaviour, :module_info, 0) ->
+          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not contain callbacks (for module #{inspect env.module})")
+        true ->
+          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not exist (for module #{inspect env.module})")
+      end
+    end)
   end
 
   defp check_impls(behaviours, impls) do
