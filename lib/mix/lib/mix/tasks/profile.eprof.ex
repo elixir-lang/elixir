@@ -95,29 +95,53 @@ defmodule Mix.Tasks.Profile.Eprof do
   `Mix.Tasks.Profile.Cprof` that uses `:cprof` and has a low performance degradation effect.
   """
 
-  @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep, matching: :string,
-             halt: :boolean, compile: :boolean, deps_check: :boolean, calls: :integer,
-             time: :integer, sort: :string, start: :boolean, archives_check: :boolean,
-             warmup: :boolean, elixir_version_check: :boolean, parallel_require: :keep]
+  @switches [
+    parallel: :boolean,
+    require: :keep,
+    eval: :keep,
+    config: :keep,
+    matching: :string,
+    halt: :boolean,
+    compile: :boolean,
+    deps_check: :boolean,
+    calls: :integer,
+    time: :integer,
+    sort: :string,
+    start: :boolean,
+    archives_check: :boolean,
+    warmup: :boolean,
+    elixir_version_check: :boolean,
+    parallel_require: :keep
+  ]
 
   def run(args) do
     {opts, head} =
-      OptionParser.parse_head!(args,
+      OptionParser.parse_head!(
+        args,
         aliases: [r: :require, p: :parallel, e: :eval, c: :config],
-        strict: @switches)
+        strict: @switches
+      )
 
-    Mix.Tasks.Run.run(["--no-mix-exs" | args], opts, head,
-                      &profile_code(&1, opts),
-                      &profile_code(File.read!(&1), opts))
+    Mix.Tasks.Run.run(
+      ["--no-mix-exs" | args],
+      opts,
+      head,
+      &profile_code(&1, opts),
+      &profile_code(File.read!(&1), opts)
+    )
   end
 
   defp profile_code(code_string, opts) do
     content =
       quote do
-        unquote(__MODULE__).profile(fn ->
-          unquote(Code.string_to_quoted!(code_string))
-        end, unquote(opts))
+        unquote(__MODULE__).profile(
+          fn ->
+            unquote(Code.string_to_quoted!(code_string))
+          end,
+          unquote(opts)
+        )
       end
+
     # Use compile_quoted since it leaves less noise than eval_quoted
     Code.compile_quoted(content)
   end
@@ -131,7 +155,7 @@ defmodule Mix.Tasks.Profile.Eprof do
 
   defp profile_and_analyse(fun, opts) do
     if Keyword.get(opts, :warmup, true) do
-      IO.puts "Warmup...\n"
+      IO.puts("Warmup...\n")
       fun.()
     end
 
@@ -154,12 +178,13 @@ defmodule Mix.Tasks.Profile.Eprof do
     case Keyword.get(opts, :matching) do
       nil ->
         {:_, :_, :_}
+
       matching ->
         case Mix.Utils.parse_mfa(matching) do
           {:ok, [m, f, a]} -> {m, f, a}
           {:ok, [m, f]} -> {m, f, :_}
           {:ok, [m]} -> {m, :_, :_}
-          :error -> Mix.raise "Invalid matching pattern: #{matching}"
+          :error -> Mix.raise("Invalid matching pattern: #{matching}")
         end
     end
   end
@@ -179,7 +204,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   defp sort_results(call_results, opts) do
     sort_by =
       Keyword.get(opts, :sort, "time")
-      |> String.to_existing_atom
+      |> String.to_existing_atom()
       |> sort_function
 
     Enum.sort_by(call_results, sort_by)
@@ -190,7 +215,8 @@ defmodule Mix.Tasks.Profile.Eprof do
 
   defp add_totals(call_results) do
     {function_count, call_count, total_time} =
-      Enum.reduce(call_results, {0, 0, 0}, fn({_, {count, time}}, {function_count, call_count, total_time}) ->
+      Enum.reduce(call_results, {0, 0, 0}, fn {_, {count, time}},
+                                              {function_count, call_count, total_time} ->
         {function_count + 1, call_count + count, total_time + time}
       end)
 
@@ -202,16 +228,16 @@ defmodule Mix.Tasks.Profile.Eprof do
   defp print_output({0, _, _, _}), do: print_function_count(0)
 
   defp print_output({function_count, call_results, call_count, total_time}) do
-    formatted_rows = Enum.map(call_results, &(format_row(&1, total_time)))
+    formatted_rows = Enum.map(call_results, &format_row(&1, total_time))
     formatted_total = format_total(total_time, call_count)
 
     column_lengths = column_lengths(@header, formatted_rows)
 
     print_row(@header, column_lengths)
     print_row(formatted_total, column_lengths)
-    Enum.each(formatted_rows, &(print_row(&1, column_lengths)))
+    Enum.each(formatted_rows, &print_row(&1, column_lengths))
 
-    IO.puts ""
+    IO.puts("")
 
     print_function_count(function_count)
   end
@@ -229,7 +255,13 @@ defmodule Mix.Tasks.Profile.Eprof do
   defp format_total(total_time, total_count) do
     time_per_call = :erlang.float_to_binary(divide(total_time, total_count), [{:decimals, 2}])
 
-    ["Total", Integer.to_string(total_count), "100.00", Integer.to_string(total_time), time_per_call]
+    [
+      "Total",
+      Integer.to_string(total_count),
+      "100.00",
+      Integer.to_string(total_time),
+      time_per_call
+    ]
   end
 
   defp divide(_, 0), do: 0.0
@@ -238,7 +270,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   defp column_lengths(header, rows) do
     max_lengths = Enum.map(header, &String.length/1)
 
-    Enum.reduce(rows, max_lengths, fn(row, max_lengths) ->
+    Enum.reduce(rows, max_lengths, fn row, max_lengths ->
       Stream.map(row, &String.length/1)
       |> Stream.zip(max_lengths)
       |> Enum.map(&max/1)
@@ -260,6 +292,6 @@ defmodule Mix.Tasks.Profile.Eprof do
   end
 
   def print_function_count(count) do
-    IO.puts "Profile done over #{count} matching functions"
+    IO.puts("Profile done over #{count} matching functions")
   end
 end
