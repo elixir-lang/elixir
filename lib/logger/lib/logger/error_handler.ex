@@ -11,8 +11,7 @@ defmodule Logger.ErrorHandler do
     # and then trying to reach it will lead to crashes. So we send a
     # message to a PID, instead of named process, to avoid crashes on
     # send since this handler will be removed soon by the supervisor.
-    {
-      :ok,
+    state =
       %{
         otp: otp?,
         sasl: sasl?,
@@ -22,7 +21,8 @@ defmodule Logger.ErrorHandler do
         last_time: :os.timestamp(),
         dropped: 0
       }
-    }
+
+    {:ok, state}
   end
 
   ## Handle event
