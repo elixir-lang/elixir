@@ -83,149 +83,182 @@ defmodule URITest do
     end
 
     test "works with HTTP scheme" do
-      assert %URI{
-               scheme: "http",
-               host: "foo.com",
-               path: "/path/to/something",
-               query: "foo=bar&bar=foo",
-               fragment: "fragment",
-               port: 80,
-               authority: "foo.com",
-               userinfo: nil
-             } == URI.parse("http://foo.com/path/to/something?foo=bar&bar=foo#fragment")
+      expected_uri = %URI{
+        scheme: "http",
+        host: "foo.com",
+        path: "/path/to/something",
+        query: "foo=bar&bar=foo",
+        fragment: "fragment",
+        port: 80,
+        authority: "foo.com",
+        userinfo: nil
+      }
+      parsed_uri = URI.parse("http://foo.com/path/to/something?foo=bar&bar=foo#fragment")
+
+      assert expected_uri == parsed_uri
     end
 
     test "works with HTTPS scheme" do
-      assert %URI{
-               scheme: "https",
-               host: "foo.com",
-               authority: "foo.com",
-               query: nil,
-               fragment: nil,
-               port: 443,
-               path: nil,
-               userinfo: nil
-             } == URI.parse("https://foo.com")
+      expected_uri = %URI{
+        scheme: "https",
+        host: "foo.com",
+        authority: "foo.com",
+        query: nil,
+        fragment: nil,
+        port: 443,
+        path: nil,
+        userinfo: nil
+      }
+      parsed_uri = URI.parse("https://foo.com/")
+
+      assert expected_uri == parsed_uri
     end
 
     test "works with \"file\" scheme" do
-      assert %URI{
-               scheme: "file",
-               host: nil,
-               path: "/foo/bar/baz",
-               userinfo: nil,
-               query: nil,
-               fragment: nil,
-               port: nil,
-               authority: nil
-             } == URI.parse("file:///foo/bar/baz")
+      expected_uri = %URI{
+        scheme: "file",
+        host: nil,
+        path: "/foo/bar/baz",
+        userinfo: nil,
+        query: nil,
+        fragment: nil,
+        port: nil,
+        authority: nil
+      }
+      parsed_uri = URI.parse("file:///foo/bar/baz")
+
+      assert expected_uri == parsed_uri
     end
 
     test "works with FTP scheme" do
-      assert %URI{
-               scheme: "ftp",
-               host: "private.ftp-server.example.com",
-               userinfo: "user001:password",
-               authority: "user001:password@private.ftp-server.example.com",
-               path: "/my_directory/my_file.txt",
-               query: nil,
-               fragment: nil,
-               port: 21
-             } ==
-               URI.parse(
-                 "ftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
-               )
+      expected_uri = %URI{
+        scheme: "ftp",
+        host: "private.ftp-server.example.com",
+        userinfo: "user001:password",
+        authority: "user001:password@private.ftp-server.example.com",
+        path: "/my_directory/my_file.txt",
+        query: nil,
+        fragment: nil,
+        port: 21
+      }
+      parsed_uri =
+        URI.parse(
+          "ftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+        )
+
+      assert expected_uri == parsed_uri
     end
 
     test "works with SFTP scheme" do
-      assert %URI{
-               scheme: "sftp",
-               host: "private.ftp-server.example.com",
-               userinfo: "user001:password",
-               authority: "user001:password@private.ftp-server.example.com",
-               path: "/my_directory/my_file.txt",
-               query: nil,
-               fragment: nil,
-               port: 22
-             } ==
-               URI.parse(
-                 "sftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
-               )
+      expected_uri = %URI{
+        scheme: "sftp",
+        host: "private.ftp-server.example.com",
+        userinfo: "user001:password",
+        authority: "user001:password@private.ftp-server.example.com",
+        path: "/my_directory/my_file.txt",
+        query: nil,
+        fragment: nil,
+        port: 22
+      }
+      parsed_uri =
+        URI.parse(
+          "sftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+        )
+
+      assert expected_uri == parsed_uri
     end
 
     test "works with TFTP scheme" do
-      assert %URI{
-               scheme: "tftp",
-               host: "private.ftp-server.example.com",
-               userinfo: "user001:password",
-               authority: "user001:password@private.ftp-server.example.com",
-               path: "/my_directory/my_file.txt",
-               query: nil,
-               fragment: nil,
-               port: 69
-             } ==
-               URI.parse(
-                 "tftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
-               )
+      expected_uri = %URI{
+        scheme: "tftp",
+        host: "private.ftp-server.example.com",
+        userinfo: "user001:password",
+        authority: "user001:password@private.ftp-server.example.com",
+        path: "/my_directory/my_file.txt",
+        query: nil,
+        fragment: nil,
+        port: 69
+      }
+      parsed_uri =
+        URI.parse(
+          "tftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+        )
+
+      assert expected_uri == parsed_uri
     end
 
     test "works with LDAP scheme" do
-      assert %URI{
-               scheme: "ldap",
-               host: nil,
-               authority: nil,
-               userinfo: nil,
-               path: "/dc=example,dc=com",
-               query: "?sub?(givenName=John)",
-               fragment: nil,
-               port: 389
-             } == URI.parse("ldap:///dc=example,dc=com??sub?(givenName=John)")
+      expected_uri = %URI{
+        scheme: "ldap",
+        host: nil,
+        authority: nil,
+        userinfo: nil,
+        path: "/dc=example,dc=com",
+        query: "?sub?(givenName=John)",
+        fragment: nil,
+        port: 389
+      }
+      parsed_uri = URI.parse("ldap:///dc=example,dc=com??sub?(givenName=John)")
 
-      assert %URI{
-               scheme: "ldap",
-               host: "ldap.example.com",
-               authority: "ldap.example.com",
-               userinfo: nil,
-               path: "/cn=John%20Doe,dc=example,dc=com",
-               fragment: nil,
-               port: 389,
-               query: nil
-             } == URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=example,dc=com")
+      assert expected_uri == parsed_uri
+
+      expected_uri = %URI{
+        scheme: "ldap",
+        host: "ldap.example.com",
+        authority: "ldap.example.com",
+        userinfo: nil,
+        path: "/cn=John%20Doe,dc=example,dc=com",
+        fragment: nil,
+        port: 389,
+        query: nil
+      }
+      parsed_uri = URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=example,dc=com")
+
+      assert expected_uri == parsed_uri
     end
 
     test "splits authority" do
-      assert %URI{
-               scheme: "http",
-               host: "foo.com",
-               path: nil,
-               query: nil,
-               fragment: nil,
-               port: 4444,
-               authority: "foo:bar@foo.com:4444",
-               userinfo: "foo:bar"
-             } == URI.parse("http://foo:bar@foo.com:4444")
+      expected_uri = %URI{
+        scheme: "http",
+        host: "foo.com",
+        path: nil,
+        query: nil,
+        fragment: nil,
+        port: 4444,
+        authority: "foo:bar@foo.com:4444",
+        userinfo: "foo:bar"
+      }
+      parsed_uri = URI.parse("http://foo:bar@foo.com:4444")
 
-      assert %URI{
-               scheme: "https",
-               host: "foo.com",
-               path: nil,
-               query: nil,
-               fragment: nil,
-               port: 443,
-               authority: "foo:bar@foo.com",
-               userinfo: "foo:bar"
-             } == URI.parse("https://foo:bar@foo.com")
+      assert expected_uri == parsed_uri
 
-      assert %URI{
-               scheme: "http",
-               host: "foo.com",
-               path: nil,
-               query: nil,
-               fragment: nil,
-               port: 4444,
-               authority: "foo.com:4444",
-               userinfo: nil
-             } == URI.parse("http://foo.com:4444")
+      expected_uri = %URI{
+        scheme: "https",
+        host: "foo.com",
+        path: nil,
+        query: nil,
+        fragment: nil,
+        port: 443,
+        authority: "foo:bar@foo.com",
+        userinfo: "foo:bar"
+      }
+      parsed_uri = URI.parse("https://foo:bar@foo.com")
+
+      assert expected_uri == parsed_uri
+
+      expected_uri = %URI{
+        scheme: "http",
+        host: "foo.com",
+        path: nil,
+        query: nil,
+        fragment: nil,
+        port: 4444,
+        authority: "foo.com:4444",
+        userinfo: nil
+      }
+      parsed_uri = URI.parse("http://foo.com:4444")
+
+      assert expected_uri == parsed_uri
     end
 
     test "can parse bad URIs" do
