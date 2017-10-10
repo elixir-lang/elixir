@@ -175,11 +175,11 @@ defmodule EExTest do
     end
 
     test "when start expression is found without an end expression" do
-      assert_raise EEx.SyntaxError,
-                   "nofile:2: unexpected end of string, expected a closing '<% end %>'",
-                   fn ->
-                     EEx.compile_string("foo\n<% if true do %>")
-                   end
+      msg = "nofile:2: unexpected end of string, expected a closing '<% end %>'"
+
+      assert_raise EEx.SyntaxError, msg, fn ->
+        EEx.compile_string("foo\n<% if true do %>")
+      end
     end
 
     test "when nested end expression is found without a start expression" do
@@ -212,7 +212,7 @@ defmodule EExTest do
 
     test "when trying to use marker '|' without implementation" do
       msg =
-        ~r/unsupported EEx syntax <%\/ %> \(the syntax is valid but not supported by the current EEx engine\)/
+        ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/
 
       assert_raise EEx.SyntaxError, msg, fn ->
         EEx.compile_string("<%| true %>")
