@@ -1443,9 +1443,8 @@ defmodule Code.Formatter do
 
     doc =
       "fn "
-      |> concat(group(args_doc))
+      |> concat(group(nest(args_doc, :cursor)))
       |> concat(" ->")
-      |> nest(1)
       |> glue(body_doc)
       |> nest(2)
       |> glue("end")

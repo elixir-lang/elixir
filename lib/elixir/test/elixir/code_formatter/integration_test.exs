@@ -73,6 +73,16 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "anonymous function with long single clause and blocks" do
+    assert_same """
+    {function_count, call_count, total_time} =
+      Enum.reduce(call_results, {0, 0, 0}, fn {_, {count, time}},
+                                              {function_count, call_count, total_time} ->
+        {function_count + 1, call_count + count, total_time + time}
+      end)
+    """
+  end
+
   test "cond with long clause args" do
     assert_same """
     cond do
