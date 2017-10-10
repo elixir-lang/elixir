@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.LexicalTrackerTest do
   use ExUnit.Case, async: true
@@ -31,18 +31,24 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.remote_references(config[:pid]) == {[], [String]}
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
+
     assert D.remote_dispatches(config[:pid]) ==
-      {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
+             {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
+
     assert D.remote_references(config[:pid]) == {[String], []}
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
+
     assert D.remote_dispatches(config[:pid]) ==
-      {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
+             {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
+
     assert D.remote_references(config[:pid]) == {[String], []}
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 2, :runtime)
+
     assert D.remote_dispatches(config[:pid]) ==
-      {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [2, 1]}}}
+             {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [2, 1]}}}
+
     assert D.remote_references(config[:pid]) == {[String], []}
   end
 
@@ -50,13 +56,13 @@ defmodule Kernel.LexicalTrackerTest do
     D.add_import(config[:pid], String, [], 1, true)
     D.import_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
     assert D.remote_references(config[:pid]) == {[String], []}
-    assert D.remote_dispatches(config[:pid]) ==
-      {%{String => %{{:upcase, 1} => [1]}}, %{}}
+    assert D.remote_dispatches(config[:pid]) == {%{String => %{{:upcase, 1} => [1]}}, %{}}
 
     D.import_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
     assert D.remote_references(config[:pid]) == {[String], []}
+
     assert D.remote_dispatches(config[:pid]) ==
-      {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
+             {%{String => %{{:upcase, 1} => [1]}}, %{String => %{{:upcase, 1} => [1]}}}
   end
 
   test "can add module with {function, arity} imports", config do
