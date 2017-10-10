@@ -34,7 +34,7 @@
 defmodule Module.LocalsTracker do
   @moduledoc false
 
-  @timeout   30_000
+  @timeout 30000
   @behaviour :gen_server
 
   @type ref :: pid | module
@@ -73,18 +73,19 @@ defmodule Module.LocalsTracker do
   end
 
   defp reachable_from(d, starting) do
-    reduce_reachable(d, starting, :sets.new)
+    reduce_reachable(d, starting, :sets.new())
   end
 
   defp reduce_reachable(d, vertex, vertices) do
     neighbours = :digraph.out_neighbours(d, vertex)
-    neighbours = (for {_, _} = t <- neighbours, do: t) |> :sets.from_list
-    remaining  = :sets.subtract(neighbours, vertices)
-    vertices   = :sets.union(neighbours, vertices)
+    neighbours = for({_, _} = t <- neighbours, do: t) |> :sets.from_list()
+    remaining = :sets.subtract(neighbours, vertices)
+    vertices = :sets.union(neighbours, vertices)
     :sets.fold(&reduce_reachable(d, &1, &2), vertices, remaining)
   end
 
-  defp to_pid(pid) when is_pid(pid),  do: pid
+  defp to_pid(pid) when is_pid(pid), do: pid
+
   defp to_pid(mod) when is_atom(mod) do
     table = :elixir_module.data_table(mod)
     :ets.lookup_element(table, {:elixir, :locals_tracker}, 2)
@@ -177,6 +178,7 @@ defmodule Module.LocalsTracker do
     # reattached and they are reachable.
     :lists.member(tuple, reattached) and :sets.is_element(tuple, reachable)
   end
+
   defp reachable?(tuple, :defp, reachable, _reattached) do
     :sets.is_element(tuple, reachable)
   end
@@ -216,6 +218,7 @@ defmodule Module.LocalsTracker do
       false -> min_reachable_default(max - 1, min, last, name, reachable)
     end
   end
+
   defp min_reachable_default(_max, _min, last, _name, _reachable) do
     last
   end
@@ -270,6 +273,7 @@ defmodule Module.LocalsTracker do
       handle_add_definition(d, kind, {name, i})
       handle_add_local(d, {name, i}, {name, arity})
     end
+
     {:noreply, d}
   end
 
@@ -342,9 +346,10 @@ defmodule Module.LocalsTracker do
   end
 
   defp replace_edge!(d, from, to) do
-    _ = unless :lists.member(to, :digraph.out_neighbours(d, from)) do
+    unless :lists.member(to, :digraph.out_neighbours(d, from)) do
       [:"$e" | _] = :digraph.add_edge(d, from, to)
     end
+
     :ok
   end
 end

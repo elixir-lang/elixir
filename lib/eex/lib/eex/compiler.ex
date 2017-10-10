@@ -52,7 +52,10 @@ defmodule EEx.Compiler do
 
     {contents, rest} =
       generate_buffer(rest, state.engine.handle_begin(buffer), [contents | scope], %{
-        state | quoted: [], line: line, start_line: start_line
+        state
+        | quoted: [],
+          line: line,
+          start_line: start_line
       })
 
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)

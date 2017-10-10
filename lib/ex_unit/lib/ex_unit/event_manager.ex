@@ -1,6 +1,6 @@
 defmodule ExUnit.EventManager do
   @moduledoc false
-  @timeout 30_000
+  @timeout 30000
 
   # TODO: Remove support for GenEvent formatters on 2.0
 
@@ -16,6 +16,7 @@ defmodule ExUnit.EventManager do
       start: {GenServer, :start_link, []},
       restart: :temporary
     }
+
     {:ok, sup} = Supervisor.start_link([spec], strategy: :simple_one_for_one)
     {:ok, event} = :gen_event.start_link()
     {:ok, {sup, event}}
@@ -25,16 +26,20 @@ defmodule ExUnit.EventManager do
     for {_, pid, _, _} <- Supervisor.which_children(sup) do
       GenServer.stop(pid, :normal, @timeout)
     end
+
     Supervisor.stop(sup)
     :gen_event.stop(event)
   end
 
   def add_handler({sup, event}, handler, opts) do
     if Code.ensure_loaded?(handler) and function_exported?(handler, :handle_call, 2) do
-      IO.warn "passing GenEvent handlers (#{inspect(handler)} in this case) in " <>
-              "the :formatters option of ExUnit is deprecated, please pass a " <>
-              "GenServer instead. Check the documentation for the ExUnit.Formatter " <>
-              "module for more information"
+      IO.warn(
+        "passing GenEvent handlers (#{inspect(handler)} in this case) in " <>
+          "the :formatters option of ExUnit is deprecated, please pass a " <>
+          "GenServer instead. Check the documentation for the ExUnit.Formatter " <>
+          "module for more information"
+      )
+
       :gen_event.add_handler(event, handler, opts)
     else
       Supervisor.start_child(sup, [handler, opts])
@@ -71,9 +76,11 @@ defmodule ExUnit.EventManager do
 
   defp notify({sup, event}, msg) do
     :gen_event.notify(event, msg)
+
     for {_, pid, _, _} <- Supervisor.which_children(sup) do
       GenServer.cast(pid, msg)
     end
+
     :ok
   end
 end

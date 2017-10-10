@@ -73,6 +73,16 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "anonymous function with long single clause and blocks" do
+    assert_same """
+    {function_count, call_count, total_time} =
+      Enum.reduce(call_results, {0, 0, 0}, fn {_, {count, time}},
+                                              {function_count, call_count, total_time} ->
+        {function_count + 1, call_count + count, total_time + time}
+      end)
+    """
+  end
+
   test "cond with long clause args" do
     assert_same """
     cond do
@@ -228,6 +238,23 @@ defmodule Code.Formatter.IntegrationTest do
         remove_consolidated(protocol, output),
         do: {protocol, true},
         into: %{}
+    """
+  end
+
+  test "comprehensions with when" do
+    assert_same """
+    for {key, value} when is_atom(key) <- Map.to_list(map),
+        key = Atom.to_string(key),
+        String.starts_with?(key, hint) do
+      %{kind: :map_key, name: key, value_is_map: is_map(value)}
+    end
+    """
+  end
+
+  test "next break fits followed by inline tuple" do
+    assert_same """
+    assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
+             {:error, "due to line filter"}
     """
   end
 end

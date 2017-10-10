@@ -34,7 +34,7 @@ defmodule Mix.Dep.Fetcher do
   defp fetch_by_name(given, lock) do
     names = to_app_names(given)
 
-    fn(%Mix.Dep{app: app} = dep, acc, new_lock) ->
+    fn %Mix.Dep{app: app} = dep, acc, new_lock ->
       # Only fetch if dependency is in given names or if lock has
       # been changed for dependency by remote converger
       if app in names or lock[app] != new_lock[app] do
@@ -57,10 +57,10 @@ defmodule Mix.Dep.Fetcher do
       out_of_date?(dep) ->
         new =
           if scm.checked_out?(opts) do
-            Mix.shell.info "* Updating #{format_dep(dep)}"
+            Mix.shell().info("* Updating #{format_dep(dep)}")
             scm.update(opts)
           else
-            Mix.shell.info "* Getting #{format_dep(dep)}"
+            Mix.shell().info("* Getting #{format_dep(dep)}")
             scm.checkout(opts)
           end
 
@@ -77,10 +77,10 @@ defmodule Mix.Dep.Fetcher do
   end
 
   defp out_of_date?(%Mix.Dep{status: {:lockmismatch, _}}), do: true
-  defp out_of_date?(%Mix.Dep{status: :lockoutdated}),      do: true
-  defp out_of_date?(%Mix.Dep{status: :nolock}),            do: true
-  defp out_of_date?(%Mix.Dep{status: {:unavailable, _}}),  do: true
-  defp out_of_date?(%Mix.Dep{}),                           do: false
+  defp out_of_date?(%Mix.Dep{status: :lockoutdated}), do: true
+  defp out_of_date?(%Mix.Dep{status: :nolock}), do: true
+  defp out_of_date?(%Mix.Dep{status: {:unavailable, _}}), do: true
+  defp out_of_date?(%Mix.Dep{}), do: false
 
   defp do_finalize({all_deps, apps, new_lock}, old_lock, opts) do
     # Let's get the loaded versions of deps
@@ -97,7 +97,7 @@ defmodule Mix.Dep.Fetcher do
     # maximum we can at each deps.get and deps.update.
     deps =
       if Enum.all?(all_deps, &available?/1) do
-        Enum.uniq_by(with_depending(deps, all_deps), &(&1.app))
+        Enum.uniq_by(with_depending(deps, all_deps), & &1.app)
       else
         deps
       end
@@ -119,9 +119,11 @@ defmodule Mix.Dep.Fetcher do
     # file to it. Each build, regardless of the environment and location,
     # will compared against this .fetch file to know if the dependency
     # needs recompiling.
-    _ = for %Mix.Dep{scm: scm, opts: opts} <- deps, scm.fetchable? do
-      File.touch! Path.join opts[:dest], ".fetch"
-    end
+    _ =
+      for %Mix.Dep{scm: scm, opts: opts} <- deps, scm.fetchable?() do
+        File.touch!(Path.join(opts[:dest], ".fetch"))
+      end
+
     :ok
   end
 
@@ -136,29 +138,31 @@ defmodule Mix.Dep.Fetcher do
   defp do_with_depending(deps, all_deps) do
     dep_names = Enum.map(deps, fn dep -> dep.app end)
 
-    parents = Enum.filter all_deps, fn dep ->
-      Enum.any?(dep.deps, &(&1.app in dep_names))
-    end
+    parents =
+      Enum.filter(all_deps, fn dep ->
+        Enum.any?(dep.deps, &(&1.app in dep_names))
+      end)
 
     do_with_depending(parents, all_deps) ++ parents
   end
 
   defp to_app_names(given) do
-    Enum.map(given, fn(app) ->
+    Enum.map(given, fn app ->
       if is_binary(app), do: String.to_atom(app), else: app
     end)
   end
 
   defp show_diverged!([]), do: :ok
+
   defp show_diverged!(deps) do
-    shell = Mix.shell
-    shell.error "Dependencies have diverged:"
+    shell = Mix.shell()
+    shell.error("Dependencies have diverged:")
 
-    Enum.each deps, fn(dep) ->
-      shell.error "* #{Mix.Dep.format_dep dep}"
-      shell.error "  #{Mix.Dep.format_status dep}"
-    end
+    Enum.each(deps, fn dep ->
+      shell.error("* #{Mix.Dep.format_dep(dep)}")
+      shell.error("  #{Mix.Dep.format_status(dep)}")
+    end)
 
-    Mix.raise "Can't continue due to errors on dependencies"
+    Mix.raise("Can't continue due to errors on dependencies")
   end
 end

@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule AgentTest do
   use ExUnit.Case, async: true
@@ -10,8 +10,7 @@ defmodule AgentTest do
   end
 
   test "can be supervised directly" do
-    assert {:ok, _} =
-           Supervisor.start_link([{Agent, fn -> :ok end}], strategy: :one_for_one)
+    assert {:ok, _} = Supervisor.start_link([{Agent, fn -> :ok end}], strategy: :one_for_one)
   end
 
   test "generates child_spec/1" do
@@ -20,24 +19,20 @@ defmodule AgentTest do
     end
 
     assert MyAgent.child_spec([:hello]) == %{
-      id: MyAgent,
-      start: {MyAgent, :start_link, [[:hello]]}
-    }
+             id: MyAgent,
+             start: {MyAgent, :start_link, [[:hello]]}
+           }
 
     defmodule CustomAgent do
-      use Agent,
-        id: :id,
-        restart: :temporary,
-        shutdown: :infinity,
-        start: {:foo, :bar, []}
+      use Agent, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
     end
 
     assert CustomAgent.child_spec([:hello]) == %{
-      id: :id,
-      restart: :temporary,
-      shutdown: :infinity,
-      start: {:foo, :bar, []}
-    }
+             id: :id,
+             restart: :temporary,
+             shutdown: :infinity,
+             start: {:foo, :bar, []}
+           }
   end
 
   test "start_link/2 workflow with unregistered name and anonymous functions" do
@@ -51,7 +46,7 @@ defmodule AgentTest do
     assert Agent.update(pid, &Map.put(&1, :hello, :world)) == :ok
     assert Agent.get(pid, &Map.get(&1, :hello), 3000) == :world
     assert Agent.get_and_update(pid, &Map.pop(&1, :hello), 3000) == :world
-    assert Agent.get(pid, &(&1)) == %{}
+    assert Agent.get(pid, & &1) == %{}
     assert Agent.stop(pid) == :ok
     wait_until_dead(pid)
   end
@@ -69,7 +64,7 @@ defmodule AgentTest do
   end
 
   test ":sys.change_code/4 with mfa" do
-    { :ok, pid } = Agent.start_link(fn -> %{} end)
+    {:ok, pid} = Agent.start_link(fn -> %{} end)
     :ok = :sys.suspend(pid)
     mfa = {Map, :put, [:hello, :world]}
     assert :sys.change_code(pid, __MODULE__, "vsn", mfa) == :ok
@@ -79,12 +74,12 @@ defmodule AgentTest do
   end
 
   test ":sys.change_code/4 with raising mfa" do
-    { :ok, pid } = Agent.start_link(fn -> %{} end)
+    {:ok, pid} = Agent.start_link(fn -> %{} end)
     :ok = :sys.suspend(pid)
-    mfa = { :erlang, :error, [] }
-    assert match?({ :error, _ }, :sys.change_code(pid, __MODULE__, "vsn", mfa))
+    mfa = {:erlang, :error, []}
+    assert match?({:error, _}, :sys.change_code(pid, __MODULE__, "vsn", mfa))
     :ok = :sys.resume(pid)
-    assert Agent.get(pid, &(&1)) == %{}
+    assert Agent.get(pid, & &1) == %{}
     assert Agent.stop(pid) == :ok
   end
 

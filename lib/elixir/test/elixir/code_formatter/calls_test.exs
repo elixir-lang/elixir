@@ -385,11 +385,13 @@ defmodule Code.Formatter.CallsTest do
     test "with no arguments" do
       assert_format "Foo . Bar . baz", "Foo.Bar.baz()"
       assert_format ":erlang.\nget_stacktrace", ":erlang.get_stacktrace()"
-      assert_format "@foo.bar()", "@foo.bar"
-      assert_format "(@foo).bar()", "@foo.bar"
+      assert_format "@foo.bar", "@foo.bar"
+      assert_format "@foo.bar()", "@foo.bar()"
+      assert_format "(@foo).bar()", "@foo.bar()"
       assert_format "__MODULE__.start_link", "__MODULE__.start_link()"
       assert_format "Foo.bar.baz.bong", "Foo.bar().baz.bong"
-      assert_format "(1 + 2).foo()", "(1 + 2).foo"
+      assert_format "(1 + 2).foo", "(1 + 2).foo"
+      assert_format "(1 + 2).foo()", "(1 + 2).foo()"
     end
 
     test "with arguments" do
@@ -502,7 +504,22 @@ defmodule Code.Formatter.CallsTest do
     end
 
     test "on vars" do
-      assert_format "foo.bar()", "foo.bar"
+      assert_same "foo.bar"
+      assert_same "foo.bar()"
+    end
+
+    test "on vars before blocks" do
+      assert_same """
+      if var.field do
+        raise "oops"
+      end
+      """
+    end
+
+    test "on vars before brackets" do
+      assert_same """
+      exception.opts[:foo]
+      """
     end
   end
 

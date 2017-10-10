@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.ShellTest do
   use MixTest.Case
@@ -8,12 +8,13 @@ defmodule Mix.ShellTest do
   end
 
   test "executes cmd with expressions" do
-    Mix.shell Mix.Shell.IO
+    Mix.shell(Mix.Shell.IO)
 
     assert capture_io(fn ->
              assert Mix.Shell.cmd("echo first && echo second", into: %Mix.Shell{}) == 0
-           end) |> String.replace(" \n", "\n") == "first\nsecond\n"
+           end)
+           |> String.replace(" \n", "\n") == "first\nsecond\n"
   after
-    Mix.shell Mix.Shell.Process
+    Mix.shell(Mix.Shell.Process)
   end
 end

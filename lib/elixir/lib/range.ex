@@ -43,7 +43,6 @@ defmodule Range do
   @type t :: %Range{first: integer, last: integer}
   @type t(first, last) :: %Range{first: first, last: last}
 
-
   @doc """
   Creates a new range.
   """
@@ -54,8 +53,8 @@ defmodule Range do
 
   def new(first, last) do
     raise ArgumentError,
-      "ranges (first..last) expect both sides to be integers, " <>
-      "got: #{inspect first}..#{inspect last}"
+          "ranges (first..last) expect both sides to be integers, " <>
+            "got: #{inspect(first)}..#{inspect(last)}"
   end
 
   @doc """
@@ -126,6 +125,6 @@ defimpl Inspect, for: Range do
   import Inspect.Algebra
 
   def inspect(first..last, opts) do
-    concat [to_doc(first, opts), "..", to_doc(last, opts)]
+    concat([to_doc(first, opts), "..", to_doc(last, opts)])
   end
 end

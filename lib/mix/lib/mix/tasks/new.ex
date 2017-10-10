@@ -113,7 +113,7 @@ defmodule Mix.Tasks.New do
     Run "mix help" for more commands.
     """
     |> String.trim_trailing
-    |> Mix.shell.info
+    |> Mix.shell.info()
   end
 
   defp sup_app(_mod, false), do: ""
@@ -148,7 +148,7 @@ defmodule Mix.Tasks.New do
     for each application in the apps/ directory.
     """
     |> String.trim_trailing
-    |> Mix.shell.info
+    |> Mix.shell.info()
   end
 
   defp check_application_name!(name, inferred?) do

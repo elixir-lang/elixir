@@ -1,1 +1,1 @@
-defmodule CompileSample, do: nil
+defmodule(CompileSample, do: nil)

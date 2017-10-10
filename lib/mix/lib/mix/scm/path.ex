@@ -18,13 +18,15 @@ defmodule Mix.SCM.Path do
     cond do
       raw = opts[:path] ->
         Keyword.put(opts, :dest, Path.expand(raw))
+
       opts[:in_umbrella] ->
         path = "../#{app}"
 
         opts
         |> Keyword.put(:dest, Path.expand(path))
         |> Keyword.put_new(:path, path)
-        |> Keyword.put_new(:env, Mix.env)
+        |> Keyword.put_new(:env, Mix.env())
+
       true ->
         nil
     end
@@ -48,8 +50,8 @@ defmodule Mix.SCM.Path do
 
   @spec checkout(list) :: no_return
   def checkout(opts) do
-    path = Path.relative_to_cwd opts[:dest]
-    Mix.raise "Cannot checkout path dependency, expected a dependency at #{path}"
+    path = Path.relative_to_cwd(opts[:dest])
+    Mix.raise("Cannot checkout path dependency, expected a dependency at #{path}")
   end
 
   def update(opts) do

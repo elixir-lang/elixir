@@ -229,8 +229,8 @@ no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_id
 
 no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
 no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
-no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil).
-no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
+no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil, [{no_parens, true}]).
+no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil, [{no_parens, true}]).
 
 %% From this point on, we just have constructs that can be
 %% used with the access syntax. Notice that (dot_)identifier
@@ -277,11 +277,11 @@ bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_list('$1', '$2', '$4').
 
-bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1', nil), '$2').
+bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1', nil, [{no_parens, true}]), '$2').
 bracket_expr -> access_expr bracket_arg : build_access('$1', '$2').
 
 bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_arg :
-                     build_access(build_unary_op('$1', build_identifier('$2', nil)), '$3').
+                     build_access(build_unary_op('$1', build_identifier('$2', nil, [{no_parens, true}])), '$3').
 bracket_at_expr -> at_op_eol access_expr bracket_arg :
                      build_access(build_unary_op('$1', '$2'), '$3').
 
@@ -378,48 +378,51 @@ close_curly -> eol '}' : '$2'.
 
 % Operators
 
-add_op_eol -> add_op : '$1'.
-add_op_eol -> add_op eol : '$1'.
-add_op_eol -> dual_op : '$1'.
-add_op_eol -> dual_op eol : '$1'.
-
-mult_op_eol -> mult_op : '$1'.
-mult_op_eol -> mult_op eol : '$1'.
-
-two_op_eol -> two_op : '$1'.
-two_op_eol -> two_op eol : '$1'.
-
-three_op_eol -> three_op : '$1'.
-three_op_eol -> three_op eol : '$1'.
-
-pipe_op_eol -> pipe_op : '$1'.
-pipe_op_eol -> pipe_op eol : next_is_eol('$1').
-
-capture_op_eol -> capture_op : '$1'.
-capture_op_eol -> capture_op eol : '$1'.
-
 unary_op_eol -> unary_op : '$1'.
 unary_op_eol -> unary_op eol : '$1'.
 unary_op_eol -> dual_op : '$1'.
 unary_op_eol -> dual_op eol : '$1'.
 
+capture_op_eol -> capture_op : '$1'.
+capture_op_eol -> capture_op eol : '$1'.
+
+at_op_eol -> at_op : '$1'.
+at_op_eol -> at_op eol : '$1'.
+
+add_op_eol -> add_op : '$1'.
+add_op_eol -> add_op eol : next_is_eol('$1').
+add_op_eol -> dual_op : '$1'.
+add_op_eol -> dual_op eol : next_is_eol('$1').
+
+mult_op_eol -> mult_op : '$1'.
+mult_op_eol -> mult_op eol : next_is_eol('$1').
+
+two_op_eol -> two_op : '$1'.
+two_op_eol -> two_op eol : next_is_eol('$1').
+
+three_op_eol -> three_op : '$1'.
+three_op_eol -> three_op eol : next_is_eol('$1').
+
+pipe_op_eol -> pipe_op : '$1'.
+pipe_op_eol -> pipe_op eol : next_is_eol('$1').
+
 match_op_eol -> match_op : '$1'.
-match_op_eol -> match_op eol : '$1'.
+match_op_eol -> match_op eol : next_is_eol('$1').
 
 and_op_eol -> and_op : '$1'.
-and_op_eol -> and_op eol : '$1'.
+and_op_eol -> and_op eol : next_is_eol('$1').
 
 or_op_eol -> or_op : '$1'.
-or_op_eol -> or_op eol : '$1'.
+or_op_eol -> or_op eol : next_is_eol('$1').
 
 in_op_eol -> in_op : '$1'.
-in_op_eol -> in_op eol : '$1'.
+in_op_eol -> in_op eol : next_is_eol('$1').
 
 in_match_op_eol -> in_match_op : '$1'.
-in_match_op_eol -> in_match_op eol : '$1'.
+in_match_op_eol -> in_match_op eol : next_is_eol('$1').
 
 type_op_eol -> type_op : '$1'.
-type_op_eol -> type_op eol : '$1'.
+type_op_eol -> type_op eol : next_is_eol('$1').
 
 when_op_eol -> when_op : '$1'.
 when_op_eol -> when_op eol : next_is_eol('$1').
@@ -427,14 +430,11 @@ when_op_eol -> when_op eol : next_is_eol('$1').
 stab_op_eol -> stab_op : '$1'.
 stab_op_eol -> stab_op eol : next_is_eol('$1').
 
-at_op_eol -> at_op : '$1'.
-at_op_eol -> at_op eol : '$1'.
-
 comp_op_eol -> comp_op : '$1'.
-comp_op_eol -> comp_op eol : '$1'.
+comp_op_eol -> comp_op eol : next_is_eol('$1').
 
 rel_op_eol -> rel_op : '$1'.
-rel_op_eol -> rel_op eol : '$1'.
+rel_op_eol -> rel_op eol : next_is_eol('$1').
 
 arrow_op_eol -> arrow_op : '$1'.
 arrow_op_eol -> arrow_op eol : next_is_eol('$1').
@@ -674,12 +674,10 @@ build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(U
   %% TODO: Deprecate "not left in right" rearrangement on 1.7
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
-build_op({EolOp, Location, Op} = Token, Left, Right) when EolOp == arrow_op; EolOp == stab_op; EolOp == pipe_op; EolOp == when_op ->
-  {Op, eol_op(Token) ++ meta_from_location(Location), [Left, Right]};
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 build_op({_Kind, Location, Op}, Left, Right) ->
-  {Op, meta_from_location(Location), [Left, Right]}.
+  {Op, eol_op(Location) ++ meta_from_location(Location), [Left, Right]}.
 
 build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
@@ -726,10 +724,10 @@ eol_pair(Left, Right) ->
       []
   end.
 
-eol_op(Token) ->
+eol_op(Location) ->
   case ?formatter_metadata() of
     true ->
-      case ?location(Token) of
+      case Location of
         {_, _, eol} -> [{eol, true}];
         _ -> []
       end;

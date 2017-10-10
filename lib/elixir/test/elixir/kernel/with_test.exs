@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.WithTest do
   use ExUnit.Case, async: true
@@ -26,10 +26,18 @@ defmodule Kernel.WithTest do
   end
 
   test "two levels with" do
-    result = with({:ok, n1} <- ok(11), n2 <- 22, do: n1 + n2)
+    result =
+      with {:ok, n1} <- ok(11),
+           n2 <- 22,
+           do: n1 + n2
+
     assert result == 33
 
-    result = with(n1 <- 11, {:ok, n2} <- error(), do: n1 + n2)
+    result =
+      with n1 <- 11,
+           {:ok, n2} <- error(),
+           do: n1 + n2
+
     assert result == :error
   end
 
@@ -37,19 +45,30 @@ defmodule Kernel.WithTest do
     result =
       with {:ok, n1} <- ok(11),
            n2 = n1 + 10,
-           {:ok, n3} <- ok(22), do: n2 + n3
+           {:ok, n3} <- ok(22),
+           do: n2 + n3
+
     assert result == 43
 
     result =
       with {:ok, n1} <- ok(11),
            n2 = n1 + 10,
-           {:ok, n3} <- error(), do: n2 + n3
+           {:ok, n3} <- error(),
+           do: n2 + n3
+
     assert result == :error
   end
 
   test "does not leak variables to else" do
     state = 1
-    result = with 1 <- state, state = 2, :ok <- error(), do: state, else: (_ -> state)
+
+    result =
+      with 1 <- state,
+           state = 2,
+           :ok <- error(),
+           do: state,
+           else: (_ -> state)
+
     assert result == 1
     assert state == 1
   end
@@ -65,13 +84,25 @@ defmodule Kernel.WithTest do
   end
 
   test "else conditions" do
-    assert with({:ok, res} <- four(), do: res, else: ({:error, error} -> error; res -> res + 1)) == 5
-    assert with({:ok, res} <- four(), do: res, else: (res when res == 4 -> res + 1; res -> res)) == 5
+    assert (with {:ok, res} <- four() do
+              res
+            else
+              {:error, error} -> error
+              res -> res + 1
+            end) == 5
+
+    assert (with {:ok, res} <- four() do
+              res
+            else
+              res when res == 4 -> res + 1
+              res -> res
+            end) == 5
+
     assert with({:ok, res} <- four(), do: res, else: (_ -> :error)) == :error
   end
 
   test "else conditions with match error" do
-    assert_raise WithClauseError, "no with clause matching: :error",  fn ->
+    assert_raise WithClauseError, "no with clause matching: :error", fn ->
       with({:ok, res} <- error(), do: res, else: ({:error, error} -> error))
     end
   end

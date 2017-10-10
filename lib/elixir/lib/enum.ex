@@ -1078,16 +1078,18 @@ defmodule Enum do
   @doc """
   Splits the enumerable into groups based on `key_fun`.
 
-  The result is a map where each key is given by `key_fun` and each
-  value is a list of elements given by `value_fun`. Ordering is preserved.
+  The result is a map where each key is given by `key_fun`
+  and each value is a list of elements given by `value_fun`.
+  The order of elements within each list is preserved from the enumerable.
+  However, like all maps, the resulting map is unordered.
 
   ## Examples
 
       iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1)
-      %{3 => ["ant", "cat"], 7 => ["buffalo"], 5 => ["dingo"]}
+      %{3 => ["ant", "cat"], 5 => ["dingo"], 7 => ["buffalo"]}
 
       iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1, &String.first/1)
-      %{3 => ["a", "c"], 7 => ["b"], 5 => ["d"]}
+      %{3 => ["a", "c"], 5 => ["d"], 7 => ["b"]}
 
   """
   @spec group_by(t, (element -> any), (element -> any)) :: map

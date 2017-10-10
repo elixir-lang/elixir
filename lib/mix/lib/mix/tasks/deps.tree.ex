@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Deps.Tree do
       For more options see http://www.graphviz.org/.
       """
       |> String.trim_trailing()
-      |> Mix.shell().info
+      |> Mix.shell().info()
     else
       callback = callback(&format_tree/1, deps, opts)
       Mix.Utils.print_tree([root], callback, opts)

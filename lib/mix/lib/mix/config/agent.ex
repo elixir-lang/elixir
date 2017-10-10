@@ -5,7 +5,7 @@ defmodule Mix.Config.Agent do
 
   @spec start_link() :: {:ok, pid}
   def start_link do
-    Agent.start_link fn -> [] end
+    Agent.start_link(fn -> [] end)
   end
 
   @spec stop(pid) :: :ok
@@ -15,7 +15,7 @@ defmodule Mix.Config.Agent do
 
   @spec get(pid) :: config
   def get(agent) do
-    Agent.get(agent, &(&1))
+    Agent.get(agent, & &1)
   end
 
   @spec merge(pid, config) :: config
