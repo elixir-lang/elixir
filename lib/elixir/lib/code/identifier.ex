@@ -15,10 +15,13 @@ defmodule Code.Identifier do
     cond do
       op in [:&] ->
         {:non_associative, 100}
+
       op in [:!, :^, :not, :+, :-, :~~~] ->
         {:non_associative, 300}
+
       op in [:@] ->
         {:non_associative, 320}
+
       true ->
         :error
     end
@@ -37,35 +40,50 @@ defmodule Code.Identifier do
   def binary_op(op) do
     cond do
       op in [:<-, :\\] ->
-        {:left,  40}
+        {:left, 40}
+
       op in [:when] ->
         {:right, 50}
+
       op in [:::] ->
         {:right, 60}
+
       op in [:|] ->
         {:right, 70}
+
       op in [:=] ->
         {:right, 90}
+
       op in [:||, :|||, :or] ->
         {:left, 130}
+
       op in [:&&, :&&&, :and] ->
         {:left, 140}
+
       op in [:==, :!=, :=~, :===, :!==] ->
         {:left, 150}
+
       op in [:<, :<=, :>=, :>] ->
         {:left, 160}
+
       op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>, :^^^] ->
         {:left, 170}
+
       op in [:in] ->
         {:left, 180}
+
       op in [:++, :--, :.., :<>] ->
         {:right, 200}
+
       op in [:+, :-] ->
         {:left, 210}
+
       op in [:*, :/] ->
         {:left, 220}
+
       op in [:.] ->
         {:left, 310}
+
       true ->
         :error
     end
@@ -96,12 +114,15 @@ defmodule Code.Identifier do
     charlist = Atom.to_charlist(atom)
 
     cond do
-      atom in [:"%", :"%{}", :"{}", :"<<>>", :"...", :"..", :"."] ->
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :->] ->
         :not_callable
+
       unary_op(atom) != :error or binary_op(atom) != :error ->
         :callable_operator
+
       valid_alias?(charlist) ->
         :alias
+
       true ->
         case :elixir_config.safe_get(:identifier_tokenizer, String.Tokenizer).tokenize(charlist) do
           {kind, _acc, [], _, _, special} ->
@@ -110,6 +131,7 @@ defmodule Code.Identifier do
             else
               :not_callable
             end
+
           _ ->
             :other
         end
@@ -121,10 +143,9 @@ defmodule Code.Identifier do
 
   defp valid_alias_piece?([?., char | rest]) when char >= ?A and char <= ?Z,
     do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
-  defp valid_alias_piece?([]),
-    do: true
-  defp valid_alias_piece?(_other),
-    do: false
+
+  defp valid_alias_piece?([]), do: true
+  defp valid_alias_piece?(_other), do: false
 
   defp trim_leading_while_valid_identifier([char | rest])
        when char >= ?a and char <= ?z
@@ -151,18 +172,17 @@ defmodule Code.Identifier do
     case classify(atom) do
       :alias ->
         case binary do
-          binary when binary in ["Elixir", "Elixir.Elixir"] ->
-            binary
-          "Elixir.Elixir." <> _rest ->
-            binary
-          "Elixir." <> rest ->
-            rest
+          binary when binary in ["Elixir", "Elixir.Elixir"] -> binary
+          "Elixir.Elixir." <> _rest -> binary
+          "Elixir." <> rest -> rest
         end
+
       type when type in [:callable_local, :callable_operator, :not_callable] ->
         ":" <> binary
+
       :other ->
         {escaped, _} = escape(binary, ?")
-        IO.iodata_to_binary [?:, ?", escaped, ?"]
+        IO.iodata_to_binary([?:, ?", escaped, ?"])
     end
   end
 
@@ -174,10 +194,11 @@ defmodule Code.Identifier do
 
     case classify(atom) do
       type when type in [:callable_local, :callable_operator, :not_callable] ->
-        IO.iodata_to_binary [binary, ?:, ?\s]
+        IO.iodata_to_binary([binary, ?:, ?\s])
+
       _ ->
         {escaped, _} = escape(binary, ?")
-        IO.iodata_to_binary [?", escaped, ?", ?:, ?\s]
+        IO.iodata_to_binary([?", escaped, ?", ?:, ?\s])
     end
   end
 
@@ -190,6 +211,7 @@ defmodule Code.Identifier do
     case classify(atom) do
       type when type in [:callable_local, :callable_operator] ->
         binary
+
       type ->
         escaped =
           if type in [:not_callable, :alias] do
@@ -197,7 +219,8 @@ defmodule Code.Identifier do
           else
             elem(escape(binary, ?"), 0)
           end
-        IO.iodata_to_binary [?", escaped, ?"]
+
+        IO.iodata_to_binary([?", escaped, ?"])
     end
   end
 
@@ -209,7 +232,7 @@ defmodule Code.Identifier do
     with "-" <> rest <- Atom.to_string(atom),
          [trailing | reversed] = rest |> String.split("/") |> Enum.reverse(),
          [arity, _inner, _count, ""] <- String.split(trailing, "-") do
-      {reversed |> Enum.reverse |> Enum.join("/") |> String.to_atom(), arity}
+      {reversed |> Enum.reverse() |> Enum.join("/") |> String.to_atom(), arity}
     else
       _ -> :error
     end
@@ -225,19 +248,24 @@ defmodule Code.Identifier do
   defp escape(<<_, _::binary>> = binary, _char, 0, acc, _fun) do
     {acc, binary}
   end
+
   defp escape(<<char, t::binary>>, char, count, acc, fun) do
     escape(t, char, decrement(count), [acc | [?\\, char]], fun)
   end
+
   defp escape(<<?#, ?{, t::binary>>, char, count, acc, fun) do
     escape(t, char, decrement(count), [acc | '\\\#{'], fun)
   end
+
   defp escape(<<h::utf8, t::binary>>, char, count, acc, fun) do
     escaped = if value = fun.(h), do: value, else: escape_char(h)
     escape(t, char, decrement(count), [acc | escaped], fun)
   end
+
   defp escape(<<a::4, b::4, t::binary>>, char, count, acc, fun) do
     escape(t, char, decrement(count), [acc | ['\\x', to_hex(a), to_hex(b)]], fun)
   end
+
   defp escape(<<>>, _char, _count, acc, _fun) do
     {acc, <<>>}
   end
@@ -264,8 +292,7 @@ defmodule Code.Identifier do
 
   defp escape_char(char) when char < 0x1000000 do
     <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::24>>
-    ['\\x{', to_hex(a), to_hex(b), to_hex(c),
-             to_hex(d), to_hex(e), to_hex(f), ?}]
+    ['\\x{', to_hex(a), to_hex(b), to_hex(c), to_hex(d), to_hex(e), to_hex(f), ?}]
   end
 
   defp escape_map(?\a), do: '\\a'
@@ -285,5 +312,5 @@ defmodule Code.Identifier do
   defp to_hex(c) when c in 10..15, do: ?A + c - 10
 
   defp decrement(:infinity), do: :infinity
-  defp decrement(counter),   do: counter - 1
+  defp decrement(counter), do: counter - 1
 end

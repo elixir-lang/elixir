@@ -25,7 +25,7 @@ defprotocol Inspect do
         import Inspect.Algebra
 
         def inspect(dict, opts) do
-          concat ["#MapSet<", to_doc(MapSet.to_list(dict), opts), ">"]
+          concat(["#MapSet<", to_doc(MapSet.to_list(dict), opts), ">"])
         end
       end
 
@@ -50,7 +50,7 @@ defprotocol Inspect do
   implementation directly. For example, to test Inspect.MapSet above,
   you can invoke it as:
 
-      Inspect.MapSet.inspect(MapSet.new, %Inspect.Opts{})
+      Inspect.MapSet.inspect(MapSet.new(), %Inspect.Opts{})
 
   """
 

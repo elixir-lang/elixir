@@ -164,24 +164,24 @@ defmodule CodeTest do
 
   test "string_to_quoted/2 with :formatter_metadata adds newlines to blocks" do
     file = """
-    one;two
-    three
+    one();two()
+    three()
 
-    four
+    four()
 
 
-    five
+    five()
     """
 
     assert Code.string_to_quoted!(file, formatter_metadata: true) == {
              :__block__,
              [],
              [
-               {:one, [line: 1], nil},
-               {:two, [newlines: 0, line: 1], nil},
-               {:three, [newlines: 1, line: 2], nil},
-               {:four, [newlines: 2, line: 4], nil},
-               {:five, [newlines: 3, line: 7], nil}
+               {:one, [line: 1], []},
+               {:two, [newlines: 0, line: 1], []},
+               {:three, [newlines: 1, line: 2], []},
+               {:four, [newlines: 2, line: 4], []},
+               {:five, [newlines: 3, line: 7], []}
              ]
            }
   end

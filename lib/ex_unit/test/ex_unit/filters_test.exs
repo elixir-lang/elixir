@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.FiltersTest do
   use ExUnit.Case, async: true
@@ -6,14 +6,14 @@ defmodule ExUnit.FiltersTest do
   doctest ExUnit.Filters
 
   test "evaluating filters" do
-    assert ExUnit.Filters.eval([], [:os], %{}, [])                == :ok
-    assert ExUnit.Filters.eval([], [os: :win], %{os: :unix}, [])  == :ok
-    assert ExUnit.Filters.eval([], [:os], %{os: :unix}, [])       == {:error, "due to os filter"}
+    assert ExUnit.Filters.eval([], [:os], %{}, []) == :ok
+    assert ExUnit.Filters.eval([], [os: :win], %{os: :unix}, []) == :ok
+    assert ExUnit.Filters.eval([], [:os], %{os: :unix}, []) == {:error, "due to os filter"}
     assert ExUnit.Filters.eval([], [os: :unix], %{os: :unix}, []) == {:error, "due to os filter"}
 
-    assert ExUnit.Filters.eval([os: :win], [], %{}, [])            == :ok
-    assert ExUnit.Filters.eval([os: :win], [], %{os: :unix}, [])   == :ok
-    assert ExUnit.Filters.eval([os: :win], [:os], %{}, [])         == :ok
+    assert ExUnit.Filters.eval([os: :win], [], %{}, []) == :ok
+    assert ExUnit.Filters.eval([os: :win], [], %{os: :unix}, []) == :ok
+    assert ExUnit.Filters.eval([os: :win], [:os], %{}, []) == :ok
     assert ExUnit.Filters.eval([os: :win], [:os], %{os: :win}, []) == :ok
 
     assert ExUnit.Filters.eval([os: :win, os: :unix], [:os], %{os: :win}, []) == :ok
@@ -29,21 +29,23 @@ defmodule ExUnit.FiltersTest do
   end
 
   test "evaluating filters matches integers" do
-    assert ExUnit.Filters.eval([int: "1"], [], %{int: 1}, [])       == :ok
+    assert ExUnit.Filters.eval([int: "1"], [], %{int: 1}, []) == :ok
     assert ExUnit.Filters.eval([int: "1"], [int: 5], %{int: 1}, []) == :ok
-    assert ExUnit.Filters.eval([int: "1"], [:int], %{int: 1}, [])   == :ok
+    assert ExUnit.Filters.eval([int: "1"], [:int], %{int: 1}, []) == :ok
   end
 
   test "evaluating filter matches atoms" do
-    assert ExUnit.Filters.eval([os: "win"], [], %{os: :win}, [])          == :ok
+    assert ExUnit.Filters.eval([os: "win"], [], %{os: :win}, []) == :ok
     assert ExUnit.Filters.eval([os: "win"], [os: :unix], %{os: :win}, []) == :ok
-    assert ExUnit.Filters.eval([os: "win"], [:os], %{os: :win}, [])       == :ok
-    assert ExUnit.Filters.eval([module: "Foo"], [:os], %{module: Foo}, [])    == :ok
+    assert ExUnit.Filters.eval([os: "win"], [:os], %{os: :win}, []) == :ok
+    assert ExUnit.Filters.eval([module: "Foo"], [:os], %{module: Foo}, []) == :ok
   end
 
   test "evaluating filter matches regexes" do
-    assert ExUnit.Filters.eval([os: ~r"win"], [], %{os: :win}, [])           == :ok
-    assert ExUnit.Filters.eval([os: ~r"mac"], [os: :unix], %{os: :unix}, []) == {:error, "due to os filter"}
+    assert ExUnit.Filters.eval([os: ~r"win"], [], %{os: :win}, []) == :ok
+
+    assert ExUnit.Filters.eval([os: ~r"mac"], [os: :unix], %{os: :unix}, []) ==
+             {:error, "due to os filter"}
   end
 
   test "evaluating filter uses special rules for line" do
@@ -52,7 +54,7 @@ defmodule ExUnit.FiltersTest do
       %ExUnit.Test{tags: %{line: 5, describe_line: nil}},
       %ExUnit.Test{tags: %{line: 8, describe_line: 7}},
       %ExUnit.Test{tags: %{line: 10, describe_line: 7}},
-      %ExUnit.Test{tags: %{line: 13, describe_line: 12}},
+      %ExUnit.Test{tags: %{line: 13, describe_line: 12}}
     ]
 
     assert ExUnit.Filters.eval([line: "3"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
@@ -62,9 +64,15 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([line: "2"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
     assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 8, describe_line: 7}, tests) == :ok
     assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 10, describe_line: 7}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) == {:error, "due to line filter"}
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 3, describe_line: 2}, tests) == {:error, "due to line filter"}
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 5, describe_line: nil}, tests) == {:error, "due to line filter"}
+
+    assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
+             {:error, "due to line filter"}
+
+    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 3, describe_line: 2}, tests) ==
+             {:error, "due to line filter"}
+
+    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 5, describe_line: nil}, tests) ==
+             {:error, "due to line filter"}
   end
 
   test "parsing filters" do
@@ -76,21 +84,19 @@ defmodule ExUnit.FiltersTest do
 
   test "file paths with line numbers" do
     assert ExUnit.Filters.parse_path("test/some/path.exs:123") ==
-      {"test/some/path.exs", [exclude: [:test], include: [line: "123"]]}
+             {"test/some/path.exs", [exclude: [:test], include: [line: "123"]]}
 
-    assert ExUnit.Filters.parse_path("test/some/path.exs") ==
-      {"test/some/path.exs", []}
+    assert ExUnit.Filters.parse_path("test/some/path.exs") == {"test/some/path.exs", []}
 
     assert ExUnit.Filters.parse_path("test/some/path.exs:123notreallyalinenumber123") ==
-      {"test/some/path.exs:123notreallyalinenumber123", []}
+             {"test/some/path.exs:123notreallyalinenumber123", []}
 
     assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123") ==
-      {"C:\\some\\path.exs", [exclude: [:test], include: [line: "123"]]}
+             {"C:\\some\\path.exs", [exclude: [:test], include: [line: "123"]]}
 
-    assert ExUnit.Filters.parse_path("C:\\some\\path.exs") ==
-      {"C:\\some\\path.exs", []}
+    assert ExUnit.Filters.parse_path("C:\\some\\path.exs") == {"C:\\some\\path.exs", []}
 
     assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123notreallyalinenumber123") ==
-      {"C:\\some\\path.exs:123notreallyalinenumber123", []}
+             {"C:\\some\\path.exs:123notreallyalinenumber123", []}
   end
 end

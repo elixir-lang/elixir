@@ -16,24 +16,25 @@ defmodule String.Unicode do
   cluster_path = Path.join(__DIR__, "GraphemeBreakProperty.txt")
   regex = ~r/(?:^([0-9A-F]+)(?:\.\.([0-9A-F]+))?)\s+;\s(\w+)/m
 
-  cluster = Enum.reduce File.stream!(cluster_path), %{}, fn line, acc ->
-    case Regex.run(regex, line, capture: :all_but_first) do
-      ["D800", "DFFF", _class] ->
-        acc
+  cluster =
+    Enum.reduce(File.stream!(cluster_path), %{}, fn line, acc ->
+      case Regex.run(regex, line, capture: :all_but_first) do
+        ["D800", "DFFF", _class] ->
+          acc
 
-      [first, "", class] ->
-        codepoint = <<String.to_integer(first, 16)::utf8>>
-        Map.update(acc, class, [codepoint], &[<<String.to_integer(first, 16)::utf8>> | &1])
+        [first, "", class] ->
+          codepoint = <<String.to_integer(first, 16)::utf8>>
+          Map.update(acc, class, [codepoint], &[<<String.to_integer(first, 16)::utf8>> | &1])
 
-      [first, last, class] ->
-        range = String.to_integer(first, 16)..String.to_integer(last, 16)
-        codepoints = Enum.map(range, fn int -> <<int::utf8>> end)
-        Map.update(acc, class, codepoints, &(codepoints ++ &1))
+        [first, last, class] ->
+          range = String.to_integer(first, 16)..String.to_integer(last, 16)
+          codepoints = Enum.map(range, fn int -> <<int::utf8>> end)
+          Map.update(acc, class, codepoints, &(codepoints ++ &1))
 
-      nil ->
-        acc
-    end
-  end
+        nil ->
+          acc
+      end
+    end)
 
   # Don't break CRLF
   def next_grapheme_size(<<?\r, ?\n, rest::binary>>) do
@@ -69,7 +70,7 @@ defmodule String.Unicode do
   end
 
   # Handle Hangul V
-  for codepoint <- cluster["LV"] ++ cluster["V"]  do
+  for codepoint <- cluster["LV"] ++ cluster["V"] do
     def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
       next_hangul_v_size(rest, unquote(byte_size(codepoint)))
     end
@@ -102,7 +103,7 @@ defmodule String.Unicode do
       x when x <= 0x007F -> next_extend_size(rest, 1, :other)
       x when x <= 0x07FF -> next_extend_size(rest, 2, :other)
       x when x <= 0xFFFF -> next_extend_size(rest, 3, :other)
-      _                  -> next_extend_size(rest, 4, :other)
+      _ -> next_extend_size(rest, 4, :other)
     end
   end
 
@@ -180,6 +181,7 @@ defmodule String.Unicode do
       next_extend_size(rest, size + unquote(byte_size(codepoint)), :other)
     end
   end
+
   defp next_regional_size(rest, size) do
     next_extend_size(rest, size, :other)
   end
@@ -244,7 +246,7 @@ defmodule String.Unicode do
 
   defp next_prepend_size(rest, size) do
     case next_grapheme_size(rest) do
-      {more, rest} ->  {more + size, rest}
+      {more, rest} -> {more + size, rest}
       nil -> {size, rest}
     end
   end

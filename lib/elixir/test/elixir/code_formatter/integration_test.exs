@@ -221,4 +221,30 @@ defmodule Code.Formatter.IntegrationTest do
         do: app
     """
   end
+
+  test "short comprehensions" do
+    assert_same """
+    for {protocol, :protocol, _beam} <- removed_metadata,
+        remove_consolidated(protocol, output),
+        do: {protocol, true},
+        into: %{}
+    """
+  end
+
+  test "comprehensions with when" do
+    assert_same """
+    for {key, value} when is_atom(key) <- Map.to_list(map),
+        key = Atom.to_string(key),
+        String.starts_with?(key, hint) do
+      %{kind: :map_key, name: key, value_is_map: is_map(value)}
+    end
+    """
+  end
+
+  test "next break fits followed by inline tuple" do
+    assert_same """
+    assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
+             {:error, "due to line filter"}
+    """
+  end
 end

@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
@@ -11,12 +11,13 @@ defmodule Kernel.ComprehensionTest do
 
     defimpl Collectable do
       def into(struct) do
-        {struct,
-         fn
-           _, {:cont, x} -> Process.put(:into_cont, [x | Process.get(:into_cont)])
-           _, :done -> Process.put(:into_done, true)
-           _, :halt -> Process.put(:into_halt, true)
-         end}
+        fun = fn
+          _, {:cont, x} -> Process.put(:into_cont, [x | Process.get(:into_cont)])
+          _, :done -> Process.put(:into_done, true)
+          _, :halt -> Process.put(:into_halt, true)
+        end
+
+        {struct, fun}
       end
     end
   end
@@ -51,9 +52,12 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "for comprehensions with guards and filters" do
-    assert for({var, _} when is_atom(var) <- [{:foo, 1}, {2, :bar}],
-               var = Atom.to_string(var),
-               do: var) == ["foo"]
+    assert for(
+             {var, _}
+             when is_atom(var) <- [{:foo, 1}, {2, :bar}],
+             var = Atom.to_string(var),
+             do: var
+           ) == ["foo"]
   end
 
   test "for comprehensions with map key matching" do
@@ -73,33 +77,37 @@ defmodule Kernel.ComprehensionTest do
 
   test "for comprehensions with errors on filters" do
     assert_raise ArgumentError, fn ->
-      for(x <- 1..3, hd(x), do: x * 2)
+      for x <- 1..3, hd(x), do: x * 2
     end
   end
 
   test "for comprehensions with variables in filters" do
-    assert for(x <- 1..3, y = x + 1, y > 2, z = y, do: x * z) ==
-           [6, 12]
+    assert for(x <- 1..3, y = x + 1, y > 2, z = y, do: x * z) == [6, 12]
   end
 
   test "for comprehensions with two enum generators" do
-    assert (for x <- [1, 2, 3], y <- [4, 5, 6], do: x * y) ==
-           [4, 5, 6, 8, 10, 12, 12, 15, 18]
+    assert for(
+             x <- [1, 2, 3],
+             y <- [4, 5, 6],
+             do: x * y
+           ) == [4, 5, 6, 8, 10, 12, 12, 15, 18]
   end
 
   test "for comprehensions with two enum generators and filters" do
-    assert (for x <- [1, 2, 3], y <- [4, 5, 6], y / 2 == x, do: x * y) ==
-           [8, 18]
+    assert for(
+             x <- [1, 2, 3],
+             y <- [4, 5, 6],
+             y / 2 == x,
+             do: x * y
+           ) == [8, 18]
   end
 
   test "for comprehensions generators precedence" do
-    assert (for {_, _} = x <- [foo: :bar], do: x) ==
-           [foo: :bar]
+    assert for({_, _} = x <- [foo: :bar], do: x) == [foo: :bar]
   end
 
   test "for comprehensions with binary, enum generators and filters" do
-    assert (for x <- [1, 2, 3], <<y <- (<<4, 5, 6>>)>>, y / 2 == x, do: x * y) ==
-           [8, 18]
+    assert for(x <- [1, 2, 3], <<(y <- <<4, 5, 6>>)>>, y / 2 == x, do: x * y) == [8, 18]
   end
 
   test "for comprehensions into list" do
@@ -116,9 +124,9 @@ defmodule Kernel.ComprehensionTest do
     enum = 1..3
 
     assert capture_io(fn ->
-      for(x <- enum, do: IO.puts x)
-      nil
-    end) == "1\n2\n3\n"
+             for x <- enum, do: IO.puts(x)
+             nil
+           end) == "1\n2\n3\n"
   end
 
   test "for comprehensions with into" do
@@ -174,8 +182,8 @@ defmodule Kernel.ComprehensionTest do
 
   test "list for comprehension matched to '_' on last line of block" do
     assert (if true_fun() do
-      _ = for x <- [1, 2, 3], do: x * 2
-    end) == [2, 4, 6]
+              _ = for x <- [1, 2, 3], do: x * 2
+            end) == [2, 4, 6]
   end
 
   defp true_fun(), do: true
@@ -190,13 +198,12 @@ defmodule Kernel.ComprehensionTest do
 
   test "list for comprehensions with errors on filters" do
     assert_raise ArgumentError, fn ->
-      for(x <- [1, 2, 3], hd(x), do: x * 2)
+      for x <- [1, 2, 3], hd(x), do: x * 2
     end
   end
 
   test "list for comprehensions with variables in filters" do
-    assert for(x <- [1, 2, 3], y = x + 1, y > 2, z = y, do: x * z) ==
-           [6, 12]
+    assert for(x <- [1, 2, 3], y = x + 1, y > 2, z = y, do: x * z) == [6, 12]
   end
 
   test "list for comprehensions into list" do
@@ -218,9 +225,9 @@ defmodule Kernel.ComprehensionTest do
     enum = [1, 2, 3]
 
     assert capture_io(fn ->
-      for(x <- enum, do: IO.puts x)
-      nil
-    end) == "1\n2\n3\n"
+             for x <- enum, do: IO.puts(x)
+             nil
+           end) == "1\n2\n3\n"
   end
 
   ## Binary generators (inlined by the compiler)
@@ -232,12 +239,11 @@ defmodule Kernel.ComprehensionTest do
 
   test "binary for comprehensions with inner binary" do
     bin = <<1, 2, 3>>
-    assert for(<<(<<x>>) <- bin>>, do: x * 2) == [2, 4, 6]
+    assert for(<<(<<x>> <- bin)>>, do: x * 2) == [2, 4, 6]
   end
 
   test "binary for comprehensions with two generators" do
-    assert (for <<x <- (<<1, 2, 3>>)>>, <<y <- (<<4, 5, 6>>)>>, y / 2 == x, do: x * y) ==
-           [8, 18]
+    assert for(<<(x <- <<1, 2, 3>>)>>, <<(y <- <<4, 5, 6>>)>>, y / 2 == x, do: x * y) == [8, 18]
   end
 
   test "binary for comprehensions into list" do
@@ -260,8 +266,8 @@ defmodule Kernel.ComprehensionTest do
     bin = <<1, 2, 3>>
 
     assert capture_io(fn ->
-      for(<<x <- bin>>, do: IO.puts x)
-      nil
-    end) == "1\n2\n3\n"
+             for <<x <- bin>>, do: IO.puts(x)
+             nil
+           end) == "1\n2\n3\n"
   end
 end

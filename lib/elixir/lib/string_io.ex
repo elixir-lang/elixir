@@ -209,6 +209,7 @@ defmodule StringIO do
     case :unicode.characters_to_binary(chars, encoding, :unicode) do
       string when is_binary(string) ->
         {:ok, %{state | output: output <> string}}
+
       {_, _, _} ->
         {{:error, req}, state}
     end
@@ -220,6 +221,7 @@ defmodule StringIO do
     case get_chars(input, encoding, count) do
       {:error, _} = error ->
         {error, state}
+
       {result, input} ->
         {result, state_after_read(state, input, prompt, 1)}
     end
@@ -243,6 +245,7 @@ defmodule StringIO do
       case :file_io_server.count_and_find(input, count, encoding) do
         {buf_count, split_pos} when buf_count < count or split_pos == :none ->
           {input, ""}
+
         {_buf_count, split_pos} ->
           <<chars::binary-size(split_pos), rest::binary>> = input
           {chars, rest}
@@ -259,16 +262,18 @@ defmodule StringIO do
     case bytes_until_eol(input, encoding, 0) do
       {:split, 0} ->
         {:eof, state_after_read(state, "", prompt, 1)}
+
       {:split, count} ->
         {result, remainder} = :erlang.split_binary(input, count)
-
         {result, state_after_read(state, remainder, prompt, 1)}
+
       {:replace_split, count} ->
         {result, remainder} = :erlang.split_binary(input, count)
+        result = binary_part(result, 0, byte_size(result) - 2) <> "\n"
+        {result, state_after_read(state, remainder, prompt, 1)}
 
-        {binary_part(result, 0, byte_size(result) - 2) <> "\n", state_after_read(state, remainder, prompt, 1)}
-      :error
-        -> {{:error, :collect_line}, state}
+      :error ->
+        {{:error, :collect_line}, state}
     end
   end
 
@@ -294,6 +299,7 @@ defmodule StringIO do
     case apply(mod, fun, [continuation, :eof | args]) do
       {:done, result, rest} ->
         {result, rest, count + 1}
+
       {:more, next_continuation} ->
         get_until("", encoding, mod, fun, args, next_continuation, count + 1)
     end
@@ -307,8 +313,10 @@ defmodule StringIO do
         case apply(mod, fun, [continuation, binary_to_list(line, encoding) | args]) do
           {:done, result, :eof} ->
             {result, rest, count + 1}
+
           {:done, result, extra} ->
             {result, extra ++ binary_to_list(rest, encoding), count + 1}
+
           {:more, next_continuation} ->
             get_until(rest, encoding, mod, fun, args, next_continuation, count + 1)
         end
@@ -348,7 +356,8 @@ defmodule StringIO do
   end
 
   defp state_after_read(%{capture_prompt: true, output: output} = state, remainder, prompt, count) do
-    %{state | input: remainder, output: <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>}
+    output = <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>
+    %{state | input: remainder, output: output}
   end
 
   defp bytes_until_eol("", _, count), do: {:split, count}
@@ -366,7 +375,7 @@ defmodule StringIO do
   defp bytes_until_eol(<<_::binary>>, _, _), do: :error
 
   defp io_reply(from, reply_as, reply) do
-    send from, {:io_reply, reply_as, reply}
+    send(from, {:io_reply, reply_as, reply})
   end
 
   defp to_reply(list) when is_list(list), do: IO.chardata_to_string(list)

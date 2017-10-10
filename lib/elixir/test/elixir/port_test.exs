@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule PortTest do
   use ExUnit.Case, async: true
@@ -24,7 +24,7 @@ defmodule PortTest do
   # this way we gain the monitor receive optimisation.
   test "monitor/1 is inlined" do
     assert expand(quote(do: Port.monitor(port())), __ENV__) ==
-           quote(do: :erlang.monitor(:port, port()))
+             quote(do: :erlang.monitor(:port, port()))
   end
 
   defp expand(expr, env) do
