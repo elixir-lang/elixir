@@ -673,7 +673,8 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with operators inside" do
-      assert_format "&(+1)", "&+1"
+      assert_format "& +1", "&(+1)"
+      assert_format "& not &1", "&(not &1)"
       assert_format "& a ++ b", "&(a ++ b)"
       assert_format "& &1 && &2", "&(&1 && &2)"
       assert_same "&(&1 | &2)"
@@ -686,6 +687,7 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "with call expressions" do
       assert_format "& local(&1, &2)", "&local(&1, &2)"
+      assert_format "&-local(&1, &2)", "&(-local(&1, &2))"
     end
 
     test "with blocks" do
@@ -721,6 +723,7 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "&+/2"
       assert_same "&and/2"
       assert_same "& &&/2"
+      assert_same "& &/1"
     end
 
     test "Module.remote/arity" do
