@@ -93,9 +93,9 @@ defmodule URITest do
         authority: "foo.com",
         userinfo: nil
       }
-      parsed_uri = URI.parse("http://foo.com/path/to/something?foo=bar&bar=foo#fragment")
 
-      assert expected_uri == parsed_uri
+      assert URI.parse("http://foo.com/path/to/something?foo=bar&bar=foo#fragment") ==
+               expected_uri
     end
 
     test "works with HTTPS scheme" do
@@ -109,9 +109,8 @@ defmodule URITest do
         path: nil,
         userinfo: nil
       }
-      parsed_uri = URI.parse("https://foo.com/")
 
-      assert expected_uri == parsed_uri
+      assert URI.parse("https://foo.com/") == expected_uri
     end
 
     test "works with \"file\" scheme" do
@@ -125,9 +124,8 @@ defmodule URITest do
         port: nil,
         authority: nil
       }
-      parsed_uri = URI.parse("file:///foo/bar/baz")
 
-      assert expected_uri == parsed_uri
+      assert URI.parse("file:///foo/bar/baz") == expected_uri
     end
 
     test "works with FTP scheme" do
@@ -141,12 +139,9 @@ defmodule URITest do
         fragment: nil,
         port: 21
       }
-      parsed_uri =
-        URI.parse(
-          "ftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
-        )
 
-      assert expected_uri == parsed_uri
+      ftp = "ftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+      assert URI.parse(ftp) == expected_uri
     end
 
     test "works with SFTP scheme" do
@@ -160,12 +155,9 @@ defmodule URITest do
         fragment: nil,
         port: 22
       }
-      parsed_uri =
-        URI.parse(
-          "sftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
-        )
 
-      assert expected_uri == parsed_uri
+      sftp = "sftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+      assert URI.parse(sftp) == expected_uri
     end
 
     test "works with TFTP scheme" do
@@ -179,12 +171,9 @@ defmodule URITest do
         fragment: nil,
         port: 69
       }
-      parsed_uri =
-        URI.parse(
-          "tftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
-        )
 
-      assert expected_uri == parsed_uri
+      tftp = "tftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+      assert URI.parse(tftp) == expected_uri
     end
 
     test "works with LDAP scheme" do
@@ -198,23 +187,21 @@ defmodule URITest do
         fragment: nil,
         port: 389
       }
-      parsed_uri = URI.parse("ldap:///dc=example,dc=com??sub?(givenName=John)")
 
-      assert expected_uri == parsed_uri
+      assert URI.parse("ldap:///dc=example,dc=com??sub?(givenName=John)") == expected_uri
 
       expected_uri = %URI{
         scheme: "ldap",
         host: "ldap.example.com",
         authority: "ldap.example.com",
         userinfo: nil,
-        path: "/cn=John%20Doe,dc=example,dc=com",
+        path: "/cn=John%20Doe,dc=foo,dc=com",
         fragment: nil,
         port: 389,
         query: nil
       }
-      parsed_uri = URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=example,dc=com")
 
-      assert expected_uri == parsed_uri
+      assert URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=foo,dc=com") == expected_uri
     end
 
     test "splits authority" do
@@ -228,9 +215,8 @@ defmodule URITest do
         authority: "foo:bar@foo.com:4444",
         userinfo: "foo:bar"
       }
-      parsed_uri = URI.parse("http://foo:bar@foo.com:4444")
 
-      assert expected_uri == parsed_uri
+      assert URI.parse("http://foo:bar@foo.com:4444") == expected_uri
 
       expected_uri = %URI{
         scheme: "https",
@@ -242,9 +228,8 @@ defmodule URITest do
         authority: "foo:bar@foo.com",
         userinfo: "foo:bar"
       }
-      parsed_uri = URI.parse("https://foo:bar@foo.com")
 
-      assert expected_uri == parsed_uri
+      assert URI.parse("https://foo:bar@foo.com") == expected_uri
 
       expected_uri = %URI{
         scheme: "http",
@@ -256,9 +241,8 @@ defmodule URITest do
         authority: "foo.com:4444",
         userinfo: nil
       }
-      parsed_uri = URI.parse("http://foo.com:4444")
 
-      assert expected_uri == parsed_uri
+      assert URI.parse("http://foo.com:4444") == expected_uri
     end
 
     test "can parse bad URIs" do
@@ -318,14 +302,9 @@ defmodule URITest do
     end
 
     test "preserves empty fragments" do
-      [
-        "http://example.com#",
-        "http://example.com/#",
-        "http://example.com/test#"
-      ]
-      |> Enum.each(fn uri ->
-           assert URI.parse(uri).fragment == ""
-         end)
+      assert URI.parse("http://example.com#").fragment == ""
+      assert URI.parse("http://example.com/#").fragment == ""
+      assert URI.parse("http://example.com/test#").fragment == ""
     end
   end
 
