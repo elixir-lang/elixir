@@ -79,30 +79,36 @@ end
 
 defimpl Collectable, for: List do
   def into(original) do
-    {[], fn
+    fun = fn
       list, {:cont, x} -> [x | list]
       list, :done -> original ++ :lists.reverse(list)
       _, :halt -> :ok
-    end}
+    end
+
+    {[], fun}
   end
 end
 
 defimpl Collectable, for: BitString do
   def into(original) do
-    {original, fn
+    fun = fn
       acc, {:cont, x} when is_bitstring(x) -> [acc | x]
       acc, :done -> IO.iodata_to_binary(acc)
       _, :halt -> :ok
-    end}
+    end
+
+    {original, fun}
   end
 end
 
 defimpl Collectable, for: Map do
   def into(original) do
-    {original, fn
+    fun = fn
       map, {:cont, {k, v}} -> :maps.put(k, v, map)
       map, :done -> map
       _, :halt -> :ok
-    end}
+    end
+
+    {original, fun}
   end
 end
