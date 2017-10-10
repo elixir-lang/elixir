@@ -136,6 +136,11 @@ defmodule Code.Formatter.IntegrationTest do
                      | and_a_really_long_type_to_force_a_line_break
                      | followed_by_another_really_long_type
     """
+
+    assert_same """
+    @callback get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
+              when get_value: var, data: container
+    """
   end
 
   test "multiple whens with new lines" do

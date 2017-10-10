@@ -59,8 +59,7 @@ defmodule GenEvent do
               {:ok, reply, new_state}
               | {:ok, reply, new_state, :hibernate}
               | {:remove_handler, reply}
-            when reply: term,
-                 new_state: term
+            when reply: term, new_state: term
 
   @callback handle_info(msg :: term, state :: term) ::
               {:ok, new_state}

@@ -395,9 +395,7 @@ defmodule GenServer do
               | {:noreply, new_state, timeout | :hibernate}
               | {:stop, reason, reply, new_state}
               | {:stop, reason, new_state}
-            when reply: term,
-                 new_state: term,
-                 reason: term
+            when reply: term, new_state: term, reason: term
 
   @doc """
   Invoked to handle asynchronous `cast/2` messages.
