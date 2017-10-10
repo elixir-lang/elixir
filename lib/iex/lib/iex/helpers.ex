@@ -117,13 +117,11 @@ defmodule IEx.Helpers do
   defp purge_protocols(path) do
     case File.ls(path) do
       {:ok, beams} ->
-        for beam <- beams do
+        Enum.each(beams, fn beam ->
           module = beam |> Path.rootname() |> String.to_atom()
           :code.purge(module)
           :code.delete(module)
-        end
-
-        :ok
+        end)
 
       {:error, _} ->
         :ok
