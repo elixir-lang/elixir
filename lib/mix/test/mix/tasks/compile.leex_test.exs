@@ -1,30 +1,33 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.LeexTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
   setup do
-    Mix.Project.push MixTest.Case.Sample
+    Mix.Project.push(MixTest.Case.Sample)
     :ok
   end
 
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_leex", fn ->
       file = Path.absname("src/zzz.xrl")
-      File.write! file, """
-      oops.
-      """
 
-      capture_io fn ->
-        assert {:error, [%Mix.Task.Compiler.Diagnostic{
-          compiler_name: "leex",
-          file: ^file,
-          message: "missing Definitions",
-          position: 1,
-          severity: :error
-        }]} = Mix.Tasks.Compile.Leex.run(["--force"])
-      end
+      File.write!(file, """
+      oops.
+      """)
+
+      capture_io(fn ->
+        assert {:error, [diagnostic]} = Mix.Tasks.Compile.Leex.run(["--force"])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 compiler_name: "leex",
+                 file: ^file,
+                 message: "missing Definitions",
+                 position: 1,
+                 severity: :error
+               } = diagnostic
+      end)
 
       assert File.regular?("src/test_ok.erl")
     end
