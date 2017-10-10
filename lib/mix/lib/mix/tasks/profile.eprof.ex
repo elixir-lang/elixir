@@ -114,13 +114,15 @@ defmodule Mix.Tasks.Profile.Eprof do
     parallel_require: :keep
   ]
 
+  @aliases [
+    r: :require, 
+    p: :parallel, 
+    e: :eval, 
+    c: :config
+  ]
+
   def run(args) do
-    {opts, head} =
-      OptionParser.parse_head!(
-        args,
-        aliases: [r: :require, p: :parallel, e: :eval, c: :config],
-        strict: @switches
-      )
+    {opts, head} = OptionParser.parse_head!(args, aliases: @aliases, strict: @switches)
 
     Mix.Tasks.Run.run(
       ["--no-mix-exs" | args],
@@ -215,8 +217,8 @@ defmodule Mix.Tasks.Profile.Eprof do
 
   defp add_totals(call_results) do
     {function_count, call_count, total_time} =
-      Enum.reduce(call_results, {0, 0, 0}, fn {_, {count, time}},
-                                              {function_count, call_count, total_time} ->
+      Enum.reduce(call_results, {0, 0, 0}, fn {_, {count, time}}, acc ->
+        {function_count, call_count, total_time} = acc
         {function_count + 1, call_count + count, total_time + time}
       end)
 
@@ -255,13 +257,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   defp format_total(total_time, total_count) do
     time_per_call = :erlang.float_to_binary(divide(total_time, total_count), [{:decimals, 2}])
 
-    [
-      "Total",
-      Integer.to_string(total_count),
-      "100.00",
-      Integer.to_string(total_time),
-      time_per_call
-    ]
+    [ "Total", Integer.to_string(total_count), "100.00", Integer.to_string(total_time), time_per_call ]
   end
 
   defp divide(_, 0), do: 0.0
