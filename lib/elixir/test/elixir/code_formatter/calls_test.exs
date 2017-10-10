@@ -507,6 +507,20 @@ defmodule Code.Formatter.CallsTest do
       assert_same "foo.bar"
       assert_same "foo.bar()"
     end
+
+    test "on vars before blocks" do
+      assert_same """
+      if var.field do
+        raise "oops"
+      end
+      """
+    end
+
+    test "on vars before brackets" do
+      assert_same """
+      exception.opts[:foo]
+      """
+    end
   end
 
   describe "anonymous function calls" do

@@ -1,7 +1,7 @@
 defmodule Mix.Shell.Process do
   @moduledoc """
   Mix shell that uses the current process mailbox for communication.
-  
+
   This module provides a Mix shell implementation that uses
   the current process mailbox for communication instead of IO.
 
