@@ -494,7 +494,7 @@ defmodule Code.Formatter do
   end
 
   # (left -> right)
-  defp quoted_to_algebra([{:"->", _, _} | _] = clauses, _context, state) do
+  defp quoted_to_algebra([{:->, _, _} | _] = clauses, _context, state) do
     type_fun_to_algebra(clauses, @max_line, @min_line, state)
   end
 
@@ -528,7 +528,7 @@ defmodule Code.Formatter do
 
   ## Blocks
 
-  defp block_to_algebra([{:"->", _, _} | _] = type_fun, min_line, max_line, state) do
+  defp block_to_algebra([{:->, _, _} | _] = type_fun, min_line, max_line, state) do
     type_fun_to_algebra(type_fun, min_line, max_line, state)
   end
 
@@ -1393,7 +1393,7 @@ defmodule Code.Formatter do
   ## Anonymous functions
 
   # fn -> block end
-  defp anon_fun_to_algebra([{:"->", meta, [[], body]}] = clauses, _min_line, max_line, state) do
+  defp anon_fun_to_algebra([{:->, meta, [[], body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
@@ -1412,7 +1412,7 @@ defmodule Code.Formatter do
   # fn x ->
   #   y
   # end
-  defp anon_fun_to_algebra([{:"->", meta, [args, body]}] = clauses, _min_line, max_line, state) do
+  defp anon_fun_to_algebra([{:->, meta, [args, body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
@@ -1445,7 +1445,7 @@ defmodule Code.Formatter do
   ## Type functions
 
   # (() -> block)
-  defp type_fun_to_algebra([{:"->", meta, [[], body]}] = clauses, _min_line, max_line, state) do
+  defp type_fun_to_algebra([{:->, meta, [[], body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
@@ -1462,7 +1462,7 @@ defmodule Code.Formatter do
   # (x -> y)
   # (x ->
   #    y)
-  defp type_fun_to_algebra([{:"->", meta, [args, body]}] = clauses, _min_line, max_line, state) do
+  defp type_fun_to_algebra([{:->, meta, [args, body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
@@ -1497,14 +1497,14 @@ defmodule Code.Formatter do
   ## Clauses
 
   defp maybe_force_clauses(doc, clauses) do
-    if Enum.any?(clauses, fn {:"->", meta, _} -> Keyword.get(meta, :eol, false) end) do
+    if Enum.any?(clauses, fn {:->, meta, _} -> Keyword.get(meta, :eol, false) end) do
       force_break(doc)
     else
       doc
     end
   end
 
-  defp clauses_to_algebra([{:"->", _, _} | _] = clauses, min_line, max_line, state) do
+  defp clauses_to_algebra([{:->, _, _} | _] = clauses, min_line, max_line, state) do
     [clause | clauses] = add_max_line_to_last_clause(clauses, max_line)
     {clause_doc, state} = clause_to_algebra(clause, min_line, state)
 
@@ -1530,12 +1530,12 @@ defmodule Code.Formatter do
     end
   end
 
-  defp clause_to_algebra({:"->", meta, [[], body]}, _min_line, state) do
+  defp clause_to_algebra({:->, meta, [[], body]}, _min_line, state) do
     {body_doc, state} = block_to_algebra(body, line(meta), end_line(meta), state)
     {"() ->" |> glue(body_doc) |> nest(2), state}
   end
 
-  defp clause_to_algebra({:"->", meta, [args, body]}, min_line, state) do
+  defp clause_to_algebra({:->, meta, [args, body]}, min_line, state) do
     %{operand_nesting: nesting} = state
 
     state = %{state | operand_nesting: nesting + 2}
