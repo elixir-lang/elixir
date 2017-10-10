@@ -104,9 +104,9 @@ defmodule ExUnit.CaptureIO do
     do_capture_io(map_dev(device), options, fun)
   end
 
-  defp map_dev(:stdio),  do: :standard_io
+  defp map_dev(:stdio), do: :standard_io
   defp map_dev(:stderr), do: :standard_error
-  defp map_dev(other),   do: other
+  defp map_dev(other), do: other
 
   defp do_capture_io(:standard_io, options, fun) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
@@ -114,6 +114,7 @@ defmodule ExUnit.CaptureIO do
 
     original_gl = Process.group_leader()
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
+
     try do
       Process.group_leader(self(), capture_gl)
       do_capture_io(capture_gl, fun)
@@ -125,6 +126,7 @@ defmodule ExUnit.CaptureIO do
   defp do_capture_io(device, options, fun) do
     input = Keyword.get(options, :input, "")
     {:ok, string_io} = StringIO.open(input)
+
     case ExUnit.CaptureServer.device_capture_on(device, string_io) do
       {:ok, ref} ->
         try do
@@ -132,12 +134,14 @@ defmodule ExUnit.CaptureIO do
         after
           ExUnit.CaptureServer.device_capture_off(ref)
         end
+
       {:error, :no_device} ->
         _ = StringIO.close(string_io)
-        raise "could not find IO device registered at #{inspect device}"
+        raise "could not find IO device registered at #{inspect(device)}"
+
       {:error, :already_captured} ->
         _ = StringIO.close(string_io)
-        raise "IO device registered at #{inspect device} is already captured"
+        raise "IO device registered at #{inspect(device)} is already captured"
     end
   end
 
