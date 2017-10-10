@@ -70,9 +70,6 @@ defmodule Mix.Local do
   Returns the name of an archive given a path.
   """
   def archive_name(path) do
-    # "foo/bar/baz-0.1.0.ez"
-    # "baz-0.1.0.ez"
-    # "baz-0.1.0"
     path
     |> Path.basename()
     |> Path.rootname(".ez")
