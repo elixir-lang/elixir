@@ -128,9 +128,9 @@ defmodule MapTest do
   end
 
   test "maps with optional comma" do
-    assert %{a: :b} == %{a: :b}
-    assert %{1 => 2} == %{1 => 2}
-    assert %{1 => 2, a: :b} == %{1 => 2, a: :b}
+    assert Code.eval_string("%{a: :b,}") == {%{a: :b}, []}
+    assert Code.eval_string("%{1 => 2,}") == {%{a: :b}, []}
+    assert Code.eval_string("%{1 => 2, a: :b,}") == {%{1 => 2, a: :b}, []}
   end
 
   test "update maps" do
