@@ -129,10 +129,11 @@ defmodule Logger.ErrorHandler do
       true ->
         _ =
           if dropped > 0 do
-            Logger.warn(
+            message =
               "Logger dropped #{dropped} OTP/SASL messages as it " <>
                 "exceeded the amount of #{threshold} messages/second"
-            )
+
+            Logger.warn(message)
           end
 
         %{state | dropped: 0, last_time: current_time, last_length: current_length}
