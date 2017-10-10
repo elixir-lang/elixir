@@ -31,11 +31,12 @@ defmodule Kernel.ErrorHandler do
 
   def ensure_compiled(module, kind) do
     parent = :erlang.get(:elixir_compiler_pid)
-    ref    = :erlang.make_ref
-    send parent, {:waiting, kind, self(), ref, module, :elixir_module.compiler_modules()}
+    ref = :erlang.make_ref()
+    send(parent, {:waiting, kind, self(), ref, module, :elixir_module.compiler_modules()})
     :erlang.garbage_collect(self())
+
     receive do
-      {^ref, :found}     -> true
+      {^ref, :found} -> true
       {^ref, :not_found} -> false
     end
   end
