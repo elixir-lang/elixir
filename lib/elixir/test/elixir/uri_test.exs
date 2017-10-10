@@ -110,7 +110,7 @@ defmodule URITest do
         userinfo: nil
       }
 
-      assert URI.parse("https://foo.com/") == expected_uri
+      assert URI.parse("https://foo.com") == expected_uri
     end
 
     test "works with \"file\" scheme" do
