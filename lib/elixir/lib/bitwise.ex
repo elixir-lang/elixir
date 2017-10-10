@@ -37,14 +37,17 @@ defmodule Bitwise do
 
   @doc false
   defmacro __using__(options) do
-    except = cond do
-      Keyword.get(options, :only_operators) ->
-        [bnot: 1, band: 2, bor: 2, bxor: 2, bsl: 2, bsr: 2]
-      Keyword.get(options, :skip_operators) ->
-        [~~~: 1, &&&: 2, |||: 2, ^^^: 2, <<<: 2, >>>: 2]
-      true ->
-        []
-    end
+    except =
+      cond do
+        Keyword.get(options, :only_operators) ->
+          [bnot: 1, band: 2, bor: 2, bxor: 2, bsl: 2, bsr: 2]
+
+        Keyword.get(options, :skip_operators) ->
+          [~~~: 1, &&&: 2, |||: 2, ^^^: 2, <<<: 2, >>>: 2]
+
+        true ->
+          []
+      end
 
     quote do
       import Bitwise, except: unquote(except)
@@ -61,7 +64,7 @@ defmodule Bitwise do
 
   """
   defmacro bnot(expr) do
-    quote do: :erlang.bnot(unquote(expr))
+    quote(do: :erlang.bnot(unquote(expr)))
   end
 
   @doc """
@@ -74,7 +77,7 @@ defmodule Bitwise do
 
   """
   defmacro ~~~expr do
-    quote do: :erlang.bnot(unquote(expr))
+    quote(do: :erlang.bnot(unquote(expr)))
   end
 
   @doc """
@@ -85,7 +88,7 @@ defmodule Bitwise do
 
   """
   defmacro band(left, right) do
-    quote do: :erlang.band(unquote(left), unquote(right))
+    quote(do: :erlang.band(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -96,7 +99,7 @@ defmodule Bitwise do
 
   """
   defmacro left &&& right do
-    quote do: :erlang.band(unquote(left), unquote(right))
+    quote(do: :erlang.band(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -107,7 +110,7 @@ defmodule Bitwise do
 
   """
   defmacro bor(left, right) do
-    quote do: :erlang.bor(unquote(left), unquote(right))
+    quote(do: :erlang.bor(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -118,7 +121,7 @@ defmodule Bitwise do
 
   """
   defmacro left ||| right do
-    quote do: :erlang.bor(unquote(left), unquote(right))
+    quote(do: :erlang.bor(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -129,7 +132,7 @@ defmodule Bitwise do
 
   """
   defmacro bxor(left, right) do
-    quote do: :erlang.bxor(unquote(left), unquote(right))
+    quote(do: :erlang.bxor(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -140,7 +143,7 @@ defmodule Bitwise do
 
   """
   defmacro left ^^^ right do
-    quote do: :erlang.bxor(unquote(left), unquote(right))
+    quote(do: :erlang.bxor(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -157,7 +160,7 @@ defmodule Bitwise do
 
   """
   defmacro bsl(left, right) do
-    quote do: :erlang.bsl(unquote(left), unquote(right))
+    quote(do: :erlang.bsl(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -174,7 +177,7 @@ defmodule Bitwise do
 
   """
   defmacro left <<< right do
-    quote do: :erlang.bsl(unquote(left), unquote(right))
+    quote(do: :erlang.bsl(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -191,7 +194,7 @@ defmodule Bitwise do
 
   """
   defmacro bsr(left, right) do
-    quote do: :erlang.bsr(unquote(left), unquote(right))
+    quote(do: :erlang.bsr(unquote(left), unquote(right)))
   end
 
   @doc """
@@ -208,6 +211,6 @@ defmodule Bitwise do
 
   """
   defmacro left >>> right do
-    quote do: :erlang.bsr(unquote(left), unquote(right))
+    quote(do: :erlang.bsr(unquote(left), unquote(right)))
   end
 end
