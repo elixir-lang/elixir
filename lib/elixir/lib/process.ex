@@ -459,7 +459,6 @@ defmodule Process do
   defdelegate link(pid_or_port), to: :erlang
 
   @doc """
-  
   Removes the link between the calling process and the given item (process or
   port).
 

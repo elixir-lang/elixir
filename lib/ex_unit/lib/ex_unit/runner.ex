@@ -345,7 +345,7 @@ defmodule ExUnit.Runner do
       Enum.map(errors, fn {kind, reason, stack} ->
         {kind, Exception.normalize(kind, reason), prune_stacktrace(stack)}
       end)
-      
+
     {:failed, errors}
   end
 

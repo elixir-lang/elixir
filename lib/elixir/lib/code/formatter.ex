@@ -113,6 +113,8 @@ defmodule Code.Formatter do
     refute_received: 2,
     setup: 1,
     setup: 2,
+    setup_all: 1,
+    setup_all: 2,
     test: 1,
     test: 2,
 

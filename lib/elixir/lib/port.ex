@@ -139,7 +139,6 @@ defmodule Port do
       done
       kill -KILL $pid
 
-  
   Now instead of:
 
       Port.open({:spawn_executable, "/path/to/program"},

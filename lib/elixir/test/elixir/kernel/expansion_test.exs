@@ -824,7 +824,7 @@ defmodule Kernel.ExpansionTest do
 
     test "fails on nested capture" do
       assert_raise CompileError, ~r"nested captures via & are not allowed: &\(&1\)", fn ->
-        expand(quote(do: & & &1))
+        expand(quote(do: &(& &1)))
       end
     end
 

@@ -40,7 +40,7 @@ defmodule ExUnit.CaseTemplate do
         unquote(__MODULE__).__proxy__(__MODULE__, opts)
       end
 
-      defoverridable [__using__: 1]
+      defoverridable __using__: 1
     end
   end
 

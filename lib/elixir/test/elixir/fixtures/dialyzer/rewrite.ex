@@ -4,6 +4,6 @@ defmodule Dialyzer.Rewrite do
   end
 
   def reverse do
-    Enum.reverse 1..3
+    Enum.reverse(1..3)
   end
 end
