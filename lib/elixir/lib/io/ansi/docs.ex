@@ -298,7 +298,6 @@ defmodule IO.ANSI.Docs do
       end
 
     col_widths = Enum.reduce(widths, List.duplicate(0, count), &max_column_widths/2)
-
     render_table(lines, col_widths, options)
   end
 
@@ -501,29 +500,8 @@ defmodule IO.ANSI.Docs do
 
   # Characters that can mark the beginning or the end of a word.
   # Only support the most common ones at this moment.
-  @delimiters [
-    ?\s,
-    ?',
-    ?",
-    ?!,
-    ?@,
-    ?#,
-    ?$,
-    ?%,
-    ?^,
-    ?&,
-    ?-,
-    ?+,
-    ?(,
-    ?),
-    ?[,
-    ?],
-    ?{,
-    ?},
-    ?<,
-    ?>,
-    ?.
-  ]
+  @delimiters [?\s, ?', ?", ?!, ?@, ?#, ?$, ?%, ?^, ?&] ++
+                [?-, ?+, ?(, ?), ?[, ?], ?{, ?}, ?<, ?>, ?.]
 
   # Inline start
 
@@ -583,14 +561,12 @@ defmodule IO.ANSI.Docs do
   defp handle_inline(<<?*, ?*, delimiter, rest::binary>>, ?d, buffer, acc, options)
        when delimiter in @delimiters do
     inline_buffer = inline_buffer(buffer, options)
-
     handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer | acc], options)
   end
 
   defp handle_inline(<<mark, delimiter, rest::binary>>, mark, buffer, acc, options)
        when delimiter in @delimiters and mark in @single do
     inline_buffer = inline_buffer(buffer, options)
-
     handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer | acc], options)
   end
 

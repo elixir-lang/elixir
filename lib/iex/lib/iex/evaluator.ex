@@ -244,11 +244,12 @@ defmodule IEx.Evaluator do
     {result, binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
 
-    unless result == IEx.dont_display_result(), do: io_inspect(result)
+    unless result == IEx.dont_display_result() do
+      io_inspect(result)
+    end
+
     iex_state = %{iex_state | cache: '', counter: iex_state.counter + 1}
-
     state = %{state | env: env, scope: scope, binding: binding}
-
     {iex_state, update_history(state, line, code, result)}
   end
 
@@ -317,19 +318,9 @@ defmodule IEx.Evaluator do
     end
   end
 
-  @elixir_internals [
-    :elixir,
-    :elixir_expand,
-    :elixir_compiler,
-    :elixir_module,
-    :elixir_clauses,
-    :elixir_lexical,
-    :elixir_def,
-    :elixir_map,
-    :elixir_erl,
-    :elixir_erl_clauses,
-    :elixir_erl_pass
-  ]
+  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
+                      [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
+                      [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
 
   defp prune_stacktrace(stacktrace) do
     # The order in which each drop_while is listed is important.
