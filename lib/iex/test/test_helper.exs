@@ -71,7 +71,7 @@ defmodule IEx.Case do
 
   defp strip_iex(string) do
     string
-    |> String.split("\n", parts: 2) # trim the greeting
+    |> String.split("\n", parts: 2)
     |> Enum.at(1)
     |> String.trim()
   end
