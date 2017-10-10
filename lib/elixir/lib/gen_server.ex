@@ -325,10 +325,11 @@ defmodule GenServer do
   entering the loop or calling `c:terminate/2`.
   """
   @callback init(args :: term) ::
-    {:ok, state} |
-    {:ok, state, timeout | :hibernate} |
-    :ignore |
-    {:stop, reason :: any} when state: any
+              {:ok, state}
+              | {:ok, state, timeout | :hibernate}
+              | :ignore
+              | {:stop, reason :: any}
+            when state: any
 
   @doc """
   Invoked to handle synchronous `call/3` messages. `call/3` will block until a
@@ -388,12 +389,15 @@ defmodule GenServer do
   `use GenServer` will return `{:stop, {:bad_call, request}, state}`.
   """
   @callback handle_call(request :: term, from, state :: term) ::
-    {:reply, reply, new_state} |
-    {:reply, reply, new_state, timeout | :hibernate} |
-    {:noreply, new_state} |
-    {:noreply, new_state, timeout | :hibernate} |
-    {:stop, reason, reply, new_state} |
-    {:stop, reason, new_state} when reply: term, new_state: term, reason: term
+              {:reply, reply, new_state}
+              | {:reply, reply, new_state, timeout | :hibernate}
+              | {:noreply, new_state}
+              | {:noreply, new_state, timeout | :hibernate}
+              | {:stop, reason, reply, new_state}
+              | {:stop, reason, new_state}
+            when reply: term,
+                 new_state: term,
+                 reason: term
 
   @doc """
   Invoked to handle asynchronous `cast/2` messages.
@@ -419,9 +423,10 @@ defmodule GenServer do
   `use GenServer` will return `{:stop, {:bad_cast, request}, state}`.
   """
   @callback handle_cast(request :: term, state :: term) ::
-    {:noreply, new_state} |
-    {:noreply, new_state, timeout | :hibernate} |
-    {:stop, reason :: term, new_state} when new_state: term
+              {:noreply, new_state}
+              | {:noreply, new_state, timeout | :hibernate}
+              | {:stop, reason :: term, new_state}
+            when new_state: term
 
   @doc """
   Invoked to handle all other messages.
@@ -435,9 +440,10 @@ defmodule GenServer do
   `use GenServer` will return `{:noreply, state}`.
   """
   @callback handle_info(msg :: :timeout | term, state :: term) ::
-    {:noreply, new_state} |
-    {:noreply, new_state, timeout | :hibernate} |
-    {:stop, reason :: term, new_state} when new_state: term
+              {:noreply, new_state}
+              | {:noreply, new_state, timeout | :hibernate}
+              | {:stop, reason :: term, new_state}
+            when new_state: term
 
   @doc """
   Invoked when the server is about to exit. It should do any cleanup required.
@@ -479,8 +485,8 @@ defmodule GenServer do
   If `reason` is not `:normal`, `:shutdown`, nor `{:shutdown, term}` an error is
   logged.
   """
-  @callback terminate(reason, state :: term) ::
-    term when reason: :normal | :shutdown | {:shutdown, term} | term
+  @callback terminate(reason, state :: term) :: term
+            when reason: :normal | :shutdown | {:shutdown, term}
 
   @doc """
   Invoked to change the state of the `GenServer` when a different version of a
@@ -502,8 +508,10 @@ defmodule GenServer do
   with its previous state. Therefore this callback does not usually contain side effects.
   """
   @callback code_change(old_vsn, state :: term, extra :: term) ::
-    {:ok, new_state :: term} |
-    {:error, reason :: term} when old_vsn: term | {:down, term}
+              {:ok, new_state :: term}
+              | {:error, reason :: term}
+              | {:down, term}
+            when old_vsn: term
 
   @doc """
   Invoked in some cases to retrieve a formatted version of the `GenServer` status.
@@ -522,8 +530,8 @@ defmodule GenServer do
   list of `{key, value}` tuples representing the current process dictionary of
   the `GenServer` and `state` is the current state of the `GenServer`.
   """
-  @callback format_status(reason, pdict_and_state :: list) ::
-    term when reason: :normal | :terminate
+  @callback format_status(reason, pdict_and_state :: list) :: term
+            when reason: :normal | :terminate
 
   @optional_callbacks format_status: 2
 
@@ -537,13 +545,14 @@ defmodule GenServer do
   @type options :: [option]
 
   @typedoc "Option values used by the `start*` functions"
-  @type option :: {:debug, debug} |
-                  {:name, name} |
-                  {:timeout, timeout} |
-                  {:spawn_opt, Process.spawn_opt}
+  @type option ::
+          {:debug, debug}
+          | {:name, name}
+          | {:timeout, timeout}
+          | {:spawn_opt, Process.spawn_opt()}
 
   @typedoc "Debug options supported by the `start*` functions"
-  @type debug :: [:trace | :log | :statistics | {:log_to_file, Path.t}]
+  @type debug :: [:trace | :log | :statistics | {:log_to_file, Path.t()}]
 
   @typedoc "The server reference"
   @type server :: pid | name | {atom, node}
@@ -583,14 +592,17 @@ defmodule GenServer do
       def handle_call(msg, _from, state) do
         proc =
           case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
+            {_, []} -> self()
             {_, name} -> name
           end
 
         # We do this to trick Dialyzer to not complain about non-local returns.
         case :erlang.phash2(1, 1) do
-          0 -> raise "attempted to call GenServer #{inspect proc} but no handle_call/3 clause was provided"
-          1 -> {:stop, {:bad_call, msg}, state}
+          0 ->
+            raise "attempted to call GenServer #{inspect(proc)} but no handle_call/3 clause was provided"
+
+          1 ->
+            {:stop, {:bad_call, msg}, state}
         end
       end
 
@@ -598,11 +610,12 @@ defmodule GenServer do
       def handle_info(msg, state) do
         proc =
           case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
+            {_, []} -> self()
             {_, name} -> name
           end
-        :error_logger.error_msg('~p ~p received unexpected message in handle_info/2: ~p~n',
-                                [__MODULE__, proc, msg])
+
+        pattern = '~p ~p received unexpected message in handle_info/2: ~p~n'
+        :error_logger.error_msg(pattern, [__MODULE__, proc, msg])
         {:noreply, state}
       end
 
@@ -610,14 +623,17 @@ defmodule GenServer do
       def handle_cast(msg, state) do
         proc =
           case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
+            {_, []} -> self()
             {_, name} -> name
           end
 
         # We do this to trick Dialyzer to not complain about non-local returns.
         case :erlang.phash2(1, 1) do
-          0 -> raise "attempted to cast GenServer #{inspect proc} but no handle_cast/2 clause was provided"
-          1 -> {:stop, {:bad_cast, msg}, state}
+          0 ->
+            raise "attempted to cast GenServer #{inspect(proc)} but no handle_cast/2 clause was provided"
+
+          1 ->
+            {:stop, {:bad_cast, msg}, state}
         end
       end
 
@@ -695,12 +711,16 @@ defmodule GenServer do
     case Keyword.pop(options, :name) do
       {nil, opts} ->
         :gen.start(:gen_server, link, module, args, opts)
+
       {atom, opts} when is_atom(atom) ->
         :gen.start(:gen_server, link, {:local, atom}, module, args, opts)
+
       {{:global, _term} = tuple, opts} ->
         :gen.start(:gen_server, link, tuple, module, args, opts)
+
       {{:via, via_module, _term} = tuple, opts} when is_atom(via_module) ->
         :gen.start(:gen_server, link, tuple, module, args, opts)
+
       {other, _} ->
         raise ArgumentError, """
         expected :name option to be one of:
@@ -758,8 +778,10 @@ defmodule GenServer do
     case whereis(server) do
       nil ->
         exit({:noproc, {__MODULE__, :call, [server, request, timeout]}})
+
       pid when pid == self() ->
         exit({:calling_self, {__MODULE__, :call, [server, request, timeout]}})
+
       pid ->
         try do
           :gen.call(pid, :"$gen_call", request, timeout)
@@ -812,8 +834,7 @@ defmodule GenServer do
   def cast({name, node}, request) when is_atom(name) and is_atom(node),
     do: do_send({name, node}, cast_msg(request))
 
-  def cast(dest, request) when is_atom(dest) or is_pid(dest),
-    do: do_send(dest, cast_msg(request))
+  def cast(dest, request) when is_atom(dest) or is_pid(dest), do: do_send(dest, cast_msg(request))
 
   @doc """
   Casts all servers locally registered as `name` at the specified nodes.
@@ -826,7 +847,7 @@ defmodule GenServer do
   @spec abcast([node], name :: atom, term) :: :abcast
   def abcast(nodes \\ [node() | Node.list()], name, request) when is_list(nodes) and is_atom(name) do
     msg = cast_msg(request)
-    _   = for node <- nodes, do: do_send({name, node}, msg)
+    _ = for node <- nodes, do: do_send({name, node}, msg)
     :abcast
   end
 
@@ -873,7 +894,7 @@ defmodule GenServer do
 
   """
   @spec multi_call([node], name :: atom, term, timeout) ::
-                  {replies :: [{node, term}], bad_nodes :: [node]}
+          {replies :: [{node, term}], bad_nodes :: [node]}
   def multi_call(nodes \\ [node() | Node.list()], name, request, timeout \\ :infinity) do
     :gen_server.multi_call(nodes, name, request, timeout)
   end
@@ -945,14 +966,14 @@ defmodule GenServer do
   def whereis({:global, name}) do
     case :global.whereis_name(name) do
       pid when is_pid(pid) -> pid
-      :undefined           -> nil
+      :undefined -> nil
     end
   end
 
   def whereis({:via, mod, name}) do
     case apply(mod, :whereis_name, [name]) do
       pid when is_pid(pid) -> pid
-      :undefined           -> nil
+      :undefined -> nil
     end
   end
 
