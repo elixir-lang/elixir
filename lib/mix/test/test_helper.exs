@@ -217,7 +217,10 @@ unless File.dir?(target) do
     use Mix.Project
 
     def project do
-      [app: :git_repo, version: "0.1.0"]
+      [
+        app: :git_repo,
+        version: "0.1.0"
+      ]
     end
   end
   """
@@ -247,7 +250,10 @@ unless File.dir?(target) do
     use Mix.Project
 
     def project do
-      [app: :git_sparse_repo, version: "0.1.0"]
+      [
+        app: :git_sparse_repo,
+        version: "0.1.0"
+      ]
     end
   end
   """
@@ -280,16 +286,20 @@ unless File.dir?(target) do
     use Mix.Project
 
     def project do
-      [app: :deps_on_git_repo,
-       version: "0.2.0",
-       deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}]]
+      [
+        app: :deps_on_git_repo,
+        version: "0.2.0",
+        deps: [
+          {:git_repo, git: MixTest.Case.fixture_path("git_repo")}
+        ]
+      ]
     end
   end
   """
 
   File.write! Path.join(target, "lib/deps_on_git_repo.ex"), """
   ## Auto-generated fixture
-  GitRepo.hello
+  GitRepo.hello()
   """
 
   File.cd! target, fn ->
@@ -316,11 +326,8 @@ unless File.dir?(target) do
 
   File.write! Path.join([target, "src", "git_rebar.erl"]), """
   -module(git_rebar).
-
-  -export ([any_function/0]).
-
-  any_function() ->
-      ok.
+  -export([any_function/0]).
+  any_function() -> ok.
   """
 
   File.cd! target, fn ->

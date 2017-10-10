@@ -48,9 +48,11 @@ defmodule Mix.Tasks.Compile.Xref do
 
   defp run_xref do
     timestamp = :calendar.universal_time()
+
     case Mix.Task.run("xref", ["warnings"]) do
       :noop ->
         []
+
       {:ok, warnings} ->
         write_manifest(warnings, timestamp)
         warnings
@@ -67,7 +69,7 @@ defmodule Mix.Tasks.Compile.Xref do
   Returns xref manifests.
   """
   def manifests, do: [manifest()]
-  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   defp write_manifest(warnings, timestamp) do
     File.write!(manifest(), :erlang.term_to_binary({@manifest_vsn, warnings}))
@@ -89,7 +91,7 @@ defmodule Mix.Tasks.Compile.Xref do
   Cleans up xref manifest.
   """
   def clean do
-    File.rm manifest()
+    File.rm(manifest())
   end
 
   defp to_diagnostics(warnings, severity) do

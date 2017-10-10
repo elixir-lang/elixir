@@ -28,18 +28,19 @@ defmodule RandomFile do
         &(not formatted?(&1, &2))
       end
 
+    halt? = "--no-halt" not in args
     {opts, _} = Code.eval_file(".formatter.exs")
 
     @pattern
     |> Path.wildcard()
-    |> random_file(popper, filter, opts)
+    |> random_file(popper, filter, halt?, opts)
   end
 
-  defp random_file([], _popper, _filter, _opts) do
+  defp random_file([], _popper, _filter, _halt?, _opts) do
     IO.puts("No pending files found, hooray!")
   end
 
-  defp random_file(collection, popper, filter, opts) do
+  defp random_file(collection, popper, filter, halt?, opts) do
     {file, collection} = popper.(collection)
     IO.write("Checking #{file}... ")
 
@@ -57,10 +58,15 @@ defmodule RandomFile do
 
       Have fun!
       """)
+
+      if halt? do
+        System.halt(0)
+      end
     else
       IO.puts("")
-      random_file(collection, popper, filter, opts)
     end
+
+    random_file(collection, popper, filter, halt?, opts)
   end
 
   defp formatted?(file, opts) do
@@ -72,7 +78,7 @@ defmodule RandomFile do
   defp easy?(file, opts) do
     input = File.read!(file)
     output = IO.iodata_to_binary([Code.format_string!(input, opts), ?\n])
-    length(String.myers_difference(input, output)) in 2..10
+    length(String.myers_difference(input, output)) in 2..15
   end
 end
 
