@@ -14,7 +14,7 @@ defmodule IEx.PryTest do
       {:ok, contents} = IEx.Pry.whereami(__ENV__.file, 3, 2)
 
       assert IO.iodata_to_binary(contents) == """
-                 1: Code.require_file "../test_helper.exs", __DIR__
+                 1: Code.require_file("../test_helper.exs", __DIR__)
                  2:\s
              \e[1m    3: defmodule IEx.PryTest do
              \e[22m    4:   use ExUnit.Case
@@ -24,7 +24,7 @@ defmodule IEx.PryTest do
       {:ok, contents} = IEx.Pry.whereami(__ENV__.file, 1, 4)
 
       assert IO.iodata_to_binary(contents) == """
-             \e[1m    1: Code.require_file "../test_helper.exs", __DIR__
+             \e[1m    1: Code.require_file("../test_helper.exs", __DIR__)
              \e[22m    2:\s
                  3: defmodule IEx.PryTest do
                  4:   use ExUnit.Case
