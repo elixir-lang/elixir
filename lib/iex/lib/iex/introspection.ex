@@ -468,18 +468,25 @@ defmodule IEx.Introspection do
   defp print_callback_docs(mod, filter, printer) do
     case get_callback_docs(mod) do
       {callbacks, docs} ->
-        docs
-        |> Enum.filter(filter)
-        |> Enum.map(fn
+        print_fun = fn
           {{fun, arity}, _, :macrocallback, doc} ->
-            print_callback_docs(fun, :macrocallback, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
+            macro = {:"MACRO-#{fun}", arity + 1}
+            print_callback_docs(fun, :macrocallback, doc, macro, callbacks, printer)
+
           {{fun, arity}, _, kind, doc} ->
             print_callback_docs(fun, kind, doc, {fun, arity}, callbacks, printer)
-        end)
-        |> case do
+        end
+
+        docs =
+          docs
+          |> Enum.filter(filter)
+          |> Enum.map(print_fun)
+
+        case docs do
           [] -> :not_found
           _ -> :ok
         end
+
       other ->
         other
     end
@@ -575,15 +582,13 @@ defmodule IEx.Introspection do
   end
 
   def t(invalid) do
-    puts_error("Invalid arguments for t helper: #{inspect invalid}")
+    puts_error("Invalid arguments for t helper: #{inspect(invalid)}")
     dont_display_result()
   end
 
   defp print_type_doc(module, type) do
-    docs  = Code.get_docs(module, :type_docs)
-    {_, _, _, content} = Enum.find(docs, fn({{name, _}, _, _, _}) ->
-      type == name
-    end)
+    docs = Code.get_docs(module, :type_docs)
+    {_, _, _, content} = Enum.find(docs, fn {{name, _}, _, _, _} -> type == name end)
     if content, do: puts_info(content)
   end
 
@@ -628,10 +633,12 @@ defmodule IEx.Introspection do
     dont_display_result()
   end
 
-  def s({module, function, arity}) when is_atom(module) and is_atom(function) and is_integer(arity) do
+  def s({module, function, arity})
+      when is_atom(module) and is_atom(function) and is_integer(arity) do
     case Typespec.beam_specs(module) do
       nil ->
         no_beam(module)
+
       specs ->
         printed =
           for {{^function, ^arity}, _} = spec <- specs do
@@ -664,19 +671,23 @@ defmodule IEx.Introspection do
   end
 
   defp print_spec({{name, _arity}, specs}) do
-    Enum.each specs, fn(spec) ->
-      binary = Macro.to_string Typespec.spec_to_ast(name, spec)
+    Enum.each(specs, fn spec ->
+      binary = Macro.to_string(Typespec.spec_to_ast(name, spec))
       puts_info("@spec #{binary}")
-    end
+    end)
+
     true
   end
 
   defp no_beam(module) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        puts_error("Beam code not available for #{inspect module} or debug info is missing, cannot load typespecs")
+        puts_error(
+          "Beam code not available for #{inspect(module)} or debug info is missing, cannot load typespecs"
+        )
+
       {:error, reason} ->
-        puts_error("Could not load module #{inspect module}, got: #{reason}")
+        puts_error("Could not load module #{inspect(module)}, got: #{reason}")
     end
   end
 
