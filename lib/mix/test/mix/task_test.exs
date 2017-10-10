@@ -17,9 +17,9 @@ defmodule Mix.TaskTest do
       Mix.Task.run("unknown")
     end
 
-    no_task_message = "The task \"helli\" could not be found. Did you mean \"hello\"?"
+    message = "The task \"helli\" could not be found. Did you mean \"hello\"?"
 
-    assert_raise Mix.NoTaskError, no_task_message, fn ->
+    assert_raise Mix.NoTaskError, message, fn ->
       Mix.Task.run("helli")
     end
 
@@ -27,30 +27,30 @@ defmodule Mix.TaskTest do
       Mix.Task.run("invalid")
     end
 
-    misnamed_message =
+    message =
       "The task \"acronym.http\" could not be found because the module is named " <>
         "Mix.Tasks.Acronym.HTTP instead of Mix.Tasks.Acronym.Http as expected. " <>
         "Please rename it and try again"
 
-    assert_raise Mix.NoTaskError, misnamed_message, fn ->
+    assert_raise Mix.NoTaskError, message, fn ->
       Mix.Task.run("acronym.http")
     end
   end
 
   test "run/2 converts OptionParser.ParseError into Mix errors" do
-    unknown_opt_message =
+    message =
       "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option"
 
-    assert_raise Mix.Error, unknown_opt_message, fn ->
+    assert_raise Mix.Error, message, fn ->
       Mix.Task.run("hello", ["--parser", "--unknown"])
     end
 
     Mix.Task.clear()
 
-    bad_type_message =
+    message =
       "Could not invoke task \"hello\": 1 error found!\n--int : Expected type integer, got \"foo\""
 
-    assert_raise Mix.Error, bad_type_message, fn ->
+    assert_raise Mix.Error, message, fn ->
       Mix.Task.run("hello", ["--parser", "--int", "foo"])
     end
   end
