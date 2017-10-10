@@ -6,12 +6,12 @@ defmodule Mix.Shell do
   @doc """
   Prints the given ANSI message to the shell.
   """
-  @callback info(message :: IO.ANSI.ansidata) :: :ok
+  @callback info(message :: IO.ANSI.ansidata()) :: :ok
 
   @doc """
   Prints the given ANSI error to the shell.
   """
-  @callback error(message :: IO.ANSI.ansidata) :: :ok
+  @callback error(message :: IO.ANSI.ansidata()) :: :ok
 
   @doc """
   Writes data directly into the shell.
@@ -37,7 +37,7 @@ defmodule Mix.Shell do
   @doc """
   A collectable shell struct.
   """
-  defstruct [print_app?: true]
+  defstruct print_app?: true
 
   defimpl Collectable do
     def into(%Mix.Shell{print_app?: print_app?} = original) do
@@ -45,17 +45,19 @@ defmodule Mix.Shell do
         {:cont, shell}, {:cont, data} ->
           shell.write(data)
           {:cont, shell}
+
         {:print, shell}, {:cont, data} ->
           shell.print_app()
           shell.write(data)
           {:cont, shell}
+
         _, _ ->
           original
       end
 
       case print_app? do
-        true -> {{:print, Mix.shell}, fun}
-        false -> {{:cont, Mix.shell}, fun}
+        true -> {{:print, Mix.shell()}, fun}
+        false -> {{:cont, Mix.shell()}, fun}
       end
     end
   end
@@ -72,7 +74,7 @@ defmodule Mix.Shell do
   multiple times.
   """
   def printable_app_name do
-    Mix.ProjectStack.printable_app_name
+    Mix.ProjectStack.printable_app_name()
   end
 
   @doc false
@@ -121,9 +123,8 @@ defmodule Mix.Shell do
         []
       end
 
-    port = Port.open({:spawn, shell_command(command)},
-                     [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args])
-
+    opts = [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args]
+    port = Port.open({:spawn, shell_command(command)}, opts)
     port_read(port, acc, callback)
   end
 
@@ -131,6 +132,7 @@ defmodule Mix.Shell do
     receive do
       {^port, {:data, data}} ->
         port_read(port, callback.(acc, {:cont, data}), callback)
+
       {^port, {:exit_status, status}} ->
         callback.(acc, :done)
         status
@@ -140,32 +142,36 @@ defmodule Mix.Shell do
   # Finding shell command logic from :os.cmd in OTP
   # https://github.com/erlang/otp/blob/8deb96fb1d017307e22d2ab88968b9ef9f1b71d0/lib/kernel/src/os.erl#L184
   defp shell_command(command) do
-    case :os.type do
+    case :os.type() do
       {:unix, _} ->
         command =
           command
           |> String.replace("\"", "\\\"")
-          |> String.to_charlist
+          |> String.to_charlist()
+
         'sh -c "' ++ command ++ '"'
 
       {:win32, osname} ->
         command = '"' ++ String.to_charlist(command) ++ '"'
+
         case {System.get_env("COMSPEC"), osname} do
           {nil, :windows} -> 'command.com /s /c ' ++ command
-          {nil, _}        -> 'cmd /s /c ' ++ command
-          {cmd, _}        -> '#{cmd} /s /c ' ++ command
+          {nil, _} -> 'cmd /s /c ' ++ command
+          {cmd, _} -> '#{cmd} /s /c ' ++ command
         end
     end
   end
 
   defp validate_env(enum) do
-    Enum.map enum, fn
+    Enum.map(enum, fn
       {k, nil} ->
         {String.to_charlist(k), false}
+
       {k, v} ->
         {String.to_charlist(k), String.to_charlist(v)}
+
       other ->
-        raise ArgumentError, "invalid environment key-value #{inspect other}"
-    end
+        raise ArgumentError, "invalid environment key-value #{inspect(other)}"
+    end)
   end
 end
