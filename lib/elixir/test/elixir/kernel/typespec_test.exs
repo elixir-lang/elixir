@@ -843,6 +843,7 @@ defmodule Kernel.TypespecTest do
     @macrocallback last(integer) :: Macro.t
     @macrocallback last() :: atom
     @optional_callbacks bar: 2, last: 0
+    @optional_callbacks first: 1
   end
 
   test "callbacks" do
@@ -852,7 +853,7 @@ defmodule Kernel.TypespecTest do
 
   test "optional callbacks" do
     assert SampleCallbacks.behaviour_info(:optional_callbacks) |> Enum.sort() ==
-           ["MACRO-last": 1, bar: 2]
+           ["MACRO-last": 1, bar: 2, first: 1]
   end
 
   test "default is not supported" do
