@@ -129,7 +129,7 @@ defmodule MapTest do
 
   test "maps with optional comma" do
     assert Code.eval_string("%{a: :b,}") == {%{a: :b}, []}
-    assert Code.eval_string("%{1 => 2,}") == {%{a: :b}, []}
+    assert Code.eval_string("%{1 => 2,}") == {%{1 => 2}, []}
     assert Code.eval_string("%{1 => 2, a: :b,}") == {%{1 => 2, a: :b}, []}
   end
 
