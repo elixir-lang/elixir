@@ -82,7 +82,7 @@ defmodule Logger.ErrorHandler do
   defp log_event({:info_report, _gl, {pid, :progress, data}}, %{sasl: true} = state),
     do: log_event(:info, :report, pid, {:progress, data}, state)
 
-  defp log_event(_, _state), do: :ok
+  defp log_event(_, _state), do: :okcheck_threshold
 
   defp log_event(level, kind, pid, {type, _} = data, state) do
     %{level: min_level, truncate: truncate, utc_log: utc_log?, translators: translators} =
@@ -111,10 +111,10 @@ defmodule Logger.ErrorHandler do
   defp ensure_pid(pid) when is_pid(pid), do: pid
   defp ensure_pid(_), do: self()
 
-  defp check_threshold(
-         %{last_time: last_time, last_length: last_length, dropped: dropped, threshold: threshold} =
-           state
-       ) do
+  defp check_threshold(state) do
+    %{last_time: last_time, last_length: last_length, dropped: dropped, threshold: threshold} =
+      state
+
     {m, s, _} = current_time = :os.timestamp()
     current_length = message_queue_length()
 
