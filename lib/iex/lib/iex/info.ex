@@ -51,16 +51,15 @@ defimpl IEx.Info, for: Atom do
         ""
       end
 
-    mod_info = mod.module_info()
+    mod_info = mod.module_info
 
-    generic_info =
-      [
-        "Module bytecode": module_object_file(mod),
-        Source: module_source_file(mod_info),
-        Version: module_version(mod_info),
-        "Compile options": module_compile_options(mod_info),
-        Description: "#{extra}Call #{inspect(mod)}.module_info() to access metadata."
-      ]
+    generic_info = [
+      "Module bytecode": module_object_file(mod),
+      Source: module_source_file(mod_info),
+      Version: module_version(mod_info),
+      "Compile options": module_compile_options(mod_info),
+      Description: "#{extra}Call #{inspect(mod)}.module_info() to access metadata."
+    ]
 
     specific_info =
       if function_exported?(mod, :__protocol__, 1) do
@@ -292,11 +291,10 @@ defimpl IEx.Info, for: PID do
           [Alive: false]
       end
 
-    final_info =
-      [
-        Description: "Use Process.info/1 to get more info about this process",
-        "Reference modules": "Process, Node"
-      ]
+    final_info = [
+      Description: "Use Process.info/1 to get more info about this process",
+      "Reference modules": "Process, Node"
+    ]
 
     ["Data type": "PID"] ++ extra ++ final_info
   end
