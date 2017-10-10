@@ -1257,7 +1257,7 @@ defmodule Code.Formatter do
     {right_doc, state} =
       args_to_algebra_with_comments(right, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
 
-    args_doc = group(glue(left_doc, concat("| ", nest(right_doc, 2))))
+    args_doc = glue(left_doc, concat("| ", nest(right_doc, 2)))
     name_doc = "%" |> concat(name_doc) |> concat("{")
     {surround(name_doc, args_doc, "}"), state}
   end
