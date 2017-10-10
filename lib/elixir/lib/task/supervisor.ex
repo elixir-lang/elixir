@@ -314,13 +314,13 @@ defmodule Task.Supervisor do
   end
 
   defp get_info(self) do
-    {
-      node(),
+    name =
       case Process.info(self, :registered_name) do
         {:registered_name, []} -> self
         {:registered_name, name} -> name
       end
-    }
+
+    {node(), name}
   end
 
   defp do_async(supervisor, link_type, module, fun, args) do
