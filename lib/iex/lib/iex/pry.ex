@@ -73,9 +73,7 @@ defmodule IEx.Pry do
           end
 
         message = "Cannot pry #{inspect(self)} at #{location}. Is an IEx shell running?" <> extra
-
         IO.puts(:stdio, message)
-
         {:error, :no_iex}
 
       {:error, _} = error ->
@@ -376,9 +374,9 @@ defmodule IEx.Pry do
 
   defp instrument(beam, backend, {:elixir_v1, map, specs}, counter, entries) do
     %{attributes: attributes, definitions: definitions, module: module} = map
+
     attributes = [{:iex_pry, true} | attributes]
     definitions = Enum.map(definitions, &instrument_definition(&1, map, entries))
-
     map = %{map | attributes: attributes, definitions: definitions}
 
     with {:ok, forms} <- backend.debug_info(:erlang_v1, module, {:elixir_v1, map, specs}, []),
@@ -427,20 +425,15 @@ defmodule IEx.Pry do
           {expr, acc}
       end)
 
+    update_op = Macro.escape({4, -1, -1, -1})
+
     # Generate the take_over condition with the ets lookup.
     # Remember this is expanded AST, so no aliases allowed,
     # no locals (such as the unary -) and so on.
     condition =
       quote do
-        update_op = {
-          4,
-          unquote(-1),
-          unquote(-1),
-          unquote(-1)
-        }
-
         # :ets.update_counter(table, key, {pos, inc, threshold, reset})
-        case :ets.update_counter(unquote(@table), unquote(ref), update_op) do
+        case :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)) do
           unquote(-1) -> :ok
           _ -> :"Elixir.IEx.Pry".pry(unquote(Map.to_list(binding)), unquote(opts))
         end
