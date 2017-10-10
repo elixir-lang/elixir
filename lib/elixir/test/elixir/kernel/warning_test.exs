@@ -655,6 +655,59 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample2])
   end
 
+  test "undefined behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @behaviour UndefinedBehaviour
+      end
+      """
+    end) =~ "@behaviour UndefinedBehaviour does not exist (for module Sample)"
+  after
+    purge Sample
+  end
+
+  test "empty behaviours" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule EmptyBehaviour do
+      end
+      defmodule Sample do
+        @behaviour EmptyBehaviour
+      end
+      """
+    end) =~ "@behaviour EmptyBehaviour does not contain callbacks (for module Sample)"
+  after
+    purge Sample
+    purge EmptyBehaviour
+  end
+
+  test "warn on unknown optional callback" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule IllDefinedOptionalBehaviour do
+        @callback foo() :: any
+        @optional_callbacks foo: 1
+      end
+      """
+    end) =~ "The foo/1 optional callback specified in \"IllDefinedOptionalBehaviour\" is not defined"
+  after
+    purge IllDefinedOptionalBehaviour
+  end
+
+  test "warn on callback redefinition in the same behaviour" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule RedefinedCallbackBehaviour do
+        @callback foo() :: any
+        @callback foo() :: any
+      end
+      """
+    end) =~ "The foo/0 callback is defined 2 times in \"RedefinedCallbackBehaviour\""
+  after
+    purge RedefinedCallbackBehaviour
+  end
+
   test "undefined behavior" do
     assert capture_err(fn ->
              Code.eval_string("""
