@@ -1,6 +1,8 @@
 defmodule IEx.Evaluator do
   @moduledoc false
 
+  @learn_more_text "Would you like to learn more?"
+
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
@@ -230,7 +232,11 @@ defmodule IEx.Evaluator do
   defp handle_eval({:ok, forms}, code, line, iex_state, state) do
     {result, binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
+
     unless result == IEx.dont_display_result, do: io_inspect(result)
+
+    check_result(result, code)
+
     iex_state =
       %{iex_state | cache: '',
                     counter: iex_state.counter + 1}
@@ -253,6 +259,23 @@ defmodule IEx.Evaluator do
     # Encountered malformed expression
     :elixir_errors.parse_error(line, "iex", error, token)
   end
+
+  defp check_result(result, code) when is_list(result) do
+    if Enum.all?(result, &is_integer(&1)) do
+      input =
+        code
+        |> String.Chars.to_string
+        |> String.replace(" ", "")
+
+      string_result = String.Chars.to_string(result)
+
+      unless String.contains?(input, string_result) do
+        io_result @learn_more_text
+      end
+    end
+  end
+
+  defp check_result(_, _), do: nil
 
   defp update_history(state, counter, cache, result) do
     history_size = IEx.Config.history_size
