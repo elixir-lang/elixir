@@ -8,14 +8,13 @@ defmodule ExUnit.Runner do
   def run(opts, load_us) do
     {opts, config} = configure(opts)
 
-    :erlang.system_flag(:backtrace_depth,
-                        Keyword.fetch!(opts, :stacktrace_depth))
+    :erlang.system_flag(:backtrace_depth, Keyword.fetch!(opts, :stacktrace_depth))
 
     {run_us, _} =
-      :timer.tc fn ->
+      :timer.tc(fn ->
         EM.suite_started(config.manager, opts)
         loop(config, 0)
-      end
+      end)
 
     EM.suite_finished(config.manager, run_us, load_us)
     result = ExUnit.RunnerStats.stats(config.stats)
@@ -26,9 +25,9 @@ defmodule ExUnit.Runner do
   defp configure(opts) do
     opts = normalize_opts(opts)
 
-    {:ok, manager} = EM.start_link
+    {:ok, manager} = EM.start_link()
     {:ok, stats} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
-    Enum.each opts[:formatters], &EM.add_handler(manager, &1, opts)
+    Enum.each(opts[:formatters], &EM.add_handler(manager, &1, opts))
 
     config = %{
       capture_log: opts[:capture_log],
@@ -100,11 +99,11 @@ defmodule ExUnit.Runner do
   defp spawn_modules(config, modules, taken) do
     pid = self()
 
-    Enum.each modules, fn module ->
-      spawn_link fn ->
+    Enum.each(modules, fn module ->
+      spawn_link(fn ->
         run_module(config, pid, module)
-      end
-    end
+      end)
+    end)
 
     loop(config, taken + length(modules))
   end
@@ -118,7 +117,7 @@ defmodule ExUnit.Runner do
     tests = prepare_tests(config, test_module.tests)
 
     {test_module, pending} =
-      if Enum.all?(tests, &(&1.state)) do
+      if Enum.all?(tests, & &1.state) do
         {test_module, tests}
       else
         spawn_module(config, test_module, tests)
@@ -126,20 +125,21 @@ defmodule ExUnit.Runner do
 
     # Run the pending tests. We don't actually spawn those
     # tests but we do send the notifications to formatter.
-    Enum.each pending, &run_test(config, &1, [])
+    Enum.each(pending, &run_test(config, &1, []))
     EM.module_finished(config.manager, test_module)
-    send pid, {self(), :module_finished, test_module}
+    send(pid, {self(), :module_finished, test_module})
   end
 
   defp prepare_tests(config, tests) do
-    tests   = shuffle(config, tests)
+    tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
 
     for test <- tests do
       tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
-        :ok           -> %{test | tags: tags}
+        :ok -> %{test | tags: tags}
         {:error, msg} -> %{test | state: {:skip, msg}}
       end
     end
@@ -154,12 +154,12 @@ defmodule ExUnit.Runner do
 
         case exec_module_setup(test_module) do
           {:ok, test_module, context} ->
-            Enum.each tests, &run_test(config, &1, context)
-            send parent, {self(), :module_finished, test_module, []}
+            Enum.each(tests, &run_test(config, &1, context))
+            send(parent, {self(), :module_finished, test_module, []})
 
           {:error, test_module} ->
-            failed_tests = Enum.map tests, & %{&1 | state: {:invalid, test_module}}
-            send parent, {self(), :module_finished, test_module, failed_tests}
+            failed_tests = Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
+            send(parent, {self(), :module_finished, test_module, failed_tests})
         end
 
         exit(:shutdown)
@@ -170,6 +170,7 @@ defmodule ExUnit.Runner do
         {^module_pid, :module_finished, test_module, tests} ->
           Process.demonitor(module_ref, [:flush])
           {test_module, tests}
+
         {:DOWN, ^module_ref, :process, ^module_pid, error} ->
           test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
           {test_module, []}
@@ -197,15 +198,17 @@ defmodule ExUnit.Runner do
 
   defp run_test(opts, config, test, context) do
     ref = make_ref()
+
     try do
       ExUnit.CaptureLog.capture_log(opts, fn ->
-        send self(), {ref, spawn_test(config, test, context)}
+        send(self(), {ref, spawn_test(config, test, context)})
       end)
     catch
       :exit, :noproc ->
         message =
           "could not run test, it uses @tag :capture_log" <>
-          " but the :logger application is not running"
+            " but the :logger application is not running"
+
         %{test | state: failed(:error, RuntimeError.exception(message), [])}
     else
       logged ->
@@ -243,12 +246,13 @@ defmodule ExUnit.Runner do
             case exec_test_setup(test, context) do
               {:ok, test} ->
                 exec_test(test)
+
               {:error, test} ->
                 test
             end
           end)
 
-        send parent, {self(), :test_finished, %{test | time: us}}
+        send(parent, {self(), :test_finished, %{test | time: us}})
         exit(:shutdown)
       end)
 
@@ -267,6 +271,7 @@ defmodule ExUnit.Runner do
       {^test_pid, :test_finished, test} ->
         Process.demonitor(test_ref, [:flush])
         test
+
       {:DOWN, ^test_ref, :process, ^test_pid, error} ->
         %{test | state: failed({:EXIT, test_pid}, error, [])}
     after
@@ -275,8 +280,15 @@ defmodule ExUnit.Runner do
           {:current_stacktrace, stacktrace} ->
             Process.demonitor(test_ref, [:flush])
             Process.exit(test_pid, :kill)
-            exception = ExUnit.TimeoutError.exception(timeout: timeout, type: Atom.to_string(test.tags.type))
+
+            exception =
+              ExUnit.TimeoutError.exception(
+                timeout: timeout,
+                type: Atom.to_string(test.tags.type)
+              )
+
             %{test | state: failed(:error, exception, stacktrace)}
+
           nil ->
             receive_test_reply(test, test_pid, test_ref, timeout)
         end
@@ -302,6 +314,7 @@ defmodule ExUnit.Runner do
     case ExUnit.OnExitHandler.run(pid, timeout) do
       :ok ->
         test_or_case
+
       {kind, reason, stack} ->
         state = test_or_case.state || failed(kind, reason, prune_stacktrace(stack))
         %{test_or_case | state: state}
@@ -311,7 +324,7 @@ defmodule ExUnit.Runner do
   ## Helpers
 
   defp get_timeout(tags, config) do
-    if config.trace do
+    if config.trace() do
       :infinity
     else
       Map.get(tags, :timeout, config.timeout)
@@ -328,17 +341,19 @@ defmodule ExUnit.Runner do
   end
 
   defp failed(:error, %ExUnit.MultiError{errors: errors}, _stack) do
-    {:failed,
-     Enum.map(errors, fn {kind, reason, stack} ->
-       {kind, Exception.normalize(kind, reason), prune_stacktrace(stack)}
-     end)}
+    {
+      :failed,
+      Enum.map(errors, fn {kind, reason, stack} ->
+        {kind, Exception.normalize(kind, reason), prune_stacktrace(stack)}
+      end)
+    }
   end
 
   defp failed(kind, reason, stack) do
     {:failed, [{kind, Exception.normalize(kind, reason), stack}]}
   end
 
-  defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)
+  defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace())
 
   # Assertions can pop-up in the middle of the stack
   defp prune_stacktrace([{ExUnit.Assertions, _, _, _} | t]), do: prune_stacktrace(t)
