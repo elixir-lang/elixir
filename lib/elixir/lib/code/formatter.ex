@@ -830,17 +830,9 @@ defmodule Code.Formatter do
     {string("#{name}/#{arity}"), state}
   end
 
-  defp capture_target_to_algebra({op, _, [_, _]} = arg, context, state) when is_atom(op) do
-    {doc, state} = quoted_to_algebra(arg, context, state)
-
-    case Code.Identifier.binary_op(op) do
-      {_, _} -> {wrap_in_parens(doc), state}
-      _ -> {doc, state}
-    end
-  end
-
   defp capture_target_to_algebra(arg, context, state) do
-    quoted_to_algebra(arg, context, state)
+    {doc, state} = quoted_to_algebra(arg, context, state)
+    {wrap_in_parens_if_necessary(arg, doc), state}
   end
 
   ## Calls (local, remote and anonymous)
