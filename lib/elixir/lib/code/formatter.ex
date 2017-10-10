@@ -305,6 +305,10 @@ defmodule Code.Formatter do
     {group(doc), state}
   end
 
+  defp quoted_to_algebra({:special, :bitstring_segment, [arg, last]}, _context, state) do
+    bitstring_segment_to_algebra({arg, -1}, state, last)
+  end
+
   defp quoted_to_algebra({var, _meta, var_context}, _context, state) when is_atom(var_context) do
     {var |> Atom.to_string() |> string(), state}
   end
@@ -643,11 +647,11 @@ defmodule Code.Formatter do
     doc =
       cond do
         op in @no_space_binary_operators ->
-          concat(concat(left, op_string), right)
+          group(concat(concat(left, op_string), right))
 
         op in @no_newline_binary_operators ->
           op_string = " " <> op_string <> " "
-          concat(concat(left, op_string), right)
+          group(concat(concat(left, op_string), right))
 
         op in @left_new_line_before_binary_operators ->
           op_string = op_string <> " "
@@ -680,9 +684,11 @@ defmodule Code.Formatter do
           if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
 
         true ->
-          with_next_break_fits(next_break_fits?(right_arg), right, fn right ->
+          next_break_fits? = next_break_fits?(right_arg) and not Keyword.get(meta, :eol, false)
+
+          with_next_break_fits(next_break_fits?, right, fn right ->
             op_string = " " <> op_string
-            concat(left, group(nest(glue(op_string, group(right)), nesting, :break)))
+            group(concat(left, group(nest(glue(op_string, group(right)), nesting, :break))))
           end)
       end
 
@@ -860,14 +866,17 @@ defmodule Code.Formatter do
 
   # Mod.function()
   # var.function
-  defp remote_to_algebra({{:., _, [target, fun]}, _, []}, _context, state) when is_atom(fun) do
+  defp remote_to_algebra({{:., _, [target, fun]}, meta, []}, _context, state) when is_atom(fun) do
     {target_doc, state} = remote_target_to_algebra(target, state)
     fun = remote_fun_to_algebra(target, fun, 0, state)
 
-    if remote_target_is_a_module?(target) do
-      {target_doc |> concat(".") |> concat(string(fun)) |> concat("()"), state}
+    target_doc = target_doc |> concat(".") |> concat(string(fun))
+    add_parens? = remote_target_is_a_module?(target) or not Keyword.get(meta, :no_parens, false)
+
+    if add_parens? do
+      {concat(target_doc, "()"), state}
     else
-      {target_doc |> concat(".") |> concat(string(fun)), state}
+      {target_doc, state}
     end
   end
 
@@ -1188,6 +1197,12 @@ defmodule Code.Formatter do
       |> args_to_algebra_with_comments(meta, state, &bitstring_segment_to_algebra(&1, &2, last))
 
     {surround("<<", args_doc, ">>"), state}
+  end
+
+  defp bitstring_segment_to_algebra({{:<-, meta, [left, right]}, i}, state, last) do
+    left = {:special, :bitstring_segment, [left, last]}
+    {doc, state} = quoted_to_algebra({:<-, meta, [left, right]}, :parens_arg, state)
+    {bitstring_wrap_parens(doc, i, last), state}
   end
 
   defp bitstring_segment_to_algebra({{:::, _, [segment, spec]}, i}, state, last) do

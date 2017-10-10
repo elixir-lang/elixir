@@ -63,7 +63,7 @@ defmodule Mix.Tasks.App.Tree do
       For more options see http://www.graphviz.org/.
       """
       |> String.trim_trailing
-      |> Mix.shell.info
+      |> Mix.shell.info()
     else
       Mix.Utils.print_tree([{:normal, app}], callback, opts)
     end
