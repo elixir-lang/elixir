@@ -67,14 +67,8 @@ defmodule Mix.Tasks.App.TreeTest do
     in_tmp context.test, fn ->
       load_apps()
 
-      Mix.Tasks.App.Tree.run([
-        "--format",
-        "pretty",
-        "--exclude",
-        "app_deps4_sample",
-        "--exclude",
-        "app_deps3_sample"
-      ])
+      exclude = ["--exclude", "app_deps4_sample", "--exclude", "app_deps3_sample"]
+      Mix.Tasks.App.Tree.run(["--format", "pretty" | exclude])
 
       assert_received {:mix_shell, :info, ["test"]}
       assert_received {:mix_shell, :info, ["└── app_deps_sample"]}
