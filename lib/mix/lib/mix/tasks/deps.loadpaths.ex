@@ -92,7 +92,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         compile
         |> Enum.map(& &1.app)
         |> loaded_by_name(env: Mix.env())
-        |> Enum.filter(&not ok?(&1))
+        |> Enum.filter(&(not ok?(&1)))
         |> show_not_ok!
     end
   end

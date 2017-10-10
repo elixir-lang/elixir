@@ -18,7 +18,7 @@ defprotocol String.Chars do
   @doc """
   Converts `term` to a string.
   """
-  @spec to_string(t) :: String.t
+  @spec to_string(t) :: String.t()
   def to_string(term)
 end
 
@@ -39,9 +39,9 @@ defimpl String.Chars, for: BitString do
 
   def to_string(term) do
     raise Protocol.UndefinedError,
-             protocol: @protocol,
-                value: term,
-          description: "cannot convert a bitstring to a string"
+      protocol: @protocol,
+      value: term,
+      description: "cannot convert a bitstring to a string"
   end
 end
 

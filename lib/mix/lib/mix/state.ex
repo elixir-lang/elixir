@@ -5,13 +5,15 @@ defmodule Mix.State do
   use Agent
 
   def start_link(_opts) do
-    Agent.start_link(__MODULE__, :init, [], [name: @name])
+    Agent.start_link(__MODULE__, :init, [], name: @name)
   end
 
   def init() do
-    %{shell: Mix.Shell.IO,
+    %{
+      shell: Mix.Shell.IO,
       env: String.to_atom(System.get_env("MIX_ENV") || "dev"),
-      scm: [Mix.SCM.Git, Mix.SCM.Path]}
+      scm: [Mix.SCM.Git, Mix.SCM.Path]
+    }
   end
 
   def fetch(key) do

@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Local.Hex do
   use Mix.Task
 
-  @hex_list_path    "/installs/hex-1.x.csv"
+  @hex_list_path "/installs/hex-1.x.csv"
   @hex_archive_path "/installs/[ELIXIR_VERSION]/hex-[HEX_VERSION].ez"
 
   @shortdoc "Installs Hex locally"
@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Local.Hex do
   end
 
   defp run_install(argv) do
-    hex_mirror = Mix.Hex.mirror
+    hex_mirror = Mix.Hex.mirror()
 
     {elixir_version, hex_version, sha512} =
       Mix.Local.find_matching_versions_from_signed_csv!("Hex", hex_mirror <> @hex_list_path)
@@ -60,6 +60,6 @@ defmodule Mix.Tasks.Local.Hex do
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[HEX_VERSION]", hex_version)
 
-    Mix.Tasks.Archive.Install.run [url, "--sha512", sha512 | argv]
+    Mix.Tasks.Archive.Install.run([url, "--sha512", sha512 | argv])
   end
 end

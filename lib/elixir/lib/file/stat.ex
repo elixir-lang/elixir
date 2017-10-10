@@ -53,9 +53,9 @@ defmodule File.Stat do
   """
 
   record = Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-  keys   = :lists.map(&elem(&1, 0), record)
-  vals   = :lists.map(&{&1, [], nil}, keys)
-  pairs  = :lists.zip(keys, vals)
+  keys = :lists.map(&elem(&1, 0), record)
+  vals = :lists.map(&{&1, [], nil}, keys)
+  pairs = :lists.zip(keys, vals)
 
   defstruct keys
   @type t :: %__MODULE__{}
@@ -71,6 +71,7 @@ defmodule File.Stat do
   Converts a `:file_info` record into a `File.Stat`.
   """
   def from_record(file_info)
+
   def from_record({:file_info, unquote_splicing(vals)}) do
     %File.Stat{unquote_splicing(pairs)}
   end
