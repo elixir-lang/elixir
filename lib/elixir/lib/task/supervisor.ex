@@ -15,13 +15,15 @@ defmodule Task.Supervisor do
   """
 
   @typedoc "Option values used by `start_link`"
-  @type option :: Supervisor.option |
-                  {:restart, :supervisor.restart} |
-                  {:shutdown, :supervisor.shutdown}
+  @type option ::
+          Supervisor.option()
+          | {:restart, :supervisor.restart()}
+          | {:shutdown, :supervisor.shutdown()}
 
   @typedoc "Supervisor spec used by `async_stream`"
-  @type async_stream_supervisor :: Supervisor.supervisor |
-                                   (term -> Supervisor.supervisor)
+  @type async_stream_supervisor ::
+          Supervisor.supervisor()
+          | (term -> Supervisor.supervisor())
 
   @doc false
   def child_spec(arg) do
@@ -56,16 +58,18 @@ defmodule Task.Supervisor do
     * `:max_restarts` and `:max_seconds` - as specified in `Supervisor`;
 
   """
-  @spec start_link([option]) :: Supervisor.on_start
+  @spec start_link([option]) :: Supervisor.on_start()
   def start_link(opts \\ []) do
-    {restart, opts}  = Keyword.pop(opts, :restart, :temporary)
+    {restart, opts} = Keyword.pop(opts, :restart, :temporary)
     {shutdown, opts} = Keyword.pop(opts, :shutdown, 5000)
+
     child = %{
       id: Task.Supervised,
       start: {Task.Supervised, :start_link, []},
       restart: restart,
       shutdown: shutdown
     }
+
     Supervisor.start_link([child], [strategy: :simple_one_for_one] ++ opts)
   end
 
@@ -80,7 +84,7 @@ defmodule Task.Supervisor do
   as the `:restart` option (the default), as `async/2` keeps a direct
   reference to the task which is lost if the task is restarted.
   """
-  @spec async(Supervisor.supervisor, (() -> any)) :: Task.t
+  @spec async(Supervisor.supervisor(), (() -> any)) :: Task.t()
   def async(supervisor, fun) do
     async(supervisor, :erlang, :apply, [fun, []])
   end
@@ -96,7 +100,7 @@ defmodule Task.Supervisor do
   as the `:restart` option (the default), as `async/4` keeps a direct
   reference to the task which is lost if the task is restarted.
   """
-  @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
+  @spec async(Supervisor.supervisor(), module, atom, [term]) :: Task.t()
   def async(supervisor, module, fun, args) do
     do_async(supervisor, :link, module, fun, args)
   end
@@ -127,7 +131,7 @@ defmodule Task.Supervisor do
   with the same `ref` value that is held by the task struct. If the task
   terminates normally, the reason in the `:DOWN` message will be `:normal`.
   """
-  @spec async_nolink(Supervisor.supervisor, (() -> any)) :: Task.t
+  @spec async_nolink(Supervisor.supervisor(), (() -> any)) :: Task.t()
   def async_nolink(supervisor, fun) do
     async_nolink(supervisor, :erlang, :apply, [fun, []])
   end
@@ -143,7 +147,7 @@ defmodule Task.Supervisor do
   as the `:restart` option (the default), as `async_nolink/4` keeps a
   direct reference to the task which is lost if the task is restarted.
   """
-  @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
+  @spec async_nolink(Supervisor.supervisor(), module, atom, [term]) :: Task.t()
   def async_nolink(supervisor, module, fun, args) do
     do_async(supervisor, :nolink, module, fun, args)
   end
@@ -207,8 +211,8 @@ defmodule Task.Supervisor do
       Enum.to_list(stream)
 
   """
-  @spec async_stream(async_stream_supervisor, Enumerable.t, module, atom, [term], keyword) ::
-        Enumerable.t
+  @spec async_stream(async_stream_supervisor, Enumerable.t(), module, atom, [term], keyword) ::
+          Enumerable.t()
   def async_stream(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
     build_stream(supervisor, :link, enumerable, {module, function, args}, options)
@@ -224,8 +228,8 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion, options, and examples.
   """
-  @spec async_stream(async_stream_supervisor, Enumerable.t, (term -> term), keyword) ::
-        Enumerable.t
+  @spec async_stream(async_stream_supervisor, Enumerable.t(), (term -> term), keyword) ::
+          Enumerable.t()
   def async_stream(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :link, enumerable, fun, options)
   end
@@ -240,8 +244,14 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion, options, and examples.
   """
-  @spec async_stream_nolink(async_stream_supervisor, Enumerable.t, module, atom, [term], keyword) ::
-        Enumerable.t
+  @spec async_stream_nolink(
+          async_stream_supervisor,
+          Enumerable.t(),
+          module,
+          atom,
+          [term],
+          keyword
+        ) :: Enumerable.t()
   def async_stream_nolink(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
     build_stream(supervisor, :nolink, enumerable, {module, function, args}, options)
@@ -257,8 +267,8 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion and examples.
   """
-  @spec async_stream_nolink(async_stream_supervisor, Enumerable.t, (term -> term), keyword) ::
-        Enumerable.t
+  @spec async_stream_nolink(async_stream_supervisor, Enumerable.t(), (term -> term), keyword) ::
+          Enumerable.t()
   def async_stream_nolink(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :nolink, enumerable, fun, options)
   end
@@ -266,7 +276,7 @@ defmodule Task.Supervisor do
   @doc """
   Terminates the child with the given `pid`.
   """
-  @spec terminate_child(Supervisor.supervisor, pid) :: :ok
+  @spec terminate_child(Supervisor.supervisor(), pid) :: :ok
   def terminate_child(supervisor, pid) when is_pid(pid) do
     Supervisor.terminate_child(supervisor, pid)
   end
@@ -274,7 +284,7 @@ defmodule Task.Supervisor do
   @doc """
   Returns all children PIDs.
   """
-  @spec children(Supervisor.supervisor) :: [pid]
+  @spec children(Supervisor.supervisor()) :: [pid]
   def children(supervisor) do
     for {_, pid, _, _} <- Supervisor.which_children(supervisor), is_pid(pid), do: pid
   end
@@ -287,7 +297,7 @@ defmodule Task.Supervisor do
   task needs to perform side-effects (like I/O) and does not need
   to report back to the caller.
   """
-  @spec start_child(Supervisor.supervisor, (() -> any)) :: {:ok, pid}
+  @spec start_child(Supervisor.supervisor(), (() -> any)) :: {:ok, pid}
   def start_child(supervisor, fun) do
     start_child(supervisor, :erlang, :apply, [fun, []])
   end
@@ -298,17 +308,19 @@ defmodule Task.Supervisor do
   Similar to `start_child/2` except the task is specified
   by the given `module`, `fun` and `args`.
   """
-  @spec start_child(Supervisor.supervisor, module, atom, [term]) :: {:ok, pid}
+  @spec start_child(Supervisor.supervisor(), module, atom, [term]) :: {:ok, pid}
   def start_child(supervisor, module, fun, args) when is_atom(fun) and is_list(args) do
     Supervisor.start_child(supervisor, [get_info(self()), {module, fun, args}])
   end
 
   defp get_info(self) do
-    {node(),
-     case Process.info(self, :registered_name) do
-       {:registered_name, []} -> self
-       {:registered_name, name} -> name
-     end}
+    {
+      node(),
+      case Process.info(self, :registered_name) do
+        {:registered_name, []} -> self
+        {:registered_name, name} -> name
+      end
+    }
   end
 
   defp do_async(supervisor, link_type, module, fun, args) do
@@ -317,7 +329,7 @@ defmodule Task.Supervisor do
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     if link_type == :link, do: Process.link(pid)
     ref = Process.monitor(pid)
-    send pid, {owner, ref}
+    send(pid, {owner, ref})
     %Task{pid: pid, ref: ref, owner: owner}
   end
 
@@ -337,6 +349,7 @@ defmodule Task.Supervisor do
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
     supervisor_fun = supervisor_fun(supervisor, fun)
+
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
       args = [owner, :monitor, get_info(owner), mfa]
       {:ok, pid} = Supervisor.start_child(supervisor_fun.(mfa), args)
