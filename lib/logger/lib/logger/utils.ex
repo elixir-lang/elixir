@@ -8,10 +8,11 @@ defmodule Logger.Utils do
   cluster but we never truncate in the middle of a binary
   codepoint. For this reason, truncation is not exact.
   """
-  @spec truncate(IO.chardata, non_neg_integer) :: IO.chardata
+  @spec truncate(IO.chardata(), non_neg_integer) :: IO.chardata()
   def truncate(chardata, :infinity) when is_binary(chardata) or is_list(chardata) do
     chardata
   end
+
   def truncate(chardata, n) when n >= 0 do
     {chardata, n} = truncate_n(chardata, n)
     if n >= 0, do: chardata, else: [chardata, " (truncated)"]
@@ -23,6 +24,7 @@ defmodule Logger.Utils do
 
   defp truncate_n(binary, n) when is_binary(binary) do
     remaining = n - byte_size(binary)
+
     if remaining < 0 do
       # There is a chance we are cutting at the wrong
       # place so we need to fix the binary.
@@ -32,9 +34,9 @@ defmodule Logger.Utils do
     end
   end
 
-  defp truncate_n(int, n) when int in 0..127,                      do: {int, n - 1}
-  defp truncate_n(int, n) when int in 127..0x07FF,                 do: {int, n - 2}
-  defp truncate_n(int, n) when int in 0x800..0xFFFF,               do: {int, n - 3}
+  defp truncate_n(int, n) when int in 0..127, do: {int, n - 1}
+  defp truncate_n(int, n) when int in 127..0x07FF, do: {int, n - 2}
+  defp truncate_n(int, n) when int in 0x800..0xFFFF, do: {int, n - 3}
   defp truncate_n(int, n) when int >= 0x10000 and is_integer(int), do: {int, n - 4}
 
   defp truncate_n(list, n) when is_list(list) do
@@ -64,7 +66,7 @@ defmodule Logger.Utils do
     # This should allow at least two codepoints of 6 bytes.
     suffix_size = min(byte_size(binary), 13)
     prefix_size = byte_size(binary) - suffix_size
-    <<prefix :: binary-size(prefix_size), suffix :: binary-size(suffix_size)>> = binary
+    <<prefix::binary-size(prefix_size), suffix::binary-size(suffix_size)>> = binary
     prefix <> fix_binary(suffix, "")
   end
 
@@ -88,25 +90,30 @@ defmodule Logger.Utils do
   check `:io_lib.scan_format/2`
   """
   def scan_inspect(format, args, truncate, opts \\ %Inspect.Opts{})
+
   def scan_inspect(format, args, truncate, opts) when is_atom(format) do
     scan_inspect(Atom.to_charlist(format), args, truncate, opts)
   end
+
   def scan_inspect(format, args, truncate, opts) when is_binary(format) do
     scan_inspect(:binary.bin_to_list(format), args, truncate, opts)
   end
+
   def scan_inspect(format, [], _truncate, _opts) when is_list(format) do
     :io_lib.scan_format(format, [])
   end
+
   def scan_inspect(format, args, truncate, opts) when is_list(format) do
     # A pre-pass that removes binaries from
     # arguments according to the truncate limit.
-    {args, _} = Enum.map_reduce(args, truncate, fn arg, acc ->
-      if is_binary(arg) do
-        truncate_n(arg, acc)
-      else
-        {arg, acc}
-      end
-    end)
+    {args, _} =
+      Enum.map_reduce(args, truncate, fn arg, acc ->
+        if is_binary(arg) do
+          truncate_n(arg, acc)
+        else
+          {arg, acc}
+        end
+      end)
 
     format
     |> :io_lib.scan_format(args)
@@ -128,14 +135,15 @@ defmodule Logger.Utils do
     %{args: args, width: width, strings: strings?} = spec
 
     opts = %{
-      opts |
-      charlists: inspect_charlists(strings?, opts),
-      limit: inspect_limit(char, args, opts),
-      width: inspect_width(char, width),
+      opts
+      | charlists: inspect_charlists(strings?, opts),
+        limit: inspect_limit(char, args, opts),
+        width: inspect_width(char, width)
     }
 
     %{@inspected_format_spec | args: [inspect_data(args, opts)]}
   end
+
   defp handle_format_spec(spec, _opts), do: spec
 
   defp inspect_charlists(false, _), do: :as_lists
@@ -158,11 +166,13 @@ defmodule Logger.Utils do
   """
   def timestamp(utc_log?) do
     {_, _, micro} = now = :os.timestamp()
+
     {date, {hours, minutes, seconds}} =
       case utc_log? do
-        true  -> :calendar.now_to_universal_time(now)
+        true -> :calendar.now_to_universal_time(now)
         false -> :calendar.now_to_local_time(now)
       end
+
     {date, {hours, minutes, seconds, div(micro, 1000)}}
   end
 end
