@@ -393,7 +393,7 @@ defmodule Kernel.ParallelCompiler do
       end
 
     IO.puts("""
-    
+
     Compilation failed because of a deadlock between files.
     The following files depended on the following modules:
     """)
