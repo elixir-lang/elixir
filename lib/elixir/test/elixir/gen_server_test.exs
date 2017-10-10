@@ -45,8 +45,6 @@ defmodule GenServerTest do
              start: {Stack, :start_link, [[:hello]]}
            }
 
-    assert Stack.child_spec([:hello]) == expected
-
     defmodule CustomStack do
       use GenServer, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
     end
