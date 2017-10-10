@@ -340,14 +340,16 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_call(file, {{module, func, arity}, lines}) do
-    for line <- Enum.sort(lines), do: [
-      file,
-      ":",
-      to_string(line),
-      ": ",
-      Exception.format_mfa(module, func, arity),
-      ?\n
-    ]
+    for line <- Enum.sort(lines) do
+      [
+        file,
+        ":",
+        to_string(line),
+        ": ",
+        Exception.format_mfa(module, func, arity),
+        ?\n
+      ]
+    end
   end
 
   ## "Callers" helpers
