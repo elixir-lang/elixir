@@ -341,12 +341,12 @@ defmodule ExUnit.Runner do
   end
 
   defp failed(:error, %ExUnit.MultiError{errors: errors}, _stack) do
-    {
-      :failed,
+    errors =
       Enum.map(errors, fn {kind, reason, stack} ->
         {kind, Exception.normalize(kind, reason), prune_stacktrace(stack)}
       end)
-    }
+      
+    {:failed, errors}
   end
 
   defp failed(kind, reason, stack) do
