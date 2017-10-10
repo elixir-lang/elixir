@@ -4,8 +4,8 @@ defmodule String.Tokenizer do
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
   {letter_uptitlecase, start, continue, _} =
-    Enum.reduce(File.stream!(data_path), {[], [], [], nil}, fn line,
-       {letter_uptitlecase, start, continue, first} ->
+    Enum.reduce(File.stream!(data_path), {[], [], [], nil}, fn line, acc ->
+      {letter_uptitlecase, start, continue, first} = acc
       [codepoint, line] = :binary.split(line, ";")
       [name, line] = :binary.split(line, ";")
       [category, _] = :binary.split(line, ";")
