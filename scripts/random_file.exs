@@ -78,7 +78,7 @@ defmodule RandomFile do
   defp easy?(file, opts) do
     input = File.read!(file)
     output = IO.iodata_to_binary([Code.format_string!(input, opts), ?\n])
-    length(String.myers_difference(input, output)) in 2..80
+    length(String.myers_difference(input, output)) in 2..100
   end
 end
 
