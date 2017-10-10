@@ -36,6 +36,7 @@ expand({'__block__', _Meta, []}, E) ->
 expand({'__block__', _Meta, [Arg]}, E) ->
   expand(Arg, E);
 expand({'__block__', Meta, Args}, E) when is_list(Args) ->
+  warn_no_duplicate_defs(Meta, Args, E),
   {EArgs, EA} = expand_block(Args, [], Meta, E),
   {{'__block__', Meta, EArgs}, EA};
 
@@ -846,6 +847,23 @@ warn_underscored_var_access(Meta, Name, Kind, E) ->
       ok
   end.
 
+warn_no_duplicate_defs(_, [], _) ->
+  ok;
+warn_no_duplicate_defs(Meta, [{def, _, [Def1, _]} | Args], E) ->
+  case should_warn(Meta) of
+    true ->
+      lists:map(fun
+        ({def, _, [{Name, _, _}=Def2, _]}) when Def1 == Def2 ->
+          elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {duplicate_defs, Name});
+        (_) ->
+          ok
+      end, Args);
+    false ->
+      ok
+  end;
+warn_no_duplicate_defs(Meta, [_ | T], E) ->
+  warn_no_duplicate_defs(Meta, T, E).
+
 context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
 context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
 
@@ -872,6 +890,8 @@ format_error({missing_option, Construct, Opts}) when is_list(Opts) ->
   io_lib:format("missing ~ts option in \"~ts\"", [string:join(StringOpts, "/"), Construct]);
 format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
+format_error({duplicate_defs, Name}) ->
+  io_lib:format("duplicate definition clauses detected for \"~ts\"", [Name]);
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->
