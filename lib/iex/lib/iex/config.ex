@@ -21,7 +21,7 @@ defmodule IEx.Config do
   defp columns() do
     case :io.columns() do
       {:ok, width} -> width
-      {:error, _}  -> 80
+      {:error, _} -> 80
     end
   end
 
@@ -50,6 +50,7 @@ defmodule IEx.Config do
       case Keyword.fetch(colors, color) do
         {:ok, value} ->
           value
+
         :error ->
           default_color(color)
       end
@@ -62,6 +63,7 @@ defmodule IEx.Config do
     case Keyword.fetch(colors, :enabled) do
       {:ok, enabled} ->
         enabled
+
       :error ->
         IO.ANSI.enabled?()
     end
@@ -81,9 +83,16 @@ defmodule IEx.Config do
 
   # Used by inspect
   defp default_color(:syntax_colors) do
-    [atom: :cyan, string: :green, list: :default_color,
-     boolean: :magenta, nil: :magenta, tuple: :default_color,
-     binary: :default_color, map: :default_color]
+    [
+      atom: :cyan,
+      string: :green,
+      list: :default_color,
+      boolean: :magenta,
+      nil: :magenta,
+      tuple: :default_color,
+      binary: :default_color,
+      map: :default_color
+    ]
   end
 
   # Used by ansi docs
@@ -93,6 +102,7 @@ defmodule IEx.Config do
 
   def ansi_docs() do
     colors = Application.get_env(:iex, :colors, [])
+
     if enabled = colors_enabled?(colors) do
       [width: width(), enabled: enabled] ++ colors
     end
@@ -138,7 +148,7 @@ defmodule IEx.Config do
 
   def handle_init do
     :ets.new(@table, [:named_table, :public])
-    true = :ets.insert_new(@table, [after_spawn: []])
+    true = :ets.insert_new(@table, after_spawn: [])
     @table
   end
 
@@ -148,9 +158,11 @@ defmodule IEx.Config do
 
   def handle_configure(tab, options) do
     options = :lists.ukeysort(1, options)
+
     configuration()
     |> Keyword.merge(options, &merge_option/3)
     |> update_configuration()
+
     tab
   end
 
@@ -166,7 +178,9 @@ defmodule IEx.Config do
   defp merge_option(:default_prompt, _old, new) when is_binary(new), do: new
   defp merge_option(:alive_prompt, _old, new) when is_binary(new), do: new
   defp merge_option(:width, _old, new) when is_integer(new), do: new
+
   defp merge_option(key, _old, new) do
-    raise ArgumentError, "invalid configuration or value for pair #{inspect key} - #{inspect new}"
+    raise ArgumentError,
+          "invalid configuration or value for pair #{inspect(key)} - #{inspect(new)}"
   end
 end

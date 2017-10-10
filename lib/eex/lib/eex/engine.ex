@@ -50,11 +50,11 @@ defmodule EEx.Engine do
   @type state :: term
 
   @callback init(opts :: keyword) :: state
-  @callback handle_body(state) :: Macro.t
-  @callback handle_text(state, text :: String.t) :: state
-  @callback handle_expr(state, marker :: String.t, expr :: Macro.t) :: state
+  @callback handle_body(state) :: Macro.t()
+  @callback handle_text(state, text :: String.t()) :: state
+  @callback handle_expr(state, marker :: String.t(), expr :: Macro.t()) :: state
   @callback handle_begin(state) :: state
-  @callback handle_end(state) :: Macro.t
+  @callback handle_end(state) :: Macro.t()
 
   @doc false
   defmacro __using__(_) do
@@ -104,27 +104,33 @@ defmodule EEx.Engine do
       end
 
   """
-  @spec handle_assign(Macro.t) :: Macro.t
+  @spec handle_assign(Macro.t()) :: Macro.t()
   def handle_assign({:@, meta, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
     line = meta[:line] || 0
-    quote line: line, do: EEx.Engine.fetch_assign!(var!(assigns), unquote(name))
+    quote(line: line, do: EEx.Engine.fetch_assign!(var!(assigns), unquote(name)))
   end
+
   def handle_assign(arg) do
     arg
   end
 
   @doc false
   # TODO: Raise on 2.0
-  @spec fetch_assign!(Access.t, Access.key) :: term | nil
+  @spec fetch_assign!(Access.t(), Access.key()) :: term | nil
   def fetch_assign!(assigns, key) do
     case Access.fetch(assigns, key) do
       {:ok, val} ->
         val
+
       :error ->
         keys = Enum.map(assigns, &elem(&1, 0))
-        IO.warn "assign @#{key} not available in EEx template. " <>
-                "Please ensure all assigns are given as options. " <>
-                "Available assigns: #{inspect keys}"
+
+        IO.warn(
+          "assign @#{key} not available in EEx template. " <>
+            "Please ensure all assigns are given as options. " <>
+            "Available assigns: #{inspect(keys)}"
+        )
+
         nil
     end
   end
@@ -161,7 +167,7 @@ defmodule EEx.Engine do
   The default implementation simply concatenates text to the buffer.
   """
   def handle_text(buffer, text) do
-    quote do: unquote(buffer) <> unquote(text)
+    quote(do: unquote(buffer) <> unquote(text))
   end
 
   @doc """
@@ -190,7 +196,7 @@ defmodule EEx.Engine do
   end
 
   def handle_expr(_buffer, marker, _expr) when marker in ["/", "|"] do
-    raise EEx.SyntaxError, 
-      "unsupported EEx syntax <%#{marker} %> (the syntax is valid but not supported by the current EEx engine)"
+    raise EEx.SyntaxError,
+          "unsupported EEx syntax <%#{marker} %> (the syntax is valid but not supported by the current EEx engine)"
   end
 end
