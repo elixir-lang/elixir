@@ -249,6 +249,12 @@ defmodule Code.Formatter.IntegrationTest do
       %{kind: :map_key, name: key, value_is_map: is_map(value)}
     end
     """
+
+    assert_same """
+    with {_, doc} when unquote(doc_attr?) <-
+           Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
+         do: doc
+    """
   end
 
   test "next break fits followed by inline tuple" do
