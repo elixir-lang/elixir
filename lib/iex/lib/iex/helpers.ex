@@ -568,21 +568,21 @@ defmodule IEx.Helpers do
 
   defp print_runtime_info_topic(:applications) do
     print_pane("Loaded OTP Applications")
-
     started = Application.started_applications()
+    loaded = Application.loaded_applications()
 
-    Application.loaded_applications()
-    |> Enum.sort_by(&elem(&1, 0))
-    |> Enum.each(fn {app, _, version} = loaded ->
-         IO.write(pad_key(app))
-         IO.write(String.pad_trailing("#{version}", 20))
+    for {app, _, version} = entry <- Enum.sort(loaded) do
+      IO.write(pad_key(app))
+      IO.write(String.pad_trailing("#{version}", 20))
 
-         if loaded in started do
-           IO.write("(started)")
-         end
+      if entry in started do
+        IO.write("(started)")
+      end
 
-         IO.puts("")
-       end)
+      IO.puts("")
+    end
+
+    :ok
   end
 
   defp print_pane(msg) do
@@ -948,34 +948,21 @@ defmodule IEx.Helpers do
   def whereami(radius \\ 2) do
     case Process.get(:iex_whereami) do
       {file, line, stacktrace} ->
-        IO.puts(
-          IEx.color(:eval_info, [
-            "Location: ",
-            Path.relative_to_cwd(file),
-            ":",
-            Integer.to_string(line)
-          ])
-        )
+        msg = ["Location: ", Path.relative_to_cwd(file), ":", Integer.to_string(line)]
+        IO.puts(IEx.color(:eval_info, msg))
 
         case IEx.Pry.whereami(file, line, radius) do
           {:ok, lines} ->
             IO.write([?\n, lines, ?\n])
 
           :error ->
-            IO.puts(
-              IEx.color(
-                :eval_error,
-                "Could not extract source snippet. Location is not available."
-              )
-            )
+            msg = "Could not extract source snippet. Location is not available."
+            IO.puts(IEx.color(:eval_error, msg))
         end
 
         case stacktrace do
-          nil ->
-            :ok
-
-          stacktrace ->
-            IO.write([Exception.format_stacktrace(stacktrace), ?\n])
+          nil -> :ok
+          stacktrace -> IO.write([Exception.format_stacktrace(stacktrace), ?\n])
         end
 
       _ ->

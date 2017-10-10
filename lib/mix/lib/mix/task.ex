@@ -75,13 +75,11 @@ defmodule Mix.Task do
   def load_tasks(dirs) do
     # We may get duplicate modules because we look through the
     # entire load path so make sure we only return unique modules.
-
-    for(
-      dir <- dirs,
-      file <- safe_list_dir(to_charlist(dir)),
-      mod = task_from_path(file),
-      do: mod
-    )
+    for dir <- dirs,
+        file <- safe_list_dir(to_charlist(dir)),
+        mod = task_from_path(file) do
+      mod
+    end
     |> Enum.uniq()
   end
 

@@ -27,20 +27,16 @@ defmodule Kernel.WithTest do
 
   test "two levels with" do
     result =
-      with(
-        {:ok, n1} <- ok(11),
-        n2 <- 22,
-        do: n1 + n2
-      )
+      with {:ok, n1} <- ok(11),
+           n2 <- 22,
+           do: n1 + n2
 
     assert result == 33
 
     result =
-      with(
-        n1 <- 11,
-        {:ok, n2} <- error(),
-        do: n1 + n2
-      )
+      with n1 <- 11,
+           {:ok, n2} <- error(),
+           do: n1 + n2
 
     assert result == :error
   end
@@ -88,23 +84,19 @@ defmodule Kernel.WithTest do
   end
 
   test "else conditions" do
-    assert with(
-             {:ok, res} <- four(),
-             do: res,
-             else: (
-               {:error, error} -> error
-               res -> res + 1
-             )
-           ) == 5
+    assert (with {:ok, res} <- four() do
+              res
+            else
+              {:error, error} -> error
+              res -> res + 1
+            end) == 5
 
-    assert with(
-             {:ok, res} <- four(),
-             do: res,
-             else: (
-               res when res == 4 -> res + 1
-               res -> res
-             )
-           ) == 5
+    assert (with {:ok, res} <- four() do
+              res
+            else
+              res when res == 4 -> res + 1
+              res -> res
+            end) == 5
 
     assert with({:ok, res} <- four(), do: res, else: (_ -> :error)) == :error
   end
