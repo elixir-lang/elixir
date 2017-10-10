@@ -185,7 +185,7 @@ defmodule ExUnit.DocTest do
 
   This macro is auto-imported with every `ExUnit.Case`.
   """
-  defmacro doctest mod, opts \\ [] do
+  defmacro doctest(mod, opts \\ []) do
     require =
       if is_atom(Macro.expand(mod, __CALLER__)) do
         quote do
@@ -298,15 +298,12 @@ defmodule ExUnit.DocTest do
           reraise e, stack
 
         error ->
-          original_stack = System.stacktrace()
+          message =
+            "Doctest failed: got #{inspect(error.__struct__)} with message " <>
+              inspect(Exception.message(error))
 
-          reraise ExUnit.AssertionError,
-                  [
-                    message: "Doctest failed: got #{inspect(error.__struct__)} with message " <>
-                      inspect(Exception.message(error)),
-                    expr: unquote(String.trim(whole_expr))
-                  ],
-                  original_stack
+          error = [message: message, expr: unquote(String.trim(whole_expr))]
+          reraise ExUnit.AssertionError, error, System.stacktrace()
       end
     end
   end
@@ -323,13 +320,9 @@ defmodule ExUnit.DocTest do
           :ok
 
         actual ->
-          reraise ExUnit.AssertionError,
-                  [
-                    message: "Doctest failed",
-                    expr: "#{unquote(String.trim(expr))} === #{unquote(String.trim(expected))}",
-                    left: actual
-                  ],
-                  unquote(stack)
+          expr = "#{unquote(String.trim(expr))} === #{unquote(String.trim(expected))}"
+          error = [message: "Doctest failed", expr: expr, left: actual]
+          reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
   end
@@ -350,15 +343,9 @@ defmodule ExUnit.DocTest do
           :ok
 
         actual ->
-          reraise ExUnit.AssertionError,
-                  [
-                    message: "Doctest failed",
-                    expr: "inspect(#{unquote(String.trim(expr))}) === #{
-                      unquote(String.trim(expected))
-                    }",
-                    left: actual
-                  ],
-                  unquote(stack)
+          expr = "inspect(#{unquote(String.trim(expr))}) === #{unquote(String.trim(expected))}"
+          error = [message: "Doctest failed", expr: expr, left: actual]
+          reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
   end
@@ -399,12 +386,11 @@ defmodule ExUnit.DocTest do
           end
       else
         _ ->
-          reraise ExUnit.AssertionError,
-                  [
-                    message: "Doctest failed: expected exception #{inspect(unquote(exception))} but nothing was raised",
-                    expr: expr
-                  ],
-                  stack
+          message =
+            "Doctest failed: expected exception #{inspect(unquote(exception))} but nothing was raised"
+
+          error = [message: message, expr: expr]
+          reraise ExUnit.AssertionError, error, stack
       end
     end
   end
@@ -420,14 +406,13 @@ defmodule ExUnit.DocTest do
       Code.string_to_quoted!(expr, location)
     rescue
       e ->
-        message = "(#{inspect(e.__struct__)}) #{Exception.message(e)}"
+        ex_message = "(#{inspect(e.__struct__)}) #{Exception.message(e)}"
 
         quote do
+          message = "Doctest did not compile, got: #{unquote(ex_message)}"
+
           reraise ExUnit.AssertionError,
-                  [
-                    message: "Doctest did not compile, got: #{unquote(message)}",
-                    expr: unquote(String.trim(expr))
-                  ],
+                  [message: message, expr: unquote(String.trim(expr))],
                   unquote(stack)
         end
     end
@@ -540,27 +525,15 @@ defmodule ExUnit.DocTest do
 
     cond do
       stripped_line == "" ->
-        adjust_indent(
-          :text,
-          rest,
-          line_no + 1,
-          [{stripped_line, line_no} | adjusted_lines],
-          0,
-          module
-        )
+        adjusted_lines = [{stripped_line, line_no} | adjusted_lines]
+        adjust_indent(:text, rest, line_no + 1, adjusted_lines, 0, module)
 
       String.starts_with?(String.trim_leading(line), @iex_prompt) ->
         adjust_indent(:prompt, [line | rest], line_no, adjusted_lines, indent, module)
 
       true ->
-        adjust_indent(
-          :code,
-          rest,
-          line_no + 1,
-          [{stripped_line, line_no} | adjusted_lines],
-          indent,
-          module
-        )
+        adjusted_lines = [{stripped_line, line_no} | adjusted_lines]
+        adjust_indent(:code, rest, line_no + 1, adjusted_lines, indent, module)
     end
   end
 
@@ -658,14 +631,8 @@ defmodule ExUnit.DocTest do
          new_test,
          module
        ) do
-    extract_tests(
-      [{"iex" <> skip_iex_number(string, module, line_no, line), line_no} | lines],
-      expr_acc,
-      expected_acc,
-      acc,
-      new_test,
-      module
-    )
+    new_line = {"iex" <> skip_iex_number(string, module, line_no, line), line_no}
+    extract_tests([new_line | lines], expr_acc, expected_acc, acc, new_test, module)
   end
 
   # Expression numbers are simply skipped redux.
@@ -677,14 +644,8 @@ defmodule ExUnit.DocTest do
          new_test,
          module
        ) do
-    extract_tests(
-      [{"..." <> skip_iex_number(string, module, line_no, line), line_no} | lines],
-      expr_acc,
-      expected_acc,
-      acc,
-      new_test,
-      module
-    )
+    new_line = {"..." <> skip_iex_number(string, module, line_no, line), line_no}
+    extract_tests([new_line | lines], expr_acc, expected_acc, acc, new_test, module)
   end
 
   # Skip empty or documentation line.
@@ -769,7 +730,8 @@ defmodule ExUnit.DocTest do
        when char in ?A..?Z
        when char in ?a..?z
        when char in ?0..?9
-       when char == ?_, do: inspectable_end?(rest)
+       when char == ?_,
+       do: inspectable_end?(rest)
 
   defp inspectable_end?(<<?<, _::binary>>), do: true
   defp inspectable_end?(_), do: false
