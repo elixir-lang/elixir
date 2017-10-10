@@ -202,19 +202,21 @@ defmodule EExTest do
     end
 
     test "when trying to use marker '/' without implementation" do
-      assert_raise EEx.SyntaxError,
-                   ~r/unsupported EEx syntax <%\/ %> \(the syntax is valid but not supported by the current EEx engine\)/,
-                   fn ->
-                     EEx.compile_string("<%/ true %>")
-                   end
+      msg =
+        ~r/unsupported EEx syntax <%\/ %> \(the syntax is valid but not supported by the current EEx engine\)/
+
+      assert_raise EEx.SyntaxError, msg, fn ->
+        EEx.compile_string("<%/ true %>")
+      end
     end
 
     test "when trying to use marker '|' without implementation" do
-      assert_raise EEx.SyntaxError,
-                   ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/,
-                   fn ->
-                     EEx.compile_string("<%| true %>")
-                   end
+      msg =
+        ~r/unsupported EEx syntax <%\/ %> \(the syntax is valid but not supported by the current EEx engine\)/
+
+      assert_raise EEx.SyntaxError, msg, fn ->
+        EEx.compile_string("<%| true %>")
+      end
     end
   end
 
@@ -524,11 +526,12 @@ defmodule EExTest do
     end
 
     test "not implemented custom marker" do
-      assert_raise EEx.SyntaxError,
-                   ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/,
-                   fn ->
-                     assert_eval({:wrapped, "foo baz"}, "foo <%| :bar %>", [], engine: TestEngine)
-                   end
+      msg =
+        ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/
+
+      assert_raise EEx.SyntaxError, msg, fn ->
+        assert_eval({:wrapped, "foo baz"}, "foo <%| :bar %>", [], engine: TestEngine)
+      end
     end
   end
 
