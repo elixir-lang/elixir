@@ -11,9 +11,18 @@ defmodule Logger.ErrorHandler do
     # and then trying to reach it will lead to crashes. So we send a
     # message to a PID, instead of named process, to avoid crashes on
     # send since this handler will be removed soon by the supervisor.
-    {:ok, %{otp: otp?, sasl: sasl?, threshold: threshold,
-            logger: Process.whereis(Logger), last_length: 0,
-            last_time: :os.timestamp, dropped: 0}}
+    {
+      :ok,
+      %{
+        otp: otp?,
+        sasl: sasl?,
+        threshold: threshold,
+        logger: Process.whereis(Logger),
+        last_length: 0,
+        last_time: :os.timestamp(),
+        dropped: 0
+      }
+    }
   end
 
   ## Handle event
@@ -29,7 +38,7 @@ defmodule Logger.ErrorHandler do
   end
 
   def handle_call(request, _state) do
-    exit {:bad_call, request}
+    exit({:bad_call, request})
   end
 
   def handle_info(_msg, state) do
@@ -48,31 +57,36 @@ defmodule Logger.ErrorHandler do
 
   defp log_event({:error, _gl, {pid, format, data}}, %{otp: true} = state),
     do: log_event(:error, :format, pid, {format, data}, state)
+
   defp log_event({:error_report, _gl, {pid, :std_error, format}}, %{otp: true} = state),
     do: log_event(:error, :report, pid, {:std_error, format}, state)
+
   defp log_event({:error_report, _gl, {pid, :supervisor_report, data}}, %{sasl: true} = state),
     do: log_event(:error, :report, pid, {:supervisor_report, data}, state)
+
   defp log_event({:error_report, _gl, {pid, :crash_report, data}}, %{sasl: true} = state),
     do: log_event(:error, :report, pid, {:crash_report, data}, state)
 
   defp log_event({:warning_msg, _gl, {pid, format, data}}, %{otp: true} = state),
     do: log_event(:warn, :format, pid, {format, data}, state)
+
   defp log_event({:warning_report, _gl, {pid, :std_warning, format}}, %{otp: true} = state),
     do: log_event(:warn, :report, pid, {:std_warning, format}, state)
 
   defp log_event({:info_msg, _gl, {pid, format, data}}, %{otp: true} = state),
     do: log_event(:info, :format, pid, {format, data}, state)
+
   defp log_event({:info_report, _gl, {pid, :std_info, format}}, %{otp: true} = state),
     do: log_event(:info, :report, pid, {:std_info, format}, state)
+
   defp log_event({:info_report, _gl, {pid, :progress, data}}, %{sasl: true} = state),
     do: log_event(:info, :report, pid, {:progress, data}, state)
 
-  defp log_event(_, _state),
-    do: :ok
+  defp log_event(_, _state), do: :ok
 
   defp log_event(level, kind, pid, {type, _} = data, state) do
-    %{level: min_level, truncate: truncate,
-      utc_log: utc_log?, translators: translators} = Logger.Config.__data__
+    %{level: min_level, truncate: truncate, utc_log: utc_log?, translators: translators} =
+      Logger.Config.__data__()
 
     with log when log != :lt <- Logger.compare_levels(level, min_level),
          {:ok, message} <- translate(translators, min_level, level, kind, data, truncate) do
@@ -80,9 +94,12 @@ defmodule Logger.ErrorHandler do
 
       # Mode is always async to avoid clogging the error_logger
       meta = [pid: ensure_pid(pid), error_logger: ensure_type(type)]
-      :gen_event.notify(state.logger,
-        {level, Process.group_leader(),
-          {Logger, message, Logger.Utils.timestamp(utc_log?), meta}})
+
+      :gen_event.notify(state.logger, {
+        level,
+        Process.group_leader(),
+        {Logger, message, Logger.Utils.timestamp(utc_log?), meta}
+      })
     end
 
     :ok
@@ -94,22 +111,30 @@ defmodule Logger.ErrorHandler do
   defp ensure_pid(pid) when is_pid(pid), do: pid
   defp ensure_pid(_), do: self()
 
-  defp check_threshold(%{last_time: last_time, last_length: last_length,
-                         dropped: dropped, threshold: threshold} = state) do
-    {m, s, _} = current_time = :os.timestamp
+  defp check_threshold(
+         %{last_time: last_time, last_length: last_length, dropped: dropped, threshold: threshold} =
+           state
+       ) do
+    {m, s, _} = current_time = :os.timestamp()
     current_length = message_queue_length()
 
     cond do
       match?({^m, ^s, _}, last_time) and current_length - last_length > threshold ->
         count = drop_messages(current_time, 0)
         %{state | dropped: dropped + count, last_length: message_queue_length()}
+
       match?({^m, ^s, _}, last_time) ->
         state
+
       true ->
-        _ = if dropped > 0 do
-          Logger.warn "Logger dropped #{dropped} OTP/SASL messages as it " <>
-                      "exceeded the amount of #{threshold} messages/second"
-        end
+        _ =
+          if dropped > 0 do
+            Logger.warn(
+              "Logger dropped #{dropped} OTP/SASL messages as it " <>
+                "exceeded the amount of #{threshold} messages/second"
+            )
+          end
+
         %{state | dropped: 0, last_time: current_time, last_length: current_length}
     end
   end
@@ -120,13 +145,14 @@ defmodule Logger.ErrorHandler do
   end
 
   defp drop_messages({m, s, _} = last_time, count) do
-    case :os.timestamp do
+    case :os.timestamp() do
       {^m, ^s, _} ->
         receive do
           {:notify, _event} -> drop_messages(last_time, count + 1)
         after
           0 -> count
         end
+
       _ ->
         count
     end
@@ -145,6 +171,7 @@ defmodule Logger.ErrorHandler do
       format
       |> Logger.Utils.scan_inspect(args, truncate)
       |> :io_lib.build_text()
+
     {:ok, msg}
   end
 
