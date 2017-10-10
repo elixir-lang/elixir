@@ -308,6 +308,47 @@ defmodule Code.Formatter.LiteralsTest do
       assert_format bad, good, @short_length
     end
 
+    test "nested with empty lines" do
+      assert_same ~S'''
+      nested do
+        """
+
+        foo
+
+
+        bar
+
+        """
+      end
+      '''
+    end
+
+    test "nested with empty lines and interpolation" do
+      assert_same ~S'''
+      nested do
+        """
+
+        #{foo}
+
+
+        #{bar}
+
+        """
+      end
+      '''
+
+      assert_same ~S'''
+      nested do
+        """
+        #{foo}
+
+
+        #{bar}
+        """
+      end
+      '''
+    end
+
     test "literal new lines don't count towards line limit" do
       assert_same to_string(~S'''
       """
