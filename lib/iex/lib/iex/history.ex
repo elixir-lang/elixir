@@ -1,45 +1,41 @@
 defmodule IEx.History.State do
   @moduledoc false
 
-  defstruct queue: :queue.new, size: 0, start: 1
+  defstruct queue: :queue.new(), size: 0, start: 1
 
   def append(%{queue: q, size: size} = state, item) do
     %{state | queue: :queue.in(item, q), size: size + 1}
   end
 
-  def to_list(%{queue: q}),
-    do: :queue.to_list(q)
+  def to_list(%{queue: q}), do: :queue.to_list(q)
 
   # Traverses the queue front-to-back if the index is positive.
   def nth(%{queue: q, size: size, start: start}, n)
-    when n - start >= 0 and n - start < size,
-    do: get_nth(q, n - start)
+      when n - start >= 0 and n - start < size,
+      do: get_nth(q, n - start)
 
   # Traverses the queue back-to-front if the index is negative.
   def nth(%{queue: q, size: size, start: start}, n)
-    when n < 0 and size + n >= start - 1,
-    do: get_nth(:queue.reverse(q), abs(n) - 1)
+      when n < 0 and size + n >= start - 1,
+      do: get_nth(:queue.reverse(q), abs(n) - 1)
 
   def nth(_, _), do: nil
 
   defp get_nth(q, 0), do: :queue.head(q)
-  defp get_nth(q, n) when n > 0,
-    do: get_nth(:queue.tail(q), n - 1)
+  defp get_nth(q, n) when n > 0, do: get_nth(:queue.tail(q), n - 1)
 
   # Traverses the queue front-to-back, dropping items as we go
   # until its size is within the specified limit.
   #
   # The "start" value contains the index of the expression at the head
   # of the queue.
-  def prune(%{start: start} = state, limit),
-    do: prune(state, start, limit, false)
+  def prune(%{start: start} = state, limit), do: prune(state, start, limit, false)
 
-  defp prune(state, _, limit, _) when limit < 0,
-    do: {false, state}
+  defp prune(state, _, limit, _) when limit < 0, do: {false, state}
 
   defp prune(%{size: size} = state, counter, limit, collect?)
-    when size - counter < limit,
-    do: {collect?, %{state | start: counter}}
+       when size - counter < limit,
+       do: {collect?, %{state | start: counter}}
 
   defp prune(%{queue: q} = state, counter, limit, collect?) do
     {{:value, entry}, q} = :queue.out(q)
@@ -57,16 +53,14 @@ defmodule IEx.History.State do
     end
   end
 
-  defp has_bin(val) when is_tuple(val),
-    do: has_bin(val, tuple_size(val) - 1)
+  defp has_bin(val) when is_tuple(val), do: has_bin(val, tuple_size(val) - 1)
 
   defp has_bin([head | tail]) do
     has_bin(head)
     has_bin(tail)
   end
 
-  defp has_bin(val) when byte_size(val) > 64,
-    do: throw(:found)
+  defp has_bin(val) when byte_size(val) > 64, do: throw(:found)
 
   defp has_bin(_), do: false
 
@@ -123,8 +117,8 @@ defmodule IEx.History do
 
   # Based on https://github.com/erlang/otp/blob/7dcccee4371477e983f026db9e243cb66900b1ef/lib/stdlib/src/shell.erl#L1401
   defp collect_garbage() do
-    collect_proc_garbage Process.whereis(:user)
-    collect_proc_garbage Process.group_leader()
+    collect_proc_garbage(Process.whereis(:user))
+    collect_proc_garbage(Process.group_leader())
     :erlang.garbage_collect()
   end
 

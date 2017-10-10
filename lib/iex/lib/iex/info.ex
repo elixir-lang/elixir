@@ -53,14 +53,13 @@ defimpl IEx.Info, for: Atom do
 
     mod_info = mod.module_info()
 
-    generic_info =
-      [
-        "Module bytecode": module_object_file(mod),
-        Source: module_source_file(mod_info),
-        Version: module_version(mod_info),
-        "Compile options": module_compile_options(mod_info),
-        Description: "#{extra}Call #{inspect(mod)}.module_info() to access metadata."
-      ]
+    generic_info = [
+      "Module bytecode": module_object_file(mod),
+      Source: module_source_file(mod_info),
+      Version: module_version(mod_info),
+      "Compile options": module_compile_options(mod_info),
+      Description: "#{extra}Call #{inspect(mod)}.module_info() to access metadata."
+    ]
 
     specific_info =
       if function_exported?(mod, :__protocol__, 1) do
