@@ -657,11 +657,11 @@ defmodule Code.Formatter do
     doc =
       cond do
         op in @no_space_binary_operators ->
-          group(concat(concat(left, op_string), right))
+          concat(concat(group(left), op_string), group(right))
 
         op in @no_newline_binary_operators ->
           op_string = " " <> op_string <> " "
-          group(concat(concat(left, op_string), right))
+          concat(concat(group(left), op_string), group(right))
 
         op in @left_new_line_before_binary_operators ->
           op_string = op_string <> " "
@@ -698,7 +698,7 @@ defmodule Code.Formatter do
 
           with_next_break_fits(next_break_fits?, right, fn right ->
             op_string = " " <> op_string
-            group(concat(left, group(nest(glue(op_string, group(right)), nesting, :break))))
+            concat(group(left), group(nest(glue(op_string, group(right)), nesting, :break)))
           end)
       end
 
