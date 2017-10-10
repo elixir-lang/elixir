@@ -593,12 +593,12 @@ defmodule Macro do
   end
 
   # Fn keyword
-  def to_string({:fn, _, [{:"->", _, [_, tuple]}] = arrow} = ast, fun)
+  def to_string({:fn, _, [{:->, _, [_, tuple]}] = arrow} = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
     fun.(ast, "fn " <> arrow_to_string(arrow, fun) <> " end")
   end
 
-  def to_string({:fn, _, [{:"->", _, _}] = block} = ast, fun) do
+  def to_string({:fn, _, [{:->, _, _}] = block} = ast, fun) do
     fun.(ast, "fn " <> block_to_string(block, fun) <> "\nend")
   end
 
@@ -608,7 +608,7 @@ defmodule Macro do
   end
 
   # left -> right
-  def to_string([{:"->", _, _} | _] = ast, fun) do
+  def to_string([{:->, _, _} | _] = ast, fun) do
     fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
   end
 
@@ -920,8 +920,8 @@ defmodule Macro do
     Atom.to_string(key) <> "\n  " <> block <> "\n"
   end
 
-  defp block_to_string([{:"->", _, _} | _] = block, fun) do
-    Enum.map_join(block, "\n", fn {:"->", _, [left, right]} ->
+  defp block_to_string([{:->, _, _} | _] = block, fun) do
+    Enum.map_join(block, "\n", fn {:->, _, [left, right]} ->
       left = comma_join_or_empty_paren(left, fun, false)
       left <> "->\n  " <> adjust_new_lines(block_to_string(right, fun), "\n  ")
     end)
@@ -980,7 +980,7 @@ defmodule Macro do
   defp op_to_string(expr, fun, _, _), do: to_string(expr, fun)
 
   defp arrow_to_string(pairs, fun, paren \\ false) do
-    Enum.map_join(pairs, "; ", fn {:"->", _, [left, right]} ->
+    Enum.map_join(pairs, "; ", fn {:->, _, [left, right]} ->
       left = comma_join_or_empty_paren(left, fun, paren)
       left <> "-> " <> to_string(right, fun)
     end)
