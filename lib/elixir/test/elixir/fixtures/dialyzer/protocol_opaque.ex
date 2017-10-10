@@ -1,6 +1,6 @@
 defmodule Dialyzer.ProtocolOpaque do
   def circus() do
-    Dialyzer.ProtocolOpaque.Entity.speak(Dialyzer.ProtocolOpaque.Duck.new)
+    Dialyzer.ProtocolOpaque.Entity.speak(Dialyzer.ProtocolOpaque.Duck.new())
   end
 end
 
