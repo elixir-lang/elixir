@@ -40,10 +40,10 @@ defmodule GenServerTest do
   end
 
   test "generates child_spec/1" do
-    expected = %{
-      id: Stack,
-      start: {Stack, :start_link, [[:hello]]}
-    }
+    assert Stack.child_spec([:hello]) == %{
+             id: Stack,
+             start: {Stack, :start_link, [[:hello]]}
+           }
 
     assert Stack.child_spec([:hello]) == expected
 
@@ -51,14 +51,12 @@ defmodule GenServerTest do
       use GenServer, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
     end
 
-    expected = %{
-      id: :id,
-      restart: :temporary,
-      shutdown: :infinity,
-      start: {:foo, :bar, []}
-    }
-
-    assert CustomStack.child_spec([:hello]) == expected
+    assert CustomStack.child_spec([:hello]) == %{
+             id: :id,
+             restart: :temporary,
+             shutdown: :infinity,
+             start: {:foo, :bar, []}
+           }
   end
 
   test "start_link/3" do
@@ -119,61 +117,29 @@ defmodule GenServerTest do
     {:ok, stopped_pid} = GenServer.start(Stack, [:hello])
     GenServer.stop(stopped_pid)
 
-    expected = {
-      :calling_self,
-      {GenServer, :call, [name, :pop, 5000]}
-    }
+    assert catch_exit(GenServer.call(name, :pop, 5000)) ==
+             {:calling_self, {GenServer, :call, [name, :pop, 5000]}}
 
-    assert catch_exit(GenServer.call(name, :pop, 5000)) == expected
+    assert catch_exit(GenServer.call({:global, name}, :pop, 5000)) ==
+             {:calling_self, {GenServer, :call, [{:global, name}, :pop, 5000]}}
 
-    expected = {
-      :calling_self,
-      {GenServer, :call, [{:global, name}, :pop, 5000]}
-    }
+    assert catch_exit(GenServer.call({:via, :global, name}, :pop, 5000)) ==
+             {:calling_self, {GenServer, :call, [{:via, :global, name}, :pop, 5000]}}
 
-    assert catch_exit(GenServer.call({:global, name}, :pop, 5000)) == expected
+    assert catch_exit(GenServer.call(self(), :pop, 5000)) ==
+             {:calling_self, {GenServer, :call, [self(), :pop, 5000]}}
 
-    expected = {
-      :calling_self,
-      {GenServer, :call, [{:via, :global, name}, :pop, 5000]}
-    }
+    assert catch_exit(GenServer.call(pid, :noreply, 1)) ==
+             {:timeout, {GenServer, :call, [pid, :noreply, 1]}}
 
-    assert catch_exit(GenServer.call({:via, :global, name}, :pop, 5000)) == expected
+    assert catch_exit(GenServer.call(nil, :pop, 5000)) ==
+             {:noproc, {GenServer, :call, [nil, :pop, 5000]}}
 
-    expected = {
-      :calling_self,
-      {GenServer, :call, [self(), :pop, 5000]}
-    }
+    assert catch_exit(GenServer.call(stopped_pid, :pop, 5000)) ==
+             {:noproc, {GenServer, :call, [stopped_pid, :pop, 5000]}}
 
-    assert catch_exit(GenServer.call(self(), :pop, 5000)) == expected
-
-    expected = {
-      :timeout,
-      {GenServer, :call, [pid, :noreply, 1]}
-    }
-
-    assert catch_exit(GenServer.call(pid, :noreply, 1)) == expected
-
-    expected = {
-      :noproc,
-      {GenServer, :call, [nil, :pop, 5000]}
-    }
-
-    assert catch_exit(GenServer.call(nil, :pop, 5000)) == expected
-
-    expected = {
-      :noproc,
-      {GenServer, :call, [stopped_pid, :pop, 5000]}
-    }
-
-    assert catch_exit(GenServer.call(stopped_pid, :pop, 5000)) == expected
-
-    expected = {
-      {:nodedown, :bogus_node},
-      {GenServer, :call, [{:stack, :bogus_node}, :pop, 5000]}
-    }
-
-    assert catch_exit(GenServer.call({:stack, :bogus_node}, :pop, 5000)) == expected
+    assert catch_exit(GenServer.call({:stack, :bogus_node}, :pop, 5000)) ==
+             {{:nodedown, :bogus_node}, {GenServer, :call, [{:stack, :bogus_node}, :pop, 5000]}}
   end
 
   test "nil name" do
@@ -205,9 +171,8 @@ defmodule GenServerTest do
 
     assert GenServer.multi_call(:stack, :pop) == {[{node(), :hello}], []}
 
-    expected = {[{node(), :world}], [:foo@bar]}
-
-    assert GenServer.multi_call([node(), :foo@bar], :stack, :pop) == expected
+    assert GenServer.multi_call([node(), :foo@bar], :stack, :pop) ==
+             {[{node(), :world}], [:foo@bar]}
 
     GenServer.stop(:stack)
   end
