@@ -13,14 +13,10 @@ defmodule Mix.Tasks.RunTest do
 
   test "loads configuration", context do
     in_tmp context.test, fn ->
-      assert capture_io(fn ->
-               Mix.Task.run("run", [
-                 "--config",
-                 fixture_path("configs/good_config.exs"),
-                 "--eval",
-                 "IO.puts Application.get_env(:my_app, :key)"
-               ])
-             end) == "value\n"
+      config = fixture_path("configs/good_config.exs")
+      expr = "IO.puts Application.get_env(:my_app, :key)"
+      output = capture_io(fn -> Mix.Task.run("run", ["--config", config, "--eval", expr]) end)
+      assert output == "value\n"
     end
   after
     Application.delete_env(:my_app, :key)
@@ -42,17 +38,14 @@ defmodule Mix.Tasks.RunTest do
 
   test "does not start applications on --no-start", context do
     in_tmp context.test, fn ->
-      Mix.Tasks.Run.run([
-        "--no-start",
-        "-e",
-        "send self(), {:apps, Application.started_applications}"
-      ])
+      expr = "send self(), {:apps, Application.started_applications}"
+      Mix.Tasks.Run.run(["--no-start", "-e", expr])
 
       assert_received {:apps, apps}
       refute List.keyfind(apps, :sample, 0)
       Mix.Task.clear()
 
-      Mix.Tasks.Run.run(["-e", "send self(), {:apps, Application.started_applications}"])
+      Mix.Tasks.Run.run(["-e", expr])
       assert_received {:apps, apps}
       assert List.keyfind(apps, :sample, 0)
     end
@@ -87,8 +80,9 @@ defmodule Mix.Tasks.RunTest do
   test "run rewrites System.argv", context do
     in_tmp context.test, fn ->
       file = "argv.exs"
+      expr = "send self(), {:argv, System.argv}"
 
-      File.write!(file, "send self(), {:argv, System.argv}")
+      File.write!(file, expr)
 
       unload_file = fn ->
         Code.unload_files([Path.expand(file)])
@@ -102,21 +96,13 @@ defmodule Mix.Tasks.RunTest do
       assert_received {:argv, ["foo", "-e", "bar"]}
 
       unload_file.()
-      Mix.Tasks.Run.run(["-e", "send self(), {:argv, System.argv}", file, "foo", "-x", "bar"])
+      Mix.Tasks.Run.run(["-e", expr, file, "foo", "-x", "bar"])
       assert_received {:argv, [^file, "foo", "-x", "bar"]}
 
       unload_file.()
 
-      Mix.Tasks.Run.run([
-        "-e",
-        "send self(), :evaled",
-        "-e",
-        "send self(), {:argv, System.argv}",
-        "--no-compile",
-        file,
-        "-x",
-        "bar"
-      ])
+      send_evaled = "send self(), :evaled"
+      Mix.Tasks.Run.run(["-e", send_evaled, "-e", expr, "--no-compile", file, "-x", "bar"])
 
       assert_received :evaled
       assert_received {:argv, [^file, "-x", "bar"]}
