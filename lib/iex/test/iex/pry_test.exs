@@ -1,10 +1,10 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.PryTest do
   use ExUnit.Case
 
   setup do
-    on_exit fn -> IEx.Pry.remove_breaks() end
+    on_exit(fn -> IEx.Pry.remove_breaks() end)
   end
 
   describe "whereami" do
@@ -12,22 +12,24 @@ defmodule IEx.PryTest do
       Application.put_env(:elixir, :ansi_enabled, true)
 
       {:ok, contents} = IEx.Pry.whereami(__ENV__.file, 3, 2)
+
       assert IO.iodata_to_binary(contents) == """
-          1: Code.require_file "../test_helper.exs", __DIR__
-          2:\s
-      \e[1m    3: defmodule IEx.PryTest do
-      \e[22m    4:   use ExUnit.Case
-          5:\s
-      """
+                 1: Code.require_file "../test_helper.exs", __DIR__
+                 2:\s
+             \e[1m    3: defmodule IEx.PryTest do
+             \e[22m    4:   use ExUnit.Case
+                 5:\s
+             """
 
       {:ok, contents} = IEx.Pry.whereami(__ENV__.file, 1, 4)
+
       assert IO.iodata_to_binary(contents) == """
-      \e[1m    1: Code.require_file "../test_helper.exs", __DIR__
-      \e[22m    2:\s
-          3: defmodule IEx.PryTest do
-          4:   use ExUnit.Case
-          5:\s
-      """
+             \e[1m    1: Code.require_file "../test_helper.exs", __DIR__
+             \e[22m    2:\s
+                 3: defmodule IEx.PryTest do
+                 4:   use ExUnit.Case
+                 5:\s
+             """
     after
       Application.delete_env(:elixir, :ansi_enabled)
     end
@@ -96,16 +98,13 @@ defmodule IEx.PryTest do
     describe "breaks" do
       test "returns all breaks" do
         assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-        assert IEx.Pry.breaks() ==
-               [{1, URI, {:decode_query, 2}, 1}]
+        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
 
         assert IEx.Pry.break(URI, :decode_query, 2, 10) == {:ok, 1}
-        assert IEx.Pry.breaks() ==
-               [{1, URI, {:decode_query, 2}, 10}]
+        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 10}]
 
         assert IEx.Pry.break(URI, :parse, 1, 1) == {:ok, 2}
-        assert IEx.Pry.breaks() ==
-               [{1, URI, {:decode_query, 2}, 10}, {2, URI, {:parse, 1}, 1}]
+        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 10}, {2, URI, {:parse, 1}, 1}]
       end
 
       test "sets negative break to 0" do
