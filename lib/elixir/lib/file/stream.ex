@@ -27,6 +27,7 @@ defmodule File.Stream do
           else
             [:raw, :read_ahead | modes]
           end
+
         false ->
           modes
       end
@@ -41,6 +42,7 @@ defmodule File.Stream do
       case :file.open(path, [:write | modes]) do
         {:ok, device} ->
           {:ok, into(device, stream, raw)}
+
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
       end
@@ -50,14 +52,16 @@ defmodule File.Stream do
       fn
         :ok, {:cont, x} ->
           case raw do
-            true  -> IO.binwrite(device, x)
+            true -> IO.binwrite(device, x)
             false -> IO.write(device, x)
           end
+
         :ok, :done ->
           # If delayed_write option is used and the last write failed will
           # MatchError here as {:error, _} is returned.
           :ok = :file.close(device)
           stream
+
         :ok, :halt ->
           # If delayed_write option is used and the last write failed will
           # MatchError here as {:error, _} is returned.
@@ -75,6 +79,7 @@ defmodule File.Stream do
           case :file.open(path, read_modes(modes)) do
             {:ok, device} ->
               if :trim_bom in modes, do: trim_bom(device), else: device
+
             {:error, reason} ->
               raise File.Error, reason: reason, action: "stream", path: path
           end
@@ -82,7 +87,7 @@ defmodule File.Stream do
 
       next_fun =
         case raw do
-          true  -> &IO.each_binstream(&1, line_or_bytes)
+          true -> &IO.each_binstream(&1, line_or_bytes)
           false -> &IO.each_stream(&1, line_or_bytes)
         end
 
@@ -96,6 +101,7 @@ defmodule File.Stream do
       case File.open(path, read_modes(modes), counter) do
         {:ok, count} ->
           {:ok, count}
+
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
       end
@@ -105,8 +111,10 @@ defmodule File.Stream do
       case File.stat(path) do
         {:ok, %{size: 0}} ->
           {:error, __MODULE__}
+
         {:ok, %{size: size}} ->
           {:ok, div(size, bytes) + if(rem(size, bytes) == 0, do: 0, else: 1)}
+
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
       end
@@ -122,18 +130,12 @@ defmodule File.Stream do
       device
     end
 
-    defp bom_length(<<239, 187, 191, _rest::binary>>),
-      do: 3
-    defp bom_length(<<254, 255, _rest::binary>>),
-      do: 2
-    defp bom_length(<<255, 254, _rest::binary>>),
-      do: 2
-    defp bom_length(<<0, 0, 254, 255, _rest::binary>>),
-      do: 4
-    defp bom_length(<<254, 255, 0, 0, _rest::binary>>),
-      do: 4
-    defp bom_length(_binary),
-      do: 0
+    defp bom_length(<<239, 187, 191, _rest::binary>>), do: 3
+    defp bom_length(<<254, 255, _rest::binary>>), do: 2
+    defp bom_length(<<255, 254, _rest::binary>>), do: 2
+    defp bom_length(<<0, 0, 254, 255, _rest::binary>>), do: 4
+    defp bom_length(<<254, 255, 0, 0, _rest::binary>>), do: 4
+    defp bom_length(_binary), do: 0
 
     defp read_modes(modes) do
       for mode <- modes, mode not in [:write, :append, :trim_bom], do: mode
@@ -143,8 +145,10 @@ defmodule File.Stream do
       case read.(device) do
         data when is_binary(data) ->
           count_lines(device, path, pattern, read, count + count_lines(data, pattern))
+
         :eof ->
           count
+
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
       end
