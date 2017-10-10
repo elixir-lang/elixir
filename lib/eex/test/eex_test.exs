@@ -327,7 +327,7 @@ defmodule EExTest do
   describe "clauses" do
     test "inside functions" do
       expected = """
-      
+
       Number 1
 
       Number 2
@@ -419,12 +419,12 @@ defmodule EExTest do
     end
 
     test "raises an Exception when file is missing" do
-      assert_raise File.Error,
-                   "could not read file \"non-existent.eex\": no such file or directory",
-                   fn ->
-                     filename = "non-existent.eex"
-                     EEx.compile_file(filename)
-                   end
+      msg = "could not read file \"non-existent.eex\": no such file or directory"
+
+      assert_raise File.Error, msg, fn ->
+        filename = "non-existent.eex"
+        EEx.compile_file(filename)
+      end
     end
 
     test "sets external resource attribute" do
@@ -444,27 +444,13 @@ defmodule EExTest do
     end
 
     test "from file does not affect backtrace" do
+      file = to_charlist(Path.relative_to_cwd(__ENV__.file))
+
       assert EExTest.Compiled.before_compile() ==
-               {
-                 8,
-                 {
-                   EExTest.Compiled,
-                   :before_compile,
-                   0,
-                   [file: to_charlist(Path.relative_to_cwd(__ENV__.file)), line: 7]
-                 }
-               }
+               {8, {EExTest.Compiled, :before_compile, 0, [file: file, line: 7]}}
 
       assert EExTest.Compiled.after_compile() ==
-               {
-                 23,
-                 {
-                   EExTest.Compiled,
-                   :after_compile,
-                   0,
-                   [file: to_charlist(Path.relative_to_cwd(__ENV__.file)), line: 22]
-                 }
-               }
+               {23, {EExTest.Compiled, :after_compile, 0, [file: file, line: 22]}}
 
       assert EExTest.Compiled.unknown() ==
                {29, {EExTest.Compiled, :unknown, 0, [file: 'unknown', line: 28]}}
