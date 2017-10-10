@@ -2030,6 +2030,37 @@ defmodule Kernel do
   end
 
   @doc """
+  Updates a key in a nested structure if it exists.
+
+  Uses the `Access` module to traverse the structures
+  according to the given `keys`, unless the `key` is a
+  function. If the key is a function, it will be invoked
+  as specified in `get_and_update_in/3`.
+
+  Note that `fun` will not be called if `key` is not
+  present.
+
+  ## Examples
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> replace_in(users, ["john", :age], &(&1 + 1))
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> replace_in(users, ["phil", :age], &(&1 + 1))
+      %{"john" => %{age: 27}, "meg" => %{age: 23}}
+
+  In case any of entries in the middle returns `nil`,
+  an error will be raised when trying to access it next.
+  """
+  def replace_in(data, keys, fun) when is_function(fun, 1) do
+    elem(get_and_update_in(data, keys, fn
+      nil -> :pop
+      x -> {nil, fun.(x)}
+    end), 1)
+  end
+
+  @doc """
   Gets a value and updates a nested structure.
 
   `data` is a nested structure (ie. a map, keyword
@@ -2245,6 +2276,42 @@ defmodule Kernel do
       {[h | t], false} ->
         expr = nest_get_and_update_in(h, t, quote(do: fn x -> {nil, unquote(fun).(x)} end))
         quote do: :erlang.element(2, unquote(expr))
+    end
+  end
+
+  @doc """
+  Updates a nested structure via the given `path`.
+
+  This is similar to `replace_in/3`, except the path is extracted via
+  a macro rather than passing a list. For example:
+
+      replace_in(opts[:foo][:bar], &(&1 + 1))
+
+  Is equivalent to:
+
+      replace_in(opts, [:foo, :bar], &(&1 + 1))
+
+  Note that in order for this macro to work, the complete path must always
+  be visible by this macro. For more information about the supported path
+  expressions, please check `get_and_update_in/2` docs.
+
+  ## Examples
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> replace_in(users["john"][:age], &(&1 + 1))
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> replace_in(users["phil"].age, &(&1 + 1))
+      %{"john" => %{age: 27}, "meg" => %{age: 23}}
+
+  """
+  defmacro replace_in(path, fun) do
+    quote do
+      elem(get_and_update_in(unquote(path), fn
+        nil -> :pop
+        x -> {nil, unquote(fun).(x)}
+      end),1)
     end
   end
 
