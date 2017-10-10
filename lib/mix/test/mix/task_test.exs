@@ -17,11 +17,11 @@ defmodule Mix.TaskTest do
       Mix.Task.run("unknown")
     end
 
-    assert_raise Mix.NoTaskError,
-                 "The task \"helli\" could not be found. Did you mean \"hello\"?",
-                 fn ->
-                   Mix.Task.run("helli")
-                 end
+    no_task_message = "The task \"helli\" could not be found. Did you mean \"hello\"?"
+
+    assert_raise Mix.NoTaskError, no_task_message, fn ->
+      Mix.Task.run("helli")
+    end
 
     assert_raise Mix.InvalidTaskError, "The task \"invalid\" does not export run/1", fn ->
       Mix.Task.run("invalid")
@@ -38,19 +38,21 @@ defmodule Mix.TaskTest do
   end
 
   test "run/2 converts OptionParser.ParseError into Mix errors" do
-    assert_raise Mix.Error,
-                 "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option",
-                 fn ->
-                   Mix.Task.run("hello", ["--parser", "--unknown"])
-                 end
+    unknown_opt_message =
+      "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option"
+
+    assert_raise Mix.Error, unknown_opt_message, fn ->
+      Mix.Task.run("hello", ["--parser", "--unknown"])
+    end
 
     Mix.Task.clear()
 
-    assert_raise Mix.Error,
-                 "Could not invoke task \"hello\": 1 error found!\n--int : Expected type integer, got \"foo\"",
-                 fn ->
-                   Mix.Task.run("hello", ["--parser", "--int", "foo"])
-                 end
+    bad_type_message =
+      "Could not invoke task \"hello\": 1 error found!\n--int : Expected type integer, got \"foo\""
+
+    assert_raise Mix.Error, bad_type_message, fn ->
+      Mix.Task.run("hello", ["--parser", "--int", "foo"])
+    end
   end
 
   test "run/2 outputs task debug info if Mix.debug? is true" do
