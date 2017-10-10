@@ -95,11 +95,9 @@ defmodule Logger.ErrorHandler do
       # Mode is always async to avoid clogging the error_logger
       meta = [pid: ensure_pid(pid), error_logger: ensure_type(type)]
 
-      :gen_event.notify(state.logger, {
-        level,
-        Process.group_leader(),
-        {Logger, message, Logger.Utils.timestamp(utc_log?), meta}
-      })
+      tuple = {Logger, message, Logger.Utils.timestamp(utc_log?), meta}
+
+      :gen_event.notify(state.logger, {level, Process.group_leader(), tuple})
     end
 
     :ok
