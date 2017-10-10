@@ -88,7 +88,9 @@ defmodule Mix.DepTest do
   end
 
   test "use requirements for dependencies" do
-    with_deps([{:ok, "~> 0.1", path: "deps/ok"}], fn ->
+    deps = [{:ok, "~> 0.1", path: "deps/ok"}]
+
+    with_deps(deps, fn ->
       in_fixture "deps_status", fn ->
         deps = Mix.Dep.loaded([])
         assert Enum.find(deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1))
@@ -97,7 +99,9 @@ defmodule Mix.DepTest do
   end
 
   test "raises when no SCM is specified" do
-    with_deps([{:ok, "~> 0.1", not_really: :ok}], fn ->
+    deps = [{:ok, "~> 0.1", not_really: :ok}]
+
+    with_deps(deps, fn ->
       in_fixture "deps_status", fn ->
         send(self(), {:mix_shell_input, :yes?, false})
         msg = "Could not find an SCM for dependency :ok from Mix.DepTest.ProcessDepsApp"
@@ -120,7 +124,9 @@ defmodule Mix.DepTest do
   end
 
   test "raises on invalid deps req" do
-    with_deps([{:ok, "+- 0.1.0", path: "deps/ok"}], fn ->
+    deps = [{:ok, "+- 0.1.0", path: "deps/ok"}]
+
+    with_deps(deps, fn ->
       in_fixture "deps_status", fn ->
         assert_raise Mix.Error, ~r"Invalid requirement", fn ->
           Mix.Dep.loaded([])
@@ -130,7 +136,9 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps come first" do
-    with_deps([{:deps_repo, "0.1.0", path: "custom/deps_repo"}], fn ->
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"}]
+
+    with_deps(deps, fn ->
       in_fixture "deps_status", fn ->
         assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:git_repo, :deps_repo]
       end
@@ -138,7 +146,9 @@ defmodule Mix.DepTest do
   end
 
   test "nested optional deps are never added" do
-    with_deps([{:deps_repo, "0.1.0", path: "custom/deps_repo"}], fn ->
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"}]
+
+    with_deps(deps, fn ->
       in_fixture "deps_status", fn ->
         File.write!("custom/deps_repo/mix.exs", """
         defmodule DepsRepo do
@@ -213,48 +223,47 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps with optional dependencies and cousin conflict" do
-    with_deps(
-      [
-        {:deps_repo1, "0.1.0", path: "custom/deps_repo1"},
-        {:deps_repo2, "0.1.0", path: "custom/deps_repo2"}
-      ],
-      fn ->
-        in_fixture "deps_status", fn ->
-          File.mkdir_p!("custom/deps_repo1")
+    deps = [
+      {:deps_repo1, "0.1.0", path: "custom/deps_repo1"},
+      {:deps_repo2, "0.1.0", path: "custom/deps_repo2"}
+    ]
 
-          File.write!("custom/deps_repo1/mix.exs", """
-          defmodule DepsRepo1 do
-            use Mix.Project
+    with_deps(deps, fn ->
+      in_fixture "deps_status", fn ->
+        File.mkdir_p!("custom/deps_repo1")
 
-            def project do
-              [app: :deps_repo1,
-               version: "0.1.0",
-               deps: [{:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}]]
-            end
+        File.write!("custom/deps_repo1/mix.exs", """
+        defmodule DepsRepo1 do
+          use Mix.Project
+
+          def project do
+            [app: :deps_repo1,
+             version: "0.1.0",
+             deps: [{:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}]]
           end
-          """)
-
-          File.mkdir_p!("custom/deps_repo2")
-
-          File.write!("custom/deps_repo2/mix.exs", """
-          defmodule DepsRepo2 do
-            use Mix.Project
-
-            def project do
-              [app: :deps_repo2,
-               version: "0.1.0",
-               deps: [{:git_repo, "0.2.0", path: "somewhere"}]]
-            end
-          end
-          """)
-
-          Mix.Tasks.Deps.run([])
-          assert_received {:mix_shell, :info, ["* git_repo" <> _]}
-          assert_received {:mix_shell, :info, [msg]}
-          assert msg =~ "different specs were given for the git_repo"
         end
+        """)
+
+        File.mkdir_p!("custom/deps_repo2")
+
+        File.write!("custom/deps_repo2/mix.exs", """
+        defmodule DepsRepo2 do
+          use Mix.Project
+
+          def project do
+            [app: :deps_repo2,
+             version: "0.1.0",
+             deps: [{:git_repo, "0.2.0", path: "somewhere"}]]
+          end
+        end
+        """)
+
+        Mix.Tasks.Deps.run([])
+        assert_received {:mix_shell, :info, ["* git_repo" <> _]}
+        assert_received {:mix_shell, :info, [msg]}
+        assert msg =~ "different specs were given for the git_repo"
       end
-    )
+    end)
   end
 
   ## Remove converger
@@ -374,25 +383,29 @@ defmodule Mix.DepTest do
   ## Only handling
 
   test "only extracts deps matching environment" do
-    with_deps(
-      [{:foo, github: "elixir-lang/foo"}, {:bar, github: "elixir-lang/bar", only: :other_env}],
-      fn ->
-        in_fixture "deps_status", fn ->
-          deps = Mix.Dep.loaded(env: :other_env)
-          assert length(deps) == 2
+    deps = [
+      {:foo, github: "elixir-lang/foo"},
+      {:bar, github: "elixir-lang/bar", only: :other_env}
+    ]
 
-          deps = Mix.Dep.loaded([])
-          assert length(deps) == 2
+    with_deps(deps, fn ->
+      in_fixture "deps_status", fn ->
+        deps = Mix.Dep.loaded(env: :other_env)
+        assert length(deps) == 2
 
-          assert [dep] = Mix.Dep.loaded(env: :prod)
-          assert dep.app == :foo
-        end
+        deps = Mix.Dep.loaded([])
+        assert length(deps) == 2
+
+        assert [dep] = Mix.Dep.loaded(env: :prod)
+        assert dep.app == :foo
       end
-    )
+    end)
   end
 
   test "only fetches parent deps matching specified env" do
-    with_deps([{:only, github: "elixir-lang/only", only: [:dev]}], fn ->
+    deps = [{:only, github: "elixir-lang/only", only: [:dev]}]
+
+    with_deps(deps, fn ->
       in_fixture "deps_status", fn ->
         Mix.Tasks.Deps.Get.run(["--only", "prod"])
         refute_received {:mix_shell, :info, ["* Getting" <> _]}
@@ -613,7 +626,7 @@ defmodule Mix.DepTest do
           Mix.ProjectStack.clear_cache()
           loaded = Mix.Dep.loaded([])
           assert [:git_repo, _, _] = Enum.map(loaded, & &1.app)
-          hd(loaded).opts[:only]
+          hd(loaded).opts()[:only]
         end
       end)
     end

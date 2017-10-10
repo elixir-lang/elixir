@@ -684,7 +684,6 @@ defmodule Path do
   end
 
   # expand_dot the given path by expanding "..", "." and "~".
-
   defp expand_dot(<<"/", rest::binary>>), do: "/" <> do_expand_dot(rest)
 
   defp expand_dot(<<letter, ":/", rest::binary>>) when letter in ?a..?z,
@@ -693,7 +692,6 @@ defmodule Path do
   defp expand_dot(path), do: do_expand_dot(path)
 
   defp do_expand_dot(path), do: do_expand_dot(:binary.split(path, "/", [:global]), [])
-
   defp do_expand_dot([".." | t], [_, _ | acc]), do: do_expand_dot(t, acc)
   defp do_expand_dot([".." | t], []), do: do_expand_dot(t, [])
   defp do_expand_dot(["." | t], acc), do: do_expand_dot(t, acc)
