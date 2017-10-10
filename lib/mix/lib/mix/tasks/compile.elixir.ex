@@ -40,10 +40,16 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   """
 
-  @switches [force: :boolean, docs: :boolean, warnings_as_errors: :boolean,
-             ignore_module_conflict: :boolean, debug_info: :boolean,
-             verbose: :boolean, long_compilation_threshold: :integer,
-             all_warnings: :boolean]
+  @switches [
+    force: :boolean,
+    docs: :boolean,
+    warnings_as_errors: :boolean,
+    ignore_module_conflict: :boolean,
+    debug_info: :boolean,
+    verbose: :boolean,
+    long_compilation_threshold: :integer,
+    all_warnings: :boolean
+  ]
 
   @doc """
   Runs this task.
@@ -51,17 +57,17 @@ defmodule Mix.Tasks.Compile.Elixir do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    project = Mix.Project.config
+    project = Mix.Project.config()
     dest = Mix.Project.compile_path(project)
     srcs = project[:elixirc_paths]
 
     unless is_list(srcs) do
-      Mix.raise ":elixirc_paths should be a list of paths, got: #{inspect(srcs)}"
+      Mix.raise(":elixirc_paths should be a list of paths, got: #{inspect(srcs)}")
     end
 
     manifest = manifest()
-    configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
-    force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
+    configs = Mix.Project.config_files() ++ Mix.Tasks.Compile.Erlang.manifests()
+    force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
     Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
@@ -71,13 +77,13 @@ defmodule Mix.Tasks.Compile.Elixir do
   Returns Elixir manifests.
   """
   def manifests, do: [manifest()]
-  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @doc """
   Cleans up compilation artifacts.
   """
   def clean do
-    dest = Mix.Project.compile_path
+    dest = Mix.Project.compile_path()
     Mix.Compilers.Elixir.clean(manifest(), dest)
   end
 end
