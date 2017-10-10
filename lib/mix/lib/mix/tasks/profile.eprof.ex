@@ -115,9 +115,9 @@ defmodule Mix.Tasks.Profile.Eprof do
   ]
 
   @aliases [
-    r: :require, 
-    p: :parallel, 
-    e: :eval, 
+    r: :require,
+    p: :parallel,
+    e: :eval,
     c: :config
   ]
 
@@ -257,7 +257,13 @@ defmodule Mix.Tasks.Profile.Eprof do
   defp format_total(total_time, total_count) do
     time_per_call = :erlang.float_to_binary(divide(total_time, total_count), [{:decimals, 2}])
 
-    [ "Total", Integer.to_string(total_count), "100.00", Integer.to_string(total_time), time_per_call ]
+    [
+      "Total",
+      Integer.to_string(total_count),
+      "100.00",
+      Integer.to_string(total_time),
+      time_per_call
+    ]
   end
 
   defp divide(_, 0), do: 0.0
