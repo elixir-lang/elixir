@@ -261,9 +261,11 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_command(%Mix.Dep{app: app, opts: opts}, config, command, print_app?, env \\ []) do
+  defp do_command(dep, config, command, print_app?, env \\ []) do
+    %Mix.Dep{app: app, system_env: system_env, opts: opts} = dep
+
     File.cd!(opts[:dest], fn ->
-      env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")}] ++ env
+      env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")} | system_env] ++ env
 
       if Mix.shell().cmd(command, env: env, print_app: print_app?) != 0 do
         Mix.raise(
