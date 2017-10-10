@@ -60,17 +60,15 @@ defmodule Mix.Tasks.RunTest do
 
   test "run errors on missing files", context do
     in_tmp context.test, fn ->
-      assert_raise Mix.Error,
-                   "No files matched pattern \"non-existent\" given to --require",
-                   fn ->
-                     Mix.Tasks.Run.run(["-r", "non-existent"])
-                   end
+      message = "No files matched pattern \"non-existent\" given to --require"
 
-      assert_raise Mix.Error,
-                   "No files matched pattern \"non-existent\" given to --require",
-                   fn ->
-                     Mix.Tasks.Run.run(["-pr", "non-existent"])
-                   end
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Run.run(["-r", "non-existent"])
+      end
+
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Run.run(["-pr", "non-existent"])
+      end
 
       assert_raise Mix.Error, "No such file: non-existent", fn ->
         Mix.Tasks.Run.run(["non-existent"])
