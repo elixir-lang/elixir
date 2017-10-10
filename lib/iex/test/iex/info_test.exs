@@ -74,7 +74,7 @@ defmodule IEx.InfoTest do
     assert info[:"Byte size"] == 7
     assert info[:"Description"] =~ "This is a string"
     assert info[:"Description"] =~ "It's printed with the `<<>>`"
-    assert info[:"Description"] =~ "the first non-printable codepoint being `<<0>>`"
+    assert info[:"Description"] =~ "the first non-printable codepoint being\n`<<0>>`"
   end
 
   test "bitstring: binary" do

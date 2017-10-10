@@ -133,8 +133,8 @@ defimpl IEx.Info, for: List do
     desc = """
     This is a list of integers that is printed as a sequence of characters
     delimited by single quotes because all the integers in it represent valid
-    ASCII characters. Conventionally, such lists of integers are referred to as
-    "charlists" (more precisely, a charlist is a list of Unicode codepoints,
+    ASCII characters. Conventionally, such lists of integers are referred to
+    as "charlists" (more precisely, a charlist is a list of Unicode codepoints,
     and ASCII is a subset of Unicode).
     """
 
@@ -193,9 +193,10 @@ defimpl IEx.Info, for: BitString do
       |> Enum.find(fn cp -> not String.printable?(cp) end)
 
     desc = """
-    This is a string: a UTF-8 encoded binary. It's printed with the `<<>>` syntax (as opposed
-    to double quotes) because it contains non-printable UTF-8 encoded codepoints (the first
-    non-printable codepoint being `#{inspect(first_non_printable)}`).
+    This is a string: a UTF-8 encoded binary. It's printed with the `<<>>`
+    syntax (as opposed to double quotes) because it contains non-printable
+    UTF-8 encoded codepoints (the first non-printable codepoint being
+    `#{inspect(first_non_printable)}`).
     """
 
     [
@@ -213,8 +214,8 @@ defimpl IEx.Info, for: BitString do
 
     desc = """
     This is a binary: a collection of bytes. It's printed with the `<<>>`
-    syntax (as opposed to double quotes) because it is not a
-    UTF-8 encoded binary (the first invalid byte being `#{inspect(first_non_valid)}`)
+    syntax (as opposed to double quotes) because it is not a UTF-8 encoded
+    binary (the first invalid byte being `#{inspect(first_non_valid)}`)
     """
 
     [
@@ -341,9 +342,9 @@ defimpl IEx.Info, for: [Date, Time, NaiveDateTime] do
 
   def info(value) do
     desc = """
-    This is a struct representing a #{unquote(repr)}. It is commonly represented
-    using the `~#{unquote(sigil)}` sigil syntax, that is defined in the
-    `Kernel.sigil_#{unquote(sigil)}/2` macro.
+    This is a struct representing a #{unquote(repr)}. It is commonly
+    represented using the `~#{unquote(sigil)}` sigil syntax, that is
+    defined in the `Kernel.sigil_#{unquote(sigil)}/2` macro.
     """
 
     [
