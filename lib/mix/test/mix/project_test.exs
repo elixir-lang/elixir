@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.ProjectTest do
   use MixTest.Case
@@ -11,21 +11,23 @@ defmodule Mix.ProjectTest do
 
   test "returns consolidation path" do
     config = [apps_path: "apps", build_per_environment: true]
-    assert Mix.Project.consolidation_path(config) ==
-           Path.join(File.cwd!, "_build/dev/consolidated")
 
-  config = [app: :sample, build_per_environment: true]
     assert Mix.Project.consolidation_path(config) ==
-           Path.join(File.cwd!, "_build/dev/lib/sample/consolidated")
+             Path.join(File.cwd!(), "_build/dev/consolidated")
+
+    config = [app: :sample, build_per_environment: true]
+
+    assert Mix.Project.consolidation_path(config) ==
+             Path.join(File.cwd!(), "_build/dev/lib/sample/consolidated")
   end
 
   test "push and pop projects" do
-    refute Mix.Project.get
+    refute Mix.Project.get()
     Mix.Project.push(SampleProject, "sample")
-    assert Mix.Project.get == SampleProject
+    assert Mix.Project.get() == SampleProject
 
-    assert %{name: SampleProject, config: _, file: "sample"} = Mix.Project.pop
-    assert Mix.Project.pop == nil
+    assert %{name: SampleProject, config: _, file: "sample"} = Mix.Project.pop()
+    assert Mix.Project.pop() == nil
   end
 
   test "does not allow the same project to be pushed twice" do
@@ -37,30 +39,30 @@ defmodule Mix.ProjectTest do
   end
 
   test "allows nil projects to be pushed twice" do
-    Mix.Project.push nil
-    Mix.Project.push nil
-    assert is_map Mix.Project.pop
-    assert is_map Mix.Project.pop
-    assert is_nil Mix.Project.pop
+    Mix.Project.push(nil)
+    Mix.Project.push(nil)
+    assert is_map(Mix.Project.pop())
+    assert is_map(Mix.Project.pop())
+    assert is_nil(Mix.Project.pop())
   end
 
   test "retrieves configuration from projects" do
     Mix.Project.push(SampleProject)
-    assert Mix.Project.config[:hello] == "world"
+    assert Mix.Project.config()[:hello] == "world"
   end
 
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
-    assert is_nil Mix.Project.config[:app_path]
+    assert is_nil(Mix.Project.config()[:app_path])
   end
 
   test "retrieves configuration even when a project is not set" do
-    assert Mix.Project.config[:default_task] == "run"
+    assert Mix.Project.config()[:default_task] == "run"
   end
 
   test "raises an error when trying to retrieve the current project but none is set" do
     assert_raise Mix.NoProjectError, fn ->
-      Mix.Project.get!
+      Mix.Project.get!()
     end
   end
 
@@ -100,11 +102,12 @@ defmodule Mix.ProjectTest do
 
   test "in_project pushes given configuration", context do
     in_tmp context.test, fn ->
-      result = Mix.Project.in_project :foo, ".", [hello: :world], fn _ ->
-        assert Mix.Project.config[:app] == :foo
-        assert Mix.Project.config[:hello] == :world
-        :result
-      end
+      result =
+        Mix.Project.in_project(:foo, ".", [hello: :world], fn _ ->
+          assert Mix.Project.config()[:app] == :foo
+          assert Mix.Project.config()[:hello] == :world
+          :result
+        end)
 
       assert result == :result
     end
@@ -112,14 +115,14 @@ defmodule Mix.ProjectTest do
 
   test "in_project prints nice error message if fails to load file", context do
     in_tmp context.test, fn ->
-      File.write "mix.exs", """
+      File.write("mix.exs", """
       raise "oops"
-      """
+      """)
 
       assert_raise RuntimeError, "oops", fn ->
-        Mix.Project.in_project :hello, ".", [], fn _ ->
+        Mix.Project.in_project(:hello, ".", [], fn _ ->
           :ok
-        end
+        end)
       end
 
       assert_receive {:mix_shell, :error, ["Error while loading project :hello at" <> _]}
@@ -131,12 +134,12 @@ defmodule Mix.ProjectTest do
 
     in_tmp context.test, fn ->
       File.mkdir_p!("config/sub")
-      File.write! "config/config.exs", "[]"
-      File.write! "config/dev.exs", "[]"
-      File.write! "config/.exs", "[]"
-      File.write! "config/sub/init.exs", "[]"
+      File.write!("config/config.exs", "[]")
+      File.write!("config/dev.exs", "[]")
+      File.write!("config/.exs", "[]")
+      File.write!("config/sub/init.exs", "[]")
 
-      files = Mix.Project.config_files
+      files = Mix.Project.config_files()
 
       assert __ENV__.file in files
       assert "config/config.exs" in files
@@ -148,15 +151,22 @@ defmodule Mix.ProjectTest do
 
   defp assert_proj_dir_linked_or_copied(source, target, symlink_path) do
     case :file.read_link(source) do
-      {:ok, path} -> 
-        case :os.type do
+      {:ok, path} ->
+        case :os.type() do
           # relative symlink on Windows are broken, see symlink_or_copy/2
-          {:win32, _} -> 
-            assert path == [source, '..', symlink_path] |> Path.join |> Path.expand |> String.to_charlist
+          {:win32, _} ->
+            assert path ==
+                     [source, '..', symlink_path]
+                     |> Path.join()
+                     |> Path.expand()
+                     |> String.to_charlist()
+
           _ ->
             assert path == symlink_path
         end
-      {:error, _} -> assert File.ls!(source) == File.ls!(target)
+
+      {:error, _} ->
+        assert File.ls!(source) == File.ls!(target)
     end
   end
 end
