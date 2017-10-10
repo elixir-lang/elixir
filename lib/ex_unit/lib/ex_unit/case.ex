@@ -214,15 +214,24 @@ defmodule ExUnit.Case do
   defmacro __using__(opts) do
     unless Process.whereis(ExUnit.Server) do
       raise "cannot use ExUnit.Case without starting the ExUnit application, " <>
-            "please call ExUnit.start() or explicitly start the :ex_unit app"
+              "please call ExUnit.start() or explicitly start the :ex_unit app"
     end
 
     quote do
       async = !!unquote(opts)[:async]
 
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
-        Enum.each [:ex_unit_tests, :tag, :describetag, :moduletag, :ex_unit_registered, :ex_unit_used_describes],
+        Enum.each(
+          [
+            :ex_unit_tests,
+            :tag,
+            :describetag,
+            :moduletag,
+            :ex_unit_registered,
+            :ex_unit_used_describes
+          ],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
+        )
 
         @before_compile ExUnit.Case
         @after_compile ExUnit.Case
@@ -263,6 +272,7 @@ defmodule ExUnit.Case do
             unquote(block)
             :ok
           end
+
         _ ->
           quote do
             try(unquote(contents))
@@ -270,7 +280,7 @@ defmodule ExUnit.Case do
           end
       end
 
-    var      = Macro.escape(var)
+    var = Macro.escape(var)
     contents = Macro.escape(contents, unquote: true)
 
     quote bind_quoted: [var: var, contents: contents, message: message] do
@@ -364,16 +374,19 @@ defmodule ExUnit.Case do
     quote do
       if @ex_unit_describe do
         raise "cannot call describe/2 inside another describe. See the documentation " <>
-              "for describe/2 on named setups and how to handle hierarchies"
+                "for describe/2 on named setups and how to handle hierarchies"
       end
 
       message = unquote(message)
+
       cond do
         not is_binary(message) ->
           raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
+
         message in @ex_unit_used_describes ->
           raise ExUnit.DuplicateDescribeError,
                 "describe #{inspect(message)} is already defined in #{inspect(__MODULE__)}"
+
         true ->
           :ok
       end
@@ -426,7 +439,7 @@ defmodule ExUnit.Case do
 
     unless moduletag do
       raise "cannot define #{type}. Please make sure you have invoked " <>
-            "\"use ExUnit.Case\" in the current module"
+              "\"use ExUnit.Case\" in the current module"
     end
 
     registered_attributes = Module.get_attribute(mod, :ex_unit_registered)
@@ -438,28 +451,41 @@ defmodule ExUnit.Case do
     {name, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
         {line, describe} ->
-          {:"#{type} #{describe} #{name}", describe, line, Module.get_attribute(mod, :describetag)}
+          {
+            :"#{type} #{describe} #{name}",
+            describe,
+            line,
+            Module.get_attribute(mod, :describetag)
+          }
+
         _ ->
           {:"#{type} #{name}", nil, nil, []}
       end
 
     if Module.defines?(mod, {name, 1}) do
-      raise ExUnit.DuplicateTestError, ~s("#{name}" is already defined in #{inspect mod})
+      raise ExUnit.DuplicateTestError, ~s("#{name}" is already defined in #{inspect(mod)})
     end
 
     tags =
       (tags ++ tag ++ describetag ++ moduletag)
       |> normalize_tags
       |> validate_tags
-      |> Map.merge(%{line: line, file: file, registered: registered, async: async,
-                     describe: describe, describe_line: describe_line, type: type})
+      |> Map.merge(%{
+           line: line,
+           file: file,
+           registered: registered,
+           async: async,
+           describe: describe,
+           describe_line: describe_line,
+           type: type
+         })
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)
 
-    Enum.each registered_attributes, fn(attribute) ->
+    Enum.each(registered_attributes, fn attribute ->
       Module.delete_attribute(mod, attribute)
-    end
+    end)
 
     name
   end
@@ -498,21 +524,19 @@ defmodule ExUnit.Case do
   end
 
   defp validate_tags(tags) do
-    for tag <- @reserved,
-        Map.has_key?(tags, tag) do
-      raise "cannot set tag #{inspect tag} because it is reserved by ExUnit"
+    for tag <- @reserved, Map.has_key?(tags, tag) do
+      raise "cannot set tag #{inspect(tag)} because it is reserved by ExUnit"
     end
 
-    unless is_atom(tags[:type]),
-      do: raise "value for tag \":type\" must be an atom"
+    unless is_atom(tags[:type]), do: raise("value for tag \":type\" must be an atom")
 
     tags
   end
 
   defp normalize_tags(tags) do
-    Enum.reduce Enum.reverse(tags), %{}, fn
+    Enum.reduce(Enum.reverse(tags), %{}, fn
       tag, acc when is_atom(tag) -> Map.put(acc, tag, true)
       tag, acc when is_list(tag) -> tag |> Enum.into(acc)
-    end
+    end)
   end
 end
