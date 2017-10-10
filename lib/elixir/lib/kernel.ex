@@ -4166,9 +4166,9 @@ defmodule Kernel do
   is an opt-in behaviour. For the majority of protocols, raising
   an error when a protocol is not implemented is the proper behaviour.
 
-  ## Multiple `for`
+  ## Multiple implementations
 
-  Protocol can be implemented for multiple types at once
+  Protocols can also be implemented for multiple types at once:
 
       defprotocol Reversible do
         def reverse(term)
