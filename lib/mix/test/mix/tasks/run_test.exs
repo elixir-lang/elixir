@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.RunTest do
   use MixTest.Case
@@ -8,16 +8,19 @@ defmodule Mix.Tasks.RunTest do
   @moduletag apps: [:sample]
 
   setup do
-    Mix.Project.push MixTest.Case.Sample
+    Mix.Project.push(MixTest.Case.Sample)
   end
 
   test "loads configuration", context do
     in_tmp context.test, fn ->
       assert capture_io(fn ->
-        Mix.Task.run "run",
-          ["--config", fixture_path("configs/good_config.exs"),
-           "--eval", "IO.puts Application.get_env(:my_app, :key)"]
-      end) == "value\n"
+               Mix.Task.run("run", [
+                 "--config",
+                 fixture_path("configs/good_config.exs"),
+                 "--eval",
+                 "IO.puts Application.get_env(:my_app, :key)"
+               ])
+             end) == "value\n"
     end
   after
     Application.delete_env(:my_app, :key)
@@ -27,24 +30,29 @@ defmodule Mix.Tasks.RunTest do
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 
     in_tmp context.test, fn ->
-      Mix.Tasks.Run.run ["-r", git_repo, "-e", "send self(), {:hello, GitRepo.hello}"]
+      Mix.Tasks.Run.run(["-r", git_repo, "-e", "send self(), {:hello, GitRepo.hello}"])
       assert_received {:hello, "World"}
 
-      Mix.Tasks.Run.run ["-pr", git_repo, "-e", "send self(), {:hello, GitRepo.hello}"]
+      Mix.Tasks.Run.run(["-pr", git_repo, "-e", "send self(), {:hello, GitRepo.hello}"])
       assert_received {:hello, "World"}
     end
   after
-    purge [GitRepo]
+    purge([GitRepo])
   end
 
   test "does not start applications on --no-start", context do
     in_tmp context.test, fn ->
-      Mix.Tasks.Run.run ["--no-start", "-e", "send self(), {:apps, Application.started_applications}"]
+      Mix.Tasks.Run.run([
+        "--no-start",
+        "-e",
+        "send self(), {:apps, Application.started_applications}"
+      ])
+
       assert_received {:apps, apps}
       refute List.keyfind(apps, :sample, 0)
-      Mix.Task.clear
+      Mix.Task.clear()
 
-      Mix.Tasks.Run.run ["-e", "send self(), {:apps, Application.started_applications}"]
+      Mix.Tasks.Run.run(["-e", "send self(), {:apps, Application.started_applications}"])
       assert_received {:apps, apps}
       assert List.keyfind(apps, :sample, 0)
     end
@@ -52,53 +60,66 @@ defmodule Mix.Tasks.RunTest do
 
   test "run errors on missing files", context do
     in_tmp context.test, fn ->
-      assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
-        Mix.Tasks.Run.run ["-r", "non-existent"]
-      end
+      assert_raise Mix.Error,
+                   "No files matched pattern \"non-existent\" given to --require",
+                   fn ->
+                     Mix.Tasks.Run.run(["-r", "non-existent"])
+                   end
 
-      assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
-        Mix.Tasks.Run.run ["-pr", "non-existent"]
-      end
+      assert_raise Mix.Error,
+                   "No files matched pattern \"non-existent\" given to --require",
+                   fn ->
+                     Mix.Tasks.Run.run(["-pr", "non-existent"])
+                   end
 
       assert_raise Mix.Error, "No such file: non-existent", fn ->
-        Mix.Tasks.Run.run ["non-existent"]
+        Mix.Tasks.Run.run(["non-existent"])
       end
 
       File.mkdir_p!("lib")
+
       assert_raise Mix.Error, "No such file: lib", fn ->
-        Mix.Tasks.Run.run ["lib"]
+        Mix.Tasks.Run.run(["lib"])
       end
     end
   after
-    purge [GitRepo]
+    purge([GitRepo])
   end
 
   test "run rewrites System.argv", context do
     in_tmp context.test, fn ->
       file = "argv.exs"
 
-      File.write! file, "send self(), {:argv, System.argv}"
+      File.write!(file, "send self(), {:argv, System.argv}")
+
       unload_file = fn ->
-        Code.unload_files [Path.expand(file)]
+        Code.unload_files([Path.expand(file)])
       end
 
-      Mix.Tasks.Run.run [file]
+      Mix.Tasks.Run.run([file])
       assert_received {:argv, []}
 
       unload_file.()
-      Mix.Tasks.Run.run [file, "foo", "-e", "bar"]
+      Mix.Tasks.Run.run([file, "foo", "-e", "bar"])
       assert_received {:argv, ["foo", "-e", "bar"]}
 
       unload_file.()
-      Mix.Tasks.Run.run ["-e", "send self(), {:argv, System.argv}", file, "foo", "-x", "bar"]
+      Mix.Tasks.Run.run(["-e", "send self(), {:argv, System.argv}", file, "foo", "-x", "bar"])
       assert_received {:argv, [^file, "foo", "-x", "bar"]}
 
       unload_file.()
-      Mix.Tasks.Run.run [
-        "-e", "send self(), :evaled",
-        "-e", "send self(), {:argv, System.argv}",
-        "--no-compile", file, "-x", "bar"
-      ]
+
+      Mix.Tasks.Run.run([
+        "-e",
+        "send self(), :evaled",
+        "-e",
+        "send self(), {:argv, System.argv}",
+        "--no-compile",
+        file,
+        "-x",
+        "bar"
+      ])
+
       assert_received :evaled
       assert_received {:argv, [^file, "-x", "bar"]}
     end
