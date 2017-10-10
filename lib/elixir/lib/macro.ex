@@ -628,21 +628,25 @@ defmodule Macro do
   def to_string({:when, _, args} = ast, fun) do
     {left, right} = split_last(args)
 
-    result = "(" <> Enum.map_join(left, ", ", &to_string(&1, fun)) <> ") when " <> to_string(right, fun)
+    result =
+      "(" <> Enum.map_join(left, ", ", &to_string(&1, fun)) <> ") when " <> to_string(right, fun)
+
     fun.(ast, result)
   end
 
   # Capture
   def to_string({:&, _, [{:/, _, [{name, _, ctx}, arity]}]} = ast, fun)
       when is_atom(name) and is_atom(ctx) and is_integer(arity) do
-        result = "&" <> Atom.to_string(name) <> "/" <> to_string(arity, fun)
-        fun.(ast, result)
+    result = "&" <> Atom.to_string(name) <> "/" <> to_string(arity, fun)
+    fun.(ast, result)
   end
 
   def to_string({:&, _, [{:/, _, [{{:., _, [mod, name]}, _, []}, arity]}]} = ast, fun)
       when is_atom(name) and is_integer(arity) do
-        result = "&" <> to_string(mod, fun) <> "." <> Atom.to_string(name) <> "/" <> to_string(arity, fun)
-        fun.(ast, result)
+    result =
+      "&" <> to_string(mod, fun) <> "." <> Atom.to_string(name) <> "/" <> to_string(arity, fun)
+
+    fun.(ast, result)
   end
 
   def to_string({:&, _, [arg]} = ast, fun) when not is_integer(arg) do
@@ -675,10 +679,11 @@ defmodule Macro do
          :error <- sigil_call(ast, fun) do
       {list, last} = split_last(args)
 
-      result = case kw_blocks?(last) do
-        true -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
-        false -> call_to_string_with_args(target, args, fun)
-      end
+      result =
+        case kw_blocks?(last) do
+          true -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
+          false -> call_to_string_with_args(target, args, fun)
+        end
 
       fun.(ast, result)
     else
@@ -693,20 +698,21 @@ defmodule Macro do
 
   # Lists
   def to_string(list, fun) when is_list(list) do
-    result = cond do
-      list == [] ->
-        "[]"
+    result =
+      cond do
+        list == [] ->
+          "[]"
 
-      :io_lib.printable_list(list) ->
-        {escaped, _} = Identifier.escape(IO.chardata_to_string(list), ?')
-        IO.iodata_to_binary([?', escaped, ?'])
+        :io_lib.printable_list(list) ->
+          {escaped, _} = Identifier.escape(IO.chardata_to_string(list), ?')
+          IO.iodata_to_binary([?', escaped, ?'])
 
-      Inspect.List.keyword?(list) ->
-        "[" <> kw_list_to_string(list, fun) <> "]"
+        Inspect.List.keyword?(list) ->
+          "[" <> kw_list_to_string(list, fun) <> "]"
 
-      true ->
-        "[" <> Enum.map_join(list, ", ", &to_string(&1, fun)) <> "]"
-    end
+        true ->
+          "[" <> Enum.map_join(list, ", ", &to_string(&1, fun)) <> "]"
+      end
 
     fun.(list, result)
   end
