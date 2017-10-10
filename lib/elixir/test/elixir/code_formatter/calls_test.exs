@@ -210,21 +210,27 @@ defmodule Code.Formatter.CallsTest do
 
       assert_same "foo(:hello, foo: 1, bar: 2)"
 
-      assert_same """
-                  foo(
-                    :hello,
-                    foo: 1,
-                    bar: 2
-                  )
-                  """,
-                  @short_length
+      bad = """
+      foo(:hello, foo: 1, bar: 2)
+      """
+
+      good = """
+      foo(
+        :hello,
+        foo: 1,
+        bar: 2
+      )
+      """
+
+      assert_format bad, good, @short_length
+
+      # Check it preserves multiline.
+      assert_same good
     end
 
     test "with lists maybe rewritten as keyword lists" do
       assert_format "foo([foo: 1, bar: 2])", "foo(foo: 1, bar: 2)"
-
       assert_format "foo(:arg, [foo: 1, bar: 2])", "foo(:arg, foo: 1, bar: 2)"
-
       assert_same "foo(:arg, [:elem, foo: 1, bar: 2])"
     end
 
@@ -259,6 +265,19 @@ defmodule Code.Formatter.CallsTest do
       """
 
       assert_format bad, good, @short_length
+    end
+
+    test "without parens and with keyword lists preserves multiline" do
+      assert_same """
+      defstruct foo: 1,
+                bar: 2
+      """
+
+      assert_same """
+      config :app,
+        foo: 1,
+        bar: 2
+      """
     end
 
     test "without parens and with keyword lists on line limit" do
