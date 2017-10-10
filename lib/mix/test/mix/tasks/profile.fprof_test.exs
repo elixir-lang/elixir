@@ -40,15 +40,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
   test "expands processes", context do
     in_tmp context.test, fn ->
-      output =
-        capture_io(fn ->
-          Fprof.run([
-            "-e",
-            "spawn(fn -> Process.sleep(:infinity) end); Enum.each(1..5, fn(_) -> MapSet.new end)",
-            "--details"
-          ])
-        end)
-
+      expr = "spawn(fn -> Process.sleep(:infinity) end); Enum.each(1..5, fn(_) -> MapSet.new end)" 
+      output =capture_io(fn -> Fprof.run(["-e",expr,"--details"]) end)
       assert output =~ ~r(#{:erlang.pid_to_list(self())} +\d+ +\d+\.\d{3})
       assert output =~ ~r(spawned by #{:erlang.pid_to_list(self())})
       assert output =~ ~r(as :erlang.apply)
@@ -58,30 +51,26 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
   test "sort options", context do
     in_tmp context.test, fn ->
-      assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--sort", "acc"])
-             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+      expr = "Enum.each(1..5, fn(_) -> MapSet.new end)"
+      assert capture_io(fn -> Fprof.run(["-e",expr, "--sort", "acc"]) end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
 
-      assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--sort", "own"])
-             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+      expr = "Enum.each(1..5, fn(_) -> MapSet.new end)"
+      assert capture_io(fn -> Fprof.run(["-e",expr, "--sort", "own"]) end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
 
   test "errors on missing files", context do
     in_tmp context.test, fn ->
-      assert_raise Mix.Error,
-                   "No files matched pattern \"non-existent\" given to --require",
-                   fn ->
+      message = "No files matched pattern \"non-existent\" given to --require"
+
+      assert_raise Mix.Error,message,fn ->
                      capture_io(fn -> Fprof.run(["-r", "non-existent"]) end)
                    end
 
-      assert_raise Mix.Error,
-                   "No files matched pattern \"non-existent\" given to --require",
-                   fn ->
+      assert_raise Mix.Error,message,fn ->
                      capture_io(fn -> Fprof.run(["-pr", "non-existent"]) end)
                    end
-
+                   
       assert_raise Mix.Error, "No such file: non-existent", fn ->
         capture_io(fn -> Fprof.run(["non-existent"]) end)
       end
