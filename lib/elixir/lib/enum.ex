@@ -1078,9 +1078,10 @@ defmodule Enum do
   @doc """
   Splits the enumerable into groups based on `key_fun`.
 
-  The result is a map where each key is given by `key_fun` and each value is a
-  list of elements given by `value_fun`. The order of each value is preserved
-  from the enumerable. However, maps themselves are unordered.
+  The result is a map where each key is given by `key_fun`
+  and each value is a list of elements given by `value_fun`.
+  The order of elements within each list is preserved from the enumerable.
+  However, like all maps, the resulting map is unordered.
 
   ## Examples
 
