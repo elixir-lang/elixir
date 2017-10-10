@@ -125,13 +125,10 @@ defmodule LoggerTest do
   test "metadata merge when the argument function returns metadata" do
     assert Logger.metadata(module: Sample) == :ok
 
+    fun = fn -> {"ok", [module: "Function"]} end
+
     assert capture_log(fn ->
-             assert Logger.bare_log(
-                      :info,
-                      fn -> {"ok", [module: "Function"]} end,
-                      application: nil,
-                      module: LoggerTest
-                    ) == :ok
+             assert Logger.bare_log(:info, fun, application: nil, module: LoggerTest) == :ok
            end) =~ msg("application= module=Function [info]  ok")
   end
 
