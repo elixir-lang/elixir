@@ -12,9 +12,10 @@ defmodule Mix.Shell.IO do
   was not printed yet.
   """
   def print_app do
-    if name = Mix.Shell.printable_app_name do
-      IO.puts "==> #{name}"
+    if name = Mix.Shell.printable_app_name() do
+      IO.puts("==> #{name}")
     end
+
     :ok
   end
 
@@ -28,7 +29,7 @@ defmodule Mix.Shell.IO do
   """
   def info(message) do
     print_app()
-    IO.puts IO.ANSI.format message
+    IO.puts(IO.ANSI.format(message))
   end
 
   @doc """
@@ -36,7 +37,7 @@ defmodule Mix.Shell.IO do
   """
   def error(message) do
     print_app()
-    IO.puts :stderr, IO.ANSI.format(red(message))
+    IO.puts(:stderr, IO.ANSI.format(red(message)))
   end
 
   @doc """
@@ -69,6 +70,7 @@ defmodule Mix.Shell.IO do
   # TODO: Deprecate on Elixir v1.8
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
+
     Mix.Shell.cmd(command, opts, fn data ->
       if print_app?, do: print_app()
       IO.write(data)
