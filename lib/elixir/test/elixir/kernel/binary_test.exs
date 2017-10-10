@@ -135,7 +135,7 @@ defmodule Kernel.BinaryTest do
 
   test "literal" do
     assert <<106, 111, 115, 195, 169>> == <<"josé">>
-    assert <<106, 111, 115, 195, 169>> == <<"#{:josé}">>
+    assert <<106, 111, 115, 195, 169>> == <<"#{String.to_atom("josé")}">>
     assert <<106, 111, 115, 195, 169>> == <<"josé"::binary>>
     assert <<106, 111, 115, 195, 169>> == <<"josé"::bits>>
     assert <<106, 111, 115, 195, 169>> == <<"josé"::bitstring>>
