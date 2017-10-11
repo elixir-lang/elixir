@@ -110,17 +110,15 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       """)
 
       capture_io(fn ->
-        assert {:ok,
-                 [diagnostic]
-               } = Mix.Tasks.Compile.Erlang.run([])
+        assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Erlang.run([])
 
-  assert %Mix.Task.Compiler.Diagnostic{
-                     file: ^file,
-                     compiler_name: "erl_lint",
-                     message: "function my_fn/0 is unused",
-                     position: 2,
-                     severity: :warning
-                   } = diagnostic
+        assert %Mix.Task.Compiler.Diagnostic{
+                 file: ^file,
+                 compiler_name: "erl_lint",
+                 message: "function my_fn/0 is unused",
+                 position: 2,
+                 severity: :warning
+               } = diagnostic
 
         # Should return warning without recompiling file
         assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
