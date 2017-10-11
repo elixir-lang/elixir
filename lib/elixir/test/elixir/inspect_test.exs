@@ -364,22 +364,19 @@ defmodule Inspect.ListTest do
     opts = [syntax_colors: [reset: :cyan, list: :green, number: :blue]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
 
-    assert inspect([a: 9999], opts) ==
-             "\e[32m[\e[36ma: \e[34m9999\e[36m\e[32m]\e[36m"
+    assert inspect([a: 9999], opts) == "\e[32m[\e[36ma: \e[34m9999\e[36m\e[32m]\e[36m"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red, list: :green, number: :blue]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
 
-    assert inspect([a: 9999], opts) ==
-             "\e[32m[\e[36m\e[31ma: \e[36m\e[34m9999\e[36m\e[32m]\e[36m"
+    assert inspect([a: 9999], opts) == "\e[32m[\e[36m\e[31ma: \e[36m\e[34m9999\e[36m\e[32m]\e[36m"
   end
 
   test "limit with colors" do
     opts = [limit: 1, syntax_colors: [reset: :cyan, list: :green, atom: :red]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
 
-    assert inspect([:x, :y], opts) ==
-             "\e[32m[\e[36m\e[31m:x\e[36m\e[32m,\e[36m ...\e[32m]\e[36m"
+    assert inspect([:x, :y], opts) == "\e[32m[\e[36m\e[31m:x\e[36m\e[32m,\e[36m ...\e[32m]\e[36m"
   end
 end
 
