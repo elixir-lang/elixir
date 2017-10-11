@@ -335,18 +335,18 @@ defmodule Kernel.CLI do
   end
 
   defp parse_compiler(["--no-debug-info" | t], config) do
-    updated_compiler_options = [{:debug_info, false} | config.compiler_options]
-    parse_compiler(t, %{config | compiler_options: updated_compiler_options})
+    compiler_options = [{:debug_info, false} | config.compiler_options]
+    parse_compiler(t, %{config | compiler_options: compiler_options})
   end
 
   defp parse_compiler(["--ignore-module-conflict" | t], config) do
-    updated_compiler_options = [{:ignore_module_conflict, true} | config.compiler_options]
-    parse_compiler(t, %{config | compiler_options: updated_compiler_options})
+    compiler_options = [{:ignore_module_conflict, true} | config.compiler_options]
+    parse_compiler(t, %{config | compiler_options: compiler_options})
   end
 
   defp parse_compiler(["--warnings-as-errors" | t], config) do
-    updated_compiler_options = [{:warnings_as_errors, true} | config.compiler_options]
-    parse_compiler(t, %{config | compiler_options: updated_compiler_options})
+    compiler_options = [{:warnings_as_errors, true} | config.compiler_options]
+    parse_compiler(t, %{config | compiler_options: compiler_options})
   end
 
   defp parse_compiler(["--verbose" | t], config) do
