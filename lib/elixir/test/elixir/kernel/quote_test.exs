@@ -64,7 +64,7 @@ defmodule Kernel.QuoteTest do
     assert quote(do: foo.unquote({:bar, [], [1, 2]})) == quote(do: foo.bar(1, 2))
 
     assert Code.eval_quoted(quote(do: Foo.unquote(Bar))) == {Elixir.Foo.Bar, []}
-    assert Code.eval_quoted(quote(do: Foo.unquote(quote do: Bar))) == {Elixir.Foo.Bar, []}
+    assert Code.eval_quoted(quote(do: Foo.unquote(quote(do: Bar)))) == {Elixir.Foo.Bar, []}
 
     assert_raise ArgumentError, fn ->
       quote(do: foo.unquote(1))
@@ -268,7 +268,7 @@ defmodule Kernel.QuoteTest.Errors do
   end
 
   defmacro will_raise do
-    quote location: :keep, do: raise("oops")
+    quote(location: :keep, do: raise("oops"))
   end
 end
 
@@ -302,19 +302,19 @@ end
 
 defmodule Kernel.QuoteTest.VarHygiene do
   defmacro no_interference do
-    quote do: a = 1
+    quote(do: a = 1)
   end
 
   defmacro write_interference do
-    quote do: var!(a) = 1
+    quote(do: var!(a) = 1)
   end
 
   defmacro read_interference do
-    quote do: 10 = var!(a)
+    quote(do: 10 = var!(a))
   end
 
   defmacro cross_module_interference do
-    quote do: var!(a, Kernel.QuoteTest.VarHygieneTest) = 1
+    quote(do: var!(a, Kernel.QuoteTest.VarHygieneTest) = 1)
   end
 end
 
@@ -323,11 +323,11 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   import Kernel.QuoteTest.VarHygiene
 
   defmacrop cross_module_no_interference do
-    quote do: a = 10
+    quote(do: a = 10)
   end
 
   defmacrop read_cross_module do
-    quote do: var!(a, __MODULE__)
+    quote(do: var!(a, __MODULE__))
   end
 
   defmacrop nested(var, do: block) do
@@ -385,11 +385,11 @@ defmodule Kernel.QuoteTest.AliasHygiene do
   alias Dict, as: SuperDict
 
   defmacro dict do
-    quote do: Dict.Bar
+    quote(do: Dict.Bar)
   end
 
   defmacro super_dict do
-    quote do: SuperDict.Bar
+    quote(do: SuperDict.Bar)
   end
 end
 
@@ -405,8 +405,8 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
   end
 
   test "expand aliases" do
-    assert Code.eval_quoted(quote do: SuperDict.Bar) == {Elixir.Dict.Bar, []}
-    assert Code.eval_quoted(quote do: alias!(SuperDict.Bar)) == {Elixir.SuperDict.Bar, []}
+    assert Code.eval_quoted(quote(do: SuperDict.Bar)) == {Elixir.Dict.Bar, []}
+    assert Code.eval_quoted(quote(do: alias!(SuperDict.Bar))) == {Elixir.SuperDict.Bar, []}
   end
 
   test "expand aliases without macro" do
@@ -508,7 +508,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
 
   test "checks the context also for variables to zero-arity functions" do
     import BinaryUtils
-    {:int32, meta, __MODULE__} = quote do: int32
+    {:int32, meta, __MODULE__} = quote(do: int32)
     assert meta[:import] == BinaryUtils
   end
 end
