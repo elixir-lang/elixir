@@ -241,8 +241,10 @@ defmodule Kernel.CLI do
     parse_shared(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
-  @erl_arg_options ~w(--erl --sname --name --cookie --logger-otp-reports --logger-sasl-reports)
-  @erl_boolean_options ~w(--detached --hidden --werl)
+  @erl_arg_options ["--erl", "--sname", "--name", "--cookie"] ++
+                     ["--logger-otp-reports", "--logger-sasl-reports"]
+
+  @erl_boolean_options ["--detached", "--hidden", "--werl"]
 
   defp parse_shared([erl, _ | t], config) when erl in @erl_arg_options do
     parse_shared(t, config)
