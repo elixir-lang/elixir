@@ -77,10 +77,9 @@ defmodule Kernel.CLI do
     iodata =
       case blamed do
         %FunctionClauseError{} ->
-          [
-            Exception.format_banner(kind, reason, stacktrace),
-            pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))
-          ]
+          formatted = Exception.format_banner(kind, reason, stacktrace)
+          padded_blame = pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))
+          [formatted, padded_blame]
 
         _ ->
           Exception.format_banner(kind, blamed, stacktrace)
