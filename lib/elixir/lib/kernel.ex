@@ -977,8 +977,7 @@ defmodule Kernel do
 
   """
   @spec tl(nonempty_maybe_improper_list(elem, tail)) :: maybe_improper_list(elem, tail) | tail
-        when elem: term,
-             tail: term
+        when elem: term, tail: term
   def tl(list) do
     :erlang.tl(list)
   end
@@ -2422,9 +2421,8 @@ defmodule Kernel do
 
   defp unnest(other, [], _all_map?, kind) do
     raise ArgumentError,
-          "expected expression given to #{kind} to access at least one element, got: #{
-            Macro.to_string(other)
-          }"
+          "expected expression given to #{kind} to access at least one element, " <>
+            "got: #{Macro.to_string(other)}"
   end
 
   defp unnest(other, acc, all_map?, kind) do
@@ -2700,8 +2698,7 @@ defmodule Kernel do
         {escaped, _} = :elixir_quote.escape(stack, false)
 
         quote do
-          with {_, doc}
-               when unquote(doc_attr?) <-
+          with {_, doc} when unquote(doc_attr?) <-
                  Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
                do: doc
         end
@@ -2821,10 +2818,8 @@ defmodule Kernel do
   end
 
   defp build_if(_condition, _arguments) do
-    message =
-      "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
-
-    raise ArgumentError, message
+    raise ArgumentError,
+          "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
   end
 
   @doc """
@@ -2867,10 +2862,9 @@ defmodule Kernel do
   end
 
   defp build_unless(_condition, _arguments) do
-    message =
-      "invalid or duplicate keys for unless, only \"do\" and an optional \"else\" are permitted"
-
-    raise ArgumentError, message
+    raise ArgumentError,
+          "invalid or duplicate keys for unless, " <>
+            "only \"do\" and an optional \"else\" are permitted"
   end
 
   @doc """
@@ -3256,7 +3250,6 @@ defmodule Kernel do
 
             quote do
               {unquote_splicing(vars)} = {unquote_splicing(values)}
-
               unquote(in_var(in_module?, left, is_in_list))
             end
         end
@@ -3677,10 +3670,9 @@ defmodule Kernel do
   end
 
   defp module_nesting([], [h | _], acc, _full) do
-    {
-      String.to_atom(<<"Elixir.", h::binary>>),
-      :elixir_aliases.concat(:lists.reverse([h | acc]))
-    }
+    as = String.to_atom(<<"Elixir.", h::binary>>)
+    alias = :elixir_aliases.concat(:lists.reverse([h | acc]))
+    {as, alias}
   end
 
   defp module_nesting(_, _, _acc, full) do
@@ -4565,9 +4557,8 @@ defmodule Kernel do
 
         _otherwise ->
           raise ArgumentError,
-                "invalid arguments for use, expected a compile time atom or alias, got: #{
-                  Macro.to_string(module)
-                }"
+                "invalid arguments for use, " <>
+                  "expected a compile time atom or alias, got: #{Macro.to_string(module)}"
       end)
 
     quote(do: (unquote_splicing(calls)))

@@ -278,10 +278,9 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp read_beams(items) do
-    items
-    |> Enum.map(fn {basename, beam_path} ->
-         {String.to_charlist(basename), File.read!(beam_path)}
-       end)
+    Enum.map(items, fn {basename, beam_path} ->
+      {String.to_charlist(basename), File.read!(beam_path)}
+    end)
   end
 
   defp strip_beams(tuples) do
@@ -352,9 +351,8 @@ defmodule Mix.Tasks.Escript.Build do
             set_env_fun = fn {k, v} -> :application.set_env(app, k, v, persistent: true) end
             :lists.foreach(set_env_fun, kw)
           end
-          
-          :lists.foreach(each_fun, config)
 
+          :lists.foreach(each_fun, config)
           :ok
         end
 

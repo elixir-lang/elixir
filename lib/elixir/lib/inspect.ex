@@ -76,9 +76,8 @@ defimpl Inspect, for: BitString do
   def inspect(term, opts) when is_binary(term) do
     %Inspect.Opts{binaries: bins, base: base, printable_limit: printable_limit} = opts
 
-    is_printable = String.printable?(term, printable_limit)
-
-    if base == :decimal and (bins == :as_strings or (bins == :infer and is_printable)) do
+    if base == :decimal and
+         (bins == :as_strings or (bins == :infer and String.printable?(term, printable_limit))) do
       inspected =
         case Identifier.escape(term, ?", printable_limit) do
           {escaped, ""} -> [?", escaped, ?"]
