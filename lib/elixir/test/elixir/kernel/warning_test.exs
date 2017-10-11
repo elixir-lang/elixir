@@ -43,16 +43,14 @@ defmodule Kernel.WarningTest do
         end
         """)
 
-        Code.eval_string(
-          """
+        code = """
           defmodule RedefineSample do
             use Sample
             def function(var123), do: nil
           end
-          """,
-          [],
-          file: "redefine_sample.ex"
-        )
+        """
+
+        Code.eval_string(code, [], file: "redefine_sample.ex")
       end)
 
     assert output =~ "redefine_sample.ex:3"
@@ -858,26 +856,22 @@ defmodule Kernel.WarningTest do
 
   test ":__struct__ is ignored when using structs" do
     assert capture_err(fn ->
-             Code.eval_string(
-               """
-               assert %Kernel.WarningTest.User{__struct__: Ignored, name: "joe"} ==
-                      %Kernel.WarningTest.User{name: "joe"}
-               """,
-               [],
-               __ENV__
-             )
+             code = """
+             assert %Kernel.WarningTest.User{__struct__: Ignored, name: "joe"} ==
+                    %Kernel.WarningTest.User{name: "joe"}
+             """
+
+             Code.eval_string(code, [], __ENV__)
            end) =~ "key :__struct__ is ignored when using structs"
 
     assert capture_err(fn ->
-             Code.eval_string(
-               """
-               user = %Kernel.WarningTest.User{name: "meg"}
-               assert %Kernel.WarningTest.User{user | __struct__: Ignored, name: "joe"} ==
-                      %Kernel.WarningTest.User{__struct__: Kernel.WarningTest.User, name: "joe"}
-               """,
-               [],
-               __ENV__
-             )
+             code = """
+             user = %Kernel.WarningTest.User{name: "meg"}
+             assert %Kernel.WarningTest.User{user | __struct__: Ignored, name: "joe"} ==
+                    %Kernel.WarningTest.User{__struct__: Kernel.WarningTest.User, name: "joe"}
+             """
+
+             Code.eval_string(code, [], __ENV__)
            end) =~ "key :__struct__ is ignored when using structs"
   end
 
