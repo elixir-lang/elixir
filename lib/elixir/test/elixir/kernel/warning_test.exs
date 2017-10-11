@@ -53,6 +53,35 @@ defmodule Kernel.WarningTest do
     purge RedefineSample
   end
 
+  test "duplicate clauses when injecting code" do
+    output = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defmacro __using__(_) do
+          quote do
+            @before_compile unquote(__MODULE__)
+          end
+        end
+        defmacro __before_compile__(_) do
+          quote do
+            def function(_), do: :ok
+            def function(_), do: :error
+          end
+        end
+      end
+      """
+      Code.eval_string """
+      defmodule UseSample do
+        use Sample
+      end
+      """
+    end)
+    assert output =~ "duplicate definition clauses detected for \"function\""
+  after
+    purge Sample
+    purge UseSample
+  end
+
   test "useless literal" do
     message = "code block contains unused literal \"oops\""
 
