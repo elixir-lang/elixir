@@ -348,17 +348,12 @@ defmodule Mix.Tasks.Escript.Build do
         end
 
         defp load_config(config) do
-          :lists.foreach(
-            fn {app, kw} ->
-              :lists.foreach(
-                fn {k, v} ->
-                  :application.set_env(app, k, v, persistent: true)
-                end,
-                kw
-              )
-            end,
-            config
-          )
+          each_fun = fn {app, kw} ->
+            set_env_fun = fn {k, v} -> :application.set_env(app, k, v, persistent: true) end
+            :lists.foreach(set_env_fun, kw)
+          end
+          
+          :lists.foreach(each_fun, config)
 
           :ok
         end
