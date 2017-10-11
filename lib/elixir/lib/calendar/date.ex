@@ -53,8 +53,12 @@ defmodule Date do
   @enforce_keys [:year, :month, :day]
   defstruct [:year, :month, :day, calendar: Calendar.ISO]
 
-  @type t :: %Date{year: Calendar.year, month: Calendar.month,
-                   day: Calendar.day, calendar: Calendar.calendar}
+  @type t :: %Date{
+          year: Calendar.year(),
+          month: Calendar.month(),
+          day: Calendar.day(),
+          calendar: Calendar.calendar()
+        }
 
   @doc """
   Returns a range of dates.
@@ -86,7 +90,7 @@ defmodule Date do
       -366
   """
 
-  @spec range(Calendar.date, Calendar.date) :: Date.Range.t
+  @spec range(Calendar.date(), Calendar.date()) :: Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
@@ -95,12 +99,11 @@ defmodule Date do
       first: first,
       last: last,
       first_in_iso_days: first_days,
-      last_in_iso_days: last_days,
+      last_in_iso_days: last_days
     }
   end
 
-  def range(%{calendar: _, year: _, month: _, day: _},
-            %{calendar: _, year: _, month: _, day: _}) do
+  def range(%{calendar: _, year: _, month: _, day: _}, %{calendar: _, year: _, month: _, day: _}) do
     raise ArgumentError, "both dates must have matching calendars"
   end
 
@@ -114,18 +117,18 @@ defmodule Date do
       true
 
   """
-  @spec utc_today(Calendar.calendar) :: t
+  @spec utc_today(Calendar.calendar()) :: t
   def utc_today(calendar \\ Calendar.ISO)
 
   def utc_today(Calendar.ISO) do
-    {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(System.os_time, :native)
+    {:ok, {year, month, day}, _, _} = Calendar.ISO.from_unix(System.os_time(), :native)
     %Date{year: year, month: month, day: day}
   end
 
   def utc_today(calendar) do
     calendar
-    |> DateTime.utc_now
-    |> DateTime.to_date
+    |> DateTime.utc_now()
+    |> DateTime.to_date()
   end
 
   @doc """
@@ -145,7 +148,7 @@ defmodule Date do
       true
 
   """
-  @spec leap_year?(Calendar.date) :: boolean()
+  @spec leap_year?(Calendar.date()) :: boolean()
   def leap_year?(date)
 
   def leap_year?(%{calendar: calendar, year: year}) do
@@ -165,7 +168,7 @@ defmodule Date do
       29
 
   """
-  @spec days_in_month(Calendar.date) :: Calendar.day
+  @spec days_in_month(Calendar.date()) :: Calendar.day()
   def days_in_month(date)
 
   def days_in_month(%{calendar: calendar, year: year, month: month}) do
@@ -193,7 +196,7 @@ defmodule Date do
       {:error, :invalid_date}
 
   """
-  @spec new(Calendar.year, Calendar.month, Calendar.day) :: {:ok, t} | {:error, atom}
+  @spec new(Calendar.year(), Calendar.month(), Calendar.day()) :: {:ok, t} | {:error, atom}
   def new(year, month, day, calendar \\ Calendar.ISO) do
     if calendar.valid_date?(year, month, day) do
       {:ok, %Date{year: year, month: month, day: day, calendar: calendar}}
@@ -213,7 +216,7 @@ defmodule Date do
       "2000-02-28"
 
   """
-  @spec to_string(Calendar.date) :: String.t
+  @spec to_string(Calendar.date()) :: String.t()
   def to_string(date)
 
   def to_string(%{calendar: calendar, year: year, month: month, day: day}) do
@@ -236,15 +239,14 @@ defmodule Date do
       {:error, :invalid_date}
 
   """
-  @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
+  @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>, calendar) do
     with {year, ""} <- Integer.parse(year),
          {month, ""} <- Integer.parse(month),
          {day, ""} <- Integer.parse(day) do
-      with {:ok, date} <- new(year, month, day, Calendar.ISO),
-           do: convert(date, calendar)
+      with {:ok, date} <- new(year, month, day, Calendar.ISO), do: convert(date, calendar)
     else
       _ -> {:error, :invalid_format}
     end
@@ -267,13 +269,14 @@ defmodule Date do
       iex> Date.from_iso8601!("2015:01:23")
       ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
   """
-  @spec from_iso8601!(String.t) :: t
+  @spec from_iso8601!(String.t()) :: t
   def from_iso8601!(string, calendar \\ Calendar.ISO) do
     case from_iso8601(string, calendar) do
       {:ok, value} ->
         value
+
       {:error, reason} ->
-        raise ArgumentError, "cannot parse #{inspect string} as date, reason: #{inspect reason}"
+        raise ArgumentError, "cannot parse #{inspect(string)} as date, reason: #{inspect(reason)}"
     end
   end
 
@@ -300,7 +303,7 @@ defmodule Date do
       "2000-02-28"
 
   """
-  @spec to_iso8601(Calendar.date, :extended | :basic) :: String.t
+  @spec to_iso8601(Calendar.date(), :extended | :basic) :: String.t()
   def to_iso8601(date, format \\ :extended) when format in [:basic, :extended] do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
     Calendar.ISO.date_to_iso8601(year, month, day, format)
@@ -322,7 +325,7 @@ defmodule Date do
       {2000, 1, 1}
 
   """
-  @spec to_erl(Calendar.date) :: :calendar.date
+  @spec to_erl(Calendar.date()) :: :calendar.date()
   def to_erl(date) do
     %{year: year, month: month, day: day} = convert!(date, Calendar.ISO)
     {year, month, day}
@@ -343,12 +346,11 @@ defmodule Date do
       {:error, :invalid_date}
 
   """
-  @spec from_erl(:calendar.date) :: {:ok, t} | {:error, atom}
+  @spec from_erl(:calendar.date()) :: {:ok, t} | {:error, atom}
   def from_erl(tuple, calendar \\ Calendar.ISO)
 
   def from_erl({year, month, day}, calendar) do
-    with {:ok, date} <- new(year, month, day, Calendar.ISO),
-         do: convert(date, calendar)
+    with {:ok, date} <- new(year, month, day, Calendar.ISO), do: convert(date, calendar)
   end
 
   @doc """
@@ -362,13 +364,15 @@ defmodule Date do
       ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.date) :: t
+  @spec from_erl!(:calendar.date()) :: t
   def from_erl!(tuple) do
     case from_erl(tuple) do
       {:ok, value} ->
         value
+
       {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect tuple} to date, reason: #{inspect reason}"
+        raise ArgumentError,
+              "cannot convert #{inspect(tuple)} to date, reason: #{inspect(reason)}"
     end
   end
 
@@ -395,15 +399,20 @@ defmodule Date do
       :eq
 
   """
-  @spec compare(Calendar.date, Calendar.date) :: :lt | :eq | :gt
-  def compare(%{calendar: calendar, year: year1, month: month1, day: day1},
-              %{calendar: calendar, year: year2, month: month2, day: day2}) do
+  @spec compare(Calendar.date(), Calendar.date()) :: :lt | :eq | :gt
+  def compare(%{calendar: calendar, year: year1, month: month1, day: day1}, %{
+        calendar: calendar,
+        year: year2,
+        month: month2,
+        day: day2
+      }) do
     case {{year1, month1, day1}, {year2, month2, day2}} do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
       _ -> :eq
     end
   end
+
   def compare(date1, date2) do
     if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
       case {to_iso_days(date1), to_iso_days(date2)} do
@@ -413,7 +422,7 @@ defmodule Date do
       end
     else
       raise ArgumentError, """
-      cannot compare #{inspect date1} with #{inspect date2}.
+      cannot compare #{inspect(date1)} with #{inspect(date2)}.
 
       This comparison would be ambiguous as their calendars have incompatible day rollover moments.
       Specify an exact time of day (using `DateTime`s) to resolve this ambiguity
@@ -439,16 +448,19 @@ defmodule Date do
       {:ok, %Date{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1}}
 
   """
-  @spec convert(Calendar.date, Calendar.calendar) :: {:ok, t} | {:error, :incompatible_calendars}
+  @spec convert(Calendar.date(), Calendar.calendar()) ::
+          {:ok, t} | {:error, :incompatible_calendars}
   def convert(%{calendar: calendar, year: year, month: month, day: day}, calendar) do
     {:ok, %Date{calendar: calendar, year: year, month: month, day: day}}
   end
+
   def convert(%{calendar: calendar} = date, target_calendar) do
     if Calendar.compatible_calendars?(calendar, target_calendar) do
       result_date =
         date
         |> to_iso_days()
         |> from_iso_days(target_calendar)
+
       {:ok, result_date}
     else
       {:error, :incompatible_calendars}
@@ -469,13 +481,18 @@ defmodule Date do
       %Date{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1}
 
   """
-  @spec convert!(Calendar.date, Calendar.calendar) :: t
+  @spec convert!(Calendar.date(), Calendar.calendar()) :: t
   def convert!(date, calendar) do
     case convert(date, calendar) do
       {:ok, value} ->
         value
+
       {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect date} to target calendar #{inspect calendar}, reason: #{inspect reason}"
+        message =
+          "cannot convert #{inspect(date)} to target calendar #{inspect(calendar)}, " <>
+            "reason: #{inspect(reason)}"
+
+        raise ArgumentError, message
     end
   end
 
@@ -496,7 +513,7 @@ defmodule Date do
       ~D[2000-01-03]
 
   """
-  @spec add(Calendar.date, integer()) :: t
+  @spec add(Calendar.date(), integer()) :: t
   def add(%{calendar: calendar} = date, days) do
     {iso_days, fraction} = to_iso_days(date)
     from_iso_days({iso_days + days, fraction}, calendar)
@@ -520,9 +537,13 @@ defmodule Date do
       -2
 
   """
-  @spec diff(Calendar.date, Calendar.date) :: integer
-  def diff(%{calendar: Calendar.ISO, year: year1, month: month1, day: day1},
-           %{calendar: Calendar.ISO, year: year2, month: month2, day: day2}) do
+  @spec diff(Calendar.date(), Calendar.date()) :: integer
+  def diff(%{calendar: Calendar.ISO, year: year1, month: month1, day: day1}, %{
+        calendar: Calendar.ISO,
+        year: year2,
+        month: month2,
+        day: day2
+      }) do
     Calendar.ISO.date_to_iso_days(year1, month1, day1) -
       Calendar.ISO.date_to_iso_days(year2, month2, day2)
   end
@@ -533,13 +554,19 @@ defmodule Date do
       {days2, _} = to_iso_days(date2)
       days1 - days2
     else
-      raise ArgumentError, "cannot calculate the difference between #{inspect date1} and #{inspect date2} because their calendars are not compatible and thus the result would be ambiguous"
+      message =
+        "cannot calculate the difference between #{inspect(date1)} and " <>
+          "#{inspect(date2)} because their calendars are not compatible and thus the " <>
+          "result would be ambiguous"
+
+      raise ArgumentError, message
     end
   end
 
   defp to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
-    {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86400000000}}
+    {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86_400_000_000}}
   end
+
   defp to_iso_days(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.naive_datetime_to_iso_days(year, month, day, 0, 0, 0, {0, 0})
   end
@@ -548,6 +575,7 @@ defmodule Date do
     {year, month, day} = Calendar.ISO.date_from_iso_days(days)
     %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
   end
+
   defp from_iso_days(iso_days, target_calendar) do
     {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_iso_days(iso_days)
     %Date{year: year, month: month, day: day, calendar: target_calendar}
@@ -570,7 +598,7 @@ defmodule Date do
       2
 
   """
-  @spec day_of_week(Calendar.date) :: non_neg_integer()
+  @spec day_of_week(Calendar.date()) :: non_neg_integer()
   def day_of_week(date)
 
   def day_of_week(%{calendar: calendar, year: year, month: month, day: day}) do
