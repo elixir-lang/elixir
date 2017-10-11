@@ -3,9 +3,9 @@ defmodule OptionParser do
   This module contains functions to parse command line options.
   """
 
-  @type argv    :: [String.t]
-  @type parsed  :: keyword
-  @type errors  :: [{String.t, String.t | nil}]
+  @type argv :: [String.t()]
+  @type parsed :: keyword
+  @type errors :: [{String.t(), String.t() | nil}]
   @type options :: [switches: keyword, strict: keyword, aliases: keyword]
 
   defmodule ParseError do
@@ -118,7 +118,6 @@ defmodule OptionParser do
 
       iex> OptionParser.parse(["--debug"])
       {[debug: true], [], []}
-
 
   Switches followed by a value will be assigned the value, as a string. Switches
   without an argument, like `--debug` in the examples above, will automatically be
@@ -297,7 +296,7 @@ defmodule OptionParser do
     case next_with_config(argv, config) do
       {:ok, option, value, rest} ->
         # the option exists and it was successfully parsed
-        kinds = List.wrap Keyword.get(switches, option)
+        kinds = List.wrap(Keyword.get(switches, option))
         new_opts = store_option(opts, option, value, kinds)
         do_parse(rest, config, new_opts, args, invalid, all?)
 
@@ -342,10 +341,10 @@ defmodule OptionParser do
 
   """
   @spec next(argv, options) ::
-        {:ok, key :: atom, value :: term, argv} |
-        {:invalid, String.t, String.t | nil, argv} |
-        {:undefined, String.t, String.t | nil, argv} |
-        {:error, argv}
+          {:ok, key :: atom, value :: term, argv}
+          | {:invalid, String.t(), String.t() | nil, argv}
+          | {:undefined, String.t(), String.t() | nil, argv}
+          | {:error, argv}
 
   def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
     next_with_config(argv, build_config(opts))
@@ -383,17 +382,21 @@ defmodule OptionParser do
     cond do
       is_nil(value) and negative_number?(original) ->
         {:error, argv}
+
       String.contains?(option, ["-", "_"]) ->
         {:undefined, original, value, rest}
+
       String.length(option) > 1 ->
         key = get_option_key(option, allow_nonexistent_atoms?)
         option_key = aliases[key]
+
         if key && option_key do
-          IO.warn "multi-letter aliases are deprecated, got: #{inspect(key)}"
+          IO.warn("multi-letter aliases are deprecated, got: #{inspect(key)}")
           next_tagged({:default, option_key}, value, original, rest, config)
         else
           next_with_config(expand_multiletter_alias(option, value) ++ rest, config)
         end
+
       true ->
         # We have a regular one-letter alias here
         tagged = tag_oneletter_alias(option, config)
@@ -411,9 +414,10 @@ defmodule OptionParser do
     else
       {option, kinds, value} = normalize_option(tagged, value, switches)
       {value, kinds, rest} = normalize_value(value, kinds, rest, strict?)
+
       case validate_option(value, kinds) do
         {:ok, new_value} -> {:ok, option, new_value, rest}
-        :invalid         -> {:invalid, original, value, rest}
+        :invalid -> {:invalid, original, value, rest}
       end
     end
   end
@@ -446,12 +450,13 @@ defmodule OptionParser do
       ["--number", "--number"]
 
   """
-  @spec to_argv(Enumerable.t, options) :: argv
+  @spec to_argv(Enumerable.t(), options) :: argv
   def to_argv(enum, opts \\ []) do
     switches = Keyword.get(opts, :switches, [])
+
     Enum.flat_map(enum, fn
-      {_key, nil}  -> []
-      {key, true}  -> [to_switch(key)]
+      {_key, nil} -> []
+      {key, true} -> [to_switch(key)]
       {key, false} -> [to_switch(key, "--no-")]
       {key, value} -> to_argv(key, value, switches)
     end)
@@ -484,7 +489,7 @@ defmodule OptionParser do
       ["foo", "bar baz"]
 
   """
-  @spec split(String.t) :: argv
+  @spec split(String.t()) :: argv
   def split(string) when is_binary(string) do
     do_split(String.trim_leading(string, " "), "", [], nil)
   end
@@ -498,8 +503,7 @@ defmodule OptionParser do
     do: do_split(t, buffer, acc, quote)
 
   # If we have a quote and we were inside it, close it
-  defp do_split(<<quote, t::binary>>, buffer, acc, quote),
-    do: do_split(t, buffer, acc, nil)
+  defp do_split(<<quote, t::binary>>, buffer, acc, quote), do: do_split(t, buffer, acc, nil)
 
   # If we have an escaped quote/space, simply remove the escape as long as we are not inside a quote
   defp do_split(<<?\\, h, t::binary>>, buffer, acc, nil) when h in [?\s, ?', ?"],
@@ -515,11 +519,9 @@ defmodule OptionParser do
   end
 
   # Finish the string expecting a nil marker
-  defp do_split(<<>>, "", acc, nil),
-    do: Enum.reverse(acc)
+  defp do_split(<<>>, "", acc, nil), do: Enum.reverse(acc)
 
-  defp do_split(<<>>, buffer, acc, nil),
-    do: Enum.reverse([buffer | acc])
+  defp do_split(<<>>, buffer, acc, nil), do: Enum.reverse([buffer | acc])
 
   # Otherwise raise
   defp do_split(<<>>, _, _acc, marker) do
@@ -529,16 +531,20 @@ defmodule OptionParser do
   ## Helpers
 
   defp build_config(opts) do
-    {switches, strict?} = cond do
-      opts[:switches] && opts[:strict] ->
-        raise ArgumentError, ":switches and :strict cannot be given together"
-      switches = opts[:switches] ->
-        {switches, false}
-      strict = opts[:strict] ->
-        {strict, true}
-      true ->
-        {[], false}
-    end
+    {switches, strict?} =
+      cond do
+        opts[:switches] && opts[:strict] ->
+          raise ArgumentError, ":switches and :strict cannot be given together"
+
+        switches = opts[:switches] ->
+          {switches, false}
+
+        strict = opts[:strict] ->
+          {strict, true}
+
+        true ->
+          {[], false}
+      end
 
     %{
       aliases: opts[:aliases] || [],
@@ -553,27 +559,32 @@ defmodule OptionParser do
       cond do
         :invalid in kinds ->
           {true, value}
+
         :boolean in kinds ->
           case value do
             t when t in [true, "true"] -> {false, true}
             f when f in [false, "false"] -> {false, false}
             _ -> {true, value}
           end
+
         :count in kinds ->
           case value do
             1 -> {false, value}
             _ -> {true, value}
           end
+
         :integer in kinds ->
           case Integer.parse(value) do
             {value, ""} -> {false, value}
             _ -> {true, value}
           end
+
         :float in kinds ->
           case Float.parse(value) do
             {value, ""} -> {false, value}
             _ -> {true, value}
           end
+
         true ->
           {false, value}
       end
@@ -588,20 +599,28 @@ defmodule OptionParser do
   defp store_option(dict, option, value, kinds) do
     cond do
       :count in kinds ->
-        Keyword.update(dict, option, value, & &1 + 1)
+        Keyword.update(dict, option, value, &(&1 + 1))
+
       :keep in kinds ->
         [{option, value} | dict]
+
       true ->
         [{option, value} | Keyword.delete(dict, option)]
     end
   end
 
-  defp tag_option("no-" <> option = original, %{switches: switches, allow_nonexistent_atoms?: allow_nonexistent_atoms?}) do
+  defp tag_option("no-" <> option = original, %{
+         switches: switches,
+         allow_nonexistent_atoms?: allow_nonexistent_atoms?
+       }) do
     cond do
-      (negated = get_option_key(option, allow_nonexistent_atoms?)) && :boolean in List.wrap(switches[negated]) ->
+      (negated = get_option_key(option, allow_nonexistent_atoms?)) &&
+          :boolean in List.wrap(switches[negated]) ->
         {:negated, negated}
+
       option_key = get_option_key(original, allow_nonexistent_atoms?) ->
         {:default, option_key}
+
       true ->
         :unknown
     end
@@ -615,7 +634,11 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_oneletter_alias(alias, %{aliases: aliases, allow_nonexistent_atoms?: allow_nonexistent_atoms?}) when is_binary(alias) do
+  defp tag_oneletter_alias(alias, %{
+         aliases: aliases,
+         allow_nonexistent_atoms?: allow_nonexistent_atoms?
+       })
+       when is_binary(alias) do
     if option_key = aliases[to_existing_key(alias, allow_nonexistent_atoms?)] do
       {:default, option_key}
     else
@@ -629,6 +652,7 @@ defmodule OptionParser do
       |> String.codepoints()
       |> Enum.map(&("-" <> &1))
       |> List.pop_at(-1)
+
     expanded ++ [last <> if(value, do: "=" <> value, else: "")]
   end
 
@@ -664,15 +688,20 @@ defmodule OptionParser do
     cond do
       :boolean in kinds ->
         {true, kinds, t}
+
       :count in kinds ->
         {1, kinds, t}
+
       value_in_tail?(t) ->
         [h | t] = t
         {h, kinds, t}
+
       kinds == [] and strict? ->
         {nil, kinds, t}
+
       kinds == [] ->
         {true, kinds, t}
+
       true ->
         {nil, [:invalid], t}
     end
@@ -682,29 +711,24 @@ defmodule OptionParser do
     {value, kinds, t}
   end
 
-  defp value_in_tail?(["-" | _]),        do: true
-  defp value_in_tail?(["- " <> _ | _]),  do: true
+  defp value_in_tail?(["-" | _]), do: true
+  defp value_in_tail?(["- " <> _ | _]), do: true
   defp value_in_tail?(["-" <> arg | _]), do: negative_number?("-" <> arg)
-  defp value_in_tail?([]),               do: false
-  defp value_in_tail?(_),                do: true
+  defp value_in_tail?([]), do: false
+  defp value_in_tail?(_), do: true
 
   defp split_option(option) do
     case :binary.split(option, "=") do
-      [h]    -> {h, nil}
+      [h] -> {h, nil}
       [h, t] -> {h, t}
     end
   end
 
-  defp to_underscore(option),
-    do: to_underscore(option, <<>>)
-  defp to_underscore("_" <> _rest, _acc),
-    do: nil
-  defp to_underscore("-" <> rest, acc),
-    do: to_underscore(rest, acc <> "_")
-  defp to_underscore(<<c>> <> rest, acc),
-    do: to_underscore(rest, <<acc::binary, c>>)
-  defp to_underscore(<<>>, acc),
-    do: acc
+  defp to_underscore(option), do: to_underscore(option, <<>>)
+  defp to_underscore("_" <> _rest, _acc), do: nil
+  defp to_underscore("-" <> rest, acc), do: to_underscore(rest, acc <> "_")
+  defp to_underscore(<<c>> <> rest, acc), do: to_underscore(rest, <<acc::binary, c>>)
+  defp to_underscore(<<>>, acc), do: acc
 
   defp get_option_key(option, allow_nonexistent_atoms?) do
     if string = to_underscore(option) do
@@ -712,8 +736,8 @@ defmodule OptionParser do
     end
   end
 
-  defp to_existing_key(option, true),
-    do: String.to_atom(option)
+  defp to_existing_key(option, true), do: String.to_atom(option)
+
   defp to_existing_key(option, false) do
     try do
       String.to_existing_atom(option)
@@ -730,6 +754,7 @@ defmodule OptionParser do
     types = opts[:switches] || opts[:strict]
     error_count = length(errors)
     error = if error_count == 1, do: "error", else: "errors"
+
     "#{error_count} #{error} found!\n" <>
       Enum.map_join(errors, "\n", &format_error(&1, opts, types))
   end
@@ -744,7 +769,7 @@ defmodule OptionParser do
 
   defp format_error({option, value}, opts, types) do
     type = get_type(option, opts, types)
-    "#{option} : Expected type #{type}, got #{inspect value}"
+    "#{option} : Expected type #{type}, got #{inspect(value)}"
   end
 
   defp get_type(option, opts, types) do
