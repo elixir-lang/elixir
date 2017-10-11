@@ -142,7 +142,7 @@ defmodule Mix.CLI do
 
   defp display_usage do
     Mix.shell().info("""
-    
+
     Usage: mix [task]
 
     Examples:

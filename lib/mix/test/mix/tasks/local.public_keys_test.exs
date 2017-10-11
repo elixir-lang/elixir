@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Local.PublicKeysTest do
   use MixTest.Case
@@ -16,15 +16,15 @@ defmodule Mix.Tasks.Local.PublicKeysTest do
   """
 
   setup do
-    File.rm_rf! tmp_path(".mix/public_keys")
+    File.rm_rf!(tmp_path(".mix/public_keys"))
     :ok
   end
 
   test "lists public keys" do
-    Mix.Tasks.Local.PublicKeys.run []
+    Mix.Tasks.Local.PublicKeys.run([])
     assert_received {:mix_shell, :info, ["* in-memory public key for Elixir" <> _]}
 
-    Mix.Tasks.Local.PublicKeys.run ["--detailed"]
+    Mix.Tasks.Local.PublicKeys.run(["--detailed"])
     assert_received {:mix_shell, :info, ["\n-----BEGIN PUBLIC KEY-----\n" <> _]}
   end
 
@@ -32,13 +32,13 @@ defmodule Mix.Tasks.Local.PublicKeysTest do
     path = tmp_path("sample.pub")
     File.write!(path, @pub)
 
-    send self(), {:mix_shell_input, :yes?, true}
-    Mix.Tasks.Local.PublicKeys.run [path]
+    send(self(), {:mix_shell_input, :yes?, true})
+    Mix.Tasks.Local.PublicKeys.run([path])
     assert_received {:mix_shell, :yes?, ["Are you sure you want to install public key" <> _]}
     assert_received {:mix_shell, :info, ["* creating " <> _]}
 
-    send self(), {:mix_shell_input, :yes?, true}
-    Mix.Tasks.Local.PublicKeys.run [path]
+    send(self(), {:mix_shell_input, :yes?, true})
+    Mix.Tasks.Local.PublicKeys.run([path])
     assert_received {:mix_shell, :yes?, ["There is already a public key named sample.pub." <> _]}
     assert_received {:mix_shell, :info, ["* creating " <> _]}
   end
@@ -47,8 +47,8 @@ defmodule Mix.Tasks.Local.PublicKeysTest do
     assert_raise Mix.Error, ~r(Could not decode public key:), fn ->
       path = tmp_path("bad.pub")
       File.write!(path, "oops")
-      send self(), {:mix_shell_input, :yes?, true}
-      Mix.Tasks.Local.PublicKeys.run [path]
+      send(self(), {:mix_shell_input, :yes?, true})
+      Mix.Tasks.Local.PublicKeys.run([path])
     end
   end
 end

@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule IOTest do
   use ExUnit.Case
@@ -125,10 +125,11 @@ defmodule IOTest do
     assert capture_io(:stderr, fn -> IO.warn(13) end) =~ "13\n  (ex_unit) lib/ex_unit"
     assert capture_io(:stderr, fn -> IO.warn("hello", []) end) =~ "hello\n"
     stacktrace = [{IEx.Evaluator, :eval, 4, [file: 'lib/iex/evaluator.ex', line: 108]}]
+
     assert capture_io(:stderr, fn -> IO.warn("hello", stacktrace) end) =~ """
-    hello
-      lib/iex/evaluator.ex:108: IEx.Evaluator.eval/4
-    """
+           hello
+             lib/iex/evaluator.ex:108: IEx.Evaluator.eval/4
+           """
   end
 
   test "write with chardata" do
@@ -154,29 +155,29 @@ defmodule IOTest do
 
   test "getn with different arities" do
     assert capture_io("hello", fn ->
-      input = IO.getn(">")
-      IO.write input
-    end) == ">h"
+             input = IO.getn(">")
+             IO.write(input)
+           end) == ">h"
 
     assert capture_io("hello", fn ->
-      input = IO.getn(">", 3)
-      IO.write input
-    end) == ">hel"
+             input = IO.getn(">", 3)
+             IO.write(input)
+           end) == ">hel"
 
     assert capture_io("hello", fn ->
-      input = IO.getn(Process.group_leader, ">")
-      IO.write input
-    end) == ">h"
+             input = IO.getn(Process.group_leader(), ">")
+             IO.write(input)
+           end) == ">h"
 
     assert capture_io("hello", fn ->
-      input = IO.getn(Process.group_leader, ">")
-      IO.write input
-    end) == ">h"
+             input = IO.getn(Process.group_leader(), ">")
+             IO.write(input)
+           end) == ">h"
 
     assert capture_io("hello", fn ->
-      input = IO.getn(Process.group_leader, ">", 99)
-      IO.write input
-    end) == ">hello"
+             input = IO.getn(Process.group_leader(), ">", 99)
+             IO.write(input)
+           end) == ">hello"
   end
 
   test "inspect" do

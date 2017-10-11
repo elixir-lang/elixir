@@ -5,7 +5,7 @@ defmodule Kernel.ParallelRequire do
   def files(files, callbacks \\ [])
 
   def files(files, callback) when is_function(callback, 1) do
-    files(files, [each_file: callback])
+    files(files, each_file: callback)
   end
 
   def files(files, options) when is_list(options) do

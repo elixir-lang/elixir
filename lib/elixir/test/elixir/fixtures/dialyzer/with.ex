@@ -4,10 +4,8 @@ defmodule Dialyzer.With do
          :ok <- ok_or_other_error() do
       :ok
     else
-      :error ->
-        :error
-      :other_error ->
-        :other_error
+      :error -> :error
+      :other_error -> :other_error
     end
   end
 

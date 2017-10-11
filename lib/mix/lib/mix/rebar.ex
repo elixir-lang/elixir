@@ -5,7 +5,7 @@ defmodule Mix.Rebar do
   Returns the path supposed to host the local copy of `rebar`.
   """
   def local_rebar_path(manager) do
-    Path.join(Mix.Utils.mix_home, Atom.to_string(manager))
+    Path.join(Mix.Utils.mix_home(), Atom.to_string(manager))
   end
 
   @doc """
@@ -14,6 +14,7 @@ defmodule Mix.Rebar do
   """
   def global_rebar_cmd(manager) do
     env = manager_to_env(manager)
+
     if cmd = System.get_env(env) do
       wrap_cmd(cmd)
     end
@@ -24,6 +25,7 @@ defmodule Mix.Rebar do
   """
   def local_rebar_cmd(manager) do
     cmd = local_rebar_path(manager)
+
     if File.regular?(cmd) do
       wrap_cmd(cmd)
     end
@@ -44,15 +46,18 @@ defmodule Mix.Rebar do
     config_path = Path.join(dir, "rebar.config")
     script_path = Path.join(dir, "rebar.config.script")
 
-    config = case :file.consult(config_path) do
-      {:ok, config} ->
-        config
-      {:error, :enoent} ->
-        []
-      {:error, error} ->
-        reason = :file.format_error(error)
-        Mix.raise "Error consulting Rebar config #{inspect config_path}: #{reason}"
-    end
+    config =
+      case :file.consult(config_path) do
+        {:ok, config} ->
+          config
+
+        {:error, :enoent} ->
+          []
+
+        {:error, error} ->
+          reason = :file.format_error(error)
+          Mix.raise("Error consulting Rebar config #{inspect(config_path)}: #{reason}")
+      end
 
     if File.exists?(script_path) do
       eval_script(script_path, config)
@@ -77,6 +82,7 @@ defmodule Mix.Rebar do
     Enum.map(config, fn
       {:erl_opts, opts} ->
         {:erl_opts, List.delete(opts, :warnings_as_errors)}
+
       other ->
         other
     end)
@@ -134,10 +140,7 @@ defmodule Mix.Rebar do
   defp parse_dep({app, req, source, opts}) do
     source = parse_source(source)
 
-    compile =
-      if :proplists.get_value(:raw, opts, false),
-        do: [compile: false],
-        else: []
+    compile = if :proplists.get_value(:raw, opts, false), do: [compile: false], else: []
 
     {app, compile_req(req), source ++ compile}
   end
@@ -145,6 +148,7 @@ defmodule Mix.Rebar do
   defp parse_source({:pkg, pkg}) do
     [hex: pkg]
   end
+
   defp parse_source(source) do
     [scm, url | source] = Tuple.to_list(source)
 
@@ -171,12 +175,14 @@ defmodule Mix.Rebar do
     case Version.parse_requirement(req) do
       {:ok, _} ->
         req
+
       :error ->
         case Regex.compile(req) do
           {:ok, re} ->
             re
+
           {:error, reason} ->
-            Mix.raise "Unable to compile version regex: #{inspect req}, #{reason}"
+            Mix.raise("Unable to compile version regex: #{inspect(req)}, #{reason}")
         end
     end
   end
@@ -185,36 +191,44 @@ defmodule Mix.Rebar do
   defp manager_to_env(:rebar3), do: "MIX_REBAR3"
 
   defp eval_script(script_path, config) do
-    script = Path.basename(script_path) |> String.to_charlist
+    script = String.to_charlist(Path.basename(script_path))
 
-    result = File.cd!(Path.dirname(script_path), fn ->
-      :file.script(script, eval_binds(CONFIG: config, SCRIPT: script))
-    end)
+    result =
+      File.cd!(Path.dirname(script_path), fn ->
+        :file.script(script, eval_binds(CONFIG: config, SCRIPT: script))
+      end)
 
     case result do
       {:ok, config} ->
         config
+
       {:error, error} ->
         reason = :file.format_error(error)
-        Mix.shell.error("Error evaluating Rebar config script #{script_path}:#{reason}")
-        Mix.shell.error("Any dependencies defined in the script won't be available " <>
-                        "unless you add them to your Mix project")
+        Mix.shell().error("Error evaluating Rebar config script #{script_path}:#{reason}")
+
+        Mix.shell().error(
+          "Any dependencies defined in the script won't be available " <>
+            "unless you add them to your Mix project"
+        )
+
         config
     end
   end
 
   defp eval_binds(binds) do
-    Enum.reduce(binds, :erl_eval.new_bindings, fn({k, v}, binds) ->
+    Enum.reduce(binds, :erl_eval.new_bindings(), fn {k, v}, binds ->
       :erl_eval.add_binding(k, v, binds)
     end)
   end
 
   defp wrap_cmd(rebar) do
     cond do
-      not match?({:win32, _}, :os.type) ->
+      not match?({:win32, _}, :os.type()) ->
         rebar
+
       String.ends_with?(rebar, ".cmd") ->
         "\"#{String.replace(rebar, "/", "\\")}\""
+
       true ->
         "escript.exe \"#{rebar}\""
     end
@@ -231,9 +245,10 @@ defmodule Mix.Rebar do
           Enum.reduce(overrides, config, fn {key, value}, config ->
             Keyword.put(config, key, value)
           end)
+
         _, config ->
           config
-       end)
+      end)
 
     config =
       Enum.reduce(overrides, config, fn
@@ -241,6 +256,7 @@ defmodule Mix.Rebar do
           Enum.reduce(overrides, config, fn {key, value}, config ->
             Keyword.put(config, key, value)
           end)
+
         _, config ->
           config
       end)
@@ -252,6 +268,7 @@ defmodule Mix.Rebar do
             old_value = Keyword.get(config, key, [])
             Keyword.put(config, key, value ++ old_value)
           end)
+
         _, config ->
           config
       end)

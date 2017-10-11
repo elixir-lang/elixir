@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule VersionTest do
   use ExUnit.Case, async: true
@@ -48,22 +48,28 @@ defmodule VersionTest do
   end
 
   test "lexes specifications properly" do
-    assert Parser.lexer("== != > >= < <= ~>", []) == [:'==', :'!=', :'>', :'>=', :'<', :'<=', :'~>']
-    assert Parser.lexer("2.3.0", []) == [:'==', "2.3.0"]
-    assert Parser.lexer("!2.3.0", []) == [:'!=', "2.3.0"]
-    assert Parser.lexer(">>=", []) == [:'>', :'>=']
-    assert Parser.lexer(">2.4.0", []) == [:'>', "2.4.0"]
-    assert Parser.lexer("> 2.4.0", []) == [:'>', "2.4.0"]
-    assert Parser.lexer("    >     2.4.0", []) == [:'>', "2.4.0"]
+    assert Parser.lexer("== != > >= < <= ~>", []) == [:==, :!=, :>, :>=, :<, :<=, :~>]
+    assert Parser.lexer("2.3.0", []) == [:==, "2.3.0"]
+    assert Parser.lexer("!2.3.0", []) == [:!=, "2.3.0"]
+    assert Parser.lexer(">>=", []) == [:>, :>=]
+    assert Parser.lexer(">2.4.0", []) == [:>, "2.4.0"]
+    assert Parser.lexer("> 2.4.0", []) == [:>, "2.4.0"]
+    assert Parser.lexer("    >     2.4.0", []) == [:>, "2.4.0"]
   end
 
   test "parse/1" do
     assert {:ok, %Version{major: 1, minor: 2, patch: 3}} = Version.parse("1.2.3")
     assert {:ok, %Version{major: 1, minor: 4, patch: 5}} = Version.parse("1.4.5+ignore")
     assert {:ok, %Version{major: 0, minor: 0, patch: 1}} = Version.parse("0.0.1+sha.0702245")
-    assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} = Version.parse("1.4.5-6-g3318bd5")
-    assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: [6, 7, "eight"]}} = Version.parse("1.4.5-6.7.eight")
-    assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} = Version.parse("1.4.5-6-g3318bd5+ignore")
+
+    assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} =
+             Version.parse("1.4.5-6-g3318bd5")
+
+    assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: [6, 7, "eight"]}} =
+             Version.parse("1.4.5-6.7.eight")
+
+    assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} =
+             Version.parse("1.4.5-6-g3318bd5+ignore")
 
     assert Version.parse("foobar") == :error
     assert Version.parse("2") == :error

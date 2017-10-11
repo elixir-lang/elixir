@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule GenServerTest do
   use ExUnit.Case, async: true
@@ -30,34 +30,31 @@ defmodule GenServerTest do
       # There is a race condition if the agent is
       # restarted too fast and it is registered.
       try do
-        self() |> Process.info(:registered_name) |> elem(1) |> Process.unregister
+        self() |> Process.info(:registered_name) |> elem(1) |> Process.unregister()
       rescue
         _ -> :ok
       end
+
       :ok
     end
   end
 
   test "generates child_spec/1" do
     assert Stack.child_spec([:hello]) == %{
-      id: Stack,
-      start: {Stack, :start_link, [[:hello]]}
-    }
+             id: Stack,
+             start: {Stack, :start_link, [[:hello]]}
+           }
 
     defmodule CustomStack do
-      use GenServer,
-        id: :id,
-        restart: :temporary,
-        shutdown: :infinity,
-        start: {:foo, :bar, []}
+      use GenServer, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
     end
 
     assert CustomStack.child_spec([:hello]) == %{
-      id: :id,
-      restart: :temporary,
-      shutdown: :infinity,
-      start: {:foo, :bar, []}
-    }
+             id: :id,
+             restart: :temporary,
+             shutdown: :infinity,
+             start: {:foo, :bar, []}
+           }
   end
 
   test "start_link/3" do
@@ -112,20 +109,35 @@ defmodule GenServerTest do
   @tag capture_log: true
   test "call/3 exit messages" do
     name = :self
-    Process.register self(), name
-    :global.register_name name, self()
+    Process.register(self(), name)
+    :global.register_name(name, self())
     {:ok, pid} = GenServer.start_link(Stack, [:hello])
     {:ok, stopped_pid} = GenServer.start(Stack, [:hello])
     GenServer.stop(stopped_pid)
 
-    assert catch_exit(GenServer.call(name, :pop, 5000)) == {:calling_self, {GenServer, :call, [name, :pop, 5000]}}
-    assert catch_exit(GenServer.call({:global, name}, :pop, 5000)) == {:calling_self, {GenServer, :call, [{:global, name}, :pop, 5000]}}
-    assert catch_exit(GenServer.call({:via, :global, name}, :pop, 5000)) == {:calling_self, {GenServer, :call, [{:via, :global, name}, :pop, 5000]}}
-    assert catch_exit(GenServer.call(self(), :pop, 5000)) == {:calling_self, {GenServer, :call, [self(), :pop, 5000]}}
-    assert catch_exit(GenServer.call(pid, :noreply, 1)) == {:timeout, {GenServer, :call, [pid, :noreply, 1]}}
-    assert catch_exit(GenServer.call(nil, :pop, 5000)) == {:noproc, {GenServer, :call, [nil, :pop, 5000]}}
-    assert catch_exit(GenServer.call(stopped_pid, :pop, 5000)) == {:noproc, {GenServer, :call, [stopped_pid, :pop, 5000]}}
-    assert catch_exit(GenServer.call({:stack, :bogus_node}, :pop, 5000)) == {{:nodedown, :bogus_node}, {GenServer, :call, [{:stack, :bogus_node}, :pop, 5000]}}
+    assert catch_exit(GenServer.call(name, :pop, 5000)) ==
+             {:calling_self, {GenServer, :call, [name, :pop, 5000]}}
+
+    assert catch_exit(GenServer.call({:global, name}, :pop, 5000)) ==
+             {:calling_self, {GenServer, :call, [{:global, name}, :pop, 5000]}}
+
+    assert catch_exit(GenServer.call({:via, :global, name}, :pop, 5000)) ==
+             {:calling_self, {GenServer, :call, [{:via, :global, name}, :pop, 5000]}}
+
+    assert catch_exit(GenServer.call(self(), :pop, 5000)) ==
+             {:calling_self, {GenServer, :call, [self(), :pop, 5000]}}
+
+    assert catch_exit(GenServer.call(pid, :noreply, 1)) ==
+             {:timeout, {GenServer, :call, [pid, :noreply, 1]}}
+
+    assert catch_exit(GenServer.call(nil, :pop, 5000)) ==
+             {:noproc, {GenServer, :call, [nil, :pop, 5000]}}
+
+    assert catch_exit(GenServer.call(stopped_pid, :pop, 5000)) ==
+             {:noproc, {GenServer, :call, [stopped_pid, :pop, 5000]}}
+
+    assert catch_exit(GenServer.call({:stack, :bogus_node}, :pop, 5000)) ==
+             {{:nodedown, :bogus_node}, {GenServer, :call, [{:stack, :bogus_node}, :pop, 5000]}}
   end
 
   test "nil name" do
@@ -155,10 +167,10 @@ defmodule GenServerTest do
   test "multi_call/4" do
     {:ok, _} = GenServer.start_link(Stack, [:hello, :world], name: :stack)
 
-    assert GenServer.multi_call(:stack, :pop) ==
-           {[{node(), :hello}], []}
+    assert GenServer.multi_call(:stack, :pop) == {[{node(), :hello}], []}
+
     assert GenServer.multi_call([node(), :foo@bar], :stack, :pop) ==
-           {[{node(), :world}], [:foo@bar]}
+             {[{node(), :world}], [:foo@bar]}
 
     GenServer.stop(:stack)
   end

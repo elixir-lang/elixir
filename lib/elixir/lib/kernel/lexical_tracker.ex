@@ -126,8 +126,9 @@ defmodule Kernel.LexicalTracker do
   @doc false
   def handle_call({:unused, tag}, _from, state) do
     directives =
-      for {{^tag, module_or_mfa}, marker} <- state.directives, is_integer(marker),
-          do: {module_or_mfa, marker}
+      for {{^tag, module_or_mfa}, marker} <- state.directives, is_integer(marker) do
+        {module_or_mfa, marker}
+      end
 
     {:reply, Enum.sort(directives), state}
   end

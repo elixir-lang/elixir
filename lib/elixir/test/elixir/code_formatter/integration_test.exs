@@ -73,6 +73,16 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "anonymous function with long single clause and blocks" do
+    assert_same """
+    {function_count, call_count, total_time} =
+      Enum.reduce(call_results, {0, 0, 0}, fn {_, {count, time}},
+                                              {function_count, call_count, total_time} ->
+        {function_count + 1, call_count + count, total_time + time}
+      end)
+    """
+  end
+
   test "cond with long clause args" do
     assert_same """
     cond do
@@ -125,6 +135,11 @@ defmodule Code.Formatter.IntegrationTest do
                      | {atom, node}
                      | and_a_really_long_type_to_force_a_line_break
                      | followed_by_another_really_long_type
+    """
+
+    assert_same """
+    @callback get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
+              when get_value: var, data: container
     """
   end
 
@@ -238,6 +253,12 @@ defmodule Code.Formatter.IntegrationTest do
         String.starts_with?(key, hint) do
       %{kind: :map_key, name: key, value_is_map: is_map(value)}
     end
+    """
+
+    assert_same """
+    with {_, doc} when unquote(doc_attr?) <-
+           Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
+         do: doc
     """
   end
 

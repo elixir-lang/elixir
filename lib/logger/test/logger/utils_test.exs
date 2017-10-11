@@ -4,6 +4,7 @@ defmodule Logger.UtilsTest do
   import Logger.Utils
 
   import Kernel, except: [inspect: 2]
+
   defp inspect(format, args) do
     format
     |> Logger.Utils.scan_inspect(args, 10)
@@ -20,7 +21,7 @@ defmodule Logger.UtilsTest do
     assert truncate("olá", 2) == ["ol", " (truncated)"]
     assert truncate("olá", 3) == ["ol", " (truncated)"]
     assert truncate("olá", 4) == "olá"
-    assert truncate("ááááá:", 10)  == ["ááááá", " (truncated)"]
+    assert truncate("ááááá:", 10) == ["ááááá", " (truncated)"]
     assert truncate("áááááá:", 10) == ["ááááá", " (truncated)"]
 
     # Charlists
@@ -34,13 +35,13 @@ defmodule Logger.UtilsTest do
     assert truncate('ol' ++ "á", 4) == 'ol' ++ "á"
 
     # :infinity
-    long_string = String.duplicate("foo", 10_000)
+    long_string = String.duplicate("foo", 10000)
     assert truncate(long_string, :infinity) == long_string
   end
 
   test "inspect/2 formats" do
-    assert inspect('~p', [1])  == {'~ts', [["1"]]}
-    assert inspect("~p", [1])  == {'~ts', [["1"]]}
+    assert inspect('~p', [1]) == {'~ts', [["1"]]}
+    assert inspect("~p", [1]) == {'~ts', [["1"]]}
     assert inspect(:"~p", [1]) == {'~ts', [["1"]]}
   end
 
@@ -58,34 +59,30 @@ defmodule Logger.UtilsTest do
   end
 
   test "inspect/2 with modifier l always prints lists" do
-    assert inspect('~lp', ['abc']) ==
-           {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
-    assert inspect('~lw', ['abc']) ==
-           {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
+    assert inspect('~lp', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
+    assert inspect('~lw', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
   end
 
   test "inspect/2 with modifier for width" do
     assert inspect('~5lp', ['abc']) ==
-           {'~ts', [["[", "97", ",", "\n ", "98", ",", "\n ", "99", "]"]]}
+             {'~ts', [["[", "97", ",", "\n ", "98", ",", "\n ", "99", "]"]]}
 
-    assert inspect('~5lw', ['abc']) ==
-           {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
+    assert inspect('~5lw', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
   end
 
   test "inspect/2 with modifier for limit" do
     assert inspect('~5lP', ['abc', 2]) ==
-           {'~ts', [["[", "97", ",", "\n ", "98", ",", "\n ", "...", "]"]]}
+             {'~ts', [["[", "97", ",", "\n ", "98", ",", "\n ", "...", "]"]]}
 
     assert inspect('~5lW', ['abc', 2]) ==
-           {'~ts', [["[", "97", ",", " ", "98", ",", " ", "...", "]"]]}
+             {'~ts', [["[", "97", ",", " ", "98", ",", " ", "...", "]"]]}
   end
 
   test "inspect/2 truncates binaries" do
-    assert inspect('~ts', ["abcdeabcdeabcdeabcde"]) ==
-           {'~ts', ["abcdeabcde"]}
+    assert inspect('~ts', ["abcdeabcdeabcdeabcde"]) == {'~ts', ["abcdeabcde"]}
 
     assert inspect('~ts~ts~ts', ["abcdeabcde", "abcde", "abcde"]) ==
-           {'~ts~ts~ts', ["abcdeabcde", "", ""]}
+             {'~ts~ts~ts', ["abcdeabcde", "", ""]}
   end
 
   test "timestamp/1" do

@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule List.Chars.AtomTest do
   use ExUnit.Case, async: true
@@ -32,6 +32,6 @@ defmodule List.Chars.ListTest do
   use ExUnit.Case, async: true
 
   test "basic" do
-    assert to_charlist([ 1, "b", 3 ]) == [1, "b", 3]
+    assert to_charlist([1, "b", 3]) == [1, "b", 3]
   end
 end

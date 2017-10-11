@@ -53,12 +53,12 @@ defmodule IEx.CLI do
     if tty_works?() do
       :user_drv.start([:"tty_sl -c -e", tty_args()])
     else
-      :application.set_env(:stdlib, :shell_prompt_func,
-                           {__MODULE__, :prompt})
+      :application.set_env(:stdlib, :shell_prompt_func, {__MODULE__, :prompt})
       :user.start()
       local_start()
     end
   end
+
   def prompt(_n) do
     []
   end
@@ -69,7 +69,7 @@ defmodule IEx.CLI do
   # to do it just once.
   defp tty_works? do
     try do
-      port = Port.open {:spawn, 'tty_sl -c -e'}, [:eof]
+      port = Port.open({:spawn, 'tty_sl -c -e'}, [:eof])
       Port.close(port)
     catch
       _, _ -> false
@@ -77,19 +77,25 @@ defmodule IEx.CLI do
   end
 
   defp tty_args do
-    if remote = get_remsh(:init.get_plain_arguments) do
-      if Node.alive? do
-        case :rpc.call remote, :code, :ensure_loaded, [IEx] do
+    if remote = get_remsh(:init.get_plain_arguments()) do
+      if Node.alive?() do
+        case :rpc.call(remote, :code, :ensure_loaded, [IEx]) do
           {:badrpc, reason} ->
-            abort "Could not contact remote node #{remote}, reason: #{inspect reason}. Aborting..."
+            abort(
+              "Could not contact remote node #{remote}, reason: #{inspect(reason)}. Aborting..."
+            )
+
           {:module, IEx} ->
             {mod, fun, args} = remote_start_mfa()
             {remote, mod, fun, args}
+
           _ ->
-            abort "Could not find IEx on remote node #{remote}. Aborting..."
+            abort("Could not find IEx on remote node #{remote}. Aborting...")
         end
       else
-        abort "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
+        abort(
+          "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
+        )
       end
     else
       {:erlang, :apply, [local_start_function(), []]}
@@ -101,7 +107,7 @@ defmodule IEx.CLI do
   end
 
   def remote_start(parent, ref) do
-    send parent, {:begin, ref, self()}
+    send(parent, {:begin, ref, self()})
     receive do: ({:done, ^ref} -> :ok)
   end
 
@@ -113,19 +119,20 @@ defmodule IEx.CLI do
     ref = make_ref()
     opts = options()
 
-    parent = spawn_link fn ->
-      receive do
-        {:begin, ^ref, other} ->
-          :elixir.start_cli
-          send other, {:done, ref}
-      end
-    end
+    parent =
+      spawn_link(fn ->
+        receive do
+          {:begin, ^ref, other} ->
+            :elixir.start_cli()
+            send(other, {:done, ref})
+        end
+      end)
 
     {IEx, :start, [opts, {__MODULE__, :remote_start, [parent, ref]}]}
   end
 
   defp options do
-    [dot_iex_path: find_dot_iex(:init.get_plain_arguments)]
+    [dot_iex_path: find_dot_iex(:init.get_plain_arguments())]
   end
 
   defp abort(msg) do
@@ -133,6 +140,7 @@ defmodule IEx.CLI do
       IO.puts(:stderr, msg)
       System.halt(1)
     end
+
     {:erlang, :apply, [function, []]}
   end
 

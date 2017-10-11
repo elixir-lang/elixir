@@ -36,6 +36,7 @@ defmodule IEx.Pry do
       case function_arity do
         {function, arity} ->
           "#{Exception.format_mfa(module, function, arity)} (#{Path.relative_to_cwd(file)}:#{line})"
+
         _ ->
           "#{Path.relative_to_cwd(file)}:#{line}"
       end
@@ -52,25 +53,29 @@ defmodule IEx.Pry do
     # succeed.
     request =
       if Process.get(:iex_evaluator) do
-        IO.puts IEx.color :eval_interrupt, "Break reached: #{location}#{whereami}"
-        "Prying #{inspect self} at #{location}"
+        IO.puts(IEx.color(:eval_interrupt, "Break reached: #{location}#{whereami}"))
+        "Prying #{inspect(self)} at #{location}"
       else
-        "Request to pry #{inspect self} at #{location}#{whereami}"
+        "Request to pry #{inspect(self)} at #{location}#{whereami}"
       end
 
     # We cannot use colors because IEx may be off
     case IEx.Server.take_over(request, opts) do
       :ok ->
         :ok
+
       {:error, :no_iex} ->
         extra =
-          if match?({:win32, _}, :os.type) do
+          if match?({:win32, _}, :os.type()) do
             " If you are using Windows, you may need to start IEx with the --werl flag."
           else
             ""
           end
-        IO.puts :stdio, "Cannot pry #{inspect self} at #{location}. Is an IEx shell running?" <> extra
+
+        message = "Cannot pry #{inspect(self)} at #{location}. Is an IEx shell running?" <> extra
+        IO.puts(:stdio, message)
         {:error, :no_iex}
+
       {:error, _} = error ->
         error
     end
@@ -123,7 +128,7 @@ defmodule IEx.Pry do
     max = line + radius - 1
 
     file
-    |> File.stream!
+    |> File.stream!()
     |> Enum.slice(min..max)
     |> Enum.with_index(min + 1)
     |> Enum.map(&whereami_format_line(&1, line))
@@ -131,6 +136,7 @@ defmodule IEx.Pry do
 
   defp whereami_format_line({line_text, line_number}, line) do
     gutter = String.pad_leading(Integer.to_string(line_number), 5, " ")
+
     if line_number == line do
       IO.ANSI.format_fragment([:bright, gutter, ": ", line_text, :normal])
     else
@@ -143,13 +149,20 @@ defmodule IEx.Pry do
   given module/function/arity.
   """
   @spec break(module, function, arity, pos_integer) ::
-        {:ok, id} |
-        {:error, :recompilation_failed | :no_beam_file | :unknown_function_arity |
-                 :otp_20_is_required | :missing_debug_info | :outdated_debug_info |
-                 :non_elixir_module}
+          {:ok, id}
+          | {
+              :error,
+              :recompilation_failed
+              | :no_beam_file
+              | :unknown_function_arity
+              | :otp_20_is_required
+              | :missing_debug_info
+              | :outdated_debug_info
+              | :non_elixir_module
+            }
   def break(module, function, arity, breaks \\ 1)
       when is_atom(module) and is_atom(function) and is_integer(arity) and arity >= 0 and
-           is_integer(breaks) and breaks > 0 do
+             is_integer(breaks) and breaks > 0 do
     GenServer.call(@server, {:break, module, {function, arity}, breaks}, @timeout)
   end
 
@@ -234,6 +247,7 @@ defmodule IEx.Pry do
           :ets.delete(@table, ref)
           instrument_and_reply(module, fa, breaks, counter)
         end
+
       [] ->
         instrument_and_reply(module, fa, breaks, counter)
     end
@@ -264,6 +278,7 @@ defmodule IEx.Pry do
           keep_instrumented(id, module) == :ok do
         {id, module, function_arity, max(breaks, 0)}
       end
+
     {:reply, entries, counter}
   end
 
@@ -272,9 +287,10 @@ defmodule IEx.Pry do
     # up the table to avoid race conditions.
     @table
     |> :ets.match({:_, :"$1", :_, :_})
-    |> List.flatten
-    |> Enum.uniq
+    |> List.flatten()
+    |> Enum.uniq()
     |> Enum.each(&deinstrument_if_instrumented/1)
+
     true = :ets.delete_all_objects(@table)
     {:reply, :ok, 0}
   end
@@ -305,8 +321,7 @@ defmodule IEx.Pry do
   end
 
   defp deinstrument(module) do
-    with beam when is_list(beam) <- :code.which(module),
-         {:ok, binary} = File.read(beam) do
+    with beam when is_list(beam) <- :code.which(module), {:ok, binary} = File.read(beam) do
       :code.purge(module)
       {:module, _} = :code.load_binary(module, beam, binary)
       :ok
@@ -322,6 +337,7 @@ defmodule IEx.Pry do
         true = :ets.insert_new(@table, {counter, module, fa, breaks})
         entries = :ets.match_object(@table, {:_, module, :_, :_})
         {:reply, instrument(beam, backend, elixir, counter, entries), counter}
+
       {:error, _} = error ->
         {:reply, error, counter}
     end
@@ -336,15 +352,21 @@ defmodule IEx.Pry do
               {_, _, _, _} -> {:ok, beam, backend, elixir}
               nil -> {:error, :unknown_function_arity}
             end
+
           {:ok, {_, [debug_info: {:debug_info_v1, _, _}]}} ->
             {:error, :non_elixir_module}
+
           {:error, :beam_lib, {:unknown_chunk, _, _}} ->
-            {:error, :otp_20_is_required} # TODO: Remove this when we require OTP 20+
+            # TODO: Remove this when we require OTP 20+
+            {:error, :otp_20_is_required}
+
           {:error, :beam_lib, {:missing_chunk, _, _}} ->
             {:error, :missing_debug_info}
+
           _ ->
             {:error, :outdated_debug_info}
         end
+
       _ ->
         {:error, :no_beam_file}
     end
@@ -352,8 +374,10 @@ defmodule IEx.Pry do
 
   defp instrument(beam, backend, {:elixir_v1, map, specs}, counter, entries) do
     %{attributes: attributes, definitions: definitions, module: module} = map
-    map = %{map | attributes: [{:iex_pry, true} | attributes],
-                  definitions: Enum.map(definitions, &instrument_definition(&1, map, entries))}
+
+    attributes = [{:iex_pry, true} | attributes]
+    definitions = Enum.map(definitions, &instrument_definition(&1, map, entries))
+    map = %{map | attributes: attributes, definitions: definitions}
 
     with {:ok, forms} <- backend.debug_info(:erlang_v1, module, {:elixir_v1, map, specs}, []),
          {:ok, _, binary, _} <- :compile.noenv_forms(forms, [:return | map.compile_opts]) do
@@ -370,14 +394,17 @@ defmodule IEx.Pry do
     case List.keyfind(entries, fa, 2) do
       {ref, _, ^fa, _} ->
         %{module: module, file: file} = map
+
         file =
           case meta[:location] do
             {file, _} -> file
             _ -> file
           end
+
         opts = [module: module, file: file, function: fa]
         clauses = Enum.map(clauses, &instrument_clause(&1, ref, opts))
         {fa, kind, meta, clauses}
+
       nil ->
         definition
     end
@@ -393,9 +420,12 @@ defmodule IEx.Pry do
       Macro.prewalk(args, %{}, fn
         {name, _, ctx} = var, acc when name != :_ and is_atom(name) and is_atom(ctx) ->
           {var, Map.put(acc, name, var)}
+
         expr, acc ->
           {expr, acc}
       end)
+
+    update_op = Macro.escape({4, -1, -1, -1})
 
     # Generate the take_over condition with the ets lookup.
     # Remember this is expanded AST, so no aliases allowed,
@@ -403,7 +433,7 @@ defmodule IEx.Pry do
     condition =
       quote do
         # :ets.update_counter(table, key, {pos, inc, threshold, reset})
-        case :ets.update_counter(unquote(@table), unquote(ref), {4, unquote(-1), unquote(-1), unquote(-1)}) do
+        case :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)) do
           unquote(-1) -> :ok
           _ -> :"Elixir.IEx.Pry".pry(unquote(Map.to_list(binding)), unquote(opts))
         end

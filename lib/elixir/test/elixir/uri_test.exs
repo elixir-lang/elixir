@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule URITest do
   use ExUnit.Case, async: true
@@ -7,8 +7,9 @@ defmodule URITest do
 
   test "encode/1,2" do
     assert URI.encode("4_test.is-s~") == "4_test.is-s~"
+
     assert URI.encode("\r\n&<%>\" ゆ", &URI.char_unreserved?/1) ==
-           "%0D%0A%26%3C%25%3E%22%20%E3%82%86"
+             "%0D%0A%26%3C%25%3E%22%20%E3%82%86"
   end
 
   test "encode_www_form/1" do
@@ -35,26 +36,22 @@ defmodule URITest do
     assert URI.decode_query("", %{}) == %{}
 
     assert URI.decode_query("safe=off", %{"cookie" => "foo"}) ==
-           %{"safe" => "off", "cookie" => "foo"}
+             %{"safe" => "off", "cookie" => "foo"}
 
     assert URI.decode_query("q=search%20query&cookie=ab%26cd&block+buster=") ==
-           %{"block buster" => "", "cookie" => "ab&cd", "q" => "search query"}
+             %{"block buster" => "", "cookie" => "ab&cd", "q" => "search query"}
 
-    assert URI.decode_query("something=weird%3Dhappening") ==
-           %{"something" => "weird=happening"}
+    assert URI.decode_query("something=weird%3Dhappening") == %{"something" => "weird=happening"}
 
-    assert URI.decode_query("garbage") ==
-           %{"garbage" => nil}
-    assert URI.decode_query("=value") ==
-           %{"" => "value"}
-    assert URI.decode_query("something=weird=happening") ==
-           %{"something" => "weird=happening"}
+    assert URI.decode_query("garbage") == %{"garbage" => nil}
+    assert URI.decode_query("=value") == %{"" => "value"}
+    assert URI.decode_query("something=weird=happening") == %{"something" => "weird=happening"}
   end
 
   test "query_decoder/1" do
-    decoder  = URI.query_decoder("q=search%20query&cookie=ab%26cd&block%20buster=")
+    decoder = URI.query_decoder("q=search%20query&cookie=ab%26cd&block%20buster=")
     expected = [{"q", "search query"}, {"cookie", "ab&cd"}, {"block buster", ""}]
-    assert Enum.map(decoder, &(&1)) == expected
+    assert Enum.map(decoder, & &1) == expected
   end
 
   test "decode/1" do
@@ -65,6 +62,7 @@ defmodule URITest do
     assert_raise ArgumentError, ~R/malformed URI/, fn ->
       URI.decode("% invalid")
     end
+
     assert_raise ArgumentError, ~R/malformed URI/, fn ->
       URI.decode("invalid%")
     end
@@ -85,72 +83,166 @@ defmodule URITest do
     end
 
     test "works with HTTP scheme" do
-      assert %URI{scheme: "http", host: "foo.com", path: "/path/to/something",
-                  query: "foo=bar&bar=foo", fragment: "fragment", port: 80,
-                  authority: "foo.com", userinfo: nil} ==
-             URI.parse("http://foo.com/path/to/something?foo=bar&bar=foo#fragment")
+      expected_uri = %URI{
+        scheme: "http",
+        host: "foo.com",
+        path: "/path/to/something",
+        query: "foo=bar&bar=foo",
+        fragment: "fragment",
+        port: 80,
+        authority: "foo.com",
+        userinfo: nil
+      }
+
+      assert URI.parse("http://foo.com/path/to/something?foo=bar&bar=foo#fragment") ==
+               expected_uri
     end
 
     test "works with HTTPS scheme" do
-      assert %URI{scheme: "https", host: "foo.com", authority: "foo.com",
-                  query: nil, fragment: nil, port: 443, path: nil, userinfo: nil} ==
-             URI.parse("https://foo.com")
+      expected_uri = %URI{
+        scheme: "https",
+        host: "foo.com",
+        authority: "foo.com",
+        query: nil,
+        fragment: nil,
+        port: 443,
+        path: nil,
+        userinfo: nil
+      }
+
+      assert URI.parse("https://foo.com") == expected_uri
     end
 
     test "works with \"file\" scheme" do
-      assert %URI{scheme: "file", host: nil, path: "/foo/bar/baz", userinfo: nil,
-                  query: nil, fragment: nil, port: nil, authority: nil} ==
-             URI.parse("file:///foo/bar/baz")
+      expected_uri = %URI{
+        scheme: "file",
+        host: nil,
+        path: "/foo/bar/baz",
+        userinfo: nil,
+        query: nil,
+        fragment: nil,
+        port: nil,
+        authority: nil
+      }
+
+      assert URI.parse("file:///foo/bar/baz") == expected_uri
     end
 
     test "works with FTP scheme" do
-      assert %URI{scheme: "ftp", host: "private.ftp-server.example.com",
-                  userinfo: "user001:password", authority: "user001:password@private.ftp-server.example.com",
-                  path: "/my_directory/my_file.txt", query: nil, fragment: nil,
-                  port: 21} ==
-             URI.parse("ftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt")
+      expected_uri = %URI{
+        scheme: "ftp",
+        host: "private.ftp-server.example.com",
+        userinfo: "user001:password",
+        authority: "user001:password@private.ftp-server.example.com",
+        path: "/my_directory/my_file.txt",
+        query: nil,
+        fragment: nil,
+        port: 21
+      }
+
+      ftp = "ftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+      assert URI.parse(ftp) == expected_uri
     end
 
     test "works with SFTP scheme" do
-      assert %URI{scheme: "sftp", host: "private.ftp-server.example.com",
-                  userinfo: "user001:password", authority: "user001:password@private.ftp-server.example.com",
-                  path: "/my_directory/my_file.txt", query: nil, fragment: nil, port: 22} ==
-             URI.parse("sftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt")
+      expected_uri = %URI{
+        scheme: "sftp",
+        host: "private.ftp-server.example.com",
+        userinfo: "user001:password",
+        authority: "user001:password@private.ftp-server.example.com",
+        path: "/my_directory/my_file.txt",
+        query: nil,
+        fragment: nil,
+        port: 22
+      }
+
+      sftp = "sftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+      assert URI.parse(sftp) == expected_uri
     end
 
     test "works with TFTP scheme" do
-      assert %URI{scheme: "tftp", host: "private.ftp-server.example.com",
-                  userinfo: "user001:password", authority: "user001:password@private.ftp-server.example.com",
-                  path: "/my_directory/my_file.txt", query: nil, fragment: nil, port: 69} ==
-             URI.parse("tftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt")
+      expected_uri = %URI{
+        scheme: "tftp",
+        host: "private.ftp-server.example.com",
+        userinfo: "user001:password",
+        authority: "user001:password@private.ftp-server.example.com",
+        path: "/my_directory/my_file.txt",
+        query: nil,
+        fragment: nil,
+        port: 69
+      }
+
+      tftp = "tftp://user001:password@private.ftp-server.example.com/my_directory/my_file.txt"
+      assert URI.parse(tftp) == expected_uri
     end
 
-
     test "works with LDAP scheme" do
-      assert %URI{scheme: "ldap", host: nil, authority: nil, userinfo: nil,
-                  path: "/dc=example,dc=com", query: "?sub?(givenName=John)",
-                  fragment: nil, port: 389} ==
-             URI.parse("ldap:///dc=example,dc=com??sub?(givenName=John)")
-      assert %URI{scheme: "ldap", host: "ldap.example.com", authority: "ldap.example.com",
-                  userinfo: nil, path: "/cn=John%20Doe,dc=example,dc=com", fragment: nil,
-                  port: 389, query: nil} ==
-             URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=example,dc=com")
+      expected_uri = %URI{
+        scheme: "ldap",
+        host: nil,
+        authority: nil,
+        userinfo: nil,
+        path: "/dc=example,dc=com",
+        query: "?sub?(givenName=John)",
+        fragment: nil,
+        port: 389
+      }
+
+      assert URI.parse("ldap:///dc=example,dc=com??sub?(givenName=John)") == expected_uri
+
+      expected_uri = %URI{
+        scheme: "ldap",
+        host: "ldap.example.com",
+        authority: "ldap.example.com",
+        userinfo: nil,
+        path: "/cn=John%20Doe,dc=foo,dc=com",
+        fragment: nil,
+        port: 389,
+        query: nil
+      }
+
+      assert URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=foo,dc=com") == expected_uri
     end
 
     test "splits authority" do
-      assert %URI{scheme: "http", host: "foo.com", path: nil,
-                  query: nil, fragment: nil, port: 4444,
-                  authority: "foo:bar@foo.com:4444",
-                  userinfo: "foo:bar"} ==
-             URI.parse("http://foo:bar@foo.com:4444")
-      assert %URI{scheme: "https", host: "foo.com", path: nil,
-                  query: nil, fragment: nil, port: 443,
-                  authority: "foo:bar@foo.com", userinfo: "foo:bar"} ==
-             URI.parse("https://foo:bar@foo.com")
-      assert %URI{scheme: "http", host: "foo.com", path: nil,
-                  query: nil, fragment: nil, port: 4444,
-                  authority: "foo.com:4444", userinfo: nil} ==
-             URI.parse("http://foo.com:4444")
+      expected_uri = %URI{
+        scheme: "http",
+        host: "foo.com",
+        path: nil,
+        query: nil,
+        fragment: nil,
+        port: 4444,
+        authority: "foo:bar@foo.com:4444",
+        userinfo: "foo:bar"
+      }
+
+      assert URI.parse("http://foo:bar@foo.com:4444") == expected_uri
+
+      expected_uri = %URI{
+        scheme: "https",
+        host: "foo.com",
+        path: nil,
+        query: nil,
+        fragment: nil,
+        port: 443,
+        authority: "foo:bar@foo.com",
+        userinfo: "foo:bar"
+      }
+
+      assert URI.parse("https://foo:bar@foo.com") == expected_uri
+
+      expected_uri = %URI{
+        scheme: "http",
+        host: "foo.com",
+        path: nil,
+        query: nil,
+        fragment: nil,
+        port: 4444,
+        authority: "foo.com:4444",
+        userinfo: nil
+      }
+
+      assert URI.parse("http://foo.com:4444") == expected_uri
     end
 
     test "can parse bad URIs" do
@@ -164,17 +256,25 @@ defmodule URITest do
 
     test "can parse IPv6 addresses" do
       addresses = [
-        "::",                                      # undefined
-        "::1",                                     # loopback
-        "1080::8:800:200C:417A",                   # unicast
-        "FF01::101",                               # multicast
-        "2607:f3f0:2:0:216:3cff:fef0:174a",        # abbreviated
-        "2607:f3F0:2:0:216:3cFf:Fef0:174A",        # mixed hex case
-        "2051:0db8:2d5a:3521:8313:ffad:1242:8e2e", # complete
-        "::00:192.168.10.184"                      # embedded IPv4
+        # undefined
+        "::",
+        # loopback
+        "::1",
+        # unicast
+        "1080::8:800:200C:417A",
+        # multicast
+        "FF01::101",
+        # abbreviated
+        "2607:f3f0:2:0:216:3cff:fef0:174a",
+        # mixed hex case
+        "2607:f3F0:2:0:216:3cFf:Fef0:174A",
+        # complete
+        "2051:0db8:2d5a:3521:8313:ffad:1242:8e2e",
+        # embedded IPv4
+        "::00:192.168.10.184"
       ]
 
-      Enum.each(addresses, fn(addr) ->
+      Enum.each(addresses, fn addr ->
         simple_uri = URI.parse("http://[#{addr}]/")
         assert simple_uri.authority == "[#{addr}]"
         assert simple_uri.host == addr
@@ -202,19 +302,15 @@ defmodule URITest do
     end
 
     test "preserves empty fragments" do
-      [
-        "http://example.com#",
-        "http://example.com/#",
-        "http://example.com/test#",
-      ]
-      |> Enum.each(fn uri ->
-        assert URI.parse(uri).fragment == ""
-      end)
+      assert URI.parse("http://example.com#").fragment == ""
+      assert URI.parse("http://example.com/#").fragment == ""
+      assert URI.parse("http://example.com/test#").fragment == ""
     end
   end
 
   test "default_port/1,2" do
     assert URI.default_port("http") == 80
+
     try do
       URI.default_port("http", 8000)
       assert URI.default_port("http") == 8000
@@ -242,7 +338,9 @@ defmodule URITest do
     assert to_string(URI.parse("http://[2001:db8::]")) == "http://[2001:db8::]"
 
     assert URI.to_string(URI.parse("http://google.com")) == "http://google.com"
-    assert URI.to_string(URI.parse("//user:password@google.com/")) == "//user:password@google.com/"
+
+    assert URI.to_string(URI.parse("//user:password@google.com/")) ==
+             "//user:password@google.com/"
   end
 
   test "merge/2" do
@@ -250,21 +348,32 @@ defmodule URITest do
       URI.merge("/relative", "")
     end
 
-    assert URI.merge("http://google.com/foo", "http://example.com/baz") |> to_string == "http://example.com/baz"
-    assert URI.merge("http://google.com/foo", "http://example.com/.././bar/../../baz") |> to_string == "http://example.com/baz"
+    assert URI.merge("http://google.com/foo", "http://example.com/baz")
+           |> to_string == "http://example.com/baz"
 
-    assert URI.merge("http://google.com/foo", "//example.com/baz") |> to_string == "http://example.com/baz"
-    assert URI.merge("http://google.com/foo", "//example.com/.././bar/../../../baz") |> to_string == "http://example.com/baz"
+    assert URI.merge("http://google.com/foo", "http://example.com/.././bar/../../baz")
+           |> to_string == "http://example.com/baz"
 
-    assert URI.merge("http://example.com", URI.parse("/foo")) |> to_string == "http://example.com/foo"
-    assert URI.merge("http://example.com", URI.parse("/.././bar/../../../baz")) |> to_string == "http://example.com/baz"
+    assert URI.merge("http://google.com/foo", "//example.com/baz")
+           |> to_string == "http://example.com/baz"
+
+    assert URI.merge("http://google.com/foo", "//example.com/.././bar/../../../baz")
+           |> to_string == "http://example.com/baz"
+
+    assert URI.merge("http://example.com", URI.parse("/foo"))
+           |> to_string == "http://example.com/foo"
+
+    assert URI.merge("http://example.com", URI.parse("/.././bar/../../../baz"))
+           |> to_string == "http://example.com/baz"
 
     base = URI.parse("http://example.com/foo/bar")
     assert URI.merge(base, "") |> to_string == "http://example.com/foo/bar"
     assert URI.merge(base, "#fragment") |> to_string == "http://example.com/foo/bar#fragment"
     assert URI.merge(base, "?query") |> to_string == "http://example.com/foo/bar?query"
     assert URI.merge(base, %URI{path: ""}) |> to_string == "http://example.com/foo/bar"
-    assert URI.merge(base, %URI{path: "", fragment: "fragment"}) |> to_string == "http://example.com/foo/bar#fragment"
+
+    assert URI.merge(base, %URI{path: "", fragment: "fragment"})
+           |> to_string == "http://example.com/foo/bar#fragment"
 
     base = URI.parse("http://example.com")
     assert URI.merge(base, "/foo") |> to_string == "http://example.com/foo"

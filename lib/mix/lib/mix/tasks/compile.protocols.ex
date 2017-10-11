@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp filter_otp(paths, otp) do
-    Enum.filter(paths, &not :lists.prefix(&1, otp))
+    Enum.filter(paths, &(not :lists.prefix(&1, otp)))
   end
 
   defp consolidate([], _paths, output, manifest, metadata, _opts) do

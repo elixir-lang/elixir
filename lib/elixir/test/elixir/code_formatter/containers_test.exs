@@ -529,5 +529,17 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
     end
+
+    test "converges" do
+      bad = "hello_world(%struct{foo | 1 => 2, 3 => 4})"
+      good = """
+      hello_world(%struct{
+        foo
+        | 1 => 2,
+          3 => 4
+      })
+      """
+      assert_format bad, good, line_length: 30
+    end
   end
 end

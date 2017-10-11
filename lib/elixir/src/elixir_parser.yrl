@@ -229,7 +229,7 @@ no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_id
 
 no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
 no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
-no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil).
+no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil, [{no_parens, true}]).
 no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil, [{no_parens, true}]).
 
 %% From this point on, we just have constructs that can be
@@ -277,11 +277,11 @@ bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_list('$1', '$2', '$4').
 
-bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1', nil), '$2').
+bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1', nil, [{no_parens, true}]), '$2').
 bracket_expr -> access_expr bracket_arg : build_access('$1', '$2').
 
 bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_arg :
-                     build_access(build_unary_op('$1', build_identifier('$2', nil)), '$3').
+                     build_access(build_unary_op('$1', build_identifier('$2', nil, [{no_parens, true}])), '$3').
 bracket_at_expr -> at_op_eol access_expr bracket_arg :
                      build_access(build_unary_op('$1', '$2'), '$3').
 

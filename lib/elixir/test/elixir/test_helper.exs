@@ -1,9 +1,5 @@
-assert_timeout = String.to_integer(
-  System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500"
-)
-
-ExUnit.start [trace: "--trace" in System.argv,
-              assert_receive_timeout: assert_timeout]
+assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
+ExUnit.start(trace: "--trace" in System.argv(), assert_receive_timeout: assert_timeout)
 
 # Beam files compiled on demand
 path = Path.expand("../../tmp/beams", __DIR__)
@@ -11,7 +7,7 @@ File.rm_rf!(path)
 File.mkdir_p!(path)
 Code.prepend_path(path)
 
-Code.compiler_options debug_info: true
+Code.compiler_options(debug_info: true)
 
 defmodule PathHelpers do
   def fixture_path() do
@@ -54,14 +50,18 @@ defmodule PathHelpers do
   end
 
   defp runcmd(executable, args) do
-    :os.cmd :binary.bin_to_list("#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win()}")
+    :os.cmd(
+      :binary.bin_to_list(
+        "#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win()}"
+      )
+    )
   end
 
   defp executable_path(name) do
     Path.expand("../../../../bin/#{name}#{executable_extension()}", __DIR__)
   end
 
-  if match? {:win32, _}, :os.type do
+  if match?({:win32, _}, :os.type()) do
     def windows?, do: true
     def executable_extension, do: ".bat"
     def redirect_std_err_on_win, do: " 2>&1"

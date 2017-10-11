@@ -34,13 +34,13 @@ defmodule Mix.Task.Compiler do
     """
 
     @type t :: %__MODULE__{
-      file: Path.t,
-      severity: severity,
-      message: String.t,
-      position: position,
-      compiler_name: String.t,
-      details: any
-    }
+            file: Path.t(),
+            severity: severity,
+            message: String.t(),
+            position: position,
+            compiler_name: String.t(),
+            details: any
+          }
 
     @typedoc """
     Severity of a diagnostic:
@@ -86,12 +86,12 @@ defmodule Mix.Task.Compiler do
   @callback run([binary]) ::
               :ok
               | :noop
-              | {:ok | :noop | :error, [Diagnostic.t]}
+              | {:ok | :noop | :error, [Diagnostic.t()]}
 
   @doc """
   Lists manifest files for the compiler.
   """
-  @callback manifests() :: [Path.t]
+  @callback manifests() :: [Path.t()]
 
   @doc """
   Removes build artifacts and manifests.
@@ -103,8 +103,11 @@ defmodule Mix.Task.Compiler do
   @doc false
   defmacro __using__(_opts) do
     quote do
-      Enum.each(Mix.Task.supported_attributes(),
-        &Module.register_attribute(__MODULE__, &1, persist: true))
+      Enum.each(
+        Mix.Task.supported_attributes(),
+        &Module.register_attribute(__MODULE__, &1, persist: true)
+      )
+
       @behaviour Mix.Task.Compiler
     end
   end
@@ -115,12 +118,17 @@ defmodule Mix.Task.Compiler do
     case result do
       {status, diagnostics} when status in [:ok, :noop, :error] and is_list(diagnostics) ->
         {status, diagnostics}
+
       _ when result in [:ok, :noop] ->
         {result, []}
+
       _ ->
-        Mix.shell.error "[warning] Mix compiler #{inspect name} was supposed to return " <>
-                        ":ok | :noop | {:ok | :noop | :error, [diagnostic]} but it " <>
-                        "returned #{inspect result}"
+        Mix.shell().error(
+          "[warning] Mix compiler #{inspect(name)} was supposed to return " <>
+            ":ok | :noop | {:ok | :noop | :error, [diagnostic]} but it " <>
+            "returned #{inspect(result)}"
+        )
+
         {:noop, []}
     end
   end

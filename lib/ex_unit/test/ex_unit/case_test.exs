@@ -1,11 +1,11 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.CaseTest do
   use ExUnit.Case, async: true
 
-  ExUnit.Case.register_attribute __MODULE__, :foo
-  ExUnit.Case.register_attribute __MODULE__, :bar, accumulate: true
-  ExUnit.Case.register_attribute __MODULE__, :baz
+  ExUnit.Case.register_attribute(__MODULE__, :foo)
+  ExUnit.Case.register_attribute(__MODULE__, :bar, accumulate: true)
+  ExUnit.Case.register_attribute(__MODULE__, :baz)
 
   @moduletag :moduletag
 

@@ -1,7 +1,7 @@
 defmodule Mix.Hex do
   @moduledoc false
-  @hex_requirement  ">= 0.14.0"
-  @hex_mirror       "https://repo.hex.pm"
+  @hex_requirement ">= 0.14.0"
+  @hex_mirror "https://repo.hex.pm"
 
   @doc """
   Returns `true` if `Hex` is loaded or installed. Otherwise returns `false`.
@@ -11,11 +11,14 @@ defmodule Mix.Hex do
     if Code.ensure_loaded?(Hex) do
       true
     else
-      shell = Mix.shell
-      shell.info "Could not find Hex, which is needed to build dependency #{inspect app}"
+      shell = Mix.shell()
+      shell.info("Could not find Hex, which is needed to build dependency #{inspect(app)}")
 
-      if shell.yes?("Shall I install Hex? (if running non-interactively, use \"mix local.hex --force\")") do
-        Mix.Tasks.Local.Hex.run ["--force"]
+      confirm_message =
+        "Shall I install Hex? (if running non-interactively, use \"mix local.hex --force\")"
+
+      if shell.yes?(confirm_message) do
+        Mix.Tasks.Local.Hex.run(["--force"])
       else
         false
       end
@@ -31,15 +34,17 @@ defmodule Mix.Hex do
     cond do
       not Code.ensure_loaded?(Hex) ->
         false
-      not Version.match?(Hex.version, @hex_requirement) ->
-        Mix.shell.info "Mix requires Hex #{@hex_requirement} but you have #{Hex.version}"
 
-        if Mix.shell.yes?("Shall I abort the current command and update Hex?") do
-          Mix.Tasks.Local.Hex.run ["--force"]
+      not Version.match?(Hex.version(), @hex_requirement) ->
+        Mix.shell().info("Mix requires Hex #{@hex_requirement} but you have #{Hex.version()}")
+
+        if Mix.shell().yes?("Shall I abort the current command and update Hex?") do
+          Mix.Tasks.Local.Hex.run(["--force"])
           exit({:shutdown, 0})
         end
 
         false
+
       true ->
         true
     end
@@ -50,12 +55,16 @@ defmodule Mix.Hex do
   """
   def start do
     try do
-      Hex.start
+      Hex.start()
     catch
       kind, reason ->
-        stacktrace = System.stacktrace
-        Mix.shell.error "Could not start Hex. Try fetching a new version with " <>
-                        "\"mix local.hex\" or uninstalling it with \"mix archive.uninstall hex.ez\""
+        stacktrace = System.stacktrace()
+
+        Mix.shell().error(
+          "Could not start Hex. Try fetching a new version with " <>
+            "\"mix local.hex\" or uninstalling it with \"mix archive.uninstall hex.ez\""
+        )
+
         :erlang.raise(kind, reason, stacktrace)
     end
   end
