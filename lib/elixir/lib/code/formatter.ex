@@ -308,8 +308,8 @@ defmodule Code.Formatter do
 
   # Special AST nodes from compiler feedback.
 
-  defp quoted_to_algebra({:special, :clause_args, [args, min_line]}, _context, state) do
-    {doc, state} = clause_args_to_algebra(args, min_line, state)
+  defp quoted_to_algebra({:special, :clause_args, [args]}, _context, state) do
+    {doc, state} = clause_args_to_algebra(args, state)
     {group(doc), state}
   end
 
@@ -1590,22 +1590,25 @@ defmodule Code.Formatter do
     [clause | add_max_line_to_last_clause(clauses, max_line)]
   end
 
+  defp clause_args_to_algebra(args, min_line, state) do
+    args_to_algebra_with_comments([args], [line: min_line], state, &clause_args_to_algebra/2)
+  end
+
   # fn a, b, c when d -> e end
-  defp clause_args_to_algebra([{:when, meta, args}], min_line, state) do
+  defp clause_args_to_algebra([{:when, meta, args}], state) do
     {args, right} = split_last(args)
-    left = {:special, :clause_args, [args, min_line]}
+    left = {:special, :clause_args, [args]}
     binary_op_to_algebra(:when, "when", meta, left, right, :no_parens_arg, state)
   end
 
-  # fn a, b, c -> e end
-  defp clause_args_to_algebra([], _min_line, state) do
+  # fn () -> e end
+  defp clause_args_to_algebra([], state) do
     {"()", state}
   end
 
-  defp clause_args_to_algebra(args, min_line, state) do
-    arg_to_algebra = &quoted_to_algebra(&1, :no_parens_arg, &2)
-    args_to_algebra = &args_to_algebra(&1, &2, arg_to_algebra)
-    args_to_algebra_with_comments([args], [line: min_line], state, args_to_algebra)
+  # fn a, b, c -> e end
+  defp clause_args_to_algebra(args, state) do
+    args_to_algebra(args, state, &quoted_to_algebra(&1, :no_parens_arg, &2))
   end
 
   ## Quoted helpers for comments

@@ -269,7 +269,7 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
-  test "try/catch with comment" do
+  test "try/catch with clause comment" do
     assert_same """
     def format_error(reason) do
       try do
@@ -280,6 +280,24 @@ defmodule Code.Formatter.IntegrationTest do
         :error, _ ->
           inspect(reason)
       end
+    end
+    """
+  end
+
+  test "case with when and clause comment" do
+    assert_same """
+    case decomposition do
+      # Decomposition
+      <<h, _::binary>> when h != ?< ->
+        decomposition =
+          decomposition
+          |> :binary.split(" ", [:global])
+          |> Enum.map(&String.to_integer(&1, 16))
+
+        Map.put(dacc, String.to_integer(codepoint, 16), decomposition)
+
+      _ ->
+        dacc
     end
     """
   end
