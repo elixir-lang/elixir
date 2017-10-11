@@ -401,7 +401,7 @@ defmodule StringTest do
     assert String.codepoints("elixír") == ["e", "l", "i", "x", "í", "r"]
     # armenian
     assert String.codepoints("ոգելից ըմպելիք") ==
-             ["ո", "գ", "ե", "լ", "ի", "ց", " "] ++ ["ը", "մ", "պ", "ե", "լ", "ի", "ք"]
+             ["ո", "գ", "ե", "լ", "ի", "ց", " ", "ը", "մ", "պ", "ե", "լ", "ի", "ք"]
 
     # belarussian
     assert String.codepoints("эліксір") == ["э", "л", "і", "к", "с", "і", "р"]
@@ -415,7 +415,7 @@ defmodule StringTest do
     assert String.codepoints("স্পর্শমণি") == ["স", "্", "প", "র", "্", "শ", "ম", "ণ", "ি"]
     # gujarati
     assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") ==
-             ["સ", "ર", "્", "વ", "શ", "્", "ર", "ે"] ++ ["ષ", "્", "ઠ", " ", "ઇ", "લ", "ા", "જ"]
+             ["સ", "ર", "્", "વ", "શ", "્", "ર", "ે", "ષ", "્", "ઠ", " ", "ઇ", "લ", "ા", "જ"]
 
     # japanese
     assert String.codepoints("世界中の一番") == ["世", "界", "中", "の", "一", "番"]
