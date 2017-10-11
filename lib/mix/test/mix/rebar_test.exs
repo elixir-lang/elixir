@@ -188,8 +188,8 @@ defmodule Mix.RebarTest do
       in_tmp "Rebar overrides", fn ->
         Mix.Tasks.Deps.Get.run([])
 
-        assert Mix.Dep.loaded([]) |> Enum.map(& &1.app) ==
-                 [:git_repo, :git_rebar, :rebar_override]
+        assert Mix.Dep.loaded([])
+               |> Enum.map(& &1.app) == [:git_repo, :git_rebar, :rebar_override]
       end
     after
       purge([GitRepo.MixProject])
