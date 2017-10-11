@@ -357,8 +357,6 @@ defmodule NaiveDateTime do
 
   """
   @spec to_string(Calendar.naive_datetime()) :: String.t()
-  def to_string(naive_datetime)
-
   def to_string(%{calendar: calendar} = naive_datetime) do
     %{
       year: year,
