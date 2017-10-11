@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.LiteralsTest do
   use ExUnit.Case, async: true
@@ -184,16 +184,18 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "is measured in graphemes" do
       assert_same ~S"""
-      "áá#{0}áá"
-      """, @short_length
+                  "áá#{0}áá"
+                  """,
+                  @short_length
     end
 
     test "literal new lines don't count towards line limit" do
       assert_same ~S"""
-      "one
-      #{"two"}
-      three"
-      """, @short_length
+                  "one
+                  #{"two"}
+                  three"
+                  """,
+                  @short_length
     end
   end
 
@@ -240,10 +242,11 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "literal new lines don't count towards line limit" do
       assert_same ~S"""
-      'one
-      #{"two"}
-      three'
-      """, @short_length
+                  'one
+                  #{"two"}
+                  three'
+                  """,
+                  @short_length
     end
   end
 
@@ -351,12 +354,13 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "literal new lines don't count towards line limit" do
       assert_same ~S'''
-      """
-      one
-      #{"two"}
-      three
-      """
-      ''', @short_length
+                  """
+                  one
+                  #{"two"}
+                  three
+                  """
+                  ''',
+                  @short_length
     end
 
     test "with escaped new lines" do
@@ -433,12 +437,13 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "literal new lines don't count towards line limit" do
       assert_same ~S"""
-      '''
-      one
-      #{"two"}
-      three
-      '''
-      """, @short_length
+                  '''
+                  one
+                  #{"two"}
+                  three
+                  '''
+                  """,
+                  @short_length
     end
   end
 end

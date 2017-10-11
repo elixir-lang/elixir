@@ -544,9 +544,9 @@ defmodule Time do
         value
 
       {:error, reason} ->
-          raise ArgumentError,
-                "cannot convert #{inspect(time)} to target calendar #{inspect(calendar)}, " <>
-                  "reason: #{inspect(reason)}"
+        raise ArgumentError,
+              "cannot convert #{inspect(time)} to target calendar #{inspect(calendar)}, " <>
+                "reason: #{inspect(reason)}"
     end
   end
 
