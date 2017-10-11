@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule RegistryTest do
   use ExUnit.Case, async: true
@@ -26,8 +26,7 @@ defmodule RegistryTest do
         assert is_pid(pid)
         assert Registry.keys(registry, self()) == ["hello"]
 
-        assert {:error, {:already_registered, pid}} =
-               Registry.register(registry, "hello", :value)
+        assert {:error, {:already_registered, pid}} = Registry.register(registry, "hello", :value)
         assert pid == self()
         assert Registry.keys(registry, self()) == ["hello"]
 
@@ -41,7 +40,8 @@ defmodule RegistryTest do
         Process.link(Process.whereis(registry))
 
         assert {:error, {:already_registered, ^task}} =
-               Registry.register(registry, "hello", :recent)
+                 Registry.register(registry, "hello", :recent)
+
         assert Registry.keys(registry, self()) == []
         {:links, links} = Process.info(self(), :links)
         assert Process.whereis(registry) in links
@@ -49,8 +49,9 @@ defmodule RegistryTest do
 
       test "has unique registrations even if partition is delayed", %{registry: registry} do
         {owner, task} = register_task(registry, "hello", :value)
+
         assert Registry.register(registry, "hello", :other) ==
-               {:error, {:already_registered, task}}
+                 {:error, {:already_registered, task}}
 
         :sys.suspend(owner)
         kill_and_assert_down(task)
@@ -61,34 +62,29 @@ defmodule RegistryTest do
       test "supports match patterns", %{registry: registry} do
         value = {1, :atom, 1}
         {:ok, _} = Registry.register(registry, "hello", value)
-        assert Registry.match(registry, "hello", {1, :_, :_}) ==
-               [{self(), value}]
-        assert Registry.match(registry, "hello", {1.0, :_, :_}) ==
-               []
-        assert Registry.match(registry, "hello", {:_, :atom, :_}) ==
-               [{self(), value}]
-        assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) ==
-               [{self(), value}]
-        assert Registry.match(registry, "hello", :_) ==
-               [{self(), value}]
-        assert Registry.match(registry, :_, :_) ==
-               []
+        assert Registry.match(registry, "hello", {1, :_, :_}) == [{self(), value}]
+        assert Registry.match(registry, "hello", {1.0, :_, :_}) == []
+        assert Registry.match(registry, "hello", {:_, :atom, :_}) == [{self(), value}]
+        assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) == [{self(), value}]
+        assert Registry.match(registry, "hello", :_) == [{self(), value}]
+        assert Registry.match(registry, :_, :_) == []
 
         value2 = %{a: "a", b: "b"}
         {:ok, _} = Registry.register(registry, "world", value2)
-        assert Registry.match(registry, "world", %{b: "b"}) ==
-               [{self(), value2}]
+        assert Registry.match(registry, "world", %{b: "b"}) == [{self(), value2}]
       end
 
       test "supports guard conditions", %{registry: registry} do
         value = {1, :atom, 2}
         {:ok, _} = Registry.register(registry, "hello", value)
+
         assert Registry.match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}]) ==
-               [{self(), value}]
-        assert Registry.match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 2}]) ==
-               []
-        assert Registry.match(registry, "hello", {:_, :"$1", :_,}, [{:is_atom, :"$1"}]) ==
-               [{self(), value}]
+                 [{self(), value}]
+
+        assert Registry.match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 2}]) == []
+
+        assert Registry.match(registry, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}]) ==
+                 [{self(), value}]
       end
 
       test "unregister_match supports patterns", %{registry: registry} do
@@ -96,14 +92,11 @@ defmodule RegistryTest do
         {:ok, _} = Registry.register(registry, "hello", value)
 
         Registry.unregister_match(registry, "hello", {2, :_, :_})
-        assert Registry.lookup(registry, "hello") ==
-               [{self(), value}]
+        assert Registry.lookup(registry, "hello") == [{self(), value}]
         Registry.unregister_match(registry, "hello", {1.0, :_, :_})
-        assert Registry.lookup(registry, "hello") ==
-               [{self(), value}]
+        assert Registry.lookup(registry, "hello") == [{self(), value}]
         Registry.unregister_match(registry, "hello", {:_, :atom, :_})
-        assert Registry.lookup(registry, "hello") ==
-              []
+        assert Registry.lookup(registry, "hello") == []
       end
 
       test "unregister_match supports guards", %{registry: registry} do
@@ -111,8 +104,7 @@ defmodule RegistryTest do
         {:ok, _} = Registry.register(registry, "hello", value)
 
         Registry.unregister_match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}])
-        assert Registry.lookup(registry, "hello") ==
-               []
+        assert Registry.lookup(registry, "hello") == []
       end
 
       test "unregister_match supports tricky keys", %{registry: registry} do
@@ -120,11 +112,9 @@ defmodule RegistryTest do
         {:ok, _} = Registry.register(registry, "hello", "b")
 
         Registry.unregister_match(registry, :_, :foo)
-        assert Registry.lookup(registry, :_) ==
-               []
+        assert Registry.lookup(registry, :_) == []
 
-        assert Registry.keys(registry, self()) |> Enum.sort ==
-               ["hello"]
+        assert Registry.keys(registry, self()) |> Enum.sort() == ["hello"]
       end
 
       test "compares using ===", %{registry: registry} do
@@ -140,20 +130,18 @@ defmodule RegistryTest do
 
         Registry.register(registry, "world", 1)
         assert Registry.lookup(registry, "world") == [{self(), 1}]
-        assert Registry.update_value(registry, "world", & &1 + 1) == {2, 1}
+        assert Registry.update_value(registry, "world", &(&1 + 1)) == {2, 1}
         assert Registry.lookup(registry, "world") == [{self(), 2}]
       end
 
       test "dispatches to a single key", %{registry: registry} do
-        assert Registry.dispatch(registry, "hello", fn _ ->
-          raise "will never be invoked"
-        end) == :ok
+        fun = fn _ -> raise "will never be invoked" end
+        assert Registry.dispatch(registry, "hello", fun) == :ok
 
         {:ok, _} = Registry.register(registry, "hello", :value)
 
-        assert Registry.dispatch(registry, "hello", fn [{pid, value}] ->
-          send(pid, {:dispatch, value})
-        end)
+        fun = fn [{pid, value}] -> send(pid, {:dispatch, value}) end
+        assert Registry.dispatch(registry, "hello", fun)
 
         assert_received {:dispatch, :value}
       end
@@ -221,18 +209,16 @@ defmodule RegistryTest do
         {:ok, pid} = Agent.start_link(fn -> 0 end, name: name)
 
         # send
-        assert Agent.update(name, & &1 + 1) == :ok
+        assert Agent.update(name, &(&1 + 1)) == :ok
 
         # whereis_name
         assert Agent.get(name, & &1) == 1
 
         # unregister_name
-        assert {:error, _} =
-               Agent.start(fn -> raise "oops" end)
+        assert {:error, _} = Agent.start(fn -> raise "oops" end)
 
         # errors
-        assert {:error, {:already_started, ^pid}} =
-               Agent.start(fn -> 0 end, name: name)
+        assert {:error, {:already_started, ^pid}} = Agent.start(fn -> 0 end, name: name)
       end
     end
   end
@@ -269,27 +255,30 @@ defmodule RegistryTest do
         Process.flag(:trap_exit, true)
         parent = self()
 
-        assert Registry.dispatch(registry, "hello", fn _ ->
-          raise "will never be invoked"
-        end, parallel: false) == :ok
+        fun = fn _ -> raise "will never be invoked" end
+        assert Registry.dispatch(registry, "hello", fun, parallel: false) == :ok
 
         {:ok, _} = Registry.register(registry, "hello", :value1)
         {:ok, _} = Registry.register(registry, "hello", :value2)
         {:ok, _} = Registry.register(registry, "world", :value3)
 
-        assert Registry.dispatch(registry, "hello", fn entries ->
+        fun = fn entries ->
           assert parent == self()
           for {pid, value} <- entries, do: send(pid, {:dispatch, value})
-        end, parallel: false)
+        end
+
+        assert Registry.dispatch(registry, "hello", fun, parallel: false)
 
         assert_received {:dispatch, :value1}
         assert_received {:dispatch, :value2}
         refute_received {:dispatch, :value3}
 
-        assert Registry.dispatch(registry, "world", fn entries ->
+        fun = fn entries ->
           assert parent == self()
           for {pid, value} <- entries, do: send(pid, {:dispatch, value})
-        end, parallel: false)
+        end
+
+        assert Registry.dispatch(registry, "world", fun, parallel: false)
 
         refute_received {:dispatch, :value1}
         refute_received {:dispatch, :value2}
@@ -298,39 +287,45 @@ defmodule RegistryTest do
         refute_received {:EXIT, _, _}
       end
 
-      test "dispatches to multiple keys in parallel", %{registry: registry, partitions: partitions} do
+      test "dispatches to multiple keys in parallel", context do
+        %{registry: registry, partitions: partitions} = context
         Process.flag(:trap_exit, true)
         parent = self()
 
-        assert Registry.dispatch(registry, "hello", fn _ ->
-          raise "will never be invoked"
-        end, parallel: true) == :ok
+        fun = fn _ -> raise "will never be invoked" end
+        assert Registry.dispatch(registry, "hello", fun, parallel: true) == :ok
 
         {:ok, _} = Registry.register(registry, "hello", :value1)
         {:ok, _} = Registry.register(registry, "hello", :value2)
         {:ok, _} = Registry.register(registry, "world", :value3)
 
-        assert Registry.dispatch(registry, "hello", fn entries ->
+        fun = fn entries ->
           if partitions == 8 do
             assert parent != self()
           else
             assert parent == self()
           end
+
           for {pid, value} <- entries, do: send(pid, {:dispatch, value})
-        end, parallel: true)
+        end
+
+        assert Registry.dispatch(registry, "hello", fun, parallel: true)
 
         assert_received {:dispatch, :value1}
         assert_received {:dispatch, :value2}
         refute_received {:dispatch, :value3}
 
-        assert Registry.dispatch(registry, "world", fn entries ->
+        fun = fn entries ->
           if partitions == 8 do
             assert parent != self()
           else
             assert parent == self()
           end
+
           for {pid, value} <- entries, do: send(pid, {:dispatch, value})
-        end, parallel: true)
+        end
+
+        assert Registry.dispatch(registry, "world", fun, parallel: true)
 
         refute_received {:dispatch, :value1}
         refute_received {:dispatch, :value2}
@@ -358,68 +353,69 @@ defmodule RegistryTest do
 
       test "supports match patterns", %{registry: registry} do
         value1 = {1, :atom, 1}
-        {:ok, _} = Registry.register(registry, "hello", value1)
         value2 = {2, :atom, 2}
+
+        {:ok, _} = Registry.register(registry, "hello", value1)
         {:ok, _} = Registry.register(registry, "hello", value2)
 
-        assert Registry.match(registry, "hello", {1, :_, :_}) ==
-               [{self(), value1}]
-        assert Registry.match(registry, "hello", {1.0, :_, :_}) ==
-               []
+        assert Registry.match(registry, "hello", {1, :_, :_}) == [{self(), value1}]
+        assert Registry.match(registry, "hello", {1.0, :_, :_}) == []
+
         assert Registry.match(registry, "hello", {:_, :atom, :_}) |> Enum.sort() ==
-               [{self(), value1}, {self(), value2}]
+                 [{self(), value1}, {self(), value2}]
+
         assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) |> Enum.sort() ==
-               [{self(), value1}, {self(), value2}]
-        assert Registry.match(registry, "hello", {2, :_, :_}) ==
-               [{self(), value2}]
-        assert Registry.match(registry, "hello", {2.0, :_, :_}) ==
-               []
+                 [{self(), value1}, {self(), value2}]
+
+        assert Registry.match(registry, "hello", {2, :_, :_}) == [{self(), value2}]
+        assert Registry.match(registry, "hello", {2.0, :_, :_}) == []
       end
 
       test "supports guards", %{registry: registry} do
         value1 = {1, :atom, 1}
-        {:ok, _} = Registry.register(registry, "hello", value1)
         value2 = {2, :atom, 2}
+
+        {:ok, _} = Registry.register(registry, "hello", value1)
         {:ok, _} = Registry.register(registry, "hello", value2)
 
         assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}]) ==
-               [{self(), value1}]
-        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:>, :"$1", 3}]) ==
-               []
+                 [{self(), value1}]
+
+        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:>, :"$1", 3}]) == []
+
         assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 3}]) |> Enum.sort() ==
-               [{self(), value1}, {self(), value2}]
-        assert Registry.match(registry, "hello", {:_, :"$1",  :_}, [{:is_atom, :"$1"}]) |> Enum.sort() ==
-               [{self(), value1}, {self(), value2}]
+                 [{self(), value1}, {self(), value2}]
+
+        assert Registry.match(registry, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}])
+               |> Enum.sort() == [{self(), value1}, {self(), value2}]
       end
 
       test "unregister_match supports patterns", %{registry: registry} do
         value1 = {1, :atom, 1}
-        {:ok, _} = Registry.register(registry, "hello", value1)
         value2 = {2, :atom, 2}
+
+        {:ok, _} = Registry.register(registry, "hello", value1)
         {:ok, _} = Registry.register(registry, "hello", value2)
 
         Registry.unregister_match(registry, "hello", {2, :_, :_})
-        assert Registry.lookup(registry, "hello") ==
-               [{self(), value1}]
+        assert Registry.lookup(registry, "hello") == [{self(), value1}]
 
         {:ok, _} = Registry.register(registry, "hello", value2)
         Registry.unregister_match(registry, "hello", {2.0, :_, :_})
-        assert Registry.lookup(registry, "hello") ==
-               [{self(), value1}, {self(), value2}]
+        assert Registry.lookup(registry, "hello") == [{self(), value1}, {self(), value2}]
         Registry.unregister_match(registry, "hello", {:_, :atom, :_})
-        assert Registry.lookup(registry, "hello") ==
-               []
+        assert Registry.lookup(registry, "hello") == []
       end
 
       test "unregister_match supports guards", %{registry: registry} do
         value1 = {1, :atom, 1}
-        {:ok, _} = Registry.register(registry, "hello", value1)
         value2 = {2, :atom, 2}
+
+        {:ok, _} = Registry.register(registry, "hello", value1)
         {:ok, _} = Registry.register(registry, "hello", value2)
 
         Registry.unregister_match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}])
-        assert Registry.lookup(registry, "hello") ==
-               [{self(), value2}]
+        assert Registry.lookup(registry, "hello") == [{self(), value2}]
       end
 
       test "unregister_match supports tricky keys", %{registry: registry} do
@@ -429,11 +425,9 @@ defmodule RegistryTest do
         {:ok, _} = Registry.register(registry, "hello", "b")
 
         Registry.unregister_match(registry, :_, :foo)
-        assert Registry.lookup(registry, :_) ==
-               [{self(), :bar}]
+        assert Registry.lookup(registry, :_) == [{self(), :bar}]
 
-        assert Registry.keys(registry, self()) |> Enum.sort ==
-               [:_, "hello", "hello"]
+        assert Registry.keys(registry, self()) |> Enum.sort() == [:_, "hello", "hello"]
       end
 
       @tag listener: :"duplicate_listener_#{partitions}"
@@ -527,17 +521,19 @@ defmodule RegistryTest do
   end
 
   test "child_spec/1 uses :name as :id" do
-    assert %{id: :custom_name} = Registry.child_spec([name: :custom_name])
+    assert %{id: :custom_name} = Registry.child_spec(name: :custom_name)
     assert %{id: Registry} = Registry.child_spec([])
   end
 
   defp register_task(registry, key, value) do
     parent = self()
+
     {:ok, task} =
       Task.start(fn ->
         send(parent, Registry.register(registry, key, value))
         Process.sleep(:infinity)
       end)
+
     assert_receive {:ok, owner}
     {owner, task}
   end
