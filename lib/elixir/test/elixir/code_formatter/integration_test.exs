@@ -268,4 +268,19 @@ defmodule Code.Formatter.IntegrationTest do
              {:error, "due to line filter"}
     """
   end
+
+  test "try/catch with comment" do
+    assert_same """
+    def format_error(reason) do
+      try do
+        do_format_error(reason)
+      catch
+        # A user could create an error that looks like a built-in one
+        # causing an error.
+        :error, _ ->
+          inspect(reason)
+      end
+    end
+    """
+  end
 end

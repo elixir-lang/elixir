@@ -1576,7 +1576,7 @@ defmodule Code.Formatter do
 
     state = %{state | operand_nesting: nesting}
     {body_doc, state} = block_to_algebra(body, min_line, end_line(meta), state)
-    {concat(group(args_doc), " ->" |> glue(body_doc) |> nest(2)), state}
+    {concat(args_doc, " ->" |> glue(body_doc) |> nest(2)), state}
   end
 
   defp add_max_line_to_last_clause([{op, meta, args}], max_line) do
@@ -1601,7 +1601,8 @@ defmodule Code.Formatter do
 
   defp clause_args_to_algebra(args, min_line, state) do
     arg_to_algebra = &quoted_to_algebra(&1, :no_parens_arg, &2)
-    args_to_algebra_with_comments(args, [line: min_line], state, arg_to_algebra)
+    args_to_algebra = &args_to_algebra(&1, &2, arg_to_algebra)
+    args_to_algebra_with_comments([args], [line: min_line], state, args_to_algebra)
   end
 
   ## Quoted helpers for comments
