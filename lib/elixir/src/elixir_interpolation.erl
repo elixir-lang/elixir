@@ -28,10 +28,20 @@ extract(Line, Column, _Scope, _Interpol, [Last | Remaining], Buffer, Output, Las
 %% Going through the string
 
 extract(Line, _Column, Scope, true, [$\\, $\n | Rest], Buffer, Output, Last) ->
-  extract(Line+1, 1, Scope, true, Rest, Buffer, Output, Last);
+  NewBuffer =
+    case Scope#elixir_tokenizer.unescape of
+      true -> Buffer;
+      false -> [$\n, $\\ |  Buffer]
+    end,
+  extract(Line+1, 1, Scope, true, Rest, NewBuffer, Output, Last);
 
 extract(Line, _Column, Scope, true, [$\\, $\r, $\n | Rest], Buffer, Output, Last) ->
-  extract(Line+1, 1, Scope, true, Rest, Buffer, Output, Last);
+  NewBuffer =
+    case Scope#elixir_tokenizer.unescape of
+      true -> Buffer;
+      false -> [$\n, $\r, $\\ |  Buffer]
+    end,
+  extract(Line+1, 1, Scope, true, Rest, NewBuffer, Output, Last);
 
 extract(Line, _Column, Scope, Interpol, [$\n | Rest], Buffer, Output, Last) ->
   extract(Line+1, 1, Scope, Interpol, Rest, [$\n | Buffer], Output, Last);
