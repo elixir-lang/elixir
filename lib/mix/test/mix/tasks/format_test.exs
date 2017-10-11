@@ -145,4 +145,16 @@ defmodule Mix.Tasks.FormatTest do
       Mix.Tasks.Format.run([])
     end
   end
+
+  test "raises SyntaxError when parsing invalid source file", context do
+    in_tmp context.test, fn ->
+      File.write!("a.ex", """
+      defmodule <%= module %>.Bar do end
+      """)
+
+      assert_raise SyntaxError, ~r"nofile:1: syntax error before: '='", fn ->
+        Mix.Tasks.Format.run(["a.ex"])
+      end
+    end
+  end
 end
