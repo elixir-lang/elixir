@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.FnTest do
   use ExUnit.Case, async: true
@@ -10,13 +10,25 @@ defmodule Kernel.FnTest do
 
   test "pin operator on match" do
     x = 1
-    refute (fn ^x -> true; _ -> false end).(0)
-    assert (fn ^x -> true; _ -> false end).(1)
-    refute (fn ^x -> true; _ -> false end).(1.0)
+
+    refute (fn
+              ^x -> true
+              _ -> false
+            end).(0)
+
+    assert (fn
+              ^x -> true
+              _ -> false
+            end).(1)
+
+    refute (fn
+              ^x -> true
+              _ -> false
+            end).(1.0)
   end
 
   test "guards with no args" do
-    fun = fn() when node() == :nonode@nohost -> true end
+    fun = fn () when node() == :nonode@nohost -> true end
     assert is_function(fun, 0)
   end
 
@@ -26,16 +38,17 @@ defmodule Kernel.FnTest do
         user = :defined
         user
       else
-        (fn() ->
+        (fn ->
            user = :undefined
            user
          end).()
       end
+
     assert result == :undefined
   end
 
   test "capture with access" do
-    assert (&(&1[:hello])).([hello: :world]) == :world
+    assert (& &1[:hello]).(hello: :world) == :world
   end
 
   test "capture remote" do
@@ -43,28 +56,28 @@ defmodule Kernel.FnTest do
     assert (&Atom.to_charlist/1).(:a) == 'a'
 
     assert (&List.flatten/1).([[0]]) == [0]
-    assert (&(List.flatten/1)).([[0]]) == [0]
+    assert (&List.flatten/1).([[0]]) == [0]
     assert (&List.flatten(&1)).([[0]]) == [0]
     assert (&List.flatten(&1)) == (&List.flatten/1)
   end
 
   test "capture local" do
     assert (&atl/1).(:a) == 'a'
-    assert (&(atl/1)).(:a) == 'a'
+    assert (&atl/1).(:a) == 'a'
     assert (&atl(&1)).(:a) == 'a'
   end
 
   test "capture local with question mark" do
     assert (&atom?/1).(:a)
-    assert (&(atom?/1)).(:a)
+    assert (&atom?/1).(:a)
     assert (&atom?(&1)).(:a)
   end
 
   test "capture imported" do
     assert (&is_atom/1).(:a)
-    assert (&(is_atom/1)).(:a)
+    assert (&is_atom/1).(:a)
     assert (&is_atom(&1)).(:a)
-    assert (&is_atom(&1)) == &is_atom/1
+    assert (&is_atom(&1)) == (&is_atom/1)
   end
 
   test "capture macro" do
@@ -75,21 +88,21 @@ defmodule Kernel.FnTest do
   end
 
   test "capture operator" do
-    assert is_function &+/2
-    assert is_function &(&&/2)
-    assert is_function & &1 + &2, 2
-    assert is_function &and/2
+    assert is_function(&+/2)
+    assert is_function(& &&/2)
+    assert is_function(&(&1 + &2), 2)
+    assert is_function(&and/2)
   end
 
   test "capture precedence in cons" do
-    assert [&IO.puts/1 | &IO.puts/2] == [(&IO.puts/1) | (&IO.puts/2)]
+    assert [&IO.puts/1 | &IO.puts/2] == [&IO.puts/1 | &IO.puts/2]
   end
 
   test "capture with variable module" do
     mod = List
     assert (&mod.flatten(&1)).([1, [2], 3]) == [1, 2, 3]
     assert (&mod.flatten/1).([1, [2], 3]) == [1, 2, 3]
-    assert (&mod.flatten/1) == &List.flatten/1
+    assert (&mod.flatten/1) == (&List.flatten/1)
   end
 
   test "local partial application" do
@@ -116,17 +129,17 @@ defmodule Kernel.FnTest do
   end
 
   test "capture and partially apply lists" do
-    assert (&[ &1, &2 ]).(1, 2) == [ 1, 2 ]
-    assert (&[ &1, &2, &3 ]).(1, 2, 3) == [ 1, 2, 3 ]
+    assert (&[&1, &2]).(1, 2) == [1, 2]
+    assert (&[&1, &2, &3]).(1, 2, 3) == [1, 2, 3]
 
-    assert (&[ 1, &1 ]).(2) == [ 1, 2 ]
-    assert (&[ 1, &1, &2 ]).(2, 3) == [ 1, 2, 3 ]
+    assert (&[1, &1]).(2) == [1, 2]
+    assert (&[1, &1, &2]).(2, 3) == [1, 2, 3]
 
     assert (&[&1 | &2]).(1, 2) == [1 | 2]
   end
 
   test "capture and partially apply on call" do
-    assert (&(&1.module)).(__ENV__) == __MODULE__
+    assert (& &1.module).(__ENV__) == __MODULE__
   end
 
   test "capture block like" do
