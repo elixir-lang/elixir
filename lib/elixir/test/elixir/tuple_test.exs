@@ -20,8 +20,8 @@ defmodule TupleTest do
   end
 
   test "optional comma is supported in tuple literals" do
-    assert {1} == {1}
-    assert {1, 2, 3} == {1, 2, 3}
+    assert Code.eval_string("{1,}") == {{1}, []}
+    assert Code.eval_string("{1, 2, 3,}") == {{1, 2, 3}, []}
   end
 
   test "partial application" do
