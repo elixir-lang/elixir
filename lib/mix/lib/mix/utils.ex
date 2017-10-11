@@ -169,9 +169,8 @@ defmodule Mix.Utils do
 
     case :elixir_utils.read_mtime_and_size(path) do
       {:ok, mtime, size} when mtime > now ->
-        Mix.shell().error(
-          "warning: mtime (modified time) for \"#{path}\" was set to the future, resetting to now"
-        )
+        message = "warning: mtime (modified time) for \"#{path}\" was set to the future, resetting to now"
+        Mix.shell().error(message)
 
         File.touch!(path, now)
         {mtime, size}
@@ -434,12 +433,12 @@ defmodule Mix.Utils do
         :ok
 
       {:error, _} ->
-        {
-          :ok,
+        file =
           File.cp_r!(source, target, fn orig, dest ->
             File.stat!(orig).mtime > File.stat!(dest).mtime
           end)
-        }
+
+        {:ok, file}
     end
   end
 
@@ -495,15 +494,14 @@ defmodule Mix.Utils do
     Enum.find_value(@checksums, return, fn hash ->
       with expected when expected != nil <- opts[hash],
            actual when actual != expected <- hexhash(binary, hash) do
-        {
-          :checksum,
-          """
-          Data does not match the given SHA-512 checksum.
+        message = """
+        Data does not match the given SHA-512 checksum.
 
-          Expected: #{expected}
-            Actual: #{actual}
-          """
-        }
+        Expected: #{expected}
+          Actual: #{actual}
+        """
+
+        {:checksum, message}
       else
         _ -> nil
       end
