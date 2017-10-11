@@ -83,9 +83,8 @@ defmodule Mix.RebarTest do
 
       config = [deps: [{:git_rebar, '0.1..*', {:git, @git_rebar_charlist}, [:raw]}]]
 
-      assert Mix.Rebar.deps(config) == [
-               {:git_rebar, ~r"0.1..*", [git: @git_rebar_string, compile: false]}
-             ]
+      assert Mix.Rebar.deps(config) ==
+               [{:git_rebar, ~r"0.1..*", [git: @git_rebar_string, compile: false]}]
 
       config = [deps: [{:git_rebar, '', {:git, @git_rebar_charlist, {:ref, '64691eb'}}}]]
 

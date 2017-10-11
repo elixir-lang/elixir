@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.ContainersTest do
   use ExUnit.Case, async: true
@@ -19,6 +19,7 @@ defmodule Code.Formatter.ContainersTest do
 
     test "is strict on line limits" do
       bad = "{1, 2, 3, 4}"
+
       good = """
       {
         1,
@@ -27,6 +28,7 @@ defmodule Code.Formatter.ContainersTest do
         4
       }
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -38,16 +40,17 @@ defmodule Code.Formatter.ContainersTest do
     test "with keyword lists" do
       # The one below is not valid syntax
       # assert_same "{foo: 1, bar: 2}"
-
       assert_same "{:hello, foo: 1, bar: 2}"
 
-      assert_same """
+      tuple = """
       {
         :hello,
         foo: 1,
         bar: 2
       }
-      """, @short_length
+      """
+
+      assert_same tuple, @short_length
     end
 
     test "preserves user choice even when it fits" do
@@ -100,6 +103,7 @@ defmodule Code.Formatter.ContainersTest do
       bad = """
       [11, 22, 33, 44]
       """
+
       good = """
       [
         11,
@@ -108,11 +112,13 @@ defmodule Code.Formatter.ContainersTest do
         44
       ]
       """
+
       assert_format bad, good, @short_length
 
       bad = """
       [11, 22, 33 | 44]
       """
+
       good = """
       [
         11,
@@ -120,11 +126,13 @@ defmodule Code.Formatter.ContainersTest do
         33 | 44
       ]
       """
+
       assert_format bad, good, @short_length
 
       bad = """
       [1, 2, 3 | 4]
       """
+
       good = """
       [
         1,
@@ -132,11 +140,13 @@ defmodule Code.Formatter.ContainersTest do
         3 | 4
       ]
       """
+
       assert_format bad, good, @short_length
 
       bad = """
       [1, 2, 3 | really_long_expression()]
       """
+
       good = """
       [
         1,
@@ -145,6 +155,7 @@ defmodule Code.Formatter.ContainersTest do
         | really_long_expression()
       ]
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -160,12 +171,14 @@ defmodule Code.Formatter.ContainersTest do
       # Pseudo keyword lists are kept as is
       assert_same "[{:foo, 1}, {:bar, 2}]"
 
-      assert_same """
+      keyword = """
       [
         foo: 1,
         bar: 2
       ]
-      """, @short_length
+      """
+
+      assert_same keyword, @short_length
     end
 
     test "with quoted keyword lists" do
@@ -234,7 +247,7 @@ defmodule Code.Formatter.ContainersTest do
       assert_format "<< 1 :: 2 - unit(3) - 4 / 5 >>", "<<1::2-unit(3)-(4 / 5)>>"
     end
 
-   test "in comprehensions" do
+    test "in comprehensions" do
       assert_format "<< 0, 1 :: 1 <- x >>", "<<0, 1::1 <- x>>"
       assert_format "<< 0, 1 :: 2 + 3 <- x >>", "<<0, 1::(2 + 3) <- x>>"
       assert_format "<< 0, 1 :: 2 - integer <- x >>", "<<0, 1::2-integer <- x>>"
@@ -249,6 +262,7 @@ defmodule Code.Formatter.ContainersTest do
 
     test "is strict on line limits" do
       bad = "<<1, 2, 3, 4>>"
+
       good = """
       <<
         1,
@@ -257,6 +271,7 @@ defmodule Code.Formatter.ContainersTest do
         4
       >>
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -303,22 +318,26 @@ defmodule Code.Formatter.ContainersTest do
 
     test "is strict on line limits" do
       bad = "%{1 => 2, 3 => 4}"
+
       good = """
       %{
         1 => 2,
         3 => 4
       }
       """
+
       assert_format bad, good, @short_length
 
-      assert_same """
+      map = """
       %{
         a(1, 2) => b,
         c(3, 4) => d
       }
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same map, @short_length
+
+      map = """
       %{
         a => fn x ->
           y
@@ -327,9 +346,11 @@ defmodule Code.Formatter.ContainersTest do
           z
         end
       }
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same map, @short_length
+
+      map = """
       %{
         a => for(
           y <- x,
@@ -337,15 +358,19 @@ defmodule Code.Formatter.ContainersTest do
           do: 123
         )
       }
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same map, @short_length
+
+      map = """
       %{
         a => for do
           :ok
         end
       }
-      """, @short_length
+      """
+
+      assert_same map, @short_length
     end
 
     test "removes trailing comma" do
@@ -355,12 +380,14 @@ defmodule Code.Formatter.ContainersTest do
     test "with keyword lists" do
       assert_same "%{:foo => :bar, baz: :bat}"
 
-      assert_same """
+      map = """
       %{
         :foo => :bar,
         baz: :bat
       }
-      """, @short_length
+      """
+
+      assert_same map, @short_length
     end
 
     test "preserves user choice even when it fits" do
@@ -402,6 +429,7 @@ defmodule Code.Formatter.ContainersTest do
 
     test "is strict on line limits" do
       bad = "%{foo | 1 => 2, 3 => 4}"
+
       good = """
       %{
         foo
@@ -409,6 +437,7 @@ defmodule Code.Formatter.ContainersTest do
           3 => 4
       }
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -419,13 +448,15 @@ defmodule Code.Formatter.ContainersTest do
     test "with keyword lists" do
       assert_same "%{foo | :foo => :bar, baz: :bat}"
 
-      assert_same """
+      map = """
       %{
         foo
         | :foo => :bar,
           baz: :bat
       }
-      """, @short_length
+      """
+
+      assert_same map, @short_length
     end
 
     test "preserves user choice even when it fits" do
@@ -451,12 +482,14 @@ defmodule Code.Formatter.ContainersTest do
 
     test "is strict on line limits" do
       bad = "%struct{1 => 2, 3 => 4}"
+
       good = """
       %struct{
         1 => 2,
         3 => 4
       }
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -467,12 +500,14 @@ defmodule Code.Formatter.ContainersTest do
     test "with keyword lists" do
       assert_same "%struct{:foo => :bar, baz: :bat}"
 
-      assert_same """
+      struct = """
       %struct{
         :foo => :bar,
         baz: :bat
       }
-      """, @short_length
+      """
+
+      assert_same struct, @short_length
     end
 
     test "preserves user choice even when it fits" do
@@ -493,6 +528,7 @@ defmodule Code.Formatter.ContainersTest do
 
     test "is strict on line limits" do
       bad = "%struct{foo | 1 => 2, 3 => 4}"
+
       good = """
       %struct{
         foo
@@ -500,6 +536,7 @@ defmodule Code.Formatter.ContainersTest do
           3 => 4
       }
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -510,13 +547,15 @@ defmodule Code.Formatter.ContainersTest do
     test "with keyword lists" do
       assert_same "%struct{foo | :foo => :bar, baz: :bat}"
 
-      assert_same """
+      struct = """
       %struct{
         foo
         | :foo => :bar,
           baz: :bat
       }
-      """, @short_length
+      """
+
+      assert_same struct, @short_length
     end
 
     test "preserves user choice even when it fits" do
@@ -532,6 +571,7 @@ defmodule Code.Formatter.ContainersTest do
 
     test "converges" do
       bad = "hello_world(%struct{foo | 1 => 2, 3 => 4})"
+
       good = """
       hello_world(%struct{
         foo
@@ -539,6 +579,7 @@ defmodule Code.Formatter.ContainersTest do
           3 => 4
       })
       """
+
       assert_format bad, good, line_length: 30
     end
   end
