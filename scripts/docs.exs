@@ -31,9 +31,8 @@
       Time,
       Tuple,
       URI,
-      Version,
+      Version
     ],
-
     "IO & System": [
       File,
       File.Stat,
@@ -45,17 +44,15 @@
       Path,
       Port,
       StringIO,
-      System,
+      System
     ],
-
     "Modules & Code": [
       Code,
       Kernel.ParallelCompiler,
       Macro,
       Macro.Env,
-      Module,
+      Module
     ],
-
     "Processes & Applications": [
       Agent,
       Application,
@@ -65,10 +62,9 @@
       Registry,
       Supervisor,
       Task,
-      Task.Supervisor,
+      Task.Supervisor
     ],
-
-    "Protocols": [
+    Protocols: [
       Collectable,
       Enumerable,
       Inspect,
@@ -76,10 +72,9 @@
       Inspect.Opts,
       List.Chars,
       Protocol,
-      String.Chars,
+      String.Chars
     ],
-
-    "Deprecated": [
+    Deprecated: [
       Behaviour,
       Dict,
       GenEvent,
@@ -87,6 +82,6 @@
       HashSet,
       Set,
       Supervisor.Spec
-    ],
+    ]
   ]
 ]
