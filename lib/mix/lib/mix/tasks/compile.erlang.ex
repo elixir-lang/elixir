@@ -57,7 +57,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   """
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
-    project      = Mix.Project.config
+    project = Mix.Project.config()
     source_paths = project[:erlc_paths]
     Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
     files = Mix.Utils.extract_files(source_paths, [:erl])
@@ -65,44 +65,52 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp do_run([], _, _, _), do: :noop
+
   defp do_run(files, opts, project, source_paths) do
-    include_path = to_erl_file project[:erlc_include_path]
-    compile_path = to_erl_file Mix.Project.compile_path(project)
+    include_path = to_erl_file(project[:erlc_include_path])
+    compile_path = to_erl_file(Mix.Project.compile_path(project))
 
     erlc_options = project[:erlc_options] || []
+
     unless is_list(erlc_options) do
-      Mix.raise ":erlc_options should be a list of options, got: #{inspect(erlc_options)}"
+      Mix.raise(":erlc_options should be a list of options, got: #{inspect(erlc_options)}")
     end
+
     erlc_options = erlc_options ++ [:return, :report, outdir: compile_path, i: include_path]
-    erlc_options = Enum.map erlc_options, fn
-      {kind, dir} when kind in [:i, :outdir] ->
-        {kind, to_erl_file(dir)}
-      opt ->
-        opt
-    end
 
-    compile_path = Path.relative_to(compile_path, File.cwd!)
+    erlc_options =
+      Enum.map(erlc_options, fn
+        {kind, dir} when kind in [:i, :outdir] -> {kind, to_erl_file(dir)}
+        opt -> opt
+      end)
 
-    tuples = files
-             |> scan_sources(include_path, source_paths)
-             |> sort_dependencies
-             |> Enum.map(&annotate_target(&1, compile_path, opts[:force]))
+    compile_path = Path.relative_to(compile_path, File.cwd!())
 
-    Mix.Compilers.Erlang.compile(manifest(), tuples, opts, fn
-      input, _output ->
-        # We're purging the module because a previous compiler (e.g. Phoenix)
-        # might have already loaded the previous version of it.
-        module = Path.basename(input, ".erl") |> String.to_atom
-        :code.purge(module)
-        :code.delete(module)
+    tuples =
+      files
+      |> scan_sources(include_path, source_paths)
+      |> sort_dependencies()
+      |> Enum.map(&annotate_target(&1, compile_path, opts[:force]))
 
-        file = to_erl_file(Path.rootname(input, ".erl"))
-        case :compile.file(file, erlc_options) do
-          {:error, :badarg} ->
-            Mix.raise "Compiling Erlang #{inspect file} failed with ArgumentError, probably because of invalid :erlc_options"
-          result ->
-            result
-        end
+    Mix.Compilers.Erlang.compile(manifest(), tuples, opts, fn input, _output ->
+      # We're purging the module because a previous compiler (e.g. Phoenix)
+      # might have already loaded the previous version of it.
+      module = input |> Path.basename(".erl") |> String.to_atom()
+      :code.purge(module)
+      :code.delete(module)
+
+      file = to_erl_file(Path.rootname(input, ".erl"))
+
+      case :compile.file(file, erlc_options) do
+        {:error, :badarg} ->
+          message =
+            "Compiling Erlang #{inspect(file)} failed with ArgumentError, probably because of invalid :erlc_options"
+
+          Mix.raise(message)
+
+        result ->
+          result
+      end
     end)
   end
 
@@ -110,7 +118,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   Returns Erlang manifests.
   """
   def manifests, do: [manifest()]
-  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @doc """
   Cleans up compilation artifacts.
@@ -123,15 +131,23 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   defp scan_sources(files, include_path, source_paths) do
     include_paths = [include_path | source_paths]
-    Enum.reduce(files, [], &scan_source(&2, &1, include_paths)) |> Enum.reverse
+    Enum.reduce(files, [], &scan_source(&2, &1, include_paths)) |> Enum.reverse()
   end
 
   defp scan_source(acc, file, include_paths) do
-    erl_file = %{file: file, module: module_from_artifact(file),
-                 behaviours: [], compile: [], includes: [], invalid: false}
+    erl_file = %{
+      file: file,
+      module: module_from_artifact(file),
+      behaviours: [],
+      compile: [],
+      includes: [],
+      invalid: false
+    }
+
     case :epp.parse_file(to_erl_file(file), include_paths, []) do
       {:ok, forms} ->
         [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]
+
       {:error, _error} ->
         acc
     end
@@ -145,39 +161,50 @@ defmodule Mix.Tasks.Compile.Erlang do
         else
           erl
         end
+
       {:attribute, _, :behaviour, behaviour} ->
         %{erl | behaviours: [behaviour | erl.behaviours]}
+
       {:attribute, _, :compile, value} when is_list(value) ->
         %{erl | compile: value ++ erl.compile}
+
       {:attribute, _, :compile, value} ->
         %{erl | compile: [value | erl.compile]}
+
       _ ->
         erl
     end
   end
 
   defp sort_dependencies(erls) do
-    graph = :digraph.new
+    graph = :digraph.new()
 
-    _ = for erl <- erls do
-      :digraph.add_vertex(graph, erl.module, erl)
-    end
-
-    _ = for erl <- erls do
-      _ = for b <- erl.behaviours, do: :digraph.add_edge(graph, b, erl.module)
-      _ = for c <- erl.compile do
-        case c do
-          {:parse_transform, transform} -> :digraph.add_edge(graph, transform, erl.module)
-          _ -> :ok
-        end
+    _ =
+      for erl <- erls do
+        :digraph.add_vertex(graph, erl.module, erl)
       end
-      :ok
-    end
+
+    _ =
+      for erl <- erls do
+        _ = for b <- erl.behaviours, do: :digraph.add_edge(graph, b, erl.module)
+
+        _ =
+          for c <- erl.compile do
+            case c do
+              {:parse_transform, transform} -> :digraph.add_edge(graph, transform, erl.module)
+              _ -> :ok
+            end
+          end
+
+        :ok
+      end
 
     result =
       case :digraph_utils.topsort(graph) do
-        false -> erls
-        mods  ->
+        false ->
+          erls
+
+        mods ->
           for m <- mods, do: elem(:digraph.vertex(graph, m), 1)
       end
 
@@ -196,6 +223,6 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp module_from_artifact(artifact) do
-    artifact |> Path.basename |> Path.rootname |> String.to_atom
+    artifact |> Path.basename() |> Path.rootname() |> String.to_atom()
   end
 end
