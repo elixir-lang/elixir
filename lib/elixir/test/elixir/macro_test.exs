@@ -734,55 +734,98 @@ defmodule MacroTest do
   ## traverse/pre/postwalk
 
   test "traverse/4" do
-    assert traverse({:foo, [], nil}) ==
-           [{:foo, [], nil}, {:foo, [], nil}]
+    assert traverse({:foo, [], nil}) == [{:foo, [], nil}, {:foo, [], nil}]
 
     assert traverse({:foo, [], [1, 2, 3]}) ==
-           [{:foo, [], [1, 2, 3]}, 1, 1, 2, 2, 3, 3, {:foo, [], [1, 2, 3]}]
+             [{:foo, [], [1, 2, 3]}, 1, 1, 2, 2, 3, 3, {:foo, [], [1, 2, 3]}]
 
     assert traverse({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
-           [{{:., [], [:foo, :bar]}, [], [1, 2, 3]}, {:., [], [:foo, :bar]}, :foo, :foo, :bar, :bar, {:., [], [:foo, :bar]},
-            1, 1, 2, 2, 3, 3, {{:., [], [:foo, :bar]}, [], [1, 2, 3]}]
+             [
+               {{:., [], [:foo, :bar]}, [], [1, 2, 3]},
+               {:., [], [:foo, :bar]},
+               :foo,
+               :foo,
+               :bar,
+               :bar,
+               {:., [], [:foo, :bar]},
+               1,
+               1,
+               2,
+               2,
+               3,
+               3,
+               {{:., [], [:foo, :bar]}, [], [1, 2, 3]}
+             ]
 
     assert traverse({[1, 2, 3], [4, 5, 6]}) ==
-           [{[1, 2, 3], [4, 5, 6]}, [1, 2, 3], 1, 1, 2, 2, 3, 3, [1, 2, 3],
-            [4, 5, 6], 4, 4, 5, 5, 6, 6, [4, 5, 6], {[1, 2, 3], [4, 5, 6]}]
+             [
+               {[1, 2, 3], [4, 5, 6]},
+               [1, 2, 3],
+               1,
+               1,
+               2,
+               2,
+               3,
+               3,
+               [1, 2, 3],
+               [4, 5, 6],
+               4,
+               4,
+               5,
+               5,
+               6,
+               6,
+               [4, 5, 6],
+               {[1, 2, 3], [4, 5, 6]}
+             ]
   end
 
   defp traverse(ast) do
-    Macro.traverse(ast, [], &{&1, [&1 | &2]}, &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
+    Macro.traverse(ast, [], &{&1, [&1 | &2]}, &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
   end
 
   test "prewalk/3" do
-    assert prewalk({:foo, [], nil}) ==
-           [{:foo, [], nil}]
+    assert prewalk({:foo, [], nil}) == [{:foo, [], nil}]
 
-    assert prewalk({:foo, [], [1, 2, 3]}) ==
-           [{:foo, [], [1, 2, 3]}, 1, 2, 3]
+    assert prewalk({:foo, [], [1, 2, 3]}) == [{:foo, [], [1, 2, 3]}, 1, 2, 3]
 
     assert prewalk({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
-           [{{:., [], [:foo, :bar]}, [], [1, 2, 3]}, {:., [], [:foo, :bar]}, :foo, :bar, 1, 2, 3]
+             [
+               {{:., [], [:foo, :bar]}, [], [1, 2, 3]},
+               {:., [], [:foo, :bar]},
+               :foo,
+               :bar,
+               1,
+               2,
+               3
+             ]
 
     assert prewalk({[1, 2, 3], [4, 5, 6]}) ==
-           [{[1, 2, 3], [4, 5, 6]}, [1, 2, 3], 1, 2, 3, [4, 5, 6], 4, 5, 6]
+             [{[1, 2, 3], [4, 5, 6]}, [1, 2, 3], 1, 2, 3, [4, 5, 6], 4, 5, 6]
   end
 
   defp prewalk(ast) do
-    Macro.prewalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse
+    Macro.prewalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
   end
 
   test "postwalk/3" do
-    assert postwalk({:foo, [], nil}) ==
-           [{:foo, [], nil}]
+    assert postwalk({:foo, [], nil}) == [{:foo, [], nil}]
 
-    assert postwalk({:foo, [], [1, 2, 3]}) ==
-           [1, 2, 3, {:foo, [], [1, 2, 3]}]
+    assert postwalk({:foo, [], [1, 2, 3]}) == [1, 2, 3, {:foo, [], [1, 2, 3]}]
 
     assert postwalk({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
-           [:foo, :bar, {:., [], [:foo, :bar]}, 1, 2, 3, {{:., [], [:foo, :bar]}, [], [1, 2, 3]}]
+             [
+               :foo,
+               :bar,
+               {:., [], [:foo, :bar]},
+               1,
+               2,
+               3,
+               {{:., [], [:foo, :bar]}, [], [1, 2, 3]}
+             ]
 
     assert postwalk({[1, 2, 3], [4, 5, 6]}) ==
-           [1, 2, 3, [1, 2, 3], 4, 5, 6, [4, 5, 6], {[1, 2, 3], [4, 5, 6]}]
+             [1, 2, 3, [1, 2, 3], 4, 5, 6, [4, 5, 6], {[1, 2, 3], [4, 5, 6]}]
   end
 
   test "generate_arguments/2" do
