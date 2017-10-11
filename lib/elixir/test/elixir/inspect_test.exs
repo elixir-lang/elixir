@@ -87,11 +87,12 @@ defmodule Inspect.AtomTest do
   end
 
   # TODO: Remove this check once we depend only on 20
+  # TODO: Remove String.to_atom/1 when we support 20+
   if :erlang.system_info(:otp_release) >= '20' do
     test "unicode" do
-      assert inspect(:"olá") == ":olá"
-      assert inspect(:"Olá") == ":Olá"
-      assert inspect(:"Ólá") == ":Ólá"
+      assert inspect(String.to_atom("olá")) == ":olá"
+      assert inspect(String.to_atom("Olá")) == ":Olá"
+      assert inspect(String.to_atom("Ólá")) == ":Ólá"
 
       hello_world = String.to_atom("こんにちは世界")
       assert inspect(hello_world) == ":こんにちは世界"

@@ -1,74 +1,76 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 # TODO: Remove this check once we depend only on 20
+# TODO: Remove String.to_atom/1 when we support 20+
 if :erlang.system_info(:otp_release) >= '20' do
-defmodule Kernel.StringTokenizerTest do
-  use ExUnit.Case, async: true
+  defmodule Kernel.StringTokenizerTest do
+    use ExUnit.Case, async: true
 
-  @hello_world String.to_atom("こんにちは世界")
+    defp var({var, _, nil}), do: var
+    defp aliases({:__aliases__, _, [alias]}), do: alias
 
-  test "tokenizes vars" do
-    assert {:"_12", _, nil} = Code.string_to_quoted!("_12")
-    assert {:"ola", _, nil} = Code.string_to_quoted!("ola")
-    assert {:"ólá", _, nil} = Code.string_to_quoted!("ólá")
-    assert {:"óLÁ", _, nil} = Code.string_to_quoted!("óLÁ")
-    assert {:"ólá?", _, nil} = Code.string_to_quoted!("ólá?")
-    assert {:"ólá!", _, nil} = Code.string_to_quoted!("ólá!")
-    assert {@hello_world, _, nil} = Code.string_to_quoted!("こんにちは世界")
-    assert {:error, _} = Code.string_to_quoted("v@r")
-    assert {:error, _} = Code.string_to_quoted("1var")
+    test "tokenizes vars" do
+      assert Code.string_to_quoted!("_12") |> var() == String.to_atom("_12")
+      assert Code.string_to_quoted!("ola") |> var() == String.to_atom("ola")
+      assert Code.string_to_quoted!("ólá") |> var() == String.to_atom("ólá")
+      assert Code.string_to_quoted!("óLÁ") |> var() == String.to_atom("óLÁ")
+      assert Code.string_to_quoted!("ólá?") |> var() == String.to_atom("ólá?")
+      assert Code.string_to_quoted!("ólá!") |> var() == String.to_atom("ólá!")
+      assert Code.string_to_quoted!("こんにちは世界") |> var() == String.to_atom("こんにちは世界")
+      assert {:error, _} = Code.string_to_quoted("v@r")
+      assert {:error, _} = Code.string_to_quoted("1var")
+    end
+
+    test "tokenizes atoms" do
+      assert Code.string_to_quoted!(":_12") == String.to_atom("_12")
+      assert Code.string_to_quoted!(":ola") == String.to_atom("ola")
+      assert Code.string_to_quoted!(":ólá") == String.to_atom("ólá")
+      assert Code.string_to_quoted!(":ólá?") == String.to_atom("ólá?")
+      assert Code.string_to_quoted!(":ólá!") == String.to_atom("ólá!")
+      assert Code.string_to_quoted!(":ól@") == String.to_atom("ól@")
+      assert Code.string_to_quoted!(":ól@!") == String.to_atom("ól@!")
+      assert Code.string_to_quoted!(":ó@@!") == String.to_atom("ó@@!")
+      assert Code.string_to_quoted!(":Ola") == String.to_atom("Ola")
+      assert Code.string_to_quoted!(":Ólá") == String.to_atom("Ólá")
+      assert Code.string_to_quoted!(":ÓLÁ") == String.to_atom("ÓLÁ")
+      assert Code.string_to_quoted!(":ÓLÁ?") == String.to_atom("ÓLÁ?")
+      assert Code.string_to_quoted!(":ÓLÁ!") == String.to_atom("ÓLÁ!")
+      assert Code.string_to_quoted!(":ÓL@!") == String.to_atom("ÓL@!")
+      assert Code.string_to_quoted!(":Ó@@!") == String.to_atom("Ó@@!")
+      assert Code.string_to_quoted!(":こんにちは世界") == String.to_atom("こんにちは世界")
+      assert {:error, _} = Code.string_to_quoted(":123")
+      assert {:error, _} = Code.string_to_quoted(":@123")
+    end
+
+    test "tokenizes keywords" do
+      assert Code.string_to_quoted!("[_12: 0]") == [{String.to_atom("_12"), 0}]
+      assert Code.string_to_quoted!("[ola: 0]") == [{String.to_atom("ola"), 0}]
+      assert Code.string_to_quoted!("[ólá: 0]") == [{String.to_atom("ólá"), 0}]
+      assert Code.string_to_quoted!("[ólá?: 0]") == [{String.to_atom("ólá?"), 0}]
+      assert Code.string_to_quoted!("[ólá!: 0]") == [{String.to_atom("ólá!"), 0}]
+      assert Code.string_to_quoted!("[ól@: 0]") == [{String.to_atom("ól@"), 0}]
+      assert Code.string_to_quoted!("[ól@!: 0]") == [{String.to_atom("ól@!"), 0}]
+      assert Code.string_to_quoted!("[ó@@!: 0]") == [{String.to_atom("ó@@!"), 0}]
+      assert Code.string_to_quoted!("[Ola: 0]") == [{String.to_atom("Ola"), 0}]
+      assert Code.string_to_quoted!("[Ólá: 0]") == [{String.to_atom("Ólá"), 0}]
+      assert Code.string_to_quoted!("[ÓLÁ: 0]") == [{String.to_atom("ÓLÁ"), 0}]
+      assert Code.string_to_quoted!("[ÓLÁ?: 0]") == [{String.to_atom("ÓLÁ?"), 0}]
+      assert Code.string_to_quoted!("[ÓLÁ!: 0]") == [{String.to_atom("ÓLÁ!"), 0}]
+      assert Code.string_to_quoted!("[ÓL@!: 0]") == [{String.to_atom("ÓL@!"), 0}]
+      assert Code.string_to_quoted!("[Ó@@!: 0]") == [{String.to_atom("Ó@@!"), 0}]
+      assert Code.string_to_quoted!("[こんにちは世界: 0]") == [{String.to_atom("こんにちは世界"), 0}]
+      assert {:error, _} = Code.string_to_quoted("[123: 0]")
+      assert {:error, _} = Code.string_to_quoted("[@123: 0]")
+    end
+
+    test "tokenizes aliases" do
+      assert Code.string_to_quoted!("Ola") |> aliases() == String.to_atom("Ola")
+      assert Code.string_to_quoted!("M_123") |> aliases() == String.to_atom("M_123")
+      assert {:error, _} = Code.string_to_quoted("Óla")
+      assert {:error, _} = Code.string_to_quoted("Olá")
+      assert {:error, _} = Code.string_to_quoted("Ol@")
+      assert {:error, _} = Code.string_to_quoted("Ola?")
+      assert {:error, _} = Code.string_to_quoted("Ola!")
+    end
   end
-
-  test "tokenizes atoms" do
-    assert :"_12" = Code.string_to_quoted!(":_12")
-    assert :"ola" = Code.string_to_quoted!(":ola")
-    assert :"ólá" = Code.string_to_quoted!(":ólá")
-    assert :"ólá?" = Code.string_to_quoted!(":ólá?")
-    assert :"ólá!" = Code.string_to_quoted!(":ólá!")
-    assert :"ól@" = Code.string_to_quoted!(":ól@")
-    assert :"ól@!" = Code.string_to_quoted!(":ól@!")
-    assert :"ó@@!" = Code.string_to_quoted!(":ó@@!")
-    assert :"Ola" = Code.string_to_quoted!(":Ola")
-    assert :"Ólá" = Code.string_to_quoted!(":Ólá")
-    assert :"ÓLÁ" = Code.string_to_quoted!(":ÓLÁ")
-    assert :"ÓLÁ?" = Code.string_to_quoted!(":ÓLÁ?")
-    assert :"ÓLÁ!" = Code.string_to_quoted!(":ÓLÁ!")
-    assert :"ÓL@!" = Code.string_to_quoted!(":ÓL@!")
-    assert :"Ó@@!" = Code.string_to_quoted!(":Ó@@!")
-    assert @hello_world = Code.string_to_quoted!(":こんにちは世界")
-    assert {:error, _} = Code.string_to_quoted(":123")
-    assert {:error, _} = Code.string_to_quoted(":@123")
-  end
-
-  test "tokenizes keywords" do
-    assert ["_12": 0] = Code.string_to_quoted!("[_12: 0]")
-    assert ["ola": 0] = Code.string_to_quoted!("[ola: 0]")
-    assert ["ólá": 0] = Code.string_to_quoted!("[ólá: 0]")
-    assert ["ólá?": 0] = Code.string_to_quoted!("[ólá?: 0]")
-    assert ["ólá!": 0] = Code.string_to_quoted!("[ólá!: 0]")
-    assert ["ól@": 0] = Code.string_to_quoted!("[ól@: 0]")
-    assert ["ól@!": 0] = Code.string_to_quoted!("[ól@!: 0]")
-    assert ["ó@@!": 0] = Code.string_to_quoted!("[ó@@!: 0]")
-    assert ["Ola": 0] = Code.string_to_quoted!("[Ola: 0]")
-    assert ["Ólá": 0] = Code.string_to_quoted!("[Ólá: 0]")
-    assert ["ÓLÁ": 0] = Code.string_to_quoted!("[ÓLÁ: 0]")
-    assert ["ÓLÁ?": 0] = Code.string_to_quoted!("[ÓLÁ?: 0]")
-    assert ["ÓLÁ!": 0] = Code.string_to_quoted!("[ÓLÁ!: 0]")
-    assert ["ÓL@!": 0] = Code.string_to_quoted!("[ÓL@!: 0]")
-    assert ["Ó@@!": 0] = Code.string_to_quoted!("[Ó@@!: 0]")
-    assert [{@hello_world, 0}] = Code.string_to_quoted!("[こんにちは世界: 0]")
-    assert {:error, _} = Code.string_to_quoted("[123: 0]")
-    assert {:error, _} = Code.string_to_quoted("[@123: 0]")
-  end
-
-  test "tokenizes aliases" do
-    assert {:__aliases__, _, [:Ola]} = Code.string_to_quoted!("Ola")
-    assert {:__aliases__, _, [:M_123]} = Code.string_to_quoted!("M_123")
-    assert {:error, _} = Code.string_to_quoted("Óla")
-    assert {:error, _} = Code.string_to_quoted("Olá")
-    assert {:error, _} = Code.string_to_quoted("Ol@")
-    assert {:error, _} = Code.string_to_quoted("Ola?")
-    assert {:error, _} = Code.string_to_quoted("Ola!")
-  end
-end
 end
