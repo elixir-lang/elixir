@@ -181,7 +181,7 @@ defmodule String.Break do
         defp do_trim_trailing_s(unquote(cp)), do: <<>>
 
       1 ->
-        defp do_trim_trailing_l(<<unquote(cp), unquote(cp), unquote(cp)>>),do: -3
+        defp do_trim_trailing_l(<<unquote(cp), unquote(cp), unquote(cp)>>), do: -3
         defp do_trim_trailing_l(<<_, unquote(cp), unquote(cp)>>), do: -2
         defp do_trim_trailing_l(<<_, _, unquote(cp)>>), do: -1
 
