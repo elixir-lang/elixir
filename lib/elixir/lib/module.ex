@@ -905,45 +905,48 @@ defmodule Module do
 
     check_impls_for_overridable(module, tuples)
 
-    :lists.foreach(
-      fn
-        {function_name, arity} = tuple
-        when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
-          case :elixir_def.take_definition(module, tuple) do
-            false ->
-              raise ArgumentError,
-                    "cannot make function #{function_name}/#{arity} overridable because it was not defined"
+    func = fn
+      {function_name, arity} = tuple
+      when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
+        case :elixir_def.take_definition(module, tuple) do
+          false ->
+            error_message =
+              "cannot make function #{function_name}/#{arity} overridable because it was not defined"
 
-            clause ->
-              neighbours =
-                if :elixir_config.get(:bootstrap) do
-                  []
-                else
-                  Module.LocalsTracker.yank(module, tuple)
-                end
+            raise ArgumentError, error_message
 
-              overridable_definitions = :elixir_overridable.overridable(module)
+          clause ->
+            neighbours =
+              if :elixir_config.get(:bootstrap) do
+                []
+              else
+                Module.LocalsTracker.yank(module, tuple)
+              end
 
-              count =
-                case :maps.find(tuple, overridable_definitions) do
-                  {:ok, {count, _, _, _}} -> count + 1
-                  :error -> 1
-                end
+            overridable_definitions = :elixir_overridable.overridable(module)
 
-              overridable_definitions =
-                :maps.put(tuple, {count, clause, neighbours, false}, overridable_definitions)
+            count =
+              case :maps.find(tuple, overridable_definitions) do
+                {:ok, {count, _, _, _}} -> count + 1
+                :error -> 1
+              end
 
-              :elixir_overridable.overridable(module, overridable_definitions)
-          end
+            overridable_definitions =
+              :maps.put(tuple, {count, clause, neighbours, false}, overridable_definitions)
 
-        other ->
-          raise ArgumentError,
-                "each element in tuple list has to be a {function_name :: atom, arity :: 0..255} tuple, got: #{
-                  inspect(other)
-                }"
-      end,
-      tuples
-    )
+            :elixir_overridable.overridable(module, overridable_definitions)
+        end
+
+      other ->
+        error_message =
+          "each element in tuple list has to be a {function_name :: atom, arity :: 0..255} tuple, got: #{
+            inspect(other)
+          }"
+
+        raise ArgumentError, error_message
+    end
+
+    :lists.foreach(func, tuples)
   end
 
   @spec make_overridable(module, module) :: :ok
@@ -953,10 +956,12 @@ defmodule Module do
         :ok
 
       {:error, error_explanation} ->
-        raise ArgumentError,
-              "cannot pass module #{inspect(behaviour)} as argument to defoverridable/1 because #{
-                error_explanation
-              }"
+        error_message =
+          "cannot pass module #{inspect(behaviour)} as argument to defoverridable/1 because #{
+            error_explanation
+          }"
+
+        raise ArgumentError, error_message
     end
 
     behaviour_callbacks =
@@ -996,10 +1001,13 @@ defmodule Module do
         {:error, "it does not define any callbacks"}
 
       behaviour not in behaviour_definitions ->
-        {
-          :error,
+        error_message =
           "its corresponding behaviour is missing. Did you forget to " <>
             "add @behaviour #{inspect(behaviour)}?"
+
+        {
+          :error,
+          error_message
         }
 
       true ->
@@ -1224,12 +1232,11 @@ defmodule Module do
         :ok
 
       {:error, :private_doc} ->
-        :elixir_errors.warn(
-          line,
-          env.file,
+        error_message =
           "#{kind} #{name}/#{arity} is private, " <>
             "@doc attribute is always discarded for private functions/macros/types"
-        )
+
+        :elixir_errors.warn(line, env.file, error_message)
     end
 
     :ok
@@ -1413,11 +1420,11 @@ defmodule Module do
 
       [] when is_list(stack) ->
         # TODO: Consider raising instead of warning on v2.0 as it usually cascades
-        IO.warn(
+        error_message =
           "undefined module attribute @#{key}, " <>
-            "please remove access to @#{key} or explicitly set it before access",
-          stack
-        )
+            "please remove access to @#{key} or explicitly set it before access"
+
+        IO.warn(error_message, stack)
 
         nil
 
@@ -1437,11 +1444,11 @@ defmodule Module do
     # TODO: Remove on Elixir v2.0
     case value do
       {:parse_transform, _} when key == :compile and is_list(stack) ->
-        IO.warn(
+        error_message =
           "@compile {:parse_transform, _} is deprecated. " <>
-            "Elixir will no longer support Erlang-based transforms in future versions",
-          stack
-        )
+            "Elixir will no longer support Erlang-based transforms in future versions"
+
+        IO.warn(error_message, stack)
 
       _ ->
         :ok
@@ -1471,15 +1478,19 @@ defmodule Module do
         value
 
       {line, doc} when is_integer(line) ->
-        raise ArgumentError,
-              "expected the #{key} attribute to contain a binary, a boolean, or nil, got: #{
-                inspect(doc)
-              }"
+        error_message =
+          "expected the #{key} attribute to contain a binary, a boolean, or nil, got: #{
+            inspect(doc)
+          }"
+
+        raise ArgumentError, error_message
 
       _other ->
-        raise ArgumentError,
-              "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
-                "a binary, a boolean, or nil), got: #{inspect(value)}"
+        error_message =
+          "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
+            "a binary, a boolean, or nil), got: #{inspect(value)}"
+
+        raise ArgumentError, error_message
     end
   end
 
@@ -1492,9 +1503,11 @@ defmodule Module do
         tuple
 
       other ->
-        raise ArgumentError,
-              "expected the @on_load attribute to be an atom or a " <>
-                "{atom, 0} tuple, got: #{inspect(other)}"
+        error_message =
+          "expected the @on_load attribute to be an atom or a " <>
+            "{atom, 0} tuple, got: #{inspect(other)}"
+
+        raise ArgumentError, error_message
     end
   end
 
@@ -1509,10 +1522,10 @@ defmodule Module do
         value
 
       other ->
-        raise ArgumentError,
-              "expected the @impl attribute to contain a module or a boolean, got: #{
-                inspect(other)
-              }"
+        error_message =
+          "expected the @impl attribute to contain a module or a boolean, got: #{inspect(other)}"
+
+        raise ArgumentError, error_message
     end
   end
 
