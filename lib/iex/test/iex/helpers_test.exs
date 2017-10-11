@@ -903,32 +903,26 @@ defmodule IEx.HelpersTest do
 
   describe "i" do
     test "prints information about the data type" do
-      output = capture_io(fn -> i(:ok) end)
-
-      assert output =~
-               String.trim_trailing("""
-               Term
-                 :ok
-               Data type
-                 Atom
-               Reference modules
-                 Atom
-               """)
+      assert capture_io(fn -> i(:ok) end) =~ """
+             Term
+               :ok
+             Data type
+               Atom
+             Reference modules
+               Atom\
+             """
     end
 
     test "handles functions that don't display result" do
-      output = capture_io(fn -> i(IEx.dont_display_result()) end)
-
-      assert output =~
-               String.trim_trailing("""
-               Term
-                 :"do not show this result in output"
-               Data type
-                 Atom
-               Description
-                 This atom is returned by IEx when a function that should not print its
-                 return value on screen is executed.
-               """)
+      assert capture_io(fn -> i(IEx.dont_display_result()) end) =~ """
+             Term
+               :"do not show this result in output"
+             Data type
+               Atom
+             Description
+               This atom is returned by IEx when a function that should not print its
+               return value on screen is executed.\
+             """
     end
   end
 
