@@ -177,6 +177,10 @@ defmodule Mix.Tasks.Format do
     end
 
     {not_equivalent, not_formatted}
+  rescue
+    e ->
+      Mix.shell().error("mix format failed when parsing file: #{file}")
+      reraise e, System.stacktrace()
   end
 
   defp check!({[], []}) do
