@@ -1,9 +1,17 @@
 defmodule Kernel.CLI do
   @moduledoc false
 
-  @blank_config %{commands: [], output: ".", compile: [],
-                  halt: true, compiler_options: [], errors: [],
-                  pa: [], pz: [], verbose_compile: false}
+  @blank_config %{
+    commands: [],
+    output: ".",
+    compile: [],
+    halt: true,
+    compiler_options: [],
+    errors: [],
+    pa: [],
+    pz: [],
+    verbose_compile: false
+  }
 
   @doc """
   This is the API invoked by Elixir boot process.
@@ -14,14 +22,16 @@ defmodule Kernel.CLI do
     {config, argv} = parse_argv(argv)
     System.argv(argv)
 
-    run fn _ ->
+    fun = fn _ ->
       errors = process_commands(config)
 
       if errors != [] do
         Enum.each(errors, &IO.puts(:stderr, &1))
         System.halt(1)
       end
-    end, config.halt
+    end
+
+    run(fun, config.halt)
   end
 
   @doc """
@@ -34,6 +44,7 @@ defmodule Kernel.CLI do
   """
   def run(fun, halt \\ true) do
     {ok_or_shutdown, status} = exec_fun(fun, {:ok, 0})
+
     if ok_or_shutdown == :shutdown or halt do
       {_, status} = at_exit({ok_or_shutdown, status})
 
@@ -55,21 +66,25 @@ defmodule Kernel.CLI do
   @doc false
   def process_commands(config) do
     results = Enum.map(Enum.reverse(config.commands), &process_command(&1, config))
-    errors  = for {:error, msg} <- results, do: msg
+    errors = for {:error, msg} <- results, do: msg
     Enum.reverse(config.errors, errors)
   end
 
   @doc false
   def format_error(kind, reason, stacktrace) do
     {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
+
     iodata =
       case blamed do
         %FunctionClauseError{} ->
-          [Exception.format_banner(kind, reason, stacktrace),
-           pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))]
+          formatted = Exception.format_banner(kind, reason, stacktrace)
+          padded_blame = pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))
+          [formatted, padded_blame]
+
         _ ->
           Exception.format_banner(kind, blamed, stacktrace)
       end
+
     [iodata, ?\n, Exception.format_stacktrace(prune_stacktrace(stacktrace))]
   end
 
@@ -90,22 +105,24 @@ defmodule Kernel.CLI do
           fun.(elem(res, 1))
         catch
           :exit, {:shutdown, int} when is_integer(int) ->
-            send parent, {self(), {:shutdown, int}}
+            send(parent, {self(), {:shutdown, int}})
             exit({:shutdown, int})
+
           :exit, reason
-              when reason == :normal
-              when reason == :shutdown
-              when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown ->
-            send parent, {self(), {:shutdown, 0}}
+          when reason == :normal
+          when reason == :shutdown
+          when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown ->
+            send(parent, {self(), {:shutdown, 0}})
             exit(reason)
+
           kind, reason ->
-            stack = System.stacktrace
+            stack = System.stacktrace()
             print_error(kind, reason, stack)
-            send parent, {self(), {:shutdown, 1}}
+            send(parent, {self(), {:shutdown, 1}})
             exit(to_exit(kind, reason, stack))
         else
           _ ->
-            send parent, {self(), res}
+            send(parent, {self(), res})
         end
       end)
 
@@ -113,6 +130,7 @@ defmodule Kernel.CLI do
       {^pid, res} ->
         :erlang.demonitor(ref, [:flush])
         res
+
       {:DOWN, ^ref, _, _, other} ->
         print_error({:EXIT, pid}, other, [])
         {:shutdown, 1}
@@ -128,6 +146,7 @@ defmodule Kernel.CLI do
       {[h | hs], _} when h == hd(list) ->
         new_config = %{config | errors: ["#{h} : Unknown option" | config.errors]}
         callback.(hs, new_config)
+
       {new_list, new_config} ->
         callback.(new_list, new_config)
     end
@@ -136,18 +155,15 @@ defmodule Kernel.CLI do
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    IO.write :stderr, format_error(kind, reason, stacktrace)
+    IO.write(:stderr, format_error(kind, reason, stacktrace))
   end
 
-  defp blame_match(%{match?: true, node: node}, _),
-    do: blame_ansi(:normal, "+", node)
-  defp blame_match(%{match?: false, node: node}, _),
-    do: blame_ansi(:red, "-", node)
-  defp blame_match(_, string),
-    do: string
+  defp blame_match(%{match?: true, node: node}, _), do: blame_ansi(:normal, "+", node)
+  defp blame_match(%{match?: false, node: node}, _), do: blame_ansi(:red, "-", node)
+  defp blame_match(_, string), do: string
 
   defp blame_ansi(color, no_ansi, node) do
-    if IO.ANSI.enabled? do
+    if IO.ANSI.enabled?() do
       [color | Macro.to_string(node)]
       |> IO.ANSI.format(true)
       |> IO.iodata_to_binary()
@@ -160,9 +176,20 @@ defmodule Kernel.CLI do
     "    " <> String.replace(string, "\n", "\n    ")
   end
 
-  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module,
-                     :elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map,
-                     :elixir_erl, :elixir_erl_clauses, :elixir_erl_pass, Kernel.ErrorHandler]
+  @elixir_internals [
+    :elixir,
+    :elixir_expand,
+    :elixir_compiler,
+    :elixir_module,
+    :elixir_clauses,
+    :elixir_lexical,
+    :elixir_def,
+    :elixir_map,
+    :elixir_erl,
+    :elixir_erl_clauses,
+    :elixir_erl_pass,
+    Kernel.ErrorHandler
+  ]
 
   defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
     prune_stacktrace(t)
@@ -183,54 +210,63 @@ defmodule Kernel.CLI do
   # Parse shared options
 
   defp parse_shared([opt | _t], _config) when opt in ["-v", "--version"] do
-    if function_exported?(IEx, :started?, 0) and IEx.started? do
-      IO.puts "IEx " <> System.build_info[:build]
+    if function_exported?(IEx, :started?, 0) and IEx.started?() do
+      IO.puts("IEx " <> System.build_info()[:build])
     else
-      IO.puts :erlang.system_info(:system_version)
-      IO.puts "Elixir " <> System.build_info[:build]
+      IO.puts(:erlang.system_info(:system_version))
+      IO.puts("Elixir " <> System.build_info()[:build])
     end
 
-    System.halt 0
+    System.halt(0)
   end
 
   defp parse_shared(["-pa", h | t], config) do
     paths = expand_code_path(h)
     Enum.each(paths, &:code.add_patha/1)
-    parse_shared t, %{config | pa: config.pa ++ paths}
+    parse_shared(t, %{config | pa: config.pa ++ paths})
   end
 
   defp parse_shared(["-pz", h | t], config) do
     paths = expand_code_path(h)
     Enum.each(paths, &:code.add_pathz/1)
-    parse_shared t, %{config | pz: config.pz ++ paths}
+    parse_shared(t, %{config | pz: config.pz ++ paths})
   end
 
   defp parse_shared(["--app", h | t], config) do
-    parse_shared t, %{config | commands: [{:app, h} | config.commands]}
+    parse_shared(t, %{config | commands: [{:app, h} | config.commands]})
   end
 
   defp parse_shared(["--no-halt" | t], config) do
-    parse_shared t, %{config | halt: false}
+    parse_shared(t, %{config | halt: false})
   end
 
   defp parse_shared(["-e", h | t], config) do
-    parse_shared t, %{config | commands: [{:eval, h} | config.commands]}
+    parse_shared(t, %{config | commands: [{:eval, h} | config.commands]})
   end
 
   defp parse_shared(["-r", h | t], config) do
-    parse_shared t, %{config | commands: [{:require, h} | config.commands]}
+    parse_shared(t, %{config | commands: [{:require, h} | config.commands]})
   end
 
   defp parse_shared(["-pr", h | t], config) do
-    parse_shared t, %{config | commands: [{:parallel_require, h} | config.commands]}
+    parse_shared(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
-  defp parse_shared([erl, _ | t], config) when erl in ["--erl", "--sname", "--name", "--cookie", "--logger-otp-reports", "--logger-sasl-reports"] do
-    parse_shared t, config
+  @erl_shared_options [
+    "--erl",
+    "--sname",
+    "--name",
+    "--cookie",
+    "--logger-otp-reports",
+    "--logger-sasl-reports"
+  ]
+
+  defp parse_shared([erl, _ | t], config) when erl in @erl_shared_options do
+    parse_shared(t, config)
   end
 
   defp parse_shared([erl | t], config) when erl in ["--detached", "--hidden", "--werl"] do
-    parse_shared t, config
+    parse_shared(t, config)
   end
 
   defp parse_shared(list, config) do
@@ -239,8 +275,9 @@ defmodule Kernel.CLI do
 
   defp expand_code_path(path) do
     path = Path.expand(path)
+
     case Path.wildcard(path) do
-      []   -> [to_charlist(path)]
+      [] -> [to_charlist(path)]
       list -> Enum.map(list, &to_charlist/1)
     end
   end
@@ -252,11 +289,11 @@ defmodule Kernel.CLI do
   end
 
   defp parse_argv(["+elixirc" | t], config) do
-    parse_compiler t, config
+    parse_compiler(t, config)
   end
 
   defp parse_argv(["+iex" | t], config) do
-    parse_iex t, config
+    parse_iex(t, config)
   end
 
   defp parse_argv(["-S", h | t], config) do
@@ -266,7 +303,8 @@ defmodule Kernel.CLI do
   defp parse_argv([h | t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, &parse_argv(&1, &2)
+        shared_option?(list, config, &parse_argv(&1, &2))
+
       _ ->
         if Keyword.has_key?(config.commands, :eval) do
           {config, list}
@@ -287,36 +325,40 @@ defmodule Kernel.CLI do
   end
 
   defp parse_compiler(["-o", h | t], config) do
-    parse_compiler t, %{config | output: h}
+    parse_compiler(t, %{config | output: h})
   end
 
   defp parse_compiler(["--no-docs" | t], config) do
-    parse_compiler t, %{config | compiler_options: [{:docs, false} | config.compiler_options]}
+    parse_compiler(t, %{config | compiler_options: [{:docs, false} | config.compiler_options]})
   end
 
   defp parse_compiler(["--no-debug-info" | t], config) do
-    parse_compiler t, %{config | compiler_options: [{:debug_info, false} | config.compiler_options]}
+    compiler_options = [{:debug_info, false} | config.compiler_options]
+    parse_compiler(t, %{config | compiler_options: compiler_options})
   end
 
   defp parse_compiler(["--ignore-module-conflict" | t], config) do
-    parse_compiler t, %{config | compiler_options: [{:ignore_module_conflict, true} | config.compiler_options]}
+    compiler_options = [{:ignore_module_conflict, true} | config.compiler_options]
+    parse_compiler(t, %{config | compiler_options: compiler_options})
   end
 
   defp parse_compiler(["--warnings-as-errors" | t], config) do
-    parse_compiler t, %{config | compiler_options: [{:warnings_as_errors, true} | config.compiler_options]}
+    compiler_options = [{:warnings_as_errors, true} | config.compiler_options]
+    parse_compiler(t, %{config | compiler_options: compiler_options})
   end
 
   defp parse_compiler(["--verbose" | t], config) do
-    parse_compiler t, %{config | verbose_compile: true}
+    parse_compiler(t, %{config | verbose_compile: true})
   end
 
   defp parse_compiler([h | t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, &parse_compiler(&1, &2)
+        shared_option?(list, config, &parse_compiler(&1, &2))
+
       _ ->
         pattern = if File.dir?(h), do: "#{h}/**/*.ex", else: h
-        parse_compiler t, %{config | compile: [pattern | config.compile]}
+        parse_compiler(t, %{config | compile: [pattern | config.compile]})
     end
   end
 
@@ -333,11 +375,11 @@ defmodule Kernel.CLI do
   # This clause is here so that Kernel.CLI does not
   # error out with "unknown option"
   defp parse_iex(["--dot-iex", _ | t], config) do
-    parse_iex t, config
+    parse_iex(t, config)
   end
 
   defp parse_iex([opt, _ | t], config) when opt in ["--remsh"] do
-    parse_iex t, config
+    parse_iex(t, config)
   end
 
   defp parse_iex(["-S", h | t], config) do
@@ -347,7 +389,8 @@ defmodule Kernel.CLI do
   defp parse_iex([h | t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, &parse_iex(&1, &2)
+        shared_option?(list, config, &parse_iex(&1, &2))
+
       _ ->
         {%{config | commands: [{:file, h} | config.commands]}, t}
     end
@@ -360,22 +403,23 @@ defmodule Kernel.CLI do
   # Process commands
 
   defp process_command({:cookie, h}, _config) do
-    if Node.alive? do
-      wrapper fn -> Node.set_cookie(String.to_atom(h)) end
+    if Node.alive?() do
+      wrapper(fn -> Node.set_cookie(String.to_atom(h)) end)
     else
       {:error, "--cookie : Cannot set cookie if the node is not alive (set --name or --sname)"}
     end
   end
 
   defp process_command({:eval, expr}, _config) when is_binary(expr) do
-    wrapper fn -> Code.eval_string(expr, []) end
+    wrapper(fn -> Code.eval_string(expr, []) end)
   end
 
   defp process_command({:app, app}, _config) when is_binary(app) do
     case Application.ensure_all_started(String.to_atom(app)) do
       {:error, {app, reason}} ->
-        {:error, "--app : Could not start application #{app}: " <>
-          Application.format_error(reason)}
+        msg = "--app : Could not start application #{app}: " <> Application.format_error(reason)
+        {:error, msg}
+
       {:ok, _} ->
         :ok
     end
@@ -383,7 +427,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:script, file}, _config) when is_binary(file) do
     if exec = find_elixir_executable(file) do
-      wrapper fn -> Code.require_file(exec) end
+      wrapper(fn -> Code.require_file(exec) end)
     else
       {:error, "-S : Could not find executable #{file}"}
     end
@@ -391,7 +435,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:file, file}, _config) when is_binary(file) do
     if File.regular?(file) do
-      wrapper fn -> Code.require_file(file) end
+      wrapper(fn -> Code.require_file(file) end)
     else
       {:error, "No file named #{file}"}
     end
@@ -401,7 +445,7 @@ defmodule Kernel.CLI do
     files = filter_patterns(pattern)
 
     if files != [] do
-      wrapper fn -> Enum.map files, &Code.require_file(&1) end
+      wrapper(fn -> Enum.map(files, &Code.require_file(&1)) end)
     else
       {:error, "-r : No files matched pattern #{pattern}"}
     end
@@ -411,12 +455,12 @@ defmodule Kernel.CLI do
     files = filter_patterns(pattern)
 
     if files != [] do
-      wrapper fn ->
+      wrapper(fn ->
         case Kernel.ParallelCompiler.require(files) do
           {:ok, _, _} -> :ok
           {:error, _, _} -> exit({:shutdown, 1})
         end
-      end
+      end)
     else
       {:error, "-pr : No files matched pattern #{pattern}"}
     end
@@ -429,20 +473,24 @@ defmodule Kernel.CLI do
     case filter_multiple_patterns(patterns) do
       {:ok, []} ->
         {:error, "No files matched provided patterns"}
+
       {:ok, files} ->
-        wrapper fn ->
+        wrapper(fn ->
           Code.compiler_options(config.compiler_options)
+
           opts =
             if config.verbose_compile do
               [each_long_compilation: &IO.puts("Compiling #{&1} (it's taking more than 5s)")]
             else
               []
             end
+
           case Kernel.ParallelCompiler.compile_to_path(files, config.output, opts) do
             {:ok, _, _} -> :ok
             {:error, _, _} -> exit({:shutdown, 1})
           end
-        end
+        end)
+
       {:missing, missing} ->
         {:error, "No files matched pattern(s) #{Enum.join(missing, ",")}"}
     end
@@ -450,23 +498,23 @@ defmodule Kernel.CLI do
 
   defp filter_patterns(pattern) do
     pattern
-    |> Path.wildcard
-    |> :lists.usort
+    |> Path.wildcard()
+    |> :lists.usort()
     |> Enum.filter(&File.regular?/1)
   end
 
   defp filter_multiple_patterns(patterns) do
     {files, missing} =
-      Enum.reduce patterns, {[], []}, fn pattern, {files, missing} ->
+      Enum.reduce(patterns, {[], []}, fn pattern, {files, missing} ->
         case filter_patterns(pattern) do
           [] -> {files, [pattern | missing]}
           match -> {match ++ files, missing}
         end
-      end
+      end)
 
     case missing do
       [] -> {:ok, :lists.usort(files)}
-      _  -> {:missing, :lists.usort(missing)}
+      _ -> {:missing, :lists.usort(missing)}
     end
   end
 
@@ -484,6 +532,7 @@ defmodule Kernel.CLI do
         {:win32, _} ->
           base = Path.rootname(exec)
           if File.regular?(base), do: base, else: exec
+
         _ ->
           exec
       end
