@@ -176,20 +176,9 @@ defmodule Kernel.CLI do
     "    " <> String.replace(string, "\n", "\n    ")
   end
 
-  @elixir_internals [
-    :elixir,
-    :elixir_expand,
-    :elixir_compiler,
-    :elixir_module,
-    :elixir_clauses,
-    :elixir_lexical,
-    :elixir_def,
-    :elixir_map,
-    :elixir_erl,
-    :elixir_erl_clauses,
-    :elixir_erl_pass,
-    Kernel.ErrorHandler
-  ]
+  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
+                      [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
+                      [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass, Kernel.ErrorHandler]
 
   defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @elixir_internals do
     prune_stacktrace(t)
@@ -252,20 +241,14 @@ defmodule Kernel.CLI do
     parse_shared(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
-  @erl_shared_options [
-    "--erl",
-    "--sname",
-    "--name",
-    "--cookie",
-    "--logger-otp-reports",
-    "--logger-sasl-reports"
-  ]
+  @erl_arg_options ~w(--erl --sname --name --cookie --logger-otp-reports --logger-sasl-reports)
+  @erl_boolean_options ~w(--detached --hidden --werl)
 
-  defp parse_shared([erl, _ | t], config) when erl in @erl_shared_options do
+  defp parse_shared([erl, _ | t], config) when erl in @erl_arg_options do
     parse_shared(t, config)
   end
 
-  defp parse_shared([erl | t], config) when erl in ["--detached", "--hidden", "--werl"] do
+  defp parse_shared([erl | t], config) when erl in @erl_boolean_options do
     parse_shared(t, config)
   end
 
@@ -388,11 +371,8 @@ defmodule Kernel.CLI do
 
   defp parse_iex([h | t] = list, config) do
     case h do
-      "-" <> _ ->
-        shared_option?(list, config, &parse_iex(&1, &2))
-
-      _ ->
-        {%{config | commands: [{:file, h} | config.commands]}, t}
+      "-" <> _ -> shared_option?(list, config, &parse_iex(&1, &2))
+      _ -> {%{config | commands: [{:file, h} | config.commands]}, t}
     end
   end
 

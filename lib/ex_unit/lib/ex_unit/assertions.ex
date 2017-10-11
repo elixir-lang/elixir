@@ -411,23 +411,22 @@ defmodule ExUnit.Assertions do
           quote(do: unquote(left) = received)
       end
 
+    quoted_pattern =
+      quote do
+        case message do
+          unquote(pattern) ->
+            _ = unquote(vars)
+            true
+
+          _ ->
+            false
+        end
+      end
+
     pattern_finder =
       quote do
         fn message ->
-          unquote(
-            suppress_warning(
-              quote do
-                case message do
-                  unquote(pattern) ->
-                    _ = unquote(vars)
-                    true
-
-                  _ ->
-                    false
-                end
-              end
-            )
-          )
+          unquote(suppress_warning(quoted_pattern))
         end
       end
 
@@ -563,8 +562,8 @@ defmodule ExUnit.Assertions do
 
   defp suppress_warning({name, meta, [expr, [do: clauses]]}) do
     clauses =
-      Enum.map(clauses, fn {:"->", meta, args} ->
-        {:"->", [generated: true] ++ meta, args}
+      Enum.map(clauses, fn {:->, meta, args} ->
+        {:->, [generated: true] ++ meta, args}
       end)
 
     {name, meta, [expr, [do: clauses]]}
@@ -659,7 +658,7 @@ defmodule ExUnit.Assertions do
   @doc """
   Asserts that `value1` and `value2` differ by no more than `delta`.
 
-  
+
   ## Examples
 
       assert_in_delta 1.1, 1.5, 0.2
