@@ -546,7 +546,8 @@ defmodule Application do
     catch
       # A user could create an error that looks like a built-in one
       # causing an error.
-      :error, _ ->
+      :error,
+      _ ->
         inspect(reason)
     end
   end
