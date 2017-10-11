@@ -58,7 +58,7 @@ defmodule Mix.RebarTest do
   end
 
   @git_rebar_charlist '../../test/fixtures/git_rebar'
-  @git_rebar_string @git_rebar_string
+  @git_rebar_string "../../test/fixtures/git_rebar"
 
   describe "deps/1" do
     test "parses Rebar dependencies" do
