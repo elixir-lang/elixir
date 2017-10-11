@@ -222,12 +222,7 @@ defmodule OptionParserTest do
   end
 
   test "parses more than one key/value options using strict" do
-    opts = [
-      strict: [
-        source: :string,
-        docs: :string
-      ]
-    ]
+    opts = [strict: [source: :string, docs: :string]]
 
     options = OptionParser.parse(["--source", "from_docs/", "--docs", "show"], opts)
     assert options == {[source: "from_docs/", docs: "show"], [], []}
@@ -291,13 +286,7 @@ defmodule OptionParserTest do
   test "correctly handles negative integers" do
     assert OptionParser.parse(["arg1", "-43"]) == {[], ["arg1", "-43"], []}
 
-    opts = [
-      switches: [option: :integer],
-      aliases: [
-        o: :option
-      ]
-    ]
-
+    opts = [switches: [option: :integer], aliases: [o: :option]]
     assert OptionParser.parse(["arg1", "-o", "-43"], opts) == {[option: -43], ["arg1"], []}
 
     assert OptionParser.parse(["arg1", "--option=-43"], switches: [option: :integer]) ==
@@ -307,13 +296,7 @@ defmodule OptionParserTest do
   test "correctly handles negative floating-point numbers" do
     assert OptionParser.parse(["arg1", "-43.2"]) == {[], ["arg1", "-43.2"], []}
 
-    opts = [
-      switches: [option: :float],
-      aliases: [
-        o: :option
-      ]
-    ]
-
+    opts = [switches: [option: :float], aliases: [o: :option]]
     assert OptionParser.parse(["arg1", "-o", "-43.2"], opts) == {[option: -43.2], ["arg1"], []}
 
     assert OptionParser.parse(["arg1", "--option=-43.2"], switches: [option: :float]) ==
