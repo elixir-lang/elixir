@@ -22,17 +22,16 @@ defmodule Kernel.CLI do
     {config, argv} = parse_argv(argv)
     System.argv(argv)
 
-    run(
-      fn _ ->
-        errors = process_commands(config)
+    fun = fn _ ->
+      errors = process_commands(config)
 
-        if errors != [] do
-          Enum.each(errors, &IO.puts(:stderr, &1))
-          System.halt(1)
-        end
-      end,
-      config.halt
-    )
+      if errors != [] do
+        Enum.each(errors, &IO.puts(:stderr, &1))
+        System.halt(1)
+      end
+    end
+
+    run(fun, config.halt)
   end
 
   @doc """
