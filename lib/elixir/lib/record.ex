@@ -356,11 +356,9 @@ defmodule Record do
         update(tag, fields, record, args, caller)
 
       true ->
-        msg =
-          "expected arguments to be a compile time atom or a keyword list, got: " <>
-            Macro.to_string(args)
-
-        raise ArgumentError, msg
+        raise ArgumentError,
+              "expected arguments to be a compile time atom or a keyword list, got: " <>
+                Macro.to_string(args)
     end
   end
 
@@ -450,18 +448,14 @@ defmodule Record do
           kv
 
         expected_fields ->
-          msg =
-            "expected argument to be a #{inspect(tag)} record with #{expected_fields} fields, got: " <>
-              inspect(record)
-
-          raise ArgumentError, msg
+          raise ArgumentError,
+                "expected argument to be a #{inspect(tag)} record with " <>
+                  "#{expected_fields} fields, got: " <> inspect(record)
       end
     else
-      msg =
-        "expected argument to be a literal atom, literal keyword or a #{inspect(tag)} record, got runtime: " <>
-          inspect(record)
-
-      raise ArgumentError, msg
+      raise ArgumentError,
+            "expected argument to be a literal atom, literal keyword or " <>
+              "a #{inspect(tag)} record, got runtime: " <> inspect(record)
     end
   end
 
@@ -470,7 +464,6 @@ defmodule Record do
     do: join_keyword(fields, values, [{field, value} | acc])
 
   defp join_keyword([], [], acc), do: :lists.reverse(acc)
-  # expected fields
   defp join_keyword(rest_fields, _rest_values, acc), do: length(acc) + length(rest_fields)
 
   defp apply_underscore(fields, keyword) do
