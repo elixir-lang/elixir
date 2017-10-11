@@ -83,6 +83,9 @@ defmodule Code.Formatter do
     use: 1,
     use: 2,
 
+    # Stdlib,
+    defrecord: 2,
+
     # Testing
     all: :*,
     assert: 1,

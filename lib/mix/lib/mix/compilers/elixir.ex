@@ -5,10 +5,9 @@ defmodule Mix.Compilers.Elixir do
 
   import Record
 
-  defrecord(:module, [:module, :kind, :sources, :beam, :binary])
+  defrecord :module, [:module, :kind, :sources, :beam, :binary]
 
-  defrecord(
-    :source,
+  defrecord :source,
     source: nil,
     size: 0,
     compile_references: [],
@@ -17,7 +16,6 @@ defmodule Mix.Compilers.Elixir do
     runtime_dispatches: [],
     external: [],
     warnings: []
-  )
 
   @doc """
   Compiles stale Elixir files.
@@ -61,23 +59,18 @@ defmodule Mix.Compilers.Elixir do
           |> MapSet.to_list()
 
         # Plus the sources that have changed in disk
-        for(
-          source(source: source, external: external, size: size) <- all_sources,
-          {last_mtime, last_size} = Map.fetch!(sources_stats, source),
-          times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
-          size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
-          into: new_paths,
-          do: source
-        )
+        for source(source: source, external: external, size: size) <- all_sources,
+            {last_mtime, last_size} = Map.fetch!(sources_stats, source),
+            times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
+            size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
+            into: new_paths,
+            do: source
       end
 
+    stale_local_deps = stale_local_deps(manifest, modified)
+
     {modules, changed} =
-      update_stale_entries(
-        all_modules,
-        all_sources,
-        removed ++ changed,
-        stale_local_deps(manifest, modified)
-      )
+      update_stale_entries(all_modules, all_sources, removed ++ changed, stale_local_deps)
 
     stale = changed -- removed
     sources = update_stale_sources(all_sources, removed, changed)
@@ -110,11 +103,8 @@ defmodule Mix.Compilers.Elixir do
   """
   def clean(manifest, compile_path) do
     Enum.each(read_manifest(manifest, compile_path), fn
-      module(beam: beam) ->
-        File.rm(beam)
-
-      _ ->
-        :ok
+      module(beam: beam) -> File.rm(beam)
+      _ -> :ok
     end)
   end
 
@@ -160,16 +150,15 @@ defmodule Mix.Compilers.Elixir do
     {:ok, pid} = Agent.start_link(fn -> {modules, sources} end)
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
+    compile_opts = [
+      each_module: &each_module(pid, cwd, &1, &2, &3),
+      each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+      long_compilation_threshold: long_compilation_threshold,
+      dest: dest
+    ]
+
     try do
-      Kernel.ParallelCompiler.compile(
-        stale,
-        [
-          each_module: &each_module(pid, cwd, &1, &2, &3),
-          each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-          long_compilation_threshold: long_compilation_threshold,
-          dest: dest
-        ] ++ extra
-      )
+      Kernel.ParallelCompiler.compile(stale, compile_opts ++ extra)
     after
       Agent.stop(pid, :normal, :infinity)
     else
@@ -296,6 +285,7 @@ defmodule Mix.Compilers.Elixir do
   defp update_stale_sources(sources, removed, changed) do
     # Remove delete sources
     sources = Enum.reduce(removed, sources, &List.keydelete(&2, &1, source(:source)))
+
     # Store empty sources for the changed ones as the compiler appends data
     sources =
       Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
@@ -327,11 +317,9 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp remove_stale_entry(
-         module(module: module, beam: beam, sources: sources) = entry,
-         {rest, stale, changed},
-         sources_records
-       ) do
+  defp remove_stale_entry(entry, {rest, stale, changed}, sources_records) do
+    module(module: module, beam: beam, sources: sources) = entry
+
     {compile_references, runtime_references} =
       Enum.reduce(sources, {[], []}, fn source, {compile_acc, runtime_acc} ->
         source(compile_references: compile_refs, runtime_references: runtime_refs) =
@@ -345,12 +333,8 @@ defmodule Mix.Compilers.Elixir do
       # something stale, I need to be recompiled.
       has_any_key?(changed, sources) or has_any_key?(stale, compile_references) ->
         remove_and_purge(beam, module)
-
-        {
-          rest,
-          Map.put(stale, module, true),
-          Enum.reduce(sources, changed, &Map.put(&2, &1, true))
-        }
+        changed = Enum.reduce(sources, changed, &Map.put(&2, &1, true))
+        {rest, Map.put(stale, module, true), changed}
 
       # If I have a runtime references to something stale,
       # I am stale too.
@@ -405,11 +389,9 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp warning_diagnostics(sources) do
-    Enum.flat_map(sources, fn source(source: source, warnings: warnings) ->
-      for {line, message} <- warnings do
-        diagnostic({Path.absname(source), line, message}, :warning)
-      end
-    end)
+    for source(source: source, warnings: warnings) <- sources,
+        {line, message} <- warnings,
+        do: diagnostic({Path.absname(source), line, message}, :warning)
   end
 
   defp diagnostic({file, line, message}, severity) do
