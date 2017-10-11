@@ -400,12 +400,10 @@ defmodule Date do
 
   """
   @spec compare(Calendar.date(), Calendar.date()) :: :lt | :eq | :gt
-  def compare(%{calendar: calendar, year: year1, month: month1, day: day1}, %{
-        calendar: calendar,
-        year: year2,
-        month: month2,
-        day: day2
-      }) do
+  def compare(%{calendar: calendar} = date1, %{calendar: calendar} = date2) do
+    %{year: year1, month: month1, day: day1} = date1
+    %{year: year2, month: month2, day: day2} = date2
+
     case {{year1, month1, day1}, {year2, month2, day2}} do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
@@ -489,9 +487,8 @@ defmodule Date do
 
       {:error, reason} ->
         raise ArgumentError,
-              "cannot convert #{inspect(date)} to target calendar #{inspect(calendar)}, reason: #{
-                inspect(reason)
-              }"
+              "cannot convert #{inspect(date)} to target calendar #{inspect(calendar)}, " <>
+                "reason: #{inspect(reason)}"
     end
   end
 
@@ -537,12 +534,10 @@ defmodule Date do
 
   """
   @spec diff(Calendar.date(), Calendar.date()) :: integer
-  def diff(%{calendar: Calendar.ISO, year: year1, month: month1, day: day1}, %{
-        calendar: Calendar.ISO,
-        year: year2,
-        month: month2,
-        day: day2
-      }) do
+  def diff(%{calendar: Calendar.ISO} = date1, %{calendar: Calendar.ISO} = date2) do
+    %{year: year1, month: month1, day: day1} = date1
+    %{year: year2, month: month2, day: day2} = date2
+
     Calendar.ISO.date_to_iso_days(year1, month1, day1) -
       Calendar.ISO.date_to_iso_days(year2, month2, day2)
   end

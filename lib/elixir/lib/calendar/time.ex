@@ -434,22 +434,10 @@ defmodule Time do
 
   """
   @spec compare(Calendar.time(), Calendar.time()) :: :lt | :eq | :gt
-  def compare(
-        %{
-          calendar: calendar,
-          hour: hour1,
-          minute: minute1,
-          second: second1,
-          microsecond: {microsecond1, _}
-        },
-        %{
-          calendar: calendar,
-          hour: hour2,
-          minute: minute2,
-          second: second2,
-          microsecond: {microsecond2, _}
-        }
-      ) do
+  def compare(%{calendar: calendar} = time1, %{calendar: calendar} = time2) do
+    %{hour: hour1, minute: minute1, second: second1, microsecond: {microsecond1, _}} = time1
+    %{hour: hour2, minute: minute2, second: second2, microsecond: {microsecond2, _}} = time2
+
     case {{hour1, minute1, second1, microsecond1}, {hour2, minute2, second2, microsecond2}} do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
@@ -485,6 +473,8 @@ defmodule Time do
 
   """
   @spec convert(Calendar.time(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
+
+  # Keep it multiline for proper function clause errors.
   def convert(
         %{
           calendar: calendar,
@@ -609,28 +599,29 @@ defmodule Time do
   end
 
   defimpl String.Chars do
-    def to_string(%{
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          calendar: calendar
-        }) do
+    def to_string(time) do
+      %{
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond,
+        calendar: calendar
+      } = time
+
       calendar.time_to_string(hour, minute, second, microsecond)
     end
   end
 
   defimpl Inspect do
-    def inspect(
-          %{
-            hour: hour,
-            minute: minute,
-            second: second,
-            microsecond: microsecond,
-            calendar: Calendar.ISO
-          },
-          _
-        ) do
+    def inspect(%{calendar: Calendar.ISO} = time, _) do
+      %{
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond,
+        calendar: Calendar.ISO
+      } = time
+
       "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
     end
 
