@@ -192,47 +192,47 @@ defmodule Inspect.Algebra do
 
   @typep doc_string :: {:doc_string, t, non_neg_integer}
   defmacrop doc_string(string, length) do
-    quote(do: {:doc_string, unquote(string), unquote(length)})
+    quote do: {:doc_string, unquote(string), unquote(length)}
   end
 
   @typep doc_cons :: {:doc_cons, t, t}
   defmacrop doc_cons(left, right) do
-    quote(do: {:doc_cons, unquote(left), unquote(right)})
+    quote do: {:doc_cons, unquote(left), unquote(right)}
   end
 
   @typep doc_nest :: {:doc_nest, t, :cursor | :reset | non_neg_integer, :always | :break}
   defmacrop doc_nest(doc, indent, always_or_break) do
-    quote(do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)})
+    quote do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)}
   end
 
   @typep doc_break :: {:doc_break, binary, :flex | :strict}
   defmacrop doc_break(break, mode) do
-    quote(do: {:doc_break, unquote(break), unquote(mode)})
+    quote do: {:doc_break, unquote(break), unquote(mode)}
   end
 
   @typep doc_group :: {:doc_group, t, :inherit | :self}
   defmacrop doc_group(group, mode) do
-    quote(do: {:doc_group, unquote(group), unquote(mode)})
+    quote do: {:doc_group, unquote(group), unquote(mode)}
   end
 
   @typep doc_fits :: {:doc_fits, t, :enabled | :disabled}
   defmacrop doc_fits(group, mode) do
-    quote(do: {:doc_fits, unquote(group), unquote(mode)})
+    quote do: {:doc_fits, unquote(group), unquote(mode)}
   end
 
   @typep doc_force :: {:doc_force, t}
   defmacrop doc_force(group) do
-    quote(do: {:doc_force, unquote(group)})
+    quote do: {:doc_force, unquote(group)}
   end
 
   @typep doc_collapse :: {:doc_collapse, pos_integer()}
   defmacrop doc_collapse(count) do
-    quote(do: {:doc_collapse, unquote(count)})
+    quote do: {:doc_collapse, unquote(count)}
   end
 
   @typep doc_color :: {:doc_color, t, IO.ANSI.ansidata()}
   defmacrop doc_color(doc, color) do
-    quote(do: {:doc_color, unquote(doc), unquote(color)})
+    quote do: {:doc_color, unquote(doc), unquote(color)}
   end
 
   defmacrop is_doc(doc) do
@@ -248,21 +248,22 @@ defmodule Inspect.Algebra do
     end
   end
 
+  @docs [
+    :doc_string,
+    :doc_cons,
+    :doc_nest,
+    :doc_break,
+    :doc_group,
+    :doc_color,
+    :doc_force,
+    :doc_fits,
+    :doc_collapse
+  ]
+
   defp do_is_doc(doc) do
     quote do
       is_binary(unquote(doc)) or unquote(doc) in [:doc_nil, :doc_line] or
-        (is_tuple(unquote(doc)) and
-           elem(unquote(doc), 0) in [
-             :doc_string,
-             :doc_cons,
-             :doc_nest,
-             :doc_break,
-             :doc_group,
-             :doc_color,
-             :doc_force,
-             :doc_fits,
-             :doc_collapse
-           ])
+        (is_tuple(unquote(doc)) and elem(unquote(doc), 0) in unquote(@docs))
     end
   end
 
@@ -832,6 +833,8 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, _) when k > w, do: false
   defp fits?(_, _, []), do: true
 
+  # No fitting
+
   defp fits?(w, k, [{i, _, doc_fits(x, :disabled)} | t]),
     do: fits?(w, k, [{i, :no_fitting, x} | t])
 
@@ -841,6 +844,8 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, [{i, :no_fitting, doc_fits(x, _)} | t]),
     do: fits?(w, k, [{i, :no_fitting, x} | t])
 
+  ## Next fits
+
   defp fits?(w, k, [{i, _, doc_fits(x, :enabled)} | t]), do: fits?(w, k, [{i, :next_fits, x} | t])
   defp fits?(w, k, [{i, :next_fits, doc_force(x)} | t]), do: fits?(w, k, [{i, :next_fits, x} | t])
 
@@ -849,6 +854,8 @@ defmodule Inspect.Algebra do
 
   defp fits?(_, _, [{_, :next_fits, doc_break(_, _)} | _]), do: true
   defp fits?(_, _, [{_, :next_fits, :doc_line} | _]), do: true
+
+  ## Fitting rules
 
   defp fits?(w, k, [{_, _, :doc_nil} | t]), do: fits?(w, k, t)
   defp fits?(w, _, [{i, _, :doc_line} | t]), do: fits?(w, i, t)
