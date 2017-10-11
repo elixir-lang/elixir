@@ -89,13 +89,13 @@ defmodule Mix.Tasks.Compile.Erlang do
     tuples =
       files
       |> scan_sources(include_path, source_paths)
-      |> sort_dependencies
+      |> sort_dependencies()
       |> Enum.map(&annotate_target(&1, compile_path, opts[:force]))
 
     Mix.Compilers.Erlang.compile(manifest(), tuples, opts, fn input, _output ->
       # We're purging the module because a previous compiler (e.g. Phoenix)
       # might have already loaded the previous version of it.
-      module = Path.basename(input, ".erl") |> String.to_atom()
+      module = input |> Path.basename(".erl") |> String.to_atom()
       :code.purge(module)
       :code.delete(module)
 
