@@ -192,47 +192,47 @@ defmodule Inspect.Algebra do
 
   @typep doc_string :: {:doc_string, t, non_neg_integer}
   defmacrop doc_string(string, length) do
-    quote do: {:doc_string, unquote(string), unquote(length)}
+    quote(do: {:doc_string, unquote(string), unquote(length)})
   end
 
   @typep doc_cons :: {:doc_cons, t, t}
   defmacrop doc_cons(left, right) do
-    quote do: {:doc_cons, unquote(left), unquote(right)}
+    quote(do: {:doc_cons, unquote(left), unquote(right)})
   end
 
   @typep doc_nest :: {:doc_nest, t, :cursor | :reset | non_neg_integer, :always | :break}
   defmacrop doc_nest(doc, indent, always_or_break) do
-    quote do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)}
+    quote(do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)})
   end
 
   @typep doc_break :: {:doc_break, binary, :flex | :strict}
   defmacrop doc_break(break, mode) do
-    quote do: {:doc_break, unquote(break), unquote(mode)}
+    quote(do: {:doc_break, unquote(break), unquote(mode)})
   end
 
   @typep doc_group :: {:doc_group, t, :inherit | :self}
   defmacrop doc_group(group, mode) do
-    quote do: {:doc_group, unquote(group), unquote(mode)}
+    quote(do: {:doc_group, unquote(group), unquote(mode)})
   end
 
   @typep doc_fits :: {:doc_fits, t, :enabled | :disabled}
   defmacrop doc_fits(group, mode) do
-    quote do: {:doc_fits, unquote(group), unquote(mode)}
+    quote(do: {:doc_fits, unquote(group), unquote(mode)})
   end
 
   @typep doc_force :: {:doc_force, t}
   defmacrop doc_force(group) do
-    quote do: {:doc_force, unquote(group)}
+    quote(do: {:doc_force, unquote(group)})
   end
 
   @typep doc_collapse :: {:doc_collapse, pos_integer()}
   defmacrop doc_collapse(count) do
-    quote do: {:doc_collapse, unquote(count)}
+    quote(do: {:doc_collapse, unquote(count)})
   end
 
   @typep doc_color :: {:doc_color, t, IO.ANSI.ansidata()}
   defmacrop doc_color(doc, color) do
-    quote do: {:doc_color, unquote(doc), unquote(color)}
+    quote(do: {:doc_color, unquote(doc), unquote(color)})
   end
 
   defmacrop is_doc(doc) do
