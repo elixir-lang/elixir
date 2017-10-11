@@ -385,14 +385,12 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes with name" do
-    {:ok, pid} =
-      Task.start_link(__MODULE__, :task, [
-        self(),
-        fn ->
-          Process.register(self(), __MODULE__)
-          raise "oops"
-        end
-      ])
+    fun = fn ->
+      Process.register(self(), __MODULE__)
+      raise "oops"
+    end
+
+    {:ok, pid} = Task.start_link(__MODULE__, :task, [self(), fun])
 
     assert capture_log(:info, fn ->
              ref = Process.monitor(pid)
@@ -410,14 +408,12 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes without initial call" do
-    {:ok, pid} =
-      Task.start_link(__MODULE__, :task, [
-        self(),
-        fn ->
-          Process.delete(:"$initial_call")
-          raise "oops"
-        end
-      ])
+    fun = fn ->
+      Process.delete(:"$initial_call")
+      raise "oops"
+    end
+
+    {:ok, pid} = Task.start_link(__MODULE__, :task, [self(), fun])
 
     assert capture_log(:info, fn ->
              ref = Process.monitor(pid)
@@ -452,14 +448,12 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes with neighbour with name" do
-    {:ok, pid} =
-      Task.start_link(__MODULE__, :sub_task, [
-        self(),
-        fn pid2 ->
-          Process.register(pid2, __MODULE__)
-          raise "oops"
-        end
-      ])
+    fun = fn pid2 ->
+      Process.register(pid2, __MODULE__)
+      raise "oops"
+    end
+
+    {:ok, pid} = Task.start_link(__MODULE__, :sub_task, [self(), fun])
 
     assert capture_log(:info, fn ->
              ref = Process.monitor(pid)
