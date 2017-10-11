@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.TestTest do
   use MixTest.Case
@@ -6,113 +6,112 @@ defmodule Mix.Tasks.TestTest do
   import Mix.Tasks.Test, only: [ex_unit_opts: 1]
 
   test "ex_unit_opts/1 returns ex unit options" do
-    assert ex_unit_opts([unknown: "ok", seed: 13]) ==
-           [autorun: false, seed: 13]
+    assert ex_unit_opts(unknown: "ok", seed: 13) == [autorun: false, seed: 13]
   end
 
   test "ex_unit_opts/1 returns includes and excludes" do
-    assert ex_unit_opts([include: "focus", include: "key:val"]) ==
-           [autorun: false, include: [:focus, key: "val"]]
+    included = [autorun: false, include: [:focus, key: "val"]]
+    assert ex_unit_opts(include: "focus", include: "key:val") == included
 
-    assert ex_unit_opts([exclude: "focus", exclude: "key:val"]) ==
-           [autorun: false, exclude: [:focus, key: "val"]]
+    excluded = [autorun: false, exclude: [:focus, key: "val"]]
+    assert ex_unit_opts(exclude: "focus", exclude: "key:val") == excluded
   end
 
   test "ex_unit_opts/1 translates :only into includes and excludes" do
-    assert ex_unit_opts([only: "focus"]) ==
-           [autorun: false, include: [:focus], exclude: [:test]]
+    assert ex_unit_opts(only: "focus") == [autorun: false, include: [:focus], exclude: [:test]]
 
-    assert ex_unit_opts([only: "focus", include: "special"]) ==
-           [autorun: false, include: [:focus, :special], exclude: [:test]]
+    only = [autorun: false, include: [:focus, :special], exclude: [:test]]
+    assert ex_unit_opts(only: "focus", include: "special") == only
   end
 
   test "ex_unit_opts/1 translates :color into list containing an enabled key/value pair" do
-    assert ex_unit_opts([color: false]) == [autorun: false, colors: [enabled: false]]
-    assert ex_unit_opts([color: true]) == [autorun: false, colors: [enabled: true]]
+    assert ex_unit_opts(color: false) == [autorun: false, colors: [enabled: false]]
+    assert ex_unit_opts(color: true) == [autorun: false, colors: [enabled: true]]
   end
 
   test "ex_unit_opts/1 translates :formatter into list of modules" do
-    assert ex_unit_opts([formatter: "A.B"]) == [autorun: false, formatters: [A.B]]
+    assert ex_unit_opts(formatter: "A.B") == [autorun: false, formatters: [A.B]]
   end
 
   test "--stale: runs all tests for first run, then none on second" do
     in_fixture "test_stale", fn ->
-      assert_stale_run_output "2 tests, 0 failures"
+      assert_stale_run_output("2 tests, 0 failures")
 
-      assert_stale_run_output """
+      assert_stale_run_output("""
       No stale tests
-      """
+      """)
     end
   end
 
   test "--stale: runs tests that depend on modified modules" do
     in_fixture "test_stale", fn ->
-      assert_stale_run_output "2 tests, 0 failures"
+      assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
       File.touch!("lib/b.ex")
 
-      assert_stale_run_output "1 test, 0 failures"
+      assert_stale_run_output("1 test, 0 failures")
 
       set_all_mtimes()
       File.touch!("lib/a.ex")
 
-      assert_stale_run_output "2 tests, 0 failures"
+      assert_stale_run_output("2 tests, 0 failures")
     end
   end
 
   test "--stale: doesn't write manifest when there are failures" do
     in_fixture "test_stale", fn ->
-      assert_stale_run_output "2 tests, 0 failures"
+      assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
+
       File.write!("lib/b.ex", """
       defmodule B do
         def f, do: :error
       end
       """)
 
-      assert_stale_run_output "1 test, 1 failure"
+      assert_stale_run_output("1 test, 1 failure")
 
-      assert_stale_run_output "1 test, 1 failure"
+      assert_stale_run_output("1 test, 1 failure")
     end
   end
 
   test "--stale: runs tests that have changed" do
     in_fixture "test_stale", fn ->
-      assert_stale_run_output "2 tests, 0 failures"
+      assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
       File.touch!("test/a_test_stale.exs")
 
-      assert_stale_run_output "1 test, 0 failures"
+      assert_stale_run_output("1 test, 0 failures")
     end
   end
 
   test "--stale: runs tests that have changed test_helpers" do
     in_fixture "test_stale", fn ->
-      assert_stale_run_output "2 tests, 0 failures"
+      assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
       File.touch!("test/test_helper.exs")
 
-      assert_stale_run_output "2 tests, 0 failures"
+      assert_stale_run_output("2 tests, 0 failures")
     end
   end
 
   test "--stale: runs all tests no matter what with --force" do
     in_fixture "test_stale", fn ->
-      assert_stale_run_output "2 tests, 0 failures"
+      assert_stale_run_output("2 tests, 0 failures")
 
-      assert_stale_run_output ~w[--force], "2 tests, 0 failures"
+      assert_stale_run_output(~w[--force], "2 tests, 0 failures")
     end
   end
 
   test "logs test absence for a project with no test paths" do
     in_fixture "test_stale", fn ->
-      File.rm_rf! "test"
+      File.rm_rf!("test")
 
-      assert_run_output "There are no tests to run"
+      assert_run_output("There are no tests to run")
     end
   end
 
@@ -162,7 +161,8 @@ defmodule Mix.Tasks.TestTest do
 
       Port.command(port, "\n")
 
-      assert receive_until_match(port, "undefined function error_not_a_var", []) =~ "test/b_test_stale.exs"
+      message = "undefined function error_not_a_var"
+      assert receive_until_match(port, message, []) =~ "test/b_test_stale.exs"
 
       File.write!("test/b_test_stale.exs", """
       defmodule BTest do
