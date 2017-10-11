@@ -297,27 +297,25 @@ defmodule Record do
   # Normalizes of record fields to have default values.
   @doc false
   def __fields__(type, fields) do
-    :lists.map(
-      fn
-        {key, value} when is_atom(key) ->
-          try do
-            Macro.escape(value)
-          rescue
-            e in [ArgumentError] ->
-              raise ArgumentError,
-                    "invalid value for record field #{key}, " <> Exception.message(e)
-          else
-            value -> {key, value}
-          end
+    normalizer_fun = fn
+      {key, value} when is_atom(key) ->
+        try do
+          Macro.escape(value)
+        rescue
+          e in [ArgumentError] ->
+            raise ArgumentError, "invalid value for record field #{key}, " <> Exception.message(e)
+        else
+          value -> {key, value}
+        end
 
-        key when is_atom(key) ->
-          {key, nil}
+      key when is_atom(key) ->
+        {key, nil}
 
-        other ->
-          raise ArgumentError, "#{type} fields must be atoms, got: #{inspect(other)}"
-      end,
-      fields
-    )
+      other ->
+        raise ArgumentError, "#{type} fields must be atoms, got: #{inspect(other)}"
+    end
+
+    :lists.map(normalizer_fun, fields)
   end
 
   # Callback invoked from record/0 and record/1 macros.
