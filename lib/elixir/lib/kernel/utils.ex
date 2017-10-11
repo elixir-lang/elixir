@@ -6,10 +6,13 @@ defmodule Kernel.Utils do
   @doc """
   Callback for destructure.
   """
-  def destructure(list, count) when is_list(list) and is_integer(count) and count >= 0,
-    do: destructure_list(list, count)
-  def destructure(nil, count) when is_integer(count) and count >= 0,
-    do: destructure_nil(count)
+  def destructure(list, count)
+      when is_list(list) and is_integer(count) and count >= 0,
+      do: destructure_list(list, count)
+
+  def destructure(nil, count)
+      when is_integer(count) and count >= 0,
+      do: destructure_nil(count)
 
   defp destructure_list(_, 0), do: []
   defp destructure_list([], count), do: destructure_nil(count)
@@ -54,7 +57,8 @@ defmodule Kernel.Utils do
   end
 
   defp validate_arg(ast) do
-    raise ArgumentError, "defdelegate/2 only accepts function parameters, got: #{Macro.to_string(ast)}"
+    raise ArgumentError,
+          "defdelegate/2 only accepts function parameters, got: #{Macro.to_string(ast)}"
   end
 
   @doc """
@@ -64,11 +68,12 @@ defmodule Kernel.Utils do
     case fields do
       fs when is_list(fs) ->
         :ok
+
       other ->
-        raise ArgumentError, "struct fields definition must be list, got: #{inspect other}"
+        raise ArgumentError, "struct fields definition must be list, got: #{inspect(other)}"
     end
 
-    fields = :lists.map(fn
+    mapper = fn
       {key, val} when is_atom(key) ->
         try do
           Macro.escape(val)
@@ -78,22 +83,29 @@ defmodule Kernel.Utils do
         else
           _ -> {key, val}
         end
+
       key when is_atom(key) ->
         {key, nil}
-      other ->
-        raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
-    end, fields)
 
+      other ->
+        raise ArgumentError, "struct field names must be atoms, got: #{inspect(other)}"
+    end
+
+    fields = :lists.map(mapper, fields)
     enforce_keys = List.wrap(Module.get_attribute(module, :enforce_keys))
 
-    :lists.foreach(fn
-      key when is_atom(key) -> :ok
-      key -> raise ArgumentError, "keys given to @enforce_keys must be atoms, got: #{inspect key}"
-    end, enforce_keys)
+    foreach = fn
+      key when is_atom(key) ->
+        :ok
 
-    {:maps.put(:__struct__, module, :maps.from_list(fields)),
-     enforce_keys,
-     Module.get_attribute(module, :derive)}
+      key ->
+        raise ArgumentError, "keys given to @enforce_keys must be atoms, got: #{inspect(key)}"
+    end
+
+    :lists.foreach(foreach, enforce_keys)
+
+    struct = :maps.put(:__struct__, module, :maps.from_list(fields))
+    {struct, enforce_keys, Module.get_attribute(module, :derive)}
   end
 
   @doc """
@@ -122,7 +134,9 @@ defmodule Kernel.Utils do
   end
 
   def raise(other) do
-    ArgumentError.exception("raise/1 expects a module name, string or exception as " <>
-                            "the first argument, got: #{inspect other}")
+    ArgumentError.exception(
+      "raise/1 expects a module name, string or exception as " <>
+        "the first argument, got: #{inspect(other)}"
+    )
   end
 end
