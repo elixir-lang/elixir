@@ -70,18 +70,18 @@ defmodule Inspect.Opts do
 
   # TODO: Remove :char_lists key and :as_char_lists value by 2.0
   @type t :: %__MODULE__{
-               structs: boolean,
-               binaries: :infer | :as_binaries | :as_strings,
-               charlists: :infer | :as_lists | :as_charlists,
-               char_lists: :infer | :as_lists | :as_char_lists,
-               limit: pos_integer | :infinity,
-               printable_limit: pos_integer | :infinity,
-               width: pos_integer | :infinity,
-               base: :decimal | :binary | :hex | :octal,
-               pretty: boolean,
-               safe: boolean,
-               syntax_colors: [{color_key, IO.ANSI.ansidata}]
-             }
+          structs: boolean,
+          binaries: :infer | :as_binaries | :as_strings,
+          charlists: :infer | :as_lists | :as_charlists,
+          char_lists: :infer | :as_lists | :as_char_lists,
+          limit: pos_integer | :infinity,
+          printable_limit: pos_integer | :infinity,
+          width: pos_integer | :infinity,
+          base: :decimal | :binary | :hex | :octal,
+          pretty: boolean,
+          safe: boolean,
+          syntax_colors: [{color_key, IO.ANSI.ansidata()}]
+        }
 end
 
 defmodule Inspect.Error do
@@ -192,54 +192,55 @@ defmodule Inspect.Algebra do
 
   @typep doc_string :: {:doc_string, t, non_neg_integer}
   defmacrop doc_string(string, length) do
-    quote do: {:doc_string, unquote(string), unquote(length)}
+    quote(do: {:doc_string, unquote(string), unquote(length)})
   end
 
   @typep doc_cons :: {:doc_cons, t, t}
   defmacrop doc_cons(left, right) do
-    quote do: {:doc_cons, unquote(left), unquote(right)}
+    quote(do: {:doc_cons, unquote(left), unquote(right)})
   end
 
   @typep doc_nest :: {:doc_nest, t, :cursor | :reset | non_neg_integer, :always | :break}
   defmacrop doc_nest(doc, indent, always_or_break) do
-    quote do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)}
+    quote(do: {:doc_nest, unquote(doc), unquote(indent), unquote(always_or_break)})
   end
 
   @typep doc_break :: {:doc_break, binary, :flex | :strict}
   defmacrop doc_break(break, mode) do
-    quote do: {:doc_break, unquote(break), unquote(mode)}
+    quote(do: {:doc_break, unquote(break), unquote(mode)})
   end
 
   @typep doc_group :: {:doc_group, t, :inherit | :self}
   defmacrop doc_group(group, mode) do
-    quote do: {:doc_group, unquote(group), unquote(mode)}
+    quote(do: {:doc_group, unquote(group), unquote(mode)})
   end
 
   @typep doc_fits :: {:doc_fits, t, :enabled | :disabled}
   defmacrop doc_fits(group, mode) do
-    quote do: {:doc_fits, unquote(group), unquote(mode)}
+    quote(do: {:doc_fits, unquote(group), unquote(mode)})
   end
 
   @typep doc_force :: {:doc_force, t}
   defmacrop doc_force(group) do
-    quote do: {:doc_force, unquote(group)}
+    quote(do: {:doc_force, unquote(group)})
   end
 
   @typep doc_collapse :: {:doc_collapse, pos_integer()}
   defmacrop doc_collapse(count) do
-    quote do: {:doc_collapse, unquote(count)}
+    quote(do: {:doc_collapse, unquote(count)})
   end
 
-  @typep doc_color :: {:doc_color, t, IO.ANSI.ansidata}
+  @typep doc_color :: {:doc_color, t, IO.ANSI.ansidata()}
   defmacrop doc_color(doc, color) do
-    quote do: {:doc_color, unquote(doc), unquote(color)}
+    quote(do: {:doc_color, unquote(doc), unquote(color)})
   end
 
   defmacrop is_doc(doc) do
     if Macro.Env.in_guard?(__CALLER__) do
       do_is_doc(doc)
     else
-      var = quote do: doc
+      var = quote(do: doc)
+
       quote do
         unquote(var) = unquote(doc)
         unquote(do_is_doc(var))
@@ -249,11 +250,19 @@ defmodule Inspect.Algebra do
 
   defp do_is_doc(doc) do
     quote do
-      is_binary(unquote(doc)) or
-      unquote(doc) in [:doc_nil, :doc_line] or
-      (is_tuple(unquote(doc)) and
-       elem(unquote(doc), 0) in [:doc_string, :doc_cons, :doc_nest, :doc_break, :doc_group,
-                                 :doc_color, :doc_force, :doc_fits, :doc_collapse])
+      is_binary(unquote(doc)) or unquote(doc) in [:doc_nil, :doc_line] or
+        (is_tuple(unquote(doc)) and
+           elem(unquote(doc), 0) in [
+             :doc_string,
+             :doc_cons,
+             :doc_nest,
+             :doc_break,
+             :doc_group,
+             :doc_color,
+             :doc_force,
+             :doc_fits,
+             :doc_collapse
+           ])
     end
   end
 
@@ -263,7 +272,7 @@ defmodule Inspect.Algebra do
   Converts an Elixir term to an algebra document
   according to the `Inspect` protocol.
   """
-  @spec to_doc(any, Inspect.Opts.t) :: t
+  @spec to_doc(any, Inspect.Opts.t()) :: t
   def to_doc(term, opts)
 
   def to_doc(%_{} = struct, %Inspect.Opts{} = opts) do
@@ -272,7 +281,7 @@ defmodule Inspect.Algebra do
         Inspect.inspect(struct, opts)
       rescue
         caught_exception ->
-          stacktrace = System.stacktrace
+          stacktrace = System.stacktrace()
 
           # Because we try to raise a nice error message in case
           # we can't inspect a struct, there is a chance the error
@@ -290,8 +299,9 @@ defmodule Inspect.Algebra do
               res = IO.iodata_to_binary(format(res, :infinity))
 
               message =
-                "got #{inspect caught_exception.__struct__} with message " <>
-                "#{inspect Exception.message(caught_exception)} while inspecting #{res}"
+                "got #{inspect(caught_exception.__struct__)} with message " <>
+                  "#{inspect(Exception.message(caught_exception))} while inspecting #{res}"
+
               exception = Inspect.Error.exception(message: message)
 
               if opts.safe do
@@ -349,10 +359,11 @@ defmodule Inspect.Algebra do
       "[1! 2! 3! ...]"
 
   """
-  @spec container_doc(t, [any], t, Inspect.Opts.t, (term, Inspect.Opts.t -> t), keyword()) :: t
+  @spec container_doc(t, [any], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
+          t
   def container_doc(left, collection, right, inspect, fun, opts \\ [])
-      when is_doc(left) and is_list(collection) and is_doc(right) and
-             is_function(fun, 2) and is_list(opts) do
+      when is_doc(left) and is_list(collection) and is_doc(right) and is_function(fun, 2) and
+             is_list(opts) do
     case collection do
       [] ->
         concat(left, right)
@@ -417,7 +428,14 @@ defmodule Inspect.Algebra do
 
   @doc false
   # TODO: Deprecate on Elixir v1.8
-  def surround_many(left, docs, right, %Inspect.Opts{} = inspect, fun, separator \\ @container_separator)
+  def surround_many(
+        left,
+        docs,
+        right,
+        %Inspect.Opts{} = inspect,
+        fun,
+        separator \\ @container_separator
+      )
       when is_doc(left) and is_list(docs) and is_doc(right) and is_function(fun, 2) do
     container_doc(left, docs, right, inspect, fun, separator: separator)
   end
@@ -464,7 +482,7 @@ defmodule Inspect.Algebra do
       ["olá", " ", "mundo"]
 
   """
-  @spec string(String.t) :: doc_string
+  @spec string(String.t()) :: doc_string
   def string(string) when is_binary(string) do
     doc_string(string, String.length(string))
   end
@@ -502,7 +520,7 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   Colors a document if the `color_key` has a color in the options.
   """
-  @spec color(t, Inspect.Opts.color_key, Inspect.Opts.t) :: doc_color
+  @spec color(t, Inspect.Opts.color_key(), Inspect.Opts.t()) :: doc_color
   def color(doc, color_key, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
     if precolor = Keyword.get(syntax_colors, color_key) do
       postcolor = Keyword.get(syntax_colors, :reset, :reset)
@@ -768,13 +786,12 @@ defmodule Inspect.Algebra do
       ["A", "!", "B", "!", "C"]
 
   """
-  @spec fold_doc([t], ((t, t) -> t)) :: t
+  @spec fold_doc([t], (t, t -> t)) :: t
   def fold_doc(docs, folder_fun)
 
-  def fold_doc([], _folder_fun),
-    do: empty()
-  def fold_doc([doc], _folder_fun),
-    do: doc
+  def fold_doc([], _folder_fun), do: empty()
+  def fold_doc([doc], _folder_fun), do: doc
+
   def fold_doc([doc | docs], folder_fun) when is_function(folder_fun, 2),
     do: folder_fun.(doc, fold_doc(docs, folder_fun))
 
@@ -812,44 +829,55 @@ defmodule Inspect.Algebra do
   @typep mode :: :break | :flat | :next_fits | :no_fitting
 
   @spec fits?(integer, integer, [{integer, mode, t}]) :: boolean
-  defp fits?(w, k, _) when k > w,                            do: false
-  defp fits?(_, _, []),                                      do: true
+  defp fits?(w, k, _) when k > w, do: false
+  defp fits?(_, _, []), do: true
 
-  defp fits?(w, k, [{i, _, doc_fits(x, :disabled)} | t]),    do: fits?(w, k, [{i, :no_fitting, x} | t])
-  defp fits?(w, k, [{i, :no_fitting, doc_group(x, _)} | t]), do: fits?(w, k, [{i, :no_fitting, x} | t])
-  defp fits?(w, k, [{i, :no_fitting, doc_fits(x, _)} | t]),  do: fits?(w, k, [{i, :no_fitting, x} | t])
+  defp fits?(w, k, [{i, _, doc_fits(x, :disabled)} | t]),
+    do: fits?(w, k, [{i, :no_fitting, x} | t])
 
-  defp fits?(w, k, [{i, _, doc_fits(x, :enabled)} | t]),     do: fits?(w, k, [{i, :next_fits, x} | t])
-  defp fits?(w, k, [{i, :next_fits, doc_force(x)} | t]),     do: fits?(w, k, [{i, :next_fits, x} | t])
-  defp fits?(w, k, [{i, :next_fits, doc_group(x, _)} | t]),  do: fits?(w, k, [{i, :next_fits, x} | t])
-  defp fits?(_, _, [{_, :next_fits, doc_break(_, _)} | _]),  do: true
-  defp fits?(_, _, [{_, :next_fits, :doc_line} | _]),        do: true
+  defp fits?(w, k, [{i, :no_fitting, doc_group(x, _)} | t]),
+    do: fits?(w, k, [{i, :no_fitting, x} | t])
 
-  defp fits?(w, k, [{_, _, :doc_nil} | t]),                  do: fits?(w, k, t)
-  defp fits?(w, _, [{i, _, :doc_line} | t]),                 do: fits?(w, i, t)
-  defp fits?(w, _, [{i, _, doc_collapse(_)} | t]),           do: fits?(w, i, t)
-  defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]),            do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
-  defp fits?(w, k, [{i, m, doc_color(x, _)} | t]),           do: fits?(w, k, [{i, m, x} | t])
-  defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]),    do: fits?(w, k, [{i, m, x} | t])
-  defp fits?(w, k, [{i, m, doc_nest(x, j, _)} | t]),         do: fits?(w, k, [{apply_nesting(i, k, j), m, x} | t])
-  defp fits?(w, k, [{i, _, doc_group(x, _)} | t]),           do: fits?(w, k, [{i, :flat, x} | t])
-  defp fits?(w, k, [{_, _, doc_string(_, l)} | t]),          do: fits?(w, k + l, t)
-  defp fits?(w, k, [{_, _, s} | t]) when is_binary(s),       do: fits?(w, k + byte_size(s), t)
-  defp fits?(_, _, [{_, _, doc_force(_)} | _]),              do: false
-  defp fits?(_, _, [{_, :break, doc_break(_, _)} | _]),      do: true
-  defp fits?(w, k, [{_, _, doc_break(s, _)} | t]),           do: fits?(w, k + byte_size(s), t)
+  defp fits?(w, k, [{i, :no_fitting, doc_fits(x, _)} | t]),
+    do: fits?(w, k, [{i, :no_fitting, x} | t])
+
+  defp fits?(w, k, [{i, _, doc_fits(x, :enabled)} | t]), do: fits?(w, k, [{i, :next_fits, x} | t])
+  defp fits?(w, k, [{i, :next_fits, doc_force(x)} | t]), do: fits?(w, k, [{i, :next_fits, x} | t])
+
+  defp fits?(w, k, [{i, :next_fits, doc_group(x, _)} | t]),
+    do: fits?(w, k, [{i, :next_fits, x} | t])
+
+  defp fits?(_, _, [{_, :next_fits, doc_break(_, _)} | _]), do: true
+  defp fits?(_, _, [{_, :next_fits, :doc_line} | _]), do: true
+
+  defp fits?(w, k, [{_, _, :doc_nil} | t]), do: fits?(w, k, t)
+  defp fits?(w, _, [{i, _, :doc_line} | t]), do: fits?(w, i, t)
+  defp fits?(w, _, [{i, _, doc_collapse(_)} | t]), do: fits?(w, i, t)
+  defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]), do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
+  defp fits?(w, k, [{i, m, doc_color(x, _)} | t]), do: fits?(w, k, [{i, m, x} | t])
+  defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]), do: fits?(w, k, [{i, m, x} | t])
+
+  defp fits?(w, k, [{i, m, doc_nest(x, j, _)} | t]),
+    do: fits?(w, k, [{apply_nesting(i, k, j), m, x} | t])
+
+  defp fits?(w, k, [{i, _, doc_group(x, _)} | t]), do: fits?(w, k, [{i, :flat, x} | t])
+  defp fits?(w, k, [{_, _, doc_string(_, l)} | t]), do: fits?(w, k + l, t)
+  defp fits?(w, k, [{_, _, s} | t]) when is_binary(s), do: fits?(w, k + byte_size(s), t)
+  defp fits?(_, _, [{_, _, doc_force(_)} | _]), do: false
+  defp fits?(_, _, [{_, :break, doc_break(_, _)} | _]), do: true
+  defp fits?(w, k, [{_, _, doc_break(s, _)} | t]), do: fits?(w, k + byte_size(s), t)
 
   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
-  defp format(_, _, []),                                do: []
-  defp format(w, k, [{_, _, :doc_nil} | t]),            do: format(w, k, t)
-  defp format(w, _, [{i, _, :doc_line} | t]),           do: [indent(i) | format(w, i, t)]
-  defp format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
-  defp format(w, k, [{i, m, doc_color(x, c)} | t]),     do: [ansi(c) | format(w, k, [{i, m, x} | t])]
-  defp format(w, k, [{_, _, doc_string(s, l)} | t]),    do: [s | format(w, k + l, t)]
+  defp format(_, _, []), do: []
+  defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
+  defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]
+  defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
+  defp format(w, k, [{i, m, doc_color(x, c)} | t]), do: [ansi(c) | format(w, k, [{i, m, x} | t])]
+  defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
-  defp format(w, k, [{i, m, doc_force(x)} | t]),        do: format(w, k, [{i, m, x} | t])
-  defp format(w, k, [{i, m, doc_fits(x, _)} | t]),      do: format(w, k, [{i, m, x} | t])
-  defp format(w, _, [{i, _, doc_collapse(max)} | t]),   do: collapse(format(w, i, t), max, 0, i)
+  defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
+  defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
+  defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
   # Flex breaks are not conditional to the mode
   defp format(w, k, [{i, _, doc_break(s, :flex)} | t]) do
@@ -896,9 +924,11 @@ defmodule Inspect.Algebra do
   defp collapse(["\n" <> _ | t], max, count, i) do
     collapse(t, max, count + 1, i)
   end
+
   defp collapse(["" | t], max, count, i) do
     collapse(t, max, count, i)
   end
+
   defp collapse(t, max, count, i) do
     [:binary.copy("\n", min(max, count)) <> :binary.copy(" ", i) | t]
   end
