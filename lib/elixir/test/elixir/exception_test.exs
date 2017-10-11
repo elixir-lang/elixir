@@ -175,6 +175,8 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(Foo, :..., 1) == "Foo.\"...\"/1"
   end
 
+  # TODO: Remove this check once we depend only on 20
+  # TODO: Remove String.to_atom/1 when we support 20+
   if :erlang.system_info(:otp_release) >= '20' do
     test "format_mfa/3 with unicode" do
       assert Exception.format_mfa(Foo, String.to_atom("olá"), [1, 2]) == "Foo.olá(1, 2)"
