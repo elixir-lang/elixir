@@ -1710,10 +1710,10 @@ defmodule Kernel do
               :erlang.raise(:error, other, stacktrace)
 
             other ->
-              message =
-                "reraise/2 expects a module name, string or exception as the first argument, got: #{
-                  inspect(other)
-                }"
+              message = <<
+                "reraise/2 expects a module name, string or exception",
+                "as the first argument, got: #{inspect(other)}"
+              >>
 
               :erlang.error(ArgumentError.exception(message))
           end
@@ -2644,34 +2644,34 @@ defmodule Kernel do
       name == :compile ->
         {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
 
-        quote(
-          do: Module.put_attribute(
+        quote do
+          Module.put_attribute(
             __MODULE__,
             unquote(name),
             unquote(arg),
             unquote(stack),
             unquote(line)
           )
-        )
+        end
 
       :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
         {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
         arg = {env.line, arg}
 
-        quote(
-          do: Module.put_attribute(
+        quote do
+          Module.put_attribute(
             __MODULE__,
             unquote(name),
             unquote(arg),
             unquote(stack),
             unquote(line)
           )
-        )
+        end
 
       true ->
-        quote(
-          do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg), nil, unquote(line))
-        )
+        quote do
+          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), nil, unquote(line))
+        end
     end
   end
 
@@ -2821,10 +2821,10 @@ defmodule Kernel do
   end
 
   defp build_if(_condition, _arguments) do
-    raise(
-      ArgumentError,
-      "invalid or duplicate keys for if, only \"do\" " <> "and an optional \"else\" are permitted"
-    )
+    message =
+      "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
+
+    raise ArgumentError, message
   end
 
   @doc """
@@ -2867,11 +2867,10 @@ defmodule Kernel do
   end
 
   defp build_unless(_condition, _arguments) do
-    raise(
-      ArgumentError,
-      "invalid or duplicate keys for unless, only \"do\" " <>
-        "and an optional \"else\" are permitted"
-    )
+    message =
+      "invalid or duplicate keys for unless, only \"do\" and an optional \"else\" are permitted"
+
+    raise ArgumentError, message
   end
 
   @doc """
@@ -3110,24 +3109,22 @@ defmodule Kernel do
   defmacro left |> right do
     [{h, _} | t] = Macro.unpipe({:|>, [], [left, right]})
 
-    :lists.foldl(
-      fn {x, pos}, acc ->
-        case x do
-          {op, _, [_]} when op == :+ or op == :- ->
-            :elixir_errors.warn(__CALLER__.line, __CALLER__.file, <<
-              "piping into a unary operator is deprecated, please use the ",
-              "qualified name. For example, Kernel.+(5), instead of +5"
-            >>)
+    fun = fn {x, pos}, acc ->
+      case x do
+        {op, _, [_]} when op == :+ or op == :- ->
+          :elixir_errors.warn(__CALLER__.line, __CALLER__.file, <<
+            "piping into a unary operator is deprecated, please use the ",
+            "qualified name. For example, Kernel.+(5), instead of +5"
+          >>)
 
-          _ ->
-            :ok
-        end
+        _ ->
+          :ok
+      end
 
-        Macro.pipe(acc, x, pos)
-      end,
-      h,
-      t
-    )
+      Macro.pipe(acc, x, pos)
+    end
+
+    :lists.foldl(fun, h, t)
   end
 
   @doc """
@@ -3255,13 +3252,12 @@ defmodule Kernel do
 
           {[head | tail], {_, vars_values}} ->
             {vars, values} = :lists.unzip(:lists.reverse(vars_values))
+            is_in_list = &in_list(&1, head, tail, expand, list, in_module?)
 
             quote do
               {unquote_splicing(vars)} = {unquote_splicing(values)}
 
-              unquote(
-                in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
-              )
+              unquote(in_var(in_module?, left, is_in_list))
             end
         end
 
@@ -3299,19 +3295,17 @@ defmodule Kernel do
 
   # Called as ensure_evaled(list, {0, []}). Note acc is reversed.
   defp ensure_evaled(list, acc, expand) do
-    :lists.mapfoldl(
-      fn
-        {:|, meta, [head, tail]}, acc ->
-          {head, acc} = ensure_evaled_element(head, acc)
-          {tail, acc} = ensure_evaled_tail(expand.(tail), acc, expand)
-          {{:|, meta, [head, tail]}, acc}
+    fun = fn
+      {:|, meta, [head, tail]}, acc ->
+        {head, acc} = ensure_evaled_element(head, acc)
+        {tail, acc} = ensure_evaled_tail(expand.(tail), acc, expand)
+        {{:|, meta, [head, tail]}, acc}
 
-        elem, acc ->
-          ensure_evaled_element(elem, acc)
-      end,
-      acc,
-      list
-    )
+      elem, acc ->
+        ensure_evaled_element(elem, acc)
+    end
+
+    :lists.mapfoldl(fun, acc, list)
   end
 
   defp ensure_evaled_element(elem, acc) when is_number(elem) or is_atom(elem) or is_binary(elem) do
@@ -3377,15 +3371,13 @@ defmodule Kernel do
   end
 
   defp in_list(left, head, tail, expand, right, in_module?) do
-    :lists.foldr(
-      fn elem, acc ->
-        quote(
-          do: :erlang.orelse(unquote(comp(left, elem, expand, right, in_module?)), unquote(acc))
-        )
-      end,
-      comp(left, head, expand, right, in_module?),
-      tail
-    )
+    fun = fn elem, acc ->
+      quote do
+        :erlang.orelse(unquote(comp(left, elem, expand, right, in_module?)), unquote(acc))
+      end
+    end
+
+    :lists.foldr(fun, comp(left, head, expand, right, in_module?), tail)
   end
 
   defp comp(left, {:|, _, [head, tail]}, expand, right, in_module?) do
@@ -3669,7 +3661,9 @@ defmodule Kernel do
   #     module_nesting(nil, :"Elixir.Foo.Bar.Baz.Bat")
   #     {nil, :"Elixir.Foo.Bar.Baz.Bat"}
   #
-  defp module_nesting(nil, full), do: {nil, full}
+  defp module_nesting(nil, full) do
+    {nil, full}
+  end
 
   defp module_nesting(prefix, full) do
     case split_module(prefix) do
@@ -3678,15 +3672,20 @@ defmodule Kernel do
     end
   end
 
-  defp module_nesting([x | t1], [x | t2], acc, full), do: module_nesting(t1, t2, [x | acc], full)
+  defp module_nesting([x | t1], [x | t2], acc, full) do
+    module_nesting(t1, t2, [x | acc], full)
+  end
 
-  defp module_nesting([], [h | _], acc, _full),
-    do: {
+  defp module_nesting([], [h | _], acc, _full) do
+    {
       String.to_atom(<<"Elixir.", h::binary>>),
       :elixir_aliases.concat(:lists.reverse([h | acc]))
     }
+  end
 
-  defp module_nesting(_, _, _acc, full), do: {nil, full}
+  defp module_nesting(_, _, _acc, full) do
+    {nil, full}
+  end
 
   defp split_module(atom) do
     case :binary.split(Atom.to_string(atom), ".", [:global]) do
@@ -4053,13 +4052,7 @@ defmodule Kernel do
             _ = @enforce_keys
 
             def __struct__(kv) do
-              :lists.foldl(
-                fn {key, val}, acc ->
-                  Map.replace!(acc, key, val)
-                end,
-                @struct,
-                kv
-              )
+              :lists.foldl(fn {key, val}, acc -> Map.replace!(acc, key, val) end, @struct, kv)
             end
           end
       end
@@ -4644,12 +4637,10 @@ defmodule Kernel do
       %{file: file, line: line} = __ENV__
 
       if is_list(funs) do
-        :elixir_errors.warn(
-          line,
-          file,
-          "passing a list to Kernel.defdelegate/2 is deprecated, " <>
-            "please define each delegate separately"
-        )
+        message =
+          "passing a list to Kernel.defdelegate/2 is deprecated, please define each delegate separately"
+
+        :elixir_errors.warn(line, file, message)
       end
 
       # TODO: Remove on 2.0
