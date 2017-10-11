@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.GeneralTest do
   use ExUnit.Case, async: true
@@ -20,7 +20,8 @@ defmodule Code.Formatter.GeneralTest do
 
     test "starting with expression" do
       assert_same "__MODULE__.Foo.Bar"
-      assert_same "'Foo'.Bar.Baz" # Syntatically valid, semantically invalid
+      # Syntatically valid, semantically invalid
+      assert_same "'Foo'.Bar.Baz"
     end
 
     test "wraps the head in parens if it has an operator" do
@@ -41,9 +42,10 @@ defmodule Code.Formatter.GeneralTest do
     test "with escapes" do
       assert_same ~S[~s(foo \) bar)]
       assert_same ~S[~s(f\a\b\ro)]
+
       assert_same ~S"""
       ~S(foo\
-bar)
+      bar)
       """
     end
 
@@ -58,7 +60,7 @@ bar)
       assert_same ~S"""
       foo do
         ~s(#{bar}
-)
+      )
       end
       """
     end
@@ -76,11 +78,13 @@ bar)
       bad = ~S"""
       ~s(one #{"two"} three)
       """
+
       good = ~S"""
       ~s(one #{
         "two"
       } three)
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -134,11 +138,13 @@ bar)
       assert_format "fn  ->:ok  end", "fn -> :ok end"
 
       bad = "fn -> :foo end"
+
       good = """
       fn ->
         :foo
       end
       """
+
       assert_format bad, good, @short_length
 
       assert_same "fn () when node() == :nonode@nohost -> true end"
@@ -148,14 +154,17 @@ bar)
       assert_format "fn  x ,y-> x + y  end", "fn x, y -> x + y end"
 
       bad = "fn x -> foo(x) end"
+
       good = """
       fn x ->
         foo(x)
       end
       """
+
       assert_format bad, good, @short_length
 
       bad = "fn one, two, three -> foo(x) end"
+
       good = """
       fn one,
          two,
@@ -163,27 +172,32 @@ bar)
         foo(x)
       end
       """
+
       assert_format bad, good, @short_length
     end
 
     test "with a single clause and when" do
-      assert_same """
+      code = """
       fn arg
          when guard ->
         :ok
       end
-      """, @short_length
+      """
+
+      assert_same code, @short_length
     end
 
     test "with multiple clauses" do
-      assert_same """
+      code = """
       fn
         1 -> :ok
         2 -> :ok
       end
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       fn
         1 ->
           :ok
@@ -191,9 +205,11 @@ bar)
         2 ->
           :error
       end
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       fn
         arg11,
         arg12 ->
@@ -203,9 +219,11 @@ bar)
         arg22 ->
           body2
       end
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       fn
         arg11,
         arg12 ->
@@ -219,7 +237,9 @@ bar)
         arg32 ->
           body3
       end
-      """, @short_length
+      """
+
+      assert_same code, @short_length
     end
 
     test "with heredocs" do
@@ -261,6 +281,7 @@ bar)
         b1, b2 when c + d -> :ok
       end
       """
+
       assert_same long
 
       good = """
@@ -276,6 +297,7 @@ bar)
           :ok
       end
       """
+
       assert_format long, good, @short_length
     end
 
@@ -320,31 +342,37 @@ bar)
       assert_format "( x ,y-> x + y  )", "(x, y -> x + y)"
 
       bad = "(x -> :really_long_atom)"
+
       good = """
       (x ->
          :really_long_atom)
       """
+
       assert_format bad, good, @short_length
 
       bad = "(one, two, three -> foo(x))"
+
       good = """
       (one,
        two,
        three ->
          foo(x))
       """
+
       assert_format bad, good, @short_length
     end
 
     test "with multiple clauses" do
-      assert_same """
+      code = """
       (
         1 -> :ok
         2 -> :ok
       )
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       (
         1 ->
           :ok
@@ -352,9 +380,11 @@ bar)
         2 ->
           :error
       )
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       (
         arg11,
         arg12 ->
@@ -364,9 +394,11 @@ bar)
         arg22 ->
           body2
       )
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       (
         arg11,
         arg12 ->
@@ -380,7 +412,9 @@ bar)
         arg32 ->
           body2
       )
-      """, @short_length
+      """
+
+      assert_same code, @short_length
     end
 
     test "with heredocs" do
@@ -443,7 +477,7 @@ bar)
     end
 
     test "with multiple lines with line limit" do
-      assert_same """
+      code = """
       foo =
         bar(one)
 
@@ -451,9 +485,11 @@ bar)
         bat(two)
 
       a(b)
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       foo =
         bar(one)
 
@@ -461,9 +497,11 @@ bar)
 
       baz =
         bat(two)
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       a(b)
 
       foo =
@@ -471,9 +509,11 @@ bar)
 
       baz =
         bat(two)
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same code, @short_length
+
+      code = """
       foo =
         bar(one)
 
@@ -482,11 +522,13 @@ bar)
 
       baz =
         bat(two)
-      """, @short_length
+      """
+
+      assert_same code, @short_length
     end
 
     test "with multiple lines with line limit inside block" do
-      assert_same """
+      code = """
       block do
         a =
           b(foo)
@@ -497,11 +539,13 @@ bar)
         e =
           f(baz)
       end
-      """, @short_length
+      """
+
+      assert_same code, @short_length
     end
 
     test "with multiple lines with cancel expressions" do
-      assert_same """
+      code = """
       foo(%{
         long_key: 1
       })
@@ -513,7 +557,9 @@ bar)
       baz(%{
         long_key: 1
       })
-      """, @short_length
+      """
+
+      assert_same code, @short_length
     end
 
     test "with heredoc" do
@@ -705,21 +751,17 @@ bar)
     end
 
     test "with matching deprecation option" do
-      assert_format "Enum.partition(foo, bar)",
-                    "Enum.split_with(foo, bar)",
-                    rename_deprecated_at: "1.4.0"
+      assert_format "Enum.partition(foo, bar)", "Enum.split_with(foo, bar)",
+        rename_deprecated_at: "1.4.0"
 
-      assert_format "Enum.partition(foo, bar)",
-                    "Enum.split_with(foo, bar)",
-                    rename_deprecated_at: "1.4.0"
+      assert_format "Enum.partition(foo, bar)", "Enum.split_with(foo, bar)",
+        rename_deprecated_at: "1.4.0"
     end
 
     test "without matching deprecation option" do
-      assert_same "Enum.partition(foo, bar)",
-                  rename_deprecated_at: "1.3.0"
+      assert_same "Enum.partition(foo, bar)", rename_deprecated_at: "1.3.0"
 
-      assert_same "Enum.partition(foo, bar)",
-                  rename_deprecated_at: "1.3.0"
+      assert_same "Enum.partition(foo, bar)", rename_deprecated_at: "1.3.0"
     end
 
     test "raises on invalid version" do
