@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.DocsTest do
   use ExUnit.Case
@@ -19,6 +19,7 @@ defmodule Kernel.DocsTest do
       @doc "Function doc"
       assert @doc == "Function doc"
       assert Module.get_attribute(__MODULE__, :doc) == {__ENV__.line - 2, "Function doc"}
+
       def foobar() do
         :ok
       end
@@ -28,12 +29,14 @@ defmodule Kernel.DocsTest do
   test "compiled without docs" do
     Code.compiler_options(docs: false)
 
-    write_beam(defmodule WithoutDocs do
-      @moduledoc "Module doc"
+    write_beam(
+      defmodule WithoutDocs do
+        @moduledoc "Module doc"
 
-      @doc "Some doc"
-      def foobar(arg), do: arg
-    end)
+        @doc "Some doc"
+        def foobar(arg), do: arg
+      end
+    )
 
     assert Code.get_docs(WithoutDocs, :docs) == nil
     assert Code.get_docs(WithoutDocs, :moduledoc) == nil
@@ -58,73 +61,101 @@ defmodule Kernel.DocsTest do
 
   describe "compiled with docs" do
     test "infers signatures" do
-      write_beam(defmodule SignatureDocs do
-        def arg_names([], [], %{}, [], %{}), do: false
+      write_beam(
+        defmodule SignatureDocs do
+          def arg_names([], [], %{}, [], %{}), do: false
 
-        @year 2015
-        def with_defaults(@year, arg \\ 0, year \\ @year, fun \\ &>=/2) do
-          {fun, arg + year}
+          @year 2015
+          def with_defaults(@year, arg \\ 0, year \\ @year, fun \\ &>=/2) do
+            {fun, arg + year}
+          end
+
+          def with_struct(%URI{}), do: :ok
+
+          def with_underscore({_, _} = _two_tuple), do: :ok
+          def with_underscore(_), do: :error
+
+          def only_underscore(_), do: :ok
+
+          def two_good_names(first, :ok), do: first
+          def two_good_names(second, :error), do: second
         end
+      )
 
-        def with_struct(%URI{}), do: :ok
+      assert [
+               arg_names,
+               only_underscore,
+               two_good_names,
+               with_defaults,
+               with_struct,
+               with_underscore
+             ] = Code.get_docs(SignatureDocs, :docs)
 
-        def with_underscore({_, _} = _two_tuple), do: :ok
-        def with_underscore(_), do: :error
+      # arg_names/5
+      assert {{:arg_names, 5}, _, :def, args, nil} = arg_names
 
-        def only_underscore(_), do: :ok
-
-        def two_good_names(first, :ok), do: first
-        def two_good_names(second, :error), do: second
-      end)
-
-      assert [{{:arg_names, 5}, _, :def,
-              [{:list1, _, Elixir},
+      assert [
+               {:list1, _, Elixir},
                {:list2, _, Elixir},
                {:map1, _, Elixir},
                {:list3, _, Elixir},
-               {:map2, _, Elixir}], nil},
-             {{:only_underscore, 1}, _, :def,
-              [{:_, _, Elixir}], nil},
-             {{:two_good_names, 2}, _, :def,
-              [{:first, _, nil},
-               {:atom, _, Elixir}], nil},
-             {{:with_defaults, 4}, _, :def,
-              [{:int, _, Elixir},
+               {:map2, _, Elixir}
+             ] = args
+
+      # only_underscore/1
+      assert {{:only_underscore, 1}, _, :def, [{:_, _, Elixir}], nil} = only_underscore
+
+      # two_good_names/2
+      assert {{:two_good_names, 2}, _, :def, args, nil} = two_good_names
+      assert [{:first, _, nil}, {:atom, _, Elixir}] = args
+
+      # with_defaults/4
+      assert {{:with_defaults, 4}, _, :def, args, nil} = with_defaults
+
+      assert [
+               {:int, _, Elixir},
                {:\\, _, [{:arg, _, nil}, 0]},
                {:\\, _, [{:year, _, nil}, 2015]},
-               {:\\, _, [{:fun, _, nil}, {:&, _, [{:/, _, [{:>=, _, nil}, 2]}]}]}], nil},
-             {{:with_struct, 1}, _, :def, [{:uri, _, Elixir}], nil},
-             {{:with_underscore, 1}, _, :def, [{:two_tuple, _, nil}], nil}] = Code.get_docs(SignatureDocs, :docs)
+               {:\\, _, [{:fun, _, nil}, {:&, _, [{:/, _, [{:>=, _, nil}, 2]}]}]}
+             ] = args
+
+      # with_struct/1
+      assert {{:with_struct, 1}, _, :def, [{:uri, _, Elixir}], nil} = with_struct
+
+      # with_underscore/1
+      assert {{:with_underscore, 1}, _, :def, [{:two_tuple, _, nil}], nil} = with_underscore
     end
 
     test "includes docs for functions, modules, types and callbacks" do
-      write_beam(defmodule SampleDocs do
-        @moduledoc "Module doc"
+      write_beam(
+        defmodule SampleDocs do
+          @moduledoc "Module doc"
 
-        @typedoc "Type doc"
-        @type foo(any) :: any
+          @typedoc "Type doc"
+          @type foo(any) :: any
 
-        @typedoc "Opaque type doc"
-        @opaque bar(any) :: any
+          @typedoc "Opaque type doc"
+          @opaque bar(any) :: any
 
-        @doc "Callback doc"
-        @callback foo(any) :: any
+          @doc "Callback doc"
+          @callback foo(any) :: any
 
-        @doc false
-        @callback bar() :: term
-        @callback baz(any, term) :: any
+          @doc false
+          @callback bar() :: term
+          @callback baz(any, term) :: any
 
-        @doc "Macrocallback doc"
-        @macrocallback qux(any) :: any
+          @doc "Macrocallback doc"
+          @macrocallback qux(any) :: any
 
-        @doc "Function doc"
-        def foo(arg) do
-          arg + 1
+          @doc "Function doc"
+          def foo(arg) do
+            arg + 1
+          end
+
+          @doc false
+          def bar(true), do: false
         end
-
-        @doc false
-        def bar(true), do: false
-      end)
+      )
 
       docs = Code.get_docs(SampleDocs, :all)
       assert Code.get_docs(SampleDocs, :docs) == docs[:docs]
@@ -132,18 +163,22 @@ defmodule Kernel.DocsTest do
       assert Code.get_docs(SampleDocs, :type_docs) == docs[:type_docs]
       assert Code.get_docs(SampleDocs, :callback_docs) == docs[:callback_docs]
 
-      assert [{{:bar, 1}, _, :def, [{:bool, _, Elixir}], false},
-              {{:foo, 1}, _, :def, [{:arg, _, nil}], "Function doc"}] = docs[:docs]
+      assert [
+               {{:bar, 1}, _, :def, [{:bool, _, Elixir}], false},
+               {{:foo, 1}, _, :def, [{:arg, _, nil}], "Function doc"}
+             ] = docs[:docs]
 
       assert {_, "Module doc"} = docs[:moduledoc]
 
-      assert [{{:bar, 1}, _, :opaque, "Opaque type doc"},
-              {{:foo, 1}, _, :type, "Type doc"}] = docs[:type_docs]
+      assert [{{:bar, 1}, _, :opaque, "Opaque type doc"}, {{:foo, 1}, _, :type, "Type doc"}] =
+               docs[:type_docs]
 
-      assert [{{:bar, 0}, _, :callback, false},
-              {{:baz, 2}, _, :callback, nil},
-              {{:foo, 1}, _, :callback, "Callback doc"},
-              {{:qux, 1}, _, :macrocallback, "Macrocallback doc"}] = docs[:callback_docs]
+      assert [
+               {{:bar, 0}, _, :callback, false},
+               {{:baz, 2}, _, :callback, nil},
+               {{:foo, 1}, _, :callback, "Callback doc"},
+               {{:qux, 1}, _, :macrocallback, "Macrocallback doc"}
+             ] = docs[:callback_docs]
     end
   end
 end
