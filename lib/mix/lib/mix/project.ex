@@ -99,42 +99,47 @@ defmodule Mix.Project do
   # Invoked after each Mix.Project is compiled.
   @doc false
   def __after_compile__(env, _binary) do
-    push env.module, env.file
+    push(env.module, env.file)
   end
 
   # Push a project onto the project stack.
   # Only the top of the stack can be accessed.
   @doc false
   def push(atom, file \\ nil, app \\ nil) when is_atom(atom) do
-    file = file ||
-           (atom && List.to_string(atom.__info__(:compile)[:source]))
+    file = file || (atom && List.to_string(atom.__info__(:compile)[:source]))
 
-    config = ([app: app] ++ default_config())
-             |> Keyword.merge(get_project_config(atom))
+    config =
+      ([app: app] ++ default_config())
+      |> Keyword.merge(get_project_config(atom))
 
     case Mix.ProjectStack.push(atom, config, file) do
       :ok ->
         :ok
+
       {:error, other} when is_binary(other) ->
-        Mix.raise "Trying to load #{inspect atom} from #{inspect file}" <>
-                  " but another project with the same name was already defined at #{inspect other}"
+        Mix.raise(
+          "Trying to load #{inspect(atom)} from #{inspect(file)}" <>
+            " but another project with the same name was already defined at #{inspect(other)}"
+        )
     end
   end
 
   # Pops a project from the stack.
   @doc false
   def pop do
-    Mix.ProjectStack.pop
+    Mix.ProjectStack.pop()
   end
 
   # The configuration that is pushed down to dependencies.
   @doc false
   def deps_config(config \\ config()) do
-    [build_embedded: config[:build_embedded],
-     build_per_environment: config[:build_per_environment],
-     consolidate_protocols: false,
-     deps_path: deps_path(config),
-     env_path: build_path(config)]
+    [
+      build_embedded: config[:build_embedded],
+      build_per_environment: config[:build_per_environment],
+      consolidate_protocols: false,
+      deps_path: deps_path(config),
+      env_path: build_path(config)
+    ]
   end
 
   @doc """
@@ -150,7 +155,7 @@ defmodule Mix.Project do
   """
   @spec get() :: module | nil
   def get do
-    case Mix.ProjectStack.peek do
+    case Mix.ProjectStack.peek() do
       %{name: name} -> name
       _ -> nil
     end
@@ -187,7 +192,7 @@ defmodule Mix.Project do
   """
   @spec config() :: keyword
   def config do
-    case Mix.ProjectStack.peek do
+    case Mix.ProjectStack.peek() do
       %{config: config} -> config
       _ -> default_config()
     end
@@ -203,18 +208,20 @@ defmodule Mix.Project do
   files in the `config` directory that do not start with a trailing
   period (for example, `.my_config.exs`).
   """
-  @spec config_files() :: [Path.t]
+  @spec config_files() :: [Path.t()]
   def config_files do
-    [Mix.Dep.Lock.manifest] ++
-      case Mix.ProjectStack.peek do
+    [Mix.Dep.Lock.manifest()] ++
+      case Mix.ProjectStack.peek() do
         %{config: config, file: file} ->
           configs =
             config[:config_path]
-            |> Path.dirname
+            |> Path.dirname()
             |> Path.join("**/*.*")
-            |> Path.wildcard
+            |> Path.wildcard()
             |> Enum.reject(&String.starts_with?(Path.basename(&1), "."))
+
           [file | configs]
+
         _ ->
           []
       end
@@ -249,13 +256,16 @@ defmodule Mix.Project do
       #=> %{my_app1: "apps/my_app1", my_app2: "apps/my_app2"}
 
   """
-  @spec apps_paths() :: %{optional(atom) => Path.t} | nil
+  @spec apps_paths() :: %{optional(atom) => Path.t()} | nil
   def apps_paths(config \\ config()) do
     if apps_path = config[:apps_path] do
-      key = {:apps_paths, Mix.Project.get!}
+      key = {:apps_paths, Mix.Project.get!()}
+
       Mix.ProjectStack.read_cache(key) ||
-        Mix.ProjectStack.write_cache(key,
-          config[:apps] |> umbrella_apps(apps_path) |> to_apps_paths(apps_path))
+        Mix.ProjectStack.write_cache(
+          key,
+          config[:apps] |> umbrella_apps(apps_path) |> to_apps_paths(apps_path)
+        )
     end
   end
 
@@ -265,6 +275,7 @@ defmodule Mix.Project do
       {:error, _} -> []
     end
   end
+
   defp umbrella_apps(apps, _apps_path) when is_list(apps) do
     apps
   end
@@ -278,15 +289,19 @@ defmodule Mix.Project do
 
   defp path_with_mix_exs_otherwise_warn(app, apps_path) do
     path = Path.join(apps_path, Atom.to_string(app))
+
     cond do
       File.regular?(Path.join(path, "mix.exs")) ->
         path
 
       File.dir?(path) ->
-        Mix.shell.error "warning: path #{inspect Path.relative_to_cwd(path)} is a directory but " <>
-                        "it has no mix.exs. Mix won't consider this directory as part of your " <>
-                        "umbrella application. Please add a \"mix.exs\" or set the \":apps\" key " <>
-                        "in your umbrella configuration with all relevant apps names as atoms"
+        Mix.shell().error(
+          "warning: path #{inspect(Path.relative_to_cwd(path))} is a directory but " <>
+            "it has no mix.exs. Mix won't consider this directory as part of your " <>
+            "umbrella application. Please add a \"mix.exs\" or set the \":apps\" key " <>
+            "in your umbrella configuration with all relevant apps names as atoms"
+        )
+
         nil
 
       true ->
@@ -316,29 +331,30 @@ defmodule Mix.Project do
       #=> "Mixfile is: MyApp.MixProject"
 
   """
-  @spec in_project(atom, Path.t, keyword, (module -> result)) :: result when result: term
+  @spec in_project(atom, Path.t(), keyword, (module -> result)) :: result when result: term
   def in_project(app, path, post_config \\ [], fun)
 
   def in_project(app, ".", post_config, fun) do
-    cached = try do
-      load_project(app, post_config)
-    rescue
-      any ->
-        Mix.shell.error "Error while loading project #{inspect app} at #{File.cwd!}"
-        reraise any, System.stacktrace
-    end
+    cached =
+      try do
+        load_project(app, post_config)
+      rescue
+        any ->
+          Mix.shell().error("Error while loading project #{inspect(app)} at #{File.cwd!()}")
+          reraise any, System.stacktrace()
+      end
 
     try do
       fun.(cached)
     after
-      Mix.Project.pop
+      Mix.Project.pop()
     end
   end
 
   def in_project(app, path, post_config, fun) do
-    File.cd! path, fn ->
+    File.cd!(path, fn ->
       in_project(app, ".", post_config, fun)
-    end
+    end)
   end
 
   @doc """
@@ -354,9 +370,9 @@ defmodule Mix.Project do
       #=> "/path/to/project/deps"
 
   """
-  @spec deps_path(keyword) :: Path.t
+  @spec deps_path(keyword) :: Path.t()
   def deps_path(config \\ config()) do
-    Path.expand config[:deps_path]
+    Path.expand(config[:deps_path])
   end
 
   @doc """
@@ -368,11 +384,11 @@ defmodule Mix.Project do
       #=> %{foo: "deps/foo", bar: "custom/path/dep"}
 
   """
-  @spec deps_paths() :: %{optional(atom) => Path.t}
+  @spec deps_paths() :: %{optional(atom) => Path.t()}
   def deps_paths do
-    Enum.reduce Mix.Dep.cached(), %{}, fn
-      %{app: app, opts: opts}, acc -> Map.put acc, app, opts[:dest]
-    end
+    Enum.reduce(Mix.Dep.cached(), %{}, fn %{app: app, opts: opts}, acc ->
+      Map.put(acc, app, opts[:dest])
+    end)
   end
 
   @doc """
@@ -396,7 +412,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/dev"
 
   """
-  @spec build_path(keyword) :: Path.t
+  @spec build_path(keyword) :: Path.t()
   def build_path(config \\ config()) do
     config[:env_path] || env_path(config)
   end
@@ -406,11 +422,13 @@ defmodule Mix.Project do
 
     case config[:build_per_environment] do
       true ->
-        Path.expand("#{build}/#{Mix.env}")
+        Path.expand("#{build}/#{Mix.env()}")
+
       false ->
         Path.expand("#{build}/shared")
+
       other ->
-        Mix.raise "The :build_per_environment option should be a boolean, got: #{inspect(other)}"
+        Mix.raise("The :build_per_environment option should be a boolean, got: #{inspect(other)}")
     end
   end
 
@@ -430,7 +448,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
-  @spec manifest_path(keyword) :: Path.t
+  @spec manifest_path(keyword) :: Path.t()
   def manifest_path(config \\ config()) do
     config[:app_path] ||
       if app = config[:app] do
@@ -451,18 +469,23 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
-  @spec app_path(keyword) :: Path.t
+  @spec app_path(keyword) :: Path.t()
   def app_path(config \\ config()) do
-    config[:app_path] || cond do
-      app = config[:app] ->
-        Path.join([build_path(config), "lib", Atom.to_string(app)])
-      config[:apps_path] ->
-        raise "trying to access Mix.Project.app_path for an umbrella project but umbrellas have no app"
-      true ->
-        Mix.raise "Cannot access build without an application name, " <>
-          "please ensure you are in a directory with a mix.exs file and it defines " <>
-          "an :app name under the project configuration"
-    end
+    config[:app_path] ||
+      cond do
+        app = config[:app] ->
+          Path.join([build_path(config), "lib", Atom.to_string(app)])
+
+        config[:apps_path] ->
+          raise "trying to access Mix.Project.app_path for an umbrella project but umbrellas have no app"
+
+        true ->
+          Mix.raise(
+            "Cannot access build without an application name, " <>
+              "please ensure you are in a directory with a mix.exs file and it defines " <>
+              "an :app name under the project configuration"
+          )
+      end
   end
 
   @doc """
@@ -478,7 +501,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/dev/lib/app/ebin"
 
   """
-  @spec compile_path(keyword) :: Path.t
+  @spec compile_path(keyword) :: Path.t()
   def compile_path(config \\ config()) do
     Path.join(app_path(config), "ebin")
   end
@@ -512,7 +535,7 @@ defmodule Mix.Project do
   """
   @spec compile([term], keyword) :: term
   def compile(args, _config \\ []) do
-    Mix.Task.run "compile", args
+    Mix.Task.run("compile", args)
   end
 
   @doc """
@@ -531,15 +554,18 @@ defmodule Mix.Project do
     source = Path.expand("ebin")
     target = Path.join(app, "ebin")
 
-    _ = cond do
-      opts[:symlink_ebin] ->
-        _ = symlink_or_copy(config, source, target)
-      match?({:ok, _}, :file.read_link(target)) ->
-        _ = File.rm_rf!(target)
-        File.mkdir_p!(target)
-      true ->
-        File.mkdir_p!(target)
-    end
+    _ =
+      cond do
+        opts[:symlink_ebin] ->
+          _ = symlink_or_copy(config, source, target)
+
+        match?({:ok, _}, :file.read_link(target)) ->
+          _ = File.rm_rf!(target)
+          File.mkdir_p!(target)
+
+        true ->
+          File.mkdir_p!(target)
+      end
 
     _ = symlink_or_copy(config, Path.expand("include"), Path.join(app, "include"))
     _ = symlink_or_copy(config, Path.expand("priv"), Path.join(app, "priv"))
@@ -574,7 +600,7 @@ defmodule Mix.Project do
   @doc """
   Returns all load paths for the given project.
   """
-  @spec load_paths(keyword) :: [Path.t]
+  @spec load_paths(keyword) :: [Path.t()]
   def load_paths(config \\ config()) do
     if umbrella?(config) do
       []
@@ -603,8 +629,8 @@ defmodule Mix.Project do
             _ = Code.load_file(file)
             get()
           else
-            ^old_proj -> Mix.raise "Could not find a Mix project at #{file}"
-            new_proj  -> {new_proj, file}
+            ^old_proj -> Mix.raise("Could not find a Mix project at #{file}")
+            new_proj -> {new_proj, file}
           after
             Code.compiler_options(relative_paths: true)
           end
@@ -619,25 +645,27 @@ defmodule Mix.Project do
   end
 
   defp default_config do
-    [aliases: [],
-     build_embedded: false,
-     build_per_environment: true,
-     build_scm: Mix.SCM.Path,
-     config_path: "config/config.exs",
-     consolidate_protocols: true,
-     default_task: "run",
-     deps: [],
-     deps_path: "deps",
-     elixirc_paths: ["lib"],
-     erlc_paths: ["src"],
-     erlc_include_path: "include",
-     erlc_options: [:debug_info],
-     lockfile: "mix.lock",
-     preferred_cli_env: [],
-     start_permanent: false]
+    [
+      aliases: [],
+      build_embedded: false,
+      build_per_environment: true,
+      build_scm: Mix.SCM.Path,
+      config_path: "config/config.exs",
+      consolidate_protocols: true,
+      default_task: "run",
+      deps: [],
+      deps_path: "deps",
+      elixirc_paths: ["lib"],
+      erlc_paths: ["src"],
+      erlc_include_path: "include",
+      erlc_options: [:debug_info],
+      lockfile: "mix.lock",
+      preferred_cli_env: [],
+      start_permanent: false
+    ]
   end
 
   @private_config [:app_path, :build_scm, :env_path]
-  defp get_project_config(nil),  do: []
+  defp get_project_config(nil), do: []
   defp get_project_config(atom), do: atom.project |> Keyword.drop(@private_config)
 end
