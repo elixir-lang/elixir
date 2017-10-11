@@ -145,7 +145,7 @@ defmodule Mix.Tasks.Format do
 
   defp format_file(file, {not_equivalent, not_formatted}, task_opts, formatter_opts) do
     input = File.read!(file)
-    output = [Code.format_string!(input, formatter_opts), ?\n]
+    output = [Code.format_string!(input, [file: file] ++ formatter_opts), ?\n]
 
     check_equivalent? = Keyword.get(task_opts, :check_equivalent, false)
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
@@ -179,8 +179,9 @@ defmodule Mix.Tasks.Format do
     {not_equivalent, not_formatted}
   rescue
     e ->
-      Mix.shell().error("mix format failed when parsing file: #{file}")
-      reraise e, System.stacktrace()
+      stacktrace = System.stacktrace()
+      Mix.shell().error("mix format failed for file: #{file}")
+      reraise e, stacktrace
   end
 
   defp check!({[], []}) do
