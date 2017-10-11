@@ -37,11 +37,9 @@ defmodule Logger.Translator do
 
     case message do
       {'** Generic server ' ++ _, [name, last, state, reason | client]} ->
-        msg = [
-          "GenServer #{inspect(name)} terminating",
-          format_stop(reason),
-          "\nLast message#{format_from(client)}: #{inspect(last, opts)}"
-        ]
+        msg =
+          ["GenServer #{inspect(name)} terminating", format_stop(reason)] ++
+            ["\nLast message#{format_from(client)}: #{inspect(last, opts)}"]
 
         if min_level == :debug do
           {:ok, [msg, "\nState: #{inspect(state, opts)}" | format_client(client)]}
@@ -50,11 +48,9 @@ defmodule Logger.Translator do
         end
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
-        msg = [
-          "GenEvent handler #{inspect(name)} installed in #{inspect(manager)} terminating",
-          format_stop(reason),
-          "\nLast message: #{inspect(last, opts)}"
-        ]
+        msg =
+          ["GenEvent handler #{inspect(name)} installed in #{inspect(manager)} terminating"] ++
+            [format_stop(reason), "\nLast message: #{inspect(last, opts)}"]
 
         if min_level == :debug do
           {:ok, [msg | "\nState: #{inspect(state, opts)}"]}
@@ -63,22 +59,15 @@ defmodule Logger.Translator do
         end
 
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
-        msg = [
-          "Task #{inspect(name)} started from #{inspect(starter)} terminating",
-          format_stop(reason),
-          "\nFunction: #{inspect(function, opts)}"
-          | "\n    Args: #{inspect(args, opts)}"
-        ]
+        msg =
+          ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
+            [format_stop(reason), "\nFunction: #{inspect(function, opts)}"] ++
+            ["\n    Args: #{inspect(args, opts)}"]
 
         {:ok, msg}
 
       {'Error in process ' ++ _, [pid, {reason, stack}]} ->
-        msg = [
-          "Process ",
-          inspect(pid),
-          " raised an exception"
-          | format(:error, reason, stack)
-        ]
+        msg = ["Process ", inspect(pid), " raised an exception" | format(:error, reason, stack)]
 
         {:ok, msg}
 
@@ -118,19 +107,11 @@ defmodule Logger.Translator do
          offender: [{:pid, pid}, {name_or_id, name} | offender]
        )
        when is_pid(pid) and context !== :shutdown and name_or_id in [:name, :id] do
-    msg = [
-      "Child ",
-      inspect(name),
-      " of Supervisor ",
-      sup_name(sup),
-      ?\s,
-      sup_context(context),
-      "\n** (exit) ",
-      offender_reason(reason, context),
-      "\nPid: ",
-      inspect(pid)
-      | child_info(min_level, offender)
-    ]
+    msg =
+      ["Child ", inspect(name), " of Supervisor ", sup_name(sup)] ++
+        [?\s, sup_context(context), "\n** (exit) "] ++
+        [offender_reason(reason, context), "\nPid: ", inspect(pid)] ++
+        child_info(min_level, offender)
 
     {:ok, msg}
   end
@@ -143,17 +124,10 @@ defmodule Logger.Translator do
          offender: [{:pid, _pid}, {name_or_id, name} | offender]
        )
        when name_or_id in [:name, :id] do
-    msg = [
-      "Child ",
-      inspect(name),
-      " of Supervisor ",
-      sup_name(sup),
-      ?\s,
-      sup_context(context),
-      "\n** (exit) ",
-      offender_reason(reason, context)
-      | child_info(min_level, offender)
-    ]
+    msg =
+      ["Child ", inspect(name), " of Supervisor ", sup_name(sup)] ++
+        [?\s, sup_context(context), "\n** (exit) ", offender_reason(reason, context)] ++
+        child_info(min_level, offender)
 
     {:ok, msg}
   end
@@ -165,17 +139,10 @@ defmodule Logger.Translator do
          reason: reason,
          offender: [{:pid, pid} | offender]
        ) do
-    msg = [
-      "Child of Supervisor ",
-      sup_name(sup),
-      ?\s,
-      sup_context(context),
-      "\n** (exit) ",
-      offender_reason(reason, context),
-      "\nPid: ",
-      inspect(pid)
-      | child_info(min_level, offender)
-    ]
+    msg =
+      ["Child of Supervisor ", sup_name(sup), ?\s, sup_context(context), "\n** (exit) "] ++
+        [offender_reason(reason, context), "\nPid: ", inspect(pid)] ++
+        child_info(min_level, offender)
 
     {:ok, msg}
   end
@@ -188,19 +155,10 @@ defmodule Logger.Translator do
          offender: [{:nb_children, n}, {name_or_id, name} | offender]
        )
        when name_or_id in [:name, :id] do
-    msg = [
-      "Children ",
-      inspect(name),
-      " of Supervisor ",
-      sup_name(sup),
-      ?\s,
-      sup_context(context),
-      "\n** (exit) ",
-      offender_reason(reason, context),
-      "\nNumber: ",
-      inspect(n)
-      | child_info(min_level, offender)
-    ]
+    msg =
+      ["Children ", inspect(name), " of Supervisor ", sup_name(sup), ?\s, sup_context(context)] ++
+        ["\n** (exit) ", offender_reason(reason, context), "\nNumber: ", inspect(n)] ++
+        child_info(min_level, offender)
 
     {:ok, msg}
   end
@@ -217,16 +175,9 @@ defmodule Logger.Translator do
          started: [{:pid, pid}, {name_or_id, name} | started]
        )
        when name_or_id in [:name, :id] do
-    msg = [
-      "Child ",
-      inspect(name),
-      " of Supervisor ",
-      sup_name(sup),
-      " started",
-      "\nPid: ",
-      inspect(pid)
-      | child_info(min_level, started)
-    ]
+    msg =
+      ["Child ", inspect(name), " of Supervisor ", sup_name(sup)] ++
+        [" started", "\nPid: ", inspect(pid)] ++ child_info(min_level, started)
 
     {:ok, msg}
   end
@@ -236,14 +187,9 @@ defmodule Logger.Translator do
          supervisor: sup,
          started: [{:pid, pid} | started]
        ) do
-    msg = [
-      "Child of Supervisor ",
-      sup_name(sup),
-      " started",
-      "\nPid: ",
-      inspect(pid)
-      | child_info(min_level, started)
-    ]
+    msg =
+      ["Child of Supervisor ", sup_name(sup), " started", "\nPid: ", inspect(pid)] ++
+        child_info(min_level, started)
 
     {:ok, msg}
   end
@@ -273,14 +219,8 @@ defmodule Logger.Translator do
   end
 
   defp child_debug(:debug, restart_type: restart, shutdown: shutdown, child_type: type) do
-    [
-      "\nRestart: ",
-      inspect(restart),
-      "\nShutdown: ",
-      inspect(shutdown),
-      "\nType: ",
-      inspect(type)
-    ]
+    ["\nRestart: ", inspect(restart), "\nShutdown: ", inspect(shutdown)] ++
+      ["\nType: ", inspect(type)]
   end
 
   defp child_debug(_min_level, _child) do
@@ -305,14 +245,9 @@ defmodule Logger.Translator do
          ],
          linked
        ]) do
-    msg = [
-      "Process ",
-      crash_name(pid, name),
-      " terminating",
-      format(kind, exception, stack),
-      crash_info(min_level, [initial_call | crashed])
-      | crash_linked(min_level, linked)
-    ]
+    msg =
+      ["Process ", crash_name(pid, name), " terminating", format(kind, exception, stack)] ++
+        [crash_info(min_level, [initial_call | crashed])] ++ crash_linked(min_level, linked)
 
     {:ok, msg}
   end
@@ -325,14 +260,9 @@ defmodule Logger.Translator do
          ],
          linked
        ]) do
-    msg = [
-      "Process ",
-      crash_name(pid, name),
-      " terminating",
-      format(kind, exception, stack),
-      crash_info(min_level, crashed),
-      crash_linked(min_level, linked)
-    ]
+    msg =
+      ["Process ", crash_name(pid, name), " terminating", format(kind, exception, stack)] ++
+        [crash_info(min_level, crashed), crash_linked(min_level, linked)]
 
     {:ok, msg}
   end
@@ -418,15 +348,8 @@ defmodule Logger.Translator do
   defp crash_neighbour(min_level, [{:pid, pid}, {:registered_name, name} | info]) do
     indent = "    "
 
-    [
-      ?\n,
-      indent,
-      inspect(name),
-      " (",
-      inspect(pid),
-      ")"
-      | crash_info(min_level, info, [?\n, indent | indent])
-    ]
+    [?\n, indent, inspect(name), " (", inspect(pid), ")"] ++
+      crash_info(min_level, info, [?\n, indent | indent])
   end
 
   defp format_stop({maybe_exception, [_ | _] = maybe_stacktrace} = reason) do
