@@ -23,8 +23,8 @@ defmodule Protocol do
     type_args = [quote(do: t) | type_args]
 
     varify = fn pos -> Macro.var(String.to_atom("var" <> Integer.to_string(pos)), __MODULE__) end
-    call_args = :lists.map(varify, :lists.seq(2, arity))
 
+    call_args = :lists.map(varify, :lists.seq(2, arity))
     call_args = [quote(do: term) | call_args]
 
     quote do
@@ -264,18 +264,14 @@ defmodule Protocol do
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
-      {
-        :ok,
-        {
-          ^protocol,
-          [
-            {:abstract_code, {_raw, abstract_code}},
-            {:attributes, attributes},
-            {:compile_info, compile_info},
-            {'ExDc', docs}
-          ]
-        }
-      } ->
+      {:ok, {^protocol, entries}} ->
+        [
+          {:abstract_code, {_raw, abstract_code}},
+          {:attributes, attributes},
+          {:compile_info, compile_info},
+          {'ExDc', docs}
+        ] = entries
+
         case attributes[:protocol] do
           [fallback_to_any: any] ->
             {:ok, {protocol, any, abstract_code}, {compile_info, docs}}
@@ -326,13 +322,8 @@ defmodule Protocol do
             {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
 
           {:clause, l, [{:atom, _, :impls}], [], [{:atom, _, _}]} ->
-            {
-              :clause,
-              l,
-              [{:atom, 0, :impls}],
-              [],
-              [{:tuple, 0, [{:atom, 0, :consolidated}, abstract_types]}]
-            }
+            tuple = {:tuple, 0, [{:atom, 0, :consolidated}, abstract_types]}
+            {:clause, l, [{:atom, 0, :impls}], [], [tuple]}
 
           {:clause, _, _, _, _} = c ->
             c
@@ -380,9 +371,8 @@ defmodule Protocol do
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
-    change_impl_for(tail, protocol, types, structs, protocol?, [
-      {:function, line, :struct_impl_for, 1, clauses} | acc
-    ])
+    acc = [{:function, line, :struct_impl_for, 1, clauses} | acc]
+    change_impl_for(tail, protocol, types, structs, protocol?, acc)
   end
 
   defp change_impl_for(
@@ -397,39 +387,22 @@ defmodule Protocol do
       for spec <- funspecs do
         case spec do
           {:type, line, :fun, [{:type, _, :product, [{:atom, _, :consolidated?}]}, _]} ->
-            {
-              :type,
-              line,
-              :fun,
-              [{:type, line, :product, [{:atom, 0, :consolidated?}]}, {:atom, 0, true}]
-            }
+            product = {:type, line, :product, [{:atom, 0, :consolidated?}]}
+            {:type, line, :fun, [product, {:atom, 0, true}]}
 
           {:type, line, :fun, [{:type, _, :product, [{:atom, _, :impls}]}, _]} ->
             impls = for mod <- types, do: {:atom, 0, mod}
-
-            {
-              :type,
-              line,
-              :fun,
-              [
-                {:type, line, :product, [{:atom, 0, :impls}]},
-                {
-                  :type,
-                  0,
-                  :tuple,
-                  [{:atom, 0, :consolidated}, {:type, 0, :list, [{:type, 0, :union, impls}]}]
-                }
-              ]
-            }
+            list = {:type, 0, :list, [{:type, 0, :union, impls}]}
+            tuple = {:type, 0, :tuple, [{:atom, 0, :consolidated}, list]}
+            {:type, line, :fun, [{:type, line, :product, [{:atom, 0, :impls}]}, tuple]}
 
           other ->
             other
         end
       end
 
-    change_impl_for(tail, protocol, types, structs, protocol?, [
-      {:attribute, line, :spec, {{:__protocol__, 1}, new_specs}} | acc
-    ])
+    acc = [{:attribute, line, :spec, {{:__protocol__, 1}, new_specs}} | acc]
+    change_impl_for(tail, protocol, types, structs, protocol?, acc)
   end
 
   defp change_impl_for([head | tail], protocol, info, types, protocol?, acc) do
@@ -445,49 +418,21 @@ defmodule Protocol do
   end
 
   defp builtin_clause_for(mod, guard, protocol, line) do
-    {
-      :clause,
-      line,
-      [{:var, line, :x}],
-      [
-        [
-          {
-            :call,
-            line,
-            {:remote, line, {:atom, line, :erlang}, {:atom, line, guard}},
-            [{:var, line, :x}]
-          }
-        ]
-      ],
-      [{:atom, line, load_impl(protocol, mod)}]
-    }
+    remote = {:remote, line, {:atom, line, :erlang}, {:atom, line, guard}}
+    guard = {:call, line, remote, [{:var, line, :x}]}
+    body = {:atom, line, load_impl(protocol, mod)}
+    {:clause, line, [{:var, line, :x}], [[guard]], [body]}
   end
 
   defp struct_clause_for(line) do
-    {
-      :clause,
-      line,
-      [
-        {
-          :map,
-          line,
-          [
-            {:map_field_exact, line, {:atom, line, :__struct__}, {:var, line, :x}}
-          ]
-        }
-      ],
-      [
-        [
-          {
-            :call,
-            line,
-            {:remote, line, {:atom, line, :erlang}, {:atom, line, :is_atom}},
-            [{:var, line, :x}]
-          }
-        ]
-      ],
-      [{:call, line, {:atom, line, :struct_impl_for}, [{:var, line, :x}]}]
-    }
+    map_field_exact = {:map_field_exact, line, {:atom, line, :__struct__}, {:var, line, :x}}
+    arg = {:map, line, [map_field_exact]}
+
+    is_atom = {:remote, line, {:atom, line, :erlang}, {:atom, line, :is_atom}}
+    guard = {:call, line, is_atom, [{:var, line, :x}]}
+
+    body = {:call, line, {:atom, line, :struct_impl_for}, [{:var, line, :x}]}
+    {:clause, line, [arg], [[guard]], [body]}
   end
 
   defp each_struct_clause_for(struct, protocol, line) do
@@ -508,13 +453,10 @@ defmodule Protocol do
     opts = if Code.compiler_options()[:debug_info], do: [:debug_info | opts], else: opts
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return | opts])
 
-    {
-      :ok,
-      case docs do
-        :missing_chunk -> binary
-        _ -> :elixir_erl.add_beam_chunks(binary, [{"ExDc", docs}])
-      end
-    }
+    case docs do
+      :missing_chunk -> {:ok, binary}
+      _ -> {:ok, :elixir_erl.add_beam_chunks(binary, [{"ExDc", docs}])}
+    end
   end
 
   ## Definition callbacks
@@ -708,16 +650,15 @@ defmodule Protocol do
         for.__struct__
       end
 
-    :lists.foreach(
-      fn
-        proto when is_atom(proto) ->
-          derive(proto, for, struct, [], env)
+    foreach = fn
+      proto when is_atom(proto) ->
+        derive(proto, for, struct, [], env)
 
-        {proto, opts} when is_atom(proto) ->
-          derive(proto, for, struct, opts, env)
-      end,
-      :lists.flatten(derives)
-    )
+      {proto, opts} when is_atom(proto) ->
+        derive(proto, for, struct, opts, env)
+    end
+
+    :lists.foreach(foreach, :lists.flatten(derives))
 
     :ok
   end
@@ -737,8 +678,7 @@ defmodule Protocol do
       if function_exported?(mod, fun, length(args)) do
         apply(mod, fun, args)
       else
-        Module.create(
-          Module.concat(protocol, for),
+        quoted =
           quote do
             Module.register_attribute(__MODULE__, :protocol_impl, persist: true)
             @protocol_impl [protocol: unquote(protocol), for: unquote(for)]
@@ -750,9 +690,9 @@ defmodule Protocol do
             def __impl__(:target), do: unquote(impl)
             def __impl__(:protocol), do: unquote(protocol)
             def __impl__(:for), do: unquote(for)
-          end,
-          Macro.Env.location(env)
-        )
+          end
+
+        Module.create(Module.concat(protocol, for), quoted, Macro.Env.location(env))
       end
     end)
   end
@@ -774,19 +714,15 @@ defmodule Protocol do
   def __spec__?(module, name, arity) do
     signature = {name, arity}
 
+    mapper = fn {:spec, expr, pos} ->
+      if Kernel.Typespec.spec_to_signature(expr) == signature do
+        Module.store_typespec(module, :callback, {:callback, expr, pos})
+        true
+      end
+    end
+
     specs = Module.get_attribute(module, :spec)
-
-    found =
-      :lists.map(
-        fn {:spec, expr, pos} ->
-          if Kernel.Typespec.spec_to_signature(expr) == signature do
-            Module.store_typespec(module, :callback, {:callback, expr, pos})
-            true
-          end
-        end,
-        specs
-      )
-
+    found = :lists.map(mapper, specs)
     :lists.any(&(&1 == true), found)
   end
 
