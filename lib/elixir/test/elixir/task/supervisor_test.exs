@@ -37,9 +37,7 @@ defmodule Task.SupervisorTest do
 
   test "can be supervised directly", config do
     modules = [{Task.Supervisor, name: config.test}]
-
     assert {:ok, _} = Supervisor.start_link(modules, strategy: :one_for_one)
-
     assert Process.whereis(config.test)
   end
 
@@ -47,7 +45,6 @@ defmodule Task.SupervisorTest do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end
     task = Task.Supervisor.async(config[:supervisor], fun)
-
     assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
     # Assert the struct
@@ -75,7 +72,8 @@ defmodule Task.SupervisorTest do
   end
 
   test "async/3", config do
-    task = Task.Supervisor.async(config[:supervisor], __MODULE__, :wait_and_send, [self(), :done])
+    args = [self(), :done]
+    task = Task.Supervisor.async(config[:supervisor], __MODULE__, :wait_and_send, args)
     assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
     receive do: (:ready -> :ok)
@@ -90,7 +88,6 @@ defmodule Task.SupervisorTest do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end
     task = Task.Supervisor.async_nolink(config[:supervisor], fun)
-
     assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
     # Assert the struct
@@ -118,12 +115,8 @@ defmodule Task.SupervisorTest do
   end
 
   test "async_nolink/3", config do
-    task =
-      Task.Supervisor.async_nolink(config[:supervisor], __MODULE__, :wait_and_send, [
-        self(),
-        :done
-      ])
-
+    args = [self(), :done]
+    task = Task.Supervisor.async_nolink(config[:supervisor], __MODULE__, :wait_and_send, args)
     assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
     receive do: (:ready -> :ok)
@@ -152,8 +145,10 @@ defmodule Task.SupervisorTest do
   end
 
   test "start_child/3", config do
+    args = [self(), :done]
+
     {:ok, pid} =
-      Task.Supervisor.start_child(config[:supervisor], __MODULE__, :wait_and_send, [self(), :done])
+      Task.Supervisor.start_child(config[:supervisor], __MODULE__, :wait_and_send, args)
 
     assert Task.Supervisor.children(config[:supervisor]) == [pid]
 
@@ -171,16 +166,16 @@ defmodule Task.SupervisorTest do
     end
 
     assert_raise FunctionClauseError, fn ->
-      Task.Supervisor.start_child(config[:supervisor], __MODULE__, "wait_and_send", [
-        self(),
-        :done
-      ])
+      args = [self(), :done]
+      Task.Supervisor.start_child(config[:supervisor], __MODULE__, "wait_and_send", args)
     end
   end
 
   test "terminate_child/2", config do
+    args = [self(), :done]
+
     {:ok, pid} =
-      Task.Supervisor.start_child(config[:supervisor], __MODULE__, :wait_and_send, [self(), :done])
+      Task.Supervisor.start_child(config[:supervisor], __MODULE__, :wait_and_send, args)
 
     assert Task.Supervisor.children(config[:supervisor]) == [pid]
     assert Task.Supervisor.terminate_child(config[:supervisor], pid) == :ok
@@ -249,24 +244,20 @@ defmodule Task.SupervisorTest do
     end
 
     test "shuts down unused tasks", %{supervisor: supervisor} do
+      collection = [0, :infinity, :infinity, :infinity]
+
       assert supervisor
-             |> Task.Supervisor.async_stream(
-                  [0, :infinity, :infinity, :infinity],
-                  &sleep/1,
-                  @opts
-                )
+             |> Task.Supervisor.async_stream(collection, &sleep/1, @opts)
              |> Enum.take(1) == [ok: 0]
 
       assert Process.info(self(), :links) == {:links, [supervisor]}
     end
 
     test "shuts down unused tasks without leaking messages", %{supervisor: supervisor} do
+      collection = [0, :infinity, :infinity, :infinity]
+
       assert supervisor
-             |> Task.Supervisor.async_stream(
-                  [0, :infinity, :infinity, :infinity],
-                  &sleep/1,
-                  @opts
-                )
+             |> Task.Supervisor.async_stream(collection, &sleep/1, @opts)
              |> Enum.take(1) == [ok: 0]
 
       refute_received _
@@ -283,37 +274,26 @@ defmodule Task.SupervisorTest do
 
     test "streams an enumerable with mfa and supervisor fun", %{supervisor: supervisor} do
       {:ok, other_supervisor} = Task.Supervisor.start_link()
+      fun = :sleep_and_return_ancestor
 
       assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
-             |> Task.Supervisor.async_stream(
-                  1..4,
-                  __MODULE__,
-                  :sleep_and_return_ancestor,
-                  [],
-                  @opts
-                )
+             |> Task.Supervisor.async_stream(1..4, __MODULE__, fun, [], @opts)
              |> Enum.to_list() ==
                [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
     end
 
     test "streams an enumerable with mfa with args and supervisor fun", %{supervisor: supervisor} do
       {:ok, other_supervisor} = Task.Supervisor.start_link()
+      fun = :sleep_and_return_ancestor
 
       assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
-             |> Task.Supervisor.async_stream(
-                  1..4,
-                  __MODULE__,
-                  :sleep_and_return_ancestor,
-                  [:another_arg],
-                  @opts
-                )
+             |> Task.Supervisor.async_stream(1..4, __MODULE__, fun, [:another_arg], @opts)
              |> Enum.to_list() ==
                [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
     end
 
-    test "streams an enumerable with fun and executes supervisor fun in monitor process", %{
-      supervisor: supervisor
-    } do
+    test "streams an enumerable with fun and executes supervisor fun in monitor process", context do
+      %{supervisor: supervisor} = context
       parent = self()
 
       supervisor_fun =
@@ -340,21 +320,19 @@ defmodule Task.SupervisorTest do
     test "streams an enumerable with fun and bad supervisor fun" do
       Process.flag(:trap_exit, true)
 
-      assert {{%RuntimeError{message: "bad"}, _stacktrace}, _mfa} =
-               catch_exit(
-                 fn _i -> raise "bad" end
-                 |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
-                 |> Stream.run()
-               )
+      stream =
+        fn _i -> raise "bad" end
+        |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+
+      assert {{%RuntimeError{message: "bad"}, _stacktrace}, _mfa} = catch_exit(Stream.run(stream))
 
       refute_received _
 
-      assert {{:noproc, _stacktrace}, _mfa} =
-               catch_exit(
-                 fn _i -> :not_a_supervisor end
-                 |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
-                 |> Stream.run()
-               )
+      stream =
+        fn _i -> :not_a_supervisor end
+        |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
+
+      assert {{:noproc, _stacktrace}, _mfa} = catch_exit(Stream.run(stream))
 
       refute_received _
     end
@@ -396,24 +374,20 @@ defmodule Task.SupervisorTest do
     end
 
     test "shuts down unused tasks", %{supervisor: supervisor} do
+      collection = [0, :infinity, :infinity, :infinity]
+
       assert supervisor
-             |> Task.Supervisor.async_stream_nolink(
-                  [0, :infinity, :infinity, :infinity],
-                  &sleep/1,
-                  @opts
-                )
+             |> Task.Supervisor.async_stream_nolink(collection, &sleep/1, @opts)
              |> Enum.take(1) == [ok: 0]
 
       assert Process.info(self(), :links) == {:links, [supervisor]}
     end
 
     test "shuts down unused tasks without leaking messages", %{supervisor: supervisor} do
+      collection = [0, :infinity, :infinity, :infinity]
+
       assert supervisor
-             |> Task.Supervisor.async_stream_nolink(
-                  [0, :infinity, :infinity, :infinity],
-                  &sleep/1,
-                  @opts
-                )
+             |> Task.Supervisor.async_stream_nolink(collection, &sleep/1, @opts)
              |> Enum.take(1) == [ok: 0]
 
       refute_received _
