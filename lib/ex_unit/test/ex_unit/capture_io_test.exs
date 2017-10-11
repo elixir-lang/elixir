@@ -300,8 +300,6 @@ defmodule ExUnit.CaptureIOTest do
              send_and_receive_io({:requests, requests})
            end) == "ab"
 
-    requests = [{:put_chars, :unicode, "a"}, {:put_chars, :unicode, "b"}]
-
     capture_io(fn ->
       assert send_and_receive_io({:requests, requests}) == :ok
     end)
