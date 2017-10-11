@@ -801,11 +801,11 @@ defmodule IEx.HelpersTest do
 
         assert l(Sample) == {:module, Sample}
 
-        assert_raise UndefinedFunctionError,
-                     "function Sample.run/0 is undefined or private",
-                     fn ->
-                       Sample.run()
-                     end
+        message = "function Sample.run/0 is undefined or private"
+
+        assert_raise UndefinedFunctionError, message, fn ->
+          Sample.run()
+        end
       end)
     after
       # Clean up the old version left over after l()
@@ -833,11 +833,11 @@ defmodule IEx.HelpersTest do
     end
 
     test "reloads elixir modules" do
-      assert_raise UndefinedFunctionError,
-                   ~r"function Sample.run/0 is undefined \(module Sample is not available\)",
-                   fn ->
-                     Sample.run()
-                   end
+      message = ~r"function Sample.run/0 is undefined \(module Sample is not available\)"
+
+      assert_raise UndefinedFunctionError, message, fn ->
+        Sample.run()
+      end
 
       filename = "sample.ex"
 
@@ -849,11 +849,11 @@ defmodule IEx.HelpersTest do
                  File.write!(filename, "defmodule Sample do end")
                  assert {:reloaded, Sample, [Sample]} = r(Sample)
 
-                 assert_raise UndefinedFunctionError,
-                              "function Sample.run/0 is undefined or private",
-                              fn ->
-                                Sample.run()
-                              end
+                 message = "function Sample.run/0 is undefined or private"
+
+                 assert_raise UndefinedFunctionError, message, fn ->
+                   Sample.run()
+                 end
                end) =~ "redefining module Sample (current version loaded from Elixir.Sample.beam)"
       end)
     after
