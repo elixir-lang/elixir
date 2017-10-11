@@ -115,13 +115,12 @@ defmodule ExUnit.CallbacksTest do
 
       @tag timeout: 500
       test "ok" do
-        start_supervised({
-          Task,
-          fn ->
-            Process.flag(:trap_exit, true)
-            Process.sleep(:infinity)
-          end
-        })
+        fun = fn ->
+          Process.flag(:trap_exit, true)
+          Process.sleep(:infinity)
+        end
+
+        start_supervised({Task, fun})
       end
     end
 
@@ -255,15 +254,14 @@ defmodule ExUnit.CallbacksTest do
     ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
 
-    expected = """
-    on_exit 2 overrides -> run
-    simple on_exit run
-    on_exit 1 overrides -> run
-    on_exit setup run
-    on_exit setup_all run
-    """
+    assert output =~ """
+           on_exit 2 overrides -> run
+           simple on_exit run
+           on_exit 1 overrides -> run
+           on_exit setup run
+           on_exit setup_all run
+           """
 
-    assert output =~ expected
     refute output =~ "not run"
   end
 
@@ -300,13 +298,11 @@ defmodule ExUnit.CallbacksTest do
     ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
 
-    expected = """
-    simple on_exit run
-    on_exit setup run
-    on_exit setup_all run
-    """
-
-    assert output =~ expected
+    assert output =~ """
+           simple on_exit run
+           on_exit setup run
+           on_exit setup_all run
+           """
   end
 
   test "raises an error when setting an invalid callback in setup" do
@@ -324,12 +320,10 @@ defmodule ExUnit.CallbacksTest do
 
     ExUnit.Server.modules_loaded()
 
-    expected =
-      "** (RuntimeError) expected ExUnit callback in " <>
-        "ExUnit.CallbacksTest.SetupErrorTest to return " <>
-        ":ok | keyword | map, got {:ok, \"foo\"} instead"
-
-    assert capture_io(fn -> ExUnit.run() end) =~ expected
+    assert capture_io(fn -> ExUnit.run() end) =~
+             "** (RuntimeError) expected ExUnit callback in " <>
+               "ExUnit.CallbacksTest.SetupErrorTest to return " <>
+               ":ok | keyword | map, got {:ok, \"foo\"} instead"
   end
 
   test "raises an error when overriding a reserved callback key in setup" do
@@ -347,12 +341,10 @@ defmodule ExUnit.CallbacksTest do
 
     ExUnit.Server.modules_loaded()
 
-    expected =
-      "** (RuntimeError) ExUnit callback in " <>
-        "ExUnit.CallbacksTest.SetupReservedTest is " <>
-        "trying to set reserved field :file to \"foo\""
-
-    assert capture_io(fn -> ExUnit.run() end) =~ expected
+    assert capture_io(fn -> ExUnit.run() end) =~
+             "** (RuntimeError) ExUnit callback in " <>
+               "ExUnit.CallbacksTest.SetupReservedTest is " <>
+               "trying to set reserved field :file to \"foo\""
   end
 end
 
