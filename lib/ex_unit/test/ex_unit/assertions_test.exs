@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.AssertionsTest.Value do
   def tuple, do: {2, 1}
@@ -26,11 +26,11 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert inside macro" do
-    assert_ok 42
+    assert_ok(42)
   end
 
   test "assert with true value" do
-    true = assert Value.truthy
+    true = assert Value.truthy()
   end
 
   test "assert with message when value is false" do
@@ -44,10 +44,10 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert when value evaluates to false" do
     try do
-      "This should never be tested" = assert Value.falsy
+      "This should never be tested" = assert Value.falsy()
     rescue
       error in [ExUnit.AssertionError] ->
-        "assert(Value.falsy())" = error.expr |> Macro.to_string
+        "assert(Value.falsy())" = error.expr |> Macro.to_string()
         "Expected truthy, got false" = error.message
     end
   end
@@ -59,7 +59,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         1 = error.right
         2 = error.left
-        "assert(1 + 1 == 1)" = error.expr |> Macro.to_string
+        "assert(1 + 1 == 1)" = error.expr |> Macro.to_string()
     end
   end
 
@@ -70,7 +70,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         1 = error.left
         2 = error.right
-        "assert(1 == 1 + 1)" = error.expr |> Macro.to_string
+        "assert(1 == 1 + 1)" = error.expr |> Macro.to_string()
     end
   end
 
@@ -80,7 +80,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "refute when value evaluates to true" do
     try do
-      refute Value.truthy
+      refute Value.truthy()
       raise "refute was supposed to fail"
     rescue
       error in [ExUnit.AssertionError] ->
@@ -90,30 +90,30 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert match when equal" do
-    {2, 1} = (assert {2, 1} = Value.tuple)
+    {2, 1} = assert {2, 1} = Value.tuple()
   end
 
   test "assert match with pinned variable" do
     a = 1
-    {2, 1} = (assert {2, ^a} = Value.tuple)
+    {2, 1} = assert {2, ^a} = Value.tuple()
 
     try do
-      assert {^a, 1} = Value.tuple
+      assert {^a, 1} = Value.tuple()
     rescue
       error in [ExUnit.AssertionError] ->
-        "match (=) failed\n" <>
-        "The following variables were pinned:\n" <>
-        "  a = 1" = error.message
+        "match (=) failed\n" <> "The following variables were pinned:\n" <> "  a = 1" =
+          error.message
+
         "assert({^a, 1} = Value.tuple())" = Macro.to_string(error.expr)
     end
   end
 
   test "assert match with pinned variable from another context" do
     var!(a, Elixir) = 1
-    {2, 1} = (assert {2, ^var!(a, Elixir)} = Value.tuple)
+    {2, 1} = assert {2, ^var!(a, Elixir)} = Value.tuple()
 
     try do
-      assert {^var!(a, Elixir), 1} = Value.tuple
+      assert {^var!(a, Elixir), 1} = Value.tuple()
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
@@ -122,7 +122,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert match?" do
-    true = assert match?({2, 1}, Value.tuple)
+    true = assert match?({2, 1}, Value.tuple())
 
     try do
       "This should never be tested" = assert match?({:ok, _}, error(true))
@@ -135,7 +135,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "refute match?" do
-    false = refute match?({1, 1}, Value.tuple)
+    false = refute match?({1, 1}, Value.tuple())
 
     try do
       "This should never be tested" = refute match?({:error, _}, error(true))
@@ -149,38 +149,42 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match? with pinned variable" do
     a = 1
+
     try do
-      "This should never be tested" = assert(match?({^a, 1}, Value.tuple))
+      "This should never be tested" = assert(match?({^a, 1}, Value.tuple()))
     rescue
       error in [ExUnit.AssertionError] ->
-        "match (match?) failed\n" <>
-        "The following variables were pinned:\n" <>
-        "  a = 1" = error.message
+        "match (match?) failed\nThe following variables were pinned:\n  a = 1" = error.message
+
         "assert(match?({^a, 1}, Value.tuple()))" = Macro.to_string(error.expr)
     end
   end
 
   test "refute match? with pinned variable" do
     a = 2
+
     try do
-      "This should never be tested" = refute(match?({^a, 1}, Value.tuple))
+      "This should never be tested" = refute(match?({^a, 1}, Value.tuple()))
     rescue
       error in [ExUnit.AssertionError] ->
-        "match (match?) succeeded, but should have failed\n" <>
-        "The following variables were pinned:\n" <>
-        "  a = 2" = error.message
+        """
+        match (match?) succeeded, but should have failed
+        The following variables were pinned:
+          a = 2\
+        """ = error.message
+
         "refute(match?({^a, 1}, Value.tuple()))" = Macro.to_string(error.expr)
     end
   end
 
   test "assert receive waits" do
     parent = self()
-    spawn fn -> send parent, :hello end
+    spawn(fn -> send(parent, :hello) end)
     :hello = assert_receive :hello
   end
 
   test "assert receive accepts custom failure message" do
-    send self(), :hello
+    send(self(), :hello)
     assert_receive message, 0, "failure message"
     :hello = message
   end
@@ -190,81 +194,93 @@ defmodule ExUnit.AssertionsTest do
     # This is testing a race condition, so it's not
     # guaranteed this works under all loads of the system
     timeout = 100
-    spawn fn -> Process.send_after parent, :hello, timeout end
+    spawn(fn -> Process.send_after(parent, :hello, timeout) end)
 
     try do
       assert_receive :hello, timeout
     rescue
       error in [ExUnit.AssertionError] ->
-        true = error.message =~ "Found message matching :hello after 100ms" or
-               error.message =~ "No message matching :hello after 100ms"
+        true =
+          error.message =~ "Found message matching :hello after 100ms" or
+            error.message =~ "No message matching :hello after 100ms"
     end
   end
 
   test "assert received does not wait" do
-    send self(), :hello
+    send(self(), :hello)
     :hello = assert_received :hello
   end
 
   @received :hello
 
   test "assert received with module attribute" do
-    send self(), :hello
+    send(self(), :hello)
     :hello = assert_received @received
   end
 
   test "assert received with pinned variable" do
     status = :valid
-    send self(), {:status, :invalid}
+    send(self(), {:status, :invalid})
+
     try do
       "This should never be tested" = assert_received {:status, ^status}
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching {:status, ^status} after 0ms.\n" <>
-        "The following variables were pinned:\n" <>
-        "  status = :valid\n" <>
-        "Process mailbox:\n" <>
-        "  {:status, :invalid}" = error.message
+        """
+        No message matching {:status, ^status} after 0ms.
+        The following variables were pinned:
+          status = :valid
+        Process mailbox:
+          {:status, :invalid}\
+        """ = error.message
     end
   end
 
   test "assert received with multiple identical pinned variables" do
     status = :valid
-    send self(), {:status, :invalid, :invalid}
+    send(self(), {:status, :invalid, :invalid})
+
     try do
-      "This should never be tested" = assert_received {
-        :status,
-        ^status,
-        ^status
-      }
+      "This should never be tested" =
+        assert_received {
+          :status,
+          ^status,
+          ^status
+        }
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching {:status, ^status, ^status} after 0ms.\n" <>
-        "The following variables were pinned:\n" <>
-        "  status = :valid\n" <>
-        "Process mailbox:\n" <>
-        "  {:status, :invalid, :invalid}" = error.message
+        """
+        No message matching {:status, ^status, ^status} after 0ms.
+        The following variables were pinned:
+          status = :valid
+        Process mailbox:
+          {:status, :invalid, :invalid}\
+        """ = error.message
     end
   end
 
   test "assert received with multiple unique pinned variables" do
     status = :valid
     other_status = :invalid
-    send self(), {:status, :invalid, :invalid}
+    send(self(), {:status, :invalid, :invalid})
+
     try do
-      "This should never be tested" = assert_received {
-        :status,
-        ^status,
-        ^other_status
-      }
+      "This should never be tested" =
+        assert_received {
+          :status,
+          ^status,
+          ^other_status
+        }
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching {:status, ^status, ^other_status} after 0ms.\n" <>
-        "The following variables were pinned:\n" <>
-        "  status = :valid\n" <>
-        "  other_status = :invalid\n" <>
-        "Process mailbox:\n" <>
-        "  {:status, :invalid, :invalid}" = error.message
+        """
+        No message matching {:status, ^status, ^other_status} after 0ms.
+        The following variables were pinned:
+          status = :valid
+          other_status = :invalid
+        Process mailbox:
+          {:status, :invalid, :invalid}\
+        """ = error.message
     end
   end
 
@@ -278,39 +294,53 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received when different message" do
-    send self(), {:message, :not_expected, :at_all}
+    send(self(), {:message, :not_expected, :at_all})
+
     try do
       "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello after 0ms.\n" <>
-        "Process mailbox:\n" <>
-        "  {:message, :not_expected, :at_all}" = error.message
+        """
+        No message matching :hello after 0ms.
+        Process mailbox:
+          {:message, :not_expected, :at_all}\
+        """ = error.message
     end
   end
 
   test "assert received when different message having more than 10 on mailbox" do
     for i <- 1..11, do: send(self(), {:message, i})
+
     try do
       "This should never be tested" = assert_received x when x == :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching x when x == :hello after 0ms.\nProcess mailbox:" <>
-        "\n  {:message, 1}\n  {:message, 2}\n  {:message, 3}" <>
-        "\n  {:message, 4}\n  {:message, 5}\n  {:message, 6}" <>
-        "\n  {:message, 7}\n  {:message, 8}\n  {:message, 9}" <>
-        "\n  {:message, 10}\nShowing only 10 of 11 messages." = error.message
+        """
+        No message matching x when x == :hello after 0ms.
+        Process mailbox:
+          {:message, 1}
+          {:message, 2}
+          {:message, 3}
+          {:message, 4}
+          {:message, 5}
+          {:message, 6}
+          {:message, 7}
+          {:message, 8}
+          {:message, 9}
+          {:message, 10}
+        Showing only 10 of 11 messages.\
+        """ = error.message
     end
   end
 
   test "assert received binds variables" do
-    send self(), {:hello, :world}
+    send(self(), {:hello, :world})
     assert_received {:hello, world}
     :world = world
   end
 
   test "assert received does not leak external variables used in guards" do
-    send self(), {:hello, :world}
+    send(self(), {:hello, :world})
     guard_world = :world
     assert_received {:hello, world} when world == guard_world
     :world = world
@@ -325,7 +355,8 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "refute received when equal" do
-    send self(), :hello
+    send(self(), :hello)
+
     try do
       "This should never be tested" = refute_received :hello
     rescue
@@ -358,9 +389,9 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = refute 'foo' in ['foo', 'bar']
     rescue
       error in [ExUnit.AssertionError] ->
-        'foo'          = error.left
+        'foo' = error.left
         ['foo', 'bar'] = error.right
-        "refute('foo' in ['foo', 'bar'])" = error.expr |> Macro.to_string
+        "refute('foo' in ['foo', 'bar'])" = Macro.to_string(error.expr)
     end
   end
 
@@ -379,8 +410,8 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
-        "assert({:ok, _} = error(true))" = error.expr |> Macro.to_string
-        "{:error, true}" = error.right |> Macro.to_string
+        "assert({:ok, _} = error(true))" = Macro.to_string(error.expr)
+        "{:error, true}" = Macro.to_string(error.right)
     end
   end
 
@@ -390,8 +421,8 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
-        "assert({:ok, _x} = nil)" = error.expr |> Macro.to_string
-        "nil" = error.right |> Macro.to_string
+        "assert({:ok, _x} = nil)" = Macro.to_string(error.expr)
+        "nil" = Macro.to_string(error.right)
     end
   end
 
@@ -401,7 +432,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "Expected truthy, got nil" = error.message
-        "assert(_x = nil)" = error.expr |> Macro.to_string
+        "assert(_x = nil)" = Macro.to_string(error.expr)
     end
   end
 
@@ -410,7 +441,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = refute _ = ok(true)
     rescue
       error in [ExUnit.AssertionError] ->
-        "refute(_ = ok(true))" = error.expr |> Macro.to_string
+        "refute(_ = ok(true))" = Macro.to_string(error.expr)
         "Expected false or nil, got {:ok, true}" = error.message
     end
   end
@@ -444,39 +475,33 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert raise with no error" do
-    "This should never be tested" = assert_raise ArgumentError, fn ->
-      nil
-    end
+    "This should never be tested" = assert_raise ArgumentError, fn -> nil end
   rescue
     error in [ExUnit.AssertionError] ->
       "Expected exception ArgumentError but nothing was raised" = error.message
   end
 
   test "assert raise with error" do
-    error = assert_raise ArgumentError, fn ->
-      raise ArgumentError, "test error"
-    end
-
+    error = assert_raise ArgumentError, fn -> raise ArgumentError, "test error" end
     "test error" = error.message
   end
 
   test "assert raise with some other error" do
-    "This should never be tested" = assert_raise ArgumentError, fn ->
-      Not.Defined.function(1, 2, 3)
-    end
+    "This should never be tested" =
+      assert_raise ArgumentError, fn -> Not.Defined.function(1, 2, 3) end
   rescue
     error in [ExUnit.AssertionError] ->
       "Expected exception ArgumentError but got UndefinedFunctionError " <>
-      "(function Not.Defined.function/3 is undefined (module Not.Defined is not available))" = error.message
+        "(function Not.Defined.function/3 is undefined (module Not.Defined is not available))" =
+        error.message
   end
 
   test "assert raise with some other error includes stacktrace from original error" do
-    "This should never be tested" = assert_raise ArgumentError, fn ->
-      Not.Defined.function(1, 2, 3)
-    end
+    "This should never be tested" =
+      assert_raise ArgumentError, fn -> Not.Defined.function(1, 2, 3) end
   rescue
     ExUnit.AssertionError ->
-      stacktrace = System.stacktrace
+      stacktrace = System.stacktrace()
       [{Not.Defined, :function, [1, 2, 3], _} | _] = stacktrace
   end
 
@@ -486,7 +511,8 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception SyntaxError but got FunctionClauseError (no function clause matching in :lists.flatten/1)" = error.message
+      "Expected exception SyntaxError but got FunctionClauseError (no function clause matching in :lists.flatten/1)" =
+        error.message
   end
 
   test "assert raise comparing messages (for equality)" do
@@ -495,11 +521,13 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Wrong message for RuntimeError" <>
-      "\nexpected:" <>
-      "\n  \"foo\"" <>
-      "\nactual:" <>
-      "\n  \"bar\"" = error.message
+      """
+      Wrong message for RuntimeError
+      expected:
+        "foo"
+      actual:
+        "bar"\
+      """ = error.message
   end
 
   test "assert raise comparing messages (with a regex)" do
@@ -508,11 +536,13 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Wrong message for RuntimeError" <>
-      "\nexpected:" <>
-      "\n  ~r/ba[zk]/" <>
-      "\nactual:" <>
-      "\n  \"bar\"" = error.message
+      """
+      Wrong message for RuntimeError
+      expected:
+        ~r/ba[zk]/
+      actual:
+        "bar"\
+      """ = error.message
   end
 
   test "assert raise with an exception with bad message/1 implementation" do
@@ -521,8 +551,11 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Got exception ExUnit.AssertionsTest.BrokenError but it failed to produce a message with:" <>
-      "\n\n** (RuntimeError) error\n" <> _ = error.message
+      """
+      Got exception ExUnit.AssertionsTest.BrokenError but it failed to produce a message with:
+
+      ** (RuntimeError) error
+      """ <> _ = error.message
   end
 
   test "assert greater than operator" do
@@ -535,7 +568,7 @@ defmodule ExUnit.AssertionsTest do
     error in [ExUnit.AssertionError] ->
       1 = error.left
       2 = error.right
-      "assert(1 > 2)" = error.expr |> Macro.to_string
+      "assert(1 > 2)" = Macro.to_string(error.expr)
   end
 
   test "assert less or equal than operator" do
@@ -546,7 +579,7 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = assert 2 <= 1
   rescue
     error in [ExUnit.AssertionError] ->
-      "assert(2 <= 1)" = error.expr |> Macro.to_string
+      "assert(2 <= 1)" = Macro.to_string(error.expr)
       2 = error.left
       1 = error.right
   end
@@ -665,11 +698,11 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "catch_throw with throw" do
-    1 = catch_throw(throw 1)
+    1 = catch_throw(throw(1))
   end
 
   test "catch_exit with exit" do
-    1 = catch_exit(exit 1)
+    1 = catch_exit(exit(1))
   end
 
   test "catch_error with error" do
@@ -684,17 +717,18 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "flunk with message" do
-    "This should never be tested" = flunk "This should raise an error"
+    "This should never be tested" = flunk("This should raise an error")
   rescue
     error in [ExUnit.AssertionError] ->
       "This should raise an error" = error.message
   end
 
   test "flunk with wrong argument type" do
-    "This should never be tested" = flunk ["flunk takes a binary, not a list"]
+    "This should never be tested" = flunk(["flunk takes a binary, not a list"])
   rescue
     error ->
-      "no function clause matching in ExUnit.Assertions.flunk/1" = FunctionClauseError.message error
+      "no function clause matching in ExUnit.Assertions.flunk/1" =
+        FunctionClauseError.message(error)
   end
 
   test "AssertionError.message/1 is nicely formatted" do
