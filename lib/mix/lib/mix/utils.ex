@@ -169,7 +169,9 @@ defmodule Mix.Utils do
 
     case :elixir_utils.read_mtime_and_size(path) do
       {:ok, mtime, size} when mtime > now ->
-        message = "warning: mtime (modified time) for \"#{path}\" was set to the future, resetting to now"
+        message =
+          "warning: mtime (modified time) for \"#{path}\" was set to the future, resetting to now"
+
         Mix.shell().error(message)
 
         File.touch!(path, now)
