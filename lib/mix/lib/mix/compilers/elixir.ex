@@ -5,8 +5,10 @@ defmodule Mix.Compilers.Elixir do
 
   import Record
 
-  defrecord :module, [:module, :kind, :sources, :beam, :binary]
-  defrecord :source, [
+  defrecord(:module, [:module, :kind, :sources, :beam, :binary])
+
+  defrecord(
+    :source,
     source: nil,
     size: 0,
     compile_references: [],
@@ -15,7 +17,7 @@ defmodule Mix.Compilers.Elixir do
     runtime_dispatches: [],
     external: [],
     warnings: []
-  ]
+  )
 
   @doc """
   Compiles stale Elixir files.
@@ -37,13 +39,12 @@ defmodule Mix.Compilers.Elixir do
 
     {all_modules, all_sources} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
-    prev_paths =
-      for source(source: source) <- all_sources, into: MapSet.new(), do: source
+    prev_paths = for source(source: source) <- all_sources, into: MapSet.new(), do: source
 
     removed =
       prev_paths
       |> MapSet.difference(all_paths)
-      |> MapSet.to_list
+      |> MapSet.to_list()
 
     changed =
       if force do
@@ -57,15 +58,17 @@ defmodule Mix.Compilers.Elixir do
         new_paths =
           all_paths
           |> MapSet.difference(prev_paths)
-          |> MapSet.to_list
+          |> MapSet.to_list()
 
         # Plus the sources that have changed in disk
-        for(source(source: source, external: external, size: size) <- all_sources,
-            {last_mtime, last_size} = Map.fetch!(sources_stats, source),
-            times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
-            size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
-            into: new_paths,
-            do: source)
+        for(
+          source(source: source, external: external, size: size) <- all_sources,
+          {last_mtime, last_size} = Map.fetch!(sources_stats, source),
+          times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
+          size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
+          into: new_paths,
+          do: source
+        )
       end
 
     {modules, changed} =
@@ -76,7 +79,7 @@ defmodule Mix.Compilers.Elixir do
         stale_local_deps(manifest, modified)
       )
 
-    stale   = changed -- removed
+    stale = changed -- removed
     sources = update_stale_sources(all_sources, removed, changed)
 
     if opts[:all_warnings], do: show_warnings(sources)
@@ -84,9 +87,11 @@ defmodule Mix.Compilers.Elixir do
     cond do
       stale != [] ->
         compile_manifest(manifest, exts, modules, sources, stale, dest, timestamp, opts)
+
       removed != [] ->
         write_manifest(manifest, modules, sources, dest, timestamp)
         {:ok, warning_diagnostics(sources)}
+
       true ->
         {:noop, warning_diagnostics(sources)}
     end
@@ -107,6 +112,7 @@ defmodule Mix.Compilers.Elixir do
     Enum.each(read_manifest(manifest, compile_path), fn
       module(beam: beam) ->
         File.rm(beam)
+
       _ ->
         :ok
     end)
@@ -140,7 +146,7 @@ defmodule Mix.Compilers.Elixir do
     Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
     set_compiler_opts(opts)
-    cwd = File.cwd!
+    cwd = File.cwd!()
 
     extra =
       if opts[:verbose] do
@@ -155,31 +161,39 @@ defmodule Mix.Compilers.Elixir do
     long_compilation_threshold = opts[:long_compilation_threshold] || 10
 
     try do
-      Kernel.ParallelCompiler.compile stale,
-        [each_module: &each_module(pid, cwd, &1, &2, &3),
-         each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
-         long_compilation_threshold: long_compilation_threshold,
-         dest: dest] ++ extra
+      Kernel.ParallelCompiler.compile(
+        stale,
+        [
+          each_module: &each_module(pid, cwd, &1, &2, &3),
+          each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+          long_compilation_threshold: long_compilation_threshold,
+          dest: dest
+        ] ++ extra
+      )
     after
       Agent.stop(pid, :normal, :infinity)
     else
       {:ok, _, warnings} ->
-        Agent.get pid, fn {modules, sources} ->
+        Agent.get(pid, fn {modules, sources} ->
           sources = apply_warnings(sources, warnings)
           write_manifest(manifest, modules, sources, dest, timestamp)
           {:ok, warning_diagnostics(sources)}
-        end
+        end)
+
       {:error, errors, warnings} ->
         errors = Enum.map(errors, &diagnostic(&1, :error))
-        warnings = Enum.map(warnings, &diagnostic(&1, :warning)) ++
-          Agent.get(pid, fn {_, sources} -> warning_diagnostics(sources) end)
+
+        warnings =
+          Enum.map(warnings, &diagnostic(&1, :warning)) ++
+            Agent.get(pid, fn {_, sources} -> warning_diagnostics(sources) end)
+
         {:error, warnings ++ errors}
     end
   end
 
   defp set_compiler_opts(opts) do
     opts
-    |> Keyword.take(Code.available_compiler_options)
+    |> Keyword.take(Code.available_compiler_options())
     |> Code.compiler_options()
   end
 
@@ -203,46 +217,51 @@ defmodule Mix.Compilers.Elixir do
 
     runtime_dispatches =
       runtime_dispatches
-      |> Enum.to_list
+      |> Enum.to_list()
 
-    kind     = detect_kind(module)
-    source   = Path.relative_to(source, cwd)
+    kind = detect_kind(module)
+    source = Path.relative_to(source, cwd)
     external = get_external_resources(module, cwd)
 
-    Agent.cast pid, fn {modules, sources} ->
-      source_external = case List.keyfind(sources, source, source(:source)) do
-        source(external: old_external) -> external ++ old_external
-        nil -> external
-      end
+    Agent.cast(pid, fn {modules, sources} ->
+      source_external =
+        case List.keyfind(sources, source, source(:source)) do
+          source(external: old_external) -> external ++ old_external
+          nil -> external
+        end
 
-      module_sources = case List.keyfind(modules, module, module(:module)) do
-        module(sources: old_sources) -> [source | List.delete(old_sources, source)]
-        nil -> [source]
-      end
+      module_sources =
+        case List.keyfind(modules, module, module(:module)) do
+          module(sources: old_sources) -> [source | List.delete(old_sources, source)]
+          nil -> [source]
+        end
 
-      new_module = module(
-        module: module,
-        kind: kind,
-        sources: module_sources,
-        beam: nil, # They are calculated when writing the manifest
-        binary: binary
-      )
+      # They are calculated when writing the manifest
+      new_module =
+        module(
+          module: module,
+          kind: kind,
+          sources: module_sources,
+          beam: nil,
+          binary: binary
+        )
 
-      new_source = source(
-        source: source,
-        size: :filelib.file_size(source),
-        compile_references: compile_references,
-        runtime_references: runtime_references,
-        compile_dispatches: compile_dispatches,
-        runtime_dispatches: runtime_dispatches,
-        external: source_external,
-        warnings: []
-      )
+      new_source =
+        source(
+          source: source,
+          size: :filelib.file_size(source),
+          compile_references: compile_references,
+          runtime_references: runtime_references,
+          compile_dispatches: compile_dispatches,
+          runtime_dispatches: runtime_dispatches,
+          external: source_external,
+          warnings: []
+        )
 
       modules = List.keystore(modules, module, module(:module), new_module)
       sources = List.keystore(sources, source, source(:source), new_source)
       {modules, sources}
-    end
+    end)
   end
 
   defp detect_kind(module) do
@@ -251,35 +270,36 @@ defmodule Mix.Compilers.Elixir do
     cond do
       is_list(protocol_metadata) and protocol_metadata[:protocol] ->
         {:impl, protocol_metadata[:protocol]}
+
       is_list(Module.get_attribute(module, :protocol)) ->
         :protocol
+
       true ->
         :module
     end
   end
 
   defp get_external_resources(module, cwd) do
-    for file <- Module.get_attribute(module, :external_resource),
-        do: Path.relative_to(file, cwd)
+    for file <- Module.get_attribute(module, :external_resource), do: Path.relative_to(file, cwd)
   end
 
   defp each_file(source) do
-    Mix.shell.info "Compiled #{source}"
+    Mix.shell().info("Compiled #{source}")
   end
 
   defp each_long_compilation(source, threshold) do
-    Mix.shell.info "Compiling #{source} (it's taking more than #{threshold}s)"
+    Mix.shell().info("Compiling #{source} (it's taking more than #{threshold}s)")
   end
 
   ## Resolution
 
   defp update_stale_sources(sources, removed, changed) do
     # Remove delete sources
-    sources =
-      Enum.reduce(removed, sources, &List.keydelete(&2, &1, source(:source)))
+    sources = Enum.reduce(removed, sources, &List.keydelete(&2, &1, source(:source)))
     # Store empty sources for the changed ones as the compiler appends data
     sources =
       Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
+
     sources
   end
 
@@ -298,22 +318,25 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entries(modules, sources, old_stale, old_changed) do
     {rest, new_stale, new_changed} =
-      Enum.reduce modules, {[], old_stale, old_changed}, &remove_stale_entry(&1, &2, sources)
+      Enum.reduce(modules, {[], old_stale, old_changed}, &remove_stale_entry(&1, &2, sources))
 
-    if map_size(new_stale) > map_size(old_stale) or
-       map_size(new_changed) > map_size(old_changed) do
+    if map_size(new_stale) > map_size(old_stale) or map_size(new_changed) > map_size(old_changed) do
       remove_stale_entries(rest, sources, new_stale, new_changed)
     else
       {rest, Map.keys(new_changed)}
     end
   end
 
-  defp remove_stale_entry(module(module: module, beam: beam, sources: sources) = entry,
-                          {rest, stale, changed}, sources_records) do
+  defp remove_stale_entry(
+         module(module: module, beam: beam, sources: sources) = entry,
+         {rest, stale, changed},
+         sources_records
+       ) do
     {compile_references, runtime_references} =
       Enum.reduce(sources, {[], []}, fn source, {compile_acc, runtime_acc} ->
         source(compile_references: compile_refs, runtime_references: runtime_refs) =
           List.keyfind(sources_records, source, source(:source))
+
         {compile_refs ++ compile_acc, runtime_refs ++ runtime_acc}
       end)
 
@@ -322,9 +345,12 @@ defmodule Mix.Compilers.Elixir do
       # something stale, I need to be recompiled.
       has_any_key?(changed, sources) or has_any_key?(stale, compile_references) ->
         remove_and_purge(beam, module)
-        {rest,
-         Map.put(stale, module, true),
-         Enum.reduce(sources, changed, &Map.put(&2, &1, true))}
+
+        {
+          rest,
+          Map.put(stale, module, true),
+          Enum.reduce(sources, changed, &Map.put(&2, &1, true))
+        }
 
       # If I have a runtime references to something stale,
       # I am stale too.
@@ -343,13 +369,14 @@ defmodule Mix.Compilers.Elixir do
 
   defp stale_local_deps(manifest, modified) do
     base = Path.basename(manifest)
+
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
         Mix.Utils.last_modified(Path.join(opts[:build], base)) > modified,
         path <- Mix.Dep.load_paths(dep),
         beam <- Path.wildcard(Path.join(path, "*.beam")),
         Mix.Utils.last_modified(beam) > modified,
-        do: {beam |> Path.basename |> Path.rootname |> String.to_atom, true},
+        do: {beam |> Path.basename() |> Path.rootname() |> String.to_atom(), true},
         into: %{}
   end
 
@@ -362,6 +389,7 @@ defmodule Mix.Compilers.Elixir do
   defp show_warnings(sources) do
     for source(source: source, warnings: warnings) <- sources do
       file = Path.absname(source)
+
       for {line, message} <- warnings do
         :elixir_errors.warn(line, file, message)
       end
@@ -369,7 +397,8 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp apply_warnings(sources, warnings) do
-    warnings = Enum.group_by(warnings, &elem(&1, 0), &({elem(&1, 1), elem(&1, 2)}))
+    warnings = Enum.group_by(warnings, &elem(&1, 0), &{elem(&1, 1), elem(&1, 2)})
+
     for source(source: source_path, warnings: source_warnings) = s <- sources do
       source(s, warnings: Map.get(warnings, Path.absname(source_path), source_warnings))
     end
@@ -404,9 +433,11 @@ defmodule Mix.Compilers.Elixir do
     else
       [@manifest_vsn | data] ->
         split_manifest(data, compile_path)
+
       [v | data] when v in [:v4, :v5, :v6] ->
         for module(beam: beam) <- data, do: File.rm(Path.join(compile_path, beam))
         {[], []}
+
       _ ->
         {[], []}
     end
@@ -416,6 +447,7 @@ defmodule Mix.Compilers.Elixir do
     Enum.reduce(data, {[], []}, fn
       module() = module, {modules, sources} ->
         {[expand_beam_path(module, compile_path) | modules], sources}
+
       source() = source, {modules, sources} ->
         {modules, [source | sources]}
     end)
@@ -426,10 +458,12 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp expand_beam_paths(modules, ""), do: modules
+
   defp expand_beam_paths(modules, compile_path) do
     Enum.map(modules, fn
       module() = module ->
         expand_beam_path(module, compile_path)
+
       other ->
         other
     end)
@@ -446,11 +480,13 @@ defmodule Mix.Compilers.Elixir do
     modules =
       for module(binary: binary, module: module) = entry <- modules do
         beam = Atom.to_string(module) <> ".beam"
+
         if binary do
           beam_path = Path.join(compile_path, beam)
           File.write!(beam_path, binary)
           File.touch!(beam_path, timestamp)
         end
+
         module(entry, binary: nil, beam: beam)
       end
 
@@ -464,6 +500,6 @@ defmodule Mix.Compilers.Elixir do
     # Since Elixir is a dependency itself, we need to touch the lock
     # so the current Elixir version, used to compile the files above,
     # is properly stored.
-    Mix.Dep.ElixirSCM.update
+    Mix.Dep.ElixirSCM.update()
   end
 end
