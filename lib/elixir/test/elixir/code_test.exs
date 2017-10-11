@@ -54,7 +54,6 @@ defmodule CodeTest do
       ]
 
       code = "is_atom(:foo) and K.is_list([])"
-
       assert Code.eval_string(code, [], options) == {true, []}
     end
 
@@ -113,15 +112,12 @@ defmodule CodeTest do
     assert Code.string_to_quoted("~r\"foo\"") ==
              {:ok, {:sigil_r, [terminator: "\"", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}}
 
-    args = {
-      :sigil_S,
-      [terminator: "\"\"\"", line: 1],
-      [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]
-    }
-
+    meta = [terminator: "\"\"\"", line: 1]
+    args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
     assert Code.string_to_quoted("~S\"\"\"\nsigil heredoc\n\"\"\"") == {:ok, args}
 
-    args = {:sigil_S, [terminator: "'''", line: 1], [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
+    meta = [terminator: "'''", line: 1]
+    args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
     assert Code.string_to_quoted("~S'''\nsigil heredoc\n'''") == {:ok, args}
   end
 
@@ -138,9 +134,8 @@ defmodule CodeTest do
   end
 
   test "string_to_quoted!/2 raises with :existing_atoms_only" do
-    assert catch_error(
-             Code.string_to_quoted!(":there_is_no_such_atom", existing_atoms_only: true)
-           ) == :badarg
+    unknown_atom = ":there_is_no_such_atom"
+    assert catch_error(Code.string_to_quoted!(unknown_atom, existing_atoms_only: true)) == :badarg
   end
 
   test "string_to_quoted/2 with :formatter_metadata wraps literals in blocks" do
@@ -181,17 +176,15 @@ defmodule CodeTest do
     five()
     """
 
-    assert Code.string_to_quoted!(file, formatter_metadata: true) == {
-             :__block__,
-             [],
-             [
-               {:one, [line: 1], []},
-               {:two, [newlines: 0, line: 1], []},
-               {:three, [newlines: 1, line: 2], []},
-               {:four, [newlines: 2, line: 4], []},
-               {:five, [newlines: 3, line: 7], []}
-             ]
-           }
+    args = [
+      {:one, [line: 1], []},
+      {:two, [newlines: 0, line: 1], []},
+      {:three, [newlines: 1, line: 2], []},
+      {:four, [newlines: 2, line: 4], []},
+      {:five, [newlines: 3, line: 7], []}
+    ]
+
+    assert Code.string_to_quoted!(file, formatter_metadata: true) == {:__block__, [], args}
   end
 
   test "compile source" do
