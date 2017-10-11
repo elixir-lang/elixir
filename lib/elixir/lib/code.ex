@@ -281,6 +281,13 @@ defmodule Code do
         bar
       ]
 
+  Keywords in function calls and typespecs (without the surrounding
+  brackets) can also be forced to be rendering on multiple lines
+  as long as each entry appear on its own line. For example:
+
+      defstruct name: nil,
+                age: 0
+
   ## Code comments
 
   The formatter also formats code comments in a way to guarantee a space

@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.CallsTest do
   use ExUnit.Case, async: true
@@ -11,6 +11,7 @@ defmodule Code.Formatter.CallsTest do
   describe "next break fits" do
     test "does not apply to function calls" do
       bad = "foo(very_long_call(bar))"
+
       good = """
       foo(
         very_long_call(
@@ -18,16 +19,19 @@ defmodule Code.Formatter.CallsTest do
         )
       )
       """
+
       assert_format bad, good, @short_length
     end
 
     test "does not apply to strings" do
       bad = "foo(\"very long string\")"
+
       good = """
       foo(
         "very long string"
       )
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -51,20 +55,22 @@ defmodule Code.Formatter.CallsTest do
       """
 
       assert_same """
-      foo(fn x ->
-        :really_long_atom
-      end)
-      """, @medium_length
+                  foo(fn x ->
+                    :really_long_atom
+                  end)
+                  """,
+                  @medium_length
 
       assert_same """
-      foo(bar, fn
-        a1 ->
-          :ok
+                  foo(bar, fn
+                    a1 ->
+                      :ok
 
-        b2 ->
-          :really_long_error
-      end)
-      """, @medium_length
+                    b2 ->
+                      :really_long_error
+                  end)
+                  """,
+                  @medium_length
     end
 
     test "for heredocs" do
@@ -75,10 +81,10 @@ defmodule Code.Formatter.CallsTest do
       """
 
       assert_same to_string('''
-      foo("""
-      bar
-      """)
-      ''')
+                  foo("""
+                  bar
+                  """)
+                  ''')
 
       assert_same """
       foo(~S'''
@@ -87,14 +93,16 @@ defmodule Code.Formatter.CallsTest do
       """
 
       assert_same """
-      foo(~S'''
-      very long line does trigger another break
-      ''')
-      """, @short_length
+                  foo(~S'''
+                  very long line does trigger another break
+                  ''')
+                  """,
+                  @short_length
     end
 
     test "for binaries" do
       bad = "foo(<<1, 2, 3, 4>>)"
+
       good = """
       foo(<<
         1,
@@ -103,11 +111,13 @@ defmodule Code.Formatter.CallsTest do
         4
       >>)
       """
+
       assert_format bad, good, @short_length
     end
 
     test "for lists" do
       bad = "foo([1, 2, 3, 4])"
+
       good = """
       foo([
         1,
@@ -116,19 +126,23 @@ defmodule Code.Formatter.CallsTest do
         4
       ])
       """
+
       assert_format bad, good, @short_length
     end
 
     test "for tuples" do
       bad = "long_call({1, 2})"
+
       good = """
       long_call(
         {1, 2}
       )
       """
+
       assert_format bad, good, @short_length
 
       bad = "foo({1, 2, 3, 4})"
+
       good = """
       foo({
         1,
@@ -137,9 +151,9 @@ defmodule Code.Formatter.CallsTest do
         4
       })
       """
+
       assert_format bad, good, @short_length
     end
-
 
     test "with keyword lists" do
       assert_same """
@@ -179,6 +193,7 @@ defmodule Code.Formatter.CallsTest do
       bad = """
       fun(x, y, z)
       """
+
       good = """
       fun(
         x,
@@ -186,6 +201,7 @@ defmodule Code.Formatter.CallsTest do
         z
       )
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -194,22 +210,27 @@ defmodule Code.Formatter.CallsTest do
 
       assert_same "foo(:hello, foo: 1, bar: 2)"
 
-      assert_same """
+      bad = """
+      foo(:hello, foo: 1, bar: 2)
+      """
+
+      good = """
       foo(
         :hello,
         foo: 1,
         bar: 2
       )
-      """, @short_length
+      """
+
+      assert_format bad, good, @short_length
+
+      # Check it preserves multiline.
+      assert_same good
     end
 
     test "with lists maybe rewritten as keyword lists" do
-      assert_format "foo([foo: 1, bar: 2])",
-                    "foo(foo: 1, bar: 2)"
-
-      assert_format "foo(:arg, [foo: 1, bar: 2])",
-                    "foo(:arg, foo: 1, bar: 2)"
-
+      assert_format "foo([foo: 1, bar: 2])", "foo(foo: 1, bar: 2)"
+      assert_format "foo(:arg, [foo: 1, bar: 2])", "foo(:arg, foo: 1, bar: 2)"
       assert_same "foo(:arg, [:elem, foo: 1, bar: 2])"
     end
 
@@ -218,63 +239,87 @@ defmodule Code.Formatter.CallsTest do
       assert_same "bar = if foo, do: bar, else: baz"
 
       assert_same """
-      for :one,
-          :two,
-          :three,
-          fn ->
-            :ok
-          end
-      """, @short_length
+                  for :one,
+                      :two,
+                      :three,
+                      fn ->
+                        :ok
+                      end
+                  """,
+                  @short_length
 
       assert_same """
-      for :one, fn ->
-        :ok
-      end
-      """, @medium_length
+                  for :one, fn ->
+                    :ok
+                  end
+                  """,
+                  @medium_length
     end
 
     test "without parens on line limit" do
       bad = "import :long_atom, :other_arg"
+
       good = """
       import :long_atom,
              :other_arg
       """
+
       assert_format bad, good, @short_length
+    end
+
+    test "without parens and with keyword lists preserves multiline" do
+      assert_same """
+      defstruct foo: 1,
+                bar: 2
+      """
+
+      assert_same """
+      config :app,
+        foo: 1,
+        bar: 2
+      """
     end
 
     test "without parens and with keyword lists on line limit" do
       assert_same "import :atom, opts: [foo: :bar]"
 
       bad = "import :atom, opts: [foo: :bar]"
+
       good = """
       import :atom,
         opts: [foo: :bar]
       """
+
       assert_format bad, good, @medium_length
 
       bad = "import :atom, really_long_key: [foo: :bar]"
+
       good = """
       import :atom,
         really_long_key: [
           foo: :bar
         ]
       """
+
       assert_format bad, good, @medium_length
 
       assert_same """
-      import :foo,
-        one: two,
-        three: four,
-        five: [6, 7, 8, 9]
-      """, @medium_length
+                  import :foo,
+                    one: two,
+                    three: four,
+                    five: [6, 7, 8, 9]
+                  """,
+                  @medium_length
 
       assert_same """
-      import :really_long_atom1,
-             one: two,
-             three: four
-      """, @medium_length
+                  import :really_long_atom1,
+                         one: two,
+                         three: four
+                  """,
+                  @medium_length
 
       bad = "with :really_long_atom1, :really_long_atom2, opts: [foo: :bar]"
+
       good = """
       with :really_long_atom1,
            :really_long_atom2,
@@ -282,6 +327,7 @@ defmodule Code.Formatter.CallsTest do
              foo: :bar
            ]
       """
+
       assert_format bad, good, @medium_length
     end
 
@@ -327,6 +373,7 @@ defmodule Code.Formatter.CallsTest do
     test "call on call" do
       assert_same "unquote(call)()"
       assert_same "unquote(call)(one, two)"
+
       assert_same """
       unquote(call)(one, two) do
         :ok
@@ -336,6 +383,7 @@ defmodule Code.Formatter.CallsTest do
 
     test "call on call on line limit" do
       bad = "foo(bar)(one, two, three)"
+
       good = """
       foo(bar)(
         one,
@@ -343,6 +391,7 @@ defmodule Code.Formatter.CallsTest do
         three
       )
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -414,6 +463,7 @@ defmodule Code.Formatter.CallsTest do
       bad = """
       MyModule.Foo.bar(:one, :two, :three)
       """
+
       good = """
       MyModule.Foo.bar(
         :one,
@@ -421,17 +471,20 @@ defmodule Code.Formatter.CallsTest do
         :three
       )
       """
+
       assert_format bad, good, @medium_length
 
       bad = """
       My_function.foo().bar(2, 3).baz(4, 5)
       """
+
       good = """
       My_function.foo().bar(
         2,
         3
       ).baz(4, 5)
       """
+
       assert_format bad, good, @medium_length
     end
 
@@ -445,20 +498,22 @@ defmodule Code.Formatter.CallsTest do
       assert_same "mod.foo(:hello, foo: 1, bar: 2)"
 
       assert_same """
-      mod.really_long_function_name(
-        :hello,
-        foo: 1,
-        bar: 2
-      )
-      """, @short_length
+                  mod.really_long_function_name(
+                    :hello,
+                    foo: 1,
+                    bar: 2
+                  )
+                  """,
+                  @short_length
 
       assert_same """
-      really_long_module_name.foo(
-        :hello,
-        foo: 1,
-        bar: 2
-      )
-      """, @short_length
+                  really_long_module_name.foo(
+                    :hello,
+                    foo: 1,
+                    bar: 2
+                  )
+                  """,
+                  @short_length
     end
 
     test "wraps left side in parens if it is an anonymous function" do
@@ -484,6 +539,7 @@ defmodule Code.Formatter.CallsTest do
     test "call on call" do
       assert_same "foo.bar(call)()"
       assert_same "foo.bar(call)(one, two)"
+
       assert_same """
       foo.bar(call)(one, two) do
         :ok
@@ -493,6 +549,7 @@ defmodule Code.Formatter.CallsTest do
 
     test "call on call on line limit" do
       bad = "a.b(foo)(one, two, three)"
+
       good = """
       a.b(foo)(
         one,
@@ -500,6 +557,7 @@ defmodule Code.Formatter.CallsTest do
         three
       )
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -547,6 +605,7 @@ defmodule Code.Formatter.CallsTest do
       bad = """
       my_function.(1, 2, 3)
       """
+
       good = """
       my_function.(
         1,
@@ -554,11 +613,13 @@ defmodule Code.Formatter.CallsTest do
         3
       )
       """
+
       assert_format bad, good, @short_length
 
       bad = """
       my_function.(1, 2).f(3, 4).(5, 6)
       """
+
       good = """
       my_function.(
         1,
@@ -568,6 +629,7 @@ defmodule Code.Formatter.CallsTest do
         6
       )
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -577,12 +639,13 @@ defmodule Code.Formatter.CallsTest do
       assert_same "foo.(:hello, foo: 1, bar: 2)"
 
       assert_same """
-      foo.(
-        :hello,
-        foo: 1,
-        bar: 2
-      )
-      """, @short_length
+                  foo.(
+                    :hello,
+                    foo: 1,
+                    bar: 2
+                  )
+                  """,
+                  @short_length
     end
 
     test "wraps left side in parens if it is an anonymous function" do
@@ -658,27 +721,28 @@ defmodule Code.Formatter.CallsTest do
 
     test "with no extra arguments and line breaks" do
       assert_same """
-      foo do
-        a1 ->
-          really_long_line
+                  foo do
+                    a1 ->
+                      really_long_line
 
-        b1 ->
-          b2
-      rescue
-        c1
-      catch
-        d1 -> d1
-        e1 -> e1
-      else
-        f2
-      after
-        g1 ->
-          really_long_line
+                    b1 ->
+                      b2
+                  rescue
+                    c1
+                  catch
+                    d1 -> d1
+                    e1 -> e1
+                  else
+                    f2
+                  after
+                    g1 ->
+                      really_long_line
 
-        h1 ->
-          h2
-      end
-      """, @medium_length
+                    h1 ->
+                      h2
+                  end
+                  """,
+                  @medium_length
     end
 
     test "with extra arguments" do
@@ -691,54 +755,56 @@ defmodule Code.Formatter.CallsTest do
 
     test "with extra arguments and line breaks" do
       assert_same """
-      foo bar, baz do
-        a1 ->
-          really_long_line
+                  foo bar, baz do
+                    a1 ->
+                      really_long_line
 
-        b1 ->
-          b2
-      rescue
-        c1
-      catch
-        d1 -> d1
-        e1 -> e1
-      else
-        f2
-      after
-        g1 ->
-          really_long_line
+                    b1 ->
+                      b2
+                  rescue
+                    c1
+                  catch
+                    d1 -> d1
+                    e1 -> e1
+                  else
+                    f2
+                  after
+                    g1 ->
+                      really_long_line
 
-        h1 ->
-          h2
-      end
-      """, @medium_length
+                    h1 ->
+                      h2
+                  end
+                  """,
+                  @medium_length
 
       assert_same """
-      foo really,
-          long,
-          list,
-          of,
-          arguments do
-        a1 ->
-          really_long_line
+                  foo really,
+                      long,
+                      list,
+                      of,
+                      arguments do
+                    a1 ->
+                      really_long_line
 
-        b1 ->
-          b2
-      rescue
-        c1
-      catch
-        d1 -> d1
-        e1 -> e1
-      else
-        f2
-      after
-        g1 ->
-          really_long_line
+                    b1 ->
+                      b2
+                  rescue
+                    c1
+                  catch
+                    d1 -> d1
+                    e1 -> e1
+                  else
+                    f2
+                  after
+                    g1 ->
+                      really_long_line
 
-        h1 ->
-          h2
-      end
-      """, @medium_length
+                    h1 ->
+                      h2
+                  end
+                  """,
+                  @medium_length
     end
 
     test "when empty" do
@@ -759,6 +825,7 @@ defmodule Code.Formatter.CallsTest do
 
     test "inside call" do
       bad = "foo (bar do :ok end)"
+
       good = """
       foo(
         bar do
@@ -766,30 +833,36 @@ defmodule Code.Formatter.CallsTest do
         end
       )
       """
+
       assert_format bad, good
 
       bad = "import (bar do :ok end)"
+
       good = """
       import (bar do
                 :ok
               end)
       """
+
       assert_format bad, good
     end
 
     test "inside operator" do
       bad = "foo + bar do :ok end"
+
       good = """
       foo +
         bar do
           :ok
         end
       """
+
       assert_format bad, good
     end
 
     test "inside operator inside argument" do
       bad = "fun foo + (bar do :ok end)"
+
       good = """
       fun(
         foo +
@@ -798,9 +871,11 @@ defmodule Code.Formatter.CallsTest do
           end
       )
       """
+
       assert_format bad, good
 
       bad = "if foo + (bar do :ok end) do :ok end"
+
       good = """
       if foo +
            (bar do
@@ -809,11 +884,13 @@ defmodule Code.Formatter.CallsTest do
         :ok
       end
       """
+
       assert_format bad, good
     end
 
     test "inside operator inside argument with remote call" do
       bad = "if foo + (Bar.baz do :ok end) do :ok end"
+
       good = """
       if foo +
            (Bar.baz do
@@ -822,6 +899,7 @@ defmodule Code.Formatter.CallsTest do
         :ok
       end
       """
+
       assert_format bad, good
     end
 
@@ -837,7 +915,7 @@ defmodule Code.Formatter.CallsTest do
       """
     end
 
-   test "preserves user choice even when it fits" do
+    test "preserves user choice even when it fits" do
       assert_same """
       case do
         1 ->
@@ -874,6 +952,7 @@ defmodule Code.Formatter.CallsTest do
 
     test "with arguments on line limit" do
       bad = "foo.{bar,baz,bat,}"
+
       good = """
       foo.{
         bar,
@@ -881,9 +960,11 @@ defmodule Code.Formatter.CallsTest do
         bat
       }
       """
+
       assert_format bad, good, @short_length
 
       bad = "really_long_expression.{bar,baz,bat,}"
+
       good = """
       really_long_expression.{
         bar,
@@ -891,6 +972,7 @@ defmodule Code.Formatter.CallsTest do
         bat
       }
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -906,19 +988,23 @@ defmodule Code.Formatter.CallsTest do
 
     test "with arguments on line limit" do
       bad = "foo[really_long_argument()]"
+
       good = """
       foo[
         really_long_argument()
       ]
       """
+
       assert_format bad, good, @short_length
 
       bad = "really_long_expression[really_long_argument()]"
+
       good = """
       really_long_expression[
         really_long_argument()
       ]
       """
+
       assert_format bad, good, @short_length
     end
 

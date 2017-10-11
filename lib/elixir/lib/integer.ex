@@ -29,7 +29,7 @@ defmodule Integer do
 
   """
   defmacro is_odd(integer) do
-    quote do: (unquote(integer) &&& 1) == 1
+    quote(do: (unquote(integer) &&& 1) == 1)
   end
 
   @doc """
@@ -56,7 +56,7 @@ defmodule Integer do
 
   """
   defmacro is_even(integer) do
-    quote do: (unquote(integer) &&& 1) == 0
+    quote(do: (unquote(integer) &&& 1) == 0)
   end
 
   @doc """
@@ -79,6 +79,7 @@ defmodule Integer do
   @spec mod(integer, neg_integer | pos_integer) :: integer
   def mod(dividend, divisor) do
     remainder = rem(dividend, divisor)
+
     if remainder * divisor < 0 do
       remainder + divisor
     else
@@ -110,7 +111,7 @@ defmodule Integer do
   """
   @spec floor_div(integer, neg_integer | pos_integer) :: integer
   def floor_div(dividend, divisor) do
-    if (dividend * divisor < 0) and rem(dividend, divisor) != 0 do
+    if dividend * divisor < 0 and rem(dividend, divisor) != 0 do
       div(dividend, divisor) - 1
     else
       div(dividend, divisor)
@@ -141,14 +142,11 @@ defmodule Integer do
     do_digits(integer, base, [])
   end
 
-  defp do_digits(digit, base, []) when abs(digit) < base,
-    do: [digit]
-  defp do_digits(digit, base, []) when digit == -base,
-    do: [-1, 0]
-  defp do_digits(base, base, []),
-    do: [1, 0]
-  defp do_digits(0, _base, acc),
-    do: acc
+  defp do_digits(digit, base, []) when abs(digit) < base, do: [digit]
+  defp do_digits(digit, base, []) when digit == -base, do: [-1, 0]
+  defp do_digits(base, base, []), do: [1, 0]
+  defp do_digits(0, _base, acc), do: acc
+
   defp do_digits(integer, base, acc),
     do: do_digits(div(integer, base), base, [rem(integer, base) | acc])
 
@@ -175,19 +173,15 @@ defmodule Integer do
     do_undigits(digits, base, 0)
   end
 
-  defp do_undigits([], _base, 0),
-    do: 0
-  defp do_undigits([digit], base, 0) when is_integer(digit) and digit < base,
-    do: digit
-  defp do_undigits([1, 0], base, 0),
-    do: base
-  defp do_undigits([0 | tail], base, 0),
-    do: do_undigits(tail, base, 0)
+  defp do_undigits([], _base, 0), do: 0
+  defp do_undigits([digit], base, 0) when is_integer(digit) and digit < base, do: digit
+  defp do_undigits([1, 0], base, 0), do: base
+  defp do_undigits([0 | tail], base, 0), do: do_undigits(tail, base, 0)
+  defp do_undigits([], _base, acc), do: acc
 
-  defp do_undigits([], _base, acc),
-    do: acc
   defp do_undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
-    do: raise ArgumentError, "invalid digit #{digit} in base #{base}"
+    do: raise(ArgumentError, "invalid digit #{digit} in base #{base}")
+
   defp do_undigits([digit | tail], base, acc) when is_integer(digit),
     do: do_undigits(tail, base, acc * base + digit)
 
@@ -235,14 +229,15 @@ defmodule Integer do
   @spec parse(binary, 2..36) :: {integer, binary} | :error
   def parse(binary, base \\ 10)
 
-  def parse(_binary, base) when not base in 2..36 do
-    raise ArgumentError, "invalid base #{inspect base}"
+  def parse(_binary, base) when base not in 2..36 do
+    raise ArgumentError, "invalid base #{inspect(base)}"
   end
 
   def parse(binary, base) do
     case count_digits(binary, base) do
       0 ->
         :error
+
       count ->
         {digits, rem} = :erlang.split_binary(binary, count)
         {:erlang.binary_to_integer(digits, base), rem}
@@ -262,11 +257,12 @@ defmodule Integer do
 
   digits = [{?0..?9, -?0}, {?A..?Z, 10 - ?A}, {?a..?z, 10 - ?a}]
 
-  for {chars, diff} <- digits, char <- chars do
+  for {chars, diff} <- digits,
+      char <- chars do
     digit = char + diff
 
     defp count_digits_nosign(<<unquote(char), rest::binary>>, base, count)
-        when base > unquote(digit) do
+         when base > unquote(digit) do
       count_digits_nosign(rest, base, count + 1)
     end
   end
@@ -294,7 +290,7 @@ defmodule Integer do
       "123"
 
   """
-  @spec to_string(integer) :: String.t
+  @spec to_string(integer) :: String.t()
   def to_string(integer) do
     :erlang.integer_to_binary(integer)
   end
@@ -319,7 +315,7 @@ defmodule Integer do
       "ELIXIR"
 
   """
-  @spec to_string(integer, 2..36) :: String.t
+  @spec to_string(integer, 2..36) :: String.t()
   def to_string(integer, base) do
     :erlang.integer_to_binary(integer, base)
   end

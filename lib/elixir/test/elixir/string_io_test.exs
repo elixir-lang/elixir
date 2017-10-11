@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule StringIOTest do
   use ExUnit.Case, async: true
@@ -154,7 +154,12 @@ defmodule StringIOTest do
   test "IO.binwrite with UTF-8" do
     pid = start("")
     assert IO.binwrite(pid, "あいう") == :ok
-    assert contents(pid) == {"", <<195, 163, 194, 129, 194, 130, 195, 163, 194, 129, 194, 132, 195, 163, 194, 129, 194, 134>>}
+
+    binary =
+      <<195, 163, 194, 129, 194, 130, 195, 163>> <>
+        <<194, 129, 194, 132, 195, 163, 194, 129, 194, 134>>
+
+    assert contents(pid) == {"", binary}
   end
 
   test "IO.puts" do
@@ -231,21 +236,23 @@ defmodule StringIOTest do
 
   test "IO.stream" do
     pid = start("abc")
-    assert IO.stream(pid, 2) |> Enum.to_list == ["ab", "c"]
+    assert IO.stream(pid, 2) |> Enum.to_list() == ["ab", "c"]
     assert contents(pid) == {"", ""}
   end
 
   test "IO.stream with invalid UTF-8" do
     pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
-    assert_raise IO.StreamError, fn->
-      IO.stream(pid, 2) |> Enum.to_list
+
+    assert_raise IO.StreamError, fn ->
+      IO.stream(pid, 2) |> Enum.to_list()
     end
+
     assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
   end
 
   test "IO.binstream" do
     pid = start("abc")
-    assert IO.stream(pid, 2) |> Enum.to_list == ["ab", "c"]
+    assert IO.stream(pid, 2) |> Enum.to_list() == ["ab", "c"]
     assert contents(pid) == {"", ""}
   end
 

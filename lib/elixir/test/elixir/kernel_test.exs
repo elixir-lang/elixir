@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule KernelTest do
   use ExUnit.Case, async: true
@@ -8,26 +8,26 @@ defmodule KernelTest do
   defp empty_list(), do: []
 
   test "=~/2" do
-    assert ("abcd" =~ ~r/c(d)/) == true
-    assert ("abcd" =~ ~r/e/) == false
-    assert ("abcd" =~ ~R/c(d)/) == true
-    assert ("abcd" =~ ~R/e/) == false
+    assert "abcd" =~ ~r/c(d)/ == true
+    assert "abcd" =~ ~r/e/ == false
+    assert "abcd" =~ ~R/c(d)/ == true
+    assert "abcd" =~ ~R/e/ == false
 
     string = "^ab+cd*$"
-    assert (string =~ "ab+") == true
-    assert (string =~ "bb") == false
+    assert string =~ "ab+" == true
+    assert string =~ "bb" == false
 
-    assert ("abcd" =~ ~r//) == true
-    assert ("abcd" =~ ~R//) == true
-    assert ("abcd" =~ "") == true
+    assert "abcd" =~ ~r// == true
+    assert "abcd" =~ ~R// == true
+    assert "abcd" =~ "" == true
 
-    assert ("" =~ ~r//) == true
-    assert ("" =~ ~R//) == true
-    assert ("" =~ "") == true
+    assert "" =~ ~r// == true
+    assert "" =~ ~R// == true
+    assert "" =~ "" == true
 
-    assert ("" =~ "abcd") == false
-    assert ("" =~ ~r/abcd/) == false
-    assert ("" =~ ~R/abcd/) == false
+    assert "" =~ "abcd" == false
+    assert "" =~ ~r/abcd/ == false
+    assert "" =~ ~R/abcd/ == false
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
       1234 =~ "hello"
@@ -84,7 +84,7 @@ defmodule KernelTest do
     assert binding() == [a: 0]
   end
 
-  def exported?,      do: not_exported?()
+  def exported?, do: not_exported?()
   defp not_exported?, do: true
 
   test "function_exported?/3" do
@@ -126,7 +126,7 @@ defmodule KernelTest do
   end
 
   defmodule User do
-    assert is_map defstruct name: "john"
+    assert is_map(defstruct name: "john")
   end
 
   defmodule UserTuple do
@@ -161,8 +161,9 @@ defmodule KernelTest do
   end
 
   test "if/2 with invalid keys" do
-    error_message = "invalid or duplicate keys for if, only \"do\" " <>
-    "and an optional \"else\" are permitted"
+    error_message =
+      "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
+
     assert_raise ArgumentError, error_message, fn ->
       Code.eval_string("if true, foo: 7")
     end
@@ -189,8 +190,10 @@ defmodule KernelTest do
   end
 
   test "unless/2 with invalid keys" do
-    error_message = "invalid or duplicate keys for unless, only \"do\" " <>
-      "and an optional \"else\" are permitted"
+    error_message =
+      "invalid or duplicate keys for unless, only \"do\" " <>
+        "and an optional \"else\" are permitted"
+
     assert_raise ArgumentError, error_message, fn ->
       Code.eval_string("unless true, foo: 7")
     end
@@ -223,7 +226,7 @@ defmodule KernelTest do
     assert (false and false) == false
     assert (false and true) == false
     assert (false and 0) == false
-    assert (false and raise "oops") == false
+    assert (false and raise("oops")) == false
     assert_raise BadBooleanError, fn -> 0 and 1 end
   end
 
@@ -231,7 +234,7 @@ defmodule KernelTest do
     assert (true or false) == true
     assert (true or true) == true
     assert (true or 0) == true
-    assert (true or raise "foo") == true
+    assert (true or raise("foo")) == true
     assert (false or false) == false
     assert (false or true) == true
     assert (false or 0) == 0
@@ -350,7 +353,8 @@ defmodule KernelTest do
     test "has proper evaluation order" do
       a = 1
       assert 1 in [a = 2, a]
-      _ = a # silence unused var warning
+      # silence unused var warning
+      _ = a
     end
 
     test "in module body" do
@@ -364,6 +368,7 @@ defmodule KernelTest do
 
     test "inside and/2" do
       response = %{code: 200}
+
       if is_map(response) and response.code in 200..299 do
         :pass
       end
@@ -376,44 +381,49 @@ defmodule KernelTest do
 
     test "with a non-literal non-escaped compile-time range in guards" do
       message = "non-literal range in guard should be escaped with Macro.escape/2"
-      assert_eval_raise ArgumentError, message, """
+
+      assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
         range = 1..3
         def foo(x) when x in unquote(range), do: :ok
       end
-      """
+      """)
     end
 
     test "with a non-compile-time range in guards" do
       message = ~r/invalid args for operator "in", .* got: :hello/
-      assert_eval_raise ArgumentError, message, """
+
+      assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
         def foo(x) when x in :hello, do: :ok
       end
-      """
+      """)
     end
 
     test "with a non-compile-time list cons in guards" do
       message = ~r/invalid args for operator "in", .* got: \[1 | list\(\)\]/
-      assert_eval_raise ArgumentError, message, """
+
+      assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
         def list, do: [1]
         def foo(x) when x in [1 | list()], do: :ok
       end
-      """
+      """)
     end
 
     test "with a compile-time non-list in tail in guards" do
       message = ~r/invalid args for operator "in", .* got: \[1 | 1..3\]/
-      assert_eval_raise ArgumentError, message, """
+
+      assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
         def foo(x) when x in [1 | 1..3], do: :ok
       end
-      """
+      """)
     end
 
     test "with a non-integer range" do
       message = "ranges (first..last) expect both sides to be integers, got: 0..5.0"
+
       assert_raise ArgumentError, message, fn ->
         last = 5.0
         1 in 0..last
@@ -425,7 +435,9 @@ defmodule KernelTest do
 
       result = expand_to_string(quote(do: rand() in 1..2))
       assert result =~ "var = rand()"
-      assert result =~ ":erlang.andalso(:erlang.is_integer(var), :erlang.andalso(:erlang.>=(var, 1), :erlang.\"=<\"(var, 2)))"
+
+      assert result =~
+               ":erlang.andalso(:erlang.is_integer(var), :erlang.andalso(:erlang.>=(var, 1), :erlang.\"=<\"(var, 2)))"
 
       result = expand_to_string(quote(do: rand() in [1, 2]))
       assert result =~ "var = rand()"
@@ -444,7 +456,7 @@ defmodule KernelTest do
     defp expand_to_string(ast) do
       ast
       |> Macro.prewalk(&Macro.expand(&1, __ENV__))
-      |> Macro.to_string
+      |> Macro.to_string()
     end
 
     defp assert_eval_raise(error, msg, string) do
@@ -465,8 +477,8 @@ defmodule KernelTest do
 
     test "others" do
       assert Kernel.__info__(:module) == Kernel
-      assert is_list Kernel.__info__(:compile)
-      assert is_list Kernel.__info__(:attributes)
+      assert is_list(Kernel.__info__(:compile))
+      assert is_list(Kernel.__info__(:attributes))
     end
   end
 
@@ -487,18 +499,24 @@ defmodule KernelTest do
     test "raises with non-variable arguments" do
       msg = "defdelegate/2 only accepts function parameters, got: 1"
 
-      assert_raise ArgumentError, msg, fn -> Code.eval_string("""
+      assert_raise ArgumentError, msg, fn ->
+        string = """
         defmodule IntDelegate do
           defdelegate foo(1), to: List
         end
-        """, [], __ENV__)
+        """
+
+        Code.eval_string(string, [], __ENV__)
       end
 
-      assert_raise ArgumentError, msg, fn -> Code.eval_string("""
+      assert_raise ArgumentError, msg, fn ->
+        string = """
         defmodule IntOptionDelegate do
           defdelegate foo(1 \\\\ 1), to: List
         end
-        """, [], __ENV__)
+        """
+
+        Code.eval_string(string, [], __ENV__)
       end
     end
 
@@ -524,8 +542,8 @@ defmodule KernelTest do
       assert get_in(nil, ["john", :age]) == nil
 
       map = %{"fruits" => ["banana", "apple", "orange"]}
-      assert get_in(map, ["fruits", by_index(0)])  == "banana"
-      assert get_in(map, ["fruits", by_index(3)])  == nil
+      assert get_in(map, ["fruits", by_index(0)]) == "banana"
+      assert get_in(map, ["fruits", by_index(3)]) == nil
       assert get_in(map, ["unknown", by_index(3)]) == :oops
 
       assert_raise FunctionClauseError, fn ->
@@ -536,8 +554,7 @@ defmodule KernelTest do
     test "put_in/3" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-      assert put_in(users, ["john", :age], 28) ==
-             %{"john" => %{age: 28}, "meg" => %{age: 23}}
+      assert put_in(users, ["john", :age], 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
       assert_raise FunctionClauseError, fn ->
         put_in(users, [], %{})
@@ -551,11 +568,9 @@ defmodule KernelTest do
     test "put_in/2" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-      assert put_in(users["john"][:age], 28) ==
-             %{"john" => %{age: 28}, "meg" => %{age: 23}}
+      assert put_in(users["john"][:age], 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-      assert put_in(users["john"].age, 28) ==
-             %{"john" => %{age: 28}, "meg" => %{age: 23}}
+      assert put_in(users["john"].age, 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
       assert_raise BadMapError, fn ->
         put_in(users["dave"].age, 19)
@@ -570,7 +585,7 @@ defmodule KernelTest do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
       assert update_in(users, ["john", :age], &(&1 + 1)) ==
-             %{"john" => %{age: 28}, "meg" => %{age: 23}}
+               %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
       assert_raise FunctionClauseError, fn ->
         update_in(users, [], fn _ -> %{} end)
@@ -589,10 +604,10 @@ defmodule KernelTest do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
       assert update_in(users["john"][:age], &(&1 + 1)) ==
-             %{"john" => %{age: 28}, "meg" => %{age: 23}}
+               %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
       assert update_in(users["john"].age, &(&1 + 1)) ==
-             %{"john" => %{age: 28}, "meg" => %{age: 23}}
+               %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
       assert_raise BadMapError, fn ->
         update_in(users["dave"].age, &(&1 + 1))
@@ -607,17 +622,18 @@ defmodule KernelTest do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
       assert get_and_update_in(users, ["john", :age], &{&1, &1 + 1}) ==
-             {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
+               {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
 
       map = %{"fruits" => ["banana", "apple", "orange"]}
+
       assert get_and_update_in(map, ["fruits", by_index(0)], &{&1, String.reverse(&1)}) ==
-             {"banana", %{"fruits" => ["ananab", "apple", "orange"]}}
+               {"banana", %{"fruits" => ["ananab", "apple", "orange"]}}
 
       assert get_and_update_in(map, ["fruits", by_index(3)], &{&1, &1}) ==
-             {nil, %{"fruits" => ["banana", "apple", "orange"]}}
+               {nil, %{"fruits" => ["banana", "apple", "orange"]}}
 
       assert get_and_update_in(map, ["unknown", by_index(3)], &{&1, []}) ==
-             {:oops, %{"fruits" => ["banana", "apple", "orange"], "unknown" => []}}
+               {:oops, %{"fruits" => ["banana", "apple", "orange"], "unknown" => []}}
 
       assert_raise FunctionClauseError, fn ->
         update_in(users, [], fn _ -> %{} end)
@@ -628,7 +644,7 @@ defmodule KernelTest do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
       assert get_and_update_in(users["john"].age, &{&1, &1 + 1}) ==
-             {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
+               {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
 
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
@@ -646,11 +662,9 @@ defmodule KernelTest do
     test "pop_in/2" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-      assert pop_in(users, ["john", :age]) ==
-             {27, %{"john" => %{}, "meg" => %{age: 23}}}
+      assert pop_in(users, ["john", :age]) == {27, %{"john" => %{}, "meg" => %{age: 23}}}
 
-      assert pop_in(users, ["bob", :age]) ==
-             {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+      assert pop_in(users, ["bob", :age]) == {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
 
       assert pop_in([], [:foo, :bar]) == {nil, []}
 
@@ -665,34 +679,31 @@ defmodule KernelTest do
 
     test "pop_in/2 with paths" do
       map = %{"fruits" => ["banana", "apple", "orange"]}
+
       assert pop_in(map, ["fruits", by_index(0)]) ==
-             {"banana", %{"fruits" => ["apple", "orange"]}}
-      assert pop_in(map, ["fruits", by_index(3)]) ==
-             {nil, map}
+               {"banana", %{"fruits" => ["apple", "orange"]}}
+
+      assert pop_in(map, ["fruits", by_index(3)]) == {nil, map}
 
       map = %{"fruits" => [%{name: "banana"}, %{name: "apple"}]}
+
       assert pop_in(map, ["fruits", by_index(0), :name]) ==
-             {"banana", %{"fruits" => [%{}, %{name: "apple"}]}}
-      assert pop_in(map, ["fruits", by_index(3), :name]) ==
-             {nil, map}
+               {"banana", %{"fruits" => [%{}, %{name: "apple"}]}}
+
+      assert pop_in(map, ["fruits", by_index(3), :name]) == {nil, map}
     end
 
     test "pop_in/1" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-      assert pop_in(users["john"][:age]) ==
-             {27, %{"john" => %{}, "meg" => %{age: 23}}}
-      assert pop_in(users["john"][:name]) ==
-             {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
-      assert pop_in(users["bob"][:age]) ==
-             {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+      assert pop_in(users["john"][:age]) == {27, %{"john" => %{}, "meg" => %{age: 23}}}
+      assert pop_in(users["john"][:name]) == {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+      assert pop_in(users["bob"][:age]) == {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
 
       users = %{john: [age: 27], meg: [age: 23]}
 
-      assert pop_in(users.john[:age]) ==
-             {27, %{john: [], meg: [age: 23]}}
-      assert pop_in(users.john[:name]) ==
-             {nil, %{john: [age: 27], meg: [age: 23]}}
+      assert pop_in(users.john[:age]) == {27, %{john: [], meg: [age: 23]}}
+      assert pop_in(users.john[:name]) == {nil, %{john: [age: 27], meg: [age: 23]}}
 
       assert pop_in([][:foo][:bar]) == {nil, []}
       assert_raise KeyError, fn -> pop_in(users.bob[:age]) end
@@ -700,16 +711,12 @@ defmodule KernelTest do
 
     test "pop_in/1/2 with nils" do
       users = %{"john" => nil, "meg" => %{age: 23}}
-      assert pop_in(users["john"][:age]) ==
-             {nil, %{"meg" => %{age: 23}}}
-      assert pop_in(users, ["john", :age]) ==
-             {nil, %{"meg" => %{age: 23}}}
+      assert pop_in(users["john"][:age]) == {nil, %{"meg" => %{age: 23}}}
+      assert pop_in(users, ["john", :age]) == {nil, %{"meg" => %{age: 23}}}
 
       users = %{john: nil, meg: %{age: 23}}
-      assert pop_in(users.john[:age]) ==
-             {nil, %{john: nil, meg: %{age: 23}}}
-      assert pop_in(users, [:john, :age]) ==
-             {nil, %{meg: %{age: 23}}}
+      assert pop_in(users.john[:age]) == {nil, %{john: nil, meg: %{age: 23}}}
+      assert pop_in(users, [:john, :age]) == {nil, %{meg: %{age: 23}}}
 
       x = nil
       assert_raise ArgumentError, fn -> pop_in(x["john"][:age]) end
@@ -740,10 +747,13 @@ defmodule KernelTest do
       fn
         _, nil, next ->
           next.(:oops)
+
         :get, data, next ->
           next.(Enum.at(data, index))
+
         :get_and_update, data, next ->
           current = Enum.at(data, index)
+
           case next.(current) do
             {get, update} -> {get, List.replace_at(data, index, update)}
             :pop -> {current, List.delete_at(data, index)}
@@ -754,15 +764,15 @@ defmodule KernelTest do
 
   describe "pipeline" do
     test "simple" do
-      assert [1, [2], 3] |> List.flatten == [1, 2, 3]
+      assert [1, [2], 3] |> List.flatten() == [1, 2, 3]
     end
 
     test "nested" do
-      assert [1, [2], 3] |> List.flatten |> Enum.map(&(&1 * 2)) == [2, 4, 6]
+      assert [1, [2], 3] |> List.flatten() |> Enum.map(&(&1 * 2)) == [2, 4, 6]
     end
 
     test "local call" do
-      assert [1, [2], 3] |> List.flatten |> local == [2, 4, 6]
+      assert [1, [2], 3] |> List.flatten() |> local == [2, 4, 6]
     end
 
     test "with capture" do
@@ -770,7 +780,7 @@ defmodule KernelTest do
     end
 
     test "with anonymous functions" do
-      assert  1  |> (&(&1*2)).() == 2
+      assert 1 |> (&(&1 * 2)).() == 2
       assert [1] |> (&hd(&1)).() == 1
     end
 
@@ -826,6 +836,7 @@ defmodule KernelTest do
 
     test "invalid match" do
       a = List.first([3])
+
       assert_raise MatchError, fn ->
         destructure [^a, _b, _c], a_list()
       end
@@ -853,6 +864,7 @@ defmodule KernelTest do
 
     test "invalid argument is literal" do
       message = "invalid arguments for use, expected a compile time atom or alias, got: 42"
+
       assert_raise ArgumentError, message, fn ->
         Code.eval_string("use 42")
       end
@@ -860,6 +872,7 @@ defmodule KernelTest do
 
     test "invalid argument is variable" do
       message = "invalid arguments for use, expected a compile time atom or alias, got: variable"
+
       assert_raise ArgumentError, message, fn ->
         Code.eval_string("use variable")
       end
@@ -867,26 +880,28 @@ defmodule KernelTest do
 
     test "multi-call" do
       assert capture_io(fn ->
-        Code.eval_string("use KernelTest.{SampleA, SampleB,}", [], __ENV__)
-      end) == "A\nB\n"
+               Code.eval_string("use KernelTest.{SampleA, SampleB,}", [], __ENV__)
+             end) == "A\nB\n"
     end
 
     test "multi-call with options" do
       assert capture_io(fn ->
-        Code.eval_string(~S|use KernelTest.{SampleA}, prefix: "-"|, [], __ENV__)
-      end) == "-A\n"
+               Code.eval_string(~S|use KernelTest.{SampleA}, prefix: "-"|, [], __ENV__)
+             end) == "-A\n"
     end
 
     test "multi-call with unquote" do
       assert capture_io(fn ->
-        Code.eval_string("""
-          defmodule TestMod do
-            def main() do
-              use KernelTest.{SampleB, unquote(:SampleA)}
-            end
-          end
-          """, [], __ENV__)
-      end) == "B\nA\n"
+               string = """
+               defmodule TestMod do
+                 def main() do
+                   use KernelTest.{SampleB, unquote(:SampleA)}
+                 end
+               end
+               """
+
+               Code.eval_string(string, [], __ENV__)
+             end) == "B\nA\n"
     after
       purge(KernelTest.TestMod)
     end
@@ -895,18 +910,22 @@ defmodule KernelTest do
   test "tl/1" do
     assert tl([:one]) == []
     assert tl([1, 2, 3]) == [2, 3]
+
     assert_raise ArgumentError, "argument error", fn ->
       tl(empty_list())
     end
+
     assert tl([:a | :b]) == :b
     assert tl([:a, :b | :c]) == [:b | :c]
   end
 
   test "hd/1" do
     assert hd([1, 2, 3, 4]) == 1
+
     assert_raise ArgumentError, "argument error", fn ->
       hd(empty_list())
     end
+
     assert hd([1 | 2]) == 1
   end
 
