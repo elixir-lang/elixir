@@ -366,10 +366,9 @@ defmodule Code.Formatter.CommentsTest do
       fn
         # before one
         # middle one
-        one,
         # after one / before two
         # middle two
-        two ->
+        one, two ->
           # after two
           # before hello
           # middle hello
@@ -559,10 +558,9 @@ defmodule Code.Formatter.CommentsTest do
       assert do
         # before one
         # middle one
-        one,
         # after one / before two
         # middle two
-        two ->
+        one, two ->
           # after two
           # before hello
           # middle hello

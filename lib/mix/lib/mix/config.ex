@@ -43,7 +43,7 @@ defmodule Mix.Config do
   defmacro __using__(_) do
     quote do
       import Mix.Config, only: [config: 2, config: 3, import_config: 1]
-      {:ok, agent} = Mix.Config.Agent.start_link
+      {:ok, agent} = Mix.Config.Agent.start_link()
       var!(config_agent, Mix.Config) = agent
     end
   end
@@ -78,7 +78,7 @@ defmodule Mix.Config do
   """
   defmacro config(app, opts) do
     quote do
-      Mix.Config.Agent.merge var!(config_agent, Mix.Config), [{unquote(app), unquote(opts)}]
+      Mix.Config.Agent.merge(var!(config_agent, Mix.Config), [{unquote(app), unquote(opts)}])
     end
   end
 
@@ -114,8 +114,9 @@ defmodule Mix.Config do
   """
   defmacro config(app, key, opts) do
     quote do
-      Mix.Config.Agent.merge var!(config_agent, Mix.Config),
-        [{unquote(app), [{unquote(key), unquote(opts)}]}]
+      Mix.Config.Agent.merge(var!(config_agent, Mix.Config), [
+        {unquote(app), [{unquote(key), unquote(opts)}]}
+      ])
     end
   end
 
@@ -153,9 +154,13 @@ defmodule Mix.Config do
 
     quote do
       unquote(loaded_paths_quote)
+
       Mix.Config.Agent.merge(
         var!(config_agent, Mix.Config),
-         Mix.Config.read_wildcard!(Path.expand(unquote(path_or_wildcard), __DIR__), var!(loaded_paths, Mix.Config))
+        Mix.Config.read_wildcard!(
+          Path.expand(unquote(path_or_wildcard), __DIR__),
+          var!(loaded_paths, Mix.Config)
+        )
       )
     end
   end
@@ -177,18 +182,27 @@ defmodule Mix.Config do
         raise ArgumentError, message: "recursive load of #{file} detected"
       end
 
-      {config, binding} = Code.eval_string File.read!(file), [{{:loaded_paths, Mix.Config}, [file | loaded_paths]}], [file: file, line: 1]
+      binding = [{{:loaded_paths, Mix.Config}, [file | loaded_paths]}]
 
-      config = case List.keyfind(binding, {:config_agent, Mix.Config}, 0) do
-        {_, agent} -> get_config_and_stop_agent(agent)
-        nil        -> config
-      end
+      {config, binding} =
+        Code.eval_string(
+          File.read!(file),
+          binding,
+          file: file,
+          line: 1
+        )
+
+      config =
+        case List.keyfind(binding, {:config_agent, Mix.Config}, 0) do
+          {_, agent} -> get_config_and_stop_agent(agent)
+          nil -> config
+        end
 
       validate!(config)
       config
     rescue
-      e in [LoadError] -> reraise(e, System.stacktrace)
-      e -> reraise(LoadError, [file: file, error: e], System.stacktrace)
+      e in [LoadError] -> reraise(e, System.stacktrace())
+      e -> reraise(LoadError, [file: file, error: e], System.stacktrace())
     end
   end
 
@@ -209,11 +223,13 @@ defmodule Mix.Config do
   read.
   """
   def read_wildcard!(path, loaded_paths \\ []) do
-    paths = if String.contains?(path, ~w(* ? [ {))do
-      Path.wildcard(path)
-    else
-      [path]
-    end
+    paths =
+      if String.contains?(path, ~w(* ? [ {)) do
+        Path.wildcard(path)
+      else
+        [path]
+      end
+
     Enum.reduce(paths, [], &merge(&2, read!(&1, loaded_paths)))
   end
 
@@ -239,6 +255,7 @@ defmodule Mix.Config do
       for {k, v} <- kw do
         Application.put_env(app, k, v, persistent: true)
       end
+
       app
     end
   end
@@ -254,14 +271,15 @@ defmodule Mix.Config do
             true
           else
             raise ArgumentError,
-              "expected config for app #{inspect app} to return keyword list, got: #{inspect value}"
+                  "expected config for app #{inspect(app)} to return keyword list, " <>
+                    "got: #{inspect(value)}"
           end
+
         _ ->
           false
       end)
     else
-      raise ArgumentError,
-        "expected config file to return keyword list, got: #{inspect config}"
+      raise ArgumentError, "expected config file to return keyword list, got: #{inspect(config)}"
     end
   end
 

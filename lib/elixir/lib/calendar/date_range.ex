@@ -12,17 +12,25 @@ defmodule Date.Range do
   The remaining fields are private and should not be accessed.
   """
 
-  @type t :: %__MODULE__{first: Date.t, last: Date.t,
-                         first_in_iso_days: Calendar.iso_days,
-                         last_in_iso_days: Calendar.iso_days}
+  @type t :: %__MODULE__{
+          first: Date.t(),
+          last: Date.t(),
+          first_in_iso_days: Calendar.iso_days(),
+          last_in_iso_days: Calendar.iso_days()
+        }
 
   defstruct [:first, :last, :first_in_iso_days, :last_in_iso_days]
 
   defimpl Enumerable do
-    def member?(%{first: %{calendar: calendar, year: first_year, month: first_month, day: first_day},
-                  last: %{calendar: calendar, year: last_year, month: last_month, day: last_day},
-                  first_in_iso_days: first_in_iso_days, last_in_iso_days: last_in_iso_days},
-                %Date{calendar: calendar, year: year, month: month, day: day}) do
+    def member?(
+          %{
+            first: %{calendar: calendar, year: first_year, month: first_month, day: first_day},
+            last: %{calendar: calendar, year: last_year, month: last_month, day: last_day},
+            first_in_iso_days: first_in_iso_days,
+            last_in_iso_days: last_in_iso_days
+          },
+          %Date{calendar: calendar, year: year, month: month, day: day}
+        ) do
       first = {first_year, first_month, first_day}
       last = {last_year, last_month, last_day}
       date = {year, month, day}
@@ -38,13 +46,30 @@ defmodule Date.Range do
       {:ok, false}
     end
 
-    def count(%Date.Range{first_in_iso_days: first_in_iso_days, last_in_iso_days: last_in_iso_days}) do
+    def count(%Date.Range{
+          first_in_iso_days: first_in_iso_days,
+          last_in_iso_days: last_in_iso_days
+        }) do
       {:ok, abs(first_in_iso_days - last_in_iso_days) + 1}
     end
 
-    def reduce(%Date.Range{first_in_iso_days: first_in_iso_days, last_in_iso_days: last_in_iso_days,
-                           first: %{calendar: calendar}}, acc, fun) do
-      reduce(first_in_iso_days, last_in_iso_days, acc, fun, calendar, first_in_iso_days <= last_in_iso_days)
+    def reduce(
+          %Date.Range{
+            first_in_iso_days: first_in_iso_days,
+            last_in_iso_days: last_in_iso_days,
+            first: %{calendar: calendar}
+          },
+          acc,
+          fun
+        ) do
+      reduce(
+        first_in_iso_days,
+        last_in_iso_days,
+        acc,
+        fun,
+        calendar,
+        first_in_iso_days <= last_in_iso_days
+      )
     end
 
     defp reduce(_x, _y, {:halt, acc}, _fun, _calendar, _up?) do
@@ -73,7 +98,9 @@ defmodule Date.Range do
     end
 
     defp date_from_iso_days(days, calendar) do
-      {year, month, day, _, _, _, _} = calendar.naive_datetime_from_iso_days({days, {0, 86400000000}})
+      {year, month, day, _, _, _, _} =
+        calendar.naive_datetime_from_iso_days({days, {0, 86_400_000_000}})
+
       %Date{year: year, month: month, day: day, calendar: calendar}
     end
   end

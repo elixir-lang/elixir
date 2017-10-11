@@ -45,16 +45,23 @@ defmodule Mix.Compilers.Erlang do
   """
   def compile(manifest, mappings, src_ext, dest_ext, opts, callback) when is_list(opts) do
     force = opts[:force]
+
     files =
-      for {src, dest} <- mappings do
-        extract_targets(src, src_ext, dest, dest_ext, force)
-      end |> Enum.concat
+      for {src, dest} <- mappings,
+          target <- extract_targets(src, src_ext, dest, dest_ext, force),
+          do: target
+
     compile(manifest, files, src_ext, opts, callback)
   end
 
-  def compile(manifest, mappings, src_ext, dest_ext, force, callback) when is_boolean(force) or is_nil(force) do
-    IO.warn "Mix.Compilers.Erlang.compile/6 with a boolean or nil as 5th argument is deprecated, " <>
-            "please pass [force: true] or [] instead"
+  def compile(manifest, mappings, src_ext, dest_ext, force, callback)
+      when is_boolean(force) or is_nil(force) do
+    # TODO: Remove this on v2.0
+    IO.warn(
+      "Mix.Compilers.Erlang.compile/6 with a boolean or nil as 5th argument is deprecated, " <>
+        "please pass [force: true] or [] instead"
+    )
+
     compile(manifest, mappings, src_ext, dest_ext, [force: force], callback)
   end
 
@@ -80,18 +87,23 @@ defmodule Mix.Compilers.Erlang do
 
     # Files to remove are the ones in the manifest
     # but they no longer have a source
-    removed = Enum.filter(entries, fn {dest, _} ->
-      not Enum.any?(mappings, fn {_status, _mapping_src, mapping_dest} -> mapping_dest == dest end)
-    end) |> Enum.map(&elem(&1, 0))
+    removed =
+      Enum.filter(entries, fn {dest, _} ->
+        not Enum.any?(mappings, fn {_status, _mapping_src, mapping_dest} ->
+          mapping_dest == dest
+        end)
+      end)
+      |> Enum.map(&elem(&1, 0))
 
     # Remove manifest entries with no source
     Enum.each(removed, &File.rm/1)
     verbose = opts[:verbose]
 
     # Clear stale and removed files from manifest
-    entries = Enum.reject(entries, fn {dest, _warnings} ->
-      dest in removed || Enum.any?(stale, fn {_, stale_dest} -> dest == stale_dest end)
-    end)
+    entries =
+      Enum.reject(entries, fn {dest, _warnings} ->
+        dest in removed || Enum.any?(stale, fn {_, stale_dest} -> dest == stale_dest end)
+      end)
 
     if opts[:all_warnings], do: show_warnings(entries)
 
@@ -104,7 +116,7 @@ defmodule Mix.Compilers.Erlang do
       # Let's prepend the newly created path so compiled files
       # can be accessed still during compilation (for behaviours
       # and what not).
-      Code.prepend_path(Mix.Project.compile_path)
+      Code.prepend_path(Mix.Project.compile_path())
 
       # Compile stale files and print the results
       {status, new_entries, warnings, errors} =
@@ -116,9 +128,11 @@ defmodule Mix.Compilers.Erlang do
 
       # Return status and diagnostics
       warnings = manifest_warnings(entries) ++ to_diagnostics(warnings, :warning)
+
       case status do
         :ok ->
           {:ok, warnings}
+
         :error ->
           errors = to_diagnostics(errors, :error)
           {:error, warnings ++ errors}
@@ -133,11 +147,14 @@ defmodule Mix.Compilers.Erlang do
     case Application.ensure_all_started(app) do
       {:ok, _} ->
         :ok
+
       {:error, _} ->
-        Mix.raise "Could not compile #{inspect Path.relative_to_cwd(input)} because " <>
-                  "the application \"#{app}\" could not be found. This may happen if " <>
-                  "your package manager broke Erlang into multiple packages and may " <>
-                  "be fixed by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages"
+        Mix.raise(
+          "Could not compile #{inspect(Path.relative_to_cwd(input))} because " <>
+            "the application \"#{app}\" could not be found. This may happen if " <>
+            "your package manager broke Erlang into multiple packages and may " <>
+            "be fixed by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages"
+        )
     end
   end
 
@@ -145,8 +162,8 @@ defmodule Mix.Compilers.Erlang do
   Removes compiled files for the given `manifest`.
   """
   def clean(manifest) do
-    Enum.each read_manifest(manifest), &File.rm/1
-    File.rm manifest
+    Enum.each(read_manifest(manifest), &File.rm/1)
+    File.rm(manifest)
   end
 
   @doc """
@@ -168,7 +185,7 @@ defmodule Mix.Compilers.Erlang do
     if is_list(erlc_paths) do
       :ok
     else
-      Mix.raise ":erlc_paths should be a list of paths, got: #{inspect(erlc_paths)}"
+      Mix.raise(":erlc_paths should be a list of paths, got: #{inspect(erlc_paths)}")
     end
   end
 
@@ -188,7 +205,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp module_from_artifact(artifact) do
-    artifact |> Path.basename |> Path.rootname
+    artifact |> Path.basename() |> Path.rootname()
   end
 
   # The manifest file contains a list of {dest, warnings} tuples
@@ -204,7 +221,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp write_manifest(file, entries, timestamp) do
-    Path.dirname(file) |> File.mkdir_p!
+    Path.dirname(file) |> File.mkdir_p!()
     File.write!(file, :erlang.term_to_binary({@manifest_vsn, entries}))
     File.touch!(file, timestamp)
   end
@@ -214,12 +231,15 @@ defmodule Mix.Compilers.Erlang do
     case callback.(input, output) do
       {:ok, _, warnings} ->
         File.touch!(output, timestamp)
-        verbose && Mix.shell.info "Compiled #{input}"
+        verbose && Mix.shell().info("Compiled #{input}")
         {:ok, [{output, warnings}], warnings, []}
+
       {:error, errors, warnings} ->
         {:error, [], warnings, errors}
+
       {:ok, _} ->
         {:ok, [], []}
+
       :error ->
         {:error, [], []}
     end

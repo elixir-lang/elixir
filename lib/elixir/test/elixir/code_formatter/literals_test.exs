@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.LiteralsTest do
   use ExUnit.Case, async: true
@@ -184,16 +184,18 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "is measured in graphemes" do
       assert_same ~S"""
-      "áá#{0}áá"
-      """, @short_length
+                  "áá#{0}áá"
+                  """,
+                  @short_length
     end
 
     test "literal new lines don't count towards line limit" do
       assert_same ~S"""
-      "one
-      #{"two"}
-      three"
-      """, @short_length
+                  "one
+                  #{"two"}
+                  three"
+                  """,
+                  @short_length
     end
   end
 
@@ -240,46 +242,47 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "literal new lines don't count towards line limit" do
       assert_same ~S"""
-      'one
-      #{"two"}
-      three'
-      """, @short_length
+                  'one
+                  #{"two"}
+                  three'
+                  """,
+                  @short_length
     end
   end
 
   describe "string heredocs" do
     test "without escapes" do
-      assert_same to_string(~S'''
+      assert_same ~S'''
       """
       hello
       """
-      ''')
+      '''
     end
 
     test "with escapes" do
-      assert_same to_string(~S'''
+      assert_same ~S'''
       """
       f\a\b\ro
       """
-      ''')
+      '''
 
-      assert_same to_string(~S'''
+      assert_same ~S'''
       """
       multiple "\"" quotes
       """
-      ''')
+      '''
     end
 
     test "with interpolation" do
-      assert_same to_string(~S'''
+      assert_same ~S'''
       """
       one
       #{2}
       three
       """
-      ''')
+      '''
 
-      assert_same to_string(~S'''
+      assert_same ~S'''
       """
       one
       "
@@ -287,23 +290,23 @@ defmodule Code.Formatter.LiteralsTest do
       "
       three
       """
-      ''')
+      '''
     end
 
     test "with interpolation on line limit" do
-      bad = to_string(~S'''
+      bad = ~S'''
       """
       one #{"two two"} three
       """
-      ''')
+      '''
 
-      good = to_string(~S'''
+      good = ~S'''
       """
       one #{
         "two two"
       } three
       """
-      ''')
+      '''
 
       assert_format bad, good, @short_length
     end
@@ -350,13 +353,24 @@ defmodule Code.Formatter.LiteralsTest do
     end
 
     test "literal new lines don't count towards line limit" do
-      assert_same to_string(~S'''
+      assert_same ~S'''
+                  """
+                  one
+                  #{"two"}
+                  three
+                  """
+                  ''',
+                  @short_length
+    end
+
+    test "with escaped new lines" do
+      assert_same ~S'''
       """
-      one
-      #{"two"}
-      three
+      one\
+      #{"two"}\
+      three\
       """
-      '''), @short_length
+      '''
     end
   end
 
@@ -423,12 +437,13 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "literal new lines don't count towards line limit" do
       assert_same ~S"""
-      '''
-      one
-      #{"two"}
-      three
-      '''
-      """, @short_length
+                  '''
+                  one
+                  #{"two"}
+                  three
+                  '''
+                  """,
+                  @short_length
     end
   end
 end

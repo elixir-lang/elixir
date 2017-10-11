@@ -140,9 +140,25 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  test "raises on missing arguments" do
-    assert_raise Mix.Error, ~r"Expected one or more files\/patterns to be given", fn ->
-      Mix.Tasks.Format.run([])
+  test "raises on missing arguments", context do
+    in_tmp context.test, fn ->
+      assert_raise Mix.Error, ~r"Expected one or more files\/patterns to be given", fn ->
+        Mix.Tasks.Format.run([])
+      end
+    end
+  end
+
+  test "raises SyntaxError when parsing invalid source file", context do
+    in_tmp context.test, fn ->
+      File.write!("a.ex", """
+      defmodule <%= module %>.Bar do end
+      """)
+
+      assert_raise SyntaxError, ~r"a.ex:1: syntax error before: '='", fn ->
+        Mix.Tasks.Format.run(["a.ex"])
+      end
+
+      assert_received {:mix_shell, :error, ["mix format failed for file: a.ex"]}
     end
   end
 end

@@ -121,8 +121,7 @@ defmodule ExUnit.Callbacks do
 
   @doc false
   defmacro __before_compile__(env) do
-    [compile_callbacks(env, :setup),
-     compile_callbacks(env, :setup_all)]
+    [compile_callbacks(env, :setup), compile_callbacks(env, :setup_all)]
   end
 
   @doc """
@@ -139,7 +138,7 @@ defmodule ExUnit.Callbacks do
     else
       quote do
         @ex_unit_setup ExUnit.Callbacks.__callback__(unquote(block), @ex_unit_describe) ++
-                       @ex_unit_setup
+                         @ex_unit_setup
       end
     end
   end
@@ -179,10 +178,12 @@ defmodule ExUnit.Callbacks do
       do_setup_all(quote(do: _), block)
     else
       quote do
-        @ex_unit_describe && raise "cannot invoke setup_all/1 inside describe as setup_all/1 " <>
-                                   "always applies to all tests in a module"
+        @ex_unit_describe &&
+          raise "cannot invoke setup_all/1 inside describe as setup_all/1 " <>
+                  "always applies to all tests in a module"
+
         @ex_unit_setup_all ExUnit.Callbacks.__callback__(unquote(block), nil) ++
-                           @ex_unit_setup_all
+                             @ex_unit_setup_all
       end
     end
   end
@@ -225,7 +226,9 @@ defmodule ExUnit.Callbacks do
   @spec on_exit(term, (() -> term)) :: :ok | no_return
   def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) do
     case ExUnit.OnExitHandler.add(self(), name_or_ref, callback) do
-      :ok -> :ok
+      :ok ->
+        :ok
+
       :error ->
         raise ArgumentError, "on_exit/2 callback can only be invoked from the test process"
     end
@@ -266,8 +269,8 @@ defmodule ExUnit.Callbacks do
   This function returns `{:ok, pid}` in case of success, otherwise it
   returns `{:error, reason}`.
   """
-  @spec start_supervised(Supervisor.child_spec | module | {module, term}, keyword) ::
-        Supervisor.on_start_child
+  @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
+          Supervisor.on_start_child()
   def start_supervised(child_spec_or_module, opts \\ []) do
     sup =
       case ExUnit.OnExitHandler.get_supervisor(self()) do
@@ -275,8 +278,10 @@ defmodule ExUnit.Callbacks do
           {:ok, sup} = Supervisor.start_link([], @supervisor_opts)
           ExUnit.OnExitHandler.put_supervisor(self(), sup)
           sup
+
         {:ok, sup} ->
           sup
+
         :error ->
           raise ArgumentError, "start_supervised/2 can only be invoked from the test process"
       end
@@ -288,25 +293,24 @@ defmodule ExUnit.Callbacks do
   Same as `start_supervised/2` but returns the PID on success and raises if
   not started properly.
   """
-  @spec start_supervised!(Supervisor.child_spec | module | {module, term}, keyword) :: pid
+  @spec start_supervised!(Supervisor.child_spec() | module | {module, term}, keyword) :: pid
   def start_supervised!(child_spec_or_module, opts \\ []) do
     case start_supervised(child_spec_or_module, opts) do
       {:ok, pid} ->
         pid
+
       {:ok, pid, _info} ->
         pid
+
       {:error, reason} ->
-        raise "failed to start child with the spec #{inspect child_spec_or_module}.\n" <>
-              "Reason: #{start_supervised_error(reason)}"
+        raise "failed to start child with the spec #{inspect(child_spec_or_module)}.\n" <>
+                "Reason: #{start_supervised_error(reason)}"
     end
   end
 
-  defp start_supervised_error({{:EXIT, reason}, _info}),
-    do: Exception.format_exit(reason)
-  defp start_supervised_error({reason, _info}),
-    do: Exception.format_exit(reason)
-  defp start_supervised_error(reason),
-    do: Exception.format_exit(reason)
+  defp start_supervised_error({{:EXIT, reason}, _info}), do: Exception.format_exit(reason)
+  defp start_supervised_error({reason, _info}), do: Exception.format_exit(reason)
+  defp start_supervised_error(reason), do: Exception.format_exit(reason)
 
   @doc """
   Stops a child process started via `start_supervised/2`.
@@ -325,10 +329,12 @@ defmodule ExUnit.Callbacks do
     case ExUnit.OnExitHandler.get_supervisor(self()) do
       {:ok, nil} ->
         {:error, :not_found}
+
       {:ok, sup} ->
         with :ok <- Supervisor.terminate_child(sup, id),
              :ok <- Supervisor.delete_child(sup, id),
              do: :ok
+
       :error ->
         raise ArgumentError, "stop_supervised/1 can only be invoked from the test process"
     end
@@ -342,12 +348,14 @@ defmodule ExUnit.Callbacks do
   def __callback__(callback, describe) do
     for k <- List.wrap(callback) do
       if not is_atom(k) do
-        raise ArgumentError, "setup/setup_all expect a callback name as an atom or " <>
-                             "a list of callback names, got: #{inspect k}"
+        raise ArgumentError,
+              "setup/setup_all expect a callback name as an atom or " <>
+                "a list of callback names, got: #{inspect(k)}"
       end
 
       {k, describe}
-    end |> Enum.reverse()
+    end
+    |> Enum.reverse()
   end
 
   @doc false
@@ -383,19 +391,20 @@ defmodule ExUnit.Callbacks do
     Map.merge(context, data, fn
       k, v1, v2 when k in @reserved ->
         if v1 == v2, do: v1, else: raise_merge_reserved!(mod, k, v2)
+
       _, _, v ->
         v
     end)
   end
 
   defp raise_merge_failed!(mod, return_value) do
-    raise "expected ExUnit callback in #{inspect mod} to return :ok | keyword | map, " <>
-          "got #{inspect return_value} instead"
+    raise "expected ExUnit callback in #{inspect(mod)} to return :ok | keyword | map, " <>
+            "got #{inspect(return_value)} instead"
   end
 
   defp raise_merge_reserved!(mod, key, value) do
-    raise "ExUnit callback in #{inspect mod} is trying to set " <>
-          "reserved field #{inspect key} to #{inspect value}"
+    raise "ExUnit callback in #{inspect(mod)} is trying to set " <>
+            "reserved field #{inspect(key)} to #{inspect(value)}"
   end
 
   defp escape(contents) do
@@ -403,19 +412,20 @@ defmodule ExUnit.Callbacks do
   end
 
   defp compile_callbacks(env, kind) do
-    callbacks = Module.get_attribute(env.module, :"ex_unit_#{kind}") |> Enum.reverse
+    callbacks = Module.get_attribute(env.module, :"ex_unit_#{kind}") |> Enum.reverse()
 
     acc =
       case callbacks do
         [] ->
-          quote do: context
+          quote(do: context)
+
         [h | t] ->
-          Enum.reduce t, compile_merge(h), fn callback_describe, acc ->
+          Enum.reduce(t, compile_merge(h), fn callback_describe, acc ->
             quote do
               context = unquote(acc)
               unquote(compile_merge(callback_describe))
             end
-          end
+          end)
       end
 
     quote do

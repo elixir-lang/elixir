@@ -10,6 +10,18 @@ defmodule RandomFile do
     IO.puts("#{length(formatted)} out of #{length(files)} files formatted")
   end
 
+  def run(["--pending"]) do
+    files = Path.wildcard(@pattern)
+    {opts, _} = Code.eval_file(".formatter.exs")
+
+    files
+    |> Enum.map(&{complexity(&1, opts), &1})
+    |> Enum.filter(&(elem(&1, 0) > 1))
+    |> Enum.sort()
+    |> Enum.map(&[inspect(&1), ?\n])
+    |> IO.puts()
+  end
+
   def run(args) do
     popper =
       if "--alphabetically" in args do
@@ -76,9 +88,13 @@ defmodule RandomFile do
   end
 
   defp easy?(file, opts) do
+    complexity(file, opts) in 2..120
+  end
+
+  defp complexity(file, opts) do
     input = File.read!(file)
     output = IO.iodata_to_binary([Code.format_string!(input, opts), ?\n])
-    length(String.myers_difference(input, output)) in 2..70
+    length(String.myers_difference(input, output))
   end
 end
 

@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.OperatorsTest do
   use ExUnit.Case, async: true
@@ -39,6 +39,7 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "nests operand" do
       bad = "+foo(bar, baz, bat)"
+
       good = """
       +foo(
         bar,
@@ -46,16 +47,20 @@ defmodule Code.Formatter.OperatorsTest do
         bat
       )
       """
+
       assert_format bad, good, @short_length
 
-      assert_same """
+      operator = """
       +assert foo,
               bar
-      """, @short_length
+      """
+
+      assert_same operator, @short_length
     end
 
     test "does not nest operand" do
       bad = "not foo(bar, baz, bat)"
+
       good = """
       not foo(
         bar,
@@ -63,9 +68,11 @@ defmodule Code.Formatter.OperatorsTest do
         bat
       )
       """
+
       assert_format bad, good, @short_length
 
       bad = "~~~ foo(bar, baz, bat)"
+
       good = """
       ~~~foo(
         bar,
@@ -73,12 +80,15 @@ defmodule Code.Formatter.OperatorsTest do
         bat
       )
       """
+
       assert_format bad, good, @short_length
 
-      assert_same """
+      operator = """
       not assert foo,
                  bar
-      """, @short_length
+      """
+
+      assert_same operator, @short_length
     end
 
     test "inside do-end block" do
@@ -124,13 +134,16 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "breaks into new line" do
       bad = "123_456_789 |> 987_654_321"
+
       good = """
       123_456_789
       |> 987_654_321
       """
+
       assert_format bad, good, @short_length
 
       bad = "123 |> foo(bar, baz)"
+
       good = """
       123
       |> foo(
@@ -138,9 +151,11 @@ defmodule Code.Formatter.OperatorsTest do
            baz
          )
       """
+
       assert_format bad, good, @short_length
 
       bad = "123 |> foo(bar) |> bar(bat)"
+
       good = """
       123
       |> foo(
@@ -150,9 +165,11 @@ defmodule Code.Formatter.OperatorsTest do
            bat
          )
       """
+
       assert_format bad, good, @short_length
 
       bad = "foo(bar, 123 |> bar(baz))"
+
       good = """
       foo(
         bar,
@@ -162,9 +179,11 @@ defmodule Code.Formatter.OperatorsTest do
            )
       )
       """
+
       assert_format bad, good, @short_length
 
       bad = "foo(bar, baz) |> 123"
+
       good = """
       foo(
         bar,
@@ -172,9 +191,11 @@ defmodule Code.Formatter.OperatorsTest do
       )
       |> 123
       """
+
       assert_format bad, good, @short_length
 
       bad = "foo(bar, baz) |> 123 |> 456"
+
       good = """
       foo(
         bar,
@@ -183,9 +204,11 @@ defmodule Code.Formatter.OperatorsTest do
       |> 123
       |> 456
       """
+
       assert_format bad, good, @short_length
 
       bad = "123 |> foo(bar, baz) |> 456"
+
       good = """
       123
       |> foo(
@@ -194,6 +217,7 @@ defmodule Code.Formatter.OperatorsTest do
          )
       |> 456
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -201,11 +225,13 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "foo <|> bar ~> baz"
 
       bad = "foo <|> bar ~> baz"
+
       good = """
       foo
       <|> bar
       ~> baz
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -247,20 +273,25 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "breaks into new line" do
       bad = "123_456_789 ++ 987_654_321"
+
       good = """
       123_456_789 ++
         987_654_321
       """
+
       assert_format bad, good, @short_length
 
       bad = "123 ++ foo(bar)"
+
       good = """
       123 ++
         foo(bar)
       """
+
       assert_format bad, good, @short_length
 
       bad = "123 ++ foo(bar, baz)"
+
       good = """
       123 ++
         foo(
@@ -268,9 +299,11 @@ defmodule Code.Formatter.OperatorsTest do
           baz
         )
       """
+
       assert_format bad, good, @short_length
 
       bad = "foo(bar, 123 ++ bar(baz))"
+
       good = """
       foo(
         bar,
@@ -280,15 +313,18 @@ defmodule Code.Formatter.OperatorsTest do
           )
       )
       """
+
       assert_format bad, good, @short_length
 
       bad = "foo(bar, baz) ++ 123"
+
       good = """
       foo(
         bar,
         baz
       ) ++ 123
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -296,32 +332,40 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "foo == bar == baz"
 
       bad = "a == b == c"
+
       good = """
       a == b ==
         c
       """
+
       assert_format bad, good, @short_length
 
       bad = "(a == (b == c))"
+
       good = """
       a ==
         (b == c)
       """
+
       assert_format bad, good, @short_length
 
       bad = "foo == bar == baz"
+
       good = """
       foo == bar ==
         baz
       """
+
       assert_format bad, good, @short_length
 
       bad = "(foo == (bar == baz))"
+
       good = """
       foo ==
         (bar ==
            baz)
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -329,33 +373,41 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "foo ++ bar ++ baz"
 
       bad = "a ++ b ++ c"
+
       good = """
       a ++
         b ++ c
       """
+
       assert_format bad, good, @short_length
 
       bad = "((a ++ b) ++ c)"
+
       good = """
       (a ++ b) ++
         c
       """
+
       assert_format bad, good, @short_length
 
       bad = "foo ++ bar ++ baz"
+
       good = """
       foo ++
         bar ++
         baz
       """
+
       assert_format bad, good, @short_length
 
       bad = "((foo ++ bar) ++ baz)"
+
       good = """
       (foo ++
          bar) ++
         baz
       """
+
       assert_format bad, good, @short_length
     end
 
@@ -364,49 +416,61 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format "a + (b == c) + d", "a + (b == c) + d"
 
       bad = "(a + b) == (c + d)"
+
       good = """
       a + b ==
         c + d
       """
+
       assert_format bad, good, @short_length
 
       bad = "a * (b + c) * d"
+
       good = """
       a *
         (b + c) *
         d
       """
+
       assert_format bad, good, @short_length
 
       bad = "(one + two) == (three + four)"
+
       good = """
       one + two ==
         three + four
       """
+
       assert_format bad, good, @medium_length
 
       bad = "one * (two + three) * four"
+
       good = """
       one * (two + three) *
         four
       """
+
       assert_format bad, good, @medium_length
 
       bad = "one * (two + three + four) * five"
+
       good = """
       one *
         (two + three +
            four) * five
       """
+
       assert_format bad, good, @medium_length
 
       bad = "var = one * (two + three + four) * five"
+
       good = """
       var =
         one *
           (two + three +
              four) * five
       """
+
       assert_format bad, good, @medium_length
     end
 
@@ -429,6 +493,7 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "mixed before and after lines" do
       bad = "var :: a | b and c | d"
+
       good = """
       var ::
         a
@@ -436,9 +501,11 @@ defmodule Code.Formatter.OperatorsTest do
             c
         | d
       """
+
       assert_format bad, good, @short_length
 
       bad = "var :: a | b and c + d + e + f | g"
+
       good = """
       var ::
         a
@@ -446,6 +513,7 @@ defmodule Code.Formatter.OperatorsTest do
             c + d + e + f
         | g
       """
+
       assert_format bad, good, @medium_length
     end
   end
@@ -455,6 +523,7 @@ defmodule Code.Formatter.OperatorsTest do
   describe "match" do
     test "with calls" do
       bad = "var = fun(one, two, three)"
+
       good = """
       var =
         fun(
@@ -463,9 +532,11 @@ defmodule Code.Formatter.OperatorsTest do
           three
         )
       """
+
       assert_format bad, good, @short_length
 
       bad = "fun(one, two, three) = var"
+
       good = """
       fun(
         one,
@@ -473,9 +544,11 @@ defmodule Code.Formatter.OperatorsTest do
         three
       ) = var
       """
+
       assert_format bad, good, @short_length
 
       bad = "fun(foo, bar) = fun(baz, bat)"
+
       good = """
       fun(
         foo,
@@ -486,18 +559,22 @@ defmodule Code.Formatter.OperatorsTest do
           bat
         )
       """
+
       assert_format bad, good, @short_length
 
       bad = "fun(foo, bar) = fun(baz, bat)"
+
       good = """
       fun(foo, bar) =
         fun(baz, bat)
       """
+
       assert_format bad, good, @medium_length
     end
 
     test "with containers" do
       bad = "var = {one, two, three}"
+
       good = """
       var = {
         one,
@@ -505,9 +582,11 @@ defmodule Code.Formatter.OperatorsTest do
         three
       }
       """
+
       assert_format bad, good, @short_length
 
       bad = "{one, two, three} = var"
+
       good = """
       {
         one,
@@ -515,28 +594,35 @@ defmodule Code.Formatter.OperatorsTest do
         three
       } = var
       """
+
       assert_format bad, good, @short_length
 
       bad = "{one, two, three} = foo(bar, baz)"
+
       good = """
       {one, two, three} =
         foo(bar, baz)
       """
+
       assert_format bad, good, @medium_length
     end
 
     test "with heredoc" do
-      assert_same ~S"""
+      heredoc = ~S"""
       var = '''
       one
       '''
-      """, @short_length
+      """
 
-      assert_same ~S"""
+      assert_same heredoc, @short_length
+
+      heredoc = ~S"""
       var = '''
       #{one}
-    '''
-      """, @short_length
+      '''
+      """
+
+      assert_same heredoc, @short_length
     end
 
     test "with anonymous functions" do
@@ -551,6 +637,7 @@ defmodule Code.Formatter.OperatorsTest do
           body2
       end
       """
+
       assert_format bad, good, @short_length
 
       good = """
@@ -559,6 +646,7 @@ defmodule Code.Formatter.OperatorsTest do
         arg2 -> body2
       end
       """
+
       assert_format bad, good, @medium_length
     end
 
@@ -618,17 +706,21 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with next break fits" do
-      assert_same """
+      attribute = """
       @doc '''
       foo
       '''
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same attribute, @short_length
+
+      attribute = """
       @doc foo: '''
            bar
            '''
-      """, @short_length
+      """
+
+      assert_same attribute, @short_length
     end
 
     test "without next break fits" do
@@ -643,17 +735,21 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with do end blocks" do
-      assert_same """
+      attribute = """
       @doc do
         :ok
       end
-      """, @short_length
+      """
 
-      assert_same """
+      assert_same attribute, @short_length
+
+      attribute = """
       use (@doc do
              :end
            end)
-      """, @short_length
+      """
+
+      assert_same attribute, @short_length
     end
 
     test "do not rewrite lists to keyword lists" do
@@ -692,20 +788,24 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "with blocks" do
       bad = "&(1; 2)"
+
       good = """
       &(
         1
         2
       )
       """
+
       assert_format bad, good
     end
 
     test "with no parens" do
-      assert_same """
+      capture = """
       &assert foo,
               bar
-      """, @short_length
+      """
+
+      assert_same capture, @short_length
     end
 
     test "precedence when combined with calls" do
@@ -750,11 +850,13 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "with keywords on line breaks" do
       bad = "foo when one: :two, three: :four"
+
       good = """
       foo
       when one: :two,
            three: :four
       """
+
       assert_format bad, good, @short_length
     end
   end

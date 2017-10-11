@@ -136,6 +136,11 @@ defmodule Code.Formatter.IntegrationTest do
                      | and_a_really_long_type_to_force_a_line_break
                      | followed_by_another_really_long_type
     """
+
+    assert_same """
+    @callback get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
+              when get_value: var, data: container
+    """
   end
 
   test "multiple whens with new lines" do
@@ -249,12 +254,51 @@ defmodule Code.Formatter.IntegrationTest do
       %{kind: :map_key, name: key, value_is_map: is_map(value)}
     end
     """
+
+    assert_same """
+    with {_, doc} when unquote(doc_attr?) <-
+           Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
+         do: doc
+    """
   end
 
   test "next break fits followed by inline tuple" do
     assert_same """
     assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
              {:error, "due to line filter"}
+    """
+  end
+
+  test "try/catch with clause comment" do
+    assert_same """
+    def format_error(reason) do
+      try do
+        do_format_error(reason)
+      catch
+        # A user could create an error that looks like a built-in one
+        # causing an error.
+        :error, _ ->
+          inspect(reason)
+      end
+    end
+    """
+  end
+
+  test "case with when and clause comment" do
+    assert_same """
+    case decomposition do
+      # Decomposition
+      <<h, _::binary>> when h != ?< ->
+        decomposition =
+          decomposition
+          |> :binary.split(" ", [:global])
+          |> Enum.map(&String.to_integer(&1, 16))
+
+        Map.put(dacc, String.to_integer(codepoint, 16), decomposition)
+
+      _ ->
+        dacc
+    end
     """
   end
 end

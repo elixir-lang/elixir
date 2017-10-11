@@ -124,11 +124,14 @@ defmodule Record do
           is_atom(unquote(kind)) and is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0 and
             elem(unquote(data), 0) == unquote(kind)
         end
+
       false ->
         quote do
           result = unquote(data)
           kind = unquote(kind)
-          is_atom(kind) and is_tuple(result) and tuple_size(result) > 0 and elem(result, 0) == kind
+
+          is_atom(kind) and is_tuple(result) and tuple_size(result) > 0 and
+            elem(result, 0) == kind
         end
     end
   end
@@ -155,6 +158,7 @@ defmodule Record do
           is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0 and
             is_atom(elem(unquote(data), 0))
         end
+
       false ->
         quote do
           result = unquote(data)
@@ -262,11 +266,11 @@ defmodule Record do
       tag = tag || name
       fields = Record.__fields__(:defrecord, kv)
 
-      defmacro(unquote(name)(args \\ [])) do
+      defmacro unquote(name)(args \\ []) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
       end
 
-      defmacro(unquote(name)(record, args)) do
+      defmacro unquote(name)(record, args) do
         Record.__access__(unquote(tag), unquote(fields), record, args, __CALLER__)
       end
     end
@@ -280,11 +284,11 @@ defmodule Record do
       tag = tag || name
       fields = Record.__fields__(:defrecordp, kv)
 
-      defmacrop(unquote(name)(args \\ [])) do
+      defmacrop unquote(name)(args \\ []) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
       end
 
-      defmacrop(unquote(name)(record, args)) do
+      defmacrop unquote(name)(record, args) do
         Record.__access__(unquote(tag), unquote(fields), record, args, __CALLER__)
       end
     end
@@ -293,7 +297,7 @@ defmodule Record do
   # Normalizes of record fields to have default values.
   @doc false
   def __fields__(type, fields) do
-    :lists.map(fn
+    normalizer_fun = fn
       {key, value} when is_atom(key) ->
         try do
           Macro.escape(value)
@@ -303,11 +307,15 @@ defmodule Record do
         else
           value -> {key, value}
         end
+
       key when is_atom(key) ->
         {key, nil}
+
       other ->
-        raise ArgumentError, "#{type} fields must be atoms, got: #{inspect other}"
-    end, fields)
+        raise ArgumentError, "#{type} fields must be atoms, got: #{inspect(other)}"
+    end
+
+    :lists.map(normalizer_fun, fields)
   end
 
   # Callback invoked from record/0 and record/1 macros.
@@ -316,18 +324,23 @@ defmodule Record do
     cond do
       is_atom(args) ->
         index(tag, fields, args)
+
       Keyword.keyword?(args) ->
         create(tag, fields, args, caller)
+
       true ->
         fields = Macro.escape(fields)
+
         case Macro.expand(args, caller) do
           {:{}, _, [^tag | list]} when length(list) == length(fields) ->
             record = List.to_tuple([tag | list])
             Record.__keyword__(tag, fields, record)
+
           {^tag, arg} when length(fields) == 1 ->
             Record.__keyword__(tag, fields, {tag, arg})
+
           _ ->
-            quote do: Record.__keyword__(unquote(tag), unquote(fields), unquote(args))
+            quote(do: Record.__keyword__(unquote(tag), unquote(fields), unquote(args)))
         end
     end
   end
@@ -338,20 +351,24 @@ defmodule Record do
     cond do
       is_atom(args) ->
         get(tag, fields, record, args)
+
       Keyword.keyword?(args) ->
         update(tag, fields, record, args, caller)
+
       true ->
-        msg = "expected arguments to be a compile time atom or a keyword list, got: #{Macro.to_string args}"
-        raise ArgumentError, msg
+        raise ArgumentError,
+              "expected arguments to be a compile time atom or a keyword list, got: " <>
+                Macro.to_string(args)
     end
   end
 
   # Gets the index of field.
   defp index(tag, fields, field) do
     if index = find_index(fields, field, 0) do
-      index - 1 # Convert to Elixir index
+      # Convert to Elixir index
+      index - 1
     else
-      raise ArgumentError, "record #{inspect tag} does not have the key: #{inspect field}"
+      raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(field)}"
     end
   end
 
@@ -361,7 +378,7 @@ defmodule Record do
     keyword = apply_underscore(fields, keyword)
 
     {match, remaining} =
-      Enum.map_reduce(fields, keyword, fn({field, default}, each_keyword) ->
+      Enum.map_reduce(fields, keyword, fn {field, default}, each_keyword ->
         new_fields =
           case Keyword.fetch(each_keyword, field) do
             {:ok, value} -> value
@@ -375,9 +392,10 @@ defmodule Record do
     case remaining do
       [] ->
         {:{}, [], [tag | match]}
-      _  ->
+
+      _ ->
         keys = for {key, _} <- remaining, do: key
-        raise ArgumentError, "record #{inspect tag} does not have the key: #{inspect hd(keys)}"
+        raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(hd(keys))}"
     end
   end
 
@@ -389,27 +407,29 @@ defmodule Record do
 
     keyword = apply_underscore(fields, keyword)
 
-    Enum.reduce keyword, var, fn({key, value}, acc) ->
+    Enum.reduce(keyword, var, fn {key, value}, acc ->
       index = find_index(fields, key, 0)
+
       if index do
         quote do
           :erlang.setelement(unquote(index), unquote(acc), unquote(value))
         end
       else
-        raise ArgumentError, "record #{inspect tag} does not have the key: #{inspect key}"
+        raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
       end
-    end
+    end)
   end
 
   # Gets a record key from the given var.
   defp get(tag, fields, var, key) do
     index = find_index(fields, key, 0)
+
     if index do
       quote do
         :erlang.element(unquote(index), unquote(var))
       end
     else
-      raise ArgumentError, "record #{inspect tag} does not have the key: #{inspect key}"
+      raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
     end
   end
 
@@ -422,26 +442,29 @@ defmodule Record do
   def __keyword__(tag, fields, record) do
     if is_record(record, tag) do
       [_tag | values] = Tuple.to_list(record)
+
       case join_keyword(fields, values, []) do
         kv when is_list(kv) ->
           kv
+
         expected_fields ->
-          msg = "expected argument to be a #{inspect tag} record with #{expected_fields} fields, got: #{inspect record}"
-          raise ArgumentError, msg
+          raise ArgumentError,
+                "expected argument to be a #{inspect(tag)} record with " <>
+                  "#{expected_fields} fields, got: " <> inspect(record)
       end
     else
-      msg = "expected argument to be a literal atom, literal keyword or a #{inspect tag} record, got runtime: #{inspect record}"
-      raise ArgumentError, msg
+      raise ArgumentError,
+            "expected argument to be a literal atom, literal keyword or " <>
+              "a #{inspect(tag)} record, got runtime: " <> inspect(record)
     end
   end
 
   # Returns a keyword list, or expected number of fields on size mismatch
   defp join_keyword([{field, _default} | fields], [value | values], acc),
     do: join_keyword(fields, values, [{field, value} | acc])
-  defp join_keyword([], [], acc),
-    do: :lists.reverse(acc)
-  defp join_keyword(rest_fields, _rest_values, acc),
-    do: length(acc) + length(rest_fields) # expected fields
+
+  defp join_keyword([], [], acc), do: :lists.reverse(acc)
+  defp join_keyword(rest_fields, _rest_values, acc), do: length(acc) + length(rest_fields)
 
   defp apply_underscore(fields, keyword) do
     case Keyword.fetch(keyword, :_) do
@@ -450,6 +473,7 @@ defmodule Record do
         |> Enum.map(fn {k, _} -> {k, default} end)
         |> Keyword.merge(keyword)
         |> Keyword.delete(:_)
+
       :error ->
         keyword
     end

@@ -134,6 +134,7 @@ defmodule Kernel.BinaryTest do
   end
 
   test "literal" do
+    # TODO: Remove String.to_atom/1 when we support 20+
     assert <<106, 111, 115, 195, 169>> == <<"josé">>
     assert <<106, 111, 115, 195, 169>> == <<"#{String.to_atom("josé")}">>
     assert <<106, 111, 115, 195, 169>> == <<"josé"::binary>>

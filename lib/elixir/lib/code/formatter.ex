@@ -51,12 +51,14 @@ defmodule Code.Formatter do
     alias: 2,
     case: 2,
     cond: 1,
+    for: :*,
     import: 1,
     import: 2,
+    quote: 1,
+    quote: 2,
+    receive: 1,
     require: 1,
     require: 2,
-    for: :*,
-    receive: 1,
     try: 1,
     with: :*,
 
@@ -82,6 +84,10 @@ defmodule Code.Formatter do
     unless: 2,
     use: 1,
     use: 2,
+
+    # Stdlib,
+    defrecord: 2,
+    defrecordp: 2,
 
     # Testing
     all: :*,
@@ -302,8 +308,8 @@ defmodule Code.Formatter do
 
   # Special AST nodes from compiler feedback.
 
-  defp quoted_to_algebra({:special, :clause_args, [args, min_line]}, _context, state) do
-    {doc, state} = clause_args_to_algebra(args, min_line, state)
+  defp quoted_to_algebra({:special, :clause_args, [args]}, _context, state) do
+    {doc, state} = clause_args_to_algebra(args, state)
     {group(doc), state}
   end
 
@@ -592,7 +598,7 @@ defmodule Code.Formatter do
     wrapped_doc =
       case arg do
         {^op, _, [_]} when op in [:!, :not] -> doc
-        _ -> wrap_in_parens_if_necessary(arg, doc)
+        _ -> wrap_in_parens_if_necessary(doc, arg)
       end
 
     # not requires a space unless the doc was wrapped in parens.
@@ -657,11 +663,11 @@ defmodule Code.Formatter do
     doc =
       cond do
         op in @no_space_binary_operators ->
-          group(concat(concat(left, op_string), right))
+          concat(concat(group(left), op_string), group(right))
 
         op in @no_newline_binary_operators ->
           op_string = " " <> op_string <> " "
-          group(concat(concat(left, op_string), right))
+          concat(concat(group(left), op_string), group(right))
 
         op in @left_new_line_before_binary_operators ->
           op_string = op_string <> " "
@@ -689,6 +695,9 @@ defmodule Code.Formatter do
               _ -> nest_by_length(right, op_string)
             end
 
+          # Finally, group keyword args such as when foo: bar, baz: bat
+          right = if keyword?(right_arg), do: group(force_keyword(right, right_arg)), else: right
+
           doc = glue(left, concat(op_string, right))
           doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
           if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
@@ -698,7 +707,7 @@ defmodule Code.Formatter do
 
           with_next_break_fits(next_break_fits?, right, fn right ->
             op_string = " " <> op_string
-            group(concat(left, group(nest(glue(op_string, group(right)), nesting, :break))))
+            concat(group(left), group(nest(glue(op_string, group(right)), nesting, :break)))
           end)
       end
 
@@ -842,7 +851,7 @@ defmodule Code.Formatter do
 
   defp capture_target_to_algebra(arg, context, state) do
     {doc, state} = quoted_to_algebra(arg, context, state)
-    {wrap_in_parens_if_necessary(arg, doc), state}
+    {wrap_in_parens_if_necessary(doc, arg), state}
   end
 
   ## Calls (local, remote and anonymous)
@@ -1024,8 +1033,10 @@ defmodule Code.Formatter do
     if left != [] and keyword? and skip_parens? and generators_count == 0 do
       call_args_to_algebra_with_no_parens_keywords(left, right, context, state)
     else
+      force_keyword? = keyword? and force_keyword?(right)
+
       {left, right} =
-        if keyword? do
+        if keyword? and not force_keyword? do
           {keyword_left, keyword_right} = split_last(right)
           {left ++ keyword_left, keyword_right}
         else
@@ -1045,7 +1056,7 @@ defmodule Code.Formatter do
             end
 
           args_doc =
-            if generators_count > 1 do
+            if generators_count > 1 or force_keyword? do
               force_break(args_doc)
             else
               args_doc
@@ -1067,7 +1078,7 @@ defmodule Code.Formatter do
   defp call_args_to_algebra_with_no_parens_keywords(left, right, context, state) do
     {left_doc, state} = args_to_algebra(left, state, &quoted_to_algebra(&1, context, &2))
     {right_doc, state} = quoted_to_algebra(right, context, state)
-    right_doc = break(" ") |> concat(right_doc) |> group(:inherit)
+    right_doc = break(" ") |> concat(right_doc) |> force_keyword(right) |> group(:inherit)
 
     doc =
       with_next_break_fits(true, right_doc, fn right_doc ->
@@ -1568,7 +1579,7 @@ defmodule Code.Formatter do
 
     state = %{state | operand_nesting: nesting}
     {body_doc, state} = block_to_algebra(body, min_line, end_line(meta), state)
-    {concat(group(args_doc), " ->" |> glue(body_doc) |> nest(2)), state}
+    {concat(args_doc, " ->" |> glue(body_doc) |> nest(2)), state}
   end
 
   defp add_max_line_to_last_clause([{op, meta, args}], max_line) do
@@ -1579,21 +1590,25 @@ defmodule Code.Formatter do
     [clause | add_max_line_to_last_clause(clauses, max_line)]
   end
 
+  defp clause_args_to_algebra(args, min_line, state) do
+    args_to_algebra_with_comments([args], [line: min_line], state, &clause_args_to_algebra/2)
+  end
+
   # fn a, b, c when d -> e end
-  defp clause_args_to_algebra([{:when, meta, args}], min_line, state) do
+  defp clause_args_to_algebra([{:when, meta, args}], state) do
     {args, right} = split_last(args)
-    left = {:special, :clause_args, [args, min_line]}
+    left = {:special, :clause_args, [args]}
     binary_op_to_algebra(:when, "when", meta, left, right, :no_parens_arg, state)
   end
 
-  # fn a, b, c -> e end
-  defp clause_args_to_algebra([], _min_line, state) do
+  # fn () -> e end
+  defp clause_args_to_algebra([], state) do
     {"()", state}
   end
 
-  defp clause_args_to_algebra(args, min_line, state) do
-    arg_to_algebra = &quoted_to_algebra(&1, :no_parens_arg, &2)
-    args_to_algebra_with_comments(args, [line: min_line], state, arg_to_algebra)
+  # fn a, b, c -> e end
+  defp clause_args_to_algebra(args, state) do
+    args_to_algebra(args, state, &quoted_to_algebra(&1, :no_parens_arg, &2))
   end
 
   ## Quoted helpers for comments
@@ -1721,16 +1736,16 @@ defmodule Code.Formatter do
 
   defp quoted_to_algebra_with_parens_if_necessary(ast, context, state) do
     {doc, state} = quoted_to_algebra(ast, context, state)
-    {wrap_in_parens_if_necessary(ast, doc), state}
+    {wrap_in_parens_if_necessary(doc, ast), state}
   end
 
   # TODO: We can remove this workaround once we remove
   # ?rearrange_uop from the parser in Elixir v2.0.
-  defp wrap_in_parens_if_necessary({:__block__, _, [expr]}, doc) do
-    wrap_in_parens_if_necessary(expr, doc)
+  defp wrap_in_parens_if_necessary(doc, {:__block__, _, [expr]}) do
+    wrap_in_parens_if_necessary(doc, expr)
   end
 
-  defp wrap_in_parens_if_necessary(quoted, doc) do
+  defp wrap_in_parens_if_necessary(doc, quoted) do
     if operator?(quoted) and not module_attribute_read?(quoted) and not integer_capture?(quoted) do
       wrap_in_parens(doc)
     else
@@ -1865,6 +1880,28 @@ defmodule Code.Formatter do
 
   defp last_arg_to_keyword(arg, _list_to_keyword?) do
     {false, arg}
+  end
+
+  defp force_keyword?(keyword) do
+    match?([_, _ | _], keyword) and force_keyword?(keyword, MapSet.new())
+  end
+
+  defp force_keyword?([{{_, meta, _}, _} | keyword], lines) do
+    line = line(meta)
+
+    if line in lines do
+      false
+    else
+      force_keyword?(keyword, MapSet.put(lines, line))
+    end
+  end
+
+  defp force_keyword?([], _lines) do
+    true
+  end
+
+  defp force_keyword(doc, arg) do
+    if force_keyword?(arg), do: force_break(doc), else: doc
   end
 
   defp keyword?([{key, _} | list]) do
