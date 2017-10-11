@@ -128,12 +128,14 @@ defmodule Supervisor.Spec do
   @type child_id :: term
 
   @typedoc "The supervisor specification"
-  @type spec :: {child_id,
-                  start_fun :: {module, atom, [term]},
-                  restart,
-                  shutdown,
-                  worker,
-                  modules}
+  @type spec :: {
+          child_id,
+          start_fun :: {module, atom, [term]},
+          restart,
+          shutdown,
+          worker,
+          modules
+        }
 
   @doc """
   Receives a list of children (workers or supervisors) to
@@ -164,9 +166,12 @@ defmodule Supervisor.Spec do
   allowed within 5 seconds. Check the `Supervisor` module for a detailed
   description of the available strategies.
   """
-  @spec supervise([spec], strategy: strategy,
-                          max_restarts: non_neg_integer,
-                          max_seconds: pos_integer) :: {:ok, tuple}
+  @spec supervise(
+          [spec],
+          strategy: strategy,
+          max_restarts: non_neg_integer,
+          max_seconds: pos_integer
+        ) :: {:ok, tuple}
   def supervise(children, options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
@@ -182,19 +187,20 @@ defmodule Supervisor.Spec do
   defp get_id({id, _, _, _, _, _}) do
     id
   end
+
   defp get_id(other) do
     raise ArgumentError,
-      "invalid tuple specification given to supervise/2. If you are trying to use " <>
-      "the map child specification that is part of the Elixir v1.5, use Supervisor.init/2 " <>
-      "instead of Supervisor.Spec.supervise/2. See the Supervisor module for more information. " <>
-      "Got: #{inspect other}"
+          "invalid tuple specification given to supervise/2. If you are trying to use " <>
+            "the map child specification that is part of the Elixir v1.5, use Supervisor.init/2 " <>
+            "instead of Supervisor.Spec.supervise/2. See the Supervisor module for more information. " <>
+            "Got: #{inspect(other)}"
   end
 
   defp assert_unique_ids([id | rest]) do
     if id in rest do
       raise ArgumentError,
-        "duplicated id #{inspect id} found in the supervisor specification, " <>
-        "please explicitly pass the :id option when defining this worker/supervisor"
+            "duplicated id #{inspect(id)} found in the supervisor specification, " <>
+              "please explicitly pass the :id option when defining this worker/supervisor"
     else
       assert_unique_ids(rest)
     end
@@ -222,8 +228,15 @@ defmodule Supervisor.Spec do
   Check the documentation for the `Supervisor.Spec` module for more
   information on the options.
   """
-  @spec worker(module, [term], [restart: restart, shutdown: shutdown,
-                                id: term, function: atom, modules: modules]) :: spec
+  @spec worker(
+          module,
+          [term],
+          restart: restart,
+          shutdown: shutdown,
+          id: term,
+          function: atom,
+          modules: modules
+        ) :: spec
   def worker(module, args, options \\ []) do
     child(:worker, module, args, options)
   end
@@ -246,24 +259,30 @@ defmodule Supervisor.Spec do
   Check the documentation for the `Supervisor.Spec` module for more
   information on the options.
   """
-  @spec supervisor(module, [term], [restart: restart, shutdown: shutdown,
-                                    id: term, function: atom, modules: modules]) :: spec
+  @spec supervisor(
+          module,
+          [term],
+          restart: restart,
+          shutdown: shutdown,
+          id: term,
+          function: atom,
+          modules: modules
+        ) :: spec
   def supervisor(module, args, options \\ []) do
     options = Keyword.put_new(options, :shutdown, :infinity)
     child(:supervisor, module, args, options)
   end
 
   defp child(type, module, args, options) do
-    id       = Keyword.get(options, :id, module)
-    modules  = Keyword.get(options, :modules, modules(module))
+    id = Keyword.get(options, :id, module)
+    modules = Keyword.get(options, :modules, modules(module))
     function = Keyword.get(options, :function, :start_link)
-    restart  = Keyword.get(options, :restart, :permanent)
+    restart = Keyword.get(options, :restart, :permanent)
     shutdown = Keyword.get(options, :shutdown, 5000)
 
-    {id, {module, function, args},
-      restart, shutdown, type, modules}
+    {id, {module, function, args}, restart, shutdown, type, modules}
   end
 
   defp modules(GenEvent), do: :dynamic
-  defp modules(module),   do: [module]
+  defp modules(module), do: [module]
 end

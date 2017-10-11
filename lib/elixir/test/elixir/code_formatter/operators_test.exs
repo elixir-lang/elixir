@@ -47,7 +47,7 @@ defmodule Code.Formatter.OperatorsTest do
         bat
       )
       """
-      
+
       assert_format bad, good, @short_length
 
       operator = """
@@ -719,7 +719,7 @@ defmodule Code.Formatter.OperatorsTest do
            bar
            '''
       """
-      
+
       assert_same attribute, @short_length
     end
 
