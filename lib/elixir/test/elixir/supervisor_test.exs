@@ -38,6 +38,14 @@ defmodule SupervisorTest do
     end
   end
 
+  defmodule Stack.SimpleSup do
+    use Supervisor
+
+    def init(_arg) do
+      Supervisor.init([Stack], strategy: :simple_one_for_one)
+    end
+  end
+
   test "generates child_spec/1" do
     assert Stack.Sup.child_spec([:hello]) == %{
       id: Stack.Sup,
@@ -207,6 +215,12 @@ defmodule SupervisorTest do
     assert Supervisor.terminate_child(pid, Stack) == :ok
     assert Supervisor.delete_child(pid, Stack) == :ok
     Supervisor.stop(pid)
+  end
+
+  test "start_child with simple_one_for_one" do
+    {:ok, pid} = Supervisor.start_link(Stack.SimpleSup, :ok)
+    {:ok, stack} = Supervisor.start_child(pid, [{[:hello], []}])
+    assert GenServer.call(stack, :pop) == :hello
   end
 
   defp wait_until_registered(name) do
