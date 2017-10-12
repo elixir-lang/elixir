@@ -1293,11 +1293,34 @@ defmodule Module do
         not function_exported?(behaviour, :behaviour_info, 1) ->
           :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not contain callbacks (for module #{inspect env.module})")
         true ->
-          Enum.each(behaviour.behaviour_info(:callbacks), fn callback ->
-            nil
-          end)
+          optional_callbacks = behaviour.behaviour_info(:optional_callbacks)
+
+          Enum.each(behaviour.behaviour_info(:callbacks), &check_callback(env, all_definitions, optional_callbacks, &1))
       end
     end)
+  end
+
+  defp check_callback(env, all_definitions, optional_callbacks, callback) do
+    {callback, kind} = normalize_macro_or_function_callback(callback)
+
+    private_kind = case kind do
+      :def -> :defp
+      :defmacro -> :defmacrop
+    end
+
+    case get_callback_definition(all_definitions, callback) do
+      nil ->
+        case :lists.member(callback, optional_callbacks) do
+          false ->
+            :elixir_errors.warn(env.line, env.file, "#{format_definition(kind, callback)} is not implemented (for module #{inspect env.module})")
+          _ ->
+            nil
+        end
+      {callback, ^private_kind, meta, _} ->
+        :elixir_errors.warn(meta[:line] || env.line, env.file, "#{format_definition(kind, callback)} cannot be private (for module #{inspect env.module})")
+      _ ->
+        nil
+    end
   end
 
   defp is_standard_behaviour(behaviour) do
@@ -1308,6 +1331,15 @@ defmodule Module do
       List.Chars,
       String.Chars
     ])
+  end
+
+  defp get_callback_definition(all_definitions, callback) do
+    {callback, kind} = normalize_macro_or_function_callback(callback)
+
+    Enum.find(all_definitions, fn
+      {^callback, ^kind, _, _} = definition -> definition
+      _ -> nil
+    end)
   end
 
   defp check_impls(behaviours, impls) do
