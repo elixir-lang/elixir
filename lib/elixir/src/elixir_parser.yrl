@@ -341,7 +341,7 @@ stab_expr -> stab_parens_many when_op expr stab_op_eol_and_expr :
                build_op(element(1, '$4'), [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], element(2, '$4')).
 
 stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
-stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', nil}.
+stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handle_literal(nil, '$1')}.
 
 block_item -> block_eoe stab_eoe :
                 {handle_literal(?exprs('$1'), '$1', [{format, block}]),
