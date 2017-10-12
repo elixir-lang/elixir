@@ -977,7 +977,8 @@ defmodule Kernel do
 
   """
   @spec tl(nonempty_maybe_improper_list(elem, tail)) :: maybe_improper_list(elem, tail) | tail
-        when elem: term, tail: term
+        when elem: term,
+             tail: term
   def tl(list) do
     :erlang.tl(list)
   end
@@ -1839,7 +1840,7 @@ defmodule Kernel do
     opts = struct(Inspect.Opts, opts)
 
     limit =
-      case opts.pretty do
+      case opts.pretty() do
         true -> opts.width
         false -> :infinity
       end
@@ -2698,7 +2699,8 @@ defmodule Kernel do
         {escaped, _} = :elixir_quote.escape(stack, false)
 
         quote do
-          with {_, doc} when unquote(doc_attr?) <-
+          with {_, doc}
+               when unquote(doc_attr?) <-
                  Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
                do: doc
         end
@@ -2941,7 +2943,7 @@ defmodule Kernel do
   end
 
   defmacro first..last do
-    case __CALLER__.context do
+    case __CALLER__.context() do
       nil ->
         quote(do: Elixir.Range.new(unquote(first), unquote(last)))
 
@@ -4972,14 +4974,14 @@ defmodule Kernel do
   end
 
   defp assert_module_scope(env, fun, arity) do
-    case env.module do
+    case env.module() do
       nil -> raise ArgumentError, "cannot invoke #{fun}/#{arity} outside module"
       mod -> mod
     end
   end
 
   defp assert_no_function_scope(env, fun, arity) do
-    case env.function do
+    case env.function() do
       nil -> :ok
       _ -> raise ArgumentError, "cannot invoke #{fun}/#{arity} inside function/macro"
     end
