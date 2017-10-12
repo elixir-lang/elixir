@@ -40,7 +40,7 @@ Terminals
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
-  int float
+  int float char
   .
 
 Rootsymbol grammar.
@@ -263,6 +263,7 @@ access_expr -> max_expr : '$1'.
 
 %% Augment integer literals with representation format if formatter_metadata option is true
 number -> int : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
+number -> char : handle_literal(?exprs('$1'), '$1', [{original, number_value('$1')}]).
 number -> float : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
 
 %% Aliases and properly formed calls. Used by map_expr.
