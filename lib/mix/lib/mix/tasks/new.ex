@@ -87,6 +87,7 @@ defmodule Mix.Tasks.New do
     ]
 
     create_file("README.md", readme_template(assigns))
+    create_file(".formatter.exs", formatter_template(assigns))
     create_file(".gitignore", gitignore_template(assigns))
 
     if in_umbrella?() do
@@ -131,8 +132,9 @@ defmodule Mix.Tasks.New do
   defp generate_umbrella(_app, mod, path, _opts) do
     assigns = [app: nil, mod: mod]
 
-    create_file(".gitignore", gitignore_template(assigns))
     create_file("README.md", readme_template(assigns))
+    create_file(".formatter.exs", formatter_umbrella_template(assigns))
+    create_file(".gitignore", gitignore_template(assigns))
     create_file("mix.exs", mix_exs_umbrella_template(assigns))
 
     create_directory("apps")
@@ -243,6 +245,20 @@ defmodule Mix.Tasks.New do
   <% end %>
   """)
 
+  embed_template(:formatter, """
+  # Used by "mix format"
+  [
+    inputs: ["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]
+  ]
+  """)
+
+  embed_template(:formatter_umbrella, """
+  # Used by "mix format"
+  [
+    inputs: ["mix.exs", "apps/*/mix.exs", "apps/*/{config,lib,test}/**/*.{ex,exs}"]
+  ]
+  """)
+
   embed_template(:gitignore, """
   # The directory Mix will write compiled artifacts to.
   /_build/
@@ -279,7 +295,7 @@ defmodule Mix.Tasks.New do
         app: :<%= @app %>,
         version: "0.1.0",
         elixir: "~> <%= @version %>",
-        start_permanent: Mix.env == :prod,
+        start_permanent: Mix.env() == :prod,
         deps: deps()
       ]
     end
@@ -314,7 +330,7 @@ defmodule Mix.Tasks.New do
         deps_path: "../../deps",
         lockfile: "../../mix.lock",
         elixir: "~> <%= @version %>",
-        start_permanent: Mix.env == :prod,
+        start_permanent: Mix.env() == :prod,
         deps: deps()
       ]
     end
@@ -344,7 +360,7 @@ defmodule Mix.Tasks.New do
     def project do
       [
         apps_path: "apps",
-        start_permanent: Mix.env == :prod,
+        start_permanent: Mix.env() == :prod,
         deps: deps()
       ]
     end
