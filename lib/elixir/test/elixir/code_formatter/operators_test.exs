@@ -734,7 +734,7 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format bad, good, @short_length
     end
 
-    test "with do end blocks" do
+    test "with do-end blocks" do
       attribute = """
       @doc do
         :ok

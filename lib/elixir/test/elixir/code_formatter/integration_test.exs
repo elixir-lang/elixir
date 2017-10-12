@@ -301,4 +301,30 @@ defmodule Code.Formatter.IntegrationTest do
     end
     """
   end
+
+  test "case with empty clause" do
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      bad = """
+      def hello(world) do
+        case world do
+          :world -> IO.inspect world
+
+          _ ->
+        end
+      end
+      """
+
+      assert_format bad, """
+      def hello(world) do
+        case world do
+          :world ->
+            IO.inspect(world)
+
+          _ ->
+            nil
+        end
+      end
+      """
+    end)
+  end
 end
