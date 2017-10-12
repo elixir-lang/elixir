@@ -1284,16 +1284,30 @@ defmodule Module do
   defp check_behaviours(env, behaviours, all_definitions) do
     Enum.each(behaviours, fn behaviour ->
       cond do
-        function_exported?(behaviour, :behaviour_info, 1) ->
+        is_standard_behaviour(behaviour) ->
+          nil
+        not is_atom(behaviour) ->
+          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} must be an atom (for module #{inspect env.module})")
+        not Code.ensure_compiled?(behaviour) ->
+          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not exist (for module #{inspect env.module})")
+        not function_exported?(behaviour, :behaviour_info, 1) ->
+          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not contain callbacks (for module #{inspect env.module})")
+        true ->
           Enum.each(behaviour.behaviour_info(:callbacks), fn callback ->
             nil
           end)
-        function_exported?(behaviour, :module_info, 0) ->
-          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not contain callbacks (for module #{inspect env.module})")
-        true ->
-          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not exist (for module #{inspect env.module})")
       end
     end)
+  end
+
+  defp is_standard_behaviour(behaviour) do
+    :lists.member(behaviour, [
+      Collectable,
+      Enumerable,
+      Inspect,
+      List.Chars,
+      String.Chars
+    ])
   end
 
   defp check_impls(behaviours, impls) do
@@ -1526,12 +1540,6 @@ defmodule Module do
               "expected the @impl attribute to contain a module or a boolean, " <>
                 "got: #{inspect(other)}"
     end
-  end
-
-  defp preprocess_attribute(:behaviour, atom) when is_atom(atom) do
-    # Attempt to compile behaviour but ignore failure (will warn later)
-    _ = Code.ensure_compiled(atom)
-    atom
   end
 
   defp preprocess_attribute(:file, file) when is_binary(file) do
