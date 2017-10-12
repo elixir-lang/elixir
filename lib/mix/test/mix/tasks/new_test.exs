@@ -26,6 +26,11 @@ defmodule Mix.Tasks.NewTest do
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
+
+      # Ensure formatting is setup and consistent.
+      File.cd!("hello_world", fn ->
+        Mix.Tasks.Format.run(["--check-formatted"])
+      end)
     end
   end
 
@@ -58,6 +63,11 @@ defmodule Mix.Tasks.NewTest do
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
+
+      # Ensure formatting is setup and consistent.
+      File.cd!("hello_world", fn ->
+        Mix.Tasks.Format.run(["--check-formatted"])
+      end)
     end
   end
 
@@ -80,6 +90,11 @@ defmodule Mix.Tasks.NewTest do
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
+
+      # Ensure formatting is setup and consistent.
+      File.cd!("hello_world", fn ->
+        Mix.Tasks.Format.run(["--check-formatted"])
+      end)
     end
   end
 
@@ -95,6 +110,11 @@ defmodule Mix.Tasks.NewTest do
       assert_file("hello_world/.gitignore")
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
+
+      # Ensure formatting is setup and consistent.
+      File.cd!("hello_world", fn ->
+        Mix.Tasks.Format.run(["--check-formatted"])
+      end)
     end
   end
 
@@ -106,6 +126,11 @@ defmodule Mix.Tasks.NewTest do
         assert_file("hello_world/mix.exs", fn file ->
           assert file =~ "deps_path: \"../../deps\""
           assert file =~ "lockfile: \"../../mix.lock\""
+        end)
+
+        # Ensure formatting is setup and consistent.
+        File.cd!("hello_world", fn ->
+          Mix.Tasks.Format.run(["--check-formatted"])
         end)
       end)
     end

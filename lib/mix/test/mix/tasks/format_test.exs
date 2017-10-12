@@ -140,10 +140,14 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  test "raises on missing arguments", context do
+  test "raises on invalid arguments", context do
     in_tmp context.test, fn ->
       assert_raise Mix.Error, ~r"Expected one or more files\/patterns to be given", fn ->
         Mix.Tasks.Format.run([])
+      end
+
+      assert_raise Mix.Error, ~r"Could not find a file to format", fn ->
+        Mix.Tasks.Format.run(["unknown.whatever"])
       end
     end
   end

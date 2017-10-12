@@ -8,7 +8,9 @@ defmodule Mix.Tasks.Format do
 
       mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
-  Formatting is done with the `Code.format_string/2` function.
+  Formatting is done with the `Code.format_string!/2` function.
+  A `.formatter.exs` file can also be defined for customizing input
+  files and the formatter itself.
 
   ## Options
 
@@ -41,7 +43,11 @@ defmodule Mix.Tasks.Format do
   options supported by `Code.format_string!/2`.
 
   The `.formatter.exs` also supports an `:inputs` field which specifies the
-  default inputs to be used by this task.
+  default inputs to be used by this task:
+
+      [
+        inputs: ["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]
+      ]
 
   ## When to format code
 
@@ -123,24 +129,18 @@ defmodule Mix.Tasks.Format do
 
   defp expand_files_and_patterns(files_and_patterns, context) do
     files_and_patterns
-    |> Enum.flat_map(fn file_or_pattern ->
-         files = Path.wildcard(file_or_pattern)
-
-         cond do
-           files != [] ->
-             files
-
-           File.regular?(file_or_pattern) ->
-             [file_or_pattern]
-
-           true ->
-             Mix.raise(
-               "Pattern #{inspect(file_or_pattern)} from #{context} " <>
-                 "does not expand to any existing file"
-             )
-         end
-       end)
+    |> Enum.flat_map(&Path.wildcard/1)
     |> Enum.uniq()
+    |> case do
+         [] ->
+           Mix.raise(
+             "Could not find a file to format. The files/patterns from #{context} " <>
+               "did not point to any existing file. Got: #{inspect(files_and_patterns)}"
+           )
+
+         files ->
+           files
+       end
   end
 
   defp format_file(file, {not_equivalent, not_formatted}, task_opts, formatter_opts) do
