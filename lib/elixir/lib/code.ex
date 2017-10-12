@@ -281,17 +281,50 @@ defmodule Code do
         bar
       ]
 
-  Keywords in function calls and typespecs (without the surrounding
-  brackets) can also be forced to be rendering on multiple lines
+  Keywords without the surrounding brackets in function calls and
+  typespecs can also be forced to be rendering on multiple lines
   as long as each entry appear on its own line. For example:
 
       defstruct name: nil,
                 age: 0
 
+  ## Forcing line breaks for data structures after operators
+
+  Whenever there is a data structure that spans multiple lines after an
+  operator (such as maps, lists, anonymous function, etc), the formatter
+  will start the data structure in the same line as the operator:
+
+      map = %{
+        one: 1,
+        two: 2,
+        ...
+      }
+
+  However, in some circumstances this behaviour may be undesired, such as:
+
+      assert some_long_expression(foo, bar) == {
+               :ok,
+               expected
+             }
+
+  In those cases, you can introduce a line break after the operator and
+  the formatter will respect that decision. For example:
+
+      assert some_long_expression(foo, bar) ==
+             {
+               :ok,
+               expected
+             }
+
+  or even better:
+
+      assert some_long_expression(foo, bar) ==
+             {:ok, expected}
+
   ## Code comments
 
-  The formatter also formats code comments in a way to guarantee a space
-  is always added between the start of the comments (#) and the next
+  The formatter also handles code comments in a way to guarantee a space
+  is always added between the beginning of the comment (#) and the next
   character.
 
   The formatter also extracts all trailing comments to their previous line.
@@ -328,8 +361,9 @@ defmodule Code do
           body2
       end
 
-  are considered equivalent because the formatter strips all original formatting.
-  In such cases, the code formatter will always format to the latter.
+  are considered equivalent (the nesting is discarded alongside most of
+  user formatting). In such cases, the code formatter will always format to
+  the latter.
   """
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
     line_length = Keyword.get(opts, :line_length, 98)
