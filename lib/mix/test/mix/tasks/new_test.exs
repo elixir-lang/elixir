@@ -92,7 +92,7 @@ defmodule Mix.Tasks.NewTest do
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
 
       # Ensure formatting is setup and consistent.
-      File.cd!("hello_world", fn ->
+      File.cd!("HELLO_WORLD", fn ->
         Mix.Tasks.Format.run(["--check-formatted"])
       end)
     end
