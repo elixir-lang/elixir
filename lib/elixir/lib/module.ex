@@ -910,10 +910,9 @@ defmodule Module do
       when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 ->
         case :elixir_def.take_definition(module, tuple) do
           false ->
-            error_message =
-              "cannot make function #{function_name}/#{arity} overridable because it was not defined"
-
-            raise ArgumentError, error_message
+            raise ArgumentError,
+                  "cannot make function #{function_name}/#{arity} " <>
+                    "overridable because it was not defined"
 
           clause ->
             neighbours =
@@ -938,12 +937,9 @@ defmodule Module do
         end
 
       other ->
-        error_message =
-          "each element in tuple list has to be a {function_name :: atom, arity :: 0..255} tuple, got: #{
-            inspect(other)
-          }"
-
-        raise ArgumentError, error_message
+        raise ArgumentError,
+              "each element in tuple list has to be a " <>
+                "{function_name :: atom, arity :: 0..255} tuple, got: #{inspect(other)}"
     end
 
     :lists.foreach(func, tuples)
@@ -956,12 +952,9 @@ defmodule Module do
         :ok
 
       {:error, error_explanation} ->
-        error_message =
-          "cannot pass module #{inspect(behaviour)} as argument to defoverridable/1 because #{
-            error_explanation
-          }"
-
-        raise ArgumentError, error_message
+        raise ArgumentError,
+              "cannot pass module #{inspect(behaviour)} as argument " <>
+                "to defoverridable/1 because #{error_explanation}"
     end
 
     behaviour_callbacks =
@@ -1005,10 +998,7 @@ defmodule Module do
           "its corresponding behaviour is missing. Did you forget to " <>
             "add @behaviour #{inspect(behaviour)}?"
 
-        {
-          :error,
-          error_message
-        }
+        {:error, error_message}
 
       true ->
         :ok
@@ -1478,19 +1468,14 @@ defmodule Module do
         value
 
       {line, doc} when is_integer(line) ->
-        error_message =
-          "expected the #{key} attribute to contain a binary, a boolean, or nil, got: #{
-            inspect(doc)
-          }"
-
-        raise ArgumentError, error_message
+        raise ArgumentError,
+              "expected the #{key} attribute to contain a binary, " <>
+                "a boolean, or nil, got: #{inspect(doc)}"
 
       _other ->
-        error_message =
-          "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
-            "a binary, a boolean, or nil), got: #{inspect(value)}"
-
-        raise ArgumentError, error_message
+        raise ArgumentError,
+              "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
+                "a binary, a boolean, or nil), got: #{inspect(value)}"
     end
   end
 
@@ -1503,11 +1488,9 @@ defmodule Module do
         tuple
 
       other ->
-        error_message =
-          "expected the @on_load attribute to be an atom or a " <>
-            "{atom, 0} tuple, got: #{inspect(other)}"
-
-        raise ArgumentError, error_message
+        raise ArgumentError,
+              "expected the @on_load attribute to be an atom or a " <>
+                "{atom, 0} tuple, got: #{inspect(other)}"
     end
   end
 
@@ -1522,10 +1505,9 @@ defmodule Module do
         value
 
       other ->
-        error_message =
-          "expected the @impl attribute to contain a module or a boolean, got: #{inspect(other)}"
-
-        raise ArgumentError, error_message
+        raise ArgumentError,
+              "expected the @impl attribute to contain a module or a boolean, " <>
+                "got: #{inspect(other)}"
     end
   end
 

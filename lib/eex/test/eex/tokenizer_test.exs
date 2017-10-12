@@ -56,10 +56,8 @@ defmodule EEx.TokenizerTest do
   end
 
   test "quotation with do/end" do
-    assert T.tokenize('foo <%% true do %>bar<%% end %>', 1) == {
-             :ok,
-             [{:text, 'foo <% true do %>bar<% end %>'}]
-           }
+    assert T.tokenize('foo <%% true do %>bar<%% end %>', 1) ==
+             {:ok, [{:text, 'foo <% true do %>bar<% end %>'}]}
   end
 
   test "quotation with interpolation" do
@@ -120,10 +118,8 @@ defmodule EEx.TokenizerTest do
       {:end_expr, 1, '', ' end '}
     ]
 
-    assert T.tokenize('foo <% cond do %><% false -> %>bar<% true -> %>baz<% end %>', 1) == {
-             :ok,
-             exprs
-           }
+    assert T.tokenize('foo <% cond do %><% false -> %>bar<% true -> %>baz<% end %>', 1) ==
+             {:ok, exprs}
   end
 
   test "strings with embedded keywords blocks" do
