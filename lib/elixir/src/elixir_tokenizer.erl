@@ -215,7 +215,7 @@ tokenize([$~, S, H | _] = Original, Line, Column, _Scope, Tokens) when ?is_upcas
 
 tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
-  Token = {int, {Line, {Column, Column + 3}, Char}, [$?, $\\, H]},
+  Token = {char, {Line, {Column, Column + 3}, [$?, $\\, H]}, Char},
   tokenize(T, Line, Column + 3, Scope, [Token | Tokens]);
 
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
@@ -227,7 +227,7 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
     false ->
       ok
   end,
-  Token = {int, {Line, {Column, Column + 2}, Char}, [$?, Char]},
+  Token = {char, {Line, {Column, Column + 2}, [$?, Char]}, Char},
   tokenize(T, Line, Column + 2, Scope, [Token | Tokens]);
 
 % Heredocs

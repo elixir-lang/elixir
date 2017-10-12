@@ -280,6 +280,7 @@ string_to_tokens(String, StartLine, File, Opts) when is_integer(StartLine), is_b
 
 tokens_to_quoted(Tokens, File, Opts) ->
   handle_parsing_opts(File, Opts),
+
   try elixir_parser:parse(Tokens) of
     {ok, Forms} -> {ok, Forms};
     {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
