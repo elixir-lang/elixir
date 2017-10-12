@@ -769,6 +769,7 @@ defmodule Kernel.ErrorsTest do
                Module.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)
              end
              """)
+
     assert %Macro.Env{module: Kernel.ErrorsTest.MacrosCompiledCallback} = env
   end
 
