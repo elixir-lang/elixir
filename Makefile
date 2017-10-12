@@ -140,7 +140,7 @@ docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_e
 docs_elixir: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (elixir)"
 	$(Q) rm -rf doc/elixir
-	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-c scripts/docs.exs)
+	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-c lib/elixir/docs.exs)
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
