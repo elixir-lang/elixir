@@ -164,14 +164,14 @@ the `doc` directory. If you are planning to contribute documentation,
 
 ## Development links
 
-  * [Elixir Website][1]
+  * [Elixir Getting Started guide][1]
   * [Elixir Documentation][6]
   * [Elixir Core Mailing list (development)][3]
   * [Issues tracker][2]
   * [Code of Conduct][7]
   * **[#elixir-lang][4]** on [Freenode][5] IRC
 
-  [1]: http://elixir-lang.org
+  [1]: https://elixir-lang.org/getting-started/introduction.html
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: https://groups.google.com/group/elixir-lang-core
   [4]: https://webchat.freenode.net/?channels=#elixir-lang
