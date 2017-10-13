@@ -386,7 +386,8 @@ defmodule GenServer do
   `{:stop, reason, reply, new_state}` except a reply is not sent.
 
   If this callback is not implemented, the default implementation by
-  `use GenServer` will return `{:stop, {:bad_call, request}, state}`.
+  `use GenServer` will fail with a `RuntimeError` exception with a message:
+  attempted to call `GenServer` but no `handle_call/3` clause was provided.
   """
   @callback handle_call(request :: term, from, state :: term) ::
               {:reply, reply, new_state}
@@ -418,7 +419,8 @@ defmodule GenServer do
   reason `reason`.
 
   If this callback is not implemented, the default implementation by
-  `use GenServer` will return `{:stop, {:bad_cast, request}, state}`.
+  `use GenServer` will fail with a `RuntimeError` exception with a message:
+  attempted to call `GenServer` but no `handle_cast/2` clause was provided.
   """
   @callback handle_cast(request :: term, state :: term) ::
               {:noreply, new_state}
