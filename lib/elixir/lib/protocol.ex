@@ -287,8 +287,8 @@ defmodule Protocol do
 
   defp beam_file(module) when is_atom(module) do
     case :code.which(module) do
-      atom when is_atom(atom) -> module
-      file -> file
+      [_ | _] = file -> file
+      _ -> module
     end
   end
 

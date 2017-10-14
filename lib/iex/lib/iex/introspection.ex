@@ -156,7 +156,7 @@ defmodule IEx.Introspection do
   defp open_abstract_code(module, fun, arity, source) do
     fun = Atom.to_string(fun)
 
-    with beam when is_list(beam) <- :code.which(module),
+    with [_ | _] = beam <- :code.which(module),
          {:ok, {_, [abstract_code: abstract_code]}} <- :beam_lib.chunks(beam, [:abstract_code]),
          {:raw_abstract_v1, code} <- abstract_code do
       {_, module_pair, fa_pair} =

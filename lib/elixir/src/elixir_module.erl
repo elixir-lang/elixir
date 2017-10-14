@@ -309,7 +309,7 @@ autoload_module(Module, Binary, Opts, E) ->
 
 beam_location(#{lexical_tracker := Pid, module := Module}) ->
   case elixir_lexical:dest(Pid) of
-    nil  -> in_memory;
+    nil -> "";
     Dest ->
       filename:join(elixir_utils:characters_to_list(Dest),
                     atom_to_list(Module) ++ ".beam")
@@ -373,10 +373,10 @@ format_error({invalid_module, Module}) ->
 format_error({module_defined, Module}) ->
   Extra =
     case code:which(Module) of
+      "" ->
+        " (current version defined in memory)";
       Path when is_list(Path) ->
         io_lib:format(" (current version loaded from ~ts)", [elixir_utils:relative_to_cwd(Path)]);
-      in_memory ->
-        " (current version defined in memory)";
       _ ->
         ""
     end,
