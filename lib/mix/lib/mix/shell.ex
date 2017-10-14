@@ -16,7 +16,7 @@ defmodule Mix.Shell do
   @doc """
   Executes the given command and returns its exit status.
   """
-  @callback cmd(command :: String.t) :: integer
+  @callback cmd(command :: String.t()) :: integer
 
   @doc """
   Executes the given command and returns its exit status.
@@ -34,7 +34,7 @@ defmodule Mix.Shell do
     * `:env` - environment options to the executed command
 
   """
-  @callback cmd(command :: String.t, options :: keyword) :: integer
+  @callback cmd(command :: String.t(), options :: keyword) :: integer
 
   @doc """
   Prompts the user for input.

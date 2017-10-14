@@ -107,7 +107,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp checkout(_path, opts) do
-    Mix.shell.print_app()
+    Mix.shell().print_app()
 
     # Set configuration
     sparse_toggle(opts)
@@ -254,7 +254,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp default_into() do
-    case Mix.shell do
+    case Mix.shell() do
       Mix.Shell.IO -> IO.stream(:stdio, :line)
       _ -> ""
     end

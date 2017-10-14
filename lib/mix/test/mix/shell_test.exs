@@ -11,7 +11,7 @@ defmodule Mix.ShellTest do
     Mix.shell(Mix.Shell.IO)
 
     assert capture_io(fn ->
-             assert Mix.shell.cmd("echo first && echo second") == 0
+             assert Mix.shell().cmd("echo first && echo second") == 0
            end)
            |> String.replace(" \n", "\n") == "first\nsecond\n"
   after

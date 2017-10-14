@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Cmd do
     {args, apps} = parse_apps(args, [])
 
     if apps == [] or Mix.Project.config()[:app] in apps do
-      case Mix.shell.cmd(Enum.join(args, " ")) do
+      case Mix.shell().cmd(Enum.join(args, " ")) do
         0 -> :ok
         status -> exit(status)
       end
