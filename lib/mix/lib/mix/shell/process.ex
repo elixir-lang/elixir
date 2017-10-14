@@ -68,14 +68,6 @@ defmodule Mix.Shell.Process do
   @doc """
   Forwards the message to the current process.
   """
-  def write(data) do
-    send(self(), {:mix_shell, :write, [data]})
-    :ok
-  end
-
-  @doc """
-  Forwards the message to the current process.
-  """
   def info(message) do
     print_app()
     send(self(), {:mix_shell, :info, [format(message)]})
@@ -154,8 +146,10 @@ defmodule Mix.Shell.Process do
     end
   end
 
-  @doc false
-  # TODO: Deprecate on Elixir v1.8
+  @doc """
+  Executes the given command and forwards its messages to
+  the current process.
+  """
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
 

@@ -20,11 +20,6 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
-  Writes data directly into the shell.
-  """
-  defdelegate write(data), to: IO
-
-  @doc """
   Prints the given ANSI message to the shell followed by a newline.
   """
   def info(message) do
@@ -66,8 +61,10 @@ defmodule Mix.Shell.IO do
     [:red, :bright, message]
   end
 
-  @doc false
-  # TODO: Deprecate on Elixir v1.8
+  @doc """
+  Executes the given command and prints its output
+  to stdout as it comes.
+  """
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
 

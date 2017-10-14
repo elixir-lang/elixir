@@ -14,9 +14,27 @@ defmodule Mix.Shell do
   @callback error(message :: IO.ANSI.ansidata()) :: :ok
 
   @doc """
-  Writes data directly into the shell.
+  Executes the given command and returns its exit status.
   """
-  @callback write(message :: binary) :: :ok
+  @callback cmd(command :: String.t) :: integer
+
+  @doc """
+  Executes the given command and returns its exit status.
+
+  ## Options
+
+    * `:print_app` - when `false`, does not print the app name
+      when the command outputs something
+
+    * `:stderr_to_stdout` - when `false`, does not redirect
+      stderr to stdout
+
+    * `:quiet` - when `true`, do not print the command output
+
+    * `:env` - environment options to the executed command
+
+  """
+  @callback cmd(command :: String.t, options :: keyword) :: integer
 
   @doc """
   Prompts the user for input.
@@ -35,34 +53,6 @@ defmodule Mix.Shell do
   @callback print_app() :: :ok
 
   @doc """
-  A collectable shell struct.
-  """
-  defstruct print_app?: true
-
-  defimpl Collectable do
-    def into(%Mix.Shell{print_app?: print_app?} = original) do
-      fun = fn
-        {:cont, shell}, {:cont, data} ->
-          shell.write(data)
-          {:cont, shell}
-
-        {:print, shell}, {:cont, data} ->
-          shell.print_app()
-          shell.write(data)
-          {:cont, shell}
-
-        _, _ ->
-          original
-      end
-
-      case print_app? do
-        true -> {{:print, Mix.shell()}, fun}
-        false -> {{:cont, Mix.shell()}, fun}
-      end
-    end
-  end
-
-  @doc """
   Returns the printable app name.
 
   This function returns the current application name,
@@ -77,8 +67,20 @@ defmodule Mix.Shell do
     Mix.ProjectStack.printable_app_name()
   end
 
-  @doc false
-  # TODO: Deprecate on Mix v1.8
+  @doc """
+  Executes the given `command` as a shell command and
+  invokes the `callback` for the streamed response.
+
+  This is most commonly used by shell implementations
+  but can also be invoked directly.
+
+  ## Options
+
+    * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true
+    * `:env` - a list of environment variables, defaults to `[]`
+    * `:quiet` - overrides the callback to no-op
+
+  """
   def cmd(command, options, callback) when is_function(callback, 1) do
     callback =
       if Keyword.get(options, :quiet, false) do
@@ -87,33 +89,6 @@ defmodule Mix.Shell do
         callback
       end
 
-    fun = fn
-      _, {:cont, data} -> callback.(data)
-      _, _ -> :ok
-    end
-
-    cmd(command, options, :ok, fun)
-  end
-
-  def cmd(command, callback) when is_function(callback, 1) do
-    cmd(command, [], callback)
-  end
-
-  @doc """
-  Executes the given `string` as a shell command.
-
-    * `:into` - a collectable to print the result to, defaults to `""`
-    * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true
-    * `:env` - a list of environment variables, defaults to `[]`
-
-  """
-  def cmd(command, options) when is_binary(command) and is_list(options) do
-    collectable = Keyword.get(options, :into, "")
-    {acc, callback} = Collectable.into(collectable)
-    cmd(command, options, acc, callback)
-  end
-
-  defp cmd(command, options, acc, callback) do
     env = validate_env(Keyword.get(options, :env, []))
 
     args =
@@ -125,16 +100,16 @@ defmodule Mix.Shell do
 
     opts = [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args]
     port = Port.open({:spawn, shell_command(command)}, opts)
-    port_read(port, acc, callback)
+    port_read(port, callback)
   end
 
-  defp port_read(port, acc, callback) do
+  defp port_read(port, callback) do
     receive do
       {^port, {:data, data}} ->
-        port_read(port, callback.(acc, {:cont, data}), callback)
+        _ = callback.(data)
+        port_read(port, callback)
 
       {^port, {:exit_status, status}} ->
-        callback.(acc, :done)
         status
     end
   end
