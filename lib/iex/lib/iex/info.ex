@@ -94,8 +94,8 @@ defimpl IEx.Info, for: Atom do
 
   defp module_object_file(mod) do
     default_or_apply(:code.which(mod), fn
-      atom when is_atom(atom) -> inspect(atom)
-      path -> Path.relative_to_cwd(path)
+      [_ | _] = path -> Path.relative_to_cwd(path)
+      atom -> inspect(atom)
     end)
   end
 

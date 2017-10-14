@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Xref do
       module
     else
       # Otherwise we get all exports from :beam_lib to avoid loading modules
-      with file when is_list(file) <- :code.which(module),
+      with [_ | _] = file <- :code.which(module),
            {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(file, [:exports]) do
         exports
       else

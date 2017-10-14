@@ -321,7 +321,8 @@ defmodule IEx.Pry do
   end
 
   defp deinstrument(module) do
-    with beam when is_list(beam) <- :code.which(module), {:ok, binary} = File.read(beam) do
+    with [_ | _] = beam <- :code.which(module),
+         {:ok, binary} <- File.read(beam) do
       :code.purge(module)
       {:module, _} = :code.load_binary(module, beam, binary)
       :ok
@@ -345,7 +346,7 @@ defmodule IEx.Pry do
 
   defp fetch_elixir_debug_info_with_fa_check(module, fa) do
     case :code.which(module) do
-      beam when is_list(beam) ->
+      [_ | _] = beam ->
         case :beam_lib.chunks(beam, [:debug_info]) do
           {:ok, {_, [debug_info: {:debug_info_v1, backend, {:elixir_v1, map, _} = elixir}]}} ->
             case List.keyfind(map.definitions, fa, 0) do

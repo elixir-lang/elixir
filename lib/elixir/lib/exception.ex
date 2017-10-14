@@ -234,7 +234,7 @@ defmodule Exception do
   end
 
   defp blame_mfa(module, function, arity, call_args) do
-    with path when is_list(path) <- :code.which(module),
+    with [_ | _] = path <- :code.which(module),
          {:ok, {_, [debug_info: debug_info]}} <- :beam_lib.chunks(path, [:debug_info]),
          {:debug_info_v1, backend, data} <- debug_info,
          {:ok, %{definitions: defs}} <- backend.debug_info(:elixir_v1, module, data, []),
