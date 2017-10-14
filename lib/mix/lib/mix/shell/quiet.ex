@@ -15,11 +15,6 @@ defmodule Mix.Shell.Quiet do
   defdelegate print_app, to: Mix.Shell.IO
 
   @doc """
-  Writes nothing to the shell.
-  """
-  def write(_data), do: :ok
-
-  @doc """
   Prints nothing to the shell.
   """
   def info(_message), do: :ok
@@ -44,8 +39,9 @@ defmodule Mix.Shell.Quiet do
   """
   defdelegate yes?(message), to: Mix.Shell.IO
 
-  @doc false
-  # TODO: Deprecate on Elixir v1.8
+  @doc """
+  Executes the given command quietly without outputting anything.
+  """
   def cmd(command, opts \\ []) do
     Mix.Shell.cmd(command, opts, fn data -> data end)
   end

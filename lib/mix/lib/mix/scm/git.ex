@@ -107,6 +107,8 @@ defmodule Mix.SCM.Git do
   end
 
   defp checkout(_path, opts) do
+    Mix.shell.print_app()
+
     # Set configuration
     sparse_toggle(opts)
     update_origin(opts[:git])
@@ -244,10 +246,17 @@ defmodule Mix.SCM.Git do
     :ok
   end
 
-  defp git!(args, into \\ %Mix.Shell{}) do
+  defp git!(args, into \\ default_into()) do
     case System.cmd("git", args, into: into, stderr_to_stdout: true) do
       {response, 0} -> response
       {_, _} -> Mix.raise("Command \"git #{Enum.join(args, " ")}\" failed")
+    end
+  end
+
+  defp default_into() do
+    case Mix.shell do
+      Mix.Shell.IO -> IO.stream(:stdio, :line)
+      _ -> ""
     end
   end
 
