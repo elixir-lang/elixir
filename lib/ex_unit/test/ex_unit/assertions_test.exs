@@ -76,7 +76,7 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test "assert exposes sigil variables in matches" do
+  test "assert exposes nested macro variables in matches" do
     assert ~l(a) = 1
     assert a == 1
 
@@ -217,7 +217,7 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test "assert_receive exposes sigil variables" do
+  test "assert_receive exposes nested macro variables" do
     send(self(), {:hello})
     assert_receive {~l(a)}, 0, "failure message"
 
