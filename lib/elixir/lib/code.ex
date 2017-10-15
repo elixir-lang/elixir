@@ -227,7 +227,7 @@ defmodule Code do
   based on the name, this behaviour should be configurable, such as the
   `:locals_without_parens` option.
 
-  ## Keeping input formatting
+  ## Keeping user's formatting
 
   The formatter respects the input format in some cases. Those are
   listed below:
@@ -259,12 +259,48 @@ defmodule Code do
   rules in the future. The goal of documenting them is to provide better
   understanding on what to expect from the formatter.
 
-  ## Forcing multi-line lists, maps, tuples, etc
+  ### Adjusting formatted output
 
-  As mentioned in the previous section, lists, tuples, bitstrings, maps,
-  and structs will be broken into multiple lines if they are followed by
-  a newline in the opening bracket and preceded by a new line in the
-  closing bracket lines. This means that
+  The formatter attempts to the fit the most it can on a single line.
+  When the code does not fit a single line, the formatter introduces
+  line breaks in the code.
+
+  In some rare situations, this may lead to undesired formatting,
+  especially when it comes to strings with interpolation at the end.
+  For example, the code below:
+
+      "this is a very long string ... #{inspect(some_value)}"
+
+  may be formatted as:
+
+      "this is a very long string ... #{
+        inspect(some_value)
+      }"
+
+  This happens because the only place the formatter can introduce a
+  new line without changing the code semantics is in the interpolation.
+  In those scenarios, we recommend developers to directly adjust the
+  code. Here we can use the binary concatenation operator `<>`:
+
+      "this is a very long string " <>
+        "... #{inspect(some_value)}" 
+
+  The string concatenation makes the code fit on a single line and also
+  gives more options to the formatter. 
+
+  ### Multi-line lists, maps, tuples, etc
+
+  You can force lists, tuples, bitstrings, maps, and structs to be have
+  one entry per line by adding a newline after the opening bracket and
+  a new line before the closing bracket lines. For example:
+
+      [
+        foo,
+        bar
+      ]
+
+  If there are no newlines around the brackets, then the formatter will
+  try to fit everything on a single line, such that the snippet below
 
       [foo,
        bar]
@@ -273,26 +309,21 @@ defmodule Code do
 
       [foo, bar]
 
-  since there is no newline immediately after `[` and before `]`. The
-  following, however, will always be formatted in multiple lines:
-
-      [
-        foo,
-        bar
-      ]
-
-  Keywords without the surrounding brackets in function calls and
-  typespecs can also be forced to be rendering on multiple lines
-  as long as each entry appear on its own line. For example:
+  You can also force keywords to be rendered on multiple lines by
+  having each entry on its own line:
 
       defstruct name: nil,
                 age: 0
 
-  ## Forcing line breaks for data structures after operators
+  The code above will be kept with one keyword entry per line by the
+  formatter. To avoid that, just keep everything on a single line.
 
-  Whenever there is a data structure that spans multiple lines after an
-  operator (such as maps, lists, anonymous function, etc), the formatter
-  will start the data structure in the same line as the operator:
+  ### Forcing line breaks for data structures after operators
+
+  Whenever there is a data structure that spans multiple lines (such as
+  maps, lists, anonymous function, etc) after an operator (such as `=`,
+  `==`, `>`, `::`, etc), the formatter will start the data structure in
+  the same line as the operator. This leads to code formatted like this:
 
       map = %{
         one: 1,
@@ -300,15 +331,17 @@ defmodule Code do
         ...
       }
 
-  However, in some circumstances this behaviour may be undesired, such as:
+  However, in some circumstances this behaviour may be undesired. For
+  example:
 
       assert some_long_expression(foo, bar) == {
                :ok,
                expected
              }
 
-  In those cases, you can introduce a line break after the operator and
-  the formatter will respect that decision. For example:
+  This is another case where you may need to adjust the formatter
+  behaviour by giving it hints. If you introduce a line break after the
+  operator, the formatter will respect this decision. For example:
 
       assert some_long_expression(foo, bar) ==
              {
@@ -316,7 +349,7 @@ defmodule Code do
                expected
              }
 
-  or even better:
+  which can also be rewritten as:
 
       assert some_long_expression(foo, bar) ==
              {:ok, expected}
