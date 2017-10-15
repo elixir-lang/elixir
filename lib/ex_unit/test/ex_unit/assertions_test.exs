@@ -19,6 +19,8 @@ alias ExUnit.AssertionsTest.{BrokenError, Value}
 defmodule ExUnit.AssertionsTest do
   use ExUnit.Case, async: true
 
+  defmacro sigil_l({:<<>>, _, [string]}, _), do: Code.string_to_quoted!(string, [])
+
   defmacrop assert_ok(arg) do
     quote do
       assert {:ok, val} = ok(unquote(arg))
@@ -72,6 +74,15 @@ defmodule ExUnit.AssertionsTest do
         2 = error.right
         "assert(1 == 1 + 1)" = error.expr |> Macro.to_string()
     end
+  end
+
+  test "assert exposes nested macro variables in matches" do
+    assert ~l(a) = 1
+    assert a == 1
+
+    assert {~l(b), ~l(c)} = {2, 3}
+    assert b == 2
+    assert c == 3
   end
 
   test "refute when value is false" do
@@ -204,6 +215,13 @@ defmodule ExUnit.AssertionsTest do
           error.message =~ "Found message matching :hello after 100ms" or
             error.message =~ "No message matching :hello after 100ms"
     end
+  end
+
+  test "assert_receive exposes nested macro variables" do
+    send(self(), {:hello})
+    assert_receive {~l(a)}, 0, "failure message"
+
+    assert a == :hello
   end
 
   test "assert received does not wait" do
