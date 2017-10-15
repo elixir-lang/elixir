@@ -16,6 +16,10 @@ end
 
 alias ExUnit.AssertionsTest.{BrokenError, Value}
 
+defmodule MinimalMacro do
+  defmacro sigil_l({:<<>>, _, [string]}, _), do: Code.string_to_quoted!(string, [])
+end
+
 defmodule ExUnit.AssertionsTest do
   use ExUnit.Case, async: true
 
@@ -72,6 +76,17 @@ defmodule ExUnit.AssertionsTest do
         2 = error.right
         "assert(1 == 1 + 1)" = error.expr |> Macro.to_string()
     end
+  end
+
+  test "assert exposes sigil variables in matches" do
+    import MinimalMacro
+
+    assert ~l(a) = 1
+    assert a == 1
+
+    assert {~l(b), ~l(c)} = {2, 3}
+    assert b == 2
+    assert c == 3
   end
 
   test "refute when value is false" do
