@@ -81,7 +81,8 @@ defmodule Mix.Tasks.Format do
 
     args
     |> expand_args(formatter_opts)
-    |> Enum.reduce({[], []}, &format_file(&1, &2, opts, formatter_opts))
+    |> Task.async_stream(&format_file(&1, opts, formatter_opts), ordered: false, timeout: 30000)
+    |> Enum.reduce({[], []}, &collect_status!/2)
     |> check!()
   end
 
@@ -143,45 +144,61 @@ defmodule Mix.Tasks.Format do
        end
   end
 
-  defp format_file(file, {not_equivalent, not_formatted}, task_opts, formatter_opts) do
+  defp format_file(file, task_opts, formatter_opts) do
     input = File.read!(file)
     output = [Code.format_string!(input, [file: file] ++ formatter_opts), ?\n]
 
     check_equivalent? = Keyword.get(task_opts, :check_equivalent, false)
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
+
+    if check_equivalent? or check_formatted? do
+      output_string = IO.iodata_to_binary(output)
+
+      cond do
+        check_equivalent? and not equivalent?(input, output_string) ->
+          {:not_equivalent, file}
+
+        check_formatted? and input != output_string ->
+          {:not_formatted, file}
+
+        true ->
+          write_or_print(file, output, check_formatted?, task_opts)
+      end
+    else
+      write_or_print(file, output, check_formatted?, task_opts)
+    end
+  rescue
+    exception ->
+      stacktrace = System.stacktrace()
+      {:exit, file, exception, stacktrace}
+  end
+
+  defp write_or_print(file, output, check_formatted?, task_opts) do
     dry_run? = Keyword.get(task_opts, :dry_run, false)
     print? = Keyword.get(task_opts, :print, false)
 
-    {valid?, not_equivalent, not_formatted} =
-      if check_equivalent? or check_formatted? do
-        output_string = IO.iodata_to_binary(output)
-
-        cond do
-          check_equivalent? and not equivalent?(input, output_string) ->
-            {false, [file | not_equivalent], not_formatted}
-
-          check_formatted? and input != output_string ->
-            {false, not_equivalent, [file | not_formatted]}
-
-          true ->
-            {not check_formatted?, not_equivalent, not_formatted}
-        end
-      else
-        {true, not_equivalent, not_formatted}
-      end
-
     cond do
-      not valid? or dry_run? -> :ok
+      dry_run? or check_formatted? -> :ok
       print? -> IO.write(output)
       true -> File.write!(file, output)
     end
 
-    {not_equivalent, not_formatted}
-  rescue
-    e ->
-      stacktrace = System.stacktrace()
-      Mix.shell().error("mix format failed for file: #{file}")
-      reraise e, stacktrace
+    :ok
+  end
+
+  defp collect_status!({:ok, :ok}, acc), do: acc
+
+  defp collect_status!({:ok, {:not_equivalent, file}}, {not_equivalent, not_formatted}) do
+    {[file | not_equivalent], not_formatted}
+  end
+
+  defp collect_status!({:ok, {:not_formatted, file}}, {not_equivalent, not_formatted}) do
+    {not_equivalent, [file | not_formatted]}
+  end
+
+  defp collect_status!({:ok, {:exit, file, error, stack}}, _acc) do
+    Mix.shell().error("mix format failed for file: #{file}")
+    reraise error, stack
   end
 
   defp check!({[], []}) do
