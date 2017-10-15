@@ -177,7 +177,7 @@ defmodule Code do
     {value, binding}
   end
 
-  @doc """
+  @doc ~S"""
   Formats the given code `string`.
 
   The formatter receives a string representing Elixir code and
