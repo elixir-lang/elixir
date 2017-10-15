@@ -217,6 +217,13 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert_receive exposes sigil variables" do
+    send(self(), {:hello})
+    assert_receive {~l(a)}, 0, "failure message"
+
+    assert a == :hello
+  end
+
   test "assert received does not wait" do
     send(self(), :hello)
     :hello = assert_received :hello

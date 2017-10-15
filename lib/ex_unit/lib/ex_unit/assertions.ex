@@ -398,7 +398,7 @@ defmodule ExUnit.Assertions do
     binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
-    pattern = Macro.expand(pattern, caller)
+    pattern = Macro.prewalk(pattern, &Macro.expand(&1, caller))
     vars = collect_vars_from_pattern(pattern)
     pins = collect_pins_from_pattern(pattern, caller.vars)
 
