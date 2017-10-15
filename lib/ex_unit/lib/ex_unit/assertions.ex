@@ -554,11 +554,13 @@ defmodule ExUnit.Assertions do
       {name, meta, context}, acc when is_atom(name) and is_atom(context) ->
         {:ok, [{name, [generated: true] ++ meta, context} | acc]}
 
-      node = {:"<<>>", meta, context}, acc when is_list(context) ->
+      node = {:<<>>, meta, context}, acc when is_list(context) ->
         if Enum.all?(context, &is_binary/1) do
-          vars = Enum.map(context, fn(var) ->
-            {String.to_atom(var), [generated: true] ++ meta, nil}
-          end)
+          vars =
+            Enum.map(context, fn var ->
+              {String.to_atom(var), [generated: true] ++ meta, nil}
+            end)
+
           {:ok, vars ++ acc}
         else
           {node, acc}
