@@ -98,7 +98,7 @@ defmodule ExUnit.Assertions do
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = escape_quoted(:assert, assertion)
 
-    left = Macro.expand(left, __CALLER__)
+    left = Macro.prewalk(left, &Macro.expand(&1, __CALLER__))
     vars = collect_vars_from_pattern(left)
     pins = collect_pins_from_pattern(left, __CALLER__.vars)
 
@@ -553,18 +553,6 @@ defmodule ExUnit.Assertions do
 
       {name, meta, context}, acc when is_atom(name) and is_atom(context) ->
         {:ok, [{name, [generated: true] ++ meta, context} | acc]}
-
-      node = {:<<>>, meta, context}, acc when is_list(context) ->
-        if Enum.all?(context, &is_binary/1) do
-          vars =
-            Enum.map(context, fn var ->
-              {String.to_atom(var), [generated: true] ++ meta, nil}
-            end)
-
-          {:ok, vars ++ acc}
-        else
-          {node, acc}
-        end
 
       node, acc ->
         {node, acc}
