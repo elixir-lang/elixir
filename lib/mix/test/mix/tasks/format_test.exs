@@ -47,15 +47,22 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  test "prints file to stdout on --print", context do
+  test "reads file from stdin and prints to stdout", context do
     in_tmp context.test, fn ->
       File.write!("a.ex", """
       foo bar
       """)
 
-      output = capture_io(fn -> Mix.Tasks.Format.run(["a.ex", "--print"]) end)
+      output =
+        capture_io("foo( )", fn ->
+          Mix.Tasks.Format.run(["a.ex", "-"])
+        end)
 
       assert output == """
+             foo()
+             """
+
+      assert File.read!("a.ex") == """
              foo(bar)
              """
     end
