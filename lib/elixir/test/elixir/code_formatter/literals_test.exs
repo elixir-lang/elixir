@@ -13,6 +13,7 @@ defmodule Code.Formatter.LiteralsTest do
       assert_same "100"
       assert_same "007"
       assert_same "10000"
+      assert_same "100_00"
       assert_format "100000", "100_000"
       assert_format "1000000", "1_000_000"
     end
@@ -22,21 +23,21 @@ defmodule Code.Formatter.LiteralsTest do
       assert_same "0b1"
       assert_same "0b101"
       assert_same "0b01"
-      assert_format "0b111_111", "0b111111"
+      assert_same "0b111_111"
     end
 
     test "in octal base" do
       assert_same "0o77"
       assert_same "0o0"
       assert_same "0o01"
-      assert_format "0o777_777", "0o777777"
+      assert_same "0o777_777"
     end
 
     test "in hex base" do
       assert_same "0x1"
       assert_format "0xabcdef", "0xABCDEF"
       assert_same "0x01"
-      assert_format "0xFFF_FFF", "0xFFFFFF"
+      assert_format "0xfff_fff", "0xFFF_FFF"
     end
 
     test "as chars" do
@@ -57,7 +58,8 @@ defmodule Code.Formatter.LiteralsTest do
       assert_same "123.456"
       assert_same "0.0000001"
       assert_same "001.100"
-      assert_format "0_10000_0.000_000", "0_100_000.000000"
+      assert_same "0_10000_0.000_000"
+      assert_format "0100000.000000", "0_100_000.000000"
     end
 
     test "with scientific notation" do
@@ -66,7 +68,8 @@ defmodule Code.Formatter.LiteralsTest do
       assert_same "1.0e01"
       assert_same "1.0e-01"
       assert_same "001.100e-010"
-      assert_format "0_1_00_0_000.100e-010", "01_000_000.100e-010"
+      assert_same "0_100_0000.100e-010"
+      assert_format "0100000.0e-5", "0_100_000.0e-5"
 
       assert_format "1.0E01", "1.0e01"
       assert_format "1.0E-01", "1.0e-01"

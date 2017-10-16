@@ -822,7 +822,7 @@ tokenize_number([$., H | T], Acc, Length, false) when ?is_digit(H) ->
 
 %% Check if we have an underscore followed by a number;
 tokenize_number([$_, H | T], Acc, Length, Bool) when ?is_digit(H) ->
-  tokenize_number(T, [H | Acc], Length + 2, Bool);
+  tokenize_number(T, [H, $_ | Acc], Length + 2, Bool);
 
 %% Check if we have e- followed by numbers (valid only for floats);
 tokenize_number([E, S, H | T], Acc, Length, true)
@@ -841,40 +841,47 @@ tokenize_number([H | T], Acc, Length, Bool) when ?is_digit(H) ->
 %% Cast to float...
 tokenize_number(Rest, Acc, Length, true) ->
   try
-    Digits = lists:reverse(Acc),
-    {Rest, list_to_float(Digits), Digits, Length}
+    {Number, Original} = reverse_number(Acc, [], []),
+    {Rest, list_to_float(Number), Original, Length}
   catch
     error:badarg -> {error, "invalid float number ", lists:reverse(Acc)}
   end;
 
 %% Or integer.
 tokenize_number(Rest, Acc, Length, false) ->
-  Digits = lists:reverse(Acc),
-  {Rest, list_to_integer(Digits), Digits, Length}.
+  {Number, Original} = reverse_number(Acc, [], []),
+  {Rest, list_to_integer(Number), Original, Length}.
 
 tokenize_hex([H | T], Acc, Length) when ?is_hex(H) ->
   tokenize_hex(T, [H | Acc], Length + 1);
 tokenize_hex([$_, H | T], Acc, Length) when ?is_hex(H) ->
-  tokenize_hex(T, [H | Acc], Length + 2);
+  tokenize_hex(T, [H, $_ | Acc], Length + 2);
 tokenize_hex(Rest, Acc, Length) ->
-  Digits = lists:reverse(Acc),
-  {Rest, list_to_integer(Digits, 16), [$0, $x | Digits], Length}.
+  {Number, Original} = reverse_number(Acc, [], []),
+  {Rest, list_to_integer(Number, 16), [$0, $x | Original], Length}.
 
 tokenize_octal([H | T], Acc, Length) when ?is_octal(H) ->
   tokenize_octal(T, [H | Acc], Length + 1);
 tokenize_octal([$_, H | T], Acc, Length) when ?is_octal(H) ->
-  tokenize_octal(T, [H | Acc], Length + 2);
+  tokenize_octal(T, [H, $_ | Acc], Length + 2);
 tokenize_octal(Rest, Acc, Length) ->
-  Digits = lists:reverse(Acc),
-  {Rest, list_to_integer(Digits, 8), [$0, $o | Digits], Length}.
+  {Number, Original} = reverse_number(Acc, [], []),
+  {Rest, list_to_integer(Number, 8), [$0, $o | Original], Length}.
 
 tokenize_bin([H | T], Acc, Length) when ?is_bin(H) ->
   tokenize_bin(T, [H | Acc], Length + 1);
 tokenize_bin([$_, H | T], Acc, Length) when ?is_bin(H) ->
-  tokenize_bin(T, [H | Acc], Length + 2);
+  tokenize_bin(T, [H, $_ | Acc], Length + 2);
 tokenize_bin(Rest, Acc, Length) ->
-  Digits = lists:reverse(Acc),
-  {Rest, list_to_integer(Digits, 2), [$0, $b | Digits], Length}.
+  {Number, Original} = reverse_number(Acc, [], []),
+  {Rest, list_to_integer(Number, 2), [$0, $b | Original], Length}.
+
+reverse_number([$_ | T], Number, Original) ->
+  reverse_number(T, Number, [$_ | Original]);
+reverse_number([H | T], Number, Original) ->
+  reverse_number(T, [H | Number], [H | Original]);
+reverse_number([], Number, Original) ->
+  {Number, Original}.
 
 %% Comments
 
