@@ -34,8 +34,7 @@ defmodule Mix.Tasks.Format do
       Defaults to `.formatter.exs` if one is available, see next section.
 
   If any of the `--check-*` flags are given and a check fails, the formatted
-  contents won't be written to disk nor printed to stdout (if the `--print`
-  flag is given).
+  contents won't be written to disk nor printed to stdout.
 
   ## .formatter.exs
 
@@ -72,8 +71,7 @@ defmodule Mix.Tasks.Format do
     check_equivalent: :boolean,
     check_formatted: :boolean,
     dot_formatter: :string,
-    dry_run: :boolean,
-    print: :boolean
+    dry_run: :boolean
   ]
 
   def run(args) do
