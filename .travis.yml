@@ -1,11 +1,10 @@
 language: erlang
 sudo: false
 
-os: linux
-otp_release: 19.0
-
 matrix:
   include:
+    - os: linux
+      otp_release: 19.0
     - os: linux
       otp_release: 19.1
     - os: linux
