@@ -1,7 +1,7 @@
 defprotocol IEx.Info do
   @fallback_to_any true
 
-  @spec info(term()) :: [{info_name :: String.t(), info :: String.t()}]
+  @spec info(term()) :: [{info_name :: String.Chars.t(), info :: String.t()}]
   def info(term)
 end
 
