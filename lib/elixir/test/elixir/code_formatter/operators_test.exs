@@ -777,8 +777,10 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with operators outside" do
-      assert_same "(& &1) == (& &2)"
-      assert_same "[&IO.puts/1 | &IO.puts/2]"
+      assert_same "(& &1) == & &2"
+      assert_same "(& &1) and & &2"
+      assert_same "(&foo/1) and &bar/1"
+      assert_same "[(&IO.puts/1) | &IO.puts/2]"
     end
 
     test "with call expressions" do
