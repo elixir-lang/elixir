@@ -20,6 +20,7 @@ defmodule ExUnit.AssertionsTest do
   use ExUnit.Case, async: true
 
   defmacro sigil_l({:<<>>, _, [string]}, _), do: Code.string_to_quoted!(string, [])
+  defmacro argless_macro(), do: raise "should not be invoked"
 
   defmacrop assert_ok(arg) do
     quote do
@@ -83,6 +84,11 @@ defmodule ExUnit.AssertionsTest do
     assert {~l(b), ~l(c)} = {2, 3}
     assert b == 2
     assert c == 3
+  end
+
+  test "assert does not expand variables" do
+    assert argless_macro = 1
+    assert argless_macro == 1
   end
 
   test "refute when value is false" do

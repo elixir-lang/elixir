@@ -98,7 +98,7 @@ defmodule ExUnit.Assertions do
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = escape_quoted(:assert, assertion)
 
-    left = Macro.prewalk(left, &Macro.expand(&1, __CALLER__))
+    left = expand_pattern(left, __CALLER__)
     vars = collect_vars_from_pattern(left)
     pins = collect_pins_from_pattern(left, __CALLER__.vars)
 
@@ -398,7 +398,7 @@ defmodule ExUnit.Assertions do
     binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
-    pattern = Macro.prewalk(pattern, &Macro.expand(&1, caller))
+    pattern = expand_pattern(pattern, caller)
     vars = collect_vars_from_pattern(pattern)
     pins = collect_pins_from_pattern(pattern, caller.vars)
 
@@ -558,6 +558,16 @@ defmodule ExUnit.Assertions do
         {node, acc}
     end)
     |> elem(1)
+  end
+
+  defp expand_pattern(expr, caller) do
+    Macro.prewalk(expr, fn
+      {var, _, context} = node when is_atom(var) and is_atom(context) ->
+        node
+
+      other ->
+        Macro.expand(other, caller)
+    end)
   end
 
   defp suppress_warning({name, meta, [expr, [do: clauses]]}) do
