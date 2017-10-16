@@ -1,11 +1,10 @@
 language: erlang
 sudo: false
 
-os: linux
-otp_release: 19.0
-
 matrix:
   include:
+    - os: linux
+      otp_release: 19.0
     - os: linux
       otp_release: 19.1
     - os: linux
@@ -14,6 +13,8 @@ matrix:
       otp_release: 19.3
     - os: linux
       otp_release: 20.0
+    - os: linux
+      otp_release: 20.1
 
 env:
   - ELIXIR_ASSERT_TIMEOUT=2000
