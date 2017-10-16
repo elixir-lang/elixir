@@ -1284,23 +1284,23 @@ defmodule Module do
   defp check_behaviours(env, behaviours, all_definitions) do
     Enum.each(behaviours, fn behaviour ->
       cond do
-        is_standard_behaviour(behaviour) ->
+        standard_behaviour?(behaviour) ->
           nil
         not is_atom(behaviour) ->
-          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} must be an atom (for module #{inspect env.module})")
+          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} must be an atom (in module #{inspect env.module})")
         not Code.ensure_compiled?(behaviour) ->
-          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not exist (for module #{inspect env.module})")
+          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not exist (in module #{inspect env.module})")
         not function_exported?(behaviour, :behaviour_info, 1) ->
-          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not contain callbacks (for module #{inspect env.module})")
+          :elixir_errors.warn(env.line, env.file, "@behaviour #{inspect behaviour} does not define any callbacks (in module #{inspect env.module})")
         true ->
           optional_callbacks = behaviour.behaviour_info(:optional_callbacks)
 
-          Enum.each(behaviour.behaviour_info(:callbacks), &check_callback(env, all_definitions, optional_callbacks, &1))
+          Enum.reduce(behaviour.behaviour_info(:callbacks), %{}, &check_callback(env, all_definitions, optional_callbacks, &1, &2))
       end
     end)
   end
 
-  defp check_callback(env, all_definitions, optional_callbacks, callback) do
+  defp check_callback(env, all_definitions, optional_callbacks, conflicting_callbacks) do
     {callback, kind} = normalize_macro_or_function_callback(callback)
 
     private_kind = case kind do
@@ -1312,18 +1312,18 @@ defmodule Module do
       nil ->
         case :lists.member(callback, optional_callbacks) do
           false ->
-            :elixir_errors.warn(env.line, env.file, "#{format_definition(kind, callback)} is not implemented (for module #{inspect env.module})")
+              :elixir_errors.warn(env.line, env.file, "#{format_definition(kind, callback)} is not implemented (in module #{inspect env.module})")
           _ ->
             nil
         end
       {callback, ^private_kind, meta, _} ->
-        :elixir_errors.warn(meta[:line] || env.line, env.file, "#{format_definition(kind, callback)} cannot be private (for module #{inspect env.module})")
+        :elixir_errors.warn(meta[:line] || env.line, env.file, "#{format_definition(kind, callback)} cannot be private (in module #{inspect env.module})")
       _ ->
         nil
     end
   end
 
-  defp is_standard_behaviour(behaviour) do
+  defp standard_behaviour?(behaviour) do
     :lists.member(behaviour, [
       Collectable,
       Enumerable,
@@ -1336,10 +1336,7 @@ defmodule Module do
   defp get_callback_definition(all_definitions, callback) do
     {callback, kind} = normalize_macro_or_function_callback(callback)
 
-    Enum.find(all_definitions, fn
-      {^callback, ^kind, _, _} = definition -> definition
-      _ -> nil
-    end)
+    List.keyfind(all_definitions, callback, 0)
   end
 
   defp check_impls(behaviours, impls) do
