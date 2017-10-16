@@ -158,7 +158,7 @@ cd ex_doc && ../elixir/bin/mix do deps.get, compile
 cd ../elixir && make docs
 ```
 
-This will produce documentation sets for `elixir`, `mix`, etc., under
+This will produce documentation sets for `elixir`, `mix`, etc. under
 the `doc` directory. If you are planning to contribute documentation,
 [please check our best practices for writing documentation](https://hexdocs.pm/elixir/writing-documentation.html).
 
