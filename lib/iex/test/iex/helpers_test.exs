@@ -924,6 +924,29 @@ defmodule IEx.HelpersTest do
                return value on screen is executed.\
              """
     end
+
+    defmodule MyIExInfoModule do
+      defstruct []
+
+      defimpl IEx.Info do
+        def info(_), do: [{"A", "it's A"}, {:b, "it's :b"}, {'c', "it's 'c'"}]
+      end
+    end
+
+    test "uses the IEx.Info protocol" do
+      assert capture_io(fn -> i(%MyIExInfoModule{}) end) =~ """
+             Term
+               %IEx.HelpersTest.MyIExInfoModule{}
+             A
+               it's A
+             b
+               it's :b
+             c
+               it's 'c'
+             """
+    after
+      cleanup_modules([MyIExInfoModule])
+    end
   end
 
   defp test_module_code do
