@@ -1350,15 +1350,20 @@ defmodule Code.Formatter do
   end
 
   defp insert_underscores(digits) do
-    if length(digits) >= 6 do
-      digits
-      |> Enum.reverse()
-      |> Enum.chunk_every(3)
-      |> Enum.intersperse('_')
-      |> List.flatten()
-      |> Enum.reverse()
-    else
-      digits
+    cond do
+      ?_ in digits ->
+        digits
+
+      length(digits) >= 6 ->
+        digits
+        |> Enum.reverse()
+        |> Enum.chunk_every(3)
+        |> Enum.intersperse('_')
+        |> List.flatten()
+        |> Enum.reverse()
+
+      true ->
+        digits
     end
   end
 
