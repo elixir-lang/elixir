@@ -1,15 +1,15 @@
 defprotocol IEx.Info do
   @fallback_to_any true
 
-  @spec info(term) :: [{atom, String.t()}]
+  @spec info(term()) :: [{info_name :: String.Chars.t(), info :: String.t()}]
   def info(term)
 end
 
 defimpl IEx.Info, for: Tuple do
   def info(_tuple) do
     [
-      "Data type": "Tuple",
-      "Reference modules": "Tuple"
+      {"Data type", "Tuple"},
+      {"Reference modules", "Tuple"}
     ]
   end
 end
@@ -35,12 +35,12 @@ defimpl IEx.Info, for: Atom do
         return value on screen is executed.
         """
 
-        [Description: description]
+        [{"Description", description}]
       else
         []
       end
 
-    ["Data type": "Atom"] ++ description ++ specific_info
+    [{"Data type", "Atom"}] ++ description ++ specific_info
   end
 
   defp info_module(mod) do
@@ -54,42 +54,43 @@ defimpl IEx.Info, for: Atom do
     mod_info = mod.module_info()
 
     generic_info = [
-      "Module bytecode": module_object_file(mod),
-      Source: module_source_file(mod_info),
-      Version: module_version(mod_info),
-      "Compile options": module_compile_options(mod_info),
-      Description: "#{extra}Call #{inspect(mod)}.module_info() to access metadata."
+      {"Module bytecode", module_object_file(mod)},
+      {"Source", module_source_file(mod_info)},
+      {"Version", module_version(mod_info)},
+      {"Compile options", module_compile_options(mod_info)},
+      {"Description", "#{extra}Call #{inspect(mod)}.module_info() to access metadata."}
     ]
-
-    specific_info =
-      if function_exported?(mod, :__protocol__, 1) do
-        impls =
-          mod
-          |> Protocol.extract_impls(:code.get_path())
-          |> Enum.map_join(", ", &inspect/1)
-
-        [Protocol: "This module is a protocol. These data structures implement it:\n  #{impls}"]
-      else
-        []
-      end
 
     final_info = [
-      "Raw representation": ":" <> inspect(Atom.to_string(mod)),
-      "Reference modules": "Module, Atom"
+      {"Raw representation", ":" <> inspect(Atom.to_string(mod))},
+      {"Reference modules", "Module, Atom"}
     ]
 
-    generic_info ++ specific_info ++ final_info
+    generic_info ++ protocol_info(mod) ++ final_info
+  end
+
+  defp protocol_info(mod) do
+    if function_exported?(mod, :__protocol__, 1) do
+      impls =
+        mod
+        |> Protocol.extract_impls(:code.get_path())
+        |> Enum.map_join(", ", &inspect/1)
+
+      [{"Protocol", "This module is a protocol. These data structures implement it:\n  #{impls}"}]
+    else
+      []
+    end
   end
 
   defp info_module_like_atom(atom) do
     [
-      "Raw representation": ":" <> inspect(Atom.to_string(atom)),
-      "Reference modules": "Atom"
+      {"Raw representation", ":" <> inspect(Atom.to_string(atom))},
+      {"Reference modules", "Atom"}
     ]
   end
 
   defp info_atom(_atom) do
-    ["Reference modules": "Atom"]
+    [{"Reference modules", "Atom"}]
   end
 
   defp module_object_file(mod) do
@@ -125,11 +126,11 @@ defimpl IEx.Info, for: List do
         true -> info_list(list)
       end
 
-    ["Data type": "List"] ++ specific_info
+    [{"Data type", "List"}] ++ specific_info
   end
 
   defp info_charlist(charlist) do
-    desc = """
+    description = """
     This is a list of integers that is printed as a sequence of characters
     delimited by single quotes because all the integers in it represent valid
     ASCII characters. Conventionally, such lists of integers are referred to
@@ -138,23 +139,23 @@ defimpl IEx.Info, for: List do
     """
 
     [
-      Description: desc,
-      "Raw representation": inspect(charlist, charlists: :as_lists),
-      "Reference modules": "List"
+      {"Description", description},
+      {"Raw representation", inspect(charlist, charlists: :as_lists)},
+      {"Reference modules", "List"}
     ]
   end
 
   defp info_kw_list(_kw_list) do
-    desc = """
+    description = """
     This is what is referred to as a "keyword list". A keyword list is a list
     of two-element tuples where the first element of each tuple is an atom.
     """
 
-    [Description: desc, "Reference modules": "Keyword, List"]
+    [{"Description", description}, {"Reference modules", "Keyword, List"}]
   end
 
   defp info_list(_list) do
-    ["Reference modules": "List"]
+    [{"Reference modules", "List"}]
   end
 end
 
@@ -168,28 +169,25 @@ defimpl IEx.Info, for: BitString do
         is_bitstring(bitstring) -> info_bitstring(bitstring)
       end
 
-    ["Data type": "BitString"] ++ specific_info
+    [{"Data type", "BitString"}] ++ specific_info
   end
 
   defp info_string(bitstring) do
-    desc = """
+    description = """
     This is a string: a UTF-8 encoded binary. It's printed surrounded by
     "double quotes" because all UTF-8 encoded codepoints in it are printable.
     """
 
     [
-      "Byte size": byte_size(bitstring),
-      Description: desc,
-      "Raw representation": inspect(bitstring, binaries: :as_binaries),
-      "Reference modules": "String, :binary"
+      {"Byte size", byte_size(bitstring)},
+      {"Description", description},
+      {"Raw representation", inspect(bitstring, binaries: :as_binaries)},
+      {"Reference modules", "String, :binary"}
     ]
   end
 
   defp info_non_printable_string(bitstring) do
-    first_non_printable =
-      bitstring
-      |> String.codepoints()
-      |> Enum.find(fn cp -> not String.printable?(cp) end)
+    first_non_printable = find_first_codepoint(bitstring, &(not String.printable?(&1)))
 
     desc = """
     This is a string: a UTF-8 encoded binary. It's printed with the `<<>>`
@@ -199,50 +197,53 @@ defimpl IEx.Info, for: BitString do
     """
 
     [
-      "Byte size": byte_size(bitstring),
-      Description: desc,
-      "Reference modules": "String, :binary"
+      {"Byte size", byte_size(bitstring)},
+      {"Description", desc},
+      {"Reference modules", "String, :binary"}
     ]
   end
 
   defp info_binary(bitstring) do
-    first_non_valid =
-      bitstring
-      |> String.codepoints()
-      |> Enum.find(fn cp -> not String.valid?(cp) end)
+    first_non_valid = find_first_codepoint(bitstring, &(not String.valid?(&1)))
 
-    desc = """
+    description = """
     This is a binary: a collection of bytes. It's printed with the `<<>>`
     syntax (as opposed to double quotes) because it is not a UTF-8 encoded
     binary (the first invalid byte being `#{inspect(first_non_valid)}`)
     """
 
     [
-      "Byte size": byte_size(bitstring),
-      Description: desc,
-      "Reference modules": ":binary"
+      {"Byte size", byte_size(bitstring)},
+      {"Description", description},
+      {"Reference modules", ":binary"}
     ]
   end
 
   defp info_bitstring(bitstring) do
-    desc = """
+    description = """
     This is a bitstring. It's a chunk of bits that are not divisible by 8
     (the number of bytes isn't whole).
     """
 
-    ["Bits size": bit_size(bitstring), Description: desc]
+    [{"Bits size", bit_size(bitstring)}, {"Description", description}]
+  end
+
+  defp find_first_codepoint(binary, fun) do
+    binary
+    |> String.codepoints()
+    |> Enum.find(fun)
   end
 end
 
 defimpl IEx.Info, for: Integer do
-  def info(_) do
-    ["Data type": "Integer", "Reference modules": "Integer"]
+  def info(_integer) do
+    [{"Data type", "Integer"}, {"Reference modules", "Integer"}]
   end
 end
 
 defimpl IEx.Info, for: Float do
-  def info(_) do
-    ["Data type": "Float", "Reference modules": "Float"]
+  def info(_float) do
+    [{"Data type", "Float"}, {"Reference modules", "Float"}]
   end
 end
 
@@ -257,19 +258,22 @@ defimpl IEx.Info, for: Function do
         info_anon_fun(fun_info)
       end
 
-    ["Data type": "Function"] ++ specific_info
+    [{"Data type", "Function"}] ++ specific_info
   end
 
   defp info_anon_fun(fun_info) do
     [
-      Type: to_string(fun_info[:type]),
-      Arity: fun_info[:arity],
-      Description: "This is an anonymous function."
+      {"Type", to_string(fun_info[:type])},
+      {"Arity", fun_info[:arity]},
+      {"Description", "This is an anonymous function."}
     ]
   end
 
   defp info_named_fun(fun_info) do
-    [Type: to_string(fun_info[:type]), Arity: fun_info[:arity]]
+    [
+      {"Type", to_string(fun_info[:type])},
+      {"Arity", fun_info[:arity]}
+    ]
   end
 end
 
@@ -277,27 +281,27 @@ defimpl IEx.Info, for: PID do
   @keys [:registered_name, :links, :message_queue_len]
 
   def info(pid) do
-    extra =
+    extra_info =
       case :rpc.pinfo(pid, @keys) do
         [_ | _] = info ->
           [
-            Alive: true,
-            Name: process_name(info[:registered_name]),
-            Links: links(info[:links]),
-            "Message queue length": info[:message_queue_len]
+            {"Alive", true},
+            {"Name", process_name(info[:registered_name])},
+            {"Links", links(info[:links])},
+            {"Message queue length", info[:message_queue_len]}
           ]
 
         _ ->
-          [Alive: false]
+          [{"Alive", false}]
       end
 
     final_info =
       [
-        Description: "Use Process.info/1 to get more info about this process",
-        "Reference modules": "Process, Node"
+        {"Description", "Use Process.info/1 to get more info about this process"},
+        {"Reference modules", "Process, Node"}
       ]
 
-    ["Data type": "PID"] ++ extra ++ final_info
+    [{"Data type", "PID"}] ++ extra_info ++ final_info
   end
 
   defp process_name([]), do: "not registered"
@@ -308,8 +312,8 @@ defimpl IEx.Info, for: PID do
 end
 
 defimpl IEx.Info, for: Map do
-  def info(_) do
-    ["Data type": "Map", "Reference modules": "Map"]
+  def info(_map) do
+    [{"Data type", "Map"}, {"Reference modules", "Map"}]
   end
 end
 
@@ -318,16 +322,16 @@ defimpl IEx.Info, for: Port do
     connected = :rpc.call(node(port), :erlang, :port_info, [port, :connected])
 
     [
-      "Data type": "Port",
-      Open: match?({:connected, _}, connected),
-      "Reference modules": "Port"
+      {"Data type", "Port"},
+      {"Open", match?({:connected, _}, connected)},
+      {"Reference modules", "Port"}
     ]
   end
 end
 
 defimpl IEx.Info, for: Reference do
-  def info(_) do
-    ["Data type": "Reference"]
+  def info(_ref) do
+    [{"Data type", "Reference"}]
   end
 end
 
@@ -340,17 +344,17 @@ defimpl IEx.Info, for: [Date, Time, NaiveDateTime] do
     end
 
   def info(value) do
-    desc = """
+    description = """
     This is a struct representing a #{unquote(repr)}. It is commonly
     represented using the `~#{unquote(sigil)}` sigil syntax, that is
     defined in the `Kernel.sigil_#{unquote(sigil)}/2` macro.
     """
 
     [
-      "Data type": inspect(@for),
-      Description: desc,
-      "Raw representation": raw_inspect(value),
-      "Reference modules": inspect(@for) <> ", Calendar, Map"
+      {"Data type", inspect(@for)},
+      {"Description", description},
+      {"Raw representation", raw_inspect(value)},
+      {"Reference modules", inspect(@for) <> ", Calendar, Map"}
     ]
   end
 
@@ -365,9 +369,9 @@ end
 defimpl IEx.Info, for: Any do
   def info(%module{}) do
     [
-      "Data type": inspect(module),
-      Description: "This is a struct. Structs are maps with a __struct__ key.",
-      "Reference modules": inspect(module) <> ", Map"
+      {"Data type", inspect(module)},
+      {"Description", "This is a struct. Structs are maps with a __struct__ key."},
+      {"Reference modules", inspect(module) <> ", Map"}
     ]
   end
 end
