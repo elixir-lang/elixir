@@ -265,8 +265,7 @@ defmodule Code do
   When the code does not fit a single line, the formatter introduces
   line breaks in the code.
 
-  In some rare situations, this may lead to undesired formatting,
-  especially when it comes to strings with interpolation at the end.
+  In some rare situations, this may lead to undesired formatting.
   For example, the code below:
 
       "this is a very long string ... #{inspect(some_value)}"
@@ -283,14 +282,33 @@ defmodule Code do
   code. Here we can use the binary concatenation operator `<>`:
 
       "this is a very long string " <>
-        "... #{inspect(some_value)}" 
+        "... #{inspect(some_value)}"
 
   The string concatenation makes the code fit on a single line and also
-  gives more options to the formatter. 
+  gives more options to the formatter.
+
+  A similar example is when the formatter breaks a fuction definition
+  over multiple clauses:
+
+      def my_function(
+        %User{name: name, age: age, ...},
+        arg1,
+        arg2
+      ) do
+
+  While the code above is completely valid, you may prefer to match on
+  the struct variables inside the function body in order to keep the
+  definition on a single line:
+
+      def my_function(%User{} = user, arg1, arg2) do
+        %{name: name, age: age, ...} = user
+
+  Since the formatter cannot change the semantics of your code,
+  sometimes it is necessary to tweak the code to get optimal formatting.
 
   ### Multi-line lists, maps, tuples, etc
 
-  You can force lists, tuples, bitstrings, maps, and structs to be have
+  You can force lists, tuples, bitstrings, maps, and structs to have
   one entry per line by adding a newline after the opening bracket and
   a new line before the closing bracket lines. For example:
 
@@ -331,8 +349,7 @@ defmodule Code do
         ...
       }
 
-  However, in some circumstances this behaviour may be undesired. For
-  example:
+  In some circumstances this behaviour may be undesired. For example:
 
       assert some_long_expression(foo, bar) == {
                :ok,
