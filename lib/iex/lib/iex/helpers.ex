@@ -465,9 +465,8 @@ defmodule IEx.Helpers do
 
   """
   def i(term \\ v(-1)) do
-    info =
-      [Term: inspect(term)] ++
-        IEx.Info.info(term) ++ ["Implemented protocols": all_implemented_protocols_for_term(term)]
+    implemented_protocols = [{"Implemented protocols", all_implemented_protocols_for_term(term)}]
+    info = [{"Term", inspect(term)}] ++ IEx.Info.info(term) ++ implemented_protocols
 
     for {subject, info} <- info do
       info = info |> to_string() |> String.trim() |> String.replace("\n", "\n  ")
