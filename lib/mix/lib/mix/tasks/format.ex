@@ -8,6 +8,9 @@ defmodule Mix.Tasks.Format do
 
       mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
+  If any of the files is `-`, then the output is read from stdin
+  and written to stdout.
+
   Formatting is done with the `Code.format_string!/2` function.
   A `.formatter.exs` file can also be defined for customizing input
   files and the formatter itself.
@@ -26,8 +29,6 @@ defmodule Mix.Tasks.Format do
       formatting files.
 
     * `--dry-run` - do not save files after formatting.
-
-    * `--print` - write formatted files to stdout instead of saving to disk.
 
     * `--dot-formatter` - the file with formatter configuration.
       Defaults to `.formatter.exs` if one is available, see next section.
@@ -130,7 +131,7 @@ defmodule Mix.Tasks.Format do
 
   defp expand_files_and_patterns(files_and_patterns, context) do
     files_and_patterns
-    |> Enum.flat_map(&Path.wildcard/1)
+    |> Enum.flat_map(&stdin_or_wildcard/1)
     |> Enum.uniq()
     |> case do
          [] ->
@@ -144,9 +145,23 @@ defmodule Mix.Tasks.Format do
        end
   end
 
+  defp stdin_or_wildcard("-"), do: ["-"]
+  defp stdin_or_wildcard(path), do: Path.wildcard(path)
+
+  defp read_file("-") do
+    {IO.stream(:stdio, :line) |> Enum.to_list() |> IO.iodata_to_binary(), file: "stdin"}
+  end
+
+  defp read_file(file) do
+    {File.read!(file), file: file}
+  end
+
+  defp write_file("-", contents), do: IO.write(contents)
+  defp write_file(file, contents), do: File.write!(file, contents)
+
   defp format_file(file, task_opts, formatter_opts) do
-    input = File.read!(file)
-    output = [Code.format_string!(input, [file: file] ++ formatter_opts), ?\n]
+    {input, extra_opts} = read_file(file)
+    output = [Code.format_string!(input, extra_opts ++ formatter_opts), ?\n]
 
     check_equivalent? = Keyword.get(task_opts, :check_equivalent, false)
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
@@ -175,15 +190,13 @@ defmodule Mix.Tasks.Format do
 
   defp write_or_print(file, output, check_formatted?, task_opts) do
     dry_run? = Keyword.get(task_opts, :dry_run, false)
-    print? = Keyword.get(task_opts, :print, false)
 
-    cond do
-      dry_run? or check_formatted? -> :ok
-      print? -> IO.write(output)
-      true -> File.write!(file, output)
+    if dry_run? or check_formatted? do
+      :ok
+    else
+      write_file(file, output)
+      :ok
     end
-
-    :ok
   end
 
   defp collect_status!({:ok, :ok}, acc), do: acc
