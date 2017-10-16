@@ -18,7 +18,10 @@ defmodule IEx.InfoTest do
       info = Info.info(Foo)
       assert get_key(info, "Data type") == "Atom"
       assert get_key(info, "Source") == Path.relative_to_cwd(__ENV__.file)
-      assert get_key(info, "Description") == "Call IEx.InfoTest.Foo.module_info() to access metadata."
+
+      assert get_key(info, "Description") ==
+               "Call IEx.InfoTest.Foo.module_info() to access metadata."
+
       assert get_key(info, "Raw representation") == ~s(:"Elixir.IEx.InfoTest.Foo")
     end
 
@@ -189,7 +192,10 @@ defmodule IEx.InfoTest do
                "%NaiveDateTime{calendar: Calendar.ISO, day: 1, hour: 23, microsecond: {0, 0}, minute: 59, month: 1, second: 59, year: 2017}"
 
       assert get_key(info, "Reference modules") == "NaiveDateTime, Calendar, Map"
-      assert get_key(info, "Description") =~ ~S{a "naive" datetime (that is, a datetime without a timezone)}
+
+      assert get_key(info, "Description") =~
+               ~S{a "naive" datetime (that is, a datetime without a timezone)}
+
       assert get_key(info, "Description") =~ "`~N`"
     end
   end
@@ -197,7 +203,10 @@ defmodule IEx.InfoTest do
   test "structs" do
     info = Info.info(%Foo{})
     assert get_key(info, "Data type") == "IEx.InfoTest.Foo"
-    assert get_key(info, "Description") == "This is a struct. Structs are maps with a __struct__ key."
+
+    assert get_key(info, "Description") ==
+             "This is a struct. Structs are maps with a __struct__ key."
+
     assert get_key(info, "Reference modules") == "IEx.InfoTest.Foo, Map"
   end
 
