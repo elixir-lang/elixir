@@ -762,16 +762,9 @@ defmodule Code.Formatter do
           binary_op_to_algebra(op, op_string, meta, left, right, context, state, op_info, 2)
       end
     else
-      {:&, _, [arg]} when not is_integer(arg) ->
+      {:&, _, [arg]} when not is_integer(arg) and side == :left ->
         {doc, state} = quoted_to_algebra(operand, context, state)
-        {_, prec} = Code.Identifier.unary_op(:&)
-        {_, parent_prec} = parent_info
-
-        if parent_prec < prec do
-          {doc, state}
-        else
-          {wrap_in_parens(doc), state}
-        end
+        {wrap_in_parens(doc), state}
 
       _ ->
         quoted_to_algebra(operand, context, state)
