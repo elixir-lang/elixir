@@ -22,7 +22,7 @@ defmodule Date.Range do
   defstruct [:first, :last, :first_in_iso_days, :last_in_iso_days]
 
   defimpl Enumerable do
-    def member?(range, %Date{calendar: calendar} = date) do
+    def member?(range, %Date{calendar: _calendar} = date) do
       %{
         first: first,
         last: last,
