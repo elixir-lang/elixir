@@ -15,15 +15,6 @@ defmodule RangeTest do
     assert (1..3).last == 3
   end
 
-  test "range?" do
-    assert Range.range?(1..3)
-    refute Range.range?(0)
-    assert %Range{first: -10, last: 10} |> Range.range?()
-    refute %Range{first: nil, last: 10} |> Range.range?()
-    refute %Range{first: -10, last: nil} |> Range.range?()
-    refute %Range{} |> Range.range?()
-  end
-
   test "enum" do
     refute Enum.empty?(1..1)
 
