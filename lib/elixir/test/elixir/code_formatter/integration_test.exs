@@ -327,4 +327,14 @@ defmodule Code.Formatter.IntegrationTest do
       """
     end)
   end
+
+  test "anonymous function with parens around integer argument" do
+    bad = """
+    fn (1) -> "hello" end
+    """
+
+    assert_format bad, """
+    fn 1 -> "hello" end
+    """
+  end
 end
