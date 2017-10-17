@@ -143,10 +143,10 @@ defmodule Mix.Tasks.Format do
        end
   end
 
-  defp stdin_or_wildcard("-"), do: ["-"]
+  defp stdin_or_wildcard("-"), do: [:stdin]
   defp stdin_or_wildcard(path), do: Path.wildcard(path)
 
-  defp read_file("-") do
+  defp read_file(:stdin) do
     {IO.stream(:stdio, :line) |> Enum.to_list() |> IO.iodata_to_binary(), file: "stdin"}
   end
 
@@ -154,7 +154,7 @@ defmodule Mix.Tasks.Format do
     {File.read!(file), file: file}
   end
 
-  defp write_file("-", contents), do: IO.write(contents)
+  defp write_file(:stdin, contents), do: IO.write(contents)
   defp write_file(file, contents), do: File.write!(file, contents)
 
   defp format_file(file, task_opts, formatter_opts) do
@@ -237,12 +237,8 @@ defmodule Mix.Tasks.Format do
   end
 
   defp to_bullet_list(files) do
-    Enum.map_join(files, "\n", &bullet_line/1)
+    Enum.map_join(files, "\n", &"  * #{&1}")
   end
-
-  defp bullet_line("-"), do: ["  * stdin"]
-
-  defp bullet_line(file), do: ["  * ", file]
 
   defp equivalent?(input, output) do
     Code.Formatter.equivalent(input, output) == :ok
