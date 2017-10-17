@@ -1494,6 +1494,8 @@ defimpl Enumerable, for: Stream do
     {:error, __MODULE__}
   end
 
+  def max(_lazy), do: {:error, __MODULE__}
+
   def member?(_lazy, _value) do
     {:error, __MODULE__}
   end

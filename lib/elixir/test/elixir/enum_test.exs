@@ -377,6 +377,10 @@ defmodule EnumTest do
     assert Enum.max([1]) == 1
     assert Enum.max([1, 2, 3]) == 3
     assert Enum.max([1, [], :a, {}]) == []
+    assert Enum.max(1..10) == 10
+    assert Enum.max(10..1) == 10
+    assert Enum.max(Date.range(~D[1999-12-30], ~D[2000-01-01])) == ~D[2000-01-01]
+    assert Enum.max(Date.range(~D[2000-01-01], ~D[1999-12-30])) == ~D[2000-01-01]
 
     assert_raise Enum.EmptyError, fn ->
       Enum.max([])

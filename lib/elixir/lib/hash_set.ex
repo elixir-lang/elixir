@@ -262,6 +262,8 @@ defimpl Enumerable, for: HashSet do
     module.reduce(set, acc, fun)
   end
 
+  def max(_set), do: {:error, __MODULE__}
+
   def member?(set, term) do
     # Avoid warnings about HashSet being deprecated.
     module = HashSet

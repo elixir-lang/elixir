@@ -131,6 +131,10 @@ defprotocol Enumerable do
   @spec member?(t, term) :: {:ok, boolean} | {:error, module}
   def member?(enumerable, element)
 
+  @doc false
+  @spec max(t) :: {:ok, term} | {:error, module}
+  def max(enumerable)
+
   @doc """
   Retrieves the enumerable's size.
 
@@ -1442,7 +1446,13 @@ defmodule Enum do
   def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def max(enumerable, empty_fallback) do
-    aggregate(enumerable, & &1, &Kernel.max/2, empty_fallback)
+    case Enumerable.max(enumerable) do
+      {:ok, element} ->
+        element
+
+      {:error, _module} ->
+        aggregate(enumerable, & &1, &Kernel.max/2, empty_fallback)
+    end
   end
 
   @doc """
@@ -3249,6 +3259,8 @@ end
 defimpl Enumerable, for: List do
   def count(_list), do: {:error, __MODULE__}
 
+  def max(_list), do: {:error, __MODULE__}
+
   def member?(_list, _value), do: {:error, __MODULE__}
 
   def reduce(_, {:halt, acc}, _fun), do: {:halted, acc}
@@ -3261,6 +3273,8 @@ defimpl Enumerable, for: Map do
   def count(map) do
     {:ok, map_size(map)}
   end
+
+  def max(_map), do: {:error, __MODULE__}
 
   def member?(map, {key, value}) do
     {:ok, match?(%{^key => ^value}, map)}
@@ -3282,6 +3296,8 @@ end
 
 defimpl Enumerable, for: Function do
   def count(_function), do: {:error, __MODULE__}
+
+  def max(_function), do: {:error, __MODULE__}
 
   def member?(_function, _value), do: {:error, __MODULE__}
 

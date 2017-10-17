@@ -22,6 +22,14 @@ defmodule Date.Range do
   defstruct [:first, :last, :first_in_iso_days, :last_in_iso_days]
 
   defimpl Enumerable do
+    def max(%Date.Range{first: first, last: last}) do
+      if Date.compare(last, first) == :gt do
+        {:ok, last}
+      else
+        {:ok, first}
+      end
+    end
+
     def member?(
           %{
             first: %{calendar: calendar, year: first_year, month: first_month, day: first_day},

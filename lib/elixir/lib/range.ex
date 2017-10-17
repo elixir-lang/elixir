@@ -100,6 +100,14 @@ defimpl Enumerable, for: Range do
     {:done, acc}
   end
 
+  def max(first..last) do
+    if last > first do
+      {:ok, last}
+    else
+      {:ok, first}
+    end
+  end
+
   def member?(first..last, value) when is_integer(value) do
     if first <= last do
       {:ok, first <= value and value <= last}
