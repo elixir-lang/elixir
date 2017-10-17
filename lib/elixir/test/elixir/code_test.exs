@@ -163,6 +163,11 @@ defmodule CodeTest do
 
     assert string_to_quoted.("'''\nhello\n'''") ==
              {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}
+
+    left = {:__block__, [original: '1', line: 1, line: 1, end_line: 1], [1]}
+    right = {:__block__, [format: :string, line: 1], ["hello"]}
+    args = [{:->, [line: 1], [[left], right]}]
+    assert string_to_quoted.(~s[fn (1) -> "hello" end]) == {:fn, [line: 1, end_line: 1], args}
   end
 
   test "string_to_quoted/2 with :formatter_metadata adds newlines to blocks" do
