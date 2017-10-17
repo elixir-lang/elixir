@@ -91,6 +91,21 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
+  test "checks if stdin is formatted with --check-formatted" do
+    assert_raise Mix.Error, ~r"mix format failed due to --check-formatted", fn ->
+      capture_io("foo( )", fn ->
+        Mix.Tasks.Format.run(["--check-formatted", "-"])
+      end)
+    end
+
+    output =
+      capture_io("foo()\n", fn ->
+        Mix.Tasks.Format.run(["--check-formatted", "-"])
+      end)
+
+    assert output == ""
+  end
+
   test "checks if file is equivalent with --check-equivalent", context do
     in_tmp context.test, fn ->
       File.write!("a.ex", """
