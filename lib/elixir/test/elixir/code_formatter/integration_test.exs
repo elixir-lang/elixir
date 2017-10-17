@@ -328,7 +328,7 @@ defmodule Code.Formatter.IntegrationTest do
     end)
   end
 
-  test "anonymous function with parens around argument doesn't throw meta out" do
+  test "anonymous function with parens around integer argument" do
     bad = """
     fn (1) -> "hello" end
     """
