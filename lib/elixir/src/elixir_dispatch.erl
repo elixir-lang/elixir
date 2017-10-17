@@ -397,6 +397,8 @@ deprecation('Elixir.Macro', unescape_tokens, 1) ->
   "instead traverse over the arguments using Enum.map/2";
 deprecation('Elixir.Macro', unescape_tokens, 2) ->
   "instead traverse over the arguments using Enum.map/2";
+deprecation('Elixir.Range', 'range?', 1) ->
+  "instead pattern match on left..right";
 deprecation('Elixir.Stream', filter_map, 3) ->
   "use Stream.filter/2 + Stream.map/2";
 deprecation('Elixir.Stream', uniq, 2) ->

@@ -57,18 +57,8 @@ defmodule Range do
             "got: #{inspect(first)}..#{inspect(last)}"
   end
 
-  @doc """
-  Returns `true` if the given `term` is a valid range.
-
-  ## Examples
-
-      iex> Range.range?(1..3)
-      true
-
-      iex> Range.range?(0)
-      false
-
-  """
+  # TODO: Remove by 2.0
+  @doc false
   @spec range?(term) :: boolean
   def range?(term)
   def range?(first..last) when is_integer(first) and is_integer(last), do: true
