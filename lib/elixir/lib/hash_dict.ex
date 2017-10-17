@@ -252,6 +252,8 @@ defimpl Enumerable, for: HashDict do
     module.reduce(dict, acc, fun)
   end
 
+  def max(_dict), do: {:error, __MODULE__}
+
   def member?(dict, {key, value}) do
     # Avoid warnings about HashDict being deprecated.
     module = HashDict

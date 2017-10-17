@@ -120,6 +120,8 @@ defmodule File.Stream do
       end
     end
 
+    def max(_stream), do: {:error, __MODULE__}
+
     def member?(_stream, _term) do
       {:error, __MODULE__}
     end

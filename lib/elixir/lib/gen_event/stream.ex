@@ -57,6 +57,8 @@ defimpl Enumerable, for: GenEvent.Stream do
     {:error, __MODULE__}
   end
 
+  def max(_stream), do: {:error, __MODULE__}
+
   def member?(_stream, _item) do
     {:error, __MODULE__}
   end
