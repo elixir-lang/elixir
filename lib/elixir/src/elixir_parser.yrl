@@ -894,8 +894,8 @@ build_stab(Other) ->
 
 build_stab(Before, Stab, After) ->
   case build_stab(Stab) of
-    {'__block__', _, Block} ->
-      {'__block__', meta_from_token_with_endline(Before, After), Block};
+    {'__block__', Meta, Block} ->
+      {'__block__', Meta ++ meta_from_token_with_endline(Before, After), Block};
     Other ->
       Other
   end.

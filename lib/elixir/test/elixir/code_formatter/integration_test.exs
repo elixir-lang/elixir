@@ -327,4 +327,14 @@ defmodule Code.Formatter.IntegrationTest do
       """
     end)
   end
+
+  test "anonymous function with parens around argument doesn't throw meta out" do
+    bad = """
+    fn (1) -> "hello" end
+    """
+
+    assert_format bad, """
+    fn 1 -> "hello" end
+    """
+  end
 end
