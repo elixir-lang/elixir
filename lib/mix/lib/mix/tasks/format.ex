@@ -237,8 +237,12 @@ defmodule Mix.Tasks.Format do
   end
 
   defp to_bullet_list(files) do
-    Enum.map_join(files, "\n", &["  * ", &1])
+    Enum.map_join(files, "\n", &bullet_line/1)
   end
+
+  defp bullet_line("-"), do: ["  * stdin"]
+
+  defp bullet_line(file), do: ["  * ", file]
 
   defp equivalent?(input, output) do
     Code.Formatter.equivalent(input, output) == :ok
