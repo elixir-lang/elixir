@@ -20,7 +20,7 @@ defmodule ExUnit.AssertionsTest do
   use ExUnit.Case, async: true
 
   defmacro sigil_l({:<<>>, _, [string]}, _), do: Code.string_to_quoted!(string, [])
-  defmacro argless_macro(), do: raise "should not be invoked"
+  defmacro argless_macro(), do: raise("should not be invoked")
 
   defmacrop assert_ok(arg) do
     quote do
