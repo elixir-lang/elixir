@@ -33,15 +33,13 @@ defmodule Logger do
   level. There are additional macros for other levels. Notice the argument
   passed to `Logger.info/2` in the above example is a zero argument function.
 
-  Although the `Logger` macros accept messages as strings as well as functions,
-  it's recommended to use functions whenever the message is expensive to
-  compute. In the example above, the message is evaluated (and thus so is the
-  interpolation inside it) regardless of the level, even if the message will not
-  be actually logged at runtime; the only way of avoiding evaluation of such
-  message is purging the log call at compile-time through the
-  `:compile_time_purge_level` option (see below), or using a function that is
-  evaluated to generate the message only if the message needs to be logged
-  according to the runtime level.
+  The `Logger` macros also accept messages as strings, but keep in mind that
+  strings are **always** evaluated regardless of log-level. As such, it is
+  recommended to use a function whenever the message is expensive to compute.
+
+  Another option that does not depend on the message type is to purge the log
+  calls at compile-time using the `:compile_time_purge_level` option (see
+  below).
 
   ## Levels
 
