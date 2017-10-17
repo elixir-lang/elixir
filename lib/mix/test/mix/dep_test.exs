@@ -269,15 +269,8 @@ defmodule Mix.DepTest do
   test "deps with system_env set" do
     dep_path = MixTest.Case.tmp_path("rebar_dep")
 
-    deps = [
-      {
-        :rebar_dep,
-        path: dep_path,
-        app: false,
-        manager: :rebar,
-        system_env: [{"FILE_FROM_ENV", "dep-test"}, {"CONTENTS_FROM_ENV", "contents dep test"}]
-      }
-    ]
+    system_env = [{"FILE_FROM_ENV", "dep-test"}, {"CONTENTS_FROM_ENV", "contents dep test"}]
+    deps = [{:rebar_dep, path: dep_path, app: false, manager: :rebar, system_env: system_env}]
 
     with_deps(deps, fn ->
       in_tmp "load dependency with env vars", fn ->
