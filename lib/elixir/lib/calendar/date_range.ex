@@ -22,15 +22,17 @@ defmodule Date.Range do
   defstruct [:first, :last, :first_in_iso_days, :last_in_iso_days]
 
   defimpl Enumerable do
-    def member?(
-          %{
-            first: %{calendar: calendar, year: first_year, month: first_month, day: first_day},
-            last: %{calendar: calendar, year: last_year, month: last_month, day: last_day},
-            first_in_iso_days: first_in_iso_days,
-            last_in_iso_days: last_in_iso_days
-          },
-          %Date{calendar: calendar, year: year, month: month, day: day}
-        ) do
+    def member?(range, %Date{calendar: calendar} = date) do
+      %{
+        first: first,
+        last: last,
+        first_in_iso_days: first_in_iso_days,
+        last_in_iso_days: last_in_iso_days
+      } = range
+
+      %{year: first_year, month: first_month, day: first_day} = first
+      %{year: last_year, month: last_month, day: last_day} = last
+      %{year: year, month: month, day: day} = date
       first = {first_year, first_month, first_day}
       last = {last_year, last_month, last_day}
       date = {year, month, day}
@@ -46,30 +48,19 @@ defmodule Date.Range do
       {:ok, false}
     end
 
-    def count(%Date.Range{
-          first_in_iso_days: first_in_iso_days,
-          last_in_iso_days: last_in_iso_days
-        }) do
+    def count(%{first_in_iso_days: first_in_iso_days, last_in_iso_days: last_in_iso_days}) do
       {:ok, abs(first_in_iso_days - last_in_iso_days) + 1}
     end
 
-    def reduce(
-          %Date.Range{
-            first_in_iso_days: first_in_iso_days,
-            last_in_iso_days: last_in_iso_days,
-            first: %{calendar: calendar}
-          },
-          acc,
-          fun
-        ) do
-      reduce(
-        first_in_iso_days,
-        last_in_iso_days,
-        acc,
-        fun,
-        calendar,
-        first_in_iso_days <= last_in_iso_days
-      )
+    def reduce(range, acc, fun) do
+      %Date.Range{
+        first_in_iso_days: first_in_iso_days,
+        last_in_iso_days: last_in_iso_days,
+        first: %{calendar: calendar}
+      } = range
+
+      up? = first_in_iso_days <= last_in_iso_days
+      reduce(first_in_iso_days, last_in_iso_days, acc, fun, calendar, up?)
     end
 
     defp reduce(_x, _y, {:halt, acc}, _fun, _calendar, _up?) do
