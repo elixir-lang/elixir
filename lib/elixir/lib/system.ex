@@ -420,7 +420,7 @@ defmodule System do
   Sets multiple environment variables.
 
   Sets a new value for each environment variable corresponding
-  to each key in `dict`.
+  to each `{key, value}` pair in `enum`.
   """
   @spec put_env(Enumerable.t()) :: :ok
   def put_env(enum) do
