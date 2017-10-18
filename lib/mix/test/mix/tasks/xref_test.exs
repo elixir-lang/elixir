@@ -406,14 +406,16 @@ defmodule Mix.Tasks.XrefTest do
   ## Callers
 
   test "callers: prints callers of specified Module" do
-    code = """
-    defmodule A do
-      def a, do: A.a()
-      def a(arg), do: A.a(arg)
-      def b, do: A.b()
-      def c, do: B.a()
-    end
-    """
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: A.a()
+        def a(arg), do: A.a(arg)
+        def b, do: A.b()
+        def c, do: B.a()
+      end
+      """
+    }
 
     output = """
     lib/a.ex:2: A.a/0
@@ -421,79 +423,86 @@ defmodule Mix.Tasks.XrefTest do
     lib/a.ex:4: A.b/0
     """
 
-    assert_callers("A", code, output)
+    assert_callers("A", files, output)
   end
 
   test "callers: prints callers of specified Module.func" do
-    code = """
-    defmodule A do
-      def a, do: A.a()
-      def a(arg), do: A.a(arg)
-      def b, do: A.b()
-      def c, do: B.a()
-    end
-    """
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: A.a()
+        def a(arg), do: A.a(arg)
+        def b, do: A.b()
+        def c, do: B.a()
+      end
+      """
+    }
 
     output = """
     lib/a.ex:2: A.a/0
     lib/a.ex:3: A.a/1
     """
 
-    assert_callers("A.a", code, output)
+    assert_callers("A.a", files, output)
   end
 
   test "callers: prints callers of specified Module.func/arity" do
-    code = """
-    defmodule A do
-      def a, do: A.a()
-      def a(arg), do: A.a(arg)
-      def b, do: A.b()
-      def c, do: B.a()
-    end
-    """
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: A.a()
+        def a(arg), do: A.a(arg)
+        def b, do: A.b()
+        def c, do: B.a()
+      end
+      """
+    }
 
     output = """
     lib/a.ex:2: A.a/0
     """
 
-    assert_callers("A.a/0", code, output)
+    assert_callers("A.a/0", files, output)
   end
 
   test "callers: lists compile calls and macros" do
-    code1 = """
-    defmodule A do
-      defmacro a_macro, do: :ok
-      def a, do: :ok
-    end
-    """
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        defmacro a_macro, do: :ok
+        def a, do: :ok
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        require A
 
-    code2 = """
-    defmodule B do
-      require A
-
-      A.a_macro()
-      A.a()
-    end
-    """
+        A.a_macro()
+        A.a()
+      end
+      """
+    }
 
     output = """
     lib/b.ex:5: A.a/0
     lib/b.ex:4: A.a_macro/0
     """
 
-    assert_callers("A", code1, code2, output)
+    assert_callers("A", files, output)
   end
 
   test "callers: handles aliases" do
-    code = """
-    defmodule A do
-      alias Enum, as: E
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        alias Enum, as: E
 
-      E.map([], &E.flatten/1)
+        E.map([], &E.flatten/1)
 
-      def a(a, b), do: E.map(a, b)
-    end
-    """
+        def a(a, b), do: E.map(a, b)
+      end
+      """
+    }
 
     output = """
     lib/a.ex:4: Enum.flatten/1
@@ -501,25 +510,27 @@ defmodule Mix.Tasks.XrefTest do
     lib/a.ex:6: Enum.map/2
     """
 
-    assert_callers("Enum", code, output)
+    assert_callers("Enum", files, output)
   end
 
   test "callers: handles imports" do
-    code = ~S"""
-    defmodule A do
-      import Integer
+    files = %{
+      "lib/a.ex" => ~S"""
+      defmodule A do
+        import Integer
 
-      &is_even/1
-      &parse/1
+        &is_even/1
+        &parse/1
 
-      _ = is_even(Enum.random([1]))
-      _ = parse("2")
+        _ = is_even(Enum.random([1]))
+        _ = parse("2")
 
-      def a(a), do: is_even(a)
-      def b(a), do: parse(a)
-      _ = is_even(Enum.random([1])); def c(a), do: is_even(a)
-    end
-    """
+        def a(a), do: is_even(a)
+        def b(a), do: parse(a)
+        _ = is_even(Enum.random([1])); def c(a), do: is_even(a)
+      end
+      """
+    }
 
     output = """
     lib/a.ex:4: Integer.is_even/1
@@ -531,7 +542,7 @@ defmodule Mix.Tasks.XrefTest do
     lib/a.ex:11: Integer.parse/1
     """
 
-    assert_callers("Integer", code, output)
+    assert_callers("Integer", files, output)
   end
 
   test "callers: no argument gives error" do
@@ -566,10 +577,11 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
-  defp assert_callers(callee, contents_a, contents_b \\ "", expected) do
+  defp assert_callers(callee, files, expected) do
     in_fixture "no_mixfile", fn ->
-      File.write!("lib/a.ex", contents_a)
-      File.write!("lib/b.ex", contents_b)
+      for {file, contents} <- files do
+        File.write!(file, contents)
+      end
 
       output =
         capture_io(fn ->
