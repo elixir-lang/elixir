@@ -298,39 +298,45 @@ defmodule Mix.Utils do
         ) :: :ok
   def write_dot_graph!(path, title, nodes, callback, _opts \\ []) do
     {dot, _} = build_dot_graph(make_ref(), nodes, MapSet.new(), callback)
-    File.write!(path, "digraph \"#{title}\" {\n#{dot}}\n")
+    File.write!(path, ["digraph ", quoted(title), " {\n", dot, "}\n"])
   end
 
-  defp build_dot_graph(_parent, [], seen, _callback), do: {"", seen}
+  defp build_dot_graph(_parent, [], seen, _callback), do: {[], seen}
 
   defp build_dot_graph(parent, [node | nodes], seen, callback) do
     {{name, edge_info}, children} = callback.(node)
     key = {parent, name}
 
     if MapSet.member?(seen, key) do
-      {"", seen}
+      {[], seen}
     else
       seen = MapSet.put(seen, key)
       current = build_dot_current(parent, name, edge_info)
       {children, seen} = build_dot_graph(name, children, seen, callback)
       {siblings, seen} = build_dot_graph(parent, nodes, seen, callback)
-      {current <> children <> siblings, seen}
+      {[current, children | siblings], seen}
     end
   end
 
   defp build_dot_current(parent, name, edge_info) do
     edge_info =
       if edge_info do
-        ~s( [label="#{edge_info}"])
+        [" [label=", quoted(edge_info), "]"]
+      else
+        []
       end
 
     parent =
-      unless is_reference(parent) do
-        ~s("#{parent}" -> )
+      if is_reference(parent) do
+        []
+      else
+        [quoted(parent), " -> "]
       end
 
-    ~s(  #{parent}"#{name}"#{edge_info}\n)
+    ["  ", parent, quoted(name), edge_info, ?\n]
   end
+
+  defp quoted(data), do: [?", to_string(data), ?"]
 
   @doc false
   def underscore(value) do
