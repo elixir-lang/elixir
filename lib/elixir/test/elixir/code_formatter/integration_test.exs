@@ -143,6 +143,12 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "spec with multiple keys on type" do
+    assert_same """
+    @spec foo(%{(String.t() | atom) => any}) :: any
+    """
+  end
+
   test "multiple whens with new lines" do
     assert_same """
     def sleep(timeout)
