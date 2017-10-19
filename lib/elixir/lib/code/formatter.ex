@@ -538,7 +538,14 @@ defmodule Code.Formatter do
     else
       {left_doc, state} = quoted_to_algebra(left, context, state)
       {right_doc, state} = quoted_to_algebra(right, context, state)
-      {left_doc |> concat(" => ") |> concat(group(right_doc)), state}
+
+      doc =
+        left_doc
+        |> wrap_in_parens_if_binary_operator(left)
+        |> concat(" => ")
+        |> concat(group(right_doc))
+
+      {doc, state}
     end
   end
 

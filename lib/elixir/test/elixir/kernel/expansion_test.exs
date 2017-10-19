@@ -360,7 +360,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "with variables on keys" do
-      assert expand(quote(do: %{x = 1 => 1})) == quote(do: %{x = 1 => 1})
+      assert expand(quote(do: %{(x = 1) => 1})) == quote(do: %{(x = 1) => 1})
 
       assert_raise CompileError, ~r"illegal use of variable x inside map key match,", fn ->
         expand(quote(do: %{x => 1} = %{}))
