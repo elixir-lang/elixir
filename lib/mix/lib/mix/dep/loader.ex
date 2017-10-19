@@ -153,7 +153,7 @@ defmodule Mix.Dep.Loader do
       |> Keyword.put(:dest, dest)
       |> Keyword.put(:build, build)
 
-    {system_env, opts} = opts |> Keyword.pop(:system_env, [])
+    {system_env, opts} = Keyword.pop(opts, :system_env, [])
     {scm, opts} = get_scm(app, opts)
 
     {scm, opts} =
