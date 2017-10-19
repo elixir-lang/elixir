@@ -63,7 +63,7 @@ handle_file_warning(_, _File, {_Line, erl_lint, {undefined_behaviour, _Module}})
 handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_behaviour_callbacks, _Behaviour}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_optional_callbacks, _Behaviour}}) -> ok;
 % handle_file_warning(_, _File, {_Line, erl_lint, {behaviour_info, {_M, _F, _A}}}) -> ok;
-% handle_file_warning(_, _File, {_Line, erl_lint, {redefine_optional_callback, {_F, _A}}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {redefine_optional_callback, {_F, _A}}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {undefined_callback, {_M, _F, _A}}}) -> ok;
 
 handle_file_warning(_, File, {Line, Module, Desc}) ->
