@@ -1281,6 +1281,20 @@ defmodule Code.Formatter do
     {surround(name_doc, args_doc, "}"), state}
   end
 
+  # @spec map
+  defp map_to_algebra(meta, name_doc, [{{:|, _, [name_left, name_right]}, args}], state) do
+    {name_left_doc, state} = quoted_to_algebra(name_left, :parens_arg, state)
+    {name_right_doc, state} = quoted_to_algebra(name_right, :parens_arg, state)
+    {args_doc, state} = quoted_to_algebra(args, :parens_arg, state)
+    inner_args_doc = glue(name_left_doc, concat("| ", nest(name_right_doc, 2)))
+
+    inner_args_doc =
+      surround("(", inner_args_doc, ")") |> concat(" => ") |> concat(group(args_doc))
+
+    name_doc = "%" |> concat(name_doc) |> concat("{")
+    {surround(name_doc, inner_args_doc, "}"), state}
+  end
+
   defp map_to_algebra(meta, name_doc, args, state) do
     {args_doc, state} =
       args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
