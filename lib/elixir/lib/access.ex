@@ -17,10 +17,10 @@ defmodule Access do
 
   ## Dynamic lookups
 
-  Out of the box, `Access` works with `Keyword` and `Map`:
+  Out of the box, `Access` works with `Lists` and `Map`:
 
-      iex> keywords = [a: 1, b: 2]
-      iex> keywords[:a]
+      iex> lists = [a: 1, b: 2]
+      iex> lists[:a]
       1
 
       iex> map = %{a: 1, b: 2}
@@ -137,7 +137,7 @@ defmodule Access do
 
   """
 
-  @type container :: keyword | struct | map
+  @type container :: list | struct | map
   @type nil_container :: nil
   @type any_container :: any
   @type t :: container | nil_container | any_container
@@ -252,8 +252,8 @@ defmodule Access do
   end
 
   @doc """
-  Fetches the value for the given key in a container (a map, keyword
-  list, or struct that implements the `Access` behaviour).
+  Fetches the value for the given key in a container (a map, a list, or struct
+  that implements the `Access` behaviour).
 
   Returns `{:ok, value}` where `value` is the value under `key` if there is such
   a key, or `:error` if `key` is not found.
@@ -293,8 +293,8 @@ defmodule Access do
   end
 
   @doc """
-  Gets the value for the given key in a container (a map, keyword
-  list, or struct that implements the `Access` behaviour).
+  Gets the value for the given key in a container (a map, a list, or struct
+  that implements the `Access` behaviour).
 
   Returns the value under `key` if there is such a key, or `default` if `key` is
   not found.
@@ -339,7 +339,7 @@ defmodule Access do
   end
 
   @doc """
-  Gets and updates the given key in a `container` (a map, a keyword list,
+  Gets and updates the given key in a `container` (a map, a list,
   a struct that implements the `Access` behaviour).
 
   The `fun` argument receives the value of `key` (or `nil` if `key` is not
@@ -373,15 +373,44 @@ defmodule Access do
   end
 
   def get_and_update(list, key, fun) when is_list(list) do
-    Keyword.get_and_update(list, key, fun)
+    get_and_update_list(list, [], key, fun)
   end
 
   def get_and_update(nil, key, _fun) do
     raise ArgumentError, "could not put/update key #{inspect(key)} on a nil value"
   end
 
+  defp get_and_update_list([{key, current} | t], acc, key, fun) do
+    case fun.(current) do
+      {get, value} ->
+        {get, :lists.reverse(acc, [{key, value} | t])}
+
+      :pop ->
+        {current, :lists.reverse(acc, t)}
+
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+    end
+  end
+
+  defp get_and_update_list([head | tail], acc, key, fun),
+    do: get_and_update_list(tail, [head | acc], key, fun)
+
+  defp get_and_update_list([], acc, key, fun) do
+    case fun.(nil) do
+      {get, update} ->
+        {get, [{key, update} | :lists.reverse(acc)]}
+
+      :pop ->
+        {nil, :lists.reverse(acc)}
+
+      other ->
+        raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
+    end
+  end
+
   @doc """
-  Removes the entry with a given key from a container (a map, keyword
+  Removes the entry with a given key from a container (a map,
   list, or struct that implements the `Access` behaviour).
 
   Returns a tuple containing the value associated with the key and the
@@ -395,7 +424,7 @@ defmodule Access do
       iex> Access.pop(%{name: "Elixir", creator: "Valim"}, :name)
       {"Elixir", %{creator: "Valim"}}
 
-  A keyword list:
+  A list:
 
       iex> Access.pop([name: "Elixir", creator: "Valim"], :name)
       {"Elixir", [creator: "Valim"]}
@@ -419,12 +448,35 @@ defmodule Access do
   end
 
   def pop(list, key) when is_list(list) do
-    Keyword.pop(list, key)
+    pop_list(list, key)
   end
 
   def pop(nil, key) do
     raise ArgumentError, "could not pop key #{inspect(key)} on a nil value"
   end
+
+  defp pop_list(list, key, default \\ nil) do
+    case fetch(list, key) do
+      {:ok, value} ->
+        {value, delete(list, key)}
+
+      :error ->
+        {default, list}
+    end
+  end
+
+  defp delete(list, key) do
+    delete_key(list, key, _deleted? = false)
+  catch
+    :not_deleted -> list
+  end
+
+  defp delete_key([{key, _} | tail], key, _deleted?), do: delete_key(tail, key, true)
+
+  defp delete_key([head | tail], key, deleted?), do: [head | delete_key(tail, key, deleted?)]
+
+  defp delete_key([], _key, _deleted? = true), do: []
+  defp delete_key([], _key, _deleted? = false), do: throw(:not_deleted)
 
   ## Accessors
 

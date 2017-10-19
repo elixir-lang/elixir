@@ -29,7 +29,7 @@ defmodule AccessTest do
     end
   end
 
-  test "for keywords" do
+  test "for lists" do
     assert [foo: :bar][:foo] == :bar
     assert [foo: [bar: :baz]][:foo][:bar] == :baz
     assert [foo: [bar: :baz]][:fuu][:bar] == nil
@@ -51,6 +51,18 @@ defmodule AccessTest do
 
     assert Access.pop([foo: :bar], :foo) == {:bar, []}
     assert Access.pop([], :foo) == {nil, []}
+  end
+
+  test "for non-tuple lists" do
+    assert Access.get([{:baz, 1}, :foo, {:bar, 2}], :bar) == 2
+
+    assert Access.get_and_update([{:baz, 1}, :foo, {:bar, 2}], :bar, fn 2 -> {:ok, :baz} end) ==
+             {:ok, [{:baz, 1}, :foo, {:bar, :baz}]}
+
+    assert Access.get_and_update([:foo, {:bar, 2}], :foo, fn nil -> {:ok, :baz} end) ==
+             {:ok, [{:foo, :baz}, :foo, {:bar, 2}]}
+
+    assert Access.pop([{:baz, 1}, :foo, {:bar, 2}], :bar) == {2, [{:baz, 1}, :foo]}
   end
 
   test "for maps" do
