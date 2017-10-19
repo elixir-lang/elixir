@@ -68,13 +68,13 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def remote_dispatch(pid, module, fa, line, mode) when is_atom(module) do
-    :gen_server.cast(pid, {:remote_dispatch, module, fa, line, mode})
+  def remote_dispatch(pid, module, fa, location, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:remote_dispatch, module, fa, location, mode})
   end
 
   @doc false
-  def import_dispatch(pid, module, fa, line, mode) when is_atom(module) do
-    :gen_server.cast(pid, {:import_dispatch, module, fa, line, mode})
+  def import_dispatch(pid, module, fa, location, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:import_dispatch, module, fa, location, mode})
   end
 
   @doc false
@@ -157,17 +157,17 @@ defmodule Kernel.LexicalTracker do
     {:noreply, %{state | references: add_reference(state.references, module, mode)}}
   end
 
-  def handle_cast({:remote_dispatch, module, fa, line, mode}, state) do
+  def handle_cast({:remote_dispatch, module, fa, location, mode}, state) do
     references = add_reference(state.references, module, mode)
-    state = add_remote_dispatch(state, module, fa, line, mode)
+    state = add_remote_dispatch(state, module, fa, location, mode)
     {:noreply, %{state | references: references}}
   end
 
-  def handle_cast({:import_dispatch, module, {function, arity} = fa, line, mode}, state) do
+  def handle_cast({:import_dispatch, module, {function, arity} = fa, location, mode}, state) do
     state =
       state
       |> add_import_dispatch(module, function, arity)
-      |> add_remote_dispatch(module, fa, line, mode)
+      |> add_remote_dispatch(module, fa, location, mode)
 
     {:noreply, state}
   end
@@ -230,10 +230,17 @@ defmodule Kernel.LexicalTracker do
   defp add_reference(references, module, :compile) when is_atom(module),
     do: :maps.put(module, :compile, references)
 
-  defp add_remote_dispatch(state, module, fa, line, mode) when is_atom(module) do
-    map_update(mode, %{module => %{fa => [line]}}, state, fn mode_dispatches ->
-      map_update(module, %{fa => [line]}, mode_dispatches, fn module_dispatches ->
-        map_update(fa, [line], module_dispatches, &[line | List.delete(&1, line)])
+  defp add_remote_dispatch(state, module, fa, {file, line} = location, mode) when is_atom(module) do
+    location =
+      case Path.type(file) do
+        :absolute -> {Path.relative_to_cwd(file), line}
+        :volumerelative -> {Path.relative_to_cwd(file), line}
+        :relative -> location
+      end
+
+    map_update(mode, %{module => %{fa => [location]}}, state, fn mode_dispatches ->
+      map_update(module, %{fa => [location]}, mode_dispatches, fn module_dispatches ->
+        map_update(fa, [location], module_dispatches, &[location | List.delete(&1, location)])
       end)
     end)
   end
