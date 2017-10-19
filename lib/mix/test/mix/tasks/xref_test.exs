@@ -702,6 +702,45 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
+  test "graph: with mixed cyclic dependencies" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A.Behaviour do
+        @callback foo :: :foo
+      end
+
+      defmodule A do
+        B
+
+        def foo do
+          :foo
+        end
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        @behaviour A.Behaviour
+
+        def foo do
+          A.foo
+        end
+      end
+      """)
+
+      assert Mix.Task.run("xref", ["graph", "--format", "dot"]) == :ok
+
+      assert File.read!("xref_graph.dot") === """
+             digraph "xref graph" {
+               "lib/a.ex"
+               "lib/a.ex" -> "lib/b.ex" [label="(compile)"]
+               "lib/b.ex" -> "lib/a.ex" [label="(compile)"]
+               "lib/b.ex"
+             }
+             """
+    end
+  end
+
   defp assert_graph(opts \\ [], dot \\ false, expected) do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", """
