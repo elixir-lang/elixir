@@ -390,26 +390,26 @@ defmodule Mix.Tasks.Xref do
 
     all_modules = MapSet.new(module_sources, &elem(&1, 0))
 
-    Map.new(module_sources, fn {module, source} ->
+    Map.new(module_sources, fn {current, source} ->
       source(runtime_references: runtime, compile_references: compile, source: file) = source
 
       compile_references =
-        compile
-        |> MapSet.new()
-        |> MapSet.delete(module)
-        |> MapSet.intersection(all_modules)
-        |> Enum.filter(&(module_sources[&1] != source))
-        |> Enum.map(&{source(module_sources[&1], :source), "(compile)"})
+        for module <- compile,
+            module != current,
+            module in all_modules,
+            module_sources[module] != source,
+            do: {source(module_sources[module], :source), "(compile)"},
+            into: %{}
 
       runtime_references =
-        runtime
-        |> MapSet.new()
-        |> MapSet.delete(module)
-        |> MapSet.intersection(all_modules)
-        |> Enum.filter(&(module_sources[&1] != source))
-        |> Enum.map(&{source(module_sources[&1], :source), nil})
+        for module <- runtime,
+            module != current,
+            module in all_modules,
+            module_sources[module] != source,
+            do: {source(module_sources[module], :source), nil},
+            into: %{}
 
-      {file, compile_references ++ runtime_references}
+      {file, runtime_references |> Map.merge(compile_references) |> Enum.to_list()}
     end)
   end
 
