@@ -1300,7 +1300,7 @@ defmodule Module do
     end)
   end
 
-  defp check_callback(env, all_definitions, optional_callbacks, conflicting_callbacks) do
+  defp check_callback(env, all_definitions, optional_callbacks, callback, conflicting_callbacks) do
     {callback, kind} = normalize_macro_or_function_callback(callback)
 
     private_kind = case kind do
@@ -1312,7 +1312,14 @@ defmodule Module do
       nil ->
         case :lists.member(callback, optional_callbacks) do
           false ->
-              :elixir_errors.warn(env.line, env.file, "#{format_definition(kind, callback)} is not implemented (in module #{inspect env.module})")
+            case env.vars[:protocol] do
+              nil ->
+                :elixir_errors.warn(env.line, env.file, "#{format_definition(kind, callback)} is not implemented (in module #{inspect env.module})")
+              _ ->
+                nil
+                # IO.inspect env
+                # :elixir_errors.warn(env.line, env.file, "undefined protocol #{format_definition(:def, callback)} (for protocol #{inspect env.context_modules})")
+            end
           _ ->
             nil
         end

@@ -58,13 +58,12 @@ handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _Var, _Where}}) -
 handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _Var, _Where}}) -> ok;
 
 %% Ignore behaviour warnings as we check for these problem ourselves
-handle_file_warning(_, _File, {_Line, erl_lint, {conflicting_behaviours, _Callback, _, _, _}}) -> ok;
-handle_file_warning(_, _File, {_Line, erl_lint, {undefined_behaviour_func, _Callback, _Behaviour}}) -> ok;
+% handle_file_warning(_, _File, {_Line, erl_lint, {conflicting_behaviours, _Callback, _, _, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {undefined_behaviour, _Module}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_behaviour_callbacks, _Behaviour}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_optional_callbacks, _Behaviour}}) -> ok;
-handle_file_warning(_, _File, {_Line, erl_lint, {behaviour_info, {_M, _F, _A}}}) -> ok;
-handle_file_warning(_, _File, {_Line, erl_lint, {redefine_optional_callback, {_F, _A}}}) -> ok;
+% handle_file_warning(_, _File, {_Line, erl_lint, {behaviour_info, {_M, _F, _A}}}) -> ok;
+% handle_file_warning(_, _File, {_Line, erl_lint, {redefine_optional_callback, {_F, _A}}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {undefined_callback, {_M, _F, _A}}}) -> ok;
 
 handle_file_warning(_, File, {Line, Module, Desc}) ->
