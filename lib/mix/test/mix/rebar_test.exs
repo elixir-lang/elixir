@@ -15,13 +15,37 @@ defmodule Mix.RebarTest do
     end
   end
 
+  defmodule RebarAsDepWithEnv do
+    def project do
+      [
+        app: :rebar_as_dep,
+        version: "0.1.0",
+        deps: [
+          {
+            :rebar_dep,
+            path: MixTest.Case.tmp_path("rebar_dep"),
+            app: false,
+            manager: :rebar,
+            system_env: [{"FILE_FROM_ENV", "rebar-test-rebar"}, {"CONTENTS_FROM_ENV", "rebar"}]
+          }
+        ]
+      ]
+    end
+  end
+
   defmodule Rebar3AsDep do
     def project do
       [
         app: :rebar_as_dep,
         version: "0.1.0",
         deps: [
-          {:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false, manager: :rebar3}
+          {
+            :rebar_dep,
+            path: MixTest.Case.tmp_path("rebar_dep"),
+            app: false,
+            manager: :rebar3,
+            system_env: [{"FILE_FROM_ENV", "rebar-test-rebar3"}, {"CONTENTS_FROM_ENV", "rebar3"}]
+          }
         ]
       ]
     end
@@ -225,6 +249,20 @@ defmodule Mix.RebarTest do
       end
     end
 
+    test "applies variables from :system_env option when compiling dependencies for rebar" do
+      Mix.Project.push(RebarAsDepWithEnv)
+
+      in_tmp "get and compile dependencies for Rebar", fn ->
+        expected_file = Path.join(tmp_path("rebar_dep"), "rebar-test-rebar")
+        File.rm(expected_file)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+
+        assert {:ok, "rebar"} = File.read(expected_file)
+      end
+    end
+
     test "gets and compiles dependencies for rebar3" do
       Mix.Project.push(Rebar3AsDep)
 
@@ -253,6 +291,20 @@ defmodule Mix.RebarTest do
 
         assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
         assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
+      end
+    end
+
+    test "applies variables from :system_env option when compiling dependencies for rebar3" do
+      Mix.Project.push(Rebar3AsDep)
+
+      in_tmp "get and compile dependencies for Rebar", fn ->
+        expected_file = Path.join(tmp_path("rebar_dep"), "rebar-test-rebar3")
+        File.rm(expected_file)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+
+        assert {:ok, "rebar3"} = File.read(expected_file)
       end
     end
 
