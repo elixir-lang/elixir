@@ -1286,8 +1286,8 @@ defmodule Code.Formatter do
     {name_left_doc, state} = quoted_to_algebra(name_left, :parens_arg, state)
     {name_right_doc, state} = quoted_to_algebra(name_right, :parens_arg, state)
     {args_doc, state} = quoted_to_algebra(args, :parens_arg, state)
-
     inner_args_doc = glue(name_left_doc, concat("| ", nest(name_right_doc, 2)))
+
     inner_args_doc =
       surround("(", inner_args_doc, ")") |> concat(" => ") |> concat(group(args_doc))
 
