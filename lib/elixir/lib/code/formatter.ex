@@ -468,7 +468,7 @@ defmodule Code.Formatter do
       if is_atom(head) do
         {Atom.to_string(head), state}
       else
-        quoted_to_algebra_with_parens_if_necessary(head, context, state)
+        quoted_to_algebra_with_parens_if_operator(head, context, state)
       end
 
     {Enum.reduce(tail, doc, &concat(&2, "." <> Atom.to_string(&1))), state}
@@ -598,7 +598,7 @@ defmodule Code.Formatter do
     wrapped_doc =
       case arg do
         {^op, _, [_]} when op in [:!, :not] -> doc
-        _ -> wrap_in_parens_if_necessary(doc, arg)
+        _ -> wrap_in_parens_if_operator(doc, arg)
       end
 
     # not requires a space unless the doc was wrapped in parens.
@@ -844,7 +844,7 @@ defmodule Code.Formatter do
 
   defp capture_target_to_algebra(arg, context, state) do
     {doc, state} = quoted_to_algebra(arg, context, state)
-    {wrap_in_parens_if_necessary(doc, arg), state}
+    {wrap_in_parens_if_operator(doc, arg), state}
   end
 
   ## Calls (local, remote and anonymous)
@@ -953,7 +953,7 @@ defmodule Code.Formatter do
   end
 
   defp remote_target_to_algebra(quoted, state) do
-    quoted_to_algebra_with_parens_if_necessary(quoted, :no_parens_arg, state)
+    quoted_to_algebra_with_parens_if_operator(quoted, :no_parens_arg, state)
   end
 
   # function(arguments)
@@ -1238,12 +1238,12 @@ defmodule Code.Formatter do
 
   defp bitstring_spec_to_algebra({op, _, [left, right]}, state) when op in [:-, :*] do
     {left, state} = bitstring_spec_to_algebra(left, state)
-    {right, state} = quoted_to_algebra_with_parens_if_necessary(right, :parens_arg, state)
+    {right, state} = quoted_to_algebra_with_parens_if_operator(right, :parens_arg, state)
     {concat(concat(left, Atom.to_string(op)), right), state}
   end
 
   defp bitstring_spec_to_algebra(spec, state) do
-    quoted_to_algebra_with_parens_if_necessary(spec, :parens_arg, state)
+    quoted_to_algebra_with_parens_if_operator(spec, :parens_arg, state)
   end
 
   defp bitstring_wrap_parens(doc, i, last) do
@@ -1276,7 +1276,11 @@ defmodule Code.Formatter do
     {right_doc, state} =
       args_to_algebra_with_comments(right, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
 
-    args_doc = glue(left_doc, concat("| ", nest(right_doc, 2)))
+    args_doc =
+      left_doc
+      |> wrap_in_parens_if_binary_operator(left)
+      |> glue(concat("| ", nest(right_doc, 2)))
+
     name_doc = "%" |> concat(name_doc) |> concat("{")
     {surround(name_doc, args_doc, "}"), state}
   end
@@ -1732,19 +1736,27 @@ defmodule Code.Formatter do
   defp force_many_args_or_operand(:operand, choice), do: choice
   defp force_many_args_or_operand(:block, choice), do: choice
 
-  defp quoted_to_algebra_with_parens_if_necessary(ast, context, state) do
+  defp quoted_to_algebra_with_parens_if_operator(ast, context, state) do
     {doc, state} = quoted_to_algebra(ast, context, state)
-    {wrap_in_parens_if_necessary(doc, ast), state}
+    {wrap_in_parens_if_operator(doc, ast), state}
   end
 
   # TODO: We can remove this workaround once we remove
   # ?rearrange_uop from the parser in Elixir v2.0.
-  defp wrap_in_parens_if_necessary(doc, {:__block__, _, [expr]}) do
-    wrap_in_parens_if_necessary(doc, expr)
+  defp wrap_in_parens_if_operator(doc, {:__block__, _, [expr]}) do
+    wrap_in_parens_if_operator(doc, expr)
   end
 
-  defp wrap_in_parens_if_necessary(doc, quoted) do
+  defp wrap_in_parens_if_operator(doc, quoted) do
     if operator?(quoted) and not module_attribute_read?(quoted) and not integer_capture?(quoted) do
+      wrap_in_parens(doc)
+    else
+      doc
+    end
+  end
+
+  defp wrap_in_parens_if_binary_operator(doc, quoted) do
+    if binary_operator?(quoted) do
       wrap_in_parens(doc)
     else
       doc

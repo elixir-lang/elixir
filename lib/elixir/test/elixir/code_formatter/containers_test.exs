@@ -469,6 +469,11 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
     end
+
+    test "wraps operators in parens" do
+      assert_format "%{foo && bar | baz: :bat}", "%{(foo && bar) | baz: :bat}"
+      assert_same "%{@foo | baz: :bat}"
+    end
   end
 
   describe "structs" do
