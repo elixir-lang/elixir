@@ -31,6 +31,9 @@ defmodule Mix.Dep do
       the information on this field is private to the manager and should not be
       relied on
 
+    * `system_env` - an enumerable of key-value tuples of binaries to be set as environment variables
+      when loading or compiling the dependency
+
   A dependency is in two specific states: loaded and unloaded.
 
   When a dependency is unloaded, it means Mix only parsed its specification
@@ -56,7 +59,8 @@ defmodule Mix.Dep do
             top_level: false,
             extra: [],
             manager: nil,
-            from: nil
+            from: nil,
+            system_env: []
 
   @type t :: %__MODULE__{
           scm: module,
@@ -67,7 +71,8 @@ defmodule Mix.Dep do
           top_level: boolean,
           manager: :rebar | :rebar3 | :mix | :make | nil,
           from: String.t(),
-          extra: term
+          extra: term,
+          system_env: keyword
         }
 
   @doc """

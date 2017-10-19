@@ -266,6 +266,23 @@ defmodule Mix.DepTest do
     end)
   end
 
+  test "deps with system_env set" do
+    dep_path = MixTest.Case.tmp_path("rebar_dep")
+
+    system_env = [{"FILE_FROM_ENV", "dep-test"}, {"CONTENTS_FROM_ENV", "contents dep test"}]
+    deps = [{:rebar_dep, path: dep_path, app: false, manager: :rebar, system_env: system_env}]
+
+    with_deps(deps, fn ->
+      in_tmp "load dependency with env vars", fn ->
+        expected_file = Path.join(dep_path, "dep-test")
+        File.rm(expected_file)
+        Mix.Dep.loaded([])
+
+        assert {:ok, "contents dep test"} = File.read(expected_file)
+      end
+    end)
+  end
+
   ## Remove converger
 
   defmodule IdentityRemoteConverger do
