@@ -203,11 +203,10 @@ defmodule Mix.Compilers.Elixir do
     compile_dispatches =
       compile_dispatches
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
-      |> Enum.map(&relative_to_source(&1, source))
 
     runtime_dispatches =
       runtime_dispatches
-      |> Enum.map(&relative_to_source(&1, source))
+      |> Enum.to_list()
 
     kind = detect_kind(module)
     source = Path.relative_to(source, cwd)
@@ -253,18 +252,6 @@ defmodule Mix.Compilers.Elixir do
       {modules, sources}
     end)
   end
-
-  defp relative_to_source({module, calls}, source) do
-    relative_calls =
-      Enum.map(calls, fn {fa, locations} ->
-        {fa, Enum.map(locations, &relative_location_to_source(&1, source))}
-      end)
-
-    {module, relative_calls}
-  end
-
-  defp relative_location_to_source({source, line}, source), do: line
-  defp relative_location_to_source(location, _), do: location
 
   defp detect_kind(module) do
     protocol_metadata = Module.get_attribute(module, :protocol_impl)

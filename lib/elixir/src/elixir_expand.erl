@@ -210,8 +210,7 @@ expand({'&', Meta, [Arg]}, E) ->
   case elixir_fn:capture(Meta, Arg, E) of
     {remote, Remote, Fun, Arity} ->
       is_atom(Remote) andalso
-        elixir_lexical:record_remote(Remote, Fun, Arity, ?key(E, function),
-                                     ?key(E, file), ?line(Meta), ?key(E, lexical_tracker)),
+        elixir_lexical:record_remote(Remote, Fun, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
       {{'&', Meta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, E};
     {local, Fun, Arity} ->
       {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, E};
@@ -643,8 +642,8 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) ->
   Arity = length(Args),
   is_atom(Receiver) andalso
-    elixir_lexical:record_remote(Receiver, Right, Arity, ?key(E, function),
-                                 ?key(E, file), ?line(Meta), ?key(E, lexical_tracker)),
+    elixir_lexical:record_remote(Receiver, Right, Arity,
+                                 ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
   Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
   case allowed_in_context(Rewritten, Arity, Context) of

@@ -68,18 +68,28 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def remote_dispatch(pid, module, fa, location, mode) when is_atom(module) do
-    :gen_server.cast(pid, {:remote_dispatch, module, fa, location, mode})
+  def remote_dispatch(pid, module, fa, line, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:remote_dispatch, module, fa, line, mode})
   end
 
   @doc false
-  def import_dispatch(pid, module, fa, location, mode) when is_atom(module) do
-    :gen_server.cast(pid, {:import_dispatch, module, fa, location, mode})
+  def import_dispatch(pid, module, fa, line, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:import_dispatch, module, fa, line, mode})
   end
 
   @doc false
   def alias_dispatch(pid, module) when is_atom(module) do
     :gen_server.cast(pid, {:alias_dispatch, module})
+  end
+
+  @doc false
+  def set_file(pid, file) do
+    :gen_server.cast(pid, {:set_file, file})
+  end
+
+  @doc false
+  def reset_file(pid) do
+    :gen_server.cast(pid, :reset_file)
   end
 
   @doc false
@@ -117,7 +127,8 @@ defmodule Kernel.LexicalTracker do
       compile: %{},
       runtime: %{},
       dest: dest,
-      cache: %{}
+      cache: %{},
+      file: nil
     }
 
     {:ok, state}
@@ -157,23 +168,31 @@ defmodule Kernel.LexicalTracker do
     {:noreply, %{state | references: add_reference(state.references, module, mode)}}
   end
 
-  def handle_cast({:remote_dispatch, module, fa, location, mode}, state) do
+  def handle_cast({:remote_dispatch, module, fa, line, mode}, state) do
     references = add_reference(state.references, module, mode)
-    state = add_remote_dispatch(state, module, fa, location, mode)
+    state = add_remote_dispatch(state, module, fa, line, mode)
     {:noreply, %{state | references: references}}
   end
 
-  def handle_cast({:import_dispatch, module, {function, arity} = fa, location, mode}, state) do
+  def handle_cast({:import_dispatch, module, {function, arity} = fa, line, mode}, state) do
     state =
       state
       |> add_import_dispatch(module, function, arity)
-      |> add_remote_dispatch(module, fa, location, mode)
+      |> add_remote_dispatch(module, fa, line, mode)
 
     {:noreply, state}
   end
 
   def handle_cast({:alias_dispatch, module}, state) do
     {:noreply, %{state | directives: add_dispatch(state.directives, module, :alias)}}
+  end
+
+  def handle_cast({:set_file, file}, state) do
+    {:noreply, %{state | file: file}}
+  end
+
+  def handle_cast(:reset_file, state) do
+    {:noreply, %{state | file: nil}}
   end
 
   def handle_cast({:add_import, module, fas, line, warn}, state) do
@@ -230,13 +249,8 @@ defmodule Kernel.LexicalTracker do
   defp add_reference(references, module, :compile) when is_atom(module),
     do: :maps.put(module, :compile, references)
 
-  defp add_remote_dispatch(state, module, fa, {file, line} = location, mode) when is_atom(module) do
-    location =
-      case Path.type(file) do
-        :absolute -> {Path.relative_to_cwd(file), line}
-        :volumerelative -> {Path.relative_to_cwd(file), line}
-        :relative -> location
-      end
+  defp add_remote_dispatch(state, module, fa, line, mode) when is_atom(module) do
+    location = location(state.file, line)
 
     map_update(mode, %{module => %{fa => [location]}}, state, fn mode_dispatches ->
       map_update(module, %{fa => [location]}, mode_dispatches, fn module_dispatches ->
@@ -244,6 +258,9 @@ defmodule Kernel.LexicalTracker do
       end)
     end)
   end
+
+  defp location(nil, line), do: line
+  defp location(file, line), do: {file, line}
 
   defp add_import_dispatch(state, module, function, arity) do
     directives =
