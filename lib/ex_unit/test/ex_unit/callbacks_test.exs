@@ -214,6 +214,14 @@ defmodule ExUnit.CallbacksTest do
           IO.puts("on_exit setup run")
         end)
 
+        on_exit({:with_context, 1}, fn(test) ->
+          IO.puts """
+          on_exit setup - #{inspect test.name},
+          on module #{inspect test.module},
+          state #{inspect test.state}
+          """
+        end)
+
         on_exit({:overridden, 1}, fn ->
           IO.puts("on_exit 1 overridden -> not run")
         end)
@@ -226,12 +234,27 @@ defmodule ExUnit.CallbacksTest do
           IO.puts("on_exit setup_all run")
         end)
 
+        on_exit({:with_context, 2}, fn(module) ->
+          IO.puts """
+          on_exit setup_all - #{inspect module.name},
+          state #{inspect module.state}
+          """
+        end)
+
         :ok
       end
 
       test "ok" do
         on_exit(fn ->
           IO.puts("simple on_exit run")
+        end)
+
+        on_exit({:with_context, 3}, fn(test) ->
+          IO.puts """
+          on_exit test - #{inspect test.name},
+          on module #{inspect test.module},
+          state #{inspect test.state}
+          """
         end)
 
         on_exit({:overridden, 2}, fn ->
@@ -256,9 +279,20 @@ defmodule ExUnit.CallbacksTest do
 
     assert output =~ """
            on_exit 2 overrides -> run
+           on_exit test - :"test ok",
+           on module ExUnit.CallbacksTest.OnExitSuccessTest,
+           state nil
+
            simple on_exit run
            on_exit 1 overrides -> run
+           on_exit setup - :"test ok",
+           on module ExUnit.CallbacksTest.OnExitSuccessTest,
+           state nil
+
            on_exit setup run
+           on_exit setup_all - ExUnit.CallbacksTest.OnExitSuccessTest,
+           state nil
+
            on_exit setup_all run
            """
 
@@ -272,6 +306,15 @@ defmodule ExUnit.CallbacksTest do
       setup do
         on_exit(fn ->
           IO.puts("on_exit setup run")
+        end)
+
+        on_exit({:with_context, 1}, fn(test) ->
+          {:failed, [{:error, %ExUnit.AssertionError{message: message}, _}]} = test.state
+          IO.puts """
+          on_exit setup - #{inspect test.name},
+          on module #{inspect test.module},
+          state failed - #{inspect message}
+          """
         end)
 
         :ok
@@ -290,6 +333,15 @@ defmodule ExUnit.CallbacksTest do
           IO.puts("simple on_exit run")
         end)
 
+        on_exit({:with_context, 3}, fn(test) ->
+          {:failed, [{:error, %ExUnit.AssertionError{message: message}, _}]} = test.state
+          IO.puts """
+          on_exit test - #{inspect test.name},
+          on module #{inspect test.module},
+          state failed - #{inspect message}
+          """
+        end)
+
         flunk("oops")
       end
     end
@@ -299,7 +351,15 @@ defmodule ExUnit.CallbacksTest do
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
+           on_exit test - :"test ok",
+           on module ExUnit.CallbacksTest.OnExitFailureTest,
+           state failed - "oops"
+
            simple on_exit run
+           on_exit setup - :"test ok",
+           on module ExUnit.CallbacksTest.OnExitFailureTest,
+           state failed - "oops"
+
            on_exit setup run
            on_exit setup_all run
            """

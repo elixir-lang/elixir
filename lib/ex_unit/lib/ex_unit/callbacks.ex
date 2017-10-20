@@ -223,8 +223,9 @@ defmodule ExUnit.Callbacks do
   reference can be used to guarantee the callback will be invoked
   only once.
   """
-  @spec on_exit(term, (() -> term)) :: :ok | no_return
-  def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) do
+  @spec on_exit(term, (() -> term) | ((ExUnit.Test.t | ExUnit.TestModule.t) -> term)) ::
+    :ok | no_return
+  def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) or is_function(callback, 1) do
     case ExUnit.OnExitHandler.add(self(), name_or_ref, callback) do
       :ok ->
         :ok
