@@ -366,9 +366,21 @@ defmodule MapSet do
   defp order_by_size(map1, map2), do: {map1, map2}
 
   defimpl Enumerable do
-    def reduce(map_set, acc, fun), do: Enumerable.List.reduce(MapSet.to_list(map_set), acc, fun)
-    def member?(map_set, val), do: {:ok, MapSet.member?(map_set, val)}
-    def count(map_set), do: {:ok, MapSet.size(map_set)}
+    def count(map_set) do
+      {:ok, MapSet.size(map_set)}
+    end
+
+    def member?(map_set, val) do
+      {:ok, MapSet.member?(map_set, val)}
+    end
+
+    def slice(map_set) do
+      {:ok, MapSet.size(map_set), &Enumerable.List.slice(MapSet.to_list(map_set), &1, &2)}
+    end
+
+    def reduce(map_set, acc, fun) do
+      Enumerable.List.reduce(MapSet.to_list(map_set), acc, fun)
+    end
   end
 
   defimpl Collectable do

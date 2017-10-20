@@ -124,6 +124,10 @@ defmodule File.Stream do
       {:error, __MODULE__}
     end
 
+    def slice(_stream) do
+      {:error, __MODULE__}
+    end
+
     defp trim_bom(device) do
       header = IO.binread(device, 4)
       {:ok, _new_pos} = :file.position(device, bom_length(header))

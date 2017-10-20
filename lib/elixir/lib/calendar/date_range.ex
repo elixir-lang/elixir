@@ -48,12 +48,38 @@ defmodule Date.Range do
       {:ok, false}
     end
 
-    def count(%{first_in_iso_days: first_in_iso_days, last_in_iso_days: last_in_iso_days}) do
-      {:ok, abs(first_in_iso_days - last_in_iso_days) + 1}
+    def count(%{first_in_iso_days: first, last_in_iso_days: last}) do
+      {:ok, abs(first - last) + 1}
+    end
+
+    def slice(range) do
+      %{
+        first_in_iso_days: first,
+        last_in_iso_days: last,
+        first: %{calendar: calendar}
+      } = range
+
+      if first <= last do
+        {:ok, last - first + 1, &slice_asc(first + &1, &2, calendar)}
+      else
+        {:ok, first - last + 1, &slice_desc(first - &1, &2, calendar)}
+      end
+    end
+
+    defp slice_asc(current, 1, calendar), do: [date_from_iso_days(current, calendar)]
+
+    defp slice_asc(current, remaining, calendar) do
+      [date_from_iso_days(current, calendar) | slice_asc(current + 1, remaining - 1, calendar)]
+    end
+
+    defp slice_desc(current, 1, calendar), do: [date_from_iso_days(current, calendar)]
+
+    defp slice_desc(current, remaining, calendar) do
+      [date_from_iso_days(current, calendar) | slice_desc(current - 1, remaining - 1, calendar)]
     end
 
     def reduce(range, acc, fun) do
-      %Date.Range{
+      %{
         first_in_iso_days: first_in_iso_days,
         last_in_iso_days: last_in_iso_days,
         first: %{calendar: calendar}

@@ -35,6 +35,18 @@ defmodule Date.RangeTest do
     end
   end
 
+  describe "Enum.slice/3" do
+    test "for ascending range" do
+      assert Enum.slice(@asc_range, 3, 3) == [~D[2000-01-04], ~D[2000-01-05], ~D[2000-01-06]]
+      assert Enum.slice(@asc_range, -3, 3) == [~D[2000-12-30], ~D[2000-12-31], ~D[2001-01-01]]
+    end
+
+    test "for descending range" do
+      assert Enum.slice(@desc_range, 3, 3) == [~D[2000-12-29], ~D[2000-12-28], ~D[2000-12-27]]
+      assert Enum.slice(@desc_range, -3, 3) == [~D[2000-01-03], ~D[2000-01-02], ~D[2000-01-01]]
+    end
+  end
+
   describe "Enum.reduce/3" do
     test "for ascending range" do
       range = Date.range(~D[2000-01-01], ~D[2000-01-03])

@@ -69,5 +69,9 @@ defmodule IO.Stream do
     def member?(_stream, _term) do
       {:error, __MODULE__}
     end
+
+    def slice(_stream) do
+      {:error, __MODULE__}
+    end
   end
 end

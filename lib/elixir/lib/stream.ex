@@ -1483,19 +1483,17 @@ end
 defimpl Enumerable, for: Stream do
   @compile :inline_list_funs
 
+  def count(_lazy), do: {:error, __MODULE__}
+
+  def member?(_lazy, _value), do: {:error, __MODULE__}
+
+  def slice(_lazy), do: {:error, __MODULE__}
+
   def reduce(lazy, acc, fun) do
     do_reduce(lazy, acc, fn x, [acc] ->
       {reason, acc} = fun.(x, acc)
       {reason, [acc]}
     end)
-  end
-
-  def count(_lazy) do
-    {:error, __MODULE__}
-  end
-
-  def member?(_lazy, _value) do
-    {:error, __MODULE__}
   end
 
   defp do_reduce(%Stream{enum: enum, funs: funs, accs: accs, done: done}, acc, fun) do

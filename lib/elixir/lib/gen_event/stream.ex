@@ -61,6 +61,10 @@ defimpl Enumerable, for: GenEvent.Stream do
     {:error, __MODULE__}
   end
 
+  def slice(_stream) do
+    {:error, __MODULE__}
+  end
+
   defp wrap_reducer(fun) do
     fn
       {:ack, manager, ref, event}, acc ->
