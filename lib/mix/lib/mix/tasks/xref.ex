@@ -170,9 +170,10 @@ defmodule Mix.Tasks.Xref do
   defp source_warnings(source, excludes) do
     source(runtime_dispatches: runtime_dispatches) = source
 
-    for {module, func_arity_lines} <- runtime_dispatches,
+    for {module, func_arity_locations} <- runtime_dispatches,
         exports = load_exports(module),
-        {{func, arity}, lines} <- func_arity_lines,
+        {{func, arity}, locations} <- func_arity_locations,
+        lines = line_locations(locations),
         warning = unreachable_mfa(exports, module, func, arity, lines, excludes),
         do: warning
   end
@@ -320,10 +321,10 @@ defmodule Mix.Tasks.Xref do
     dispatches = runtime_dispatches ++ compile_dispatches
 
     calls =
-      for {module, func_arity_lines} <- dispatches,
-          {{func, arity}, lines} <- func_arity_lines,
+      for {module, func_arity_locations} <- dispatches,
+          {{func, arity}, locations} <- func_arity_locations,
           filter.({module, func, arity}),
-          do: {module, func, arity, lines}
+          do: {module, func, arity, line_locations(locations)}
 
     Enum.reduce(calls, %{}, fn {module, func, arity, lines}, merged_calls ->
       lines = MapSet.new(lines)
@@ -503,4 +504,11 @@ defmodule Mix.Tasks.Xref do
         entries != [] and entries != %{},
         do: pair_fun.(file, entries)
   end
+
+  defp line_locations(locations) do
+    Enum.map(locations, &line_location/1)
+  end
+
+  defp line_location({_file, line}), do: line
+  defp line_location(line), do: line
 end
