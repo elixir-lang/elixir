@@ -1319,7 +1319,10 @@ defmodule Module do
           message =
             "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(env.module)})"
 
-          :elixir_errors.warn(env.line, env.file, message)
+          unless standard_behaviour?(behaviour) do
+            :elixir_errors.warn(env.line, env.file, message)
+          end
+
           acc
 
         true ->
