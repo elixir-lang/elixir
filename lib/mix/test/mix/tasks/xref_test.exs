@@ -367,7 +367,7 @@ defmodule Mix.Tasks.XrefTest do
 
       output =
         capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["warnings"]) == {:ok, %{}}
+          assert Mix.Task.run("xref", ["warnings"]) == {:ok, []}
         end)
 
       assert output == ""
@@ -375,6 +375,10 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   ## Unreachable
+
+  test "unreachable: reports nothing with no references" do
+    assert_reachable("defmodule A do end")
+  end
 
   test "unreachable: reports missing functions" do
     code = """
@@ -395,13 +399,17 @@ defmodule Mix.Tasks.XrefTest do
     assert_unreachable(code, warning)
   end
 
-  defp assert_unreachable(contents, expected) do
+  defp assert_reachable(contents) do
+    assert_unreachable(contents, "", :ok)
+  end
+
+  defp assert_unreachable(contents, expected, result \\ :error) do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", contents)
 
       output =
         capture_io(fn ->
-          assert Mix.Task.run("xref", ["unreachable"]) == :error
+          assert Mix.Task.run("xref", ["unreachable"]) == result
         end)
 
       assert output == expected

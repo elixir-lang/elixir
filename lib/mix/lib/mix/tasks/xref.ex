@@ -137,21 +137,23 @@ defmodule Mix.Tasks.Xref do
   ## Modes
 
   defp warnings() do
-    {:ok, unreachable(&warnings/1)}
+    warnings(&print_warnings/1)
   end
 
   defp unreachable() do
-    if unreachable(&print_entry/1) == [] do
-      :ok
-    else
-      :error
+    case warnings(&print_unreachable/1) do
+      {:ok, []} -> :ok
+      _ -> :error
     end
   end
 
   defp callers(callee) do
     callee
     |> filter_for_callee()
-    |> do_callers()
+    |> source_callers()
+    |> merge_entries()
+    |> sort_entries()
+    |> print_calls()
 
     :ok
   end
@@ -162,15 +164,21 @@ defmodule Mix.Tasks.Xref do
     :ok
   end
 
-  ## Unreachable
+  ## Warnings
 
-  defp unreachable(pair_fun) do
-    excludes = excludes()
+  defp warnings(print_warnings) do
+    entries =
+      excludes()
+      |> source_warnings()
+      |> merge_entries()
+      |> sort_entries()
+      |> print_warnings.()
 
-    sources()
-    |> Enum.flat_map(&source_warnings(&1, excludes))
-    |> merge_entries
-    |> pair_fun.()
+    {:ok, entries}
+  end
+
+  defp source_warnings(excludes) do
+    Enum.flat_map(sources(), &source_warnings(&1, excludes))
   end
 
   defp source_warnings(source, excludes) do
@@ -180,9 +188,9 @@ defmodule Mix.Tasks.Xref do
     for {module, func_arity_locations} <- runtime_dispatches,
         exports = load_exports(module),
         {{func, arity}, locations} <- func_arity_locations,
+        unreachable_mfa = unreachable_mfa(exports, module, func, arity, excludes),
         locations = absolute_locations(locations, file),
-        warning = unreachable_mfa(exports, module, func, arity, locations, excludes),
-        do: warning
+        do: {unreachable_mfa, locations}
   end
 
   defp load_exports(module) do
@@ -200,7 +208,7 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  defp unreachable_mfa(exports, module, func, arity, locations, excludes) do
+  defp unreachable_mfa(exports, module, func, arity, excludes) do
     cond do
       excluded?(module, func, arity, excludes) ->
         nil
@@ -209,32 +217,30 @@ defmodule Mix.Tasks.Xref do
         nil
 
       exports == :unknown_module ->
-        {{:unknown_module, module, func, arity, nil}, locations}
+        {:unknown_module, module, func, arity, nil}
 
       is_atom(exports) and not function_exported?(module, func, arity) ->
-        {{:unknown_function, module, func, arity, nil}, locations}
+        {:unknown_function, module, func, arity, nil}
 
       is_list(exports) and {func, arity} not in exports ->
-        {{:unknown_function, module, func, arity, exports}, locations}
+        {:unknown_function, module, func, arity, exports}
 
       true ->
         nil
     end
   end
 
-  ## Print entries
+  ## Print unreachable
 
-  defp print_entry(entries) do
+  defp print_unreachable(entries) do
+    Enum.each(entries, &IO.write(format_unreachable(&1)))
     entries
-    |> Enum.sort()
-    |> Enum.each(&IO.write(format_entry(&1)))
   end
 
-  defp format_entry({{_, module, function, arity, _}, locations}) do
+  defp format_unreachable({{_, module, function, arity, _}, locations}) do
     for {file, line} <- locations do
       [
-        Exception.format_file_line(file, line),
-        ?\s,
+        Exception.format_file_line(file, line, " "),
         Exception.format_mfa(module, function, arity),
         ?\n
       ]
@@ -243,21 +249,21 @@ defmodule Mix.Tasks.Xref do
 
   ## Print warnings
 
-  defp warnings(entries) do
+  defp print_warnings(entries) do
     prefix = IO.ANSI.format([:yellow, "warning: "])
 
-    Enum.each(Enum.sort(entries), fn {type, locations} ->
-      IO.write(:stderr, [prefix, message(type), ?\n, format_locations(locations), ?\n])
+    Enum.map(entries, fn {type, locations} ->
+      message = warning_message(type)
+      IO.write(:stderr, [prefix, message, ?\n, format_locations(locations), ?\n])
+      {message, locations}
     end)
-
-    entries
   end
 
-  defp message({:unknown_function, module, function, arity, exports}) do
+  defp warning_message({:unknown_function, module, function, arity, exports}) do
     UndefinedFunctionError.function_not_exported(module, function, arity, exports)
   end
 
-  defp message({:unknown_module, module, function, arity, _}) do
+  defp warning_message({:unknown_module, module, function, arity, _}) do
     [
       "function ",
       Exception.format_mfa(module, function, arity),
@@ -265,13 +271,15 @@ defmodule Mix.Tasks.Xref do
     ]
   end
 
-  defp format_locations(locations) do
-    formatted_locations = Enum.map(locations, &format_location/1)
+  defp format_locations([location]) do
+    format_location(location)
+  end
 
-    case MapSet.size(locations) do
-      1 -> formatted_locations
-      size -> ["Found at #{size} locations:\n", formatted_locations]
-    end
+  defp format_locations(locations) do
+    [
+      "Found at #{length(locations)} locations:\n",
+      Enum.map(locations, &format_location/1)
+    ]
   end
 
   defp format_location({file, line}) do
@@ -312,14 +320,11 @@ defmodule Mix.Tasks.Xref do
 
   ## Callers
 
-  defp do_callers(filter) do
-    sources()
-    |> Enum.flat_map(&source_calls_for_filter(&1, filter))
-    |> merge_entries
-    |> print_calls
+  defp source_callers(filter) do
+    Enum.flat_map(sources(), &source_callers(&1, filter))
   end
 
-  defp source_calls_for_filter(source, filter) do
+  defp source_callers(source, filter) do
     file = source(source, :source)
     runtime_dispatches = source(source, :runtime_dispatches)
     compile_dispatches = source(source, :compile_dispatches)
@@ -334,18 +339,14 @@ defmodule Mix.Tasks.Xref do
   ## Print callers
 
   defp print_calls(calls) do
+    Enum.map(calls, &IO.write(format_call(&1)))
     calls
-    |> Enum.sort()
-    |> Enum.each(&IO.write(format_call(&1)))
   end
 
   defp format_call({{module, func, arity}, locations}) do
-    for {file, line} <- Enum.sort(locations) do
+    for {file, line} <- locations do
       [
-        file,
-        ":",
-        to_string(line),
-        ": ",
+        Exception.format_file_line(file, line, " "),
         Exception.format_mfa(module, func, arity),
         ?\n
       ]
@@ -507,6 +508,12 @@ defmodule Mix.Tasks.Xref do
       locations = MapSet.new(locations)
       Map.update(merged_entries, type, locations, &MapSet.union(&1, locations))
     end)
+  end
+
+  defp sort_entries(entries) do
+    entries
+    |> Enum.map(fn {type, locations} -> {type, Enum.sort(locations)} end)
+    |> Enum.sort()
   end
 
   defp absolute_locations(locations, base) do
