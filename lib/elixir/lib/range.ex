@@ -109,6 +109,20 @@ defimpl Enumerable, for: Range do
       {:ok, first - last + 1}
     end
   end
+
+  def slice(first..last) do
+    if first <= last do
+      {:ok, last - first + 1, &slice_asc(first + &1, &2)}
+    else
+      {:ok, first - last + 1, &slice_desc(first - &1, &2)}
+    end
+  end
+
+  defp slice_asc(current, 1), do: [current]
+  defp slice_asc(current, remaining), do: [current | slice_asc(current + 1, remaining - 1)]
+
+  defp slice_desc(current, 1), do: [current]
+  defp slice_desc(current, remaining), do: [current | slice_desc(current - 1, remaining - 1)]
 end
 
 defimpl Inspect, for: Range do
