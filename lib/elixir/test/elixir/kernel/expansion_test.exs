@@ -241,8 +241,7 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(code)
 
-      message =
-        ~r"expected \"a\" to expand to an existing variable or be part of a match"
+      message = ~r"expected \"a\" to expand to an existing variable or be part of a match"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: var!(a)))
