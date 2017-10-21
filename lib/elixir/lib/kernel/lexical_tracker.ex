@@ -83,6 +83,16 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
+  def set_file(pid, file) do
+    :gen_server.cast(pid, {:set_file, file})
+  end
+
+  @doc false
+  def reset_file(pid) do
+    :gen_server.cast(pid, :reset_file)
+  end
+
+  @doc false
   def write_cache(pid, value) do
     key = :erlang.unique_integer()
     :gen_server.cast(pid, {:write_cache, key, value})
@@ -117,7 +127,8 @@ defmodule Kernel.LexicalTracker do
       compile: %{},
       runtime: %{},
       dest: dest,
-      cache: %{}
+      cache: %{},
+      file: nil
     }
 
     {:ok, state}
@@ -176,6 +187,14 @@ defmodule Kernel.LexicalTracker do
     {:noreply, %{state | directives: add_dispatch(state.directives, module, :alias)}}
   end
 
+  def handle_cast({:set_file, file}, state) do
+    {:noreply, %{state | file: file}}
+  end
+
+  def handle_cast(:reset_file, state) do
+    {:noreply, %{state | file: nil}}
+  end
+
   def handle_cast({:add_import, module, fas, line, warn}, state) do
     directives =
       state.directives
@@ -231,12 +250,17 @@ defmodule Kernel.LexicalTracker do
     do: :maps.put(module, :compile, references)
 
   defp add_remote_dispatch(state, module, fa, line, mode) when is_atom(module) do
-    map_update(mode, %{module => %{fa => [line]}}, state, fn mode_dispatches ->
-      map_update(module, %{fa => [line]}, mode_dispatches, fn module_dispatches ->
-        map_update(fa, [line], module_dispatches, &[line | List.delete(&1, line)])
+    location = location(state.file, line)
+
+    map_update(mode, %{module => %{fa => [location]}}, state, fn mode_dispatches ->
+      map_update(module, %{fa => [location]}, mode_dispatches, fn module_dispatches ->
+        map_update(fa, [location], module_dispatches, &[location | List.delete(&1, location)])
       end)
     end)
   end
+
+  defp location(nil, line), do: line
+  defp location(file, line), do: {file, line}
 
   defp add_import_dispatch(state, module, function, arity) do
     directives =

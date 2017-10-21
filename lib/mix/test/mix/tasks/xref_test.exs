@@ -27,12 +27,18 @@ defmodule Mix.Tasks.XrefTest do
     defmodule A do
       def a, do: A.no_func
       def b, do: A.a()
+
+      @file "lib/external_source.ex"
+      def c, do: &A.no_func/1
     end
     """
 
     warning = """
     warning: function A.no_func/0 is undefined or private
       lib/a.ex:2
+
+    warning: function A.no_func/1 is undefined or private
+      lib/a.ex:6
 
     """
 
@@ -44,6 +50,9 @@ defmodule Mix.Tasks.XrefTest do
     defmodule A do
       def a, do: :ok
       def b, do: A.a(1)
+
+      @file "lib/external_source.ex"
+      def c, do: A.b(1)
     end
     """
 
@@ -54,6 +63,12 @@ defmodule Mix.Tasks.XrefTest do
 
       lib/a.ex:3
 
+    warning: function A.b/1 is undefined or private. Did you mean one of:
+
+          * b/0
+
+      lib/a.ex:6
+
     """
 
     assert_warnings(code, warning)
@@ -63,12 +78,18 @@ defmodule Mix.Tasks.XrefTest do
     code = """
     defmodule A do
       def a, do: D.no_module
+
+      @file "lib/external_source.ex"
+      def c, do: E.no_module
     end
     """
 
     warning = """
     warning: function D.no_module/0 is undefined (module D is not available)
       lib/a.ex:2
+
+    warning: function E.no_module/0 is undefined (module E is not available)
+      lib/a.ex:5
 
     """
 
@@ -79,12 +100,18 @@ defmodule Mix.Tasks.XrefTest do
     code = """
     defmodule A do
       def a, do: &A.no_func/0
+
+      @file "lib/external_source.ex"
+      def c, do: &A.no_func/1
     end
     """
 
     warning = """
     warning: function A.no_func/0 is undefined or private
       lib/a.ex:2
+
+    warning: function A.no_func/1 is undefined or private
+      lib/a.ex:5
 
     """
 
@@ -211,14 +238,18 @@ defmodule Mix.Tasks.XrefTest do
       def b, do: A2.no_func
       def c, do: A.no_func
       def d, do: A2.no_func
+
+      @file "lib/external_source.ex"
+      def e, do: A.no_func
     end
     """
 
     warning = """
     warning: function A.no_func/0 is undefined or private
-    Found at 2 locations:
+    Found at 3 locations:
       lib/a.ex:2
       lib/a.ex:4
+      lib/a.ex:8
 
     warning: function A2.no_func/0 is undefined (module A2 is not available)
     Found at 2 locations:
@@ -284,6 +315,12 @@ defmodule Mix.Tasks.XrefTest do
 
       def a(a, b), do: E.map2(a, b)
       def b, do: &E.map2/2
+
+      @file "lib/external_source.ex"
+      def c do
+        alias Enum, as: EE
+        &EE.map2/2
+      end
     end
     """
 
@@ -292,9 +329,10 @@ defmodule Mix.Tasks.XrefTest do
 
           * map/2
 
-    Found at 2 locations:
+    Found at 3 locations:
       lib/a.ex:4
       lib/a.ex:5
+      lib/a.ex:10
 
     """
 
@@ -344,11 +382,15 @@ defmodule Mix.Tasks.XrefTest do
     defmodule A do
       def a, do: A.no_func
       def b, do: A.a()
+
+      @file "lib/external_source.ex"
+      def c, do: A.no_func
     end
     """
 
     warning = """
     lib/a.ex:2: A.no_func/0
+    lib/a.ex:6: A.no_func/0
     """
 
     assert_unreachable(code, warning)
@@ -413,12 +455,16 @@ defmodule Mix.Tasks.XrefTest do
         def a(arg), do: A.a(arg)
         def b, do: A.b()
         def c, do: B.a()
+
+        @file "lib/external_source.ex"
+        def d, do: A.a()
       end
       """
     }
 
     output = """
     lib/a.ex:2: A.a/0
+    lib/a.ex:8: A.a/0
     lib/a.ex:3: A.a/1
     lib/a.ex:4: A.b/0
     """
@@ -434,12 +480,16 @@ defmodule Mix.Tasks.XrefTest do
         def a(arg), do: A.a(arg)
         def b, do: A.b()
         def c, do: B.a()
+
+        @file "lib/external_source.ex"
+        def d, do: A.a()
       end
       """
     }
 
     output = """
     lib/a.ex:2: A.a/0
+    lib/a.ex:8: A.a/0
     lib/a.ex:3: A.a/1
     """
 
@@ -454,12 +504,16 @@ defmodule Mix.Tasks.XrefTest do
         def a(arg), do: A.a(arg)
         def b, do: A.b()
         def c, do: B.a()
+
+        @file "lib/external_source.ex"
+        def d, do: A.a()
       end
       """
     }
 
     output = """
     lib/a.ex:2: A.a/0
+    lib/a.ex:8: A.a/0
     """
 
     assert_callers("A.a/0", files, output)
@@ -479,13 +533,21 @@ defmodule Mix.Tasks.XrefTest do
 
         A.a_macro()
         A.a()
+
+        @file "lib/external_source.ex"
+        def b do
+          A.a_macro()
+          A.a()
+        end
       end
       """
     }
 
     output = """
     lib/b.ex:5: A.a/0
+    lib/b.ex:10: A.a/0
     lib/b.ex:4: A.a_macro/0
+    lib/b.ex:9: A.a_macro/0
     """
 
     assert_callers("A", files, output)
@@ -500,6 +562,12 @@ defmodule Mix.Tasks.XrefTest do
         E.map([], &E.flatten/1)
 
         def a(a, b), do: E.map(a, b)
+
+        @file "lib/external_source.ex"
+        def b(a, b) do
+          alias Enum, as: EE
+          EE.map(a, b)
+        end
       end
       """
     }
@@ -508,6 +576,7 @@ defmodule Mix.Tasks.XrefTest do
     lib/a.ex:4: Enum.flatten/1
     lib/a.ex:4: Enum.map/2
     lib/a.ex:6: Enum.map/2
+    lib/a.ex:11: Enum.map/2
     """
 
     assert_callers("Enum", files, output)
@@ -528,6 +597,12 @@ defmodule Mix.Tasks.XrefTest do
         def a(a), do: is_even(a)
         def b(a), do: parse(a)
         _ = is_even(Enum.random([1])); def c(a), do: is_even(a)
+
+        @file "lib/external_source.ex"
+        def d(a) do
+          import Integer
+          is_even(a)
+        end
       end
       """
     }
@@ -537,6 +612,7 @@ defmodule Mix.Tasks.XrefTest do
     lib/a.ex:7: Integer.is_even/1
     lib/a.ex:10: Integer.is_even/1
     lib/a.ex:12: Integer.is_even/1
+    lib/a.ex:17: Integer.is_even/1
     lib/a.ex:5: Integer.parse/1
     lib/a.ex:8: Integer.parse/1
     lib/a.ex:11: Integer.parse/1
