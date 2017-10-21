@@ -214,17 +214,23 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback that runs once the test exits.
 
-  `callback` is a function that receives no arguments and
-  runs in a separate process than the caller.
-
   `on_exit/2` is usually called from `setup` and `setup_all`
   callbacks, often to undo the action performed during `setup`.
   However, `on_exit/2` may also be called dynamically, where a
   reference can be used to guarantee the callback will be invoked
   only once.
+
+  `callback` is a function that receives a `ExUnit.Test` with the
+  test info as the only argument. If you're calling `on_exit/2`
+  inside a `setup_all`, instead of a `ExUnit.Test`, you'll get a
+  `ExUnit.TestModule` with the test module information. You can
+  also give a function with no arguments if you don't care about
+  this info. PS.: this callback runs in a separate process than
+  the caller.
   """
-  @spec on_exit(term, (() -> term)) :: :ok | no_return
-  def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) do
+  @spec on_exit(term, (() -> term) | ((ExUnit.Test.t | ExUnit.TestModule.t) -> term)) ::
+    :ok | no_return
+  def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) or is_function(callback, 1) do
     case ExUnit.OnExitHandler.add(self(), name_or_ref, callback) do
       :ok ->
         :ok

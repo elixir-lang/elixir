@@ -311,7 +311,7 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_on_exit(test_or_case, pid, timeout) do
-    case ExUnit.OnExitHandler.run(pid, timeout) do
+    case ExUnit.OnExitHandler.run(pid, test_or_case, timeout) do
       :ok ->
         test_or_case
 
