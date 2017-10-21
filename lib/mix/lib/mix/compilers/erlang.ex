@@ -238,10 +238,10 @@ defmodule Mix.Compilers.Erlang do
         {:error, [], warnings, errors}
 
       {:ok, _} ->
-        {:ok, [], []}
+        {:ok, [], [], []}
 
       :error ->
-        {:error, [], []}
+        {:error, [], [], []}
     end
   end
 
