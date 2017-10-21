@@ -38,7 +38,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex:2
 
     warning: function A.no_func/1 is undefined or private
-      lib/a.ex:6
+      lib/external_source.ex:6
 
     """
 
@@ -67,7 +67,7 @@ defmodule Mix.Tasks.XrefTest do
 
           * b/0
 
-      lib/a.ex:6
+      lib/external_source.ex:6
 
     """
 
@@ -89,7 +89,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex:2
 
     warning: function E.no_module/0 is undefined (module E is not available)
-      lib/a.ex:5
+      lib/external_source.ex:5
 
     """
 
@@ -111,7 +111,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex:2
 
     warning: function A.no_func/1 is undefined or private
-      lib/a.ex:5
+      lib/external_source.ex:5
 
     """
 
@@ -235,26 +235,25 @@ defmodule Mix.Tasks.XrefTest do
     code = """
     defmodule A do
       def a, do: A.no_func
-      def b, do: A2.no_func
-      def c, do: A.no_func
-      def d, do: A2.no_func
 
       @file "lib/external_source.ex"
-      def e, do: A.no_func
+      def b, do: A2.no_func
+
+      def c, do: A.no_func
+      def d, do: A2.no_func
     end
     """
 
     warning = """
     warning: function A.no_func/0 is undefined or private
-    Found at 3 locations:
+    Found at 2 locations:
       lib/a.ex:2
-      lib/a.ex:4
-      lib/a.ex:8
+      lib/a.ex:6
 
     warning: function A2.no_func/0 is undefined (module A2 is not available)
     Found at 2 locations:
-      lib/a.ex:3
-      lib/a.ex:5
+      lib/a.ex:8
+      lib/external_source.ex:5
 
     """
 
@@ -332,7 +331,7 @@ defmodule Mix.Tasks.XrefTest do
     Found at 3 locations:
       lib/a.ex:4
       lib/a.ex:5
-      lib/a.ex:10
+      lib/external_source.ex:10
 
     """
 
@@ -390,7 +389,7 @@ defmodule Mix.Tasks.XrefTest do
 
     warning = """
     lib/a.ex:2: A.no_func/0
-    lib/a.ex:6: A.no_func/0
+    lib/external_source.ex:6: A.no_func/0
     """
 
     assert_unreachable(code, warning)

@@ -174,13 +174,14 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp source_warnings(source, excludes) do
-    source(runtime_dispatches: runtime_dispatches) = source
+    file = source(source, :source)
+    runtime_dispatches = source(source, :runtime_dispatches)
 
     for {module, func_arity_locations} <- runtime_dispatches,
         exports = load_exports(module),
         {{func, arity}, locations} <- func_arity_locations,
-        lines = line_locations(locations),
-        warning = unreachable_mfa(exports, module, func, arity, lines, excludes),
+        locations = absolute_locations(locations, file),
+        warning = unreachable_mfa(exports, module, func, arity, locations, excludes),
         do: warning
   end
 
@@ -199,7 +200,7 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  defp unreachable_mfa(exports, module, func, arity, lines, excludes) do
+  defp unreachable_mfa(exports, module, func, arity, locations, excludes) do
     cond do
       excluded?(module, func, arity, excludes) ->
         nil
@@ -208,13 +209,13 @@ defmodule Mix.Tasks.Xref do
         nil
 
       exports == :unknown_module ->
-        {Enum.sort(lines), :unknown_module, module, func, arity, nil}
+        {Enum.sort(locations), :unknown_module, module, func, arity, nil}
 
       is_atom(exports) and not function_exported?(module, func, arity) ->
-        {Enum.sort(lines), :unknown_function, module, func, arity, nil}
+        {Enum.sort(locations), :unknown_function, module, func, arity, nil}
 
       is_list(exports) and {func, arity} not in exports ->
-        {Enum.sort(lines), :unknown_function, module, func, arity, exports}
+        {Enum.sort(locations), :unknown_function, module, func, arity, exports}
 
       true ->
         nil
@@ -513,13 +514,6 @@ defmodule Mix.Tasks.Xref do
         source() = source <- read_manifest(manifest, ""),
         do: source
   end
-
-  defp line_locations(locations) do
-    Enum.map(locations, &line_location/1)
-  end
-
-  defp line_location({_file, line}), do: line
-  defp line_location(line), do: line
 
   defp absolute_locations(locations, base) do
     Enum.map(locations, &absolute_location(&1, base))
