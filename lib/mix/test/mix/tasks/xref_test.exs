@@ -464,7 +464,7 @@ defmodule Mix.Tasks.XrefTest do
 
     output = """
     lib/a.ex:2: A.a/0
-    lib/a.ex:8: A.a/0
+    lib/external_source.ex:8: A.a/0
     lib/a.ex:3: A.a/1
     lib/a.ex:4: A.b/0
     """
@@ -489,7 +489,7 @@ defmodule Mix.Tasks.XrefTest do
 
     output = """
     lib/a.ex:2: A.a/0
-    lib/a.ex:8: A.a/0
+    lib/external_source.ex:8: A.a/0
     lib/a.ex:3: A.a/1
     """
 
@@ -513,7 +513,7 @@ defmodule Mix.Tasks.XrefTest do
 
     output = """
     lib/a.ex:2: A.a/0
-    lib/a.ex:8: A.a/0
+    lib/external_source.ex:8: A.a/0
     """
 
     assert_callers("A.a/0", files, output)
@@ -545,9 +545,9 @@ defmodule Mix.Tasks.XrefTest do
 
     output = """
     lib/b.ex:5: A.a/0
-    lib/b.ex:10: A.a/0
+    lib/external_source.ex:10: A.a/0
     lib/b.ex:4: A.a_macro/0
-    lib/b.ex:9: A.a_macro/0
+    lib/external_source.ex:9: A.a_macro/0
     """
 
     assert_callers("A", files, output)
@@ -564,9 +564,9 @@ defmodule Mix.Tasks.XrefTest do
         def a(a, b), do: E.map(a, b)
 
         @file "lib/external_source.ex"
-        def b(a, b) do
+        def b() do
           alias Enum, as: EE
-          EE.map(a, b)
+          EE.map([], &EE.flatten/1)
         end
       end
       """
@@ -574,9 +574,10 @@ defmodule Mix.Tasks.XrefTest do
 
     output = """
     lib/a.ex:4: Enum.flatten/1
+    lib/external_source.ex:11: Enum.flatten/1
     lib/a.ex:4: Enum.map/2
     lib/a.ex:6: Enum.map/2
-    lib/a.ex:11: Enum.map/2
+    lib/external_source.ex:11: Enum.map/2
     """
 
     assert_callers("Enum", files, output)
@@ -597,10 +598,16 @@ defmodule Mix.Tasks.XrefTest do
         def a(a), do: is_even(a)
         def b(a), do: parse(a)
         _ = is_even(Enum.random([1])); def c(a), do: is_even(a)
+      end
+      """,
+      "lib/b.ex" => ~S"""
+      defmodule B do
+        &Integer.parse/1
 
         @file "lib/external_source.ex"
-        def d(a) do
+        def a(a) do
           import Integer
+          parse(1)
           is_even(a)
         end
       end
@@ -612,10 +619,12 @@ defmodule Mix.Tasks.XrefTest do
     lib/a.ex:7: Integer.is_even/1
     lib/a.ex:10: Integer.is_even/1
     lib/a.ex:12: Integer.is_even/1
-    lib/a.ex:17: Integer.is_even/1
+    lib/external_source.ex:8: Integer.is_even/1
     lib/a.ex:5: Integer.parse/1
     lib/a.ex:8: Integer.parse/1
     lib/a.ex:11: Integer.parse/1
+    lib/b.ex:2: Integer.parse/1
+    lib/external_source.ex:7: Integer.parse/1
     """
 
     assert_callers("Integer", files, output)

@@ -2,7 +2,9 @@ defmodule Mix.Tasks.Xref do
   use Mix.Task
 
   alias Mix.Tasks.Compile.Elixir, as: E
-  import Mix.Compilers.Elixir, only: [read_manifest: 2, source: 1, source: 2, module: 1]
+
+  import Mix.Compilers.Elixir,
+    only: [read_manifest: 2, source: 0, source: 1, source: 2, module: 1]
 
   @shortdoc "Performs cross reference checks"
   @recursive true
@@ -164,7 +166,11 @@ defmodule Mix.Tasks.Xref do
 
   defp unreachable(pair_fun) do
     excludes = excludes()
-    each_source_entries(&source_warnings(&1, excludes), pair_fun)
+
+    for source(source: file) = source <- sources(),
+        entries = source_warnings(source, excludes),
+        entries != [],
+        do: pair_fun.(file, entries)
   end
 
   defp source_warnings(source, excludes) do
@@ -312,36 +318,41 @@ defmodule Mix.Tasks.Xref do
   ## Callers
 
   defp do_callers(filter) do
-    each_source_entries(&source_calls_for_filter(&1, filter), &print_calls/2)
+    sources()
+    |> Enum.flat_map(&source_calls_for_filter(&1, filter))
+    |> merge_calls
+    |> print_calls
   end
 
   defp source_calls_for_filter(source, filter) do
+    file = source(source, :source)
     runtime_dispatches = source(source, :runtime_dispatches)
     compile_dispatches = source(source, :compile_dispatches)
     dispatches = runtime_dispatches ++ compile_dispatches
 
-    calls =
-      for {module, func_arity_locations} <- dispatches,
-          {{func, arity}, locations} <- func_arity_locations,
-          filter.({module, func, arity}),
-          do: {module, func, arity, line_locations(locations)}
+    for {module, func_arity_locations} <- dispatches,
+        {{func, arity}, locations} <- func_arity_locations,
+        filter.({module, func, arity}),
+        do: {module, func, arity, absolute_locations(locations, file)}
+  end
 
-    Enum.reduce(calls, %{}, fn {module, func, arity, lines}, merged_calls ->
-      lines = MapSet.new(lines)
-      Map.update(merged_calls, {module, func, arity}, lines, &MapSet.union(&1, lines))
+  defp merge_calls(calls) do
+    Enum.reduce(calls, %{}, fn {module, func, arity, locations}, merged_calls ->
+      locations = MapSet.new(locations)
+      Map.update(merged_calls, {module, func, arity}, locations, &MapSet.union(&1, locations))
     end)
   end
 
   ## Print callers
 
-  defp print_calls(file, calls) do
+  defp print_calls(calls) do
     calls
     |> Enum.sort()
-    |> Enum.each(&IO.write(format_call(file, &1)))
+    |> Enum.each(&IO.write(format_call(&1)))
   end
 
-  defp format_call(file, {{module, func, arity}, lines}) do
-    for line <- Enum.sort(lines) do
+  defp format_call({{module, func, arity}, locations}) do
+    for {file, line} <- Enum.sort(locations) do
       [
         file,
         ":",
@@ -497,12 +508,10 @@ defmodule Mix.Tasks.Xref do
 
   ## Helpers
 
-  defp each_source_entries(entries_fun, pair_fun) do
+  defp sources() do
     for manifest <- E.manifests(),
-        source(source: file) = source <- read_manifest(manifest, ""),
-        entries = entries_fun.(source),
-        entries != [] and entries != %{},
-        do: pair_fun.(file, entries)
+        source() = source <- read_manifest(manifest, ""),
+        do: source
   end
 
   defp line_locations(locations) do
@@ -511,4 +520,11 @@ defmodule Mix.Tasks.Xref do
 
   defp line_location({_file, line}), do: line
   defp line_location(line), do: line
+
+  defp absolute_locations(locations, base) do
+    Enum.map(locations, &absolute_location(&1, base))
+  end
+
+  defp absolute_location({_, _} = location, _), do: location
+  defp absolute_location(line, base), do: {base, line}
 end
