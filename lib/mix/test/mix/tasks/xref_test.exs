@@ -170,11 +170,11 @@ defmodule Mix.Tasks.XrefTest do
     """
 
     warning = """
-    warning: function :not_a_module.no_module/0 is undefined (module :not_a_module is not available)
-      lib/a.ex:2
-
     warning: function :lists.no_func/0 is undefined or private
       lib/a.ex:3
+
+    warning: function :not_a_module.no_module/0 is undefined (module :not_a_module is not available)
+      lib/a.ex:2
 
     """
 
@@ -195,11 +195,11 @@ defmodule Mix.Tasks.XrefTest do
     """
 
     warning = """
-    warning: function A2.no_func/0 is undefined or private
-      lib/a.ex:2
-
     warning: function A1.no_func/0 is undefined or private
       lib/a.ex:7
+
+    warning: function A2.no_func/0 is undefined or private
+      lib/a.ex:2
 
     """
 
@@ -248,7 +248,7 @@ defmodule Mix.Tasks.XrefTest do
     warning: function A.no_func/0 is undefined or private
     Found at 2 locations:
       lib/a.ex:2
-      lib/a.ex:6
+      lib/a.ex:7
 
     warning: function A2.no_func/0 is undefined (module A2 is not available)
     Found at 2 locations:
@@ -367,7 +367,7 @@ defmodule Mix.Tasks.XrefTest do
 
       output =
         capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["warnings"]) == {:ok, []}
+          assert Mix.Task.run("xref", ["warnings"]) == {:ok, %{}}
         end)
 
       assert output == ""
