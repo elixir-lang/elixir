@@ -14,8 +14,8 @@ match(Fun, Expr, #{context := Context, match_vars := Match, prematch_vars := nil
   {EExpr, EE#{context := Context, match_vars := Match, prematch_vars := nil}}.
 
 def({Meta, Args, Guards, Body}, E) ->
-  {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, match_vars := []}),
-  {EGuards, EG} = guard(Guards, EA#{context := guard, match_vars := warn}),
+  {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, match_vars := [], prematch_vars := []}),
+  {EGuards, EG} = guard(Guards, EA#{context := guard, match_vars := warn, prematch_vars := nil}),
   {EBody, _}    = elixir_expand:expand(Body, EG#{context := nil}),
   {Meta, EArgs, EGuards, EBody}.
 
