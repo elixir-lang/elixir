@@ -4,6 +4,7 @@
   record_alias/4, record_alias/2,
   record_import/6, record_import/5,
   record_remote/3, record_remote/6,
+  set_file/2, reset_file/1,
   format_error/1
 ]).
 -include("elixir.hrl").
@@ -49,6 +50,14 @@ record_remote(Module, EnvFunction, Ref) ->
 
 record_remote(Module, Function, Arity, EnvFunction, Line, Ref) ->
   if_tracker(Ref, fun(Pid) -> ?tracker:remote_dispatch(Pid, Module, {Function, Arity}, Line, mode(EnvFunction)), ok end).
+
+%% EXTERNAL SOURCES
+
+set_file(File, Ref) ->
+  if_tracker(Ref, fun(Pid) -> ?tracker:set_file(Pid, File), ok end).
+
+reset_file(Ref) ->
+  if_tracker(Ref, fun(Pid) -> ?tracker:reset_file(Pid), ok end).
 
 %% HELPERS
 
