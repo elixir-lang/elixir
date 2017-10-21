@@ -2,7 +2,7 @@
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/5, compile/1,
          get_ann/1, remote/4, add_beam_chunks/2, debug_info/4,
-         definition_scope/2]).
+         definition_scope/2, format_error/1]).
 -include("elixir.hrl").
 
 %% TODO: Remove extra chunk functionality when OTP 20+.
@@ -153,7 +153,7 @@ compile(#{module := Module} = Map) ->
   Specs =
     case elixir_config:get(bootstrap) of
       true -> [];
-      false -> specs_form(Data, Defmacro, Unreachable, types_form(Data, []))
+      false -> specs_form(Map, Data, Defmacro, Unreachable, types_form(Data, []))
     end,
   load_form(Map, Data, Prefix, Forms, Specs).
 
@@ -331,9 +331,9 @@ types_form(Data, Forms) ->
     ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) || {Kind, Expr, Caller} <- ExTypes],
 
   Fun = fun
-    ({{Kind, NameArity, Expr}, Line, true}, Acc) ->
+    ({Kind, NameArity, Line, Expr, true}, Acc) ->
       [{attribute, Line, export_type, [NameArity]}, {attribute, Line, Kind, Expr} | Acc];
-    ({{Kind, _NameArity, Expr}, Line, false}, Acc) ->
+    ({Kind, _NameArity, Line, Expr, false}, Acc) ->
       [{attribute, Line, Kind, Expr} | Acc]
   end,
 
@@ -341,7 +341,7 @@ types_form(Data, Forms) ->
 
 % Specs
 
-specs_form(Data, Defmacro, Unreachable, Forms) ->
+specs_form(Map, Data, Defmacro, Unreachable, Forms) ->
   Specs =
     ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
      {Kind, Expr, Caller} <- take_type_spec(Data, spec)],
@@ -356,14 +356,36 @@ specs_form(Data, Defmacro, Unreachable, Forms) ->
 
   Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
   SpecsForms = specs_form(spec, Specs, Unreachable, [], Defmacro, Forms),
-  specs_form(callback, Callbacks ++ Macrocallbacks, [], Optional,
-             [NameArity || {{_, NameArity, _}, _} <- Macrocallbacks], SpecsForms).
+  AllCallbacks = Callbacks ++ Macrocallbacks,
+  validate_optional_callbacks(Map, AllCallbacks, Optional),
+  specs_form(callback, AllCallbacks, [], Optional,
+             [NameArity || {_, NameArity, _, _} <- Macrocallbacks], SpecsForms).
+
+validate_optional_callbacks(Map, AllCallbacks, Optional) ->
+  lists:foldl(fun(Callback, Acc) ->
+    case Callback of
+      {Name, Arity} when is_atom(Name) and is_integer(Arity) -> ok;
+      _ -> form_error(Map, {ill_defined_optional_callback, Callback})
+    end,
+
+    case lists:keyfind(Callback, 2, AllCallbacks) of
+      false -> form_error(Map, {unknown_callback, Callback});
+      _ -> ok
+    end,
+
+    case Acc of
+      #{Callback := _} -> form_error(Map, {duplicate_optional_callback, Callback});
+      _ -> ok
+    end,
+
+    maps:put(Callback, true, Acc)
+  end, #{}, Optional).
 
 specs_form(_Kind, [], _Unreacheable, _Optional, _Macros, Forms) ->
   Forms;
 specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms) ->
   Map =
-    lists:foldl(fun({{_, NameArity, Spec}, Line}, Acc) ->
+    lists:foldl(fun({_, NameArity, Line, Spec}, Acc) ->
       case lists:member(NameArity, Unreachable) of
         false ->
           case Acc of
@@ -490,3 +512,16 @@ get_callback_docs(Data) ->
 get_type_docs(Data) ->
   lists:usort(ets:select(Data, [{{{typedoc, '$1'}, '$2', '$3', '$4'},
                                  [], [{{'$1', '$2', '$3', '$4'}}]}])).
+
+%% Errors
+
+form_error(#{line := Line, file := File}, Error) ->
+  elixir_errors:form_error([{line, Line}], File, ?MODULE, Error).
+
+format_error({ill_defined_optional_callback, Callback}) ->
+  io_lib:format("invalid optional callback ~ts. @optional_callbacks expects a "
+                "keyword list of callback names and arities", ['Elixir.Kernel':inspect(Callback)]);
+format_error({unknown_callback, {Name, Arity}}) ->
+  io_lib:format("unknown callback ~ts/~B given as optional callback", [Name, Arity]);
+format_error({duplicate_optional_callback, {Name, Arity}}) ->
+  io_lib:format("~ts/~B has been specified as optional callback more than once", [Name, Arity]).

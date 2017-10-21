@@ -73,6 +73,49 @@ defmodule Kernel.TypespecTest do
     end
   end
 
+  test "undefined type" do
+    assert_raise CompileError, ~r"type foo\(\) undefined", fn ->
+      test_module do
+        @type omg :: foo
+      end
+    end
+  end
+
+  test "undefined spec for function" do
+    assert_raise CompileError, ~r"spec for undefined function omg/0", fn ->
+      test_module do
+        @spec omg :: atom
+      end
+    end
+  end
+
+  test "ill defined optional callback" do
+    assert_raise CompileError, ~r"invalid optional callback :foo", fn ->
+      test_module do
+        @optional_callbacks :foo
+      end
+    end
+  end
+
+  test "unknown optional callback" do
+    assert_raise CompileError, ~r"unknown callback foo/1 given as optional callback", fn ->
+      test_module do
+        @optional_callbacks foo: 1
+      end
+    end
+  end
+
+  test "repeated optional callback" do
+    message = ~r"foo/1 has been specified as optional callback more than once"
+
+    assert_raise CompileError, message, fn ->
+      test_module do
+        @callback foo(:ok) :: :ok
+        @optional_callbacks foo: 1, foo: 1
+      end
+    end
+  end
+
   test "@type with a single type" do
     bytecode =
       test_module do
