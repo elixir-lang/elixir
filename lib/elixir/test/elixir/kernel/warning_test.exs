@@ -634,7 +634,8 @@ defmodule Kernel.WarningTest do
                @behaviour Sample1
              end
              """)
-           end) =~ "function foo/0 is not implemented (in module Sample2)"
+           end) =~
+             "function foo/0 required by behaviour Sample1 is not implemented (in module Sample2)"
   after
     purge([Sample1, Sample2])
   end
@@ -650,9 +651,50 @@ defmodule Kernel.WarningTest do
                @behaviour Sample1
              end
              """)
-           end) =~ "macro foo/0 is not implemented (in module Sample2)"
+           end) =~
+             "macro foo/0 required by behaviour Sample1 is not implemented (in module Sample2)"
   after
     purge([Sample1, Sample2])
+  end
+
+  test "wrong kind for behaviour" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample1 do
+               @callback foo :: term
+             end
+
+             defmodule Sample2 do
+               @behaviour Sample1
+               defmacro foo, do: :ok
+             end
+             """)
+           end) =~
+             "function foo/0 required by behaviour Sample1 was implemented as \"defmacro\" but should have been \"def\""
+  after
+    purge([Sample1, Sample2])
+  end
+
+  test "conflicting behaviour" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample1 do
+               @callback foo :: term
+             end
+
+             defmodule Sample2 do
+               @callback foo :: term
+             end
+
+             defmodule Sample3 do
+               @behaviour Sample1
+               @behaviour Sample2
+             end
+             """)
+           end) =~
+             "conflicting behaviours found. function foo/0 is required by Sample1 and Sample2 (in module Sample3)"
+  after
+    purge([Sample1, Sample2, Sample3])
   end
 
   test "undefined behaviour" do
@@ -662,7 +704,7 @@ defmodule Kernel.WarningTest do
                @behaviour UndefinedBehaviour
              end
              """)
-           end) =~ "@behaviour UndefinedBehaviour does not exist (in module Sample)"
+           end) =~ "module UndefinedBehaviour does not exist (in module Sample)"
   after
     purge(Sample)
   end
@@ -676,7 +718,7 @@ defmodule Kernel.WarningTest do
                @behaviour EmptyBehaviour
              end
              """)
-           end) =~ "@behaviour EmptyBehaviour does not define any callbacks (in module Sample)"
+           end) =~ "module EmptyBehaviour is not a behaviour (in module Sample)"
   after
     purge(Sample)
     purge(EmptyBehaviour)
@@ -697,20 +739,6 @@ defmodule Kernel.WarningTest do
     purge(IllDefinedOptionalBehaviour)
   end
 
-  @tag :skip
-  test "warn on callback redefinition in the same behaviour" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule RedefinedCallbackBehaviour do
-               @callback foo() :: any
-               @callback foo() :: any
-             end
-             """)
-           end) =~ "The foo/0 callback is defined 2 times in \"RedefinedCallbackBehaviour\""
-  after
-    purge(RedefinedCallbackBehaviour)
-  end
-
   test "undefined behavior" do
     assert capture_err(fn ->
              Code.eval_string("""
@@ -723,7 +751,7 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "undefined macro for protocol" do
+  test "undefined function for protocol" do
     assert capture_err(fn ->
              Code.eval_string("""
              defprotocol Sample1 do
@@ -733,7 +761,8 @@ defmodule Kernel.WarningTest do
              defimpl Sample1, for: Atom do
              end
              """)
-           end) =~ "undefined protocol function foo/1 (for protocol Sample1)"
+           end) =~
+             "function foo/1 required by protocol Sample1 is not implemented (in module Sample1.Atom)"
   after
     purge([Sample1, Sample1.Atom])
   end
