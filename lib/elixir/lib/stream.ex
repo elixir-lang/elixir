@@ -1497,7 +1497,7 @@ defimpl Enumerable, for: Stream do
   end
 
   defp do_reduce(%Stream{enum: enum, funs: funs, accs: accs, done: done}, acc, fun) do
-    composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
+    composed = :lists.foldl(fn f1, acc -> f1.(acc) end, fun, funs)
     reduce = &Enumerable.reduce(enum, &1, composed)
     do_each(reduce, done && {done, fun}, :lists.reverse(accs), acc)
   end
