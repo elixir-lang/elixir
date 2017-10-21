@@ -38,14 +38,23 @@ defmodule Mix.Dep.Loader do
 
   def with_system_env(%Mix.Dep{system_env: []}, callback), do: callback.()
 
-  def with_system_env(%Mix.Dep{system_env: system_env}, callback) do
-    env = System.get_env()
+  def with_system_env(%Mix.Dep{system_env: new_env}, callback) do
+    old_env =
+      for {key, _} <- new_env do
+        {key, System.get_env(key)}
+      end
 
     try do
-      System.put_env(system_env)
+      System.put_env(new_env)
       callback.()
     after
-      System.put_env(env)
+      for {key, value} <- old_env do
+        if value do
+          System.put_env(key, value)
+        else
+          System.delete_env(key)
+        end
+      end
     end
   end
 
