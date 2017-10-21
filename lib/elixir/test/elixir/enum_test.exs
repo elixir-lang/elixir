@@ -881,6 +881,7 @@ defmodule EnumTest do
 end
 
 defmodule EnumTest.Range do
+  # Ranges use custom callbacks for protocols in many operations.
   use ExUnit.Case, async: true
 
   test "all?/2" do
@@ -1217,7 +1218,8 @@ defmodule EnumTest.Range do
     :rand.seed(:exsplus, seed1)
     assert Enum.random(1..2) == 1
     assert Enum.random(1..3) == 2
-    assert Enum.random(3..1) == 3
+    assert Enum.random(3..1) == 1
+
     :rand.seed(:exsplus, seed2)
     assert Enum.random(1..2) == 1
     assert Enum.random(1..3) == 3
@@ -1522,9 +1524,22 @@ defmodule EnumTest.Range do
 end
 
 defmodule EnumTest.Map do
-  # Some cases are inlined for ranges which means we need
-  # to verify them using maps or mapsets.
+  # Maps use different protocols path than lists and ranges in the cases below.
   use ExUnit.Case, async: true
+
+  test "random/1" do
+    map = %{a: 1, b: 2, c: 3}
+    seed1 = {1406, 407_414, 139_258}
+    seed2 = {1406, 421_106, 567_597}
+    :rand.seed(:exsplus, seed1)
+    assert Enum.random(map) == {:c, 3}
+    assert Enum.random(map) == {:b, 2}
+    assert Enum.random(map) == {:c, 3}
+
+    :rand.seed(:exsplus, seed2)
+    assert Enum.random(map) == {:a, 1}
+    assert Enum.random(map) == {:a, 1}
+  end
 
   test "take_random/2" do
     # corner cases, independent of the seed

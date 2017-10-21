@@ -654,6 +654,16 @@ defmodule Kernel do
       iex> max(:a, :b)
       :b
 
+  Using Erlang's term ordering means that comparisons are
+  structural and not semantic. For example, when comparing dates:
+
+      iex> max(~D[2017-03-31], ~D[2017-04-01])
+      ~D[2017-03-31]
+
+  In the example above, `max/1` returned March 31st instead of April 1st
+  because the structural comparison compares the day before the year. In
+  such cases it is common for modules to provide functions such as
+  `Date.compare/1` that perform semantic comparison.
   """
   @spec max(first, second) :: first | second when first: term, second: term
   def max(first, second) do
@@ -675,6 +685,16 @@ defmodule Kernel do
       iex> min("foo", "bar")
       "bar"
 
+  Using Erlang's term ordering means that comparisons are
+  structural and not semantic. For example, when comparing dates:
+
+      iex> min(~D[2017-03-31], ~D[2017-04-01])
+      ~D[2017-04-01]
+
+  In the example above, `min/1` returned April 1st instead of March 31st
+  because the structural comparison compares the day before the year. In
+  such cases it is common for modules to provide functions such as
+  `Date.compare/1` that perform semantic comparison.
   """
   @spec min(first, second) :: first | second when first: term, second: term
   def min(first, second) do

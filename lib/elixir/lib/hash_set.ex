@@ -273,6 +273,10 @@ defimpl Enumerable, for: HashSet do
     module = HashSet
     {:ok, module.size(set)}
   end
+
+  def slice(_set) do
+    {:error, __MODULE__}
+  end
 end
 
 defimpl Collectable, for: HashSet do

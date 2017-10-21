@@ -267,6 +267,10 @@ defimpl Enumerable, for: HashDict do
     module = HashDict
     {:ok, module.size(dict)}
   end
+
+  def slice(_dict) do
+    {:error, __MODULE__}
+  end
 end
 
 defimpl Collectable, for: HashDict do
