@@ -693,22 +693,6 @@ defmodule Kernel.ErrorsTest do
                       '''
   end
 
-  test "typespec errors" do
-    assert_eval_raise CompileError, "nofile:2: type foo() undefined", '''
-    defmodule Kernel.ErrorsTest.TypespecErrors1 do
-      @type omg :: foo
-    end
-    '''
-
-    message = "nofile:2: spec for undefined function omg/0"
-
-    assert_eval_raise CompileError, message, '''
-    defmodule Kernel.ErrorsTest.TypespecErrors2 do
-      @spec omg :: atom
-    end
-    '''
-  end
-
   test "bad multi-call" do
     assert_eval_raise CompileError,
                       "nofile:1: invalid argument for alias, expected a compile time atom or alias, got: 42",

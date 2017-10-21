@@ -100,7 +100,7 @@ defmodule Kernel.OverridableExampleBehaviour do
   @callback optional_callback :: any
   @macrocallback required_macro_callback(arg :: any) :: Macro.t()
   @macrocallback optional_macro_callback(arg :: any, arg2 :: any) :: Macro.t()
-  @optional_callbacks optional_callback: 0, optional_macro_callback: 1
+  @optional_callbacks optional_callback: 0, optional_macro_callback: 2
 end
 
 defmodule Kernel.OverridableTest do

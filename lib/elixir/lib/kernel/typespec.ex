@@ -475,7 +475,7 @@ defmodule Kernel.Typespec do
       compile_error(caller, "type #{name}/#{arity} is a builtin type and it cannot be redefined")
     end
 
-    {{kind, {name, arity}, type}, caller.line, export}
+    {kind, {name, arity}, caller.line, type, export}
   end
 
   def translate_type(_kind, other, pos) do
@@ -542,7 +542,7 @@ defmodule Kernel.Typespec do
       end
 
     arity = length(args)
-    {{kind, {name, arity}, spec}, caller.line}
+    {kind, {name, arity}, caller.line, spec}
   end
 
   defp ensure_no_defaults!(args) do
