@@ -57,20 +57,14 @@ handle_file_warning(_, _File, {Line, erl_lint, {unused_var, _Var}}) when Line =<
 handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _Var, _Where}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _Var, _Where}}) -> ok;
 
-handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour, Module}}) ->
-  case elixir_config:get(bootstrap) of
-    true ->
-      ok;
-    false when Module == 'Elixir.Collectable';
-               Module == 'Elixir.Enumerable';
-               Module == 'Elixir.Inspect';
-               Module == 'Elixir.List.Chars';
-               Module == 'Elixir.String.Chars' ->
-      %% Silence Elixir behaviour warnings because of bootstrapping
-      ok;
-    false ->
-      elixir_errors:warn(Line, File, ["behaviour ", elixir_aliases:inspect(Module), " is undefined"])
-  end;
+%% Ignore behaviour warnings as we check for these problem ourselves
+% handle_file_warning(_, _File, {_Line, erl_lint, {conflicting_behaviours, _Callback, _, _, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {undefined_behaviour, _Module}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_behaviour_callbacks, _Behaviour}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_optional_callbacks, _Behaviour}}) -> ok;
+% handle_file_warning(_, _File, {_Line, erl_lint, {behaviour_info, {_M, _F, _A}}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {redefine_optional_callback, {_F, _A}}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {undefined_callback, {_M, _F, _A}}}) -> ok;
 
 handle_file_warning(_, File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
