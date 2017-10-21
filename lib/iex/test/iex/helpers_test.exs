@@ -206,7 +206,7 @@ defmodule IEx.HelpersTest do
     end
 
     test "errors OTP preloaded module" do
-      assert capture_iex("open(:init)") == "Could not open: :init. Module is not available."
+      assert capture_iex("open(:init)") =~ ~r"(Could not open)|(Invalid arguments)"
     end
 
     test "errors if module is not available" do
