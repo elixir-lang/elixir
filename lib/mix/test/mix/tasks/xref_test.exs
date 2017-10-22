@@ -377,7 +377,11 @@ defmodule Mix.Tasks.XrefTest do
   ## Unreachable
 
   test "unreachable: reports nothing with no references" do
-    assert_reachable("defmodule A do end")
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", "defmodule A do end")
+
+      assert Mix.Task.run("xref", ["unreachable"]) == :ok
+    end
   end
 
   test "unreachable: reports missing functions" do
@@ -392,6 +396,8 @@ defmodule Mix.Tasks.XrefTest do
     """
 
     warning = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:2: A.no_func/0
     lib/external_source.ex:6: A.no_func/0
     """
@@ -399,20 +405,13 @@ defmodule Mix.Tasks.XrefTest do
     assert_unreachable(code, warning)
   end
 
-  defp assert_reachable(contents) do
-    assert_unreachable(contents, "", :ok)
-  end
-
   defp assert_unreachable(contents, expected, result \\ :error) do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", contents)
 
-      output =
-        capture_io(fn ->
-          assert Mix.Task.run("xref", ["unreachable"]) == result
-        end)
+      assert Mix.Task.run("xref", ["unreachable"]) == result
 
-      assert output == expected
+      assert ^expected = receive_until_no_messages([])
     end
   end
 
@@ -470,6 +469,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:2: A.a/0
     lib/external_source.ex:8: A.a/0
     lib/a.ex:3: A.a/1
@@ -495,6 +496,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:2: A.a/0
     lib/external_source.ex:8: A.a/0
     lib/a.ex:3: A.a/1
@@ -519,6 +522,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:2: A.a/0
     lib/external_source.ex:8: A.a/0
     """
@@ -551,6 +556,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/b.ex:5: A.a/0
     lib/external_source.ex:10: A.a/0
     lib/b.ex:4: A.a_macro/0
@@ -580,6 +587,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:4: Enum.flatten/1
     lib/external_source.ex:11: Enum.flatten/1
     lib/a.ex:4: Enum.map/2
@@ -622,6 +631,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:4: Integer.is_even/1
     lib/a.ex:7: Integer.is_even/1
     lib/a.ex:10: Integer.is_even/1
@@ -675,12 +686,9 @@ defmodule Mix.Tasks.XrefTest do
         File.write!(file, contents)
       end
 
-      output =
-        capture_io(fn ->
-          assert Mix.Task.run("xref", ["callers", callee]) == :ok
-        end)
+      assert Mix.Task.run("xref", ["callers", callee]) == :ok
 
-      assert output == expected
+      assert ^expected = receive_until_no_messages([])
     end
   end
 
