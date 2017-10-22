@@ -238,7 +238,6 @@ defmodule Mix.Tasks.Xref do
 
   defp print_unreachables(entries) do
     Enum.each(entries, &print_unreachable/1)
-
     entries
   end
 
@@ -346,7 +345,6 @@ defmodule Mix.Tasks.Xref do
 
   defp print_calls(calls) do
     Enum.each(calls, &print_call/1)
-
     calls
   end
 
