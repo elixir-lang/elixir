@@ -237,7 +237,11 @@ defmodule Mix.Tasks.Xref do
   ## Print unreachable
 
   defp print_unreachable(entries) do
-    Enum.each(entries, &Mix.shell().info(format_unreachable(&1)))
+    entries
+    |> Enum.flat_map(&format_unreachable/1)
+    |> Enum.join("\n")
+    |> Mix.shell().info
+
     entries
   end
 
@@ -245,8 +249,7 @@ defmodule Mix.Tasks.Xref do
     for {file, line} <- locations do
       [
         Exception.format_file_line(file, line, " "),
-        Exception.format_mfa(module, function, arity),
-        ?\n
+        Exception.format_mfa(module, function, arity)
       ]
     end
   end
@@ -345,7 +348,7 @@ defmodule Mix.Tasks.Xref do
   defp print_calls(calls) do
     calls
     |> Enum.flat_map(&format_call/1)
-    |> Enum.join("")
+    |> Enum.join("\n")
     |> Mix.shell().info
 
     calls
@@ -355,8 +358,7 @@ defmodule Mix.Tasks.Xref do
     for {file, line} <- locations do
       [
         Exception.format_file_line(file, line, " "),
-        Exception.format_mfa(module, func, arity),
-        ?\n
+        Exception.format_mfa(module, func, arity)
       ]
     end
   end

@@ -396,6 +396,8 @@ defmodule Mix.Tasks.XrefTest do
     """
 
     warning = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:2: A.no_func/0
     lib/external_source.ex:6: A.no_func/0
     """
@@ -409,7 +411,7 @@ defmodule Mix.Tasks.XrefTest do
 
       assert Mix.Task.run("xref", ["unreachable"]) == result
 
-      assert_received {:mix_shell, :info, [^expected]}
+      assert ^expected = receive_until_no_messages([])
     end
   end
 
@@ -467,6 +469,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:2: A.a/0
     lib/external_source.ex:8: A.a/0
     lib/a.ex:3: A.a/1
@@ -492,6 +496,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:2: A.a/0
     lib/external_source.ex:8: A.a/0
     lib/a.ex:3: A.a/1
@@ -516,6 +522,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:2: A.a/0
     lib/external_source.ex:8: A.a/0
     """
@@ -548,6 +556,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/b.ex:5: A.a/0
     lib/external_source.ex:10: A.a/0
     lib/b.ex:4: A.a_macro/0
@@ -577,6 +587,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:4: Enum.flatten/1
     lib/external_source.ex:11: Enum.flatten/1
     lib/a.ex:4: Enum.map/2
@@ -619,6 +631,8 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = """
+    Compiling 2 files (.ex)
+    Generated sample app
     lib/a.ex:4: Integer.is_even/1
     lib/a.ex:7: Integer.is_even/1
     lib/a.ex:10: Integer.is_even/1
@@ -674,7 +688,7 @@ defmodule Mix.Tasks.XrefTest do
 
       assert Mix.Task.run("xref", ["callers", callee]) == :ok
 
-      assert_received {:mix_shell, :info, [^expected]}
+      assert ^expected = receive_until_no_messages([])
     end
   end
 
