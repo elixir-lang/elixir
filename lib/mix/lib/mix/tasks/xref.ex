@@ -141,7 +141,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp unreachable() do
-    case warnings(&print_unreachable/1) do
+    case warnings(&print_unreachables/1) do
       {:ok, []} -> :ok
       _ -> :error
     end
@@ -236,21 +236,20 @@ defmodule Mix.Tasks.Xref do
 
   ## Print unreachable
 
-  defp print_unreachable(entries) do
-    entries
-    |> Enum.flat_map(&format_unreachable/1)
-    |> Enum.join("\n")
-    |> Mix.shell().info
+  defp print_unreachables(entries) do
+    Enum.each(entries, &print_unreachable/1)
 
     entries
   end
 
-  defp format_unreachable({{_, module, function, arity, _}, locations}) do
+  defp print_unreachable({{_, module, function, arity, _}, locations}) do
+    shell = Mix.shell()
+
     for {file, line} <- locations do
-      [
+      shell.info([
         Exception.format_file_line(file, line, " "),
         Exception.format_mfa(module, function, arity)
-      ]
+      ])
     end
   end
 
@@ -346,20 +345,19 @@ defmodule Mix.Tasks.Xref do
   ## Print callers
 
   defp print_calls(calls) do
-    calls
-    |> Enum.flat_map(&format_call/1)
-    |> Enum.join("\n")
-    |> Mix.shell().info
+    Enum.each(calls, &print_call/1)
 
     calls
   end
 
-  defp format_call({{module, func, arity}, locations}) do
+  defp print_call({{module, func, arity}, locations}) do
+    shell = Mix.shell()
+
     for {file, line} <- locations do
-      [
+      shell.info([
         Exception.format_file_line(file, line, " "),
         Exception.format_mfa(module, func, arity)
-      ]
+      ])
     end
   end
 
