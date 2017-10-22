@@ -167,14 +167,19 @@ defmodule Mix.Tasks.Xref do
   ## Warnings
 
   defp warnings(print_warnings) do
-    entries =
-      excludes()
-      |> source_warnings()
-      |> merge_entries()
-      |> sort_entries()
-      |> print_warnings.()
+    case source_warnings(excludes()) do
+      [] ->
+        {:ok, []}
 
-    {:ok, entries}
+      entries ->
+        entries =
+          entries
+          |> merge_entries()
+          |> sort_entries()
+          |> print_warnings.()
+
+        {:ok, entries}
+    end
   end
 
   defp source_warnings(excludes) do
@@ -189,8 +194,7 @@ defmodule Mix.Tasks.Xref do
         exports = load_exports(module),
         {{func, arity}, locations} <- func_arity_locations,
         unreachable_mfa = unreachable_mfa(exports, module, func, arity, excludes),
-        locations = absolute_locations(locations, file),
-        do: {unreachable_mfa, locations}
+        do: {unreachable_mfa, absolute_locations(locations, file)}
   end
 
   defp load_exports(module) do
