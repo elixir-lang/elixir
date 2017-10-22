@@ -343,7 +343,11 @@ defmodule Mix.Tasks.Xref do
   ## Print callers
 
   defp print_calls(calls) do
-    Enum.map(calls, &Mix.shell().info(format_call(&1)))
+    calls
+    |> Enum.flat_map(&format_call/1)
+    |> Enum.join("")
+    |> Mix.shell().info
+
     calls
   end
 
