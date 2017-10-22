@@ -237,7 +237,7 @@ defmodule Mix.Tasks.Xref do
   ## Print unreachable
 
   defp print_unreachable(entries) do
-    Enum.each(entries, &IO.write(format_unreachable(&1)))
+    Enum.each(entries, &Mix.shell().info(format_unreachable(&1)))
     entries
   end
 
@@ -343,7 +343,7 @@ defmodule Mix.Tasks.Xref do
   ## Print callers
 
   defp print_calls(calls) do
-    Enum.map(calls, &IO.write(format_call(&1)))
+    Enum.map(calls, &Mix.shell().info(format_call(&1)))
     calls
   end
 
