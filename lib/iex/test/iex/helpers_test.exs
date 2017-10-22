@@ -314,7 +314,9 @@ defmodule IEx.HelpersTest do
     test "prints function documentation" do
       pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
       c_h = "* def c(files, path \\\\ :in_memory)\n\nCompiles the given files."
-      eq_h = "* def ==(left, right)\n\nReturns `true` if the two items are equal.\n\n"
+
+      eq_h =
+        "* def ==(left, right)\n\n    @spec term() == term() :: boolean()\n\nReturns `true` if the two items are equal.\n\n"
 
       assert capture_io(fn -> h(IEx.Helpers.pwd() / 0) end) =~ pwd_h
       assert capture_io(fn -> h(IEx.Helpers.c() / 2) end) =~ c_h
@@ -388,7 +390,7 @@ defmodule IEx.HelpersTest do
         assert c(files, ".") |> Enum.sort() == [Impl, MyBehaviour]
 
         assert capture_io(fn -> h(Impl.first() / 1) end) ==
-                 "* @callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
+                 "@callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
 
         assert capture_io(fn -> h(Impl.second() / 1) end) ==
                  "* def second(int)\n\nDocs for Impl.second/1\n"
@@ -397,7 +399,7 @@ defmodule IEx.HelpersTest do
                  "* def second(int1, int2)\n\nDocs for Impl.second/2\n"
 
         assert capture_io(fn -> h(Impl.first()) end) ==
-                 "* @callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
+                 "@callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
 
         assert capture_io(fn -> h(Impl.second()) end) ==
                  "* def second(int)\n\nDocs for Impl.second/1\n* def second(int1, int2)\n\nDocs for Impl.second/2\n"
@@ -455,6 +457,7 @@ defmodule IEx.HelpersTest do
 
       assert capture_io(fn -> b(Mix.SCM) end) =~ """
              @callback accepts_options(app :: atom(), opts()) :: opts() | nil
+
              @callback checked_out?(opts()) :: boolean()
              """
     end
@@ -464,13 +467,14 @@ defmodule IEx.HelpersTest do
 
       content = """
       defmodule MultipleClauseCallback do
+        @doc "callback"
         @callback test(:foo) :: integer
         @callback test(:bar) :: [integer]
       end
       """
 
       with_file(filename, content, fn ->
-        assert c(filename, ".") |> Enum.sort() == [MultipleClauseCallback]
+        assert c(filename, ".") == [MultipleClauseCallback]
 
         assert capture_io(fn -> b(MultipleClauseCallback) end) =~ """
                @callback test(:foo) :: integer()
@@ -486,12 +490,12 @@ defmodule IEx.HelpersTest do
                "No documentation for Mix.Task.stop was found\n"
 
       assert capture_io(fn -> b(Mix.Task.run()) end) =~
-               "* @callback run(command_line_args :: [binary()]) :: any()\n\nA task needs to implement `run`"
+               "@callback run(command_line_args :: [binary()]) :: any()\n\nA task needs to implement `run`"
 
       assert capture_io(fn -> b(NoMix.run()) end) == "Could not load module NoMix, got: nofile\n"
 
       assert capture_io(fn -> b(Exception.message() / 1) end) ==
-               "* @callback message(t()) :: String.t()\n\n\n"
+               "@callback message(t()) :: String.t()\n\n"
     end
   end
 
@@ -511,7 +515,9 @@ defmodule IEx.HelpersTest do
       assert "@type t() :: " <> _ = capture_io(fn -> t(Enum.t()) end)
       assert capture_io(fn -> t(Enum.t()) end) == capture_io(fn -> t(Enum.t() / 0) end)
 
-      assert "@opaque t(value)\n@type t() :: t(term())\n" = capture_io(fn -> t(MapSet.t()) end)
+      assert "@opaque t(value)\n\n@type t() :: t(term())\n\n" =
+               capture_io(fn -> t(MapSet.t()) end)
+
       assert capture_io(fn -> t(URI.t()) end) == capture_io(fn -> t(URI.t() / 0) end)
     end
 
@@ -529,42 +535,19 @@ defmodule IEx.HelpersTest do
         assert c(filename, ".") == [TypeSample]
 
         assert capture_io(fn -> t(TypeSample.id_with_desc() / 0) end) == """
-               An id with description.
                @type id_with_desc() :: {number(), String.t()}
+
+               An id with description.
                """
 
         assert capture_io(fn -> t(TypeSample.id_with_desc()) end) == """
-               An id with description.
                @type id_with_desc() :: {number(), String.t()}
+
+               An id with description.
                """
       end)
     after
       cleanup_modules([TypeSample])
-    end
-  end
-
-  describe "s" do
-    test "prints when there is no spec information" do
-      assert capture_io(fn -> s(IEx.Remsh) end) == "No specification for IEx.Remsh was found\n"
-    end
-
-    test "prints all specs in module" do
-      # Test that it shows at least two specs
-      assert Enum.count(capture_io(fn -> s(Process) end) |> String.split("\n"), fn line ->
-               String.starts_with?(line, "@spec")
-             end) >= 2
-    end
-
-    test "prints specs" do
-      assert Enum.count(capture_io(fn -> s(Process.flag()) end) |> String.split("\n"), fn line ->
-               String.starts_with?(line, "@spec")
-             end) >= 2
-
-      assert capture_io(fn -> s(Process.register() / 2) end) ==
-               "@spec register(pid() | port(), atom()) :: true\n"
-
-      assert capture_io(fn -> s(struct) end) ==
-               "@spec struct(module() | struct(), Enum.t()) :: struct()\n"
     end
   end
 

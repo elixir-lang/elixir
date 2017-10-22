@@ -338,24 +338,6 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints the specs for the given module or for the given function/arity pair.
-
-  ## Examples
-
-      iex> s(Enum)
-      iex> s(Enum.all?)
-      iex> s(Enum.all?/2)
-      iex> s(is_atom)
-      iex> s(is_atom/1)
-
-  """
-  defmacro s(term) do
-    quote do
-      IEx.Introspection.s(unquote(IEx.Introspection.decompose(term)))
-    end
-  end
-
-  @doc """
   Returns the value of the `n`th expression in the history.
 
   `n` can be a negative value: if it is, the corresponding expression value
