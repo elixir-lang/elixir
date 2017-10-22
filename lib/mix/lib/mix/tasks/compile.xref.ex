@@ -95,9 +95,8 @@ defmodule Mix.Tasks.Compile.Xref do
   end
 
   defp to_diagnostics(warnings, severity) do
-    for {file, entries} <- warnings,
-        {lines, message} <- entries,
-        line <- lines do
+    for {message, locations} <- warnings,
+        {file, line} <- locations do
       %Mix.Task.Compiler.Diagnostic{
         compiler_name: "Xref",
         file: Path.absname(file),
