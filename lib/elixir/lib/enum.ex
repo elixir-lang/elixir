@@ -144,8 +144,7 @@ defprotocol Enumerable do
   Retrieves the number of elements in the enumerable.
 
   It should return `{:ok, count}` if you can count the number of elements
-  in the enumerable more efficiently than manually traversing each element
-  in the enumerable one by one.
+  in the enumerable.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.
@@ -186,8 +185,7 @@ defprotocol Enumerable do
   will become too expensive.
 
   On the other hand, the `count/1` function in this protocol should be
-  implemented whenever counting the number of elements can be done faster
-  than traversing each element in the enumerable individually.
+  implemented whenever you can count the number of elements in the collection.
   """
   @spec slice(t) ::
           {:ok, size :: non_neg_integer(), slicing_fun()}
