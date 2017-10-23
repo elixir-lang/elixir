@@ -185,7 +185,7 @@ defprotocol Enumerable do
   time. Otherwise the simplest of operations, such as `Enum.at(enumerable, 0)`,
   will become too expensive.
 
-  On the other hand, `the count/1` function in this protocol should be
+  On the other hand, the `count/1` function in this protocol should be
   implemented whenever counting the number of elements can be done faster
   than traversing each element in the enumerable individually.
   """
