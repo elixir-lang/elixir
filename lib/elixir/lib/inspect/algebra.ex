@@ -572,8 +572,7 @@ defmodule Inspect.Algebra do
   end
 
   @doc ~S"""
-  Returns a document entity representing a break based on the given
-  `string`.
+  Returns a break document based on the given `string`.
 
   This break can be rendered as a linebreak or as the given `string`,
   depending on the `mode` of the chosen layout.
@@ -604,7 +603,7 @@ defmodule Inspect.Algebra do
 
   @doc """
   Collapse any new lines and whitespace following this
-  node and emitting up to `max` new lines.
+  node, emitting up to `max` new lines.
   """
   @spec collapse_lines(pos_integer) :: doc_collapse
   def collapse_lines(max) when is_integer(max) and max > 0 do
@@ -621,6 +620,36 @@ defmodule Inspect.Algebra do
 
   When disabled, it behaves as usual and it will ignore
   any further `next_break_fits/2` instruction.
+
+  ## Examples
+
+  This is used by Elixir's code formatter to avoid breaking
+  code at some specific locations. For example, consider this
+  code:
+
+      some_function_call(%{..., key: value, ...})
+
+  Now imagine that this code does not fit its line. The code
+  formatter introduces breaks inside `(` and `)` and inside
+  `%{` and `}`. Therefore the document would break as:
+
+      some_function_call(
+        %{
+          ...,
+          key: value,
+          ...
+        }
+      )
+
+  The formatter wraps the algebra document representing the
+  map in `next_break_fits/1` so the code is formatted as:
+
+      some_function_call(%{
+        ...,
+        key: value,
+        ...
+      })
+
   """
   @spec next_break_fits(t) :: doc_fits
   def next_break_fits(doc, mode \\ @next_break_fits) when is_doc(doc) do
@@ -636,14 +665,32 @@ defmodule Inspect.Algebra do
   end
 
   @doc """
-  Introduces a flex break.
+  Returns a flex break document based on the given `string`.
 
-  A flex break still causes a group to break, like
-  a regular break, but it is re-evaluated when the
-  documented is processed.
+  A flex break still causes a group to break, like `break/1`,
+  but it is re-evaluated when the documented is rendered.
 
-  This function is used by `container_doc/4` and friends
-  to the maximum number of entries on the same line.
+  For example, take a group document represented as `[1, 2, 3]`
+  where the space after every comma is a break. When the document
+  above does not fit a single line, all breaks are enabled,
+  causing the document to be rendered as:
+
+      [1,
+       2,
+       3]
+
+  However, if flex breaks are used, then each break is re-evaluated
+  when rendered, so the document could be possible rendered as:
+
+      [1, 2,
+       3]
+
+  Hence the name "flex". they are more flexible when it comes
+  to the document fitting. On the other hand, they are more expensive
+  since each break needs to be re-evaluated.
+
+  This function is used by `container_doc/4` and friends to the
+  maximum number of entries on the same line.
   """
   @spec flex_break(binary) :: doc_break
   def flex_break(string \\ " ") when is_binary(string) do
