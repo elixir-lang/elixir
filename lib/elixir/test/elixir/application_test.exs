@@ -6,11 +6,15 @@ defmodule ApplicationTest do
   import PathHelpers
 
   test "application environment" do
+    assert_raise ArgumentError, ~r/because the application was not loaded\/started/, fn ->
+      Application.fetch_env!(:unknown, :unknown)
+    end
+
     assert Application.get_env(:elixir, :unknown) == nil
     assert Application.get_env(:elixir, :unknown, :default) == :default
     assert Application.fetch_env(:elixir, :unknown) == :error
 
-    assert_raise ArgumentError, fn ->
+    assert_raise ArgumentError, ~r/because configuration :unknown was not set/, fn ->
       Application.fetch_env!(:elixir, :unknown)
     end
 
