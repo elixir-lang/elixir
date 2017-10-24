@@ -278,13 +278,17 @@ defmodule Code.Formatter do
 
   defp format_comment('##' ++ rest, acc), do: format_comment([?# | rest], [?# | acc])
 
-  defp format_comment('#!', acc), do: List.to_string(Enum.reverse(acc, '#!'))
-  defp format_comment('#! ' ++ _ = rest, acc), do: List.to_string(Enum.reverse(acc, rest))
-  defp format_comment('#!' ++ rest, acc), do: List.to_string(Enum.reverse(acc, [?#, ?!, ?\s, rest]))
+  defp format_comment('#!', acc), do: reverse_to_string(acc, '#!')
+  defp format_comment('#! ' ++ _ = rest, acc), do: reverse_to_string(acc, rest)
+  defp format_comment('#!' ++ rest, acc), do: reverse_to_string(acc, [?#, ?!, ?\s, rest])
 
-  defp format_comment('#', acc), do: List.to_string(Enum.reverse(acc, '#'))
-  defp format_comment('# ' ++ _ = rest, acc), do: List.to_string(Enum.reverse(acc, rest))
-  defp format_comment('#' ++ rest, acc), do: List.to_string(Enum.reverse(acc, [?#, ?\s, rest]))
+  defp format_comment('#', acc), do: reverse_to_string(acc, '#')
+  defp format_comment('# ' ++ _ = rest, acc), do: reverse_to_string(acc, rest)
+  defp format_comment('#' ++ rest, acc), do: reverse_to_string(acc, [?#, ?\s, rest])
+
+  defp reverse_to_string(acc, prefix) do
+    acc |> Enum.reverse(prefix) |> List.to_string()
+  end
 
   # If there is a no new line before, we can't gather all followup comments.
   defp gather_comments([{line, {nil, next_eol}, doc} | comments]) do
