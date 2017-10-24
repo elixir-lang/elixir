@@ -277,6 +277,11 @@ defmodule Code.Formatter do
   defp previous_eol(_), do: nil
 
   defp format_comment('##' ++ rest, acc), do: format_comment([?# | rest], [?# | acc])
+
+  defp format_comment('#!', acc), do: List.to_string(Enum.reverse(acc, '#!'))
+  defp format_comment('#! ' ++ _ = rest, acc), do: List.to_string(Enum.reverse(acc, rest))
+  defp format_comment('#!' ++ rest, acc), do: List.to_string(Enum.reverse(acc, [?#, ?!, ?\s, rest]))
+
   defp format_comment('#', acc), do: List.to_string(Enum.reverse(acc, '#'))
   defp format_comment('# ' ++ _ = rest, acc), do: List.to_string(Enum.reverse(acc, rest))
   defp format_comment('#' ++ rest, acc), do: List.to_string(Enum.reverse(acc, [?#, ?\s, rest]))
