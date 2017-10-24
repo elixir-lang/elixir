@@ -349,7 +349,8 @@ defmodule Application do
             raise ArgumentError,
                   "could not fetch application environment #{key} for application #{app} " <>
                     "because the application was not loaded/started. If your application " <>
-                    "depends on #{app} at runtime, make sure to list it under :extra_applications"
+                    "depends on #{app} at runtime, make sure to load/start it or list it " <>
+                    "under :extra_applications in your mix.exs file"
         end
     end
   end
