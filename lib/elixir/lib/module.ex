@@ -1630,10 +1630,6 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:file, file) when is_binary(file) do
-    file
-  end
-
   defp preprocess_attribute(:before_compile, atom) when is_atom(atom),
     do: {atom, :__before_compile__}
 

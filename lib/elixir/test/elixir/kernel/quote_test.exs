@@ -14,7 +14,7 @@ defmodule Kernel.QuoteTest do
   test "keep line" do
     # DO NOT MOVE THIS LINE
     assert quote(location: :keep, do: bar(1, 2, 3)) ==
-             {:bar, [file: Path.relative_to_cwd(__ENV__.file), keep: 16], [1, 2, 3]}
+             {:bar, [keep: {Path.relative_to_cwd(__ENV__.file), 16}], [1, 2, 3]}
   end
 
   test "fixed line" do

@@ -5,7 +5,7 @@
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop; Kind == '@').
 -define(lexical(Kind), Kind == import; Kind == alias; Kind == require).
--compile({inline, [keyfind/2, keystore/3, keydelete/2, keyreplace/3, keynew/3]}).
+-compile({inline, [keyfind/2, keystore/3, keydelete/2, keynew/3]}).
 
 %% Apply the line from site call on quoted contents.
 %% Receives a Key to look for the default line as argument.
@@ -46,18 +46,13 @@ do_tuple_linify(Line, Key, Var, Meta, Left, Right) ->
 do_linify_meta(0, line, Meta) ->
   Meta;
 do_linify_meta(Line, line, Meta) ->
-  case keyfind(line, Meta) of
-    {line, Int} when is_integer(Int), Int /= 0 ->
-      Meta;
-    _ ->
-      keystore(line, Meta, Line)
-  end;
+  keynew(line, Meta, Line);
 do_linify_meta(Line, keep, Meta) ->
-  case keyfind(keep, Meta) of
-    {keep, Int} when is_integer(Int), Int /= 0 ->
-      keyreplace(keep, keydelete(line, Meta), {line, Int});
+  case lists:keytake(keep, 1, Meta) of
+    {value, {keep, {_, Int}}, MetaNoFile} ->
+      [{line, Int} | keydelete(line, MetaNoFile)];
     _ ->
-      do_linify_meta(Line, line, Meta)
+      keynew(line, Meta, Line)
   end.
 
 %% Some expressions cannot be unquoted at compilation time.
@@ -342,21 +337,26 @@ do_quote_tuple(Left, Meta, Right, Q, E) ->
   {{'{}', [], [TLeft, meta(Meta, Q), TRight]}, RQ}.
 
 meta(Meta, Q) ->
-  generated(file(line(Meta, Q), Q), Q).
+  generated(keep(Meta, Q), Q).
 
 generated(Meta, #elixir_quote{generated=true}) -> [{generated, true} | Meta];
 generated(Meta, #elixir_quote{generated=false}) -> Meta.
 
-file(Meta, #elixir_quote{file=nil}) -> Meta;
-file(Meta, #elixir_quote{file=File}) -> [{file, File} | Meta].
+keep(Meta, #elixir_quote{file=nil, line=Line}) ->
+  line(Meta, Line);
+keep(Meta, #elixir_quote{file=File}) ->
+  case lists:keytake(line, 1, Meta) of
+    {value, {line, Line}, MetaNoLine} ->
+      [{keep, {File, Line}} | MetaNoLine];
+    false ->
+      [{keep, {File, 0}} | Meta]
+  end.
 
-line(Meta, #elixir_quote{file=File}) when File /= nil ->
-  [case KV of {line, V} -> {keep, V}; _ -> KV end || KV <- Meta];
-line(Meta, #elixir_quote{line=true}) ->
+line(Meta, true) ->
   Meta;
-line(Meta, #elixir_quote{line=false}) ->
+line(Meta, false) ->
   keydelete(line, Meta);
-line(Meta, #elixir_quote{line=Line}) ->
+line(Meta, Line) ->
   keystore(line, Meta, Line).
 
 reverse_improper(L) -> reverse_improper(L, []).
@@ -376,10 +376,6 @@ keystore(_Key, Meta, nil) ->
   Meta;
 keystore(Key, Meta, Value) ->
   lists:keystore(Key, 1, Meta, {Key, Value}).
-keyreplace(Key, Meta, {Key, _V}) ->
-  Meta;
-keyreplace(Key, Meta, Tuple) ->
-  lists:keyreplace(Key, 1, Meta, Tuple).
 keynew(Key, Meta, Value) ->
   case keyfind(Key, Meta) of
     {Key, _} -> Meta;
