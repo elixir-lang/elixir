@@ -18,6 +18,11 @@ defmodule Code.Formatter.CommentsTest do
       assert_same "# ## oops"
     end
 
+    test "recognizes hashbangs" do
+      assert_format "#!/usr/bin/env elixir", "#! /usr/bin/env elixir"
+      assert_same "#!"
+    end
+
     test "before and after expressions" do
       assert_same """
       # before comment
