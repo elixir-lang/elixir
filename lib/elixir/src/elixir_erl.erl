@@ -140,8 +140,8 @@ definition_scope(Meta, File) ->
   %% warnings are raised in elixir_erl_pass. Once we remove
   %% all warnings from the Erlang pass, we can remove the
   %% file field from #elixir_erl and clean up the code.
-  case lists:keyfind(location, 1, Meta) of
-    {location, {F, _}} -> #elixir_erl{file=F};
+  case lists:keyfind(file, 1, Meta) of
+    {file, {F, _}} -> #elixir_erl{file=F};
     false -> #elixir_erl{file=File}
   end.
 
@@ -210,8 +210,8 @@ split_definition(Tuple, defmacrop, Meta, Clauses, T, File, Unreachable,
                    add_definition(Meta, Entry, Functions)).
 
 add_definition(Meta, Body, {Head, Tail}) ->
-  case lists:keyfind(location, 1, Meta) of
-    {location, {F, L}} ->
+  case lists:keyfind(file, 1, Meta) of
+    {file, {F, L}} ->
       %% Erlang's epp attempts to perform offsetting when generated is set to true
       %% and that causes cover to fail when processing modules. Therefore we never
       %% pass the generated annotation forward for file attributes. The function

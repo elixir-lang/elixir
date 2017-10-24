@@ -141,7 +141,7 @@ file_format(Line, File) ->
   io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
 
 meta_location(Meta, File) ->
-  case elixir_utils:meta_location(Meta) of
+  case elixir_utils:meta_keep(Meta) of
     {F, L} -> {F, L};
     nil    -> {File, ?line(Meta)}
   end.

@@ -105,8 +105,8 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   %% will always point to the quoted one and __ENV__.file will
   %% always point to the one at @file or the quoted one.
   {Location, Key} =
-    case elixir_utils:meta_location(Meta) of
-      {_, _} = Keep -> {Keep, keep};
+    case elixir_utils:meta_keep(Meta) of
+      {_, _} = MetaFile -> {MetaFile, keep};
       nil -> {nil, line}
     end,
 
@@ -116,18 +116,18 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
   Generated    = case DoCheckClauses of true -> []; false -> ?generated([]) end,
 
-  {File, MetaLocation} =
+  {File, DefMeta} =
     case retrieve_location(Location, ?key(E, module)) of
       {F, L} ->
-        {F, [{line, Line}, {location, {F, L}} | Generated]};
+        {F, [{line, Line}, {file, {F, L}} | Generated]};
       nil ->
         {nil, [{line, Line} | Generated]}
     end,
 
   run_with_location_change(File, E, fun(EL) ->
-    assert_no_aliases_name(MetaLocation, Name, Args, EL),
-    assert_valid_name(MetaLocation, Kind, Name, Args, EL),
-    store_definition(MetaLocation, Kind, DoCheckClauses, Name, Arity,
+    assert_no_aliases_name(DefMeta, Name, Args, EL),
+    assert_valid_name(DefMeta, Kind, Name, Args, EL),
+    store_definition(DefMeta, Kind, DoCheckClauses, Name, Arity,
                      LinifyArgs, LinifyGuards, LinifyBody, ?key(E, file), EL)
   end).
 

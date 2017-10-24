@@ -767,6 +767,8 @@ defmodule Kernel.SpecialForms do
       quote. Read the Stacktrace information section below for more
       information.
 
+    * `:line` - sets the quoted expressions to have the given line.
+
     * `:generated` - marks the given chunk as generated so it does not emit warnings.
       Currently it only works on special forms (for example, you can annotate a `case`
       but not an `if`).
