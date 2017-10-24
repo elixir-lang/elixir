@@ -335,9 +335,22 @@ defmodule Application do
         value
 
       :error ->
-        raise ArgumentError,
-              "application #{inspect(app)} is not loaded, " <>
-                "or the configuration parameter #{inspect(key)} is not set"
+        vsn = :application.get_key(app, :vsn)
+        app = inspect(app)
+        key = inspect(key)
+
+        case vsn do
+          {:ok, _} ->
+            raise ArgumentError,
+                  "could not fetch application environment #{key} for application #{app} " <>
+                    "because configuration #{key} was not set"
+
+          :undefined ->
+            raise ArgumentError,
+                  "could not fetch application environment #{key} for application #{app} " <>
+                    "because the application was not loaded/started. If your application " <>
+                    "depends on #{app} at runtime, make sure to list it under :extra_applications"
+        end
     end
   end
 
