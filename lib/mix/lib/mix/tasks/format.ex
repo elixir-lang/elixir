@@ -81,7 +81,7 @@ defmodule Mix.Tasks.Format do
     args
     |> expand_args(formatter_opts)
     |> Task.async_stream(&format_file(&1, opts, formatter_opts), ordered: false, timeout: 30000)
-    |> Enum.reduce({[], []}, &collect_status!/2)
+    |> Enum.reduce({[], [], []}, &collect_status/2)
     |> check!()
   end
 
@@ -197,35 +197,30 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  defp collect_status!({:ok, :ok}, acc), do: acc
+  defp collect_status({:ok, :ok}, acc), do: acc
 
-  defp collect_status!({:ok, {:not_equivalent, file}}, {not_equivalent, not_formatted}) do
-    {[file | not_equivalent], not_formatted}
+  defp collect_status({:ok, {:exit, _, _, _} = exit}, {exits, not_equivalent, not_formatted}) do
+    {[exit | exits], not_equivalent, not_formatted}
   end
 
-  defp collect_status!({:ok, {:not_formatted, file}}, {not_equivalent, not_formatted}) do
-    {not_equivalent, [file | not_formatted]}
+  defp collect_status({:ok, {:not_equivalent, file}}, {exits, not_equivalent, not_formatted}) do
+    {exits, [file | not_equivalent], not_formatted}
   end
 
-  defp collect_status!({:ok, {:exit, file, error, stack}}, _acc) do
-    Mix.shell().error("mix format failed for file: #{file}")
-    reraise error, stack
+  defp collect_status({:ok, {:not_formatted, file}}, {exits, not_equivalent, not_formatted}) do
+    {exits, not_equivalent, [file | not_formatted]}
   end
 
-  defp check!({[], []}) do
+  defp check!({[], [], []}) do
     :ok
   end
 
-  defp check!({[], not_formatted}) do
-    Mix.raise("""
-    mix format failed due to --check-formatted.
-    The following files were not formatted:
-
-    #{to_bullet_list(not_formatted)}
-    """)
+  defp check!({[{:exit, file, exception, stacktrace} | _], _not_equivalent, _not_formatted}) do
+    Mix.shell().error("mix format failed for file: #{file}")
+    reraise exception, stacktrace
   end
 
-  defp check!({not_equivalent, []}) do
+  defp check!({_exits, [_ | _] = not_equivalent, _not_formatted}) do
     Mix.raise("""
     mix format failed due to --check-equivalent.
     The following files were not equivalent:
@@ -233,6 +228,15 @@ defmodule Mix.Tasks.Format do
     #{to_bullet_list(not_equivalent)}
 
     Please report this bug with the input files at github.com/elixir-lang/elixir/issues
+    """)
+  end
+
+  defp check!({_exits, _not_equivalent, [_ | _] = not_formatted}) do
+    Mix.raise("""
+    mix format failed due to --check-formatted.
+    The following files were not formatted:
+
+    #{to_bullet_list(not_formatted)}
     """)
   end
 
