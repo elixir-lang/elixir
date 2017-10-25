@@ -7,13 +7,15 @@ defmodule Supervisor do
   process structure called a *supervision tree*. Supervision trees provide
   fault-tolerance and encapsulate how our applications start and shutdown.
 
-  A supervisor implemented using this module has a standard set
-  of interface functions and includes functionality for tracing and error
-  reporting.
+  A supervisor may be started directly with a list of children via
+  `start_link/2` or you may define a module-based supervisor that implements
+  the required callbacks. The sections below use `start_link/2` to start
+  supervisors in most examples, but it also includes a specific section
+  on module-based ones.
 
   ## Examples
 
-  In order to define a supervisor, we need to first define a child process
+  In order to start a supervisor, we need to first define a child process
   that will be supervised. As an example, we will define a GenServer that
   represents a stack:
 
