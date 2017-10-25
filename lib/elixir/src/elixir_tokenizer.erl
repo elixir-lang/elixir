@@ -685,12 +685,20 @@ unsafe_to_atom(Part, Line, #elixir_tokenizer{}) when
     is_binary(Part) andalso size(Part) > 255;
     is_list(Part) andalso length(Part) > 255 ->
   {error, {Line, "atom length must be less than system limit: ", [$: | Part]}};
-unsafe_to_atom(Binary, _Line, #elixir_tokenizer{existing_atoms_only=true}) when is_binary(Binary) ->
-  {ok, binary_to_existing_atom(Binary, utf8)};
+unsafe_to_atom(Binary, Line, #elixir_tokenizer{existing_atoms_only=true}) when is_binary(Binary) ->
+  try
+    {ok, binary_to_existing_atom(Binary, utf8)}
+  catch
+    error:badarg -> {error, {Line, "unsafe atom does not exist: ", binary}}
+  end;
 unsafe_to_atom(Binary, _Line, #elixir_tokenizer{}) when is_binary(Binary) ->
   {ok, binary_to_atom(Binary, utf8)};
-unsafe_to_atom(List, _Line, #elixir_tokenizer{existing_atoms_only=true}) when is_list(List) ->
-  {ok, list_to_existing_atom(List)};
+unsafe_to_atom(List, Line, #elixir_tokenizer{existing_atoms_only=true}) when is_list(List) ->
+  try
+    {ok, list_to_existing_atom(List)}
+  catch
+    error:badarg -> {error, {Line, "unsafe atom does not exist: ", List}}
+  end;
 unsafe_to_atom(List, _Line, #elixir_tokenizer{}) when is_list(List) ->
   {ok, list_to_atom(List)}.
 
