@@ -343,4 +343,38 @@ defmodule Code.Formatter.IntegrationTest do
     fn 1 -> "hello" end
     """
   end
+
+  test "tuples as trees" do
+    bad = """
+    @document Parser.parse(
+      {"html", [], [
+         {"head", [], []},
+         {"body", [], [
+              {"div", [], [
+                  {"p", [], ["1"]},
+                  {"p", [], ["2"]},
+                  {"div", [], [
+                      {"p", [], ["3"]},
+                      {"p", [], ["4"]}]},
+                  {"p", [], ["5"]}]}]}]})
+    """
+
+    good = """
+    @document Parser.parse(
+                {"html", [], [
+                  {"head", [], []},
+                  {"body", [], [
+                    {"div", [], [
+                      {"p", [], ["1"]},
+                      {"p", [], ["2"]},
+                      {"div", [], [{"p", [], ["3"]}, {"p", [], ["4"]}]},
+                      {"p", [], ["5"]}
+                    ]}
+                  ]}
+                ]}
+              )
+    """
+
+    assert_format bad, good
+  end
 end
