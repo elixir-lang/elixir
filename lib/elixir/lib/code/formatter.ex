@@ -1076,7 +1076,7 @@ defmodule Code.Formatter do
             |> concat(nest(args_doc, :cursor, :break))
             |> group()
           else
-            surround("(", args_doc, ")", :break)
+            surround("(", args_doc, ")")
           end
         end)
 
@@ -1225,11 +1225,12 @@ defmodule Code.Formatter do
 
   defp bitstring_to_algebra(meta, args, state) do
     last = length(args) - 1
+    to_algebra_fun = &bitstring_segment_to_algebra(&1, &2, last)
 
     {args_doc, state} =
       args
       |> Enum.with_index()
-      |> args_to_algebra_with_comments(meta, state, &bitstring_segment_to_algebra(&1, &2, last))
+      |> args_to_algebra_with_comments(meta, false, state, to_algebra_fun)
 
     {surround("<<", args_doc, ">>"), state}
   end
@@ -1280,17 +1281,15 @@ defmodule Code.Formatter do
   ## Literals
 
   defp list_to_algebra(meta, args, state) do
-    {args_doc, state} =
-      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
-
+    to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
+    {args_doc, state} = args_to_algebra_with_comments(args, meta, false, state, to_algebra_fun)
     {surround("[", args_doc, "]"), state}
   end
 
   defp map_to_algebra(meta, name_doc, [{:|, _, [left, right]}], state) do
-    {left_doc, state} = quoted_to_algebra(left, :parens_arg, state)
-
-    {right_doc, state} =
-      args_to_algebra_with_comments(right, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
+    to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
+    {left_doc, state} = to_algebra_fun.(left, state)
+    {right_doc, state} = args_to_algebra_with_comments(right, meta, false, state, to_algebra_fun)
 
     args_doc =
       left_doc
@@ -1302,18 +1301,30 @@ defmodule Code.Formatter do
   end
 
   defp map_to_algebra(meta, name_doc, args, state) do
-    {args_doc, state} =
-      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
+    to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
+    {args_doc, state} = args_to_algebra_with_comments(args, meta, false, state, to_algebra_fun)
 
     name_doc = "%" |> concat(name_doc) |> concat("{")
     {surround(name_doc, args_doc, "}"), state}
   end
 
   defp tuple_to_algebra(meta, args, state) do
-    {args_doc, state} =
-      args_to_algebra_with_comments(args, meta, state, &quoted_to_algebra(&1, :parens_arg, &2))
+    to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
-    {surround("{", args_doc, "}"), state}
+    next_break_fits? =
+      args != [] and next_break_fits?(Enum.fetch!(args, -1)) and
+        not Keyword.get(meta, :eol, false)
+
+    {args_doc, state} =
+      args_to_algebra_with_comments(args, meta, next_break_fits?, state, to_algebra_fun)
+
+    doc = surround("{", args_doc, "}")
+
+    if next_break_fits? do
+      {next_break_fits(doc, :disabled), state}
+    else
+      {doc, state}
+    end
   end
 
   defp atom_to_algebra(atom) when atom in [nil, true, false] do
@@ -1417,13 +1428,20 @@ defmodule Code.Formatter do
   defp heredoc_line(["", _ | _]), do: nest(line(), :reset)
   defp heredoc_line(_), do: line()
 
-  defp args_to_algebra_with_comments(args, meta, state, fun) do
+  defp args_to_algebra_with_comments(args, meta, next_break_fits?, state, fun) do
     min_line = line(meta)
     max_line = end_line(meta)
 
     arg_to_algebra = fn arg, args, newlines, state ->
       {doc, state} = fun.(arg, state)
-      doc = if args == [], do: doc, else: concat(doc, ",")
+
+      doc =
+        cond do
+          args != [] -> concat(doc, ",")
+          next_break_fits? -> next_break_fits(doc, :enabled)
+          true -> doc
+        end
+
       {doc, @empty, newlines, state}
     end
 
@@ -1609,7 +1627,8 @@ defmodule Code.Formatter do
   end
 
   defp clause_args_to_algebra(args, min_line, state) do
-    args_to_algebra_with_comments([args], [line: min_line], state, &clause_args_to_algebra/2)
+    meta = [line: min_line]
+    args_to_algebra_with_comments([args], meta, false, state, &clause_args_to_algebra/2)
   end
 
   # fn a, b, c when d -> e end
@@ -1863,10 +1882,6 @@ defmodule Code.Formatter do
     meta[:format] == :list_heredoc
   end
 
-  defp next_break_fits?({:{}, _, _}) do
-    true
-  end
-
   defp next_break_fits?({:__block__, _meta, [{_, _}]}) do
     true
   end
@@ -1879,7 +1894,7 @@ defmodule Code.Formatter do
     meta[:format] != :charlist
   end
 
-  defp next_break_fits?({form, _, [_ | _]}) when form in [:fn, :%{}, :%] do
+  defp next_break_fits?({form, _, [_ | _]}) when form in [:fn, :%{}, :%, :{}] do
     true
   end
 
@@ -1968,11 +1983,11 @@ defmodule Code.Formatter do
     nest(break(""), :reset)
   end
 
-  defp surround(left, doc, right, nest \\ :always) do
+  defp surround(left, doc, right) do
     if doc == @empty do
       concat(left, right)
     else
-      group(glue(nest(glue(left, "", doc), 2, nest), "", right))
+      group(glue(nest(glue(left, "", doc), 2, :break), "", right))
     end
   end
 
