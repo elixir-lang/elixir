@@ -25,11 +25,11 @@ defmodule Code.Formatter.OperatorsTest do
     test "wraps operand if it is a unary or binary operator" do
       assert_format "!+1", "!(+1)"
       assert_format "+ +1", "+(+1)"
-      assert_format "not +1", "not(+1)"
+      assert_format "not +1", "not (+1)"
       assert_format "!not 1", "!(not 1)"
-      assert_format "not !1", "not(!1)"
-      assert_format "not (!1)", "not(!1)"
-      assert_format "not (1 + 1)", "not(1 + 1)"
+      assert_format "not !1", "not (!1)"
+      assert_format "not(!1)", "not (!1)"
+      assert_format "not(1 + 1)", "not (1 + 1)"
     end
 
     test "does not wrap operand if it is a nestable operator" do
