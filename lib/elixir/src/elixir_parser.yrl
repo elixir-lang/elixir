@@ -639,13 +639,13 @@ Erlang code.
 meta_from_token(Token) ->
   meta_from_location(?location(Token)).
 
-meta_from_location({Line, {Column, _EndColumn}, _}) ->
+meta_from_location({Line, Column, _}) ->
   case ?columns() of
     true -> [{line, Line}, {column, Column}];
     false -> [{line, Line}]
   end.
 
-line_from_location({Line, {_Column, _EndColumn}, _}) ->
+line_from_location({Line, _Column, _}) ->
   Line.
 
 end_meta(Token) ->
