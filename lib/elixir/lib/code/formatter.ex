@@ -611,7 +611,7 @@ defmodule Code.Formatter do
     {doc, state} = quoted_to_algebra(arg, force_many_args_or_operand(context, :operand), state)
 
     # not and ! are nestable, all others are not.
-    wrapped_doc =
+    doc =
       case arg do
         {^op, _, [_]} when op in [:!, :not] -> doc
         _ -> wrap_in_parens_if_operator(doc, arg)
@@ -619,13 +619,13 @@ defmodule Code.Formatter do
 
     # not requires a space unless the doc was wrapped in parens.
     op_string =
-      if op == :not and wrapped_doc == doc do
+      if op == :not do
         "not "
       else
         Atom.to_string(op)
       end
 
-    {concat(op_string, wrapped_doc), state}
+    {concat(op_string, doc), state}
   end
 
   defp maybe_binary_op_to_algebra(fun, meta, args, context, state) do
