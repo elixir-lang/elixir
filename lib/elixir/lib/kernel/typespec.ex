@@ -755,7 +755,9 @@ defmodule Kernel.Typespec do
     typespec_to_ast({:type, line, :struct, []})
   end
 
-  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :as_boolean}, [arg]]}) do
+  defp typespec_to_ast(
+         {:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :as_boolean}, [arg]]}
+       ) do
     typespec_to_ast({:type, line, :as_boolean, [arg]})
   end
 
