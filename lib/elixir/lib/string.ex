@@ -2118,10 +2118,9 @@ defmodule String do
   """
   @spec myers_difference(t, t) :: [{:eq | :ins | :del, t}] | nil
   def myers_difference(string1, string2) do
-    List.myers_difference(graphemes(string1), graphemes(string2))
-    |> Enum.map(fn {kind, chars} ->
-         {kind, IO.iodata_to_binary(chars)}
-       end)
+    graphemes(string1)
+    |> List.myers_difference(graphemes(string2))
+    |> Enum.map(fn {kind, chars} -> {kind, IO.iodata_to_binary(chars)} end)
   end
 
   # TODO: Remove by 2.0
