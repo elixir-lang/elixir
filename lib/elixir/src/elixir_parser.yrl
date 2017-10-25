@@ -621,7 +621,9 @@ map -> struct_op map_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4
 Erlang code.
 
 -define(file(), get(elixir_parser_file)).
+-define(columns(), get(elixir_parser_columns)).
 -define(formatter_metadata(), get(elixir_formatter_metadata)).
+
 -define(id(Token), element(1, Token)).
 -define(location(Token), element(2, Token)).
 -define(exprs(Token), element(3, Token)).
@@ -634,26 +636,29 @@ Erlang code.
 -compile({inline, meta_from_token/1, meta_from_location/1, line_from_location/1, end_meta/1}).
 -import(lists, [reverse/1, reverse/2]).
 
-meta_from_token_with_endline(Begin, End) ->
-  case ?formatter_metadata() of
-    true ->
-      [{line, line_from_location(?location(Begin))},
-       {end_line, line_from_location(?location(End))}];
-    false ->
-      meta_from_token(Begin)
-  end.
-
 meta_from_token(Token) ->
   meta_from_location(?location(Token)).
 
-meta_from_location(Location) ->
-  [{line, line_from_location(Location)}].
+meta_from_location({Line, {Column, _EndColumn}, _}) ->
+  case ?columns() of
+    true -> [{line, Line}, {column, Column}];
+    false -> [{line, Line}]
+  end.
 
-line_from_location({Line, {_Column, _EndColumn}, _}) when is_integer(Line) ->
+line_from_location({Line, {_Column, _EndColumn}, _}) ->
   Line.
 
 end_meta(Token) ->
   [{format, block}, {end_line, line_from_location(?location(Token))}].
+
+meta_from_token_with_end_line(Begin, End) ->
+  case ?formatter_metadata() of
+    true ->
+      [{end_line, line_from_location(?location(End))}
+       | meta_from_token(Begin)];
+    false ->
+      meta_from_token(Begin)
+  end.
 
 %% Handle metadata in literals
 
@@ -804,7 +809,7 @@ build_identifier(Expr, Args, Extra) ->
 %% Fn
 
 build_fn(Fn, [{'->', _, [_, _]} | _] = Stab, End) ->
-  {fn, meta_from_token_with_endline(Fn, End), build_stab(Stab)};
+  {fn, meta_from_token_with_end_line(Fn, End), build_stab(Stab)};
 build_fn(Fn, _Stab, _End) ->
   throw(meta_from_token(Fn), "expected clauses to be defined with -> inside: ", "'fn'").
 
@@ -818,7 +823,10 @@ build_access(Expr, {List, Location}) ->
 
 build_sigil({sigil, Location, Sigil, Parts, Modifiers, Terminator}) ->
   Meta = meta_from_location(Location),
-  MetaWithTerminator = [{terminator, Terminator} | Meta],
+  MetaWithTerminator = case ?formatter_metadata() of
+    true -> [{terminator, Terminator} | Meta];
+    false -> Meta
+  end,
   {list_to_atom("sigil_" ++ [Sigil]),
    MetaWithTerminator,
    [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
@@ -895,7 +903,7 @@ build_stab(Other) ->
 build_stab(Before, Stab, After) ->
   case build_stab(Stab) of
     {'__block__', Meta, Block} ->
-      {'__block__', Meta ++ meta_from_token_with_endline(Before, After), Block};
+      {'__block__', Meta ++ meta_from_token_with_end_line(Before, After), Block};
     Other ->
       Other
   end.

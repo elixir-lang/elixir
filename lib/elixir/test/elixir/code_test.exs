@@ -97,99 +97,116 @@ defmodule CodeTest do
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
   end
 
-  test "string_to_quoted/1" do
-    assert Code.string_to_quoted("1 + 2") == {:ok, {:+, [line: 1], [1, 2]}}
-    assert Code.string_to_quoted("a.1") == {:error, {1, "syntax error before: ", "\"1\""}}
-  end
-
-  test "string_to_quoted/1 for presence of sigils terminators" do
-    assert Code.string_to_quoted("~r/foo/") ==
-             {:ok, {:sigil_r, [terminator: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}}
-
-    assert Code.string_to_quoted("~r[foo]") ==
-             {:ok, {:sigil_r, [terminator: "[", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}}
-
-    assert Code.string_to_quoted("~r\"foo\"") ==
-             {:ok, {:sigil_r, [terminator: "\"", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}}
-
-    meta = [terminator: "\"\"\"", line: 1]
-    args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
-    assert Code.string_to_quoted("~S\"\"\"\nsigil heredoc\n\"\"\"") == {:ok, args}
-
-    meta = [terminator: "'''", line: 1]
-    args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
-    assert Code.string_to_quoted("~S'''\nsigil heredoc\n'''") == {:ok, args}
-  end
-
-  test "string_to_quoted!/1 works as string_to_quoted/1 but raises on errors" do
-    assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
-
-    assert_raise SyntaxError, fn ->
-      Code.string_to_quoted!("a.1")
+  describe "string_to_quoted/2" do
+    test "converts strings to quoted expressions" do
+      assert Code.string_to_quoted("1 + 2") == {:ok, {:+, [line: 1], [1, 2]}}
+      assert Code.string_to_quoted("a.1") == {:error, {1, "syntax error before: ", "\"1\""}}
     end
 
-    assert_raise TokenMissingError, fn ->
-      Code.string_to_quoted!("1 +")
+    test "converts strings to quoted with column information" do
+      string_to_quoted = &Code.string_to_quoted(&1, columns: true)
+      assert string_to_quoted.("1 + 2") == {:ok, {:+, [line: 1, column: 3], [1, 2]}}
+
+      foo = {:foo, [line: 1, column: 1], nil}
+      bar = {:bar, [line: 1, column: 7], nil}
+      assert string_to_quoted.("foo + bar") == {:ok, {:+, [line: 1, column: 5], [foo, bar]}}
+    end
+
+    test "raises on errors when string_to_quoted!/2 is used" do
+      assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
+
+      assert_raise SyntaxError, fn ->
+        Code.string_to_quoted!("a.1")
+      end
+
+      assert_raise TokenMissingError, fn ->
+        Code.string_to_quoted!("1 +")
+      end
+    end
+
+    test "raises when string_to_quoted!/2 is used and no atom is found with :existing_atoms_only" do
+      unknown_atom = ":there_is_no_such_atom"
+
+      assert catch_error(Code.string_to_quoted!(unknown_atom, existing_atoms_only: true)) ==
+               :badarg
     end
   end
 
-  test "string_to_quoted!/2 raises with :existing_atoms_only" do
-    unknown_atom = ":there_is_no_such_atom"
-    assert catch_error(Code.string_to_quoted!(unknown_atom, existing_atoms_only: true)) == :badarg
-  end
+  describe "string_to_quoted/2 with :formatter_metadata (private)" do
+    test "adds terminator information to sigils" do
+      string_to_quoted = &Code.string_to_quoted!(&1, formatter_metadata: true)
 
-  test "string_to_quoted/2 with :formatter_metadata wraps literals in blocks" do
-    string_to_quoted = &Code.string_to_quoted!(&1, formatter_metadata: true)
+      assert string_to_quoted.("~r/foo/") ==
+               {:sigil_r, [terminator: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
 
-    assert string_to_quoted.(~s("one")) == {:__block__, [format: :string, line: 1], ["one"]}
-    assert string_to_quoted.("'one'") == {:__block__, [format: :charlist, line: 1], ['one']}
-    assert string_to_quoted.("?é") == {:__block__, [original: '?é', line: 1], [233]}
-    assert string_to_quoted.("0b10") == {:__block__, [original: '0b10', line: 1], [2]}
-    assert string_to_quoted.("12") == {:__block__, [original: '12', line: 1], [12]}
-    assert string_to_quoted.("0o123") == {:__block__, [original: '0o123', line: 1], [83]}
-    assert string_to_quoted.("0xEF") == {:__block__, [original: '0xEF', line: 1], [239]}
-    assert string_to_quoted.("12.3") == {:__block__, [original: '12.3', line: 1], [12.3]}
-    assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
-    assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
+      assert string_to_quoted.("~r[foo]") ==
+               {:sigil_r, [terminator: "[", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
 
-    args = [[{:__block__, [original: '1', line: 1], [1]}]]
-    assert string_to_quoted.("[1]") == {:__block__, [end_line: 1, line: 1], args}
+      assert string_to_quoted.("~r\"foo\"") ==
+               {:sigil_r, [terminator: "\"", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
 
-    args = [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]
-    assert string_to_quoted.("{:ok, :test}") == {:__block__, [end_line: 1, line: 1], args}
+      meta = [terminator: "\"\"\"", line: 1]
+      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
+      assert string_to_quoted.("~S\"\"\"\nsigil heredoc\n\"\"\"") == args
 
-    assert string_to_quoted.(~s("""\nhello\n""")) ==
-             {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}
+      meta = [terminator: "'''", line: 1]
+      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
+      assert string_to_quoted.("~S'''\nsigil heredoc\n'''") == args
+    end
 
-    assert string_to_quoted.("'''\nhello\n'''") ==
-             {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}
+    test "wraps literals in blocks when :formatter_metadata (private) is given" do
+      string_to_quoted = &Code.string_to_quoted!(&1, formatter_metadata: true)
 
-    left = {:__block__, [original: '1', line: 1, line: 1, end_line: 1], [1]}
-    right = {:__block__, [format: :string, line: 1], ["hello"]}
-    args = [{:->, [line: 1], [[left], right]}]
-    assert string_to_quoted.(~s[fn (1) -> "hello" end]) == {:fn, [line: 1, end_line: 1], args}
-  end
+      assert string_to_quoted.(~s("one")) == {:__block__, [format: :string, line: 1], ["one"]}
+      assert string_to_quoted.("'one'") == {:__block__, [format: :charlist, line: 1], ['one']}
+      assert string_to_quoted.("?é") == {:__block__, [original: '?é', line: 1], [233]}
+      assert string_to_quoted.("0b10") == {:__block__, [original: '0b10', line: 1], [2]}
+      assert string_to_quoted.("12") == {:__block__, [original: '12', line: 1], [12]}
+      assert string_to_quoted.("0o123") == {:__block__, [original: '0o123', line: 1], [83]}
+      assert string_to_quoted.("0xEF") == {:__block__, [original: '0xEF', line: 1], [239]}
+      assert string_to_quoted.("12.3") == {:__block__, [original: '12.3', line: 1], [12.3]}
+      assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
+      assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
 
-  test "string_to_quoted/2 with :formatter_metadata adds newlines to blocks" do
-    file = """
-    one();two()
-    three()
+      args = [[{:__block__, [original: '1', line: 1], [1]}]]
+      assert string_to_quoted.("[1]") == {:__block__, [end_line: 1, line: 1], args}
 
-    four()
+      args = [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]
+      assert string_to_quoted.("{:ok, :test}") == {:__block__, [end_line: 1, line: 1], args}
+
+      assert string_to_quoted.(~s("""\nhello\n""")) ==
+               {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}
+
+      assert string_to_quoted.("'''\nhello\n'''") ==
+               {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}
+
+      left = {:__block__, [original: '1', line: 1, end_line: 1, line: 1], [1]}
+      right = {:__block__, [format: :string, line: 1], ["hello"]}
+      args = [{:->, [line: 1], [[left], right]}]
+      assert string_to_quoted.(~s[fn (1) -> "hello" end]) == {:fn, [end_line: 1, line: 1], args}
+    end
+
+    test "adds newlines information to blocks when :formatter_metadata (private) is given" do
+      file = """
+      one();two()
+      three()
+
+      four()
 
 
-    five()
-    """
+      five()
+      """
 
-    args = [
-      {:one, [line: 1], []},
-      {:two, [newlines: 0, line: 1], []},
-      {:three, [newlines: 1, line: 2], []},
-      {:four, [newlines: 2, line: 4], []},
-      {:five, [newlines: 3, line: 7], []}
-    ]
+      args = [
+        {:one, [line: 1], []},
+        {:two, [newlines: 0, line: 1], []},
+        {:three, [newlines: 1, line: 2], []},
+        {:four, [newlines: 2, line: 4], []},
+        {:five, [newlines: 3, line: 7], []}
+      ]
 
-    assert Code.string_to_quoted!(file, formatter_metadata: true) == {:__block__, [], args}
+      assert Code.string_to_quoted!(file, formatter_metadata: true) == {:__block__, [], args}
+    end
   end
 
   test "compile source" do

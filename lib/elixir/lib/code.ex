@@ -517,18 +517,23 @@ defmodule Code do
   @doc """
   Converts the given string to its quoted form.
 
-  Returns `{:ok, quoted_form}`
-  if it succeeds, `{:error, {line, error, token}}` otherwise.
+  Returns `{:ok, quoted_form}` if it succeeds,
+  `{:error, {line, error, token}}` otherwise.
 
   ## Options
 
-    * `:file` - the filename to be used in stacktraces
-      and the file reported in the `__ENV__/0` macro
+    * `:file` - the filename to be reported in case of parsing errors.
+      Defaults to "nofile".
 
-    * `:line` - the line reported in the `__ENV__/0` macro
+    * `:line` - the starting line of the string being parsed.
+      Defaults to 1.
+
+    * `:columns` - when `true`, attach a `:column` key to the quoted
+      metadata. Defaults to `false`.
 
     * `:existing_atoms_only` - when `true`, raises an error
-      when non-existing atoms are found by the tokenizer
+      when non-existing atoms are found by the tokenizer.
+      Defaults to `false`.
 
   ## Macro.to_string/2
 
