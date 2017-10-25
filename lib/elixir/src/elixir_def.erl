@@ -60,7 +60,7 @@ fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
   try ets:lookup_element(Table, {clauses, Tuple}, 2) of
     Clauses ->
       NewAll =
-        [{Tuple, Kind, Meta, Clauses} | All],
+        [{Tuple, Kind, add_defaults_to_meta(Defaults, Meta), Clauses} | All],
       NewPrivate =
         case (Kind == defp) orelse (Kind == defmacrop) of
           true ->
@@ -78,6 +78,9 @@ fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
 
 fetch_definition([], _File, _Module, _Table, All, Private) ->
   {All, Private}.
+
+add_defaults_to_meta(0, Meta) -> Meta;
+add_defaults_to_meta(Defaults, Meta) -> [{defaults, Defaults} | Meta].
 
 %% Section for storing definitions
 
