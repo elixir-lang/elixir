@@ -552,7 +552,7 @@ defmodule IO.ANSI.Docs do
 
   # An escape is not valid inside `
   defp handle_inline(<<?\\, mark, rest::binary>>, limit, buffer, acc, options)
-       when not(mark == limit and mark == ?`) do
+       when not (mark == limit and mark == ?`) do
     handle_inline(rest, limit, [mark | buffer], acc, options)
   end
 

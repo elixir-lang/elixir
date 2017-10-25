@@ -25,10 +25,8 @@ defmodule Logger.Backends.ConsoleTest do
     try do
       Process.unregister(:user)
 
-      assert :gen_event.add_handler(Logger, Logger.Backends.Console, :console) == {
-               :error,
-               :ignore
-             }
+      assert :gen_event.add_handler(Logger, Logger.Backends.Console, :console) ==
+               {:error, :ignore}
     after
       Process.register(user, :user)
     end

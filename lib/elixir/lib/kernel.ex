@@ -3899,7 +3899,7 @@ defmodule Kernel do
       end
 
     # Do not check clauses if any expression was unquoted
-    check_clauses = not(unquoted_expr or unquoted_call)
+    check_clauses = not (unquoted_expr or unquoted_call)
     pos = :elixir_locals.cache_env(env)
 
     quote do
