@@ -689,7 +689,7 @@ unsafe_to_atom(Binary, Line, #elixir_tokenizer{existing_atoms_only=true}) when i
   try
     {ok, binary_to_existing_atom(Binary, utf8)}
   catch
-    error:badarg -> {error, {Line, "unsafe atom does not exist: ", binary}}
+    error:badarg -> {error, {Line, "unsafe atom does not exist: ", Binary}}
   end;
 unsafe_to_atom(Binary, _Line, #elixir_tokenizer{}) when is_binary(Binary) ->
   {ok, binary_to_atom(Binary, utf8)};
