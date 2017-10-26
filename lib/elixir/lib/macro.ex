@@ -946,7 +946,7 @@ defmodule Macro do
 
   defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn {key, value} ->
-      Identifier.inspect_as_key(key) <> to_string(value, fun)
+      Identifier.inspect_as_key(key) <> " " <> to_string(value, fun)
     end)
   end
 

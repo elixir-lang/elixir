@@ -891,9 +891,10 @@ defmodule Code.Formatter.CommentsTest do
         # 1. three
         one: one,
         one: after_one,
-        one: after_one do
-          :ok
-        end,
+        one:
+          after_one do
+            :ok
+          end,
 
         # 2. one
 
@@ -961,9 +962,10 @@ defmodule Code.Formatter.CommentsTest do
           # 1. three
           one: one,
           one: after_one,
-          one: after_one do
-            :ok
-          end,
+          one:
+            after_one do
+              :ok
+            end,
 
           # 2. one
 

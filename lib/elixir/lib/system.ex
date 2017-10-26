@@ -242,7 +242,8 @@ defmodule System do
   def cwd! do
     cwd() ||
       raise RuntimeError,
-        message: "could not get a current working directory, the current location is not accessible"
+        message:
+          "could not get a current working directory, the current location is not accessible"
   end
 
   @doc """
@@ -294,8 +295,9 @@ defmodule System do
   def tmp_dir! do
     tmp_dir() ||
       raise RuntimeError,
-        message: "could not get a writable temporary directory, " <>
-          "please set the TMPDIR environment variable"
+        message:
+          "could not get a writable temporary directory, " <>
+            "please set the TMPDIR environment variable"
   end
 
   defp write_env_tmp_dir(env) do

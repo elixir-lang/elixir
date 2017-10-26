@@ -370,7 +370,7 @@ defmodule Inspect.ListTest do
     opts = [syntax_colors: [reset: :cyan, atom: :red, list: :green, number: :blue]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
 
-    assert inspect([a: 9999], opts) == "\e[32m[\e[36m\e[31ma: \e[36m\e[34m9999\e[36m\e[32m]\e[36m"
+    assert inspect([a: 9999], opts) == "\e[32m[\e[36m\e[31ma:\e[36m \e[34m9999\e[36m\e[32m]\e[36m"
   end
 
   test "limit with colors" do
@@ -475,15 +475,15 @@ defmodule Inspect.MapTest do
     opts = [syntax_colors: [reset: :cyan, atom: :red, number: :magenta]]
     assert inspect(%{1 => 2}, opts) == "%{\e[35m1\e[36m => \e[35m2\e[36m}"
 
-    assert inspect(%{a: 1}, opts) == "%{\e[31ma: \e[36m\e[35m1\e[36m}"
+    assert inspect(%{a: 1}, opts) == "%{\e[31ma:\e[36m \e[35m1\e[36m}"
 
     assert inspect(%Public{key: 1}, opts) ==
-             "%Inspect.MapTest.Public{\e[31mkey: \e[36m\e[35m1\e[36m}"
+             "%Inspect.MapTest.Public{\e[31mkey:\e[36m \e[35m1\e[36m}"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red, map: :green, number: :blue]]
 
     assert inspect(%{a: 9999}, opts) ==
-             "\e[32m%{\e[36m" <> "\e[31ma: \e[36m" <> "\e[34m9999\e[36m" <> "\e[32m}\e[36m"
+             "\e[32m%{\e[36m" <> "\e[31ma:\e[36m " <> "\e[34m9999\e[36m" <> "\e[32m}\e[36m"
   end
 end
 

@@ -194,11 +194,11 @@ defmodule Code.Identifier do
 
     case classify(atom) do
       type when type in [:callable_local, :callable_operator, :not_callable] ->
-        IO.iodata_to_binary([binary, ?:, ?\s])
+        IO.iodata_to_binary([binary, ?:])
 
       _ ->
         {escaped, _} = escape(binary, ?")
-        IO.iodata_to_binary([?", escaped, ?", ?:, ?\s])
+        IO.iodata_to_binary([?", escaped, ?", ?:])
     end
   end
 

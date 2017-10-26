@@ -154,21 +154,6 @@ defmodule Code.Formatter.CallsTest do
 
       assert_format bad, good, @short_length
     end
-
-    test "with keyword lists" do
-      assert_same """
-      foo(:hello, foo: foo, bar: '''
-      baz
-      ''')
-      """
-
-      assert_same """
-      foo(do: fn
-        1 -> 2
-        3 -> 4
-      end)
-      """
-    end
   end
 
   describe "local calls" do

@@ -129,12 +129,13 @@ defmodule Code.Formatter.IntegrationTest do
 
     assert_same """
     @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
-          when dest: pid
-                     | port
-                     | atom
-                     | {atom, node}
-                     | and_a_really_long_type_to_force_a_line_break
-                     | followed_by_another_really_long_type
+          when dest:
+                 pid
+                 | port
+                 | atom
+                 | {atom, node}
+                 | and_a_really_long_type_to_force_a_line_break
+                 | followed_by_another_really_long_type
     """
 
     assert_same """

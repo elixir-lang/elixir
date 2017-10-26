@@ -193,7 +193,7 @@ defimpl Inspect, for: List do
   @doc false
   def keyword({key, value}, opts) do
     key = color(Identifier.inspect_as_key(key), :atom, opts)
-    concat(key, to_doc(value, opts))
+    concat(key, concat(" ", to_doc(value, opts)))
   end
 
   @doc false

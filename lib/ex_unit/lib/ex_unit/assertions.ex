@@ -212,8 +212,9 @@ defmodule ExUnit.Assertions do
       refute unquote(match?),
         right: right,
         expr: unquote(code),
-        message: "match (match?) succeeded, but should have failed" <>
-          ExUnit.Assertions.__pins__(unquote(pins))
+        message:
+          "match (match?) succeeded, but should have failed" <>
+            ExUnit.Assertions.__pins__(unquote(pins))
     end
   end
 
