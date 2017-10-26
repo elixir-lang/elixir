@@ -126,9 +126,11 @@ defmodule CodeTest do
 
     test "raises when string_to_quoted!/2 is used and no atom is found with :existing_atoms_only" do
       unknown_atom = ":there_is_no_such_atom"
+      message = "nofile:1: unsafe atom does not exist: there_is_no_such_atom"
 
-      assert catch_error(Code.string_to_quoted!(unknown_atom, existing_atoms_only: true)) ==
-               :badarg
+      assert_raise SyntaxError, message, fn ->
+        Code.string_to_quoted!(unknown_atom, existing_atoms_only: true)
+      end
     end
   end
 
