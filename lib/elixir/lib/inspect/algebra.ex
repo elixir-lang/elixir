@@ -171,7 +171,6 @@ defmodule Inspect.Algebra do
   @container_separator ","
   @tail_separator " |"
   @newline "\n"
-  @break :flex
   @next_break_fits :enabled
 
   # Functional interface to "doc" records
@@ -339,8 +338,9 @@ defmodule Inspect.Algebra do
   ## Options
 
     * `:separator` - the separator used between each doc
-    * `:break` - when set to `:strict`, always break between each element. Defaults to
-      `:flex` which breaks only when necessary and if all elements are text-based
+    * `:break` - If `:strict`, always break between each element. If `:flex`,
+      breaks only when necessary. If `:maybe`, chooses `:flex` only if all
+      elements are text-based, otherwise is `:strict`
 
   ## Examples
 
@@ -370,13 +370,17 @@ defmodule Inspect.Algebra do
         concat(left, right)
 
       _ ->
+        break = Keyword.get(opts, :break, :maybe)
         separator = Keyword.get(opts, :separator, @container_separator)
-        flex? = Keyword.get(opts, :break, @break) == :flex
-        {docs, simple?} = container_each(collection, inspect.limit, inspect, fun, [], flex?)
-        docs = fold_doc(docs, &join(&1, &2, simple?, separator))
 
-        case simple? do
-          true -> concat(concat(left, nest(docs, :cursor)), right)
+        {docs, simple?} =
+          container_each(collection, inspect.limit, inspect, fun, [], break == :maybe)
+
+        flex? = simple? or break == :flex
+        docs = fold_doc(docs, &join(&1, &2, flex?, separator))
+
+        case flex? do
+          true -> group(concat(concat(left, nest(docs, :cursor)), right))
           false -> group(glue(nest(glue(left, "", docs), 2), "", right))
         end
     end
@@ -652,7 +656,8 @@ defmodule Inspect.Algebra do
 
   """
   @spec next_break_fits(t) :: doc_fits
-  def next_break_fits(doc, mode \\ @next_break_fits) when is_doc(doc) do
+  def next_break_fits(doc, mode \\ @next_break_fits)
+      when is_doc(doc) and mode in [:enabled, :disabled] do
     doc_fits(doc, mode)
   end
 

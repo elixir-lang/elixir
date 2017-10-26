@@ -213,7 +213,8 @@ defimpl Inspect, for: Tuple do
     open = color("{", :tuple, opts)
     sep = color(",", :tuple, opts)
     close = color("}", :tuple, opts)
-    container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, separator: sep)
+    container_opts = [separator: sep, break: :flex]
+    container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, container_opts)
   end
 end
 

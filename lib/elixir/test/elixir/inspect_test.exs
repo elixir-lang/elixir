@@ -228,6 +228,7 @@ defmodule Inspect.TupleTest do
   test "basic" do
     assert inspect({1, "b", 3}) == "{1, \"b\", 3}"
     assert inspect({1, "b", 3}, pretty: true, width: 1) == "{1,\n \"b\",\n 3}"
+    assert inspect({1, "b", 3}, pretty: true, width: 10) == "{1, \"b\",\n 3}"
   end
 
   test "empty" do
