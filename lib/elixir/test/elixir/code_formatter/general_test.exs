@@ -547,15 +547,15 @@ defmodule Code.Formatter.GeneralTest do
     test "with multiple lines with cancel expressions" do
       code = """
       foo(%{
-        long_key: 1
+        key: 1
       })
 
       bar(%{
-        long_key: 1
+        key: 1
       })
 
       baz(%{
-        long_key: 1
+        key: 1
       })
       """
 
@@ -736,10 +736,11 @@ defmodule Code.Formatter.GeneralTest do
 
       assert_same """
       assert true,
-        do: (
-          foo
-          bar
-        )
+        do:
+          (
+            foo
+            bar
+          )
       """
     end
   end

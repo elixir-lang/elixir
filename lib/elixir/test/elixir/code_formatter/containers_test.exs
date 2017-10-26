@@ -6,6 +6,7 @@ defmodule Code.Formatter.ContainersTest do
   import CodeFormatterHelpers
 
   @short_length [line_length: 10]
+  @medium_length [line_length: 20]
 
   describe "tuples" do
     test "without arguments" do
@@ -335,7 +336,7 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      assert_same map, @short_length
+      assert_same map, @medium_length
 
       map = """
       %{
@@ -348,25 +349,27 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      assert_same map, @short_length
+      assert_same map, @medium_length
 
       map = """
       %{
-        a => for(
-          y <- x,
-          z <- y,
-          do: 123
-        )
+        a =>
+          for(
+            y <- x,
+            z <- y,
+            do: 123
+          )
       }
       """
 
-      assert_same map, @short_length
+      assert_same map, @medium_length
 
       map = """
       %{
-        a => for do
-          :ok
-        end
+        a =>
+          for do
+            :ok
+          end
       }
       """
 
@@ -387,7 +390,7 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      assert_same map, @short_length
+      assert_same map, @medium_length
     end
 
     test "preserves user choice even when it fits" do
@@ -419,6 +422,28 @@ defmodule Code.Formatter.ContainersTest do
         :bar
       }
       """
+    end
+
+    test "preserves user choice when a newline is used after keyword" do
+      good = """
+      %{
+        hello:
+          {:ok, :world}
+      }
+      """
+
+      assert_same good, @medium_length
+    end
+
+    test "preserves user choice when a newline is used after assoc" do
+      good = """
+      %{
+        hello =>
+          {:ok, :world}
+      }
+      """
+
+      assert_same good, @medium_length
     end
   end
 
@@ -456,7 +481,7 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      assert_same map, @short_length
+      assert_same map, @medium_length
     end
 
     test "preserves user choice even when it fits" do
@@ -512,7 +537,7 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      assert_same struct, @short_length
+      assert_same struct, @medium_length
     end
 
     test "preserves user choice even when it fits" do
@@ -560,7 +585,7 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      assert_same struct, @short_length
+      assert_same struct, @medium_length
     end
 
     test "preserves user choice even when it fits" do

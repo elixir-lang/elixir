@@ -531,31 +531,35 @@ defmodule Code.Formatter do
 
   # keyword: :list
   # key => value
-  defp quoted_to_algebra({left, right}, context, state) do
-    if keyword_key?(left) do
-      {left_doc, state} =
-        case left do
-          {:__block__, _, [atom]} when is_atom(atom) ->
-            {atom |> Code.Identifier.inspect_as_key() |> string(), state}
+  defp quoted_to_algebra({{_, meta, _} = left_arg, right_arg}, context, state) do
+    {left, op, right, state} =
+      if keyword_key?(left_arg) do
+        {left, state} =
+          case left_arg do
+            {:__block__, _, [atom]} when is_atom(atom) ->
+              {atom |> Code.Identifier.inspect_as_key() |> string(), state}
 
-          {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries}, :utf8]} ->
-            interpolation_to_algebra(entries, @double_quote, state, "\"", "\": ")
-        end
+            {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries}, :utf8]} ->
+              interpolation_to_algebra(entries, @double_quote, state, "\"", "\":")
+          end
 
-      {right_doc, state} = quoted_to_algebra(right, context, state)
-      {concat(left_doc, group(right_doc)), state}
-    else
-      {left_doc, state} = quoted_to_algebra(left, context, state)
-      {right_doc, state} = quoted_to_algebra(right, context, state)
+        {right, state} = quoted_to_algebra(right_arg, context, state)
+        {left, "", right, state}
+      else
+        {left, state} = quoted_to_algebra(left_arg, context, state)
+        {right, state} = quoted_to_algebra(right_arg, context, state)
+        left = wrap_in_parens_if_binary_operator(left, left_arg)
+        {left, " =>", right, state}
+      end
 
-      doc =
-        left_doc
-        |> wrap_in_parens_if_binary_operator(left)
-        |> concat(" => ")
-        |> concat(group(right_doc))
+    next_break_fits? = next_break_fits?(right_arg) and not Keyword.get(meta, :eol, false)
 
-      {doc, state}
-    end
+    doc =
+      with_next_break_fits(next_break_fits?, right, fn right ->
+        concat(group(left), group(nest(glue(op, group(right)), 2, :break)))
+      end)
+
+    {doc, state}
   end
 
   ## Blocks
@@ -689,7 +693,7 @@ defmodule Code.Formatter do
           op_string = op_string <> " "
           doc = glue(left, concat(op_string, nest_by_length(right, op_string)))
           doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
-          if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
+          if op_info == parent_info, do: doc, else: group(doc)
 
         op in @right_new_line_before_binary_operators ->
           op_string = op_string <> " "
@@ -716,7 +720,7 @@ defmodule Code.Formatter do
 
           doc = glue(left, concat(op_string, right))
           doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
-          if op_info == parent_info, do: doc, else: group(nest(doc, :cursor))
+          if op_info == parent_info, do: doc, else: group(doc)
 
         true ->
           next_break_fits? = next_break_fits?(right_arg) and not Keyword.get(meta, :eol, false)
@@ -1043,15 +1047,6 @@ defmodule Code.Formatter do
       call_args_to_algebra_with_no_parens_keywords(left, right, context, state)
     else
       force_keyword? = keyword? and force_keyword?(right)
-
-      {left, right} =
-        if keyword? and not force_keyword? do
-          {keyword_left, keyword_right} = split_last(right)
-          {left ++ keyword_left, keyword_right}
-        else
-          {left, right}
-        end
-
       {left_doc, state} = args_to_algebra(left, state, &quoted_to_algebra(&1, context, &2))
       {right_doc, state} = quoted_to_algebra(right, context, state)
 

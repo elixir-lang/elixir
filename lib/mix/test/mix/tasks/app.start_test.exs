@@ -157,11 +157,8 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.Project.push(ReturnSample)
 
     in_tmp context.test, fn ->
-      Process.put(:application_definition, mod: {
-        ReturnApp,
-        {:error, {:badarg, [{ReturnApp, :start, 2, []}]}}
-      })
-
+      mod = {ReturnApp, {:error, {:badarg, [{ReturnApp, :start, 2, []}]}}}
+      Process.put(:application_definition, mod: mod)
       Mix.Tasks.Compile.run([])
 
       message =

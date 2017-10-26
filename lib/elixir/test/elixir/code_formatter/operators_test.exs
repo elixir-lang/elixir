@@ -712,7 +712,7 @@ defmodule Code.Formatter.OperatorsTest do
       '''
       """
 
-      assert_same attribute, @short_length
+      assert_same attribute
 
       attribute = """
       @doc foo: '''
@@ -720,7 +720,7 @@ defmodule Code.Formatter.OperatorsTest do
            '''
       """
 
-      assert_same attribute, @short_length
+      assert_same attribute
     end
 
     test "without next break fits" do
@@ -859,7 +859,7 @@ defmodule Code.Formatter.OperatorsTest do
            three: :four
       """
 
-      assert_format bad, good, @short_length
+      assert_format bad, good, @medium_length
     end
   end
 end
