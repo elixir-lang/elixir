@@ -21,9 +21,8 @@ Nonterminals
   call_args_no_parens_many_strict
   stab stab_eoe stab_expr stab_op_eol_and_expr stab_parens_many
   kw_eol kw_base kw call_args_no_parens_kw_expr call_args_no_parens_kw
-  dot_op dot_alias dot_alias_container
-  dot_identifier dot_op_identifier dot_do_identifier
-  dot_paren_identifier dot_bracket_identifier
+  dot_op dot_alias dot_bracket_identifier
+  dot_identifier dot_op_identifier dot_do_identifier dot_paren_identifier
   do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
   number
   .
@@ -159,11 +158,11 @@ no_parens_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> no_parens_one_ambig_expr : '$1'.
 no_parens_expr -> no_parens_many_expr : '$1'.
 
-block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3' ++ '$4').
-block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2', [{no_parens, true}]).
-block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3', [{no_parens, true}]).
-block_expr -> dot_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3', [{no_parens, true}]).
+block_expr -> parens_call call_args_parens do_block : build_parens('$1', '$2', '$3').
+block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3', '$4').
+block_expr -> dot_do_identifier do_block : build_no_parens('$1', '$2').
+block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_no_parens('$1', '$2' ++ '$3').
+block_expr -> dot_identifier call_args_no_parens_all do_block : build_no_parens('$1', '$2' ++ '$3').
 
 matched_op_expr -> match_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> add_op_eol matched_expr : {'$1', '$2'}.
@@ -221,16 +220,16 @@ no_parens_op_expr -> arrow_op_eol no_parens_many_expr : warn_pipe('$1', '$2'), {
 %% Allow when (and only when) with keywords
 no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
 
-no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_identifier('$1', '$2', [{no_parens, true}]).
-no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_identifier('$1', '$2', [{no_parens, true}]).
+no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_no_parens('$1', '$2').
+no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_no_parens('$1', '$2').
 
-no_parens_many_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2', [{no_parens, true}]).
-no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2', [{no_parens, true}]).
+no_parens_many_expr -> dot_op_identifier call_args_no_parens_many_strict : build_no_parens('$1', '$2').
+no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_no_parens('$1', '$2').
 
-no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
-no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2', [{no_parens, true}]).
-no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil, [{no_parens, true}]).
-no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil, [{no_parens, true}]).
+no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_no_parens('$1', '$2').
+no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_no_parens('$1', '$2').
+no_parens_zero_expr -> dot_do_identifier : build_no_parens('$1', nil).
+no_parens_zero_expr -> dot_identifier : build_no_parens('$1', nil).
 
 %% From this point on, we just have constructs that can be
 %% used with the access syntax. Notice that (dot_)identifier
@@ -270,19 +269,19 @@ number -> float : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$
 max_expr -> atom : handle_literal(?exprs('$1'), '$1', []).
 max_expr -> atom_safe : build_quoted_atom('$1', true, []).
 max_expr -> atom_unsafe : build_quoted_atom('$1', false, []).
-max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
-max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
+max_expr -> parens_call call_args_parens : build_parens('$1', '$2', []).
+max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3', []).
 max_expr -> dot_alias : '$1'.
 
 bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_list('$1', '$2', '$4').
 
-bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1', nil, [{no_parens, true}]), '$2').
+bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_no_parens('$1', nil), '$2').
 bracket_expr -> access_expr bracket_arg : build_access('$1', '$2').
 
 bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_arg :
-                     build_access(build_unary_op('$1', build_identifier('$2', nil, [{no_parens, true}])), '$3').
+                     build_access(build_unary_op('$1', build_no_parens('$2', nil)), '$3').
 bracket_at_expr -> at_op_eol access_expr bracket_arg :
                      build_access(build_unary_op('$1', '$2'), '$3').
 
@@ -356,7 +355,7 @@ block_list -> block_item block_list : ['$1' | '$2'].
 %% Helpers
 
 open_paren -> '('      : '$1'.
-open_paren -> '(' eol  : '$1'.
+open_paren -> '(' eol  : next_is_eol('$1').
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
 
@@ -450,10 +449,8 @@ dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
 dot_alias -> alias : build_alias('$1').
 dot_alias -> matched_expr dot_op alias : build_dot_alias('$2', '$1', '$3').
-dot_alias -> matched_expr dot_op dot_alias_container : build_dot_container('$2', '$1', '$3').
-
-dot_alias_container -> open_curly '}' : [].
-dot_alias_container -> open_curly container_args close_curly : '$2'.
+dot_alias -> matched_expr dot_op open_curly '}' : build_dot_container('$2', '$1', [], []).
+dot_alias -> matched_expr dot_op open_curly container_args close_curly : build_dot_container('$2', '$1', '$4', eol_pair('$3', '$5')).
 
 dot_op_identifier -> op_identifier : '$1'.
 dot_op_identifier -> matched_expr dot_op op_identifier : build_dot('$2', '$1', '$3').
@@ -520,13 +517,20 @@ call_args_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 call_args_parens_base -> call_args_parens_expr : ['$1'].
 call_args_parens_base -> call_args_parens_base ',' call_args_parens_expr : ['$3' | '$1'].
 
-call_args_parens -> empty_paren : [].
-call_args_parens -> open_paren no_parens_expr close_paren : ['$2'].
-call_args_parens -> open_paren kw_base close_paren : [reverse('$2')].
-call_args_parens -> open_paren kw_base ',' close_paren : warn_trailing_comma('$3'), [reverse('$2')].
-call_args_parens -> open_paren call_args_parens_base close_paren : reverse('$2').
-call_args_parens -> open_paren call_args_parens_base ',' kw_base close_paren : reverse([reverse('$4') | '$2']).
-call_args_parens -> open_paren call_args_parens_base ',' kw_base ',' close_paren : warn_trailing_comma('$5'), reverse([reverse('$4') | '$2']).
+call_args_parens -> empty_paren :
+                      {[], []}.
+call_args_parens -> open_paren no_parens_expr close_paren :
+                      {eol_pair('$1', '$3'), ['$2']}.
+call_args_parens -> open_paren kw_base close_paren :
+                      {eol_pair('$1', '$3'), [reverse('$2')]}.
+call_args_parens -> open_paren kw_base ',' close_paren :
+                      warn_trailing_comma('$3'), {eol_pair('$1', '$4'), [reverse('$2')]}.
+call_args_parens -> open_paren call_args_parens_base close_paren :
+                      {eol_pair('$1', '$3'), reverse('$2')}.
+call_args_parens -> open_paren call_args_parens_base ',' kw_base close_paren :
+                      {eol_pair('$1', '$5'), reverse([reverse('$4') | '$2'])}.
+call_args_parens -> open_paren call_args_parens_base ',' kw_base ',' close_paren :
+                      warn_trailing_comma('$5'), {eol_pair('$1', '$6'), reverse([reverse('$4') | '$2'])}.
 
 % KV
 
@@ -660,6 +664,9 @@ meta_from_token_with_end_line(Begin, End) ->
       meta_from_token(Begin)
   end.
 
+append_non_empty(Left, []) -> Left;
+append_non_empty(Left, Right) -> Left ++ Right.
+
 %% Handle metadata in literals
 
 handle_literal(Literal, Token) ->
@@ -703,7 +710,7 @@ build_map(Left, Args, Right) ->
   {'%{}', eol_pair(Left, Right) ++ meta_from_token(Left), Args}.
 
 build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
-  Op = build_op(Pipe, Struct, Map ++ Extra),
+  Op = build_op(Pipe, Struct, append_non_empty(Map, Extra)),
   {'%{}', eol_pair(Left, Right) ++ meta_from_token(Left), [Op]}.
 
 build_map_assoc(Left, Eol, Right) ->
@@ -773,9 +780,9 @@ build_dot_alias(_Dot, Atom, Right) when is_atom(Atom) ->
 build_dot_alias(Dot, Expr, {'alias', _, Right}) ->
   {'__aliases__', meta_from_token(Dot), [Expr, Right]}.
 
-build_dot_container(Dot, Left, Right) ->
+build_dot_container(Dot, Left, Right, Extra) ->
   Meta = meta_from_token(Dot),
-  {{'.', Meta, [Left, '{}']}, Meta, Right}.
+  {{'.', Meta, [Left, '{}']}, Extra ++ Meta, Right}.
 
 build_dot(Dot, Left, Right) ->
   {'.', meta_from_token(Dot), [Left, extract_identifier(Right)]}.
@@ -787,10 +794,25 @@ extract_identifier({Kind, _, Identifier}) when
 
 %% Identifiers
 
-build_nested_parens(Dot, Args1, Args2) ->
-  Identifier = build_identifier(Dot, Args1),
+build_nested_parens(Dot, Args1, {Extra, Args2}, Block) ->
+  Identifier = build_parens(Dot, Args1, []),
   Meta = ?meta(Identifier),
-  {Identifier, Meta, Args2}.
+  {Identifier, Extra ++ Meta, append_non_empty(Args2, Block)}.
+
+build_parens(Expr, {[], Args}, Block) ->
+  build_identifier(Expr, append_non_empty(Args, Block));
+build_parens(Expr, {Extra, Args}, Block) ->
+  {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, append_non_empty(Args, Block)),
+  {BuiltExpr, Extra ++ BuiltMeta, BuiltArgs}.
+
+build_no_parens(Expr, Args) ->
+  case ?formatter_metadata() of
+    true ->
+      {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, Args),
+      {BuiltExpr, [{no_parens, true} | BuiltMeta], BuiltArgs};
+    false ->
+      build_identifier(Expr, Args)
+  end.
 
 build_identifier({'.', Meta, _} = Dot, Args) ->
   FArgs = case Args of
@@ -804,15 +826,6 @@ build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
 
 build_identifier({_, Location, Identifier}, Args) ->
   {Identifier, meta_from_location(Location), Args}.
-
-build_identifier(Expr, Args, Extra) ->
-  case ?formatter_metadata() of
-    true ->
-      {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, Args),
-      {BuiltExpr, Extra ++ BuiltMeta, BuiltArgs};
-    false ->
-      build_identifier(Expr, Args)
-  end.
 
 %% Fn
 
