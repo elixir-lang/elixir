@@ -145,26 +145,21 @@ defmodule Inspect.Algebra do
 
   ## Implementation details
 
-  The original Haskell implementation of the algorithm by [Wadler][1]
-  relies on lazy evaluation to unfold document groups on two alternatives:
-  `:flat` (breaks as spaces) and `:break` (breaks as newlines).
-  Implementing the same logic in a strict language such as Elixir leads
-  to an exponential growth of possible documents, unless groups are explicitly
-  encoded. Those groups are then reduced to a simple document, where the
-  layout is already decided, per [Lindig][0].
+  The implementation of Inspect.Algebra is based on the Strictly Pretty
+  paper by [Lindig][0] which builds on top of previous pretty printing
+  algorithms but is tailored to strict languages, such as Elixir.
+  The core idea in the paper is the use of explicit document groups which
+  are rendered as flat (breaks as spaces) or as break (breaks as newlines).
 
-  This implementation has two types of breaks: `:strict` and `:flex`. When
-  a group does not fit, all strict breaks are treated as breaks. The flex
-  breaks however are re-evaluated and may still be rendered as spaces.
+  This implementation provides two types of breaks: `:strict` and `:flex`.
+  When a group does not fit, all strict breaks are treated as newlines.
+  Flex breaks however are re-evaluated on every occurrence and may still
+  be rendered flat. See `break/1` and `flex_break/1` for more information.
 
   This implementation also adds `force_break/1` and `next_break_fits/2` which
   give more control over the document fitting.
 
-  Custom pretty printers can be implemented using the documents returned
-  by this module and by providing their own rendering functions.
-
     [0]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.34.2200
-    [1]: http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf
 
   """
 
