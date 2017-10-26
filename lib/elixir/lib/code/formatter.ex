@@ -1877,6 +1877,10 @@ defmodule Code.Formatter do
     meta[:format] == :list_heredoc
   end
 
+  defp next_break_fits?({{:., _, [_left, :{}]}, _, _}) do
+    true
+  end
+
   defp next_break_fits?({:__block__, _meta, [{_, _}]}) do
     true
   end

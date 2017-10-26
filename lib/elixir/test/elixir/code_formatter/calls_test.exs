@@ -154,6 +154,23 @@ defmodule Code.Formatter.CallsTest do
 
       assert_format bad, good, @short_length
     end
+
+    test "for {} calls" do
+      bad = """
+      alias Foo.{
+              Bar, Baz
+            }
+      """
+
+      good = """
+      alias Foo.{
+        Bar,
+        Baz
+      }
+      """
+
+      assert_format bad, good, @medium_length
+    end
   end
 
   describe "local calls" do
