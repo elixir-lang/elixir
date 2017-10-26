@@ -806,7 +806,7 @@ defmodule Code.Formatter do
        when is_atom(name) and name not in [:__block__, :__aliases__] do
     if Code.Identifier.classify(name) == :callable_local do
       {{call_doc, state}, wrap_in_parens?} =
-        call_args_to_algebra(args, context, :skip_unless_many_args, false, state)
+        call_args_to_algebra(args, meta, context, :skip_unless_many_args, false, state)
 
       doc =
         "@#{name}"
@@ -870,18 +870,18 @@ defmodule Code.Formatter do
   ## Calls (local, remote and anonymous)
 
   # expression.{arguments}
-  defp remote_to_algebra({{:., _, [target, :{}]}, _, args}, _context, state) do
+  defp remote_to_algebra({{:., _, [target, :{}]}, meta, args}, _context, state) do
     {target_doc, state} = remote_target_to_algebra(target, state)
-    {call_doc, state} = tuple_to_algebra([], args, state)
+    {call_doc, state} = tuple_to_algebra(meta, args, state)
     {concat(concat(target_doc, "."), call_doc), state}
   end
 
   # expression.(arguments)
-  defp remote_to_algebra({{:., _, [target]}, _, args}, context, state) do
+  defp remote_to_algebra({{:., _, [target]}, meta, args}, context, state) do
     {target_doc, state} = remote_target_to_algebra(target, state)
 
     {{call_doc, state}, wrap_in_parens?} =
-      call_args_to_algebra(args, context, :skip_if_do_end, true, state)
+      call_args_to_algebra(args, meta, context, :skip_if_do_end, true, state)
 
     doc = concat(concat(target_doc, "."), call_doc)
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
@@ -905,12 +905,12 @@ defmodule Code.Formatter do
   end
 
   # expression.function(arguments)
-  defp remote_to_algebra({{:., _, [target, fun]}, _, args}, context, state) when is_atom(fun) do
+  defp remote_to_algebra({{:., _, [target, fun]}, meta, args}, context, state) when is_atom(fun) do
     {target_doc, state} = remote_target_to_algebra(target, state)
     fun = remote_fun_to_algebra(target, fun, length(args), state)
 
     {{call_doc, state}, wrap_in_parens?} =
-      call_args_to_algebra(args, context, :skip_if_do_end, true, state)
+      call_args_to_algebra(args, meta, context, :skip_if_do_end, true, state)
 
     doc = concat(concat(target_doc, "."), concat(string(fun), call_doc))
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
@@ -918,11 +918,11 @@ defmodule Code.Formatter do
   end
 
   # call(call)(arguments)
-  defp remote_to_algebra({target, _, args}, context, state) do
+  defp remote_to_algebra({target, meta, args}, context, state) do
     {target_doc, state} = quoted_to_algebra(target, :no_parens_arg, state)
 
     {{call_doc, state}, wrap_in_parens?} =
-      call_args_to_algebra(args, context, :required, true, state)
+      call_args_to_algebra(args, meta, context, :required, true, state)
 
     doc = concat(target_doc, call_doc)
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
@@ -982,7 +982,7 @@ defmodule Code.Formatter do
       if skip_parens?(fun, meta, args, state), do: :skip_unless_many_args, else: :skip_if_do_end
 
     {{call_doc, state}, wrap_in_parens?} =
-      call_args_to_algebra(args, context, skip_parens, true, state)
+      call_args_to_algebra(args, meta, context, skip_parens, true, state)
 
     doc =
       fun
@@ -1000,11 +1000,11 @@ defmodule Code.Formatter do
   #   * :skip_if_do_end - skip parens if we are do-end
   #   * :required - never skip parens
   #
-  defp call_args_to_algebra([], _context, _parens, _list_to_keyword?, state) do
+  defp call_args_to_algebra([], _meta, _context, _parens, _list_to_keyword?, state) do
     {{"()", state}, false}
   end
 
-  defp call_args_to_algebra(args, context, parens, list_to_keyword?, state) do
+  defp call_args_to_algebra(args, meta, context, parens, list_to_keyword?, state) do
     {args, last} = split_last(args)
 
     if blocks = do_end_blocks(last) do
@@ -1016,7 +1016,7 @@ defmodule Code.Formatter do
           _ ->
             {args, last} = split_last(args)
             no_parens? = parens != :required
-            call_args_to_algebra_without_blocks(args, last, no_parens?, list_to_keyword?, state)
+            call_args_to_algebra_no_blocks(meta, args, last, no_parens?, list_to_keyword?, state)
         end
 
       {blocks_doc, state} = do_end_blocks_to_algebra(blocks, state)
@@ -1027,12 +1027,12 @@ defmodule Code.Formatter do
         parens == :skip_unless_many_args and
           context in [:block, :operand, :no_parens_one_arg, :parens_one_arg]
 
-      res = call_args_to_algebra_without_blocks(args, last, no_parens?, list_to_keyword?, state)
+      res = call_args_to_algebra_no_blocks(meta, args, last, no_parens?, list_to_keyword?, state)
       {res, false}
     end
   end
 
-  defp call_args_to_algebra_without_blocks(left, right, skip_parens?, list_to_keyword?, state) do
+  defp call_args_to_algebra_no_blocks(meta, left, right, skip_parens?, list_to_keyword?, state) do
     generators_count = count_generators([right | left])
     {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?)
 
@@ -1060,7 +1060,7 @@ defmodule Code.Formatter do
             end
 
           args_doc =
-            if generators_count > 1 or force_keyword? do
+            if generators_count > 1 or force_keyword? or Keyword.get(meta, :eol, false) do
               force_break(args_doc)
             else
               args_doc

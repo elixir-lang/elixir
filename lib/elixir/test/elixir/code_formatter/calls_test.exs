@@ -413,6 +413,19 @@ defmodule Code.Formatter.CallsTest do
           into: %{}
       """
     end
+
+    test "preserves user choice on parens even when it fits" do
+      assert_same """
+      call(
+        :hello,
+        :foo,
+        :bar
+      )
+      """
+
+      # Doesn't preserve this because only the beginning has a newline
+      assert_format "call(\nfoo, bar, baz)", "call(foo, bar, baz)"
+    end
   end
 
   describe "remote calls" do
@@ -430,7 +443,8 @@ defmodule Code.Formatter.CallsTest do
 
     test "with arguments" do
       assert_format "Foo . Bar. baz(1, 2, 3)", "Foo.Bar.baz(1, 2, 3)"
-      assert_format ":erlang.\nget(\n:some_key\n)", ":erlang.get(:some_key)"
+      assert_format ":erlang.\nget(\n:some_key)", ":erlang.get(:some_key)"
+      assert_format ":erlang.\nget(:some_key\n)", ":erlang.get(:some_key)"
       assert_same "@foo.bar(1, 2, 3)"
       assert_same "__MODULE__.start_link(1, 2, 3)"
       assert_same "foo.bar(1).baz(2, 3)"
@@ -564,6 +578,19 @@ defmodule Code.Formatter.CallsTest do
       exception.opts[:foo]
       """
     end
+
+    test "preserves user choice on parens even when it fits" do
+      assert_same """
+      Remote.call(
+        :hello,
+        :foo,
+        :bar
+      )
+      """
+
+      # Doesn't preserve this because only the beginning has a newline
+      assert_format "Remote.call(\nfoo, bar, baz)", "Remote.call(foo, bar, baz)"
+    end
   end
 
   describe "anonymous function calls" do
@@ -651,6 +678,19 @@ defmodule Code.Formatter.CallsTest do
                 :ok
               end).()
       """
+    end
+
+    test "preserves user choice on parens even when it fits" do
+      assert_same """
+      call.(
+        :hello,
+        :foo,
+        :bar
+      )
+      """
+
+      # Doesn't preserve this because only the beginning has a newline
+      assert_format "call.(\nfoo, bar, baz)", "call.(foo, bar, baz)"
     end
   end
 
@@ -963,6 +1003,19 @@ defmodule Code.Formatter.CallsTest do
 
     test "with keywords" do
       assert_same "expr.{:hello, foo: bar, baz: bat}"
+    end
+
+    test "preserves user choice on parens even when it fits" do
+      assert_same """
+      call.{
+        :hello,
+        :foo,
+        :bar
+      }
+      """
+
+      # Doesn't preserve this because only the beginning has a newline
+      assert_format "call.{\nfoo, bar, baz}", "call.{foo, bar, baz}"
     end
   end
 

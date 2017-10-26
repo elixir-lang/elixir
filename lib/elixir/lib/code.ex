@@ -248,9 +248,9 @@ defmodule Code do
     * The choice between `:do` keyword and `do/end` blocks is left
       to the user
 
-    * Lists, tuples, bitstrings, maps, and structs will be broken into
-      multiple lines if they are followed by a newline in the opening
-      bracket and preceded by a new line in the closing bracket
+    * Lists, tuples, bitstrings, maps, structs and function calls will be
+      broken into multiple lines if they are followed by a newline in the
+      opening bracket and preceded by a new line in the closing bracket
 
     * Pipeline operators, like `|>` and others with the same precedence,
       will span multiple lines if they spanned multiple lines in the input
@@ -308,9 +308,9 @@ defmodule Code do
 
   ### Multi-line lists, maps, tuples, etc
 
-  You can force lists, tuples, bitstrings, maps, and structs to have
-  one entry per line by adding a newline after the opening bracket and
-  a new line before the closing bracket lines. For example:
+  You can force lists, tuples, bitstrings, maps, structs and function
+  calls to have one entry per line by adding a newline after the opening
+  bracket and a new line before the closing bracket lines. For example:
 
       [
         foo,
