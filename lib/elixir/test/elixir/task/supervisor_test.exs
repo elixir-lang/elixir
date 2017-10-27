@@ -296,13 +296,12 @@ defmodule Task.SupervisorTest do
       %{supervisor: supervisor} = context
       parent = self()
 
-      supervisor_fun =
-        fn _i ->
-          {:links, links} = Process.info(self(), :links)
-          assert parent in links
-          send(parent, {parent, self()})
-          supervisor
-        end
+      supervisor_fun = fn _i ->
+        {:links, links} = Process.info(self(), :links)
+        assert parent in links
+        send(parent, {parent, self()})
+        supervisor
+      end
 
       assert supervisor_fun
              |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)

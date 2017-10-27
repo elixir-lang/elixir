@@ -295,11 +295,10 @@ defimpl IEx.Info, for: PID do
           [{"Alive", false}]
       end
 
-    final_info =
-      [
-        {"Description", "Use Process.info/1 to get more info about this process"},
-        {"Reference modules", "Process, Node"}
-      ]
+    final_info = [
+      {"Description", "Use Process.info/1 to get more info about this process"},
+      {"Reference modules", "Process, Node"}
+    ]
 
     [{"Data type", "PID"}] ++ extra_info ++ final_info
   end

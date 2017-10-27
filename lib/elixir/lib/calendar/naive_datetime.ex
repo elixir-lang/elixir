@@ -717,17 +717,16 @@ defmodule NaiveDateTime do
         },
         calendar
       ) do
-    naive_datetime =
-      %NaiveDateTime{
-        calendar: calendar,
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond
-      }
+    naive_datetime = %NaiveDateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
 
     {:ok, naive_datetime}
   end

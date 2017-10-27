@@ -124,10 +124,10 @@ defmodule Mix.Tasks.EscriptTest do
       Mix.Tasks.Escript.Build.run([])
 
       assert_received {
-        :mix_shell,
-        :info,
-        ["Generated escript escript_test_with_debug_info with MIX_ENV=dev"]
-      }
+                        :mix_shell,
+                        :info,
+                        ["Generated escript escript_test_with_debug_info with MIX_ENV=dev"]
+                      }
 
       assert System.cmd("escript", ["escript_test_with_debug_info"]) == {"TEST\n", 0}
       assert count_abstract_code("escript_test_with_debug_info") > 0

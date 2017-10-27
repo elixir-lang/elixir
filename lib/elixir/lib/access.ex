@@ -360,12 +360,16 @@ defmodule Access do
     module.get_and_update(container, key, fun)
   rescue
     exception in UndefinedFunctionError ->
-      raise_undefined_behaviour(exception, module, {
-        ^module,
-        :get_and_update,
-        [^container, ^key, ^fun],
-        _
-      })
+      raise_undefined_behaviour(
+        exception,
+        module,
+        {
+          ^module,
+          :get_and_update,
+          [^container, ^key, ^fun],
+          _
+        }
+      )
   end
 
   def get_and_update(map, key, fun) when is_map(map) do

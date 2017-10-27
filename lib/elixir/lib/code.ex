@@ -259,7 +259,7 @@ defmodule Code do
   rules in the future. The goal of documenting them is to provide better
   understanding on what to expect from the formatter.
 
-  ### Adjusting formatted output
+  ## Adjusting formatted output
 
   The formatter attempts to the fit the most it can on a single line.
   When the code does not fit a single line, the formatter introduces
@@ -336,40 +336,46 @@ defmodule Code do
   The code above will be kept with one keyword entry per line by the
   formatter. To avoid that, just keep everything on a single line.
 
-  ### Forcing line breaks for data structures after operators
+  ### Parens and no parens in function calls
 
-  Whenever there is a data structure that spans multiple lines (such as
-  maps, lists, anonymous function, etc) after an operator (such as `=`,
-  `==`, `>`, `::`, etc), the formatter will start the data structure in
-  the same line as the operator. This leads to code formatted like this:
+  Elixir has two syntaxes for function calls. With parens and no parens.
+  By default, Elixir will add parens to all calls except for:
 
-      map = %{
-        one: 1,
-        two: 2,
-        ...
+    1. calls that have do/end blocks
+    2. local calls without parens where the name and arity of the local
+       call is also listed under `:locals_without_parens`
+
+  The choice of parens and no parens also affects indentation. When a
+  function call with parens doesn't fit on the same line, the formatter
+  introduces a newline around parens and indents the arguments with two
+  spaces:
+
+      some_call(
+        arg1,
+        arg2,
+        arg3
+      )
+
+  On the other hand, function calls without parens are always indented
+  by the function call length itself, like this:
+
+      some_call arg1,
+                arg2,
+                arg3
+
+  If the last argument is a data structure of variable length, such as
+  maps and lists, and the beginning of the data structure fits on the
+  same line as the function call, then no indentation happens, this
+  allows code like this:
+
+      Enum.reduce(some_collection, initial_value, fn element, acc ->
+        # code
+      end)
+
+      some_funtion_without_parens %{
+        foo: :bar,
+        baz: :bat
       }
-
-  In some circumstances this behaviour may be undesired. For example:
-
-      assert some_long_expression(foo, bar) == {
-               :ok,
-               expected
-             }
-
-  This is another case where you may need to adjust the formatter
-  behaviour by giving it hints. If you introduce a line break after the
-  operator, the formatter will respect this decision. For example:
-
-      assert some_long_expression(foo, bar) ==
-             {
-               :ok,
-               expected
-             }
-
-  which can also be rewritten as:
-
-      assert some_long_expression(foo, bar) ==
-             {:ok, expected}
 
   ## Code comments
 

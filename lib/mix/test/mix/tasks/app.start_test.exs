@@ -60,17 +60,13 @@ defmodule Mix.Tasks.App.StartTest do
       Mix.Tasks.Compile.run([])
       Mix.Tasks.App.Start.run([])
 
-      assert_received {
-        :mix_shell,
-        :error,
-        ["You have configured application :app_unknown_sample" <> _]
-      }
+      assert_received {:mix_shell, :error, [
+                        "You have configured application :app_unknown_sample" <> _
+                      ]}
 
-      refute_received {
-        :mix_shell,
-        :error,
-        ["You have configured application :app_loaded_sample" <> _]
-      }
+      refute_received {:mix_shell, :error, [
+                        "You have configured application :app_loaded_sample" <> _
+                      ]}
     end
   end
 
