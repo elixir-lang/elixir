@@ -74,16 +74,15 @@ defmodule File.Stream do
     @read_ahead_size 64 * 1024
 
     def reduce(%{path: path, modes: modes, line_or_bytes: line_or_bytes, raw: raw}, acc, fun) do
-      start_fun =
-        fn ->
-          case :file.open(path, read_modes(modes)) do
-            {:ok, device} ->
-              if :trim_bom in modes, do: trim_bom(device), else: device
+      start_fun = fn ->
+        case :file.open(path, read_modes(modes)) do
+          {:ok, device} ->
+            if :trim_bom in modes, do: trim_bom(device), else: device
 
-            {:error, reason} ->
-              raise File.Error, reason: reason, action: "stream", path: path
-          end
+          {:error, reason} ->
+            raise File.Error, reason: reason, action: "stream", path: path
         end
+      end
 
       next_fun =
         case raw do

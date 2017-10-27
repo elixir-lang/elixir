@@ -26,6 +26,9 @@ defmodule Code.Formatter do
   # Operators that are logical cannot be mixed without parens
   @required_parens_logical_binary_operands [:||, :|||, :or, :&&, :&&&, :and]
 
+  # Operators with next break fits. = and :: do not consider new lines though
+  @next_break_fits_operators [:<-, :==, :!=, :=~, :===, :!==, :<, :>, :<=, :>=, :=, :::]
+
   # Operators that always require parens on operands when they are the parent
   @required_parens_on_binary_operands [
     :|>,
@@ -531,7 +534,7 @@ defmodule Code.Formatter do
 
   # keyword: :list
   # key => value
-  defp quoted_to_algebra({{_, meta, _} = left_arg, right_arg}, context, state) do
+  defp quoted_to_algebra({left_arg, right_arg}, context, state) do
     {left, op, right, state} =
       if keyword_key?(left_arg) do
         {left, state} =
@@ -552,10 +555,8 @@ defmodule Code.Formatter do
         {left, " =>", right, state}
       end
 
-    next_break_fits? = next_break_fits?(right_arg) and not Keyword.get(meta, :eol, false)
-
     doc =
-      with_next_break_fits(next_break_fits?, right, fn right ->
+      with_next_break_fits(next_break_fits?(right_arg), right, fn right ->
         concat(group(left), group(nest(glue(op, group(right)), 2, :break)))
       end)
 
@@ -723,7 +724,9 @@ defmodule Code.Formatter do
           if op_info == parent_info, do: doc, else: group(doc)
 
         true ->
-          next_break_fits? = next_break_fits?(right_arg) and not Keyword.get(meta, :eol, false)
+          next_break_fits? =
+            op in @next_break_fits_operators and next_break_fits?(right_arg) and
+              not Keyword.get(meta, :eol, false)
 
           with_next_break_fits(next_break_fits?, right, fn right ->
             op_string = " " <> op_string
@@ -1047,11 +1050,13 @@ defmodule Code.Formatter do
       call_args_to_algebra_with_no_parens_keywords(left, right, context, state)
     else
       force_keyword? = keyword? and force_keyword?(right)
+      next_break_fits? = next_break_fits?(right)
+
       {left_doc, state} = args_to_algebra(left, state, &quoted_to_algebra(&1, context, &2))
       {right_doc, state} = quoted_to_algebra(right, context, state)
 
       doc =
-        with_next_break_fits(next_break_fits?(right), right_doc, fn right_doc ->
+        with_next_break_fits(next_break_fits?, right_doc, fn right_doc ->
           args_doc =
             if left == [] do
               right_doc
@@ -1060,7 +1065,8 @@ defmodule Code.Formatter do
             end
 
           args_doc =
-            if generators_count > 1 or force_keyword? or Keyword.get(meta, :eol, false) do
+            if generators_count > 1 or force_keyword? or
+                 (left != [] and not next_break_fits? and Keyword.get(meta, :eol, false)) do
               force_break(args_doc)
             else
               args_doc
@@ -1881,10 +1887,6 @@ defmodule Code.Formatter do
     true
   end
 
-  defp next_break_fits?({:__block__, _meta, [{_, _}]}) do
-    true
-  end
-
   defp next_break_fits?({:__block__, meta, [string]}) when is_binary(string) do
     meta[:format] == :bin_heredoc
   end
@@ -1893,7 +1895,7 @@ defmodule Code.Formatter do
     meta[:format] != :charlist
   end
 
-  defp next_break_fits?({form, _, [_ | _]}) when form in [:fn, :%{}, :%, :{}] do
+  defp next_break_fits?({form, _, [_ | _]}) when form in [:fn, :%{}, :%] do
     true
   end
 

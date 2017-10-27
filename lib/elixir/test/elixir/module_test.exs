@@ -140,18 +140,13 @@ defmodule ModuleTest do
   ## Attributes
 
   test "reserved attributes" do
-    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behaviour, 0) == {
-             :behaviour,
-             [GenServer]
-           }
+    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behaviour, 0) ==
+             {:behaviour, [GenServer]}
   end
 
   test "registered attributes" do
-    assert Enum.filter(
-             __MODULE__.__info__(:attributes),
-             &(match?({:register_example, _}, &1) ==
-                 [{:register_example, [:it_works]}, {:register_example, [:still_works]}])
-           )
+    assert Enum.filter(__MODULE__.__info__(:attributes), &match?({:register_example, _}, &1)) ==
+             [{:register_example, [:it_works]}, {:register_example, [:still_works]}]
   end
 
   @some_attribute [1]

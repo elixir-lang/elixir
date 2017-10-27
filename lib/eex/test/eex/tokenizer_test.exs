@@ -123,15 +123,14 @@ defmodule EEx.TokenizerTest do
   end
 
   test "strings with embedded keywords blocks" do
-    exprs =
-      [
-        {:text, 'foo '},
-        {:start_expr, 1, '', ' if true do '},
-        {:text, 'bar'},
-        {:middle_expr, 1, '', ' else '},
-        {:text, 'baz'},
-        {:end_expr, 1, '', ' end '}
-      ]
+    exprs = [
+      {:text, 'foo '},
+      {:start_expr, 1, '', ' if true do '},
+      {:text, 'bar'},
+      {:middle_expr, 1, '', ' else '},
+      {:text, 'baz'},
+      {:end_expr, 1, '', ' end '}
+    ]
 
     assert T.tokenize('foo <% if true do %>bar<% else %>baz<% end %>', 1) == {:ok, exprs}
   end

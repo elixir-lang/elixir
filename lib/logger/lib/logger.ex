@@ -706,12 +706,8 @@ defmodule Logger do
     %{module: module, function: fun, file: file, line: line} = caller
 
     caller =
-      compile_time_application() ++ [
-        module: module,
-        function: form_fa(fun),
-        file: file,
-        line: line
-      ]
+      compile_time_application() ++
+        [module: module, function: form_fa(fun), file: file, line: line]
 
     quote do
       Logger.bare_log(unquote(level), unquote(data), unquote(caller) ++ unquote(metadata))

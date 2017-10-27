@@ -56,39 +56,41 @@ defmodule Kernel.LexicalTrackerTest do
     D.set_file(config[:pid], "lib/foo.ex")
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
 
-    assert D.remote_dispatches(config[:pid]) == {
-             %{},
-             %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}}
-           }
+    assert D.remote_dispatches(config[:pid]) ==
+             {%{}, %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}}}
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :compile)
 
-    assert D.remote_dispatches(config[:pid]) == {
-             %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}},
-             %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}}
-           }
+    assert D.remote_dispatches(config[:pid]) ==
+             {
+               %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}},
+               %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}}
+             }
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 1, :runtime)
 
-    assert D.remote_dispatches(config[:pid]) == {
-             %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}},
-             %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}}
-           }
+    assert D.remote_dispatches(config[:pid]) ==
+             {
+               %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}},
+               %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}}
+             }
 
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 2, :runtime)
 
-    assert D.remote_dispatches(config[:pid]) == {
-             %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}},
-             %{String => %{{:upcase, 1} => [{"lib/foo.ex", 2}, {"lib/foo.ex", 1}]}}
-           }
+    assert D.remote_dispatches(config[:pid]) ==
+             {
+               %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}},
+               %{String => %{{:upcase, 1} => [{"lib/foo.ex", 2}, {"lib/foo.ex", 1}]}}
+             }
 
     D.reset_file(config[:pid])
     D.remote_dispatch(config[:pid], String, {:upcase, 1}, 2, :runtime)
 
-    assert D.remote_dispatches(config[:pid]) == {
-             %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}},
-             %{String => %{{:upcase, 1} => [2, {"lib/foo.ex", 2}, {"lib/foo.ex", 1}]}}
-           }
+    assert D.remote_dispatches(config[:pid]) ==
+             {
+               %{String => %{{:upcase, 1} => [{"lib/foo.ex", 1}]}},
+               %{String => %{{:upcase, 1} => [2, {"lib/foo.ex", 2}, {"lib/foo.ex", 1}]}}
+             }
   end
 
   test "can add module imports", config do

@@ -128,14 +128,8 @@ defmodule Supervisor.Spec do
   @type child_id :: term
 
   @typedoc "The supervisor specification"
-  @type spec :: {
-          child_id,
-          start_fun :: {module, atom, [term]},
-          restart,
-          shutdown,
-          worker,
-          modules
-        }
+  @type spec ::
+          {child_id, start_fun :: {module, atom, [term]}, restart, shutdown, worker, modules}
 
   @doc """
   Receives a list of children (workers or supervisors) to

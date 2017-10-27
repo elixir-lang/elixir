@@ -284,12 +284,11 @@ defimpl Collectable, for: HashSet do
     # Avoid warnings about HashSet being deprecated.
     module = HashSet
 
-    collector_fun =
-      fn
-        set, {:cont, term} -> module.put(set, term)
-        set, :done -> set
-        _, :halt -> :ok
-      end
+    collector_fun = fn
+      set, {:cont, term} -> module.put(set, term)
+      set, :done -> set
+      _, :halt -> :ok
+    end
 
     {original, collector_fun}
   end

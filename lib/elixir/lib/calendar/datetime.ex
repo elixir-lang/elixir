@@ -201,21 +201,20 @@ defmodule DateTime do
       day: day
     } = naive_datetime
 
-    datetime =
-      %DateTime{
-        calendar: calendar,
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond,
-        std_offset: 0,
-        utc_offset: 0,
-        zone_abbr: "UTC",
-        time_zone: "Etc/UTC"
-      }
+    datetime = %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      std_offset: 0,
+      utc_offset: 0,
+      zone_abbr: "UTC",
+      time_zone: "Etc/UTC"
+    }
 
     {:ok, datetime}
   end
@@ -736,21 +735,20 @@ defmodule DateTime do
         },
         calendar
       ) do
-    datetime =
-      %DateTime{
-        calendar: calendar,
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond,
-        time_zone: time_zone,
-        zone_abbr: zone_abbr,
-        utc_offset: utc_offset,
-        std_offset: std_offset
-      }
+    datetime = %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: time_zone,
+      zone_abbr: zone_abbr,
+      utc_offset: utc_offset,
+      std_offset: std_offset
+    }
 
     {:ok, datetime}
   end

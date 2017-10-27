@@ -173,15 +173,8 @@ defmodule Calendar do
   @doc """
   Converts `t:iso_days` to the Calendar's datetime format.
   """
-  @callback naive_datetime_from_iso_days(iso_days) :: {
-              year,
-              month,
-              day,
-              hour,
-              minute,
-              second,
-              microsecond
-            }
+  @callback naive_datetime_from_iso_days(iso_days) ::
+              {year, month, day, hour, minute, second, microsecond}
 
   @doc """
   Converts the given time to the `t:day_fraction` format.

@@ -650,7 +650,6 @@ defmodule Module do
              (is_binary(doc) or is_boolean(doc) or doc == nil) do
     assert_not_compiled!(:add_doc, module)
     table = data_table_for(module)
-
     signature = simplify_signature(signature)
 
     case :ets.lookup(table, {:doc, function_tuple}) do
@@ -659,14 +658,9 @@ defmodule Module do
         :ok
 
       [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
-        :ets.insert(table, {
-          doc_tuple,
-          line,
-          kind,
-          merge_signatures(current_sign, signature, 1),
-          if(is_nil(doc), do: current_doc, else: doc)
-        })
-
+        signature = merge_signatures(current_sign, signature, 1)
+        doc = if(is_nil(doc), do: current_doc, else: doc)
+        :ets.insert(table, {doc_tuple, line, kind, signature, doc})
         :ok
     end
   end

@@ -390,39 +390,39 @@ at_op_eol -> at_op : '$1'.
 at_op_eol -> at_op eol : '$1'.
 
 add_op_eol -> add_op : '$1'.
-add_op_eol -> add_op eol : next_is_eol('$1').
+add_op_eol -> add_op eol : '$1'.
 add_op_eol -> dual_op : '$1'.
-add_op_eol -> dual_op eol : next_is_eol('$1').
+add_op_eol -> dual_op eol : '$1'.
 
 mult_op_eol -> mult_op : '$1'.
-mult_op_eol -> mult_op eol : next_is_eol('$1').
+mult_op_eol -> mult_op eol : '$1'.
 
 two_op_eol -> two_op : '$1'.
-two_op_eol -> two_op eol : next_is_eol('$1').
+two_op_eol -> two_op eol : '$1'.
 
 three_op_eol -> three_op : '$1'.
-three_op_eol -> three_op eol : next_is_eol('$1').
+three_op_eol -> three_op eol : '$1'.
 
 pipe_op_eol -> pipe_op : '$1'.
 pipe_op_eol -> pipe_op eol : next_is_eol('$1').
 
 match_op_eol -> match_op : '$1'.
-match_op_eol -> match_op eol : next_is_eol('$1').
+match_op_eol -> match_op eol : '$1'.
 
 and_op_eol -> and_op : '$1'.
-and_op_eol -> and_op eol : next_is_eol('$1').
+and_op_eol -> and_op eol : '$1'.
 
 or_op_eol -> or_op : '$1'.
-or_op_eol -> or_op eol : next_is_eol('$1').
+or_op_eol -> or_op eol : '$1'.
 
 in_op_eol -> in_op : '$1'.
-in_op_eol -> in_op eol : next_is_eol('$1').
+in_op_eol -> in_op eol : '$1'.
 
 in_match_op_eol -> in_match_op : '$1'.
 in_match_op_eol -> in_match_op eol : next_is_eol('$1').
 
 type_op_eol -> type_op : '$1'.
-type_op_eol -> type_op eol : next_is_eol('$1').
+type_op_eol -> type_op eol : '$1'.
 
 when_op_eol -> when_op : '$1'.
 when_op_eol -> when_op eol : next_is_eol('$1').
@@ -535,11 +535,11 @@ call_args_parens -> open_paren call_args_parens_base ',' kw_base ',' close_paren
 % KV
 
 kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
-kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', [{format, keyword}, {eol, true}]).
+kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
 kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, [{format, keyword}]).
-kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, [{format, keyword}, {eol, true}]).
+kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, [{format, keyword}]).
 kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, [{format, keyword}]).
-kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{format, keyword}, {eol, true}]).
+kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{format, keyword}]).
 
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
@@ -581,13 +581,13 @@ map_expr -> dot_identifier : build_identifier('$1', nil).
 map_expr -> unary_op_eol map_expr : build_unary_op('$1', '$2').
 map_expr -> at_op_eol map_expr : build_unary_op('$1', '$2').
 
-assoc_op_eol -> assoc_op : false.
-assoc_op_eol -> assoc_op eol : true.
+assoc_op_eol -> assoc_op : '$1'.
+assoc_op_eol -> assoc_op eol : '$1'.
 
-assoc_expr -> matched_expr assoc_op_eol matched_expr : build_map_assoc('$1', '$2', '$3').
-assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : build_map_assoc('$1', '$2', '$3').
-assoc_expr -> matched_expr assoc_op_eol unmatched_expr : build_map_assoc('$1', '$2', '$3').
-assoc_expr -> unmatched_expr assoc_op_eol matched_expr : build_map_assoc('$1', '$2', '$3').
+assoc_expr -> matched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
+assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
+assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
+assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
 assoc_expr -> map_expr : '$1'.
 
 assoc_update -> matched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
@@ -712,14 +712,6 @@ build_map(Left, Args, Right) ->
 build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
   Op = build_op(Pipe, Struct, append_non_empty(Map, Extra)),
   {'%{}', eol_pair(Left, Right) ++ meta_from_token(Left), [Op]}.
-
-build_map_assoc(Left, Eol, Right) ->
-  case Left of
-    {LeftName, LeftMeta, LeftArgs} when Eol ->
-      {{LeftName, [{eol, true} | LeftMeta], LeftArgs}, Right};
-    _ ->
-      {Left, Right}
-  end.
 
 %% Blocks
 

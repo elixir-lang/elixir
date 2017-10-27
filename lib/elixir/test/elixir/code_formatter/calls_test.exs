@@ -130,31 +130,6 @@ defmodule Code.Formatter.CallsTest do
       assert_format bad, good, @short_length
     end
 
-    test "for tuples" do
-      bad = "long_call({1, 2})"
-
-      good = """
-      long_call(
-        {1, 2}
-      )
-      """
-
-      assert_format bad, good, @short_length
-
-      bad = "foo({1, 2, 3, 4})"
-
-      good = """
-      foo({
-        1,
-        2,
-        3,
-        4
-      })
-      """
-
-      assert_format bad, good, @short_length
-    end
-
     test "for {} calls" do
       bad = """
       alias Foo.{
@@ -442,6 +417,22 @@ defmodule Code.Formatter.CallsTest do
 
       # Doesn't preserve this because only the beginning has a newline
       assert_format "call(\nfoo, bar, baz)", "call(foo, bar, baz)"
+
+      # Doesn't preserve because we have a single argument with next break fits
+      bad = """
+      call(
+        %{
+          key: :value
+        }
+      )
+      """
+
+      # Doesn't preserve this because only the beginning has a newline
+      assert_format bad, """
+      call(%{
+        key: :value
+      })
+      """
     end
   end
 

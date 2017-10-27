@@ -265,12 +265,7 @@ defmodule ExUnit.AssertionsTest do
     send(self(), {:status, :invalid, :invalid})
 
     try do
-      "This should never be tested" =
-        assert_received {
-          :status,
-          ^status,
-          ^status
-        }
+      "This should never be tested" = assert_received {:status, ^status, ^status}
     rescue
       error in [ExUnit.AssertionError] ->
         """
@@ -289,12 +284,7 @@ defmodule ExUnit.AssertionsTest do
     send(self(), {:status, :invalid, :invalid})
 
     try do
-      "This should never be tested" =
-        assert_received {
-          :status,
-          ^status,
-          ^other_status
-        }
+      "This should never be tested" = assert_received {:status, ^status, ^other_status}
     rescue
       error in [ExUnit.AssertionError] ->
         """

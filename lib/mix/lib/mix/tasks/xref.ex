@@ -451,11 +451,10 @@ defmodule Mix.Tasks.Xref do
           Mix.raise("mix xref graph expects only one of --source and --sink")
       end
 
-    callback =
-      fn {file, type} ->
-        children = Map.get(file_references, file, [])
-        {{file, type}, children -- excluded}
-      end
+    callback = fn {file, type} ->
+      children = Map.get(file_references, file, [])
+      {{file, type}, children -- excluded}
+    end
 
     if opts[:format] == "dot" do
       Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph", root, callback, opts)

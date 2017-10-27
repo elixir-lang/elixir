@@ -518,8 +518,8 @@ defmodule Code.Formatter.OperatorsTest do
     end
   end
 
-  # Theoretically it fits under operators but the goal of
-  # this section is to test common idioms.
+  # Theoretically it fits under binary operators
+  # but the goal of this section is to test common idioms.
   describe "match" do
     test "with calls" do
       bad = "var = fun(one, two, three)"
@@ -573,34 +573,49 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with containers" do
-      bad = "var = {one, two, three}"
+      bad = "var = [one, two, three]"
 
       good = """
-      var = {
+      var = [
         one,
         two,
         three
-      }
+      ]
       """
 
       assert_format bad, good, @short_length
 
-      bad = "{one, two, three} = var"
+      bad = """
+      var =
+        [one, two, three]
+      """
 
       good = """
-      {
+      var = [
         one,
         two,
         three
-      } = var
+      ]
       """
 
       assert_format bad, good, @short_length
 
-      bad = "{one, two, three} = foo(bar, baz)"
+      bad = "[one, two, three] = var"
 
       good = """
-      {one, two, three} =
+      [
+        one,
+        two,
+        three
+      ] = var
+      """
+
+      assert_format bad, good, @short_length
+
+      bad = "[one, two, three] = foo(bar, baz)"
+
+      good = """
+      [one, two, three] =
         foo(bar, baz)
       """
 
