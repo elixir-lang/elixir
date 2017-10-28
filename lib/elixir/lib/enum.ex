@@ -1805,6 +1805,8 @@ defmodule Enum do
   Invokes `fun` for each element in the `enumerable` with the
   accumulator.
 
+  Raises `Enum.EmptyError` if `enumerable` is empty.
+
   The first element of the enumerable is used as the initial value
   of the accumulator. Then the function is invoked with the next
   element and the accumulator. The result returned by the function
