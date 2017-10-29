@@ -756,7 +756,7 @@ defmodule GenServer do
         exit({:calling_self, {__MODULE__, :stop, [server, reason, timeout]}})
 
       pid ->
-        :gen.stop(pid, reason, timeout)
+        :proc_lib.stop(pid, reason, timeout)
     end
   end
 
