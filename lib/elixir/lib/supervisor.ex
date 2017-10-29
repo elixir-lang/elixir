@@ -996,7 +996,7 @@ defmodule Supervisor do
   """
   @spec stop(supervisor, reason :: term, timeout) :: :ok
   def stop(supervisor, reason \\ :normal, timeout \\ :infinity) do
-    :gen.stop(supervisor, reason, timeout)
+    GenServer.stop(supervisor, reason, timeout)
   end
 
   @compile {:inline, call: 2}
