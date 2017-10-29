@@ -81,7 +81,7 @@ defmodule Logger.ErrorHandler do
   defp log_event({:info_report, _gl, {pid, :progress, data}}, %{sasl: true} = state),
     do: log_event(:info, :report, pid, {:progress, data}, state)
 
-  defp log_event(_, _state), do: :okcheck_threshold
+  defp log_event(_, _state), do: :ok
 
   defp log_event(level, kind, pid, {type, _} = data, state) do
     %{level: min_level, truncate: truncate, utc_log: utc_log?, translators: translators} =
