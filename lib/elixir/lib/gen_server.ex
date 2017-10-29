@@ -748,7 +748,16 @@ defmodule GenServer do
   """
   @spec stop(server, reason :: term, timeout) :: :ok
   def stop(server, reason \\ :normal, timeout \\ :infinity) do
-    :gen.stop(server, reason, timeout)
+    case whereis(server) do
+      nil ->
+        exit(:noproc)
+
+      pid when pid == self() ->
+        exit({:calling_self, {__MODULE__, :stop, [server, reason, timeout]}})
+
+      pid ->
+        :gen.stop(pid, reason, timeout)
+    end
   end
 
   @doc """

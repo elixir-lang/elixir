@@ -14,6 +14,11 @@ defmodule GenServerTest do
       {:noreply, h}
     end
 
+    def handle_call(:stop_self, _from, state) do
+      reason = catch_exit(GenServer.stop(self()))
+      {:reply, reason, state}
+    end
+
     def handle_call(request, from, state) do
       super(request, from, state)
     end
@@ -195,6 +200,15 @@ defmodule GenServerTest do
   test "stop/3" do
     {:ok, pid} = GenServer.start(Stack, [])
     assert GenServer.stop(pid, :normal) == :ok
+
+    stopped_pid = pid
+    assert catch_exit(GenServer.stop(stopped_pid)) == :noproc
+    assert catch_exit(GenServer.stop(nil)) == :noproc
+
+    {:ok, pid} = GenServer.start(Stack, [])
+
+    assert GenServer.call(pid, :stop_self) ==
+             {:calling_self, {GenServer, :stop, [pid, :normal, :infinity]}}
 
     {:ok, _} = GenServer.start(Stack, [], name: :stack_for_stop)
     assert GenServer.stop(:stack_for_stop, :normal) == :ok
