@@ -750,13 +750,18 @@ defmodule GenServer do
   def stop(server, reason \\ :normal, timeout \\ :infinity) do
     case whereis(server) do
       nil ->
-        exit(:noproc)
+        exit({:noproc, {__MODULE__, :stop, [server, reason, timeout]}})
 
       pid when pid == self() ->
         exit({:calling_self, {__MODULE__, :stop, [server, reason, timeout]}})
 
       pid ->
-        :proc_lib.stop(pid, reason, timeout)
+        try do
+          :proc_lib.stop(pid, reason, timeout)
+        catch
+          :exit, err ->
+            exit({err, {__MODULE__, :stop, [server, reason, timeout]}})
+        end
     end
   end
 

@@ -202,8 +202,12 @@ defmodule GenServerTest do
     assert GenServer.stop(pid, :normal) == :ok
 
     stopped_pid = pid
-    assert catch_exit(GenServer.stop(stopped_pid)) == :noproc
-    assert catch_exit(GenServer.stop(nil)) == :noproc
+
+    assert catch_exit(GenServer.stop(stopped_pid)) ==
+             {:noproc, {GenServer, :stop, [stopped_pid, :normal, :infinity]}}
+
+    assert catch_exit(GenServer.stop(nil)) ==
+             {:noproc, {GenServer, :stop, [nil, :normal, :infinity]}}
 
     {:ok, pid} = GenServer.start(Stack, [])
 
