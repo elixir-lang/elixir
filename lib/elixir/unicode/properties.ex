@@ -11,12 +11,12 @@ to_binary = fn
     |> IO.iodata_to_binary()
 end
 
-{codes, non_breakable, decompositions, combining_classes} =
-  Enum.reduce(File.stream!(data_path), {[], [], %{}, %{}}, fn line, {cacc, wacc, dacc, kacc} ->
+{codes, letters, non_breakable, decompositions, combining_classes} =
+  Enum.reduce(File.stream!(data_path), {[], [], [], %{}, %{}}, fn line, {cacc, lacc, wacc, dacc, kacc} ->
     [
       codepoint,
       _name,
-      _category,
+      category,
       class,
       _bidi,
       decomposition,
@@ -38,6 +38,12 @@ end
         [{to_binary.(codepoint), to_binary.(upper), to_binary.(lower), to_binary.(title)} | cacc]
       else
         cacc
+      end
+
+    lacc =
+      case category do
+        "L" <> _ -> [to_binary.(codepoint) | lacc]
+        _ -> lacc
       end
 
     wacc =
@@ -67,7 +73,7 @@ end
         {n, ""} -> Map.put(kacc, String.to_integer(codepoint, 16), n)
       end
 
-    {cacc, wacc, dacc, kacc}
+    {cacc, lacc, wacc, dacc, kacc}
   end)
 
 defmodule String.Casing do
@@ -85,6 +91,15 @@ defmodule String.Casing do
   # Downcase
 
   def downcase(string) when is_binary(string), do: downcase(string, "")
+
+  for codepoint <- letters do
+    defp downcase(<<0x03A3::utf8, unquote(codepoint), rest::bits>>, acc) do
+      downcase(<<unquote(codepoint), rest::bits>>, <<acc::binary, 0x03C3::utf8>>)
+    end
+  end
+  defp downcase(<<0x03A3::utf8, rest::bits>>, acc) do
+    downcase(rest, <<acc::binary, 0x03C2::utf8>>)
+  end
 
   for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
     defp downcase(<<unquote(codepoint), rest::bits>>, acc) do
