@@ -159,6 +159,11 @@ defmodule StringTest do
     assert String.downcase("áüÈß") == "áüèß"
   end
 
+  test "downcase/1 with greek final sigma" do
+    assert String.downcase("ΣΣ") == "σς"
+    assert String.downcase("ΣΣ ΣΣ") == "σς σς"
+  end
+
   test "capitalize/1" do
     assert String.capitalize("") == ""
     assert String.capitalize("abc") == "Abc"
