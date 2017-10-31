@@ -4152,20 +4152,17 @@ defmodule Kernel do
       struct = defstruct([__exception__: true] ++ fields)
 
       if Map.has_key?(struct, :message) do
-        @spec message(Exception.t()) :: String.t()
         def message(exception) do
           exception.message
         end
 
         defoverridable message: 1
 
-        @spec exception(String.t()) :: Exception.t()
         def exception(msg) when is_binary(msg) do
           exception(message: msg)
         end
       end
 
-      @spec exception(keyword) :: Exception.t()
       # TODO: Only call Kernel.struct! by 2.0
       def exception(args) when is_list(args) do
         struct = __struct__()
