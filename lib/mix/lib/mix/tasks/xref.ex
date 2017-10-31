@@ -57,6 +57,11 @@ defmodule Mix.Tasks.Xref do
 
     * `--exclude` - paths to exclude
 
+    * `--label` - only shows relationships with the given label
+      The labels are "compile", "struct" and "runtime" (runtime is now shown on the graph)
+
+    * `--only-nodes` - only show the node names (no edges)
+
     * `--source` - displays all files that the given source file references (directly or indirectly)
 
     * `--sink` - displays all files that reference the given file (directly or indirectly)
@@ -72,8 +77,16 @@ defmodule Mix.Tasks.Xref do
       * `dot` - produces a DOT graph description in `xref_graph.dot` in the
         current directory. Warning: this will override any previously generated file
 
-  The `--source` and `--sink` options are particularly useful when trying to understand how
-  the modules in a particular file interact with the whole system.
+  The `--source` and `--sink` options are particularly useful when trying to understand
+  how the modules in a particular file interact with the whole system. You can combine
+  those options with `--label` and `--only-nodes` to get all files that exhibit a certain
+  property, for example:
+
+      # To get all files that depend on lib/foo.ex
+      mix xref graph --sink lib/foo.ex --only-nodes
+
+      # To get all files that depend on lib/foo.ex at compile time
+      mix xref graph --label compile --sink lib/foo.ex --only-nodes
 
   ## Shared options
 
@@ -97,14 +110,16 @@ defmodule Mix.Tasks.Xref do
   """
 
   @switches [
+    archives_check: :boolean,
     compile: :boolean,
     deps_check: :boolean,
-    archives_check: :boolean,
     elixir_version_check: :boolean,
     exclude: :keep,
     format: :string,
-    source: :string,
-    sink: :string
+    label: :string,
+    only_nodes: :boolean,
+    sink: :string,
+    source: :string
   ]
 
   def run(args) do
@@ -159,7 +174,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp graph(opts) do
-    write_graph(file_references(), excluded(opts), opts)
+    write_graph(file_references(opts), excluded(opts), opts)
 
     :ok
   end
@@ -386,7 +401,15 @@ defmodule Mix.Tasks.Xref do
     |> Enum.flat_map(&[{&1, nil}, {&1, :compile}, {&1, :struct}])
   end
 
-  defp file_references() do
+  defp label_filter(nil), do: :all
+  defp label_filter("compile"), do: :compile
+  defp label_filter("struct"), do: :struct
+  defp label_filter("runtime"), do: nil
+  defp label_filter(other), do: Mix.raise("unknown --label #{other}")
+
+  defp file_references(opts) do
+    filter = label_filter(opts[:label])
+
     module_sources =
       for manifest <- E.manifests(),
           manifest_data = read_manifest(manifest, ""),
@@ -406,13 +429,13 @@ defmodule Mix.Tasks.Xref do
       ) = source
 
       compile_references =
-        modules_to_nodes(compile, :compile, current, source, module_sources, all_modules)
+        modules_to_nodes(compile, :compile, current, source, module_sources, all_modules, filter)
 
       struct_references =
-        modules_to_nodes(structs, :struct, current, source, module_sources, all_modules)
+        modules_to_nodes(structs, :struct, current, source, module_sources, all_modules, filter)
 
       runtime_references =
-        modules_to_nodes(runtime, nil, current, source, module_sources, all_modules)
+        modules_to_nodes(runtime, nil, current, source, module_sources, all_modules, filter)
 
       references =
         runtime_references
@@ -424,7 +447,11 @@ defmodule Mix.Tasks.Xref do
     end)
   end
 
-  defp modules_to_nodes(modules, label, current, source, module_sources, all_modules) do
+  defp modules_to_nodes(_, label, _, _, _, _, filter) when filter != :all and label != filter do
+    %{}
+  end
+
+  defp modules_to_nodes(modules, label, current, source, module_sources, all_modules, _filter) do
     for module <- modules,
         module != current,
         module in all_modules,
@@ -441,7 +468,7 @@ defmodule Mix.Tasks.Xref do
 
         {source, nil} ->
           if file_references[source] do
-            {[{source, nil}], file_references}
+            {Map.get(file_references, source, []), file_references}
           else
             Mix.raise("Source could not be found: #{source}")
           end
@@ -465,7 +492,7 @@ defmodule Mix.Tasks.Xref do
       end
 
     callback = fn {file, type} ->
-      children = Map.get(file_references, file, [])
+      children = if opts[:only_nodes], do: [], else: Map.get(file_references, file, [])
       type = type && "(#{type})"
       {{file, type}, children -- excluded}
     end

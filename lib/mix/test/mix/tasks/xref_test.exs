@@ -726,9 +726,39 @@ defmodule Mix.Tasks.XrefTest do
 
   test "graph: source" do
     assert_graph(~w[--source lib/a.ex], """
+    lib/b.ex
+    └── lib/a.ex
+        └── lib/b.ex
+    """)
+  end
+
+  test "graph: only nodes" do
+    assert_graph(~w[--only-nodes], """
+    lib/a.ex
+    lib/b.ex
+    lib/c.ex
+    lib/d.ex
+    """)
+  end
+
+  test "graph: filter by compile label" do
+    assert_graph(~w[--label compile], """
+    lib/a.ex
+    lib/b.ex
+    lib/c.ex
+    lib/d.ex
+    └── lib/a.ex (compile)
+    """)
+  end
+
+  test "graph: filter by runtime label" do
+    assert_graph(~w[--label runtime], """
     lib/a.ex
     └── lib/b.ex
         └── lib/a.ex
+    lib/b.ex
+    lib/c.ex
+    lib/d.ex
     """)
   end
 
