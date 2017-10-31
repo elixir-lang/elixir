@@ -2,7 +2,7 @@
 defmodule Mix.Dep.ElixirSCM do
   @moduledoc false
   @manifest ".compile.elixir_scm"
-  @manifest_vsn :v2
+  @manifest_vsn 1
 
   def manifest(manifest_path \\ Mix.Project.manifest_path()) do
     Path.join(manifest_path, @manifest)

@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Compile.Xref do
 
   @recursive true
   @manifest ".compile.xref"
-  @manifest_vsn :v1
+  @manifest_vsn 1
 
   @moduledoc """
   Performs remote dispatch checking.

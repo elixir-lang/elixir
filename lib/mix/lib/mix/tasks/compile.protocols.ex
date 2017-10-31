@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   use Mix.Task.Compiler
 
   @manifest ".compile.protocols"
-  @manifest_vsn :v2
+  @manifest_vsn 1
 
   @moduledoc ~S"""
   Consolidates all protocols in all paths.
