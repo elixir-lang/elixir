@@ -356,12 +356,7 @@ defmodule ExUnit.DocTestTest.Haiku do
   """
   def new(first, second, third, author \\ "")
       when is_binary(first) and is_binary(second) and is_binary(third) and is_binary(author) do
-    %__MODULE__{
-      first_phrase: first,
-      second_phrase: second,
-      third_phrase: third,
-      author: author
-    }
+    %__MODULE__{first_phrase: first, second_phrase: second, third_phrase: third, author: author}
   end
 
   defimpl Inspect do

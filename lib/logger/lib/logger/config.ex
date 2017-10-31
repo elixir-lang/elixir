@@ -49,14 +49,10 @@ defmodule Logger.Config do
     try do
       :ets.lookup_element(@table, @data, 2)
     rescue
-      ArgumentError ->
-        raise "cannot use Logger, the :logger application is not running"
+      ArgumentError -> raise "cannot use Logger, the :logger application is not running"
     else
-      nil ->
-        raise "cannot use Logger, the :logger application is not running"
-
-      data ->
-        data
+      nil -> raise "cannot use Logger, the :logger application is not running"
+      data -> data
     end
   end
 
@@ -64,8 +60,7 @@ defmodule Logger.Config do
     try do
       :ets.lookup_element(@table, @deleted_handlers, 2)
     rescue
-      ArgumentError ->
-        []
+      ArgumentError -> []
     end
   end
 
@@ -101,11 +96,8 @@ defmodule Logger.Config do
 
   def handle_event(_event, %{mode: mode} = state) do
     case compute_mode(state) do
-      ^mode ->
-        {:ok, state}
-
-      new_mode ->
-        {:ok, persist(%{state | mode: new_mode})}
+      ^mode -> {:ok, state}
+      new_mode -> {:ok, persist(%{state | mode: new_mode})}
     end
   end
 
@@ -114,9 +106,7 @@ defmodule Logger.Config do
   end
 
   def handle_call({:configure, options}, state) do
-    Enum.each(options, fn {key, value} ->
-      Application.put_env(:logger, key, value)
-    end)
+    Enum.each(options, fn {key, value} -> Application.put_env(:logger, key, value) end)
 
     {:ok, :ok, compute_state(state.mode)}
   end
@@ -165,14 +155,9 @@ defmodule Logger.Config do
     {:message_queue_len, len} = Process.info(self(), :message_queue_len)
 
     cond do
-      len > state.sync_threshold and state.mode == :async ->
-        :sync
-
-      len < state.async_threshold and state.mode == :sync ->
-        :async
-
-      true ->
-        state.mode
+      len > state.sync_threshold and state.mode == :async -> :sync
+      len < state.async_threshold and state.mode == :sync -> :async
+      true -> state.mode
     end
   end
 
@@ -207,11 +192,8 @@ defmodule Logger.Config do
     }
 
     case compute_mode(state) do
-      ^mode ->
-        persist(state)
-
-      new_mode ->
-        persist(%{state | mode: new_mode})
+      ^mode -> persist(state)
+      new_mode -> persist(%{state | mode: new_mode})
     end
   end
 

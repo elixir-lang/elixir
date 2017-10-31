@@ -167,9 +167,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp write_manifest(manifest, metadata) do
-    manifest_data =
-      [@manifest_vsn | metadata]
-      |> :erlang.term_to_binary([:compressed])
+    manifest_data = [@manifest_vsn | metadata] |> :erlang.term_to_binary([:compressed])
 
     File.write!(manifest, manifest_data)
   end
@@ -187,11 +185,8 @@ defmodule Mix.Tasks.Compile.Protocols do
 
     protocols =
       Enum.reduce(new_metadata -- old_metadata, protocols, fn
-        {_, {:impl, protocol}, _beam}, protocols ->
-          Map.put(protocols, protocol, true)
-
-        {protocol, :protocol, _beam}, protocols ->
-          Map.put(protocols, protocol, true)
+        {_, {:impl, protocol}, _beam}, protocols -> Map.put(protocols, protocol, true)
+        {protocol, :protocol, _beam}, protocols -> Map.put(protocols, protocol, true)
       end)
 
     removed_metadata = old_metadata -- new_metadata

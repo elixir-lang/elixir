@@ -422,11 +422,8 @@ defmodule IEx do
   """
   def color(color, string) do
     case IEx.Config.color(color) do
-      nil ->
-        string
-
-      ansi ->
-        [ansi | string] |> IO.ANSI.format(true) |> IO.iodata_to_binary()
+      nil -> string
+      ansi -> [ansi | string] |> IO.ANSI.format(true) |> IO.iodata_to_binary()
     end
   end
 

@@ -56,8 +56,7 @@ defmodule ExUnit.Diff do
   end
 
   # Tuples
-  def script(left, right)
-      when is_tuple(left) and is_tuple(right) do
+  def script(left, right) when is_tuple(left) and is_tuple(right) do
     left = {left, tuple_size(left) - 1}
     right = {right, tuple_size(right) - 1}
     script_tuple(left, right, [])
@@ -120,11 +119,8 @@ defmodule ExUnit.Diff do
   defp bag_difference(bag1, bag2) do
     Enum.reduce(bag1, 0, fn {char, count1}, sum ->
       case Map.fetch(bag2, char) do
-        {:ok, count2} ->
-          sum + max(count1 - count2, 0)
-
-        :error ->
-          sum + count1
+        {:ok, count2} -> sum + max(count1 - count2, 0)
+        :error -> sum + count1
       end
     end)
   end
@@ -195,11 +191,8 @@ defmodule ExUnit.Diff do
 
   defp format_fragment(kind, elems, keywords?) do
     formatter = fn
-      {key, val} when keywords? ->
-        format_key_value(key, val, true)
-
-      elem ->
-        inspect(elem)
+      {key, val} when keywords? -> format_key_value(key, val, true)
+      elem -> inspect(elem)
     end
 
     {kind, Enum.map_join(elems, ", ", formatter)}
@@ -211,11 +204,8 @@ defmodule ExUnit.Diff do
 
   defp find_script(envelope, max, paths, keywords?) do
     case each_diagonal(-envelope, envelope, paths, [], keywords?) do
-      {:done, edits} ->
-        compact_reverse(edits, [])
-
-      {:next, paths} ->
-        find_script(envelope + 1, max, paths, keywords?)
+      {:done, edits} -> compact_reverse(edits, [])
+      {:next, paths} -> find_script(envelope + 1, max, paths, keywords?)
     end
   end
 
@@ -353,14 +343,9 @@ defmodule ExUnit.Diff do
   defp script_list(last1, last2, acc) do
     elem_diff =
       cond do
-        last1 == [] ->
-          [ins: " | " <> inspect(last2)]
-
-        last2 == [] ->
-          [del: " | " <> inspect(last1)]
-
-        true ->
-          [eq: " | "] ++ script_inner(last1, last2)
+        last1 == [] -> [ins: " | " <> inspect(last2)]
+        last2 == [] -> [del: " | " <> inspect(last1)]
+        true -> [eq: " | "] ++ script_inner(last1, last2)
       end
 
     script_list([], [], [elem_diff | acc])
@@ -371,15 +356,13 @@ defmodule ExUnit.Diff do
     [{:eq, "{"}, [elem_diff | rest], {:eq, "}"}]
   end
 
-  defp script_tuple({tuple1, index1}, {_, index2} = right, acc)
-       when index1 > index2 do
+  defp script_tuple({tuple1, index1}, {_, index2} = right, acc) when index1 > index2 do
     elem = elem(tuple1, index1)
     elem_diff = [del: ", ", del: inspect(elem)]
     script_tuple({tuple1, index1 - 1}, right, [elem_diff | acc])
   end
 
-  defp script_tuple({_, index1} = left, {tuple2, index2}, acc)
-       when index1 < index2 do
+  defp script_tuple({_, index1} = left, {tuple2, index2}, acc) when index1 < index2 do
     elem = elem(tuple2, index2)
     elem_diff = [ins: ", ", ins: inspect(elem)]
     script_tuple(left, {tuple2, index2 - 1}, [elem_diff | acc])
@@ -439,14 +422,9 @@ defmodule ExUnit.Diff do
     {surplus, altered, same} =
       Enum.reduce(map1, {[], [], []}, fn {key, val1}, {surplus, altered, same} ->
         case Map.fetch(map2, key) do
-          {:ok, ^val1} ->
-            {surplus, altered, [{key, val1} | same]}
-
-          {:ok, val2} ->
-            {surplus, [{key, {val1, val2}} | altered], same}
-
-          :error ->
-            {[{key, val1} | surplus], altered, same}
+          {:ok, ^val1} -> {surplus, altered, [{key, val1} | same]}
+          {:ok, val2} -> {surplus, [{key, {val1, val2}} | altered], same}
+          :error -> {[{key, val1} | surplus], altered, same}
         end
       end)
 

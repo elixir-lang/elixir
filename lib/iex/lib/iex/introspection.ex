@@ -15,33 +15,19 @@ defmodule IEx.Introspection do
 
   def decompose({:/, _, [call, arity]} = term) do
     case Macro.decompose_call(call) do
-      {_mod, :__info__, []} when arity == 1 ->
-        {:{}, [], [Module, :__info__, 1]}
-
-      {mod, fun, []} ->
-        {:{}, [], [mod, fun, arity]}
-
-      {fun, []} ->
-        {:{}, [], [find_decompose_fun_arity(fun, arity), fun, arity]}
-
-      _ ->
-        term
+      {_mod, :__info__, []} when arity == 1 -> {:{}, [], [Module, :__info__, 1]}
+      {mod, fun, []} -> {:{}, [], [mod, fun, arity]}
+      {fun, []} -> {:{}, [], [find_decompose_fun_arity(fun, arity), fun, arity]}
+      _ -> term
     end
   end
 
   def decompose(call) do
     case Macro.decompose_call(call) do
-      {_mod, :__info__, []} ->
-        Macro.escape({Module, :__info__, 1})
-
-      {mod, fun, []} ->
-        {mod, fun}
-
-      {fun, []} ->
-        {find_decompose_fun(fun), fun}
-
-      _ ->
-        call
+      {_mod, :__info__, []} -> Macro.escape({Module, :__info__, 1})
+      {mod, fun, []} -> {mod, fun}
+      {fun, []} -> {find_decompose_fun(fun), fun}
+      _ -> call
     end
   end
 
@@ -164,8 +150,7 @@ defmodule IEx.Introspection do
 
       {source, module_pair, fa_pair}
     else
-      _ ->
-        {source, nil, nil}
+      _ -> {source, nil, nil}
     end
   end
 
@@ -214,10 +199,7 @@ defmodule IEx.Introspection do
 
   defp rewrite_source(source) do
     {in_app, [lib_or_src | _]} =
-      source
-      |> Path.split()
-      |> Enum.reverse()
-      |> Enum.split_while(&(&1 not in ["lib", "src"]))
+      source |> Path.split() |> Enum.reverse() |> Enum.split_while(&(&1 not in ["lib", "src"]))
 
     Path.join([lib_or_src | Enum.reverse(in_app)])
   end
@@ -230,14 +212,9 @@ defmodule IEx.Introspection do
       {:module, _} ->
         if function_exported?(module, :__info__, 1) do
           case Code.get_docs(module, :moduledoc) do
-            {_, binary} when is_binary(binary) ->
-              print_doc(inspect(module), [], binary)
-
-            {_, _} ->
-              no_docs(inspect(module))
-
-            _ ->
-              puts_error("#{inspect(module)} was not compiled with docs")
+            {_, binary} when is_binary(binary) -> print_doc(inspect(module), [], binary)
+            {_, _} -> no_docs(inspect(module))
+            _ -> puts_error("#{inspect(module)} was not compiled with docs")
           end
         else
           puts_error(
@@ -254,17 +231,10 @@ defmodule IEx.Introspection do
 
   def h({module, function}) when is_atom(module) and is_atom(function) do
     case h_mod_fun(module, function) do
-      :ok ->
-        :ok
-
-      :behaviour_found ->
-        behaviour_found("#{inspect(module)}.#{function}")
-
-      :no_docs ->
-        puts_error("#{inspect(module)} was not compiled with docs")
-
-      :not_found ->
-        no_docs("#{inspect(module)}.#{function}")
+      :ok -> :ok
+      :behaviour_found -> behaviour_found("#{inspect(module)}.#{function}")
+      :no_docs -> puts_error("#{inspect(module)} was not compiled with docs")
+      :not_found -> no_docs("#{inspect(module)}.#{function}")
     end
 
     dont_display_result()
@@ -273,17 +243,10 @@ defmodule IEx.Introspection do
   def h({module, function, arity})
       when is_atom(module) and is_atom(function) and is_integer(arity) do
     case h_mod_fun_arity(module, function, arity) do
-      :ok ->
-        :ok
-
-      :behaviour_found ->
-        behaviour_found("#{inspect(module)}.#{function}/#{arity}")
-
-      :no_docs ->
-        puts_error("#{inspect(module)} was not compiled with docs")
-
-      :not_found ->
-        no_docs("#{inspect(module)}.#{function}/#{arity}")
+      :ok -> :ok
+      :behaviour_found -> behaviour_found("#{inspect(module)}.#{function}/#{arity}")
+      :no_docs -> puts_error("#{inspect(module)} was not compiled with docs")
+      :not_found -> no_docs("#{inspect(module)}.#{function}/#{arity}")
     end
 
     dont_display_result()
@@ -302,14 +265,9 @@ defmodule IEx.Introspection do
         end
 
       cond do
-        result != [] ->
-          :ok
-
-        has_callback?(mod, fun) ->
-          :behaviour_found
-
-        true ->
-          :not_found
+        result != [] -> :ok
+        has_callback?(mod, fun) -> :behaviour_found
+        true -> :not_found
       end
     else
       :no_docs
@@ -336,15 +294,11 @@ defmodule IEx.Introspection do
   end
 
   defp has_callback?(mod, fun) do
-    mod
-    |> Code.get_docs(:callback_docs)
-    |> Enum.any?(&match?({{^fun, _}, _, _, _}, &1))
+    mod |> Code.get_docs(:callback_docs) |> Enum.any?(&match?({{^fun, _}, _, _, _}, &1))
   end
 
   defp has_callback?(mod, fun, arity) do
-    mod
-    |> Code.get_docs(:callback_docs)
-    |> Enum.any?(&match?({{^fun, ^arity}, _, _, _}, &1))
+    mod |> Code.get_docs(:callback_docs) |> Enum.any?(&match?({{^fun, ^arity}, _, _, _}, &1))
   end
 
   defp find_doc(docs, fun, arity) do
@@ -516,14 +470,9 @@ defmodule IEx.Introspection do
   """
   def t(module) when is_atom(module) do
     case Typespec.beam_types(module) do
-      nil ->
-        no_beam(module)
-
-      [] ->
-        no_types(inspect(module))
-
-      types ->
-        Enum.each(types, &(&1 |> format_type() |> IO.puts()))
+      nil -> no_beam(module)
+      [] -> no_types(inspect(module))
+      types -> Enum.each(types, &(&1 |> format_type() |> IO.puts()))
     end
 
     dont_display_result()

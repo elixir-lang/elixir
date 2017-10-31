@@ -7,11 +7,8 @@ defmodule Mix.Tasks.Test do
       _ = :cover.start()
 
       case :cover.compile_beam_directory(compile_path |> to_charlist) do
-        results when is_list(results) ->
-          :ok
-
-        {:error, _} ->
-          Mix.raise("Failed to cover compile directory: " <> compile_path)
+        results when is_list(results) -> :ok
+        {:error, _} -> Mix.raise("Failed to cover compile directory: " <> compile_path)
       end
 
       output = opts[:output]
@@ -270,14 +267,9 @@ defmodule Mix.Tasks.Test do
         cover && cover.()
 
         cond do
-          failures > 0 and opts[:raise] ->
-            Mix.raise("mix test failed")
-
-          failures > 0 ->
-            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
-
-          true ->
-            :ok
+          failures > 0 and opts[:raise] -> Mix.raise("mix test failed")
+          failures > 0 -> System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+          true -> :ok
         end
 
       :noop ->
@@ -367,10 +359,7 @@ defmodule Mix.Tasks.Test do
 
   def formatter_opts(opts) do
     if Keyword.has_key?(opts, :formatter) do
-      formatters =
-        opts
-        |> Keyword.get_values(:formatter)
-        |> Enum.map(&Module.concat([&1]))
+      formatters = opts |> Keyword.get_values(:formatter) |> Enum.map(&Module.concat([&1]))
 
       Keyword.put(opts, :formatters, formatters)
     else
@@ -380,11 +369,8 @@ defmodule Mix.Tasks.Test do
 
   defp color_opts(opts) do
     case Keyword.fetch(opts, :color) do
-      {:ok, enabled?} ->
-        Keyword.put(opts, :colors, enabled: enabled?)
-
-      :error ->
-        opts
+      {:ok, enabled?} -> Keyword.put(opts, :colors, enabled: enabled?)
+      :error -> opts
     end
   end
 

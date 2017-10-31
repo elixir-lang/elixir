@@ -20,12 +20,9 @@ defmodule ExUnit.CaptureLogTest do
     group_leader = Process.group_leader()
 
     try do
-      capture_log(fn ->
-        assert false
-      end)
+      capture_log(fn -> assert false end)
     rescue
-      error in [ExUnit.AssertionError] ->
-        assert error.message == "Expected truthy, got false"
+      error in [ExUnit.AssertionError] -> assert error.message == "Expected truthy, got false"
     end
 
     # Ensure no leakage on failures
@@ -34,9 +31,7 @@ defmodule ExUnit.CaptureLogTest do
   end
 
   test "level aware" do
-    assert capture_log([level: :warn], fn ->
-             Logger.info("here")
-           end) == ""
+    assert capture_log([level: :warn], fn -> Logger.info("here") end) == ""
   end
 
   @tag timeout: 2000
@@ -90,9 +85,7 @@ defmodule ExUnit.CaptureLogTest do
 
     message = "cannot capture_log/2 because the :logger application was not started"
 
-    assert_raise RuntimeError, message, fn ->
-      capture_log(fn -> Logger.info("one") end)
-    end
+    assert_raise RuntimeError, message, fn -> capture_log(fn -> Logger.info("one") end) end
   end
 
   defp wait_capture_removal() do

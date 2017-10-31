@@ -573,19 +573,14 @@ defmodule IEx.HelpersTest do
 
   describe "pwd" do
     test "prints the working directory" do
-      File.cd!(iex_path(), fn ->
-        assert capture_io(fn -> pwd() end) =~ ~r"lib[\\/]iex\n$"
-      end)
+      File.cd!(iex_path(), fn -> assert capture_io(fn -> pwd() end) =~ ~r"lib[\\/]iex\n$" end)
     end
   end
 
   describe "ls" do
     test "lists the current directory" do
       File.cd!(iex_path(), fn ->
-        paths =
-          capture_io(fn -> ls() end)
-          |> String.split()
-          |> Enum.map(&String.trim/1)
+        paths = capture_io(fn -> ls() end) |> String.split() |> Enum.map(&String.trim/1)
 
         assert "ebin" in paths
         assert "mix.exs" in paths
@@ -786,9 +781,7 @@ defmodule IEx.HelpersTest do
 
         message = "function Sample.run/0 is undefined or private"
 
-        assert_raise UndefinedFunctionError, message, fn ->
-          Sample.run()
-        end
+        assert_raise UndefinedFunctionError, message, fn -> Sample.run() end
       end)
     after
       # Clean up the old version left over after l()
@@ -818,9 +811,7 @@ defmodule IEx.HelpersTest do
     test "reloads elixir modules" do
       message = ~r"function Sample.run/0 is undefined \(module Sample is not available\)"
 
-      assert_raise UndefinedFunctionError, message, fn ->
-        Sample.run()
-      end
+      assert_raise UndefinedFunctionError, message, fn -> Sample.run() end
 
       filename = "sample.ex"
 
@@ -834,9 +825,7 @@ defmodule IEx.HelpersTest do
 
                  message = "function Sample.run/0 is undefined or private"
 
-                 assert_raise UndefinedFunctionError, message, fn ->
-                   Sample.run()
-                 end
+                 assert_raise UndefinedFunctionError, message, fn -> Sample.run() end
                end) =~ "redefining module Sample (current version loaded from Elixir.Sample.beam)"
       end)
     after
@@ -869,18 +858,14 @@ defmodule IEx.HelpersTest do
       assert inspect(pid("0.32767.3276")) == "#PID<0.32767.3276>"
       assert inspect(pid("0.5.6")) == "#PID<0.5.6>"
 
-      assert_raise ArgumentError, fn ->
-        pid("0.6.-6")
-      end
+      assert_raise ArgumentError, fn -> pid("0.6.-6") end
     end
 
     test "builds a pid from integers" do
       assert inspect(pid(0, 32767, 3276)) == "#PID<0.32767.3276>"
       assert inspect(pid(0, 5, 6)) == "#PID<0.5.6>"
 
-      assert_raise FunctionClauseError, fn ->
-        pid(0, 6, -6)
-      end
+      assert_raise FunctionClauseError, fn -> pid(0, 6, -6) end
     end
   end
 
@@ -977,9 +962,7 @@ defmodule IEx.HelpersTest do
   end
 
   defp with_file(names, codes, fun) when is_list(names) and is_list(codes) do
-    Enum.each(Enum.zip(names, codes), fn {name, code} ->
-      File.write!(name, code)
-    end)
+    Enum.each(Enum.zip(names, codes), fn {name, code} -> File.write!(name, code) end)
 
     try do
       fun.()

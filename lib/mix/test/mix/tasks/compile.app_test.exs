@@ -106,91 +106,69 @@ defmodule Mix.Tasks.Compile.AppTest do
       Process.put(:application, [:not_a_keyword, applications: []])
       message = "Application configuration returned from application/0 should be a keyword list"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, modules: :invalid)
       message = "Application modules (:modules) should be a list of atoms, got: :invalid"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, maxT: :invalid)
       message = "Application maximum time (:maxT) is not an integer or :infinity, got: :invalid"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, registered: ["invalid"])
 
       message =
         "Application registered processes (:registered) should be a list of atoms, got: [\"invalid\"]"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, extra_applications: ["invalid"])
 
       message =
         "Application extra applications (:extra_applications) should be a list of atoms, got: [\"invalid\"]"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, included_applications: ["invalid"])
 
       message =
         "Application included applications (:included_applications) should be a list of atoms, got: [\"invalid\"]"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, applications: ["invalid"])
 
       message =
         "Application applications (:applications) should be a list of atoms, got: [\"invalid\"]"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, applications: nil)
       message = "Application applications (:applications) should be a list of atoms, got: nil"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, env: [:invalid])
       message = "Application environment (:env) should be a keyword list, got: [:invalid]"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, mod: {Mod})
 
       message =
         "Application callback module (:mod) should be either [] or {module, start_args}, got: {Mod}"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
 
       Process.put(:application, start_phases: [:invalid])
 
       message =
         "Application start phases (:start_phases) should be a keyword list, got: [:invalid]"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
     end
   end
 
@@ -216,9 +194,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     in_fixture "no_mixfile", fn ->
       message = "Expected :version to be a SemVer version, got: \"0.3\""
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Compile.App.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Compile.App.run([]) end
     end
   end
 end

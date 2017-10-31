@@ -225,24 +225,16 @@ defmodule Mix.Task do
   @spec get!(task_name) :: task_module | no_return
   def get!(task) do
     case fetch(task) do
-      {:ok, module} ->
-        module
-
-      {:error, :invalid} ->
-        raise Mix.InvalidTaskError, task: task
-
-      {:error, :not_found} ->
-        raise Mix.NoTaskError, task: task
+      {:ok, module} -> module
+      {:error, :invalid} -> raise Mix.InvalidTaskError, task: task
+      {:error, :not_found} -> raise Mix.NoTaskError, task: task
     end
   end
 
   defp fetch(task) when is_binary(task) or is_atom(task) do
     case Mix.Utils.command_to_module(to_string(task), Mix.Tasks) do
-      {:module, module} ->
-        if task?(module), do: {:ok, module}, else: {:error, :invalid}
-
-      {:error, _} ->
-        {:error, :not_found}
+      {:module, module} -> if task?(module), do: {:ok, module}, else: {:error, :invalid}
+      {:error, _} -> {:error, :not_found}
     end
   end
 
@@ -301,9 +293,7 @@ defmodule Mix.Task do
 
     cond do
       recursive && Mix.Project.umbrella?() ->
-        Mix.ProjectStack.recur(fn ->
-          recur(fn _ -> run(task, args) end)
-        end)
+        Mix.ProjectStack.recur(fn -> recur(fn _ -> run(task, args) end) end)
 
       not recursive && Mix.ProjectStack.recursing() ->
         Mix.ProjectStack.root(fn -> run(task, args) end)

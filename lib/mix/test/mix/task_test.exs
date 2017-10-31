@@ -19,9 +19,7 @@ defmodule Mix.TaskTest do
 
     message = "The task \"helli\" could not be found. Did you mean \"hello\"?"
 
-    assert_raise Mix.NoTaskError, message, fn ->
-      Mix.Task.run("helli")
-    end
+    assert_raise Mix.NoTaskError, message, fn -> Mix.Task.run("helli") end
 
     assert_raise Mix.InvalidTaskError, "The task \"invalid\" does not export run/1", fn ->
       Mix.Task.run("invalid")
@@ -32,26 +30,20 @@ defmodule Mix.TaskTest do
         "Mix.Tasks.Acronym.HTTP instead of Mix.Tasks.Acronym.Http as expected. " <>
         "Please rename it and try again"
 
-    assert_raise Mix.NoTaskError, message, fn ->
-      Mix.Task.run("acronym.http")
-    end
+    assert_raise Mix.NoTaskError, message, fn -> Mix.Task.run("acronym.http") end
   end
 
   test "run/2 converts OptionParser.ParseError into Mix errors" do
     message = "Could not invoke task \"hello\": 1 error found!\n--unknown : Unknown option"
 
-    assert_raise Mix.Error, message, fn ->
-      Mix.Task.run("hello", ["--parser", "--unknown"])
-    end
+    assert_raise Mix.Error, message, fn -> Mix.Task.run("hello", ["--parser", "--unknown"]) end
 
     Mix.Task.clear()
 
     message =
       "Could not invoke task \"hello\": 1 error found!\n--int : Expected type integer, got \"foo\""
 
-    assert_raise Mix.Error, message, fn ->
-      Mix.Task.run("hello", ["--parser", "--int", "foo"])
-    end
+    assert_raise Mix.Error, message, fn -> Mix.Task.run("hello", ["--parser", "--int", "foo"]) end
   end
 
   test "run/2 outputs task debug info if Mix.debug? is true" do
@@ -77,9 +69,7 @@ defmodule Mix.TaskTest do
       :code.purge(Mix.Tasks.TaskHello)
       :code.delete(Mix.Tasks.TaskHello)
 
-      assert_raise Mix.NoTaskError, fn ->
-        Mix.Task.run("task_hello")
-      end
+      assert_raise Mix.NoTaskError, fn -> Mix.Task.run("task_hello") end
 
       # Clean up the tasks and copy it into deps
       Mix.TasksServer.clear()
@@ -98,9 +88,7 @@ defmodule Mix.TaskTest do
     in_tmp context.test, fn ->
       Mix.Project.push(SampleProject, "sample")
 
-      assert_raise Mix.NoTaskError, fn ->
-        Mix.Task.run("unknown")
-      end
+      assert_raise Mix.NoTaskError, fn -> Mix.Task.run("unknown") end
 
       # Check if compile task have run
       refute Mix.TasksServer.run({:task, "compile", Mix.Project.get()})

@@ -40,11 +40,8 @@ defmodule File.Stream do
       modes = for mode <- modes, mode not in [:read], do: mode
 
       case :file.open(path, [:write | modes]) do
-        {:ok, device} ->
-          {:ok, into(device, stream, raw)}
-
-        {:error, reason} ->
-          raise File.Error, reason: reason, action: "stream", path: path
+        {:ok, device} -> {:ok, into(device, stream, raw)}
+        {:error, reason} -> raise File.Error, reason: reason, action: "stream", path: path
       end
     end
 
@@ -76,11 +73,8 @@ defmodule File.Stream do
     def reduce(%{path: path, modes: modes, line_or_bytes: line_or_bytes, raw: raw}, acc, fun) do
       start_fun = fn ->
         case :file.open(path, read_modes(modes)) do
-          {:ok, device} ->
-            if :trim_bom in modes, do: trim_bom(device), else: device
-
-          {:error, reason} ->
-            raise File.Error, reason: reason, action: "stream", path: path
+          {:ok, device} -> if :trim_bom in modes, do: trim_bom(device), else: device
+          {:error, reason} -> raise File.Error, reason: reason, action: "stream", path: path
         end
       end
 
@@ -98,11 +92,8 @@ defmodule File.Stream do
       counter = &count_lines(&1, path, pattern, read_function(stream), 0)
 
       case File.open(path, read_modes(modes), counter) do
-        {:ok, count} ->
-          {:ok, count}
-
-        {:error, reason} ->
-          raise File.Error, reason: reason, action: "stream", path: path
+        {:ok, count} -> {:ok, count}
+        {:error, reason} -> raise File.Error, reason: reason, action: "stream", path: path
       end
     end
 

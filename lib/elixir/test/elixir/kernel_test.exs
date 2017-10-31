@@ -152,9 +152,7 @@ defmodule KernelTest do
     user = struct!(User, name: "meg")
     assert user == %User{name: "meg"}
 
-    assert_raise KeyError, fn ->
-      struct!(user, unknown: "key")
-    end
+    assert_raise KeyError, fn -> struct!(user, unknown: "key") end
 
     assert struct!(user, %{name: "john"}) == %User{name: "john"}
     assert struct!(user, name: "other", __struct__: Post) == %User{name: "other"}
@@ -164,29 +162,21 @@ defmodule KernelTest do
     error_message =
       "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
 
-    assert_raise ArgumentError, error_message, fn ->
-      Code.eval_string("if true, foo: 7")
-    end
+    assert_raise ArgumentError, error_message, fn -> Code.eval_string("if true, foo: 7") end
 
     assert_raise ArgumentError, error_message, fn ->
       Code.eval_string("if true, do: 6, boo: 7")
     end
 
-    assert_raise ArgumentError, error_message, fn ->
-      Code.eval_string("if true, do: 7, do: 6")
-    end
+    assert_raise ArgumentError, error_message, fn -> Code.eval_string("if true, do: 7, do: 6") end
 
     assert_raise ArgumentError, error_message, fn ->
       Code.eval_string("if true, do: 8, else: 7, else: 6")
     end
 
-    assert_raise ArgumentError, error_message, fn ->
-      Code.eval_string("if true, else: 6")
-    end
+    assert_raise ArgumentError, error_message, fn -> Code.eval_string("if true, else: 6") end
 
-    assert_raise ArgumentError, error_message, fn ->
-      Code.eval_string("if true, []")
-    end
+    assert_raise ArgumentError, error_message, fn -> Code.eval_string("if true, []") end
   end
 
   test "unless/2 with invalid keys" do
@@ -194,9 +184,7 @@ defmodule KernelTest do
       "invalid or duplicate keys for unless, only \"do\" " <>
         "and an optional \"else\" are permitted"
 
-    assert_raise ArgumentError, error_message, fn ->
-      Code.eval_string("unless true, foo: 7")
-    end
+    assert_raise ArgumentError, error_message, fn -> Code.eval_string("unless true, foo: 7") end
 
     assert_raise ArgumentError, error_message, fn ->
       Code.eval_string("unless true, do: 6, boo: 7")
@@ -210,13 +198,9 @@ defmodule KernelTest do
       Code.eval_string("unless true, do: 8, else: 7, else: 6")
     end
 
-    assert_raise ArgumentError, error_message, fn ->
-      Code.eval_string("unless true, else: 6")
-    end
+    assert_raise ArgumentError, error_message, fn -> Code.eval_string("unless true, else: 6") end
 
-    assert_raise ArgumentError, error_message, fn ->
-      Code.eval_string("unless true, []")
-    end
+    assert_raise ArgumentError, error_message, fn -> Code.eval_string("unless true, []") end
   end
 
   test "and/2" do
@@ -454,15 +438,11 @@ defmodule KernelTest do
     end
 
     defp expand_to_string(ast) do
-      ast
-      |> Macro.prewalk(&Macro.expand(&1, __ENV__))
-      |> Macro.to_string()
+      ast |> Macro.prewalk(&Macro.expand(&1, __ENV__)) |> Macro.to_string()
     end
 
     defp assert_eval_raise(error, msg, string) do
-      assert_raise error, msg, fn ->
-        Code.eval_string(string)
-      end
+      assert_raise error, msg, fn -> Code.eval_string(string) end
     end
   end
 
@@ -546,9 +526,7 @@ defmodule KernelTest do
       assert get_in(map, ["fruits", by_index(3)]) == nil
       assert get_in(map, ["unknown", by_index(3)]) == :oops
 
-      assert_raise FunctionClauseError, fn ->
-        get_in(users, [])
-      end
+      assert_raise FunctionClauseError, fn -> get_in(users, []) end
     end
 
     test "put_in/3" do
@@ -556,9 +534,7 @@ defmodule KernelTest do
 
       assert put_in(users, ["john", :age], 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-      assert_raise FunctionClauseError, fn ->
-        put_in(users, [], %{})
-      end
+      assert_raise FunctionClauseError, fn -> put_in(users, [], %{}) end
 
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         put_in(nil, ["john", :age], 28)
@@ -572,50 +548,44 @@ defmodule KernelTest do
 
       assert put_in(users["john"].age, 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-      assert_raise BadMapError, fn ->
-        put_in(users["dave"].age, 19)
-      end
+      assert_raise BadMapError, fn -> put_in(users["dave"].age, 19) end
 
-      assert_raise KeyError, fn ->
-        put_in(users["meg"].unknown, "value")
-      end
+      assert_raise KeyError, fn -> put_in(users["meg"].unknown, "value") end
     end
 
     test "update_in/3" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-      assert update_in(users, ["john", :age], &(&1 + 1)) ==
-               %{"john" => %{age: 28}, "meg" => %{age: 23}}
+      assert update_in(users, ["john", :age], &(&1 + 1)) == %{
+               "john" => %{age: 28},
+               "meg" => %{age: 23}
+             }
 
-      assert_raise FunctionClauseError, fn ->
-        update_in(users, [], fn _ -> %{} end)
-      end
+      assert_raise FunctionClauseError, fn -> update_in(users, [], fn _ -> %{} end) end
 
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         update_in(nil, ["john", :age], fn _ -> %{} end)
       end
 
-      assert_raise UndefinedFunctionError, fn ->
-        pop_in(struct(Sample, []), [:name])
-      end
+      assert_raise UndefinedFunctionError, fn -> pop_in(struct(Sample, []), [:name]) end
     end
 
     test "update_in/2" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-      assert update_in(users["john"][:age], &(&1 + 1)) ==
-               %{"john" => %{age: 28}, "meg" => %{age: 23}}
+      assert update_in(users["john"][:age], &(&1 + 1)) == %{
+               "john" => %{age: 28},
+               "meg" => %{age: 23}
+             }
 
-      assert update_in(users["john"].age, &(&1 + 1)) ==
-               %{"john" => %{age: 28}, "meg" => %{age: 23}}
+      assert update_in(users["john"].age, &(&1 + 1)) == %{
+               "john" => %{age: 28},
+               "meg" => %{age: 23}
+             }
 
-      assert_raise BadMapError, fn ->
-        update_in(users["dave"].age, &(&1 + 1))
-      end
+      assert_raise BadMapError, fn -> update_in(users["dave"].age, &(&1 + 1)) end
 
-      assert_raise KeyError, fn ->
-        put_in(users["meg"].unknown, &(&1 + 1))
-      end
+      assert_raise KeyError, fn -> put_in(users["meg"].unknown, &(&1 + 1)) end
     end
 
     test "get_and_update_in/3" do
@@ -635,9 +605,7 @@ defmodule KernelTest do
       assert get_and_update_in(map, ["unknown", by_index(3)], &{&1, []}) ==
                {:oops, %{"fruits" => ["banana", "apple", "orange"], "unknown" => []}}
 
-      assert_raise FunctionClauseError, fn ->
-        update_in(users, [], fn _ -> %{} end)
-      end
+      assert_raise FunctionClauseError, fn -> update_in(users, [], fn _ -> %{} end) end
     end
 
     test "get_and_update_in/2" do
@@ -650,13 +618,9 @@ defmodule KernelTest do
         get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
       end
 
-      assert_raise BadMapError, fn ->
-        get_and_update_in(users["dave"].age, &{&1, &1 + 1})
-      end
+      assert_raise BadMapError, fn -> get_and_update_in(users["dave"].age, &{&1, &1 + 1}) end
 
-      assert_raise KeyError, fn ->
-        get_and_update_in(users["meg"].unknown, &{&1, &1 + 1})
-      end
+      assert_raise KeyError, fn -> get_and_update_in(users["meg"].unknown, &{&1, &1 + 1}) end
     end
 
     test "pop_in/2" do
@@ -668,9 +632,7 @@ defmodule KernelTest do
 
       assert pop_in([], [:foo, :bar]) == {nil, []}
 
-      assert_raise FunctionClauseError, fn ->
-        pop_in(users, [])
-      end
+      assert_raise FunctionClauseError, fn -> pop_in(users, []) end
 
       assert_raise FunctionClauseError, "no function clause matching in Kernel.pop_in/2", fn ->
         pop_in(users, :not_a_list)
@@ -837,9 +799,7 @@ defmodule KernelTest do
     test "invalid match" do
       a = List.first([3])
 
-      assert_raise MatchError, fn ->
-        destructure [^a, _b, _c], a_list()
-      end
+      assert_raise MatchError, fn -> destructure [^a, _b, _c], a_list() end
     end
 
     defp a_list, do: [1, 2, 3]
@@ -865,17 +825,13 @@ defmodule KernelTest do
     test "invalid argument is literal" do
       message = "invalid arguments for use, expected a compile time atom or alias, got: 42"
 
-      assert_raise ArgumentError, message, fn ->
-        Code.eval_string("use 42")
-      end
+      assert_raise ArgumentError, message, fn -> Code.eval_string("use 42") end
     end
 
     test "invalid argument is variable" do
       message = "invalid arguments for use, expected a compile time atom or alias, got: variable"
 
-      assert_raise ArgumentError, message, fn ->
-        Code.eval_string("use variable")
-      end
+      assert_raise ArgumentError, message, fn -> Code.eval_string("use variable") end
     end
 
     test "multi-call" do
@@ -911,9 +867,7 @@ defmodule KernelTest do
     assert tl([:one]) == []
     assert tl([1, 2, 3]) == [2, 3]
 
-    assert_raise ArgumentError, "argument error", fn ->
-      tl(empty_list())
-    end
+    assert_raise ArgumentError, "argument error", fn -> tl(empty_list()) end
 
     assert tl([:a | :b]) == :b
     assert tl([:a, :b | :c]) == [:b | :c]
@@ -922,9 +876,7 @@ defmodule KernelTest do
   test "hd/1" do
     assert hd([1, 2, 3, 4]) == 1
 
-    assert_raise ArgumentError, "argument error", fn ->
-      hd(empty_list())
-    end
+    assert_raise ArgumentError, "argument error", fn -> hd(empty_list()) end
 
     assert hd([1 | 2]) == 1
   end

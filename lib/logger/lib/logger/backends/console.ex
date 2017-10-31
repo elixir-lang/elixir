@@ -153,11 +153,8 @@ defmodule Logger.Backends.Console do
 
   defp async_io(name, output) when is_atom(name) do
     case Process.whereis(name) do
-      device when is_pid(device) ->
-        async_io(device, output)
-
-      nil ->
-        raise "no device registered with the name #{inspect(name)}"
+      device when is_pid(device) -> async_io(device, output)
+      nil -> raise "no device registered with the name #{inspect(name)}"
     end
   end
 
@@ -175,8 +172,7 @@ defmodule Logger.Backends.Console do
         handle_io_reply(:ok, state)
 
       {:io_reply, ^ref, error} ->
-        handle_io_reply(error, state)
-        |> await_io()
+        handle_io_reply(error, state) |> await_io()
 
       {:DOWN, ^ref, _, pid, reason} ->
         raise "device #{inspect(pid)} exited: " <> Exception.format_exit(reason)
@@ -250,8 +246,6 @@ defmodule Logger.Backends.Console do
   defp flush(%{ref: nil} = state), do: state
 
   defp flush(state) do
-    state
-    |> await_io()
-    |> flush()
+    state |> await_io() |> flush()
   end
 end

@@ -11,17 +11,10 @@ defmodule Logger.App do
     error_handler = {:error_logger, Logger.ErrorHandler, {otp_reports?, sasl_reports?, threshold}}
 
     children = [
-      %{
-        id: :gen_event,
-        start: {:gen_event, :start_link, [{:local, Logger}]},
-        modules: :dynamic
-      },
+      %{id: :gen_event, start: {:gen_event, :start_link, [{:local, Logger}]}, modules: :dynamic},
       {Logger.Watcher, {Logger, Logger.Config, []}},
       {Logger.WatcherSupervisor, {Logger.Config, :handlers, []}},
-      %{
-        id: Logger.ErrorHandler,
-        start: {Logger.Watcher, :start_link, [error_handler]}
-      }
+      %{id: Logger.ErrorHandler, start: {Logger.Watcher, :start_link, [error_handler]}}
     ]
 
     config = Logger.Config.new()
@@ -45,8 +38,7 @@ defmodule Logger.App do
 
   @doc false
   def stop(config) do
-    Logger.Config.deleted_handlers()
-    |> add_handlers()
+    Logger.Config.deleted_handlers() |> add_handlers()
 
     Logger.Config.delete(config)
   end
@@ -63,8 +55,7 @@ defmodule Logger.App do
     try do
       Logger.Config.deleted_handlers([])
     catch
-      :exit, {:noproc, _} ->
-        {:error, {:not_started, :logger}}
+      :exit, {:noproc, _} -> {:error, {:not_started, :logger}}
     else
       deleted_handlers ->
         result = Application.stop(:logger)

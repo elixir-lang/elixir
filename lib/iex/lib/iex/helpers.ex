@@ -216,11 +216,8 @@ defmodule IEx.Helpers do
   """
   def open() do
     case Process.get(:iex_whereami) do
-      {file, line, _} ->
-        IEx.Introspection.open({file, line})
-
-      _ ->
-        IO.puts(IEx.color(:eval_error, "Pry session is not currently enabled"))
+      {file, line, _} -> IEx.Introspection.open({file, line})
+      _ -> IO.puts(IEx.color(:eval_error, "Pry session is not currently enabled"))
     end
 
     dont_display_result()
@@ -482,15 +479,11 @@ defmodule IEx.Helpers do
   E.g. topic `:applications` will list the applications loaded.
   """
   def runtime_info(topic) when is_atom(topic) and topic in @runtime_info_topics do
-    topic
-    |> List.wrap()
-    |> runtime_info
+    topic |> List.wrap() |> runtime_info
   end
 
   def runtime_info(topics) when is_list(topics) do
-    topics
-    |> Enum.uniq()
-    |> print_runtime_info
+    topics |> Enum.uniq() |> print_runtime_info
   end
 
   defp print_runtime_info(topics) do
@@ -587,11 +580,7 @@ defmodule IEx.Helpers do
   defp get_stat(other), do: :erlang.system_info(other)
 
   defp print_memory(key, memory, unit \\ :kB) do
-    value =
-      memory
-      |> :erlang.memory()
-      |> div(memory_unit(unit))
-      |> round()
+    value = memory |> :erlang.memory() |> div(memory_unit(unit)) |> round()
 
     IO.puts("#{pad_key(key)}#{value} #{unit}")
   end
@@ -640,11 +629,8 @@ defmodule IEx.Helpers do
   """
   def cd(directory) when is_binary(directory) do
     case File.cd(expand_home(directory)) do
-      :ok ->
-        pwd()
-
-      {:error, :enoent} ->
-        IO.puts(IEx.color(:eval_error, "No directory #{directory}"))
+      :ok -> pwd()
+      {:error, :enoent} -> IO.puts(IEx.color(:eval_error, "No directory #{directory}"))
     end
 
     dont_display_result()
@@ -736,14 +722,9 @@ defmodule IEx.Helpers do
 
   defp format_item(path, representation) do
     case File.stat(path) do
-      {:ok, %File.Stat{type: :device}} ->
-        IEx.color(:ls_device, representation)
-
-      {:ok, %File.Stat{type: :directory}} ->
-        IEx.color(:ls_directory, representation)
-
-      _ ->
-        representation
+      {:ok, %File.Stat{type: :device}} -> IEx.color(:ls_device, representation)
+      {:ok, %File.Stat{type: :directory}} -> IEx.color(:ls_directory, representation)
+      _ -> representation
     end
   end
 

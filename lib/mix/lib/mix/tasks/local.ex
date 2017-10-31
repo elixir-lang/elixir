@@ -16,16 +16,11 @@ defmodule Mix.Tasks.Local do
         {Mix.Task.task_name(module), Mix.Task.shortdoc(module)}
       end
 
-    max =
-      Enum.reduce(docs, 0, fn {task, _}, acc ->
-        max(byte_size(task), acc)
-      end)
+    max = Enum.reduce(docs, 0, fn {task, _}, acc -> max(byte_size(task), acc) end)
 
     sorted = Enum.sort(docs)
 
-    Enum.each(sorted, fn {task, doc} ->
-      shell.info(format('mix ~-#{max}s # ~ts', [task, doc]))
-    end)
+    Enum.each(sorted, fn {task, doc} -> shell.info(format('mix ~-#{max}s # ~ts', [task, doc])) end)
   end
 
   defp format(expression, args) do

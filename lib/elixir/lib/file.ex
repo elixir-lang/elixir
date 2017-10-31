@@ -241,11 +241,8 @@ defmodule File do
         _ = do_mkdir_p(parent)
 
         case :file.make_dir(path) do
-          {:error, :eexist} = error ->
-            if dir?(path), do: :ok, else: error
-
-          other ->
-            other
+          {:error, :eexist} = error -> if dir?(path), do: :ok, else: error
+          other -> other
         end
       end
     end
@@ -329,11 +326,8 @@ defmodule File do
     opts = Keyword.put_new(opts, :time, :universal)
 
     case :file.read_file_info(IO.chardata_to_string(path), opts) do
-      {:ok, fileinfo} ->
-        {:ok, File.Stat.from_record(fileinfo)}
-
-      error ->
-        error
+      {:ok, fileinfo} -> {:ok, File.Stat.from_record(fileinfo)}
+      error -> error
     end
   end
 
@@ -380,11 +374,8 @@ defmodule File do
     opts = Keyword.put_new(opts, :time, :universal)
 
     case :file.read_link_info(IO.chardata_to_string(path), opts) do
-      {:ok, fileinfo} ->
-        {:ok, File.Stat.from_record(fileinfo)}
-
-      error ->
-        error
+      {:ok, fileinfo} -> {:ok, File.Stat.from_record(fileinfo)}
+      error -> error
     end
   end
 
@@ -744,15 +735,9 @@ defmodule File do
   @spec cp_r(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) ::
           {:ok, [binary]} | {:error, posix, binary}
   def cp_r(source, destination, callback \\ fn _, _ -> true end) when is_function(callback, 2) do
-    source =
-      source
-      |> IO.chardata_to_string()
-      |> assert_no_null_byte!("File.cp_r/3")
+    source = source |> IO.chardata_to_string() |> assert_no_null_byte!("File.cp_r/3")
 
-    destination =
-      destination
-      |> IO.chardata_to_string()
-      |> assert_no_null_byte!("File.cp_r/3")
+    destination = destination |> IO.chardata_to_string() |> assert_no_null_byte!("File.cp_r/3")
 
     case do_cp_r(source, destination, callback, []) do
       {:error, _, _} = error -> error
@@ -961,14 +946,9 @@ defmodule File do
     path = IO.chardata_to_string(path)
 
     case :file.delete(path) do
-      :ok ->
-        :ok
-
-      {:error, :eacces} = e ->
-        change_mode_windows(path) || e
-
-      {:error, _} = e ->
-        e
+      :ok -> :ok
+      {:error, :eacces} = e -> change_mode_windows(path) || e
+      {:error, _} = e -> e
     end
   end
 
@@ -1060,19 +1040,14 @@ defmodule File do
   """
   @spec rm_rf(Path.t()) :: {:ok, [binary]} | {:error, posix, binary}
   def rm_rf(path) do
-    path
-    |> IO.chardata_to_string()
-    |> assert_no_null_byte!("File.rm_rf/1")
-    |> do_rm_rf({:ok, []})
+    path |> IO.chardata_to_string() |> assert_no_null_byte!("File.rm_rf/1") |> do_rm_rf({:ok, []})
   end
 
   defp do_rm_rf(path, {:ok, _} = entry) do
     case safe_list_dir(path) do
       {:ok, files} when is_list(files) ->
         res =
-          Enum.reduce(files, entry, fn file, tuple ->
-            do_rm_rf(Path.join(path, file), tuple)
-          end)
+          Enum.reduce(files, entry, fn file, tuple -> do_rm_rf(Path.join(path, file), tuple) end)
 
         case res do
           {:ok, acc} ->

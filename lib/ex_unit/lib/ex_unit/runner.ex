@@ -48,9 +48,7 @@ defmodule ExUnit.Runner do
   defp normalize_opts(opts) do
     {include, exclude} = ExUnit.Filters.normalize(opts[:include], opts[:exclude])
 
-    opts
-    |> Keyword.put(:exclude, exclude)
-    |> Keyword.put(:include, include)
+    opts |> Keyword.put(:exclude, exclude) |> Keyword.put(:include, include)
   end
 
   defp loop(%{modules: :async} = config, taken) do
@@ -91,19 +89,14 @@ defmodule ExUnit.Runner do
   # counter and attempt to spawn new ones.
   defp wait_until_available(config, taken) do
     receive do
-      {_pid, :module_finished, _test_case} ->
-        loop(config, taken - 1)
+      {_pid, :module_finished, _test_case} -> loop(config, taken - 1)
     end
   end
 
   defp spawn_modules(config, modules, taken) do
     pid = self()
 
-    Enum.each(modules, fn module ->
-      spawn_link(fn ->
-        run_module(config, pid, module)
-      end)
-    end)
+    Enum.each(modules, fn module -> spawn_link(fn -> run_module(config, pid, module) end) end)
 
     loop(config, taken + length(modules))
   end
@@ -244,11 +237,8 @@ defmodule ExUnit.Runner do
         {us, test} =
           :timer.tc(fn ->
             case exec_test_setup(test, context) do
-              {:ok, test} ->
-                exec_test(test)
-
-              {:error, test} ->
-                test
+              {:ok, test} -> exec_test(test)
+              {:error, test} -> test
             end
           end)
 
@@ -298,16 +288,14 @@ defmodule ExUnit.Runner do
   defp exec_test_setup(%ExUnit.Test{module: module} = test, context) do
     {:ok, %{test | tags: module.__ex_unit__(:setup, context)}}
   catch
-    kind, error ->
-      {:error, %{test | state: failed(kind, error, pruned_stacktrace())}}
+    kind, error -> {:error, %{test | state: failed(kind, error, pruned_stacktrace())}}
   end
 
   defp exec_test(%ExUnit.Test{module: module, name: name, tags: context} = test) do
     apply(module, name, [context])
     test
   catch
-    kind, error ->
-      %{test | state: failed(kind, error, pruned_stacktrace())}
+    kind, error -> %{test | state: failed(kind, error, pruned_stacktrace())}
   end
 
   defp exec_on_exit(test_or_case, pid, timeout) do

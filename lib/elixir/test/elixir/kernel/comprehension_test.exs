@@ -53,8 +53,7 @@ defmodule Kernel.ComprehensionTest do
 
   test "for comprehensions with guards and filters" do
     assert for(
-             {var, _}
-             when is_atom(var) <- [{:foo, 1}, {2, :bar}],
+             {var, _} when is_atom(var) <- [{:foo, 1}, {2, :bar}],
              var = Atom.to_string(var),
              do: var
            ) == ["foo"]
@@ -76,9 +75,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "for comprehensions with errors on filters" do
-    assert_raise ArgumentError, fn ->
-      for x <- 1..3, hd(x), do: x * 2
-    end
+    assert_raise ArgumentError, fn -> for x <- 1..3, hd(x), do: x * 2 end
   end
 
   test "for comprehensions with variables in filters" do
@@ -197,9 +194,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "list for comprehensions with errors on filters" do
-    assert_raise ArgumentError, fn ->
-      for x <- [1, 2, 3], hd(x), do: x * 2
-    end
+    assert_raise ArgumentError, fn -> for x <- [1, 2, 3], hd(x), do: x * 2 end
   end
 
   test "list for comprehensions with variables in filters" do

@@ -25,17 +25,10 @@ defmodule String.Tokenizer do
         end
 
       cond do
-        category in ~w(Lu Lt) ->
-          {codepoints ++ letter_uptitlecase, start, continue, first}
-
-        category in ~w(Ll Lm Lo Nl) ->
-          {letter_uptitlecase, codepoints ++ start, continue, first}
-
-        category in ~w(Mn Mc Nd Pc) ->
-          {letter_uptitlecase, start, codepoints ++ continue, first}
-
-        true ->
-          {letter_uptitlecase, start, continue, first}
+        category in ~w(Lu Lt) -> {codepoints ++ letter_uptitlecase, start, continue, first}
+        category in ~w(Ll Lm Lo Nl) -> {letter_uptitlecase, codepoints ++ start, continue, first}
+        category in ~w(Mn Mc Nd Pc) -> {letter_uptitlecase, start, codepoints ++ continue, first}
+        true -> {letter_uptitlecase, start, continue, first}
       end
     end)
 
@@ -81,11 +74,8 @@ defmodule String.Tokenizer do
   rangify = fn [head | tail] ->
     {first, last, acc} =
       Enum.reduce(tail, {head, head, []}, fn
-        number, {first, last, acc} when number == first - 1 ->
-          {number, last, acc}
-
-        number, {first, last, acc} ->
-          {number, number, [{first, last} | acc]}
+        number, {first, last, acc} when number == first - 1 -> {number, last, acc}
+        number, {first, last, acc} -> {number, number, [{first, last} | acc]}
       end)
 
     [{first, last} | acc]
@@ -151,20 +141,11 @@ defmodule String.Tokenizer do
 
   def tokenize([head | tail]) do
     cond do
-      ascii_upper?(head) ->
-        validate(continue(tail, [head], 1, true, []), :alias)
-
-      ascii_start?(head) ->
-        validate(continue(tail, [head], 1, true, []), :identifier)
-
-      unicode_upper?(head) ->
-        validate(continue(tail, [head], 1, false, []), :atom)
-
-      unicode_start?(head) ->
-        validate(continue(tail, [head], 1, false, []), :identifier)
-
-      true ->
-        {:error, :empty}
+      ascii_upper?(head) -> validate(continue(tail, [head], 1, true, []), :alias)
+      ascii_start?(head) -> validate(continue(tail, [head], 1, true, []), :identifier)
+      unicode_upper?(head) -> validate(continue(tail, [head], 1, false, []), :atom)
+      unicode_start?(head) -> validate(continue(tail, [head], 1, false, []), :identifier)
+      true -> {:error, :empty}
     end
   end
 

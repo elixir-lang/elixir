@@ -1023,11 +1023,8 @@ defmodule List do
     converter = fn x, acc -> do_zip_each(to_list(x), acc) end
 
     case :lists.mapfoldl(converter, [], list) do
-      {_, nil} ->
-        :lists.reverse(acc)
-
-      {mlist, heads} ->
-        do_zip(mlist, [to_tuple(:lists.reverse(heads)) | acc])
+      {_, nil} -> :lists.reverse(acc)
+      {mlist, heads} -> do_zip(mlist, [to_tuple(:lists.reverse(heads)) | acc])
     end
   end
 

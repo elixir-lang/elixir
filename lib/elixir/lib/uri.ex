@@ -149,11 +149,8 @@ defmodule URI do
 
   defp decode_query_into_map(query, map) do
     case decode_next_query_pair(query) do
-      nil ->
-        map
-
-      {{key, value}, rest} ->
-        decode_query_into_map(rest, Map.put(map, key, value))
+      nil -> map
+      {{key, value}, rest} -> decode_query_into_map(rest, Map.put(map, key, value))
     end
   end
 
@@ -330,8 +327,7 @@ defmodule URI do
   def decode(uri) do
     unpercent(uri, "", false)
   catch
-    :malformed_uri ->
-      raise ArgumentError, "malformed URI #{inspect(uri)}"
+    :malformed_uri -> raise ArgumentError, "malformed URI #{inspect(uri)}"
   end
 
   @doc """
@@ -347,8 +343,7 @@ defmodule URI do
   def decode_www_form(string) do
     unpercent(string, "", true)
   catch
-    :malformed_uri ->
-      raise ArgumentError, "malformed URI #{inspect(string)}"
+    :malformed_uri -> raise ArgumentError, "malformed URI #{inspect(string)}"
   end
 
   defp unpercent(<<?+, tail::binary>>, acc, spaces = true) do
@@ -535,10 +530,7 @@ defmodule URI do
   end
 
   defp remove_dot_segments_from_path(path) do
-    path
-    |> path_to_segments()
-    |> remove_dot_segments([])
-    |> Enum.join("/")
+    path |> path_to_segments() |> remove_dot_segments([]) |> Enum.join("/")
   end
 
   defp remove_dot_segments([], [head, ".." | acc]), do: remove_dot_segments([], [head | acc])

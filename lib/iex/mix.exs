@@ -2,11 +2,7 @@ defmodule IEx.MixProject do
   use Mix.Project
 
   def project do
-    [
-      app: :iex,
-      version: System.version(),
-      build_per_environment: false
-    ]
+    [app: :iex, version: System.version(), build_per_environment: false]
   end
 
   def application do

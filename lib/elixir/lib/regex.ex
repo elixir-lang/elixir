@@ -139,11 +139,8 @@ defmodule Regex do
 
   defp compile(source, options, version) when is_binary(options) do
     case translate_options(options, []) do
-      {:error, rest} ->
-        {:error, {:invalid_option, rest}}
-
-      translated_options ->
-        compile(source, translated_options, options, version)
+      {:error, rest} -> {:error, {:invalid_option, rest}}
+      translated_options -> compile(source, translated_options, options, version)
     end
   end
 
@@ -628,11 +625,8 @@ defmodule Regex do
 
   defp precompile_replacement(<<x, rest::binary>>) do
     case precompile_replacement(rest) do
-      [head | t] when is_binary(head) ->
-        [<<x, head::binary>> | t]
-
-      other ->
-        [<<x>> | other]
+      [head | t] when is_binary(head) -> [<<x, head::binary>> | t]
+      other -> [<<x>> | other]
     end
   end
 
@@ -682,14 +676,9 @@ defmodule Regex do
 
     for part <- repl do
       cond do
-        is_binary(part) ->
-          part
-
-        part >= tuple_size(indexes) ->
-          ""
-
-        true ->
-          get_index(string, elem(indexes, part))
+        is_binary(part) -> part
+        part >= tuple_size(indexes) -> ""
+        true -> get_index(string, elem(indexes, part))
       end
     end
   end
@@ -729,9 +718,7 @@ defmodule Regex do
   """
   @spec escape(String.t()) :: String.t()
   def escape(string) when is_binary(string) do
-    string
-    |> escape(_length = 0, string)
-    |> IO.iodata_to_binary()
+    string |> escape(_length = 0, string) |> IO.iodata_to_binary()
   end
 
   @escapable '.^$*+?()[]{}|#-\\\t\n\v\f\r\s'

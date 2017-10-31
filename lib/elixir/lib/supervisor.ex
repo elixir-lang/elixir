@@ -488,11 +488,7 @@ defmodule Supervisor do
 
       @doc false
       def child_spec(arg) do
-        default = %{
-          id: __MODULE__,
-          start: {__MODULE__, :start_link, [arg]},
-          type: :supervisor
-        }
+        default = %{id: __MODULE__, start: {__MODULE__, :start_link, [arg]}, type: :supervisor}
 
         Supervisor.child_spec(default, @opts)
       end
@@ -508,14 +504,11 @@ defmodule Supervisor do
   Callback invoked to start the supervisor and during hot code upgrades.
   """
   @callback init(args :: term) ::
-              {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}}
-              | :ignore
+              {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}} | :ignore
 
   @typedoc "Return values of `start_link` functions"
   @type on_start ::
-          {:ok, pid}
-          | :ignore
-          | {:error, {:already_started, pid} | {:shutdown, term} | term}
+          {:ok, pid} | :ignore | {:error, {:already_started, pid} | {:shutdown, term} | term}
 
   @typedoc "Return values of `start_child` functions"
   @type on_start_child ::
@@ -539,9 +532,7 @@ defmodule Supervisor do
 
   @typedoc "Options given to `start_link/2` and `init/2`"
   @type flag ::
-          {:strategy, strategy}
-          | {:max_restarts, non_neg_integer}
-          | {:max_seconds, pos_integer}
+          {:strategy, strategy} | {:max_restarts, non_neg_integer} | {:max_seconds, pos_integer}
 
   @typedoc "Supported strategies"
   @type strategy :: :simple_one_for_one | :one_for_one | :one_for_all | :rest_for_one
@@ -650,11 +641,8 @@ defmodule Supervisor do
     rescue
       e in UndefinedFunctionError ->
         case System.stacktrace() do
-          [{^module, :child_spec, [^arg], _} | _] ->
-            raise ArgumentError, child_spec_error(module)
-
-          stack ->
-            reraise e, stack
+          [{^module, :child_spec, [^arg], _} | _] -> raise ArgumentError, child_spec_error(module)
+          stack -> reraise e, stack
         end
     end
   end

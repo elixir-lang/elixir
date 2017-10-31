@@ -175,11 +175,7 @@ defmodule Task do
 
   @doc false
   def child_spec(arg) do
-    %{
-      id: Task,
-      start: {Task, :start_link, [arg]},
-      restart: :temporary
-    }
+    %{id: Task, start: {Task, :start_link, [arg]}, restart: :temporary}
   end
 
   @doc false
@@ -189,11 +185,7 @@ defmodule Task do
 
       @doc false
       def child_spec(arg) do
-        default = %{
-          id: __MODULE__,
-          start: {__MODULE__, :start_link, [arg]},
-          restart: :temporary
-        }
+        default = %{id: __MODULE__, start: {__MODULE__, :start_link, [arg]}, restart: :temporary}
 
         Supervisor.child_spec(default, @opts)
       end
@@ -578,8 +570,7 @@ defmodule Task do
       {:DOWN, ^ref, _, _, reason} ->
         {:exit, reason}
     after
-      timeout ->
-        nil
+      timeout -> nil
     end
   end
 
@@ -645,8 +636,7 @@ defmodule Task do
     try do
       yield_many(tasks, timeout_ref, :infinity)
     catch
-      {:noconnection, reason} ->
-        exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
+      {:noconnection, reason} -> exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
     after
       Process.cancel_timer(timer_ref)
       receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
@@ -672,8 +662,7 @@ defmodule Task do
       ^timeout_ref ->
         [{task, nil} | yield_many(rest, timeout_ref, 0)]
     after
-      timeout ->
-        [{task, nil} | yield_many(rest, timeout_ref, 0)]
+      timeout -> [{task, nil} | yield_many(rest, timeout_ref, 0)]
     end
   end
 
@@ -810,14 +799,9 @@ defmodule Task do
 
   defp flush_noproc(ref, proc, type) do
     receive do
-      {:DOWN, ^ref, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
-        nil
-
-      {:DOWN, ^ref, _, _, :killed} when type == :brutal_kill ->
-        nil
-
-      {:DOWN, ^ref, _, _, reason} ->
-        {:down, proc, reason}
+      {:DOWN, ^ref, _, _, :shutdown} when type in [:shutdown, :timeout_kill] -> nil
+      {:DOWN, ^ref, _, _, :killed} when type == :brutal_kill -> nil
+      {:DOWN, ^ref, _, _, reason} -> {:down, proc, reason}
     after
       0 ->
         Process.demonitor(ref, [:flush])

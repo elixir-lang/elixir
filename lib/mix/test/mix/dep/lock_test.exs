@@ -18,10 +18,7 @@ defmodule Mix.Dep.LockTest do
 
   test "formats each dep on its own line for better conflict handling", context do
     in_tmp context.test, fn ->
-      Mix.Dep.Lock.write(%{
-        foo: {:hex, :foo, "0.1.0"},
-        bar: {:hex, :bar, "0.1.0"}
-      })
+      Mix.Dep.Lock.write(%{foo: {:hex, :foo, "0.1.0"}, bar: {:hex, :bar, "0.1.0"}})
 
       assert File.read!("mix.lock") == ~S"""
              %{

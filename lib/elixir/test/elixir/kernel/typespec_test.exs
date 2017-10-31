@@ -26,8 +26,7 @@ defmodule Kernel.TypespecTest do
   end
 
   defp types(bytecode) do
-    Kernel.Typespec.beam_types(bytecode)
-    |> Enum.sort()
+    Kernel.Typespec.beam_types(bytecode) |> Enum.sort()
   end
 
   @skip_specs [__info__: 1]
@@ -39,8 +38,7 @@ defmodule Kernel.TypespecTest do
   end
 
   defp callbacks(bytecode) do
-    Kernel.Typespec.beam_callbacks(bytecode)
-    |> Enum.sort()
+    Kernel.Typespec.beam_callbacks(bytecode) |> Enum.sort()
   end
 
   test "invalid type specification" do
@@ -997,8 +995,11 @@ defmodule Kernel.TypespecTest do
   end
 
   test "optional callbacks" do
-    assert Enum.sort(SampleCallbacks.behaviour_info(:optional_callbacks)) ==
-             ["MACRO-last": 1, bar: 2, first: 1]
+    assert Enum.sort(SampleCallbacks.behaviour_info(:optional_callbacks)) == [
+             "MACRO-last": 1,
+             bar: 2,
+             first: 1
+           ]
   end
 
   test "default is not supported" do

@@ -72,10 +72,7 @@ defmodule MapSet do
   def new(%__MODULE__{} = map_set), do: map_set
 
   def new(enumerable) do
-    map =
-      enumerable
-      |> Enum.to_list()
-      |> new_from_list([])
+    map = enumerable |> Enum.to_list() |> new_from_list([])
 
     %MapSet{map: map}
   end
@@ -91,10 +88,7 @@ defmodule MapSet do
   """
   @spec new(Enum.t(), (term -> val)) :: t(val) when val: value
   def new(enumerable, transform) when is_function(transform, 1) do
-    map =
-      enumerable
-      |> Enum.to_list()
-      |> new_from_list_transform(transform, [])
+    map = enumerable |> Enum.to_list() |> new_from_list_transform(transform, [])
 
     %MapSet{map: map}
   end
@@ -150,10 +144,7 @@ defmodule MapSet do
   # it is fastest to re-accumulate items in the first set that are not
   # present in the second set.
   def difference(%MapSet{map: map1}, %MapSet{map: map2}) when map_size(map1) < map_size(map2) * 2 do
-    map =
-      map1
-      |> Map.keys()
-      |> filter_not_in(map2, [])
+    map = map1 |> Map.keys() |> filter_not_in(map2, [])
 
     %MapSet{map: map}
   end
@@ -169,11 +160,8 @@ defmodule MapSet do
 
   defp filter_not_in([key | rest], map2, acc) do
     case map2 do
-      %{^key => _} ->
-        filter_not_in(rest, map2, acc)
-
-      _ ->
-        filter_not_in(rest, map2, [{key, @dummy_value} | acc])
+      %{^key => _} -> filter_not_in(rest, map2, acc)
+      _ -> filter_not_in(rest, map2, [{key, @dummy_value} | acc])
     end
   end
 
@@ -192,9 +180,7 @@ defmodule MapSet do
   def disjoint?(%MapSet{map: map1}, %MapSet{map: map2}) do
     {map1, map2} = order_by_size(map1, map2)
 
-    map1
-    |> Map.keys()
-    |> none_in?(map2)
+    map1 |> Map.keys() |> none_in?(map2)
   end
 
   defp none_in?([], _) do
@@ -312,9 +298,7 @@ defmodule MapSet do
   @spec subset?(t, t) :: boolean
   def subset?(%MapSet{map: map1}, %MapSet{map: map2}) do
     if map_size(map1) <= map_size(map2) do
-      map1
-      |> Map.keys()
-      |> map_subset?(map2)
+      map1 |> Map.keys() |> map_subset?(map2)
     else
       false
     end

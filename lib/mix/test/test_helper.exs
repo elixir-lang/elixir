@@ -344,9 +344,7 @@ File.rm_rf!(path)
 File.mkdir_p!(path)
 
 write_beam = fn {:module, name, bin, _} ->
-  path
-  |> Path.join(Atom.to_string(name) <> ".beam")
-  |> File.write!(bin)
+  path |> Path.join(Atom.to_string(name) <> ".beam") |> File.write!(bin)
 end
 
 defmodule Mix.Tasks.Hello do

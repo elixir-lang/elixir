@@ -65,15 +65,11 @@ defmodule Kernel.ExpansionTest do
 
       message = ~r"invalid argument for alias, expected a compile time atom or alias, got: 1 \+ 2"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: alias(1 + 2)))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: alias(1 + 2))) end
 
       message = ~r"invalid value for option :as, expected an alias, got: :foobar"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: alias(:lists, as: :foobar)))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: alias(:lists, as: :foobar))) end
     end
 
     test "invalid expansion" do
@@ -243,22 +239,16 @@ defmodule Kernel.ExpansionTest do
 
       message = ~r"expected \"a\" to expand to an existing variable or be part of a match"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: var!(a)))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: var!(a))) end
 
       message =
         ~r"expected \"a\" \(context Unknown\) to expand to an existing variable or be part of a match"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: var!(a, Unknown)))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: var!(a, Unknown))) end
     end
 
     test "raises for _ used outside of a match" do
-      assert_raise CompileError, ~r"invalid use of _", fn ->
-        expand(quote(do: {1, 2, _}))
-      end
+      assert_raise CompileError, ~r"invalid use of _", fn -> expand(quote(do: {1, 2, _})) end
     end
   end
 
@@ -289,9 +279,7 @@ defmodule Kernel.ExpansionTest do
       message =
         ~r"invalid argument for unary operator \^, expected an existing variable, got: \^1"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: ^1 = 1))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: ^1 = 1)) end
     end
 
     test "raises when the var is undefined" do
@@ -309,9 +297,7 @@ defmodule Kernel.ExpansionTest do
     test "in matches" do
       message = ~r"cannot invoke local foo/1 inside match, called as: foo\(:bar\)"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: foo(:bar) = :bar))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: foo(:bar) = :bar)) end
     end
 
     test "in guards" do
@@ -395,21 +381,15 @@ defmodule Kernel.ExpansionTest do
 
       message = ~r"expected struct name to be a compile time atom or alias"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: %unknown{a: 1}))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: %unknown{a: 1})) end
 
       message = ~r"expected struct name to be a compile time atom or alias"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: %unquote(1){a: 1}))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: %unquote(1){a: 1})) end
 
       message = ~r"expected struct name in a match to be a compile time atom, alias or a variable"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: %unquote(1){a: 1} = x))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: %unquote(1){a: 1} = x)) end
     end
 
     test "update syntax" do
@@ -799,26 +779,20 @@ defmodule Kernel.ExpansionTest do
       message =
         ~r"invalid args for &, expected an expression in the format of &Mod.fun/arity, &local/arity or a capture containing at least one argument as &1, got: :foo"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: &:foo))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: &:foo)) end
     end
 
     test "fails on invalid arity" do
       message = ~r"invalid arity for &, expected a number between 0 and 255, got: 256"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: &Mod.fun/256))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: &Mod.fun/256)) end
     end
 
     test "fails when no captures" do
       message =
         ~r"invalid args for &, expected an expression in the format of &Mod.fun/arity, &local/arity or a capture containing at least one argument as &1, got: foo()"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: &foo()))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: &foo())) end
     end
 
     test "fails on nested capture" do
@@ -1843,9 +1817,7 @@ defmodule Kernel.ExpansionTest do
 
       message = ~r"signed and unsigned specifiers are supported only on integer and float type"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<x()::binary-signed>>))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: <<x()::binary-signed>>)) end
     end
 
     test "expands utf* specifiers" do
@@ -1857,9 +1829,7 @@ defmodule Kernel.ExpansionTest do
 
       message = ~r"signed and unsigned specifiers are supported only on integer and float type"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<x()::utf8-signed>>))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: <<x()::utf8-signed>>)) end
 
       assert_raise CompileError, ~r"size and unit are not supported on utf types", fn ->
         expand(quote(do: <<x()::utf8-size(32)>>))
@@ -1882,9 +1852,7 @@ defmodule Kernel.ExpansionTest do
       message =
         ~r"integer and float types require a size specifier if the unit specifier is given"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<x::unit(8)>>))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: <<x::unit(8)>>)) end
     end
 
     test "expands macro specifiers" do
@@ -1936,39 +1904,29 @@ defmodule Kernel.ExpansionTest do
     test "raises on size or unit for literal bitstrings" do
       message = ~r"literal <<>> in bitstring supports only type specifiers"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<(<<"foo">>::32)>>))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: <<(<<"foo">>::32)>>)) end
     end
 
     test "raises on size or unit for literal strings" do
       message = ~r"literal string in bitstring supports only endianness and type specifiers"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<"foo"::32>>))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: <<"foo"::32>>)) end
     end
 
     test "raises for invalid size * unit for floats" do
       message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 128"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<12.3::32*4>>))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: <<12.3::32*4>>)) end
 
       message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 256"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<12.3::256>>))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: <<12.3::256>>)) end
     end
 
     test "raises for invalid size" do
       message = ~r"size in bitstring expects an integer or a variable as argument, got: :oops"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<"foo"::size(:oops)>>))
-      end
+      assert_raise CompileError, message, fn -> expand(quote(do: <<"foo"::size(:oops)>>)) end
     end
 
     test "raises for invalid unit" do
@@ -2083,9 +2041,7 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: foo(1)(2)))
     end
 
-    assert_raise CompileError, ~r"invalid call 1\.foo\(\)", fn ->
-      expand(quote(do: 1.foo))
-    end
+    assert_raise CompileError, ~r"invalid call 1\.foo\(\)", fn -> expand(quote(do: 1.foo)) end
 
     assert_raise CompileError, ~r"unhandled operator ->", fn ->
       expand(quote(do: (foo -> bar)))

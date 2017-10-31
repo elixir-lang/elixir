@@ -143,9 +143,7 @@ defmodule Logger.Formatter do
   defp output(:metadata, _, _, _, []), do: ""
 
   defp output(:metadata, _, _, _, meta) do
-    Enum.map(meta, fn {key, val} ->
-      [to_string(key), ?=, metadata(val), ?\s]
-    end)
+    Enum.map(meta, fn {key, val} -> [to_string(key), ?=, metadata(val), ?\s] end)
   end
 
   defp output(:levelpad, level, _, _, _) do

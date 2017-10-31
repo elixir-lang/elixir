@@ -909,8 +909,7 @@ defmodule Stream do
     else
       # Only take into account outer halts when the op is not halt itself.
       # Otherwise, we were the ones wishing to halt, so we should just stop.
-      {:halted, [:outer | acc]}
-      when op != :halt ->
+      {:halted, [:outer | acc]} when op != :halt ->
         do_transform_user(vals, user_acc, next_op, next, {:cont, acc}, funs)
 
       {:halted, [_ | acc]} ->
@@ -1087,10 +1086,7 @@ defmodule Stream do
   def zip(enumerables) when is_list(enumerables) do
     step = &do_zip_step(&1, &2)
 
-    enum_funs =
-      Enum.map(enumerables, fn enum ->
-        {&Enumerable.reduce(enum, &1, step), :cont}
-      end)
+    enum_funs = Enum.map(enumerables, fn enum -> {&Enumerable.reduce(enum, &1, step), :cont} end)
 
     &do_zip(enum_funs, &1, &2)
   end
@@ -1116,11 +1112,8 @@ defmodule Stream do
         do_zip_close(zips)
         :erlang.raise(kind, reason, stacktrace)
     else
-      {:next, buffer, acc} ->
-        do_zip(buffer, acc, callback)
-
-      {:done, _acc} = other ->
-        other
+      {:next, buffer, acc} -> do_zip(buffer, acc, callback)
+      {:done, _acc} = other -> other
     end
   end
 
@@ -1211,8 +1204,7 @@ defmodule Stream do
     try do
       reduce.(acc)
     catch
-      {:stream_cycle, acc} ->
-        {:halted, acc}
+      {:stream_cycle, acc} -> {:halted, acc}
     else
       {state, []} when state in [:done, :halted] ->
         raise ArgumentError, "cannot cycle over empty enumerable"

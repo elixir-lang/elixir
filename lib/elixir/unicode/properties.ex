@@ -14,11 +14,8 @@ end
 rangify = fn [head | tail] ->
   {first, last, acc} =
     Enum.reduce(tail, {head, head, []}, fn
-      number, {first, last, acc} when number == first - 1 ->
-        {number, last, acc}
-
-      number, {first, last, acc} ->
-        {number, number, [{first, last} | acc]}
+      number, {first, last, acc} when number == first - 1 -> {number, last, acc}
+      number, {first, last, acc} -> {number, number, [{first, last} | acc]}
     end)
 
   [{first, last} | acc]
@@ -72,9 +69,7 @@ acc = {[], [], [], %{}, %{}}
         # Decomposition
         <<h, _::binary>> when h != ?< ->
           decomposition =
-            decomposition
-            |> :binary.split(" ", [:global])
-            |> Enum.map(&String.to_integer(&1, 16))
+            decomposition |> :binary.split(" ", [:global]) |> Enum.map(&String.to_integer(&1, 16))
 
           Map.put(dacc, String.to_integer(codepoint, 16), decomposition)
 
@@ -139,9 +134,8 @@ defmodule String.Casing do
     if first == last do
       defp letter?(unquote(first)), do: true
     else
-      defp letter?(codepoint)
-           when codepoint >= unquote(first) and codepoint <= unquote(last),
-           do: true
+      defp letter?(codepoint) when codepoint >= unquote(first) and codepoint <= unquote(last),
+        do: true
     end
   end
 
@@ -348,9 +342,7 @@ defmodule String.Normalizer do
 
   for {cp, decomposition} <- decompositions do
     decomposition =
-      decomposition
-      |> String.Break.decompose(decompositions)
-      |> IO.iodata_to_binary()
+      decomposition |> String.Break.decompose(decompositions) |> IO.iodata_to_binary()
 
     defp canonical_order(unquote(<<cp::utf8>>) <> rest, acc) do
       canonical_order(unquote(decomposition) <> rest, acc)

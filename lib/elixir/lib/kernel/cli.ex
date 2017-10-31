@@ -121,8 +121,7 @@ defmodule Kernel.CLI do
             send(parent, {self(), {:shutdown, 1}})
             exit(to_exit(kind, reason, stack))
         else
-          _ ->
-            send(parent, {self(), res})
+          _ -> send(parent, {self(), res})
         end
       end)
 
@@ -164,9 +163,7 @@ defmodule Kernel.CLI do
 
   defp blame_ansi(color, no_ansi, node) do
     if IO.ANSI.enabled?() do
-      [color | Macro.to_string(node)]
-      |> IO.ANSI.format(true)
-      |> IO.iodata_to_binary()
+      [color | Macro.to_string(node)] |> IO.ANSI.format(true) |> IO.iodata_to_binary()
     else
       no_ansi <> Macro.to_string(node) <> no_ansi
     end
@@ -479,10 +476,7 @@ defmodule Kernel.CLI do
   end
 
   defp filter_patterns(pattern) do
-    pattern
-    |> Path.wildcard()
-    |> :lists.usort()
-    |> Enum.filter(&File.regular?/1)
+    pattern |> Path.wildcard() |> :lists.usort() |> Enum.filter(&File.regular?/1)
   end
 
   defp filter_multiple_patterns(patterns) do

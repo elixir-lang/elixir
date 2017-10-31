@@ -15,18 +15,30 @@ defmodule Kernel.CLI.ARGVTest do
 
   test "argv handling" do
     assert capture_io(fn ->
-             assert run(["-e", "IO.puts :ok", "sample.exs", "-o", "1", "2"]) ==
-                      ["sample.exs", "-o", "1", "2"]
+             assert run(["-e", "IO.puts :ok", "sample.exs", "-o", "1", "2"]) == [
+                      "sample.exs",
+                      "-o",
+                      "1",
+                      "2"
+                    ]
            end) == "ok\n"
 
     assert capture_io(fn ->
-             assert run(["-e", "IO.puts :ok", "--", "sample.exs", "-o", "1", "2"]) ==
-                      ["sample.exs", "-o", "1", "2"]
+             assert run(["-e", "IO.puts :ok", "--", "sample.exs", "-o", "1", "2"]) == [
+                      "sample.exs",
+                      "-o",
+                      "1",
+                      "2"
+                    ]
            end) == "ok\n"
 
     assert capture_io(fn ->
-             assert run(["-e", "IO.puts :ok", "--hidden", "sample.exs", "-o", "1", "2"]) ==
-                      ["sample.exs", "-o", "1", "2"]
+             assert run(["-e", "IO.puts :ok", "--hidden", "sample.exs", "-o", "1", "2"]) == [
+                      "sample.exs",
+                      "-o",
+                      "1",
+                      "2"
+                    ]
            end) == "ok\n"
 
     assert capture_io(fn ->

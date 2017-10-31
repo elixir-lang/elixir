@@ -24,9 +24,7 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.Project.push(AppStartSample)
 
     in_fixture "no_mixfile", fn ->
-      assert_raise Mix.Error, fn ->
-        Mix.Tasks.App.Start.run(["--no-compile"])
-      end
+      assert_raise Mix.Error, fn -> Mix.Tasks.App.Start.run(["--no-compile"]) end
 
       refute List.keyfind(Application.started_applications(), :logger, 0)
       Application.start(:logger)

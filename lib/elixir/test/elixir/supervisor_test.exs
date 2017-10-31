@@ -66,11 +66,17 @@ defmodule SupervisorTest do
   end
 
   test "child_spec/2" do
-    assert Supervisor.child_spec(Task, []) ==
-             %{id: Task, restart: :temporary, start: {Task, :start_link, [[]]}}
+    assert Supervisor.child_spec(Task, []) == %{
+             id: Task,
+             restart: :temporary,
+             start: {Task, :start_link, [[]]}
+           }
 
-    assert Supervisor.child_spec({Task, :foo}, []) ==
-             %{id: Task, restart: :temporary, start: {Task, :start_link, [:foo]}}
+    assert Supervisor.child_spec({Task, :foo}, []) == %{
+             id: Task,
+             restart: :temporary,
+             start: {Task, :start_link, [:foo]}
+           }
 
     assert Supervisor.child_spec(%{id: Task}, []) == %{id: Task}
 
@@ -84,21 +90,15 @@ defmodule SupervisorTest do
 
     message = ~r"The module SupervisorTest was given as a child.*\nbut it does not implement"m
 
-    assert_raise ArgumentError, message, fn ->
-      Supervisor.child_spec(SupervisorTest, [])
-    end
+    assert_raise ArgumentError, message, fn -> Supervisor.child_spec(SupervisorTest, []) end
 
     message = ~r"The module Unknown was given as a child.*but it does not exist"m
 
-    assert_raise ArgumentError, message, fn ->
-      Supervisor.child_spec(Unknown, [])
-    end
+    assert_raise ArgumentError, message, fn -> Supervisor.child_spec(Unknown, []) end
 
     message = ~r"supervisors expect each child to be one of"
 
-    assert_raise ArgumentError, message, fn ->
-      Supervisor.child_spec("other", [])
-    end
+    assert_raise ArgumentError, message, fn -> Supervisor.child_spec("other", []) end
   end
 
   test "init/2" do
@@ -206,8 +206,9 @@ defmodule SupervisorTest do
     {:ok, stack} = Supervisor.start_child(pid, child_spec)
     assert GenServer.call(stack, :pop) == :hello
 
-    assert Supervisor.which_children(pid) ==
-             [{SupervisorTest.Stack, stack, :worker, [SupervisorTest.Stack]}]
+    assert Supervisor.which_children(pid) == [
+             {SupervisorTest.Stack, stack, :worker, [SupervisorTest.Stack]}
+           ]
 
     assert Supervisor.count_children(pid) == %{specs: 1, active: 1, supervisors: 0, workers: 1}
 

@@ -70,9 +70,6 @@ defmodule IEx.Case do
   end
 
   defp strip_iex(string) do
-    string
-    |> String.split("\n", parts: 2)
-    |> Enum.at(1)
-    |> String.trim()
+    string |> String.split("\n", parts: 2) |> Enum.at(1) |> String.trim()
   end
 end

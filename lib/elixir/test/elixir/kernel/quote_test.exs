@@ -66,9 +66,7 @@ defmodule Kernel.QuoteTest do
     assert Code.eval_quoted(quote(do: Foo.unquote(Bar))) == {Elixir.Foo.Bar, []}
     assert Code.eval_quoted(quote(do: Foo.unquote(quote(do: Bar)))) == {Elixir.Foo.Bar, []}
 
-    assert_raise ArgumentError, fn ->
-      quote(do: foo.unquote(1))
-    end
+    assert_raise ArgumentError, fn -> quote(do: foo.unquote(1)) end
   end
 
   test "nested quote" do
@@ -170,10 +168,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test "bind quoted" do
-    args = [
-      {:=, [], [{:foo, [], Kernel.QuoteTest}, 3]},
-      {:foo, [], Kernel.QuoteTest}
-    ]
+    args = [{:=, [], [{:foo, [], Kernel.QuoteTest}, 3]}, {:foo, [], Kernel.QuoteTest}]
 
     assert quote(bind_quoted: [foo: 1 + 2], do: foo) == {:__block__, [], args}
   end
@@ -280,9 +275,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
   defraise()
 
   test "inside function error" do
-    assert_raise RuntimeError, fn ->
-      will_raise(:a, :b)
-    end
+    assert_raise RuntimeError, fn -> will_raise(:a, :b) end
 
     mod = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
@@ -290,9 +283,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
   end
 
   test "outside function error" do
-    assert_raise RuntimeError, fn ->
-      will_raise()
-    end
+    assert_raise RuntimeError, fn -> will_raise() end
 
     mod = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()

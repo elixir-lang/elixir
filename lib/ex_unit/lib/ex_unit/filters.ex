@@ -17,11 +17,8 @@ defmodule ExUnit.Filters do
     {paths, [line]} = file |> String.split(":") |> Enum.split(-1)
 
     case Integer.parse(line) do
-      {_, ""} ->
-        {Enum.join(paths, ":"), exclude: [:test], include: [line: line]}
-
-      _ ->
-        {file, []}
+      {_, ""} -> {Enum.join(paths, ":"), exclude: [:test], include: [line: line]}
+      _ -> {file, []}
     end
   end
 

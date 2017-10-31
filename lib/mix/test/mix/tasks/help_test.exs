@@ -45,19 +45,13 @@ defmodule Mix.Tasks.HelpTest do
 
   test "help TASK", context do
     in_tmp context.test, fn ->
-      output =
-        capture_io(fn ->
-          Mix.Tasks.Help.run(["compile"])
-        end)
+      output = capture_io(fn -> Mix.Tasks.Help.run(["compile"]) end)
 
       assert output =~ "# mix compile\n"
       assert output =~ "## Command line options"
       assert output =~ ~r/^Location:/m
 
-      output =
-        capture_io(fn ->
-          Mix.Tasks.Help.run(["compile.all"])
-        end)
+      output = capture_io(fn -> Mix.Tasks.Help.run(["compile.all"]) end)
 
       assert output =~ "# mix compile.all\n"
       assert output =~ "There is no documentation for this task"
@@ -80,10 +74,7 @@ defmodule Mix.Tasks.HelpTest do
 
   test "help --search without results", context do
     in_tmp context.test, fn ->
-      output =
-        capture_io(fn ->
-          Mix.Tasks.Help.run(["--search", "foo"])
-        end)
+      output = capture_io(fn -> Mix.Tasks.Help.run(["--search", "foo"]) end)
 
       assert output == ""
     end
@@ -92,8 +83,6 @@ defmodule Mix.Tasks.HelpTest do
   test "bad arguments" do
     message = "Unexpected arguments, expected \"mix help\" or \"mix help TASK\""
 
-    assert_raise Mix.Error, message, fn ->
-      Mix.Tasks.Help.run(["foo", "bar"])
-    end
+    assert_raise Mix.Error, message, fn -> Mix.Tasks.Help.run(["foo", "bar"]) end
   end
 end

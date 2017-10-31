@@ -10,9 +10,7 @@ defmodule Mix.ShellTest do
   test "executes cmd with expressions" do
     Mix.shell(Mix.Shell.IO)
 
-    assert capture_io(fn ->
-             assert Mix.shell().cmd("echo first && echo second") == 0
-           end)
+    assert capture_io(fn -> assert Mix.shell().cmd("echo first && echo second") == 0 end)
            |> String.replace(" \n", "\n") == "first\nsecond\n"
   after
     Mix.shell(Mix.Shell.Process)

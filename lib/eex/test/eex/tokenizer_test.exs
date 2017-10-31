@@ -73,25 +73,19 @@ defmodule EEx.TokenizerTest do
   end
 
   test "improperly formatted quotation with interpolation" do
-    exprs = [
-      {:text, '<%% a <%= b %> c %>'}
-    ]
+    exprs = [{:text, '<%% a <%= b %> c %>'}]
 
     assert T.tokenize('<%%% a <%%= b %> c %>', 1) == {:ok, exprs}
   end
 
   test "comments" do
-    exprs = [
-      {:text, 'foo '}
-    ]
+    exprs = [{:text, 'foo '}]
 
     assert T.tokenize('foo <%# true %>', 1) == {:ok, exprs}
   end
 
   test "comments with do/end" do
-    exprs = [
-      {:text, 'foo bar'}
-    ]
+    exprs = [{:text, 'foo bar'}]
 
     assert T.tokenize('foo <%# true do %>bar<%# end %>', 1) == {:ok, exprs}
   end
@@ -150,29 +144,19 @@ defmodule EEx.TokenizerTest do
   end
 
   test "trim mode with comment" do
-    exprs = [
-      {:text, '123'}
-    ]
+    exprs = [{:text, '123'}]
 
     assert T.tokenize('  <%# comment %>  \n123', 1, trim: true) == {:ok, exprs}
   end
 
   test "trim mode with CRLF" do
-    exprs = [
-      {:text, '0\r\n'},
-      {:expr, 2, '=', ' 12 '},
-      {:text, '34'}
-    ]
+    exprs = [{:text, '0\r\n'}, {:expr, 2, '=', ' 12 '}, {:text, '34'}]
 
     assert T.tokenize('0\r\n  <%= 12 %>  \r\n34', 1, trim: true) == {:ok, exprs}
   end
 
   test "trim mode set to false" do
-    exprs = [
-      {:text, ' '},
-      {:expr, 1, '=', ' 12 '},
-      {:text, ' \n'}
-    ]
+    exprs = [{:text, ' '}, {:expr, 1, '=', ' 12 '}, {:text, ' \n'}]
 
     assert T.tokenize(' <%= 12 %> \n', 1, trim: false) == {:ok, exprs}
   end

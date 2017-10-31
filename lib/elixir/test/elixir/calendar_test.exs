@@ -59,9 +59,8 @@ defmodule DateTest do
     assert Date.convert(~D[2000-01-01], Calendar.Holocene) ==
              {:ok, Calendar.Holocene.date(12000, 01, 01)}
 
-    assert ~D[2000-01-01]
-           |> Date.convert!(Calendar.Holocene)
-           |> Date.convert!(Calendar.ISO) == ~D[2000-01-01]
+    assert ~D[2000-01-01] |> Date.convert!(Calendar.Holocene) |> Date.convert!(Calendar.ISO) ==
+             ~D[2000-01-01]
 
     assert Date.convert(~D[2016-02-03], FakeCalendar) == {:error, :incompatible_calendars}
 
@@ -70,13 +69,9 @@ defmodule DateTest do
   end
 
   test "add/2" do
-    assert_raise FunctionClauseError, fn ->
-      Date.add(~D[0000-01-01], 3_652_425)
-    end
+    assert_raise FunctionClauseError, fn -> Date.add(~D[0000-01-01], 3_652_425) end
 
-    assert_raise FunctionClauseError, fn ->
-      Date.add(~D[0000-01-01], -1)
-    end
+    assert_raise FunctionClauseError, fn -> Date.add(~D[0000-01-01], -1) end
   end
 
   test "diff/2" do
@@ -156,25 +151,22 @@ defmodule NaiveDateTimeTest do
         "reason: #{inspect(ndt.calendar)} and Calendar.ISO have different day rollover moments, " <>
         "making this conversion ambiguous"
 
-    assert_raise ArgumentError, message, fn ->
-      NaiveDateTime.to_iso8601(ndt)
-    end
+    assert_raise ArgumentError, message, fn -> NaiveDateTime.to_iso8601(ndt) end
   end
 
   test "add/2 with other calendars" do
     assert ~N[2000-01-01 12:34:15.123456]
            |> NaiveDateTime.convert!(Calendar.Holocene)
-           |> NaiveDateTime.add(10, :second) ==
-             %NaiveDateTime{
-               calendar: Calendar.Holocene,
-               year: 12000,
-               month: 1,
-               day: 1,
-               hour: 12,
-               minute: 34,
-               second: 25,
-               microsecond: {123_456, 6}
-             }
+           |> NaiveDateTime.add(10, :second) == %NaiveDateTime{
+             calendar: Calendar.Holocene,
+             year: 12000,
+             month: 1,
+             day: 1,
+             hour: 12,
+             minute: 34,
+             second: 25,
+             microsecond: {123_456, 6}
+           }
   end
 
   test "diff/2 with other calendars" do
@@ -230,37 +222,33 @@ defmodule DateTimeTest do
   end
 
   test "from_iso8601/1 handles positive and negative offsets" do
-    assert DateTime.from_iso8601("2015-01-24T09:50:07-10:00")
-           |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 1,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: 2015,
-               zone_abbr: "UTC",
-               day: 24,
-               hour: 19,
-               minute: 50,
-               second: 7
-             }
+    assert DateTime.from_iso8601("2015-01-24T09:50:07-10:00") |> elem(1) == %DateTime{
+             microsecond: {0, 0},
+             month: 1,
+             std_offset: 0,
+             time_zone: "Etc/UTC",
+             utc_offset: 0,
+             year: 2015,
+             zone_abbr: "UTC",
+             day: 24,
+             hour: 19,
+             minute: 50,
+             second: 7
+           }
 
-    assert DateTime.from_iso8601("2015-01-24T09:50:07+10:00")
-           |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 1,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: 2015,
-               zone_abbr: "UTC",
-               day: 23,
-               hour: 23,
-               minute: 50,
-               second: 7
-             }
+    assert DateTime.from_iso8601("2015-01-24T09:50:07+10:00") |> elem(1) == %DateTime{
+             microsecond: {0, 0},
+             month: 1,
+             std_offset: 0,
+             time_zone: "Etc/UTC",
+             utc_offset: 0,
+             year: 2015,
+             zone_abbr: "UTC",
+             day: 23,
+             hour: 23,
+             minute: 50,
+             second: 7
+           }
   end
 
   test "from_unix/2" do
@@ -338,9 +326,7 @@ defmodule DateTimeTest do
 
     assert DateTime.from_unix!(-62_167_219_200) == datetime
 
-    assert_raise ArgumentError, fn ->
-      DateTime.from_unix!(-62_167_219_201)
-    end
+    assert_raise ArgumentError, fn -> DateTime.from_unix!(-62_167_219_201) end
   end
 
   test "to_unix/2 works with Unix times back to 0 Gregorian seconds" do
@@ -364,9 +350,7 @@ defmodule DateTimeTest do
 
     before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
 
-    assert_raise FunctionClauseError, fn ->
-      DateTime.to_unix(before_gregorian_0)
-    end
+    assert_raise FunctionClauseError, fn -> DateTime.to_unix(before_gregorian_0) end
   end
 
   test "compare/2" do
@@ -435,9 +419,8 @@ defmodule DateTimeTest do
 
     assert DateTime.convert(datetime_iso, Calendar.Holocene) == {:ok, datetime_hol}
 
-    assert datetime_iso
-           |> DateTime.convert!(Calendar.Holocene)
-           |> DateTime.convert!(Calendar.ISO) == datetime_iso
+    assert datetime_iso |> DateTime.convert!(Calendar.Holocene) |> DateTime.convert!(Calendar.ISO) ==
+             datetime_iso
 
     assert %{datetime_iso | microsecond: {123, 6}}
            |> DateTime.convert!(Calendar.Holocene)
@@ -447,100 +430,88 @@ defmodule DateTimeTest do
   end
 
   test "from_iso8601/1 with tz offsets" do
-    assert DateTime.from_iso8601("2017-06-02T14:00:00+01:00")
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 13,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("2017-06-02T14:00:00+01:00") |> elem(1) == %DateTime{
+             year: 2017,
+             month: 6,
+             day: 2,
+             zone_abbr: "UTC",
+             hour: 13,
+             minute: 0,
+             second: 0,
+             microsecond: {0, 0},
+             utc_offset: 0,
+             std_offset: 0,
+             time_zone: "Etc/UTC"
+           }
 
-    assert DateTime.from_iso8601("2017-06-02T14:00:00-04:00")
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 18,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("2017-06-02T14:00:00-04:00") |> elem(1) == %DateTime{
+             year: 2017,
+             month: 6,
+             day: 2,
+             zone_abbr: "UTC",
+             hour: 18,
+             minute: 0,
+             second: 0,
+             microsecond: {0, 0},
+             utc_offset: 0,
+             std_offset: 0,
+             time_zone: "Etc/UTC"
+           }
 
-    assert DateTime.from_iso8601("2017-06-02T14:00:00+0100")
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 13,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("2017-06-02T14:00:00+0100") |> elem(1) == %DateTime{
+             year: 2017,
+             month: 6,
+             day: 2,
+             zone_abbr: "UTC",
+             hour: 13,
+             minute: 0,
+             second: 0,
+             microsecond: {0, 0},
+             utc_offset: 0,
+             std_offset: 0,
+             time_zone: "Etc/UTC"
+           }
 
-    assert DateTime.from_iso8601("2017-06-02T14:00:00-0400")
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 18,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("2017-06-02T14:00:00-0400") |> elem(1) == %DateTime{
+             year: 2017,
+             month: 6,
+             day: 2,
+             zone_abbr: "UTC",
+             hour: 18,
+             minute: 0,
+             second: 0,
+             microsecond: {0, 0},
+             utc_offset: 0,
+             std_offset: 0,
+             time_zone: "Etc/UTC"
+           }
 
-    assert DateTime.from_iso8601("2017-06-02T14:00:00+01")
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 13,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("2017-06-02T14:00:00+01") |> elem(1) == %DateTime{
+             year: 2017,
+             month: 6,
+             day: 2,
+             zone_abbr: "UTC",
+             hour: 13,
+             minute: 0,
+             second: 0,
+             microsecond: {0, 0},
+             utc_offset: 0,
+             std_offset: 0,
+             time_zone: "Etc/UTC"
+           }
 
-    assert DateTime.from_iso8601("2017-06-02T14:00:00-04")
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 18,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("2017-06-02T14:00:00-04") |> elem(1) == %DateTime{
+             year: 2017,
+             month: 6,
+             day: 2,
+             zone_abbr: "UTC",
+             hour: 18,
+             minute: 0,
+             second: 0,
+             microsecond: {0, 0},
+             utc_offset: 0,
+             std_offset: 0,
+             time_zone: "Etc/UTC"
+           }
   end
 end

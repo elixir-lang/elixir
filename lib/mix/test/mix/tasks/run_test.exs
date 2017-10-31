@@ -55,13 +55,9 @@ defmodule Mix.Tasks.RunTest do
     in_tmp context.test, fn ->
       message = "No files matched pattern \"non-existent\" given to --require"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Run.run(["-r", "non-existent"])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Run.run(["-r", "non-existent"]) end
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Run.run(["-pr", "non-existent"])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Run.run(["-pr", "non-existent"]) end
 
       assert_raise Mix.Error, "No such file: non-existent", fn ->
         Mix.Tasks.Run.run(["non-existent"])
@@ -69,9 +65,7 @@ defmodule Mix.Tasks.RunTest do
 
       File.mkdir_p!("lib")
 
-      assert_raise Mix.Error, "No such file: lib", fn ->
-        Mix.Tasks.Run.run(["lib"])
-      end
+      assert_raise Mix.Error, "No such file: lib", fn -> Mix.Tasks.Run.run(["lib"]) end
     end
   after
     purge([GitRepo])
@@ -84,9 +78,7 @@ defmodule Mix.Tasks.RunTest do
 
       File.write!(file, expr)
 
-      unload_file = fn ->
-        Code.unload_files([Path.expand(file)])
-      end
+      unload_file = fn -> Code.unload_files([Path.expand(file)]) end
 
       Mix.Tasks.Run.run([file])
       assert_received {:argv, []}

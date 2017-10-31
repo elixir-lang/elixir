@@ -80,11 +80,8 @@ defmodule Mix.Rebar do
   """
   def dependency_config(config) do
     Enum.map(config, fn
-      {:erl_opts, opts} ->
-        {:erl_opts, List.delete(opts, :warnings_as_errors)}
-
-      other ->
-        other
+      {:erl_opts, opts} -> {:erl_opts, List.delete(opts, :warnings_as_errors)}
+      other -> other
     end)
   end
 
@@ -223,14 +220,9 @@ defmodule Mix.Rebar do
 
   defp wrap_cmd(rebar) do
     cond do
-      not match?({:win32, _}, :os.type()) ->
-        rebar
-
-      String.ends_with?(rebar, ".cmd") ->
-        "\"#{String.replace(rebar, "/", "\\")}\""
-
-      true ->
-        "escript.exe \"#{rebar}\""
+      not match?({:win32, _}, :os.type()) -> rebar
+      String.ends_with?(rebar, ".cmd") -> "\"#{String.replace(rebar, "/", "\\")}\""
+      true -> "escript.exe \"#{rebar}\""
     end
   end
 

@@ -177,9 +177,7 @@ defmodule EExTest do
     test "when start expression is found without an end expression" do
       msg = "nofile:2: unexpected end of string, expected a closing '<% end %>'"
 
-      assert_raise EEx.SyntaxError, msg, fn ->
-        EEx.compile_string("foo\n<% if true do %>")
-      end
+      assert_raise EEx.SyntaxError, msg, fn -> EEx.compile_string("foo\n<% if true do %>") end
     end
 
     test "when nested end expression is found without a start expression" do
@@ -205,18 +203,14 @@ defmodule EExTest do
       msg =
         ~r/unsupported EEx syntax <%\/ %> \(the syntax is valid but not supported by the current EEx engine\)/
 
-      assert_raise EEx.SyntaxError, msg, fn ->
-        EEx.compile_string("<%/ true %>")
-      end
+      assert_raise EEx.SyntaxError, msg, fn -> EEx.compile_string("<%/ true %>") end
     end
 
     test "when trying to use marker '|' without implementation" do
       msg =
         ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/
 
-      assert_raise EEx.SyntaxError, msg, fn ->
-        EEx.compile_string("<%| true %>")
-      end
+      assert_raise EEx.SyntaxError, msg, fn -> EEx.compile_string("<%| true %>") end
     end
   end
 
@@ -428,8 +422,9 @@ defmodule EExTest do
     end
 
     test "sets external resource attribute" do
-      assert EExTest.Compiled.__info__(:attributes)[:external_resource] ==
-               [Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")]
+      assert EExTest.Compiled.__info__(:attributes)[:external_resource] == [
+               Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
+             ]
     end
   end
 

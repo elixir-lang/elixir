@@ -208,8 +208,7 @@ defmodule Keyword do
 
   """
   @spec get_lazy(t, key, (() -> value)) :: value
-  def get_lazy(keywords, key, fun)
-      when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
+  def get_lazy(keywords, key, fun) when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, value} -> value
       false -> fun.()
@@ -249,9 +248,8 @@ defmodule Keyword do
 
   """
   @spec get_and_update(t, key, (value -> {get, value} | :pop)) :: {get, t} when get: term
-  def get_and_update(keywords, key, fun)
-      when is_list(keywords) and is_atom(key),
-      do: get_and_update(keywords, [], key, fun)
+  def get_and_update(keywords, key, fun) when is_list(keywords) and is_atom(key),
+    do: get_and_update(keywords, [], key, fun)
 
   defp get_and_update([{key, current} | t], acc, key, fun) do
     case fun.(current) do
@@ -927,11 +925,8 @@ defmodule Keyword do
   @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
     case fetch(keywords, key) do
-      {:ok, value} ->
-        {value, delete(keywords, key)}
-
-      :error ->
-        {default, keywords}
+      {:ok, value} -> {value, delete(keywords, key)}
+      :error -> {default, keywords}
     end
   end
 
@@ -958,14 +953,10 @@ defmodule Keyword do
 
   """
   @spec pop_lazy(t, key, (() -> value)) :: {value, t}
-  def pop_lazy(keywords, key, fun)
-      when is_list(keywords) and is_function(fun, 0) do
+  def pop_lazy(keywords, key, fun) when is_list(keywords) and is_function(fun, 0) do
     case fetch(keywords, key) do
-      {:ok, value} ->
-        {value, delete(keywords, key)}
-
-      :error ->
-        {fun.(), keywords}
+      {:ok, value} -> {value, delete(keywords, key)}
+      :error -> {fun.(), keywords}
     end
   end
 

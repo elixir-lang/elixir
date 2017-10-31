@@ -598,14 +598,9 @@ defmodule OptionParser do
 
   defp store_option(dict, option, value, kinds) do
     cond do
-      :count in kinds ->
-        Keyword.update(dict, option, value, &(&1 + 1))
-
-      :keep in kinds ->
-        [{option, value} | dict]
-
-      true ->
-        [{option, value} | Keyword.delete(dict, option)]
+      :count in kinds -> Keyword.update(dict, option, value, &(&1 + 1))
+      :keep in kinds -> [{option, value} | dict]
+      true -> [{option, value} | Keyword.delete(dict, option)]
     end
   end
 
@@ -647,11 +642,7 @@ defmodule OptionParser do
   end
 
   defp expand_multiletter_alias(letters, value) when is_binary(letters) do
-    {last, expanded} =
-      letters
-      |> String.codepoints()
-      |> Enum.map(&("-" <> &1))
-      |> List.pop_at(-1)
+    {last, expanded} = letters |> String.codepoints() |> Enum.map(&("-" <> &1)) |> List.pop_at(-1)
 
     expanded ++ [last <> if(value, do: "=" <> value, else: "")]
   end

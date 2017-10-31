@@ -298,8 +298,7 @@ defmodule ExUnit.Formatter do
     padding = String.duplicate(" ", padding_size)
     width = if width == :infinity, do: width, else: width - padding_size
 
-    inspect(expr, pretty: true, width: width)
-    |> String.replace("\n", "\n" <> padding)
+    inspect(expr, pretty: true, width: width) |> String.replace("\n", "\n" <> padding)
   end
 
   defp make_into_lines(reasons, padding) do
@@ -310,11 +309,8 @@ defmodule ExUnit.Formatter do
     %{left: left, right: right} = struct
 
     case format_diff(left, right, formatter) do
-      {left, right} ->
-        {IO.iodata_to_binary(left), IO.iodata_to_binary(right)}
-
-      nil ->
-        {if_value(left, inspect), if_value(right, inspect)}
+      {left, right} -> {IO.iodata_to_binary(left), IO.iodata_to_binary(right)}
+      nil -> {if_value(left, inspect), if_value(right, inspect)}
     end
   end
 

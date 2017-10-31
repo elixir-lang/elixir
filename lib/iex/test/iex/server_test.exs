@@ -5,15 +5,11 @@ defmodule IEx.ServerTest do
 
   describe "options" do
     test "prefix" do
-      assert capture_io(fn ->
-               boot(prefix: "pry")
-             end) =~ "pry(1)> "
+      assert capture_io(fn -> boot(prefix: "pry") end) =~ "pry(1)> "
     end
 
     test "env" do
-      assert capture_io("__ENV__.file", fn ->
-               boot(env: __ENV__)
-             end) =~ "server_test.exs"
+      assert capture_io("__ENV__.file", fn -> boot(env: __ENV__) end) =~ "server_test.exs"
     end
   end
 
@@ -41,9 +37,7 @@ defmodule IEx.ServerTest do
     end
 
     test "fails if callback during boot fails" do
-      assert capture_io(fn ->
-               boot([], fn -> exit(0) end)
-             end) == ""
+      assert capture_io(fn -> boot([], fn -> exit(0) end) end) == ""
     end
 
     test "fails when there is no shell" do
@@ -54,9 +48,8 @@ defmodule IEx.ServerTest do
   test "pry wraps around takeover" do
     require IEx
 
-    assert capture_io(fn ->
-             assert IEx.pry() == {:error, :no_iex}
-           end) =~ "Is an IEx shell running?"
+    assert capture_io(fn -> assert IEx.pry() == {:error, :no_iex} end) =~
+             "Is an IEx shell running?"
   end
 
   # Helpers

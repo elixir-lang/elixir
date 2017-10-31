@@ -61,9 +61,7 @@ defmodule Mix.ProjectTest do
   end
 
   test "raises an error when trying to retrieve the current project but none is set" do
-    assert_raise Mix.NoProjectError, fn ->
-      Mix.Project.get!()
-    end
+    assert_raise Mix.NoProjectError, fn -> Mix.Project.get!() end
   end
 
   test "builds the project structure" do
@@ -120,9 +118,7 @@ defmodule Mix.ProjectTest do
       """)
 
       assert_raise RuntimeError, "oops", fn ->
-        Mix.Project.in_project(:hello, ".", [], fn _ ->
-          :ok
-        end)
+        Mix.Project.in_project(:hello, ".", [], fn _ -> :ok end)
       end
 
       assert_receive {:mix_shell, :error, ["Error while loading project :hello at" <> _]}

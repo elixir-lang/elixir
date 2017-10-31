@@ -185,15 +185,9 @@ defmodule ExUnit.CLIFormatter do
   ## Slowest
 
   defp format_slowest_total(%{slowest: slowest} = config, run_us) do
-    slowest_us =
-      config
-      |> extract_slowest_tests()
-      |> Enum.reduce(0, &(&1.time + &2))
+    slowest_us = config |> extract_slowest_tests() |> Enum.reduce(0, &(&1.time + &2))
 
-    slowest_time =
-      slowest_us
-      |> normalize_us()
-      |> format_us()
+    slowest_time = slowest_us |> normalize_us() |> format_us()
 
     percentage = Float.round(slowest_us / run_us * 100, 1)
 
@@ -201,9 +195,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp format_slowest_times(config) do
-    config
-    |> extract_slowest_tests()
-    |> Enum.map(&format_slow_test/1)
+    config |> extract_slowest_tests() |> Enum.map(&format_slow_test/1)
   end
 
   defp format_slow_test(%ExUnit.Test{name: name, time: time, module: module}) do
@@ -211,9 +203,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp extract_slowest_tests(%{slowest: slowest, test_timings: timings} = _config) do
-    timings
-    |> Enum.sort_by(fn %{time: time} -> -time end)
-    |> Enum.take(slowest)
+    timings |> Enum.sort_by(fn %{time: time} -> -time end) |> Enum.take(slowest)
   end
 
   defp update_test_timings(timings, %ExUnit.Test{} = test) do
@@ -284,9 +274,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp colorize(escape, string, %{colors: colors}) do
     if colors[:enabled] do
-      [escape, string, :reset]
-      |> IO.ANSI.format_fragment(true)
-      |> IO.iodata_to_binary()
+      [escape, string, :reset] |> IO.ANSI.format_fragment(true) |> IO.iodata_to_binary()
     else
       string
     end

@@ -42,11 +42,8 @@ defmodule Behaviour do
 
   defp do_defcallback(kind, {spec, return, guards}) do
     case Macro.decompose_call(spec) do
-      {name, args} ->
-        do_callback(kind, name, args, return, guards)
-
-      _ ->
-        raise ArgumentError, "invalid syntax in #{kind}callback #{Macro.to_string(spec)}"
+      {name, args} -> do_callback(kind, name, args, return, guards)
+      _ -> raise ArgumentError, "invalid syntax in #{kind}callback #{Macro.to_string(spec)}"
     end
   end
 

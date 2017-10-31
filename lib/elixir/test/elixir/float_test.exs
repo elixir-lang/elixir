@@ -36,9 +36,7 @@ defmodule FloatTest do
     assert Float.parse("pi") === :error
     assert Float.parse("1.7976931348623157e308") === {1.7976931348623157e308, ""}
 
-    assert_raise ArgumentError, fn ->
-      Float.parse("1.7976931348623159e308")
-    end
+    assert_raise ArgumentError, fn -> Float.parse("1.7976931348623159e308") end
   end
 
   test "floor/1" do

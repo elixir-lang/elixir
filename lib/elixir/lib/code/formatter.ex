@@ -693,7 +693,7 @@ defmodule Code.Formatter do
         op in @left_new_line_before_binary_operators ->
           op_string = op_string <> " "
           doc = glue(left, concat(op_string, nest_by_length(right, op_string)))
-          doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
+
           if op_info == parent_info, do: doc, else: group(doc)
 
         op in @right_new_line_before_binary_operators ->
@@ -720,13 +720,11 @@ defmodule Code.Formatter do
           right = if keyword?(right_arg), do: group(force_keyword(right, right_arg)), else: right
 
           doc = glue(left, concat(op_string, right))
-          doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
+
           if op_info == parent_info, do: doc, else: group(doc)
 
         true ->
-          next_break_fits? =
-            op in @next_break_fits_operators and next_break_fits?(right_arg) and
-              not Keyword.get(meta, :eol, false)
+          next_break_fits? = op in @next_break_fits_operators and next_break_fits?(right_arg)
 
           with_next_break_fits(next_break_fits?, right, fn right ->
             op_string = " " <> op_string
@@ -811,10 +809,7 @@ defmodule Code.Formatter do
       {{call_doc, state}, wrap_in_parens?} =
         call_args_to_algebra(args, meta, context, :skip_unless_many_args, false, state)
 
-      doc =
-        "@#{name}"
-        |> string()
-        |> concat(call_doc)
+      doc = "@#{name}" |> string() |> concat(call_doc)
 
       doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
       {doc, state}
@@ -946,14 +941,9 @@ defmodule Code.Formatter do
 
     atom_target =
       case since && target do
-        {:__aliases__, _, [alias | _] = aliases} when is_atom(alias) ->
-          Module.concat(aliases)
-
-        {:__block__, _, [atom]} when is_atom(atom) ->
-          atom
-
-        _ ->
-          nil
+        {:__aliases__, _, [alias | _] = aliases} when is_atom(alias) -> Module.concat(aliases)
+        {:__block__, _, [atom]} when is_atom(atom) -> atom
+        _ -> nil
       end
 
     with {fun, requirement} <- deprecated(atom_target, fun, arity),
@@ -987,11 +977,7 @@ defmodule Code.Formatter do
     {{call_doc, state}, wrap_in_parens?} =
       call_args_to_algebra(args, meta, context, skip_parens, true, state)
 
-    doc =
-      fun
-      |> Atom.to_string()
-      |> string()
-      |> concat(call_doc)
+    doc = fun |> Atom.to_string() |> string() |> concat(call_doc)
 
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
     {doc, state}
@@ -1065,17 +1051,14 @@ defmodule Code.Formatter do
             end
 
           args_doc =
-            if generators_count > 1 or force_keyword? or
-                 (left != [] and not next_break_fits? and Keyword.get(meta, :eol, false)) do
+            if generators_count > 1 or force_keyword? do
               force_break(args_doc)
             else
               args_doc
             end
 
           if skip_parens? do
-            " "
-            |> concat(nest(args_doc, :cursor, :break))
-            |> group()
+            " " |> concat(nest(args_doc, :cursor, :break)) |> group()
           else
             surround("(", args_doc, ")")
           end
@@ -1094,10 +1077,7 @@ defmodule Code.Formatter do
       with_next_break_fits(true, right_doc, fn right_doc ->
         args_doc = concat(concat(left_doc, ","), right_doc)
 
-        " "
-        |> concat(nest(args_doc, :cursor, :break))
-        |> nest(2)
-        |> group()
+        " " |> concat(nest(args_doc, :cursor, :break)) |> nest(2) |> group()
       end)
 
     {doc, state}
@@ -1312,9 +1292,7 @@ defmodule Code.Formatter do
   defp tuple_to_algebra(meta, args, state) do
     to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
-    next_break_fits? =
-      args != [] and next_break_fits?(Enum.fetch!(args, -1)) and
-        not Keyword.get(meta, :eol, false)
+    next_break_fits? = args != [] and next_break_fits?(Enum.fetch!(args, -1))
 
     {args_doc, state} =
       args_to_algebra_with_comments(args, meta, next_break_fits?, state, to_algebra_fun)
@@ -1337,11 +1315,8 @@ defmodule Code.Formatter do
 
     iodata =
       case Code.Identifier.classify(atom) do
-        type when type in [:callable_local, :callable_operator, :not_callable] ->
-          [?:, string]
-
-        _ ->
-          [?:, ?", String.replace(string, "\"", "\\\""), ?"]
+        type when type in [:callable_local, :callable_operator, :not_callable] -> [?:, string]
+        _ -> [?:, ?", String.replace(string, "\"", "\\\""), ?"]
       end
 
     iodata |> IO.iodata_to_binary() |> string()
@@ -1349,27 +1324,17 @@ defmodule Code.Formatter do
 
   defp integer_to_algebra(text) do
     case text do
-      [?0, ?x | rest] ->
-        "0x" <> String.upcase(List.to_string(rest))
-
-      [?0, base | _rest] = digits when base in [?b, ?o] ->
-        List.to_string(digits)
-
-      [?? | _rest] = char ->
-        List.to_string(char)
-
-      decimal ->
-        List.to_string(insert_underscores(decimal))
+      [?0, ?x | rest] -> "0x" <> String.upcase(List.to_string(rest))
+      [?0, base | _rest] = digits when base in [?b, ?o] -> List.to_string(digits)
+      [?? | _rest] = char -> List.to_string(char)
+      decimal -> List.to_string(insert_underscores(decimal))
     end
   end
 
   defp float_to_algebra(text) do
     {int_part, [?. | decimal_part]} = Enum.split_while(text, &(&1 != ?.))
 
-    decimal_part =
-      decimal_part
-      |> List.to_string()
-      |> String.downcase()
+    decimal_part = decimal_part |> List.to_string() |> String.downcase()
 
     List.to_string(insert_underscores(int_part)) <> "." <> decimal_part
   end
@@ -1414,16 +1379,11 @@ defmodule Code.Formatter do
   end
 
   defp heredoc_to_algebra(["" | rest]) do
-    rest
-    |> heredoc_line()
-    |> concat(heredoc_to_algebra(rest))
+    rest |> heredoc_line() |> concat(heredoc_to_algebra(rest))
   end
 
   defp heredoc_to_algebra([string | rest]) do
-    string
-    |> string()
-    |> concat(heredoc_line(rest))
-    |> concat(heredoc_to_algebra(rest))
+    string |> string() |> concat(heredoc_line(rest)) |> concat(heredoc_to_algebra(rest))
   end
 
   defp heredoc_line(["", _ | _]), do: nest(line(), :reset)
@@ -1453,7 +1413,7 @@ defmodule Code.Formatter do
       args_docs == [] ->
         {@empty, new_state}
 
-      Keyword.get(meta, :eol, false) or force_container_break?(state, new_state) ->
+      force_container_break?(state, new_state) ->
         {args_docs |> Enum.reduce(&line(&2, &1)) |> force_break(), new_state}
 
       true ->
@@ -1540,10 +1500,7 @@ defmodule Code.Formatter do
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
-    clause_doc =
-      " ->"
-      |> glue(body_doc)
-      |> nest(2)
+    clause_doc = " ->" |> glue(body_doc) |> nest(2)
 
     doc =
       args_doc
@@ -1570,11 +1527,7 @@ defmodule Code.Formatter do
   ## Clauses
 
   defp maybe_force_clauses(doc, clauses) do
-    if Enum.any?(clauses, fn {:->, meta, _} -> Keyword.get(meta, :eol, false) end) do
-      force_break(doc)
-    else
-      doc
-    end
+    doc
   end
 
   defp clauses_to_algebra([{:->, _, _} | _] = clauses, min_line, max_line, state) do
@@ -1585,10 +1538,7 @@ defmodule Code.Formatter do
       Enum.reduce(clauses, {clause_doc, state}, fn clause, {doc_acc, state_acc} ->
         {clause_doc, state_acc} = clause_to_algebra(clause, min_line, state_acc)
 
-        doc_acc =
-          doc_acc
-          |> concat(maybe_empty_line())
-          |> line(clause_doc)
+        doc_acc = doc_acc |> concat(maybe_empty_line()) |> line(clause_doc)
 
         {doc_acc, state_acc}
       end)
@@ -1846,30 +1796,21 @@ defmodule Code.Formatter do
 
   defp binary_operator?(quoted) do
     case quoted do
-      {op, _, [_, _]} when is_atom(op) ->
-        Code.Identifier.binary_op(op) != :error
-
-      _ ->
-        false
+      {op, _, [_, _]} when is_atom(op) -> Code.Identifier.binary_op(op) != :error
+      _ -> false
     end
   end
 
   defp unary_operator?(quoted) do
     case quoted do
-      {op, _, [_]} when is_atom(op) ->
-        Code.Identifier.unary_op(op) != :error
-
-      _ ->
-        false
+      {op, _, [_]} when is_atom(op) -> Code.Identifier.unary_op(op) != :error
+      _ -> false
     end
   end
 
   defp with_next_break_fits(condition, doc, fun) do
     if condition do
-      doc
-      |> next_break_fits(:enabled)
-      |> fun.()
-      |> next_break_fits(:disabled)
+      doc |> next_break_fits(:enabled) |> fun.() |> next_break_fits(:disabled)
     else
       fun.(doc)
     end

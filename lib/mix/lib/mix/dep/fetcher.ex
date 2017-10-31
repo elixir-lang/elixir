@@ -138,18 +138,13 @@ defmodule Mix.Dep.Fetcher do
   defp do_with_depending(deps, all_deps) do
     dep_names = Enum.map(deps, fn dep -> dep.app end)
 
-    parents =
-      Enum.filter(all_deps, fn dep ->
-        Enum.any?(dep.deps, &(&1.app in dep_names))
-      end)
+    parents = Enum.filter(all_deps, fn dep -> Enum.any?(dep.deps, &(&1.app in dep_names)) end)
 
     do_with_depending(parents, all_deps) ++ parents
   end
 
   defp to_app_names(given) do
-    Enum.map(given, fn app ->
-      if is_binary(app), do: String.to_atom(app), else: app
-    end)
+    Enum.map(given, fn app -> if is_binary(app), do: String.to_atom(app), else: app end)
   end
 
   defp show_diverged!([]), do: :ok

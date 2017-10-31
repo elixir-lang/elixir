@@ -140,7 +140,6 @@ defmodule ExUnit.OnExitHandler do
     callback.()
     nil
   catch
-    kind, error ->
-      {kind, error, System.stacktrace()}
+    kind, error -> {kind, error, System.stacktrace()}
   end
 end

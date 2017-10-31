@@ -145,8 +145,10 @@ defmodule ModuleTest do
   end
 
   test "registered attributes" do
-    assert Enum.filter(__MODULE__.__info__(:attributes), &match?({:register_example, _}, &1)) ==
-             [{:register_example, [:it_works]}, {:register_example, [:still_works]}]
+    assert Enum.filter(__MODULE__.__info__(:attributes), &match?({:register_example, _}, &1)) == [
+             {:register_example, [:it_works]},
+             {:register_example, [:still_works]}
+           ]
   end
 
   @some_attribute [1]
@@ -179,9 +181,7 @@ defmodule ModuleTest do
   test "safe concat" do
     assert Module.safe_concat(Foo, :Bar) == Foo.Bar
 
-    assert_raise ArgumentError, fn ->
-      Module.safe_concat(SafeConcat, Doesnt.Exist)
-    end
+    assert_raise ArgumentError, fn -> Module.safe_concat(SafeConcat, Doesnt.Exist) end
   end
 
   test "split" do
@@ -377,9 +377,7 @@ defmodule ModuleTest do
       "each element in tuple list has to be a {function_name :: atom, arity :: 0..255} " <>
         "tuple, got: {:foo, 256}"
 
-    assert_raise ArgumentError, message, fn ->
-      Module.create(Foo, contents, __ENV__)
-    end
+    assert_raise ArgumentError, message, fn -> Module.create(Foo, contents, __ENV__) end
   after
     purge(Foo)
   end

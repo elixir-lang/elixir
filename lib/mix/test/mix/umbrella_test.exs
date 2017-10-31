@@ -213,9 +213,7 @@ defmodule Mix.UmbrellaTest do
         end
         """)
 
-        assert_raise Mix.Error, fn ->
-          Mix.Tasks.Deps.Get.run([])
-        end
+        assert_raise Mix.Error, fn -> Mix.Tasks.Deps.Get.run([]) end
 
         assert_received {:mix_shell, :error, ["Dependencies have diverged:"]}
 
@@ -251,10 +249,7 @@ defmodule Mix.UmbrellaTest do
     def project do
       [
         app: :umbrella_dep,
-        deps: [
-          {:bar, path: "deps/umbrella/apps/bar"},
-          {:umbrella, path: "deps/umbrella"}
-        ]
+        deps: [{:bar, path: "deps/umbrella/apps/bar"}, {:umbrella, path: "deps/umbrella"}]
       ]
     end
   end
@@ -453,9 +448,7 @@ defmodule Mix.UmbrellaTest do
       end
       """)
 
-      Mix.Project.in_project(:umbrella, ".", fn _ ->
-        Mix.Task.run("compile.protocols")
-      end)
+      Mix.Project.in_project(:umbrella, ".", fn _ -> Mix.Task.run("compile.protocols") end)
 
       # Emulate the dependency being removed
       Mix.Project.in_project(:foo, "apps/foo", [build_path: "../../_build", deps: []], fn _ ->

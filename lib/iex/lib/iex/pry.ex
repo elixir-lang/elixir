@@ -213,9 +213,7 @@ defmodule IEx.Pry do
   """
   @spec breaks :: [break]
   def breaks do
-    @server
-    |> GenServer.call(:breaks, @timeout)
-    |> Enum.sort()
+    @server |> GenServer.call(:breaks, @timeout) |> Enum.sort()
   end
 
   ## Callbacks
@@ -386,8 +384,7 @@ defmodule IEx.Pry do
       {:module, _} = :code.load_binary(module, beam, binary)
       {:ok, counter}
     else
-      _error ->
-        {:error, :recompilation_failed}
+      _error -> {:error, :recompilation_failed}
     end
   end
 

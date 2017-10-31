@@ -2,11 +2,7 @@ defmodule ExUnit.MixProject do
   use Mix.Project
 
   def project do
-    [
-      app: :ex_unit,
-      version: System.version(),
-      build_per_environment: false
-    ]
+    [app: :ex_unit, version: System.version(), build_per_environment: false]
   end
 
   def application do

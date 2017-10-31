@@ -142,11 +142,8 @@ defmodule Mix.Tasks.Run do
 
   defp process_config(opts) do
     Enum.each(opts, fn
-      {:config, value} ->
-        Mix.Task.run("loadconfig", [value])
-
-      _ ->
-        :ok
+      {:config, value} -> Mix.Task.run("loadconfig", [value])
+      _ -> :ok
     end)
   end
 
@@ -166,11 +163,8 @@ defmodule Mix.Tasks.Run do
     Enum.each(opts, fn
       {:require, value} ->
         case filter_patterns(value) do
-          [] ->
-            Mix.raise("No files matched pattern #{inspect(value)} given to --require")
-
-          filtered ->
-            require_runner.(filtered)
+          [] -> Mix.raise("No files matched pattern #{inspect(value)} given to --require")
+          filtered -> require_runner.(filtered)
         end
 
       {:eval, value} ->

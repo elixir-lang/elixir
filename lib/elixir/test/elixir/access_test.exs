@@ -39,9 +39,7 @@ defmodule AccessTest do
 
     msg = ~r/the Access calls for keywords expect the key to be an atom/
 
-    assert_raise ArgumentError, msg, fn ->
-      Access.fetch([], "foo")
-    end
+    assert_raise ArgumentError, msg, fn -> Access.fetch([], "foo") end
 
     assert Access.get([foo: :bar], :foo) == :bar
     assert Access.get_and_update([], :foo, fn nil -> {:ok, :baz} end) == {:ok, [foo: :baz]}
@@ -94,9 +92,7 @@ defmodule AccessTest do
     message =
       "function AccessTest.Sample.pop/2 is undefined (AccessTest.Sample does not implement the Access behaviour)"
 
-    assert_raise UndefinedFunctionError, message, fn ->
-      Access.pop(struct(Sample, []), :name)
-    end
+    assert_raise UndefinedFunctionError, message, fn -> Access.pop(struct(Sample, []), :name) end
   end
 
   describe "filter/1" do
@@ -118,8 +114,11 @@ defmodule AccessTest do
     test "chains with other access functions" do
       mixed_map_and_list = %{foo: Enum.map(@test_list, &%{value: &1})}
 
-      assert get_in(mixed_map_and_list, [:foo, Access.filter(&(&1.value <= 3)), :value]) ==
-               [1, 2, 3]
+      assert get_in(mixed_map_and_list, [:foo, Access.filter(&(&1.value <= 3)), :value]) == [
+               1,
+               2,
+               3
+             ]
     end
   end
 end

@@ -66,16 +66,11 @@ defmodule Mix.Tasks.Compile do
         {task, first_line(doc)}
       end
 
-    max =
-      Enum.reduce(docs, 0, fn {task, _}, acc ->
-        max(byte_size(task), acc)
-      end)
+    max = Enum.reduce(docs, 0, fn {task, _}, acc -> max(byte_size(task), acc) end)
 
     sorted = Enum.sort(docs)
 
-    Enum.each(sorted, fn {task, doc} ->
-      shell.info(format('mix ~-#{max}s # ~ts', [task, doc]))
-    end)
+    Enum.each(sorted, fn {task, doc} -> shell.info(format('mix ~-#{max}s # ~ts', [task, doc])) end)
 
     compilers = compilers() ++ if(consolidate_protocols?(:ok), do: [:protocols], else: [])
     shell.info("\nEnabled compilers: #{Enum.join(compilers, ", ")}")

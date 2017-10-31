@@ -107,9 +107,7 @@ defmodule IntegerTest do
     assert Integer.undigits([0, 0, 0, -1, -1, -5]) == -115
 
     for n <- Enum.to_list(-1..1) do
-      assert_raise FunctionClauseError, fn ->
-        Integer.undigits([1, 0, 1], n)
-      end
+      assert_raise FunctionClauseError, fn -> Integer.undigits([1, 0, 1], n) end
     end
 
     assert_raise ArgumentError, "invalid digit 17 in base 16", fn ->
@@ -157,9 +155,7 @@ defmodule IntegerTest do
     assert Integer.to_string(-0001) == "-1"
 
     for n <- [42.0, :forty_two, '42', "42"] do
-      assert_raise ArgumentError, fn ->
-        Integer.to_string(n)
-      end
+      assert_raise ArgumentError, fn -> Integer.to_string(n) end
     end
   end
 
@@ -172,19 +168,13 @@ defmodule IntegerTest do
     assert Integer.to_string(-042, 16) == "-2A"
 
     for n <- [42.0, :forty_two, '42', "42"] do
-      assert_raise ArgumentError, fn ->
-        Integer.to_string(n, 42)
-      end
+      assert_raise ArgumentError, fn -> Integer.to_string(n, 42) end
     end
 
     for n <- [-1, 0, 1, 37] do
-      assert_raise ArgumentError, fn ->
-        Integer.to_string(42, n)
-      end
+      assert_raise ArgumentError, fn -> Integer.to_string(42, n) end
 
-      assert_raise ArgumentError, fn ->
-        Integer.to_string(n, n)
-      end
+      assert_raise ArgumentError, fn -> Integer.to_string(n, n) end
     end
   end
 
@@ -195,9 +185,7 @@ defmodule IntegerTest do
     assert Integer.to_charlist(-0001) == '-1'
 
     for n <- [42.0, :forty_two, '42', "42"] do
-      assert_raise ArgumentError, fn ->
-        Integer.to_charlist(n)
-      end
+      assert_raise ArgumentError, fn -> Integer.to_charlist(n) end
     end
   end
 
@@ -215,19 +203,13 @@ defmodule IntegerTest do
     assert Integer.to_charlist(-042, 16) == '-2A'
 
     for n <- [42.0, :forty_two, '42', "42"] do
-      assert_raise ArgumentError, fn ->
-        Integer.to_charlist(n, 42)
-      end
+      assert_raise ArgumentError, fn -> Integer.to_charlist(n, 42) end
     end
 
     for n <- [-1, 0, 1, 37] do
-      assert_raise ArgumentError, fn ->
-        Integer.to_charlist(42, n)
-      end
+      assert_raise ArgumentError, fn -> Integer.to_charlist(42, n) end
 
-      assert_raise ArgumentError, fn ->
-        Integer.to_charlist(n, n)
-      end
+      assert_raise ArgumentError, fn -> Integer.to_charlist(n, n) end
     end
   end
 

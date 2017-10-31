@@ -34,17 +34,11 @@ defmodule VersionTest do
   end
 
   test "compare/2 with invalid versions" do
-    assert_raise Version.InvalidVersionError, fn ->
-      Version.compare("1.0", "1.0.0")
-    end
+    assert_raise Version.InvalidVersionError, fn -> Version.compare("1.0", "1.0.0") end
 
-    assert_raise Version.InvalidVersionError, fn ->
-      Version.compare("1.0.0-dev", "1.0")
-    end
+    assert_raise Version.InvalidVersionError, fn -> Version.compare("1.0.0-dev", "1.0") end
 
-    assert_raise Version.InvalidVersionError, fn ->
-      Version.compare("foo", "1.0.0-a")
-    end
+    assert_raise Version.InvalidVersionError, fn -> Version.compare("foo", "1.0.0-a") end
   end
 
   test "lexes specifications properly" do
@@ -99,21 +93,13 @@ defmodule VersionTest do
   end
 
   test "match?/2 with invalid versions" do
-    assert_raise Version.InvalidVersionError, fn ->
-      Version.match?("foo", "2.3.0")
-    end
+    assert_raise Version.InvalidVersionError, fn -> Version.match?("foo", "2.3.0") end
 
-    assert_raise Version.InvalidVersionError, fn ->
-      Version.match?("2.3", "2.3.0")
-    end
+    assert_raise Version.InvalidVersionError, fn -> Version.match?("2.3", "2.3.0") end
 
-    assert_raise Version.InvalidRequirementError, fn ->
-      Version.match?("2.3.0", "foo")
-    end
+    assert_raise Version.InvalidRequirementError, fn -> Version.match?("2.3.0", "foo") end
 
-    assert_raise Version.InvalidRequirementError, fn ->
-      Version.match?("2.3.0", "2.3")
-    end
+    assert_raise Version.InvalidRequirementError, fn -> Version.match?("2.3.0", "2.3") end
   end
 
   test "==" do
@@ -206,9 +192,7 @@ defmodule VersionTest do
 
     refute Version.match?("0.3.0-dev", "~> 0.2.0")
 
-    assert_raise Version.InvalidRequirementError, fn ->
-      Version.match?("3.0.0", "~> 3")
-    end
+    assert_raise Version.InvalidRequirementError, fn -> Version.match?("3.0.0", "~> 3") end
   end
 
   test "allow_pre" do

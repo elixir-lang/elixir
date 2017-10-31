@@ -180,11 +180,8 @@ defmodule Registry do
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
         case safe_lookup_second(key_ets, key) do
-          {pid, _} ->
-            if Process.alive?(pid), do: pid, else: :undefined
-
-          _ ->
-            :undefined
+          {pid, _} -> if Process.alive?(pid), do: pid, else: :undefined
+          _ -> :undefined
         end
 
       {kind, _, _} ->
@@ -405,9 +402,7 @@ defmodule Registry do
         |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
       {:duplicate, 1, key_ets} ->
-        key_ets
-        |> safe_lookup_second(key)
-        |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
+        key_ets |> safe_lookup_second(key) |> apply_non_empty_to_mfa_or_fun(mfa_or_fun)
 
       {:duplicate, partitions, _} ->
         if Keyword.get(opts, :parallel, false) do
@@ -513,11 +508,8 @@ defmodule Registry do
         key_ets = key_ets || key_ets!(registry, key, partitions)
 
         case safe_lookup_second(key_ets, key) do
-          {_, _} = pair ->
-            [pair]
-
-          _ ->
-            []
+          {_, _} = pair -> [pair]
+          _ -> []
         end
 
       {:duplicate, 1, key_ets} ->
@@ -923,8 +915,7 @@ defmodule Registry do
     try do
       :ets.lookup(registry, key)
     catch
-      :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect(registry)}"
+      :error, :badarg -> raise ArgumentError, "unknown registry: #{inspect(registry)}"
     else
       [{^key, value}] -> {:ok, value}
       _ -> :error
@@ -955,8 +946,7 @@ defmodule Registry do
       :ets.insert(registry, {key, value})
       :ok
     catch
-      :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect(registry)}"
+      :error, :badarg -> raise ArgumentError, "unknown registry: #{inspect(registry)}"
     end
   end
 
@@ -972,8 +962,7 @@ defmodule Registry do
     try do
       :ets.lookup_element(registry, @all_info, 2)
     catch
-      :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect(registry)}"
+      :error, :badarg -> raise ArgumentError, "unknown registry: #{inspect(registry)}"
     end
   end
 
@@ -981,8 +970,7 @@ defmodule Registry do
     try do
       :ets.lookup_element(registry, @key_info, 2)
     catch
-      :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect(registry)}"
+      :error, :badarg -> raise ArgumentError, "unknown registry: #{inspect(registry)}"
     end
   end
 

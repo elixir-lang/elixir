@@ -53,10 +53,7 @@ defmodule Mix.Tasks.FormatTest do
       foo bar
       """)
 
-      output =
-        capture_io("foo( )", fn ->
-          Mix.Tasks.Format.run(["a.ex", "-"])
-        end)
+      output = capture_io("foo( )", fn -> Mix.Tasks.Format.run(["a.ex", "-"]) end)
 
       assert output == """
              foo()
@@ -93,15 +90,10 @@ defmodule Mix.Tasks.FormatTest do
 
   test "checks if stdin is formatted with --check-formatted" do
     assert_raise Mix.Error, ~r"mix format failed due to --check-formatted", fn ->
-      capture_io("foo( )", fn ->
-        Mix.Tasks.Format.run(["--check-formatted", "-"])
-      end)
+      capture_io("foo( )", fn -> Mix.Tasks.Format.run(["--check-formatted", "-"]) end)
     end
 
-    output =
-      capture_io("foo()\n", fn ->
-        Mix.Tasks.Format.run(["--check-formatted", "-"])
-      end)
+    output = capture_io("foo()\n", fn -> Mix.Tasks.Format.run(["--check-formatted", "-"]) end)
 
     assert output == ""
   end

@@ -72,11 +72,8 @@ defmodule IEx.Server do
       send(server, {:take, self(), identifier, ref, opts})
 
       receive do
-        {^ref, nil} ->
-          {:error, :refused}
-
-        {^ref, leader} ->
-          IEx.Evaluator.init(:no_ack, server, leader, opts)
+        {^ref, nil} -> {:error, :refused}
+        {^ref, leader} -> IEx.Evaluator.init(:no_ack, server, leader, opts)
       end
     end
   end

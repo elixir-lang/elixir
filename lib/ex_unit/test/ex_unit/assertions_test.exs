@@ -40,8 +40,7 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert false, "This should be true"
     rescue
-      error in [ExUnit.AssertionError] ->
-        "This should be true" = error.message
+      error in [ExUnit.AssertionError] -> "This should be true" = error.message
     end
   end
 
@@ -520,9 +519,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert raise with Erlang error" do
-    assert_raise SyntaxError, fn ->
-      List.flatten(1)
-    end
+    assert_raise SyntaxError, fn -> List.flatten(1) end
   rescue
     error in [ExUnit.AssertionError] ->
       "Expected exception SyntaxError but got FunctionClauseError (no function clause matching in :lists.flatten/1)" =
@@ -530,9 +527,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert raise comparing messages (for equality)" do
-    assert_raise RuntimeError, "foo", fn ->
-      raise RuntimeError, "bar"
-    end
+    assert_raise RuntimeError, "foo", fn -> raise RuntimeError, "bar" end
   rescue
     error in [ExUnit.AssertionError] ->
       """
@@ -545,9 +540,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert raise comparing messages (with a regex)" do
-    assert_raise RuntimeError, ~r/ba[zk]/, fn ->
-      raise RuntimeError, "bar"
-    end
+    assert_raise RuntimeError, ~r/ba[zk]/, fn -> raise RuntimeError, "bar" end
   rescue
     error in [ExUnit.AssertionError] ->
       """
@@ -560,9 +553,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert raise with an exception with bad message/1 implementation" do
-    assert_raise BrokenError, fn ->
-      raise BrokenError
-    end
+    assert_raise BrokenError, fn -> raise BrokenError end
   rescue
     error in [ExUnit.AssertionError] ->
       """
@@ -606,8 +597,7 @@ defmodule ExUnit.AssertionsTest do
   test "assert operator with custom message" do
     "This should never be tested" = assert 1 > 2, "assertion"
   rescue
-    error in [ExUnit.AssertionError] ->
-      "assertion" = error.message
+    error in [ExUnit.AssertionError] -> "assertion" = error.message
   end
 
   test "assert lack of equality" do
@@ -653,9 +643,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert in delta raises when passing a negative delta" do
-    assert_raise ArgumentError, fn ->
-      assert_in_delta(1.1, 1.2, -0.2)
-    end
+    assert_raise ArgumentError, fn -> assert_in_delta(1.1, 1.2, -0.2) end
   end
 
   test "assert in delta error" do
@@ -668,8 +656,7 @@ defmodule ExUnit.AssertionsTest do
   test "assert in delta with message" do
     "This should never be tested" = assert_in_delta(10, 12, 1, "test message")
   rescue
-    error in [ExUnit.AssertionError] ->
-      "test message" = error.message
+    error in [ExUnit.AssertionError] -> "test message" = error.message
   end
 
   test "refute in delta" do
@@ -693,22 +680,19 @@ defmodule ExUnit.AssertionsTest do
   test "catch_throw with no throw" do
     catch_throw(1)
   rescue
-    error in [ExUnit.AssertionError] ->
-      "Expected to catch throw, got nothing" = error.message
+    error in [ExUnit.AssertionError] -> "Expected to catch throw, got nothing" = error.message
   end
 
   test "catch_error with no error" do
     catch_error(1)
   rescue
-    error in [ExUnit.AssertionError] ->
-      "Expected to catch error, got nothing" = error.message
+    error in [ExUnit.AssertionError] -> "Expected to catch error, got nothing" = error.message
   end
 
   test "catch_exit with no exit" do
     catch_exit(1)
   rescue
-    error in [ExUnit.AssertionError] ->
-      "Expected to catch exit, got nothing" = error.message
+    error in [ExUnit.AssertionError] -> "Expected to catch exit, got nothing" = error.message
   end
 
   test "catch_throw with throw" do
@@ -726,15 +710,13 @@ defmodule ExUnit.AssertionsTest do
   test "flunk" do
     "This should never be tested" = flunk()
   rescue
-    error in [ExUnit.AssertionError] ->
-      "Flunked!" = error.message
+    error in [ExUnit.AssertionError] -> "Flunked!" = error.message
   end
 
   test "flunk with message" do
     "This should never be tested" = flunk("This should raise an error")
   rescue
-    error in [ExUnit.AssertionError] ->
-      "This should raise an error" = error.message
+    error in [ExUnit.AssertionError] -> "This should raise an error" = error.message
   end
 
   test "flunk with wrong argument type" do

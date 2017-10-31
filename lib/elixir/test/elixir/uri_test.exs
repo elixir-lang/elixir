@@ -23,23 +23,24 @@ defmodule URITest do
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
 
-    assert_raise ArgumentError, fn ->
-      URI.encode_query([{"foo", 'bar'}])
-    end
+    assert_raise ArgumentError, fn -> URI.encode_query([{"foo", 'bar'}]) end
 
-    assert_raise ArgumentError, fn ->
-      URI.encode_query([{'foo', "bar"}])
-    end
+    assert_raise ArgumentError, fn -> URI.encode_query([{'foo', "bar"}]) end
   end
 
   test "decode_query/1,2" do
     assert URI.decode_query("", %{}) == %{}
 
-    assert URI.decode_query("safe=off", %{"cookie" => "foo"}) ==
-             %{"safe" => "off", "cookie" => "foo"}
+    assert URI.decode_query("safe=off", %{"cookie" => "foo"}) == %{
+             "safe" => "off",
+             "cookie" => "foo"
+           }
 
-    assert URI.decode_query("q=search%20query&cookie=ab%26cd&block+buster=") ==
-             %{"block buster" => "", "cookie" => "ab&cd", "q" => "search query"}
+    assert URI.decode_query("q=search%20query&cookie=ab%26cd&block+buster=") == %{
+             "block buster" => "",
+             "cookie" => "ab&cd",
+             "q" => "search query"
+           }
 
     assert URI.decode_query("something=weird%3Dhappening") == %{"something" => "weird=happening"}
 
@@ -59,22 +60,16 @@ defmodule URITest do
     assert URI.decode("%2f%41%4a%55") == "/AJU"
     assert URI.decode("4_t+st.is-s~") == "4_t+st.is-s~"
 
-    assert_raise ArgumentError, ~R/malformed URI/, fn ->
-      URI.decode("% invalid")
-    end
+    assert_raise ArgumentError, ~R/malformed URI/, fn -> URI.decode("% invalid") end
 
-    assert_raise ArgumentError, ~R/malformed URI/, fn ->
-      URI.decode("invalid%")
-    end
+    assert_raise ArgumentError, ~R/malformed URI/, fn -> URI.decode("invalid%") end
   end
 
   test "decode_www_form/1" do
     assert URI.decode_www_form("%3Eval+ue%2B") == ">val ue+"
     assert URI.decode_www_form("%E3%82%86+") == "ゆ "
 
-    assert_raise ArgumentError, fn ->
-      URI.decode_www_form("%ZZ")
-    end
+    assert_raise ArgumentError, fn -> URI.decode_www_form("%ZZ") end
   end
 
   describe "parse/1" do
@@ -348,23 +343,23 @@ defmodule URITest do
       URI.merge("/relative", "")
     end
 
-    assert URI.merge("http://google.com/foo", "http://example.com/baz")
-           |> to_string == "http://example.com/baz"
+    assert URI.merge("http://google.com/foo", "http://example.com/baz") |> to_string ==
+             "http://example.com/baz"
 
     assert URI.merge("http://google.com/foo", "http://example.com/.././bar/../../baz")
            |> to_string == "http://example.com/baz"
 
-    assert URI.merge("http://google.com/foo", "//example.com/baz")
-           |> to_string == "http://example.com/baz"
+    assert URI.merge("http://google.com/foo", "//example.com/baz") |> to_string ==
+             "http://example.com/baz"
 
-    assert URI.merge("http://google.com/foo", "//example.com/.././bar/../../../baz")
-           |> to_string == "http://example.com/baz"
+    assert URI.merge("http://google.com/foo", "//example.com/.././bar/../../../baz") |> to_string ==
+             "http://example.com/baz"
 
-    assert URI.merge("http://example.com", URI.parse("/foo"))
-           |> to_string == "http://example.com/foo"
+    assert URI.merge("http://example.com", URI.parse("/foo")) |> to_string ==
+             "http://example.com/foo"
 
-    assert URI.merge("http://example.com", URI.parse("/.././bar/../../../baz"))
-           |> to_string == "http://example.com/baz"
+    assert URI.merge("http://example.com", URI.parse("/.././bar/../../../baz")) |> to_string ==
+             "http://example.com/baz"
 
     base = URI.parse("http://example.com/foo/bar")
     assert URI.merge(base, "") |> to_string == "http://example.com/foo/bar"
@@ -372,8 +367,8 @@ defmodule URITest do
     assert URI.merge(base, "?query") |> to_string == "http://example.com/foo/bar?query"
     assert URI.merge(base, %URI{path: ""}) |> to_string == "http://example.com/foo/bar"
 
-    assert URI.merge(base, %URI{path: "", fragment: "fragment"})
-           |> to_string == "http://example.com/foo/bar#fragment"
+    assert URI.merge(base, %URI{path: "", fragment: "fragment"}) |> to_string ==
+             "http://example.com/foo/bar#fragment"
 
     base = URI.parse("http://example.com")
     assert URI.merge(base, "/foo") |> to_string == "http://example.com/foo"

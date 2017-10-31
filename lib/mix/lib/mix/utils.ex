@@ -141,9 +141,7 @@ defmodule Mix.Utils do
   defp stale_stream(sources, targets) do
     modified_target = targets |> Enum.map(&last_modified/1) |> Enum.min()
 
-    Stream.filter(sources, fn source ->
-      last_modified(source) > modified_target
-    end)
+    Stream.filter(sources, fn source -> last_modified(source) > modified_target end)
   end
 
   @doc """
@@ -389,10 +387,7 @@ defmodule Mix.Utils do
 
   """
   def command_to_module_name(command) do
-    command
-    |> to_string()
-    |> String.split(".")
-    |> Enum.map_join(".", &Macro.camelize/1)
+    command |> to_string() |> String.split(".") |> Enum.map_join(".", &Macro.camelize/1)
   end
 
   @doc """
@@ -485,14 +480,9 @@ defmodule Mix.Utils do
           | {:checksum, String.t()}
   def read_path(path, opts \\ []) do
     cond do
-      url?(path) ->
-        read_httpc(path) |> checksum(opts)
-
-      file?(path) ->
-        read_file(path) |> checksum(opts)
-
-      true ->
-        :badpath
+      url?(path) -> read_httpc(path) |> checksum(opts)
+      file?(path) -> read_file(path) |> checksum(opts)
+      true -> :badpath
     end
   end
 
@@ -609,9 +599,7 @@ defmodule Mix.Utils do
   end
 
   defp no_proxy_list(no_proxy) do
-    no_proxy
-    |> String.split(",")
-    |> Enum.map(&String.to_charlist/1)
+    no_proxy |> String.split(",") |> Enum.map(&String.to_charlist/1)
   end
 
   defp proxy_setup(scheme, proxy, no_proxy) do

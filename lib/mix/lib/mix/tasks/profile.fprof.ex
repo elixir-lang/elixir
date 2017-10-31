@@ -143,9 +143,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     content =
       quote do
         unquote(__MODULE__).profile(
-          fn ->
-            unquote(Code.string_to_quoted!(code_string))
-          end,
+          fn -> unquote(Code.string_to_quoted!(code_string)) end,
           unquote(opts)
         )
       end
@@ -156,9 +154,7 @@ defmodule Mix.Tasks.Profile.Fprof do
 
   @doc false
   def profile(fun, opts) do
-    fun
-    |> profile_and_analyse(opts)
-    |> print_output
+    fun |> profile_and_analyse(opts) |> print_output
   end
 
   defp profile_and_analyse(fun, opts) do
@@ -200,8 +196,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     {total_row, analysis_output} = next_term(analysis_output)
     print_total_row(total_row)
 
-    Stream.unfold(analysis_output, &next_term/1)
-    |> Enum.each(&print_analysis_result/1)
+    Stream.unfold(analysis_output, &next_term/1) |> Enum.each(&print_analysis_result/1)
   end
 
   defp next_term(charlist) do

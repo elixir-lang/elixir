@@ -185,9 +185,7 @@ defmodule MacroTest do
     defp expand_once_and_clean(quoted, env) do
       cleaner = &Keyword.drop(&1, [:counter])
 
-      quoted
-      |> Macro.expand_once(env)
-      |> Macro.prewalk(&Macro.update_meta(&1, cleaner))
+      quoted |> Macro.expand_once(env) |> Macro.prewalk(&Macro.update_meta(&1, cleaner))
     end
 
     test "with imported macro" do
@@ -228,18 +226,14 @@ defmodule MacroTest do
         "could not call get_attribute with argument #{inspect(__MODULE__)} " <>
           "because the module is already compiled"
 
-      assert_raise ArgumentError, message, fn ->
-        Macro.expand_once(quote(do: @foo), __ENV__)
-      end
+      assert_raise ArgumentError, message, fn -> Macro.expand_once(quote(do: @foo), __ENV__) end
     end
   end
 
   defp expand_and_clean(quoted, env) do
     cleaner = &Keyword.drop(&1, [:counter])
 
-    quoted
-    |> Macro.expand(env)
-    |> Macro.prewalk(&Macro.update_meta(&1, cleaner))
+    quoted |> Macro.expand(env) |> Macro.prewalk(&Macro.update_meta(&1, cleaner))
   end
 
   test "expand/2" do
@@ -670,16 +664,18 @@ defmodule MacroTest do
     test "stacktrace" do
       env = %{__ENV__ | file: "foo", line: 12}
 
-      assert Macro.Env.stacktrace(env) ==
-               [{__MODULE__, :"test env stacktrace", 1, [file: "foo", line: 12]}]
+      assert Macro.Env.stacktrace(env) == [
+               {__MODULE__, :"test env stacktrace", 1, [file: "foo", line: 12]}
+             ]
 
       env = %{env | function: nil}
       assert Macro.Env.stacktrace(env) == [{__MODULE__, :__MODULE__, 0, [file: "foo", line: 12]}]
 
       env = %{env | module: nil}
 
-      assert Macro.Env.stacktrace(env) ==
-               [{:elixir_compiler, :__FILE__, 1, [file: "foo", line: 12]}]
+      assert Macro.Env.stacktrace(env) == [
+               {:elixir_compiler, :__FILE__, 1, [file: "foo", line: 12]}
+             ]
     end
 
     test "context modules" do
@@ -697,13 +693,9 @@ defmodule MacroTest do
     assert Macro.pipe(1, quote(do: foo), -1) == quote(do: foo(1))
     assert Macro.pipe(2, quote(do: foo(1)), -1) == quote(do: foo(1, 2))
 
-    assert_raise ArgumentError, ~r"cannot pipe 1 into 2", fn ->
-      Macro.pipe(1, 2, 0)
-    end
+    assert_raise ArgumentError, ~r"cannot pipe 1 into 2", fn -> Macro.pipe(1, 2, 0) end
 
-    assert_raise ArgumentError, ~r"cannot pipe 1 into {:ok}", fn ->
-      Macro.pipe(1, {:ok}, 0)
-    end
+    assert_raise ArgumentError, ~r"cannot pipe 1 into {:ok}", fn -> Macro.pipe(1, {:ok}, 0) end
 
     assert_raise ArgumentError, ~r"cannot pipe 1 into 1 \+ 1", fn ->
       Macro.pipe(1, quote(do: 1 + 1), 0) == quote(do: foo(1))
@@ -720,9 +712,7 @@ defmodule MacroTest do
 
     message = ~r"cannot pipe :foo into an anonymous function without calling"
 
-    assert_raise ArgumentError, message, fn ->
-      Macro.pipe(:foo, quote(do: fn x -> x end), 0)
-    end
+    assert_raise ArgumentError, message, fn -> Macro.pipe(:foo, quote(do: fn x -> x end), 0) end
   end
 
   test "unpipe/1" do
@@ -736,48 +726,54 @@ defmodule MacroTest do
   test "traverse/4" do
     assert traverse({:foo, [], nil}) == [{:foo, [], nil}, {:foo, [], nil}]
 
-    assert traverse({:foo, [], [1, 2, 3]}) ==
-             [{:foo, [], [1, 2, 3]}, 1, 1, 2, 2, 3, 3, {:foo, [], [1, 2, 3]}]
+    assert traverse({:foo, [], [1, 2, 3]}) == [
+             {:foo, [], [1, 2, 3]},
+             1,
+             1,
+             2,
+             2,
+             3,
+             3,
+             {:foo, [], [1, 2, 3]}
+           ]
 
-    assert traverse({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
-             [
-               {{:., [], [:foo, :bar]}, [], [1, 2, 3]},
-               {:., [], [:foo, :bar]},
-               :foo,
-               :foo,
-               :bar,
-               :bar,
-               {:., [], [:foo, :bar]},
-               1,
-               1,
-               2,
-               2,
-               3,
-               3,
-               {{:., [], [:foo, :bar]}, [], [1, 2, 3]}
-             ]
+    assert traverse({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) == [
+             {{:., [], [:foo, :bar]}, [], [1, 2, 3]},
+             {:., [], [:foo, :bar]},
+             :foo,
+             :foo,
+             :bar,
+             :bar,
+             {:., [], [:foo, :bar]},
+             1,
+             1,
+             2,
+             2,
+             3,
+             3,
+             {{:., [], [:foo, :bar]}, [], [1, 2, 3]}
+           ]
 
-    assert traverse({[1, 2, 3], [4, 5, 6]}) ==
-             [
-               {[1, 2, 3], [4, 5, 6]},
-               [1, 2, 3],
-               1,
-               1,
-               2,
-               2,
-               3,
-               3,
-               [1, 2, 3],
-               [4, 5, 6],
-               4,
-               4,
-               5,
-               5,
-               6,
-               6,
-               [4, 5, 6],
-               {[1, 2, 3], [4, 5, 6]}
-             ]
+    assert traverse({[1, 2, 3], [4, 5, 6]}) == [
+             {[1, 2, 3], [4, 5, 6]},
+             [1, 2, 3],
+             1,
+             1,
+             2,
+             2,
+             3,
+             3,
+             [1, 2, 3],
+             [4, 5, 6],
+             4,
+             4,
+             5,
+             5,
+             6,
+             6,
+             [4, 5, 6],
+             {[1, 2, 3], [4, 5, 6]}
+           ]
   end
 
   defp traverse(ast) do
@@ -789,19 +785,27 @@ defmodule MacroTest do
 
     assert prewalk({:foo, [], [1, 2, 3]}) == [{:foo, [], [1, 2, 3]}, 1, 2, 3]
 
-    assert prewalk({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
-             [
-               {{:., [], [:foo, :bar]}, [], [1, 2, 3]},
-               {:., [], [:foo, :bar]},
-               :foo,
-               :bar,
-               1,
-               2,
-               3
-             ]
+    assert prewalk({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) == [
+             {{:., [], [:foo, :bar]}, [], [1, 2, 3]},
+             {:., [], [:foo, :bar]},
+             :foo,
+             :bar,
+             1,
+             2,
+             3
+           ]
 
-    assert prewalk({[1, 2, 3], [4, 5, 6]}) ==
-             [{[1, 2, 3], [4, 5, 6]}, [1, 2, 3], 1, 2, 3, [4, 5, 6], 4, 5, 6]
+    assert prewalk({[1, 2, 3], [4, 5, 6]}) == [
+             {[1, 2, 3], [4, 5, 6]},
+             [1, 2, 3],
+             1,
+             2,
+             3,
+             [4, 5, 6],
+             4,
+             5,
+             6
+           ]
   end
 
   defp prewalk(ast) do
@@ -813,19 +817,27 @@ defmodule MacroTest do
 
     assert postwalk({:foo, [], [1, 2, 3]}) == [1, 2, 3, {:foo, [], [1, 2, 3]}]
 
-    assert postwalk({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
-             [
-               :foo,
-               :bar,
-               {:., [], [:foo, :bar]},
-               1,
-               2,
-               3,
-               {{:., [], [:foo, :bar]}, [], [1, 2, 3]}
-             ]
+    assert postwalk({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) == [
+             :foo,
+             :bar,
+             {:., [], [:foo, :bar]},
+             1,
+             2,
+             3,
+             {{:., [], [:foo, :bar]}, [], [1, 2, 3]}
+           ]
 
-    assert postwalk({[1, 2, 3], [4, 5, 6]}) ==
-             [1, 2, 3, [1, 2, 3], 4, 5, 6, [4, 5, 6], {[1, 2, 3], [4, 5, 6]}]
+    assert postwalk({[1, 2, 3], [4, 5, 6]}) == [
+             1,
+             2,
+             3,
+             [1, 2, 3],
+             4,
+             5,
+             6,
+             [4, 5, 6],
+             {[1, 2, 3], [4, 5, 6]}
+           ]
   end
 
   test "generate_arguments/2" do

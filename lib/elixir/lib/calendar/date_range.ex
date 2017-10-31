@@ -53,11 +53,7 @@ defmodule Date.Range do
     end
 
     def slice(range) do
-      %{
-        first_in_iso_days: first,
-        last_in_iso_days: last,
-        first: %{calendar: calendar}
-      } = range
+      %{first_in_iso_days: first, last_in_iso_days: last, first: %{calendar: calendar}} = range
 
       if first <= last do
         {:ok, last - first + 1, &slice_asc(first + &1, &2, calendar)}

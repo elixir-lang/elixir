@@ -141,10 +141,7 @@ defmodule Agent do
 
   @doc false
   def child_spec(arg) do
-    %{
-      id: Agent,
-      start: {Agent, :start_link, [arg]}
-    }
+    %{id: Agent, start: {Agent, :start_link, [arg]}}
   end
 
   @doc false
@@ -154,10 +151,7 @@ defmodule Agent do
 
       @doc false
       def child_spec(arg) do
-        default = %{
-          id: __MODULE__,
-          start: {__MODULE__, :start_link, [arg]}
-        }
+        default = %{id: __MODULE__, start: {__MODULE__, :start_link, [arg]}}
 
         Supervisor.child_spec(default, @opts)
       end

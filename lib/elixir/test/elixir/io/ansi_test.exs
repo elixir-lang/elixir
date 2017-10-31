@@ -105,13 +105,9 @@ defmodule IO.ANSITest do
     assert IO.ANSI.color(42) == "\e[38;5;42m"
     assert IO.ANSI.color(255) == "\e[38;5;255m"
 
-    assert_raise FunctionClauseError, fn ->
-      IO.ANSI.color(-1)
-    end
+    assert_raise FunctionClauseError, fn -> IO.ANSI.color(-1) end
 
-    assert_raise FunctionClauseError, fn ->
-      IO.ANSI.color(256)
-    end
+    assert_raise FunctionClauseError, fn -> IO.ANSI.color(256) end
   end
 
   test "color/3" do
@@ -119,13 +115,9 @@ defmodule IO.ANSITest do
     assert IO.ANSI.color(1, 1, 1) == "\e[38;5;59m"
     assert IO.ANSI.color(5, 5, 5) == "\e[38;5;231m"
 
-    assert_raise FunctionClauseError, fn ->
-      IO.ANSI.color(0, 6, 1)
-    end
+    assert_raise FunctionClauseError, fn -> IO.ANSI.color(0, 6, 1) end
 
-    assert_raise FunctionClauseError, fn ->
-      IO.ANSI.color(5, -1, 1)
-    end
+    assert_raise FunctionClauseError, fn -> IO.ANSI.color(5, -1, 1) end
   end
 
   test "color_background/1" do
@@ -133,13 +125,9 @@ defmodule IO.ANSITest do
     assert IO.ANSI.color_background(42) == "\e[48;5;42m"
     assert IO.ANSI.color_background(255) == "\e[48;5;255m"
 
-    assert_raise FunctionClauseError, fn ->
-      IO.ANSI.color_background(-1)
-    end
+    assert_raise FunctionClauseError, fn -> IO.ANSI.color_background(-1) end
 
-    assert_raise FunctionClauseError, fn ->
-      IO.ANSI.color_background(256)
-    end
+    assert_raise FunctionClauseError, fn -> IO.ANSI.color_background(256) end
   end
 
   test "color_background/3" do
@@ -147,12 +135,8 @@ defmodule IO.ANSITest do
     assert IO.ANSI.color_background(1, 1, 1) == "\e[48;5;59m"
     assert IO.ANSI.color_background(5, 5, 5) == "\e[48;5;231m"
 
-    assert_raise FunctionClauseError, fn ->
-      IO.ANSI.color_background(0, 6, 1)
-    end
+    assert_raise FunctionClauseError, fn -> IO.ANSI.color_background(0, 6, 1) end
 
-    assert_raise FunctionClauseError, fn ->
-      IO.ANSI.color_background(5, -1, 1)
-    end
+    assert_raise FunctionClauseError, fn -> IO.ANSI.color_background(5, -1, 1) end
   end
 end

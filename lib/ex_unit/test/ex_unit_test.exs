@@ -20,9 +20,8 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 2, skipped: 0, total: 2}
-           end) =~ "2 tests, 2 failures"
+    assert capture_io(fn -> assert ExUnit.run() == %{failures: 2, skipped: 0, total: 2} end) =~
+             "2 tests, 2 failures"
   end
 
   test "doesn't hang on exits" do
@@ -30,9 +29,7 @@ defmodule ExUnitTest do
       use ExUnit.Case
 
       test "spawn and crash" do
-        spawn_link(fn ->
-          exit(:foo)
-        end)
+        spawn_link(fn -> exit(:foo) end)
 
         receive after: (1000 -> :ok)
       end
@@ -40,9 +37,8 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
-           end) =~ "1 test, 1 failure"
+    assert capture_io(fn -> assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1} end) =~
+             "1 test, 1 failure"
   end
 
   test "supports timeouts" do
@@ -227,16 +223,14 @@ defmodule ExUnitTest do
             try do
               assert 1 = 2
             rescue
-              e in ExUnit.AssertionError ->
-                {:error, e, System.stacktrace()}
+              e in ExUnit.AssertionError -> {:error, e, System.stacktrace()}
             end
 
           error2 =
             try do
               assert 3 > 4
             rescue
-              e in ExUnit.AssertionError ->
-                {:error, e, System.stacktrace()}
+              e in ExUnit.AssertionError -> {:error, e, System.stacktrace()}
             end
 
           raise ExUnit.MultiError, errors: [error1, error2]
@@ -246,10 +240,7 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output =
-      capture_io(fn ->
-        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
-      end)
+    output = capture_io(fn -> assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1} end)
 
     assert output =~ "1 test, 1 failure"
     assert output =~ "1) test multi (ExUnitTest.MultiTest)"
@@ -294,10 +285,7 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output =
-      capture_io(fn ->
-        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
-      end)
+    output = capture_io(fn -> assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1} end)
 
     assert output =~ "Not implemented"
     assert output =~ "1 test, 1 failure"
@@ -321,10 +309,7 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output =
-      capture_io(fn ->
-        assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2}
-      end)
+    output = capture_io(fn -> assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2} end)
 
     assert output =~ "2 tests, 0 failures, 2 skipped"
   end
@@ -389,10 +374,7 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output =
-      capture_io(fn ->
-        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
-      end)
+    output = capture_io(fn -> assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1} end)
 
     assert output =~ "trying to set reserved field :file"
   end
@@ -410,10 +392,7 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output =
-      capture_io(fn ->
-        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
-      end)
+    output = capture_io(fn -> assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1} end)
 
     assert output =~ "trying to set reserved field :async"
   end
@@ -431,9 +410,7 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    capture_io(fn ->
-      assert ExUnit.run() == %{failures: 0, skipped: 0, total: 1}
-    end)
+    capture_io(fn -> assert ExUnit.run() == %{failures: 0, skipped: 0, total: 1} end)
   end
 
   test "seed is predictable and different for each test" do
@@ -462,9 +439,8 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 0, skipped: 0, total: 3}
-           end) =~ "3 tests, 0 failures"
+    assert capture_io(fn -> assert ExUnit.run() == %{failures: 0, skipped: 0, total: 3} end) =~
+             "3 tests, 0 failures"
 
     ExUnit.configure(seed: global_seed)
   end

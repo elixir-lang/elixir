@@ -27,10 +27,7 @@ defmodule Mix.SCM.Git do
   end
 
   def accepts_options(_app, opts) do
-    opts =
-      opts
-      |> Keyword.put(:checkout, opts[:dest])
-      |> sparse_opts()
+    opts = opts |> Keyword.put(:checkout, opts[:dest]) |> sparse_opts()
 
     cond do
       gh = opts[:github] ->
@@ -40,8 +37,7 @@ defmodule Mix.SCM.Git do
         |> validate_git_options
 
       opts[:git] ->
-        opts
-        |> validate_git_options
+        opts |> validate_git_options
 
       true ->
         nil
@@ -50,9 +46,7 @@ defmodule Mix.SCM.Git do
 
   def checked_out?(opts) do
     # Are we inside a Git repository?
-    opts[:checkout]
-    |> Path.join(".git/HEAD")
-    |> File.regular?()
+    opts[:checkout] |> Path.join(".git/HEAD") |> File.regular?()
   end
 
   def lock_status(opts) do
@@ -285,10 +279,7 @@ defmodule Mix.SCM.Git do
         version
 
       :error ->
-        version =
-          ["--version"]
-          |> git!("")
-          |> parse_version
+        version = ["--version"] |> git!("") |> parse_version
 
         Mix.State.put(:git_version, version)
         version
@@ -296,11 +287,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp parse_version("git version " <> version) do
-    version
-    |> String.split(".")
-    |> Enum.take(3)
-    |> Enum.map(&to_integer/1)
-    |> List.to_tuple()
+    version |> String.split(".") |> Enum.take(3) |> Enum.map(&to_integer/1) |> List.to_tuple()
   end
 
   defp to_integer(string) do

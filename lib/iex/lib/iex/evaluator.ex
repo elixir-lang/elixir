@@ -308,13 +308,8 @@ defmodule IEx.Evaluator do
 
   defp blame_ansi(color, no_ansi, node) do
     case IEx.Config.color(color) do
-      nil ->
-        no_ansi <> Macro.to_string(node) <> no_ansi
-
-      ansi ->
-        [ansi | Macro.to_string(node)]
-        |> IO.ANSI.format(true)
-        |> IO.iodata_to_binary()
+      nil -> no_ansi <> Macro.to_string(node) <> no_ansi
+      ansi -> [ansi | Macro.to_string(node)] |> IO.ANSI.format(true) |> IO.iodata_to_binary()
     end
   end
 

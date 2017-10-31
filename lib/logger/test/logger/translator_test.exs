@@ -81,9 +81,7 @@ defmodule Logger.TranslatorTest do
   test "translates GenServer crashes" do
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
-    assert capture_log(:info, fn ->
-             catch_exit(GenServer.call(pid, :error))
-           end) =~ """
+    assert capture_log(:info, fn -> catch_exit(GenServer.call(pid, :error)) end) =~ """
            [error] GenServer #{inspect(pid)} terminating
            ** (RuntimeError) oops
            """
@@ -93,9 +91,7 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = GenServer.start(MyGenServer, List.duplicate(:ok, 1000))
     Application.put_env(:logger, :translator_inspect_opts, limit: 3)
 
-    assert capture_log(:debug, fn ->
-             catch_exit(GenServer.call(pid, :error))
-           end) =~ """
+    assert capture_log(:debug, fn -> catch_exit(GenServer.call(pid, :error)) end) =~ """
            [:ok, :ok, :ok, ...]
            """
   after
@@ -107,9 +103,7 @@ defmodule Logger.TranslatorTest do
     test "translates GenServer crashes on debug" do
       {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
-      assert capture_log(:debug, fn ->
-               catch_exit(GenServer.call(pid, :error))
-             end) =~ ~r"""
+      assert capture_log(:debug, fn -> catch_exit(GenServer.call(pid, :error)) end) =~ ~r"""
              \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
              \*\* \(RuntimeError\) oops
              .*
@@ -143,9 +137,7 @@ defmodule Logger.TranslatorTest do
       assert capture_log(:debug, fn ->
                mon = Process.monitor(pid)
 
-               spawn_link(fn ->
-                 catch_exit(GenServer.call(pid, :error_on_down, 0))
-               end)
+               spawn_link(fn -> catch_exit(GenServer.call(pid, :error_on_down, 0)) end)
 
                assert_receive {:DOWN, ^mon, _, _, _}
              end) =~ ~r"""
@@ -161,9 +153,7 @@ defmodule Logger.TranslatorTest do
     test "translates GenServer crashes on debug" do
       {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
-      assert capture_log(:debug, fn ->
-               catch_exit(GenServer.call(pid, :error))
-             end) =~ ~r"""
+      assert capture_log(:debug, fn -> catch_exit(GenServer.call(pid, :error)) end) =~ ~r"""
              \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
              \*\* \(RuntimeError\) oops
              .*
@@ -203,9 +193,7 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = :gen_event.start()
     :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
 
-    assert capture_log(:info, fn ->
-             :gen_event.call(pid, MyGenEvent, :error)
-           end) =~ """
+    assert capture_log(:info, fn -> :gen_event.call(pid, MyGenEvent, :error) end) =~ """
            [error] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #{inspect(pid)} terminating
            ** (RuntimeError) oops
            """
@@ -215,9 +203,7 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = :gen_event.start()
     :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
 
-    assert capture_log(:debug, fn ->
-             :gen_event.call(pid, MyGenEvent, :error)
-           end) =~ ~r"""
+    assert capture_log(:debug, fn -> :gen_event.call(pid, MyGenEvent, :error) end) =~ ~r"""
            \[error\] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
            \*\* \(RuntimeError\) oops
            .*
@@ -291,8 +277,7 @@ defmodule Logger.TranslatorTest do
                try do
                  :erlang.error(:foo)
                rescue
-                 x ->
-                   x
+                 x -> x
                end
 
              {:ok, pid} = Task.start(:erlang, :error, [exception])
@@ -746,11 +731,8 @@ defmodule Logger.TranslatorTest do
     Process.unlink(parent)
 
     receive do
-      :go ->
-        fun.()
-
-      {:DOWN, ^mon, _, _, _} ->
-        exit(:shutdown)
+      :go -> fun.()
+      {:DOWN, ^mon, _, _, _} -> exit(:shutdown)
     end
   end
 
@@ -761,11 +743,8 @@ defmodule Logger.TranslatorTest do
     receive do: (:sleeping -> :ok)
 
     receive do
-      :go ->
-        fun.(pid)
-
-      {:DOWN, ^mon, _, _, _} ->
-        exit(:shutdown)
+      :go -> fun.(pid)
+      {:DOWN, ^mon, _, _, _} -> exit(:shutdown)
     end
   end
 

@@ -166,14 +166,9 @@ defmodule HashDict do
 
       {k, v, n} ->
         case do_delete(n, key, key_shift(hash)) do
-          {@node_template, value} ->
-            {put_elem(node, index, [k | v]), value}
-
-          {n, value} ->
-            {put_elem(node, index, {k, v, n}), value}
-
-          :error ->
-            :error
+          {@node_template, value} -> {put_elem(node, index, [k | v]), value}
+          {n, value} -> {put_elem(node, index, {k, v, n}), value}
+          :error -> :error
         end
     end
   end

@@ -1950,11 +1950,8 @@ defmodule Kernel do
 
   def struct!(struct, fields) when is_map(struct) do
     struct(struct, fields, fn
-      {:__struct__, _}, acc ->
-        acc
-
-      {key, val}, acc ->
-        Map.replace!(acc, key, val)
+      {:__struct__, _}, acc -> acc
+      {key, val}, acc -> Map.replace!(acc, key, val)
     end)
   end
 
@@ -2463,9 +2460,7 @@ defmodule Kernel do
        when :erlang.element(1, expr) == :__MODULE__,
        do: true
 
-  defp proper_start?({atom, _, _args})
-       when is_atom(atom),
-       do: true
+  defp proper_start?({atom, _, _args}) when is_atom(atom), do: true
 
   defp proper_start?(other), do: not is_tuple(other)
 
@@ -2564,11 +2559,8 @@ defmodule Kernel do
   defmacro match?(pattern, expr) do
     quote do
       case unquote(expr) do
-        unquote(pattern) ->
-          true
-
-        _ ->
-          false
+        unquote(pattern) -> true
+        _ -> false
       end
     end
   end
@@ -2962,11 +2954,8 @@ defmodule Kernel do
 
   defmacro first..last do
     case __CALLER__.context do
-      nil ->
-        quote(do: Elixir.Range.new(unquote(first), unquote(last)))
-
-      _ ->
-        {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+      nil -> quote(do: Elixir.Range.new(unquote(first), unquote(last)))
+      _ -> {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
     end
   end
 
@@ -2998,11 +2987,8 @@ defmodule Kernel do
   defmacro left && right do
     quote do
       case unquote(left) do
-        x when x in [false, nil] ->
-          x
-
-        _ ->
-          unquote(right)
+        x when x in [false, nil] -> x
+        _ -> unquote(right)
       end
     end
   end
@@ -3034,11 +3020,8 @@ defmodule Kernel do
   defmacro left || right do
     quote do
       case unquote(left) do
-        x when x in [false, nil] ->
-          unquote(right)
-
-        x ->
-          x
+        x when x in [false, nil] -> unquote(right)
+        x -> x
       end
     end
   end
@@ -4034,9 +4017,7 @@ defmodule Kernel do
             case @enforce_keys do
               [] ->
                 def __struct__(kv) do
-                  Enum.reduce(kv, @struct, fn {key, val}, map ->
-                    Map.replace!(map, key, val)
-                  end)
+                  Enum.reduce(kv, @struct, fn {key, val}, map -> Map.replace!(map, key, val) end)
                 end
 
               _ ->
@@ -4588,14 +4569,9 @@ defmodule Kernel do
     base = Macro.expand(base, env)
 
     Enum.map(refs, fn
-      {:__aliases__, _, ref} ->
-        Module.concat([base | ref])
-
-      ref when is_atom(ref) ->
-        Module.concat(base, ref)
-
-      other ->
-        other
+      {:__aliases__, _, ref} -> Module.concat([base | ref])
+      ref when is_atom(ref) -> Module.concat(base, ref)
+      other -> other
     end)
   end
 
@@ -4947,8 +4923,7 @@ defmodule Kernel do
     split_words(string, [?s])
   end
 
-  defp split_words(string, [mod])
-       when mod == ?s or mod == ?a or mod == ?c do
+  defp split_words(string, [mod]) when mod == ?s or mod == ?a or mod == ?c do
     case is_binary(string) do
       true ->
         parts = String.split(string)

@@ -478,9 +478,7 @@ defmodule ExUnit.Case do
     test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)
 
-    Enum.each(registered_attributes, fn attribute ->
-      Module.delete_attribute(mod, attribute)
-    end)
+    Enum.each(registered_attributes, fn attribute -> Module.delete_attribute(mod, attribute) end)
 
     name
   end

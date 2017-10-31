@@ -25,10 +25,7 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "solves dependencies between structs" do
-      fixtures = [
-        fixture_path("parallel_struct/bar.ex"),
-        fixture_path("parallel_struct/foo.ex")
-      ]
+      fixtures = [fixture_path("parallel_struct/bar.ex"), fixture_path("parallel_struct/foo.ex")]
 
       assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
       assert [BarStruct, FooStruct] = Enum.sort(modules)

@@ -208,11 +208,7 @@ defmodule Task.Supervised do
   # All spawned, all delivered, next is :done.
   defp stream_reduce({:cont, acc}, _max, spawned, delivered, _waiting, next, config)
        when spawned == delivered and next == :done do
-    %{
-      monitor_pid: monitor_pid,
-      monitor_ref: monitor_ref,
-      timeout: timeout
-    } = config
+    %{monitor_pid: monitor_pid, monitor_ref: monitor_ref, timeout: timeout} = config
 
     stream_close(monitor_pid, monitor_ref, timeout)
     {:done, acc}
@@ -245,8 +241,7 @@ defmodule Task.Supervised do
       # replied already (then the death is peaceful) or if it's still running
       # (then the reply from this task will be {:exit, reason}). This message is
       # sent to us by the monitor process, not by the dying task directly.
-      {kind, {^monitor_ref, position}, reason}
-      when kind in [:down, :timed_out] ->
+      {kind, {^monitor_ref, position}, reason} when kind in [:down, :timed_out] ->
         result =
           case waiting do
             # If the task replied, we don't care whether it went down for timeout
@@ -255,15 +250,13 @@ defmodule Task.Supervised do
               ok
 
             # If the task exited by itself before replying, we emit {:exit, reason}.
-            %{^position => {_, :running}}
-            when kind == :down ->
+            %{^position => {_, :running}} when kind == :down ->
               {:exit, reason}
 
             # If the task timed out before replying, we either exit (on_timeout: :exit)
             # or emit {:exit, :timeout} (on_timeout: :kill_task) (note the task is already
             # dead at this point).
-            %{^position => {_, :running}}
-            when kind == :timed_out ->
+            %{^position => {_, :running}} when kind == :timed_out ->
               if on_timeout == :exit do
                 stream_cleanup_inbox(monitor_pid, monitor_ref)
                 exit({:timeout, {__MODULE__, :stream, [timeout]}})
@@ -313,12 +306,8 @@ defmodule Task.Supervised do
   end
 
   defp deliver_now(reply, acc, next, config) do
-    %{
-      reducer: reducer,
-      monitor_pid: monitor_pid,
-      monitor_ref: monitor_ref,
-      timeout: timeout
-    } = config
+    %{reducer: reducer, monitor_pid: monitor_pid, monitor_ref: monitor_ref, timeout: timeout} =
+      config
 
     try do
       reducer.(reply, acc)
@@ -341,12 +330,8 @@ defmodule Task.Supervised do
   end
 
   defp stream_deliver({:cont, acc}, max, spawned, delivered, waiting, next, config) do
-    %{
-      reducer: reducer,
-      monitor_pid: monitor_pid,
-      monitor_ref: monitor_ref,
-      timeout: timeout
-    } = config
+    %{reducer: reducer, monitor_pid: monitor_pid, monitor_ref: monitor_ref, timeout: timeout} =
+      config
 
     case waiting do
       %{^delivered => {:done, reply}} ->
@@ -406,8 +391,7 @@ defmodule Task.Supervised do
       {kind, {^monitor_ref, _}, _} when kind in [:down, :timed_out] ->
         stream_cleanup_inbox(monitor_ref)
     after
-      0 ->
-        :ok
+      0 -> :ok
     end
   end
 

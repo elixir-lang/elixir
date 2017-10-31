@@ -11,10 +11,7 @@ defmodule Kernel.DialyzerTest do
     File.rm_rf!(dir)
     File.mkdir_p!(dir)
 
-    plt =
-      dir
-      |> Path.join("base_plt")
-      |> String.to_charlist()
+    plt = dir |> Path.join("base_plt") |> String.to_charlist()
 
     # Some OSs (like Windows) do not provide the HOME environment variable.
     unless System.get_env("HOME") do
@@ -35,17 +32,11 @@ defmodule Kernel.DialyzerTest do
   setup context do
     # Set up a per-test temporary directory, so we can run these with async: true.
     # We use the test's line number as the directory name, so they won't conflict.
-    dir =
-      context[:base_dir]
-      |> Path.join("line#{context[:line]}")
-      |> String.to_charlist()
+    dir = context[:base_dir] |> Path.join("line#{context[:line]}") |> String.to_charlist()
 
     File.mkdir_p!(dir)
 
-    plt =
-      dir
-      |> Path.join("plt")
-      |> String.to_charlist()
+    plt = dir |> Path.join("plt") |> String.to_charlist()
 
     File.cp!(context[:base_plt], plt)
 

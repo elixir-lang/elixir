@@ -21,17 +21,11 @@ defmodule Task.Supervisor do
           | {:shutdown, :supervisor.shutdown()}
 
   @typedoc "Supervisor spec used by `async_stream`"
-  @type async_stream_supervisor ::
-          Supervisor.supervisor()
-          | (term -> Supervisor.supervisor())
+  @type async_stream_supervisor :: Supervisor.supervisor() | (term -> Supervisor.supervisor())
 
   @doc false
   def child_spec(arg) do
-    %{
-      id: Task.Supervisor,
-      start: {Task.Supervisor, :start_link, [arg]},
-      type: :supervisor
-    }
+    %{id: Task.Supervisor, start: {Task.Supervisor, :start_link, [arg]}, type: :supervisor}
   end
 
   @doc """
@@ -333,13 +327,11 @@ defmodule Task.Supervisor do
     %Task{pid: pid, ref: ref, owner: owner}
   end
 
-  defp supervisor_fun(supervisor, {_module, _fun, _args})
-       when is_function(supervisor, 1) do
+  defp supervisor_fun(supervisor, {_module, _fun, _args}) when is_function(supervisor, 1) do
     fn {_module, _fun, [entry | _rest_args]} -> supervisor.(entry) end
   end
 
-  defp supervisor_fun(supervisor, fun)
-       when is_function(supervisor, 1) and is_function(fun, 1) do
+  defp supervisor_fun(supervisor, fun) when is_function(supervisor, 1) and is_function(fun, 1) do
     fn {_erlang, _apply, [_fun, [entry]]} -> supervisor.(entry) end
   end
 

@@ -8,10 +8,7 @@ defmodule Mix.Tasks.CleanTest do
       [
         app: :sample,
         version: "0.1.0",
-        deps: [
-          {:ok, "0.1.0", path: "deps/ok"},
-          {:unknown, "0.1.0", git: "deps/unknown"}
-        ]
+        deps: [{:ok, "0.1.0", path: "deps/ok"}, {:unknown, "0.1.0", git: "deps/unknown"}]
       ]
     end
   end

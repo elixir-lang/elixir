@@ -49,35 +49,54 @@ defmodule StreamTest do
     assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list() == [[1, 2, 3], [3, 4, 5]]
     assert Stream.chunk([1, 2, 3, 4, 5, 6], 2, 3) |> Enum.to_list() == [[1, 2], [4, 5]]
 
-    assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2, []) |> Enum.to_list() ==
-             [[1, 2, 3], [3, 4, 5], [5, 6]]
+    assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2, []) |> Enum.to_list() == [
+             [1, 2, 3],
+             [3, 4, 5],
+             [5, 6]
+           ]
 
     assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list() == [[1, 2, 3], [4, 5, 6]]
 
-    assert Stream.chunk([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list() ==
-             [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert Stream.chunk([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list() == [
+             [1, 2, 3, 4],
+             [5, 6, 7, 8]
+           ]
   end
 
   test "chunk_every/2, chunk_every/3 and chunk_every/4" do
     assert Stream.chunk_every([1, 2, 3, 4, 5], 2) |> Enum.to_list() == [[1, 2], [3, 4], [5]]
 
-    assert Stream.chunk_every([1, 2, 3, 4, 5], 2, 2, [6]) |> Enum.to_list() ==
-             [[1, 2], [3, 4], [5, 6]]
+    assert Stream.chunk_every([1, 2, 3, 4, 5], 2, 2, [6]) |> Enum.to_list() == [
+             [1, 2],
+             [3, 4],
+             [5, 6]
+           ]
 
-    assert Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, :discard) |> Enum.to_list() ==
-             [[1, 2, 3], [3, 4, 5]]
+    assert Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, :discard) |> Enum.to_list() == [
+             [1, 2, 3],
+             [3, 4, 5]
+           ]
 
-    assert Stream.chunk_every([1, 2, 3, 4, 5, 6], 2, 3, :discard) |> Enum.to_list() ==
-             [[1, 2], [4, 5]]
+    assert Stream.chunk_every([1, 2, 3, 4, 5, 6], 2, 3, :discard) |> Enum.to_list() == [
+             [1, 2],
+             [4, 5]
+           ]
 
-    assert Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, []) |> Enum.to_list() ==
-             [[1, 2, 3], [3, 4, 5], [5, 6]]
+    assert Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, []) |> Enum.to_list() == [
+             [1, 2, 3],
+             [3, 4, 5],
+             [5, 6]
+           ]
 
-    assert Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list() ==
-             [[1, 2, 3], [4, 5, 6]]
+    assert Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list() == [
+             [1, 2, 3],
+             [4, 5, 6]
+           ]
 
-    assert Stream.chunk_every([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list() ==
-             [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert Stream.chunk_every([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list() == [
+             [1, 2, 3, 4],
+             [5, 6, 7, 8]
+           ]
   end
 
   test "chunk_every/4 is zippable" do
@@ -87,8 +106,10 @@ defmodule StreamTest do
   end
 
   test "chunk_every/4 is haltable" do
-    assert 1..10 |> Stream.take(6) |> Stream.chunk_every(4, 4, [7, 8]) |> Enum.to_list() ==
-             [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert 1..10 |> Stream.take(6) |> Stream.chunk_every(4, 4, [7, 8]) |> Enum.to_list() == [
+             [1, 2, 3, 4],
+             [5, 6, 7, 8]
+           ]
 
     assert 1..10
            |> Stream.take(6)
@@ -108,8 +129,10 @@ defmodule StreamTest do
            |> Stream.take(1)
            |> Enum.to_list() == [[1, 2, 3, 4]]
 
-    assert 1..6 |> Stream.take(6) |> Stream.chunk_every(4, 4, [7, 8]) |> Enum.to_list() ==
-             [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert 1..6 |> Stream.take(6) |> Stream.chunk_every(4, 4, [7, 8]) |> Enum.to_list() == [
+             [1, 2, 3, 4],
+             [5, 6, 7, 8]
+           ]
   end
 
   test "chunk_by/2" do
@@ -144,17 +167,36 @@ defmodule StreamTest do
     assert Stream.chunk_while([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [], chunk_fun, after_fun)
            |> Enum.to_list() == [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
 
-    assert Stream.chunk_while(0..9, [], chunk_fun, after_fun) |> Enum.to_list() ==
-             [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9]]
+    assert Stream.chunk_while(0..9, [], chunk_fun, after_fun) |> Enum.to_list() == [
+             [0],
+             [1, 2],
+             [3, 4],
+             [5, 6],
+             [7, 8],
+             [9]
+           ]
 
-    assert Stream.chunk_while(0..10, [], chunk_fun, after_fun) |> Enum.to_list() ==
-             [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+    assert Stream.chunk_while(0..10, [], chunk_fun, after_fun) |> Enum.to_list() == [
+             [0],
+             [1, 2],
+             [3, 4],
+             [5, 6],
+             [7, 8],
+             [9, 10]
+           ]
 
-    assert Stream.chunk_while(0..11, [], chunk_fun, after_fun) |> Enum.to_list() ==
-             [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+    assert Stream.chunk_while(0..11, [], chunk_fun, after_fun) |> Enum.to_list() == [
+             [0],
+             [1, 2],
+             [3, 4],
+             [5, 6],
+             [7, 8],
+             [9, 10]
+           ]
 
-    assert Stream.chunk_while([5, 7, 9, 11], [], chunk_fun, after_fun) |> Enum.to_list() ==
-             [[5, 7, 9]]
+    assert Stream.chunk_while([5, 7, 9, 11], [], chunk_fun, after_fun) |> Enum.to_list() == [
+             [5, 7, 9]
+           ]
   end
 
   test "concat/1" do
@@ -174,8 +216,24 @@ defmodule StreamTest do
     stream = Stream.concat(1..3, 4..6)
     assert is_function(stream)
 
-    assert Stream.cycle(stream) |> Enum.take(16) ==
-             [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4]
+    assert Stream.cycle(stream) |> Enum.take(16) == [
+             1,
+             2,
+             3,
+             4,
+             5,
+             6,
+             1,
+             2,
+             3,
+             4,
+             5,
+             6,
+             1,
+             2,
+             3,
+             4
+           ]
 
     stream = Stream.concat(1..3, [])
     assert is_function(stream)
@@ -206,9 +264,7 @@ defmodule StreamTest do
     stream = Stream.cycle([1, 2, 3])
     assert is_function(stream)
 
-    assert_raise ArgumentError, "cannot cycle over empty enumerable", fn ->
-      Stream.cycle([])
-    end
+    assert_raise ArgumentError, "cannot cycle over empty enumerable", fn -> Stream.cycle([]) end
 
     assert_raise ArgumentError, "cannot cycle over empty enumerable", fn ->
       Stream.cycle(%{}) |> Enum.to_list()
@@ -238,8 +294,11 @@ defmodule StreamTest do
     assert Stream.dedup([1, 1.0, 2.0, 2]) |> Enum.to_list() == [1, 1.0, 2.0, 2]
     assert Stream.dedup([]) |> Enum.to_list() == []
 
-    assert Stream.dedup([nil, nil, true, {:value, true}]) |> Enum.to_list() ==
-             [nil, true, {:value, true}]
+    assert Stream.dedup([nil, nil, true, {:value, true}]) |> Enum.to_list() == [
+             nil,
+             true,
+             {:value, true}
+           ]
 
     assert Stream.dedup([nil]) |> Enum.to_list() == [nil]
   end
@@ -293,37 +352,22 @@ defmodule StreamTest do
   end
 
   test "drop_every/2" do
-    assert 1..10
-           |> Stream.drop_every(2)
-           |> Enum.to_list() == [2, 4, 6, 8, 10]
+    assert 1..10 |> Stream.drop_every(2) |> Enum.to_list() == [2, 4, 6, 8, 10]
 
-    assert 1..10
-           |> Stream.drop_every(3)
-           |> Enum.to_list() == [2, 3, 5, 6, 8, 9]
+    assert 1..10 |> Stream.drop_every(3) |> Enum.to_list() == [2, 3, 5, 6, 8, 9]
 
-    assert 1..10
-           |> Stream.drop(2)
-           |> Stream.drop_every(2)
-           |> Stream.drop(1)
-           |> Enum.to_list() == [6, 8, 10]
+    assert 1..10 |> Stream.drop(2) |> Stream.drop_every(2) |> Stream.drop(1) |> Enum.to_list() ==
+             [6, 8, 10]
 
-    assert 1..10
-           |> Stream.drop_every(0)
-           |> Enum.to_list() == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    assert 1..10 |> Stream.drop_every(0) |> Enum.to_list() == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-    assert []
-           |> Stream.drop_every(10)
-           |> Enum.to_list() == []
+    assert [] |> Stream.drop_every(10) |> Enum.to_list() == []
   end
 
   test "drop_every/2 without non-negative integer" do
-    assert_raise FunctionClauseError, fn ->
-      Stream.drop_every(1..10, -1)
-    end
+    assert_raise FunctionClauseError, fn -> Stream.drop_every(1..10, -1) end
 
-    assert_raise FunctionClauseError, fn ->
-      Stream.drop_every(1..10, 3.33)
-    end
+    assert_raise FunctionClauseError, fn -> Stream.drop_every(1..10, 3.33) end
   end
 
   test "drop_while/2" do
@@ -443,10 +487,7 @@ defmodule StreamTest do
   test "flat_map/2 with inner flat_map/2" do
     stream =
       Stream.flat_map(1..5, fn x ->
-        Stream.flat_map([x], fn x ->
-          x..(x * x)
-        end)
-        |> Stream.map(&(&1 * 1))
+        Stream.flat_map([x], fn x -> x..(x * x) end) |> Stream.map(&(&1 * 1))
       end)
 
     assert Enum.take(stream, 5) == [1, 2, 3, 4, 3]
@@ -529,17 +570,13 @@ defmodule StreamTest do
 
   test "transform/3 with early halt" do
     stream =
-      fn -> throw(:error) end
-      |> Stream.repeatedly()
-      |> Stream.transform(nil, &{[&1, &2], &1})
+      fn -> throw(:error) end |> Stream.repeatedly() |> Stream.transform(nil, &{[&1, &2], &1})
 
     assert {:halted, nil} = Enumerable.reduce(stream, {:halt, nil}, fn _, _ -> throw(:error) end)
   end
 
   test "transform/3 with early suspend" do
-    stream =
-      Stream.repeatedly(fn -> throw(:error) end)
-      |> Stream.transform(nil, &{[&1, &2], &1})
+    stream = Stream.repeatedly(fn -> throw(:error) end) |> Stream.transform(nil, &{[&1, &2], &1})
 
     assert {:suspended, nil, _} =
              Enumerable.reduce(stream, {:suspend, nil}, fn _, _ -> throw(:error) end)
@@ -591,13 +628,31 @@ defmodule StreamTest do
   end
 
   test "map_every/3" do
-    assert 1..10
-           |> Stream.map_every(2, &(&1 * 2))
-           |> Enum.to_list() == [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
+    assert 1..10 |> Stream.map_every(2, &(&1 * 2)) |> Enum.to_list() == [
+             2,
+             2,
+             6,
+             4,
+             10,
+             6,
+             14,
+             8,
+             18,
+             10
+           ]
 
-    assert 1..10
-           |> Stream.map_every(3, &(&1 * 2))
-           |> Enum.to_list() == [2, 2, 3, 8, 5, 6, 14, 8, 9, 20]
+    assert 1..10 |> Stream.map_every(3, &(&1 * 2)) |> Enum.to_list() == [
+             2,
+             2,
+             3,
+             8,
+             5,
+             6,
+             14,
+             8,
+             9,
+             20
+           ]
 
     assert 1..10
            |> Stream.drop(2)
@@ -605,21 +660,13 @@ defmodule StreamTest do
            |> Stream.drop(1)
            |> Enum.to_list() == [4, 10, 6, 14, 8, 18, 10]
 
-    assert 1..5
-           |> Stream.map_every(0, &(&1 * 2))
-           |> Enum.to_list() == [1, 2, 3, 4, 5]
+    assert 1..5 |> Stream.map_every(0, &(&1 * 2)) |> Enum.to_list() == [1, 2, 3, 4, 5]
 
-    assert []
-           |> Stream.map_every(10, &(&1 * 2))
-           |> Enum.to_list() == []
+    assert [] |> Stream.map_every(10, &(&1 * 2)) |> Enum.to_list() == []
 
-    assert_raise FunctionClauseError, fn ->
-      Stream.map_every(1..10, -1, &(&1 * 2))
-    end
+    assert_raise FunctionClauseError, fn -> Stream.map_every(1..10, -1, &(&1 * 2)) end
 
-    assert_raise FunctionClauseError, fn ->
-      Stream.map_every(1..10, 3.33, &(&1 * 2))
-    end
+    assert_raise FunctionClauseError, fn -> Stream.map_every(1..10, 3.33, &(&1 * 2)) end
   end
 
   test "reject/2" do
@@ -748,8 +795,28 @@ defmodule StreamTest do
     stream = Stream.transform(1..10, fn -> 0 end, transform_fun, after_fun)
     Process.put(:stream_transform, false)
 
-    assert Enum.to_list(stream) ==
-             [1, 1, 2, 3, 3, 5, 4, 7, 5, 9, 6, 11, 7, 13, 8, 15, 9, 17, 10, 19]
+    assert Enum.to_list(stream) == [
+             1,
+             1,
+             2,
+             3,
+             3,
+             5,
+             4,
+             7,
+             5,
+             9,
+             6,
+             11,
+             7,
+             13,
+             8,
+             15,
+             9,
+             17,
+             10,
+             19
+           ]
 
     assert Process.get(:stream_transform)
   end
@@ -975,37 +1042,22 @@ defmodule StreamTest do
   end
 
   test "take_every/2" do
-    assert 1..10
-           |> Stream.take_every(2)
-           |> Enum.to_list() == [1, 3, 5, 7, 9]
+    assert 1..10 |> Stream.take_every(2) |> Enum.to_list() == [1, 3, 5, 7, 9]
 
-    assert 1..10
-           |> Stream.take_every(3)
-           |> Enum.to_list() == [1, 4, 7, 10]
+    assert 1..10 |> Stream.take_every(3) |> Enum.to_list() == [1, 4, 7, 10]
 
-    assert 1..10
-           |> Stream.drop(2)
-           |> Stream.take_every(2)
-           |> Stream.drop(1)
-           |> Enum.to_list() == [5, 7, 9]
+    assert 1..10 |> Stream.drop(2) |> Stream.take_every(2) |> Stream.drop(1) |> Enum.to_list() ==
+             [5, 7, 9]
 
-    assert 1..10
-           |> Stream.take_every(0)
-           |> Enum.to_list() == []
+    assert 1..10 |> Stream.take_every(0) |> Enum.to_list() == []
 
-    assert []
-           |> Stream.take_every(10)
-           |> Enum.to_list() == []
+    assert [] |> Stream.take_every(10) |> Enum.to_list() == []
   end
 
   test "take_every/2 without non-negative integer" do
-    assert_raise FunctionClauseError, fn ->
-      Stream.take_every(1..10, -1)
-    end
+    assert_raise FunctionClauseError, fn -> Stream.take_every(1..10, -1) end
 
-    assert_raise FunctionClauseError, fn ->
-      Stream.take_every(1..10, 3.33)
-    end
+    assert_raise FunctionClauseError, fn -> Stream.take_every(1..10, 3.33) end
   end
 
   test "take_while/2" do
@@ -1056,8 +1108,10 @@ defmodule StreamTest do
   end
 
   test "uniq_by/2" do
-    assert Stream.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list() ==
-             [{1, :x}, {2, :y}]
+    assert Stream.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list() == [
+             {1, :x},
+             {2, :y}
+           ]
 
     assert Stream.uniq_by([a: {:tea, 2}, b: {:tea, 2}, c: {:coffee, 1}], fn {_, y} -> y end)
            |> Enum.to_list() == [a: {:tea, 2}, c: {:coffee, 1}]
@@ -1067,16 +1121,28 @@ defmodule StreamTest do
     concat = Stream.concat(1..3, 4..6)
     cycle = Stream.cycle([:a, :b, :c])
 
-    assert Stream.zip(concat, cycle) |> Enum.to_list() ==
-             [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+    assert Stream.zip(concat, cycle) |> Enum.to_list() == [
+             {1, :a},
+             {2, :b},
+             {3, :c},
+             {4, :a},
+             {5, :b},
+             {6, :c}
+           ]
   end
 
   test "zip/1" do
     concat = Stream.concat(1..3, 4..6)
     cycle = Stream.cycle([:a, :b, :c])
 
-    assert Stream.zip([concat, cycle]) |> Enum.to_list() ==
-             [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+    assert Stream.zip([concat, cycle]) |> Enum.to_list() == [
+             {1, :a},
+             {2, :b},
+             {3, :c},
+             {4, :a},
+             {5, :b},
+             {6, :c}
+           ]
 
     assert_raise FunctionClauseError, fn ->
       enum_of_enums = Stream.cycle([[1, 2], [:a, :b]])
@@ -1177,8 +1243,7 @@ defmodule StreamTest do
 
   defp inbox_stream({:cont, acc}, f) do
     receive do
-      {:stream, item} ->
-        inbox_stream(f.(item, acc), f)
+      {:stream, item} -> inbox_stream(f.(item, acc), f)
     end
   end
 end

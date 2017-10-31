@@ -192,9 +192,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp rebar_config(dep) do
-    dep.extra
-    |> Mix.Rebar.dependency_config()
-    |> Mix.Rebar.serialize_config()
+    dep.extra |> Mix.Rebar.dependency_config() |> Mix.Rebar.serialize_config()
   end
 
   defp rebar_cmd(%Mix.Dep{manager: manager} = dep) do
@@ -236,14 +234,9 @@ defmodule Mix.Tasks.Deps.Compile do
 
     command =
       case :os.type() do
-        {:win32, _} when makefile_win? ->
-          "nmake /F Makefile.win"
-
-        {:unix, type} when type in [:freebsd, :openbsd] ->
-          "gmake"
-
-        _ ->
-          "make"
+        {:win32, _} when makefile_win? -> "nmake /F Makefile.win"
+        {:unix, type} when type in [:freebsd, :openbsd] -> "gmake"
+        _ -> "make"
       end
 
     if erlang_mk?(dep) do

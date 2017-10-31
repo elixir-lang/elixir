@@ -145,12 +145,10 @@ defmodule Access do
   @type value :: any
 
   @type get_fun(data, get_value) ::
-          (:get, data, (term -> term) ->
-             {get_value, new_data :: container})
+          (:get, data, (term -> term) -> {get_value, new_data :: container})
 
   @type get_and_update_fun(data, get_value) ::
-          (:get_and_update, data, (term -> term) ->
-             {get_value, new_data :: container} | :pop)
+          (:get_and_update, data, (term -> term) -> {get_value, new_data :: container} | :pop)
 
   @type access_fun(data, get_value) ::
           get_fun(data, get_value) | get_and_update_fun(data, get_value)
@@ -363,12 +361,7 @@ defmodule Access do
       raise_undefined_behaviour(
         exception,
         module,
-        {
-          ^module,
-          :get_and_update,
-          [^container, ^key, ^fun],
-          _
-        }
+        {^module, :get_and_update, [^container, ^key, ^fun], _}
       )
   end
 
@@ -785,11 +778,8 @@ defmodule Access do
   defp get_and_update_filter([head | rest], func, next, updates, gets) do
     if func.(head) do
       case next.(head) do
-        {get, update} ->
-          get_and_update_filter(rest, func, next, [update | updates], [get | gets])
-
-        :pop ->
-          get_and_update_filter(rest, func, next, updates, [head | gets])
+        {get, update} -> get_and_update_filter(rest, func, next, [update | updates], [get | gets])
+        :pop -> get_and_update_filter(rest, func, next, updates, [head | gets])
       end
     else
       get_and_update_filter(rest, func, next, [head | updates], gets)

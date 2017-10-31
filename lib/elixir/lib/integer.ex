@@ -137,8 +137,7 @@ defmodule Integer do
 
   """
   @spec digits(integer, pos_integer) :: [integer, ...]
-  def digits(integer, base \\ 10)
-      when is_integer(integer) and is_integer(base) and base >= 2 do
+  def digits(integer, base \\ 10) when is_integer(integer) and is_integer(base) and base >= 2 do
     do_digits(integer, base, [])
   end
 

@@ -27,9 +27,7 @@ defmodule ExUnit.SupervisedTest do
       "failed to start child with the spec {ExUnit.SupervisedTest.MyAgent, :error}.\n" <>
         "Reason: \"some error\""
 
-    assert_raise RuntimeError, message, fn ->
-      start_supervised!({MyAgent, :error})
-    end
+    assert_raise RuntimeError, message, fn -> start_supervised!({MyAgent, :error}) end
   end
 
   test "returns error if the supervised process raises an exception" do
@@ -40,10 +38,7 @@ defmodule ExUnit.SupervisedTest do
       "failed to start child with the spec {ExUnit.SupervisedTest.MyAgent, :exception}.\n" <>
         "Reason: an exception was raised:\n" <> "    ** (RuntimeError) some exception"
 
-    exception =
-      assert_raise RuntimeError, fn ->
-        start_supervised!({MyAgent, :exception})
-      end
+    exception = assert_raise RuntimeError, fn -> start_supervised!({MyAgent, :exception}) end
 
     assert String.starts_with?(Exception.message(exception), message)
   end
@@ -93,15 +88,11 @@ defmodule ExUnit.SupervisedTest do
     Task.async(fn ->
       message = "start_supervised/2 can only be invoked from the test process"
 
-      assert_raise ArgumentError, message, fn ->
-        start_supervised(MyAgent)
-      end
+      assert_raise ArgumentError, message, fn -> start_supervised(MyAgent) end
 
       message = "stop_supervised/1 can only be invoked from the test process"
 
-      assert_raise ArgumentError, message, fn ->
-        stop_supervised(MyAgent)
-      end
+      assert_raise ArgumentError, message, fn -> stop_supervised(MyAgent) end
     end)
     |> Task.await()
   end

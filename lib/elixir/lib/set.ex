@@ -32,9 +32,7 @@ defmodule Set do
     if target1 == target2 do
       target1.difference(set1, set2)
     else
-      Enumerable.reduce(set2, {:cont, set1}, fn v, acc ->
-        {:cont, target1.delete(acc, v)}
-      end)
+      Enumerable.reduce(set2, {:cont, set1}, fn v, acc -> {:cont, target1.delete(acc, v)} end)
       |> elem(1)
     end
   end
@@ -66,14 +64,9 @@ defmodule Set do
     target2 = target(set2)
 
     cond do
-      target1 == target2 ->
-        target1.equal?(set1, set2)
-
-      target1.size(set1) == target2.size(set2) ->
-        do_subset?(target1, target2, set1, set2)
-
-      true ->
-        false
+      target1 == target2 -> target1.equal?(set1, set2)
+      target1.size(set1) == target2.size(set2) -> do_subset?(target1, target2, set1, set2)
+      true -> false
     end
   end
 
@@ -125,9 +118,7 @@ defmodule Set do
     if target1 == target2 do
       target1.union(set1, set2)
     else
-      Enumerable.reduce(set2, {:cont, set1}, fn v, acc ->
-        {:cont, target1.put(acc, v)}
-      end)
+      Enumerable.reduce(set2, {:cont, set1}, fn v, acc -> {:cont, target1.put(acc, v)} end)
       |> elem(1)
     end
   end

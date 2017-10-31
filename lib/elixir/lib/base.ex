@@ -109,9 +109,7 @@ defmodule Base do
   defp encode_pair_clauses(alphabet, case) when case in [:sensitive, :upper] do
     shift = shift(alphabet)
 
-    alphabet
-    |> Enum.with_index()
-    |> encode_clauses(shift)
+    alphabet |> Enum.with_index() |> encode_clauses(shift)
   end
 
   defp encode_pair_clauses(alphabet, :lower) do
@@ -124,10 +122,7 @@ defmodule Base do
   end
 
   defp shift(alphabet) do
-    alphabet
-    |> length()
-    |> :math.log2()
-    |> round()
+    alphabet |> length() |> :math.log2() |> round()
   end
 
   defp encode_clauses(alphabet, shift) do
@@ -149,10 +144,7 @@ defmodule Base do
   end
 
   defp decode_char_clauses(alphabet, case) when case in [:sensitive, :upper] do
-    clauses =
-      alphabet
-      |> Enum.with_index()
-      |> decode_clauses()
+    clauses = alphabet |> Enum.with_index() |> decode_clauses()
 
     clauses ++ bad_digit_clause()
   end
@@ -940,9 +932,7 @@ defmodule Base do
     end
 
     defp unquote(char)(value) do
-      value
-      |> unquote(pair)()
-      |> band(0x00FF)
+      value |> unquote(pair)() |> band(0x00FF)
     end
 
     defp unquote(do_encode)(<<>>, _), do: <<>>
@@ -1117,9 +1107,7 @@ defmodule Base do
     end
 
     defp unquote(char)(value) do
-      value
-      |> unquote(pair)()
-      |> band(0x00FF)
+      value |> unquote(pair)() |> band(0x00FF)
     end
 
     defp unquote(do_encode)(_, <<>>, _), do: <<>>

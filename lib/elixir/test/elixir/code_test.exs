@@ -61,8 +61,7 @@ defmodule CodeTest do
       try do
         Code.eval_string("<<a::size(b)>>", a: :a, b: :b)
       rescue
-        _ ->
-          assert System.stacktrace() |> Enum.any?(&(elem(&1, 0) == __MODULE__))
+        _ -> assert System.stacktrace() |> Enum.any?(&(elem(&1, 0) == __MODULE__))
       end
     end
   end
@@ -82,9 +81,7 @@ defmodule CodeTest do
   test "eval_file/1" do
     assert Code.eval_file(fixture_path("code_sample.exs")) == {3, [var: 3]}
 
-    assert_raise Code.LoadError, fn ->
-      Code.eval_file("non_existent.exs")
-    end
+    assert_raise Code.LoadError, fn -> Code.eval_file("non_existent.exs") end
   end
 
   test "require_file/1" do
@@ -115,13 +112,9 @@ defmodule CodeTest do
     test "raises on errors when string_to_quoted!/2 is used" do
       assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
 
-      assert_raise SyntaxError, fn ->
-        Code.string_to_quoted!("a.1")
-      end
+      assert_raise SyntaxError, fn -> Code.string_to_quoted!("a.1") end
 
-      assert_raise TokenMissingError, fn ->
-        Code.string_to_quoted!("1 +")
-      end
+      assert_raise TokenMissingError, fn -> Code.string_to_quoted!("1 +") end
     end
 
     test "raises when string_to_quoted!/2 is used and no atom is found with :existing_atoms_only" do
@@ -251,9 +244,7 @@ defmodule CodeTest do
   test "compiler_options/1 validates options" do
     message = "unknown compiler option: :not_a_valid_option"
 
-    assert_raise RuntimeError, message, fn ->
-      Code.compiler_options(not_a_valid_option: :foo)
-    end
+    assert_raise RuntimeError, message, fn -> Code.compiler_options(not_a_valid_option: :foo) end
 
     message = "compiler option :debug_info should be a boolean, got: :not_a_boolean"
 

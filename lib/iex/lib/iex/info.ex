@@ -7,10 +7,7 @@ end
 
 defimpl IEx.Info, for: Tuple do
   def info(_tuple) do
-    [
-      {"Data type", "Tuple"},
-      {"Reference modules", "Tuple"}
-    ]
+    [{"Data type", "Tuple"}, {"Reference modules", "Tuple"}]
   end
 end
 
@@ -18,14 +15,9 @@ defimpl IEx.Info, for: Atom do
   def info(atom) do
     specific_info =
       cond do
-        Code.ensure_loaded?(atom) ->
-          info_module(atom)
-
-        match?("Elixir." <> _, Atom.to_string(atom)) ->
-          info_module_like_atom(atom)
-
-        true ->
-          info_atom(atom)
+        Code.ensure_loaded?(atom) -> info_module(atom)
+        match?("Elixir." <> _, Atom.to_string(atom)) -> info_module_like_atom(atom)
+        true -> info_atom(atom)
       end
 
     description =
@@ -71,10 +63,7 @@ defimpl IEx.Info, for: Atom do
 
   defp protocol_info(mod) do
     if function_exported?(mod, :__protocol__, 1) do
-      impls =
-        mod
-        |> Protocol.extract_impls(:code.get_path())
-        |> Enum.map_join(", ", &inspect/1)
+      impls = mod |> Protocol.extract_impls(:code.get_path()) |> Enum.map_join(", ", &inspect/1)
 
       [{"Protocol", "This module is a protocol. These data structures implement it:\n  #{impls}"}]
     else
@@ -83,10 +72,7 @@ defimpl IEx.Info, for: Atom do
   end
 
   defp info_module_like_atom(atom) do
-    [
-      {"Raw representation", ":" <> inspect(Atom.to_string(atom))},
-      {"Reference modules", "Atom"}
-    ]
+    [{"Raw representation", ":" <> inspect(Atom.to_string(atom))}, {"Reference modules", "Atom"}]
   end
 
   defp info_atom(_atom) do
@@ -229,9 +215,7 @@ defimpl IEx.Info, for: BitString do
   end
 
   defp find_first_codepoint(binary, fun) do
-    binary
-    |> String.codepoints()
-    |> Enum.find(fun)
+    binary |> String.codepoints() |> Enum.find(fun)
   end
 end
 
@@ -270,10 +254,7 @@ defimpl IEx.Info, for: Function do
   end
 
   defp info_named_fun(fun_info) do
-    [
-      {"Type", to_string(fun_info[:type])},
-      {"Arity", fun_info[:arity]}
-    ]
+    [{"Type", to_string(fun_info[:type])}, {"Arity", fun_info[:arity]}]
   end
 end
 

@@ -32,9 +32,7 @@ defmodule SystemTest do
     test "cwd/0 with UTF-8" do
       File.mkdir_p(tmp_path("héllò"))
 
-      File.cd!(tmp_path("héllò"), fn ->
-        assert Path.basename(System.cwd!()) == "héllò"
-      end)
+      File.cd!(tmp_path("héllò"), fn -> assert Path.basename(System.cwd!()) == "héllò" end)
     after
       File.rm_rf(tmp_path("héllò"))
     end
@@ -180,9 +178,7 @@ defmodule SystemTest do
 
     message = ~r"cannot execute System.find_executable/1 for program with null byte"
 
-    assert_raise ArgumentError, message, fn ->
-      System.find_executable("null\0byte")
-    end
+    assert_raise ArgumentError, message, fn -> System.find_executable("null\0byte") end
   end
 
   test "monotonic_time/0" do

@@ -123,11 +123,9 @@ defmodule Mix.Tasks.EscriptTest do
     in_fixture "escript_test", fn ->
       Mix.Tasks.Escript.Build.run([])
 
-      assert_received {
-                        :mix_shell,
-                        :info,
-                        ["Generated escript escript_test_with_debug_info with MIX_ENV=dev"]
-                      }
+      assert_received {:mix_shell, :info, [
+                        "Generated escript escript_test_with_debug_info with MIX_ENV=dev"
+                      ]}
 
       assert System.cmd("escript", ["escript_test_with_debug_info"]) == {"TEST\n", 0}
       assert count_abstract_code("escript_test_with_debug_info") > 0
@@ -140,9 +138,7 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   defp count_abstract_code(escript_filename) do
-    escript_filename
-    |> read_beams()
-    |> Enum.count(fn {_, beam} -> get_abstract_code(beam) end)
+    escript_filename |> read_beams() |> Enum.count(fn {_, beam} -> get_abstract_code(beam) end)
   end
 
   defp read_beams(escript_filename) do
@@ -216,9 +212,7 @@ defmodule Mix.Tasks.EscriptTest do
 
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        assert_raise Mix.Error, message, fn ->
-          Mix.Tasks.Escript.Build.run([])
-        end
+        assert_raise Mix.Error, message, fn -> Mix.Tasks.Escript.Build.run([]) end
       end)
     end
   end
@@ -280,9 +274,7 @@ defmodule Mix.Tasks.EscriptTest do
     send(self(), {:mix_shell_input, :yes?, true})
     message = "The given path does not point to an escript, installation aborted"
 
-    assert_raise Mix.Error, message, fn ->
-      Mix.Tasks.Escript.Install.run([__ENV__.file])
-    end
+    assert_raise Mix.Error, message, fn -> Mix.Tasks.Escript.Install.run([__ENV__.file]) end
   end
 
   test "escript invalid main module" do
@@ -292,9 +284,7 @@ defmodule Mix.Tasks.EscriptTest do
       message =
         "Could not generate escript, module Elixir.BogusEscriptTest defined as :main_module could not be loaded"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Escript.Build.run([])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Escript.Build.run([]) end
     end
   end
 

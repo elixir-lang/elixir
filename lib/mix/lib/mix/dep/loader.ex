@@ -103,11 +103,8 @@ defmodule Mix.Dep.Loader do
       case Version.parse(actual) do
         {:ok, version} ->
           case Version.parse_requirement(req) do
-            {:ok, req} ->
-              {:ok, Version.match?(version, req)}
-
-            :error ->
-              Mix.raise("Invalid requirement #{req} for app #{app}")
+            {:ok, req} -> {:ok, Version.match?(version, req)}
+            :error -> Mix.raise("Invalid requirement #{req} for app #{app}")
           end
 
         :error ->
@@ -157,10 +154,7 @@ defmodule Mix.Dep.Loader do
     dest = Path.join(Mix.Project.deps_path(), bin_app)
     build = Path.join([Mix.Project.build_path(), "lib", bin_app])
 
-    opts =
-      opts
-      |> Keyword.put(:dest, dest)
-      |> Keyword.put(:build, build)
+    opts = opts |> Keyword.put(:dest, dest) |> Keyword.put(:build, build)
 
     {system_env, opts} = Keyword.pop(opts, :system_env, [])
     {scm, opts} = get_scm(app, opts)
@@ -214,17 +208,10 @@ defmodule Mix.Dep.Loader do
 
   defp infer_manager(dest) do
     cond do
-      any_of?(dest, ["mix.exs"]) ->
-        :mix
-
-      any_of?(dest, ["rebar", "rebar.config", "rebar.config.script", "rebar.lock"]) ->
-        :rebar3
-
-      any_of?(dest, ["Makefile", "Makefile.win"]) ->
-        :make
-
-      true ->
-        nil
+      any_of?(dest, ["mix.exs"]) -> :mix
+      any_of?(dest, ["rebar", "rebar.config", "rebar.config.script", "rebar.lock"]) -> :rebar3
+      any_of?(dest, ["Makefile", "Makefile.win"]) -> :make
+      true -> nil
     end
   end
 

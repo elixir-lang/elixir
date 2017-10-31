@@ -55,9 +55,7 @@ defmodule Mix.Dep.Umbrella do
       umbrella_dep = Mix.Dep.Loader.load(umbrella_dep, nil)
 
       deps =
-        Enum.filter(umbrella_dep.deps, fn dep ->
-          Mix.Dep.available?(dep) and dep.app in apps
-        end)
+        Enum.filter(umbrella_dep.deps, fn dep -> Mix.Dep.available?(dep) and dep.app in apps end)
 
       %{umbrella_dep | deps: deps}
     end)

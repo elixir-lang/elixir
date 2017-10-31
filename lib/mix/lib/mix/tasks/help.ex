@@ -55,9 +55,7 @@ defmodule Mix.Tasks.Help do
 
     tasks = Enum.map(load_tasks(), &Mix.Task.task_name/1)
 
-    aliases =
-      Mix.Project.config()[:aliases]
-      |> Enum.map(fn {k, _} -> Atom.to_string(k) end)
+    aliases = Mix.Project.config()[:aliases] |> Enum.map(fn {k, _} -> Atom.to_string(k) end)
 
     for info <- Enum.sort(aliases ++ tasks) do
       Mix.shell().info(info)
@@ -67,9 +65,7 @@ defmodule Mix.Tasks.Help do
   def run(["--search", pattern]) do
     loadpaths!()
 
-    modules =
-      load_tasks()
-      |> Enum.filter(&String.contains?(Mix.Task.task_name(&1), pattern))
+    modules = load_tasks() |> Enum.filter(&String.contains?(Mix.Task.task_name(&1), pattern))
 
     {docs, max} = build_task_doc_list(modules)
 
@@ -112,8 +108,7 @@ defmodule Mix.Tasks.Help do
   end
 
   defp load_tasks() do
-    Mix.Task.load_all()
-    |> Enum.filter(&(Mix.Task.moduledoc(&1) != false))
+    Mix.Task.load_all() |> Enum.filter(&(Mix.Task.moduledoc(&1) != false))
   end
 
   defp ansi_docs?(opts) do
@@ -133,14 +128,8 @@ defmodule Mix.Tasks.Help do
 
   defp where_is_file(module) do
     case :code.where_is_file(Atom.to_charlist(module) ++ '.beam') do
-      :non_existing ->
-        "not available"
-
-      location ->
-        location
-        |> Path.dirname()
-        |> Path.expand()
-        |> Path.relative_to_cwd()
+      :non_existing -> "not available"
+      location -> location |> Path.dirname() |> Path.expand() |> Path.relative_to_cwd()
     end
   end
 
@@ -154,9 +143,7 @@ defmodule Mix.Tasks.Help do
   end
 
   defp display_task_doc_list(docs, max) do
-    Enum.each(Enum.sort(docs), fn {task, doc} ->
-      Mix.shell().info(format_task(task, max, doc))
-    end)
+    Enum.each(Enum.sort(docs), fn {task, doc} -> Mix.shell().info(format_task(task, max, doc)) end)
   end
 
   defp build_task_doc_list(modules) do
