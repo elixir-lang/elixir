@@ -858,14 +858,9 @@ defmodule Macro do
 
   defp op_expr?(expr) do
     case expr do
-      {op, _, [_, _]} ->
-        Identifier.binary_op(op) != :error
-
-      {op, _, [_]} ->
-        Identifier.unary_op(op) != :error
-
-      _ ->
-        false
+      {op, _, [_, _]} -> Identifier.binary_op(op) != :error
+      {op, _, [_]} -> Identifier.unary_op(op) != :error
+      _ -> false
     end
   end
 

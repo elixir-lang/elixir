@@ -69,9 +69,7 @@ defmodule Mix.Local.Installer do
           )
         end
 
-        fetch(dep_spec, fn _ ->
-          local_install(module, module.build(install_spec, opts), opts)
-        end)
+        fetch(dep_spec, fn _ -> local_install(module, module.build(install_spec, opts), opts) end)
 
       {path_or_url, src} when path_or_url in [:local, :url] ->
         local_install(module, src, opts)

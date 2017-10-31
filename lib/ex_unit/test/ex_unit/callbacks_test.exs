@@ -178,8 +178,7 @@ defmodule ExUnit.CallbacksTest do
             send(parent, :ready)
 
             receive do
-              {:EXIT, ^parent, :shutdown} ->
-                receive do: ({:on_exit, pid} -> send(pid, :done))
+              {:EXIT, ^parent, :shutdown} -> receive do: ({:on_exit, pid} -> send(pid, :done))
             end
           end)
 
@@ -210,41 +209,27 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup do
-        on_exit(fn ->
-          IO.puts("on_exit setup run")
-        end)
+        on_exit(fn -> IO.puts("on_exit setup run") end)
 
-        on_exit({:overridden, 1}, fn ->
-          IO.puts("on_exit 1 overridden -> not run")
-        end)
+        on_exit({:overridden, 1}, fn -> IO.puts("on_exit 1 overridden -> not run") end)
 
         :ok
       end
 
       setup_all do
-        on_exit(fn ->
-          IO.puts("on_exit setup_all run")
-        end)
+        on_exit(fn -> IO.puts("on_exit setup_all run") end)
 
         :ok
       end
 
       test "ok" do
-        on_exit(fn ->
-          IO.puts("simple on_exit run")
-        end)
+        on_exit(fn -> IO.puts("simple on_exit run") end)
 
-        on_exit({:overridden, 2}, fn ->
-          IO.puts("on_exit 2 overridden -> not run")
-        end)
+        on_exit({:overridden, 2}, fn -> IO.puts("on_exit 2 overridden -> not run") end)
 
-        on_exit({:overridden, 2}, fn ->
-          IO.puts("on_exit 2 overrides -> run")
-        end)
+        on_exit({:overridden, 2}, fn -> IO.puts("on_exit 2 overrides -> run") end)
 
-        on_exit({:overridden, 1}, fn ->
-          IO.puts("on_exit 1 overrides -> run")
-        end)
+        on_exit({:overridden, 1}, fn -> IO.puts("on_exit 1 overrides -> run") end)
 
         :ok
       end
@@ -270,25 +255,19 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup do
-        on_exit(fn ->
-          IO.puts("on_exit setup run")
-        end)
+        on_exit(fn -> IO.puts("on_exit setup run") end)
 
         :ok
       end
 
       setup_all do
-        on_exit(fn ->
-          IO.puts("on_exit setup_all run")
-        end)
+        on_exit(fn -> IO.puts("on_exit setup_all run") end)
 
         :ok
       end
 
       test "ok" do
-        on_exit(fn ->
-          IO.puts("simple on_exit run")
-        end)
+        on_exit(fn -> IO.puts("simple on_exit run") end)
 
         flunk("oops")
       end

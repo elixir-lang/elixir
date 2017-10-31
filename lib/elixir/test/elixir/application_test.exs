@@ -69,9 +69,7 @@ defmodule ApplicationTest do
     assert normalize_app_dir(Application.app_dir(:elixir, ["priv", "foo"])) ==
              normalize_app_dir(Path.join(root, "bin/../lib/elixir/priv/foo"))
 
-    assert_raise ArgumentError, fn ->
-      Application.app_dir(:unknown)
-    end
+    assert_raise ArgumentError, fn -> Application.app_dir(:unknown) end
   end
 
   if windows?() do

@@ -193,11 +193,8 @@ defmodule EEx.Tokenizer do
 
     if opts[:trim] do
       case {trim_left(buffer, acc), trim_right(rest, line)} do
-        {{true, new_buffer}, {true, new_rest, new_line}} ->
-          {new_rest, new_line, new_buffer}
-
-        _ ->
-          original
+        {{true, new_buffer}, {true, new_rest, new_line}} -> {new_rest, new_line, new_buffer}
+        _ -> original
       end
     else
       original

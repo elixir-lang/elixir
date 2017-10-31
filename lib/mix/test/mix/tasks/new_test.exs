@@ -28,9 +28,7 @@ defmodule Mix.Tasks.NewTest do
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
 
       # Ensure formatting is setup and consistent.
-      File.cd!("hello_world", fn ->
-        Mix.Tasks.Format.run(["--check-formatted"])
-      end)
+      File.cd!("hello_world", fn -> Mix.Tasks.Format.run(["--check-formatted"]) end)
     end
   end
 
@@ -65,9 +63,7 @@ defmodule Mix.Tasks.NewTest do
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
 
       # Ensure formatting is setup and consistent.
-      File.cd!("hello_world", fn ->
-        Mix.Tasks.Format.run(["--check-formatted"])
-      end)
+      File.cd!("hello_world", fn -> Mix.Tasks.Format.run(["--check-formatted"]) end)
     end
   end
 
@@ -92,9 +88,7 @@ defmodule Mix.Tasks.NewTest do
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
 
       # Ensure formatting is setup and consistent.
-      File.cd!("HELLO_WORLD", fn ->
-        Mix.Tasks.Format.run(["--check-formatted"])
-      end)
+      File.cd!("HELLO_WORLD", fn -> Mix.Tasks.Format.run(["--check-formatted"]) end)
     end
   end
 
@@ -102,9 +96,7 @@ defmodule Mix.Tasks.NewTest do
     in_tmp "new umbrella", fn ->
       Mix.Tasks.New.run(["hello_world", "--umbrella"])
 
-      assert_file("hello_world/mix.exs", fn file ->
-        assert file =~ "apps_path: \"apps\""
-      end)
+      assert_file("hello_world/mix.exs", fn file -> assert file =~ "apps_path: \"apps\"" end)
 
       assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
       assert_file("hello_world/.gitignore")
@@ -112,9 +104,7 @@ defmodule Mix.Tasks.NewTest do
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
 
       # Ensure formatting is setup and consistent.
-      File.cd!("hello_world", fn ->
-        Mix.Tasks.Format.run(["--check-formatted"])
-      end)
+      File.cd!("hello_world", fn -> Mix.Tasks.Format.run(["--check-formatted"]) end)
     end
   end
 
@@ -129,9 +119,7 @@ defmodule Mix.Tasks.NewTest do
         end)
 
         # Ensure formatting is setup and consistent.
-        File.cd!("hello_world", fn ->
-          Mix.Tasks.Format.run(["--check-formatted"])
-        end)
+        File.cd!("hello_world", fn -> Mix.Tasks.Format.run(["--check-formatted"]) end)
       end)
     end
   end

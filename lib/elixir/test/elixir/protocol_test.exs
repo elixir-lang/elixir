@@ -103,9 +103,7 @@ defmodule ProtocolTest do
   test "protocol not implemented" do
     message = "protocol ProtocolTest.Sample not implemented for :foo"
 
-    assert_raise Protocol.UndefinedError, message, fn ->
-      Sample.ok(:foo)
-    end
+    assert_raise Protocol.UndefinedError, message, fn -> Sample.ok(:foo) end
   end
 
   test "protocol documentation" do
@@ -125,9 +123,7 @@ defmodule ProtocolTest do
   end
 
   test "protocol keeps underlying UndefinedFunctionError" do
-    assert_raise UndefinedFunctionError, fn ->
-      WithAll.ok(%ImplStruct{})
-    end
+    assert_raise UndefinedFunctionError, fn -> WithAll.ok(%ImplStruct{}) end
   end
 
   test "protocol defines callbacks" do
@@ -255,9 +251,7 @@ end
 path = Path.expand("../ebin", __DIR__)
 File.mkdir_p!(path)
 
-compile = fn {:module, module, binary, _} ->
-  File.write!("#{path}/#{module}.beam", binary)
-end
+compile = fn {:module, module, binary, _} -> File.write!("#{path}/#{module}.beam", binary) end
 
 defmodule Protocol.ConsolidationTest do
   use ExUnit.Case, async: true
@@ -414,9 +408,7 @@ defmodule Protocol.ConsolidationTest do
       "protocol Protocol.ConsolidationTest.Sample not implemented for :foo. " <>
         "This protocol is implemented for: Protocol.ConsolidationTest.ImplStruct"
 
-    assert_raise Protocol.UndefinedError, message, fn ->
-      Sample.ok(:foo)
-    end
+    assert_raise Protocol.UndefinedError, message, fn -> Sample.ok(:foo) end
   end
 
   test "consolidation updates __protocol__/1 spec" do

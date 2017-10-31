@@ -78,13 +78,15 @@ defmodule RegistryTest do
         value = {1, :atom, 2}
         {:ok, _} = Registry.register(registry, "hello", value)
 
-        assert Registry.match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}]) ==
-                 [{self(), value}]
+        assert Registry.match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}]) == [
+                 {self(), value}
+               ]
 
         assert Registry.match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 2}]) == []
 
-        assert Registry.match(registry, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}]) ==
-                 [{self(), value}]
+        assert Registry.match(registry, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}]) == [
+                 {self(), value}
+               ]
       end
 
       test "unregister_match supports patterns", %{registry: registry} do
@@ -361,11 +363,15 @@ defmodule RegistryTest do
         assert Registry.match(registry, "hello", {1, :_, :_}) == [{self(), value1}]
         assert Registry.match(registry, "hello", {1.0, :_, :_}) == []
 
-        assert Registry.match(registry, "hello", {:_, :atom, :_}) |> Enum.sort() ==
-                 [{self(), value1}, {self(), value2}]
+        assert Registry.match(registry, "hello", {:_, :atom, :_}) |> Enum.sort() == [
+                 {self(), value1},
+                 {self(), value2}
+               ]
 
-        assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) |> Enum.sort() ==
-                 [{self(), value1}, {self(), value2}]
+        assert Registry.match(registry, "hello", {:"$1", :_, :"$1"}) |> Enum.sort() == [
+                 {self(), value1},
+                 {self(), value2}
+               ]
 
         assert Registry.match(registry, "hello", {2, :_, :_}) == [{self(), value2}]
         assert Registry.match(registry, "hello", {2.0, :_, :_}) == []
@@ -378,8 +384,9 @@ defmodule RegistryTest do
         {:ok, _} = Registry.register(registry, "hello", value1)
         {:ok, _} = Registry.register(registry, "hello", value2)
 
-        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}]) ==
-                 [{self(), value1}]
+        assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:<, :"$1", 2}]) == [
+                 {self(), value1}
+               ]
 
         assert Registry.match(registry, "hello", {:"$1", :_, :_}, [{:>, :"$1", 3}]) == []
 

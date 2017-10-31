@@ -74,13 +74,9 @@ defmodule Kernel.WithTest do
   end
 
   test "errors in with" do
-    assert_raise RuntimeError, fn ->
-      with({:ok, res} <- oops(), do: res)
-    end
+    assert_raise RuntimeError, fn -> with({:ok, res} <- oops(), do: res) end
 
-    assert_raise RuntimeError, fn ->
-      with({:ok, res} <- ok(42), res = res + oops(), do: res)
-    end
+    assert_raise RuntimeError, fn -> with({:ok, res} <- ok(42), res = res + oops(), do: res) end
   end
 
   test "else conditions" do

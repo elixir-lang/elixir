@@ -788,9 +788,7 @@ defmodule Kernel.ErrorsTest do
   ## Helpers
 
   defp assert_eval_raise(given_exception, given_message, string) do
-    assert_raise given_exception, given_message, fn ->
-      Code.eval_string(string)
-    end
+    assert_raise given_exception, given_message, fn -> Code.eval_string(string) end
   end
 
   defp rescue_stacktrace(string) do

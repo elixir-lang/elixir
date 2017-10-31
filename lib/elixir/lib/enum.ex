@@ -83,10 +83,7 @@ defprotocol Enumerable do
   Furthermore, a `:suspend` call must always be followed by another call,
   eventually halting or continuing until the end.
   """
-  @type result ::
-          {:done, term}
-          | {:halted, term}
-          | {:suspended, term, continuation}
+  @type result :: {:done, term} | {:halted, term} | {:suspended, term, continuation}
 
   @typedoc """
   A partially applied reduce function.
@@ -187,9 +184,7 @@ defprotocol Enumerable do
   On the other hand, the `count/1` function in this protocol should be
   implemented whenever you can count the number of elements in the collection.
   """
-  @spec slice(t) ::
-          {:ok, size :: non_neg_integer(), slicing_fun()}
-          | {:error, module()}
+  @spec slice(t) :: {:ok, size :: non_neg_integer(), slicing_fun()} | {:error, module()}
   def slice(enumerable)
 end
 
@@ -569,9 +564,7 @@ defmodule Enum do
   """
   @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
   def count(enumerable, fun) do
-    reduce(enumerable, 0, fn entry, acc ->
-      if(fun.(entry), do: acc + 1, else: acc)
-    end)
+    reduce(enumerable, 0, fn entry, acc -> if(fun.(entry), do: acc + 1, else: acc) end)
   end
 
   @doc """
@@ -642,8 +635,7 @@ defmodule Enum do
 
   """
   @spec drop(t, integer) :: list
-  def drop(enumerable, amount)
-      when is_list(enumerable) and is_integer(amount) and amount >= 0 do
+  def drop(enumerable, amount) when is_list(enumerable) and is_integer(amount) and amount >= 0 do
     drop_list(enumerable, amount)
   end
 
@@ -769,8 +761,7 @@ defmodule Enum do
         value == 0
 
       {:error, module} ->
-        module.reduce(enumerable, {:cont, true}, fn _, _ -> {:halt, false} end)
-        |> elem(1)
+        module.reduce(enumerable, {:cont, true}, fn _, _ -> {:halt, false} end) |> elem(1)
     end
   end
 
@@ -883,9 +874,7 @@ defmodule Enum do
   end
 
   def filter_map(enumerable, filter, mapper) do
-    enumerable
-    |> reduce([], R.filter_map(filter, mapper))
-    |> :lists.reverse()
+    enumerable |> reduce([], R.filter_map(filter, mapper)) |> :lists.reverse()
   end
 
   @doc """
@@ -1041,17 +1030,10 @@ defmodule Enum do
     {_, {list, acc}} =
       Enumerable.reduce(enumerable, {:cont, {[], acc}}, fn entry, {list, acc} ->
         case fun.(entry, acc) do
-          {:halt, acc} ->
-            {:halt, {list, acc}}
-
-          {[], acc} ->
-            {:cont, {list, acc}}
-
-          {[entry], acc} ->
-            {:cont, {[entry | list], acc}}
-
-          {entries, acc} ->
-            {:cont, {reduce(entries, list, &[&1 | &2]), acc}}
+          {:halt, acc} -> {:halt, {list, acc}}
+          {[], acc} -> {:cont, {list, acc}}
+          {[entry], acc} -> {:cont, {[entry | list], acc}}
+          {entries, acc} -> {:cont, {reduce(entries, list, &[&1 | &2]), acc}}
         end
       end)
 
@@ -1119,11 +1101,7 @@ defmodule Enum do
   """
   @spec intersperse(t, element) :: list
   def intersperse(enumerable, element) do
-    list =
-      reduce(enumerable, [], fn x, acc ->
-        [x, element | acc]
-      end)
-      |> :lists.reverse()
+    list = reduce(enumerable, [], fn x, acc -> [x, element | acc] end) |> :lists.reverse()
 
     case list do
       [] ->
@@ -1175,9 +1153,7 @@ defmodule Enum do
   end
 
   def into(enumerable, %{} = collectable) do
-    reduce(enumerable, collectable, fn {key, val}, acc ->
-      Map.put(acc, key, val)
-    end)
+    reduce(enumerable, collectable, fn {key, val}, acc -> Map.put(acc, key, val) end)
   end
 
   def into(enumerable, collectable) do
@@ -1187,9 +1163,7 @@ defmodule Enum do
   defp into_protocol(enumerable, collectable) do
     {initial, fun} = Collectable.into(collectable)
 
-    into(enumerable, initial, fun, fn entry, acc ->
-      fun.(acc, {:cont, entry})
-    end)
+    into(enumerable, initial, fun, fn entry, acc -> fun.(acc, {:cont, entry}) end)
   end
 
   @doc """
@@ -1214,9 +1188,7 @@ defmodule Enum do
   def into(enumerable, collectable, transform) do
     {initial, fun} = Collectable.into(collectable)
 
-    into(enumerable, initial, fun, fn entry, acc ->
-      fun.(acc, {:cont, transform.(entry)})
-    end)
+    into(enumerable, initial, fun, fn entry, acc -> fun.(acc, {:cont, transform.(entry)}) end)
   end
 
   defp into(enumerable, initial, fun, callback) do
@@ -1628,9 +1600,7 @@ defmodule Enum do
   def min_max(enumerable, empty_fallback) do
     first_fun = &{&1, &1}
 
-    reduce_fun = fn entry, {min, max} ->
-      {Kernel.min(entry, min), Kernel.max(entry, max)}
-    end
+    reduce_fun = fn entry, {min, max} -> {Kernel.min(entry, min), Kernel.max(entry, max)} end
 
     case reduce_by(enumerable, first_fun, reduce_fun) do
       :empty -> empty_fallback.()
@@ -1675,14 +1645,9 @@ defmodule Enum do
       fun_entry = fun.(entry)
 
       cond do
-        fun_entry < fun_min ->
-          {{entry, prev_max}, {fun_entry, fun_max}}
-
-        fun_entry > fun_max ->
-          {{prev_min, entry}, {fun_min, fun_entry}}
-
-        true ->
-          acc
+        fun_entry < fun_min -> {{entry, prev_max}, {fun_entry, fun_max}}
+        fun_entry > fun_max -> {{prev_min, entry}, {fun_min, fun_entry}}
+        true -> acc
       end
     end
 
@@ -1785,14 +1750,9 @@ defmodule Enum do
   def random(enumerable) do
     result =
       case Enumerable.slice(enumerable) do
-        {:ok, 0, _} ->
-          []
-
-        {:ok, count, fun} when is_function(fun) ->
-          fun.(random_integer(0, count - 1), 1)
-
-        {:error, _} ->
-          take_random(enumerable, 1)
+        {:ok, 0, _} -> []
+        {:ok, count, fun} when is_function(fun) -> fun.(random_integer(0, count - 1), 1)
+        {:error, _} -> take_random(enumerable, 1)
       end
 
     case result do
@@ -1841,11 +1801,8 @@ defmodule Enum do
   def reduce(enumerable, fun) do
     result =
       Enumerable.reduce(enumerable, {:cont, :first}, fn
-        x, :first ->
-          {:cont, {:acc, x}}
-
-        x, {:acc, acc} ->
-          {:cont, {:acc, fun.(x, acc)}}
+        x, :first -> {:cont, {:acc, x}}
+        x, {:acc, acc} -> {:cont, {:acc, fun.(x, acc)}}
       end)
       |> elem(1)
 
@@ -1998,9 +1955,7 @@ defmodule Enum do
   end
 
   def reverse(enumerable, tail) do
-    reduce(enumerable, to_list(tail), fn entry, acc ->
-      [entry | acc]
-    end)
+    reduce(enumerable, to_list(tail), fn entry, acc -> [entry | acc] end)
   end
 
   @doc """
@@ -2084,10 +2039,7 @@ defmodule Enum do
   """
   @spec shuffle(t) :: list
   def shuffle(enumerable) do
-    randomized =
-      reduce(enumerable, [], fn x, acc ->
-        [{:rand.uniform(), x} | acc]
-      end)
+    randomized = reduce(enumerable, [], fn x, acc -> [{:rand.uniform(), x} | acc] end)
 
     shuffle_unwrap(:lists.keysort(1, randomized), [])
   end
@@ -2235,8 +2187,7 @@ defmodule Enum do
   end
 
   def sort(enumerable, fun) do
-    reduce(enumerable, [], &sort_reducer(&1, &2, fun))
-    |> sort_terminator(fun)
+    reduce(enumerable, [], &sort_reducer(&1, &2, fun)) |> sort_terminator(fun)
   end
 
   @doc """
@@ -2352,11 +2303,8 @@ defmodule Enum do
   def split_while(enumerable, fun) do
     {list1, list2} =
       reduce(enumerable, {[], []}, fn
-        entry, {acc1, []} ->
-          if(fun.(entry), do: {[entry | acc1], []}, else: {acc1, [entry]})
-
-        entry, {acc1, acc2} ->
-          {acc1, [entry | acc2]}
+        entry, {acc1, []} -> if(fun.(entry), do: {[entry | acc1], []}, else: {acc1, [entry]})
+        entry, {acc1, acc2} -> {acc1, [entry | acc2]}
       end)
 
     {:lists.reverse(list1), :lists.reverse(list2)}
@@ -2411,8 +2359,7 @@ defmodule Enum do
 
   def take(_enumerable, 0), do: []
 
-  def take(enumerable, amount)
-      when is_list(enumerable) and is_integer(amount) and amount > 0 do
+  def take(enumerable, amount) when is_list(enumerable) and is_integer(amount) and amount > 0 do
     take_list(enumerable, amount)
   end
 
@@ -2684,10 +2631,7 @@ defmodule Enum do
   """
   @spec with_index(t, integer) :: [{element, index}]
   def with_index(enumerable, offset \\ 0) do
-    map_reduce(enumerable, offset, fn x, acc ->
-      {{x, acc}, acc + 1}
-    end)
-    |> elem(0)
+    map_reduce(enumerable, offset, fn x, acc -> {{x, acc}, acc + 1} end) |> elem(0)
   end
 
   @doc """
@@ -2706,8 +2650,7 @@ defmodule Enum do
 
   """
   @spec zip(t, t) :: [{any, any}]
-  def zip(enumerable1, enumerable2)
-      when is_list(enumerable1) and is_list(enumerable2) do
+  def zip(enumerable1, enumerable2) when is_list(enumerable1) and is_list(enumerable2) do
     zip_list(enumerable1, enumerable2)
   end
 
@@ -2735,9 +2678,7 @@ defmodule Enum do
   def zip([]), do: []
 
   def zip(enumerables) when is_list(enumerables) do
-    Stream.zip(enumerables).({:cont, []}, &{:cont, [&1 | &2]})
-    |> elem(1)
-    |> :lists.reverse()
+    Stream.zip(enumerables).({:cont, []}, &{:cont, [&1 | &2]}) |> elem(1) |> :lists.reverse()
   end
 
   ## Helpers
@@ -2991,14 +2932,9 @@ defmodule Enum do
 
   defp slice_any(enumerable, start, amount) do
     case Enumerable.slice(enumerable) do
-      {:ok, count, _} when start >= count ->
-        []
-
-      {:ok, count, fun} when is_function(fun) ->
-        fun.(start, Kernel.min(amount, count - start))
-
-      {:error, module} ->
-        slice_enum(enumerable, module, start, amount)
+      {:ok, count, _} when start >= count -> []
+      {:ok, count, fun} when is_function(fun) -> fun.(start, Kernel.min(amount, count - start))
+      {:error, module} -> slice_enum(enumerable, module, start, amount)
     end
   end
 
@@ -3041,33 +2977,19 @@ defmodule Enum do
 
   defp sort_reducer(entry, {:split, y, x, r, rs, bool}, fun) do
     cond do
-      fun.(y, entry) == bool ->
-        {:split, entry, y, [x | r], rs, bool}
-
-      fun.(x, entry) == bool ->
-        {:split, y, entry, [x | r], rs, bool}
-
-      r == [] ->
-        {:split, y, x, [entry], rs, bool}
-
-      true ->
-        {:pivot, y, x, r, rs, entry, bool}
+      fun.(y, entry) == bool -> {:split, entry, y, [x | r], rs, bool}
+      fun.(x, entry) == bool -> {:split, y, entry, [x | r], rs, bool}
+      r == [] -> {:split, y, x, [entry], rs, bool}
+      true -> {:pivot, y, x, r, rs, entry, bool}
     end
   end
 
   defp sort_reducer(entry, {:pivot, y, x, r, rs, s, bool}, fun) do
     cond do
-      fun.(y, entry) == bool ->
-        {:pivot, entry, y, [x | r], rs, s, bool}
-
-      fun.(x, entry) == bool ->
-        {:pivot, y, entry, [x | r], rs, s, bool}
-
-      fun.(s, entry) == bool ->
-        {:split, entry, s, [], [[y, x | r] | rs], bool}
-
-      true ->
-        {:split, s, entry, [], [[y, x | r] | rs], bool}
+      fun.(y, entry) == bool -> {:pivot, entry, y, [x | r], rs, s, bool}
+      fun.(x, entry) == bool -> {:pivot, y, entry, [x | r], rs, s, bool}
+      fun.(s, entry) == bool -> {:split, entry, s, [], [[y, x | r] | rs], bool}
+      true -> {:split, s, entry, [], [[y, x | r] | rs], bool}
     end
   end
 

@@ -168,14 +168,9 @@ defmodule Mix.Tasks.Format do
       output_string = IO.iodata_to_binary(output)
 
       cond do
-        check_equivalent? and not equivalent?(input, output_string) ->
-          {:not_equivalent, file}
-
-        check_formatted? and input != output_string ->
-          {:not_formatted, file}
-
-        true ->
-          write_or_print(file, output, check_formatted?, task_opts)
+        check_equivalent? and not equivalent?(input, output_string) -> {:not_equivalent, file}
+        check_formatted? and input != output_string -> {:not_formatted, file}
+        true -> write_or_print(file, output, check_formatted?, task_opts)
       end
     else
       write_or_print(file, output, check_formatted?, task_opts)

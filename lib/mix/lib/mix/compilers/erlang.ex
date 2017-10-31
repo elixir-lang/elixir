@@ -253,9 +253,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp manifest_warnings(entries) do
-    Enum.flat_map(entries, fn {_, warnings} ->
-      to_diagnostics(warnings, :warning)
-    end)
+    Enum.flat_map(entries, fn {_, warnings} -> to_diagnostics(warnings, :warning) end)
   end
 
   defp to_diagnostics(warnings_or_errors, severity) do

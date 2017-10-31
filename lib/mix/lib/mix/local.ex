@@ -70,9 +70,7 @@ defmodule Mix.Local do
   Returns the name of an archive given a path.
   """
   def archive_name(path) do
-    path
-    |> Path.basename()
-    |> Path.rootname(".ez")
+    path |> Path.basename() |> Path.rootname(".ez")
   end
 
   @doc """
@@ -126,14 +124,10 @@ defmodule Mix.Local do
     csv = read_path!(name, path)
 
     signature =
-      read_path!(name, path <> ".signed")
-      |> String.replace("\n", "")
-      |> Base.decode64!()
+      read_path!(name, path <> ".signed") |> String.replace("\n", "") |> Base.decode64!()
 
     if Mix.PublicKey.verify(csv, :sha512, signature) do
-      csv
-      |> parse_csv
-      |> find_latest_eligible_version
+      csv |> parse_csv |> find_latest_eligible_version
     else
       Mix.raise(
         "Could not install #{name} because Mix could not verify authenticity " <>
@@ -168,9 +162,7 @@ defmodule Mix.Local do
   defp find_latest_eligible_version(entries) do
     {:ok, current_version} = Version.parse(System.version())
 
-    entries
-    |> Enum.reverse()
-    |> Enum.find_value(entries, &find_version(&1, current_version))
+    entries |> Enum.reverse() |> Enum.find_value(entries, &find_version(&1, current_version))
   end
 
   defp find_version([artifact_version, digest | versions], current_version) do

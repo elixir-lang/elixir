@@ -492,11 +492,7 @@ defmodule Code do
   end
 
   defp validate_aliases(kind, aliases) do
-    valid =
-      is_list(aliases) and
-        Enum.all?(aliases, fn {k, v} ->
-          is_atom(k) and is_atom(v)
-        end)
+    valid = is_list(aliases) and Enum.all?(aliases, fn {k, v} -> is_atom(k) and is_atom(v) end)
 
     unless valid do
       raise ArgumentError,
@@ -509,9 +505,7 @@ defmodule Code do
       is_list(imports) and
         Enum.all?(imports, fn {k, v} ->
           is_atom(k) and is_list(v) and
-            Enum.all?(v, fn {name, arity} ->
-              is_atom(name) and is_integer(arity)
-            end)
+            Enum.all?(v, fn {name, arity} -> is_atom(name) and is_integer(arity) end)
         end)
 
     unless valid do
@@ -930,11 +924,8 @@ defmodule Code do
 
   def get_docs(module, kind) when is_atom(module) and kind in @doc_kinds do
     case :code.get_object_code(module) do
-      {_module, bin, _beam_path} ->
-        do_get_docs(bin, kind)
-
-      :error ->
-        nil
+      {_module, bin, _beam_path} -> do_get_docs(bin, kind)
+      :error -> nil
     end
   end
 
@@ -946,11 +937,8 @@ defmodule Code do
 
   defp do_get_docs(bin_or_path, kind) do
     case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
-      {:ok, {_module, [{@docs_chunk, bin}]}} ->
-        lookup_docs(:erlang.binary_to_term(bin), kind)
-
-      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
-        nil
+      {:ok, {_module, [{@docs_chunk, bin}]}} -> lookup_docs(:erlang.binary_to_term(bin), kind)
+      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} -> nil
     end
   end
 

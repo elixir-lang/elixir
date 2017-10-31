@@ -207,11 +207,8 @@ defmodule StringIO do
 
   defp put_chars(encoding, chars, req, %{output: output} = state) do
     case :unicode.characters_to_binary(chars, encoding, :unicode) do
-      string when is_binary(string) ->
-        {:ok, %{state | output: output <> string}}
-
-      {_, _, _} ->
-        {{:error, req}, state}
+      string when is_binary(string) -> {:ok, %{state | output: output <> string}}
+      {_, _, _} -> {{:error, req}, state}
     end
   end
 
@@ -219,11 +216,8 @@ defmodule StringIO do
 
   defp get_chars(encoding, prompt, count, %{input: input} = state) do
     case get_chars(input, encoding, count) do
-      {:error, _} = error ->
-        {error, state}
-
-      {result, input} ->
-        {result, state_after_read(state, input, prompt, 1)}
+      {:error, _} = error -> {error, state}
+      {result, input} -> {result, state_after_read(state, input, prompt, 1)}
     end
   end
 
@@ -251,8 +245,7 @@ defmodule StringIO do
           {chars, rest}
       end
     catch
-      :exit, :invalid_unicode ->
-        {:error, :invalid_unicode}
+      :exit, :invalid_unicode -> {:error, :invalid_unicode}
     end
   end
 

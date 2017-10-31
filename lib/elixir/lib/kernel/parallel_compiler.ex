@@ -173,8 +173,7 @@ defmodule Kernel.ParallelCompiler do
 
             :ok
           catch
-            kind, reason ->
-              {kind, reason, System.stacktrace()}
+            kind, reason -> {kind, reason, System.stacktrace()}
           end
 
         send(parent, {:file_done, self(), file, result})
@@ -288,8 +287,7 @@ defmodule Kernel.ParallelCompiler do
         })
 
       # If we are simply requiring files, we do not add to waiting.
-      {:waiting, _kind, child, ref, _on, _defining}
-      when output == :require ->
+      {:waiting, _kind, child, ref, _on, _defining} when output == :require ->
         send(child, {ref, :not_found})
         spawn_workers(state)
 
@@ -311,11 +309,8 @@ defmodule Kernel.ParallelCompiler do
         callback = Keyword.get(options, :each_long_compilation)
 
         case List.keyfind(queued, child, 0) do
-          {^child, _, file, _} when not is_nil(callback) ->
-            callback.(file)
-
-          _ ->
-            :ok
+          {^child, _, file, _} when not is_nil(callback) -> callback.(file)
+          _ -> :ok
         end
 
         spawn_workers(state)
@@ -398,10 +393,7 @@ defmodule Kernel.ParallelCompiler do
     The following files depended on the following modules:
     """)
 
-    max =
-      deadlock
-      |> Enum.map(&(&1 |> elem(0) |> String.length()))
-      |> Enum.max()
+    max = deadlock |> Enum.map(&(&1 |> elem(0) |> String.length())) |> Enum.max()
 
     for {file, mod, _} <- deadlock do
       IO.puts(["  ", String.pad_leading(file, max), " => " | inspect(mod)])

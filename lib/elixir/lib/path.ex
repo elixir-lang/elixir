@@ -203,9 +203,7 @@ defmodule Path do
 
   """
   @spec type(t) :: :absolute | :relative | :volumerelative
-  def type(name)
-      when is_list(name)
-      when is_binary(name) do
+  def type(name) when is_list(name) when is_binary(name) do
     pathtype(name, major_os_type()) |> elem(0)
   end
 
@@ -234,9 +232,7 @@ defmodule Path do
   end
 
   defp relative(name, os_type) do
-    pathtype(name, os_type)
-    |> elem(1)
-    |> IO.chardata_to_string()
+    pathtype(name, os_type) |> elem(1) |> IO.chardata_to_string()
   end
 
   defp pathtype(name, os_type) do
@@ -570,11 +566,8 @@ defmodule Path do
 
     def list_dir(dir) do
       case call({:list_dir, dir}) do
-        {:ok, files} ->
-          {:ok, for(file <- files, hd(file) != ?., do: file)}
-
-        other ->
-          other
+        {:ok, files} -> {:ok, for(file <- files, hd(file) != ?., do: file)}
+        other -> other
       end
     end
 
@@ -637,10 +630,7 @@ defmodule Path do
   def wildcard(glob, opts \\ []) do
     mod = if Keyword.get(opts, :match_dot), do: :file, else: Path.Wildcard
 
-    glob
-    |> chardata_to_list!()
-    |> :filelib.wildcard(mod)
-    |> Enum.map(&IO.chardata_to_string/1)
+    glob |> chardata_to_list!() |> :filelib.wildcard(mod) |> Enum.map(&IO.chardata_to_string/1)
   end
 
   defp chardata_to_list!(chardata) do
@@ -672,14 +662,9 @@ defmodule Path do
 
   defp resolve_home(rest) do
     case {rest, major_os_type()} do
-      {"\\" <> _, :win32} ->
-        System.user_home!() <> rest
-
-      {"/" <> _, _} ->
-        System.user_home!() <> rest
-
-      _ ->
-        rest
+      {"\\" <> _, :win32} -> System.user_home!() <> rest
+      {"/" <> _, _} -> System.user_home!() <> rest
+      _ -> rest
     end
   end
 

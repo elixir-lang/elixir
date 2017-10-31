@@ -41,9 +41,7 @@ defmodule RangeTest do
     y = 3.0
     message = "ranges (first..last) expect both sides to be integers, got: 1.0..3.0"
 
-    assert_raise ArgumentError, message, fn ->
-      Enum.map(x..y, &(&1 * 2))
-    end
+    assert_raise ArgumentError, message, fn -> Enum.map(x..y, &(&1 * 2)) end
 
     first = []
     last = []

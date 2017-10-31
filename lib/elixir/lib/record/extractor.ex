@@ -40,11 +40,8 @@ defmodule Record.Extractor do
     [app | path] = :filename.split(String.to_charlist(file))
 
     case :code.lib_dir(List.to_atom(app)) do
-      {:error, _} ->
-        raise ArgumentError, "lib file #{file} could not be found"
-
-      libpath ->
-        :filename.join([libpath | path])
+      {:error, _} -> raise ArgumentError, "lib file #{file} could not be found"
+      libpath -> :filename.join([libpath | path])
     end
   end
 
@@ -78,11 +75,8 @@ defmodule Record.Extractor do
   # by using Erlang's epp.
   defp read_file(file) do
     case :epp.parse_file(file, []) do
-      {:ok, form} ->
-        form
-
-      other ->
-        raise "error parsing file #{file}, got: #{inspect(other)}"
+      {:ok, form} -> form
+      other -> raise "error parsing file #{file}, got: #{inspect(other)}"
     end
   end
 

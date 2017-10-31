@@ -126,9 +126,7 @@ defmodule Date do
   end
 
   def utc_today(calendar) do
-    calendar
-    |> DateTime.utc_now()
-    |> DateTime.to_date()
+    calendar |> DateTime.utc_now() |> DateTime.to_date()
   end
 
   @doc """
@@ -454,10 +452,7 @@ defmodule Date do
 
   def convert(%{calendar: calendar} = date, target_calendar) do
     if Calendar.compatible_calendars?(calendar, target_calendar) do
-      result_date =
-        date
-        |> to_iso_days()
-        |> from_iso_days(target_calendar)
+      result_date = date |> to_iso_days() |> from_iso_days(target_calendar)
 
       {:ok, result_date}
     else

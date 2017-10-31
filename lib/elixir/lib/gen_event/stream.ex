@@ -124,8 +124,7 @@ defimpl Enumerable, for: GenEvent.Stream do
         send(self, event)
         {:halt, {:removed, acc}}
     after
-      timeout ->
-        exit({:timeout, {__MODULE__, :next, [stream, acc]}})
+      timeout -> exit({:timeout, {__MODULE__, :next, [stream, acc]}})
     end
   end
 
@@ -133,11 +132,8 @@ defimpl Enumerable, for: GenEvent.Stream do
   # removed, so we don't trigger a request for doing so.
   defp stop(stream, {:removed, {pid, ref, mon_ref} = acc}) do
     case wait_for_handler_removal(pid, ref, mon_ref) do
-      :ok ->
-        flush_events(ref)
-
-      {:error, reason} ->
-        exit({reason, {__MODULE__, :stop, [stream, acc]}})
+      :ok -> flush_events(ref)
+      {:error, reason} -> exit({reason, {__MODULE__, :stop, [stream, acc]}})
     end
   end
 

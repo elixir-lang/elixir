@@ -48,11 +48,8 @@ defmodule IEx.Config do
   defp color(color, colors) do
     if colors_enabled?(colors) do
       case Keyword.fetch(colors, color) do
-        {:ok, value} ->
-          value
-
-        :error ->
-          default_color(color)
+        {:ok, value} -> value
+        :error -> default_color(color)
       end
     else
       nil
@@ -61,11 +58,8 @@ defmodule IEx.Config do
 
   defp colors_enabled?(colors) do
     case Keyword.fetch(colors, :enabled) do
-      {:ok, enabled} ->
-        enabled
-
-      :error ->
-        IO.ANSI.enabled?()
+      {:ok, enabled} -> enabled
+      :error -> IO.ANSI.enabled?()
     end
   end
 
@@ -159,9 +153,7 @@ defmodule IEx.Config do
   def handle_configure(tab, options) do
     options = :lists.ukeysort(1, options)
 
-    configuration()
-    |> Keyword.merge(options, &merge_option/3)
-    |> update_configuration()
+    configuration() |> Keyword.merge(options, &merge_option/3) |> update_configuration()
 
     tab
   end

@@ -99,11 +99,8 @@ defmodule System do
 
   defp read_stripped(path) do
     case :file.read_file(path) do
-      {:ok, binary} ->
-        strip(binary)
-
-      _ ->
-        ""
+      {:ok, binary} -> strip(binary)
+      _ -> ""
     end
   end
 
@@ -129,10 +126,7 @@ defmodule System do
         _ -> '/dev/null'
       end
 
-    'git rev-parse --short HEAD 2> '
-    |> Kernel.++(null)
-    |> :os.cmd()
-    |> strip
+    'git rev-parse --short HEAD 2> ' |> Kernel.++(null) |> :os.cmd() |> strip
   end
 
   defp revision, do: get_revision()
@@ -311,11 +305,8 @@ defmodule System do
     case File.stat(dir) do
       {:ok, stat} ->
         case {stat.type, stat.access} do
-          {:directory, access} when access in [:read_write, :write] ->
-            IO.chardata_to_string(dir)
-
-          _ ->
-            nil
+          {:directory, access} when access in [:read_write, :write] -> IO.chardata_to_string(dir)
+          _ -> nil
         end
 
       {:error, _} ->
@@ -639,11 +630,8 @@ defmodule System do
 
   defp do_cmd(port, acc, fun) do
     receive do
-      {^port, {:data, data}} ->
-        do_cmd(port, fun.(acc, {:cont, data}), fun)
-
-      {^port, {:exit_status, status}} ->
-        {acc, status}
+      {^port, {:data, data}} -> do_cmd(port, fun.(acc, {:cont, data}), fun)
+      {^port, {:exit_status, status}} -> {acc, status}
     end
   end
 
@@ -673,14 +661,9 @@ defmodule System do
 
   defp validate_env(enum) do
     Enum.map(enum, fn
-      {k, nil} ->
-        {String.to_charlist(k), false}
-
-      {k, v} ->
-        {String.to_charlist(k), String.to_charlist(v)}
-
-      other ->
-        raise ArgumentError, "invalid environment key-value #{inspect(other)}"
+      {k, nil} -> {String.to_charlist(k), false}
+      {k, v} -> {String.to_charlist(k), String.to_charlist(v)}
+      other -> raise ArgumentError, "invalid environment key-value #{inspect(other)}"
     end)
   end
 

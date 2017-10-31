@@ -39,10 +39,7 @@ defmodule Mix.Compilers.Elixir do
     modified = Mix.Utils.last_modified(manifest)
     prev_paths = for source(source: source) <- all_sources, into: MapSet.new(), do: source
 
-    removed =
-      prev_paths
-      |> MapSet.difference(all_paths)
-      |> MapSet.to_list()
+    removed = prev_paths |> MapSet.difference(all_paths) |> MapSet.to_list()
 
     changed =
       if force do
@@ -53,10 +50,7 @@ defmodule Mix.Compilers.Elixir do
         sources_stats = mtimes_and_sizes(all_sources)
 
         # Otherwise let's start with the new sources
-        new_paths =
-          all_paths
-          |> MapSet.difference(prev_paths)
-          |> MapSet.to_list()
+        new_paths = all_paths |> MapSet.difference(prev_paths) |> MapSet.to_list()
 
         # Plus the sources that have changed in disk
         for source(source: source, external: external, size: size) <- all_sources,
@@ -181,9 +175,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp set_compiler_opts(opts) do
-    opts
-    |> Keyword.take(Code.available_compiler_options())
-    |> Code.compiler_options()
+    opts |> Keyword.take(Code.available_compiler_options()) |> Code.compiler_options()
   end
 
   defp each_module(pid, cwd, source, module, binary) do
@@ -194,19 +186,14 @@ defmodule Mix.Compilers.Elixir do
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
-    runtime_references =
-      runtime_references
-      |> List.delete(module)
+    runtime_references = runtime_references |> List.delete(module)
 
     {compile_dispatches, runtime_dispatches} = Kernel.LexicalTracker.remote_dispatches(module)
 
     compile_dispatches =
-      compile_dispatches
-      |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
+      compile_dispatches |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(elem(&1, 0))))
 
-    runtime_dispatches =
-      runtime_dispatches
-      |> Enum.to_list()
+    runtime_dispatches = runtime_dispatches |> Enum.to_list()
 
     kind = detect_kind(module)
     source = Path.relative_to(source, cwd)
@@ -443,11 +430,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp expand_beam_paths(modules, compile_path) do
     Enum.map(modules, fn
-      module() = module ->
-        expand_beam_path(module, compile_path)
-
-      other ->
-        other
+      module() = module -> expand_beam_path(module, compile_path)
+      other -> other
     end)
   end
 
@@ -472,9 +456,7 @@ defmodule Mix.Compilers.Elixir do
         module(entry, binary: nil, beam: beam)
       end
 
-    manifest_data =
-      [@manifest_vsn | modules ++ sources]
-      |> :erlang.term_to_binary([:compressed])
+    manifest_data = [@manifest_vsn | modules ++ sources] |> :erlang.term_to_binary([:compressed])
 
     File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)

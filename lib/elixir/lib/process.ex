@@ -213,9 +213,7 @@ defmodule Process do
 
   """
   @spec sleep(timeout) :: :ok
-  def sleep(timeout)
-      when is_integer(timeout) and timeout >= 0
-      when timeout == :infinity do
+  def sleep(timeout) when is_integer(timeout) and timeout >= 0 when timeout == :infinity do
     receive after: (timeout -> :ok)
   end
 
@@ -566,8 +564,7 @@ defmodule Process do
   defdelegate registered(), to: :erlang
 
   @typep heap_size ::
-           non_neg_integer
-           | %{size: non_neg_integer, kill: boolean, error_logger: boolean}
+           non_neg_integer | %{size: non_neg_integer, kill: boolean, error_logger: boolean}
 
   @typep priority_level :: :low | :normal | :high | :max
 

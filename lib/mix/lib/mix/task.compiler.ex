@@ -70,9 +70,7 @@ defmodule Mix.Task.Compiler do
     first line, the range would be `{1, 0, 1, n}`.
     """
     @type position ::
-            nil
-            | pos_integer
-            | {pos_integer, non_neg_integer, pos_integer, non_neg_integer}
+            nil | pos_integer | {pos_integer, non_neg_integer, pos_integer, non_neg_integer}
 
     @enforce_keys [:file, :severity, :message, :position, :compiler_name]
     defstruct [:file, :severity, :message, :position, :compiler_name, :details]
@@ -83,10 +81,7 @@ defmodule Mix.Task.Compiler do
   produces errors, warnings, or any other diagnostic information,
   it should return a tuple with the status and a list of diagnostics.
   """
-  @callback run([binary]) ::
-              :ok
-              | :noop
-              | {:ok | :noop | :error, [Diagnostic.t()]}
+  @callback run([binary]) :: :ok | :noop | {:ok | :noop | :error, [Diagnostic.t()]}
 
   @doc """
   Lists manifest files for the compiler.

@@ -12,9 +12,7 @@ defmodule Kernel.RaiseTest do
   @trace [{:foo, :bar, 0, []}]
 
   test "raise message" do
-    assert_raise RuntimeError, "message", fn ->
-      raise "message"
-    end
+    assert_raise RuntimeError, "message", fn -> raise "message" end
 
     assert_raise RuntimeError, "message", fn ->
       var = binary()
@@ -23,9 +21,7 @@ defmodule Kernel.RaiseTest do
   end
 
   test "raise with no arguments" do
-    assert_raise RuntimeError, fn ->
-      raise RuntimeError
-    end
+    assert_raise RuntimeError, fn -> raise RuntimeError end
 
     assert_raise RuntimeError, fn ->
       var = atom()
@@ -34,9 +30,7 @@ defmodule Kernel.RaiseTest do
   end
 
   test "raise with arguments" do
-    assert_raise RuntimeError, "message", fn ->
-      raise RuntimeError, message: "message"
-    end
+    assert_raise RuntimeError, "message", fn -> raise RuntimeError, message: "message" end
 
     assert_raise RuntimeError, "message", fn ->
       atom = atom()
@@ -46,9 +40,7 @@ defmodule Kernel.RaiseTest do
   end
 
   test "raise existing exception" do
-    assert_raise RuntimeError, "message", fn ->
-      raise %RuntimeError{message: "message"}
-    end
+    assert_raise RuntimeError, "message", fn -> raise %RuntimeError{message: "message"} end
 
     assert_raise RuntimeError, "message", fn ->
       var = struct()
@@ -61,8 +53,7 @@ defmodule Kernel.RaiseTest do
       reraise "message", @trace
       flunk("should not reach")
     rescue
-      RuntimeError ->
-        assert @trace == :erlang.get_stacktrace()
+      RuntimeError -> assert @trace == :erlang.get_stacktrace()
     end
 
     try do
@@ -70,8 +61,7 @@ defmodule Kernel.RaiseTest do
       reraise var, @trace
       flunk("should not reach")
     rescue
-      RuntimeError ->
-        assert @trace == :erlang.get_stacktrace()
+      RuntimeError -> assert @trace == :erlang.get_stacktrace()
     end
   end
 
@@ -80,8 +70,7 @@ defmodule Kernel.RaiseTest do
       reraise RuntimeError, @trace
       flunk("should not reach")
     rescue
-      RuntimeError ->
-        assert @trace == :erlang.get_stacktrace()
+      RuntimeError -> assert @trace == :erlang.get_stacktrace()
     end
 
     try do
@@ -89,8 +78,7 @@ defmodule Kernel.RaiseTest do
       reraise var, @trace
       flunk("should not reach")
     rescue
-      RuntimeError ->
-        assert @trace == :erlang.get_stacktrace()
+      RuntimeError -> assert @trace == :erlang.get_stacktrace()
     end
   end
 
@@ -99,8 +87,7 @@ defmodule Kernel.RaiseTest do
       reraise RuntimeError, [message: "message"], @trace
       flunk("should not reach")
     rescue
-      RuntimeError ->
-        assert @trace == :erlang.get_stacktrace()
+      RuntimeError -> assert @trace == :erlang.get_stacktrace()
     end
 
     try do
@@ -109,8 +96,7 @@ defmodule Kernel.RaiseTest do
       reraise atom, opts, @trace
       flunk("should not reach")
     rescue
-      RuntimeError ->
-        assert @trace == :erlang.get_stacktrace()
+      RuntimeError -> assert @trace == :erlang.get_stacktrace()
     end
   end
 
@@ -119,8 +105,7 @@ defmodule Kernel.RaiseTest do
       reraise %RuntimeError{message: "message"}, @trace
       flunk("should not reach")
     rescue
-      RuntimeError ->
-        assert @trace == :erlang.get_stacktrace()
+      RuntimeError -> assert @trace == :erlang.get_stacktrace()
     end
 
     try do
@@ -128,8 +113,7 @@ defmodule Kernel.RaiseTest do
       reraise var, @trace
       flunk("should not reach")
     rescue
-      RuntimeError ->
-        assert @trace == :erlang.get_stacktrace()
+      RuntimeError -> assert @trace == :erlang.get_stacktrace()
     end
   end
 
@@ -244,8 +228,7 @@ defmodule Kernel.RaiseTest do
         try do
           raise "an exception"
         rescue
-          exception in _ ->
-            Exception.message(exception)
+          exception in _ -> Exception.message(exception)
         end
 
       assert result == "an exception"
@@ -439,8 +422,7 @@ defmodule Kernel.RaiseTest do
           try do
             f.()
           else
-            :other ->
-              :ok
+            :other -> :ok
           end
         rescue
           x in [TryClauseError] -> Exception.message(x)

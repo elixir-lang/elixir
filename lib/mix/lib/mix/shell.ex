@@ -119,10 +119,7 @@ defmodule Mix.Shell do
   defp shell_command(command) do
     case :os.type() do
       {:unix, _} ->
-        command =
-          command
-          |> String.replace("\"", "\\\"")
-          |> String.to_charlist()
+        command = command |> String.replace("\"", "\\\"") |> String.to_charlist()
 
         'sh -c "' ++ command ++ '"'
 
@@ -139,14 +136,9 @@ defmodule Mix.Shell do
 
   defp validate_env(enum) do
     Enum.map(enum, fn
-      {k, nil} ->
-        {String.to_charlist(k), false}
-
-      {k, v} ->
-        {String.to_charlist(k), String.to_charlist(v)}
-
-      other ->
-        raise ArgumentError, "invalid environment key-value #{inspect(other)}"
+      {k, nil} -> {String.to_charlist(k), false}
+      {k, v} -> {String.to_charlist(k), String.to_charlist(v)}
+      other -> raise ArgumentError, "invalid environment key-value #{inspect(other)}"
     end)
   end
 end

@@ -83,9 +83,7 @@ defmodule Module.LocalsTrackerTest do
     assert unused == {[], []}
   end
 
-  @unused [
-    {{:private, 3}, :defp, [], 3}
-  ]
+  @unused [{{:private, 3}, :defp, [], 3}]
 
   test "private definitions with unused default arguments", config do
     D.add_definition(config[:pid], :def, {:public, 1})
@@ -171,7 +169,11 @@ defmodule Module.LocalsTrackerTest do
   end
 
   test "does not include unreachable locals" do
-    assert NoPrivate.module_info(:functions) ==
-             [__info__: 1, baz: 0, module_info: 0, module_info: 1]
+    assert NoPrivate.module_info(:functions) == [
+             __info__: 1,
+             baz: 0,
+             module_info: 0,
+             module_info: 1
+           ]
   end
 end

@@ -48,14 +48,9 @@ defmodule Mix.Tasks.Compile.All do
     diagnostics = diagnostics ++ new_diagnostics
 
     case new_status do
-      :error ->
-        {:error, diagnostics}
-
-      :ok ->
-        do_compile(rest, args, :ok, diagnostics)
-
-      :noop ->
-        do_compile(rest, args, status, diagnostics)
+      :error -> {:error, diagnostics}
+      :ok -> do_compile(rest, args, :ok, diagnostics)
+      :noop -> do_compile(rest, args, status, diagnostics)
     end
   end
 

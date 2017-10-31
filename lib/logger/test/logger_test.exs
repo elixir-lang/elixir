@@ -5,9 +5,7 @@ defmodule LoggerTest do
   setup_all do
     Logger.configure_backend(:console, metadata: [:application, :module])
 
-    on_exit(fn ->
-      Logger.configure_backend(:console, metadata: [])
-    end)
+    on_exit(fn -> Logger.configure_backend(:console, metadata: []) end)
   end
 
   defp msg_with_meta(text) do
@@ -31,13 +29,10 @@ defmodule LoggerTest do
 
     assert Logger.add_translator({CustomTranslator, :t})
 
-    assert capture_log(fn ->
-             :error_logger.info_msg('hello: ~p', [:ok])
-           end) == ""
+    assert capture_log(fn -> :error_logger.info_msg('hello: ~p', [:ok]) end) == ""
 
-    assert capture_log(fn ->
-             :error_logger.info_msg('world: ~p', [:ok])
-           end) =~ "\[info\]  rewritten"
+    assert capture_log(fn -> :error_logger.info_msg('world: ~p', [:ok]) end) =~
+             "\[info\]  rewritten"
   after
     assert Logger.remove_translator({CustomTranslator, :t})
   end
@@ -47,9 +42,7 @@ defmodule LoggerTest do
     assert Application.get_env(:logger, :backends) == []
     assert Logger.remove_backend(:console) == {:error, :not_found}
 
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
+    assert capture_log(fn -> assert Logger.debug("hello", []) == :ok end) == ""
 
     assert {:ok, _pid} = Logger.add_backend(:console)
     assert Application.get_env(:logger, :backends) == [:console]
@@ -135,27 +128,21 @@ defmodule LoggerTest do
   test "enable/1 and disable/1" do
     assert Logger.metadata([]) == :ok
 
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) =~ msg_with_meta("[debug] hello")
+    assert capture_log(fn -> assert Logger.debug("hello", []) == :ok end) =~
+             msg_with_meta("[debug] hello")
 
     assert Logger.disable(self()) == :ok
 
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
+    assert capture_log(fn -> assert Logger.debug("hello", []) == :ok end) == ""
 
     assert Logger.metadata([]) == :ok
 
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
+    assert capture_log(fn -> assert Logger.debug("hello", []) == :ok end) == ""
 
     assert Logger.enable(self()) == :ok
 
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) =~ msg_with_meta("[debug] hello")
+    assert capture_log(fn -> assert Logger.debug("hello", []) == :ok end) =~
+             msg_with_meta("[debug] hello")
   end
 
   test "compare_levels/2" do
@@ -181,39 +168,29 @@ defmodule LoggerTest do
   end
 
   test "debug/2" do
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) =~ msg_with_meta("[debug] hello")
+    assert capture_log(fn -> assert Logger.debug("hello", []) == :ok end) =~
+             msg_with_meta("[debug] hello")
 
-    assert capture_log(:info, fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
+    assert capture_log(:info, fn -> assert Logger.debug("hello", []) == :ok end) == ""
   end
 
   test "info/2" do
-    assert capture_log(fn ->
-             assert Logger.info("hello", []) == :ok
-           end) =~ msg_with_meta("[info]  hello")
+    assert capture_log(fn -> assert Logger.info("hello", []) == :ok end) =~
+             msg_with_meta("[info]  hello")
 
-    assert capture_log(:warn, fn ->
-             assert Logger.info("hello", []) == :ok
-           end) == ""
+    assert capture_log(:warn, fn -> assert Logger.info("hello", []) == :ok end) == ""
   end
 
   test "warn/2" do
-    assert capture_log(fn ->
-             assert Logger.warn("hello", []) == :ok
-           end) =~ msg_with_meta("[warn]  hello")
+    assert capture_log(fn -> assert Logger.warn("hello", []) == :ok end) =~
+             msg_with_meta("[warn]  hello")
 
-    assert capture_log(:error, fn ->
-             assert Logger.warn("hello", []) == :ok
-           end) == ""
+    assert capture_log(:error, fn -> assert Logger.warn("hello", []) == :ok end) == ""
   end
 
   test "error/2" do
-    assert capture_log(fn ->
-             assert Logger.error("hello", []) == :ok
-           end) =~ msg_with_meta("[error] hello")
+    assert capture_log(fn -> assert Logger.error("hello", []) == :ok end) =~
+             msg_with_meta("[error] hello")
   end
 
   test "remove unused calls at compile time" do
@@ -229,13 +206,10 @@ defmodule LoggerTest do
       end
     end
 
-    assert capture_log(fn ->
-             assert Sample.debug() == :ok
-           end) == ""
+    assert capture_log(fn -> assert Sample.debug() == :ok end) == ""
 
-    assert capture_log(fn ->
-             assert Sample.info() == :ok
-           end) =~ msg("module=LoggerTest.Sample [info]  hello")
+    assert capture_log(fn -> assert Sample.info() == :ok end) =~
+             msg("module=LoggerTest.Sample [info]  hello")
   after
     Logger.configure(compile_time_purge_level: :debug)
   end
@@ -272,9 +246,8 @@ defmodule LoggerTest do
       end
     end
 
-    assert capture_log(fn ->
-             assert SampleNoApp.info() == :ok
-           end) =~ msg("module=LoggerTest.SampleNoApp [info]  hello")
+    assert capture_log(fn -> assert SampleNoApp.info() == :ok end) =~
+             msg("module=LoggerTest.SampleNoApp [info]  hello")
 
     Logger.configure(compile_time_application: :sample_app)
 
@@ -284,9 +257,8 @@ defmodule LoggerTest do
       end
     end
 
-    assert capture_log(fn ->
-             assert SampleApp.info() == :ok
-           end) =~ msg("application=sample_app module=LoggerTest.SampleApp [info]  hello")
+    assert capture_log(fn -> assert SampleApp.info() == :ok end) =~
+             msg("application=sample_app module=LoggerTest.SampleApp [info]  hello")
   after
     Logger.configure(compile_time_application: nil)
   end
@@ -294,9 +266,7 @@ defmodule LoggerTest do
   test "log/2 truncates messages" do
     Logger.configure(truncate: 4)
 
-    assert capture_log(fn ->
-             Logger.log(:debug, "hello")
-           end) =~ "hell (truncated)"
+    assert capture_log(fn -> Logger.log(:debug, "hello") end) =~ "hell (truncated)"
   after
     Logger.configure(truncate: 8096)
   end
@@ -304,9 +274,7 @@ defmodule LoggerTest do
   test "log/2 with to_string/1 conversion" do
     Logger.configure(truncate: 4)
 
-    assert capture_log(fn ->
-             Logger.log(:debug, :hello)
-           end) =~ "hell (truncated)"
+    assert capture_log(fn -> Logger.log(:debug, :hello) end) =~ "hell (truncated)"
   after
     Logger.configure(truncate: 8096)
   end
@@ -323,9 +291,8 @@ defmodule LoggerTest do
   end
 
   test "log/2 prunes bad unicode chars" do
-    assert capture_log(fn ->
-             assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
-           end) =~ "he�lo"
+    assert capture_log(fn -> assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok end) =~
+             "he�lo"
   end
 
   test "log/2 relies on sync_threshold" do
@@ -342,9 +309,7 @@ defmodule LoggerTest do
     Logger.App.stop()
     Application.start(:logger)
 
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
+    assert capture_log(fn -> assert Logger.debug("hello", []) == :ok end) == ""
 
     assert {:ok, _} = Logger.add_backend(:console)
     assert Logger.add_backend(:console) == {:error, :already_present}

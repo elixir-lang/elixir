@@ -10,9 +10,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
   test "profiles evaluated expression", context do
     in_tmp context.test, fn ->
-      assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)"])
-             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+      assert capture_io(fn -> Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)"]) end) =~
+               ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
 
@@ -24,9 +23,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
       Enum.each(1..5, fn(_) -> MapSet.new end)
       """)
 
-      assert capture_io(fn ->
-               Fprof.run([profile_script_name])
-             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+      assert capture_io(fn -> Fprof.run([profile_script_name]) end) =~
+               ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
 
@@ -89,9 +87,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
   test "warmup", context do
     in_tmp context.test, fn ->
-      assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)"])
-             end) =~ "Warmup..."
+      assert capture_io(fn -> Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)"]) end) =~
+               "Warmup..."
 
       refute capture_io(fn ->
                Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--no-warmup"])

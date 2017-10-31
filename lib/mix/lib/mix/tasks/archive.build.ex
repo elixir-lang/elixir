@@ -123,11 +123,8 @@ defmodule Mix.Tasks.Archive.Build do
 
       Enum.reduce(evsn ++ ebin ++ priv, [], fn f, acc ->
         case File.read(f) do
-          {:ok, bin} ->
-            [{Path.join(dir, f) |> String.to_charlist(), bin} | acc]
-
-          {:error, _} ->
-            acc
+          {:ok, bin} -> [{Path.join(dir, f) |> String.to_charlist(), bin} | acc]
+          {:error, _} -> acc
         end
       end)
     end)

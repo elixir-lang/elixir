@@ -450,9 +450,7 @@ defmodule FileTest do
       message =
         "could not copy from #{inspect(src)} to #{inspect(dest)}: illegal operation on a directory"
 
-      assert_raise File.CopyError, message, fn ->
-        File.cp!(src, dest)
-      end
+      assert_raise File.CopyError, message, fn -> File.cp!(src, dest) end
     end
 
     test "copy file to itself" do
@@ -679,9 +677,7 @@ defmodule FileTest do
       message =
         "could not copy recursively from #{inspect(src)} to #{inspect(dest)}. #{src}: no such file or directory"
 
-      assert_raise File.CopyError, message, fn ->
-        File.cp_r!(src, dest)
-      end
+      assert_raise File.CopyError, message, fn -> File.cp_r!(src, dest) end
     end
 
     test "cp preserves mode" do
@@ -738,9 +734,7 @@ defmodule FileTest do
     assert "code_sample.exs" in value
     assert "file.txt" in value
 
-    assert_raise File.Error, fn ->
-      File.ls!(fixture_path("non-existent-subdirectory"))
-    end
+    assert_raise File.Error, fn -> File.ls!(fixture_path("non-existent-subdirectory")) end
   end
 
   defmodule OpenReadWrite do
@@ -764,9 +758,7 @@ defmodule FileTest do
       assert File.read!(fixture_path("file.txt")) == "FOO\n"
       expected_message = "could not read file \"fixtures/missing.txt\": no such file or directory"
 
-      assert_raise File.Error, expected_message, fn ->
-        File.read!("fixtures/missing.txt")
-      end
+      assert_raise File.Error, expected_message, fn -> File.read!("fixtures/missing.txt") end
     end
 
     test "write ASCII content" do
@@ -885,9 +877,7 @@ defmodule FileTest do
     test "open! a missing file" do
       message = "could not open \"missing.txt\": no such file or directory"
 
-      assert_raise File.Error, message, fn ->
-        File.open!('missing.txt')
-      end
+      assert_raise File.Error, message, fn -> File.open!('missing.txt') end
     end
 
     test "open! a file with function" do
@@ -951,9 +941,7 @@ defmodule FileTest do
       message =
         ~r"\Acould not make directory #{inspect(invalid)}: (not a directory|no such file or directory)"
 
-      assert_raise File.Error, message, fn ->
-        File.mkdir!(invalid)
-      end
+      assert_raise File.Error, message, fn -> File.mkdir!(invalid) end
     end
 
     test "mkdir_p with one directory" do
@@ -1038,9 +1026,7 @@ defmodule FileTest do
       message =
         ~r"\Acould not make directory \(with -p\) #{inspect(invalid)}: (not a directory|no such file or directory)"
 
-      assert_raise File.Error, message, fn ->
-        File.mkdir_p!(invalid)
-      end
+      assert_raise File.Error, message, fn -> File.mkdir_p!(invalid) end
     end
 
     defp io_error?(result) do
@@ -1088,9 +1074,7 @@ defmodule FileTest do
     test "rm! with invalid file" do
       message = "could not remove file \"missing.file\": no such file or directory"
 
-      assert_raise File.Error, message, fn ->
-        File.rm!("missing.file")
-      end
+      assert_raise File.Error, message, fn -> File.rm!("missing.file") end
     end
 
     test "rmdir" do
@@ -1117,9 +1101,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       message = ~r"\Acould not remove directory #{inspect(fixture)}: (not a directory|I/O error)"
 
-      assert_raise File.Error, message, fn ->
-        File.rmdir!(fixture)
-      end
+      assert_raise File.Error, message, fn -> File.rmdir!(fixture) end
     end
 
     test "rmdir! error messages" do
@@ -1131,9 +1113,7 @@ defmodule FileTest do
       dir_not_empty_message =
         "could not remove directory #{inspect(fixture)}: directory is not empty"
 
-      assert_raise File.Error, dir_not_empty_message, fn ->
-        File.rmdir!(fixture)
-      end
+      assert_raise File.Error, dir_not_empty_message, fn -> File.rmdir!(fixture) end
 
       # directory does not exist
       non_existent_dir = fixture <> "/non_existent_dir"
@@ -1141,9 +1121,7 @@ defmodule FileTest do
       non_existent_dir_message =
         ~r"\Acould not remove directory #{inspect(non_existent_dir)}: (not a directory|no such file or directory)"
 
-      assert_raise File.Error, non_existent_dir_message, fn ->
-        File.rmdir!(non_existent_dir)
-      end
+      assert_raise File.Error, non_existent_dir_message, fn -> File.rmdir!(non_existent_dir) end
 
       File.rm_rf(fixture)
     end
@@ -1273,9 +1251,7 @@ defmodule FileTest do
   end
 
   test "stat! with invalid_file" do
-    assert_raise File.Error, fn ->
-      File.stat!("./invalid_file")
-    end
+    assert_raise File.Error, fn -> File.stat!("./invalid_file") end
   end
 
   test "lstat" do
@@ -1295,9 +1271,7 @@ defmodule FileTest do
   test "lstat! with invalid file" do
     invalid_file = tmp_path("invalid_file")
 
-    assert_raise File.Error, fn ->
-      File.lstat!(invalid_file)
-    end
+    assert_raise File.Error, fn -> File.lstat!(invalid_file) end
   end
 
   test "lstat with dangling symlink" do
@@ -1437,10 +1411,7 @@ defmodule FileTest do
   test "stream keeps BOM" do
     src = fixture_path("utf8_bom.txt")
 
-    bom_line =
-      src
-      |> File.stream!()
-      |> Enum.take(1)
+    bom_line = src |> File.stream!() |> Enum.take(1)
 
     assert [<<239, 187, 191>> <> "Русский\n"] == bom_line
   end
@@ -1448,10 +1419,7 @@ defmodule FileTest do
   test "trim BOM via option" do
     src = fixture_path("utf8_bom.txt")
 
-    bom_line =
-      src
-      |> File.stream!([:trim_bom])
-      |> Enum.take(1)
+    bom_line = src |> File.stream!([:trim_bom]) |> Enum.take(1)
 
     assert ["Русский\n"] == bom_line
   end
@@ -1464,9 +1432,7 @@ defmodule FileTest do
       stream = File.stream!(src)
 
       File.open(dest, [:write, :utf8], fn target ->
-        Enum.each(stream, fn line ->
-          IO.write(target, String.replace(line, "O", "A"))
-        end)
+        Enum.each(stream, fn line -> IO.write(target, String.replace(line, "O", "A")) end)
       end)
 
       assert File.read(dest) == {:ok, "FAA\n"}
@@ -1483,9 +1449,7 @@ defmodule FileTest do
       stream = File.stream!(src, [:utf8], 1)
 
       File.open(dest, [:write], fn target ->
-        Enum.each(stream, fn line ->
-          IO.write(target, String.replace(line, "OO", "AA"))
-        end)
+        Enum.each(stream, fn line -> IO.write(target, String.replace(line, "OO", "AA")) end)
       end)
 
       assert File.read(dest) == {:ok, "FOO\n"}
@@ -1502,9 +1466,7 @@ defmodule FileTest do
       stream = File.stream!(src)
 
       File.open(dest, [:write], fn target ->
-        Enum.each(stream, fn line ->
-          IO.write(target, String.replace(line, "O", "A"))
-        end)
+        Enum.each(stream, fn line -> IO.write(target, String.replace(line, "O", "A")) end)
       end)
 
       assert File.read(dest) == {:ok, "FAA\n"}
@@ -1521,9 +1483,7 @@ defmodule FileTest do
       stream = File.stream!(src, [], 1)
 
       File.open(dest, [:write], fn target ->
-        Enum.each(stream, fn line ->
-          IO.write(target, String.replace(line, "OO", "AA"))
-        end)
+        Enum.each(stream, fn line -> IO.write(target, String.replace(line, "OO", "AA")) end)
       end)
 
       assert File.read(dest) == {:ok, "FOO\n"}
@@ -1542,9 +1502,7 @@ defmodule FileTest do
       original = File.stream!(dest)
 
       stream =
-        File.stream!(src)
-        |> Stream.map(&String.replace(&1, "O", "A"))
-        |> Enum.into(original)
+        File.stream!(src) |> Stream.map(&String.replace(&1, "O", "A")) |> Enum.into(original)
 
       assert stream == original
       assert File.read(dest) == {:ok, "FAA\n"}
@@ -1565,8 +1523,7 @@ defmodule FileTest do
       |> Stream.map(&String.replace(&1, "O", "A"))
       |> Enum.into(original)
 
-      File.stream!(src, [:append])
-      |> Enum.into(original)
+      File.stream!(src, [:append]) |> Enum.into(original)
 
       assert File.read(dest) == {:ok, "FAA\nFOO\n"}
     after
@@ -1620,9 +1577,7 @@ defmodule FileTest do
   test "ln_s! with existing destination" do
     existing = fixture_path("file.txt")
 
-    assert_raise File.LinkError, fn ->
-      File.ln_s!(existing, existing)
-    end
+    assert_raise File.LinkError, fn -> File.ln_s!(existing, existing) end
   end
 
   test "copy" do
@@ -1730,9 +1685,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
     message = "could not copy from #{inspect(src)} to #{inspect(dest)}: no such file or directory"
 
-    assert_raise File.CopyError, message, fn ->
-      File.copy!(src, dest, 2)
-    end
+    assert_raise File.CopyError, message, fn -> File.copy!(src, dest, 2) end
   end
 
   test "cwd and cd" do
@@ -1750,9 +1703,7 @@ defmodule FileTest do
     test "cwd and cd with UTF-8" do
       File.mkdir_p(tmp_path("héllò"))
 
-      File.cd!(tmp_path("héllò"), fn ->
-        assert Path.basename(File.cwd!()) == "héllò"
-      end)
+      File.cd!(tmp_path("héllò"), fn -> assert Path.basename(File.cwd!()) == "héllò" end)
     after
       File.rm_rf(tmp_path("héllò"))
     end
@@ -1766,9 +1717,7 @@ defmodule FileTest do
     message =
       ~r"\Acould not set current working directory to #{inspect(fixture_path("file.txt"))}: (not a directory|no such file or directory)"
 
-    assert_raise File.Error, message, fn ->
-      File.cd!(fixture_path("file.txt"))
-    end
+    assert_raise File.Error, message, fn -> File.cd!(fixture_path("file.txt")) end
   end
 
   test "cd with function" do
@@ -1825,9 +1774,7 @@ defmodule FileTest do
     message =
       ~r"\Acould not touch #{inspect(fixture)}: (not a directory|no such file or directory)"
 
-    assert_raise File.Error, message, fn ->
-      File.touch!(fixture)
-    end
+    assert_raise File.Error, message, fn -> File.touch!(fixture) end
   end
 
   test "chmod with success" do
@@ -1883,9 +1830,7 @@ defmodule FileTest do
 
     message = ~r"could not change mode for #{inspect(fixture)}: no such file or directory"
 
-    assert_raise File.Error, message, fn ->
-      File.chmod!(fixture, 0o100777)
-    end
+    assert_raise File.Error, message, fn -> File.chmod!(fixture, 0o100777) end
   end
 
   test "chgrp with failure" do
@@ -1901,9 +1846,7 @@ defmodule FileTest do
 
     message = ~r"could not change group for #{inspect(fixture)}: no such file or directory"
 
-    assert_raise File.Error, message, fn ->
-      File.chgrp!(fixture, 1)
-    end
+    assert_raise File.Error, message, fn -> File.chgrp!(fixture, 1) end
   end
 
   test "chown with failure" do
@@ -1919,9 +1862,7 @@ defmodule FileTest do
 
     message = ~r"could not change owner for #{inspect(fixture)}: no such file or directory"
 
-    assert_raise File.Error, message, fn ->
-      File.chown!(fixture, 1)
-    end
+    assert_raise File.Error, message, fn -> File.chown!(fixture, 1) end
   end
 
   defp last_year do

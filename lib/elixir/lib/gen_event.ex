@@ -44,15 +44,11 @@ defmodule GenEvent do
   """
 
   @callback init(args :: term) ::
-              {:ok, state}
-              | {:ok, state, :hibernate}
-              | {:error, reason :: any}
+              {:ok, state} | {:ok, state, :hibernate} | {:error, reason :: any}
             when state: any
 
   @callback handle_event(event :: term, state :: term) ::
-              {:ok, new_state}
-              | {:ok, new_state, :hibernate}
-              | :remove_handler
+              {:ok, new_state} | {:ok, new_state, :hibernate} | :remove_handler
             when new_state: term
 
   @callback handle_call(request :: term, state :: term) ::
@@ -62,9 +58,7 @@ defmodule GenEvent do
             when reply: term, new_state: term
 
   @callback handle_info(msg :: term, state :: term) ::
-              {:ok, new_state}
-              | {:ok, new_state, :hibernate}
-              | :remove_handler
+              {:ok, new_state} | {:ok, new_state, :hibernate} | :remove_handler
             when new_state: term
 
   @callback terminate(reason, state :: term) :: term
@@ -255,8 +249,7 @@ defmodule GenEvent do
     try do
       :gen.call(manager, self(), {:call, handler, request}, timeout)
     catch
-      :exit, reason ->
-        exit({reason, {__MODULE__, :call, [manager, handler, request, timeout]}})
+      :exit, reason -> exit({reason, {__MODULE__, :call, [manager, handler, request, timeout]}})
     else
       {:ok, res} -> res
     end
@@ -490,8 +483,7 @@ defmodule GenEvent do
             new = {^mod, ^id, new_state} = fun.(cur)
             {handler(handler, state: new_state), new}
           catch
-            _, _ ->
-              {handler, cur}
+            _, _ -> {handler, cur}
           end
         end
       )
@@ -857,14 +849,9 @@ defmodule GenEvent do
       case reason do
         {:undef, [{m, f, a, _} | _] = mfas} ->
           cond do
-            :code.is_loaded(m) == false ->
-              {:"module could not be loaded", mfas}
-
-            function_exported?(m, f, length(a)) ->
-              reason
-
-            true ->
-              {:"function not exported", mfas}
+            :code.is_loaded(m) == false -> {:"module could not be loaded", mfas}
+            function_exported?(m, f, length(a)) -> reason
+            true -> {:"function not exported", mfas}
           end
 
         _ ->

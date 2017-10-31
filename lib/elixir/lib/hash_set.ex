@@ -35,9 +35,7 @@ defmodule HashSet do
   end
 
   def intersection(%HashSet{} = set1, %HashSet{} = set2) do
-    set_fold(set1, %HashSet{}, fn v, acc ->
-      if member?(set2, v), do: put(acc, v), else: acc
-    end)
+    set_fold(set1, %HashSet{}, fn v, acc -> if member?(set2, v), do: put(acc, v), else: acc end)
   end
 
   def difference(%HashSet{} = set1, %HashSet{} = set2) do
@@ -161,14 +159,9 @@ defmodule HashSet do
 
       [t | n] ->
         case do_delete(n, term, key_shift(hash)) do
-          {:ok, @node_template} ->
-            {:ok, put_elem(node, index, [t])}
-
-          {:ok, n} ->
-            {:ok, put_elem(node, index, [t | n])}
-
-          :error ->
-            :error
+          {:ok, @node_template} -> {:ok, put_elem(node, index, [t])}
+          {:ok, n} -> {:ok, put_elem(node, index, [t | n])}
+          :error -> :error
         end
     end
   end

@@ -55,8 +55,6 @@ defmodule Supervisor.SpecTest do
   test "supervise/2 with duplicated ids" do
     children = [worker(GenEvent, []), worker(GenEvent, [])]
 
-    assert_raise ArgumentError, fn ->
-      supervise(children, strategy: :one_for_one)
-    end
+    assert_raise ArgumentError, fn -> supervise(children, strategy: :one_for_one) end
   end
 end

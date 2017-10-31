@@ -134,11 +134,7 @@ defmodule ExUnit do
 
   @doc false
   def start(_type, []) do
-    children = [
-      ExUnit.Server,
-      ExUnit.CaptureServer,
-      ExUnit.OnExitHandler
-    ]
+    children = [ExUnit.Server, ExUnit.CaptureServer, ExUnit.OnExitHandler]
 
     opts = [strategy: :one_for_one, name: ExUnit.Supervisor]
     Supervisor.start_link(children, opts)
@@ -168,9 +164,7 @@ defmodule ExUnit do
           config = persist_defaults(configuration())
           %{failures: failures} = ExUnit.Runner.run(config, time)
 
-          System.at_exit(fn _ ->
-            if failures > 0, do: exit({:shutdown, 1})
-          end)
+          System.at_exit(fn _ -> if failures > 0, do: exit({:shutdown, 1}) end)
 
         _ ->
           :ok
@@ -239,19 +233,14 @@ defmodule ExUnit do
 
   """
   def configure(options) do
-    Enum.each(options, fn {k, v} ->
-      Application.put_env(:ex_unit, k, v)
-    end)
+    Enum.each(options, fn {k, v} -> Application.put_env(:ex_unit, k, v) end)
   end
 
   @doc """
   Returns ExUnit configuration.
   """
   def configuration do
-    Application.get_all_env(:ex_unit)
-    |> put_seed()
-    |> put_slowest()
-    |> put_max_cases()
+    Application.get_all_env(:ex_unit) |> put_seed() |> put_slowest() |> put_max_cases()
   end
 
   @doc """
@@ -261,8 +250,7 @@ defmodule ExUnit do
   """
   @spec plural_rule(binary) :: binary
   def plural_rule(word) when is_binary(word) do
-    Application.get_env(:ex_unit, :plural_rules, %{})
-    |> Map.get(word, "#{word}s")
+    Application.get_env(:ex_unit, :plural_rules, %{}) |> Map.get(word, "#{word}s")
   end
 
   @doc """
@@ -273,8 +261,7 @@ defmodule ExUnit do
   @spec plural_rule(binary, binary) :: :ok
   def plural_rule(word, pluralization) when is_binary(word) and is_binary(pluralization) do
     plural_rules =
-      Application.get_env(:ex_unit, :plural_rules, %{})
-      |> Map.put(word, pluralization)
+      Application.get_env(:ex_unit, :plural_rules, %{}) |> Map.put(word, pluralization)
 
     configure(plural_rules: plural_rules)
   end
@@ -305,9 +292,7 @@ defmodule ExUnit do
       # :microsecond argument because the VM on Windows has odd
       # precision. Calling with :microsecond will give us a multiple
       # of 1000. Calling without it gives actual microsecond precision.
-      System.system_time()
-      |> System.convert_time_unit(:native, :microsecond)
-      |> rem(1_000_000)
+      System.system_time() |> System.convert_time_unit(:native, :microsecond) |> rem(1_000_000)
     end)
   end
 

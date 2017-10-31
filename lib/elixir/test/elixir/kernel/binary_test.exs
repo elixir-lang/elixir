@@ -149,21 +149,13 @@ defmodule Kernel.BinaryTest do
   end
 
   test "literal errors" do
-    assert_raise CompileError, fn ->
-      Code.eval_string(~s[<<"foo"::integer>>])
-    end
+    assert_raise CompileError, fn -> Code.eval_string(~s[<<"foo"::integer>>]) end
 
-    assert_raise CompileError, fn ->
-      Code.eval_string(~s[<<"foo"::float>>])
-    end
+    assert_raise CompileError, fn -> Code.eval_string(~s[<<"foo"::float>>]) end
 
-    assert_raise CompileError, fn ->
-      Code.eval_string(~s[<<'foo'::binary>>])
-    end
+    assert_raise CompileError, fn -> Code.eval_string(~s[<<'foo'::binary>>]) end
 
-    assert_raise ArgumentError, fn ->
-      Code.eval_string(~s[<<1::4>> <> "foo"])
-    end
+    assert_raise ArgumentError, fn -> Code.eval_string(~s[<<1::4>> <> "foo"]) end
   end
 
   @bitstring <<"foo", 16::4>>

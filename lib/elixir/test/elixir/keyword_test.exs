@@ -53,27 +53,19 @@ defmodule KeywordTest do
 
     message = "expected a keyword list as the first argument, got: [1, 2]"
 
-    assert_raise ArgumentError, message, fn ->
-      Keyword.merge([1, 2], c: 11, d: 12)
-    end
+    assert_raise ArgumentError, message, fn -> Keyword.merge([1, 2], c: 11, d: 12) end
 
     message = "expected a keyword list as the first argument, got: [1 | 2]"
 
-    assert_raise ArgumentError, message, fn ->
-      Keyword.merge([1 | 2], c: 11, d: 12)
-    end
+    assert_raise ArgumentError, message, fn -> Keyword.merge([1 | 2], c: 11, d: 12) end
 
     message = "expected a keyword list as the second argument, got: [11, 12, 0]"
 
-    assert_raise ArgumentError, message, fn ->
-      Keyword.merge([a: 1, b: 2], [11, 12, 0])
-    end
+    assert_raise ArgumentError, message, fn -> Keyword.merge([a: 1, b: 2], [11, 12, 0]) end
 
     message = "expected a keyword list as the second argument, got: [11 | 12]"
 
-    assert_raise ArgumentError, message, fn ->
-      Keyword.merge([a: 1, b: 2], [11 | 12])
-    end
+    assert_raise ArgumentError, message, fn -> Keyword.merge([a: 1, b: 2], [11 | 12]) end
 
     # duplicate keys in keywords1 are kept if key is not present in keywords2
     result = [a: 1, b: 2, a: 3, c: 11, d: 12]
@@ -100,15 +92,11 @@ defmodule KeywordTest do
 
     message = "expected a keyword list as the first argument, got: [1, 2]"
 
-    assert_raise ArgumentError, message, fn ->
-      Keyword.merge([1, 2], [c: 11, d: 12], fun)
-    end
+    assert_raise ArgumentError, message, fn -> Keyword.merge([1, 2], [c: 11, d: 12], fun) end
 
     message = "expected a keyword list as the first argument, got: [1 | 2]"
 
-    assert_raise ArgumentError, message, fn ->
-      Keyword.merge([1 | 2], [c: 11, d: 12], fun)
-    end
+    assert_raise ArgumentError, message, fn -> Keyword.merge([1 | 2], [c: 11, d: 12], fun) end
 
     message = "expected a keyword list as the second argument, got: [{:x, 1}, :y, :z]"
 
@@ -118,9 +106,7 @@ defmodule KeywordTest do
 
     message = "expected a keyword list as the second argument, got: [:x | :y]"
 
-    assert_raise ArgumentError, message, fn ->
-      Keyword.merge([a: 1, b: 2], [:x | :y], fun)
-    end
+    assert_raise ArgumentError, message, fn -> Keyword.merge([a: 1, b: 2], [:x | :y], fun) end
 
     message = "expected a keyword list as the second argument, got: [{:x, 1} | :y]"
 

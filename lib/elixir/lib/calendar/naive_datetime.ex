@@ -115,9 +115,7 @@ defmodule NaiveDateTime do
   end
 
   def utc_now(calendar) do
-    calendar
-    |> DateTime.utc_now()
-    |> DateTime.to_naive()
+    calendar |> DateTime.utc_now() |> DateTime.to_naive()
   end
 
   @doc """
@@ -239,8 +237,7 @@ defmodule NaiveDateTime do
 
   """
   @spec add(t, integer, System.time_unit()) :: t
-  def add(%NaiveDateTime{} = naive_datetime, integer, unit \\ :second)
-      when is_integer(integer) do
+  def add(%NaiveDateTime{} = naive_datetime, integer, unit \\ :second) when is_integer(integer) do
     %{microsecond: {_, precision}, calendar: calendar} = naive_datetime
     ppd = System.convert_time_unit(86400, :second, unit)
 
@@ -319,13 +316,8 @@ defmodule NaiveDateTime do
   """
   @spec to_time(t) :: Time.t()
   def to_time(%NaiveDateTime{} = naive_datetime) do
-    %{
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      calendar: calendar
-    } = naive_datetime
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar} =
+      naive_datetime
 
     %Time{
       hour: hour,
@@ -537,9 +529,7 @@ defmodule NaiveDateTime do
   end
 
   def to_iso8601(%{calendar: _} = naive_datetime, format) when format in [:basic, :extended] do
-    naive_datetime
-    |> convert!(Calendar.ISO)
-    |> to_iso8601(format)
+    naive_datetime |> convert!(Calendar.ISO) |> to_iso8601(format)
   end
 
   def to_iso8601(_date, format) do
@@ -733,10 +723,7 @@ defmodule NaiveDateTime do
 
   def convert(%{calendar: ndt_calendar, microsecond: {_, precision}} = naive_datetime, calendar) do
     if Calendar.compatible_calendars?(ndt_calendar, calendar) do
-      result_naive_datetime =
-        naive_datetime
-        |> to_iso_days
-        |> from_iso_days(calendar, precision)
+      result_naive_datetime = naive_datetime |> to_iso_days |> from_iso_days(calendar, precision)
 
       {:ok, result_naive_datetime}
     else

@@ -115,9 +115,7 @@ defmodule Logger.Utils do
         end
       end)
 
-    format
-    |> :io_lib.scan_format(args)
-    |> Enum.map(&handle_format_spec(&1, opts))
+    format |> :io_lib.scan_format(args) |> Enum.map(&handle_format_spec(&1, opts))
   end
 
   @inspected_format_spec %{
@@ -156,9 +154,7 @@ defmodule Logger.Utils do
   defp inspect_width(_, width), do: width
 
   defp inspect_data([data | _], opts) do
-    data
-    |> Inspect.Algebra.to_doc(opts)
-    |> Inspect.Algebra.format(opts.width)
+    data |> Inspect.Algebra.to_doc(opts) |> Inspect.Algebra.format(opts.width)
   end
 
   @doc """

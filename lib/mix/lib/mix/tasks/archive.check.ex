@@ -40,11 +40,8 @@ defmodule Mix.Tasks.Archive.Check do
 
   defp parse_archive({archive, req}) when is_atom(archive) and is_binary(req) do
     case Version.parse_requirement(req) do
-      {:ok, req} ->
-        {archive, req}
-
-      :error ->
-        Mix.raise("Invalid requirement #{req} for archive \"#{archive}\"")
+      {:ok, req} -> {archive, req}
+      :error -> Mix.raise("Invalid requirement #{req} for archive \"#{archive}\"")
     end
   end
 

@@ -165,11 +165,8 @@ defmodule DateTime do
   @spec from_unix!(integer, :native | System.time_unit(), Calendar.calendar()) :: t
   def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_atom(unit) do
     case from_unix(integer, unit, calendar) do
-      {:ok, datetime} ->
-        datetime
-
-      {:error, :invalid_unix_time} ->
-        raise ArgumentError, "invalid Unix time #{integer}"
+      {:ok, datetime} -> datetime
+      {:error, :invalid_unix_time} -> raise ArgumentError, "invalid Unix time #{integer}"
     end
   end
 
@@ -451,9 +448,7 @@ defmodule DateTime do
   end
 
   def to_iso8601(%{calendar: _} = datetime, format) do
-    datetime
-    |> convert!(Calendar.ISO)
-    |> to_iso8601(format)
+    datetime |> convert!(Calendar.ISO) |> to_iso8601(format)
   end
 
   @doc """
@@ -635,14 +630,10 @@ defmodule DateTime do
         %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2
       ) do
     {days1, {parts1, ppd1}} =
-      datetime1
-      |> to_iso_days()
-      |> apply_tz_offset(utc_offset1 + std_offset1)
+      datetime1 |> to_iso_days() |> apply_tz_offset(utc_offset1 + std_offset1)
 
     {days2, {parts2, ppd2}} =
-      datetime2
-      |> to_iso_days()
-      |> apply_tz_offset(utc_offset2 + std_offset2)
+      datetime2 |> to_iso_days() |> apply_tz_offset(utc_offset2 + std_offset2)
 
     # Ensure fraction tuples have same denominator.
     iso_days1 = {days1, parts1 * ppd2}
@@ -755,10 +746,7 @@ defmodule DateTime do
 
   def convert(%{calendar: dt_calendar, microsecond: {_, precision}} = datetime, calendar) do
     if Calendar.compatible_calendars?(dt_calendar, calendar) do
-      result_datetime =
-        datetime
-        |> to_iso_days
-        |> from_iso_days(datetime, calendar, precision)
+      result_datetime = datetime |> to_iso_days |> from_iso_days(datetime, calendar, precision)
 
       {:ok, result_datetime}
     else

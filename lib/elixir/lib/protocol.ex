@@ -209,11 +209,8 @@ defmodule Protocol do
 
   defp extract_from_beam(file, callback) do
     case :beam_lib.chunks(file, [:attributes]) do
-      {:ok, {module, [attributes: attributes]}} ->
-        callback.(module, attributes)
-
-      _ ->
-        nil
+      {:ok, {module, [attributes: attributes]}} -> callback.(module, attributes)
+      _ -> nil
     end
   end
 
@@ -250,9 +247,7 @@ defmodule Protocol do
   it will be loaded.
   """
   @spec consolidate(module, [module]) ::
-          {:ok, binary}
-          | {:error, :not_a_protocol}
-          | {:error, :no_beam_info}
+          {:ok, binary} | {:error, :not_a_protocol} | {:error, :no_beam_info}
   def consolidate(protocol, types) when is_atom(protocol) do
     with {:ok, ast_info, chunks_info} <- beam_protocol(protocol),
          {:ok, code} <- change_debug_info(ast_info, types),
@@ -273,11 +268,8 @@ defmodule Protocol do
         ] = entries
 
         case attributes[:protocol] do
-          [fallback_to_any: any] ->
-            {:ok, {protocol, any, abstract_code}, {compile_info, docs}}
-
-          _ ->
-            {:error, :not_a_protocol}
+          [fallback_to_any: any] -> {:ok, {protocol, any, abstract_code}, {compile_info, docs}}
+          _ -> {:error, :not_a_protocol}
         end
 
       _ ->
@@ -651,11 +643,8 @@ defmodule Protocol do
       end
 
     foreach = fn
-      proto when is_atom(proto) ->
-        derive(proto, for, struct, [], env)
-
-      {proto, opts} when is_atom(proto) ->
-        derive(proto, for, struct, opts, env)
+      proto when is_atom(proto) -> derive(proto, for, struct, [], env)
+      {proto, opts} when is_atom(proto) -> derive(proto, for, struct, opts, env)
     end
 
     :lists.foreach(foreach, :lists.flatten(derives))

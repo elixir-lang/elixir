@@ -8,9 +8,7 @@ defmodule Mix.RebarTest do
       [
         app: :rebar_as_dep,
         version: "0.1.0",
-        deps: [
-          {:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false}
-        ]
+        deps: [{:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false}]
       ]
     end
   end
@@ -97,23 +95,27 @@ defmodule Mix.RebarTest do
 
       config = [deps: [{:git_rebar, '0.1..*', {:git, @git_rebar_charlist, :master}}]]
 
-      assert Mix.Rebar.deps(config) ==
-               [{:git_rebar, ~r"0.1..*", [git: @git_rebar_string, ref: "master"]}]
+      assert Mix.Rebar.deps(config) == [
+               {:git_rebar, ~r"0.1..*", [git: @git_rebar_string, ref: "master"]}
+             ]
 
       config = [deps: [{:git_rebar, {:git, @git_rebar_charlist, :master}}]]
 
-      assert Mix.Rebar.deps(config) ==
-               [{:git_rebar, ">= 0.0.0", [git: @git_rebar_string, ref: "master"]}]
+      assert Mix.Rebar.deps(config) == [
+               {:git_rebar, ">= 0.0.0", [git: @git_rebar_string, ref: "master"]}
+             ]
 
       config = [deps: [{:git_rebar, '0.1..*', {:git, @git_rebar_charlist}, [:raw]}]]
 
-      assert Mix.Rebar.deps(config) ==
-               [{:git_rebar, ~r"0.1..*", [git: @git_rebar_string, compile: false]}]
+      assert Mix.Rebar.deps(config) == [
+               {:git_rebar, ~r"0.1..*", [git: @git_rebar_string, compile: false]}
+             ]
 
       config = [deps: [{:git_rebar, '', {:git, @git_rebar_charlist, {:ref, '64691eb'}}}]]
 
-      assert Mix.Rebar.deps(config) ==
-               [{:git_rebar, ~r"", [git: @git_rebar_string, ref: "64691eb"]}]
+      assert Mix.Rebar.deps(config) == [
+               {:git_rebar, ~r"", [git: @git_rebar_string, ref: "64691eb"]}
+             ]
     end
   end
 
@@ -122,34 +124,44 @@ defmodule Mix.RebarTest do
       config = [deps: {:git_rebar, '~> 2.0'}]
       overrides = [{:override, [deps: [{:git_rebar, '~> 1.0'}]]}]
 
-      assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar, '~> 1.0'}], overrides: overrides]
+      assert Mix.Rebar.apply_overrides(:foo, config, overrides) == [
+               deps: [{:git_rebar, '~> 1.0'}],
+               overrides: overrides
+             ]
 
       config = [deps: [{:git_rebar, '~> 2.0'}]]
       overrides = [{:override, :bar, [deps: [{:git_rebar, '~> 1.0'}]]}]
 
-      assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar, '~> 2.0'}], overrides: overrides]
+      assert Mix.Rebar.apply_overrides(:foo, config, overrides) == [
+               deps: [{:git_rebar, '~> 2.0'}],
+               overrides: overrides
+             ]
 
       config = [deps: [{:git_rebar, '~> 2.0'}]]
       overrides = [{:override, :foo, [deps: [{:git_rebar, '~> 1.0'}]]}]
 
-      assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar, '~> 1.0'}], overrides: overrides]
+      assert Mix.Rebar.apply_overrides(:foo, config, overrides) == [
+               deps: [{:git_rebar, '~> 1.0'}],
+               overrides: overrides
+             ]
 
       config = [deps: [{:git_rebar, '~> 1.0'}]]
       overrides = [{:add, :foo, [deps: [{:git_rebar2, '~> 2.0'}]]}]
 
-      assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar2, '~> 2.0'}, {:git_rebar, '~> 1.0'}], overrides: overrides]
+      assert Mix.Rebar.apply_overrides(:foo, config, overrides) == [
+               deps: [{:git_rebar2, '~> 2.0'}, {:git_rebar, '~> 1.0'}],
+               overrides: overrides
+             ]
     end
 
     test "concatenates overrides" do
       config = [deps: {:git_rebar, '~> 2.0'}, overrides: [{:add, :bar, []}]]
       overrides = [{:override, [deps: [{:git_rebar, '~> 1.0'}]]}]
 
-      assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar, '~> 1.0'}], overrides: overrides ++ [{:add, :bar, []}]]
+      assert Mix.Rebar.apply_overrides(:foo, config, overrides) == [
+               deps: [{:git_rebar, '~> 1.0'}],
+               overrides: overrides ++ [{:add, :bar, []}]
+             ]
     end
   end
 
@@ -211,8 +223,11 @@ defmodule Mix.RebarTest do
       in_tmp "Rebar overrides", fn ->
         Mix.Tasks.Deps.Get.run([])
 
-        assert Mix.Dep.loaded([]) |> Enum.map(& &1.app) ==
-                 [:git_repo, :git_rebar, :rebar_override]
+        assert Mix.Dep.loaded([]) |> Enum.map(& &1.app) == [
+                 :git_repo,
+                 :git_rebar,
+                 :rebar_override
+               ]
       end
     after
       purge([GitRepo.MixProject])
@@ -231,10 +246,7 @@ defmodule Mix.RebarTest do
         assert :git_rebar.any_function() == :ok
         assert :rebar_dep.any_function() == :ok
 
-        load_paths =
-          Mix.Dep.loaded([])
-          |> Enum.map(&Mix.Dep.load_paths(&1))
-          |> Enum.concat()
+        load_paths = Mix.Dep.loaded([]) |> Enum.map(&Mix.Dep.load_paths(&1)) |> Enum.concat()
 
         assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
         assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
@@ -276,10 +288,7 @@ defmodule Mix.RebarTest do
         assert :git_rebar.any_function() == :ok
         assert :rebar_dep.any_function() == :ok
 
-        load_paths =
-          Mix.Dep.loaded([])
-          |> Enum.map(&Mix.Dep.load_paths(&1))
-          |> Enum.concat()
+        load_paths = Mix.Dep.loaded([]) |> Enum.map(&Mix.Dep.load_paths(&1)) |> Enum.concat()
 
         assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
         assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")

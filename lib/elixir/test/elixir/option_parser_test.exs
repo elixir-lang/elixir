@@ -390,8 +390,10 @@ defmodule OptionParserTest do
   test "to_argv" do
     assert OptionParser.to_argv(foo_bar: "baz") == ["--foo-bar", "baz"]
 
-    assert OptionParser.to_argv(bool: true, bool: false, discarded: nil) ==
-             ["--bool", "--no-bool"]
+    assert OptionParser.to_argv(bool: true, bool: false, discarded: nil) == [
+             "--bool",
+             "--no-bool"
+           ]
   end
 
   test ":count switch type can be translated back" do

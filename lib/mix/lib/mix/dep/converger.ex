@@ -11,17 +11,12 @@ defmodule Mix.Dep.Converger do
     graph = :digraph.new()
 
     try do
-      Enum.each(deps, fn %Mix.Dep{app: app} ->
-        :digraph.add_vertex(graph, app)
-      end)
+      Enum.each(deps, fn %Mix.Dep{app: app} -> :digraph.add_vertex(graph, app) end)
 
       Enum.each(deps, fn %Mix.Dep{app: app, deps: other_deps} ->
         Enum.each(other_deps, fn
-          %Mix.Dep{app: ^app} ->
-            Mix.raise("App #{app} lists itself as a dependency")
-
-          %Mix.Dep{app: other_app} ->
-            :digraph.add_edge(graph, other_app, app)
+          %Mix.Dep{app: ^app} -> Mix.raise("App #{app} lists itself as a dependency")
+          %Mix.Dep{app: other_app} -> :digraph.add_edge(graph, other_app, app)
         end)
       end)
 
@@ -94,10 +89,7 @@ defmodule Mix.Dep.Converger do
       # on, there is no lock, so we won't hit this branch.
       lock = if lock_given?, do: remote.converge(deps, lock), else: lock
 
-      deps =
-        deps
-        |> Enum.reject(&remote.remote?(&1))
-        |> Enum.into(%{}, &{&1.app, &1})
+      deps = deps |> Enum.reject(&remote.remote?(&1)) |> Enum.into(%{}, &{&1.app, &1})
 
       # In case no lock was given, we will use the local lock
       # which is potentially stale. So remote.deps/2 needs to always

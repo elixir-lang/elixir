@@ -5,13 +5,7 @@ defmodule Mix.Tasks.DepsPathTest do
 
   defmodule DepsApp do
     def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
-        deps: [
-          {:raw_repo, "0.1.0", path: "custom/raw_repo"}
-        ]
-      ]
+      [app: :raw_sample, version: "0.1.0", deps: [{:raw_repo, "0.1.0", path: "custom/raw_repo"}]]
     end
   end
 
@@ -20,9 +14,7 @@ defmodule Mix.Tasks.DepsPathTest do
       [
         app: :raw_sample,
         version: "0.1.0",
-        deps: [
-          {:cooked_repo, "0.1.0", path: "custom/raw_repo"}
-        ]
+        deps: [{:cooked_repo, "0.1.0", path: "custom/raw_repo"}]
       ]
     end
   end

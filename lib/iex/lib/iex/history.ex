@@ -14,10 +14,7 @@ defmodule IEx.History do
   Appends one entry to the history.
   """
   def append(%History{} = state, entry, limit) do
-    {collect?, state} =
-      state
-      |> append(entry)
-      |> prune(limit)
+    {collect?, state} = state |> append(entry) |> prune(limit)
 
     if collect?, do: collect_garbage()
     state
@@ -28,9 +25,7 @@ defmodule IEx.History do
   applies `fun` to each one in turn.
   """
   def each(%History{} = state, fun) do
-    state
-    |> to_list()
-    |> Enum.each(fun)
+    state |> to_list() |> Enum.each(fun)
   end
 
   @doc """
@@ -45,8 +40,7 @@ defmodule IEx.History do
   end
 
   # Traverses the queue back-to-front if the index is negative.
-  def nth(%History{queue: q, size: size, start: start}, n)
-      when n < 0 and size + n >= start - 1 do
+  def nth(%History{queue: q, size: size, start: start}, n) when n < 0 and size + n >= start - 1 do
     get_nth(:queue.reverse(q), abs(n) - 1)
   end
 

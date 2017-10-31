@@ -128,9 +128,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture "deps_status", fn ->
-        assert_raise Mix.Error, ~r"Invalid requirement", fn ->
-          Mix.Dep.loaded([])
-        end
+        assert_raise Mix.Error, ~r"Invalid requirement", fn -> Mix.Dep.loaded([]) end
       end
     end)
   end
@@ -365,9 +363,7 @@ defmodule Mix.DepTest do
       Mix.RemoteConverger.register(RaiseRemoteConverger)
 
       in_fixture "deps_status", fn ->
-        assert_raise Mix.Error, fn ->
-          Mix.Tasks.Deps.Get.run([])
-        end
+        assert_raise Mix.Error, fn -> Mix.Tasks.Deps.Get.run([]) end
 
         assert_received {:mix_shell, :error, ["Dependencies have diverged:"]}
         refute Process.get(:remote_converger)

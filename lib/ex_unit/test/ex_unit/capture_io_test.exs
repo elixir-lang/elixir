@@ -10,11 +10,8 @@ defmodule ExUnit.CaptureIOTest do
 
     def until_new_line(this_far, chars, stop_char) do
       case Enum.split_while(chars, fn c -> c != stop_char end) do
-        {l, []} ->
-          {:more, this_far ++ l}
-
-        {l, [stop_char | rest]} ->
-          {:done, this_far ++ l ++ [stop_char], rest}
+        {l, []} -> {:more, this_far ++ l}
+        {l, [stop_char | rest]} -> {:done, this_far ++ l ++ [stop_char], rest}
       end
     end
 
@@ -57,51 +54,35 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "with put chars" do
-    assert capture_io(fn ->
-             :io.put_chars("")
-           end) == ""
+    assert capture_io(fn -> :io.put_chars("") end) == ""
 
     assert capture_io(fn ->
              :io.put_chars("a")
              :io.put_chars("b")
            end) == "ab"
 
-    assert capture_io(fn ->
-             :io.put_chars("josé")
-           end) == "josé"
+    assert capture_io(fn -> :io.put_chars("josé") end) == "josé"
 
     assert capture_io(fn ->
              spawn(fn -> :io.put_chars("a") end)
              Process.sleep(10)
            end) == "a"
 
-    assert capture_io(fn ->
-             assert :io.put_chars("a") == :ok
-           end)
+    assert capture_io(fn -> assert :io.put_chars("a") == :ok end)
   end
 
   test "with put chars to stderr" do
-    assert capture_io(:stderr, fn ->
-             :io.put_chars(:standard_error, "a")
-           end) == "a"
+    assert capture_io(:stderr, fn -> :io.put_chars(:standard_error, "a") end) == "a"
   end
 
   test "with get chars" do
-    assert capture_io(fn ->
-             :io.get_chars(">", 3)
-           end) == ">"
+    assert capture_io(fn -> :io.get_chars(">", 3) end) == ">"
 
-    assert capture_io([capture_prompt: false], fn ->
-             :io.get_chars(">", 3)
-           end) == ""
+    assert capture_io([capture_prompt: false], fn -> :io.get_chars(">", 3) end) == ""
 
-    capture_io(fn ->
-      assert :io.get_chars(">", 3) == :eof
-    end)
+    capture_io(fn -> assert :io.get_chars(">", 3) == :eof end)
 
-    capture_io("", fn ->
-      assert :io.get_chars(">", 3) == :eof
-    end)
+    capture_io("", fn -> assert :io.get_chars(">", 3) == :eof end)
 
     capture_io("abc\ndef", fn ->
       assert :io.get_chars(">", 3) == "abc"
@@ -117,21 +98,13 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "with get line" do
-    assert capture_io(fn ->
-             :io.get_line(">")
-           end) == ">"
+    assert capture_io(fn -> :io.get_line(">") end) == ">"
 
-    assert capture_io([capture_prompt: false], fn ->
-             :io.get_line(">")
-           end) == ""
+    assert capture_io([capture_prompt: false], fn -> :io.get_line(">") end) == ""
 
-    capture_io(fn ->
-      assert :io.get_line(">") == :eof
-    end)
+    capture_io(fn -> assert :io.get_line(">") == :eof end)
 
-    capture_io("", fn ->
-      assert :io.get_line(">") == :eof
-    end)
+    capture_io("", fn -> assert :io.get_line(">") == :eof end)
 
     capture_io("\n", fn ->
       assert :io.get_line(">") == "\n"
@@ -162,13 +135,9 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "with get password" do
-    capture_io(fn ->
-      assert :io.get_password() == :eof
-    end)
+    capture_io(fn -> assert :io.get_password() == :eof end)
 
-    capture_io("", fn ->
-      assert :io.get_password() == :eof
-    end)
+    capture_io("", fn -> assert :io.get_password() == :eof end)
 
     capture_io("abc", fn ->
       assert :io.get_password() == "abc"
@@ -199,25 +168,15 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "with get until" do
-    assert capture_io(fn ->
-             :io.scan_erl_form('>')
-           end) == ">"
+    assert capture_io(fn -> :io.scan_erl_form('>') end) == ">"
 
-    assert capture_io("1.\n", fn ->
-             :io.scan_erl_form('>')
-           end) == ">"
+    assert capture_io("1.\n", fn -> :io.scan_erl_form('>') end) == ">"
 
-    assert capture_io("1\n.\n", fn ->
-             :io.scan_erl_form('>')
-           end) == ">>"
+    assert capture_io("1\n.\n", fn -> :io.scan_erl_form('>') end) == ">>"
 
-    assert capture_io([capture_prompt: false], fn ->
-             :io.scan_erl_form('>')
-           end) == ""
+    assert capture_io([capture_prompt: false], fn -> :io.scan_erl_form('>') end) == ""
 
-    capture_io(fn ->
-      assert :io.scan_erl_form('>') == {:eof, 1}
-    end)
+    capture_io(fn -> assert :io.scan_erl_form('>') == {:eof, 1} end)
 
     capture_io("1", fn ->
       assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}], 1}
@@ -262,57 +221,39 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "with setopts" do
-    assert capture_io(fn ->
-             assert :io.setopts({:encoding, :latin1}) == {:error, :enotsup}
-           end) == ""
+    assert capture_io(fn -> assert :io.setopts({:encoding, :latin1}) == {:error, :enotsup} end) ==
+             ""
   end
 
   test "with getopts" do
-    assert capture_io(fn ->
-             assert :io.getopts() == {:ok, [binary: true, encoding: :unicode]}
-           end) == ""
+    assert capture_io(fn -> assert :io.getopts() == {:ok, [binary: true, encoding: :unicode]} end) ==
+             ""
   end
 
   test "with columns" do
-    assert capture_io(fn ->
-             :io.columns()
-           end) == ""
+    assert capture_io(fn -> :io.columns() end) == ""
 
-    capture_io(fn ->
-      assert :io.columns() == {:error, :enotsup}
-    end)
+    capture_io(fn -> assert :io.columns() == {:error, :enotsup} end)
   end
 
   test "with rows" do
-    assert capture_io(fn ->
-             :io.rows()
-           end) == ""
+    assert capture_io(fn -> :io.rows() end) == ""
 
-    capture_io(fn ->
-      assert :io.rows() == {:error, :enotsup}
-    end)
+    capture_io(fn -> assert :io.rows() == {:error, :enotsup} end)
   end
 
   test "with multiple IO requests" do
     requests = [{:put_chars, :unicode, "a"}, {:put_chars, :unicode, "b"}]
 
-    assert capture_io(fn ->
-             send_and_receive_io({:requests, requests})
-           end) == "ab"
+    assert capture_io(fn -> send_and_receive_io({:requests, requests}) end) == "ab"
 
-    capture_io(fn ->
-      assert send_and_receive_io({:requests, requests}) == :ok
-    end)
+    capture_io(fn -> assert send_and_receive_io({:requests, requests}) == :ok end)
   end
 
   test "with unknown IO request" do
-    assert capture_io(fn ->
-             send_and_receive_io(:unknown)
-           end) == ""
+    assert capture_io(fn -> send_and_receive_io(:unknown) end) == ""
 
-    capture_io(fn ->
-      assert send_and_receive_io(:unknown) == {:error, :request}
-    end)
+    capture_io(fn -> assert send_and_receive_io(:unknown) == {:error, :request} end)
   end
 
   test "device re-registering" do
@@ -334,12 +275,9 @@ defmodule ExUnit.CaptureIOTest do
 
   test "with assert inside" do
     try do
-      capture_io(fn ->
-        assert false
-      end)
+      capture_io(fn -> assert false end)
     rescue
-      error in [ExUnit.AssertionError] ->
-        assert error.message == "Expected truthy, got false"
+      error in [ExUnit.AssertionError] -> assert error.message == "Expected truthy, got false"
     end
   end
 
@@ -349,9 +287,7 @@ defmodule ExUnit.CaptureIOTest do
 
     expected_message = "IO device registered at :standard_error is already captured"
 
-    assert_raise RuntimeError, expected_message, fn ->
-      capture_io(:stderr, fn -> nil end)
-    end
+    assert_raise RuntimeError, expected_message, fn -> capture_io(:stderr, fn -> nil end) end
 
     Process.sleep(100)
   end

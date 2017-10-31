@@ -134,52 +134,37 @@ defmodule Dict do
 
       def update(dict, key, initial, fun) do
         case fetch(dict, key) do
-          {:ok, value} ->
-            put(dict, key, fun.(value))
-
-          :error ->
-            put(dict, key, initial)
+          {:ok, value} -> put(dict, key, fun.(value))
+          :error -> put(dict, key, initial)
         end
       end
 
       def update!(dict, key, fun) do
         case fetch(dict, key) do
-          {:ok, value} ->
-            put(dict, key, fun.(value))
-
-          :error ->
-            raise KeyError, key: key, term: dict
+          {:ok, value} -> put(dict, key, fun.(value))
+          :error -> raise KeyError, key: key, term: dict
         end
       end
 
       def pop(dict, key, default \\ nil) do
         case fetch(dict, key) do
-          {:ok, value} ->
-            {value, delete(dict, key)}
-
-          :error ->
-            {default, dict}
+          {:ok, value} -> {value, delete(dict, key)}
+          :error -> {default, dict}
         end
       end
 
       def pop_lazy(dict, key, fun) when is_function(fun, 0) do
         case fetch(dict, key) do
-          {:ok, value} ->
-            {value, delete(dict, key)}
-
-          :error ->
-            {fun.(), dict}
+          {:ok, value} -> {value, delete(dict, key)}
+          :error -> {fun.(), dict}
         end
       end
 
       def split(dict, keys) do
         Enum.reduce(keys, {new(), dict}, fn key, {inc, exc} = acc ->
           case fetch(exc, key) do
-            {:ok, value} ->
-              {put(inc, key, value), delete(exc, key)}
-
-            :error ->
-              acc
+            {:ok, value} -> {put(inc, key, value), delete(exc, key)}
+            :error -> acc
           end
         end)
       end

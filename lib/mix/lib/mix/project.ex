@@ -355,9 +355,7 @@ defmodule Mix.Project do
   end
 
   def in_project(app, path, post_config, fun) do
-    File.cd!(path, fn ->
-      in_project(app, ".", post_config, fun)
-    end)
+    File.cd!(path, fn -> in_project(app, ".", post_config, fun) end)
   end
 
   @doc """

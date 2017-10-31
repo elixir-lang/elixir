@@ -30,9 +30,7 @@ defmodule Task.SupervisorTest do
     Process.sleep(number)
     {:dictionary, dictionary} = Process.info(self(), :dictionary)
 
-    dictionary
-    |> Keyword.get(:"$ancestors")
-    |> List.first()
+    dictionary |> Keyword.get(:"$ancestors") |> List.first()
   end
 
   test "can be supervised directly", config do
@@ -208,9 +206,8 @@ defmodule Task.SupervisorTest do
   describe "async_stream" do
     @opts []
     test "streams an enumerable with fun", %{supervisor: supervisor} do
-      assert supervisor
-             |> Task.Supervisor.async_stream(1..4, &sleep/1, @opts)
-             |> Enum.to_list() == [ok: 1, ok: 2, ok: 3, ok: 4]
+      assert supervisor |> Task.Supervisor.async_stream(1..4, &sleep/1, @opts) |> Enum.to_list() ==
+               [ok: 1, ok: 2, ok: 3, ok: 4]
     end
 
     test "streams an enumerable with mfa", %{supervisor: supervisor} do
@@ -220,9 +217,8 @@ defmodule Task.SupervisorTest do
     end
 
     test "streams an enumerable without leaking tasks", %{supervisor: supervisor} do
-      assert supervisor
-             |> Task.Supervisor.async_stream(1..4, &sleep/1, @opts)
-             |> Enum.to_list() == [ok: 1, ok: 2, ok: 3, ok: 4]
+      assert supervisor |> Task.Supervisor.async_stream(1..4, &sleep/1, @opts) |> Enum.to_list() ==
+               [ok: 1, ok: 2, ok: 3, ok: 4]
 
       refute_received _
     end
@@ -230,9 +226,8 @@ defmodule Task.SupervisorTest do
     test "streams an enumerable with slowest first", %{supervisor: supervisor} do
       Process.flag(:trap_exit, true)
 
-      assert supervisor
-             |> Task.Supervisor.async_stream(4..1, &sleep/1, @opts)
-             |> Enum.to_list() == [ok: 4, ok: 3, ok: 2, ok: 1]
+      assert supervisor |> Task.Supervisor.async_stream(4..1, &sleep/1, @opts) |> Enum.to_list() ==
+               [ok: 4, ok: 3, ok: 2, ok: 1]
     end
 
     test "streams an enumerable with exits", %{supervisor: supervisor} do
@@ -268,8 +263,12 @@ defmodule Task.SupervisorTest do
 
       assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
              |> Task.Supervisor.async_stream(1..4, &sleep_and_return_ancestor/1, @opts)
-             |> Enum.to_list() ==
-               [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
+             |> Enum.to_list() == [
+               ok: other_supervisor,
+               ok: supervisor,
+               ok: other_supervisor,
+               ok: supervisor
+             ]
     end
 
     test "streams an enumerable with mfa and supervisor fun", %{supervisor: supervisor} do
@@ -278,8 +277,12 @@ defmodule Task.SupervisorTest do
 
       assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
              |> Task.Supervisor.async_stream(1..4, __MODULE__, fun, [], @opts)
-             |> Enum.to_list() ==
-               [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
+             |> Enum.to_list() == [
+               ok: other_supervisor,
+               ok: supervisor,
+               ok: other_supervisor,
+               ok: supervisor
+             ]
     end
 
     test "streams an enumerable with mfa with args and supervisor fun", %{supervisor: supervisor} do
@@ -288,8 +291,12 @@ defmodule Task.SupervisorTest do
 
       assert fn i -> if rem(i, 2) == 0, do: supervisor, else: other_supervisor end
              |> Task.Supervisor.async_stream(1..4, __MODULE__, fun, [:another_arg], @opts)
-             |> Enum.to_list() ==
-               [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
+             |> Enum.to_list() == [
+               ok: other_supervisor,
+               ok: supervisor,
+               ok: other_supervisor,
+               ok: supervisor
+             ]
     end
 
     test "streams an enumerable with fun and executes supervisor fun in monitor process", context do
@@ -308,11 +315,9 @@ defmodule Task.SupervisorTest do
              |> Enum.to_list() == [ok: supervisor, ok: supervisor, ok: supervisor, ok: supervisor]
 
       receive do
-        {^parent, linked} ->
-          for _ <- 1..3, do: assert_received({^parent, ^linked})
+        {^parent, linked} -> for _ <- 1..3, do: assert_received({^parent, ^linked})
       after
-        0 ->
-          flunk("Did not receive any message from monitor process.")
+        0 -> flunk("Did not receive any message from monitor process.")
       end
     end
 

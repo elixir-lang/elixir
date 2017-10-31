@@ -28,11 +28,7 @@ defmodule ExUnit.CaptureServer do
   ## Callbacks
 
   def init(:ok) do
-    state = %{
-      devices: {%{}, %{}},
-      log_captures: %{},
-      log_status: nil
-    }
+    state = %{devices: {%{}, %{}}, log_captures: %{}, log_status: nil}
 
     {:ok, state}
   end

@@ -113,10 +113,7 @@ defmodule Mix.Compilers.Test do
     sources = update_stale_sources(all_sources, removed, changed)
 
     test_files_to_run =
-      sources
-      |> tests_with_changed_references()
-      |> MapSet.union(stale)
-      |> MapSet.to_list()
+      sources |> tests_with_changed_references() |> MapSet.union(stale) |> MapSet.to_list()
 
     if test_files_to_run == [] do
       write_manifest(sources)
@@ -147,9 +144,7 @@ defmodule Mix.Compilers.Test do
   ## Setup helpers
 
   defp test_helper_stale?(test_paths) do
-    test_paths
-    |> Enum.map(&Path.join(&1, "test_helper.exs"))
-    |> Mix.Utils.stale?([manifest()])
+    test_paths |> Enum.map(&Path.join(&1, "test_helper.exs")) |> Mix.Utils.stale?([manifest()])
   end
 
   defp mtimes(sources) do
@@ -183,8 +178,7 @@ defmodule Mix.Compilers.Test do
   end
 
   defp write_manifest([]) do
-    manifest()
-    |> File.rm()
+    manifest() |> File.rm()
 
     :ok
   end
@@ -192,13 +186,9 @@ defmodule Mix.Compilers.Test do
   defp write_manifest(sources) do
     manifest = manifest()
 
-    manifest
-    |> Path.dirname()
-    |> File.mkdir_p!()
+    manifest |> Path.dirname() |> File.mkdir_p!()
 
-    manifest_data =
-      [@manifest_vsn | sources]
-      |> :erlang.term_to_binary([:compressed])
+    manifest_data = [@manifest_vsn | sources] |> :erlang.term_to_binary([:compressed])
 
     File.write!(manifest, manifest_data)
   end

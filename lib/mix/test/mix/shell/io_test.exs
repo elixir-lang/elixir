@@ -7,15 +7,11 @@ defmodule Mix.Shell.IOTest do
   import Mix.Shell.IO
 
   test "prints info message to stdio" do
-    assert capture_io(fn ->
-             info("hello")
-           end) == "hello\n"
+    assert capture_io(fn -> info("hello") end) == "hello\n"
   end
 
   test "prints error message to stderr" do
-    assert capture_io(:stderr, fn ->
-             error("hello")
-           end) =~ "hello"
+    assert capture_io(:stderr, fn -> error("hello") end) =~ "hello"
   end
 
   test "asks the user with yes?" do

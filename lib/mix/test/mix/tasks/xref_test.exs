@@ -353,9 +353,7 @@ defmodule Mix.Tasks.XrefTest do
       File.write!("lib/a.ex", contents)
 
       output =
-        capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["warnings"]) != {:ok, []}
-        end)
+        capture_io(:stderr, fn -> assert Mix.Task.run("xref", ["warnings"]) != {:ok, []} end)
 
       assert output == expected
     end
@@ -366,9 +364,7 @@ defmodule Mix.Tasks.XrefTest do
       File.write!("lib/a.ex", contents)
 
       output =
-        capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["warnings"]) == {:ok, []}
-        end)
+        capture_io(:stderr, fn -> assert Mix.Task.run("xref", ["warnings"]) == {:ok, []} end)
 
       assert output == ""
     end
@@ -674,9 +670,7 @@ defmodule Mix.Tasks.XrefTest do
       message =
         "xref callers CALLEE expects Module, Module.function, or Module.function/arity, got: %"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Task.run("xref", ["callers", "%"])
-      end
+      assert_raise Mix.Error, message, fn -> Mix.Task.run("xref", ["callers", "%"]) end
     end
   end
 

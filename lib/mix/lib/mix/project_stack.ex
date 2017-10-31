@@ -35,11 +35,8 @@ defmodule Mix.ProjectStack do
       }
 
       cond do
-        file = find_project_named(module, stack) ->
-          {{:error, file}, state}
-
-        true ->
-          {:ok, %{state | post_config: [], stack: [project | state.stack]}}
+        file = find_project_named(module, stack) -> {{:error, file}, state}
+        true -> {:ok, %{state | post_config: [], stack: [project | state.stack]}}
       end
     end)
   end
@@ -101,9 +98,7 @@ defmodule Mix.ProjectStack do
 
   @spec post_config(config) :: :ok
   def post_config(config) do
-    cast(fn state ->
-      %{state | post_config: Keyword.merge(state.post_config, config)}
-    end)
+    cast(fn state -> %{state | post_config: Keyword.merge(state.post_config, config)} end)
   end
 
   @spec printable_app_name() :: atom | nil
@@ -126,54 +121,40 @@ defmodule Mix.ProjectStack do
 
   @spec clear_stack() :: :ok
   def clear_stack do
-    cast(fn state ->
-      %{state | stack: [], post_config: []}
-    end)
+    cast(fn state -> %{state | stack: [], post_config: []} end)
   end
 
   @spec recur((() -> result)) :: result when result: var
   def recur(fun) do
-    cast(fn %{stack: [h | t]} = state ->
-      %{state | stack: [%{h | recursing?: true} | t]}
-    end)
+    cast(fn %{stack: [h | t]} = state -> %{state | stack: [%{h | recursing?: true} | t]} end)
 
     try do
       fun.()
     after
-      cast(fn %{stack: [h | t]} = state ->
-        %{state | stack: [%{h | recursing?: false} | t]}
-      end)
+      cast(fn %{stack: [h | t]} = state -> %{state | stack: [%{h | recursing?: false} | t]} end)
     end
   end
 
   @spec recursing :: module | nil
   def recursing do
-    get(fn %{stack: stack} ->
-      Enum.find_value(stack, &(&1.recursing? and &1.name))
-    end)
+    get(fn %{stack: stack} -> Enum.find_value(stack, &(&1.recursing? and &1.name)) end)
   end
 
   @spec read_cache(term) :: term
   def read_cache(key) do
-    get(fn %{cache: cache} ->
-      cache[key]
-    end)
+    get(fn %{cache: cache} -> cache[key] end)
   end
 
   @spec write_cache(term, term) :: :ok
   def write_cache(key, value) do
-    cast(fn state ->
-      %{state | cache: Map.put(state.cache, key, value)}
-    end)
+    cast(fn state -> %{state | cache: Map.put(state.cache, key, value)} end)
 
     value
   end
 
   @spec clear_cache :: :ok
   def clear_cache do
-    cast(fn state ->
-      %{state | cache: %{}}
-    end)
+    cast(fn state -> %{state | cache: %{}} end)
   end
 
   defp find_project_named(name, stack) do

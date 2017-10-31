@@ -84,9 +84,7 @@ defmodule ExceptionTest do
   end
 
   test "format_stacktrace/1 from file" do
-    assert_raise ArgumentError, fn ->
-      Code.eval_string("def foo do end", [], file: "my_file")
-    end
+    assert_raise ArgumentError, fn -> Code.eval_string("def foo do end", [], file: "my_file") end
 
     assert Exception.format_stacktrace(System.stacktrace()) =~ "my_file:1: (file)"
   end
@@ -276,10 +274,7 @@ defmodule ExceptionTest do
     assert Exception.format_exit(reason) =~ "bad child specification, invalid restart type: :foo"
 
     return =
-      {
-        :ok,
-        {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, :foo, :worker, []}]}
-      }
+      {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, :foo, :worker, []}]}}
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
     assert Exception.format_exit(reason) =~ "bad child specification, invalid shutdown: :foo"
@@ -293,10 +288,7 @@ defmodule ExceptionTest do
     assert Exception.format_exit(reason) =~ "bad child specification, invalid modules: :foo"
 
     return =
-      {
-        :ok,
-        {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, [{:foo}]}]}
-      }
+      {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, [{:foo}]}]}}
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
     assert Exception.format_exit(reason) =~ "bad child specification, invalid module: {:foo}"
@@ -304,13 +296,10 @@ defmodule ExceptionTest do
     return =
       {
         :ok,
-        {
-          {:one_for_one, 1, 1},
-          [
-            {:child, {:m, :f, []}, :permanent, 1, :worker, []},
-            {:child, {:m, :f, []}, :permanent, 1, :worker, []}
-          ]
-        }
+        {{:one_for_one, 1, 1}, [
+          {:child, {:m, :f, []}, :permanent, 1, :worker, []},
+          {:child, {:m, :f, []}, :permanent, 1, :worker, []}
+        ]}
       }
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
@@ -332,10 +321,9 @@ defmodule ExceptionTest do
     return =
       {
         :ok,
-        {
-          {:one_for_one, 1, 1},
-          [{:child, {Kernel, :apply, [fn -> {:error, :foo} end, []]}, :temporary, 1, :worker, []}]
-        }
+        {{:one_for_one, 1, 1}, [
+          {:child, {Kernel, :apply, [fn -> {:error, :foo} end, []]}, :temporary, 1, :worker, []}
+        ]}
       }
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
@@ -368,8 +356,7 @@ defmodule ExceptionTest do
         Process.flag(:trap_exit, true)
 
         receive do
-          _ ->
-            :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+          _ -> :gen_event.call(spawn_link(exit_fun), :handler, :hello)
         end
       end)
 
@@ -479,14 +466,9 @@ defmodule ExceptionTest do
     defp annotated_clauses_to_string(clauses) do
       Enum.map(clauses, fn args_and_clauses ->
         Macro.to_string(args_and_clauses, fn
-          %{match?: true, node: node}, _string ->
-            "+" <> Macro.to_string(node) <> "+"
-
-          %{match?: false, node: node}, _string ->
-            "-" <> Macro.to_string(node) <> "-"
-
-          _node, string ->
-            string
+          %{match?: true, node: node}, _string -> "+" <> Macro.to_string(node) <> "+"
+          %{match?: false, node: node}, _string -> "-" <> Macro.to_string(node) <> "-"
+          _node, string -> string
         end)
       end)
     end
@@ -505,8 +487,8 @@ defmodule ExceptionTest do
     test "ArithmeticError" do
       assert %ArithmeticError{} |> message == "bad argument in arithmetic expression"
 
-      assert %ArithmeticError{message: "unexpected camembert"}
-             |> message == "unexpected camembert"
+      assert %ArithmeticError{message: "unexpected camembert"} |> message ==
+               "unexpected camembert"
     end
 
     test "ArgumentError" do
@@ -517,40 +499,38 @@ defmodule ExceptionTest do
     test "Enum.OutOfBoundsError" do
       assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
 
-      assert %Enum.OutOfBoundsError{message: "the brie is not on the table"}
-             |> message == "the brie is not on the table"
+      assert %Enum.OutOfBoundsError{message: "the brie is not on the table"} |> message ==
+               "the brie is not on the table"
     end
 
     test "Enum.EmptyError" do
       assert %Enum.EmptyError{} |> message == "empty error"
 
-      assert %Enum.EmptyError{message: "there is no saint-nectaire left!"}
-             |> message == "there is no saint-nectaire left!"
+      assert %Enum.EmptyError{message: "there is no saint-nectaire left!"} |> message ==
+               "there is no saint-nectaire left!"
     end
 
     test "UndefinedFunctionError" do
       assert %UndefinedFunctionError{} |> message == "undefined function"
 
-      assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1}
-             |> message == "function Kernel.bar/1 is undefined or private"
+      assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
+               "function Kernel.bar/1 is undefined or private"
 
-      assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1}
-             |> message == "function Foo.bar/1 is undefined (module Foo is not available)"
+      assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
+               "function Foo.bar/1 is undefined (module Foo is not available)"
 
-      assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0}
-             |> message == "function nil.bar/0 is undefined or private"
+      assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
+               "function nil.bar/0 is undefined or private"
     end
 
     test "UndefinedFunctionError with suggestions" do
-      assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1}
-             |> message == """
+      assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
              function Enum.map/1 is undefined or private. Did you mean one of:
 
                    * map/2
              """
 
-      assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1}
-             |> message == """
+      assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
              function Enum.man/1 is undefined or private. Did you mean one of:
 
                    * map/2
@@ -560,20 +540,19 @@ defmodule ExceptionTest do
                    * min/2
              """
 
-      assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0}
-             |> message == """
-             function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
+      assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0} |> message ==
+               """
+               function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
 
-                   * get_cookie/0
-                   * set_cookie/2
-             """
+                     * get_cookie/0
+                     * set_cookie/2
+               """
     end
 
     test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do
       _ = Code.ensure_loaded(Integer)
 
-      assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1}
-             |> message ==
+      assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1} |> message ==
                "function Integer.is_odd/1 is undefined or private. However there is " <>
                  "a macro with the same name and arity. Be sure to require Integer if " <>
                  "you intend to invoke this macro"
@@ -582,8 +561,8 @@ defmodule ExceptionTest do
     test "FunctionClauseError" do
       assert %FunctionClauseError{} |> message == "no function clause matches"
 
-      assert %FunctionClauseError{module: Foo, function: :bar, arity: 1}
-             |> message == "no function clause matching in Foo.bar/1"
+      assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
+               "no function clause matching in Foo.bar/1"
     end
 
     # TODO: Remove this check once we depend only on 20

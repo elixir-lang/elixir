@@ -2,11 +2,7 @@ defmodule Logger.MixProject do
   use Mix.Project
 
   def project do
-    [
-      app: :logger,
-      version: System.version(),
-      build_per_environment: false
-    ]
+    [app: :logger, version: System.version(), build_per_environment: false]
   end
 
   def application do

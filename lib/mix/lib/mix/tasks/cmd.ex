@@ -33,11 +33,8 @@ defmodule Mix.Tasks.Cmd do
 
   defp parse_apps(args, apps) do
     case args do
-      ["--app", app | tail] ->
-        parse_apps(tail, [String.to_atom(app) | apps])
-
-      args ->
-        {args, apps}
+      ["--app", app | tail] -> parse_apps(tail, [String.to_atom(app) | apps])
+      args -> {args, apps}
     end
   end
 end

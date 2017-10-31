@@ -334,11 +334,8 @@ defimpl Inspect, for: Function do
 
   defp extract_name(name) do
     case Identifier.extract_anonymous_fun_parent(name) do
-      {name, arity} ->
-        "." <> Identifier.inspect_as_function(name) <> "/" <> arity
-
-      :error ->
-        "." <> Identifier.inspect_as_function(name)
+      {name, arity} -> "." <> Identifier.inspect_as_function(name) <> "/" <> arity
+      :error -> "." <> Identifier.inspect_as_function(name)
     end
   end
 

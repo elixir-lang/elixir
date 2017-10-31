@@ -243,9 +243,7 @@ defmodule StringIOTest do
   test "IO.stream with invalid UTF-8" do
     pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
 
-    assert_raise IO.StreamError, fn ->
-      IO.stream(pid, 2) |> Enum.to_list()
-    end
+    assert_raise IO.StreamError, fn -> IO.stream(pid, 2) |> Enum.to_list() end
 
     assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
   end

@@ -238,9 +238,7 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp extra_apps() do
-    Mix.Project.config()[:app]
-    |> extra_apps_in_app_tree()
-    |> Enum.uniq()
+    Mix.Project.config()[:app] |> extra_apps_in_app_tree() |> Enum.uniq()
   end
 
   defp extra_apps_in_app_tree(app) when app in [:kernel, :stdlib, :elixir] do

@@ -73,11 +73,7 @@ defmodule Mix.Tasks.Archive.Install do
   def check_install_spec(_, _), do: :ok
 
   def find_previous_versions(src) do
-    app =
-      src
-      |> Mix.Local.archive_name()
-      |> String.split("-")
-      |> List.first()
+    app = src |> Mix.Local.archive_name() |> String.split("-") |> List.first()
 
     if app do
       archives(app) ++ archives(app <> "-*")
@@ -115,16 +111,13 @@ defmodule Mix.Tasks.Archive.Install do
          [zip_root_dir | _] = Path.split(zip_first_path) do
       Path.join(Path.dirname(ez_path), zip_root_dir)
     else
-      _ ->
-        Mix.raise("Installation failed: invalid archive file")
+      _ -> Mix.raise("Installation failed: invalid archive file")
     end
   end
 
   defp archives(name) do
     # TODO: We can remove the .ez extension on Elixir 2.0 since we always unzip since 1.3
-    Mix.Local.path_for(:archive)
-    |> Path.join(name <> "{,*.ez}")
-    |> Path.wildcard()
+    Mix.Local.path_for(:archive) |> Path.join(name <> "{,*.ez}") |> Path.wildcard()
   end
 
   defp remove_previous_versions([]), do: :ok

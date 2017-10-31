@@ -89,9 +89,7 @@ defmodule RegexTest do
   test "compile!/1" do
     assert Regex.regex?(Regex.compile!("foo"))
 
-    assert_raise Regex.CompileError, ~r/position 0$/, fn ->
-      Regex.compile!("*foo")
-    end
+    assert_raise Regex.CompileError, ~r/position 0$/, fn -> Regex.compile!("*foo") end
   end
 
   test "recompile/1" do

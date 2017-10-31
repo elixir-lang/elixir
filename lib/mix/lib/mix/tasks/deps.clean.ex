@@ -29,9 +29,7 @@ defmodule Mix.Tasks.Deps.Clean do
     {opts, apps, _} = OptionParser.parse(args, switches: @switches)
 
     build_path =
-      Mix.Project.build_path()
-      |> Path.dirname()
-      |> Path.join("#{opts[:only] || :*}/lib")
+      Mix.Project.build_path() |> Path.dirname() |> Path.join("#{opts[:only] || :*}/lib")
 
     deps_path = Mix.Project.deps_path()
 
@@ -114,9 +112,7 @@ defmodule Mix.Tasks.Deps.Clean do
       if build_only? || app in local do
         :do_not_delete_source
       else
-        deps_path
-        |> Path.join(to_string(app))
-        |> File.rm_rf!()
+        deps_path |> Path.join(to_string(app)) |> File.rm_rf!()
       end
     end)
   end

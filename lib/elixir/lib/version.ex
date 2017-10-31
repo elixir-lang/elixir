@@ -162,11 +162,8 @@ defmodule Version do
 
   def match?(version, requirement, opts) when is_binary(requirement) do
     case parse_requirement(requirement) do
-      {:ok, requirement} ->
-        match?(version, requirement, opts)
-
-      :error ->
-        raise InvalidRequirementError, requirement
+      {:ok, requirement} -> match?(version, requirement, opts)
+      :error -> raise InvalidRequirementError, requirement
     end
   end
 
@@ -298,11 +295,8 @@ defmodule Version do
   @spec parse_requirement(String.t()) :: {:ok, Requirement.t()} | :error
   def parse_requirement(string) when is_binary(string) do
     case Version.Parser.parse_requirement(string) do
-      {:ok, spec} ->
-        {:ok, %Requirement{source: string, matchspec: spec, compiled: false}}
-
-      :error ->
-        :error
+      {:ok, spec} -> {:ok, %Requirement{source: string, matchspec: spec, compiled: false}}
+      :error -> :error
     end
   end
 
@@ -326,11 +320,8 @@ defmodule Version do
 
   defp to_matchable(string, allow_pre?) do
     case Version.Parser.parse_version(string) do
-      {:ok, {major, minor, patch, pre, _build_parts}} ->
-        {major, minor, patch, pre, allow_pre?}
-
-      :error ->
-        raise InvalidVersionError, string
+      {:ok, {major, minor, patch, pre, _build_parts}} -> {major, minor, patch, pre, allow_pre?}
+      :error -> raise InvalidVersionError, string
     end
   end
 
@@ -367,14 +358,9 @@ defmodule Version do
     def lexer(<<char::utf8, body::binary>>, [head | acc]) do
       acc =
         case head do
-          head when is_binary(head) ->
-            [<<head::binary, char::utf8>> | acc]
-
-          head when head in [:||, :&&] ->
-            [<<char::utf8>>, :==, head | acc]
-
-          _other ->
-            [<<char::utf8>>, head | acc]
+          head when is_binary(head) -> [<<head::binary, char::utf8>> | acc]
+          head when head in [:||, :&&] -> [<<char::utf8>>, :==, head | acc]
+          _other -> [<<char::utf8>>, head | acc]
         end
 
       lexer(body, acc)
@@ -508,11 +494,8 @@ defmodule Version do
 
     defp approximate_upper(version) do
       case version do
-        {major, _minor, nil, _} ->
-          {major + 1, 0, 0, [0]}
-
-        {major, minor, _patch, _} ->
-          {major, minor + 1, 0, [0]}
+        {major, _minor, nil, _} -> {major + 1, 0, 0, [0]}
+        {major, minor, _patch, _} -> {major, minor + 1, 0, [0]}
       end
     end
 

@@ -514,28 +514,18 @@ defmodule IO do
   @doc false
   def each_stream(device, line_or_codepoints) do
     case read(device, line_or_codepoints) do
-      :eof ->
-        {:halt, device}
-
-      {:error, reason} ->
-        raise IO.StreamError, reason: reason
-
-      data ->
-        {[data], device}
+      :eof -> {:halt, device}
+      {:error, reason} -> raise IO.StreamError, reason: reason
+      data -> {[data], device}
     end
   end
 
   @doc false
   def each_binstream(device, line_or_chars) do
     case binread(device, line_or_chars) do
-      :eof ->
-        {:halt, device}
-
-      {:error, reason} ->
-        raise IO.StreamError, reason: reason
-
-      data ->
-        {[data], device}
+      :eof -> {:halt, device}
+      {:error, reason} -> raise IO.StreamError, reason: reason
+      data -> {[data], device}
     end
   end
 

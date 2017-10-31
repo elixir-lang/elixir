@@ -825,9 +825,8 @@ defmodule Kernel.WarningTest do
   end
 
   test "warning on codepoint escape" do
-    assert capture_err(fn ->
-             Code.eval_string("? ")
-           end) =~ "found ? followed by codepoint 0x20 (space), please use \\s instead"
+    assert capture_err(fn -> Code.eval_string("? ") end) =~
+             "found ? followed by codepoint 0x20 (space), please use \\s instead"
   end
 
   test "duplicated docs" do

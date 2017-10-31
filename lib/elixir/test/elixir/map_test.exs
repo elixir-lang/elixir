@@ -136,32 +136,42 @@ defmodule MapTest do
   test "update maps" do
     assert %{@sample | a: 3} == %{a: 3, b: 2}
 
-    assert_raise KeyError, fn ->
-      %{@sample | c: 3}
-    end
+    assert_raise KeyError, fn -> %{@sample | c: 3} end
   end
 
   test "map access" do
     assert @sample.a == 1
 
-    assert_raise KeyError, fn ->
-      @sample.c
-    end
+    assert_raise KeyError, fn -> @sample.c end
   end
 
   test "merge/3" do
     # When first map is bigger
-    assert Map.merge(%{a: 1, b: 2, c: 3}, %{c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
-             %{a: 1, b: 2, c: :x, d: 5}
+    assert Map.merge(%{a: 1, b: 2, c: 3}, %{c: 4, d: 5}, fn :c, 3, 4 -> :x end) == %{
+             a: 1,
+             b: 2,
+             c: :x,
+             d: 5
+           }
 
     # When second map is bigger
-    assert Map.merge(%{b: 2, c: 3}, %{a: 1, c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
-             %{a: 1, b: 2, c: :x, d: 5}
+    assert Map.merge(%{b: 2, c: 3}, %{a: 1, c: 4, d: 5}, fn :c, 3, 4 -> :x end) == %{
+             a: 1,
+             b: 2,
+             c: :x,
+             d: 5
+           }
   end
 
   test "implements (almost) all functions in Keyword" do
-    assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
-             [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
+    assert Keyword.__info__(:functions) -- Map.__info__(:functions) == [
+             delete: 3,
+             delete_first: 2,
+             get_values: 2,
+             keyword?: 1,
+             pop_first: 2,
+             pop_first: 3
+           ]
   end
 
   test "variable keys" do
@@ -234,22 +244,16 @@ defmodule MapTest do
       end
     end
 
-    assert_raise FunctionClauseError, fn ->
-      destruct1(invalid_struct)
-    end
+    assert_raise FunctionClauseError, fn -> destruct1(invalid_struct) end
 
-    assert_raise FunctionClauseError, fn ->
-      destruct2(invalid_struct)
-    end
+    assert_raise FunctionClauseError, fn -> destruct2(invalid_struct) end
 
     assert_raise MatchError, fn ->
       %module{} = invalid_struct
       _ = module
     end
 
-    assert_raise MatchError, fn ->
-      %_{} = invalid_struct
-    end
+    assert_raise MatchError, fn -> %_{} = invalid_struct end
 
     assert_raise MatchError, fn ->
       foo = foo()

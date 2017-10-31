@@ -92,9 +92,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.mkdir_p!("lib")
       File.write!("lib/a.ex", "raise ~s(oops)")
 
-      capture_io(fn ->
-        assert {:error, [_]} = Mix.Tasks.Compile.Elixir.run([])
-      end)
+      capture_io(fn -> assert {:error, [_]} = Mix.Tasks.Compile.Elixir.run([]) end)
 
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
     end
@@ -356,10 +354,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # First compilation should print unused variable warning
       import ExUnit.CaptureIO
 
-      output =
-        capture_io(:standard_error, fn ->
-          Mix.Tasks.Compile.Elixir.run([]) == :ok
-        end)
+      output = capture_io(:standard_error, fn -> Mix.Tasks.Compile.Elixir.run([]) == :ok end)
 
       # Should also print warning
       assert capture_io(:standard_error, fn ->

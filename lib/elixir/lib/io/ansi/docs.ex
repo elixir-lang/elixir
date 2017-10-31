@@ -374,9 +374,7 @@ defmodule IO.ANSI.Docs do
     alignments = Keyword.get(options, :alignments, default_alignments)
 
     columns =
-      cols_and_widths
-      |> Enum.zip(alignments)
-      |> Enum.map_join(" | ", &generate_table_cell/1)
+      cols_and_widths |> Enum.zip(alignments) |> Enum.map_join(" | ", &generate_table_cell/1)
 
     if heading do
       write(:doc_table_heading, columns, options)
@@ -468,21 +466,15 @@ defmodule IO.ANSI.Docs do
   end
 
   defp handle_links(text) do
-    text
-    |> remove_square_brackets_in_link
-    |> escape_underlines_in_link
+    text |> remove_square_brackets_in_link |> escape_underlines_in_link
   end
 
   defp escape_underlines_in_link(text) do
-    ~r{https?\S*}
-    |> Regex.recompile!()
-    |> Regex.replace(text, &String.replace(&1, "_", "\\_"))
+    ~r{https?\S*} |> Regex.recompile!() |> Regex.replace(text, &String.replace(&1, "_", "\\_"))
   end
 
   defp remove_square_brackets_in_link(text) do
-    ~r{\[(.*?)\]\((.*?)\)}
-    |> Regex.recompile!()
-    |> Regex.replace(text, "\\1 (\\2)")
+    ~r{\[(.*?)\]\((.*?)\)} |> Regex.recompile!() |> Regex.replace(text, "\\1 (\\2)")
   end
 
   # We have four entries: **, *, _ and `.
@@ -529,8 +521,7 @@ defmodule IO.ANSI.Docs do
     handle_inline(rest, mark, [<<mark>>], [delimiter, Enum.reverse(buffer) | acc], options)
   end
 
-  defp handle_inline(<<?`, rest::binary>>, nil, buffer, acc, options)
-       when rest != "" do
+  defp handle_inline(<<?`, rest::binary>>, nil, buffer, acc, options) when rest != "" do
     handle_inline(rest, ?`, ["`"], [Enum.reverse(buffer) | acc], options)
   end
 
@@ -570,8 +561,7 @@ defmodule IO.ANSI.Docs do
     handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer | acc], options)
   end
 
-  defp handle_inline(<<?*, ?*, rest::binary>>, ?d, buffer, acc, options)
-       when rest == "" do
+  defp handle_inline(<<?*, ?*, rest::binary>>, ?d, buffer, acc, options) when rest == "" do
     handle_inline(<<>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 

@@ -159,9 +159,7 @@ defmodule Kernel.Typespec do
   @spec defines_type?(module, atom, arity) :: boolean
   def defines_type?(module, name, arity)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
-    finder = fn {_kind, expr, _caller} ->
-      type_to_signature(expr) == {name, arity}
-    end
+    finder = fn {_kind, expr, _caller} -> type_to_signature(expr) == {name, arity} end
 
     :lists.any(finder, Module.get_attribute(module, :type)) or
       :lists.any(finder, Module.get_attribute(module, :opaque))
@@ -174,9 +172,7 @@ defmodule Kernel.Typespec do
   @spec defines_spec?(module, atom, arity) :: boolean
   def defines_spec?(module, name, arity)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
-    finder = fn {_kind, expr, _caller} ->
-      spec_to_signature(expr) == {name, arity}
-    end
+    finder = fn {_kind, expr, _caller} -> spec_to_signature(expr) == {name, arity} end
 
     :lists.any(finder, Module.get_attribute(module, :spec))
   end
@@ -188,9 +184,7 @@ defmodule Kernel.Typespec do
   @spec defines_callback?(module, atom, arity) :: boolean
   def defines_callback?(module, name, arity)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
-    finder = fn {_kind, expr, _caller} ->
-      spec_to_signature(expr) == {name, arity}
-    end
+    finder = fn {_kind, expr, _caller} -> spec_to_signature(expr) == {name, arity} end
 
     :lists.any(finder, Module.get_attribute(module, :callback))
   end
@@ -353,11 +347,8 @@ defmodule Kernel.Typespec do
 
   defp abstract_code(module) do
     case :beam_lib.chunks(abstract_code_beam(module), [:abstract_code]) do
-      {:ok, {_, [{:abstract_code, {_raw_abstract_v1, abstract_code}}]}} ->
-        {:ok, abstract_code}
-
-      _ ->
-        :error
+      {:ok, {_, [{:abstract_code, {_raw_abstract_v1, abstract_code}}]}} -> {:ok, abstract_code}
+      _ -> :error
     end
   end
 
@@ -392,11 +383,8 @@ defmodule Kernel.Typespec do
   @doc false
   def defspec(kind, expr, line, file, module, pos) when kind in [:callback, :macrocallback] do
     case spec_to_signature(expr) do
-      {name, arity} ->
-        store_callbackdoc(line, file, module, kind, name, arity)
-
-      :error ->
-        :error
+      {name, arity} -> store_callbackdoc(line, file, module, kind, name, arity)
+      :error -> :error
     end
 
     Module.store_typespec(module, kind, {kind, expr, pos})
@@ -686,14 +674,9 @@ defmodule Kernel.Typespec do
     [arg1, arg2] = for arg <- [arg1, arg2], do: typespec_to_ast(arg)
 
     case {typespec_to_ast(arg1), typespec_to_ast(arg2)} do
-      {arg1, 0} ->
-        quote(line: line, do: <<_::unquote(arg1)>>)
-
-      {0, arg2} ->
-        quote(line: line, do: <<_::_*unquote(arg2)>>)
-
-      {arg1, arg2} ->
-        quote(line: line, do: <<_::unquote(arg1), _::_*unquote(arg2)>>)
+      {arg1, 0} -> quote(line: line, do: <<_::unquote(arg1)>>)
+      {0, arg2} -> quote(line: line, do: <<_::_*unquote(arg2)>>)
+      {arg1, arg2} -> quote(line: line, do: <<_::unquote(arg1), _::_*unquote(arg2)>>)
     end
   end
 
@@ -744,11 +727,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast(
-         {
-           :remote_type,
-           line,
-           [{:atom, _, :elixir}, {:atom, _, :nonempty_charlist}, []]
-         }
+         {:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :nonempty_charlist}, []]}
        ) do
     typespec_to_ast({:type, line, :nonempty_charlist, []})
   end
@@ -797,11 +776,8 @@ defmodule Kernel.Typespec do
 
   defp erl_to_ex_var(var) do
     case Atom.to_string(var) do
-      <<"_", c::binary-1, rest::binary>> ->
-        String.to_atom("_#{String.downcase(c)}#{rest}")
-
-      <<c::binary-1, rest::binary>> ->
-        String.to_atom("#{String.downcase(c)}#{rest}")
+      <<"_", c::binary-1, rest::binary>> -> String.to_atom("_#{String.downcase(c)}#{rest}")
+      <<c::binary-1, rest::binary>> -> String.to_atom("#{String.downcase(c)}#{rest}")
     end
   end
 
@@ -841,14 +817,10 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec(
-         {
-           :<<>>,
-           meta,
-           [
-             {:::, size_meta, [{:_, _, ctx1}, size]},
-             {:::, unit_meta, [{:_, _, ctx2}, {:*, _, [{:_, _, ctx3}, unit]}]}
-           ]
-         },
+         {:<<>>, meta, [
+           {:::, size_meta, [{:_, _, ctx1}, size]},
+           {:::, unit_meta, [{:_, _, ctx2}, {:*, _, [{:_, _, ctx3}, unit]}]}
+         ]},
          _,
          _
        )

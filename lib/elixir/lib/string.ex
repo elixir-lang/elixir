@@ -931,9 +931,7 @@ defmodule String do
   """
   @spec trim(t) :: t
   def trim(string) do
-    string
-    |> trim_leading()
-    |> trim_trailing()
+    string |> trim_leading() |> trim_trailing()
   end
 
   @doc """
@@ -948,9 +946,7 @@ defmodule String do
   """
   @spec trim(t, t) :: t
   def trim(string, to_trim) do
-    string
-    |> trim_leading(to_trim)
-    |> trim_trailing(to_trim)
+    string |> trim_leading(to_trim) |> trim_trailing(to_trim)
   end
 
   @doc ~S"""
@@ -1056,20 +1052,14 @@ defmodule String do
   defp build_filler(0, _source, _padding, _size, filler), do: filler
 
   defp build_filler(count, source, [], size, filler) do
-    rem_filler =
-      rem(count, size)
-      |> build_filler(source, source, 0, [])
+    rem_filler = rem(count, size) |> build_filler(source, source, 0, [])
 
-    filler =
-      filler
-      |> IO.iodata_to_binary()
-      |> duplicate(div(count, size) + 1)
+    filler = filler |> IO.iodata_to_binary() |> duplicate(div(count, size) + 1)
 
     [filler | rem_filler]
   end
 
-  defp build_filler(count, source, [elem | rest], size, filler)
-       when is_binary(elem) do
+  defp build_filler(count, source, [elem | rest], size, filler) when is_binary(elem) do
     build_filler(count - 1, source, rest, size + 1, [filler | elem])
   end
 
@@ -1693,11 +1683,8 @@ defmodule String do
 
   def slice(string, first..-1) when first >= 0 do
     case String.Unicode.split_at(string, first) do
-      {_, nil} ->
-        ""
-
-      {start_bytes, _} ->
-        binary_part(string, start_bytes, byte_size(string) - start_bytes)
+      {_, nil} -> ""
+      {start_bytes, _} -> binary_part(string, start_bytes, byte_size(string) - start_bytes)
     end
   end
 
@@ -2036,11 +2023,8 @@ defmodule String do
     {chars2, len2} = chars_and_length(string2)
 
     case match(chars1, len1, chars2, len2) do
-      {0, _trans} ->
-        0.0
-
-      {comm, trans} ->
-        (comm / len1 + comm / len2 + (comm - trans) / comm) / 3
+      {0, _trans} -> 0.0
+      {comm, trans} -> (comm / len1 + comm / len2 + (comm - trans) / comm) / 3
     end
   end
 
@@ -2075,11 +2059,8 @@ defmodule String do
 
   defp submatch(char, chars, {pre, _} = range, state, idx) do
     case detect(char, chars, range) do
-      nil ->
-        {chars, state}
-
-      {subidx, chars} ->
-        {chars, proceed(state, idx - pre + subidx)}
+      nil -> {chars, state}
+      {subidx, chars} -> {chars, proceed(state, idx - pre + subidx)}
     end
   end
 

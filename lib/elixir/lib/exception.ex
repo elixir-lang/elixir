@@ -27,8 +27,7 @@ defmodule Exception do
 
   @type stacktrace :: [stacktrace_entry]
   @type stacktrace_entry ::
-          {module, atom, arity_or_args, location}
-          | {(... -> any), arity_or_args, location}
+          {module, atom, arity_or_args, location} | {(... -> any), arity_or_args, location}
 
   @typep arity_or_args :: non_neg_integer | list
   @typep location :: keyword
@@ -247,9 +246,7 @@ defmodule Exception do
             :elixir_erl_clauses.match(&:elixir_erl_pass.translate_args/2, ex_args, scope)
 
           {args, binding} =
-            [call_args, ex_args, erl_args]
-            |> Enum.zip()
-            |> Enum.map_reduce([], &blame_arg/2)
+            [call_args, ex_args, erl_args] |> Enum.zip() |> Enum.map_reduce([], &blame_arg/2)
 
           guards = Enum.map(guards, &blame_guard(&1, scope, binding))
           {args, guards}
@@ -279,20 +276,14 @@ defmodule Exception do
 
   defp rewrite_arg(arg) do
     Macro.prewalk(arg, fn
-      {:%{}, meta, [__struct__: Range, first: first, last: last]} ->
-        {:.., meta, [first, last]}
-
-      other ->
-        other
+      {:%{}, meta, [__struct__: Range, first: first, last: last]} -> {:.., meta, [first, last]}
+      other -> other
     end)
   end
 
   defp blame_guard({{:., _, [:erlang, op]}, meta, [left, right]}, scope, binding)
        when op == :andalso or op == :orelse do
-    guards = [
-      blame_guard(left, scope, binding),
-      blame_guard(right, scope, binding)
-    ]
+    guards = [blame_guard(left, scope, binding), blame_guard(right, scope, binding)]
 
     {rewrite_guard_call(op), meta, guards}
   end
@@ -381,8 +372,7 @@ defmodule Exception do
 
   # 2-Tuple could be an exit caused by mfa if second element is mfa, args
   # must be a list of arguments - max length 255 due to max arity.
-  defp format_exit({reason2, {mod, fun, args}} = reason, joiner)
-       when length(args) < 256 do
+  defp format_exit({reason2, {mod, fun, args}} = reason, joiner) when length(args) < 256 do
     try do
       format_mfa(mod, fun, args)
     catch
@@ -443,8 +433,7 @@ defmodule Exception do
   # :supervisor.start_link error reasons
 
   # If value is a list will be formatted by mfa exit in format_exit/1
-  defp format_exit_reason({:bad_return, {mod, :init, value}})
-       when is_atom(mod) do
+  defp format_exit_reason({:bad_return, {mod, :init, value}}) when is_atom(mod) do
     format_mfa(mod, :init, 1) <> " returned a bad value: " <> inspect(value)
   end
 
@@ -980,10 +969,7 @@ defmodule FunctionClauseError do
           "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
         end
 
-        top_10 =
-          clauses
-          |> Enum.take(10)
-          |> Enum.map(format_clause_fun)
+        top_10 = clauses |> Enum.take(10) |> Enum.map(format_clause_fun)
 
         "\nAttempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):" <>
           "\n\n#{top_10}"
@@ -1080,11 +1066,8 @@ defmodule File.Error do
   def message(%{action: action, reason: reason, path: path}) do
     formatted =
       case {action, reason} do
-        {"remove directory", :eexist} ->
-          "directory is not empty"
-
-        _ ->
-          IO.iodata_to_binary(:file.format_error(reason))
+        {"remove directory", :eexist} -> "directory is not empty"
+        _ -> IO.iodata_to_binary(:file.format_error(reason))
       end
 
     "could not #{action} #{inspect(path)}: #{formatted}"

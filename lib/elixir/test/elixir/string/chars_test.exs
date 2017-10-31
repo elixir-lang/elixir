@@ -66,8 +66,19 @@ defmodule String.Chars.ListTest do
   test "charlist" do
     assert to_string([0, 1, 2, 3, 255]) == <<0, 1, 2, 3, 195, 191>>
 
-    assert to_string([0, [1, "hello"], 2, [["bye"]]]) ==
-             <<0, 1, 104, 101, 108, 108, 111, 2, 98, 121, 101>>
+    assert to_string([0, [1, "hello"], 2, [["bye"]]]) == <<
+             0,
+             1,
+             104,
+             101,
+             108,
+             108,
+             111,
+             2,
+             98,
+             121,
+             101
+           >>
   end
 
   test "empty" do
@@ -111,41 +122,31 @@ defmodule String.Chars.ErrorsTest do
   test "tuple" do
     message = "protocol String.Chars not implemented for {1, 2, 3}"
 
-    assert_raise Protocol.UndefinedError, message, fn ->
-      to_string({1, 2, 3})
-    end
+    assert_raise Protocol.UndefinedError, message, fn -> to_string({1, 2, 3}) end
   end
 
   test "PID" do
     message = ~r"^protocol String\.Chars not implemented for #PID<.+?>$"
 
-    assert_raise Protocol.UndefinedError, message, fn ->
-      to_string(self())
-    end
+    assert_raise Protocol.UndefinedError, message, fn -> to_string(self()) end
   end
 
   test "ref" do
     message = ~r"^protocol String\.Chars not implemented for #Reference<.+?>$"
 
-    assert_raise Protocol.UndefinedError, message, fn ->
-      to_string(make_ref()) == ""
-    end
+    assert_raise Protocol.UndefinedError, message, fn -> to_string(make_ref()) == "" end
   end
 
   test "function" do
     message = ~r"^protocol String\.Chars not implemented for #Function<.+?>$"
 
-    assert_raise Protocol.UndefinedError, message, fn ->
-      to_string(fn -> nil end)
-    end
+    assert_raise Protocol.UndefinedError, message, fn -> to_string(fn -> nil end) end
   end
 
   test "port" do
     [port | _] = Port.list()
     message = ~r"^protocol String\.Chars not implemented for #Port<.+?>$"
 
-    assert_raise Protocol.UndefinedError, message, fn ->
-      to_string(port)
-    end
+    assert_raise Protocol.UndefinedError, message, fn -> to_string(port) end
   end
 end

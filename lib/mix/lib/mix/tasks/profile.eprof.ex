@@ -114,12 +114,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     parallel_require: :keep
   ]
 
-  @aliases [
-    r: :require,
-    p: :parallel,
-    e: :eval,
-    c: :config
-  ]
+  @aliases [r: :require, p: :parallel, e: :eval, c: :config]
 
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args, aliases: @aliases, strict: @switches)
@@ -137,9 +132,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     content =
       quote do
         unquote(__MODULE__).profile(
-          fn ->
-            unquote(Code.string_to_quoted!(code_string))
-          end,
+          fn -> unquote(Code.string_to_quoted!(code_string)) end,
           unquote(opts)
         )
       end
@@ -150,9 +143,7 @@ defmodule Mix.Tasks.Profile.Eprof do
 
   @doc false
   def profile(fun, opts) do
-    fun
-    |> profile_and_analyse(opts)
-    |> print_output
+    fun |> profile_and_analyse(opts) |> print_output
   end
 
   defp profile_and_analyse(fun, opts) do
@@ -165,11 +156,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     :eprof.profile([], fun, matching_pattern(opts))
 
     results =
-      :eprof.dump()
-      |> extract_results
-      |> filter_results(opts)
-      |> sort_results(opts)
-      |> add_totals
+      :eprof.dump() |> extract_results |> filter_results(opts) |> sort_results(opts) |> add_totals
 
     :eprof.stop()
 
@@ -204,10 +191,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   end
 
   defp sort_results(call_results, opts) do
-    sort_by =
-      Keyword.get(opts, :sort, "time")
-      |> String.to_existing_atom()
-      |> sort_function
+    sort_by = Keyword.get(opts, :sort, "time") |> String.to_existing_atom() |> sort_function
 
     Enum.sort_by(call_results, sort_by)
   end
@@ -273,9 +257,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     max_lengths = Enum.map(header, &String.length/1)
 
     Enum.reduce(rows, max_lengths, fn row, max_lengths ->
-      Stream.map(row, &String.length/1)
-      |> Stream.zip(max_lengths)
-      |> Enum.map(&max/1)
+      Stream.map(row, &String.length/1) |> Stream.zip(max_lengths) |> Enum.map(&max/1)
     end)
   end
 

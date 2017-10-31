@@ -325,10 +325,7 @@ defmodule GenServer do
   entering the loop or calling `c:terminate/2`.
   """
   @callback init(args :: term) ::
-              {:ok, state}
-              | {:ok, state, timeout | :hibernate}
-              | :ignore
-              | {:stop, reason :: any}
+              {:ok, state} | {:ok, state, timeout | :hibernate} | :ignore | {:stop, reason :: any}
             when state: any
 
   @doc """
@@ -508,9 +505,7 @@ defmodule GenServer do
   with its previous state. Therefore this callback does not usually contain side effects.
   """
   @callback code_change(old_vsn, state :: term, extra :: term) ::
-              {:ok, new_state :: term}
-              | {:error, reason :: term}
-              | {:down, term}
+              {:ok, new_state :: term} | {:error, reason :: term} | {:down, term}
             when old_vsn: term
 
   @doc """
@@ -573,10 +568,7 @@ defmodule GenServer do
 
       @doc false
       def child_spec(arg) do
-        default = %{
-          id: __MODULE__,
-          start: {__MODULE__, :start_link, [arg]}
-        }
+        default = %{id: __MODULE__, start: {__MODULE__, :start_link, [arg]}}
 
         Supervisor.child_spec(default, @opts)
       end
@@ -759,8 +751,7 @@ defmodule GenServer do
         try do
           :proc_lib.stop(pid, reason, timeout)
         catch
-          :exit, err ->
-            exit({err, {__MODULE__, :stop, [server, reason, timeout]}})
+          :exit, err -> exit({err, {__MODULE__, :stop, [server, reason, timeout]}})
         end
     end
   end
@@ -800,8 +791,7 @@ defmodule GenServer do
         try do
           :gen.call(pid, :"$gen_call", request, timeout)
         catch
-          :exit, reason ->
-            exit({reason, {__MODULE__, :call, [server, request, timeout]}})
+          :exit, reason -> exit({reason, {__MODULE__, :call, [server, request, timeout]}})
         else
           {:ok, res} -> res
         end

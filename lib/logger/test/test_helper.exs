@@ -30,8 +30,7 @@ defmodule Logger.Case do
         Process.sleep(10)
         wait_for_logger()
     else
-      _ ->
-        :ok
+      _ -> :ok
     end
   end
 

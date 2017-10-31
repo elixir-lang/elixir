@@ -1209,14 +1209,9 @@ defmodule Module do
     # module attributes and for structs (aliases to be precise).
     args =
       Macro.prewalk(args, fn
-        {:@, _, _} = attr ->
-          Macro.expand_once(attr, env)
-
-        {:%, meta, [aliases, fields]} ->
-          {:%, meta, [Macro.expand_once(aliases, env), fields]}
-
-        x ->
-          x
+        {:@, _, _} = attr -> Macro.expand_once(attr, env)
+        {:%, meta, [aliases, fields]} -> {:%, meta, [Macro.expand_once(aliases, env), fields]}
+        x -> x
       end)
 
     case add_doc(module, line, kind, pair, args, doc) do
@@ -1346,13 +1341,7 @@ defmodule Module do
   end
 
   defp standard_behaviour?(behaviour) do
-    behaviour in [
-      Collectable,
-      Enumerable,
-      Inspect,
-      List.Chars,
-      String.Chars
-    ]
+    behaviour in [Collectable, Enumerable, Inspect, List.Chars, String.Chars]
   end
 
   defp check_callbacks(env, callbacks, all_definitions) do

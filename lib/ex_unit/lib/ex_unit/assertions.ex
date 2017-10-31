@@ -426,9 +426,7 @@ defmodule ExUnit.Assertions do
 
     pattern_finder =
       quote do
-        fn message ->
-          unquote(suppress_warning(quoted_pattern))
-        end
+        fn message -> unquote(suppress_warning(quoted_pattern)) end
       end
 
     failure_message_hit =
@@ -456,8 +454,7 @@ defmodule ExUnit.Assertions do
 
       {received, unquote(vars)} =
         receive do
-          unquote(pattern) ->
-            {received, unquote(vars)}
+          unquote(pattern) -> {received, unquote(vars)}
         after
           timeout ->
             {:messages, messages} = Process.info(self(), :messages)
@@ -484,10 +481,7 @@ defmodule ExUnit.Assertions do
   def __mailbox__(messages) do
     length = length(messages)
 
-    mailbox =
-      messages
-      |> Enum.take(@max_mailbox_length)
-      |> Enum.map_join(@indent, &inspect/1)
+    mailbox = messages |> Enum.take(@max_mailbox_length) |> Enum.map_join(@indent, &inspect/1)
 
     mailbox_message(length, @indent <> mailbox)
   end
@@ -563,19 +557,14 @@ defmodule ExUnit.Assertions do
 
   defp expand_pattern(expr, caller) do
     Macro.prewalk(expr, fn
-      {var, _, context} = node when is_atom(var) and is_atom(context) ->
-        node
-
-      other ->
-        Macro.expand(other, caller)
+      {var, _, context} = node when is_atom(var) and is_atom(context) -> node
+      other -> Macro.expand(other, caller)
     end)
   end
 
   defp suppress_warning({name, meta, [expr, [do: clauses]]}) do
     clauses =
-      Enum.map(clauses, fn {:->, meta, args} ->
-        {:->, [generated: true] ++ meta, args}
-      end)
+      Enum.map(clauses, fn {:->, meta, args} -> {:->, [generated: true] ++ meta, args} end)
 
     {name, meta, [expr, [do: clauses]]}
   end
@@ -738,8 +727,7 @@ defmodule ExUnit.Assertions do
         _ = unquote(expr)
         flunk("Expected to catch #{unquote(kind)}, got nothing")
       rescue
-        e in [ExUnit.AssertionError] ->
-          reraise(e, System.stacktrace())
+        e in [ExUnit.AssertionError] -> reraise(e, System.stacktrace())
       catch
         unquote(kind), we_got -> we_got
       end

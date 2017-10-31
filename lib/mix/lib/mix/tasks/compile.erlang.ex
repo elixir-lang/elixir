@@ -145,11 +145,8 @@ defmodule Mix.Tasks.Compile.Erlang do
     }
 
     case :epp.parse_file(to_erl_file(file), include_paths, []) do
-      {:ok, forms} ->
-        [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]
-
-      {:error, _error} ->
-        acc
+      {:ok, forms} -> [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]
+      {:error, _error} -> acc
     end
   end
 
@@ -201,11 +198,8 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     result =
       case :digraph_utils.topsort(graph) do
-        false ->
-          erls
-
-        mods ->
-          for m <- mods, do: elem(:digraph.vertex(graph, m), 1)
+        false -> erls
+        mods -> for m <- mods, do: elem(:digraph.vertex(graph, m), 1)
       end
 
     :digraph.delete(graph)

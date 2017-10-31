@@ -29,15 +29,10 @@ defmodule Mix.Tasks.Clean do
           function_exported?(module, :clean, 0),
           do: module.clean
 
-    build =
-      Mix.Project.build_path()
-      |> Path.dirname()
-      |> Path.join("#{opts[:only] || :*}")
+    build = Mix.Project.build_path() |> Path.dirname() |> Path.join("#{opts[:only] || :*}")
 
     if opts[:deps] do
-      build
-      |> Path.wildcard()
-      |> Enum.each(&File.rm_rf/1)
+      build |> Path.wildcard() |> Enum.each(&File.rm_rf/1)
     else
       build
       |> Path.join("lib/#{Mix.Project.config()[:app]}")

@@ -79,9 +79,7 @@ defmodule BaseTest do
   end
 
   test "decode16!/1 errors odd-length string" do
-    assert_raise ArgumentError, "odd-length string", fn ->
-      decode16!("666")
-    end
+    assert_raise ArgumentError, "odd-length string", fn -> decode16!("666") end
   end
 
   test "encode64/1 can deal with empty strings" do
@@ -178,9 +176,7 @@ defmodule BaseTest do
   end
 
   test "decode64!/1 errors on incorrect padding" do
-    assert_raise ArgumentError, "incorrect padding", fn ->
-      decode64!("SGVsbG8gV29ybGQ")
-    end
+    assert_raise ArgumentError, "incorrect padding", fn -> decode64!("SGVsbG8gV29ybGQ") end
   end
 
   test "decode64/2 with two pads and ignoring padding" do
@@ -314,9 +310,7 @@ defmodule BaseTest do
   end
 
   test "url_decode64!/1 errors on incorrect padding" do
-    assert_raise ArgumentError, "incorrect padding", fn ->
-      url_decode64!("SGVsbG8gV29ybGQ")
-    end
+    assert_raise ArgumentError, "incorrect padding", fn -> url_decode64!("SGVsbG8gV29ybGQ") end
   end
 
   test "url_decode64/2 with two pads and ignoring padding" do
@@ -492,9 +486,7 @@ defmodule BaseTest do
   end
 
   test "decode32!/1 errors on incorrect padding" do
-    assert_raise ArgumentError, "incorrect padding", fn ->
-      decode32!("MZXW6YQ")
-    end
+    assert_raise ArgumentError, "incorrect padding", fn -> decode32!("MZXW6YQ") end
   end
 
   test "decode32/2 with one pad and :padding to false" do
@@ -685,9 +677,7 @@ defmodule BaseTest do
   end
 
   test "hex_decode32!/1 errors on incorrect padding" do
-    assert_raise ArgumentError, "incorrect padding", fn ->
-      hex_decode32!("CPNMUOG")
-    end
+    assert_raise ArgumentError, "incorrect padding", fn -> hex_decode32!("CPNMUOG") end
   end
 
   test "hex_decode32/2 with lowercase" do
@@ -789,16 +779,10 @@ defmodule BaseTest do
         encode_case == decode_case or decode_case == :mixed,
         pad? <- [true, false],
         len <- 0..256 do
-      data =
-        0
-        |> :lists.seq(len - 1)
-        |> Enum.shuffle()
-        |> IO.iodata_to_binary()
+      data = 0 |> :lists.seq(len - 1) |> Enum.shuffle() |> IO.iodata_to_binary()
 
       expected =
-        data
-        |> encode.(case: encode_case, pad: pad?)
-        |> decode.(case: decode_case, pad: pad?)
+        data |> encode.(case: encode_case, pad: pad?) |> decode.(case: decode_case, pad: pad?)
 
       assert data == expected,
              "identity did not match for #{inspect(data)} when #{inspect(encode)} (#{encode_case})"

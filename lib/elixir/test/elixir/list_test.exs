@@ -188,15 +188,11 @@ defmodule ListTest do
     test "only accepts lists" do
       message = "no function clause matching in List.starts_with?/2"
 
-      assert_raise FunctionClauseError, message, fn ->
-        List.starts_with?([1 | 2], [1 | 2])
-      end
+      assert_raise FunctionClauseError, message, fn -> List.starts_with?([1 | 2], [1 | 2]) end
 
       message = "no function clause matching in List.starts_with?/2"
 
-      assert_raise FunctionClauseError, message, fn ->
-        List.starts_with?([1, 2], 1)
-      end
+      assert_raise FunctionClauseError, message, fn -> List.starts_with?([1, 2], 1) end
     end
   end
 

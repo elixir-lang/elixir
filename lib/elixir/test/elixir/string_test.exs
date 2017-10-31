@@ -118,13 +118,9 @@ defmodule StringTest do
     assert String.split_at("abc", -4) == {"", "abc"}
     assert String.split_at("abc", -1000) == {"", "abc"}
 
-    assert_raise FunctionClauseError, fn ->
-      String.split_at("abc", 0.1)
-    end
+    assert_raise FunctionClauseError, fn -> String.split_at("abc", 0.1) end
 
-    assert_raise FunctionClauseError, fn ->
-      String.split_at("abc", -0.1)
-    end
+    assert_raise FunctionClauseError, fn -> String.split_at("abc", -0.1) end
   end
 
   test "upcase/1" do
@@ -200,13 +196,9 @@ defmodule StringTest do
 
     message = ~r/cannot use an empty string/
 
-    assert_raise ArgumentError, message, fn ->
-      String.replace_leading("foo", "", "bar")
-    end
+    assert_raise ArgumentError, message, fn -> String.replace_leading("foo", "", "bar") end
 
-    assert_raise ArgumentError, message, fn ->
-      String.replace_leading("", "", "bar")
-    end
+    assert_raise ArgumentError, message, fn -> String.replace_leading("", "", "bar") end
   end
 
   test "replace_trailing/3" do
@@ -225,13 +217,9 @@ defmodule StringTest do
 
     message = ~r/cannot use an empty string/
 
-    assert_raise ArgumentError, message, fn ->
-      String.replace_trailing("foo", "", "bar")
-    end
+    assert_raise ArgumentError, message, fn -> String.replace_trailing("foo", "", "bar") end
 
-    assert_raise ArgumentError, message, fn ->
-      String.replace_trailing("", "", "bar")
-    end
+    assert_raise ArgumentError, message, fn -> String.replace_trailing("", "", "bar") end
   end
 
   test "trim/1,2" do
@@ -314,19 +302,13 @@ defmodule StringTest do
     assert String.pad_leading("---", 5, ["abc"]) == "abcabc---"
     assert String.pad_leading("--", 6, ["a", "bc"]) == "abcabc--"
 
-    assert_raise FunctionClauseError, fn ->
-      String.pad_leading("-", -1)
-    end
+    assert_raise FunctionClauseError, fn -> String.pad_leading("-", -1) end
 
-    assert_raise FunctionClauseError, fn ->
-      String.pad_leading("-", 1, [])
-    end
+    assert_raise FunctionClauseError, fn -> String.pad_leading("-", 1, []) end
 
     message = "expected a string padding element, got: 10"
 
-    assert_raise ArgumentError, message, fn ->
-      String.pad_leading("-", 3, ["-", 10])
-    end
+    assert_raise ArgumentError, message, fn -> String.pad_leading("-", 3, ["-", 10]) end
   end
 
   test "pad_trailing/2,3" do
@@ -343,19 +325,13 @@ defmodule StringTest do
     assert String.pad_trailing("---", 5, ["abc"]) == "---abcabc"
     assert String.pad_trailing("--", 6, ["a", "bc"]) == "--abcabc"
 
-    assert_raise FunctionClauseError, fn ->
-      String.pad_trailing("-", -1)
-    end
+    assert_raise FunctionClauseError, fn -> String.pad_trailing("-", -1) end
 
-    assert_raise FunctionClauseError, fn ->
-      String.pad_trailing("-", 1, [])
-    end
+    assert_raise FunctionClauseError, fn -> String.pad_trailing("-", 1, []) end
 
     message = "expected a string padding element, got: 10"
 
-    assert_raise ArgumentError, message, fn ->
-      String.pad_trailing("-", 3, ["-", 10])
-    end
+    assert_raise ArgumentError, message, fn -> String.pad_trailing("-", 3, ["-", 10]) end
   end
 
   test "reverse/1" do
@@ -395,9 +371,7 @@ defmodule StringTest do
     assert String.duplicate("abc", 2) == "abcabc"
     assert String.duplicate("&ã$", 2) == "&ã$&ã$"
 
-    assert_raise ArgumentError, fn ->
-      String.duplicate("abc", -1)
-    end
+    assert_raise ArgumentError, fn -> String.duplicate("abc", -1) end
   end
 
   test "codepoints/1" do
@@ -405,8 +379,22 @@ defmodule StringTest do
     # slovak
     assert String.codepoints("elixír") == ["e", "l", "i", "x", "í", "r"]
     # armenian
-    assert String.codepoints("ոգելից ըմպելիք") ==
-             ["ո", "գ", "ե", "լ", "ի", "ց", " ", "ը", "մ", "պ", "ե", "լ", "ի", "ք"]
+    assert String.codepoints("ոգելից ըմպելիք") == [
+             "ո",
+             "գ",
+             "ե",
+             "լ",
+             "ի",
+             "ց",
+             " ",
+             "ը",
+             "մ",
+             "պ",
+             "ե",
+             "լ",
+             "ի",
+             "ք"
+           ]
 
     # belarussian
     assert String.codepoints("эліксір") == ["э", "л", "і", "к", "с", "і", "р"]
@@ -419,8 +407,24 @@ defmodule StringTest do
     # bengali
     assert String.codepoints("স্পর্শমণি") == ["স", "্", "প", "র", "্", "শ", "ম", "ণ", "ি"]
     # gujarati
-    assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") ==
-             ["સ", "ર", "્", "વ", "શ", "્", "ર", "ે", "ષ", "્", "ઠ", " ", "ઇ", "લ", "ા", "જ"]
+    assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") == [
+             "સ",
+             "ર",
+             "્",
+             "વ",
+             "શ",
+             "્",
+             "ર",
+             "ે",
+             "ષ",
+             "્",
+             "ઠ",
+             " ",
+             "ઇ",
+             "લ",
+             "ા",
+             "જ"
+           ]
 
     # japanese
     assert String.codepoints("世界中の一番") == ["世", "界", "中", "の", "一", "番"]
@@ -550,13 +554,9 @@ defmodule StringTest do
     assert String.at("Ā̀stute", 1) == "s"
     assert String.at("elixir", 6) == nil
 
-    assert_raise FunctionClauseError, fn ->
-      String.at("elixir", 0.1)
-    end
+    assert_raise FunctionClauseError, fn -> String.at("elixir", 0.1) end
 
-    assert_raise FunctionClauseError, fn ->
-      String.at("elixir", -0.1)
-    end
+    assert_raise FunctionClauseError, fn -> String.at("elixir", -0.1) end
   end
 
   test "slice/2,3" do
@@ -628,8 +628,13 @@ defmodule StringTest do
     assert String.chunk("ødskfjあska", :printable) == ["ødskfjあska"]
     assert String.chunk("abc\u{0FFFF}def", :printable) == ["abc", <<0x0FFFF::utf8>>, "def"]
 
-    assert String.chunk("\x06ab\x05cdef\x03\0", :printable) ==
-             [<<6>>, "ab", <<5>>, "cdef", <<3, 0>>]
+    assert String.chunk("\x06ab\x05cdef\x03\0", :printable) == [
+             <<6>>,
+             "ab",
+             <<5>>,
+             "cdef",
+             <<3, 0>>
+           ]
   end
 
   test "starts_with?/2" do

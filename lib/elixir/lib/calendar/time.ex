@@ -288,12 +288,8 @@ defmodule Time do
   """
   @spec to_iso8601(Calendar.time(), :extended | :basic) :: String.t()
   def to_iso8601(time, format \\ :extended) when format in [:extended, :basic] do
-    %{
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond
-    } = convert!(time, Calendar.ISO)
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} =
+      convert!(time, Calendar.ISO)
 
     Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond, format)
   end
@@ -498,9 +494,7 @@ defmodule Time do
 
   def convert(%{microsecond: {_, precision}} = time, calendar) do
     {hour, minute, second, {microsecond, _}} =
-      time
-      |> to_day_fraction()
-      |> calendar.time_from_day_fraction()
+      time |> to_day_fraction() |> calendar.time_from_day_fraction()
 
     time = %Time{
       calendar: calendar,
@@ -600,13 +594,8 @@ defmodule Time do
 
   defimpl String.Chars do
     def to_string(time) do
-      %{
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond,
-        calendar: calendar
-      } = time
+      %{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar} =
+        time
 
       calendar.time_to_string(hour, minute, second, microsecond)
     end

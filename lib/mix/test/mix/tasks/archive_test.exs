@@ -150,9 +150,7 @@ defmodule Mix.Tasks.ArchiveTest do
       assert File.dir?(tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin"))
 
       # Try to install a missing version does not remove archive
-      assert_raise Mix.Error, fn ->
-        Mix.Tasks.Archive.Install.run(["./archive-0.0.0.ez"])
-      end
+      assert_raise Mix.Error, fn -> Mix.Tasks.Archive.Install.run(["./archive-0.0.0.ez"]) end
 
       assert File.dir?(tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin"))
       refute File.regular?(tmp_path("userhome/.mix/archives/archive-0.1.0.ez"))
@@ -219,9 +217,7 @@ defmodule Mix.Tasks.ArchiveTest do
 
     message = ~r/Archive \"archive-0.1.0\" does not match requirement >= 1.0.0/
 
-    assert_raise Mix.Error, message, fn ->
-      archive_check([{:archive, ">= 1.0.0"}])
-    end
+    assert_raise Mix.Error, message, fn -> archive_check([{:archive, ">= 1.0.0"}]) end
 
     archive_check([{:archive, ">= 0.0.0"}])
   end

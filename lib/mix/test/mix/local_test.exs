@@ -72,9 +72,7 @@ defmodule Mix.LocalTest do
   setup_all do
     File.mkdir_p!(Mix.PublicKey.public_keys_path())
 
-    Mix.PublicKey.public_keys_path()
-    |> Path.join("test_key.pub")
-    |> File.write!(@public_key)
+    Mix.PublicKey.public_keys_path() |> Path.join("test_key.pub") |> File.write!(@public_key)
   end
 
   test "select correct versions from csv" do

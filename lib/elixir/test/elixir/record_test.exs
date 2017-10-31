@@ -217,9 +217,7 @@ defmodule RecordTest do
       "expected argument to be a literal atom, literal keyword or a :file_info record, " <>
         "got runtime: {RecordTest, \"john\", 25}"
 
-    assert_raise ArgumentError, msg, fn ->
-      file_info(record)
-    end
+    assert_raise ArgumentError, msg, fn -> file_info(record) end
 
     pretender = {RecordTest, "john"}
 
@@ -227,9 +225,7 @@ defmodule RecordTest do
       "expected argument to be a RecordTest record with 2 fields, " <>
         "got: {RecordTest, \"john\"}"
 
-    assert_raise ArgumentError, msg, fn ->
-      user(pretender)
-    end
+    assert_raise ArgumentError, msg, fn -> user(pretender) end
 
     pretender = {RecordTest, "john", 25, []}
 
@@ -237,9 +233,7 @@ defmodule RecordTest do
       "expected argument to be a RecordTest record with 2 fields, " <>
         "got: {RecordTest, \"john\", 25, []}"
 
-    assert_raise ArgumentError, msg, fn ->
-      user(pretender)
-    end
+    assert_raise ArgumentError, msg, fn -> user(pretender) end
   end
 
   test "records visibility" do

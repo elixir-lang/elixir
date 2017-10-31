@@ -159,11 +159,8 @@ defmodule Mix.Tasks.Compile.App do
 
   defp modules_changed?(mods, target) do
     case :file.consult(target) do
-      {:ok, [{:application, _app, properties}]} ->
-        properties[:modules] != mods
-
-      _ ->
-        false
+      {:ok, [{:application, _app, properties}]} -> properties[:modules] != mods
+      _ -> false
     end
   end
 

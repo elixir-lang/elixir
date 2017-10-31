@@ -18,9 +18,7 @@ defmodule EEx.SmartEngineTest do
 
   test "error with missing assigns" do
     stderr =
-      ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        assert_eval("", "<%= @foo %>", assigns: %{})
-      end)
+      ExUnit.CaptureIO.capture_io(:stderr, fn -> assert_eval("", "<%= @foo %>", assigns: %{}) end)
 
     assert stderr =~ "assign @foo not available in EEx template"
   end
@@ -33,11 +31,8 @@ defmodule EEx.SmartEngineTest do
     result = EEx.compile_string("<%= @hello %>", engine: EEx.SmartEngine)
 
     Macro.prewalk(result, fn
-      {_left, meta, _right} ->
-        assert Keyword.get(meta, :line, 0) in [0, 1]
-
-      _ ->
-        :ok
+      {_left, meta, _right} -> assert Keyword.get(meta, :line, 0) in [0, 1]
+      _ -> :ok
     end)
   end
 

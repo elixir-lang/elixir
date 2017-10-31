@@ -85,11 +85,7 @@ defmodule ExUnit.DiffTest do
     list1 = [1, 1, "1", 2]
     list2 = [1, 1, 2]
 
-    expected = [
-      {:eq, "["},
-      [eq: "1, 1", eq: ", ", del: "\"1\"", del: ", ", eq: "2"],
-      {:eq, "]"}
-    ]
+    expected = [{:eq, "["}, [eq: "1, 1", eq: ", ", del: "\"1\"", del: ", ", eq: "2"], {:eq, "]"}]
 
     assert script(list1, list2) == expected
 
@@ -161,11 +157,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [
-        [{:eq, "file: "}, [del: "nil", ins: "\"nofile\""]],
-        {:del, ", "},
-        {:del, "line: 1"}
-      ],
+      [[{:eq, "file: "}, [del: "nil", ins: "\"nofile\""]], {:del, ", "}, {:del, "line: 1"}],
       {:eq, "]"}
     ]
 
@@ -176,11 +168,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [
-        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
-        {:ins, ", "},
-        {:ins, "line: 1"}
-      ],
+      [[{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]], {:ins, ", "}, {:ins, "line: 1"}],
       {:eq, "]"}
     ]
 
@@ -191,11 +179,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [
-        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
-        {:eq, ", "},
-        {:eq, "line: 1"}
-      ],
+      [[{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]], {:eq, ", "}, {:eq, "line: 1"}],
       {:eq, "]"}
     ]
 
@@ -206,11 +190,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [
-        {:eq, "line: 1"},
-        {:eq, ", "},
-        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]]
-      ],
+      [{:eq, "line: 1"}, {:eq, ", "}, [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]]],
       {:eq, "]"}
     ]
 
@@ -234,22 +214,14 @@ defmodule ExUnit.DiffTest do
     keyword1 = [file: "nofile"]
     keyword2 = [file: nil]
 
-    expected = [
-      {:eq, "["},
-      [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
-      {:eq, "]"}
-    ]
+    expected = [{:eq, "["}, [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]], {:eq, "]"}]
 
     assert script(keyword1, keyword2) == expected
 
     keyword1 = [file: nil, line: 1]
     keyword2 = [line: 1]
 
-    expected = [
-      {:eq, "["},
-      [{:del, "file: nil"}, {:del, ", "}, {:eq, "line: 1"}],
-      {:eq, "]"}
-    ]
+    expected = [{:eq, "["}, [{:del, "file: nil"}, {:del, ", "}, {:eq, "line: 1"}], {:eq, "]"}]
 
     assert script(keyword1, keyword2) == expected
 

@@ -441,9 +441,7 @@ defmodule Inspect.MapTest do
         "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
         "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
-    assert_raise Inspect.Error, msg, fn ->
-      inspect(%Failing{}, safe: false)
-    end
+    assert_raise Inspect.Error, msg, fn -> inspect(%Failing{}, safe: false) end
 
     assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _} | _] = System.stacktrace()
   end

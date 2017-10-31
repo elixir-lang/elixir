@@ -125,9 +125,7 @@ defmodule Mix.Tasks.Profile.Cprof do
     content =
       quote do
         unquote(__MODULE__).profile(
-          fn ->
-            unquote(Code.string_to_quoted!(code_string))
-          end,
+          fn -> unquote(Code.string_to_quoted!(code_string)) end,
           unquote(opts)
         )
       end
@@ -138,9 +136,7 @@ defmodule Mix.Tasks.Profile.Cprof do
 
   @doc false
   def profile(fun, opts) do
-    fun
-    |> profile_and_analyse(opts)
-    |> print_output
+    fun |> profile_and_analyse(opts) |> print_output
 
     :cprof.stop()
   end

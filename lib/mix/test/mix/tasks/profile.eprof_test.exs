@@ -12,9 +12,8 @@ defmodule Mix.Tasks.Profile.EprofTest do
 
   test "profiles evaluated expression", context do
     in_tmp context.test, fn ->
-      assert capture_io(fn ->
-               Eprof.run(["-e", @expr])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1\s+\d)
+      assert capture_io(fn -> Eprof.run(["-e", @expr]) end) =~
+               ~r(String\.Chars\.Integer\.to_string\/1\s+\d)
     end
   end
 
@@ -23,49 +22,42 @@ defmodule Mix.Tasks.Profile.EprofTest do
       profile_script_name = "profile_script.ex"
       File.write!(profile_script_name, @expr)
 
-      assert capture_io(fn ->
-               Eprof.run([profile_script_name])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1\s+\d)
+      assert capture_io(fn -> Eprof.run([profile_script_name]) end) =~
+               ~r(String\.Chars\.Integer\.to_string\/1\s+\d)
     end
   end
 
   test "filters based on count", context do
     in_tmp context.test, fn ->
-      refute capture_io(fn ->
-               Eprof.run(["--calls", "5", "-e", @expr])
-             end) =~ ":erlang.apply/2"
+      refute capture_io(fn -> Eprof.run(["--calls", "5", "-e", @expr]) end) =~ ":erlang.apply/2"
     end
   end
 
   test "sorts based on the calls count", context do
     in_tmp context.test, fn ->
-      assert capture_io(fn ->
-               Eprof.run(["--sort", "calls", "-e", @expr])
-             end) =~ ~r(erlang\.apply\/2.*String\.Chars\.Integer\.to_string\/1)s
+      assert capture_io(fn -> Eprof.run(["--sort", "calls", "-e", @expr]) end) =~
+               ~r(erlang\.apply\/2.*String\.Chars\.Integer\.to_string\/1)s
     end
   end
 
   test "Module matching", context do
     in_tmp context.test, fn ->
-      refute capture_io(fn ->
-               Eprof.run(["--matching", "Enum", "-e", @expr])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1)
+      refute capture_io(fn -> Eprof.run(["--matching", "Enum", "-e", @expr]) end) =~
+               ~r(String\.Chars\.Integer\.to_string\/1)
     end
   end
 
   test "Module.function matching", context do
     in_tmp context.test, fn ->
-      refute capture_io(fn ->
-               Eprof.run(["--matching", "Enum.each", "-e", @expr])
-             end) =~ ~r(anonymous fn\/3 in Enum\.each\/2)
+      refute capture_io(fn -> Eprof.run(["--matching", "Enum.each", "-e", @expr]) end) =~
+               ~r(anonymous fn\/3 in Enum\.each\/2)
     end
   end
 
   test "Module.function/arity matching", context do
     in_tmp context.test, fn ->
-      assert capture_io(fn ->
-               Eprof.run(["--matching", "Enum.each/8", "-e", @expr])
-             end) =~ ~r(Profile done over 0 matching functions)
+      assert capture_io(fn -> Eprof.run(["--matching", "Enum.each/8", "-e", @expr]) end) =~
+               ~r(Profile done over 0 matching functions)
     end
   end
 
@@ -97,13 +89,9 @@ defmodule Mix.Tasks.Profile.EprofTest do
 
   test "warmup", context do
     in_tmp context.test, fn ->
-      assert capture_io(fn ->
-               Eprof.run(["-e", @expr])
-             end) =~ "Warmup..."
+      assert capture_io(fn -> Eprof.run(["-e", @expr]) end) =~ "Warmup..."
 
-      refute capture_io(fn ->
-               Eprof.run(["-e", @expr, "--no-warmup"])
-             end) =~ "Warmup..."
+      refute capture_io(fn -> Eprof.run(["-e", @expr, "--no-warmup"]) end) =~ "Warmup..."
     end
   end
 end

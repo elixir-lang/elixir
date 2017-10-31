@@ -80,10 +80,7 @@ defmodule Logger.Translator do
         _min_level,
         :info,
         :report,
-        {
-          :std_info,
-          [application: app, exited: reason, type: _type]
-        }
+        {:std_info, [application: app, exited: reason, type: _type]}
       ) do
     {:ok, "Application #{app} exited: #{Application.format_error(reason)}"}
   end
@@ -361,8 +358,7 @@ defmodule Logger.Translator do
     try do
       format_stacktrace(maybe_stacktrace)
     catch
-      :error, _ ->
-        format_stop_banner(reason)
+      :error, _ -> format_stop_banner(reason)
     else
       formatted_stacktrace ->
         [format_stop_banner(maybe_exception, maybe_stacktrace) | formatted_stacktrace]
@@ -383,14 +379,9 @@ defmodule Logger.Translator do
   defp format_stop_banner(undef, [{mod, fun, args, _info} | _] = stacktrace)
        when undef in @gen_undef and is_atom(mod) and is_atom(fun) do
     cond do
-      is_list(args) ->
-        format_undef(mod, fun, length(args), undef, stacktrace)
-
-      is_integer(args) ->
-        format_undef(mod, fun, args, undef, stacktrace)
-
-      true ->
-        format_stop_banner(undef)
+      is_list(args) -> format_undef(mod, fun, length(args), undef, stacktrace)
+      is_integer(args) -> format_undef(mod, fun, args, undef, stacktrace)
+      true -> format_stop_banner(undef)
     end
   end
 
@@ -402,11 +393,8 @@ defmodule Logger.Translator do
       [?\n | Exception.format_banner(:error, reason, stacktrace)]
     else
       case Exception.normalize(:error, reason, stacktrace) do
-        %ErlangError{} ->
-          format_stop_banner(reason)
-
-        exception ->
-          [?\n | Exception.format_banner(:error, exception, stacktrace)]
+        %ErlangError{} -> format_stop_banner(reason)
+        exception -> [?\n | Exception.format_banner(:error, exception, stacktrace)]
       end
     end
   end

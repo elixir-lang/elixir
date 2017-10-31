@@ -9,23 +9,12 @@ defmodule IEx.Autocomplete do
 
   def expand([h | t] = expr, server) do
     cond do
-      h === ?. and t != [] ->
-        expand_dot(reduce(t), server)
-
-      h === ?: and t == [] ->
-        expand_erlang_modules()
-
-      identifier?(h) ->
-        expand_expr(reduce(expr), server)
-
-      h == ?/ and t != [] and identifier?(hd(t)) ->
-        expand_expr(reduce(t), server)
-
-      h in '([{' ->
-        expand('')
-
-      true ->
-        no()
+      h === ?. and t != [] -> expand_dot(reduce(t), server)
+      h === ?: and t == [] -> expand_erlang_modules()
+      identifier?(h) -> expand_expr(reduce(expr), server)
+      h == ?/ and t != [] and identifier?(hd(t)) -> expand_expr(reduce(t), server)
+      h in '([{' -> expand('')
+      true -> no()
     end
   end
 
@@ -44,17 +33,10 @@ defmodule IEx.Autocomplete do
 
   defp expand_dot(expr, server) do
     case Code.string_to_quoted(expr) do
-      {:ok, atom} when is_atom(atom) ->
-        expand_call(atom, "", server)
-
-      {:ok, {:__aliases__, _, list}} ->
-        expand_elixir_modules(list, "", server)
-
-      {:ok, {_, _, _} = ast_node} ->
-        expand_call(ast_node, "", server)
-
-      _ ->
-        no()
+      {:ok, atom} when is_atom(atom) -> expand_call(atom, "", server)
+      {:ok, {:__aliases__, _, list}} -> expand_elixir_modules(list, "", server)
+      {:ok, {_, _, _} = ast_node} -> expand_call(ast_node, "", server)
+      _ -> no()
     end
   end
 
@@ -83,9 +65,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp reduce(expr) do
-    Enum.reduce(' ([{', expr, fn token, acc ->
-      hd(:string.tokens(acc, [token]))
-    end)
+    Enum.reduce(' ([{', expr, fn token, acc -> hd(:string.tokens(acc, [token])) end)
     |> Enum.reverse()
     |> trim_leading(?&)
     |> trim_leading(?%)
@@ -175,9 +155,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_variable(hint, server) do
-    variables_from_binding(hint, server)
-    |> Enum.sort()
-    |> Enum.map(&%{kind: :variable, name: &1})
+    variables_from_binding(hint, server) |> Enum.sort() |> Enum.map(&%{kind: :variable, name: &1})
   end
 
   ## Erlang modules
@@ -310,11 +288,7 @@ defmodule IEx.Autocomplete do
 
   defp match_module_funs(funs, hint) do
     for {fun, arity} <- funs, name = Atom.to_string(fun), String.starts_with?(name, hint) do
-      %{
-        kind: :function,
-        name: name,
-        arity: arity
-      }
+      %{kind: :function, name: name, arity: arity}
     end
     |> Enum.sort_by(&{&1.name, &1.arity})
   end
@@ -357,17 +331,10 @@ defmodule IEx.Autocomplete do
 
   defp hidden_fun?(fun, docs) do
     case List.keyfind(docs, fun, 0) do
-      nil ->
-        underscored_fun?(fun)
-
-      {_, _, _, _, false} ->
-        true
-
-      {fun, _, _, _, nil} ->
-        underscored_fun?(fun)
-
-      {_, _, _, _, _} ->
-        false
+      nil -> underscored_fun?(fun)
+      {_, _, _, _, false} -> true
+      {fun, _, _, _, nil} -> underscored_fun?(fun)
+      {_, _, _, _, _} -> false
     end
   end
 
@@ -378,8 +345,7 @@ defmodule IEx.Autocomplete do
 
   ## Ad-hoc conversions
 
-  defp to_entries(%{kind: kind, name: name})
-       when kind in [:map_key, :module, :variable] do
+  defp to_entries(%{kind: kind, name: name}) when kind in [:map_key, :module, :variable] do
     [name]
   end
 
@@ -387,8 +353,7 @@ defmodule IEx.Autocomplete do
     ["#{name}/#{arity}"]
   end
 
-  defp to_uniq_entries(%{kind: kind})
-       when kind in [:map_key, :module, :variable] do
+  defp to_uniq_entries(%{kind: kind}) when kind in [:map_key, :module, :variable] do
     []
   end
 

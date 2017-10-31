@@ -8,9 +8,7 @@ defmodule Mix.Tasks.DepsGitTest do
       [
         app: :deps_on_git_app,
         version: "0.1.0",
-        deps: [
-          {:deps_on_git_repo, "0.2.0", git: fixture_path("deps_on_git_repo")}
-        ]
+        deps: [{:deps_on_git_repo, "0.2.0", git: fixture_path("deps_on_git_repo")}]
       ]
     end
   end
@@ -22,9 +20,7 @@ defmodule Mix.Tasks.DepsGitTest do
       [
         app: :git_app,
         version: "0.1.0",
-        deps: [
-          {:git_repo, "0.1.0", [git: fixture_path("git_repo")] ++ opts}
-        ]
+        deps: [{:git_repo, "0.1.0", [git: fixture_path("git_repo")] ++ opts}]
       ]
     end
   end
@@ -34,20 +30,14 @@ defmodule Mix.Tasks.DepsGitTest do
       [
         app: :git_app,
         version: "0.1.0",
-        deps: [
-          {:git_repo, "0.1.0", git: fixture_path("git_repo"), submodules: true}
-        ]
+        deps: [{:git_repo, "0.1.0", git: fixture_path("git_repo"), submodules: true}]
       ]
     end
   end
 
   defmodule GitErrorApp do
     def project do
-      [
-        deps: [
-          {:git_repo, "0.1.0", git: fixture_path("not_git_repo")}
-        ]
-      ]
+      [deps: [{:git_repo, "0.1.0", git: fixture_path("not_git_repo")}]]
     end
   end
 

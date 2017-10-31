@@ -172,11 +172,7 @@ defmodule Mix.Tasks.Xref do
         {:ok, []}
 
       entries ->
-        entries =
-          entries
-          |> merge_entries()
-          |> sort_entries()
-          |> print_warnings.()
+        entries = entries |> merge_entries() |> sort_entries() |> print_warnings.()
 
         {:ok, entries}
     end
@@ -281,10 +277,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp format_locations(locations) do
-    [
-      "Found at #{length(locations)} locations:\n",
-      Enum.map(locations, &format_location/1)
-    ]
+    ["Found at #{length(locations)} locations:\n", Enum.map(locations, &format_location/1)]
   end
 
   defp format_location({file, line}) do
@@ -313,10 +306,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp excludes() do
-    Mix.Project.config()
-    |> Keyword.get(:xref, [])
-    |> Keyword.get(:exclude, [])
-    |> MapSet.new()
+    Mix.Project.config() |> Keyword.get(:xref, []) |> Keyword.get(:exclude, []) |> MapSet.new()
   end
 
   defp excluded?(module, func, arity, excludes) do
@@ -437,10 +427,7 @@ defmodule Mix.Tasks.Xref do
           if file_references[sink] do
             file_references = filter_for_sink(file_references, sink)
 
-            roots =
-              file_references
-              |> Map.delete(sink)
-              |> Enum.map(&{elem(&1, 0), nil})
+            roots = file_references |> Map.delete(sink) |> Enum.map(&{elem(&1, 0), nil})
 
             {roots -- excluded, file_references}
           else
@@ -516,9 +503,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp sort_entries(entries) do
-    entries
-    |> Enum.map(fn {type, locations} -> {type, Enum.sort(locations)} end)
-    |> Enum.sort()
+    entries |> Enum.map(fn {type, locations} -> {type, Enum.sort(locations)} end) |> Enum.sort()
   end
 
   defp absolute_locations(locations, base) do

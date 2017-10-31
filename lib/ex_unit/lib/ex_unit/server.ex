@@ -33,12 +33,7 @@ defmodule ExUnit.Server do
   ## Callbacks
 
   def init(:ok) do
-    state = %{
-      loaded: System.monotonic_time(),
-      waiting: nil,
-      async_modules: [],
-      sync_modules: []
-    }
+    state = %{loaded: System.monotonic_time(), waiting: nil, async_modules: [], sync_modules: []}
 
     {:ok, state}
   end

@@ -83,11 +83,8 @@ defmodule Stream.Reducers do
   defmacro drop(fun \\ nil) do
     quote do
       fn
-        _entry, acc(head, amount, tail) when amount > 0 ->
-          skip(acc(head, amount - 1, tail))
-
-        entry, acc(head, amount, tail) ->
-          next_with_acc(unquote(fun), entry, head, amount, tail)
+        _entry, acc(head, amount, tail) when amount > 0 -> skip(acc(head, amount - 1, tail))
+        entry, acc(head, amount, tail) -> next_with_acc(unquote(fun), entry, head, amount, tail)
       end
     end
   end
@@ -142,9 +139,7 @@ defmodule Stream.Reducers do
 
   defmacro map(callback, fun \\ nil) do
     quote do
-      fn entry, acc ->
-        next(unquote(fun), unquote(callback).(entry), acc)
-      end
+      fn entry, acc -> next(unquote(fun), unquote(callback).(entry), acc) end
     end
   end
 

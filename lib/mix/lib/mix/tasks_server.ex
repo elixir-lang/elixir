@@ -12,9 +12,7 @@ defmodule Mix.TasksServer do
   end
 
   def run(tuple) do
-    get_and_update(fn set ->
-      {not Map.has_key?(set, tuple), Map.put(set, tuple, true)}
-    end)
+    get_and_update(fn set -> {not Map.has_key?(set, tuple), Map.put(set, tuple, true)} end)
   end
 
   def put(tuple) do

@@ -337,14 +337,9 @@ defmodule Mix.Dep do
     vsn = {System.version(), :erlang.system_info(:otp_release)}
 
     case Mix.Dep.ElixirSCM.read(build_path) do
-      {:ok, old_vsn, _} when old_vsn != vsn ->
-        %{dep | status: {:elixirlock, old_vsn}}
-
-      {:ok, _, old_scm} when old_scm != scm ->
-        %{dep | status: {:scmlock, old_scm}}
-
-      _ ->
-        dep
+      {:ok, old_vsn, _} when old_vsn != vsn -> %{dep | status: {:elixirlock, old_vsn}}
+      {:ok, _, old_scm} when old_scm != scm -> %{dep | status: {:scmlock, old_scm}}
+      _ -> dep
     end
   end
 
@@ -392,9 +387,7 @@ defmodule Mix.Dep do
   def load_paths(%Mix.Dep{opts: opts} = dep) do
     build_path = Path.dirname(opts[:build])
 
-    Enum.map(source_paths(dep), fn {_, base} ->
-      Path.join([build_path, base, "ebin"])
-    end)
+    Enum.map(source_paths(dep), fn {_, base} -> Path.join([build_path, base, "ebin"]) end)
   end
 
   @doc """
@@ -453,8 +446,6 @@ defmodule Mix.Dep do
   end
 
   defp to_app_names(given) do
-    Enum.map(given, fn app ->
-      if is_binary(app), do: String.to_atom(app), else: app
-    end)
+    Enum.map(given, fn app -> if is_binary(app), do: String.to_atom(app), else: app end)
   end
 end
