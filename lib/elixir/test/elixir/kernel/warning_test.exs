@@ -724,21 +724,6 @@ defmodule Kernel.WarningTest do
     purge(EmptyBehaviour)
   end
 
-  @tag :skip
-  test "warn on unknown optional callback" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule IllDefinedOptionalBehaviour do
-               @callback foo() :: any
-               @optional_callbacks foo: 1
-             end
-             """)
-           end) =~
-             "The foo/1 optional callback specified in \"IllDefinedOptionalBehaviour\" is not defined"
-  after
-    purge(IllDefinedOptionalBehaviour)
-  end
-
   test "undefined behavior" do
     assert capture_err(fn ->
              Code.eval_string("""
