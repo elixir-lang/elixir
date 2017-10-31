@@ -947,6 +947,49 @@ defmodule Mix.Tasks.XrefTest do
     String.replace(graph, "└──", "`--")
   end
 
+  describe "inside umbrellas" do
+    test "generates reports considering siblings" do
+      in_fixture "umbrella_dep/deps/umbrella", fn ->
+        Mix.Project.in_project(:bar, "apps/bar", fn _ ->
+          File.write!("lib/bar.ex", """
+          defmodule Bar do
+            def bar do
+              Foo.foo
+            end
+          end
+          """)
+
+          Mix.Task.run("compile")
+          Mix.shell().flush()
+
+          Mix.Tasks.Xref.run(["graph", "--format", "stats", "--include-siblings"])
+
+          assert receive_until_no_messages([]) == """
+                 Tracked files: 2 (nodes)
+                 Compile dependencies: 0 (edges)
+                 Structs dependencies: 0 (edges)
+                 Runtime dependencies: 1 (edges)
+
+                 Top 2 files with most outgoing dependencies:
+                   * lib/bar.ex (1)
+                   * lib/foo.ex (0)
+
+                 Top 1 files with most incoming dependencies:
+                   * lib/foo.ex (1)
+                 """
+
+          Mix.Tasks.Xref.run(["callers", "Foo.foo"])
+
+          assert receive_until_no_messages([]) == """
+                 lib/bar.ex:3: Foo.foo/0
+                 """
+        end)
+      end
+    end
+  end
+
+  ## Helpers
+
   defp receive_until_no_messages(acc) do
     receive do
       {:mix_shell, :info, [line]} -> receive_until_no_messages([acc, line | "\n"])
