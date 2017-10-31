@@ -492,11 +492,7 @@ defmodule Code do
   end
 
   defp validate_aliases(kind, aliases) do
-    valid =
-      is_list(aliases) and
-        Enum.all?(aliases, fn {k, v} ->
-          is_atom(k) and is_atom(v)
-        end)
+    valid = is_list(aliases) and Enum.all?(aliases, fn {k, v} -> is_atom(k) and is_atom(v) end)
 
     unless valid do
       raise ArgumentError,
@@ -509,9 +505,7 @@ defmodule Code do
       is_list(imports) and
         Enum.all?(imports, fn {k, v} ->
           is_atom(k) and is_list(v) and
-            Enum.all?(v, fn {name, arity} ->
-              is_atom(name) and is_integer(arity)
-            end)
+            Enum.all?(v, fn {name, arity} -> is_atom(name) and is_integer(arity) end)
         end)
 
     unless valid do

@@ -13,17 +13,10 @@ defmodule Code.Identifier do
   @spec unary_op(atom) :: {:non_associative, precedence :: pos_integer} | :error
   def unary_op(op) do
     cond do
-      op in [:&] ->
-        {:non_associative, 100}
-
-      op in [:!, :^, :not, :+, :-, :~~~] ->
-        {:non_associative, 300}
-
-      op in [:@] ->
-        {:non_associative, 320}
-
-      true ->
-        :error
+      op in [:&] -> {:non_associative, 100}
+      op in [:!, :^, :not, :+, :-, :~~~] -> {:non_associative, 300}
+      op in [:@] -> {:non_associative, 320}
+      true -> :error
     end
   end
 
@@ -39,53 +32,22 @@ defmodule Code.Identifier do
   @spec binary_op(atom) :: {:left | :right, precedence :: pos_integer} | :error
   def binary_op(op) do
     cond do
-      op in [:<-, :\\] ->
-        {:left, 40}
-
-      op in [:when] ->
-        {:right, 50}
-
-      op in [:::] ->
-        {:right, 60}
-
-      op in [:|] ->
-        {:right, 70}
-
-      op in [:=] ->
-        {:right, 90}
-
-      op in [:||, :|||, :or] ->
-        {:left, 130}
-
-      op in [:&&, :&&&, :and] ->
-        {:left, 140}
-
-      op in [:==, :!=, :=~, :===, :!==] ->
-        {:left, 150}
-
-      op in [:<, :<=, :>=, :>] ->
-        {:left, 160}
-
-      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>, :^^^] ->
-        {:left, 170}
-
-      op in [:in] ->
-        {:left, 180}
-
-      op in [:++, :--, :.., :<>] ->
-        {:right, 200}
-
-      op in [:+, :-] ->
-        {:left, 210}
-
-      op in [:*, :/] ->
-        {:left, 220}
-
-      op in [:.] ->
-        {:left, 310}
-
-      true ->
-        :error
+      op in [:<-, :\\] -> {:left, 40}
+      op in [:when] -> {:right, 50}
+      op in [:::] -> {:right, 60}
+      op in [:|] -> {:right, 70}
+      op in [:=] -> {:right, 90}
+      op in [:||, :|||, :or] -> {:left, 130}
+      op in [:&&, :&&&, :and] -> {:left, 140}
+      op in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
+      op in [:<, :<=, :>=, :>] -> {:left, 160}
+      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>, :^^^] -> {:left, 170}
+      op in [:in] -> {:left, 180}
+      op in [:++, :--, :.., :<>] -> {:right, 200}
+      op in [:+, :-] -> {:left, 210}
+      op in [:*, :/] -> {:left, 220}
+      op in [:.] -> {:left, 310}
+      true -> :error
     end
   end
 
