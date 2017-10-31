@@ -363,12 +363,7 @@ defmodule Access do
       raise_undefined_behaviour(
         exception,
         module,
-        {
-          ^module,
-          :get_and_update,
-          [^container, ^key, ^fun],
-          _
-        }
+        {^module, :get_and_update, [^container, ^key, ^fun], _}
       )
   end
 

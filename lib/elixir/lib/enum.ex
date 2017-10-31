@@ -505,7 +505,7 @@ defmodule Enum do
   @spec concat(t) :: t
   def concat(enumerables) do
     fun = &[&1 | &2]
-    reduce(enumerables, [], &reduce(&1, &2, fun)) |> :lists.reverse()
+    enumerables |> reduce([], &reduce(&1, &2, fun)) |> :lists.reverse()
   end
 
   @doc """
@@ -553,7 +553,7 @@ defmodule Enum do
         value
 
       {:error, module} ->
-        module.reduce(enumerable, {:cont, 0}, fn _, acc -> {:cont, acc + 1} end) |> elem(1)
+        enumerable |> module.reduce({:cont, 0}, fn _, acc -> {:cont, acc + 1} end) |> elem(1)
     end
   end
 
@@ -769,7 +769,8 @@ defmodule Enum do
         value == 0
 
       {:error, module} ->
-        module.reduce(enumerable, {:cont, true}, fn _, _ -> {:halt, false} end)
+        enumerable
+        |> module.reduce({:cont, true}, fn _, _ -> {:halt, false} end)
         |> elem(1)
     end
   end
@@ -1120,18 +1121,14 @@ defmodule Enum do
   @spec intersperse(t, element) :: list
   def intersperse(enumerable, element) do
     list =
-      reduce(enumerable, [], fn x, acc ->
-        [x, element | acc]
-      end)
+      enumerable
+      |> reduce([], fn x, acc -> [x, element | acc] end)
       |> :lists.reverse()
 
+    # Head is a superfluous intersperser element
     case list do
-      [] ->
-        []
-
-      # Head is a superfluous intersperser element
-      [_ | t] ->
-        t
+      [] -> []
+      [_ | t] -> t
     end
   end
 
@@ -1841,11 +1838,8 @@ defmodule Enum do
   def reduce(enumerable, fun) do
     result =
       Enumerable.reduce(enumerable, {:cont, :first}, fn
-        x, :first ->
-          {:cont, {:acc, x}}
-
-        x, {:acc, acc} ->
-          {:cont, {:acc, fun.(x, acc)}}
+        x, :first -> {:cont, {:acc, x}}
+        x, {:acc, acc} -> {:cont, {:acc, fun.(x, acc)}}
       end)
       |> elem(1)
 
