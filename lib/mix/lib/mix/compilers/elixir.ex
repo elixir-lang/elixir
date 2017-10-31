@@ -1,11 +1,11 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v8
+  @manifest_vsn 1
 
   import Record
 
-  defrecord :module, [:module, :kind, :sources, :beam, :binary]
+  defrecord :module, [:module, :kind, :sources, :beam, :binary, :struct_md5]
 
   defrecord :source,
     source: nil,
@@ -420,8 +420,11 @@ defmodule Mix.Compilers.Elixir do
       [@manifest_vsn | data] ->
         split_manifest(data, compile_path)
 
-      [v | data] when v in [:v4, :v5, :v6, :v7] ->
-        for module(beam: beam) <- data, do: File.rm(Path.join(compile_path, beam))
+      [v | data] when v in [:v4, :v5, :v6, :v7, :v8] ->
+        for module <- data,
+            is_record(module, :module),
+            do: File.rm(Path.join(compile_path, module(module, :beam)))
+
         {[], []}
 
       _ ->

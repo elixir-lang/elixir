@@ -12,7 +12,7 @@ defmodule Mix.Compilers.Test do
     external: []
 
   @stale_manifest ".compile.test_stale"
-  @manifest_vsn :v1
+  @manifest_vsn 1
 
   @doc """
   Requires and runs test files.

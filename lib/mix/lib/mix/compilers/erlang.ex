@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Erlang do
   @moduledoc false
 
-  @manifest_vsn :v1
+  @manifest_vsn 1
 
   @doc """
   Compiles the files in `mappings` with given extensions into
