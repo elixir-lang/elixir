@@ -1,13 +1,12 @@
 defmodule Mix.Tasks.Xref do
   use Mix.Task
 
-  alias Mix.Tasks.Compile.Elixir, as: E
-
   import Mix.Compilers.Elixir,
     only: [read_manifest: 2, source: 0, source: 1, source: 2, module: 1]
 
   @shortdoc "Performs cross reference checks"
   @recursive true
+  @manifest ".compile.elixir"
 
   @moduledoc """
   Performs cross reference checks between modules.
@@ -101,6 +100,10 @@ defmodule Mix.Tasks.Xref do
 
   Those options are shared across all modes:
 
+    * `--include-siblings` - include dependencies that have `:in_umbrella` set
+      to true in the current project in the reports. This can be used to find
+      callers or analyze graphs between projects
+
     * `--no-compile` - does not compile even if files require compilation
 
     * `--no-deps-check` - does not check dependencies
@@ -125,6 +128,7 @@ defmodule Mix.Tasks.Xref do
     elixir_version_check: :boolean,
     exclude: :keep,
     format: :string,
+    include_siblings: :boolean,
     label: :string,
     only_nodes: :boolean,
     sink: :string,
@@ -142,13 +146,13 @@ defmodule Mix.Tasks.Xref do
 
     case args do
       ["warnings"] ->
-        warnings()
+        warnings(opts)
 
       ["unreachable"] ->
-        unreachable()
+        unreachable(opts)
 
       ["callers", callee] ->
-        callers(callee)
+        callers(callee, opts)
 
       ["graph"] ->
         graph(opts)
@@ -160,21 +164,21 @@ defmodule Mix.Tasks.Xref do
 
   ## Modes
 
-  defp warnings() do
-    warnings(&print_warnings/1)
+  defp warnings(opts) do
+    warnings(&print_warnings/1, opts)
   end
 
-  defp unreachable() do
-    case warnings(&print_unreachables/1) do
+  defp unreachable(opts) do
+    case warnings(&print_unreachables/1, opts) do
       {:ok, []} -> :ok
       _ -> :error
     end
   end
 
-  defp callers(callee) do
+  defp callers(callee, opts) do
     callee
     |> filter_for_callee()
-    |> source_callers()
+    |> source_callers(opts)
     |> merge_entries()
     |> sort_entries()
     |> print_calls()
@@ -190,8 +194,8 @@ defmodule Mix.Tasks.Xref do
 
   ## Warnings
 
-  defp warnings(print_warnings) do
-    case source_warnings(excludes()) do
+  defp warnings(print_warnings, opts) do
+    case source_warnings(excludes(), opts) do
       [] ->
         {:ok, []}
 
@@ -206,19 +210,17 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  defp source_warnings(excludes) do
-    Enum.flat_map(sources(), &source_warnings(&1, excludes))
-  end
+  defp source_warnings(excludes, opts) do
+    Enum.flat_map(sources(opts), fn source ->
+      file = source(source, :source)
+      runtime_dispatches = source(source, :runtime_dispatches)
 
-  defp source_warnings(source, excludes) do
-    file = source(source, :source)
-    runtime_dispatches = source(source, :runtime_dispatches)
-
-    for {module, func_arity_locations} <- runtime_dispatches,
-        exports = load_exports(module),
-        {{func, arity}, locations} <- func_arity_locations,
-        unreachable_mfa = unreachable_mfa(exports, module, func, arity, excludes),
-        do: {unreachable_mfa, absolute_locations(locations, file)}
+      for {module, func_arity_locations} <- runtime_dispatches,
+          exports = load_exports(module),
+          {{func, arity}, locations} <- func_arity_locations,
+          unreachable_mfa = unreachable_mfa(exports, module, func, arity, excludes),
+          do: {unreachable_mfa, absolute_locations(locations, file)}
+    end)
   end
 
   defp load_exports(module) do
@@ -349,20 +351,18 @@ defmodule Mix.Tasks.Xref do
 
   ## Callers
 
-  defp source_callers(filter) do
-    Enum.flat_map(sources(), &source_callers(&1, filter))
-  end
+  defp source_callers(filter, opts) do
+    Enum.flat_map(sources(opts), fn source ->
+      file = source(source, :source)
+      runtime_dispatches = source(source, :runtime_dispatches)
+      compile_dispatches = source(source, :compile_dispatches)
+      dispatches = runtime_dispatches ++ compile_dispatches
 
-  defp source_callers(source, filter) do
-    file = source(source, :source)
-    runtime_dispatches = source(source, :runtime_dispatches)
-    compile_dispatches = source(source, :compile_dispatches)
-    dispatches = runtime_dispatches ++ compile_dispatches
-
-    for {module, func_arity_locations} <- dispatches,
-        {{func, arity}, locations} <- func_arity_locations,
-        filter.({module, func, arity}),
-        do: {{module, func, arity}, absolute_locations(locations, file)}
+      for {module, func_arity_locations} <- dispatches,
+          {{func, arity}, locations} <- func_arity_locations,
+          filter.({module, func, arity}),
+          do: {{module, func, arity}, absolute_locations(locations, file)}
+    end)
   end
 
   ## Print callers
@@ -420,8 +420,8 @@ defmodule Mix.Tasks.Xref do
     filter = label_filter(opts[:label])
 
     module_sources =
-      for manifest <- E.manifests(),
-          manifest_data = read_manifest(manifest, ""),
+      for manifest_path <- manifests(opts),
+          manifest_data = read_manifest(manifest_path, ""),
           module(module: module, sources: sources) <- manifest_data,
           source <- sources,
           source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
@@ -598,10 +598,23 @@ defmodule Mix.Tasks.Xref do
 
   ## Helpers
 
-  defp sources() do
-    for manifest <- E.manifests(),
+  defp sources(opts) do
+    for manifest <- manifests(opts),
         source() = source <- read_manifest(manifest, ""),
         do: source
+  end
+
+  defp manifests(opts) do
+    siblings =
+      if opts[:include_siblings] do
+        for %{scm: Mix.SCM.Path, opts: opts} <- Mix.Dep.cached(),
+            opts[:in_umbrella],
+            do: Path.join(opts[:build], @manifest)
+      else
+        []
+      end
+
+    [Path.join(Mix.Project.manifest_path(), @manifest) | siblings]
   end
 
   defp merge_entries(entries) do
