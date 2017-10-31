@@ -40,9 +40,7 @@ defmodule Exception do
   Returns `true` if the given `term` is an exception.
   """
   def exception?(term)
-
   def exception?(%_{__exception__: true}), do: true
-
   def exception?(_), do: false
 
   @doc """
