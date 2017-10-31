@@ -706,6 +706,25 @@ defmodule Mix.Tasks.XrefTest do
     """)
   end
 
+  test "graph: stats" do
+    assert_graph(["--format", "stats"], """
+    Tracked files: 4 (nodes)
+    Compile dependencies: 1 (edges)
+    Structs dependencies: 0 (edges)
+    Runtime dependencies: 2 (edges)
+
+    Top 4 files with most outgoing dependencies:
+      * lib/d.ex (1)
+      * lib/b.ex (1)
+      * lib/a.ex (1)
+      * lib/c.ex (0)
+
+    Top 2 files with most incoming dependencies:
+      * lib/a.ex (2)
+      * lib/b.ex (1)
+    """)
+  end
+
   test "graph: exclude many" do
     assert_graph(~w[--exclude lib/c.ex --exclude lib/b.ex], """
     lib/a.ex

@@ -68,11 +68,14 @@ defmodule Mix.Tasks.Xref do
 
     * `--format` - can be set to one of:
 
-      * `pretty` - uses Unicode codepoints for formatting the graph.
-        This is the default except on Windows
+      * `pretty` - prints the graph to the terminal using Unicode characters.
+        Each prints each file followed by the files it depends on. This is the
+        default except on Windows;
 
-      * `plain` - does not use Unicode codepoints for formatting the graph.
-        This is the default on Windows
+      * `plain` - the same as pretty except ASCII characters is used instead of
+        Unicode characters. This is the default on Windows;
+
+      * `stats` - prints general statistics about the graph;
 
       * `dot` - produces a DOT graph description in `xref_graph.dot` in the
         current directory. Warning: this will override any previously generated file
@@ -87,6 +90,12 @@ defmodule Mix.Tasks.Xref do
 
       # To get all files that depend on lib/foo.ex at compile time
       mix xref graph --label compile --sink lib/foo.ex --only-nodes
+
+      # To show general statistics about the graph
+      mix xref graph --format stats
+
+      # To limit statistics only to certain labels
+      mix xref graph --format stats --label compile
 
   ## Shared options
 
@@ -497,20 +506,25 @@ defmodule Mix.Tasks.Xref do
       {{file, type}, children -- excluded}
     end
 
-    if opts[:format] == "dot" do
-      Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph", root, callback, opts)
+    case opts[:format] do
+      "dot" ->
+        Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph", root, callback, opts)
 
-      """
-      Generated "xref_graph.dot" in the current directory. To generate a PNG:
+        """
+        Generated "xref_graph.dot" in the current directory. To generate a PNG:
 
-         dot -Tpng xref_graph.dot -o xref_graph.png
+           dot -Tpng xref_graph.dot -o xref_graph.png
 
-      For more options see http://www.graphviz.org/.
-      """
-      |> String.trim_trailing()
-      |> Mix.shell().info()
-    else
-      Mix.Utils.print_tree(root, callback, opts)
+        For more options see http://www.graphviz.org/.
+        """
+        |> String.trim_trailing()
+        |> Mix.shell().info()
+
+      "stats" ->
+        stats(file_references)
+
+      _ ->
+        Mix.Utils.print_tree(root, callback, opts)
     end
   end
 
@@ -539,6 +553,47 @@ defmodule Mix.Tasks.Xref do
         Map.update(acc, reference, [{file, type}], &[{file, type} | &1])
       end)
     end)
+  end
+
+  defp stats(references) do
+    shell = Mix.shell()
+
+    counters =
+      Enum.reduce(references, %{compile: 0, struct: 0, nil: 0}, fn {_, deps}, acc ->
+        Enum.reduce(deps, acc, fn {_, value}, acc ->
+          Map.update!(acc, value, &(&1 + 1))
+        end)
+      end)
+
+    shell.info("Tracked files: #{map_size(references)} (nodes)")
+    shell.info("Compile dependencies: #{counters.compile} (edges)")
+    shell.info("Structs dependencies: #{counters.struct} (edges)")
+    shell.info("Runtime dependencies: #{counters.nil} (edges)")
+
+    outgoing =
+      references
+      |> Enum.map(fn {file, deps} -> {length(deps), file} end)
+      |> Enum.sort()
+      |> Enum.take(-10)
+      |> Enum.reverse()
+
+    shell.info("\nTop #{length(outgoing)} files with most outgoing dependencies:")
+    for {count, file} <- outgoing, do: shell.info("  * #{file} (#{count})")
+
+    incoming =
+      references
+      |> Enum.reduce(%{}, fn {_, deps}, acc ->
+           Enum.reduce(deps, acc, fn {file, _}, acc ->
+             Map.update(acc, file, 1, &(&1 + 1))
+           end)
+         end)
+      |> Enum.map(fn {file, count} -> {count, file} end)
+      |> Enum.sort()
+      |> Enum.take(-10)
+      |> Enum.reverse()
+
+    shell.info("\nTop #{length(incoming)} files with most incoming dependencies:")
+    for {count, file} <- incoming, do: shell.info("  * #{file} (#{count})")
   end
 
   ## Helpers
