@@ -247,6 +247,66 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     File.rm(tmp_path("c.eex"))
   end
 
+  test "recompiles modules with structs tracking" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        defstruct [:foo]
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def fun do
+          %A{foo: 1}
+        end
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      purge([A, B])
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        defstruct [:foo]
+        def some_fun, do: :ok
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      purge([A, B])
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        defstruct [:foo, :bar]
+        def some_fun, do: :ok
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      purge([A, B])
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        @enforce_keys [:foo]
+        defstruct [:foo, :bar]
+        def some_fun, do: :ok
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      purge([A, B])
+    end
+  end
+
   test "recompiles modules with multiple sources" do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", """
