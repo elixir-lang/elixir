@@ -951,7 +951,7 @@ defmodule Module do
     end
 
     behaviour_callbacks =
-      for callback <- behaviour.behaviour_info(:callbacks) do
+      for callback <- behaviour_info(behaviour, :callbacks) do
         {pair, _kind} = normalize_macro_or_function_callback(callback)
         pair
       end
@@ -976,7 +976,7 @@ defmodule Module do
       callbacks =
         for behaviour <- behaviours,
             function_exported?(behaviour, :behaviour_info, 1),
-            callback <- behaviour.behaviour_info(:callbacks),
+            callback <- behaviour_info(behaviour, :callbacks),
             {callback, kind} = normalize_macro_or_function_callback(callback),
             do: {callback, {kind, behaviour, true}},
             into: %{}
@@ -1015,6 +1015,13 @@ defmodule Module do
 
       _ ->
         {{function_name, arity}, :def}
+    end
+  end
+
+  defp behaviour_info(module, key) do
+    case module.behaviour_info(key) do
+      list when is_list(list) -> list
+      :undefined -> []
     end
   end
 
@@ -1320,8 +1327,8 @@ defmodule Module do
           acc
 
         true ->
-          optional_callbacks = behaviour.behaviour_info(:optional_callbacks)
-          callbacks = behaviour.behaviour_info(:callbacks)
+          optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
+          callbacks = behaviour_info(behaviour, :callbacks)
           Enum.reduce(callbacks, acc, &add_callback(&1, behaviour, env, optional_callbacks, &2))
       end
     end)
