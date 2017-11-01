@@ -28,6 +28,11 @@ defmodule Kernel.ImplTest do
     @macrocallback bar :: any
   end
 
+  defmodule ManualBehaviour do
+    def behaviour_info(:callbacks), do: [foo: 0]
+    def behaviour_info(:optional_callbacks), do: :undefined
+  end
+
   test "sets @impl to boolean" do
     defmodule ImplAttributes do
       @behaviour Behaviour
@@ -66,6 +71,15 @@ defmodule Kernel.ImplTest do
   test "does not set @impl" do
     defmodule ImplAttributes do
       @behaviour Behaviour
+      def foo(), do: :ok
+    end
+  end
+
+  test "sets @impl to boolean on manual behaviour" do
+    defmodule ImplAttributes do
+      @behaviour ManualBehaviour
+
+      @impl true
       def foo(), do: :ok
     end
   end
