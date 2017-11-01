@@ -28,6 +28,12 @@ defmodule Kernel.LexicalTrackerTest do
   test "can add remote structs", config do
     D.remote_struct(config[:pid], URI, 3)
     assert D.remote_references(config[:pid]) == {[], [URI], []}
+
+    D.remote_reference(config[:pid], URI, :runtime)
+    assert D.remote_references(config[:pid]) == {[], [URI], [URI]}
+
+    D.remote_reference(config[:pid], URI, :compile)
+    assert D.remote_references(config[:pid]) == {[URI], [URI], []}
   end
 
   test "can add remote dispatches with {function, arity} and line", config do

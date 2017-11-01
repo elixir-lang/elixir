@@ -131,6 +131,7 @@ defmodule Kernel.LexicalTracker do
       references: %{},
       compile: %{},
       runtime: %{},
+      structs: %{},
       dest: dest,
       cache: %{},
       file: nil
@@ -150,7 +151,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:remote_references, _from, state) do
-    {:reply, partition(Enum.to_list(state.references), [], [], []), state}
+    {compile, runtime} = partition(Enum.to_list(state.references), [], [])
+    {:reply, {compile, Map.keys(state.structs), runtime}, state}
   end
 
   def handle_call(:remote_dispatches, _from, state) do
@@ -174,9 +176,9 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:remote_struct, module, line}, state) do
-    references = add_reference(state.references, module, :struct)
+    state = put_in(state.structs[module], true)
     state = add_remote_dispatch(state, module, {:__struct__, 1}, line, :compile)
-    {:noreply, %{state | references: references}}
+    {:noreply, state}
   end
 
   def handle_cast({:remote_dispatch, module, fa, line, mode}, state) do
@@ -244,28 +246,18 @@ defmodule Kernel.LexicalTracker do
     {:ok, state}
   end
 
-  defp partition([{remote, :compile} | t], compile, struct, runtime),
-    do: partition(t, [remote | compile], struct, runtime)
+  defp partition([{remote, :compile} | t], compile, runtime),
+    do: partition(t, [remote | compile], runtime)
 
-  defp partition([{remote, :runtime} | t], compile, struct, runtime),
-    do: partition(t, compile, struct, [remote | runtime])
+  defp partition([{remote, :runtime} | t], compile, runtime),
+    do: partition(t, compile, [remote | runtime])
 
-  defp partition([{remote, :struct} | t], compile, struct, runtime),
-    do: partition(t, compile, [remote | struct], runtime)
-
-  defp partition([], compile, struct, runtime), do: {compile, struct, runtime}
+  defp partition([], compile, runtime), do: {compile, runtime}
 
   # Callbacks helpers
 
   defp add_reference(references, module, :compile) when is_atom(module),
     do: :maps.put(module, :compile, references)
-
-  defp add_reference(references, module, :struct) when is_atom(module) do
-    case :maps.find(module, references) do
-      {:ok, :compile} -> references
-      _ -> :maps.put(module, :struct, references)
-    end
-  end
 
   defp add_reference(references, module, :runtime) when is_atom(module) do
     case :maps.find(module, references) do
