@@ -1440,7 +1440,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Inserts `value` at the given zero-based `index` in `tuple`.
+  Puts `value` at the given zero-based `index` in `tuple`.
 
   Inlined by the compiler.
 
