@@ -764,7 +764,7 @@ defmodule Enum do
   end
 
   def empty?(enumerable) do
-    case Enumerable.slice(enumerable) do
+    case backwards_compatible_slice(enumerable) do
       {:ok, value, _} ->
         value == 0
 
@@ -1781,7 +1781,7 @@ defmodule Enum do
 
   def random(enumerable) do
     result =
-      case Enumerable.slice(enumerable) do
+      case backwards_compatible_slice(enumerable) do
         {:ok, 0, _} ->
           []
 
@@ -2794,6 +2794,19 @@ defmodule Enum do
     lower_limit + :rand.uniform(upper_limit - lower_limit + 1) - 1
   end
 
+  # TODO: Remove me on Elixir v1.8
+  defp backwards_compatible_slice(args) do
+    try do
+      Enumerable.slice(args)
+    catch
+      :error, :undef ->
+        case System.stacktrace() do
+          [{module, :slice, [^args], _} | _] -> {:error, module}
+          stack -> :erlang.raise(:error, :undef, stack)
+        end
+    end
+  end
+
   ## Implementations
 
   ## all?
@@ -2984,7 +2997,7 @@ defmodule Enum do
   end
 
   defp slice_any(enumerable, start, amount) do
-    case Enumerable.slice(enumerable) do
+    case backwards_compatible_slice(enumerable) do
       {:ok, count, _} when start >= count ->
         []
 
@@ -3017,7 +3030,7 @@ defmodule Enum do
   end
 
   defp slice_count_and_fun(enumerable) do
-    case Enumerable.slice(enumerable) do
+    case backwards_compatible_slice(enumerable) do
       {:ok, count, fun} when is_function(fun) ->
         {count, fun}
 
