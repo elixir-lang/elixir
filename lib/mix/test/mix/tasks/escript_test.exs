@@ -94,9 +94,18 @@ defmodule Mix.Tasks.EscriptTest do
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escript_test"]) == {"TEST\n", 0}
       assert count_abstract_code("escript_test") == 0
+    end
+  end
 
-      Mix.Tasks.Escript.Build.run([])
-      refute_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
+  test "generate escript with --no-compile flag" do
+    Mix.Project.push(Escript)
+
+    in_fixture "escript_test", fn ->
+      Mix.Tasks.Compile.run([])
+      purge([EscriptTest])
+
+      Mix.Tasks.Escript.Build.run(["--no-compile"])
+      assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
     end
   end
 
@@ -123,19 +132,11 @@ defmodule Mix.Tasks.EscriptTest do
     in_fixture "escript_test", fn ->
       Mix.Tasks.Escript.Build.run([])
 
-      assert_received {
-                        :mix_shell,
-                        :info,
-                        ["Generated escript escript_test_with_debug_info with MIX_ENV=dev"]
-                      }
+      msg = "Generated escript escript_test_with_debug_info with MIX_ENV=dev"
+      assert_received {:mix_shell, :info, [^msg]}
 
       assert System.cmd("escript", ["escript_test_with_debug_info"]) == {"TEST\n", 0}
       assert count_abstract_code("escript_test_with_debug_info") > 0
-
-      Mix.Tasks.Escript.Build.run([])
-
-      message = "Generated escript escript_test_with_debug_info with MIX_ENV=dev"
-      refute_received {:mix_shell, :info, [^message]}
     end
   end
 
@@ -231,7 +232,6 @@ defmodule Mix.Tasks.EscriptTest do
 
       message = "Generated escript escript_test_consolidated with MIX_ENV=dev"
       assert_received {:mix_shell, :info, [^message]}
-
       assert System.cmd("escript", ["escript_test_consolidated", "Enumerable"]) == {"true\n", 0}
     end
   end
@@ -241,15 +241,11 @@ defmodule Mix.Tasks.EscriptTest do
     Mix.Project.push(Escript)
 
     in_fixture "escript_test", fn ->
-      # build the escript
-      Mix.Tasks.Escript.Build.run([])
-      assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
-
       # check that no escripts are installed
       Mix.Tasks.Escript.run([])
       assert_received {:mix_shell, :info, ["No escripts currently installed."]}
 
-      # install our escript
+      # build and install our escript
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.Tasks.Escript.Install.run([])
 
