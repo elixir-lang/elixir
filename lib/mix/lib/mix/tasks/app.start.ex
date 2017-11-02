@@ -108,13 +108,28 @@ defmodule Mix.Tasks.App.Start do
   end
 
   defp ensure_all_started(app, type) do
-    case Application.ensure_all_started(app, type) do
-      {:ok, _} ->
+    case Application.start(app, type) do
+      :ok ->
         :ok
 
-      {:error, {app, reason}} ->
-        Mix.raise("Could not start application #{app}: " <> Application.format_error(reason))
+      {:error, {:already_started, ^app}} ->
+        :ok
+
+      {:error, {:not_started, dep}} ->
+        :ok = ensure_all_started(dep, type)
+        ensure_all_started(app, type)
+
+      {:error, reason} when type == :permanent ->
+        Mix.shell().error(["** (Mix) ", could_not_start(app, reason)])
+        :init.stop(1)
+
+      {:error, reason} ->
+        Mix.raise(could_not_start(app, reason))
     end
+  end
+
+  defp could_not_start(app, reason) do
+    "Could not start application #{app}: " <> Application.format_error(reason)
   end
 
   @doc false

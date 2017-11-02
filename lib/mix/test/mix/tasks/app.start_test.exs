@@ -5,7 +5,7 @@ defmodule Mix.Tasks.App.StartTest do
 
   defmodule AppStartSample do
     def project do
-      [app: :app_start_sample, version: "0.1.0", start_permanent: true]
+      [app: :app_start_sample, version: "0.1.0"]
     end
 
     def application do

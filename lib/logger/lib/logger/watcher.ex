@@ -18,30 +18,27 @@ defmodule Logger.Watcher do
 
   @doc false
   def init({mod, handler, args}) do
+    Process.flag(:trap_exit, true)
+
     case :gen_event.delete_handler(mod, handler, :ok) do
       {:error, :module_not_found} ->
-        res = :gen_event.add_sup_handler(mod, handler, args)
-        do_init(res, mod, handler)
+        case :gen_event.add_sup_handler(mod, handler, args) do
+          :ok ->
+            {:ok, {mod, handler}}
+
+          {:error, :ignore} ->
+            # Can't return :ignore as a transient child under a one_for_one.
+            # Instead return ok and then immediately exit normally - using a fake
+            # message.
+            send(self(), {:gen_event_EXIT, handler, :normal})
+            {:ok, {mod, handler}}
+
+          {:error, reason} ->
+            {:stop, reason}
+        end
 
       _ ->
         init({mod, handler, args})
-    end
-  end
-
-  defp do_init(res, mod, handler) do
-    case res do
-      :ok ->
-        {:ok, {mod, handler}}
-
-      {:error, :ignore} ->
-        # Can't return :ignore as a transient child under a one_for_one.
-        # Instead return ok and then immediately exit normally - using a fake
-        # message.
-        send(self(), {:gen_event_EXIT, handler, :normal})
-        {:ok, {mod, handler}}
-
-      {:error, reason} ->
-        {:stop, reason}
     end
   end
 
@@ -68,6 +65,13 @@ defmodule Logger.Watcher do
 
   def handle_info(_msg, state) do
     {:noreply, state}
+  end
+
+  def terminate(_reason, {mod, handler}) do
+    # On terminate we remove the handler, this makes the
+    # process sync, allowing existing messages to be flushed
+    :gen_event.delete_handler(mod, handler, :ok)
+    :ok
   end
 
   defp format_exit({:EXIT, reason}), do: Exception.format_exit(reason)
