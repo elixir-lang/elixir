@@ -492,6 +492,15 @@ defmodule Module do
   The line where the module is defined and its file **must**
   be passed as options.
 
+  It returns a tuple of shape `{:module, module, binary, term}`
+  where `module` is the module name, `binary` is the module
+  byte code and `term` is the result of the last expression in
+  `quoted`.
+
+  Similar to `Kernel.defmodule/2`, the binary will only be
+  written to disk as a `.beam` file if `Module.create/3` is
+  invoked in a file that is currently being compiled.
+
   ## Examples
 
       contents =
@@ -505,16 +514,16 @@ defmodule Module do
 
   ## Differences from `defmodule`
 
-  `Module.create/3` works similarly to `defmodule` and
-  return the same results. While one could also use
-  `defmodule` to define modules dynamically, this
-  function is preferred when the module body is given
-  by a quoted expression.
+  `Module.create/3` works similarly to `Kernel.defmodule/2`
+  and return the same results. While one could also use
+  `defmodule` to define modules dynamically, this function
+  is preferred when the module body is given by a quoted
+  expression.
 
   Another important distinction is that `Module.create/3`
   allows you to control the environment variables used
-  when defining the module, while `defmodule` automatically
-  shares the same environment.
+  when defining the module, while `Kernel.defmodule/2`
+  automatically uses the environment it is invoked at.
   """
   @spec create(module, Macro.t(), Macro.Env.t() | keyword) :: {:module, module, binary, term}
   def create(module, quoted, opts)
