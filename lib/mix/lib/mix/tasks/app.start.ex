@@ -120,6 +120,9 @@ defmodule Mix.Tasks.App.Start do
         ensure_all_started(app, type)
 
       {:error, reason} when type == :permanent ->
+        # We need to stop immediately because application_controller is
+        # shutting down bringing the system down with it. Any work here
+        # is prone to race conditions.
         Mix.shell().error(["** (Mix) ", could_not_start(app, reason)])
         :init.stop(1)
 
