@@ -328,18 +328,18 @@ warn_unused_attributes(File, Data, PersistedAttrs) ->
 make_module_available(Module, Binary) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
-      put(elixir_module_binaries, [{Module, Binary} | Current]),
-
-      case get(elixir_compiler_pid) of
-        undefined ->
-          ok;
-        PID ->
-          Ref = make_ref(),
-          PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
-          receive {Ref, ack} -> ok end
-      end;
+      put(elixir_module_binaries, [{Module, Binary} | Current]);
     _ ->
       ok
+  end,
+
+  case get(elixir_compiler_pid) of
+    undefined ->
+      ok;
+    PID ->
+      Ref = make_ref(),
+      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
+      receive {Ref, ack} -> ok end
   end.
 
 %% Error handling and helpers.

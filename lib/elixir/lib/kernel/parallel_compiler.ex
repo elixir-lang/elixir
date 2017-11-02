@@ -4,6 +4,35 @@ defmodule Kernel.ParallelCompiler do
   """
 
   @doc """
+  Starts a task for parallel compilation.
+
+  If you have a file that needs to compile other modules in parallel,
+  the spawned processes need to be aware of the compiler environment.
+  This function allows a developer to create a task that is aware of
+  those environments.
+
+  See `Task.async/1` for more information. The task spawned must be
+  always awaited on by calling `Task.await/1`
+  """
+  def async(fun) when is_function(fun) do
+    if parent = :erlang.get(:elixir_compiler_pid) do
+      file = :erlang.get(:elixir_compiler_file)
+      {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
+
+      Task.async(fn ->
+        :erlang.put(:elixir_compiler_pid, parent)
+        :erlang.put(:elixir_compiler_file, file)
+        :erlang.process_flag(:error_handler, error_handler)
+        fun.()
+      end)
+    else
+      raise ArgumentError,
+            "cannot spawn parallel compiler task because " <>
+              "the current file is not being compiled/required"
+    end
+  end
+
+  @doc """
   Compiles the given files.
 
   Those files are compiled in parallel and can automatically
