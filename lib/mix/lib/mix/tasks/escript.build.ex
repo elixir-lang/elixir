@@ -37,8 +37,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   ## Command line options
 
-    * `--force`      - forces compilation regardless of modification times
-    * `--no-compile` - skips compilation to .beam files
+  Expects the same command line options as `mix compile`.
 
   ## Configuration
 
@@ -117,29 +116,20 @@ defmodule Mix.Tasks.Escript.Build do
       end
 
   """
-  @switches [
-    force: :boolean,
-    compile: :boolean,
-    deps_check: :boolean,
-    archives_check: :boolean,
-    elixir_version_check: :boolean
-  ]
-
   def run(args) do
     Mix.Project.get!()
-    {opts, _} = OptionParser.parse!(args, strict: @switches)
+    Mix.Task.run("loadpaths", args)
 
-    if Keyword.get(opts, :compile, true) do
-      Mix.Task.run(:compile, args)
+    unless "--no-compile" in args do
+      Mix.Project.compile(args)
     end
 
     project = Mix.Project.config()
     language = Keyword.get(project, :language, :elixir)
-
-    escriptize(project, language, Keyword.get(opts, :force, false))
+    escriptize(project, language)
   end
 
-  defp escriptize(project, language, force?) do
+  defp escriptize(project, language) do
     escript_opts = project[:escript] || []
 
     if Mix.Project.umbrella?() do
@@ -149,65 +139,61 @@ defmodule Mix.Tasks.Escript.Build do
     script_name = Mix.Local.name_for(:escript, project)
     filename = escript_opts[:path] || script_name
     main = escript_opts[:main_module]
-    files = project_files()
 
-    cond do
-      !script_name ->
-        error_message =
-          "Could not generate escript, no name given, " <>
-            "set :name escript option or :app in the project settings"
+    unless script_name do
+      error_message =
+        "Could not generate escript, no name given, " <>
+          "set :name escript option or :app in the project settings"
 
-        Mix.raise(error_message)
-
-      !main ->
-        error_message =
-          "Could not generate escript, please set :main_module " <>
-            "in your project configuration (under :escript option) to a module that implements main/1"
-
-        Mix.raise(error_message)
-
-      not Code.ensure_loaded?(main) ->
-        error_message =
-          "Could not generate escript, module #{main} defined as " <>
-            ":main_module could not be loaded"
-
-        Mix.raise(error_message)
-
-      force? or Mix.Utils.stale?(files, [filename]) ->
-        app = Keyword.get(escript_opts, :app, project[:app])
-        strip_beam? = Keyword.get(escript_opts, :strip_beam, true)
-        escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
-
-        beam_paths =
-          [files, deps_files(), core_files(escript_opts, language)]
-          |> Stream.concat()
-          |> prepare_beam_paths()
-          |> Map.merge(consolidated_paths(project))
-
-        tuples = gen_main(project, escript_mod, main, app, language) ++ read_beams(beam_paths)
-        tuples = if strip_beam?, do: strip_beams(tuples), else: tuples
-
-        case :zip.create('mem', tuples, [:memory]) do
-          {:ok, {'mem', zip}} ->
-            shebang = escript_opts[:shebang] || "#! /usr/bin/env escript\n"
-            comment = build_comment(escript_opts[:comment])
-            emu_args = build_emu_args(escript_opts[:emu_args], escript_mod)
-
-            script = IO.iodata_to_binary([shebang, comment, emu_args, zip])
-            File.mkdir_p!(Path.dirname(filename))
-            File.write!(filename, script)
-            set_perms(filename)
-
-          {:error, error} ->
-            Mix.raise("Error creating escript: #{error}")
-        end
-
-        Mix.shell().info("Generated escript #{filename} with MIX_ENV=#{Mix.env()}")
-        :ok
-
-      true ->
-        :noop
+      Mix.raise(error_message)
     end
+
+    unless main do
+      error_message =
+        "Could not generate escript, please set :main_module " <>
+          "in your project configuration (under :escript option) to a module that implements main/1"
+
+      Mix.raise(error_message)
+    end
+
+    unless Code.ensure_loaded?(main) do
+      error_message =
+        "Could not generate escript, module #{main} defined as " <>
+          ":main_module could not be loaded"
+
+      Mix.raise(error_message)
+    end
+
+    app = Keyword.get(escript_opts, :app, project[:app])
+    strip_beam? = Keyword.get(escript_opts, :strip_beam, true)
+    escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
+
+    beam_paths =
+      [project_files(), deps_files(), core_files(escript_opts, language)]
+      |> Stream.concat()
+      |> prepare_beam_paths()
+      |> Map.merge(consolidated_paths(project))
+
+    tuples = gen_main(project, escript_mod, main, app, language) ++ read_beams(beam_paths)
+    tuples = if strip_beam?, do: strip_beams(tuples), else: tuples
+
+    case :zip.create('mem', tuples, [:memory]) do
+      {:ok, {'mem', zip}} ->
+        shebang = escript_opts[:shebang] || "#! /usr/bin/env escript\n"
+        comment = build_comment(escript_opts[:comment])
+        emu_args = build_emu_args(escript_opts[:emu_args], escript_mod)
+
+        script = IO.iodata_to_binary([shebang, comment, emu_args, zip])
+        File.mkdir_p!(Path.dirname(filename))
+        File.write!(filename, script)
+        set_perms(filename)
+
+      {:error, error} ->
+        Mix.raise("Error creating escript: #{error}")
+    end
+
+    Mix.shell().info("Generated escript #{filename} with MIX_ENV=#{Mix.env()}")
+    :ok
   end
 
   defp project_files() do
