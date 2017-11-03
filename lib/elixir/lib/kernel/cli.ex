@@ -462,7 +462,7 @@ defmodule Kernel.CLI do
 
           opts =
             if config.verbose_compile do
-              [each_long_compilation: &IO.puts("Compiling #{&1} (it's taking more than 5s)")]
+              [each_long_compilation: &IO.puts("Compiling #{&1} (it's taking more than 15s)")]
             else
               []
             end

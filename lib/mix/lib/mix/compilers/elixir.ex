@@ -152,7 +152,7 @@ defmodule Mix.Compilers.Elixir do
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies between them.
     put_compiler_info({modules, structs, sources, modules, %{}})
-    long_compilation_threshold = opts[:long_compilation_threshold] || 10
+    long_compilation_threshold = opts[:long_compilation_threshold] || 15
 
     compile_opts = [
       each_cycle: &each_cycle/0,

@@ -61,7 +61,7 @@ defmodule Kernel.ParallelCompiler do
       that return a list with potentially more files to compile
 
     * `:long_compilation_threshold` - the timeout (in seconds) after the
-      `:each_long_compilation` callback is invoked; defaults to `10`
+      `:each_long_compilation` callback is invoked; defaults to `15`
 
     * `:dest` - the destination directory for the BEAM files. When using `files/2`,
       this information is only used to properly annotate the BEAM files before
@@ -133,7 +133,7 @@ defmodule Kernel.ParallelCompiler do
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
         output: output,
-        long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 10),
+        long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 15),
         schedulers: schedulers
       })
 
