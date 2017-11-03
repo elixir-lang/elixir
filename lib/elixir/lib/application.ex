@@ -248,7 +248,7 @@ defmodule Application do
 
   The following keys are returned:
 
-    * #{Enum.map_join(@application_keys, "\n  * ", &inspect/1)}
+    * #{Enum.map_join(@application_keys, "\n  * ", &"`#{inspect(&1)}`")}
 
   Note the environment is not returned as it can be accessed via
   `fetch_env/2`. Returns `nil` if the application is not loaded.
