@@ -220,7 +220,7 @@ defmodule Module do
         end
       end
 
-  Modules compiled with HiPE can not use this module attribute.
+  Modules compiled with HiPE would not call this hook.
 
   ### `@vsn`
 
