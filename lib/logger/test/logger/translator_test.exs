@@ -4,6 +4,10 @@ defmodule Logger.TranslatorTest do
   defmodule MyGenServer do
     use GenServer
 
+    def init(args) do
+      {:ok, args}
+    end
+
     def handle_cast(:error, _) do
       raise "oops"
     end
@@ -720,7 +724,9 @@ defmodule Logger.TranslatorTest do
   test "handles :undefined MFA properly" do
     defmodule WeirdFunctionNamesGenServer do
       use GenServer
+
       def unquote(:"start link")(), do: GenServer.start_link(__MODULE__, [])
+      def init(args), do: {:ok, args}
       def handle_call(_call, _from, _state), do: raise("oops")
     end
 

@@ -6,6 +6,10 @@ defmodule GenServerTest do
   defmodule Stack do
     use GenServer
 
+    def init(args) do
+      {:ok, args}
+    end
+
     def handle_call(:pop, _from, [h | t]) do
       {:reply, h, t}
     end
@@ -52,6 +56,10 @@ defmodule GenServerTest do
 
     defmodule CustomStack do
       use GenServer, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
+
+      def init(args) do
+        {:ok, args}
+      end
     end
 
     assert CustomStack.child_spec([:hello]) == %{
