@@ -220,6 +220,8 @@ defmodule Module do
         end
       end
 
+  Modules compiled with HiPE can not use this module attribute.
+
   ### `@vsn`
 
   Specify the module version. Accepts any valid Elixir value, for example:
