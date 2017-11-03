@@ -162,6 +162,6 @@ defmodule Macro.Env do
   end
 
   defp relative_location(env) do
-    [file: Path.relative_to_cwd(env.file), line: env.line]
+    [file: String.to_charlist(Path.relative_to_cwd(env.file)), line: env.line]
   end
 end
