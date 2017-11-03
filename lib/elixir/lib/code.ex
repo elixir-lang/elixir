@@ -1,6 +1,6 @@
 defmodule Code do
   @moduledoc """
-  Utilities for managing code compilation, code evaluation and code loading.
+  Utilities for managing code compilation, code evaluation, and code loading.
 
   This module complements Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html)
   to add behaviour which is specific to Elixir. Almost all of the functions in this module
@@ -13,7 +13,8 @@ defmodule Code do
   ## Examples
 
       Code.require_file("../eex/test/eex_test.exs")
-      List.first(Code.loaded_files) =~ "eex_test.exs" #=> true
+      List.first(Code.loaded_files()) =~ "eex_test.exs"
+      #=> true
 
   """
   def loaded_files do
@@ -31,8 +32,10 @@ defmodule Code do
 
       # Load EEx test code, unload file, check for functions still available
       Code.load_file("../eex/test/eex_test.exs")
-      Code.unload_files(Code.loaded_files)
-      function_exported?(EExTest.Compiled, :before_compile, 0) #=> true
+
+      Code.unload_files(Code.loaded_files())
+      function_exported?(EExTest.Compiled, :before_compile, 0)
+      #=> true
 
   """
   def unload_files(files) do
@@ -50,9 +53,11 @@ defmodule Code do
 
   ## Examples
 
-      Code.append_path(".") #=> true
+      Code.append_path(".")
+      #=> true
 
-      Code.append_path("/does_not_exist") #=> {:error, :bad_directory}
+      Code.append_path("/does_not_exist")
+      #=> {:error, :bad_directory}
 
   """
   def append_path(path) do
@@ -70,9 +75,11 @@ defmodule Code do
 
   ## Examples
 
-      Code.prepend_path(".") #=> true
+      Code.prepend_path(".")
+      #=> true
 
-      Code.prepend_path("/does_not_exist") #=> {:error, :bad_directory}
+      Code.prepend_path("/does_not_exist")
+      #=> {:error, :bad_directory}
 
   """
   def prepend_path(path) do
@@ -84,14 +91,16 @@ defmodule Code do
   directories the Erlang VM uses for finding module code.
 
   The path is expanded with `Path.expand/1` before being deleted. If the
-  path does not exist it returns `false`.
+  path does not exist, this function returns `false`.
 
   ## Examples
 
       Code.prepend_path(".")
-      Code.delete_path(".") #=> true
+      Code.delete_path(".")
+      #=> true
 
-      Code.delete_path("/does_not_exist") #=> false
+      Code.delete_path("/does_not_exist")
+      #=> false
 
   """
   def delete_path(path) do
@@ -115,6 +124,7 @@ defmodule Code do
   Options can be:
 
     * `:file` - the file to be considered in the evaluation
+
     * `:line` - the line on which the script starts
 
   Additionally, the following scope values can be configured:
@@ -132,10 +142,10 @@ defmodule Code do
       of function names and arity must be sorted
 
   Notice that setting any of the values above overrides Elixir's default
-  values. For example, setting `:requires` to `[]`, will no longer
-  automatically require the `Kernel` module; in the same way setting
-  `:macros` will no longer auto-import `Kernel` macros like `if/2`, `case/2`,
-  etc.
+  values. For example, setting `:requires` to `[]` will no longer
+  automatically require the `Kernel` module. In the same way setting
+  `:macros` will no longer auto-import `Kernel` macros like `Kernel.if/2`,
+  `Kernel.SpecialForms.case/2`, and so on.
 
   Returns a tuple of the form `{value, binding}`,
   where `value` is the value returned from evaluating `string`.
@@ -535,7 +545,7 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
-  ## Macro.to_string/2
+  ## `Macro.to_string/2`
 
   The opposite of converting a string to its quoted form is
   `Macro.to_string/2`, which converts a quoted form to a string/binary
@@ -571,9 +581,9 @@ defmodule Code do
 
   Accepts `relative_to` as an argument to tell where the file is located.
 
-  While `load_file` loads a file and returns the loaded modules and their
-  byte code, `eval_file` simply evaluates the file contents and returns the
-  evaluation result and its bindings.
+  While `load_file/2` loads a file and returns the loaded modules and their
+  byte code, `eval_file/2` simply evaluates the file contents and returns the
+  evaluation result and its bindings (exactly the same return value as `eval_string/3`).
   """
   def eval_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -586,16 +596,17 @@ defmodule Code do
   Accepts `relative_to` as an argument to tell where the file is located.
   If the file was already required/loaded, loads it again.
 
-  It returns a list of tuples `{ModuleName, <<byte_code>>}`, one tuple for
+  It returns a list of tuples `{ModuleName, bytecode}`, one tuple for
   each module defined in the file.
 
-  Notice that if `load_file` is invoked by different processes concurrently,
+  Notice that if `load_file/2` is invoked by different processes concurrently,
   the target file will be loaded concurrently many times. Check `require_file/2`
   if you don't want a file to be loaded concurrently.
 
   ## Examples
 
-      Code.load_file("eex_test.exs", "../eex/test") |> List.first
+      modules = Code.load_file("eex_test.exs", "../eex/test")
+      List.first(modules)
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
@@ -612,26 +623,27 @@ defmodule Code do
 
   Accepts `relative_to` as an argument to tell where the file is located.
   The return value is the same as that of `load_file/2`. If the file was already
-  required/loaded, `require_file` doesn't do anything and returns `nil`.
+  required or loaded, `require_file/2` doesn't do anything and returns `nil`.
 
-  Notice that if `require_file` is invoked by different processes concurrently,
-  the first process to invoke `require_file` acquires a lock and the remaining
-  ones will block until the file is available. I.e., if `require_file` is called
-  N times with a given file, it will be loaded only once. The first process to
-  call `require_file` will get the list of loaded modules, others will get `nil`.
+  Notice that if `require_file/2` is invoked by different processes concurrently,
+  the first process to invoke `require_file/2` acquires a lock and the remaining
+  ones will block until the file is available. This means that if `require_file/2` is called
+  more than one times with a given file, that file will be loaded only once. The first process to
+  call `require_file/2` will get the list of loaded modules, others will get `nil`.
 
-  Check `load_file/2` if you want a file to be loaded multiple times. See also
-  `unload_files/1`
+  Check `load_file/2` if you want to load a file multiple times. See also `unload_files/1`.
 
   ## Examples
 
   If the code is already loaded, it returns `nil`:
 
-      Code.require_file("eex_test.exs", "../eex/test") #=> nil
+      Code.require_file("eex_test.exs", "../eex/test")
+      #=> nil
 
   If the code is not loaded yet, it returns the same as `load_file/2`:
 
-      Code.require_file("eex_test.exs", "../eex/test") |> List.first
+      modules = Code.require_file("eex_test.exs", "../eex/test")
+      List.first(modules)
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
@@ -661,7 +673,7 @@ defmodule Code do
 
   ## Examples
 
-      Code.compiler_options
+      Code.compiler_options()
       #=> %{debug_info: true, docs: true,
       #=>   warnings_as_errors: false, ignore_module_conflict: false}
 
@@ -673,7 +685,7 @@ defmodule Code do
   @doc """
   Returns a list with the available compiler options.
 
-  See `Code.compiler_options/1` for more info.
+  See `compiler_options/1` for more info.
 
   ## Examples
 
@@ -692,24 +704,24 @@ defmodule Code do
 
   Available options are:
 
-    * `:docs` - when `true`, retain documentation in the compiled module,
-      `true` by default
+    * `:docs` - when `true`, retain documentation in the compiled module.
+      Defaults to `true`.
 
     * `:debug_info` - when `true`, retain debug information in the compiled
-      module; this allows a developer to reconstruct the original source
-      code, `false` by default
+      module. This allows a developer to reconstruct the original source
+      code. Defaults to `false`.
 
     * `:ignore_module_conflict` - when `true`, override modules that were
-      already defined without raising errors, `false` by default
+      already defined without raising errors. Defaults to `false`.
 
     * `:relative_paths` - when `true`, use relative paths in quoted nodes,
-      warnings and errors generated by the compiler, `true` by default.
-      Note disabling this option won't affect runtime warnings and errors.
+      warnings and errors generated by the compiler. Note disabling this option
+      won't affect runtime warnings and errors. Defaults to `true`.
 
     * `:warnings_as_errors` - causes compilation to fail when warnings are
-      generated
+      generated. Defaults to `false`.
 
-  It returns the new list of compiler options.
+  It returns the new map of compiler options.
 
   ## Examples
 
@@ -741,7 +753,7 @@ defmodule Code do
   Compiles the given string.
 
   Returns a list of tuples where the first element is the module name
-  and the second one is its byte code (as a binary). A `file` can be
+  and the second one is its bytecode (as a binary). A `file` can be
   given as second argument which will be used for reporting warnings
   and errors.
 
@@ -755,7 +767,7 @@ defmodule Code do
   Compiles the quoted expression.
 
   Returns a list of tuples where the first element is the module name and
-  the second one is its byte code (as a binary). A `file` can be
+  the second one is its bytecode (as a binary). A `file` can be
   given as second argument which will be used for reporting warnings
   and errors.
   """
@@ -885,37 +897,45 @@ defmodule Code do
 
   When given a module name, it finds its BEAM code and reads the docs from it.
 
-  When given a path to a .beam file, it will load the docs directly from that
+  When given a path to a `.beam` file, it will load the docs directly from that
   file.
 
   The return value depends on the `kind` value:
 
-    * `:docs` - list of all docstrings attached to functions and macros
-      using the `@doc` attribute
+    * `:moduledoc` - tuple `{line, doc}` where `line` is the line on
+      which the module definition starts and `doc` is the string
+      attached to the module using the `@moduledoc` attribute,
+      `false` if `@moduledoc false` was used, or `nil` if no `@moduledoc`
+      was used.
 
-    * `:moduledoc` - tuple `{<line>, <doc>}` where `line` is the line on
-      which module definition starts and `doc` is the string
-      attached to the module using the `@moduledoc` attribute
+    * `:docs` - list of all docstrings attached to functions and macros
+      using the `@doc` attribute. Each tuple has the form
+      `{{name, arity}, line, kind, arguments, doc}`. `doc` can be either a
+      string, `false` if `@doc false` was used, or `nil` if no doc was used.
 
     * `:callback_docs` - list of all docstrings attached to
-      `@callbacks` using the `@doc` attribute
+      `@callbacks` using the `@doc` attribute. Each tuple has the form
+      `{{name, arity}, line, kind, doc}`. `doc` can be either a string or
+      `nil` if no `@doc` was set.
 
-    * `:type_docs` - list of all docstrings attached to
-      `@type` callbacks using the `@typedoc` attribute
+    * `:type_docs` - list of all docstrings attached to `@type` callbacks
+      using the `@typedoc` attribute. Each tuple has the form
+      `{{name, arity}, line, kind, doc}`. `doc` can be either a string or
+      `nil` if no `@typedoc` was used.
 
-    * `:all` - a keyword list with `:docs` and `:moduledoc`, `:callback_docs`,
+    * `:all` - a keyword list with `:docs`, `:moduledoc`, `:callback_docs`,
       and `:type_docs`.
 
   If the module cannot be found, it returns `nil`.
 
   ## Examples
 
-      # Get the module documentation
+      # Module documentation of an existing module
       iex> {_line, text} = Code.get_docs(Atom, :moduledoc)
-      iex> String.split(text, "\n") |> Enum.at(0)
+      iex> text |> String.split("\n") |> Enum.at(0)
       "Convenience functions for working with atoms."
 
-      # Module doesn't exist
+      # A module that doesn't exist
       iex> Code.get_docs(ModuleNotGood, :all)
       nil
 
@@ -924,11 +944,8 @@ defmodule Code do
 
   def get_docs(module, kind) when is_atom(module) and kind in @doc_kinds do
     case :code.get_object_code(module) do
-      {_module, bin, _beam_path} ->
-        do_get_docs(bin, kind)
-
-      :error ->
-        nil
+      {_module, bin, _beam_path} -> do_get_docs(bin, kind)
+      :error -> nil
     end
   end
 
