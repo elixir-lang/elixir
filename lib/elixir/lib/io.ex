@@ -220,7 +220,9 @@ defmodule IO do
   def warn(message, [{_, _, _, opts} | _] = stacktrace) do
     formatted_trace = Enum.map_join(stacktrace, "\n  ", &Exception.format_stacktrace_entry(&1))
     message = [to_chardata(message), ?\n, "  ", formatted_trace, ?\n]
-    :elixir_errors.bare_warn(opts[:line], opts[:file], message)
+    line = opts[:line]
+    file = opts[:file]
+    :elixir_errors.bare_warn(line, file && List.to_string(file), message)
   end
 
   @doc """

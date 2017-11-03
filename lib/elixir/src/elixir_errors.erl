@@ -16,8 +16,8 @@ warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
   print_warning([Warning, "\n  ", file_format(Line, File), $\n]).
 
 -spec bare_warn(non_neg_integer() | nil, unicode:chardata() | nil, unicode:chardata()) -> ok.
-bare_warn(Line, File, Message) ->
-  send_warning(Line, File, Message),
+bare_warn(Line, File, Message) when is_integer(Line) or (Line == nil), is_binary(File) or (File == nil) ->
+  send_warning(File, Line, Message),
   print_warning(Message).
 
 warning_prefix() ->
