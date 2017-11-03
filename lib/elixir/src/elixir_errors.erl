@@ -5,7 +5,7 @@
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
 -export([compile_error/3, compile_error/4,
-         form_error/4, form_warn/4, parse_error/4, warn/1, warn/3]).
+         form_error/4, form_warn/4, parse_error/4, bare_warn/3, warn/3]).
 -include("elixir.hrl").
 
 -spec warn(non_neg_integer() | none, unicode:chardata(), unicode:chardata()) -> ok.
@@ -15,9 +15,9 @@ warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
   send_warning(File, Line, Warning),
   print_warning([Warning, "\n  ", file_format(Line, File), $\n]).
 
--spec warn(unicode:chardata()) -> ok.
-warn(Message) ->
-  send_warning(nil, nil, Message),
+-spec bare_warn(non_neg_integer() | nil, unicode:chardata() | nil, unicode:chardata()) -> ok.
+bare_warn(Line, File, Message) ->
+  send_warning(Line, File, Message),
   print_warning(Message).
 
 warning_prefix() ->
