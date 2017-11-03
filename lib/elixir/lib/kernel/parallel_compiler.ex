@@ -336,7 +336,7 @@ defmodule Kernel.ParallelCompiler do
         spawn_workers(files, waiting, queued, result, warnings, state)
 
       {:warning, file, line, message} ->
-        file = if file, do: Path.absname(file), else: nil
+        file = file && Path.absname(file)
         message = :unicode.characters_to_binary(message)
         warning = {file, line, message}
         wait_for_messages(files, waiting, queued, result, [warning | warnings], state)

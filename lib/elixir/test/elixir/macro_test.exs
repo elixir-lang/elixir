@@ -671,15 +671,15 @@ defmodule MacroTest do
       env = %{__ENV__ | file: "foo", line: 12}
 
       assert Macro.Env.stacktrace(env) ==
-               [{__MODULE__, :"test env stacktrace", 1, [file: "foo", line: 12]}]
+               [{__MODULE__, :"test env stacktrace", 1, [file: 'foo', line: 12]}]
 
       env = %{env | function: nil}
-      assert Macro.Env.stacktrace(env) == [{__MODULE__, :__MODULE__, 0, [file: "foo", line: 12]}]
+      assert Macro.Env.stacktrace(env) == [{__MODULE__, :__MODULE__, 0, [file: 'foo', line: 12]}]
 
       env = %{env | module: nil}
 
       assert Macro.Env.stacktrace(env) ==
-               [{:elixir_compiler, :__FILE__, 1, [file: "foo", line: 12]}]
+               [{:elixir_compiler, :__FILE__, 1, [file: 'foo', line: 12]}]
     end
 
     test "context modules" do
