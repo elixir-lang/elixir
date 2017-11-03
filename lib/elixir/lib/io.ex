@@ -222,7 +222,7 @@ defmodule IO do
     message = [to_chardata(message), ?\n, "  ", formatted_trace, ?\n]
     line = opts[:line]
     file = opts[:file]
-    :elixir_errors.bare_warn(line, file && List.to_string(file), message)
+    :elixir_errors.bare_warn(line, file && chardata_to_string(file), message)
   end
 
   @doc """
