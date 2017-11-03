@@ -262,7 +262,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         {Args, []}
     end,
 
-  validate_opts(Meta, for, [do, into], Block, E),
+  validate_opts(Meta, for, [do, into, uniq], Block, E),
   {Expr, Opts} =
     case lists:keytake(do, 1, Block) of
       {value, {do, Do}, DoOpts} ->
