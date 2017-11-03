@@ -583,10 +583,8 @@ defmodule GenServer do
 
       defoverridable child_spec: 1
 
-      @doc false
-      def init(args) do
-        {:ok, args}
-      end
+      # TODO: Remove this on Elixir v2.0
+      @before_compile GenServer
 
       @doc false
       def handle_call(msg, _from, state) do
@@ -648,6 +646,35 @@ defmodule GenServer do
       end
 
       defoverridable GenServer
+    end
+  end
+
+  defmacro __before_compile__(env) do
+    unless Module.defines?(env.module, {:init, 1}) do
+      message = """
+      function init/1 required by behaviour GenServer is not implemented \
+      (in module #{inspect(env.module)}).
+
+      We will inject a default implementation for now:
+
+          def init(args) do
+            {:ok, args}
+          end
+
+      But you want to define your own implementation that converts the \
+      arguments given to GenServer.start_link/3 to the server state
+      """
+
+      :elixir_errors.warn(env.line, env.file, message)
+
+      quote do
+        @doc false
+        def init(args) do
+          {:ok, args}
+        end
+
+        defoverridable init: 1
+      end
     end
   end
 
