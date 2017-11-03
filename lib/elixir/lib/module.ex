@@ -220,6 +220,8 @@ defmodule Module do
         end
       end
 
+  Modules compiled with HiPE would not call this hook.
+
   ### `@vsn`
 
   Specify the module version. Accepts any valid Elixir value, for example:
