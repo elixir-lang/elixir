@@ -3,6 +3,7 @@ defmodule ExUnit.AssertionError do
   Raised to signal an assertion error.
   """
 
+
   @no_value :ex_unit_no_meaningful_value
 
   defexception left: @no_value,
@@ -61,6 +62,8 @@ defmodule ExUnit.Assertions do
   other common cases such as checking a floating-point number
   or handling exceptions.
   """
+
+  alias ExUnit.Pattern
 
   @doc """
   Asserts its argument is a truthy value.
@@ -156,11 +159,24 @@ defmodule ExUnit.Assertions do
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
+    vars =
+      left
+      |> collect_vars_from_pattern()
+      |> Enum.map(fn {var, _, _} -> var end)
+      |> Enum.uniq
+      |> Enum.map(&({&1, :ex_unit_unbound_var}))
+
+    left = expand_pattern(left, __CALLER__)
+    left_pattern = escape_quoted(:pattern, left)
+
     quote do
       right = unquote(right)
+      {:pattern, [], [left]} = unquote(left_pattern)
+      pattern = Pattern.new(left, right, unquote(pins), unquote(vars))
 
       assert unquote(match?),
         right: right,
+        left: pattern,
         expr: unquote(code),
         message: "match (match?) failed" <> ExUnit.Assertions.__pins__(unquote(pins))
     end
