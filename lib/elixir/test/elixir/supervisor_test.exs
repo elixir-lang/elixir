@@ -200,7 +200,40 @@ defmodule SupervisorTest do
     Supervisor.stop(pid)
   end
 
-  test "*_child functions" do
+  describe "start_child/2" do
+    test "supports old child spec" do
+      {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
+      child = {Task, {Task, :start_link, [fn -> :ok end]}, :temporary, 5000, :worker, [Task]}
+      assert {:ok, pid} = Supervisor.start_child(pid, child)
+      assert is_pid(pid)
+    end
+
+    test "supports new child spec as tuple" do
+      {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
+      child = %{id: Task, restart: :temporary, start: {Task, :start_link, [fn -> :ok end]}}
+      assert {:ok, pid} = Supervisor.start_child(pid, child)
+      assert is_pid(pid)
+    end
+
+    test "supports new child spec" do
+      {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
+      child = {Task, fn -> :timer.sleep(:infinity) end}
+      assert {:ok, pid} = Supervisor.start_child(pid, child)
+      assert is_pid(pid)
+    end
+
+    test "with invalid child spec" do
+      {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
+
+      assert Supervisor.start_child(pid, %{}) == {:error, :missing_id}
+      assert Supervisor.start_child(pid, {1, 2, 3, 4, 5, 6}) == {:error, {:invalid_mfa, 2}}
+
+      assert Supervisor.start_child(pid, %{id: 1, start: {Task, :foo, :bar}}) ==
+               {:error, {:invalid_mfa, {Task, :foo, :bar}}}
+    end
+  end
+
+  test "child life-cycle" do
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
 
     assert Supervisor.which_children(pid) == []

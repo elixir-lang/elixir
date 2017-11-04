@@ -321,9 +321,11 @@ defmodule Supervisor do
         end
 
         def init(_arg) do
-          Supervisor.init([
+          children = [
             {Stack, [:hello]}
-          ], strategy: :one_for_one)
+          ]
+
+          Supervisor.init(children, strategy: :one_for_one)
         end
       end
 
@@ -341,15 +343,13 @@ defmodule Supervisor do
       initialization, like setting up an ETS table.
 
     * You want to perform partial hot-code swapping of the
-      tree. For example, if you add or remove children,
-      the module-based supervision will add and remove the
-      new children directly, while dynamic supervision
-      requires the whole tree to be restarted in order to
-      perform such swaps.
+      tree. The module-based approach allow you to add and remove
+      children on a case-by-case basis.
 
   Note `use Supervisor` defines a `child_spec/1` function, allowing
-  the defined module to be put under a supervision tree. The generated
-  `child_spec/1` can be customized with the following options:
+  the defined module itself to be put under a supervision tree.
+  The generated `child_spec/1` can be customized with the following
+  options:
 
     * `:id` - the child specification id, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
@@ -364,7 +364,7 @@ defmodule Supervisor do
         {Stack, [:hello]}
       ], strategy: :one_for_one)
 
-  Or:
+  or from inside the `c:init/1` callback:
 
       Supervisor.init([
         {Stack, [:hello]}
@@ -390,8 +390,8 @@ defmodule Supervisor do
   The second argument is a keyword list of options:
 
     * `:strategy` - the restart strategy option. It can be either
-      `:one_for_one`, `:rest_for_one`, `:one_for_all`, or
-      `:simple_one_for_one`. See the "Strategies" section.
+      `:one_for_one`, `:rest_for_one` or `:one_for_all`. See the
+      "Strategies" section.
 
     * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
@@ -419,59 +419,11 @@ defmodule Supervisor do
       one in start order, are terminated. Then the terminated child
       process and the rest of the child processes are restarted.
 
-    * `:simple_one_for_one` - similar to `:one_for_one` but suits better
-      when dynamically attaching children. This strategy requires the
-      supervisor specification to contain only one child. Many functions
-      in this module behave slightly differently when this strategy is
-      used.
-
-  ## Simple one for one
-
-  The `:simple_one_for_one` supervisor is useful when you want to
-  dynamically start and stop supervised children. As an example,
-  let's start multiple agents dynamically to keep state.
-
-  One important aspect in `:simple_one_for_one` supervisors is
-  that we often want to pass the `:start` arguments later on,
-  when starting the children dynamically, rather than when the
-  child specification is defined. In such cases, we should not do
-
-      Supervisor.start_link [
-        {Agent, fn -> 0 end}
-      ]
-
-  as the example above would force all agents to have the same state.
-  In such cases, we can use the `child_spec/2` function to build
-  and override the fields in a child specification:
-
-      # Override the :start field to have no args.
-      # The second argument has no effect thanks to it.
-      agent_spec =
-        Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
-
-      # We start a supervisor with a simple one for one strategy.
-      # The agent won't be started now but later on.
-      {:ok, sup_pid} =
-        Supervisor.start_link([agent_spec], strategy: :simple_one_for_one)
-
-      # No child worker is active until start_child is called
-      Supervisor.count_children(sup_pid)
-      #=> %{active: 0, specs: 1, supervisors: 0, workers: 0}
-
-  The simple one for one strategy can define only one child which works
-  as a template for when we call `start_child/2`.
-
-  With the supervisor started, let's dynamically start agents:
-
-      {:ok, agent1} = Supervisor.start_child(sup_pid, [fn -> 0 end])
-      Agent.update(agent1, & &1 + 1)
-      Agent.get(agent1, & &1) #=> 1
-
-      {:ok, agent2} = Supervisor.start_child(sup_pid, [fn -> %{} end])
-      Agent.get(agent2, & &1) #=> %{}
-
-      Supervisor.count_children(sup_pid)
-      #=> %{active: 2, specs: 1, supervisors: 0, workers: 2}
+  There is also a deprecated strategy called `:simple_one_for_one` which
+  has been replaced by the `DynamicSupervisor`. The `:simple_one_for_one`
+  supervisor was similar to `:one_for_one` but suits better when dynamically
+  attaching children. Many functions in this module behaved slightly
+  differently when this strategy is used.
 
   ## Name registration
 
@@ -506,6 +458,9 @@ defmodule Supervisor do
 
   @doc """
   Callback invoked to start the supervisor and during hot code upgrades.
+
+  Developers typically invoke `Supervisor.init/2` at the end of their
+  init callback to return the proper supervision flags.
   """
   @callback init(args :: term) ::
               {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}}
@@ -529,7 +484,7 @@ defmodule Supervisor do
   @type name :: atom | {:global, term} | {:via, module, term}
 
   @typedoc "Option values used by the `start*` functions"
-  @type option :: {:name, name} | flag()
+  @type option :: {:name, name} | init_option()
 
   @typedoc "Options used by the `start*` functions"
   @type options :: [option, ...]
@@ -538,13 +493,13 @@ defmodule Supervisor do
   @type supervisor :: pid | name | {atom, node}
 
   @typedoc "Options given to `start_link/2` and `init/2`"
-  @type flag ::
+  @type init_option ::
           {:strategy, strategy}
           | {:max_restarts, non_neg_integer}
           | {:max_seconds, pos_integer}
 
   @typedoc "Supported strategies"
-  @type strategy :: :simple_one_for_one | :one_for_one | :one_for_all | :rest_for_one
+  @type strategy :: :one_for_one | :one_for_all | :rest_for_one
 
   # Note we have inlined all types for readability
   @typedoc "The supervisor specification"
@@ -589,7 +544,7 @@ defmodule Supervisor do
   @spec start_link([:supervisor.child_spec() | {module, term} | module], options) :: on_start
   def start_link(children, options) when is_list(children) do
     {sup_opts, start_opts} = Keyword.split(options, [:strategy, :max_seconds, :max_restarts])
-    start_link(Supervisor.Default, {children, sup_opts}, start_opts)
+    start_link(Supervisor.Default, init(children, sup_opts), start_opts)
   end
 
   @doc """
@@ -615,8 +570,7 @@ defmodule Supervisor do
 
     * `:strategy` - the restart strategy option. It can be either
       `:one_for_one`, `:rest_for_one`, `:one_for_all`, or
-      `:simple_one_for_one`. You can learn more about strategies
-      in the `Supervisor` module docs.
+      `:simple_one_for_one`.
 
     * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
@@ -628,7 +582,8 @@ defmodule Supervisor do
   is allowed within 5 seconds. Check the `Supervisor` module for a detailed
   description of the available strategies.
   """
-  @spec init([:supervisor.child_spec() | {module, term} | module], flag) :: {:ok, tuple}
+  # TODO: Warn if simple_one_for_one strategy is used on Elixir v1.8.
+  @spec init([:supervisor.child_spec() | {module, term} | module], [init_option]) :: {:ok, tuple}
   def init(children, options) when is_list(children) and is_list(options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
@@ -773,7 +728,7 @@ defmodule Supervisor do
   end
 
   @doc """
-  Starts a supervisor process with the given `module` and `arg`.
+  Starts a module-based supervisor process with the given `module` and `arg`.
 
   To start the supervisor, the `c:init/1` callback will be invoked in the given
   `module`, with `arg` as its argument. The `c:init/1` callback must return a
@@ -790,7 +745,6 @@ defmodule Supervisor do
   name, the supported values are described in the "Name registration"
   section in the `GenServer` module docs.
   """
-  @spec start_link(module, term) :: on_start
   @spec start_link(module, term, GenServer.options()) :: on_start
   def start_link(module, arg, options \\ []) when is_list(options) do
     case Keyword.get(options, :name) do
@@ -821,16 +775,10 @@ defmodule Supervisor do
   end
 
   @doc """
-  Dynamically adds a child specification to `supervisor` and starts that child.
+  Adds a child specification to `supervisor` and starts that child.
 
-  `child_spec` should be a valid child specification (unless the supervisor
-  is a `:simple_one_for_one` supervisor, see below). The child process will
+  `child_spec` should be a valid child specification. The child process will
   be started as defined in the child specification.
-
-  In the case of `:simple_one_for_one`, the child specification defined in
-  the supervisor is used and instead of a `child_spec`, an arbitrary list
-  of terms is expected. The child process will then be started by appending
-  the given list to the existing function arguments in the child specification.
 
   If a child specification with the specified id already exists, `child_spec` is
   discarded and this function returns an error with `:already_started` or
@@ -850,36 +798,46 @@ defmodule Supervisor do
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
   """
-  # TODO: Once we add DynamicSupervisor, we need to enforce receiving
-  # a map here and deprecate the list and tuple formats.
-  @spec start_child(supervisor, :supervisor.child_spec() | [term]) :: on_start_child
-  def start_child(supervisor, child_spec_or_args) do
-    call(supervisor, {:start_child, child_spec_or_args})
+  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module) ::
+          on_start_child
+  def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
+    call(supervisor, {:start_child, child_spec})
+  end
+
+  # TODO: Deprecate this on Elixir v1.8
+  def start_child(supervisor, args) when is_list(args) do
+    call(supervisor, {:start_child, args})
+  end
+
+  def start_child(supervisor, child_spec) do
+    call(supervisor, {:start_child, Supervisor.child_spec(child_spec, [])})
   end
 
   @doc """
-  Terminates the given children, identified by PID or child id.
+  Terminates the given child identified by child id.
 
-  If the supervisor is not a `:simple_one_for_one`, the child id is expected
-  and the process, if there's one, is terminated; the child specification is
+  The process is terminated, if there's one. The child specification is
   kept unless the child is temporary.
 
-  In case of a `:simple_one_for_one` supervisor, a PID is expected. If the child
-  specification identifier is given instead of a `pid`, this function returns
-  `{:error, :simple_one_for_one}`.
+  A non-temporary child process may later be restarted by the supervisor.
+  The child process can also be restarted explicitly by calling `restart_child/2`.
+  Use `delete_child/2` to remove the child specification.
 
-  A non-temporary child process may later be restarted by the supervisor. The child
-  process can also be restarted explicitly by calling `restart_child/2`. Use
-  `delete_child/2` to remove the child specification.
-
-  If successful, this function returns `:ok`. If there is no child specification
-  for the given child id or there is no process with the given PID, this
-  function returns `{:error, :not_found}`.
+  If successful, this function returns `:ok`. If there is no child
+  specification for the given child id, this function returns
+  `{:error, :not_found}`.
   """
-  @spec terminate_child(supervisor, pid | term()) :: :ok | {:error, error}
+  @spec terminate_child(supervisor, term()) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one
-  def terminate_child(supervisor, pid_or_child_id) do
-    call(supervisor, {:terminate_child, pid_or_child_id})
+  # TODO: Deprecate this on Elixir v1.8
+  def terminate_child(supervisor, child_id)
+
+  def terminate_child(supervisor, pid) when is_pid(pid) do
+    call(supervisor, {:terminate_child, pid})
+  end
+
+  def terminate_child(supervisor, child_id) do
+    call(supervisor, {:terminate_child, child_id})
   end
 
   @doc """
@@ -891,8 +849,6 @@ defmodule Supervisor do
   If successful, this function returns `:ok`. This function may return an error
   with an appropriate error tuple if the `child_id` is not found, or if the
   current process is running or being restarted.
-
-  This operation is not supported by `:simple_one_for_one` supervisors.
   """
   @spec delete_child(supervisor, term()) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one | :running | :restarting
@@ -921,8 +877,6 @@ defmodule Supervisor do
 
   If the child process start function returns an error tuple or an erroneous value,
   or if it fails, this function returns `{:error, error}`.
-
-  This operation is not supported by `:simple_one_for_one` supervisors.
   """
   @spec restart_child(supervisor, term()) :: {:ok, child} | {:ok, child, term} | {:error, error}
         when error: :not_found | :simple_one_for_one | :running | :restarting | term
@@ -938,8 +892,7 @@ defmodule Supervisor do
 
   This function returns a list of `{id, child, type, modules}` tuples, where:
 
-    * `id` - as defined in the child specification or `:undefined` in the case
-      of a `simple_one_for_one` supervisor
+    * `id` - as defined in the child specification
 
     * `child` - the PID of the corresponding child process, `:restarting` if the
       process is about to be restarted, or `:undefined` if there is no such
