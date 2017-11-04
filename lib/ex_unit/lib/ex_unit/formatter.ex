@@ -327,6 +327,10 @@ defmodule ExUnit.Formatter do
     Enum.reduce(script, acc, &colorize_diff(&1, formatter, &2))
   end
 
+  defp colorize_diff({:equiv, {left_content, right_content}}, _formatter, {left, right}) do
+    {[left | left_content], [right | right_content]}
+  end
+
   defp colorize_diff({:eq, content}, _formatter, {left, right}) do
     {[left | content], [right | content]}
   end
