@@ -17,6 +17,7 @@ defmodule Code do
       #=> true
 
   """
+  @spec loaded_files() :: [binary]
   def loaded_files do
     :elixir_code_server.call(:loaded)
   end
@@ -38,6 +39,7 @@ defmodule Code do
       #=> true
 
   """
+  @spec unload_files([binary]) :: :ok
   def unload_files(files) do
     :elixir_code_server.cast({:unload_files, files})
   end
@@ -60,6 +62,7 @@ defmodule Code do
       #=> {:error, :bad_directory}
 
   """
+  @spec append_path(Path.t()) :: true | {:error, :bad_directory}
   def append_path(path) do
     :code.add_pathz(to_charlist(Path.expand(path)))
   end
@@ -82,6 +85,7 @@ defmodule Code do
       #=> {:error, :bad_directory}
 
   """
+  @spec prepend_path(Path.t()) :: true | {:error, :bad_directory}
   def prepend_path(path) do
     :code.add_patha(to_charlist(Path.expand(path)))
   end
@@ -103,6 +107,7 @@ defmodule Code do
       #=> false
 
   """
+  @spec delete_path(Path.t()) :: boolean
   def delete_path(path) do
     :code.del_path(to_charlist(Path.expand(path)))
   end
@@ -174,6 +179,7 @@ defmodule Code do
       {3, [a: 1, b: 2]}
 
   """
+  @spec eval_string(List.Chars.t(), list, Macro.Env.t() | keyword) :: {term, binding :: list}
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
@@ -431,6 +437,7 @@ defmodule Code do
   user formatting). In such cases, the code formatter will always format to
   the latter.
   """
+  @spec format_string!(binary, keyword) :: iodata
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
     line_length = Keyword.get(opts, :line_length, 98)
     algebra = Code.Formatter.to_algebra!(string, opts)
@@ -443,6 +450,7 @@ defmodule Code do
   See `format_string!/2` for more information on code formatting and
   available options.
   """
+  @spec format_file!(binary, keyword) :: iodata
   def format_file!(file, opts \\ []) when is_binary(file) and is_list(opts) do
     string = File.read!(file)
     formatted = format_string!(string, [file: file, line: 1] ++ opts)
@@ -473,6 +481,7 @@ defmodule Code do
       {3, [a: 1, b: 2]}
 
   """
+  @spec eval_quoted(Macro.t(), list, Macro.Env.t() | keyword) :: {term, binding :: list}
   def eval_quoted(quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(quoted, binding, %Macro.Env{} = env) do
@@ -551,6 +560,8 @@ defmodule Code do
   `Macro.to_string/2`, which converts a quoted form to a string/binary
   representation.
   """
+  @spec string_to_quoted(List.Chars.t(), keyword) ::
+          {:ok, Macro.t()} | {:error, {line :: pos_integer, term, term}}
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
@@ -570,6 +581,7 @@ defmodule Code do
 
   Check `string_to_quoted/2` for options information.
   """
+  @spec string_to_quoted!(List.Chars.t(), keyword) :: Macro.t()
   def string_to_quoted!(string, opts \\ []) when is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
@@ -585,6 +597,7 @@ defmodule Code do
   byte code, `eval_file/2` simply evaluates the file contents and returns the
   evaluation result and its bindings (exactly the same return value as `eval_string/3`).
   """
+  @spec eval_file(binary, nil | binary) :: {term, binding :: list}
   def eval_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     eval_string(File.read!(file), [], file: file, line: 1)
@@ -610,6 +623,7 @@ defmodule Code do
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
+  @spec load_file(binary, nil | binary) :: [{module, binary}]
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     :elixir_code_server.call({:acquire, file})
@@ -647,6 +661,7 @@ defmodule Code do
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
+  @spec require_file(binary, nil | binary) :: [{module, binary}] | nil
   def require_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
 
@@ -678,6 +693,7 @@ defmodule Code do
       #=>   warnings_as_errors: false, ignore_module_conflict: false}
 
   """
+  @spec compiler_options() :: %{optional(atom) => boolean}
   def compiler_options do
     :elixir_config.get(:compiler_options)
   end
@@ -693,6 +709,7 @@ defmodule Code do
       [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors]
 
   """
+  @spec available_compiler_options() :: [atom]
   def available_compiler_options do
     [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors]
   end
@@ -730,6 +747,7 @@ defmodule Code do
       #=>   warnings_as_errors: false, ignore_module_conflict: false}
 
   """
+  @spec compiler_options(Enumerable.t()) :: %{optional(atom) => boolean}
   def compiler_options(opts) do
     available = available_compiler_options()
 
@@ -759,6 +777,7 @@ defmodule Code do
 
   For compiling many files at once, check `Kernel.ParallelCompiler.compile/2`.
   """
+  @spec compile_string(List.Chars.t(), binary) :: [{module, binary}]
   def compile_string(string, file \\ "nofile") when is_binary(file) do
     :elixir_compiler.string(to_charlist(string), file)
   end
@@ -771,6 +790,7 @@ defmodule Code do
   given as second argument which will be used for reporting warnings
   and errors.
   """
+  @spec compile_quoted(Macro.t(), binary) :: [{module, binary}]
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
     :elixir_compiler.quoted(quoted, file)
   end
@@ -846,6 +866,7 @@ defmodule Code do
       true
 
   """
+  @spec ensure_loaded?(module) :: boolean
   def ensure_loaded?(module) when is_atom(module) do
     match?({:module, ^module}, ensure_loaded(module))
   end
@@ -941,6 +962,16 @@ defmodule Code do
 
   """
   @doc_kinds [:docs, :moduledoc, :callback_docs, :type_docs, :all]
+
+  @spec get_docs(module, :moduledoc) :: {line :: pos_integer, doc :: false | binary} | nil
+  @spec get_docs(module, :docs) :: [{function, line, kind, list, doc}] | nil
+        when function: {atom, arity}, line: pos_integer, kind: atom, doc: nil | false | binary
+  @spec get_docs(module, :callback_docs) :: [{callback, line, kind, doc}] | nil
+        when callback: {atom, arity}, line: pos_integer, kind: atom, doc: nil | false | binary
+  @spec get_docs(module, :type_docs) :: [{type, line, kind, doc}] | nil
+        when type: {atom, arity}, line: pos_integer, kind: atom, doc: nil | false | binary
+  @spec get_docs(module, :all) :: keyword | nil
+  def get_docs(module, kind)
 
   def get_docs(module, kind) when is_atom(module) and kind in @doc_kinds do
     case :code.get_object_code(module) do
