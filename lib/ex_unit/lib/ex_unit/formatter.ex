@@ -135,6 +135,44 @@ defmodule ExUnit.Formatter do
     format_assertion_error(%{}, struct, [], :infinity, fn _, msg -> msg end, "")
   end
 
+  def format_assertion_error(
+        test,
+        %{left: %ExUnit.Pattern{} = pattern, right: %ExUnit.Mailbox{} = mailbox} = struct,
+        stack,
+        _width,
+        formatter,
+        counter_padding
+      ) do
+    label_padding_size = if has_value?(struct.right), do: 7, else: 6
+    padding_size = label_padding_size + byte_size(@counter_padding)
+
+    patterns =
+      mailbox
+      |> ExUnit.Mailbox.get_messages()
+      |> Enum.map(fn msg ->
+        {left, right} = format_pattern(pattern, msg, formatter)
+
+        [
+          {:note, ""},
+          {:note, "pattern: " <> IO.iodata_to_binary(left)},
+          {:note, "message: " <> IO.iodata_to_binary(right)}
+        ]
+      end)
+      |> List.flatten()
+      |> Enum.concat([{:note, ""}])
+
+    ([
+       note: if_value(struct.message, &format_message(&1, formatter))
+     ] ++
+       patterns ++
+       [
+         code: if_value(struct.expr, &code_multiline(&1, padding_size)),
+         code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end)
+       ])
+    |> format_meta(formatter, label_padding_size)
+    |> make_into_lines(counter_padding)
+  end
+
   def format_assertion_error(test, struct, stack, width, formatter, counter_padding) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
@@ -308,6 +346,16 @@ defmodule ExUnit.Formatter do
     padding <> Enum.join(reasons, "\n" <> padding) <> "\n"
   end
 
+  defp format_sides(%{left: %ExUnit.Pattern{} = left, right: right}, formatter, inspect) do
+    case format_pattern(left, right, formatter) do
+      {l, r} ->
+        {IO.iodata_to_binary(l), IO.iodata_to_binary(r)}
+
+      nil ->
+        {if_value(left, inspect), if_value(right, inspect)}
+    end
+  end
+
   defp format_sides(struct, formatter, inspect) do
     %{left: left, right: right} = struct
 
@@ -318,6 +366,35 @@ defmodule ExUnit.Formatter do
       nil ->
         {if_value(left, inspect), if_value(right, inspect)}
     end
+  end
+
+  defp format_pattern(left, right, formatter) do
+    if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
+      case pattern_diff(left, right) do
+        {formatted_left, formatted_right} ->
+          {format_pattern_result(formatted_left, formatter),
+           format_pattern_result(formatted_right, formatter)}
+
+        _ ->
+          {left.binary, inspect(right)}
+      end
+    else
+      {left.binary, inspect(right)}
+    end
+  end
+
+  defp format_pattern_result(result, _) when is_binary(result), do: result
+
+  defp format_pattern_result(result, formatter) when is_list(result) do
+    result
+    |> Enum.reduce([], fn
+      {key, val}, acc ->
+        [formatter.(key, val) | acc]
+
+      v, acc ->
+        [v | acc]
+    end)
+    |> Enum.reverse()
   end
 
   defp format_diff(left, right, formatter) do
@@ -352,6 +429,15 @@ defmodule ExUnit.Formatter do
 
   defp edit_script(left, right) do
     task = Task.async(ExUnit.Diff, :script, [left, right])
+
+    case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
+      {:ok, script} -> script
+      nil -> nil
+    end
+  end
+
+  defp pattern_diff(left, right) do
+    task = Task.async(ExUnit.Pattern, :format_diff, [left, right])
 
     case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
       {:ok, script} -> script
