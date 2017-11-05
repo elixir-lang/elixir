@@ -113,6 +113,23 @@ defmodule TimeTest do
     assert Time.compare(time1, time3) == :lt
     assert Time.compare(time3, time2) == :gt
   end
+
+  test "truncate/2" do
+    assert Time.truncate(~T[01:01:01.123456], :microsecond) == ~T[01:01:01.123456]
+
+    assert Time.truncate(~T[01:01:01.0], :millisecond) == ~T[01:01:01.0]
+    assert Time.truncate(~T[01:01:01.00], :millisecond) == ~T[01:01:01.00]
+    assert Time.truncate(~T[01:01:01.1], :millisecond) == ~T[01:01:01.1]
+    assert Time.truncate(~T[01:01:01.100], :millisecond) == ~T[01:01:01.100]
+    assert Time.truncate(~T[01:01:01.999], :millisecond) == ~T[01:01:01.999]
+    assert Time.truncate(~T[01:01:01.1000], :millisecond) == ~T[01:01:01.100]
+    assert Time.truncate(~T[01:01:01.1001], :millisecond) == ~T[01:01:01.100]
+    assert Time.truncate(~T[01:01:01.123456], :millisecond) == ~T[01:01:01.123]
+    assert Time.truncate(~T[01:01:01.000123], :millisecond) == ~T[01:01:01.000]
+    assert Time.truncate(~T[01:01:01.00012], :millisecond) == ~T[01:01:01.000]
+
+    assert Time.truncate(~T[01:01:01.123456], :second) == ~T[01:01:01]
+  end
 end
 
 defmodule NaiveDateTimeTest do
@@ -204,6 +221,29 @@ defmodule NaiveDateTimeTest do
 
     assert NaiveDateTime.convert(DateTime.from_unix!(0, :seconds), Calendar.Holocene) ==
              {:ok, Calendar.Holocene.naive_datetime(11970, 1, 1, 0, 0, 0, {0, 0})}
+  end
+
+  test "truncate/2" do
+    assert NaiveDateTime.truncate(~N[2017-11-06 00:23:51.123456], :microsecond) ==
+             ~N[2017-11-06 00:23:51.123456]
+
+    assert NaiveDateTime.truncate(~N[2017-11-06 00:23:51.0], :millisecond) ==
+             ~N[2017-11-06 00:23:51.0]
+
+    assert NaiveDateTime.truncate(~N[2017-11-06 00:23:51.999], :millisecond) ==
+             ~N[2017-11-06 00:23:51.999]
+
+    assert NaiveDateTime.truncate(~N[2017-11-06 00:23:51.1009], :millisecond) ==
+             ~N[2017-11-06 00:23:51.100]
+
+    assert NaiveDateTime.truncate(~N[2017-11-06 00:23:51.123456], :millisecond) ==
+             ~N[2017-11-06 00:23:51.123]
+
+    assert NaiveDateTime.truncate(~N[2017-11-06 00:23:51.000456], :millisecond) ==
+             ~N[2017-11-06 00:23:51.000]
+
+    assert NaiveDateTime.truncate(~N[2017-11-06 00:23:51.123456], :second) ==
+             ~N[2017-11-06 00:23:51]
   end
 end
 
@@ -542,5 +582,45 @@ defmodule DateTimeTest do
                std_offset: 0,
                time_zone: "Etc/UTC"
              }
+  end
+
+  test "truncate/2" do
+    datetime = %DateTime{
+      year: 2017,
+      month: 11,
+      day: 6,
+      zone_abbr: "CET",
+      hour: 0,
+      minute: 6,
+      second: 23,
+      microsecond: {0, 0},
+      utc_offset: 3600,
+      std_offset: 0,
+      time_zone: "Europe/Paris"
+    }
+
+    assert DateTime.truncate(%{datetime | microsecond: {123_456, 6}}, :microsecond) ==
+             %{datetime | microsecond: {123_456, 6}}
+
+    assert DateTime.truncate(%{datetime | microsecond: {0, 0}}, :millisecond) ==
+             %{datetime | microsecond: {0, 0}}
+
+    assert DateTime.truncate(%{datetime | microsecond: {000_100, 6}}, :millisecond) ==
+             %{datetime | microsecond: {0, 3}}
+
+    assert DateTime.truncate(%{datetime | microsecond: {000_999, 6}}, :millisecond) ==
+             %{datetime | microsecond: {0, 3}}
+
+    assert DateTime.truncate(%{datetime | microsecond: {001_000, 6}}, :millisecond) ==
+             %{datetime | microsecond: {1000, 3}}
+
+    assert DateTime.truncate(%{datetime | microsecond: {001_200, 6}}, :millisecond) ==
+             %{datetime | microsecond: {1000, 3}}
+
+    assert DateTime.truncate(%{datetime | microsecond: {123_456, 6}}, :millisecond) ==
+             %{datetime | microsecond: {123_000, 3}}
+
+    assert DateTime.truncate(%{datetime | microsecond: {123_456, 6}}, :second) ==
+             %{datetime | microsecond: {0, 0}}
   end
 end

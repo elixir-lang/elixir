@@ -692,6 +692,37 @@ defmodule DateTime do
   end
 
   @doc """
+  Returns the given datetime with the microsecond field truncated to the given
+  precision (`:microsecond`, `millisecond` or `:second`).
+
+  ## Examples
+
+      iex> dt1 = %DateTime{year: 2017, month: 11, day: 7, zone_abbr: "CET",
+      ...>                 hour: 11, minute: 45, second: 18, microsecond: {123456, 6},
+      ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Paris"}
+      iex> DateTime.truncate(dt1, :microsecond)
+      #DateTime<2017-11-07 11:45:18.123456+01:00 CET Europe/Paris>
+
+      iex> dt2 = %DateTime{year: 2017, month: 11, day: 7, zone_abbr: "CET",
+      ...>                 hour: 11, minute: 45, second: 18, microsecond: {123456, 6},
+      ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Paris"}
+      iex> DateTime.truncate(dt2, :millisecond)
+      #DateTime<2017-11-07 11:45:18.123+01:00 CET Europe/Paris>
+
+      iex> dt3 = %DateTime{year: 2017, month: 11, day: 7, zone_abbr: "CET",
+      ...>                 hour: 11, minute: 45, second: 18, microsecond: {123456, 6},
+      ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Paris"}
+      iex> DateTime.truncate(dt3, :second)
+      #DateTime<2017-11-07 11:45:18+01:00 CET Europe/Paris>
+
+  """
+  @spec truncate(Calendar.datetime(), :microsecond | :millisecond | :second) ::
+          Calendar.datetime()
+  def truncate(%{microsecond: microsecond} = datetime, precision) do
+    %{datetime | microsecond: Calendar.truncate(microsecond, precision)}
+  end
+
+  @doc """
   Converts a given `datetime` from one calendar to another.
 
   If it is not possible to convert unambiguously between the calendars
