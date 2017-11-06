@@ -15,24 +15,47 @@ defmodule Mix.Dep.Loader do
   current environment, behaviour can be overridden via options.
   """
   def children() do
-    mix_children([]) ++ Mix.Dep.Umbrella.unloaded
+    mix_children([]) ++ Mix.Dep.Umbrella.unloaded()
   end
 
   @doc """
   Partitions loaded dependencies by environment.
   """
   def partition_by_env(deps, nil), do: {deps, []}
-  def partition_by_env(deps, env), do: Enum.split_with(deps, &not skip?(&1, env))
+  def partition_by_env(deps, env), do: Enum.split_with(deps, &(not skip?(&1, env)))
 
   @doc """
   Checks if a dependency must be skipped according to the environment.
   """
   def skip?(_dep, nil), do: false
   def skip?(%Mix.Dep{status: {:divergedonly, _}}, _), do: false
+
   def skip?(%Mix.Dep{opts: opts}, env) do
     only = opts[:only]
     validate_only!(only)
     only != nil and env not in List.wrap(only)
+  end
+
+  def with_system_env(%Mix.Dep{system_env: []}, callback), do: callback.()
+
+  def with_system_env(%Mix.Dep{system_env: new_env}, callback) do
+    old_env =
+      for {key, _} <- new_env do
+        {key, System.get_env(key)}
+      end
+
+    try do
+      System.put_env(new_env)
+      callback.()
+    after
+      for {key, value} <- old_env do
+        if value do
+          System.put_env(key, value)
+        else
+          System.delete_env(key)
+        end
+      end
+    end
   end
 
   @doc """
@@ -40,9 +63,7 @@ defmodule Mix.Dep.Loader do
   latest status and children.
   """
   def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children) do
-    manager = scm_manager(scm, opts) ||
-              manager ||
-              infer_manager(opts[:dest])
+    manager = scm_manager(scm, opts) || manager || infer_manager(opts[:dest])
 
     dep = %{dep | manager: manager, status: scm_status(scm, opts)}
 
@@ -73,8 +94,8 @@ defmodule Mix.Dep.Loader do
   Checks if a requirement from a dependency matches
   the given version.
   """
-  def vsn_match(nil, _actual, _app),
-    do: {:ok, true}
+  def vsn_match(nil, _actual, _app), do: {:ok, true}
+
   def vsn_match(req, actual, app) do
     if Regex.regex?(req) do
       {:ok, actual =~ req}
@@ -84,9 +105,11 @@ defmodule Mix.Dep.Loader do
           case Version.parse_requirement(req) do
             {:ok, req} ->
               {:ok, Version.match?(version, req)}
+
             :error ->
-              Mix.raise "Invalid requirement #{req} for app #{app}"
+              Mix.raise("Invalid requirement #{req} for app #{app}")
           end
+
         :error ->
           {:error, :nosemver}
       end
@@ -112,7 +135,7 @@ defmodule Mix.Dep.Loader do
     end
   end
 
-  defp with_scm_and_app({app, req, opts} = original) when is_atom(app) and is_list(opts)  do
+  defp with_scm_and_app({app, req, opts} = original) when is_atom(app) and is_list(opts) do
     if is_binary(req) or Regex.regex?(req) do
       with_scm_and_app(app, req, opts, original)
     else
@@ -131,12 +154,15 @@ defmodule Mix.Dep.Loader do
 
     bin_app = Atom.to_string(app)
 
-    dest  = Path.join(Mix.Project.deps_path, bin_app)
-    build = Path.join([Mix.Project.build_path, "lib", bin_app])
-    opts  = opts
-            |> Keyword.put(:dest, dest)
-            |> Keyword.put(:build, build)
+    dest = Path.join(Mix.Project.deps_path(), bin_app)
+    build = Path.join([Mix.Project.build_path(), "lib", bin_app])
 
+    opts =
+      opts
+      |> Keyword.put(:dest, dest)
+      |> Keyword.put(:build, build)
+
+    {system_env, opts} = Keyword.pop(opts, :system_env, [])
     {scm, opts} = get_scm(app, opts)
 
     {scm, opts} =
@@ -148,7 +174,9 @@ defmodule Mix.Dep.Loader do
       end
 
     unless scm do
-      Mix.raise "Could not find an SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
+      Mix.raise(
+        "Could not find an SCM for dependency #{inspect(app)} from #{inspect(Mix.Project.get())}"
+      )
     end
 
     %Mix.Dep{
@@ -156,13 +184,15 @@ defmodule Mix.Dep.Loader do
       app: app,
       requirement: req,
       status: scm_status(scm, opts),
-      opts: Keyword.put_new(opts, :env, :prod)}
+      opts: Keyword.put_new(opts, :env, :prod),
+      system_env: system_env
+    }
   end
 
   defp get_scm(app, opts) do
-    Enum.find_value Mix.SCM.available, {nil, opts}, fn scm ->
+    Enum.find_value(Mix.SCM.available(), {nil, opts}, fn scm ->
       (new = scm.accepts_options(app, opts)) && {scm, new}
-    end
+    end)
   end
 
   # Notice we ignore Make dependencies because the
@@ -186,10 +216,13 @@ defmodule Mix.Dep.Loader do
     cond do
       any_of?(dest, ["mix.exs"]) ->
         :mix
+
       any_of?(dest, ["rebar", "rebar.config", "rebar.config.script", "rebar.lock"]) ->
         :rebar3
+
       any_of?(dest, ["Makefile", "Makefile.win"]) ->
         :make
+
       true ->
         nil
     end
@@ -200,10 +233,10 @@ defmodule Mix.Dep.Loader do
   end
 
   defp invalid_dep_format(dep) do
-    Mix.raise """
+    Mix.raise("""
     Dependency specified in the wrong format:
 
-        #{inspect dep}
+        #{inspect(dep)}
 
     Expected:
 
@@ -216,7 +249,7 @@ defmodule Mix.Dep.Loader do
         opts :: keyword
 
     If you want to skip the requirement (not recommended), use ">= 0.0.0".
-    """
+    """)
   end
 
   ## Fetching
@@ -236,7 +269,7 @@ defmodule Mix.Dep.Loader do
   defp mix_dep(%Mix.Dep{opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->
       opts =
-        if Mix.Project.umbrella? do
+        if Mix.Project.umbrella?() do
           Keyword.put_new(opts, :app, false)
         else
           opts
@@ -249,7 +282,7 @@ defmodule Mix.Dep.Loader do
           [env: Keyword.fetch!(opts, :env)]
         end
 
-      deps = mix_children(child_opts) ++ Mix.Dep.Umbrella.unloaded
+      deps = mix_children(child_opts) ++ Mix.Dep.Umbrella.unloaded()
       {%{dep | opts: opts}, deps}
     end)
   end
@@ -265,11 +298,9 @@ defmodule Mix.Dep.Loader do
   end
 
   defp rebar_dep(%Mix.Dep{app: app, opts: opts, extra: overrides} = dep, children, manager) do
-    config =
-      File.cd!(opts[:dest], fn -> Mix.Rebar.load_config(".") end)
+    config = File.cd!(opts[:dest], fn -> Mix.Rebar.load_config(".") end)
 
-    config =
-      Mix.Rebar.apply_overrides(app, config, overrides)
+    config = Mix.Rebar.apply_overrides(app, config, overrides)
 
     deps =
       if children do
@@ -291,14 +322,18 @@ defmodule Mix.Dep.Loader do
 
   defp validate_only!(only) do
     for entry <- List.wrap(only), not is_atom(entry) do
-      Mix.raise "Expected :only in dependency to be an atom or a list of atoms, got: #{inspect only}"
+      Mix.raise(
+        "Expected :only in dependency to be an atom or a list of atoms, got: #{inspect(only)}"
+      )
     end
+
     only
   end
 
   defp mix_children(opts) do
     from = Path.absname("mix.exs")
-    (Mix.Project.config[:deps] || [])
+
+    (Mix.Project.config()[:deps] || [])
     |> Enum.map(&to_dep(&1, from))
     |> partition_by_env(opts[:env])
     |> elem(0)
@@ -306,12 +341,15 @@ defmodule Mix.Dep.Loader do
 
   defp rebar_children(root_config, manager, dest) do
     from = Path.absname(Path.join(dest, "rebar.config"))
+
     Mix.Rebar.recur(root_config, fn config ->
       overrides = overrides(manager, config)
+
       config
       |> Mix.Rebar.deps()
       |> Enum.map(fn dep -> %{to_dep(dep, from, manager) | extra: overrides} end)
-    end) |> Enum.concat
+    end)
+    |> Enum.concat()
   end
 
   defp overrides(:rebar3, config), do: config[:overrides] || []
@@ -323,10 +361,13 @@ defmodule Mix.Dep.Loader do
     cond do
       not ok?(dep) ->
         dep
+
       recently_fetched?(dep) ->
         %{dep | status: :compile}
+
       opts_app == false ->
         dep
+
       true ->
         path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
         path = Path.expand(path, opts[:build])
@@ -336,8 +377,14 @@ defmodule Mix.Dep.Loader do
 
   defp recently_fetched?(%Mix.Dep{opts: opts, scm: scm}) do
     scm.fetchable? &&
-      Mix.Utils.stale?([Path.join(opts[:dest], ".fetch")],
-                       [Path.join(opts[:build], ".compile.fetch")])
+      Mix.Utils.stale?(
+        join_stale(opts, :dest, ".fetch"),
+        join_stale(opts, :build, ".compile.fetch")
+      )
+  end
+
+  defp join_stale(opts, key, file) do
+    [Path.join(opts[key], file)]
   end
 
   defp app_status(app_path, app, req) do
@@ -346,18 +393,25 @@ defmodule Mix.Dep.Loader do
         case List.keyfind(config, :vsn, 0) do
           {:vsn, actual} when is_list(actual) ->
             actual = IO.iodata_to_binary(actual)
+
             case vsn_match(req, actual, app) do
               {:ok, true} -> {:ok, actual}
               {:ok, false} -> {:nomatchvsn, actual}
               {:error, error} -> {error, actual}
             end
+
           {:vsn, actual} ->
             {:invalidvsn, actual}
+
           nil ->
             {:invalidvsn, nil}
         end
-      {:ok, _} -> {:invalidapp, app_path}
-      {:error, _} -> {:noappfile, app_path}
+
+      {:ok, _} ->
+        {:invalidapp, app_path}
+
+      {:error, _} ->
+        {:noappfile, app_path}
     end
   end
 end

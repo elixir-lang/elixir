@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Inspect.AlgebraTest do
   use ExUnit.Case, async: true
@@ -8,7 +8,7 @@ defmodule Inspect.AlgebraTest do
   import Inspect.Algebra
 
   defp render(doc, limit) do
-    doc |> group() |> format(limit) |> IO.iodata_to_binary
+    doc |> group() |> format(limit) |> IO.iodata_to_binary()
   end
 
   test "empty doc" do
@@ -29,8 +29,7 @@ defmodule Inspect.AlgebraTest do
 
     # Consistent formatting
     assert render(break("_"), 80) == "_"
-    assert render(glue("foo", " ", glue("bar", " ", "baz")), 10) ==
-           "foo\nbar\nbaz"
+    assert render(glue("foo", " ", glue("bar", " ", "baz")), 10) == "foo\nbar\nbaz"
   end
 
   test "flex break doc" do
@@ -43,14 +42,12 @@ defmodule Inspect.AlgebraTest do
 
     # Consistent formatting
     assert render(flex_break("_"), 80) == "_"
-    assert render(flex_glue("foo", " ", flex_glue("bar", " ", "baz")), 10) ==
-           "foo bar\nbaz"
+    assert render(flex_glue("foo", " ", flex_glue("bar", " ", "baz")), 10) == "foo bar\nbaz"
   end
 
   test "glue doc" do
     # Consistent with definitions
-    assert glue("a", "->", "b") ==
-           {:doc_cons, "a", {:doc_cons, {:doc_break, "->", :strict}, "b"}}
+    assert glue("a", "->", "b") == {:doc_cons, "a", {:doc_cons, {:doc_break, "->", :strict}, "b"}}
     assert glue("a", "b") == glue("a", " ", "b")
 
     # Wrong argument type
@@ -60,7 +57,8 @@ defmodule Inspect.AlgebraTest do
   test "flex glue doc" do
     # Consistent with definitions
     assert flex_glue("a", "->", "b") ==
-           {:doc_cons, "a", {:doc_cons, {:doc_break, "->", :flex}, "b"}}
+             {:doc_cons, "a", {:doc_cons, {:doc_break, "->", :flex}, "b"}}
+
     assert flex_glue("a", "b") == flex_glue("a", " ", "b")
 
     # Wrong argument type
@@ -82,8 +80,7 @@ defmodule Inspect.AlgebraTest do
 
   test "space doc" do
     # Consistent with definitions
-    assert space("a", "b") ==
-           {:doc_cons, "a", {:doc_cons, " ", "b"}}
+    assert space("a", "b") == {:doc_cons, "a", {:doc_cons, " ", "b"}}
   end
 
   test "always nest doc" do
@@ -164,22 +161,33 @@ defmodule Inspect.AlgebraTest do
 
   test "line doc" do
     # Consistent with definitions
-    assert line("a", "b") ==
-      {:doc_cons, "a", {:doc_cons, :doc_line, "b"}}
+    assert line("a", "b") == {:doc_cons, "a", {:doc_cons, :doc_line, "b"}}
 
     # Consistent formatting
-    assert render(line(glue("aaa", "bbb"), glue("ccc", "ddd")), 10) ==
-           "aaa bbb\nccc ddd"
+    assert render(line(glue("aaa", "bbb"), glue("ccc", "ddd")), 10) == "aaa bbb\nccc ddd"
   end
 
   test "group doc" do
     # Consistent with definitions
-    assert group("ab") == {:doc_group, "ab"}
-    assert group(empty()) == {:doc_group, empty()}
+    assert group("ab") == {:doc_group, "ab", :self}
+    assert group(empty()) == {:doc_group, empty(), :self}
 
     # Consistent formatting
     doc = concat(glue(glue(glue("hello", "a"), "b"), "c"), "d")
     assert render(group(doc), 5) == "hello\na\nb\ncd"
+  end
+
+  test "group doc with inherit" do
+    # Consistent with definitions
+    assert group("ab", :inherit) == {:doc_group, "ab", :inherit}
+    assert group(empty(), :inherit) == {:doc_group, empty(), :inherit}
+
+    # Consistent formatting
+    doc = concat(glue(glue(group(glue("a", "b"), :self), "c"), "d"), "hello")
+    assert render(group(doc), 5) == "a b\nc\ndhello"
+
+    doc = concat(glue(glue(group(glue("a", "b"), :inherit), "c"), "d"), "hello")
+    assert render(group(doc), 5) == "a\nb\nc\ndhello"
   end
 
   test "collapse lines" do
@@ -227,7 +235,9 @@ defmodule Inspect.AlgebraTest do
     doc = force_break(concat(glue(glue(glue("hello", "a"), "b"), "c"), "d"))
     assert render(doc, 20) == "hello\na\nb\ncd"
     assert render(next_break_fits(doc, :enabled), 20) == "hello a b cd"
-    assert render(next_break_fits(next_break_fits(doc, :enabled), :disabled), 20) == "hello\na\nb\ncd"
+
+    assert render(next_break_fits(next_break_fits(doc, :enabled), :disabled), 20) ==
+             "hello\na\nb\ncd"
   end
 
   test "formatting groups with lines" do
@@ -237,7 +247,7 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "formatting with infinity" do
-    s = String.duplicate "x", 50
+    s = String.duplicate("x", 50)
     g = ";"
     doc = glue(s, g, s) |> glue(g, s) |> glue(g, s) |> glue(g, s) |> group
 
@@ -245,7 +255,7 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "formatting container_doc with empty" do
-    sm = &container_doc("[", &1, "]", %Inspect.Opts{}, fn(d, _) -> d end, separator: ",")
+    sm = &container_doc("[", &1, "]", %Inspect.Opts{}, fn d, _ -> d end, separator: ",")
 
     assert sm.([]) |> render(80) == "[]"
     assert sm.([empty()]) |> render(80) == "[]"

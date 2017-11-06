@@ -10,8 +10,16 @@ defmodule Calendar.Holocene do
   end
 
   def naive_datetime(year, month, day, hour, minute, second, microsecond \\ {0, 0}) do
-    %NaiveDateTime{year: year, month: month, day: day, hour: hour, minute: minute, second: second,
-                   microsecond: microsecond, calendar: __MODULE__}
+    %NaiveDateTime{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      calendar: __MODULE__
+    }
   end
 
   @impl true
@@ -26,9 +34,19 @@ defmodule Calendar.Holocene do
   end
 
   @impl true
-  def datetime_to_string(year, month, day,
-                         hour, minute, second, microsecond,
-                         _time_zone, zone_abbr, _utc_offset, _std_offset) do
+  def datetime_to_string(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        _time_zone,
+        zone_abbr,
+        _utc_offset,
+        _std_offset
+      ) do
     "#{year}-#{month}-#{day}" <>
       Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> " #{zone_abbr} (HE)"
   end
@@ -43,12 +61,21 @@ defmodule Calendar.Holocene do
   def naive_datetime_from_iso_days(entry) do
     {year, month, day, hour, minute, second, microsecond} =
       Calendar.ISO.naive_datetime_from_iso_days(entry)
+
     {year + 10000, month, day, hour, minute, second, microsecond}
   end
 
   @impl true
   def naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) do
-    Calendar.ISO.naive_datetime_to_iso_days(year - 10000, month, day, hour, minute, second, microsecond)
+    Calendar.ISO.naive_datetime_to_iso_days(
+      year - 10000,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      microsecond
+    )
   end
 
   @impl true

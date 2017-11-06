@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ExUnitTest do
   use ExUnit.Case
@@ -21,8 +21,8 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-      assert ExUnit.run == %{failures: 2, skipped: 0, total: 2}
-    end) =~ "2 tests, 2 failures"
+             assert ExUnit.run() == %{failures: 2, skipped: 0, total: 2}
+           end) =~ "2 tests, 2 failures"
   end
 
   test "doesn't hang on exits" do
@@ -31,8 +31,9 @@ defmodule ExUnitTest do
 
       test "spawn and crash" do
         spawn_link(fn ->
-          exit :foo
+          exit(:foo)
         end)
+
         receive after: (1000 -> :ok)
       end
     end
@@ -40,8 +41,8 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-      assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
-    end) =~ "1 test, 1 failure"
+             assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+           end) =~ "1 test, 1 failure"
   end
 
   test "supports timeouts" do
@@ -56,7 +57,7 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output = capture_io(fn -> ExUnit.run end)
+    output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 10ms"
     assert output =~ ~r"\(elixir\) lib/process\.ex:\d+: Process\.sleep/1"
   end
@@ -72,10 +73,10 @@ defmodule ExUnitTest do
 
     ExUnit.configure(timeout: 5)
     ExUnit.Server.modules_loaded()
-    output = capture_io(fn -> ExUnit.run end)
+    output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 5ms"
   after
-    ExUnit.configure(timeout: 60_000)
+    ExUnit.configure(timeout: 60000)
   end
 
   test "reports slow tests" do
@@ -101,7 +102,7 @@ defmodule ExUnitTest do
     ExUnit.start(slowest: 2)
     ExUnit.Server.modules_loaded()
 
-    output = capture_io(fn -> ExUnit.run end)
+    output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ ~r"Top 2 slowest \(\d+\.\d+s\), \d+.\d% of total time:"
     assert output =~ ~r"\* test slowest \(.+ms\)"
@@ -114,7 +115,7 @@ defmodule ExUnitTest do
     config = ExUnit.configuration()
     assert config[:trace]
     assert config[:max_cases] == 1
-    assert config[:timeout] == 60_000
+    assert config[:timeout] == 60000
   end
 
   test "does not set timeout to infinity and the max cases to 1 with trace disabled" do
@@ -122,8 +123,8 @@ defmodule ExUnitTest do
     ExUnit.start(trace: false, autorun: false)
     config = ExUnit.configuration()
     refute config[:trace]
-    assert config[:max_cases] == System.schedulers_online * 2
-    assert config[:timeout] == 60_000
+    assert config[:max_cases] == System.schedulers_online() * 2
+    assert config[:timeout] == 60000
   end
 
   test "sets trace when slowest is enabled" do
@@ -145,13 +146,14 @@ defmodule ExUnitTest do
       test "one", do: :ok
 
       @tag even: true
-      test "two", do: assert 1 == 2
+      test "two", do: assert(1 == 2)
 
       @tag even: false
       test "three", do: :ok
     end
 
-    {result, output} = run_with_filter([], []) # Empty because it is already loaded
+    # Empty because it is already loaded
+    {result, output} = run_with_filter([], [])
     assert result == %{failures: 1, skipped: 0, total: 4}
     assert output =~ "4 tests, 1 failure"
 
@@ -216,7 +218,7 @@ defmodule ExUnitTest do
   end
 
   test "supports multi errors" do
-    capture_io :stderr, fn ->
+    capture_io(:stderr, fn ->
       defmodule MultiTest do
         use ExUnit.Case
 
@@ -224,27 +226,30 @@ defmodule ExUnitTest do
           error1 =
             try do
               assert 1 = 2
-            rescue e in ExUnit.AssertionError ->
-              {:error, e, System.stacktrace}
+            rescue
+              e in ExUnit.AssertionError ->
+                {:error, e, System.stacktrace()}
             end
 
           error2 =
             try do
               assert 3 > 4
-            rescue e in ExUnit.AssertionError ->
-              {:error, e, System.stacktrace}
+            rescue
+              e in ExUnit.AssertionError ->
+                {:error, e, System.stacktrace()}
             end
 
           raise ExUnit.MultiError, errors: [error1, error2]
         end
       end
-    end
+    end)
 
     ExUnit.Server.modules_loaded()
 
-    output = capture_io(fn ->
-      assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
-    end)
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+      end)
 
     assert output =~ "1 test, 1 failure"
     assert output =~ "1) test multi (ExUnitTest.MultiTest)"
@@ -252,7 +257,7 @@ defmodule ExUnitTest do
     assert output =~ "Failure #2"
 
     assert_raise ExUnit.MultiError, ~r/oops/, fn ->
-      error = {:error, RuntimeError.exception("oops"), System.stacktrace}
+      error = {:error, RuntimeError.exception("oops"), System.stacktrace()}
       raise ExUnit.MultiError, errors: [error]
     end
   end
@@ -289,9 +294,10 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output = capture_io(fn ->
-      assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
-    end)
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+      end)
 
     assert output =~ "Not implemented"
     assert output =~ "1 test, 1 failure"
@@ -307,17 +313,18 @@ defmodule ExUnitTest do
       end
 
       @tag :skip
-      test "this will raise", do: raise "oops"
+      test "this will raise", do: raise("oops")
 
       @tag skip: "won't work"
-      test "this will also raise", do: raise "oops"
+      test "this will also raise", do: raise("oops")
     end
 
     ExUnit.Server.modules_loaded()
 
-    output = capture_io(fn ->
-      assert ExUnit.run == %{failures: 0, skipped: 2, total: 2}
-    end)
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2}
+      end)
 
     assert output =~ "2 tests, 0 failures, 2 skipped"
   end
@@ -330,16 +337,18 @@ defmodule ExUnitTest do
 
     defmodule SecondTestModule do
       use ExUnit.Case
-      test "false", do: assert false
+      test "false", do: assert(false)
     end
 
-    {result, output} = run_with_filter([exclude: :module], []) # Empty because it is already loaded
+    # Empty because it is already loaded
+    {result, output} = run_with_filter([exclude: :module], [])
     assert result == %{failures: 0, skipped: 2, total: 2}
     assert output =~ "2 tests, 0 failures, 2 skipped"
 
     {result, output} =
       [exclude: :test, include: [module: "ExUnitTest.SecondTestModule"]]
       |> run_with_filter([FirstTestModule, SecondTestModule])
+
     assert result == %{failures: 1, skipped: 1, total: 2}
     assert output =~ "1) test false (ExUnitTest.SecondTestModule)"
     assert output =~ "2 tests, 1 failure, 1 skipped"
@@ -380,9 +389,10 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output = capture_io(fn ->
-      assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
-    end)
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+      end)
 
     assert output =~ "trying to set reserved field :file"
   end
@@ -400,9 +410,10 @@ defmodule ExUnitTest do
 
     ExUnit.Server.modules_loaded()
 
-    output = capture_io(fn ->
-      assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
-    end)
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+      end)
 
     assert output =~ "trying to set reserved field :async"
   end
@@ -421,13 +432,13 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     capture_io(fn ->
-      assert ExUnit.run == %{failures: 0, skipped: 0, total: 1}
+      assert ExUnit.run() == %{failures: 0, skipped: 0, total: 1}
     end)
   end
 
   test "seed is predictable and different for each test" do
     global_seed = ExUnit.configuration()[:seed]
-    ExUnit.configure seed: 1
+    ExUnit.configure(seed: 1)
 
     defmodule PredictableSeedTest do
       use ExUnit.Case, async: true
@@ -452,10 +463,10 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-      assert ExUnit.run == %{failures: 0, skipped: 0, total: 3}
-    end) =~ "3 tests, 0 failures"
+             assert ExUnit.run() == %{failures: 0, skipped: 0, total: 3}
+           end) =~ "3 tests, 0 failures"
 
-    ExUnit.configure seed: global_seed
+    ExUnit.configure(seed: global_seed)
   end
 
   defp on_exit_reload_config(extra \\ []) do
@@ -466,8 +477,8 @@ defmodule ExUnitTest do
   defp run_with_filter(filters, cases) do
     Enum.each(cases, &ExUnit.Server.add_sync_module/1)
     ExUnit.Server.modules_loaded()
-    opts = Keyword.merge(ExUnit.configuration, filters)
-    output = capture_io fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end
+    opts = Keyword.merge(ExUnit.configuration(), filters)
+    output = capture_io(fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end)
     {Process.get(:capture_result), output}
   end
 end

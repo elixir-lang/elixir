@@ -33,12 +33,14 @@ defmodule ExUnit.Server do
   ## Callbacks
 
   def init(:ok) do
-    {:ok, %{
-      loaded: System.monotonic_time,
+    state = %{
+      loaded: System.monotonic_time(),
       waiting: nil,
       async_modules: [],
-      sync_modules: [],
-    }}
+      sync_modules: []
+    }
+
+    {:ok, state}
   end
 
   # Called on demand until we are signaled all modules are loaded.
@@ -47,13 +49,13 @@ defmodule ExUnit.Server do
   end
 
   # Called once after all async modules have been sent and reverts the state.
-  def handle_call(:take_sync_modules, _from, %{waiting: nil, loaded: :done, async_modules: []} = state) do
-    {:reply, state.sync_modules,
-     %{state | sync_modules: [], loaded: System.monotonic_time}}
+  def handle_call(:take_sync_modules, _from, state) do
+    %{waiting: nil, loaded: :done, async_modules: []} = state
+    {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
   end
 
   def handle_call(:modules_loaded, _from, %{loaded: loaded} = state) when is_integer(loaded) do
-    diff = System.convert_time_unit(System.monotonic_time - loaded, :native, :microsecond)
+    diff = System.convert_time_unit(System.monotonic_time() - loaded, :native, :microsecond)
     {:reply, diff, take_modules(%{state | loaded: :done})}
   end
 

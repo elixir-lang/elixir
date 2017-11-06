@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.CallbacksTest do
   use ExUnit.Case
@@ -33,8 +33,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~
-           "1 test, 0 failures"
+    assert capture_io(fn -> ExUnit.run() end) =~ "1 test, 0 failures"
   end
 
   test "named callbacks run custom code in order" do
@@ -65,8 +64,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~
-           "1 test, 0 failures"
+    assert capture_io(fn -> ExUnit.run() end) =~ "1 test, 0 failures"
   end
 
   test "doesn't choke on setup errors" do
@@ -85,8 +83,9 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (MatchError) no match of right hand side value: :error"
+
+    assert capture_io(fn -> ExUnit.run() end) =~
+             "** (MatchError) no match of right hand side value: :error"
   end
 
   test "doesn't choke on setup_all errors" do
@@ -105,8 +104,9 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (MatchError) no match of right hand side value: :error"
+
+    assert capture_io(fn -> ExUnit.run() end) =~
+             "** (MatchError) no match of right hand side value: :error"
   end
 
   test "doesn't choke on dead supervisor" do
@@ -115,12 +115,17 @@ defmodule ExUnit.CallbacksTest do
 
       @tag timeout: 500
       test "ok" do
-        start_supervised {Task, fn -> Process.flag(:trap_exit, true); Process.sleep(:infinity) end}
+        fun = fn ->
+          Process.flag(:trap_exit, true)
+          Process.sleep(:infinity)
+        end
+
+        start_supervised({Task, fun})
       end
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~ "supervisor shutdown timed out after 500ms"
+    assert capture_io(fn -> ExUnit.run() end) =~ "supervisor shutdown timed out after 500ms"
   end
 
   test "doesn't choke on on_exit errors" do
@@ -128,7 +133,7 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       test "ok" do
-        on_exit fn -> :ok = error() end
+        on_exit(fn -> :ok = error() end)
         :ok
       end
 
@@ -136,8 +141,9 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (MatchError) no match of right hand side value: :error"
+
+    assert capture_io(fn -> ExUnit.run() end) =~
+             "** (MatchError) no match of right hand side value: :error"
   end
 
   test "doesn't choke when on_exit exits" do
@@ -145,19 +151,18 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case, async: false
 
       test "ok" do
-        on_exit fn -> Process.exit(self(), :kill) end
+        on_exit(fn -> Process.exit(self(), :kill) end)
         :ok
       end
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~
-           ">) killed"
+    assert capture_io(fn -> ExUnit.run() end) =~ ">) killed"
   end
 
   defp no_formatters! do
     ExUnit.configure(formatters: [])
-    on_exit fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end
+    on_exit(fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end)
   end
 
   test "exits with shutdown reason" do
@@ -167,22 +172,24 @@ defmodule ExUnit.CallbacksTest do
       setup do
         parent = self()
 
-        pid = spawn_link fn ->
-          Process.flag(:trap_exit, true)
-          send parent, :ready
-          receive do
-            {:EXIT, ^parent, :shutdown} ->
-              receive do: ({:on_exit, pid} -> send pid, :done)
-          end
-        end
+        pid =
+          spawn_link(fn ->
+            Process.flag(:trap_exit, true)
+            send(parent, :ready)
+
+            receive do
+              {:EXIT, ^parent, :shutdown} ->
+                receive do: ({:on_exit, pid} -> send(pid, :done))
+            end
+          end)
 
         receive do: (:ready -> :ok)
 
-        on_exit fn ->
-          send pid, {:on_exit, self()}
+        on_exit(fn ->
+          send(pid, {:on_exit, self()})
           assert_receive :done
-          IO.puts "on_exit run"
-        end
+          IO.puts("on_exit run")
+        end)
 
         :ok
       end
@@ -193,7 +200,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.Server.modules_loaded()
-    output = capture_io(fn -> ExUnit.run end)
+    output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "on_exit run"
     assert output =~ "1 test, 0 failures"
   end
@@ -203,41 +210,41 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup do
-        on_exit fn ->
-          IO.puts "on_exit setup run"
-        end
+        on_exit(fn ->
+          IO.puts("on_exit setup run")
+        end)
 
-        on_exit {:overridden, 1}, fn ->
-          IO.puts "on_exit 1 overridden -> not run"
-        end
+        on_exit({:overridden, 1}, fn ->
+          IO.puts("on_exit 1 overridden -> not run")
+        end)
 
         :ok
       end
 
       setup_all do
-        on_exit fn ->
-          IO.puts "on_exit setup_all run"
-        end
+        on_exit(fn ->
+          IO.puts("on_exit setup_all run")
+        end)
 
         :ok
       end
 
       test "ok" do
-        on_exit fn ->
-          IO.puts "simple on_exit run"
-        end
+        on_exit(fn ->
+          IO.puts("simple on_exit run")
+        end)
 
-        on_exit {:overridden, 2}, fn ->
-          IO.puts "on_exit 2 overridden -> not run"
-        end
+        on_exit({:overridden, 2}, fn ->
+          IO.puts("on_exit 2 overridden -> not run")
+        end)
 
-        on_exit {:overridden, 2}, fn ->
-          IO.puts "on_exit 2 overrides -> run"
-        end
+        on_exit({:overridden, 2}, fn ->
+          IO.puts("on_exit 2 overrides -> run")
+        end)
 
-        on_exit {:overridden, 1}, fn ->
-          IO.puts "on_exit 1 overrides -> run"
-        end
+        on_exit({:overridden, 1}, fn ->
+          IO.puts("on_exit 1 overrides -> run")
+        end)
 
         :ok
       end
@@ -245,15 +252,15 @@ defmodule ExUnit.CallbacksTest do
 
     no_formatters!()
     ExUnit.Server.modules_loaded()
-    output = capture_io(fn -> ExUnit.run end)
+    output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
-    on_exit 2 overrides -> run
-    simple on_exit run
-    on_exit 1 overrides -> run
-    on_exit setup run
-    on_exit setup_all run
-    """
+           on_exit 2 overrides -> run
+           simple on_exit run
+           on_exit 1 overrides -> run
+           on_exit setup run
+           on_exit setup_all run
+           """
 
     refute output =~ "not run"
   end
@@ -263,39 +270,39 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case
 
       setup do
-        on_exit fn ->
-          IO.puts "on_exit setup run"
-        end
+        on_exit(fn ->
+          IO.puts("on_exit setup run")
+        end)
 
         :ok
       end
 
       setup_all do
-        on_exit fn ->
-          IO.puts "on_exit setup_all run"
-        end
+        on_exit(fn ->
+          IO.puts("on_exit setup_all run")
+        end)
 
         :ok
       end
 
       test "ok" do
-        on_exit fn ->
-          IO.puts "simple on_exit run"
-        end
+        on_exit(fn ->
+          IO.puts("simple on_exit run")
+        end)
 
-        flunk "oops"
+        flunk("oops")
       end
     end
 
     no_formatters!()
     ExUnit.Server.modules_loaded()
-    output = capture_io(fn -> ExUnit.run end)
+    output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
-    simple on_exit run
-    on_exit setup run
-    on_exit setup_all run
-    """
+           simple on_exit run
+           on_exit setup run
+           on_exit setup_all run
+           """
   end
 
   test "raises an error when setting an invalid callback in setup" do
@@ -312,10 +319,11 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (RuntimeError) expected ExUnit callback in " <>
-           "ExUnit.CallbacksTest.SetupErrorTest to return " <>
-           ":ok | keyword | map, got {:ok, \"foo\"} instead"
+
+    assert capture_io(fn -> ExUnit.run() end) =~
+             "** (RuntimeError) expected ExUnit callback in " <>
+               "ExUnit.CallbacksTest.SetupErrorTest to return " <>
+               ":ok | keyword | map, got {:ok, \"foo\"} instead"
   end
 
   test "raises an error when overriding a reserved callback key in setup" do
@@ -332,10 +340,11 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.Server.modules_loaded()
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (RuntimeError) ExUnit callback in " <>
-           "ExUnit.CallbacksTest.SetupReservedTest is " <>
-           "trying to set reserved field :file to \"foo\""
+
+    assert capture_io(fn -> ExUnit.run() end) =~
+             "** (RuntimeError) ExUnit callback in " <>
+               "ExUnit.CallbacksTest.SetupReservedTest is " <>
+               "trying to set reserved field :file to \"foo\""
   end
 end
 

@@ -154,9 +154,9 @@ defmodule IO do
       #=> error
 
   """
-  @spec write(device, chardata | String.Chars.t) :: :ok
+  @spec write(device, chardata | String.Chars.t()) :: :ok
   def write(device \\ :stdio, item) do
-    :io.put_chars map_dev(device), to_chardata(item)
+    :io.put_chars(map_dev(device), to_chardata(item))
   end
 
   @doc """
@@ -171,7 +171,7 @@ defmodule IO do
   """
   @spec binwrite(device, iodata) :: :ok | {:error, term}
   def binwrite(device \\ :stdio, item) when is_iodata(item) do
-    :file.write map_dev(device), item
+    :file.write(map_dev(device), item)
   end
 
   @doc """
@@ -190,9 +190,9 @@ defmodule IO do
       #=> error
 
   """
-  @spec puts(device, chardata | String.Chars.t) :: :ok
+  @spec puts(device, chardata | String.Chars.t()) :: :ok
   def puts(device \\ :stdio, item) do
-    :io.put_chars map_dev(device), [to_chardata(item), ?\n]
+    :io.put_chars(map_dev(device), [to_chardata(item), ?\n])
   end
 
   @doc """
@@ -212,13 +212,17 @@ defmodule IO do
       #=>   my_app.ex:4: MyApp.main/1
 
   """
-  @spec warn(chardata | String.Chars.t, Exception.stacktrace) :: :ok
+  @spec warn(chardata | String.Chars.t(), Exception.stacktrace()) :: :ok
   def warn(message, []) do
-    :elixir_errors.warn([to_chardata(message), ?\n])
+    :elixir_errors.bare_warn(nil, nil, [to_chardata(message), ?\n])
   end
-  def warn(message, stacktrace) when is_list(stacktrace) do
-    formatted = Enum.map_join(stacktrace, "\n  ", &Exception.format_stacktrace_entry(&1))
-    :elixir_errors.warn([to_chardata(message), ?\n, "  ", formatted, ?\n])
+
+  def warn(message, [{_, _, _, opts} | _] = stacktrace) do
+    formatted_trace = Enum.map_join(stacktrace, "\n  ", &Exception.format_stacktrace_entry(&1))
+    message = [to_chardata(message), ?\n, "  ", formatted_trace, ?\n]
+    line = opts[:line]
+    file = opts[:file]
+    :elixir_errors.bare_warn(line, file && List.to_string(file), message)
   end
 
   @doc """
@@ -233,7 +237,7 @@ defmodule IO do
       #=>   (iex) evaluator.ex:108: IEx.Evaluator.eval/4
 
   """
-  @spec warn(chardata | String.Chars.t) :: :ok
+  @spec warn(chardata | String.Chars.t()) :: :ok
   def warn(message) do
     {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
     warn(message, Enum.drop(stacktrace, 2))
@@ -289,7 +293,7 @@ defmodule IO do
   """
   @spec inspect(item, keyword) :: item when item: var
   def inspect(item, opts \\ []) do
-    inspect :stdio, item, opts
+    inspect(:stdio, item, opts)
   end
 
   @doc """
@@ -299,11 +303,11 @@ defmodule IO do
   """
   @spec inspect(device, item, keyword) :: item when item: var
   def inspect(device, item, opts) when is_list(opts) do
-    label = if (label = opts[:label]), do: [to_chardata(label), ": "], else: []
-    opts  = struct(Inspect.Opts, opts)
+    label = if label = opts[:label], do: [to_chardata(label), ": "], else: []
+    opts = struct(Inspect.Opts, opts)
     doc = Inspect.Algebra.group(Inspect.Algebra.to_doc(item, opts))
     chardata = Inspect.Algebra.format(doc, opts.width)
-    puts device, [label, chardata]
+    puts(device, [label, chardata])
     item
   end
 
@@ -317,8 +321,8 @@ defmodule IO do
   See `IO.getn/3` for a description of return values.
 
   """
-  @spec getn(chardata | String.Chars.t, pos_integer) :: chardata | nodata
-  @spec getn(device, chardata | String.Chars.t) :: chardata | nodata
+  @spec getn(chardata | String.Chars.t(), pos_integer) :: chardata | nodata
+  @spec getn(device, chardata | String.Chars.t()) :: chardata | nodata
   def getn(prompt, count \\ 1)
 
   def getn(prompt, count) when is_integer(count) and count > 0 do
@@ -347,7 +351,7 @@ defmodule IO do
       NFS volume
 
   """
-  @spec getn(device, chardata | String.Chars.t, pos_integer) :: chardata | nodata
+  @spec getn(device, chardata | String.Chars.t(), pos_integer) :: chardata | nodata
   def getn(device, prompt, count) when is_integer(count) and count > 0 do
     :io.get_chars(map_dev(device), to_chardata(prompt), count)
   end
@@ -373,7 +377,7 @@ defmodule IO do
       IO.gets "What is your name?\n"
 
   """
-  @spec gets(device, chardata | String.Chars.t) :: chardata | nodata
+  @spec gets(device, chardata | String.Chars.t()) :: chardata | nodata
   def gets(device \\ :stdio, prompt) do
     :io.get_line(map_dev(device), to_chardata(prompt))
   end
@@ -402,7 +406,7 @@ defmodule IO do
       Enum.each IO.stream(:stdio, :line), &IO.write(&1)
 
   """
-  @spec stream(device, :line | pos_integer) :: Enumerable.t
+  @spec stream(device, :line | pos_integer) :: Enumerable.t()
   def stream(device, line_or_codepoints)
       when line_or_codepoints == :line
       when is_integer(line_or_codepoints) and line_or_codepoints > 0 do
@@ -427,7 +431,7 @@ defmodule IO do
   mode as it will return the wrong result.
 
   """
-  @spec binstream(device, :line | pos_integer) :: Enumerable.t
+  @spec binstream(device, :line | pos_integer) :: Enumerable.t()
   def binstream(device, line_or_bytes)
       when line_or_bytes == :line
       when is_integer(line_or_bytes) and line_or_bytes > 0 do
@@ -453,7 +457,7 @@ defmodule IO do
       "string"
 
   """
-  @spec chardata_to_string(chardata) :: String.t | no_return
+  @spec chardata_to_string(chardata) :: String.t() | no_return
   def chardata_to_string(string) when is_binary(string) do
     string
   end
@@ -515,8 +519,10 @@ defmodule IO do
     case read(device, line_or_codepoints) do
       :eof ->
         {:halt, device}
+
       {:error, reason} ->
         raise IO.StreamError, reason: reason
+
       data ->
         {[data], device}
     end
@@ -527,8 +533,10 @@ defmodule IO do
     case binread(device, line_or_chars) do
       :eof ->
         {:halt, device}
+
       {:error, reason} ->
         raise IO.StreamError, reason: reason
+
       data ->
         {[data], device}
     end
@@ -537,7 +545,7 @@ defmodule IO do
   @compile {:inline, map_dev: 1, to_chardata: 1}
 
   # Map the Elixir names for standard IO and error to Erlang names
-  defp map_dev(:stdio),  do: :standard_io
+  defp map_dev(:stdio), do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other) when is_atom(other) or is_pid(other) or is_tuple(other), do: other
 

@@ -19,7 +19,10 @@ defmodule Kernel.SpecialForms do
   defmacrop error!(args) do
     quote do
       _ = unquote(args)
-      message = "Elixir's special forms are expanded by the compiler and must not be invoked directly"
+
+      message =
+        "Elixir's special forms are expanded by the compiler and must not be invoked directly"
+
       :erlang.error(RuntimeError.exception(message))
     end
   end
@@ -697,7 +700,7 @@ defmodule Kernel.SpecialForms do
       1
 
   """
-  defmacro ^(var), do: error!([var])
+  defmacro ^var, do: error!([var])
 
   @doc """
   Matches the value on the right against the pattern on the left.
@@ -763,6 +766,8 @@ defmodule Kernel.SpecialForms do
     * `:location` - when set to `:keep`, keeps the current line and file from
       quote. Read the Stacktrace information section below for more
       information.
+
+    * `:line` - sets the quoted expressions to have the given line.
 
     * `:generated` - marks the given chunk as generated so it does not emit warnings.
       Currently it only works on special forms (for example, you can annotate a `case`

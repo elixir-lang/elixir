@@ -46,11 +46,30 @@ For reporting bugs, [visit our issues tracker][2] and follow the steps
 for reporting a new issue. Please disclose security vulnerabilities
 privately at elixir-security@googlegroups.com.
 
+## Proposing new features
+
+For proposing new features, please start a discussion in the
+[Elixir Core mailing list][3]. Keep in mind that it is your responsibility
+to argue and explain why a feature is useful and how it will impact the
+codebase and the community.
+
+Once a proposal is accepted, it will be added to [the issues tracker][2].
+The issues tracker focuses on *actionable items* and it holds a list of
+upcoming enhancements and pending bugs. All entries in the tracker are
+tagged for clarity and to ease collaboration.
+
+Features and bug fixes that have already been merged and will be included
+in the next release are marked as "closed" in the issues tracker and are
+added to the [CHANGELOG](CHANGELOG.md).
+
+Finally, remember all interactions in our official spaces follow our
+[Code of Conduct][7].
+
 ## Contributing
 
-We welcome everyone to contribute to Elixir and help us tackle existing issues!
-To do so, there are a few things you need to know about the code. First, Elixir
-code is divided in applications inside the `lib` folder:
+We welcome everyone to contribute to Elixir. To do so, there are a few
+things you need to know about the code. First, Elixir code is divided
+in applications inside the `lib` folder:
 
 * `elixir` - Contains Elixir's kernel and stdlib
 
@@ -67,8 +86,7 @@ code is divided in applications inside the `lib` folder:
 You can run all tests in the root directory with `make test` and you can
 also run tests for a specific framework `make test_#{NAME}`, for example,
 `make test_ex_unit`. If you just changed something in the Elixir's standard
-library, you can run only that portion through `make test_stdlib`, as
-`test_elixir` also runs tests for the other projects (EEx, ExUnit, etc.).
+library, you can run only that portion through `make test_stdlib`.
 
 In case you are changing a single file, you can compile and run tests only
 for that particular file for fast development cycles. For example, if you
@@ -85,28 +103,21 @@ To recompile (including Erlang modules):
 make compile
 ```
 
-If your contribution fails the build during the bootstrapping of the language,
-you can reproduce it locally by deleting all of Elixir beam files and compiling
-again:
+After your changes are done, please remember to run the full suite with
+`make test` and then `mix format` to guarantee all files are properly
+formatted.
+
+If your contribution fails during the bootstrapping of the language,
+you can rebuild the language from scratch with:
 
 ```sh
 make clean_elixir compile
 ```
 
-Or to rebuild everything from scratch without running tests:
-
-```sh
-make clean compile
-```
-
+Similarly, if you can't get Elixir to compile or the tests to pass after
+updating an existing checkout, run `make clean compile`. You can check
+[the official build status on Travis-CI](https://travis-ci.org/elixir-lang/elixir).
 More tasks can be found by reading the [Makefile](./Makefile).
-
-After your changes are done, please remember to run the full suite with
-`make test`.
-
-From time to time, your tests may fail in an existing Elixir checkout and
-may require a clean start by running `make clean compile`. You can always
-check [the official build status on Travis-CI](https://travis-ci.org/elixir-lang/elixir).
 
 With tests running and passing, you are ready to contribute to Elixir and
 [send a pull request](https://help.github.com/articles/using-pull-requests/).
@@ -116,13 +127,6 @@ case you are looking for some examples:
 * [Implement Enum.member? – Pull Request](https://github.com/elixir-lang/elixir/pull/992)
 * [Add String.valid? – Pull Request](https://github.com/elixir-lang/elixir/pull/1058)
 * [Implement capture_io for ExUnit – Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
-
-We usually keep a list of enhancements and bugs [in the issue tracker][2].
-For proposing new features, please start a discussion in the
-[Elixir Core mailing list][3]. Keep in mind that it is your responsibility
-to argue and explain why a feature is useful and how it will impact the
-codebase and the community. Finally, remember all interactions in our official
-spaces follow our [Code of Conduct][7].
 
 ### Reviewing changes
 
@@ -143,8 +147,9 @@ The Elixir team may optionally assign someone to review a pull request.
 In case someone is assigned, they must explicitly approve the code before
 another team member can merge it.
 
-When review is completed, your pull request will be squashed and merged
-into the repository.
+When the review finishes, your pull request will be squashed and merged
+into the repository. If you have carefully organized your commits and
+believe they should be merged without squashing, leave a comment.
 
 ## Building documentation
 
@@ -158,20 +163,20 @@ cd ex_doc && ../elixir/bin/mix do deps.get, compile
 cd ../elixir && make docs
 ```
 
-This will produce documentation sets for `elixir`, `mix`, etc., under
+This will produce documentation sets for `elixir`, `mix`, etc. under
 the `doc` directory. If you are planning to contribute documentation,
 [please check our best practices for writing documentation](https://hexdocs.pm/elixir/writing-documentation.html).
 
 ## Development links
 
-  * [Elixir Website][1]
+  * [Elixir Getting Started guide][1]
   * [Elixir Documentation][6]
   * [Elixir Core Mailing list (development)][3]
   * [Issues tracker][2]
   * [Code of Conduct][7]
   * **[#elixir-lang][4]** on [Freenode][5] IRC
 
-  [1]: http://elixir-lang.org
+  [1]: https://elixir-lang.org/getting-started/introduction.html
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: https://groups.google.com/group/elixir-lang-core
   [4]: https://webchat.freenode.net/?channels=#elixir-lang

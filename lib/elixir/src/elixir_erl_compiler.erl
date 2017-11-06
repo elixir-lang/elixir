@@ -57,20 +57,12 @@ handle_file_warning(_, _File, {Line, erl_lint, {unused_var, _Var}}) when Line =<
 handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _Var, _Where}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _Var, _Where}}) -> ok;
 
-handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour, Module}}) ->
-  case elixir_config:get(bootstrap) of
-    true ->
-      ok;
-    false when Module == 'Elixir.Collectable';
-               Module == 'Elixir.Enumerable';
-               Module == 'Elixir.Inspect';
-               Module == 'Elixir.List.Chars';
-               Module == 'Elixir.String.Chars' ->
-      %% Silence Elixir behaviour warnings because of bootstrapping
-      ok;
-    false ->
-      elixir_errors:warn(Line, File, ["behaviour ", elixir_aliases:inspect(Module), " is undefined"])
-  end;
+%% Ignore behaviour warnings as we check for these problem ourselves
+handle_file_warning(_, _File, {_Line, erl_lint, {conflicting_behaviours, _, _, _, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {undefined_behaviour_func, _, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {undefined_behaviour, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_behaviour_callbacks, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_optional_callbacks, _}}) -> ok;
 
 handle_file_warning(_, File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
@@ -106,18 +98,6 @@ format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
   end,
   io_lib:format(Fmt, Args);
 
-%% Rewrite undefined behaviour to check for protocols
-format_error(erl_lint, {undefined_behaviour_func, {Fun, Arity}, Module}) ->
-  {DefKind, Def, DefArity} =
-    case atom_to_list(Fun) of
-      "MACRO-" ++ Rest -> {macro, list_to_atom(Rest), Arity - 1};
-      _ -> {function, Fun, Arity}
-    end,
-
-  Kind    = protocol_or_behaviour(Module),
-  Raw     = "undefined ~ts ~ts ~ts/~B (for ~ts ~ts)",
-  io_lib:format(Raw, [Kind, DefKind, Def, DefArity, Kind, elixir_aliases:inspect(Module)]);
-
 %% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc
 format_error(sys_core_fold, nomatch_guard) ->
   "this check/guard will always yield the same result";
@@ -147,21 +127,6 @@ format_var(Var) ->
   case lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)) of
     "V" ++ Rest -> Rest;
     Rest -> Rest
-  end.
-
-protocol_or_behaviour(Module) ->
-  case is_protocol(Module) of
-    true  -> protocol;
-    false -> behaviour
-  end.
-
-is_protocol(Module) ->
-  case code:ensure_loaded(Module) of
-    {module, _} ->
-      erlang:function_exported(Module, '__protocol__', 1) andalso
-        Module:'__protocol__'(module) == Module;
-    {error, _} ->
-      false
   end.
 
 translate_comp_op('/=') -> '!=';

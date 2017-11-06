@@ -35,16 +35,15 @@ start(_Type, _Args) ->
       error   -> [binary]
     end,
 
-  OTPRelease = string:to_integer(erlang:system_info(otp_release)),
-
   %% Whenever we change this check, we should also change escript.build.
-  case OTPRelease of
-    {Num, _} when Num >= 19 ->
-      ok;
-    _ ->
-      io:format(standard_error, "unsupported Erlang version, expected Erlang 19+~n", []),
-      erlang:halt(1)
-  end,
+  OTPRelease =
+    case string:to_integer(erlang:system_info(otp_release)) of
+      {Num, _} when Num >= 19 ->
+        Num;
+      _ ->
+        io:format(standard_error, "unsupported Erlang version, expected Erlang 19+~n", []),
+        erlang:halt(1)
+    end,
 
   %% We need to make sure the re module is preloaded
   %% to make function_exported checks on it fast.
@@ -83,7 +82,7 @@ start(_Type, _Args) ->
   %% TODO: Remove OTPRelease check once we support OTP 20+.
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
     {module, Mod} when OTPRelease >= 20 -> Mod;
-    {error, _} -> elixir_tokenizer
+    _ -> elixir_tokenizer
   end,
 
   URIConfig = [{{uri, <<"ftp">>}, 21},
@@ -271,8 +270,8 @@ quoted_to_erl(Quoted, Env, Scope) ->
 
 string_to_tokens(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, [{file, File} | Opts]) of
-    {ok, _Line, _Column, Tokens} ->
-      {ok, Tokens};
+    {ok, _Tokens} = Ok ->
+      Ok;
     {error, {Line, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
       {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
     {error, {Line, Error, Token}, _Rest, _SoFar} ->
@@ -281,6 +280,7 @@ string_to_tokens(String, StartLine, File, Opts) when is_integer(StartLine), is_b
 
 tokens_to_quoted(Tokens, File, Opts) ->
   handle_parsing_opts(File, Opts),
+
   try elixir_parser:parse(Tokens) of
     {ok, Forms} -> {ok, Forms};
     {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
@@ -312,5 +312,8 @@ to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, utf8).
 handle_parsing_opts(File, Opts) ->
   FormatterMetadata =
     lists:keyfind(formatter_metadata, 1, Opts) == {formatter_metadata, true},
+  Columns =
+    lists:keyfind(columns, 1, Opts) == {columns, true},
   put(elixir_parser_file, File),
+  put(elixir_parser_columns, Columns),
   put(elixir_formatter_metadata, FormatterMetadata).

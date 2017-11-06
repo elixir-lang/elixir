@@ -11,14 +11,19 @@ defmodule IEx.Autocomplete do
     cond do
       h === ?. and t != [] ->
         expand_dot(reduce(t), server)
+
       h === ?: and t == [] ->
         expand_erlang_modules()
+
       identifier?(h) ->
         expand_expr(reduce(expr), server)
-      (h == ?/) and t != [] and identifier?(hd(t)) ->
+
+      h == ?/ and t != [] and identifier?(hd(t)) ->
         expand_expr(reduce(t), server)
+
       h in '([{' ->
         expand('')
+
       true ->
         no()
     end
@@ -34,36 +39,44 @@ defmodule IEx.Autocomplete do
   end
 
   defp identifier?(h) do
-    (h in ?a..?z) or (h in ?A..?Z) or (h in ?0..?9) or h in [?_, ??, ?!]
+    h in ?a..?z or h in ?A..?Z or h in ?0..?9 or h in [?_, ??, ?!]
   end
 
   defp expand_dot(expr, server) do
-    case Code.string_to_quoted expr do
+    case Code.string_to_quoted(expr) do
       {:ok, atom} when is_atom(atom) ->
         expand_call(atom, "", server)
+
       {:ok, {:__aliases__, _, list}} ->
         expand_elixir_modules(list, "", server)
+
       {:ok, {_, _, _} = ast_node} ->
         expand_call(ast_node, "", server)
+
       _ ->
         no()
     end
   end
 
   defp expand_expr(expr, server) do
-    case Code.string_to_quoted expr do
+    case Code.string_to_quoted(expr) do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules(Atom.to_string(atom))
+
       {:ok, {atom, _, nil}} when is_atom(atom) ->
         expand_variable_or_import(Atom.to_string(atom), server)
+
       {:ok, {:__aliases__, _, [root]}} ->
         expand_elixir_modules([], Atom.to_string(root), server)
+
       {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
         hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)
         expand_elixir_modules(list, hint, server)
+
       {:ok, {{:., _, [ast_node, fun]}, _, []}} when is_atom(fun) ->
         expand_call(ast_node, Atom.to_string(fun), server)
+
       _ ->
         no()
     end
@@ -78,10 +91,8 @@ defmodule IEx.Autocomplete do
     |> trim_leading(?%)
   end
 
-  defp trim_leading([char | rest], char),
-    do: rest
-  defp trim_leading(expr, _char),
-    do: expr
+  defp trim_leading([char | rest], char), do: rest
+  defp trim_leading(expr, _char), do: expr
 
   defp yes(hint, entries) do
     {:yes, String.to_charlist(hint), Enum.map(entries, &String.to_charlist/1)}
@@ -99,15 +110,16 @@ defmodule IEx.Autocomplete do
 
   defp format_expansion([uniq], hint) do
     case to_hint(uniq, hint) do
-      ""   -> yes("", to_uniq_entries(uniq))
+      "" -> yes("", to_uniq_entries(uniq))
       hint -> yes(hint, [])
     end
   end
 
   defp format_expansion([first | _] = entries, hint) do
-    binary = Enum.map(entries, &(&1.name))
+    binary = Enum.map(entries, & &1.name)
     length = byte_size(hint)
     prefix = :binary.longest_common_prefix(binary)
+
     if prefix in [0, length] do
       yes("", Enum.flat_map(entries, &to_entries/1))
     else
@@ -151,12 +163,14 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_require(mod, hint) do
-    format_expansion match_module_funs(get_module_funs(mod), hint), hint
+    format_expansion(match_module_funs(get_module_funs(mod), hint), hint)
   end
 
   defp expand_variable_or_import(hint, server) do
     variables = expand_variable(hint, server)
-    funs = match_module_funs(imports_from_env(server) ++ get_module_funs(Kernel.SpecialForms), hint)
+    imports = imports_from_env(server)
+    module_funs = get_module_funs(Kernel.SpecialForms)
+    funs = match_module_funs(imports ++ module_funs, hint)
     format_expansion(variables ++ funs, hint)
   end
 
@@ -169,12 +183,11 @@ defmodule IEx.Autocomplete do
   ## Erlang modules
 
   defp expand_erlang_modules(hint \\ "") do
-    format_expansion match_erlang_modules(hint), hint
+    format_expansion(match_erlang_modules(hint), hint)
   end
 
   defp match_erlang_modules(hint) do
-    for mod <- match_modules(hint, true),
-        usable_as_unquoted_module?(mod) do
+    for mod <- match_modules(hint, true), usable_as_unquoted_module?(mod) do
       %{kind: :module, name: mod, type: :erlang}
     end
   end
@@ -207,6 +220,7 @@ defmodule IEx.Autocomplete do
       :error -> {:ok, Module.concat([name | rest])}
     end
   end
+
   defp expand_alias([_ | _], _) do
     :error
   end
@@ -220,9 +234,9 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_elixir_modules(module, hint) do
-    name  = Atom.to_string(module)
+    name = Atom.to_string(module)
     depth = length(String.split(name, ".")) + 1
-    base  = name <> "." <> hint
+    base = name <> "." <> hint
 
     for mod <- match_modules(base, module === Elixir),
         parts = String.split(mod, "."),
@@ -231,13 +245,13 @@ defmodule IEx.Autocomplete do
         valid_alias_piece?("." <> name) do
       %{kind: :module, type: :elixir, name: name}
     end
-    |> Enum.uniq
+    |> Enum.uniq()
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
     do: valid_alias_rest?(rest)
-  defp valid_alias_piece?(_),
-    do: false
+
+  defp valid_alias_piece?(_), do: false
 
   defp valid_alias_rest?(<<char, rest::binary>>)
        when char in ?A..?Z
@@ -245,10 +259,9 @@ defmodule IEx.Autocomplete do
        when char in ?0..?9
        when char == ?_,
        do: valid_alias_rest?(rest)
-  defp valid_alias_rest?(<<>>),
-    do: true
-  defp valid_alias_rest?(rest),
-    do: valid_alias_piece?(rest)
+
+  defp valid_alias_rest?(<<>>), do: true
+  defp valid_alias_rest?(rest), do: valid_alias_piece?(rest)
 
   ## Helpers
 
@@ -261,8 +274,8 @@ defmodule IEx.Autocomplete do
   defp match_modules(hint, root) do
     get_modules(root)
     |> :lists.usort()
-    |> Enum.drop_while(& not String.starts_with?(&1, hint))
-    |> Enum.take_while(& String.starts_with?(&1, hint))
+    |> Enum.drop_while(&(not String.starts_with?(&1, hint)))
+    |> Enum.take_while(&String.starts_with?(&1, hint))
   end
 
   defp get_modules(true) do
@@ -271,6 +284,7 @@ defmodule IEx.Autocomplete do
 
   defp get_modules(false) do
     modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
+
     case :code.get_mode() do
       :interactive -> modules ++ get_modules_from_applications()
       _otherwise -> modules
@@ -295,18 +309,22 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_module_funs(funs, hint) do
-    for({fun, arity} <- funs,
-        name = Atom.to_string(fun),
-        String.starts_with?(name, hint),
-        do: %{kind: :function, name: name, arity: arity})
+    for {fun, arity} <- funs, name = Atom.to_string(fun), String.starts_with?(name, hint) do
+      %{
+        kind: :function,
+        name: name,
+        arity: arity
+      }
+    end
     |> Enum.sort_by(&{&1.name, &1.arity})
   end
 
   defp match_map_fields(map, hint) do
-    for({key, value} when is_atom(key) <- Map.to_list(map),
+    for {key, value} when is_atom(key) <- Map.to_list(map),
         key = Atom.to_string(key),
-        String.starts_with?(key, hint),
-        do: %{kind: :map_key, name: key, value_is_map: is_map(value)})
+        String.starts_with?(key, hint) do
+      %{kind: :map_key, name: key, value_is_map: is_map(value)}
+    end
     |> Enum.sort_by(& &1.name)
   end
 
@@ -314,10 +332,12 @@ defmodule IEx.Autocomplete do
     cond do
       not ensure_loaded?(mod) ->
         []
+
       docs = Code.get_docs(mod, :docs) ->
         exports(mod)
         |> Kernel.--(default_arg_functions_with_doc_false(docs))
         |> Enum.reject(&hidden_fun?(&1, docs))
+
       true ->
         exports(mod)
     end
@@ -327,7 +347,7 @@ defmodule IEx.Autocomplete do
     for {{fun_name, arity}, _, _, args, false} <- docs,
         count = count_defaults(args),
         count > 0,
-        new_arity <- (arity-count)..arity,
+        new_arity <- (arity - count)..arity,
         do: {fun_name, new_arity}
   end
 
@@ -339,25 +359,27 @@ defmodule IEx.Autocomplete do
     case List.keyfind(docs, fun, 0) do
       nil ->
         underscored_fun?(fun)
+
       {_, _, _, _, false} ->
         true
+
       {fun, _, _, _, nil} ->
         underscored_fun?(fun)
+
       {_, _, _, _, _} ->
         false
     end
   end
 
-  defp underscored_fun?({name, _}),
-    do: hd(Atom.to_charlist(name)) == ?_
+  defp underscored_fun?({name, _}), do: hd(Atom.to_charlist(name)) == ?_
 
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
   ## Ad-hoc conversions
 
-  defp to_entries(%{kind: kind, name: name}) when
-       kind in [:map_key, :module, :variable] do
+  defp to_entries(%{kind: kind, name: name})
+       when kind in [:map_key, :module, :variable] do
     [name]
   end
 
@@ -365,8 +387,8 @@ defmodule IEx.Autocomplete do
     ["#{name}/#{arity}"]
   end
 
-  defp to_uniq_entries(%{kind: kind}) when
-       kind in [:map_key, :module, :variable] do
+  defp to_uniq_entries(%{kind: kind})
+       when kind in [:map_key, :module, :variable] do
     []
   end
 
@@ -382,8 +404,8 @@ defmodule IEx.Autocomplete do
     format_hint(name, hint) <> "."
   end
 
-  defp to_hint(%{kind: kind, name: name}, hint) when
-       kind in [:function, :map_key, :module, :variable] do
+  defp to_hint(%{kind: kind, name: name}, hint)
+       when kind in [:function, :map_key, :module, :variable] do
     format_hint(name, hint)
   end
 

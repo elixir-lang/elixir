@@ -37,8 +37,13 @@ defmodule Time do
   @enforce_keys [:hour, :minute, :second]
   defstruct [:hour, :minute, :second, microsecond: {0, 0}, calendar: Calendar.ISO]
 
-  @type t :: %Time{hour: Calendar.hour, minute: Calendar.minute,
-                   second: Calendar.second, microsecond: Calendar.microsecond, calendar: Calendar.calendar}
+  @type t :: %Time{
+          hour: Calendar.hour(),
+          minute: Calendar.minute(),
+          second: Calendar.second(),
+          microsecond: Calendar.microsecond(),
+          calendar: Calendar.calendar()
+        }
 
   @doc """
   Returns the current time in UTC.
@@ -50,10 +55,19 @@ defmodule Time do
       true
 
   """
-  @spec utc_now(Calendar.calendar) :: t
+  @spec utc_now(Calendar.calendar()) :: t
   def utc_now(calendar \\ Calendar.ISO) do
-    {:ok, _, {hour, minute, second}, microsecond} = Calendar.ISO.from_unix(:os.system_time, :native)
-    iso_time = %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}
+    {:ok, _, time, microsecond} = Calendar.ISO.from_unix(:os.system_time(), :native)
+    {hour, minute, second} = time
+
+    iso_time = %Time{
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      calendar: Calendar.ISO
+    }
+
     convert!(iso_time, calendar)
   end
 
@@ -94,8 +108,13 @@ defmodule Time do
       {:error, :invalid_time}
 
   """
-  @spec new(Calendar.hour, Calendar.minute, Calendar.second, Calendar.microsecond | integer, Calendar.calendar) ::
-        {:ok, t} | {:error, atom}
+  @spec new(
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond() | integer,
+          Calendar.calendar()
+        ) :: {:ok, t} | {:error, atom}
   def new(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
   def new(hour, minute, second, microsecond, calendar) when is_integer(microsecond) do
@@ -104,10 +123,19 @@ defmodule Time do
 
   def new(hour, minute, second, {microsecond, precision}, calendar)
       when is_integer(hour) and is_integer(minute) and is_integer(second) and
-           is_integer(microsecond) and is_integer(precision) do
+             is_integer(microsecond) and is_integer(precision) do
     case calendar.valid_time?(hour, minute, second, {microsecond, precision}) do
       true ->
-        {:ok, %Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, precision}, calendar: calendar}}
+        time = %Time{
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: {microsecond, precision},
+          calendar: calendar
+        }
+
+        {:ok, time}
+
       false ->
         {:error, :invalid_time}
     end
@@ -131,10 +159,16 @@ defmodule Time do
       "23:00:00.123456"
 
   """
-  @spec to_string(Calendar.time) :: String.t
+  @spec to_string(Calendar.time()) :: String.t()
   def to_string(time)
 
-  def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
+  def to_string(%{
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond,
+        calendar: calendar
+      }) do
     calendar.time_to_string(hour, minute, second, microsecond)
   end
 
@@ -179,7 +213,7 @@ defmodule Time do
       {:error, :invalid_time}
 
   """
-  @spec from_iso8601(String.t) :: {:ok, t} | {:error, atom}
+  @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
   def from_iso8601(<<?T, h, rest::binary>>, calendar) when h in ?0..?9 do
@@ -218,13 +252,14 @@ defmodule Time do
       iex> Time.from_iso8601!("2015:01:23 23-50-07")
       ** (ArgumentError) cannot parse "2015:01:23 23-50-07" as time, reason: :invalid_format
   """
-  @spec from_iso8601!(String.t) :: t
+  @spec from_iso8601!(String.t()) :: t
   def from_iso8601!(string) do
     case from_iso8601(string) do
       {:ok, value} ->
         value
+
       {:error, reason} ->
-        raise ArgumentError, "cannot parse #{inspect string} as time, reason: #{inspect reason}"
+        raise ArgumentError, "cannot parse #{inspect(string)} as time, reason: #{inspect(reason)}"
     end
   end
 
@@ -251,9 +286,15 @@ defmodule Time do
       "23:00:13"
 
   """
-  @spec to_iso8601(Calendar.time, :extended | :basic) :: String.t
+  @spec to_iso8601(Calendar.time(), :extended | :basic) :: String.t()
   def to_iso8601(time, format \\ :extended) when format in [:extended, :basic] do
-    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = convert!(time, Calendar.ISO)
+    %{
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = convert!(time, Calendar.ISO)
+
     Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond, format)
   end
 
@@ -272,7 +313,7 @@ defmodule Time do
       {23, 30, 15}
 
   """
-  @spec to_erl(Calendar.time) :: :calendar.time
+  @spec to_erl(Calendar.time()) :: :calendar.time()
   def to_erl(time) do
     %{hour: hour, minute: minute, second: second} = convert!(time, Calendar.ISO)
     {hour, minute, second}
@@ -289,7 +330,8 @@ defmodule Time do
       {:error, :invalid_time}
 
   """
-  @spec from_erl(:calendar.time, Calendar.microsecond, Calendar.calendar) :: {:ok, t} | {:error, atom}
+  @spec from_erl(:calendar.time(), Calendar.microsecond(), Calendar.calendar()) ::
+          {:ok, t} | {:error, atom}
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
   def from_erl({hour, minute, second}, microsecond, calendar) do
@@ -310,13 +352,15 @@ defmodule Time do
       ** (ArgumentError) cannot convert {24, 30, 15} to time, reason: :invalid_time
 
   """
-  @spec from_erl!(:calendar.time, Calendar.microsecond, Calendar.calendar) :: t
+  @spec from_erl!(:calendar.time(), Calendar.microsecond(), Calendar.calendar()) :: t
   def from_erl!(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
     case from_erl(tuple, microsecond, calendar) do
       {:ok, value} ->
         value
+
       {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect tuple} to time, reason: #{inspect reason}"
+        raise ArgumentError,
+              "cannot convert #{inspect(tuple)} to time, reason: #{inspect(reason)}"
     end
   end
 
@@ -343,16 +387,23 @@ defmodule Time do
       ~T[22:59:00.000000]
 
   """
-  @spec add(Calendar.time, integer, System.time_unit) :: t
+  @spec add(Calendar.time(), integer, System.time_unit()) :: t
   def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
     number = System.convert_time_unit(number, unit, :microsecond)
     iso_days = {0, to_day_fraction(time)}
     total = Calendar.ISO.iso_days_to_unit(iso_days, :microsecond) + number
-    iso_ppd = 86400000000
+    iso_ppd = 86_400_000_000
     parts = Integer.mod(total, iso_ppd)
 
     {hour, minute, second, microsecond} = calendar.time_from_day_fraction({parts, iso_ppd})
-    %Time{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}
+
+    %Time{
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      calendar: calendar
+    }
   end
 
   @doc """
@@ -382,9 +433,11 @@ defmodule Time do
       :gt
 
   """
-  @spec compare(Calendar.time, Calendar.time) :: :lt | :eq | :gt
-  def compare(%{calendar: calendar, hour: hour1, minute: minute1, second: second1, microsecond: {microsecond1, _}},
-              %{calendar: calendar, hour: hour2, minute: minute2, second: second2, microsecond: {microsecond2, _}}) do
+  @spec compare(Calendar.time(), Calendar.time()) :: :lt | :eq | :gt
+  def compare(%{calendar: calendar} = time1, %{calendar: calendar} = time2) do
+    %{hour: hour1, minute: minute1, second: second1, microsecond: {microsecond1, _}} = time1
+    %{hour: hour2, minute: minute2, second: second2, microsecond: {microsecond2, _}} = time2
+
     case {{hour1, minute1, second1, microsecond1}, {hour2, minute2, second2, microsecond2}} do
       {first, second} when first > second -> :gt
       {first, second} when first < second -> :lt
@@ -419,18 +472,45 @@ defmodule Time do
       {:ok, %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
 
   """
-  @spec convert(Calendar.time, Calendar.calendar) :: {:ok, t} | {:error, atom}
-  def convert(%{calendar: calendar, hour: hour, minute: minute, second: second, microsecond: microsecond}, calendar) do
-    {:ok, %Time{calendar: calendar, hour: hour, minute: minute, second: second, microsecond: microsecond}}
+  @spec convert(Calendar.time(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
+
+  # Keep it multiline for proper function clause errors.
+  def convert(
+        %{
+          calendar: calendar,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond
+        },
+        calendar
+      ) do
+    time = %Time{
+      calendar: calendar,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
+
+    {:ok, time}
   end
 
   def convert(%{microsecond: {_, precision}} = time, calendar) do
     {hour, minute, second, {microsecond, _}} =
       time
       |> to_day_fraction()
-      |> calendar.time_from_day_fraction
-    {:ok, %Time{calendar: calendar, hour: hour, minute: minute, second: second,
-                microsecond: {microsecond, precision}}}
+      |> calendar.time_from_day_fraction()
+
+    time = %Time{
+      calendar: calendar,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: {microsecond, precision}
+    }
+
+    {:ok, time}
   end
 
   @doc """
@@ -447,13 +527,16 @@ defmodule Time do
       %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
-  @spec convert!(Calendar.time, Calendar.calendar) :: t
+  @spec convert!(Calendar.time(), Calendar.calendar()) :: t
   def convert!(time, calendar) do
     case convert(time, calendar) do
       {:ok, value} ->
         value
+
       {:error, reason} ->
-        raise ArgumentError, "cannot convert #{inspect time} to target calendar #{inspect calendar}, reason: #{inspect reason}"
+        raise ArgumentError,
+              "cannot convert #{inspect(time)} to target calendar #{inspect(calendar)}, " <>
+                "reason: #{inspect(reason)}"
     end
   end
 
@@ -494,28 +577,51 @@ defmodule Time do
       -2_000_000
 
   """
-  @spec diff(Calendar.time, Calendar.time, System.time_unit) :: integer
+  @spec diff(Calendar.time(), Calendar.time(), System.time_unit()) :: integer
   def diff(time1, time2, unit \\ :second) do
     fraction1 = to_day_fraction(time1)
     fraction2 = to_day_fraction(time2)
+
     Calendar.ISO.iso_days_to_unit({0, fraction1}, unit) -
       Calendar.ISO.iso_days_to_unit({0, fraction2}, unit)
   end
 
   ## Helpers
 
-  defp to_day_fraction(%{hour: hour, minute: minute, second: second, microsecond: {_, _} = microsecond, calendar: calendar}) do
+  defp to_day_fraction(%{
+         hour: hour,
+         minute: minute,
+         second: second,
+         microsecond: {_, _} = microsecond,
+         calendar: calendar
+       }) do
     calendar.time_to_day_fraction(hour, minute, second, microsecond)
   end
 
   defimpl String.Chars do
-    def to_string(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar}) do
+    def to_string(time) do
+      %{
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond,
+        calendar: calendar
+      } = time
+
       calendar.time_to_string(hour, minute, second, microsecond)
     end
   end
 
   defimpl Inspect do
-    def inspect(%{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: Calendar.ISO}, _) do
+    def inspect(%{calendar: Calendar.ISO} = time, _) do
+      %{
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond,
+        calendar: Calendar.ISO
+      } = time
+
       "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
     end
 

@@ -56,14 +56,13 @@ defmodule Mix.Tasks.Archive.Install do
   @behaviour Mix.Local.Installer
 
   @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
-  @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     Mix.Local.Installer.install(__MODULE__, argv, @switches)
   end
 
   # Callbacks
-  def check_install_spec({local_or_url, path_or_url} = _install_spec, _opts) when
-      local_or_url in [:local, :url] do
+  def check_install_spec({local_or_url, path_or_url} = _install_spec, _opts)
+      when local_or_url in [:local, :url] do
     if Path.extname(path_or_url) == ".ez" do
       :ok
     else
@@ -76,9 +75,9 @@ defmodule Mix.Tasks.Archive.Install do
   def find_previous_versions(src) do
     app =
       src
-      |> Mix.Local.archive_name
+      |> Mix.Local.archive_name()
       |> String.split("-")
-      |> List.first
+      |> List.first()
 
     if app do
       archives(app) ++ archives(app <> "-*")
@@ -94,8 +93,8 @@ defmodule Mix.Tasks.Archive.Install do
     remove_previous_versions(previous)
 
     File.mkdir_p!(dir_dest)
-    {:ok, _} = :zip.extract(contents, [cwd: dir_dest])
-    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dir_dest)]
+    {:ok, _} = :zip.extract(contents, cwd: dir_dest)
+    Mix.shell().info([:green, "* creating ", :reset, Path.relative_to_cwd(dir_dest)])
 
     ebin = Mix.Local.archive_ebin(dir_dest)
     Mix.Local.check_elixir_version_in_ebin(ebin)
@@ -105,7 +104,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   def build(_install_spec, _opts) do
     Mix.Task.run("archive.build", [])
-    Mix.Local.name_for(:archive, Mix.Project.config)
+    Mix.Local.name_for(:archive, Mix.Project.config())
   end
 
   ### Private helpers
@@ -114,11 +113,10 @@ defmodule Mix.Tasks.Archive.Install do
     with {:ok, [_comment, zip_first_file | _]} <- :zip.list_dir(contents),
          {:zip_file, zip_first_path, _, _, _, _} = zip_first_file,
          [zip_root_dir | _] = Path.split(zip_first_path) do
-
       Path.join(Path.dirname(ez_path), zip_root_dir)
     else
       _ ->
-        Mix.raise "Installation failed: invalid archive file"
+        Mix.raise("Installation failed: invalid archive file")
     end
   end
 
@@ -126,11 +124,9 @@ defmodule Mix.Tasks.Archive.Install do
     # TODO: We can remove the .ez extension on Elixir 2.0 since we always unzip since 1.3
     Mix.Local.path_for(:archive)
     |> Path.join(name <> "{,*.ez}")
-    |> Path.wildcard
+    |> Path.wildcard()
   end
 
-  defp remove_previous_versions([]),
-    do: :ok
-  defp remove_previous_versions(previous),
-    do: Enum.each(previous, &File.rm_rf!/1)
+  defp remove_previous_versions([]), do: :ok
+  defp remove_previous_versions(previous), do: Enum.each(previous, &File.rm_rf!/1)
 end

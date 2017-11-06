@@ -3,7 +3,7 @@
 -module(elixir_utils).
 -export([get_line/1, split_last/1, noop/0,
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
-  macro_name/1, returns_boolean/1, caller/4, meta_location/1,
+  macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
   read_file_type/1, read_link_type/1, read_mtime_and_size/1, change_universal_time/2,
   guard_op/2, match_op/2, extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
@@ -129,22 +129,15 @@ get_line(Opts) when is_list(Opts) ->
 
 %% Meta location.
 %%
-%% Macros add a file+keep pair on location keep
-%% which we should take into account for error
-%% reporting.
+%% Macros add a file pair on location keep which we
+%% should take into account for error reporting.
 %%
-%% Returns {binary, integer} on location keep or
-%% nil.
+%% Returns {binary, integer} on location keep or nil.
 
-meta_location(Meta) ->
-  case lists:keyfind(file, 1, Meta) of
-    {file, MetaFile} when is_binary(MetaFile) ->
-      MetaLine =
-        case lists:keyfind(keep, 1, Meta) of
-          {keep, Keep} when is_integer(Keep) -> Keep;
-          _ -> 0
-        end,
-      {MetaFile, MetaLine};
+meta_keep(Meta) ->
+  case lists:keyfind(keep, 1, Meta) of
+    {keep, {File, Line} = Pair} when is_binary(File), is_integer(Line) ->
+      Pair;
     _ ->
       nil
   end.
@@ -186,7 +179,7 @@ returns_boolean({'cond', _, [[{do, Clauses}]]}) ->
     ({'->', _, [_, Expr]}) -> returns_boolean(Expr)
   end, Clauses);
 
-returns_boolean({'__block__', [], Exprs}) ->
+returns_boolean({'__block__', _, Exprs}) ->
   returns_boolean(lists:last(Exprs));
 
 returns_boolean(_) -> false.

@@ -1,12 +1,10 @@
-assert_timeout = String.to_integer(
-  System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500"
-)
+assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
 
 System.put_env("ELIXIR_EDITOR", "echo")
 
 :ok = Application.start(:iex)
-IEx.configure([colors: [enabled: false]])
-ExUnit.start [trace: "--trace" in System.argv, assert_receive_timeout: assert_timeout]
+IEx.configure(colors: [enabled: false])
+ExUnit.start(trace: "--trace" in System.argv(), assert_receive_timeout: assert_timeout)
 
 defmodule IEx.Case do
   use ExUnit.CaseTemplate
@@ -42,11 +40,12 @@ defmodule IEx.Case do
   @iex_env Application.get_all_env(:iex) |> Keyword.take(keys)
 
   setup do
-    on_exit fn ->
+    on_exit(fn ->
       env = @iex_env
       Enum.each(env, fn {k, _} -> Application.delete_env(:iex, k) end)
       IEx.configure(env)
-    end
+    end)
+
     :ok
   end
 
@@ -66,13 +65,14 @@ defmodule IEx.Case do
     ExUnit.CaptureIO.capture_io([input: input, capture_prompt: capture_prompt], fn ->
       server_options = Keyword.put_new(server_options, :dot_iex_path, "")
       IEx.Server.start(server_options, {IEx, :dont_display_result, []})
-    end) |> strip_iex
+    end)
+    |> strip_iex
   end
 
   defp strip_iex(string) do
     string
-    |> String.split("\n", parts: 2) # trim the greeting
+    |> String.split("\n", parts: 2)
     |> Enum.at(1)
-    |> String.trim
+    |> String.trim()
   end
 end

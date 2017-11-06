@@ -38,13 +38,12 @@ defmodule Mix.Tasks.App.Start do
     * `--no-start` - does not start applications after compilation
 
   """
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    Mix.Project.get!
-    config = Mix.Project.config
+    Mix.Project.get!()
+    config = Mix.Project.config()
 
-    {opts, _, _} = OptionParser.parse args, switches: [permanent: :boolean, temporary: :boolean]
-    Mix.Task.run "loadpaths", args
+    {opts, _, _} = OptionParser.parse(args, switches: [permanent: :boolean, temporary: :boolean])
+    Mix.Task.run("loadpaths", args)
 
     unless "--no-compile" in args do
       Mix.Project.compile(args, config)
@@ -65,17 +64,18 @@ defmodule Mix.Tasks.App.Start do
     #
     # Mix should not depend directly on Logger so check that it's loaded.
     logger = Process.whereis(Logger)
+
     if logger do
-      Logger.App.stop
+      Logger.App.stop()
     end
 
     if "--no-start" in args do
       # Start Logger again if the application won't be starting it
       if logger do
-        :ok = Logger.App.start
+        :ok = Logger.App.start()
       end
     else
-      start(Mix.Project.config, opts)
+      start(Mix.Project.config(), opts)
     end
 
     :ok
@@ -86,15 +86,17 @@ defmodule Mix.Tasks.App.Start do
     apps =
       cond do
         Mix.Project.umbrella?(config) ->
-          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.cached, do: app
+          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.cached(), do: app
+
         app = config[:app] ->
           [app]
+
         true ->
           []
       end
 
     type = type(config, opts)
-    Enum.each apps, &ensure_all_started(&1, type)
+    Enum.each(apps, &ensure_all_started(&1, type))
 
     # If there is a build path, we will let the application
     # that owns the build path do the actual check
@@ -107,10 +109,11 @@ defmodule Mix.Tasks.App.Start do
 
   defp ensure_all_started(app, type) do
     case Application.ensure_all_started(app, type) do
-      {:ok, _} -> :ok
+      {:ok, _} ->
+        :ok
+
       {:error, {app, reason}} ->
-        Mix.raise "Could not start application #{app}: " <>
-          Application.format_error(reason)
+        Mix.raise("Could not start application #{app}: " <> Application.format_error(reason))
     end
   end
 
@@ -125,32 +128,35 @@ defmodule Mix.Tasks.App.Start do
   end
 
   defp check_configured() do
-    configured = Mix.ProjectStack.configured_applications
+    configured = Mix.ProjectStack.configured_applications()
     loaded = for {app, _, _} <- Application.loaded_applications(), do: app
-    _ = for app <- configured -- loaded,
-           :code.lib_dir(app) == {:error, :bad_name} do
-      Mix.shell.error """
-      You have configured application #{inspect app} in your configuration
-      file, but the application is not available.
 
-      This usually means one of:
+    _ =
+      for app <- configured -- loaded, :code.lib_dir(app) == {:error, :bad_name} do
+        Mix.shell().error("""
+        You have configured application #{inspect(app)} in your configuration
+        file, but the application is not available.
 
-      1. You have not added the application as a dependency in a mix.exs file.
+        This usually means one of:
 
-      2. You are configuring an application that does not really exist.
+        1. You have not added the application as a dependency in a mix.exs file.
 
-      Please ensure #{inspect app} exists or remove the configuration.
-      """
-    end
+        2. You are configuring an application that does not really exist.
+
+        Please ensure #{inspect(app)} exists or remove the configuration.
+        """)
+      end
+
     :ok
   end
 
   defp load_protocol(file) do
     case file do
       "Elixir." <> _ ->
-        module = file |> Path.rootname |> String.to_atom
+        module = file |> Path.rootname() |> String.to_atom()
         :code.purge(module)
         :code.delete(module)
+
       _ ->
         :ok
     end

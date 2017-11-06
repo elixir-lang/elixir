@@ -2,7 +2,6 @@ defmodule Mix.Shell.Process do
   @moduledoc """
   Mix shell that uses the current process mailbox for communication.
 
-
   This module provides a Mix shell implementation that uses
   the current process mailbox for communication instead of IO.
 
@@ -42,11 +41,12 @@ defmodule Mix.Shell.Process do
       flush &IO.inspect(&1)
 
   """
-  def flush(callback \\ fn(x) -> x end) do
+  def flush(callback \\ fn x -> x end) do
     receive do
       {:mix_shell, _, _} = message ->
         callback.(message)
         flush(callback)
+
       {:mix_shell_input, _, _} = message ->
         callback.(message)
         flush(callback)
@@ -60,17 +60,9 @@ defmodule Mix.Shell.Process do
   was not printed yet.
   """
   def print_app do
-    if name = Mix.Shell.printable_app_name do
-      send self(), {:mix_shell, :info, ["==> #{name}"]}
+    if name = Mix.Shell.printable_app_name() do
+      send(self(), {:mix_shell, :info, ["==> #{name}"]})
     end
-  end
-
-  @doc """
-  Forwards the message to the current process.
-  """
-  def write(data) do
-    send self(), {:mix_shell, :write, [data]}
-    :ok
   end
 
   @doc """
@@ -78,7 +70,7 @@ defmodule Mix.Shell.Process do
   """
   def info(message) do
     print_app()
-    send self(), {:mix_shell, :info, [format(message)]}
+    send(self(), {:mix_shell, :info, [format(message)]})
     :ok
   end
 
@@ -87,12 +79,12 @@ defmodule Mix.Shell.Process do
   """
   def error(message) do
     print_app()
-    send self(), {:mix_shell, :error, [format(message)]}
+    send(self(), {:mix_shell, :error, [format(message)]})
     :ok
   end
 
   defp format(message) do
-    message |> IO.ANSI.format(false) |> IO.iodata_to_binary
+    message |> IO.ANSI.format(false) |> IO.iodata_to_binary()
   end
 
   @doc """
@@ -117,7 +109,7 @@ defmodule Mix.Shell.Process do
   """
   def prompt(message) do
     print_app()
-    send self(), {:mix_shell, :prompt, [message]}
+    send(self(), {:mix_shell, :prompt, [message]})
 
     receive do
       {:mix_shell_input, :prompt, response} -> response
@@ -145,7 +137,7 @@ defmodule Mix.Shell.Process do
   """
   def yes?(message) do
     print_app()
-    send self(), {:mix_shell, :yes?, [message]}
+    send(self(), {:mix_shell, :yes?, [message]})
 
     receive do
       {:mix_shell_input, :yes?, response} -> response
@@ -154,13 +146,16 @@ defmodule Mix.Shell.Process do
     end
   end
 
-  @doc false
-  # TODO: Deprecate on Elixir v1.8
+  @doc """
+  Executes the given command and forwards its messages to
+  the current process.
+  """
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
-    Mix.Shell.cmd(command, opts, fn(data) ->
+
+    Mix.Shell.cmd(command, opts, fn data ->
       if print_app?, do: print_app()
-      send self(), {:mix_shell, :run, [data]}
+      send(self(), {:mix_shell, :run, [data]})
     end)
   end
 end

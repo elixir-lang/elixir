@@ -1,13 +1,14 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.InteractionTest do
   use IEx.Case
 
   test "whole output" do
     assert capture_io("IO.puts \"Hello world\"", fn ->
-      IEx.Server.start([dot_iex_path: ""], {IEx, :dont_display_result, []})
-    end) =~ "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)" <>
-            "\niex(1)> Hello world\n:ok\niex(2)>"
+             IEx.Server.start([dot_iex_path: ""], {IEx, :dont_display_result, []})
+           end) =~
+             "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)" <>
+               "\niex(1)> Hello world\n:ok\niex(2)>"
   end
 
   test "empty input" do
@@ -19,7 +20,8 @@ defmodule IEx.InteractionTest do
   end
 
   test "invalid input" do
-    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1"
+    assert capture_iex("if true do ) false end") =~
+             "** (SyntaxError) iex:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1"
   end
 
   test "multiple vars" do
@@ -28,6 +30,7 @@ defmodule IEx.InteractionTest do
     << a, b, c, d, e, f, g, h, i, x :: binary >> = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
     x
     """
+
     assert capture_iex(code) =~ "10"
   end
 
@@ -36,6 +39,7 @@ defmodule IEx.InteractionTest do
     1 \\
     + 2
     """
+
     assert capture_iex(code) =~ "3"
   end
 
@@ -45,6 +49,7 @@ defmodule IEx.InteractionTest do
       b
       c
     """
+
     assert capture_iex(input) == ""
   end
 
@@ -55,6 +60,7 @@ defmodule IEx.InteractionTest do
       c
     #iex:break
     """
+
     assert capture_iex(input) =~ "** (TokenMissingError) iex:1: incomplete expression"
   end
 
@@ -65,6 +71,7 @@ defmodule IEx.InteractionTest do
       def bar, do: 13
     end && Sample.foo
     """
+
     assert capture_iex(input) =~ "13"
   after
     :code.purge(Sample)
@@ -76,43 +83,46 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
-  if IO.ANSI.enabled? do
+  if IO.ANSI.enabled?() do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
-      assert capture_iex("1 + 2", opts) ==
-             "\e[31m3\e[0m"
-      assert capture_iex("IO.ANSI.blue", opts) ==
-             "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
+      assert capture_iex("1 + 2", opts) == "\e[31m3\e[0m"
+      assert capture_iex("IO.ANSI.blue", opts) == "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
+
       assert capture_iex("{:ok}", opts) ==
-             "\e[31m\e[39m{\e[0m\e[31m\e[36m:ok\e[0m\e[31m\e[39m}\e[0m\e[31m\e[0m"
+               "\e[31m\e[39m{\e[0m\e[31m\e[36m:ok\e[0m\e[31m\e[39m}\e[0m\e[31m\e[0m"
     end
   end
 
   test "inspect opts" do
     opts = [inspect: [binaries: :as_binaries, charlists: :as_lists, structs: false, limit: 4]]
+
     assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) ==
-           "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
+             "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
   end
 
   test "exception" do
     exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
+
     assert capture_iex("1 + :atom\n:this_is_still_working") =~
-           ~r/^#{exception}.+\n:this_is_still_working$/s
-    refute capture_iex("1 + :atom\n:this_is_still_working") =~
-           ~r/erl_eval/s
+             ~r/^#{exception}.+\n:this_is_still_working$/s
+
+    refute capture_iex("1 + :atom\n:this_is_still_working") =~ ~r/erl_eval/s
   end
 
   test "exception while invoking conflicting helpers" do
     import File, only: [open: 1], warn: false
-    assert capture_iex("open('README.md')", [], [env: __ENV__]) =~
-           ~r"function open/1 imported from both File and IEx.Helpers"
+
+    assert capture_iex("open('README.md')", [], env: __ENV__) =~
+             ~r"function open/1 imported from both File and IEx.Helpers"
   end
 
   test "receive exit" do
     assert capture_iex("spawn_link(fn -> exit(:bye) end); Process.sleep(1000)") =~
-           ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) evaluator process exited with reason: :bye"
+             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) evaluator process exited with reason: :bye"
+
     assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end); Process.sleep(1000)") =~
-           ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) evaluator process exited with reason: {:bye, \[:world\]}"
+             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) evaluator process exited with reason: {:bye, \[:world\]}"
   end
 
   test "receive exit from exception" do
@@ -121,14 +131,17 @@ defmodule IEx.InteractionTest do
     content = capture_iex("spawn_link(fn -> exit({%ArgumentError{},
                            [{:not_a_real_module, :function, 0, []}]}) end);
                            Process.sleep(1000)")
-    assert content =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) evaluator process exited with reason: an exception was raised:\n"
+
+    assert content =~
+             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) evaluator process exited with reason: an exception was raised:\n"
+
     assert content =~ ~r"\s{4}\*\* \(ArgumentError\) argument error\n"
     assert content =~ ~r"\s{8}:not_a_real_module\.function/0"
   end
 
   test "receive exit due to failed call" do
     assert capture_iex("exit({:bye, {:gen_server, :call, [self(), :hello]}})") =~
-           ~r"\*\* \(exit\) exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
+             ~r"\*\* \(exit\) exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
   end
 
   # TODO: Remove this check once we depend only on 20
@@ -148,13 +161,14 @@ defmodule IEx.InteractionTest do
   describe ".iex" do
     test "no .iex" do
       capture_io(:stderr, fn ->
-        assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
+        assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ =
+                 capture_iex("my_variable")
       end)
     end
 
     test "single .iex" do
       File.write!("dot-iex", "my_variable = 144")
-      assert capture_iex("my_variable", [], [dot_iex_path: "dot-iex"]) == "144"
+      assert capture_iex("my_variable", [], dot_iex_path: "dot-iex") == "144"
     after
       File.rm("dot-iex")
     end
@@ -164,7 +178,7 @@ defmodule IEx.InteractionTest do
       File.write!("dot-iex", "import_file \"dot-iex-1\"\nmy_variable=14")
 
       input = "nested_var\nmy_variable\nputs \"hello\""
-      assert capture_iex(input, [], [dot_iex_path: "dot-iex"]) == "13\n14\nhello\n:ok"
+      assert capture_iex(input, [], dot_iex_path: "dot-iex") == "13\n14\nhello\n:ok"
     after
       File.rm("dot-iex-1")
       File.rm("dot-iex")

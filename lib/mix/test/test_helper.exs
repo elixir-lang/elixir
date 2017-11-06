@@ -1,11 +1,10 @@
 Mix.start()
 Mix.shell(Mix.Shell.Process)
-Application.put_env(:mix, :colors, [enabled: false])
-ExUnit.start [trace: "--trace" in System.argv]
+Application.put_env(:mix, :colors, enabled: false)
+ExUnit.start(trace: "--trace" in System.argv())
 
-
-unless {1, 7, 4} <= Mix.SCM.Git.git_version do
-  IO.puts :stderr, "Skipping tests with git sparse checkouts..."
+unless {1, 7, 4} <= Mix.SCM.Git.git_version() do
+  IO.puts(:stderr, "Skipping tests with git sparse checkouts...")
   ExUnit.configure(exclude: :git_sparse)
 end
 
@@ -14,9 +13,7 @@ defmodule MixTest.Case do
 
   defmodule Sample do
     def project do
-      [app: :sample,
-       version: "0.1.0",
-       aliases: [sample: "compile"]]
+      [app: :sample, version: "0.1.0", aliases: [sample: "compile"]]
     end
   end
 
@@ -31,13 +28,13 @@ defmodule MixTest.Case do
       Logger.remove_backend(:console)
     end
 
-    on_exit fn ->
+    on_exit(fn ->
       Application.start(:logger)
       Mix.env(:dev)
-      Mix.Task.clear
-      Mix.Shell.Process.flush
-      Mix.ProjectStack.clear_cache
-      Mix.ProjectStack.clear_stack
+      Mix.Task.clear()
+      Mix.Shell.Process.flush()
+      Mix.ProjectStack.clear_cache()
+      Mix.ProjectStack.clear_stack()
       delete_tmp_paths()
 
       if apps do
@@ -45,9 +42,10 @@ defmodule MixTest.Case do
           Application.stop(app)
           Application.unload(app)
         end
+
         Logger.add_backend(:console, flush: true)
       end
-    end
+    end)
 
     :ok
   end
@@ -57,7 +55,7 @@ defmodule MixTest.Case do
   end
 
   def fixture_path(extension) do
-    Path.join fixture_path(), extension
+    Path.join(fixture_path(), extension)
   end
 
   def tmp_path do
@@ -65,27 +63,27 @@ defmodule MixTest.Case do
   end
 
   def tmp_path(extension) do
-    Path.join tmp_path(), to_string(extension)
+    Path.join(tmp_path(), to_string(extension))
   end
 
   def purge(modules) do
-    Enum.each modules, fn(m) ->
+    Enum.each(modules, fn m ->
       :code.purge(m)
       :code.delete(m)
-    end
+    end)
   end
 
   def in_tmp(which, function) do
     path = tmp_path(which)
-    File.rm_rf! path
-    File.mkdir_p! path
-    File.cd! path, function
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    File.cd!(path, function)
   end
 
   defmacro in_fixture(which, block) do
-    module   = inspect __CALLER__.module
-    function = Atom.to_string elem(__CALLER__.function, 0)
-    tmp      = Path.join(module, function)
+    module = inspect(__CALLER__.module)
+    function = Atom.to_string(elem(__CALLER__.function, 0))
+    tmp = Path.join(module, function)
 
     quote do
       unquote(__MODULE__).in_fixture(unquote(which), unquote(tmp), unquote(block))
@@ -93,7 +91,7 @@ defmodule MixTest.Case do
   end
 
   def in_fixture(which, tmp, function) do
-    src  = fixture_path(which)
+    src = fixture_path(which)
     dest = tmp_path(String.replace(tmp, ":", "_"))
     flag = String.to_charlist(tmp_path())
 
@@ -101,18 +99,17 @@ defmodule MixTest.Case do
     File.mkdir_p!(dest)
     File.cp_r!(src, dest)
 
-    get_path = :code.get_path
-    previous = :code.all_loaded
+    get_path = :code.get_path()
+    previous = :code.all_loaded()
 
     try do
-      File.cd! dest, function
+      File.cd!(dest, function)
     after
       :code.set_path(get_path)
 
-      for {mod, file} <- :code.all_loaded -- previous,
-          file == :in_memory or
-          (is_list(file) and :lists.prefix(flag, file)) do
-        purge [mod]
+      for {mod, file} <- :code.all_loaded() -- previous,
+          file == [] or (is_list(file) and :lists.prefix(flag, file)) do
+        purge([mod])
       end
     end
   end
@@ -123,23 +120,22 @@ defmodule MixTest.Case do
 
   def ensure_touched(file, current) do
     File.touch!(file)
+
     unless File.stat!(file).mtime > current do
       ensure_touched(file, current)
     end
   end
 
   def os_newline do
-    case :os.type do
+    case :os.type() do
       {:win32, _} -> "\r\n"
       _ -> "\n"
     end
   end
 
   def mix(args, envs \\ []) when is_list(args) do
-    System.cmd(elixir_executable(),
-               ["-r", mix_executable(), "--" | args],
-               stderr_to_stdout: true,
-               env: envs) |> elem(0)
+    args = ["-r", mix_executable(), "--" | args]
+    System.cmd(elixir_executable(), args, stderr_to_stdout: true, env: envs) |> elem(0)
   end
 
   def mix_port(args, envs \\ []) when is_list(args) do
@@ -161,10 +157,8 @@ defmodule MixTest.Case do
   end
 
   defp delete_tmp_paths do
-    tmp = tmp_path() |> String.to_charlist
-    for path <- :code.get_path,
-        :string.str(path, tmp) != 0,
-        do: :code.del_path(path)
+    tmp = tmp_path() |> String.to_charlist()
+    for path <- :code.get_path(), :string.str(path, tmp) != 0, do: :code.del_path(path)
   end
 end
 
@@ -198,74 +192,80 @@ target = Path.expand("fixtures/git_repo", __DIR__)
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "lib"))
 
-  File.write! Path.join(target, "mix.exs"), """
+  File.write!(Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
   raise "I was not supposed to be loaded"
-  """
+  """)
 
-  File.cd! target, fn ->
+  File.cd!(target, fn ->
     System.cmd("git", ~w[init])
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "bad"])
-  end
+  end)
 
-  File.write! Path.join(target, "mix.exs"), """
+  File.write!(Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
   defmodule GitRepo.MixProject do
     use Mix.Project
 
     def project do
-      [app: :git_repo, version: "0.1.0"]
+      [
+        app: :git_repo,
+        version: "0.1.0"
+      ]
     end
   end
-  """
+  """)
 
-  File.cd! target, fn ->
+  File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "ok"])
     System.cmd("git", ~w[tag without_module])
-  end
+  end)
 
-  File.write! Path.join(target, "lib/git_repo.ex"), """
+  File.write!(Path.join(target, "lib/git_repo.ex"), """
   ## Auto-generated fixture
   defmodule GitRepo do
     def hello do
       "World"
     end
   end
-  """
+  """)
 
   ## Sparse
   subdir = Path.join(target, "sparse_dir")
   File.mkdir_p!(Path.join(subdir, "lib"))
 
-  File.write! Path.join(subdir, "mix.exs"), """
+  File.write!(Path.join(subdir, "mix.exs"), """
   ## Auto-generated fixture
   defmodule GitSparseRepo.MixProject do
     use Mix.Project
 
     def project do
-      [app: :git_sparse_repo, version: "0.1.0"]
+      [
+        app: :git_sparse_repo,
+        version: "0.1.0"
+      ]
     end
   end
-  """
+  """)
 
-  File.write! Path.join(subdir, "lib/git_sparse_repo.ex"), """
+  File.write!(Path.join(subdir, "lib/git_sparse_repo.ex"), """
   ## Auto-generated fixture
   defmodule GitSparseRepo do
     def hello do
       "World"
     end
   end
-  """
+  """)
 
-  File.cd! target, fn ->
+  File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "lib"])
     System.cmd("git", ~w[tag with_module])
-  end
+  end)
 end
 
 # Deps on Git repo
@@ -274,31 +274,35 @@ target = Path.expand("fixtures/deps_on_git_repo", __DIR__)
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "lib"))
 
-  File.write! Path.join(target, "mix.exs"), """
+  File.write!(Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
   defmodule DepsOnGitRepo.MixProject do
     use Mix.Project
 
     def project do
-      [app: :deps_on_git_repo,
-       version: "0.2.0",
-       deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}]]
+      [
+        app: :deps_on_git_repo,
+        version: "0.2.0",
+        deps: [
+          {:git_repo, git: MixTest.Case.fixture_path("git_repo")}
+        ]
+      ]
     end
   end
-  """
+  """)
 
-  File.write! Path.join(target, "lib/deps_on_git_repo.ex"), """
+  File.write!(Path.join(target, "lib/deps_on_git_repo.ex"), """
   ## Auto-generated fixture
-  GitRepo.hello
-  """
+  GitRepo.hello()
+  """)
 
-  File.cd! target, fn ->
+  File.cd!(target, fn ->
     System.cmd("git", ~w[init])
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "ok"])
-  end
+  end)
 end
 
 # Git Rebar
@@ -307,34 +311,31 @@ target = Path.expand("fixtures/git_rebar", __DIR__)
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "src"))
 
-  File.write! Path.join([target, "src", "git_rebar.app.src"]), """
+  File.write!(Path.join([target, "src", "git_rebar.app.src"]), """
   {application, git_rebar,
     [
       {vsn, "0.1.0"}
     ]}.
-  """
+  """)
 
-  File.write! Path.join([target, "src", "git_rebar.erl"]), """
+  File.write!(Path.join([target, "src", "git_rebar.erl"]), """
   -module(git_rebar).
+  -export([any_function/0]).
+  any_function() -> ok.
+  """)
 
-  -export ([any_function/0]).
-
-  any_function() ->
-      ok.
-  """
-
-  File.cd! target, fn ->
+  File.cd!(target, fn ->
     System.cmd("git", ~w[init])
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "ok"])
-  end
+  end)
 end
 
-Enum.each [:invalidapp, :invalidvsn, :noappfile, :nosemver, :ok], fn(dep) ->
-  File.mkdir_p! Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__)
-end
+Enum.each([:invalidapp, :invalidvsn, :noappfile, :nosemver, :ok], fn dep ->
+  File.mkdir_p!(Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__))
+end)
 
 ## Generate helper modules
 
@@ -367,12 +368,15 @@ defmodule Mix.Tasks.Hello do
   def run(args) do
     "Hello, #{Enum.join(args, " ")}!"
   end
-end |> write_beam.()
+end
+|> write_beam.()
 
 defmodule Mix.Tasks.Invalid do
-end |> write_beam.()
+end
+|> write_beam.()
 
 defmodule Mix.Tasks.Acronym.HTTP do
   use Mix.Task
   def run(_), do: "An HTTP Task"
-end |> write_beam.()
+end
+|> write_beam.()

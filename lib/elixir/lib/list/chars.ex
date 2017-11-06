@@ -38,9 +38,9 @@ defimpl List.Chars, for: BitString do
 
   def to_charlist(term) do
     raise Protocol.UndefinedError,
-             protocol: @protocol,
-                value: term,
-          description: "cannot convert a bitstring to a charlist"
+      protocol: @protocol,
+      value: term,
+      description: "cannot convert a bitstring to a charlist"
   end
 end
 

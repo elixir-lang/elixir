@@ -2,7 +2,7 @@ defmodule IO.StreamError do
   defexception [:reason, :message]
 
   def exception(opts) do
-    reason    = opts[:reason]
+    reason = opts[:reason]
     formatted = IO.iodata_to_binary(:file.format_error(reason))
     %IO.StreamError{message: "error during streaming: #{formatted}", reason: reason}
   end
@@ -41,10 +41,12 @@ defmodule IO.Stream do
       fn
         :ok, {:cont, x} ->
           case raw do
-            true  -> IO.binwrite(device, x)
+            true -> IO.binwrite(device, x)
             false -> IO.write(device, x)
           end
-        :ok, _ -> stream
+
+        :ok, _ ->
+          stream
       end
     end
   end
@@ -53,10 +55,11 @@ defmodule IO.Stream do
     def reduce(%{device: device, raw: raw, line_or_bytes: line_or_bytes}, acc, fun) do
       next_fun =
         case raw do
-          true  -> &IO.each_binstream(&1, line_or_bytes)
+          true -> &IO.each_binstream(&1, line_or_bytes)
           false -> &IO.each_stream(&1, line_or_bytes)
         end
-      Stream.resource(fn -> device end, next_fun, &(&1)).(acc, fun)
+
+      Stream.resource(fn -> device end, next_fun, & &1).(acc, fun)
     end
 
     def count(_stream) do
@@ -64,6 +67,10 @@ defmodule IO.Stream do
     end
 
     def member?(_stream, _term) do
+      {:error, __MODULE__}
+    end
+
+    def slice(_stream) do
       {:error, __MODULE__}
     end
   end

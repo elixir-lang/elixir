@@ -424,6 +424,7 @@ defmodule IEx do
     case IEx.Config.color(color) do
       nil ->
         string
+
       ansi ->
         [ansi | string] |> IO.ANSI.format(true) |> IO.iodata_to_binary()
     end
@@ -553,7 +554,8 @@ defmodule IEx do
       end
     else
       _ ->
-        raise ArgumentError, "expected Mod.fun/arity, such as URI.parse/1, got: #{Macro.to_string(ast)}"
+        raise ArgumentError,
+              "expected Mod.fun/arity, such as URI.parse/1, got: #{Macro.to_string(ast)}"
     end
   end
 
@@ -645,24 +647,32 @@ defmodule IEx do
     case IEx.Pry.break(module, function, arity, stops) do
       {:ok, id} ->
         id
+
       {:error, kind} ->
         message =
           case kind do
             :missing_debug_info ->
-              "module #{inspect module} was not compiled with debug_info"
+              "module #{inspect(module)} was not compiled with debug_info"
+
             :no_beam_file ->
-              "could not find .beam file for #{inspect module}"
+              "could not find .beam file for #{inspect(module)}"
+
             :non_elixir_module ->
-              "module #{inspect module} was not written in Elixir"
+              "module #{inspect(module)} was not written in Elixir"
+
             :otp_20_is_required ->
               "you are running on an earlier OTP version than OTP 20"
+
             :outdated_debug_info ->
-              "module #{inspect module} was not compiled with the latest debug_info"
+              "module #{inspect(module)} was not compiled with the latest debug_info"
+
             :recompilation_failed ->
               "the module could not be compiled with breakpoints (likely an internal error)"
+
             :unknown_function_arity ->
               "unknown function/macro #{Exception.format_mfa(module, function, arity)}"
           end
+
         raise "could not set breakpoint, " <> message
     end
   end
@@ -673,17 +683,17 @@ defmodule IEx do
   # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false
   def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
-    spawn fn ->
+    spawn(fn ->
       case :init.notify_when_started(self()) do
         :started -> :ok
-        _        -> :init.wait_until_started()
+        _ -> :init.wait_until_started()
       end
 
       :ok = start_iex()
       :ok = set_expand_fun()
       :ok = run_after_spawn()
       IEx.Server.start(opts, mfa)
-    end
+    end)
   end
 
   @doc false
@@ -697,13 +707,13 @@ defmodule IEx do
   end
 
   defp set_expand_fun do
-    gl = Process.group_leader
-    glnode = node gl
+    gl = Process.group_leader()
+    glnode = node(gl)
 
     expand_fun =
       if glnode != node() do
-        _ = ensure_module_exists glnode, IEx.Remsh
-        IEx.Remsh.expand node()
+        _ = ensure_module_exists(glnode, IEx.Remsh)
+        IEx.Remsh.expand(node())
       else
         &IEx.Autocomplete.expand(&1)
       end
@@ -716,9 +726,9 @@ defmodule IEx do
   end
 
   defp ensure_module_exists(node, mod) do
-    unless :rpc.call node, :code, :is_loaded, [mod] do
-      {m, b, f} = :code.get_object_code mod
-      {:module, _} = :rpc.call node, :code, :load_binary, [m, f, b]
+    unless :rpc.call(node, :code, :is_loaded, [mod]) do
+      {m, b, f} = :code.get_object_code(mod)
+      {:module, _} = :rpc.call(node, :code, :load_binary, [m, f, b])
     end
   end
 

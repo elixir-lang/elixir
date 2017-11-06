@@ -84,9 +84,9 @@ defmodule Port do
   The `:spawn` tuple receives a binary that is going to be executed as a
   full invocation. For example, we can use it to invoke "echo hello" directly:
 
-      iex> port = Port.open({:spawn, "echo oops"}, [:binary])
+      iex> port = Port.open({:spawn, "echo hello"}, [:binary])
       iex> flush()
-      {#Port<0.1444>, {:data, "oops\n"}}
+      {#Port<0.1444>, {:data, "hello\n"}}
 
   `:spawn` will retrieve the program name from the argument and traverse your
   OS `$PATH` environment variable looking for a matching program.
@@ -139,7 +139,6 @@ defmodule Port do
       done
       kill -KILL $pid
 
-
   Now instead of:
 
       Port.open({:spawn_executable, "/path/to/program"},
@@ -152,10 +151,11 @@ defmodule Port do
 
   """
 
-  @type name :: {:spawn, charlist | binary} |
-                {:spawn_driver, charlist | binary} |
-                {:spawn_executable, charlist | atom} |
-                {:fd, non_neg_integer, non_neg_integer}
+  @type name ::
+          {:spawn, charlist | binary}
+          | {:spawn_driver, charlist | binary}
+          | {:spawn_executable, charlist | atom}
+          | {:fd, non_neg_integer, non_neg_integer}
 
   @doc """
   Opens a port given a tuple `name` and a list of `options`.
@@ -223,7 +223,7 @@ defmodule Port do
   For more information, see `:erlang.port_info/1`.
   """
   def info(port) do
-    nillify :erlang.port_info(port)
+    nillify(:erlang.port_info(port))
   end
 
   @doc """
@@ -242,7 +242,7 @@ defmodule Port do
   end
 
   def info(port, item) do
-    nillify :erlang.port_info(port, item)
+    nillify(:erlang.port_info(port, item))
   end
 
   @doc """
@@ -290,10 +290,10 @@ defmodule Port do
   """
   @spec list :: [port]
   def list do
-    :erlang.ports
+    :erlang.ports()
   end
 
   @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
-  defp nillify(other),      do: other
+  defp nillify(other), do: other
 end

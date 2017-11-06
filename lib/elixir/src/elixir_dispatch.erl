@@ -383,16 +383,22 @@ deprecation('Elixir.Integer', to_char_list, 2) ->
   "use Integer.to_charlist/2";
 deprecation('Elixir.Kernel', to_char_list, 1) ->
   "use Kernel.to_charlist/1";
+deprecation('Elixir.Keyword', replace, 3) ->
+  "use Keyword.fetch/2 + Keyword.put/3";
 deprecation('Elixir.Keyword', size, 1) ->
   "use Kernel.length/1";
 deprecation('Elixir.List.Chars', to_char_list, 1) ->
   "use List.Chars.to_charlist/1";
+deprecation('Elixir.Map', replace, 3) ->
+  "use Map.fetch/2 + Map.put/3";
 deprecation('Elixir.Map', size, 1) ->
   "use Kernel.map_size/1";
 deprecation('Elixir.Macro', unescape_tokens, 1) ->
   "instead traverse over the arguments using Enum.map/2";
 deprecation('Elixir.Macro', unescape_tokens, 2) ->
   "instead traverse over the arguments using Enum.map/2";
+deprecation('Elixir.Range', 'range?', 1) ->
+  "instead pattern match on left..right";
 deprecation('Elixir.Stream', filter_map, 3) ->
   "use Stream.filter/2 + Stream.map/2";
 deprecation('Elixir.Stream', uniq, 2) ->

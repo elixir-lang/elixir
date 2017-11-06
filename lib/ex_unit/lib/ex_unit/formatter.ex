@@ -38,14 +38,14 @@ defmodule ExUnit.Formatter do
   """
 
   @type id :: term
-  @type test :: ExUnit.Test.t
+  @type test :: ExUnit.Test.t()
   @type run_us :: pos_integer
   @type load_us :: pos_integer | nil
 
   import Exception, only: [format_stacktrace_entry: 1, format_file_line: 3]
 
   @counter_padding "     "
-  @no_value ExUnit.AssertionError.no_value
+  @no_value ExUnit.AssertionError.no_value()
 
   @doc """
   Formats time taken running the test suite.
@@ -65,17 +65,18 @@ defmodule ExUnit.Formatter do
       "Finished in 0.2 seconds (0.2s on load, 0.01s on tests)"
 
   """
-  @spec format_time(run_us, load_us) :: String.t
+  @spec format_time(run_us, load_us) :: String.t()
   def format_time(run_us, nil) do
     "Finished in #{run_us |> normalize_us |> format_us} seconds"
   end
 
   def format_time(run_us, load_us) do
-    run_us  = run_us |> normalize_us
+    run_us = run_us |> normalize_us
     load_us = load_us |> normalize_us
-
     total_us = run_us + load_us
-    "Finished in #{format_us total_us} seconds (#{format_us load_us}s on load, #{format_us run_us}s on tests)"
+
+    "Finished in #{format_us(total_us)} seconds " <>
+      "(#{format_us(load_us)}s on load, #{format_us(run_us)}s on tests)"
   end
 
   defp normalize_us(us) do
@@ -86,7 +87,7 @@ defmodule ExUnit.Formatter do
     if us < 10 do
       "0.0#{us}"
     else
-      us = div us, 10
+      us = div(us, 10)
       "#{div(us, 10)}.#{rem(us, 10)}"
     end
   end
@@ -100,11 +101,11 @@ defmodule ExUnit.Formatter do
       "Including tags: [run: true, slow: false]"
 
   """
-  @spec format_filters(keyword, atom) :: String.t
+  @spec format_filters(keyword, atom) :: String.t()
   def format_filters(filters, type) do
     case type do
-      :include -> "Including tags: #{inspect filters}"
-      :exclude -> "Excluding tags: #{inspect filters}"
+      :include -> "Including tags: #{inspect(filters)}"
+      :exclude -> "Excluding tags: #{inspect(filters)}"
     end
   end
 
@@ -114,15 +115,15 @@ defmodule ExUnit.Formatter do
   def format_test_failure(test, failures, counter, width, formatter) do
     %ExUnit.Test{name: name, module: module, tags: tags} = test
 
-    test_info(with_counter(counter, "#{name} (#{inspect module})"), formatter) <>
+    test_info(with_counter(counter, "#{name} (#{inspect(module)})"), formatter) <>
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
-        failure_header(failures, index) <> text <> format_stacktrace(stack, module, name, formatter)
-       end) <>
-      report(tags, failures, width, formatter)
-  end
 
+        failure_header(failures, index) <>
+          text <> format_stacktrace(stack, module, name, formatter)
+      end) <> report(tags, failures, width, formatter)
+  end
 
   @doc false
   def format_assertion_error(%ExUnit.AssertionError{} = struct) do
@@ -150,6 +151,7 @@ defmodule ExUnit.Formatter do
     case Map.take(tags, List.wrap(tags[:report])) do
       report when map_size(report) == 0 ->
         ""
+
       report ->
         report_spacing(failures) <>
           extra_info("tags:", formatter) <>
@@ -174,14 +176,22 @@ defmodule ExUnit.Formatter do
   """
   def format_test_all_failure(test_module, failures, counter, width, formatter) do
     name = test_module.name
-    test_case_info(with_counter(counter, "#{inspect name}: "), formatter) <>
+
+    test_case_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
       end)
   end
 
-  defp format_kind_reason(test, :error, %ExUnit.AssertionError{} = struct, stack, width, formatter) do
+  defp format_kind_reason(
+         test,
+         :error,
+         %ExUnit.AssertionError{} = struct,
+         stack,
+         width,
+         formatter
+       ) do
     {format_assertion_error(test, struct, stack, width, formatter, @counter_padding), stack}
   end
 
@@ -207,25 +217,32 @@ defmodule ExUnit.Formatter do
   end
 
   defp get_code(%{module: module, name: name}, stack) do
-    info = Enum.find_value(stack, fn {^module, ^name, _, info} -> info; _ -> nil end)
+    info =
+      Enum.find_value(stack, fn
+        {^module, ^name, _, info} -> info
+        _ -> nil
+      end)
+
     file = info[:file]
     line = info[:line]
+
     if line > 0 && file && File.exists?(file) do
-      file |> File.stream! |> Enum.at(line - 1) |> String.trim
+      file |> File.stream!() |> Enum.at(line - 1) |> String.trim()
     end
   rescue
     _ -> nil
   end
+
   defp get_code(%{}, _) do
     nil
   end
 
-  defp blame_match(%{match?: true, node: node}, _, _formatter),
-    do: Macro.to_string(node)
+  defp blame_match(%{match?: true, node: node}, _, _formatter), do: Macro.to_string(node)
+
   defp blame_match(%{match?: false, node: node}, _, formatter),
     do: formatter.(:blame_diff, Macro.to_string(node))
-  defp blame_match(_, string, _formatter),
-    do: string
+
+  defp blame_match(_, string, _formatter), do: string
 
   defp format_meta(fields, formatter, padding_size) do
     for {label, value} <- fields, has_value?(value) do
@@ -268,9 +285,11 @@ defmodule ExUnit.Formatter do
     padding = String.duplicate(" ", padding_size)
     String.replace(expr, "\n", "\n" <> padding)
   end
+
   defp code_multiline({fun, _, [expr]}, padding_size) when is_atom(fun) do
     code_multiline(Atom.to_string(fun) <> " " <> Macro.to_string(expr), padding_size)
   end
+
   defp code_multiline(expr, padding_size) do
     code_multiline(Macro.to_string(expr), padding_size)
   end
@@ -278,7 +297,8 @@ defmodule ExUnit.Formatter do
   defp inspect_multiline(expr, padding_size, width) do
     padding = String.duplicate(" ", padding_size)
     width = if width == :infinity, do: width, else: width - padding_size
-    inspect(expr, [pretty: true, width: width])
+
+    inspect(expr, pretty: true, width: width)
     |> String.replace("\n", "\n" <> padding)
   end
 
@@ -292,6 +312,7 @@ defmodule ExUnit.Formatter do
     case format_diff(left, right, formatter) do
       {left, right} ->
         {IO.iodata_to_binary(left), IO.iodata_to_binary(right)}
+
       nil ->
         {if_value(left, inspect), if_value(right, inspect)}
     end
@@ -329,7 +350,8 @@ defmodule ExUnit.Formatter do
 
   defp edit_script(left, right) do
     task = Task.async(ExUnit.Diff, :script, [left, right])
-    case Task.yield(task, 1_500) || Task.shutdown(task, :brutal_kill) do
+
+    case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
       {:ok, script} -> script
       nil -> nil
     end
@@ -342,7 +364,7 @@ defmodule ExUnit.Formatter do
   defp format_stacktrace(stacktrace, test_case, test, color) do
     extra_info("stacktrace:", color) <>
       Enum.map_join(stacktrace, fn entry ->
-        stacktrace_info format_stacktrace_entry(entry, test_case, test), color
+        stacktrace_info(format_stacktrace_entry(entry, test_case, test), color)
       end)
   end
 
@@ -359,32 +381,42 @@ defmodule ExUnit.Formatter do
   end
 
   defp failure_header([_], _), do: ""
-  defp failure_header(_, i), do: "\n#{@counter_padding}Failure ##{i+1}\n"
+  defp failure_header(_, i), do: "\n#{@counter_padding}Failure ##{i + 1}\n"
 
-  defp with_counter(counter, msg) when counter < 10  do "  #{counter}) #{msg}" end
-  defp with_counter(counter, msg) when counter < 100 do  " #{counter}) #{msg}" end
-  defp with_counter(counter, msg)                    do   "#{counter}) #{msg}" end
+  defp with_counter(counter, msg) when counter < 10 do
+    "  #{counter}) #{msg}"
+  end
 
-  defp test_case_info(msg, nil),       do: msg <> "failure on setup_all callback, test invalidated\n"
+  defp with_counter(counter, msg) when counter < 100 do
+    " #{counter}) #{msg}"
+  end
+
+  defp with_counter(counter, msg) do
+    "#{counter}) #{msg}"
+  end
+
+  defp test_case_info(msg, nil), do: msg <> "failure on setup_all callback, test invalidated\n"
   defp test_case_info(msg, formatter), do: test_case_info(formatter.(:test_case_info, msg), nil)
 
-  defp test_info(msg, nil),       do: msg <> "\n"
+  defp test_info(msg, nil), do: msg <> "\n"
   defp test_info(msg, formatter), do: test_info(formatter.(:test_info, msg), nil)
 
-  defp test_location(msg, nil),       do: "     " <> msg <> "\n"
+  defp test_location(msg, nil), do: "     " <> msg <> "\n"
   defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)
 
   defp pad(msg) do
     "     " <> String.replace(msg, "\n", "\n     ") <> "\n"
   end
 
-  defp error_info(msg, nil),       do: pad(msg)
+  defp error_info(msg, nil), do: pad(msg)
   defp error_info(msg, formatter), do: pad(formatter.(:error_info, msg))
 
-  defp extra_info(msg, nil),       do: pad(msg)
+  defp extra_info(msg, nil), do: pad(msg)
   defp extra_info(msg, formatter), do: pad(formatter.(:extra_info, msg))
 
   defp stacktrace_info("", _formatter), do: ""
-  defp stacktrace_info(msg, nil),       do: "       " <> msg <> "\n"
-  defp stacktrace_info(msg, formatter), do: stacktrace_info(formatter.(:stacktrace_info, msg), nil)
+  defp stacktrace_info(msg, nil), do: "       " <> msg <> "\n"
+
+  defp stacktrace_info(msg, formatter),
+    do: stacktrace_info(formatter.(:stacktrace_info, msg), nil)
 end

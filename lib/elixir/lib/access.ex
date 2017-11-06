@@ -145,15 +145,15 @@ defmodule Access do
   @type value :: any
 
   @type get_fun(data, get_value) ::
-        (:get, data, (term -> term) ->
-        {get_value, new_data :: container})
+          (:get, data, (term -> term) ->
+             {get_value, new_data :: container})
 
   @type get_and_update_fun(data, get_value) ::
-        (:get_and_update, data, (term -> term) ->
-        {get_value, new_data :: container} | :pop)
+          (:get_and_update, data, (term -> term) ->
+             {get_value, new_data :: container} | :pop)
 
   @type access_fun(data, get_value) ::
-        get_fun(data, get_value) | get_and_update_fun(data, get_value)
+          get_fun(data, get_value) | get_and_update_fun(data, get_value)
 
   @doc """
   Invoked in order to access the value stored under `key` in the given term `term`.
@@ -216,8 +216,8 @@ defmodule Access do
   See the implementations of `Map.get_and_update/3` or `Keyword.get_and_update/3`
   for more examples.
   """
-  @callback get_and_update(data, key, (value -> {get_value, value} | :pop)) ::
-            {get_value, data} when get_value: var, data: container | any_container
+  @callback get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
+            when get_value: var, data: container | any_container
 
   @doc """
   Invoked to "pop" the value under `key` out of the given data structure.
@@ -235,14 +235,18 @@ defmodule Access do
 
   defmacrop raise_undefined_behaviour(exception, module, top) do
     quote do
-      stacktrace = System.stacktrace
+      stacktrace = System.stacktrace()
+
       exception =
         case stacktrace do
           [unquote(top) | _] ->
-            %{unquote(exception) | reason: "#{inspect unquote(module)} does not implement the Access behaviour"}
+            reason = "#{inspect(unquote(module))} does not implement the Access behaviour"
+            %{unquote(exception) | reason: reason}
+
           _ ->
             unquote(exception)
         end
+
       reraise exception, stacktrace
     end
   end
@@ -262,7 +266,7 @@ defmodule Access do
     module.fetch(container, key)
   rescue
     exception in UndefinedFunctionError ->
-      raise_undefined_behaviour exception, module, {^module, :fetch, [^container, ^key], _}
+      raise_undefined_behaviour(exception, module, {^module, :fetch, [^container, ^key], _})
   end
 
   def fetch(map, key) when is_map(map) do
@@ -281,7 +285,7 @@ defmodule Access do
 
   def fetch(list, key) when is_list(list) do
     raise ArgumentError,
-      "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)
+          "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)
   end
 
   def fetch(nil, _key) do
@@ -304,7 +308,7 @@ defmodule Access do
       module.fetch(container, key)
     rescue
       exception in UndefinedFunctionError ->
-        raise_undefined_behaviour exception, module, {^module, :fetch, [^container, ^key], _}
+        raise_undefined_behaviour(exception, module, {^module, :fetch, [^container, ^key], _})
     else
       {:ok, value} -> value
       :error -> default
@@ -327,7 +331,7 @@ defmodule Access do
 
   def get(list, key, _default) when is_list(list) do
     raise ArgumentError,
-      "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)
+          "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)
   end
 
   def get(nil, _key, default) do
@@ -348,15 +352,19 @@ defmodule Access do
   The returned value is a two-element tuple with the "get" value returned by
   `fun` and a new container with the updated value under `key`.
   """
-  @spec get_and_update(data, key, (value -> {get_value, value} | :pop)) ::
-        {get_value, data} when get_value: var, data: container
+  @spec get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
+        when get_value: var, data: container
   def get_and_update(container, key, fun)
 
   def get_and_update(%module{} = container, key, fun) do
     module.get_and_update(container, key, fun)
   rescue
     exception in UndefinedFunctionError ->
-      raise_undefined_behaviour exception, module, {^module, :get_and_update, [^container, ^key, ^fun], _}
+      raise_undefined_behaviour(
+        exception,
+        module,
+        {^module, :get_and_update, [^container, ^key, ^fun], _}
+      )
   end
 
   def get_and_update(map, key, fun) when is_map(map) do
@@ -368,8 +376,7 @@ defmodule Access do
   end
 
   def get_and_update(nil, key, _fun) do
-    raise ArgumentError,
-      "could not put/update key #{inspect key} on a nil value"
+    raise ArgumentError, "could not put/update key #{inspect(key)} on a nil value"
   end
 
   @doc """
@@ -403,7 +410,7 @@ defmodule Access do
     module.pop(container, key)
   rescue
     exception in UndefinedFunctionError ->
-      raise_undefined_behaviour exception, module, {^module, :pop, [^container, ^key], _}
+      raise_undefined_behaviour(exception, module, {^module, :pop, [^container, ^key], _})
   end
 
   def pop(map, key) when is_map(map) do
@@ -415,8 +422,7 @@ defmodule Access do
   end
 
   def pop(nil, key) do
-    raise ArgumentError,
-      "could not pop key #{inspect key} on a nil value"
+    raise ArgumentError, "could not pop key #{inspect(key)} on a nil value"
   end
 
   ## Accessors
@@ -465,8 +471,10 @@ defmodule Access do
     fn
       :get, data, next ->
         next.(Map.get(data, key, default))
+
       :get_and_update, data, next ->
         value = Map.get(data, key, default)
+
         case next.(value) do
           {get, update} -> {get, Map.put(data, key, update)}
           :pop -> {value, Map.delete(data, key)}
@@ -507,14 +515,17 @@ defmodule Access do
     fn
       :get, %{} = data, next ->
         next.(Map.fetch!(data, key))
+
       :get_and_update, %{} = data, next ->
         value = Map.fetch!(data, key)
+
         case next.(value) do
           {get, update} -> {get, Map.put(data, key, update)}
           :pop -> {value, Map.delete(data, key)}
         end
+
       _op, data, _next ->
-        raise "Access.key!/1 expected a map/struct, got: #{inspect data}"
+        raise "Access.key!/1 expected a map/struct, got: #{inspect(data)}"
     end
   end
 
@@ -551,14 +562,17 @@ defmodule Access do
     fn
       :get, data, next when is_tuple(data) ->
         next.(:erlang.element(pos, data))
+
       :get_and_update, data, next when is_tuple(data) ->
         value = :erlang.element(pos, data)
+
         case next.(value) do
           {get, update} -> {get, :erlang.setelement(pos, data, update)}
           :pop -> raise "cannot pop data from a tuple"
         end
+
       _op, data, _next ->
-        raise "Access.elem/1 expected a tuple, got: #{inspect data}"
+        raise "Access.elem/1 expected a tuple, got: #{inspect(data)}"
     end
   end
 
@@ -609,7 +623,7 @@ defmodule Access do
   end
 
   defp all(_op, data, _next) do
-    raise "Access.all/0 expected a list, got: #{inspect data}"
+    raise "Access.all/0 expected a list, got: #{inspect(data)}"
   end
 
   defp all([head | rest], next, gets, updates) do
@@ -671,7 +685,7 @@ defmodule Access do
   """
   @spec at(non_neg_integer) :: access_fun(data :: list, get_value :: term)
   def at(index) when is_integer(index) and index >= 0 do
-    fn(op, data, next) -> at(op, data, index, next) end
+    fn op, data, next -> at(op, data, index, next) end
   end
 
   defp at(:get, data, index, next) when is_list(data) do
@@ -683,7 +697,7 @@ defmodule Access do
   end
 
   defp at(_op, data, _index, _next) do
-    raise "Access.at/1 expected a list, got: #{inspect data}"
+    raise "Access.at/1 expected a list, got: #{inspect(data)}"
   end
 
   defp get_and_update_at([head | rest], 0, next, updates) do
@@ -699,5 +713,85 @@ defmodule Access do
 
   defp get_and_update_at([], _index, _next, updates) do
     {nil, :lists.reverse(updates)}
+  end
+
+  @doc ~S"""
+  Returns a function that accesses all elements of a list that match the provided predicate.
+
+  The returned function is typically passed as an accessor to `Kernel.get_in/2`,
+  `Kernel.get_and_update_in/3`, and friends.
+
+  ## Examples
+
+      iex> list = [%{name: "john", salary: 10},  %{name: "francine", salary: 30}]
+      iex> get_in(list, [Access.filter(&(&1.salary > 20)), :name])
+      ["francine"]
+      iex> get_and_update_in(list, [Access.filter(&(&1.salary <= 20)), :name], fn
+      ...>   prev -> {prev, String.upcase(prev)}
+      ...> end)
+      {["john"], [%{name: "JOHN", salary: 10}, %{name: "francine", salary: 30}]}
+
+  `filter/1` can also be used to pop elements out of a list or
+  a key inside of a list:
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
+      iex> pop_in(list, [Access.filter(&(&1.salary >= 20))])
+      {[%{name: "francine", salary: 30}], [%{name: "john", salary: 10}]}
+      iex> pop_in(list, [Access.filter(&(&1.salary >= 20)), :name])
+      {["francine"], [%{name: "john", salary: 10}, %{salary: 30}]}
+
+  When no match is found, an empty list is returned and the update function is never called
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
+      iex> get_in(list, [Access.filter(&(&1.salary >= 50)), :name])
+      []
+      iex> get_and_update_in(list, [Access.filter(&(&1.salary >= 50)), :name], fn
+      ...>   prev -> {prev, String.upcase(prev)}
+      ...> end)
+      {[], [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
+
+  An error is raised if the predicate is not a function or is of the incorrect arity:
+
+      iex> get_in([], [Access.filter(5)])
+      ** (FunctionClauseError) no function clause matching in Access.filter/1
+
+  An error is raised if the accessed structure is not a list:
+
+      iex> get_in(%{}, [Access.filter(fn a -> a == 10 end)])
+      ** (RuntimeError) Access.filter/1 expected a list, got: %{}
+  """
+  @spec filter((term -> boolean)) :: access_fun(data :: list, get_value :: list)
+  def filter(func) when is_function(func) do
+    fn op, data, next -> filter(op, data, func, next) end
+  end
+
+  defp filter(:get, data, func, next) when is_list(data) do
+    data |> Enum.filter(func) |> Enum.map(next)
+  end
+
+  defp filter(:get_and_update, data, func, next) when is_list(data) do
+    get_and_update_filter(data, func, next, [], [])
+  end
+
+  defp filter(_op, data, _func, _next) do
+    raise "Access.filter/1 expected a list, got: #{inspect(data)}"
+  end
+
+  defp get_and_update_filter([head | rest], func, next, updates, gets) do
+    if func.(head) do
+      case next.(head) do
+        {get, update} ->
+          get_and_update_filter(rest, func, next, [update | updates], [get | gets])
+
+        :pop ->
+          get_and_update_filter(rest, func, next, updates, [head | gets])
+      end
+    else
+      get_and_update_filter(rest, func, next, [head | updates], gets)
+    end
+  end
+
+  defp get_and_update_filter([], _func, _next, updates, gets) do
+    {:lists.reverse(gets), :lists.reverse(updates)}
   end
 end

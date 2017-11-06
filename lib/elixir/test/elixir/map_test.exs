@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule MapTest do
   use ExUnit.Case, async: true
@@ -12,9 +12,7 @@ defmodule MapTest do
   end
 
   test "maps when quoted" do
-    assert (quote do
-      %{foo: 1}
-    end) == {:%{}, [], [{:foo, 1}]}
+    assert quote(do: %{foo: 1}) == {:%{}, [], [{:foo, 1}]}
   end
 
   test "maps keywords and atoms" do
@@ -30,13 +28,42 @@ defmodule MapTest do
 
   test "maps with generated variables in key" do
     assert %{"#{1}" => 1} == %{"1" => 1}
-    assert %{(for x <- 1..3, do: x) => 1} == %{[1, 2, 3] => 1}
-    assert %{(with x = 1, do: x) => 1} == %{1 => 1}
-    assert %{(with {:ok, x} <- {:ok, 1}, do: x) => 1} == %{1 => 1}
-    assert %{(try do raise "error" rescue _ -> 1 end) => 1} == %{1 => 1}
-    assert %{(try do throw 1 catch x -> x end) => 1} == %{1 => 1}
-    assert %{(try do a = 1; a rescue _ -> 2 end) => 1} == %{1 => 1}
-    assert %{(try do 1 else a -> a end) => 1} == %{1 => 1}
+    assert %{for(x <- 1..3, do: x) => 1} == %{[1, 2, 3] => 1}
+    assert %{with(x = 1, do: x) => 1} == %{1 => 1}
+    assert %{with({:ok, x} <- {:ok, 1}, do: x) => 1} == %{1 => 1}
+
+    assert %{
+             try do
+               raise "error"
+             rescue
+               _ -> 1
+             end => 1
+           } == %{1 => 1}
+
+    assert %{
+             try do
+               throw(1)
+             catch
+               x -> x
+             end => 1
+           } == %{1 => 1}
+
+    assert %{
+             try do
+               a = 1
+               a
+             rescue
+               _ -> 2
+             end => 1
+           } == %{1 => 1}
+
+    assert %{
+             try do
+               1
+             else
+               a -> a
+             end => 1
+           } == %{1 => 1}
   end
 
   test "matching with map as a key" do
@@ -45,7 +72,7 @@ defmodule MapTest do
   end
 
   test "is_map/1" do
-    assert is_map(Map.new)
+    assert is_map(Map.new())
     refute is_map(Enum.to_list(%{}))
   end
 
@@ -56,13 +83,13 @@ defmodule MapTest do
 
   test "new/1" do
     assert Map.new(%{a: 1, b: 2}) == %{a: 1, b: 2}
-    assert Map.new(MapSet.new([a: 1, b: 2, a: 3])) == %{b: 2, a: 3}
+    assert Map.new(MapSet.new(a: 1, b: 2, a: 3)) == %{b: 2, a: 3}
   end
 
   test "new/2" do
     transformer = fn {key, value} -> {key, value * 2} end
     assert Map.new(%{a: 1, b: 2}, transformer) == %{a: 2, b: 4}
-    assert Map.new(MapSet.new([a: 1, b: 2, a: 3]), transformer) == %{b: 4, a: 6}
+    assert Map.new(MapSet.new(a: 1, b: 2, a: 3), transformer) == %{b: 4, a: 6}
   end
 
   test "take/2" do
@@ -85,21 +112,25 @@ defmodule MapTest do
   end
 
   test "get_and_update/3" do
-    assert_raise RuntimeError, "the given function must return a two-element tuple or :pop, got: 1", fn ->
+    message = "the given function must return a two-element tuple or :pop, got: 1"
+
+    assert_raise RuntimeError, message, fn ->
       Map.get_and_update(%{a: 1}, :a, fn value -> value end)
     end
   end
 
   test "get_and_update!/3" do
-    assert_raise RuntimeError, "the given function must return a two-element tuple or :pop, got: 1", fn ->
+    message = "the given function must return a two-element tuple or :pop, got: 1"
+
+    assert_raise RuntimeError, message, fn ->
       Map.get_and_update!(%{a: 1}, :a, fn value -> value end)
     end
   end
 
   test "maps with optional comma" do
-    assert %{a: :b,} == %{a: :b}
-    assert %{1 => 2,} == %{1 => 2}
-    assert %{1 => 2, a: :b,} == %{1 => 2, a: :b}
+    assert Code.eval_string("%{a: :b,}") == {%{a: :b}, []}
+    assert Code.eval_string("%{1 => 2,}") == {%{1 => 2}, []}
+    assert Code.eval_string("%{1 => 2, a: :b,}") == {%{1 => 2, a: :b}, []}
   end
 
   test "update maps" do
@@ -121,16 +152,16 @@ defmodule MapTest do
   test "merge/3" do
     # When first map is bigger
     assert Map.merge(%{a: 1, b: 2, c: 3}, %{c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
-           %{a: 1, b: 2, c: :x, d: 5}
+             %{a: 1, b: 2, c: :x, d: 5}
 
     # When second map is bigger
     assert Map.merge(%{b: 2, c: 3}, %{a: 1, c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
-           %{a: 1, b: 2, c: :x, d: 5}
+             %{a: 1, b: 2, c: :x, d: 5}
   end
 
   test "implements (almost) all functions in Keyword" do
     assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
-           [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
+             [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
   end
 
   test "variable keys" do
@@ -149,25 +180,23 @@ defmodule MapTest do
     end
 
     def __struct__(kv) do
-      Enum.reduce kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end
+      Enum.reduce(kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end)
     end
   end
 
   test "structs" do
-    assert %ExternalUser{} ==
-           %{__struct__: ExternalUser, name: "john", age: 27}
+    assert %ExternalUser{} == %{__struct__: ExternalUser, name: "john", age: 27}
 
-    assert %ExternalUser{name: "meg"} ==
-           %{__struct__: ExternalUser, name: "meg", age: 27}
+    assert %ExternalUser{name: "meg"} == %{__struct__: ExternalUser, name: "meg", age: 27}
 
     user = %ExternalUser{}
-    assert %ExternalUser{user | name: "meg"} ==
-           %{__struct__: ExternalUser, name: "meg", age: 27}
+    assert %ExternalUser{user | name: "meg"} == %{__struct__: ExternalUser, name: "meg", age: 27}
 
     %ExternalUser{name: name} = %ExternalUser{}
     assert name == "john"
 
     map = %{}
+
     assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
       %ExternalUser{map | name: "meg"}
     end
@@ -184,6 +213,7 @@ defmodule MapTest do
     end
 
     invalid_struct = %{__struct__: foo()}
+
     assert_raise CaseClauseError, fn ->
       case invalid_struct do
         %module{} -> module
@@ -198,6 +228,7 @@ defmodule MapTest do
 
     assert_raise CaseClauseError, fn ->
       foo = foo()
+
       case invalid_struct do
         %^foo{} -> :ok
       end
@@ -243,55 +274,63 @@ defmodule MapTest do
   end
 
   test "structs when quoted" do
-    assert (quote do
-      %User{foo: 1}
-    end) == {:%, [], [
-      {:__aliases__, [alias: false], [:User]},
-      {:%{}, [], [{:foo, 1}]}
-    ]}
+    quoted =
+      quote do
+        %User{foo: 1}
+      end
 
-    assert (quote do
-      %unquote(User){foo: 1}
-    end) == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
+    assert {:%, [], [aliases, {:%{}, [], [{:foo, 1}]}]} = quoted
+    assert aliases == {:__aliases__, [alias: false], [:User]}
+
+    quoted =
+      quote do
+        %unquote(User){foo: 1}
+      end
+
+    assert quoted == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
   end
 
   test "defstruct can only be used once in a module" do
-    message = "defstruct has already been called for TestMod, " <>
-              "defstruct can only be called once per module"
+    message =
+      "defstruct has already been called for TestMod, " <>
+        "defstruct can only be called once per module"
+
     assert_raise ArgumentError, message, fn ->
       Code.eval_string("""
-        defmodule TestMod do
-          defstruct [:foo]
-          defstruct [:foo]
-        end
-        """)
+      defmodule TestMod do
+        defstruct [:foo]
+        defstruct [:foo]
+      end
+      """)
     end
   end
 
   test "defstruct allows keys to be enforced" do
     message = "the following keys must also be given when building struct TestMod: [:foo]"
+
     assert_raise ArgumentError, message, fn ->
       Code.eval_string("""
-        defmodule TestMod do
-          @enforce_keys :foo
-          defstruct [:foo]
-          def foo do
-            %TestMod{}
-          end
+      defmodule TestMod do
+        @enforce_keys :foo
+        defstruct [:foo]
+        def foo do
+          %TestMod{}
         end
-        """)
+      end
+      """)
     end
   end
 
   test "defstruct raises on invalid enforce_keys" do
     message = "keys given to @enforce_keys must be atoms, got: \"foo\""
+
     assert_raise ArgumentError, message, fn ->
       Code.eval_string("""
-        defmodule TestMod do
-          @enforce_keys "foo"
-          defstruct [:foo]
-        end
-        """)
+      defmodule TestMod do
+        @enforce_keys "foo"
+        defstruct [:foo]
+      end
+      """)
     end
   end
 
@@ -303,14 +342,14 @@ defmodule MapTest do
       def new, do: %LocalPoint{}
     end
 
-    assert LocalPoint.new == %{__struct__: LocalPoint, x: 0}
+    assert LocalPoint.new() == %{__struct__: LocalPoint, x: 0}
 
     defmodule LocalPoint do
       defstruct x: 0, y: 0
       def new, do: %LocalPoint{}
     end
 
-    assert LocalPoint.new == %{__struct__: LocalPoint, x: 0, y: 0}
+    assert LocalPoint.new() == %{__struct__: LocalPoint, x: 0, y: 0}
   after
     Code.compiler_options(ignore_module_conflict: false)
   end
@@ -334,8 +373,8 @@ defmodule MapTest do
   end
 
   test "local and nested structs" do
-    assert LocalUser.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
-    assert LocalUser.Context.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
+    assert LocalUser.new() == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
+    assert LocalUser.Context.new() == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
   end
 
   defmodule :elixir_struct_from_erlang_module do

@@ -1,6 +1,6 @@
 defmodule ExUnit.CaptureServer do
   @moduledoc false
-  @timeout 30_000
+  @timeout 30000
   @name __MODULE__
 
   use GenServer
@@ -28,15 +28,18 @@ defmodule ExUnit.CaptureServer do
   ## Callbacks
 
   def init(:ok) do
-    {:ok, %{
+    state = %{
       devices: {%{}, %{}},
       log_captures: %{},
       log_status: nil
-    }}
+    }
+
+    {:ok, state}
   end
 
   def handle_call({:device_capture_on, name, pid}, _from, config) do
     {names, refs} = config.devices
+
     if Map.has_key?(names, name) do
       {:reply, {:error, :already_captured}, config}
     else
@@ -56,7 +59,7 @@ defmodule ExUnit.CaptureServer do
   end
 
   def handle_call({:log_capture_on, pid}, _from, config) do
-    ref  = Process.monitor(pid)
+    ref = Process.monitor(pid)
     refs = Map.put(config.log_captures, ref, true)
 
     if map_size(refs) == 1 do
@@ -84,6 +87,7 @@ defmodule ExUnit.CaptureServer do
       {{name, pid}, refs} ->
         names = Map.delete(names, name)
         Process.demonitor(ref, [:flush])
+
         try do
           try do
             Process.unregister(name)
@@ -93,7 +97,9 @@ defmodule ExUnit.CaptureServer do
         rescue
           ArgumentError -> nil
         end
+
         %{config | devices: {names, refs}}
+
       {nil, _refs} ->
         config
     end
@@ -104,6 +110,7 @@ defmodule ExUnit.CaptureServer do
       {true, refs} ->
         maybe_add_console(refs, config.log_status)
         %{config | log_captures: refs}
+
       {false, _refs} ->
         config
     end

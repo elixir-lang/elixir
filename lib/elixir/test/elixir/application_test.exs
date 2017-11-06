@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ApplicationTest do
   use ExUnit.Case, async: true
@@ -6,10 +6,15 @@ defmodule ApplicationTest do
   import PathHelpers
 
   test "application environment" do
+    assert_raise ArgumentError, ~r/because the application was not loaded\/started/, fn ->
+      Application.fetch_env!(:unknown, :unknown)
+    end
+
     assert Application.get_env(:elixir, :unknown) == nil
     assert Application.get_env(:elixir, :unknown, :default) == :default
     assert Application.fetch_env(:elixir, :unknown) == :error
-    assert_raise ArgumentError, fn ->
+
+    assert_raise ArgumentError, ~r/because configuration :unknown was not set/, fn ->
       Application.fetch_env!(:elixir, :unknown)
     end
 
@@ -24,7 +29,7 @@ defmodule ApplicationTest do
   end
 
   test "loaded and started applications" do
-    started = Application.started_applications
+    started = Application.started_applications()
     assert is_list(started)
     assert {:elixir, 'elixir', _} = List.keyfind(started, :elixir, 0)
 
@@ -32,13 +37,13 @@ defmodule ApplicationTest do
     assert is_list(started_timeout)
     assert {:elixir, 'elixir', _} = List.keyfind(started_timeout, :elixir, 0)
 
-    loaded = Application.loaded_applications
+    loaded = Application.loaded_applications()
     assert is_list(loaded)
     assert {:elixir, 'elixir', _} = List.keyfind(loaded, :elixir, 0)
   end
 
   test "application specification" do
-    assert is_list Application.spec(:elixir)
+    assert is_list(Application.spec(:elixir))
     assert Application.spec(:unknown) == nil
     assert Application.spec(:unknown, :description) == nil
 
@@ -54,12 +59,15 @@ defmodule ApplicationTest do
 
   test "application directory" do
     root = Path.expand("../../../..", __DIR__)
+
     assert normalize_app_dir(Application.app_dir(:elixir)) ==
-           normalize_app_dir(Path.join(root, "bin/../lib/elixir"))
+             normalize_app_dir(Path.join(root, "bin/../lib/elixir"))
+
     assert normalize_app_dir(Application.app_dir(:elixir, "priv")) ==
-           normalize_app_dir(Path.join(root, "bin/../lib/elixir/priv"))
+             normalize_app_dir(Path.join(root, "bin/../lib/elixir/priv"))
+
     assert normalize_app_dir(Application.app_dir(:elixir, ["priv", "foo"])) ==
-           normalize_app_dir(Path.join(root, "bin/../lib/elixir/priv/foo"))
+             normalize_app_dir(Path.join(root, "bin/../lib/elixir/priv/foo"))
 
     assert_raise ArgumentError, fn ->
       Application.app_dir(:unknown)
@@ -68,11 +76,11 @@ defmodule ApplicationTest do
 
   if windows?() do
     defp normalize_app_dir(path) do
-      path |> String.downcase |> Path.expand
+      path |> String.downcase() |> Path.expand()
     end
   else
     defp normalize_app_dir(path) do
-      path |> String.downcase
+      path |> String.downcase()
     end
   end
 end

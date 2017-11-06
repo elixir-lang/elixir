@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule Bitwise.FunctionsTest do
   use ExUnit.Case, async: true
@@ -53,10 +53,10 @@ defmodule Bitwise.OperatorsTest do
   end
 
   test "bsl (<<<)" do
-    assert (1 <<< 1) == 2
+    assert 1 <<< 1 == 2
   end
 
   test "bsr (>>>)" do
-    assert (1 >>> 1) == 0
+    assert 1 >>> 1 == 0
   end
 end

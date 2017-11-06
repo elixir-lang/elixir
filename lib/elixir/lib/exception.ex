@@ -16,10 +16,10 @@ defmodule Exception do
 
   @typedoc "The exception type"
   @type t :: %{
-    required(:__struct__) => module,
-    required(:__exception__) => true,
-    optional(atom) => any,
-  }
+          required(:__struct__) => module,
+          required(:__exception__) => true,
+          optional(atom) => any
+        }
 
   @typedoc "The kind handled by formatting functions"
   @type kind :: :error | non_error_kind
@@ -27,22 +27,20 @@ defmodule Exception do
 
   @type stacktrace :: [stacktrace_entry]
   @type stacktrace_entry ::
-        {module, atom, arity_or_args, location} |
-        {(... -> any), arity_or_args, location}
+          {module, atom, arity_or_args, location}
+          | {(... -> any), arity_or_args, location}
 
   @typep arity_or_args :: non_neg_integer | list
   @typep location :: keyword
 
   @callback exception(term) :: t
-  @callback message(t) :: String.t
+  @callback message(t) :: String.t()
 
   @doc """
   Returns `true` if the given `term` is an exception.
   """
   def exception?(term)
-
   def exception?(%_{__exception__: true}), do: true
-
   def exception?(_), do: false
 
   @doc """
@@ -53,15 +51,17 @@ defmodule Exception do
       module.message(exception)
     rescue
       caught_exception ->
-        "got #{inspect caught_exception.__struct__} with message #{inspect message(caught_exception)} " <>
-        "while retrieving Exception.message/1 for #{inspect(exception)}"
+        "got #{inspect(caught_exception.__struct__)} with message " <>
+          "#{inspect(message(caught_exception))} while retrieving Exception.message/1 " <>
+          "for #{inspect(exception)}"
     else
       result when is_binary(result) ->
         result
+
       result ->
         "got #{inspect(result)} " <>
-        "while retrieving Exception.message/1 for #{inspect(exception)} " <>
-        "(expected a string)"
+          "while retrieving Exception.message/1 for #{inspect(exception)} " <>
+          "(expected a string)"
     end
   end
 
@@ -112,7 +112,7 @@ defmodule Exception do
   not return the stacktrace corresponding to the exception
   an empty stacktrace, `[]`, must be used.
   """
-  @spec format_banner(kind, any, stacktrace | nil) :: String.t
+  @spec format_banner(kind, any, stacktrace | nil) :: String.t()
   def format_banner(kind, exception, stacktrace \\ nil)
 
   def format_banner(:error, exception, stacktrace) do
@@ -121,7 +121,7 @@ defmodule Exception do
   end
 
   def format_banner(:throw, reason, _stacktrace) do
-   "** (throw) " <> inspect(reason)
+    "** (throw) " <> inspect(reason)
   end
 
   def format_banner(:exit, reason, _stacktrace) do
@@ -129,7 +129,7 @@ defmodule Exception do
   end
 
   def format_banner({:EXIT, pid}, reason, _stacktrace) do
-    "** (EXIT from #{inspect pid}) " <> format_exit(reason, <<"\n    ">>)
+    "** (EXIT from #{inspect(pid)}) " <> format_exit(reason, <<"\n    ">>)
   end
 
   @doc """
@@ -141,7 +141,7 @@ defmodule Exception do
   Note that `{:EXIT, pid}` do not generate a stacktrace though
   (as they are retrieved as messages without stacktraces).
   """
-  @spec format(kind, any, stacktrace | nil) :: String.t
+  @spec format(kind, any, stacktrace | nil) :: String.t()
   def format(kind, payload, stacktrace \\ nil)
 
   def format({:EXIT, _} = kind, any, _) do
@@ -149,11 +149,12 @@ defmodule Exception do
   end
 
   def format(kind, payload, stacktrace) do
-    stacktrace = stacktrace || System.stacktrace
+    stacktrace = stacktrace || System.stacktrace()
     message = format_banner(kind, payload, stacktrace)
+
     case stacktrace do
       [] -> message
-      _  -> message <> "\n" <> format_stacktrace(stacktrace)
+      _ -> message <> "\n" <> format_stacktrace(stacktrace)
     end
   end
 
@@ -176,6 +177,7 @@ defmodule Exception do
     case normalize(:error, error, stacktrace) do
       %{__struct__: FunctionClauseError} = struct ->
         blame_function_clause_error(struct, stacktrace)
+
       _ ->
         {error, stacktrace}
     end
@@ -185,16 +187,20 @@ defmodule Exception do
     {reason, stacktrace}
   end
 
-  defp blame_function_clause_error(%{module: module, function: function, arity: arity} = exception,
-                                   [{module, function, args, meta} | rest])
+  defp blame_function_clause_error(
+         %{module: module, function: function, arity: arity} = exception,
+         [{module, function, args, meta} | rest]
+       )
        when length(args) == arity do
     exception =
       case blame_mfa(module, function, args) do
         {:ok, kind, clauses} -> %{exception | args: args, kind: kind, clauses: clauses}
         :error -> %{exception | args: args}
       end
+
     {exception, [{module, function, arity, meta} | rest]}
   end
+
   defp blame_function_clause_error(exception, stacktrace) do
     {exception, stacktrace}
   end
@@ -214,8 +220,10 @@ defmodule Exception do
   is always returned.
   """
   @spec blame_mfa(module, function, args :: [term]) ::
-        {:ok, :def | :defp | :defmacro | :defmacrop, [{args :: [term], guards :: [term]}]} | :error
-  def blame_mfa(module, function, args) when is_atom(module) and is_atom(function) and is_list(args) do
+          {:ok, :def | :defp | :defmacro | :defmacrop, [{args :: [term], guards :: [term]}]}
+          | :error
+  def blame_mfa(module, function, args)
+      when is_atom(module) and is_atom(function) and is_list(args) do
     try do
       blame_mfa(module, function, length(args), args)
     rescue
@@ -224,22 +232,27 @@ defmodule Exception do
   end
 
   defp blame_mfa(module, function, arity, call_args) do
-    with path when is_list(path) <- :code.which(module),
-         {:ok, {_, [debug_info: {:debug_info_v1, backend, data}]}} <- :beam_lib.chunks(path, [:debug_info]),
+    with [_ | _] = path <- :code.which(module),
+         {:ok, {_, [debug_info: debug_info]}} <- :beam_lib.chunks(path, [:debug_info]),
+         {:debug_info_v1, backend, data} <- debug_info,
          {:ok, %{definitions: defs}} <- backend.debug_info(:elixir_v1, module, data, []),
          {_, kind, _, clauses} <- List.keyfind(defs, {function, arity}, 0) do
       clauses =
         for {meta, ex_args, guards, _block} <- clauses do
           scope = :elixir_erl.definition_scope(meta, "nofile")
+
           {erl_args, scope} =
             :elixir_erl_clauses.match(&:elixir_erl_pass.translate_args/2, ex_args, scope)
+
           {args, binding} =
             [call_args, ex_args, erl_args]
             |> Enum.zip()
             |> Enum.map_reduce([], &blame_arg/2)
+
           guards = Enum.map(guards, &blame_guard(&1, scope, binding))
           {args, guards}
         end
+
       {:ok, kind, clauses}
     else
       _ -> :error
@@ -253,6 +266,7 @@ defmodule Exception do
 
   defp blame_arg(erl_arg, call_arg, binding) do
     binding = :orddict.store(:VAR, call_arg, binding)
+
     try do
       {:value, _, binding} = :erl_eval.expr({:match, 0, erl_arg, {:var, 0, :VAR}}, binding, :none)
       {true, binding}
@@ -265,6 +279,7 @@ defmodule Exception do
     Macro.prewalk(arg, fn
       {:%{}, meta, [__struct__: Range, first: first, last: last]} ->
         {:.., meta, [first, last]}
+
       other ->
         other
     end)
@@ -272,14 +287,17 @@ defmodule Exception do
 
   defp blame_guard({{:., _, [:erlang, op]}, meta, [left, right]}, scope, binding)
        when op == :andalso or op == :orelse do
-    {rewrite_guard_call(op), meta, [
+    guards = [
       blame_guard(left, scope, binding),
       blame_guard(right, scope, binding)
-    ]}
+    ]
+
+    {rewrite_guard_call(op), meta, guards}
   end
 
   defp blame_guard(ex_guard, scope, binding) do
     {erl_guard, _} = :elixir_erl_pass.translate(ex_guard, scope)
+
     match? =
       try do
         {:value, true, _} = :erl_eval.expr(erl_guard, binding, :none)
@@ -287,6 +305,7 @@ defmodule Exception do
       rescue
         _ -> false
       end
+
     blame_wrap(match?, rewrite_guard(ex_guard))
   end
 
@@ -297,8 +316,8 @@ defmodule Exception do
     end)
   end
 
-  defp rewrite_guard_call(:"orelse"), do: :or
-  defp rewrite_guard_call(:"andalso"), do: :and
+  defp rewrite_guard_call(:orelse), do: :or
+  defp rewrite_guard_call(:andalso), do: :and
   defp rewrite_guard_call(:"=<"), do: :<=
   defp rewrite_guard_call(:"/="), do: :!=
   defp rewrite_guard_call(:"=:="), do: :===
@@ -306,10 +325,9 @@ defmodule Exception do
 
   defp rewrite_guard_call(op) when op in [:band, :bor, :bnot, :bsl, :bsr, :bxor],
     do: {:., [], [Bitwise, op]}
-  defp rewrite_guard_call(op) when op in [:xor, :element, :size],
-    do: {:., [], [:erlang, op]}
-  defp rewrite_guard_call(op),
-    do: op
+
+  defp rewrite_guard_call(op) when op in [:xor, :element, :size], do: {:., [], [:erlang, op]}
+  defp rewrite_guard_call(op), do: op
 
   defp blame_wrap(match?, ast), do: %{match?: match?, node: ast}
 
@@ -321,14 +339,14 @@ defmodule Exception do
   formats exits in a way to nicely show the exit reason, caller
   and stacktrace.
   """
-  @spec format_exit(any) :: String.t
+  @spec format_exit(any) :: String.t()
   def format_exit(reason) do
     format_exit(reason, <<"\n    ">>)
   end
 
   # 2-Tuple could be caused by an error if the second element is a stacktrace.
   defp format_exit({exception, maybe_stacktrace} = reason, joiner)
-      when is_list(maybe_stacktrace) and maybe_stacktrace !== [] do
+       when is_list(maybe_stacktrace) and maybe_stacktrace !== [] do
     try do
       Enum.map(maybe_stacktrace, &format_stacktrace_entry/1)
     catch
@@ -339,30 +357,30 @@ defmodule Exception do
       formatted_stacktrace ->
         # Assume a non-empty list formattable as stacktrace is a
         # stacktrace, so exit was caused by an error.
-        message = "an exception was raised:" <> joiner <>
-          format_banner(:error, exception, maybe_stacktrace)
+        message =
+          "an exception was raised:" <>
+            joiner <> format_banner(:error, exception, maybe_stacktrace)
+
         Enum.join([message | formatted_stacktrace], joiner <> <<"    ">>)
     end
   end
 
   # :supervisor.start_link returns this error reason when it fails to init
   # because a child's start_link raises.
-  defp format_exit({:shutdown,
-      {:failed_to_start_child, child, {:EXIT, reason}}}, joiner) do
+  defp format_exit({:shutdown, {:failed_to_start_child, child, {:EXIT, reason}}}, joiner) do
     format_start_child(child, reason, joiner)
   end
 
   # :supervisor.start_link returns this error reason when it fails to init
   # because a child's start_link returns {:error, reason}.
-  defp format_exit({:shutdown, {:failed_to_start_child, child, reason}},
-      joiner) do
+  defp format_exit({:shutdown, {:failed_to_start_child, child, reason}}, joiner) do
     format_start_child(child, reason, joiner)
   end
 
   # 2-Tuple could be an exit caused by mfa if second element is mfa, args
   # must be a list of arguments - max length 255 due to max arity.
   defp format_exit({reason2, {mod, fun, args}} = reason, joiner)
-      when length(args) < 256 do
+       when length(args) < 256 do
     try do
       format_mfa(mod, fun, args)
     catch
@@ -373,8 +391,8 @@ defmodule Exception do
       mfa ->
         # Assume tuple formattable as an mfa is an mfa, so exit was caused by
         # failed mfa.
-        "exited in: " <> mfa <> joiner <>
-          "** (EXIT) " <> format_exit(reason2, joiner <> <<"    ">>)
+        "exited in: " <>
+          mfa <> joiner <> "** (EXIT) " <> format_exit(reason2, joiner <> <<"    ">>)
     end
   end
 
@@ -424,7 +442,7 @@ defmodule Exception do
 
   # If value is a list will be formatted by mfa exit in format_exit/1
   defp format_exit_reason({:bad_return, {mod, :init, value}})
-      when is_atom(mod) do
+       when is_atom(mod) do
     format_mfa(mod, :init, 1) <> " returned a bad value: " <> inspect(value)
   end
 
@@ -443,8 +461,8 @@ defmodule Exception do
   defp format_exit_reason(reason), do: inspect(reason)
 
   defp format_start_child(child, reason, joiner) do
-    "shutdown: failed to start child: " <> inspect(child) <> joiner <>
-      "** (EXIT) " <> format_exit(reason, joiner <> <<"    ">>)
+    "shutdown: failed to start child: " <>
+      inspect(child) <> joiner <> "** (EXIT) " <> format_exit(reason, joiner <> <<"    ">>)
   end
 
   defp format_sup_data({:invalid_type, type}) do
@@ -463,11 +481,11 @@ defmodule Exception do
     "invalid max_seconds (period): " <> inspect(period)
   end
 
-  defp format_sup_data(other), do: "got: #{inspect other}"
+  defp format_sup_data(other), do: "got: #{inspect(other)}"
 
   defp format_sup_spec({:duplicate_child_name, id}) do
     """
-    more than one child specification has the id: #{inspect id}.
+    more than one child specification has the id: #{inspect(id)}.
     If using maps as child specifications, make sure the :id keys are unique.
     If using a module or {module, arg} as child, use Supervisor.child_spec/2 to change the :id, for example:
 
@@ -479,39 +497,39 @@ defmodule Exception do
   end
 
   defp format_sup_spec({:invalid_child_spec, child_spec}) do
-   "invalid child specification: #{inspect child_spec}"
+    "invalid child specification: #{inspect(child_spec)}"
   end
 
   defp format_sup_spec({:invalid_child_type, type}) do
-    "invalid child type: #{inspect type}. Must be :worker or :supervisor."
+    "invalid child type: #{inspect(type)}. Must be :worker or :supervisor."
   end
 
   defp format_sup_spec({:invalid_mfa, mfa}) do
-    "invalid mfa: #{inspect mfa}"
+    "invalid mfa: #{inspect(mfa)}"
   end
 
   defp format_sup_spec({:invalid_restart_type, restart}) do
-    "invalid restart type: #{inspect restart}. Must be :permanent, :transient or :temporary."
+    "invalid restart type: #{inspect(restart)}. Must be :permanent, :transient or :temporary."
   end
 
   defp format_sup_spec({:invalid_shutdown, shutdown}) do
-    "invalid shutdown: #{inspect shutdown}. Must be an integer >= 0, :infinity or :brutal_kill."
+    "invalid shutdown: #{inspect(shutdown)}. Must be an integer >= 0, :infinity or :brutal_kill."
   end
 
   defp format_sup_spec({:invalid_module, mod}) do
-    "invalid module: #{inspect mod}. Must be an atom."
+    "invalid module: #{inspect(mod)}. Must be an atom."
   end
 
   defp format_sup_spec({:invalid_modules, modules}) do
-    "invalid modules: #{inspect modules}. Must be a list of atoms or :dynamic."
+    "invalid modules: #{inspect(modules)}. Must be a list of atoms or :dynamic."
   end
 
-  defp format_sup_spec(other), do: "got: #{inspect other}"
+  defp format_sup_spec(other), do: "got: #{inspect(other)}"
 
   @doc """
   Receives a stacktrace entry and formats it into a string.
   """
-  @spec format_stacktrace_entry(stacktrace_entry) :: String.t
+  @spec format_stacktrace_entry(stacktrace_entry) :: String.t()
   def format_stacktrace_entry(entry)
 
   # From Macro.Env.stacktrace
@@ -552,9 +570,14 @@ defmodule Exception do
   is retrieved from `Process.info/2`.
   """
   def format_stacktrace(trace \\ nil) do
-    trace = trace || case Process.info(self(), :current_stacktrace) do
-      {:current_stacktrace, t} -> Enum.drop(t, 3)
-    end
+    trace =
+      if trace do
+        trace
+      else
+        case Process.info(self(), :current_stacktrace) do
+          {:current_stacktrace, t} -> Enum.drop(t, 3)
+        end
+      end
 
     case trace do
       [] -> "\n"
@@ -573,7 +596,7 @@ defmodule Exception do
 
   """
   def format_fa(fun, arity) when is_function(fun) do
-    "#{inspect fun}#{format_arity(arity)}"
+    "#{inspect(fun)}#{format_arity(arity)}"
   end
 
   @doc """
@@ -602,6 +625,7 @@ defmodule Exception do
         "anonymous fn#{format_arity(arity)} in " <>
           "#{Code.Identifier.inspect_as_atom(module)}." <>
           "#{Code.Identifier.inspect_as_function(outer_name)}/#{outer_arity}"
+
       :error ->
         "#{Code.Identifier.inspect_as_atom(module)}." <>
           "#{Code.Identifier.inspect_as_function(fun)}#{format_arity(arity)}"
@@ -646,7 +670,7 @@ defmodule Exception do
   end
 
   defp format_location(opts) when is_list(opts) do
-    format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), " "
+    format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line), " ")
   end
 end
 
@@ -688,8 +712,7 @@ defmodule TokenMissingError do
   defexception [:file, :line, description: "expression is incomplete"]
 
   def message(%{file: file, line: line, description: description}) do
-    Exception.format_file_line(file && Path.relative_to_cwd(file), line) <>
-      " " <> description
+    Exception.format_file_line(file && Path.relative_to_cwd(file), line) <> " " <> description
   end
 end
 
@@ -697,8 +720,7 @@ defmodule CompileError do
   defexception [:file, :line, description: "compile error"]
 
   def message(%{file: file, line: line, description: description}) do
-    Exception.format_file_line(file && Path.relative_to_cwd(file), line) <>
-      " " <> description
+    Exception.format_file_line(file && Path.relative_to_cwd(file), line) <> " " <> description
   end
 end
 
@@ -778,7 +800,7 @@ defmodule BadArityError do
   defexception [:function, :args]
 
   def message(exception) do
-    fun  = exception.function
+    fun = exception.function
     args = exception.args
     insp = Enum.map_join(args, ", ", &inspect/1)
     {:arity, arity} = :erlang.fun_info(fun, :arity)
@@ -786,8 +808,8 @@ defmodule BadArityError do
   end
 
   defp count(0, _insp), do: "no arguments"
-  defp count(1, insp),  do: "1 argument (#{insp})"
-  defp count(x, insp),  do: "#{x} arguments (#{insp})"
+  defp count(1, insp), do: "1 argument (#{insp})"
+  defp count(x, insp), do: "#{x} arguments (#{insp})"
 end
 
 defmodule UndefinedFunctionError do
@@ -797,29 +819,48 @@ defmodule UndefinedFunctionError do
     cond do
       is_nil(function) or is_nil(arity) ->
         "undefined function"
+
       not is_nil(module) and :code.is_loaded(module) == false ->
         message(%{e | reason: :"module could not be loaded"})
+
       true ->
         message(%{e | reason: :"function not exported"})
     end
   end
 
-  def message(%{reason: :"module could not be loaded", module: module, function: function, arity: arity}) do
-    "function " <> Exception.format_mfa(module, function, arity) <>
-      " is undefined (module #{inspect module} is not available)"
+  def message(%{
+        reason: :"module could not be loaded",
+        module: module,
+        function: function,
+        arity: arity
+      }) do
+    formatted_fun = Exception.format_mfa(module, function, arity)
+    "function #{formatted_fun} is undefined (module #{inspect(module)} is not available)"
   end
 
-  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
+  def message(%{
+        reason: :"function not exported",
+        module: module,
+        function: function,
+        arity: arity
+      }) do
     IO.iodata_to_binary(function_not_exported(module, function, arity, nil))
   end
 
-  def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
+  def message(%{
+        reason: :"function not available",
+        module: module,
+        function: function,
+        arity: arity
+      }) do
     "nil." <> fa = Exception.format_mfa(nil, function, arity)
-    "function " <> Exception.format_mfa(module, function, arity) <>
-    " is undefined (function #{fa} is not available)"
+
+    "function " <>
+      Exception.format_mfa(module, function, arity) <>
+      " is undefined (function #{fa} is not available)"
   end
 
-  def message(%{reason: reason,  module: module, function: function, arity: arity}) do
+  def message(%{reason: reason, module: module, function: function, arity: arity}) do
     "function " <> Exception.format_mfa(module, function, arity) <> " is undefined (#{reason})"
   end
 
@@ -833,7 +874,12 @@ defmodule UndefinedFunctionError do
         did_you_mean(module, function, exports)
       end
 
-    ["function ", Exception.format_mfa(module, function, arity), " is undefined or private", suffix]
+    [
+      "function ",
+      Exception.format_mfa(module, function, arity),
+      " is undefined or private",
+      suffix
+    ]
   end
 
   @function_threshold 0.77
@@ -846,19 +892,21 @@ defmodule UndefinedFunctionError do
       case Keyword.take(exports, [function]) do
         [] ->
           base = Atom.to_string(function)
+
           for {key, val} <- exports,
               dist = String.jaro_distance(base, Atom.to_string(key)),
               dist >= @function_threshold,
-            do: {dist, key, val}
+              do: {dist, key, val}
+
         arities ->
           for {key, val} <- arities, do: {1.0, key, val}
       end
-      |> Enum.sort(&elem(&1, 0) >= elem(&2, 0))
+      |> Enum.sort(&(elem(&1, 0) >= elem(&2, 0)))
       |> Enum.take(@max_suggestions)
-      |> Enum.sort(&elem(&1, 1) <= elem(&2, 1))
+      |> Enum.sort(&(elem(&1, 1) <= elem(&2, 1)))
 
     case result do
-      []          -> []
+      [] -> []
       suggestions -> [". Did you mean one of:\n\n" | Enum.map(suggestions, &format_fa/1)]
     end
   end
@@ -875,7 +923,8 @@ defmodule UndefinedFunctionError do
     end
   rescue
     # In case the module was removed while we are computing this
-    UndefinedFunctionError -> []
+    UndefinedFunctionError ->
+      []
   end
 end
 
@@ -886,25 +935,35 @@ defmodule FunctionClauseError do
     case exception do
       %{function: nil} ->
         "no function clause matches"
+
       %{module: module, function: function, arity: arity} ->
-        formatted = Exception.format_mfa module, function, arity
-        "no function clause matching in #{formatted}" <> blame(exception, &inspect/1, &blame_match/2)
+        formatted = Exception.format_mfa(module, function, arity)
+        blamed = blame(exception, &inspect/1, &blame_match/2)
+        "no function clause matching in #{formatted}" <> blamed
     end
   end
 
-  defp blame_match(%{match?: true, node: node}, _),
-    do: Macro.to_string(node)
-  defp blame_match(%{match?: false, node: node}, _),
-    do: "-" <> Macro.to_string(node) <> "-"
-  defp blame_match(_, string),
-    do: string
+  defp blame_match(%{match?: true, node: node}, _), do: Macro.to_string(node)
+  defp blame_match(%{match?: false, node: node}, _), do: "-" <> Macro.to_string(node) <> "-"
+  defp blame_match(_, string), do: string
 
   @doc false
   def blame(%{args: nil}, _, _) do
     ""
   end
-  def blame(%{module: module, function: function, arity: arity,
-              kind: kind, args: args, clauses: clauses}, inspect_fun, ast_fun) do
+
+  def blame(
+        %{
+          module: module,
+          function: function,
+          arity: arity,
+          kind: kind,
+          args: args,
+          clauses: clauses
+        },
+        inspect_fun,
+        ast_fun
+      ) do
     mfa = Exception.format_mfa(module, function, arity)
 
     formatted_args =
@@ -914,15 +973,18 @@ defmodule FunctionClauseError do
 
     formatted_clauses =
       if clauses do
+        format_clause_fun = fn {args, guards} ->
+          code = Enum.reduce(guards, {function, [], args}, &{:when, [], [&2, &1]})
+          "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
+        end
+
         top_10 =
           clauses
           |> Enum.take(10)
-          |> Enum.map(fn {args, guards} ->
-            code = Enum.reduce(guards, {function, [], args}, &{:when, [], [&2, &1]})
-            "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
-          end)
+          |> Enum.map(format_clause_fun)
 
-        "\nAttempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):\n\n#{top_10}"
+        "\nAttempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):" <>
+          "\n\n#{top_10}"
       else
         ""
       end
@@ -944,7 +1006,7 @@ defmodule Protocol.UndefinedError do
   defexception [:protocol, :value, description: ""]
 
   def message(%{protocol: protocol, value: value, description: description}) do
-    "protocol #{inspect protocol} not implemented for #{inspect value}" <>
+    "protocol #{inspect(protocol)} not implemented for #{inspect(value)}" <>
       maybe_description(description) <> maybe_available(protocol)
   end
 
@@ -955,8 +1017,10 @@ defmodule Protocol.UndefinedError do
     case protocol.__protocol__(:impls) do
       {:consolidated, []} ->
         ". There are no implementations for this protocol."
+
       {:consolidated, types} ->
         ". This protocol is implemented for: #{Enum.map_join(types, ", ", &inspect/1)}"
+
       :not_consolidated ->
         ""
     end
@@ -967,9 +1031,10 @@ defmodule KeyError do
   defexception [:key, :term]
 
   def message(exception) do
-    msg = "key #{inspect exception.key} not found"
+    msg = "key #{inspect(exception.key)} not found"
+
     if exception.term != nil do
-      msg <> " in: #{inspect exception.term}"
+      msg <> " in: #{inspect(exception.term)}"
     else
       msg
     end
@@ -982,12 +1047,12 @@ defmodule UnicodeConversionError do
   def exception(opts) do
     %UnicodeConversionError{
       encoded: Keyword.fetch!(opts, :encoded),
-      message: "#{Keyword.fetch!(opts, :kind)} #{detail Keyword.fetch!(opts, :rest)}"
+      message: "#{Keyword.fetch!(opts, :kind)} #{detail(Keyword.fetch!(opts, :rest))}"
     }
   end
 
   defp detail(rest) when is_binary(rest) do
-    "encoding starting at #{inspect rest}"
+    "encoding starting at #{inspect(rest)}"
   end
 
   defp detail([h | _]) when is_integer(h) do
@@ -1015,6 +1080,7 @@ defmodule File.Error do
       case {action, reason} do
         {"remove directory", :eexist} ->
           "directory is not empty"
+
         _ ->
           IO.iodata_to_binary(:file.format_error(reason))
       end
@@ -1027,11 +1093,10 @@ defmodule File.CopyError do
   defexception [:reason, :source, :destination, on: "", action: ""]
 
   def message(exception) do
-    formatted =
-      IO.iodata_to_binary(:file.format_error(exception.reason))
+    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
 
     location =
-      case exception.on do
+      case exception.on() do
         "" -> ""
         on -> ". #{on}"
       end
@@ -1045,8 +1110,8 @@ defmodule File.LinkError do
   defexception [:reason, :existing, :new, action: ""]
 
   def message(exception) do
-    formatted =
-      IO.iodata_to_binary(:file.format_error(exception.reason))
+    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
+
     "could not #{exception.action} from #{inspect(exception.existing)} to " <>
       "#{inspect(exception.new)}: #{formatted}"
   end
@@ -1109,6 +1174,7 @@ defmodule ErlangError do
         [{:maps, :get, [_, map], _} | _] -> map
         _ -> nil
       end
+
     %KeyError{key: key, term: term}
   end
 

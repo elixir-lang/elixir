@@ -49,60 +49,66 @@ defmodule Mix.Tasks.New do
     umbrella: :boolean
   ]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(argv) do
     {opts, argv} = OptionParser.parse!(argv, strict: @switches)
 
     case argv do
       [] ->
-        Mix.raise "Expected PATH to be given, please use \"mix new PATH\""
+        Mix.raise("Expected PATH to be given, please use \"mix new PATH\"")
+
       [path | _] ->
         app = opts[:app] || Path.basename(Path.expand(path))
         check_application_name!(app, !opts[:app])
         mod = opts[:module] || Macro.camelize(app)
         check_mod_name_validity!(mod)
         check_mod_name_availability!(mod)
+
         unless path == "." do
           check_directory_existence!(path)
           File.mkdir_p!(path)
         end
 
-        File.cd! path, fn ->
+        File.cd!(path, fn ->
           if opts[:umbrella] do
             generate_umbrella(app, mod, path, opts)
           else
             generate(app, mod, path, opts)
           end
-        end
+        end)
     end
   end
 
   defp generate(app, mod, path, opts) do
-    assigns = [app: app, mod: mod, sup_app: sup_app(mod, !!opts[:sup]),
-               version: get_version(System.version)]
+    assigns = [
+      app: app,
+      mod: mod,
+      sup_app: sup_app(mod, !!opts[:sup]),
+      version: get_version(System.version())
+    ]
 
-    create_file "README.md",  readme_template(assigns)
-    create_file ".gitignore", gitignore_template(assigns)
+    create_file("README.md", readme_template(assigns))
+    create_file(".formatter.exs", formatter_template(assigns))
+    create_file(".gitignore", gitignore_template(assigns))
 
     if in_umbrella?() do
-      create_file "mix.exs", mix_exs_apps_template(assigns)
+      create_file("mix.exs", mix_exs_apps_template(assigns))
     else
-      create_file "mix.exs", mix_exs_template(assigns)
+      create_file("mix.exs", mix_exs_template(assigns))
     end
 
-    create_directory "config"
-    create_file "config/config.exs", config_template(assigns)
+    create_directory("config")
+    create_file("config/config.exs", config_template(assigns))
 
-    create_directory "lib"
-    create_file "lib/#{app}.ex", lib_template(assigns)
+    create_directory("lib")
+    create_file("lib/#{app}.ex", lib_template(assigns))
 
     if opts[:sup] do
-      create_file "lib/#{app}/application.ex", lib_app_template(assigns)
+      create_file("lib/#{app}/application.ex", lib_app_template(assigns))
     end
 
-    create_directory "test"
-    create_file "test/test_helper.exs", test_helper_template(assigns)
-    create_file "test/#{app}_test.exs", test_template(assigns)
+    create_directory("test")
+    create_file("test/test_helper.exs", test_helper_template(assigns))
+    create_file("test/#{app}_test.exs", test_template(assigns))
 
     """
 
@@ -113,8 +119,8 @@ defmodule Mix.Tasks.New do
 
     Run "mix help" for more commands.
     """
-    |> String.trim_trailing
-    |> Mix.shell.info
+    |> String.trim_trailing()
+    |> Mix.shell().info()
   end
 
   defp sup_app(_mod, false), do: ""
@@ -126,14 +132,15 @@ defmodule Mix.Tasks.New do
   defp generate_umbrella(_app, mod, path, _opts) do
     assigns = [app: nil, mod: mod]
 
-    create_file ".gitignore", gitignore_template(assigns)
-    create_file "README.md", readme_template(assigns)
-    create_file "mix.exs", mix_exs_umbrella_template(assigns)
+    create_file("README.md", readme_template(assigns))
+    create_file(".formatter.exs", formatter_umbrella_template(assigns))
+    create_file(".gitignore", gitignore_template(assigns))
+    create_file("mix.exs", mix_exs_umbrella_template(assigns))
 
-    create_directory "apps"
+    create_directory("apps")
 
-    create_directory "config"
-    create_file "config/config.exs", config_umbrella_template(assigns)
+    create_directory("config")
+    create_file("config/config.exs", config_umbrella_template(assigns))
 
     """
 
@@ -148,57 +155,65 @@ defmodule Mix.Tasks.New do
     in the umbrella project root will automatically run
     for each application in the apps/ directory.
     """
-    |> String.trim_trailing
-    |> Mix.shell.info
+    |> String.trim_trailing()
+    |> Mix.shell().info()
   end
 
   defp check_application_name!(name, inferred?) do
     unless name =~ Regex.recompile!(~r/^[a-z][a-z0-9_]*$/) do
-      Mix.raise "Application name must start with a letter and have only lowercase " <>
-                "letters, numbers and underscore, got: #{inspect name}" <>
-                (if inferred? do
-                  ". The application name is inferred from the path, if you'd like to " <>
-                  "explicitly name the application then use the \"--app APP\" option"
-                else
-                  ""
-                end)
+      Mix.raise(
+        "Application name must start with a letter and have only lowercase " <>
+          "letters, numbers and underscore, got: #{inspect(name)}" <>
+          if inferred? do
+            ". The application name is inferred from the path, if you'd like to " <>
+              "explicitly name the application then use the \"--app APP\" option"
+          else
+            ""
+          end
+      )
     end
   end
 
   defp check_mod_name_validity!(name) do
     unless name =~ Regex.recompile!(~r/^[A-Z]\w*(\.[A-Z]\w*)*$/) do
-      Mix.raise "Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect name}"
+      Mix.raise(
+        "Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect(name)}"
+      )
     end
   end
 
   defp check_mod_name_availability!(name) do
     name = Module.concat(Elixir, name)
+
     if Code.ensure_loaded?(name) do
-      Mix.raise "Module name #{inspect name} is already taken, please choose another name"
+      Mix.raise("Module name #{inspect(name)} is already taken, please choose another name")
     end
   end
 
   defp check_directory_existence!(path) do
-    if File.dir?(path) and not Mix.shell.yes?("The directory #{inspect(path)} already exists. Are you sure you want to continue?") do
-      Mix.raise "Please select another directory for installation"
+    msg = "The directory #{inspect(path)} already exists. Are you sure you want to continue?"
+
+    if File.dir?(path) and not Mix.shell().yes?(msg) do
+      Mix.raise("Please select another directory for installation")
     end
   end
 
   defp get_version(version) do
     {:ok, version} = Version.parse(version)
+
     "#{version.major}.#{version.minor}" <>
       case version.pre do
         [h | _] -> "-#{h}"
-        []      -> ""
+        [] -> ""
       end
   end
 
   defp in_umbrella? do
-    apps = Path.dirname(File.cwd!)
+    apps = Path.dirname(File.cwd!())
 
     try do
       Mix.Project.in_project(:umbrella_check, "../..", fn _ ->
-        path = Mix.Project.config[:apps_path]
+        path = Mix.Project.config()[:apps_path]
         path && Path.expand(path) == apps
       end)
     catch
@@ -206,7 +221,7 @@ defmodule Mix.Tasks.New do
     end
   end
 
-  embed_template :readme, """
+  embed_template(:readme, """
   # <%= @mod %>
 
   **TODO: Add description**
@@ -228,9 +243,23 @@ defmodule Mix.Tasks.New do
   and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
   be found at [https://hexdocs.pm/<%= @app %>](https://hexdocs.pm/<%= @app %>).
   <% end %>
-  """
+  """)
 
-  embed_template :gitignore, """
+  embed_template(:formatter, """
+  # Used by "mix format"
+  [
+    inputs: ["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]
+  ]
+  """)
+
+  embed_template(:formatter_umbrella, """
+  # Used by "mix format"
+  [
+    inputs: ["mix.exs", "apps/*/mix.exs", "apps/*/{config,lib,test}/**/*.{ex,exs}"]
+  ]
+  """)
+
+  embed_template(:gitignore, """
   # The directory Mix will write compiled artifacts to.
   /_build/
 
@@ -255,9 +284,9 @@ defmodule Mix.Tasks.New do
   # Ignore package tarball (built via "mix hex.build").
   <%= @app %>-*.tar
   <% end %>
-  """
+  """)
 
-  embed_template :mix_exs, """
+  embed_template(:mix_exs, """
   defmodule <%= @mod %>.MixProject do
     use Mix.Project
 
@@ -266,7 +295,7 @@ defmodule Mix.Tasks.New do
         app: :<%= @app %>,
         version: "0.1.0",
         elixir: "~> <%= @version %>",
-        start_permanent: Mix.env == :prod,
+        start_permanent: Mix.env() == :prod,
         deps: deps()
       ]
     end
@@ -286,9 +315,9 @@ defmodule Mix.Tasks.New do
       ]
     end
   end
-  """
+  """)
 
-  embed_template :mix_exs_apps, """
+  embed_template(:mix_exs_apps, """
   defmodule <%= @mod %>.MixProject do
     use Mix.Project
 
@@ -301,7 +330,7 @@ defmodule Mix.Tasks.New do
         deps_path: "../../deps",
         lockfile: "../../mix.lock",
         elixir: "~> <%= @version %>",
-        start_permanent: Mix.env == :prod,
+        start_permanent: Mix.env() == :prod,
         deps: deps()
       ]
     end
@@ -322,16 +351,16 @@ defmodule Mix.Tasks.New do
       ]
     end
   end
-  """
+  """)
 
-  embed_template :mix_exs_umbrella, """
+  embed_template(:mix_exs_umbrella, """
   defmodule <%= @mod %>.MixProject do
     use Mix.Project
 
     def project do
       [
         apps_path: "apps",
-        start_permanent: Mix.env == :prod,
+        start_permanent: Mix.env() == :prod,
         deps: deps()
       ]
     end
@@ -345,9 +374,9 @@ defmodule Mix.Tasks.New do
       []
     end
   end
-  """
+  """)
 
-  embed_template :config, ~S"""
+  embed_template(:config, ~S"""
   # This file is responsible for configuring your application
   # and its dependencies with the aid of the Mix.Config module.
   use Mix.Config
@@ -378,9 +407,9 @@ defmodule Mix.Tasks.New do
   # here (which is why it is important to import them last).
   #
   #     import_config "#{Mix.env}.exs"
-  """
+  """)
 
-  embed_template :config_umbrella, ~S"""
+  embed_template(:config_umbrella, ~S"""
   # This file is responsible for configuring your application
   # and its dependencies with the aid of the Mix.Config module.
   use Mix.Config
@@ -398,9 +427,9 @@ defmodule Mix.Tasks.New do
   #       level: :info,
   #       format: "$date $time [$level] $metadata$message\n",
   #       metadata: [:user_id]
-  """
+  """)
 
-  embed_template :lib, """
+  embed_template(:lib, """
   defmodule <%= @mod %> do
     @moduledoc \"""
     Documentation for <%= @mod %>.
@@ -419,9 +448,9 @@ defmodule Mix.Tasks.New do
       :world
     end
   end
-  """
+  """)
 
-  embed_template :lib_app, """
+  embed_template(:lib_app, """
   defmodule <%= @mod %>.Application do
     # See https://hexdocs.pm/elixir/Application.html
     # for more information on OTP Applications
@@ -442,9 +471,9 @@ defmodule Mix.Tasks.New do
       Supervisor.start_link(children, opts)
     end
   end
-  """
+  """)
 
-  embed_template :test, """
+  embed_template(:test, """
   defmodule <%= @mod %>Test do
     use ExUnit.Case
     doctest <%= @mod %>
@@ -453,9 +482,9 @@ defmodule Mix.Tasks.New do
       assert <%= @mod %>.hello() == :world
     end
   end
-  """
+  """)
 
-  embed_template :test_helper, """
+  embed_template(:test_helper, """
   ExUnit.start()
-  """
+  """)
 end

@@ -15,7 +15,6 @@ defmodule Mix.Tasks.Archive do
   variable to different locations based on a particular
   Elixir installation.
   """
-  @spec run(OptionParser.argv) :: :ok
   def run(_) do
     Mix.Local.path_for(:archive)
     |> Path.join("*")
@@ -25,11 +24,11 @@ defmodule Mix.Tasks.Archive do
   end
 
   defp print([]) do
-    Mix.shell.info "No archives currently installed."
+    Mix.shell().info("No archives currently installed.")
   end
 
   defp print(items) do
-    Enum.each items, fn item -> Mix.shell.info ["* ", item] end
-    Mix.shell.info "Archives installed at: #{Mix.Local.path_for(:archive)}"
+    Enum.each(items, fn item -> Mix.shell().info(["* ", item]) end)
+    Mix.shell().info("Archives installed at: #{Mix.Local.path_for(:archive)}")
   end
 end

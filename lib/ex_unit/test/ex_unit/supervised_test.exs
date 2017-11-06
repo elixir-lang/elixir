@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.SupervisedTest do
   use ExUnit.Case, async: true
@@ -25,7 +25,7 @@ defmodule ExUnit.SupervisedTest do
 
     message =
       "failed to start child with the spec {ExUnit.SupervisedTest.MyAgent, :error}.\n" <>
-      "Reason: \"some error\""
+        "Reason: \"some error\""
 
     assert_raise RuntimeError, message, fn ->
       start_supervised!({MyAgent, :error})
@@ -38,8 +38,7 @@ defmodule ExUnit.SupervisedTest do
 
     message =
       "failed to start child with the spec {ExUnit.SupervisedTest.MyAgent, :exception}.\n" <>
-      "Reason: an exception was raised:\n" <>
-      "    ** (RuntimeError) some exception"
+        "Reason: an exception was raised:\n" <> "    ** (RuntimeError) some exception"
 
     exception =
       assert_raise RuntimeError, fn ->
@@ -52,12 +51,12 @@ defmodule ExUnit.SupervisedTest do
   test "starts a supervised process that terminates before on_exit" do
     {:ok, pid} = start_supervised(MyAgent)
     assert Process.alive?(pid)
-    on_exit fn -> refute Process.alive?(pid) end
+    on_exit(fn -> refute Process.alive?(pid) end)
   end
 
   test "starts a supervised process that is permanent" do
     {:ok, _} = start_supervised({MyAgent, 0})
-    Agent.update(MyAgent, & &1 + 1)
+    Agent.update(MyAgent, &(&1 + 1))
     assert Agent.get(MyAgent, & &1) == 1
     Agent.stop(MyAgent)
     wait_until_registered(MyAgent)
@@ -66,7 +65,7 @@ defmodule ExUnit.SupervisedTest do
 
   test "starts a supervised process that is temporary" do
     {:ok, _} = start_supervised({MyAgent, 0}, restart: :temporary)
-    Agent.update(MyAgent, & &1 + 1)
+    Agent.update(MyAgent, &(&1 + 1))
     assert Agent.get(MyAgent, & &1) == 1
     Agent.stop(MyAgent)
     refute Process.whereis(MyAgent)
@@ -74,10 +73,8 @@ defmodule ExUnit.SupervisedTest do
 
   test "starts a supervised process with id checks" do
     {:ok, pid} = start_supervised({MyAgent, 0})
-    assert {:error, {:already_started, ^pid}} =
-           start_supervised({MyAgent, 0})
-    assert {:error, {{:already_started, ^pid}, _}} =
-           start_supervised({MyAgent, 0}, id: :another)
+    assert {:error, {:already_started, ^pid}} = start_supervised({MyAgent, 0})
+    assert {:error, {{:already_started, ^pid}, _}} = start_supervised({MyAgent, 0}, id: :another)
   end
 
   test "stops a supervised process" do
@@ -94,14 +91,19 @@ defmodule ExUnit.SupervisedTest do
 
   test "raises if starting or stopping outside of test process" do
     Task.async(fn ->
-      assert_raise ArgumentError, "start_supervised/2 can only be invoked from the test process", fn ->
+      message = "start_supervised/2 can only be invoked from the test process"
+
+      assert_raise ArgumentError, message, fn ->
         start_supervised(MyAgent)
       end
 
-      assert_raise ArgumentError, "stop_supervised/1 can only be invoked from the test process", fn ->
+      message = "stop_supervised/1 can only be invoked from the test process"
+
+      assert_raise ArgumentError, message, fn ->
         stop_supervised(MyAgent)
       end
-    end) |> Task.await()
+    end)
+    |> Task.await()
   end
 
   defp wait_until_registered(name) do

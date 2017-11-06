@@ -25,7 +25,7 @@ defprotocol Inspect do
         import Inspect.Algebra
 
         def inspect(dict, opts) do
-          concat ["#MapSet<", to_doc(MapSet.to_list(dict), opts), ">"]
+          concat(["#MapSet<", to_doc(MapSet.to_list(dict), opts), ">"])
         end
       end
 
@@ -50,7 +50,7 @@ defprotocol Inspect do
   implementation directly. For example, to test Inspect.MapSet above,
   you can invoke it as:
 
-      Inspect.MapSet.inspect(MapSet.new, %Inspect.Opts{})
+      Inspect.MapSet.inspect(MapSet.new(), %Inspect.Opts{})
 
   """
 
@@ -68,7 +68,7 @@ defimpl Inspect, for: Atom do
   end
 
   defp color_key(atom) when is_boolean(atom), do: :boolean
-  defp color_key(nil), do: :nil
+  defp color_key(nil), do: nil
   defp color_key(_), do: :atom
 end
 
@@ -77,12 +77,13 @@ defimpl Inspect, for: BitString do
     %Inspect.Opts{binaries: bins, base: base, printable_limit: printable_limit} = opts
 
     if base == :decimal and
-       (bins == :as_strings or (bins == :infer and String.printable?(term, printable_limit))) do
+         (bins == :as_strings or (bins == :infer and String.printable?(term, printable_limit))) do
       inspected =
         case Identifier.escape(term, ?", printable_limit) do
           {escaped, ""} -> [?", escaped, ?"]
           {escaped, _} -> [?", escaped, ?", " <> ..."]
         end
+
       color(IO.iodata_to_binary(inspected), :string, opts)
     else
       inspect_bitstring(term, opts)
@@ -117,8 +118,10 @@ defimpl Inspect, for: BitString do
   end
 
   defp each_bit(<<h, t::bitstring>>, counter, opts) do
-    flex_glue(concat(Inspect.Integer.inspect(h, opts), ","),
-              each_bit(t, decrement(counter), opts))
+    flex_glue(
+      concat(Inspect.Integer.inspect(h, opts), ","),
+      each_bit(t, decrement(counter), opts)
+    )
   end
 
   defp each_bit(bitstring, _counter, opts) do
@@ -129,7 +132,7 @@ defimpl Inspect, for: BitString do
 
   @compile {:inline, decrement: 1}
   defp decrement(:infinity), do: :infinity
-  defp decrement(counter),   do: counter - 1
+  defp decrement(counter), do: counter - 1
 end
 
 defimpl Inspect, for: List do
@@ -139,17 +142,26 @@ defimpl Inspect, for: List do
 
   # TODO: Remove :char_list and :as_char_lists handling in 2.0
   def inspect(term, opts) do
-    %Inspect.Opts{charlists: lists, char_lists: lists_deprecated, printable_limit: printable_limit} = opts
+    %Inspect.Opts{
+      charlists: lists,
+      char_lists: lists_deprecated,
+      printable_limit: printable_limit
+    } = opts
+
     lists =
       if lists == :infer and lists_deprecated != :infer do
         case lists_deprecated do
           :as_char_lists ->
-            IO.warn "the :char_lists inspect option and its :as_char_lists " <>
-              "value are deprecated, use the :charlists option and its " <>
-              ":as_charlists value instead"
+            IO.warn(
+              "the :char_lists inspect option and its :as_char_lists " <>
+                "value are deprecated, use the :charlists option and its " <>
+                ":as_charlists value instead"
+            )
+
             :as_charlists
+
           _ ->
-            IO.warn "the :char_lists inspect option is deprecated, use :charlists instead"
+            IO.warn("the :char_lists inspect option is deprecated, use :charlists instead")
             lists_deprecated
         end
       else
@@ -167,9 +179,12 @@ defimpl Inspect, for: List do
             {escaped, ""} -> [?', escaped, ?']
             {escaped, _} -> [?', escaped, ?', " ++ ..."]
           end
-        IO.iodata_to_binary inspected
+
+        IO.iodata_to_binary(inspected)
+
       keyword?(term) ->
         container_doc(open, term, close, opts, &keyword/2, separator: sep, break: :strict)
+
       true ->
         container_doc(open, term, close, opts, &to_doc/2, separator: sep)
     end
@@ -178,7 +193,7 @@ defimpl Inspect, for: List do
   @doc false
   def keyword({key, value}, opts) do
     key = color(Identifier.inspect_as_key(key), :atom, opts)
-    concat(key, to_doc(value, opts))
+    concat(key, concat(" ", to_doc(value, opts)))
   end
 
   @doc false
@@ -189,7 +204,7 @@ defimpl Inspect, for: List do
     end
   end
 
-  def keyword?([]),     do: true
+  def keyword?([]), do: true
   def keyword?(_other), do: false
 end
 
@@ -198,7 +213,8 @@ defimpl Inspect, for: Tuple do
     open = color("{", :tuple, opts)
     sep = color(",", :tuple, opts)
     close = color("}", :tuple, opts)
-    container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, separator: sep)
+    container_opts = [separator: sep, break: :flex]
+    container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, container_opts)
   end
 end
 
@@ -225,10 +241,7 @@ defimpl Inspect, for: Map do
   end
 
   defp to_map({key, value}, opts, sep) do
-    concat(
-      concat(to_doc(key, opts), sep),
-      to_doc(value, opts)
-    )
+    concat(concat(to_doc(key, opts), sep), to_doc(value, opts))
   end
 end
 
@@ -240,20 +253,23 @@ defimpl Inspect, for: Integer do
 
   defp base_to_value(base) do
     case base do
-      :binary  -> 2
+      :binary -> 2
       :decimal -> 10
-      :octal   -> 8
-      :hex     -> 16
+      :octal -> 8
+      :hex -> 16
     end
   end
 
   defp prepend_prefix(value, :decimal), do: value
+
   defp prepend_prefix(value, base) do
-    prefix = case base do
-      :binary -> "0b"
-      :octal  -> "0o"
-      :hex    -> "0x"
-    end
+    prefix =
+      case base do
+        :binary -> "0b"
+        :octal -> "0o"
+        :hex -> "0x"
+      end
+
     prefix <> value
   end
 end
@@ -288,7 +304,9 @@ defimpl Inspect, for: Function do
     name = fun_info[:name]
 
     if fun_info[:type] == :external and fun_info[:env] == [] do
-      "&#{Identifier.inspect_as_atom(mod)}.#{Identifier.inspect_as_function(name)}/#{fun_info[:arity]}"
+      inspected_as_atom = Identifier.inspect_as_atom(mod)
+      inspected_as_function = Identifier.inspect_as_function(name)
+      "&#{inspected_as_atom}.#{inspected_as_function}/#{fun_info[:arity]}"
     else
       case Atom.to_charlist(mod) do
         'elixir_compiler_' ++ _ ->
@@ -297,6 +315,7 @@ defimpl Inspect, for: Function do
           else
             default_inspect(mod, fun_info)
           end
+
         _ ->
           default_inspect(mod, fun_info)
       end
@@ -304,8 +323,9 @@ defimpl Inspect, for: Function do
   end
 
   defp default_inspect(mod, fun_info) do
-    "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in " <>
-      "#{Identifier.inspect_as_atom(mod)}#{extract_name(fun_info[:name])}>"
+    inspected_as_atom = Identifier.inspect_as_atom(mod)
+    extracted_name = extract_name(fun_info[:name])
+    "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in #{inspected_as_atom}#{extracted_name}>"
   end
 
   defp extract_name([]) do
@@ -316,14 +336,14 @@ defimpl Inspect, for: Function do
     case Identifier.extract_anonymous_fun_parent(name) do
       {name, arity} ->
         "." <> Identifier.inspect_as_function(name) <> "/" <> arity
+
       :error ->
         "." <> Identifier.inspect_as_function(name)
     end
   end
 
   defp uniq(fun_info) do
-    Integer.to_string(fun_info[:new_index]) <> "." <>
-      Integer.to_string(fun_info[:uniq])
+    Integer.to_string(fun_info[:new_index]) <> "." <> Integer.to_string(fun_info[:uniq])
   end
 end
 

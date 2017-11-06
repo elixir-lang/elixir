@@ -1,6 +1,6 @@
 defmodule Dialyzer.Macrocallback do
-  @macrocallback required(atom) :: Macro.t
-  @macrocallback optional(atom) :: Macro.t
+  @macrocallback required(atom) :: Macro.t()
+  @macrocallback optional(atom) :: Macro.t()
   @optional_callbacks [optional: 1]
 end
 

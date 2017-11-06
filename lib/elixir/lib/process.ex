@@ -12,6 +12,11 @@ defmodule Process do
     * `Kernel.self/0`
     * `Kernel.send/2`
 
+  While this module provides low-level conveniences to work with processes,
+  developers typically use abstractions such as `Agent`, `GenServer`,
+  `Registry`, `Supervisor` and `Task`  for building their systems and
+  resort to this module for gathering information, trapping exits, links
+  and monitoring.
   """
 
   @doc """
@@ -43,10 +48,8 @@ defmodule Process do
   @spec get(term, default :: term) :: term
   def get(key, default \\ nil) do
     case :erlang.get(key) do
-      :undefined ->
-        default
-      value ->
-        value
+      :undefined -> default
+      value -> value
     end
   end
 
@@ -83,7 +86,7 @@ defmodule Process do
   """
   @spec put(term, term) :: term | nil
   def put(key, value) do
-    nillify :erlang.put(key, value)
+    nillify(:erlang.put(key, value))
   end
 
   @doc """
@@ -103,7 +106,7 @@ defmodule Process do
   """
   @spec delete(term) :: term | nil
   def delete(key) do
-    nillify :erlang.erase(key)
+    nillify(:erlang.erase(key))
   end
 
   @doc """
@@ -334,10 +337,13 @@ defmodule Process do
   @spec read_timer(reference) :: non_neg_integer | false
   defdelegate read_timer(timer_ref), to: :erlang
 
-  @type spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
-                      {:fullsweep_after, non_neg_integer} |
-                      {:min_heap_size, non_neg_integer} |
-                      {:min_bin_vheap_size, non_neg_integer}
+  @type spawn_opt ::
+          :link
+          | :monitor
+          | {:priority, :low | :normal | :high}
+          | {:fullsweep_after, non_neg_integer}
+          | {:min_heap_size, non_neg_integer}
+          | {:min_bin_vheap_size, non_neg_integer}
   @type spawn_opts :: [spawn_opt]
 
   @doc """
@@ -453,7 +459,6 @@ defmodule Process do
   defdelegate link(pid_or_port), to: :erlang
 
   @doc """
-
   Removes the link between the calling process and the given item (process or
   port).
 
@@ -491,18 +496,21 @@ defmodule Process do
 
   """
   @spec register(pid | port, atom) :: true
-  def register(pid_or_port, name) when is_atom(name) and name not in [nil, false, true, :undefined] do
+  def register(pid_or_port, name)
+      when is_atom(name) and name not in [nil, false, true, :undefined] do
     :erlang.register(name, pid_or_port)
   catch
-    :error, :badarg when node(pid_or_port) != node()  ->
-      message = "could not register #{inspect pid_or_port} because it belongs to another node"
-      :erlang.error ArgumentError.exception(message), [pid_or_port, name]
+    :error, :badarg when node(pid_or_port) != node() ->
+      message = "could not register #{inspect(pid_or_port)} because it belongs to another node"
+      :erlang.error(ArgumentError.exception(message), [pid_or_port, name])
+
     :error, :badarg ->
       message =
-        "could not register #{inspect pid_or_port} with " <>
-        "name #{inspect name}. Or it is not alive, or the name is already " <>
-        "taken, or it has already been given another name"
-      :erlang.error ArgumentError.exception(message), [pid_or_port, name]
+        "could not register #{inspect(pid_or_port)} with " <>
+          "name #{inspect(name)} because it is not alive, the name is already " <>
+          "taken, or it has already been given another name"
+
+      :erlang.error(ArgumentError.exception(message), [pid_or_port, name])
   end
 
   @doc """
@@ -525,7 +533,7 @@ defmodule Process do
   """
   @spec whereis(atom) :: pid | port | nil
   def whereis(name) do
-    nillify :erlang.whereis(name)
+    nillify(:erlang.whereis(name))
   end
 
   @doc """
@@ -557,8 +565,9 @@ defmodule Process do
   @spec registered() :: [atom]
   defdelegate registered(), to: :erlang
 
-  @typep heap_size :: non_neg_integer |
-                      %{size: non_neg_integer, kill: boolean, error_logger: boolean}
+  @typep heap_size ::
+           non_neg_integer
+           | %{size: non_neg_integer, kill: boolean, error_logger: boolean}
 
   @typep priority_level :: :low | :normal | :high | :max
 
@@ -575,13 +584,13 @@ defmodule Process do
   """
   @spec flag(:error_handler, module) :: module
   @spec flag(:max_heap_size, heap_size) :: heap_size
-  @spec flag(:message_queue_data, :erlang.message_queue_data) :: :erlang.message_queue_data
+  @spec flag(:message_queue_data, :erlang.message_queue_data()) :: :erlang.message_queue_data()
   @spec flag(:min_bin_vheap_size, non_neg_integer) :: non_neg_integer
   @spec flag(:min_heap_size, non_neg_integer) :: non_neg_integer
   @spec flag(:monitor_nodes, term) :: term
   @spec flag({:monitor_nodes, term()}, term) :: term
   @spec flag(:priority, priority_level) :: priority_level
-  @spec flag(:save_calls, 0..10_000) :: 0..10_000
+  @spec flag(:save_calls, 0..10000) :: 0..10000
   @spec flag(:sensitive, boolean) :: boolean
   @spec flag(:trap_exit, boolean) :: boolean
   defdelegate flag(flag, value), to: :erlang, as: :process_flag
@@ -600,7 +609,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
-  @spec flag(pid, :save_calls, 0..10_000) :: 0..10_000
+  @spec flag(pid, :save_calls, 0..10000) :: 0..10000
   defdelegate flag(pid, flag, value), to: :erlang, as: :process_flag
 
   @doc """
@@ -613,7 +622,7 @@ defmodule Process do
   """
   @spec info(pid) :: keyword
   def info(pid) do
-    nillify :erlang.process_info(pid)
+    nillify(:erlang.process_info(pid))
   end
 
   @doc """
@@ -622,7 +631,7 @@ defmodule Process do
 
   See `:erlang.process_info/2` for more info.
   """
-  @spec info(pid, atom | [atom]) :: {atom, term} | [{atom, term}]  | nil
+  @spec info(pid, atom | [atom]) :: {atom, term} | [{atom, term}] | nil
   def info(pid, spec)
 
   def info(pid, :registered_name) do
@@ -634,7 +643,7 @@ defmodule Process do
   end
 
   def info(pid, spec) when is_atom(spec) or is_list(spec) do
-    nillify :erlang.process_info(pid, spec)
+    nillify(:erlang.process_info(pid, spec))
   end
 
   @doc """
@@ -654,5 +663,5 @@ defmodule Process do
 
   @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
-  defp nillify(other),      do: other
+  defp nillify(other), do: other
 end

@@ -42,80 +42,94 @@ defmodule Mix.Tasks.Archive.Build do
     * `--include-dot-files` - adds dot files from priv directory to the archive.
 
   """
-  @switches [force: :boolean, compile: :boolean, output: :string, input: :string,
-             deps_check: :boolean, archives_check: :boolean, elixir_version_check: :boolean,
-             include_dot_files: :boolean]
+  @switches [
+    force: :boolean,
+    compile: :boolean,
+    output: :string,
+    input: :string,
+    deps_check: :boolean,
+    archives_check: :boolean,
+    elixir_version_check: :boolean,
+    include_dot_files: :boolean
+  ]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, _} = OptionParser.parse!(args, aliases: [o: :output, i: :input], strict: @switches)
 
-    project = Mix.Project.get
+    project = Mix.Project.get()
 
     if project && Keyword.get(opts, :compile, true) do
-      Mix.Task.run :compile, args
+      Mix.Task.run(:compile, args)
     end
 
-    source = cond do
-      input = opts[:input] ->
-        input
-      project ->
-        path = Mix.Project.app_path
-        if elixir = Mix.Project.config[:elixir] do
-          File.write Path.join(path, ".elixir"), elixir
-        else
-          File.rm Path.join(path, ".elixir")
-        end
-        path
-      true ->
-        Mix.raise "Cannot create archive without input directory, " <>
-          "please pass -i as an option"
-    end
+    source =
+      cond do
+        input = opts[:input] ->
+          input
 
-    project_config = Mix.Project.config
-    target = cond do
-      output = opts[:output] ->
-        output
-      project_config[:app] ->
-        Mix.Local.name_for(:archive, project_config)
-      true ->
-        Mix.raise "Cannot create archive without output file, " <>
-          "please pass -o as an option"
-    end
+        project ->
+          path = Mix.Project.app_path()
+
+          if elixir = Mix.Project.config()[:elixir] do
+            File.write(Path.join(path, ".elixir"), elixir)
+          else
+            File.rm(Path.join(path, ".elixir"))
+          end
+
+          path
+
+        true ->
+          Mix.raise("Cannot create archive without input directory, please pass -i as an option")
+      end
+
+    project_config = Mix.Project.config()
+
+    target =
+      cond do
+        output = opts[:output] ->
+          output
+
+        project_config[:app] ->
+          Mix.Local.name_for(:archive, project_config)
+
+        true ->
+          Mix.raise("Cannot create archive without output file, please pass -o as an option")
+      end
 
     unless File.dir?(source) do
-      Mix.raise "Expected archive source #{inspect source} to be a directory"
+      Mix.raise("Expected archive source #{inspect(source)} to be a directory")
     end
 
     create(source, target, Keyword.get(opts, :include_dot_files, false))
 
-    Mix.shell.info "Generated archive #{inspect target} with MIX_ENV=#{Mix.env}"
+    Mix.shell().info("Generated archive #{inspect(target)} with MIX_ENV=#{Mix.env()}")
     :ok
   end
 
   defp create(source, target, include_dot_files?) do
     source_path = Path.expand(source)
     target_path = Path.expand(target)
-    dir = Mix.Local.archive_name(target_path) |> String.to_charlist
-    {:ok, _} = :zip.create(String.to_charlist(target_path),
-                  files_to_add(source_path, dir, include_dot_files?))
+    dir = Mix.Local.archive_name(target_path) |> String.to_charlist()
+    file_list = files_to_add(source_path, dir, include_dot_files?)
+    {:ok, _} = :zip.create(String.to_charlist(target_path), file_list)
     :ok
   end
 
   defp files_to_add(path, dir, include_dot_files?) do
-    File.cd! path, fn ->
+    File.cd!(path, fn ->
       evsn = Path.wildcard(".elixir")
       ebin = Path.wildcard("ebin/*.{beam,app}")
       priv = Path.wildcard("priv/**/*", match_dot: include_dot_files?)
 
-      Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
+      Enum.reduce(evsn ++ ebin ++ priv, [], fn f, acc ->
         case File.read(f) do
           {:ok, bin} ->
-            [{Path.join(dir, f) |> String.to_charlist, bin} | acc]
+            [{Path.join(dir, f) |> String.to_charlist(), bin} | acc]
+
           {:error, _} ->
             acc
         end
-      end
-    end
+      end)
+    end)
   end
 end

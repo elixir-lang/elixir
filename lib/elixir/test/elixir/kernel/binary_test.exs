@@ -1,44 +1,50 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.BinaryTest do
   use ExUnit.Case, async: true
 
   test "heredoc" do
     assert 7 == __ENV__.line
-    assert "foo\nbar\n" == """
-foo
-bar
-"""
 
-    assert 13 == __ENV__.line
+    assert "foo\nbar\n" == """
+           foo
+           bar
+           """
+
+    assert 14 == __ENV__.line
+
     assert "foo\nbar \"\"\"\n" == """
-foo
-bar \"""
-"""
+           foo
+           bar \"""
+           """
   end
 
   test "aligned heredoc" do
     assert "foo\nbar\n" == """
-    foo
-    bar
-    """
+           foo
+           bar
+           """
   end
 
   test "heredoc with interpolation" do
-    assert "29\n" == """
-    #{__ENV__.line}
-    """
+    assert "31\n" == """
+           #{__ENV__.line}
+           """
 
-    assert "\n34\n" == """
+    assert "\n36\n" == """
 
-    #{__ENV__.line}
-    """
+           #{__ENV__.line}
+           """
   end
 
   test "heredoc in call" do
-    assert "foo\nbar" == Kernel.<>("""
-    foo
-    """, "bar")
+    assert "foo\nbar" ==
+             Kernel.<>(
+               """
+               foo
+               """,
+               "bar"
+             )
   end
 
   test "UTF-8" do
@@ -92,8 +98,8 @@ bar \"""
   test "hex" do
     assert "\x76" == "v"
     assert "\u00FF" == "ÿ"
-    assert "\u{A}"== "\n"
-    assert "\u{E9}"== "é"
+    assert "\u{A}" == "\n"
+    assert "\u{E9}" == "é"
     assert "\u{10F}" == <<196, 143>>
     assert "\u{10FF}" == <<225, 131, 191>>
     assert "\u{10FFF}" == <<240, 144, 191, 191>>
@@ -114,7 +120,7 @@ bar \"""
 
   test "pattern match" do
     s = 16
-    assert <<_a, _b :: size(s)>> = "foo"
+    assert <<_a, _b::size(s)>> = "foo"
   end
 
   test "pattern match with splice" do
@@ -128,8 +134,9 @@ bar \"""
   end
 
   test "literal" do
+    # TODO: Remove String.to_atom/1 when we support 20+
     assert <<106, 111, 115, 195, 169>> == <<"josé">>
-    assert <<106, 111, 115, 195, 169>> == <<"#{:"josé"}">>
+    assert <<106, 111, 115, 195, 169>> == <<"#{String.to_atom("josé")}">>
     assert <<106, 111, 115, 195, 169>> == <<"josé"::binary>>
     assert <<106, 111, 115, 195, 169>> == <<"josé"::bits>>
     assert <<106, 111, 115, 195, 169>> == <<"josé"::bitstring>>
@@ -174,10 +181,13 @@ bar \"""
   test "bitsyntax translation" do
     refb = "sample"
     sec_data = "another"
-    <<byte_size(refb)::size(1)-big-signed-integer-unit(8),
+
+    <<
+      byte_size(refb)::size(1)-big-signed-integer-unit(8),
       refb::binary,
       byte_size(sec_data)::1*16-big-signed-integer,
-      sec_data::binary>>
+      sec_data::binary
+    >>
   end
 
   test "bitsyntax size shortcut" do
@@ -193,22 +203,25 @@ bar \"""
 
   defmacrop signed_16 do
     quote do
-      big-signed-integer-unit(16)
+      big - signed - integer - unit(16)
     end
   end
 
   defmacrop refb_spec do
     quote do
-      1*8-big-signed-integer
+      1 * 8 - big - signed - integer
     end
   end
 
   test "bitsyntax macro" do
     refb = "sample"
     sec_data = "another"
-    <<byte_size(refb)::refb_spec,
+
+    <<
+      byte_size(refb)::refb_spec,
       refb::binary,
       byte_size(sec_data)::size(1)-signed_16,
-      sec_data::binary>>
+      sec_data::binary
+    >>
   end
 end

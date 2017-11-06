@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.HelpTest do
   use MixTest.Case
@@ -7,7 +7,7 @@ defmodule Mix.Tasks.HelpTest do
 
   test "help lists all tasks", context do
     in_tmp context.test, fn ->
-      Mix.Tasks.Help.run []
+      Mix.Tasks.Help.run([])
       assert_received {:mix_shell, :info, ["mix" <> _]}
       assert_received {:mix_shell, :info, ["mix help" <> _]}
       assert_received {:mix_shell, :info, ["mix compile" <> _]}
@@ -16,10 +16,9 @@ defmodule Mix.Tasks.HelpTest do
 
   test "help list default task", context do
     in_tmp context.test, fn ->
-      Mix.Tasks.Help.run []
+      Mix.Tasks.Help.run([])
 
-      {_, _, [output]} =
-        assert_received {:mix_shell, :info, [_]}
+      assert_received {:mix_shell, :info, [output]}
       assert output =~ ~r/^mix\s+# Runs the default task \(current: \"mix run\"\)/m
     end
   end
@@ -31,10 +30,10 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "help --names", context do
-    Mix.Project.push Aliases
+    Mix.Project.push(Aliases)
 
     in_tmp context.test, fn ->
-      Mix.Tasks.Help.run ["--names"]
+      Mix.Tasks.Help.run(["--names"])
       assert_received {:mix_shell, :info, ["c"]}
       assert_received {:mix_shell, :info, ["compile"]}
       assert_received {:mix_shell, :info, ["h"]}
@@ -48,7 +47,7 @@ defmodule Mix.Tasks.HelpTest do
     in_tmp context.test, fn ->
       output =
         capture_io(fn ->
-          Mix.Tasks.Help.run ["compile"]
+          Mix.Tasks.Help.run(["compile"])
         end)
 
       assert output =~ "# mix compile\n"
@@ -57,7 +56,7 @@ defmodule Mix.Tasks.HelpTest do
 
       output =
         capture_io(fn ->
-          Mix.Tasks.Help.run ["compile.all"]
+          Mix.Tasks.Help.run(["compile.all"])
         end)
 
       assert output =~ "# mix compile.all\n"
@@ -67,7 +66,7 @@ defmodule Mix.Tasks.HelpTest do
 
   test "help --search PATTERN", context do
     in_tmp context.test, fn ->
-      Mix.Tasks.Help.run ["--search", "deps"]
+      Mix.Tasks.Help.run(["--search", "deps"])
       assert_received {:mix_shell, :info, ["mix deps" <> _]}
       assert_received {:mix_shell, :info, ["mix deps.clean" <> _]}
     end
@@ -75,24 +74,26 @@ defmodule Mix.Tasks.HelpTest do
 
   test "help --search without pattern" do
     assert_raise Mix.Error, "Unexpected arguments, expected \"mix help --search PATTERN\"", fn ->
-      Mix.Tasks.Help.run ["--search"]
+      Mix.Tasks.Help.run(["--search"])
     end
   end
 
   test "help --search without results", context do
     in_tmp context.test, fn ->
       output =
-        capture_io fn ->
-          Mix.Tasks.Help.run ["--search", "foo"]
-        end
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["--search", "foo"])
+        end)
 
       assert output == ""
     end
   end
 
   test "bad arguments" do
-    assert_raise Mix.Error, "Unexpected arguments, expected \"mix help\" or \"mix help TASK\"", fn ->
-      Mix.Tasks.Help.run ["foo", "bar"]
+    message = "Unexpected arguments, expected \"mix help\" or \"mix help TASK\""
+
+    assert_raise Mix.Error, message, fn ->
+      Mix.Tasks.Help.run(["foo", "bar"])
     end
   end
 end

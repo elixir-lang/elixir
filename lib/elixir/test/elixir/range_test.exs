@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule RangeTest do
   use ExUnit.Case, async: true
@@ -6,22 +6,13 @@ defmodule RangeTest do
   doctest Range
 
   test "precedence" do
-    assert Enum.to_list(1..3+2) == [1, 2, 3, 4, 5]
-    assert 1..3 |> Enum.to_list == [1, 2, 3]
+    assert Enum.to_list(1..(3 + 2)) == [1, 2, 3, 4, 5]
+    assert 1..3 |> Enum.to_list() == [1, 2, 3]
   end
 
   test "op" do
     assert (1..3).first == 1
-    assert (1..3).last  == 3
-  end
-
-  test "range?" do
-    assert Range.range?(1..3)
-    refute Range.range?(0)
-    assert %Range{first: -10, last: 10} |> Range.range?
-    refute %Range{first: nil, last: 10} |> Range.range?
-    refute %Range{first: -10, last: nil} |> Range.range?
-    refute %Range{} |> Range.range?
+    assert (1..3).last == 3
   end
 
   test "enum" do
@@ -49,6 +40,7 @@ defmodule RangeTest do
     x = 1.0
     y = 3.0
     message = "ranges (first..last) expect both sides to be integers, got: 1.0..3.0"
+
     assert_raise ArgumentError, message, fn ->
       Enum.map(x..y, &(&1 * 2))
     end
@@ -56,10 +48,10 @@ defmodule RangeTest do
     first = []
     last = []
     message = "ranges (first..last) expect both sides to be integers, got: []..[]"
+
     assert_raise ArgumentError, message, fn ->
       first..last
-      Enum.map(first..last, &(&1))
+      Enum.map(first..last, & &1)
     end
-
   end
 end

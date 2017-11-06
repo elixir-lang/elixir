@@ -33,15 +33,13 @@ defmodule Logger do
   level. There are additional macros for other levels. Notice the argument
   passed to `Logger.info/2` in the above example is a zero argument function.
 
-  Although the `Logger` macros accept messages as strings as well as functions,
-  it's recommended to use functions whenever the message is expensive to
-  compute. In the example above, the message is evaluated (and thus so is the
-  interpolation inside it) regardless of the level, even if the message will not
-  be actually logged at runtime; the only way of avoiding evaluation of such
-  message is purging the log call at compile-time through the
-  `:compile_time_purge_level` option (see below), or using a function that is
-  evaluated to generate the message only if the message needs to be logged
-  according to the runtime level.
+  The `Logger` macros also accept messages as strings, but keep in mind that
+  strings are **always** evaluated regardless of log-level. As such, it is
+  recommended to use a function whenever the message is expensive to compute.
+
+  Another option that does not depend on the message type is to purge the log
+  calls at compile-time using the `:compile_time_purge_level` option (see
+  below).
 
   ## Levels
 
@@ -115,7 +113,7 @@ defmodule Logger do
       is evaluated even if the level of the call is lower than
       `:level`. For this reason, messages that are expensive to
       compute should be wrapped in 0-arity anonymous functions that are
-      evaluated only when the `:label` option demands it.
+      evaluated only when the `:level` option demands it.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e., it defaults to `false`).
@@ -368,10 +366,10 @@ defmodule Logger do
   and how to process the existing options.
   """
 
-  @type backend :: :gen_event.handler
-  @type message :: IO.chardata | String.Chars.t
+  @type backend :: :gen_event.handler()
+  @type message :: IO.chardata() | String.Chars.t()
   @type level :: :error | :info | :warn | :debug
-  @type metadata :: keyword(String.Chars.t)
+  @type metadata :: keyword(String.Chars.t())
   @levels [:error, :info, :warn, :debug]
 
   @metadata :logger_metadata
@@ -391,11 +389,13 @@ defmodule Logger do
   @spec metadata(metadata) :: :ok
   def metadata(keyword) do
     {enabled?, metadata} = __metadata__()
+
     metadata =
       Enum.reduce(keyword, metadata, fn
         {key, nil}, acc -> Keyword.delete(acc, key)
         {key, val}, acc -> Keyword.put(acc, key, val)
       end)
+
     Process.put(@metadata, {enabled?, metadata})
     :ok
   end
@@ -447,7 +447,7 @@ defmodule Logger do
   """
   @spec level() :: level
   def level() do
-    %{level: level} = Logger.Config.__data__
+    %{level: level} = Logger.Config.__data__()
     level
   end
 
@@ -470,14 +470,17 @@ defmodule Logger do
 
   """
   @spec compare_levels(level, level) :: :lt | :eq | :gt
-  def compare_levels(level, level), do:
+  def compare_levels(level, level) do
     :eq
-  def compare_levels(left, right), do:
-    if(level_to_number(left) > level_to_number(right), do: :gt, else: :lt)
+  end
+
+  def compare_levels(left, right) do
+    if level_to_number(left) > level_to_number(right), do: :gt, else: :lt
+  end
 
   defp level_to_number(:debug), do: 0
-  defp level_to_number(:info),  do: 1
-  defp level_to_number(:warn),  do: 2
+  defp level_to_number(:info), do: 1
+  defp level_to_number(:warn), do: 2
   defp level_to_number(:error), do: 3
 
   @doc """
@@ -486,7 +489,14 @@ defmodule Logger do
   See the "Runtime Configuration" section in the `Logger` module
   documentation for the available options.
   """
-  @valid_options [:compile_time_purge_level, :compile_time_application, :sync_threshold, :truncate, :level, :utc_log]
+  @valid_options [
+    :compile_time_purge_level,
+    :compile_time_application,
+    :sync_threshold,
+    :truncate,
+    :level,
+    :utc_log
+  ]
   @spec configure(keyword) :: :ok
   def configure(options) do
     Logger.Config.configure(Keyword.take(options, @valid_options))
@@ -515,15 +525,18 @@ defmodule Logger do
       the backend is added
 
   """
-  @spec add_backend(atom, keyword) :: Supervisor.on_start_child
+  @spec add_backend(atom, keyword) :: Supervisor.on_start_child()
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
+
     case Logger.WatcherSupervisor.watch(Logger, Logger.Config.translate_backend(backend), backend) do
       {:ok, _} = ok ->
         Logger.Config.add_backend(backend)
         ok
+
       {:error, {:already_started, _pid}} ->
         {:error, :already_present}
+
       {:error, _} = error ->
         error
     end
@@ -580,13 +593,12 @@ defmodule Logger do
   explicitly avoid embedding metadata.
   """
   @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) ::
-        :ok | {:error, :noproc} | {:error, term}
-  def bare_log(level, chardata_or_fun, metadata \\ [])
-      when level in @levels and is_list(metadata) do
+          :ok | {:error, :noproc} | {:error, term}
+  def bare_log(level, chardata_or_fun, metadata \\ []) when level in @levels and is_list(metadata) do
     case __metadata__() do
       {true, pdict} ->
-        %{mode: mode, truncate: truncate,
-          level: min_level, utc_log: utc_log?} = Logger.Config.__data__
+        %{mode: mode, truncate: truncate, level: min_level, utc_log: utc_log?} =
+          Logger.Config.__data__()
 
         if compare_levels(level, min_level) != :lt do
           metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
@@ -606,6 +618,7 @@ defmodule Logger do
         else
           :ok
         end
+
       {false, _} ->
         :ok
     end
@@ -711,6 +724,7 @@ defmodule Logger do
 
   defp maybe_log(level, data, metadata, caller) do
     min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)
+
     if compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
@@ -718,17 +732,18 @@ defmodule Logger do
     end
   end
 
-  defp normalize_message(fun, metadata) when is_function(fun, 0),
-    do: normalize_message(fun.(), metadata)
-  defp normalize_message({message, fun_metadata}, metadata) when is_list(fun_metadata),
-    do: {message, Keyword.merge(metadata, fun_metadata)}
-  defp normalize_message(message, metadata),
-    do: {message, metadata}
+  defp normalize_message(fun, metadata) when is_function(fun, 0) do
+    normalize_message(fun.(), metadata)
+  end
 
-  defp truncate(data, n) when is_list(data) or is_binary(data),
-    do: Logger.Utils.truncate(data, n)
-  defp truncate(data, n),
-    do: Logger.Utils.truncate(to_string(data), n)
+  defp normalize_message({message, fun_metadata}, metadata) when is_list(fun_metadata) do
+    {message, Keyword.merge(metadata, fun_metadata)}
+  end
+
+  defp normalize_message(message, metadata), do: {message, metadata}
+
+  defp truncate(data, n) when is_list(data) or is_binary(data), do: Logger.Utils.truncate(data, n)
+  defp truncate(data, n), do: Logger.Utils.truncate(to_string(data), n)
 
   defp form_fa({name, arity}) do
     Atom.to_string(name) <> "/" <> Integer.to_string(arity)
@@ -736,7 +751,7 @@ defmodule Logger do
 
   defp form_fa(nil), do: nil
 
-  defp notify(:sync, msg),  do: :gen_event.sync_notify(Logger, msg)
+  defp notify(:sync, msg), do: :gen_event.sync_notify(Logger, msg)
   defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
 
   defp handle_unused_variable_warnings(data, caller) do
@@ -745,12 +760,14 @@ defmodule Logger do
     # anyways). We only want the variables that figure in `caller.vars`, as the
     # AST for calls to local 0-arity functions without parens is the same as the
     # AST for variables.
-    {^data, logged_vars} = Macro.postwalk(data, [], fn
-      {name, _meta, nil} = var, acc when is_atom(name) ->
-        if {name, nil} in caller.vars, do: {var, [name | acc]}, else: {var, acc}
-      ast, acc ->
-        {ast, acc}
-    end)
+    {^data, logged_vars} =
+      Macro.postwalk(data, [], fn
+        {name, _meta, nil} = var, acc when is_atom(name) ->
+          if {name, nil} in caller.vars, do: {var, [name | acc]}, else: {var, acc}
+
+        ast, acc ->
+          {ast, acc}
+      end)
 
     assignments =
       logged_vars

@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Compile.Xref do
 
   @recursive true
   @manifest ".compile.xref"
-  @manifest_vsn :v1
+  @manifest_vsn 1
 
   @moduledoc """
   Performs remote dispatch checking.
@@ -24,7 +24,6 @@ defmodule Mix.Tasks.Compile.Xref do
   @doc """
   Runs this task.
   """
-  @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
@@ -49,9 +48,11 @@ defmodule Mix.Tasks.Compile.Xref do
 
   defp run_xref do
     timestamp = :calendar.universal_time()
+
     case Mix.Task.run("xref", ["warnings"]) do
       :noop ->
         []
+
       {:ok, warnings} ->
         write_manifest(warnings, timestamp)
         warnings
@@ -68,7 +69,7 @@ defmodule Mix.Tasks.Compile.Xref do
   Returns xref manifests.
   """
   def manifests, do: [manifest()]
-  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   defp write_manifest(warnings, timestamp) do
     File.write!(manifest(), :erlang.term_to_binary({@manifest_vsn, warnings}))
@@ -90,13 +91,12 @@ defmodule Mix.Tasks.Compile.Xref do
   Cleans up xref manifest.
   """
   def clean do
-    File.rm manifest()
+    File.rm(manifest())
   end
 
   defp to_diagnostics(warnings, severity) do
-    for {file, entries} <- warnings,
-        {lines, message} <- entries,
-        line <- lines do
+    for {message, locations} <- warnings,
+        {file, line} <- locations do
       %Mix.Task.Compiler.Diagnostic{
         compiler_name: "Xref",
         file: Path.absname(file),

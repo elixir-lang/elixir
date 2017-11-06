@@ -1,11 +1,12 @@
 defmodule EEx.Tokenizer do
   @moduledoc false
 
-  @type content :: IO.chardata
+  @type content :: IO.chardata()
   @type line :: non_neg_integer
   @type marker :: '=' | '/' | '|' | ''
-  @type token :: {:text, content} |
-                 {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
+  @type token ::
+          {:text, content}
+          | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
 
   @doc """
   Tokenizes the given charlist or binary.
@@ -20,7 +21,7 @@ defmodule EEx.Tokenizer do
 
   Or `{:error, line, error}` in case of errors.
   """
-  @spec tokenize(binary | charlist, line, keyword) :: {:ok, [token]} | {:error, line, String.t}
+  @spec tokenize(binary | charlist, line, keyword) :: {:ok, [token]} | {:error, line, String.t()}
   def tokenize(bin, line, opts \\ [])
 
   def tokenize(bin, line, opts)
@@ -34,15 +35,17 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('<%%' ++ t, line, opts, buffer, acc) do
-   tokenize t, line, opts, [?%, ?< | buffer], acc
+    tokenize(t, line, opts, [?%, ?< | buffer], acc)
   end
 
   defp tokenize('<%#' ++ t, line, opts, buffer, acc) do
     case expr(t, line, []) do
-      {:error, _, _} = error -> error
+      {:error, _, _} = error ->
+        error
+
       {:ok, _, new_line, rest} ->
         {rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
-        tokenize rest, new_line, opts, buffer, acc
+        tokenize(rest, new_line, opts, buffer, acc)
     end
   end
 
@@ -50,22 +53,24 @@ defmodule EEx.Tokenizer do
     {marker, t} = retrieve_marker(t)
 
     case expr(t, line, []) do
-      {:error, _, _} = error -> error
+      {:error, _, _} = error ->
+        error
+
       {:ok, expr, new_line, rest} ->
         token = token_name(expr)
         {rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
-        acc   = tokenize_text(buffer, acc)
+        acc = tokenize_text(buffer, acc)
         final = {token, line, marker, Enum.reverse(expr)}
-        tokenize rest, new_line, opts, [], [final | acc]
+        tokenize(rest, new_line, opts, [], [final | acc])
     end
   end
 
   defp tokenize('\n' ++ t, line, opts, buffer, acc) do
-    tokenize t, line + 1, opts, [?\n | buffer], acc
+    tokenize(t, line + 1, opts, [?\n | buffer], acc)
   end
 
   defp tokenize([h | t], line, opts, buffer, acc) do
-    tokenize t, line, opts, [h | buffer], acc
+    tokenize(t, line, opts, [h | buffer], acc)
   end
 
   defp tokenize([], _line, _opts, buffer, acc) do
@@ -89,11 +94,11 @@ defmodule EEx.Tokenizer do
   end
 
   defp expr('\n' ++ t, line, buffer) do
-    expr t, line + 1, [?\n | buffer]
+    expr(t, line + 1, [?\n | buffer])
   end
 
   defp expr([h | t], line, buffer) do
-    expr t, line, [h | buffer]
+    expr(t, line, [h | buffer])
   end
 
   defp expr([], line, _buffer) do
@@ -124,8 +129,8 @@ defmodule EEx.Tokenizer do
     # token and, if so, it is not followed by an "end"
     # token. If this is the case, we are on a start expr.
     case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
-      {:ok, _line, _column, tokens} ->
-        tokens   = Enum.reverse(tokens)
+      {:ok, tokens} ->
+        tokens = Enum.reverse(tokens)
         fn_index = fn_index(tokens)
 
         if fn_index && end_index(tokens) > fn_index do
@@ -133,27 +138,28 @@ defmodule EEx.Tokenizer do
         else
           :middle_expr
         end
+
       _error ->
         :middle_expr
     end
   end
 
-  defp token_name('esle' ++ t),   do: check_spaces(t, :middle_expr)
-  defp token_name('retfa' ++ t),  do: check_spaces(t, :middle_expr)
-  defp token_name('hctac' ++ t),  do: check_spaces(t, :middle_expr)
+  defp token_name('esle' ++ t), do: check_spaces(t, :middle_expr)
+  defp token_name('retfa' ++ t), do: check_spaces(t, :middle_expr)
+  defp token_name('hctac' ++ t), do: check_spaces(t, :middle_expr)
   defp token_name('eucser' ++ t), do: check_spaces(t, :middle_expr)
-  defp token_name('dne' ++ t),    do: check_spaces(t, :end_expr)
+  defp token_name('dne' ++ t), do: check_spaces(t, :end_expr)
 
   defp token_name(_) do
     :expr
   end
 
   defp fn_index(tokens) do
-    Enum.find_index tokens, fn
+    Enum.find_index(tokens, fn
       {:fn_paren, _} -> true
-      {:fn, _}       -> true
-      _              -> false
-    end
+      {:fn, _} -> true
+      _ -> false
+    end)
   end
 
   defp end_index(tokens) do
@@ -184,10 +190,12 @@ defmodule EEx.Tokenizer do
   # including the line break following it if there is one.
   defp trim_if_needed(rest, line, opts, buffer, acc) do
     original = {rest, line, buffer}
+
     if opts[:trim] do
       case {trim_left(buffer, acc), trim_right(rest, line)} do
         {{true, new_buffer}, {true, new_rest, new_line}} ->
           {new_rest, new_line, new_buffer}
+
         _ ->
           original
       end

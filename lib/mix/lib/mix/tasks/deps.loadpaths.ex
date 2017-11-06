@@ -1,8 +1,8 @@
 defmodule Mix.Tasks.Deps.Loadpaths do
   use Mix.Task
 
-  import Mix.Dep, only: [loaded_by_name: 2, format_dep: 1, ok?: 1,
-                         format_status: 1, check_lock: 1]
+  import Mix.Dep,
+    only: [loaded_by_name: 2, format_dep: 1, ok?: 1, format_status: 1, check_lock: 1]
 
   @moduledoc """
   Checks and loads all dependencies along the way.
@@ -19,15 +19,17 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     * `--no-compile` - does not compile dependencies
 
   """
-  @spec run(OptionParser.argv) :: :ok
+
   def run(args) do
     all = Mix.Dep.cached()
+
     unless "--no-deps-check" in args do
       deps_check(all, "--no-compile" in args)
     end
 
     load_paths =
-      for dep <- all, path <- Mix.Dep.load_paths(dep) do
+      for dep <- all,
+          path <- Mix.Dep.load_paths(dep) do
         _ = Code.prepend_path(path)
         path
       end
@@ -50,15 +52,15 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   # it was set by a parent application and the parent application
   # should be the one doing the pruning.
   defp prune_deps(load_paths, no_check?) do
-    config = Mix.Project.config
+    config = Mix.Project.config()
 
     shared_build? =
       no_check? or config[:build_path] != nil or config[:build_per_environment] == false
 
     config
-    |> Mix.Project.build_path
+    |> Mix.Project.build_path()
     |> Path.join("lib/*/ebin")
-    |> Path.wildcard
+    |> Path.wildcard()
     |> List.delete(config[:app] && Mix.Project.compile_path(config))
     |> Kernel.--(load_paths)
     |> Enum.each(&prune_path(&1, shared_build?))
@@ -68,7 +70,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     _ = Code.delete_path(path)
 
     unless shared_build? do
-      path |> Path.dirname |> File.rm_rf!
+      path |> Path.dirname() |> File.rm_rf!()
     end
   end
 
@@ -80,13 +82,16 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     cond do
       not_ok != [] ->
         show_not_ok!(not_ok)
+
       compile == [] or no_compile? ->
         :ok
+
       true ->
         Mix.Tasks.Deps.Compile.compile(compile)
+
         compile
         |> Enum.map(& &1.app)
-        |> loaded_by_name(env: Mix.env)
+        |> loaded_by_name(env: Mix.env())
         |> Enum.filter(&(not ok?(&1)))
         |> show_not_ok!
     end
@@ -100,8 +105,10 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         else
           partition(deps, not_ok, [dep | compile])
         end
+
       ok?(dep) ->
         partition(deps, not_ok, compile)
+
       true ->
         partition(deps, [dep | not_ok], compile)
     end
@@ -113,7 +120,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   # Those are compiled by umbrella.
   defp from_umbrella?(dep) do
-    dep.opts[:from_umbrella]
+    dep.opts()[:from_umbrella]
   end
 
   # Every local dependency (i.e. that are not fetchable)
@@ -134,14 +141,14 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   end
 
   defp show_not_ok!(deps) do
-    shell = Mix.shell
-    shell.error "Unchecked dependencies for environment #{Mix.env}:"
+    shell = Mix.shell()
+    shell.error("Unchecked dependencies for environment #{Mix.env()}:")
 
-    Enum.each deps, fn(dep) ->
-      shell.error "* #{format_dep dep}"
-      shell.error "  #{format_status dep}"
-    end
+    Enum.each(deps, fn dep ->
+      shell.error("* #{format_dep(dep)}")
+      shell.error("  #{format_status(dep)}")
+    end)
 
-    Mix.raise "Can't continue due to errors on dependencies"
+    Mix.raise("Can't continue due to errors on dependencies")
   end
 end

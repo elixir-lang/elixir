@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.ErlangTest do
   use MixTest.Case
@@ -6,8 +6,8 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
   setup config do
     erlc_options = Map.get(config, :erlc_options, [])
-    Mix.ProjectStack.post_config erlc_options: erlc_options
-    Mix.Project.push MixTest.Case.Sample
+    Mix.ProjectStack.post_config(erlc_options: erlc_options)
+    Mix.Project.push(MixTest.Case.Sample)
     :ok
   end
 
@@ -15,25 +15,33 @@ defmodule Mix.Tasks.Compile.ErlangTest do
   test "raises on invalid erlc_options" do
     in_fixture "compile_erlang", fn ->
       assert_raise Mix.Error, ~r"failed with ArgumentError", fn ->
-        capture_io fn ->
-          Mix.Tasks.Compile.Erlang.run []
-        end
+        capture_io(fn ->
+          Mix.Tasks.Compile.Erlang.run([])
+        end)
       end
     end
   end
 
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_erlang", fn ->
-      File.write! "src/zzz.erl", """
+      file = Path.absname("src/zzz.erl")
+
+      File.write!(file, """
       -module(zzz).
       def zzz(), do: b
-      """
+      """)
 
-      assert_raise Mix.Error, fn ->
-        capture_io fn ->
-          Mix.Tasks.Compile.Erlang.run []
-        end
-      end
+      capture_io(fn ->
+        assert {:error, [diagnostic]} = Mix.Tasks.Compile.Erlang.run([])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 compiler_name: "erl_parse",
+                 file: ^file,
+                 message: "syntax error before: zzz",
+                 position: 2,
+                 severity: :error
+               } = diagnostic
+      end)
 
       assert File.regular?("_build/dev/lib/sample/ebin/b.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/c.beam")
@@ -42,21 +50,17 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
   test "compiles src/b.erl and src/c.erl" do
     in_fixture "compile_erlang", fn ->
-      assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/b.erl"]}
       assert_received {:mix_shell, :info, ["Compiled src/c.erl"]}
 
       assert File.regular?("_build/dev/lib/sample/ebin/b.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/c.beam")
 
-      assert File.read!("_build/dev/lib/sample/.compile.erlang") ==
-             "_build/dev/lib/sample/ebin/b.beam\n" <>
-             "_build/dev/lib/sample/ebin/c.beam"
-
-      assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == :noop
+      assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled src/b.erl"]}
 
-      assert Mix.Tasks.Compile.Erlang.run(["--force", "--verbose"]) == :ok
+      assert Mix.Tasks.Compile.Erlang.run(["--force", "--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/b.erl"]}
       assert_received {:mix_shell, :info, ["Compiled src/c.erl"]}
     end
@@ -64,11 +68,11 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
   test "removes old artifact files" do
     in_fixture "compile_erlang", fn ->
-      assert Mix.Tasks.Compile.Erlang.run([]) == :ok
+      assert Mix.Tasks.Compile.Erlang.run([]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/b.beam")
 
       File.rm!("src/b.erl")
-      assert Mix.Tasks.Compile.Erlang.run([]) == :ok
+      assert Mix.Tasks.Compile.Erlang.run([]) == {:ok, []}
       refute File.regular?("_build/dev/lib/sample/ebin/b.beam")
     end
   end
@@ -79,18 +83,91 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       defmodule :purge_test do
         def version, do: :v1
       end
-      assert :v1 == :purge_test.version
+
+      assert :v1 == :purge_test.version()
 
       # Create the second version of the module (this time as Erlang source).
-      File.write! "src/purge_test.erl", """
+      File.write!("src/purge_test.erl", """
       -module(purge_test).
       -export([version/0]).
       version() -> v2.
-      """
-      assert Mix.Tasks.Compile.Erlang.run([]) == :ok
+      """)
+
+      assert Mix.Tasks.Compile.Erlang.run([]) == {:ok, []}
 
       # If the module was not purged on recompilation, this would fail.
-      assert :v2 == :purge_test.version
+      assert :v2 == :purge_test.version()
+    end
+  end
+
+  test "saves warnings between builds" do
+    in_fixture "compile_erlang", fn ->
+      file = Path.absname("src/has_warning.erl")
+
+      File.write!(file, """
+      -module(has_warning).
+      my_fn() -> ok.
+      """)
+
+      capture_io(fn ->
+        assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Erlang.run([])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 file: ^file,
+                 compiler_name: "erl_lint",
+                 message: "function my_fn/0 is unused",
+                 position: 2,
+                 severity: :warning
+               } = diagnostic
+
+        # Should return warning without recompiling file
+        assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
+        refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
+
+        # Should not return warning after changing file
+        File.write!(file, """
+        -module(has_warning).
+        -export([my_fn/0]).
+        my_fn() -> ok.
+        """)
+
+        ensure_touched(file)
+        assert {:ok, []} = Mix.Tasks.Compile.Erlang.run([])
+      end)
+    end
+  end
+
+  test "prints warnings from stale files with --all-warnings" do
+    in_fixture "compile_erlang", fn ->
+      file = Path.absname("src/has_warning.erl")
+
+      File.write!(file, """
+      -module(has_warning).
+      my_fn() -> ok.
+      """)
+
+      capture_io(fn -> Mix.Tasks.Compile.Erlang.run([]) end)
+
+      output =
+        capture_io(fn ->
+          assert {:noop, _} = Mix.Tasks.Compile.Erlang.run(["--all-warnings"])
+        end)
+
+      assert output == "src/has_warning.erl:2: Warning: function my_fn/0 is unused\n"
+
+      # Should not print old warnings after fixing
+      File.write!(file, """
+      -module(has_warning).
+      """)
+
+      ensure_touched(file)
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Compile.Erlang.run(["--all-warnings"])
+        end)
+
+      assert output == ""
     end
   end
 end

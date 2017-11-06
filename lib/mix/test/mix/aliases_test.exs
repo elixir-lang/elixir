@@ -1,20 +1,24 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.AliasesTest do
   use MixTest.Case
 
   defmodule Aliases do
     def project do
-      [aliases: [h: "hello",
-                 p: &inspect/1,
-                 compile: "hello",
-                 help: ["help", "hello"],
-                 "nested.h": [&Mix.shell.info(inspect(&1)), "h foo bar"]]]
+      [
+        aliases: [
+          h: "hello",
+          p: &inspect/1,
+          compile: "hello",
+          help: ["help", "hello"],
+          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"]
+        ]
+      ]
     end
   end
 
   setup do
-    Mix.Project.push Aliases
+    Mix.Project.push(Aliases)
     :ok
   end
 
@@ -23,8 +27,8 @@ defmodule Mix.AliasesTest do
     assert Mix.Task.run("h", []) == :noop
     assert Mix.Task.run("hello", []) == :noop
 
-    Mix.Task.reenable "h"
-    Mix.Task.reenable "hello"
+    Mix.Task.reenable("h")
+    Mix.Task.reenable("hello")
     assert Mix.Task.run("h", ["foo", "bar"]) == "Hello, foo bar!"
   end
 
@@ -32,7 +36,7 @@ defmodule Mix.AliasesTest do
     assert Mix.Task.run("p", []) == "[]"
     assert Mix.Task.run("p", []) == :noop
 
-    Mix.Task.reenable "p"
+    Mix.Task.reenable("p")
     assert Mix.Task.run("p", ["foo", "bar"]) == "[\"foo\", \"bar\"]"
   end
 

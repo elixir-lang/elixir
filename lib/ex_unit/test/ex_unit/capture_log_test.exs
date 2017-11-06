@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.CaptureLogTest do
   use ExUnit.Case
@@ -35,18 +35,19 @@ defmodule ExUnit.CaptureLogTest do
 
   test "level aware" do
     assert capture_log([level: :warn], fn ->
-      Logger.info "here"
-    end) == ""
+             Logger.info("here")
+           end) == ""
   end
 
-  @tag timeout: 2_000
+  @tag timeout: 2000
   test "capture removal on exit" do
-    {_pid, ref} = spawn_monitor(fn ->
-      capture_log(fn ->
-        spawn_link(Kernel, :exit, [:shutdown])
-        Process.sleep(:infinity)
+    {_pid, ref} =
+      spawn_monitor(fn ->
+        capture_log(fn ->
+          spawn_link(Kernel, :exit, [:shutdown])
+          Process.sleep(:infinity)
+        end)
       end)
-    end)
 
     assert_receive {:DOWN, ^ref, _, _, :shutdown}
     wait_capture_removal()
@@ -54,21 +55,23 @@ defmodule ExUnit.CaptureLogTest do
 
   test "log tracking" do
     logged =
-      assert capture_log(fn ->
-        Logger.info "one"
+      capture_log(fn ->
+        Logger.info("one")
 
-        logged = capture_log(fn -> Logger.error "one" end)
+        logged = capture_log(fn -> Logger.error("one") end)
         send(test = self(), {:nested, logged})
 
-        Logger.warn "two"
+        Logger.warn("two")
 
         spawn(fn ->
-          Logger.debug "three"
+          Logger.debug("three")
           send(test, :done)
         end)
+
         receive do: (:done -> :ok)
       end)
 
+    assert logged
     assert logged =~ "[info]  one\n"
     assert logged =~ "[warn]  two\n"
     assert logged =~ "[debug] three\n"
@@ -81,9 +84,22 @@ defmodule ExUnit.CaptureLogTest do
     end
   end
 
+  test "exit with noproc when the logger is down" do
+    Logger.App.stop()
+    on_exit(fn -> Logger.App.start() end)
+
+    message = "cannot capture_log/2 because the :logger application was not started"
+
+    assert_raise RuntimeError, message, fn ->
+      capture_log(fn -> Logger.info("one") end)
+    end
+  end
+
   defp wait_capture_removal() do
     case :gen_event.which_handlers(Logger) do
-      [Logger.Config] -> :ok
+      [Logger.Config] ->
+        :ok
+
       _otherwise ->
         Process.sleep(20)
         wait_capture_removal()

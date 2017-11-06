@@ -220,7 +220,7 @@ defmodule List do
 
   """
   @spec first([elem]) :: nil | elem when elem: var
-  def first([]),      do: nil
+  def first([]), do: nil
   def first([head | _]), do: head
 
   @doc """
@@ -385,7 +385,7 @@ defmodule List do
   def keytake(list, key, position) do
     case :lists.keytake(key, position + 1, list) do
       {:value, item, list} -> {item, list}
-      false                -> nil
+      false -> nil
     end
   end
 
@@ -436,6 +436,7 @@ defmodule List do
   """
   @spec zip([list]) :: [tuple]
   def zip([]), do: []
+
   def zip(list_of_lists) when is_list(list_of_lists) do
     do_zip(list_of_lists, [])
   end
@@ -470,39 +471,50 @@ defmodule List do
   def ascii_printable?(_, 0) do
     true
   end
-  def ascii_printable?([char | rest], counter) when is_integer(char) and char >= 32 and char <= 126 do
+
+  def ascii_printable?([char | rest], counter)
+      when is_integer(char) and char >= 32 and char <= 126 do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([?\n | rest], counter) do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([?\r | rest], counter) do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([?\t | rest], counter) do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([?\v | rest], counter) do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([?\b | rest], counter) do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([?\f | rest], counter) do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([?\e | rest], counter) do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([?\a | rest], counter) do
     ascii_printable?(rest, decrement(counter))
   end
+
   def ascii_printable?([], _counter), do: true
   def ascii_printable?(_, _counter), do: false
 
   @compile {:inline, decrement: 1}
   defp decrement(:infinity), do: :infinity
-  defp decrement(counter),   do: counter - 1
+  defp decrement(counter), do: counter - 1
 
   @doc """
   Returns a list with `value` inserted at the specified `index`.
@@ -669,12 +681,9 @@ defmodule List do
   @spec starts_with?([], nonempty_list) :: false
   def starts_with?(list, prefix)
 
-  def starts_with?([head | tail], [head | prefix_tail]),
-    do: starts_with?(tail, prefix_tail);
-  def starts_with?(list, []) when is_list(list),
-    do: true
-  def starts_with?(list, [_ | _]) when is_list(list),
-    do: false
+  def starts_with?([head | tail], [head | prefix_tail]), do: starts_with?(tail, prefix_tail)
+  def starts_with?(list, []) when is_list(list), do: true
+  def starts_with?(list, [_ | _]) when is_list(list), do: false
 
   @doc """
   Converts a charlist to an atom.
@@ -799,8 +808,11 @@ defmodule List do
       iex> List.to_string([0x0061, "bc"])
       "abc"
 
+      iex> List.to_string([0x0064, "ee", ['p']])
+      "deep"
+
   """
-  @spec to_string(:unicode.charlist) :: String.t
+  @spec to_string(:unicode.charlist()) :: String.t()
   def to_string(list) when is_list(list) do
     try do
       :unicode.characters_to_binary(list)
@@ -817,7 +829,7 @@ defmodule List do
 
         Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect list}
+        #{inspect(list)}
         """
     else
       result when is_binary(result) ->
@@ -883,6 +895,7 @@ defmodule List do
 
   defp each_diagonal(diag, limit, paths, next_paths) do
     {path, rest} = proceed_path(diag, limit, paths)
+
     with {:cont, path} <- follow_snake(path) do
       each_diagonal(diag + 2, limit, rest, [path | next_paths])
     end
@@ -1008,8 +1021,11 @@ defmodule List do
 
   defp do_zip(list, acc) do
     converter = fn x, acc -> do_zip_each(to_list(x), acc) end
+
     case :lists.mapfoldl(converter, [], list) do
-      {_, nil} -> :lists.reverse(acc)
+      {_, nil} ->
+        :lists.reverse(acc)
+
       {mlist, heads} ->
         do_zip(mlist, [to_tuple(:lists.reverse(heads)) | acc])
     end
@@ -1028,5 +1044,5 @@ defmodule List do
   end
 
   defp to_list(tuple) when is_tuple(tuple), do: Tuple.to_list(tuple)
-  defp to_list(list)  when is_list(list),   do: list
+  defp to_list(list) when is_list(list), do: list
 end

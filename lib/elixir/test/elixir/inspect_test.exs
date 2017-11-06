@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file("test_helper.exs", __DIR__)
 
 defmodule Inspect.AtomTest do
   use ExUnit.Case, async: true
@@ -34,7 +34,7 @@ defmodule Inspect.AtomTest do
   end
 
   test "with integers" do
-    assert inspect(User1)  == "User1"
+    assert inspect(User1) == "User1"
     assert inspect(:user1) == ":user1"
   end
 
@@ -69,6 +69,7 @@ defmodule Inspect.AtomTest do
     assert inspect(:{}) == ":{}"
     assert inspect(:%{}) == ":%{}"
     assert inspect(:%) == ":%"
+    assert inspect(:->) == ":->"
   end
 
   test "escaping" do
@@ -86,11 +87,12 @@ defmodule Inspect.AtomTest do
   end
 
   # TODO: Remove this check once we depend only on 20
+  # TODO: Remove String.to_atom/1 when we support 20+
   if :erlang.system_info(:otp_release) >= '20' do
     test "unicode" do
-      assert inspect(:"olá") == ":olá"
-      assert inspect(:"Olá") == ":Olá"
-      assert inspect(:"Ólá") == ":Ólá"
+      assert inspect(String.to_atom("olá")) == ":olá"
+      assert inspect(String.to_atom("Olá")) == ":Olá"
+      assert inspect(String.to_atom("Ólá")) == ":Ólá"
 
       hello_world = String.to_atom("こんにちは世界")
       assert inspect(hello_world) == ":こんにちは世界"
@@ -125,12 +127,13 @@ defmodule Inspect.BitStringTest do
   end
 
   test "all escapes" do
-    assert inspect("\a\b\d\e\f\n\r\s\t\v") ==
-           "\"\\a\\b\\d\\e\\f\\n\\r \\t\\v\""
+    assert inspect("\a\b\d\e\f\n\r\s\t\v") == "\"\\a\\b\\d\\e\\f\\n\\r \\t\\v\""
   end
 
   test "opt infer" do
-    assert inspect(<<"john", 193, "doe">>, binaries: :infer) == ~s(<<106, 111, 104, 110, 193, 100, 111, 101>>)
+    assert inspect(<<"john", 193, "doe">>, binaries: :infer) ==
+             ~s(<<106, 111, 104, 110, 193, 100, 111, 101>>)
+
     assert inspect(<<"john">>, binaries: :infer) == ~s("john")
     assert inspect(<<193>>, binaries: :infer) == ~s(<<193>>)
   end
@@ -142,7 +145,9 @@ defmodule Inspect.BitStringTest do
   end
 
   test "opt as binaries" do
-    assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries) == "<<106, 111, 104, 110, 193, 100, 111, 101>>"
+    assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries) ==
+             "<<106, 111, 104, 110, 193, 100, 111, 101>>"
+
     assert inspect(<<"john">>, binaries: :as_binaries) == "<<106, 111, 104, 110>>"
     assert inspect(<<193>>, binaries: :as_binaries) == "<<193>>"
 
@@ -168,7 +173,7 @@ defmodule Inspect.BitStringTest do
     assert inspect("hello world" <> <<0>>, printable_limit: 4) == ~s("hell" <> ...)
 
     # non printable strings aren't affected by printable limit
-    assert inspect(<<0,1,2,3,4>>, printable_limit: 3) == ~s(<<0, 1, 2, 3, 4>>)
+    assert inspect(<<0, 1, 2, 3, 4>>, printable_limit: 3) == ~s(<<0, 1, 2, 3, 4>>)
   end
 end
 
@@ -197,7 +202,7 @@ defmodule Inspect.NumberTest do
 
   test "float" do
     assert inspect(1.0) == "1.0"
-    assert inspect(1.0E10) == "1.0e10"
+    assert inspect(1.0e10) == "1.0e10"
     assert inspect(1.0e10) == "1.0e10"
     assert inspect(1.0e-10) == "1.0e-10"
   end
@@ -222,7 +227,8 @@ defmodule Inspect.TupleTest do
 
   test "basic" do
     assert inspect({1, "b", 3}) == "{1, \"b\", 3}"
-    assert inspect({1, "b", 3}, [pretty: true, width: 1]) == "{1,\n \"b\",\n 3}"
+    assert inspect({1, "b", 3}, pretty: true, width: 1) == "{1,\n \"b\",\n 3}"
+    assert inspect({1, "b", 3}, pretty: true, width: 10) == "{1, \"b\",\n 3}"
   end
 
   test "empty" do
@@ -243,17 +249,13 @@ defmodule Inspect.TupleTest do
 
     opts = [syntax_colors: [reset: :cyan, atom: :red]]
     assert inspect({}, opts) == "{}"
-    assert inspect({:x, :y}, opts) ==
-      "{\e[31m:x\e[36m, \e[31m:y\e[36m}"
+    assert inspect({:x, :y}, opts) == "{\e[31m:x\e[36m, \e[31m:y\e[36m}"
 
     opts = [syntax_colors: [tuple: :green, reset: :cyan, atom: :red]]
     assert inspect({}, opts) == "\e[32m{\e[36m\e[32m}\e[36m"
+
     assert inspect({:x, :y}, opts) ==
-           "\e[32m{\e[36m" <>
-           "\e[31m:x\e[36m" <>
-           "\e[32m,\e[36m " <>
-           "\e[31m:y\e[36m" <>
-           "\e[32m}\e[36m"
+             "\e[32m{\e[36m\e[31m:x\e[36m\e[32m,\e[36m \e[31m:y\e[36m\e[32m}\e[36m"
   end
 end
 
@@ -261,8 +263,8 @@ defmodule Inspect.ListTest do
   use ExUnit.Case, async: true
 
   test "basic" do
-    assert inspect([ 1, "b", 3 ]) == "[1, \"b\", 3]"
-    assert inspect([ 1, "b", 3 ], [pretty: true, width: 1]) == "[1,\n \"b\",\n 3]"
+    assert inspect([1, "b", 3]) == "[1, \"b\", 3]"
+    assert inspect([1, "b", 3], pretty: true, width: 1) == "[1,\n \"b\",\n 3]"
   end
 
   test "printable" do
@@ -274,21 +276,23 @@ defmodule Inspect.ListTest do
     # non printable characters after the limit don't matter
     assert inspect('hello world' ++ [0], printable_limit: 4) == ~s('hell' ++ ...)
     # non printable strings aren't affected by printable limit
-    assert inspect([0,1,2,3,4], printable_limit: 3) == ~s([0, 1, 2, 3, 4])
+    assert inspect([0, 1, 2, 3, 4], printable_limit: 3) == ~s([0, 1, 2, 3, 4])
   end
 
   test "keyword" do
-    assert inspect([a: 1]) == "[a: 1]"
-    assert inspect([a: 1, b: 2]) == "[a: 1, b: 2]"
-    assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
-    assert inspect(["123": 1]) == ~s(["123": 1])
+    assert inspect(a: 1) == "[a: 1]"
+    assert inspect(a: 1, b: 2) == "[a: 1, b: 2]"
+    assert inspect(a: 1, a: 2, b: 2) == "[a: 1, a: 2, b: 2]"
+    assert inspect("123": 1) == ~s(["123": 1])
 
-    assert inspect([foo: [1, 2, 3], baz: [4, 5, 6]], [pretty: true, width: 20]) ==
-           "[\n  foo: [1, 2, 3],\n  baz: [4, 5, 6]\n]"
+    assert inspect([foo: [1, 2, 3], baz: [4, 5, 6]], pretty: true, width: 20) ==
+             "[\n  foo: [1, 2, 3],\n  baz: [4, 5, 6]\n]"
   end
 
   test "opt infer" do
-    assert inspect('john' ++ [0] ++ 'doe', charlists: :infer) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john' ++ [0] ++ 'doe', charlists: :infer) ==
+             "[106, 111, 104, 110, 0, 100, 111, 101]"
+
     assert inspect('john', charlists: :infer) == "'john'"
     assert inspect([0], charlists: :infer) == "[0]"
   end
@@ -300,7 +304,9 @@ defmodule Inspect.ListTest do
   end
 
   test "opt as lists" do
-    assert inspect('john' ++ [0] ++ 'doe', charlists: :as_lists) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john' ++ [0] ++ 'doe', charlists: :as_lists) ==
+             "[106, 111, 104, 110, 0, 100, 111, 101]"
+
     assert inspect('john', charlists: :as_lists) == "[106, 111, 104, 110]"
     assert inspect([0], charlists: :as_lists) == "[0]"
   end
@@ -312,14 +318,16 @@ defmodule Inspect.ListTest do
   test "improper" do
     assert inspect([:foo | :bar]) == "[:foo | :bar]"
 
-    assert inspect([1, 2, 3, 4, 5 | 42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
+    assert inspect([1, 2, 3, 4, 5 | 42], pretty: true, width: 1) ==
+             "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
   end
 
   test "nested" do
-    assert inspect(Enum.reduce(1..100, [0], &[&2, Integer.to_string(&1)]), [limit: 5]) ==
-           "[[[[[[...], ...], \"97\"], \"98\"], \"99\"], \"100\"]"
-    assert inspect(Enum.reduce(1..100, [0], &[&2 | Integer.to_string(&1)]), [limit: 5]) ==
-           "[[[[[[...] | \"96\"] | \"97\"] | \"98\"] | \"99\"] | \"100\"]"
+    assert inspect(Enum.reduce(1..100, [0], &[&2, Integer.to_string(&1)]), limit: 5) ==
+             "[[[[[[...], ...], \"97\"], \"98\"], \"99\"], \"100\"]"
+
+    assert inspect(Enum.reduce(1..100, [0], &[&2 | Integer.to_string(&1)]), limit: 5) ==
+             "[[[[[[...] | \"96\"] | \"97\"] | \"98\"] | \"99\"] | \"100\"]"
   end
 
   test "codepoints" do
@@ -331,7 +339,7 @@ defmodule Inspect.ListTest do
   end
 
   test "with limit" do
-    assert inspect([ 1, 2, 3, 4 ], limit: 3) == "[1, 2, 3, ...]"
+    assert inspect([1, 2, 3, 4], limit: 3) == "[1, 2, 3, ...]"
   end
 
   test "colors" do
@@ -340,51 +348,36 @@ defmodule Inspect.ListTest do
 
     opts = [syntax_colors: [reset: :cyan]]
     assert inspect([], opts) == "[]"
-    assert inspect([:x, :y], opts) ==
-           "[:x, :y]"
+    assert inspect([:x, :y], opts) == "[:x, :y]"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red]]
     assert inspect([], opts) == "[]"
-    assert inspect([:x, :y], opts) ==
-           "[\e[31m:x\e[36m, \e[31m:y\e[36m]"
+    assert inspect([:x, :y], opts) == "[\e[31m:x\e[36m, \e[31m:y\e[36m]"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red, list: :green]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
+
     assert inspect([:x, :y], opts) ==
-           "\e[32m[\e[36m" <>
-           "\e[31m:x\e[36m" <>
-           "\e[32m,\e[36m " <>
-           "\e[31m:y\e[36m" <>
-           "\e[32m]\e[36m"
+             "\e[32m[\e[36m\e[31m:x\e[36m\e[32m,\e[36m \e[31m:y\e[36m\e[32m]\e[36m"
   end
 
   test "keyword with colors" do
     opts = [syntax_colors: [reset: :cyan, list: :green, number: :blue]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
-    assert inspect([a: 9999], opts) ==
-           "\e[32m[\e[36m" <>
-           "a: " <>
-           "\e[34m9999\e[36m" <>
-           "\e[32m]\e[36m"
+
+    assert inspect([a: 9999], opts) == "\e[32m[\e[36ma: \e[34m9999\e[36m\e[32m]\e[36m"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red, list: :green, number: :blue]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
-    assert inspect([a: 9999], opts) ==
-           "\e[32m[\e[36m" <>
-           "\e[31ma: \e[36m" <>
-           "\e[34m9999\e[36m" <>
-           "\e[32m]\e[36m"
+
+    assert inspect([a: 9999], opts) == "\e[32m[\e[36m\e[31ma:\e[36m \e[34m9999\e[36m\e[32m]\e[36m"
   end
 
   test "limit with colors" do
     opts = [limit: 1, syntax_colors: [reset: :cyan, list: :green, atom: :red]]
     assert inspect([], opts) == "\e[32m[]\e[36m"
-    assert inspect([:x, :y], opts) ==
-           "\e[32m[\e[36m" <>
-           "\e[31m:x\e[36m" <>
-           "\e[32m,\e[36m " <>
-           "..." <>
-           "\e[32m]\e[36m"
+
+    assert inspect([:x, :y], opts) == "\e[32m[\e[36m\e[31m:x\e[36m\e[32m,\e[36m ...\e[32m]\e[36m"
   end
 end
 
@@ -393,8 +386,9 @@ defmodule Inspect.MapTest do
 
   test "basic" do
     assert inspect(%{1 => "b"}) == "%{1 => \"b\"}"
+
     assert inspect(%{1 => "b", 2 => "c"}, pretty: true, width: 1) ==
-           "%{\n  1 => \"b\",\n  2 => \"c\"\n}"
+             "%{\n  1 => \"b\",\n  2 => \"c\"\n}"
   end
 
   test "keyword" do
@@ -404,7 +398,8 @@ defmodule Inspect.MapTest do
   end
 
   test "with limit" do
-    assert inspect(%{1 => 1, 2 => 2, 3 => 3, 4 => 4}, limit: 3) == "%{1 => 1, 2 => 2, 3 => 3, ...}"
+    assert inspect(%{1 => 1, 2 => 2, 3 => 3, 4 => 4}, limit: 3) ==
+             "%{1 => 1, 2 => 2, 3 => 3, ...}"
   end
 
   defmodule Public do
@@ -420,12 +415,14 @@ defmodule Inspect.MapTest do
 
   test "public modified struct" do
     public = %Public{key: 1}
+
     assert inspect(Map.put(public, :foo, :bar)) ==
-           "%{__struct__: Inspect.MapTest.Public, foo: :bar, key: 1}"
+             "%{__struct__: Inspect.MapTest.Public, foo: :bar, key: 1}"
   end
 
   test "private struct" do
-    assert inspect(%{__struct__: Private, key: 1}) == "%{__struct__: Inspect.MapTest.Private, key: 1}"
+    assert inspect(%{__struct__: Private, key: 1}) ==
+             "%{__struct__: Inspect.MapTest.Private, key: 1}"
   end
 
   defmodule Failing do
@@ -439,56 +436,54 @@ defmodule Inspect.MapTest do
   end
 
   test "bad implementation unsafe" do
-    msg = "got KeyError with message \"key :unknown not found in: " <>
-          "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
-          "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+    msg =
+      "got KeyError with message \"key :unknown not found in: " <>
+        "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
+        "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
     assert_raise Inspect.Error, msg, fn ->
       inspect(%Failing{}, safe: false)
     end
 
-    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _} | _] = System.stacktrace
+    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _} | _] = System.stacktrace()
   end
 
   test "bad implementation safe" do
-    msg = "got KeyError with message \"key :unknown not found in: " <>
-          "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
-          "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+    msg =
+      "got KeyError with message \"key :unknown not found in: " <>
+        "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
+        "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
-    assert inspect(%Failing{}) ==
-           inspect(%Inspect.Error{message: "#{msg}"})
+    assert inspect(%Failing{}) == inspect(%Inspect.Error{message: "#{msg}"})
   end
 
   test "bad implementation safe disables colors" do
-    msg = "got KeyError with message \\\"key :unknown not found in: " <>
-          "%{__struct__: Inspect.MapTest.Failing, key: 0}\\\" while " <>
-          "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+    msg =
+      "got KeyError with message \\\"key :unknown not found in: " <>
+        "%{__struct__: Inspect.MapTest.Failing, key: 0}\\\" while " <>
+        "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
     assert inspect(%Failing{}, syntax_colors: [atom: [:green]]) =~ msg
   end
 
   test "exception" do
     assert inspect(%RuntimeError{message: "runtime error"}) ==
-           "%RuntimeError{message: \"runtime error\"}"
+             "%RuntimeError{message: \"runtime error\"}"
   end
 
   test "colors" do
     opts = [syntax_colors: [reset: :cyan, atom: :red, number: :magenta]]
-    assert inspect(%{1 => 2}, opts) ==
-           "%{\e[35m1\e[36m => \e[35m2\e[36m}"
+    assert inspect(%{1 => 2}, opts) == "%{\e[35m1\e[36m => \e[35m2\e[36m}"
 
-    assert inspect(%{a: 1}, opts) ==
-           "%{\e[31ma: \e[36m\e[35m1\e[36m}"
+    assert inspect(%{a: 1}, opts) == "%{\e[31ma:\e[36m \e[35m1\e[36m}"
 
     assert inspect(%Public{key: 1}, opts) ==
-           "%Inspect.MapTest.Public{\e[31mkey: \e[36m\e[35m1\e[36m}"
+             "%Inspect.MapTest.Public{\e[31mkey:\e[36m \e[35m1\e[36m}"
 
     opts = [syntax_colors: [reset: :cyan, atom: :red, map: :green, number: :blue]]
+
     assert inspect(%{a: 9999}, opts) ==
-           "\e[32m%{\e[36m" <>
-           "\e[31ma: \e[36m" <>
-           "\e[34m9999\e[36m" <>
-           "\e[32m}\e[36m"
+             "\e[32m%{\e[36m" <> "\e[31ma:\e[36m " <> "\e[34m9999\e[36m" <> "\e[32m}\e[36m"
   end
 end
 
@@ -496,11 +491,11 @@ defmodule Inspect.OthersTest do
   use ExUnit.Case, async: true
 
   def fun() do
-    fn() -> :ok end
+    fn -> :ok end
   end
 
   def unquote(:"weirdly named/fun-")() do
-    fn() -> :ok end
+    fn -> :ok end
   end
 
   test "external Elixir funs" do
@@ -508,7 +503,7 @@ defmodule Inspect.OthersTest do
     assert bin == "&Enum.map/2"
 
     assert inspect(&__MODULE__."weirdly named/fun-"/0) ==
-           ~s(&Inspect.OthersTest."weirdly named/fun-"/0)
+             ~s(&Inspect.OthersTest."weirdly named/fun-"/0)
   end
 
   test "external Erlang funs" do
@@ -523,7 +518,7 @@ defmodule Inspect.OthersTest do
       end
     end
 
-    Application.put_env(:elixir, :anony, V.fun)
+    Application.put_env(:elixir, :anony, V.fun())
     Application.put_env(:elixir, :named, &V.fun/0)
 
     :code.delete(V)
@@ -540,7 +535,7 @@ defmodule Inspect.OthersTest do
   end
 
   test "other funs" do
-    assert "#Function<" <> _ = inspect(fn(x) -> x + 1 end)
+    assert "#Function<" <> _ = inspect(fn x -> x + 1 end)
     assert "#Function<" <> _ = inspect(fun())
     opts = [syntax_colors: []]
     assert "#Function<" <> _ = inspect(fun(), opts)
@@ -553,7 +548,7 @@ defmodule Inspect.OthersTest do
   end
 
   test "map set" do
-    assert "#MapSet<" <> _ = inspect(MapSet.new)
+    assert "#MapSet<" <> _ = inspect(MapSet.new())
   end
 
   test "PIDs" do
@@ -571,13 +566,12 @@ defmodule Inspect.OthersTest do
 
   test "regex" do
     assert inspect(~r(foo)m) == "~r/foo/m"
+
     assert inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/")) ==
-           "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//"
-    assert inspect(~r<\a\b\d\e\f\n\r\s\t\v/>) ==
-           "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//"
-    assert inspect(~r" \\/ ") ==
-           "~r/ \\\\\\/ /"
-    assert inspect(~r/hi/, syntax_colors: [regex: :red]) ==
-           "\e[31m~r/hi/\e[0m"
+             "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//"
+
+    assert inspect(~r<\a\b\d\e\f\n\r\s\t\v/>) == "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//"
+    assert inspect(~r" \\/ ") == "~r/ \\\\\\/ /"
+    assert inspect(~r/hi/, syntax_colors: [regex: :red]) == "\e[31m~r/hi/\e[0m"
   end
 end

@@ -309,7 +309,7 @@ autoload_module(Module, Binary, Opts, E) ->
 
 beam_location(#{lexical_tracker := Pid, module := Module}) ->
   case elixir_lexical:dest(Pid) of
-    nil  -> in_memory;
+    nil -> "";
     Dest ->
       filename:join(elixir_utils:characters_to_list(Dest),
                     atom_to_list(Module) ++ ".beam")
@@ -328,18 +328,18 @@ warn_unused_attributes(File, Data, PersistedAttrs) ->
 make_module_available(Module, Binary) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
-      put(elixir_module_binaries, [{Module, Binary} | Current]),
-
-      case get(elixir_compiler_pid) of
-        undefined ->
-          ok;
-        PID ->
-          Ref = make_ref(),
-          PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
-          receive {Ref, ack} -> ok end
-      end;
+      put(elixir_module_binaries, [{Module, Binary} | Current]);
     _ ->
       ok
+  end,
+
+  case get(elixir_compiler_pid) of
+    undefined ->
+      ok;
+    PID ->
+      Ref = make_ref(),
+      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
+      receive {Ref, ack} -> ok end
   end.
 
 %% Error handling and helpers.
@@ -373,10 +373,10 @@ format_error({invalid_module, Module}) ->
 format_error({module_defined, Module}) ->
   Extra =
     case code:which(Module) of
+      "" ->
+        " (current version defined in memory)";
       Path when is_list(Path) ->
         io_lib:format(" (current version loaded from ~ts)", [elixir_utils:relative_to_cwd(Path)]);
-      in_memory ->
-        " (current version defined in memory)";
       _ ->
         ""
     end,

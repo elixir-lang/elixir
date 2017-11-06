@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __DIR__
+Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Deps.TreeTest do
   use MixTest.Case
@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows the dependency tree", context do
-    Mix.Project.push ConvergedDepsApp
+    Mix.Project.push(ConvergedDepsApp)
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
@@ -47,13 +47,13 @@ defmodule Mix.Tasks.Deps.TreeTest do
       assert_received {:mix_shell, :info, ["    └── git_repo (" <> _]}
     end
   after
-    purge [DepsOnGitRepo.MixProject, GitRepo.MixProject]
+    purge([DepsOnGitRepo.MixProject, GitRepo.MixProject])
   end
 
   test "show the dependency tree for umbrella apps" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        Mix.Task.run "deps.tree", ["--format", "pretty"]
+        Mix.Task.run("deps.tree", ["--format", "pretty"])
         assert_received {:mix_shell, :info, ["foo"]}
         assert_received {:mix_shell, :info, ["bar"]}
         assert_received {:mix_shell, :info, ["└── foo (../foo)"]}
@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows the given dependency", context do
-    Mix.Project.push ConvergedDepsApp
+    Mix.Project.push(ConvergedDepsApp)
 
     in_tmp context.test, fn ->
       assert_raise Mix.Error, "could not find dependency unknown", fn ->
@@ -76,7 +76,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows overridden deps", context do
-    Mix.Project.push OverriddenDepsApp
+    Mix.Project.push(OverriddenDepsApp)
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
@@ -88,7 +88,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "excludes the given deps", context do
-    Mix.Project.push OverriddenDepsApp
+    Mix.Project.push(OverriddenDepsApp)
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--format", "pretty", "--exclude", "deps_on_git_repo"])
@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows a particular environment", context do
-    Mix.Project.push OverriddenDepsApp
+    Mix.Project.push(OverriddenDepsApp)
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--format", "pretty", "--only", "prod"])
@@ -110,32 +110,32 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows the dependency tree in DOT graph format", context do
-    Mix.Project.push ConvergedDepsApp
+    Mix.Project.push(ConvergedDepsApp)
 
     in_tmp context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--format", "dot"])
 
       assert File.read!("deps_tree.dot") == """
-        digraph "dependency tree" {
-          "sample"
-          "sample" -> "git_repo" [label=">= 0.1.0"]
-          "sample" -> "deps_on_git_repo" [label="0.2.0"]
-        }
-        """
+             digraph "dependency tree" {
+               "sample"
+               "sample" -> "git_repo" [label=">= 0.1.0"]
+               "sample" -> "deps_on_git_repo" [label="0.2.0"]
+             }
+             """
 
       Mix.Tasks.Deps.Get.run([])
       Mix.Tasks.Deps.Tree.run(["--format", "dot"])
 
       assert File.read!("deps_tree.dot") == """
-        digraph "dependency tree" {
-          "sample"
-          "sample" -> "git_repo" [label=">= 0.1.0"]
-          "sample" -> "deps_on_git_repo" [label="0.2.0"]
-          "deps_on_git_repo" -> "git_repo" [label=""]
-        }
-        """
+             digraph "dependency tree" {
+               "sample"
+               "sample" -> "git_repo" [label=">= 0.1.0"]
+               "sample" -> "deps_on_git_repo" [label="0.2.0"]
+               "deps_on_git_repo" -> "git_repo" [label=""]
+             }
+             """
     end
   after
-    purge [DepsOnGitRepo.MixProject, GitRepo.MixProject]
+    purge([DepsOnGitRepo.MixProject, GitRepo.MixProject])
   end
 end

@@ -1,6 +1,6 @@
 defmodule Behaviour do
   @moduledoc """
-  This module has been deprecated.
+  WARNING: this module is deprecated.
 
   Instead of `defcallback/1` and `defmacrocallback/1`, the `@callback` and
   `@macrocallback` module attributes can be used (respectively). See the
@@ -21,7 +21,7 @@ defmodule Behaviour do
   Defines a macro callback according to the given type specification.
   """
   defmacro defmacrocallback(spec) do
-    do_defcallback(:defmacro, split_spec(spec, quote(do: Macro.t)))
+    do_defcallback(:defmacro, split_spec(spec, quote(do: Macro.t())))
   end
 
   defp split_spec({:when, _, [{:::, _, [spec, return]}, guard]}, _default) do
@@ -44,21 +44,25 @@ defmodule Behaviour do
     case Macro.decompose_call(spec) do
       {name, args} ->
         do_callback(kind, name, args, return, guards)
+
       _ ->
         raise ArgumentError, "invalid syntax in #{kind}callback #{Macro.to_string(spec)}"
     end
   end
 
   defp do_callback(kind, name, args, return, guards) do
-    :lists.foreach fn
+    fun = fn
       {:::, _, [left, right]} ->
         ensure_not_default(left)
         ensure_not_default(right)
         left
+
       other ->
         ensure_not_default(other)
         other
-    end, args
+    end
+
+    :lists.foreach(fun, args)
 
     spec =
       quote do
@@ -66,8 +70,8 @@ defmodule Behaviour do
       end
 
     case kind do
-      :def -> quote(do: @callback unquote(spec))
-      :defmacro -> quote(do: @macrocallback unquote(spec))
+      :def -> quote(do: @callback(unquote(spec)))
+      :defmacro -> quote(do: @macrocallback(unquote(spec)))
     end
   end
 
@@ -82,8 +86,9 @@ defmodule Behaviour do
     quote do
       warning =
         "the Behaviour module is deprecated. Instead of using this module, " <>
-        "use the @callback and @macrocallback module attributes. See the " <>
-        "documentation for Module for more information on these attributes"
+          "use the @callback and @macrocallback module attributes. See the " <>
+          "documentation for Module for more information on these attributes"
+
       IO.warn(warning)
 
       @doc false

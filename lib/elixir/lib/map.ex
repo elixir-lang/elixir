@@ -162,7 +162,7 @@ defmodule Map do
       %{a: 3}
 
   """
-  @spec new(Enumerable.t) :: map
+  @spec new(Enumerable.t()) :: map
   def new(enumerable)
   def new(list) when is_list(list), do: :maps.from_list(list)
   def new(%_{} = struct), do: new_from_enum(struct)
@@ -171,8 +171,8 @@ defmodule Map do
 
   defp new_from_enum(enumerable) do
     enumerable
-    |> Enum.to_list
-    |> :maps.from_list
+    |> Enum.to_list()
+    |> :maps.from_list()
   end
 
   @doc """
@@ -186,17 +186,17 @@ defmodule Map do
       %{a: :a, b: :b}
 
   """
-  @spec new(Enumerable.t, (term -> {key, value})) :: map
+  @spec new(Enumerable.t(), (term -> {key, value})) :: map
   def new(enumerable, transform) when is_function(transform, 1) do
     enumerable
-    |> Enum.to_list
+    |> Enum.to_list()
     |> new_transform(transform, [])
   end
 
   defp new_transform([], _fun, acc) do
     acc
-    |> :lists.reverse
-    |> :maps.from_list
+    |> :lists.reverse()
+    |> :maps.from_list()
   end
 
   defp new_transform([item | rest], fun, acc) do
@@ -273,33 +273,24 @@ defmodule Map do
     case map do
       %{^key => _value} ->
         map
+
       %{} ->
         put(map, key, value)
+
       other ->
         :erlang.error({:badmap, other})
     end
   end
 
-  @doc """
-  Alters the value stored under `key` to `value`, but only
-  if the entry `key` already exists in `map`.
-
-  ## Examples
-
-      iex> Map.replace(%{a: 1, b: 2}, :a, 3)
-      %{a: 3, b: 2}
-
-      iex> Map.replace(%{a: 1}, :b, 2)
-      %{a: 1}
-
-  """
-  @spec replace(map, key, value) :: map
+  @doc false
   def replace(map, key, value) do
     case map do
       %{^key => _value} ->
         put(map, key, value)
+
       %{} ->
         map
+
       other ->
         :erlang.error({:badmap, other})
     end
@@ -350,8 +341,10 @@ defmodule Map do
     case map do
       %{^key => _value} ->
         map
+
       %{} ->
         put(map, key, fun.())
+
       other ->
         :erlang.error({:badmap, other})
     end
@@ -369,12 +362,12 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
-  @spec take(map, Enumerable.t) :: map
+  @spec take(map, Enumerable.t()) :: map
   def take(map, keys)
 
   def take(map, keys) when is_map(map) do
     keys
-    |> Enum.to_list
+    |> Enum.to_list()
     |> take(map, [])
   end
 
@@ -420,8 +413,10 @@ defmodule Map do
     case map do
       %{^key => value} ->
         value
+
       %{} ->
         default
+
       other ->
         :erlang.error({:badmap, other}, [map, key, default])
     end
@@ -454,8 +449,10 @@ defmodule Map do
     case map do
       %{^key => value} ->
         value
+
       %{} ->
         fun.()
+
       other ->
         :erlang.error({:badmap, other}, [map, key, fun])
     end
@@ -535,13 +532,17 @@ defmodule Map do
   @spec merge(map, map, (key, value, value -> value)) :: map
   def merge(map1, map2, fun) when is_function(fun, 3) do
     if map_size(map1) > map_size(map2) do
-      :maps.fold fn key, val2, acc ->
+      folder = fn key, val2, acc ->
         update(acc, key, val2, fn val1 -> fun.(key, val1, val2) end)
-      end, map1, map2
+      end
+
+      :maps.fold(folder, map1, map2)
     else
-      :maps.fold fn key, val2, acc ->
+      folder = fn key, val2, acc ->
         update(acc, key, val2, fn val1 -> fun.(key, val2, val1) end)
-      end, map2, map1
+      end
+
+      :maps.fold(folder, map2, map1)
     end
   end
 
@@ -566,8 +567,10 @@ defmodule Map do
     case map do
       %{^key => value} ->
         put(map, key, fun.(value))
+
       %{} ->
         put(map, key, initial)
+
       other ->
         :erlang.error({:badmap, other}, [map, key, initial, fun])
     end
@@ -627,8 +630,10 @@ defmodule Map do
     case map do
       %{^key => value} ->
         {value, delete(map, key)}
+
       %{} ->
         {fun.(), map}
+
       other ->
         :erlang.error({:badmap, other}, [map, key, fun])
     end
@@ -645,12 +650,12 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
-  @spec drop(map, Enumerable.t) :: map
+  @spec drop(map, Enumerable.t()) :: map
   def drop(map, keys)
 
   def drop(map, keys) when is_map(map) do
     keys
-    |> Enum.to_list
+    |> Enum.to_list()
     |> drop_list(map)
   end
 
@@ -659,6 +664,7 @@ defmodule Map do
   end
 
   defp drop_list([], acc), do: acc
+
   defp drop_list([key | rest], acc) do
     drop_list(rest, delete(acc, key))
   end
@@ -677,12 +683,12 @@ defmodule Map do
       {%{a: 1, c: 3}, %{b: 2}}
 
   """
-  @spec split(map, Enumerable.t) :: {map, map}
+  @spec split(map, Enumerable.t()) :: {map, map}
   def split(map, keys)
 
   def split(map, keys) when is_map(map) do
     keys
-    |> Enum.to_list
+    |> Enum.to_list()
     |> split([], map)
   end
 
@@ -698,6 +704,7 @@ defmodule Map do
     case excluded do
       %{^key => value} ->
         split(rest, [{key, value} | included], delete(excluded, key))
+
       _other ->
         split(rest, included, excluded)
     end
@@ -764,8 +771,10 @@ defmodule Map do
     case fun.(current) do
       {get, update} ->
         {get, put(map, key, update)}
+
       :pop ->
         {current, delete(map, key)}
+
       other ->
         raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end
@@ -795,15 +804,18 @@ defmodule Map do
       {1, %{}}
 
   """
-  @spec get_and_update!(map, key, (value -> {get, value})) :: {get, map} | no_return when get: term
+  @spec get_and_update!(map, key, (value -> {get, value})) :: {get, map} | no_return
+        when get: term
   def get_and_update!(map, key, fun) when is_function(fun, 1) do
     value = fetch!(map, key)
 
     case fun.(value) do
       {get, update} ->
         {get, put(map, key, update)}
+
       :pop ->
         {value, delete(map, key)}
+
       other ->
         raise "the given function must return a two-element tuple or :pop, got: #{inspect(other)}"
     end

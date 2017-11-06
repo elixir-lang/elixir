@@ -106,19 +106,35 @@ defmodule Mix.Tasks.Profile.Fprof do
   this should provide more realistic insights into bottlenecks.
   """
 
-  @switches [parallel: :boolean, require: :keep, eval: :keep, config: :keep,
-             compile: :boolean, deps_check: :boolean, start: :boolean, archives_check: :boolean,
-             details: :boolean, callers: :boolean, sort: :string, elixir_version_check: :boolean,
-             warmup: :boolean, parallel_require: :keep]
+  @switches [
+    parallel: :boolean,
+    require: :keep,
+    eval: :keep,
+    config: :keep,
+    compile: :boolean,
+    deps_check: :boolean,
+    start: :boolean,
+    archives_check: :boolean,
+    details: :boolean,
+    callers: :boolean,
+    sort: :string,
+    elixir_version_check: :boolean,
+    warmup: :boolean,
+    parallel_require: :keep
+  ]
 
-  @spec run(OptionParser.argv) :: :ok
+  @aliases [r: :require, p: :parallel, e: :eval, c: :config]
+
   def run(args) do
-    {opts, head} = OptionParser.parse_head!(args,
-      aliases: [r: :require, p: :parallel, e: :eval, c: :config],
-      strict: @switches)
-    Mix.Tasks.Run.run(["--no-mix-exs" | args], opts, head,
-                      &profile_code(&1, opts),
-                      &profile_code(File.read!(&1), opts))
+    {opts, head} = OptionParser.parse_head!(args, aliases: @aliases, strict: @switches)
+
+    Mix.Tasks.Run.run(
+      ["--no-mix-exs" | args],
+      opts,
+      head,
+      &profile_code(&1, opts),
+      &profile_code(File.read!(&1), opts)
+    )
   end
 
   # Profiling functions
@@ -126,10 +142,14 @@ defmodule Mix.Tasks.Profile.Fprof do
   defp profile_code(code_string, opts) do
     content =
       quote do
-        unquote(__MODULE__).profile(fn ->
-          unquote(Code.string_to_quoted!(code_string))
-        end, unquote(opts))
+        unquote(__MODULE__).profile(
+          fn ->
+            unquote(Code.string_to_quoted!(code_string))
+          end,
+          unquote(opts)
+        )
       end
+
     # Use compile_quoted since it leaves less noise than eval_quoted
     Code.compile_quoted(content)
   end
@@ -143,19 +163,21 @@ defmodule Mix.Tasks.Profile.Fprof do
 
   defp profile_and_analyse(fun, opts) do
     if Keyword.get(opts, :warmup, true) do
-      IO.puts "Warmup..."
+      IO.puts("Warmup...")
       fun.()
     end
 
-    sorting = case Keyword.get(opts, :sort, "acc") do
-      "acc" -> :acc
-      "own" -> :own
-    end
+    sorting =
+      case Keyword.get(opts, :sort, "acc") do
+        "acc" -> :acc
+        "own" -> :own
+      end
 
     {:ok, tracer} = :fprof.profile(:start)
     :fprof.apply(fun, [], tracer: tracer)
 
     {:ok, analyse_dest} = StringIO.open("")
+
     try do
       :fprof.analyse(
         dest: analyse_dest,
@@ -190,14 +212,17 @@ defmodule Mix.Tasks.Profile.Fprof do
             {:ok, term} = :erl_parse.parse_term(tokens)
             {term, leftover}
 
-          {:eof, _} -> nil
+          {:eof, _} ->
+            nil
         end
-      _ -> nil
+
+      _ ->
+        nil
     end
   end
 
   defp print_total_row([{:totals, count, acc, own}]) do
-    IO.puts ""
+    IO.puts("")
     print_row(["s", "s", "s", "s", "s"], ["", "CNT", "ACC (ms)", "OWN (ms)", ""])
     print_row(["s", "B", ".3f", ".3f", "s"], ["Total", count, acc, own, ""])
   end
@@ -242,10 +267,8 @@ defmodule Mix.Tasks.Profile.Fprof do
   end
 
   defp print_function({fun, count, acc, own}, prefix \\ "", suffix \\ "") do
-    print_row(
-      ["s", "B", ".3f", ".3f", "s"],
-      ["#{prefix}#{function_text(fun)}", count, acc, own, suffix]
-    )
+    text = "#{prefix}#{function_text(fun)}"
+    print_row(["s", "B", ".3f", ".3f", "s"], [text, count, acc, own, suffix])
   end
 
   defp function_text({module, function, arity}) do
@@ -257,10 +280,10 @@ defmodule Mix.Tasks.Profile.Fprof do
   @columns [-60, 10, 12, 12, 5]
   defp print_row(formats, data) do
     Stream.zip(@columns, formats)
-    |> Stream.map(fn({width, format}) -> "~#{width}#{format}" end)
-    |> Enum.join
+    |> Stream.map(fn {width, format} -> "~#{width}#{format}" end)
+    |> Enum.join()
     |> :io.format(data)
 
-    IO.puts ""
+    IO.puts("")
   end
 end

@@ -288,6 +288,6 @@ defmodule Mix do
   """
   @spec raise(binary) :: no_return
   def raise(message) when is_binary(message) do
-    Kernel.raise Mix.Error, mix: true, message: message
+    Kernel.raise(Mix.Error, mix: true, message: message)
   end
 end

@@ -12,23 +12,19 @@ defmodule Mix.Shell.IO do
   was not printed yet.
   """
   def print_app do
-    if name = Mix.Shell.printable_app_name do
-      IO.puts "==> #{name}"
+    if name = Mix.Shell.printable_app_name() do
+      IO.puts("==> #{name}")
     end
+
     :ok
   end
-
-  @doc """
-  Writes data directly into the shell.
-  """
-  defdelegate write(data), to: IO
 
   @doc """
   Prints the given ANSI message to the shell followed by a newline.
   """
   def info(message) do
     print_app()
-    IO.puts IO.ANSI.format message
+    IO.puts(IO.ANSI.format(message))
   end
 
   @doc """
@@ -36,7 +32,7 @@ defmodule Mix.Shell.IO do
   """
   def error(message) do
     print_app()
-    IO.puts :stderr, IO.ANSI.format(red(message))
+    IO.puts(:stderr, IO.ANSI.format(red(message)))
   end
 
   @doc """
@@ -65,10 +61,13 @@ defmodule Mix.Shell.IO do
     [:red, :bright, message]
   end
 
-  @doc false
-  # TODO: Deprecate on Elixir v1.8
+  @doc """
+  Executes the given command and prints its output
+  to stdout as it comes.
+  """
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
+
     Mix.Shell.cmd(command, opts, fn data ->
       if print_app?, do: print_app()
       IO.write(data)

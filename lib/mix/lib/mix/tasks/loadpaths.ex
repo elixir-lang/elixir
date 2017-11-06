@@ -17,22 +17,21 @@ defmodule Mix.Tasks.Loadpaths do
 
   """
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    config = Mix.Project.config
+    config = Mix.Project.config()
 
     unless "--no-elixir-version-check" in args do
       check_elixir_version(config, args)
     end
 
     unless "--no-archives-check" in args do
-      Mix.Task.run "archive.check", args
+      Mix.Task.run("archive.check", args)
     end
 
     # --no-deps is used only internally. It has no purpose
     # from Mix.CLI because running a task may load deps.
     unless "--no-deps" in args do
-      Mix.Task.run "deps.loadpaths", args
+      Mix.Task.run("deps.loadpaths", args)
     end
 
     if config[:app] do
@@ -46,19 +45,21 @@ defmodule Mix.Tasks.Loadpaths do
     if req = config[:elixir] do
       case Version.parse_requirement(req) do
         {:ok, req} ->
-          unless Version.match?(System.version, req) do
-            raise Mix.ElixirVersionError, target: config[:app] || Mix.Project.get,
-                                          expected: req,
-                                          actual: System.version
+          unless Version.match?(System.version(), req) do
+            raise Mix.ElixirVersionError,
+              target: config[:app] || Mix.Project.get(),
+              expected: req,
+              actual: System.version()
           end
+
         :error ->
-          Mix.raise "Invalid Elixir version requirement #{req} in mix.exs file"
+          Mix.raise("Invalid Elixir version requirement #{req} in mix.exs file")
       end
     end
   end
 
   defp load_project(config, _args) do
-    vsn = {System.version, :erlang.system_info(:otp_release)}
+    vsn = {System.version(), :erlang.system_info(:otp_release)}
     scm = config[:build_scm]
 
     # Erase the app build if we have lock mismatch.
@@ -71,11 +72,11 @@ defmodule Mix.Tasks.Loadpaths do
       _ -> :ok
     end
 
-    Enum.each Mix.Project.load_paths(config), &Code.prepend_path(&1)
+    Enum.each(Mix.Project.load_paths(config), &Code.prepend_path(&1))
   end
 
   defp rm_rf_app(config) do
-    File.rm_rf Mix.Project.app_path(config)
-    File.rm_rf Mix.Project.consolidation_path(config)
+    File.rm_rf(Mix.Project.app_path(config))
+    File.rm_rf(Mix.Project.consolidation_path(config))
   end
 end

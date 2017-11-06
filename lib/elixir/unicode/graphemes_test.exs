@@ -1,42 +1,45 @@
 defmodule GraphemesTest do
   def run do
-    IO.puts "Running GraphemeBreakTest.txt"
+    IO.puts("Running GraphemeBreakTest.txt")
     count = run_grapheme_break()
-    IO.puts "Got #{count} failures"
+    IO.puts("Got #{count} failures")
   end
 
   defp run_grapheme_break do
     Path.join(__DIR__, "GraphemeBreakTest.txt")
     |> File.stream!()
     |> Stream.filter(&match?("÷" <> _, &1))
-    |> Stream.reject(& &1 =~ "D800")
+    |> Stream.reject(&(&1 =~ "D800"))
     |> Enum.reduce(0, fn line, acc ->
-      [string | _] = String.split(line, "#", parts: 2)
-      {string, graphemes} = parse_grapheme_break(string)
-      if String.graphemes(string) == graphemes do
-        acc
-      else
-        acc = acc + 1
-        IO.puts """
-        ============== Failure ##{acc} ==============
+         [string | _] = String.split(line, "#", parts: 2)
+         {string, graphemes} = parse_grapheme_break(string)
 
-            String.graphemes(#{inspect string})
+         if String.graphemes(string) == graphemes do
+           acc
+         else
+           acc = acc + 1
 
-        must be:
+           IO.puts("""
+           ============== Failure ##{acc} ==============
 
-            #{inspect graphemes}
+               String.graphemes(#{inspect(string)})
 
-        got:
+           must be:
 
-            #{inspect String.graphemes(string)}
+               #{inspect(graphemes)}
 
-        On line:
+           got:
 
-            #{line}
-        """
-        acc
-      end
-    end)
+               #{inspect(String.graphemes(string))}
+
+           On line:
+
+               #{line}
+           """)
+
+           acc
+         end
+       end)
   end
 
   defp parse_grapheme_break(string) do
@@ -52,6 +55,7 @@ defmodule GraphemesTest do
       [left, right] ->
         grapheme = breaks_to_grapheme(left)
         parse_grapheme_break(right, acc_string <> grapheme, [grapheme | acc_list])
+
       [left] ->
         grapheme = breaks_to_grapheme(left)
         {acc_string <> grapheme, Enum.reverse([grapheme | acc_list])}
@@ -65,4 +69,4 @@ defmodule GraphemesTest do
   end
 end
 
-GraphemesTest.run
+GraphemesTest.run()

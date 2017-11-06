@@ -31,6 +31,9 @@ defmodule Mix.Dep do
       the information on this field is private to the manager and should not be
       relied on
 
+    * `system_env` - an enumerable of key-value tuples of binaries to be set as environment variables
+      when loading or compiling the dependency
+
   A dependency is in two specific states: loaded and unloaded.
 
   When a dependency is unloaded, it means Mix only parsed its specification
@@ -47,19 +50,30 @@ defmodule Mix.Dep do
     * `:build` - the build path for the dependency
 
   """
-  defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: [],
-            deps: [], top_level: false, extra: [], manager: nil, from: nil
+  defstruct scm: nil,
+            app: nil,
+            requirement: nil,
+            status: nil,
+            opts: [],
+            deps: [],
+            top_level: false,
+            extra: [],
+            manager: nil,
+            from: nil,
+            system_env: []
 
   @type t :: %__MODULE__{
-               scm: module,
-               app: atom,
-               requirement: String.t | Regex.t | nil,
-               status: atom,
-               opts: keyword,
-               top_level: boolean,
-               manager: :rebar | :rebar3 | :mix | :make | nil,
-               from: String.t,
-               extra: term}
+          scm: module,
+          app: atom,
+          requirement: String.t() | Regex.t() | nil,
+          status: atom,
+          opts: keyword,
+          top_level: boolean,
+          manager: :rebar | :rebar3 | :mix | :make | nil,
+          from: String.t(),
+          extra: term,
+          system_env: keyword
+        }
 
   @doc """
   Returns loaded dependencies from the cache for the current environment.
@@ -77,12 +91,15 @@ defmodule Mix.Dep do
     cond do
       System.get_env("MIX_NO_DEPS") in ~w(1 true) ->
         []
-      project = Mix.Project.get ->
-        key = {:cached_deps, Mix.env, project}
+
+      project = Mix.Project.get() ->
+        key = {:cached_deps, Mix.env(), project}
+
         Mix.ProjectStack.read_cache(key) ||
-          Mix.ProjectStack.write_cache(key, loaded(env: Mix.env))
+          Mix.ProjectStack.write_cache(key, loaded(env: Mix.env()))
+
       true ->
-        loaded(env: Mix.env)
+        loaded(env: Mix.env())
     end
   end
 
@@ -112,6 +129,7 @@ defmodule Mix.Dep do
 
     # Ensure all apps are atoms
     apps = to_app_names(given)
+
     deps =
       if opts[:include_children] do
         get_deps_with_children(all_deps, apps)
@@ -119,11 +137,11 @@ defmodule Mix.Dep do
         get_deps(all_deps, apps)
       end
 
-    Enum.each apps, fn(app) ->
+    Enum.each(apps, fn app ->
       unless Enum.any?(all_deps, &(&1.app == app)) do
-        Mix.raise "Unknown dependency #{app} for environment #{Mix.env}"
+        Mix.raise("Unknown dependency #{app} for environment #{Mix.env()}")
       end
-    end
+    end)
 
     deps
   end
@@ -134,19 +152,21 @@ defmodule Mix.Dep do
 
   defp get_deps_with_children(all_deps, apps) do
     deps = get_children(all_deps, apps)
-    apps = deps |> Enum.map(& &1.app) |> Enum.uniq
+    apps = deps |> Enum.map(& &1.app) |> Enum.uniq()
     get_deps(all_deps, apps)
   end
 
   defp get_children(_all_deps, []), do: []
+
   defp get_children(all_deps, apps) do
     # Current deps
     deps = get_deps(all_deps, apps)
 
     # Children apps
-    apps = for %{deps: children} <- deps,
-               %{app: app} <- children,
-               do: app
+    apps =
+      for %{deps: children} <- deps,
+          %{app: app} <- children,
+          do: app
 
     # Current deps + children deps
     deps ++ get_children(all_deps, apps)
@@ -167,12 +187,12 @@ defmodule Mix.Dep do
     # mix.exs file can be different than the actual name and we
     # choose to respect the one in the mix.exs
     config =
-      Keyword.merge(Mix.Project.deps_config, config)
+      Keyword.merge(Mix.Project.deps_config(), config)
       |> Keyword.put(:app_path, opts[:build])
       |> Keyword.put(:build_scm, scm)
 
     env = opts[:env] || :prod
-    old_env = Mix.env
+    old_env = Mix.env()
 
     try do
       Mix.env(env)
@@ -185,47 +205,58 @@ defmodule Mix.Dep do
   @doc """
   Formats the status of a dependency.
   """
-  def format_status(%Mix.Dep{status: {:ok, _vsn}}),
-    do: "ok"
+  def format_status(%Mix.Dep{status: {:ok, _vsn}}) do
+    "ok"
+  end
 
-  def format_status(%Mix.Dep{status: {:noappfile, path}}),
-    do: "could not find an app file at #{inspect(Path.relative_to_cwd(path))}. " <>
-        "This may happen if the dependency was not yet compiled, " <>
-        "or you specified the wrong application name in your deps, " <>
-        "or the dependency indeed has no app file (then you can pass app: false as option)"
+  def format_status(%Mix.Dep{status: {:noappfile, path}}) do
+    "could not find an app file at #{inspect(Path.relative_to_cwd(path))}. " <>
+      "This may happen if the dependency was not yet compiled, " <>
+      "or you specified the wrong application name in your deps, " <>
+      "or the dependency indeed has no app file (then you can pass app: false as option)"
+  end
 
-  def format_status(%Mix.Dep{status: {:invalidapp, path}}),
-    do: "the app file at #{inspect(Path.relative_to_cwd(path))} is invalid"
+  def format_status(%Mix.Dep{status: {:invalidapp, path}}) do
+    "the app file at #{inspect(Path.relative_to_cwd(path))} is invalid"
+  end
 
-  def format_status(%Mix.Dep{status: {:invalidvsn, vsn}}),
-    do: "the app file contains an invalid version: #{inspect vsn}"
+  def format_status(%Mix.Dep{status: {:invalidvsn, vsn}}) do
+    "the app file contains an invalid version: #{inspect(vsn)}"
+  end
 
-  def format_status(%Mix.Dep{status: {:nosemver, vsn}, requirement: req}),
-    do: "the app file specified a non-Semantic Versioning format: #{inspect vsn}. Mix can only match the " <>
-        "requirement #{inspect req} against semantic versions. Please fix the application version " <>
-        "or use a regex as a requirement to match against any version"
+  def format_status(%Mix.Dep{status: {:nosemver, vsn}, requirement: req}) do
+    "the app file specified a non-Semantic Versioning format: #{inspect(vsn)}. Mix can only match the " <>
+      "requirement #{inspect(req)} against semantic versions. Please fix the application version " <>
+      "or use a regex as a requirement to match against any version"
+  end
 
-  def format_status(%Mix.Dep{status: {:nomatchvsn, vsn}, requirement: req}),
-    do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
+  def format_status(%Mix.Dep{status: {:nomatchvsn, vsn}, requirement: req}) do
+    "the dependency does not match the requirement #{inspect(req)}, got #{inspect(vsn)}"
+  end
 
-  def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
-    do: "lock mismatch: the dependency is out of date. To fetch locked version run \"mix deps.get\""
+  def format_status(%Mix.Dep{status: {:lockmismatch, _}}) do
+    "lock mismatch: the dependency is out of date. To fetch locked version run \"mix deps.get\""
+  end
 
-  def format_status(%Mix.Dep{status: :lockoutdated}),
-    do: "lock outdated: the lock is outdated compared to the options in your mix.exs. To fetch locked version run \"mix deps.get\""
+  def format_status(%Mix.Dep{status: :lockoutdated}) do
+    "lock outdated: the lock is outdated compared to the options in your mix.exs. To fetch " <>
+      "locked version run \"mix deps.get\""
+  end
 
-  def format_status(%Mix.Dep{status: :nolock}),
-    do: "the dependency is not locked. To generate the \"mix.lock\" file run \"mix deps.get\""
+  def format_status(%Mix.Dep{status: :nolock}) do
+    "the dependency is not locked. To generate the \"mix.lock\" file run \"mix deps.get\""
+  end
 
-  def format_status(%Mix.Dep{status: :compile}),
-    do: "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""
+  def format_status(%Mix.Dep{status: :compile}) do
+    "the dependency build is outdated, please run \"#{mix_env_var()}mix deps.compile\""
+  end
 
   def format_status(%Mix.Dep{app: app, status: {:divergedreq, vsn, other}} = dep) do
     "the dependency #{app} #{vsn}\n" <>
-    "#{dep_status(dep)}" <>
-    "\n  does not match the requirement specified\n" <>
-    "#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+      dep_status(dep) <>
+      "\n  does not match the requirement specified\n" <>
+      dep_status(other) <>
+      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
@@ -237,43 +268,47 @@ defmodule Mix.Dep do
       end
 
     "the :only option for dependency #{app}\n" <>
-    "#{dep_status(dep)}" <>
-    "\n  does not match the :only option calculated for\n" <>
-    "#{dep_status(other)}" <>
-    "\n  #{recommendation}"
+      dep_status(dep) <>
+      "\n  does not match the :only option calculated for\n" <>
+      dep_status(other) <> "\n  #{recommendation}"
   end
 
   def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
-    "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+      "#{dep_status(dep)}#{dep_status(other)}" <>
+      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
-    "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+      "#{dep_status(dep)}#{dep_status(other)}" <>
+      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
-    if scm.fetchable? do
+    if scm.fetchable?() do
       "the dependency is not available, run \"mix deps.get\""
     else
       "the dependency is not available"
     end
   end
 
-  def format_status(%Mix.Dep{status: {:elixirlock, _}}),
-    do: "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var()}mix deps.compile\""
+  def format_status(%Mix.Dep{status: {:elixirlock, _}}) do
+    "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var()}mix deps.compile\""
+  end
 
-  def format_status(%Mix.Dep{status: {:scmlock, _}}),
-    do: "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
+  def format_status(%Mix.Dep{status: {:scmlock, _}}) do
+    "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
+  end
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, manager: manager, opts: opts, from: from}) do
-    opts = Keyword.drop(opts, [:dest, :build, :lock, :manager, :checkout])
-    opts = opts ++ (if manager, do: [manager: manager], else: [])
+    opts =
+      opts
+      |> Keyword.drop([:dest, :build, :lock, :manager, :checkout])
+      |> Kernel.++(if manager, do: [manager: manager], else: [])
+
     info = if req, do: {app, req, opts}, else: {app, opts}
-    "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
+    "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect(info)}\n"
   end
 
   @doc """
@@ -285,9 +320,11 @@ defmodule Mix.Dep do
         :mismatch ->
           status = if rev = opts[:lock], do: {:lockmismatch, rev}, else: :nolock
           %{dep | status: status}
+
         :outdated ->
           # Don't include the lock in the dependency if it is outdated
           %{dep | status: :lockoutdated}
+
         :ok ->
           check_manifest(dep, opts[:build])
       end
@@ -297,13 +334,15 @@ defmodule Mix.Dep do
   end
 
   defp check_manifest(%{scm: scm} = dep, build_path) do
-    vsn = {System.version, :erlang.system_info(:otp_release)}
+    vsn = {System.version(), :erlang.system_info(:otp_release)}
 
     case Mix.Dep.ElixirSCM.read(build_path) do
       {:ok, old_vsn, _} when old_vsn != vsn ->
         %{dep | status: {:elixirlock, old_vsn}}
+
       {:ok, _, old_scm} when old_scm != scm ->
         %{dep | status: {:scmlock, old_scm}}
+
       _ ->
         dep
     end
@@ -326,9 +365,9 @@ defmodule Mix.Dep do
   @doc """
   Checks if a dependency has diverged.
   """
-  def diverged?(%Mix.Dep{status: {:overridden, _}}),   do: true
-  def diverged?(%Mix.Dep{status: {:diverged, _}}),     do: true
-  def diverged?(%Mix.Dep{status: {:divergedreq, _}}),  do: true
+  def diverged?(%Mix.Dep{status: {:overridden, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:diverged, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:divergedreq, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedonly, _}}), do: true
   def diverged?(%Mix.Dep{}), do: false
 
@@ -352,9 +391,10 @@ defmodule Mix.Dep do
   """
   def load_paths(%Mix.Dep{opts: opts} = dep) do
     build_path = Path.dirname(opts[:build])
-    Enum.map source_paths(dep), fn {_, base} ->
-      Path.join [build_path, base, "ebin"]
-    end
+
+    Enum.map(source_paths(dep), fn {_, base} ->
+      Path.join([build_path, base, "ebin"])
+    end)
   end
 
   @doc """
@@ -368,11 +408,13 @@ defmodule Mix.Dep do
     dest = opts[:dest]
 
     # Add root dir and all sub dirs with ebin/ directory
-    [{opts[:dest], Atom.to_string(app)}] ++
-      for(sub_dir <- sub_dirs,
+    in_sub_dirs =
+      for sub_dir <- sub_dirs,
           path <- Path.wildcard(Path.join(dest, sub_dir)),
           File.dir?(Path.join(path, "ebin")),
-          do: {path, Path.basename(path)})
+          do: {path, Path.basename(path)}
+
+    [{opts[:dest], Atom.to_string(app)}] ++ in_sub_dirs
   end
 
   def source_paths(%Mix.Dep{app: app, opts: opts}) do
@@ -403,16 +445,16 @@ defmodule Mix.Dep do
   ## Helpers
 
   defp mix_env_var do
-    if Mix.env == :dev do
+    if Mix.env() == :dev do
       ""
     else
-      "MIX_ENV=#{Mix.env} "
+      "MIX_ENV=#{Mix.env()} "
     end
   end
 
   defp to_app_names(given) do
-    Enum.map given, fn(app) ->
+    Enum.map(given, fn app ->
       if is_binary(app), do: String.to_atom(app), else: app
-    end
+    end)
   end
 end

@@ -49,19 +49,19 @@ defmodule Dict do
       end
 
       def has_key?(dict, key) do
-        match? {:ok, _}, fetch(dict, key)
+        match?({:ok, _}, fetch(dict, key))
       end
 
       def put_new(dict, key, value) do
         case has_key?(dict, key) do
-          true  -> dict
+          true -> dict
           false -> put(dict, key, value)
         end
       end
 
       def put_new_lazy(dict, key, fun) when is_function(fun, 0) do
         case has_key?(dict, key) do
-          true  -> dict
+          true -> dict
           false -> put(dict, key, fun.())
         end
       end
@@ -80,21 +80,21 @@ defmodule Dict do
       end
 
       def to_list(dict) do
-        reduce(dict, {:cont, []}, fn
-          kv, acc -> {:cont, [kv | acc]}
-        end) |> elem(1) |> :lists.reverse
+        reduce(dict, {:cont, []}, fn kv, acc -> {:cont, [kv | acc]} end)
+        |> elem(1)
+        |> :lists.reverse()
       end
 
       def keys(dict) do
-        reduce(dict, {:cont, []}, fn
-          {k, _}, acc -> {:cont, [k | acc]}
-        end) |> elem(1) |> :lists.reverse
+        reduce(dict, {:cont, []}, fn {k, _}, acc -> {:cont, [k | acc]} end)
+        |> elem(1)
+        |> :lists.reverse()
       end
 
       def values(dict) do
-        reduce(dict, {:cont, []}, fn
-          {_, v}, acc -> {:cont, [v | acc]}
-        end) |> elem(1) |> :lists.reverse
+        reduce(dict, {:cont, []}, fn {_, v}, acc -> {:cont, [v | acc]} end)
+        |> elem(1)
+        |> :lists.reverse()
       end
 
       def equal?(dict1, dict2) do
@@ -102,18 +102,21 @@ defmodule Dict do
         import Kernel, except: [size: 1]
 
         case size(dict1) == size(dict2) do
-          false -> false
-          true  ->
-            reduce(dict1, {:cont, true}, fn({k, v}, _acc) ->
+          false ->
+            false
+
+          true ->
+            reduce(dict1, {:cont, true}, fn {k, v}, _acc ->
               case fetch(dict2, k) do
                 {:ok, ^v} -> {:cont, true}
                 _ -> {:halt, false}
               end
-            end) |> elem(1)
+            end)
+            |> elem(1)
         end
       end
 
-      def merge(dict1, dict2, fun \\ fn(_k, _v1, v2) -> v2 end) do
+      def merge(dict1, dict2, fun \\ fn _k, _v1, v2 -> v2 end) do
         # Use this import to avoid conflicts in the user code
         import Kernel, except: [size: 1]
 
@@ -125,13 +128,15 @@ defmodule Dict do
           reduce(dict2, {:cont, dict1}, fn {k, v2}, acc ->
             {:cont, update(acc, k, v2, &fun.(k, &1, v2))}
           end)
-        end |> elem(1)
+        end
+        |> elem(1)
       end
 
       def update(dict, key, initial, fun) do
         case fetch(dict, key) do
           {:ok, value} ->
             put(dict, key, fun.(value))
+
           :error ->
             put(dict, key, initial)
         end
@@ -141,6 +146,7 @@ defmodule Dict do
         case fetch(dict, key) do
           {:ok, value} ->
             put(dict, key, fun.(value))
+
           :error ->
             raise KeyError, key: key, term: dict
         end
@@ -150,6 +156,7 @@ defmodule Dict do
         case fetch(dict, key) do
           {:ok, value} ->
             {value, delete(dict, key)}
+
           :error ->
             {default, dict}
         end
@@ -159,6 +166,7 @@ defmodule Dict do
         case fetch(dict, key) do
           {:ok, value} ->
             {value, delete(dict, key)}
+
           :error ->
             {fun.(), dict}
         end
@@ -169,31 +177,45 @@ defmodule Dict do
           case fetch(exc, key) do
             {:ok, value} ->
               {put(inc, key, value), delete(exc, key)}
+
             :error ->
               acc
           end
         end)
       end
 
-      defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,
-                     values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
-                     has_key?: 2, put_new: 3, pop: 2, pop: 3, split: 2,
-                     update: 4, update!: 3, get_and_update: 3, get_lazy: 3,
-                     pop_lazy: 3, put_new_lazy: 3
+      defoverridable merge: 2,
+                     merge: 3,
+                     equal?: 2,
+                     to_list: 1,
+                     keys: 1,
+                     values: 1,
+                     take: 2,
+                     drop: 2,
+                     get: 2,
+                     get: 3,
+                     fetch!: 2,
+                     has_key?: 2,
+                     put_new: 3,
+                     pop: 2,
+                     pop: 3,
+                     split: 2,
+                     update: 4,
+                     update!: 3,
+                     get_and_update: 3,
+                     get_lazy: 3,
+                     pop_lazy: 3,
+                     put_new_lazy: 3
     end
   end
 
   defmacrop target(dict) do
     quote do
       case unquote(dict) do
-        %module{} ->
-          module
-        %{} ->
-          Map
-        dict when is_list(dict) ->
-          Keyword
-        dict ->
-          unsupported_dict(dict)
+        %module{} -> module
+        %{} -> Map
+        dict when is_list(dict) -> Keyword
+        dict -> unsupported_dict(dict)
       end
     end
   end
@@ -271,7 +293,7 @@ defmodule Dict do
     if target1 == target2 do
       target1.merge(dict1, dict2)
     else
-      do_merge(target1, dict1, dict2, fn(_k, _v1, v2) -> v2 end)
+      do_merge(target1, dict1, dict2, fn _k, _v1, v2 -> v2 end)
     end
   end
 
@@ -288,9 +310,10 @@ defmodule Dict do
   end
 
   defp do_merge(target1, dict1, dict2, fun) do
-    Enumerable.reduce(dict2, {:cont, dict1}, fn({k, v}, acc) ->
-      {:cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end)}
-    end) |> elem(1)
+    Enumerable.reduce(dict2, {:cont, dict1}, fn {k, v}, acc ->
+      {:cont, target1.update(acc, k, v, fn other -> fun.(k, other, v) end)}
+    end)
+    |> elem(1)
   end
 
   @spec pop(t, key, value) :: {value, t}
@@ -343,12 +366,13 @@ defmodule Dict do
         target1.equal?(dict1, dict2)
 
       target1.size(dict1) == target2.size(dict2) ->
-        Enumerable.reduce(dict2, {:cont, true}, fn({k, v}, _acc) ->
+        Enumerable.reduce(dict2, {:cont, true}, fn {k, v}, _acc ->
           case target1.fetch(dict1, k) do
             {:ok, ^v} -> {:cont, true}
-            _         -> {:halt, false}
+            _ -> {:halt, false}
           end
-        end) |> elem(1)
+        end)
+        |> elem(1)
 
       true ->
         false
@@ -362,6 +386,6 @@ defmodule Dict do
 
   @spec unsupported_dict(t) :: no_return
   defp unsupported_dict(dict) do
-    raise ArgumentError, "unsupported dict: #{inspect dict}"
+    raise ArgumentError, "unsupported dict: #{inspect(dict)}"
   end
 end

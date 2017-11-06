@@ -64,7 +64,7 @@ defmodule ExUnit.CaptureLog do
   `:metadata` and `:colors` respectively. These three options
   defaults to the `:console` backend configuration parameters.
   """
-  @spec capture_log(keyword, (() -> any)) :: String.t
+  @spec capture_log(keyword, (() -> any)) :: String.t()
   def capture_log(opts \\ [], fun) do
     opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")
@@ -99,9 +99,13 @@ defmodule ExUnit.CaptureLog do
     case :proc_lib.start(__MODULE__, :init_proxy, [pid, opts, self()]) do
       :ok ->
         :ok
-      other ->
+
+      :noproc ->
+        raise "cannot capture_log/2 because the :logger application was not started"
+
+      {:error, reason} ->
         mfa = {ExUnit.CaptureLog, :add_capture, [pid, opts]}
-        exit({other, mfa})
+        exit({reason, mfa})
     end
   end
 
@@ -111,19 +115,27 @@ defmodule ExUnit.CaptureLog do
       :ok ->
         ref = Process.monitor(parent)
         :proc_lib.init_ack(:ok)
+
         receive do
           {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
           {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
         end
-      other ->
-        :proc_lib.init_ack(other)
+
+      {:EXIT, reason} ->
+        :proc_lib.init_ack({:error, reason})
+
+      {:error, reason} ->
+        :proc_lib.init_ack({:error, reason})
     end
+  catch
+    :exit, :noproc -> :proc_lib.init_ack(:noproc)
   end
 
   defp remove_capture(pid) do
     case :gen_event.delete_handler(Logger, {Console, pid}, :ok) do
       :ok ->
         :ok
+
       {:error, :module_not_found} = error ->
         mfa = {ExUnit.CaptureLog, :remove_capture, [pid]}
         exit({error, mfa})

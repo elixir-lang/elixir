@@ -22,38 +22,46 @@ defmodule Mix.Tasks.Deps.Clean do
   leaving only the ones for chosen environment.
   """
 
-  @switches [unlock: :boolean, all: :boolean, only: :string, unused: :boolean,
-             build: :boolean]
+  @switches [unlock: :boolean, all: :boolean, only: :string, unused: :boolean, build: :boolean]
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    Mix.Project.get!
+    Mix.Project.get!()
     {opts, apps, _} = OptionParser.parse(args, switches: @switches)
 
     build_path =
-      Mix.Project.build_path
-      |> Path.dirname
+      Mix.Project.build_path()
+      |> Path.dirname()
       |> Path.join("#{opts[:only] || :*}/lib")
-    deps_path = Mix.Project.deps_path
+
+    deps_path = Mix.Project.deps_path()
 
     loaded_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
     loaded_deps = Mix.Dep.loaded(loaded_opts)
 
-    apps_to_clean = cond do
-      opts[:all] -> checked_deps(build_path, deps_path)
-      opts[:unused] -> checked_deps(build_path, deps_path) |> filter_loaded(loaded_deps)
-      apps != [] -> apps
-      true ->
-        Mix.raise "\"mix deps.clean\" expects dependencies as arguments or " <>
-                  "a flag indicating which dependencies to clean. " <>
-                  "The --all option will clean all dependencies while " <>
-                  "the --unused option cleans unused dependencies"
-    end
+    apps_to_clean =
+      cond do
+        opts[:all] ->
+          checked_deps(build_path, deps_path)
+
+        opts[:unused] ->
+          checked_deps(build_path, deps_path) |> filter_loaded(loaded_deps)
+
+        apps != [] ->
+          apps
+
+        true ->
+          Mix.raise(
+            "\"mix deps.clean\" expects dependencies as arguments or " <>
+              "a flag indicating which dependencies to clean. " <>
+              "The --all option will clean all dependencies while " <>
+              "the --unused option cleans unused dependencies"
+          )
+      end
 
     do_clean(apps_to_clean, loaded_deps, build_path, deps_path, opts[:build])
 
     if opts[:unlock] do
-      Mix.Task.run "deps.unlock", args
+      Mix.Task.run("deps.unlock", args)
     else
       :ok
     end
@@ -66,7 +74,7 @@ defmodule Mix.Tasks.Deps.Clean do
       Path.basename(path)
     end
     |> Enum.uniq()
-    |> List.delete(to_string(Mix.Project.config[:app]))
+    |> List.delete(to_string(Mix.Project.config()[:app]))
   end
 
   defp filter_loaded(apps, deps) do
@@ -74,28 +82,29 @@ defmodule Mix.Tasks.Deps.Clean do
   end
 
   defp maybe_warn_for_invalid_path([], dependency) do
-    Mix.shell.error "warning: the dependency #{dependency} is not present in the build directory"
+    Mix.shell().error(
+      "warning: the dependency #{dependency} is not present in the build directory"
+    )
+
     []
   end
+
   defp maybe_warn_for_invalid_path(paths, _dependency) do
     paths
   end
 
   defp do_clean(apps, deps, build_path, deps_path, build_only?) do
-    shell = Mix.shell
+    shell = Mix.shell()
 
-    local =
-      for %{scm: scm, app: app} <- deps,
-          not scm.fetchable?,
-          do: Atom.to_string(app)
+    local = for %{scm: scm, app: app} <- deps, not scm.fetchable?, do: Atom.to_string(app)
 
-    Enum.each apps, fn app ->
-      shell.info "* Cleaning #{app}"
+    Enum.each(apps, fn app ->
+      shell.info("* Cleaning #{app}")
 
       # Remove everything from the build directory of dependencies
       build_path
       |> Path.join(to_string(app))
-      |> Path.wildcard
+      |> Path.wildcard()
       |> maybe_warn_for_invalid_path(app)
       |> Enum.each(&File.rm_rf!/1)
 
@@ -107,8 +116,8 @@ defmodule Mix.Tasks.Deps.Clean do
       else
         deps_path
         |> Path.join(to_string(app))
-        |> File.rm_rf!
+        |> File.rm_rf!()
       end
-    end
+    end)
   end
 end

@@ -78,19 +78,19 @@ defmodule System do
   `:micro_seconds` and `:nano_seconds` as time units although Elixir normalizes
   their spelling to match the SI convention.
   """
+  # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+
   @type time_unit ::
-    :second
-    | :millisecond
-    | :microsecond
-    | :nanosecond
-    | pos_integer
-    # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+
-    | :seconds
-    | :milliseconds
-    | :microseconds
-    | :nanoseconds
+          :second
+          | :millisecond
+          | :microsecond
+          | :nanosecond
+          | pos_integer
+          | :seconds
+          | :milliseconds
+          | :microseconds
+          | :nanoseconds
 
-  @base_dir     :filename.join(__DIR__, "../../..")
+  @base_dir :filename.join(__DIR__, "../../..")
   @version_file :filename.join(@base_dir, "VERSION")
 
   defp strip(iodata) do
@@ -101,6 +101,7 @@ defmodule System do
     case :file.read_file(path) do
       {:ok, binary} ->
         strip(binary)
+
       _ ->
         ""
     end
@@ -109,7 +110,7 @@ defmodule System do
   # Read and strip the version from the VERSION file.
   defmacrop get_version do
     case read_stripped(@version_file) do
-      ""   -> raise RuntimeError, message: "could not read the version number from VERSION"
+      "" -> raise RuntimeError, message: "could not read the version number from VERSION"
       data -> data
     end
   end
@@ -123,7 +124,7 @@ defmodule System do
   # the short revision hash. If that fails, returns an empty string.
   defmacrop get_revision do
     null =
-      case :os.type do
+      case :os.type() do
         {:win32, _} -> 'NUL'
         _ -> '/dev/null'
       end
@@ -138,7 +139,7 @@ defmodule System do
 
   # Get the date at compilation time.
   defmacrop get_date do
-    IO.iodata_to_binary :httpd_util.rfc1123_date
+    IO.iodata_to_binary(:httpd_util.rfc1123_date())
   end
 
   @doc """
@@ -161,7 +162,7 @@ defmodule System do
 
   Returns Elixir's version as binary.
   """
-  @spec version() :: String.t
+  @spec version() :: String.t()
   def version, do: get_version()
 
   @doc """
@@ -195,7 +196,7 @@ defmodule System do
 
   Returns the list of command line arguments passed to the program.
   """
-  @spec argv() :: [String.t]
+  @spec argv() :: [String.t()]
   def argv do
     :elixir_config.get(:argv)
   end
@@ -206,7 +207,7 @@ defmodule System do
   Changes the list of command line arguments. Use it with caution,
   as it destroys any previous argv information.
   """
-  @spec argv([String.t]) :: :ok
+  @spec argv([String.t()]) :: :ok
   def argv(args) do
     :elixir_config.put(:argv, args)
   end
@@ -218,7 +219,7 @@ defmodule System do
   is not available.
   """
   def cwd do
-    case :file.get_cwd do
+    case :file.get_cwd() do
       {:ok, base} -> IO.chardata_to_string(fix_drive_letter(base))
       _ -> nil
     end
@@ -240,7 +241,9 @@ defmodule System do
   """
   def cwd! do
     cwd() ||
-      raise RuntimeError, message: "could not get a current working directory, the current location is not accessible"
+      raise RuntimeError,
+        message:
+          "could not get a current working directory, the current location is not accessible"
   end
 
   @doc """
@@ -260,7 +263,8 @@ defmodule System do
   """
   def user_home! do
     user_home() ||
-      raise RuntimeError, message: "could not find the user home, please set the HOME environment variable"
+      raise RuntimeError,
+        message: "could not find the user home, please set the HOME environment variable"
   end
 
   @doc ~S"""
@@ -278,11 +282,8 @@ defmodule System do
   Returns `nil` if none of the above are writable.
   """
   def tmp_dir do
-    write_env_tmp_dir('TMPDIR') ||
-      write_env_tmp_dir('TEMP') ||
-      write_env_tmp_dir('TMP')  ||
-      write_tmp_dir('/tmp')     ||
-      ((cwd = cwd()) && write_tmp_dir(cwd))
+    write_env_tmp_dir('TMPDIR') || write_env_tmp_dir('TEMP') || write_env_tmp_dir('TMP') ||
+      write_tmp_dir('/tmp') || ((cwd = cwd()) && write_tmp_dir(cwd))
   end
 
   @doc """
@@ -293,14 +294,16 @@ defmodule System do
   """
   def tmp_dir! do
     tmp_dir() ||
-      raise RuntimeError, message: "could not get a writable temporary directory, " <>
-                                   "please set the TMPDIR environment variable"
+      raise RuntimeError,
+        message:
+          "could not get a writable temporary directory, " <>
+            "please set the TMPDIR environment variable"
   end
 
   defp write_env_tmp_dir(env) do
     case :os.getenv(env) do
       false -> nil
-      tmp   -> write_tmp_dir(tmp)
+      tmp -> write_tmp_dir(tmp)
     end
   end
 
@@ -310,10 +313,13 @@ defmodule System do
         case {stat.type, stat.access} do
           {:directory, access} when access in [:read_write, :write] ->
             IO.chardata_to_string(dir)
+
           _ ->
             nil
         end
-      {:error, _} -> nil
+
+      {:error, _} ->
+        nil
     end
   end
 
@@ -331,7 +337,7 @@ defmodule System do
   The function must receive the exit status code as an argument.
   """
   def at_exit(fun) when is_function(fun, 1) do
-    :elixir_config.update :at_exit, &[fun | &1]
+    :elixir_config.update(:at_exit, &[fun | &1])
   end
 
   @doc """
@@ -359,11 +365,11 @@ defmodule System do
   The returned value is a map containing name-value pairs.
   Variable names and their values are strings.
   """
-  @spec get_env() :: %{optional(String.t) => String.t}
+  @spec get_env() :: %{optional(String.t()) => String.t()}
   def get_env do
-    Enum.into(:os.getenv, %{}, fn var ->
-      var = IO.chardata_to_string var
-      [k, v] = String.split var, "=", parts: 2
+    Enum.into(:os.getenv(), %{}, fn var ->
+      var = IO.chardata_to_string(var)
+      [k, v] = String.split(var, "=", parts: 2)
       {k, v}
     end)
   end
@@ -375,7 +381,7 @@ defmodule System do
   `varname` is a string, or `nil` if the environment
   variable is undefined.
   """
-  @spec get_env(String.t) :: String.t | nil
+  @spec get_env(String.t()) :: String.t() | nil
   def get_env(varname) when is_binary(varname) do
     case :os.getenv(String.to_charlist(varname)) do
       false -> nil
@@ -392,7 +398,7 @@ defmodule System do
   For more information, see `:os.getpid/0`.
   """
   @spec get_pid() :: binary
-  def get_pid, do: IO.iodata_to_binary(:os.getpid)
+  def get_pid, do: IO.iodata_to_binary(:os.getpid())
 
   @doc """
   Sets an environment variable value.
@@ -403,9 +409,11 @@ defmodule System do
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
     case :binary.match(varname, "=") do
       {_, _} ->
-        raise ArgumentError, "cannot execute System.put_env/2 for key with \"=\", got: #{inspect varname}"
+        raise ArgumentError,
+              "cannot execute System.put_env/2 for key with \"=\", got: #{inspect(varname)}"
+
       :nomatch ->
-        :os.putenv String.to_charlist(varname), String.to_charlist(value)
+        :os.putenv(String.to_charlist(varname), String.to_charlist(value))
         :ok
     end
   end
@@ -414,11 +422,11 @@ defmodule System do
   Sets multiple environment variables.
 
   Sets a new value for each environment variable corresponding
-  to each key in `dict`.
+  to each `{key, value}` pair in `enum`.
   """
-  @spec put_env(Enumerable.t) :: :ok
+  @spec put_env(Enumerable.t()) :: :ok
   def put_env(enum) do
-    Enum.each enum, fn {key, val} -> put_env key, val end
+    Enum.each(enum, fn {key, val} -> put_env(key, val) end)
   end
 
   @doc """
@@ -426,7 +434,7 @@ defmodule System do
 
   Removes the variable `varname` from the environment.
   """
-  @spec delete_env(String.t) :: :ok
+  @spec delete_env(String.t()) :: :ok
   def delete_env(varname) do
     :os.unsetenv(String.to_charlist(varname))
     :ok
@@ -442,7 +450,7 @@ defmodule System do
   Inlined by the compiler into `:erlang.get_stacktrace/0`.
   """
   def stacktrace do
-    :erlang.get_stacktrace
+    :erlang.get_stacktrace()
   end
 
   @doc """
@@ -597,13 +605,14 @@ defmodule System do
   If you desire to execute a trusted command inside a shell, with pipes,
   redirecting and so on, please check `:os.cmd/1`.
   """
-  @spec cmd(binary, [binary], keyword) ::
-        {Collectable.t, exit_status :: non_neg_integer}
+  @spec cmd(binary, [binary], keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
     assert_no_null_byte!(command, "System.cmd/3")
+
     unless Enum.all?(args, &is_binary/1) do
       raise ArgumentError, "all arguments for System.cmd/3 must be binaries"
     end
+
     cmd = String.to_charlist(command)
 
     cmd =
@@ -615,11 +624,12 @@ defmodule System do
 
     {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide, args: args], "")
     {initial, fun} = Collectable.into(into)
+
     try do
-      do_cmd Port.open({:spawn_executable, cmd}, opts), initial, fun
+      do_cmd(Port.open({:spawn_executable, cmd}, opts), initial, fun)
     catch
       kind, reason ->
-        stacktrace = System.stacktrace
+        stacktrace = System.stacktrace()
         fun.(initial, :halt)
         :erlang.raise(kind, reason, stacktrace)
     else
@@ -631,13 +641,13 @@ defmodule System do
     receive do
       {^port, {:data, data}} ->
         do_cmd(port, fun.(acc, {:cont, data}), fun)
+
       {^port, {:exit_status, status}} ->
         {acc, status}
     end
   end
 
-  defp cmd_opts([{:into, any} | t], opts, _into),
-    do: cmd_opts(t, opts, any)
+  defp cmd_opts([{:into, any} | t], opts, _into), do: cmd_opts(t, opts, any)
 
   defp cmd_opts([{:cd, bin} | t], opts, into) when is_binary(bin),
     do: cmd_opts(t, [{:cd, bin} | opts], into)
@@ -648,8 +658,7 @@ defmodule System do
   defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into),
     do: cmd_opts(t, [:stderr_to_stdout | opts], into)
 
-  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into),
-    do: cmd_opts(t, opts, into)
+  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into), do: cmd_opts(t, opts, into)
 
   defp cmd_opts([{:parallelism, bool} | t], opts, into) when is_boolean(bool),
     do: cmd_opts(t, [{:parallelism, bool} | opts], into)
@@ -658,20 +667,21 @@ defmodule System do
     do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into)
 
   defp cmd_opts([{key, val} | _], _opts, _into),
-    do: raise(ArgumentError, "invalid option #{inspect key} with value #{inspect val}")
+    do: raise(ArgumentError, "invalid option #{inspect(key)} with value #{inspect(val)}")
 
-  defp cmd_opts([], opts, into),
-    do: {into, opts}
+  defp cmd_opts([], opts, into), do: {into, opts}
 
   defp validate_env(enum) do
-    Enum.map enum, fn
+    Enum.map(enum, fn
       {k, nil} ->
         {String.to_charlist(k), false}
+
       {k, v} ->
         {String.to_charlist(k), String.to_charlist(v)}
+
       other ->
-        raise ArgumentError, "invalid environment key-value #{inspect other}"
-    end
+        raise ArgumentError, "invalid environment key-value #{inspect(other)}"
+    end)
   end
 
   @doc """
@@ -800,7 +810,7 @@ defmodule System do
   @doc """
   Returns the OTP release number.
   """
-  @spec otp_release :: String.t
+  @spec otp_release :: String.t()
   def otp_release do
     :erlang.list_to_binary(:erlang.system_info(:otp_release))
   end
@@ -852,45 +862,36 @@ defmodule System do
   defp assert_no_null_byte!(binary, operation) do
     case :binary.match(binary, "\0") do
       {_, _} ->
-        raise ArgumentError, "cannot execute #{operation} for program with null byte, got: #{inspect binary}"
+        raise ArgumentError,
+              "cannot execute #{operation} for program with null byte, got: #{inspect(binary)}"
+
       :nomatch ->
         binary
     end
   end
 
-  defp normalize_time_unit(:native),
-    do: :native
+  defp normalize_time_unit(:native), do: :native
 
-  defp normalize_time_unit(:second),
-    do: :seconds
-  defp normalize_time_unit(:millisecond),
-    do: :milli_seconds
-  defp normalize_time_unit(:microsecond),
-    do: :micro_seconds
-  defp normalize_time_unit(:nanosecond),
-    do: :nano_seconds
+  defp normalize_time_unit(:second), do: :seconds
+  defp normalize_time_unit(:millisecond), do: :milli_seconds
+  defp normalize_time_unit(:microsecond), do: :micro_seconds
+  defp normalize_time_unit(:nanosecond), do: :nano_seconds
 
-  defp normalize_time_unit(:seconds),
-    do: :seconds
-  defp normalize_time_unit(:milliseconds),
-    do: :milli_seconds
-  defp normalize_time_unit(:microseconds),
-    do: :micro_seconds
-  defp normalize_time_unit(:nanoseconds),
-    do: :nano_seconds
+  defp normalize_time_unit(:seconds), do: :seconds
+  defp normalize_time_unit(:milliseconds), do: :milli_seconds
+  defp normalize_time_unit(:microseconds), do: :micro_seconds
+  defp normalize_time_unit(:nanoseconds), do: :nano_seconds
 
-  defp normalize_time_unit(unit) when is_integer(unit) and unit > 0,
-    do: unit
+  defp normalize_time_unit(unit) when is_integer(unit) and unit > 0, do: unit
 
   defp normalize_time_unit(erlang_unit)
-      when erlang_unit in [:milli_seconds, :micro_seconds, :nano_seconds] do
+       when erlang_unit in [:milli_seconds, :micro_seconds, :nano_seconds] do
     erlang_unit
   end
 
   defp normalize_time_unit(other) do
     raise ArgumentError,
-      "unsupported time unit. Expected :second, :millisecond, " <>
-      ":microsecond, :nanosecond, or a positive integer, " <>
-      "got #{inspect other}"
+          "unsupported time unit. Expected :second, :millisecond, " <>
+            ":microsecond, :nanosecond, or a positive integer, " <> "got #{inspect(other)}"
   end
 end

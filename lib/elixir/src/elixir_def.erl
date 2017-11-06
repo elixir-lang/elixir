@@ -60,7 +60,7 @@ fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
   try ets:lookup_element(Table, {clauses, Tuple}, 2) of
     Clauses ->
       NewAll =
-        [{Tuple, Kind, Meta, Clauses} | All],
+        [{Tuple, Kind, add_defaults_to_meta(Defaults, Meta), Clauses} | All],
       NewPrivate =
         case (Kind == defp) orelse (Kind == defmacrop) of
           true ->
@@ -78,6 +78,9 @@ fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
 
 fetch_definition([], _File, _Module, _Table, All, Private) ->
   {All, Private}.
+
+add_defaults_to_meta(0, Meta) -> Meta;
+add_defaults_to_meta(Defaults, Meta) -> [{defaults, Defaults} | Meta].
 
 %% Section for storing definitions
 
@@ -105,8 +108,8 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   %% will always point to the quoted one and __ENV__.file will
   %% always point to the one at @file or the quoted one.
   {Location, Key} =
-    case elixir_utils:meta_location(Meta) of
-      {_, _} = Keep -> {Keep, keep};
+    case elixir_utils:meta_keep(Meta) of
+      {_, _} = MetaFile -> {MetaFile, keep};
       nil -> {nil, line}
     end,
 
@@ -116,18 +119,20 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
   Generated    = case DoCheckClauses of true -> []; false -> ?generated([]) end,
 
-  {EL, MetaLocation} =
+  {File, DefMeta} =
     case retrieve_location(Location, ?key(E, module)) of
       {F, L} ->
-        {E#{file := F}, [{line, Line}, {location, {F, L}} | Generated]};
+        {F, [{line, Line}, {file, {F, L}} | Generated]};
       nil ->
-        {E, [{line, Line} | Generated]}
+        {nil, [{line, Line} | Generated]}
     end,
 
-  assert_no_aliases_name(MetaLocation, Name, Args, EL),
-  assert_valid_name(MetaLocation, Kind, Name, Args, EL),
-  store_definition(MetaLocation, Kind, DoCheckClauses, Name, Arity,
-                   LinifyArgs, LinifyGuards, LinifyBody, ?key(E, file), EL).
+  run_with_location_change(File, E, fun(EL) ->
+    assert_no_aliases_name(DefMeta, Name, Args, EL),
+    assert_valid_name(DefMeta, Kind, Name, Args, EL),
+    store_definition(DefMeta, Kind, DoCheckClauses, Name, Arity,
+                     LinifyArgs, LinifyGuards, LinifyBody, ?key(E, file), EL)
+  end).
 
 store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Body, File, ER) ->
   Module = ?key(ER, module),
@@ -163,6 +168,21 @@ retrieve_location(Location, Module) ->
     [{file, {File, Line}, _, _}] when is_binary(File) andalso is_integer(Line) ->
       'Elixir.Module':delete_attribute(Module, file),
       {elixir_utils:relative_to_cwd(File), Line}
+  end.
+
+run_with_location_change(nil, E, Callback) ->
+  Callback(E);
+run_with_location_change(File, #{file := File} = E, Callback) ->
+  Callback(E);
+run_with_location_change(File, E, Callback) ->
+  EL = E#{file := File},
+  Tracker = ?key(E, lexical_tracker),
+
+  try
+    elixir_lexical:set_file(File, Tracker),
+    Callback(EL)
+  after
+    elixir_lexical:reset_file(Tracker)
   end.
 
 def_to_clauses(_Kind, Meta, Args, [], nil, E) ->

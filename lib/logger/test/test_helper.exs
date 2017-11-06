@@ -37,6 +37,7 @@ defmodule Logger.Case do
 
   def capture_log(level \\ :debug, fun) do
     Logger.configure(level: level)
+
     capture_io(:user, fn ->
       fun.()
       Logger.flush()

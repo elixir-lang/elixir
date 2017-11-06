@@ -4,7 +4,7 @@ defmodule ExUnit.MixProject do
   def project do
     [
       app: :ex_unit,
-      version: System.version,
+      version: System.version(),
       build_per_environment: false
     ]
   end
@@ -21,7 +21,7 @@ defmodule ExUnit.MixProject do
         assert_receive_timeout: 100,
         autorun: true,
         capture_log: false,
-        module_load_timeout: 60_000,
+        module_load_timeout: 60000,
         colors: [],
         exclude: [],
         formatters: [ExUnit.CLIFormatter],
@@ -29,7 +29,7 @@ defmodule ExUnit.MixProject do
         refute_receive_timeout: 100,
         slowest: 0,
         stacktrace_depth: 20,
-        timeout: 60_000,
+        timeout: 60000,
         trace: false
       ]
     ]

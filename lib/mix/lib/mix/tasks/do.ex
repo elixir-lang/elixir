@@ -17,11 +17,8 @@ defmodule Mix.Tasks.Do do
 
   """
 
-  @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    Enum.each gather_commands(args), fn
-      [task | args] -> Mix.Task.run task, args
-    end
+    Enum.each(gather_commands(args), fn [task | args] -> Mix.Task.run(task, args) end)
   end
 
   @doc false
@@ -30,12 +27,13 @@ defmodule Mix.Tasks.Do do
   end
 
   defp gather_commands([head | rest], current, acc)
-      when binary_part(head, byte_size(head), -1) == "," do
+       when binary_part(head, byte_size(head), -1) == "," do
     current =
       case binary_part(head, 0, byte_size(head) - 1) do
         "" -> Enum.reverse(current)
         part -> Enum.reverse([part | current])
       end
+
     gather_commands(rest, [], [current | acc])
   end
 
@@ -44,6 +42,6 @@ defmodule Mix.Tasks.Do do
   end
 
   defp gather_commands([], current, acc) do
-    Enum.reverse [Enum.reverse(current) | acc]
+    Enum.reverse([Enum.reverse(current) | acc])
   end
 end

@@ -59,10 +59,10 @@ defmodule Calendar do
   @type calendar :: module
 
   @typedoc "The time zone ID according to the IANA tz database (e.g. Europe/Zurich)"
-  @type time_zone :: String.t
+  @type time_zone :: String.t()
 
   @typedoc "The time zone abbreviation (e.g. CET or CEST or BST etc.)"
-  @type zone_abbr :: String.t
+  @type zone_abbr :: String.t()
 
   @typedoc "The time zone UTC offset in seconds"
   @type utc_offset :: integer
@@ -74,16 +74,43 @@ defmodule Calendar do
   @type date :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day}
 
   @typedoc "Any map/struct that contains the time fields"
-  @type time :: %{optional(any) => any, hour: hour, minute: minute, second: second, microsecond: microsecond}
+  @type time :: %{
+          optional(any) => any,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond
+        }
 
   @typedoc "Any map/struct that contains the naive_datetime fields"
-  @type naive_datetime :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
-                            hour: hour, minute: minute, second: second, microsecond: microsecond}
+  @type naive_datetime :: %{
+          optional(any) => any,
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond
+        }
 
   @typedoc "Any map/struct that contains the datetime fields"
-  @type datetime :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day,
-                      hour: hour, minute: minute, second: second, microsecond: microsecond,
-                      time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset}
+  @type datetime :: %{
+          optional(any) => any,
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond,
+          time_zone: time_zone,
+          zone_abbr: zone_abbr,
+          utc_offset: utc_offset,
+          std_offset: std_offset
+        }
 
   @doc """
   Returns how many days there are in the given year-month.
@@ -107,33 +134,47 @@ defmodule Calendar do
   @doc """
   Converts the date into a string according to the calendar.
   """
-  @callback date_to_string(year, month, day) :: String.t
+  @callback date_to_string(year, month, day) :: String.t()
 
   @doc """
   Converts the datetime (without time zone) into a string according to the calendar.
   """
-  @callback naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) :: String.t
+  @callback naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) ::
+              String.t()
 
   @doc """
   Converts the datetime (with time zone) into a string according to the calendar.
   """
-  @callback datetime_to_string(year, month, day, hour, minute, second, microsecond,
-                               time_zone, zone_abbr, utc_offset, std_offset) :: String.t
+  @callback datetime_to_string(
+              year,
+              month,
+              day,
+              hour,
+              minute,
+              second,
+              microsecond,
+              time_zone,
+              zone_abbr,
+              utc_offset,
+              std_offset
+            ) :: String.t()
 
   @doc """
   Converts the time into a string according to the calendar.
   """
-  @callback time_to_string(hour, minute, second, microsecond) :: String.t
+  @callback time_to_string(hour, minute, second, microsecond) :: String.t()
 
   @doc """
   Converts the given datetime (with time zone) into the `t:iso_days` format.
   """
-  @callback naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) :: iso_days
+  @callback naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) ::
+              iso_days
 
   @doc """
   Converts `t:iso_days` to the Calendar's datetime format.
   """
-  @callback naive_datetime_from_iso_days(iso_days) :: {year, month, day, hour, minute, second, microsecond}
+  @callback naive_datetime_from_iso_days(iso_days) ::
+              {year, month, day, hour, minute, second, microsecond}
 
   @doc """
   Converts the given time to the `t:day_fraction` format.
@@ -188,9 +229,11 @@ defmodule Calendar do
   between them. If they are compatible, this means that we can also convert
   dates as well as naive datetimes between them.
   """
-  @spec compatible_calendars?(Calendar.calendar, Calendar.calendar) :: boolean
+  @spec compatible_calendars?(Calendar.calendar(), Calendar.calendar()) :: boolean
   def compatible_calendars?(calendar, calendar), do: true
+
   def compatible_calendars?(calendar1, calendar2) do
-    calendar1.day_rollover_relative_to_midnight_utc() == calendar2.day_rollover_relative_to_midnight_utc()
+    calendar1.day_rollover_relative_to_midnight_utc() ==
+      calendar2.day_rollover_relative_to_midnight_utc()
   end
 end

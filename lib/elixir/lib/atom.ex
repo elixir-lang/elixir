@@ -16,7 +16,7 @@ defmodule Atom do
       "foo"
 
   """
-  @spec to_string(atom) :: String.t
+  @spec to_string(atom) :: String.t()
   def to_string(atom) do
     :erlang.atom_to_binary(atom, :utf8)
   end
