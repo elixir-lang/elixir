@@ -15,6 +15,11 @@ defmodule Kernel.ErrorsTest do
                       '[foo: \u200B]\noops'
   end
 
+  test "reserved tokens" do
+    assert_eval_raise SyntaxError, "nofile:1: reserved token: __aliases__", '__aliases__'
+    assert_eval_raise SyntaxError, "nofile:1: reserved token: __block__", '__block__'
+  end
+
   test "invalid __CALLER__" do
     assert_eval_raise CompileError,
                       "nofile:1: variable '__CALLER__' is unbound",

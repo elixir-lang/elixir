@@ -979,12 +979,10 @@ tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) 
 
 tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens) ->
   case tokenize_keyword_or_identifier(Rest, Line, Column, Atom, Tokens) of
-    {keyword, Rest, Check, T} ->
-      handle_terminator(Rest, Line, Column + Length, Scope, Check, T);
-    {keyword, Rest, Check, T} ->
-      handle_terminator(Rest, Line, Column + Length, Scope, Check, T);
-    {identifier, Rest, Token} ->
-      tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
+    {keyword, NewRest, NewCheck, NewTokens} ->
+      handle_terminator(NewRest, Line, Column + Length, Scope, NewCheck, NewTokens);
+    {identifier, NewRest, NewTokens} ->
+      tokenize(NewRest, Line, Column + Length, Scope, NewTokens);
     {error, _, _, _} = Error ->
       Error
   end.
@@ -992,7 +990,7 @@ tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens) ->
 tokenize_keyword_or_identifier(Rest, Line, Column, Atom, Tokens) ->
   case check_keyword(Line, Column, Atom, Tokens, Rest) of
     nomatch ->
-      {identifier, Rest, check_call_identifier(Line, Column, Atom, Rest)};
+      {identifier, Rest, [check_call_identifier(Line, Column, Atom, Rest) | Tokens]};
     {ok, [{in_op, _, in} | [{unary_op, NotInfo, 'not'} | T]]} ->
       {keyword, Rest, {in_op, NotInfo, 'not in'}, T};
     {ok, [Check | T]} ->
@@ -1109,12 +1107,14 @@ check_keyword(DoLine, DoColumn, do,
   {ok, add_token_with_eol({do, {DoLine, DoColumn, nil}},
                           [{do_identifier, {Line, Column, Meta}, Atom} | T])};
 check_keyword(_Line, _Column, do, [{'fn', _} | _], _Rest) ->
-  {error, do_with_fn_error("unexpected token \"do\""), "do"};
+  {error, invalid_do_with_fn_error("unexpected token \"do\""), "do"};
 check_keyword(Line, Column, do, Tokens, _Rest) ->
   case do_keyword_valid(Tokens) of
     true  -> {ok, add_token_with_eol({do, {Line, Column, nil}}, Tokens)};
     false -> {error, invalid_do_error("unexpected token \"do\""), "do"}
   end;
+check_keyword(_Line, _Column, Atom, _Tokens, _Rest) when Atom == '__aliases__'; Atom == '__block__' ->
+  {error, "reserved token: ", atom_to_list(Atom)};
 check_keyword(Line, Column, Atom, Tokens, Rest) ->
   case keyword(Atom) of
     false ->
@@ -1174,19 +1174,19 @@ invalid_character_error(What, Char) ->
 
 invalid_do_error(Prefix) ->
   Prefix ++ ". In case you wanted to write a \"do\" expression, "
-  "you must either separate the keyword argument with comma or use do-blocks. "
-  "For example, the following construct:\n\n"
+  "you must either use do-blocks or separate the keyword argument with comma. "
+  "For example, you should either write:\n\n"
   "    if some_condition? do\n"
   "      :this\n"
   "    else\n"
   "      :that\n"
   "    end\n\n"
-  "is syntactic sugar for the Elixir construct:\n\n"
+  "or the equivalent construct:\n\n"
   "    if(some_condition?, do: :this, else: :that)\n\n"
   "where \"some_condition?\" is the first argument and the second argument is a keyword list.\n\n"
   "Syntax error before: ".
 
-do_with_fn_error(Prefix) ->
+invalid_do_with_fn_error(Prefix) ->
   Prefix ++ ". Anonymous functions are written as:\n\n"
   "    fn pattern -> expression end\n\n"
   "Syntax error before: ".
