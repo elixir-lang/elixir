@@ -547,16 +547,65 @@ defmodule IEx do
   Macro-based shortcut for `IEx.break!/4`.
   """
   defmacro break!(ast, stops \\ 1) do
-    with {:/, _, [call, arity]} when is_integer(arity) <- ast,
-         {mod, fun, []} <- Macro.decompose_call(call) do
-      quote do
-        IEx.break!(unquote(mod), unquote(fun), unquote(arity), unquote(stops))
-      end
+    quote do
+      IEx.__break__!(unquote(Macro.escape(ast)), unquote(Macro.escape(stops)), __ENV__)
+    end
+  end
+
+  def __break__!({:/, _, [call, arity]} = ast, stops, env) when is_integer(arity) do
+    with {module, fun, []} <- Macro.decompose_call(call),
+         module when is_atom(module) <- Macro.expand(module, env) do
+      IEx.Pry.break!(module, fun, arity, quote(do: _), stops)
     else
       _ ->
-        raise ArgumentError,
-              "expected Mod.fun/arity, such as URI.parse/1, got: #{Macro.to_string(ast)}"
+        raise_unknown_break_ast!(ast)
     end
+  end
+
+  def __break__!({{:., _, [module, fun]}, _, args} = ast, stops, env) do
+    __break__!(ast, module, fun, args, true, stops, env)
+  end
+
+  def __break__!({:when, _, [{{:., _, [module, fun]}, _, args}, guards]} = ast, stops, env) do
+    __break__!(ast, module, fun, args, guards, stops, env)
+  end
+
+  def __break__!(ast, _stops) do
+    raise_unknown_break_ast!(ast)
+  end
+
+  defp __break__!(ast, module, fun, args, guards, stops, env) do
+    module = Macro.expand(module, env)
+
+    unless is_atom(module) do
+      raise_unknown_break_ast!(ast)
+    end
+
+    pattern = {:when, [], [{:{}, [], args}, guards]}
+
+    to_expand =
+      quote do
+        case Unknown.module() do
+          unquote(pattern) -> :ok
+        end
+      end
+
+    {{:case, _, [_, [do: [{:->, [], [[expanded], _]}]]]}, _} =
+      :elixir_expand.expand(to_expand, env)
+
+    IEx.Pry.break!(module, fun, length(args), expanded, stops)
+  end
+
+  defp raise_unknown_break_ast!(ast) do
+    raise ArgumentError, """
+    unknown expression to break on, expected one of:
+
+      * Mod.fun/arity, such as: URI.parse/1
+      * Mod.fun(arg1, arg2, ...), such as: URI.parse(_)
+      * Mod.fun(arg1, arg2, ...) when guard, such as: URI.parse(var) when is_binary(var)
+
+    Got #{Macro.to_string(ast)}
+    """
   end
 
   @doc """
@@ -630,6 +679,22 @@ defmodule IEx do
 
       IEx.break!(URI.decode_query/2, 10)
 
+  `IEx.break!/2` allows patterns to be given, triggering the
+  breakpoint only in some occasions. For example, to trigger
+  the breakpoint only when the first argument is the "foo=bar"
+  string:
+
+      IEx.break!(URI.decode_query("foo=bar", _))
+
+  Or to trigger is whenever the second argument is a map with
+  more than one element:
+
+      IEx.break!(URI.decode_query(_, map) when map_size(map) > 0)
+
+  Only a single break point can be set per function. So if you call
+  `IEx.break!` multiple times with different patterns, only the last
+  pattern is kept.
+
   This function returns the breakpoint ID and will raise if there
   is an error setting up the breakpoint.
 
@@ -643,38 +708,8 @@ defmodule IEx do
       iex -S mix test path/to/file:line --trace
 
   """
-  def break!(module, function, arity, stops \\ 1) do
-    case IEx.Pry.break(module, function, arity, stops) do
-      {:ok, id} ->
-        id
-
-      {:error, kind} ->
-        message =
-          case kind do
-            :missing_debug_info ->
-              "module #{inspect(module)} was not compiled with debug_info"
-
-            :no_beam_file ->
-              "could not find .beam file for #{inspect(module)}"
-
-            :non_elixir_module ->
-              "module #{inspect(module)} was not written in Elixir"
-
-            :otp_20_is_required ->
-              "you are running on an earlier OTP version than OTP 20"
-
-            :outdated_debug_info ->
-              "module #{inspect(module)} was not compiled with the latest debug_info"
-
-            :recompilation_failed ->
-              "the module could not be compiled with breakpoints (likely an internal error)"
-
-            :unknown_function_arity ->
-              "unknown function/macro #{Exception.format_mfa(module, function, arity)}"
-          end
-
-        raise "could not set breakpoint, " <> message
-    end
+  def break!(module, function, arity, stops \\ 1) when is_integer(arity) do
+    IEx.Pry.break!(module, function, arity, quote(do: _), stops)
   end
 
   ## Callbacks

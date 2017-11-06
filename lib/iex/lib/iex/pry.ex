@@ -8,6 +8,7 @@ defmodule IEx.Pry do
   @table __MODULE__
   @server __MODULE__
   @timeout :infinity
+  @initial_counter 1
 
   @type id :: integer()
   @type break :: {id, module, {function, arity}, pending :: non_neg_integer}
@@ -145,11 +146,11 @@ defmodule IEx.Pry do
   end
 
   @doc """
-  Sets up a breakpoint on the given module/function or
-  given module/function/arity.
+  Sets up a breakpoint on the given module/function/arity matching the given
+  args and guard.
   """
-  @spec break(module, function, arity, pos_integer) ::
-          {:ok, id}
+  @spec break(module, function, arity, Macro.t(), pos_integer) ::
+          {:ok, id()}
           | {
               :error,
               :recompilation_failed
@@ -160,10 +161,48 @@ defmodule IEx.Pry do
               | :outdated_debug_info
               | :non_elixir_module
             }
-  def break(module, function, arity, breaks \\ 1)
+  def break(module, function, arity, condition, breaks \\ 1)
       when is_atom(module) and is_atom(function) and is_integer(arity) and arity >= 0 and
              is_integer(breaks) and breaks > 0 do
-    GenServer.call(@server, {:break, module, {function, arity}, breaks}, @timeout)
+    GenServer.call(@server, {:break, module, {function, arity}, condition, breaks}, @timeout)
+  end
+
+  @doc """
+  Raising variant of `break/5`.
+  """
+  @spec break(module, function, arity, Macro.t(), pos_integer) :: id()
+  def break!(module, function, arity, condition, breaks \\ 1) do
+    case break(module, function, arity, condition, breaks) do
+      {:ok, id} ->
+        id
+
+      {:error, kind} ->
+        message =
+          case kind do
+            :missing_debug_info ->
+              "module #{inspect(module)} was not compiled with debug_info"
+
+            :no_beam_file ->
+              "could not find .beam file for #{inspect(module)}"
+
+            :non_elixir_module ->
+              "module #{inspect(module)} was not written in Elixir"
+
+            :otp_20_is_required ->
+              "you are running on an earlier OTP version than OTP 20"
+
+            :outdated_debug_info ->
+              "module #{inspect(module)} was not compiled with the latest debug_info"
+
+            :recompilation_failed ->
+              "the module could not be compiled with breakpoints (likely an internal error)"
+
+            :unknown_function_arity ->
+              "unknown function/macro #{Exception.format_mfa(module, function, arity)}"
+          end
+
+        raise "could not set breakpoint, " <> message
+    end
   end
 
   @doc """
@@ -171,7 +210,7 @@ defmodule IEx.Pry do
   """
   @spec reset_break(id) :: :ok | :not_found
   def reset_break(id) when is_integer(id) do
-    GenServer.call(@server, {:reset_break, {id, :_, :_, :_}}, @timeout)
+    GenServer.call(@server, {:reset_break, {id, :_, :_, :_, :_}}, @timeout)
   end
 
   @doc """
@@ -183,7 +222,7 @@ defmodule IEx.Pry do
   """
   @spec reset_break(module, function, arity) :: :ok | :not_found
   def reset_break(module, function, arity) do
-    GenServer.call(@server, {:reset_break, {:_, module, {function, arity}, :_}}, @timeout)
+    GenServer.call(@server, {:reset_break, {:_, module, {function, arity}, :_, :_}}, @timeout)
   end
 
   @doc """
@@ -228,36 +267,34 @@ defmodule IEx.Pry do
   def init(:ok) do
     Process.flag(:trap_exit, true)
     :ets.new(@table, [:named_table, :public, write_concurrency: true])
-    {:ok, 0}
+    {:ok, @initial_counter}
   end
 
-  def handle_call({:break, module, fa, breaks}, _from, counter) do
-    # If there is a match for the given module and fa, and
-    # the module is still instrumented, we just increment
-    # the breaks counter.
-    #
-    # Otherwise we need to invoke the whole instrumentation
-    # tool chain.
-    case :ets.match_object(@table, {:_, module, fa, :_}) do
-      [{ref, module, fa, _}] ->
-        if instrumented?(module) do
-          :ets.insert(@table, {ref, module, fa, breaks})
-          {:reply, {:ok, ref}, counter}
-        else
-          :ets.delete(@table, ref)
-          instrument_and_reply(module, fa, breaks, counter)
-        end
+  def handle_call({:break, module, fa, condition, breaks}, _from, counter) do
+    # If there is a match for the given module and fa, we
+    # use the ref, otherwise we create a new one.
+    {ref, counter} =
+      case :ets.match_object(@table, {:_, module, fa, :_, :_}) do
+        [{ref, _, _, _, _}] -> {ref, counter}
+        [] -> {counter, counter + 1}
+      end
 
-      [] ->
-        instrument_and_reply(module, fa, breaks, counter)
+    case fetch_elixir_debug_info_with_fa_check(module, fa) do
+      {:ok, beam, backend, elixir} ->
+        true = :ets.insert(@table, {ref, module, fa, condition, breaks})
+        entries = :ets.match_object(@table, {:_, module, :_, :_, :_})
+        {:reply, instrument(beam, backend, elixir, ref, entries), counter}
+
+      {:error, _} = error ->
+        {:reply, error, counter}
     end
   end
 
   def handle_call({:reset_break, pattern}, _from, counter) do
     reset =
-      for {ref, module, fa, _} <- :ets.match_object(@table, pattern) do
+      for {ref, module, fa, condition, _} <- :ets.match_object(@table, pattern) do
         if instrumented?(module) do
-          :ets.insert(@table, {ref, module, fa, 0})
+          :ets.insert(@table, {ref, module, fa, condition, 0})
           true
         else
           :ets.delete(@table, ref)
@@ -274,7 +311,7 @@ defmodule IEx.Pry do
 
   def handle_call(:breaks, _from, counter) do
     entries =
-      for {id, module, function_arity, breaks} <- :ets.tab2list(@table),
+      for {id, module, function_arity, _condition, breaks} <- :ets.tab2list(@table),
           keep_instrumented(id, module) == :ok do
         {id, module, function_arity, max(breaks, 0)}
       end
@@ -286,20 +323,20 @@ defmodule IEx.Pry do
     # Make sure to deinstrument before clearing
     # up the table to avoid race conditions.
     @table
-    |> :ets.match({:_, :"$1", :_, :_})
+    |> :ets.match({:_, :"$1", :_, :_, :_})
     |> List.flatten()
     |> Enum.uniq()
     |> Enum.each(&deinstrument_if_instrumented/1)
 
     true = :ets.delete_all_objects(@table)
-    {:reply, :ok, 0}
+    {:reply, :ok, @initial_counter}
   end
 
   def handle_call({:remove_breaks, module}, _from, counter) do
     # Make sure to deinstrumented before clearing
     # up the table to avoid race conditions.
     reply = deinstrument_if_instrumented(module)
-    true = :ets.match_delete(@table, {:_, module, :_, :_})
+    true = :ets.match_delete(@table, {:_, module, :_, :_, :_})
     {:reply, reply, counter}
   end
 
@@ -328,19 +365,6 @@ defmodule IEx.Pry do
       :ok
     else
       _ -> {:error, :no_beam_file}
-    end
-  end
-
-  defp instrument_and_reply(module, fa, breaks, counter) do
-    case fetch_elixir_debug_info_with_fa_check(module, fa) do
-      {:ok, beam, backend, elixir} ->
-        counter = counter + 1
-        true = :ets.insert_new(@table, {counter, module, fa, breaks})
-        entries = :ets.match_object(@table, {:_, module, :_, :_})
-        {:reply, instrument(beam, backend, elixir, counter, entries), counter}
-
-      {:error, _} = error ->
-        {:reply, error, counter}
     end
   end
 
@@ -393,7 +417,7 @@ defmodule IEx.Pry do
 
   defp instrument_definition({fa, kind, meta, clauses} = definition, map, entries) do
     case List.keyfind(entries, fa, 2) do
-      {ref, _, ^fa, _} ->
+      {ref, _, ^fa, condition, _} ->
         %{module: module, file: file} = map
 
         file =
@@ -403,7 +427,7 @@ defmodule IEx.Pry do
           end
 
         opts = [module: module, file: file, function: fa]
-        clauses = Enum.map(clauses, &instrument_clause(&1, ref, opts))
+        clauses = Enum.map(clauses, &instrument_clause(&1, ref, condition, opts))
         {fa, kind, meta, clauses}
 
       nil ->
@@ -411,7 +435,7 @@ defmodule IEx.Pry do
     end
   end
 
-  defp instrument_clause({meta, args, guards, clause}, ref, opts) do
+  defp instrument_clause({meta, args, guards, clause}, ref, case_pattern, opts) do
     opts = [line: Keyword.get(meta, :line, 1)] ++ opts
 
     # We store variables on a map ignoring the context.
@@ -426,19 +450,34 @@ defmodule IEx.Pry do
           {expr, acc}
       end)
 
-    update_op = Macro.escape({4, -1, -1, -1})
+    # Have an extra binding per argument for case matching.
+    case_vars = Macro.generate_arguments(length(args), __MODULE__)
+    case_head = {:{}, [], case_vars}
+
+    update_op = Macro.escape({5, -1, -1, -1})
 
     # Generate the take_over condition with the ets lookup.
     # Remember this is expanded AST, so no aliases allowed,
     # no locals (such as the unary -) and so on.
     condition =
       quote do
-        # :ets.update_counter(table, key, {pos, inc, threshold, reset})
-        case :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)) do
-          unquote(-1) -> :ok
-          _ -> :"Elixir.IEx.Pry".pry(unquote(Map.to_list(binding)), unquote(opts))
+        case unquote(case_head) do
+          unquote(case_pattern) ->
+            # :ets.update_counter(table, key, {pos, inc, threshold, reset})
+            case :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)) do
+              unquote(-1) -> :ok
+              _ -> :"Elixir.IEx.Pry".pry(unquote(Map.to_list(binding)), unquote(opts))
+            end
+
+          _ ->
+            :ok
         end
       end
+
+    args =
+      case_vars
+      |> Enum.zip(args)
+      |> Enum.map(fn {var, arg} -> {:=, [], [arg, var]} end)
 
     {meta, args, guards, {:__block__, [], [condition, clause]}}
   end
