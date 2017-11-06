@@ -962,6 +962,107 @@ defmodule Kernel.WarningTest do
     assert output =~ ~s("catch" should always come after "rescue" in try)
   end
 
+  test "unused variable in defguard" do
+    capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defguard foo(bar, baz) when bar
+      end
+      """
+    end) =~ "variable \"baz\" is unused"
+  after
+    purge Sample
+  end
+
+  test "unused import in defguard" do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        import Record
+        defguard is_record(baz) when baz
+      end
+      """
+    end) =~ "unused import Record\n"
+  after
+    purge Sample
+  end
+
+  test "unused private guard" do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        defguardp foo(bar, baz) when bar + baz
+      end
+      """
+    end) =~ "macro foo/2 is unused\n"
+  after
+    purge Sample
+  end
+
+  test "defguard overriding defmacro" do
+    capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defmacro foo(bar), do: bar == :bar
+        defguard foo(baz) when baz == :baz
+      end
+      """
+    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+  after
+    purge Sample
+  end
+
+  test "defmacro overriding defguard" do
+    capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defguard foo(baz) when baz == :baz
+        defmacro foo(bar), do: bar == :bar
+      end
+      """
+    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+  after
+    purge Sample
+  end
+
+  test "defguardp overriding defmacrop" do
+    capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defmacrop foo(bar), do: bar == :bar
+        defguardp foo(baz) when baz == :baz
+      end
+      """
+    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+  after
+    purge Sample
+  end
+
+  test "defmacrop overriding defguardp" do
+    capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+      defguardp foo(baz) when baz == :baz
+        defmacrop foo(bar), do: bar == :bar
+      end
+      """
+    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+  after
+    purge Sample
+  end
+
+  test "defguard needs an implementation" do
+    capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defguard foo(bar)
+      end
+      """
+    end) =~ "implementation not provided for predefined defguard"
+  after
+    purge Sample
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end
