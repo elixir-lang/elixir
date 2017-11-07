@@ -515,6 +515,15 @@ defmodule Code.Formatter.OperatorsTest do
       """
 
       assert_format bad, good, @medium_length
+
+      assert_same """
+      var ::
+        {
+          :one,
+          :two
+        }
+        | :three
+      """
     end
   end
 

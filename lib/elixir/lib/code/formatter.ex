@@ -769,7 +769,7 @@ defmodule Code.Formatter do
         # the correct side, we respect the nesting rule to avoid multiple
         # nestings. This only applies for left associativity or same operator.
         parent_prec == prec and parent_assoc == side and (side == :left or op == parent_op) ->
-          binary_op_to_algebra(op, op_string, meta, left, right, context, state, op_info, nesting)
+          binary_op_to_algebra(op, op_string, meta, left, right, context, state, parent_info, nesting)
 
         # If the parent requires parens or the precedence is inverted or
         # it is in the wrong side, then we *need* parenthesis.
@@ -778,13 +778,13 @@ defmodule Code.Formatter do
              parent_op in @required_parens_logical_binary_operands) or parent_prec > prec or
             (parent_prec == prec and parent_assoc != side) ->
           {operand, state} =
-            binary_op_to_algebra(op, op_string, meta, left, right, context, state, op_info, 2)
+            binary_op_to_algebra(op, op_string, meta, left, right, context, state, parent_info, 2)
 
           {wrap_in_parens(operand), state}
 
         # Otherwise, we rely on precedence but also nest.
         true ->
-          binary_op_to_algebra(op, op_string, meta, left, right, context, state, op_info, 2)
+          binary_op_to_algebra(op, op_string, meta, left, right, context, state, parent_info, 2)
       end
     else
       {:&, _, [arg]} when not is_integer(arg) and side == :left ->
