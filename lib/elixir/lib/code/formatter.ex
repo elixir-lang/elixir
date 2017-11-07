@@ -694,9 +694,16 @@ defmodule Code.Formatter do
 
         op in @left_new_line_before_binary_operators ->
           op_string = op_string <> " "
-          doc = glue(left, concat(op_string, nest_by_length(right, op_string)))
-          doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
-          if op_info == parent_info, do: doc, else: group(doc)
+
+          # If the parent is of the same type (computed via same precedence),
+          # we cannot group the left side yet.
+          left = if op_info == parent_info, do: left, else: group(left)
+
+          # The right side is never the same operator, so we can group and nest
+          right = group(nest_by_length(right, op_string))
+
+          doc = glue(left, concat(op_string, right))
+          if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
 
         op in @right_new_line_before_binary_operators ->
           op_string = op_string <> " "
@@ -707,23 +714,19 @@ defmodule Code.Formatter do
             if op_info == parent_info do
               nest_by_length(left, op_string)
             else
-              left
+              group(left)
             end
 
-          # If the right side is of the same type, we do the nesting above
-          # on the left side later on.
+          # If the right side is of the same type, we will keep recursing
+          # and do the nesting on the left side later on (as written above).
           right =
             case right_arg do
               {^op, _, [_, _]} -> right
-              _ -> nest_by_length(right, op_string)
+              _ -> right |> nest_by_length(op_string) |> force_keyword(right_arg) |> group()
             end
 
-          # Finally, group keyword args such as when foo: bar, baz: bat
-          right = if keyword?(right_arg), do: group(force_keyword(right, right_arg)), else: right
-
           doc = glue(left, concat(op_string, right))
-          doc = if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
-          if op_info == parent_info, do: doc, else: group(doc)
+          if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
 
         true ->
           next_break_fits? =

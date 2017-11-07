@@ -379,7 +379,8 @@ defmodule Kernel.Typespec do
   def spec_to_signature(other), do: type_to_signature(other)
 
   @doc false
-  def type_to_signature({:::, _, [{name, _, context}, _]}) when is_atom(name) and is_atom(context),
+  def type_to_signature({:::, _, [{name, _, context}, _]})
+      when is_atom(name) and is_atom(context),
       do: {name, 0}
 
   def type_to_signature({:::, _, [{name, _, args}, _]}) when is_atom(name),

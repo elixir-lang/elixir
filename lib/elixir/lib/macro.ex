@@ -404,7 +404,8 @@ defmodule Macro do
 
   defp find_invalid({left, right}), do: find_invalid(left) || find_invalid(right)
 
-  defp find_invalid({left, meta, right}) when is_list(meta) and (is_atom(right) or is_list(right)),
+  defp find_invalid({left, meta, right})
+       when is_list(meta) and (is_atom(right) or is_list(right)),
        do: find_invalid(left) || find_invalid(right)
 
   defp find_invalid(list) when is_list(list), do: Enum.find_value(list, &find_invalid/1)
