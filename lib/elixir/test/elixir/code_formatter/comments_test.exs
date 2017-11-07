@@ -250,6 +250,141 @@ defmodule Code.Formatter.CommentsTest do
     end
   end
 
+  describe "calls" do
+    test "local with parens inside before and after" do
+      assert_same ~S"""
+      call(
+        # before
+        hello,
+        # middle
+        world
+        # after
+      )
+      """
+
+      assert_same ~S"""
+      call(
+        # command
+      )
+      """
+    end
+
+    test "remote with parens inside before and after" do
+      assert_same ~S"""
+      Remote.call(
+        # before
+        hello,
+        # middle
+        world
+        # after
+      )
+      """
+
+      assert_same ~S"""
+      Remote.call(
+        # command
+      )
+      """
+    end
+
+    test "local with parens and keywords inside before and after" do
+      assert_same ~S"""
+      call(
+        # before
+        hello,
+        # middle
+        world,
+        # key before
+        key: hello,
+        # key middle
+        key: world
+        # key after
+      )
+      """
+    end
+
+    test "remote with parens and keywords inside before and after" do
+      assert_same ~S"""
+      call(
+        # before
+        hello,
+        # middle
+        world,
+        # key before
+        key: hello,
+        # key middle
+        key: world
+        # key after
+      )
+      """
+    end
+
+    test "local with no parens inside before and after" do
+      bad = ~S"""
+             # before
+      assert hello,
+             # middle
+             world
+             # after
+      """
+
+      assert_format bad, ~S"""
+      # before
+      assert hello,
+             # middle
+             world
+
+      # after
+      """
+    end
+
+    test "local with no parens and keywords inside before and after" do
+      bad = ~S"""
+      config hello, world,
+        # key before
+        key: hello,
+        # key middle
+        key: world
+        # key after
+      """
+
+      assert_format bad, ~S"""
+      config hello, world,
+        # key before
+        key: hello,
+        # key middle
+        key: world
+
+      # key after
+      """
+
+      bad = ~S"""
+             # before
+      config hello,
+             # middle
+             world,
+             # key before
+             key: hello,
+             # key middle
+             key: world
+             # key after
+      """
+
+      assert_format bad, ~S"""
+      # before
+      config hello,
+             # middle
+             world,
+             # key before
+             key: hello,
+             # key middle
+             key: world
+
+      # key after
+      """
+    end
+  end
+
   describe "anonymous functions" do
     test "with one clause and no args" do
       assert_same ~S"""
