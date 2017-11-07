@@ -1100,11 +1100,11 @@ defmodule Code.Formatter do
     {right_doc, state} =
       args_to_algebra_with_comments(right, meta, false, false, state, to_algebra_fun)
 
-    right_doc = break(" ") |> concat(right_doc) |> force_keyword(right) |> group(:inherit)
+    right_doc = "," |> glue(right_doc) |> force_keyword(right) |> group(:inherit)
 
     doc =
       with_next_break_fits(true, right_doc, fn right_doc ->
-        args_doc = concat(concat(left_doc, ","), right_doc)
+        args_doc = concat(left_doc, right_doc)
 
         " "
         |> concat(nest(args_doc, :cursor, :break))

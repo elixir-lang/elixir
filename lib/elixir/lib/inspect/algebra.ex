@@ -869,57 +869,61 @@ defmodule Inspect.Algebra do
 
   # Type representing the document mode to be rendered
   #
-  #   * break - represents a fitted document with breaks as breaks
-  #   * flat - represents a fitted document with breaks as flats
-  #   * next_fits - represents a document being fitted that will cancel (fit) the next break
-  #   * no_fitting - represents a document being fitted that will not accept next break fits
+  #   * flat - represents a document with breaks as flats
+  #   * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
+  #   * break - represents a document with breaks as breaks
   #
-  @typep mode :: :break | :flat | :next_fits | :no_fitting
+  @typep mode :: :flat | :flat_no_break | :break
 
-  @spec fits?(integer, integer, [{integer, mode, t}]) :: boolean
-  defp fits?(w, k, _) when k > w, do: false
-  defp fits?(_, _, []), do: true
+  @spec fits?(width :: integer(), column :: integer(), break? :: boolean(), entries) :: boolean()
+        when entries: [{integer(), mode(), t()}] | {:tail, boolean(), entries}
 
-  # No fitting
+  # We need at least a break to consider the document does not fit since a
+  # large document without breaks has no option but fitting its current line.
+  #
+  # In case we have groups and the group fits, we need to consider the group
+  # parent without the child breaks, hence {:tail, b?, t} below.
+  defp fits?(w, k, b?, _) when k > w and b?, do: false
+  defp fits?(_, _, _, []), do: true
+  defp fits?(w, k, _, {:tail, b?, t}), do: fits?(w, k, b?, t)
 
-  defp fits?(w, k, [{i, _, doc_fits(x, :disabled)} | t]),
-    do: fits?(w, k, [{i, :no_fitting, x} | t])
+  # Flat no break
 
-  defp fits?(w, k, [{i, :no_fitting, doc_group(x, _)} | t]),
-    do: fits?(w, k, [{i, :no_fitting, x} | t])
+  defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
-  defp fits?(w, k, [{i, :no_fitting, doc_fits(x, _)} | t]),
-    do: fits?(w, k, [{i, :no_fitting, x} | t])
+  defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
-  ## Next fits
+  ## Breaks
 
-  defp fits?(w, k, [{i, _, doc_fits(x, :enabled)} | t]), do: fits?(w, k, [{i, :next_fits, x} | t])
-  defp fits?(w, k, [{i, :next_fits, doc_force(x)} | t]), do: fits?(w, k, [{i, :next_fits, x} | t])
+  defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
+    do: fits?(w, k, b?, [{i, :break, x} | t])
 
-  defp fits?(w, k, [{i, :next_fits, doc_group(x, _)} | t]),
-    do: fits?(w, k, [{i, :next_fits, x} | t])
+  defp fits?(w, k, b?, [{i, :break, doc_force(x)} | t]), do: fits?(w, k, b?, [{i, :break, x} | t])
+  defp fits?(_, _, _, [{_, :break, doc_break(_, _)} | _]), do: true
+  defp fits?(_, _, _, [{_, :break, :doc_line} | _]), do: true
 
-  defp fits?(_, _, [{_, :next_fits, doc_break(_, _)} | _]), do: true
-  defp fits?(_, _, [{_, :next_fits, :doc_line} | _]), do: true
+  ## Flat
 
-  ## Fitting rules
+  defp fits?(w, _, _, [{i, _, :doc_line} | t]), do: fits?(w, i, false, t)
+  defp fits?(w, k, b?, [{_, _, :doc_nil} | t]), do: fits?(w, k, b?, t)
+  defp fits?(w, _, b?, [{i, _, doc_collapse(_)} | t]), do: fits?(w, i, b?, t)
+  defp fits?(w, k, b?, [{i, m, doc_color(x, _)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
+  defp fits?(w, k, b?, [{_, _, doc_string(_, l)} | t]), do: fits?(w, k + l, b?, t)
+  defp fits?(w, k, b?, [{_, _, s} | t]) when is_binary(s), do: fits?(w, k + byte_size(s), b?, t)
+  defp fits?(_, _, _, [{_, _, doc_force(_)} | _]), do: false
+  defp fits?(w, k, _, [{_, _, doc_break(s, _)} | t]), do: fits?(w, k + byte_size(s), true, t)
+  defp fits?(w, k, b?, [{i, m, doc_nest(x, _, :break)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
 
-  defp fits?(w, k, [{_, _, :doc_nil} | t]), do: fits?(w, k, t)
-  defp fits?(w, _, [{i, _, :doc_line} | t]), do: fits?(w, i, t)
-  defp fits?(w, _, [{i, _, doc_collapse(_)} | t]), do: fits?(w, i, t)
-  defp fits?(w, k, [{i, m, doc_cons(x, y)} | t]), do: fits?(w, k, [{i, m, x} | [{i, m, y} | t]])
-  defp fits?(w, k, [{i, m, doc_color(x, _)} | t]), do: fits?(w, k, [{i, m, x} | t])
-  defp fits?(w, k, [{i, m, doc_nest(x, _, :break)} | t]), do: fits?(w, k, [{i, m, x} | t])
+  defp fits?(w, k, b?, [{i, m, doc_nest(x, j, _)} | t]),
+    do: fits?(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
 
-  defp fits?(w, k, [{i, m, doc_nest(x, j, _)} | t]),
-    do: fits?(w, k, [{apply_nesting(i, k, j), m, x} | t])
+  defp fits?(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
+    do: fits?(w, k, b?, [{i, m, x} | [{i, m, y} | t]])
 
-  defp fits?(w, k, [{i, _, doc_group(x, _)} | t]), do: fits?(w, k, [{i, :flat, x} | t])
-  defp fits?(w, k, [{_, _, doc_string(_, l)} | t]), do: fits?(w, k + l, t)
-  defp fits?(w, k, [{_, _, s} | t]) when is_binary(s), do: fits?(w, k + byte_size(s), t)
-  defp fits?(_, _, [{_, _, doc_force(_)} | _]), do: false
-  defp fits?(_, _, [{_, :break, doc_break(_, _)} | _]), do: true
-  defp fits?(w, k, [{_, _, doc_break(s, _)} | t]), do: fits?(w, k + byte_size(s), t)
+  defp fits?(w, k, b?, [{i, m, doc_group(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, m, x} | {:tail, b?, t}])
 
   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
   defp format(_, _, []), do: []
@@ -934,10 +938,10 @@ defmodule Inspect.Algebra do
   defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
   # Flex breaks are not conditional to the mode
-  defp format(w, k, [{i, _, doc_break(s, :flex)} | t]) do
+  defp format(w, k, [{i, m, doc_break(s, :flex)} | t]) do
     k = k + byte_size(s)
 
-    if w == :infinity or fits?(w, k, t) do
+    if w == :infinity or m == :flat or fits?(w, k, true, t) do
       [s | format(w, k, t)]
     else
       [indent(i) | format(w, i, t)]
@@ -968,7 +972,7 @@ defmodule Inspect.Algebra do
   end
 
   defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
-    if w == :infinity or fits?(w, k, [{i, :flat, x}]) do
+    if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
       format(w, k, [{i, :flat, x} | t])
     else
       format(w, k, [{i, :break, x} | t])
