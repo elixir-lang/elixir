@@ -200,11 +200,11 @@ defmodule CodeTest do
       """
 
       args = [
-        {:one, [line: 1], []},
-        {:two, [newlines: 0, line: 1], []},
-        {:three, [newlines: 1, line: 2], []},
-        {:four, [newlines: 2, line: 4], []},
-        {:five, [newlines: 3, line: 7], []}
+        {:one, [end_line: 1, line: 1], []},
+        {:two, [newlines: 0, end_line: 1, line: 1], []},
+        {:three, [newlines: 1, end_line: 2, line: 2], []},
+        {:four, [newlines: 2, end_line: 4, line: 4], []},
+        {:five, [newlines: 3, end_line: 7, line: 7], []}
       ]
 
       assert Code.string_to_quoted!(file, formatter_metadata: true) == {:__block__, [], args}
