@@ -631,8 +631,8 @@ defmodule DateTime do
   """
   @spec compare(Calendar.datetime(), Calendar.datetime()) :: :lt | :eq | :gt
   def compare(
-        %DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
-        %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2
+        %{calendar: _, utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
+        %{calendar: _, utc_offset: utc_offset2, std_offset: std_offset2} = datetime2
       ) do
     {days1, {parts1, ppd1}} =
       datetime1
