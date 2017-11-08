@@ -79,6 +79,12 @@ defmodule Mix.UtilsTest do
   end
 
   test "proxy_config reads from env and returns credentials" do
+    # Clear them
+    System.delete_env("http_proxy")
+    System.delete_env("https_proxy")
+    System.delete_env("HTTP_PROXY")
+    System.delete_env("HTTPS_PROXY")
+
     assert Mix.Utils.proxy_config("http://example.com") == []
 
     System.put_env("http_proxy", "http://nopass@example.com")
