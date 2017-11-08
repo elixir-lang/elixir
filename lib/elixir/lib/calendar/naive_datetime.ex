@@ -624,9 +624,9 @@ defmodule NaiveDateTime do
       ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive datetime, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.datetime(), Calendar.microsecond()) :: t | no_return
-  def from_erl!(tuple, microsecond \\ {0, 0}) do
-    case from_erl(tuple, microsecond) do
+  @spec from_erl!(:calendar.datetime(), Calendar.microsecond(), Calendar.calendar()) :: t | no_return
+  def from_erl!(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
+    case from_erl(tuple, microsecond, calendar) do
       {:ok, value} ->
         value
 
