@@ -213,7 +213,7 @@ defmodule Time do
       {:error, :invalid_time}
 
   """
-  @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
+  @spec from_iso8601(String.t(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
   def from_iso8601(<<?T, h, rest::binary>>, calendar) when h in ?0..?9 do
