@@ -364,9 +364,9 @@ defmodule Date do
       ** (ArgumentError) cannot convert {2000, 13, 1} to date, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.date()) :: t
-  def from_erl!(tuple) do
-    case from_erl(tuple) do
+  @spec from_erl!(:calendar.date(), Calendar.calendar()) :: t
+  def from_erl!(tuple, calendar \\ Calendar.ISO) do
+    case from_erl(tuple, calendar) do
       {:ok, value} ->
         value
 
