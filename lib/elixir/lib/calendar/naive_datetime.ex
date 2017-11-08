@@ -289,6 +289,28 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Returns the given naive datetime with the microsecond field truncated to the
+  given precision (`:microsecond`, `millisecond` or `:second`).
+
+  ## Examples
+
+      iex> NaiveDateTime.truncate(~N[2017-11-06 00:23:51.123456], :microsecond)
+      ~N[2017-11-06 00:23:51.123456]
+
+      iex> NaiveDateTime.truncate(~N[2017-11-06 00:23:51.123456], :millisecond)
+      ~N[2017-11-06 00:23:51.123]
+
+      iex> NaiveDateTime.truncate(~N[2017-11-06 00:23:51.123456], :second)
+      ~N[2017-11-06 00:23:51]
+
+  """
+  @spec truncate(Calendar.naive_datetime(), :microsecond | :millisecond | :second) ::
+          Calendar.naive_datetime()
+  def truncate(%{microsecond: microsecond} = ndatetime, precision) do
+    %{ndatetime | microsecond: Calendar.truncate(microsecond, precision)}
+  end
+
+  @doc """
   Converts a `NaiveDateTime` into a `Date`.
 
   Because `Date` does not hold time information,

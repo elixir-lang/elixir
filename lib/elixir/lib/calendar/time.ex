@@ -586,6 +586,27 @@ defmodule Time do
       Calendar.ISO.iso_days_to_unit({0, fraction2}, unit)
   end
 
+  @doc """
+  Returns the given time with the microsecond field truncated to the given
+  precision (`:microsecond`, `millisecond` or `:second`).
+
+  ## Examples
+
+      iex> Time.truncate(~T[01:01:01.123456], :microsecond)
+      ~T[01:01:01.123456]
+
+      iex> Time.truncate(~T[01:01:01.123456], :millisecond)
+      ~T[01:01:01.123]
+
+      iex> Time.truncate(~T[01:01:01.123456], :second)
+      ~T[01:01:01]
+
+  """
+  @spec truncate(Calendar.time(), :microsecond | :millisecond | :second) :: Calendar.time()
+  def truncate(%{microsecond: microsecond} = time, precision) do
+    %{time | microsecond: Calendar.truncate(microsecond, precision)}
+  end
+
   ## Helpers
 
   defp to_day_fraction(%{
