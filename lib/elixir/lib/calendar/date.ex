@@ -196,7 +196,8 @@ defmodule Date do
       {:error, :invalid_date}
 
   """
-  @spec new(Calendar.year(), Calendar.month(), Calendar.day()) :: {:ok, t} | {:error, atom}
+  @spec new(Calendar.year(), Calendar.month(), Calendar.day(), Calendar.calendar()) ::
+          {:ok, t} | {:error, atom}
   def new(year, month, day, calendar \\ Calendar.ISO) do
     if calendar.valid_date?(year, month, day) do
       {:ok, %Date{year: year, month: month, day: day, calendar: calendar}}
@@ -239,7 +240,7 @@ defmodule Date do
       {:error, :invalid_date}
 
   """
-  @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
+  @spec from_iso8601(String.t(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
   def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>, calendar) do
@@ -269,7 +270,7 @@ defmodule Date do
       iex> Date.from_iso8601!("2015:01:23")
       ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
   """
-  @spec from_iso8601!(String.t()) :: t
+  @spec from_iso8601!(String.t(), Calendar.calendar()) :: t
   def from_iso8601!(string, calendar \\ Calendar.ISO) do
     case from_iso8601(string, calendar) do
       {:ok, value} ->
@@ -346,7 +347,7 @@ defmodule Date do
       {:error, :invalid_date}
 
   """
-  @spec from_erl(:calendar.date()) :: {:ok, t} | {:error, atom}
+  @spec from_erl(:calendar.date(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
   def from_erl(tuple, calendar \\ Calendar.ISO)
 
   def from_erl({year, month, day}, calendar) do
