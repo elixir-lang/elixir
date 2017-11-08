@@ -435,7 +435,6 @@ defmodule IEx.Autocomplete do
     end
   end
 
-
   defp default_arg_functions_with_doc_false(docs) do
     for {{fun_name, arity}, _, _, args, false} <- docs,
         count = count_defaults(args),
