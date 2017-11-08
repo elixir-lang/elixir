@@ -8,9 +8,14 @@ defmodule IEx.Autocomplete do
   end
 
   def expand([h | t] = expr, server) do
+    custom = Enum.take(t, -2)
+
     cond do
-      Enum.take(t, -2) == ' t' ->
-        expand_type(expr, server)
+      custom == ' t' ->
+        expand_custom(expr, server, &get_module_types/1)
+
+      custom == ' b' ->
+        expand_custom(expr, server, &get_module_callbacks/1)
 
       h === ?. and t != [] ->
         expand_dot(reduce(t), server)
@@ -85,7 +90,7 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp expand_type([?. | expr], server) do
+  defp expand_custom([?. | expr], server, fun) do
     case Code.string_to_quoted(reduce(expr)) do
       {:ok, atom} when is_atom(atom) ->
         no()
@@ -93,7 +98,7 @@ defmodule IEx.Autocomplete do
       {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
         case expand_alias(list, server) do
           {:ok, alias} ->
-            expand_elixir_module_types(alias, "", server)
+            expand_elixir_module_custom(alias, "", fun)
 
           :error ->
             no()
@@ -104,7 +109,7 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp expand_type(expr, server) do
+  defp expand_custom(expr, server, fun) do
     case Code.string_to_quoted(reduce(expr)) do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules(Atom.to_string(atom))
@@ -120,7 +125,7 @@ defmodule IEx.Autocomplete do
       {:ok, {{:., _, [{:__aliases__, _, list}, type]}, _, []}} when is_atom(type) ->
         case expand_alias(list, server) do
           {:ok, alias} ->
-            expand_elixir_module_types(alias, Atom.to_string(type), server)
+            expand_elixir_module_custom(alias, Atom.to_string(type), fun)
 
           :error ->
             no()
@@ -314,13 +319,13 @@ defmodule IEx.Autocomplete do
 
   ## Elixir Types
 
-  defp expand_elixir_module_types(mod, "", server) do
-    types = match_module_funs(get_module_types(mod), "")
+  defp expand_elixir_module_custom(mod, "", fun) do
+    types = match_module_funs(fun.(mod), "")
     format_expansion(types, "")
   end
 
-  defp expand_elixir_module_types(mod, hint, server) do
-    types = match_module_funs(get_module_types(mod), hint)
+  defp expand_elixir_module_custom(mod, hint, fun) do
+    types = match_module_funs(fun.(mod), hint)
     format_expansion(types, hint)
   end
 
@@ -416,6 +421,20 @@ defmodule IEx.Autocomplete do
         exports(mod)
     end
   end
+
+  defp get_module_callbacks(mod) do
+    cond do
+      not ensure_loaded?(mod) ->
+        []
+
+      docs = Code.get_docs(mod, :callback_docs) ->
+        Enum.map(docs, &elem(&1, 0))
+
+      true ->
+        exports(mod)
+    end
+  end
+
 
   defp default_arg_functions_with_doc_false(docs) do
     for {{fun_name, arity}, _, _, args, false} <- docs,
