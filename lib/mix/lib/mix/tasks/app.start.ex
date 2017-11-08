@@ -121,10 +121,11 @@ defmodule Mix.Tasks.App.Start do
 
       {:error, reason} when type == :permanent ->
         # We need to stop immediately because application_controller is
-        # shutting down bringing the system down with it. Any work here
-        # is prone to race conditions.
+        # shutting down all applications. Since any work we do here is prone
+        # to race conditions as whatever process we call may no longer exist,
+        # we print a quick message and then block by calling `System.stop/1`.
         Mix.shell().error(["** (Mix) ", could_not_start(app, reason)])
-        :init.stop(1)
+        System.stop(1)
 
       {:error, reason} ->
         Mix.raise(could_not_start(app, reason))
