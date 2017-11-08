@@ -249,10 +249,10 @@ defmodule Mix.RebarTest do
       end
     end
 
-    test "applies variables from :system_env option when compiling dependencies for rebar" do
+    test "applies variables from :system_env option when compiling dependencies for Rebar" do
       Mix.Project.push(RebarAsDepWithEnv)
 
-      in_tmp "get and compile dependencies for Rebar", fn ->
+      in_tmp "applies variables from :system_env for Rebar", fn ->
         expected_file = Path.join(tmp_path("rebar_dep"), "rebar-test-rebar")
         File.rm(expected_file)
 
@@ -297,7 +297,7 @@ defmodule Mix.RebarTest do
     test "applies variables from :system_env option when compiling dependencies for rebar3" do
       Mix.Project.push(Rebar3AsDep)
 
-      in_tmp "get and compile dependencies for Rebar", fn ->
+      in_tmp "applies variables from :system_env for rebar3", fn ->
         expected_file = Path.join(tmp_path("rebar_dep"), "rebar-test-rebar3")
         File.rm(expected_file)
 
