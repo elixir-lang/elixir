@@ -572,10 +572,7 @@ defmodule NaiveDateTime do
       {{2000, 2, 29}, {23, 00, 07}}
 
   """
-  @spec to_erl(t) :: :calendar.datetime()
-  def to_erl(naive_datetime)
-
-  @spec to_erl(Calendar.time()) :: :calendar.time()
+  @spec to_erl(Calendar.naive_datetime()) :: :calendar.datetime()
   def to_erl(%{calendar: _} = naive_datetime) do
     %{year: year, month: month, day: day, hour: hour, minute: minute, second: second} =
       convert!(naive_datetime, Calendar.ISO)
@@ -600,7 +597,8 @@ defmodule NaiveDateTime do
       {:error, :invalid_date}
 
   """
-  @spec from_erl(:calendar.datetime(), Calendar.microsecond()) :: {:ok, t} | {:error, atom}
+  @spec from_erl(:calendar.datetime(), Calendar.microsecond(), Calendar.calendar()) ::
+          {:ok, t} | {:error, atom}
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
   def from_erl({{year, month, day}, {hour, minute, second}}, microsecond, calendar) do
@@ -624,7 +622,8 @@ defmodule NaiveDateTime do
       ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive datetime, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.datetime(), Calendar.microsecond(), Calendar.calendar()) :: t | no_return
+  @spec from_erl!(:calendar.datetime(), Calendar.microsecond(), Calendar.calendar()) ::
+          t | no_return
   def from_erl!(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
     case from_erl(tuple, microsecond, calendar) do
       {:ok, value} ->
