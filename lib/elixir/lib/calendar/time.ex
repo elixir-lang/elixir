@@ -602,8 +602,8 @@ defmodule Time do
       ~T[01:01:01]
 
   """
-  @spec truncate(Calendar.time(), :microsecond | :millisecond | :second) :: Calendar.time()
-  def truncate(%{microsecond: microsecond} = time, precision) do
+  @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
+  def truncate(%Time{microsecond: microsecond} = time, precision) do
     %{time | microsecond: Calendar.truncate(microsecond, precision)}
   end
 
