@@ -59,6 +59,12 @@ defmodule IEx.AutocompleteTest do
     assert expand('Enumera') == {:yes, 'ble', []}
   end
 
+  test "Elixir type completion" do
+    assert expand('t String') == {:yes, '', ['String', 'StringIO']}
+    assert expand('t String.') == {:yes, '', ['codepoint/0', 'grapheme/0', 'pattern/0', 't/0']}
+    assert expand('t String.grap') == {:yes, 'heme', []}
+  end
+
   test "Elixir completion with self" do
     assert expand('Enumerable') == {:yes, '.', []}
   end
