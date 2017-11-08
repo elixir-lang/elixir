@@ -5,7 +5,7 @@ defmodule Mix.Tasks.App.TreeTest do
 
   defmodule AppDepsSample do
     def project do
-      [app: :test, version: "0.1.0", start_permanent: true]
+      [app: :test, version: "0.1.0"]
     end
 
     def application do
