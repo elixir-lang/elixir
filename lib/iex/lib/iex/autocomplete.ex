@@ -9,6 +9,9 @@ defmodule IEx.Autocomplete do
 
   def expand([h | t] = expr, server) do
     cond do
+      Enum.take(t, -2) == ' t' ->
+        expand_type(expr, server)
+
       h === ?. and t != [] ->
         expand_dot(reduce(t), server)
 
@@ -76,6 +79,52 @@ defmodule IEx.Autocomplete do
 
       {:ok, {{:., _, [ast_node, fun]}, _, []}} when is_atom(fun) ->
         expand_call(ast_node, Atom.to_string(fun), server)
+
+      _ ->
+        no()
+    end
+  end
+
+  defp expand_type([?. | expr], server) do
+    case Code.string_to_quoted(reduce(expr)) do
+      {:ok, atom} when is_atom(atom) ->
+        no()
+
+      {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
+        case expand_alias(list, server) do
+          {:ok, alias} ->
+            expand_elixir_module_types(alias, "", server)
+
+          :error ->
+            no()
+        end
+
+      _ ->
+        no()
+    end
+  end
+
+  defp expand_type(expr, server) do
+    case Code.string_to_quoted(reduce(expr)) do
+      {:ok, atom} when is_atom(atom) ->
+        expand_erlang_modules(Atom.to_string(atom))
+
+      {:ok, {:__aliases__, _, [root]}} ->
+        expand_elixir_modules([], Atom.to_string(root), server)
+
+      {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
+        hint = Atom.to_string(List.last(list))
+        list = Enum.take(list, length(list) - 1)
+        expand_elixir_modules(list, hint, server)
+
+      {:ok, {{:., _, [{:__aliases__, _, list}, type]}, _, []}} when is_atom(type) ->
+        case expand_alias(list, server) do
+          {:ok, alias} ->
+            expand_elixir_module_types(alias, Atom.to_string(type), server)
+
+          :error ->
+            no()
+        end
 
       _ ->
         no()
@@ -263,6 +312,18 @@ defmodule IEx.Autocomplete do
   defp valid_alias_rest?(<<>>), do: true
   defp valid_alias_rest?(rest), do: valid_alias_piece?(rest)
 
+  ## Elixir Types
+
+  defp expand_elixir_module_types(mod, "", server) do
+    types = match_module_funs(get_module_types(mod), "")
+    format_expansion(types, "")
+  end
+
+  defp expand_elixir_module_types(mod, hint, server) do
+    types = match_module_funs(get_module_types(mod), hint)
+    format_expansion(types, hint)
+  end
+
   ## Helpers
 
   defp usable_as_unquoted_module?(name) do
@@ -337,6 +398,19 @@ defmodule IEx.Autocomplete do
         exports(mod)
         |> Kernel.--(default_arg_functions_with_doc_false(docs))
         |> Enum.reject(&hidden_fun?(&1, docs))
+
+      true ->
+        exports(mod)
+    end
+  end
+
+  defp get_module_types(mod) do
+    cond do
+      not ensure_loaded?(mod) ->
+        []
+
+      docs = Code.get_docs(mod, :type_docs) ->
+        Enum.map(docs, &elem(&1, 0))
 
       true ->
         exports(mod)
