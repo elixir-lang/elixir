@@ -564,6 +564,18 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
         {clause, Generated, [Var], [], [Slow]}
       ]}, VS}
   end;
+translate_remote(erlang, 'andalso', Meta, [Left, Right], #elixir_erl{context = nil} = S) ->
+  Generated = ?ann(?generated(Meta)),
+  {[TLeft, TRight], ST} = translate_args([Left, Right], S),
+  TrueClause = {clause, Generated, [{atom, Generated, true}], [], [TRight]},
+  FalseClause = {clause, Generated, [{atom, Generated, false}], [], [{atom, Generated, false}]},
+  translate_boolean_check('and', Left, TLeft, TrueClause, FalseClause, Meta, ST);
+translate_remote(erlang, 'orelse', Meta, [Left, Right], #elixir_erl{context = nil} = S) ->
+  Generated = ?ann(?generated(Meta)),
+  {[TLeft, TRight], ST} = translate_args([Left, Right], S),
+  TrueClause = {clause, Generated, [{atom, Generated, true}], [], [{atom, Generated, true}]},
+  FalseClause = {clause, Generated, [{atom, Generated, false}], [], [TRight]},
+  translate_boolean_check('or', Left, TLeft, TrueClause, FalseClause, Meta, ST);
 translate_remote(Left, Right, Meta, Args, S) ->
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
@@ -609,3 +621,19 @@ generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key
   {lists:reverse(Acc, [{map_field_exact, Ann, Key, Match} | Rest]), S2};
 generate_struct_name_guard([Field | Rest], Acc, S) ->
   generate_struct_name_guard(Rest, [Field | Acc], S).
+
+translate_boolean_check(Op, EExpr, TExpr, TrueClause, FalseClause, Meta, S0) ->
+  Ann = ?ann(Meta),
+  {Clauses, S} =
+    case elixir_utils:returns_boolean(EExpr) of
+      true ->
+        {[TrueClause, FalseClause], S0};
+      false ->
+        {Other, _, SV} = elixir_erl_var:build('_', S0),
+        OtherVar = {var, Ann, Other},
+        ErrorTuple = {tuple, Ann, [{atom, Ann, badbool}, {atom, Ann, Op}, OtherVar]},
+        OtherExpr = elixir_erl:remote(Ann, erlang, error, [ErrorTuple]),
+        OtherClause = {clause, ?ann(?generated(Meta)), [OtherVar], [], [OtherExpr]},
+        {[TrueClause, FalseClause, OtherClause], SV}
+    end,
+  {{'case', Ann, TExpr, Clauses}, S}.
