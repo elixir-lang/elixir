@@ -192,7 +192,7 @@ defmodule Kernel.LexicalTrackerTest do
   test "does not tag aliases nor types" do
     {{{compile, _structs, runtime}, {compile_dispatches, runtime_dispatches}}, _binding} =
       Code.eval_string("""
-      defmodule Kernel.LexicalTrackerTest.Sample do
+      defmodule Kernel.LexicalTrackerTest.Typespecs do
         alias Foo.Bar, as: Bar, warn: false
         @type bar :: Foo.Bar.t
         @opaque bar2 :: Foo.Bar.t
