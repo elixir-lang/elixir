@@ -319,11 +319,6 @@ defmodule IEx.Autocomplete do
 
   ## Elixir Types
 
-  defp expand_elixir_module_custom(mod, "", fun) do
-    types = match_module_funs(fun.(mod), "")
-    format_expansion(types, "")
-  end
-
   defp expand_elixir_module_custom(mod, hint, fun) do
     types = match_module_funs(fun.(mod), hint)
     format_expansion(types, hint)
