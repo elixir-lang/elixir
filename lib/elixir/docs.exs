@@ -59,6 +59,7 @@
     "Processes & Applications": [
       Agent,
       Application,
+      DynamicSupervisor,
       GenServer,
       Node,
       Process,

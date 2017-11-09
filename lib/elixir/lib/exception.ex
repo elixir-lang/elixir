@@ -481,6 +481,14 @@ defmodule Exception do
     "invalid max_seconds (period): " <> inspect(period)
   end
 
+  defp format_sup_data({:invalid_max_children, max_children}) do
+    "invalid max_children: " <> inspect(max_children)
+  end
+
+  defp format_sup_data({:invalid_extra_arguments, extra}) do
+    "invalid extra_arguments: " <> inspect(extra)
+  end
+
   defp format_sup_data(other), do: "got: #{inspect(other)}"
 
   defp format_sup_spec({:duplicate_child_name, id}) do

@@ -11,13 +11,7 @@ defmodule ExUnit.EventManager do
   internal statistics server for ExUnit.
   """
   def start_link() do
-    spec = %{
-      id: GenServer,
-      start: {GenServer, :start_link, []},
-      restart: :temporary
-    }
-
-    {:ok, sup} = Supervisor.start_link([spec], strategy: :simple_one_for_one)
+    {:ok, sup} = DynamicSupervisor.start_link(strategy: :one_for_one)
     {:ok, event} = :gen_event.start_link()
     {:ok, {sup, event}}
   end
@@ -42,7 +36,11 @@ defmodule ExUnit.EventManager do
 
       :gen_event.add_handler(event, handler, opts)
     else
-      Supervisor.start_child(sup, [handler, opts])
+      DynamicSupervisor.start_child(sup, %{
+        id: GenServer,
+        start: {GenServer, :start_link, [handler, opts]},
+        restart: :temporary
+      })
     end
   end
 
