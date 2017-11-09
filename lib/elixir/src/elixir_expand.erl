@@ -380,18 +380,6 @@ expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) -
 
 %% Remote calls
 
-expand({{'.', Meta, [erlang, 'orelse']}, _, [Left, Right]}, #{context := nil} = Env) ->
-  Generated = ?generated(Meta),
-  TrueClause = {'->', Generated, [[true], true]},
-  FalseClause = {'->', Generated, [[false], Right]},
-  expand_boolean_check('or', Left, TrueClause, FalseClause, Meta, Env);
-
-expand({{'.', Meta, [erlang, 'andalso']}, _, [Left, Right]}, #{context := nil} = Env) ->
-  Generated = ?generated(Meta),
-  TrueClause = {'->', Generated, [[true], Right]},
-  FalseClause = {'->', Generated, [[false], false]},
-  expand_boolean_check('and', Left, TrueClause, FalseClause, Meta, Env);
-
 expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, EL} = expand(Left, E),
@@ -462,20 +450,6 @@ expand(Other, E) ->
   form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Other}).
 
 %% Helpers
-
-expand_boolean_check(Op, Expr, TrueClause, FalseClause, Meta, Env) ->
-  {EExpr, EnvExpr} = expand(Expr, Env),
-  Clauses =
-    case elixir_utils:returns_boolean(EExpr) of
-      true ->
-        [TrueClause, FalseClause];
-      false ->
-        Other = {other, Meta, ?var_context},
-        OtherExpr = {{'.', Meta, [erlang, error]}, Meta, [{'{}', [], [badbool, Op, Other]}]},
-        [TrueClause, FalseClause, {'->', ?generated(Meta), [[Other], OtherExpr]}]
-    end,
-  {EClauses, EnvCase} = elixir_clauses:'case'(Meta, [{do, Clauses}], EnvExpr),
-  {{'case', Meta, [EExpr, EClauses]}, EnvCase}.
 
 expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
   {BaseRef, EB} = expand_without_aliases_report(Base, E),
