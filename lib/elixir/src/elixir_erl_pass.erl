@@ -176,7 +176,7 @@ translate({with, Meta, [_ | _] = Args}, S) ->
 %% Variables
 
 translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
-  Tuple = {Name, var_kind(VarMeta, Kind)},
+  Tuple = {Name, var_context(VarMeta, Kind)},
   {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_erl.backup_vars),
   elixir_erl_var:warn_unsafe_var(VarMeta, File, Name, Safe),
 
@@ -185,7 +185,7 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match, file=
 
   case S#elixir_erl.extra of
     pin_guard ->
-      {TVar, TS} = elixir_erl_var:translate(VarMeta, Name, var_kind(VarMeta, Kind), S),
+      {TVar, TS} = elixir_erl_var:translate(VarMeta, Name, var_context(VarMeta, Kind), S),
       Guard = {op, PAnn, '=:=', PVar, TVar},
       {TVar, TS#elixir_erl{extra_guards=[Guard | TS#elixir_erl.extra_guards]}};
     _ ->
@@ -196,7 +196,7 @@ translate({'_', Meta, Kind}, #elixir_erl{context=match} = S) when is_atom(Kind) 
   {{var, ?ann(Meta), '_'}, S};
 
 translate({Name, Meta, Kind}, S) when is_atom(Name), is_atom(Kind) ->
-  elixir_erl_var:translate(Meta, Name, var_kind(Meta, Kind), S);
+  elixir_erl_var:translate(Meta, Name, var_context(Meta, Kind), S);
 
 %% Local calls
 
@@ -285,7 +285,7 @@ build_list([H | T], Acc) ->
 build_list([], Acc) ->
   Acc.
 
-var_kind(Meta, Kind) ->
+var_context(Meta, Kind) ->
   case lists:keyfind(counter, 1, Meta) of
     {counter, Counter} -> Counter;
     false -> Kind

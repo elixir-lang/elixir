@@ -351,6 +351,8 @@ expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_ato
       warn_underscored_var_access(Meta, Name, Kind, E),
       {Var, E};
     false ->
+      %% TODO: var true will no longer be necessary once we always raise for vars
+      %% The value comes from the var! macro in Kernel.
       case lists:keyfind(var, 1, Meta) of
         {var, true} ->
           form_error(Meta, ?key(E, file), ?MODULE, {undefined_var, Name, Kind});
