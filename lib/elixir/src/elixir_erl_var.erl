@@ -73,6 +73,8 @@ build(Key, #elixir_erl{counter=Counter} = S) ->
    Cnt,
    S#elixir_erl{counter=maps:put(Key, Cnt, Counter)}}.
 
+%% TODO: Always emit underscored names once we move
+%% variable warnings to Elixir;
 var_name_to_list(Var) ->
   case atom_to_list(Var) of
     "_" ++ _ = List -> List;
