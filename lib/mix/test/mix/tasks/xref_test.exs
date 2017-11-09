@@ -881,7 +881,8 @@ defmodule Mix.Tasks.XrefTest do
 
       File.write!("lib/b.ex", """
       defmodule B do
-        @behaviour A.Behaviour
+        # Let's also test that we track literal atom behaviours
+        @behaviour :"Elixir.A.Behaviour"
 
         def foo do
           A.foo

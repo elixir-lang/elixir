@@ -1307,7 +1307,7 @@ defmodule Module do
     :ok
   end
 
-  defp check_behaviours(env, behaviours) do
+  defp check_behaviours(%{lexical_tracker: pid} = env, behaviours) do
     Enum.reduce(behaviours, %{}, fn behaviour, acc ->
       cond do
         not is_atom(behaviour) ->
@@ -1338,6 +1338,7 @@ defmodule Module do
           acc
 
         true ->
+          :elixir_lexical.record_remote(behaviour, nil, pid)
           optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
           callbacks = behaviour_info(behaviour, :callbacks)
           Enum.reduce(callbacks, acc, &add_callback(&1, behaviour, env, optional_callbacks, &2))
