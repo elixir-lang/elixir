@@ -84,6 +84,17 @@ defmodule Task.SupervisorTest do
     assert Task.await(task) == :done
   end
 
+  test "async/1 with custom shutdown", config do
+    Process.flag(:trap_exit, true)
+    parent = self()
+
+    fun = fn -> wait_and_send(parent, :done) end
+    %{pid: pid} = Task.Supervisor.async(config[:supervisor], fun, shutdown: :brutal_kill)
+
+    Process.exit(config[:supervisor], :shutdown)
+    assert_receive {:DOWN, _, _, ^pid, :killed}
+  end
+
   test "async_nolink/1", config do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end
@@ -125,6 +136,17 @@ defmodule Task.SupervisorTest do
     send(task.pid, true)
     assert task.__struct__ == Task
     assert Task.await(task) == :done
+  end
+
+  test "async_nolink/1 with custom shutdown", config do
+    Process.flag(:trap_exit, true)
+    parent = self()
+
+    fun = fn -> wait_and_send(parent, :done) end
+    %{pid: pid} = Task.Supervisor.async_nolink(config[:supervisor], fun, shutdown: :brutal_kill)
+
+    Process.exit(config[:supervisor], :shutdown)
+    assert_receive {:DOWN, _, _, ^pid, :killed}
   end
 
   test "start_child/1", config do
@@ -171,6 +193,31 @@ defmodule Task.SupervisorTest do
     end
   end
 
+  test "start_child/1 with custom shutdown", config do
+    Process.flag(:trap_exit, true)
+    parent = self()
+
+    fun = fn -> wait_and_send(parent, :done) end
+    {:ok, pid} = Task.Supervisor.start_child(config[:supervisor], fun, shutdown: :brutal_kill)
+
+    Process.monitor(pid)
+    Process.exit(config[:supervisor], :shutdown)
+    assert_receive {:DOWN, _, _, ^pid, :killed}
+  end
+
+  test "start_child/1 with custom restart", config do
+    parent = self()
+
+    fun = fn -> wait_and_send(parent, :done) end
+    {:ok, pid} = Task.Supervisor.start_child(config[:supervisor], fun, restart: :permanent)
+
+    assert_receive :ready
+    Process.monitor(pid)
+    Process.exit(pid, :shutdown)
+    assert_receive {:DOWN, _, _, ^pid, :shutdown}
+    assert_receive :ready
+  end
+
   test "terminate_child/2", config do
     args = [self(), :done]
 
@@ -180,7 +227,7 @@ defmodule Task.SupervisorTest do
     assert Task.Supervisor.children(config[:supervisor]) == [pid]
     assert Task.Supervisor.terminate_child(config[:supervisor], pid) == :ok
     assert Task.Supervisor.children(config[:supervisor]) == []
-    assert Task.Supervisor.terminate_child(config[:supervisor], pid) == :ok
+    assert Task.Supervisor.terminate_child(config[:supervisor], pid) == {:error, :not_found}
   end
 
   describe "await/1" do
