@@ -804,7 +804,7 @@ defmodule Map do
       {1, %{}}
 
   """
-  @spec get_and_update!(map, key, (value -> {get, value})) :: {get, map} | no_return
+  @spec get_and_update!(map, key, (value -> {get, value} | :pop)) :: {get, map} | no_return
         when get: term
   def get_and_update!(map, key, fun) when is_function(fun, 1) do
     value = fetch!(map, key)
