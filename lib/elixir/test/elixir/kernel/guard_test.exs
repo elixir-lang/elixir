@@ -10,14 +10,14 @@ defmodule Kernel.GuardTest do
 
     test "successfully defines private guard" do
       defmodule PrivateSuccess do
-        defguardp foo(bar, baz) when bar + baz
+        defguardp(foo(bar, baz) when bar + baz)
         def fizz(a, b) when foo(a, b), do: :buzz
       end
     end
 
     test "guards can be used in other macros in the same module" do
       defmodule Guards.In.Macros do
-        defguard is_foo(atom) when atom == :foo
+        defguard(is_foo(atom) when atom == :foo)
 
         defmacro is_foobar(atom) when is_foo(atom) do
           quote bind_quoted: [atom: atom], do: is_foo(atom)
@@ -27,7 +27,7 @@ defmodule Kernel.GuardTest do
 
     test "guards can be used in other funs in the same module" do
       defmodule Guards.In.Funs do
-        defguard is_foo(atom) when atom == :foo
+        defguard(is_foo(atom) when atom == :foo)
 
         def is_foobar(atom) when is_foo(atom) do
           is_foo(atom)
@@ -43,14 +43,14 @@ defmodule Kernel.GuardTest do
           end
         end
 
-        defguard is_foobar(atom) when is_foo(atom) or atom == :bar
+        defguard(is_foobar(atom) when is_foo(atom) or atom == :bar)
       end
     end
 
     test "guards can be used in other guards in the same module" do
       defmodule Guards.In.Guards do
-        defguard is_foo(atom) when atom == :foo
-        defguard is_foobar(atom) when is_foo(atom) or atom == :bar
+        defguard(is_foo(atom) when atom == :foo)
+        defguard(is_foobar(atom) when is_foo(atom) or atom == :bar)
       end
     end
 
@@ -93,40 +93,42 @@ defmodule Kernel.GuardTest do
 
     test "permits default values in args" do
       defmodule Default.Args do
-        defguard is_divisible(value, remainder \\ 2)
-                 when is_integer(value) and rem(value, remainder) == 0
+        defguard(
+          is_divisible(value, remainder \\ 2)
+          when is_integer(value) and rem(value, remainder) == 0
+        )
       end
     end
 
     test "doesn't allow matching in args" do
       assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
         defmodule Integer.Args do
-          defguard foo(value, 1) when is_integer(value)
+          defguard(foo(value, 1) when is_integer(value))
         end
       end
 
       assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
         defmodule String.Args do
-          defguard foo(value, "string") when is_integer(value)
+          defguard(foo(value, "string") when is_integer(value))
         end
       end
 
       assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
         defmodule Atom.Args do
-          defguard foo(value, :atom) when is_integer(value)
+          defguard(foo(value, :atom) when is_integer(value))
         end
       end
 
       assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
         defmodule Tuple.Args do
-          defguard foo(value, {foo, bar}) when is_integer(value)
+          defguard(foo(value, {foo, bar}) when is_integer(value))
         end
       end
     end
 
     test "defguard defines guards that work inside and outside guard clauses" do
       defmodule Integer.Guards do
-        defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
+        defguard(is_even(value) when is_integer(value) and rem(value, 2) == 0)
 
         def is_even_and_large?(value) when is_even(value) and value > 100, do: true
         def is_even_and_large?(_), do: false
@@ -153,7 +155,7 @@ defmodule Kernel.GuardTest do
 
     test "defguardp defines private guards that work inside and outside guard clauses" do
       defmodule Integer.Private.Guards do
-        defguardp is_even(value) when is_integer(value) and rem(value, 2) == 0
+        defguardp(is_even(value) when is_integer(value) and rem(value, 2) == 0)
 
         def is_even_and_large?(value) when is_even(value) and value > 100, do: true
         def is_even_and_large?(_), do: false
@@ -207,42 +209,42 @@ defmodule Kernel.GuardTest do
       assert_raise CompileError, ~r"defmacro (.*?) already defined as def", fn ->
         defmodule OverridenFunUsage do
           def foo(bar), do: bar
-          defguard foo(bar) when bar
+          defguard(foo(bar) when bar)
         end
       end
 
       assert_raise CompileError, ~r"defmacro (.*?) already defined as defp", fn ->
         defmodule OverridenPrivateFunUsage do
           defp foo(bar), do: bar
-          defguard foo(bar) when bar
+          defguard(foo(bar) when bar)
         end
       end
 
       assert_raise CompileError, ~r"defmacro (.*?) already defined as defmacrop", fn ->
         defmodule OverridenPrivateFunUsage do
           defmacrop foo(bar), do: bar
-          defguard foo(bar) when bar
+          defguard(foo(bar) when bar)
         end
       end
 
       assert_raise CompileError, ~r"defmacrop (.*?) already defined as def", fn ->
         defmodule OverridenFunUsage do
           def foo(bar), do: bar
-          defguardp foo(bar) when bar
+          defguardp(foo(bar) when bar)
         end
       end
 
       assert_raise CompileError, ~r"defmacrop (.*?) already defined as defp", fn ->
         defmodule OverridenPrivateFunUsage do
           defp foo(bar), do: bar
-          defguardp foo(bar) when bar
+          defguardp(foo(bar) when bar)
         end
       end
 
       assert_raise CompileError, ~r"defmacrop (.*?) already defined as defmacro", fn ->
         defmodule OverridenPrivateFunUsage do
           defmacro foo(bar), do: bar
-          defguardp foo(bar) when bar
+          defguardp(foo(bar) when bar)
         end
       end
     end
@@ -250,7 +252,7 @@ defmodule Kernel.GuardTest do
     test "does not allow multiple guard clauses" do
       assert_raise ArgumentError, ~r"invalid syntax in defguard", fn ->
         defmodule MultiGuardUsage do
-          defguardp foo(bar, baz) when bar == 1 when baz == 2
+          defguardp(foo(bar, baz) when bar == 1 when baz == 2)
         end
       end
     end
@@ -283,7 +285,7 @@ defmodule Kernel.GuardTest do
     test "refuses to compile non-sensical code" do
       assert_raise CompileError, ~r"cannot invoke local undefined/1 inside guard", fn ->
         defmodule UndefinedUsage do
-          defguard foo(function) when undefined(function)
+          defguard(foo(function) when undefined(function))
         end
       end
     end
@@ -293,19 +295,19 @@ defmodule Kernel.GuardTest do
 
       assert_raise ArgumentError, ~r{invalid args for operator "in"}, fn ->
         defmodule RuntimeListUsage do
-          defguard foo(bar, baz) when bar in baz
+          defguard(foo(bar, baz) when bar in baz)
         end
       end
 
       assert_raise CompileError, ~r"cannot invoke remote function", fn ->
         defmodule BadErlangFunctionUsage do
-          defguard foo(bar) when :erlang.binary_to_atom("foo")
+          defguard(foo(bar) when :erlang.binary_to_atom("foo"))
         end
       end
 
       assert_raise CompileError, ~r"cannot invoke remote function", fn ->
         defmodule SendUsage do
-          defguard foo(bar) when send(self(), :baz)
+          defguard(foo(bar) when send(self(), :baz))
         end
       end
 
@@ -313,91 +315,91 @@ defmodule Kernel.GuardTest do
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule SoftNegationLogicUsage do
-          defguard foo(logic) when !logic
+          defguard(foo(logic) when !logic)
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule SoftAndLogicUsage do
-          defguard foo(soft, logic) when soft && logic
+          defguard(foo(soft, logic) when soft && logic)
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule SoftOrLogicUsage do
-          defguard foo(soft, logic) when soft || logic
+          defguard(foo(soft, logic) when soft || logic)
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule LocalCallUsage do
-          defguard foo(local, call) when local.(call)
+          defguard(foo(local, call) when local.(call))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule ComprehensionUsage do
-          defguard foo(bar) when for(x <- [1, 2, 3], do: x * bar)
+          defguard(foo(bar) when for(x <- [1, 2, 3], do: x * bar))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule AliasUsage do
-          defguard foo(bar) when alias(bar)
+          defguard(foo(bar) when alias(bar))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule ImportUsage do
-          defguard foo(bar) when import(bar)
+          defguard(foo(bar) when import(bar))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule RequireUsage do
-          defguard foo(bar) when require(bar)
+          defguard(foo(bar) when require(bar))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule SuperUsage do
-          defguard foo(bar) when super(bar)
+          defguard(foo(bar) when super(bar))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule SpawnUsage do
-          defguard foo(bar) when spawn(& &1)
+          defguard(foo(bar) when spawn(& &1))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule ReceiveUsage do
-          defguard foo(bar) when receive(do: (baz -> baz))
+          defguard(foo(bar) when receive(do: (baz -> baz)))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule CaseUsage do
-          defguard foo(bar) when case(bar, do: (baz -> :baz))
+          defguard(foo(bar) when case(bar, do: (baz -> :baz)))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule CondUsage do
-          defguard foo(bar) when cond(do: (bar -> :baz))
+          defguard(foo(bar) when cond(do: (bar -> :baz)))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule TryUsage do
-          defguard foo(bar) when try(do: (baz -> baz))
+          defguard(foo(bar) when try(do: (baz -> baz)))
         end
       end
 
       assert_raise CompileError, ~r"invalid expression in guard", fn ->
         defmodule WithUsage do
-          defguard foo(bar) when with(do: (baz -> baz))
+          defguard(foo(bar) when with(do: (baz -> baz)))
         end
       end
     end

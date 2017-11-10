@@ -8,13 +8,13 @@ defmodule IEx.Autocomplete do
   end
 
   def expand([h | t] = expr, server) do
-    custom = Enum.take(t, -2)
+    helper = get_helper(expr)
 
     cond do
-      custom == ' t' ->
+      helper === ?t ->
         expand_custom(expr, server, &get_module_types/1)
 
-      custom == ' b' ->
+      helper === ?b ->
         expand_custom(expr, server, &get_module_callbacks/1)
 
       h === ?. and t != [] ->
@@ -36,6 +36,22 @@ defmodule IEx.Autocomplete do
         no()
     end
   end
+
+  defp get_helper(expr) do
+    with [helper | rest] when helper in 'bt' <- Enum.reverse(expr),
+         [space_or_paren, char | _] <- squeeze_spaces(rest),
+         true <-
+           space_or_paren in ' (' and
+             (char in ?A..?Z or char in ?a..?z or char in ?0..?9 or char in '_:') do
+      helper
+    else
+      _ ->
+        nil
+    end
+  end
+
+  defp squeeze_spaces('  ' ++ rest), do: squeeze_spaces([?\s | rest])
+  defp squeeze_spaces(rest), do: rest
 
   @doc false
   def exports(mod) do

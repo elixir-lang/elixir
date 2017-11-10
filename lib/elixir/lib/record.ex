@@ -117,9 +117,10 @@ defmodule Record do
       true
 
   """
-  defguard is_record(data, kind)
-           when is_atom(kind) and is_tuple(data) and tuple_size(data) > 0 and
-                  elem(data, 0) == kind
+  defguard(
+    is_record(data, kind)
+    when is_atom(kind) and is_tuple(data) and tuple_size(data) > 0 and elem(data, 0) == kind
+  )
 
   @doc """
   Checks if the given `data` is a record.
@@ -136,8 +137,10 @@ defmodule Record do
       false
 
   """
-  defguard is_record(data)
-           when is_tuple(data) and tuple_size(data) > 0 and is_atom(elem(data, 0))
+  defguard(
+    is_record(data)
+    when is_tuple(data) and tuple_size(data) > 0 and is_atom(elem(data, 0))
+  )
 
   @doc """
   Defines a set of macros to create, access, and pattern match
