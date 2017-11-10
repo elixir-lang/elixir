@@ -519,6 +519,14 @@ defmodule DynamicSupervisor do
     end
   end
 
+  def handle_call({:start_task, args, restart, shutdown}, from, state) do
+    {init_restart, init_shutdown} = Process.get(Task.Supervisor)
+    restart = restart || init_restart
+    shutdown = shutdown || init_shutdown
+    child = {{Task.Supervised, :start_link, args}, restart, shutdown, :worker, [Task.Supervised]}
+    handle_call({:start_child, child}, from, state)
+  end
+
   def handle_call({:start_child, child}, _from, state) do
     %{dynamic: dynamic, max_children: max_children} = state
 

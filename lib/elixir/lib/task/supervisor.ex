@@ -43,34 +43,27 @@ defmodule Task.Supervisor do
       described under the `Name Registration` section in the `GenServer` module
       docs;
 
-    * `:restart` - the restart strategy, may be `:temporary` (the default),
-      `:transient` or `:permanent`. `:temporary` means the task is never
-      restarted, `:transient` means it is restarted if the exit is not
-      `:normal`, `:shutdown` or `{:shutdown, reason}`. A `:permanent` restart
-      strategy means it is always restarted. It defaults to `:temporary` so
-      tasks aren't automatically restarted when they complete nor in case of
-      crashes. Note the `:async` functions in this module support only `:temporary`
-      restarts;
+    * `:max_restarts`, `:max_seconds` and `:max_children` - as specified in `DynamicSupervisor`;
 
-    * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
-      or an integer indicating the timeout value, defaults to 5000 milliseconds;
-
-    * `:max_restarts` and `:max_seconds` - as specified in `Supervisor`;
-
+  This function could also receive `:restart` and `:shutdown` as options
+  but those two options have been deprecated and it is now preferred to
+  give them directly to `start_child` and `async` when supported.
   """
   @spec start_link([option]) :: Supervisor.on_start()
-  def start_link(opts \\ []) do
-    {restart, opts} = Keyword.pop(opts, :restart, :temporary)
-    {shutdown, opts} = Keyword.pop(opts, :shutdown, 5000)
+  # TODO: Deprecate passing restart and shutdown here on Elixir v1.8.
+  def start_link(options \\ []) do
+    {restart, options} = Keyword.pop(options, :restart, :temporary)
+    {shutdown, options} = Keyword.pop(options, :shutdown, 5000)
 
-    child = %{
-      id: Task.Supervised,
-      start: {Task.Supervised, :start_link, []},
-      restart: restart,
-      shutdown: shutdown
-    }
+    keys = [:max_children, :max_seconds, :max_restarts]
+    {sup_opts, start_opts} = Keyword.split(options, keys)
+    DynamicSupervisor.start_link(__MODULE__, {{restart, shutdown}, sup_opts}, start_opts)
+  end
 
-    Supervisor.start_link([child], [strategy: :simple_one_for_one] ++ opts)
+  @doc false
+  def init({{_restart, _shutdown} = arg, options}) do
+    Process.put(__MODULE__, arg)
+    DynamicSupervisor.init([strategy: :one_for_one] ++ options)
   end
 
   @doc """
@@ -80,13 +73,15 @@ defmodule Task.Supervisor do
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
 
-  Note this function requires the task supervisor to have `:temporary`
-  as the `:restart` option (the default), as `async/2` keeps a direct
-  reference to the task which is lost if the task is restarted.
+  ## Options
+
+    * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
+      or an integer indicating the timeout value, defaults to 5000 milliseconds.
+
   """
-  @spec async(Supervisor.supervisor(), (() -> any)) :: Task.t()
-  def async(supervisor, fun) do
-    async(supervisor, :erlang, :apply, [fun, []])
+  @spec async(Supervisor.supervisor(), (() -> any), Keyword.t()) :: Task.t()
+  def async(supervisor, fun, options \\ []) do
+    async(supervisor, :erlang, :apply, [fun, []], options)
   end
 
   @doc """
@@ -96,13 +91,15 @@ defmodule Task.Supervisor do
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
 
-  Note this function requires the task supervisor to have `:temporary`
-  as the `:restart` option (the default), as `async/4` keeps a direct
-  reference to the task which is lost if the task is restarted.
+  ## Options
+
+    * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
+      or an integer indicating the timeout value, defaults to 5000 milliseconds.
+
   """
-  @spec async(Supervisor.supervisor(), module, atom, [term]) :: Task.t()
-  def async(supervisor, module, fun, args) do
-    do_async(supervisor, :link, module, fun, args)
+  @spec async(Supervisor.supervisor(), module, atom, [term], Keyword.t()) :: Task.t()
+  def async(supervisor, module, fun, args, options \\ []) do
+    async(supervisor, :link, module, fun, args, options)
   end
 
   @doc """
@@ -112,9 +109,10 @@ defmodule Task.Supervisor do
   The task won't be linked to the caller, see `Task.async/3` for
   more information.
 
-  Note this function requires the task supervisor to have `:temporary`
-  as the `:restart` option (the default), as `async_nolink/2` keeps a
-  direct reference to the task which is lost if the task is restarted.
+  ## Options
+
+    * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
+      or an integer indicating the timeout value, defaults to 5000 milliseconds.
 
   ## Compatibility with OTP behaviours
 
@@ -131,9 +129,9 @@ defmodule Task.Supervisor do
   with the same `ref` value that is held by the task struct. If the task
   terminates normally, the reason in the `:DOWN` message will be `:normal`.
   """
-  @spec async_nolink(Supervisor.supervisor(), (() -> any)) :: Task.t()
-  def async_nolink(supervisor, fun) do
-    async_nolink(supervisor, :erlang, :apply, [fun, []])
+  @spec async_nolink(Supervisor.supervisor(), (() -> any), Keyword.t()) :: Task.t()
+  def async_nolink(supervisor, fun, options \\ []) do
+    async_nolink(supervisor, :erlang, :apply, [fun, []], options)
   end
 
   @doc """
@@ -147,9 +145,9 @@ defmodule Task.Supervisor do
   as the `:restart` option (the default), as `async_nolink/4` keeps a
   direct reference to the task which is lost if the task is restarted.
   """
-  @spec async_nolink(Supervisor.supervisor(), module, atom, [term]) :: Task.t()
-  def async_nolink(supervisor, module, fun, args) do
-    do_async(supervisor, :nolink, module, fun, args)
+  @spec async_nolink(Supervisor.supervisor(), module, atom, [term], Keyword.t()) :: Task.t()
+  def async_nolink(supervisor, module, fun, args, options \\ []) do
+    async(supervisor, :nolink, module, fun, args, options)
   end
 
   @doc """
@@ -178,10 +176,6 @@ defmodule Task.Supervisor do
   can also be given as an option representing the maximum amount of
   time to wait without a task reply.
 
-  Note this function requires the task supervisor to have `:temporary`
-  as the `:restart` option (the default), as `async_stream/6` keeps a
-  direct reference to the task which is lost if the task is restarted.
-
   Finally, if you find yourself trapping exits to handle exits inside
   the async stream, consider using `async_stream_nolink/6` to start tasks
   that are not linked to the current process.
@@ -202,6 +196,8 @@ defmodule Task.Supervisor do
       * `:exit` (default) - the process that spawned the tasks exits.
       * `:kill_task` - the task that timed out is killed. The value
         emitted for that task is `{:exit, :timeout}`.
+    * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
+      or an integer indicating the timeout value, defaults to 5000 milliseconds.
 
   ## Examples
 
@@ -276,9 +272,9 @@ defmodule Task.Supervisor do
   @doc """
   Terminates the child with the given `pid`.
   """
-  @spec terminate_child(Supervisor.supervisor(), pid) :: :ok
+  @spec terminate_child(Supervisor.supervisor(), pid) :: :ok | {:error, :not_found}
   def terminate_child(supervisor, pid) when is_pid(pid) do
-    Supervisor.terminate_child(supervisor, pid)
+    DynamicSupervisor.terminate_child(supervisor, pid)
   end
 
   @doc """
@@ -286,7 +282,7 @@ defmodule Task.Supervisor do
   """
   @spec children(Supervisor.supervisor()) :: [pid]
   def children(supervisor) do
-    for {_, pid, _, _} <- Supervisor.which_children(supervisor), is_pid(pid), do: pid
+    for {_, pid, _, _} <- DynamicSupervisor.which_children(supervisor), is_pid(pid), do: pid
   end
 
   @doc """
@@ -296,10 +292,25 @@ defmodule Task.Supervisor do
   only to the supervisor. This command is useful in case the
   task needs to perform side-effects (like I/O) and does not need
   to report back to the caller.
+
+  ## Options
+
+    * `:restart` - the restart strategy, may be `:temporary` (the default),
+      `:transient` or `:permanent`. `:temporary` means the task is never
+      restarted, `:transient` means it is restarted if the exit is not
+      `:normal`, `:shutdown` or `{:shutdown, reason}`. A `:permanent` restart
+      strategy means it is always restarted. It defaults to `:temporary`.
+
+    * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
+      or an integer indicating the timeout value, defaults to 5000 milliseconds.
+
   """
   @spec start_child(Supervisor.supervisor(), (() -> any)) :: {:ok, pid}
-  def start_child(supervisor, fun) do
-    start_child(supervisor, :erlang, :apply, [fun, []])
+  def start_child(supervisor, fun, options \\ []) do
+    restart = options[:restart]
+    shutdown = options[:shutdown]
+    args = [get_info(self()), {:erlang, :apply, [fun, []]}]
+    start_child_with_spec(supervisor, args, restart, shutdown)
   end
 
   @doc """
@@ -309,8 +320,17 @@ defmodule Task.Supervisor do
   by the given `module`, `fun` and `args`.
   """
   @spec start_child(Supervisor.supervisor(), module, atom, [term]) :: {:ok, pid}
-  def start_child(supervisor, module, fun, args) when is_atom(fun) and is_list(args) do
-    Supervisor.start_child(supervisor, [get_info(self()), {module, fun, args}])
+  def start_child(supervisor, module, fun, args, options \\ [])
+      when is_atom(fun) and is_list(args) do
+    restart = options[:restart]
+    shutdown = options[:shutdown]
+    args = [get_info(self()), {module, fun, args}]
+    start_child_with_spec(supervisor, args, restart, shutdown)
+  end
+
+  defp start_child_with_spec(supervisor, args, restart, shutdown) do
+    # TODO: Remove this on Elixir v2.0 and the associated clause in DynamicSupervisor
+    GenServer.call(supervisor, {:start_task, args, restart, shutdown}, :infinity)
   end
 
   defp get_info(self) do
@@ -323,10 +343,11 @@ defmodule Task.Supervisor do
     {node(), name}
   end
 
-  defp do_async(supervisor, link_type, module, fun, args) do
+  defp async(supervisor, link_type, module, fun, args, options) do
     owner = self()
     args = [owner, :monitor, get_info(owner), {module, fun, args}]
-    {:ok, pid} = Supervisor.start_child(supervisor, args)
+    shutdown = options[:shutdown]
+    {:ok, pid} = start_child_with_spec(supervisor, args, :temporary, shutdown)
     if link_type == :link, do: Process.link(pid)
     ref = Process.monitor(pid)
     send(pid, {owner, ref})
@@ -349,10 +370,11 @@ defmodule Task.Supervisor do
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
     supervisor_fun = supervisor_fun(supervisor, fun)
+    shutdown = options[:shutdown]
 
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
       args = [owner, :monitor, get_info(owner), mfa]
-      {:ok, pid} = Supervisor.start_child(supervisor_fun.(mfa), args)
+      {:ok, pid} = start_child_with_spec(supervisor_fun.(mfa), args, :temporary, shutdown)
       if link_type == :link, do: Process.link(pid)
       {link_type, pid}
     end)
