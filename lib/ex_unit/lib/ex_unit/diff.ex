@@ -23,12 +23,6 @@ defmodule ExUnit.Diff do
     end
   end
 
-  # Patterns
-  def script(%Pattern{} = left, _right) do
-    ret = Pattern.diff(left)
-    Pattern.get_diff(ret)
-  end
-
   # Structs
   def script(%name{} = left, %name{} = right) do
     if Inspect.impl_for(left) != Inspect.Any do
