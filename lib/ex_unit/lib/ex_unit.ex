@@ -9,7 +9,7 @@ defmodule ExUnit do
       # File: assertion_test.exs
 
       # 1) Start ExUnit.
-      ExUnit.start
+      ExUnit.start()
 
       # 2) Create a new test module (test case) and use "ExUnit.Case".
       defmodule AssertionTest do
@@ -50,16 +50,16 @@ defmodule ExUnit do
   The minimum example of a `test_helper.exs` file would be:
 
       # test/test_helper.exs
-      ExUnit.start
+      ExUnit.start()
 
   Mix will load the `test_helper.exs` file before executing the tests.
   It is not necessary to `require` the `test_helper.exs` file in your test
   files. See `Mix.Tasks.Test` for more information.
   """
 
-  @typedoc "The error state returned by ExUnit.Test and ExUnit.TestModule"
+  @typedoc "The error state returned by `ExUnit.Test` and `ExUnit.TestModule`"
   @type state :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
-  @type failed :: [{Exception.kind(), reason :: term, stacktrace :: [tuple]}]
+  @type failed :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
 
   defmodule Test do
     @moduledoc """
@@ -69,7 +69,7 @@ defmodule ExUnit do
 
       * `:name` - the test name
       * `:module` - the test module
-      * `:state` - the test error state (see ExUnit.state)
+      * `:state` - the test error state (see `t:ExUnit.state/0`)
       * `:time` - the time to run the test
       * `:tags` - the test tags
       * `:logs` - the captured logs
@@ -152,7 +152,7 @@ defmodule ExUnit do
   (the same ones accepted by `configure/1`).
 
   If you want to run tests manually, you can set the `:autorun` option
-  to `false` and use `run/1` to run tests.
+  to `false` and use `run/0` to run tests.
   """
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
