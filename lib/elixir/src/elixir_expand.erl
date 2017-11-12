@@ -877,7 +877,7 @@ format_error({missing_option, Construct, Opts}) when is_list(Opts) ->
 format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error({for_invalid_uniq, Value}) ->
-  io_lib:format(":uniq option for comprehension only accept boolean, got: ~ts", ['Elixir.Macro':to_string(Value)]);
+  io_lib:format(":uniq option for comprehensions only accepts a boolean, got: ~ts", ['Elixir.Macro':to_string(Value)]);
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->

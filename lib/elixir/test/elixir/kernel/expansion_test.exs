@@ -647,7 +647,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "uniq option is boolean" do
-      message = ~r":uniq option for comprehension only accept boolean, got: x"
+      message = ~r":uniq option for comprehensions only accepts a boolean, got: x"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: for(x <- 1..2, uniq: x, do: x)))
