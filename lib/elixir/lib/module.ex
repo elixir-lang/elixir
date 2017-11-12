@@ -978,7 +978,7 @@ defmodule Module do
     impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
 
     {overridable_impls, impls} =
-      :lists.splitwith(fn {pair, _, _, _, _} -> pair in tuples end, impls)
+      :lists.splitwith(fn {pair, _, _, _, _, _} -> pair in tuples end, impls)
 
     if overridable_impls != [] do
       :ets.insert(table, {{:elixir, :impls}, impls})
@@ -992,7 +992,7 @@ defmodule Module do
             do: {callback, {kind, behaviour, true}},
             into: %{}
 
-      check_impls(behaviours, callbacks, overridable_impls, module)
+      check_impls(behaviours, callbacks, overridable_impls)
     end
   end
 
@@ -1258,11 +1258,12 @@ defmodule Module do
   def compile_impl(env, kind, name, args, _guards, _body) do
     %{module: module, line: line, file: file} = env
     table = data_table_for(module)
+    {total, defaults} = args_count(args)
 
     case :ets.take(table, :impl) do
       [{:impl, value, _, _}] ->
         impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
-        impl = {{name, length(args)}, kind, line, file, value}
+        impl = {{name, total}, kind, defaults, line, file, value}
         :ets.insert(table, {{:elixir, :impls}, [impl | impls]})
 
       [] ->
@@ -1272,6 +1273,18 @@ defmodule Module do
     :ok
   end
 
+  defp args_count(args, total \\ 0, defaults \\ 0)
+
+  defp args_count([{:\\, _, _} | tail], total, defaults) do
+    args_count(tail, total + 1, defaults + 1)
+  end
+
+  defp args_count([_head | tail], total, defaults) do
+    args_count(tail, total + 1, defaults)
+  end
+
+  defp args_count([], total, defaults), do: {total, defaults}
+
   @doc false
   def check_behaviours_and_impls(env, table, all_definitions, overridable_pairs) do
     behaviours = :ets.lookup_element(table, :behaviour, 2)
@@ -1280,7 +1293,7 @@ defmodule Module do
 
     pending_callbacks =
       if impls != [] do
-        non_implemented_callbacks = check_impls(behaviours, callbacks, impls, env.module)
+        non_implemented_callbacks = check_impls(behaviours, callbacks, impls)
         warn_missing_impls(env, non_implemented_callbacks, all_definitions, overridable_pairs)
         non_implemented_callbacks
       else
@@ -1395,12 +1408,9 @@ defmodule Module do
       module.__protocol__(:module) == module
   end
 
-  defp check_impls(behaviours, callbacks, impls, module) do
-    table = defs_table_for(module)
-    functions_with_defaults = :ets.match(table, {{:default, :"$1"}, :"$2", :"$3"})
-
-    Enum.reduce(impls, callbacks, fn {pair_with_impl, kind, line, file, value}, acc ->
-      pairs_to_check = get_impl_pairs_to_check(pair_with_impl, callbacks, functions_with_defaults)
+  defp check_impls(behaviours, callbacks, impls) do
+    Enum.reduce(impls, callbacks, fn {pair_with_impl, kind, defaults, line, file, value}, acc ->
+      pairs_to_check = get_impl_pairs_to_check(pair_with_impl, callbacks, defaults)
 
       Enum.each(pairs_to_check, fn pair_to_check ->
         if message =
@@ -1413,8 +1423,8 @@ defmodule Module do
     end)
   end
 
-  defp get_impl_pairs_to_check(pair_with_impl, callbacks, functions_with_defaults) do
-    pairs_from_defaults = unpack_pairs_from_defaults(pair_with_impl, functions_with_defaults)
+  defp get_impl_pairs_to_check(pair_with_impl, callbacks, default_arg_count) do
+    pairs_from_defaults = unpack_pairs_from_defaults(pair_with_impl, default_arg_count)
 
     case Enum.filter(pairs_from_defaults, &Map.has_key?(callbacks, &1)) do
       [] -> [pair_with_impl]
@@ -1422,14 +1432,8 @@ defmodule Module do
     end
   end
 
-  defp unpack_pairs_from_defaults({fun, arity} = pair, functions_with_defaults) do
-    case Enum.find(functions_with_defaults, &match?([^fun, ^arity, _], &1)) do
-      [_, _, default_arg_count] ->
-        for n <- arity..(arity - default_arg_count), do: {fun, n}
-
-      nil ->
-        [pair]
-    end
+  defp unpack_pairs_from_defaults({fun, arity}, default_arg_count) do
+    for n <- arity..(arity - default_arg_count), do: {fun, n}
   end
 
   defp impl_warning(pair_with_impl, _, kind, _, _, _) when kind in [:defp, :defmacrop] do
