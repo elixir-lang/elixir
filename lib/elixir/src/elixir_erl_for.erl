@@ -148,18 +148,13 @@ build_into(Ann, Clauses, Expr, Into, Uniq, Fun, Acc, S) ->
         [{tuple, Ann, [Kind, Reason, {var, Ann, '_'}]}],
         [],
         [{match, Ann, Stack, elixir_erl:remote(Ann, erlang, get_stacktrace, [])},
-         {call, Ann, Fun, [retrieve_acc(Ann, Acc, Uniq), {atom, Ann, halt}]},
+         {call, Ann, Fun, [Acc, {atom, Ann, halt}]},
          elixir_erl:remote(Ann, erlang, raise, [Kind, Reason, Stack])]}],
       []},
 
   {{block, Ann, [MatchExpr, TryExpr]}, SI}.
 
 %% Helpers
-
-retrieve_acc(_Ann, Acc, false) ->
-  Acc;
-retrieve_acc(Ann, Acc, true) ->
-  elixir_erl:remote(Ann, erlang, element, [{integer, Ann, 1}, Acc]).
 
 build_reduce(_Ann, Clauses, InnerFun, Expr, Into, false, Acc, S) ->
   InnerExpr = InnerFun(Expr, Acc),
@@ -184,7 +179,7 @@ build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, Acc, S) ->
 
   EnumReduceCall = build_reduce_each(Clauses, InnerExpr, NewInto, Acc, SU),
 
-  {retrieve_acc(Ann, EnumReduceCall, true), SU}.
+  {elixir_erl:remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]), SU}.
 
 build_reduce_each([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),

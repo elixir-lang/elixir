@@ -90,6 +90,12 @@ defmodule Kernel.ComprehensionTest do
     assert Process.get(:into_cont) == [6, 4, 2]
     assert Process.get(:into_done)
     refute Process.get(:into_halt)
+
+    assert_raise RuntimeError, "oops", fn ->
+      for x <- [1, 2, 3], uniq: true, into: %Pdict{}, do: raise("oops")
+    end
+
+    assert Process.get(:into_halt)
   end
 
   test "for comprehensions with nilly filters" do
