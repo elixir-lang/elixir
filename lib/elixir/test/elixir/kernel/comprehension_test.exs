@@ -92,7 +92,7 @@ defmodule Kernel.ComprehensionTest do
     refute Process.get(:into_halt)
 
     assert_raise RuntimeError, "oops", fn ->
-      for x <- [1, 2, 3], uniq: true, into: %Pdict{}, do: raise("oops")
+      for _ <- [1, 2, 3], uniq: true, into: %Pdict{}, do: raise("oops")
     end
 
     assert Process.get(:into_halt)
