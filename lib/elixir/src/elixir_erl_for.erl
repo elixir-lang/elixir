@@ -94,10 +94,13 @@ collect_filters([H | T], Acc) ->
 collect_filters([], Acc) ->
   {Acc, []}.
 
-build_inline(Ann, Clauses, Expr, Into, Uniq, _Var, Acc, S) ->
-  case not Uniq andalso lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
+
+build_inline(Ann, Clauses, Expr, Into, true, _Var, Acc, S) ->
+  build_inline(Ann, Clauses, Expr, Into, true, Acc, S);
+build_inline(Ann, Clauses, Expr, Into, false, _Var, Acc, S) ->
+  case lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
     true  -> {build_comprehension(Ann, Clauses, Expr, Into), S};
-    false -> build_inline(Ann, Clauses, Expr, Into, Uniq, Acc, S)
+    false -> build_inline(Ann, Clauses, Expr, Into, false, Acc, S)
   end.
 
 build_inline(Ann, Clauses, Expr, false, Uniq, Acc, S) ->
