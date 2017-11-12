@@ -19,11 +19,7 @@ translate(Meta, Args, Return, S) ->
       false -> {false, SV}
     end,
 
-  TUniq =
-    case lists:keyfind(uniq, 1, Opts) of
-      {uniq, Uniq} -> Uniq;
-      false -> false
-    end,
+  TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
   {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr(Expr, TInto), SC),
