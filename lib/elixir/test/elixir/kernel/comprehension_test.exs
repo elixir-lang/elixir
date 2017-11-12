@@ -77,6 +77,7 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- list, uniq: true, into: [], do: x * 2) == [2, 4, 6]
     assert for(x <- list, uniq: true, into: %{}, do: {x, 1}) == %{1 => 1, 2 => 1, 3 => 1}
     assert for(x <- list, uniq: true, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+    assert for(<<x <- "abcabc">>, uniq: true, into: "", do: to_bin(x)) == "abc"
 
     Process.put(:into_cont, [])
     Process.put(:into_done, false)
