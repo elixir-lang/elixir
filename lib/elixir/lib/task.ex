@@ -191,7 +191,7 @@ defmodule Task do
       def child_spec(arg) do
         default = %{
           id: __MODULE__,
-          start: {__MODULE__, :start_link, [arg]},
+          start: {__MODULE__, :start_link, arg},
           restart: :temporary
         }
 

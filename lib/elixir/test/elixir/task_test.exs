@@ -43,7 +43,7 @@ defmodule TaskTest do
     assert MyTask.child_spec([:hello]) == %{
              id: MyTask,
              restart: :temporary,
-             start: {MyTask, :start_link, [[:hello]]}
+             start: {MyTask, :start_link, [:hello]}
            }
 
     defmodule CustomTask do
