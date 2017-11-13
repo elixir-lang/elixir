@@ -262,7 +262,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         {Args, []}
     end,
 
-  validate_opts(Meta, for, [do, into], Block, E),
+  validate_opts(Meta, for, [do, into, uniq], Block, E),
   {Expr, Opts} =
     case lists:keytake(do, 1, Block) of
       {value, {do, Do}, DoOpts} ->
@@ -270,6 +270,12 @@ expand({for, Meta, [_ | _] = Args}, E) ->
       false ->
         form_error(Meta, ?key(E, file), ?MODULE, {missing_option, for, [do]})
     end,
+
+  case lists:keyfind(uniq, 1, Opts) of
+    false -> ok;
+    {uniq, Value} when is_boolean(Value) -> ok;
+    {uniq, Value} -> form_error(Meta, ?key(E, file), ?MODULE, {for_invalid_uniq, Value})
+  end,
 
   {EOpts, EO} = expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand_for/2, EO, Cases),
@@ -846,6 +852,8 @@ format_error({missing_option, Construct, Opts}) when is_list(Opts) ->
   io_lib:format("missing ~ts option in \"~ts\"", [string:join(StringOpts, "/"), Construct]);
 format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
+format_error({for_invalid_uniq, Value}) ->
+  io_lib:format(":uniq option for comprehensions only accepts a boolean, got: ~ts", ['Elixir.Macro':to_string(Value)]);
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->
