@@ -143,7 +143,7 @@ defmodule Mix do
 
   In the example above, we have defined an alias named `mix all`,
   that prints hello, then fetches dependencies specific to the
-  current environment and compiles it.
+  current environment and compiles the project.
 
   Arguments given to the alias will be appended to the arguments
   of the last task in the list, if the last task is a function
@@ -171,11 +171,11 @@ defmodule Mix do
     * `MIX_DEBUG` - outputs debug information about each task before running it
     * `MIX_ENV` - specifies which environment should be used. See [Environments](#module-environments)
     * `MIX_EXS` - changes the full path to the `mix.exs` file
-    * `MIX_HOME` - path to mix's home directory, stores configuration files and scripts used by mix
+    * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
     * `MIX_PATH` - appends extra code paths
     * `MIX_QUIET` - does not print information messages to the terminal
-    * `MIX_REBAR` - path to rebar command that overrides the one mix installs
-    * `MIX_REBAR3` - path to rebar3 command that overrides the one mix installs
+    * `MIX_REBAR` - path to rebar command that overrides the one Mix installs
+    * `MIX_REBAR3` - path to rebar3 command that overrides the one Mix installs
 
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
