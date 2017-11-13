@@ -16,7 +16,7 @@ defmodule ExUnit.PatternDiffValueTest do
 
       expected_match = %PatternDiff{
         type: :value,
-        lh: pattern,
+        lh: %{ast: pattern.val},
         rh: 1,
         diff_result: :eq
       }
@@ -42,7 +42,7 @@ defmodule ExUnit.PatternDiffValueTest do
 
       expected_match = %PatternDiff{
         type: :value,
-        lh: pattern,
+        lh: %{ast: pattern.val},
         rh: "hello",
         diff_result: :eq
       }
@@ -72,7 +72,7 @@ defmodule ExUnit.PatternDiffValueTest do
 
       expected_match = %PatternDiff{
         type: :value,
-        lh: pattern,
+        lh: %{ast: pattern.val},
         rh: :a,
         diff_result: :eq
       }
@@ -98,7 +98,7 @@ defmodule ExUnit.PatternDiffValueTest do
 
       expected_match = %PatternDiff{
         type: :value,
-        lh: pattern,
+        lh: %{ast: pattern.val},
         rh: 1.0,
         diff_result: :eq
       }
@@ -230,4 +230,95 @@ defmodule ExUnit.PatternDiffValueTest do
       assert actual.type == :different
     end
   end
+
+  test "simple unbound var" do
+    simple =
+      quote do
+       a
+      end
+    pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+    expected_match = %PatternDiff{
+      type: :value,
+      lh: %{ast: pattern.val},
+      rh: 1,
+      diff_result: :eq
+    }
+    actual = PatternDiff.cmp(pattern, 1)
+    assert actual == expected_match
+  end
+
+  test "simple bound var" do
+    simple =
+      quote do
+      {a, a}
+    end
+    pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+    expected_var_pattern = %{ast: {:a, [], ExUnit.PatternDiffValueTest}}
+    expected_match = %ContainerDiff{
+      type: :tuple,
+      items: [
+        %PatternDiff{
+          type: :value,
+          lh: expected_var_pattern,
+          rh: 1,
+          diff_result: :eq
+        },
+        %PatternDiff{
+          type: :value,
+          lh: expected_var_pattern,
+          rh: 1,
+          diff_result: :eq
+        }
+      ]
+    }
+    actual = PatternDiff.cmp(pattern, {1, 1})
+    assert actual == expected_match
+
+    expected_no_match = %ContainerDiff{
+      type: :tuple,
+      items: [
+        %PatternDiff{
+          type: :value,
+          lh: expected_var_pattern,
+          rh: 1,
+          diff_result: :eq
+        },
+        %PatternDiff{
+          type: :value,
+          lh: expected_var_pattern,
+          rh: 2,
+          diff_result: :neq
+        }
+      ]
+    }
+    actual = PatternDiff.cmp(pattern, {1, 2})
+    assert actual == expected_no_match
+  end
+
+  test "pin" do
+    simple = quote do
+      ^a
+    end
+    pattern = ExUnit.Pattern.new(simple, [a: 1], [])
+
+    expected_match = %PatternDiff{
+      type: :value,
+      lh: %{ast: pattern.val},
+      rh: 1,
+      diff_result: :eq
+    }
+    actual = PatternDiff.cmp(pattern, 1)
+    assert actual == expected_match
+
+
+    actual = PatternDiff.cmp(pattern, 2)
+    expected_match = %PatternDiff{
+      type: :value,
+      lh: %{ast: pattern.val},
+      rh: 2,
+      diff_result: :neq
+    }
+    assert actual == expected_match
+  end
+
 end

@@ -19,7 +19,7 @@ defmodule ExUnit.PatternDiffListTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 1,
             diff_result: :eq
           }
@@ -35,7 +35,7 @@ defmodule ExUnit.PatternDiffListTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 2,
             diff_result: :neq
           }
@@ -61,13 +61,13 @@ defmodule ExUnit.PatternDiffListTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 1,
             diff_result: :eq
           },
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 2, meta: nil, pins: [], vars: []},
+            lh: %{ast: 2},
             rh: 2,
             diff_result: :eq
           }
@@ -83,13 +83,13 @@ defmodule ExUnit.PatternDiffListTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 1,
             diff_result: :eq
           },
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 2, meta: nil, pins: [], vars: []},
+            lh: %{ast: 2},
             rh: 1,
             diff_result: :neq
           }
@@ -114,7 +114,7 @@ defmodule ExUnit.PatternDiffListTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: :cons_l, pins: [], vars: []},
+            lh: %{ast: 1, type: :cons_l},
             rh: 1,
             diff_result: :eq
           },
@@ -123,13 +123,13 @@ defmodule ExUnit.PatternDiffListTest do
             items: [
               %PatternDiff{
                 type: :value,
-                lh: %Pattern{val: 2, meta: nil, pins: [], vars: []},
+                lh: %{ast: 2},
                 rh: 2,
                 diff_result: :eq
               },
               %PatternDiff{
                 type: :value,
-                lh: %Pattern{val: 3, meta: nil, pins: [], vars: []},
+                lh: %{ast: 3},
                 rh: 3,
                 diff_result: :eq
               }
@@ -155,7 +155,7 @@ defmodule ExUnit.PatternDiffListTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: :cons_l, pins: [], vars: []},
+            lh: %{ast: 1, type: :cons_l},
             rh: 1,
             diff_result: :eq
           },
@@ -164,7 +164,7 @@ defmodule ExUnit.PatternDiffListTest do
             items: [
               %PatternDiff{
                 type: :value,
-                lh: %Pattern{val: 2, meta: :cons_l, pins: [], vars: []},
+                lh: %{ast: 2, type: :cons_l},
                 rh: 2,
                 diff_result: :eq
               },
@@ -173,7 +173,7 @@ defmodule ExUnit.PatternDiffListTest do
                 items: [
                   %PatternDiff{
                     type: :value,
-                    lh: %Pattern{val: 3, meta: nil, pins: [], vars: []},
+                    lh: %{ast: 3},
                     rh: 3,
                     diff_result: :eq
                   }
@@ -202,13 +202,13 @@ defmodule ExUnit.PatternDiffListTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 1,
             diff_result: :eq
           },
           %PatternDiff{
             type: :different,
-            lh: %Pattern{val: 2, meta: nil, pins: [], vars: []},
+            lh: %{ast: 2},
             rh: :ex_unit_no_meaningful_value,
             diff_result: :neq
           }
@@ -231,7 +231,7 @@ defmodule ExUnit.PatternDiffListTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 1,
             diff_result: :eq
           },

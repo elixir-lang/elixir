@@ -172,7 +172,7 @@ defmodule ExUnit.Assertions do
     quote do
       right = unquote(right)
       {:pattern, [], [left]} = unquote(left_pattern)
-      pattern = Pattern.new(left, right, unquote(pins), unquote(vars))
+      pattern = Pattern.new(left, unquote(pins), unquote(vars))
 
       assert unquote(match?),
         right: right,

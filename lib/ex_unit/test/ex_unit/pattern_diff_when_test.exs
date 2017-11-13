@@ -5,87 +5,87 @@ defmodule ExUnit.PatternDiffWhenTest do
 
   alias ExUnit.{ContainerDiff, Pattern, PatternDiff, WhenDiff}
 
-  # test "when" do
-  #   simple = quote do
-  #     a when is_integer(a)
-  #   end
+  test "when" do
+    simple = quote do
+      a when is_integer(a)
+    end
 
-  #   pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+    pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
 
-  #   expected_match = %ContainerDiff{
-  #     type: :when,
-  #     items: [
-  #       %PatternDiff{
-  #         type: :value,
-  #         lh: Pattern.new({:a, [], ExUnit.PatternDiffWhenTest}, [], [a: :ex_unit_unbound_var]),
-  #         rh: 1,
-  #         diff_result: :eq
-  #       },
-  #       %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq}
-  #     ]
-  #   }
-  #   actual = PatternDiff.cmp(pattern, 1)
-  #   assert actual == expected_match
+    expected_match = %ContainerDiff{
+      type: :when,
+      items: [
+        %PatternDiff{
+          type: :value,
+          lh: %{ast: {:a, [], ExUnit.PatternDiffWhenTest}},
+          rh: 1,
+          diff_result: :eq
+        },
+        %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq}
+      ]
+    }
+    actual = PatternDiff.cmp(pattern, 1)
+    assert actual == expected_match
 
-  #   expected_no_match = %ContainerDiff{
-  #     type: :when,
-  #     items: [
-  #       %PatternDiff{
-  #         type: :value,
-  #         lh: Pattern.new({:a, [], ExUnit.PatternDiffWhenTest}, [], [a: :ex_unit_unbound_var]),
-  #         rh: "foo",
-  #         diff_result: :eq
-  #       },
-  #       %WhenDiff{op: :is_integer, bindings: [a: "foo"], result: :neq}
-  #     ]
-  #   }
-  #   actual = PatternDiff.cmp(pattern, "foo")
-  #   assert actual == expected_no_match
-  # end
+    expected_no_match = %ContainerDiff{
+      type: :when,
+      items: [
+        %PatternDiff{
+          type: :value,
+          lh: %{ast: {:a, [], ExUnit.PatternDiffWhenTest}},
+          rh: "foo",
+          diff_result: :eq
+        },
+        %WhenDiff{op: :is_integer, bindings: [a: "foo"], result: :neq}
+      ]
+    }
+    actual = PatternDiff.cmp(pattern, "foo")
+    assert actual == expected_no_match
+  end
 
-  # test "multiple when clauses, :or" do
-  #   simple = quote do
-  #     a when is_integer(a) or is_binary(a)
-  #   end
+  test "multiple when clauses, :or" do
+    simple = quote do
+      a when is_integer(a) or is_binary(a)
+    end
 
-  #   pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+    pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
 
-  #   expected_match = %ContainerDiff{
-  #     type: :when,
-  #     items: [
-  #       %PatternDiff{
-  #         type: :value,
-  #         lh: Pattern.new({:a, [], ExUnit.PatternDiffWhenTest}, [], [a: :ex_unit_unbound_var]),
-  #         rh: 1,
-  #         diff_result: :eq
-  #       },
-  #       %WhenDiff{op: :or, bindings: [
-  #                    %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq},
-  #                    %WhenDiff{op: :is_binary, bindings: [a: 1], result: :neq}
-  #                  ], result: :eq}
-  #     ]
-  #   }
-  #   actual = PatternDiff.cmp(pattern, 1)
-  #   assert actual == expected_match
+    expected_match = %ContainerDiff{
+      type: :when,
+      items: [
+        %PatternDiff{
+          type: :value,
+          lh: %{ast: {:a, [], ExUnit.PatternDiffWhenTest}},
+          rh: 1,
+          diff_result: :eq
+        },
+        %WhenDiff{op: :or, bindings: [
+                     %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq},
+                     %WhenDiff{op: :is_binary, bindings: [a: 1], result: :neq}
+                   ], result: :eq}
+      ]
+    }
+    actual = PatternDiff.cmp(pattern, 1)
+    assert actual == expected_match
 
-  #   expected_no_match = %ContainerDiff{
-  #     type: :when,
-  #     items: [
-  #       %PatternDiff{
-  #         type: :value,
-  #         lh: Pattern.new({:a, [], ExUnit.PatternDiffWhenTest}, [], [a: :ex_unit_unbound_var]),
-  #         rh: :foo,
-  #         diff_result: :eq
-  #       },
-  #       %WhenDiff{op: :or, bindings: [
-  #                    %WhenDiff{op: :is_integer, bindings: [a: :foo], result: :neq},
-  #                    %WhenDiff{op: :is_binary, bindings: [a: :foo], result: :neq}
-  #                  ], result: :neq}
-  #     ]
-  #   }
-  #   actual = PatternDiff.cmp(pattern, :foo)
-  #   assert actual == expected_no_match
-  # end
+    expected_no_match = %ContainerDiff{
+      type: :when,
+      items: [
+        %PatternDiff{
+          type: :value,
+          lh: %{ast: {:a, [], ExUnit.PatternDiffWhenTest}},
+          rh: :foo,
+          diff_result: :eq
+        },
+        %WhenDiff{op: :or, bindings: [
+                     %WhenDiff{op: :is_integer, bindings: [a: :foo], result: :neq},
+                     %WhenDiff{op: :is_binary, bindings: [a: :foo], result: :neq}
+                   ], result: :neq}
+      ]
+    }
+    actual = PatternDiff.cmp(pattern, :foo)
+    assert actual == expected_no_match
+  end
 
   test "multiple when clauses, :and" do
     simple =
@@ -103,25 +103,13 @@ defmodule ExUnit.PatternDiffWhenTest do
           items: [
             %PatternDiff{
               type: :value,
-              lh:
-                Pattern.new(
-                  {:a, [], ExUnit.PatternDiffWhenTest},
-                  [],
-                  a: :ex_unit_unbound_var,
-                  b: :ex_unit_unbound_var
-                ),
+              lh: %{ast: {:a, [], ExUnit.PatternDiffWhenTest}},
               rh: 1,
               diff_result: :eq
             },
             %PatternDiff{
               type: :value,
-              lh:
-                Pattern.new(
-                  {:b, [], ExUnit.PatternDiffWhenTest},
-                  [],
-                  a: :ex_unit_unbound_var,
-                  b: :ex_unit_unbound_var
-                ),
+              lh: %{ast: {:b, [], ExUnit.PatternDiffWhenTest}},
               rh: "foo",
               diff_result: :eq
             }
@@ -142,5 +130,4 @@ defmodule ExUnit.PatternDiffWhenTest do
     assert actual == expected_match
   end
 
-  #### Consider how to replace pattern for internal workings ####
 end
