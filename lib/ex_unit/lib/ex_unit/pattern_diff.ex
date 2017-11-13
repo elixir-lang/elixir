@@ -1,22 +1,34 @@
 defmodule ExUnit.ContainerDiff do
   defstruct [:type, :items]
+
   @type t :: %__MODULE__{
-    type: :list | :map | :tuple | :struct,
-    items: [t | ExUnit.KeyDiff | ExUnit.PatternDiff.t],
-  }
+          type: :list | :map | :tuple | :struct | :when,
+          items: [t | ExUnit.KeyDiff | ExUnit.PatternDiff.t()]
+        }
+end
+
+defmodule ExUnit.WhenDiff do
+  defstruct [:op, :bindings, :result]
+
+  @type t :: %__MODULE__{
+          op: atom(),
+          bindings: Keyword.t(),
+          result: :eq | :neq
+        }
 end
 
 defmodule ExUnit.PatternDiff do
-  alias ExUnit.ContainerDiff
+  alias ExUnit.{ContainerDiff, WhenDiff}
   alias ExUnit.Pattern
 
   defstruct [:type, :lh, :rh, :diff_result]
+
   @type t :: %__MODULE__{
-    type: :value | :key | :different | :map | :struct | :list | :tuple,
-    lh: any(),
-    rh: any(),
-    diff_result: :eq | :neq,
-  }
+          type: :value | :key | :different | :map | :struct | :list | :tuple,
+          lh: any(),
+          rh: any(),
+          diff_result: :eq | :neq
+        }
 
   @no_value :ex_unit_no_meaningful_value
 
@@ -64,42 +76,91 @@ defmodule ExUnit.PatternDiff do
     {%ContainerDiff{type: :map, items: items}, env}
   end
 
-  def cmp(%{val: {var, _, _}} = pattern, rh_value, {vars, pins} = env) when is_atom(var) do
-    case Keyword.get(vars, var) do
-      :ex_unit_unbound_var ->
-        new_vars = Keyword.put(vars, var, rh_value)
-        {%__MODULE__{
-            type: :value,
-            lh: pattern,
-            rh: rh_value,
-            diff_result: :eq
-         }, {new_vars, pins}}
+  def cmp(%{val: {:^, _, [{pin, _, _}]}} = pattern, rh_value, {_vars, pins} = env) do
+    case Keyword.get(pins, pin) do
       ^rh_value ->
-        {%__MODULE__{
+        {
+          %__MODULE__{
             type: :value,
             lh: pattern,
             rh: rh_value,
             diff_result: :eq
-         }, env}
-      other_value ->
-        {%__MODULE__{
+          },
+          env
+        }
+
+      _other_value ->
+        {
+          %__MODULE__{
             type: :value,
             lh: pattern,
             rh: rh_value,
             diff_result: :neq
-         }, env}
+          },
+          env
+        }
     end
   end
 
-  def cmp(%{val: lh_value} = pattern, rh_value, env) when is_integer(lh_value) and is_integer(rh_value) do
+  def cmp(%{val: {:when, _, [ast, clause]}} = pattern, rh_value, env) do
+    ast = Pattern.new(ast, pattern)
+    {ast_result, env} = cmp(ast, rh_value, env)
+    when_result = evaluate_when(clause, env)
+    {%ContainerDiff{type: :when, items: [ast_result, when_result]}, env}
+  end
+
+  def cmp(%{val: {var, _, var_ctx}} = pattern, rh_value, {vars, pins} = env)
+      when is_atom(var) and is_atom(var_ctx) do
+    case Keyword.get(vars, var) do
+      :ex_unit_unbound_var ->
+        new_vars = Keyword.put(vars, var, rh_value)
+
+        {
+          %__MODULE__{
+            type: :value,
+            lh: pattern,
+            rh: rh_value,
+            diff_result: :eq
+          },
+          {new_vars, pins}
+        }
+
+      ^rh_value ->
+        {
+          %__MODULE__{
+            type: :value,
+            lh: pattern,
+            rh: rh_value,
+            diff_result: :eq
+          },
+          env
+        }
+
+      _other_value ->
+        {
+          %__MODULE__{
+            type: :value,
+            lh: pattern,
+            rh: rh_value,
+            diff_result: :neq
+          },
+          env
+        }
+    end
+  end
+
+  def cmp(%{val: lh_value} = pattern, rh_value, env)
+      when is_integer(lh_value) and is_integer(rh_value) do
     like_value_compare(pattern, rh_value, env)
   end
 
-  def cmp(%{val: lh_value} = pattern, rh_value, env) when is_float(lh_value) and is_float(rh_value) do
+  def cmp(%{val: lh_value} = pattern, rh_value, env)
+      when is_float(lh_value) and is_float(rh_value) do
     like_value_compare(pattern, rh_value, env)
   end
 
-  def cmp(%{val: lh_value} = pattern, rh_value, env) when is_binary(lh_value) and is_binary(rh_value) do
+  def cmp(%{val: lh_value} = pattern, rh_value, env)
+      when is_binary(lh_value) and is_binary(rh_value) do
     like_value_compare(pattern, rh_value, env)
   end
 
@@ -108,21 +169,27 @@ defmodule ExUnit.PatternDiff do
   end
 
   def cmp(%{val: _lh_value} = pattern, rh_value, env) do
-    {%__MODULE__{
-      type: :different,
-      lh: pattern,
-      rh: rh_value,
-      diff_result: :neq
-    }, env}
+    {
+      %__MODULE__{
+        type: :different,
+        lh: pattern,
+        rh: rh_value,
+        diff_result: :neq
+      },
+      env
+    }
   end
- 
+
   def cmp(@no_value, rh_value, env) do
-    {%__MODULE__{
-      type: :different,
-      lh: @no_value,
-      rh: rh_value,
-      diff_result: :neq
-    }, env}
+    {
+      %__MODULE__{
+        type: :different,
+        lh: @no_value,
+        rh: rh_value,
+        diff_result: :neq
+      },
+      env
+    }
   end
 
   defp compare_list(%{val: [{:|, _, [head, tail]} | _rest]} = pattern, [rh_head | rh_tail], env) do
@@ -134,7 +201,7 @@ defmodule ExUnit.PatternDiff do
   end
 
   defp compare_list(pattern, rh, env) do
-    patterns = Enum.map(pattern.val, &(Pattern.new(&1, pattern)))
+    patterns = Enum.map(pattern.val, &Pattern.new(&1, pattern))
     compare_list_items(patterns, rh, env)
   end
 
@@ -145,11 +212,13 @@ defmodule ExUnit.PatternDiff do
   end
 
   defp compare_list_items([], [], env), do: {[], env}
+
   defp compare_list_items([lh_h | lh_rest], [], env) do
     {h, env} = cmp(lh_h, @no_value, env)
     {t, env} = compare_list_items(lh_rest, [], env)
     {[h | t], env}
   end
+
   defp compare_list_items([], [rh_h | rh_rest], env) do
     {h, env} = cmp(@no_value, rh_h, env)
     {t, env} = compare_list_items([], rh_rest, env)
@@ -157,15 +226,16 @@ defmodule ExUnit.PatternDiff do
   end
 
   defp compare_tuple(%{val: {_, _}} = pattern, rh_tuple, env) do
-    patterns = pattern.val
-    |> Tuple.to_list()
-    |> Enum.map(&(Pattern.new(&1, pattern)))
+    patterns =
+      pattern.val
+      |> Tuple.to_list()
+      |> Enum.map(&Pattern.new(&1, pattern))
 
     compare_list_items(patterns, Tuple.to_list(rh_tuple), env)
   end
 
   defp compare_tuple(%{val: {:{}, _, members}} = pattern, rh_tuple, env) do
-    patterns = Enum.map(members, &(Pattern.new(&1, pattern)))
+    patterns = Enum.map(members, &Pattern.new(&1, pattern))
     compare_list_items(patterns, Tuple.to_list(rh_tuple), env)
   end
 
@@ -175,16 +245,19 @@ defmodule ExUnit.PatternDiff do
 
   defp compare_map_items(pattern, [lh_h | lh_t], rh_map, env) do
     {key, lh_value} = lh_h
+
     {rh_value, rh_map} =
       case Map.pop(rh_map, key) do
         {nil, rh_map} ->
           {@no_value, rh_map}
+
         {val, map} ->
           {{key, val}, map}
       end
+
     {h, env} = cmp(Pattern.new({key, lh_value}, pattern), rh_value, env)
     {t, env} = compare_map_items(pattern, lh_t, rh_map, env)
-    {[ h | t ], env}
+    {[h | t], env}
   end
 
   defp compare_map_items(_pattern, [], rh_map, env) when rh_map == %{} do
@@ -193,8 +266,10 @@ defmodule ExUnit.PatternDiff do
 
   defp compare_map_items(pattern, [], rh_map, env) do
     lh = @no_value
-    rh_key = rh_map
-      |> Map.keys
+
+    rh_key =
+      rh_map
+      |> Map.keys()
       |> List.first()
 
     {rh_value, rh_map} = Map.pop(rh_map, rh_key)
@@ -204,13 +279,44 @@ defmodule ExUnit.PatternDiff do
   end
 
   defp like_value_compare(%{val: lh_value} = pattern, rh_value, env) do
-      result = if lh_value == rh_value, do: :eq, else: :neq 
-      {%__MODULE__{
+    result = if lh_value == rh_value, do: :eq, else: :neq
+
+    {
+      %__MODULE__{
         type: :value,
         lh: pattern,
         rh: rh_value,
         diff_result: result
-      }, env}
+      },
+      env
+    }
   end
 
+  defp evaluate_when({:and, _, [left, right]}, env) do
+    l = evaluate_when(left, env)
+    r = evaluate_when(right, env)
+    result = if l.result == :eq && r.result == :eq, do: :eq, else: :neq
+    %WhenDiff{op: :and, bindings: [l, r], result: result}
+  end
+
+  defp evaluate_when({:or, _, [left, right]}, env) do
+    l = evaluate_when(left, env)
+    r = evaluate_when(right, env)
+    result = if l.result == :eq || r.result == :eq, do: :eq, else: :neq
+    %WhenDiff{op: :or, bindings: [l, r], result: result}
+  end
+
+  defp evaluate_when({atom, _, when_vars}, {vars, _pins}) do
+    v =
+      when_vars
+      |> Enum.map(fn {v_atom, _, _} -> Keyword.get(vars, v_atom) end)
+
+    bindings =
+      when_vars
+      |> Enum.map(fn {v_atom, _, _} -> {v_atom, Keyword.get(vars, v_atom)} end)
+
+    result = if :erlang.apply(Kernel, atom, v), do: :eq, else: :neq
+
+    %WhenDiff{op: atom, bindings: bindings, result: result}
+  end
 end
