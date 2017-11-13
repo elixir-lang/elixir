@@ -71,6 +71,33 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- 1..3, x > 1, x < 3, do: x * 2) == [4]
   end
 
+  test "for comprehensions with unique values" do
+    list = [1, 1, 2, 3]
+    assert for(x <- list, uniq: true, do: x * 2) == [2, 4, 6]
+    assert for(x <- list, uniq: true, into: [], do: x * 2) == [2, 4, 6]
+    assert for(x <- list, uniq: true, into: %{}, do: {x, 1}) == %{1 => 1, 2 => 1, 3 => 1}
+    assert for(x <- list, uniq: true, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+    assert for(<<x <- "abcabc">>, uniq: true, into: "", do: to_bin(x)) == "abc"
+
+    Process.put(:into_cont, [])
+    Process.put(:into_done, false)
+    Process.put(:into_halt, false)
+
+    for x <- list, uniq: true, into: %Pdict{} do
+      x * 2
+    end
+
+    assert Process.get(:into_cont) == [6, 4, 2]
+    assert Process.get(:into_done)
+    refute Process.get(:into_halt)
+
+    assert_raise RuntimeError, "oops", fn ->
+      for _ <- [1, 2, 3], uniq: true, into: %Pdict{}, do: raise("oops")
+    end
+
+    assert Process.get(:into_halt)
+  end
+
   test "for comprehensions with nilly filters" do
     assert for(x <- 1..3, nilly(), do: x * 2) == []
   end
