@@ -128,19 +128,20 @@ defmodule Mix.Tasks.Format do
   end
 
   defp expand_files_and_patterns(files_and_patterns, context) do
-    files_and_patterns
-    |> Enum.flat_map(&stdin_or_wildcard/1)
-    |> Enum.uniq()
-    |> case do
-         [] ->
-           Mix.raise(
-             "Could not find a file to format. The files/patterns from #{context} " <>
-               "did not point to any existing file. Got: #{inspect(files_and_patterns)}"
-           )
+    files =
+      for file_or_pattern <- files_and_patterns,
+          file <- stdin_or_wildcard(file_or_pattern),
+          uniq: true,
+          do: file
 
-         files ->
-           files
-       end
+    if files == [] do
+      Mix.raise(
+        "Could not find a file to format. The files/patterns from #{context} " <>
+          "did not point to any existing file. Got: #{inspect(files_and_patterns)}"
+      )
+    end
+
+    files
   end
 
   defp stdin_or_wildcard("-"), do: [:stdin]

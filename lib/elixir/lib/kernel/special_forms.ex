@@ -1319,6 +1319,18 @@ defmodule Kernel.SpecialForms do
         String.upcase(line)
       end
 
+  ## Uniq
+
+  `uniq: true` can also be given to comprehensions to guarantee that
+  that results are only added to the collection if they were not returned
+  before. For example:
+
+      iex> for(x <- [1, 1, 2, 3], uniq: true, do: x * 2)
+      [2, 4, 6]
+
+      iex> for(<<x <- "abcabc">>, uniq: true, into: "", do: <<x-32>>)
+      "ABC"
+
   """
   defmacro for(args), do: error!([args])
 
