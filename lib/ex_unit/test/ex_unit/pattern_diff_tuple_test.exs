@@ -18,7 +18,7 @@ defmodule ExUnit.PatternDiffTupleTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 1,
             diff_result: :eq
           }
@@ -34,7 +34,7 @@ defmodule ExUnit.PatternDiffTupleTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 2,
             diff_result: :neq
           }
@@ -58,13 +58,13 @@ defmodule ExUnit.PatternDiffTupleTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 1,
             diff_result: :eq
           },
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 2, meta: nil, pins: [], vars: []},
+            lh: %{ast: 2},
             rh: 2,
             diff_result: :eq
           }
@@ -80,13 +80,13 @@ defmodule ExUnit.PatternDiffTupleTest do
         items: [
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+            lh: %{ast: 1},
             rh: 2,
             diff_result: :neq
           },
           %PatternDiff{
             type: :value,
-            lh: %Pattern{val: 2, meta: nil, pins: [], vars: []},
+            lh: %{ast: 2},
             rh: 3,
             diff_result: :neq
           }

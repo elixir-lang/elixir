@@ -23,6 +23,12 @@ defmodule ExUnit.Diff do
     end
   end
 
+  def script(%Pattern{} = p, right) do
+    p
+    |> ExUnit.PatternDiff.cmp(right)
+    |> ExUnit.PatternFormat.format()
+  end
+
   # Structs
   def script(%name{} = left, %name{} = right) do
     if Inspect.impl_for(left) != Inspect.Any do

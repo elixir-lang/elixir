@@ -22,13 +22,13 @@ defmodule ExUnit.PatternDiffMapTest do
             items: [
               %PatternDiff{
                 type: :value,
-                lh: %Pattern{val: :a, meta: nil, pins: [], vars: []},
+                lh: %{ast: :a},
                 rh: :a,
                 diff_result: :eq
               },
               %PatternDiff{
                 type: :value,
-                lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+                lh: %{ast: 1},
                 rh: 1,
                 diff_result: :eq
               }
@@ -49,13 +49,13 @@ defmodule ExUnit.PatternDiffMapTest do
             items: [
               %PatternDiff{
                 type: :value,
-                lh: %Pattern{val: :a, meta: nil, pins: [], vars: []},
+                lh: %{ast: :a},
                 rh: :a,
                 diff_result: :eq
               },
               %PatternDiff{
                 type: :value,
-                lh: %Pattern{val: 1, meta: nil, pins: [], vars: []},
+                lh: %{ast: 1},
                 rh: 2,
                 diff_result: :neq
               }
@@ -82,7 +82,7 @@ defmodule ExUnit.PatternDiffMapTest do
         items: [
               %PatternDiff{
                 type: :different,
-                lh: %Pattern{val: {:a, 1}, meta: nil, pins: [], vars: []},
+                lh: %{ast: {:a, 1}},
                 rh: :ex_unit_no_meaningful_value,
                 diff_result: :neq
               },
@@ -110,7 +110,7 @@ defmodule ExUnit.PatternDiffMapTest do
         items: [
           %PatternDiff{
             type: :different,
-            lh: %Pattern{val: {:a, 1}, meta: nil, pins: [], vars: []},
+            lh: %{ast: {:a, 1}},
             rh: :ex_unit_no_meaningful_value,
             diff_result: :neq
           },

@@ -11,7 +11,6 @@ defmodule ExUnit.Pattern do
         }
 
   def new(lh_pattern, pins, unbound_vars) when is_list(pins) and is_list(unbound_vars) do
-    IO.inspect(lh_pattern, label: "new pattern")
     %__MODULE__{
       val: lh_pattern,
       meta: get_meta(lh_pattern),
@@ -21,7 +20,6 @@ defmodule ExUnit.Pattern do
   end
 
   def new(lh_pattern, %__MODULE__{} = parent, meta)  do
-    IO.inspect(lh_pattern, label: "child pattern")
     %__MODULE__{
       val: lh_pattern,
       meta: meta,
@@ -31,7 +29,6 @@ defmodule ExUnit.Pattern do
   end
 
   def new(lh_pattern, %__MODULE__{} = parent)  do
-    IO.inspect(lh_pattern, label: "child pattern")
     %__MODULE__{
       val: lh_pattern,
       meta: get_meta(lh_pattern),
