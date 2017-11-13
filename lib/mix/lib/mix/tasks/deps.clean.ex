@@ -68,13 +68,14 @@ defmodule Mix.Tasks.Deps.Clean do
   end
 
   defp checked_deps(build_path, deps_path) do
-    for root <- [deps_path, build_path],
-        path <- Path.wildcard(Path.join(root, "*")),
-        File.dir?(path) do
-      Path.basename(path)
-    end
-    |> Enum.uniq()
-    |> List.delete(to_string(Mix.Project.config()[:app]))
+    deps_names =
+      for root <- [deps_path, build_path],
+          path <- Path.wildcard(Path.join(root, "*")),
+          File.dir?(path),
+          uniq: true,
+          do: Path.basename(path)
+
+    List.delete(deps_names, to_string(Mix.Project.config()[:app]))
   end
 
   defp filter_loaded(apps, deps) do

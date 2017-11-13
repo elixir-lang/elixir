@@ -312,10 +312,9 @@ defmodule IEx.Autocomplete do
         parts = String.split(mod, "."),
         depth <= length(parts),
         name = Enum.at(parts, depth - 1),
-        valid_alias_piece?("." <> name) do
-      %{kind: :module, type: :elixir, name: name}
-    end
-    |> Enum.uniq()
+        valid_alias_piece?("." <> name),
+        uniq: true,
+        do: %{kind: :module, type: :elixir, name: name}
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
