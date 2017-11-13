@@ -978,7 +978,7 @@ defmodule Module do
     impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
 
     {overridable_impls, impls} =
-      :lists.splitwith(fn {pair, _, _, _, _} -> pair in tuples end, impls)
+      :lists.splitwith(fn {pair, _, _, _, _, _} -> pair in tuples end, impls)
 
     if overridable_impls != [] do
       :ets.insert(table, {{:elixir, :impls}, impls})
@@ -1258,18 +1258,13 @@ defmodule Module do
   def compile_impl(env, kind, name, args, _guards, _body) do
     %{module: module, line: line, file: file} = env
     table = data_table_for(module)
+    {total, defaults} = args_count(args)
 
     case :ets.take(table, :impl) do
       [{:impl, value, _, _}] ->
         impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
-        {total, defaults} = args_count(args, 0, 0)
-
-        impl =
-          for arity <- total..(total - defaults), into: impls do
-            {{name, arity}, kind, line, file, value}
-          end
-
-        :ets.insert(table, {{:elixir, :impls}, impl})
+        impl = {{name, total}, kind, defaults, line, file, value}
+        :ets.insert(table, {{:elixir, :impls}, [impl | impls]})
 
       [] ->
         :ok
@@ -1277,6 +1272,8 @@ defmodule Module do
 
     :ok
   end
+
+  defp args_count(args, total \\ 0, defaults \\ 0)
 
   defp args_count([{:\\, _, _} | tail], total, defaults) do
     args_count(tail, total + 1, defaults + 1)
@@ -1413,27 +1410,45 @@ defmodule Module do
   end
 
   defp check_impls(behaviours, callbacks, impls) do
-    Enum.reduce(impls, callbacks, fn {pair, kind, line, file, value}, acc ->
-      if message = impl_warning(pair, kind, value, behaviours, callbacks) do
-        :elixir_errors.warn(line, file, message)
-      end
+    Enum.reduce(impls, callbacks, fn {pair_with_impl, kind, defaults, line, file, value}, acc ->
+      pairs_to_check = get_impl_pairs_to_check(pair_with_impl, callbacks, defaults)
 
-      Map.delete(acc, pair)
+      Enum.each(pairs_to_check, fn pair_to_check ->
+        if message =
+             impl_warning(pair_with_impl, pair_to_check, kind, value, behaviours, callbacks) do
+          :elixir_errors.warn(line, file, message)
+        end
+      end)
+
+      Map.drop(acc, pairs_to_check)
     end)
   end
 
-  defp impl_warning(pair, kind, _, _, _) when kind in [:defp, :defmacrop] do
-    "#{format_definition(kind, pair)} is private, @impl attribute is always discarded for private functions/macros"
+  defp get_impl_pairs_to_check(pair_with_impl, callbacks, default_arg_count) do
+    pairs_from_defaults = unpack_pairs_from_defaults(pair_with_impl, default_arg_count)
+
+    case Enum.filter(pairs_from_defaults, &Map.has_key?(callbacks, &1)) do
+      [] -> [pair_with_impl]
+      pairs_matching_callbacks -> pairs_matching_callbacks
+    end
   end
 
-  defp impl_warning(pair, kind, value, [], _callbacks) do
-    "got \"@impl #{inspect(value)}\" for #{format_definition(kind, pair)} but no behaviour was declared"
+  defp unpack_pairs_from_defaults({fun, arity}, default_arg_count) do
+    for n <- arity..(arity - default_arg_count), do: {fun, n}
   end
 
-  defp impl_warning(pair, kind, false, _behaviours, callbacks) do
-    case Map.fetch(callbacks, pair) do
+  defp impl_warning(pair_with_impl, _, kind, _, _, _) when kind in [:defp, :defmacrop] do
+    "#{format_definition(kind, pair_with_impl)} is private, @impl attribute is always discarded for private functions/macros"
+  end
+
+  defp impl_warning(pair_with_impl, _, kind, value, [], _callbacks) do
+    "got \"@impl #{inspect(value)}\" for #{format_definition(kind, pair_with_impl)} but no behaviour was declared"
+  end
+
+  defp impl_warning(pair_with_impl, pair_to_check, kind, false, _behaviours, callbacks) do
+    case Map.fetch(callbacks, pair_to_check) do
       {:ok, {_, behaviour, _}} ->
-        "got \"@impl false\" for #{format_definition(kind, pair)} " <>
+        "got \"@impl false\" for #{format_definition(kind, pair_with_impl)} " <>
           "but it is a callback specified in #{inspect(behaviour)}"
 
       :error ->
@@ -1441,24 +1456,24 @@ defmodule Module do
     end
   end
 
-  defp impl_warning(pair, kind, true, _, callbacks) do
-    if not Map.has_key?(callbacks, pair) do
-      "got \"@impl true\" for #{format_definition(kind, pair)} " <>
+  defp impl_warning(pair_with_impl, pair_to_check, kind, true, _, callbacks) do
+    if not Map.has_key?(callbacks, pair_to_check) do
+      "got \"@impl true\" for #{format_definition(kind, pair_with_impl)} " <>
         "but no behaviour specifies such callback#{known_callbacks(callbacks)}"
     end
   end
 
-  defp impl_warning(pair, kind, behaviour, behaviours, callbacks) do
+  defp impl_warning(pair_with_impl, pair_to_check, kind, behaviour, behaviours, callbacks) do
     cond do
-      match?({:ok, {_, ^behaviour, _}}, Map.fetch(callbacks, pair)) ->
+      match?({:ok, {_, ^behaviour, _}}, Map.fetch(callbacks, pair_to_check)) ->
         nil
 
       behaviour not in behaviours ->
-        "got \"@impl #{inspect(behaviour)}\" for #{format_definition(kind, pair)} " <>
+        "got \"@impl #{inspect(behaviour)}\" for #{format_definition(kind, pair_with_impl)} " <>
           "but this behaviour was not declared with @behaviour"
 
       true ->
-        "got \"@impl #{inspect(behaviour)}\" for #{format_definition(kind, pair)} " <>
+        "got \"@impl #{inspect(behaviour)}\" for #{format_definition(kind, pair_with_impl)} " <>
           "but this behaviour does not specify such callback#{known_callbacks(callbacks)}"
     end
   end
