@@ -192,6 +192,60 @@ defmodule Mix.Tasks.Xref do
     :ok
   end
 
+  @doc """
+  Returns a list of information of all the function calls in the project.
+
+  Each item in the list is a map with the following keys:
+  * `:callee` - A tuple containing the module, function and arity of the call
+  * `:line` - Line where the function is called (integer)
+  * `:file` - File where the function is called (binary)
+  * `:caller_module` - Module where the function is called (atom)
+
+  Note: This function will return an empty list when used at the root of an umbrella
+  project because there is no compile manifest to extract the function call information
+  from. To get the function calls of umbrella applications, execute the function at
+  the root of each individual umbrella application.
+  """
+  @spec calls() :: [map]
+  def calls(opts \\ []) do
+    module_sources =
+      for manifest <- manifests(opts),
+          manifest_data = read_manifest(manifest, ""),
+          module(module: module, sources: sources) <- manifest_data,
+          source <- sources,
+          source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
+          do: {module, source}
+
+    Enum.flat_map(module_sources, fn {caller_module, source} ->
+      source(
+        runtime_dispatches: runtime_nested,
+        compile_dispatches: compile_nested,
+        source: rel_file
+      ) = source
+
+      runtime_function_calls =
+        dispatches_to_function_calls(caller_module, rel_file, runtime_nested)
+
+      compile_function_calls =
+        dispatches_to_function_calls(caller_module, rel_file, compile_nested)
+
+      runtime_function_calls ++ compile_function_calls
+    end)
+  end
+
+  defp dispatches_to_function_calls(caller_module, file, dispatches) do
+    for {module, function_calls} <- dispatches,
+        {{function, arity}, lines} <- function_calls,
+        line <- lines do
+      %{
+        callee: {module, function, arity},
+        file: file,
+        line: line,
+        caller_module: caller_module
+      }
+    end
+  end
+
   ## Warnings
 
   defp warnings(print_warnings, opts) do
