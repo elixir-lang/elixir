@@ -12,7 +12,7 @@ defmodule ExUnit.PatternDiffValueTest do
           1
         end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %PatternDiff{
         type: :value,
@@ -38,7 +38,7 @@ defmodule ExUnit.PatternDiffValueTest do
           "hello"
         end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %PatternDiff{
         type: :value,
@@ -68,7 +68,7 @@ defmodule ExUnit.PatternDiffValueTest do
           :a
         end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %PatternDiff{
         type: :value,
@@ -94,7 +94,7 @@ defmodule ExUnit.PatternDiffValueTest do
           1.0
         end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %PatternDiff{
         type: :value,
@@ -122,7 +122,7 @@ defmodule ExUnit.PatternDiffValueTest do
           %{a: 1}
         end
 
-      pattern = ExUnit.Pattern.new(map, [], [])
+      pattern = Pattern.new(map, [], [])
       actual = PatternDiff.cmp(pattern, 1)
       assert actual.type == :different
 
@@ -151,7 +151,7 @@ defmodule ExUnit.PatternDiffValueTest do
           [1, 2, 3]
         end
 
-      pattern = ExUnit.Pattern.new(map, [], [])
+      pattern = Pattern.new(map, [], [])
       actual = PatternDiff.cmp(pattern, 1)
       assert actual.type == :different
 
@@ -180,7 +180,7 @@ defmodule ExUnit.PatternDiffValueTest do
         {1, 2, 3}
       end
 
-      pattern = ExUnit.Pattern.new(tuple, [], [])
+      pattern = Pattern.new(tuple, [], [])
       actual = PatternDiff.cmp(pattern, 1)
       assert actual.type == :different
 
@@ -207,7 +207,7 @@ defmodule ExUnit.PatternDiffValueTest do
         {1, 2}
       end
 
-      pattern = ExUnit.Pattern.new(tuple, [], [])
+      pattern = Pattern.new(tuple, [], [])
       actual = PatternDiff.cmp(pattern, 1)
       assert actual.type == :different
 
@@ -236,7 +236,7 @@ defmodule ExUnit.PatternDiffValueTest do
       quote do
        a
       end
-    pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+    pattern = Pattern.new(simple, [], [a: :ex_unit_unbound_var])
     expected_match = %PatternDiff{
       type: :value,
       lh: %{ast: pattern.val},
@@ -252,7 +252,7 @@ defmodule ExUnit.PatternDiffValueTest do
       quote do
       {a, a}
     end
-    pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+    pattern = Pattern.new(simple, [], [a: :ex_unit_unbound_var])
     expected_var_pattern = %{ast: {:a, [], ExUnit.PatternDiffValueTest}}
     expected_match = %ContainerDiff{
       type: :tuple,
@@ -299,7 +299,7 @@ defmodule ExUnit.PatternDiffValueTest do
     simple = quote do
       ^a
     end
-    pattern = ExUnit.Pattern.new(simple, [a: 1], [])
+    pattern = Pattern.new(simple, [a: 1], [])
 
     expected_match = %PatternDiff{
       type: :value,

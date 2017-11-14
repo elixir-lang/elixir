@@ -12,7 +12,7 @@ defmodule ExUnit.PatternDiffMapTest do
           %{a: 1}
         end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %ContainerDiff{
         type: :map,
@@ -75,7 +75,7 @@ defmodule ExUnit.PatternDiffMapTest do
         %{a: 1}
       end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_no_match = %ContainerDiff{
         type: :map,
@@ -104,7 +104,7 @@ defmodule ExUnit.PatternDiffMapTest do
       simple = quote do
         %{a: 1}
       end
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
       expected_no_match = %ContainerDiff{
         type: :map,
         items: [
@@ -124,7 +124,7 @@ defmodule ExUnit.PatternDiffMapTest do
       simple = quote do
         %{}
       end
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
       expected_no_match = %ContainerDiff{
         type: :map,
         items: [

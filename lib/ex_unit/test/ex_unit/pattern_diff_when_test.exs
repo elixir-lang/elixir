@@ -10,7 +10,7 @@ defmodule ExUnit.PatternDiffWhenTest do
       a when is_integer(a)
     end
 
-    pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+    pattern = Pattern.new(simple, [], [a: :ex_unit_unbound_var])
 
     expected_match = %ContainerDiff{
       type: :when,
@@ -48,7 +48,7 @@ defmodule ExUnit.PatternDiffWhenTest do
       a when is_integer(a) or is_binary(a)
     end
 
-    pattern = ExUnit.Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+    pattern = Pattern.new(simple, [], [a: :ex_unit_unbound_var])
 
     expected_match = %ContainerDiff{
       type: :when,
@@ -93,7 +93,7 @@ defmodule ExUnit.PatternDiffWhenTest do
         {a, b} when is_integer(a) and is_binary(b)
       end
 
-    pattern = ExUnit.Pattern.new(simple, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
+    pattern = Pattern.new(simple, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
 
     expected_match = %ContainerDiff{
       type: :when,

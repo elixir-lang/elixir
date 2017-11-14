@@ -11,7 +11,7 @@ defmodule ExUnit.PatternDiffTupleTest do
         {1}
       end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %ContainerDiff{
         type: :tuple,
@@ -51,7 +51,7 @@ defmodule ExUnit.PatternDiffTupleTest do
         {1, 2}
       end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %ContainerDiff{
         type: :tuple,
