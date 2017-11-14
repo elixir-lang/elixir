@@ -1415,7 +1415,7 @@ defmodule Module do
           Enum.reduce(impl_behaviours, acc, fn {fa, _}, acc -> Map.delete(acc, fa) end)
 
         {:error, message} ->
-          :elixir_errors.warn(line, file, format_message(fa, kind, message))
+          :elixir_errors.warn(line, file, format_impl_warning(fa, kind, message))
           acc
       end
     end)
@@ -1490,30 +1490,30 @@ defmodule Module do
     end
   end
 
-  def format_message(fa, kind, :private_function) do
+  defp format_impl_warning(fa, kind, :private_function) do
     "#{format_definition(kind, fa)} is private, @impl attribute is always discarded for private functions/macros"
   end
 
-  def format_message(fa, kind, {:no_behaviours, value}) do
+  defp format_impl_warning(fa, kind, {:no_behaviours, value}) do
     "got \"@impl #{inspect(value)}\" for #{format_definition(kind, fa)} but no behaviour was declared"
   end
 
-  def format_message(_, kind, {:impl_not_defined, {fa, behaviour}}) do
+  defp format_impl_warning(_, kind, {:impl_not_defined, {fa, behaviour}}) do
     "got \"@impl false\" for #{format_definition(kind, fa)} " <>
       "but it is a callback specified in #{inspect(behaviour)}"
   end
 
-  def format_message(fa, kind, {:impl_defined, callbacks}) do
+  defp format_impl_warning(fa, kind, {:impl_defined, callbacks}) do
     "got \"@impl true\" for #{format_definition(kind, fa)} " <>
       "but no behaviour specifies such callback#{known_callbacks(callbacks)}"
   end
 
-  def format_message(fa, kind, {:behaviour_not_declared, behaviour}) do
+  defp format_impl_warning(fa, kind, {:behaviour_not_declared, behaviour}) do
     "got \"@impl #{inspect(behaviour)}\" for #{format_definition(kind, fa)} " <>
       "but this behaviour was not declared with @behaviour"
   end
 
-  def format_message(fa, kind, {:behaviour_not_defined, behaviour, callbacks}) do
+  defp format_impl_warning(fa, kind, {:behaviour_not_defined, behaviour, callbacks}) do
     "got \"@impl #{inspect(behaviour)}\" for #{format_definition(kind, fa)} " <>
       "but this behaviour does not specify such callback#{known_callbacks(callbacks)}"
   end
