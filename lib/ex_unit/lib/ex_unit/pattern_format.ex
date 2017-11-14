@@ -92,10 +92,10 @@ defmodule ExUnit.PatternFormat do
   end
 
   def format(%PatternDiff{type: :different, rh: @no_value, lh: %{ast: {key, value}}} = diff, :atom_keys) do
-    [del: "#{key}: ", del: "#{inspect value}"]
+    [del: "#{textify_ast key}: ", del: "#{inspect value}"]
   end
   def format(%PatternDiff{type: :different, rh: @no_value, lh: %{ast: {key, value}}} = diff, :non_atom_keys) do
-    [del: "#{inspect key} => ", del: "#{inspect value}"]
+    [del: "#{textify_ast key} => ", del: "#{textify_ast value}"]
   end
 
   def format(%PatternDiff{type: :different, rh: @no_value} = diff, ctx) do
@@ -104,6 +104,10 @@ defmodule ExUnit.PatternFormat do
 
   def format(%PatternDiff{type: :different, rh: {key, value}, lh: @no_value} = diff, :atom_keys) do
     [ins: "#{key}: ", ins: "#{inspect value}"]
+  end
+
+  def format(%PatternDiff{type: :different, rh: {key, value}, lh: @no_value} = diff, :non_atom_keys) do
+    [ins: "#{inspect key} => ", ins: "#{inspect value}"]
   end
 
   def format(%PatternDiff{type: :different, lh: @no_value} = diff, _) do
@@ -125,10 +129,11 @@ defmodule ExUnit.PatternFormat do
   defp format_comma(%{lh: @no_value}), do: {:ins, ", "}
   defp format_comma(_), do: {:eq, ", "}
 
+
   defp keyword_tuple?(%ContainerDiff{items: [key, _value], type: :tuple}) do
     l_matches = key.lh == @no_value || is_atom(key.lh.ast)
     r_matches = key.rh == @no_value || is_atom(key.rh)
-    IO.inspect("#{inspect key}: #{l_matches} && #{r_matches}", label: "keyword_tuple?")
+    #IO.inspect("#{inspect key}: #{l_matches} && #{r_matches}", label: "keyword_tuple?")
     l_matches && r_matches
   end
   defp keyword_tuple?(%PatternDiff{rh: @no_value, lh: %{ast: {key, value}}}) when is_atom(key) do
@@ -138,7 +143,12 @@ defmodule ExUnit.PatternFormat do
     true
   end
   defp keyword_tuple?(n) do
-    IO.inspect(n, label: "this is it;")
+    #IO.inspect(n, label: "not keyword;")
     false
   end
+
+  defp textify_ast({:%{}, _, elements} = dump) do
+    inspect Map.new(Enum.map(elements, &textify_ast/1))
+  end
+  defp textify_ast(elem), do: elem
 end

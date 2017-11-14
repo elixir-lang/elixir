@@ -454,53 +454,59 @@ defmodule ExUnit.PatternFormatTest do
   #   assert actual == expected
   # end
 
-  test "map with extra keys" do
-    simple = quote do
-      %{a: 1, b: 2}
-    end
-    pattern = Pattern.new(simple, [], [])
-    actual = pattern
-    |> PatternDiff.cmp(%{a: 1})
-    |> PatternFormat.format()
+  # test "map with extra keys" do
+  #   simple = quote do
+  #     %{a: 1, b: 2}
+  #   end
+  #   pattern = Pattern.new(simple, [], [])
+  #   actual = pattern
+  #   |> PatternDiff.cmp(%{a: 1})
+  #   |> PatternFormat.format()
 
-    expected = [
-      eq: "%{",
-      eq: "a: ",
-      eq: "1",
-      del: ", ",
-      del: "b: ",
-      del: "2",
-      eq: "}"
-    ]
+  #   expected = [
+  #     eq: "%{",
+  #     eq: "a: ",
+  #     eq: "1",
+  #     del: ", ",
+  #     del: "b: ",
+  #     del: "2",
+  #     eq: "}"
+  #   ]
 
-    assert actual == expected
+  #   assert actual == expected
 
-    actual = pattern
-    |> PatternDiff.cmp(%{a: 1, b: 2, c: 3})
-    |> PatternFormat.format()
+  #   actual = pattern
+  #   |> PatternDiff.cmp(%{a: 1, b: 2, c: 3})
+  #   |> PatternFormat.format()
 
-    expected = [
-      eq: "%{",
-      eq: "a: ",
-      eq: "1",
-      eq: ", ",
-      eq: "b: ",
-      eq: "2",
-      ins: ", ",
-      ins: "c: ",
-      ins: "3",
-      eq: "}"
-    ]
+  #   expected = [
+  #     eq: "%{",
+  #     eq: "a: ",
+  #     eq: "1",
+  #     eq: ", ",
+  #     eq: "b: ",
+  #     eq: "2",
+  #     ins: ", ",
+  #     ins: "c: ",
+  #     ins: "3",
+  #     eq: "}"
+  #   ]
 
-    assert actual == expected
+  #   assert actual == expected
+  # end
+
+  test "map with map key" do
+    assert match?(%{
+      %{a: 1} => %{b: 1}
+    }, %{%{b: 1} => %{a: 1}})
+    assert %{
+      %{a: 1} => %{b: 1}
+    } == %{%{b: 1} => %{a: 1}}
   end
 
-  # test "map with map key" do
-  #   assert match?(%{
-  #     %{a: 1} => %{b: 1}
-  #   }, %{%{b: 1} => %{a: 1}})
-  #   assert %{
-  #     %{a: 1} => %{b: 1}
-  #   } == %{%{b: 1} => %{a: 1}}
-  # end
+  test "list decomposition" do
+    
+  end
 end
+
+
