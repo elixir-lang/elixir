@@ -12,7 +12,7 @@ defmodule ExUnit.PatternDiffListTest do
           [1]
         end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %ContainerDiff{
         type: :list,
@@ -54,7 +54,7 @@ defmodule ExUnit.PatternDiffListTest do
         [1, 2]
       end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected_match = %ContainerDiff{
         type: :list,
@@ -107,7 +107,7 @@ defmodule ExUnit.PatternDiffListTest do
           [1 | [2, 3]]
         end
 
-      pattern = ExUnit.Pattern.new(cons_pattern, [], [])
+      pattern = Pattern.new(cons_pattern, [], [])
 
       expected = %ContainerDiff{
         type: :list,
@@ -148,7 +148,7 @@ defmodule ExUnit.PatternDiffListTest do
           [1 | [2 | [3]]]
         end
 
-      pattern = ExUnit.Pattern.new(cons_pattern, [], [])
+      pattern = Pattern.new(cons_pattern, [], [])
 
       expected = %ContainerDiff{
         type: :list,
@@ -195,7 +195,7 @@ defmodule ExUnit.PatternDiffListTest do
         [1, 2]
       end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected = %ContainerDiff{
         type: :list,
@@ -224,7 +224,7 @@ defmodule ExUnit.PatternDiffListTest do
         [1]
       end
 
-      pattern = ExUnit.Pattern.new(simple, [], [])
+      pattern = Pattern.new(simple, [], [])
 
       expected = %ContainerDiff{
         type: :list,

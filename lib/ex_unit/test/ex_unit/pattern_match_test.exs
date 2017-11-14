@@ -434,21 +434,21 @@ defmodule ExUnit.PatternMatchTest do
   #     assert actual == expected
   # end
 
-  test "decomposed list" do
-    assert match?([3 | [t | [t]]], [3, 2, 3])
-    list = quote do
-      [1 | 2 | t]
-    end
-    pattern = Pattern.new(list, [1, 2, 3], [], [])
-    expected = []
-
-    actual =
-      pattern
-      |> Pattern.diff()
-      |> Pattern.get_diff()
-
-    assert actual == expected
-  end
+  #test "decomposed list" do
+  #    assert match?([3 | [t | [t]]], [3, 2, 3])
+  #  list = quote do
+  #    [1 | 2 | t]
+  #  end
+  #  pattern = Pattern.new(list, [], [])
+  #  expected = []
+  #
+  #  actual =
+  #    pattern
+  #    |> Pattern.diff()
+  #    |> Pattern.get_diff()
+  #
+  #  assert actual == expected
+  #end
 
   # test "map with pinned key" do
   #   a = :a
