@@ -324,7 +324,7 @@ defmodule Kernel.ImplTest do
              "got \"@impl Kernel.ImplTest.MacroBehaviour\" for function bar/0 but this behaviour was not declared with @behaviour"
   end
 
-  test "does not warn for @impl when using default arguments" do
+  test "does not warn for @impl when the function with default conforms with several typespecs" do
     assert capture_err(fn ->
              Code.eval_string(~S"""
              defmodule Kernel.ImplTest.ImplAttributes do
@@ -338,18 +338,14 @@ defmodule Kernel.ImplTest do
            end) == ""
   end
 
-  test "does not warn for @impl when there is a second function with the same name" do
+  test "does not warn for @impl when the function conforms to typespec but has default value for arg" do
     assert capture_err(fn ->
              Code.eval_string(~S"""
              defmodule Kernel.ImplTest.ImplAttributes do
                @behaviour Kernel.ImplTest.BehaviourWithArgument
 
                @impl true
-               def foo(arg_1) do
-                 foo(arg_1, [])
-               end
-
-               def foo(arg_1, _args), do: arg_1
+               def foo(args \\ []), do: args
              end
              """)
            end) == ""
@@ -381,20 +377,7 @@ defmodule Kernel.ImplTest do
            end) == ""
   end
 
-  test "does not warn for @impl when the function conforms to typespec but has default value for arg" do
-    assert capture_err(fn ->
-             Code.eval_string(~S"""
-             defmodule Kernel.ImplTest.ImplAttributes do
-               @behaviour Kernel.ImplTest.BehaviourWithArgument
-
-               @impl true
-               def foo(args \\ []), do: args
-             end
-             """)
-           end) == ""
-  end
-
-  test "does not warn for @impl when the function has more args than callback, but they're all defaulted " do
+  test "does not warn for @impl when the function has more args than callback, but they're all defaulted" do
     assert capture_err(fn ->
              Code.eval_string(~S"""
              defmodule Kernel.ImplTest.ImplAttributes do
@@ -422,44 +405,6 @@ defmodule Kernel.ImplTest do
              end
              """)
            end) == ""
-  end
-
-  test "warns for impl when module name doesn't match impl" do
-    error =
-      capture_err(fn ->
-        Code.eval_string(~S"""
-        defmodule Kernel.ImplTest.ImplAttributes do
-          @behaviour Kernel.ImplTest.BehaviourWithArgument
-          @behaviour Kernel.ImplTest.BehaviourWithThreeArguments
-
-          @impl Kernel.ImplTest.BehaviourWithThreeArguments
-          def foo(_foo \\ [], _bar \\ []), do: :ok
-
-          @impl Kernel.ImplTest.BehaviourWithArgument
-          def foo(_foo, _bar, _baz, _qux \\ []), do: :ok
-        end
-        """)
-      end)
-
-    assert error =~
-             "got \"@impl Kernel.ImplTest.BehaviourWithThreeArguments\" for function foo/2 but this behaviour does not specify such callback"
-
-    assert error =~
-             "got \"@impl Kernel.ImplTest.BehaviourWithArgument\" for function foo/4 but this behaviour does not specify such callback"
-  end
-
-  test "warns for @impl when the callback doesn't have enough args" do
-    assert capture_err(fn ->
-             Code.eval_string(~S"""
-             defmodule Kernel.ImplTest.ImplAttributes do
-               @behaviour Kernel.ImplTest.BehaviourWithArgument
-
-               @impl true
-               def foo(), do: :ok
-             end
-             """)
-           end) =~
-             "got \"@impl true\" for function foo/0 but no behaviour specifies such callback"
   end
 
   test "does not warn for no @impl when overriding callback" do
