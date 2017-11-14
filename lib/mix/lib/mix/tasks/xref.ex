@@ -207,7 +207,7 @@ defmodule Mix.Tasks.Xref do
   information from. To get the function calls of each child in an umbrella,
   execute the function at the root of each individual application.
   """
-  @spec calls(list()) :: [
+  @spec calls(keyword()) :: [
           %{
             callee: {module(), atom(), arity()},
             caller_module: module(),
