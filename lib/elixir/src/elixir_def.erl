@@ -99,6 +99,10 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   %% extract meta information like file and context.
   {_, Meta, _} = Call,
   DoCheckClauses = (not lists:keymember(context, 1, Meta)) andalso (CheckClauses),
+  Generated = case lists:keyfind(generated, 1, Meta) of
+    {generated, true} -> ?generated([]);
+    _ -> []
+  end,
 
   %% Check if there is a file information in the definition.
   %% If so, we assume this come from another source and
@@ -117,7 +121,6 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   LinifyArgs   = elixir_quote:linify(Line, Key, Args),
   LinifyGuards = elixir_quote:linify(Line, Key, Guards),
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
-  Generated    = case DoCheckClauses of true -> []; false -> ?generated([]) end,
 
   {File, DefMeta} =
     case retrieve_location(Location, ?key(E, module)) of
