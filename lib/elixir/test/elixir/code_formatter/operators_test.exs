@@ -125,6 +125,11 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "(not foo) in bar"
       assert_same "(!foo) in bar"
     end
+
+    test "bitwise precedence" do
+      assert_format "(crc ^^^ byte) &&& 0xFF", "crc ^^^ byte &&& 0xFF"
+      assert_same "(crc >>> 8) ^^^ byte"
+    end
   end
 
   describe "binary operators with preceding new line" do
