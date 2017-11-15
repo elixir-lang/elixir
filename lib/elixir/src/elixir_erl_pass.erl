@@ -371,10 +371,30 @@ translate_with_else(Meta, [{else, Else}], S) ->
   RaiseExpr = {{'.', Generated, [erlang, error]}, Generated, [{with_clause, RaiseVar}]},
   RaiseClause = {'->', Generated, [[RaiseVar], RaiseExpr]},
 
-  GeneratedElse = [{'->', ?generated(ElseMeta), ElseArgs} || {'->', ElseMeta, ElseArgs} <- Else],
+  GeneratedElse = [build_generated_clause(Generated, ElseClause) || ElseClause <- Else],
+
   Case = {'case', [{export_vars, false} | Generated], [ElseVarEx, [{do, GeneratedElse ++ [RaiseClause]}]]},
   {TranslatedCase, SC} = elixir_erl_pass:translate(Case, SV),
   {{clause, ?ann(Generated), [ElseVarErl], [], [TranslatedCase]}, SC}.
+
+build_generated_clause(Generated, {'->', _, [Args, Clause]}) ->
+  NewArgs = [build_generated_clause_arg(Generated, Arg) || Arg <- Args],
+  {'->', Generated, [NewArgs, Clause]}.
+
+build_generated_clause_arg(Generated, Arg) ->
+  {Expr, Guards} = elixir_utils:extract_guards(Arg),
+  NewGuards = [build_generated_guard(Generated, Guard) || Guard <- Guards],
+  concat_guards(Generated, Expr, NewGuards).
+
+build_generated_guard(Generated, {{'.', _, _} = Call, _, Args}) ->
+  {Call, Generated, [build_generated_guard(Generated, Arg) || Arg <- Args]};
+build_generated_guard(_, Expr) ->
+  Expr.
+
+concat_guards(_Meta, Expr, []) ->
+  Expr;
+concat_guards(Meta, Expr, [Guard | Tail]) ->
+  {'when', Meta, [Expr, concat_guards(Meta, Guard, Tail)]}.
 
 translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], Do, Else, S) ->
   {Args, Guards} = elixir_utils:extract_guards(Left),
