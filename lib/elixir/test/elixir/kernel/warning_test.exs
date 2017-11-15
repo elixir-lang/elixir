@@ -500,6 +500,27 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "generated clause not match" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               defmacro __using__(_) do
+                 quote do
+                   def hello, do: nil
+                   def hello, do: nil
+                 end
+               end
+             end
+             defmodule UseSample do
+               use Sample
+             end
+             """)
+           end) =~ "this clause cannot match because a previous clause at line 10 always matches"
+  after
+    purge(Sample)
+    purge(UseSample)
+  end
+
   test "clause with defaults should be first" do
     assert capture_err(fn ->
              Code.eval_string(~S"""
