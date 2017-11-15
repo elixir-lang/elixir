@@ -709,8 +709,17 @@ defmodule Logger do
       compile_time_application() ++
         [module: module, function: form_fa(fun), file: file, line: line]
 
+    metadata =
+      if Keyword.keyword?(metadata) do
+        Keyword.merge(caller, metadata)
+      else
+        quote do
+          Keyword.merge(unquote(caller), unquote(metadata))
+        end
+      end
+
     quote do
-      Logger.bare_log(unquote(level), unquote(data), unquote(caller) ++ unquote(metadata))
+      Logger.bare_log(unquote(level), unquote(data), unquote(metadata))
     end
   end
 
