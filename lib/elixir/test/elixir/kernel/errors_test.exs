@@ -9,6 +9,16 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
+  test "no optional arguments in fn" do
+    assert_eval_raise CompileError,
+                      "nofile:1: anonymous functions cannot have optional arguments",
+                      'fn x \\\\ 1 -> x end'
+
+    assert_eval_raise CompileError,
+                      "nofile:1: anonymous functions cannot have optional arguments",
+                      'fn x, y \\\\ 1 -> x + y end'
+  end
+
   test "invalid token" do
     assert_eval_raise SyntaxError,
                       "nofile:1: unexpected token: \"\u200B\" (column 7, codepoint U+200B)",
