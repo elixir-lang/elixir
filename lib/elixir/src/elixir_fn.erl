@@ -7,7 +7,6 @@
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
   Transformer = fun({_, _, [Left, Right]} = Clause) ->
-
     InvalidArgs = fun(Args) ->
       case Args of
         {'\\\\', _, _} -> true;
