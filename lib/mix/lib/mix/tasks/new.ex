@@ -108,6 +108,7 @@ defmodule Mix.Tasks.New do
 
     create_directory("test")
     create_file("test/test_helper.exs", test_helper_template(assigns))
+    create_file("test/support/.gitkeep", "")
     create_file("test/#{app}_test.exs", test_template(assigns))
 
     """
@@ -295,6 +296,7 @@ defmodule Mix.Tasks.New do
         app: :<%= @app %>,
         version: "0.1.0",
         elixir: "~> <%= @version %>",
+        elixirc_paths: elixirc_paths(Mix.env()),
         start_permanent: Mix.env() == :prod,
         deps: deps()
       ]
@@ -306,6 +308,10 @@ defmodule Mix.Tasks.New do
         extra_applications: [:logger]<%= @sup_app %>
       ]
     end
+
+    # Compile `.ex` files in `test/support` for testing protocols, etc
+    defp elixirc_paths(:test), do: ["lib", "test/support"]
+    defp elixirc_paths(_), do: ["lib"]
 
     # Run "mix help deps" to learn about dependencies.
     defp deps do
