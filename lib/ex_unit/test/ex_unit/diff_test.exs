@@ -446,10 +446,10 @@ defmodule ExUnit.DiffTest do
     opaque2 = %Opaque{x: 2}
 
     assert script(opaque1, opaque2) == [
-      {:eq, "%ExUnit.DiffTest.Opaque{"},
-      [[{:eq, "x: "}, [del: "1", ins: "2"]]],
-      {:eq, "}"}
-    ]
+             {:eq, "%ExUnit.DiffTest.Opaque{"},
+             [[{:eq, "x: "}, [del: "1", ins: "2"]]],
+             {:eq, "}"}
+           ]
   end
 
   test "not supported" do
