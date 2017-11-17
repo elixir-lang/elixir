@@ -24,9 +24,13 @@ defmodule ExUnit.Diff do
 
   # Structs
   def script(%name{} = left, %name{} = right) do
-    left = Map.from_struct(left)
-    right = Map.from_struct(right)
-    script_map(left, right, inspect(name))
+    if Inspect.impl_for(left) != Inspect.Any and inspect(left) != inspect(right) do
+      script_string(inspect(left), inspect(right))
+    else
+      left = Map.from_struct(left)
+      right = Map.from_struct(right)
+      script_map(left, right, inspect(name))
+    end
   end
 
   # Maps
