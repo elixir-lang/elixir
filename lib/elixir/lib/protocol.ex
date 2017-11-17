@@ -702,7 +702,8 @@ defmodule Protocol do
     if Protocol.consolidated?(protocol) do
       message =
         "the #{inspect(protocol)} protocol has already been consolidated" <>
-          ", an implementation for #{inspect(for)} has no effect"
+          ", an implementation for #{inspect(for)} has no effect. " <>
+          "For testing define the protocol in `test/support/<file>.ex`"
 
       :elixir_errors.warn(env.line, env.file, message)
     end
