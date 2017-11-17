@@ -10,6 +10,9 @@ defmodule Mix.Tasks.NewTest do
       assert_file("hello_world/mix.exs", fn file ->
         assert file =~ "app: :hello_world"
         assert file =~ "version: \"0.1.0\""
+        assert file =~ "elixirc_paths: elixirc_paths(Mix.env()),"
+        assert file =~ "defp elixirc_paths(:test), do: [\"lib\", \"test/support\"]"
+        assert file =~ "defp elixirc_paths(_), do: [\"lib\"]"
       end)
 
       assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
@@ -18,6 +21,7 @@ defmodule Mix.Tasks.NewTest do
       assert_file("hello_world/lib/hello_world.ex", ~r/defmodule HelloWorld do/)
 
       assert_file("hello_world/test/test_helper.exs", ~r/ExUnit.start()/)
+      assert_file("hello_world/test/support/.gitkeep")
 
       assert_file("hello_world/test/hello_world_test.exs", fn file ->
         assert file =~ ~r/defmodule HelloWorldTest do/
