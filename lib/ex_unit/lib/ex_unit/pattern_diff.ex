@@ -200,7 +200,7 @@ defmodule ExUnit.PatternDiff do
 
   defp compare_list(%{ast: [{:|, _, [head, tail]} | _rest]}, [rh_head | rh_tail], env) do
     head_pattern = %{ast: head, type: :cons_l}
-    tail_pattern = %{ast: tail}
+    tail_pattern = %{ast: tail, type: :cons_r}
     {h, env} = cmp(head_pattern, rh_head, env)
     {t, env} = cmp(tail_pattern, rh_tail, env)
     {[h, t], env}
@@ -251,14 +251,14 @@ defmodule ExUnit.PatternDiff do
 
   defp compare_map_items(pattern, [lh_h | lh_t], rh_map, env) do
     {key, lh_value} = lh_h
-
+    map_key = translate_key(key, env)
     {rh_value, rh_map} =
-      case Map.pop(rh_map, key) do
+      case Map.pop(rh_map, map_key) do
         {nil, rh_map} ->
           {@no_value, rh_map}
 
         {val, map} ->
-          {{key, val}, map}
+          {{map_key, val}, map}
       end
 
     {h, env} = cmp(%{ast: {key, lh_value}}, rh_value, env)
@@ -324,5 +324,12 @@ defmodule ExUnit.PatternDiff do
     result = if :erlang.apply(Kernel, atom, v), do: :eq, else: :neq
 
     %WhenDiff{op: atom, bindings: bindings, result: result}
+  end
+
+  defp translate_key({:^, _, [{pin, _, _}]}, {_vars, pins}) do
+    pins[pin]
+  end
+  defp translate_key(rest, _) do
+    rest
   end
 end
