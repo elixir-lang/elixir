@@ -5,7 +5,6 @@ defmodule ExUnit.PatternDiffMapTest do
 
   alias ExUnit.{ContainerDiff, Pattern, PatternDiff}
 
-  describe "compare maps" do
     test "that a map can compare" do
       simple =
         quote do
@@ -142,5 +141,38 @@ defmodule ExUnit.PatternDiffMapTest do
       assert actual == expected_no_match
     end
 
-  end
+    test "map with a pinned key" do
+      simple = quote do
+        %{^a => 1}
+      end
+      pattern = Pattern.new(simple, [a: :a], [])
+      actual = PatternDiff.cmp(pattern, %{a: 1})
+
+      expected_match = %ContainerDiff{
+        type: :map,
+        items: [
+          %ContainerDiff {
+            type: :tuple,
+            items: [
+              %PatternDiff{
+                type: :value,
+                lh: %{ast: {:^, [], [{:a, [], ExUnit.PatternDiffMapTest}]}},
+                rh: :a,
+                diff_result: :eq
+              },
+              %PatternDiff{
+                type: :value,
+                lh: %{ast: 1},
+                rh: 1,
+                diff_result: :eq
+              }
+            ]
+          }
+        ]
+      }
+      assert actual == expected_match
+      a = :a
+      assert match?(%{^a => 1}, %{a: 2})
+    end
+
 end
