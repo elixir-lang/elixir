@@ -9,6 +9,16 @@ defmodule ExUnit.DiffTest do
     defstruct [:age]
   end
 
+  defmodule Opaque do
+    defstruct [:x]
+
+    defimpl Inspect do
+      def inspect(_, _) do
+        "#Opaque<???>"
+      end
+    end
+  end
+
   test "numbers" do
     int1 = 491_512_235
     int2 = 490_512_035
@@ -422,6 +432,24 @@ defmodule ExUnit.DiffTest do
     assert script(user1, user2) == expected
     assert script(%User{}, %{}) == nil
     assert script(%User{}, %ExUnit.Test{}) == nil
+  end
+
+  test "structs with inspect" do
+    date1 = ~D[2017-10-01]
+    date2 = ~D[2017-10-02]
+
+    assert script(date1, date2) == [eq: "~D[2017-10-0", del: "1", ins: "2", eq: "]"]
+  end
+
+  test "structs with no inspect difference" do
+    opaque1 = %Opaque{x: 1}
+    opaque2 = %Opaque{x: 2}
+
+    assert script(opaque1, opaque2) == [
+             {:eq, "%ExUnit.DiffTest.Opaque{"},
+             [[{:eq, "x: "}, [del: "1", ins: "2"]]],
+             {:eq, "}"}
+           ]
   end
 
   test "not supported" do
