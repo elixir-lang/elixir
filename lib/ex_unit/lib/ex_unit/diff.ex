@@ -24,9 +24,18 @@ defmodule ExUnit.Diff do
 
   # Structs
   def script(%name{} = left, %name{} = right) do
-    left = Map.from_struct(left)
-    right = Map.from_struct(right)
-    script_map(left, right, inspect(name))
+    if Inspect.impl_for(left) != Inspect.Any do
+      inspect_left = inspect(left)
+      inspect_right = inspect(right)
+
+      if inspect_left != inspect_right do
+        script_string(inspect_left, inspect_right)
+      else
+        script_struct(left, right)
+      end
+    else
+      script_struct(left, right)
+    end
   end
 
   # Maps
@@ -433,6 +442,12 @@ defmodule ExUnit.Diff do
 
     [[_ | elem_diff] | rest] = result
     [{:eq, "%" <> name <> "{"}, [elem_diff | rest], {:eq, "}"}]
+  end
+
+  defp script_struct(%name{} = left, %name{} = right) do
+    left = Map.from_struct(left)
+    right = Map.from_struct(right)
+    script_map(left, right, inspect(name))
   end
 
   defp map_difference(map1, map2) do
