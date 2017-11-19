@@ -65,9 +65,14 @@ defmodule ExUnit.CaseTemplate do
 
   ## Example
 
-      using do
-        quote do
-          alias MyApp.FunModule
+      defmodule MyCase do
+        use ExUnit.CaseTemplate
+
+        using do
+          quote do
+            # This code is injected into every case that calls "use MyCase"
+            alias MyApp.FunModule
+          end
         end
       end
 
