@@ -688,6 +688,15 @@ defmodule MacroTest do
         assert __MODULE__ in __ENV__.context_modules
       end
     end
+
+    test "to_match/1" do
+      quote = quote(do: x in [])
+
+      assert {{:., _, [{:__aliases__, _, [Elixir, :Enum]}, :member?]}, _, _} =
+               Macro.expand_once(quote, __ENV__)
+
+      assert Macro.expand_once(quote, Macro.Env.to_match(__ENV__)) == false
+    end
   end
 
   ## pipe/unpipe

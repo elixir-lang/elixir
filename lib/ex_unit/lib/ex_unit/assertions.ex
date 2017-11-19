@@ -399,9 +399,10 @@ defmodule ExUnit.Assertions do
     binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
-    pattern = expand_pattern(pattern, caller)
-    vars = collect_vars_from_pattern(pattern)
-    pins = collect_pins_from_pattern(pattern, caller.vars)
+    caller = Macro.Env.to_match(caller)
+    expanded = expand_pattern(pattern, caller)
+    vars = collect_vars_from_pattern(expanded)
+    pins = collect_pins_from_pattern(expanded, caller.vars)
 
     pattern =
       case pattern do

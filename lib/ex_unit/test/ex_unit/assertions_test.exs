@@ -230,6 +230,15 @@ defmodule ExUnit.AssertionsTest do
     assert a == :hello
   end
 
+  require Record
+  Record.defrecordp(:vec, x: 0, y: 0, z: 0)
+
+  test "assert_receive should not expand argument" do
+    {x, y, z} = {1, 2, 3}
+    send(self(), vec(x: x, y: y, z: z))
+    assert_receive vec(x: ^x, y: ^y)
+  end
+
   test "assert received does not wait" do
     send(self(), :hello)
     :hello = assert_received :hello
