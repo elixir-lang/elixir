@@ -2,13 +2,13 @@ defmodule ExUnit.Callbacks do
   @moduledoc ~S"""
   Defines ExUnit callbacks.
 
-  This module defines both `setup_all` and `setup` callbacks, as well as
+  This module defines both `setup` and `setup_all` callbacks, as well as
   the `on_exit/2`, `start_supervised/2` and `stop_supervised/1` functions.
 
   The setup callbacks are defined via macros and each one can optionally
-  receive a map with metadata, usually referred to as `context`. The
-  callback may optionally put extra data into the `context` to be used in
-  the tests.
+  receive a map with metadata, usually referred to as `context`. The context
+  to be used in the tests can be optionally extended by the callbacks by
+  returning a properly structured value (see below).
 
   The `setup_all` callbacks are invoked only once per module, before any
   test runs. All `setup` callbacks are run before each test. No callback
@@ -43,14 +43,13 @@ defmodule ExUnit.Callbacks do
 
   ## Context
 
-  If you return a keyword list, a map, or `{:ok, keywords | map}` from
-  `setup_all`, the keyword list/map will be merged into the current context and
-  be available in all subsequent `setup_all`, `setup`, and the `test` itself.
+  If `setup_all` returns a keyword list, a map, or `{:ok, keywords | map}`,
+  the keyword list/map will be merged into the current context and will be
+  available in all subsequent `setup_all`, `setup`, and the `test` itself.
 
-  Similarly, returning a keyword list, map, or `{:ok, keywords | map}` from
-  `setup` means that the returned keyword list/map will be merged into the
-  current context and be available in all subsequent `setup` and the `test`
-  itself.
+  Similarly, if `setup` returns a keyword list, map, or `{:ok, keywords | map}`,
+  the returned keyword list/map will be merged into the current context and will
+  be available in all subsequent `setup` and the `test` itself.
 
   Returning `:ok` leaves the context unchanged (both in `setup` and `setup_all`
   callbacks).
@@ -67,7 +66,7 @@ defmodule ExUnit.Callbacks do
         setup_all do
           IO.puts "Starting AssertionTest"
 
-          # No context is returned here
+          # Context is not updated here
           :ok
         end
 
@@ -81,6 +80,11 @@ defmodule ExUnit.Callbacks do
 
           # Returns extra metadata to be merged into context
           [hello: "world"]
+
+          # Similarly, any of the following would work:
+          #   {:ok, [hello: "world"]}
+          #   %{hello: "world"}
+          #   {:ok, %{hello: "world"}}
         end
 
         # Same as above, but receives the context as argument
@@ -98,6 +102,7 @@ defmodule ExUnit.Callbacks do
 
         test "uses metadata from setup", context do
           assert context[:hello] == "world"
+          assert context[:from_named_setup] == true
         end
 
         defp invoke_local_or_imported_function(context) do
