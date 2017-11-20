@@ -610,11 +610,11 @@ defmodule DateTime do
   @doc """
   Compares two datetime structs.
 
-  Returns `:gt` if first datetime is later than the second
+  Returns `:gt` if the first datetime is later than the second
   and `:lt` for vice versa. If the two datetimes are equal
   `:eq` is returned.
 
-  Note that both utc and stc offsets will be taken into
+  Note that both UTC and Standard offsets will be taken into
   account when comparison is done.
 
   ## Examples
