@@ -364,6 +364,24 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "do at the end of the line" do
+    bad = """
+    foo bar, baz, quux do
+      :ok
+    end
+    """
+
+    good = """
+    foo bar,
+        baz,
+        quux do
+      :ok
+    end
+    """
+
+    assert_format bad, good, line_length: 18
+  end
+
   test "tuples as trees" do
     bad = """
     @document Parser.parse(

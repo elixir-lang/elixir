@@ -339,7 +339,8 @@ defmodule Task.SupervisorTest do
                [ok: other_supervisor, ok: supervisor, ok: other_supervisor, ok: supervisor]
     end
 
-    test "streams an enumerable with fun and executes supervisor fun in monitor process", context do
+    test "streams an enumerable with fun and executes supervisor fun in monitor process",
+         context do
       %{supervisor: supervisor} = context
       parent = self()
 
