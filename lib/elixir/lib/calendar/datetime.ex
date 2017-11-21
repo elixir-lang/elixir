@@ -460,7 +460,7 @@ defmodule DateTime do
   Parses the extended "Date and time of day" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  Since ISO8601 does not include the proper time zone, the given
+  Since ISO 8601 does not include the proper time zone, the given
   string will be converted to UTC and its offset in seconds will be
   returned as part of this function. Therefore offset information
   must be present in the string.
@@ -470,7 +470,7 @@ defmodule DateTime do
 
   Time representations with reduced accuracy are not supported.
 
-  Note that while ISO8601 allows datetimes to specify 24:00:00 as the
+  Note that while ISO 8601 allows datetimes to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
 
   ## Examples

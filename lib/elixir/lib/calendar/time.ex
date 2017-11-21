@@ -184,7 +184,7 @@ defmodule Time do
 
   Time representations with reduced accuracy are not supported.
 
-  Note that while ISO8601 allows times to specify 24:00:00 as the
+  Note that while ISO 8601 allows times to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
 
   ## Examples

@@ -1,6 +1,6 @@
 defmodule Calendar.ISO do
   @moduledoc """
-  A calendar implementation that follows to ISO8601.
+  A calendar implementation that follows to ISO 8601.
 
   This calendar implements the proleptic Gregorian calendar and
   is therefore compatible with the calendar used in most countries
@@ -8,7 +8,7 @@ defmodule Calendar.ISO do
   applied for all time, consequently the dates give different results
   before the year 1583 from when the Gregorian calendar was adopted.
 
-  Note that while ISO8601 allows times and datetimes to specify
+  Note that while ISO 8601 allows times and datetimes to specify
   24:00:00 as the zero hour of the next day, this notation is not
   supported by Elixir.
   """
