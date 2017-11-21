@@ -206,6 +206,37 @@ defmodule URI do
     {next_pair, rest}
   end
 
+  @spec is_uri?(atom, binary) :: boolean
+  defp is_uri?(:valid, url) do
+    case String.starts_with?(url, "http") do
+      true ->
+        Regex.match?(
+          ~r/(http[s]?|ftp):\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/,
+          url
+        )
+
+      false ->
+        Regex.match?(~r"^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?", url)
+    end
+  end
+
+  @doc """
+  Checks if the URI is a "valid" using Regex.
+
+  ## Examples
+
+      iex> URI.is_uri?("https://elixir-lang.org/")
+      true
+
+  """
+  @spec is_uri?(binary) :: boolean
+  def is_uri?(url) when is_binary(url) do
+    case String.match?(url, ~r/^[a-zA-Z]/) do
+      true -> is_uri?(:valid, url)
+      false -> false
+    end
+  end
+
   @doc """
   Checks if the character is a "reserved" character in a URI.
 
