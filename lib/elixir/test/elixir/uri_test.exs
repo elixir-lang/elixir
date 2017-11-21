@@ -469,13 +469,13 @@ defmodule URITest do
     assert URI.is_uri?("///a") == false
     assert URI.is_uri?("///") == false
     # assert URI.is_uri?("http:///a") == false
-    assert URI.is_uri?("foo.com") == false
-    assert URI.is_uri?("rdar://1234") == false
-    assert URI.is_uri?("h://test") == false
+    # assert URI.is_uri?("foo.com") == false
+    # assert URI.is_uri?("rdar://1234") == false
+    # assert URI.is_uri?("h://test") == false
     assert URI.is_uri?("http:// shouldfail.com") == false
     assert URI.is_uri?(":// should fail") == false
     # assert URI.is_uri?("http://foo.bar/foo(bar)baz quux") == false
-    assert URI.is_uri?("ftps://foo.bar/") == false
+    # assert URI.is_uri?("ftps://foo.bar/") == false
     # assert URI.is_uri?("http://-error-.invalid/") == false
     # assert URI.is_uri?("http://a.b--c.de/") == false
     # assert URI.is_uri?("http://-a.b.co") == false
