@@ -246,12 +246,7 @@ defmodule Calendar do
   def truncate(microsecond_tuple, :microsecond), do: microsecond_tuple
 
   def truncate({microsecond, precision}, :millisecond) do
-    output_precision =
-      case precision do
-        precision when precision >= 3 -> 3
-        _ -> precision
-      end
-
+    output_precision = min(precision, 3)
     {div(microsecond, 1000) * 1000, output_precision}
   end
 
