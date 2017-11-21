@@ -205,6 +205,7 @@ defmodule URI do
 
     {next_pair, rest}
   end
+
   @doc """
   Checks if the URI is a "valid" using Regex.
 
@@ -216,9 +217,11 @@ defmodule URI do
   """
   @spec is_uri?(binary) :: boolean
   def is_uri?(url) when is_binary(url) do
-      Regex.match?(~r/(http[s]?|ftp):\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/, url)
+    Regex.match?(
+      ~r/(http[s]?|ftp):\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+/,
+      url
+    )
   end
-
 
   @doc """
   Checks if the character is a "reserved" character in a URI.

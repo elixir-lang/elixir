@@ -422,7 +422,7 @@ defmodule URITest do
     assert URI.is_uri?("http://foo.com/blah_blah_(wikipedia)_(again)") == true
     assert URI.is_uri?("http://www.example.com/wpstyle/?p=364") == true
     assert URI.is_uri?("https://www.example.com/foo/?bar=baz&inga=42&quux") == true
-    #assert URI.is_uri?("http://✪df.ws/123") == true
+    # assert URI.is_uri?("http://✪df.ws/123") == true
     assert URI.is_uri?("http://userid:password@example.com:8080") == true
     assert URI.is_uri?("http://userid:password@example.com:8080/") == true
     assert URI.is_uri?("http://userid@example.com") == true
@@ -433,63 +433,63 @@ defmodule URITest do
     assert URI.is_uri?("http://userid:password@example.com/") == true
     assert URI.is_uri?("http://142.42.1.1/") == true
     assert URI.is_uri?("http://142.42.1.1:8080/") == true
-    #assert URI.is_uri?("http://➡.ws/䨹") == true
-    #assert URI.is_uri?("http://⌘.ws") == true
-    #assert URI.is_uri?("http://⌘.ws/") == true
+    # assert URI.is_uri?("http://➡.ws/䨹") == true
+    # assert URI.is_uri?("http://⌘.ws") == true
+    # assert URI.is_uri?("http://⌘.ws/") == true
     assert URI.is_uri?("http://foo.com/blah_(wikipedia)#cite-1") == true
     assert URI.is_uri?("http://foo.com/blah_(wikipedia)_blah#cite-1") == true
     assert URI.is_uri?("http://foo.com/unicode_(✪)_in_parens") == true
     assert URI.is_uri?("http://foo.com/(something)?after=parens") == true
-    #assert URI.is_uri?("http://☺.damowmow.com/") == true
+    # assert URI.is_uri?("http://☺.damowmow.com/") == true
     assert URI.is_uri?("http://code.google.com/events/#&product=browser") == true
     assert URI.is_uri?("http://j.mp") == true
     assert URI.is_uri?("ftp://foo.bar/baz") == true
     assert URI.is_uri?("http://foo.bar/?q=Test%20URL-encoded%20stuff") == true
-    #assert URI.is_uri?("http://مثال.إختبار") == true
-    #assert URI.is_uri?("http://例子.测试") == true
-    #assert URI.is_uri?("http://उदाहरण.परीक्षा") == true
+    # assert URI.is_uri?("http://مثال.إختبار") == true
+    # assert URI.is_uri?("http://例子.测试") == true
+    # assert URI.is_uri?("http://उदाहरण.परीक्षा") == true
     assert URI.is_uri?("http://-.~_!$&'()*+,;=:%40:80%2f::::::@example.com") == true
     assert URI.is_uri?("http://1337.net") == true
-    #assert URI.is_uri?("http://a.b-c.de") == true
+    # assert URI.is_uri?("http://a.b-c.de") == true
     assert URI.is_uri?("http://223.255.255.254") == true
     # Invalid cases
     assert URI.is_uri?("http://") == false
-    #assert URI.is_uri?("http://.") == false
-    #assert URI.is_uri?("http://..") == false
-    #assert URI.is_uri?("http://../") == false
-    #assert URI.is_uri?("http://?") == false
-    #assert URI.is_uri?("http://??") == false
-    #assert URI.is_uri?("http://??/") == false
+    # assert URI.is_uri?("http://.") == false
+    # assert URI.is_uri?("http://..") == false
+    # assert URI.is_uri?("http://../") == false
+    # assert URI.is_uri?("http://?") == false
+    # assert URI.is_uri?("http://??") == false
+    # assert URI.is_uri?("http://??/") == false
     assert URI.is_uri?("http://#") == false
     assert URI.is_uri?("http://##") == false
     assert URI.is_uri?("http://##/") == false
-    #assert URI.is_uri?("http://foo.bar?q=Spaces should be encoded") == false
+    # assert URI.is_uri?("http://foo.bar?q=Spaces should be encoded") == false
     assert URI.is_uri?("//") == false
     assert URI.is_uri?("//a") == false
     assert URI.is_uri?("///a") == false
     assert URI.is_uri?("///") == false
-    #assert URI.is_uri?("http:///a") == false
+    # assert URI.is_uri?("http:///a") == false
     assert URI.is_uri?("foo.com") == false
     assert URI.is_uri?("rdar://1234") == false
     assert URI.is_uri?("h://test") == false
     assert URI.is_uri?("http:// shouldfail.com") == false
     assert URI.is_uri?(":// should fail") == false
-    #assert URI.is_uri?("http://foo.bar/foo(bar)baz quux") == false
+    # assert URI.is_uri?("http://foo.bar/foo(bar)baz quux") == false
     assert URI.is_uri?("ftps://foo.bar/") == false
-    #assert URI.is_uri?("http://-error-.invalid/") == false
-    #assert URI.is_uri?("http://a.b--c.de/") == false
-    #assert URI.is_uri?("http://-a.b.co") == false
-    #assert URI.is_uri?("http://a.b-.co") == false
-    #assert URI.is_uri?("http://0.0.0.0") == false
-    #assert URI.is_uri?("http://10.1.1.0") == false
-    #assert URI.is_uri?("http://10.1.1.255") == false
-    #assert URI.is_uri?("http://224.1.1.1") == false
-    #assert URI.is_uri?("http://1.1.1.1.1") == false
-    #assert URI.is_uri?("http://123.123.123") == false
-    #assert URI.is_uri?("http://3628126748") == false
-    #assert URI.is_uri?("http://.www.foo.bar/") == false
-    #assert URI.is_uri?("http://www.foo.bar./") == false
-    #assert URI.is_uri?("http://.www.foo.bar./") == false
-    #assert URI.is_uri?("http://10.1.1.1") == false
+    # assert URI.is_uri?("http://-error-.invalid/") == false
+    # assert URI.is_uri?("http://a.b--c.de/") == false
+    # assert URI.is_uri?("http://-a.b.co") == false
+    # assert URI.is_uri?("http://a.b-.co") == false
+    # assert URI.is_uri?("http://0.0.0.0") == false
+    # assert URI.is_uri?("http://10.1.1.0") == false
+    # assert URI.is_uri?("http://10.1.1.255") == false
+    # assert URI.is_uri?("http://224.1.1.1") == false
+    # assert URI.is_uri?("http://1.1.1.1.1") == false
+    # assert URI.is_uri?("http://123.123.123") == false
+    # assert URI.is_uri?("http://3628126748") == false
+    # assert URI.is_uri?("http://.www.foo.bar/") == false
+    # assert URI.is_uri?("http://www.foo.bar./") == false
+    # assert URI.is_uri?("http://.www.foo.bar./") == false
+    # assert URI.is_uri?("http://10.1.1.1") == false
   end
 end
