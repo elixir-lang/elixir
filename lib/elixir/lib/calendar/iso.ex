@@ -17,7 +17,7 @@ defmodule Calendar.ISO do
 
   @unix_epoch 62_167_219_200
   @unix_start 1_000_000 * -@unix_epoch
-  @unix_end 1_000_000 * (315_569_519_999 - @unix_epoch)
+  @unix_end 315_569_519_999_999_999 - @unix_epoch * 1_000_000
   @unix_range_microseconds @unix_start..@unix_end
 
   @type year :: 0..9999
