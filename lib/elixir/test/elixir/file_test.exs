@@ -723,6 +723,18 @@ defmodule FileTest do
       refute File.exists?(fixture_path("missing.txt"))
       refute File.exists?("_missing.txt")
     end
+
+    test "exists with dangling symlink" do
+      invalid_file = tmp_path("invalid_file")
+      dest = tmp_path("dangling_symlink")
+      File.ln_s(invalid_file, dest)
+
+      try do
+        refute File.exists?(dest)
+      after
+        File.rm(dest)
+      end
+    end
   end
 
   test "ls" do
