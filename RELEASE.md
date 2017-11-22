@@ -10,23 +10,25 @@ This document simply outlines the release process:
 
 3. Ensure CHANGELOG is updated and add current date
 
-4. If a new `vMAJOR.MINOR`, replace "master" with "vVERSION" in the "Deprecations" page and commit
+4. If a new `vMAJOR.MINOR`, replace "master" with "vVERSION" in the "Compatibility and Deprecations" page and commit
 
 5. If a new `vMAJOR.MINOR`, create a new branch "vMAJOR.MINOR" and set `CANONICAL=` in Makefile
 
-6. Commit changes above with title "Release vVERSION" and generate new tag
+6. Add an entry for the new version to the OTP compatibility table in the "Compatibility and Deprecations" page
 
-7. Run `make clean test` to ensure all tests pass from scratch and the CI is green
+7. Commit changes above with title "Release vVERSION" and generate new tag
 
-8. Recompile an existing project (for example, Ecto) to ensure manifests can be upgraded
+8. Run `make clean test` to ensure all tests pass from scratch and the CI is green
 
-9. Push branch and the new tag
+9. Recompile an existing project (for example, Ecto) to ensure manifests can be upgraded
 
-10. Publish new zips with `make zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases
+10. Push branch and the new tag
 
-11. Add the release to `elixir.csv` and `_data/elixir-versions.yml` files in `elixir-lang/elixir-lang.github.com`
+11. Publish new zips with `make zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases
 
-12. After a new `vMAJOR.MINOR`, move back to master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vMAJOR.MINOR+1"
+12. Add the release to `elixir.csv` and `_data/elixir-versions.yml` files in `elixir-lang/elixir-lang.github.com`
+
+13. After a new `vMAJOR.MINOR`, move back to master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vMAJOR.MINOR+1"
 
 ## Places where version is mentioned
 

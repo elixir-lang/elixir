@@ -1,16 +1,58 @@
-# Deprecations
+# Compatibility and Deprecations
 
-## Policy
+## Compatibility between Elixir and Erlang/OTP
+
+Erlang/OTP versioning is independent from the versioning of Elixir. Each version of Elixir supports a specific range of Erlang/OTP versions. The compatibility table is show below.
+
+### Table of Erlang/OTP compatibility
+
+Elixir version | Minimum required Erlang/OTP version | Maximum supported Erlang/OTP version
+:------------- | :---------------------------------- | :-----------------------------------
+v1.0.0         | 17                                  | 17
+v1.0.1         | 17                                  | 17
+v1.0.2         | 17                                  | 17
+v1.0.3         | 17                                  | 17
+v1.0.4         | 17                                  | 17
+v1.0.5         | 17                                  | 18
+v1.1.0         | 17                                  | 18
+v1.1.1         | 17                                  | 18
+v1.2.0         | 18                                  | 18
+v1.2.1         | 18                                  | 18
+v1.2.2         | 18                                  | 18
+v1.2.3         | 18                                  | 18
+v1.2.4         | 18                                  | 18
+v1.2.5         | 18                                  | 18
+v1.2.6         | 18                                  | 19
+v1.3.0         | 18                                  | 19
+v1.3.1         | 18                                  | 19
+v1.3.2         | 18                                  | 19
+v1.3.3         | 18                                  | 19
+v1.3.4         | 18                                  | 19
+v1.4.0         | 18                                  | 19
+v1.4.1         | 18                                  | 19
+v1.4.2         | 18                                  | 19
+v1.4.3         | 18                                  | 19
+v1.4.4         | 18                                  | 19
+v1.4.5         | 18                                  | 20
+v1.5.0         | 18                                  | 20
+v1.5.1         | 18                                  | 20
+v1.5.2         | 18                                  | 20
+
+
+
+## Deprecations
+
+### Policy
 
 Elixir deprecations happen in 3 steps:
 
   1. The feature is soft-deprecated. It means both CHANGELOG and documentation must list the feature as deprecated but no warning is effectively emitted by running the code. There is no requirement to soft-deprecate a feature.
 
-  2. The feature is effectively deprecated by emitting warnings on usage. In order to deprecate a feature, the proposed alternative MUST exist for AT LEAST two versions. For example, `Enum.uniq/2` was soft-deprecated in favor of `Enum.uniq_by/2` in Elixir v1.1. This means a deprecation warning may only be emitted by Elixir v1.3 or later.
+  1. The feature is effectively deprecated by emitting warnings on usage. In order to deprecate a feature, the proposed alternative MUST exist for AT LEAST two versions. For example, `Enum.uniq/2` was soft-deprecated in favor of `Enum.uniq_by/2` in Elixir v1.1. This means a deprecation warning may only be emitted by Elixir v1.3 or later.
 
-  3. The feature is removed. This can only happen on major releases. This means deprecated features in Elixir v1.x shall only be removed by Elixir v2.x.
+  1. The feature is removed. This can only happen on major releases. This means deprecated features in Elixir v1.x shall only be removed by Elixir v2.x.
 
-## Table of deprecations
+### Table of deprecations
 
 Deprecated feature                               | Deprecated in | Replaced by (available since)
 :----------------------------------------------- | :------------ | :----------------------------
