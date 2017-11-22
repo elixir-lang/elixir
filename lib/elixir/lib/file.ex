@@ -152,7 +152,7 @@ defmodule File do
 
   @doc """
   Returns `true` if the given path exists.
-  
+
   It can be regular file, directory, socket, symbolic link, named pipe or device file.
   Returns `false` for symbolic links pointing to non-existing targets.
 
@@ -175,7 +175,7 @@ defmodule File do
 
   @doc """
   Tries to create the directory `path`.
-  
+
   Missing parent directories are not created.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
@@ -214,7 +214,7 @@ defmodule File do
 
   @doc """
   Tries to create the directory `path`.
-  
+
   Missing parent directories are created. Returns `:ok` if successful, or
   `{:error, reason}` if an error occurs.
 
