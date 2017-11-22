@@ -2,41 +2,41 @@
 
 ## Compatibility between Elixir and Erlang/OTP
 
-Erlang/OTP versioning is independent from the versioning of Elixir. Each version of Elixir supports a specific range of Erlang/OTP versions. The compatibility table is show below.
+Erlang/OTP versioning is independent from the versioning of Elixir. Each version of Elixir supports a specific range of Erlang/OTP versions. The compatibility table is shown below.
 
 ### Table of Erlang/OTP compatibility
 
-Elixir version | Minimum required Erlang/OTP version | Maximum supported Erlang/OTP version
-:------------- | :---------------------------------- | :-----------------------------------
-v1.0.0         | 17                                  | 17
-v1.0.1         | 17                                  | 17
-v1.0.2         | 17                                  | 17
-v1.0.3         | 17                                  | 17
-v1.0.4         | 17                                  | 17
-v1.0.5         | 17                                  | 18
-v1.1.0         | 17                                  | 18
-v1.1.1         | 17                                  | 18
-v1.2.0         | 18                                  | 18
-v1.2.1         | 18                                  | 18
-v1.2.2         | 18                                  | 18
-v1.2.3         | 18                                  | 18
-v1.2.4         | 18                                  | 18
-v1.2.5         | 18                                  | 18
-v1.2.6         | 18                                  | 19
-v1.3.0         | 18                                  | 19
-v1.3.1         | 18                                  | 19
-v1.3.2         | 18                                  | 19
-v1.3.3         | 18                                  | 19
-v1.3.4         | 18                                  | 19
-v1.4.0         | 18                                  | 19
-v1.4.1         | 18                                  | 19
-v1.4.2         | 18                                  | 19
-v1.4.3         | 18                                  | 19
-v1.4.4         | 18                                  | 19
-v1.4.5         | 18                                  | 20
-v1.5.0         | 18                                  | 20
-v1.5.1         | 18                                  | 20
-v1.5.2         | 18                                  | 20
+Elixir version | Supported Erlang/OTP versions
+:------------- | :----------------------------
+v1.0.0         | 17
+v1.0.1         | 17
+v1.0.2         | 17
+v1.0.3         | 17
+v1.0.4         | 17
+v1.0.5         | 17-18
+v1.1.0         | 17-18
+v1.1.1         | 17-18
+v1.2.0         | 18-18
+v1.2.1         | 18
+v1.2.2         | 18
+v1.2.3         | 18
+v1.2.4         | 18
+v1.2.5         | 18
+v1.2.6         | 18-19
+v1.3.0         | 18-19
+v1.3.1         | 18-19
+v1.3.2         | 18-19
+v1.3.3         | 18-19
+v1.3.4         | 18-19
+v1.4.0         | 18-19
+v1.4.1         | 18-19
+v1.4.2         | 18-19
+v1.4.3         | 18-19
+v1.4.4         | 18-19
+v1.4.5         | 18-20
+v1.5.0         | 18-20
+v1.5.1         | 18-20
+v1.5.2         | 18-20
 
 ## Deprecations
 
