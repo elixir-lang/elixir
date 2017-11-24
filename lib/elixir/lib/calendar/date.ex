@@ -74,9 +74,6 @@ defmodule Date do
       iex> Date.range(~D[1999-01-01], ~D[2000-01-01])
       #DateRange<~D[1999-01-01], ~D[2000-01-01]>
 
-      iex> Date.range(~N[2000-01-01 09:00:00], ~D[1999-01-01])
-      #DateRange<~N[2000-01-01 09:00:00], ~D[1999-01-01]>
-
   A range of dates implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
   ranges:
@@ -90,8 +87,8 @@ defmodule Date do
       -366
   """
 
-  @spec range(Calendar.date(), Calendar.date()) :: Date.Range.t()
-  def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
+  @spec range(Date.t(), Date.t()) :: Date.Range.t()
+  def range(%Date{calendar: calendar} = first, %Date{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
 
@@ -103,7 +100,7 @@ defmodule Date do
     }
   end
 
-  def range(%{calendar: _, year: _, month: _, day: _}, %{calendar: _, year: _, month: _, day: _}) do
+  def range(%Date{}, %Date{}) do
     raise ArgumentError, "both dates must have matching calendars"
   end
 
