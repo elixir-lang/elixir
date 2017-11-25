@@ -55,7 +55,7 @@ defmodule IEx.Helpers do
 
       iex> exports(IEx.Helpers)
 
-  This module also include helpers for debugging purposes, see
+  This module also includes helpers for debugging purposes, see
   `IEx.break!/4` for more information.
 
   To learn more about IEx as a whole, type `h(IEx)`.
