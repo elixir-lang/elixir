@@ -28,9 +28,7 @@ defmodule Integer do
       false
 
   """
-  defmacro is_odd(integer) do
-    quote(do: (unquote(integer) &&& 1) == 1)
-  end
+  defguard is_odd(integer) when is_integer(integer) and (integer &&& 1) == 1
 
   @doc """
   Determines if an `integer` is even.
@@ -55,9 +53,7 @@ defmodule Integer do
       true
 
   """
-  defmacro is_even(integer) do
-    quote(do: (unquote(integer) &&& 1) == 0)
-  end
+  defguard is_even(integer) when is_integer(integer) and (integer &&& 1) == 0
 
   @doc """
   Computes the modulo remainder of an integer division.
