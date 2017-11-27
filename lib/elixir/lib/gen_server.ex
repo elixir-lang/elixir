@@ -550,6 +550,7 @@ defmodule GenServer do
           | {:name, name}
           | {:timeout, timeout}
           | {:spawn_opt, Process.spawn_opt()}
+          | {:hibernate_after, timeout}
 
   @typedoc "Debug options supported by the `start*` functions"
   @type debug :: [:trace | :log | :statistics | {:log_to_file, Path.t()}]
@@ -706,6 +707,10 @@ defmodule GenServer do
 
     * `:spawn_opt` - if present, its value is passed as options to the
       underlying process as in `Process.spawn/4`
+
+    * `:hibernate_after` - if present, the GenServer process awaits any message for
+      the given number of milliseconds and if no message is received, the process goes
+      into hibernation automatically (by calling `:proc_lib.hibernate/3`).
 
   ## Return values
 
