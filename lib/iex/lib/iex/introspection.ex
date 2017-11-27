@@ -234,14 +234,14 @@ defmodule IEx.Introspection do
               print_doc(inspect(module), [], binary)
 
             {_, _} ->
-              no_docs(inspect(module))
+              docs_not_found(inspect(module))
 
             _ ->
               puts_error("#{inspect(module)} was not compiled with docs")
           end
         else
           puts_error(
-            "#{inspect(module)} is an Erlang module and, as such, it does not have Elixir-style docs"
+            "Documentation is not available for non-Elixir modules, got: #{inspect(module)}"
           )
         end
 
@@ -261,10 +261,10 @@ defmodule IEx.Introspection do
         behaviour_found("#{inspect(module)}.#{function}")
 
       :no_docs ->
-        puts_error("#{inspect(module)} was not compiled with docs")
+        no_docs(module)
 
       :not_found ->
-        no_docs("#{inspect(module)}.#{function}")
+        docs_not_found("#{inspect(module)}.#{function}")
     end
 
     dont_display_result()
@@ -280,10 +280,10 @@ defmodule IEx.Introspection do
         behaviour_found("#{inspect(module)}.#{function}/#{arity}")
 
       :no_docs ->
-        puts_error("#{inspect(module)} was not compiled with docs")
+        no_docs(module)
 
       :not_found ->
-        no_docs("#{inspect(module)}.#{function}/#{arity}")
+        docs_not_found("#{inspect(module)}.#{function}/#{arity}")
     end
 
     dont_display_result()
@@ -428,7 +428,7 @@ defmodule IEx.Introspection do
   def b(mod) when is_atom(mod) do
     case get_callback_docs(mod, fn _ -> true end) do
       :no_beam -> no_beam(mod)
-      :no_docs -> puts_error("#{inspect(mod)} was not compiled with docs")
+      :no_docs -> no_docs(mod)
       {:ok, []} -> puts_error("No callbacks for #{inspect(mod)} were found")
       {:ok, docs} -> Enum.each(docs, fn {definition, _} -> IO.puts(definition) end)
     end
@@ -441,8 +441,8 @@ defmodule IEx.Introspection do
 
     case get_callback_docs(mod, filter) do
       :no_beam -> no_beam(mod)
-      :no_docs -> puts_error("#{inspect(mod)} was not compiled with docs")
-      {:ok, []} -> no_docs("#{inspect(mod)}.#{fun}")
+      :no_docs -> no_docs(mod)
+      {:ok, []} -> docs_not_found("#{inspect(mod)}.#{fun}")
       {:ok, docs} -> Enum.each(docs, &print_typespec/1)
     end
 
@@ -454,8 +454,8 @@ defmodule IEx.Introspection do
 
     case get_callback_docs(mod, filter) do
       :no_beam -> no_beam(mod)
-      :no_docs -> puts_error("#{inspect(mod)} was not compiled with docs")
-      {:ok, []} -> no_docs("#{inspect(mod)}.#{fun}/#{arity}")
+      :no_docs -> no_docs(mod)
+      {:ok, []} -> docs_not_found("#{inspect(mod)}.#{fun}/#{arity}")
       {:ok, docs} -> Enum.each(docs, &print_typespec/1)
     end
 
@@ -520,7 +520,7 @@ defmodule IEx.Introspection do
         no_beam(module)
 
       [] ->
-        no_types(inspect(module))
+        types_not_found(inspect(module))
 
       types ->
         Enum.each(types, &(&1 |> format_type() |> IO.puts()))
@@ -542,7 +542,7 @@ defmodule IEx.Introspection do
           end
 
         if printed == [] do
-          no_types("#{inspect(module)}.#{type}")
+          types_not_found("#{inspect(module)}.#{type}")
         end
     end
 
@@ -562,7 +562,7 @@ defmodule IEx.Introspection do
           end
 
         if printed == [] do
-          no_types("#{inspect(module)}.#{type}")
+          types_not_found("#{inspect(module)}.#{type}")
         end
     end
 
@@ -650,8 +650,12 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp no_types(for), do: no(for, "type information")
-  defp no_docs(for), do: no(for, "documentation")
+  defp no_docs(module) do
+    puts_error("#{inspect(module)} was not compiled with docs")
+  end
+
+  defp types_not_found(for), do: not_found(for, "type information")
+  defp docs_not_found(for), do: not_found(for, "documentation")
 
   defp behaviour_found(for) do
     puts_error("""
@@ -660,7 +664,7 @@ defmodule IEx.Introspection do
     """)
   end
 
-  defp no(for, type) do
+  defp not_found(for, type) do
     puts_error("No #{type} for #{for} was found")
   end
 
