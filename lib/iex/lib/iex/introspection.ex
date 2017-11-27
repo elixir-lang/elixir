@@ -295,33 +295,57 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) do
-    if docs = Code.get_docs(mod, :docs) do
-      result =
-        for {{^fun, arity}, _, _, _, _} = doc <- docs, has_content?(doc) do
-          h_mod_fun_arity(mod, fun, arity)
+    cond do
+      docs = Code.get_docs(mod, :docs) ->
+        result =
+          for {{^fun, arity}, _, _, _, _} = doc <- docs, has_content?(doc) do
+            h_mod_fun_arity(mod, fun, arity)
+          end
+
+        cond do
+          result != [] ->
+            :ok
+
+          has_callback?(mod, fun) ->
+            :behaviour_found
+
+          true ->
+            :not_found
         end
 
-      cond do
-        result != [] ->
-          :ok
+      :code.is_loaded(mod) ->
+        result =
+          for {^fun, arity} <- mod.module_info(:exports) do
+            h_mod_fun_arity(mod, fun, arity)
+          end
 
-        has_callback?(mod, fun) ->
-          :behaviour_found
+        case result do
+          [] -> :not_found
+          [:not_found | _] -> :not_found
+          _ -> :ok
+        end
 
-        true ->
-          :not_found
-      end
-    else
-      :no_docs
+      true ->
+        :no_docs
     end
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     docs = Code.get_docs(mod, :docs)
+    spec = get_spec(mod, fun, arity)
 
     cond do
-      is_nil(docs) ->
-        :no_docs
+      is_nil(docs) and spec == [] ->
+        :not_found
+
+      is_nil(docs) and spec ->
+        print_doc(
+          "#{inspect(mod)}.#{fun}/#{arity}",
+          spec,
+          "This is an Erlang function and it currently does not have any Elixir-style docs"
+        )
+
+        :ok
 
       doc_tuple = find_doc(docs, fun, arity) ->
         print_fun(mod, doc_tuple)

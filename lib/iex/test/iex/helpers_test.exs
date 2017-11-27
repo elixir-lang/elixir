@@ -316,6 +316,59 @@ defmodule IEx.HelpersTest do
       assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ = capture_iex("h()")
     end
 
+    test "prints Erlang module specs" do
+      assert capture_io(fn -> h(:timer.nonexistent_function()) end) ==
+               "No documentation for :timer.nonexistent_function was found\n"
+
+      assert capture_io(fn -> h(:timer.nonexistent_function() / 1) end) ==
+               "No documentation for :timer.nonexistent_function/1 was found\n"
+
+      assert capture_io(fn -> h(:erlang.trace_pattern()) end) ==
+               "No documentation for :erlang.trace_pattern was found\n"
+
+      assert capture_io(fn -> h(:erlang.trace_pattern() / 2) end) ==
+               "No documentation for :erlang.trace_pattern/2 was found\n"
+
+      assert capture_io(fn -> h(:timer.sleep() / 1) end) == """
+             * :timer.sleep/1
+
+                 @spec sleep(time) :: :ok when Time: timeout(), time: var
+
+             This is an Erlang function and it currently does not have any Elixir-style docs
+             """
+
+      assert capture_io(fn -> h(:timer.send_interval()) end) == """
+             * :timer.send_interval/3
+
+                 @spec send_interval(time, pid, message) :: {:ok, tRef} | {:error, reason}
+                       when Time: time(),
+                            Pid: pid() | (regName :: atom()),
+                            Message: term(),
+                            TRef: tref(),
+                            Reason: term(),
+                            time: var,
+                            pid: var,
+                            message: var,
+                            tRef: var,
+                            reason: var
+
+             This is an Erlang function and it currently does not have any Elixir-style docs
+             * :timer.send_interval/2
+
+                 @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
+                       when Time: time(),
+                            Message: term(),
+                            TRef: tref(),
+                            Reason: term(),
+                            time: var,
+                            message: var,
+                            tRef: var,
+                            reason: var
+
+             This is an Erlang function and it currently does not have any Elixir-style docs
+             """
+    end
+
     test "prints module documentation" do
       assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ =
                capture_io(fn -> h(IEx.Helpers) end)
