@@ -38,6 +38,8 @@ defmodule IEx.Helpers do
     * `open/1`         - opens the source for the given module or function in your editor
     * `pid/1`          - creates a PID from a string
     * `pid/3`          - creates a PID with the 3 integer arguments passed
+    * `ref/1`          - creates a Reference from a string
+    * `ref/3`          - creates a Reference with the 4 integer arguments passed
     * `pwd/0`          - prints the current working directory
     * `r/1`            - recompiles the given module's source file
     * `recompile/0`    - recompiles the current project
@@ -1089,6 +1091,30 @@ defmodule IEx.Helpers do
       '<' ++
         Integer.to_charlist(x) ++
         '.' ++ Integer.to_charlist(y) ++ '.' ++ Integer.to_charlist(z) ++ '>'
+    )
+  end
+
+  @doc """
+  Creates a Reference from `string`.
+
+  ## Examples
+
+      iex> ref("0.21.32.43")
+      #Reference<0.21.32.43>
+
+  """
+  def ref(string) when is_binary(string) do
+    :erlang.list_to_ref('#Ref<#{string}>')
+  end
+
+  def ref(w, x, y, z)
+      when is_integer(w) and w >= 0 and is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and is_integer(z) and z >= 0 do
+    :erlang.list_to_ref(
+    '<' ++
+      Integer.to_charlist(w) ++
+      '.' ++ Integer.to_charlist(x) ++ '.' ++
+      '.' ++ Integer.to_charlist(y) ++ '.' ++
+      '.' ++ Integer.to_charlist(z) ++ '.' ++ '>'
     )
   end
 
