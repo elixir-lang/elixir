@@ -39,7 +39,7 @@ defmodule IEx.Helpers do
     * `pid/1`          - creates a PID from a string
     * `pid/3`          - creates a PID with the 3 integer arguments passed
     * `ref/1`          - creates a Reference from a string
-    * `ref/3`          - creates a Reference with the 4 integer arguments passed
+    * `ref/4`          - creates a Reference with the 4 integer arguments passed
     * `pwd/0`          - prints the current working directory
     * `r/1`            - recompiles the given module's source file
     * `recompile/0`    - recompiles the current project
