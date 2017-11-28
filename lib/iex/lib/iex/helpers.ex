@@ -1108,13 +1108,14 @@ defmodule IEx.Helpers do
   end
 
   def ref(w, x, y, z)
-      when is_integer(w) and w >= 0 and is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and is_integer(z) and z >= 0 do
+      when is_integer(w) and w >= 0 and is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and
+             is_integer(z) and z >= 0 do
     :erlang.list_to_ref(
-    '<' ++
-      Integer.to_charlist(w) ++
-      '.' ++ Integer.to_charlist(x) ++ '.' ++
-      '.' ++ Integer.to_charlist(y) ++ '.' ++
-      '.' ++ Integer.to_charlist(z) ++ '.' ++ '>'
+      '<' ++
+        Integer.to_charlist(w) ++
+        '.' ++
+        Integer.to_charlist(x) ++
+        '.' ++ '.' ++ Integer.to_charlist(y) ++ '.' ++ '.' ++ Integer.to_charlist(z) ++ '.' ++ '>'
     )
   end
 
