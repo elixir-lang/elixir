@@ -30,6 +30,78 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "unsafe variable" do
+    message = "variable \"x\" is unsafe"
+
+    capture_err(fn ->
+      Code.eval_string("""
+      case false do
+        true -> x = 1
+        _ -> 1
+      end
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      false and (x = 1)
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      true or (x = 1)
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      if false do
+        x = 1
+      end
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      cond do
+        false -> x = 1
+        true -> 1
+      end
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      receive do
+        :foo -> x = 1
+      after
+        0 -> 1
+      end
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      false && (x = 1)
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      true || (x = 1)
+      x
+      """)
+    end) =~ message
+  end
+
   test "unused variable in redefined function in different file" do
     output =
       capture_err(fn ->

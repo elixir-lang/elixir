@@ -585,17 +585,15 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
       ]}, VS}
   end;
 translate_remote(erlang, 'andalso', Meta, [Left, Right], #elixir_erl{context = nil} = S) ->
-  Generated = ?ann(?generated(Meta)),
-  {[TLeft, TRight], ST} = translate_args([Left, Right], S),
-  TrueClause = {clause, Generated, [{atom, Generated, true}], [], [TRight]},
-  FalseClause = {clause, Generated, [{atom, Generated, false}], [], [{atom, Generated, false}]},
-  translate_boolean_check('and', Left, TLeft, TrueClause, FalseClause, Meta, ST);
+  Generated = ?generated(Meta),
+  TrueClause = {match, Generated, [true], Right},
+  FalseClause = {match, Generated, [false], false},
+  translate_boolean_check('and', Left, TrueClause, FalseClause, Meta, S);
 translate_remote(erlang, 'orelse', Meta, [Left, Right], #elixir_erl{context = nil} = S) ->
   Generated = ?ann(?generated(Meta)),
-  {[TLeft, TRight], ST} = translate_args([Left, Right], S),
-  TrueClause = {clause, Generated, [{atom, Generated, true}], [], [{atom, Generated, true}]},
-  FalseClause = {clause, Generated, [{atom, Generated, false}], [], [TRight]},
-  translate_boolean_check('or', Left, TLeft, TrueClause, FalseClause, Meta, ST);
+  TrueClause = {match, Generated, [true], true},
+  FalseClause = {match, Generated, [false], Right},
+  translate_boolean_check('or', Left, TrueClause, FalseClause, Meta, S);
 translate_remote(Left, Right, Meta, Args, S) ->
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
@@ -642,18 +640,19 @@ generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key
 generate_struct_name_guard([Field | Rest], Acc, S) ->
   generate_struct_name_guard(Rest, [Field | Acc], S).
 
-translate_boolean_check(Op, EExpr, TExpr, TrueClause, FalseClause, Meta, S0) ->
-  Ann = ?ann(Meta),
-  {Clauses, S} =
-    case elixir_utils:returns_boolean(EExpr) of
+translate_boolean_check(Op, Expr, TrueClause, FalseClause, Meta, S0) ->
+  {TExpr, SE} = translate(Expr, S0),
+  Clauses =
+    case elixir_utils:returns_boolean(TExpr) of
       true ->
-        {[TrueClause, FalseClause], S0};
+        [TrueClause, FalseClause];
       false ->
-        {Other, _, SV} = elixir_erl_var:build('_', S0),
-        OtherVar = {var, Ann, Other},
-        ErrorTuple = {tuple, Ann, [{atom, Ann, badbool}, {atom, Ann, Op}, OtherVar]},
-        OtherExpr = elixir_erl:remote(Ann, erlang, error, [ErrorTuple]),
-        OtherClause = {clause, ?ann(?generated(Meta)), [OtherVar], [], [OtherExpr]},
-        {[TrueClause, FalseClause, OtherClause], SV}
+        Other = {other, Meta, ?var_context},
+        OtherExpr = {{'.', Meta, [erlang, error]}, Meta, [{'{}', [], [badbool, Op, Other]}]},
+        OtherClause = {match, ?generated(Meta), [Other], OtherExpr},
+
+        [TrueClause, FalseClause, OtherClause]
     end,
-  {{'case', Ann, TExpr, Clauses}, S}.
+
+  {TClauses, SC} = elixir_erl_clauses:clauses(Meta, Clauses, SE),
+  {{'case', Meta, TExpr, TClauses}, SC}.
