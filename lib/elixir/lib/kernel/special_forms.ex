@@ -1377,8 +1377,8 @@ defmodule Kernel.SpecialForms do
   Note that if a "bare expression" fails to match, it will raise a `MatchError`
   instead of returning the non-matched value:
 
-      iex> with :foo = :bar, do: :ok
-      ** (MatchError) no match of right hand side value: :bar
+      with :foo = :bar, do: :ok
+      #=> ** (MatchError) no match of right hand side value: :bar
 
   An `else` option can be given to modify what is being returned from
   `with` in the case of a failed match:
