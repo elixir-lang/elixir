@@ -295,36 +295,69 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) do
-    if docs = Code.get_docs(mod, :docs) do
-      result =
-        for {{^fun, arity}, _, _, _, _} = doc <- docs, has_content?(doc) do
-          h_mod_fun_arity(mod, fun, arity)
+    cond do
+      docs = Code.get_docs(mod, :docs) ->
+        result =
+          for {{^fun, arity}, _, _, _, _} = doc <- docs, has_content?(doc) do
+            h_mod_fun_arity(mod, fun, arity)
+          end
+
+        cond do
+          result != [] ->
+            :ok
+
+          has_callback?(mod, fun) ->
+            :behaviour_found
+
+          true ->
+            :not_found
         end
 
-      cond do
-        result != [] ->
-          :ok
+      Code.ensure_loaded?(mod) ->
+        result =
+          for {^fun, arity} <- mod.module_info(:exports) do
+            h_mod_fun_arity(mod, fun, arity)
+          end
 
-        has_callback?(mod, fun) ->
-          :behaviour_found
+        case result do
+          [retval, _] when retval != :not_found ->
+            :ok
 
-        true ->
-          :not_found
-      end
-    else
-      :no_docs
+          _ ->
+            :not_found
+        end
+
+      true ->
+        :no_docs
     end
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     docs = Code.get_docs(mod, :docs)
+    spec = get_spec(mod, fun, arity)
 
     cond do
+      is_nil(docs) and spec == [] ->
+        :not_found
+
       is_nil(docs) ->
-        :no_docs
+        message =
+          if function_exported?(mod, :__info__, 1) do
+            "Module was compiled without docs. Showing only specs."
+          else
+            "Documentation is not available for non-Elixir modules. Showing only specs."
+          end
+
+        print_doc(
+          "#{inspect(mod)}.#{fun}/#{arity}",
+          spec,
+          message
+        )
+
+        :ok
 
       doc_tuple = find_doc(docs, fun, arity) ->
-        print_fun(mod, doc_tuple)
+        print_fun(mod, doc_tuple, spec)
         :ok
 
       has_callback?(mod, fun, arity) ->
@@ -369,7 +402,7 @@ defmodule IEx.Introspection do
   defp has_content?({{name, _}, _, _, _, nil}), do: hd(Atom.to_charlist(name)) != ?_
   defp has_content?({_, _, _, _, _}), do: true
 
-  defp print_fun(mod, {{fun, arity}, _line, kind, args, doc}) do
+  defp print_fun(mod, {{fun, arity}, _line, kind, args, doc}, spec) do
     if callback_module = is_nil(doc) and callback_module(mod, fun, arity) do
       filter = &match?({^fun, ^arity}, elem(&1, 0))
 
@@ -379,7 +412,20 @@ defmodule IEx.Introspection do
       end
     else
       args = Enum.map_join(args, ", ", &format_doc_arg(&1))
-      print_doc("#{kind} #{fun}(#{args})", get_spec(mod, fun, arity), doc)
+
+      message =
+        cond do
+          doc ->
+            doc
+
+          spec != [] ->
+            "Function does not have any docs. Showing only specs."
+
+          true ->
+            "Function does not have any docs."
+        end
+
+      print_doc("#{kind} #{fun}(#{args})", spec, message)
     end
   end
 
