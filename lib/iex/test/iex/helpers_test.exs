@@ -316,6 +316,130 @@ defmodule IEx.HelpersTest do
       assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ = capture_iex("h()")
     end
 
+    test "prints non-Elixir module specs" do
+      assert capture_io(fn -> h(:timer.nonexistent_function()) end) ==
+               "No documentation for :timer.nonexistent_function was found\n"
+
+      assert capture_io(fn -> h(:timer.nonexistent_function() / 1) end) ==
+               "No documentation for :timer.nonexistent_function/1 was found\n"
+
+      assert capture_io(fn -> h(:erlang.trace_pattern()) end) ==
+               "No documentation for :erlang.trace_pattern was found\n"
+
+      assert capture_io(fn -> h(:erlang.trace_pattern() / 2) end) ==
+               "No documentation for :erlang.trace_pattern/2 was found\n"
+
+      assert capture_io(fn -> h(:timer.sleep() / 1) end) == """
+             * :timer.sleep/1
+
+                 @spec sleep(time) :: :ok when Time: timeout(), time: var
+
+             Documentation is not available for non-Elixir modules. Showing only specs.
+             """
+
+      assert capture_io(fn -> h(:timer.send_interval()) end) == """
+             * :timer.send_interval/3
+
+                 @spec send_interval(time, pid, message) :: {:ok, tRef} | {:error, reason}
+                       when Time: time(),
+                            Pid: pid() | (regName :: atom()),
+                            Message: term(),
+                            TRef: tref(),
+                            Reason: term(),
+                            time: var,
+                            pid: var,
+                            message: var,
+                            tRef: var,
+                            reason: var
+
+             Documentation is not available for non-Elixir modules. Showing only specs.
+             * :timer.send_interval/2
+
+                 @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
+                       when Time: time(),
+                            Message: term(),
+                            TRef: tref(),
+                            Reason: term(),
+                            time: var,
+                            message: var,
+                            tRef: var,
+                            reason: var
+
+             Documentation is not available for non-Elixir modules. Showing only specs.
+             """
+    end
+
+    test "prints modules without documentation" do
+      Code.compiler_options(docs: false)
+
+      write_beam(
+        defmodule WithoutDocs do
+          @moduledoc "Module doc"
+
+          @doc "Some doc"
+          @spec foo(any()) :: any()
+          def foo(arg), do: arg
+
+          @doc "Some other doc"
+          def bar(arg), do: arg
+        end
+      )
+
+      assert capture_io(fn -> h(WithoutDocs.foo() / 1) end) == """
+             * #{inspect(__MODULE__)}.WithoutDocs.foo/1
+
+                 @spec foo(any()) :: any()
+
+             Module was compiled without docs. Showing only specs.
+             """
+
+      assert capture_io(fn -> h(WithoutDocs.bar() / 1) end) ==
+               "No documentation for #{inspect(__MODULE__)}.WithoutDocs.bar/1 was found\n"
+    after
+      Code.compiler_options(docs: true)
+      cleanup_modules([__MODULE__.WithoutDocs])
+    end
+
+    test "prints functions without documentation" do
+      content = """
+      defmodule Sample do
+        @doc false
+        @spec foo(any()) :: any()
+        def foo(arg), do: arg
+
+        @spec bar(any()) :: any()
+        def bar(arg), do: arg
+
+        def baz(arg), do: arg
+      end
+      """
+
+      filename = "sample.ex"
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [Sample]
+
+        assert capture_io(fn -> h(Sample.foo() / 1) end) ==
+                 "No documentation for Sample.foo/1 was found\n"
+
+        assert capture_io(fn -> h(Sample.bar() / 1) end) == """
+               * def bar(arg)
+
+                   @spec bar(any()) :: any()
+
+               Function does not have any docs. Showing only specs.
+               """
+
+        assert capture_io(fn -> h(Sample.baz() / 1) end) == """
+               * def baz(arg)
+
+               Function does not have any docs.
+               """
+      end)
+    after
+      cleanup_modules([Sample])
+    end
+
     test "prints module documentation" do
       assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ =
                capture_io(fn -> h(IEx.Helpers) end)
@@ -946,6 +1070,12 @@ defmodule IEx.HelpersTest do
     after
       cleanup_modules([MyIExInfoModule])
     end
+  end
+
+  defp write_beam({:module, name, bin, _} = res) do
+    beam_path = Atom.to_string(name) <> ".beam"
+    File.write!(beam_path, bin)
+    res
   end
 
   defp test_module_code do
