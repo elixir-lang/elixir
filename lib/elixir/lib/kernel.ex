@@ -1458,6 +1458,10 @@ defmodule Kernel do
 
   ## Implemented in Elixir
 
+  defp optimize_boolean({:case, meta, args}) do
+    {:case, [{:optimize_boolean, true} | meta], args}
+  end
+
   @doc """
   Boolean or.
 
@@ -1479,7 +1483,10 @@ defmodule Kernel do
 
   """
   defmacro left or right do
-    quote(do: :erlang.orelse(unquote(left), unquote(right)))
+    case __CALLER__.context do
+      nil -> build_boolean_check(:or, left, true, right)
+      _ -> quote(do: :erlang.orelse(unquote(left), unquote(right)))
+    end
   end
 
   @doc """
@@ -1502,7 +1509,22 @@ defmodule Kernel do
 
   """
   defmacro left and right do
-    quote(do: :erlang.andalso(unquote(left), unquote(right)))
+    case __CALLER__.context do
+      nil -> build_boolean_check(:and, left, right, false)
+      _ -> quote(do: :erlang.andalso(unquote(left), unquote(right)))
+    end
+  end
+
+  defp build_boolean_check(op, check, true_clause, false_clause) do
+    optimize_boolean(
+      quote generated: true do
+        case unquote(check) do
+          false -> unquote(false_clause)
+          true -> unquote(true_clause)
+          other -> raise BadBooleanError, operator: unquote(op), term: other
+        end
+      end
+    )
   end
 
   @doc """
@@ -5069,10 +5091,6 @@ defmodule Kernel do
   end
 
   ## Shared functions
-
-  defp optimize_boolean({:case, meta, args}) do
-    {:case, [{:optimize_boolean, true} | meta], args}
-  end
 
   # We need this check only for bootstrap purposes.
   # Once Kernel is loaded and we recompile, it is a no-op.

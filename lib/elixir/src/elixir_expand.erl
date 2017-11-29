@@ -388,12 +388,6 @@ expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) -
 
 %% Remote calls
 
-expand({{'.', _, [erlang, 'andalso']}, _, [_, _]} = Expr, #{context := nil} = E) ->
-  expand_boolean_check(Expr, E);
-
-expand({{'.', _, [erlang, 'orelse']}, _, [_, _]} = Expr, #{context := nil} = E) ->
-  expand_boolean_check(Expr, E);
-
 expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, EL} = expand(Left, E),
@@ -595,6 +589,14 @@ rewrite_case_clauses([{do, [
     {'->', FalseMeta, [[false], FalseExpr]},
     {'->', TrueMeta, [[true], TrueExpr]}
   ]}];
+rewrite_case_clauses([{do, [
+  {'->', FalseMeta, [[false], FalseExpr]},
+  {'->', TrueMeta, [[true], TrueExpr]} | _
+]}]) ->
+  [{do, [
+    {'->', FalseMeta, [[false], FalseExpr]},
+    {'->', TrueMeta, [[true], TrueExpr]}
+  ]}];
 rewrite_case_clauses(Other) ->
   Other.
 
@@ -650,13 +652,6 @@ allowed_in_context(_, _Arity, guard) ->
   false;
 allowed_in_context(_, _, _) ->
   true.
-
-%% Boolean checks (`orelse`, `andalso`)
-
-expand_boolean_check({DotExpr, Meta, [Left, Right]}, E) ->
-  {ELeft, EL} = expand(Left, E),
-  {ERight, ER} = expand(Right, EL),
-  {{DotExpr, Meta, [ELeft, ERight]}, elixir_env:mergea(ER, EL)}.
 
 %% Lexical helpers
 
