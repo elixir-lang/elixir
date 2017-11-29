@@ -369,77 +369,6 @@ defmodule IEx.HelpersTest do
              """
     end
 
-    test "prints modules without documentation" do
-      Code.compiler_options(docs: false)
-
-      write_beam(
-        defmodule WithoutDocs do
-          @moduledoc "Module doc"
-
-          @doc "Some doc"
-          @spec foo(any()) :: any()
-          def foo(arg), do: arg
-
-          @doc "Some other doc"
-          def bar(arg), do: arg
-        end
-      )
-
-      assert capture_io(fn -> h(WithoutDocs.foo() / 1) end) == """
-             * #{inspect(__MODULE__)}.WithoutDocs.foo/1
-
-                 @spec foo(any()) :: any()
-
-             Module was compiled without docs. Showing only specs.
-             """
-
-      assert capture_io(fn -> h(WithoutDocs.bar() / 1) end) ==
-               "No documentation for #{inspect(__MODULE__)}.WithoutDocs.bar/1 was found\n"
-    after
-      Code.compiler_options(docs: true)
-      cleanup_modules([__MODULE__.WithoutDocs])
-    end
-
-    test "prints functions without documentation" do
-      content = """
-      defmodule Sample do
-        @doc false
-        @spec foo(any()) :: any()
-        def foo(arg), do: arg
-
-        @spec bar(any()) :: any()
-        def bar(arg), do: arg
-
-        def baz(arg), do: arg
-      end
-      """
-
-      filename = "sample.ex"
-
-      with_file(filename, content, fn ->
-        assert c(filename, ".") == [Sample]
-
-        assert capture_io(fn -> h(Sample.foo() / 1) end) ==
-                 "No documentation for Sample.foo/1 was found\n"
-
-        assert capture_io(fn -> h(Sample.bar() / 1) end) == """
-               * def bar(arg)
-
-                   @spec bar(any()) :: any()
-
-               Function does not have any docs. Showing only specs.
-               """
-
-        assert capture_io(fn -> h(Sample.baz() / 1) end) == """
-               * def baz(arg)
-
-               Function does not have any docs.
-               """
-      end)
-    after
-      cleanup_modules([Sample])
-    end
-
     test "prints module documentation" do
       assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ =
                capture_io(fn -> h(IEx.Helpers) end)
@@ -587,6 +516,34 @@ defmodule IEx.HelpersTest do
       end)
     after
       cleanup_modules([Delegated, Delegator])
+    end
+
+    test "prints modules compiled without docs" do
+      Code.compiler_options(docs: false)
+
+      content = """
+      defmodule Sample do
+        @spec foo(any()) :: any()
+        def foo(arg), do: arg
+      end
+      """
+
+      filename = "sample.ex"
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [Sample]
+
+        assert capture_io(fn -> h(Sample.foo() / 1) end) == """
+               * Sample.foo/1
+
+                   @spec foo(any()) :: any()
+
+               Module was compiled without docs. Showing only specs.
+               """
+      end)
+    after
+      Code.compiler_options(docs: true)
+      cleanup_modules([Sample])
     end
   end
 
@@ -1070,12 +1027,6 @@ defmodule IEx.HelpersTest do
     after
       cleanup_modules([MyIExInfoModule])
     end
-  end
-
-  defp write_beam({:module, name, bin, _} = res) do
-    beam_path = Atom.to_string(name) <> ".beam"
-    File.write!(beam_path, bin)
-    res
   end
 
   defp test_module_code do
