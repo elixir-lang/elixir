@@ -1517,7 +1517,7 @@ defmodule Kernel do
 
   defp build_boolean_check(op, check, true_clause, false_clause) do
     optimize_boolean(
-      quote generated: true do
+      quote do
         case unquote(check) do
           false -> unquote(false_clause)
           true -> unquote(true_clause)

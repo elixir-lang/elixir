@@ -565,7 +565,7 @@ expand_case(true, Meta, Expr, Opts, E) ->
     case proplists:get_value(optimize_boolean, Meta, false) andalso
          elixir_utils:returns_boolean(EExpr) of
       true -> rewrite_case_clauses(EOpts);
-      false -> EOpts
+      false -> generated_case_clauses(EOpts)
     end,
   {{'case', Meta, [EExpr, ROpts]}, EO};
 expand_case(false, Meta, Expr, Opts, E) ->
@@ -585,20 +585,26 @@ rewrite_case_clauses([{do, [
     TrueExpr
   ]}
 ]}]) ->
-  [{do, [
-    {'->', FalseMeta, [[false], FalseExpr]},
-    {'->', TrueMeta, [[true], TrueExpr]}
-  ]}];
+  rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr);
+
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [[false], FalseExpr]},
   {'->', TrueMeta, [[true], TrueExpr]} | _
 ]}]) ->
-  [{do, [
-    {'->', FalseMeta, [[false], FalseExpr]},
-    {'->', TrueMeta, [[true], TrueExpr]}
-  ]}];
+  rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr);
+
 rewrite_case_clauses(Other) ->
-  Other.
+  generated_case_clauses(Other).
+
+rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr) ->
+  [{do, [
+    {'->', ?generated(FalseMeta), [[false], FalseExpr]},
+    {'->', ?generated(TrueMeta), [[true], TrueExpr]}
+  ]}].
+
+generated_case_clauses([{do, Clauses}]) ->
+  RClauses = [{'->', ?generated(Meta), Args} || {'->', Meta, Args} <- Clauses],
+  [{do, RClauses}].
 
 %% Locals
 
