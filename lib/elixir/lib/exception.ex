@@ -37,6 +37,15 @@ defmodule Exception do
   @callback message(t) :: String.t()
 
   @doc """
+  Called from `Exception.blame/3` to augment the exception struct.
+
+  Can be used to collect additional information about the exception
+  or do some additional expensive computation.
+  """
+  @callback blame(t, stacktrace) :: {t, stacktrace}
+  @optional_callbacks [blame: 2]
+
+  @doc """
   Returns `true` if the given `term` is an exception.
   """
   def exception?(term)
@@ -163,46 +172,27 @@ defmodule Exception do
 
   This operation is potentially expensive, as it reads data
   from the filesystem, parse beam files, evaluates code and
-  so on. Currently the following exceptions may be annotated:
+  so on.
 
-    * `FunctionClauseError` - annotated with the arguments
-      used on the call and available clauses
-
+  If the exception module implements the optional `c:blame/2`
+  callbak, it will be invoked to perform the computation.
   """
   @spec blame(:error, any, stacktrace) :: {t, stacktrace}
   @spec blame(non_error_kind, payload, stacktrace) :: {payload, stacktrace} when payload: var
   def blame(kind, error, stacktrace)
 
   def blame(:error, error, stacktrace) do
-    case normalize(:error, error, stacktrace) do
-      %{__struct__: FunctionClauseError} = struct ->
-        blame_function_clause_error(struct, stacktrace)
+    %module{} = struct = normalize(:error, error, stacktrace)
 
-      _ ->
-        {error, stacktrace}
+    if Code.ensure_loaded?(module) and function_exported?(module, :blame, 2) do
+      module.blame(struct, stacktrace)
+    else
+      {struct, stacktrace}
     end
   end
 
   def blame(_kind, reason, stacktrace) do
     {reason, stacktrace}
-  end
-
-  defp blame_function_clause_error(
-         %{module: module, function: function, arity: arity} = exception,
-         [{module, function, args, meta} | rest]
-       )
-       when length(args) == arity do
-    exception =
-      case blame_mfa(module, function, args) do
-        {:ok, kind, clauses} -> %{exception | args: args, kind: kind, clauses: clauses}
-        :error -> %{exception | args: args}
-      end
-
-    {exception, [{module, function, arity, meta} | rest]}
-  end
-
-  defp blame_function_clause_error(exception, stacktrace) do
-    {exception, stacktrace}
   end
 
   @doc """
@@ -951,6 +941,22 @@ defmodule FunctionClauseError do
     end
   end
 
+  def blame(%{module: module, function: function, arity: arity} = exception, stacktrace) do
+    case stacktrace do
+      [{^module, ^function, args, meta} | rest] when length(args) == arity ->
+        exception =
+          case Exception.blame_mfa(module, function, args) do
+            {:ok, kind, clauses} -> %{exception | args: args, kind: kind, clauses: clauses}
+            :error -> %{exception | args: args}
+          end
+
+        {exception, [{module, function, arity, meta} | rest]}
+
+      stacktrace ->
+        {exception, stacktrace}
+    end
+  end
+
   defp blame_match(%{match?: true, node: node}, _), do: Macro.to_string(node)
   defp blame_match(%{match?: false, node: node}, _), do: "-" <> Macro.to_string(node) <> "-"
   defp blame_match(_, string), do: string
@@ -960,18 +966,10 @@ defmodule FunctionClauseError do
     ""
   end
 
-  def blame(
-        %{
-          module: module,
-          function: function,
-          arity: arity,
-          kind: kind,
-          args: args,
-          clauses: clauses
-        },
-        inspect_fun,
-        ast_fun
-      ) do
+  def blame(exception, inspect_fun, ast_fun) do
+    %{module: module, function: function, arity: arity, kind: kind, args: args, clauses: clauses} =
+      exception
+
     mfa = Exception.format_mfa(module, function, arity)
 
     formatted_args =
