@@ -16,6 +16,145 @@ defmodule Mix.Tasks.XrefTest do
     :ok
   end
 
+  test "calls: returns all function calls" do
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: A.a()
+        def a(arg), do: A.a(arg)
+        def c, do: B.a()
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        def a, do: nil
+      end
+      """
+    }
+
+    output = [
+      %{callee: {A, :a, 0}, caller_module: A, file: "lib/a.ex", line: 2},
+      %{callee: {A, :a, 1}, caller_module: A, file: "lib/a.ex", line: 3},
+      %{callee: {B, :a, 0}, caller_module: A, file: "lib/a.ex", line: 4},
+      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 4},
+      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        caller_module: A,
+        file: "lib/a.ex",
+        line: 1
+      },
+      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        caller_module: B,
+        file: "lib/b.ex",
+        line: 1
+      }
+    ]
+
+    assert_all_calls(files, output)
+  end
+
+  test "calls: returns macro call" do
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        defmacro a_macro, do: :ok
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        require A
+        def a, do: A.a_macro()
+      end
+      """
+    }
+
+    output = [
+      %{callee: {A, :a_macro, 0}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        line: 1,
+        caller_module: B,
+        file: "lib/b.ex"
+      },
+      %{callee: {Kernel, :defmacro, 2}, caller_module: A, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        line: 1,
+        caller_module: A,
+        file: "lib/a.ex"
+      }
+    ]
+
+    assert_all_calls(files, output)
+  end
+
+  test "calls: returns function call inside macro" do
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        defmacro a_macro(x) do
+          quote do
+            A.b(unquote(x))
+          end
+        end
+
+        def b(x), do: x
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        require A
+        def a, do: A.a_macro(1)
+      end
+      """
+    }
+
+    output = [
+      %{callee: {A, :b, 1}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {A, :a_macro, 1}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        caller_module: B,
+        file: "lib/b.ex",
+        line: 1
+      },
+      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 8},
+      %{callee: {Kernel, :defmacro, 2}, caller_module: A, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        caller_module: A,
+        file: "lib/a.ex",
+        line: 1
+      }
+    ]
+
+    assert_all_calls(files, output)
+  end
+
+  defp assert_all_calls(files, expected) do
+    in_fixture "no_mixfile", fn ->
+      for {file, contents} <- files do
+        File.write!(file, contents)
+      end
+
+      Mix.Task.run("compile")
+
+      assert Mix.Tasks.Xref.calls() == expected
+    end
+  end
+
   ## Warnings
 
   test "warnings: reports nothing with no references" do
