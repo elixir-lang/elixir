@@ -313,16 +313,18 @@ defmodule IEx.Introspection do
             :not_found
         end
 
-      :code.is_loaded(mod) ->
+      Code.ensure_loaded?(mod) ->
         result =
           for {^fun, arity} <- mod.module_info(:exports) do
             h_mod_fun_arity(mod, fun, arity)
           end
 
         case result do
-          [] -> :not_found
-          [:not_found | _] -> :not_found
-          _ -> :ok
+          [retval, _] when retval != :not_found ->
+            :ok
+
+          _ ->
+            :not_found
         end
 
       true ->
@@ -338,17 +340,24 @@ defmodule IEx.Introspection do
       is_nil(docs) and spec == [] ->
         :not_found
 
-      is_nil(docs) and spec ->
+      is_nil(docs) ->
+        message =
+          if function_exported?(mod, :__info__, 1) do
+            "Module was compiled without docs. Showing only specs."
+          else
+            "Documentation is not available for non-Elixir modules. Showing only specs."
+          end
+
         print_doc(
           "#{inspect(mod)}.#{fun}/#{arity}",
           spec,
-          "This is an Erlang function and it currently does not have any Elixir-style docs"
+          message
         )
 
         :ok
 
       doc_tuple = find_doc(docs, fun, arity) ->
-        print_fun(mod, doc_tuple)
+        print_fun(mod, doc_tuple, spec)
         :ok
 
       has_callback?(mod, fun, arity) ->
@@ -393,7 +402,7 @@ defmodule IEx.Introspection do
   defp has_content?({{name, _}, _, _, _, nil}), do: hd(Atom.to_charlist(name)) != ?_
   defp has_content?({_, _, _, _, _}), do: true
 
-  defp print_fun(mod, {{fun, arity}, _line, kind, args, doc}) do
+  defp print_fun(mod, {{fun, arity}, _line, kind, args, doc}, spec) do
     if callback_module = is_nil(doc) and callback_module(mod, fun, arity) do
       filter = &match?({^fun, ^arity}, elem(&1, 0))
 
@@ -403,7 +412,20 @@ defmodule IEx.Introspection do
       end
     else
       args = Enum.map_join(args, ", ", &format_doc_arg(&1))
-      print_doc("#{kind} #{fun}(#{args})", get_spec(mod, fun, arity), doc)
+
+      message =
+        cond do
+          doc ->
+            doc
+
+          spec != [] ->
+            "Function does not have any docs. Showing only specs."
+
+          true ->
+            "Function does not have any docs."
+        end
+
+      print_doc("#{kind} #{fun}(#{args})", spec, message)
     end
   end
 
