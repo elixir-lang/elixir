@@ -197,10 +197,10 @@ defmodule Mix.Tasks.Xref do
 
   Each item in the list is a map with the following keys:
 
-    * `:callee` - A tuple containing the module, function and arity of the call
-    * `:line` - Line where the function is called (integer)
-    * `:file` - File where the function is called (binary)
-    * `:caller_module` - Module where the function is called (atom)
+    * `:callee` - a tuple containing the module, function, and arity of the call
+    * `:line` - an integer represeting the line where the function is called
+    * `:file` - a binary representing the file where the function is called
+    * `:caller_module` - the module where the function is called
 
   This function returns an empty list when used at the root of an umbrella
   project because there is no compile manifest to extract the function call
