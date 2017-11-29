@@ -117,8 +117,9 @@ defmodule Protocol do
   @doc """
   Derives the `protocol` for `module` with the given options.
 
-  If your implementation passes options, you will also
-  need to provide a macro named
+  If your implementation passes options or if you are generating
+  custom code based on the struct, you will also need to provide
+  `@fallback_to_any true` or implement a macro defined as
   `__deriving__(module, struct, options)` to get the
   options that were passed.
 
@@ -170,15 +171,16 @@ defmodule Protocol do
   ## Explicit vs Implicit
 
   Protocols can be derived implicitly and explicitly.
-  Explicit derivations can also be called via the API:
+  As noted above, explicit derivations can be called
+  via `@fallback_to_any true` or `__deriving__`:
 
-      # Implicitly derived
+      # Explicitly derived via `@fallback_to_any true`
       WithAny.ok(%ImplStruct{a: 1, b: 1})
 
-      # Explicitly derived
+      # Explicitly derived via `__deriving__`
       Derivable.ok(%ImplStruct{a: 1, b: 1})
 
-      # Explicitly derived (via API)
+      # Explicitly derived by API via `__deriving__`
       require Protocol
       Protocol.derive(Derivable, ImplStruct, :oops)
       Derivable.ok(%ImplStruct{a: 1, b: 1})
