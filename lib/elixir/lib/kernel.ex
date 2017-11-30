@@ -1515,13 +1515,18 @@ defmodule Kernel do
     end
   end
 
-  defp build_boolean_check(op, check, true_clause, false_clause) do
+  defp build_boolean_check(operator, check, true_clause, false_clause) do
     optimize_boolean(
       quote do
         case unquote(check) do
-          false -> unquote(false_clause)
-          true -> unquote(true_clause)
-          other -> raise BadBooleanError, operator: unquote(op), term: other
+          true ->
+            unquote(true_clause)
+
+          false ->
+            unquote(false_clause)
+
+          other ->
+            :erlang.error(BadBooleanError.exception(operator: unquote(operator), term: other))
         end
       end
     )
