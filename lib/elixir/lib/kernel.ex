@@ -3975,8 +3975,9 @@ defmodule Kernel do
   For each protocol in the `@derive` list, Elixir will assert there is an
   implementation of that protocol for any (regardless if fallback to any
   is `true`) and check if the any implementation defines a `__deriving__/3`
-  callback. If so, the callback is invoked, otherwise an implementation
-  that simply points to the any implementation is automatically derived.
+  callback (via `Protocol.derive/3`). If so, the callback is invoked,
+  otherwise an implementation that simply points to the any implementation
+  is automatically derived.
 
   ## Enforcing keys
 

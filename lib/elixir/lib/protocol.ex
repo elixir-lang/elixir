@@ -168,8 +168,6 @@ defmodule Protocol do
         end
       end
 
-  ## Explicit vs Implicit
-
   Protocols can be derived implicitly and explicitly.
   As noted above, explicit derivations can be called
   via `@fallback_to_any true` or `__deriving__`:
