@@ -1407,6 +1407,14 @@ defmodule Kernel.SpecialForms do
       iex> add.(1, 2)
       3
 
+  Anonymous functions can also have multiple clauses
+
+      iex> negate = fn
+      ...>   true -> false
+      ...>   false -> true
+      ...> end
+      iex> negate.(false)
+      true
   """
   defmacro unquote(:fn)(clauses), do: error!([clauses])
 
