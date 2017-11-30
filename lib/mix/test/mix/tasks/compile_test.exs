@@ -34,6 +34,25 @@ defmodule Mix.Tasks.CompileTest do
     assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == [".compile.elixir"]
   end
 
+  test "compile a project with files containing only comments or newlines" do
+    in_fixture "no_mixfile", fn ->
+      import ExUnit.CaptureIO
+      import ExUnit.CaptureLog
+
+      File.write!("lib/a.ex", """
+      # defmodule CommentsOnly do
+      #   def foo(), do: 1
+      # end
+      """)
+
+      File.write!("lib/b.ex", "\n\n")
+
+      assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
+      Mix.Task.clear()
+      assert Mix.Task.run("compile", ["--verbose"]) == {:noop, []}
+    end
+  end
+
   test "compile a project with mixfile" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}

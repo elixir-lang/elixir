@@ -334,7 +334,11 @@ defmodule Mix.Compilers.Elixir do
 
   defp update_stale_sources(sources, changed) do
     # Store empty sources for the changed ones as the compiler appends data
-    Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
+    Enum.reduce(
+      changed,
+      sources,
+      &List.keystore(&2, &1, source(:source), source(source: &1, size: :filelib.file_size(&1)))
+    )
   end
 
   # This function receives the manifest entries and some source
