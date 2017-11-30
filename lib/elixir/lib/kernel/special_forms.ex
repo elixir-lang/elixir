@@ -1394,7 +1394,6 @@ defmodule Kernel.SpecialForms do
       {:error, :wrong_data}
 
   If there is no matching `else` condition, then a `WithClauseError` exception is raised.
-
   """
   defmacro with(args), do: error!([args])
 
@@ -1406,6 +1405,16 @@ defmodule Kernel.SpecialForms do
       iex> add = fn a, b -> a + b end
       iex> add.(1, 2)
       3
+
+  Anonymous functions can also have multiple clauses. All clauses
+  should expect the same number of arguments:
+
+      iex> negate = fn
+      ...>   true -> false
+      ...>   false -> true
+      ...> end
+      iex> negate.(false)
+      true
 
   """
   defmacro unquote(:fn)(clauses), do: error!([clauses])
