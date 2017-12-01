@@ -425,7 +425,13 @@ defmodule ExUnit.DocTestTest do
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     ExUnit.Server.modules_loaded()
-    output = capture_io(fn -> ExUnit.run() end)
+
+    output =
+      capture_io(fn ->
+        %{failure_details: failure_details} = ExUnit.run()
+        failure_lines = [138, 141, 144, 147, 150, 153, 159, 165, 172, 180, 188]
+        assert ^failure_lines = Enum.sort(Enum.map(failure_details, &elem(&1, 1)))
+      end)
 
     # Test order is not guaranteed, we can't match this as a string for each failing doctest
     assert output =~
