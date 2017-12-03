@@ -235,6 +235,8 @@ defmodule Code.Identifier do
 
   defp escape_char(0), do: '\\0'
 
+  defp escape_char(65279), do: '\\uFEFF'
+
   defp escape_char(char)
        when char in 0x20..0x7E
        when char in 0xA0..0xD7FF
