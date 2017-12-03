@@ -175,6 +175,10 @@ defmodule Inspect.BitStringTest do
     # non printable strings aren't affected by printable limit
     assert inspect(<<0, 1, 2, 3, 4>>, printable_limit: 3) == ~s(<<0, 1, 2, 3, 4>>)
   end
+
+  test "utf-8 BOM" do
+    assert inspect("\uFEFFhello world") == "\"\\uFEFFhello world\""
+  end
 end
 
 defmodule Inspect.NumberTest do
