@@ -65,6 +65,7 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
+          dep = put_in(dep.opts[:lock], new)
           {dep, [app | acc], Map.put(lock, app, new)}
         else
           {dep, acc, lock}
