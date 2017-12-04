@@ -872,7 +872,7 @@ defmodule Kernel.SpecialForms do
 
   `:bind_quoted` will translate to the same code as the example above.
   `:bind_quoted` can be used in many cases and is seen as good practice,
-  not only because it prevents us from running into common mistakes, but also
+  not only because it helps prevent us from running into common mistakes, but also
   because it allows us to leverage other tools exposed by macros, such as
   unquote fragments discussed in some sections below.
 
