@@ -826,9 +826,9 @@ defmodule DateTime do
 
       {:error, :incompatible_calendars} ->
         raise ArgumentError,
-              "cannot convert #{inspect(datetime)} to target calendar #{inspect(calendar)}, reason: #{
-                inspect(datetime.calendar)
-              } and #{inspect(calendar)} have different day rollover moments, making this conversion ambiguous"
+              "cannot convert #{inspect(datetime)} to target calendar #{inspect(calendar)}, " <>
+                "reason: #{inspect(datetime.calendar)} and #{inspect(calendar)} have different " <>
+                "day rollover moments, making this conversion ambiguous"
     end
   end
 
