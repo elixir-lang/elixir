@@ -45,27 +45,40 @@ defmodule Mix.Compilers.Elixir do
       |> MapSet.difference(all_paths)
       |> MapSet.to_list()
 
-    changed =
+    {changed, sources_stats} =
       if force do
         # A config, path dependency or manifest has
         # changed, let's just compile everything
-        MapSet.to_list(all_paths)
-      else
-        sources_stats = mtimes_and_sizes(all_sources)
+        all_paths = MapSet.to_list(all_paths)
 
+        sources_stats =
+          for path <- all_paths,
+              into: %{},
+              do: {path, Mix.Utils.last_modified_and_size(path)}
+
+        {all_paths, sources_stats}
+      else
         # Otherwise let's start with the new sources
         new_paths =
           all_paths
           |> MapSet.difference(prev_paths)
           |> MapSet.to_list()
 
+        sources_stats =
+          for path <- new_paths,
+              into: mtimes_and_sizes(all_sources),
+              do: {path, Mix.Utils.last_modified_and_size(path)}
+
         # Plus the sources that have changed in disk
-        for source(source: source, external: external, size: size) <- all_sources,
-            {last_mtime, last_size} = Map.fetch!(sources_stats, source),
-            times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
-            size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
-            into: new_paths,
-            do: source
+        changed_paths =
+          for source(source: source, external: external, size: size) <- all_sources,
+              {last_mtime, last_size} = Map.fetch!(sources_stats, source),
+              times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
+              size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
+              into: new_paths,
+              do: source
+
+        {changed_paths, sources_stats}
       end
 
     stale_local_deps = stale_local_deps(manifest, modified)
@@ -76,7 +89,7 @@ defmodule Mix.Compilers.Elixir do
     sources =
       removed
       |> Enum.reduce(all_sources, &List.keydelete(&2, &1, source(:source)))
-      |> update_stale_sources(changed)
+      |> update_stale_sources(changed, sources_stats)
 
     stale = changed -- removed
     if opts[:all_warnings], do: show_warnings(sources)
@@ -267,10 +280,12 @@ defmodule Mix.Compilers.Elixir do
         binary: binary
       )
 
+    source(size: size) = List.keyfind(sources, source, source(:source))
+
     new_source =
       source(
         source: source,
-        size: :filelib.file_size(source),
+        size: size,
         compile_references: compile_references,
         struct_references: struct_references,
         runtime_references: runtime_references,
@@ -331,10 +346,32 @@ defmodule Mix.Compilers.Elixir do
   end
 
   ## Resolution
-
   defp update_stale_sources(sources, changed) do
+    new_empty_source = fn file ->
+      source(source: source, size: size) = List.keyfind(sources, file, source(:source))
+      source(source: source, size: size)
+    end
+
     # Store empty sources for the changed ones as the compiler appends data
-    Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
+    Enum.reduce(
+      changed,
+      sources,
+      &List.keystore(&2, &1, source(:source), new_empty_source.(&1))
+    )
+  end
+
+  defp update_stale_sources(sources, changed, sources_stats) do
+    # Store empty sources for the changed ones as the compiler appends data
+    Enum.reduce(
+      changed,
+      sources,
+      &List.keystore(
+        &2,
+        &1,
+        source(:source),
+        source(source: &1, size: Map.get(sources_stats, &1) |> elem(1))
+      )
+    )
   end
 
   # This function receives the manifest entries and some source

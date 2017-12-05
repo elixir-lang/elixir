@@ -400,15 +400,21 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "does not recompile empty files" do
+  test "does not recompile files that are empty or has no code" do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", "")
+      File.write!("lib/b.ex", "# Just a comment")
+      File.write!("lib/c.ex", "\n\n")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
     end
   end
 
