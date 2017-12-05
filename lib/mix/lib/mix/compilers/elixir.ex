@@ -346,32 +346,20 @@ defmodule Mix.Compilers.Elixir do
   end
 
   ## Resolution
-  defp update_stale_sources(sources, changed) do
-    new_empty_source = fn file ->
-      source(source: source, size: size) = List.keyfind(sources, file, source(:source))
-      source(source: source, size: size)
-    end
 
-    # Store empty sources for the changed ones as the compiler appends data
-    Enum.reduce(
-      changed,
-      sources,
-      &List.keystore(&2, &1, source(:source), new_empty_source.(&1))
-    )
+  # Store empty sources for the changed ones as the compiler appends data
+  defp update_stale_sources(sources, changed) do
+    Enum.reduce(changed, sources, fn file, acc ->
+      {source(size: size), acc} = List.keytake(acc, file, source(:source))
+      [source(source: file, size: size) | acc]
+    end)
   end
 
   defp update_stale_sources(sources, changed, sources_stats) do
-    # Store empty sources for the changed ones as the compiler appends data
-    Enum.reduce(
-      changed,
-      sources,
-      &List.keystore(
-        &2,
-        &1,
-        source(:source),
-        source(source: &1, size: Map.get(sources_stats, &1) |> elem(1))
-      )
-    )
+    Enum.reduce(changed, sources, fn file, acc ->
+      %{^file => {_, size}} = sources_stats
+      List.keystore(acc, file, source(:source), source(source: file, size: size))
+    end)
   end
 
   # This function receives the manifest entries and some source
