@@ -50,7 +50,13 @@ defmodule Mix.Compilers.Elixir do
         # A config, path dependency or manifest has
         # changed, let's just compile everything
         all_paths = MapSet.to_list(all_paths)
-        {all_paths, mtimes_and_sizes(all_paths)}
+
+        sources_stats =
+          for path <- all_paths,
+              into: %{},
+              do: {path, Mix.Utils.last_modified_and_size(path)}
+
+        {all_paths, sources_stats}
       else
         # Otherwise let's start with the new sources
         new_paths =
@@ -58,7 +64,10 @@ defmodule Mix.Compilers.Elixir do
           |> MapSet.difference(prev_paths)
           |> MapSet.to_list()
 
-        sources_stats = mtimes_and_sizes(all_sources ++ new_paths)
+        sources_stats =
+          for path <- new_paths,
+              into: mtimes_and_sizes(all_sources),
+              do: {path, Mix.Utils.last_modified_and_size(path)}
 
         # Plus the sources that have changed in disk
         changed_paths =
@@ -99,14 +108,10 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp mtimes_and_sizes(sources) do
-    Enum.reduce(sources, %{}, fn
-      source(source: source, external: external), map ->
-        Enum.reduce([source | external], map, fn file, map ->
-          Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified_and_size(file) end)
-        end)
-
-      file, map when is_binary(file) ->
-        Map.put(map, file, Mix.Utils.last_modified_and_size(file))
+    Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->
+      Enum.reduce([source | external], map, fn file, map ->
+        Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified_and_size(file) end)
+      end)
     end)
   end
 
@@ -341,28 +346,31 @@ defmodule Mix.Compilers.Elixir do
   end
 
   ## Resolution
-
-  defp update_stale_sources(sources, changed, sources_stats \\ %{}) do
-    # Store empty sources for the changed ones as the compiler appends data
-
-    get_size = fn file ->
-      cond do
-        source_stats = Map.get(sources_stats, file) ->
-          elem(source_stats, 1)
-
-        source = List.keyfind(sources, file, source(:source)) ->
-          source(size: size) = source
-          size
-
-        true ->
-          0
-      end
+  defp update_stale_sources(sources, changed) do
+    new_empty_source = fn file ->
+      source(source: source, size: size) = List.keyfind(sources, file, source(:source))
+      source(source: source, size: size)
     end
 
+    # Store empty sources for the changed ones as the compiler appends data
     Enum.reduce(
       changed,
       sources,
-      &List.keystore(&2, &1, source(:source), source(source: &1, size: get_size.(&1)))
+      &List.keystore(&2, &1, source(:source), new_empty_source.(&1))
+    )
+  end
+
+  defp update_stale_sources(sources, changed, sources_stats) do
+    # Store empty sources for the changed ones as the compiler appends data
+    Enum.reduce(
+      changed,
+      sources,
+      &List.keystore(
+        &2,
+        &1,
+        source(:source),
+        source(source: &1, size: Map.get(sources_stats, &1) |> elem(1))
+      )
     )
   end
 
