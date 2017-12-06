@@ -1080,9 +1080,14 @@ defmodule Enum do
   def group_by(enumerable, key_fun, value_fun \\ fn x -> x end)
 
   def group_by(enumerable, key_fun, value_fun) when is_function(key_fun) do
-    reduce(reverse(enumerable), %{}, fn entry, categories ->
+    reduce(reverse(enumerable), %{}, fn entry, acc ->
+      key = key_fun.(entry)
       value = value_fun.(entry)
-      Map.update(categories, key_fun.(entry), [value], &[value | &1])
+
+      case acc do
+        %{^key => existing} -> Map.put(acc, key, [value | existing])
+        %{} -> Map.put(acc, key, [value])
+      end
     end)
   end
 
