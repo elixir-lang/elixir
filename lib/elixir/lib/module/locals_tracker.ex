@@ -4,30 +4,25 @@
 #
 # ## Implementation
 #
-# The implementation uses the digraph module to track
-# all dependencies. The graph has the following vertices:
+# The implementation uses ets to track all dependencies
+# resembling a graph. The graph has the following vertices:
 #
-# * `Module` - a module that was invoked via an import
-# * `{name, arity}` - a local function/arity pair
-# * `{:import, name, arity}` - an invoked function/arity import
-# * `:reattach` - points to reattached functions
+#   * `Module` - a module that was invoked via an import
+#   * `{name, arity}` - a local function/arity pair
+#   * `{:import, name, arity}` - an invoked function/arity import
+#   * `:reattach` - points to reattached functions
 #
-# Each of those vertices can associate to other vertices
-# as described below:
+# Those vertices can associate to other vertices as described
+# below:
 #
-# * `Module`
-#   * in neighbours:  `{:import, name, arity}`
+#   * `{name, arity}`
+#     * in neighbours: `:reattach`, `{name, arity}`
+#     * out neighbours: `{:import, name, arity}`
 #
-# * `{name, arity}`
-#   * in neighbours: `:reattach`, `{name, arity}`
-#   * out neighbours: `{:import, name, arity}`
+#   * `{:import, name, arity}`
+#     * in neighbours: `{name, arity}`
+#     * out neighbours: `Module`
 #
-# * `{:import, name, arity}`
-#   * in neighbours: `{name, arity}`
-#   * out neighbours: `Module`
-#
-# Note that since this is required for bootstrap, we can't use
-# any of the `GenServer` conveniences.
 defmodule Module.LocalsTracker do
   @moduledoc false
 
