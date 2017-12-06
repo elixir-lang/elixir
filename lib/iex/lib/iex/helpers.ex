@@ -764,8 +764,8 @@ defmodule IEx.Helpers do
   Continues execution of the current process.
 
   This is usually called by sessions started with `IEx.pry/0`
-  or `IEx.break!/4`. This allows the current to execute until
-  the next breakpoint, which will automatically yield control
+  or `IEx.break!/4`. This allows the current process to execute
+  until the next breakpoint, which will automatically yield control
   back to IEx without requesting permission to pry.
 
   If the running process terminates, a new IEx session is
