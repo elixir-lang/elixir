@@ -33,6 +33,18 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
+  test "is a no-op if the file is already formatted", context do
+    in_tmp context.test, fn ->
+      File.write!("a.ex", """
+      foo(bar)
+      """)
+
+      File.touch!("a.ex", {{2000, 1, 1}, {0, 0, 0}})
+      Mix.Tasks.Format.run(["a.ex"])
+      assert File.stat!("a.ex").mtime == {{2000, 1, 1}, {0, 0, 0}}
+    end
+  end
+
   test "does not write file to disk on dry-run", context do
     in_tmp context.test, fn ->
       File.write!("a.ex", """
@@ -120,7 +132,7 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  test "formats with inputs and configuration from .formatter.exs", context do
+  test "uses inputs and configuration from .formatter.exs", context do
     in_tmp context.test, fn ->
       File.write!(".formatter.exs", """
       [
@@ -141,7 +153,7 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  test "formats with inputs and configuration from --dot-formatter", context do
+  test "uses inputs and configuration from --dot-formatter", context do
     in_tmp context.test, fn ->
       File.write!("custom_formatter.exs", """
       [

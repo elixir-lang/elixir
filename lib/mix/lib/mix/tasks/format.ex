@@ -155,31 +155,26 @@ defmodule Mix.Tasks.Format do
     {File.read!(file), file: file}
   end
 
-  defp write_file(:stdin, contents), do: IO.write(contents)
-  defp write_file(file, contents), do: File.write!(file, contents)
-
   defp format_file(file, task_opts, formatter_opts) do
     {input, extra_opts} = read_file(file)
-    output = [Code.format_string!(input, extra_opts ++ formatter_opts), ?\n]
+    output = IO.iodata_to_binary([Code.format_string!(input, extra_opts ++ formatter_opts), ?\n])
 
     check_equivalent? = Keyword.get(task_opts, :check_equivalent, false)
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
+    dry_run? = Keyword.get(task_opts, :dry_run, false)
 
-    if check_equivalent? or check_formatted? do
-      output_string = IO.iodata_to_binary(output)
+    cond do
+      check_equivalent? and not equivalent?(input, output) ->
+        {:not_equivalent, file}
 
-      cond do
-        check_equivalent? and not equivalent?(input, output_string) ->
-          {:not_equivalent, file}
+      check_formatted? ->
+        if input == output, do: :ok, else: {:not_formatted, file}
 
-        check_formatted? and input != output_string ->
-          {:not_formatted, file}
+      dry_run? ->
+        :ok
 
-        true ->
-          write_or_print(file, output, check_formatted?, task_opts)
-      end
-    else
-      write_or_print(file, output, check_formatted?, task_opts)
+      true ->
+        write_or_print(file, input, output)
     end
   rescue
     exception ->
@@ -187,15 +182,14 @@ defmodule Mix.Tasks.Format do
       {:exit, file, exception, stacktrace}
   end
 
-  defp write_or_print(file, output, check_formatted?, task_opts) do
-    dry_run? = Keyword.get(task_opts, :dry_run, false)
-
-    if dry_run? or check_formatted? do
-      :ok
-    else
-      write_file(file, output)
-      :ok
+  defp write_or_print(file, input, output) do
+    cond do
+      file == :stdin -> IO.write(output)
+      input == output -> :ok
+      true -> File.write!(file, output)
     end
+
+    :ok
   end
 
   defp collect_status({:ok, :ok}, acc), do: acc
