@@ -919,13 +919,7 @@ defmodule Module do
                     "overridable because it was not defined"
 
           clause ->
-            neighbours =
-              if :elixir_config.get(:bootstrap) do
-                []
-              else
-                Module.LocalsTracker.yank(module, tuple)
-              end
-
+            neighbours = :elixir_locals.yank(tuple, module)
             overridable_definitions = :elixir_overridable.overridable(module)
 
             count =

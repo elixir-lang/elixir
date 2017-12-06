@@ -81,9 +81,6 @@ compile(Line, Module, Block, Vars, E) ->
 
     PersistedAttributes = ets:lookup_element(Data, ?persisted_attr, 2),
     Attributes = attributes(Line, File, Data, PersistedAttributes),
-    OnLoad = ets:lookup_element(Data, 'on_load', 2),
-    [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
-
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
 
     (not elixir_config:get(bootstrap)) andalso

@@ -50,7 +50,7 @@ fetch_definitions(File, Module) ->
   Table = elixir_module:defs_table(Module),
   Entries = ets:match(Table, {{def, '$1'}, '_', '_', '_', '_', '_'}),
   {All, Private} = fetch_definition(lists:sort(Entries), File, Module, Table, [], []),
-  Unreachable = elixir_locals:warn_unused_local(File, Module, Private),
+  Unreachable = elixir_locals:warn_unused_local(File, Module, All, Private),
   elixir_locals:ensure_no_import_conflict(File, Module, All),
   {All, Unreachable}.
 
@@ -142,7 +142,6 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
   Tuple = {Name, Arity},
   E = ER#{function := Tuple},
 
-  elixir_locals:record_definition(Tuple, Kind, Module),
   {Args, Defaults} = unpack_defaults(Kind, Meta, Name, DefaultsArgs, E),
   Clauses = [elixir_clauses:def(Clause, E) ||
              Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
