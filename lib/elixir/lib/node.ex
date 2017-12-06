@@ -73,7 +73,7 @@ defmodule Node do
 
   For more information, see `:erlang.nodes/1`.
   """
-  @typep state :: :visible | :hidden | :connected | :this | :known
+  @type state :: :visible | :hidden | :connected | :this | :known
   @spec list(state | [state]) :: [t]
   def list(args) do
     :erlang.nodes(args)
