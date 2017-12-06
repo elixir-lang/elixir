@@ -4,8 +4,6 @@
 
 Erlang/OTP versioning is independent from the versioning of Elixir. Each version of Elixir supports a specific range of Erlang/OTP versions. The compatibility table is shown below.
 
-### Table of Erlang/OTP compatibility
-
 Elixir version | Supported Erlang/OTP versions
 :------------- | :----------------------------
 v1.0.0         | 17
