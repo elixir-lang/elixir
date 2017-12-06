@@ -119,13 +119,14 @@ defmodule Module.LocalsTracker do
   clauses a private function have.
   """
   def collect_unused_locals(d, all_defined, private) do
-    reachable = Enum.reduce all_defined, %{}, fn {pair, kind, _, _}, acc ->
-      if kind in [:def, :defmacro] do
-        reachable_from(d, pair, acc)
-      else
-        acc
-      end
-    end
+    reachable =
+      Enum.reduce(all_defined, %{}, fn {pair, kind, _, _}, acc ->
+        if kind in [:def, :defmacro] do
+          reachable_from(d, pair, acc)
+        else
+          acc
+        end
+      end)
 
     reattached = out_neighbours(d, :reattach)
     {unreachable(reachable, reattached, private), collect_warnings(reachable, private)}
