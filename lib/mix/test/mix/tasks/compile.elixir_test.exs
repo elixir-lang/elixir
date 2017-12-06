@@ -226,19 +226,19 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge([A, B])
 
       # Update local existing resource
-      File.touch!("lib/a.eex", {{2020, 1, 1}, {0, 0, 0}})
+      File.touch!("lib/a.eex", {{2030, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       # Does not update on old existing resource
-      File.touch!("lib/a.eex", {{1970, 1, 1}, {0, 0, 0}})
+      File.touch!("lib/a.eex", {{2000, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
       Mix.shell().flush
       purge([A, B])
 
       # Update external existing resource
-      File.touch!(tmp, {{2020, 1, 1}, {0, 0, 0}})
+      File.touch!(tmp, {{2030, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
