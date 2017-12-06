@@ -83,7 +83,7 @@ Those improvements will help developers better understand the relationship betwe
   * [Enumerable] Add `Enumerable.slice/1` and optimize many `Enum` operations with the new protocol. This allows data-structures with index-based random access to provide a non-linear implementation
   * [Inspect.Algebra] Add `:strict` and `:flex` breaks
   * [Inspect.Algebra] Allow a group to inherit the parent group break
-  * [Inspect.Algebra] Add `force_break/1` and `next_break_fits/2` which give more control over document fitting
+  * [Inspect.Algebra] Add `force_unfit/1` and `next_break_fits/2` which give more control over document fitting
   * [Inspect.Algebra] Add `collapse_lines/1` for collapsing multiple lines to a maximum value
   * [Inspect.Algebra] Allow `nest/2` to be `:reset` or be set to the current `:cursor` position
   * [Kernel] Prefix variables with V when emitting Erlang code. This improves the integration with tools such as Erlang code formatters and the GUI debugger
