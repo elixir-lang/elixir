@@ -270,6 +270,17 @@ defmodule IEx.Server do
   end
 
   defp handle_take_over(
+         {:DOWN, evaluator_ref, :process, evaluator, :normal},
+         _state,
+         evaluator,
+         evaluator_ref,
+         input,
+         _callback
+       ) do
+    rerun([], evaluator, evaluator_ref, input)
+  end
+
+  defp handle_take_over(
          {:DOWN, evaluator_ref, :process, evaluator, reason},
          _state,
          evaluator,
@@ -279,7 +290,7 @@ defmodule IEx.Server do
        ) do
     try do
       io_error(
-        "** (EXIT from #{inspect(evaluator)}) evaluator process exited with reason: " <>
+        "** (EXIT from #{inspect(evaluator)}) shell process exited with reason: " <>
           Exception.format_exit(reason)
       )
     catch
