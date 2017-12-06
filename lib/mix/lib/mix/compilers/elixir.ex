@@ -86,12 +86,13 @@ defmodule Mix.Compilers.Elixir do
     {modules, structs, changed} =
       update_stale_entries(all_modules, all_sources, removed ++ changed, stale_local_deps, %{})
 
+    stale = changed -- removed
+
     sources =
       removed
       |> Enum.reduce(all_sources, &List.keydelete(&2, &1, source(:source)))
-      |> update_stale_sources(changed, sources_stats)
+      |> update_stale_sources(stale, sources_stats)
 
-    stale = changed -- removed
     if opts[:all_warnings], do: show_warnings(sources)
 
     cond do
@@ -355,8 +356,8 @@ defmodule Mix.Compilers.Elixir do
     end)
   end
 
-  defp update_stale_sources(sources, changed, sources_stats) do
-    Enum.reduce(changed, sources, fn file, acc ->
+  defp update_stale_sources(sources, stale, sources_stats) do
+    Enum.reduce(stale, sources, fn file, acc ->
       %{^file => {_, size}} = sources_stats
       List.keystore(acc, file, source(:source), source(source: file, size: size))
     end)
