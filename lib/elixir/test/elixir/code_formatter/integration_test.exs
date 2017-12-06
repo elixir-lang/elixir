@@ -41,7 +41,7 @@ defmodule Code.Formatter.IntegrationTest do
     case meta[:format] do
       :list_heredoc ->
         string = list |> List.to_string() |> escape_string(:heredoc)
-        {@single_heredoc |> line(string) |> concat(@single_heredoc) |> force_break(), state}
+        {@single_heredoc |> line(string) |> concat(@single_heredoc) |> force_unfit(), state}
 
       :charlist ->
         string = list |> List.to_string() |> escape_string(@single_quote)

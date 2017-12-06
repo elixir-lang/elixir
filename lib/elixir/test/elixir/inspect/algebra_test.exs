@@ -222,8 +222,8 @@ defmodule Inspect.AlgebraTest do
 
   test "force doc and cancel doc" do
     # Consistent with definitions
-    assert force_break("ab") == {:doc_force, "ab"}
-    assert force_break(empty()) == {:doc_force, empty()}
+    assert force_unfit("ab") == {:doc_force, "ab"}
+    assert force_unfit(empty()) == {:doc_force, empty()}
 
     # Consistent with definitions
     assert next_break_fits("ab") == {:doc_fits, "ab", :enabled}
@@ -232,7 +232,7 @@ defmodule Inspect.AlgebraTest do
     assert next_break_fits(empty(), :disabled) == {:doc_fits, empty(), :disabled}
 
     # Consistent formatting
-    doc = force_break(concat(glue(glue(glue("hello", "a"), "b"), "c"), "d"))
+    doc = force_unfit(concat(glue(glue(glue("hello", "a"), "b"), "c"), "d"))
     assert render(doc, 20) == "hello\na\nb\ncd"
     assert render(next_break_fits(doc, :enabled), 20) == "hello a b cd"
 
