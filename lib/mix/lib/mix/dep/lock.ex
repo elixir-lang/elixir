@@ -33,9 +33,11 @@ defmodule Mix.Dep.Lock do
   @spec read() :: map
   def read() do
     lockfile = lockfile()
+
     case File.read(lockfile) do
       {:ok, content} ->
         read_lock(content, lockfile)
+
       {:error, _} ->
         %{}
     end
@@ -71,10 +73,10 @@ defmodule Mix.Dep.Lock do
     new_map
   rescue
     SyntaxError ->
-      Mix.raise """
+      Mix.raise("""
       Your #{lockfile} contains merge conflicts we cannot automatically solve.
       Please resolve the conflicts manually and run the command again
-      """
+      """)
   end
 
   defp eval_content(content, lockfile) do
@@ -95,10 +97,12 @@ defmodule Mix.Dep.Lock do
   defp write_lock(map, map, _lockfile) do
     :ok
   end
+
   defp write_lock(map, _old, lockfile) do
-    lines = for {app, rev} <- Enum.sort(map), rev != nil do
-      ~s(  "#{app}": #{inspect(rev, limit: :infinity)},\n)
-    end
+    lines =
+      for {app, rev} <- Enum.sort(map), rev != nil do
+        ~s(  "#{app}": #{inspect(rev, limit: :infinity)},\n)
+      end
 
     File.write!(lockfile, ["%{\n", lines, "}\n"])
     touch_manifest()

@@ -77,10 +77,10 @@ defmodule Mix.Dep.LockTest do
       """)
 
       Mix.Dep.Lock.read() == %{
-        "dep": {:hex, :dep, "0.1.0"},
-        "foo": {:hex, :foo, "0.1.0"},
-        "bar": {:hex, :bar, "0.1.0"},
-        "baz": {:hex, :baz, "0.1.0"},
+        dep: {:hex, :dep, "0.1.0"},
+        foo: {:hex, :foo, "0.1.0"},
+        bar: {:hex, :bar, "0.1.0"},
+        baz: {:hex, :baz, "0.1.0"}
       }
     end
   end
@@ -106,13 +106,13 @@ defmodule Mix.Dep.LockTest do
       """)
 
       Mix.Dep.Lock.read() == %{
-        "dep": {:hex, :dep, "0.1.0"},
-        "foo": {:hex, :foo, "0.1.0"},
-        "bar": {:hex, :bar, "0.1.0"},
-        "baz": {:hex, :baz, "0.1.0"},
-        "sys": {:hex, :sys, "0.1.0"},
-        "lol": {:hex, :lol, "0.1.0"},
-        "zaz": {:hex, :zaz, "0.1.0"},
+        dep: {:hex, :dep, "0.1.0"},
+        foo: {:hex, :foo, "0.1.0"},
+        bar: {:hex, :bar, "0.1.0"},
+        baz: {:hex, :baz, "0.1.0"},
+        sys: {:hex, :sys, "0.1.0"},
+        lol: {:hex, :lol, "0.1.0"},
+        zaz: {:hex, :zaz, "0.1.0"}
       }
     end
   end
@@ -134,10 +134,10 @@ defmodule Mix.Dep.LockTest do
       """)
 
       Mix.Dep.Lock.read() == %{
-        "dep": {:hex, :dep, "0.1.0"},
-        "foo": {:hex, :foo, "0.1.0"},
-        "bar": {:hex, :bar, "0.1.0"},
-        "baz": {:hex, :baz, "0.1.0"},
+        dep: {:hex, :dep, "0.1.0"},
+        foo: {:hex, :foo, "0.1.0"},
+        bar: {:hex, :bar, "0.1.0"},
+        baz: {:hex, :baz, "0.1.0"}
       }
     end
   end
