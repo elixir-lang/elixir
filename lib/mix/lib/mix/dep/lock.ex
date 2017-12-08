@@ -32,17 +32,55 @@ defmodule Mix.Dep.Lock do
   """
   @spec read() :: map
   def read() do
-    case File.read(lockfile()) do
-      {:ok, info} ->
-        assert_no_merge_conflicts_in_lockfile(lockfile(), info)
-
-        case Code.eval_string(info, [], file: lockfile()) do
-          {lock, _binding} when is_map(lock) -> lock
-          {_, _binding} -> %{}
-        end
-
+    lockfile = lockfile()
+    case File.read(lockfile) do
+      {:ok, content} ->
+        read_lock(content, lockfile)
       {:error, _} ->
         %{}
+    end
+  end
+
+  @start "<<<<<<<"
+  @separator "======="
+  @finish ">>>>>>>"
+  @start_regex ~r/#{@start} .+\n/
+  @finish_regex ~r/#{@finish} .+\n/
+  @ancestor_regex ~r/\|{7} .+\n[\w\W\s]+\n#{@separator}/
+  @conflict_regex ~r/#{@start} .+\n([\w\W\s]+)\n#{@separator}\n([\w\W\s]+)\n#{@finish} .+\n/
+
+  defp read_lock(content, lockfile) do
+    if Regex.match?(@conflict_regex, content) do
+      resolve_merge_conflicts(content, lockfile)
+    else
+      eval_content(content, lockfile)
+    end
+  end
+
+  defp resolve_merge_conflicts(content, lockfile) do
+    new_map =
+      content
+      |> String.replace(@ancestor_regex, @separator)
+      |> String.replace(@start_regex, "")
+      |> String.replace(@separator, "")
+      |> String.replace(@finish_regex, "")
+      |> eval_content(lockfile)
+
+    write_lock(new_map, %{}, lockfile)
+
+    new_map
+  rescue
+    SyntaxError ->
+      Mix.raise """
+      Your #{lockfile} contains merge conflicts we cannot automatically solve.
+      Please resolve the conflicts manually and run the command again
+      """
+  end
+
+  defp eval_content(content, lockfile) do
+    case Code.eval_string(content, [], file: lockfile) do
+      {lock, _binding} when is_map(lock) -> lock
+      {_, _binding} -> %{}
     end
   end
 
@@ -51,29 +89,22 @@ defmodule Mix.Dep.Lock do
   """
   @spec write(map) :: :ok
   def write(map) do
-    unless map == read() do
-      lines =
-        for {app, rev} <- Enum.sort(map), rev != nil do
-          ~s(  "#{app}": #{inspect(rev, limit: :infinity)},\n)
-        end
+    write_lock(map, read(), lockfile())
+  end
 
-      File.write!(lockfile(), ["%{\n", lines, "}\n"])
-      touch_manifest()
+  defp write_lock(map, map, _lockfile) do
+    :ok
+  end
+  defp write_lock(map, _old, lockfile) do
+    lines = for {app, rev} <- Enum.sort(map), rev != nil do
+      ~s(  "#{app}": #{inspect(rev, limit: :infinity)},\n)
     end
 
-    :ok
+    File.write!(lockfile, ["%{\n", lines, "}\n"])
+    touch_manifest()
   end
 
   defp lockfile do
     Mix.Project.config()[:lockfile]
-  end
-
-  defp assert_no_merge_conflicts_in_lockfile(lockfile, info) do
-    if String.contains?(info, ~w(<<<<<<< ======= >>>>>>>)) do
-      Mix.raise(
-        "Your #{lockfile} contains merge conflicts. Please resolve the conflicts " <>
-          "and run the command again"
-      )
-    end
   end
 end
