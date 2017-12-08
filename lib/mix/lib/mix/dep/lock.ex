@@ -43,16 +43,10 @@ defmodule Mix.Dep.Lock do
     end
   end
 
-  @start "<<<<<<<"
-  @separator "======="
-  @finish ">>>>>>>"
-  @start_regex ~r/#{@start} .+\n/
-  @finish_regex ~r/#{@finish} .+\n/
-  @ancestor_regex ~r/\|{7} .+\n[\w\W\s]+\n#{@separator}/
-  @conflict_regex ~r/#{@start} .+\n([\w\W\s]+)\n#{@separator}\n([\w\W\s]+)\n#{@finish} .+\n/
+  @conflict_regex ~r/<{7} .+\n|\|{7} .+\n[\w\W\s]+={7}\n|={7}\n|>{7} .+\n/
 
   defp read_lock(content, lockfile) do
-    if Regex.match?(@conflict_regex, content) do
+    if String.contains?(content, ~w(<<<<<<< ======= >>>>>>>)) do
       resolve_merge_conflicts(content, lockfile)
     else
       eval_content(content, lockfile)
@@ -62,10 +56,7 @@ defmodule Mix.Dep.Lock do
   defp resolve_merge_conflicts(content, lockfile) do
     new_map =
       content
-      |> String.replace(@ancestor_regex, @separator)
-      |> String.replace(@start_regex, "")
-      |> String.replace(@separator, "")
-      |> String.replace(@finish_regex, "")
+      |> String.replace(@conflict_regex, "")
       |> eval_content(lockfile)
 
     write_lock(new_map, %{}, lockfile)
