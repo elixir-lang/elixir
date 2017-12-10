@@ -659,7 +659,7 @@ defmodule System do
         result =
           result
           |> String.split("\n")
-          |> Enum.map_join("\n", &"        " <> &1)
+          |> Enum.map_join("\n", &("        " <> &1))
 
         raise "command exited with status #{inspect(status)}\n\n    Result:\n#{result}"
 
