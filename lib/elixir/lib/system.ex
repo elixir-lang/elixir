@@ -637,6 +637,26 @@ defmodule System do
     end
   end
 
+  @doc """
+  Similar to `System.cmd/3` but raises an error on non-zero exit status.
+
+  ## Examples
+
+      iex> System.cmd! "echo", ["hello"]
+      "hello\n"
+
+  """
+  @spec cmd!(binary, [binary], keyword) :: Collectable.t()
+  def cmd!(command, args, opts \\ []) when is_binary(command) and is_list(args) do
+    case cmd(command, args, opts) do
+      {result, 0} ->
+        result
+
+      {result, status} ->
+        raise "command exited with status #{inspect(status)}\n\n    Result: #{inspect(result)}"
+    end
+  end
+
   defp do_cmd(port, acc, fun) do
     receive do
       {^port, {:data, data}} ->
