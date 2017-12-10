@@ -223,7 +223,7 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
         (Check and StoredCheck) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Data, StoredMeta, StoredFile),
-        check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody),
+        check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
         max(Defaults, StoredDefaults);
       [] ->
         Defaults
@@ -292,16 +292,16 @@ check_valid_clause(Meta, File, Name, Arity, Kind, Data, StoredMeta, StoredFile) 
   end.
 
 % Clause with defaults after clause with defaults
-check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _) when Defaults > 0, StoredDefaults > 0 ->
+check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, true, _) when Defaults > 0, StoredDefaults > 0 ->
   elixir_errors:form_error(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause(s) without defaults
-check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, 0, _) when Defaults > 0 ->
+check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, 0, _, _) when Defaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause without defaults directly after clause with defaults (body less does not count)
-check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true) when LastDefaults > 0 ->
+check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true, true) when LastDefaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause without defaults
-check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _, _, _) -> ok.
+check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _, _, _, _) -> ok.
 
 warn_bodyless_function(Check, _Meta, _File, Module, _Kind, _Tuple)
     when Check == false; Module == 'Elixir.Module' ->

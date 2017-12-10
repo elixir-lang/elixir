@@ -148,12 +148,21 @@ defmodule Kernel.DocsTest do
           @macrocallback qux(any) :: any
 
           @doc "Function doc"
-          def foo(arg) do
-            arg + 1
-          end
+          def foo(arg), do: arg + 1
+
+          @doc "Multiple bodiless clause doc"
+          def bar(_arg)
+          def bar(_arg)
+          def bar(arg), do: arg + 1
+
+          @doc "wrong doc"
+          def baz(_arg)
+          def baz(arg), do: arg + 1
+          @doc "Multiple bodiless clause and docs"
+          def baz(_arg)
 
           @doc false
-          def bar(true), do: false
+          def qux(true), do: false
         end
       )
 
@@ -164,8 +173,10 @@ defmodule Kernel.DocsTest do
       assert Code.get_docs(SampleDocs, :callback_docs) == docs[:callback_docs]
 
       assert [
-               {{:bar, 1}, _, :def, [{:bool, _, Elixir}], false},
-               {{:foo, 1}, _, :def, [{:arg, _, nil}], "Function doc"}
+               {{:bar, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause doc"},
+               {{:baz, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause and docs"},
+               {{:foo, 1}, _, :def, [{:arg, _, nil}], "Function doc"},
+               {{:qux, 1}, _, :def, [{:bool, _, Elixir}], false}
              ] = docs[:docs]
 
       assert {_, "Module doc"} = docs[:moduledoc]

@@ -594,29 +594,51 @@ defmodule Kernel.WarningTest do
   end
 
   test "clause with defaults should be first" do
+    message = "definitions with multiple clauses and default values require a header"
+
     assert capture_err(fn ->
              Code.eval_string(~S"""
-             defmodule Sample do
-               def hello(arg), do: nil
-               def hello(arg \\ 0), do: nil
+             defmodule Sample1 do
+               def hello(arg), do: arg
+               def hello(arg \\ 0), do: arg
              end
              """)
-           end) =~ "definitions with multiple clauses and default values require a header"
+           end) =~ message
+
+           assert capture_err(fn ->
+                    Code.eval_string(~S"""
+                    defmodule Sample2 do
+                      def hello(_arg)
+                      def hello(arg \\ 0), do: arg
+                    end
+                    """)
+                  end) =~ message
   after
-    purge(Sample)
+    purge([Sample1, Sample2])
   end
 
   test "clauses with default should use fun head" do
+    message = "definitions with multiple clauses and default values require a header"
+
     assert capture_err(fn ->
              Code.eval_string(~S"""
-             defmodule Sample do
-               def hello(arg \\ 0), do: nil
-               def hello(arg), do: nil
+             defmodule Sample1 do
+               def hello(arg \\ 0), do: arg
+               def hello(arg), do: arg
              end
              """)
-           end) =~ "definitions with multiple clauses and default values require a header"
+           end) =~ message
+
+    assert capture_err(fn ->
+              Code.eval_string(~S"""
+              defmodule Sample2 do
+                def hello(arg \\ 0), do: arg
+                def hello(_arg)
+              end
+            """)
+          end) == ""
   after
-    purge(Sample)
+    purge([Sample1, Sample2])
   end
 
   test "unused with local with overridable" do
