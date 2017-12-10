@@ -652,6 +652,17 @@ defmodule System do
       {result, 0} ->
         result
 
+      {"", status} ->
+        raise "command exited with status #{inspect(status)}"
+
+      {result, status} when is_binary(result) ->
+        result =
+          result
+          |> String.split("\n")
+          |> Enum.map_join("\n", &"        " <> &1)
+
+        raise "command exited with status #{inspect(status)}\n\n    Result:\n#{result}"
+
       {result, status} ->
         raise "command exited with status #{inspect(status)}\n\n    Result: #{inspect(result)}"
     end
