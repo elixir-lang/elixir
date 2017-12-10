@@ -605,14 +605,14 @@ defmodule Kernel.WarningTest do
              """)
            end) =~ message
 
-           assert capture_err(fn ->
-                    Code.eval_string(~S"""
-                    defmodule Sample2 do
-                      def hello(_arg)
-                      def hello(arg \\ 0), do: arg
-                    end
-                    """)
-                  end) =~ message
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+             defmodule Sample2 do
+               def hello(_arg)
+               def hello(arg \\ 0), do: arg
+             end
+             """)
+           end) =~ message
   after
     purge([Sample1, Sample2])
   end
@@ -630,13 +630,13 @@ defmodule Kernel.WarningTest do
            end) =~ message
 
     assert capture_err(fn ->
-              Code.eval_string(~S"""
-              defmodule Sample2 do
-                def hello(arg \\ 0), do: arg
-                def hello(_arg)
-              end
-            """)
-          end) == ""
+             Code.eval_string(~S"""
+               defmodule Sample2 do
+                 def hello(arg \\ 0), do: arg
+                 def hello(_arg)
+               end
+             """)
+           end) == ""
   after
     purge([Sample1, Sample2])
   end
