@@ -104,7 +104,7 @@ defmodule Module do
   Multiple uses of `@compile` will accumulate instead of overriding
   previous ones. See the "Compile options" section below.
 
-  ### `@doc`
+  ### `@doc` (and `@since`)
 
   Provides documentation for the function or macro that follows the
   attribute.
@@ -115,6 +115,7 @@ defmodule Module do
 
       defmodule MyModule do
         @doc "Hello world"
+        @since "1.1.0"
         def hello do
           "world"
         end
@@ -126,6 +127,9 @@ defmodule Module do
           a + b
         end
       end
+
+  `@since` is an optional attribute that annotates which version the
+  function was introduced.
 
   ### `@dialyzer`
 
@@ -395,7 +399,6 @@ defmodule Module do
 
   @typep definition :: {atom, arity}
   @typep def_kind :: :def | :defp | :defmacro | :defmacrop
-  @typep type_kind :: :type | :typep | :opaque
 
   @doc """
   Provides runtime information about functions and macros defined by the
@@ -623,80 +626,42 @@ defmodule Module do
     :elixir_aliases.safe_concat([left, right])
   end
 
-  @doc """
-  Attaches documentation to a given function or type.
+  # Build signatures to be stored in docs
 
-  It expects the module the function/type belongs to, the line (a non-negative integer),
-  the kind (`:def`, `:defmacro`, `:type`, `:opaque`), a tuple `{<function name>, <arity>}`,
-  the function signature (the signature should be omitted for types) and the documentation,
-  which should be either a binary or a boolean.
-
-  It returns `:ok` or `{:error, :private_doc}`.
-
-  ## Examples
-
-      defmodule MyModule do
-        Module.add_doc(__MODULE__, __ENV__.line + 1, :def, {:version, 0}, [], "Manually added docs")
-        def version, do: 1
-      end
-
-  """
-  @spec add_doc(
-          module,
-          non_neg_integer,
-          def_kind | type_kind,
-          definition,
-          list,
-          String.t() | boolean | nil
-        ) :: :ok | {:error, :private_doc}
-  def add_doc(module, line, kind, function_tuple, signature \\ [], doc)
-
-  def add_doc(_module, _line, kind, _function_tuple, _signature, doc)
-      when kind in [:defp, :defmacrop, :typep] do
-    if doc, do: {:error, :private_doc}, else: :ok
+  defp build_signature(args, env) do
+    {reverse_args, counters} = simplify_args(args, %{}, [], env)
+    expand_vars(reverse_args, counters, [])
   end
 
-  def add_doc(module, line, kind, function_tuple, signature, doc)
-      when kind in [:def, :defmacro, :type, :opaque] and
-             (is_binary(doc) or is_boolean(doc) or doc == nil) do
-    assert_not_compiled!(:add_doc, module)
-    table = data_table_for(module)
-    signature = simplify_signature(signature)
-
-    case :ets.lookup(table, {:doc, function_tuple}) do
-      [] ->
-        :ets.insert(table, {{:doc, function_tuple}, line, kind, signature, doc})
-        :ok
-
-      [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
-        signature = merge_signatures(current_sign, signature, 1)
-        doc = if(is_nil(doc), do: current_doc, else: doc)
-        :ets.insert(table, {doc_tuple, line, kind, signature, doc})
-        :ok
-    end
+  defp simplify_args([arg | args], counters, acc, env) do
+    {arg, counters} = simplify_arg(arg, counters, env)
+    simplify_args(args, counters, [arg | acc], env)
   end
 
-  # Simplify signatures to be stored in docs
-
-  defp simplify_signature(signature) do
-    {signature, acc} = :lists.mapfoldl(&simplify_signature/2, [], signature)
-    {signature, _} = :lists.mapfoldl(&expand_signature/2, {acc, acc}, signature)
-    signature
+  defp simplify_args([], counters, reverse_args, _env) do
+    {reverse_args, counters}
   end
 
-  defp simplify_signature({:\\, _, [left, right]}, acc) do
-    {left, acc} = simplify_signature(left, acc)
+  defp simplify_arg({:\\, _, [left, right]}, acc, env) do
+    {left, acc} = simplify_arg(left, acc, env)
+
+    right =
+      Macro.prewalk(right, fn
+        {:@, _, _} = attr -> Macro.expand_once(attr, env)
+        other -> other
+      end)
+
     {{:\\, [], [left, right]}, acc}
   end
 
   # If the variable is being used explicitly for naming,
   # we always give it a higher priority (nil) even if it
   # starts with underscore.
-  defp simplify_signature({:=, _, [{var, _, atom}, _]}, acc) when is_atom(atom) do
+  defp simplify_arg({:=, _, [{var, _, atom}, _]}, acc, _env) when is_atom(atom) do
     {simplify_var(var, nil), acc}
   end
 
-  defp simplify_signature({:=, _, [_, {var, _, atom}]}, acc) when is_atom(atom) do
+  defp simplify_arg({:=, _, [_, {var, _, atom}]}, acc, _env) when is_atom(atom) do
     {simplify_var(var, nil), acc}
   end
 
@@ -704,26 +669,32 @@ defmodule Module do
   # higher priority. However, if the variable starts with an
   # underscore, we give it a secondary context (Elixir) with
   # lower priority.
-  defp simplify_signature({var, _, atom}, acc) when is_atom(atom) do
+  defp simplify_arg({var, _, atom}, acc, _env) when is_atom(atom) do
     {simplify_var(var, Elixir), acc}
   end
 
-  defp simplify_signature({:%, _, [left, _]}, acc) when is_atom(left) do
-    module_name = simplify_module_name(left)
-    autogenerated(acc, module_name)
+  defp simplify_arg({:%, _, [left, _]}, acc, env) do
+    case Macro.expand_once(left, env) do
+      module when is_atom(module) -> autogenerated(acc, simplify_module_name(module))
+      _ -> autogenerated(acc, :struct)
+    end
   end
 
-  defp simplify_signature({:%{}, _, _}, acc) do
+  defp simplify_arg({:%{}, _, _}, acc, _env) do
     autogenerated(acc, :map)
   end
 
-  defp simplify_signature(other, acc) when is_integer(other), do: autogenerated(acc, :int)
-  defp simplify_signature(other, acc) when is_boolean(other), do: autogenerated(acc, :bool)
-  defp simplify_signature(other, acc) when is_atom(other), do: autogenerated(acc, :atom)
-  defp simplify_signature(other, acc) when is_list(other), do: autogenerated(acc, :list)
-  defp simplify_signature(other, acc) when is_float(other), do: autogenerated(acc, :float)
-  defp simplify_signature(other, acc) when is_binary(other), do: autogenerated(acc, :binary)
-  defp simplify_signature(_, acc), do: autogenerated(acc, :arg)
+  defp simplify_arg({:@, _, _} = attr, acc, env) do
+    simplify_arg(Macro.expand_once(attr, env), acc, env)
+  end
+
+  defp simplify_arg(other, acc, _env) when is_integer(other), do: autogenerated(acc, :int)
+  defp simplify_arg(other, acc, _env) when is_boolean(other), do: autogenerated(acc, :bool)
+  defp simplify_arg(other, acc, _env) when is_atom(other), do: autogenerated(acc, :atom)
+  defp simplify_arg(other, acc, _env) when is_list(other), do: autogenerated(acc, :list)
+  defp simplify_arg(other, acc, _env) when is_float(other), do: autogenerated(acc, :float)
+  defp simplify_arg(other, acc, _env) when is_binary(other), do: autogenerated(acc, :binary)
+  defp simplify_arg(_, acc, _env), do: autogenerated(acc, :arg)
 
   defp simplify_var(var, guess_priority) do
     case Atom.to_string(var) do
@@ -744,33 +715,30 @@ defmodule Module do
   end
 
   defp autogenerated(acc, key) do
-    {key, [key | acc]}
-  end
-
-  defp expand_signature(key, {all_keys, acc}) when is_atom(key) do
-    case previous_values(key, all_keys, acc) do
-      {i, acc} -> {{:"#{key}#{i}", [], Elixir}, {all_keys, acc}}
-      :none -> {{key, [], Elixir}, {all_keys, acc}}
+    case acc do
+      %{^key => :once} -> {key, Map.put(acc, key, 2)}
+      %{^key => value} -> {key, Map.put(acc, key, value + 1)}
+      %{} -> {key, Map.put(acc, key, :once)}
     end
   end
 
-  defp expand_signature(term, {_, _} = acc) do
-    {term, acc}
-  end
+  defp expand_vars([key | keys], counters, acc) when is_atom(key) do
+    case counters do
+      %{^key => count} when is_integer(count) and count >= 1 ->
+        counters = Map.put(counters, key, count - 1)
+        expand_vars(keys, counters, [{:"#{key}#{count}", [], Elixir} | acc])
 
-  defp previous_values(key, all_keys, acc) do
-    total_occurrences = occurrences(key, all_keys)
-
-    if total_occurrences == 1 do
-      :none
-    else
-      index = total_occurrences - occurrences(key, acc) + 1
-      {index, :lists.delete(key, acc)}
+      _ ->
+        expand_vars(keys, counters, [{key, [], Elixir} | acc])
     end
   end
 
-  defp occurrences(key, list) do
-    length(:lists.filter(fn el -> el == key end, list))
+  defp expand_vars([arg | args], counters, acc) do
+    expand_vars(args, counters, [arg | acc])
+  end
+
+  defp expand_vars([], _counters, acc) do
+    acc
   end
 
   # Merge
@@ -1217,33 +1185,36 @@ defmodule Module do
 
     {line, doc} = get_doc_info(table, env)
 
-    # Arguments are not expanded for the docs, but we make an exception for
-    # module attributes and for structs (aliases to be precise).
-    args =
-      Macro.prewalk(args, fn
-        {:@, _, _} = attr ->
-          Macro.expand_once(attr, env)
+    # TODO: Store @since alongside the docs
+    _ = get_since_info(table)
 
-        {:%, meta, [aliases, fields]} ->
-          {:%, meta, [Macro.expand_once(aliases, env), fields]}
-
-        x ->
-          x
-      end)
-
-    case add_doc(module, line, kind, pair, args, doc) do
-      :ok ->
-        :ok
-
-      {:error, :private_doc} ->
-        error_message =
-          "#{kind} #{name}/#{arity} is private, " <>
-            "@doc attribute is always discarded for private functions/macros/types"
-
-        :elixir_errors.warn(line, env.file, error_message)
-    end
-
+    add_doc(table, line, kind, pair, args, doc, env)
     :ok
+  end
+
+  defp add_doc(_module, line, kind, {name, arity}, _args, doc, env)
+       when kind in [:defp, :defmacrop] do
+    if doc do
+      error_message =
+        "#{kind} #{name}/#{arity} is private, " <>
+          "@doc attribute is always discarded for private functions/macros/types"
+
+      :elixir_errors.warn(line, env.file, error_message)
+    end
+  end
+
+  defp add_doc(table, line, kind, pair, args, doc, env) do
+    signature = build_signature(args, env)
+
+    case :ets.lookup(table, {:doc, pair}) do
+      [] ->
+        :ets.insert(table, {{:doc, pair}, line, kind, signature, doc})
+
+      [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
+        signature = merge_signatures(current_sign, signature, 1)
+        doc = if is_nil(doc), do: current_doc, else: doc
+        :ets.insert(table, {doc_tuple, line, kind, signature, doc})
+    end
   end
 
   @doc false
@@ -1709,6 +1680,12 @@ defmodule Module do
             "must be set directly via the @ notation"
   end
 
+  defp preprocess_attribute(:since, value) when not is_binary(value) do
+    raise ArgumentError,
+          "@since is used for documentation purposes and expects a string representing " <>
+            "the version a function, macro, type or callback was added, got: #{inspect(value)}"
+  end
+
   defp preprocess_attribute(_key, value) do
     value
   end
@@ -1724,6 +1701,10 @@ defmodule Module do
           _ -> {env.line, nil}
         end
     end
+  end
+
+  defp get_since_info(table) do
+    :ets.take(table, :since)
   end
 
   defp data_table_for(module) do
