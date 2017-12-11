@@ -2763,13 +2763,13 @@ defmodule Enum do
 
     enumerable
     |> reduce(ref, fn
-         element, ^ref -> element
-         element, acc -> fun.(element, acc)
-       end)
+      element, ^ref -> element
+      element, acc -> fun.(element, acc)
+    end)
     |> case do
-         ^ref -> empty.()
-         result -> result
-       end
+      ^ref -> empty.()
+      result -> result
+    end
   end
 
   defp reduce_by([head | tail], first, fun) do

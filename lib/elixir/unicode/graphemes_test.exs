@@ -11,35 +11,35 @@ defmodule GraphemesTest do
     |> Stream.filter(&match?("÷" <> _, &1))
     |> Stream.reject(&(&1 =~ "D800"))
     |> Enum.reduce(0, fn line, acc ->
-         [string | _] = String.split(line, "#", parts: 2)
-         {string, graphemes} = parse_grapheme_break(string)
+      [string | _] = String.split(line, "#", parts: 2)
+      {string, graphemes} = parse_grapheme_break(string)
 
-         if String.graphemes(string) == graphemes do
-           acc
-         else
-           acc = acc + 1
+      if String.graphemes(string) == graphemes do
+        acc
+      else
+        acc = acc + 1
 
-           IO.puts("""
-           ============== Failure ##{acc} ==============
+        IO.puts("""
+        ============== Failure ##{acc} ==============
 
-               String.graphemes(#{inspect(string)})
+            String.graphemes(#{inspect(string)})
 
-           must be:
+        must be:
 
-               #{inspect(graphemes)}
+            #{inspect(graphemes)}
 
-           got:
+        got:
 
-               #{inspect(String.graphemes(string))}
+            #{inspect(String.graphemes(string))}
 
-           On line:
+        On line:
 
-               #{line}
-           """)
+            #{line}
+        """)
 
-           acc
-         end
-       end)
+        acc
+      end
+    end)
   end
 
   defp parse_grapheme_break(string) do

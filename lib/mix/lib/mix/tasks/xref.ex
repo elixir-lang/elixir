@@ -645,10 +645,10 @@ defmodule Mix.Tasks.Xref do
     incoming =
       references
       |> Enum.reduce(%{}, fn {_, deps}, acc ->
-           Enum.reduce(deps, acc, fn {file, _}, acc ->
-             Map.update(acc, file, 1, &(&1 + 1))
-           end)
-         end)
+        Enum.reduce(deps, acc, fn {file, _}, acc ->
+          Map.update(acc, file, 1, &(&1 + 1))
+        end)
+      end)
       |> Enum.map(fn {file, count} -> {count, file} end)
       |> Enum.sort()
       |> Enum.take(-10)

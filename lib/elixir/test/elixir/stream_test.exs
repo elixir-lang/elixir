@@ -385,8 +385,8 @@ defmodule StreamTest do
     # flat_map returns a lazy enumeration that does halts wrapped in an enumerable
     assert [1, 2, 3, -1, -2]
            |> Stream.flat_map(fn x ->
-                Stream.concat([x], Stream.take_while([x + 1, x + 2], &(&1 <= x + 1)))
-              end)
+             Stream.concat([x], Stream.take_while([x + 1, x + 2], &(&1 <= x + 1)))
+           end)
            |> Stream.take_while(fn x -> x >= 0 end)
            |> Enum.to_list() == [1, 2, 2, 3, 3, 4]
   end

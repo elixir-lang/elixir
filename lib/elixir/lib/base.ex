@@ -187,12 +187,12 @@ defmodule Base do
     alphabet
     |> Stream.with_index()
     |> Enum.flat_map(fn {encoding, value} = pair ->
-         if encoding in ?A..?Z do
-           [pair, {encoding - ?A + ?a, value}]
-         else
-           [pair]
-         end
-       end)
+      if encoding in ?A..?Z do
+        [pair, {encoding - ?A + ?a, value}]
+      else
+        [pair]
+      end
+    end)
     |> decode_clauses()
   end
 

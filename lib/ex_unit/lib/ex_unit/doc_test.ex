@@ -225,8 +225,8 @@ defmodule ExUnit.DocTest do
     |> filter_by_opts(opts)
     |> Stream.with_index()
     |> Enum.map(fn {test, acc} ->
-         compile_test(test, module, do_import, acc + 1)
-       end)
+      compile_test(test, module, do_import, acc + 1)
+    end)
   end
 
   defp filter_by_opts(tests, opts) do

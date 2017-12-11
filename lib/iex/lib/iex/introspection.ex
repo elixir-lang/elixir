@@ -501,13 +501,13 @@ defmodule IEx.Introspection do
           docs
           |> Enum.filter(filter)
           |> Enum.map(fn
-               {{fun, arity}, _, :macrocallback, doc} ->
-                 macro = {:"MACRO-#{fun}", arity + 1}
-                 {format_callback(:macrocallback, fun, macro, callbacks), doc}
+            {{fun, arity}, _, :macrocallback, doc} ->
+              macro = {:"MACRO-#{fun}", arity + 1}
+              {format_callback(:macrocallback, fun, macro, callbacks), doc}
 
-               {{fun, arity}, _, kind, doc} ->
-                 {format_callback(kind, fun, {fun, arity}, callbacks), doc}
-             end)
+            {{fun, arity}, _, kind, doc} ->
+              {format_callback(kind, fun, {fun, arity}, callbacks), doc}
+          end)
 
         {:ok, docs}
     end

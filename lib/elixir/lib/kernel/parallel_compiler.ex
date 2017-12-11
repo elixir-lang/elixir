@@ -251,13 +251,13 @@ defmodule Kernel.ParallelCompiler do
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
     |> Enum.sort_by(&length(elem(&1, 1)))
     |> case do
-         [{_on, refs} | _] ->
-           spawn_workers(refs, waiting, queued, result, warnings, state)
+      [{_on, refs} | _] ->
+        spawn_workers(refs, waiting, queued, result, warnings, state)
 
-         [] ->
-           errors = handle_deadlock(waiting, queued)
-           {:error, errors, warnings}
-       end
+      [] ->
+        errors = handle_deadlock(waiting, queued)
+        {:error, errors, warnings}
+    end
   end
 
   # No more files, but queue and waiting are not full or do not match
