@@ -23,28 +23,29 @@ defmodule Mix.Tasks.Format do
 
     * `--check-formatted` - check that the file is already formatted.
       This is useful in pre-commit hooks and CI scripts if you want to
-      reject contributions with unformatted code. However, keep in mind,
-      that the formatting output may differ between Elixir versions as
+      reject contributions with unformatted code. However keep in mind
+      that the formatted output may differ between Elixir versions as
       improvements and fixes are applied to the formatter.
 
-    * `--check-equivalent` - check if the file after formatting has the
-      same AST. If the ASTs are not equivalent, it is a bug in the code
-      formatter. This option is recommended if you are automatically
-      formatting files.
+    * `--check-equivalent` - check if the files after formatting have the
+      same AST as before formatting. If the ASTs are not equivalent,
+      it is a bug in the code formatter. This option is recommended if you
+      are automatically formatting files.
 
     * `--dry-run` - do not save files after formatting.
 
-    * `--dot-formatter` - the file with formatter configuration.
-      Defaults to `.formatter.exs` if one is available, see next section.
+    * `--dot-formatter` - path to the file with formatter configuration.
+      Defaults to `.formatter.exs` if one is available. See the "`.formatter.exs`"
+      section for more information.
 
   If any of the `--check-*` flags are given and a check fails, the formatted
-  contents won't be written to disk nor printed to stdout.
+  contents won't be written to disk nor printed to standard output.
 
   ## `.formatter.exs`
 
   The formatter will read a `.formatter.exs` in the current directory for
-  formatter configuration. It should return a keyword list with any of the
-  options supported by `Code.format_string!/2`.
+  formatter configuration. Evaluating this file should return a keyword list
+  with any of the options supported by `Code.format_string!/2`.
 
   The `.formatter.exs` also supports other options:
 
@@ -61,10 +62,10 @@ defmodule Mix.Tasks.Format do
 
   ## When to format code
 
-  We recommend developers to format code directly in their editors. Either
-  automatically on save or via an explicit command/key binding. If such option
+  We recommend developers to format code directly in their editors, either
+  automatically when saving a file or via an explicit command or key binding. If such option
   is not yet available in your editor of choice, adding the required integration
-  is relatively simple as it is a matter of invoking
+  is usually a matter of invoking:
 
       cd $project && mix format $file
 
