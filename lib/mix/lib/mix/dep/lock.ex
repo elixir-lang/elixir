@@ -43,38 +43,42 @@ defmodule Mix.Dep.Lock do
     end
   end
 
-  @conflict_regex ~r/<{7} .+\n|\|{7} .+\n[\w\W\s]+={7}\n|={7}\n|>{7} .+\n/
+  @conflict_delimiters ["<<<<<<<", "=======", ">>>>>>>"]
 
   defp read_lock(content, lockfile) do
-    if String.contains?(content, ~w(<<<<<<< ======= >>>>>>>)) do
-      resolve_merge_conflicts(content, lockfile)
-    else
-      eval_content(content, lockfile)
+    read_lock(content, lockfile, String.contains?(content, @conflict_delimiters))
+  end
+
+  @conflict_regex ~r/<{7} .+\n|\|{7} .+\n[\w\W\s]+={7}\n|={7}\n|>{7} .+\n/
+
+  defp read_lock(content, lockfile, true) do
+    case content |> String.replace(@conflict_regex, "") |> eval_content(lockfile) do
+      {:ok, new_map} ->
+        write_lock(new_map, %{}, lockfile)
+        new_map
+
+      :error ->
+        Mix.raise("""
+        Your #{lockfile} contains merge conflicts we cannot automatically solve.
+        Please resolve the conflicts manually and run the command again
+        """)
     end
   end
 
-  defp resolve_merge_conflicts(content, lockfile) do
-    new_map =
-      content
-      |> String.replace(@conflict_regex, "")
-      |> eval_content(lockfile)
-
-    write_lock(new_map, %{}, lockfile)
-
-    new_map
-  rescue
-    SyntaxError ->
-      Mix.raise("""
-      Your #{lockfile} contains merge conflicts we cannot automatically solve.
-      Please resolve the conflicts manually and run the command again
-      """)
+  defp read_lock(content, lockfile, false) do
+    case eval_content(content, lockfile) do
+      {:ok, map} -> map
+      :error -> Mix.raise("Could not read #{lockfile} due to a syntax error.")
+    end
   end
 
   defp eval_content(content, lockfile) do
     case Code.eval_string(content, [], file: lockfile) do
-      {lock, _binding} when is_map(lock) -> lock
-      {_, _binding} -> %{}
+      {lock, _binding} when is_map(lock) -> {:ok, lock}
+      {_, _binding} -> {:ok, %{}}
     end
+  rescue
+    SyntaxError -> :error
   end
 
   @doc """
