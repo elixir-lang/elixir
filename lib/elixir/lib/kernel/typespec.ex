@@ -412,6 +412,7 @@ defmodule Kernel.Typespec do
   defp store_callbackdoc(line, _file, module, kind, name, arity) do
     table = :elixir_module.data_table(module)
     {line, doc} = get_doc_info(table, :doc, line)
+    _ = get_since_info(table)
     :ets.insert(table, {{:callbackdoc, {name, arity}}, line, kind, doc})
   end
 
@@ -420,6 +421,10 @@ defmodule Kernel.Typespec do
       [{^attr, {line, doc}, _, _}] -> {line, doc}
       [] -> {line, nil}
     end
+  end
+
+  defp get_since_info(table) do
+    :ets.take(table, :since)
   end
 
   @doc false
@@ -435,6 +440,7 @@ defmodule Kernel.Typespec do
   defp store_typedoc(line, file, module, kind, name, arity) do
     table = :elixir_module.data_table(module)
     {line, doc} = get_doc_info(table, :typedoc, line)
+    _ = get_since_info(table)
 
     if kind == :typep && doc do
       warning =
