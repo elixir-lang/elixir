@@ -339,7 +339,7 @@ defmodule DynamicSupervisor do
           workers: non_neg_integer
         }
   def count_children(supervisor) do
-    call(supervisor, :count_children)
+    call(supervisor, :count_children) |> :maps.from_list()
   end
 
   @doc """
@@ -504,7 +504,7 @@ defmodule DynamicSupervisor do
           {active + 1, worker, supervisor + 1}
       end)
 
-    reply = %{specs: specs, active: active, workers: workers, supervisors: supervisors}
+    reply = [specs: specs, active: active, supervisors: supervisors, workers: workers]
     {:reply, reply, state}
   end
 
