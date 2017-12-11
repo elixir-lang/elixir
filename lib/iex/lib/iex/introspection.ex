@@ -257,8 +257,15 @@ defmodule IEx.Introspection do
       {:module, _} ->
         docs = Code.get_docs(module, :docs)
 
+        exports =
+          if function_exported?(module, :__info__, 1) do
+            module.__info__(:functions) ++ module.__info__(:macros)
+          else
+            module.module_info(:exports)
+          end
+
         result =
-          for {^function, arity} <- module.module_info(:exports),
+          for {^function, arity} <- exports,
               (if docs do
                  find_doc(docs, function, arity)
                else

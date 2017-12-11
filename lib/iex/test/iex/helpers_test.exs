@@ -380,19 +380,24 @@ defmodule IEx.HelpersTest do
                "Documentation is not available for non-Elixir modules, got: :lists\n"
     end
 
-    test "prints function documentation" do
+    test "prints function/macro documentation" do
       pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
       c_h = "* def c(files, path \\\\ :in_memory)\n\nCompiles the given files."
 
       eq_h =
         "* def ==(left, right)\n\n    @spec term() == term() :: boolean()\n\nReturns `true` if the two items are equal.\n\n"
 
+      def_h =
+        "* defmacro def(call, expr \\\\ nil)\n\nDefines a function with the given name and body."
+
       assert capture_io(fn -> h(IEx.Helpers.pwd() / 0) end) =~ pwd_h
       assert capture_io(fn -> h(IEx.Helpers.c() / 2) end) =~ c_h
       assert capture_io(fn -> h(== / 2) end) =~ eq_h
+      assert capture_io(fn -> h(def / 2) end) =~ def_h
 
       assert capture_io(fn -> h(IEx.Helpers.c() / 1) end) =~ c_h
       assert capture_io(fn -> h(pwd) end) =~ pwd_h
+      assert capture_io(fn -> h(def) end) =~ def_h
     end
 
     test "prints __info__ documentation" do
