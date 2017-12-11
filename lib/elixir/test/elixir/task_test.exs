@@ -661,8 +661,8 @@ defmodule TaskTest do
           1..4
           |> Task.async_stream(&sleep/1, @opts)
           |> Stream.transform(fn -> :ok end, fn x, acc -> {[x], acc} end, fn _ ->
-               Process.put(:stream_transform, true)
-             end)
+            Process.put(:stream_transform, true)
+          end)
 
         Process.put(:stream_transform, false)
         assert Enum.to_list(stream) == [ok: 1, ok: 2, ok: 3, ok: 4]
@@ -673,8 +673,8 @@ defmodule TaskTest do
         stream =
           1..4
           |> Stream.transform(fn -> :ok end, fn x, acc -> {[x], acc} end, fn _ ->
-               Process.put(:stream_transform, true)
-             end)
+            Process.put(:stream_transform, true)
+          end)
           |> Task.async_stream(&sleep/1, @opts)
 
         Process.put(:stream_transform, false)

@@ -152,9 +152,9 @@ defmodule Code.Formatter.OperatorsTest do
       good = """
       123
       |> foo(
-           bar,
-           baz
-         )
+        bar,
+        baz
+      )
       """
 
       assert_format bad, good, @short_length
@@ -164,11 +164,11 @@ defmodule Code.Formatter.OperatorsTest do
       good = """
       123
       |> foo(
-           bar
-         )
+        bar
+      )
       |> bar(
-           bat
-         )
+        bat
+      )
       """
 
       assert_format bad, good, @short_length
@@ -180,8 +180,8 @@ defmodule Code.Formatter.OperatorsTest do
         bar,
         123
         |> bar(
-             baz
-           )
+          baz
+        )
       )
       """
 
@@ -217,9 +217,9 @@ defmodule Code.Formatter.OperatorsTest do
       good = """
       123
       |> foo(
-           bar,
-           baz
-         )
+        bar,
+        baz
+      )
       |> 456
       """
 

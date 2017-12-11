@@ -699,10 +699,7 @@ defmodule Code.Formatter do
           # we cannot group the left side yet.
           left = if op_info == parent_info, do: left, else: group(left)
 
-          # The right side is never the same operator, so we can group and nest
-          right = group(nest_by_length(right, op_string))
-
-          doc = glue(left, concat(op_string, right))
+          doc = glue(left, concat(op_string, group(right)))
           if Keyword.get(meta, :eol, false), do: force_unfit(doc), else: doc
 
         op in @right_new_line_before_binary_operators ->
