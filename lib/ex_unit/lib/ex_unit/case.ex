@@ -466,14 +466,14 @@ defmodule ExUnit.Case do
       |> normalize_tags
       |> validate_tags
       |> Map.merge(%{
-           line: line,
-           file: file,
-           registered: registered,
-           async: async,
-           describe: describe,
-           describe_line: describe_line,
-           type: type
-         })
+        line: line,
+        file: file,
+        registered: registered,
+        async: async,
+        describe: describe,
+        describe_line: describe_line,
+        type: type
+      })
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)

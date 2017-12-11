@@ -226,7 +226,7 @@ defmodule Kernel.QuoteTest do
              (quote do
                 foo
                 |> bar do
-                   end
+                end
                 |> baz
               end)
 
@@ -235,7 +235,7 @@ defmodule Kernel.QuoteTest do
                 foo
                 |> bar
                 |> baz do
-                   end
+                end
               end)
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
@@ -244,7 +244,7 @@ defmodule Kernel.QuoteTest do
                 end
                 |> bar
                 |> baz do
-                   end
+                end
               end)
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
@@ -252,9 +252,9 @@ defmodule Kernel.QuoteTest do
                 foo do
                 end
                 |> bar do
-                   end
+                end
                 |> baz do
-                   end
+                end
               end)
   end
 end
