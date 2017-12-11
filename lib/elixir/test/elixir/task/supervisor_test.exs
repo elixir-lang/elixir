@@ -41,6 +41,14 @@ defmodule Task.SupervisorTest do
     assert Process.whereis(config.test)
   end
 
+  test "counts and returns children", config do
+    assert Task.Supervisor.children(config[:supervisor]) == []
+    assert Supervisor.count_children(config[:supervisor]) ==
+           %{active: 0, specs: 0, supervisors: 0, workers: 0}
+    assert DynamicSupervisor.count_children(config[:supervisor]) ==
+           %{active: 0, specs: 0, supervisors: 0, workers: 0}
+  end
+
   test "async/1", config do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end
