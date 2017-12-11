@@ -72,7 +72,7 @@ fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
       fetch_definition(T, File, Module, Table, NewAll, NewPrivate)
   catch
     error:badarg ->
-      warn_bodyless_function(Check, Meta, File, Module, Kind, Tuple),
+      warn_bodiless_function(Check, Meta, File, Module, Kind, Tuple),
       fetch_definition(T, File, Module, Table, All, Private)
   end;
 
@@ -188,7 +188,7 @@ run_with_location_change(File, E, Callback) ->
   end.
 
 def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
-  check_args_for_bodyless_clause(Meta, Args, E),
+  check_args_for_bodiless_clause(Meta, Args, E),
   [];
 def_to_clauses(Kind, Meta, _Args, _Guards, nil, E) ->
   elixir_errors:form_error(Meta, ?key(E, file), elixir_expand, {missing_option, Kind, [do]});
@@ -223,7 +223,7 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
         (Check and StoredCheck) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Data, StoredMeta, StoredFile),
-        check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody),
+        check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
         max(Defaults, StoredDefaults);
       [] ->
         Defaults
@@ -292,27 +292,28 @@ check_valid_clause(Meta, File, Name, Arity, Kind, Data, StoredMeta, StoredFile) 
   end.
 
 % Clause with defaults after clause with defaults
-check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _) when Defaults > 0, StoredDefaults > 0 ->
+check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, true, _) when Defaults > 0, StoredDefaults > 0 ->
   elixir_errors:form_error(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause(s) without defaults
-check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, 0, _) when Defaults > 0 ->
+check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, 0, _, _) when Defaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
-% Clause without defaults directly after clause with defaults (body less does not count)
-check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true) when LastDefaults > 0 ->
+% Clause without defaults directly after clause with defaults (bodiless does not count)
+check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true, true) when LastDefaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause without defaults
-check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _, _, _) -> ok.
-
-warn_bodyless_function(Check, _Meta, _File, Module, _Kind, _Tuple)
-    when Check == false; Module == 'Elixir.Module' ->
-  ok;
-warn_bodyless_function(_Check, Meta, File, _Module, Kind, Tuple) ->
-  elixir_errors:form_warn(Meta, File, ?MODULE, {bodyless_clause, Kind, Tuple}),
+check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredDefaults, _LastDefaults, _HasBody, _LastHasBody) ->
   ok.
 
-check_args_for_bodyless_clause(Meta, Args, E) ->
+warn_bodiless_function(Check, _Meta, _File, Module, _Kind, _Tuple)
+    when Check == false; Module == 'Elixir.Module' ->
+  ok;
+warn_bodiless_function(_Check, Meta, File, _Module, Kind, Tuple) ->
+  elixir_errors:form_warn(Meta, File, ?MODULE, {bodiless_clause, Kind, Tuple}),
+  ok.
+
+check_args_for_bodiless_clause(Meta, Args, E) ->
   [begin
-     elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_bodyless_clause)
+     elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_bodiless_clause)
    end || Arg <- Args, invalid_arg(Arg)].
 
 invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
@@ -347,7 +348,7 @@ assert_valid_name(_Meta, _Kind, _Name, _Args, _S) ->
 
 %% Format errors
 
-format_error({bodyless_clause, Kind, {Name, Arity}}) ->
+format_error({bodiless_clause, Kind, {Name, Arity}}) ->
   io_lib:format("implementation not provided for predefined ~ts ~ts/~B", [Kind, Name, Arity]);
 
 format_error({no_module, {Kind, Name, Arity}}) ->
@@ -389,7 +390,7 @@ format_error({no_alias, Atom}) ->
 format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
 
-format_error(invalid_args_for_bodyless_clause) ->
+format_error(invalid_args_for_bodiless_clause) ->
   "only variables and \\\\ are allowed as arguments in definition header.\n"
   "\n"
   "If you did not intend to define a header, make sure your function "
