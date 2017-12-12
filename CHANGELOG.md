@@ -22,7 +22,7 @@ Examples of valid variables are:
     
 Examples of invalid variables include:
 
-     name•   a±2  42
+    name•   a±2  42
 
 Symbols, such as mathematical notations and emoji, are not allowed identifiers.
 
