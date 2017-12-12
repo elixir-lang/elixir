@@ -159,11 +159,13 @@ defmodule Mix.Tasks.Format do
   # This function reads exported configuration from the imported dependencies and deals with
   # caching the result of reading such configuration in a manifest file.
   defp fetch_deps_opts(formatter_opts) do
-    case formatter_opts[:import_deps] do
-      deps when deps in [nil, []] ->
+    deps = formatter_opts[:import_deps]
+
+    cond do
+      is_nil(deps) or deps == [] ->
         formatter_opts
 
-      deps when is_list(deps) and deps != [] ->
+      is_list(deps) ->
         dep_parenless_calls =
           if deps_dot_formatters_stale?() do
             dep_parenless_calls = eval_deps_opts(deps)
@@ -184,10 +186,8 @@ defmodule Mix.Tasks.Format do
           &(&1 ++ dep_parenless_calls)
         )
 
-      other ->
-        Mix.raise(
-          "Expected :import_deps to return a list of dependencies, got: #{inspect(other)}"
-        )
+      true ->
+        Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
     end
   end
 
