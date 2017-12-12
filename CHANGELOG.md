@@ -14,7 +14,17 @@ Or:
 
     saudação = "Bom dia!"
 
-Elixir follows the recommendations in [Unicode Annex #31](http://unicode.org/reports/tr31/) to make the language more accessible to other languages and communities. Identifiers must still be a sequence of letters, followed by digits and combining marks. This means symbols, such as mathematical notations and emoji, are not allowed identifiers.
+Elixir follows the recommendations in [Unicode Annex #31](http://unicode.org/reports/tr31/) to make the language more accessible to other languages and communities. Identifiers must start with a letter or underscore, optionally followed by letters, digits, and underscores. Here letter means any UTF-8 letter-character (optionally with a combining mark) and digit means a UTF-8 decimal-digit-character. If you're using ASCII, this does what you'd expect.
+
+Examples of valid variables are:
+
+    name    josé   _age   まつもと  _42  адрес
+    
+Examples of invalid variables include:
+
+     name•   a±2  42
+
+Symbols, such as mathematical notations and emoji, are not allowed identifiers.
 
 For a complete reference on Elixir syntax, see the [Syntax Reference](https://hexdocs.pm/elixir/syntax-reference.html). For technical details on Unicode support, see [Unicode Syntax](https://hexdocs.pm/elixir/unicode-syntax.html).
 
