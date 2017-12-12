@@ -4,17 +4,13 @@ Elixir supports Unicode throughout the language.
 
 Quoted identifiers, such as strings (`"olá"`) and charlists (`'olá'`), support Unicode since Elixir v1.0. Strings are UTF-8 encoded. Charlists are lists of Unicode codepoints. In such cases, the contents are kept as written by developers, without any transformation.
 
-Elixir also supports Unicode in identifiers since Elixir v1.5, as defined in the [Unicode Annex #31](http://unicode.org/reports/tr31/). This is the focus of this document.
+Elixir also supports Unicode in identifiers since Elixir v1.5, as defined in the [Unicode Annex #31](http://unicode.org/reports/tr31/). The focus of this document is to describe how Elixir implements the requirements outlined in the Unicode Annex. These requirements are refered to as R1, R6 and so on.
 
-## Version
-
-The Unicode Annex specify a list of requirements that may or may not be implemented by programming languages. This document lists all of the requirements implemented by Elixir, refered as R1, R6 and so on.
-
-To check the Unicode version of your current Elixir installation, please run `String.Unicode.version()`.
+To check the Unicode version of your current Elixir installation, run `String.Unicode.version()`.
 
 ## R1. Default Identifiers
 
-Elixir identifiers are identified as:
+Elixir identifiers are specified as:
 
     <Identifier> := <Start> <Continue>* <Ending>?
 
@@ -47,7 +43,6 @@ Variables in Elixir follow the identifier rule above with the following modifica
 
   * `<Start>` includes the codepoint _ (005F)
   * `<Start>` must not include Lu (letter uppercase) and Lt (letter titlecase) characters
-  * `<Continue>` includes Lu (letter uppercase) and Lt (letter titlecase) characters
 
 ## R3. Pattern_White_Space and Pattern_Syntax Characters
 
