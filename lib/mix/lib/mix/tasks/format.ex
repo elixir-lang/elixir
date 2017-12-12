@@ -36,18 +36,26 @@ defmodule Mix.Tasks.Format do
   If any of the `--check-*` flags are given and a check fails, the formatted
   contents won't be written to disk nor printed to stdout.
 
-  ## .formatter.exs
+  ## `.formatter.exs`
 
   The formatter will read a `.formatter.exs` in the current directory for
   formatter configuration. It should return a keyword list with any of the
   options supported by `Code.format_string!/2`.
 
-  The `.formatter.exs` also supports an `:inputs` field which specifies the
-  default inputs to be used by this task:
+  The `.formatter.exs` also supports other options:
 
-      [
-        inputs: ["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]
-      ]
+    * `:input` (a list of paths and patterns) - specifies the default inputs
+      to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
+
+    * `:import_deps` (a list of dependencies as atoms) - specifies a list
+       of dependencies whose formatter configuration will be imported.
+       See the "Importing dependencies configuration" section below for more
+       information.
+
+    * `:export_locals_without_parens` (a list of function names and arities) -
+      specifies a list of function names and arities (like `:locals_without_parens`
+      in `Code.format_string!/2`) that projects that depend on this project
+      can read and use.
 
   ## When to format code
 
@@ -65,6 +73,41 @@ defmodule Mix.Tasks.Format do
   of patterns and files to `mix format`, as showed at the top of this task
   documentation. This list can also be set in the `.formatter.exs` under the
   `:inputs` key.
+
+  ## Importing dependencies configuration
+
+  This task supports importing formatter configuration from dependencies.
+
+  A dependency that wants to export formatter configuration needs to have a
+  `.formatter.exs` file at the root of the project. In this file, the
+  dependency can export a `:export_locals_without_parens` option whose value
+  has the same shape as the value of the `:locals_without_parens` in
+  `Code.format_string!/2`.
+
+  The functions listed under `:export_locals_without_parens` of a dependency
+  can be imported in a project by listing that dependency in the `:import_deps`
+  option of the formatter configuration file of the project.
+
+  For example, consider I have a project `my_app` that depends on `my_dep`.
+  `my_dep` wants to export some configuration, so `my_dep/.formatter.exs`
+  would look like this:
+
+      # my_dep/.formatter.exs
+      [
+        # Regular formatter configuration for my_dep
+        # ...
+
+        export_locals_without_parens: [some_dsl_call: :*]
+      ]
+
+  In order to import configuration, `my_app`'s `.formatter.exs` would look like
+  this:
+
+      # my_app/.formatter.exs
+      [
+        import_deps: [:my_dep]
+      ]
+
   """
 
   @switches [
@@ -77,6 +120,7 @@ defmodule Mix.Tasks.Format do
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
     formatter_opts = eval_dot_formatter(opts)
+    formatter_opts = fetch_deps_opts(formatter_opts)
 
     args
     |> expand_args(formatter_opts)
@@ -110,6 +154,69 @@ defmodule Mix.Tasks.Format do
       File.regular?(".formatter.exs") -> {:ok, ".formatter.exs"}
       true -> :error
     end
+  end
+
+  # This function reads exported configuration from the imported dependencies and deals with
+  # caching the result of reading such configuration in a manifest file.
+  defp fetch_deps_opts(formatter_opts) do
+    case formatter_opts[:import_deps] do
+      deps when deps in [nil, []] ->
+        formatter_opts
+
+      deps when is_list(deps) and deps != [] ->
+        dep_parenless_calls =
+          if deps_dot_formatters_stale?() do
+            dep_parenless_calls = eval_deps_opts(deps)
+
+            if dep_parenless_calls != [] do
+              write_deps_manifest(dep_parenless_calls)
+            end
+
+            dep_parenless_calls
+          else
+            read_deps_manifest()
+          end
+
+        Keyword.update(
+          formatter_opts,
+          :locals_without_parens,
+          dep_parenless_calls,
+          &(&1 ++ dep_parenless_calls)
+        )
+
+      other ->
+        Mix.raise(
+          "Expected :import_deps to return a list of dependencies, got: #{inspect(other)}"
+        )
+    end
+  end
+
+  defp deps_dot_formatters_stale?() do
+    Mix.Utils.stale?([".formatter.exs" | Mix.Project.config_files()], [deps_manifest()])
+  end
+
+  defp deps_manifest() do
+    Path.join(Mix.Project.build_path(), ".cached_deps_formatter.exs")
+  end
+
+  defp read_deps_manifest() do
+    deps_manifest() |> File.read!() |> :erlang.binary_to_term()
+  end
+
+  defp write_deps_manifest(parenless_calls) do
+    File.write!(deps_manifest(), :erlang.term_to_binary(parenless_calls))
+  end
+
+  defp eval_deps_opts(deps) do
+    deps_paths = Mix.Project.deps_paths()
+
+    for dep <- deps,
+        dep_dot_formatter = Path.join(Map.fetch!(deps_paths, dep), ".formatter.exs"),
+        File.regular?(dep_dot_formatter),
+        {dep_opts, _} = Code.eval_file(dep_dot_formatter),
+        parenless_call <- Keyword.get(dep_opts, :export_locals_without_parens, []),
+        uniq: true,
+        do: parenless_call
   end
 
   defp expand_args([], formatter_opts) do
