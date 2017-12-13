@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   use Mix.Task.Compiler
 
   @recursive true
-  @manifest ".compile.elixir"
+  @manifest "compile.elixir"
 
   @moduledoc """
   Compiles Elixir source files.

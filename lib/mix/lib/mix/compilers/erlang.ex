@@ -17,7 +17,7 @@ defmodule Mix.Compilers.Erlang do
   For example, a simple compiler for Lisp Flavored Erlang
   would be implemented like:
 
-      manifest = Path.join Mix.Project.manifest_path, ".compile.lfe"
+      manifest = Path.join Mix.Project.manifest_path, "compile.lfe"
       dest = Mix.Project.compile_path
 
       compile manifest, [{"src", dest}], :lfe, :beam, opts, fn input, output ->
@@ -221,7 +221,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp write_manifest(file, entries, timestamp) do
-    Path.dirname(file) |> File.mkdir_p!()
+    File.mkdir_p!(Path.dirname(file))
     File.write!(file, :erlang.term_to_binary({@manifest_vsn, entries}))
     File.touch!(file, timestamp)
   end

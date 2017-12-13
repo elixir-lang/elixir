@@ -11,7 +11,7 @@ defmodule Mix.Compilers.Test do
     runtime_references: [],
     external: []
 
-  @stale_manifest ".compile.test_stale"
+  @stale_manifest "compile.test_stale"
   @manifest_vsn 1
 
   @doc """
@@ -183,23 +183,15 @@ defmodule Mix.Compilers.Test do
   end
 
   defp write_manifest([]) do
-    manifest()
-    |> File.rm()
-
+    File.rm(manifest())
     :ok
   end
 
   defp write_manifest(sources) do
     manifest = manifest()
+    File.mkdir_p!(Path.dirname(manifest))
 
-    manifest
-    |> Path.dirname()
-    |> File.mkdir_p!()
-
-    manifest_data =
-      [@manifest_vsn | sources]
-      |> :erlang.term_to_binary([:compressed])
-
+    manifest_data = :erlang.term_to_binary([@manifest_vsn | sources], [:compressed])
     File.write!(manifest, manifest_data)
   end
 

@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Xref do
 
   @shortdoc "Performs cross reference checks"
   @recursive true
-  @manifest ".compile.elixir"
+  @manifest "compile.elixir"
 
   @moduledoc """
   Performs cross reference checks between modules.
@@ -671,7 +671,7 @@ defmodule Mix.Tasks.Xref do
       if opts[:include_siblings] do
         for %{scm: Mix.SCM.Path, opts: opts} <- Mix.Dep.cached(),
             opts[:in_umbrella],
-            do: Path.join(opts[:build], @manifest)
+            do: Path.join([opts[:build], ".mix", @manifest])
       else
         []
       end

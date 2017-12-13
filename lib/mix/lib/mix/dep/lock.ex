@@ -5,7 +5,7 @@
 defmodule Mix.Dep.Lock do
   @moduledoc false
 
-  @manifest ".compile.lock"
+  @manifest "compile.lock"
 
   @doc """
   Returns the manifest file for dependencies.
@@ -32,11 +32,13 @@ defmodule Mix.Dep.Lock do
   """
   @spec read() :: map
   def read() do
-    case File.read(lockfile()) do
-      {:ok, info} ->
-        assert_no_merge_conflicts_in_lockfile(lockfile(), info)
+    lockfile = lockfile()
 
-        case Code.eval_string(info, [], file: lockfile()) do
+    case File.read(lockfile) do
+      {:ok, info} ->
+        assert_no_merge_conflicts_in_lockfile(lockfile, info)
+
+        case Code.eval_string(info, [], file: lockfile) do
           {lock, _binding} when is_map(lock) -> lock
           {_, _binding} -> %{}
         end

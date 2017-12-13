@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Compile.Yecc do
   alias Mix.Compilers.Erlang
 
   @recursive true
-  @manifest ".compile.yecc"
+  @manifest "compile.yecc"
   @switches [force: :boolean, all_warnings: :boolean]
 
   # These options can't be controlled with :yecc_options.
