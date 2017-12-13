@@ -209,17 +209,15 @@ defmodule Mix.Tasks.FormatTest do
              """
 
       manifest_path = Path.join(Mix.Project.manifest_path(), ".cached_deps_formatter")
+
       assert File.regular?(manifest_path)
 
-      # Let's check that the manifest gets updated if .formatter.exs changes.
+      # Let's check that the manifest gets updated if it's stale.
       File.touch!(manifest_path, {{1970, 1, 1}, {0, 0, 0}})
-      %File.Stat{mtime: mtime} = File.stat!(manifest_path)
 
-      File.touch!(".formatter.exs")
       Mix.Tasks.Format.run(["a.ex"])
-      %File.Stat{mtime: new_mtime} = File.stat!(manifest_path)
 
-      assert new_mtime > mtime
+      assert File.stat!(manifest_path).mtime > {{1970, 1, 1}, {0, 0, 0}}
     end
   end
 

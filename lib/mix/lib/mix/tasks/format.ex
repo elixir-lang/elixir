@@ -196,8 +196,8 @@ defmodule Mix.Tasks.Format do
     deps_paths = Mix.Project.deps_paths()
 
     for dep <- deps,
-        ensure_valid_dependency!(dep, deps_paths),
-        dep_dot_formatter = Path.join(Map.fetch!(deps_paths, dep), ".formatter.exs"),
+        dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
+        dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
         File.regular?(dep_dot_formatter),
         dep_opts = eval_file_with_keyword_list(dep_dot_formatter),
         parenless_call <- dep_opts[:export][:locals_without_parens] || [],
@@ -205,19 +205,20 @@ defmodule Mix.Tasks.Format do
         do: parenless_call
   end
 
-  defp ensure_valid_dependency!(dep, deps_paths) do
-    cond do
-      not is_atom(dep) ->
-        Mix.raise("Dependencies in :import_deps should be atoms, got: #{inspect(dep)}")
+  defp assert_valid_dep_and_fetch_path(dep, deps_paths) when is_atom(dep) do
+    case Map.fetch(deps_paths, dep) do
+      {:ok, path} ->
+        path
 
-      not Map.has_key?(deps_paths, dep) ->
+      :error ->
         Mix.raise(
           "Found a dependency in :import_deps that the project doesn't depend on: #{inspect(dep)}"
         )
-
-      true ->
-        :ok
     end
+  end
+
+  defp assert_valid_dep_and_fetch_path(dep, _deps_paths) do
+    Mix.raise("Dependencies in :import_deps should be atoms, got: #{inspect(dep)}")
   end
 
   defp eval_file_with_keyword_list(path) do
