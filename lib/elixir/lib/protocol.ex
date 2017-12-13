@@ -750,8 +750,10 @@ defmodule Protocol do
   def __ensure_defimpl__(protocol, for, env) do
     if Protocol.consolidated?(protocol) do
       message =
-        "the #{inspect(protocol)} protocol has already been consolidated" <>
-          ", an implementation for #{inspect(for)} has no effect"
+        "the #{inspect(protocol)} protocol has already been consolidated, an " <>
+          "implementation for #{inspect(for)} has no effect. If you want to " <>
+          "implement protocols after compilation or during tests, check the " <>
+          "\"Consolidation\" section in the documentation for Kernel.defprotocol/2"
 
       :elixir_errors.warn(env.line, env.file, message)
     end
