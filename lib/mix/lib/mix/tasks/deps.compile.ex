@@ -112,8 +112,9 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp touch_fetchable(scm, path) do
     if scm.fetchable? do
+      path = Path.join(path, ".mix")
       File.mkdir_p!(path)
-      File.touch!(Path.join(path, ".compile.fetch"))
+      File.touch!(Path.join(path, "compile.fetch"))
       true
     else
       false

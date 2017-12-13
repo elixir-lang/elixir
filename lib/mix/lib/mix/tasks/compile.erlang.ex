@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   import Mix.Compilers.Erlang
 
   @recursive true
-  @manifest ".compile.erlang"
+  @manifest "compile.erlang"
   @switches [force: :boolean, all_warnings: :boolean]
 
   @moduledoc """

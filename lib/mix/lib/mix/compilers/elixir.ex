@@ -433,7 +433,7 @@ defmodule Mix.Compilers.Elixir do
 
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
-        Mix.Utils.last_modified(Path.join(opts[:build], base)) > modified,
+        Mix.Utils.last_modified(Path.join([opts[:build], ".mix", base])) > modified,
         path <- Mix.Dep.load_paths(dep),
         beam <- Path.wildcard(Path.join(path, "*.beam")),
         Mix.Utils.last_modified(beam) > modified,

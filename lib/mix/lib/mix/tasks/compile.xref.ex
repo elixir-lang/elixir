@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Compile.Xref do
   alias Mix.Tasks.Compile.Elixir, as: E
 
   @recursive true
-  @manifest ".compile.xref"
+  @manifest "compile.xref"
   @manifest_vsn 1
 
   @moduledoc """
@@ -72,8 +72,10 @@ defmodule Mix.Tasks.Compile.Xref do
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   defp write_manifest(warnings, timestamp) do
-    File.write!(manifest(), :erlang.term_to_binary({@manifest_vsn, warnings}))
-    File.touch(manifest(), timestamp)
+    manifest = manifest()
+    File.mkdir_p!(Path.dirname(manifest))
+    File.write!(manifest, :erlang.term_to_binary({@manifest_vsn, warnings}))
+    File.touch(manifest, timestamp)
   end
 
   defp read_manifest() do

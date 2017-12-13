@@ -379,7 +379,7 @@ defmodule Mix.Dep.Loader do
     scm.fetchable? &&
       Mix.Utils.stale?(
         join_stale(opts, :dest, ".fetch"),
-        join_stale(opts, :build, ".compile.fetch")
+        join_stale(opts, :build, ".mix/compile.fetch")
       )
   end
 

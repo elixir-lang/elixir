@@ -448,17 +448,20 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.manifest_path
-      #=> "/path/to/project/_build/shared/lib/app"
+      #=> "/path/to/project/_build/shared/lib/app/.mix"
 
   """
   @spec manifest_path(keyword) :: Path.t()
   def manifest_path(config \\ config()) do
-    config[:app_path] ||
-      if app = config[:app] do
-        Path.join([build_path(config), "lib", Atom.to_string(app)])
-      else
-        build_path(config)
-      end
+    app_path =
+      config[:app_path] ||
+        if app = config[:app] do
+          Path.join([build_path(config), "lib", Atom.to_string(app)])
+        else
+          build_path(config)
+        end
+
+    Path.join(app_path, ".mix")
   end
 
   @doc """

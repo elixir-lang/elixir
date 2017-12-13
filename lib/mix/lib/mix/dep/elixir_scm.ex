@@ -1,7 +1,7 @@
 # Manifest file where we treat Elixir and SCMs as a dependency.
 defmodule Mix.Dep.ElixirSCM do
   @moduledoc false
-  @manifest ".compile.elixir_scm"
+  @manifest "compile.elixir_scm"
   @manifest_vsn 1
 
   def manifest(manifest_path \\ Mix.Project.manifest_path()) do

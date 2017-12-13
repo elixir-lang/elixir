@@ -31,7 +31,7 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compile does not require all compilers available on manifest" do
     Mix.Project.push(CustomCompilers)
-    assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == [".compile.elixir"]
+    assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == ["compile.elixir"]
   end
 
   test "compile a project with mixfile" do
@@ -48,8 +48,8 @@ defmodule Mix.Tasks.CompileTest do
       assert Mix.Tasks.Compile.run(["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
-      # Noop consolidates protocols if folder is missing
-      File.rm_rf("_build/dev/lib/sample/consolidated")
+      # Consolidates protocols if manifest is out of date
+      File.rm("_build/dev/lib/sample/.mix/compile.protocols")
       Mix.Task.clear()
       assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
