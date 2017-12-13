@@ -6,7 +6,7 @@ defmodule Mix.Generator do
   the action to be performed via `Mix.shell/0`.
   """
 
-  @doc """
+  @doc ~S"""
   Creates a file with the given contents.
   If the file already exists, asks for user confirmation.
 
