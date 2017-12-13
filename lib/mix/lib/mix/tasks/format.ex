@@ -52,10 +52,8 @@ defmodule Mix.Tasks.Format do
        See the "Importing dependencies configuration" section below for more
        information.
 
-    * `:export_locals_without_parens` (a list of function names and arities) -
-      specifies a list of function names and arities (like `:locals_without_parens`
-      in `Code.format_string!/2`) that projects that depend on this project
-      can read and use.
+    * `:export` (a keyword list) - specifies formatter configuration to be exported. See the
+      "Importing dependencies configuration" section below.
 
   ## When to format code
 
@@ -78,13 +76,13 @@ defmodule Mix.Tasks.Format do
 
   This task supports importing formatter configuration from dependencies.
 
-  A dependency that wants to export formatter configuration needs to have a
-  `.formatter.exs` file at the root of the project. In this file, the
-  dependency can export a `:export_locals_without_parens` option whose value
-  has the same shape as the value of the `:locals_without_parens` in
-  `Code.format_string!/2`.
+  A dependency that wants to export formatter configuration needs to have a `.formatter.exs` file
+  at the root of the project. In this file, the dependency can export a `:export` option with
+  configuration to export. For now, only one option is supported under `:export`:
+  `:export_locals_without_parens` (whose value has the same shape as the value of the
+  `:locals_without_parens` in `Code.format_string!/2`).
 
-  The functions listed under `:export_locals_without_parens` of a dependency
+  The functions listed under `:locals_without_parens` in the `:export` option of a dependency
   can be imported in a project by listing that dependency in the `:import_deps`
   option of the formatter configuration file of the project.
 
@@ -97,7 +95,9 @@ defmodule Mix.Tasks.Format do
         # Regular formatter configuration for my_dep
         # ...
 
-        export_locals_without_parens: [some_dsl_call: 2, some_dsl_call: 3]
+        export: [
+          locals_without_parens: [some_dsl_call: 2, some_dsl_call: 3]
+        ]
       ]
 
   In order to import configuration, `my_app`'s `.formatter.exs` would look like
