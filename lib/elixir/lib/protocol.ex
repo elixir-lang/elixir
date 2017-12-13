@@ -116,6 +116,55 @@ defmodule Protocol do
 
   @doc """
   Derives the `protocol` for `module` with the given options.
+
+  If your implementation passes options or if you are generating
+  custom code based on the struct, you will also need to implement
+  a macro defined as `__deriving__(module, struct, options)`
+  to get the options that were passed.
+
+  ## Examples
+
+      defprotocol Derivable do
+        def ok(a)
+      end
+
+      defimpl Derivable, for: Any do
+        defmacro __deriving__(module, struct, options) do
+          quote do
+            defimpl Derivable, for: unquote(module) do
+              def ok(arg) do
+                {:ok, arg, unquote(Macro.escape(struct)), unquote(options)}
+              end
+            end
+          end
+        end
+
+        def ok(arg) do
+          {:ok, arg}
+        end
+      end
+
+      defmodule ImplStruct do
+        @derive [Derivable]
+        defstruct a: 0, b: 0
+
+        defimpl Sample do
+          def ok(struct) do
+            Unknown.undefined(struct)
+          end
+        end
+      end
+
+  Explicit derivations can now be called via `__deriving__`:
+
+      # Explicitly derived via `__deriving__`
+      Derivable.ok(%ImplStruct{a: 1, b: 1})
+
+      # Explicitly derived by API via `__deriving__`
+      require Protocol
+      Protocol.derive(Derivable, ImplStruct, :oops)
+      Derivable.ok(%ImplStruct{a: 1, b: 1})
+
   """
   defmacro derive(protocol, module, options \\ []) do
     quote do
