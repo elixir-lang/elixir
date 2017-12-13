@@ -174,6 +174,57 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
+  defmodule FormatWithDepsApp do
+    def project do
+      [
+        app: :format_with_deps,
+        version: "0.1.0",
+        deps: [{:my_dep, "0.1.0", path: "deps/my_dep"}]
+      ]
+    end
+  end
+
+  test "can read exported configuration from dependencies" do
+    Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
+    in_fixture "format_with_deps", fn ->
+      Mix.Project.build_structure()
+
+      File.write!(".formatter.exs", """
+      [import_deps: [:my_dep]]
+      """)
+
+      File.write!("a.ex", """
+      my_fun :foo, :bar
+      """)
+
+      File.mkdir_p!("deps/my_dep/")
+
+      File.write!("deps/my_dep/.formatter.exs", """
+      [export_locals_without_parens: [my_fun: 2]]
+      """)
+
+      Mix.Tasks.Format.run(["a.ex"])
+
+      assert File.read!("a.ex") == """
+             my_fun :foo, :bar
+             """
+
+      manifest_path = "_build/dev/.cached_deps_formatter.exs"
+      assert File.regular?(manifest_path)
+
+      # Let's check that the manifest gets updated if .formatter.exs changes.
+      File.touch!(manifest_path, {{1970, 1, 1}, {0, 0, 0}})
+      %File.Stat{mtime: mtime} = File.stat!(manifest_path)
+
+      File.touch!(".formatter.exs")
+      Mix.Tasks.Format.run(["a.ex"])
+      %File.Stat{mtime: new_mtime} = File.stat!(manifest_path)
+
+      assert new_mtime > mtime
+    end
+  end
+
   test "raises on invalid arguments", context do
     in_tmp context.test, fn ->
       assert_raise Mix.Error, ~r"Expected one or more files\/patterns to be given", fn ->
