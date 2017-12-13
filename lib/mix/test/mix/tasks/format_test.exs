@@ -208,7 +208,7 @@ defmodule Mix.Tasks.FormatTest do
              my_fun :foo, :bar
              """
 
-      manifest_path = Path.join(Mix.Project.manifest_path(), ".cached_deps_formatter")
+      manifest_path = Path.join(Mix.Project.manifest_path(), "cached_formatter_deps")
 
       assert File.regular?(manifest_path)
 

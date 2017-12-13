@@ -117,6 +117,8 @@ defmodule Mix.Tasks.Format do
     dry_run: :boolean
   ]
 
+  @deps_manifest "cached_formatter_deps"
+
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
     formatter_opts = eval_dot_formatter(opts)
@@ -156,7 +158,7 @@ defmodule Mix.Tasks.Format do
       is_list(deps) ->
         # Since we have dependencies listed, we write the manifest even if those dependencies
         # don't export anything so that we avoid lookups everytime.
-        deps_manifest = Path.join(Mix.Project.manifest_path(), ".cached_deps_formatter")
+        deps_manifest = Path.join(Mix.Project.manifest_path(), @deps_manifest)
 
         dep_parenless_calls =
           if deps_dot_formatters_stale?(deps_manifest) do
