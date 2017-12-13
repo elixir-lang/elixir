@@ -188,8 +188,6 @@ defmodule Mix.Tasks.FormatTest do
     Mix.Project.push(__MODULE__.FormatWithDepsApp)
 
     in_fixture "format_with_deps", fn ->
-      Mix.Project.build_structure()
-
       File.write!(".formatter.exs", """
       [import_deps: [:my_dep]]
       """)

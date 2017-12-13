@@ -204,6 +204,8 @@ defmodule Mix.Tasks.Format do
   end
 
   defp write_deps_manifest(parenless_calls) do
+    manifest = deps_manifest()
+    File.mkdir_p!(Path.dirname(manifest))
     File.write!(deps_manifest(), :erlang.term_to_binary(parenless_calls))
   end
 
