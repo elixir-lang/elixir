@@ -5,6 +5,16 @@ defmodule Mix.Tasks.FormatTest do
 
   import ExUnit.CaptureIO
 
+  defmodule FormatWithDepsApp do
+    def project do
+      [
+        app: :format_with_deps,
+        version: "0.1.0",
+        deps: [{:my_dep, "0.1.0", path: "deps/my_dep"}]
+      ]
+    end
+  end
+
   test "formats the given files", context do
     in_tmp context.test, fn ->
       File.write!("a.ex", """
@@ -174,16 +184,6 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  defmodule FormatWithDepsApp do
-    def project do
-      [
-        app: :format_with_deps,
-        version: "0.1.0",
-        deps: [{:my_dep, "0.1.0", path: "deps/my_dep"}]
-      ]
-    end
-  end
-
   test "can read exported configuration from dependencies", context do
     Mix.Project.push(__MODULE__.FormatWithDepsApp)
 
@@ -199,7 +199,7 @@ defmodule Mix.Tasks.FormatTest do
       File.mkdir_p!("deps/my_dep/")
 
       File.write!("deps/my_dep/.formatter.exs", """
-      [export_locals_without_parens: [my_fun: 2]]
+      [export: [locals_without_parens: [my_fun: 2]]]
       """)
 
       Mix.Tasks.Format.run(["a.ex"])
@@ -208,7 +208,7 @@ defmodule Mix.Tasks.FormatTest do
              my_fun :foo, :bar
              """
 
-      manifest_path = "_build/dev/.cached_deps_formatter.exs"
+      manifest_path = Path.join(Mix.Project.manifest_path(), ".cached_deps_formatter")
       assert File.regular?(manifest_path)
 
       # Let's check that the manifest gets updated if .formatter.exs changes.
@@ -220,6 +220,22 @@ defmodule Mix.Tasks.FormatTest do
       %File.Stat{mtime: new_mtime} = File.stat!(manifest_path)
 
       assert new_mtime > mtime
+    end
+  end
+
+  test "validates dependencies in :import_deps", context do
+    Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
+    in_tmp context.test, fn ->
+      File.write!(".formatter.exs", """
+      [import_deps: [:nonexistent_dep]]
+      """)
+
+      message =
+        "Found a dependency in :import_deps that the project doesn't " <>
+          "depend on: :nonexistent_dep"
+
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Format.run([]) end
     end
   end
 

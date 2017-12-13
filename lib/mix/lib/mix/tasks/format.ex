@@ -131,20 +131,8 @@ defmodule Mix.Tasks.Format do
 
   defp eval_dot_formatter(opts) do
     case dot_formatter(opts) do
-      {:ok, dot_formatter} ->
-        {formatter_opts, _} = Code.eval_file(dot_formatter)
-
-        unless Keyword.keyword?(formatter_opts) do
-          Mix.raise(
-            "Expected #{inspect(dot_formatter)} to return a keyword list, " <>
-              "got: #{inspect(formatter_opts)}"
-          )
-        end
-
-        formatter_opts
-
-      :error ->
-        []
+      {:ok, dot_formatter} -> eval_file_with_keyword_list(dot_formatter)
+      :error -> []
     end
   end
 
@@ -159,24 +147,24 @@ defmodule Mix.Tasks.Format do
   # This function reads exported configuration from the imported dependencies and deals with
   # caching the result of reading such configuration in a manifest file.
   defp fetch_deps_opts(formatter_opts) do
-    deps = formatter_opts[:import_deps]
+    deps = Keyword.get(formatter_opts, :import_deps, [])
 
     cond do
-      is_nil(deps) or deps == [] ->
+      deps == [] ->
         formatter_opts
 
       is_list(deps) ->
+        # Since we have dependencies listed, we write the manifest even if those dependencies
+        # don't export anything so that we avoid lookups everytime.
+        deps_manifest = Path.join(Mix.Project.manifest_path(), ".cached_deps_formatter")
+
         dep_parenless_calls =
-          if deps_dot_formatters_stale?() do
+          if deps_dot_formatters_stale?(deps_manifest) do
             dep_parenless_calls = eval_deps_opts(deps)
-
-            if dep_parenless_calls != [] do
-              write_deps_manifest(dep_parenless_calls)
-            end
-
+            write_deps_manifest(deps_manifest, dep_parenless_calls)
             dep_parenless_calls
           else
-            read_deps_manifest()
+            read_deps_manifest(deps_manifest)
           end
 
         Keyword.update(
@@ -191,34 +179,55 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  defp deps_dot_formatters_stale?() do
-    Mix.Utils.stale?([".formatter.exs" | Mix.Project.config_files()], [deps_manifest()])
+  defp deps_dot_formatters_stale?(deps_manifest) do
+    Mix.Utils.stale?([".formatter.exs" | Mix.Project.config_files()], [deps_manifest])
   end
 
-  defp deps_manifest() do
-    Path.join(Mix.Project.build_path(), ".cached_deps_formatter.exs")
+  defp read_deps_manifest(deps_manifest) do
+    deps_manifest |> File.read!() |> :erlang.binary_to_term()
   end
 
-  defp read_deps_manifest() do
-    deps_manifest() |> File.read!() |> :erlang.binary_to_term()
-  end
-
-  defp write_deps_manifest(parenless_calls) do
-    manifest = deps_manifest()
-    File.mkdir_p!(Path.dirname(manifest))
-    File.write!(deps_manifest(), :erlang.term_to_binary(parenless_calls))
+  defp write_deps_manifest(deps_manifest, parenless_calls) do
+    File.mkdir_p!(Path.dirname(deps_manifest))
+    File.write!(deps_manifest, :erlang.term_to_binary(parenless_calls))
   end
 
   defp eval_deps_opts(deps) do
     deps_paths = Mix.Project.deps_paths()
 
     for dep <- deps,
+        ensure_valid_dependency!(dep, deps_paths),
         dep_dot_formatter = Path.join(Map.fetch!(deps_paths, dep), ".formatter.exs"),
         File.regular?(dep_dot_formatter),
-        {dep_opts, _} = Code.eval_file(dep_dot_formatter),
-        parenless_call <- Keyword.get(dep_opts, :export_locals_without_parens, []),
+        dep_opts = eval_file_with_keyword_list(dep_dot_formatter),
+        parenless_call <- dep_opts[:export][:locals_without_parens] || [],
         uniq: true,
         do: parenless_call
+  end
+
+  defp ensure_valid_dependency!(dep, deps_paths) do
+    cond do
+      not is_atom(dep) ->
+        Mix.raise("Dependencies in :import_deps should be atoms, got: #{inspect(dep)}")
+
+      not Map.has_key?(deps_paths, dep) ->
+        Mix.raise(
+          "Found a dependency in :import_deps that the project doesn't depend on: #{inspect(dep)}"
+        )
+
+      true ->
+        :ok
+    end
+  end
+
+  defp eval_file_with_keyword_list(path) do
+    {opts, _} = Code.eval_file(path)
+
+    unless Keyword.keyword?(opts) do
+      Mix.raise("Expected #{inspect(path)} to return a keyword list, got: #{inspect(opts)}")
+    end
+
+    opts
   end
 
   defp expand_args([], formatter_opts) do
