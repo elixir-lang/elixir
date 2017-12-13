@@ -184,10 +184,10 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  test "can read exported configuration from dependencies" do
+  test "can read exported configuration from dependencies", context do
     Mix.Project.push(__MODULE__.FormatWithDepsApp)
 
-    in_fixture "format_with_deps", fn ->
+    in_tmp context.test, fn ->
       File.write!(".formatter.exs", """
       [import_deps: [:my_dep]]
       """)
