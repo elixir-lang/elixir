@@ -5,6 +5,16 @@ defmodule Mix.Tasks.FormatTest do
 
   import ExUnit.CaptureIO
 
+  defmodule FormatWithDepsApp do
+    def project do
+      [
+        app: :format_with_deps,
+        version: "0.1.0",
+        deps: [{:my_dep, "0.1.0", path: "deps/my_dep"}]
+      ]
+    end
+  end
+
   test "formats the given files", context do
     in_tmp context.test, fn ->
       File.write!("a.ex", """
@@ -171,6 +181,59 @@ defmodule Mix.Tasks.FormatTest do
       assert File.read!("a.ex") == """
              foo bar(baz)
              """
+    end
+  end
+
+  test "can read exported configuration from dependencies", context do
+    Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
+    in_tmp context.test, fn ->
+      File.write!(".formatter.exs", """
+      [import_deps: [:my_dep]]
+      """)
+
+      File.write!("a.ex", """
+      my_fun :foo, :bar
+      """)
+
+      File.mkdir_p!("deps/my_dep/")
+
+      File.write!("deps/my_dep/.formatter.exs", """
+      [export: [locals_without_parens: [my_fun: 2]]]
+      """)
+
+      Mix.Tasks.Format.run(["a.ex"])
+
+      assert File.read!("a.ex") == """
+             my_fun :foo, :bar
+             """
+
+      manifest_path = Path.join(Mix.Project.manifest_path(), "cached_formatter_deps")
+
+      assert File.regular?(manifest_path)
+
+      # Let's check that the manifest gets updated if it's stale.
+      File.touch!(manifest_path, {{1970, 1, 1}, {0, 0, 0}})
+
+      Mix.Tasks.Format.run(["a.ex"])
+
+      assert File.stat!(manifest_path).mtime > {{1970, 1, 1}, {0, 0, 0}}
+    end
+  end
+
+  test "validates dependencies in :import_deps", context do
+    Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
+    in_tmp context.test, fn ->
+      File.write!(".formatter.exs", """
+      [import_deps: [:nonexistent_dep]]
+      """)
+
+      message =
+        "Found a dependency in :import_deps that the project doesn't " <>
+          "depend on: :nonexistent_dep"
+
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Format.run([]) end
     end
   end
 
