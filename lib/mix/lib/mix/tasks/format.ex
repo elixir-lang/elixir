@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Format do
 
   The `.formatter.exs` also supports other options:
 
-    * `:input` (a list of paths and patterns) - specifies the default inputs
+    * `:inputs` (a list of paths and patterns) - specifies the default inputs
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
 
     * `:import_deps` (a list of dependencies as atoms) - specifies a list
@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Format do
         # Regular formatter configuration for my_dep
         # ...
 
-        export_locals_without_parens: [some_dsl_call: :*]
+        export_locals_without_parens: [some_dsl_call: 2, some_dsl_call: 3]
       ]
 
   In order to import configuration, `my_app`'s `.formatter.exs` would look like
