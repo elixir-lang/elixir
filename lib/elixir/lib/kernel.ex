@@ -4396,14 +4396,44 @@ defmodule Kernel do
 
   In order to speed up dispatching in production environments, where
   all implementations are known up-front, Elixir provides a feature
-  called protocol consolidation. For this reason, all protocols are
-  compiled with `debug_info` set to `true`, regardless of the option
-  set by `elixirc` compiler. The debug info though may be removed after
-  consolidation.
+  called protocol consolidation. Consolidation directly links protocols
+  to their implementations in a way that invoking a function from a
+  consolidated protocol is equivalent to invoking two remote functions.
 
-  Protocol consolidation is applied by default to all Mix projects.
-  For applying consolidation manually, please check the functions in
-  the `Protocol` module or the `mix compile.protocols` task.
+  Protocol consolidation is applied by default to all Mix projects during
+  compilation. This may be an issue during test. For instance, if you want
+  to implement a protocol during test, the implementation will have no
+  effect, as the protocol has already been consolidated. One possible
+  solution is to include compilation directories that are specific to your
+  test environment in your mix.exs:
+
+      def project do
+        ...
+        elixirc_paths: elixirc_paths(Mix.env)
+        ...
+      end
+
+      defp elixirc_paths(:test), do: ["lib", "test/support"]
+      defp elixirc_paths(_), do: ["lib"]
+
+  And then you can define the implementations specific to the test environment
+  inside `test/support/some_file.ex`.
+
+  Another approach is to disable protocol consolidation during tests in your
+  mix.exs:
+
+      def project do
+        ...
+        consolidate_protocols: Mix.env != :test
+        ...
+      end
+
+  Although doing so is not recommended as it may affect your test suite
+  performance.
+
+  Finally note all protocols are compiled with `debug_info` set to `true`,
+  regardless of the option set by `elixirc` compiler. The debug info is
+  used for consolidation and it may be removed after consolidation.
   """
   defmacro defprotocol(name, do_block)
 
