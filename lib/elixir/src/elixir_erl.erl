@@ -21,13 +21,11 @@ debug_info(elixir_v1, _Module, none, _Opts) ->
   {error, missing};
 debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
   {ok, Map};
-debug_info(erlang_v1, Module, {elixir_v1, Map, Specs}, _Opts) ->
-  Data = elixir_module:data_table(Module),
-  {Prefix, Forms, _, _} = dynamic_form(Map, Data),
+debug_info(erlang_v1, _Module, {elixir_v1, Map, Specs}, _Opts) ->
+  {Prefix, Forms, _, _} = dynamic_form(Map, []),
   {ok, Prefix ++ Specs ++ Forms};
-debug_info(core_v1, Module, {elixir_v1, Map, Specs}, Opts) ->
-  Data = elixir_module:data_table(Module),
-  {Prefix, Forms, _, _} = dynamic_form(Map, Data),
+debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
+  {Prefix, Forms, _, _} = dynamic_form(Map, []),
   #{compile_opts := CompileOpts} = Map,
 
   %% Do not rely on elixir_erl_compiler because we don't
@@ -151,7 +149,8 @@ definition_scope(Meta, File) ->
 
 compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
-  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map, Data),
+  Deprecated = get_deprecated(Data),
+  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map, Deprecated),
   Specs =
     case elixir_config:get(bootstrap) of
       true -> [];
@@ -160,7 +159,7 @@ compile(#{module := Module} = Map) ->
   load_form(Map, Data, Prefix, Forms, Specs).
 
 dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
-               definitions := Definitions, unreachable := Unreachable}, Data) ->
+               definitions := Definitions, unreachable := Unreachable}, Deprecated) ->
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, File, Unreachable, [], [], [], [], {[], []}),
 
@@ -169,7 +168,7 @@ dynamic_form(#{module := Module, line := Line, file := File, attributes := Attri
             {attribute, Line, module, Module},
             {attribute, Line, compile, no_auto_import}],
 
-  Forms0 = functions_form(Data, Line, Module, Def, Defmacro, Exports, Functions),
+  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated),
   Forms1 = attributes_form(Line, Attributes, Forms0),
   {Prefix, Forms1, Macros, Unreachable}.
 
@@ -265,11 +264,11 @@ is_macro(_)         -> false.
 
 % Functions
 
-functions_form(Data, Line, Module, Def, Defmacro, Exports, Body) ->
-  {Spec, Info} = add_info_function(Data, Line, Module, Def, Defmacro),
+functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated) ->
+  {Spec, Info} = add_info_function(Line, Module, Def, Defmacro, Deprecated),
   [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body].
 
-add_info_function(Data, Line, Module, Def, Defmacro) ->
+add_info_function(Line, Module, Def, Defmacro, Deprecated) ->
   AllowedAttrs = [attributes, compile, functions, macros, md5, module],
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
 
@@ -306,7 +305,7 @@ add_info_function(Data, Line, Module, Def, Defmacro) ->
       get_module_info(Module, attributes),
       get_module_info(Module, compile),
       get_module_info(Module, md5),
-      deprecated_info(Data)
+      deprecated_info(Deprecated)
     ]},
 
   {Spec, Info}.
@@ -324,8 +323,7 @@ get_module_info(Module, Key) ->
   Call = remote(0, erlang, get_module_info, [{atom, 0, Module}, {atom, 0, Key}]),
   {clause, 0, [{atom, 0, Key}], [], [Call]}.
 
-deprecated_info(Data) ->
-  Deprecated = get_deprecated(Data),
+deprecated_info(Deprecated) ->
   {clause, 0, [{atom, 0, deprecated}], [], [elixir_erl:elixir_to_erl(Deprecated)]}.
 
 % Types
