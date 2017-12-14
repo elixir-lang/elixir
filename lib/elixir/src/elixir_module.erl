@@ -1,6 +1,6 @@
 -module(elixir_module).
 -export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
-         compile/4, expand_callback/6, format_error/1,
+         delete_deprecated/6, compile/4, expand_callback/6, format_error/1,
          compiler_modules/0, delete_impl/6,
          write_cache/3, read_cache/2]).
 -include("elixir.hrl").
@@ -34,6 +34,10 @@ is_open(Module) ->
 
 delete_doc(#{module := Module}, _, _, _, _, _) ->
   ets:delete(data_table(Module), doc),
+  ok.
+
+delete_deprecated(#{module := Module}, _, _, _, _, _) ->
+  ets:delete(data_table(Module), deprecated),
   ok.
 
 delete_impl(#{module := Module}, _, _, _, _, _) ->
@@ -176,20 +180,15 @@ build(Line, File, Module, Lexical) ->
   Ref  = elixir_code_server:call({defmodule, self(),
                                  {Module, Data, Defs, Line, File}}),
 
-  DocsOnDefinition =
-      case elixir_compiler:get_opt(docs) of
-        true -> [{'Elixir.Module', compile_doc}];
-        _    -> [{elixir_module, delete_doc}]
-      end,
-
-  ImplOnDefinition =
-      case elixir_config:get(bootstrap) of
-        true -> [{elixir_module, delete_impl}];
-        _    -> [{'Elixir.Module', compile_impl}]
-      end,
+  Bootstrap = elixir_config:get(bootstrap),
+  CompileDocs = elixir_compiler:get_opt(docs),
 
   %% Docs must come first as they read the impl callback.
-  OnDefinition = DocsOnDefinition ++ ImplOnDefinition,
+  OnDefinition = [
+    deprecated_on_definition(not Bootstrap),
+    docs_on_definition(CompileDocs),
+    impl_on_definition(not Bootstrap)
+  ],
 
   ets:insert(Data, [
     % {Key, Value, Accumulate?, UnreadLine}
@@ -228,6 +227,21 @@ build(Line, File, Module, Lexical) ->
   elixir_overridable:setup(Module),
 
   {Data, Defs, Ref}.
+
+deprecated_on_definition(true) ->
+  {'Elixir.Module', compile_deprecated};
+deprecated_on_definition(_) ->
+  {elixir_module, delete_deprecated}.
+
+docs_on_definition(true) ->
+  {'Elixir.Module', compile_doc};
+docs_on_definition(_) ->
+  {elixir_module, delete_doc}.
+
+impl_on_definition(true) ->
+  {'Elixir.Module', compile_impl};
+impl_on_definition(_) ->
+  {elixir_module, delete_impl}.
 
 %% Handles module and callback evaluations.
 

@@ -104,6 +104,17 @@ defmodule Module do
   Multiple uses of `@compile` will accumulate instead of overriding
   previous ones. See the "Compile options" section below.
 
+  ### `@deprecated`
+
+  Provides the deprecation reason for a function. For example:
+
+      defmodule MyModule do
+        @deprecated "Use MyModule.hello_world/0 instead"
+        def hello, do: "world"
+
+        def hello_world, do: "Hello world!"
+      end
+
   ### `@doc` (and `@since`)
 
   Provides documentation for the function or macro that follows the
@@ -1218,6 +1229,22 @@ defmodule Module do
   end
 
   @doc false
+  # Used internally to compile deprecated.
+  # This function is private and must be used only internally.
+  def compile_deprecated(env, _kind, name, args, _guards, _body) do
+    module = env.module
+    table = data_table_for(module)
+    arity = length(args)
+    pair = {name, arity}
+
+    if reason = get_deprecated_info(table) do
+      :ets.insert(table, {{:deprecated, pair}, reason})
+    end
+
+    :ok
+  end
+
+  @doc false
   # Used internally to check the validity of arguments to @impl.
   # This function is private and must be used only internally.
   def compile_impl(env, kind, name, args, _guards, _body) do
@@ -1686,6 +1713,12 @@ defmodule Module do
             "the version a function, macro, type or callback was added, got: #{inspect(value)}"
   end
 
+  defp preprocess_attribute(:deprecated, value) when not is_binary(value) do
+    raise ArgumentError,
+          "@deprecated expects a string with the reason for the deprecation, " <>
+            "got: #{inspect(value)}"
+  end
+
   defp preprocess_attribute(_key, value) do
     value
   end
@@ -1705,6 +1738,13 @@ defmodule Module do
 
   defp get_since_info(table) do
     :ets.take(table, :since)
+  end
+
+  defp get_deprecated_info(table) do
+    case :ets.take(table, :deprecated) do
+      [{:deprecated, reason, _, _}] -> reason
+      [] -> nil
+    end
   end
 
   defp data_table_for(module) do
