@@ -412,6 +412,9 @@ defmodule Enum do
       iex> Enum.chunk_every([1, 2, 3, 4], 10)
       [[1, 2, 3, 4]]
 
+      iex> Enum.chunk_every([1, 2, 3, 4, 5], 2, 3, [])
+      [[1, 2], [4, 5]]
+
   """
   @spec chunk_every(t, pos_integer, pos_integer, t | :discard) :: [list]
   def chunk_every(enumerable, count, step, leftover \\ [])
