@@ -86,6 +86,7 @@ compile(Line, Module, Block, Vars, E) ->
     PersistedAttributes = ets:lookup_element(Data, ?persisted_attr, 2),
     Attributes = attributes(Line, File, Data, PersistedAttributes),
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
+    Deprecated = get_deprecated(Module),
 
     (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, Data, AllDefinitions, OverridablePairs),
@@ -99,6 +100,7 @@ compile(Line, Module, Block, Vars, E) ->
       attributes => Attributes,
       definitions => AllDefinitions,
       unreachable => Unreachable,
+      deprecated => Deprecated,
       compile_opts => CompileOpts
     },
 
@@ -125,6 +127,10 @@ compile(Line, Module, Block, Vars, E) ->
     ets:delete(Defs),
     elixir_code_server:call({undefmodule, Ref})
   end.
+
+get_deprecated(Module) ->
+  Data = elixir_module:data_table(Module),
+  lists:usort(ets:select(Data, [{{{deprecated, '$1'}, '$2'}, [], [{{'$1', '$2'}}]}])).
 
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
