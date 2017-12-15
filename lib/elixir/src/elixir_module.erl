@@ -1,7 +1,6 @@
 -module(elixir_module).
--export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
-         delete_deprecated/6, compile/4, expand_callback/6, format_error/1,
-         compiler_modules/0, delete_impl/6,
+-export([data_table/1, defs_table/1, is_open/1, compile_definition_attributes/6,
+         compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2]).
 -include("elixir.hrl").
 
@@ -32,17 +31,17 @@ defs_table(Module) ->
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
 
-delete_doc(#{module := Module}, _, _, _, _, _) ->
-  ets:delete(data_table(Module), doc),
-  ok.
+delete_doc(Data) ->
+  ets:delete(Data, doc).
 
-delete_deprecated(#{module := Module}, _, _, _, _, _) ->
-  ets:delete(data_table(Module), deprecated),
-  ok.
+delete_deprecated(Data) ->
+  ets:delete(Data, deprecated).
 
-delete_impl(#{module := Module}, _, _, _, _, _) ->
-  ets:delete(data_table(Module), impl),
-  ok.
+get_deprecated(Data) ->
+  lists:usort(ets:select(Data, [{{{deprecated, '$1'}, '$2'}, [], [{{'$1', '$2'}}]}])).
+
+delete_impl(Data) ->
+  ets:delete(Data, impl).
 
 write_cache(Module, Key, Value) ->
   ets:insert(data_table(Module), {{cache, Key}, Value}).
@@ -86,7 +85,7 @@ compile(Line, Module, Block, Vars, E) ->
     PersistedAttributes = ets:lookup_element(Data, ?persisted_attr, 2),
     Attributes = attributes(Line, File, Data, PersistedAttributes),
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
-    Deprecated = get_deprecated(Module),
+    Deprecated = get_deprecated(Data),
 
     (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, Data, AllDefinitions, OverridablePairs),
@@ -127,10 +126,6 @@ compile(Line, Module, Block, Vars, E) ->
     ets:delete(Defs),
     elixir_code_server:call({undefmodule, Ref})
   end.
-
-get_deprecated(Module) ->
-  Data = elixir_module:data_table(Module),
-  lists:usort(ets:select(Data, [{{{deprecated, '$1'}, '$2'}, [], [{{'$1', '$2'}}]}])).
 
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
@@ -186,16 +181,6 @@ build(Line, File, Module, Lexical) ->
   Ref  = elixir_code_server:call({defmodule, self(),
                                  {Module, Data, Defs, Line, File}}),
 
-  Bootstrap = elixir_config:get(bootstrap),
-  CompileDocs = elixir_compiler:get_opt(docs),
-
-  %% Docs must come first as they read the impl callback.
-  OnDefinition = [
-    deprecated_on_definition(not Bootstrap),
-    docs_on_definition(CompileDocs),
-    impl_on_definition(not Bootstrap)
-  ],
-
   ets:insert(Data, [
     % {Key, Value, Accumulate?, UnreadLine}
     {after_compile, [], true, nil},
@@ -206,7 +191,7 @@ build(Line, File, Module, Lexical) ->
     {dialyzer, [], true, nil},
     {external_resource, [], true, nil},
     {moduledoc, nil, false, nil},
-    {on_definition, OnDefinition, true, nil},
+    {on_definition, [{elixir_module, compile_definition_attributes}], true, nil},
     {on_load, [], true, nil},
 
     % Types
@@ -234,20 +219,27 @@ build(Line, File, Module, Lexical) ->
 
   {Data, Defs, Ref}.
 
-deprecated_on_definition(true) ->
-  {'Elixir.Module', compile_deprecated};
-deprecated_on_definition(_) ->
-  {elixir_module, delete_deprecated}.
+compile_definition_attributes(#{module := Module} = Env, Kind, Name, Args, _Guards, _Body) ->
+  Data = data_table(Module),
+  Arity = length(Args),
+  Tuple = {Name, Arity},
 
-docs_on_definition(true) ->
-  {'Elixir.Module', compile_doc};
-docs_on_definition(_) ->
-  {elixir_module, delete_doc}.
+  %% Docs must come first as they read the impl callback
+  case elixir_compiler:get_opt(docs) of
+    true -> 'Elixir.Module':compile_doc(Data, Tuple, Env, Kind, Args);
+    _ -> delete_doc(Data)
+  end,
 
-impl_on_definition(true) ->
-  {'Elixir.Module', compile_impl};
-impl_on_definition(_) ->
-  {elixir_module, delete_impl}.
+  case elixir_config:get(bootstrap) of
+    false ->
+      'Elixir.Module':compile_deprecated(Data, Tuple),
+      'Elixir.Module':compile_impl(Data, Name, Env, Kind, Args);
+
+    _ ->
+      delete_deprecated(Data),
+      delete_impl(Data)
+  end,
+  ok.
 
 %% Handles module and callback evaluations.
 
