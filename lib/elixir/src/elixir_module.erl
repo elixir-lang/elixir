@@ -37,9 +37,6 @@ delete_doc(Data) ->
 delete_deprecated(Data) ->
   ets:delete(Data, deprecated).
 
-get_deprecated(Data) ->
-  lists:usort(ets:select(Data, [{{{deprecated, '$1'}, '$2'}, [], [{{'$1', '$2'}}]}])).
-
 delete_impl(Data) ->
   ets:delete(Data, impl).
 
@@ -85,7 +82,6 @@ compile(Line, Module, Block, Vars, E) ->
     PersistedAttributes = ets:lookup_element(Data, ?persisted_attr, 2),
     Attributes = attributes(Line, File, Data, PersistedAttributes),
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
-    Deprecated = get_deprecated(Data),
 
     (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, Data, AllDefinitions, OverridablePairs),
@@ -99,7 +95,6 @@ compile(Line, Module, Block, Vars, E) ->
       attributes => Attributes,
       definitions => AllDefinitions,
       unreachable => Unreachable,
-      deprecated => Deprecated,
       compile_opts => CompileOpts
     },
 

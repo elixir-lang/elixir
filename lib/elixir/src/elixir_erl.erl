@@ -21,11 +21,11 @@ debug_info(elixir_v1, _Module, none, _Opts) ->
   {error, missing};
 debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
   {ok, Map};
-debug_info(erlang_v1, _Module, {elixir_v1, Map, Specs}, _Opts) ->
-  {Prefix, Forms, _, _} = dynamic_form(Map),
+debug_info(erlang_v1, Module, {elixir_v1, Map, Specs}, _Opts) ->
+  {Prefix, Forms, _, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
   {ok, Prefix ++ Specs ++ Forms};
-debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
-  {Prefix, Forms, _, _} = dynamic_form(Map),
+debug_info(core_v1, Module, {elixir_v1, Map, Specs}, Opts) ->
+  {Prefix, Forms, _, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
   #{compile_opts := CompileOpts} = Map,
 
   %% Do not rely on elixir_erl_compiler because we don't
@@ -38,6 +38,25 @@ debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
   end;
 debug_info(_, _, _, _) ->
   {error, unknown_format}.
+
+%% `ExDp` chunk from beam
+
+deprecated_chunk_from_beam(Module) ->
+  Chunk = binary_to_list(<<"ExDp">>),
+  Beam = abstract_code_beam(Module),
+
+  {elixir_deprecated_v1, Deprecated} =
+    case beam_lib:chunks(Beam, [Chunk]) of
+      {ok, {Module, [{Chunk, DeprecatedBin}]}} -> binary_to_term(DeprecatedBin);
+      _ -> {elixir_deprecated_v1, []}
+    end,
+  Deprecated.
+
+abstract_code_beam(Module) ->
+  case code:get_object_code(Module) of
+    {Module, Beam, _} -> Beam;
+    error -> Module
+  end.
 
 %% Builds Erlang AST annotation.
 
@@ -149,16 +168,17 @@ definition_scope(Meta, File) ->
 
 compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
-  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map),
+  Deprecated = get_deprecated(Data),
+  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map, Deprecated),
   Specs =
     case elixir_config:get(bootstrap) of
       true -> [];
       false -> specs_form(Map, Data, Defmacro, Unreachable, types_form(Data, []))
     end,
-  load_form(Map, Data, Prefix, Forms, Specs).
+  load_form(Map, Data, Prefix, Forms, Specs, Deprecated).
 
 dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
-               definitions := Definitions, unreachable := Unreachable, deprecated := Deprecated}) ->
+               definitions := Definitions, unreachable := Unreachable}, Deprecated) ->
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, File, Unreachable, [], [], [], [], {[], []}),
 
@@ -446,8 +466,8 @@ attributes_form(Line, Attributes, Forms) ->
 
 % Loading forms
 
-load_form(#{line := Line, file := File, compile_opts := Opts, deprecated := Deprecated} = Map,
-            Data, Prefix, Forms, Specs) ->
+load_form(#{line := Line, file := File, compile_opts := Opts} = Map,
+            Data, Prefix, Forms, Specs, Deprecated) ->
   {ExtraChunks, CompileOpts} = extra_chunks(Data, Deprecated, Line, debug_opts(Map, Specs, Opts)),
   {_, Binary} = elixir_erl_compiler:forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
   add_beam_chunks(Binary, ExtraChunks).
@@ -526,6 +546,9 @@ get_callback_docs(Data) ->
 get_type_docs(Data) ->
   lists:usort(ets:select(Data, [{{{typedoc, '$1'}, '$2', '$3', '$4'},
                                  [], [{{'$1', '$2', '$3', '$4'}}]}])).
+
+get_deprecated(Data) ->
+  lists:usort(ets:select(Data, [{{{deprecated, '$1'}, '$2'}, [], [{{'$1', '$2'}}]}])).
 
 %% Errors
 

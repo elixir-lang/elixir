@@ -309,7 +309,7 @@ defmodule Protocol do
   end
 
   defp beam_protocol(protocol) do
-    chunk_ids = [:abstract_code, :attributes, :compile_info, 'ExDc', 'ExDp']
+    chunk_ids = [:abstract_code, :attributes, :compile_info, 'ExDc']
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
@@ -318,13 +318,12 @@ defmodule Protocol do
           {:abstract_code, {_raw, abstract_code}},
           {:attributes, attributes},
           {:compile_info, compile_info},
-          {'ExDc', docs},
-          {'ExDp', deprecated}
+          {'ExDc', docs}
         ] = entries
 
         case attributes[:protocol] do
           [fallback_to_any: any] ->
-            {:ok, {protocol, any, abstract_code}, {compile_info, docs, deprecated}}
+            {:ok, {protocol, any, abstract_code}, {compile_info, docs}}
 
           _ ->
             {:error, :not_a_protocol}
@@ -498,14 +497,14 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile(protocol, code, {compile_info, docs, deprecated}) do
+  defp compile(protocol, code, {compile_info, docs}) do
     opts = Keyword.take(compile_info, [:source])
     opts = if Code.compiler_options()[:debug_info], do: [:debug_info | opts], else: opts
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return | opts])
 
     case docs do
       :missing_chunk -> {:ok, binary}
-      _ -> {:ok, :elixir_erl.add_beam_chunks(binary, [{"ExDc", docs}, {"ExDp", deprecated}])}
+      _ -> {:ok, :elixir_erl.add_beam_chunks(binary, [{"ExDc", docs}])}
     end
   end
 
