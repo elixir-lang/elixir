@@ -166,6 +166,23 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
+## v1.5.3 (2017-12-15)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Calendar] Consider microseconds in maximum possible Calendar.ISO datetime
+  * [Enum] Fix `chunk_every/4` when `step > count`
+  * [Kernel] Warn duplicate definitions in macros
+  * [Kernel] Remove dialyzer warnings from else in with clauses
+  * [Kernel] Do not warning on upcoming `@deprecated` and `@since` attributes for v1.6
+  * [MapSet] Return valid MapSet when union-ing a legacy MapSet
+
+#### ExUnit
+
+  * [ExUnit] Fix compiler warnings in `assert_receive/3`
+
 ## v1.5.2 (2017-09-29)
 
 ### 1. Enhacements
