@@ -318,7 +318,7 @@ beam_location(#{lexical_tracker := Pid, module := Module}) ->
 %% Handle unused attributes warnings and special cases.
 
 warn_unused_attributes(File, Data, PersistedAttrs) ->
-  ReservedAttrs = [after_compile, before_compile, moduledoc, on_definition | PersistedAttrs],
+  ReservedAttrs = [after_compile, before_compile, deprecated, moduledoc, on_definition, since | PersistedAttrs],
   Keys = ets:select(Data, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
    [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
