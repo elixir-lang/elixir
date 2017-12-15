@@ -22,7 +22,7 @@ defmodule Stream.Reducers do
         {:cont, new_state}
       end
     end, fn {acc_buffer, acc_count} ->
-      if leftover == :discard or acc_count == 0 or (step > count and count == acc_count) do
+      if leftover == :discard or acc_count == 0 or (step > count and acc_count >= count) do
         {:cont, []}
       else
         {:cont, :lists.reverse(acc_buffer, Enum.take(leftover, count - acc_count)), []}
