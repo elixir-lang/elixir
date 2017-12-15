@@ -1188,7 +1188,20 @@ defmodule Module do
   @doc false
   # Used internally to compile documentation.
   # This function is private and must be used only internally.
-  def compile_doc(table, pair, env, kind, args) do
+  def compile_definition_attributes(env, kind, name, args, _guards, _body) do
+    module = env.module
+    table = data_table_for(module)
+    arity = length(args)
+    pair = {name, arity}
+
+    # Docs must come first as they read the impl callback
+    compile_doc(table, pair, env, kind, args)
+    compile_deprecated(table, pair)
+    compile_impl(table, name, env, kind, args)
+    :ok
+  end
+
+  defp compile_doc(table, pair, env, kind, args) do
     {line, doc} = get_doc_info(table, env)
 
     # TODO: Store @since alongside the docs
@@ -1222,19 +1235,13 @@ defmodule Module do
     end
   end
 
-  @doc false
-  # Used internally to compile deprecated.
-  # This function is private and must be used only internally.
-  def compile_deprecated(table, pair) do
+  defp compile_deprecated(table, pair) do
     if reason = get_deprecated_info(table) do
       :ets.insert(table, {{:deprecated, pair}, reason})
     end
   end
 
-  @doc false
-  # Used internally to check the validity of arguments to @impl.
-  # This function is private and must be used only internally.
-  def compile_impl(table, name, env, kind, args) do
+  defp compile_impl(table, name, env, kind, args) do
     %{line: line, file: file} = env
 
     case :ets.take(table, :impl) do

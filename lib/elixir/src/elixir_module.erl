@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([data_table/1, defs_table/1, is_open/1, compile_definition_attributes/6,
+-export([data_table/1, defs_table/1, is_open/1, delete_definition_attributes/6,
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2]).
 -include("elixir.hrl").
@@ -31,13 +31,10 @@ defs_table(Module) ->
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
 
-delete_doc(Data) ->
-  ets:delete(Data, doc).
-
-delete_deprecated(Data) ->
-  ets:delete(Data, deprecated).
-
-delete_impl(Data) ->
+delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
+  Data = data_table(Module),
+  ets:delete(Data, doc),
+  ets:delete(Data, deprecated),
   ets:delete(Data, impl).
 
 write_cache(Module, Key, Value) ->
@@ -176,6 +173,12 @@ build(Line, File, Module, Lexical) ->
   Ref  = elixir_code_server:call({defmodule, self(),
                                  {Module, Data, Defs, Line, File}}),
 
+  OnDefinition =
+    case elixir_config:get(bootstrap) of
+      false -> [{'Elixir.Module', compile_definition_attributes}];
+      _ -> [{elixir_module, delete_definition_attributes}]
+    end,
+
   ets:insert(Data, [
     % {Key, Value, Accumulate?, UnreadLine}
     {after_compile, [], true, nil},
@@ -186,7 +189,7 @@ build(Line, File, Module, Lexical) ->
     {dialyzer, [], true, nil},
     {external_resource, [], true, nil},
     {moduledoc, nil, false, nil},
-    {on_definition, [{elixir_module, compile_definition_attributes}], true, nil},
+    {on_definition, OnDefinition, true, nil},
     {on_load, [], true, nil},
 
     % Types
@@ -213,28 +216,6 @@ build(Line, File, Module, Lexical) ->
   elixir_overridable:setup(Module),
 
   {Data, Defs, Ref}.
-
-compile_definition_attributes(#{module := Module} = Env, Kind, Name, Args, _Guards, _Body) ->
-  Data = data_table(Module),
-  Arity = length(Args),
-  Tuple = {Name, Arity},
-
-  %% Docs must come first as they read the impl callback
-  case elixir_compiler:get_opt(docs) of
-    true -> 'Elixir.Module':compile_doc(Data, Tuple, Env, Kind, Args);
-    _ -> delete_doc(Data)
-  end,
-
-  case elixir_config:get(bootstrap) of
-    false ->
-      'Elixir.Module':compile_deprecated(Data, Tuple),
-      'Elixir.Module':compile_impl(Data, Name, Env, Kind, Args);
-
-    _ ->
-      delete_deprecated(Data),
-      delete_impl(Data)
-  end,
-  ok.
 
 %% Handles module and callback evaluations.
 
