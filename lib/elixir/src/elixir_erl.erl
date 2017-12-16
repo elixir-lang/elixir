@@ -1,8 +1,7 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
--export([elixir_to_erl/1, definition_to_anonymous/5, compile/1,
-         get_ann/1, remote/4, add_beam_chunks/2, debug_info/4,
-         definition_scope/2, format_error/1]).
+-export([elixir_to_erl/1, definition_to_anonymous/5, compile/1, get_ann/1,
+         remote/4, debug_info/4, definition_scope/2, format_error/1]).
 -include("elixir.hrl").
 
 %% TODO: Remove extra chunk functionality when OTP 20+.
