@@ -76,6 +76,8 @@ defmodule EnumTest do
     assert Enum.chunk_every([1, 2, 3, 4, 5, 6, 7], 2, 3, []) == [[1, 2], [4, 5], [7]]
     assert Enum.chunk_every([1, 2, 3, 4, 5, 6, 7], 2, 3, [8]) == [[1, 2], [4, 5], [7, 8]]
     assert Enum.chunk_every([1, 2, 3, 4, 5, 6, 7], 2, 4, []) == [[1, 2], [5, 6]]
+    assert Enum.chunk_every([1, 2, 3, 4, 5, 6, 7, 8], 2, 4, []) == [[1, 2], [5, 6]]
+    assert Enum.chunk_every([1, 2, 3, 4, 5, 6, 7, 8], 2, 4, [9]) == [[1, 2], [5, 6], [9]]
   end
 
   test "chunk_by/2" do
