@@ -382,7 +382,13 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidation keeps deprecated" do
-    assert [{{:ok, 1}, "Reason"}] = Sample.__info__(:deprecated)
+    deprecated = [{{:ok, 1}, "Reason"}]
+
+    assert deprecated == Sample.__info__(:deprecated)
+
+    {:ok, {Sample, [{'ExDp', deprecated_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExDp'])
+
+    assert {:elixir_deprecated_v1, deprecated} == :erlang.binary_to_term(deprecated_bin)
   end
 
   test "consolidation keeps source" do
