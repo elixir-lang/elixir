@@ -108,11 +108,11 @@ defmodule Module do
 
   Provides the deprecation reason for a function. For example:
 
-      defmodule MyModule do
-        @deprecated "Use MyModule.hello_world/0 instead"
-        def hello, do: "world"
-
-        def hello_world, do: "Hello world!"
+      defmodule Keyword do
+        @deprecated "Use Kernel.length/1 instead"
+        def size(keyword) do
+          length(keyword)
+        end
       end
 
   ### `@doc` (and `@since`)
