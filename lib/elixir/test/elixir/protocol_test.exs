@@ -371,8 +371,11 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidation keeps docs" do
-    docs = Code.get_docs(Sample, :docs)
-    assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = List.keyfind(docs, {:ok, 1}, 0)
+    {:ok, {Sample, [{'ExDc', docs_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExDc'])
+    {:elixir_docs_v1, docs} = :erlang.binary_to_term(docs_bin)
+    ok_doc = Keyword.get(docs, :docs) |> List.keyfind({:ok, 1}, 0)
+
+    assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = ok_doc
   end
 
   test "consolidation keeps source" do
