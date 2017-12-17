@@ -18,7 +18,7 @@ defmodule Kernel do
       true
 
   These functions and macros can be skipped or cherry-picked via the
-  `Kernel.SpecialForms.import/2` macro. For instance, if you want to tell
+  `import/2` special form. For instance, if you want to tell
   Elixir not to import the `if/2` macro, you can do:
 
       import Kernel, except: [if: 2]
@@ -58,11 +58,10 @@ defmodule Kernel do
 
   There are three data types without an accompanying module:
 
-    * Bitstrings - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
+    * Bitstrings - a sequence of bits, created with `<<>>/1` special form.
       When the number of bits is divisible by 8, they are called binaries and can
       be manipulated with Erlang's `:binary` module
-    * Function - a reference to code chunk, created with the `Kernel.SpecialForms.fn/2`
-      special form
+    * Function - a reference to code chunk, created with the `fn/2` special form
     * Reference - a unique value in the runtime system, created with `make_ref/0`
 
   ### Data types
@@ -962,7 +961,7 @@ defmodule Kernel do
   @doc """
   A non-local return from a function.
 
-  Check `Kernel.SpecialForms.try/1` for more information.
+  Check `try/1` for more information.
 
   Inlined by the compiler.
   """
@@ -3479,7 +3478,7 @@ defmodule Kernel do
   The argument can be either a variable unquoted or in standard tuple form
   `{name, meta, context}`.
 
-  Check `Kernel.SpecialForms.quote/2` for more information.
+  Check `quote/2` for more information.
   """
   defmacro var!(var, context \\ nil)
 
@@ -3507,7 +3506,7 @@ defmodule Kernel do
   be hygienized. This means the alias will be expanded when
   the macro is expanded.
 
-  Check `Kernel.SpecialForms.quote/2` for more information.
+  Check `quote/2` for more information.
   """
   defmacro alias!(alias) when is_atom(alias) do
     alias
@@ -3557,7 +3556,7 @@ defmodule Kernel do
   If the `Foo.Bar` module is moved somewhere else, the references to `Bar` in
   the `Foo` module need to be updated to the fully-qualified name (`Foo.Bar`) or
   an alias has to be explicitly set in the `Foo` module with the help of
-  `Kernel.SpecialForms.alias/2`.
+  `alias/2`.
 
       defmodule Foo.Bar do
         # code
@@ -3819,7 +3818,7 @@ defmodule Kernel do
 
   ## rescue/catch/after
 
-  Function bodies support `rescue`, `catch` and `after` as `SpecialForms.try/1`
+  Function bodies support `rescue`, `catch` and `after` as `try/1`
   does. The following two functions are equivalent:
 
       def format(value) do
