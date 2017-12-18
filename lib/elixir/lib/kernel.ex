@@ -3819,7 +3819,7 @@ defmodule Kernel do
 
   ## rescue/catch/after
 
-  Function bodies support `rescue`, `catch` and `after` as `SpecialForms.try/1`
+  Function bodies support `rescue`, `catch` and `after` as `Kernel.SpecialForms.try/1`
   does. The following two functions are equivalent:
 
       def format(value) do
