@@ -42,15 +42,16 @@ debug_info(_, _, _, _) ->
 %% `ExDp` chunk from beam
 
 deprecated_chunk_from_beam(Module) ->
-  Chunk = binary_to_list(<<"ExDp">>),
   Beam = abstract_code_beam(Module),
 
-  {elixir_deprecated_v1, Deprecated} =
-    case beam_lib:chunks(Beam, [Chunk]) of
-      {ok, {Module, [{Chunk, DeprecatedBin}]}} -> binary_to_term(DeprecatedBin);
-      _ -> {elixir_deprecated_v1, []}
-    end,
-  Deprecated.
+  case beam_lib:chunks(Beam, ["ExDp"]) of
+    {ok, {Module, [{_, DeprecatedBin}]}} ->
+      {elixir_deprecated_v1, Deprecated} = binary_to_term(DeprecatedBin),
+      Deprecated
+
+    _ ->
+      []
+  end.
 
 abstract_code_beam(Module) ->
   case code:get_object_code(Module) of
