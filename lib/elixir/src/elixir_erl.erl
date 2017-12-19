@@ -47,7 +47,7 @@ deprecated_chunk_from_beam(Module) ->
   case beam_lib:chunks(Beam, ["ExDp"]) of
     {ok, {Module, [{_, DeprecatedBin}]}} ->
       {elixir_deprecated_v1, Deprecated} = binary_to_term(DeprecatedBin),
-      Deprecated
+      Deprecated;
 
     _ ->
       []
