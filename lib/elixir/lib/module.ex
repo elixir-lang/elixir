@@ -104,6 +104,17 @@ defmodule Module do
   Multiple uses of `@compile` will accumulate instead of overriding
   previous ones. See the "Compile options" section below.
 
+  ### `@deprecated`
+
+  Provides the deprecation reason for a function. For example:
+
+      defmodule Keyword do
+        @deprecated "Use Kernel.length/1 instead"
+        def size(keyword) do
+          length(keyword)
+        end
+      end
+
   ### `@doc` (and `@since`)
 
   Provides documentation for the function or macro that follows the
@@ -1177,22 +1188,29 @@ defmodule Module do
   @doc false
   # Used internally to compile documentation.
   # This function is private and must be used only internally.
-  def compile_doc(env, kind, name, args, _guards, _body) do
+  def compile_definition_attributes(env, kind, name, args, _guards, _body) do
     module = env.module
     table = data_table_for(module)
     arity = length(args)
     pair = {name, arity}
 
+    # Docs must come first as they read the impl callback
+    compile_doc(table, pair, env, kind, args)
+    compile_deprecated(table, pair)
+    compile_impl(table, name, env, kind, args)
+    :ok
+  end
+
+  defp compile_doc(table, pair, env, kind, args) do
     {line, doc} = get_doc_info(table, env)
 
     # TODO: Store @since alongside the docs
     _ = get_since_info(table)
 
     add_doc(table, line, kind, pair, args, doc, env)
-    :ok
   end
 
-  defp add_doc(_module, line, kind, {name, arity}, _args, doc, env)
+  defp add_doc(_table, line, kind, {name, arity}, _args, doc, env)
        when kind in [:defp, :defmacrop] do
     if doc do
       error_message =
@@ -1217,12 +1235,14 @@ defmodule Module do
     end
   end
 
-  @doc false
-  # Used internally to check the validity of arguments to @impl.
-  # This function is private and must be used only internally.
-  def compile_impl(env, kind, name, args, _guards, _body) do
-    %{module: module, line: line, file: file} = env
-    table = data_table_for(module)
+  defp compile_deprecated(table, pair) do
+    if reason = get_deprecated_info(table) do
+      :ets.insert(table, {{:deprecated, pair}, reason})
+    end
+  end
+
+  defp compile_impl(table, name, env, kind, args) do
+    %{line: line, file: file} = env
 
     case :ets.take(table, :impl) do
       [{:impl, value, _, _}] ->
@@ -1236,8 +1256,6 @@ defmodule Module do
       [] ->
         :ok
     end
-
-    :ok
   end
 
   defp args_count([{:\\, _, _} | tail], total, defaults) do
@@ -1686,6 +1704,12 @@ defmodule Module do
             "the version a function, macro, type or callback was added, got: #{inspect(value)}"
   end
 
+  defp preprocess_attribute(:deprecated, value) when not is_binary(value) do
+    raise ArgumentError,
+          "@deprecated expects a string with the reason for the deprecation, " <>
+            "got: #{inspect(value)}"
+  end
+
   defp preprocess_attribute(_key, value) do
     value
   end
@@ -1705,6 +1729,13 @@ defmodule Module do
 
   defp get_since_info(table) do
     :ets.take(table, :since)
+  end
+
+  defp get_deprecated_info(table) do
+    case :ets.take(table, :deprecated) do
+      [{:deprecated, reason, _, _}] -> reason
+      [] -> nil
+    end
   end
 
   defp data_table_for(module) do
