@@ -975,7 +975,9 @@ defmodule FunctionClauseError do
     formatted_args =
       args
       |> Enum.with_index(1)
-      |> Enum.map(fn {arg, i} -> "\n    # #{i}\n    #{inspect_fun.(arg)}\n" end)
+      |> Enum.map(fn {arg, i} ->
+        ["\n    # ", Integer.to_string(i), "\n    ", pad(inspect_fun.(arg)), "\n"]
+      end)
 
     formatted_clauses =
       if clauses do
@@ -989,13 +991,20 @@ defmodule FunctionClauseError do
           |> Enum.take(10)
           |> Enum.map(format_clause_fun)
 
-        "\nAttempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):" <>
-          "\n\n#{top_10}"
+        [
+          "\nAttempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):",
+          "\n\n",
+          top_10
+        ]
       else
         ""
       end
 
     "\n\nThe following arguments were given to #{mfa}:\n#{formatted_args}#{formatted_clauses}"
+  end
+
+  defp pad(string) do
+    String.replace(string, "\n", "\n    ")
   end
 end
 
