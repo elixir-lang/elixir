@@ -166,7 +166,7 @@ Overall, using `@impl` has the following advantages:
 
 This release brings further improvements to Calendar types. It adds arithmetic and others functions to `Time`, `Date`, `NaiveDateTime` and `Datetime` as well as conversion between different calendars.
 
-## v1.5.3 (2017-12-15)
+## v1.5.3 (2017-12-19)
 
 ### 1. Bug fixes
 
