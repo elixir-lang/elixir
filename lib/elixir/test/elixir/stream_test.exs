@@ -157,6 +157,27 @@ defmodule StreamTest do
              [[5, 7, 9]]
   end
 
+  test "chunk_while/4 with inner halt" do
+    chunk_fun = fn
+      i, [] ->
+        {:cont, [i]}
+
+      i, chunk ->
+        if rem(i, 2) == 0 do
+          {:cont, Enum.reverse(chunk), [i]}
+        else
+          {:cont, [i | chunk]}
+        end
+    end
+
+    after_fun = fn
+      [] -> {:cont, []}
+      chunk -> {:cont, Enum.reverse(chunk), []}
+    end
+
+    assert Stream.chunk_while([1, 2, 3, 4, 5], [], chunk_fun, after_fun) |> Enum.at(0) == [1]
+  end
+
   test "concat/1" do
     stream = Stream.concat([1..3, [], [4, 5, 6], [], 7..9])
     assert is_function(stream)

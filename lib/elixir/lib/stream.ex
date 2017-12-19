@@ -231,16 +231,37 @@ defmodule Stream do
   def chunk_while(enum, acc, chunk_fun, after_fun) do
     lazy(
       enum,
-      acc,
-      fn f1 -> R.chunk_while(chunk_fun, f1) end,
-      &after_chunk_while(&1, &2, after_fun)
+      [acc | after_fun],
+      fn f1 -> chunk_while_fun(chunk_fun, f1) end,
+      &after_chunk_while/2
     )
   end
 
-  defp after_chunk_while(acc(h, acc, t), f1, after_fun) do
+  defp chunk_while_fun(callback, fun) do
+    fn entry, acc(head, [acc | after_fun], tail) ->
+      case callback.(entry, acc) do
+        {:cont, emit, acc} ->
+          # If we emit an item and then we have to halt,
+          # we need to disable the after_fun callback to
+          # avoid emitting even more items.
+          case next(fun, emit, [head | tail]) do
+            {:halt, [head | tail]} -> {:halt, acc(head, [acc | &{:cont, &1}], tail)}
+            {command, [head | tail]} -> {command, acc(head, [acc | after_fun], tail)}
+          end
+
+        {:cont, acc} ->
+          skip(acc(head, [acc | after_fun], tail))
+
+        {:halt, acc} ->
+          {:halt, acc(head, [acc | after_fun], tail)}
+      end
+    end
+  end
+
+  defp after_chunk_while(acc(h, [acc | after_fun], t), f1) do
     case after_fun.(acc) do
-      {:cont, emit, acc} -> next_with_acc(f1, emit, h, acc, t)
-      {:cont, acc} -> {:cont, acc(h, acc, t)}
+      {:cont, emit, acc} -> next_with_acc(f1, emit, h, [acc | after_fun], t)
+      {:cont, acc} -> {:cont, acc(h, [acc | after_fun], t)}
     end
   end
 

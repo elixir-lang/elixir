@@ -55,18 +55,6 @@ defmodule Stream.Reducers do
     chunk_by.(enumerable, nil, chunk_fun, after_fun)
   end
 
-  defmacro chunk_while(callback, fun \\ nil) do
-    quote do
-      fn entry, acc(head, acc, tail) ->
-        case unquote(callback).(entry, acc) do
-          {:cont, emit, acc} -> next_with_acc(unquote(fun), emit, head, acc, tail)
-          {:cont, acc} -> skip(acc(head, acc, tail))
-          {:halt, acc} -> {:halt, acc(head, acc, tail)}
-        end
-      end
-    end
-  end
-
   defmacro dedup(callback, fun \\ nil) do
     quote do
       fn entry, acc(head, prev, tail) = acc ->
