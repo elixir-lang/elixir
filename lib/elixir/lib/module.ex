@@ -1194,15 +1194,15 @@ defmodule Module do
     arity = length(args)
     pair = {name, arity}
 
-    # Docs must come first as they read the impl callback
-    compile_doc(table, pair, env, kind, args)
+    impl = compile_impl(table, name, env, kind, args)
+    compile_doc(table, pair, env, kind, args, impl)
     compile_deprecated(table, pair)
-    compile_impl(table, name, env, kind, args)
+
     :ok
   end
 
-  defp compile_doc(table, pair, env, kind, args) do
-    {line, doc} = get_doc_info(table, env)
+  defp compile_doc(table, pair, env, kind, args, impl) do
+    {line, doc} = get_doc_info(table, env, impl)
 
     # TODO: Store @since alongside the docs
     _ = get_since_info(table)
@@ -1248,13 +1248,12 @@ defmodule Module do
       [{:impl, value, _, _}] ->
         impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
         {total, defaults} = args_count(args, 0, 0)
-
         impl = {{name, total}, defaults, kind, line, file, value}
-
         :ets.insert(table, {{:elixir, :impls}, [impl | impls]})
+        value
 
       [] ->
-        :ok
+        false
     end
   end
 
@@ -1714,16 +1713,16 @@ defmodule Module do
     value
   end
 
-  defp get_doc_info(table, env) do
+  defp get_doc_info(table, env, impl) do
     case :ets.take(table, :doc) do
       [{:doc, {_, _} = pair, _, _}] ->
         pair
 
+      [] when impl == false ->
+        {env.line, nil}
+
       [] ->
-        case :ets.lookup(table, :impl) do
-          [{:impl, value, _, _}] when value != false -> {env.line, false}
-          _ -> {env.line, nil}
-        end
+        {env.line, false}
     end
   end
 
