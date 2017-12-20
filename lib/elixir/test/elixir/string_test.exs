@@ -164,8 +164,15 @@ defmodule StringTest do
   end
 
   test "downcase/1 with greek final sigma" do
-    assert String.downcase("ΣΣ") == "σς"
-    assert String.downcase("ΣΣ ΣΣ") == "σς σς"
+    assert String.downcase("ΣΣ") == "ςς"
+    assert String.downcase("ΣΣ ΣΣ") == "ςς ςς"
+
+    assert String.downcase("ΣΣ", :greek) == "σς"
+    assert String.downcase("ΣΣ ΣΣ", :greek) == "σς σς"
+  end
+
+  test "downcase/1 with ascii" do
+    assert String.downcase("OLÁ", :ascii) == "olÁ"
   end
 
   test "capitalize/1" do
@@ -186,6 +193,11 @@ defmodule StringTest do
     assert String.capitalize("òóôõö") == "Òóôõö"
     assert String.capitalize("ÒÓÔÕÖ") == "Òóôõö"
     assert String.capitalize("ﬁn") == "Fin"
+  end
+
+  test "capitalize/1 with ascii" do
+    assert String.capitalize("àáâ", :ascii) == "àáâ"
+    assert String.capitalize("aáA", :ascii) == "Aáa"
   end
 
   test "replace_leading/3" do

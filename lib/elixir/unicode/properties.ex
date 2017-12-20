@@ -105,33 +105,31 @@ defmodule String.Casing do
 
   # Downcase
 
-  def downcase(string) when is_binary(string), do: downcase(string, "")
-
-  defp downcase(<<0x03A3::utf8, codepoint::utf8, rest::bits>>, acc) do
+  def downcase(<<0x03A3::utf8, codepoint::utf8, rest::bits>>, acc, :greek) do
     downcased =
       case letter?(codepoint) do
         true -> 0x03C3
         false -> 0x03C2
       end
 
-    downcase(<<codepoint::utf8, rest::bits>>, <<acc::binary, downcased::utf8>>)
+    downcase(<<codepoint::utf8, rest::bits>>, <<acc::binary, downcased::utf8>>, :greek)
   end
 
-  defp downcase(<<0x03A3::utf8, rest::bits>>, acc) do
-    downcase(rest, <<acc::binary, 0x03C2::utf8>>)
+  def downcase(<<0x03A3::utf8, rest::bits>>, acc, mode) do
+    downcase(rest, <<acc::binary, 0x03C2::utf8>>, mode)
   end
 
   for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
-    defp downcase(<<unquote(codepoint), rest::bits>>, acc) do
-      downcase(rest, acc <> unquote(lower))
+    def downcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
+      downcase(rest, acc <> unquote(lower), mode)
     end
   end
 
-  defp downcase(<<char, rest::bits>>, acc) do
-    downcase(rest, <<acc::binary, char>>)
+  def downcase(<<char, rest::bits>>, acc, mode) do
+    downcase(rest, <<acc::binary, char>>, mode)
   end
 
-  defp downcase("", acc), do: acc
+  def downcase("", acc, _mode), do: acc
 
   # Sigma handling
 
@@ -149,35 +147,33 @@ defmodule String.Casing do
 
   # Upcase
 
-  def upcase(string) when is_binary(string), do: upcase(string, "")
-
   for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
-    defp upcase(<<unquote(codepoint), rest::bits>>, acc) do
-      upcase(rest, acc <> unquote(upper))
+    def upcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
+      upcase(rest, acc <> unquote(upper), mode)
     end
   end
 
-  defp upcase(<<char, rest::bits>>, acc) do
-    upcase(rest, <<acc::binary, char>>)
+  def upcase(<<char, rest::bits>>, acc, mode) do
+    upcase(rest, <<acc::binary, char>>, mode)
   end
 
-  defp upcase("", acc), do: acc
+  def upcase("", acc, _mode), do: acc
 
   # Titlecase once
 
-  def titlecase_once(""), do: {"", ""}
+  def titlecase_once("", _mode), do: {"", ""}
 
   for {codepoint, _upper, _lower, title} <- codes, title && title != codepoint do
-    def titlecase_once(unquote(codepoint) <> rest) do
+    def titlecase_once(unquote(codepoint) <> rest, _mode) do
       {unquote(title), rest}
     end
   end
 
-  def titlecase_once(<<char::utf8, rest::binary>>) do
+  def titlecase_once(<<char::utf8, rest::binary>>, _mode) do
     {<<char::utf8>>, rest}
   end
 
-  def titlecase_once(<<char, rest::binary>>) do
+  def titlecase_once(<<char, rest::binary>>, _mode) do
     {<<char>>, rest}
   end
 end
