@@ -105,21 +105,23 @@ defmodule String.Casing do
 
   # Downcase
 
-  def downcase(<<0x03A3::utf8, codepoint::utf8, rest::bits>>, acc, :greek) do
+  @conditional_downcase [
+    sigma = <<0x03A3::utf8>>
+  ]
+
+  def downcase(<<unquote(sigma), rest::bits>>, acc, mode) do
     downcased =
-      case letter?(codepoint) do
+      case mode == :greek and starts_with_letter?(rest) do
         true -> 0x03C3
         false -> 0x03C2
       end
 
-    downcase(<<codepoint::utf8, rest::bits>>, <<acc::binary, downcased::utf8>>, :greek)
+    downcase(rest, <<acc::binary, downcased::utf8>>, mode)
   end
 
-  def downcase(<<0x03A3::utf8, rest::bits>>, acc, mode) do
-    downcase(rest, <<acc::binary, 0x03C2::utf8>>, mode)
-  end
-
-  for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
+  for {codepoint, _upper, lower, _title} <- codes,
+      lower && lower != codepoint,
+      codepoint not in @conditional_downcase do
     def downcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
       downcase(rest, acc <> unquote(lower), mode)
     end
@@ -132,6 +134,14 @@ defmodule String.Casing do
   def downcase("", acc, _mode), do: acc
 
   # Sigma handling
+
+  defp starts_with_letter?(<<codepoint::utf8, _::bits>>) do
+    letter?(codepoint)
+  end
+
+  defp starts_with_letter?(_) do
+    false
+  end
 
   for {first, last} <- rangify.(letters) do
     if first == last do
