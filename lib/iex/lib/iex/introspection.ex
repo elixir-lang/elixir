@@ -258,10 +258,15 @@ defmodule IEx.Introspection do
         docs = Code.get_docs(module, :docs)
 
         exports =
-          if function_exported?(module, :__info__, 1) do
-            module.__info__(:functions) ++ module.__info__(:macros)
-          else
-            module.module_info(:exports)
+          cond do
+            docs ->
+              Enum.map(docs, &elem(&1, 0))
+
+            function_exported?(module, :__info__, 1) ->
+              module.__info__(:functions) ++ module.__info__(:macros)
+
+            true ->
+              module.module_info(:exports)
           end
 
         result =
