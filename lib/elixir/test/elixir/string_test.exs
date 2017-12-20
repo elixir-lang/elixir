@@ -149,6 +149,10 @@ defmodule StringTest do
     assert String.upcase("áüÈß") == "ÁÜÈSS"
   end
 
+  test "upcase/1 with ascii" do
+    assert String.upcase("olá", :ascii) == "OLá"
+  end
+
   test "downcase/1" do
     assert String.downcase("123 ABcD 456 EfG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ") ==
              "123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz"
