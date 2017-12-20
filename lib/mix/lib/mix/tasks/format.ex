@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Format do
   A dependency that wants to export formatter configuration needs to have a `.formatter.exs` file
   at the root of the project. In this file, the dependency can export a `:export` option with
   configuration to export. For now, only one option is supported under `:export`:
-  `:export_locals_without_parens` (whose value has the same shape as the value of the
+  `:locals_without_parens` (whose value has the same shape as the value of the
   `:locals_without_parens` in `Code.format_string!/2`).
 
   The functions listed under `:locals_without_parens` in the `:export` option of a dependency
