@@ -29,6 +29,8 @@ defmodule Mix.Tasks.Cmd do
         status -> exit(status)
       end
     end
+
+    Mix.Task.reenable("cmd")
   end
 
   defp parse_apps(args, apps) do
