@@ -301,7 +301,7 @@ defmodule String do
   ## Options
 
     * `:parts` (positive integer or `:infinity`) - the string
-      is split into at most as many parts as this options specifies.
+      is split into at most as many parts as this option specifies.
       If `:infinity`, the string will be split into all possible
       parts. Defaults to `:infinity`.
 
