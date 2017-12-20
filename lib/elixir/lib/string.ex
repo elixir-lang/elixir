@@ -641,8 +641,8 @@ defmodule String do
 
   def upcase(string, :ascii) when is_binary(string) do
     for <<x <- string>>,
-        do: if(x >= ?a and x <= ?z, do: <<x - 32>>, else: <<x>>),
-        into: ""
+      do: if(x >= ?a and x <= ?z, do: <<x - 32>>, else: <<x>>),
+      into: ""
   end
 
   def upcase(string, mode) when mode in @conditional_mappings do
@@ -693,8 +693,8 @@ defmodule String do
 
   def downcase(string, :ascii) when is_binary(string) do
     for <<x <- string>>,
-        do: if(x >= ?A and x <= ?Z, do: <<x + 32>>, else: <<x>>),
-        into: ""
+      do: if(x >= ?A and x <= ?Z, do: <<x + 32>>, else: <<x>>),
+      into: ""
   end
 
   def downcase(string, mode) when mode in @conditional_mappings do
