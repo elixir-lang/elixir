@@ -165,14 +165,23 @@ defmodule Mix.Tasks.Xref do
   ## Modes
 
   defp warnings(opts) do
-    warnings(&print_warnings/1, opts)
+    warnings =
+      source_warnings(excludes(), opts)
+      |> merge_entries()
+      |> sort_entries()
+      |> print_warnings()
+
+    {:ok, warnings}
   end
 
   defp unreachable(opts) do
-    case warnings(&print_unreachables/1, opts) do
-      {:ok, []} -> :ok
-      _ -> :error
-    end
+    unreachable =
+      source_unreachable(excludes(), opts)
+      |> merge_entries()
+      |> sort_entries()
+      |> print_unreachables()
+
+    if unreachable == [], do: :ok, else: :error
   end
 
   defp callers(callee, opts) do
@@ -256,24 +265,18 @@ defmodule Mix.Tasks.Xref do
 
   ## Warnings
 
-  defp warnings(print_warnings, opts) do
-    case source_warnings(excludes(), opts) do
-      [] ->
-        {:ok, []}
+  defp source_warnings(excludes, opts) do
+    sources = sources(opts)
 
-      entries ->
-        entries =
-          entries
-          |> merge_entries()
-          |> sort_entries()
-          |> print_warnings.()
-
-        {:ok, entries}
-    end
+    filter_unreachable(sources, excludes) ++ filter_deprecated(sources, excludes)
   end
 
-  defp source_warnings(excludes, opts) do
-    Enum.flat_map(sources(opts), fn source ->
+  defp source_unreachable(excludes, opts) do
+    sources(opts) |> filter_unreachable(excludes)
+  end
+
+  defp filter_unreachable(sources, excludes) do
+    Enum.flat_map(sources, fn source ->
       file = source(source, :source)
       runtime_dispatches = source(source, :runtime_dispatches)
 
@@ -283,6 +286,23 @@ defmodule Mix.Tasks.Xref do
           unreachable_mfa = unreachable_mfa(exports, module, func, arity, excludes),
           do: {unreachable_mfa, absolute_locations(locations, file)}
     end)
+  end
+
+  defp filter_deprecated(sources, excludes) do
+    callers = filter_callers(sources, fn _ -> true end)
+
+    called_modules = for {{module, function, arity}, location} <- callers, uniq: true, do: module
+
+    deprecated =
+      for module <- called_modules,
+          {{function, arity}, reason} <- load_deprecated(module),
+          into: %{},
+          do: {{module, function, arity}, reason}
+
+    for {mfa, locations} <- callers,
+        reason = deprecated[mfa],
+        {module, function, arity} = mfa,
+        do: {{:deprecated, module, function, arity, reason}, locations}
   end
 
   defp load_exports(module) do
@@ -296,6 +316,26 @@ defmodule Mix.Tasks.Xref do
         exports
       else
         _ -> :unknown_module
+      end
+    end
+  end
+
+  defp load_deprecated(module) do
+    if :code.is_loaded(module) do
+      # If the module is loaded, we will use __info__
+      if function_exported?(module, :__info__, 1) do
+        module.__info__(:deprecated)
+      else
+        []
+      end
+    else
+      # Otherwise we get the ExDp chunk using :beam_lib to avoid loading modules
+      with [_ | _] = file <- :code.which(module),
+           {:ok, {^module, [{'ExDp', deprecated_bin}]}} <- :beam_lib.chunks(file, ['ExDp']),
+           {:elixir_deprecated_v1, deprecated} = :erlang.binary_to_term(deprecated_bin) do
+        deprecated
+      else
+        _ -> []
       end
     end
   end
@@ -364,6 +404,16 @@ defmodule Mix.Tasks.Xref do
     ]
   end
 
+  defp warning_message({:deprecated, module, function, arity, reason}) do
+    [
+      "function ",
+      Exception.format_mfa(module, function, arity),
+      " is deprecated. ",
+      reason,
+      "."
+    ]
+  end
+
   defp format_locations([location]) do
     format_location(location)
   end
@@ -414,7 +464,11 @@ defmodule Mix.Tasks.Xref do
   ## Callers
 
   defp source_callers(filter, opts) do
-    Enum.flat_map(sources(opts), fn source ->
+    sources(opts) |> filter_callers(filter)
+  end
+
+  defp filter_callers(sources, filter) do
+    Enum.flat_map(sources, fn source ->
       file = source(source, :source)
       runtime_dispatches = source(source, :runtime_dispatches)
       compile_dispatches = source(source, :compile_dispatches)
