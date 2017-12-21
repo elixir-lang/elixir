@@ -302,8 +302,9 @@ defmodule Mix.Tasks.Xref do
           {module, func_arity_locations} <- source(source, :runtime_dispatches),
           {exports, deprecated} = exports_and_deprecated[module],
           {{func, arity}, locations} <- func_arity_locations,
+          not excluded?(excludes, module, func, arity),
           warning =
-            unreachable_mfa(exports, module, func, arity, excludes) ||
+            unreachable_mfa(exports, module, func, arity) ||
               deprecated_mfa(deprecated, module, func, arity),
           do: {warning, absolute_locations(locations, source(source, :source))}
 
@@ -312,6 +313,7 @@ defmodule Mix.Tasks.Xref do
           {module, func_arity_locations} <- source(source, :compile_dispatches),
           {_, deprecated} = exports_and_deprecated[module],
           {{func, arity}, locations} <- func_arity_locations,
+          not excluded?(excludes, module, func, arity),
           warning = deprecated_mfa(deprecated, module, func, arity),
           do: {warning, absolute_locations(locations, source(source, :source))}
 
@@ -355,12 +357,9 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  defp unreachable_mfa(exports, module, func, arity, excludes) do
+  defp unreachable_mfa(exports, module, func, arity) do
     cond do
-      excluded?(module, func, arity, excludes) ->
-        nil
-
-      skip?(module, func, arity) ->
+      skip_unreachable?(module, func, arity) ->
         nil
 
       exports == :unknown_module ->
@@ -389,11 +388,11 @@ defmodule Mix.Tasks.Xref do
 
   @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
 
-  defp skip?(:erlang, func, 2) when func in [:andalso, :orelse] do
+  defp skip_unreachable?(:erlang, func, 2) when func in [:andalso, :orelse] do
     true
   end
 
-  defp skip?(module, :__impl__, 1) do
+  defp skip_unreachable?(module, :__impl__, 1) do
     {maybe_protocol, maybe_builtin} = module |> Module.split() |> Enum.split(-1)
     maybe_protocol = Module.concat(maybe_protocol)
     maybe_builtin = Module.concat(maybe_builtin)
@@ -402,7 +401,7 @@ defmodule Mix.Tasks.Xref do
       function_exported?(maybe_protocol, :__protocol__, 1)
   end
 
-  defp skip?(_, _, _) do
+  defp skip_unreachable?(_, _, _) do
     false
   end
 
@@ -413,7 +412,7 @@ defmodule Mix.Tasks.Xref do
     |> MapSet.new()
   end
 
-  defp excluded?(module, func, arity, excludes) do
+  defp excluded?(excludes, module, func, arity) do
     MapSet.member?(excludes, module) or MapSet.member?(excludes, {module, func, arity})
   end
 
