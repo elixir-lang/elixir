@@ -115,6 +115,9 @@ defmodule Module do
         end
       end
 
+  The mix compiler automatically looks for calls to deprecated modules
+  and emit warnings during compilation, computed via `mix xref warnings`.
+
   ### `@doc` (and `@since`)
 
   Provides documentation for the function or macro that follows the

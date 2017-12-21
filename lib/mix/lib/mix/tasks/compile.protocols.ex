@@ -40,9 +40,13 @@ defmodule Mix.Tasks.Compile.Protocols do
       true
 
   """
+
+  @doc """
+  Runs this task.
+  """
   def run(args) do
     config = Mix.Project.config()
-    Mix.Task.run("compile", args)
+    Mix.Task.run("compile")
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
     manifest = manifest()
