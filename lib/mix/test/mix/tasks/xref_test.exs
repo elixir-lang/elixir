@@ -676,7 +676,6 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
-
   ## Exclude
 
   test "exclude: excludes specified modules and MFAs" do
