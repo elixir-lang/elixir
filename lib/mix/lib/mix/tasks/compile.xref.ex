@@ -9,10 +9,15 @@ defmodule Mix.Tasks.Compile.Xref do
   @moduledoc """
   Performs remote dispatch checking.
 
-  When this task runs, it will check the modification time of the `:elixir`
-  compiler manifest. If it has changed, `mix xref` will be run to check remote
-  dispatches. You can force checking regardless of modification time by passing
-  the `--force` option.
+  It uses `mix xref` to check if any remote call does not exist or is
+  deprecated, and emits a warnings in such cases. This tasks does not show
+  deprecated local calls (a call to a deprecated function or macro in the
+  same module) nor calls to deprecated functionality in Elixir itself.
+
+  When this task runs, it will check if the source code has been modified.
+  If it has changed, `mix xref` will be run to check remote dispatches. You
+  can force checking regardless of modification time by passing the `--force`
+  option.
 
   ## Command line options
 
@@ -27,6 +32,8 @@ defmodule Mix.Tasks.Compile.Xref do
   def run(args) do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
+
+    Mix.Task.run("compile")
 
     warnings =
       if needs_xref?(opts) do
@@ -48,15 +55,9 @@ defmodule Mix.Tasks.Compile.Xref do
 
   defp run_xref do
     timestamp = :calendar.universal_time()
-
-    case Mix.Task.run("xref", ["warnings"]) do
-      :noop ->
-        []
-
-      {:ok, warnings} ->
-        write_manifest(warnings, timestamp)
-        warnings
-    end
+    warnings = Mix.Tasks.Xref.warnings([])
+    write_manifest(warnings, timestamp)
+    warnings
   end
 
   defp warnings_as_errors(opts) do

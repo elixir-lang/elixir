@@ -299,7 +299,7 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     warning = """
-    warning: function A.a/0 is deprecated. Use A.c/0 instead.
+    warning: A.a/0 is deprecated. Use A.c/0 instead.
       lib/b.ex:2
 
     """
@@ -556,12 +556,7 @@ defmodule Mix.Tasks.XrefTest do
   defp assert_warnings(files, expected) do
     in_fixture "no_mixfile", fn ->
       generate_files(files)
-
-      output =
-        capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["warnings"]) != {:ok, []}
-        end)
-
+      output = capture_io(:stderr, fn -> Mix.Task.run("compile.xref") end)
       assert output == expected
     end
   end
@@ -569,12 +564,7 @@ defmodule Mix.Tasks.XrefTest do
   defp assert_no_warnings(files) do
     in_fixture "no_mixfile", fn ->
       generate_files(files)
-
-      output =
-        capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["warnings"]) == {:ok, []}
-        end)
-
+      output = capture_io(:stderr, fn -> Mix.Task.run("compile.xref") end)
       assert output == ""
     end
   end
@@ -610,15 +600,82 @@ defmodule Mix.Tasks.XrefTest do
     assert_unreachable(code, warning)
   end
 
-  defp assert_unreachable(contents, expected, result \\ :error) do
+  test "unreachable: aborts if any" do
+    code = """
+    defmodule A do
+      def a, do: A.no_func
+    end
+    """
+
+    assert_raise Mix.Error, "mix xref unreachable failed: unreachable calls were found", fn ->
+      assert_unreachable(code, "NOT USED", ~w(--abort-if-any))
+    end
+  end
+
+  defp assert_unreachable(contents, expected, args \\ []) do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", contents)
 
-      assert Mix.Task.run("xref", ["unreachable"]) == result
+      capture_io(:stderr, fn ->
+        assert Mix.Task.run("xref", ["unreachable" | args]) == :error
+      end)
 
       assert ^expected = receive_until_no_messages([])
     end
   end
+
+  ## Deprecated
+
+  test "deprecated: reports nothing with no references" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", "defmodule A do end")
+
+      assert Mix.Task.run("xref", ["deprecated"]) == :ok
+    end
+  end
+
+  test "deprecated: reports deprecated functions" do
+    code = """
+    defmodule A do
+      @deprecated "oops"
+      def a, do: A.a
+    end
+    """
+
+    warning = """
+    Compiling 2 files (.ex)
+    Generated sample app
+    lib/a.ex:3: A.a/0
+    """
+
+    assert_deprecated(code, warning)
+  end
+
+  test "deprecated: aborts if any" do
+    code = """
+    defmodule A do
+      @deprecated "oops"
+      def a, do: A.a
+    end
+    """
+
+    assert_raise Mix.Error, "mix xref deprecated failed: deprecated calls were found", fn ->
+      assert_deprecated(code, "NOT USED", ~w(--abort-if-any))
+    end
+  end
+
+  defp assert_deprecated(contents, expected, args \\ []) do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", contents)
+
+      capture_io(:stderr, fn ->
+        assert Mix.Task.run("xref", ["deprecated" | args]) == :error
+      end)
+
+      assert ^expected = receive_until_no_messages([])
+    end
+  end
+
 
   ## Exclude
 
@@ -893,7 +950,9 @@ defmodule Mix.Tasks.XrefTest do
         File.write!(file, contents)
       end
 
-      assert Mix.Task.run("xref", ["callers", callee]) == :ok
+      capture_io(:stderr, fn ->
+        assert Mix.Task.run("xref", ["callers", callee]) == :ok
+      end)
 
       assert ^expected = receive_until_no_messages([])
     end
