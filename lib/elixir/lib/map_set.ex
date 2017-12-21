@@ -41,6 +41,7 @@ defmodule MapSet do
   @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
   @type t :: t(term)
 
+  # TODO: Remove version key on Elixir 2.0
   defstruct map: %{}, version: 2
 
   @doc """
@@ -169,11 +170,8 @@ defmodule MapSet do
 
   defp filter_not_in([key | rest], map2, acc) do
     case map2 do
-      %{^key => _} ->
-        filter_not_in(rest, map2, acc)
-
-      _ ->
-        filter_not_in(rest, map2, [{key, @dummy_value} | acc])
+      %{^key => _} -> filter_not_in(rest, map2, acc)
+      _ -> filter_not_in(rest, map2, [{key, @dummy_value} | acc])
     end
   end
 
@@ -384,14 +382,14 @@ defmodule MapSet do
   end
 
   defimpl Collectable do
-    def into(original) do
+    def into(map_set) do
       fun = fn
-        map_set, {:cont, x} -> MapSet.put(map_set, x)
-        map_set, :done -> map_set
+        list, {:cont, x} -> [{x, []} | list]
+        list, :done -> %{map_set | map: Map.merge(map_set.map, Map.new(list))}
         _, :halt -> :ok
       end
 
-      {original, fun}
+      {[], fun}
     end
   end
 
