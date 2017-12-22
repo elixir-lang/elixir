@@ -397,7 +397,7 @@ defmodule Code.Formatter.IntegrationTest do
                   {"p", [], ["5"]}]}]}]})
     """
 
-    good = """
+    assert_format bad, """
     @document Parser.parse(
                 {"html", [], [
                   {"head", [], []},
@@ -412,7 +412,39 @@ defmodule Code.Formatter.IntegrationTest do
                 ]}
               )
     """
+  end
 
-    assert_format bad, good
+  test "first argument in a call without parens" do
+    bad = """
+    with bar ::
+           :ok
+           | :invalid
+           # | :unknown
+           | :other
+    """
+
+    assert_format bad, """
+    # | :unknown
+    with bar ::
+           :ok
+           | :invalid
+           | :other
+    """
+
+    bad = """
+    @spec bar ::
+            :ok
+            | :invalid
+            # | :unknown
+            | :other
+    """
+
+    assert_format bad, """
+    # | :unknown
+    @spec bar ::
+            :ok
+            | :invalid
+            | :other
+    """
   end
 end
