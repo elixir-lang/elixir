@@ -366,24 +366,20 @@ defmodule Protocol do
     abstract_types = :erl_parse.abstract(:lists.usort(types))
 
     clauses =
-      :lists.map(
-        fn
-          {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
-            {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
+      Enum.map(clauses, fn
+        {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
+          {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
 
-          {:clause, l, [{:atom, _, :impls}], [], [{:atom, _, _}]} ->
-            tuple = {:tuple, 0, [{:atom, 0, :consolidated}, abstract_types]}
-            {:clause, l, [{:atom, 0, :impls}], [], [tuple]}
+        {:clause, l, [{:atom, _, :impls}], [], [{:atom, _, _}]} ->
+          tuple = {:tuple, 0, [{:atom, 0, :consolidated}, abstract_types]}
+          {:clause, l, [{:atom, 0, :impls}], [], [tuple]}
 
-          {:clause, _, _, _, _} = c ->
-            c
-        end,
-        clauses
-      )
+        {:clause, _, _, _, _} = c ->
+          c
+      end)
 
-    change_impl_for(tail, protocol, types, structs, true, [
-      {:function, line, :__protocol__, 1, clauses} | acc
-    ])
+    acc = [{:function, line, :__protocol__, 1, clauses} | acc]
+    change_impl_for(tail, protocol, types, structs, true, acc)
   end
 
   defp change_impl_for(
@@ -404,9 +400,8 @@ defmodule Protocol do
     clauses =
       [struct_clause_for(line) | clauses] ++ [fallback_clause_for(fallback, protocol, line)]
 
-    change_impl_for(tail, protocol, types, structs, protocol?, [
-      {:function, line, :impl_for, 1, clauses} | acc
-    ])
+    acc = [{:function, line, :impl_for, 1, clauses} | acc]
+    change_impl_for(tail, protocol, types, structs, protocol?, acc)
   end
 
   defp change_impl_for(
@@ -549,6 +544,13 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote bind_quoted: [builtin: __builtin__()] do
+      any_impl_for =
+        if @fallback_to_any do
+          quote do: unquote(__MODULE__.Any).__impl__(:target)
+        else
+          nil
+        end
+
       @doc false
       @spec impl_for(term) :: atom | nil
       Kernel.def(impl_for(data))
@@ -567,9 +569,10 @@ defmodule Protocol do
           target = Module.concat(__MODULE__, mod)
 
           Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
-            case impl_for?(unquote(target)) do
+            case Code.ensure_compiled?(unquote(target)) and
+                   function_exported?(unquote(target), :__impl__, 1) do
               true -> unquote(target).__impl__(:target)
-              false -> any_impl_for()
+              false -> unquote(any_impl_for)
             end
           end
         end,
@@ -583,39 +586,33 @@ defmodule Protocol do
       # since it relies on Dialyzer not being smart enough to conclude that all
       # opaque types will get the any_impl_for/0 implementation.
       Kernel.def impl_for(_) do
-        any_impl_for()
+        unquote(any_impl_for)
       end
 
       @doc false
-      @spec impl_for!(term) :: atom | no_return
-      Kernel.def impl_for!(data) do
-        impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
-      end
-
-      # Internal handler for Any
-      if @fallback_to_any do
-        Kernel.defp(any_impl_for(), do: __MODULE__.Any.__impl__(:target))
+      @spec impl_for!(term) :: atom
+      if any_impl_for do
+        Kernel.def impl_for!(data) do
+          impl_for(data)
+        end
       else
-        Kernel.defp(any_impl_for(), do: nil)
+        Kernel.def impl_for!(data) do
+          impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
+        end
       end
 
       # Internal handler for Structs
       Kernel.defp struct_impl_for(struct) do
         target = Module.concat(__MODULE__, struct)
 
-        case impl_for?(target) do
+        case Code.ensure_compiled?(target) and function_exported?(target, :__impl__, 1) do
           true -> target.__impl__(:target)
-          false -> any_impl_for()
+          false -> unquote(any_impl_for)
         end
       end
 
-      # Check if compilation is available internally
-      Kernel.defp impl_for?(target) do
-        Code.ensure_compiled?(target) and function_exported?(target, :__impl__, 1)
-      end
-
-      # Inline any and struct implementations
-      @compile {:inline, any_impl_for: 0, struct_impl_for: 1, impl_for?: 1}
+      # Inline struct implementation for performance
+      @compile {:inline, struct_impl_for: 1}
 
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: term
