@@ -1743,26 +1743,7 @@ defmodule Kernel do
 
       message ->
         quote do
-          stacktrace = unquote(stacktrace)
-
-          case unquote(message) do
-            message when is_binary(message) ->
-              :erlang.raise(:error, RuntimeError.exception(message), stacktrace)
-
-            atom when is_atom(atom) ->
-              :erlang.raise(:error, atom.exception([]), stacktrace)
-
-            %_{__exception__: true} = other ->
-              :erlang.raise(:error, other, stacktrace)
-
-            other ->
-              message = <<
-                "reraise/2 expects a module name, string or exception",
-                "as the first argument, got: #{inspect(other)}"
-              >>
-
-              :erlang.error(ArgumentError.exception(message))
-          end
+          :erlang.raise(:error, Kernel.Utils.raise(unquote(message)), unquote(stacktrace))
         end
     end
   end
