@@ -135,8 +135,8 @@ defmodule Kernel.Utils do
 
   def raise(other) do
     ArgumentError.exception(
-      "raise/1 expects a module name, string or exception as " <>
-        "the first argument, got: #{inspect(other)}"
+      "raise/1 and reraise/2 expect a module name, string or exception " <>
+        "as the first argument, got: #{inspect(other)}"
     )
   end
 
