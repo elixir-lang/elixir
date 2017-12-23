@@ -121,11 +121,11 @@ defmodule Stream do
 
   ## Transformers
 
-  # Deprecate on v1.7
+  # TODO: Deprecate on v1.7
   @doc false
   def chunk(enum, n), do: chunk(enum, n, n, nil)
 
-  # Deprecate on v1.7
+  # TODO: Deprecate on v1.7
   @doc false
   def chunk(enum, n, step, leftover \\ nil)
       when is_integer(n) and n > 0 and is_integer(step) and step > 0 do

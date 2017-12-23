@@ -489,7 +489,6 @@ defmodule Mix.Compilers.Elixir do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ ->
-        delete_old_manifest(manifest, compile_path)
         {[], []}
     else
       [@manifest_vsn | data] ->
@@ -504,26 +503,6 @@ defmodule Mix.Compilers.Elixir do
 
       _ ->
         {[], []}
-    end
-  end
-
-  defp delete_old_manifest(manifest, compile_path) do
-    manifest = Path.expand("../../.compile.elixir", manifest)
-
-    try do
-      manifest
-      |> File.read!()
-      |> :erlang.binary_to_term()
-      |> case do
-        [v | data] when v in [:v4, :v5, :v6, :v7, :v8] ->
-          for module <- data,
-              is_record(module, :module),
-              do: File.rm(Path.join(compile_path, module(module, :beam)))
-      end
-
-      File.rm(manifest)
-    rescue
-      _ -> :ok
     end
   end
 
