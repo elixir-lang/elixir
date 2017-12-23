@@ -364,11 +364,11 @@ defmodule Enum do
     end
   end
 
-  # Deprecate on v1.7
+  # TODO: Deprecate on v1.7
   @doc false
   def chunk(enumerable, count), do: chunk(enumerable, count, count, nil)
 
-  # Deprecate on v1.7
+  # TODO: Deprecate on v1.7
   @doc false
   def chunk(enumerable, count, step, leftover \\ nil) do
     chunk_every(enumerable, count, step, leftover || :discard)

@@ -684,7 +684,7 @@ number_value({_, {_, _, Value}, _}) ->
 %% Operators
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
-  %% TODO: Deprecate "not left in right" rearrangement on 1.7
+  %% TODO: Deprecate "not left in right" rearrangement on v1.7
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
