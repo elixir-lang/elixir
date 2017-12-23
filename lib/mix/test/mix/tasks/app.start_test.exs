@@ -38,7 +38,7 @@ defmodule Mix.Tasks.App.StartTest do
       assert :code.is_loaded(A)
       refute List.keyfind(Application.started_applications(), :app_start_sample, 0)
       assert List.keyfind(Application.started_applications(), :logger, 0)
-      :code.delete(A)
+      purge([A])
 
       Mix.Tasks.App.Start.run([])
       refute :code.is_loaded(A)
