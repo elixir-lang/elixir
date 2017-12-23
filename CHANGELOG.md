@@ -161,7 +161,7 @@ Other improvements in Mix include the `mix xref` enhancements above, better comp
   * [MapSet] Return valid MapSet when unioning a legacy MapSet
   * [Regex] Return a leading empty space when splitting on empty pattern. This makes the `split` operation consistent with the other operations in the `Regex` module
   * [Stream] Ensure `Stream.chunk_while/4` does not emit more elements than necessary when halted
-  * [String] Return a leading empty space when splitting on emtry string. This makes the `split` operation consistent with the other operations in the `String` module
+  * [String] Return a leading empty space when splitting on empty string. This makes the `split` operation consistent with the other operations in the `String` module
   * [URI] Preserve empty fragments in `URI.parse/1`
 
 #### Mix
