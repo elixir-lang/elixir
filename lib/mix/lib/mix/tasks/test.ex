@@ -67,11 +67,12 @@ defmodule Mix.Tasks.Test do
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
     * `--no-start` - does not start applications after compilation
     * `--only` - runs only tests that match the filter
+    * `--preload-modules` - preloads all modules defined in applications
     * `--raise` - raises if the test suite failed
     * `--seed` - seeds the random number generator used to randomize tests order;
       `--seed 0` disables randomization
-    * `--slowest` - prints timing information for the N slowest tests; automatically
-      sets `--trace`
+    * `--slowest` - prints timing information for the N slowest tests
+      Automatically sets `--trace` and `--preload-modules`
     * `--stale` - runs only tests which reference modules that changed since the
       last `test --stale`. You can read more about this option in the "Stale" section below.
     * `--timeout` - sets the timeout for the tests
@@ -190,7 +191,8 @@ defmodule Mix.Tasks.Test do
     stale: :boolean,
     listen_on_stdin: :boolean,
     formatter: :keep,
-    slowest: :integer
+    slowest: :integer,
+    preload_modules: :boolean
   ]
 
   @cover [output: "cover", tool: Cover]
@@ -235,7 +237,8 @@ defmodule Mix.Tasks.Test do
     # available in test_helper.exs. Then configure exunit again so
     # that command line options override test_helper.exs
     Mix.shell().print_app
-    Mix.Task.run("app.start", args)
+    app_start_args = if opts[:slowest], do: ["--preload-modules" | args], else: args
+    Mix.Task.run("app.start", app_start_args)
 
     # Ensure ExUnit is loaded.
     case Application.load(:ex_unit) do
