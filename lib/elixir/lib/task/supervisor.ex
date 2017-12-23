@@ -20,11 +20,6 @@ defmodule Task.Supervisor do
           | {:restart, :supervisor.restart()}
           | {:shutdown, :supervisor.shutdown()}
 
-  @typedoc "Supervisor spec used by `async_stream`"
-  @type async_stream_supervisor ::
-          Supervisor.supervisor()
-          | (term -> Supervisor.supervisor())
-
   @doc false
   def child_spec(arg) do
     %{
@@ -158,15 +153,6 @@ defmodule Task.Supervisor do
   own task. The tasks will be spawned under the given `supervisor` and
   linked to the current process, similarly to `async/4`.
 
-  You may also provide a function as the `supervisor`. Before each task is
-  started, the function will be invoked (in a new process which is linked to
-  the current process) with the stream entry that the to-be-spawned task will
-  process as its argument. The function should return a supervisor pid or name,
-  which will be used to spawn the task. This allows one to dynamically start
-  tasks in different locations in the supervision tree(s) on the local (or
-  another) node. Notably, this enables the distribution of concurrent stream
-  tasks over multiple nodes.
-
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
   Results are emitted in the same order as the original `enumerable`.
@@ -207,7 +193,7 @@ defmodule Task.Supervisor do
       Enum.to_list(stream)
 
   """
-  @spec async_stream(async_stream_supervisor, Enumerable.t(), module, atom, [term], keyword) ::
+  @spec async_stream(Supervisor.supervisor(), Enumerable.t(), module, atom, [term], keyword) ::
           Enumerable.t()
   def async_stream(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
@@ -224,7 +210,7 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion, options, and examples.
   """
-  @spec async_stream(async_stream_supervisor, Enumerable.t(), (term -> term), keyword) ::
+  @spec async_stream(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
           Enumerable.t()
   def async_stream(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :link, enumerable, fun, options)
@@ -241,7 +227,7 @@ defmodule Task.Supervisor do
   See `async_stream/6` for discussion, options, and examples.
   """
   @spec async_stream_nolink(
-          async_stream_supervisor,
+          Supervisor.supervisor(),
           Enumerable.t(),
           module,
           atom,
@@ -263,7 +249,7 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion and examples.
   """
-  @spec async_stream_nolink(async_stream_supervisor, Enumerable.t(), (term -> term), keyword) ::
+  @spec async_stream_nolink(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
           Enumerable.t()
   def async_stream_nolink(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :nolink, enumerable, fun, options)
@@ -354,27 +340,12 @@ defmodule Task.Supervisor do
     %Task{pid: pid, ref: ref, owner: owner}
   end
 
-  defp supervisor_fun(supervisor, {_module, _fun, _args})
-       when is_function(supervisor, 1) do
-    fn {_module, _fun, [entry | _rest_args]} -> supervisor.(entry) end
-  end
-
-  defp supervisor_fun(supervisor, fun)
-       when is_function(supervisor, 1) and is_function(fun, 1) do
-    fn {_erlang, _apply, [_fun, [entry]]} -> supervisor.(entry) end
-  end
-
-  defp supervisor_fun(supervisor, _fun) do
-    fn _mfa -> supervisor end
-  end
-
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
-    supervisor_fun = supervisor_fun(supervisor, fun)
     shutdown = options[:shutdown]
 
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
       args = [owner, :monitor, get_info(owner), mfa]
-      {:ok, pid} = start_child_with_spec(supervisor_fun.(mfa), args, :temporary, shutdown)
+      {:ok, pid} = start_child_with_spec(supervisor, args, :temporary, shutdown)
       if link_type == :link, do: Process.link(pid)
       {link_type, pid}
     end)
