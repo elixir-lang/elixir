@@ -1,16 +1,30 @@
 # Changelog for Elixir v1.6
 
-## Compiler diagnostics
-
-TODO.
-
 ## Code formatter
 
 TODO.
 
-## Stream data and property testing
+## Dynamic Supervisor
 
 TODO.
+
+## @deprecated and @since attributes
+
+TODO.
+
+## defguard and defguardp
+
+TODO.
+
+## IEx improvements
+
+IEx also got its share of improvements. The new code formatter allows us to pretty print code snippets, types and specifications, improving the overall experience when exploring code through the terminal.
+
+The autocomplete mechanism also got smarter, being able to provide context autocompletion. For example, typing `t Enum.` and hitting TAB will autocomplete only the types in Enum (in contrast to all functions). Typing `b Enum` and hitting TAB will autocomplete only the behaviour callbacks.
+
+Finally, the breakpoint functionality added in Elixir v1.5 has been improved to support pattern matching and guards. For example, to pattern match on a function call when the first argument is the atom `:foo`, you may do:
+
+    break! SomeFunction.call(:foo, _, _)
 
 ## mix xref
 
@@ -68,6 +82,8 @@ The `graph` command in `mix xref` can also output general statistics about the g
 
 Those improvements will help developers better understand the relationship between files and reveal potentially complex parts of their systems.
 
+Other improvements in Mix include the `mix xref` enhancements above, better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
+
 ## v1.6.0-dev
 
 ### 1. Enhancements
@@ -78,10 +94,14 @@ Those improvements will help developers better understand the relationship betwe
 
 #### Elixir
 
+  * [Calendar] Add truncate to `Time`, `DateTime` and `NaiveDateTime` to facilitate microsecond precision pruning
   * [Code] Add `format_string!/2` and `format_file!/2` for automatic code formatting
   * [Code] Support column annotations in quoted expressions with `columns: true` in `Code.string_to_quoted/2`
+  * [DynamicSupervisor] Add `DynamicSupervisor` designed to manage children that are added and removed dynamically
+  * [Exception] Make `Exception.blame/3` extensible by adding an optional `blame/2` callback to exceptions
   * [Enumerable] Add `Enumerable.slice/1` and optimize many `Enum` operations with the new protocol. This allows data-structures with index-based random access to provide a non-linear implementation
-  * [Inspect.Algebra] Add `:strict` and `:flex` breaks
+  * [Inspect] Show UTF-8 BOM on inspected strings
+  * [Inspect.Algebra] Add `:strict` and `:flex` breaks - this gives more control over the document fitting
   * [Inspect.Algebra] Allow a group to inherit the parent group break
   * [Inspect.Algebra] Add `force_unfit/1` and `next_break_fits/2` which give more control over document fitting
   * [Inspect.Algebra] Add `collapse_lines/1` for collapsing multiple lines to a maximum value
@@ -89,11 +109,15 @@ Those improvements will help developers better understand the relationship betwe
   * [Kernel] Prefix variables with V when emitting Erlang code. This improves the integration with tools such as Erlang code formatters and the GUI debugger
   * [Kernel] Warn on the use of `length(x) == 0` in guards
   * [Kernel] Warn if `catch` comes before `rescue` in try
+  * [Kernel] Add `defguard/1` and `defguardp/1` to make it easier to build guard-safe macros
   * [Kernel.ParallelCompiler] Add `compile/2`, `compile_to_path/3` and `require/2` which provide detailed information about warnings and errors
+  * [Kernel.SpecialForms] Support the `uniq: true` flag in `for` comprehensions
+  * [Module] Introduce `@deprecated` and `@since` attributes
   * [Stream] Add `Stream.intersperse/2`
   * [String] Update to Unicode 10
   * [String] Allow passing empty string `match` to `String.replace/4`
-  * [Task] Allow a custom supervisor to be given to `Task.Supervisor.async_stream/3`
+  * [String] Support context and language sensitive operations in `String.upcase/2` and `String.downcase/2`. Currently only the `:greek` context is supported
+  * [String] Support `:ascii` conversion in `String.upcase/2` and `String.downcase/2`
   * [Time] Add `Time.add/3`
 
 #### ExUnit
@@ -103,11 +127,14 @@ Those improvements will help developers better understand the relationship betwe
 
 #### IEx
 
+  * [IEx.Autocomplete] Provide contextual autocompletion: `t Enum.` will autocomplete types, `b Enum` will autocomplete callbacks
   * [IEx.Helpers] Automatically include specs when showing documentation for functions/macros
   * [IEx.Helpers] Improve formatting of behaviours and typespecs by using the formatter
+  * [IEx.Helpers] Allow pattern matching and guard expressions when on `IEx.break!`
 
 #### Mix
 
+  * [mix app.start] Add `--preload-modules` to `mix app.start`
   * [mix archive.build] Allow `mix archive.build` to bundle dot files via an option
   * [mix compile] Define a behavior for Mix compiler tasks and return diagnostics from compiler tasks
   * [mix compile] Track struct dependencies between files and recompile them only if the struct changes
@@ -119,22 +146,28 @@ Those improvements will help developers better understand the relationship betwe
   * [mix xref] Support `--include-siblings` in reports for umbrella support
   * [mix xref] Add `mix xref graph --format stats`
   * [mix xref] Add `--only-nodes` and `--label` filters to mix xref graph
+  * [mix xref] Add `mix xref deprecated` that shows the callsite of deprecated functions
 
 ### 2. Bug fixes
 
 #### Elixir
 
   * [CLI] Support path with spaces as argument to elixir.bat
+  * [Integer] Do not raise on non-integer values in `is_odd`/`is_even`
   * [Kernel] Solve a precedence issue between `&` and `|`, such as `[&Foo.bar/1 | &Baz.bat/2]`
   * [Kernel] Do not load dynamic Elixir modules as `:in_memory` as this value is not officially supported by the code server. Instead, use an empty list, which is the same value used by Erlang.
   * [Kernel] Validate variable struct name is atom when used in pattern matching
   * [Macro] Fix `Macro.to_string/2` for tuple calls, such as `alias Foo.{Bar, Baz}`
   * [MapSet] Return valid MapSet when unioning a legacy MapSet
-  * [String] Properly downcase the greek sigma letter in `String.downcase/1`
+  * [Regex] Return a leading empty space when splitting on empty pattern. This makes the `split` operation consistent with the other operations in the `Regex` module
+  * [Stream] Ensure `Stream.chunk_while/4` does not emit more elements than necessary when halted
+  * [String] Return a leading empty space when splitting on emtry string. This makes the `split` operation consistent with the other operations in the `String` module
   * [URI] Preserve empty fragments in `URI.parse/1`
 
 #### Mix
 
+  * [mix app.start] Improve the quality of reports if app fails to boot
+  * [mix cmd] Allow `mix cmd` to be invoked multiple times without marking it as executed
   * [mix deps] Ensure optional dependencies in umbrella applications are loaded
   * [mix xref] Take compile dependencies with higher priority than runtime ones when building a graph
   * [mix xref] Handle external files for xref callers and warnings
@@ -146,6 +179,7 @@ Those improvements will help developers better understand the relationship betwe
   * [Inspect.Algebra] `surround/3` and `surround_many/6` are deprecated in favor of `container_doc/6`
   * [Kernel.ParallelCompiler] `files/2` and `files_to_path/3` are deprecated in favor of `compile/2` and `compile_to_path/3`
   * [Kernel.ParallelRequire] `files/2` is deprecated in favor of `Kernel.ParallelCompiler.require/2`
+  * [GenServer] Warn if `init/1` is not defined in `GenServer`. This brings GenServer closer to the implementation in OTP and aligns all behaviours to require the `init/1` callback
 
 #### ExUnit
 

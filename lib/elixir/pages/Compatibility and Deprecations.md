@@ -112,4 +112,4 @@ Empty string in `String.starts_with?/2`, `String.ends_with?/2`, `String.contains
 [v1.3]: https://github.com/elixir-lang/elixir/blob/v1.3/CHANGELOG.md#4-deprecations
 [v1.4]: https://github.com/elixir-lang/elixir/blob/v1.4/CHANGELOG.md#4-deprecations
 [v1.5]: https://github.com/elixir-lang/elixir/blob/v1.5/CHANGELOG.md#4-deprecations
-[v1.6]: https://github.com/elixir-lang/elixir/blob/master/CHANGELOG.md#4-deprecations
+[v1.6]: https://github.com/elixir-lang/elixir/blob/v1.6/CHANGELOG.md#4-deprecations
