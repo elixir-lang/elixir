@@ -959,6 +959,18 @@ format_error({unsupported_option, Kind, Key}) ->
 format_error({options_are_not_keyword, Kind, Opts}) ->
   io_lib:format("invalid options for ~s, expected a keyword list, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(Opts)]);
+format_error({undefined_function, '|', [_, _]}) ->
+  "misplaced operator |/2\n\n"
+  "The | operator is typically used between brackets as the cons operator:\n\n"
+  "    [head | tail]\n\n"
+  "where head is a single element and the tail is the remaining of a list.\n"
+  "It is also used to update maps and structs, via the %{map | key: value} notation,\n"
+  "and in typespecs, such as @type and @spec, to express the union of two types";
+format_error({undefined_function, '::', [_, _]}) ->
+  "misplaced operator ::/2\n\n"
+  "The :: operator is typically used in bitstrings to specify types and sizes of segments:\n\n"
+  "    <<size::32-integer, letter::utf8, rest::binary>>\n\n"
+  "It is also used in typespecs, such as @type and @spec, to describe inputs and outputs";
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B", [Name, length(Args)]);
 format_error({underscored_var_repeat, Name, Kind}) ->
