@@ -118,6 +118,13 @@ defmodule Module do
   The mix compiler automatically looks for calls to deprecated modules
   and emit warnings during compilation, computed via `mix xref warnings`.
 
+  We recommend using this feature with care, especially library authors.
+  Deprecating code always pushes the burden towards library users. We
+  also recommend for deprecated functionality to be maintained for long
+  periods of time, even after deprecation, giving developers plenty of
+  time to update (except for cases where keeping the deprecated API is
+  undesired, such as in the presence of security issues).
+
   ### `@doc` (and `@since`)
 
   Provides documentation for the function or macro that follows the
