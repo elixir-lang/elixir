@@ -40,6 +40,7 @@ defmodule Mix.Tasks.Run do
     * `--eval`, `-e` - evaluate the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
+    * `--preload-modules` - preloads all modules defined in applications
     * `--no-compile` - does not compile even if files require compilation
     * `--no-deps-check` - does not check dependencies
     * `--no-archives-check` - does not check archives
@@ -67,7 +68,8 @@ defmodule Mix.Tasks.Run do
           start: :boolean,
           archives_check: :boolean,
           elixir_version_check: :boolean,
-          parallel_require: :keep
+          parallel_require: :keep,
+          preload_modules: :boolean
         ]
       )
 
