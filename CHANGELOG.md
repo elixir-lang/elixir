@@ -2,19 +2,58 @@
 
 ## Code formatter
 
-TODO.
+The big feature in Elixir v1.6 is the addition of a code formatter and an accompanying `mix format` task that adds automatic formatting to your projects.
+
+The goal of the formatter is to automate the styling of codebases into a unique and consistent layout used across teams and the whole community. Code is now easier to write, as you no longer need to concern yourself with formatting rules. Code is also easier to read, as you no longer need to convert the styles of other developers in your mind.
+
+The formatter also helps new developers to learn the language, by giving immediate feedback on code structure, and eases code reviews by allowing teams to focus on business rules and code quality, rather than code style.
+
+To automatically format your codebase, you can run the new `mix format` task. A `.formatter.exs` file may be added to your project root for rudimentary formatter configuration. The mix task also supports flags for CI integration. For instance, you can make your build or a Pull Request fail if the code is not formatted accordingly. We also recommend developers to check their favorite editor and see if they already provide key bindings for `mix format`, allowing a file or a code snippet to be formatted without ceremony.
+
+The Elixir codebase itself has been already fully formatted and all further contributions are expected to contain formatted code. We recommend existing codebases to be formatted in steps. While the formatter will correctly handle long lines and complex expressions, refactoring the code by breaking those into variables or smaller functions as you format them will lead to overall cleaner and more readable codebases.
 
 ## Dynamic Supervisor
 
-TODO.
+Supervisors in Elixir are responsible for starting, shutting down and restarting child process when things go wrong. Most of the interaction with supervisors happen with the Supervisor module and it contains three main strategies: `:one_for_one`, `:rest_for_one` and `:one_for_all`.
+
+However, sometimes the children of a supervisor are not known upfront and are rather started dynamically. For example, if you are building a web server, you have each request beind handled by a separate supervised process. Those cases were handled in the Supervisor module under a special strategy called `:simple_one_for_one`.
+
+Unfortunately, this special strategy changed the semantics of the supervisor in regards to initialization and shutdown. Plus some APIs expected different inputs or would be completely unavailable depending on the supervision strategy.
+
+Elixir v1.6 addresses this issue by introducing a new `DynamicSupervisor` module, which encapsulates the old `:simple_one_for_one` strategy and APIs in a proper module while allowing the documentation and API of the `Supervisor` module to focus on its main use cases. Having a separate `DynamicSupervisor` module also makes it simpler to add new features to the dynamic supervisor, such as the new `:max_children` option that limits the maximum number of children supervised dynamically.
 
 ## @deprecated and @since attributes
 
-TODO.
+This release also introduces two new attributes associated to function definitions: `@deprecated` and `@since`. The former says if a function or macro is deprecated, the latter says the version said API was added:
+
+    @doc "Breaks a collection into chunks"
+    @since "1.0.0"
+    @deprecated "Use chunk_every/2 instead"
+    def chunk_every(collection, chunk_size) do
+      ...
+    end
+
+The `mix xref` task was also updated to warn if your project calls deprecated code. So if a definition is marked as `@deprecated` and a module invokes it, a warning will be emitted during compilation. This effectively provides libraries and frameworks a mechanism to deprecate code without causing multiple warnings to be printed in runtime and without impacting performance.
+
+Note those attributes are not yet available to tools that generate documentation. Such functionality will be added in future releases as it requires changes to how Elixir stores documentation in BEAM files. We still recommend developers to properly annotate their APIs, as the information will then be already available when the tooling is updated.
 
 ## defguard and defguardp
 
-TODO.
+Elixir provides the concepts of guards: expressions used alongside pattern matching to select a matching clause. Let's see an example straight from Elixir's home page:
+
+    def serve_drinks(%User{age: age}) when age >= 21 do
+      # Code that serves drinks!
+    end
+
+`%User{age: age}` is matching on a `User` struct with an age field and `when age >= 21` is the guard.
+
+Since only a handful of constructs are [allowed in guards](https://hexdocs.pm/elixir/guards.html#content), if you were in a situation where you had to check the age to be more than or equal to 21 in multiple times, extracting the guard to a separate function would be [less than obvious and error prone](https://github.com/elixir-lang/elixir/issues/2469). To address those issues, this release introduces `defguard/1` and `defguardp/1`:
+
+    defguard is_drinking_age(age) when age >= 21
+
+    def serve_drinks(%User{age: age}) when is_drinking_age(age) do
+      # Code that serves drinks!
+    end
 
 ## IEx improvements
 
@@ -161,7 +200,7 @@ Other improvements in Mix include the `mix xref` enhancements above, better comp
   * [MapSet] Return valid MapSet when unioning a legacy MapSet
   * [Regex] Return a leading empty space when splitting on empty pattern. This makes the `split` operation consistent with the other operations in the `Regex` module
   * [Stream] Ensure `Stream.chunk_while/4` does not emit more elements than necessary when halted
-  * [String] Return a leading empty space when splitting on emtry string. This makes the `split` operation consistent with the other operations in the `String` module
+  * [String] Return a leading empty space when splitting on empty string. This makes the `split` operation consistent with the other operations in the `String` module
   * [URI] Preserve empty fragments in `URI.parse/1`
 
 #### Mix
