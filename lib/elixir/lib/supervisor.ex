@@ -592,7 +592,7 @@ defmodule Supervisor do
   ## Options
 
     * `:strategy` - the restart strategy option. It can be either
-      `:one_for_one`, `:rest_for_one`, `:one_for_all`, or
+      `:one_for_one`, `:rest_for_one`, `:one_for_all`, or the deprecated
       `:simple_one_for_one`.
 
     * `:max_restarts` - the maximum number of restarts allowed in
@@ -722,14 +722,6 @@ defmodule Supervisor do
       #=> %{id: {Agent, 1},
       #=>   start: {Agent, :start_link, [fn -> :ok end]}}
 
-  It may also be used when there is a need to change the number
-  of arguments when starting a module under a `:simple_one_for_one`
-  strategy, since most args may be given dynamically:
-
-      Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
-      #=> %{id: Agent,
-      #=>   start: {Agent, :start_link, []}}
-
   """
   @spec child_spec(child_spec() | {module, arg :: term} | module, keyword) :: child_spec()
   def child_spec(module_or_map, overrides)
@@ -821,13 +813,13 @@ defmodule Supervisor do
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
   """
-  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module) ::
+  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module | [term]) ::
           on_start_child
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     call(supervisor, {:start_child, child_spec})
   end
 
-  # TODO: Deprecate this on Elixir v1.8
+  # TODO: Deprecate this on Elixir v1.8. Remove and update typespec on v2.0.
   def start_child(supervisor, args) when is_list(args) do
     call(supervisor, {:start_child, args})
   end
