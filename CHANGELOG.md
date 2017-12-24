@@ -123,7 +123,7 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
-## v1.6.0-dev
+## v1.6.0-rc.0 (2017-12-24)
 
 ### 1. Enhancements
 
