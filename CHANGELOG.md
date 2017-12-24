@@ -59,7 +59,7 @@ Since only a handful of constructs are [allowed in guards](https://hexdocs.pm/el
 
 IEx also got its share of improvements. The new code formatter allows us to pretty print code snippets, types and specifications, improving the overall experience when exploring code through the terminal.
 
-The autocomplete mechanism also got smarter, being able to provide context autocompletion. For example, typing `t Enum.` and hitting TAB will autocomplete only the types in Enum (in contrast to all functions). Typing `b Enum` and hitting TAB will autocomplete only the behaviour callbacks.
+The autocomplete mechanism also got smarter, being able to provide context autocompletion. For example, typing `t Enum.` and hitting TAB will autocomplete only the types in Enum (in contrast to all functions). Typing `b GenServer.` and hitting TAB will autocomplete only the behaviour callbacks.
 
 Finally, the breakpoint functionality added in Elixir v1.5 has been improved to support pattern matching and guards. For example, to pattern match on a function call when the first argument is the atom `:foo`, you may do:
 
@@ -73,7 +73,7 @@ One of such additions is the `--include-siblings` option that can be given to al
 
     $ mix xref callers SomeModule --include-siblings
 
-The `graph` command in `mix xref` can also output general statistics about the graph. In the hexpm project, you would get:
+The `graph` command in `mix xref` now can also output general statistics about the graph. In [the hexpm project](https://github.com/hexpm/hexpm), you would get:
 
     $ mix xref graph --format stats
     Tracked files: 129 (nodes)
@@ -105,7 +105,7 @@ The `graph` command in `mix xref` can also output general statistics about the g
       * lib/hexpm/accounts/user.ex (19)
       * lib/hexpm/repo.ex (19)
 
-`mix xref graph` also get the `--only-nodes` and `--label` options. The former asks Mix to only output file names (nodes) without the edges. The latter allows you to focus on certain relationships:
+`mix xref graph` also got the `--only-nodes` and `--label` options. The former asks Mix to only output file names (nodes) without the edges. The latter allows you to focus on certain relationships:
 
       # To get all files that depend on lib/foo.ex
       mix xref graph --sink lib/foo.ex --only-nodes
@@ -121,7 +121,7 @@ The `graph` command in `mix xref` can also output general statistics about the g
 
 Those improvements will help developers better understand the relationship between files and reveal potentially complex parts of their systems.
 
-Other improvements in Mix include the `mix xref` enhancements above, better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
+Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
 ## v1.6.0-dev
 
