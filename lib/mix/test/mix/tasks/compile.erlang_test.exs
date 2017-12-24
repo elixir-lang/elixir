@@ -22,33 +22,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
     end
   end
 
-  test "compilation continues if one file fails to compile" do
-    in_fixture "compile_erlang", fn ->
-      file = Path.absname("src/zzz.erl")
-
-      File.write!(file, """
-      -module(zzz).
-      def zzz(), do: b
-      """)
-
-      capture_io(fn ->
-        assert {:error, [diagnostic]} = Mix.Tasks.Compile.Erlang.run([])
-
-        assert %Mix.Task.Compiler.Diagnostic{
-                 compiler_name: "erl_parse",
-                 file: ^file,
-                 message: "syntax error before: zzz",
-                 position: 2,
-                 severity: :error
-               } = diagnostic
-      end)
-
-      assert File.regular?("_build/dev/lib/sample/ebin/b.beam")
-      assert File.regular?("_build/dev/lib/sample/ebin/c.beam")
-    end
-  end
-
-  test "compiles src/b.erl and src/c.erl" do
+  test "compiles and cleans src/b.erl and src/c.erl" do
     in_fixture "compile_erlang", fn ->
       assert Mix.Tasks.Compile.Erlang.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/b.erl"]}
@@ -63,6 +37,10 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       assert Mix.Tasks.Compile.Erlang.run(["--force", "--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/b.erl"]}
       assert_received {:mix_shell, :info, ["Compiled src/c.erl"]}
+
+      assert Mix.Tasks.Compile.Erlang.clean()
+      refute File.regular?("_build/dev/lib/sample/ebin/b.beam")
+      refute File.regular?("_build/dev/lib/sample/ebin/c.beam")
     end
   end
 
@@ -97,6 +75,32 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
       # If the module was not purged on recompilation, this would fail.
       assert :v2 == :purge_test.version()
+    end
+  end
+
+  test "continues even if one file fails to compile" do
+    in_fixture "compile_erlang", fn ->
+      file = Path.absname("src/zzz.erl")
+
+      File.write!(file, """
+      -module(zzz).
+      def zzz(), do: b
+      """)
+
+      capture_io(fn ->
+        assert {:error, [diagnostic]} = Mix.Tasks.Compile.Erlang.run([])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 compiler_name: "erl_parse",
+                 file: ^file,
+                 message: "syntax error before: zzz",
+                 position: 2,
+                 severity: :error
+               } = diagnostic
+      end)
+
+      assert File.regular?("_build/dev/lib/sample/ebin/b.beam")
+      assert File.regular?("_build/dev/lib/sample/ebin/c.beam")
     end
   end
 
