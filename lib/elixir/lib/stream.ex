@@ -121,11 +121,13 @@ defmodule Stream do
 
   ## Transformers
 
-  # TODO: Deprecate on v1.7
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   @doc false
   def chunk(enum, n), do: chunk(enum, n, n, nil)
 
-  # TODO: Deprecate on v1.7
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   @doc false
   def chunk(enum, n, step, leftover \\ nil)
       when is_integer(n) and n > 0 and is_integer(step) and step > 0 do

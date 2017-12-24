@@ -684,7 +684,9 @@ number_value({_, {_, _, Value}, _}) ->
 %% Operators
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
-  %% TODO: Deprecate "not left in right" rearrangement on v1.7
+  %% TODO: Raise on "not left in right" rearrangement on 2.0
+  elixir_errors:warn(line_from_location(Location), ?file(),
+    "\"not expr1 in expr2\" is deprecated. Use \"expr1 not in expr2\" instead"),
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
 build_op({_Kind, Location, 'not in'}, Left, Right) ->

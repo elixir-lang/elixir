@@ -364,11 +364,13 @@ defmodule Enum do
     end
   end
 
-  # TODO: Deprecate on v1.7
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   @doc false
   def chunk(enumerable, count), do: chunk(enumerable, count, count, nil)
 
-  # TODO: Deprecate on v1.7
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   @doc false
   def chunk(enumerable, count, step, leftover \\ nil) do
     chunk_every(enumerable, count, step, leftover || :discard)
