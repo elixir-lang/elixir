@@ -36,7 +36,7 @@ defmodule Registry do
       Agent.get(name, & &1)
       #=> 1
 
-  Typically the registry is started as part of a supervision tree though:
+  Typically the registry is started as part of a supervision tree through:
 
       {Registry, keys: :unique, name: Registry.ViaTest}
 
