@@ -32,6 +32,9 @@ Elixir deprecations happen in 3 steps:
 
 Deprecated feature                               | Deprecated in | Replaced by (available since)
 :----------------------------------------------- | :------------ | :----------------------------
+`Enum.chunk/2/3/4`                               | [v1.7]        | `Enum.chunk_every/2/3/4` (v1.5)
+`not left in right`                              | [v1.7]        | `left not in right` (v1.5)
+`Stream.chunk/2/3/4`                             | [v1.7]        | `Stream.chunk_every/2/3/4` (v1.5)
 `Enum.partition/2`                               | [v1.6]        | `Enum.split_with/2` (v1.4)
 `Keyword.replace/3`                              | [v1.6]        | Use `Keyword.fetch/2` + `Keyword.put/3` (v1.0)
 `Macro.unescape_tokens/1` and `Macro.unescape_tokens/2` | [v1.6] | Use `Enum.map/2` to traverse over the arguments (v1.0)
