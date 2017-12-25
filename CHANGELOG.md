@@ -22,9 +22,9 @@ Unfortunately, this special strategy changed the semantics of the supervisor in 
 
 Elixir v1.6 addresses this issue by introducing a new `DynamicSupervisor` module, which encapsulates the old `:simple_one_for_one` strategy and APIs in a proper module while allowing the documentation and API of the `Supervisor` module to focus on its main use cases. Having a separate `DynamicSupervisor` module also makes it simpler to add new features to the dynamic supervisor, such as the new `:max_children` option that limits the maximum number of children supervised dynamically.
 
-## @deprecated and @since attributes
+## `@deprecated` and `@since` attributes
 
-This release also introduces two new attributes associated to function definitions: `@deprecated` and `@since`. The former says if a function or macro is deprecated, the latter says the version said API was added:
+This release also introduces two new attributes associated to function definitions: `@deprecated` and `@since`. The former marks if a function or macro is deprecated, the latter annotates the version the API was introduced:
 
     @doc "Breaks a collection into chunks"
     @since "1.0.0"
@@ -231,6 +231,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [Enum] `Enum.partition/2` is deprecated in favor of `Enum.split_with/2`
   * [Keyword] `Keyword.replace/3` is deprecated in favor of `Keyword.fetch/2` and `Keyword.put/3`
   * [Map] `Map.replace/3` is deprecated in favor of `Map.fetch/2` and `Map.put/3`
+  * [Macro] `Macro.unescape_tokens/1` and `Macro.unescape_tokens/2` are deprecated in favor of `Enum.map/2`
   * [Range] Deprecate `Range.range?/1` in favor of pattern matching on `_ .. _`
 
 ## v1.5
