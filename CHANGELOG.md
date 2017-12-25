@@ -16,6 +16,6 @@
   * [Kernel] `not left in right` is ambiguous and is deprecated in favor of `left not in right`
   * [Stream] `Stream.chunk/2/3/4` is deprecated in favor of `Stream.chunk_every/2/3/4` - notice `chunk_every` does not discard incomplete chunks by default
 
-## v1.5
+## v1.6
 
 The CHANGELOG for v1.6 releases can be found [in the v1.6 branch](https://github.com/elixir-lang/elixir/blob/v1.6/CHANGELOG.md).
