@@ -34,9 +34,9 @@ Deprecated feature                               | Deprecated in | Replaced by (
 :----------------------------------------------- | :------------ | :----------------------------
 `Enum.partition/2`                               | [v1.6]        | `Enum.split_with/2` (v1.4)
 `Keyword.replace/3`                              | [v1.6]        | Use `Keyword.fetch/2` + `Keyword.put/3` (v1.0)
-`Map.replace/3`                                  | [v1.6]        | Use `Map.fetch/2` + `Map.put/3` (v1.0)
 `Macro.unescape_tokens/1` and `Macro.unescape_tokens/2` | [v1.6] | Use `Enum.map/2` to traverse over the arguments (v1.0)
-`Range.range?/1`                                 | [v1.6]        | Pattern match on `left..right` instead (v1.0)
+`Map.replace/3`                                  | [v1.6]        | Use `Map.fetch/2` + `Map.put/3` (v1.0)
+`Range.range?/1`                                 | [v1.6]        | Pattern match on `_.._` instead (v1.0)
 `Atom.to_char_list/1`                            | [v1.5]        | `Atom.to_charlist/1` (v1.3)
 `Enum.filter_map/3`                              | [v1.5]        | `Enum.filter/2` + `Enum.map/2` or for comprehensions (v1.0)
 `Float.to_char_list/1`                           | [v1.5]        | `Float.to_charlist/1` (v1.3)
