@@ -25,16 +25,19 @@ defmodule Inspect.Opts do
 
     * `:limit` - limits the number of items that are printed for tuples,
       bitstrings, maps, lists and any other collection of items. It does not
-      apply to strings nor charlists and defaults to 50.
+      apply to strings nor charlists and defaults to 50. If you don't want to limit
+      the number of items to a particular number, use `:infinity`.
 
     * `:printable_limit` - limits the number of bytes that are printed for strings
-      and char lists. Defaults to 4096.
+      and char lists. Defaults to 4096. If you don't want to limit the number of items
+      to a particular number, use `:infinity`.
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
     * `:width` - defaults to 80 characters, used when pretty is `true` or when
       printing to IO devices. Set to 0 to force each item to be printed on its
-      own line.
+      own line. If you don't want to limit the number of items to a particular
+      number, use `:infinity`.
 
     * `:base` - prints integers as `:binary`, `:octal`, `:decimal`, or `:hex`,
       defaults to `:decimal`. When inspecting binaries any `:base` other than
