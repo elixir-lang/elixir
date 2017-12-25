@@ -10,7 +10,7 @@ This document simply outlines the release process:
 
 3. Ensure CHANGELOG is updated and add current date
 
-4. If a new `vMAJOR.MINOR`, replace "master" with "vVERSION" in the "Compatibility and Deprecations" page and commit
+4. Update "Compatibility and Deprecations" if a new OTP version is supported. If a new `vMAJOR.MINOR`, replace "master" with "vVERSION" in the "Deprecations" section
 
 5. If a new `vMAJOR.MINOR`, create a new branch "vMAJOR.MINOR" and set `CANONICAL=` in Makefile
 
