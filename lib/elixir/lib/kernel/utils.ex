@@ -179,6 +179,7 @@ defmodule Kernel.Utils do
           is_integer(value) and rem(value, 2) == 0
         end
       end
+
   """
   defmacro defguard(args, expr) do
     defguard(args, expr, __CALLER__)
@@ -187,7 +188,7 @@ defmodule Kernel.Utils do
   @spec defguard([Macro.t()], Macro.t(), Macro.Env.t()) :: Macro.t()
   def defguard(args, expr, env) do
     {^args, vars} = extract_refs_from_args(args)
-    _valid? = :elixir_expand.expand(expr, %{env | context: :guard, vars: vars})
+    {expr, _scope} = :elixir_expand.expand(expr, %{env | context: :guard, vars: vars})
 
     quote do
       case Macro.Env.in_guard?(__CALLER__) do
