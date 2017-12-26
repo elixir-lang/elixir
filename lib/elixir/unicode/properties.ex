@@ -26,7 +26,7 @@ end
 
 acc = {[], [], [], %{}, %{}}
 
-{codes, letters, non_breakable, decompositions, combining_classes} =
+{codes, cased_letters, non_breakable, decompositions, combining_classes} =
   Enum.reduce(File.stream!(data_path), acc, fn line, {cacc, lacc, wacc, dacc, kacc} ->
     [
       codepoint,
@@ -57,7 +57,7 @@ acc = {[], [], [], %{}, %{}}
 
     lacc =
       case category do
-        "L" <> _ -> [String.to_integer(codepoint, 16) | lacc]
+        <<"L", l>> <> _ when l in 'ltu' -> [String.to_integer(codepoint, 16) | lacc]
         _ -> lacc
       end
 
@@ -111,63 +111,62 @@ defmodule String.Casing do
 
   def downcase(<<unquote(sigma), rest::bits>>, acc, mode) do
     downcased =
-      case mode == :greek and starts_with_letter?(rest) do
-        true -> 0x03C3
-        false -> 0x03C2
+      if mode == :greek and cased_letter_list?(acc) and not cased_letter_binary?(rest) do
+        <<0x03C2::utf8>>
+      else
+        <<0x03C3::utf8>>
       end
 
-    downcase(rest, <<acc::binary, downcased::utf8>>, mode)
+    downcase(rest, [downcased | acc], mode)
   end
 
   for {codepoint, _upper, lower, _title} <- codes,
       lower && lower != codepoint,
       codepoint not in @conditional_downcase do
     def downcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
-      downcase(rest, acc <> unquote(lower), mode)
+      downcase(rest, [unquote(lower) | acc], mode)
     end
   end
 
   def downcase(<<char, rest::bits>>, acc, mode) do
-    downcase(rest, <<acc::binary, char>>, mode)
+    downcase(rest, [<<char>> | acc], mode)
   end
 
-  def downcase("", acc, _mode), do: acc
+  def downcase("", acc, _mode), do: IO.iodata_to_binary(:lists.reverse(acc))
 
   # Sigma handling
 
-  defp starts_with_letter?(<<codepoint::utf8, _::bits>>) do
-    letter?(codepoint)
-  end
+  defp cased_letter_binary?(<<codepoint::utf8, _::bits>>), do: cased_letter?(codepoint)
+  defp cased_letter_binary?(_), do: false
 
-  defp starts_with_letter?(_) do
-    false
-  end
+  defp cased_letter_list?([<<codepoint::utf8>> | _]), do: cased_letter?(codepoint)
+  defp cased_letter_list?(_), do: false
 
-  for {first, last} <- rangify.(letters) do
+  for {first, last} <- rangify.(cased_letters) do
     if first == last do
-      defp letter?(unquote(first)), do: true
+      defp cased_letter?(unquote(first)), do: true
     else
-      defp letter?(codepoint)
+      defp cased_letter?(codepoint)
            when codepoint >= unquote(first) and codepoint <= unquote(last),
            do: true
     end
   end
 
-  defp letter?(_), do: false
+  defp cased_letter?(_), do: false
 
   # Upcase
 
   for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
     def upcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
-      upcase(rest, acc <> unquote(upper), mode)
+      upcase(rest, [unquote(upper) | acc], mode)
     end
   end
 
   def upcase(<<char, rest::bits>>, acc, mode) do
-    upcase(rest, <<acc::binary, char>>, mode)
+    upcase(rest, [char | acc], mode)
   end
 
-  def upcase("", acc, _mode), do: acc
+  def upcase("", acc, _mode), do: IO.iodata_to_binary(:lists.reverse(acc))
 
   # Titlecase once
 

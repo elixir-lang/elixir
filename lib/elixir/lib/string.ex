@@ -635,8 +635,12 @@ defmodule String do
   @spec upcase(t, :default | :ascii | :greek) :: t
   def upcase(string, mode \\ :default)
 
+  def upcase("", _mode) do
+    ""
+  end
+
   def upcase(string, :default) when is_binary(string) do
-    String.Casing.upcase(string, "", :default)
+    String.Casing.upcase(string, [], :default)
   end
 
   def upcase(string, :ascii) when is_binary(string) do
@@ -646,7 +650,7 @@ defmodule String do
   end
 
   def upcase(string, mode) when mode in @conditional_mappings do
-    String.Casing.upcase(string, "", mode)
+    String.Casing.upcase(string, [], mode)
   end
 
   @doc """
@@ -678,7 +682,7 @@ defmodule String do
   And `:greek` properly handles the context sensitive sigma in Greek:
 
       iex> String.downcase("ΣΣ")
-      "ςς"
+      "σσ"
 
       iex> String.downcase("ΣΣ", :greek)
       "σς"
@@ -687,8 +691,12 @@ defmodule String do
   @spec downcase(t, :default | :ascii | :greek) :: t
   def downcase(string, mode \\ :default)
 
+  def downcase("", _mode) do
+    ""
+  end
+
   def downcase(string, :default) when is_binary(string) do
-    String.Casing.downcase(string, "", :default)
+    String.Casing.downcase(string, [], :default)
   end
 
   def downcase(string, :ascii) when is_binary(string) do
@@ -698,7 +706,7 @@ defmodule String do
   end
 
   def downcase(string, mode) when mode in @conditional_mappings do
-    String.Casing.downcase(string, "", mode)
+    String.Casing.downcase(string, [], mode)
   end
 
   @doc """
