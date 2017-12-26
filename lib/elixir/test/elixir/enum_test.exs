@@ -47,19 +47,6 @@ defmodule EnumTest do
     assert Enum.at([2, 4, 6], -4) == nil
   end
 
-  test "chunk/2" do
-    assert Enum.chunk([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4]]
-  end
-
-  test "chunk/4" do
-    assert Enum.chunk([1, 2, 3, 4, 5], 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
-    assert Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2) == [[1, 2, 3], [3, 4, 5]]
-    assert Enum.chunk([1, 2, 3, 4, 5, 6], 2, 3) == [[1, 2], [4, 5]]
-    assert Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
-    assert Enum.chunk([1, 2, 3, 4, 5, 6], 3, 3, []) == [[1, 2, 3], [4, 5, 6]]
-    assert Enum.chunk([1, 2, 3, 4, 5], 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
-  end
-
   test "chunk_every/2" do
     assert Enum.chunk_every([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
   end
@@ -909,18 +896,6 @@ defmodule EnumTest.Range do
     assert Enum.at(2..6, 6, :none) == :none
     assert Enum.at(2..6, -2) == 5
     assert Enum.at(2..6, -8) == nil
-  end
-
-  test "chunk/2" do
-    assert Enum.chunk(1..5, 2) == [[1, 2], [3, 4]]
-  end
-
-  test "chunk/4" do
-    assert Enum.chunk(1..5, 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
-    assert Enum.chunk(1..6, 3, 2) == [[1, 2, 3], [3, 4, 5]]
-    assert Enum.chunk(1..6, 2, 3) == [[1, 2], [4, 5]]
-    assert Enum.chunk(1..6, 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
-    assert Enum.chunk(1..5, 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
   end
 
   test "chunk_every/2" do
