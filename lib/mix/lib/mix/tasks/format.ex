@@ -11,11 +11,15 @@ defmodule Mix.Tasks.Format do
   If any of the files is `-`, then the output is read from stdin
   and written to stdout.
 
+  ## Formatting options
+
   Formatting is done with the `Code.format_string!/2` function.
+  For complete list of formatting options please refer to its
+  description.
   A `.formatter.exs` file can also be defined for customizing input
   files and the formatter itself.
 
-  ## Options
+  ## Task-specific options
 
     * `--check-formatted` - check that the file is already formatted.
       This is useful in pre-commit hooks and CI scripts if you want to
