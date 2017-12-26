@@ -168,11 +168,13 @@ defmodule StringTest do
   end
 
   test "downcase/1 with greek final sigma" do
-    assert String.downcase("ΣΣ") == "ςς"
-    assert String.downcase("ΣΣ ΣΣ") == "ςς ςς"
+    assert String.downcase("Σ") == "σ"
+    assert String.downcase("ΣΣ") == "σσ"
+    assert String.downcase("Σ ΣΣ") == "σ σσ"
 
-    assert String.downcase("ΣΣ", :greek) == "σς"
-    assert String.downcase("ΣΣ ΣΣ", :greek) == "σς σς"
+    assert String.downcase("Σ", :greek) == "σ"
+    assert String.downcase("Σ ΣΣ", :greek) == "σ σς"
+    assert String.downcase("Σ ΣΑΣ Σ", :greek) == "σ σας σ"
   end
 
   test "downcase/1 with ascii" do
