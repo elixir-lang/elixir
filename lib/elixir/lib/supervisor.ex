@@ -528,7 +528,7 @@ defmodule Supervisor do
   @typedoc "The supervisor specification"
   @type child_spec :: %{
           required(:id) => term(),
-          required(:start) => {module(), function(), [term()]},
+          required(:start) => {module(), atom(), [term()]},
           optional(:restart) => :permanent | :transient | :temporary,
           optional(:shutdown) => :brutal_kill | non_neg_integer() | :infinity,
           optional(:type) => :worker | :supervisor,
