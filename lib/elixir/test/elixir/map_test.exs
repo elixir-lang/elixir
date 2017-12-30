@@ -200,6 +200,9 @@ defmodule MapTest do
     assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
       %ExternalUser{map | name: "meg"}
     end
+
+    assert Code.eval_string("%struct{} = %ExternalUser{}", [], __ENV__) ==
+             {%ExternalUser{}, [struct: ExternalUser]}
   end
 
   test "structs with variable name" do
