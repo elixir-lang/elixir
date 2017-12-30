@@ -232,7 +232,8 @@ defmodule Application do
   @type key :: atom
   @type value :: term
   @type state :: term
-  @type start_type :: :permanent | :transient | :temporary
+  @type start_type :: :normal | {:takeover, node} | {:failover, node}
+  @type restart_type :: :permanent | :transient | :temporary
 
   @application_keys [
     :description,
@@ -402,7 +403,7 @@ defmodule Application do
       :ok = Application.ensure_started(:my_test_dep)
 
   """
-  @spec ensure_started(app, start_type) :: :ok | {:error, term}
+  @spec ensure_started(app, restart_type) :: :ok | {:error, term}
   def ensure_started(app, type \\ :temporary) when is_atom(app) do
     :application.ensure_started(app, type)
   end
@@ -414,7 +415,7 @@ defmodule Application do
   `:applications` in the `.app` file in case they were not previously
   started.
   """
-  @spec ensure_all_started(app, start_type) :: {:ok, [app]} | {:error, {app, term}}
+  @spec ensure_all_started(app, restart_type) :: {:ok, [app]} | {:error, {app, term}}
   def ensure_all_started(app, type \\ :temporary) when is_atom(app) do
     :application.ensure_all_started(app, type)
   end
@@ -453,7 +454,7 @@ defmodule Application do
   Note also that the `:transient` type is of little practical use, since when a
   supervision tree terminates, the reason is set to `:shutdown`, not `:normal`.
   """
-  @spec start(app, start_type) :: :ok | {:error, term}
+  @spec start(app, restart_type) :: :ok | {:error, term}
   def start(app, type \\ :temporary) when is_atom(app) do
     :application.start(app, type)
   end
