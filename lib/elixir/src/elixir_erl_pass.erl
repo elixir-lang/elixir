@@ -25,7 +25,7 @@ translate({'=', Meta, [Left, Right]}, S) ->
       Reason = {tuple, Generated, [{atom, Generated, badmatch}, ResultVar]},
       RaiseExpr = elixir_erl:remote(Generated, erlang, error, [Reason]),
       GuardsExp = {'if', Generated, [
-        {clause, Generated, [], [ExtraGuards], [True]},
+        {clause, Generated, [], [ExtraGuards], [ResultVar]},
         {clause, Generated, [], [[True]], [RaiseExpr]}
       ]},
       {{block, Generated, [ResultMatch, GuardsExp]}, SL2};
