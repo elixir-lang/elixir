@@ -297,8 +297,8 @@ defmodule Map do
   end
 
   @doc """
-  Similar to `replace/3`, but will raise a `KeyError`
-  if the key does not exist in the map.
+  Alters the value stored under `key` to `value`, but only
+  if the entry `key` already exists in `map`.
 
   ## Examples
 
