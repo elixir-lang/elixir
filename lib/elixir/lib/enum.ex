@@ -156,7 +156,7 @@ defprotocol Enumerable do
   Checks if an element exists within the enumerable.
 
   It should return `{:ok, boolean}` if you can check the membership of a
-  given element in the enumerable with `===` without traversing the whole
+  given element in the enumerable with `===/2` without traversing the whole
   enumerable.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
@@ -583,7 +583,7 @@ defmodule Enum do
   Enumerates the `enumerable`, returning a list where all consecutive
   duplicated elements are collapsed to a single element.
 
-  Elements are compared using `===`.
+  Elements are compared using `===/2`.
 
   If you want to remove all duplicated elements, regardless of order,
   see `uniq/1`.
@@ -1490,7 +1490,7 @@ defmodule Enum do
   @doc """
   Checks if `element` exists within the enumerable.
 
-  Membership is tested with the match (`===`) operator.
+  Membership is tested with the match (`===/2`) operator.
 
   ## Examples
 

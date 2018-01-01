@@ -15,7 +15,7 @@ defmodule Map do
 
   Maps do not impose any restriction on the key type: anything can be a key in a
   map. As a key-value structure, maps do not allow duplicated keys. Keys are
-  compared using the exact-equality operator (`===`). If colliding keys are defined
+  compared using the exact-equality operator (`===/2`). If colliding keys are defined
   in a map literal, the last one prevails.
 
   When the key in a key-value pair is an atom, the `key: value` shorthand syntax

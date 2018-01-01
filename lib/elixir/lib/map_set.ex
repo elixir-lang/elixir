@@ -209,7 +209,7 @@ defmodule MapSet do
   @doc """
   Checks if two sets are equal.
 
-  The comparison between elements must be done using `===`.
+  The comparison between elements must be done using `===/2`.
 
   ## Examples
 
