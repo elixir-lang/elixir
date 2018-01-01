@@ -56,7 +56,7 @@ defmodule Access do
   Since `Access` is a behaviour, it can be implemented for key-value
   data structures. The implementation should be added to the
   module that defines the struct being accessed. `Access` requires the
-  key comparison to be implemented using the `===` operator.
+  key comparison to be implemented using the `===/2` operator.
 
   ## Static lookups
 

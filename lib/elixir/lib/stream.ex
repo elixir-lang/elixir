@@ -272,7 +272,7 @@ defmodule Stream do
 
   This function only ever needs to store the last emitted element.
 
-  Elements are compared using `===`.
+  Elements are compared using `===/2`.
 
   ## Examples
 

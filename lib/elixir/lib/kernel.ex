@@ -1323,7 +1323,7 @@ defmodule Kernel do
   Returns `true` if the two items are equal.
 
   This operator considers 1 and 1.0 to be equal. For stricter
-  semantics, use `===` instead.
+  semantics, use `===/2` instead.
 
   All terms in Elixir can be compared with each other.
 
@@ -1581,7 +1581,7 @@ defmodule Kernel do
       iex> "foo" <> "bar"
       "foobar"
 
-  The `<>` operator can also be used in pattern matching (and guard clauses) as
+  The `<>/2` operator can also be used in pattern matching (and guard clauses) as
   long as the first part is a literal binary:
 
       iex> "foo" <> x = "foobar"
