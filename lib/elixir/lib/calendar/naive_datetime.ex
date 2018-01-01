@@ -38,7 +38,7 @@ defmodule NaiveDateTime do
 
   ## Comparing naive date times
 
-  Comparisons in Elixir using `==`, `>`, `<` and similar are structural
+  Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `NaiveDateTime` struct fields. For proper comparison
   between naive datetimes, use the `compare/2` function.
 

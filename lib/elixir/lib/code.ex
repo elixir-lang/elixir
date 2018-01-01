@@ -295,7 +295,7 @@ defmodule Code do
   This happens because the only place the formatter can introduce a
   new line without changing the code semantics is in the interpolation.
   In those scenarios, we recommend developers to directly adjust the
-  code. Here we can use the binary concatenation operator `<>`:
+  code. Here we can use the binary concatenation operator `<>/2`:
 
       "this is a very long string " <>
         "... #{inspect(some_value)}"

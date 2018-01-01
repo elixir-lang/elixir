@@ -8,7 +8,7 @@ defmodule DateTime do
   well as the zone abbreviation field used exclusively
   for formatting purposes.
 
-  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
+  Remember, comparisons in Elixir using `==/2`, `>/2`, `</2` and friends
   are structural and based on the DateTime struct fields. For proper
   comparison between datetimes, use the `compare/2` function.
 

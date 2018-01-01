@@ -29,7 +29,7 @@ defmodule Date do
 
   ## Comparing dates
 
-  Comparisons in Elixir using `==`, `>`, `<` and similar are structural
+  Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `Date` struct fields. For proper comparison between
   dates, use the `compare/2` function.
 
