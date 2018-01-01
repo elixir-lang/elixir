@@ -99,11 +99,13 @@ defmodule StringIO do
 
   ## callbacks
 
+  @impl true
   def init({string, options}) do
     capture_prompt = options[:capture_prompt] || false
     {:ok, %{input: string, output: "", capture_prompt: capture_prompt}}
   end
 
+  @impl true
   def handle_info({:io_request, from, reply_as, req}, state) do
     state = io_request(from, reply_as, req, state)
     {:noreply, state}
@@ -113,6 +115,7 @@ defmodule StringIO do
     super(message, state)
   end
 
+  @impl true
   def handle_call(:contents, _from, %{input: input, output: output} = state) do
     {:reply, {input, output}, state}
   end

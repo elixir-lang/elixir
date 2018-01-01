@@ -264,12 +264,14 @@ defmodule IEx.Pry do
     GenServer.start_link(__MODULE__, :ok, name: @server)
   end
 
+  @impl true
   def init(:ok) do
     Process.flag(:trap_exit, true)
     :ets.new(@table, [:named_table, :public, write_concurrency: true])
     {:ok, @initial_counter}
   end
 
+  @impl true
   def handle_call({:break, module, fa, condition, breaks}, _from, counter) do
     # If there is a match for the given module and fa, we
     # use the ref, otherwise we create a new one.
