@@ -186,9 +186,9 @@ defmodule Application do
               | {:error, reason :: term}
 
   @doc """
-  Called when an application is stopped.
+  Called after an application has been stopped.
 
-  This function is called when an application has stopped, i.e., when its
+  This function is called after an application has been stopped, i.e., after its
   supervision tree has been stopped. It should do the opposite of what the
   `start/2` callback did, and should perform any necessary cleanup. The return
   value of this callback is ignored.
