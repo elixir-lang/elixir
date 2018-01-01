@@ -3,8 +3,8 @@ defmodule Date do
   A Date struct and functions.
 
   The Date struct contains the fields year, month, day and calendar.
-  New dates can be built with the `new/3` function or using the `~D`
-  sigil:
+  New dates can be built with the `new/3` function or using the
+  [`~D`](`Kernel.sigil_D/2`) sigil:
 
       iex> ~D[2000-01-01]
       ~D[2000-01-01]
