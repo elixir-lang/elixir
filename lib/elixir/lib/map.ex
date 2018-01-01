@@ -300,6 +300,8 @@ defmodule Map do
   Alters the value stored under `key` to `value`, but only
   if the entry `key` already exists in `map`.
 
+  If `key` is not present in `map`, a `KeyError` exception is raised.
+
   ## Examples
 
       iex> Map.replace!(%{a: 1, b: 2}, :a, 3)

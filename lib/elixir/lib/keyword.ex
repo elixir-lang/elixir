@@ -609,6 +609,8 @@ defmodule Keyword do
   Alters the value stored under `key` to `value`, but only
   if the entry `key` already exists in `keywords`.
 
+  If `key` is not present in `keywords`, a `KeyError` exception is raised.
+
   ## Examples
 
       iex> Keyword.replace!([a: 1, b: 2, a: 4], :a, 3)
