@@ -7,7 +7,7 @@ defmodule Regex do
   in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using the sigils
-  [`~r`](Kernel.html#sigil_r/2) or [`~R`](Kernel.html#sigil_R/2):
+  [`~r`](`Kernel.sigil_r/2`) or [`~R`](`Kernel.sigil_R/2`):
 
       # A simple regular expressions that matches foo anywhere in the string
       ~r/foo/
@@ -117,8 +117,9 @@ defmodule Regex do
   Compiles the regular expression.
 
   The given options can either be a binary with the characters
-  representing the same regex options given to the `~r` sigil,
-  or a list of options, as expected by the Erlang's `:re` module.
+  representing the same regex options given to the
+  [`~r`](`Kernel.sigil_r/2`) sigil, or a list of options, as
+  expected by the Erlang's `:re` module.
 
   It returns `{:ok, regex}` in case of success,
   `{:error, reason}` otherwise.
