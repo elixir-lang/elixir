@@ -560,31 +560,28 @@ var_context(Meta, Kind) ->
 
 expand_case(true, Meta, Expr, Opts, E) ->
   {EExpr, EE} = expand(Expr, E),
-  {EOpts, EO} = elixir_clauses:'case'(Meta, Opts, EE),
 
   ROpts =
     case proplists:get_value(optimize_boolean, Meta, false) of
       true ->
         case elixir_utils:returns_boolean(EExpr) of
-          true -> rewrite_case_clauses(EOpts);
-          false -> generated_case_clauses(EOpts)
+          true -> rewrite_case_clauses(Opts);
+          false -> generated_case_clauses(Opts)
         end;
 
       false ->
-        EOpts
+        Opts
     end,
 
-  {{'case', Meta, [EExpr, ROpts]}, EO};
+  {EOpts, EO} = elixir_clauses:'case'(Meta, ROpts, EE),
+  {{'case', Meta, [EExpr, EOpts]}, EO};
 expand_case(false, Meta, Expr, Opts, E) ->
   {Case, _} = expand_case(true, Meta, Expr, Opts, E),
   {Case, E}.
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
-    [{'when', _, [Var, {{'.', _, [erlang, 'orelse']}, _, [
-      {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
-      {{'.', _, [erlang, '=:=']}, _, [Var, false]}
-    ]}]}],
+    [{'when', _, [Var, {{'.', _, ['Elixir.Kernel', 'in']}, _, [Var, [false, nil]]}]}],
     FalseExpr
   ]},
   {'->', TrueMeta, [

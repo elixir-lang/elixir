@@ -1555,7 +1555,7 @@ defmodule Kernel do
     optimize_boolean(
       quote do
         case unquote(value) do
-          x when x in [false, nil] -> false
+          x when :"Elixir.Kernel".in(x, [false, nil]) -> false
           _ -> true
         end
       end
@@ -1566,7 +1566,7 @@ defmodule Kernel do
     optimize_boolean(
       quote do
         case unquote(value) do
-          x when x in [false, nil] -> true
+          x when :"Elixir.Kernel".in(x, [false, nil]) -> true
           _ -> false
         end
       end
@@ -2838,7 +2838,7 @@ defmodule Kernel do
     optimize_boolean(
       quote do
         case unquote(condition) do
-          x when x in [false, nil] -> unquote(else_clause)
+          x when :"Elixir.Kernel".in(x, [false, nil]) -> unquote(else_clause)
           _ -> unquote(do_clause)
         end
       end
@@ -3006,7 +3006,7 @@ defmodule Kernel do
   defmacro left && right do
     quote do
       case unquote(left) do
-        x when x in [false, nil] ->
+        x when :"Elixir.Kernel".in(x, [false, nil]) ->
           x
 
         _ ->
@@ -3042,7 +3042,7 @@ defmodule Kernel do
   defmacro left || right do
     quote do
       case unquote(left) do
-        x when x in [false, nil] ->
+        x when :"Elixir.Kernel".in(x, [false, nil]) ->
           unquote(right)
 
         x ->
