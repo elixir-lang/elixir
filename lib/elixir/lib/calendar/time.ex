@@ -3,8 +3,8 @@ defmodule Time do
   A Time struct and functions.
 
   The Time struct contains the fields hour, minute, second and microseconds.
-  New times can be built with the `new/4` function or using the `~T`
-  sigil:
+  New times can be built with the `new/4` function or using the
+  [`~T`](`Kernel.sigil_T/2`) sigil:
 
       iex> ~T[23:00:07.001]
       ~T[23:00:07.001]
