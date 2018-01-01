@@ -35,7 +35,7 @@ defmodule Calendar.ISO do
   @days_per_leap_year 366
 
   @doc """
-  Returns the `t:Calendar.iso_days` format of the specified date.
+  Returns the `t:Calendar.iso_days/0` format of the specified date.
 
   ## Examples
 
@@ -62,7 +62,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Converts the `t:Calendar.iso_days` format to the datetime format specified by this calendar.
+  Converts the `t:Calendar.iso_days/0` format to the datetime format specified by this calendar.
 
   ## Examples
 
