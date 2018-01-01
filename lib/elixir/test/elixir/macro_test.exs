@@ -196,7 +196,7 @@ defmodule MacroTest do
       quoted =
         quote context: Kernel do
           case 1 do
-            unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
+            unquote(temp_var) when :"Elixir.Kernel".in(unquote(temp_var), [false, nil]) -> false
             unquote(temp_var) -> unquote(temp_var)
           end
         end
@@ -210,7 +210,7 @@ defmodule MacroTest do
       quoted =
         quote context: Kernel do
           case 1 do
-            unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
+            unquote(temp_var) when :"Elixir.Kernel".in(unquote(temp_var), [false, nil]) -> false
             unquote(temp_var) -> unquote(temp_var)
           end
         end
@@ -248,7 +248,7 @@ defmodule MacroTest do
     quoted =
       quote context: Kernel do
         case 1 do
-          unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
+          unquote(temp_var) when :"Elixir.Kernel".in(unquote(temp_var), [false, nil]) -> false
           unquote(temp_var) -> unquote(temp_var)
         end
       end
