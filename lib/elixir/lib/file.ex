@@ -152,8 +152,9 @@ defmodule File do
 
   @doc """
   Returns `true` if the given path exists.
-  It can be regular file, directory, socket,
-  symbolic link, named pipe or device file.
+
+  It can be regular file, directory, socket, symbolic link, named pipe or device file.
+  Returns `false` for symbolic links pointing to non-existing targets.
 
   ## Examples
 
@@ -173,7 +174,9 @@ defmodule File do
   end
 
   @doc """
-  Tries to create the directory `path`. Missing parent directories are not created.
+  Tries to create the directory `path`.
+
+  Missing parent directories are not created.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   Typical error reasons are:
@@ -185,6 +188,7 @@ defmodule File do
     * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory;
       on some platforms, `:enoent` is returned instead
+
   """
   @spec mkdir(Path.t()) :: :ok | {:error, posix}
   def mkdir(path) do
@@ -209,8 +213,10 @@ defmodule File do
   end
 
   @doc """
-  Tries to create the directory `path`. Missing parent directories are created.
-  Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+  Tries to create the directory `path`.
+
+  Missing parent directories are created. Returns `:ok` if successful, or
+  `{:error, reason}` if an error occurs.
 
   Typical error reasons are:
 
@@ -218,6 +224,7 @@ defmodule File do
       directories of `path`
     * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory
+
   """
   @spec mkdir_p(Path.t()) :: :ok | {:error, posix}
   def mkdir_p(path) do

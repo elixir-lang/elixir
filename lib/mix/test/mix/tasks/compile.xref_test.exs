@@ -10,19 +10,6 @@ defmodule Mix.Tasks.Compile.XrefTest do
     :ok
   end
 
-  test "doesn't do anything if no Elixir manifest" do
-    in_fixture "no_mixfile", fn ->
-      write_no_func()
-
-      [xref_manifest] = Mix.Tasks.Compile.Xref.manifests()
-
-      assert_no_warn(fn ->
-        assert Mix.Tasks.Compile.Xref.run([]) == {:noop, []}
-        refute File.exists?(xref_manifest)
-      end)
-    end
-  end
-
   test "doesn't xref if not stale, unless forced" do
     in_fixture "no_mixfile", fn ->
       write_no_func()
@@ -33,9 +20,6 @@ defmodule Mix.Tasks.Compile.XrefTest do
       end)
 
       assert_no_warn(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
-
-      Mix.Task.reenable("xref")
-
       assert_warn_no_func(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--force"]) end)
     end
   end
@@ -69,7 +53,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
     end
   end
 
-  test "exits if warnings-as-errors" do
+  test "exits if --warnings-as-errors" do
     in_fixture "no_mixfile", fn ->
       write_no_func()
 
@@ -81,7 +65,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
     end
   end
 
-  test "does not return error status if warnings-as-errors and no warnings" do
+  test "does not exit if --warnings-as-errors and no warnings" do
     in_fixture "no_mixfile", fn ->
       assert_no_warn(fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}

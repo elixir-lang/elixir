@@ -77,10 +77,9 @@ defmodule Mix.Task do
     # entire load path so make sure we only return unique modules.
     for dir <- dirs,
         file <- safe_list_dir(to_charlist(dir)),
-        mod = task_from_path(file) do
-      mod
-    end
-    |> Enum.uniq()
+        mod = task_from_path(file),
+        uniq: true,
+        do: mod
   end
 
   defp safe_list_dir(path) do

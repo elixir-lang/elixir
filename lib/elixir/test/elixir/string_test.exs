@@ -56,17 +56,21 @@ defmodule StringTest do
     assert String.split(" a b c ", " ", trim: true, parts: 1) == [" a b c "]
     assert String.split(" a b c ", " ", trim: true, parts: 2) == ["a", "b c "]
 
-    assert String.split("abé", "") == ["a", "b", "é", ""]
-    assert String.split("abé", "", parts: :infinity) == ["a", "b", "é", ""]
+    assert String.split("abé", "") == ["", "a", "b", "é", ""]
+    assert String.split("abé", "", parts: :infinity) == ["", "a", "b", "é", ""]
     assert String.split("abé", "", parts: 1) == ["abé"]
-    assert String.split("abé", "", parts: 2) == ["a", "bé"]
-    assert String.split("abé", "", parts: 10) == ["a", "b", "é", ""]
+    assert String.split("abé", "", parts: 2) == ["", "abé"]
+    assert String.split("abé", "", parts: 3) == ["", "a", "bé"]
+    assert String.split("abé", "", parts: 4) == ["", "a", "b", "é"]
+    assert String.split("abé", "", parts: 5) == ["", "a", "b", "é", ""]
+    assert String.split("abé", "", parts: 10) == ["", "a", "b", "é", ""]
     assert String.split("abé", "", trim: true) == ["a", "b", "é"]
     assert String.split("abé", "", trim: true, parts: :infinity) == ["a", "b", "é"]
     assert String.split("abé", "", trim: true, parts: 2) == ["a", "bé"]
+    assert String.split("abé", "", trim: true, parts: 3) == ["a", "b", "é"]
+    assert String.split("abé", "", trim: true, parts: 4) == ["a", "b", "é"]
 
-    assert String.split("noël", "") == ["n", "o", "ë", "l", ""]
-
+    assert String.split("noël", "") == ["", "n", "o", "ë", "l", ""]
     assert String.split("x-", "-", parts: 2, trim: true) == ["x"]
     assert String.split("x-x-", "-", parts: 3, trim: true) == ["x", "x"]
   end
@@ -145,6 +149,10 @@ defmodule StringTest do
     assert String.upcase("áüÈß") == "ÁÜÈSS"
   end
 
+  test "upcase/1 with ascii" do
+    assert String.upcase("olá", :ascii) == "OLá"
+  end
+
   test "downcase/1" do
     assert String.downcase("123 ABcD 456 EfG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ") ==
              "123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz"
@@ -160,8 +168,17 @@ defmodule StringTest do
   end
 
   test "downcase/1 with greek final sigma" do
-    assert String.downcase("ΣΣ") == "σς"
-    assert String.downcase("ΣΣ ΣΣ") == "σς σς"
+    assert String.downcase("Σ") == "σ"
+    assert String.downcase("ΣΣ") == "σσ"
+    assert String.downcase("Σ ΣΣ") == "σ σσ"
+
+    assert String.downcase("Σ", :greek) == "σ"
+    assert String.downcase("Σ ΣΣ", :greek) == "σ σς"
+    assert String.downcase("Σ ΣΑΣ Σ", :greek) == "σ σας σ"
+  end
+
+  test "downcase/1 with ascii" do
+    assert String.downcase("OLÁ", :ascii) == "olÁ"
   end
 
   test "capitalize/1" do
@@ -182,6 +199,11 @@ defmodule StringTest do
     assert String.capitalize("òóôõö") == "Òóôõö"
     assert String.capitalize("ÒÓÔÕÖ") == "Òóôõö"
     assert String.capitalize("ﬁn") == "Fin"
+  end
+
+  test "capitalize/1 with ascii" do
+    assert String.capitalize("àáâ", :ascii) == "àáâ"
+    assert String.capitalize("aáA", :ascii) == "Aáa"
   end
 
   test "replace_leading/3" do

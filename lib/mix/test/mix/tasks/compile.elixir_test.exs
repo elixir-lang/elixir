@@ -51,13 +51,13 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Task.clear()
       File.write!("_build/dev/lib/sample/consolidated/.to_be_removed", "")
       manifest_data = :erlang.term_to_binary({:v1, "0.0.0", nil})
-      File.write!("_build/dev/lib/sample/.compile.elixir_scm", manifest_data)
-      File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
+      File.write!("_build/dev/lib/sample/.mix/compile.elixir_scm", manifest_data)
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run([])
       assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path}
 
-      assert File.stat!("_build/dev/lib/sample/.compile.elixir_scm").mtime >
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir_scm").mtime >
                {{2010, 1, 1}, {0, 0, 0}}
 
       refute File.exists?("_build/dev/lib/sample/consolidated/.to_be_removed")
@@ -74,13 +74,13 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       Mix.Task.clear()
       manifest_data = :erlang.term_to_binary({1, @elixir_otp_version, :another})
-      File.write!("_build/dev/lib/sample/.compile.elixir_scm", manifest_data)
-      File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
+      File.write!("_build/dev/lib/sample/.mix/compile.elixir_scm", manifest_data)
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run([])
       assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path}
 
-      assert File.stat!("_build/dev/lib/sample/.compile.elixir_scm").mtime >
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir_scm").mtime >
                {{2010, 1, 1}, {0, 0, 0}}
     end
   end
@@ -110,7 +110,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute Code.ensure_loaded?(A)
-      refute String.contains?(File.read!("_build/dev/lib/sample/.compile.elixir"), "Elixir.A")
+      refute String.contains?(File.read!("_build/dev/lib/sample/.mix/compile.elixir"), "Elixir.A")
     end
   end
 
@@ -140,7 +140,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      File.touch!("_build/dev/lib/sample/.compile.elixir", future)
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", future)
       assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
     end
   end
@@ -226,19 +226,19 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge([A, B])
 
       # Update local existing resource
-      File.touch!("lib/a.eex", {{2020, 1, 1}, {0, 0, 0}})
+      File.touch!("lib/a.eex", {{2030, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       # Does not update on old existing resource
-      File.touch!("lib/a.eex", {{1970, 1, 1}, {0, 0, 0}})
+      File.touch!("lib/a.eex", {{2000, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
       Mix.shell().flush
       purge([A, B])
 
       # Update external existing resource
-      File.touch!(tmp, {{2020, 1, 1}, {0, 0, 0}})
+      File.touch!(tmp, {{2030, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -400,15 +400,21 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "does not recompile empty files" do
+  test "does not recompile files that are empty or has no code" do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", "")
+      File.write!("lib/b.ex", "# Just a comment")
+      File.write!("lib/c.ex", "\n\n")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
     end
   end
 

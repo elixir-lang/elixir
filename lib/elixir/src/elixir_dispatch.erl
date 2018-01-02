@@ -365,6 +365,12 @@ deprecation('Elixir.Set', _, _) ->
 %% Single functions
 deprecation('Elixir.Atom', to_char_list, 1) ->
   "use Atom.to_charlist/1";
+deprecation('Elixir.Enum', chunk, 2) ->
+  "use Enum.chunk_every/2 instead";
+deprecation('Elixir.Enum', chunk, 3) ->
+  "use Enum.chunk_every/3 instead";
+deprecation('Elixir.Enum', chunk, 4) ->
+  "use Enum.chunk_every/4 instead";
 deprecation('Elixir.Enum', filter_map, 3) ->
   "use Enum.filter/2 + Enum.map/2 or for comprehensions";
 deprecation('Elixir.Enum', partition, 2) ->
@@ -399,6 +405,12 @@ deprecation('Elixir.Macro', unescape_tokens, 2) ->
   "instead traverse over the arguments using Enum.map/2";
 deprecation('Elixir.Range', 'range?', 1) ->
   "instead pattern match on left..right";
+deprecation('Elixir.Stream', chunk, 2) ->
+  "use Stream.chunk_every/2 instead";
+deprecation('Elixir.Stream', chunk, 3) ->
+  "use Stream.chunk_every/3 instead";
+deprecation('Elixir.Stream', chunk, 4) ->
+  "use Stream.chunk_every/4 instead";
 deprecation('Elixir.Stream', filter_map, 3) ->
   "use Stream.filter/2 + Stream.map/2";
 deprecation('Elixir.Stream', uniq, 2) ->

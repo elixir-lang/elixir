@@ -885,19 +885,24 @@ defmodule List do
     compact_reverse(rest, [{kind, [elem | result]} | acc])
   end
 
+  defp compact_reverse(rest, [{:eq, elem}, {:ins, elem}, {:eq, other} | acc]) do
+    compact_reverse(rest, [{:ins, elem}, {:eq, elem ++ other} | acc])
+  end
+
   defp compact_reverse([{kind, elem} | rest], acc) do
     compact_reverse(rest, [{kind, [elem]} | acc])
   end
 
   defp each_diagonal(diag, limit, _paths, next_paths) when diag > limit do
-    {:next, Enum.reverse(next_paths)}
+    {:next, :lists.reverse(next_paths)}
   end
 
   defp each_diagonal(diag, limit, paths, next_paths) do
     {path, rest} = proceed_path(diag, limit, paths)
 
-    with {:cont, path} <- follow_snake(path) do
-      each_diagonal(diag + 2, limit, rest, [path | next_paths])
+    case follow_snake(path) do
+      {:cont, path} -> each_diagonal(diag + 2, limit, rest, [path | next_paths])
+      {:done, edits} -> {:done, edits}
     end
   end
 

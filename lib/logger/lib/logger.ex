@@ -16,8 +16,8 @@ defmodule Logger do
       performant when required but also apply backpressure
       when under stress.
 
-    * Wraps OTP's `error_logger` to prevent it from
-      overflowing.
+    * Wraps OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+      to prevent it from overflowing.
 
   Logging is useful for tracking when an event of interest happens in your
   system. For example, it may be helpful to log whenever a user is deleted.
@@ -63,7 +63,7 @@ defmodule Logger do
       application is started, but may be changed during runtime
 
     * Error logger configuration - configuration for the
-      wrapper around OTP's `error_logger`
+      wrapper around OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
 
   ### Application configuration
 
@@ -145,11 +145,11 @@ defmodule Logger do
   ### Error logger configuration
 
   The following configuration applies to `Logger`'s wrapper around
-  Erlang's `error_logger`. All the configurations below must be set
-  before the `:logger` application starts.
+  OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html).
+  All the configurations below must be set before the `:logger` application starts.
 
     * `:handle_otp_reports` - redirects OTP reports to `Logger` so
-      they are formatted in Elixir terms. This uninstalls Erlang's
+      they are formatted in Elixir terms. This uninstalls OTP's
       logger that prints terms to terminal. Defaults to `true`.
 
     * `:handle_sasl_reports` - redirects supervisor, crash and
@@ -163,17 +163,17 @@ defmodule Logger do
       reached, triggers the error logger to discard messages. This
       value must be a positive number that represents the maximum
       number of messages accepted per second. Once above this
-      threshold, the `error_logger` enters discard mode for the
-      remainder of that second. Defaults to 500 messages.
+      threshold, the [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+      enters discard mode for the remainder of that second. Defaults to 500 messages.
 
-  For example, to configure `Logger` to redirect all `error_logger` messages
-  using a `config/config.exs` file:
+  For example, to configure `Logger` to redirect all [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+  messages using a `config/config.exs` file:
 
       config :logger,
         handle_otp_reports: true,
         handle_sasl_reports: true
 
-  Furthermore, `Logger` allows messages sent by Erlang's `error_logger`
+  Furthermore, `Logger` allows messages sent by OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
   to be translated into an Elixir format via translators. Translators
   can be dynamically added at any time with the `add_translator/1`
   and `remove_translator/1` APIs. Check `Logger.Translator` for more
@@ -521,8 +521,8 @@ defmodule Logger do
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
-      to both Logger and Erlang's `error_logger` are processed before
-      the backend is added
+      to both Logger and OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+      are processed before the backend is added
 
   """
   @spec add_backend(atom, keyword) :: Supervisor.on_start_child()
@@ -548,8 +548,8 @@ defmodule Logger do
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
-      to both Logger and Erlang's `error_logger` are processed before
-      the backend is removed
+      to both Logger and OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+      are processed before the backend is removed
 
   """
   @spec remove_backend(atom, keyword) :: :ok | {:error, term}
@@ -709,8 +709,17 @@ defmodule Logger do
       compile_time_application() ++
         [module: module, function: form_fa(fun), file: file, line: line]
 
+    metadata =
+      if Keyword.keyword?(metadata) do
+        Keyword.merge(caller, metadata)
+      else
+        quote do
+          Keyword.merge(unquote(caller), unquote(metadata))
+        end
+      end
+
     quote do
-      Logger.bare_log(unquote(level), unquote(data), unquote(caller) ++ unquote(metadata))
+      Logger.bare_log(unquote(level), unquote(data), unquote(metadata))
     end
   end
 

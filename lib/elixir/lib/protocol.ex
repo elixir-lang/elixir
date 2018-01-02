@@ -116,6 +116,55 @@ defmodule Protocol do
 
   @doc """
   Derives the `protocol` for `module` with the given options.
+
+  If your implementation passes options or if you are generating
+  custom code based on the struct, you will also need to implement
+  a macro defined as `__deriving__(module, struct, options)`
+  to get the options that were passed.
+
+  ## Examples
+
+      defprotocol Derivable do
+        def ok(a)
+      end
+
+      defimpl Derivable, for: Any do
+        defmacro __deriving__(module, struct, options) do
+          quote do
+            defimpl Derivable, for: unquote(module) do
+              def ok(arg) do
+                {:ok, arg, unquote(Macro.escape(struct)), unquote(options)}
+              end
+            end
+          end
+        end
+
+        def ok(arg) do
+          {:ok, arg}
+        end
+      end
+
+      defmodule ImplStruct do
+        @derive [Derivable]
+        defstruct a: 0, b: 0
+
+        defimpl Sample do
+          def ok(struct) do
+            Unknown.undefined(struct)
+          end
+        end
+      end
+
+  Explicit derivations can now be called via `__deriving__`:
+
+      # Explicitly derived via `__deriving__`
+      Derivable.ok(%ImplStruct{a: 1, b: 1})
+
+      # Explicitly derived by API via `__deriving__`
+      require Protocol
+      Protocol.derive(Derivable, ImplStruct, :oops)
+      Derivable.ok(%ImplStruct{a: 1, b: 1})
+
   """
   defmacro derive(protocol, module, options \\ []) do
     quote do
@@ -260,7 +309,7 @@ defmodule Protocol do
   end
 
   defp beam_protocol(protocol) do
-    chunk_ids = [:abstract_code, :attributes, :compile_info, 'ExDc']
+    chunk_ids = [:abstract_code, :attributes, :compile_info, 'ExDc', 'ExDp']
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
@@ -269,12 +318,13 @@ defmodule Protocol do
           {:abstract_code, {_raw, abstract_code}},
           {:attributes, attributes},
           {:compile_info, compile_info},
-          {'ExDc', docs}
+          {'ExDc', docs},
+          {'ExDp', deprecated}
         ] = entries
 
         case attributes[:protocol] do
           [fallback_to_any: any] ->
-            {:ok, {protocol, any, abstract_code}, {compile_info, docs}}
+            {:ok, {protocol, any, abstract_code}, {compile_info, docs, deprecated}}
 
           _ ->
             {:error, :not_a_protocol}
@@ -316,24 +366,20 @@ defmodule Protocol do
     abstract_types = :erl_parse.abstract(:lists.usort(types))
 
     clauses =
-      :lists.map(
-        fn
-          {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
-            {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
+      Enum.map(clauses, fn
+        {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
+          {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
 
-          {:clause, l, [{:atom, _, :impls}], [], [{:atom, _, _}]} ->
-            tuple = {:tuple, 0, [{:atom, 0, :consolidated}, abstract_types]}
-            {:clause, l, [{:atom, 0, :impls}], [], [tuple]}
+        {:clause, l, [{:atom, _, :impls}], [], [{:atom, _, _}]} ->
+          tuple = {:tuple, 0, [{:atom, 0, :consolidated}, abstract_types]}
+          {:clause, l, [{:atom, 0, :impls}], [], [tuple]}
 
-          {:clause, _, _, _, _} = c ->
-            c
-        end,
-        clauses
-      )
+        {:clause, _, _, _, _} = c ->
+          c
+      end)
 
-    change_impl_for(tail, protocol, types, structs, true, [
-      {:function, line, :__protocol__, 1, clauses} | acc
-    ])
+    acc = [{:function, line, :__protocol__, 1, clauses} | acc]
+    change_impl_for(tail, protocol, types, structs, true, acc)
   end
 
   defp change_impl_for(
@@ -354,9 +400,8 @@ defmodule Protocol do
     clauses =
       [struct_clause_for(line) | clauses] ++ [fallback_clause_for(fallback, protocol, line)]
 
-    change_impl_for(tail, protocol, types, structs, protocol?, [
-      {:function, line, :impl_for, 1, clauses} | acc
-    ])
+    acc = [{:function, line, :impl_for, 1, clauses} | acc]
+    change_impl_for(tail, protocol, types, structs, protocol?, acc)
   end
 
   defp change_impl_for(
@@ -448,14 +493,14 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile(protocol, code, {compile_info, docs}) do
+  defp compile(protocol, code, {compile_info, docs, deprecated}) do
     opts = Keyword.take(compile_info, [:source])
     opts = if Code.compiler_options()[:debug_info], do: [:debug_info | opts], else: opts
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return | opts])
 
     case docs do
       :missing_chunk -> {:ok, binary}
-      _ -> {:ok, :elixir_erl.add_beam_chunks(binary, [{"ExDc", docs}])}
+      _ -> {:ok, :elixir_erl.add_beam_chunks(binary, [{"ExDc", docs}, {"ExDp", deprecated}])}
     end
   end
 
@@ -499,6 +544,13 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote bind_quoted: [builtin: __builtin__()] do
+      any_impl_for =
+        if @fallback_to_any do
+          quote do: unquote(__MODULE__.Any).__impl__(:target)
+        else
+          nil
+        end
+
       @doc false
       @spec impl_for(term) :: atom | nil
       Kernel.def(impl_for(data))
@@ -517,9 +569,10 @@ defmodule Protocol do
           target = Module.concat(__MODULE__, mod)
 
           Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
-            case impl_for?(unquote(target)) do
+            case Code.ensure_compiled?(unquote(target)) and
+                   function_exported?(unquote(target), :__impl__, 1) do
               true -> unquote(target).__impl__(:target)
-              false -> any_impl_for()
+              false -> unquote(any_impl_for)
             end
           end
         end,
@@ -533,39 +586,33 @@ defmodule Protocol do
       # since it relies on Dialyzer not being smart enough to conclude that all
       # opaque types will get the any_impl_for/0 implementation.
       Kernel.def impl_for(_) do
-        any_impl_for()
+        unquote(any_impl_for)
       end
 
       @doc false
-      @spec impl_for!(term) :: atom | no_return
-      Kernel.def impl_for!(data) do
-        impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
-      end
-
-      # Internal handler for Any
-      if @fallback_to_any do
-        Kernel.defp(any_impl_for(), do: __MODULE__.Any.__impl__(:target))
+      @spec impl_for!(term) :: atom
+      if any_impl_for do
+        Kernel.def impl_for!(data) do
+          impl_for(data)
+        end
       else
-        Kernel.defp(any_impl_for(), do: nil)
+        Kernel.def impl_for!(data) do
+          impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
+        end
       end
 
       # Internal handler for Structs
       Kernel.defp struct_impl_for(struct) do
         target = Module.concat(__MODULE__, struct)
 
-        case impl_for?(target) do
+        case Code.ensure_compiled?(target) and function_exported?(target, :__impl__, 1) do
           true -> target.__impl__(:target)
-          false -> any_impl_for()
+          false -> unquote(any_impl_for)
         end
       end
 
-      # Check if compilation is available internally
-      Kernel.defp impl_for?(target) do
-        Code.ensure_compiled?(target) and function_exported?(target, :__impl__, 1)
-      end
-
-      # Inline any and struct implementations
-      @compile {:inline, any_impl_for: 0, struct_impl_for: 1, impl_for?: 1}
+      # Inline struct implementation for performance
+      @compile {:inline, struct_impl_for: 1}
 
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: term
@@ -701,8 +748,10 @@ defmodule Protocol do
   def __ensure_defimpl__(protocol, for, env) do
     if Protocol.consolidated?(protocol) do
       message =
-        "the #{inspect(protocol)} protocol has already been consolidated" <>
-          ", an implementation for #{inspect(for)} has no effect"
+        "the #{inspect(protocol)} protocol has already been consolidated, an " <>
+          "implementation for #{inspect(for)} has no effect. If you want to " <>
+          "implement protocols after compilation or during tests, check the " <>
+          "\"Consolidation\" section in the documentation for Kernel.defprotocol/2"
 
       :elixir_errors.warn(env.line, env.file, message)
     end

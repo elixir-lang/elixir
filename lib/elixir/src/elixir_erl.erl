@@ -21,11 +21,11 @@ debug_info(elixir_v1, _Module, none, _Opts) ->
   {error, missing};
 debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
   {ok, Map};
-debug_info(erlang_v1, _Module, {elixir_v1, Map, Specs}, _Opts) ->
-  {Prefix, Forms, _, _} = dynamic_form(Map),
+debug_info(erlang_v1, Module, {elixir_v1, Map, Specs}, _Opts) ->
+  {Prefix, Forms, _, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
   {ok, Prefix ++ Specs ++ Forms};
-debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
-  {Prefix, Forms, _, _} = dynamic_form(Map),
+debug_info(core_v1, Module, {elixir_v1, Map, Specs}, Opts) ->
+  {Prefix, Forms, _, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
   #{compile_opts := CompileOpts} = Map,
 
   %% Do not rely on elixir_erl_compiler because we don't
@@ -38,6 +38,26 @@ debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
   end;
 debug_info(_, _, _, _) ->
   {error, unknown_format}.
+
+%% `ExDp` chunk from beam
+
+deprecated_chunk_from_beam(Module) ->
+  Beam = abstract_code_beam(Module),
+
+  case beam_lib:chunks(Beam, ["ExDp"]) of
+    {ok, {Module, [{_, DeprecatedBin}]}} ->
+      {elixir_deprecated_v1, Deprecated} = binary_to_term(DeprecatedBin),
+      Deprecated;
+
+    _ ->
+      []
+  end.
+
+abstract_code_beam(Module) ->
+  case code:get_object_code(Module) of
+    {Module, Beam, _} -> Beam;
+    error -> Module
+  end.
 
 %% Builds Erlang AST annotation.
 
@@ -149,16 +169,17 @@ definition_scope(Meta, File) ->
 
 compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
-  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map),
+  Deprecated = get_deprecated(Data),
+  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map, Deprecated),
   Specs =
     case elixir_config:get(bootstrap) of
       true -> [];
       false -> specs_form(Map, Data, Defmacro, Unreachable, types_form(Data, []))
     end,
-  load_form(Map, Data, Prefix, Forms, Specs).
+  load_form(Map, Data, Prefix, Forms, Specs, Deprecated).
 
 dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
-               definitions := Definitions, unreachable := Unreachable}) ->
+               definitions := Definitions, unreachable := Unreachable}, Deprecated) ->
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, File, Unreachable, [], [], [], [], {[], []}),
 
@@ -167,7 +188,7 @@ dynamic_form(#{module := Module, line := Line, file := File, attributes := Attri
             {attribute, Line, module, Module},
             {attribute, Line, compile, no_auto_import}],
 
-  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions),
+  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated),
   Forms1 = attributes_form(Line, Attributes, Forms0),
   {Prefix, Forms1, Macros, Unreachable}.
 
@@ -263,12 +284,12 @@ is_macro(_)         -> false.
 
 % Functions
 
-functions_form(Line, Module, Def, Defmacro, Exports, Body) ->
-  {Spec, Info} = add_info_function(Line, Module, Def, Defmacro),
+functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated) ->
+  {Spec, Info} = add_info_function(Line, Module, Def, Defmacro, Deprecated),
   [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body].
 
-add_info_function(Line, Module, Def, Defmacro) ->
-  AllowedAttrs = [attributes, compile, functions, macros, md5, module],
+add_info_function(Line, Module, Def, Defmacro, Deprecated) ->
+  AllowedAttrs = [attributes, compile, functions, macros, md5, module, deprecated],
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
 
   Spec =
@@ -303,7 +324,8 @@ add_info_function(Line, Module, Def, Defmacro) ->
       macros_info(Defmacro),
       get_module_info(Module, attributes),
       get_module_info(Module, compile),
-      get_module_info(Module, md5)
+      get_module_info(Module, md5),
+      deprecated_info(Deprecated)
     ]},
 
   {Spec, Info}.
@@ -320,6 +342,9 @@ macros_info(Defmacro) ->
 get_module_info(Module, Key) ->
   Call = remote(0, erlang, get_module_info, [{atom, 0, Module}, {atom, 0, Key}]),
   {clause, 0, [{atom, 0, Key}], [], [Call]}.
+
+deprecated_info(Deprecated) ->
+  {clause, 0, [{atom, 0, deprecated}], [], [elixir_erl:elixir_to_erl(Deprecated)]}.
 
 % Types
 
@@ -442,8 +467,9 @@ attributes_form(Line, Attributes, Forms) ->
 
 % Loading forms
 
-load_form(#{line := Line, file := File, compile_opts := Opts} = Map, Data, Prefix, Forms, Specs) ->
-  {ExtraChunks, CompileOpts} = extra_chunks(Data, Line, debug_opts(Map, Specs, Opts)),
+load_form(#{line := Line, file := File, compile_opts := Opts} = Map,
+            Data, Prefix, Forms, Specs, Deprecated) ->
+  {ExtraChunks, CompileOpts} = extra_chunks(Data, Deprecated, Line, debug_opts(Map, Specs, Opts)),
   {_, Binary} = elixir_erl_compiler:forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
   add_beam_chunks(Binary, ExtraChunks).
 
@@ -469,12 +495,17 @@ supports_debug_tuple() ->
     _ -> true
   end.
 
-extra_chunks(Data, Line, Opts) ->
+extra_chunks(Data, Deprecated, Line, Opts) ->
   Supported = supports_extra_chunks_option(),
-  case docs_chunk(Data, Line, elixir_compiler:get_opt(docs)) of
+  Chunks0 = lists:flatten([
+    docs_chunk(Data, Line, elixir_compiler:get_opt(docs)),
+    deprecated_chunk(Deprecated)
+  ]),
+
+  case Chunks0 of
     [] -> {[], Opts};
-    Chunks when Supported -> {[], [{extra_chunks, Chunks} | Opts]};
-    Chunks -> {Chunks, Opts}
+    Chunks1 when Supported -> {[], [{extra_chunks, Chunks1} | Opts]};
+    Chunks1 -> {Chunks1, Opts}
   end.
 
 supports_extra_chunks_option() ->
@@ -495,6 +526,10 @@ docs_chunk(Data, Line, true) ->
 docs_chunk(_, _, _) ->
   [].
 
+deprecated_chunk(Deprecated) ->
+  ChunkData = term_to_binary({elixir_deprecated_v1, Deprecated}, [compressed]),
+  [{<<"ExDp">>, ChunkData}].
+
 get_moduledoc(Line, Data) ->
   case ets:lookup_element(Data, moduledoc, 2) of
     nil -> {Line, nil};
@@ -512,6 +547,9 @@ get_callback_docs(Data) ->
 get_type_docs(Data) ->
   lists:usort(ets:select(Data, [{{{typedoc, '$1'}, '$2', '$3', '$4'},
                                  [], [{{'$1', '$2', '$3', '$4'}}]}])).
+
+get_deprecated(Data) ->
+  lists:usort(ets:select(Data, [{{{deprecated, '$1'}, '$2'}, [], [{{'$1', '$2'}}]}])).
 
 %% Errors
 

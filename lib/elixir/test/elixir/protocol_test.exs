@@ -9,6 +9,7 @@ defmodule ProtocolTest do
     defprotocol Sample do
       @type t :: any
       @doc "Ok"
+      @deprecated "Reason"
       @spec ok(t) :: boolean
       def ok(term)
     end
@@ -108,13 +109,14 @@ defmodule ProtocolTest do
     end
   end
 
-  test "protocol documentation" do
+  test "protocol documentation and deprecated" do
     import PathHelpers
 
     write_beam(
       defprotocol SampleDocsProto do
         @type t :: any
         @doc "Ok"
+        @deprecated "Reason"
         @spec ok(t) :: boolean
         def ok(term)
       end
@@ -122,6 +124,9 @@ defmodule ProtocolTest do
 
     docs = Code.get_docs(SampleDocsProto, :docs)
     assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = List.keyfind(docs, {:ok, 1}, 0)
+
+    deprecated = Sample.__info__(:deprecated)
+    assert [{{:ok, 1}, "Reason"}] = deprecated
   end
 
   test "protocol keeps underlying UndefinedFunctionError" do
@@ -131,11 +136,11 @@ defmodule ProtocolTest do
   end
 
   test "protocol defines callbacks" do
-    assert [{:type, 12, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
-    assert args == [{:type, 12, :product, [{:user_type, 12, :t, []}]}, {:type, 12, :boolean, []}]
+    assert [{:type, 13, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
+    assert args == [{:type, 13, :product, [{:user_type, 13, :t, []}]}, {:type, 13, :boolean, []}]
 
-    assert [{:type, 22, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
-    assert args == [{:type, 22, :product, [{:user_type, 22, :t, []}]}, {:type, 22, :term, []}]
+    assert [{:type, 23, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
+    assert args == [{:type, 23, :product, [{:user_type, 23, :t, []}]}, {:type, 23, :term, []}]
   end
 
   test "protocol defines functions and attributes" do
@@ -266,6 +271,7 @@ defmodule Protocol.ConsolidationTest do
     defprotocol Sample do
       @type t :: any
       @doc "Ok"
+      @deprecated "Reason"
       @spec ok(t) :: boolean
       def ok(term)
     end
@@ -371,8 +377,19 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidation keeps docs" do
-    docs = Code.get_docs(Sample, :docs)
-    assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = List.keyfind(docs, {:ok, 1}, 0)
+    {:ok, {Sample, [{'ExDc', docs_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExDc'])
+    {:elixir_docs_v1, docs} = :erlang.binary_to_term(docs_bin)
+    ok_doc = Keyword.get(docs, :docs) |> List.keyfind({:ok, 1}, 0)
+
+    assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = ok_doc
+  end
+
+  test "consolidation keeps deprecated" do
+    deprecated = [{{:ok, 1}, "Reason"}]
+    assert deprecated == Sample.__info__(:deprecated)
+
+    {:ok, {Sample, [{'ExDp', deprecated_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExDp'])
+    assert {:elixir_deprecated_v1, deprecated} == :erlang.binary_to_term(deprecated_bin)
   end
 
   test "consolidation keeps source" do

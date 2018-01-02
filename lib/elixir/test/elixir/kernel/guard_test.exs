@@ -4,98 +4,75 @@ defmodule Kernel.GuardTest do
   use ExUnit.Case, async: true
 
   describe "Kernel.defguard(p) usage" do
-    test "successfully defines guard" do
-      defmodule(Success, do: defguard(foo(bar, baz) when bar + baz))
-    end
+    defmodule Guards.In.Macros do
+      defguard is_foo(atom) when atom == :foo
 
-    test "successfully defines private guard" do
-      defmodule PrivateSuccess do
-        defguardp foo(bar, baz) when bar + baz
-        def fizz(a, b) when foo(a, b), do: :buzz
+      defmacro is_compile_time_foo(atom) when is_foo(atom) do
+        quote do: unquote(__MODULE__).is_foo(unquote(atom))
       end
     end
 
     test "guards can be used in other macros in the same module" do
-      defmodule Guards.In.Macros do
-        defguard is_foo(atom) when atom == :foo
+      require Guards.In.Macros
+      assert Guards.In.Macros.is_foo(:foo)
+      refute Guards.In.Macros.is_foo(:baz)
+      assert Guards.In.Macros.is_compile_time_foo(:foo)
+    end
 
-        defmacro is_foobar(atom) when is_foo(atom) do
-          quote bind_quoted: [atom: atom], do: is_foo(atom)
-        end
+    defmodule Guards.In.Funs do
+      defguard is_foo(atom) when atom == :foo
+
+      def is_foobar(atom) when is_foo(atom) do
+        is_foo(atom)
       end
     end
 
     test "guards can be used in other funs in the same module" do
-      defmodule Guards.In.Funs do
-        defguard is_foo(atom) when atom == :foo
+      require Guards.In.Funs
+      assert Guards.In.Funs.is_foo(:foo)
+      refute Guards.In.Funs.is_foo(:bar)
+    end
 
-        def is_foobar(atom) when is_foo(atom) do
-          is_foo(atom)
+    defmodule Macros.In.Guards do
+      defmacro is_foo(atom) do
+        quote do
+          unquote(atom) == :foo
         end
       end
+
+      defguard is_foobar(atom) when is_foo(atom) or atom == :bar
     end
 
     test "macros can be used in other guards in the same module" do
-      defmodule Macros.In.Guards do
-        defmacro is_foo(atom) do
-          quote do
-            unquote(atom) == :foo
-          end
-        end
+      require Macros.In.Guards
+      assert Macros.In.Guards.is_foobar(:foo)
+      assert Macros.In.Guards.is_foobar(:bar)
+      refute Macros.In.Guards.is_foobar(:baz)
+    end
 
-        defguard is_foobar(atom) when is_foo(atom) or atom == :bar
-      end
+    defmodule Guards.In.Guards do
+      defguard is_foo(atom) when atom == :foo
+      defguard is_foobar(atom) when is_foo(atom) or atom == :bar
     end
 
     test "guards can be used in other guards in the same module" do
-      defmodule Guards.In.Guards do
-        defguard is_foo(atom) when atom == :foo
-        defguard is_foobar(atom) when is_foo(atom) or atom == :bar
-      end
+      require Guards.In.Guards
+      assert Guards.In.Guards.is_foobar(:foo)
+      assert Guards.In.Guards.is_foobar(:bar)
+      refute Guards.In.Guards.is_foobar(:baz)
     end
 
-    # The below works––and is supposed to be equivalent to the above.
-    # However it doesn't look like any defguard is getting enough context about
-    # the caller env to recognize that the above 3 cases should be valid,
-    # raising CompileError undefined function is_foo/1.
-    # I suspect that inaccurate information is being provided to :elixir_expand.expand/2,
-    # making it think these are remote, rather than local, calls, based on the backtrace
-    # through :elixir_expand.expand_remote/7.
-    test "macros can be used in other macros" do
-      defmodule Macros.In.Macros do
-        defmacro is_foo(atom) do
-          quote do
-            case Macro.Env.in_guard?(__CALLER__) do
-              true ->
-                unquote(atom) == :foo
-
-              false ->
-                atom = unquote(atom)
-                atom == :foo
-            end
-          end
-        end
-
-        defmacro is_foobar(atom) do
-          quote do
-            case Macro.Env.in_guard?(__CALLER__) do
-              true ->
-                is_foo(unquote(atom)) or unquote(atom) == :bar
-
-              false ->
-                atom = unquote(atom)
-                is_foo(atom) or atom == :bar
-            end
-          end
-        end
-      end
+    defmodule Default.Args do
+      defguard is_divisible(value, remainder \\ 2)
+               when is_integer(value) and rem(value, remainder) == 0
     end
 
     test "permits default values in args" do
-      defmodule Default.Args do
-        defguard is_divisible(value, remainder \\ 2)
-                 when is_integer(value) and rem(value, remainder) == 0
-      end
+      require Default.Args
+      assert Default.Args.is_divisible(2)
+      refute Default.Args.is_divisible(1)
+      assert Default.Args.is_divisible(3, 3)
+      refute Default.Args.is_divisible(3, 4)
     end
 
     test "doesn't allow matching in args" do
@@ -124,45 +101,18 @@ defmodule Kernel.GuardTest do
       end
     end
 
-    test "defguard defines guards that work inside and outside guard clauses" do
-      defmodule Integer.Guards do
-        defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
+    defmodule Integer.Private.Guards do
+      defguardp is_even(value) when is_integer(value) and rem(value, 2) == 0
 
-        def is_even_and_large?(value) when is_even(value) and value > 100, do: true
-        def is_even_and_large?(_), do: false
+      def is_even_and_large?(value) when is_even(value) and value > 100, do: true
+      def is_even_and_large?(_), do: false
+
+      def is_even_and_small?(value) do
+        if is_even(value) and value <= 100, do: true, else: false
       end
-
-      defmodule Integer.Utils do
-        import Integer.Guards
-
-        def is_even_and_small?(value) do
-          if is_even(value) and value <= 100, do: true, else: false
-        end
-      end
-
-      assert Integer.Guards.is_even_and_large?(102)
-      refute Integer.Guards.is_even_and_large?(98)
-      refute Integer.Guards.is_even_and_large?(99)
-      refute Integer.Guards.is_even_and_large?(103)
-
-      assert Integer.Utils.is_even_and_small?(98)
-      refute Integer.Utils.is_even_and_small?(99)
-      refute Integer.Utils.is_even_and_small?(102)
-      refute Integer.Utils.is_even_and_small?(103)
     end
 
     test "defguardp defines private guards that work inside and outside guard clauses" do
-      defmodule Integer.Private.Guards do
-        defguardp is_even(value) when is_integer(value) and rem(value, 2) == 0
-
-        def is_even_and_large?(value) when is_even(value) and value > 100, do: true
-        def is_even_and_large?(_), do: false
-
-        def is_even_and_small?(value) do
-          if is_even(value) and value <= 100, do: true, else: false
-        end
-      end
-
       assert Integer.Private.Guards.is_even_and_large?(102)
       refute Integer.Private.Guards.is_even_and_large?(98)
       refute Integer.Private.Guards.is_even_and_large?(99)
@@ -412,13 +362,13 @@ defmodule Kernel.GuardTest do
         Code.string_to_quoted("""
         case Macro.Env.in_guard? __CALLER__ do
           true -> quote do
-            unquote(foo) + unquote(bar) + unquote(baz)
+            :erlang.+(:erlang.+(unquote(foo), unquote(bar)), unquote(baz))
           end
           false -> quote do
             foo = unquote(foo)
             bar = unquote(bar)
             baz = unquote(baz)
-            foo + bar + baz
+            :erlang.+(:erlang.+(foo, bar), baz)
           end
         end
         """)
@@ -434,12 +384,12 @@ defmodule Kernel.GuardTest do
         Code.string_to_quoted("""
         case Macro.Env.in_guard? __CALLER__ do
           true -> quote do
-            unquote(foo) + unquote(bar)
+            :erlang.+(unquote(foo), unquote(bar))
           end
           false -> quote do
             foo = unquote(foo)
             bar = unquote(bar)
-            foo + bar
+            :erlang.+(foo, bar)
           end
         end
         """)
@@ -453,16 +403,18 @@ defmodule Kernel.GuardTest do
 
       {:ok, goal} =
         Code.string_to_quoted("""
-        case Macro.Env.in_guard? __CALLER__ do
-          true -> quote do
-            unquote(foo) + unquote(foo) + unquote(bar) + unquote(baz)
-          end
-          false -> quote do
-            foo = unquote(foo)
-            bar = unquote(bar)
-            baz = unquote(baz)
-            foo + foo + bar + baz
-          end
+        case(Macro.Env.in_guard?(__CALLER__)) do
+          true ->
+            quote() do
+              :erlang.+(:erlang.+(:erlang.+(unquote(foo), unquote(foo)), unquote(bar)), unquote(baz))
+            end
+          false ->
+            quote() do
+              foo = unquote(foo)
+              bar = unquote(bar)
+              baz = unquote(baz)
+              :erlang.+(:erlang.+(:erlang.+(foo, foo), bar), baz)
+            end
         end
         """)
 

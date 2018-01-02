@@ -35,12 +35,18 @@ defmodule Mix.Tasks.App.StartTest do
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/app_start_sample.app")
 
+      assert :code.is_loaded(A)
       refute List.keyfind(Application.started_applications(), :app_start_sample, 0)
       assert List.keyfind(Application.started_applications(), :logger, 0)
+      purge([A])
 
       Mix.Tasks.App.Start.run([])
+      refute :code.is_loaded(A)
       assert List.keyfind(Application.started_applications(), :app_start_sample, 0)
       assert List.keyfind(Application.started_applications(), :logger, 0)
+
+      Mix.Tasks.App.Start.run(["--preload-modules"])
+      assert :code.is_loaded(A)
     end
   end
 

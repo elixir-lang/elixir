@@ -3,6 +3,14 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.CmdTest do
   use MixTest.Case
 
+  test "can be called multiple times" do
+    nl = os_newline()
+    Mix.Task.run("cmd", ["echo", "hello"])
+    assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+    Mix.Task.run("cmd", ["echo", "hello"])
+    assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+  end
+
   test "runs the command for each app" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->

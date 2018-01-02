@@ -16,22 +16,162 @@ defmodule Mix.Tasks.XrefTest do
     :ok
   end
 
+  test "calls: returns all function calls" do
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: A.a()
+        def a(arg), do: A.a(arg)
+        def c, do: B.a()
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        def a, do: nil
+      end
+      """
+    }
+
+    output = [
+      %{callee: {A, :a, 0}, caller_module: A, file: "lib/a.ex", line: 2},
+      %{callee: {A, :a, 1}, caller_module: A, file: "lib/a.ex", line: 3},
+      %{callee: {B, :a, 0}, caller_module: A, file: "lib/a.ex", line: 4},
+      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 4},
+      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        caller_module: A,
+        file: "lib/a.ex",
+        line: 1
+      },
+      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        caller_module: B,
+        file: "lib/b.ex",
+        line: 1
+      }
+    ]
+
+    assert_all_calls(files, output)
+  end
+
+  test "calls: returns macro call" do
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        defmacro a_macro, do: :ok
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        require A
+        def a, do: A.a_macro()
+      end
+      """
+    }
+
+    output = [
+      %{callee: {A, :a_macro, 0}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        line: 1,
+        caller_module: B,
+        file: "lib/b.ex"
+      },
+      %{callee: {Kernel, :defmacro, 2}, caller_module: A, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        line: 1,
+        caller_module: A,
+        file: "lib/a.ex"
+      }
+    ]
+
+    assert_all_calls(files, output)
+  end
+
+  test "calls: returns function call inside macro" do
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        defmacro a_macro(x) do
+          quote do
+            A.b(unquote(x))
+          end
+        end
+
+        def b(x), do: x
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        require A
+        def a, do: A.a_macro(1)
+      end
+      """
+    }
+
+    output = [
+      %{callee: {A, :b, 1}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {A, :a_macro, 1}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        caller_module: B,
+        file: "lib/b.ex",
+        line: 1
+      },
+      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 8},
+      %{callee: {Kernel, :defmacro, 2}, caller_module: A, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
+      %{
+        callee: {Kernel.LexicalTracker, :read_cache, 2},
+        caller_module: A,
+        file: "lib/a.ex",
+        line: 1
+      }
+    ]
+
+    assert_all_calls(files, output)
+  end
+
+  defp assert_all_calls(files, expected) do
+    in_fixture "no_mixfile", fn ->
+      generate_files(files)
+
+      Mix.Task.run("compile")
+      assert Enum.sort(Mix.Tasks.Xref.calls()) == Enum.sort(expected)
+    end
+  end
+
   ## Warnings
 
   test "warnings: reports nothing with no references" do
-    assert_no_warnings("defmodule A do end")
+    files = %{"lib/a.ex" => "defmodule A do end"}
+
+    assert_no_warnings(files)
   end
 
   test "warnings: reports missing functions" do
-    code = """
-    defmodule A do
-      def a, do: A.no_func
-      def b, do: A.a()
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: A.no_func
+        def b, do: A.a()
 
-      @file "lib/external_source.ex"
-      def c, do: &A.no_func/1
-    end
-    """
+        @file "lib/external_source.ex"
+        def c, do: &A.no_func/1
+      end
+      """
+    }
 
     warning = """
     warning: function A.no_func/0 is undefined or private
@@ -42,19 +182,21 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: reports missing functions respecting arity" do
-    code = """
-    defmodule A do
-      def a, do: :ok
-      def b, do: A.a(1)
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: :ok
+        def b, do: A.a(1)
 
-      @file "lib/external_source.ex"
-      def c, do: A.b(1)
-    end
-    """
+        @file "lib/external_source.ex"
+        def c, do: A.b(1)
+      end
+      """
+    }
 
     warning = """
     warning: function A.a/1 is undefined or private. Did you mean one of:
@@ -71,18 +213,20 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: reports missing modules" do
-    code = """
-    defmodule A do
-      def a, do: D.no_module
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: D.no_module
 
-      @file "lib/external_source.ex"
-      def c, do: E.no_module
-    end
-    """
+        @file "lib/external_source.ex"
+        def c, do: E.no_module
+      end
+      """
+    }
 
     warning = """
     warning: function D.no_module/0 is undefined (module D is not available)
@@ -93,18 +237,20 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: reports missing captures" do
-    code = """
-    defmodule A do
-      def a, do: &A.no_func/0
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: &A.no_func/0
 
-      @file "lib/external_source.ex"
-      def c, do: &A.no_func/1
-    end
-    """
+        @file "lib/external_source.ex"
+        def c, do: &A.no_func/1
+      end
+      """
+    }
 
     warning = """
     warning: function A.no_func/0 is undefined or private
@@ -115,33 +261,66 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: doesn't report missing funcs at compile time" do
-    assert_no_warnings("""
-      Enum.map([], fn _ -> BadReferencer.no_func4() end)
+    files = %{
+      "lib/a.ex" => """
+        Enum.map([], fn _ -> BadReferencer.no_func4() end)
 
-      if function_exported?(List, :flatten, 1) do
-        List.flatten([1, 2, 3])
-      else
-        List.old_flatten([1, 2, 3])
+        if function_exported?(List, :flatten, 1) do
+          List.flatten([1, 2, 3])
+        else
+          List.old_flatten([1, 2, 3])
+        end
+      """
+    }
+
+    assert_no_warnings(files)
+  end
+
+  test "warnings: reports deprecated calls" do
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        @deprecated "Use A.c/0 instead"
+        def a, do: c()
+
+        def b, do: a()
+        def c, do: :c
       end
-    """)
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        def a, do: A.a()
+      end
+      """
+    }
+
+    warning = """
+    warning: A.a/0 is deprecated. Use A.c/0 instead.
+      lib/b.ex:2
+
+    """
+
+    assert_warnings(files, warning)
   end
 
   test "warnings: protocols are checked, ignoring missing built-in impls" do
-    code = """
-    defprotocol AProtocol do
-      def func(arg)
-    end
-
-    defmodule AImplementation do
-      defimpl AProtocol do
-        def func(_), do: B.no_func
+    files = %{
+      "lib/a.ex" => """
+      defprotocol AProtocol do
+        def func(arg)
       end
-    end
-    """
+
+      defmodule AImplementation do
+        defimpl AProtocol do
+          def func(_), do: B.no_func
+        end
+      end
+      """
+    }
 
     warning = """
     warning: function B.no_func/0 is undefined or private
@@ -149,25 +328,31 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: handles Erlang ops" do
-    assert_no_warnings("""
-    defmodule A do
-      def a(a, b), do: a and b
-      def b(a, b), do: a or b
-    end
-    """)
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a(a, b), do: a and b
+        def b(a, b), do: a or b
+      end
+      """
+    }
+
+    assert_no_warnings(files)
   end
 
   test "warnings: handles Erlang modules" do
-    code = """
-    defmodule A do
-      def a, do: :not_a_module.no_module
-      def b, do: :lists.no_func
-    end
-    """
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: :not_a_module.no_module
+        def b, do: :lists.no_func
+      end
+      """
+    }
 
     warning = """
     warning: function :lists.no_func/0 is undefined or private
@@ -178,71 +363,79 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: handles multiple modules in one file" do
-    code = """
-    defmodule A1 do
-      def a, do: A2.no_func
-      def b, do: A2.a
-    end
-
-    defmodule A2 do
-      def a, do: A1.no_func
-      def b, do: A1.b
-    end
-    """
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: B.no_func
+        def b, do: B.a
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        def a, do: A.no_func
+        def b, do: A.b
+      end
+      """
+    }
 
     warning = """
-    warning: function A1.no_func/0 is undefined or private
-      lib/a.ex:7
+    warning: function A.no_func/0 is undefined or private
+      lib/b.ex:2
 
-    warning: function A2.no_func/0 is undefined or private
+    warning: function B.no_func/0 is undefined or private
       lib/a.ex:2
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: doesn't load unloaded modules" do
-    code = """
-    defmodule A1 do
-      @compile {:autoload, false}
-      @on_load :init
-      def init do
-        raise "oops"
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        @compile {:autoload, false}
+        @on_load :init
+        def init do
+          raise "oops"
+        end
       end
-    end
-
-    defmodule A2 do
-      def a, do: A1.no_func
-      def b, do: A1.init
-    end
-    """
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        def a, do: A.no_func
+        def b, do: A.init
+      end
+      """
+    }
 
     warning = """
-    warning: function A1.no_func/0 is undefined or private
-      lib/a.ex:10
+    warning: function A.no_func/0 is undefined or private
+      lib/b.ex:2
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: groups multiple warnings in one file" do
-    code = """
-    defmodule A do
-      def a, do: A.no_func
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: A.no_func
 
-      @file "lib/external_source.ex"
-      def b, do: A2.no_func
+        @file "lib/external_source.ex"
+        def b, do: A2.no_func
 
-      def c, do: A.no_func
-      def d, do: A2.no_func
-    end
-    """
+        def c, do: A.no_func
+        def d, do: A2.no_func
+      end
+      """
+    }
 
     warning = """
     warning: function A.no_func/0 is undefined or private
@@ -257,31 +450,33 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: handles module body conditionals" do
-    code = """
-    defmodule A do
-      if function_exported?(List, :flatten, 1) do
-        List.flatten([1, 2, 3])
-      else
-        List.old_flatten([1, 2, 3])
-      end
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        if function_exported?(List, :flatten, 1) do
+          List.flatten([1, 2, 3])
+        else
+          List.old_flatten([1, 2, 3])
+        end
 
-      if function_exported?(List, :flatten, 1) do
-        def flatten(arg), do: List.flatten(arg)
-      else
-        def flatten(arg), do: List.old_flatten(arg)
-      end
+        if function_exported?(List, :flatten, 1) do
+          def flatten(arg), do: List.flatten(arg)
+        else
+          def flatten(arg), do: List.old_flatten(arg)
+        end
 
-      if function_exported?(List, :flatten, 1) do
-        def flatten2(arg), do: List.old_flatten(arg)
-      else
-        def flatten2(arg), do: List.flatten(arg)
+        if function_exported?(List, :flatten, 1) do
+          def flatten2(arg), do: List.old_flatten(arg)
+        else
+          def flatten2(arg), do: List.flatten(arg)
+        end
       end
-    end
-    """
+      """
+    }
 
     warning = """
     warning: function List.old_flatten/1 is undefined or private. Did you mean one of:
@@ -293,35 +488,41 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: imports" do
-    assert_no_warnings("""
-    defmodule A do
-      import Record
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        import Record
 
-      def a(a, b), do: extract(a, b)
-      def b(arg), do: is_record(arg)
-    end
-    """)
+        def a(a, b), do: extract(a, b)
+        def b(arg), do: is_record(arg)
+      end
+      """
+    }
+
+    assert_no_warnings(files)
   end
 
   test "warnings: aliases" do
-    code = """
-    defmodule A do
-      alias Enum, as: E
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        alias Enum, as: E
 
-      def a(a, b), do: E.map2(a, b)
-      def b, do: &E.map2/2
+        def a(a, b), do: E.map2(a, b)
+        def b, do: &E.map2/2
 
-      @file "lib/external_source.ex"
-      def c do
-        alias Enum, as: EE
-        &EE.map2/2
+        @file "lib/external_source.ex"
+        def c do
+          alias Enum, as: EE
+          &EE.map2/2
+        end
       end
-    end
-    """
+      """
+    }
 
     warning = """
     warning: function Enum.map2/2 is undefined or private. Did you mean one of:
@@ -335,41 +536,35 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   test "warnings: requires" do
-    assert_no_warnings("""
-    defmodule A do
-      require Integer
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        require Integer
 
-      def a(a), do: Integer.is_even(a)
-    end
-    """)
+        def a(a), do: Integer.is_even(a)
+      end
+      """
+    }
+
+    assert_no_warnings(files)
   end
 
-  defp assert_warnings(contents, expected) do
+  defp assert_warnings(files, expected) do
     in_fixture "no_mixfile", fn ->
-      File.write!("lib/a.ex", contents)
-
-      output =
-        capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["warnings"]) != {:ok, []}
-        end)
-
+      generate_files(files)
+      output = capture_io(:stderr, fn -> Mix.Task.run("compile.xref") end)
       assert output == expected
     end
   end
 
-  defp assert_no_warnings(contents) do
+  defp assert_no_warnings(files) do
     in_fixture "no_mixfile", fn ->
-      File.write!("lib/a.ex", contents)
-
-      output =
-        capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["warnings"]) == {:ok, []}
-        end)
-
+      generate_files(files)
+      output = capture_io(:stderr, fn -> Mix.Task.run("compile.xref") end)
       assert output == ""
     end
   end
@@ -405,11 +600,77 @@ defmodule Mix.Tasks.XrefTest do
     assert_unreachable(code, warning)
   end
 
-  defp assert_unreachable(contents, expected, result \\ :error) do
+  test "unreachable: aborts if any" do
+    code = """
+    defmodule A do
+      def a, do: A.no_func
+    end
+    """
+
+    assert_raise Mix.Error, "mix xref unreachable failed: unreachable calls were found", fn ->
+      assert_unreachable(code, "NOT USED", ~w(--abort-if-any))
+    end
+  end
+
+  defp assert_unreachable(contents, expected, args \\ []) do
     in_fixture "no_mixfile", fn ->
       File.write!("lib/a.ex", contents)
 
-      assert Mix.Task.run("xref", ["unreachable"]) == result
+      capture_io(:stderr, fn ->
+        assert Mix.Task.run("xref", ["unreachable" | args]) == :error
+      end)
+
+      assert ^expected = receive_until_no_messages([])
+    end
+  end
+
+  ## Deprecated
+
+  test "deprecated: reports nothing with no references" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", "defmodule A do end")
+
+      assert Mix.Task.run("xref", ["deprecated"]) == :ok
+    end
+  end
+
+  test "deprecated: reports deprecated functions" do
+    code = """
+    defmodule A do
+      @deprecated "oops"
+      def a, do: A.a
+    end
+    """
+
+    warning = """
+    Compiling 2 files (.ex)
+    Generated sample app
+    lib/a.ex:3: A.a/0
+    """
+
+    assert_deprecated(code, warning)
+  end
+
+  test "deprecated: aborts if any" do
+    code = """
+    defmodule A do
+      @deprecated "oops"
+      def a, do: A.a
+    end
+    """
+
+    assert_raise Mix.Error, "mix xref deprecated failed: deprecated calls were found", fn ->
+      assert_deprecated(code, "NOT USED", ~w(--abort-if-any))
+    end
+  end
+
+  defp assert_deprecated(contents, expected, args \\ []) do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", contents)
+
+      capture_io(:stderr, fn ->
+        assert Mix.Task.run("xref", ["deprecated" | args]) == :error
+      end)
 
       assert ^expected = receive_until_no_messages([])
     end
@@ -430,14 +691,16 @@ defmodule Mix.Tasks.XrefTest do
 
     Mix.Project.push(ExcludeSample)
 
-    code = """
-    defmodule A do
-      def a, do: MissingModule.no_func(1)
-      def b, do: MissingModule2.no_func(1, 2)
-      def c, do: MissingModule2.no_func(1)
-      def d, do: MissingModule3.no_func(1, 2)
-    end
-    """
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: MissingModule.no_func(1)
+        def b, do: MissingModule2.no_func(1, 2)
+        def c, do: MissingModule2.no_func(1)
+        def d, do: MissingModule3.no_func(1, 2)
+      end
+      """
+    }
 
     warning = """
     warning: function MissingModule2.no_func/1 is undefined (module MissingModule2 is not available)
@@ -448,7 +711,7 @@ defmodule Mix.Tasks.XrefTest do
 
     """
 
-    assert_warnings(code, warning)
+    assert_warnings(files, warning)
   end
 
   ## Callers
@@ -686,7 +949,9 @@ defmodule Mix.Tasks.XrefTest do
         File.write!(file, contents)
       end
 
-      assert Mix.Task.run("xref", ["callers", callee]) == :ok
+      capture_io(:stderr, fn ->
+        assert Mix.Task.run("xref", ["callers", callee]) == :ok
+      end)
 
       assert ^expected = receive_until_no_messages([])
     end
@@ -996,6 +1261,12 @@ defmodule Mix.Tasks.XrefTest do
       {:mix_shell, :info, [line]} -> receive_until_no_messages([acc, line | "\n"])
     after
       0 -> IO.iodata_to_binary(acc)
+    end
+  end
+
+  defp generate_files(files) do
+    for {file, contents} <- files do
+      File.write!(file, contents)
     end
   end
 end

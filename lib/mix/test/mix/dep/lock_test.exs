@@ -12,7 +12,7 @@ defmodule Mix.Dep.LockTest do
     in_tmp context.test, fn ->
       Mix.Dep.Lock.write(%{foo: :bar})
       assert File.regular?("mix.lock")
-      assert File.regular?("_build/dev/lib/sample/.compile.lock")
+      assert File.regular?("_build/dev/lib/sample/.mix/compile.lock")
     end
   end
 
@@ -35,10 +35,10 @@ defmodule Mix.Dep.LockTest do
   test "does not touch manifest file there is no change", context do
     in_tmp context.test, fn ->
       Mix.Dep.Lock.write(%{foo: :bar, bar: :bat})
-      File.rm!("_build/dev/lib/sample/.compile.lock")
+      File.rm!("_build/dev/lib/sample/.mix/compile.lock")
 
       Mix.Dep.Lock.write(%{bar: :bat, foo: :bar})
-      refute File.regular?("_build/dev/lib/sample/.compile.lock")
+      refute File.regular?("_build/dev/lib/sample/.mix/compile.lock")
     end
   end
 

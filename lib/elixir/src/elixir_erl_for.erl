@@ -7,8 +7,8 @@ translate(Meta, Args, Return, S) ->
   {VarName, _, SV} = elixir_erl_var:build('_', SA),
 
   Ann = ?ann(Meta),
-  Acc  = {var, Ann, AccName},
-  Var  = {var, Ann, VarName},
+  Acc = {var, Ann, AccName},
+  Var = {var, Ann, VarName},
 
   {Cases, [{do, Expr} | Opts]} = elixir_utils:split_last(Args),
 
@@ -19,15 +19,17 @@ translate(Meta, Args, Return, S) ->
       false -> {false, SV}
     end,
 
+  TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
+
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
   {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr(Expr, TInto), SC),
   SF = elixir_erl_var:mergec(SI, SE),
 
   case comprehension_expr(TInto, TExpr) of
     {inline, TIntoExpr} ->
-      {build_inline(Ann, TCases, TIntoExpr, TInto, Var, Acc, SE), SF};
+      {build_inline(Ann, TCases, TIntoExpr, TInto, TUniq, Var, Acc, SF), SF};
     {into, TIntoExpr} ->
-      build_into(Ann, TCases, TIntoExpr, TInto, Var, Acc, SF)
+      build_into(Ann, TCases, TIntoExpr, TInto, TUniq, Var, Acc, SF)
   end.
 
 %% In case we have no return, we wrap the expression
@@ -92,37 +94,49 @@ collect_filters([H | T], Acc) ->
 collect_filters([], Acc) ->
   {Acc, []}.
 
-build_inline(Ann, Clauses, Expr, Into, _Var, Acc, S) ->
-  case lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
+
+build_inline(Ann, Clauses, Expr, Into, Uniq, _Var, Acc, S) ->
+  case not Uniq and lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
     true  -> build_comprehension(Ann, Clauses, Expr, Into);
-    false -> build_reduce(Clauses, Expr, Into, Acc, S)
+    false -> build_inline(Ann, Clauses, Expr, Into, Uniq, Acc, S)
   end.
 
-build_into(Ann, Clauses, Expr, {map, _, []} = Into, _Var, Acc, S) ->
-  {Key, SK} = build_var(Ann, S),
-  {Val, SV} = build_var(Ann, SK),
-  MapExpr =
-    {block, Ann, [
-      {match, Ann, {tuple, Ann, [Key, Val]}, Expr},
-      {call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, put}}, [Key, Val, Acc]}
-    ]},
-  {build_reduce_clause(Clauses, MapExpr, Into, Acc, SV), SV};
+build_inline(Ann, Clauses, Expr, false, Uniq, Acc, S) ->
+  InnerFun = fun(InnerExpr, _InnerAcc) -> InnerExpr end,
+  build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, Acc, S);
+build_inline(Ann, Clauses, Expr, {nil, _} = Into, Uniq, Acc, S) ->
+  InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
+  ReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, Acc, S),
+  elixir_erl:remote(Ann, lists, reverse, [ReduceExpr]);
+build_inline(Ann, Clauses, Expr, {bin, _, _} = Into, Uniq, Acc, S) ->
+  InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerAcc, InnerExpr} end,
+  ReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, Acc, S),
+  elixir_erl:remote(Ann, erlang, iolist_to_binary, [ReduceExpr]).
 
-build_into(Ann, Clauses, Expr, Into, Fun, Acc, S) ->
+build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, _Var, Acc, S) ->
+  ReduceExpr = build_inline(Ann, Clauses, Expr, {nil, Ann}, Uniq, Acc, S),
+  {elixir_erl:remote(Ann, maps, from_list, [ReduceExpr]), S};
+
+build_into(Ann, Clauses, Expr, Into, Uniq, Fun, Acc, S) ->
   {Kind, SK}   = build_var(Ann, S),
   {Reason, SR} = build_var(Ann, SK),
   {Stack, ST}  = build_var(Ann, SR),
   {Done, SD}   = build_var(Ann, ST),
 
-  IntoExpr  = {call, Ann, Fun, [Acc, pair(Ann, cont, Expr)]},
+  InnerFun = fun(InnerExpr, InnerAcc) ->
+    {call, Ann, Fun, [InnerAcc, pair(Ann, cont, InnerExpr)]}
+  end,
+
   MatchExpr = {match, Ann,
     {tuple, Ann, [Acc, Fun]},
     elixir_erl:remote(Ann, 'Elixir.Collectable', into, [Into])
   },
 
+  IntoReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, Acc, Uniq, Acc, SD),
+
   TryExpr =
     {'try', Ann,
-      [build_reduce_clause(Clauses, IntoExpr, Acc, Acc, SD)],
+      [IntoReduceExpr],
       [{clause, Ann,
         [Done],
         [],
@@ -139,20 +153,34 @@ build_into(Ann, Clauses, Expr, Into, Fun, Acc, S) ->
 
 %% Helpers
 
-build_reduce(Clauses, Expr, false, Acc, S) ->
-  build_reduce_clause(Clauses, Expr, {nil, 0}, Acc, S);
-build_reduce(Clauses, Expr, {nil, Ann} = Into, Acc, S) ->
-  ListExpr = {cons, Ann, Expr, Acc},
-  elixir_erl:remote(Ann, lists, reverse,
-    [build_reduce_clause(Clauses, ListExpr, Into, Acc, S)]);
-build_reduce(Clauses, Expr, {bin, Ann, _} = Into, Acc, S) ->
-  BinExpr = {cons, Ann, Acc, Expr},
-  elixir_erl:remote(Ann, erlang, iolist_to_binary,
-    [build_reduce_clause(Clauses, BinExpr, Into, Acc, S)]).
+build_reduce(_Ann, Clauses, InnerFun, Expr, Into, false, Acc, S) ->
+  build_reduce_each(Clauses, InnerFun(Expr, Acc), Into, Acc, S);
+build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, Acc, S) ->
+  %% Those variables are used only inside the anonymous function
+  %% so we don't need to worry about returning the scope.
+  {Value, SV} = build_var(Ann, S),
+  {IntoAcc, SI} = build_var(Ann, SV),
+  {UniqAcc, SU} = build_var(Ann, SI),
 
-build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
+  NewInto = {tuple, Ann, [Into, {map, Ann, []}]},
+  AccTuple = {tuple, Ann, [IntoAcc, UniqAcc]},
+  PutUniqExpr = elixir_erl:remote(Ann, maps, put, [Value, {atom, Ann, true}, UniqAcc]),
+
+  InnerExpr = {block, Ann, [
+    {match, Ann, AccTuple, Acc},
+    {match, Ann, Value, Expr},
+    {'case', Ann, UniqAcc, [
+      {clause, Ann, [{map, Ann, [{map_field_exact, Ann, Value, {atom, Ann, true}}]}], [], [AccTuple]},
+      {clause, Ann, [{map, Ann, []}], [], [{tuple, Ann, [InnerFun(Value, IntoAcc), PutUniqExpr]}]}
+    ]}
+  ]},
+
+  EnumReduceCall = build_reduce_each(Clauses, InnerExpr, NewInto, Acc, SU),
+  elixir_erl:remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]).
+
+build_reduce_each([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
-  True = build_reduce_clause(T, Expr, Acc, Acc, S),
+  True = build_reduce_each(T, Expr, Acc, Acc, S),
   False = Acc,
   Generated = erl_anno:set_generated(true, Ann),
 
@@ -173,13 +201,13 @@ build_reduce_clause([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S)
   Args  = [Right, Arg, {'fun', Ann, {clauses, Clauses1}}],
   elixir_erl:remote(Ann, 'Elixir.Enum', reduce, Args);
 
-build_reduce_clause([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
+build_reduce_each([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
   Generated  = erl_anno:set_generated(true, Ann),
   {Tail, ST} = build_var(Ann, S),
   {Fun, SF}  = build_var(Ann, ST),
 
-  True  = build_reduce_clause(T, Expr, Acc, Acc, SF),
+  True  = build_reduce_each(T, Expr, Acc, Acc, SF),
   False = Acc,
 
   {bin, _, Elements} = Left,
@@ -207,7 +235,7 @@ build_reduce_clause([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) 
     {named_fun, Ann, element(3, Fun), Clauses},
     [Right, Arg]};
 
-build_reduce_clause([], Expr, _Arg, _Acc, _S) ->
+build_reduce_each([], Expr, _Arg, _Acc, _S) ->
   Expr.
 
 is_var({var, _, _}) -> true;

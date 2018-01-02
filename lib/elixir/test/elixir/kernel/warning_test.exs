@@ -30,6 +30,78 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "unsafe variable" do
+    message = "variable \"x\" is unsafe"
+
+    capture_err(fn ->
+      Code.eval_string("""
+      case false do
+        true -> x = 1
+        _ -> 1
+      end
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      false and (x = 1)
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      true or (x = 1)
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      if false do
+        x = 1
+      end
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      cond do
+        false -> x = 1
+        true -> 1
+      end
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      receive do
+        :foo -> x = 1
+      after
+        0 -> 1
+      end
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      false && (x = 1)
+      x
+      """)
+    end) =~ message
+
+    capture_err(fn ->
+      Code.eval_string("""
+      true || (x = 1)
+      x
+      """)
+    end) =~ message
+  end
+
   test "unused variable in redefined function in different file" do
     output =
       capture_err(fn ->
@@ -417,7 +489,7 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "`length(list) == 0` in guard" do
+  test "length(list) == 0 in guard" do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule Sample do
@@ -500,30 +572,79 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "clause with defaults should be first" do
+  test "generated clause not match" do
     assert capture_err(fn ->
-             Code.eval_string(~S"""
+             Code.eval_string("""
              defmodule Sample do
-               def hello(arg), do: nil
-               def hello(arg \\ 0), do: nil
+               defmacro __using__(_) do
+                 quote do
+                   def hello, do: nil
+                   def hello, do: nil
+                 end
+               end
+             end
+             defmodule UseSample do
+               use Sample
              end
              """)
-           end) =~ "definitions with multiple clauses and default values require a header"
+           end) =~ "this clause cannot match because a previous clause at line 10 always matches"
   after
     purge(Sample)
+    purge(UseSample)
+  end
+
+  test "deprecated not left in right" do
+    assert capture_err(fn ->
+             Code.eval_string("not 1 in [1, 2, 3]")
+           end) =~ "deprecated"
+  end
+
+  test "clause with defaults should be first" do
+    message = "definitions with multiple clauses and default values require a header"
+
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+             defmodule Sample1 do
+               def hello(arg), do: arg
+               def hello(arg \\ 0), do: arg
+             end
+             """)
+           end) =~ message
+
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+             defmodule Sample2 do
+               def hello(_arg)
+               def hello(arg \\ 0), do: arg
+             end
+             """)
+           end) =~ message
+  after
+    purge([Sample1, Sample2])
   end
 
   test "clauses with default should use fun head" do
+    message = "definitions with multiple clauses and default values require a header"
+
     assert capture_err(fn ->
              Code.eval_string(~S"""
-             defmodule Sample do
-               def hello(arg \\ 0), do: nil
-               def hello(arg), do: nil
+             defmodule Sample1 do
+               def hello(arg \\ 0), do: arg
+               def hello(arg), do: arg
              end
              """)
-           end) =~ "definitions with multiple clauses and default values require a header"
+           end) =~ message
+
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+               defmodule Sample2 do
+                 def hello(arg \\ 0), do: arg
+                 def hello(_arg)
+               end
+             """)
+           end) == ""
   after
-    purge(Sample)
+    purge([Sample1, Sample2])
   end
 
   test "unused with local with overridable" do

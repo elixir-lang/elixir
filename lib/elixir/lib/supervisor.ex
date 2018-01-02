@@ -99,65 +99,6 @@ defmodule Supervisor do
   The rest of this document will cover how child processes are started,
   how they can be specified, different supervision strategies and more.
 
-  ## child_spec/1
-
-  When starting a supervisor, we pass a list of child specifications.
-  Those specifications are maps that tell how the supervisor should
-  start, stop and restart each of its children:
-
-      %{
-        id: Stack,
-        start: {Stack, :start_link, [[:hello]]}
-      }
-
-  The map above defines a supervisor with `:id` of `Stack` that is started
-  by calling `Stack.start_link([:hello])`. There are other options we can
-  set in the specification and we will explore those in the next sections.
-
-  For now, however, we want to clarify that specifying the child specification
-  for each child as a map is repetitive and error prone. That's why Elixir
-  allows you to simply pass the module name or a tuple with the module name
-  and the `start_link` argument instead of the child specification:
-
-      children = [
-        {Stack, [:hello]}
-      ]
-
-  In this case, the supervisor will invoke `Stack.child_spec([:hello])` which
-  then returns the child specification. It is also possible to simply pass the
-  `Stack` module as a child:
-
-      children = [
-        Stack # equivalent to {Stack, []}
-      ]
-
-  The advantage of this approach is that you can now share your `Stack` service
-  with other developers and they can add it directly to their supervision tree
-  without worrying about the low-level details of the service.
-
-  In case you need to access or modify how a service runs, you can use the
-  `child_spec/2` function defined in this module. To run the stack with a different
-  `:id`:
-
-      children = [
-        Supervisor.child_spec({Stack, [:hello]}, id: MyStack)
-      ]
-
-  We can see the child specification the call above returns:
-
-      Supervisor.child_spec({Stack, [:hello]}, id: MyStack)
-      #=> %{id: MyStack, start: {Stack, :start_link, [[:hello]]}}
-
-  The `child_spec/1` function was automatically defined in our `Stack` module
-  by `use GenServer`. You can also configure the GenServer to use a different
-  `:id` or to use a `:shutdown` value of 10 seconds (10_000 milliseconds) when
-  the `Stack` is defined:
-
-      use GenServer, id: MyStack
-      use GenServer, shutdown: 10_000
-
-  Let's learn more about how supervisors start and shutdown.
-
   ## Start and shutdown
 
   When the supervisor starts, it traverses all children and retrieves
@@ -278,7 +219,89 @@ defmodule Supervisor do
       `:normal`, `:shutdown` or `{:shutdown, term}`.
 
   For a more complete understanding of the exit reasons and their
-  impact, see the "Exit reasons and restarts" section next.
+  impact, see the "Exit reasons and restarts" section.
+
+  ## child_spec/1
+
+  When starting a supervisor, we pass a list of child specifications. Those
+  specifications are maps that tell how the supervisor should start, stop and
+  restart each of its children:
+
+      %{
+        id: Stack,
+        start: {Stack, :start_link, [[:hello]]}
+      }
+
+  The map above defines a supervisor with `:id` of `Stack` that is started
+  by calling `Stack.start_link([:hello])`.
+
+  However, specifying the child specification for each child as a map can be
+  quite error prone, as we may change the Stack implementation and forget to
+  update its specification. That's why Elixir allows you to pass a tuple with
+  the module name and the `start_link` argument instead of the specification:
+
+      children = [
+        {Stack, [:hello]}
+      ]
+
+  The supervisor will then invoke `Stack.child_spec([:hello])` to retrieve a
+  child specification. Now the `Stack` module is responsible for building its
+  own specification. By default, `use GenServer` defines a `Stack.child_spec/1`
+  function which returns the same child specification we had before:
+
+      %{
+        id: Stack,
+        start: {Stack, :start_link, [[:hello]]}
+      }
+
+  It is also possible to simply pass the `Stack` module as a child:
+
+      children = [
+        Stack
+      ]
+
+  When only the module name is given, it is equivalent to `{Stack, []}`. In this
+  case, we will end-up with a child specification that looks like this:
+
+      %{
+        id: Stack,
+        start: {Stack, :start_link, [[]]}
+      }
+
+  By replacing the map specification by `{Stack, [:hello]}` or `Stack`, we keep
+  the child specification encapsulated in the Stack module, using the default
+  implementation defined by `use GenServer`. We can now share our `Stack` worker
+  with other developers and they can add it directly to their supervision tree
+  without worrying about the low-level details of the worker.
+
+  If you need to access or modify how a worker or a supervisor runs, you can use
+  the `Supervisor.child_spec/2` function. For example, to run the stack with a
+  different `:id` and a `:shutdown` value of 10 seconds (10_000 milliseconds):
+
+      children = [
+        Supervisor.child_spec({Stack, [:hello]}, id: MyStack, shutdown: 10_000)
+      ]
+
+  The call to `Supervisor.child_spec/2` above will return the following specification:
+
+      %{
+        id: MyStack,
+        start: {Stack, :start_link, [[:hello]]},
+        shutdown: 10_000
+      }
+
+  You may also configure the child specification in the Stack module itself to
+  use a different `:id` or `:shutdown` value by passing options to `use GenServer`:
+
+      defmodule Stack do
+        use GenServer, id: MyStack, shutdown: 10_000
+
+  The options above will customize the `Stack.child_spec/1` function defined
+  by `use GenServer`. It accepts the same options as the `Supervisor.child_spec/2`
+  function.
+
+  You may also completely override the `child_spec/1` function in the Stack module
+  and return your own child specification.
 
   ## Exit reasons and restarts
 
@@ -505,7 +528,7 @@ defmodule Supervisor do
   @typedoc "The supervisor specification"
   @type child_spec :: %{
           required(:id) => term(),
-          required(:start) => {module(), function(), [term()]},
+          required(:start) => {module(), atom(), [term()]},
           optional(:restart) => :permanent | :transient | :temporary,
           optional(:shutdown) => :brutal_kill | non_neg_integer() | :infinity,
           optional(:type) => :worker | :supervisor,
@@ -569,7 +592,7 @@ defmodule Supervisor do
   ## Options
 
     * `:strategy` - the restart strategy option. It can be either
-      `:one_for_one`, `:rest_for_one`, `:one_for_all`, or
+      `:one_for_one`, `:rest_for_one`, `:one_for_all`, or the deprecated
       `:simple_one_for_one`.
 
     * `:max_restarts` - the maximum number of restarts allowed in
@@ -699,14 +722,6 @@ defmodule Supervisor do
       #=> %{id: {Agent, 1},
       #=>   start: {Agent, :start_link, [fn -> :ok end]}}
 
-  It may also be used when there is a need to change the number
-  of arguments when starting a module under a `:simple_one_for_one`
-  strategy, since most args may be given dynamically:
-
-      Supervisor.child_spec(Agent, start: {Agent, :start_link, []})
-      #=> %{id: Agent,
-      #=>   start: {Agent, :start_link, []}}
-
   """
   @spec child_spec(child_spec() | {module, arg :: term} | module, keyword) :: child_spec()
   def child_spec(module_or_map, overrides)
@@ -798,13 +813,13 @@ defmodule Supervisor do
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
   """
-  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module) ::
+  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module | [term]) ::
           on_start_child
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     call(supervisor, {:start_child, child_spec})
   end
 
-  # TODO: Deprecate this on Elixir v1.8
+  # TODO: Deprecate this on Elixir v1.8. Remove and update typespec on v2.0.
   def start_child(supervisor, args) when is_list(args) do
     call(supervisor, {:start_child, args})
   end

@@ -4,7 +4,7 @@ defmodule Kernel.SpecialForms do
   cannot be overridden by the developer.
 
   We define them in this module. Some of these forms are lexical (like
-  `alias/2`, `case/2`, etc). The macros `{}` and `<<>>` are also special
+  `alias/2`, `case/2`, etc). The macros `{}/1` and `<<>>/1` are also special
   forms used to define tuple and binary data structures respectively.
 
   This module also documents macros that return information about Elixir's
@@ -872,7 +872,7 @@ defmodule Kernel.SpecialForms do
 
   `:bind_quoted` will translate to the same code as the example above.
   `:bind_quoted` can be used in many cases and is seen as good practice,
-  not only because it helps us from running into common mistakes but also
+  not only because it helps prevent us from running into common mistakes, but also
   because it allows us to leverage other tools exposed by macros, such as
   unquote fragments discussed in some sections below.
 
@@ -1319,6 +1319,18 @@ defmodule Kernel.SpecialForms do
         String.upcase(line)
       end
 
+  ## Uniq
+
+  `uniq: true` can also be given to comprehensions to guarantee that
+  that results are only added to the collection if they were not returned
+  before. For example:
+
+      iex> for(x <- [1, 1, 2, 3], uniq: true, do: x * 2)
+      [2, 4, 6]
+
+      iex> for(<<x <- "abcabc">>, uniq: true, into: "", do: <<x-32>>)
+      "ABC"
+
   """
   defmacro for(args), do: error!([args])
 
@@ -1362,6 +1374,12 @@ defmodule Kernel.SpecialForms do
       iex> width
       nil
 
+  Note that if a "bare expression" fails to match, it will raise a `MatchError`
+  instead of returning the non-matched value:
+
+      with :foo = :bar, do: :ok
+      #=> ** (MatchError) no match of right hand side value: :bar
+
   An `else` option can be given to modify what is being returned from
   `with` in the case of a failed match:
 
@@ -1376,7 +1394,6 @@ defmodule Kernel.SpecialForms do
       {:error, :wrong_data}
 
   If there is no matching `else` condition, then a `WithClauseError` exception is raised.
-
   """
   defmacro with(args), do: error!([args])
 
@@ -1388,6 +1405,16 @@ defmodule Kernel.SpecialForms do
       iex> add = fn a, b -> a + b end
       iex> add.(1, 2)
       3
+
+  Anonymous functions can also have multiple clauses. All clauses
+  should expect the same number of arguments:
+
+      iex> negate = fn
+      ...>   true -> false
+      ...>   false -> true
+      ...> end
+      iex> negate.(false)
+      true
 
   """
   defmacro unquote(:fn)(clauses), do: error!([clauses])

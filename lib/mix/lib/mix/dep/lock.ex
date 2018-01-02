@@ -5,7 +5,7 @@
 defmodule Mix.Dep.Lock do
   @moduledoc false
 
-  @manifest ".compile.lock"
+  @manifest "compile.lock"
 
   @doc """
   Returns the manifest file for dependencies.

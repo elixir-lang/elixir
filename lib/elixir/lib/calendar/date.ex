@@ -3,8 +3,8 @@ defmodule Date do
   A Date struct and functions.
 
   The Date struct contains the fields year, month, day and calendar.
-  New dates can be built with the `new/3` function or using the `~D`
-  sigil:
+  New dates can be built with the `new/3` function or using the
+  [`~D`](`Kernel.sigil_D/2`) sigil:
 
       iex> ~D[2000-01-01]
       ~D[2000-01-01]
@@ -29,7 +29,7 @@ defmodule Date do
 
   ## Comparing dates
 
-  Comparisons in Elixir using `==`, `>`, `<` and similar are structural
+  Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `Date` struct fields. For proper comparison between
   dates, use the `compare/2` function.
 
@@ -74,9 +74,6 @@ defmodule Date do
       iex> Date.range(~D[1999-01-01], ~D[2000-01-01])
       #DateRange<~D[1999-01-01], ~D[2000-01-01]>
 
-      iex> Date.range(~N[2000-01-01 09:00:00], ~D[1999-01-01])
-      #DateRange<~N[2000-01-01 09:00:00], ~D[1999-01-01]>
-
   A range of dates implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
   ranges:
@@ -90,8 +87,8 @@ defmodule Date do
       -366
   """
 
-  @spec range(Calendar.date(), Calendar.date()) :: Date.Range.t()
-  def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
+  @spec range(Date.t(), Date.t()) :: Date.Range.t()
+  def range(%Date{calendar: calendar} = first, %Date{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
 
@@ -103,7 +100,7 @@ defmodule Date do
     }
   end
 
-  def range(%{calendar: _, year: _, month: _, day: _}, %{calendar: _, year: _, month: _, day: _}) do
+  def range(%Date{}, %Date{}) do
     raise ArgumentError, "both dates must have matching calendars"
   end
 

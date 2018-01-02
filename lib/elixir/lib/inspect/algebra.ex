@@ -25,16 +25,19 @@ defmodule Inspect.Opts do
 
     * `:limit` - limits the number of items that are printed for tuples,
       bitstrings, maps, lists and any other collection of items. It does not
-      apply to strings nor charlists and defaults to 50.
+      apply to strings nor charlists and defaults to 50. If you don't want to limit
+      the number of items to a particular number, use `:infinity`.
 
     * `:printable_limit` - limits the number of bytes that are printed for strings
-      and char lists. Defaults to 4096.
+      and char lists. Defaults to 4096. If you don't want to limit the number of items
+      to a particular number, use `:infinity`.
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
     * `:width` - defaults to 80 characters, used when pretty is `true` or when
       printing to IO devices. Set to 0 to force each item to be printed on its
-      own line.
+      own line. If you don't want to limit the number of items to a particular
+      number, use `:infinity`.
 
     * `:base` - prints integers as `:binary`, `:octal`, `:decimal`, or `:hex`,
       defaults to `:decimal`. When inspecting binaries any `:base` other than
@@ -156,7 +159,7 @@ defmodule Inspect.Algebra do
   Flex breaks however are re-evaluated on every occurrence and may still
   be rendered flat. See `break/1` and `flex_break/1` for more information.
 
-  This implementation also adds `force_break/1` and `next_break_fits/2` which
+  This implementation also adds `force_unfit/1` and `next_break_fits/2` which
   give more control over the document fitting.
 
     [0]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.34.2200
@@ -375,7 +378,7 @@ defmodule Inspect.Algebra do
         docs = fold_doc(docs, &join(&1, &2, flex?, separator))
 
         case flex? do
-          true -> group(concat(concat(left, nest(docs, :cursor)), right))
+          true -> group(concat(concat(left, nest(docs, 1)), right))
           false -> group(glue(nest(glue(left, "", docs), 2), "", right))
         end
     end
@@ -615,7 +618,7 @@ defmodule Inspect.Algebra do
   `mode` can be `:enabled` or `:disabled`. When `:enabled`,
   it will consider the document as fit as soon as it finds
   the next break, effectively cancelling the break. It will
-  also ignore any `force_break/1`.
+  also ignore any `force_unfit/1` in search of the next break.
 
   When disabled, it behaves as usual and it will ignore
   any further `next_break_fits/2` instruction.
@@ -657,10 +660,10 @@ defmodule Inspect.Algebra do
   end
 
   @doc """
-  Forces the document to break.
+  Forces the current group to be unfit.
   """
-  @spec force_break(t) :: doc_force
-  def force_break(doc) when is_doc(doc) do
+  @spec force_unfit(t) :: doc_force
+  def force_unfit(doc) when is_doc(doc) do
     doc_force(doc)
   end
 
@@ -869,9 +872,13 @@ defmodule Inspect.Algebra do
 
   # Type representing the document mode to be rendered
   #
-  #   * flat - represents a document with breaks as flats
+  #   * flat - represents a document with breaks as flats (a break may fit, as it may break)
+  #   * break - represents a document with breaks as breaks (a break always fits, since it breaks)
+  #
+  # The following modes are exclusive to fitting
+  #
   #   * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
-  #   * break - represents a document with breaks as breaks
+  #   * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
   #
   @typep mode :: :flat | :flat_no_break | :break
 
@@ -887,7 +894,7 @@ defmodule Inspect.Algebra do
   defp fits?(_, _, _, []), do: true
   defp fits?(w, k, _, {:tail, b?, t}), do: fits?(w, k, b?, t)
 
-  # Flat no break
+  ## Flat no break
 
   defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
@@ -895,16 +902,26 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
-  ## Breaks
+  ## Breaks no flat
 
   defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
-    do: fits?(w, k, b?, [{i, :break, x} | t])
+    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
 
-  defp fits?(w, k, b?, [{i, :break, doc_force(x)} | t]), do: fits?(w, k, b?, [{i, :break, x} | t])
+  defp fits?(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
+    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+
+  defp fits?(_, _, _, [{_, :break_no_flat, doc_break(_, _)} | _]), do: true
+  defp fits?(_, _, _, [{_, :break_no_flat, :doc_line} | _]), do: true
+
+  ## Breaks
+
   defp fits?(_, _, _, [{_, :break, doc_break(_, _)} | _]), do: true
   defp fits?(_, _, _, [{_, :break, :doc_line} | _]), do: true
 
-  ## Flat
+  defp fits?(w, k, b?, [{i, :break, doc_group(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, :flat, x} | {:tail, b?, t}])
+
+  ## Catch all
 
   defp fits?(w, _, _, [{i, _, :doc_line} | t]), do: fits?(w, i, false, t)
   defp fits?(w, k, b?, [{_, _, :doc_nil} | t]), do: fits?(w, k, b?, t)

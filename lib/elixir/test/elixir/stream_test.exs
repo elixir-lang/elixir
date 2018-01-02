@@ -43,21 +43,6 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [3, 5, 7]
   end
 
-  test "chunk/2, chunk/3 and chunk/4" do
-    assert Stream.chunk([1, 2, 3, 4, 5], 2) |> Enum.to_list() == [[1, 2], [3, 4]]
-    assert Stream.chunk([1, 2, 3, 4, 5], 2, 2, [6]) |> Enum.to_list() == [[1, 2], [3, 4], [5, 6]]
-    assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list() == [[1, 2, 3], [3, 4, 5]]
-    assert Stream.chunk([1, 2, 3, 4, 5, 6], 2, 3) |> Enum.to_list() == [[1, 2], [4, 5]]
-
-    assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2, []) |> Enum.to_list() ==
-             [[1, 2, 3], [3, 4, 5], [5, 6]]
-
-    assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list() == [[1, 2, 3], [4, 5, 6]]
-
-    assert Stream.chunk([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list() ==
-             [[1, 2, 3, 4], [5, 6, 7, 8]]
-  end
-
   test "chunk_every/2, chunk_every/3 and chunk_every/4" do
     assert Stream.chunk_every([1, 2, 3, 4, 5], 2) |> Enum.to_list() == [[1, 2], [3, 4], [5]]
 
@@ -155,6 +140,27 @@ defmodule StreamTest do
 
     assert Stream.chunk_while([5, 7, 9, 11], [], chunk_fun, after_fun) |> Enum.to_list() ==
              [[5, 7, 9]]
+  end
+
+  test "chunk_while/4 with inner halt" do
+    chunk_fun = fn
+      i, [] ->
+        {:cont, [i]}
+
+      i, chunk ->
+        if rem(i, 2) == 0 do
+          {:cont, Enum.reverse(chunk), [i]}
+        else
+          {:cont, [i | chunk]}
+        end
+    end
+
+    after_fun = fn
+      [] -> {:cont, []}
+      chunk -> {:cont, Enum.reverse(chunk), []}
+    end
+
+    assert Stream.chunk_while([1, 2, 3, 4, 5], [], chunk_fun, after_fun) |> Enum.at(0) == [1]
   end
 
   test "concat/1" do
@@ -385,8 +391,8 @@ defmodule StreamTest do
     # flat_map returns a lazy enumeration that does halts wrapped in an enumerable
     assert [1, 2, 3, -1, -2]
            |> Stream.flat_map(fn x ->
-                Stream.concat([x], Stream.take_while([x + 1, x + 2], &(&1 <= x + 1)))
-              end)
+             Stream.concat([x], Stream.take_while([x + 1, x + 2], &(&1 <= x + 1)))
+           end)
            |> Stream.take_while(fn x -> x >= 0 end)
            |> Enum.to_list() == [1, 2, 2, 3, 3, 4]
   end

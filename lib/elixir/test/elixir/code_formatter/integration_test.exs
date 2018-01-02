@@ -41,7 +41,7 @@ defmodule Code.Formatter.IntegrationTest do
     case meta[:format] do
       :list_heredoc ->
         string = list |> List.to_string() |> escape_string(:heredoc)
-        {@single_heredoc |> line(string) |> concat(@single_heredoc) |> force_break(), state}
+        {@single_heredoc |> line(string) |> concat(@single_heredoc) |> force_unfit(), state}
 
       :charlist ->
         string = list |> List.to_string() |> escape_string(@single_quote)
@@ -364,6 +364,24 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "do at the end of the line" do
+    bad = """
+    foo bar, baz, quux do
+      :ok
+    end
+    """
+
+    good = """
+    foo bar,
+        baz,
+        quux do
+      :ok
+    end
+    """
+
+    assert_format bad, good, line_length: 18
+  end
+
   test "tuples as trees" do
     bad = """
     @document Parser.parse(
@@ -379,7 +397,7 @@ defmodule Code.Formatter.IntegrationTest do
                   {"p", [], ["5"]}]}]}]})
     """
 
-    good = """
+    assert_format bad, """
     @document Parser.parse(
                 {"html", [], [
                   {"head", [], []},
@@ -394,7 +412,39 @@ defmodule Code.Formatter.IntegrationTest do
                 ]}
               )
     """
+  end
 
-    assert_format bad, good
+  test "first argument in a call without parens" do
+    bad = """
+    with bar ::
+           :ok
+           | :invalid
+           # | :unknown
+           | :other
+    """
+
+    assert_format bad, """
+    # | :unknown
+    with bar ::
+           :ok
+           | :invalid
+           | :other
+    """
+
+    bad = """
+    @spec bar ::
+            :ok
+            | :invalid
+            # | :unknown
+            | :other
+    """
+
+    assert_format bad, """
+    # | :unknown
+    @spec bar ::
+            :ok
+            | :invalid
+            | :other
+    """
   end
 end

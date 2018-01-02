@@ -606,8 +606,10 @@ defmodule Keyword do
   end
 
   @doc """
-  Similar to `replace/3`, but will raise a `KeyError`
-  if the entry `key` does not exist.
+  Alters the value stored under `key` to `value`, but only
+  if the entry `key` already exists in `keywords`.
+
+  If `key` is not present in `keywords`, a `KeyError` exception is raised.
 
   ## Examples
 

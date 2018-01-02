@@ -41,8 +41,9 @@ defmodule Code.Identifier do
       op in [:&&, :&&&, :and] -> {:left, 140}
       op in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
       op in [:<, :<=, :>=, :>] -> {:left, 160}
-      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>, :^^^] -> {:left, 170}
+      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>] -> {:left, 170}
       op in [:in] -> {:left, 180}
+      op in [:^^^] -> {:left, 190}
       op in [:++, :--, :.., :<>] -> {:right, 200}
       op in [:+, :-] -> {:left, 210}
       op in [:*, :/] -> {:left, 220}
@@ -233,6 +234,8 @@ defmodule Code.Identifier do
   end
 
   defp escape_char(0), do: '\\0'
+
+  defp escape_char(65279), do: '\\uFEFF'
 
   defp escape_char(char)
        when char in 0x20..0x7E

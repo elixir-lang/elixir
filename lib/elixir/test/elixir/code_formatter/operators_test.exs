@@ -125,6 +125,11 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "(not foo) in bar"
       assert_same "(!foo) in bar"
     end
+
+    test "bitwise precedence" do
+      assert_format "(crc ^^^ byte) &&& 0xFF", "crc ^^^ byte &&& 0xFF"
+      assert_same "(crc >>> 8) ^^^ byte"
+    end
   end
 
   describe "binary operators with preceding new line" do
@@ -147,9 +152,9 @@ defmodule Code.Formatter.OperatorsTest do
       good = """
       123
       |> foo(
-           bar,
-           baz
-         )
+        bar,
+        baz
+      )
       """
 
       assert_format bad, good, @short_length
@@ -159,11 +164,11 @@ defmodule Code.Formatter.OperatorsTest do
       good = """
       123
       |> foo(
-           bar
-         )
+        bar
+      )
       |> bar(
-           bat
-         )
+        bat
+      )
       """
 
       assert_format bad, good, @short_length
@@ -175,8 +180,8 @@ defmodule Code.Formatter.OperatorsTest do
         bar,
         123
         |> bar(
-             baz
-           )
+          baz
+        )
       )
       """
 
@@ -212,9 +217,9 @@ defmodule Code.Formatter.OperatorsTest do
       good = """
       123
       |> foo(
-           bar,
-           baz
-         )
+        bar,
+        baz
+      )
       |> 456
       """
 

@@ -45,27 +45,40 @@ defmodule Mix.Compilers.Elixir do
       |> MapSet.difference(all_paths)
       |> MapSet.to_list()
 
-    changed =
+    {changed, sources_stats} =
       if force do
         # A config, path dependency or manifest has
         # changed, let's just compile everything
-        MapSet.to_list(all_paths)
-      else
-        sources_stats = mtimes_and_sizes(all_sources)
+        all_paths = MapSet.to_list(all_paths)
 
+        sources_stats =
+          for path <- all_paths,
+              into: %{},
+              do: {path, Mix.Utils.last_modified_and_size(path)}
+
+        {all_paths, sources_stats}
+      else
         # Otherwise let's start with the new sources
         new_paths =
           all_paths
           |> MapSet.difference(prev_paths)
           |> MapSet.to_list()
 
+        sources_stats =
+          for path <- new_paths,
+              into: mtimes_and_sizes(all_sources),
+              do: {path, Mix.Utils.last_modified_and_size(path)}
+
         # Plus the sources that have changed in disk
-        for source(source: source, external: external, size: size) <- all_sources,
-            {last_mtime, last_size} = Map.fetch!(sources_stats, source),
-            times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
-            size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
-            into: new_paths,
-            do: source
+        changed_paths =
+          for source(source: source, external: external, size: size) <- all_sources,
+              {last_mtime, last_size} = Map.fetch!(sources_stats, source),
+              times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
+              size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
+              into: new_paths,
+              do: source
+
+        {changed_paths, sources_stats}
       end
 
     stale_local_deps = stale_local_deps(manifest, modified)
@@ -73,12 +86,13 @@ defmodule Mix.Compilers.Elixir do
     {modules, structs, changed} =
       update_stale_entries(all_modules, all_sources, removed ++ changed, stale_local_deps, %{})
 
+    stale = changed -- removed
+
     sources =
       removed
       |> Enum.reduce(all_sources, &List.keydelete(&2, &1, source(:source)))
-      |> update_stale_sources(changed)
+      |> update_stale_sources(stale, sources_stats)
 
-    stale = changed -- removed
     if opts[:all_warnings], do: show_warnings(sources)
 
     cond do
@@ -267,10 +281,12 @@ defmodule Mix.Compilers.Elixir do
         binary: binary
       )
 
+    source(size: size) = List.keyfind(sources, source, source(:source))
+
     new_source =
       source(
         source: source,
-        size: :filelib.file_size(source),
+        size: size,
         compile_references: compile_references,
         struct_references: struct_references,
         runtime_references: runtime_references,
@@ -332,9 +348,19 @@ defmodule Mix.Compilers.Elixir do
 
   ## Resolution
 
+  # Store empty sources for the changed ones as the compiler appends data
   defp update_stale_sources(sources, changed) do
-    # Store empty sources for the changed ones as the compiler appends data
-    Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
+    Enum.reduce(changed, sources, fn file, acc ->
+      {source(size: size), acc} = List.keytake(acc, file, source(:source))
+      [source(source: file, size: size) | acc]
+    end)
+  end
+
+  defp update_stale_sources(sources, stale, sources_stats) do
+    Enum.reduce(stale, sources, fn file, acc ->
+      %{^file => {_, size}} = sources_stats
+      List.keystore(acc, file, source(:source), source(source: file, size: size))
+    end)
   end
 
   # This function receives the manifest entries and some source
@@ -407,7 +433,7 @@ defmodule Mix.Compilers.Elixir do
 
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
-        Mix.Utils.last_modified(Path.join(opts[:build], base)) > modified,
+        Mix.Utils.last_modified(Path.join([opts[:build], ".mix", base])) > modified,
         path <- Mix.Dep.load_paths(dep),
         beam <- Path.wildcard(Path.join(path, "*.beam")),
         Mix.Utils.last_modified(beam) > modified,
@@ -462,12 +488,13 @@ defmodule Mix.Compilers.Elixir do
     try do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
-      _ -> {[], []}
+      _ ->
+        {[], []}
     else
       [@manifest_vsn | data] ->
         split_manifest(data, compile_path)
 
-      [v | data] when v in [:v4, :v5, :v6, :v7, :v8] ->
+      [v | data] when is_integer(v) ->
         for module <- data,
             is_record(module, :module),
             do: File.rm(Path.join(compile_path, module(module, :beam)))

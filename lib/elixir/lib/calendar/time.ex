@@ -3,8 +3,8 @@ defmodule Time do
   A Time struct and functions.
 
   The Time struct contains the fields hour, minute, second and microseconds.
-  New times can be built with the `new/4` function or using the `~T`
-  sigil:
+  New times can be built with the `new/4` function or using the
+  [`~T`](`Kernel.sigil_T/2`) sigil:
 
       iex> ~T[23:00:07.001]
       ~T[23:00:07.001]
@@ -29,7 +29,7 @@ defmodule Time do
 
   ## Comparing times
 
-  Comparisons in Elixir using `==`, `>`, `<` and similar are structural
+  Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `Time` struct fields. For proper comparison between
   times, use the `compare/2` function.
   """
@@ -184,7 +184,7 @@ defmodule Time do
 
   Time representations with reduced accuracy are not supported.
 
-  Note that while ISO8601 allows times to specify 24:00:00 as the
+  Note that while ISO 8601 allows times to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
 
   ## Examples

@@ -6,10 +6,14 @@ defmodule Mix.Tasks.Xref do
 
   @shortdoc "Performs cross reference checks"
   @recursive true
-  @manifest ".compile.elixir"
+  @manifest "compile.elixir"
 
   @moduledoc """
   Performs cross reference checks between modules.
+
+  The unreachable and deprecated checks below happen every time
+  your project is compiled via `mix compile.xref`. See
+  `Mix.Tasks.Compile.Xref` for more information
 
   ## Xref modes
 
@@ -19,14 +23,6 @@ defmodule Mix.Tasks.Xref do
 
   All available modes are discussed below.
 
-  ### warnings
-
-  Prints warnings for violated cross reference checks:
-
-      mix xref warnings
-
-  This is the mode used by Mix during compilation.
-
   ### unreachable
 
   Prints all unreachable "file:line: module.function/arity" entries:
@@ -35,6 +31,23 @@ defmodule Mix.Tasks.Xref do
 
   The "file:line" represents the file and line a call to an unknown
   "module.function/arity" is made.
+
+  The flag `--abort-if-any` can be used for the command to fail if
+  unreachable calls exist.
+
+  ## deprecated
+
+  Prints all deprecated "file:line: module.function/arity" entries:
+
+      mix xref deprecated
+
+  The "file:line" represents the file and line a call to a deprecated
+  "module.function/arity" is made. This operation does not show deprecated
+  local calls (a call to a deprecated function or macro in the same module)
+  nor calls to deprecated functionality in Elixir itself.
+
+  The flag `--abort-if-any` can be used for the command to fail if
+  deprecated calls exist.
 
   ### callers CALLEE
 
@@ -122,6 +135,7 @@ defmodule Mix.Tasks.Xref do
   """
 
   @switches [
+    abort_if_any: :boolean,
     archives_check: :boolean,
     compile: :boolean,
     deps_check: :boolean,
@@ -137,16 +151,17 @@ defmodule Mix.Tasks.Xref do
 
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
-
     Mix.Task.run("loadpaths")
 
     if Keyword.get(opts, :compile, true) do
       Mix.Task.run("compile")
     end
 
+    Mix.Task.reenable("xref")
+
     case args do
-      ["warnings"] ->
-        warnings(opts)
+      ["deprecated"] ->
+        deprecated(opts)
 
       ["unreachable"] ->
         unreachable(opts)
@@ -162,24 +177,99 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  ## Modes
-
-  defp warnings(opts) do
-    warnings(&print_warnings/1, opts)
+  @doc false
+  def warnings(opts \\ []) do
+    source_warnings(excludes(), opts)
+    |> merge_entries(:all)
+    |> sort_entries()
+    |> print_warnings()
   end
 
-  defp unreachable(opts) do
-    case warnings(&print_unreachables/1, opts) do
-      {:ok, []} -> :ok
-      _ -> :error
+  @doc """
+  Returns a list of information of all the function calls in the project.
+
+  Each item in the list is a map with the following keys:
+
+    * `:callee` - a tuple containing the module, function, and arity of the call
+    * `:line` - an integer representing the line where the function is called
+    * `:file` - a binary representing the file where the function is called
+    * `:caller_module` - the module where the function is called
+
+  This function returns an empty list when used at the root of an umbrella
+  project because there is no compile manifest to extract the function call
+  information from. To get the function calls of each child in an umbrella,
+  execute the function at the root of each individual application.
+  """
+  @spec calls(keyword()) :: [
+          %{
+            callee: {module(), atom(), arity()},
+            caller_module: module(),
+            line: integer(),
+            file: String.t()
+          }
+        ]
+  def calls(opts \\ []) do
+    module_sources =
+      for manifest <- manifests(opts),
+          manifest_data = read_manifest(manifest, ""),
+          module(module: module, sources: sources) <- manifest_data,
+          source <- sources,
+          source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
+          do: {module, source}
+
+    Enum.flat_map(module_sources, fn {caller_module, source} ->
+      source(
+        runtime_dispatches: runtime_nested,
+        compile_dispatches: compile_nested,
+        source: rel_file
+      ) = source
+
+      runtime_function_calls =
+        dispatches_to_function_calls(caller_module, rel_file, runtime_nested)
+
+      compile_function_calls =
+        dispatches_to_function_calls(caller_module, rel_file, compile_nested)
+
+      runtime_function_calls ++ compile_function_calls
+    end)
+  end
+
+  defp dispatches_to_function_calls(caller_module, file, dispatches) do
+    for {module, function_calls} <- dispatches,
+        {{function, arity}, lines} <- function_calls,
+        line <- lines do
+      %{
+        callee: {module, function, arity},
+        file: file,
+        line: line,
+        caller_module: caller_module
+      }
     end
+  end
+
+  ## Modes
+
+  defp unreachable(opts) do
+    source_warnings(excludes(), opts)
+    |> merge_entries(&(&1 in [:unknown_module, :unknown_function]))
+    |> sort_entries()
+    |> print_mfas()
+    |> return_ok_error_or_abort(:unreachable, opts)
+  end
+
+  defp deprecated(opts) do
+    source_warnings(excludes(), opts)
+    |> merge_entries(&(&1 == :deprecated))
+    |> sort_entries()
+    |> print_mfas()
+    |> return_ok_error_or_abort(:deprecated, opts)
   end
 
   defp callers(callee, opts) do
     callee
     |> filter_for_callee()
     |> source_callers(opts)
-    |> merge_entries()
+    |> merge_entries(:all)
     |> sort_entries()
     |> print_calls()
 
@@ -192,58 +282,84 @@ defmodule Mix.Tasks.Xref do
     :ok
   end
 
-  ## Warnings
+  ## Warnings (unreacheable + deprecated)
 
-  defp warnings(print_warnings, opts) do
-    case source_warnings(excludes(), opts) do
-      [] ->
-        {:ok, []}
+  defp source_warnings(excludes, opts) do
+    sources = sources(opts)
 
-      entries ->
-        entries =
-          entries
-          |> merge_entries()
-          |> sort_entries()
-          |> print_warnings.()
+    exports_and_deprecated =
+      Enum.reduce(sources, %{}, fn source, acc ->
+        runtime = source(source, :runtime_dispatches)
+        compile = source(source, :compile_dispatches)
 
-        {:ok, entries}
+        acc = Enum.reduce(runtime, acc, &load_exports_and_deprecated_into_acc/2)
+        acc = Enum.reduce(compile, acc, &load_exports_and_deprecated_into_acc/2)
+        acc
+      end)
+
+    runtime_warnings =
+      for source <- sources,
+          {module, func_arity_locations} <- source(source, :runtime_dispatches),
+          {exports, deprecated} = exports_and_deprecated[module],
+          {{func, arity}, locations} <- func_arity_locations,
+          not excluded?(excludes, module, func, arity),
+          warning =
+            unreachable_mfa(exports, module, func, arity) ||
+              deprecated_mfa(deprecated, module, func, arity),
+          do: {warning, absolute_locations(locations, source(source, :source))}
+
+    compile_warnings =
+      for source <- sources,
+          {module, func_arity_locations} <- source(source, :compile_dispatches),
+          {_, deprecated} = exports_and_deprecated[module],
+          {{func, arity}, locations} <- func_arity_locations,
+          not excluded?(excludes, module, func, arity),
+          warning = deprecated_mfa(deprecated, module, func, arity),
+          do: {warning, absolute_locations(locations, source(source, :source))}
+
+    runtime_warnings ++ compile_warnings
+  end
+
+  defp load_exports_and_deprecated_into_acc({module, _}, acc) do
+    case acc do
+      %{^module => _} -> acc
+      _ -> Map.put(acc, module, load_exports_and_deprecated(module))
     end
   end
 
-  defp source_warnings(excludes, opts) do
-    Enum.flat_map(sources(opts), fn source ->
-      file = source(source, :source)
-      runtime_dispatches = source(source, :runtime_dispatches)
-
-      for {module, func_arity_locations} <- runtime_dispatches,
-          exports = load_exports(module),
-          {{func, arity}, locations} <- func_arity_locations,
-          unreachable_mfa = unreachable_mfa(exports, module, func, arity, excludes),
-          do: {unreachable_mfa, absolute_locations(locations, file)}
-    end)
-  end
-
-  defp load_exports(module) do
+  defp load_exports_and_deprecated(module) do
     if :code.is_loaded(module) do
-      # If the module is loaded, we will use the faster function_exported?/3 check
-      module
-    else
-      # Otherwise we get all exports from :beam_lib to avoid loading modules
-      with [_ | _] = file <- :code.which(module),
-           {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(file, [:exports]) do
-        exports
+      # If the module is loaded, we will use the faster function_exported?/3
+      # check for exports and __info__/1 for deprecated
+      if function_exported?(module, :__info__, 1) do
+        {module, module.__info__(:deprecated)}
       else
-        _ -> :unknown_module
+        {module, []}
+      end
+    else
+      # Otherwise we get the information from :beam_lib to avoid loading modules
+      with [_ | _] = file <- :code.which(module),
+           {:ok, {^module, [{:exports, exports}, {'ExDp', deprecated}]}} <-
+             :beam_lib.chunks(file, [:exports, 'ExDp'], [:allow_missing_chunks]) do
+        {exports, load_deprecated(deprecated)}
+      else
+        _ -> {:unknown_module, []}
       end
     end
   end
 
-  defp unreachable_mfa(exports, module, func, arity, excludes) do
-    cond do
-      excluded?(module, func, arity, excludes) ->
-        nil
+  defp load_deprecated(chunk) do
+    if is_binary(chunk) do
+      {:elixir_deprecated_v1, deprecated} = :erlang.binary_to_term(chunk)
+      deprecated
+    else
+      []
+    end
+  end
 
-      skip?(module, func, arity) ->
+  defp unreachable_mfa(exports, module, func, arity) do
+    cond do
+      skip_unreachable?(module, func, arity) ->
         nil
 
       exports == :unknown_module ->
@@ -260,14 +376,54 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  ## Print unreachable
+  defp deprecated_mfa(deprecated, module, func, arity) do
+    case List.keyfind(deprecated, {func, arity}, 0) do
+      {_, reason} ->
+        {:deprecated, module, func, arity, reason}
 
-  defp print_unreachables(entries) do
-    Enum.each(entries, &print_unreachable/1)
+      nil ->
+        nil
+    end
+  end
+
+  @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
+
+  defp skip_unreachable?(:erlang, func, 2) when func in [:andalso, :orelse] do
+    true
+  end
+
+  defp skip_unreachable?(module, :__impl__, 1) do
+    {maybe_protocol, maybe_builtin} = module |> Module.split() |> Enum.split(-1)
+    maybe_protocol = Module.concat(maybe_protocol)
+    maybe_builtin = Module.concat(maybe_builtin)
+
+    maybe_builtin in @protocol_builtins and Code.ensure_loaded?(maybe_protocol) and
+      function_exported?(maybe_protocol, :__protocol__, 1)
+  end
+
+  defp skip_unreachable?(_, _, _) do
+    false
+  end
+
+  defp excludes() do
+    Mix.Project.config()
+    |> Keyword.get(:xref, [])
+    |> Keyword.get(:exclude, [])
+    |> MapSet.new()
+  end
+
+  defp excluded?(excludes, module, func, arity) do
+    MapSet.member?(excludes, module) or MapSet.member?(excludes, {module, func, arity})
+  end
+
+  ## Print mfas (unreachable / deprecated)
+
+  defp print_mfas(entries) do
+    Enum.each(entries, &print_mfa/1)
     entries
   end
 
-  defp print_unreachable({{_, module, function, arity, _}, locations}) do
+  defp print_mfa({{_, module, function, arity, _}, locations}) do
     shell = Mix.shell()
 
     for {file, line} <- locations do
@@ -302,6 +458,15 @@ defmodule Mix.Tasks.Xref do
     ]
   end
 
+  defp warning_message({:deprecated, module, function, arity, reason}) do
+    [
+      Exception.format_mfa(module, function, arity),
+      " is deprecated. ",
+      reason,
+      "."
+    ]
+  end
+
   defp format_locations([location]) do
     format_location(location)
   end
@@ -317,55 +482,16 @@ defmodule Mix.Tasks.Xref do
     ["  ", file, ?:, Integer.to_string(line), ?\n]
   end
 
-  ## "Unreachable" helpers
-
-  @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
-
-  defp skip?(:erlang, func, 2) when func in [:andalso, :orelse] do
-    true
-  end
-
-  defp skip?(module, :__impl__, 1) do
-    {maybe_protocol, maybe_builtin} = module |> Module.split() |> Enum.split(-1)
-    maybe_protocol = Module.concat(maybe_protocol)
-    maybe_builtin = Module.concat(maybe_builtin)
-
-    maybe_builtin in @protocol_builtins and Code.ensure_loaded?(maybe_protocol) and
-      function_exported?(maybe_protocol, :__protocol__, 1)
-  end
-
-  defp skip?(_, _, _) do
-    false
-  end
-
-  defp excludes() do
-    Mix.Project.config()
-    |> Keyword.get(:xref, [])
-    |> Keyword.get(:exclude, [])
-    |> MapSet.new()
-  end
-
-  defp excluded?(module, func, arity, excludes) do
-    MapSet.member?(excludes, module) or MapSet.member?(excludes, {module, func, arity})
-  end
-
   ## Callers
 
   defp source_callers(filter, opts) do
-    Enum.flat_map(sources(opts), fn source ->
-      file = source(source, :source)
-      runtime_dispatches = source(source, :runtime_dispatches)
-      compile_dispatches = source(source, :compile_dispatches)
-      dispatches = runtime_dispatches ++ compile_dispatches
-
-      for {module, func_arity_locations} <- dispatches,
-          {{func, arity}, locations} <- func_arity_locations,
-          filter.({module, func, arity}),
-          do: {{module, func, arity}, absolute_locations(locations, file)}
-    end)
+    for source <- sources(opts),
+        file = source(source, :source),
+        {module, func_arity_locations} <- dispatches(source),
+        {{func, arity}, locations} <- func_arity_locations,
+        filter.({module, func, arity}),
+        do: {{module, func, arity}, absolute_locations(locations, file)}
   end
-
-  ## Print callers
 
   defp print_calls(calls) do
     Enum.each(calls, &print_call/1)
@@ -382,8 +508,6 @@ defmodule Mix.Tasks.Xref do
       ])
     end
   end
-
-  ## "Callers" helpers
 
   defp filter_for_callee(callee) do
     case Mix.Utils.parse_mfa(callee) do
@@ -402,7 +526,7 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  ## Graph helpers
+  ## Graph
 
   defp excluded(opts) do
     opts
@@ -531,18 +655,18 @@ defmodule Mix.Tasks.Xref do
   defp filter_for_sink(file_references, sink) do
     file_references
     |> invert_references()
-    |> do_filter_for_sink([{sink, nil}], %{})
+    |> apply_filter_for_sink([{sink, nil}], %{})
     |> invert_references()
   end
 
-  defp do_filter_for_sink(file_references, new_nodes, acc) do
+  defp apply_filter_for_sink(file_references, new_nodes, acc) do
     Enum.reduce(new_nodes, acc, fn {new_node_name, _type}, acc ->
       new_nodes = file_references[new_node_name]
 
       if acc[new_node_name] || !new_nodes do
         acc
       else
-        do_filter_for_sink(file_references, new_nodes, Map.put(acc, new_node_name, new_nodes))
+        apply_filter_for_sink(file_references, new_nodes, Map.put(acc, new_node_name, new_nodes))
       end
     end)
   end
@@ -583,10 +707,10 @@ defmodule Mix.Tasks.Xref do
     incoming =
       references
       |> Enum.reduce(%{}, fn {_, deps}, acc ->
-           Enum.reduce(deps, acc, fn {file, _}, acc ->
-             Map.update(acc, file, 1, &(&1 + 1))
-           end)
-         end)
+        Enum.reduce(deps, acc, fn {file, _}, acc ->
+          Map.update(acc, file, 1, &(&1 + 1))
+        end)
+      end)
       |> Enum.map(fn {file, count} -> {count, file} end)
       |> Enum.sort()
       |> Enum.take(-10)
@@ -609,7 +733,7 @@ defmodule Mix.Tasks.Xref do
       if opts[:include_siblings] do
         for %{scm: Mix.SCM.Path, opts: opts} <- Mix.Dep.cached(),
             opts[:in_umbrella],
-            do: Path.join(opts[:build], @manifest)
+            do: Path.join([opts[:build], ".mix", @manifest])
       else
         []
       end
@@ -617,10 +741,14 @@ defmodule Mix.Tasks.Xref do
     [Path.join(Mix.Project.manifest_path(), @manifest) | siblings]
   end
 
-  defp merge_entries(entries) do
+  defp merge_entries(entries, filter) do
     Enum.reduce(entries, %{}, fn {type, locations}, merged_entries ->
-      locations = MapSet.new(locations)
-      Map.update(merged_entries, type, locations, &MapSet.union(&1, locations))
+      if filter == :all or filter.(elem(type, 0)) do
+        locations = MapSet.new(locations)
+        Map.update(merged_entries, type, locations, &MapSet.union(&1, locations))
+      else
+        merged_entries
+      end
     end)
   end
 
@@ -636,4 +764,16 @@ defmodule Mix.Tasks.Xref do
 
   defp absolute_location({_, _} = location, _), do: location
   defp absolute_location(line, base), do: {base, line}
+
+  defp dispatches(source) do
+    source(source, :runtime_dispatches) ++ source(source, :compile_dispatches)
+  end
+
+  defp return_ok_error_or_abort(entries, kind, opts) do
+    cond do
+      entries == [] -> :ok
+      opts[:abort_if_any] -> Mix.raise("mix xref #{kind} failed: #{kind} calls were found")
+      true -> :error
+    end
+  end
 end

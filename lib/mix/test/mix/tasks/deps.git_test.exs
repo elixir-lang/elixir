@@ -205,7 +205,7 @@ defmodule Mix.Tasks.DepsGitTest do
       # But also ran automatically
       Mix.Tasks.Compile.run(["--verbose"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert File.exists?("_build/dev/lib/git_repo/.compile.fetch")
+      assert File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
       :ok
     end
   after

@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Compile.Leex do
   alias Mix.Compilers.Erlang
 
   @recursive true
-  @manifest ".compile.leex"
+  @manifest "compile.leex"
   @switches [force: :boolean, verbose: :boolean, all_warnings: :boolean]
 
   # These options can't be controlled with :leex_options.

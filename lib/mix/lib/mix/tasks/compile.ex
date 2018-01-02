@@ -132,7 +132,7 @@ defmodule Mix.Tasks.Compile do
 
   defp consolidate_protocols?(:noop) do
     config = Mix.Project.config()
-    config[:consolidate_protocols] and not File.exists?(Mix.Project.consolidation_path(config))
+    config[:consolidate_protocols] and not Mix.Tasks.Compile.Protocols.consolidated?()
   end
 
   defp consolidate_protocols?(:error) do

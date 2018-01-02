@@ -2,9 +2,9 @@
 -module(elixir_locals).
 -export([
   setup/1, cleanup/1, cache_env/1, get_cached_env/1,
-  record_local/2, record_local/3, record_import/4,
-  record_definition/3, record_defaults/4, reattach/5,
-  ensure_no_import_conflict/3, warn_unused_local/3, format_error/1
+  record_local/3, record_import/4, record_defaults/4,
+  yank/2, reattach/5,
+  ensure_no_import_conflict/3, warn_unused_local/4, format_error/1
 ]).
 
 -include("elixir.hrl").
@@ -15,45 +15,43 @@
 setup(Module) ->
   case elixir_config:get(bootstrap) of
     false ->
-      {ok, Pid} = ?tracker:start_link(),
-      ets:insert(elixir_module:data_table(Module), {?attr, Pid}),
+      Table = ?tracker:init(),
+      ets:insert(elixir_module:data_table(Module), {?attr, Table}),
       ok;
     true ->
       ok
   end.
 
 cleanup(Module) ->
-  if_tracker(Module, fun(Pid) -> unlink(Pid), ?tracker:stop(Pid), ok end).
+  if_tracker(Module, fun(Tracker) -> ?tracker:delete(Tracker), ok end).
+
+yank(Tuple, Module) ->
+  if_tracker(Module, fun(Tracker) -> ?tracker:yank(Tracker, Tuple) end).
 
 reattach(Tuple, Kind, Module, Function, Neighbours) ->
-  if_tracker(Module, fun(Pid) -> ?tracker:reattach(Pid, Tuple, Kind, Function, Neighbours) end).
+  if_tracker(Module, fun(Tracker) -> ?tracker:reattach(Tracker, Tuple, Kind, Function, Neighbours) end).
 
-record_local(Tuple, Module) when is_atom(Module) ->
-  if_tracker(Module, fun(Pid) -> ?tracker:add_local(Pid, Tuple), ok end).
 record_local(Tuple, _Module, Function)
   when Function == nil; Function == Tuple -> ok;
 record_local(Tuple, Module, Function) ->
-  if_tracker(Module, fun(Pid) -> ?tracker:add_local(Pid, Function, Tuple), ok end).
+  if_tracker(Module, fun(Tracker) -> ?tracker:add_local(Tracker, Function, Tuple), ok end).
 
-record_import(_Tuple, Receiver, Module, _Function)
-  when Module == nil; Module == Receiver -> false;
+record_import(_Tuple, Receiver, Module, Function)
+  when Function == nil; Module == Receiver -> false;
 record_import(Tuple, Receiver, Module, Function) ->
-  if_tracker(Module, fun(Pid) -> ?tracker:add_import(Pid, Function, Receiver, Tuple), ok end).
-
-record_definition(Tuple, Kind, Module) ->
-  if_tracker(Module, fun(Pid) -> ?tracker:add_definition(Pid, Kind, Tuple), ok end).
+  if_tracker(Module, fun(Tracker) -> ?tracker:add_import(Tracker, Function, Receiver, Tuple), ok end).
 
 record_defaults(_Tuple, _Kind, _Module, 0) ->
   ok;
 record_defaults(Tuple, Kind, Module, Defaults) ->
-  if_tracker(Module, fun(Pid) -> ?tracker:add_defaults(Pid, Kind, Tuple, Defaults), ok end).
+  if_tracker(Module, fun(Tracker) -> ?tracker:add_defaults(Tracker, Kind, Tuple, Defaults), ok end).
 
 if_tracker(Module, Callback) ->
   if_tracker(Module, ok, Callback).
 
 if_tracker(Module, Default, Callback) ->
   try ets:lookup_element(elixir_module:data_table(Module), ?attr, 2) of
-    Pid -> Callback(Pid)
+    Tracker -> Callback(Tracker)
   catch
     error:badarg -> Default
   end.
@@ -87,15 +85,15 @@ get_cached_env(Env) ->
 ensure_no_import_conflict(_File, 'Elixir.Kernel', _All) ->
   ok;
 ensure_no_import_conflict(File, Module, All) ->
-  if_tracker(Module, ok, fun(Pid) ->
+  if_tracker(Module, ok, fun(Tracker) ->
     [elixir_errors:form_error(Meta, File, ?MODULE, {function_conflict, Error})
-     || {Meta, Error} <- ?tracker:collect_imports_conflicts(Pid, All)],
+     || {Meta, Error} <- ?tracker:collect_imports_conflicts(Tracker, All)],
     ok
   end).
 
-warn_unused_local(File, Module, Private) ->
-  if_tracker(Module, [], fun(Pid) ->
-    {Unreachable, Warnings} = ?tracker:collect_unused_locals(Pid, Private),
+warn_unused_local(File, Module, All, Private) ->
+  if_tracker(Module, [], fun(Tracker) ->
+    {Unreachable, Warnings} = ?tracker:collect_unused_locals(Tracker, All, Private),
     [elixir_errors:form_warn(Meta, File, ?MODULE, Error) || {Meta, Error} <- Warnings],
     Unreachable
   end).

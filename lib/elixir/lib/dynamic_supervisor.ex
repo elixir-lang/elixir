@@ -20,16 +20,16 @@ defmodule DynamicSupervisor do
   Once the dynamic supervisor is running, we can start children
   with `start_child/2`, which receives a child specification:
 
-      {:ok, agent1} = DynamicSupervisor.start_link(sup, {Agent, fn -> %{} end})
+      {:ok, agent1} = DynamicSupervisor.start_child(sup, {Agent, fn -> %{} end})
       Agent.update(agent1, &Map.put(&1, :key, "value"))
       Agent.get(agent1, & &1)
       #=> %{key: "value"}
 
-      {:ok, agent2} = DynamicSupervisor.start_link(sup, {Agent, fn -> %{} end})
+      {:ok, agent2} = DynamicSupervisor.start_child(sup, {Agent, fn -> %{} end})
       Agent.get(agent2, & &1)
       #=> %{}
 
-      DynamicSupervisor.count_children(sup_pid)
+      DynamicSupervisor.count_children(sup)
       #=> %{active: 2, specs: 2, supervisors: 0, workers: 2}
 
   ## Module-based supervisors
@@ -339,7 +339,7 @@ defmodule DynamicSupervisor do
           workers: non_neg_integer
         }
   def count_children(supervisor) do
-    call(supervisor, :count_children)
+    call(supervisor, :count_children) |> :maps.from_list()
   end
 
   @doc """
@@ -504,7 +504,7 @@ defmodule DynamicSupervisor do
           {active + 1, worker, supervisor + 1}
       end)
 
-    reply = %{specs: specs, active: active, workers: workers, supervisors: supervisors}
+    reply = [specs: specs, active: active, supervisors: supervisors, workers: workers]
     {:reply, reply, state}
   end
 

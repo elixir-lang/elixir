@@ -6,9 +6,21 @@
 %% Anonymous functions
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
-  Transformer = fun(Clause) ->
-    {EClause, _} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, E),
-    EClause
+  Transformer = fun({_, _, [Left, Right]} = Clause) ->
+    InvalidArgs = fun(Args) ->
+      case Args of
+        {'\\\\', _, _} -> true;
+        _ -> false
+      end
+    end,
+
+    case lists:any(InvalidArgs, Left) of
+      true ->
+        form_error(Meta, ?key(E, file), ?MODULE, defaults_in_args);
+      false ->
+        {EClause, _} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, E),
+        EClause
+    end
   end,
 
   EClauses = lists:map(Transformer, Clauses),
@@ -155,6 +167,8 @@ is_sequential(_, _Int) -> false.
 
 format_error(clauses_with_different_arities) ->
   "cannot mix clauses with different arities in anonymous functions";
+format_error(defaults_in_args) ->
+  "anonymous functions cannot have optional arguments";
 format_error({block_expr_in_capture, Expr}) ->
   io_lib:format("invalid args for &, block expressions are not allowed, got: ~ts",
                 ['Elixir.Macro':to_string(Expr)]);

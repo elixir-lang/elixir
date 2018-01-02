@@ -1,7 +1,6 @@
 -module(elixir_module).
--export([data_table/1, defs_table/1, is_open/1, delete_doc/6,
-         compile/4, expand_callback/6, format_error/1,
-         compiler_modules/0, delete_impl/6,
+-export([data_table/1, defs_table/1, is_open/1, delete_definition_attributes/6,
+         compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2]).
 -include("elixir.hrl").
 
@@ -32,13 +31,11 @@ defs_table(Module) ->
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
 
-delete_doc(#{module := Module}, _, _, _, _, _) ->
-  ets:delete(data_table(Module), doc),
-  ok.
-
-delete_impl(#{module := Module}, _, _, _, _, _) ->
-  ets:delete(data_table(Module), impl),
-  ok.
+delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
+  Data = data_table(Module),
+  ets:delete(Data, doc),
+  ets:delete(Data, deprecated),
+  ets:delete(Data, impl).
 
 write_cache(Module, Key, Value) ->
   ets:insert(data_table(Module), {{cache, Key}, Value}).
@@ -81,9 +78,6 @@ compile(Line, Module, Block, Vars, E) ->
 
     PersistedAttributes = ets:lookup_element(Data, ?persisted_attr, 2),
     Attributes = attributes(Line, File, Data, PersistedAttributes),
-    OnLoad = ets:lookup_element(Data, 'on_load', 2),
-    [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad],
-
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
 
     (not elixir_config:get(bootstrap)) andalso
@@ -179,20 +173,11 @@ build(Line, File, Module, Lexical) ->
   Ref  = elixir_code_server:call({defmodule, self(),
                                  {Module, Data, Defs, Line, File}}),
 
-  DocsOnDefinition =
-      case elixir_compiler:get_opt(docs) of
-        true -> [{'Elixir.Module', compile_doc}];
-        _    -> [{elixir_module, delete_doc}]
-      end,
-
-  ImplOnDefinition =
-      case elixir_config:get(bootstrap) of
-        true -> [{elixir_module, delete_impl}];
-        _    -> [{'Elixir.Module', compile_impl}]
-      end,
-
-  %% Docs must come first as they read the impl callback.
-  OnDefinition = DocsOnDefinition ++ ImplOnDefinition,
+  OnDefinition =
+    case elixir_config:get(bootstrap) of
+      false -> [{'Elixir.Module', compile_definition_attributes}];
+      _ -> [{elixir_module, delete_definition_attributes}]
+    end,
 
   ets:insert(Data, [
     % {Key, Value, Accumulate?, UnreadLine}
@@ -318,7 +303,8 @@ beam_location(#{lexical_tracker := Pid, module := Module}) ->
 %% Handle unused attributes warnings and special cases.
 
 warn_unused_attributes(File, Data, PersistedAttrs) ->
-  ReservedAttrs = [after_compile, before_compile, moduledoc, on_definition | PersistedAttrs],
+  ReservedAttrs = [after_compile, before_compile, moduledoc,
+                   on_definition, optional_callbacks | PersistedAttrs],
   Keys = ets:select(Data, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
    [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].

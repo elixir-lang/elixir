@@ -48,7 +48,7 @@ Rootsymbol grammar.
 %% one coming from empty_paren on stab.
 Expect 3.
 
-%% Changes in ops and precedence should be reflected on lib/elixir/lib/macro.ex
+%% Changes in ops and precedence should be reflected on lib/elixir/lib/code/identifier.ex
 %% Note though the operator => in practice has lower precedence than all others,
 %% its entry in the table is only to support the %{user | foo => bar} syntax.
 Left       5 do.
@@ -684,7 +684,9 @@ number_value({_, {_, _, Value}, _}) ->
 %% Operators
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
-  %% TODO: Deprecate "not left in right" rearrangement on 1.7
+  %% TODO: Raise on "not left in right" rearrangement on 2.0
+  elixir_errors:warn(line_from_location(Location), ?file(),
+    "\"not expr1 in expr2\" is deprecated. Use \"expr1 not in expr2\" instead"),
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
 build_op({_Kind, Location, 'not in'}, Left, Right) ->

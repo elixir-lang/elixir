@@ -36,8 +36,8 @@ defmodule Kernel.DialyzerTest do
     # Set up a per-test temporary directory, so we can run these with async: true.
     # We use the test's line number as the directory name, so they won't conflict.
     dir =
-      context[:base_dir]
-      |> Path.join("line#{context[:line]}")
+      context.base_dir
+      |> Path.join("line#{context.line}")
       |> String.to_charlist()
 
     File.mkdir_p!(dir)
@@ -47,10 +47,8 @@ defmodule Kernel.DialyzerTest do
       |> Path.join("plt")
       |> String.to_charlist()
 
-    File.cp!(context[:base_plt], plt)
-
+    File.cp!(context.base_plt, plt)
     dialyzer = [analysis_type: :succ_typings, check_plt: false, files_rec: [dir], plts: [plt]]
-
     {:ok, [outdir: dir, dialyzer: dialyzer]}
   end
 
@@ -88,9 +86,17 @@ defmodule Kernel.DialyzerTest do
   end
 
   test "no warnings on protocol calls with opaque types", context do
-    copy_beam!(context, Dialyzer.ProtocolOpaque)
-    copy_beam!(context, Dialyzer.ProtocolOpaque.Entity)
-    copy_beam!(context, Dialyzer.ProtocolOpaque.Duck)
+    alias Dialyzer.ProtocolOpaque
+
+    copy_beam!(context, ProtocolOpaque)
+    copy_beam!(context, ProtocolOpaque.Entity)
+    copy_beam!(context, ProtocolOpaque.Duck)
+    assert_dialyze_no_warnings!(context)
+
+    # Also ensure no warnings after consolidation.
+    Code.prepend_path(context.base_dir)
+    {:ok, binary} = Protocol.consolidate(ProtocolOpaque.Entity, [ProtocolOpaque.Duck, Any])
+    File.write!(Path.join(context.outdir, "#{ProtocolOpaque.Entity}.beam"), binary)
     assert_dialyze_no_warnings!(context)
   end
 
@@ -118,11 +124,11 @@ defmodule Kernel.DialyzerTest do
 
   defp copy_beam!(context, module) do
     name = "#{module}.beam"
-    File.cp!(Path.join(context[:base_dir], name), Path.join(context[:outdir], name))
+    File.cp!(Path.join(context.base_dir, name), Path.join(context.outdir, name))
   end
 
   defp assert_dialyze_no_warnings!(context) do
-    case dialyzer_run(context[:dialyzer]) do
+    case dialyzer_run(context.dialyzer) do
       [] ->
         :ok
 

@@ -202,66 +202,81 @@ defmodule MapTest do
     end
   end
 
-  test "structs with variable name" do
-    %module{name: "john"} = %ExternalUser{name: "john", age: 27}
-    assert module == ExternalUser
-    user = %ExternalUser{name: "john", age: 27}
-    %^module{name: "john"} = user
-
-    case user do
-      %module{} = %{age: 27} -> module
+  describe "structs with variable name" do
+    test "extracts the struct module" do
+      %module{name: "john"} = %ExternalUser{name: "john", age: 27}
+      assert module == ExternalUser
     end
 
-    invalid_struct = %{__struct__: foo()}
+    test "returns the struct on match" do
+      assert Code.eval_string("%struct{} = %ExternalUser{}", [], __ENV__) ==
+               {%ExternalUser{}, [struct: ExternalUser]}
+    end
 
-    assert_raise CaseClauseError, fn ->
-      case invalid_struct do
-        %module{} -> module
+    test "supports the pin operator" do
+      module = ExternalUser
+      user = %ExternalUser{name: "john", age: 27}
+      %^module{name: "john"} = user
+    end
+
+    test "is supported in case" do
+      user = %ExternalUser{name: "john", age: 27}
+
+      case user do
+        %module{} = %{age: 27} -> assert module == ExternalUser
       end
     end
 
-    assert_raise CaseClauseError, fn ->
-      case invalid_struct do
-        %_{} -> :ok
+    defp foo(), do: "foo"
+    defp destruct1(%module{}), do: module
+    defp destruct2(%_{}), do: :ok
+
+    test "does not match" do
+      invalid_struct = %{__struct__: foo()}
+
+      assert_raise CaseClauseError, fn ->
+        case invalid_struct do
+          %module{} -> module
+        end
       end
-    end
 
-    assert_raise CaseClauseError, fn ->
-      foo = foo()
-
-      case invalid_struct do
-        %^foo{} -> :ok
+      assert_raise CaseClauseError, fn ->
+        case invalid_struct do
+          %_{} -> :ok
+        end
       end
-    end
 
-    assert_raise FunctionClauseError, fn ->
-      destruct1(invalid_struct)
-    end
+      assert_raise CaseClauseError, fn ->
+        foo = foo()
 
-    assert_raise FunctionClauseError, fn ->
-      destruct2(invalid_struct)
-    end
+        case invalid_struct do
+          %^foo{} -> :ok
+        end
+      end
 
-    assert_raise MatchError, fn ->
-      %module{} = invalid_struct
-      _ = module
-    end
+      assert_raise FunctionClauseError, fn ->
+        destruct1(invalid_struct)
+      end
 
-    assert_raise MatchError, fn ->
-      %_{} = invalid_struct
-    end
+      assert_raise FunctionClauseError, fn ->
+        destruct2(invalid_struct)
+      end
 
-    assert_raise MatchError, fn ->
-      foo = foo()
-      %^foo{} = invalid_struct
+      assert_raise MatchError, fn ->
+        %module{} = invalid_struct
+        _ = module
+      end
+
+      assert_raise MatchError, fn ->
+        %_{} = invalid_struct
+      end
+
+      assert_raise MatchError, fn ->
+        foo = foo()
+        %^foo{} = invalid_struct
+      end
     end
   end
-
-  defp foo(), do: "foo"
-
-  defp destruct1(%module{}), do: module
-
-  defp destruct2(%_{}), do: :ok
 
   test "structs when using dynamic modules" do
     defmodule Module.concat(MapTest, DynamicUser) do

@@ -8,7 +8,7 @@ defmodule DateTime do
   well as the zone abbreviation field used exclusively
   for formatting purposes.
 
-  Remember, comparisons in Elixir using `==`, `>`, `<` and friends
+  Remember, comparisons in Elixir using `==/2`, `>/2`, `</2` and friends
   are structural and based on the DateTime struct fields. For proper
   comparison between datetimes, use the `compare/2` function.
 
@@ -460,7 +460,7 @@ defmodule DateTime do
   Parses the extended "Date and time of day" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  Since ISO8601 does not include the proper time zone, the given
+  Since ISO 8601 does not include the proper time zone, the given
   string will be converted to UTC and its offset in seconds will be
   returned as part of this function. Therefore offset information
   must be present in the string.
@@ -470,7 +470,7 @@ defmodule DateTime do
 
   Time representations with reduced accuracy are not supported.
 
-  Note that while ISO8601 allows datetimes to specify 24:00:00 as the
+  Note that while ISO 8601 allows datetimes to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
 
   ## Examples
@@ -610,11 +610,11 @@ defmodule DateTime do
   @doc """
   Compares two datetime structs.
 
-  Returns `:gt` if first datetime is later than the second
+  Returns `:gt` if the first datetime is later than the second
   and `:lt` for vice versa. If the two datetimes are equal
   `:eq` is returned.
 
-  Note that both utc and stc offsets will be taken into
+  Note that both UTC and Standard offsets will be taken into
   account when comparison is done.
 
   ## Examples
@@ -826,9 +826,9 @@ defmodule DateTime do
 
       {:error, :incompatible_calendars} ->
         raise ArgumentError,
-              "cannot convert #{inspect(datetime)} to target calendar #{inspect(calendar)}, reason: #{
-                inspect(datetime.calendar)
-              } and #{inspect(calendar)} have different day rollover moments, making this conversion ambiguous"
+              "cannot convert #{inspect(datetime)} to target calendar #{inspect(calendar)}, " <>
+                "reason: #{inspect(datetime.calendar)} and #{inspect(calendar)} have different " <>
+                "day rollover moments, making this conversion ambiguous"
     end
   end
 

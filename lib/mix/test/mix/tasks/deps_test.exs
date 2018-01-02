@@ -620,8 +620,9 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Loadpaths.run([])
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
+      File.mkdir_p!("_build/dev/lib/ok/.mix")
       manifest_data = :erlang.term_to_binary({:v1, "the_future", :scm})
-      File.write!("_build/dev/lib/ok/.compile.elixir_scm", manifest_data)
+      File.write!("_build/dev/lib/ok/.mix/compile.elixir_scm", manifest_data)
       Mix.Task.clear()
 
       msg =
@@ -646,15 +647,15 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Loadpaths.run([])
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
+      File.mkdir_p!("_build/dev/lib/ok/.mix")
 
       manifest_data =
         :erlang.term_to_binary({1, {System.version(), :erlang.system_info(:otp_release)}, :scm})
 
-      File.write!("_build/dev/lib/ok/.compile.elixir_scm", manifest_data)
+      File.write!("_build/dev/lib/ok/.mix/compile.elixir_scm", manifest_data)
       Mix.Task.clear()
 
       msg = "  the dependency was built with another SCM, run \"mix deps.compile\""
-
       Mix.Tasks.Deps.run([])
       assert_received {:mix_shell, :info, [^msg]}
 

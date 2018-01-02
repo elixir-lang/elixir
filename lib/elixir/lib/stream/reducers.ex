@@ -25,7 +25,7 @@ defmodule Stream.Reducers do
     end
 
     after_fun = fn {acc_buffer, acc_count} ->
-      if leftover == :discard or acc_count == 0 do
+      if leftover == :discard or acc_count == 0 or (step > count and acc_count >= count) do
         {:cont, []}
       else
         {:cont, :lists.reverse(acc_buffer, Enum.take(leftover, count - acc_count)), []}
@@ -53,18 +53,6 @@ defmodule Stream.Reducers do
     end
 
     chunk_by.(enumerable, nil, chunk_fun, after_fun)
-  end
-
-  defmacro chunk_while(callback, fun \\ nil) do
-    quote do
-      fn entry, acc(head, acc, tail) ->
-        case unquote(callback).(entry, acc) do
-          {:cont, emit, acc} -> next_with_acc(unquote(fun), emit, head, acc, tail)
-          {:cont, acc} -> skip(acc(head, acc, tail))
-          {:halt, acc} -> {:halt, acc(head, acc, tail)}
-        end
-      end
-    end
   end
 
   defmacro dedup(callback, fun \\ nil) do

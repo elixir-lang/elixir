@@ -207,10 +207,10 @@ defmodule Kernel.Typespec do
     body = {name, meta, Enum.map(args, &typespec_to_ast/1)}
 
     vars =
-      (args ++ [result])
-      |> Enum.flat_map(&collect_vars/1)
-      |> Enum.uniq()
-      |> Enum.map(&{&1, {:var, meta, nil}})
+      for type_expr <- args ++ [result],
+          var <- collect_vars(type_expr),
+          uniq: true,
+          do: {var, {:var, meta, nil}}
 
     spec = {:::, meta, [body, typespec_to_ast(result)]}
 
@@ -234,13 +234,14 @@ defmodule Kernel.Typespec do
       end
 
     meta = [line: line]
+    ignore_vars = Keyword.keys(guards)
 
     vars =
-      (args ++ [result])
-      |> Enum.flat_map(&collect_vars/1)
-      |> Enum.uniq()
-      |> Kernel.--(Keyword.keys(guards))
-      |> Enum.map(&{&1, {:var, meta, nil}})
+      for type_expr <- args ++ [result],
+          var <- collect_vars(type_expr),
+          var not in ignore_vars,
+          uniq: true,
+          do: {var, {:var, meta, nil}}
 
     args = for arg <- args, do: typespec_to_ast(arg)
 
@@ -411,6 +412,7 @@ defmodule Kernel.Typespec do
   defp store_callbackdoc(line, _file, module, kind, name, arity) do
     table = :elixir_module.data_table(module)
     {line, doc} = get_doc_info(table, :doc, line)
+    _ = get_since_info(table)
     :ets.insert(table, {{:callbackdoc, {name, arity}}, line, kind, doc})
   end
 
@@ -419,6 +421,10 @@ defmodule Kernel.Typespec do
       [{^attr, {line, doc}, _, _}] -> {line, doc}
       [] -> {line, nil}
     end
+  end
+
+  defp get_since_info(table) do
+    :ets.take(table, :since)
   end
 
   @doc false
@@ -434,6 +440,7 @@ defmodule Kernel.Typespec do
   defp store_typedoc(line, file, module, kind, name, arity) do
     table = :elixir_module.data_table(module)
     {line, doc} = get_doc_info(table, :typedoc, line)
+    _ = get_since_info(table)
 
     if kind == :typep && doc do
       warning =

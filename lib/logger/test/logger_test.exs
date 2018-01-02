@@ -122,6 +122,14 @@ defmodule LoggerTest do
            end) =~ msg("application= module=LoggerTest [info]  ok")
   end
 
+  test "metadata compile-time merge" do
+    assert Logger.metadata(module: Sample) == :ok
+
+    assert capture_log(fn ->
+             assert Logger.log(:info, "ok", application: nil, module: CustomTest) == :ok
+           end) =~ msg("application= module=CustomTest [info]  ok")
+  end
+
   test "metadata merge when the argument function returns metadata" do
     assert Logger.metadata(module: Sample) == :ok
 

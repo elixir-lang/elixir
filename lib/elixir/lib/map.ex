@@ -15,7 +15,7 @@ defmodule Map do
 
   Maps do not impose any restriction on the key type: anything can be a key in a
   map. As a key-value structure, maps do not allow duplicated keys. Keys are
-  compared using the exact-equality operator (`===`). If colliding keys are defined
+  compared using the exact-equality operator (`===/2`). If colliding keys are defined
   in a map literal, the last one prevails.
 
   When the key in a key-value pair is an atom, the `key: value` shorthand syntax
@@ -297,8 +297,10 @@ defmodule Map do
   end
 
   @doc """
-  Similar to `replace/3`, but will raise a `KeyError`
-  if the key does not exist in the map.
+  Alters the value stored under `key` to `value`, but only
+  if the entry `key` already exists in `map`.
+
+  If `key` is not present in `map`, a `KeyError` exception is raised.
 
   ## Examples
 
@@ -804,7 +806,7 @@ defmodule Map do
       {1, %{}}
 
   """
-  @spec get_and_update!(map, key, (value -> {get, value})) :: {get, map} | no_return
+  @spec get_and_update!(map, key, (value -> {get, value} | :pop)) :: {get, map} | no_return
         when get: term
   def get_and_update!(map, key, fun) when is_function(fun, 1) do
     value = fetch!(map, key)

@@ -165,24 +165,24 @@ defmodule Calendar do
   @callback time_to_string(hour, minute, second, microsecond) :: String.t()
 
   @doc """
-  Converts the given datetime (with time zone) into the `t:iso_days` format.
+  Converts the given datetime (with time zone) into the `t:iso_days/0` format.
   """
   @callback naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) ::
               iso_days
 
   @doc """
-  Converts `t:iso_days` to the Calendar's datetime format.
+  Converts `t:iso_days/0` to the Calendar's datetime format.
   """
   @callback naive_datetime_from_iso_days(iso_days) ::
               {year, month, day, hour, minute, second, microsecond}
 
   @doc """
-  Converts the given time to the `t:day_fraction` format.
+  Converts the given time to the `t:day_fraction/0` format.
   """
   @callback time_to_day_fraction(hour, minute, second, microsecond) :: day_fraction
 
   @doc """
-  Converts `t:day_fraction` to the Calendar's time format.
+  Converts `t:day_fraction/0` to the Calendar's time format.
   """
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 
@@ -246,12 +246,7 @@ defmodule Calendar do
   def truncate(microsecond_tuple, :microsecond), do: microsecond_tuple
 
   def truncate({microsecond, precision}, :millisecond) do
-    output_precision =
-      case precision do
-        precision when precision >= 3 -> 3
-        _ -> precision
-      end
-
+    output_precision = min(precision, 3)
     {div(microsecond, 1000) * 1000, output_precision}
   end
 

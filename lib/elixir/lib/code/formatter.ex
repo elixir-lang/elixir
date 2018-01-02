@@ -349,7 +349,7 @@ defmodule Code.Formatter do
           |> prepend_heredoc_line()
           |> interpolation_to_algebra(:heredoc, state, @double_heredoc, @double_heredoc)
 
-        {force_break(doc), state}
+        {force_unfit(doc), state}
 
       true ->
         interpolation_to_algebra(entries, @double_quote, state, @double_quote, @double_quote)
@@ -371,7 +371,7 @@ defmodule Code.Formatter do
           |> prepend_heredoc_line()
           |> interpolation_to_algebra(:heredoc, state, @single_heredoc, @single_heredoc)
 
-        {force_break(doc), state}
+        {force_unfit(doc), state}
 
       true ->
         interpolation_to_algebra(entries, @single_quote, state, @single_quote, @single_quote)
@@ -426,7 +426,7 @@ defmodule Code.Formatter do
     case meta[:format] do
       :list_heredoc ->
         string = list |> List.to_string() |> escape_heredoc()
-        {@single_heredoc |> concat(string) |> concat(@single_heredoc) |> force_break(), state}
+        {@single_heredoc |> concat(string) |> concat(@single_heredoc) |> force_unfit(), state}
 
       :charlist ->
         string = list |> List.to_string() |> escape_string(@single_quote)
@@ -440,7 +440,7 @@ defmodule Code.Formatter do
   defp quoted_to_algebra({:__block__, meta, [string]}, _context, state) when is_binary(string) do
     if meta[:format] == :bin_heredoc do
       string = escape_heredoc(string)
-      {@double_heredoc |> concat(string) |> concat(@double_heredoc) |> force_break(), state}
+      {@double_heredoc |> concat(string) |> concat(@double_heredoc) |> force_unfit(), state}
     else
       string = escape_string(string, @double_quote)
       {@double_quote |> concat(string) |> concat(@double_quote), state}
@@ -591,12 +591,12 @@ defmodule Code.Formatter do
     end
 
     {args_docs, _comments?, state} =
-      quoted_to_algebra_with_comments(args, min_line, max_line, 2, state, quoted_to_algebra)
+      quoted_to_algebra_with_comments(args, [], min_line, max_line, 2, state, quoted_to_algebra)
 
     case args_docs do
       [] -> {@empty, state}
       [line] -> {line, state}
-      lines -> {lines |> Enum.reduce(&line(&2, &1)) |> force_break(), state}
+      lines -> {lines |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
     end
   end
 
@@ -699,11 +699,8 @@ defmodule Code.Formatter do
           # we cannot group the left side yet.
           left = if op_info == parent_info, do: left, else: group(left)
 
-          # The right side is never the same operator, so we can group and nest
-          right = group(nest_by_length(right, op_string))
-
-          doc = glue(left, concat(op_string, right))
-          if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
+          doc = glue(left, concat(op_string, group(right)))
+          if Keyword.get(meta, :eol, false), do: force_unfit(doc), else: doc
 
         op in @right_new_line_before_binary_operators ->
           op_string = op_string <> " "
@@ -726,7 +723,7 @@ defmodule Code.Formatter do
             end
 
           doc = glue(left, concat(op_string, right))
-          if Keyword.get(meta, :eol, false), do: force_break(doc), else: doc
+          if Keyword.get(meta, :eol, false), do: force_unfit(doc), else: doc
 
         true ->
           next_break_fits? =
@@ -1011,40 +1008,42 @@ defmodule Code.Formatter do
   #   * :required - never skip parens
   #
   defp call_args_to_algebra([], meta, _context, _parens, _list_to_keyword?, state) do
-    {args_doc, state} = args_to_algebra_with_comments([], meta, false, false, state, &{&1, &2})
+    {args_doc, state} =
+      args_to_algebra_with_comments([], meta, false, false, false, state, &{&1, &2})
+
     {{surround("(", args_doc, ")"), state}, false}
   end
 
   defp call_args_to_algebra(args, meta, context, parens, list_to_keyword?, state) do
-    {args, last} = split_last(args)
+    {rest, last} = split_last(args)
 
     if blocks = do_end_blocks(last) do
       {call_doc, state} =
-        case args do
-          [] ->
-            {@empty, state}
-
-          _ ->
-            {args, last} = split_last(args)
-            no_parens? = parens != :required
-            call_args_to_algebra_no_blocks(meta, args, last, no_parens?, list_to_keyword?, state)
+        if rest == [] do
+          {" do", state}
+        else
+          no_parens? = parens != :required
+          call_args_to_algebra_no_blocks(meta, rest, no_parens?, list_to_keyword?, " do", state)
         end
 
       {blocks_doc, state} = do_end_blocks_to_algebra(blocks, state)
-      call_doc = call_doc |> space(blocks_doc) |> line("end") |> force_break()
+      call_doc = call_doc |> concat(blocks_doc) |> line("end") |> force_unfit()
       {{call_doc, state}, context in [:no_parens_arg, :no_parens_one_arg]}
     else
       no_parens? =
         parens == :skip_unless_many_args and
           context in [:block, :operand, :no_parens_one_arg, :parens_one_arg]
 
-      res = call_args_to_algebra_no_blocks(meta, args, last, no_parens?, list_to_keyword?, state)
+      res =
+        call_args_to_algebra_no_blocks(meta, args, no_parens?, list_to_keyword?, @empty, state)
+
       {res, false}
     end
   end
 
-  defp call_args_to_algebra_no_blocks(meta, left, right, skip_parens?, list_to_keyword?, state) do
-    generators_count = count_generators([right | left])
+  defp call_args_to_algebra_no_blocks(meta, args, skip_parens?, list_to_keyword?, extra, state) do
+    {left, right} = split_last(args)
+    generators_count = count_generators(args)
     {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?)
 
     context =
@@ -1055,21 +1054,21 @@ defmodule Code.Formatter do
       end
 
     if left != [] and keyword? and skip_parens? and generators_count == 0 do
-      call_args_to_algebra_with_no_parens_keywords(meta, left, right, context, state)
+      call_args_to_algebra_with_no_parens_keywords(meta, left, right, context, extra, state)
     else
       next_break_fits? = next_break_fits?(right)
-
       force_keyword? = keyword? and force_keyword?(right)
       non_empty_eol? = left != [] and not next_break_fits? and Keyword.get(meta, :eol, false)
-      force_break? = generators_count > 1 or force_keyword? or non_empty_eol?
+      force_unfit? = generators_count > 1 or force_keyword? or non_empty_eol?
       args = if keyword?, do: left ++ right, else: left ++ [right]
 
       {args_doc, state} =
         args_to_algebra_with_comments(
           args,
           meta,
+          skip_parens?,
           next_break_fits?,
-          force_break?,
+          force_unfit?,
           state,
           &quoted_to_algebra(&1, context, &2)
         )
@@ -1078,9 +1077,14 @@ defmodule Code.Formatter do
         if skip_parens? do
           " "
           |> concat(nest(args_doc, :cursor, :break))
+          |> concat(extra)
           |> group()
         else
-          surround("(", args_doc, ")")
+          glue("(", "", args_doc)
+          |> nest(2, :break)
+          |> glue("", ")")
+          |> concat(extra)
+          |> group()
         end
 
       if next_break_fits? do
@@ -1091,14 +1095,14 @@ defmodule Code.Formatter do
     end
   end
 
-  defp call_args_to_algebra_with_no_parens_keywords(meta, left, right, context, state) do
+  defp call_args_to_algebra_with_no_parens_keywords(meta, left, right, context, extra, state) do
     to_algebra_fun = &quoted_to_algebra(&1, context, &2)
 
     {left_doc, state} =
-      args_to_algebra_with_comments(left, meta, false, false, state, to_algebra_fun)
+      args_to_algebra_with_comments(left, meta, true, false, false, state, to_algebra_fun)
 
     {right_doc, state} =
-      args_to_algebra_with_comments(right, meta, false, false, state, to_algebra_fun)
+      args_to_algebra_with_comments(right, meta, false, false, false, state, to_algebra_fun)
 
     right_doc = "," |> glue(right_doc) |> force_keyword(right) |> group(:inherit)
 
@@ -1109,6 +1113,7 @@ defmodule Code.Formatter do
         " "
         |> concat(nest(args_doc, :cursor, :break))
         |> nest(2)
+        |> concat(extra)
         |> group()
       end)
 
@@ -1149,17 +1154,15 @@ defmodule Code.Formatter do
   end
 
   defp do_end_blocks_to_algebra([{:do, line, end_line, value} | blocks], state) do
-    {acc, state} = do_end_block_to_algebra(:do, line, end_line, value, state)
+    {acc, state} = do_end_block_to_algebra(@empty, line, end_line, value, state)
 
     Enum.reduce(blocks, {acc, state}, fn {key, line, end_line, value}, {acc, state} ->
-      {doc, state} = do_end_block_to_algebra(key, line, end_line, value, state)
+      {doc, state} = do_end_block_to_algebra(Atom.to_string(key), line, end_line, value, state)
       {line(acc, doc), state}
     end)
   end
 
-  defp do_end_block_to_algebra(key, line, end_line, value, state) do
-    key_doc = Atom.to_string(key)
-
+  defp do_end_block_to_algebra(key_doc, line, end_line, value, state) do
     case clauses_to_algebra(value, line, end_line, state) do
       {@empty, state} -> {key_doc, state}
       {value_doc, state} -> {key_doc |> line(value_doc) |> nest(2), state}
@@ -1216,7 +1219,7 @@ defmodule Code.Formatter do
             |> prepend_heredoc_line()
             |> interpolation_to_algebra(:heredoc, state, doc, closing_terminator)
 
-          {force_break(doc), state}
+          {force_unfit(doc), state}
         else
           escape = closing_sigil_terminator(opening_terminator)
           closing_terminator = concat(escape, List.to_string(modifiers))
@@ -1239,12 +1242,12 @@ defmodule Code.Formatter do
   defp bitstring_to_algebra(meta, args, state) do
     last = length(args) - 1
     to_algebra_fun = &bitstring_segment_to_algebra(&1, &2, last)
-    force_break? = Keyword.get(meta, :eol, false)
+    force_unfit? = Keyword.get(meta, :eol, false)
 
     {args_doc, state} =
       args
       |> Enum.with_index()
-      |> args_to_algebra_with_comments(meta, false, force_break?, state, to_algebra_fun)
+      |> args_to_algebra_with_comments(meta, false, false, force_unfit?, state, to_algebra_fun)
 
     {surround("<<", args_doc, ">>"), state}
   end
@@ -1296,22 +1299,21 @@ defmodule Code.Formatter do
 
   defp list_to_algebra(meta, args, state) do
     to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
-    force_break? = Keyword.get(meta, :eol, false)
+    force_unfit? = Keyword.get(meta, :eol, false)
 
     {args_doc, state} =
-      args_to_algebra_with_comments(args, meta, false, force_break?, state, to_algebra_fun)
+      args_to_algebra_with_comments(args, meta, false, false, force_unfit?, state, to_algebra_fun)
 
     {surround("[", args_doc, "]"), state}
   end
 
   defp map_to_algebra(meta, name_doc, [{:|, _, [left, right]}], state) do
-    to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
-    force_break? = Keyword.get(meta, :eol, false)
-
-    {left_doc, state} = to_algebra_fun.(left, state)
+    fun = &quoted_to_algebra(&1, :parens_arg, &2)
+    force_unfit? = Keyword.get(meta, :eol, false)
+    {left_doc, state} = fun.(left, state)
 
     {right_doc, state} =
-      args_to_algebra_with_comments(right, meta, false, force_break?, state, to_algebra_fun)
+      args_to_algebra_with_comments(right, meta, false, false, force_unfit?, state, fun)
 
     args_doc =
       left_doc
@@ -1323,33 +1325,26 @@ defmodule Code.Formatter do
   end
 
   defp map_to_algebra(meta, name_doc, args, state) do
-    force_break? = Keyword.get(meta, :eol, false)
-    to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
+    force_unfit? = Keyword.get(meta, :eol, false)
+    fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, state} =
-      args_to_algebra_with_comments(args, meta, false, force_break?, state, to_algebra_fun)
+      args_to_algebra_with_comments(args, meta, false, false, force_unfit?, state, fun)
 
     name_doc = "%" |> concat(name_doc) |> concat("{")
     {surround(name_doc, args_doc, "}"), state}
   end
 
   defp tuple_to_algebra(meta, args, state) do
-    force_break? = Keyword.get(meta, :eol, false)
-    to_algebra_fun = &quoted_to_algebra(&1, :parens_arg, &2)
+    force_unfit? = Keyword.get(meta, :eol, false)
+    fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     next_break_fits? =
       args != [] and next_break_fits?(Enum.fetch!(args, -1)) and
         not Keyword.get(meta, :eol, false)
 
     {args_doc, state} =
-      args_to_algebra_with_comments(
-        args,
-        meta,
-        next_break_fits?,
-        force_break?,
-        state,
-        to_algebra_fun
-      )
+      args_to_algebra_with_comments(args, meta, false, next_break_fits?, force_unfit?, state, fun)
 
     doc = surround("{", args_doc, "}")
 
@@ -1461,7 +1456,15 @@ defmodule Code.Formatter do
   defp heredoc_line(["", _ | _]), do: nest(line(), :reset)
   defp heredoc_line(_), do: line()
 
-  defp args_to_algebra_with_comments(args, meta, next_break_fits?, force_break?, state, fun) do
+  defp args_to_algebra_with_comments(
+         args,
+         meta,
+         skip_parens?,
+         next_break_fits?,
+         force_unfit?,
+         state,
+         fun
+       ) do
     min_line = line(meta)
     max_line = end_line(meta)
 
@@ -1478,18 +1481,30 @@ defmodule Code.Formatter do
       {doc, @empty, newlines, state}
     end
 
-    {args_docs, comments?, new_state} =
-      quoted_to_algebra_with_comments(args, min_line, max_line, 1, state, arg_to_algebra)
+    # If skipping parens, we cannot extract the comments of the first
+    # argument as there is no place to move them to, so we handle it now.
+    {args, acc, state} =
+      case args do
+        [head | tail] when skip_parens? ->
+          {head, next_line, newlines, state} = arg_to_algebra.(head, tail, 1, state)
+          {tail, [{head, next_line, newlines}], state}
+
+        _ ->
+          {args, [], state}
+      end
+
+    {args_docs, comments?, state} =
+      quoted_to_algebra_with_comments(args, acc, min_line, max_line, 1, state, arg_to_algebra)
 
     cond do
       args_docs == [] ->
-        {@empty, new_state}
+        {@empty, state}
 
-      force_break? or comments? ->
-        {args_docs |> Enum.reduce(&line(&2, &1)) |> force_break(), new_state}
+      force_unfit? or comments? ->
+        {args_docs |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
 
       true ->
-        {args_docs |> Enum.reduce(&glue(&2, &1)), new_state}
+        {args_docs |> Enum.reduce(&glue(&2, &1)), state}
     end
   end
 
@@ -1541,7 +1556,7 @@ defmodule Code.Formatter do
   # end
   defp anon_fun_to_algebra(clauses, min_line, max_line, state) do
     {clauses_doc, state} = clauses_to_algebra(clauses, min_line, max_line, state)
-    {"fn" |> line(clauses_doc) |> nest(2) |> line("end") |> force_break(), state}
+    {"fn" |> line(clauses_doc) |> nest(2) |> line("end") |> force_unfit(), state}
   end
 
   ## Type functions
@@ -1593,14 +1608,14 @@ defmodule Code.Formatter do
   # )
   defp type_fun_to_algebra(clauses, min_line, max_line, state) do
     {clauses_doc, state} = clauses_to_algebra(clauses, min_line, max_line, state)
-    {"(" |> line(clauses_doc) |> nest(2) |> line(")") |> force_break(), state}
+    {"(" |> line(clauses_doc) |> nest(2) |> line(")") |> force_unfit(), state}
   end
 
   ## Clauses
 
   defp maybe_force_clauses(doc, clauses) do
     if Enum.any?(clauses, fn {:->, meta, _} -> Keyword.get(meta, :eol, false) end) do
-      force_break(doc)
+      force_unfit(doc)
     else
       doc
     end
@@ -1658,7 +1673,8 @@ defmodule Code.Formatter do
 
   defp clause_args_to_algebra(args, min_line, state) do
     meta = [line: min_line]
-    args_to_algebra_with_comments([args], meta, false, false, state, &clause_args_to_algebra/2)
+    fun = &clause_args_to_algebra/2
+    args_to_algebra_with_comments([args], meta, false, false, false, state, fun)
   end
 
   # fn a, b, c when d -> e end
@@ -1680,14 +1696,14 @@ defmodule Code.Formatter do
 
   ## Quoted helpers for comments
 
-  defp quoted_to_algebra_with_comments(args, min_line, max_line, newlines, state, fun) do
+  defp quoted_to_algebra_with_comments(args, acc, min_line, max_line, newlines, state, fun) do
     {pre_comments, state} =
       get_and_update_in(state.comments, fn comments ->
         Enum.split_while(comments, fn {line, _, _} -> line <= min_line end)
       end)
 
     {docs, comments?, state} =
-      each_quoted_to_algebra_with_comments(args, [], max_line, newlines, state, false, fun)
+      each_quoted_to_algebra_with_comments(args, acc, max_line, newlines, state, false, fun)
 
     {docs, comments?, update_in(state.comments, &(pre_comments ++ &1))}
   end
@@ -1968,7 +1984,7 @@ defmodule Code.Formatter do
   end
 
   defp force_keyword(doc, arg) do
-    if force_keyword?(arg), do: force_break(doc), else: doc
+    if force_keyword?(arg), do: force_unfit(doc), else: doc
   end
 
   defp keyword?([{key, _} | list]) do

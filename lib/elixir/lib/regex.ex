@@ -7,7 +7,7 @@ defmodule Regex do
   in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using the sigils
-  [`~r`](Kernel.html#sigil_r/2) or [`~R`](Kernel.html#sigil_R/2):
+  [`~r`](`Kernel.sigil_r/2`) or [`~R`](`Kernel.sigil_R/2`):
 
       # A simple regular expressions that matches foo anywhere in the string
       ~r/foo/
@@ -42,9 +42,9 @@ defmodule Regex do
 
   For such reasons, we always recommend precompiling Elixir projects using
   the OTP version meant to run in production. In case cross-compilation is
-  really necessary, you can manually invoke `Regex.recompile/1` or `Regex.
-  recompile!/1` to perform a runtime version check and recompile the regex
-  if necessary.
+  really necessary, you can manually invoke `Regex.recompile/1` or
+  `Regex.recompile!/1` to perform a runtime version check and recompile the
+  regex if necessary.
 
   ## Modifiers
 
@@ -117,8 +117,9 @@ defmodule Regex do
   Compiles the regular expression.
 
   The given options can either be a binary with the characters
-  representing the same regex options given to the `~r` sigil,
-  or a list of options, as expected by the Erlang's `:re` module.
+  representing the same regex options given to the
+  [`~r`](`Kernel.sigil_r/2`) sigil, or a list of options, as
+  expected by the Erlang's `:re` module.
 
   It returns `{:ok, regex}` in case of success,
   `{:error, reason}` otherwise.
@@ -439,7 +440,7 @@ defmodule Regex do
       ["abc"]
 
       iex> Regex.split(~r{}, "abc")
-      ["a", "b", "c", ""]
+      ["", "a", "b", "c", ""]
 
       iex> Regex.split(~r{a(?<second>b)c}, "abc")
       ["", ""]
@@ -509,17 +510,13 @@ defmodule Regex do
     new_offset = pos + length
     keep = pos - offset
 
-    if keep == 0 and length == 0 do
-      do_split([h | t], string, new_offset, counter, trim, true)
-    else
-      <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> =
-        string
+    <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> =
+      string
 
-      if keep == 0 and (length == 0 or trim) do
-        [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
-      else
-        [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
-      end
+    if keep == 0 and trim do
+      [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
+    else
+      [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
     end
   end
 
@@ -527,7 +524,7 @@ defmodule Regex do
     new_offset = pos + length
     keep = pos - offset
 
-    if keep == 0 and (length == 0 or trim) do
+    if keep == 0 and trim do
       do_split([h | t], string, new_offset, counter, trim, false)
     else
       <<_::binary-size(offset), part::binary-size(keep), _::binary>> = string

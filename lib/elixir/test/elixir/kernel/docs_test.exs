@@ -59,6 +59,15 @@ defmodule Kernel.DocsTest do
     assert Code.get_docs(InMemoryDocs, :callback_docs) == nil
   end
 
+  test "raises on invalid @since" do
+    assert_raise ArgumentError, ~r"@since is used for documentation purposes", fn ->
+      defmodule InvalidSince do
+        @since 1.2
+        def foo, do: :bar
+      end
+    end
+  end
+
   describe "compiled with docs" do
     test "infers signatures" do
       write_beam(
@@ -132,12 +141,14 @@ defmodule Kernel.DocsTest do
           @moduledoc "Module doc"
 
           @typedoc "Type doc"
+          @since "1.2.3"
           @type foo(any) :: any
 
           @typedoc "Opaque type doc"
           @opaque bar(any) :: any
 
           @doc "Callback doc"
+          @since "1.2.3"
           @callback foo(any) :: any
 
           @doc false
@@ -148,12 +159,25 @@ defmodule Kernel.DocsTest do
           @macrocallback qux(any) :: any
 
           @doc "Function doc"
-          def foo(arg) do
-            arg + 1
-          end
+          @since "1.2.3"
+          def foo(arg), do: arg + 1
+
+          @doc "Multiple bodiless clause doc"
+          @since "1.2.3"
+          def bar(_arg)
+          def bar(_arg)
+          def bar(arg), do: arg + 1
+
+          @doc "Wrong doc"
+          @since "1.2"
+          def baz(_arg)
+          def baz(arg), do: arg + 1
+          @doc "Multiple bodiless clause and docs"
+          @since "1.2.3"
+          def baz(_arg)
 
           @doc false
-          def bar(true), do: false
+          def qux(true), do: false
         end
       )
 
@@ -164,8 +188,10 @@ defmodule Kernel.DocsTest do
       assert Code.get_docs(SampleDocs, :callback_docs) == docs[:callback_docs]
 
       assert [
-               {{:bar, 1}, _, :def, [{:bool, _, Elixir}], false},
-               {{:foo, 1}, _, :def, [{:arg, _, nil}], "Function doc"}
+               {{:bar, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause doc"},
+               {{:baz, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause and docs"},
+               {{:foo, 1}, _, :def, [{:arg, _, nil}], "Function doc"},
+               {{:qux, 1}, _, :def, [{:bool, _, Elixir}], false}
              ] = docs[:docs]
 
       assert {_, "Module doc"} = docs[:moduledoc]

@@ -1,6 +1,6 @@
 defmodule Calendar.ISO do
   @moduledoc """
-  A calendar implementation that follows to ISO8601.
+  A calendar implementation that follows to ISO 8601.
 
   This calendar implements the proleptic Gregorian calendar and
   is therefore compatible with the calendar used in most countries
@@ -8,7 +8,7 @@ defmodule Calendar.ISO do
   applied for all time, consequently the dates give different results
   before the year 1583 from when the Gregorian calendar was adopted.
 
-  Note that while ISO8601 allows times and datetimes to specify
+  Note that while ISO 8601 allows times and datetimes to specify
   24:00:00 as the zero hour of the next day, this notation is not
   supported by Elixir.
   """
@@ -17,7 +17,7 @@ defmodule Calendar.ISO do
 
   @unix_epoch 62_167_219_200
   @unix_start 1_000_000 * -@unix_epoch
-  @unix_end 1_000_000 * (315_569_519_999 - @unix_epoch)
+  @unix_end 315_569_519_999_999_999 - @unix_epoch * 1_000_000
   @unix_range_microseconds @unix_start..@unix_end
 
   @type year :: 0..9999
@@ -35,7 +35,7 @@ defmodule Calendar.ISO do
   @days_per_leap_year 366
 
   @doc """
-  Returns the `t:Calendar.iso_days` format of the specified date.
+  Returns the `t:Calendar.iso_days/0` format of the specified date.
 
   ## Examples
 
@@ -62,7 +62,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Converts the `t:Calendar.iso_days` format to the datetime format specified by this calendar.
+  Converts the `t:Calendar.iso_days/0` format to the datetime format specified by this calendar.
 
   ## Examples
 

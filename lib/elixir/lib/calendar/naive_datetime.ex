@@ -4,7 +4,8 @@ defmodule NaiveDateTime do
 
   The NaiveDateTime struct contains the fields year, month, day, hour,
   minute, second, microsecond and calendar. New naive datetimes can be
-  built with the `new/2` and `new/7` functions or using the `~N` sigil:
+  built with the `new/2` and `new/7` functions or using the
+  [`~N`](`Kernek.sigil_N/2`) sigil:
 
       iex> ~N[2000-01-01 23:00:07]
       ~N[2000-01-01 23:00:07]
@@ -38,7 +39,7 @@ defmodule NaiveDateTime do
 
   ## Comparing naive date times
 
-  Comparisons in Elixir using `==`, `>`, `<` and similar are structural
+  Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `NaiveDateTime` struct fields. For proper comparison
   between naive datetimes, use the `compare/2` function.
 
@@ -405,7 +406,7 @@ defmodule NaiveDateTime do
 
   Time representations with reduced accuracy are not supported.
 
-  Note that while ISO8601 allows datetimes to specify 24:00:00 as the
+  Note that while ISO 8601 allows datetimes to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
 
   ## Examples
@@ -520,7 +521,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.to_iso8601(~N[2000-02-28 23:00:13.001], :basic)
       "20000228T230013.001"
 
-  This function can also be used to convert a DateTime to ISO8601 without
+  This function can also be used to convert a DateTime to ISO 8601 without
   the time zone information:
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",

@@ -239,10 +239,10 @@ defmodule Mix.RebarTest do
         assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
         assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
 
-        # Assert we have no .compile.lock as a .compile.lock
+        # Assert we have no .mix/compile.lock as a .mix/compile.lock
         # means we check for the Elixir version on every command.
-        refute File.exists?("_build/dev/lib/rebar_dep/.compile.lock")
-        refute File.exists?("_build/dev/lib/git_rebar/.compile.lock")
+        refute File.exists?("_build/dev/lib/rebar_dep/.mix/compile.lock")
+        refute File.exists?("_build/dev/lib/git_rebar/.mix/compile.lock")
 
         assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
         assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
@@ -252,7 +252,7 @@ defmodule Mix.RebarTest do
     test "applies variables from :system_env option when compiling dependencies for Rebar" do
       Mix.Project.push(RebarAsDepWithEnv)
 
-      in_tmp "applies variables from :system_env for Rebar", fn ->
+      in_tmp "applies variables from system_env for Rebar", fn ->
         expected_file = Path.join(tmp_path("rebar_dep"), "rebar-test-rebar")
         File.rm(expected_file)
 
@@ -284,10 +284,10 @@ defmodule Mix.RebarTest do
         assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
         assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
 
-        # Assert we have no .compile.lock as a .compile.lock
+        # Assert we have no .mix/compile.lock as a .mix/compile.lock
         # means we check for the Elixir version on every command.
-        refute File.exists?("_build/dev/lib/rebar_dep/.compile.lock")
-        refute File.exists?("_build/dev/lib/git_rebar/.compile.lock")
+        refute File.exists?("_build/dev/lib/rebar_dep/.mix/compile.lock")
+        refute File.exists?("_build/dev/lib/git_rebar/.mix/compile.lock")
 
         assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
         assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
@@ -297,7 +297,7 @@ defmodule Mix.RebarTest do
     test "applies variables from :system_env option when compiling dependencies for rebar3" do
       Mix.Project.push(Rebar3AsDep)
 
-      in_tmp "applies variables from :system_env for rebar3", fn ->
+      in_tmp "applies variables from system_env for rebar3", fn ->
         expected_file = Path.join(tmp_path("rebar_dep"), "rebar-test-rebar3")
         File.rm(expected_file)
 

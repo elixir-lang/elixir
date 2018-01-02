@@ -262,7 +262,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         {Args, []}
     end,
 
-  validate_opts(Meta, for, [do, into], Block, E),
+  validate_opts(Meta, for, [do, into, uniq], Block, E),
   {Expr, Opts} =
     case lists:keytake(do, 1, Block) of
       {value, {do, Do}, DoOpts} ->
@@ -270,6 +270,12 @@ expand({for, Meta, [_ | _] = Args}, E) ->
       false ->
         form_error(Meta, ?key(E, file), ?MODULE, {missing_option, for, [do]})
     end,
+
+  case lists:keyfind(uniq, 1, Opts) of
+    false -> ok;
+    {uniq, Value} when is_boolean(Value) -> ok;
+    {uniq, Value} -> form_error(Meta, ?key(E, file), ?MODULE, {for_invalid_uniq, Value})
+  end,
 
   {EOpts, EO} = expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand_for/2, EO, Cases),
@@ -554,24 +560,28 @@ var_context(Meta, Kind) ->
 
 expand_case(true, Meta, Expr, Opts, E) ->
   {EExpr, EE} = expand(Expr, E),
-  {EOpts, EO} = elixir_clauses:'case'(Meta, Opts, EE),
+
   ROpts =
-    case proplists:get_value(optimize_boolean, Meta, false) andalso
-         elixir_utils:returns_boolean(EExpr) of
-      true -> rewrite_case_clauses(EOpts);
-      false -> EOpts
+    case proplists:get_value(optimize_boolean, Meta, false) of
+      true ->
+        case elixir_utils:returns_boolean(EExpr) of
+          true -> rewrite_case_clauses(Opts);
+          false -> generated_case_clauses(Opts)
+        end;
+
+      false ->
+        Opts
     end,
-  {{'case', Meta, [EExpr, ROpts]}, EO};
+
+  {EOpts, EO} = elixir_clauses:'case'(Meta, ROpts, EE),
+  {{'case', Meta, [EExpr, EOpts]}, EO};
 expand_case(false, Meta, Expr, Opts, E) ->
   {Case, _} = expand_case(true, Meta, Expr, Opts, E),
   {Case, E}.
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
-    [{'when', _, [Var, {{'.', _, [erlang, 'orelse']}, _, [
-      {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
-      {{'.', _, [erlang, '=:=']}, _, [Var, false]}
-    ]}]}],
+    [{'when', _, [Var, {{'.', _, ['Elixir.Kernel', 'in']}, _, [Var, [false, nil]]}]}],
     FalseExpr
   ]},
   {'->', TrueMeta, [
@@ -579,12 +589,26 @@ rewrite_case_clauses([{do, [
     TrueExpr
   ]}
 ]}]) ->
-  [{do, [
-    {'->', FalseMeta, [[false], FalseExpr]},
-    {'->', TrueMeta, [[true], TrueExpr]}
-  ]}];
+  rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr);
+
+rewrite_case_clauses([{do, [
+  {'->', FalseMeta, [[false], FalseExpr]},
+  {'->', TrueMeta, [[true], TrueExpr]} | _
+]}]) ->
+  rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr);
+
 rewrite_case_clauses(Other) ->
-  Other.
+  generated_case_clauses(Other).
+
+rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr) ->
+  [{do, [
+    {'->', ?generated(FalseMeta), [[false], FalseExpr]},
+    {'->', ?generated(TrueMeta), [[true], TrueExpr]}
+  ]}].
+
+generated_case_clauses([{do, Clauses}]) ->
+  RClauses = [{'->', ?generated(Meta), Args} || {'->', Meta, Args} <- Clauses],
+  [{do, RClauses}].
 
 %% Locals
 
@@ -846,6 +870,8 @@ format_error({missing_option, Construct, Opts}) when is_list(Opts) ->
   io_lib:format("missing ~ts option in \"~ts\"", [string:join(StringOpts, "/"), Construct]);
 format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
+format_error({for_invalid_uniq, Value}) ->
+  io_lib:format(":uniq option for comprehensions only accepts a boolean, got: ~ts", ['Elixir.Macro':to_string(Value)]);
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->
@@ -930,6 +956,18 @@ format_error({unsupported_option, Kind, Key}) ->
 format_error({options_are_not_keyword, Kind, Opts}) ->
   io_lib:format("invalid options for ~s, expected a keyword list, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(Opts)]);
+format_error({undefined_function, '|', [_, _]}) ->
+  "misplaced operator |/2\n\n"
+  "The | operator is typically used between brackets as the cons operator:\n\n"
+  "    [head | tail]\n\n"
+  "where head is a single element and the tail is the remaining of a list.\n"
+  "It is also used to update maps and structs, via the %{map | key: value} notation,\n"
+  "and in typespecs, such as @type and @spec, to express the union of two types";
+format_error({undefined_function, '::', [_, _]}) ->
+  "misplaced operator ::/2\n\n"
+  "The :: operator is typically used in bitstrings to specify types and sizes of segments:\n\n"
+  "    <<size::32-integer, letter::utf8, rest::binary>>\n\n"
+  "It is also used in typespecs, such as @type and @spec, to describe inputs and outputs";
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B", [Name, length(Args)]);
 format_error({underscored_var_repeat, Name, Kind}) ->

@@ -227,6 +227,7 @@ defmodule KernelTest do
     assert (false and true) == false
     assert (false and 0) == false
     assert (false and raise("oops")) == false
+    assert ((x = true) and not x) == false
     assert_raise BadBooleanError, fn -> 0 and 1 end
   end
 
@@ -238,7 +239,16 @@ defmodule KernelTest do
     assert (false or false) == false
     assert (false or true) == true
     assert (false or 0) == 0
+    assert ((x = false) or not x) == true
     assert_raise BadBooleanError, fn -> 0 or 1 end
+  end
+
+  test "if/2 boolean optimization does not leak variables during expansion" do
+    if false do
+      :ok
+    else
+      assert __ENV__.vars == []
+    end
   end
 
   describe "in/2" do

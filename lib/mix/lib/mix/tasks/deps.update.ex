@@ -6,10 +6,24 @@ defmodule Mix.Tasks.Deps.Update do
   @moduledoc """
   Updates the given dependencies.
 
+  The given dependencies and the projects they depend on will
+  be unlocked and updated to the latest version according to their
+  version requirements.
+
   Since this is a destructive action, updating all dependencies
   only occurs when the `--all` command line option is passed.
 
   All dependencies are automatically recompiled after update.
+
+  ## mix deps.unlock + mix deps.get
+
+  Upgrading a dependency often requires the projects it depends on
+  to upgrade too. If you would rather update a single dependency and
+  not touch its children, you can explicitly unlock the single dependency
+  and run `mix deps.get`:
+
+      $ mix deps.unlock some_dep
+      $ mix deps.get
 
   ## Command line options
 

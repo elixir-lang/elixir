@@ -1323,7 +1323,7 @@ defmodule Kernel do
   Returns `true` if the two items are equal.
 
   This operator considers 1 and 1.0 to be equal. For stricter
-  semantics, use `===` instead.
+  semantics, use `===/2` instead.
 
   All terms in Elixir can be compared with each other.
 
@@ -1458,6 +1458,10 @@ defmodule Kernel do
 
   ## Implemented in Elixir
 
+  defp optimize_boolean({:case, meta, args}) do
+    {:case, [{:optimize_boolean, true} | meta], args}
+  end
+
   @doc """
   Boolean or.
 
@@ -1479,7 +1483,10 @@ defmodule Kernel do
 
   """
   defmacro left or right do
-    quote(do: :erlang.orelse(unquote(left), unquote(right)))
+    case __CALLER__.context do
+      nil -> build_boolean_check(:or, left, true, right)
+      _ -> quote(do: :erlang.orelse(unquote(left), unquote(right)))
+    end
   end
 
   @doc """
@@ -1502,7 +1509,27 @@ defmodule Kernel do
 
   """
   defmacro left and right do
-    quote(do: :erlang.andalso(unquote(left), unquote(right)))
+    case __CALLER__.context do
+      nil -> build_boolean_check(:and, left, right, false)
+      _ -> quote(do: :erlang.andalso(unquote(left), unquote(right)))
+    end
+  end
+
+  defp build_boolean_check(operator, check, true_clause, false_clause) do
+    optimize_boolean(
+      quote do
+        case unquote(check) do
+          true ->
+            unquote(true_clause)
+
+          false ->
+            unquote(false_clause)
+
+          other ->
+            :erlang.error(BadBooleanError.exception(operator: unquote(operator), term: other))
+        end
+      end
+    )
   end
 
   @doc """
@@ -1528,7 +1555,7 @@ defmodule Kernel do
     optimize_boolean(
       quote do
         case unquote(value) do
-          x when x in [false, nil] -> false
+          x when :"Elixir.Kernel".in(x, [false, nil]) -> false
           _ -> true
         end
       end
@@ -1539,7 +1566,7 @@ defmodule Kernel do
     optimize_boolean(
       quote do
         case unquote(value) do
-          x when x in [false, nil] -> true
+          x when :"Elixir.Kernel".in(x, [false, nil]) -> true
           _ -> false
         end
       end
@@ -1554,7 +1581,7 @@ defmodule Kernel do
       iex> "foo" <> "bar"
       "foobar"
 
-  The `<>` operator can also be used in pattern matching (and guard clauses) as
+  The `<>/2` operator can also be used in pattern matching (and guard clauses) as
   long as the first part is a literal binary:
 
       iex> "foo" <> x = "foobar"
@@ -1716,26 +1743,7 @@ defmodule Kernel do
 
       message ->
         quote do
-          stacktrace = unquote(stacktrace)
-
-          case unquote(message) do
-            message when is_binary(message) ->
-              :erlang.raise(:error, RuntimeError.exception(message), stacktrace)
-
-            atom when is_atom(atom) ->
-              :erlang.raise(:error, atom.exception([]), stacktrace)
-
-            %_{__exception__: true} = other ->
-              :erlang.raise(:error, other, stacktrace)
-
-            other ->
-              message = <<
-                "reraise/2 expects a module name, string or exception",
-                "as the first argument, got: #{inspect(other)}"
-              >>
-
-              :erlang.error(ArgumentError.exception(message))
-          end
+          :erlang.raise(:error, Kernel.Utils.raise(unquote(message)), unquote(stacktrace))
         end
     end
   end
@@ -2830,7 +2838,7 @@ defmodule Kernel do
     optimize_boolean(
       quote do
         case unquote(condition) do
-          x when x in [false, nil] -> unquote(else_clause)
+          x when :"Elixir.Kernel".in(x, [false, nil]) -> unquote(else_clause)
           _ -> unquote(do_clause)
         end
       end
@@ -2998,7 +3006,7 @@ defmodule Kernel do
   defmacro left && right do
     quote do
       case unquote(left) do
-        x when x in [false, nil] ->
+        x when :"Elixir.Kernel".in(x, [false, nil]) ->
           x
 
         _ ->
@@ -3034,7 +3042,7 @@ defmodule Kernel do
   defmacro left || right do
     quote do
       case unquote(left) do
-        x when x in [false, nil] ->
+        x when :"Elixir.Kernel".in(x, [false, nil]) ->
           unquote(right)
 
         x ->
@@ -3792,7 +3800,7 @@ defmodule Kernel do
 
   ## rescue/catch/after
 
-  Function bodies support `rescue`, `catch` and `after` as `SpecialForms.try/1`
+  Function bodies support `rescue`, `catch` and `after` as `Kernel.SpecialForms.try/1`
   does. The following two functions are equivalent:
 
       def format(value) do
@@ -3975,8 +3983,9 @@ defmodule Kernel do
   For each protocol in the `@derive` list, Elixir will assert there is an
   implementation of that protocol for any (regardless if fallback to any
   is `true`) and check if the any implementation defines a `__deriving__/3`
-  callback. If so, the callback is invoked, otherwise an implementation
-  that simply points to the any implementation is automatically derived.
+  callback (via `Protocol.derive/3`). If so, the callback is invoked,
+  otherwise an implementation that simply points to the any implementation
+  is automatically derived.
 
   ## Enforcing keys
 
@@ -4368,14 +4377,44 @@ defmodule Kernel do
 
   In order to speed up dispatching in production environments, where
   all implementations are known up-front, Elixir provides a feature
-  called protocol consolidation. For this reason, all protocols are
-  compiled with `debug_info` set to `true`, regardless of the option
-  set by `elixirc` compiler. The debug info though may be removed after
-  consolidation.
+  called protocol consolidation. Consolidation directly links protocols
+  to their implementations in a way that invoking a function from a
+  consolidated protocol is equivalent to invoking two remote functions.
 
-  Protocol consolidation is applied by default to all Mix projects.
-  For applying consolidation manually, please check the functions in
-  the `Protocol` module or the `mix compile.protocols` task.
+  Protocol consolidation is applied by default to all Mix projects during
+  compilation. This may be an issue during test. For instance, if you want
+  to implement a protocol during test, the implementation will have no
+  effect, as the protocol has already been consolidated. One possible
+  solution is to include compilation directories that are specific to your
+  test environment in your mix.exs:
+
+      def project do
+        ...
+        elixirc_paths: elixirc_paths(Mix.env)
+        ...
+      end
+
+      defp elixirc_paths(:test), do: ["lib", "test/support"]
+      defp elixirc_paths(_), do: ["lib"]
+
+  And then you can define the implementations specific to the test environment
+  inside `test/support/some_file.ex`.
+
+  Another approach is to disable protocol consolidation during tests in your
+  mix.exs:
+
+      def project do
+        ...
+        consolidate_protocols: Mix.env != :test
+        ...
+      end
+
+  Although doing so is not recommended as it may affect your test suite
+  performance.
+
+  Finally note all protocols are compiled with `debug_info` set to `true`,
+  regardless of the option set by `elixirc` compiler. The debug info is
+  used for consolidation and it may be removed after consolidation.
   """
   defmacro defprotocol(name, do_block)
 
@@ -5069,10 +5108,6 @@ defmodule Kernel do
   end
 
   ## Shared functions
-
-  defp optimize_boolean({:case, meta, args}) do
-    {:case, [{:optimize_boolean, true} | meta], args}
-  end
 
   # We need this check only for bootstrap purposes.
   # Once Kernel is loaded and we recompile, it is a no-op.

@@ -660,43 +660,59 @@ defmodule IEx do
 
   ## Examples
 
+  The examples below will use `break!`, assuming that you are setting
+  a breakpoint directly from your IEx shell. But you can set up a break
+  from anywhere by using the fully qualified name `IEx.break!`.
+
   The following sets up a breakpoint on `URI.decode_query/2`:
 
-      IEx.break!(URI, :decode_query, 2)
+      break! URI, :decode_query, 2
 
   This call will setup a breakpoint that stops once.
   To set a breakpoint that will stop 10 times:
 
-      IEx.break!(URI, :decode_query, 2, 10)
+      break! URI, :decode_query, 2, 10
 
   `IEx.break!/2` is a convenience macro that allows breakpoints
   to be given in the `Mod.fun/arity` format:
 
-      require IEx
-      IEx.break!(URI.decode_query/2)
+      break! URI.decode_query/2
 
   Or to set a breakpoint that will stop 10 times:
 
-      IEx.break!(URI.decode_query/2, 10)
+      break! URI.decode_query/2, 10
+
+  This function returns the breakpoint ID and will raise if there
+  is an error setting up the breakpoint.
+
+  ## Patterns and guards
 
   `IEx.break!/2` allows patterns to be given, triggering the
   breakpoint only in some occasions. For example, to trigger
   the breakpoint only when the first argument is the "foo=bar"
   string:
 
-      IEx.break!(URI.decode_query("foo=bar", _))
+      break! URI.decode_query("foo=bar", _)
 
-  Or to trigger is whenever the second argument is a map with
+  Or to trigger it whenever the second argument is a map with
   more than one element:
 
-      IEx.break!(URI.decode_query(_, map) when map_size(map) > 0)
+      break! URI.decode_query(_, map) when map_size(map) > 0
 
   Only a single break point can be set per function. So if you call
   `IEx.break!` multiple times with different patterns, only the last
   pattern is kept.
 
-  This function returns the breakpoint ID and will raise if there
-  is an error setting up the breakpoint.
+  Notice that, while patterns may be given to macros, remember that
+  macros receive ASTs as arguments, and not values. For example, if
+  you try to break on a macro with the following pattern:
+
+      break! MyModule.some_macro(pid) when pid == self()
+
+  This breakpoint will never be reached, because a macro never receives
+  a PID. Even if you call the macro as `MyModule.some_macro(self())`,
+  the macro will receive the AST representing the `self()` call, and not
+  the PID itself.
 
   ## Breaks and mix test
 

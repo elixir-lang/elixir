@@ -6,6 +6,7 @@ defmodule Dialyzer.ProtocolOpaque do
 end
 
 defprotocol Dialyzer.ProtocolOpaque.Entity do
+  @fallback_to_any true
   def speak(entity)
 end
 
@@ -18,5 +19,11 @@ defmodule Dialyzer.ProtocolOpaque.Duck do
 
   defimpl Dialyzer.ProtocolOpaque.Entity do
     def speak(%Dialyzer.ProtocolOpaque.Duck{}), do: "Quack!"
+  end
+end
+
+defimpl Dialyzer.ProtocolOpaque.Entity, for: Any do
+  def speak(_any) do
+    "I can be anything"
   end
 end
