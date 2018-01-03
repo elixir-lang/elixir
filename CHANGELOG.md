@@ -182,6 +182,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [mix profile.eprof] Add a new task for time-based profiling with eprof
   * [mix test] Run all functions in a describe block by giving the `file:line` the describe block starts
   * [mix test] Report the top N slowest tests with the `--slowest N` flag
+  * [mix test] Report the number of doctests and tests separately
   * [mix xref] Support `--include-siblings` in reports for umbrella support
   * [mix xref] Add `mix xref graph --format stats`
   * [mix xref] Add `--only-nodes` and `--label` filters to mix xref graph
