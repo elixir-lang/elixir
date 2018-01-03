@@ -378,13 +378,14 @@ defmodule System do
   Returns the value of the given environment variable.
 
   The returned value of the environment variable
-  `varname` is a string, or `nil` if the environment
+  `varname` is a string, or `default` if the environment
   variable is undefined.
   """
-  @spec get_env(String.t()) :: String.t() | nil
-  def get_env(varname) when is_binary(varname) do
+  @spec get_env(String.t(), String.t()) :: String.t() | nil
+  def get_env(varname, default \\ nil)
+    when is_binary(varname) and (is_binary(default) or is_nil(default)) do
     case :os.getenv(String.to_charlist(varname)) do
-      false -> nil
+      false -> default
       other -> List.to_string(other)
     end
   end
