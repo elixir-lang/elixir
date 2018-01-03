@@ -75,6 +75,9 @@ defmodule SystemTest do
     System.put_env(%{@test_var => "OTHER_SAMPLE"})
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
 
+    System.delete_env(@test_var)
+    assert System.get_env(@test_var, :default) == :default
+
     assert_raise ArgumentError, ~r[cannot execute System.put_env/2 for key with \"=\"], fn ->
       System.put_env("FOO=BAR", "BAZ")
     end
