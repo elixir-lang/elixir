@@ -439,32 +439,46 @@ defmodule ExceptionTest do
       end
 
       test "annotates args and clauses from mfa" do
-        {:ok, :def, clauses} = Exception.blame_mfa(Keyword, :pop, [%{}, :key, nil])
+        import PathHelpers
+
+        write_beam(
+          defmodule Blaming do
+            def with_elem(x, y) when elem(x, 1) == 0 and elem(x, y) == 1 do
+              {x, y}
+            end
+
+            def fetch(%module{} = container, key), do: {module, container, key}
+            def fetch(map, key) when is_map(map), do: {map, key}
+            def fetch(list, key) when is_list(list) and is_atom(key), do: {list, key}
+            def fetch(nil, _key), do: nil
+
+            require Integer
+            def even_and_odd(foo, bar) when Integer.is_even(foo) and Integer.is_odd(bar), do: :ok
+          end
+        )
+
+        :code.delete(Blaming)
+        :code.purge(Blaming)
+
+        {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :with_elem, [1, 2])
 
         assert annotated_clauses_to_string(clauses) == [
-                 "{[+keywords+, +key+, +default+], [-is_list(keywords)-]}"
+                 "{[+x+, +y+], [-elem(x, 1) == 0- and -elem(x, y) == 1-]}"
                ]
 
-        {:ok, :def, clauses} = Exception.blame_mfa(Keyword, :fetch, [[], "oops"])
-
-        assert annotated_clauses_to_string(clauses) == [
-                 "{[+keywords+, +key+], [+is_list(keywords)+ and -is_atom(key)-]}"
-               ]
-
-        {:ok, :def, clauses} = Exception.blame_mfa(Path, :type, [self()])
-
-        assert annotated_clauses_to_string(clauses) == [
-                 "{[+name+], [-is_list(name)-, -is_binary(name)-]}"
-               ]
-
-        {:ok, :def, clauses} = Exception.blame_mfa(Access, :fetch, [self(), "oops"])
+        {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :fetch, [self(), "oops"])
 
         assert annotated_clauses_to_string(clauses) == [
                  "{[-%module{} = container-, +key+], []}",
                  "{[+map+, +key+], [-is_map(map)-]}",
                  "{[+list+, +key+], [-is_list(list)- and -is_atom(key)-]}",
-                 "{[+list+, +key+], [-is_list(list)-]}",
                  "{[-nil-, +_key+], []}"
+               ]
+
+        {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :even_and_odd, [1, 1])
+
+        assert annotated_clauses_to_string(clauses) == [
+                 "{[+foo+, +bar+], [+is_integer(foo)+ and -Bitwise.band(foo, 1) == 0- and (+is_integer(bar)+ and +Bitwise.band(bar, 1) == 1+)]}"
                ]
 
         {:ok, :defmacro, clauses} = Exception.blame_mfa(Kernel, :!, [true])
