@@ -214,11 +214,19 @@ defmodule Mix.Tasks.Format do
   defp assert_valid_dep_and_fetch_path(dep, deps_paths) when is_atom(dep) do
     case Map.fetch(deps_paths, dep) do
       {:ok, path} ->
-        path
+        if File.dir?(path) do
+          path
+        else
+          Mix.raise(
+            "Unavailable dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
+              "The dependency cannot be found in the filesystem, please run mix deps.get and try again"
+          )
+        end
 
       :error ->
         Mix.raise(
-          "Found a dependency in :import_deps that the project doesn't depend on: #{inspect(dep)}"
+          "Unknown dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
+            "The dependency is not listed in your mix.exs file"
         )
     end
   end
