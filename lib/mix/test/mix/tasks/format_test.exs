@@ -209,14 +209,12 @@ defmodule Mix.Tasks.FormatTest do
              """
 
       manifest_path = Path.join(Mix.Project.manifest_path(), "cached_formatter_deps")
-
       assert File.regular?(manifest_path)
 
       # Let's check that the manifest gets updated if it's stale.
       File.touch!(manifest_path, {{1970, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Format.run(["a.ex"])
-
       assert File.stat!(manifest_path).mtime > {{1970, 1, 1}, {0, 0, 0}}
     end
   end
@@ -226,12 +224,22 @@ defmodule Mix.Tasks.FormatTest do
 
     in_tmp context.test, fn ->
       File.write!(".formatter.exs", """
+      [import_deps: [:my_dep]]
+      """)
+
+      message =
+        "Unavailable dependency :my_dep given to :import_deps in the formatter configuration. " <>
+          "The dependency cannot be found in the filesystem, please run mix deps.get and try again"
+
+      assert_raise Mix.Error, message, fn -> Mix.Tasks.Format.run([]) end
+
+      File.write!(".formatter.exs", """
       [import_deps: [:nonexistent_dep]]
       """)
 
       message =
-        "Found a dependency in :import_deps that the project doesn't " <>
-          "depend on: :nonexistent_dep"
+        "Unknown dependency :nonexistent_dep given to :import_deps in the formatter configuration. " <>
+          "The dependency is not listed in your mix.exs file"
 
       assert_raise Mix.Error, message, fn -> Mix.Tasks.Format.run([]) end
     end
