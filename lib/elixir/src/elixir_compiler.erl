@@ -76,14 +76,19 @@ compile(Forms, Vars, #{line := Line, file := File} = E) ->
 
   {Module, Binary} = elixir_erl_compiler:noenv_forms(Form, File, [nowarn_nomatch]),
   code:load_binary(Module, "", Binary),
-  dispatch(Module, Fun, Args, I, EE).
 
-dispatch(Module, Fun, Args, I, E) ->
+  Purgeable = beam_lib:chunks(Binary, [labeled_locals]) ==
+              {ok, {Module, [{labeled_locals, []}]}},
+  dispatch(Module, Fun, Args, Purgeable, I, EE).
+
+dispatch(Module, Fun, Args, Purgeable, I, E) ->
   Res = Module:Fun(Args),
   code:delete(Module),
-  case code:soft_purge(Module) of
-    true -> return_compiler_module(I);
-    false -> ok
+  if Purgeable ->
+      code:purge(Module),
+      return_compiler_module(I);
+     true ->
+       ok
   end,
   {Res, E}.
 
