@@ -194,14 +194,17 @@ defmodule Inspect.NumberTest do
 
   test "hex" do
     assert inspect(100, base: :hex) == "0x64"
+    assert inspect(-100, base: :hex) == "-0x64"
   end
 
   test "octal" do
     assert inspect(100, base: :octal) == "0o144"
+    assert inspect(-100, base: :octal) == "-0o144"
   end
 
   test "binary" do
     assert inspect(86, base: :binary) == "0b1010110"
+    assert inspect(-86, base: :binary) == "-0b1010110"
   end
 
   test "float" do

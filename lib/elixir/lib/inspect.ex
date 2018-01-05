@@ -262,6 +262,10 @@ defimpl Inspect, for: Integer do
 
   defp prepend_prefix(value, :decimal), do: value
 
+  defp prepend_prefix(<<?-, value::binary>>, base) do
+    "-" <> prepend_prefix(value, base)
+  end
+
   defp prepend_prefix(value, base) do
     prefix =
       case base do
