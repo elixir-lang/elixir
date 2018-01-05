@@ -3,6 +3,33 @@ import Kernel, except: [round: 1]
 defmodule Float do
   @moduledoc """
   Functions for working with floating-point numbers.
+
+  ## Kernel functions
+
+  There are functions related to floating-point numbers on the `Kernel` module
+  too. Here is a list of them:
+
+  - `Kernel.round/1`: rounds a number to the nearest integer.
+  - `Kernel.trunc/1`: returns the integer part of a number.
+
+  ## Known issues
+
+  There are some very well known problems with floating-point numbers
+  and arithmetics due to the fact most decimal fractions cannot be
+  represented by a floating-point binary.
+
+  For example, the numbers 0.1 and 0.01 are two of them, what means the result
+  of squaring 0.1 does not give 0.01 neither the closest representable. Here is
+  what happens in this case:
+
+  - The closest representable number to 0.1 is 0.1000000014
+  - The closest representable number to 0.01 is 0.0099999997
+  - Doing 0.1 * 0.1 should return 0.01, but because 0.1 is actually 0.1000000014,
+  the result is 0.010000000000000002, and because this is not the closest
+  representable number to 0.01, you'll get the wrong result for this operation
+
+  There are also other known problems like flooring or rounding numbers. See
+  `round/2` and `floor/2` for more details about them.
   """
 
   import Bitwise
@@ -79,12 +106,17 @@ defmodule Float do
   defp add_dot(acc, false), do: acc <> ".0"
 
   @doc """
-  Rounds a float to the largest integer less than or equal to `num`.
+  Rounds a float to the largest number less than or equal to `num`.
 
   `floor/2` also accepts a precision to round a floating-point value down
   to an arbitrary number of fractional digits (between 0 and 15).
   The operation is performed on the binary floating point, without a
   conversion to decimal.
+
+  This function always returns a float. `Kernel.trunc/1` may be used instead to
+  truncate the result to an integer afterwards.
+
+  ## Known issues
 
   The behaviour of `floor/2` for floats can be surprising. For example:
 
@@ -95,9 +127,6 @@ defmodule Float do
   Most decimal fractions cannot be represented as a binary floating point
   and therefore the number above is internally represented as 12.51999999,
   which explains the behaviour above.
-
-  This function always returns a float. `Kernel.trunc/1` may be used instead to
-  truncate the result to an integer afterwards.
 
   ## Examples
 
@@ -173,6 +202,8 @@ defmodule Float do
   This function only accepts floats and always returns a float. Use
   `Kernel.round/1` if you want a function that accepts both floats
   and integers and always returns an integer.
+
+  ## Known issues
 
   The behaviour of `round/2` for floats can be surprising. For example:
 
