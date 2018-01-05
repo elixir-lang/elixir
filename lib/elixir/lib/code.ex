@@ -303,7 +303,7 @@ defmodule Code do
   The string concatenation makes the code fit on a single line and also
   gives more options to the formatter.
 
-  A similar example is when the formatter breaks a fuction definition
+  A similar example is when the formatter breaks a function definition
   over multiple clauses:
 
       def my_function(
