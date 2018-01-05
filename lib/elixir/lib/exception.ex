@@ -301,8 +301,17 @@ defmodule Exception do
 
   defp rewrite_guard(guard) do
     Macro.prewalk(guard, fn
-      {:., _, [:erlang, call]} -> rewrite_guard_call(call)
-      other -> other
+      {{:., _, [:erlang, :element]}, _, [{{:., _, [:erlang, :+]}, _, [int, 1]}, arg]} ->
+        {:elem, [], [arg, int]}
+
+      {{:., _, [:erlang, :element]}, _, [int, arg]} when is_integer(int) ->
+        {:elem, [], [arg, int - 1]}
+
+      {:., _, [:erlang, call]} ->
+        rewrite_guard_call(call)
+
+      other ->
+        other
     end)
   end
 
