@@ -76,15 +76,10 @@ defmodule Logger.Translator do
     end
   end
 
-  def translate(
-        _min_level,
-        :info,
-        :report,
-        {
-          :std_info,
-          [application: app, exited: reason, type: _type]
-        }
-      ) do
+  def translate(_min_level, :info, :report, {
+        :std_info,
+        [application: app, exited: reason, type: _type]
+      }) do
     {:ok, "Application #{app} exited: #{Application.format_error(reason)}"}
   end
 

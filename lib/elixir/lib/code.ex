@@ -379,10 +379,9 @@ defmodule Code do
                 arg2,
                 arg3
 
-  If the last argument is a data structure of variable length, such as
-  maps and lists, and the beginning of the data structure fits on the
-  same line as the function call, then no indentation happens, this
-  allows code like this:
+  If the last argument is a data structure, such as maps and lists, and
+  the beginning of the data structure fits on the same line as the function
+  call, then no indentation happens, this allows code like this:
 
       Enum.reduce(some_collection, initial_value, fn element, acc ->
         # code

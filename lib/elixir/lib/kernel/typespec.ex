@@ -751,13 +751,11 @@ defmodule Kernel.Typespec do
     typespec_to_ast({:type, line, :charlist, []})
   end
 
-  defp typespec_to_ast(
-         {
-           :remote_type,
-           line,
-           [{:atom, _, :elixir}, {:atom, _, :nonempty_charlist}, []]
-         }
-       ) do
+  defp typespec_to_ast({
+         :remote_type,
+         line,
+         [{:atom, _, :elixir}, {:atom, _, :nonempty_charlist}, []]
+       }) do
     typespec_to_ast({:type, line, :nonempty_charlist, []})
   end
 

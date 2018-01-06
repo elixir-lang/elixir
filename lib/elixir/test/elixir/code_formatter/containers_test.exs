@@ -18,16 +18,12 @@ defmodule Code.Formatter.ContainersTest do
       assert_format "{1,2,3}", "{1, 2, 3}"
     end
 
-    test "is strict on line limits" do
+    test "is flex on line limits" do
       bad = "{1, 2, 3, 4}"
 
       good = """
-      {
-        1,
-        2,
-        3,
-        4
-      }
+      {1, 2, 3,
+       4}
       """
 
       assert_format bad, good, @short_length
@@ -261,16 +257,12 @@ defmodule Code.Formatter.ContainersTest do
       assert_same "<<(<<y>> <- x)>>"
     end
 
-    test "is strict on line limits" do
+    test "is flex on line limits" do
       bad = "<<1, 2, 3, 4>>"
 
       good = """
-      <<
-        1,
-        2,
-        3,
-        4
-      >>
+      <<1, 2, 3,
+        4>>
       """
 
       assert_format bad, good, @short_length
