@@ -332,7 +332,7 @@ defmodule Mix.Tasks.Xref do
       # If the module is loaded, we will use the faster function_exported?/3
       # check for exports and __info__/1 for deprecated
       if function_exported?(module, :__info__, 1) do
-        {module, module.__info__(:deprecated)}
+        {module, load_deprecated_from_module(module)}
       else
         {module, []}
       end
@@ -341,19 +341,27 @@ defmodule Mix.Tasks.Xref do
       with [_ | _] = file <- :code.which(module),
            {:ok, {^module, [{:exports, exports}, {'ExDp', deprecated}]}} <-
              :beam_lib.chunks(file, [:exports, 'ExDp'], [:allow_missing_chunks]) do
-        {exports, load_deprecated(deprecated)}
+        {exports, load_deprecated_from_chunk(deprecated)}
       else
         _ -> {:unknown_module, []}
       end
     end
   end
 
-  defp load_deprecated(chunk) do
+  defp load_deprecated_from_chunk(chunk) do
     if is_binary(chunk) do
       {:elixir_deprecated_v1, deprecated} = :erlang.binary_to_term(chunk)
       deprecated
     else
       []
+    end
+  end
+
+  defp load_deprecated_from_module(module) do
+    try do
+      module.__info__(:deprecated)
+    rescue
+      _ -> []
     end
   end
 
