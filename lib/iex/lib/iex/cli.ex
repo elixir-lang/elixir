@@ -81,9 +81,18 @@ defmodule IEx.CLI do
       if Node.alive?() do
         case :rpc.call(remote, :code, :ensure_loaded, [IEx]) do
           {:badrpc, reason} ->
-            abort(
-              "Could not contact remote node #{remote}, reason: #{inspect(reason)}. Aborting..."
-            )
+            suggestion =
+              if Atom.to_string(remote) =~ "@" do
+                ""
+              else
+                "Make sure the node given to --remsh is in the node@host format. "
+              end
+
+            message =
+              "Could not contact remote node #{remote}, reason: #{inspect(reason)}. " <>
+                suggestion <> "Aborting..."
+
+            abort(message)
 
           {:module, IEx} ->
             {mod, fun, args} = remote_start_mfa()
