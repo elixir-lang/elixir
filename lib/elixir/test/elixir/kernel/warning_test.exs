@@ -8,6 +8,20 @@ defmodule Kernel.WarningTest do
     capture_io(:stderr, fun)
   end
 
+  test "outdented heredoc" do
+    output =
+      capture_err(fn ->
+        Code.eval_string("""
+          '''
+        outdented
+          '''
+        """)
+      end)
+
+    assert output =~ "outdented heredoc line"
+    assert output =~ "nofile:2"
+  end
+
   test "unused variable" do
     output =
       capture_err(fn ->
