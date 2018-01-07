@@ -711,7 +711,7 @@ collect_modifiers(Rest, Buffer) ->
 %% Heredocs
 
 extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
-  case extract_heredoc(Line, Column, T, H) of
+  case extract_heredoc(Line, Column, T, H, Scope) of
     {ok, NewLine, NewColumn, Body, Rest} ->
       case elixir_interpolation:extract(Line + 1, 1, Scope, Interpol, Body, 0) of
         {error, Reason} ->
@@ -723,7 +723,7 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
       Error
   end.
 
-extract_heredoc(Line0, Column0, Rest0, Marker) ->
+extract_heredoc(Line0, Column0, Rest0, Marker, Scope) ->
   case extract_heredoc_header(Rest0) of
     {ok, Rest1} ->
       %% We prepend a new line so we can transparently remove
@@ -731,7 +731,7 @@ extract_heredoc(Line0, Column0, Rest0, Marker) ->
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Column0, Marker, [$\n | Rest1], []) of
         {ok, Line1, Body, Rest2, Spaces} ->
-          {ok, Line1, 1, tl(remove_heredoc_spaces(Body, Spaces)), Rest2};
+          {ok, Line1, 1, tl(remove_heredoc_spaces(Body, Spaces, Marker, Scope)), Rest2};
         {error, Reason, ErrorLine} ->
           Terminator = [Marker, Marker, Marker],
           {Message, Token} = heredoc_error_message(Reason, Line0, Terminator),
@@ -746,23 +746,49 @@ heredoc_error_message(eof, Line, Terminator) ->
   {io_lib:format("missing terminator: ~ts (for heredoc starting at line ~B)",
                  [Terminator, Line]),
    []};
-heredoc_error_message(misplacedterminator, _Line, Terminator) ->
+heredoc_error_message(badterminator, _Line, Terminator) ->
   {"invalid location for heredoc terminator, please escape token or move it to its own line: ",
    Terminator}.
+
 %% Remove spaces from heredoc based on the position of the final quotes.
 
-remove_heredoc_spaces(Body, 0) ->
-  lists:reverse([0 | Body]);
-remove_heredoc_spaces(Body, Spaces) ->
-  remove_heredoc_spaces([0 | Body], [], Spaces, Spaces).
-remove_heredoc_spaces([H, $\n | T], [Backtrack | Buffer], Spaces, Original) when Spaces > 0, ?is_horizontal_space(H) ->
-  remove_heredoc_spaces([Backtrack, $\n | T], Buffer, Spaces - 1, Original);
-remove_heredoc_spaces([$\n=H | T], Buffer, _Spaces, Original) ->
-  remove_heredoc_spaces(T, [H | Buffer], Original, Original);
-remove_heredoc_spaces([H | T], Buffer, Spaces, Original) ->
-  remove_heredoc_spaces(T, [H | Buffer], Spaces, Original);
-remove_heredoc_spaces([], Buffer, _Spaces, _Original) ->
-  Buffer.
+remove_heredoc_spaces(Body, Spaces, Marker, Scope) ->
+  case trim_spaces(Body, [0], Spaces, false) of
+    {Acc, false} ->
+      Acc;
+    {Acc, Line} ->
+      Msg = io_lib:format("outdented heredoc line. The contents inside the heredoc should be indented "
+                          "at the same level as the closing ~ts. The following is forbidden:~n~n"
+                          "    def text do~n"
+                          "      \"\"\"~n"
+                          "    contents~n"
+                          "      \"\"\"~n"
+                          "    end~n~n"
+                          "Instead make sure the contents are indented as much as the heredoc closing:~n~n"
+                          "    def text do~n"
+                          "      \"\"\"~n"
+                          "      contents~n"
+                          "      \"\"\"~n"
+                          "    end~n~n"
+                          "The current heredoc line is indented too litle", [[Marker, Marker, Marker]]),
+      elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg),
+      Acc
+  end.
+
+trim_spaces([{Line, Entry} | Rest], Acc, Spaces, Warned) ->
+  case trim_space(lists:reverse(Entry), Spaces) of
+    {Trimmed, true} when Warned == false ->
+      trim_spaces(Rest, Trimmed ++ Acc, Spaces, Line);
+    {Trimmed, _} ->
+      trim_spaces(Rest, Trimmed ++ Acc, Spaces, Warned)
+  end;
+trim_spaces([], Acc, _Spaces, Warned) ->
+  {Acc, Warned}.
+
+trim_space(Rest, 0) -> {Rest, false};
+trim_space([$\n], _) -> {[$\n], false};
+trim_space([H | T], Spaces) when ?is_horizontal_space(H) -> trim_space(T, Spaces - 1);
+trim_space(Rest, _Spaces) -> {Rest, true}.
 
 %% Extract the heredoc header.
 
@@ -780,11 +806,11 @@ extract_heredoc_header(_) ->
 %% is aligned.
 
 extract_heredoc_body(Line, _Column, Marker, Rest, Buffer) ->
-  case extract_heredoc_line(Marker, Rest, Buffer, 0) of
-    {ok, NewBuffer, NewRest} ->
-      extract_heredoc_body(Line + 1, 1, Marker, NewRest, NewBuffer);
-    {ok, NewBuffer, NewRest, Spaces} ->
-      {ok, Line, NewBuffer, NewRest, Spaces};
+  case extract_heredoc_line(Marker, Rest, [], 0) of
+    {ok, Entry, NewRest} ->
+      extract_heredoc_body(Line + 1, 1, Marker, NewRest, [{Line, Entry} | Buffer]);
+    {done, Entry, NewRest, Spaces} ->
+      {ok, Line, [{Line, Entry} | Buffer], NewRest, Spaces};
     {error, Reason} ->
       {error, Reason, Line}
   end.
@@ -797,7 +823,7 @@ extract_heredoc_line(Marker, [$\\, $\\ | T], Buffer) ->
 extract_heredoc_line(Marker, [$\\, Marker | T], Buffer) ->
   extract_heredoc_line(Marker, T, [Marker, $\\ | Buffer]);
 extract_heredoc_line(Marker, [Marker, Marker, Marker | _], _) ->
-  {error, misplacedterminator};
+  {error, badterminator};
 extract_heredoc_line(_, "\r\n" ++ Rest, Buffer) ->
   {ok, [$\n | Buffer], Rest};
 extract_heredoc_line(_, "\n" ++ Rest, Buffer) ->
@@ -812,7 +838,7 @@ extract_heredoc_line(_, _, _) ->
 extract_heredoc_line(Marker, [H | T], Buffer, Counter) when ?is_horizontal_space(H) ->
   extract_heredoc_line(Marker, T, [H | Buffer], Counter + 1);
 extract_heredoc_line(Marker, [Marker, Marker, Marker | T], Buffer, Counter) ->
-  {ok, Buffer, T, Counter};
+  {done, Buffer, T, Counter};
 extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
   extract_heredoc_line(Marker, Rest, Buffer).
 
