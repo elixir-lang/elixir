@@ -101,6 +101,8 @@ defmodule IntegerTest do
     assert Integer.undigits([]) == 0
     assert Integer.undigits([0]) == 0
     assert Integer.undigits([1]) == 1
+    assert Integer.undigits([1, 0]) == 10
+    assert Integer.undigits([-1, 0]) == -10
     assert Integer.undigits([1, 0, 1]) == 101
     assert Integer.undigits([1, 4], 16) == 0x14
     assert Integer.undigits([1, 4], 8) == 0o14

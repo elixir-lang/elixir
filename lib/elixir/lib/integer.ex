@@ -172,6 +172,7 @@ defmodule Integer do
   defp do_undigits([], _base, 0), do: 0
   defp do_undigits([digit], base, 0) when is_integer(digit) and digit < base, do: digit
   defp do_undigits([1, 0], base, 0), do: base
+  defp do_undigits([-1, 0], base, 0), do: -base
   defp do_undigits([0 | tail], base, 0), do: do_undigits(tail, base, 0)
   defp do_undigits([], _base, acc), do: acc
 
