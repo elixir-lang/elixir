@@ -4,34 +4,37 @@
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 
-    "Data & Behaviours": [
-      Access,
+    "Basic Types": [
       Atom,
       Base,
       Bitwise,
       Calendar,
       Calendar.ISO,
       Date,
-      Date.Range,
       DateTime,
-      Enum,
       Exception,
       Float,
       Integer,
-      Keyword,
-      List,
-      Map,
-      MapSet,
       NaiveDateTime,
-      Range,
       Record,
       Regex,
-      Stream,
       String,
       Time,
       Tuple,
       URI,
       Version,
+    ],
+
+    "Collections & Enumerables": [
+      Access,
+      Date.Range,
+      Enum,
+      Keyword,
+      List,
+      Map,
+      MapSet,
+      Range,
+      Stream,
     ],
 
     "IO & System": [
