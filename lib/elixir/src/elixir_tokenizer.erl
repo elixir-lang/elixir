@@ -770,7 +770,7 @@ remove_heredoc_spaces(Body, Spaces, Marker, Scope) ->
                           "      contents~n"
                           "      \"\"\"~n"
                           "    end~n~n"
-                          "The current heredoc line is indented too litle", [[Marker, Marker, Marker]]),
+                          "The current heredoc line is indented too little", [[Marker, Marker, Marker]]),
       elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg),
       Acc
   end.
