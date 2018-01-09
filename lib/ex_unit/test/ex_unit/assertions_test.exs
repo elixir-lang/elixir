@@ -667,11 +667,16 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert in delta works with equal values and a delta of zero" do
+    assert_in_delta(10, 10, 0)
+  end
+
   test "assert in delta error" do
     "This should never be tested" = assert_in_delta(10, 12, 1)
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected the difference between 10 and 12 (2) to be less than 1" = error.message
+      "Expected the difference between 10 and 12 (2) to be less than or equal to 1" =
+        error.message
   end
 
   test "assert in delta with message" do
