@@ -138,8 +138,7 @@ defmodule Integer do
     do_digits(integer, base, [])
   end
 
-  defp do_digits(digit, base, []) when abs(digit) < base, do: [digit]
-  defp do_digits(0, _base, acc), do: acc
+  defp do_digits(integer, base, acc) when abs(integer) < base, do: [integer | acc]
 
   defp do_digits(integer, base, acc),
     do: do_digits(div(integer, base), base, [rem(integer, base) | acc])
