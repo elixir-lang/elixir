@@ -668,9 +668,10 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts that `value1` and `value2` differ by no more than `delta`. This difference is
-  inclusive, so the test will pass if the difference and the `delta` are equal.
-
+  Asserts that `value1` and `value2` differ by no more than `delta`.
+  
+  This difference is inclusive, so the test will pass if the difference
+  and the `delta` are equal.
 
   ## Examples
 
@@ -840,8 +841,10 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts `value1` and `value2` are not within `delta`. This difference is exclusive,
-  so the test will fail if the difference and the delta are equal.
+  Asserts `value1` and `value2` are not within `delta`.
+  
+  This difference is exclusive, so the test will fail if the difference
+  and the delta are equal.
 
   If you supply `message`, information about the values will
   automatically be appended to it.
