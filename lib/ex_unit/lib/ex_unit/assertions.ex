@@ -689,9 +689,9 @@ defmodule ExUnit.Assertions do
     message =
       message ||
         "Expected the difference between #{inspect(value1)} and " <>
-          "#{inspect(value2)} (#{inspect(diff)}) to be less than #{inspect(delta)}"
+          "#{inspect(value2)} (#{inspect(diff)}) to be less than or equal to #{inspect(delta)}"
 
-    assert diff < delta, message
+    assert diff <= delta, message
   end
 
   @doc """
