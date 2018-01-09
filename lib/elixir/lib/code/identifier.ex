@@ -13,7 +13,7 @@ defmodule Code.Identifier do
   @spec unary_op(atom) :: {:non_associative, precedence :: pos_integer} | :error
   def unary_op(op) do
     cond do
-      op in [:&] -> {:non_associative, 100}
+      op in [:&] -> {:non_associative, 90}
       op in [:!, :^, :not, :+, :-, :~~~] -> {:non_associative, 300}
       op in [:@] -> {:non_associative, 320}
       true -> :error
@@ -36,7 +36,7 @@ defmodule Code.Identifier do
       op in [:when] -> {:right, 50}
       op in [:::] -> {:right, 60}
       op in [:|] -> {:right, 70}
-      op in [:=] -> {:right, 90}
+      op in [:=] -> {:right, 100}
       op in [:||, :|||, :or] -> {:left, 130}
       op in [:&&, :&&&, :and] -> {:left, 140}
       op in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
