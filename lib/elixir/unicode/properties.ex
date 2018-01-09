@@ -24,10 +24,39 @@ rangify = fn [head | tail] ->
   [{first, last} | acc]
 end
 
-acc = {[], [], [], %{}, %{}}
+# A character is case ignorable if:
+#
+#    Word_Break(C) = MidLetter or MidNumLet or Single_Quote, or
+#    General_Category(C) = Nonspacing_Mark (Mn), Enclosing_Mark (Me), Format (Cf),
+#                          Modifier_Letter (Lm), or Modifier_Symbol (Sk).
+#
+# Word breaks are defined below based on TR29 (http://unicode.org/reports/tr29/).
+# The categories are computed later.
+case_ignorable = [
+  0x0027,
+  0x002E,
+  0x2018,
+  0x2019,
+  0x2024,
+  0xFE52,
+  0xFF07,
+  0xFF0E,
+  0x00B7,
+  0x0387,
+  0x05F4,
+  0x2027,
+  0x003A,
+  0xFE13,
+  0xFE55,
+  0xFF1A
+]
 
-{codes, cased_letters, non_breakable, decompositions, combining_classes} =
-  Enum.reduce(File.stream!(data_path), acc, fn line, {cacc, lacc, wacc, dacc, kacc} ->
+acc = {[], [], case_ignorable, [], %{}, %{}}
+cased_letter_categories = :binary.compile_pattern(["Ll", "Lt", "Lu"])
+case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk"])
+
+{codes, cased_letters, case_ignorable, non_breakable, decompositions, combining_classes} =
+  Enum.reduce(File.stream!(data_path), acc, fn line, {cacc, lacc, iacc, wacc, dacc, kacc} ->
     [
       codepoint,
       _name,
@@ -55,10 +84,19 @@ acc = {[], [], [], %{}, %{}}
         cacc
       end
 
-    lacc =
-      case category do
-        <<"L", l>> <> _ when l in 'ltu' -> [String.to_integer(codepoint, 16) | lacc]
-        _ -> lacc
+    cased_letter_categories = :binary.compile_pattern(["Ll", "Lt", "Lu"])
+    case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk"])
+
+    {lacc, iacc} =
+      cond do
+        match?({0, _}, :binary.match(category, cased_letter_categories)) ->
+          {[String.to_integer(codepoint, 16) | lacc], iacc}
+
+        match?({0, _}, :binary.match(category, case_ignorable_categories)) ->
+          {lacc, [String.to_integer(codepoint, 16) | iacc]}
+
+        true ->
+          {lacc, iacc}
       end
 
     wacc =
@@ -88,7 +126,7 @@ acc = {[], [], [], %{}, %{}}
         {n, ""} -> Map.put(kacc, String.to_integer(codepoint, 16), n)
       end
 
-    {cacc, lacc, wacc, dacc, kacc}
+    {cacc, lacc, iacc, wacc, dacc, kacc}
   end)
 
 defmodule String.Casing do
@@ -136,10 +174,24 @@ defmodule String.Casing do
 
   # Sigma handling
 
-  defp cased_letter_binary?(<<codepoint::utf8, _::bits>>), do: cased_letter?(codepoint)
+  defp cased_letter_binary?(<<codepoint::utf8, rest::bits>>) do
+    if case_ignorable?(codepoint) do
+      cased_letter_binary?(rest)
+    else
+      cased_letter?(codepoint)
+    end
+  end
+
   defp cased_letter_binary?(_), do: false
 
-  defp cased_letter_list?([<<codepoint::utf8>> | _]), do: cased_letter?(codepoint)
+  defp cased_letter_list?([<<codepoint::utf8>> | rest]) do
+    if case_ignorable?(codepoint) do
+      cased_letter_list?(rest)
+    else
+      cased_letter?(codepoint)
+    end
+  end
+
   defp cased_letter_list?(_), do: false
 
   for {first, last} <- rangify.(cased_letters) do
@@ -153,6 +205,18 @@ defmodule String.Casing do
   end
 
   defp cased_letter?(_), do: false
+
+  for {first, last} <- rangify.(case_ignorable) do
+    if first == last do
+      defp case_ignorable?(unquote(first)), do: true
+    else
+      defp case_ignorable?(codepoint)
+           when codepoint >= unquote(first) and codepoint <= unquote(last),
+           do: true
+    end
+  end
+
+  defp case_ignorable?(_), do: false
 
   # Upcase
 

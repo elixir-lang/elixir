@@ -171,10 +171,14 @@ defmodule StringTest do
     assert String.downcase("Σ") == "σ"
     assert String.downcase("ΣΣ") == "σσ"
     assert String.downcase("Σ ΣΣ") == "σ σσ"
+    assert String.downcase("ΜΕΣ'ΑΠΟ") == "μεσ'απο"
+    assert String.downcase("ΑΣ'ΤΟΥΣ") == "ασ'τουσ"
 
     assert String.downcase("Σ", :greek) == "σ"
     assert String.downcase("Σ ΣΣ", :greek) == "σ σς"
     assert String.downcase("Σ ΣΑΣ Σ", :greek) == "σ σας σ"
+    assert String.downcase("ΜΕΣ'ΑΠΟ", :greek) == "μεσ'απο"
+    assert String.downcase("ΑΣ'ΤΟΥΣ", :greek) == "ασ'τους"
   end
 
   test "downcase/1 with ascii" do
