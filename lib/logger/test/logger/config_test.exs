@@ -11,6 +11,15 @@ defmodule Logger.ConfigTest do
     Logger.add_backend(:console)
   end
 
+  test "log/2 relies on discard_threshold" do
+    Logger.remove_backend(:console)
+    Logger.configure(discard_threshold: 0)
+    for _ <- 1..1000, do: Logger.log(:info, "some message")
+  after
+    Logger.configure(discard_threshold: 10000)
+    Logger.add_backend(:console)
+  end
+
   test "restarts Logger.Config on Logger exits" do
     Process.whereis(Logger) |> Process.exit(:kill)
     wait_for_logger()

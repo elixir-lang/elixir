@@ -1,9 +1,6 @@
 defmodule Logger.ErrorHandler do
   @moduledoc false
-
   @behaviour :gen_event
-
-  require Logger
 
   def init({otp?, sasl?, threshold}) do
     # We store the Logger PID in the state because when we are shutting
@@ -14,11 +11,10 @@ defmodule Logger.ErrorHandler do
     state = %{
       otp: otp?,
       sasl: sasl?,
-      threshold: threshold,
+      discard_threshold: threshold,
+      keep_threshold: trunc(threshold * 0.75),
       logger: Process.whereis(Logger),
-      last_length: 0,
-      last_time: :os.timestamp(),
-      dropped: 0
+      skip: 0
     }
 
     {:ok, state}
@@ -31,7 +27,7 @@ defmodule Logger.ErrorHandler do
   end
 
   def handle_event(event, state) do
-    state = check_threshold(state)
+    state = check_threshold_unless_skipping(state)
     log_event(event, state)
     {:ok, state}
   end
@@ -84,10 +80,15 @@ defmodule Logger.ErrorHandler do
   defp log_event(_, _state), do: :ok
 
   defp log_event(level, kind, gl, pid, {type, _} = data, state) do
-    %{level: min_level, truncate: truncate, utc_log: utc_log?, translators: translators} =
-      Logger.Config.__data__()
+    %{
+      mode: mode,
+      level: min_level,
+      truncate: truncate,
+      utc_log: utc_log?,
+      translators: translators
+    } = Logger.Config.__data__()
 
-    with log when log != :lt <- Logger.compare_levels(level, min_level),
+    with true <- Logger.compare_levels(level, min_level) != :lt and mode != :discard,
          {:ok, message} <- translate(translators, min_level, level, kind, data, truncate) do
       message = Logger.Utils.truncate(message, truncate)
 
@@ -106,31 +107,35 @@ defmodule Logger.ErrorHandler do
   defp ensure_pid(pid) when is_pid(pid), do: pid
   defp ensure_pid(_), do: self()
 
-  defp check_threshold(state) do
-    %{last_time: last_time, last_length: last_length, dropped: dropped, threshold: threshold} =
-      state
+  defp check_threshold_unless_skipping(%{skip: 0} = state) do
+    check_threshold(state)
+  end
 
-    {m, s, _} = current_time = :os.timestamp()
+  defp check_threshold_unless_skipping(%{skip: skip} = state) do
+    %{state | skip: skip - 1}
+  end
+
+  def check_threshold(state) do
+    %{discard_threshold: discard_threshold, keep_threshold: keep_threshold} = state
     current_length = message_queue_length()
 
-    cond do
-      match?({^m, ^s, _}, last_time) and current_length - last_length > threshold ->
-        count = drop_messages(current_time, 0)
-        %{state | dropped: dropped + count, last_length: message_queue_length()}
+    if current_length >= discard_threshold do
+      to_drop = current_length - keep_threshold
+      drop_messages(to_drop)
 
-      match?({^m, ^s, _}, last_time) ->
-        state
+      message =
+        "Logger dropped #{to_drop} OTP/SASL messages as it had #{current_length} messages in " <>
+          "its inbox, exceeding the amount of :discard_threshold #{discard_threshold} messages. " <>
+          "The number of messages was reduced to #{keep_threshold} (75% of the threshold)"
 
-      true ->
-        if dropped > 0 do
-          message =
-            "Logger dropped #{dropped} OTP/SASL messages as it " <>
-              "exceeded the amount of #{threshold} messages/second"
+      %{utc_log: utc_log?} = Logger.Config.__data__()
+      event = {Logger, message, Logger.Utils.timestamp(utc_log?), pid: self()}
+      :gen_event.notify(state.logger, {:warn, Process.group_leader(), event})
 
-          Logger.warn(message)
-        end
-
-        %{state | dropped: 0, last_time: current_time, last_length: current_length}
+      # We won't check the threshold for the next 10% of the threshold messages
+      %{state | skip: trunc(discard_threshold * 0.1)}
+    else
+      state
     end
   end
 
@@ -139,17 +144,15 @@ defmodule Logger.ErrorHandler do
     len
   end
 
-  defp drop_messages({m, s, _} = last_time, count) do
-    case :os.timestamp() do
-      {^m, ^s, _} ->
-        receive do
-          {:notify, _event} -> drop_messages(last_time, count + 1)
-        after
-          0 -> count
-        end
+  defp drop_messages(0) do
+    :ok
+  end
 
-      _ ->
-        count
+  defp drop_messages(count) do
+    receive do
+      {:notify, _event} -> drop_messages(count - 1)
+    after
+      0 -> :ok
     end
   end
 
