@@ -669,7 +669,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts that `value1` and `value2` differ by no more than `delta`.
-  
+
   This difference is inclusive, so the test will pass if the difference
   and the `delta` are equal.
 
@@ -842,7 +842,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `value1` and `value2` are not within `delta`.
-  
+
   This difference is exclusive, so the test will fail if the difference
   and the delta are equal.
 
