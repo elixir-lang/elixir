@@ -48,7 +48,6 @@ defmodule Record.Extractor do
   # Retrieve the record with the given name from the given file
   defp extract_record(name, {file, opts}) do
     form = read_file(file, opts)
-    IO.inspect form
     records = extract_records(form)
 
     if record = List.keyfind(records, name, 0) do
