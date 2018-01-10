@@ -288,6 +288,28 @@ unless File.dir?(target) do
     def project do
       [
         app: :deps_on_git_repo,
+        version: "0.1.0",
+      ]
+    end
+  end
+  """)
+
+  File.cd!(target, fn ->
+    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[config user.email "mix@example.com"])
+    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m without-dep])
+  end)
+
+  File.write!(Path.join(target, "mix.exs"), """
+  ## Auto-generated fixture
+  defmodule DepsOnGitRepo.MixProject do
+    use Mix.Project
+
+    def project do
+      [
+        app: :deps_on_git_repo,
         version: "0.2.0",
         deps: [
           {:git_repo, git: MixTest.Case.fixture_path("git_repo")}
@@ -303,11 +325,8 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[init])
-    System.cmd("git", ~w[config user.email "mix@example.com"])
-    System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m "ok"])
+    System.cmd("git", ~w[commit -m with-dep])
   end)
 end
 
