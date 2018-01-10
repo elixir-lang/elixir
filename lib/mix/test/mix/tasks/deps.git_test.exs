@@ -231,7 +231,7 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push(GitApp)
 
     # Get Git repo first revision
-    [last, first | _] = get_git_repo_revs()
+    [last, first | _] = get_git_repo_revs("git_repo")
 
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write(%{git_repo: {:git, fixture_path("git_repo"), first, []}})
@@ -257,7 +257,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "updates the repo when the lock updates" do
     Mix.Project.push(GitApp)
-    [last, first | _] = get_git_repo_revs()
+    [last, first | _] = get_git_repo_revs("git_repo")
 
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write(%{git_repo: {:git, fixture_path("git_repo"), first, []}})
@@ -349,7 +349,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "updates the repo and the lock when the mixfile updates" do
     Mix.Project.push(GitApp)
-    [last, first | _] = get_git_repo_revs()
+    [last, first | _] = get_git_repo_revs("git_repo")
 
     in_fixture "no_mixfile", fn ->
       # Move to the first version
@@ -382,6 +382,32 @@ defmodule Mix.Tasks.DepsGitTest do
     purge([GitRepo, GitRepo.MixProject])
   end
 
+  test "fetches children on updates" do
+    Mix.Project.push(DepsOnGitApp)
+
+    # Get Git repo first revision
+    [last, first | _] = get_git_repo_revs("deps_on_git_repo")
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Dep.Lock.write(%{deps_on_git_repo: {:git, fixture_path("deps_on_git_repo"), first, []}})
+
+      Mix.Tasks.Deps.Get.run([])
+      assert File.exists?("deps/deps_on_git_repo/mix.exs")
+      refute File.exists?("deps/git_repo/lib/git_repo.ex")
+      assert File.read!("mix.lock") =~ first
+
+      Mix.Task.clear()
+      Mix.ProjectStack.clear_cache()
+      purge([DepsOnGitRepo.MixProject])
+
+      Mix.Tasks.Deps.Update.run(["deps_on_git_repo"])
+      assert File.exists?("deps/git_repo/lib/git_repo.ex")
+      assert File.read!("mix.lock") =~ last
+    end
+  after
+    purge([GitRepo, GitRepo.MixProject])
+  end
+
   test "does not attempt to compile projects that could not be retrieved" do
     Mix.Project.push(GitErrorApp)
 
@@ -394,7 +420,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "does not load bad mixfiles on get" do
     Mix.Project.push(GitApp)
-    [last, _, bad | _] = get_git_repo_revs()
+    [last, _, bad | _] = get_git_repo_revs("git_repo")
 
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write(%{git_repo: {:git, fixture_path("git_repo"), bad, []}})
@@ -428,7 +454,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "does not load bad mixfiles on update" do
     Mix.Project.push(GitApp)
-    [last, _, bad | _] = get_git_repo_revs()
+    [last, _, bad | _] = get_git_repo_revs("git_repo")
 
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write(%{git_repo: {:git, fixture_path("git_repo"), bad, []}})
@@ -448,8 +474,8 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push(name, file)
   end
 
-  defp get_git_repo_revs() do
-    File.cd!(fixture_path("git_repo"), fn ->
+  defp get_git_repo_revs(repo) do
+    File.cd!(fixture_path(repo), fn ->
       Regex.split(~r(\r?\n), System.cmd("git", ["log", "--format=%H"]) |> elem(0))
     end)
   end

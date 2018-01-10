@@ -36,8 +36,8 @@ defmodule Mix.Dep.Fetcher do
 
     fn %Mix.Dep{app: app} = dep, acc, new_lock ->
       # Only fetch if dependency is in given names or if lock has
-      # been changed for dependency by remote converger
-      if app in names or lock[app] != new_lock[app] do
+      # been changed for dependency by remote converger or it is new
+      if app in names or lock[app] != new_lock[app] or is_nil(lock[app]) do
         do_fetch(dep, acc, new_lock)
       else
         {dep, acc, new_lock}

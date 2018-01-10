@@ -64,7 +64,6 @@ defmodule Mix.Dep.Loader do
   """
   def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children) do
     manager = scm_manager(scm, opts) || manager || infer_manager(opts[:dest])
-
     dep = %{dep | manager: manager, status: scm_status(scm, opts)}
 
     {dep, children} =
