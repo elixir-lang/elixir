@@ -1,28 +1,25 @@
 defmodule Record.Extractor do
   @moduledoc false
 
-  # Retrieve a record definition from an Erlang file using
-  # the same lookup as the *include* attribute from Erlang modules.
-  def extract(name, from: file) when is_binary(file) do
-    extract_record(name, from_file(file))
+  def extract(name, opts) do
+    extract_record(name, from_or_from_lib_file(opts))
   end
 
-  # Retrieve a record definition from an Erlang file using
-  # the same lookup as the *include_lib* attribute from Erlang modules.
-  def extract(name, from_lib: file) when is_binary(file) do
-    extract_record(name, from_lib_file(file))
+  def extract_all(opts) do
+    extract_all_records(from_or_from_lib_file(opts))
   end
 
-  # Retrieve all records definitions from an Erlang file using
-  # the same lookup as the *include* attribute from Erlang modules.
-  def extract_all(from: file) when is_binary(file) do
-    extract_all_records(from_file(file))
-  end
+  defp from_or_from_lib_file(opts) do
+    cond do
+      file = opts[:from] ->
+        {from_file(file), Keyword.delete(opts, :from)}
 
-  # Retrieve all records definitions from an Erlang file using
-  # the same lookup as the *include_lib* attribute from Erlang modules.
-  def extract_all(from_lib: file) when is_binary(file) do
-    extract_all_records(from_lib_file(file))
+      file = opts[:from_lib] ->
+        {from_lib_file(file), Keyword.delete(opts, :from_lib)}
+
+      true ->
+        raise ArgumentError, "expected :from or :from_lib to be given as option"
+    end
   end
 
   # Find file using the same lookup as the *include* attribute from Erlang modules.
@@ -49,20 +46,23 @@ defmodule Record.Extractor do
   end
 
   # Retrieve the record with the given name from the given file
-  defp extract_record(name, file) do
-    form = read_file(file)
+  defp extract_record(name, {file, opts}) do
+    form = read_file(file, opts)
+    IO.inspect form
     records = extract_records(form)
 
     if record = List.keyfind(records, name, 0) do
       parse_record(record, form)
     else
-      raise ArgumentError, "no record #{name} found at #{file}"
+      raise ArgumentError,
+            "no record #{name} found at #{file}. Or the record does not exist or " <>
+              "its entry is malformed or depends on other include files"
     end
   end
 
   # Retrieve all records from the given file
-  defp extract_all_records(file) do
-    form = read_file(file)
+  defp extract_all_records({file, opts}) do
+    form = read_file(file, opts)
     records = extract_records(form)
     for rec = {name, _fields} <- records, do: {name, parse_record(rec, form)}
   end
@@ -76,8 +76,8 @@ defmodule Record.Extractor do
   # includes record but with macros and other attributes expanded,
   # such as "-include(...)" and "-include_lib(...)". This is done
   # by using Erlang's epp.
-  defp read_file(file) do
-    case :epp.parse_file(file, []) do
+  defp read_file(file, opts) do
+    case :epp.parse_file(file, opts) do
       {:ok, form} ->
         form
 
