@@ -253,7 +253,6 @@ defmodule LoggerTest do
 
     # This should not warn, even if the Logger call is purged from the AST.
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             Code.eval_string("""
              defmodule Unused do
                require Logger
 
@@ -261,13 +260,10 @@ defmodule LoggerTest do
                  Logger.debug(["a: ", inspect(a), ", b: ", inspect(b)])
                end
              end
-             """)
            end) == ""
 
-    assert Unused.hello(1, 2) == :ok
+    assert LoggerTest.Unused.hello(1, 2) == :ok
   after
-    :code.purge(Unused)
-    :code.delete(Unused)
     Logger.configure(compile_time_purge_level: :debug)
   end
 
@@ -336,16 +332,7 @@ defmodule LoggerTest do
            end) =~ "he�lo"
   end
 
-  test "log/2 relies on sync_threshold" do
-    Logger.remove_backend(:console)
-    Logger.configure(sync_threshold: 0)
-    for _ <- 1..1000, do: Logger.log(:info, "some message")
-  after
-    Logger.configure(sync_threshold: 20)
-    Logger.add_backend(:console)
-  end
-
-  test "stop the application silently" do
+  test "stops the application silently" do
     Application.put_env(:logger, :backends, [])
     Logger.App.stop()
     Application.start(:logger)
@@ -360,24 +347,5 @@ defmodule LoggerTest do
     Application.put_env(:logger, :backends, [:console])
     Logger.App.stop()
     Application.start(:logger)
-  end
-
-  test "restarts Logger.Config on Logger exits" do
-    Process.whereis(Logger) |> Process.exit(:kill)
-    wait_for_logger()
-    wait_for_handler(Logger, Logger.Config)
-    wait_for_handler(:error_logger, Logger.ErrorHandler)
-  end
-
-  test "Logger.Config updates config on config_change/3" do
-    :ok = Logger.configure(level: :debug)
-
-    try do
-      Application.put_env(:logger, :level, :error)
-      assert Logger.App.config_change([level: :error], [], []) === :ok
-      assert Logger.level() === :error
-    after
-      Logger.configure(level: :debug)
-    end
   end
 end

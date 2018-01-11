@@ -105,8 +105,26 @@ defmodule Logger.Config do
         {:ok, state}
 
       new_mode ->
+        if new_mode == :discard do
+          message =
+            "Logger has #{message_queue_length()} messages in its queue, " <>
+              "which is above :discard_threshold. Messages will be discarded " <>
+              "until the message queue goes back to 75% of the threshold size"
+
+          log(:warn, message, state)
+        end
+
+        if mode == :discard do
+          log(:warn, "Logger has stopped discarding messages", state)
+        end
+
         {:ok, persist(%{state | mode: new_mode})}
     end
+  end
+
+  defp log(level, message, state) do
+    event = {Logger, message, Logger.Utils.timestamp(state.utc_log), pid: self()}
+    :gen_event.notify(self(), {level, Process.group_leader(), event})
   end
 
   def handle_call(:backends, state) do
@@ -162,18 +180,27 @@ defmodule Logger.Config do
   ## Helpers
 
   defp compute_mode(state) do
-    {:message_queue_len, len} = Process.info(self(), :message_queue_len)
+    %{
+      mode: mode,
+      async_threshold: async_threshold,
+      sync_threshold: sync_threshold,
+      keep_threshold: keep_threshold,
+      discard_threshold: discard_threshold
+    } = state
 
-    cond do
-      len > state.sync_threshold and state.mode == :async ->
-        :sync
+    Logger.Utils.compute_mode(
+      mode,
+      message_queue_length(),
+      async_threshold,
+      sync_threshold,
+      keep_threshold,
+      discard_threshold
+    )
+  end
 
-      len < state.async_threshold and state.mode == :sync ->
-        :async
-
-      true ->
-        state.mode
-    end
+  defp message_queue_length() do
+    {:message_queue_len, messages} = Process.info(self(), :message_queue_len)
+    messages
   end
 
   defp update_backends(fun) do
@@ -196,22 +223,24 @@ defmodule Logger.Config do
     sync_threshold = Application.get_env(:logger, :sync_threshold)
     async_threshold = trunc(sync_threshold * 0.75)
 
+    discard_threshold = Application.get_env(:logger, :discard_threshold)
+    keep_threshold = trunc(discard_threshold * 0.75)
+
     state = %{
       level: level,
       mode: mode,
       truncate: truncate,
       utc_log: utc_log,
-      sync_threshold: sync_threshold,
       async_threshold: async_threshold,
+      sync_threshold: sync_threshold,
+      keep_threshold: keep_threshold,
+      discard_threshold: discard_threshold,
       translators: translators
     }
 
     case compute_mode(state) do
-      ^mode ->
-        persist(state)
-
-      new_mode ->
-        persist(%{state | mode: new_mode})
+      ^mode -> persist(state)
+      new_mode -> persist(%{state | mode: new_mode})
     end
   end
 
