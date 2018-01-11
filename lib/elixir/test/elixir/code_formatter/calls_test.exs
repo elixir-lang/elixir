@@ -100,21 +100,6 @@ defmodule Code.Formatter.CallsTest do
                   @short_length
     end
 
-    test "for binaries" do
-      bad = "foo(<<1, 2, 3, 4>>)"
-
-      good = """
-      foo(<<
-        1,
-        2,
-        3,
-        4
-      >>)
-      """
-
-      assert_format bad, good, @short_length
-    end
-
     test "for lists" do
       bad = "foo([1, 2, 3, 4])"
 
@@ -145,6 +130,40 @@ defmodule Code.Formatter.CallsTest do
       """
 
       assert_format bad, good, @medium_length
+    end
+
+    test "for binaries only on eol" do
+      bad = "foo(<<1, 2, 3, 4>>)"
+
+      good = """
+      foo(
+        <<1, 2,
+          3, 4>>
+      )
+      """
+
+      assert_format bad, good, @short_length
+
+      bad = """
+      foo(<<
+        # foo
+        1,
+        2,
+        3,
+        4>>)
+      """
+
+      good = """
+      foo(<<
+        # foo
+        1,
+        2,
+        3,
+        4
+      >>)
+      """
+
+      assert_format bad, good, @short_length
     end
   end
 
