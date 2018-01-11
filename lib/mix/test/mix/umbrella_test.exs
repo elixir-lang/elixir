@@ -12,9 +12,8 @@ defmodule Mix.UmbrellaTest do
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert Mix.Project.apps_paths() == %{bar: "apps/bar", foo: "apps/foo"}
 
-        assert_received {:mix_shell, :error, [
-                          "warning: path \"apps/dont_error_on_missing_mixfile\"" <> _
-                        ]}
+        assert_received {:mix_shell, :error,
+                         ["warning: path \"apps/dont_error_on_missing_mixfile\"" <> _]}
 
         refute_received {:mix_shell, :error, ["warning: path \"apps/dont_error_on_files\"" <> _]}
       end)
@@ -219,9 +218,8 @@ defmodule Mix.UmbrellaTest do
 
         assert_received {:mix_shell, :error, ["Dependencies have diverged:"]}
 
-        assert_received {:mix_shell, :error, [
-                          "  the dependency foo in mix.exs is overriding a child" <> _
-                        ]}
+        assert_received {:mix_shell, :error,
+                         ["  the dependency foo in mix.exs is overriding a child" <> _]}
       end)
     end
   end

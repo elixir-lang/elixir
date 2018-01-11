@@ -40,13 +40,14 @@ defmodule DynamicSupervisorTest do
   describe "init/1" do
     test "set default options" do
       assert DynamicSupervisor.init(strategy: :one_for_one) ==
-               {:ok, %{
-                 strategy: :one_for_one,
-                 intensity: 3,
-                 period: 5,
-                 max_children: :infinity,
-                 extra_arguments: []
-               }}
+               {:ok,
+                %{
+                  strategy: :one_for_one,
+                  intensity: 3,
+                  period: 5,
+                  max_children: :infinity,
+                  extra_arguments: []
+                }}
     end
   end
 
