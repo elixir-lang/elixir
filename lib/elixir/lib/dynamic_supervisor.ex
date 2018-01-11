@@ -440,14 +440,15 @@ defmodule DynamicSupervisor do
          :ok <- validate_seconds(max_seconds),
          :ok <- validate_dynamic(max_children),
          :ok <- validate_extra_arguments(extra_arguments) do
-      {:ok, %{
-        state
-        | extra_arguments: extra_arguments,
-          max_children: max_children,
-          max_restarts: max_restarts,
-          max_seconds: max_seconds,
-          strategy: strategy
-      }}
+      {:ok,
+       %{
+         state
+         | extra_arguments: extra_arguments,
+           max_children: max_children,
+           max_restarts: max_restarts,
+           max_seconds: max_seconds,
+           strategy: strategy
+       }}
     end
   end
 

@@ -275,11 +275,10 @@ defmodule ExceptionTest do
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
     assert Exception.format_exit(reason) =~ "bad child specification, invalid restart type: :foo"
 
-    return =
-      {
-        :ok,
-        {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, :foo, :worker, []}]}
-      }
+    return = {
+      :ok,
+      {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, :foo, :worker, []}]}
+    }
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
     assert Exception.format_exit(reason) =~ "bad child specification, invalid shutdown: :foo"
@@ -292,51 +291,47 @@ defmodule ExceptionTest do
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
     assert Exception.format_exit(reason) =~ "bad child specification, invalid modules: :foo"
 
-    return =
-      {
-        :ok,
-        {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, [{:foo}]}]}
-      }
+    return = {
+      :ok,
+      {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, [{:foo}]}]}
+    }
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
     assert Exception.format_exit(reason) =~ "bad child specification, invalid module: {:foo}"
 
-    return =
+    return = {
+      :ok,
       {
-        :ok,
-        {
-          {:one_for_one, 1, 1},
-          [
-            {:child, {:m, :f, []}, :permanent, 1, :worker, []},
-            {:child, {:m, :f, []}, :permanent, 1, :worker, []}
-          ]
-        }
+        {:one_for_one, 1, 1},
+        [
+          {:child, {:m, :f, []}, :permanent, 1, :worker, []},
+          {:child, {:m, :f, []}, :permanent, 1, :worker, []}
+        ]
       }
+    }
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
 
     assert Exception.format_exit(reason) =~
              "bad child specification, more than one child specification has the id: :child"
 
-    return =
-      {
-        :ok,
-        {{:one_for_one, 1, 1}, [{:child, {Kernel, :exit, [:foo]}, :temporary, 1, :worker, []}]}
-      }
+    return = {
+      :ok,
+      {{:one_for_one, 1, 1}, [{:child, {Kernel, :exit, [:foo]}, :temporary, 1, :worker, []}]}
+    }
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
 
     assert Exception.format_exit(reason) ==
              "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
 
-    return =
+    return = {
+      :ok,
       {
-        :ok,
-        {
-          {:one_for_one, 1, 1},
-          [{:child, {Kernel, :apply, [fn -> {:error, :foo} end, []]}, :temporary, 1, :worker, []}]
-        }
+        {:one_for_one, 1, 1},
+        [{:child, {Kernel, :apply, [fn -> {:error, :foo} end, []]}, :temporary, 1, :worker, []}]
       }
+    }
 
     {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
 
