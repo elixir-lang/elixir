@@ -130,6 +130,13 @@ defmodule Logger do
       in the queue is reduced to `sync_threshold * 0.75` messages.
       Defaults to 20 messages.
 
+    * `:discard_threshold` - if the `Logger` manager has more than
+      `:discard_threshold` messages in its queue, `Logger` will change
+      to *discard mode* and messages will be discarded directly in the
+      clients. `Logger` will return to *sync mode* once the number of
+      messages in the queue is reduced to `discard_threshold * 0.75`
+      messages. Defaults to 500 messages.
+
     * `:translator_inspect_opts` - when translating OTP reports and
       errors, the last message and state must be inspected in the
       error reports. This configuration allow developers to change
@@ -159,21 +166,25 @@ defmodule Logger do
       in Erlang syntax until the Logger application kicks in and
       uninstalls SASL's logger in favor of its own. Defaults to `false`.
 
-    * `:discard_threshold_for_error_logger` - a value that, when
-      reached, triggers the error logger to discard messages. This
-      value must be a positive number that represents the maximum
-      number of messages accepted per second. Once above this
-      threshold, the [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
-      enters discard mode for the remainder of that second. Defaults to 500 messages.
+    * `:discard_threshold_for_error_logger` - if `:error_logger` has more than
+      `discard_threshold` messages in its inbox, messages will be dropped
+      until the message queue goes down to `discard_threshold * 0.75`
+      entries. The threshold will be checked once again after 10% of thereshold
+      messages are processed, to avoid messages from being constantly dropped.
+      For exmaple, if the thereshold is 500 (the default) and the inbox has
+      600 messages, 250 messages will dropped, bringing the inbox down to
+      350 (0.75 * threshold) entries and 50 (0.1 * theshold) messages will
+      be processed before the threshold is checked once again.
 
-  For example, to configure `Logger` to redirect all [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
-  messages using a `config/config.exs` file:
+  For example, to configure `Logger` to redirect all
+  [`:error_logger`](http://erlang.org/doc/man/error_logger.html) messages
+  using a `config/config.exs` file:
 
       config :logger,
         handle_otp_reports: true,
         handle_sasl_reports: true
 
-  Furthermore, `Logger` allows messages sent by OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+  Furthermore, `Logger` allows messages sent by OTP's `:error_logger`
   to be translated into an Elixir format via translators. Translators
   can be dynamically added at any time with the `add_translator/1`
   and `remove_translator/1` APIs. Check `Logger.Translator` for more
@@ -600,7 +611,7 @@ defmodule Logger do
         %{mode: mode, truncate: truncate, level: min_level, utc_log: utc_log?} =
           Logger.Config.__data__()
 
-        if compare_levels(level, min_level) != :lt do
+        if compare_levels(level, min_level) != :lt and mode != :discard do
           metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
           {message, metadata} = normalize_message(chardata_or_fun, metadata)
           truncated = truncate(message, truncate)
