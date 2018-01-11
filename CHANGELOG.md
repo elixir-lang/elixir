@@ -123,6 +123,48 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
+## v1.6.0-rc.1 (2018-01-11)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Code] Render tuples and bitstrings as "flex" in the formatter so they attempt to fit the maximum amount of entries in the same line
+  * [Exception] Improve the printing of guards on blamed exceptions
+  * [List] Rearrange equals and inserts for shorter diff scripts in `List.myers_difference/2`
+  * [Kernel] Warn if heredoc is outdented compared to its closing quotes
+  * [Record] Allow `:macros` and `:includes` to be given to `Record.extract/2`
+
+#### ExUnit
+
+  * [ExUnit.Assertions] Perform inclusive checks in `assert_in_delta`
+
+#### IEx
+
+  * [IEx.CLI] Provide hints for developers when a bad host name is given to `--remsh`
+
+#### Logger
+
+  * [Logger] Add `:discard_threshold` to Logger to help with buffer overflow
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Inspect] Properly handle minus signal for non-decimal negative integers
+  * [Kernel] Allow `defguard` to call another `defguard` (previous RC only)
+  * [Kernel] Return right side expression value on variable struct matching (previous RC only)
+  * [Kernel] Do not leak variables during optimizations (previous RC only)
+  * [Kernel] Avoid badarg/badfun on long-lived functions defined during compilation (previous RC only)
+  * [Kernel] Fix precedence of `&` in regards to `=` (previous RC only)
+  * [String] Consider case ignorable characters when downcasing greek characters (previous RC only)
+
+#### Mix
+
+  * [mix clean] Fix error when cleaning compiled Erlang code (previous RC only)
+  * [mix deps.update] Ensure transitive new non-Hex dependencies are also fetched when a repo is updated
+  * [mix format] Raise if imported dependencies have not been checked out on `mix format` (previous RC only)
+
 ## v1.6.0-rc.0 (2017-12-24)
 
 ### 1. Enhancements
