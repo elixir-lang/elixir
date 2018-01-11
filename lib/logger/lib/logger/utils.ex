@@ -25,10 +25,10 @@ defmodule Logger.Utils do
       ) do
     case mode do
       _ when messages >= discard_threshold -> :discard
-      :discard when messages <= keep_threshold -> :sync
-      :async when messages >= sync_threshold -> :sync
-      :sync when messages <= async_threshold -> :async
-      _ -> mode
+      :discard when messages > keep_threshold -> :discard
+      _ when messages >= sync_threshold -> :sync
+      :sync when messages > async_threshold -> :sync
+      _ -> :async
     end
   end
 

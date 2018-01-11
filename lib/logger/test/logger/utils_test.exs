@@ -32,14 +32,24 @@ defmodule Logger.UtilsTest do
       assert compute_mode(:sync, 10000, 15, 20, 7500, 10000) == :discard
     end
 
-    test "starting discard" do
-      assert compute_mode(:discard, 0, 15, 20, 7500, 10000) == :sync
-      assert compute_mode(:discard, 10, 15, 20, 7500, 10000) == :sync
-      assert compute_mode(:discard, 18, 15, 20, 7500, 10000) == :sync
+    test "starting discard (with sync)" do
+      assert compute_mode(:discard, 0, 15, 20, 7500, 10000) == :async
+      assert compute_mode(:discard, 10, 15, 20, 7500, 10000) == :async
+      assert compute_mode(:discard, 18, 15, 20, 7500, 10000) == :async
       assert compute_mode(:discard, 20, 15, 20, 7500, 10000) == :sync
       assert compute_mode(:discard, 30, 15, 20, 7500, 10000) == :sync
       assert compute_mode(:discard, 8000, 15, 20, 7500, 10000) == :discard
       assert compute_mode(:discard, 10000, 15, 20, 7500, 10000) == :discard
+    end
+
+    test "starting discard (without sync)" do
+      assert compute_mode(:discard, 0, 75000, 100_000, 7500, 10000) == :async
+      assert compute_mode(:discard, 10, 75000, 100_000, 7500, 10000) == :async
+      assert compute_mode(:discard, 18, 75000, 100_000, 7500, 10000) == :async
+      assert compute_mode(:discard, 20, 75000, 100_000, 7500, 10000) == :async
+      assert compute_mode(:discard, 30, 75000, 100_000, 7500, 10000) == :async
+      assert compute_mode(:discard, 8000, 75000, 100_000, 7500, 10000) == :discard
+      assert compute_mode(:discard, 10000, 75000, 100_000, 7500, 10000) == :discard
     end
   end
 

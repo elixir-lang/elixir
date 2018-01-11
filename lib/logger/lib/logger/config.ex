@@ -111,12 +111,20 @@ defmodule Logger.Config do
               "which is above :discard_threshold. Messages will be discarded " <>
               "until the message queue goes back to 75% of the threshold size"
 
-          event = {Logger, message, Logger.Utils.timestamp(state.utc_log), pid: self()}
-          :gen_event.notify(self(), {:warn, Process.group_leader(), event})
+          log(:warn, message, state)
+        end
+
+        if mode == :discard do
+          log(:warn, "Logger has stopped discarding messages", state)
         end
 
         {:ok, persist(%{state | mode: new_mode})}
     end
+  end
+
+  defp log(level, message, state) do
+    event = {Logger, message, Logger.Utils.timestamp(state.utc_log), pid: self()}
+    :gen_event.notify(self(), {level, Process.group_leader(), event})
   end
 
   def handle_call(:backends, state) do
