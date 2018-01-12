@@ -52,16 +52,13 @@ defmodule Kernel.ImplTest do
   end
 
   test "sets @impl to nil" do
-    test_fun = fn ->
+    assert_raise ArgumentError, ~r/should be a module or a boolean/, fn ->
       defmodule ImplAttributes do
         @behaviour Behaviour
         @impl nil
         def foo(), do: :ok
       end
     end
-
-    msg = ~r/expected the @impl attribute to contain a module or a boolean/
-    assert_raise ArgumentError, msg, test_fun
   end
 
   test "sets @impl to behaviour" do

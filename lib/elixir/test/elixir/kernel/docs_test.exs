@@ -60,10 +60,24 @@ defmodule Kernel.DocsTest do
   end
 
   test "raises on invalid @since" do
-    assert_raise ArgumentError, ~r"@since is used for documentation purposes", fn ->
+    assert_raise ArgumentError, ~r"should be a string representing the version", fn ->
       defmodule InvalidSince do
         @since 1.2
         def foo, do: :bar
+      end
+    end
+  end
+
+  test "raises on invalid @doc" do
+    assert_raise ArgumentError, ~r/When set dynamically, it should be {line, doc}/, fn ->
+      defmodule DocAttributesFormat do
+        Module.put_attribute(__MODULE__, :moduledoc, "Other")
+      end
+    end
+
+    assert_raise ArgumentError, ~r/should be a binary, a boolean, or nil/, fn ->
+      defmodule AtSyntaxDocAttributesFormat do
+        @moduledoc :not_a_binary
       end
     end
   end

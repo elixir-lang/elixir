@@ -257,7 +257,7 @@ defmodule Module do
 
   ### Typespec attributes
 
-  The following attributes are part of typespecs and are also reserved by
+  The following attributes are part of typespecs and are also built-in in
   Elixir:
 
     * `@type` - defines a type to be used in `@spec`
@@ -1649,34 +1649,36 @@ defmodule Module do
 
       {line, doc} when is_integer(line) ->
         raise ArgumentError,
-              "expected the #{key} attribute to contain a binary, " <>
-                "a boolean, or nil, got: #{inspect(doc)}"
+              "@#{key} is a built-in module attribute for documentation. It should be " <>
+                "a binary, a boolean, or nil, got: #{inspect(doc)}"
 
       _other ->
         raise ArgumentError,
-              "expected the #{key} attribute to be {line, doc} (where \"doc\" is " <>
-                "a binary, a boolean, or nil), got: #{inspect(value)}"
+              "@#{key} is a built-in module attribute for documentation. When set dynamically, " <>
+                "it should be {line, doc} (where \"doc\" is a string, boolean, or nil), " <>
+                "got: #{inspect(value)}"
     end
   end
 
   defp preprocess_attribute(:on_load, value) do
     case value do
-      atom when is_atom(atom) ->
-        {atom, 0}
+      _ when is_atom(value) ->
+        {value, 0}
 
       {atom, 0} = tuple when is_atom(atom) ->
         tuple
 
-      other ->
+      _ ->
         raise ArgumentError,
-              "expected the @on_load attribute to be an atom or a " <>
-                "{atom, 0} tuple, got: #{inspect(other)}"
+              "@on_load is a built-in module attribute that annotates a function to be invoked " <>
+                "when the module is loaded. It should be an atom or a {atom, 0} tuple, " <>
+                "got: #{inspect(value)}"
     end
   end
 
   defp preprocess_attribute(:impl, value) do
     case value do
-      bool when is_boolean(bool) ->
+      _ when is_boolean(value) ->
         value
 
       module when is_atom(module) and module != nil ->
@@ -1684,10 +1686,11 @@ defmodule Module do
         _ = Code.ensure_compiled(module)
         value
 
-      other ->
+      _ ->
         raise ArgumentError,
-              "expected the @impl attribute to contain a module or a boolean, " <>
-                "got: #{inspect(other)}"
+              "@impl is a built-in module attribute that marks the next definition " <>
+                "as a callback implementation. It should be a module or a boolean, " <>
+                "got: #{inspect(value)}"
     end
   end
 
@@ -1709,14 +1712,31 @@ defmodule Module do
 
   defp preprocess_attribute(:since, value) when not is_binary(value) do
     raise ArgumentError,
-          "@since is used for documentation purposes and expects a string representing " <>
-            "the version a function, macro, type or callback was added, got: #{inspect(value)}"
+          "@since is a built-in module attribute used for documentation purposes. " <>
+            "It should be a string representing the version a function, macro, type or " <>
+            "callback was added, got: #{inspect(value)}"
   end
 
   defp preprocess_attribute(:deprecated, value) when not is_binary(value) do
     raise ArgumentError,
-          "@deprecated expects a string with the reason for the deprecation, " <>
-            "got: #{inspect(value)}"
+          "@deprecated is a built-in module attribute that annotates a definition as deprecated. " <>
+            "It should be a string with the reason for the deprecation, got: #{inspect(value)}"
+  end
+
+  defp preprocess_attribute(:file, value) do
+    case value do
+      _ when is_binary(value) ->
+        value
+
+      {file, line} when is_binary(file) and is_integer(line) ->
+        value
+
+      _ ->
+        raise ArgumentError,
+              "@file is a built-in module attribute that annotates the file and line the next " <>
+                "definition comes from. It should be a string or a {string, line} tuple as value, " <>
+                "got: #{inspect(value)}"
+    end
   end
 
   defp preprocess_attribute(_key, value) do

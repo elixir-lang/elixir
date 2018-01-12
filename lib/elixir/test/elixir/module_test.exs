@@ -209,8 +209,17 @@ defmodule ModuleTest do
   end
 
   @file "sample.ex"
-  test "__ENV__.file with module attribute" do
+  test "@file sets __ENV__.file" do
     assert __ENV__.file == "sample.ex"
+  end
+
+  test "@file raises when invalid" do
+    assert_raise ArgumentError, ~r"@file is a built-in module attribute", fn ->
+      defmodule BadFile do
+        @file :oops
+        def my_fun, do: :ok
+      end
+    end
   end
 
   ## Creation
