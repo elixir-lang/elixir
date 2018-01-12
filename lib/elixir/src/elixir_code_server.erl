@@ -105,7 +105,7 @@ handle_cast({loaded, Path}, Config) ->
       {noreply, Config#elixir_code_server{loaded=Done}}
   end;
 
-handle_cast({unload_files, Files}, Config) ->
+handle_cast({unrequire_files, Files}, Config) ->
   Current  = Config#elixir_code_server.loaded,
   Unloaded = maps:without(Files, Current),
   {noreply, Config#elixir_code_server{loaded=Unloaded}};

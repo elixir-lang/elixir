@@ -5,25 +5,55 @@ defmodule Code do
   This module complements Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html)
   to add behaviour which is specific to Elixir. Almost all of the functions in this module
   have global side effects on the behaviour of Elixir.
+
+  ## Working with files
+
+  This module contains three functions for compiling and evaluating files.
+  Here is a summary of them and their behaviour:
+
+    * `require_file/2` - compiles a file and tracks its name. It does not
+      compile the file again if has been previously required (or loaded).
+
+    * `compile_file/2` - compiles a file without tracking its name. Compiles the
+      file multiple times when invoked multiple times.
+
+    * `eval_file/2` - evaluates the file contents without tracking its name. It
+      returns the result of the last expression in the file, instead of the modules
+      defined in it.
+
+  In a nutshell, the first must be used when you want to keep track of the files
+  handled by the system, to avoid the same file from being compiled multiple
+  times. This is common in scripts.
+
+  `compile_file/2` must be used when you are only interested in the compilation
+  results, without tracking. `eval_file/2` should be used when you are intested on
+  the result of evaluating the file rather than the modules it defines.
   """
 
   @doc """
-  Lists all loaded files.
+  Lists all required files.
 
   ## Examples
 
       Code.require_file("../eex/test/eex_test.exs")
-      List.first(Code.loaded_files()) =~ "eex_test.exs"
+      List.first(Code.required_files()) =~ "eex_test.exs"
       #=> true
 
   """
-  @spec loaded_files() :: [binary]
+  @since "1.7.0"
+  @spec required_files() :: [binary]
+  def required_files do
+    :elixir_code_server.call(:loaded)
+  end
+
+  # TODO: Deprecate me on 1.9
+  @doc false
   def loaded_files do
     :elixir_code_server.call(:loaded)
   end
 
   @doc """
-  Removes files from the loaded files list.
+  Removes files from the required files list.
 
   The modules defined in the file are not removed;
   calling this function only removes them from the list,
@@ -32,16 +62,23 @@ defmodule Code do
   ## Examples
 
       # Load EEx test code, unload file, check for functions still available
-      Code.load_file("../eex/test/eex_test.exs")
+      Code.require_file("../eex/test/eex_test.exs")
 
-      Code.unload_files(Code.loaded_files())
+      Code.unrequire_files(Code.required_files())
       function_exported?(EExTest.Compiled, :before_compile, 0)
       #=> true
 
   """
-  @spec unload_files([binary]) :: :ok
+  @spec unrequire_files([binary]) :: :ok
+  @since "1.7.0"
+  def unrequire_files(files) do
+    :elixir_code_server.cast({:unrequire_files, files})
+  end
+
+  # TODO: Deprecate me on 1.9
+  @doc false
   def unload_files(files) do
-    :elixir_code_server.cast({:unload_files, files})
+    :elixir_code_server.cast({:unrequire_files, files})
   end
 
   @doc """
@@ -592,8 +629,8 @@ defmodule Code do
 
   Accepts `relative_to` as an argument to tell where the file is located.
 
-  While `load_file/2` loads a file and returns the loaded modules and their
-  byte code, `eval_file/2` simply evaluates the file contents and returns the
+  While `require_file/2` and `compile_file/2` returns the loaded modules and their
+  bytecode, `eval_file/2` simply evaluates the file contents and returns the
   evaluation result and its bindings (exactly the same return value as `eval_string/3`).
   """
   @spec eval_file(binary, nil | binary) :: {term, binding :: list}
@@ -602,27 +639,8 @@ defmodule Code do
     eval_string(File.read!(file), [], file: file, line: 1)
   end
 
-  @doc """
-  Loads the given file.
-
-  Accepts `relative_to` as an argument to tell where the file is located.
-  If the file was already required/loaded, loads it again.
-
-  It returns a list of tuples `{ModuleName, bytecode}`, one tuple for
-  each module defined in the file.
-
-  Notice that if `load_file/2` is invoked by different processes concurrently,
-  the target file will be loaded concurrently many times. Check `require_file/2`
-  if you don't want a file to be loaded concurrently.
-
-  ## Examples
-
-      modules = Code.load_file("eex_test.exs", "../eex/test")
-      List.first(modules)
-      #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
-
-  """
-  @spec load_file(binary, nil | binary) :: [{module, binary}]
+  # TODO: Deprecate me on 1.9
+  @doc false
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     :elixir_code_server.call({:acquire, file})
@@ -635,29 +653,32 @@ defmodule Code do
   Requires the given `file`.
 
   Accepts `relative_to` as an argument to tell where the file is located.
-  The return value is the same as that of `load_file/2`. If the file was already
-  required or loaded, `require_file/2` doesn't do anything and returns `nil`.
+  If the file was already required, `require_file/2` doesn't do anything and
+  returns `nil`.
 
   Notice that if `require_file/2` is invoked by different processes concurrently,
   the first process to invoke `require_file/2` acquires a lock and the remaining
-  ones will block until the file is available. This means that if `require_file/2` is called
-  more than one times with a given file, that file will be loaded only once. The first process to
-  call `require_file/2` will get the list of loaded modules, others will get `nil`.
+  ones will block until the file is available. This means that if `require_file/2`
+  is called more than once with a given file, that file will be loaded only once.
+  The first process to call `require_file/2` will get the list of loaded modules,
+  others will get `nil`.
 
-  Check `load_file/2` if you want to load a file multiple times. See also `unload_files/1`.
+  See `compile_file/2` if you would like to compile a file without tracking its
+  filenames. Finally, if you would like to get the result of evaluating file rather
+  than the modules defined in it, see `eval_file/2`.
 
   ## Examples
 
-  If the code is already loaded, it returns `nil`:
-
-      Code.require_file("eex_test.exs", "../eex/test")
-      #=> nil
-
-  If the code is not loaded yet, it returns the same as `load_file/2`:
+  If the file has not been required, it returns the list of modules:
 
       modules = Code.require_file("eex_test.exs", "../eex/test")
       List.first(modules)
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
+
+  If the code has been required, it returns `nil`:
+
+      Code.require_file("eex_test.exs", "../eex/test")
+      #=> nil
 
   """
   @spec require_file(binary, nil | binary) :: [{module, binary}] | nil
@@ -773,8 +794,6 @@ defmodule Code do
   and the second one is its bytecode (as a binary). A `file` can be
   given as second argument which will be used for reporting warnings
   and errors.
-
-  For compiling many files at once, check `Kernel.ParallelCompiler.compile/2`.
   """
   @spec compile_string(List.Chars.t(), binary) :: [{module, binary}]
   def compile_string(string, file \\ "nofile") when is_binary(file) do
@@ -792,6 +811,25 @@ defmodule Code do
   @spec compile_quoted(Macro.t(), binary) :: [{module, binary}]
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
     :elixir_compiler.quoted(quoted, file)
+  end
+
+  @doc """
+  Compiles the given file.
+
+  Accepts `relative_to` as an argument to tell where the file is located.
+
+  Returns a list of tuples where the first element is the module name and
+  the second one is its bytecode (as a binary). Opposite to `require_file/2`,
+  it does not track the filename of the compiled file.
+
+  If you would like to get the result of evaluating file rather than the
+  modules defined in it, see `eval_file/2`.
+
+  For compiling many files concurrently, see `Kernel.ParallelCompiler.compile/2`.
+  """
+  @spec compile_file(binary, nil | binary) :: [{module, binary}]
+  def compile_file(file, relative_to \\ nil) when is_binary(file) do
+    :elixir_compiler.file(find_file(file, relative_to))
   end
 
   @doc """

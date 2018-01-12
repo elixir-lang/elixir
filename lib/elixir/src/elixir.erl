@@ -141,7 +141,7 @@ env_for_eval(Opts) ->
     requires := elixir_dispatch:default_requires(),
     functions := elixir_dispatch:default_functions(),
     macros := elixir_dispatch:default_macros()
- }, Opts).
+  }, Opts).
 
 env_for_eval(Env, Opts) ->
   Line = case lists:keyfind(line, 1, Opts) of

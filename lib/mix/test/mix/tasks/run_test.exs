@@ -85,7 +85,7 @@ defmodule Mix.Tasks.RunTest do
       File.write!(file, expr)
 
       unload_file = fn ->
-        Code.unload_files([Path.expand(file)])
+        Code.unrequire_files([Path.expand(file)])
       end
 
       Mix.Tasks.Run.run([file])

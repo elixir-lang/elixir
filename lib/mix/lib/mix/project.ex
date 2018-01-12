@@ -632,7 +632,7 @@ defmodule Mix.Project do
         if File.regular?(file) do
           try do
             Code.compiler_options(relative_paths: false)
-            _ = Code.load_file(file)
+            _ = Code.compile_file(file)
             get()
           else
             ^old_proj -> Mix.raise("Could not find a Mix project at #{file}")
