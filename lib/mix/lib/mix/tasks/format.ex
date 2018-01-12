@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Format do
   project.
 
   It is also possible to format code across the whole project by passing a list
-  of patterns and files to `mix format`, as showed at the top of this task
+  of patterns and files to `mix format`, as shown at the top of this task
   documentation. This list can also be set in the `.formatter.exs` under the
   `:inputs` key.
 
