@@ -6,7 +6,7 @@ defmodule Kernel.DeprecatedTest do
   import PathHelpers
 
   test "raises on invalid @deprecated" do
-    assert_raise ArgumentError, ~r"@deprecated expects a string with the reason", fn ->
+    assert_raise ArgumentError, ~r"should be a string with the reason", fn ->
       defmodule InvalidDeprecated do
         @deprecated 1.2
         def foo, do: :bar

@@ -575,32 +575,8 @@ defmodule Kernel.ErrorsTest do
                       'Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file'
   end
 
-  test "doc attributes format" do
-    message =
-      "expected the moduledoc attribute to be {line, doc} (where \"doc\" is " <>
-        "a binary, a boolean, or nil), got: \"Other\""
-
-    assert_raise ArgumentError, message, fn ->
-      defmodule DocAttributesFormat do
-        Module.put_attribute(__MODULE__, :moduledoc, "Other")
-      end
-    end
-
-    message =
-      "expected the moduledoc attribute to contain a binary, a boolean, or nil, got: :not_a_binary"
-
-    assert_raise ArgumentError, message, fn ->
-      defmodule AtSyntaxDocAttributesFormat do
-        @moduledoc :not_a_binary
-      end
-    end
-  end
-
   test "@on_load attribute format" do
-    message =
-      "expected the @on_load attribute to be an atom or a {atom, 0} tuple, got: \"not an atom\""
-
-    assert_raise ArgumentError, message, fn ->
+    assert_raise ArgumentError, ~r/should be an atom or a {atom, 0} tuple/, fn ->
       defmodule BadOnLoadAttribute do
         Module.put_attribute(__MODULE__, :on_load, "not an atom")
       end
