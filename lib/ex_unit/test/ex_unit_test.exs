@@ -159,19 +159,27 @@ defmodule ExUnitTest do
 
     {result, output} = run_with_filter([exclude: [even: true]], [ParityTest])
     assert result == %{failures: 0, skipped: 1, total: 4}
-    assert output =~ "4 tests, 0 failures, 1 skipped"
+    assert output =~ "4 tests,"
+    assert output =~ "0 failures,"
+    assert output =~ "1 skipped"
 
     {result, output} = run_with_filter([exclude: :even], [ParityTest])
     assert result == %{failures: 0, skipped: 3, total: 4}
-    assert output =~ "4 tests, 0 failures, 3 skipped"
+    assert output =~ "4 tests,"
+    assert output =~ "0 failures,"
+    assert output =~ "3 skipped"
 
     {result, output} = run_with_filter([exclude: :even, include: [even: true]], [ParityTest])
     assert result == %{failures: 1, skipped: 2, total: 4}
-    assert output =~ "4 tests, 1 failure, 2 skipped"
+    assert output =~ "4 tests,"
+    assert output =~ "1 failure,"
+    assert output =~ "2 skipped"
 
     {result, output} = run_with_filter([exclude: :test, include: [even: true]], [ParityTest])
     assert result == %{failures: 1, skipped: 3, total: 4}
-    assert output =~ "4 tests, 1 failure, 3 skipped"
+    assert output =~ "4 tests,"
+    assert output =~ "1 failure,"
+    assert output =~ "3 skipped"
   end
 
   test "log capturing" do
@@ -326,7 +334,9 @@ defmodule ExUnitTest do
         assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2}
       end)
 
-    assert output =~ "2 tests, 0 failures, 2 skipped"
+    assert output =~ "2 tests,"
+    assert output =~ "0 failures,"
+    assert output =~ "2 skipped"
   end
 
   test "filtering cases with :module tag" do
@@ -343,7 +353,10 @@ defmodule ExUnitTest do
     # Empty because it is already loaded
     {result, output} = run_with_filter([exclude: :module], [])
     assert result == %{failures: 0, skipped: 2, total: 2}
-    assert output =~ "2 tests, 0 failures, 2 skipped"
+
+    assert output =~ "2 tests,"
+    assert output =~ "0 failures,"
+    assert output =~ "2 skipped"
 
     {result, output} =
       [exclude: :test, include: [module: "ExUnitTest.SecondTestModule"]]
@@ -351,7 +364,9 @@ defmodule ExUnitTest do
 
     assert result == %{failures: 1, skipped: 1, total: 2}
     assert output =~ "1) test false (ExUnitTest.SecondTestModule)"
-    assert output =~ "2 tests, 1 failure, 1 skipped"
+    assert output =~ "2 tests,"
+    assert output =~ "1 failure,"
+    assert output =~ "1 skipped"
   end
 
   test "raises on reserved tag :file in module" do
