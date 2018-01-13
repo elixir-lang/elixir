@@ -12,7 +12,7 @@ defmodule Code do
   Here is a summary of them and their behaviour:
 
     * `require_file/2` - compiles a file and tracks its name. It does not
-      compile the file again if has been previously required (or loaded).
+      compile the file again if it has been previously required.
 
     * `compile_file/2` - compiles a file without tracking its name. Compiles the
       file multiple times when invoked multiple times.
@@ -25,8 +25,8 @@ defmodule Code do
   handled by the system, to avoid the same file from being compiled multiple
   times. This is common in scripts.
 
-  `compile_file/2` must be used when you are only interested in the compilation
-  results, without tracking. `eval_file/2` should be used when you are intested on
+  `compile_file/2` must be used when you are interested in the modules defined in a
+  file, without tracking. `eval_file/2` should be used when you are intested on
   the result of evaluating the file rather than the modules it defines.
   """
 
@@ -43,13 +43,13 @@ defmodule Code do
   @since "1.7.0"
   @spec required_files() :: [binary]
   def required_files do
-    :elixir_code_server.call(:loaded)
+    :elixir_code_server.call(:required)
   end
 
   # TODO: Deprecate me on 1.9
   @doc false
   def loaded_files do
-    :elixir_code_server.call(:loaded)
+    required_files()
   end
 
   @doc """
@@ -61,10 +61,13 @@ defmodule Code do
 
   ## Examples
 
-      # Load EEx test code, unload file, check for functions still available
+      # Require EEx test code
       Code.require_file("../eex/test/eex_test.exs")
 
+      # Now unrequire all files
       Code.unrequire_files(Code.required_files())
+
+      # Notice modules are still available
       function_exported?(EExTest.Compiled, :before_compile, 0)
       #=> true
 
@@ -78,7 +81,7 @@ defmodule Code do
   # TODO: Deprecate me on 1.9
   @doc false
   def unload_files(files) do
-    :elixir_code_server.cast({:unrequire_files, files})
+    unrequire_files(files)
   end
 
   @doc """
@@ -645,7 +648,7 @@ defmodule Code do
     file = find_file(file, relative_to)
     :elixir_code_server.call({:acquire, file})
     loaded = :elixir_compiler.file(file)
-    :elixir_code_server.cast({:loaded, file})
+    :elixir_code_server.cast({:required, file})
     loaded
   end
 
@@ -659,7 +662,7 @@ defmodule Code do
   Notice that if `require_file/2` is invoked by different processes concurrently,
   the first process to invoke `require_file/2` acquires a lock and the remaining
   ones will block until the file is available. This means that if `require_file/2`
-  is called more than once with a given file, that file will be loaded only once.
+  is called more than once with a given file, that file will be compiled only once.
   The first process to call `require_file/2` will get the list of loaded modules,
   others will get `nil`.
 
@@ -685,18 +688,19 @@ defmodule Code do
   def require_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
 
+    # TODO: Simply block until :required or :proceed once load_file is removed in 2.0
     case :elixir_code_server.call({:acquire, file}) do
-      :loaded ->
+      :required ->
         nil
 
       {:queued, ref} ->
         receive do
-          {:elixir_code_server, ^ref, :loaded} -> nil
+          {:elixir_code_server, ^ref, :required} -> nil
         end
 
       :proceed ->
         loaded = :elixir_compiler.file(file)
-        :elixir_code_server.cast({:loaded, file})
+        :elixir_code_server.cast({:required, file})
         loaded
     end
   end
