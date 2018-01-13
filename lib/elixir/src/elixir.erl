@@ -101,6 +101,7 @@ set_stdio_and_stderr_to_binary_and_maybe_utf8() ->
 preload_common_modules() ->
   %% We attempt to load those modules here so throughout
   %% the codebase we can avoid code:ensure_loaded/1 checks.
+  _ = code:ensure_loaded('Elixir.Kernel'),
   _ = code:ensure_loaded('Elixir.Macro.Env'),
 
   %% We need to make sure the re module is preloaded to make
