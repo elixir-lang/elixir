@@ -92,7 +92,9 @@ defmodule Code.Formatter do
 
     # Stdlib,
     defrecord: 2,
+    defrecord: 3,
     defrecordp: 2,
+    defrecordp: 3,
 
     # Testing
     all: :*,
