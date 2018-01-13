@@ -111,6 +111,7 @@ defmodule Code.Formatter do
     check: 2,
     doctest: 1,
     doctest: 2,
+    on_exit: 1,
     property: 1,
     property: 2,
     refute: 1,
