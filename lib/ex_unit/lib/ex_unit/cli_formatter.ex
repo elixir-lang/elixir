@@ -238,7 +238,10 @@ defmodule ExUnit.CLIFormatter do
 
     message =
       "#{test_type_counts}#{config.failure_counter} #{failure_pl}"
-      |> if_true(config.skipped_counter > 0, &(&1 <> ", #{config.skipped_counter} skipped"))
+      |> if_true(
+        config.skipped_counter > 0,
+        &(&1 <> "," <> skipped(" #{config.skipped_counter} skipped", config))
+      )
       |> if_true(config.invalid_counter > 0, &(&1 <> ", #{config.invalid_counter} invalid"))
 
     cond do
@@ -297,6 +300,10 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp invalid(msg, config) do
+    colorize(:yellow, msg, config)
+  end
+
+  defp skipped(msg, config) do
     colorize(:yellow, msg, config)
   end
 
