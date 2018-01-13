@@ -339,32 +339,6 @@ defmodule ExUnitTest do
     assert output =~ "2 skipped"
   end
 
-  test "highlights skipped tests correctly" do
-    defmodule TestSkippedColor do
-      use ExUnit.Case
-
-      setup context do
-        assert context[:not_implemented]
-        :ok
-      end
-
-      @tag :skip
-      test "this will raise", do: raise("oops")
-
-      @tag skip: "won't work"
-      test "this will also raise", do: raise("oops")
-    end
-
-    ExUnit.Server.modules_loaded()
-
-    output =
-      capture_io(fn ->
-        assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2}
-      end)
-
-    assert output =~ "\e[33m 2 skipped\e[0m"
-  end
-
   test "filtering cases with :module tag" do
     defmodule FirstTestModule do
       use ExUnit.Case
