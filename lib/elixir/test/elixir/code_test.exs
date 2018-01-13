@@ -87,14 +87,21 @@ defmodule CodeTest do
     end
   end
 
+  test "compile_file/1" do
+    assert Code.compile_file(fixture_path("code_sample.exs")) == []
+    refute fixture_path("code_sample.exs") in Code.required_files()
+  end
+
   test "require_file/1" do
-    Code.require_file(fixture_path("code_sample.exs"))
-    assert fixture_path("code_sample.exs") in Code.loaded_files()
+    assert Code.require_file(fixture_path("code_sample.exs")) == []
+    assert fixture_path("code_sample.exs") in Code.required_files()
     assert Code.require_file(fixture_path("code_sample.exs")) == nil
 
-    Code.unload_files([fixture_path("code_sample.exs")])
-    refute fixture_path("code_sample.exs") in Code.loaded_files()
+    Code.unrequire_files([fixture_path("code_sample.exs")])
+    refute fixture_path("code_sample.exs") in Code.required_files()
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
+  after
+    Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
   describe "string_to_quoted/2" do

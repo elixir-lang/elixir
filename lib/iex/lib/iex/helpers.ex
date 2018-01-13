@@ -409,7 +409,7 @@ defmodule IEx.Helpers do
         [compile_erlang(source) |> elem(0)]
 
       true ->
-        Enum.map(Code.load_file(source), fn {name, _} -> name end)
+        Enum.map(Code.compile_file(source), fn {name, _} -> name end)
     end
   end
 
