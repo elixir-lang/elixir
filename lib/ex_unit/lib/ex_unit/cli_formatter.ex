@@ -55,7 +55,11 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
-    if config.trace, do: IO.puts(trace_test_skip(test))
+    if config.trace do
+      IO.puts(trace_test_skip(test))
+    else
+      IO.write(skipped("*", config))
+    end
 
     test_counter = update_test_counter(config.test_counter, test)
     config = %{config | test_counter: test_counter, skipped_counter: config.skipped_counter + 1}
@@ -297,6 +301,10 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp invalid(msg, config) do
+    colorize(:yellow, msg, config)
+  end
+
+  defp skipped(msg, config) do
     colorize(:yellow, msg, config)
   end
 

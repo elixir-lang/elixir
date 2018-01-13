@@ -32,6 +32,7 @@ defmodule ExUnit.FormatterTest do
     message
   end
 
+  @tag :skip
   test "formats test case filters" do
     filters = [run: true, slow: false]
     assert format_filters(filters, :include) =~ "Including tags: [run: true, slow: false]"
