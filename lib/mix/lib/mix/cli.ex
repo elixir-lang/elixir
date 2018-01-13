@@ -36,10 +36,9 @@ defmodule Mix.CLI do
   defp load_mix_exs() do
     file = System.get_env("MIX_EXS") || "mix.exs"
 
-    _ =
-      if File.regular?(file) do
-        Code.load_file(file)
-      end
+    if File.regular?(file) do
+      Code.compile_file(file)
+    end
   end
 
   defp get_task(["-" <> _ | _]) do
