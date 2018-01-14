@@ -43,6 +43,10 @@ defmodule IEx do
   On Windows:
 
       set ERL_AFLAGS "-kernel shell_history enabled"
+      
+  On OS X:
+  
+  You will also need to run `touch ~/.iex_history`.
 
   ## Expressions in IEx
 
