@@ -3134,9 +3134,10 @@ defmodule Kernel do
     fun = fn {x, pos}, acc ->
       case x do
         {op, _, [_]} when op == :+ or op == :- ->
-          message =
-            <<"piping into a unary operator is deprecated, please use the ",
-              "qualified name. For example, Kernel.+(5), instead of +5">>
+          message = <<
+            "piping into a unary operator is deprecated, please use the ",
+            "qualified name. For example, Kernel.+(5), instead of +5"
+          >>
 
           :elixir_errors.warn(__CALLER__.line, __CALLER__.file, message)
 
