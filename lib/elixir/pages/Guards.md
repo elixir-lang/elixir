@@ -7,7 +7,9 @@ Guards are a way to augment pattern matching with more complex checks; they are 
 For reference, the following is a comprehensive list of all expressions allowed in guards:
 
   * comparison operators (`==`, `!=`, `===`, `!==`, `>`, `>=`, `<`, `<=`)
-  * strictly boolean operators (`and`, `or`, `not`) (the `&&`, `||`, and `!` sibling operators are not allowed as they're not *strictly* boolean - meaning they don't require both sides to be booleans)
+  * strictly boolean operators (`and`, `or`, `not`) 
+    - __NOTE__: `&&`, `||`, and `!` sibling operators are not allowed as they're not 
+    *strictly* boolean - meaning they don't require both sides to be booleans
   * arithmetic binary operators (`+`, `-`, `*`, `/`)
   * arithmetic unary operators (`+`, `-`)
   * binary concatenation operator (`<>`)
