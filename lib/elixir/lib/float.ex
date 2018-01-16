@@ -9,8 +9,8 @@ defmodule Float do
   There are functions related to floating-point numbers on the `Kernel` module
   too. Here is a list of them:
 
-  - `Kernel.round/1`: rounds a number to the nearest integer.
-  - `Kernel.trunc/1`: returns the integer part of a number.
+    * `Kernel.round/1`: rounds a number to the nearest integer.
+    * `Kernel.trunc/1`: returns the integer part of a number.
 
   ## Known issues
 
