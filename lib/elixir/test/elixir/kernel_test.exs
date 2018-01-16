@@ -941,8 +941,8 @@ defmodule KernelTest do
 
   test "tee/2" do
     assert capture_io(fn ->
-      assert tee("This is a tee!", &IO.inspect(String.length(&1))) == "This is a tee!"
-    end) == "14\n"
+             assert tee("This is a tee!", &IO.inspect(String.length(&1))) == "This is a tee!"
+           end) == "14\n"
   end
 
   defp purge(module) do
