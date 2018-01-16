@@ -22,12 +22,12 @@ defmodule Keyword do
 
   The two syntaxes are completely equivalent. When using the colon syntax,
   the key is always an atom, even when wrapped in quotes:
-  
+
       iex> ["exit_on_close": true]
       [exit_on_close: true]
-  
+
   This mirrors the quoted atom syntax such as `:"exit_on_close"`.
-  
+
   Note that when keyword lists are passed as the last argument to a function,
   if the short-hand syntax is used then the square brackets around the keyword list
   can be omitted as well. For example, the following:
