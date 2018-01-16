@@ -238,11 +238,11 @@ no_parens_zero_expr -> dot_identifier : build_no_parens('$1', nil).
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
 access_expr -> capture_op_eol int : build_unary_op('$1', number_value('$2')).
-access_expr -> fn_eoe stab end_eoe : build_fn('$1', reverse('$2'), '$3').
-access_expr -> open_paren stab close_paren : build_stab('$1', reverse('$2'), '$3').
-access_expr -> open_paren stab ';' close_paren : build_stab('$1', reverse('$2'), '$4').
-access_expr -> open_paren ';' stab ';' close_paren : build_stab('$1', reverse('$3'), '$5').
-access_expr -> open_paren ';' stab close_paren : build_stab('$1', reverse('$3'), '$4').
+access_expr -> fn_eoe stab end_eoe : build_fn('$1', '$2', '$3').
+access_expr -> open_paren stab close_paren : build_stab('$1', '$2', '$3').
+access_expr -> open_paren stab ';' close_paren : build_stab('$1', '$2', '$4').
+access_expr -> open_paren ';' stab ';' close_paren : build_stab('$1', '$3', '$5').
+access_expr -> open_paren ';' stab close_paren : build_stab('$1', '$3', '$4').
 access_expr -> open_paren ';' close_paren : build_stab('$1', [], '$3').
 access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', [], []}.
 access_expr -> number : '$1'.
@@ -292,13 +292,13 @@ do_block -> do_eoe 'end' :
                  {'__block__', [], []}}]].
 do_block -> do_eoe stab end_eoe :
               [[{handle_literal(do, '$1', end_meta('$3')),
-                 build_stab(reverse('$2'))}]].
+                 build_stab('$2')}]].
 do_block -> do_eoe block_list 'end' :
               [[{handle_literal(do, '$1', end_meta('$3')),
                  {'__block__', [], []}} | '$2']].
 do_block -> do_eoe stab_eoe block_list 'end' :
               [[{handle_literal(do, '$1', end_meta('$4')),
-                 build_stab(reverse('$2'))} | '$3']].
+                 build_stab('$2')} | '$3']].
 
 eoe -> eol : '$1'.
 eoe -> ';' : '$1'.
@@ -344,7 +344,7 @@ stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handl
 
 block_item -> block_eoe stab_eoe :
                 {handle_literal(?exprs('$1'), '$1', [{format, block}]),
-                 build_stab(reverse('$2'))}.
+                 build_stab('$2')}.
 block_item -> block_eoe :
                 {handle_literal(?exprs('$1'), '$1', [{format, block}]),
                  {'__block__', [], []}}.
@@ -823,10 +823,13 @@ build_identifier({_, Location, Identifier}, Args) ->
 
 %% Fn
 
-build_fn(Fn, [{'->', _, [_, _]} | _] = Stab, End) ->
-  {fn, meta_from_token_with_end_line(Fn, End), build_stab(Stab)};
-build_fn(Fn, _Stab, _End) ->
-  throw(meta_from_token(Fn), "expected clauses to be defined with -> inside: ", "'fn'").
+build_fn(Fn, Stab, End) ->
+  case check_stab(Stab, none) of
+    stab ->
+      {fn, meta_from_token_with_end_line(Fn, End), collect_stab(Stab, [], [])};
+    block ->
+      throw(meta_from_token(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
+  end.
 
 %% Access
 
@@ -909,11 +912,17 @@ string_tokens_parse(Tokens) ->
 
 %% Keywords
 
-build_stab([{'->', Meta, [Left, Right]} | T]) ->
-  build_stab(Meta, T, Left, [Right], []);
+check_stab([{'->', _, [_, _]}], _) -> stab;
+check_stab([_], none) -> block;
+check_stab([_], Meta) -> throw_invalid_stab(Meta);
+check_stab([{'->', Meta, [_, _]} | T], _) -> check_stab(T, Meta);
+check_stab([_ | T], MaybeMeta) -> check_stab(T, MaybeMeta).
 
-build_stab(Other) ->
-  build_block(Other).
+build_stab(Stab) ->
+  case check_stab(Stab, none) of
+    block -> build_block(reverse(Stab));
+    stab -> collect_stab(Stab, [], [])
+  end.
 
 build_stab(Before, Stab, After) ->
   case build_stab(Stab) of
@@ -923,16 +932,15 @@ build_stab(Before, Stab, After) ->
       Other
   end.
 
-build_stab(Old, [{'->', New, [Left, Right]} | T], Marker, Temp, Acc) ->
-  H = {'->', Old, [Marker, build_block(reverse(Temp))]},
-  build_stab(New, T, Left, [Right], [H | Acc]);
+collect_stab([{'->', Meta, [Left, Right]} | T], Exprs, Stabs) ->
+  Stab = {'->', Meta, [Left, build_block([Right | Exprs])]},
+  collect_stab(T, [], [Stab | Stabs]);
 
-build_stab(Meta, [H | T], Marker, Temp, Acc) ->
-  build_stab(Meta, T, Marker, [H | Temp], Acc);
+collect_stab([H | T], Exprs, Stabs) ->
+  collect_stab(T, [H | Exprs], Stabs);
 
-build_stab(Meta, [], Marker, Temp, Acc) ->
-  H = {'->', Meta, [Marker, build_block(reverse(Temp))]},
-  reverse([H | Acc]).
+collect_stab([], [], Stabs) ->
+  Stabs.
 
 %% Every time the parser sees a (unquote_splicing())
 %% it assumes that a block is being spliced, wrapping
@@ -963,6 +971,11 @@ throw(Meta, Error, Token) ->
       false -> 0
     end,
   throw({error, {Line, ?MODULE, [Error, Token]}}).
+
+throw_invalid_stab(MetaStab) ->
+  throw(MetaStab,
+    "unexpected operator ->. If you want to define multiple clauses, the first expression must use ->. "
+    "Syntax error before: ", "'->'").
 
 throw_bad_atom(Token) ->
   throw(meta_from_token(Token), "atom cannot be followed by an alias. If the '.' was meant to be "
