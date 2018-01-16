@@ -22,11 +22,11 @@ defmodule Float do
   of squaring 0.1 does not give 0.01 neither the closest representable. Here is
   what happens in this case:
 
-  - The closest representable number to 0.1 is 0.1000000014
-  - The closest representable number to 0.01 is 0.0099999997
-  - Doing 0.1 * 0.1 should return 0.01, but because 0.1 is actually 0.1000000014,
-  the result is 0.010000000000000002, and because this is not the closest
-  representable number to 0.01, you'll get the wrong result for this operation
+    * The closest representable number to 0.1 is 0.1000000014
+    * The closest representable number to 0.01 is 0.0099999997
+    * Doing 0.1 * 0.1 should return 0.01, but because 0.1 is actually 0.1000000014,
+      the result is 0.010000000000000002, and because this is not the closest
+      representable number to 0.01, you'll get the wrong result for this operation
 
   There are also other known problems like flooring or rounding numbers. See
   `round/2` and `floor/2` for more details about them.
