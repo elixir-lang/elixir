@@ -3,6 +3,8 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   doctest Kernel
 
   defp empty_list(), do: []
@@ -857,8 +859,6 @@ defmodule KernelTest do
   end
 
   describe "use/2" do
-    import ExUnit.CaptureIO
-
     defmodule SampleA do
       defmacro __using__(opts) do
         prefix = Keyword.get(opts, :prefix, "")
@@ -937,6 +937,12 @@ defmodule KernelTest do
     end
 
     assert hd([1 | 2]) == 1
+  end
+
+  test "tee/2" do
+    assert capture_io(fn ->
+      assert tee("This is a tee!", &IO.inspect(String.length(&1))) == "This is a tee!"
+    end) == "14\n"
   end
 
   defp purge(module) do
