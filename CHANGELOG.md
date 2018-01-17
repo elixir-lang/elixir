@@ -29,8 +29,8 @@ This release also introduces two new attributes associated to function definitio
     @doc "Breaks a collection into chunks"
     @since "1.0.0"
     @deprecated "Use chunk_every/2 instead"
-    def chunk_every(collection, chunk_size) do
-      ...
+    def chunk(collection, chunk_size) do
+      chunk_every(collection, chunk_size)
     end
 
 The `mix xref` task was also updated to warn if your project calls deprecated code. So if a definition is marked as `@deprecated` and a module invokes it, a warning will be emitted during compilation. This effectively provides libraries and frameworks a mechanism to deprecate code without causing multiple warnings to be printed in runtime and without impacting performance.
