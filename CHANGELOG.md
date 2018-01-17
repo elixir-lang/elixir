@@ -123,49 +123,7 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
-## v1.6.0-rc.1 (2018-01-11)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Code] Render tuples and bitstrings as "flex" in the formatter so they attempt to fit the maximum amount of entries in the same line
-  * [Exception] Improve the printing of guards on blamed exceptions
-  * [List] Rearrange equals and inserts for shorter diff scripts in `List.myers_difference/2`
-  * [Kernel] Warn if heredoc is outdented compared to its closing quotes
-  * [Record] Allow `:macros` and `:includes` to be given to `Record.extract/2`
-
-#### ExUnit
-
-  * [ExUnit.Assertions] Perform inclusive checks in `assert_in_delta`
-
-#### IEx
-
-  * [IEx.CLI] Provide hints for developers when a bad host name is given to `--remsh`
-
-#### Logger
-
-  * [Logger] Add `:discard_threshold` to Logger to help with buffer overflow
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Inspect] Properly handle minus signal for non-decimal negative integers
-  * [Kernel] Allow `defguard` to call another `defguard` (previous RC only)
-  * [Kernel] Return right side expression value on variable struct matching (previous RC only)
-  * [Kernel] Do not leak variables during optimizations (previous RC only)
-  * [Kernel] Avoid badarg/badfun on long-lived functions defined during compilation (previous RC only)
-  * [Kernel] Fix precedence of `&` in regards to `=` (previous RC only)
-  * [String] Consider case ignorable characters when downcasing greek characters (previous RC only)
-
-#### Mix
-
-  * [mix clean] Fix error when cleaning compiled Erlang code (previous RC only)
-  * [mix deps.update] Ensure transitive new non-Hex dependencies are also fetched when a repo is updated
-  * [mix format] Raise if imported dependencies have not been checked out on `mix format` (previous RC only)
-
-## v1.6.0-rc.0 (2017-12-24)
+## v1.6.0 (2018-01-17)
 
 ### 1. Enhancements
 
@@ -180,6 +138,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [Code] Support column annotations in quoted expressions with `columns: true` in `Code.string_to_quoted/2`
   * [DynamicSupervisor] Add `DynamicSupervisor` designed to manage children that are added and removed dynamically
   * [Exception] Make `Exception.blame/3` extensible by adding an optional `blame/2` callback to exceptions
+  * [Exception] Improve the printing of guards on blamed exceptions
   * [Enumerable] Add `Enumerable.slice/1` and optimize many `Enum` operations with the new protocol. This allows data-structures with index-based random access to provide a non-linear implementation
   * [Inspect] Show UTF-8 BOM on inspected strings
   * [Inspect.Algebra] Add `:strict` and `:flex` breaks - this gives more control over the document fitting
@@ -190,10 +149,13 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [Kernel] Prefix variables with V when emitting Erlang code. This improves the integration with tools such as Erlang code formatters and the GUI debugger
   * [Kernel] Warn on the use of `length(x) == 0` in guards
   * [Kernel] Warn if `catch` comes before `rescue` in try
+  * [Kernel] Warn if heredoc is outdented compared to its closing quotes
   * [Kernel] Add `defguard/1` and `defguardp/1` to make it easier to build guard-safe macros
   * [Kernel.ParallelCompiler] Add `compile/2`, `compile_to_path/3` and `require/2` which provide detailed information about warnings and errors
   * [Kernel.SpecialForms] Support the `uniq: true` flag in `for` comprehensions
   * [Module] Introduce `@deprecated` and `@since` attributes
+  * [List] Rearrange equals and inserts for shorter diff scripts in `List.myers_difference/2`
+  * [Record] Allow `:macros` and `:includes` to be given to `Record.extract/2`
   * [Stream] Add `Stream.intersperse/2`
   * [String] Update to Unicode 10
   * [String] Allow passing empty string `match` to `String.replace/4`
@@ -203,15 +165,21 @@ Other improvements in Mix include better compiler diagnostics for editor integra
 
 #### ExUnit
 
+  * [ExUnit.Assertions] Perform inclusive checks in `assert_in_delta`
   * [ExUnit.Callbacks] Add `ExUnit.Callbacks.start_supervised!/2`
   * [ExUnit.Case] Generate a random seed per test based on the test suite seed
 
 #### IEx
 
   * [IEx.Autocomplete] Provide contextual autocompletion: `t Enum.` will autocomplete types, `b Enum` will autocomplete callbacks
+  * [IEx.CLI] Provide hints for developers when a bad host name is given to `--remsh`
   * [IEx.Helpers] Automatically include specs when showing documentation for functions/macros
   * [IEx.Helpers] Improve formatting of behaviours and typespecs by using the formatter
   * [IEx.Helpers] Allow pattern matching and guard expressions when on `IEx.break!`
+
+#### Logger
+
+  * [Logger] Add `:discard_threshold` to Logger to help with message queue overflow
 
 #### Mix
 
@@ -235,6 +203,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
 #### Elixir
 
   * [CLI] Support path with spaces as argument to elixir.bat
+  * [Inspect] Properly handle minus signal for non-decimal negative integers
   * [Integer] Do not raise on non-integer values in `is_odd`/`is_even`
   * [Kernel] Solve a precedence issue between `&` and `|`, such as `[&Foo.bar/1 | &Baz.bat/2]`
   * [Kernel] Do not load dynamic Elixir modules as `:in_memory` as this value is not officially supported by the code server. Instead, use an empty list, which is the same value used by Erlang.
@@ -251,6 +220,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [mix app.start] Improve the quality of reports if app fails to boot
   * [mix cmd] Allow `mix cmd` to be invoked multiple times without marking it as executed
   * [mix deps] Ensure optional dependencies in umbrella applications are loaded
+  * [mix deps.update] Ensure transitive new non-Hex dependencies are also fetched when a repo is updated
   * [mix xref] Take compile dependencies with higher priority than runtime ones when building a graph
   * [mix xref] Handle external files for xref callers and warnings
 
