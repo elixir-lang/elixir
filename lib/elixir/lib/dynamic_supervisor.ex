@@ -57,6 +57,63 @@ defmodule DynamicSupervisor do
 
   A supervisor is bound to the same name registration rules as a `GenServer`.
   Read more about these rules in the documentation for `GenServer`.
+
+  ## Migrating from Supervisor's :simple_one_for_one
+
+  In case you were using the deprecated `:simple_one_for_one` strategy from
+  the `Supervisor` module, you can migrate to the `DynamicSupervisor` in
+  few steps.
+
+  Imagine the given "old" code:
+
+      defmodule MySupervisor do
+        use Supervisor
+
+        def start_link(arg) do
+          Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
+        end
+
+        def start_child(foo, bar, baz) do
+          # This will start child by calling MyWorker.start_link(implicit_arg, foo, bar, baz)
+          Supervisor.start_child(__MODULE__, [foo, bar, baz])
+        end
+
+        def init(implicit_arg) do
+          children = [
+            worker(MyWorker, [implicit_arg])
+          ]
+
+          supervise(children, strategy: :simple_one_for_one)
+        end
+      end
+
+  It can be upgraded to the DynamicSupervisor like this:
+
+      defmodule MySupervisor do
+        use DynamicSupervisor
+
+        def start_link(arg) do
+          DynamicSupervisor.start_link(__MODULE__, arg, name: __MODULE__)
+        end
+
+        def start_child(foo, bar, baz) do
+          # This will start child by calling MyWorker.start_link(implicit_arg, foo, bar, baz)
+          spec = Supervisor.Spec.worker(MyWorker, [foo, bar, baz])
+          DynamicSupervisor.start_child(__MODULE__, spec)
+        end
+
+        def init(implicit_arg) do
+          DynamicSupervisor.init(
+            strategy: :one_for_one,
+            extra_arguments: [implicit_arg]
+          )
+        end
+      end
+
+  The difference is that the `DynamicSupervisor` expects the child specification
+  at the moment `start_child/2` is called, and no longer on the init callback.
+  If there are any implicit arguments given on initialization, such as `[implicit_arg]`,
+  it can be given in the `:extra_arguments` flag on `DynamicSupervisor.init/1`.
   """
 
   @behaviour GenServer
