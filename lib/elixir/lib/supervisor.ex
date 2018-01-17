@@ -446,7 +446,8 @@ defmodule Supervisor do
   has been replaced by the `DynamicSupervisor`. The `:simple_one_for_one`
   supervisor was similar to `:one_for_one` but suits better when dynamically
   attaching children. Many functions in this module behaved slightly
-  differently when this strategy is used.
+  differently when this strategy is used. See the `DynamicSupervisor` module
+  for more information and migration strategies.
 
   ## Name registration
 
