@@ -2,9 +2,9 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
 
-  Tuples are ordered collections of elements. Tuples can contain elements
-  of any type, and a tuple can contain elements of different types. Curly
-  braces can be used to create tuples:
+  Tuples are composite data types with a fixed number of elements. Tuples
+  can contain elements of any type, and a tuple can contain elements of
+  different types. Curly braces can be used to create tuples:
 
       iex> {}
       {}
