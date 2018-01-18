@@ -1,8 +1,7 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_erl_var).
 -export([translate/4, build/2, assign/4,
-  load_binding/2, dump_binding/2, mergev/2, mergec/2,
-  warn_unsafe_var/4, format_error/1
+  load_binding/2, dump_binding/2, mergev/2, mergec/2
 ]).
 -include("elixir.hrl").
 
@@ -32,7 +31,6 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
           assign(Meta, Name, Kind, S)
       end;
     _  when Current /= nil ->
-      warn_unsafe_var(Meta, S#elixir_erl.file, Name, Safe),
       {{var, ?ann(Meta), Current}, S}
   end.
 
@@ -74,13 +72,6 @@ var_name_to_list(Var) ->
     List -> [$V | List]
   end.
 
-warn_unsafe_var(Meta, File, Name, Safe) ->
-  case (not Safe) andalso (lists:keyfind(generated, 1, Meta) /= {generated, true}) of
-    true ->
-      elixir_errors:form_warn(Meta, File, ?MODULE, {unsafe_var, Name});
-    false ->
-      ok
-  end.
 
 %% SCOPE MERGING
 
@@ -152,21 +143,3 @@ dump_binding(Binding, #elixir_erl{vars=Vars}) ->
     (_, _, Acc) ->
       Acc
   end, [], Vars).
-
-%% Errors
-
-format_error({unsafe_var, Name}) ->
-  io_lib:format("the variable \"~ts\" is unsafe as it has been set inside "
-                "one of: case, cond, receive, if, and, or, &&, ||. "
-                "Please explicitly return the variable value instead. For example:\n\n"
-                "    case integer do\n"
-                "      1 -> atom = :one\n"
-                "      2 -> atom = :two\n"
-                "    end\n\n"
-                "should be written as\n\n"
-                "    atom =\n"
-                "      case integer do\n"
-                "        1 -> :one\n"
-                "        2 -> :two\n"
-                "      end\n\n"
-                "Unsafe variable found at:", [Name]).
