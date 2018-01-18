@@ -1,6 +1,8 @@
 # Guards
 
-Guards are a way to augment pattern matching with more complex checks; they are allowed in a predefined set of constructs where pattern matching is allowed.
+Guards are a way to augment pattern matching with more complex checks. They are allowed in a predefined set of constructs where pattern matching is allowed.
+
+Not all expressions are allowed in guard clauses, but only a handful of them. This is a deliberate choice. This way, Elixir (and Erlang) can make sure that nothing bad happens while executing guards and no mutations happen anywhere. It also allows the compiler to optimize the code related to guards efficiently.
 
 ## List of allowed expressions
 
@@ -100,6 +102,9 @@ In the example above, we show how guards can be used in function clauses. There 
   end
   ```
 
+  * custom guards can also be defined with `Kernel.defguard/1` and `Kernel.defguardp/1`.
+    A custom guard is always defined based on existing guards.
+
 Other constructs are `for`, `with`, `try`/`rescue`/`catch`/`else`/, and the `match?/2` macro in the `Kernel` module.
 
 ## Failing guards
@@ -124,10 +129,6 @@ iex> case "hello" do
 ```
 
 In many cases, we can take advantage of this. In the code above, we used `length/1` to both check that the given thing is a list *and* check some properties of its length (instead of using `is_list(something) and length(something) > 0`).
-
-## Expressions in guard clauses
-
-Not all expressions are allowed in guard clauses, but only a handful of them. This is a deliberate choice: only a predefined set of side-effect-free functions are allowed. This way, Elixir (and Erlang) can make sure that nothing bad happens while executing guards and no mutations happen anywhere. This behaviour is also coherent with pattern match, which is a naturally a side-effect-free operation. Finally, keeping expressions allowed in clauses to a close set of predefined ones allows the compiler to optimize the code related to choosing the right clause.
 
 ## Defining custom guard expressions
 
@@ -162,6 +163,14 @@ import MyInteger, only: [is_even: 1]
 
 def my_function(number) when is_even(number) do
   # do stuff
+end
+```
+
+While it's possible to create custom guards with macros, it's recommended to define them using `defguard` and `defguardp` which perform additional compile-time checks. Here's an example:
+
+```elixir
+defmodule MyInteger do
+  defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
 end
 ```
 
