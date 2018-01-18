@@ -2738,7 +2738,7 @@ defmodule Enum do
 
   def zip([]), do: []
 
-  def zip(%Stream{} = enumerables), do: do_zip(enumerables)
+  def zip(%{__struct__: Stream} = enumerables), do: do_zip(enumerables)
 
   def zip(enumerables) when is_list(enumerables), do: do_zip(enumerables)
 
