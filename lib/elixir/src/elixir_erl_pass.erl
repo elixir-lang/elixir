@@ -174,10 +174,9 @@ translate({with, Meta, [_ | _] = Args}, S) ->
 
 %% Variables
 
-translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
+translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_context(VarMeta, Kind)},
   {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_erl.backup_vars),
-  elixir_erl_var:warn_unsafe_var(VarMeta, File, Name, Safe),
 
   PAnn = ?ann(?generated(Meta)),
   PVar = {var, PAnn, Value},

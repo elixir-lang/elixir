@@ -26,8 +26,8 @@ linify({Line, Env}) ->
 linify(#{} = Env) ->
   Env.
 
-env_to_scope(#{file := File, context := Context}) ->
-  #elixir_erl{file=File, context=Context}.
+env_to_scope(#{context := Context}) ->
+  #elixir_erl{context=Context}.
 
 env_to_scope_with_vars(Env, Vars) ->
   Map = maps:from_list(Vars),
