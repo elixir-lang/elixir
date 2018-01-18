@@ -1,8 +1,7 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_erl_var).
 -export([translate/4, build/2, assign/4,
-  load_binding/2, dump_binding/2,
-  mergev/2, mergec/2, merge_vars/2, merge_opt_vars/2,
+  load_binding/2, dump_binding/2, mergev/2, mergec/2,
   warn_unsafe_var/4, format_error/1
 ]).
 -include("elixir.hrl").
@@ -53,13 +52,7 @@ assign(Meta, Name, Kind, S) ->
         build(Name, S)
     end,
 
-  FS = NS#elixir_erl{
-    vars=maps:put(Tuple, {NewVar, Counter, true}, S#elixir_erl.vars),
-    export_vars=case S#elixir_erl.export_vars of
-      nil -> nil;
-      EV  -> maps:put(Tuple, {NewVar, Counter, true}, EV)
-    end
-  },
+  FS = NS#elixir_erl{vars=maps:put(Tuple, {NewVar, Counter, true}, S#elixir_erl.vars)},
 
   {{var, ?ann(Meta), NewVar}, FS}.
 
@@ -95,10 +88,7 @@ warn_unsafe_var(Meta, File, Name, Safe) ->
 %% the second with their variables merged.
 
 mergev(S1, S2) ->
-  S2#elixir_erl{
-    vars=merge_vars(S1#elixir_erl.vars, S2#elixir_erl.vars),
-    export_vars=merge_opt_vars(S1#elixir_erl.export_vars, S2#elixir_erl.export_vars)
- }.
+  S2#elixir_erl{vars=merge_vars(S1#elixir_erl.vars, S2#elixir_erl.vars)}.
 
 %% Receives two scopes and return the first scope with
 %% counters and flags from the later.
@@ -109,30 +99,19 @@ mergec(S1, S2) ->
     caller=S2#elixir_erl.caller
  }.
 
-%% Mergers.
-
 merge_vars(V, V) -> V;
 merge_vars(V1, V2) ->
-  merge_maps(fun var_merger/3, V1, V2).
-
-merge_opt_vars(nil, _C2) -> nil;
-merge_opt_vars(_C1, nil) -> nil;
-merge_opt_vars(C, C)     -> C;
-merge_opt_vars(C1, C2)   ->
-  merge_maps(fun var_merger/3, C1, C2).
-
-var_merger(_Var, {_, V1, _} = K1, {_, V2, _}) when V1 > V2 -> K1;
-var_merger(_Var, _K1, K2) -> K2.
-
-merge_maps(Fun, Map1, Map2) ->
-  maps:fold(fun(K, V2, Acc) ->
+  maps:fold(fun(K, M2, Acc) ->
     V =
-      case maps:find(K, Acc) of
-        {ok, V1} -> Fun(K, V1, V2);
-        error -> V2
+      case Acc of
+        #{K := M1} -> var_merge(M1, M2);
+        _ -> M2
       end,
     maps:put(K, V, Acc)
-  end, Map1, Map2).
+  end, V1, V2).
+
+var_merge({_, V1, _} = K1, {_, V2, _}) when V1 > V2 -> K1;
+var_merge(_K1, K2) -> K2.
 
 %% BINDINGS
 
