@@ -197,6 +197,7 @@ defmodule Macro do
       [{:var1, [], __MODULE__}, {:var2, [], __MODULE__}]
 
   """
+  @since "1.5.0"
   def generate_arguments(0, _), do: []
 
   def generate_arguments(amount, context)

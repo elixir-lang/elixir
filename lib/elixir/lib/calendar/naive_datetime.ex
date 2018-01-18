@@ -721,6 +721,7 @@ defmodule NaiveDateTime do
                            hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
 
   """
+  @since "1.5.0"
   @spec convert(Calendar.naive_datetime(), Calendar.calendar()) ::
           {:ok, t} | {:error, :incompatible_calendars}
 
@@ -782,6 +783,7 @@ defmodule NaiveDateTime do
                      hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
+  @since "1.5.0"
   @spec convert!(Calendar.naive_datetime(), Calendar.calendar()) :: t
   def convert!(naive_datetime, calendar) do
     case convert(naive_datetime, calendar) do

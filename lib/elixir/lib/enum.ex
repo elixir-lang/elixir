@@ -379,6 +379,7 @@ defmodule Enum do
   @doc """
   Shortcut to `chunk_every(enumerable, count, count)`.
   """
+  @since "1.5.0"
   @spec chunk_every(t, pos_integer) :: [list]
   def chunk_every(enumerable, count), do: chunk_every(enumerable, count, count, [])
 
@@ -418,6 +419,7 @@ defmodule Enum do
       [[1, 2], [4, 5]]
 
   """
+  @since "1.5.0"
   @spec chunk_every(t, pos_integer, pos_integer, t | :discard) :: [list]
   def chunk_every(enumerable, count, step, leftover \\ [])
       when is_integer(count) and count > 0 and is_integer(step) and step > 0 do
@@ -454,6 +456,7 @@ defmodule Enum do
       [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
 
   """
+  @since "1.5.0"
   @spec chunk_while(
           t,
           acc,

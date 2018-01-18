@@ -387,6 +387,7 @@ defmodule Integer do
       0
 
   """
+  @since "1.5.0"
   @spec gcd(0, 0) :: 0
   @spec gcd(integer, integer) :: pos_integer
   def gcd(integer1, integer2) when is_integer(integer1) and is_integer(integer2) do
