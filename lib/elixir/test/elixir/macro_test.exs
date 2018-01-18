@@ -412,6 +412,45 @@ defmodule MacroTest do
       assert Macro.to_string(quoted) <> "\n" == expected
     end
 
+    test "try" do
+      quoted =
+        quote do
+          try do
+            foo
+          catch
+            _, _ ->
+              2
+          rescue
+            ArgumentError ->
+              1
+          after
+            4
+          else
+            _ ->
+              3
+          end
+        end
+
+      expected = """
+      try() do
+        foo
+      rescue
+        ArgumentError ->
+          1
+      catch
+        _, _ ->
+          2
+      else
+        _ ->
+          3
+      after
+        4
+      end
+      """
+
+      assert Macro.to_string(quoted) <> "\n" == expected
+    end
+
     test "fn" do
       assert Macro.to_string(quote(do: fn -> 1 + 2 end)) == "fn -> 1 + 2 end"
       assert Macro.to_string(quote(do: fn x -> x + 1 end)) == "fn x -> x + 1 end"
