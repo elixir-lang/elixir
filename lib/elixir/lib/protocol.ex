@@ -717,7 +717,7 @@ defmodule Protocol do
     assert_impl!(protocol, Any, extra)
 
     # Clean up variables from eval context
-    env = %{env | vars: [], export_vars: nil}
+    env = :elixir_env.reset_vars(env)
     args = [for, struct, opts]
     impl = Module.concat(protocol, Any)
 

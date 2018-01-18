@@ -21,9 +21,9 @@ def({Meta, Args, Guards, Body}, E) ->
 
 clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, E) when is_function(Fun, 3) ->
   clause(Meta, Kind, fun(X, Acc) -> Fun(ClauseMeta, X, Acc) end, Clause, E);
-clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, #{export_vars := ExportVars} = E) ->
+clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, E) ->
   {ELeft, EL}  = Fun(Left, E),
-  {ERight, ER} = elixir_expand:expand(Right, EL#{export_vars := ExportVars}),
+  {ERight, ER} = elixir_expand:expand(Right, EL),
   {{'->', Meta, [ELeft, ERight]}, ER};
 clause(Meta, Kind, _Fun, _, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, Kind}).
@@ -69,14 +69,13 @@ warn_zero_length_guard(_, _) ->
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
     form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'case', Key})
   end),
-  EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_case(Meta, X, Acc, EE) end, [], Opts),
-  {EClauses, elixir_env:mergev(EVars, E)}.
+  EClauses = lists:map(fun(X) -> expand_case(Meta, X, E) end, Opts),
+  {EClauses, E}.
 
-expand_case(Meta, {'do', _} = Do, Acc, E) ->
+expand_case(Meta, {'do', _} = Do, E) ->
   Fun = expand_one(Meta, 'case', 'do', fun head/2),
-  expand_with_export(Meta, 'case', Fun, Do, Acc, E);
-expand_case(Meta, {Key, _}, _Acc, E) ->
+  expand_clauses(Meta, 'case', Fun, Do, E);
+expand_case(Meta, {Key, _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'case', Key}).
 
 %% Cond
@@ -89,14 +88,13 @@ expand_case(Meta, {Key, _}, _Acc, E) ->
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
     form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'cond', Key})
   end),
-  EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_cond(Meta, X, Acc, EE) end, [], Opts),
-  {EClauses, elixir_env:mergev(EVars, E)}.
+  EClauses = lists:map(fun(X) -> expand_cond(Meta, X, E) end, Opts),
+  {EClauses, E}.
 
-expand_cond(Meta, {'do', _} = Do, Acc, E) ->
+expand_cond(Meta, {'do', _} = Do, E) ->
   Fun = expand_one(Meta, 'cond', 'do', fun elixir_expand:expand_args/2),
-  expand_with_export(Meta, 'cond', Fun, Do, Acc, E);
-expand_cond(Meta, {Key, _}, _Acc, E) ->
+  expand_clauses(Meta, 'cond', Fun, Do, E);
+expand_cond(Meta, {Key, _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'cond', Key}).
 
 %% Receive
@@ -111,21 +109,20 @@ expand_cond(Meta, {Key, _}, _Acc, E) ->
   end,
   ok = assert_at_most_once('do', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
-  EE = E#{export_vars := []},
-  {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> expand_receive(Meta, X, Acc, EE) end, [], Opts),
-  {EClauses, elixir_env:mergev(EVars, E)}.
+  EClauses = lists:map(fun(X) -> expand_receive(Meta, X, E) end, Opts),
+  {EClauses, E}.
 
-expand_receive(_Meta, {'do', {'__block__', _, []}} = Do, Acc, _E) ->
-  {Do, Acc};
-expand_receive(Meta, {'do', _} = Do, Acc, E) ->
+expand_receive(_Meta, {'do', {'__block__', _, []}} = Do, _E) ->
+  Do;
+expand_receive(Meta, {'do', _} = Do, E) ->
   Fun = expand_one(Meta, 'receive', 'do', fun head/2),
-  expand_with_export(Meta, 'receive', Fun, Do, Acc, E);
-expand_receive(Meta, {'after', [_]} = After, Acc, E) ->
+  expand_clauses(Meta, 'receive', Fun, Do, E);
+expand_receive(Meta, {'after', [_]} = After, E) ->
   Fun = expand_one(Meta, 'receive', 'after', fun elixir_expand:expand_args/2),
-  expand_with_export(Meta, 'receive', Fun, After, Acc, E);
-expand_receive(Meta, {'after', _}, _Acc, E) ->
+  expand_clauses(Meta, 'receive', Fun, After, E);
+expand_receive(Meta, {'after', _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, multiple_after_clauses_in_receive);
-expand_receive(Meta, {Key, _}, _Acc, E) ->
+expand_receive(Meta, {Key, _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'receive', Key}).
 
 %% With
@@ -182,7 +179,7 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
           elixir_errors:warn(?line(Meta), ?key(E, file), Message)
       end,
       Fun = expand_one(Meta, 'with', 'else', fun head/2),
-      EPair = expand_without_export(Meta, 'with', Fun, Pair, E),
+      EPair = expand_clauses(Meta, 'with', Fun, Pair, E),
       {[EPair], RestOpts};
     false ->
       {[], Opts}
@@ -216,11 +213,11 @@ expand_try(_Meta, {'after', Expr}, E) ->
   {'after', EExpr};
 expand_try(Meta, {'else', _} = Else, E) ->
   Fun = expand_one(Meta, 'try', 'else', fun head/2),
-  expand_without_export(Meta, 'try', Fun, Else, E);
+  expand_clauses(Meta, 'try', Fun, Else, E);
 expand_try(Meta, {'catch', _} = Catch, E) ->
-  expand_without_export(Meta, 'try', fun expand_catch/3, Catch, E);
+  expand_clauses(Meta, 'try', fun expand_catch/3, Catch, E);
 expand_try(Meta, {'rescue', _} = Rescue, E) ->
-  expand_without_export(Meta, 'try', fun expand_rescue/3, Rescue, E);
+  expand_clauses(Meta, 'try', fun expand_rescue/3, Rescue, E);
 expand_try(Meta, {Key, _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'try', Key}).
 
@@ -286,33 +283,22 @@ expand_one(Meta, Kind, Key, Fun) ->
       form_error(Meta, ?key(E, file), ?MODULE, {wrong_number_of_args_for_clause, "one arg", Kind, Key})
   end.
 
-%% Expands all -> pairs in a given key keeping the overall vars.
-expand_with_export(Meta, Kind, Fun, {Key, Clauses}, Acc, E) when is_list(Clauses) ->
-  Transformer = fun(Clause, Vars) ->
-    {EClause, EC} = clause(Meta, {Kind, Key}, Fun, Clause, E),
-    {EClause, elixir_env:merge_vars(Vars, ?key(EC, export_vars))}
-  end,
-  {EClauses, EVars} = lists:mapfoldl(Transformer, Acc, Clauses),
-  {{Key, EClauses}, EVars};
-expand_with_export(Meta, Kind, _Fun, {Key, _}, _Acc, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
-
 %% Expands all -> pairs in a given key but do not keep the overall vars.
-expand_without_export(Meta, Kind, Fun, Clauses, E) ->
+expand_clauses(Meta, Kind, Fun, Clauses, E) ->
   NewKind =
     case lists:keyfind(origin, 1, Meta) of
       {origin, Origin} -> Origin;
       _ -> Kind
     end,
-  expand_without_export_origin(Meta, NewKind, Fun, Clauses, E).
+  expand_clauses_origin(Meta, NewKind, Fun, Clauses, E).
 
-expand_without_export_origin(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) ->
+expand_clauses_origin(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
     {EClause, _} = clause(Meta, {Kind, Key}, Fun, Clause, E),
     EClause
   end,
   {Key, lists:map(Transformer, Clauses)};
-expand_without_export_origin(Meta, Kind, _Fun, {Key, _}, E) ->
+expand_clauses_origin(Meta, Kind, _Fun, {Key, _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
 
 assert_at_most_once(_Kind, [], _Count, _Fun) -> ok;
