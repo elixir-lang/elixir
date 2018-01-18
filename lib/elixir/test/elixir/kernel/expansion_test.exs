@@ -986,7 +986,7 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
-    test "leaks vars" do
+    test "does not leak vars" do
       before_expansion =
         quote do
           cond do
@@ -1004,7 +1004,7 @@ defmodule Kernel.ExpansionTest do
             2 -> y = 2
           end
 
-          :erlang.+(x, y)
+          :erlang.+(x(), y())
         end
 
       assert expand(before_expansion) == after_expansion
@@ -1155,7 +1155,7 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
-    test "leaks vars" do
+    test "does not leak vars" do
       before_expansion =
         quote do
           case w do
@@ -1173,7 +1173,7 @@ defmodule Kernel.ExpansionTest do
             y -> y = y
           end
 
-          :erlang.+(x, y)
+          :erlang.+(x(), y())
         end
 
       assert expand(before_expansion) == after_expansion
@@ -1322,7 +1322,7 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
-    test "leaks vars" do
+    test "does not leak vars" do
       before_expansion =
         quote do
           receive do
@@ -1340,13 +1340,13 @@ defmodule Kernel.ExpansionTest do
             y -> y = y
           end
 
-          :erlang.+(x, y)
+          :erlang.+(x(), y())
         end
 
       assert expand(before_expansion) == after_expansion
     end
 
-    test "leaks vars on after" do
+    test "does not leak vars on after" do
       before_expansion =
         quote do
           receive do
@@ -1370,7 +1370,7 @@ defmodule Kernel.ExpansionTest do
               w = y()
           end
 
-          :erlang.+(x, w)
+          :erlang.+(x(), w())
         end
 
       assert expand(before_expansion) == after_expansion

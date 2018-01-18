@@ -48,71 +48,87 @@ defmodule Kernel.WarningTest do
     message = "variable \"x\" is unsafe"
 
     capture_err(fn ->
-      Code.eval_string("""
-      case false do
-        true -> x = 1
-        _ -> 1
+      assert_raise CompileError, ~r/undefined function x/, fn ->
+        Code.eval_string("""
+        case false do
+          true -> x = 1
+          _ -> 1
+        end
+        x
+        """)
       end
-      x
-      """)
     end) =~ message
 
     capture_err(fn ->
-      Code.eval_string("""
-      false and (x = 1)
-      x
-      """)
-    end) =~ message
-
-    capture_err(fn ->
-      Code.eval_string("""
-      true or (x = 1)
-      x
-      """)
-    end) =~ message
-
-    capture_err(fn ->
-      Code.eval_string("""
-      if false do
-        x = 1
+      assert_raise CompileError, ~r/undefined function x/, fn ->
+        Code.eval_string("""
+        false and (x = 1)
+        x
+        """)
       end
-      x
-      """)
     end) =~ message
 
     capture_err(fn ->
-      Code.eval_string("""
-      cond do
-        false -> x = 1
-        true -> 1
+      assert_raise CompileError, ~r/undefined function x/, fn ->
+        Code.eval_string("""
+        true or (x = 1)
+        x
+        """)
       end
-      x
-      """)
     end) =~ message
 
     capture_err(fn ->
-      Code.eval_string("""
-      receive do
-        :foo -> x = 1
-      after
-        0 -> 1
+      assert_raise CompileError, ~r/undefined function x/, fn ->
+        Code.eval_string("""
+        if false do
+          x = 1
+        end
+        x
+        """)
       end
-      x
-      """)
     end) =~ message
 
     capture_err(fn ->
-      Code.eval_string("""
-      false && (x = 1)
-      x
-      """)
+      assert_raise CompileError, ~r/undefined function x/, fn ->
+        Code.eval_string("""
+        cond do
+          false -> x = 1
+          true -> 1
+        end
+        x
+        """)
+      end
     end) =~ message
 
     capture_err(fn ->
-      Code.eval_string("""
-      true || (x = 1)
-      x
-      """)
+      assert_raise CompileError, ~r/undefined function x/, fn ->
+        Code.eval_string("""
+        receive do
+          :foo -> x = 1
+        after
+          0 -> 1
+        end
+        x
+        """)
+      end
+    end) =~ message
+
+    capture_err(fn ->
+      assert_raise CompileError, ~r/undefined function x/, fn ->
+        Code.eval_string("""
+        false && (x = 1)
+        x
+        """)
+      end
+    end) =~ message
+
+    capture_err(fn ->
+      assert_raise CompileError, ~r/undefined function x/, fn ->
+        Code.eval_string("""
+        true || (x = 1)
+        x
+        """)
+      end
     end) =~ message
   end
 

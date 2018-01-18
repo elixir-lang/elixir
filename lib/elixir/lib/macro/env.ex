@@ -42,8 +42,6 @@ defmodule Macro.Env do
 
   The following fields are private and must not be accessed or relied on:
 
-    * `export_vars` - a list keeping all variables to be exported in a
-      construct (may be `nil`)
     * `match_vars` - controls how "new" variables are handled. Inside a
       match it is a list with all variables in a match. Outside of a match
       is either `:warn` or `:apply`
@@ -66,7 +64,6 @@ defmodule Macro.Env do
   @type lexical_tracker :: pid | nil
   @type local :: atom | nil
 
-  @opaque export_vars :: vars | nil
   @opaque match_vars :: vars | :warn | :apply
   @opaque prematch_vars :: vars | nil
 
@@ -84,7 +81,6 @@ defmodule Macro.Env do
           macro_aliases: aliases,
           context_modules: context_modules,
           vars: vars,
-          export_vars: export_vars,
           match_vars: match_vars,
           prematch_vars: prematch_vars,
           lexical_tracker: lexical_tracker
@@ -106,7 +102,6 @@ defmodule Macro.Env do
       context_modules: [],
       vars: [],
       lexical_tracker: nil,
-      export_vars: nil,
       match_vars: :warn,
       prematch_vars: nil
     }

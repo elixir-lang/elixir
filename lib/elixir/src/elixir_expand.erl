@@ -232,8 +232,7 @@ expand({'cond', Meta, [Opts]}, E) ->
 
 expand({'case', Meta, [Expr, Options]}, E) ->
   assert_no_match_or_guard_scope(Meta, "case", E),
-  ShouldExportVars = proplists:get_value(export_vars, Meta, true),
-  expand_case(ShouldExportVars, Meta, Expr, Options, E);
+  expand_case(Meta, Expr, Options, E);
 
 expand({'receive', Meta, [Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, "receive", E),
@@ -333,16 +332,10 @@ expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, ?key(E, file), ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  %% TODO: Merge match_vars and prematch_vars once export_vars is removed.
-  #{vars := Vars, match_vars := Match, export_vars := Export} = E,
+  %% TODO: Merge match_vars and prematch_vars.
+  #{vars := Vars, match_vars := Match} = E,
   Pair = {Name, var_context(Meta, Kind)},
   NewVars = ordsets:add_element(Pair, Vars),
-
-  NewExport =
-    case (Export /= nil) of
-      true  -> ordsets:add_element(Pair, Export);
-      false -> Export
-    end,
 
   NewMatch =
     case lists:member(Pair, Match) of
@@ -350,7 +343,7 @@ expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is
       false -> [Pair | Match]
     end,
 
-  {Var, E#{vars := NewVars, match_vars := NewMatch, export_vars := NewExport}};
+  {Var, E#{vars := NewVars, match_vars := NewMatch}};
 expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_atom(Kind) ->
   case lists:member({Name, var_context(Meta, Kind)}, Vars) of
     true ->
@@ -558,7 +551,7 @@ var_context(Meta, Kind) ->
 
 %% Case
 
-expand_case(true, Meta, Expr, Opts, E) ->
+expand_case(Meta, Expr, Opts, E) ->
   {EExpr, EE} = expand(Expr, E),
 
   ROpts =
@@ -574,10 +567,7 @@ expand_case(true, Meta, Expr, Opts, E) ->
     end,
 
   {EOpts, EO} = elixir_clauses:'case'(Meta, ROpts, EE),
-  {{'case', Meta, [EExpr, EOpts]}, EO};
-expand_case(false, Meta, Expr, Opts, E) ->
-  {Case, _} = expand_case(true, Meta, Expr, Opts, E),
-  {Case, E}.
+  {{'case', Meta, [EExpr, EOpts]}, EO}.
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
