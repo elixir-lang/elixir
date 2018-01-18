@@ -11,8 +11,7 @@
   vars=#{},                %% a map of defined variables and their alias
   backup_vars=nil,         %% a copy of vars to be used on ^var
   extra_guards=[],         %% extra guards from args expansion
-  counter=#{},             %% a map counting the variables defined
-  file=(<<"nofile">>)      %% the current scope filename
+  counter=#{}              %% a map counting the variables defined
 }).
 
 -record(elixir_quote, {
