@@ -83,6 +83,8 @@ In the example above, we show how guards can be used in function clauses. There 
   def foo(term) when is_float(term), do: round(term)
   ```
 
+  * custom guards (`defguard`, `defguardp`), more on this in next sections
+
   * `case` expressions:
 
   ```elixir
@@ -164,6 +166,14 @@ import MyInteger, only: [is_even: 1]
 
 def my_function(number) when is_even(number) do
   # do stuff
+end
+```
+
+While it's possible to create custom guards with macros, it's recommended to define them using `defguard` and `defguardp` which perform additional compile-time checks. Here's an example:
+
+```elixir
+defmodule MyInteger do
+  defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
 end
 ```
 
