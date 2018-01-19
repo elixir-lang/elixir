@@ -1308,7 +1308,7 @@ defmodule Module do
 
         not Code.ensure_compiled?(behaviour) ->
           message =
-            "module #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
+            "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
 
           unless standard_behaviour?(behaviour) do
             :elixir_errors.warn(env.line, env.file, message)
