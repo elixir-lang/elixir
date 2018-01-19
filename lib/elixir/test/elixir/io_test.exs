@@ -184,5 +184,9 @@ defmodule IOTest do
     assert capture_io(fn -> IO.inspect(1) end) == "1\n"
     assert capture_io(fn -> IO.inspect(1, label: "foo") end) == "foo: 1\n"
     assert capture_io(fn -> IO.inspect(1, label: :foo) end) == "foo: 1\n"
+
+    assert capture_io(fn ->
+      assert IO.inspect([], apply: &length/1) == []
+    end) == "0\n"
   end
 end
