@@ -8,14 +8,15 @@ Not all expressions are allowed in guard clauses, but only a handful of them. Th
 
 For reference, the following is a comprehensive list of all expressions allowed in guards:
 
-  * comparison operators (`==`, `!=`, `===`, `!==`, `>`, `>=`, `<`, `<=`)
-  * strictly boolean operators (`and`, `or`, `not`) 
-    - __NOTE__: `&&`, `||`, and `!` sibling operators are not allowed as they're not 
+  * comparison operators ([`==`](`Kernel.==/2`), [`!=`](`Kernel.!=/2`), [`===`](`Kernel.===/2`), [`!==`](`Kernel.!==/2`),
+    [`>`](`Kernel.>/2`), [`>=`](`Kernel.>=/2`), [`<`](`Kernel.</2`), [`<=`](`Kernel.<=/2`))
+  * strictly boolean operators ([`and`](`Kernel.and/2`), [`or`](`Kernel.or/2`), [`not`](`Kernel.not/1`))
+    - __NOTE__: [`&&`](`Kernel.&&/2`), [`||`](`Kernel.||/2`), and [`!`](`Kernel.!/1`) sibling operators are not allowed as they're not
     *strictly* boolean - meaning they don't require both sides to be booleans
-  * arithmetic binary operators (`+`, `-`, `*`, `/`)
-  * arithmetic unary operators (`+`, `-`)
-  * binary concatenation operator (`<>`)
-  * `in` and `not in` operators (as long as the right-hand side is a list or a range)
+  * arithmetic binary operators ([`+`](`Kernel.+/2`), [`-`](`Kernel.-/2`), [`*`](`Kernel.*/2`), [`/`](`Kernel.//2`))
+  * arithmetic unary operators ([`+`](`Kernel.+/1`), [`-`](`Kernel.-/1`))
+  * binary concatenation operator ([`<>`](`Kernel.<>/2`))
+  * [`in`](`Kernel.in/2`) and [`not in`](`Kernel.in/2`) operators (as long as the right-hand side is a list or a range)
   * the following "type-check" functions (all documented in the `Kernel` module):
     * `is_atom/1`
     * `is_binary/1`
@@ -52,12 +53,12 @@ For reference, the following is a comprehensive list of all expressions allowed 
     * `trunc/1`
     * `tuple_size/1`
   * the following handful of Erlang bitwise operations, if imported from the `Bitwise` module:
-    * `band/2` or the `&&&` operator
-    * `bor/2` or the `|||` operator
-    * `bnot/1` or the `~~~` operator
-    * `bsl/1` or the `<<<` operator
-    * `bsr/1` or the `>>>` operator
-    * `bxor/2` or the `^^^` operator
+    * [`band/2`](`Bitwise.band/2`) or the [`&&&`](`Bitwise.&&&/2`) operator
+    * [`bor/2`](`Bitwise.bor/2`) or the [`|||`](`Bitwise.|||/2`) operator
+    * [`bnot/1`](`Bitwise.bnot/1`) or the [`~~~`](`Bitwise.~~~/1`) operator
+    * [`bsl/2`](`Bitwise.bsl/2`) or the [`<<<`](`Bitwise.<<</2`) operator
+    * [`bsr/2`](`Bitwise.bsr/2`) or the [`>>>`](`Bitwise.>>>/2`) operator
+    * [`bxor/2`](`Bitwise.bxor/2`) or the [`^^^`](`Bitwise.^^^/2`) operator
 
 Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. See the section "Defining custom guard expressions" below.
 
@@ -85,7 +86,7 @@ In the example above, we show how guards can be used in function clauses. There 
   def foo(term) when is_float(term), do: round(term)
   ```
 
-  * `case` expressions:
+  * [`case`](`Kernel.SpecialForms.case/2`) expressions:
 
   ```elixir
   case x do
@@ -95,7 +96,7 @@ In the example above, we show how guards can be used in function clauses. There 
   end
   ```
 
-  * anonymous functions (`fn`s):
+  * anonymous functions ([`fn`](`Kernel.SpecialForms.fn/1`)s):
 
   ```elixir
   larger_than_two? = fn
@@ -107,7 +108,7 @@ In the example above, we show how guards can be used in function clauses. There 
   * custom guards can also be defined with `Kernel.defguard/1` and `Kernel.defguardp/1`.
     A custom guard is always defined based on existing guards.
 
-Other constructs are `for`, `with`, `try`/`rescue`/`catch`/`else`/, and the `match?/2` macro in the `Kernel` module.
+Other constructs are [`for`](`Kernel.SpecialForms.for/1`), [`with`](`Kernel.SpecialForms.with/1`), [`try/rescue/catch/else`](`Kernel.SpecialForms.try/1`), and the `Kernel.match?/2`.
 
 ## Failing guards
 
