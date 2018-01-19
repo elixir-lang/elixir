@@ -514,6 +514,7 @@ defmodule System do
       System.stop(1)
 
   """
+  @since "1.5.0"
   @spec stop(non_neg_integer | binary) :: no_return
   def stop(status \\ 0)
 

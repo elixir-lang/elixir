@@ -546,6 +546,7 @@ defmodule IEx do
   @doc """
   Macro-based shortcut for `IEx.break!/4`.
   """
+  @since "1.5.0"
   defmacro break!(ast, stops \\ 1) do
     quote do
       IEx.__break__!(unquote(Macro.escape(ast)), unquote(Macro.escape(stops)), __ENV__)
@@ -724,6 +725,7 @@ defmodule IEx do
       iex -S mix test path/to/file:line --trace
 
   """
+  @since "1.5.0"
   def break!(module, function, arity, stops \\ 1) when is_integer(arity) do
     IEx.Pry.break!(module, function, arity, quote(do: _), stops)
   end

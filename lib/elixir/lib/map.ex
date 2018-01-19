@@ -312,6 +312,7 @@ defmodule Map do
 
   Inlined by the compiler.
   """
+  @since "1.5.0"
   @spec replace!(map, key, value) :: map
   def replace!(map, key, value) do
     :maps.update(key, value, map)

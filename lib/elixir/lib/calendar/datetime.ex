@@ -677,6 +677,7 @@ defmodule DateTime do
       -18000
 
   """
+  @since "1.5.0"
   @spec diff(Calendar.datetime(), Calendar.datetime()) :: integer()
   def diff(
         %{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
@@ -744,6 +745,7 @@ defmodule DateTime do
                       zone_abbr: "AMT"}}
 
   """
+  @since "1.5.0"
   @spec convert(Calendar.datetime(), Calendar.calendar()) ::
           {:ok, t} | {:error, :incompatible_calendars}
 
@@ -818,6 +820,7 @@ defmodule DateTime do
                 zone_abbr: "AMT"}
 
   """
+  @since "1.5.0"
   @spec convert!(Calendar.datetime(), Calendar.calendar()) :: t | no_return
   def convert!(datetime, calendar) do
     case convert(datetime, calendar) do

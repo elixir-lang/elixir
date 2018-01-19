@@ -477,6 +477,7 @@ defmodule IEx.Helpers do
   Prints vm/runtime information such as versions, memory usage and statistics.
   Additional topics are available via `runtime_info/1`.
   """
+  @since "1.5.0"
   def runtime_info(), do: runtime_info([:system, :memory, :limits])
 
   @doc """
@@ -655,6 +656,7 @@ defmodule IEx.Helpers do
   @doc """
   Prints a list of all the functions and macros exported by the given module.
   """
+  @since "1.5.0"
   def exports(module \\ Kernel) do
     exports = IEx.Autocomplete.exports(module)
 
@@ -775,6 +777,7 @@ defmodule IEx.Helpers do
   control of the shell. If you would rather start a new shell,
   use `respawn/0` instead.
   """
+  @since "1.5.0"
   def continue do
     if whereis = IEx.Server.whereis() do
       send(whereis, {:continue, self()})
@@ -786,6 +789,7 @@ defmodule IEx.Helpers do
   @doc """
   Macro-based shortcut for `IEx.break!/4`.
   """
+  @since "1.5.0"
   defmacro break!(ast, stops \\ 1) do
     quote do
       require IEx
@@ -800,11 +804,13 @@ defmodule IEx.Helpers do
   See `IEx.break!/4` for a complete description of breakpoints
   in IEx.
   """
+  @since "1.5.0"
   defdelegate break!(module, function, arity, stops \\ 1), to: IEx
 
   @doc """
   Prints all breakpoints to the terminal.
   """
+  @since "1.5.0"
   def breaks do
     breaks(IEx.Pry.breaks())
   end
@@ -876,6 +882,7 @@ defmodule IEx.Helpers do
   like to effectively remove all breakpoints and instrumentation
   code from a module, use `remove_breaks/1` instead.
   """
+  @since "1.5.0"
   defdelegate reset_break(id), to: IEx.Pry
 
   @doc """
@@ -890,16 +897,19 @@ defmodule IEx.Helpers do
   like to effectively remove all breakpoints and instrumentation
   code from a module, use `remove_breaks/1` instead.
   """
+  @since "1.5.0"
   defdelegate reset_break(module, function, arity), to: IEx.Pry
 
   @doc """
   Removes all breakpoints and instrumentation from `module`.
   """
+  @since "1.5.0"
   defdelegate remove_breaks(module), to: IEx.Pry
 
   @doc """
   Removes all breakpoints and instrumentation from all modules.
   """
+  @since "1.5.0"
   defdelegate remove_breaks(), to: IEx.Pry
 
   @doc """
@@ -926,6 +936,7 @@ defmodule IEx.Helpers do
   Keep in mind the `whereami/1` location may not exist when prying
   precompiled source code, such as Elixir itself.
   """
+  @since "1.5.0"
   def whereami(radius \\ 2) do
     case Process.get(:iex_whereami) do
       {file, line, stacktrace} ->

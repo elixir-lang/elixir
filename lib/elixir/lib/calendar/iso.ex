@@ -48,6 +48,7 @@ defmodule Calendar.ISO do
 
   """
   @impl true
+  @since "1.5.0"
   @spec naive_datetime_to_iso_days(
           Calendar.year(),
           Calendar.month(),
@@ -84,6 +85,7 @@ defmodule Calendar.ISO do
           Calendar.microsecond()
         }
   @impl true
+  @since "1.5.0"
   def naive_datetime_from_iso_days({days, day_fraction}) do
     {year, month, day} = date_from_iso_days(days)
     {hour, minute, second, microsecond} = time_from_day_fraction(day_fraction)
@@ -102,6 +104,7 @@ defmodule Calendar.ISO do
 
   """
   @impl true
+  @since "1.5.0"
   @spec time_to_day_fraction(
           Calendar.hour(),
           Calendar.minute(),
@@ -129,6 +132,7 @@ defmodule Calendar.ISO do
 
   """
   @impl true
+  @since "1.5.0"
   @spec time_from_day_fraction(Calendar.day_fraction()) ::
           {Calendar.hour(), Calendar.minute(), Calendar.second(), Calendar.microsecond()}
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
@@ -146,6 +150,7 @@ defmodule Calendar.ISO do
 
   # Converts year, month, day to count of days since 0000-01-01.
   @doc false
+  @since "1.5.0"
   def date_to_iso_days(0, 1, 1) do
     0
   end
@@ -163,6 +168,7 @@ defmodule Calendar.ISO do
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
+  @since "1.5.0"
   def date_from_iso_days(days) when days in 0..3_652_424 do
     {year, day_of_year} = days_to_year(days)
     extra_day = if leap_year?(year), do: 1, else: 0
@@ -330,17 +336,20 @@ defmodule Calendar.ISO do
   end
 
   @impl true
+  @since "1.5.0"
   def valid_date?(year, month, day) do
     month in 1..12 and year in 0..9999 and day in 1..days_in_month(year, month)
   end
 
   @impl true
+  @since "1.5.0"
   def valid_time?(hour, minute, second, {microsecond, precision}) do
     hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999 and
       precision in 0..6
   end
 
   @impl true
+  @since "1.5.0"
   def day_rollover_relative_to_midnight_utc() do
     {0, 1}
   end
@@ -404,6 +413,7 @@ defmodule Calendar.ISO do
     do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc false
+  @since "1.5.0"
   def date_to_iso8601(year, month, day, format \\ :extended) do
     date_to_string(year, month, day, format)
   end
@@ -508,6 +518,7 @@ defmodule Calendar.ISO do
   end
 
   @doc false
+  @since "1.5.0"
   def iso_days_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @parts_per_day
     microseconds = div(parts * @parts_per_day, ppd)
@@ -515,6 +526,7 @@ defmodule Calendar.ISO do
   end
 
   @doc false
+  @since "1.5.0"
   def add_day_fraction_to_iso_days({days, {parts, ppd}}, add, ppd) do
     normalize_iso_days(days, parts + add, ppd)
   end
