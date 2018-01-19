@@ -1099,10 +1099,8 @@ defmodule StreamTest do
     assert Stream.zip([concat, cycle]) |> Enum.to_list() ==
              [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
 
-    assert_raise FunctionClauseError, fn ->
-      enum_of_enums = Stream.cycle([[1, 2], [:a, :b]])
-      Stream.zip(enum_of_enums)
-    end
+    assert Stream.chunk_every([0, 1, 2, 3], 2) |> Stream.zip() |> Enum.to_list() ==
+           [{0, 2}, {1, 3}]
   end
 
   test "zip/1 does not leave streams suspended" do
