@@ -3151,6 +3151,24 @@ defmodule Kernel do
   end
 
   @doc """
+  This function applies the given function to the subject, but
+  returns the unchanged subject.
+
+  It can be useful in situations like the following:
+
+      ["thing1", "thing2"]
+      |> generate_more_things()
+      |> tee(&IO.inspect(length(&1)))
+      |> tee(&File.write!("things", &1))
+      |> do_something_with_things()
+
+  """
+  def tee(subject, function) when is_function(function) do
+    function.(subject)
+    subject
+  end
+
+  @doc """
   Returns `true` if `module` is loaded and contains a
   public `function` with the given `arity`, otherwise `false`.
 
