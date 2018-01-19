@@ -676,6 +676,7 @@ defmodule List do
       false
 
   """
+  @since "1.5.0"
   @spec starts_with?(list, list) :: boolean
   @spec starts_with?(list, []) :: true
   @spec starts_with?([], nonempty_list) :: false

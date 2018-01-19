@@ -472,6 +472,7 @@ defmodule Time do
       {:ok, %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
 
   """
+  @since "1.5.0"
   @spec convert(Calendar.time(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
 
   # Keep it multiline for proper function clause errors.
@@ -527,6 +528,7 @@ defmodule Time do
       %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
+  @since "1.5.0"
   @spec convert!(Calendar.time(), Calendar.calendar()) :: t
   def convert!(time, calendar) do
     case convert(time, calendar) do
@@ -577,6 +579,7 @@ defmodule Time do
       -2_000_000
 
   """
+  @since "1.5.0"
   @spec diff(Calendar.time(), Calendar.time(), System.time_unit()) :: integer
   def diff(time1, time2, unit \\ :second) do
     fraction1 = to_day_fraction(time1)

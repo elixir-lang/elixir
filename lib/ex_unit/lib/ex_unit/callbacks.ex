@@ -274,6 +274,7 @@ defmodule ExUnit.Callbacks do
   This function returns `{:ok, pid}` in case of success, otherwise it
   returns `{:error, reason}`.
   """
+  @since "1.5.0"
   @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
           Supervisor.on_start_child()
   def start_supervised(child_spec_or_module, opts \\ []) do
@@ -329,6 +330,7 @@ defmodule ExUnit.Callbacks do
   It returns `:ok` if there is a supervised process with such
   `id`, `{:error, :not_found}` otherwise.
   """
+  @since "1.5.0"
   @spec stop_supervised(id :: term()) :: :ok | {:error, :not_found}
   def stop_supervised(id) do
     case ExUnit.OnExitHandler.get_supervisor(self()) do

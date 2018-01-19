@@ -605,6 +605,7 @@ defmodule Supervisor do
   description of the available strategies.
   """
   # TODO: Warn if simple_one_for_one strategy is used on Elixir v1.8.
+  @since "1.5.0"
   @spec init([:supervisor.child_spec() | {module, term} | module], [init_option]) :: {:ok, tuple}
   def init(children, options) when is_list(children) and is_list(options) do
     unless strategy = options[:strategy] do

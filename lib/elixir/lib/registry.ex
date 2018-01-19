@@ -754,6 +754,7 @@ defmodule Registry do
       iex> Registry.lookup(Registry.DuplicateUnregisterMatchTest, "hello")
       [{self(), :world_b}, {self(), :world_c}]
   """
+  @since "1.5.0"
   def unregister_match(registry, key, pattern, guards \\ []) when is_list(guards) do
     self = self()
 
