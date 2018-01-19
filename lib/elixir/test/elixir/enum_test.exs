@@ -865,10 +865,7 @@ defmodule EnumTest do
     assert Enum.zip([[1]]) == [{1}]
 
     assert Enum.zip([[], [], [], []]) == []
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.zip(%{})
-    end
+    assert Enum.zip(%{}) == []
   end
 end
 
