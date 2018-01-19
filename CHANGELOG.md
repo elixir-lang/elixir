@@ -154,6 +154,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [Kernel.ParallelCompiler] Add `compile/2`, `compile_to_path/3` and `require/2` which provide detailed information about warnings and errors
   * [Kernel.SpecialForms] Support the `uniq: true` flag in `for` comprehensions
   * [Module] Introduce `@deprecated` and `@since` attributes
+  * [Module] Emit conflicting behaviour warnings if the same behaviour is given more than once
   * [List] Rearrange equals and inserts for shorter diff scripts in `List.myers_difference/2`
   * [Record] Allow `:macros` and `:includes` to be given to `Record.extract/2`
   * [Stream] Add `Stream.intersperse/2`
