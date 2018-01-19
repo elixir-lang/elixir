@@ -833,7 +833,7 @@ defmodule Kernel.WarningTest do
                @behaviour UndefinedBehaviour
              end
              """)
-           end) =~ "module UndefinedBehaviour does not exist (in module Sample)"
+           end) =~ "@behaviour UndefinedBehaviour does not exist (in module Sample)"
   after
     purge(Sample)
   end
