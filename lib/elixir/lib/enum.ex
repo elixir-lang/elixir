@@ -2720,10 +2720,10 @@ defmodule Enum do
   end
 
   @doc """
-  Zips corresponding elements from a list of enumerables
+  Zips corresponding elements from a finite collection of enumerables
   into one list of tuples.
 
-  The zipping finishes as soon as any enumerable in the given list completes.
+  The zipping finishes as soon as any enumerable in the given collection completes.
 
   ## Examples
 
@@ -2735,10 +2735,11 @@ defmodule Enum do
 
   """
   @spec zip([t]) :: t
+  @spec zip(t) :: t
 
   def zip([]), do: []
 
-  def zip(enumerables) when is_list(enumerables) do
+  def zip(enumerables) do
     Stream.zip(enumerables).({:cont, []}, &{:cont, [&1 | &2]})
     |> elem(1)
     |> :lists.reverse()
