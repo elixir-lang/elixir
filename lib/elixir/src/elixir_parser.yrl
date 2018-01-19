@@ -688,7 +688,13 @@ build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(U
   {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
-  {'not', meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
+  InMeta = meta_from_location(Location),
+  NotMeta =
+    case ?formatter_metadata() of
+      true -> [{operator, 'not in'} | InMeta];
+      false -> InMeta
+    end,
+  {'not', NotMeta, [{'in', InMeta, [Left, Right]}]};
 build_op({_Kind, Location, Op}, Left, Right) ->
   {Op, eol_op(Location) ++ meta_from_location(Location), [Left, Right]}.
 

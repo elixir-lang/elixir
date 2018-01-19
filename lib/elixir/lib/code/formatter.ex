@@ -506,8 +506,15 @@ defmodule Code.Formatter do
 
   # not(left in right)
   # left not in right
-  defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]}]}, context, state) do
-    binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
+  defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]} = arg]}, context, state) do
+    %{rename_deprecated_at: since} = state
+
+    # TODO: Remove since check on Elixir v2.0 and the OP arrengement is removed.
+    if meta[:operator] == :"not in" || (since && Version.match?(since, "~> 1.5")) do
+      binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
+    else
+      unary_op_to_algebra(:not, meta, arg, context, state)
+    end
   end
 
   defp quoted_to_algebra({:fn, meta, [_ | _] = clauses}, _context, state) do
