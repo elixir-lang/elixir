@@ -1106,8 +1106,12 @@ defmodule Stream do
       [{1, :a, "foo"}, {2, :b, "bar"}, {3, :c, "baz"}]
 
   """
-  @spec zip([Enumerable.t()]) :: Enumerable.t()
-  def zip(enumerables) when is_list(enumerables) do
+  @spec zip([Enumerable.t()] | %Stream{}) :: Enumerable.t()
+  def zip(%Stream{} = enumerables), do: zip_fun(enumerables)
+
+  def zip(enumerables) when is_list(enumerables), do: zip_fun(enumerables)
+
+  defp zip_fun(enumerables) do
     step = &do_zip_step(&1, &2)
 
     enum_funs =

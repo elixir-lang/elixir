@@ -2734,11 +2734,15 @@ defmodule Enum do
       [{1, :a}, {2, :b}, {3, :c}]
 
   """
-  @spec zip([t]) :: t
+  @spec zip([t] | %Stream{}) :: t
 
   def zip([]), do: []
 
-  def zip(enumerables) when is_list(enumerables) do
+  def zip(%{__struct__: Stream} = enumerables), do: do_zip(enumerables)
+
+  def zip(enumerables) when is_list(enumerables), do: do_zip(enumerables)
+
+  defp do_zip(enumerables) do
     Stream.zip(enumerables).({:cont, []}, &{:cont, [&1 | &2]})
     |> elem(1)
     |> :lists.reverse()
