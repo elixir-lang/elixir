@@ -167,9 +167,8 @@ defmodule DynamicSupervisor do
 
   @doc false
   defmacro __using__(opts) do
-    quote location: :keep do
+    quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour DynamicSupervisor
-      @opts unquote(opts)
 
       @doc false
       def child_spec(arg) do
@@ -179,7 +178,7 @@ defmodule DynamicSupervisor do
           type: :supervisor
         }
 
-        Supervisor.child_spec(default, @opts)
+        Supervisor.child_spec(default, unquote(Macro.escape(opts)))
       end
 
       defoverridable child_spec: 1
