@@ -243,6 +243,10 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- enum, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
   end
 
+  test "list for comprehensions into bitstrings" do
+    assert for(x <- 0..7, into: <<>>, do: <<1::1>>) == <<255>>
+  end
+
   test "map for comprehensions into map" do
     enum = %{a: 2, b: 3}
     assert for({k, v} <- enum, into: %{}, do: {k, v * v}) == %{a: 4, b: 9}
