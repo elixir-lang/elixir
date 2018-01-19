@@ -123,6 +123,20 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
+## v1.6.1-dev
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code.Formatter] Only rearrange `not in` operator if explicitly opted-in
+  * [GenServer] Do not override user own `@opts` attribute
+  * [Enum] Reintroduce zipping of any enumerable of enumerables in `Enum.zip/1`
+  * [Macro] Reorder kw blocks in `Macro.to_string/1` to avoid warnings
+  * [Stream] Reintroduce zipping of any enumerable of enumerables in `Enum.zip/1`
+  * [Supervisor] Do not override user own `@opts` attribute
+  * [Supervisor] Add `@spec` to second clause of `start_link/2`
+
 ## v1.6.0 (2018-01-17)
 
 ### 1. Enhancements
