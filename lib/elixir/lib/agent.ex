@@ -149,9 +149,7 @@ defmodule Agent do
 
   @doc false
   defmacro __using__(opts) do
-    quote location: :keep do
-      @opts unquote(opts)
-
+    quote location: :keep, bind_quoted: [opts: opts] do
       @doc false
       def child_spec(arg) do
         default = %{
@@ -159,7 +157,7 @@ defmodule Agent do
           start: {__MODULE__, :start_link, [arg]}
         }
 
-        Supervisor.child_spec(default, @opts)
+        Supervisor.child_spec(default, unquote(Macro.escape(opts)))
       end
 
       defoverridable child_spec: 1
