@@ -259,6 +259,10 @@ defmodule IO do
   option to easily distinguish it from other `IO.inspect/2` calls.
   The label will be printed before the inspected `item`.
 
+  The `item` can be altered from its original form for inspection with
+  the `:apply` option. Note that the given `item` will still be
+  returned unchanged.
+
   See `Inspect.Opts` for a full list of remaining formatting options.
 
   ## Examples
@@ -290,6 +294,20 @@ defmodule IO do
       before: [1, 2, 3]
       after: [2, 4, 6]
 
+  The `:apply` option is useful to alter what is printed
+  without disrupting pipelines:
+
+      [[1, 2], [3]]
+      |> IO.inspect(apply: &length/1, label: "length before")
+      |> Enum.flatten
+      |> IO.inspect(apply: &length/1, label: "length after")
+      |> Enum.sum
+
+  Prints:
+
+      length before: 2
+      length after: 3
+
   """
   @spec inspect(item, keyword) :: item when item: var
   def inspect(item, opts \\ []) do
@@ -304,8 +322,9 @@ defmodule IO do
   @spec inspect(device, item, keyword) :: item when item: var
   def inspect(device, item, opts) when is_list(opts) do
     label = if label = opts[:label], do: [to_chardata(label), ": "], else: []
+    inspect_item = if apply = opts[:apply], do: apply.(item), else: item
     opts = struct(Inspect.Opts, opts)
-    doc = Inspect.Algebra.group(Inspect.Algebra.to_doc(item, opts))
+    doc = Inspect.Algebra.group(Inspect.Algebra.to_doc(inspect_item, opts))
     chardata = Inspect.Algebra.format(doc, opts.width)
     puts(device, [label, chardata])
     item
