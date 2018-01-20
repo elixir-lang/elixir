@@ -47,15 +47,11 @@ handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> ok;
 %% This is an Erlang bug, it considers {tuple, _}.call to always fail
 handle_file_warning(_, _File, {_Line, v3_kernel, bad_call}) -> ok;
 
-%% We handle unused local warnings ourselves
+%% Those we handle them ourselves
 handle_file_warning(_, _File, {_Line, erl_lint, {unused_function, _}}) -> ok;
-
-%% Ignore unused vars at "weird" lines (<= 0)
-handle_file_warning(_, _File, {Line, erl_lint, {unused_var, _Var}}) when Line =< 0 -> ok;
-
-%% Ignore shadowed and exported vars as we guarantee no conflicts ourselves
-handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _Var, _Where}}) -> ok;
-handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _Var, _Where}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {unused_var, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _, _}}) -> ok;
 
 %% Ignore behaviour warnings as we check for these problem ourselves
 handle_file_warning(_, _File, {_Line, erl_lint, {conflicting_behaviours, _, _, _, _}}) -> ok;
@@ -102,10 +98,6 @@ format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
 format_error(sys_core_fold, nomatch_guard) ->
   "this check/guard will always yield the same result";
 
-%% Properly format other unused vars
-format_error(erl_lint, {unused_var, Var}) ->
-  ["variable \"", format_var(Var), "\" is unused"];
-
 %% Properly format keys using inspect.
 format_error(v3_core, {map_key_repeated, Key}) ->
     io_lib:format("key ~ts will be overridden in map", ['Elixir.Kernel':inspect(Key)]);
@@ -122,12 +114,6 @@ format_error(Module, Desc) ->
   Module:format_error(Desc).
 
 %% Helpers
-
-format_var(Var) ->
-  case lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)) of
-    "V" ++ Rest -> Rest;
-    Rest -> Rest
-  end.
 
 translate_comp_op('/=') -> '!=';
 translate_comp_op('=<') -> '<=';

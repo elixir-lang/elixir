@@ -10,17 +10,17 @@
 translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Tuple = {Name, Kind},
 
-  {Current, Safe} =
+  Current =
     case maps:find(Tuple, S#elixir_erl.vars) of
-      {ok, {VarC, _, VarS}} -> {VarC, VarS};
-      error -> {nil, true}
+      {ok, {VarC, _}} -> VarC;
+      error -> nil
     end,
 
   case S#elixir_erl.context of
     match ->
       Previous =
         case maps:find(Tuple, S#elixir_erl.backup_vars) of
-          {ok, {BackupVarC, _, _}} -> BackupVarC;
+          {ok, {BackupVarC, _}} -> BackupVarC;
           error -> nil
         end,
 
@@ -37,11 +37,6 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 assign(Meta, Name, Kind, S) ->
   Tuple = {Name, Kind},
 
-  %% We attempt to give vars a nice name because we
-  %% still use the unused vars warnings from erl_lint.
-  %%
-  %% Once we move the warning to Elixir compiler, we
-  %% can name vars as _@COUNTER.
   {NewVar, Counter, NS} =
     if
       Kind /= nil ->
@@ -50,8 +45,7 @@ assign(Meta, Name, Kind, S) ->
         build(Name, S)
     end,
 
-  FS = NS#elixir_erl{vars=maps:put(Tuple, {NewVar, Counter, true}, S#elixir_erl.vars)},
-
+  FS = NS#elixir_erl{vars=maps:put(Tuple, {NewVar, Counter}, S#elixir_erl.vars)},
   {{var, ?ann(Meta), NewVar}, FS}.
 
 build(Key, #elixir_erl{counter=Counter} = S) ->
@@ -60,18 +54,9 @@ build(Key, #elixir_erl{counter=Counter} = S) ->
       {ok, Val} -> Val + 1;
       error -> 1
     end,
-  {list_to_atom(var_name_to_list(Key) ++ "@" ++ integer_to_list(Cnt)),
+  {list_to_atom([$_ | atom_to_list(Key)] ++ "@" ++ integer_to_list(Cnt)),
    Cnt,
    S#elixir_erl{counter=maps:put(Key, Cnt, Counter)}}.
-
-%% TODO: Always emit underscored names once we move
-%% variable warnings to Elixir;
-var_name_to_list(Var) ->
-  case atom_to_list(Var) of
-    "_" ++ _ = List -> List;
-    List -> [$V | List]
-  end.
-
 
 %% SCOPE MERGING
 
@@ -101,7 +86,7 @@ merge_vars(V1, V2) ->
     maps:put(K, V, Acc)
   end, V1, V2).
 
-var_merge({_, V1, _} = K1, {_, V2, _}) when V1 > V2 -> K1;
+var_merge({_, C1} = K1, {_, C2}) when C1 > C2 -> K1;
 var_merge(_K1, K2) -> K2.
 
 %% BINDINGS
@@ -122,13 +107,13 @@ load_binding([{Key, Value} | T], Binding, Keys, Vars, Counter) ->
   load_binding(T,
     orddict:store(InternalName, Value, Binding),
     ordsets:add_element(Actual, Keys),
-    maps:put(Actual, {InternalName, 0, true}, Vars), Counter + 1);
+    maps:put(Actual, {InternalName, 0}, Vars), Counter + 1);
 load_binding([], Binding, Keys, Vars, Counter) ->
   {Binding, Keys, Vars, Counter}.
 
 dump_binding(Binding, #elixir_erl{vars=Vars}) ->
   maps:fold(fun
-    ({Var, Kind} = Key, {InternalName, _, _}, Acc) when is_atom(Kind) ->
+    ({Var, Kind} = Key, {InternalName, _}, Acc) when is_atom(Kind) ->
       Actual = case Kind of
         nil -> Var;
         _   -> Key
