@@ -186,6 +186,7 @@ defmodule DateTime do
       #DateTime<2016-05-24 13:26:08.003Z>
 
   """
+  @since "1.4.0"
   @spec from_naive(NaiveDateTime.t(), Calendar.time_zone()) :: {:ok, t}
   def from_naive(naive_datetime, time_zone)
 
@@ -231,6 +232,7 @@ defmodule DateTime do
       #DateTime<2016-05-24 13:26:08.003Z>
 
   """
+  @since "1.4.0"
   @spec from_naive!(NaiveDateTime.t(), Calendar.time_zone()) :: t
   def from_naive!(naive_datetime, time_zone) do
     case from_naive(naive_datetime, time_zone) do
@@ -504,6 +506,7 @@ defmodule DateTime do
       {:error, :invalid_format}
 
   """
+  @since "1.4.0"
   @spec from_iso8601(String.t(), Calendar.calendar()) ::
           {:ok, t, Calendar.utc_offset()} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO) when is_binary(string) do
@@ -629,6 +632,7 @@ defmodule DateTime do
       :gt
 
   """
+  @since "1.4.0"
   @spec compare(Calendar.datetime(), Calendar.datetime()) :: :lt | :eq | :gt
   def compare(
         %{calendar: _, utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,

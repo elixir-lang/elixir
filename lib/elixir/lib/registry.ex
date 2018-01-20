@@ -174,6 +174,7 @@ defmodule Registry do
   ## Via callbacks
 
   @doc false
+  @since "1.4.0"
   def whereis_name({registry, key}) do
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
@@ -193,6 +194,7 @@ defmodule Registry do
   end
 
   @doc false
+  @since "1.4.0"
   def register_name({registry, key}, pid) when pid == self() do
     case register(registry, key, nil) do
       {:ok, _} -> :yes
@@ -201,6 +203,7 @@ defmodule Registry do
   end
 
   @doc false
+  @since "1.4.0"
   def send({registry, key}, msg) do
     case lookup(registry, key) do
       [{pid, _}] -> Kernel.send(pid, msg)
@@ -209,6 +212,7 @@ defmodule Registry do
   end
 
   @doc false
+  @since "1.4.0"
   def unregister_name({registry, key}) do
     unregister(registry, key)
   end
@@ -316,6 +320,7 @@ defmodule Registry do
   Similar to `start_link/1` except the required options,
   `keys` and `name` are given as arguments.
   """
+  @since "1.4.0"
   @spec start_link(keys, registry, keyword) :: {:ok, pid} | {:error, term}
   def start_link(keys, name, options \\ []) when keys in @keys and is_atom(name) do
     start_link([keys: keys, name: name] ++ options)
@@ -350,6 +355,7 @@ defmodule Registry do
       [{self(), 2}]
 
   """
+  @since "1.4.0"
   @spec update_value(registry, key, (value -> value)) ::
           {new_value :: term, old_value :: term} | :error
   def update_value(registry, key, callback) when is_atom(registry) and is_function(callback, 1) do
@@ -393,6 +399,7 @@ defmodule Registry do
   See the module documentation for examples of using the `dispatch/3`
   function for building custom dispatching or a pubsub system.
   """
+  @since "1.4.0"
   @spec dispatch(registry, key, (entries :: [{pid, value}] -> term), keyword) :: :ok
   def dispatch(registry, key, mfa_or_fun, opts \\ [])
       when is_atom(registry) and is_function(mfa_or_fun, 1)
@@ -506,6 +513,7 @@ defmodule Registry do
       [{self(), :another}, {self(), :world}]
 
   """
+  @since "1.4.0"
   @spec lookup(registry, key) :: [{pid, value}]
   def lookup(registry, key) when is_atom(registry) do
     case key_info!(registry) do
@@ -571,6 +579,7 @@ defmodule Registry do
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
 
   """
+  @since "1.4.0"
   @spec match(registry, key, match_pattern :: term, guards :: list()) :: [{pid, term}]
   def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
     guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
@@ -623,6 +632,7 @@ defmodule Registry do
       ["hello", "hello"]
 
   """
+  @since "1.4.0"
   @spec keys(registry, pid) :: [key]
   def keys(registry, pid) when is_atom(registry) and is_pid(pid) do
     {kind, partitions, _, pid_ets, _} = info!(registry)
@@ -695,6 +705,7 @@ defmodule Registry do
       []
 
   """
+  @since "1.4.0"
   @spec unregister(registry, key) :: :ok
   def unregister(registry, key) when is_atom(registry) do
     self = self()
@@ -847,6 +858,7 @@ defmodule Registry do
       ["hello", "hello"]
 
   """
+  @since "1.4.0"
   @spec register(registry, key, value) :: {:ok, pid} | {:error, {:already_registered, pid}}
   def register(registry, key, value) when is_atom(registry) do
     self = self()
@@ -919,6 +931,7 @@ defmodule Registry do
       :error
 
   """
+  @since "1.4.0"
   @spec meta(registry, meta_key) :: {:ok, meta_value} | :error
   def meta(registry, key) when is_atom(registry) and (is_atom(key) or is_tuple(key)) do
     try do
@@ -950,6 +963,7 @@ defmodule Registry do
       {:ok, "tuple_value"}
 
   """
+  @since "1.4.0"
   @spec put_meta(registry, meta_key, meta_value) :: :ok
   def put_meta(registry, key, value) when is_atom(registry) and (is_atom(key) or is_tuple(key)) do
     try do

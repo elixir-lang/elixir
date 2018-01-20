@@ -179,6 +179,7 @@ defmodule Regex do
   This checks the version stored in the regular expression
   and recompiles the regex in case of version mismatch.
   """
+  @since "1.4.0"
   @spec recompile(t) :: t
   def recompile(%Regex{} = regex) do
     version = version()
@@ -197,6 +198,7 @@ defmodule Regex do
   @doc """
   Recompiles the existing regular expression and raises `Regex.CompileError` in case of errors.
   """
+  @since "1.4.0"
   @spec recompile!(t) :: t
   def recompile!(regex) do
     case recompile(regex) do
@@ -208,6 +210,7 @@ defmodule Regex do
   @doc """
   Returns the version of the underlying Regex engine.
   """
+  @since "1.4.0"
   # TODO: No longer check for function_exported? on OTP 20+.
   def version do
     if function_exported?(:re, :version, 0) do
