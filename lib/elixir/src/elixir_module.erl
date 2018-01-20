@@ -34,6 +34,7 @@ is_open(Module) ->
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
   Data = data_table(Module),
   ets:delete(Data, doc),
+  ets:delete(Data, since),
   ets:delete(Data, deprecated),
   ets:delete(Data, impl).
 
