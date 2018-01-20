@@ -605,7 +605,8 @@ defmodule Logger do
   """
   @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) ::
           :ok | {:error, :noproc} | {:error, term}
-  def bare_log(level, chardata_or_fun, metadata \\ []) when level in @levels and is_list(metadata) do
+  def bare_log(level, chardata_or_fun, metadata \\ [])
+      when level in @levels and is_list(metadata) do
     case __metadata__() do
       {true, pdict} ->
         %{mode: mode, truncate: truncate, level: min_level, utc_log: utc_log?} =

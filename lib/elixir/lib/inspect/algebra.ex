@@ -946,7 +946,7 @@ defmodule Inspect.Algebra do
     do: fits?(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
 
   defp fits?(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
-    do: fits?(w, k, b?, [{i, m, x} | [{i, m, y} | t]])
+    do: fits?(w, k, b?, [{i, m, x}, {i, m, y} | t])
 
   defp fits?(w, k, b?, [{i, m, doc_group(x, _)} | t]),
     do: fits?(w, k, b?, [{i, m, x} | {:tail, b?, t}])
@@ -955,7 +955,7 @@ defmodule Inspect.Algebra do
   defp format(_, _, []), do: []
   defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
   defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]
-  defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
+  defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x}, {i, m, y} | t])
   defp format(w, k, [{i, m, doc_color(x, c)} | t]), do: [ansi(c) | format(w, k, [{i, m, x} | t])]
   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
