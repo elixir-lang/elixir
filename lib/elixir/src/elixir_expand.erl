@@ -115,18 +115,12 @@ expand({'__DIR__', _, Atom}, E) when is_atom(Atom) ->
 expand({'__CALLER__', _, Atom} = Caller, E) when is_atom(Atom) ->
   {Caller, E};
 expand({'__ENV__', Meta, Atom}, E) when is_atom(Atom) ->
-  Env =
-    case E of
-      #{function := nil} -> E;
-      _ -> maps:put(lexical_tracker, nil, E)
-    end,
-  LinifiedEnv = elixir_env:linify({?line(Meta), Env}),
-  {{'%{}', [], maps:to_list(LinifiedEnv)}, E};
+  {escape_map(escape_env_entries(Meta, E)), E};
 expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when is_atom(Atom), is_atom(Field) ->
-  Env = elixir_env:linify({?line(Meta), E}),
+  Env = escape_env_entries(Meta, E),
   case maps:is_key(Field, Env) of
     true  -> {maps:get(Field, Env), E};
-    false -> {{{'.', DotMeta, [{'%{}', [], maps:to_list(Env)}, Field]}, CallMeta, []}, E}
+    false -> {{{'.', DotMeta, [escape_map(Env), Field]}, CallMeta, []}, E}
   end;
 
 %% Quote
@@ -307,19 +301,22 @@ expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
 
 %% Vars
 
-expand({'^', Meta, [Arg]}, #{context := match, prematch_vars := PrematchVars} = E) ->
-  case expand(Arg, E) of
-    {{VarName, VarMeta, Kind} = Var, EA} when is_atom(VarName), is_atom(Kind) ->
-      %% If the variable was defined, then we return the expanded ^, otherwise
-      %% we raise. We cannot use the expanded env because it would contain the
-      %% variable.
-      case lists:member({VarName, var_context(VarMeta, Kind)}, PrematchVars) of
-        true ->
-          warn_underscored_var_access(VarMeta, VarName, Kind, E),
-          {{'^', Meta, [Var]}, EA};
-        false ->
-          form_error(Meta, ?key(EA, file), ?MODULE, {unbound_variable_pin, VarName})
-      end;
+expand({'^', Meta, [Arg]}, #{context := match} = E) ->
+  #{match_vars := Match, current_vars := Current, prematch_vars := Prematch} = E,
+
+  %% We need to rollback to a no match context.
+  NoMatchE = E#{context := nil, current_vars := Prematch, prematch_vars := nil, match_vars := pin},
+
+  case expand(Arg, NoMatchE) of
+    {{Name, _, Kind} = Var, ExpandedE} when is_atom(Name), is_atom(Kind) ->
+      EA = ExpandedE#{
+        context := match,
+        match_vars := Match,
+        current_vars := Current,
+        prematch_vars := ?key(ExpandedE, current_vars)
+      },
+
+      {{'^', Meta, [Var]}, EA};
     _ ->
       form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_pin, Arg})
   end;
@@ -331,43 +328,66 @@ expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
 expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, ?key(E, file), ?MODULE, unbound_underscore);
 
-expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  %% TODO: Merge match_vars and prematch_vars.
-  #{vars := Vars, match_vars := Match} = E,
+expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
+  #{vars := Vars, match_vars := Match, current_vars := Current} = E,
   Pair = {Name, var_context(Meta, Kind)},
-  NewVars = ordsets:add_element(Pair, Vars),
 
-  NewMatch =
+  {NewMatch, NewCurrent, Version} =
     case lists:member(Pair, Match) of
-      true -> warn_underscored_var_repeat(Meta, Name, Kind, E), Match;
-      false -> [Pair | Match]
+      true ->
+        maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
+        #{Pair := {CurrentVersion, _}} = Current,
+        {Match, Current, CurrentVersion};
+      false ->
+        NewVersion = var_version(Current, Pair) + 1,
+        {[Pair | Match], maps:put(Pair, {NewVersion, var_line_or_used(Meta)}, Current), NewVersion}
     end,
 
-  {Var, E#{vars := NewVars, match_vars := NewMatch}};
-expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_atom(Kind) ->
-  case lists:member({Name, var_context(Meta, Kind)}, Vars) of
-    true ->
-      warn_underscored_var_access(Meta, Name, Kind, E),
-      {Var, E};
+  %% Deprecated variable handling
+  NewVars = ordsets:add_element(Pair, Vars),
+
+  Var = {Name, [{version, Version} | Meta], Kind},
+  {Var, E#{vars := NewVars, match_vars := NewMatch, current_vars := NewCurrent}};
+expand({Name, Meta, Kind}, #{current_vars := Current} = E) when is_atom(Name), is_atom(Kind) ->
+  Pair = {Name, var_context(Meta, Kind)},
+
+  {Version, VE} =
+    case Current of
+      #{Pair := {PairVersion, used}} ->
+        {PairVersion, E};
+      #{Pair := {PairVersion, _}} ->
+        {PairVersion, E#{current_vars := maps:put(Pair, {PairVersion, used}, Current)}};
+      _ ->
+        {false, E}
+    end,
+
+  case Version of
     false ->
-      %% TODO: var true will no longer be necessary once we always raise for vars
-      %% The value comes from the var! macro in Kernel.
       case lists:keyfind(var, 1, Meta) of
         {var, true} ->
-          form_error(Meta, ?key(E, file), ?MODULE, {undefined_var, Name, Kind});
+          form_error(Meta, ?key(VE, file), ?MODULE, {undefined_var_bang, Name, Kind});
         _ ->
-          %% TODO: Raise instead of warning in Elixir v2.0.
           case ?key(E, match_vars) of
             warn ->
               Message =
                 io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                   " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),
               elixir_errors:warn(?line(Meta), ?key(E, file), Message);
+
+            raise ->
+              form_error(Meta, ?key(VE, file), ?MODULE, {undefined_var, Name, Kind});
+
+            pin ->
+              form_error(Meta, ?key(VE, file), ?MODULE, {undefined_var_pin, Name, Kind});
+
             apply ->
               ok
           end,
-          expand({Name, Meta, []}, E)
-      end
+          expand({Name, Meta, []}, VE)
+      end;
+    _ ->
+      maybe_warn_underscored_var_access(Meta, Name, Kind, VE),
+      {{Name, [{version, Version} | Meta], Kind}, VE}
   end;
 
 %% Local calls
@@ -451,6 +471,18 @@ expand(Other, E) ->
   form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Other}).
 
 %% Helpers
+
+escape_env_entries(Meta, #{current_vars := CurrentVars} = Env0) ->
+  Env1 = case Env0 of
+    #{function := nil} -> Env0;
+    _ -> Env0#{lexical_tracker := nil}
+  end,
+  Env2 = Env1#{current_vars := escape_map(CurrentVars)},
+  Env3 = elixir_env:linify({?line(Meta), Env2}),
+  Env3.
+
+escape_map(Map) ->
+  {'%{}', [], maps:to_list(Map)}.
 
 expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
   {BaseRef, EB} = expand_without_aliases_report(Base, E),
@@ -543,11 +575,45 @@ expand_args(Args, E) ->
 
 %% Match/var helpers
 
+var_line_or_used(Meta) ->
+  case should_warn(Meta) of
+    true -> ?line(Meta);
+    false -> used
+  end.
+
+var_version(Map, Pair) ->
+  case Map of
+    #{Pair := {Version, _}} -> Version;
+    _ -> -1
+  end.
+
 var_context(Meta, Kind) ->
   case lists:keyfind(counter, 1, Meta) of
     {counter, Counter} -> Counter;
     false -> Kind
   end.
+
+maybe_warn_underscored_var_repeat(Meta, Name, Kind, E) ->
+  case should_warn(Meta) andalso atom_to_list(Name) of
+    "_" ++ _ ->
+      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {underscored_var_repeat, Name, Kind});
+    _ ->
+      ok
+  end.
+
+maybe_warn_underscored_var_access(Meta, Name, Kind, E) ->
+  case should_warn(Meta) andalso atom_to_list(Name) of
+    "_" ++ _ ->
+      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {underscored_var_access, Name, Kind});
+    _ ->
+      ok
+  end.
+
+context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
+context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
+
+should_warn(Meta) ->
+  lists:keyfind(generated, 1, Meta) /= {generated, true}.
 
 %% Case
 
@@ -605,10 +671,11 @@ generated_case_clauses([{do, Clauses}]) ->
 assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
   case lists:keyfind(ambiguous_op, 1, Meta) of
     {ambiguous_op, Kind} ->
-      case lists:member({Name, Kind}, ?key(E, vars)) of
-        true ->
+      Pair = {Name, Kind},
+      case ?key(E, current_vars) of
+        #{Pair := _} ->
           form_error(Meta, ?key(E, file), ?MODULE, {op_ambiguity, Name, Arg});
-        false ->
+        _ ->
           ok
       end;
     _ ->
@@ -815,32 +882,6 @@ assert_no_underscore_clause_in_cond([{do, Clauses}], E) when is_list(Clauses) ->
 assert_no_underscore_clause_in_cond(_Other, _E) ->
   ok.
 
-%% Warnings
-
-warn_underscored_var_repeat(Meta, Name, Kind, E) ->
-  Warn = should_warn(Meta),
-  case atom_to_list(Name) of
-    "_" ++ _ when Warn ->
-      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {underscored_var_repeat, Name, Kind});
-    _ ->
-      ok
-  end.
-
-warn_underscored_var_access(Meta, Name, Kind, E) ->
-  Warn = should_warn(Meta),
-  case atom_to_list(Name) of
-    "_" ++ _ when Warn ->
-      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {underscored_var_access, Name, Kind});
-    _ ->
-      ok
-  end.
-
-context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
-context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
-
-should_warn(Meta) ->
-  lists:keyfind(generated, 1, Meta) /= {generated, true}.
-
 %% Errors
 
 format_error({useless_literal, Term}) ->
@@ -879,8 +920,6 @@ format_error({invalid_context_opt_for_quote, Context}) ->
                 ['Elixir.Macro':to_string(Context)]);
 format_error(wrong_number_of_args_for_super) ->
   "super must be called with the same number of arguments as the current definition";
-format_error({unbound_variable_pin, VarName}) ->
-  io_lib:format("unknown variable ^~ts. No variable \"~ts\" has been defined before the current pattern", [VarName, VarName]);
 format_error({invalid_arg_for_pin, Arg}) ->
   io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
                 ['Elixir.Macro':to_string(Arg)]);
@@ -889,9 +928,12 @@ format_error({pin_outside_of_match, Arg}) ->
 format_error(unbound_underscore) ->
   "invalid use of _. \"_\" represents a value to be ignored in a pattern and cannot be used in expressions";
 format_error({undefined_var, Name, Kind}) ->
-  Message =
-    "expected \"~ts\"~ts to expand to an existing variable "
-    "or be part of a match",
+  io_lib:format("undefined variable \"~ts\"~ts", [Name, context_info(Kind)]);
+format_error({undefined_var_pin, Name, Kind}) ->
+  Message = "undefined variable ^~ts. No variable \"~ts\"~ts has been defined before the current pattern",
+  io_lib:format(Message, [Name, Name, context_info(Kind)]);
+format_error({undefined_var_bang, Name, Kind}) ->
+  Message = "expected \"~ts\"~ts to expand to an existing variable or be part of a match",
   io_lib:format(Message, [Name, context_info(Kind)]);
 format_error(underscore_in_cond) ->
   "invalid use of _ inside \"cond\". If you want the last clause to always match, "

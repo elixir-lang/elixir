@@ -20,9 +20,9 @@ local_for(Module, Name, Arity, Kinds) ->
     Table = elixir_module:defs_table(Module),
     {ets:lookup(Table, {def, Tuple}), ets:lookup(Table, {clauses, Tuple})}
   of
-    {[{_, Kind, Meta, File, _, _}], Clauses} ->
+    {[{_, Kind, Meta, _, _, _}], Clauses} ->
       case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
-        true -> elixir_erl:definition_to_anonymous(File, Module, Kind, Meta,
+        true -> elixir_erl:definition_to_anonymous(Module, Kind, Meta,
                                                    [Clause || {_, Clause} <- Clauses]);
         false -> false
       end;

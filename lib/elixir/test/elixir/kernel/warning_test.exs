@@ -26,28 +26,27 @@ defmodule Kernel.WarningTest do
     output =
       capture_err(fn ->
         Code.eval_string("""
+        top = 1
         defmodule Sample do
           def hello(arg), do: nil
-
-          if true do
-            user = :warning
-          else
-            :nothing
-          end
         end
+        bottom = 2
+        bottom = 3
+        bottom
         """)
       end)
 
+    assert output =~ "variable \"bottom\" is unused"
+    assert output =~ "variable \"top\" is unused"
     assert output =~ "variable \"arg\" is unused"
-    assert output =~ "variable \"user\" is unused"
   after
     purge(Sample)
   end
 
-  test "unsafe variable" do
-    message = "variable \"x\" is unsafe"
+  test "nested unused variable" do
+    message = "variable \"x\" is unused"
 
-    capture_err(fn ->
+    assert capture_err(fn ->
       assert_raise CompileError, ~r/undefined function x/, fn ->
         Code.eval_string("""
         case false do
@@ -59,7 +58,7 @@ defmodule Kernel.WarningTest do
       end
     end) =~ message
 
-    capture_err(fn ->
+    assert capture_err(fn ->
       assert_raise CompileError, ~r/undefined function x/, fn ->
         Code.eval_string("""
         false and (x = 1)
@@ -68,7 +67,7 @@ defmodule Kernel.WarningTest do
       end
     end) =~ message
 
-    capture_err(fn ->
+    assert capture_err(fn ->
       assert_raise CompileError, ~r/undefined function x/, fn ->
         Code.eval_string("""
         true or (x = 1)
@@ -77,7 +76,7 @@ defmodule Kernel.WarningTest do
       end
     end) =~ message
 
-    capture_err(fn ->
+    assert capture_err(fn ->
       assert_raise CompileError, ~r/undefined function x/, fn ->
         Code.eval_string("""
         if false do
@@ -88,7 +87,7 @@ defmodule Kernel.WarningTest do
       end
     end) =~ message
 
-    capture_err(fn ->
+    assert capture_err(fn ->
       assert_raise CompileError, ~r/undefined function x/, fn ->
         Code.eval_string("""
         cond do
@@ -100,7 +99,7 @@ defmodule Kernel.WarningTest do
       end
     end) =~ message
 
-    capture_err(fn ->
+    assert capture_err(fn ->
       assert_raise CompileError, ~r/undefined function x/, fn ->
         Code.eval_string("""
         receive do
@@ -113,7 +112,7 @@ defmodule Kernel.WarningTest do
       end
     end) =~ message
 
-    capture_err(fn ->
+    assert capture_err(fn ->
       assert_raise CompileError, ~r/undefined function x/, fn ->
         Code.eval_string("""
         false && (x = 1)
@@ -122,7 +121,7 @@ defmodule Kernel.WarningTest do
       end
     end) =~ message
 
-    capture_err(fn ->
+    assert capture_err(fn ->
       assert_raise CompileError, ~r/undefined function x/, fn ->
         Code.eval_string("""
         true || (x = 1)

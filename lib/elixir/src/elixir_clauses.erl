@@ -9,12 +9,12 @@
 
 match(Fun, Expr, #{context := match} = E) ->
   Fun(Expr, E);
-match(Fun, Expr, #{context := Context, match_vars := Match, prematch_vars := nil, vars := Vars} = E) ->
-  {EExpr, EE} = Fun(Expr, E#{context := match, match_vars := [], prematch_vars := Vars}),
+match(Fun, Expr, #{context := Context, match_vars := Match, prematch_vars := nil, current_vars := Current} = E) ->
+  {EExpr, EE} = Fun(Expr, E#{context := match, match_vars := [], prematch_vars := Current}),
   {EExpr, EE#{context := Context, match_vars := Match, prematch_vars := nil}}.
 
 def({Meta, Args, Guards, Body}, E) ->
-  {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, match_vars := [], prematch_vars := []}),
+  {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, match_vars := [], prematch_vars := #{}}),
   {EGuards, EG} = guard(Guards, EA#{context := guard, match_vars := warn, prematch_vars := nil}),
   {EBody, _}    = elixir_expand:expand(Body, EG#{context := nil}),
   {Meta, EArgs, EGuards, EBody}.
