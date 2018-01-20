@@ -44,6 +44,7 @@ defmodule Macro.Env do
 
   The following fields are private and must not be accessed or relied on:
 
+    * `unused_vars` - controls which variables have not been used yet
     * `prematch_vars` - controls how variables are handled outside of matches.
       It is either `:warn`, `:apply`, `:pin` or `:raise`. Inside a match it is
       a copy of current_vars
@@ -69,8 +70,9 @@ defmodule Macro.Env do
   @type current_vars :: %{var => var_info}
 
   @typep var_info :: {version :: non_neg_integer, type_info :: term}
-  @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
   @typep vars :: [var]
+  @typep unused_vars :: %{{var, version :: non_neg_integer} => non_neg_integer | false}
+  @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
 
   @type t :: %{
           __struct__: __MODULE__,
@@ -86,6 +88,7 @@ defmodule Macro.Env do
           macro_aliases: aliases,
           context_modules: context_modules,
           vars: vars,
+          unused_vars: unused_vars,
           current_vars: current_vars,
           prematch_vars: prematch_vars,
           lexical_tracker: lexical_tracker
@@ -107,6 +110,7 @@ defmodule Macro.Env do
       macro_aliases: [],
       context_modules: [],
       vars: [],
+      unused_vars: %{},
       current_vars: %{},
       prematch_vars: :warn,
       lexical_tracker: nil

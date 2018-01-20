@@ -202,12 +202,12 @@ expand({quote, Meta, [_, _]}, E) ->
 expand({'&', Meta, [Arg]}, E) ->
   assert_no_match_or_guard_scope(Meta, "&", E),
   case elixir_fn:capture(Meta, Arg, E) of
-    {remote, Remote, Fun, Arity} ->
+    {{remote, Remote, Fun, Arity}, EE} ->
       is_atom(Remote) andalso
         elixir_lexical:record_remote(Remote, Fun, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
-      {{'&', Meta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, E};
-    {local, Fun, Arity} ->
-      {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, E};
+      {{'&', Meta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, EE};
+    {{local, Fun, Arity}, EE} ->
+      {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, EE};
     {expand, Expr, EE} ->
       expand(Expr, EE)
   end;
@@ -256,6 +256,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
     end,
 
   validate_opts(Meta, for, [do, into, uniq], Block, E),
+
   {Expr, Opts} =
     case lists:keytake(do, 1, Block) of
       {value, {do, Do}, DoOpts} ->
@@ -272,9 +273,9 @@ expand({for, Meta, [_ | _] = Args}, E) ->
 
   {EOpts, EO} = expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand_for/2, EO, Cases),
-  {EExpr, _} = expand(Expr, EC),
+  {EExpr, EE} = expand(Expr, EC),
   assert_generator_start(Meta, ECases, E),
-  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, E};
+  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, elixir_env:merge_and_check_unused_vars(E, EE)};
 
 %% With
 
@@ -328,37 +329,48 @@ expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, ?key(E, file), ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  #{vars := Vars, current_vars := Current, prematch_vars := Prematch} = E,
+  #{unused_vars := Unused, current_vars := Current, prematch_vars := Prematch} = E,
   Pair = {Name, var_context(Meta, Kind)},
   PrematchVersion = var_version(Prematch, Pair),
 
-  NewCurrent =
+  EE =
     case Current of
       %% Variable is being overridden now
       #{Pair := {PrematchVersion, _}} ->
-        Current#{Pair := {PrematchVersion + 1, term}};
+        NewUnused = var_unused(Pair, Meta, PrematchVersion + 1, Unused),
+        NewCurrent = Current#{Pair => {PrematchVersion + 1, term}},
+        E#{unused_vars := NewUnused, current_vars := NewCurrent};
 
       %% Variable was already overriden
-      #{Pair := _} ->
+      #{Pair := {CurrentVersion, _}} ->
         maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
-        Current;
+        NewUnused = Unused#{{Pair, CurrentVersion} => false},
+        E#{unused_vars := NewUnused};
 
       %% Variable defined for the first time
       _ ->
-        Current#{Pair => {0, term}}
+        NewVars = ordsets:add_element(Pair, ?key(E, vars)),
+        NewUnused = var_unused(Pair, Meta, 0, Unused),
+        NewCurrent = Current#{Pair => {0, term}},
+        E#{vars := NewVars, unused_vars := NewUnused, current_vars := NewCurrent}
     end,
 
-  %% Deprecated variable handling
-  NewVars = ordsets:add_element(Pair, Vars),
-
-  {Var, E#{vars := NewVars, current_vars := NewCurrent}};
-expand({Name, Meta, Kind} = Var, #{current_vars := Current} = E) when is_atom(Name), is_atom(Kind) ->
+  {Var, EE};
+expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
+  #{unused_vars := Unused, current_vars := Current} = E,
   Pair = {Name, var_context(Meta, Kind)},
 
   case Current of
-    #{Pair := _} ->
+    #{Pair := {Version, _}} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
-      {Var, E};
+      UnusedKey = {Pair, Version},
+
+      case Unused of
+        #{UnusedKey := Entry} when Entry /= false ->
+          {Var, E#{unused_vars := Unused#{UnusedKey := false}}};
+        _ ->
+          {Var, E}
+      end;
 
     _ ->
       case lists:keyfind(var, 1, Meta) of
@@ -468,12 +480,12 @@ expand(Other, E) ->
 
 %% Helpers
 
-escape_env_entries(Meta, #{current_vars := CurrentVars} = Env0) ->
+escape_env_entries(Meta, #{unused_vars := Unused, current_vars := Current} = Env0) ->
   Env1 = case Env0 of
     #{function := nil} -> Env0;
     _ -> Env0#{lexical_tracker := nil}
   end,
-  Env2 = Env1#{current_vars := escape_map(CurrentVars)},
+  Env2 = Env1#{unused_vars := escape_map(Unused), current_vars := escape_map(Current)},
   Env3 = elixir_env:linify({?line(Meta), Env2}),
   Env3.
 
@@ -570,6 +582,12 @@ expand_args(Args, E) ->
   {EArgs, elixir_env:mergea(EV, EC)}.
 
 %% Match/var helpers
+
+var_unused({_Name, Kind} = Pair, Meta, Version, Unused) ->
+  case (Kind == nil) andalso should_warn(Meta) of
+    true -> Unused#{{Pair, Version} => ?line(Meta)};
+    false -> Unused
+  end.
 
 var_version(Map, Pair) ->
   case Map of
