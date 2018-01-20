@@ -20,9 +20,8 @@ new() ->
     macro_aliases => [],                   %% keep aliases defined inside a macro
     context_modules => [],                 %% modules defined in the current context
     vars => [],                            %% a set of defined variables
-    match_vars => warn,                    %% handling of new variables
     current_vars => #{},                   %% a map with current vars
-    prematch_vars => nil,                  %% a copy of variables defined before the current match
+    prematch_vars => warn,                 %% behaviour outside and inside matches
     lexical_tracker => nil}.               %% holds the lexical tracker PID}.
 
 linify({Line, Env}) ->
@@ -31,7 +30,7 @@ linify(#{} = Env) ->
   Env.
 
 with_vars(Env, Vars) ->
-  CurrentVars = maps:from_list([{Var, {0, used}} || Var <- Vars]),
+  CurrentVars = maps:from_list([{Var, {0, term}} || Var <- Vars]),
   Env#{vars := Vars, current_vars := CurrentVars}.
 
 env_to_scope(#{context := Context}) ->
@@ -61,7 +60,10 @@ mergev(#{vars := V1, current_vars := CV1}, #{vars := V2, current_vars := CV2} = 
 %% and everything else are passed forward).
 
 mergea(E1, E2) ->
-  E2#{vars := ?key(E1, vars)}.
+  E2#{
+    vars := ?key(E1, vars),
+    current_vars := ?key(E1, current_vars)
+  }.
 
 merge_vars(V1, V2) ->
   ordsets:union(V1, V2).
