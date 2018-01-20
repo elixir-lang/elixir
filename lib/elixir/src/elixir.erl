@@ -252,7 +252,7 @@ eval_forms(Tree, Binding, E) ->
   eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
 eval_forms(Tree, Binding, Env, Scope) ->
   {ParsedBinding, ParsedVars, ParsedScope} = elixir_erl_var:load_binding(Binding, Scope),
-  ParsedEnv = Env#{vars := ParsedVars},
+  ParsedEnv = elixir_env:with_vars(Env, ParsedVars),
   {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
   case Erl of

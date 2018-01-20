@@ -176,7 +176,7 @@ translate({with, Meta, [_ | _] = Args}, S) ->
 
 translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_context(VarMeta, Kind)},
-  {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_erl.backup_vars),
+  {ok, {Value, _Counter}} = maps:find(Tuple, S#elixir_erl.backup_vars),
 
   PAnn = ?ann(?generated(Meta)),
   PVar = {var, PAnn, Value},
