@@ -25,20 +25,21 @@ defmodule Kernel.WarningTest do
   test "unused variable" do
     output =
       capture_err(fn ->
-        Code.eval_string("""
-        top = 1
+        # Note we use compile_string because eval_string does not emit unused vars warning
+        Code.compile_string("""
         defmodule Sample do
+          module = 1
           def hello(arg), do: nil
         end
-        bottom = 2
-        bottom = 3
-        bottom
+        file = 2
+        file = 3
+        file
         """)
       end)
 
-    assert output =~ "variable \"bottom\" is unused"
-    assert output =~ "variable \"top\" is unused"
     assert output =~ "variable \"arg\" is unused"
+    assert output =~ "variable \"module\" is unused"
+    assert output =~ "variable \"file\" is unused"
   after
     purge(Sample)
   end
@@ -47,88 +48,110 @@ defmodule Kernel.WarningTest do
     message = "variable \"x\" is unused"
 
     assert capture_err(fn ->
-      assert_raise CompileError, ~r/undefined function x/, fn ->
-        Code.eval_string("""
-        case false do
-          true -> x = 1
-          _ -> 1
-        end
-        x
-        """)
-      end
-    end) =~ message
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               case false do
+                 true -> x = 1
+                 _ -> 1
+               end
+               x
+               """)
+             end
+           end) =~ message
 
     assert capture_err(fn ->
-      assert_raise CompileError, ~r/undefined function x/, fn ->
-        Code.eval_string("""
-        false and (x = 1)
-        x
-        """)
-      end
-    end) =~ message
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               false and (x = 1)
+               x
+               """)
+             end
+           end) =~ message
 
     assert capture_err(fn ->
-      assert_raise CompileError, ~r/undefined function x/, fn ->
-        Code.eval_string("""
-        true or (x = 1)
-        x
-        """)
-      end
-    end) =~ message
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               true or (x = 1)
+               x
+               """)
+             end
+           end) =~ message
 
     assert capture_err(fn ->
-      assert_raise CompileError, ~r/undefined function x/, fn ->
-        Code.eval_string("""
-        if false do
-          x = 1
-        end
-        x
-        """)
-      end
-    end) =~ message
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               if false do
+                 x = 1
+               end
+               x
+               """)
+             end
+           end) =~ message
 
     assert capture_err(fn ->
-      assert_raise CompileError, ~r/undefined function x/, fn ->
-        Code.eval_string("""
-        cond do
-          false -> x = 1
-          true -> 1
-        end
-        x
-        """)
-      end
-    end) =~ message
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               cond do
+                 false -> x = 1
+                 true -> 1
+               end
+               x
+               """)
+             end
+           end) =~ message
 
     assert capture_err(fn ->
-      assert_raise CompileError, ~r/undefined function x/, fn ->
-        Code.eval_string("""
-        receive do
-          :foo -> x = 1
-        after
-          0 -> 1
-        end
-        x
-        """)
-      end
-    end) =~ message
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               receive do
+                 :foo -> x = 1
+               after
+                 0 -> 1
+               end
+               x
+               """)
+             end
+           end) =~ message
 
     assert capture_err(fn ->
-      assert_raise CompileError, ~r/undefined function x/, fn ->
-        Code.eval_string("""
-        false && (x = 1)
-        x
-        """)
-      end
-    end) =~ message
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               false && (x = 1)
+               x
+               """)
+             end
+           end) =~ message
 
     assert capture_err(fn ->
-      assert_raise CompileError, ~r/undefined function x/, fn ->
-        Code.eval_string("""
-        true || (x = 1)
-        x
-        """)
-      end
-    end) =~ message
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               true || (x = 1)
+               x
+               """)
+             end
+           end) =~ message
+
+    assert capture_err(fn ->
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               with true <- true do
+                 x = false
+               end
+               x
+               """)
+             end
+           end) =~ message
+
+    assert capture_err(fn ->
+             assert_raise CompileError, ~r/undefined function x/, fn ->
+               Code.eval_string("""
+               fn ->
+                 x = true
+               end
+               x
+               """)
+             end
+           end) =~ message
   end
 
   test "unused variable in redefined function in different file" do
