@@ -71,10 +71,8 @@ merge_vars(V1, V2) ->
 merge_current_vars(V, V) -> V;
 merge_current_vars(V1, V2) ->
   maps:fold(fun(K, M2, Acc) ->
-    V =
-      case Acc of
-        #{K := M1} when M1 > M2 -> M1;
-        _ -> M2
-      end,
-    maps:put(K, V, Acc)
+    case Acc of
+      #{K := M1} when M1 >= M2 -> Acc;
+      _ -> maps:put(K, M2, Acc)
+    end
   end, V1, V2).
