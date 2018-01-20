@@ -444,6 +444,7 @@ defmodule DynamicSupervisor do
       an empty list.
 
   """
+  @since "1.6.0"
   @spec init([init_option]) :: {:ok, map()}
   def init(options) when is_list(options) do
     unless strategy = options[:strategy] do
@@ -469,7 +470,6 @@ defmodule DynamicSupervisor do
   ## Callbacks
 
   @impl true
-  @since "1.6.0"
   def init({mod, args, name}) do
     Process.put(:"$initial_call", {:supervisor, mod, 1})
     Process.flag(:trap_exit, true)
@@ -532,7 +532,6 @@ defmodule DynamicSupervisor do
   defp validate_extra_arguments(extra), do: {:error, {:invalid_extra_arguments, extra}}
 
   @impl true
-  @since "1.6.0"
   def handle_call(:which_children, _from, state) do
     %{children: children} = state
 
@@ -645,13 +644,11 @@ defmodule DynamicSupervisor do
   defp exit_reason(:throw, value, stack), do: {{:nocatch, value}, stack}
 
   @impl true
-  @since "1.6.0"
   def handle_cast(_msg, state) do
     {:noreply, state}
   end
 
   @impl true
-  @since "1.6.0"
   def handle_info({:EXIT, pid, reason}, state) do
     case maybe_restart_child(pid, reason, state) do
       {:ok, state} -> {:noreply, state}
@@ -684,7 +681,6 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
-  @since "1.6.0"
   def code_change(_, %{mod: mod, args: args} = state, _) do
     case mod.init(args) do
       {:ok, flags} when is_map(flags) ->
@@ -702,7 +698,6 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
-  @since "1.6.0"
   def terminate(_, %{children: children} = state) do
     :ok = terminate_children(children, state)
   end
@@ -947,7 +942,6 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
-  @since "1.6.0"
   def format_status(:terminate, [_pdict, state]) do
     state
   end
