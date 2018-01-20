@@ -128,7 +128,7 @@ defmodule IEx.Evaluator do
 
   defp loop_state(server, history, opts) do
     env = opts[:env] || :elixir.env_for_eval(file: "iex")
-    env = %{env | match_vars: :apply}
+    env = %{env | prematch_vars: :apply}
     {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
     stacktrace = opts[:stacktrace]
 

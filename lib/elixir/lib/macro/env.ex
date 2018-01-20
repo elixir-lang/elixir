@@ -44,11 +44,9 @@ defmodule Macro.Env do
 
   The following fields are private and must not be accessed or relied on:
 
-    * `match_vars` - controls how "new" variables are handled. Inside a
-      match it is a list with all variables in a match. Outside of a match
-      is either `:warn`, `:apply`, `:pin` or `:raise`
-    * `prematch_vars` - a copy of current_vars when inside a match (is
-      `nil` when not inside a match)
+    * `prematch_vars` - controls how variables are handled outside of matches.
+      It is either `:warn`, `:apply`, `:pin` or `:raise`. Inside a match it is
+      a copy of current_vars
 
   The following fields are deprecated and must not be accessed or relied on:
 
@@ -70,9 +68,8 @@ defmodule Macro.Env do
   @type var :: {atom, atom | non_neg_integer}
   @type current_vars :: %{var => var_info}
 
-  @typep var_info :: {version :: non_neg_integer, line_or_used :: :used | non_neg_integer}
-  @typep prematch_vars :: current_vars | nil
-  @typep match_vars :: [var] | :warn | :raise | :pin | :apply
+  @typep var_info :: {version :: non_neg_integer, type_info :: term}
+  @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
   @typep vars :: [var]
 
   @type t :: %{
@@ -89,7 +86,6 @@ defmodule Macro.Env do
           macro_aliases: aliases,
           context_modules: context_modules,
           vars: vars,
-          match_vars: match_vars,
           current_vars: current_vars,
           prematch_vars: prematch_vars,
           lexical_tracker: lexical_tracker
@@ -111,9 +107,8 @@ defmodule Macro.Env do
       macro_aliases: [],
       context_modules: [],
       vars: [],
-      match_vars: :warn,
       current_vars: %{},
-      prematch_vars: nil,
+      prematch_vars: :warn,
       lexical_tracker: nil
     }
   end
@@ -142,7 +137,7 @@ defmodule Macro.Env do
   end
 
   def to_match(%{__struct__: Macro.Env, current_vars: vars} = env) do
-    %{env | context: :match, match_vars: [], prematch_vars: vars}
+    %{env | context: :match, prematch_vars: vars}
   end
 
   @doc """
