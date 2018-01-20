@@ -476,6 +476,7 @@ defmodule Code do
   user formatting). In such cases, the code formatter will always format to
   the latter.
   """
+  @since "1.6.0"
   @spec format_string!(binary, keyword) :: iodata
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
     line_length = Keyword.get(opts, :line_length, 98)
@@ -489,6 +490,7 @@ defmodule Code do
   See `format_string!/2` for more information on code formatting and
   available options.
   """
+  @since "1.6.0"
   @spec format_file!(binary, keyword) :: iodata
   def format_file!(file, opts \\ []) when is_binary(file) and is_list(opts) do
     string = File.read!(file)

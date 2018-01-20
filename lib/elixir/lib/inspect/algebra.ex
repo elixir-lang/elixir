@@ -358,6 +358,7 @@ defmodule Inspect.Algebra do
       "[1! 2! 3! ...]"
 
   """
+  @since "1.6.0"
   @spec container_doc(t, [any], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
           t
   def container_doc(left, collection, right, inspect, fun, opts \\ [])
@@ -485,6 +486,7 @@ defmodule Inspect.Algebra do
       ["olá", " ", "mundo"]
 
   """
+  @since "1.6.0"
   @spec string(String.t()) :: doc_string
   def string(string) when is_binary(string) do
     doc_string(string, String.length(string))
@@ -608,6 +610,7 @@ defmodule Inspect.Algebra do
   Collapse any new lines and whitespace following this
   node, emitting up to `max` new lines.
   """
+  @since "1.6.0"
   @spec collapse_lines(pos_integer) :: doc_collapse
   def collapse_lines(max) when is_integer(max) and max > 0 do
     doc_collapse(max)
@@ -654,6 +657,7 @@ defmodule Inspect.Algebra do
       })
 
   """
+  @since "1.6.0"
   @spec next_break_fits(t) :: doc_fits
   def next_break_fits(doc, mode \\ @next_break_fits)
       when is_doc(doc) and mode in [:enabled, :disabled] do
@@ -663,6 +667,7 @@ defmodule Inspect.Algebra do
   @doc """
   Forces the current group to be unfit.
   """
+  @since "1.6.0"
   @spec force_unfit(t) :: doc_force
   def force_unfit(doc) when is_doc(doc) do
     doc_force(doc)
@@ -696,6 +701,7 @@ defmodule Inspect.Algebra do
   This function is used by `container_doc/4` and friends to the
   maximum number of entries on the same line.
   """
+  @since "1.6.0"
   @spec flex_break(binary) :: doc_break
   def flex_break(string \\ " ") when is_binary(string) do
     doc_break(string, :flex)
@@ -708,6 +714,7 @@ defmodule Inspect.Algebra do
   This function is used by `container_doc/6` and friends
   to the maximum number of entries on the same line.
   """
+  @since "1.6.0"
   @spec flex_glue(t, binary, t) :: t
   def flex_glue(doc1, break_string \\ " ", doc2) when is_binary(break_string) do
     concat(doc1, concat(flex_break(break_string), doc2))
@@ -803,6 +810,7 @@ defmodule Inspect.Algebra do
     ["Hughes", "\n", "Wadler"]
 
   """
+  @since "1.6.0"
   @spec line() :: t
   def line(), do: :doc_line
 

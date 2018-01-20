@@ -308,6 +308,7 @@ defmodule NaiveDateTime do
       ~N[2017-11-06 00:23:51]
 
   """
+  @since "1.6.0"
   @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
   def truncate(%NaiveDateTime{microsecond: microsecond} = ndatetime, precision) do
     %{ndatetime | microsecond: Calendar.truncate(microsecond, precision)}

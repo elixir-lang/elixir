@@ -242,6 +242,7 @@ defmodule Calendar do
   Returns a microsecond tuple truncated to a given precision (`:microsecond`,
   `:millisecond` or `:second`).
   """
+  @since "1.6.0"
   @spec truncate(Calendar.microsecond(), :microsecond | :millisecond | :second) ::
           Calendar.microsecond()
   def truncate(microsecond_tuple, :microsecond), do: microsecond_tuple
