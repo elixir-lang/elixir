@@ -12,7 +12,7 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
   Current =
     case maps:find(Tuple, S#elixir_erl.vars) of
-      {ok, {VarC, _}} -> VarC;
+      {ok, {_, VarC}} -> VarC;
       error -> nil
     end,
 
@@ -20,7 +20,7 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
     match ->
       Previous =
         case maps:find(Tuple, S#elixir_erl.backup_vars) of
-          {ok, {BackupVarC, _}} -> BackupVarC;
+          {ok, {_, BackupVarC}} -> BackupVarC;
           error -> nil
         end,
 
@@ -45,7 +45,7 @@ assign(Meta, Name, Kind, S) ->
         build(Name, S)
     end,
 
-  FS = NS#elixir_erl{vars=maps:put(Tuple, {NewVar, Counter}, S#elixir_erl.vars)},
+  FS = NS#elixir_erl{vars=maps:put(Tuple, {Counter, NewVar}, S#elixir_erl.vars)},
   {{var, ?ann(Meta), NewVar}, FS}.
 
 build(Key, #elixir_erl{counter=Counter} = S) ->
@@ -73,21 +73,18 @@ mergec(S1, S2) ->
   S1#elixir_erl{
     counter=S2#elixir_erl.counter,
     caller=S2#elixir_erl.caller
- }.
+  }.
 
 merge_vars(V, V) -> V;
 merge_vars(V1, V2) ->
   maps:fold(fun(K, M2, Acc) ->
     V =
       case Acc of
-        #{K := M1} -> var_merge(M1, M2);
+        #{K := M1} when M1 > M2 -> M1;
         _ -> M2
       end,
     maps:put(K, V, Acc)
   end, V1, V2).
-
-var_merge({_, C1} = K1, {_, C2}) when C1 > C2 -> K1;
-var_merge(_K1, K2) -> K2.
 
 %% BINDINGS
 
@@ -107,13 +104,13 @@ load_binding([{Key, Value} | T], Binding, Keys, Vars, Counter) ->
   load_binding(T,
     orddict:store(InternalName, Value, Binding),
     ordsets:add_element(Actual, Keys),
-    maps:put(Actual, {InternalName, 0}, Vars), Counter + 1);
+    maps:put(Actual, {0, InternalName}, Vars), Counter + 1);
 load_binding([], Binding, Keys, Vars, Counter) ->
   {Binding, Keys, Vars, Counter}.
 
 dump_binding(Binding, #elixir_erl{vars=Vars}) ->
   maps:fold(fun
-    ({Var, Kind} = Key, {InternalName, _}, Acc) when is_atom(Kind) ->
+    ({Var, Kind} = Key, {_, InternalName}, Acc) when is_atom(Kind) ->
       Actual = case Kind of
         nil -> Var;
         _   -> Key

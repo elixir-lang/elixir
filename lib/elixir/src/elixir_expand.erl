@@ -302,16 +302,15 @@ expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
 %% Vars
 
 expand({'^', Meta, [Arg]}, #{context := match} = E) ->
-  #{match_vars := Match, current_vars := Current, prematch_vars := Prematch} = E,
+  #{current_vars := Current, prematch_vars := Prematch} = E,
 
   %% We need to rollback to a no match context.
-  NoMatchE = E#{context := nil, current_vars := Prematch, prematch_vars := nil, match_vars := pin},
+  NoMatchE = E#{context := nil, current_vars := Prematch, prematch_vars := pin},
 
   case expand(Arg, NoMatchE) of
     {{Name, _, Kind} = Var, ExpandedE} when is_atom(Name), is_atom(Kind) ->
       EA = ExpandedE#{
         context := match,
-        match_vars := Match,
         current_vars := Current,
         prematch_vars := ?key(ExpandedE, current_vars)
       },
@@ -328,66 +327,63 @@ expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
 expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, ?key(E, file), ?MODULE, unbound_underscore);
 
-expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  #{vars := Vars, match_vars := Match, current_vars := Current} = E,
+expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
+  #{vars := Vars, current_vars := Current, prematch_vars := Prematch} = E,
   Pair = {Name, var_context(Meta, Kind)},
+  PrematchVersion = var_version(Prematch, Pair),
 
-  {NewMatch, NewCurrent, Version} =
-    case lists:member(Pair, Match) of
-      true ->
+  NewCurrent =
+    case Current of
+      %% Variable is being overridden now
+      #{Pair := {PrematchVersion, _}} ->
+        Current#{Pair := {PrematchVersion + 1, term}};
+
+      %% Variable was already overriden
+      #{Pair := _} ->
         maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
-        #{Pair := {CurrentVersion, _}} = Current,
-        {Match, Current, CurrentVersion};
-      false ->
-        NewVersion = var_version(Current, Pair) + 1,
-        {[Pair | Match], maps:put(Pair, {NewVersion, var_line_or_used(Meta)}, Current), NewVersion}
+        Current;
+
+      %% Variable defined for the first time
+      _ ->
+        Current#{Pair => {0, term}}
     end,
 
   %% Deprecated variable handling
   NewVars = ordsets:add_element(Pair, Vars),
 
-  Var = {Name, [{version, Version} | Meta], Kind},
-  {Var, E#{vars := NewVars, match_vars := NewMatch, current_vars := NewCurrent}};
-expand({Name, Meta, Kind}, #{current_vars := Current} = E) when is_atom(Name), is_atom(Kind) ->
+  {Var, E#{vars := NewVars, current_vars := NewCurrent}};
+expand({Name, Meta, Kind} = Var, #{current_vars := Current} = E) when is_atom(Name), is_atom(Kind) ->
   Pair = {Name, var_context(Meta, Kind)},
 
-  {Version, VE} =
-    case Current of
-      #{Pair := {PairVersion, used}} ->
-        {PairVersion, E};
-      #{Pair := {PairVersion, _}} ->
-        {PairVersion, E#{current_vars := maps:put(Pair, {PairVersion, used}, Current)}};
-      _ ->
-        {false, E}
-    end,
+  case Current of
+    #{Pair := _} ->
+      maybe_warn_underscored_var_access(Meta, Name, Kind, E),
+      {Var, E};
 
-  case Version of
-    false ->
+    _ ->
       case lists:keyfind(var, 1, Meta) of
         {var, true} ->
-          form_error(Meta, ?key(VE, file), ?MODULE, {undefined_var_bang, Name, Kind});
+          form_error(Meta, ?key(E, file), ?MODULE, {undefined_var_bang, Name, Kind});
+
         _ ->
-          case ?key(E, match_vars) of
+          case ?key(E, prematch_vars) of
             warn ->
               Message =
                 io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                   " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),
-              elixir_errors:warn(?line(Meta), ?key(E, file), Message);
+              elixir_errors:warn(?line(Meta), ?key(E, file), Message),
+              expand({Name, Meta, []}, E);
 
             raise ->
-              form_error(Meta, ?key(VE, file), ?MODULE, {undefined_var, Name, Kind});
+              form_error(Meta, ?key(E, file), ?MODULE, {undefined_var, Name, Kind});
 
             pin ->
-              form_error(Meta, ?key(VE, file), ?MODULE, {undefined_var_pin, Name, Kind});
+              form_error(Meta, ?key(E, file), ?MODULE, {undefined_var_pin, Name, Kind});
 
             apply ->
-              ok
-          end,
-          expand({Name, Meta, []}, VE)
-      end;
-    _ ->
-      maybe_warn_underscored_var_access(Meta, Name, Kind, VE),
-      {{Name, [{version, Version} | Meta], Kind}, VE}
+              expand({Name, Meta, []}, E)
+          end
+      end
   end;
 
 %% Local calls
@@ -574,12 +570,6 @@ expand_args(Args, E) ->
   {EArgs, elixir_env:mergea(EV, EC)}.
 
 %% Match/var helpers
-
-var_line_or_used(Meta) ->
-  case should_warn(Meta) of
-    true -> ?line(Meta);
-    false -> used
-  end.
 
 var_version(Map, Pair) ->
   case Map of
