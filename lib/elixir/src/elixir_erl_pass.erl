@@ -121,8 +121,7 @@ translate({'cond', CondMeta, [[{do, Clauses}]]}, S) ->
 %% Case
 
 translate({'case', Meta, [Expr, Opts]}, S) ->
-  ShouldExportVars = proplists:get_value(export_vars, Meta, true),
-  translate_case(ShouldExportVars, Meta, Expr, Opts, S);
+  translate_case(Meta, Expr, Opts, S);
 
 %% Try
 
@@ -142,7 +141,7 @@ translate({'try', Meta, [Opts]}, S) ->
   end,
 
   Else = elixir_erl_clauses:get_clauses(else, Opts, match),
-  {TElse, SE} = elixir_erl_clauses:clauses(Meta, Else, mergec(S, SA)),
+  {TElse, SE} = elixir_erl_clauses:clauses(Else, mergec(S, SA)),
   {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, mergec(S, SE)};
 
 %% Receive
@@ -152,11 +151,11 @@ translate({'receive', Meta, [Opts]}, S) ->
 
   case lists:keyfind('after', 1, Opts) of
     false ->
-      {TClauses, SC} = elixir_erl_clauses:clauses(Meta, Do, S),
+      {TClauses, SC} = elixir_erl_clauses:clauses(Do, S),
       {{'receive', ?ann(Meta), TClauses}, SC};
     _ ->
       After = elixir_erl_clauses:get_clauses('after', Opts, expr),
-      {TClauses, SC} = elixir_erl_clauses:clauses(Meta, Do ++ After, S),
+      {TClauses, SC} = elixir_erl_clauses:clauses(Do ++ After, S),
       {FClauses, TAfter} = elixir_utils:split_last(TClauses),
       {_, _, [FExpr], _, FAfter} = TAfter,
       {{'receive', ?ann(Meta), FClauses, FExpr, FAfter}, SC}
@@ -175,10 +174,9 @@ translate({with, Meta, [_ | _] = Args}, S) ->
 
 %% Variables
 
-translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
+translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_context(VarMeta, Kind)},
-  {ok, {Value, _Counter, Safe}} = maps:find(Tuple, S#elixir_erl.backup_vars),
-  elixir_erl_var:warn_unsafe_var(VarMeta, File, Name, Safe),
+  {ok, {_Counter, Value}} = maps:find(Tuple, S#elixir_erl.backup_vars),
 
   PAnn = ?ann(?generated(Meta)),
   PVar = {var, PAnn, Value},
@@ -262,14 +260,11 @@ translate(Other, S) ->
 
 %% Helpers
 
-translate_case(true, Meta, Expr, Opts, S) ->
+translate_case(Meta, Expr, Opts, S) ->
   Clauses = elixir_erl_clauses:get_clauses(do, Opts, match),
   {TExpr, SE} = translate(Expr, S),
-  {TClauses, SC} = elixir_erl_clauses:clauses(Meta, Clauses, SE),
-  {{'case', ?ann(Meta), TExpr, TClauses}, SC};
-translate_case(false, Meta, Expr, Opts, S) ->
-  {Case, SC} = translate_case(true, Meta, Expr, Opts, S),
-  {Case, elixir_erl_var:mergec(S, SC)}.
+  {TClauses, SC} = elixir_erl_clauses:clauses(Clauses, SE),
+  {{'case', ?ann(Meta), TExpr, TClauses}, SC}.
 
 translate_list([{'|', _, [_, _]=Args}], Fun, Acc, List) ->
   {[TLeft, TRight], TAcc} = lists:mapfoldl(Fun, Acc, Args),
@@ -398,7 +393,7 @@ translate_with_else(Meta, [{else, Else}], S) ->
 
   GeneratedElse = [build_generated_clause(Generated, ElseClause) || ElseClause <- Else],
 
-  Case = {'case', [{export_vars, false} | Generated], [ElseVarEx, [{do, GeneratedElse ++ [RaiseClause]}]]},
+  Case = {'case', Generated, [ElseVarEx, [{do, GeneratedElse ++ [RaiseClause]}]]},
   {TranslatedCase, SC} = elixir_erl_pass:translate(Case, SV),
   {{clause, ?ann(Generated), [ElseVarErl], [], [TranslatedCase]}, SC}.
 

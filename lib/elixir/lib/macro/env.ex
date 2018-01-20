@@ -38,17 +38,20 @@ defmodule Macro.Env do
     * `context_modules` - a list of modules defined in the current context
     * `lexical_tracker` - PID of the lexical tracker which is responsible for
       keeping user info
-    * `vars` - a list keeping all defined variables as `{var, context}`
+    * `current_vars` - a map with the variables defined so far. The keys are
+      `{var, context}` and the values are opaque information that should not
+      be relied on
 
   The following fields are private and must not be accessed or relied on:
 
-    * `export_vars` - a list keeping all variables to be exported in a
-      construct (may be `nil`)
-    * `match_vars` - controls how "new" variables are handled. Inside a
-      match it is a list with all variables in a match. Outside of a match
-      is either `:warn` or `:apply`
-    * `prematch_vars` - a list of variables defined before a match (is
-      `nil` when not inside a match)
+    * `unused_vars` - controls which variables have not been used yet
+    * `prematch_vars` - controls how variables are handled outside of matches.
+      It is either `:warn`, `:apply`, `:pin` or `:raise`. Inside a match it is
+      a copy of current_vars
+
+  The following fields are deprecated and must not be accessed or relied on:
+
+    * `vars` - a list keeping all defined variables as `{var, context}`
 
   """
 
@@ -62,13 +65,14 @@ defmodule Macro.Env do
   @type functions :: [{module, [name_arity]}]
   @type macros :: [{module, [name_arity]}]
   @type context_modules :: [module]
-  @type vars :: [{atom, atom | non_neg_integer}]
   @type lexical_tracker :: pid | nil
-  @type local :: atom | nil
+  @type var :: {atom, atom | non_neg_integer}
+  @type current_vars :: %{var => var_info}
 
-  @opaque export_vars :: vars | nil
-  @opaque match_vars :: vars | :warn | :apply
-  @opaque prematch_vars :: vars | nil
+  @typep var_info :: {version :: non_neg_integer, type_info :: term}
+  @typep vars :: [var]
+  @typep unused_vars :: %{{var, version :: non_neg_integer} => non_neg_integer | false}
+  @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
 
   @type t :: %{
           __struct__: __MODULE__,
@@ -84,12 +88,13 @@ defmodule Macro.Env do
           macro_aliases: aliases,
           context_modules: context_modules,
           vars: vars,
-          export_vars: export_vars,
-          match_vars: match_vars,
+          unused_vars: unused_vars,
+          current_vars: current_vars,
           prematch_vars: prematch_vars,
           lexical_tracker: lexical_tracker
         }
 
+  # TODO: Remove :vars field
   def __struct__ do
     %{
       __struct__: __MODULE__,
@@ -105,10 +110,10 @@ defmodule Macro.Env do
       macro_aliases: [],
       context_modules: [],
       vars: [],
-      lexical_tracker: nil,
-      export_vars: nil,
-      match_vars: :warn,
-      prematch_vars: nil
+      unused_vars: %{},
+      current_vars: %{},
+      prematch_vars: :warn,
+      lexical_tracker: nil
     }
   end
 
@@ -135,8 +140,8 @@ defmodule Macro.Env do
     env
   end
 
-  def to_match(%{__struct__: Macro.Env, prematch_vars: nil, vars: vars} = env) do
-    %{env | context: :match, match_vars: [], prematch_vars: vars}
+  def to_match(%{__struct__: Macro.Env, current_vars: vars} = env) do
+    %{env | context: :match, prematch_vars: vars}
   end
 
   @doc """

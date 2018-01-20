@@ -65,9 +65,10 @@ eval_forms(Forms, Vars, E) ->
   end.
 
 compile(Forms, Vars, #{line := Line, file := File} = E) ->
-  Dict = [{{Name, Kind}, {Value, 0, true}} || {Name, Kind, Value, _} <- Vars],
+  Dict = [{{Name, Kind}, {0, Value}} || {Name, Kind, Value, _} <- Vars],
   S = elixir_env:env_to_scope_with_vars(E, Dict),
   {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
+  elixir_env:check_unused_vars(EE),
 
   {Module, I} = retrieve_compiler_module(),
   Fun  = code_fun(?key(E, module)),

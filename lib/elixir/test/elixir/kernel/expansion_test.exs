@@ -213,7 +213,7 @@ defmodule Kernel.ExpansionTest do
 
     test "__ENV__" do
       env = %{__ENV__ | line: 0}
-      assert expand_env(quote(do: __ENV__), env) == {{:%{}, [], Map.to_list(env)}, env}
+      assert expand_env(quote(do: __ENV__), env) == {Macro.escape(env), env}
     end
 
     test "__ENV__.accessor" do
@@ -221,7 +221,7 @@ defmodule Kernel.ExpansionTest do
       assert expand_env(quote(do: __ENV__.file), env) == {__ENV__.file, env}
 
       assert expand_env(quote(do: __ENV__.unknown), env) ==
-               {quote(do: unquote({:%{}, [], Map.to_list(env)}).unknown), env}
+               {quote(do: unquote(Macro.escape(env)).unknown), env}
     end
   end
 
@@ -295,7 +295,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises when the var is undefined" do
-      assert_raise CompileError, ~r"unknown variable \^foo", fn ->
+      assert_raise CompileError, ~r"undefined variable \^foo", fn ->
         expand(quote(do: ^foo = :foo))
       end
     end
@@ -365,7 +365,7 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: %{x => 1} = %{}))
       end
 
-      assert_raise CompileError, ~r"unknown variable \^x", fn ->
+      assert_raise CompileError, ~r"undefined variable \^x", fn ->
         expand(quote(do: {x, %{^x => 1}} = %{}))
       end
     end
@@ -986,7 +986,7 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
-    test "leaks vars" do
+    test "does not leak vars" do
       before_expansion =
         quote do
           cond do
@@ -1004,7 +1004,7 @@ defmodule Kernel.ExpansionTest do
             2 -> y = 2
           end
 
-          :erlang.+(x, y)
+          :erlang.+(x(), y())
         end
 
       assert expand(before_expansion) == after_expansion
@@ -1155,7 +1155,7 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
-    test "leaks vars" do
+    test "does not leak vars" do
       before_expansion =
         quote do
           case w do
@@ -1173,7 +1173,7 @@ defmodule Kernel.ExpansionTest do
             y -> y = y
           end
 
-          :erlang.+(x, y)
+          :erlang.+(x(), y())
         end
 
       assert expand(before_expansion) == after_expansion
@@ -1322,7 +1322,7 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
-    test "leaks vars" do
+    test "does not leak vars" do
       before_expansion =
         quote do
           receive do
@@ -1340,13 +1340,13 @@ defmodule Kernel.ExpansionTest do
             y -> y = y
           end
 
-          :erlang.+(x, y)
+          :erlang.+(x(), y())
         end
 
       assert expand(before_expansion) == after_expansion
     end
 
-    test "leaks vars on after" do
+    test "does not leak vars on after" do
       before_expansion =
         quote do
           receive do
@@ -1370,7 +1370,7 @@ defmodule Kernel.ExpansionTest do
               w = y()
           end
 
-          :erlang.+(x, w)
+          :erlang.+(x(), w())
         end
 
       assert expand(before_expansion) == after_expansion
@@ -2099,12 +2099,23 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: (foo -> bar)))
     end
 
-    message = ~r"size in bitstring expects an integer or a variable as argument, got: foo\(\)"
+    message = ~r"undefined variable \"foo\""
 
     assert_raise CompileError, message, fn ->
       code =
         quote do
           fn <<_::size(foo)>> -> :ok end
+        end
+
+      expand(code)
+    end
+
+    message = ~r"size in bitstring expects an integer or a variable as argument, got: foo()"
+
+    assert_raise CompileError, message, fn ->
+      code =
+        quote do
+          fn <<_::size(foo())>> -> :ok end
         end
 
       expand(code)
@@ -2132,7 +2143,7 @@ defmodule Kernel.ExpansionTest do
     end)
 
     receive do
-      {:expand_env, result} -> result
+      {:expand_env, {expr, env}} -> {clean_meta(expr, [:version]), env}
     end
   end
 end

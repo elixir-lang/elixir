@@ -50,8 +50,8 @@ compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
   %% we get rid of the lexical tracker information as, at this
   %% point, the lexical tracker process is long gone.
   LexEnv = case ?key(Env, function) of
-    nil -> Env#{module := Module};
-    _   -> Env#{lexical_tracker := nil, function := nil, module := Module}
+    nil -> Env#{module := Module, unused_vars := #{}};
+    _   -> Env#{lexical_tracker := nil, function := nil, module := Module, unused_vars := #{}}
   end,
 
   case ?key(LexEnv, lexical_tracker) of
@@ -222,7 +222,7 @@ build(Line, File, Module, Lexical) ->
 eval_form(Line, Module, Data, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
   Pairs1 = elixir_overridable:store_pending(Module),
-  EV = elixir_env:linify({Line, reset_env(EE)}),
+  EV = elixir_env:linify({Line, elixir_env:reset_vars(EE)}),
   EC = eval_callbacks(Line, Data, before_compile, [EV], EV),
   Pairs2 = elixir_overridable:store_pending(Module),
   OverridablePairs = Pairs1 ++ Pairs2,
@@ -231,7 +231,7 @@ eval_form(Line, Module, Data, Block, Vars, E) ->
 eval_callbacks(Line, Data, Name, Args, E) ->
   Callbacks = ets:lookup_element(Data, Name, 2),
   lists:foldr(fun({M, F}, Acc) ->
-    expand_callback(Line, M, F, Args, reset_env(Acc),
+    expand_callback(Line, M, F, Args, elixir_env:reset_vars(Acc),
                     fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
 
@@ -257,9 +257,6 @@ expand_callback(Line, M, F, Args, E, Fun) ->
           erlang:raise(Kind, Reason, prune_stacktrace(Info, Stacktrace))
       end
   end.
-
-reset_env(Env) ->
-  Env#{vars := [], export_vars := nil}.
 
 %% Add attributes handling to the form
 

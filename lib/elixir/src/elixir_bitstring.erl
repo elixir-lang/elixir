@@ -6,8 +6,8 @@
 expand(Meta, Args, E, RequireSize) ->
   case ?key(E, context) of
     match ->
-      {EArgs, EA} = expand(Meta, fun elixir_expand:expand/2, Args, [], E, RequireSize),
-      {{'<<>>', Meta, EArgs}, EA};
+      {EArgs, EE} = expand(Meta, fun elixir_expand:expand/2, Args, [], E, RequireSize),
+      {{'<<>>', Meta, EArgs}, EE};
     _ ->
       {EArgs, {EC, EV}} = expand(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}, RequireSize),
       {{'<<>>', Meta, EArgs}, elixir_env:mergea(EV, EC)}
@@ -20,14 +20,27 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, RequireSize) 
 
   %% Variables defined outside the binary can be accounted
   %% on subparts, however we can't assign new variables.
-  {ER, MatchSize} =
-    case E of
-      {EExtracted, _} -> {EExtracted, false}; %% expand_arg,  no assigns
-      _ -> {E#{context := nil, match_vars := warn}, T /= []} %% expand, revert assigns
+  {EM, MatchSize} =
+    case EL of
+      %% expand_arg, no assigns
+      {EC1, _} -> {EC1, false};
+
+      %% expand, revert assigns
+      _ -> {EL#{context := nil, prematch_vars := raise}, T /= []}
     end,
 
-  ERight = expand_specs(expr_type(ELeft), Meta, Right, ER, RequireSize or MatchSize),
-  expand(BitstrMeta, Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EL, RequireSize);
+  {ERight, ES} = expand_specs(expr_type(ELeft), Meta, Right, EM, RequireSize or MatchSize),
+
+  EE =
+    case EL of
+      %% no assigns, vars are kept separately
+      {EC2, EV2} -> {EC2, elixir_env:mergev(EV2, ES)};
+
+      %% copy only vars on top
+      _ -> elixir_env:mergea(ES, EL)
+    end,
+
+  expand(BitstrMeta, Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EE, RequireSize);
 expand(BitstrMeta, Fun, [{_, Meta, _} = H | T], Acc, E, RequireSize) ->
   {Expr, ES} = expand_expr(Meta, H, Fun, E),
   expand(BitstrMeta, Fun, T, [wrap_expr(Expr) | Acc], ES, RequireSize);
@@ -82,13 +95,13 @@ expand_specs(ExprType, Meta, Info, E, RequireSize) ->
       sign => default,
       type => default,
       endianness => default},
-  #{size := Size, unit := Unit, type := Type, endianness := Endianness, sign := Sign} =
+  {#{size := Size, unit := Unit, type := Type, endianness := Endianness, sign := Sign}, ES} =
     expand_each_spec(Meta, unpack_specs(Info, []), Default, E),
   MergedType = type(Meta, ExprType, Type, E),
-  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, E),
-  SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, E),
-  [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, SizeAndUnit, E),
-  lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T).
+  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, ES),
+  SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, ES),
+  [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, SizeAndUnit, ES),
+  {lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T), ES}.
 
 type(_, default, default, _) ->
   integer;
@@ -130,8 +143,8 @@ expand_each_spec(Meta, [{Expr, _, Args} = H | T], Map, E) when is_atom(Expr) ->
   end;
 expand_each_spec(Meta, [Expr | _], _Map, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {undefined_bittype, Expr});
-expand_each_spec(_Meta, [], Map, _E) ->
-  Map.
+expand_each_spec(_Meta, [], Map, E) ->
+  {Map, E}.
 
 unpack_specs({'-', _, [H, T]}, Acc) ->
   unpack_specs(H, unpack_specs(T, Acc));

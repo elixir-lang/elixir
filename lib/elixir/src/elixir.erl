@@ -252,7 +252,7 @@ eval_forms(Tree, Binding, E) ->
   eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
 eval_forms(Tree, Binding, Env, Scope) ->
   {ParsedBinding, ParsedVars, ParsedScope} = elixir_erl_var:load_binding(Binding, Scope),
-  ParsedEnv = Env#{vars := ParsedVars},
+  ParsedEnv = elixir_env:with_vars(Env, ParsedVars),
   {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
   case Erl of
@@ -295,7 +295,7 @@ quoted_to_erl(Quoted, Env) ->
 
 quoted_to_erl(Quoted, Env, Scope) ->
   {Expanded, NewEnv} = elixir_expand:expand(Quoted, Env),
-  {Erl, NewScope}    = elixir_erl_pass:translate(Expanded, Scope),
+  {Erl, NewScope} = elixir_erl_pass:translate(Expanded, Scope),
   {Erl, NewEnv, NewScope}.
 
 %% Converts a given string (charlist) into quote expression

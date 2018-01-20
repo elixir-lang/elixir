@@ -60,7 +60,7 @@ if_tracker(Module, Default, Callback) ->
 
 cache_env(#{line := Line, module := Module} = E) ->
   Table = elixir_module:data_table(Module),
-  Cache = E#{line := nil, vars := []},
+  Cache = elixir_env:reset_vars(E#{line := nil}),
 
   Pos =
     case ets:lookup(Table, ?cache) of

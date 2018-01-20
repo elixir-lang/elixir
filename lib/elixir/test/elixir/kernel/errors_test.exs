@@ -235,8 +235,8 @@ defmodule Kernel.ErrorsTest do
                       ~r"nofile:3: definitions with multiple clauses and default values require a header",
                       ~C'''
                       defmodule Kernel.ErrorsTest.ClauseWithDefaults1 do
-                        def hello(arg \\ 0), do: nil
-                        def hello(arg \\ 1), do: nil
+                        def hello(_arg \\ 0), do: nil
+                        def hello(_arg \\ 1), do: nil
                       end
                       '''
 
