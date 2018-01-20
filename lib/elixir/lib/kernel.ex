@@ -3330,7 +3330,8 @@ defmodule Kernel do
     :lists.mapfoldl(fun, acc, list)
   end
 
-  defp ensure_evaled_element(elem, acc) when is_number(elem) or is_atom(elem) or is_binary(elem) do
+  defp ensure_evaled_element(elem, acc)
+       when is_number(elem) or is_atom(elem) or is_binary(elem) do
     {elem, acc}
   end
 

@@ -345,7 +345,7 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
-  test "no parens keywords right on line limit" do
+  test "no parens keywords at the end of the line" do
     bad = """
     defmodule Mod do
       defp token_list_downcase(<<char, rest::binary>>, acc) when is_whitespace(char) or is_comma(char), do: token_list_downcase(rest, acc)
@@ -380,6 +380,25 @@ defmodule Code.Formatter.IntegrationTest do
     """
 
     assert_format bad, good, line_length: 18
+  end
+
+  test "do at the end of the line with single argument" do
+    bad = """
+    defmodule Location do
+      def new(line, column) when is_integer(line) and line >= 0 and is_integer(column) and column >= 0 do
+        %{column: column, line: line}
+      end
+    end
+    """
+
+    assert_format bad, """
+    defmodule Location do
+      def new(line, column)
+          when is_integer(line) and line >= 0 and is_integer(column) and column >= 0 do
+        %{column: column, line: line}
+      end
+    end
+    """
   end
 
   test "tuples as trees" do
