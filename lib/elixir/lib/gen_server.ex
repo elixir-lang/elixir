@@ -885,7 +885,8 @@ defmodule GenServer do
   See `multi_call/4` for more information.
   """
   @spec abcast([node], name :: atom, term) :: :abcast
-  def abcast(nodes \\ [node() | Node.list()], name, request) when is_list(nodes) and is_atom(name) do
+  def abcast(nodes \\ [node() | Node.list()], name, request)
+      when is_list(nodes) and is_atom(name) do
     msg = cast_msg(request)
     _ = for node <- nodes, do: do_send({name, node}, msg)
     :abcast

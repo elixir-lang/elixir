@@ -150,7 +150,8 @@ defmodule MapSet do
   # If the first set is less than twice the size of the second map,
   # it is fastest to re-accumulate items in the first set that are not
   # present in the second set.
-  def difference(%MapSet{map: map1}, %MapSet{map: map2}) when map_size(map1) < map_size(map2) * 2 do
+  def difference(%MapSet{map: map1}, %MapSet{map: map2})
+      when map_size(map1) < map_size(map2) * 2 do
     map =
       map1
       |> Map.keys()

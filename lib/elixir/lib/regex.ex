@@ -465,7 +465,8 @@ defmodule Regex do
     end
   end
 
-  def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) and is_list(opts) do
+  def split(%Regex{re_pattern: compiled}, string, opts)
+      when is_binary(string) and is_list(opts) do
     on = Keyword.get(opts, :on, :first)
 
     case :re.run(string, compiled, [:global, capture: on]) do
@@ -653,7 +654,8 @@ defmodule Regex do
     string
   end
 
-  defp apply_list(whole, string, pos, replacement, [[{mpos, _} | _] | _] = list) when mpos > pos do
+  defp apply_list(whole, string, pos, replacement, [[{mpos, _} | _] | _] = list)
+       when mpos > pos do
     length = mpos - pos
     <<untouched::binary-size(length), rest::binary>> = string
     [untouched | apply_list(whole, rest, mpos, replacement, list)]

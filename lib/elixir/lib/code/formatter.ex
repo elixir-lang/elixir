@@ -276,7 +276,8 @@ defmodule Code.Formatter do
   defp next_eol('\r\n' ++ rest, count), do: next_eol(rest, count + 1)
   defp next_eol(_, count), do: count
 
-  defp previous_eol([{token, {_, _, count}} | _]) when token in [:eol, :",", :";"] and count > 0 do
+  defp previous_eol([{token, {_, _, count}} | _])
+       when token in [:eol, :",", :";"] and count > 0 do
     count
   end
 
@@ -453,7 +454,8 @@ defmodule Code.Formatter do
     {atom_to_algebra(atom), state}
   end
 
-  defp quoted_to_algebra({:__block__, meta, [integer]}, _context, state) when is_integer(integer) do
+  defp quoted_to_algebra({:__block__, meta, [integer]}, _context, state)
+       when is_integer(integer) do
     {integer_to_algebra(Keyword.fetch!(meta, :original)), state}
   end
 
@@ -915,7 +917,8 @@ defmodule Code.Formatter do
   # Mod.function()
   # var.function
   # expression.function(arguments)
-  defp remote_to_algebra({{:., _, [target, fun]}, meta, args}, context, state) when is_atom(fun) do
+  defp remote_to_algebra({{:., _, [target, fun]}, meta, args}, context, state)
+       when is_atom(fun) do
     {target_doc, state} = remote_target_to_algebra(target, state)
     fun = remote_fun_to_algebra(target, fun, length(args), state)
     remote_doc = target_doc |> concat(".") |> concat(string(fun))
@@ -1082,6 +1085,10 @@ defmodule Code.Formatter do
           &quoted_to_algebra(&1, context, &2)
         )
 
+      # If we have a single argument, then we won't have an option to break
+      # before the "extra" part, so we ungroup it and build it later.
+      args_doc = ungroup_if_group(args_doc)
+
       doc =
         if skip_parens? do
           " "
@@ -1196,7 +1203,8 @@ defmodule Code.Formatter do
     ["\n" | entries]
   end
 
-  defp interpolation_to_algebra([entry | entries], escape, state, acc, last) when is_binary(entry) do
+  defp interpolation_to_algebra([entry | entries], escape, state, acc, last)
+       when is_binary(entry) do
     acc = concat(acc, escape_string(entry, escape))
     interpolation_to_algebra(entries, escape, state, acc, last)
   end
@@ -2040,6 +2048,9 @@ defmodule Code.Formatter do
   end
 
   ## Algebra helpers
+
+  defp ungroup_if_group({:doc_group, group, _mode}), do: group
+  defp ungroup_if_group(other), do: other
 
   defp format_to_string(doc) do
     doc |> Inspect.Algebra.format(:infinity) |> IO.iodata_to_binary()

@@ -61,7 +61,8 @@ defmodule Module.LocalsTracker do
   @doc """
   Adds an import dispatch to the given target.
   """
-  def add_import(d, function, module, {name, arity}) when is_tuple(function) and is_atom(module) do
+  def add_import(d, function, module, {name, arity})
+      when is_tuple(function) and is_atom(module) do
     tuple = {:import, name, arity}
     put_edge(d, tuple, module)
     put_edge(d, function, tuple)
