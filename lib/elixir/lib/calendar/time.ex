@@ -388,6 +388,7 @@ defmodule Time do
       ~T[22:59:00.000000]
 
   """
+  @since "1.6.0"
   @spec add(Calendar.time(), integer, System.time_unit()) :: t
   def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
     number = System.convert_time_unit(number, unit, :microsecond)
@@ -607,6 +608,7 @@ defmodule Time do
       ~T[01:01:01]
 
   """
+  @since "1.6.0"
   @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
   def truncate(%Time{microsecond: microsecond} = time, precision) do
     %{time | microsecond: Calendar.truncate(microsecond, precision)}

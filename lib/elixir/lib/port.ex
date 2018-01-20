@@ -264,6 +264,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
+  @since "1.6.0"
   @spec monitor(port | {name :: atom, node :: atom} | name :: atom) :: reference
   def monitor(port) do
     :erlang.monitor(:port, port)
@@ -280,6 +281,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
+  @since "1.6.0"
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
   defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
 
