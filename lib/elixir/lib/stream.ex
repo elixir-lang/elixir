@@ -578,6 +578,7 @@ defmodule Stream do
       [1, 2, 3, 4, 5]
 
   """
+  @since "1.4.0"
   @spec map_every(Enumerable.t(), non_neg_integer, (element -> any)) :: Enumerable.t()
   def map_every(enum, nth, fun)
 
@@ -1109,6 +1110,7 @@ defmodule Stream do
       [{1, :a, "foo"}, {2, :b, "bar"}, {3, :c, "baz"}]
 
   """
+  @since "1.4.0"
   @spec zip([Enumerable.t()]) :: Enumerable.t()
   @spec zip(Enumerable.t()) :: Enumerable.t()
   def zip(enumerables) do

@@ -387,6 +387,7 @@ defmodule Task do
       Enum.to_list(stream)
 
   """
+  @since "1.4.0"
   @spec async_stream(Enumerable.t(), module, atom, [term], keyword) :: Enumerable.t()
   def async_stream(enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
@@ -412,6 +413,7 @@ defmodule Task do
 
   See `async_stream/5` for discussion, options, and more examples.
   """
+  @since "1.4.0"
   @spec async_stream(Enumerable.t(), (term -> term), keyword) :: Enumerable.t()
   def async_stream(enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(enumerable, fun, options)

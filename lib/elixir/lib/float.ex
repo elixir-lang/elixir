@@ -379,6 +379,7 @@ defmodule Float do
       {-16, 1}
 
   """
+  @since "1.4.0"
   def ratio(float) when is_float(float) do
     <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
     {num, _, den} = decompose(significant)

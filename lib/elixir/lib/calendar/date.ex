@@ -115,6 +115,7 @@ defmodule Date do
       true
 
   """
+  @since "1.4.0"
   @spec utc_today(Calendar.calendar()) :: t
   def utc_today(calendar \\ Calendar.ISO)
 
@@ -146,6 +147,7 @@ defmodule Date do
       true
 
   """
+  @since "1.4.0"
   @spec leap_year?(Calendar.date()) :: boolean()
   def leap_year?(date)
 
@@ -166,6 +168,7 @@ defmodule Date do
       29
 
   """
+  @since "1.4.0"
   @spec days_in_month(Calendar.date()) :: Calendar.day()
   def days_in_month(date)
 
@@ -398,6 +401,7 @@ defmodule Date do
       :eq
 
   """
+  @since "1.4.0"
   @spec compare(Calendar.date(), Calendar.date()) :: :lt | :eq | :gt
   def compare(%{calendar: calendar} = date1, %{calendar: calendar} = date2) do
     %{year: year1, month: month1, day: day1} = date1
@@ -591,6 +595,7 @@ defmodule Date do
       2
 
   """
+  @since "1.4.0"
   @spec day_of_week(Calendar.date()) :: non_neg_integer()
   def day_of_week(date)
 

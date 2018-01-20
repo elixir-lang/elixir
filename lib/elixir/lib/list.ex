@@ -647,6 +647,7 @@ defmodule List do
       {3, [1, 2]}
 
   """
+  @since "1.4.0"
   @spec pop_at(list, integer, any) :: {any, list}
   def pop_at(list, index, default \\ nil) when is_integer(index) do
     if index < 0 do
@@ -863,6 +864,7 @@ defmodule List do
       [eq: [1], del: [4], eq: [2, 3], ins: [4]]
 
   """
+  @since "1.4.0"
   @spec myers_difference(list, list) :: [{:eq | :ins | :del, list}] | nil
   def myers_difference(list1, list2) when is_list(list1) and is_list(list2) do
     path = {0, 0, list1, list2, []}

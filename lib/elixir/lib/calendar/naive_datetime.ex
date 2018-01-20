@@ -96,6 +96,7 @@ defmodule NaiveDateTime do
       true
 
   """
+  @since "1.4.0"
   @spec utc_now(Calendar.calendar()) :: t
   def utc_now(calendar \\ Calendar.ISO)
 
@@ -239,6 +240,7 @@ defmodule NaiveDateTime do
       ~N[2014-10-02 00:29:10]
 
   """
+  @since "1.4.0"
   @spec add(t, integer, System.time_unit()) :: t
   def add(%NaiveDateTime{} = naive_datetime, integer, unit \\ :second)
       when is_integer(integer) do
@@ -275,6 +277,7 @@ defmodule NaiveDateTime do
       63579428950
 
   """
+  @since "1.4.0"
   @spec diff(t, t, System.time_unit()) :: integer
   def diff(%NaiveDateTime{} = ndatetime1, %NaiveDateTime{} = ndatetime2, unit \\ :second) do
     if not Calendar.compatible_calendars?(ndatetime1.calendar, ndatetime2.calendar) do
@@ -685,6 +688,7 @@ defmodule NaiveDateTime do
       :lt
 
   """
+  @since "1.4.0"
   @spec compare(Calendar.naive_datetime(), Calendar.naive_datetime()) :: :lt | :eq | :gt
   def compare(%{calendar: calendar1} = naive_datetime1, %{calendar: calendar2} = naive_datetime2) do
     if Calendar.compatible_calendars?(calendar1, calendar2) do
