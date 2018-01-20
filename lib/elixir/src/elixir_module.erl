@@ -50,8 +50,8 @@ compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
   %% we get rid of the lexical tracker information as, at this
   %% point, the lexical tracker process is long gone.
   LexEnv = case ?key(Env, function) of
-    nil -> Env#{module := Module};
-    _   -> Env#{lexical_tracker := nil, function := nil, module := Module}
+    nil -> Env#{module := Module, unused_vars := #{}};
+    _   -> Env#{lexical_tracker := nil, function := nil, module := Module, unused_vars := #{}}
   end,
 
   case ?key(LexEnv, lexical_tracker) of

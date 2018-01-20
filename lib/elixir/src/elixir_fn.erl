@@ -6,32 +6,28 @@
 %% Anonymous functions
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
-  Transformer = fun({_, _, [Left, Right]} = Clause) ->
-    InvalidArgs = fun(Args) ->
-      case Args of
-        {'\\\\', _, _} -> true;
-        _ -> false
-      end
-    end,
-
-    case lists:any(InvalidArgs, Left) of
+  Transformer = fun({_, _, [Left, Right]} = Clause, Acc) ->
+    case lists:any(fun is_invalid_arg/1, Left) of
       true ->
         form_error(Meta, ?key(E, file), ?MODULE, defaults_in_args);
       false ->
-        {EClause, _} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, E),
-        EClause
+        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, Acc),
+        {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)}
     end
   end,
 
-  EClauses = lists:map(Transformer, Clauses),
+  {EClauses, EE} = lists:mapfoldl(Transformer, E, Clauses),
   EArities = [fn_arity(Args) || {'->', _, [Args, _]} <- EClauses],
 
   case lists:usort(EArities) of
     [_] ->
-      {{fn, Meta, EClauses}, E};
+      {{fn, Meta, EClauses}, EE};
     _ ->
       form_error(Meta, ?key(E, file), ?MODULE, clauses_with_different_arities)
   end.
+
+is_invalid_arg({'\\\\', _, _}) -> true;
+is_invalid_arg(_) -> false.
 
 fn_arity([{'when', _, Args}]) -> length(Args) - 1;
 fn_arity(Args) -> length(Args).
@@ -108,8 +104,8 @@ capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, E, Seq
 
 handle_capture(false, Meta, Expr, E, Sequential) ->
   capture_expr(Meta, Expr, E, Sequential);
-handle_capture(LocalOrRemote, _Meta, _Expr, _E, _Sequential) ->
-  LocalOrRemote.
+handle_capture(LocalOrRemote, _Meta, _Expr, E, _Sequential) ->
+  {LocalOrRemote, E}.
 
 capture_expr(Meta, Expr, E, Sequential) ->
   capture_expr(Meta, Expr, E, [], Sequential).
