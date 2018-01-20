@@ -193,6 +193,7 @@ defmodule Task.Supervisor do
       Enum.to_list(stream)
 
   """
+  @since "1.4.0"
   @spec async_stream(Supervisor.supervisor(), Enumerable.t(), module, atom, [term], keyword) ::
           Enumerable.t()
   def async_stream(supervisor, enumerable, module, function, args, options \\ [])
@@ -210,6 +211,7 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion, options, and examples.
   """
+  @since "1.4.0"
   @spec async_stream(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
           Enumerable.t()
   def async_stream(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
@@ -226,6 +228,7 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion, options, and examples.
   """
+  @since "1.4.0"
   @spec async_stream_nolink(
           Supervisor.supervisor(),
           Enumerable.t(),
@@ -249,6 +252,7 @@ defmodule Task.Supervisor do
 
   See `async_stream/6` for discussion and examples.
   """
+  @since "1.4.0"
   @spec async_stream_nolink(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
           Enumerable.t()
   def async_stream_nolink(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do

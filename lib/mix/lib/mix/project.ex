@@ -258,6 +258,7 @@ defmodule Mix.Project do
       #=> %{my_app1: "apps/my_app1", my_app2: "apps/my_app2"}
 
   """
+  @since "1.4.0"
   @spec apps_paths() :: %{optional(atom) => Path.t()} | nil
   def apps_paths(config \\ config()) do
     if apps_path = config[:apps_path] do

@@ -1330,6 +1330,7 @@ defmodule Enum do
       [1001, 1002, 1003]
 
   """
+  @since "1.4.0"
   @spec map_every(t, non_neg_integer, (element -> any)) :: list
   def map_every(enumerable, nth, fun)
 
@@ -1730,6 +1731,7 @@ defmodule Enum do
       {[], []}
 
   """
+  @since "1.4.0"
   @spec split_with(t, (element -> any)) :: {list, list}
   def split_with(enumerable, fun) do
     {acc1, acc2} =
@@ -2737,6 +2739,7 @@ defmodule Enum do
       [{1, :a}, {2, :b}, {3, :c}]
 
   """
+  @since "1.4.0"
   @spec zip([t]) :: t
   @spec zip(t) :: t
 

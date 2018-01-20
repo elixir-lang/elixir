@@ -1015,6 +1015,7 @@ defmodule IEx.Helpers do
       13
 
   """
+  @since "1.4.0"
   defmacro import_file(path) when is_binary(path) do
     import_file_if_available(path, false)
   end
