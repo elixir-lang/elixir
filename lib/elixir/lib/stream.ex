@@ -1489,6 +1489,7 @@ defmodule Stream do
       []
 
   """
+  @since "1.6.0"
   @spec intersperse(Enumerable.t(), any) :: Enumerable.t()
   def intersperse(enumerable, intersperse_element) do
     Stream.transform(enumerable, false, fn

@@ -4547,6 +4547,7 @@ defmodule Kernel do
       end
 
   """
+  @since "1.6.0"
   @spec defguard(Macro.t()) :: Macro.t()
   defmacro defguard(guard) do
     define_guard(:defmacro, guard, __CALLER__)
@@ -4562,6 +4563,7 @@ defmodule Kernel do
   Similar to `defmacrop/2`, `defguardp/2` must be defined before its use
   in the current module.
   """
+  @since "1.6.0"
   @spec defguardp(Macro.t()) :: Macro.t()
   defmacro defguardp(guard) do
     define_guard(:defmacrop, guard, __CALLER__)

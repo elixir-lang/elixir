@@ -2137,6 +2137,7 @@ defmodule Enum do
       []
 
   """
+  @since "1.6.0"
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, first..last) do
     {count, fun} = slice_count_and_fun(enumerable)

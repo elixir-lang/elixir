@@ -209,6 +209,7 @@ defmodule DynamicSupervisor do
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
   """
+  @since "1.6.0"
   @spec start_link(options) :: Supervisor.on_start()
   def start_link(options) when is_list(options) do
     keys = [:extra_arguments, :max_children, :max_seconds, :max_restarts, :strategy]
@@ -234,6 +235,7 @@ defmodule DynamicSupervisor do
   name, the supported values are described in the "Name registration"
   section in the `GenServer` module docs.
   """
+  @since "1.6.0"
   @spec start_link(module, term, GenServer.options()) :: Supervisor.on_start()
   def start_link(mod, args, opts \\ []) do
     GenServer.start_link(__MODULE__, {mod, args, opts[:name]}, opts)
@@ -261,6 +263,7 @@ defmodule DynamicSupervisor do
   of `:max_children` set on the supervisor initialization (see `init/1`), then
   this function returns `{:error, :max_children}`.
   """
+  @since "1.6.0"
   @spec start_child(Supervisor.supervisor(), :supervisor.child_spec() | {module, term} | module) ::
           Supervisor.on_start_child()
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
@@ -339,6 +342,7 @@ defmodule DynamicSupervisor do
   If successful, this function returns `:ok`. If there is no process with
   the given PID, this function returns `{:error, :not_found}`.
   """
+  @since "1.6.0"
   @spec terminate_child(Supervisor.supervisor(), pid) :: :ok | {:error, :not_found}
   def terminate_child(supervisor, pid) when is_pid(pid) do
     call(supervisor, {:terminate_child, pid})
@@ -364,6 +368,7 @@ defmodule DynamicSupervisor do
     * `modules` - as defined in the child specification
 
   """
+  @since "1.6.0"
   @spec which_children(Supervisor.supervisor()) :: [
           {:undefined, pid | :restarting, :worker | :supervisor, :supervisor.modules()}
         ]
@@ -388,6 +393,7 @@ defmodule DynamicSupervisor do
       is still alive
 
   """
+  @since "1.6.0"
   @spec count_children(Supervisor.supervisor()) :: %{
           specs: non_neg_integer,
           active: non_neg_integer,
@@ -463,6 +469,7 @@ defmodule DynamicSupervisor do
   ## Callbacks
 
   @impl true
+  @since "1.6.0"
   def init({mod, args, name}) do
     Process.put(:"$initial_call", {:supervisor, mod, 1})
     Process.flag(:trap_exit, true)
@@ -525,6 +532,7 @@ defmodule DynamicSupervisor do
   defp validate_extra_arguments(extra), do: {:error, {:invalid_extra_arguments, extra}}
 
   @impl true
+  @since "1.6.0"
   def handle_call(:which_children, _from, state) do
     %{children: children} = state
 
@@ -637,11 +645,13 @@ defmodule DynamicSupervisor do
   defp exit_reason(:throw, value, stack), do: {{:nocatch, value}, stack}
 
   @impl true
+  @since "1.6.0"
   def handle_cast(_msg, state) do
     {:noreply, state}
   end
 
   @impl true
+  @since "1.6.0"
   def handle_info({:EXIT, pid, reason}, state) do
     case maybe_restart_child(pid, reason, state) do
       {:ok, state} -> {:noreply, state}
@@ -674,6 +684,7 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
+  @since "1.6.0"
   def code_change(_, %{mod: mod, args: args} = state, _) do
     case mod.init(args) do
       {:ok, flags} when is_map(flags) ->
@@ -691,6 +702,7 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
+  @since "1.6.0"
   def terminate(_, %{children: children} = state) do
     :ok = terminate_children(children, state)
   end
@@ -935,6 +947,7 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
+  @since "1.6.0"
   def format_status(:terminate, [_pdict, state]) do
     state
   end

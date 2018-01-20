@@ -466,6 +466,7 @@ defmodule List do
       false
 
   """
+  @since "1.6.0"
   def ascii_printable?(list, counter \\ :infinity)
 
   def ascii_printable?(_, 0) do

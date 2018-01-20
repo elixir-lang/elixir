@@ -760,6 +760,7 @@ defmodule Access do
       iex> get_in(%{}, [Access.filter(fn a -> a == 10 end)])
       ** (RuntimeError) Access.filter/1 expected a list, got: %{}
   """
+  @since "1.6.0"
   @spec filter((term -> boolean)) :: access_fun(data :: list, get_value :: list)
   def filter(func) when is_function(func) do
     fn op, data, next -> filter(op, data, func, next) end

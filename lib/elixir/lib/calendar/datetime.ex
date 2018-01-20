@@ -717,6 +717,7 @@ defmodule DateTime do
       #DateTime<2017-11-07 11:45:18+01:00 CET Europe/Paris>
 
   """
+  @since "1.6.0"
   @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
   def truncate(%DateTime{microsecond: microsecond} = datetime, precision) do
     %{datetime | microsecond: Calendar.truncate(microsecond, precision)}

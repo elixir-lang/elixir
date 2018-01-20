@@ -1114,10 +1114,12 @@ defmodule IEx.Helpers do
       #Reference<0.21.32.43>
 
   """
+  @since "1.6.0"
   def ref(string) when is_binary(string) do
     :erlang.list_to_ref('#Ref<#{string}>')
   end
 
+  @since "1.6.0"
   def ref(w, x, y, z)
       when is_integer(w) and w >= 0 and is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and
              is_integer(z) and z >= 0 do
