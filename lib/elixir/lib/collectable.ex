@@ -90,11 +90,37 @@ defimpl Collectable, for: List do
 end
 
 defimpl Collectable, for: BitString do
-  def into(original) do
+  def into(original) when is_binary(original) do
     fun = fn
-      acc, {:cont, x} when is_bitstring(x) -> [acc | x]
-      acc, :done -> IO.iodata_to_binary(acc)
-      _, :halt -> :ok
+      acc, {:cont, x} when is_binary(x) and is_list(acc) ->
+        [acc | x]
+
+      acc, {:cont, x} when is_bitstring(x) and is_bitstring(acc) ->
+        <<acc::bitstring, x::bitstring>>
+
+      acc, {:cont, x} when is_bitstring(x) ->
+        <<IO.iodata_to_binary(acc)::bitstring, x::bitstring>>
+
+      acc, :done ->
+        IO.iodata_to_binary(acc)
+
+      _, :halt ->
+        :ok
+    end
+
+    {[original], fun}
+  end
+
+  def into(original) when is_bitstring(original) do
+    fun = fn
+      acc, {:cont, x} when is_bitstring(x) ->
+        <<acc::bitstring, x::bitstring>>
+
+      acc, :done ->
+        acc
+
+      _, :halt ->
+        :ok
     end
 
     {original, fun}

@@ -143,8 +143,38 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "for comprehensions into binary" do
-    enum = 1..3
-    assert for(x <- enum, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+    enum = 0..3
+
+    assert (for x <- enum, into: "" do
+              to_bin(x * 2)
+            end) == <<0, 2, 4, 6>>
+
+    assert (for x <- enum, into: "" do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+  end
+
+  test "for comprehensions into dynamic binary" do
+    enum = 0..3
+    into = ""
+
+    assert (for x <- enum, into: into do
+              to_bin(x * 2)
+            end) == <<0, 2, 4, 6>>
+
+    assert (for x <- enum, into: into do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+
+    into = <<7::size(1)>>
+
+    assert (for x <- enum, into: into do
+              to_bin(x * 2)
+            end) == <<7::size(1), 0, 2, 4, 6>>
+
+    assert (for x <- enum, into: into do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<7::size(1), 0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
   end
 
   test "for comprehensions where value is not used" do
@@ -238,9 +268,39 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- enum, into: [], do: x * 2) == [2, 4, 6]
   end
 
-  test "list for comprehensions into binaries" do
-    enum = [1, 2, 3]
-    assert for(x <- enum, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+  test "list for comprehensions into binary" do
+    enum = [0, 1, 2, 3]
+
+    assert (for x <- enum, into: "" do
+              to_bin(x * 2)
+            end) == <<0, 2, 4, 6>>
+
+    assert (for x <- enum, into: "" do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+  end
+
+  test "list for comprehensions into dynamic binary" do
+    enum = [0, 1, 2, 3]
+    into = ""
+
+    assert (for x <- enum, into: into do
+              to_bin(x * 2)
+            end) == <<0, 2, 4, 6>>
+
+    assert (for x <- enum, into: into do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+
+    into = <<7::size(1)>>
+
+    assert (for x <- enum, into: into do
+              to_bin(x * 2)
+            end) == <<7::size(1), 0, 2, 4, 6>>
+
+    assert (for x <- enum, into: into do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<7::size(1), 0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
   end
 
   test "map for comprehensions into map" do
@@ -278,9 +338,39 @@ defmodule Kernel.ComprehensionTest do
     assert for(<<x <- bin>>, into: [], do: x * 2) == [2, 4, 6]
   end
 
-  test "binary for comprehensions into binaries" do
-    bin = <<1, 2, 3>>
-    assert for(<<x <- bin>>, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+  test "binary for comprehensions into binary" do
+    bin = <<0, 1, 2, 3>>
+
+    assert (for <<x <- bin>>, into: "" do
+              to_bin(x * 2)
+            end) == <<0, 2, 4, 6>>
+
+    assert (for <<x <- bin>>, into: "" do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+  end
+
+  test "binary for comprehensions into dynamic binary" do
+    bin = <<0, 1, 2, 3>>
+    into = ""
+
+    assert (for <<x <- bin>>, into: into do
+              to_bin(x * 2)
+            end) == <<0, 2, 4, 6>>
+
+    assert (for <<x <- bin>>, into: into do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
+
+    into = <<7::size(1)>>
+
+    assert (for <<x <- bin>>, into: into do
+              to_bin(x * 2)
+            end) == <<7::size(1), 0, 2, 4, 6>>
+
+    assert (for <<x <- bin>>, into: into do
+              if Integer.is_even(x), do: <<x::size(2)>>, else: <<x::size(1)>>
+            end) == <<7::size(1), 0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
   end
 
   test "binary for comprehensions with variable size" do
