@@ -380,6 +380,7 @@ defmodule Float do
 
   """
   @since "1.4.0"
+  @spec ratio(float) :: {pos_integer, pos_integer} | {neg_integer, pos_integer}
   def ratio(float) when is_float(float) do
     <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
     {num, _, den} = decompose(significant)
