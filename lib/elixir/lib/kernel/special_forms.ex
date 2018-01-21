@@ -1776,19 +1776,19 @@ defmodule Kernel.SpecialForms do
   allows matching on both the *kind* of the caught value as well as the value
   itself:
 
-    try do
-      exit(:shutdown)
-    catch
-      :exit, value
-        IO.puts "Exited with value #{inspect(value)}"
-    end
+      try do
+        exit(:shutdown)
+      catch
+        :exit, value
+          IO.puts "Exited with value #{inspect(value)}"
+      end
 
-    try do
-      exit(:shutdown)
-    catch
-      kind, value when kind in [:exit, :throw] ->
-        IO.puts "Caught exit or throw with value #{inspect(value)}"
-    end
+      try do
+        exit(:shutdown)
+      catch
+        kind, value when kind in [:exit, :throw] ->
+          IO.puts "Caught exit or throw with value #{inspect(value)}"
+      end
 
   The `catch` clause also supports `:error` alongside `:exit` and `:throw` as
   in Erlang, although this is commonly avoided in favor of `raise`/`rescue` control
