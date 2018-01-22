@@ -65,7 +65,8 @@ defmodule ExUnit.Filters do
   end
 
   @doc """
-  Evaluates the `include` and `exclude` filters against the given `tags`.
+  Evaluates the `include` and `exclude` filters against the given `tags` to
+  determine if tests should be skipped or excluded.
 
   Some filters, like `:line`, may require the whole test collection to
   find the closest line, that's why it must also be passed as argument.
@@ -80,7 +81,7 @@ defmodule ExUnit.Filters do
       :ok
 
       iex> ExUnit.Filters.eval([foo: "bar"], [:foo], %{foo: "baz"}, [])
-      {:error, "due to foo filter"}
+      {:excluded, "due to foo filter"}
 
   """
   @spec eval(t, t, map, [ExUnit.Test.t()]) :: :ok | {:error, binary}
@@ -89,10 +90,10 @@ defmodule ExUnit.Filters do
 
     case Map.fetch(tags, :skip) do
       {:ok, msg} when is_binary(msg) and skip? ->
-        {:error, msg}
+        {:skipped, msg}
 
       {:ok, true} when skip? ->
-        {:error, "due to skip tag"}
+        {:skipped, "due to skip tag"}
 
       _ ->
         excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection))
@@ -100,7 +101,7 @@ defmodule ExUnit.Filters do
         if !excluded or Enum.any?(include, &has_tag(&1, tags, collection)) do
           :ok
         else
-          {:error, "due to #{excluded} filter"}
+          {:excluded, "due to #{excluded} filter"}
         end
     end
   end

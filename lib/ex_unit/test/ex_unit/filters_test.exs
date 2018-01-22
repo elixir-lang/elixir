@@ -8,8 +8,10 @@ defmodule ExUnit.FiltersTest do
   test "evaluating filters" do
     assert ExUnit.Filters.eval([], [:os], %{}, []) == :ok
     assert ExUnit.Filters.eval([], [os: :win], %{os: :unix}, []) == :ok
-    assert ExUnit.Filters.eval([], [:os], %{os: :unix}, []) == {:error, "due to os filter"}
-    assert ExUnit.Filters.eval([], [os: :unix], %{os: :unix}, []) == {:error, "due to os filter"}
+    assert ExUnit.Filters.eval([], [:os], %{os: :unix}, []) == {:excluded, "due to os filter"}
+
+    assert ExUnit.Filters.eval([], [os: :unix], %{os: :unix}, []) ==
+             {:excluded, "due to os filter"}
 
     assert ExUnit.Filters.eval([os: :win], [], %{}, []) == :ok
     assert ExUnit.Filters.eval([os: :win], [], %{os: :unix}, []) == :ok
@@ -21,9 +23,9 @@ defmodule ExUnit.FiltersTest do
 
   test "evaluating filters with skip" do
     assert ExUnit.Filters.eval([], [], %{}, []) == :ok
-    assert ExUnit.Filters.eval([], [], %{skip: true}, []) == {:error, "due to skip tag"}
-    assert ExUnit.Filters.eval([], [], %{skip: "skipped"}, []) == {:error, "skipped"}
-    assert ExUnit.Filters.eval([], [:os], %{skip: "skipped"}, []) == {:error, "skipped"}
+    assert ExUnit.Filters.eval([], [], %{skip: true}, []) == {:skipped, "due to skip tag"}
+    assert ExUnit.Filters.eval([], [], %{skip: "skipped"}, []) == {:skipped, "skipped"}
+    assert ExUnit.Filters.eval([], [:os], %{skip: "skipped"}, []) == {:skipped, "skipped"}
     assert ExUnit.Filters.eval([:skip], [], %{skip: true}, []) == :ok
     assert ExUnit.Filters.eval([:skip], [], %{skip: "skipped"}, []) == :ok
   end
@@ -45,7 +47,7 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([os: ~r"win"], [], %{os: :win}, []) == :ok
 
     assert ExUnit.Filters.eval([os: ~r"mac"], [os: :unix], %{os: :unix}, []) ==
-             {:error, "due to os filter"}
+             {:excluded, "due to os filter"}
   end
 
   test "evaluating filter uses special rules for line" do
@@ -66,13 +68,13 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 10, describe_line: 7}, tests) == :ok
 
     assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
-             {:error, "due to line filter"}
+             {:excluded, "due to line filter"}
 
     assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 3, describe_line: 2}, tests) ==
-             {:error, "due to line filter"}
+             {:excluded, "due to line filter"}
 
     assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 5, describe_line: nil}, tests) ==
-             {:error, "due to line filter"}
+             {:excluded, "due to line filter"}
   end
 
   test "parsing filters" do
