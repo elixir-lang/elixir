@@ -303,7 +303,6 @@ defmodule ExUnitTest do
     assert output =~ "1 test, 1 failure"
   end
 
-  @tag :skip
   test "skips tagged test with skip" do
     defmodule TestSkipped do
       use ExUnit.Case
@@ -324,7 +323,7 @@ defmodule ExUnitTest do
 
     output =
       capture_io(fn ->
-        assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2}
+        assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2, excluded: 0}
       end)
 
     assert output =~ "2 tests, 0 failures, 2 skipped"

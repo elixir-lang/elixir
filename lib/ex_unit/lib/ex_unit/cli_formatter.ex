@@ -64,6 +64,19 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:skipped, _}} = test}, config) do
+    if config.trace do
+      IO.puts(trace_test_skipped(test))
+    else
+      IO.write(skipped("*", config))
+    end
+
+    test_counter = update_test_counter(config.test_counter, test)
+    config = %{config | test_counter: test_counter, skipped_counter: config.skipped_counter + 1}
+
+    {:noreply, config}
+  end
+
   def handle_cast({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
     if config.trace() do
       IO.puts(invalid(trace_test_result(test), config))
@@ -164,6 +177,10 @@ defmodule ExUnit.CLIFormatter do
     "\r  * #{test.name} (excluded)"
   end
 
+  defp trace_test_skipped(test) do
+    "\r  * #{test.name} (skipped)"
+  end
+
   defp normalize_us(us) do
     div(us, 1000)
   end
@@ -239,7 +256,7 @@ defmodule ExUnit.CLIFormatter do
 
     message =
       "#{test_type_counts}#{config.failure_counter} #{failure_pl}"
-      |> if_true(config.skipped_counter > 0, &(&1 <> ", #{config.skipped_counter} skipped"))
+      |> if_true(config.skipped_counter > 0, &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config)))
       |> if_true(config.excluded_counter > 0, &(&1 <> ", #{config.excluded_counter} excluded"))
       |> if_true(config.invalid_counter > 0, &(&1 <> ", #{config.invalid_counter} invalid"))
 
@@ -299,6 +316,10 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp invalid(msg, config) do
+    colorize(:yellow, msg, config)
+  end
+
+  defp skipped(msg, config) do
     colorize(:yellow, msg, config)
   end
 

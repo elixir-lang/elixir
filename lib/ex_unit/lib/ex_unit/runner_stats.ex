@@ -27,6 +27,11 @@ defmodule ExUnit.RunnerStats do
     {:noreply, %{map | total: total + 1, excluded: excluded + 1}}
   end
 
+  def handle_cast({:test_finished, %Test{state: {:skipped, _}}}, map) do
+    %{total: total, skipped: skipped} = map
+    {:noreply, %{map | total: total + 1, skipped: skipped + 1}}
+  end
+
   def handle_cast({:test_finished, _}, %{total: total} = map) do
     {:noreply, %{map | total: total + 1}}
   end
