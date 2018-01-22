@@ -20,6 +20,7 @@ defmodule ExUnit.CLIFormatter do
       test_timings: [],
       failure_counter: 0,
       skipped_counter: 0,
+      excluded_counter: 0,
       invalid_counter: 0
     }
 
@@ -54,11 +55,11 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
-    if config.trace, do: IO.puts(trace_test_skip(test))
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, _}} = test}, config) do
+    if config.trace, do: IO.puts(trace_test_excluded(test))
 
     test_counter = update_test_counter(config.test_counter, test)
-    config = %{config | test_counter: test_counter, skipped_counter: config.skipped_counter + 1}
+    config = %{config | test_counter: test_counter, excluded_counter: config.excluded_counter + 1}
 
     {:noreply, config}
   end
@@ -159,8 +160,8 @@ defmodule ExUnit.CLIFormatter do
     "\r  * #{test.name} (#{trace_test_time(test)})"
   end
 
-  defp trace_test_skip(test) do
-    "\r  * #{test.name} (skipped)"
+  defp trace_test_excluded(test) do
+    "\r  * #{test.name} (excluded)"
   end
 
   defp normalize_us(us) do
@@ -239,6 +240,7 @@ defmodule ExUnit.CLIFormatter do
     message =
       "#{test_type_counts}#{config.failure_counter} #{failure_pl}"
       |> if_true(config.skipped_counter > 0, &(&1 <> ", #{config.skipped_counter} skipped"))
+      |> if_true(config.excluded_counter > 0, &(&1 <> ", #{config.excluded_counter} excluded"))
       |> if_true(config.invalid_counter > 0, &(&1 <> ", #{config.invalid_counter} invalid"))
 
     cond do

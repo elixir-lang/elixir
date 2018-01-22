@@ -140,7 +140,7 @@ defmodule ExUnit.Runner do
 
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
         :ok -> %{test | tags: tags}
-        {:error, msg} -> %{test | state: {:skip, msg}}
+        {:error, msg} -> %{test | state: {:excluded, msg}}
       end
     end
   end

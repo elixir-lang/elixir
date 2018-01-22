@@ -21,7 +21,7 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 2, skipped: 0, total: 2}
+             assert ExUnit.run() == %{failures: 2, skipped: 0, total: 2, excluded: 0}
            end) =~ "2 tests, 2 failures"
   end
 
@@ -41,7 +41,7 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+             assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
            end) =~ "1 test, 1 failure"
   end
 
@@ -154,7 +154,7 @@ defmodule ExUnitTest do
 
     # Empty because it is already loaded
     {result, output} = run_with_filter([], [])
-    assert result == %{failures: 1, skipped: 0, total: 4}
+    assert result == %{failures: 1, skipped: 0, total: 4, excluded: 0}
     assert output =~ "4 tests, 1 failure"
 
     {result, output} = run_with_filter([exclude: [even: true]], [ParityTest])
@@ -170,7 +170,7 @@ defmodule ExUnitTest do
     assert output =~ "4 tests, 1 failure, 2 excluded"
 
     {result, output} = run_with_filter([exclude: :test, include: [even: true]], [ParityTest])
-    assert result == %{failures: 1, skipped: 0, excluded: 2, total: 4}
+    assert result == %{failures: 1, skipped: 0, excluded: 3, total: 4}
     assert output =~ "4 tests, 1 failure, 3 excluded"
   end
 
@@ -248,7 +248,7 @@ defmodule ExUnitTest do
 
     output =
       capture_io(fn ->
-        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
       end)
 
     assert output =~ "1 test, 1 failure"
@@ -296,7 +296,7 @@ defmodule ExUnitTest do
 
     output =
       capture_io(fn ->
-        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
       end)
 
     assert output =~ "Not implemented"
@@ -330,7 +330,6 @@ defmodule ExUnitTest do
     assert output =~ "2 tests, 0 failures, 2 skipped"
   end
 
-  @tag :skip
   test "filtering cases with :module tag" do
     defmodule FirstTestModule do
       use ExUnit.Case
@@ -345,13 +344,13 @@ defmodule ExUnitTest do
     # Empty because it is already loaded
     {result, output} = run_with_filter([exclude: :module], [])
     assert result == %{failures: 0, skipped: 0, excluded: 2, total: 2}
-    assert output =~ "0 tests, 0 failures, 2 excluded"
+    assert output =~ "2 tests, 0 failures, 2 excluded"
 
     {result, output} =
       [exclude: :test, include: [module: "ExUnitTest.SecondTestModule"]]
       |> run_with_filter([FirstTestModule, SecondTestModule])
 
-    assert result == %{failures: 1, skipped: 0, excluded: 1, total: 1}
+    assert result == %{failures: 1, skipped: 0, excluded: 1, total: 2}
     assert output =~ "1) test false (ExUnitTest.SecondTestModule)"
     assert output =~ "2 tests, 1 failure, 1 excluded"
   end
@@ -393,7 +392,7 @@ defmodule ExUnitTest do
 
     output =
       capture_io(fn ->
-        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
       end)
 
     assert output =~ "trying to set reserved field :file"
@@ -414,7 +413,7 @@ defmodule ExUnitTest do
 
     output =
       capture_io(fn ->
-        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1}
+        assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
       end)
 
     assert output =~ "trying to set reserved field :async"
@@ -434,7 +433,7 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     capture_io(fn ->
-      assert ExUnit.run() == %{failures: 0, skipped: 0, total: 1}
+      assert ExUnit.run() == %{failures: 0, skipped: 0, total: 1, excluded: 0}
     end)
   end
 
@@ -465,7 +464,7 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 0, skipped: 0, total: 3}
+             assert ExUnit.run() == %{failures: 0, skipped: 0, total: 3, excluded: 0}
            end) =~ "3 tests, 0 failures"
 
     ExUnit.configure(seed: global_seed)
