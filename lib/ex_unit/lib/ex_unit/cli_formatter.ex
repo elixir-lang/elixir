@@ -66,7 +66,7 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:skipped, _}} = test}, config) do
     if config.trace do
-      IO.puts(trace_test_skipped(test))
+      IO.puts(skipped(trace_test_skipped(test), config))
     else
       IO.write(skipped("*", config))
     end
