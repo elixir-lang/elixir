@@ -80,7 +80,7 @@ defmodule DynamicSupervisor do
 
         def init(implicit_arg) do
           children = [
-            worker(MyWorker, [implicit_arg])
+            %{id: MyWorker, start: {MyWorker, :start_link, [implicit_arg]})
           ]
 
           supervise(children, strategy: :simple_one_for_one)
@@ -98,7 +98,7 @@ defmodule DynamicSupervisor do
 
         def start_child(foo, bar, baz) do
           # This will start child by calling MyWorker.start_link(implicit_arg, foo, bar, baz)
-          spec = Supervisor.Spec.worker(MyWorker, [foo, bar, baz])
+          spec = %{id: MyWorker, start: {MyWorker, :start_link, [foo, bar, baz]}}
           DynamicSupervisor.start_child(__MODULE__, spec)
         end
 
