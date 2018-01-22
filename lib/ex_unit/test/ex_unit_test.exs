@@ -158,20 +158,20 @@ defmodule ExUnitTest do
     assert output =~ "4 tests, 1 failure"
 
     {result, output} = run_with_filter([exclude: [even: true]], [ParityTest])
-    assert result == %{failures: 0, skipped: 1, total: 4}
-    assert output =~ "4 tests, 0 failures, 1 skipped"
+    assert result == %{failures: 0, skipped: 0, total: 3}
+    assert output =~ "3 tests, 0 failures"
 
     {result, output} = run_with_filter([exclude: :even], [ParityTest])
-    assert result == %{failures: 0, skipped: 3, total: 4}
-    assert output =~ "4 tests, 0 failures, 3 skipped"
+    assert result == %{failures: 0, skipped: 0, total: 1}
+    assert output =~ "1 test, 0 failures"
 
     {result, output} = run_with_filter([exclude: :even, include: [even: true]], [ParityTest])
-    assert result == %{failures: 1, skipped: 2, total: 4}
-    assert output =~ "4 tests, 1 failure, 2 skipped"
+    assert result == %{failures: 1, skipped: 0, total: 2}
+    assert output =~ "2 tests, 1 failure"
 
     {result, output} = run_with_filter([exclude: :test, include: [even: true]], [ParityTest])
-    assert result == %{failures: 1, skipped: 3, total: 4}
-    assert output =~ "4 tests, 1 failure, 3 skipped"
+    assert result == %{failures: 1, skipped: 0, total: 1}
+    assert output =~ "1 test, 1 failure"
   end
 
   test "log capturing" do
@@ -342,16 +342,16 @@ defmodule ExUnitTest do
 
     # Empty because it is already loaded
     {result, output} = run_with_filter([exclude: :module], [])
-    assert result == %{failures: 0, skipped: 2, total: 2}
-    assert output =~ "2 tests, 0 failures, 2 skipped"
+    assert result == %{failures: 0, skipped: 0, total: 0}
+    assert output =~ "0 tests, 0 failures"
 
     {result, output} =
       [exclude: :test, include: [module: "ExUnitTest.SecondTestModule"]]
       |> run_with_filter([FirstTestModule, SecondTestModule])
 
-    assert result == %{failures: 1, skipped: 1, total: 2}
+    assert result == %{failures: 1, skipped: 0, total: 1}
     assert output =~ "1) test false (ExUnitTest.SecondTestModule)"
-    assert output =~ "2 tests, 1 failure, 1 skipped"
+    assert output =~ "1 tests, 1 failure"
   end
 
   test "raises on reserved tag :file in module" do
