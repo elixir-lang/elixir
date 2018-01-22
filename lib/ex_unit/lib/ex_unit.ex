@@ -57,8 +57,22 @@ defmodule ExUnit do
   files. See `Mix.Tasks.Test` for more information.
   """
 
+  @typedoc """
+  All tests start with a state of `nil`.
+
+  A finished test can be in one of five states:
+
+    1. Passed (also represented by `nil`)
+    2. Failed
+    3. Skipped (via @tag :skip)
+    4. Excluded (via :exclude filters)
+    5. Invalid (when setup_all fails)
+
+  """
+  @type state ::
+          nil | {:failed, failed} | {:skipped, binary} | {:excluded, binary} | {:invalid, module}
+
   @typedoc "The error state returned by `ExUnit.Test` and `ExUnit.TestModule`"
-  @type state :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
   @type failed :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
 
   defmodule Test do
@@ -69,7 +83,7 @@ defmodule ExUnit do
 
       * `:name` - the test name
       * `:module` - the test module
-      * `:state` - the test error state (see `t:ExUnit.state/0`)
+      * `:state` - the finished test state (see `t:ExUnit.state/0`)
       * `:time` - the time to run the test
       * `:tags` - the test tags
       * `:logs` - the captured logs
