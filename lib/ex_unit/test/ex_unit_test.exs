@@ -326,7 +326,9 @@ defmodule ExUnitTest do
         assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2, excluded: 0}
       end)
 
-    assert output =~ "2 tests, 0 failures, 2 skipped"
+    assert output =~ "2 tests"
+    assert output =~ "0 failures"
+    assert output =~ "\e[33m2 skipped\e[0m"
   end
 
   test "filtering cases with :module tag" do

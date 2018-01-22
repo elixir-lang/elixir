@@ -9,7 +9,9 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([], [:os], %{}, []) == :ok
     assert ExUnit.Filters.eval([], [os: :win], %{os: :unix}, []) == :ok
     assert ExUnit.Filters.eval([], [:os], %{os: :unix}, []) == {:excluded, "due to os filter"}
-    assert ExUnit.Filters.eval([], [os: :unix], %{os: :unix}, []) == {:excluded, "due to os filter"}
+
+    assert ExUnit.Filters.eval([], [os: :unix], %{os: :unix}, []) ==
+             {:excluded, "due to os filter"}
 
     assert ExUnit.Filters.eval([os: :win], [], %{}, []) == :ok
     assert ExUnit.Filters.eval([os: :win], [], %{os: :unix}, []) == :ok
