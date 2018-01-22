@@ -74,13 +74,14 @@ defmodule DynamicSupervisor do
         end
 
         def start_child(foo, bar, baz) do
-          # This will start child by calling MyWorker.start_link(implicit_arg, foo, bar, baz)
+          # This will start child by calling MyWorker.start_link(initial_arg, foo, bar, baz)
           Supervisor.start_child(__MODULE__, [foo, bar, baz])
         end
 
-        def init(implicit_arg) do
+        def init(initial_arg) do
           children = [
-            %{id: MyWorker, start: {MyWorker, :start_link, [implicit_arg]})
+            # Or the deprecated: worker(MyWorker, [initial_arg])
+            %{id: MyWorker, start: {MyWorker, :start_link, [initial_arg]})
           ]
 
           supervise(children, strategy: :simple_one_for_one)
@@ -97,22 +98,22 @@ defmodule DynamicSupervisor do
         end
 
         def start_child(foo, bar, baz) do
-          # This will start child by calling MyWorker.start_link(implicit_arg, foo, bar, baz)
+          # This will start child by calling MyWorker.start_link(initial_arg, foo, bar, baz)
           spec = %{id: MyWorker, start: {MyWorker, :start_link, [foo, bar, baz]}}
           DynamicSupervisor.start_child(__MODULE__, spec)
         end
 
-        def init(implicit_arg) do
+        def init(initial_arg) do
           DynamicSupervisor.init(
             strategy: :one_for_one,
-            extra_arguments: [implicit_arg]
+            extra_arguments: [initial_arg]
           )
         end
       end
 
   The difference is that the `DynamicSupervisor` expects the child specification
   at the moment `start_child/2` is called, and no longer on the init callback.
-  If there are any implicit arguments given on initialization, such as `[implicit_arg]`,
+  If there are any initial arguments given on initialization, such as `[initial_arg]`,
   it can be given in the `:extra_arguments` flag on `DynamicSupervisor.init/1`.
   """
 
