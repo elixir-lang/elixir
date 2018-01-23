@@ -328,7 +328,7 @@ defmodule ExUnitTest do
 
     assert output =~ "2 tests"
     assert output =~ "0 failures"
-    assert output =~ "\e[33m2 skipped\e[0m"
+    assert output =~ "2 skipped"
   end
 
   test "filtering cases with :module tag" do
