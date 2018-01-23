@@ -310,6 +310,29 @@ defmodule IO do
     puts(device, [label, chardata])
     item
   end
+  
+  @doc """
+  Inspects `item` according to the given options using `stdio` and returns it.
+  This is useful for inspecting values in a chain of pipes.
+
+  See `inspect/2` for a full list of options.
+  """
+  @spec tee(item, keyword) :: item when item: var
+  def tee(item, opts \\ []) do
+    tee(:stdio, item, opts)
+  end
+
+  @doc """
+  Inspects `item` according to the given options using the IO `device` and returns it.
+  This is useful for inspecting values in a chain of pipes. 
+
+  See `inspect/2` for a full list of options.
+  """
+  @spec tee(device, item, keyword) :: item when item: var
+  def tee(device, item, opts) when is_list(opts) do
+    inspect(device, item, opts)
+    item
+  end
 
   @doc """
   Gets a number of bytes from IO device `:stdio`.
