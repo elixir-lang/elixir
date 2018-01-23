@@ -329,9 +329,9 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.in_project :my_app, "/path/to/my_app", fn module ->
+      Mix.Project.in_project(:my_app, "/path/to/my_app", fn module ->
         "Mixfile is: #{inspect module}"
-      end
+      end)
       #=> "Mixfile is: MyApp.MixProject"
 
   """
@@ -370,7 +370,7 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.deps_path
+      Mix.Project.deps_path()
       #=> "/path/to/project/deps"
 
   """
@@ -384,7 +384,7 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.deps_paths
+      Mix.Project.deps_paths()
       #=> %{foo: "deps/foo", bar: "custom/path/dep"}
 
   """
@@ -396,6 +396,18 @@ defmodule Mix.Project do
   end
 
   @doc """
+  Clears the dependency for the current environment.
+
+  Useful when dependencies need to be reloaded due to change of global state.
+  """
+  @since "1.7.0"
+  @spec clear_deps_cache() :: :ok
+  def clear_deps_cache() do
+    Mix.Dep.clear_cached()
+    :ok
+  end
+
+  @doc """
   Returns the build path for the given project.
 
   If no configuration is given, the one for the current project is used.
@@ -404,15 +416,15 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.build_path
+      Mix.Project.build_path()
       #=> "/path/to/project/_build/shared"
 
   If `:build_per_environment` is set to `true`, it will create a new build per
   environment:
 
-      Mix.env
+      Mix.env()
       #=> :dev
-      Mix.Project.build_path
+      Mix.Project.build_path()
       #=> "/path/to/project/_build/dev"
 
   """
@@ -448,7 +460,7 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.manifest_path
+      Mix.Project.manifest_path()
       #=> "/path/to/project/_build/shared/lib/app/.mix"
 
   """
@@ -472,7 +484,7 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.app_path
+      Mix.Project.app_path()
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
@@ -504,7 +516,7 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.compile_path
+      Mix.Project.compile_path()
       #=> "/path/to/project/_build/dev/lib/app/ebin"
 
   """
@@ -520,12 +532,12 @@ defmodule Mix.Project do
 
   ## Examples
 
-      Mix.Project.consolidation_path
+      Mix.Project.consolidation_path()
       #=> "/path/to/project/_build/dev/lib/my_app/consolidated"
 
   Inside umbrellas:
 
-      Mix.Project.consolidation_path
+      Mix.Project.consolidation_path()
       #=> "/path/to/project/_build/dev/consolidated"
 
   """
