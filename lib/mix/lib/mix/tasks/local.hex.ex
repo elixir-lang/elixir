@@ -60,6 +60,10 @@ defmodule Mix.Tasks.Local.Hex do
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[HEX_VERSION]", hex_version)
 
+    # Unload the Hex module we loaded earlier to avoid conflicts when Hex is updated
+    # and then used without restarting the VM
+    :code.purge(Hex)
+
     Mix.Tasks.Archive.Install.run([url, "--sha512", sha512 | argv])
   end
 end
