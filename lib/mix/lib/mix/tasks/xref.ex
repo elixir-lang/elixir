@@ -329,12 +329,11 @@ defmodule Mix.Tasks.Xref do
 
   defp load_exports_and_deprecated(module) do
     if :code.is_loaded(module) do
-      # If the module is loaded, we will use the faster function_exported?/3
-      # check for exports and __info__/1 for deprecated
-      if function_exported?(module, :__info__, 1) do
+      try do
         {module, module.__info__(:deprecated)}
-      else
-        {module, []}
+      rescue
+        [ArgumentError, UndefinedFunctionError] ->
+          {module, []}
       end
     else
       # Otherwise we get the information from :beam_lib to avoid loading modules
