@@ -192,13 +192,13 @@ defmodule Kernel.ExpansionTest do
     test "defines vars" do
       {output, env} = expand_env(quote(do: a = 1), __ENV__)
       assert output == quote(do: a = 1)
-      assert {:a, __MODULE__} in env.vars
+      assert Macro.Env.has_var?(env, {:a, __MODULE__})
     end
 
     test "does not define _" do
       {output, env} = expand_env(quote(do: _ = 1), __ENV__)
       assert output == quote(do: _ = 1)
-      assert env.vars == []
+      assert Macro.Env.vars(env) == []
     end
   end
 
@@ -229,7 +229,7 @@ defmodule Kernel.ExpansionTest do
     test "expand to local call" do
       {output, env} = expand_env(quote(do: a), __ENV__)
       assert output == quote(do: a())
-      assert env.vars == []
+      assert Macro.Env.vars(env) == []
     end
 
     test "forces variable to exist" do

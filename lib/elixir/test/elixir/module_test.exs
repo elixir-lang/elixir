@@ -13,7 +13,7 @@ defmodule ModuleTest.ToBeUsed do
   end
 
   defmacro __before_compile__(env) do
-    quote(do: def(before_compile, do: unquote(env.vars)))
+    quote(do: def(before_compile, do: unquote(Macro.Env.vars(env))))
   end
 
   defmacro __after_compile__(%Macro.Env{module: ModuleTest.ToUse, vars: []}, bin)

@@ -38,16 +38,13 @@ defmodule Macro.Env do
     * `context_modules` - a list of modules defined in the current context
     * `lexical_tracker` - PID of the lexical tracker which is responsible for
       keeping user info
-    * `current_vars` - a map with the variables defined so far. The keys are
-      `{var, context}` and the values are opaque information that should not
-      be relied on
 
-  The following fields are private and must not be accessed or relied on:
+  The following fields pertain to variable handling and must not be accessed or
+  relied on. To get a list of all variables, see `vars/1`:
 
-    * `unused_vars` - controls which variables have not been used yet
-    * `prematch_vars` - controls how variables are handled outside of matches.
-      It is either `:warn`, `:apply`, `:pin` or `:raise`. Inside a match it is
-      a copy of current_vars
+    * `current_vars`
+    * `unused_vars`
+    * `prematch_vars`
 
   The following fields are deprecated and must not be accessed or relied on:
 
@@ -67,11 +64,12 @@ defmodule Macro.Env do
   @type context_modules :: [module]
   @type lexical_tracker :: pid | nil
   @type var :: {atom, atom | non_neg_integer}
-  @type current_vars :: %{var => var_info}
 
-  @typep var_info :: {version :: non_neg_integer, type_info :: term}
   @typep vars :: [var]
-  @typep unused_vars :: %{{var, version :: non_neg_integer} => non_neg_integer | false}
+  @typep var_type :: :term
+  @typep var_version :: non_neg_integer
+  @typep unused_vars :: %{{var, var_version} => non_neg_integer | false}
+  @typep current_vars :: %{var => {var_version, var_type}}
   @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
 
   @type t :: %{
@@ -119,6 +117,31 @@ defmodule Macro.Env do
 
   def __struct__(kv) do
     Enum.reduce(kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end)
+  end
+
+  @doc """
+  Returns a list of variables in the current environment.
+
+  Each variable is identified by a tuple of two elements,
+  where the first element is the variable name as an atom
+  and the second element is its context, which may be an
+  atom or an integer.
+  """
+  @spec vars(t) :: [var]
+  def vars(env)
+
+  def vars(%{__struct__: Macro.Env, current_vars: current_vars}) do
+    Map.keys(current_vars)
+  end
+
+  @doc """
+  Checks if a variable belongs to the environment.
+  """
+  @spec has_var?(t, var) :: boolean()
+  def has_var?(env, var)
+
+  def has_var?(%{__struct__: Macro.Env, current_vars: current_vars}, var) do
+    Map.has_key?(current_vars, var)
   end
 
   @doc """

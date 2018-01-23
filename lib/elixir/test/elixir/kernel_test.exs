@@ -247,7 +247,7 @@ defmodule KernelTest do
     if false do
       :ok
     else
-      assert __ENV__.vars == []
+      assert Macro.Env.vars(__ENV__) == []
     end
   end
 
