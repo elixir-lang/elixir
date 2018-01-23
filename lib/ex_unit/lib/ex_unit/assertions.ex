@@ -100,7 +100,7 @@ defmodule ExUnit.Assertions do
 
     left = expand_pattern(left, __CALLER__)
     vars = collect_vars_from_pattern(left)
-    pins = collect_pins_from_pattern(left, __CALLER__.vars)
+    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
@@ -148,7 +148,7 @@ defmodule ExUnit.Assertions do
   defmacro assert({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-    pins = collect_pins_from_pattern(left, __CALLER__.vars)
+    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
       right = unquote(right)
@@ -204,7 +204,7 @@ defmodule ExUnit.Assertions do
   defmacro refute({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:refute, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-    pins = collect_pins_from_pattern(left, __CALLER__.vars)
+    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
       right = unquote(right)
@@ -402,7 +402,7 @@ defmodule ExUnit.Assertions do
     caller = Macro.Env.to_match(caller)
     expanded = expand_pattern(pattern, caller)
     vars = collect_vars_from_pattern(expanded)
-    pins = collect_pins_from_pattern(expanded, caller.vars)
+    pins = collect_pins_from_pattern(expanded, Macro.Env.vars(caller))
 
     pattern =
       case pattern do

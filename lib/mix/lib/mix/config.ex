@@ -146,7 +146,7 @@ defmodule Mix.Config do
   """
   defmacro import_config(path_or_wildcard) do
     loaded_paths_quote =
-      unless {:loaded_paths, Mix.Config} in __CALLER__.vars do
+      unless Macro.Env.has_var?(__CALLER__, {:loaded_paths, Mix.Config}) do
         quote do
           var!(loaded_paths, Mix.Config) = [__ENV__.file]
         end

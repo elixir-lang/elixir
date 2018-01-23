@@ -1135,7 +1135,7 @@ defmodule Macro do
   # Expand possible macro import invocation
   defp do_expand_once({atom, meta, context} = original, env)
        when is_atom(atom) and is_list(meta) and is_atom(context) do
-    if :lists.member({atom, Keyword.get(meta, :counter, context)}, env.vars) do
+    if Map.has_key?(env.current_vars, {atom, Keyword.get(meta, :counter, context)}) do
       {original, false}
     else
       case do_expand_once({atom, meta, []}, env) do

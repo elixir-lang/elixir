@@ -2775,9 +2775,12 @@ defmodule Kernel do
   defmacro binding(context \\ nil) do
     in_match? = Macro.Env.in_match?(__CALLER__)
 
-    for {v, c} <- __CALLER__.vars, c == context do
-      {v, wrap_binding(in_match?, {v, [generated: true], c})}
-    end
+    bindings =
+      for {v, c} <- Macro.Env.vars(__CALLER__), c == context do
+        {v, wrap_binding(in_match?, {v, [generated: true], c})}
+      end
+
+    :lists.sort(bindings)
   end
 
   defp wrap_binding(true, var) do
@@ -3625,7 +3628,8 @@ defmodule Kernel do
           escaped
       end
 
-    module_vars = module_vars(env.vars, 0)
+    # We reimplement Macro.Env.vars/1 due to bootstrap concerns.
+    module_vars = module_vars(:maps.keys(env.current_vars), 0)
 
     quote do
       unquote(with_alias)
