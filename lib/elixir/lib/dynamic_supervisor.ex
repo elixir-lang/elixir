@@ -84,7 +84,7 @@ defmodule DynamicSupervisor do
             %{id: MyWorker, start: {MyWorker, :start_link, [initial_arg]})
           ]
 
-          supervise(children, strategy: :simple_one_for_one)
+          Supervisor.init(children, strategy: :simple_one_for_one)
         end
       end
 
