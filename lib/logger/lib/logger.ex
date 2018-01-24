@@ -749,7 +749,12 @@ defmodule Logger do
     if compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
-      handle_unused_variable_warnings(data, caller)
+      # We wrap the contents in an anonymous function
+      # to avoid unused variable warnings.
+      quote do
+        _ = fn -> {unquote(data), unquote(metadata)} end
+        :ok
+      end
     end
   end
 
@@ -774,35 +779,4 @@ defmodule Logger do
 
   defp notify(:sync, msg), do: :gen_event.sync_notify(Logger, msg)
   defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
-
-  defp handle_unused_variable_warnings(data, caller) do
-    # We collect all the names of variables (leaving `data` unchanged) with a
-    # scope of `nil` (as we don't warn for variables with a different scope
-    # anyways). We only want the variables that figure in `caller`, as the
-    # AST for calls to local 0-arity functions without parens is the same as the
-    # AST for variables.
-    {^data, logged_vars} =
-      Macro.postwalk(data, [], fn
-        {name, _meta, nil} = var, acc when is_atom(name) ->
-          if Macro.Env.has_var?(caller, {name, nil}) do
-            {var, [name | acc]}
-          else
-            {var, acc}
-          end
-
-        ast, acc ->
-          {ast, acc}
-      end)
-
-    assignments =
-      logged_vars
-      |> Enum.reverse()
-      |> Enum.uniq()
-      |> Enum.map(&quote(do: _ = unquote(Macro.var(&1, nil))))
-
-    quote do
-      unquote_splicing(assignments)
-      :ok
-    end
-  end
 end
