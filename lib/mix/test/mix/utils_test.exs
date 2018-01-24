@@ -38,10 +38,10 @@ defmodule Mix.UtilsTest do
   end
 
   test "extract stale" do
-    time = {{2030, 1, 1}, {0, 0, 0}}
+    time = 1893456000 # 2030-01-01 00:00:00
     assert Mix.Utils.extract_stale([__ENV__.file], [time]) == []
 
-    time = {{2000, 1, 1}, {0, 0, 0}}
+    time = 946684800 # 2000-01-01 00:00:00
     assert Mix.Utils.extract_stale([__ENV__.file], [time]) == [__ENV__.file]
 
     assert Mix.Utils.extract_stale([__ENV__.file], [__ENV__.file]) == []
