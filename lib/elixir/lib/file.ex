@@ -528,6 +528,7 @@ defmodule File do
   `{:error, :enotsup}`.
   """
   @since "1.5.0"
+  @spec ln(Path.t(), Path.t()) :: :ok | {:error, posix}
   def ln(existing, new) do
     :file.make_link(IO.chardata_to_string(existing), IO.chardata_to_string(new))
   end
@@ -538,6 +539,7 @@ defmodule File do
   Returns `:ok` otherwise
   """
   @since "1.5.0"
+  @spec ln!(Path.t(), Path.t()) :: :ok | no_return
   def ln!(existing, new) do
     case ln(existing, new) do
       :ok ->
@@ -560,6 +562,7 @@ defmodule File do
   `{:error, :enotsup}`.
   """
   @since "1.5.0"
+  @spec ln_s(Path.t(), Path.t()) :: :ok | {:error, posix}
   def ln_s(existing, new) do
     :file.make_symlink(IO.chardata_to_string(existing), IO.chardata_to_string(new))
   end
@@ -569,6 +572,7 @@ defmodule File do
 
   Returns `:ok` otherwise
   """
+  @spec ln_s!(Path.t(), Path.t()) :: :ok | no_return
   def ln_s!(existing, new) do
     case ln_s(existing, new) do
       :ok ->
@@ -1515,6 +1519,7 @@ defmodule File do
   See `Stream.run/1` for an example of streaming into a file.
 
   """
+  @spec stream!(Path.t(), [mode | :trim_bom], :line | pos_integer) :: File.Stream.t()
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
     modes = normalize_modes(modes, true)
     File.Stream.__build__(IO.chardata_to_string(path), modes, line_or_bytes)
