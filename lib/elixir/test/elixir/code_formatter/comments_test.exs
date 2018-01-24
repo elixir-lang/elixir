@@ -57,35 +57,18 @@ defmodule Code.Formatter.CommentsTest do
       assert_format bad, good
 
       bad = """
-      foo    # this is foo
-      |> bar # this is bar
-      |> baz # this is baz
-      """
-
-      good = """
-      # this is foo
-      # this is bar
-      # this is baz
-      foo
-      |> bar
-      |> baz
-      """
-
-      assert_format bad, good, @short_length
-
-      bad = """
       foo   # this is foo
-      | bar # this is bar
-      | baz # this is baz
+      ++ bar # this is bar
+      ++ baz # this is baz
       """
 
       good = """
       # this is foo
       # this is bar
       # this is baz
-      foo
-      | bar
-      | baz
+      foo ++
+        bar ++
+        baz
       """
 
       assert_format bad, good, @short_length
@@ -718,6 +701,118 @@ defmodule Code.Formatter.CommentsTest do
           # after world
       end
       """
+    end
+  end
+
+  describe "operators" do
+    test "with comment before, during and after uniform pipelines" do
+      assert_same """
+      foo
+      # |> bar
+      # |> baz
+      |> bat
+      """
+
+      bad = """
+      # before
+      foo    # this is foo
+      |> bar # this is bar
+      |> baz # this is baz
+      # after
+      """
+
+      good = """
+      # before
+      # this is foo
+      foo
+      # this is bar
+      |> bar
+      # this is baz
+      |> baz
+
+      # after
+      """
+
+      assert_format bad, good, @short_length
+    end
+
+    test "with comment before, during and after mixed pipelines" do
+      assert_same """
+      foo
+      # |> bar
+      # |> baz
+      ~> bat
+      """
+
+      bad = """
+      # before
+      foo    # this is foo
+      ~> bar # this is bar
+      <|> baz # this is baz
+      # after
+      """
+
+      good = """
+      # before
+      # this is foo
+      foo
+      # this is bar
+      ~> bar
+      # this is baz
+      <|> baz
+
+      # after
+      """
+
+      assert_format bad, good, @short_length
+    end
+
+    test "with comment before, during and after uniform right" do
+      assert_same """
+      foo
+      # | bar
+      # | baz
+      | bat
+      """
+
+      bad = """
+      # before
+      foo    # this is foo
+      | bar # this is bar
+      | baz # this is baz
+      # after
+      """
+
+      good = """
+      # before
+      # this is foo
+      foo
+      # this is bar
+      | bar
+      # this is baz
+      | baz
+
+      # after
+      """
+
+      assert_format bad, good, @short_length
+    end
+
+    test "with comment before, during and after mixed right" do
+      assert_same """
+      one
+      # when two
+      # when three
+      when four
+           # | five
+           | six
+      """
+    end
+
+    test "handles nodes without meta info" do
+      assert_same "(a -> b) |> (c -> d)"
+      assert_same "(a -> b) when c: d"
+      assert_same "(a -> b) when (c -> d)"
     end
   end
 
