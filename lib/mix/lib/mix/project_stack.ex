@@ -160,13 +160,20 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  @spec write_cache(term, term) :: :ok
+  @spec write_cache(term, term) :: term
   def write_cache(key, value) do
     cast(fn state ->
       %{state | cache: Map.put(state.cache, key, value)}
     end)
 
     value
+  end
+
+  @spec delete_cache(term) :: :ok
+  def delete_cache(key) do
+    cast(fn state ->
+      %{state | cache: Map.delete(state.cache, key)}
+    end)
   end
 
   @spec clear_cache :: :ok

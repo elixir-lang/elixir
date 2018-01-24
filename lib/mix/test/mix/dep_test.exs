@@ -55,6 +55,17 @@ defmodule Mix.DepTest do
     System.delete_env("MIX_NO_DEPS")
   end
 
+  test "clear deps cache" do
+    Mix.Project.push(DepsApp)
+
+    Mix.Dep.cached()
+    key = {:cached_deps, Mix.env(), DepsApp}
+    assert length(Mix.ProjectStack.read_cache(key)) == 6
+
+    Mix.Dep.clear_cached()
+    refute Mix.ProjectStack.read_cache(key)
+  end
+
   test "extracts all dependencies from the given project" do
     Mix.Project.push(DepsApp)
 

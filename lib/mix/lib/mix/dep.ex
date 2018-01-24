@@ -87,7 +87,7 @@ defmodule Mix.Dep do
   If MIX_NO_DEPS is set, we return an empty list of dependencies
   without loading them.
   """
-  def cached do
+  def cached() do
     cond do
       System.get_env("MIX_NO_DEPS") in ~w(1 true) ->
         []
@@ -100,6 +100,16 @@ defmodule Mix.Dep do
 
       true ->
         loaded(env: Mix.env())
+    end
+  end
+
+  @doc """
+  Clears loaded dependencies from the cache for the current environment.
+  """
+  def clear_cached() do
+    if project = Mix.Project.get() do
+      key = {:cached_deps, Mix.env(), project}
+      Mix.ProjectStack.delete_cache(key)
     end
   end
 
