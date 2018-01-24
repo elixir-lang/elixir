@@ -256,13 +256,13 @@ defmodule LoggerTest do
              defmodule Unused do
                require Logger
 
-               def hello(a, b) do
-                 Logger.debug(["a: ", inspect(a), ", b: ", inspect(b)])
+               def hello(a, b, c) do
+                 Logger.debug(["a: ", inspect(a), ", b: ", inspect(b)], c: c)
                end
              end
            end) == ""
 
-    assert LoggerTest.Unused.hello(1, 2) == :ok
+    assert LoggerTest.Unused.hello(1, 2, 3) == :ok
   after
     Logger.configure(compile_time_purge_level: :debug)
   end
