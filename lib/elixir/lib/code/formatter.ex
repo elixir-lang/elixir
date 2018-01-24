@@ -17,8 +17,8 @@ defmodule Code.Formatter do
   # Operators that do not have newline between operands (as well as => and keywords)
   @no_newline_binary_operators [:\\, :in]
 
-  # Left associative operators that start on the next line in case of breaks
-  @left_new_line_before_binary_operators [:|>, :~>>, :<<~, :~>, :<~, :<~>, :<|>]
+  # Left associative operators that start on the next line in case of breaks (always pipes)
+  @pipeline_operators [:|>, :~>>, :<<~, :~>, :<~, :<~>, :<|>]
 
   # Right associative operators that start on the next line in case of breaks
   @right_new_line_before_binary_operators [:|, :when]
@@ -325,12 +325,12 @@ defmodule Code.Formatter do
 
   # Special AST nodes from compiler feedback.
 
-  defp quoted_to_algebra({:special, :clause_args, [args]}, _context, state) do
+  defp quoted_to_algebra({{:special, :clause_args}, _meta, [args]}, _context, state) do
     {doc, state} = clause_args_to_algebra(args, state)
     {group(doc), state}
   end
 
-  defp quoted_to_algebra({:special, :bitstring_segment, [arg, last]}, _context, state) do
+  defp quoted_to_algebra({{:special, :bitstring_segment}, _meta, [arg, last]}, _context, state) do
     bitstring_segment_to_algebra({arg, -1}, state, last)
   end
 
@@ -670,23 +670,75 @@ defmodule Code.Formatter do
   # strict or flex mode around.
   defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state) do
     %{operand_nesting: nesting} = state
-    binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, nil, nesting)
+    binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, nesting)
   end
 
-  defp binary_op_to_algebra(
-         op,
-         op_string,
-         meta,
-         left_arg,
-         right_arg,
-         context,
-         state,
-         parent_info,
-         nesting
-       ) do
+  defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, _nesting)
+       when op in @right_new_line_before_binary_operators do
     op_info = Code.Identifier.binary_op(op)
-    left_context = force_many_args_or_operand(context, :parens_arg)
-    right_context = force_many_args_or_operand(context, :operand)
+    op_string = op_string <> " "
+    left_context = left_op_context(context)
+    right_context = right_op_context(context)
+
+    min_line =
+      case left_arg do
+        {_, left_meta, _} -> line(left_meta)
+        _ -> line(meta)
+      end
+
+    {operands, max_line} =
+      unwrap_right(right_arg, op, meta, right_context, [{{:root, left_context}, left_arg}])
+
+    operand_to_algebra = fn
+      {{:root, context}, arg}, _args, newlines, state ->
+        {doc, state} = binary_operand_to_algebra(arg, context, state, op, op_info, :left, 2)
+        {doc, @empty, newlines, state}
+
+      {{kind, context}, arg}, _args, newlines, state ->
+        {doc, state} = binary_operand_to_algebra(arg, context, state, op, op_info, kind, 0)
+        doc = doc |> nest_by_length(op_string) |> force_keyword(arg)
+        {concat(op_string, doc), @empty, newlines, state}
+    end
+
+    operand_to_algebra_with_comments(
+      operands,
+      meta,
+      min_line,
+      max_line,
+      state,
+      operand_to_algebra
+    )
+  end
+
+  defp binary_op_to_algebra(op, _, meta, left_arg, right_arg, context, state, _nesting)
+       when op in @pipeline_operators do
+    op_info = Code.Identifier.binary_op(op)
+    left_context = left_op_context(context)
+    right_context = right_op_context(context)
+    max_line = line(meta)
+
+    {pipes, min_line} =
+      unwrap_pipes(left_arg, meta, left_context, [{{op, right_context}, right_arg}])
+
+    operand_to_algebra = fn
+      {{:root, context}, arg}, _args, newlines, state ->
+        {doc, state} = binary_operand_to_algebra(arg, context, state, op, op_info, :left, 2)
+        {doc, @empty, newlines, state}
+
+      {{op, context}, arg}, _args, newlines, state ->
+        op_info = Code.Identifier.binary_op(op)
+        op_string = Atom.to_string(op) <> " "
+        {doc, state} = binary_operand_to_algebra(arg, context, state, op, op_info, :right, 0)
+        {concat(op_string, doc), @empty, newlines, state}
+    end
+
+    operand_to_algebra_with_comments(pipes, meta, min_line, max_line, state, operand_to_algebra)
+  end
+
+  defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, nesting) do
+    op_info = Code.Identifier.binary_op(op)
+    left_context = left_op_context(context)
+    right_context = right_op_context(context)
 
     {left, state} =
       binary_operand_to_algebra(left_arg, left_context, state, op, op_info, :left, 2)
@@ -702,39 +754,6 @@ defmodule Code.Formatter do
         op in @no_newline_binary_operators ->
           op_string = " " <> op_string <> " "
           concat(concat(group(left), op_string), group(right))
-
-        op in @left_new_line_before_binary_operators ->
-          op_string = op_string <> " "
-
-          # If the parent is of the same type (computed via same precedence),
-          # we cannot group the left side yet.
-          left = if op_info == parent_info, do: left, else: group(left)
-
-          doc = glue(left, concat(op_string, group(right)))
-          if Keyword.get(meta, :eol, false), do: force_unfit(doc), else: doc
-
-        op in @right_new_line_before_binary_operators ->
-          op_string = op_string <> " "
-
-          # If the parent is of the same type (computed via same precedence),
-          # we need to nest the left side because of the associativity.
-          left =
-            if op_info == parent_info do
-              nest_by_length(left, op_string)
-            else
-              group(left)
-            end
-
-          # If the right side is of the same type, we will keep recursing
-          # and do the nesting on the left side later on (as written above).
-          right =
-            case right_arg do
-              {^op, _, [_, _]} -> right
-              _ -> right |> nest_by_length(op_string) |> force_keyword(right_arg) |> group()
-            end
-
-          doc = glue(left, concat(op_string, right))
-          if Keyword.get(meta, :eol, false), do: force_unfit(doc), else: doc
 
         true ->
           next_break_fits? =
@@ -780,17 +799,7 @@ defmodule Code.Formatter do
         # the correct side, we respect the nesting rule to avoid multiple
         # nestings. This only applies for left associativity or same operator.
         parent_prec == prec and parent_assoc == side and (side == :left or op == parent_op) ->
-          binary_op_to_algebra(
-            op,
-            op_string,
-            meta,
-            left,
-            right,
-            context,
-            state,
-            parent_info,
-            nesting
-          )
+          binary_op_to_algebra(op, op_string, meta, left, right, context, state, nesting)
 
         # If the parent requires parens or the precedence is inverted or
         # it is in the wrong side, then we *need* parenthesis.
@@ -799,13 +808,13 @@ defmodule Code.Formatter do
              parent_op in @required_parens_logical_binary_operands) or parent_prec > prec or
             (parent_prec == prec and parent_assoc != side) ->
           {operand, state} =
-            binary_op_to_algebra(op, op_string, meta, left, right, context, state, parent_info, 2)
+            binary_op_to_algebra(op, op_string, meta, left, right, context, state, 2)
 
           {wrap_in_parens(operand), state}
 
         # Otherwise, we rely on precedence but also nest.
         true ->
-          binary_op_to_algebra(op, op_string, meta, left, right, context, state, parent_info, 2)
+          binary_op_to_algebra(op, op_string, meta, left, right, context, state, 2)
       end
     else
       {:&, _, [arg]} when not is_integer(arg) and side == :left ->
@@ -814,6 +823,45 @@ defmodule Code.Formatter do
 
       _ ->
         quoted_to_algebra(operand, context, state)
+    end
+  end
+
+  defp unwrap_pipes({op, meta, [left, right]}, _meta, context, acc)
+       when op in @pipeline_operators do
+    left_context = left_op_context(context)
+    right_context = right_op_context(context)
+    unwrap_pipes(left, meta, left_context, [{{op, right_context}, right} | acc])
+  end
+
+  defp unwrap_pipes(left, meta, context, acc) do
+    min_line =
+      case left do
+        {_, meta, _} -> line(meta)
+        _ -> line(meta)
+      end
+
+    {[{{:root, context}, left} | acc], min_line}
+  end
+
+  defp unwrap_right({op, meta, [left, right]}, op, _meta, context, acc) do
+    left_context = left_op_context(context)
+    right_context = right_op_context(context)
+    unwrap_right(right, op, meta, right_context, [{{:left, left_context}, left} | acc])
+  end
+
+  defp unwrap_right(right, _op, meta, context, acc) do
+    acc = [{{:right, context}, right} | acc]
+    {Enum.reverse(acc), line(meta)}
+  end
+
+  defp operand_to_algebra_with_comments(operands, meta, min_line, max_line, state, fun) do
+    {docs, comments?, state} =
+      quoted_to_algebra_with_comments(operands, [], min_line, max_line, 1, state, fun)
+
+    if comments? or Keyword.get(meta, :eol, false) do
+      {docs |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
+    else
+      {docs |> Enum.reduce(&glue(&2, &1)), state}
     end
   end
 
@@ -1278,7 +1326,7 @@ defmodule Code.Formatter do
   end
 
   defp bitstring_segment_to_algebra({{:<-, meta, [left, right]}, i}, state, last) do
-    left = {:special, :bitstring_segment, [left, last]}
+    left = {{:special, :bitstring_segment}, meta, [left, last]}
     {doc, state} = quoted_to_algebra({:<-, meta, [left, right]}, :parens_arg, state)
     {bitstring_wrap_parens(doc, i, last), state}
   end
@@ -1709,7 +1757,7 @@ defmodule Code.Formatter do
   # fn a, b, c when d -> e end
   defp clause_args_to_algebra([{:when, meta, args}], state) do
     {args, right} = split_last(args)
-    left = {:special, :clause_args, [args]}
+    left = {{:special, :clause_args}, meta, [args]}
     binary_op_to_algebra(:when, "when", meta, left, right, :no_parens_arg, state)
   end
 
@@ -1838,6 +1886,9 @@ defmodule Code.Formatter do
   end
 
   ## Quoted helpers
+
+  defp left_op_context(context), do: force_many_args_or_operand(context, :parens_arg)
+  defp right_op_context(context), do: force_many_args_or_operand(context, :operand)
 
   defp force_many_args_or_operand(:no_parens_one_arg, _choice), do: :no_parens_arg
   defp force_many_args_or_operand(:parens_one_arg, _choice), do: :parens_arg
@@ -2000,20 +2051,23 @@ defmodule Code.Formatter do
       )
   end
 
+  # A literal list is a keyword or (... -> ...)
   defp last_arg_to_keyword([_ | _] = arg, _list_to_keyword?) do
     {keyword?(arg), arg}
   end
 
+  # This is a list of tuples, it can be converted to keywords.
   defp last_arg_to_keyword({:__block__, _, [[_ | _] = arg]} = block, true) do
     if keyword?(arg), do: {true, arg}, else: {false, block}
   end
 
+  # Otherwise we don't have a keyword.
   defp last_arg_to_keyword(arg, _list_to_keyword?) do
     {false, arg}
   end
 
   defp force_keyword?(keyword) do
-    match?([_, _ | _], keyword) and force_keyword?(keyword, MapSet.new())
+    match?([{_, _}, _ | _], keyword) and force_keyword?(keyword, MapSet.new())
   end
 
   defp force_keyword?([{{_, meta, _}, _} | keyword], lines) do
