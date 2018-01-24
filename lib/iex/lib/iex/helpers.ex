@@ -1061,7 +1061,7 @@ defmodule IEx.Helpers do
   ## Example
 
       # In ~/.iex.exs
-      import_if_available Phoenix.HTML
+      use_if_available Phoenix.HTML
 
   """
   @since "1.7.0"
