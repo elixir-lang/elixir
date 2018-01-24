@@ -147,14 +147,14 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Returns the date the given path was last modified.
+  Returns the date the given path was last modified in posix time.
 
   If the path does not exist, it returns the Unix epoch
   (1970-01-01 00:00:00).
   """
   def last_modified(path)
 
-  def last_modified({{_, _, _}, {_, _, _}} = timestamp) do
+  def last_modified(timestamp) when is_integer(timestamp) do
     timestamp
   end
 
@@ -163,25 +163,31 @@ defmodule Mix.Utils do
     mtime
   end
 
-  @doc false
-  def last_modified_and_size(path) do
-    now = :calendar.universal_time()
+  @doc """
+  Returns the date the given path was last modified in posix time
+  and the size.
 
-    case :elixir_utils.read_mtime_and_size(path) do
+  If the path does not exist, it returns the Unix epoch
+  (1970-01-01 00:00:00).
+  """
+  def last_modified_and_size(path) do
+    now = System.system_time(:second)
+
+    case :elixir_utils.read_posix_mtime_and_size(path) do
       {:ok, mtime, size} when mtime > now ->
         message =
           "warning: mtime (modified time) for \"#{path}\" was set to the future, resetting to now"
 
         Mix.shell().error(message)
 
-        File.touch!(path, now)
+        :elixir_utils.change_posix_time(path, now)
         {mtime, size}
 
       {:ok, mtime, size} ->
         {mtime, size}
 
       {:error, _} ->
-        {{{1970, 1, 1}, {0, 0, 0}}, 0}
+        {0, 0}
     end
   end
 

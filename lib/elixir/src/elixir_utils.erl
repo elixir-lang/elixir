@@ -4,7 +4,8 @@
 -export([get_line/1, split_last/1, noop/0,
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
   macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
-  read_file_type/1, read_link_type/1, read_mtime_and_size/1, change_universal_time/2,
+  read_file_type/1, read_link_type/1, read_posix_mtime_and_size/1,
+  change_posix_time/2, change_universal_time/2,
   guard_op/2, match_op/2, extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
@@ -74,16 +75,19 @@ read_link_type(File) ->
     {error, _} = Error -> Error
   end.
 
-read_mtime_and_size(File) ->
-  case file:read_file_info(File, [{time, universal}]) of
+read_posix_mtime_and_size(File) ->
+  case file:read_file_info(File, [raw, {time, posix}]) of
     {ok, #file_info{mtime=Mtime, size=Size}} -> {ok, Mtime, Size};
     {error, _} = Error -> Error
   end.
 
+change_posix_time(Name, Time) when is_integer(Time) ->
+  file:write_file_info(Name, #file_info{mtime=Time}, [raw, {time, posix}]).
+
 change_universal_time(Name, {{Y, M, D}, {H, Min, Sec}}=Time)
-  when is_integer(Y), is_integer(M), is_integer(D),
-       is_integer(H), is_integer(Min), is_integer(Sec)->
-    file:write_file_info(Name, #file_info{mtime=Time}, [{time, universal}]).
+    when is_integer(Y), is_integer(M), is_integer(D),
+         is_integer(H), is_integer(Min), is_integer(Sec) ->
+  file:write_file_info(Name, #file_info{mtime=Time}, [{time, universal}]).
 
 relative_to_cwd(Path) ->
   try elixir_compiler:get_opt(relative_paths) of
