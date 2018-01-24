@@ -436,8 +436,8 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
-  test "first argument in a call without parens" do
-    bad = """
+  test "first argument in a call without parens with comments" do
+    assert_same """
     with bar ::
            :ok
            | :invalid
@@ -445,27 +445,11 @@ defmodule Code.Formatter.IntegrationTest do
            | :other
     """
 
-    assert_format bad, """
-    # | :unknown
-    with bar ::
-           :ok
-           | :invalid
-           | :other
-    """
-
-    bad = """
+    assert_same """
     @spec bar ::
             :ok
             | :invalid
             # | :unknown
-            | :other
-    """
-
-    assert_format bad, """
-    # | :unknown
-    @spec bar ::
-            :ok
-            | :invalid
             | :other
     """
   end
