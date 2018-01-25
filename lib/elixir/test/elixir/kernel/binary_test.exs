@@ -73,10 +73,6 @@ defmodule Kernel.BinaryTest do
     <<x::binary-size(size)>> <> _ = "foobar"
     assert x == "foo"
 
-    size = 16
-    <<x::size(size)>> <> _ = "foobar"
-    assert x == 26223
-
     <<x::6*4-binary>> <> _ = "foobar"
     assert x == "foo"
 
@@ -86,13 +82,8 @@ defmodule Kernel.BinaryTest do
     <<x::24-bits>> <> _ = "foobar"
     assert x == "foo"
 
-    assert_raise MatchError, fn ->
-      Code.eval_string(~s{<<x::binary-size(3)-unit(4)>> <> _ = "foobar"})
-    end
-
-    assert_raise MatchError, fn ->
-      Code.eval_string(~s{<<x::integer-size(4)>> <> _ = "foobar"})
-    end
+    <<x::utf8>> <> _ = "foobar"
+    assert x == ?f
   end
 
   test "hex" do
