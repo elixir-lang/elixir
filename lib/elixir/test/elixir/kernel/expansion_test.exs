@@ -584,7 +584,7 @@ defmodule Kernel.ExpansionTest do
           c()
         end
 
-      assert expand(before_expansion) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
     end
 
     test "variables inside filters are available in blocks" do
@@ -1820,34 +1820,46 @@ defmodule Kernel.ExpansionTest do
     test "inlines binaries inside interpolation" do
       import Kernel.ExpansionTarget
 
-      assert expand(quote(do: "foo#{bar()}" = "foobar")) ==
+      assert expand(quote(do: "foo#{bar()}" = "foobar")) |> clean_meta([:alignment]) ==
                quote(do: <<"foo"::binary(), "bar"::binary()>> = "foobar")
     end
 
     test "expands size * unit" do
       import Kernel, except: [-: 2]
 
-      assert expand(quote(do: <<x::13>>)) == quote(do: <<x()::integer()-size(13)>>)
+      assert expand(quote(do: <<x::13>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()-size(13)>>)
 
-      assert expand(quote(do: <<x::13*6>>)) == quote(do: <<x()::integer()-unit(6)-size(13)>>)
+      assert expand(quote(do: <<x::13*6>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()-unit(6)-size(13)>>)
 
-      assert expand(quote(do: <<x::_*6-binary>>)) == quote(do: <<x()::binary()-unit(6)>>)
+      assert expand(quote(do: <<x::_*6-binary>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::binary()-unit(6)>>)
 
-      assert expand(quote(do: <<x::13*6-binary>>)) ==
+      assert expand(quote(do: <<x::13*6-binary>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::binary()-unit(6)-size(13)>>)
 
-      assert expand(quote(do: <<x::binary-(13 * 6)-binary>>)) ==
+      assert expand(quote(do: <<x::binary-(13 * 6)-binary>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::binary()-unit(6)-size(13)>>)
     end
 
     test "expands binary/bitstring specifiers" do
       import Kernel, except: [-: 2]
 
-      assert expand(quote(do: <<x::binary>>)) == quote(do: <<x()::binary()>>)
-      assert expand(quote(do: <<x::bytes>>)) == quote(do: <<x()::binary()>>)
-      assert expand(quote(do: <<x::bitstring>>)) == quote(do: <<x()::bitstring()>>)
-      assert expand(quote(do: <<x::bits>>)) == quote(do: <<x()::bitstring()>>)
-      assert expand(quote(do: <<x::binary-little>>)) == quote(do: <<x()::binary()>>)
+      assert expand(quote(do: <<x::binary>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::binary()>>)
+
+      assert expand(quote(do: <<x::bytes>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::binary()>>)
+
+      assert expand(quote(do: <<x::bitstring>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::bitstring()>>)
+
+      assert expand(quote(do: <<x::bits>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::bitstring()>>)
+
+      assert expand(quote(do: <<x::binary-little>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::binary()>>)
 
       message = ~r"signed and unsigned specifiers are supported only on integer and float type"
 
@@ -1859,9 +1871,14 @@ defmodule Kernel.ExpansionTest do
     test "expands utf* specifiers" do
       import Kernel, except: [-: 2]
 
-      assert expand(quote(do: <<x::utf8>>)) == quote(do: <<x()::utf8()>>)
-      assert expand(quote(do: <<x::utf16>>)) == quote(do: <<x()::utf16()>>)
-      assert expand(quote(do: <<x::utf32-little>>)) == quote(do: <<x()::utf32()-little()>>)
+      assert expand(quote(do: <<x::utf8>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::utf8()>>)
+
+      assert expand(quote(do: <<x::utf16>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::utf16()>>)
+
+      assert expand(quote(do: <<x::utf32-little>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::utf32()-little()>>)
 
       message = ~r"signed and unsigned specifiers are supported only on integer and float type"
 
@@ -1877,14 +1894,19 @@ defmodule Kernel.ExpansionTest do
     test "expands numbers specifiers" do
       import Kernel, except: [-: 2]
 
-      assert expand(quote(do: <<x::integer>>)) == quote(do: <<x()::integer()>>)
-      assert expand(quote(do: <<x::little>>)) == quote(do: <<x()::integer()-little()>>)
-      assert expand(quote(do: <<x::signed>>)) == quote(do: <<x()::integer()-signed()>>)
+      assert expand(quote(do: <<x::integer>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()>>)
 
-      assert expand(quote(do: <<x::signed-native>>)) ==
+      assert expand(quote(do: <<x::little>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()-little()>>)
+
+      assert expand(quote(do: <<x::signed>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()-signed()>>)
+
+      assert expand(quote(do: <<x::signed-native>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer()-native()-signed()>>)
 
-      assert expand(quote(do: <<x::float-signed-native>>)) ==
+      assert expand(quote(do: <<x::float-signed-native>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::float()-native()-signed()>>)
 
       message =
@@ -1899,9 +1921,11 @@ defmodule Kernel.ExpansionTest do
       import Kernel, except: [-: 2]
       import Kernel.ExpansionTarget
 
-      assert expand(quote(do: <<x::seventeen>>)) == quote(do: <<x()::integer()-size(17)>>)
+      assert expand(quote(do: <<x::seventeen>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()-size(17)>>)
 
-      assert expand(quote(do: <<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
+      assert expand(quote(do: <<seventeen::seventeen, x::size(seventeen)>> = 1))
+             |> clean_meta([:alignment]) ==
                quote(do: <<seventeen::integer()-size(17), x::integer()-size(seventeen)>> = 1)
     end
 
@@ -1920,7 +1944,7 @@ defmodule Kernel.ExpansionTest do
           <<x()::integer()-size(17)>>
         end
 
-      assert expand(before_expansion) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
     end
 
     test "supports dynamic size" do
@@ -1938,7 +1962,44 @@ defmodule Kernel.ExpansionTest do
           <<x()::integer()-unit(8)-size(var)>>
         end
 
-      assert expand(before_expansion) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+    end
+
+    test "merges bitstrings" do
+      import Kernel, except: [-: 2]
+
+      assert expand(quote(do: <<x, <<y::signed-native>>, z>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer(), y()::integer()-native()-signed(), z()::integer()>>)
+
+      assert expand(quote(do: <<x, <<y::signed-native>>::bitstring, z>>))
+             |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer(), y()::integer()-native()-signed(), z()::integer()>>)
+    end
+
+    test "merges binaries" do
+      import Kernel, except: [-: 2]
+
+      assert expand(quote(do: "foo" <> x)) |> clean_meta([:alignment]) ==
+               quote(do: <<"foo"::binary(), x()::binary()>>)
+
+      assert expand(quote(do: "foo" <> <<x::size(4), y::size(4)>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
+
+      assert expand(quote(do: <<"foo", <<x::size(4), y::size(4)>>::binary>>))
+             |> clean_meta([:alignment]) ==
+               quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
+    end
+
+    test "raises on unaligned binaries in match" do
+      message = ~r"cannot verify size of binary expression in match"
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<rest::bits>> <> _ = "foo"))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<rest::size(3)>> <> _ = "foo"))
+      end
     end
 
     test "raises on size or unit for literal bitstrings" do

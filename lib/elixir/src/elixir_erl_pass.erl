@@ -524,13 +524,8 @@ build_bitstr(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
   build_bitstr(Fun, T, Meta, S, [Element | Acc]);
 
 build_bitstr(Fun, T, Meta, S, Acc, H, Size, Types) ->
-  case Fun(H, S) of
-    {{bin, _, Elements}, NS} when S#elixir_erl.context == match ->
-      %% TODO: Remove this clause once we raise when we can't merge subinaries in elixir_bitstring
-      build_bitstr(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
-    {Expr, NS} ->
-      build_bitstr(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc])
-  end.
+  {Expr, NS} = Fun(H, S),
+  build_bitstr(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types} | Acc]).
 
 requires_utf_conversion([bitstring | _]) -> false;
 requires_utf_conversion([binary | _]) -> false;
