@@ -264,7 +264,22 @@ defmodule Calendar.ISO do
 
   @doc """
   Converts the given time into a string.
+
+  ## Examples
+
+      iex> Calendar.ISO.time_to_string(2, 2, 2, {2, 6})
+      "02:02:02.000002"
+      iex> Calendar.ISO.time_to_string(2, 2, 2, {2, 2})
+      "02:02:02.00"
+      iex> Calendar.ISO.time_to_string(2, 2, 2, {2, 0})
+      "02:02:02"
   """
+  @spec time_to_string(
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond()
+        ) :: String.t()
   @impl true
   def time_to_string(hour, minute, second, microsecond) do
     time_to_string(hour, minute, second, microsecond, :extended)
@@ -289,7 +304,15 @@ defmodule Calendar.ISO do
 
   @doc """
   Converts the given date into a string.
+
+  ## Examples
+
+    iex> Calendar.ISO.date_to_string(2015, 2, 28)
+    "2015-02-28"
+    iex> Calendar.ISO.date_to_string(2017, 8, 1)
+    "2017-08-01"
   """
+  @spec date_to_string(year, month, day) :: String.t()
   @impl true
   def date_to_string(year, month, day) do
     date_to_string(year, month, day, :extended)
@@ -305,16 +328,56 @@ defmodule Calendar.ISO do
 
   @doc """
   Converts the datetime (without time zone) into a string.
+
+  ## Examples
+
+    iex> Calendar.ISO.naive_datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 6})
+    "2015-02-28 01:02:03.000004"
+    iex> Calendar.ISO.naive_datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5})
+    "2017-08-01 01:02:03.00000"
   """
   @impl true
+  @spec naive_datetime_to_string(
+          year,
+          month,
+          day,
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond()
+        ) :: String.t()
   def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) do
     date_to_string(year, month, day) <> " " <> time_to_string(hour, minute, second, microsecond)
   end
 
   @doc """
-  Convers the datetime (with time zone) into a string.
+  Converts the datetime (with time zone) into a string.
+
+  ## Examples
+
+    iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, "Europe/Berlin", "CET", 3600, 0)
+    "2017-08-01 01:02:03.00000+01:00 CET Europe/Berlin"
+    iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, "Europe/Berlin", "CDT", 3600, 3600)
+    "2017-08-01 01:02:03.00000+02:00 CDT Europe/Berlin"
+    iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, "America/Los_Angeles", "PST", -28800, 0)
+    "2015-02-28 01:02:03.00000-08:00 PST America/Los_Angeles"
+    iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, "America/Los_Angeles", "PDT", -28800, 3600)
+    "2015-02-28 01:02:03.00000-07:00 PDT America/Los_Angeles"
   """
   @impl true
+  @spec datetime_to_string(
+          year,
+          month,
+          day,
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          Calendar.time_zone(),
+          Calendar.zone_abbr(),
+          Calendar.utc_offset(),
+          Calendar.std_offset()
+        ) :: String.t()
   def datetime_to_string(
         year,
         month,
@@ -335,21 +398,52 @@ defmodule Calendar.ISO do
       zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
   end
 
+  @doc """
+  Determines if the date given is valid according to the proleptic Gregorian calendar.
+
+  ## Examples
+
+    iex(1)> Calendar.ISO.valid_date?(2015, 2, 28)
+    true
+    iex(2)> Calendar.ISO.valid_date?(2015, 2, 30)
+    false
+  """
   @impl true
   @since "1.5.0"
+  @spec valid_date?(year, month, day) :: boolean
   def valid_date?(year, month, day) do
     month in 1..12 and year in 0..9999 and day in 1..days_in_month(year, month)
   end
 
+  @doc """
+  Determines if the date given is valid according to the proleptic Gregorian calendar.
+  Note that leap seconds are considered valid, but the use of 24:00:00 as the
+  zero hour of the day is considered invalid.
+
+  ## Examples
+
+    iex> Calendar.ISO.valid_time?(10, 50, 25, {3006, 6})
+    true
+    iex> Calendar.ISO.valid_time?(23, 59, 60, {0, 0})
+    true
+    iex> Calendar.ISO.valid_time?(24, 0, 0, {0, 0})
+    false
+  """
   @impl true
   @since "1.5.0"
+  @spec valid_time?(Calendar.hour(), Calendar.minute(), Calendar.secon(), Calendar.microsecond()) ::
+          boolean
   def valid_time?(hour, minute, second, {microsecond, precision}) do
     hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999 and
       precision in 0..6
   end
 
+  @doc """
+  See `c:Calendar.day_rollover_relative_to_midlight_utc/0` for documentation.
+  """
   @impl true
   @since "1.5.0"
+  @spec day_rollover_relative_to_midnight_utc() :: {0, 1}
   def day_rollover_relative_to_midnight_utc() do
     {0, 1}
   end
