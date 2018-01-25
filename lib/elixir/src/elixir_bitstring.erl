@@ -29,7 +29,8 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, RequireSize) 
       _ -> {EL#{context := nil, prematch_vars := raise}, T /= []}
     end,
 
-  {ERight, ES} = expand_specs(expr_type(ELeft), Meta, Right, EM, RequireSize or MatchSize),
+  EType = expr_type(ELeft),
+  {ERight, ES} = expand_specs(EType, Meta, Right, EM, RequireSize or MatchSize),
 
   EE =
     case EL of
@@ -40,24 +41,52 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, RequireSize) 
       _ -> elixir_env:mergea(ES, EL)
     end,
 
-  expand(BitstrMeta, Fun, T, [{'::', Meta, [ELeft, ERight]} | Acc], EE, RequireSize);
+  EAcc =
+    %% If the Etype is a bitstring (which implies a literal <<>>)
+    %% and we have no further modifiers other than binary or bitstring,
+    %% we can attempt to merge the inner <<>> into the outer one.
+    %%
+    %% TODO: If EType is a bitstring, we are inside a match and
+    %% we cannot merge, we need to raise because Erlang does not
+    %% allow a bitstring inside another bitstring
+    case ERight of
+      {binary, _, []} when EType == bitstring  ->
+        case byte_parts(ELeft) of
+          {ok, ReversedParts} -> ReversedParts ++ Acc;
+          error -> [{'::', Meta, [ELeft, ERight]} | Acc]
+        end;
+      {bitstring, _, []} when EType == bitstring ->
+        lists:reverse(element(3, ELeft), Acc);
+      _ ->
+        [{'::', Meta, [ELeft, ERight]} | Acc]
+    end,
+
+  expand(BitstrMeta, Fun, T, EAcc, EE, RequireSize);
 expand(BitstrMeta, Fun, [{_, Meta, _} = H | T], Acc, E, RequireSize) ->
   {Expr, ES} = expand_expr(Meta, H, Fun, E),
-  expand(BitstrMeta, Fun, T, [wrap_expr(Expr) | Acc], ES, RequireSize);
+  expand(BitstrMeta, Fun, T, wrap_expr(Expr, Acc), ES, RequireSize);
 expand(Meta, Fun, [H | T], Acc, E, RequireSize) ->
   {Expr, ES} = expand_expr(Meta, H, Fun, E),
-  expand(Meta, Fun, T, [wrap_expr(Expr) | Acc], ES, RequireSize).
+  expand(Meta, Fun, T, wrap_expr(Expr, Acc), ES, RequireSize).
 
-wrap_expr(Expr) ->
+byte_parts({'<<>>', _, _}) ->
+  %% TODO: Implement this check for further bitstring merging.
+  error.
+
+wrap_expr({'<<>>', _, Entries}, Acc) ->
+  %% A literal bitstring can always be merged into the outer one
+  %% when the bitstring specifications are not present.
+  lists:reverse(Entries, Acc);
+wrap_expr(Expr, Acc) ->
   case expr_type(Expr) of
-    bitstring ->
-      {'::', [], [Expr, {bitstring, [], []}]};
     binary ->
-      {'::', [], [Expr, {binary, [], []}]};
+      [{'::', [], [Expr, {binary, [], []}]} | Acc];
     float ->
-      {'::', [], [Expr, {float, [], []}]};
-    _ ->
-      {'::', [], [Expr, {integer, [], []}]}
+      [{'::', [], [Expr, {float, [], []}]} | Acc];
+    integer ->
+      [{'::', [], [Expr, {integer, [], []}]} | Acc];
+    default ->
+      [{'::', [], [Expr, {integer, [], []}]} | Acc]
   end.
 
 expr_type(Integer) when is_integer(Integer) -> integer;
