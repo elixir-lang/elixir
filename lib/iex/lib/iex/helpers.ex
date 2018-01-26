@@ -134,8 +134,9 @@ defmodule IEx.Helpers do
   Compiles the given files.
 
   It expects a list of files to compile and an optional path to write
-  the compiled code to (defaults to the current directory). When compiling
-  one file, there is no need to wrap it in a list.
+  the compiled code to. By default files are in-memory compiled. 
+  To write compiled files to a current directory use empty string "" for the path. 
+  When compiling one file, there is no need to wrap it in a list.
 
   It returns the names of the compiled modules.
 
