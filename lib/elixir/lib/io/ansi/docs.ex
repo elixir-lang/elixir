@@ -22,6 +22,7 @@ defmodule IO.ANSI.Docs do
   Values for the color settings are strings with
   comma-separated ANSI values.
   """
+  @spec default_options() :: keyword
   def default_options do
     [
       enabled: true,
@@ -41,6 +42,7 @@ defmodule IO.ANSI.Docs do
 
   See `default_options/0` for docs on the supported options.
   """
+  @spec print_heading(String.t(), keyword) :: :ok
   def print_heading(heading, options \\ []) do
     IO.puts(IO.ANSI.reset())
     options = Keyword.merge(default_options(), options)
@@ -55,8 +57,9 @@ defmodule IO.ANSI.Docs do
   Prints the documentation body.
 
   In addition to the printing string, takes a set of options
-  defined in `default_options/1`.
+  defined in `default_options/0`.
   """
+  @spec print(String.t(), keyword) :: :ok
   def print(doc, options \\ []) do
     options = Keyword.merge(default_options(), options)
 
