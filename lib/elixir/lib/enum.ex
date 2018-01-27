@@ -1915,7 +1915,7 @@ defmodule Enum do
   end
 
   def reduce(%_{} = enumerable, acc, fun) do
-    Enumerable.reduce(enumerable, {:cont, acc}, fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
+    reduce_enumerable(enumerable, acc, fun)
   end
 
   def reduce(%{} = enumerable, acc, fun) do
@@ -1923,7 +1923,7 @@ defmodule Enum do
   end
 
   def reduce(enumerable, acc, fun) do
-    Enumerable.reduce(enumerable, {:cont, acc}, fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
+    reduce_enumerable(enumerable, acc, fun)
   end
 
   @doc """
@@ -2754,7 +2754,7 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile {:inline, aggregate: 3, entry_to_string: 1, reduce: 3, reduce_by: 3}
+  @compile {:inline, aggregate: 3, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3}
 
   defp entry_to_string(entry) when is_binary(entry), do: entry
   defp entry_to_string(entry), do: String.Chars.to_string(entry)
@@ -2956,6 +2956,10 @@ defmodule Enum do
 
   defp reduce_range_dec(first, last, acc, fun) do
     reduce_range_dec(first - 1, last, fun.(first, acc), fun)
+  end
+
+  defp reduce_enumerable(enumerable, acc, fun) do
+    Enumerable.reduce(enumerable, {:cont, acc}, fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
   end
 
   ## reject
