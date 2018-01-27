@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Run do
   Starts and runs the current application.
 
   `mix run` can be used to start the current application dependencies
-  ant the application itself. For long running systems, this is typically
+  and the application itself. For long running systems, this is typically
   done with the `--no-halt` option:
 
       mix run --no-halt
