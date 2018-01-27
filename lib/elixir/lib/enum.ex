@@ -2754,7 +2754,7 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile {:inline, aggregate: 3, entry_to_string: 1, reduce: 3, reduce_by: 3}
+  @compile {:inline, aggregate: 3, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3}
 
   defp entry_to_string(entry) when is_binary(entry), do: entry
   defp entry_to_string(entry), do: String.Chars.to_string(entry)
