@@ -4780,8 +4780,9 @@ defmodule Kernel do
   """
   defmacro defdelegate(funs, opts) do
     funs = Macro.escape(funs, unquote: true)
+    pos = :elixir_locals.cache_env(__CALLER__)
 
-    quote bind_quoted: [funs: funs, opts: opts] do
+    quote bind_quoted: [funs: funs, opts: opts, pos: pos] do
       target =
         Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
 
@@ -4802,6 +4803,28 @@ defmodule Kernel do
 
       for fun <- List.wrap(funs) do
         {name, args, as, as_args} = Kernel.Utils.defdelegate(fun, opts)
+        arity = Enum.count(args)
+        all_specs = Kernel.Typespec.beam_specs(target) || []
+
+        with {_, specs} <- List.keyfind(all_specs, {name, arity}, 0) do
+          specs
+          |> Enum.map(&Kernel.Typespec.spec_to_ast(name, &1))
+          |> Enum.map(&Kernel.Typespec.defspec(:spec, &1, line, file, __MODULE__, pos))
+        end
+
+        unless Module.get_attribute(__MODULE__, :doc) do
+          Code.ensure_loaded(target)
+          docs = Code.get_docs(target, :docs) || []
+
+          case List.keyfind(docs, {name, arity}, 0) do
+            {_, _, _, _, doc} ->
+              @doc doc
+
+            nil ->
+              doc = "See `#{target}.#{name}/#{arity}`."
+              @doc doc
+          end
+        end
 
         def unquote(name)(unquote_splicing(args)) do
           unquote(target).unquote(as)(unquote_splicing(as_args))
