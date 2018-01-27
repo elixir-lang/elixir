@@ -138,6 +138,11 @@ defmodule EnumTest do
     assert Enum.count([1, 2, 3], fn x -> rem(x, 2) == 0 end) == 1
     assert Enum.count([], fn x -> rem(x, 2) == 0 end) == 0
     assert Enum.count([1, true, false, nil], & &1) == 2
+
+    assert Enum.count([1, 2, 3], 2) == 1
+    assert Enum.count([], 3) == 0
+    assert Enum.count([1, 2, 4, 6], 3) == 0
+    assert Enum.count([1, true, false, nil], true) == 1
   end
 
   test "dedup/1" do
