@@ -6,7 +6,7 @@ This document covers all of Elixir syntax constructs as a reference and then dis
 
 ## Reserved words
 
-Those are the reserved words in the Elixir language. They are detailed throughout this guide but summed up here for convenience:
+These are the reserved words in the Elixir language. They are detailed throughout this guide but summed up here for convenience:
 
   * `true`, `false`, `nil` - used as atoms
   * `when`, `and`, `or`, `not`, `in` - used as operators
