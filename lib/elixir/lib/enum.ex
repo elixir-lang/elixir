@@ -576,11 +576,28 @@ defmodule Enum do
 
   """
   @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
-  def count(enumerable, fun) do
+  def count(enumerable, fun) when is_function(fun) do
     reduce(enumerable, 0, fn entry, acc ->
       if(fun.(entry), do: acc + 1, else: acc)
     end)
   end
+
+  @doc """
+  Returns the count of items in the enumerable which are equal `===/2`
+  to given `element`.
+
+  ## Examples
+
+      iex> Enum.count([1, 2, 3, 3, 4, 5], 3)
+      2
+
+      iex> Enum.count([1, 2, 3, 4, 5], 7)
+      0
+
+  """
+  @since "1.7.0"
+  @spec count(t, element) :: non_neg_integer
+  def count(enumerable, element), do: count(enumerable, fn entry -> entry === element end)
 
   @doc """
   Enumerates the `enumerable`, returning a list where all consecutive
