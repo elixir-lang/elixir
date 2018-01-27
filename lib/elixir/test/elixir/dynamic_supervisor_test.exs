@@ -9,6 +9,12 @@ defmodule DynamicSupervisorTest do
     def init(args), do: args
   end
 
+  test "can be supervised directly" do
+    children = [{DynamicSupervisor, strategy: :one_for_one, name: :dyn_sup_spec_test}]
+    assert {:ok, _} = Supervisor.start_link(children, strategy: :one_for_one)
+    assert DynamicSupervisor.which_children(:dyn_sup_spec_test) == []
+  end
+
   describe "use/2" do
     test "generates child_spec/1" do
       assert Simple.child_spec([:hello]) == %{

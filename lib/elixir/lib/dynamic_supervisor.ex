@@ -166,6 +166,15 @@ defmodule DynamicSupervisor do
   ]
 
   @doc false
+  def child_spec(arg) do
+    %{
+      id: DynamicSupervisor,
+      start: {DynamicSupervisor, :start_link, [arg]},
+      type: :supervisor
+    }
+  end
+
+  @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour DynamicSupervisor
