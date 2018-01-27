@@ -128,7 +128,7 @@ defmodule Logger do
       to *sync mode*, to apply backpressure to the clients.
       `Logger` will return to *async mode* once the number of messages
       in the queue is reduced to `sync_threshold * 0.75` messages.
-      Defaults to 20 messages.
+      Defaults to 20 messages. `:sync_threshold` can be set to `0` to force *sync mode*.
 
     * `:discard_threshold` - if the `Logger` manager has more than
       `:discard_threshold` messages in its queue, `Logger` will change
