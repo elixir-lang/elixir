@@ -11,21 +11,27 @@ defmodule DynamicSupervisor do
 
   ## Examples
 
-  A dynamic supervisor is started with no children, only with the
-  supervision strategy (the only strategy currently supported is
-  `:one_for_one`):
+  A dynamic supervisor is started with no children, often under a
+  supervisor with the supervision strategy (the only strategy currently
+  supported is `:one_for_one`) and a name:
 
-      {:ok, sup} = DynamicSupervisor.start_link(strategy: :one_for_one)
+      children = [
+        {DynamicSupervisor, strategy: :one_for_one, name: MyApp.DynamicSupervisor}
+      ]
+
+      Supervisor.start_link(strategy: :one_for_one)
+
+  The options given in the child specification are documented in `start_link/1`.
 
   Once the dynamic supervisor is running, we can start children
   with `start_child/2`, which receives a child specification:
 
-      {:ok, agent1} = DynamicSupervisor.start_child(sup, {Agent, fn -> %{} end})
+      {:ok, agent1} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
       Agent.update(agent1, &Map.put(&1, :key, "value"))
       Agent.get(agent1, & &1)
       #=> %{key: "value"}
 
-      {:ok, agent2} = DynamicSupervisor.start_child(sup, {Agent, fn -> %{} end})
+      {:ok, agent2} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
       Agent.get(agent2, & &1)
       #=> %{}
 
