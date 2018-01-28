@@ -108,6 +108,12 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, msg, "foo:+1"
   end
 
+  test "invalid map start" do
+    assert_eval_raise SyntaxError,
+                      "nofile:1: expected %{ to define a map, got: %[",
+                      "{:ok, %[], %{}}"
+  end
+
   test "sigil terminator" do
     assert_eval_raise TokenMissingError,
                       "nofile:3: missing terminator: \" (for sigil ~r\" starting at line 1)",
