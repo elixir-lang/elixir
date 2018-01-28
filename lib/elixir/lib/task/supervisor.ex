@@ -5,8 +5,18 @@ defmodule Task.Supervisor do
   This module defines a supervisor which can be used to dynamically
   supervise tasks.
 
-  `start_link/1` can be used to start the supervisor. See the `Task`
-  module for more examples.
+  A task supervisor is started with no children, often under a
+  supervisor and a name:
+
+      children = [
+        {Task.Supervisor, name: MyApp.TaskSupervisor}
+      ]
+
+      Supervisor.start_link(strategy: :one_for_one)
+
+  The options given in the child specification are documented in `start_link/1`.
+
+  See the `Task` module for more examples.
 
   ## Name registration
 
@@ -32,17 +42,33 @@ defmodule Task.Supervisor do
   @doc """
   Starts a new supervisor.
 
-  The supported options are:
+  ## Examples
+
+  A task supervisor is typically started under a supervision tree using
+  the tuple format:
+
+      {Task.Supervisor, name: MyApp.TaskSupervisor}
+
+  You can also start it by calling `start_link/1` directly:
+
+      Task.Supervisor.start_link(name: MyApp.TaskSupervisor)
+
+  But this is recommended only for scripting and should be avoided in
+  production code. Generally speaking, processes should always be started
+  inside supervision trees.
+
+  ## Options
 
     * `:name` - used to register a supervisor name, the supported values are
       described under the `Name Registration` section in the `GenServer` module
       docs;
 
-    * `:max_restarts`, `:max_seconds` and `:max_children` - as specified in `DynamicSupervisor`;
+    * `:max_restarts`, `:max_seconds` and `:max_children` - as specified in
+      `DynamicSupervisor`;
 
   This function could also receive `:restart` and `:shutdown` as options
   but those two options have been deprecated and it is now preferred to
-  give them directly to `start_child` and `async` when supported.
+  give them directly to `start_child` and `async`.
   """
   @spec start_link([option]) :: Supervisor.on_start()
   # TODO: Deprecate passing restart and shutdown here on Elixir v1.8.
