@@ -1026,4 +1026,3 @@ defmodule GenServer do
     server
   end
 end
-
