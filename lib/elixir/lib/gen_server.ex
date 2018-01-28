@@ -279,7 +279,7 @@ defmodule GenServer do
 
   ## Learn more
 
-  If you wish to find out more about gen servers, the Elixir Getting Started
+  If you wish to find out more about GenServers, the Elixir Getting Started
   guide provides a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
