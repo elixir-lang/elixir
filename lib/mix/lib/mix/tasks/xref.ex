@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Xref do
 
   The unreachable and deprecated checks below happen every time
   your project is compiled via `mix compile.xref`. See
-  `Mix.Tasks.Compile.Xref` for more information
+  `Mix.Tasks.Compile.Xref` for more information.
 
   ## Xref modes
 
