@@ -317,14 +317,16 @@ defmodule Protocol do
         [
           {:abstract_code, {_raw, abstract_code}},
           {:attributes, attributes},
-          {:compile_info, compile_info},
-          {'ExDc', docs},
-          {'ExDp', deprecated}
+          {:compile_info, compile_info} | extra_chunks
         ] = entries
+
+        extra_chunks =
+          for {name, contents} when is_binary(contents) <- extra_chunks,
+              do: {List.to_string(name), contents}
 
         case attributes[:protocol] do
           [fallback_to_any: any] ->
-            {:ok, {protocol, any, abstract_code}, {compile_info, docs, deprecated}}
+            {:ok, {protocol, any, abstract_code}, {compile_info, extra_chunks}}
 
           _ ->
             {:error, :not_a_protocol}
@@ -493,15 +495,11 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile(protocol, code, {compile_info, docs, deprecated}) do
+  defp compile(protocol, code, {compile_info, extra_chunks}) do
     opts = Keyword.take(compile_info, [:source])
     opts = if Code.compiler_options()[:debug_info], do: [:debug_info | opts], else: opts
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return | opts])
-
-    case docs do
-      :missing_chunk -> {:ok, binary}
-      _ -> {:ok, :elixir_erl.add_beam_chunks(binary, [{"ExDc", docs}, {"ExDp", deprecated}])}
-    end
+    {:ok, :elixir_erl.add_beam_chunks(binary, extra_chunks)}
   end
 
   ## Definition callbacks
