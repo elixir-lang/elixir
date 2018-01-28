@@ -13,11 +13,11 @@ defmodule Mix.Tasks.Xref do
 
   The unreachable and deprecated checks below happen every time
   your project is compiled via `mix compile.xref`. See
-  `Mix.Tasks.Compile.Xref` for more information
+  `Mix.Tasks.Compile.Xref` for more information.
 
   ## Xref modes
 
-  The `xref` task expects a mode as first argument:
+  The `xref` task expects a mode as its first argument:
 
       mix xref MODE
 
@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Xref do
 
       mix xref unreachable
 
-  The "file:line" represents the file and line a call to an unknown
+  The "file:line" represents the file and line at which a call to an unknown
   "module.function/arity" is made.
 
   The flag `--abort-if-any` can be used for the command to fail if
@@ -41,12 +41,12 @@ defmodule Mix.Tasks.Xref do
 
       mix xref deprecated
 
-  The "file:line" represents the file and line a call to a deprecated
+  The "file:line" represents the file and line at which a call to a deprecated
   "module.function/arity" is made. This operation does not show deprecated
   local calls (a call to a deprecated function or macro in the same module)
   nor calls to deprecated functionality in Elixir itself.
 
-  The flag `--abort-if-any` can be used for the command to fail if
+  The flag `--abort-if-any` can be used to cause the command to fail if
   deprecated calls exist.
 
   ### callers CALLEE
@@ -111,7 +111,7 @@ defmodule Mix.Tasks.Xref do
 
   ## Shared options
 
-  Those options are shared across all modes:
+  These options are shared across all modes:
 
     * `--include-siblings` - include dependencies that have `:in_umbrella` set
       to true in the current project in the reports. This can be used to find
@@ -186,7 +186,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   @doc """
-  Returns a list of information of all the function calls in the project.
+  Returns a list of information on all the function calls in the project.
 
   Each item in the list is a map with the following keys:
 
@@ -196,7 +196,7 @@ defmodule Mix.Tasks.Xref do
     * `:caller_module` - the module where the function is called
 
   This function returns an empty list when used at the root of an umbrella
-  project because there is no compile manifest to extract the function call
+  project, because there is no compile manifest to extract the function call
   information from. To get the function calls of each child in an umbrella,
   execute the function at the root of each individual application.
   """
