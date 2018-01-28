@@ -710,6 +710,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
                                  ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
   Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
+  maybe_warn_struct_comparison(Rewritten, E),
   case allowed_in_context(Rewritten, Arity, Context) of
     true ->
       {Rewritten, elixir_env:mergev(EL, EA)};
@@ -727,6 +728,40 @@ allowed_in_context(_, _Arity, guard) ->
   false;
 allowed_in_context(_, _, _) ->
   true.
+
+maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [Left, Right]}, E)
+    when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
+  Result =
+    case calendar_struct_expression(Left) of
+      false ->
+        case calendar_struct_expression(Right) of
+          false -> false;
+          Struct -> Struct
+        end;
+      Struct -> Struct
+    end,
+
+  case Result of
+    false -> ok;
+    _ -> elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, Result})
+  end;
+maybe_warn_struct_comparison(_Other, _E) ->
+  ok.
+
+calendar_struct_expression({'%{}', _, KVs}) ->
+  case lists:keyfind('__struct__', 1, KVs) of
+    {'__struct__', Struct} when Struct =:= 'Elixir.Time';
+                                Struct =:= 'Elixir.DateTime';
+                                Struct =:= 'Elixir.NaiveDateTime';
+                                Struct =:= 'Elixir.Date' ->
+      Struct;
+    false -> false
+  end;
+calendar_struct_expression({{'.', _, ['Elixir.Time', utc_now]}, _, _}) -> 'Elixir.Time';
+calendar_struct_expression({{'.', _, ['Elixir.DateTime', utc_now]}, _, _}) -> 'Elixir.DateTime';
+calendar_struct_expression({{'.', _, ['Elixir.NaiveDateTime', utc_now]}, _, _}) -> 'Elixir.NaiveDateTime';
+calendar_struct_expression({{'.', _, ['Elixir.Date', utc_today]}, _, _}) -> 'Elixir.Date';
+calendar_struct_expression(_Other) -> false.
 
 %% Lexical helpers
 
@@ -1020,4 +1055,9 @@ format_error({underscored_var_access, Name, Kind}) ->
   io_lib:format("the underscored variable \"~ts\"~ts is used after being set. "
                 "A leading underscore indicates that the value of the variable "
                 "should be ignored. If this is intended please rename the "
-                "variable to remove the underscore", [Name, context_info(Kind)]).
+                "variable to remove the underscore", [Name, context_info(Kind)]);
+format_error({struct_comparison, Struct}) ->
+  Name = 'Elixir.Kernel':inspect(Struct, []),
+  io_lib:format("comparison operators (>, <, >=, <=) perform structural and not "
+                "semantic comparison, to perform semantic coparison of ~ts structs, "
+                "please use the ~ts.compare/2 function", [Name, Name]).
