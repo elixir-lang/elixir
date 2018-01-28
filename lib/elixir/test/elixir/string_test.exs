@@ -749,4 +749,60 @@ defmodule StringTest do
     assert String.myers_difference("abc", "aйbc") == [eq: "a", ins: "й", eq: "bc"]
     assert String.myers_difference("aйbc", "abc") == [eq: "a", del: "й", eq: "bc"]
   end
+
+  test "center/3" do
+    assert String.center("one", 9, ".") == "...one..."
+    assert String.center("hello", 20, "123") == "1231231hello12312312"
+    assert String.center("middle", 13, "-") == "---middle----"
+
+    assert String.center("", 1, "abcd") == "a"
+    assert String.center("", 2, "abcd") == "aa"
+    assert String.center("", 3, "abcd") == "aab"
+    assert String.center("", 4, "abcd") == "abab"
+    assert String.center("", 6, "xy") == "xyxxyx"
+    assert String.center("", 11, "12345") == "12345123451"
+
+    assert String.center("|", 2, "abcd") == "|a"
+    assert String.center("|", 3, "abcd") == "a|a"
+    assert String.center("|", 4, "abcd") == "a|ab"
+    assert String.center("|", 5, "abcd") == "ab|ab"
+    assert String.center("|", 6, "xy") == "xy|xyx"
+    assert String.center("|", 7, "xy") == "xyx|xyx"
+    assert String.center("|", 11, "12345") == "12345|12345"
+    assert String.center("|", 12, "12345") == "12345|123451"
+
+    assert String.center("||", 3, "abcd") == "||a"
+    assert String.center("||", 4, "abcd") == "a||a"
+    assert String.center("||", 5, "abcd") == "a||ab"
+    assert String.center("||", 6, "abcd") == "ab||ab"
+    assert String.center("||", 8, "xy") == "xyx||xyx"
+    assert String.center("||", 12, "12345") == "12345||12345"
+    assert String.center("||", 13, "12345") == "12345||123451"
+  end
+
+  test "center/2" do
+    assert String.center("two", 5) == " two "
+    assert String.center("hello", 20) == "       hello        "
+    assert String.center("one", "5") == " one "
+    assert String.center("six", 5.4) == " six "
+  end
+
+  test "center/2,3 with a string longer than or as long as the specified length" do
+    assert String.center("", 0) == ""
+    assert String.center("", -1) == ""
+    assert String.center("hello", 4) == "hello"
+    assert String.center("hello", -1) == "hello"
+    assert String.center("this", 3) == "this"
+    assert String.center("radiology", 8, "-") == "radiology"
+    assert String.center("train", "2", "=") == "train"
+    assert String.center("cars", 1.5, "+") == "cars"
+  end
+
+  test "center/3 calls Kernel.trunc to convert length to an integer" do
+    assert String.center("_", 3.8, "^") == "^_^"
+  end
+
+  test "center/3 calls String.to_integer to convert length to an integer" do
+    assert String.center("_", "3", "o") == "o_o"
+  end
 end

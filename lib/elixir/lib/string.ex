@@ -2266,4 +2266,47 @@ defmodule String do
   @doc false
   @spec to_char_list(t) :: charlist
   def to_char_list(string), do: String.to_charlist(string)
+
+  @doc """
+  Centers str in width. If width is greater than the length of str, returns a new String of length width with str centered and padded with padstr; otherwise, returns str.
+
+  ## Examples
+
+      iex> String.center("fin", 9, "~")
+      "~~~fin~~~"
+
+  """
+  @spec center(t, t, t) :: t
+  @spec center(t, float, t) :: t
+  @spec center(t, integer, t) :: t
+  def center(string, char_count, chars \\ " ")
+
+  def center(string, char_count, chars) when is_binary(char_count) do
+    int_char_count = String.to_integer(char_count)
+    do_center(string, int_char_count, chars)
+  end
+
+  def center(string, char_count, chars) when is_float(char_count) do
+    int_char_count = trunc(char_count)
+    do_center(string, int_char_count, chars)
+  end
+
+  def center(string, char_count, chars) when is_integer(char_count) do
+    do_center(string, char_count, chars)
+  end
+
+  defp do_center(string, char_count, chars) do
+    string_length = String.length(string)
+
+    if char_count <= string_length do
+      string
+    else
+      space = char_count - string_length
+      lpad = round(Float.floor(space / 2))
+      rpad = round(Float.ceil(space / 2))
+
+      String.pad_trailing(string, max(0, rpad) + string_length, chars)
+      |> String.pad_leading(char_count, chars)
+    end
+  end
 end
