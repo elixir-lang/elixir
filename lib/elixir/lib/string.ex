@@ -2271,6 +2271,7 @@ defmodule String do
   Centers str in width. If width is greater than the length of str, returns a new String of length width with str centered and padded with padstr; otherwise, returns str.
 
   ## Examples
+
       iex> String.center("fin", 9, "~")
       "~~~fin~~~"
 
@@ -2296,12 +2297,14 @@ defmodule String do
 
   defp do_center(string, char_count, chars) do
     string_length = String.length(string)
+
     if char_count <= string_length do
       string
     else
       space = char_count - string_length
       lpad = round(Float.floor(space / 2))
       rpad = round(Float.ceil(space / 2))
+
       String.pad_trailing(string, max(0, rpad) + string_length, chars)
       |> String.pad_leading(char_count, chars)
     end
