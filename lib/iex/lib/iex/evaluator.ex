@@ -14,8 +14,8 @@ defmodule IEx.Evaluator do
     old_leader = Process.group_leader()
     Process.group_leader(self(), leader)
 
-    evaluator? = !!Process.get(:iex_evaluator)
-    Process.put(:iex_evaluator, true)
+    evaluator = Process.get(:iex_evaluator)
+    Process.put(:iex_evaluator, command)
 
     state = loop_state(server, IEx.History.init(), opts)
     command == :ack && :proc_lib.init_ack(self())
@@ -25,11 +25,16 @@ defmodule IEx.Evaluator do
     after
       Process.group_leader(self(), old_leader)
 
-      # If there was an evaluator, nest failures.
-      if evaluator? do
-        send(self(), {:done, server})
-      else
-        Process.delete(:iex_evaluator)
+      cond do
+        is_nil(evaluator) ->
+          Process.delete(:iex_evaluator)
+
+        evaluator != :ack ->
+          # Ensure propagation to non-root level evaluators
+          send(self(), {:done, server})
+
+        true ->
+          :ok
       end
 
       :ok
