@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Xref do
         Each prints each file followed by the files it depends on. This is the
         default except on Windows;
 
-      * `plain` - the same as pretty except ASCII characters is used instead of
+      * `plain` - the same as pretty except ASCII characters are used instead of
         Unicode characters. This is the default on Windows;
 
       * `stats` - prints general statistics about the graph;
