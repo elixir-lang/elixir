@@ -473,6 +473,10 @@ tokenize("\r\n" ++ Rest, Line, Column, Scope, Tokens) ->
 
 % Others
 
+tokenize([$%, $[ | Rest], Line, _Column, _Scope, Tokens) ->
+  Reason = {Line, "expected %{ to define a map, got: ", [$%, $[]},
+  {error, Reason, Rest, Tokens};
+
 tokenize([$%, ${ | T], Line, Column, Scope, Tokens) ->
   tokenize([${ | T], Line, Column + 1, Scope, [{'%{}', {Line, Column, nil}} | Tokens]);
 
