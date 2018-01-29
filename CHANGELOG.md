@@ -127,6 +127,8 @@ Other improvements in Mix include better compiler diagnostics for editor integra
 
 ### 1. Enhancements
 
+#### Elixir
+
   * [DynamicSupervisor] Implement `child_spec/1` for DynamicSupervisor
   * [Kernel] Raise better error messages on invalid map syntax
 
@@ -141,7 +143,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [Enum] Reintroduce zipping of any enumerable of enumerables in `Enum.zip/1` (regression in v1.6.0)
   * [Macro] Reorder kw blocks in `Macro.to_string/1` to avoid warnings
   * [Protocol] Fix protocol consolidation when some chunks may be missing
-  * [Stream] Reintroduce zipping of any enumerable of enumerables in `Enum.zip/1` (regression in v1.6.0)
+  * [Stream] Reintroduce zipping of any enumerable of enumerables in `Stream.zip/1` (regression in v1.6.0)
   * [Supervisor] Do not override user own `@opts` attribute
   * [Supervisor] Add `@spec` to second clause of `start_link/2`
 
