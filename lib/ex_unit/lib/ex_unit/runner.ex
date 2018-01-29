@@ -181,22 +181,22 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_module_setup(%ExUnit.TestModule{name: module} = test_module) do
-    {:ok, test_module, module.__ex_unit__(:setup_all, %{module: module})}
+    {:ok, test_module, module.__ex_unit__(:setup_all, %{module: module, case: module})}
   catch
     kind, error ->
       failed = failed(kind, error, pruned_stacktrace())
       {:error, %{test_module | state: failed}}
   end
 
-  defp run_test(true, config, test, context) do
-    run_test([], config, test, context)
+  defp run_test_with_capture_log(true, config, test, context) do
+    run_test_with_capture_log([], config, test, context)
   end
 
-  defp run_test(false, config, test, context) do
+  defp run_test_with_capture_log(false, config, test, context) do
     spawn_test(config, test, context)
   end
 
-  defp run_test(opts, config, test, context) do
+  defp run_test_with_capture_log(opts, config, test, context) do
     ref = make_ref()
 
     try do
@@ -224,7 +224,7 @@ defmodule ExUnit.Runner do
     test =
       if is_nil(test.state) do
         capture_log? = Map.get(tags, :capture_log, config.capture_log)
-        run_test(capture_log?, config, test, Map.merge(tags, context))
+        run_test_with_capture_log(capture_log?, config, test, Map.merge(tags, context))
       else
         test
       end
