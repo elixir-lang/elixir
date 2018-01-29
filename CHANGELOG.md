@@ -123,19 +123,31 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
-## v1.6.1-dev
+## v1.6.1 (2018-01-29)
 
-### 1. Bug fixes
+### 1. Enhancements
+
+  * [DynamicSupervisor] Implement `child_spec/1` for DynamicSupervisor
+  * [Kernel] Raise better error messages on invalid map syntax
+
+### 2. Bug fixes
 
 #### Elixir
 
   * [Code.Formatter] Only rearrange `not in` operator if explicitly opted-in
+  * [Code.Formatter] Ensure do blocks do not exceed line length on calls with a single argument
+  * [Collectable] Support bitstrings in Collectable and for-comprehensions (regression in v1.6.0)
   * [GenServer] Do not override user own `@opts` attribute
-  * [Enum] Reintroduce zipping of any enumerable of enumerables in `Enum.zip/1`
+  * [Enum] Reintroduce zipping of any enumerable of enumerables in `Enum.zip/1` (regression in v1.6.0)
   * [Macro] Reorder kw blocks in `Macro.to_string/1` to avoid warnings
-  * [Stream] Reintroduce zipping of any enumerable of enumerables in `Enum.zip/1`
+  * [Protocol] Fix protocol consolidation when some chunks may be missing
+  * [Stream] Reintroduce zipping of any enumerable of enumerables in `Enum.zip/1` (regression in v1.6.0)
   * [Supervisor] Do not override user own `@opts` attribute
   * [Supervisor] Add `@spec` to second clause of `start_link/2`
+
+#### ExUnit
+
+  * [ExUnit.Case] Reintroduce `:case` in ExUnit setup/setup_all/test context
 
 ## v1.6.0 (2018-01-17)
 

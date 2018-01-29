@@ -21,7 +21,7 @@ defmodule ExUnit.CaseTest do
   test "tags", context do
     line = __ENV__.line - 1
     assert context[:module] == __MODULE__
-    assert context[:case] == __MODULE__ # Deprecated
+    assert context[:case] == __MODULE__
     assert context[:test] == __ENV__.function |> elem(0)
     assert context[:line] == line
     assert context[:async] == true
