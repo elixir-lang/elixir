@@ -536,24 +536,22 @@ defmodule IEx.Introspection do
 
   defp add_optional_callback_docs(docs, mod) do
     optional_callbacks =
-      if function_exported?(mod, :behaviour_info, 1) do
+      if Code.ensure_loaded?(mod) and function_exported?(mod, :behaviour_info, 1) do
         mod.behaviour_info(:optional_callbacks)
+      else
+        []
       end
 
-    case optional_callbacks do
-      [] ->
-        docs
-
-      nil ->
-        docs
-
-      optional_callbacks ->
-        docs ++ [{format_optional_callbacks(optional_callbacks), ""}]
+    if optional_callbacks == [] do
+      docs
+    else
+      docs ++ [{format_optional_callbacks(optional_callbacks), ""}]
     end
   end
 
   defp format_optional_callbacks(callbacks) do
-    format_typespec(callbacks, :optional_callbacks)
+    callbacks
+    |> format_typespec(:optional_callbacks)
     |> pair(?\n)
   end
 
