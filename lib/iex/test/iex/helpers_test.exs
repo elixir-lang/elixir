@@ -568,7 +568,32 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> b(NoMix.run()) end) == "Could not load module NoMix, got: nofile\n"
 
       assert capture_io(fn -> b(Exception.message() / 1) end) ==
-               "@callback message(t()) :: String.t()\n\n"
+               "@callback message(t()) :: String.t()\n\n@optional_callbacks [blame: 2]\n\n\n"
+    end
+
+    test "prints optional callback" do
+      filename = "optional_callbacks.ex"
+
+      content = """
+      defmodule OptionalCallbacks do
+        @doc "callback"
+        @callback optional_1(:foo) :: integer
+        @optional_callbacks optional_1: 1
+      end
+      """
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [OptionalCallbacks]
+
+        assert capture_io(fn -> b(OptionalCallbacks) end) =~ """
+               @callback optional_1(:foo) :: integer()
+
+               @optional_callbacks [optional_1: 1]
+
+               """
+      end)
+    after
+      cleanup_modules([OptionalCallbacks])
     end
   end
 

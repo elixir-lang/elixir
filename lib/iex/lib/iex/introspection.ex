@@ -521,8 +521,31 @@ defmodule IEx.Introspection do
               {format_callback(kind, fun, {fun, arity}, callbacks), doc}
           end)
 
+        docs =
+          case get_optional_callbacks(mod) do
+            [] ->
+              docs
+
+            nil ->
+              docs
+
+            opt_callbacks ->
+              docs ++ [{format_optional_callbacks(opt_callbacks), ""}]
+          end
+
         {:ok, docs}
     end
+  end
+
+  defp get_optional_callbacks(mod) do
+    if function_exported?(mod, :behaviour_info, 1) do
+      mod.behaviour_info(:optional_callbacks)
+    end
+  end
+
+  defp format_optional_callbacks(callbacks) do
+    format_typespec(callbacks, :optional_callbacks)
+    |> pair(?\n)
   end
 
   defp format_callback(kind, name, key, callbacks) do
