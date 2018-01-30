@@ -457,10 +457,19 @@ defmodule IEx.Introspection do
   """
   def b(mod) when is_atom(mod) do
     case get_callback_docs(mod, fn _ -> true end) do
-      :no_beam -> no_beam(mod)
-      :no_docs -> no_docs(mod)
-      {:ok, []} -> puts_error("No callbacks for #{inspect(mod)} were found")
-      {:ok, docs} -> Enum.each(docs, fn {definition, _} -> IO.puts(definition) end)
+      :no_beam ->
+        no_beam(mod)
+
+      :no_docs ->
+        no_docs(mod)
+
+      {:ok, []} ->
+        puts_error("No callbacks for #{inspect(mod)} were found")
+
+      {:ok, docs} ->
+        docs
+        |> add_optional_callback_docs(mod)
+        |> Enum.each(fn {definition, _} -> IO.puts(definition) end)
     end
 
     dont_display_result()
@@ -523,6 +532,29 @@ defmodule IEx.Introspection do
 
         {:ok, docs}
     end
+  end
+
+  defp add_optional_callback_docs(docs, mod) do
+    optional_callbacks =
+      if function_exported?(mod, :behaviour_info, 1) do
+        mod.behaviour_info(:optional_callbacks)
+      end
+
+    case optional_callbacks do
+      [] ->
+        docs
+
+      nil ->
+        docs
+
+      optional_callbacks ->
+        docs ++ [{format_optional_callbacks(optional_callbacks), ""}]
+    end
+  end
+
+  defp format_optional_callbacks(callbacks) do
+    format_typespec(callbacks, :optional_callbacks)
+    |> pair(?\n)
   end
 
   defp format_callback(kind, name, key, callbacks) do
