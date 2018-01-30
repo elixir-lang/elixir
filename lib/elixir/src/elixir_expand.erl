@@ -731,37 +731,21 @@ allowed_in_context(_, _, _) ->
 
 maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [Left, Right]}, E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
-  Result =
-    case calendar_struct_expression(Left) of
-      false ->
-        case calendar_struct_expression(Right) of
-          false -> false;
-          Struct -> Struct
-        end;
-      Struct -> Struct
-    end,
-
-  case Result of
-    false -> ok;
-    _ -> elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, Result})
+  case struct_expression(Left) or struct_expression(Right) of
+    true -> elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, struct_comparison);
+    false -> ok
   end;
 maybe_warn_struct_comparison(_Other, _E) ->
   ok.
 
-calendar_struct_expression({'%{}', _, KVs}) ->
+struct_expression({'%', _, [Struct, _]}) ->
+  is_atom(Struct);
+struct_expression({'%{}', _, KVs}) ->
   case lists:keyfind('__struct__', 1, KVs) of
-    {'__struct__', Struct} when Struct =:= 'Elixir.Time';
-                                Struct =:= 'Elixir.DateTime';
-                                Struct =:= 'Elixir.NaiveDateTime';
-                                Struct =:= 'Elixir.Date' ->
-      Struct;
+    {'__struct__', Struct} -> is_atom(Struct);
     false -> false
   end;
-calendar_struct_expression({{'.', _, ['Elixir.Time', utc_now]}, _, _}) -> 'Elixir.Time';
-calendar_struct_expression({{'.', _, ['Elixir.DateTime', utc_now]}, _, _}) -> 'Elixir.DateTime';
-calendar_struct_expression({{'.', _, ['Elixir.NaiveDateTime', utc_now]}, _, _}) -> 'Elixir.NaiveDateTime';
-calendar_struct_expression({{'.', _, ['Elixir.Date', utc_today]}, _, _}) -> 'Elixir.Date';
-calendar_struct_expression(_Other) -> false.
+struct_expression(_Other) -> false.
 
 %% Lexical helpers
 
@@ -1056,8 +1040,7 @@ format_error({underscored_var_access, Name, Kind}) ->
                 "A leading underscore indicates that the value of the variable "
                 "should be ignored. If this is intended please rename the "
                 "variable to remove the underscore", [Name, context_info(Kind)]);
-format_error({struct_comparison, Struct}) ->
-  Name = 'Elixir.Kernel':inspect(Struct, []),
-  io_lib:format("comparison operators (>, <, >=, <=) perform structural and not "
-                "semantic comparison, to perform semantic coparison of ~ts structs, "
-                "please use the ~ts.compare/2 function", [Name, Name]).
+format_error(struct_comparison) ->
+  "comparison operators (>, <, >=, <=) perform structural and not semantic comparison, "
+  "comparing with a struct literal is unlikely to give a meaningful result. "
+  "Many modules export a compare/2 or cmp/2 function that can be used for semantic comparison".

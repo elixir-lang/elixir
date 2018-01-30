@@ -1241,10 +1241,7 @@ defmodule Kernel.WarningTest do
       "~N[2018-01-28 12:00:00]",
       "~T[12:00:00]",
       "~D[2018-01-28]",
-      "NaiveDateTime.utc_now()",
-      "DateTime.utc_now()",
-      "Time.utc_now()",
-      "Date.utc_today()"
+      "%File.Stat{}"
     ]
 
     for op <- [:<, :>, :<=, :>=],
