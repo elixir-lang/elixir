@@ -143,19 +143,14 @@ defmodule TestOneOfEach do
     raise ExUnit.MultiError, errors: [error1, error2]
   end
 
-  @tag report: [:user_id, :post_id, :many_ids]
-  test "27. tag reporting" do
-    flunk "oops"
-  end
-
   @tag capture_log: true
-  test "28. log capturing" do
+  test "27. log capturing" do
     require Logger
     Logger.debug "this will be logged"
     flunk "oops"
   end
 
-  test "29. function clause error" do
+  test "28. function clause error" do
     Access.fetch(:foo, :bar)
   end
 

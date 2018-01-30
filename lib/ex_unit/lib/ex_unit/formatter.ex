@@ -122,7 +122,7 @@ defmodule ExUnit.Formatter do
 
         failure_header(failures, index) <>
           text <> format_stacktrace(stack, module, name, formatter)
-      end) <> report(tags, failures, width, formatter)
+      end)
   end
 
   @doc false
@@ -146,24 +146,6 @@ defmodule ExUnit.Formatter do
     |> format_meta(formatter, label_padding_size)
     |> make_into_lines(counter_padding)
   end
-
-  defp report(tags, failures, width, formatter) do
-    case Map.take(tags, List.wrap(tags[:report])) do
-      report when map_size(report) == 0 ->
-        ""
-
-      report ->
-        report_spacing(failures) <>
-          extra_info("tags:", formatter) <>
-          Enum.map_join(report, "", fn {key, value} ->
-            prefix = "       #{key}: "
-            prefix <> inspect_multiline(value, byte_size(prefix), width) <> "\n"
-          end)
-    end
-  end
-
-  defp report_spacing([_]), do: ""
-  defp report_spacing(_), do: "\n"
 
   # TODO: Deprecate on Elixir v1.8
   @doc false
