@@ -568,7 +568,7 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> b(NoMix.run()) end) == "Could not load module NoMix, got: nofile\n"
 
       assert capture_io(fn -> b(Exception.message() / 1) end) ==
-               "@callback message(t()) :: String.t()\n\n@optional_callbacks [blame: 2]\n\n\n"
+               "@callback message(t()) :: String.t()\n\n"
     end
 
     test "prints optional callback" do
