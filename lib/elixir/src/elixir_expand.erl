@@ -710,6 +710,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
                                  ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
   Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
+  maybe_warn_struct_comparison(Rewritten, E),
   case allowed_in_context(Rewritten, Arity, Context) of
     true ->
       {Rewritten, elixir_env:mergev(EL, EA)};
@@ -727,6 +728,30 @@ allowed_in_context(_, _Arity, guard) ->
   false;
 allowed_in_context(_, _, _) ->
   true.
+
+maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [Left, Right]}, E)
+    when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
+  Result =
+    case struct_expression(Left) of
+      false -> struct_expression(Right);
+      Struct -> Struct
+    end,
+
+  case Result of
+    false -> ok;
+    _ -> elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, Result})
+  end;
+maybe_warn_struct_comparison(_Other, _E) ->
+  ok.
+
+struct_expression({'%', _, [Struct, _]}) when is_atom(Struct) ->
+  Struct;
+struct_expression({'%{}', _, KVs}) ->
+  case lists:keyfind('__struct__', 1, KVs) of
+    {'__struct__', Struct} when is_atom(Struct) -> Struct;
+    false -> false
+  end;
+struct_expression(_Other) -> false.
 
 %% Lexical helpers
 
@@ -1020,4 +1045,10 @@ format_error({underscored_var_access, Name, Kind}) ->
   io_lib:format("the underscored variable \"~ts\"~ts is used after being set. "
                 "A leading underscore indicates that the value of the variable "
                 "should be ignored. If this is intended please rename the "
-                "variable to remove the underscore", [Name, context_info(Kind)]).
+                "variable to remove the underscore", [Name, context_info(Kind)]);
+format_error({struct_comparison, Struct}) ->
+  io_lib:format("invalid comparison with struct literal ~ts. Comparison operators "
+                "(>, <, >=, <=) perform structural and not semantic comparison. "
+                "Comparing with a struct literal is unlikely to give a meaningful result. "
+                "Modules typically define a compare/2 function that can be used for "
+                "semantic comparison", [Struct]).
