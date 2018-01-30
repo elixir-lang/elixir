@@ -1248,11 +1248,11 @@ defmodule Kernel.WarningTest do
         expression <- expressions do
       assert capture_err(fn ->
                Code.eval_string("x #{op} #{expression}", x: 1)
-             end) =~ "perform structural and not semantic comparison"
+             end) =~ "invalid comparison with struct literal"
 
       assert capture_err(fn ->
                Code.eval_string("#{expression} #{op} x", x: 1)
-             end) =~ "perform structural and not semantic comparison"
+             end) =~ "invalid comparison with struct literal"
     end
   end
 

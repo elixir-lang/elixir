@@ -731,18 +731,24 @@ allowed_in_context(_, _, _) ->
 
 maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [Left, Right]}, E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
-  case struct_expression(Left) or struct_expression(Right) of
-    true -> elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, struct_comparison);
-    false -> ok
+  Result =
+    case struct_expression(Left) of
+      false -> struct_expression(Right);
+      Struct -> Struct
+    end,
+
+  case Result of
+    false -> ok;
+    _ -> elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, Result})
   end;
 maybe_warn_struct_comparison(_Other, _E) ->
   ok.
 
-struct_expression({'%', _, [Struct, _]}) ->
-  is_atom(Struct);
+struct_expression({'%', _, [Struct, _]}) when is_atom(Struct) ->
+  Struct;
 struct_expression({'%{}', _, KVs}) ->
   case lists:keyfind('__struct__', 1, KVs) of
-    {'__struct__', Struct} -> is_atom(Struct);
+    {'__struct__', Struct} when is_atom(Struct) -> Struct;
     false -> false
   end;
 struct_expression(_Other) -> false.
@@ -1040,7 +1046,9 @@ format_error({underscored_var_access, Name, Kind}) ->
                 "A leading underscore indicates that the value of the variable "
                 "should be ignored. If this is intended please rename the "
                 "variable to remove the underscore", [Name, context_info(Kind)]);
-format_error(struct_comparison) ->
-  "comparison operators (>, <, >=, <=) perform structural and not semantic comparison, "
-  "comparing with a struct literal is unlikely to give a meaningful result. "
-  "Many modules export a compare/2 or cmp/2 function that can be used for semantic comparison".
+format_error({struct_comparison, Struct}) ->
+  io_lib:format("invalid comparison with struct literal ~ts. Comparison operators "
+                "(>, <, >=, <=) perform structural and not semantic comparison. "
+                "Comparing with a struct literal is unlikely to give a meaningful result. "
+                "Modules typically define a compare/2 function that can be used for "
+                "semantic comparison", [Struct]).
