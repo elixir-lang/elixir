@@ -3,7 +3,6 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Task.SupervisorTest do
   use ExUnit.Case
 
-  @moduletag report: [:supervisor]
   @moduletag :capture_log
 
   setup do
