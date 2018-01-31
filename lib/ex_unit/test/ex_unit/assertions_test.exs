@@ -55,6 +55,19 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert special form" do
+    true =
+      assert (case :ok do
+                :ok -> true
+              end)
+  end
+
+  test "assert argument semantics on function call" do
+    x = 1
+    true = assert not_equal(x = 2, x)
+    2 = x
+  end
+
   test "assert with equality" do
     try do
       "This should never be tested" = assert 1 + 1 == 1
@@ -612,13 +625,6 @@ defmodule ExUnit.AssertionsTest do
     true = assert 1 + 2 < greater
   end
 
-  test "assert special form" do
-    true =
-      assert (case :ok do
-                :ok -> true
-              end)
-  end
-
   test "assert operator with custom message" do
     "This should never be tested" = assert 1 > 2, "assertion"
   rescue
@@ -781,4 +787,5 @@ defmodule ExUnit.AssertionsTest do
 
   defp ok(val), do: {:ok, val}
   defp error(val), do: {:error, val}
+  defp not_equal(left, right), do: left != right
 end

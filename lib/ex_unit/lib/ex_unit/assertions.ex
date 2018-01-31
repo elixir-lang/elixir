@@ -326,16 +326,9 @@ defmodule ExUnit.Assertions do
       ^expr when not special_form? ->
         vars = for i <- 1..arity, do: Macro.var(:"arg#{i}", __MODULE__)
 
-        assignments =
-          for {var, arg} <- Enum.zip(vars, args) do
-            quote do
-              unquote(var) = unquote(arg)
-            end
-          end
-
         quoted =
           quote do
-            unquote_splicing(assignments)
+            {unquote_splicing(vars)} = {unquote_splicing(args)}
             unquote({root, meta, vars})
           end
 
