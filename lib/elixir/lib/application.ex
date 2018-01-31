@@ -79,10 +79,19 @@ defmodule Application do
     * [`:application` module](http://www.erlang.org/doc/man/application.html)
     * [Applications – OTP Design Principles](http://www.erlang.org/doc/design_principles/applications.html)
 
-  A developer may also implement the `stop/1` callback (automatically defined
-  by `use Application`) which does any application cleanup. It receives the
-  application state and can return any value. Note that shutting down the
-  supervisor is automatically handled by the VM.
+  When an application is shutting down, its `c:stop/1` callback is called after
+  the supervision tree has been stopped by the runtime. This callback allows the
+  application to do any final cleanup. The argument is the state returned by
+  `c:start/2`, if it did, or `[]` otherwise. The return value of `c:stop/1` is
+  ignored.
+
+  By using `Application`, modules get a default implementation of `c:stop/1`
+  that ignores its argument and returns `:ok`, but it can be overridden.
+
+  Application callback modules may also implement the optional callback
+  `c:prep_stop/1`. If present, `c:prep_stop/1` is invoked before the supervision
+  tree is terminated. Its argument is the state returned by `c:start/2`, if it did,
+  or `[]` otherwise, and its return value is passed to `c:stop/1`.
 
   An application without a supervision tree doesn't define an application
   module callback in the application definition in `mix.exs` file. Even though
@@ -186,15 +195,25 @@ defmodule Application do
               | {:error, reason :: term}
 
   @doc """
+  Called before stopping the application.
+
+  This function is called before the top-level supervisor is terminated. It
+  receives the state returned by `c:start/2`, if it did, or `[]` otherwise.
+  The return value is later passed to `c:stop/1`.
+  """
+  @callback prep_stop(state) :: state
+
+  @doc """
   Called after an application has been stopped.
 
   This function is called after an application has been stopped, i.e., after its
   supervision tree has been stopped. It should do the opposite of what the
-  `start/2` callback did, and should perform any necessary cleanup. The return
+  `c:start/2` callback did, and should perform any necessary cleanup. The return
   value of this callback is ignored.
 
-  `state` is the return value of the `start/2` callback or the return value of
-  the `prep_stop/1` function if the application module defines such a function.
+  `state` is the state returned by `c:start/2`, if it did, or `[]` otherwise.
+  If the optional callback `c:prep_stop/1` is present, `state` is its return
+  value instead.
 
   `use Application` defines a default implementation of this function which does
   nothing and just returns `:ok`.
@@ -212,7 +231,7 @@ defmodule Application do
   @callback start_phase(phase :: term, start_type, phase_args :: term) ::
               :ok | {:error, reason :: term}
 
-  @optional_callbacks start_phase: 3
+  @optional_callbacks start_phase: 3, prep_stop: 1
 
   @doc false
   defmacro __using__(_) do
