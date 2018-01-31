@@ -35,17 +35,43 @@ defmodule Mix.Dep.Lock do
     lockfile = lockfile()
 
     case File.read(lockfile) do
-      {:ok, info} ->
-        assert_no_merge_conflicts_in_lockfile(lockfile, info)
-
-        case Code.eval_string(info, [], file: lockfile) do
-          {lock, _binding} when is_map(lock) -> lock
-          {_, _binding} -> %{}
-        end
+      {:ok, content} ->
+        read_lock(content, lockfile)
 
       {:error, _} ->
         %{}
     end
+  end
+
+  @conflict_delimiters ["<<<<<<<", "=======", ">>>>>>>"]
+  @conflict_regex ~r/<{7} .+\n|\|{7} .+\n[\w\W\s]+={7}\n|={7}\n|>{7} .+\n/
+
+  defp read_lock(content, lockfile) do
+    if String.contains?(content, @conflict_delimiters) do
+      case content |> String.replace(@conflict_regex, "") |> eval_content(lockfile) do
+        {:ok, new_map} ->
+          write_lock(new_map, %{}, lockfile)
+          new_map
+
+        :error ->
+          Mix.raise("""
+          Your #{lockfile} contains merge conflicts we cannot automatically solve.
+          Please resolve the conflicts manually and run the command again
+          """)
+      end
+    else
+      case eval_content(content, lockfile) do
+        {:ok, map} -> map
+        :error -> Mix.raise("Could not read #{lockfile} due to a syntax error")
+      end
+    end
+  end
+
+  defp eval_content(content, lockfile) do
+    {lock, _binding} = Code.eval_string(content, [], file: lockfile)
+    if is_map(lock), do: {:ok, lock}, else: {:ok, %{}}
+  rescue
+    SyntaxError -> :error
   end
 
   @doc """
@@ -53,29 +79,24 @@ defmodule Mix.Dep.Lock do
   """
   @spec write(map) :: :ok
   def write(map) do
-    unless map == read() do
-      lines =
-        for {app, rev} <- Enum.sort(map), rev != nil do
-          ~s(  "#{app}": #{inspect(rev, limit: :infinity)},\n)
-        end
+    write_lock(map, read(), lockfile())
+  end
 
-      File.write!(lockfile(), ["%{\n", lines, "}\n"])
-      touch_manifest()
-    end
-
+  defp write_lock(map, map, _lockfile) do
     :ok
+  end
+
+  defp write_lock(map, _old, lockfile) do
+    lines =
+      for {app, rev} <- Enum.sort(map), rev != nil do
+        ~s(  "#{app}": #{inspect(rev, limit: :infinity)},\n)
+      end
+
+    File.write!(lockfile, ["%{\n", lines, "}\n"])
+    touch_manifest()
   end
 
   defp lockfile do
     Mix.Project.config()[:lockfile]
-  end
-
-  defp assert_no_merge_conflicts_in_lockfile(lockfile, info) do
-    if String.contains?(info, ~w(<<<<<<< ======= >>>>>>>)) do
-      Mix.raise(
-        "Your #{lockfile} contains merge conflicts. Please resolve the conflicts " <>
-          "and run the command again"
-      )
-    end
   end
 end

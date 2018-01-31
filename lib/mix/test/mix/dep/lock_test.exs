@@ -42,7 +42,55 @@ defmodule Mix.Dep.LockTest do
     end
   end
 
-  test "raises a proper error for merge conflicts", context do
+  test "raises a proper error for unsolvable merge conflicts", context do
+    in_tmp context.test, fn ->
+      File.write("mix.lock", ~S"""
+      %{
+        "dep": {:hex, :dep, "0.1.0"},
+      <<<<<<< HEAD
+        "foo": {:hex, :foo, "0.1.0"},
+      =======
+        "bar" {:hex, :bar, "0.1.0"},
+      >>>>>>> foobar
+        "baz": {:hex, :baz, "0.1.0"},
+      }
+      """)
+
+      assert_raise Mix.Error, ~r/Your mix\.lock contains merge conflicts/, fn ->
+        Mix.Dep.Lock.read()
+      end
+    end
+  end
+
+  test "solves single merge conflicts", context do
+    in_tmp context.test, fn ->
+      File.write("mix.lock", ~S"""
+      %{
+        "dep": {:hex, :dep, "0.1.0"},
+      <<<<<<< HEAD
+        "foo": {:hex, :foo, "0.1.0"},
+        "sys": {:hex, :foo, "0.1.0"},
+      =======
+        "bar": {:hex, :bar, "0.1.0"},
+        "sys": {:hex, :bar, "0.2.0"},
+      >>>>>>> foobar
+        "baz": {:hex, :baz, "0.1.0"},
+        "zaz": {:hex, :zaz, "0.1.0"},
+      }
+      """)
+
+      Mix.Dep.Lock.read() == %{
+        dep: {:hex, :dep, "0.1.0"},
+        foo: {:hex, :foo, "0.1.0"},
+        bar: {:hex, :bar, "0.1.0"},
+        baz: {:hex, :baz, "0.1.0"},
+        sys: {:hex, :sys, "0.2.0"},
+        zaz: {:hex, :zaz, "0.1.0"}
+      }
+    end
+  end
+
+  test "solves multiple merge conflicts", context do
     in_tmp context.test, fn ->
       File.write("mix.lock", ~S"""
       %{
@@ -53,12 +101,49 @@ defmodule Mix.Dep.LockTest do
         "bar": {:hex, :bar, "0.1.0"},
       >>>>>>> foobar
         "baz": {:hex, :baz, "0.1.0"},
+      <<<<<<< HEAD
+        "sys": {:hex, :sys, "0.1.0"},
+      =======
+        "lol": {:hex, :lol, "0.1.0"},
+      >>>>>>> foobar
+        "zaz": {:hex, :zaz, "0.1.0"},
       }
       """)
 
-      assert_raise Mix.Error, ~r/Your mix\.lock contains merge conflicts/, fn ->
-        Mix.Dep.Lock.read()
-      end
+      Mix.Dep.Lock.read() == %{
+        dep: {:hex, :dep, "0.1.0"},
+        foo: {:hex, :foo, "0.1.0"},
+        bar: {:hex, :bar, "0.1.0"},
+        baz: {:hex, :baz, "0.1.0"},
+        sys: {:hex, :sys, "0.1.0"},
+        lol: {:hex, :lol, "0.1.0"},
+        zaz: {:hex, :zaz, "0.1.0"}
+      }
+    end
+  end
+
+  test "discards common ancestors for merge conflicts", context do
+    in_tmp context.test, fn ->
+      File.write("mix.lock", ~S"""
+      %{
+        "dep": {:hex, :dep, "0.1.0"},
+      <<<<<<< HEAD
+        "foo": {:hex, :foo, "0.1.0"},
+      ||||||| master
+        "bis": {:hex, :bis, "0.1.0"},
+      =======
+        "bar": {:hex, :bar, "0.1.0"},
+      >>>>>>> foobar
+        "baz": {:hex, :baz, "0.1.0"},
+      }
+      """)
+
+      Mix.Dep.Lock.read() == %{
+        dep: {:hex, :dep, "0.1.0"},
+        foo: {:hex, :foo, "0.1.0"},
+        bar: {:hex, :bar, "0.1.0"},
+        baz: {:hex, :baz, "0.1.0"}
+      }
     end
   end
 end
