@@ -612,6 +612,13 @@ defmodule ExUnit.AssertionsTest do
     true = assert 1 + 2 < greater
   end
 
+  test "assert special form" do
+    true =
+      assert (case :ok do
+                :ok -> true
+              end)
+  end
+
   test "assert operator with custom message" do
     "This should never be tested" = assert 1 > 2, "assertion"
   rescue

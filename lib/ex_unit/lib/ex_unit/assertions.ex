@@ -5,7 +5,11 @@ defmodule ExUnit.AssertionError do
 
   @no_value :ex_unit_no_meaningful_value
 
-  defexception left: @no_value, right: @no_value, message: @no_value, expr: @no_value
+  defexception left: @no_value,
+               right: @no_value,
+               message: @no_value,
+               expr: @no_value,
+               args: @no_value
 
   @doc """
   Indicates no meaningful value for a field.
@@ -161,22 +165,23 @@ defmodule ExUnit.Assertions do
   end
 
   defmacro assert(assertion) do
-    case translate_assertion(:assert, assertion, __CALLER__) do
-      nil ->
-        quote do
-          value = unquote(assertion)
+    if translated = translate_assertion(:assert, assertion, __CALLER__) do
+      translated
+    else
+      {args, value} = extract_args(assertion, __CALLER__)
 
-          unless value do
-            raise ExUnit.AssertionError,
-              expr: unquote(escape_quoted(:assert, assertion)),
-              message: "Expected truthy, got #{inspect(value)}"
-          end
+      quote do
+        value = unquote(value)
 
-          value
+        unless value do
+          raise ExUnit.AssertionError,
+            args: unquote(args),
+            expr: unquote(escape_quoted(:assert, assertion)),
+            message: "Expected truthy, got #{inspect(value)}"
         end
 
-      value ->
         value
+      end
     end
   end
 
@@ -219,22 +224,23 @@ defmodule ExUnit.Assertions do
   end
 
   defmacro refute(assertion) do
-    case translate_assertion(:refute, assertion, __CALLER__) do
-      nil ->
-        quote do
-          value = unquote(assertion)
+    if translated = translate_assertion(:refute, assertion, __CALLER__) do
+      {:!, [], [translated]}
+    else
+      {args, value} = extract_args(assertion, __CALLER__)
 
-          if value do
-            raise ExUnit.AssertionError,
-              expr: unquote(escape_quoted(:refute, assertion)),
-              message: "Expected false or nil, got #{inspect(value)}"
-          end
+      quote do
+        value = unquote(value)
 
-          value
+        if value do
+          raise ExUnit.AssertionError,
+            args: unquote(args),
+            expr: unquote(escape_quoted(:refute, assertion)),
+            message: "Expected false or nil, got #{inspect(value)}"
         end
 
-      value ->
-        {:!, [], [value]}
+        value
+      end
     end
   end
 
@@ -249,7 +255,7 @@ defmodule ExUnit.Assertions do
     call = {operator, meta, [left, right]}
     equality_check? = operator in [:<, :>, :!==, :!=]
     message = "Assertion with #{operator} failed"
-    translate_assertion(:assert, expr, call, message, equality_check?, caller)
+    translate_operator(:assert, expr, call, message, equality_check?, caller)
   end
 
   defp translate_assertion(:refute, {operator, meta, [_, _]} = expr, caller)
@@ -259,14 +265,14 @@ defmodule ExUnit.Assertions do
     call = {:not, meta, [{operator, meta, [left, right]}]}
     equality_check? = operator in [:<=, :>=, :===, :==, :=~]
     message = "Refute with #{operator} failed"
-    translate_assertion(:refute, expr, call, message, equality_check?, caller)
+    translate_operator(:refute, expr, call, message, equality_check?, caller)
   end
 
   defp translate_assertion(_kind, _expected, _caller) do
     nil
   end
 
-  defp translate_assertion(kind, {_, _, [left, right]} = expr, call, message, true, _caller) do
+  defp translate_operator(kind, {_, _, [left, right]} = expr, call, message, true, _caller) do
     expr = escape_quoted(kind, expr)
 
     quote do
@@ -288,7 +294,7 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion(kind, {_, _, [left, right]} = expr, call, message, false, _caller) do
+  defp translate_operator(kind, {_, _, [left, right]} = expr, call, message, false, _caller) do
     expr = escape_quoted(kind, expr)
 
     quote do
@@ -310,6 +316,38 @@ defmodule ExUnit.Assertions do
 
   defp escape_quoted(kind, expr) do
     Macro.escape({kind, [], [expr]})
+  end
+
+  defp extract_args({root, meta, [_ | _] = args} = expr, env) do
+    arity = length(args)
+    special_form? = is_atom(root) and Macro.special_form?(root, arity)
+
+    case Macro.expand_once(expr, env) do
+      ^expr when not special_form? ->
+        vars = for i <- 1..arity, do: Macro.var(:"arg#{i}", __MODULE__)
+
+        assignments =
+          for {var, arg} <- Enum.zip(vars, args) do
+            quote do
+              unquote(var) = unquote(arg)
+            end
+          end
+
+        quoted =
+          quote do
+            unquote_splicing(assignments)
+            unquote({root, meta, vars})
+          end
+
+        {vars, quoted}
+
+      other ->
+        {ExUnit.AssertionError.no_value(), other}
+    end
+  end
+
+  defp extract_args(expr, _env) do
+    {ExUnit.AssertionError.no_value(), expr}
   end
 
   ## END HELPERS

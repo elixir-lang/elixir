@@ -222,6 +222,20 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats assertions with function call arguments" do
+    failure = [{:error, catch_assertion(assert is_list({1, 2, 3})), []}]
+
+    assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) =~ """
+             1) Hello: failure on setup_all callback, test invalidated
+                Expected truthy, got false
+                code: assert is_list({1, 2, 3})
+                arguments:
+
+                    # 1
+                    {1, 2, 3}
+           """
+  end
+
   test "formats assertions with message with multiple lines" do
     message = "Some meaningful error:\nuseful info\nanother useful info"
     failure = [{:error, catch_assertion(assert(false, message)), []}]
