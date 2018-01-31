@@ -1238,9 +1238,9 @@ defmodule Kernel.WarningTest do
 
   test "struct comparisons" do
     expressions = [
-      "~N[2018-01-28 12:00:00]",
-      "~T[12:00:00]",
-      "~D[2018-01-28]",
+      ~s(~N"2018-01-28 12:00:00"),
+      ~s(~T"12:00:00"),
+      ~s(~D"2018-01-28"),
       "%File.Stat{}"
     ]
 
@@ -1248,11 +1248,11 @@ defmodule Kernel.WarningTest do
         expression <- expressions do
       assert capture_err(fn ->
                Code.eval_string("x #{op} #{expression}", x: 1)
-             end) =~ "invalid comparison with struct literal"
+             end) =~ "invalid comparison with struct literal #{expression}"
 
       assert capture_err(fn ->
                Code.eval_string("#{expression} #{op} x", x: 1)
-             end) =~ "invalid comparison with struct literal"
+             end) =~ "invalid comparison with struct literal #{expression}"
     end
   end
 
