@@ -459,6 +459,7 @@ defmodule Supervisor do
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       import Supervisor.Spec
+      @behaviour Supervisor
 
       @doc false
       def child_spec(arg) do
