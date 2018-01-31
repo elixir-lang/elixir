@@ -140,6 +140,7 @@ defmodule ExUnit.Formatter do
       note: if_value(struct.message, &format_message(&1, formatter)),
       code: if_value(struct.expr, &code_multiline(&1, padding_size)),
       code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
+      arguments: if_value(struct.args, &format_args(&1, width)),
       left: left,
       right: right
     ]
@@ -154,12 +155,12 @@ defmodule ExUnit.Formatter do
   end
 
   @doc """
-  Receives a test case and formats its failure.
+  Receives a test module and formats its failure.
   """
   def format_test_all_failure(test_module, failures, counter, width, formatter) do
     name = test_module.name
 
-    test_case_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
+    test_module_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
@@ -261,6 +262,19 @@ defmodule ExUnit.Formatter do
   defp format_message(value, formatter) do
     value = String.replace(value, "\n", "\n" <> @counter_padding)
     formatter.(:error_info, value)
+  end
+
+  defp format_args(args, width) do
+    entries =
+      for {arg, i} <- Enum.with_index(args, 1) do
+        """
+
+                 # #{i}
+                 #{inspect_multiline(arg, 9, width)}
+        """
+      end
+
+    "\n" <> IO.iodata_to_binary(entries)
   end
 
   defp code_multiline(expr, padding_size) when is_binary(expr) do
@@ -377,8 +391,10 @@ defmodule ExUnit.Formatter do
     "#{counter}) #{msg}"
   end
 
-  defp test_case_info(msg, nil), do: msg <> "failure on setup_all callback, test invalidated\n"
-  defp test_case_info(msg, formatter), do: test_case_info(formatter.(:test_case_info, msg), nil)
+  defp test_module_info(msg, nil), do: msg <> "failure on setup_all callback, test invalidated\n"
+
+  defp test_module_info(msg, formatter),
+    do: test_module_info(formatter.(:test_module_info, msg), nil)
 
   defp test_info(msg, nil), do: msg <> "\n"
   defp test_info(msg, formatter), do: test_info(formatter.(:test_info, msg), nil)

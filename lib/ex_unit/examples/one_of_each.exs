@@ -154,6 +154,14 @@ defmodule TestOneOfEach do
     Access.fetch(:foo, :bar)
   end
 
+  test "29. function call arguments" do
+    assert some_vars(1 + 2, 3 + 4)
+  end
+
+  defp some_vars(_a, _b) do
+    false
+  end
+
   defp blows_up do
     ignite(0) + 1
   end

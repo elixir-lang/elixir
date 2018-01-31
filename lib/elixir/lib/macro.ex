@@ -1149,7 +1149,7 @@ defmodule Macro do
        when is_atom(atom) and is_list(args) and is_list(meta) do
     arity = length(args)
 
-    if :elixir_import.special_form(atom, arity) do
+    if special_form?(atom, arity) do
       {original, false}
     else
       module = env.module
@@ -1201,6 +1201,15 @@ defmodule Macro do
 
   # Anything else is just returned
   defp do_expand_once(other, _env), do: {other, false}
+
+  @doc """
+  Returns true if the given name and arity is a special form.
+  """
+  @since "1.7.0"
+  @spec special_form?(name :: atom(), arity()) :: boolean()
+  def special_form?(name, arity) when is_atom(name) and is_integer(arity) do
+    :elixir_import.special_form(name, arity)
+  end
 
   @doc """
   Receives an AST node and expands it until it can no longer
