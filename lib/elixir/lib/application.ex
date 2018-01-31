@@ -80,19 +80,18 @@ defmodule Application do
     * [Applications – OTP Design Principles](http://www.erlang.org/doc/design_principles/applications.html)
 
   When an application is shutting down, its `c:stop/1` callback is called after
-  the supervision tree has been stopped by `kernel`. This callback allows the
+  the supervision tree has been stopped by the runtime. This callback allows the
   application to do any final cleanup. The argument is the state returned by
   `c:start/2`, if it did, or `[]` otherwise. The return value of `c:stop/1` is
   ignored.
 
   By using `Application`, modules get a default implementation of `c:stop/1`
-  that ignores its argument and returns `:ok`, but it can ben overridden.
+  that ignores its argument and returns `:ok`, but it can be overridden.
 
   Application callback modules may also implement the optional callback
-  `c:prep_stop/1`. If present, `c:prep_stop/1` is invoked by `kernel` before
-  the supervision tree is terminated. Its argument is the state returned by
-  `c:start/2`, if it did, or `[]` otherwise, and its return value is passed to
-  `c:stop/1`.
+  `c:prep_stop/1`. If present, `c:prep_stop/1` is invoked before the supervision
+  tree is terminated. Its argument is the state returned by `c:start/2`, if it did,
+  or `[]` otherwise, and its return value is passed to `c:stop/1`.
 
   An application without a supervision tree doesn't define an application
   module callback in the application definition in `mix.exs` file. Even though
