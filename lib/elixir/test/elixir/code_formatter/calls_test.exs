@@ -434,8 +434,31 @@ defmodule Code.Formatter.CallsTest do
       )
       """
 
+      assert_same """
+      call(
+        :hello,
+        :foo,
+        :bar
+      ) do
+        1 + 2
+      end
+      """
+
       # Doesn't preserve this because only the beginning has a newline
       assert_format "call(\nfoo, bar, baz)", "call(foo, bar, baz)"
+
+      # Doesn't preserve because there are no args
+      bad = """
+      call() do
+        1 + 2
+      end
+      """
+
+      assert_format bad, """
+      call do
+        1 + 2
+      end
+      """
 
       # Doesn't preserve because we have a single argument with next break fits
       bad = """

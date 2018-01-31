@@ -998,7 +998,11 @@ defmodule Code.Formatter do
   # function(arguments)
   defp local_to_algebra(fun, meta, args, context, state) when is_atom(fun) do
     skip_parens =
-      if skip_parens?(fun, meta, args, state), do: :skip_unless_many_args, else: :skip_if_do_end
+      cond do
+        not Keyword.get(meta, :no_parens, false) -> :required
+        local_without_parens?(fun, args, state) -> :skip_unless_many_args
+        true -> :skip_if_do_end
+      end
 
     {{call_doc, state}, wrap_in_parens?} =
       call_args_to_algebra(args, meta, context, skip_parens, true, state)
@@ -1136,10 +1140,10 @@ defmodule Code.Formatter do
     {doc, state}
   end
 
-  defp skip_parens?(fun, meta, args, %{locals_without_parens: locals_without_parens}) do
+  defp local_without_parens?(fun, args, %{locals_without_parens: locals_without_parens}) do
     length = length(args)
 
-    length > 0 and Keyword.get(meta, :no_parens, false) and
+    length > 0 and
       Enum.any?(locals_without_parens, fn {key, val} ->
         key == fun and (val == :* or val == length)
       end)
