@@ -288,15 +288,23 @@ defmodule Time do
 
   """
   @spec to_iso8601(Calendar.time(), :extended | :basic) :: String.t()
-  def to_iso8601(time, format \\ :extended) when format in [:extended, :basic] do
+  def to_iso8601(time, format \\ :extended)
+
+  def to_iso8601(%{calendar: Calendar.ISO} = time, format) when format in [:extended, :basic] do
     %{
       hour: hour,
       minute: minute,
       second: second,
       microsecond: microsecond
-    } = convert!(time, Calendar.ISO)
+    } = time
 
     Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond, format)
+  end
+
+  def to_iso8601(%{calendar: _} = time, format) when format in [:extended, :basic] do
+    time
+    |> convert!(Calendar.ISO)
+    |> to_iso8601(format)
   end
 
   @doc """

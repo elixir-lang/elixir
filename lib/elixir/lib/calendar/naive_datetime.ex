@@ -568,12 +568,6 @@ defmodule NaiveDateTime do
     |> to_iso8601(format)
   end
 
-  def to_iso8601(_date, format) do
-    raise ArgumentError,
-          "NaiveDateTime.to_iso8601/2 expects format to be :extended or :basic, " <>
-            "got: #{inspect(format)}"
-  end
-
   @doc """
   Converts a `NaiveDateTime` struct to an Erlang datetime tuple.
 

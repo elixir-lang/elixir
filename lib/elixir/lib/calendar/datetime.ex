@@ -416,12 +416,8 @@ defmodule DateTime do
   @spec to_iso8601(Calendar.datetime(), :extended | :basic) :: String.t()
   def to_iso8601(datetime, format \\ :extended)
 
-  def to_iso8601(_, format) when format not in [:extended, :basic] do
-    raise ArgumentError,
-          "DateTime.to_iso8601/2 expects format to be :extended or :basic, got: #{inspect(format)}"
-  end
-
-  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format) do
+  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format)
+      when format in [:extended, :basic] do
     %{
       year: year,
       month: month,
@@ -452,7 +448,7 @@ defmodule DateTime do
     )
   end
 
-  def to_iso8601(%{calendar: _} = datetime, format) do
+  def to_iso8601(%{calendar: _} = datetime, format) when format in [:extended, :basic] do
     datetime
     |> convert!(Calendar.ISO)
     |> to_iso8601(format)
