@@ -554,8 +554,8 @@ defmodule MacroTest do
     test "operator precedence" do
       assert Macro.to_string(quote(do: (1 + 2) * (3 - 4))) == "(1 + 2) * (3 - 4)"
       assert Macro.to_string(quote(do: (1 + 2) * 3 - 4)) == "(1 + 2) * 3 - 4"
-      assert Macro.to_string(quote(do: 1 + 2 + 3 == "(1 + 2 + 3)"))
-      assert Macro.to_string(quote(do: 1 + 2 - 3 == "(1 + 2 - 3)"))
+      assert Macro.to_string(quote(do: 1 + 2 + 3)) == "1 + 2 + 3"
+      assert Macro.to_string(quote(do: 1 + 2 - 3)) == "1 + 2 - 3"
     end
 
     test "capture operator" do
