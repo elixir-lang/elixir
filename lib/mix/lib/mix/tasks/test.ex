@@ -282,11 +282,11 @@ defmodule Mix.Tasks.Test do
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
           excluded == total and option_only_present and opts[:raise] ->
-              Mix.raise("no test matched only option")
-          
+            Mix.raise("no test matched only option")
+
           excluded == total and option_only_present ->
-              Mix.shell().error("no test matched only option")
-              System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+            Mix.shell().error("no test matched only option")
+            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
           true ->
             :ok
