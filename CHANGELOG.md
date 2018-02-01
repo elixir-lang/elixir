@@ -4,9 +4,32 @@
 
 ### 1. Enhancements
 
+#### Elixir
+
+  * [Code] Add `Code.compile_file/2` that compiles files without leaving footprints on the system
+  * [Code.Formatter] Support comments in the middle of pipelines, `when` and `|` expressions
+  * [Macro] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
+
+#### ExUnit
+
+  * [ExUnit.Assertion] Print the arguments in error reports when asserting on a function call. For example, if `assert is_list(arg)` fails, the argument will be shown in the report.
+  * [ExUnit.Formatter] Excluded tests, via the `--exclude` and `--only` flags, are now shown as "Excluded" in reports. Tests skipped via `@tag :skip` are now exclusively shown as "Skipped" and in yellow
+
+#### IEx
+
+  * [IEx.Helpers] Add `IEx.Helpers.use_if_available/2`
+
+#### Mix
+
+  * [Mix.Project] Add `Mix.Project.clear_deps_cache/0`
+
 ### 2. Bug fixes
 
 ### 3. Soft deprecations (no warnings emitted)
+
+  * [Code] Deprecate `Code.load_file/2` in favor of `Code.compile_file/2`
+  * [Code] Deprecate `Code.loaded_files/0` in favor of `Code.required_files/0`
+  * [Code] Deprecate `Code.unload_files/1` in favor of `Code.unrequire_files/1`
 
 ### 4. Deprecations
 

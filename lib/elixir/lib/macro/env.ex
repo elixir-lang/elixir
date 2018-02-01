@@ -128,6 +128,7 @@ defmodule Macro.Env do
   atom or an integer.
   """
   @spec vars(t) :: [var]
+  @since "1.7.0"
   def vars(env)
 
   def vars(%{__struct__: Macro.Env, current_vars: current_vars}) do
@@ -138,6 +139,7 @@ defmodule Macro.Env do
   Checks if a variable belongs to the environment.
   """
   @spec has_var?(t, var) :: boolean()
+  @since "1.7.0"
   def has_var?(env, var)
 
   def has_var?(%{__struct__: Macro.Env, current_vars: current_vars}, var) do
