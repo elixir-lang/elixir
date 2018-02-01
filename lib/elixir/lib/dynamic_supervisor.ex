@@ -106,7 +106,7 @@ defmodule DynamicSupervisor do
         def start_child(foo, bar, baz) do
           # If MyWorker is not using the new child specs, we need to pass a map:
           # spec = %{id: MyWorker, start: {MyWorker, :start_link, [foo, bar, baz]}}
-          spec = MyWorker
+          spec = {MyWorker, foo, bar, baz}
           DynamicSupervisor.start_child(__MODULE__, spec)
         end
 
