@@ -1093,12 +1093,12 @@ defmodule Kernel.WarningTest do
 
   test "unused variable in defguard" do
     assert capture_err(fn ->
-      Code.eval_string("""
-      defmodule Sample do
-        defguard foo(bar, baz) when bar
-      end
-      """)
-    end) =~ "variable \"baz\" is unused"
+             Code.eval_string("""
+             defmodule Sample do
+               defguard foo(bar, baz) when bar
+             end
+             """)
+           end) =~ "variable \"baz\" is unused"
   after
     purge(Sample)
   end
@@ -1130,38 +1130,38 @@ defmodule Kernel.WarningTest do
 
   test "defguard overriding defmacro" do
     assert capture_err(fn ->
-      Code.eval_string("""
-      defmodule Sample do
-        defmacro foo(bar), do: bar == :bar
-        defguard foo(baz) when baz == :baz
-      end
-      """)
-    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+             Code.eval_string("""
+             defmodule Sample do
+               defmacro foo(bar), do: bar == :bar
+               defguard foo(baz) when baz == :baz
+             end
+             """)
+           end) =~ "this clause cannot match because a previous clause at line 2 always matches"
   after
     purge(Sample)
   end
 
   test "defmacro overriding defguard" do
     assert capture_err(fn ->
-      Code.eval_string("""
-      defmodule Sample do
-        defguard foo(baz) when baz == :baz
-        defmacro foo(bar), do: bar == :bar
-      end
-      """)
-    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+             Code.eval_string("""
+             defmodule Sample do
+               defguard foo(baz) when baz == :baz
+               defmacro foo(bar), do: bar == :bar
+             end
+             """)
+           end) =~ "this clause cannot match because a previous clause at line 2 always matches"
   after
     purge(Sample)
   end
 
   test "defguard needs an implementation" do
     assert capture_err(fn ->
-      Code.eval_string("""
-      defmodule Sample do
-        defguard foo(bar)
-      end
-      """)
-    end) =~ "implementation not provided for predefined defmacro foo/1"
+             Code.eval_string("""
+             defmodule Sample do
+               defguard foo(bar)
+             end
+             """)
+           end) =~ "implementation not provided for predefined defmacro foo/1"
   after
     purge(Sample)
   end
