@@ -4576,25 +4576,33 @@ defmodule Kernel do
 
   defp define_guard(kind, guard, env) do
     case :elixir_utils.extract_guards(guard) do
-      {call, impl} when length(impl) < 2 ->
+      {call, [_, _ | _]} ->
+        raise ArgumentError,
+              "invalid syntax in defguard #{Macro.to_string(call)}, " <>
+                "only a single when clause is allowed"
+
+      {call, impls} ->
         case Macro.decompose_call(call) do
           {_name, args} ->
             validate_variable_only_args!(call, args)
 
-            quoted =
-              quote do
-                require Kernel.Utils
-                Kernel.Utils.defguard(unquote(args), unquote(impl))
-              end
+            case impls do
+              [] ->
+                define(kind, call, nil, env)
 
-            define(kind, call, [do: quoted], env)
+              [guard] ->
+                quoted =
+                  quote do
+                    require Kernel.Utils
+                    Kernel.Utils.defguard(unquote(args), unquote(guard))
+                  end
+
+                define(kind, call, [do: quoted], env)
+            end
 
           _invalid_definition ->
             raise ArgumentError, "invalid syntax in defguard #{Macro.to_string(call)}"
         end
-
-      {call, _multiple_impls} ->
-        raise ArgumentError, "invalid syntax in defguard #{Macro.to_string(call)}"
     end
   end
 

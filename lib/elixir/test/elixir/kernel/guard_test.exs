@@ -21,6 +21,7 @@ defmodule Kernel.GuardTest do
 
     defmodule Guards.In.Funs do
       defguard is_foo(atom) when atom == :foo
+      defguard is_equal(foo, bar) when foo == bar
 
       def is_foobar(atom) when is_foo(atom) do
         is_foo(atom)
@@ -31,6 +32,13 @@ defmodule Kernel.GuardTest do
       require Guards.In.Funs
       assert Guards.In.Funs.is_foo(:foo)
       refute Guards.In.Funs.is_foo(:bar)
+    end
+
+    test "guards do not change code evaluation semantics" do
+      require Guards.In.Funs
+      x = 1
+      assert Guards.In.Funs.is_equal(x = 2, x) == false
+      assert x == 2
     end
 
     defmodule Macros.In.Guards do
@@ -365,9 +373,7 @@ defmodule Kernel.GuardTest do
             :erlang.+(:erlang.+(unquote(foo), unquote(bar)), unquote(baz))
           end
           false -> quote do
-            foo = unquote(foo)
-            bar = unquote(bar)
-            baz = unquote(baz)
+            {foo, bar, baz} = {unquote(foo), unquote(bar), unquote(baz)}
             :erlang.+(:erlang.+(foo, bar), baz)
           end
         end
@@ -387,8 +393,7 @@ defmodule Kernel.GuardTest do
             :erlang.+(unquote(foo), unquote(bar))
           end
           false -> quote do
-            foo = unquote(foo)
-            bar = unquote(bar)
+            {foo, bar} = {unquote(foo), unquote(bar)}
             :erlang.+(foo, bar)
           end
         end
@@ -410,9 +415,7 @@ defmodule Kernel.GuardTest do
             end
           false ->
             quote() do
-              foo = unquote(foo)
-              bar = unquote(bar)
-              baz = unquote(baz)
+              {foo, bar, baz} = {unquote(foo), unquote(bar), unquote(baz)}
               :erlang.+(:erlang.+(:erlang.+(foo, foo), bar), baz)
             end
         end
