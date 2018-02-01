@@ -269,14 +269,23 @@ defmodule Mix.Tasks.Test do
     display_warn_test_pattern(matched_warn_test_files, test_pattern)
 
     case CT.require_and_run(files, matched_test_files, test_paths, opts) do
-      {:ok, %{failures: failures}} ->
+      {:ok, %{excluded: excluded, failures: failures, total: total}} ->
         cover && cover.()
+
+        option_only_present? = Keyword.has_key?(opts, :only)
 
         cond do
           failures > 0 and opts[:raise] ->
             Mix.raise("mix test failed")
 
           failures > 0 ->
+            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+
+          excluded == total and option_only_present? and opts[:raise] ->
+            Mix.raise("The --only option was given to \"mix test\" but no test executed")
+
+          excluded == total and option_only_present? ->
+            Mix.shell().error("The --only option was given to \"mix test\" but no test executed")
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
           true ->
