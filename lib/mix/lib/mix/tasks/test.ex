@@ -272,7 +272,7 @@ defmodule Mix.Tasks.Test do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
         cover && cover.()
 
-        option_only_present = Keyword.has_key?(opts, :only)
+        option_only_present? = Keyword.has_key?(opts, :only)
 
         cond do
           failures > 0 and opts[:raise] ->
@@ -281,11 +281,11 @@ defmodule Mix.Tasks.Test do
           failures > 0 ->
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
-          excluded == total and option_only_present and opts[:raise] ->
-            Mix.raise("no test matched only option")
+          excluded == total and option_only_present? and opts[:raise] ->
+            Mix.raise("The --only option was given to \"mix test\" but no test executed")
 
-          excluded == total and option_only_present ->
-            Mix.shell().error("no test matched only option")
+          excluded == total and option_only_present? ->
+            Mix.shell().error("The --only option was given to \"mix test\" but no test executed")
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
           true ->
