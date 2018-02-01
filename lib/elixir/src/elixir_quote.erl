@@ -156,15 +156,19 @@ quote(Expr, nil, Q, E) ->
 quote(Expr, Binding, Q, E) ->
   Context = Q#elixir_quote.context,
 
-  Vars = [ {'{}', [],
-    [ '=', [], [
-      {'{}', [], [K, [], Context]},
-      V
-    ] ]
- } || {K, V} <- Binding],
+  Left = [{'{}', [], [K, [], Context]} || {K, _} <- Binding],
+  Right = [V || {_, V} <- Binding],
+  Vars = {
+    '{}',
+    [],
+    ['=', [], [
+      {'{}', [], ['{}', [], Left]},
+      {'{}', [], ['{}', [], Right]}
+    ]]
+  },
 
   {TExprs, TQ} = do_quote(Expr, Q, E),
-  {{'{}', [], ['__block__', [], Vars ++ [TExprs] ]}, TQ}.
+  {{'{}', [], ['__block__', [], [Vars, TExprs] ]}, TQ}.
 
 %% Actual quoting and helpers
 
