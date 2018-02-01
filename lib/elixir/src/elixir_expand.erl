@@ -610,9 +610,9 @@ maybe_warn_underscored_var_repeat(Meta, Name, Kind, E) ->
   end.
 
 maybe_warn_underscored_var_access(Meta, Name, Kind, E) ->
-  case should_warn(Meta) andalso atom_to_list(Name) of
+  case (Kind == nil) andalso should_warn(Meta) andalso atom_to_list(Name) of
     "_" ++ _ ->
-      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {underscored_var_access, Name, Kind});
+      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {underscored_var_access, Name});
     _ ->
       ok
   end.
@@ -1047,11 +1047,11 @@ format_error({underscored_var_repeat, Name, Kind}) ->
                 "to the same value. If this is the intended behaviour, please "
                 "remove the leading underscore from the variable name, otherwise "
                 "give the variables different names", [Name, context_info(Kind), Name]);
-format_error({underscored_var_access, Name, Kind}) ->
-  io_lib:format("the underscored variable \"~ts\"~ts is used after being set. "
+format_error({underscored_var_access, Name}) ->
+  io_lib:format("the underscored variable \"~ts\" is used after being set. "
                 "A leading underscore indicates that the value of the variable "
                 "should be ignored. If this is intended please rename the "
-                "variable to remove the underscore", [Name, context_info(Kind)]);
+                "variable to remove the underscore", [Name]);
 format_error({struct_comparison, StructExpr}) ->
   String = 'Elixir.Macro':to_string(StructExpr),
   io_lib:format("invalid comparison with struct literal ~ts. Comparison operators "

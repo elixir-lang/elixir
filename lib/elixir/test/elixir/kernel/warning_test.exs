@@ -287,18 +287,18 @@ defmodule Kernel.WarningTest do
            end) =~ "the underscored variable \"_arg\" appears more than once in a match"
   end
 
-  test "underscored variable on assign" do
+  test "underscored variable on use" do
     assert capture_err(fn ->
              Code.eval_string("""
-              defmodule Sample do
-               def fun(_var) do
-                 _var + 1
-               end
-             end
+             fn _var -> _var + 1 end
              """)
            end) =~ "the underscored variable \"_var\" is used after being set"
-  after
-    purge(Sample)
+
+    assert capture_err(fn ->
+             Code.eval_string("""
+             fn var!(_var, Foo) -> var!(_var, Foo) + 1 end
+             """)
+           end) =~ ""
   end
 
   test "unused function" do
