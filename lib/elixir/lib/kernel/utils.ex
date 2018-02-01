@@ -208,9 +208,9 @@ defmodule Kernel.Utils do
     end)
   end
 
-  # Finds every reference to `refs` in `expr` and wraps them in an unquote.
-  defp unquote_every_ref(expr, refs) do
-    Macro.postwalk(expr, fn
+  # Finds every reference to `refs` in `guard` and wraps them in an unquote.
+  defp unquote_every_ref(guard, refs) do
+    Macro.postwalk(guard, fn
       {ref, _meta, context} = var when is_atom(ref) and is_atom(context) ->
         case {ref, context} in refs do
           true -> literal_unquote(var)
@@ -222,10 +222,10 @@ defmodule Kernel.Utils do
     end)
   end
 
-  # Prefaces `expr` with unquoted versions of `refs`.
-  defp unquote_refs_once(expr, refs) do
-    {^expr, used_refs} =
-      Macro.postwalk(expr, [], fn
+  # Prefaces `guard` with unquoted versions of `refs`.
+  defp unquote_refs_once(guard, refs) do
+    {_, used_refs} =
+      Macro.postwalk(guard, [], fn
         {ref, _meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
           case {ref, context} in refs and {ref, context} not in acc do
             true -> {var, [{ref, context} | acc]}
@@ -236,14 +236,17 @@ defmodule Kernel.Utils do
           {node, acc}
       end)
 
-    for {ref, context} <- :lists.reverse(used_refs) do
-      var = {ref, [], context}
-      quote do: unquote(var) = unquote(literal_unquote(var))
-    end ++ List.wrap(expr)
+    vars = for {ref, context} <- :lists.reverse(used_refs), do: {ref, [], context}
+    exprs = for var <- vars, do: literal_unquote(var)
+
+    quote do
+      {unquote_splicing(vars)} = {unquote_splicing(exprs)}
+      unquote(guard)
+    end
   end
 
   defp literal_quote(ast) do
-    {:quote, [], [[do: {:__block__, [], List.wrap(ast)}]]}
+    {:quote, [], [[do: ast]]}
   end
 
   defp literal_unquote(ast) do
