@@ -1136,7 +1136,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "unused variable in defguard" do
-    capture_err(fn ->
+    assert capture_err(fn ->
       Code.eval_string("""
       defmodule Sample do
         defguard foo(bar, baz) when bar
@@ -1173,7 +1173,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "defguard overriding defmacro" do
-    capture_err(fn ->
+    assert capture_err(fn ->
       Code.eval_string("""
       defmodule Sample do
         defmacro foo(bar), do: bar == :bar
@@ -1186,7 +1186,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "defmacro overriding defguard" do
-    capture_err(fn ->
+    assert capture_err(fn ->
       Code.eval_string("""
       defmodule Sample do
         defguard foo(baz) when baz == :baz
@@ -1198,40 +1198,14 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "defguardp overriding defmacrop" do
-    capture_err(fn ->
-      Code.eval_string("""
-      defmodule Sample do
-        defmacrop foo(bar), do: bar == :bar
-        defguardp foo(baz) when baz == :baz
-      end
-      """)
-    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
-  after
-    purge(Sample)
-  end
-
-  test "defmacrop overriding defguardp" do
-    capture_err(fn ->
-      Code.eval_string("""
-      defmodule Sample do
-      defguardp foo(baz) when baz == :baz
-        defmacrop foo(bar), do: bar == :bar
-      end
-      """)
-    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
-  after
-    purge(Sample)
-  end
-
   test "defguard needs an implementation" do
-    capture_err(fn ->
+    assert capture_err(fn ->
       Code.eval_string("""
       defmodule Sample do
         defguard foo(bar)
       end
       """)
-    end) =~ "implementation not provided for predefined defguard"
+    end) =~ "implementation not provided for predefined defmacro foo/1"
   after
     purge(Sample)
   end
