@@ -55,17 +55,26 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test "assert special form" do
+  test "assert arguments in special form" do
     true =
       assert (case :ok do
                 :ok -> true
               end)
   end
 
-  test "assert argument semantics on function call" do
+  test "assert arguments semantics on function call" do
     x = 1
     true = assert not_equal(x = 2, x)
     2 = x
+  end
+
+  test "assert arguments are not kept for operators" do
+    try do
+      "This should never be tested" = assert not Value.truthy()
+    rescue
+      error in [ExUnit.AssertionError] ->
+        false = is_list(error.args)
+    end
   end
 
   test "assert with equality" do

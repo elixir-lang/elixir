@@ -1212,6 +1212,15 @@ defmodule Macro do
   end
 
   @doc """
+  Returns true if the given name and arity is an operator.
+  """
+  @since "1.7.0"
+  @spec operator?(name :: atom(), arity()) :: boolean()
+  def operator?(name, 2) when is_atom(name), do: Identifier.binary_op(name) != :error
+  def operator?(name, 1) when is_atom(name), do: Identifier.unary_op(name) != :error
+  def operator?(name, arity) when is_atom(name) and is_integer(arity), do: false
+
+  @doc """
   Receives an AST node and expands it until it can no longer
   be expanded.
 

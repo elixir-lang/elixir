@@ -320,10 +320,12 @@ defmodule ExUnit.Assertions do
 
   defp extract_args({root, meta, [_ | _] = args} = expr, env) do
     arity = length(args)
-    special_form? = is_atom(root) and Macro.special_form?(root, arity)
+
+    reserved? =
+      is_atom(root) and (Macro.special_form?(root, arity) or Macro.operator?(root, arity))
 
     case Macro.expand_once(expr, env) do
-      ^expr when not special_form? ->
+      ^expr when not reserved? ->
         vars = for i <- 1..arity, do: Macro.var(:"arg#{i}", __MODULE__)
 
         quoted =

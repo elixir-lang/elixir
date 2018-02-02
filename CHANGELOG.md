@@ -8,7 +8,8 @@
 
   * [Code] Add `Code.compile_file/2` that compiles files without leaving footprints on the system
   * [Code.Formatter] Support comments in the middle of pipelines, `when` and `|` expressions
-  * [Macro] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
+  * [Macro] Add `Macro.special_form?/2` and `Macro.operator?/2` that returns true if the given name/arity is a special form or operator respectively
+  * [Macro.Env] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
 
 #### ExUnit
 
