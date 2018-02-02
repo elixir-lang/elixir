@@ -307,22 +307,21 @@ defimpl Inspect, for: Function do
     mod = fun_info[:module]
     name = fun_info[:name]
 
-    if fun_info[:type] == :external and fun_info[:env] == [] do
-      inspected_as_atom = Identifier.inspect_as_atom(mod)
-      inspected_as_function = Identifier.inspect_as_function(name)
-      "&#{inspected_as_atom}.#{inspected_as_function}/#{fun_info[:arity]}"
-    else
-      case Atom.to_charlist(mod) do
-        'elixir_compiler_' ++ _ ->
-          if function_exported?(mod, :__RELATIVE__, 0) do
-            "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
-          else
-            default_inspect(mod, fun_info)
-          end
+    cond do
+      fun_info[:type] == :external and fun_info[:env] == [] ->
+        inspected_as_atom = Identifier.inspect_as_atom(mod)
+        inspected_as_function = Identifier.inspect_as_function(name)
+        "&#{inspected_as_atom}.#{inspected_as_function}/#{fun_info[:arity]}"
 
-        _ ->
+      match?('elixir_compiler_' ++ _, Atom.to_charlist(mod)) ->
+        if function_exported?(mod, :__RELATIVE__, 0) do
+          "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
+        else
           default_inspect(mod, fun_info)
-      end
+        end
+
+      true ->
+        default_inspect(mod, fun_info)
     end
   end
 
