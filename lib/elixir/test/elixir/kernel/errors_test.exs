@@ -46,6 +46,12 @@ defmodule Kernel.ErrorsTest do
                       'defmodule Sample do def hello do __CALLER__ end end'
   end
 
+  test "invalid __STACKTRACE__" do
+    assert_eval_raise CompileError,
+                      "nofile:1: __STACKTRACE__ is available only inside catch and rescue clauses of try expressions",
+                      'defmodule Sample do def hello do __STACKTRACE__ end end'
+  end
+
   test "invalid quoted token" do
     assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"world\"", '"hello" "world"'
 

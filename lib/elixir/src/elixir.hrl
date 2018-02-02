@@ -11,7 +11,8 @@
   vars=#{},                %% a map of defined variables and their alias
   backup_vars=nil,         %% a copy of vars to be used on ^var
   extra_guards=[],         %% extra guards from args expansion
-  counter=#{}              %% a map counting the variables defined
+  counter=#{},             %% a map counting the variables defined
+  stacktrace=false         %% holds information about the stacktrace variable
 }).
 
 -record(elixir_quote, {

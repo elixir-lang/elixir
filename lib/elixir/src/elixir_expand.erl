@@ -114,6 +114,13 @@ expand({'__DIR__', _, Atom}, E) when is_atom(Atom) ->
   {filename:dirname(?key(E, file)), E};
 expand({'__CALLER__', _, Atom} = Caller, E) when is_atom(Atom) ->
   {Caller, E};
+expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, E) when is_atom(Atom) ->
+  case lists:member('__STACKTRACE__', ?key(E, contextual_vars)) of
+    true ->
+      {Stacktrace, E};
+    false ->
+      form_error(Meta, ?key(E, file), ?MODULE, stacktarce_not_allowed)
+  end;
 expand({'__ENV__', Meta, Atom}, E) when is_atom(Atom) ->
   {escape_map(escape_env_entries(Meta, E)), E};
 expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when is_atom(Atom), is_atom(Field) ->
@@ -1058,4 +1065,6 @@ format_error({struct_comparison, StructExpr}) ->
                 "(>, <, >=, <=) perform structural and not semantic comparison. "
                 "Comparing with a struct literal is unlikely to give a meaningful result. "
                 "Modules typically define a compare/2 function that can be used for "
-                "semantic comparison", [String]).
+                "semantic comparison", [String]);
+format_error(stacktarce_not_allowed) ->
+  "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions".
