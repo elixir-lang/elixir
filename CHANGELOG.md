@@ -237,6 +237,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [Kernel] Solve a precedence issue between `&` and `|`, such as `[&Foo.bar/1 | &Baz.bat/2]`
   * [Kernel] Do not load dynamic Elixir modules as `:in_memory` as this value is not officially supported by the code server. Instead, use an empty list, which is the same value used by Erlang.
   * [Kernel] Validate variable struct name is atom when used in pattern matching
+  * [Kernel] No longer generate documentation for `defdelegate` functions automatically to avoid overriding previously specified `@doc`
   * [Macro] Fix `Macro.to_string/2` for tuple calls, such as `alias Foo.{Bar, Baz}`
   * [MapSet] Return valid MapSet when unioning a legacy MapSet
   * [Regex] Return a leading empty space when splitting on empty pattern. This makes the `split` operation consistent with the other operations in the `Regex` module
