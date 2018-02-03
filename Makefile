@@ -187,7 +187,7 @@ zips: Precompiled.zip Docs.zip
 
 #==> Test tasks
 
-test: test_erlang test_elixir
+test: test_formatted test_erlang test_elixir
 
 test_windows: test test_taskkill
 
@@ -198,6 +198,9 @@ test_taskkill:
 TEST_ERL = lib/elixir/test/erlang
 TEST_EBIN = lib/elixir/test/ebin
 TEST_ERLS = $(addprefix $(TEST_EBIN)/, $(addsuffix .beam, $(basename $(notdir $(wildcard $(TEST_ERL)/*.erl)))))
+
+test_formatted: compile
+	bin/elixir bin/mix format --dry-run --check-formatted
 
 test_erlang: compile $(TEST_ERLS)
 	@ echo "==> elixir (eunit)"
