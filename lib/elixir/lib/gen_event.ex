@@ -829,7 +829,7 @@ defmodule GenEvent do
       apply(mod, fun, args)
     catch
       :throw, val -> {:ok, val}
-      :error, val -> {:error, {val, System.stacktrace()}}
+      :error, val -> {:error, {val, __STACKTRACE__}}
       :exit, val -> {:error, val}
     else
       res -> {:ok, res}

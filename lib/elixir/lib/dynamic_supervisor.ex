@@ -638,7 +638,7 @@ defmodule DynamicSupervisor do
       apply(m, f, a)
     catch
       kind, reason ->
-        {:error, exit_reason(kind, reason, System.stacktrace())}
+        {:error, exit_reason(kind, reason, __STACKTRACE__)}
     else
       {:ok, pid, extra} when is_pid(pid) -> {:ok, pid, extra}
       {:ok, pid} when is_pid(pid) -> {:ok, pid}

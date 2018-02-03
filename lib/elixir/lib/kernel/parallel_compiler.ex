@@ -208,7 +208,7 @@ defmodule Kernel.ParallelCompiler do
             :ok
           catch
             kind, reason ->
-              {kind, reason, System.stacktrace()}
+              {kind, reason, __STACKTRACE__}
           end
 
         send(parent, {:file_done, self(), file, result})

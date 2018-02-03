@@ -1234,9 +1234,8 @@ defmodule Enum do
       reduce(enumerable, initial, callback)
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         fun.(initial, :halt)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       acc -> fun.(acc, :done)
     end
@@ -2819,7 +2818,7 @@ defmodule Enum do
       Enumerable.slice(args)
     catch
       :error, :undef ->
-        case System.stacktrace() do
+        case __STACKTRACE__ do
           [{module, :slice, [^args], _} | _] -> {:error, module}
           stack -> :erlang.raise(:error, :undef, stack)
         end

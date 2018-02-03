@@ -116,10 +116,9 @@ defmodule Kernel.CLI do
             exit(reason)
 
           kind, reason ->
-            stack = System.stacktrace()
-            print_error(kind, reason, stack)
+            print_error(kind, reason, __STACKTRACE__)
             send(parent, {self(), {:shutdown, 1}})
-            exit(to_exit(kind, reason, stack))
+            exit(to_exit(kind, reason, __STACKTRACE__))
         else
           _ ->
             send(parent, {self(), res})

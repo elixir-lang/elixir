@@ -89,7 +89,7 @@ defmodule Registry do
             apply(module, function, [pid])
           catch
             kind, reason ->
-              formatted = Exception.format(kind, reason, System.stacktrace)
+              formatted = Exception.format(kind, reason, __STACKTRACE__)
               Logger.error "Registry.dispatch/3 failed with #{formatted}"
           end
         end
