@@ -175,7 +175,7 @@ defmodule Exception do
   so on.
 
   If the exception module implements the optional `c:blame/2`
-  callbak, it will be invoked to perform the computation.
+  callback, it will be invoked to perform the computation.
   """
   @since "1.5.0"
   @spec blame(:error, any, stacktrace) :: {t, stacktrace}
