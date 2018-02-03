@@ -171,7 +171,7 @@ defmodule Kernel.QuoteTest do
 
   test "bind quoted" do
     args = [
-      {:=, [], [{:{}, [], [{:foo, [], Kernel.QuoteTest}]}, {:{}, [], [3]}]},
+      {:=, [], [{:foo, [], Kernel.QuoteTest}, 3]},
       {:foo, [], Kernel.QuoteTest}
     ]
 
