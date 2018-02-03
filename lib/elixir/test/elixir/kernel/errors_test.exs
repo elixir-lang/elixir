@@ -42,7 +42,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid __CALLER__" do
     assert_eval_raise CompileError,
-                      "nofile:1: variable '__CALLER__' is unbound",
+                      "nofile:1: __CALLER__ is available only inside defmacro and defmacrop",
                       'defmodule Sample do def hello do __CALLER__ end end'
   end
 
