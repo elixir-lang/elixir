@@ -213,11 +213,17 @@ expand_try(Meta, {'else', _} = Else, E) ->
   Fun = expand_one(Meta, 'try', 'else', fun head/2),
   expand_clauses(Meta, 'try', Fun, Else, E);
 expand_try(Meta, {'catch', _} = Catch, E) ->
-  expand_clauses(Meta, 'try', fun expand_catch/3, Catch, E);
+  expand_clauses_with_stacktrace(Meta, fun expand_catch/3, Catch, E);
 expand_try(Meta, {'rescue', _} = Rescue, E) ->
-  expand_clauses(Meta, 'try', fun expand_rescue/3, Rescue, E);
+  expand_clauses_with_stacktrace(Meta, fun expand_rescue/3, Rescue, E);
 expand_try(Meta, {Key, _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'try', Key}).
+
+expand_clauses_with_stacktrace(Meta, Fun, Clauses, E) ->
+  OldContextualVars = ?key(E, contextual_vars),
+  ES = E#{contextual_vars := ['__STACKTRACE__' | OldContextualVars]},
+  {Ret, EE} = expand_clauses(Meta, 'try', Fun, Clauses, ES),
+  {Ret, EE#{contextual_vars := OldContextualVars}}.
 
 expand_catch(_Meta, [_] = Args, E) ->
   head(Args, E);

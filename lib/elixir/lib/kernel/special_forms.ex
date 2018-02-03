@@ -671,6 +671,14 @@ defmodule Kernel.SpecialForms do
   defmacro __CALLER__, do: error!([])
 
   @doc """
+  Returns the stacktrace for the curently handled exception.
+
+  It is available only in the `catch` and `rescue` clauses of `try/1`
+  expressions.
+  """
+  defmacro __STACKTRACE__, do: error!([])
+
+  @doc """
   Accesses an already bound variable in match clauses. Also known as the pin operator.
 
   ## Examples

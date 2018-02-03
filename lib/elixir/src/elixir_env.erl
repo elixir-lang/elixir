@@ -24,7 +24,8 @@ new() ->
     unused_vars => #{},                    %% a map with unused variables
     current_vars => #{},                   %% a map with current variables
     prematch_vars => warn,                 %% behaviour outside and inside matches
-    lexical_tracker => nil}.               %% holds the lexical tracker PID}.
+    lexical_tracker => nil,                %% holds the lexical tracker PID
+    contextual_vars => []}.                %% holds available contextual variables
 
 linify({Line, Env}) ->
   Env#{line := Line};

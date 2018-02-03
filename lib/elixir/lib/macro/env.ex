@@ -71,6 +71,7 @@ defmodule Macro.Env do
   @typep unused_vars :: %{{var, var_version} => non_neg_integer | false}
   @typep current_vars :: %{var => {var_version, var_type}}
   @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
+  @typep contextual_vars :: [atom]
 
   @type t :: %{
           __struct__: __MODULE__,
@@ -89,7 +90,8 @@ defmodule Macro.Env do
           unused_vars: unused_vars,
           current_vars: current_vars,
           prematch_vars: prematch_vars,
-          lexical_tracker: lexical_tracker
+          lexical_tracker: lexical_tracker,
+          contextual_vars: contextual_vars
         }
 
   # TODO: Remove :vars field
@@ -111,7 +113,8 @@ defmodule Macro.Env do
       unused_vars: %{},
       current_vars: %{},
       prematch_vars: :warn,
-      lexical_tracker: nil
+      lexical_tracker: nil,
+      contextual_vars: []
     }
   end
 
