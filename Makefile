@@ -200,7 +200,7 @@ TEST_EBIN = lib/elixir/test/ebin
 TEST_ERLS = $(addprefix $(TEST_EBIN)/, $(addsuffix .beam, $(basename $(notdir $(wildcard $(TEST_ERL)/*.erl)))))
 
 test_formatted: compile
-	bin/elixir bin/mix format --dry-run --check-formatted
+	bin/elixir bin/mix format --check-formatted
 
 test_erlang: compile $(TEST_ERLS)
 	@ echo "==> elixir (eunit)"
