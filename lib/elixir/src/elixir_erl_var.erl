@@ -72,7 +72,8 @@ mergev(S1, S2) ->
 mergec(S1, S2) ->
   S1#elixir_erl{
     counter=S2#elixir_erl.counter,
-    caller=S2#elixir_erl.caller
+    caller=S2#elixir_erl.caller,
+    stacktrace=S2#elixir_erl.stacktrace
   }.
 
 merge_vars(V, V) -> V;

@@ -462,6 +462,43 @@ defmodule Kernel.RaiseTest do
     end
   end
 
+  describe "__STACKTRACE__" do
+    test "returns the stacktrace in catch" do
+      try do
+        throw(:foo)
+      catch
+        :foo ->
+          assert __STACKTRACE__ == :erlang.get_stacktrace()
+      end
+    end
+
+    test "returns the stracktrace in rescue" do
+      try do
+        raise "foo"
+      rescue
+        _ ->
+          assert __STACKTRACE__ == :erlang.get_stacktrace()
+      end
+    end
+
+    test "returns the right stacktrace in nested tries" do
+      try do
+        throw(:foo)
+      catch
+        :foo ->
+          bar_trace =
+            try do
+              throw(:bar)
+            catch
+              :bar -> __STACKTRACE__
+            end
+
+          foo_trace = __STACKTRACE__
+          assert bar_trace != foo_trace
+      end
+    end
+  end
+
   defmacrop exceptions do
     [ErlangError]
   end

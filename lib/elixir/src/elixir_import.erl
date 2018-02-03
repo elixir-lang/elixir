@@ -225,6 +225,7 @@ special_form('import', 1) -> true;
 special_form('import', 2) -> true;
 special_form('__ENV__', 0) -> true;
 special_form('__CALLER__', 0) -> true;
+special_form('__STACKTRACE__', 0) -> true;
 special_form('__MODULE__', 0) -> true;
 special_form('__DIR__', 0) -> true;
 special_form('__aliases__', _) -> true;
