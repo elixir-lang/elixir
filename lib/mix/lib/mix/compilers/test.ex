@@ -63,11 +63,10 @@ defmodule Mix.Compilers.Test do
           {:ok, results}
         catch
           kind, reason ->
-            stack = System.stacktrace()
             # In case there is an error, shutdown the runner task
             # before the error propagates up and trigger links.
             Task.shutdown(task)
-            :erlang.raise(kind, reason, stack)
+            :erlang.raise(kind, reason, __STACKTRACE__)
         after
           agent_stop(stale_manifest_pid)
         end

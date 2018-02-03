@@ -81,14 +81,12 @@ defmodule Mix.CLI do
       # We only rescue exceptions in the Mix namespace, all
       # others pass through and will explode on the users face
       exception ->
-        stacktrace = System.stacktrace()
-
         if Map.get(exception, :mix) && not Mix.debug?() do
           mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
           Mix.shell().error("** (#{mod}) #{Exception.message(exception)}")
           exit({:shutdown, 1})
         else
-          reraise exception, stacktrace
+          reraise exception, __STACKTRACE__
         end
     end
   end

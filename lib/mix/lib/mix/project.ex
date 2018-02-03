@@ -345,7 +345,7 @@ defmodule Mix.Project do
       rescue
         any ->
           Mix.shell().error("Error while loading project #{inspect(app)} at #{File.cwd!()}")
-          reraise any, System.stacktrace()
+          reraise any, __STACKTRACE__
       end
 
     try do

@@ -312,8 +312,7 @@ defmodule Mix.Tasks.Format do
     end
   rescue
     exception ->
-      stacktrace = System.stacktrace()
-      {:exit, file, exception, stacktrace}
+      {:exit, file, exception, __STACKTRACE__}
   end
 
   defp write_or_print(file, input, output) do
