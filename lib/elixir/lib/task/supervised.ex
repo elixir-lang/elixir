@@ -88,15 +88,15 @@ defmodule Task.Supervised do
       apply(module, fun, args)
     catch
       :error, value ->
-        reason = {value, System.stacktrace()}
+        reason = {value, __STACKTRACE__}
         exit(info, mfa, reason, reason)
 
       :throw, value ->
-        reason = {{:nocatch, value}, System.stacktrace()}
+        reason = {{:nocatch, value}, __STACKTRACE__}
         exit(info, mfa, reason, reason)
 
       :exit, value ->
-        exit(info, mfa, {value, System.stacktrace()}, value)
+        exit(info, mfa, {value, __STACKTRACE__}, value)
     end
   end
 
@@ -295,9 +295,8 @@ defmodule Task.Supervised do
       next.({:cont, []})
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         stream_close(monitor_pid, monitor_ref, timeout)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:suspended, [value], next} ->
         waiting = stream_spawn(value, spawned, waiting, monitor_pid, monitor_ref, timeout)
@@ -324,10 +323,9 @@ defmodule Task.Supervised do
       reducer.(reply, acc)
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         is_function(next) && next.({:halt, []})
         stream_close(monitor_pid, monitor_ref, timeout)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     end
   end
 
@@ -354,10 +352,9 @@ defmodule Task.Supervised do
           reducer.(reply, acc)
         catch
           kind, reason ->
-            stacktrace = System.stacktrace()
             is_function(next) && next.({:halt, []})
             stream_close(monitor_pid, monitor_ref, timeout)
-            :erlang.raise(kind, reason, stacktrace)
+            :erlang.raise(kind, reason, __STACKTRACE__)
         else
           pair ->
             stream_deliver(

@@ -526,9 +526,8 @@ defmodule Stream do
       reduce.({command, [acc | collectable]})
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         into.(collectable, :halt)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:suspended, [acc | collectable], continuation} ->
         {:suspended, acc, &do_into(continuation, collectable, into, &1)}
@@ -850,9 +849,8 @@ defmodule Stream do
       next.({:cont, []})
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         do_after(after_fun, user_acc)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:suspended, vals, next} ->
         do_transform_user(:lists.reverse(vals), user_acc, :cont, next, inner_acc, funs)
@@ -873,10 +871,9 @@ defmodule Stream do
       user.(val, user_acc)
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         next.({:halt, []})
         do_after(after_fun, user_acc)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {[], user_acc} ->
         do_transform_user(vals, user_acc, next_op, next, inner_acc, funs)
@@ -903,10 +900,9 @@ defmodule Stream do
       reduce.(inner_acc)
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         next.({:halt, []})
         do_after(after_fun, user_acc)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:done, acc} ->
         do_transform_user(vals, user_acc, next_op, next, {:cont, acc}, funs)
@@ -929,10 +925,9 @@ defmodule Stream do
       reduce.({op, [:outer | inner_acc]})
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         next.({:halt, []})
         do_after(after_fun, user_acc)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       # Only take into account outer halts when the op is not halt itself.
       # Otherwise, we were the ones wishing to halt, so we should just stop.
@@ -1149,9 +1144,8 @@ defmodule Stream do
       do_zip_next_tuple(zips, acc, callback, [], [])
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         do_zip_close(zips)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:next, buffer, acc} ->
         do_zip(buffer, acc, callback)
@@ -1372,9 +1366,8 @@ defmodule Stream do
       end
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         after_fun.(next_acc)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:opt, acc, next_acc} ->
         do_resource(next_acc, next_fun, acc, fun, after_fun)
@@ -1398,9 +1391,8 @@ defmodule Stream do
       reduce.(acc)
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         after_fun.(next_acc)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:done, acc} ->
         do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
@@ -1418,9 +1410,8 @@ defmodule Stream do
       reduce.({op, [:outer | acc]})
     catch
       kind, reason ->
-        stacktrace = System.stacktrace()
         after_fun.(next_acc)
-        :erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:halted, [:outer | acc]} ->
         do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)

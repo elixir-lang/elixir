@@ -279,8 +279,6 @@ defmodule Inspect.Algebra do
         Inspect.inspect(struct, opts)
       rescue
         caught_exception ->
-          stacktrace = System.stacktrace()
-
           # Because we try to raise a nice error message in case
           # we can't inspect a struct, there is a chance the error
           # message itself relies on the struct being printed, so
@@ -305,7 +303,7 @@ defmodule Inspect.Algebra do
               if opts.safe do
                 Inspect.inspect(exception, opts)
               else
-                reraise(exception, stacktrace)
+                reraise(exception, __STACKTRACE__)
               end
             after
               Process.delete(:inspect_trap)

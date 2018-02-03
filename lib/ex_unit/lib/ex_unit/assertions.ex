@@ -664,7 +664,6 @@ defmodule ExUnit.Assertions do
       function.()
     rescue
       error ->
-        stacktrace = System.stacktrace()
         name = error.__struct__
 
         cond do
@@ -673,14 +672,14 @@ defmodule ExUnit.Assertions do
             error
 
           name == ExUnit.AssertionError ->
-            reraise(error, stacktrace)
+            reraise(error, __STACKTRACE__)
 
           true ->
             message =
               "Expected exception #{inspect(exception)} " <>
                 "but got #{inspect(name)} (#{Exception.message(error)})"
 
-            reraise ExUnit.AssertionError, [message: message], stacktrace
+            reraise ExUnit.AssertionError, [message: message], __STACKTRACE__
         end
     else
       _ -> flunk("Expected exception #{inspect(exception)} but nothing was raised")
@@ -691,11 +690,9 @@ defmodule ExUnit.Assertions do
     module.message(error)
   catch
     kind, reason ->
-      stacktrace = System.stacktrace()
-
       message =
         "Got exception #{inspect(module)} but it failed to produce a message with:\n\n" <>
-          Exception.format(kind, reason, stacktrace)
+          Exception.format(kind, reason, __STACKTRACE__)
 
       flunk(message)
   end
@@ -776,7 +773,7 @@ defmodule ExUnit.Assertions do
         flunk("Expected to catch #{unquote(kind)}, got nothing")
       rescue
         e in [ExUnit.AssertionError] ->
-          reraise(e, System.stacktrace())
+          reraise(e, __STACKTRACE__)
       catch
         unquote(kind), we_got -> we_got
       end

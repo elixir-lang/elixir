@@ -201,8 +201,8 @@ defmodule Mix.Config do
       validate!(config)
       config
     rescue
-      e in [LoadError] -> reraise(e, System.stacktrace())
-      e -> reraise(LoadError, [file: file, error: e], System.stacktrace())
+      e in [LoadError] -> reraise(e, __STACKTRACE__)
+      e -> reraise(LoadError, [file: file, error: e], __STACKTRACE__)
     end
   end
 
