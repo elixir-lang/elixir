@@ -50,6 +50,10 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError,
                       "nofile:1: __STACKTRACE__ is available only inside catch and rescue clauses of try expressions",
                       'defmodule Sample do def hello do __STACKTRACE__ end end'
+
+    assert_eval_raise CompileError,
+                      "nofile:1: __STACKTRACE__ is available only inside catch and rescue clauses of try expressions",
+                      'defmodule Sample do try do raise "oops" rescue _ -> def hello do __STACKTRACE__ end end end'
   end
 
   test "invalid quoted token" do
