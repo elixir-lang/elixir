@@ -112,15 +112,12 @@ expand({'__MODULE__', _, Atom}, E) when is_atom(Atom) ->
   {?key(E, module), E};
 expand({'__DIR__', _, Atom}, E) when is_atom(Atom) ->
   {filename:dirname(?key(E, file)), E};
-expand({'__CALLER__', _, Atom} = Caller, E) when is_atom(Atom) ->
+expand({'__CALLER__', Meta, Atom} = Caller, E) when is_atom(Atom) ->
+  assert_contextual_var(Meta, '__CALLER__', E, caller_not_allowed),
   {Caller, E};
 expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, E) when is_atom(Atom) ->
-  case lists:member('__STACKTRACE__', ?key(E, contextual_vars)) of
-    true ->
-      {Stacktrace, E};
-    false ->
-      form_error(Meta, ?key(E, file), ?MODULE, stacktarce_not_allowed)
-  end;
+  assert_contextual_var(Meta, '__STACKTRACE__', E, stacktrace_not_allowed),
+  {Stacktrace, E};
 expand({'__ENV__', Meta, Atom}, E) when is_atom(Atom) ->
   {escape_map(escape_env_entries(Meta, E)), E};
 expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when is_atom(Atom), is_atom(Field) ->
@@ -912,6 +909,12 @@ assert_no_guard_scope(Meta, Kind, #{context := guard, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_expr_in_guard, Kind});
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 
+assert_contextual_var(Meta, Name, #{contextual_vars := Vars, file := File}, Error) ->
+  case lists:member(Name, Vars) of
+    true -> ok;
+    false -> form_error(Meta, File, ?MODULE, Error)
+  end.
+
 %% Here we look into the Clauses "optimistically", that is, we don't check for
 %% multiple "do"s and similar stuff. After all, the error we're gonna give here
 %% is just a friendlier version of the "undefined variable _" error that we
@@ -1066,5 +1069,7 @@ format_error({struct_comparison, StructExpr}) ->
                 "Comparing with a struct literal is unlikely to give a meaningful result. "
                 "Modules typically define a compare/2 function that can be used for "
                 "semantic comparison", [String]);
-format_error(stacktarce_not_allowed) ->
+format_error(caller_not_allowed) ->
+  "__CALLER__ is available only inside defmacro and defmacrop";
+format_error(stacktrace_not_allowed) ->
   "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions".
