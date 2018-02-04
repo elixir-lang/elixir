@@ -1,27 +1,52 @@
 defmodule Access do
   @moduledoc """
-  Key-based access to data structures using the `data[key]` syntax.
+  Key-based access to data structures.
 
-  Elixir provides two syntaxes for accessing values. `user[:name]`
-  is used by dynamic structures, like maps and keywords, while
-  `user.name` is used by structs. The main difference is that
-  `user[:name]` won't raise if the key `:name` is missing but
-  `user.name` will raise if there is no `:name` key.
+  Elixir supports three main key-value constructors, keywords,
+  maps and structs, and two mechanisms to access those keys,
+  by brackets via `data[key]`, and by dot-syntax, via `data.field`.
 
-  Besides the cases above, this module provides convenience
-  functions for accessing other structures, like `at/1` for
-  lists and `elem/1` for tuples. Those functions can be used
-  by the nested update functions in `Kernel`, such as
-  `Kernel.get_in/2`, `Kernel.put_in/3`, `Kernel.update_in/3`,
-  `Kernel.get_and_update_in/3` and friends.
+  Next we will briefly recap the key-value constructs and then
+  discuss the access mechanisms.
 
-  ## Dynamic lookups
+  ## Key-value constructors
 
-  Out of the box, `Access` works with `Keyword` and `Map`:
+  Elixir providess three main key-value constructors, summarized below:
+
+    * keyword lists - they are lists of two element tuples where
+      the first element is an atom. Commonly written in the
+      `[key: value]` syntax, they support only atom keys. Keyword
+      lists are used almost exclusively to pass options to functions
+      and macros. They keep the user ordering and allow duplicate
+      keys. Powered by the `Keyword` module.
+
+    * maps - they are the "go to" key-value data structure in Elixir
+      capable of supporting billions of keys of any type. They are
+      written in the `%{key => value}` syntax and also support the
+      `%{key: value}` syntax when the keys are atoms. They do not
+      have any specified ordering and do not allow duplicate keys.
+      Powered by the `Map` module.
+
+    * structs - they are named maps with a pre-determined set of keys.
+      They are defined with `defstruct/1` and written in the
+      `%StructName{key: value}` syntax.
+
+  ## Key-based accessors
+
+  Elixir provides two mechanisms to access data structures by key,
+  described next.
+
+  ### Bracket-based access
+
+  The `data[key]` syntax is used to access data structures with a
+  dynamic number of keys, such as keywords and maps. The key can
+  be of any type and it returns nil if the key does not exist:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
       1
+      iex> keywords[:c]
+      nil
 
       iex> map = %{a: 1, b: 2}
       iex> map[:a]
@@ -31,83 +56,75 @@ defmodule Access do
       iex> star_ratings[1.5]
       "★☆"
 
-  Note that the dynamic lookup syntax (`term[key]`) roughly translates to
-  `Access.get(term, key, nil)`.
-
-  `Access` can be combined with `Kernel.put_in/3` to put a value
-  in a given key:
-
-      iex> map = %{a: 1, b: 2}
-      iex> put_in map[:a], 3
-      %{a: 3, b: 2}
-
   This syntax is very convenient as it can be nested arbitrarily:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> put_in users["john"][:age], 28
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  Furthermore, `Access` transparently ignores `nil` values:
+  Furthermore, the bracket access transparently ignores `nil` values:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:c][:unknown]
       nil
 
-  Since `Access` is a behaviour, it can be implemented for key-value
-  data structures. The implementation should be added to the
-  module that defines the struct being accessed. `Access` requires the
-  key comparison to be implemented using the `===/2` operator.
+  Internally, `data[key]` translates  to `Access.get(term, key, nil)`.
+  Developers interested in implementing their own key-value data
+  structures can implement the `Access` behaviour to provide the
+  bracket-based access syntax. `Access` requires the key comparison
+  to be implemented using the `===/2` operator.
 
-  ## Static lookups
+  ### Dot-based syntax
 
-  The `Access` syntax (`data[key]`) cannot be used to access fields in
-  structs, since structs do not implement the `Access` behaviour by
-  default. It is also a design decision: the dynamic access lookup
-  is meant to be used for dynamic key-value structures, like maps
-  and keywords, and not by static ones like structs (where fields are
-  known and not dynamic).
+  The `data.field` syntax is used exclusively to access atom fields
+  in maps and structs. If the field accessed does not exist, it
+  raises an error. This is a deliberate decision: since all of the
+  fields in a struct are pre-determined, structs support only the
+  dot-based syntax and not the access one.
 
-  Therefore Elixir provides a static lookup for struct fields and for atom
-  fields in maps. Imagine a struct named `User` with a `:name` field.
-  The following would raise:
+  Imagine a struct named `User` with a `:name` field. The following would raise:
 
       user = %User{name: "John"}
       user[:name]
       # ** (UndefinedFunctionError) undefined function User.fetch/2 (User does not implement the Access behaviour)
 
-  Structs instead use the `user.name` syntax to access fields:
+  Instead we should use the `user.name` syntax to access fields:
 
       user.name
       #=> "John"
 
-  The same `user.name` syntax can also be used by `Kernel.put_in/2`
-  for updating structs fields:
-
-      put_in user.name, "Mary"
-      #=> %User{name: "Mary"}
-
   Differently from `user[:name]`, `user.name` is not extensible via
   a behaviour and is restricted only to structs and atom keys in maps.
 
-  As mentioned above, this works for atom keys in maps as well. Refer to the
-  `Map` module for more information on this.
+  ### Summing up
 
-  Summing up:
+  The bracket-based syntax, `user[:name]`, is used by dynamic structures,
+  is extensible and returns nil on misisng keys.
 
-    * `user[:name]` is used by dynamic structures, is extensible and
-      does not raise on missing keys
-    * `user.name` is used by static structures, it is not extensible
-      and it will raise on missing keys
+  The dot-based syntax, `user.name`, is used by exclusively to access atom
+  keys in maps and structs, and it raises on missing keys.
 
-  ## Accessors
+  ## Nested data structures
 
-  While Elixir provides built-in syntax only for traversing dynamic
-  and static key-value structures, this module provides convenience
-  functions for traversing other structures, like tuples and lists,
-  to be used alongside `Kernel.put_in/2` in others.
+  Both key-based access syntaxes can be used with the nested update
+  functions in `Kernel`, such as `Kernel.get_in/2`, `Kernel.put_in/3`,
+  `Kernel.update_in/3` and `Kernel.get_and_update_in/3`.
 
-  For instance, given a user map with `:name` and `:languages` keys, here is how
-  to deeply traverse the map and convert all language names to uppercase:
+  For example, to update a map inside another map of dynamic values,
+  one can do:
+
+     iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+     iex> put_in users["john"].age, 28
+     %{"john" => %{age: 28}, "meg" => %{age: 23}}
+
+
+  This module provides convenience functions for traversing other
+  structures, like tuples and lists, to be used alongside `Kernel.put_in/2`
+  and others.
+
+  For instance, given a user map with `:name` and `:languages` keys,
+  here is how to deeply traverse the map and convert all language names
+  to uppercase:
 
       iex> languages = [
       ...>   %{name: "elixir", type: :functional},
@@ -121,20 +138,6 @@ defmodule Access do
 
   See the functions `key/1`, `key!/1`, `elem/1`, and `all/0` for some of the
   available accessors.
-
-  ## Implementing the Access behaviour for custom data structures
-
-  In order to be able to use the `Access` behaviour with custom data structures
-  (which have to be structs), such structures have to implement the `Access`
-  behaviour. For example, for a `User` struct, this would have to be done:
-
-      defmodule User do
-        defstruct [:name, :email]
-
-        @behaviour Access
-        # Implementation of the Access callbacks...
-      end
-
   """
 
   @type container :: keyword | struct | map
