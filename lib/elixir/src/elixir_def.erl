@@ -157,11 +157,10 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
                     Module, 0, [Default]) || {_, DefaultArgs, _, _} = Default <- Defaults],
   Tuple.
 
-env_for_expansion(Kind, Tuple, #{contextual_vars := ContextualVars} = E)
-    when Kind =:= defmacro; Kind =:= defmacrop ->
-  E#{function := Tuple, contextual_vars := ['__CALLER__' | ContextualVars]};
+env_for_expansion(Kind, Tuple, E) when Kind =:= defmacro; Kind =:= defmacrop ->
+  E#{function := Tuple, contextual_vars := ['__CALLER__']};
 env_for_expansion(_Kind, Tuple, E) ->
-  E#{function := Tuple}.
+  E#{function := Tuple, contextual_vars := []}.
 
 retrieve_location(Location, Module) ->
   case ets:take(elixir_module:data_table(Module), file) of
