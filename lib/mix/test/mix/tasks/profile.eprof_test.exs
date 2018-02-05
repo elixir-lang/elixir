@@ -18,6 +18,14 @@ defmodule Mix.Tasks.Profile.EprofTest do
     end
   end
 
+  test "profiles evaluated expression in multiple processes", context do
+    in_tmp context.test, fn ->
+      assert capture_io(fn ->
+               Eprof.run(["-e", "spawn(fn -> #{@expr} end)"])
+             end) =~ ~r(String\.Chars\.Integer\.to_string\/1\s+\d)
+    end
+  end
+
   test "profiles the script", context do
     in_tmp context.test, fn ->
       profile_script_name = "profile_script.ex"

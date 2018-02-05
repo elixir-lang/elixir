@@ -152,7 +152,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   def profile(fun, opts) do
     fun
     |> profile_and_analyse(opts)
-    |> print_output
+    |> print_output()
   end
 
   defp profile_and_analyse(fun, opts) do
@@ -165,11 +165,15 @@ defmodule Mix.Tasks.Profile.Eprof do
     :eprof.profile([], fun, matching_pattern(opts))
 
     results =
-      :eprof.dump()
-      |> extract_results
-      |> filter_results(opts)
-      |> sort_results(opts)
-      |> add_totals
+      Enum.map(:eprof.dump(), fn {pid, call_results} ->
+        parsed_calls =
+          call_results
+          |> filter_results(opts)
+          |> sort_results(opts)
+          |> add_totals()
+
+        {pid, parsed_calls}
+      end)
 
     :eprof.stop()
 
@@ -190,9 +194,6 @@ defmodule Mix.Tasks.Profile.Eprof do
         end
     end
   end
-
-  defp extract_results([]), do: []
-  defp extract_results([{_pid, call_results}]), do: call_results
 
   defp filter_results(call_results, opts) do
     calls_opt = Keyword.get(opts, :calls, 0)
@@ -227,14 +228,21 @@ defmodule Mix.Tasks.Profile.Eprof do
 
   @header ["#", "CALLS", "%", "TIME", "µS/CALL"]
 
-  defp print_output({0, _, _, _}), do: print_function_count(0)
+  defp print_output([]) do
+    print_function_count(0)
+  end
 
-  defp print_output({function_count, call_results, call_count, total_time}) do
+  defp print_output(results) do
+    Enum.each(results, &print_result/1)
+  end
+
+  defp print_result({pid, {function_count, call_results, call_count, total_time}}) do
     formatted_rows = Enum.map(call_results, &format_row(&1, total_time))
     formatted_total = format_total(total_time, call_count)
 
     column_lengths = column_lengths(@header, formatted_rows)
 
+    print_pid_row(pid)
     print_row(@header, column_lengths)
     print_row(formatted_total, column_lengths)
     Enum.each(formatted_rows, &print_row(&1, column_lengths))
@@ -242,6 +250,10 @@ defmodule Mix.Tasks.Profile.Eprof do
     IO.puts("")
 
     print_function_count(function_count)
+  end
+
+  defp print_pid_row(pid) do
+    IO.puts("Profile results of #{inspect(pid)}")
   end
 
   defp format_row({{module, function, arity}, {count, time}}, total_time) do
