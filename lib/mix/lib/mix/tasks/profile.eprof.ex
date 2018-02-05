@@ -242,6 +242,8 @@ defmodule Mix.Tasks.Profile.Eprof do
 
     column_lengths = column_lengths(@header, formatted_rows)
 
+    IO.puts("")
+
     print_pid_row(pid)
     print_row(@header, column_lengths)
     print_row(formatted_total, column_lengths)
