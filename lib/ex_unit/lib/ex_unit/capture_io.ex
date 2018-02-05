@@ -47,7 +47,7 @@ defmodule ExUnit.CaptureIO do
 
   ## Examples
 
-      iex> capture_io(fn -> IO.write "john" end) == "john"
+      iex> capture_io(fn -> IO.write("john") end) == "john"
       true
 
       iex> capture_io(:stderr, fn -> IO.write(:stderr, "john") end) == "john"

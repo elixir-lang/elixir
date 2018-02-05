@@ -16,7 +16,7 @@ defmodule Mix.Generator do
 
   ## Examples
 
-      iex> Mix.Generator.create_file ".gitignore", "_build\ndeps\n"
+      iex> Mix.Generator.create_file(".gitignore", "_build\ndeps\n")
       * creating .gitignore
       :ok
 
@@ -39,7 +39,7 @@ defmodule Mix.Generator do
 
   ## Examples
 
-      iex> Mix.Generator.create_directory "path/to/dir"
+      iex> Mix.Generator.create_directory("path/to/dir")
       * creating path/to/dir
       :ok
 

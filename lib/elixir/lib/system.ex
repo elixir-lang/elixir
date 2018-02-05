@@ -552,13 +552,13 @@ defmodule System do
 
   ## Examples
 
-      iex> System.cmd "echo", ["hello"]
+      iex> System.cmd("echo", ["hello"])
       {"hello\n", 0}
 
-      iex> System.cmd "echo", ["hello"], env: [{"MIX_ENV", "test"}]
+      iex> System.cmd("echo", ["hello"]), env: [{"MIX_ENV", "test"}]
       {"hello\n", 0}
 
-      iex> System.cmd "echo", ["hello"], into: IO.stream(:stdio, :line)
+      iex> System.cmd("echo", ["hello"]), into: IO.stream(:stdio, :line)
       hello
       {%IO.Stream{}, 0}
 

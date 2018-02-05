@@ -6,9 +6,9 @@ defmodule Bitwise do
   operators. For example:
 
       iex> use Bitwise
-      iex> bnot 1   # named
+      iex> bnot(1) # named
       -2
-      iex> 1 &&& 1  # operator
+      iex> 1 &&& 1 # operator
       1
 
   If you prefer to use only operators or skip them, you can
@@ -29,7 +29,10 @@ defmodule Bitwise do
   All bitwise macros can be used in guards:
 
       iex> use Bitwise
-      iex> odd? = fn int when band(int, 1) == 1 -> true; _ -> false end
+      iex> odd? = fn
+      ...>   int when band(int, 1) == 1 -> true
+      ...>   _ -> false
+      ...> end
       iex> odd?.(1)
       true
 

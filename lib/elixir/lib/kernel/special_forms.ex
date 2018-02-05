@@ -331,7 +331,7 @@ defmodule Kernel.SpecialForms do
 
   The dot may be used to invoke anonymous functions too:
 
-      iex> (fn(n) -> n end).(7)
+      iex> (fn n -> n end).(7)
       7
 
   in which case there is a function on the left hand side.
@@ -374,7 +374,7 @@ defmodule Kernel.SpecialForms do
   When the dot is used to invoke an anonymous function there is only one
   operand, but it is still written using a postfix notation:
 
-      iex> negate = fn(n) -> -n end
+      iex> negate = fn n -> -n end
       iex> negate.(7)
       -7
 
@@ -1336,7 +1336,7 @@ defmodule Kernel.SpecialForms do
       iex> for(x <- [1, 1, 2, 3], uniq: true, do: x * 2)
       [2, 4, 6]
 
-      iex> for(<<x <- "abcabc">>, uniq: true, into: "", do: <<x-32>>)
+      iex> for(<<x <- "abcabc">>, uniq: true, into: "", do: <<x - 32>>)
       "ABC"
 
   """

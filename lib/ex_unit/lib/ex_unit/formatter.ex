@@ -61,7 +61,7 @@ defmodule ExUnit.Formatter do
       iex> format_time(10000, 20000)
       "Finished in 0.03 seconds (0.02s on load, 0.01s on tests)"
 
-      iex> format_time(10000, 200000)
+      iex> format_time(10000, 200_000)
       "Finished in 0.2 seconds (0.2s on load, 0.01s on tests)"
 
   """

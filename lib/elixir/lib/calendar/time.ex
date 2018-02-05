@@ -388,7 +388,7 @@ defmodule Time do
       ~T[17:30:00.000000]
       iex> Time.add(~T[11:00:00.005], 2400)
       ~T[11:40:00.005000]
-      iex> Time.add(~T[00:00:00], 86399999, :millisecond)
+      iex> Time.add(~T[00:00:00], 86_399_999, :millisecond)
       ~T[23:59:59.999000]
       iex> Time.add(~T[17:10:05], 86400)
       ~T[17:10:05.000000]
@@ -581,7 +581,7 @@ defmodule Time do
 
       # Two `NaiveDateTime` structs could have big differences in the date
       # but only the time part is considered.
-      iex> Time.diff(~N[2017-01-01 00:29:12], (~N[1900-02-03 00:29:10]))
+      iex> Time.diff(~N[2017-01-01 00:29:12], ~N[1900-02-03 00:29:10])
       2
 
       iex> Time.diff(~T[00:29:12], ~T[00:29:10], :microsecond)

@@ -615,13 +615,13 @@ defmodule Exception do
 
   ## Examples
 
-      iex> Exception.format_mfa Foo, :bar, 1
+      iex> Exception.format_mfa(Foo, :bar, 1)
       "Foo.bar/1"
 
-      iex> Exception.format_mfa Foo, :bar, []
+      iex> Exception.format_mfa(Foo, :bar, [])
       "Foo.bar()"
 
-      iex> Exception.format_mfa nil, :bar, []
+      iex> Exception.format_mfa(nil, :bar, [])
       "nil.bar()"
 
   Anonymous functions are reported as -func/arity-anonfn-count-,
