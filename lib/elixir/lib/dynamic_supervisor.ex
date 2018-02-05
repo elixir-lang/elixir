@@ -939,7 +939,7 @@ defmodule DynamicSupervisor do
 
   defp report_error(error, reason, pid, child, %{name: name}) do
     :error_logger.error_report(
-      :supervision_report,
+      :supervisor_report,
       supervisor: name,
       errorContext: error,
       reason: reason,
