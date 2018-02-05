@@ -676,4 +676,38 @@ defmodule Mix.Utils do
 
     [proxy_auth: {user, pass}]
   end
+
+  def warn_install_over_http_deprecated(task_name, url) do
+    basename = Path.basename(url)
+
+    shell = Mix.shell()
+
+    shell.error("""
+    Warning: the use of HTTP/HTTPS URLs with `mix #{task_name}` is deprecated
+
+    Run `mix help #{task_name}` for details on the available alternatives, using
+    hex, git or github. Alternatively you can fetch the file using an external HTTP
+    client and then install it locally:
+
+    Unix (Linux, MacOS X):
+
+        $ wget #{url}
+        $ mix #{task_name} #{basename}
+
+    or
+
+        $ curl -o #{basename} #{url}
+        $ mix #{task_name} #{basename}
+
+    Windows (Win7 or later):
+
+        > powershell -Command "Invoke-WebRequest #{url} -OutFile #{basename}"
+        > mix #{task_name} #{basename}
+
+    or
+
+        > powershell -Command "(New-Object Net.WebClient).DownloadFile('#{url}', '#{basename}')"
+        > mix #{task_name} #{basename}
+    """)
+  end
 end
