@@ -471,6 +471,21 @@ defmodule URI do
       iex> URI.to_string(%URI{scheme: "foo", host: "bar.baz"})
       "foo://bar.baz"
 
+  Note that when creating this string representation, the `authority` will be
+  used if the host is `nil`. Otherwise, the `userinfo`, `host`, and `port` will
+  be used.
+
+      iex> URI.to_string(%URI{authority: "foo@example.com:80"})
+      "//foo@example.com:80"
+
+      iex> URI.to_string(%URI{userinfo: "bar", host: "example.org", port: 81})
+      "//bar@example.org:81"
+
+
+      iex> URI.to_string(%URI{authority: "foo@example.com:80",
+      iex>                    userinfo: "bar", host: "example.org", port: 81})
+      "//bar@example.org:81"
+
   """
   @spec to_string(t) :: binary
   defdelegate to_string(uri), to: String.Chars.URI
