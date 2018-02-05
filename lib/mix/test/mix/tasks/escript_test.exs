@@ -242,6 +242,13 @@ defmodule Mix.Tasks.EscriptTest do
       assert_received {:mix_shell, :info, ["* escript_test"]}
       refute_received {:mix_shell, :info, ["* escript_test.bat"]}
 
+      # Try to override it with URL
+      send(self(), {:mix_shell_input, :yes?, false})
+      Mix.Tasks.Escript.Install.run(["https://example.com/escript_test"])
+
+      assert_received {:mix_shell, :error, ["Warning: the use of HTTP/HTTPS URLs" <> _]}
+      assert_received {:mix_shell, :yes?, ["Found existing entry: " <> _]}
+
       # check uninstall confirmation
       send(self(), {:mix_shell_input, :yes?, false})
       Mix.Tasks.Escript.Uninstall.run(["escript_test"])

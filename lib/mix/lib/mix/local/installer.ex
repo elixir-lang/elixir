@@ -107,7 +107,7 @@ defmodule Mix.Local.Installer do
           module.install(basename, binary, previous_files)
 
         :badpath ->
-          Mix.raise("Expected #{inspect(src)} to be a URL or a local file path")
+          Mix.raise("Expected #{inspect(src)} to be a local file path")
 
         {:local, message} ->
           Mix.raise(message)
@@ -164,7 +164,7 @@ defmodule Mix.Local.Installer do
     cond do
       local_path?(url_or_path) -> {:local, url_or_path}
       file_url?(url_or_path) -> {:url, url_or_path}
-      true -> {:error, "Expected #{inspect(url_or_path)} to be a URL or a local file path"}
+      true -> {:error, "Expected #{inspect(url_or_path)} to be a local file path"}
     end
   end
 
