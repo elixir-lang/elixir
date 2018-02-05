@@ -318,11 +318,11 @@ defmodule Stream do
 
   """
   @spec drop(Enumerable.t(), non_neg_integer) :: Enumerable.t()
-  def drop(enum, n) when n >= 0 do
+  def drop(enum, n) when is_integer(n) and n >= 0 do
     lazy(enum, n, fn f1 -> R.drop(f1) end)
   end
 
-  def drop(enum, n) when n < 0 do
+  def drop(enum, n) when is_integer(n) and n < 0 do
     n = abs(n)
 
     lazy(enum, {0, [], []}, fn f1 ->
