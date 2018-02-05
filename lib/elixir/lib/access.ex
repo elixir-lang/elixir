@@ -2,16 +2,16 @@ defmodule Access do
   @moduledoc """
   Key-based access to data structures.
 
-  Elixir supports three main key-value constructors, keywords,
+  Elixir supports three main key-value constructs, keywords,
   maps and structs, and two mechanisms to access those keys,
   by brackets via `data[key]`, and by dot-syntax, via `data.field`.
 
   Next we will briefly recap the key-value constructs and then
   discuss the access mechanisms.
 
-  ## Key-value constructors
+  ## Key-value constructs
 
-  Elixir providess three main key-value constructors, summarized below:
+  Elixir provides three main key-value constructs, summarized below:
 
     * keyword lists - they are lists of two element tuples where
       the first element is an atom. Commonly written in the
@@ -101,7 +101,7 @@ defmodule Access do
   The bracket-based syntax, `user[:name]`, is used by dynamic structures,
   is extensible and returns nil on misisng keys.
 
-  The dot-based syntax, `user.name`, is used by exclusively to access atom
+  The dot-based syntax, `user.name`, is used exclusively to access atom
   keys in maps and structs, and it raises on missing keys.
 
   ## Nested data structures
