@@ -13,4 +13,5 @@ environment:
 
 matrix:
   allow_failures:
-    - APPVEYOR: True
+    - platform: x86
+    - platform: x64
