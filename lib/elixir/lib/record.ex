@@ -4,7 +4,7 @@ defmodule Record do
 
   Records are simply tuples where the first element is an atom:
 
-      iex> Record.is_record {User, "john", 27}
+      iex> Record.is_record({User, "john", 27})
       true
 
   This module provides conveniences for working with records at

@@ -134,8 +134,8 @@ defmodule IEx.Helpers do
   Compiles the given files.
 
   It expects a list of files to compile and an optional path to write
-  the compiled code to. By default files are in-memory compiled. 
-  To write compiled files to a current directory use empty string "" for the path. 
+  the compiled code to. By default files are in-memory compiled.
+  To write compiled files to a current directory use empty string "" for the path.
   When compiling one file, there is no need to wrap it in a list.
 
   It returns the names of the compiled modules.
@@ -257,9 +257,9 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      iex> open MyApp
-      iex> open MyApp.fun/2
-      iex> open {"path/to/file", 1}
+      iex> open(MyApp)
+      iex> open(MyApp.fun/2)
+      iex> open({"path/to/file", 1})
 
   """
   defmacro open(term) do
@@ -286,9 +286,9 @@ defmodule IEx.Helpers do
   It also accepts functions in the format `fun/arity`
   and `module.fun/arity`, for example:
 
-      iex> h receive/1
-      iex> h Enum.all?/2
-      iex> h Enum.all?
+      iex> h(receive/1)
+      iex> h(Enum.all?/2)
+      iex> h(Enum.all?)
 
   """
   defmacro h(term) do

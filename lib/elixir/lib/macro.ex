@@ -1252,25 +1252,25 @@ defmodule Macro do
 
   ## Examples
 
-      iex> Macro.underscore "FooBar"
+      iex> Macro.underscore("FooBar")
       "foo_bar"
 
-      iex> Macro.underscore "Foo.Bar"
+      iex> Macro.underscore("Foo.Bar")
       "foo/bar"
 
-      iex> Macro.underscore Foo.Bar
+      iex> Macro.underscore(Foo.Bar)
       "foo/bar"
 
   In general, `underscore` can be thought of as the reverse of
   `camelize`, however, in some cases formatting may be lost:
 
-      iex> Macro.underscore "SAPExample"
+      iex> Macro.underscore("SAPExample")
       "sap_example"
 
-      iex> Macro.camelize "sap_example"
+      iex> Macro.camelize("sap_example")
       "SapExample"
 
-      iex> Macro.camelize "hello_10"
+      iex> Macro.camelize("hello_10")
       "Hello10"
 
   """
@@ -1319,15 +1319,15 @@ defmodule Macro do
 
   ## Examples
 
-      iex> Macro.camelize "foo_bar"
+      iex> Macro.camelize("foo_bar")
       "FooBar"
 
   If uppercase characters are present, they are not modified in anyway
   as a mechanism to preserve acronyms:
 
-      iex> Macro.camelize "API.V1"
+      iex> Macro.camelize("API.V1")
       "API.V1"
-      iex> Macro.camelize "API_SPEC"
+      iex> Macro.camelize("API_SPEC")
       "API_SPEC"
 
   """

@@ -349,7 +349,7 @@ defmodule Registry do
       iex> {:ok, _} = Registry.register(Registry.UpdateTest, "hello", 1)
       iex> Registry.lookup(Registry.UpdateTest, "hello")
       [{self(), 1}]
-      iex> Registry.update_value(Registry.UpdateTest, "hello", & &1 + 1)
+      iex> Registry.update_value(Registry.UpdateTest, "hello", &(&1 + 1))
       {2, 1}
       iex> Registry.lookup(Registry.UpdateTest, "hello")
       [{self(), 2}]
@@ -497,7 +497,7 @@ defmodule Registry do
       iex> {:ok, _} = Registry.register(Registry.UniqueLookupTest, "hello", :world)
       iex> Registry.lookup(Registry.UniqueLookupTest, "hello")
       [{self(), :world}]
-      iex> Task.async(fn -> Registry.lookup(Registry.UniqueLookupTest, "hello") end) |> Task.await
+      iex> Task.async(fn -> Registry.lookup(Registry.UniqueLookupTest, "hello") end) |> Task.await()
       [{self(), :world}]
 
   The same applies to duplicate registries:

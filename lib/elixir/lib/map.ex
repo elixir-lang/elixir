@@ -142,7 +142,7 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.new
+      iex> Map.new()
       %{}
 
   """

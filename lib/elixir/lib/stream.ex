@@ -8,7 +8,7 @@ defmodule Stream do
 
       iex> range = 1..5
       1..5
-      iex> Enum.map range, &(&1 * 2)
+      iex> Enum.map(range, &(&1 * 2))
       [2, 4, 6, 8, 10]
 
   In the example above, as we mapped over the range, the elements being
@@ -158,16 +158,16 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 2) |> Enum.to_list
+      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 2) |> Enum.to_list()
       [[1, 2], [3, 4], [5, 6]]
 
-      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, :discard) |> Enum.to_list
+      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, :discard) |> Enum.to_list()
       [[1, 2, 3], [3, 4, 5]]
 
-      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, [7]) |> Enum.to_list
+      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 2, [7]) |> Enum.to_list()
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
 
-      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list
+      iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list()
       [[1, 2, 3], [4, 5, 6]]
 
   """
@@ -279,7 +279,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.dedup([1, 2, 3, 3, 2, 1]) |> Enum.to_list
+      iex> Stream.dedup([1, 2, 3, 3, 2, 1]) |> Enum.to_list()
       [1, 2, 3, 2, 1]
 
   """
@@ -294,7 +294,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
+      iex> Stream.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list()
       [{1, :x}, {2, :y}, {1, :x}]
 
   """
@@ -407,7 +407,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.each([1, 2, 3], fn(x) -> send self(), x end)
+      iex> stream = Stream.each([1, 2, 3], fn x -> send(self(), x) end)
       iex> Enum.to_list(stream)
       iex> receive do: (x when is_integer(x) -> x)
       1
@@ -435,11 +435,11 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [x, x * 2] end)
+      iex> stream = Stream.flat_map([1, 2, 3], fn x -> [x, x * 2] end)
       iex> Enum.to_list(stream)
       [1, 2, 2, 4, 3, 6]
 
-      iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [[x]] end)
+      iex> stream = Stream.flat_map([1, 2, 3], fn x -> [[x]] end)
       iex> Enum.to_list(stream)
       [[1], [2], [3]]
 
@@ -455,7 +455,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+      iex> stream = Stream.filter([1, 2, 3], fn x -> rem(x, 2) == 0 end)
       iex> Enum.to_list(stream)
       [2]
 
@@ -544,7 +544,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.map([1, 2, 3], fn(x) -> x * 2 end)
+      iex> stream = Stream.map([1, 2, 3], fn x -> x * 2 end)
       iex> Enum.to_list(stream)
       [2, 4, 6]
 
@@ -564,15 +564,15 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.map_every(1..10, 2, fn(x) -> x * 2 end)
+      iex> stream = Stream.map_every(1..10, 2, fn x -> x * 2 end)
       iex> Enum.to_list(stream)
       [2, 2, 6, 4, 10, 6, 14, 8, 18, 10]
 
-      iex> stream = Stream.map_every([1, 2, 3, 4, 5], 1, fn(x) -> x * 2 end)
+      iex> stream = Stream.map_every([1, 2, 3, 4, 5], 1, fn x -> x * 2 end)
       iex> Enum.to_list(stream)
       [2, 4, 6, 8, 10]
 
-      iex> stream = Stream.map_every(1..5, 0, fn(x) -> x * 2 end)
+      iex> stream = Stream.map_every(1..5, 0, fn x -> x * 2 end)
       iex> Enum.to_list(stream)
       [1, 2, 3, 4, 5]
 
@@ -595,7 +595,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+      iex> stream = Stream.reject([1, 2, 3], fn x -> rem(x, 2) == 0 end)
       iex> Enum.to_list(stream)
       [1, 3]
 
@@ -757,7 +757,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.timer(10) |> Enum.to_list
+      iex> Stream.timer(10) |> Enum.to_list()
       [0]
 
   """
@@ -973,7 +973,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list
+      iex> Stream.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list()
       [1, 2, 3]
 
   """
@@ -1003,10 +1003,10 @@ defmodule Stream do
 
   ## Example
 
-      iex> Stream.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list
+      iex> Stream.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list()
       [{1, :x}, {2, :y}]
 
-      iex> Stream.uniq_by([a: {:tea, 2}, b: {:tea, 2}, c: {:coffee, 1}], fn {_, y} -> y end) |> Enum.to_list
+      iex> Stream.uniq_by([a: {:tea, 2}, b: {:tea, 2}, c: {:coffee, 1}], fn {_, y} -> y end) |> Enum.to_list()
       [a: {:tea, 2}, c: {:coffee, 1}]
 
   """
@@ -1083,8 +1083,8 @@ defmodule Stream do
   ## Examples
 
       iex> concat = Stream.concat(1..3, 4..6)
-      iex> cycle  = Stream.cycle([:a, :b, :c])
-      iex> Stream.zip(concat, cycle) |> Enum.to_list
+      iex> cycle = Stream.cycle([:a, :b, :c])
+      iex> Stream.zip(concat, cycle) |> Enum.to_list()
       [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
 
   """
@@ -1101,7 +1101,7 @@ defmodule Stream do
 
       iex> concat = Stream.concat(1..3, 4..6)
       iex> cycle = Stream.cycle(["foo", "bar", "baz"])
-      iex> Stream.zip([concat, [:a, :b, :c], cycle]) |> Enum.to_list
+      iex> Stream.zip([concat, [:a, :b, :c], cycle]) |> Enum.to_list()
       [{1, :a, "foo"}, {2, :b, "bar"}, {3, :c, "baz"}]
 
   """
@@ -1269,7 +1269,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.iterate(0, &(&1+1)) |> Enum.take(5)
+      iex> Stream.iterate(0, &(&1 + 1)) |> Enum.take(5)
       [0, 1, 2, 3, 4]
 
   """
@@ -1443,7 +1443,10 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.unfold(5, fn 0 -> nil; n -> {n, n-1} end) |> Enum.to_list()
+      iex> Stream.unfold(5, fn
+      ...>   0 -> nil
+      ...>   n -> {n, n - 1}
+      ...> end) |> Enum.to_list()
       [5, 4, 3, 2, 1]
 
   """
@@ -1472,13 +1475,13 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.intersperse([1, 2, 3], 0) |> Enum.to_list
+      iex> Stream.intersperse([1, 2, 3], 0) |> Enum.to_list()
       [1, 0, 2, 0, 3]
 
-      iex> Stream.intersperse([1], 0) |> Enum.to_list
+      iex> Stream.intersperse([1], 0) |> Enum.to_list()
       [1]
 
-      iex> Stream.intersperse([], 0) |> Enum.to_list
+      iex> Stream.intersperse([], 0) |> Enum.to_list()
       []
 
   """

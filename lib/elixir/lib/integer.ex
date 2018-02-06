@@ -302,7 +302,7 @@ defmodule Integer do
       iex> Integer.to_string(-100, 16)
       "-64"
 
-      iex> Integer.to_string(882681651, 36)
+      iex> Integer.to_string(882_681_651, 36)
       "ELIXIR"
 
   """
@@ -351,7 +351,7 @@ defmodule Integer do
       iex> Integer.to_charlist(-100, 16)
       '-64'
 
-      iex> Integer.to_charlist(882681651, 36)
+      iex> Integer.to_charlist(882_681_651, 36)
       'ELIXIR'
 
   """

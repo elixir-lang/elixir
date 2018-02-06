@@ -8,12 +8,12 @@ defmodule Port do
   ## Example
 
       iex> port = Port.open({:spawn, "cat"}, [:binary])
-      iex> send port, {self(), {:command, "hello"}}
-      iex> send port, {self(), {:command, "world"}}
+      iex> send(port, {self(), {:command, "hello"}})
+      iex> send(port, {self(), {:command, "world"}})
       iex> flush()
       {#Port<0.1444>, {:data, "hello"}}
       {#Port<0.1444>, {:data, "world"}}
-      iex> send port, {self(), :close}
+      iex> send(port, {self(), :close})
       :ok
       iex> flush()
       {#Port<0.1464>, :closed}

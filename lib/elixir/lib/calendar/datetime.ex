@@ -96,17 +96,17 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> {:ok, datetime} = DateTime.from_unix(1464096368)
+      iex> {:ok, datetime} = DateTime.from_unix(1_464_096_368)
       iex> datetime
       #DateTime<2016-05-24 13:26:08Z>
 
-      iex> {:ok, datetime} = DateTime.from_unix(1432560368868569, :microsecond)
+      iex> {:ok, datetime} = DateTime.from_unix(1_432_560_368_868_569, :microsecond)
       iex> datetime
       #DateTime<2015-05-25 13:26:08.868569Z>
 
   The unit can also be an integer as in `t:System.time_unit/0`:
 
-      iex> {:ok, datetime} = DateTime.from_unix(143256036886856, 1024)
+      iex> {:ok, datetime} = DateTime.from_unix(143_256_036_886_856, 1024)
       iex> datetime
       #DateTime<6403-03-17 07:05:22.320Z>
 
@@ -155,10 +155,10 @@ defmodule DateTime do
       iex> DateTime.from_unix!(0)
       #DateTime<1970-01-01 00:00:00Z>
 
-      iex> DateTime.from_unix!(1464096368)
+      iex> DateTime.from_unix!(1_464_096_368)
       #DateTime<2016-05-24 13:26:08Z>
 
-      iex> DateTime.from_unix!(1432560368868569, :microsecond)
+      iex> DateTime.from_unix!(1_432_560_368_868_569, :microsecond)
       #DateTime<2015-05-25 13:26:08.868569Z>
 
   """
@@ -256,7 +256,7 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> 1464096368 |> DateTime.from_unix!() |> DateTime.to_unix()
+      iex> 1_464_096_368 |> DateTime.from_unix!() |> DateTime.to_unix()
       1464096368
 
       iex> dt = %DateTime{calendar: Calendar.ISO, day: 20, hour: 18, microsecond: {273806, 6},
