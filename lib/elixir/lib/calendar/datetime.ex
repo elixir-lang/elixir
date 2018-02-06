@@ -574,6 +574,12 @@ defmodule DateTime do
       iex> DateTime.to_string(dt)
       "2000-02-29 23:00:07-04:00 AMT America/Manaus"
 
+      iex> dt = %DateTime{year: -100, month: 12, day: 19, zone_abbr: "CET",
+      ...>                hour: 3, minute: 20, second: 31, microsecond: {0, 0},
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Stockholm"}
+      iex> DateTime.to_string(dt)
+      "-0100-12-19 03:20:31+01:00 CET Europe/Stockholm"
+
   """
   @spec to_string(Calendar.datetime()) :: String.t()
   def to_string(%{calendar: calendar} = datetime) do

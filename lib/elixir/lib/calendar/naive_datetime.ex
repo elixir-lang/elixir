@@ -271,6 +271,8 @@ defmodule NaiveDateTime do
       21
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10], ~N[2014-10-02 00:29:12])
       -2
+      iex> NaiveDateTime.diff(~N[-0001-10-02 00:29:10], ~N[-0001-10-02 00:29:12])
+      -2
 
       # to Gregorian seconds
       iex> NaiveDateTime.diff(~N[2014-10-02 00:29:10], ~N[0000-01-01 00:00:00])
@@ -371,6 +373,8 @@ defmodule NaiveDateTime do
       "2000-02-28 23:00:13"
       iex> NaiveDateTime.to_string(~N[2000-02-28 23:00:13.001])
       "2000-02-28 23:00:13.001"
+      iex> NaiveDateTime.to_string(~N[-0100-12-15 03:20:31])
+      "-0100-12-15 03:20:31"
 
   This function can also be used to convert a DateTime to a string without
   the time zone information:
@@ -457,7 +461,15 @@ defmodule NaiveDateTime do
 
   """
   @spec from_iso8601(String.t(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
-  def from_iso8601(string, calendar \\ Calendar.ISO) when is_binary(string) do
+  def from_iso8601(string, calendar \\ Calendar.ISO)
+
+  def from_iso8601(<<?-, next, rest::binary>>, calendar) when next != ?- do
+    with {:ok, %{year: year} = naive_datetime} <- from_iso8601(<<next>> <> rest, calendar) do
+      {:ok, %{naive_datetime | year: -year}}
+    end
+  end
+
+  def from_iso8601(string, calendar) when is_binary(string) do
     with <<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep, rest::binary>> <- string,
          true <- sep in [?\s, ?T],
          <<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>> <- rest,
