@@ -436,7 +436,7 @@ defmodule Regex do
       iex> Regex.split(~r{-}, "a-b-c")
       ["a", "b", "c"]
 
-      iex> Regex.split(~r{-}, "a-b-c", [parts: 2])
+      iex> Regex.split(~r{-}, "a-b-c", parts: 2)
       ["a", "b-c"]
 
       iex> Regex.split(~r{-}, "abc")

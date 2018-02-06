@@ -59,7 +59,7 @@ defmodule Access do
   This syntax is very convenient as it can be nested arbitrarily:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-      iex> put_in users["john"][:age], 28
+      iex> put_in(users["john"][:age], 28)
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
   Furthermore, the bracket access transparently ignores `nil` values:
@@ -131,7 +131,7 @@ defmodule Access do
       ...>   %{name: "c", type: :procedural},
       ...> ]
       iex> user = %{name: "john", languages: languages}
-      iex> update_in user, [:languages, Access.all(), :name], &String.upcase/1
+      iex> update_in(user, [:languages, Access.all(), :name], &String.upcase/1)
       %{name: "john",
         languages: [%{name: "ELIXIR", type: :functional},
                     %{name: "C", type: :procedural}]}
@@ -726,7 +726,7 @@ defmodule Access do
 
   ## Examples
 
-      iex> list = [%{name: "john", salary: 10},  %{name: "francine", salary: 30}]
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.filter(&(&1.salary > 20)), :name])
       ["francine"]
       iex> get_and_update_in(list, [Access.filter(&(&1.salary <= 20)), :name], fn

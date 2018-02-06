@@ -425,9 +425,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> is_binary "foo"
+      iex> is_binary("foo")
       true
-      iex> is_binary <<1::3>>
+      iex> is_binary(<<1::3>>)
       false
 
   """
@@ -443,9 +443,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> is_bitstring "foo"
+      iex> is_bitstring("foo")
       true
-      iex> is_bitstring <<1::3>>
+      iex> is_bitstring(<<1::3>>)
       true
 
   """
@@ -493,9 +493,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> is_function(fn(x) -> x * 2 end, 1)
+      iex> is_function(fn x -> x * 2 end, 1)
       true
-      iex> is_function(fn(x) -> x * 2 end, 2)
+      iex> is_function(fn x -> x * 2 end, 2)
       false
 
   """
@@ -785,7 +785,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> send self(), :hello
+      iex> send(self(), :hello)
       :hello
 
   """
@@ -1034,7 +1034,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> tuple_size {:a, :b, :c}
+      iex> tuple_size({:a, :b, :c})
       3
 
   """
@@ -1827,10 +1827,10 @@ defmodule Kernel do
       iex> inspect(:foo)
       ":foo"
 
-      iex> inspect [1, 2, 3, 4, 5], limit: 3
+      iex> inspect([1, 2, 3, 4, 5], limit: 3)
       "[1, 2, 3, ...]"
 
-      iex> inspect [1, 2, 3], pretty: true, width: 0
+      iex> inspect([1, 2, 3], pretty: true, width: 0)
       "[1,\n 2,\n 3]"
 
       iex> inspect("olá" <> <<0>>)
@@ -3070,7 +3070,7 @@ defmodule Kernel do
   The `|>` operator is mostly useful when there is a desire to execute a series
   of operations resembling a pipeline:
 
-      iex> [1, [2], 3] |> List.flatten |> Enum.map(fn x -> x * 2 end)
+      iex> [1, [2], 3] |> List.flatten() |> Enum.map(fn x -> x * 2 end)
       [2, 4, 6]
 
   In the example above, the list `[1, [2], 3]` is passed as the first argument
@@ -3523,7 +3523,7 @@ defmodule Kernel do
       iex> defmodule Foo do
       ...>   def bar, do: :baz
       ...> end
-      iex> Foo.bar
+      iex> Foo.bar()
       :baz
 
   ## Nesting
@@ -3729,7 +3729,7 @@ defmodule Kernel do
         def bar, do: :baz
       end
 
-      Foo.bar #=> :baz
+      Foo.bar() #=> :baz
 
   A function that expects arguments can be defined as follows:
 
@@ -3847,7 +3847,7 @@ defmodule Kernel do
         defp sum(a, b), do: a + b
       end
 
-      Foo.bar #=> 3
+      Foo.bar() #=> 3
       Foo.sum(1, 2) #=> ** (UndefinedFunctionError) undefined function Foo.sum/2
 
   """

@@ -140,7 +140,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new([:a, :b], fn(x) -> {x, x} end)
+      iex> Keyword.new([:a, :b], fn x -> {x, x} end)
       [a: :a, b: :b]
 
   """

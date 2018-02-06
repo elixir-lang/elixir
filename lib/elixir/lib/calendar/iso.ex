@@ -69,9 +69,9 @@ defmodule Calendar.ISO do
 
       iex> Calendar.ISO.naive_datetime_from_iso_days({0, {0, 86400}})
       {0, 1, 1, 0, 0, 0, {0, 6}}
-      iex> Calendar.ISO.naive_datetime_from_iso_days({730485, {0, 86400}})
+      iex> Calendar.ISO.naive_datetime_from_iso_days({730_485, {0, 86400}})
       {2000, 1, 1, 0, 0, 0, {0, 6}}
-      iex> Calendar.ISO.naive_datetime_from_iso_days({730485, {43200, 86400}})
+      iex> Calendar.ISO.naive_datetime_from_iso_days({730_485, {43200, 86400}})
       {2000, 1, 1, 12, 0, 0, {0, 6}}
 
   """
@@ -125,9 +125,9 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.time_from_day_fraction({1,2})
+      iex> Calendar.ISO.time_from_day_fraction({1, 2})
       {12, 0, 0, {0, 6}}
-      iex> Calendar.ISO.time_from_day_fraction({13,24})
+      iex> Calendar.ISO.time_from_day_fraction({13, 24})
       {13, 0, 0, {0, 6}}
 
   """

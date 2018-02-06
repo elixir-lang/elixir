@@ -53,7 +53,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.diff(~N[2010-04-17 14:00:00], ~N[1970-01-01 00:00:00])
       1271512800
 
-      iex> NaiveDateTime.add(~N[1970-01-01 00:00:00], 1271512800)
+      iex> NaiveDateTime.add(~N[1970-01-01 00:00:00], 1_271_512_800)
       ~N[2010-04-17 14:00:00]
 
   Those functions are optimized to deal with common epochs, such
@@ -232,11 +232,11 @@ defmodule NaiveDateTime do
 
       # changes below the precision will not be visible
       iex> hidden = NaiveDateTime.add(~N[2014-10-02 00:29:10], 21, :millisecond)
-      iex> hidden.microsecond  # ~N[2014-10-02 00:29:10]
+      iex> hidden.microsecond # ~N[2014-10-02 00:29:10]
       {21000, 0}
 
       # from Gregorian seconds
-      iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63579428950)
+      iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63_579_428_950)
       ~N[2014-10-02 00:29:10]
 
   """
@@ -613,7 +613,7 @@ defmodule NaiveDateTime do
       {:ok, ~N[2000-01-01 13:30:15.005]}
       iex> NaiveDateTime.from_erl({{2000, 13, 1}, {13, 30, 15}})
       {:error, :invalid_date}
-      iex> NaiveDateTime.from_erl({{2000, 13, 1},{13, 30, 15}})
+      iex> NaiveDateTime.from_erl({{2000, 13, 1}, {13, 30, 15}})
       {:error, :invalid_date}
 
   """

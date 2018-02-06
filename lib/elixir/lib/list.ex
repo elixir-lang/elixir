@@ -45,9 +45,9 @@ defmodule List do
   slower as the list grows in size (linear time):
 
       iex> list = [1, 2, 3]
-      iex> [0 | list]   # fast
+      iex> [0 | list] # fast
       [0, 1, 2, 3]
-      iex> list ++ [4]  # slow
+      iex> list ++ [4] # slow
       [1, 2, 3, 4]
 
   The `Kernel` module contains many functions to manipulate lists
@@ -177,10 +177,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.foldl([5, 5], 10, fn(x, acc) -> x + acc end)
+      iex> List.foldl([5, 5], 10, fn x, acc -> x + acc end)
       20
 
-      iex> List.foldl([1, 2, 3, 4], 0, fn(x, acc) -> x - acc end)
+      iex> List.foldl([1, 2, 3, 4], 0, fn x, acc -> x - acc end)
       2
 
   """
@@ -195,7 +195,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.foldr([1, 2, 3, 4], 0, fn(x, acc) -> x - acc end)
+      iex> List.foldr([1, 2, 3, 4], 0, fn x, acc -> x - acc end)
       -2
 
   """

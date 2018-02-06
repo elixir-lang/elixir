@@ -88,7 +88,7 @@ defmodule URI do
       iex> URI.encode_query(query)
       "key=value+with+spaces"
 
-      iex> URI.encode_query %{key: [:a, :list]}
+      iex> URI.encode_query(%{key: [:a, :list]})
       ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
 
   """

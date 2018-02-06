@@ -10,10 +10,10 @@ defmodule Mix.Local do
 
   ## Examples
 
-      iex> Mix.Local.name_for(:archive, [app: "foo", version: "0.1.0"])
+      iex> Mix.Local.name_for(:archive, app: "foo", version: "0.1.0")
       "foo-0.1.0.ez"
 
-      iex> Mix.Local.name_for(:escript, [escript: [name: "foo"]])
+      iex> Mix.Local.name_for(:escript, escript: [name: "foo"])
       "foo"
 
   """

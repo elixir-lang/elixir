@@ -436,9 +436,9 @@ defmodule OptionParser do
 
   ## Examples
 
-      iex>  OptionParser.to_argv([foo_bar: "baz"])
+      iex> OptionParser.to_argv(foo_bar: "baz")
       ["--foo-bar", "baz"]
-      iex>  OptionParser.to_argv([bool: true, bool: false, discarded: nil])
+      iex> OptionParser.to_argv(bool: true, bool: false, discarded: nil)
       ["--bool", "--no-bool"]
 
   Some switches will output different values based on the switches

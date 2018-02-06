@@ -104,7 +104,7 @@ defmodule Inspect.Algebra do
   additions, like support for binary nodes and a break mode that
   maximises use of horizontal space.
 
-      iex> Inspect.Algebra.empty
+      iex> Inspect.Algebra.empty()
       :doc_nil
 
       iex> "foo"
@@ -113,7 +113,7 @@ defmodule Inspect.Algebra do
   With the functions in this module, we can concatenate different
   elements together and render them:
 
-      iex> doc = Inspect.Algebra.concat(Inspect.Algebra.empty, "foo")
+      iex> doc = Inspect.Algebra.concat(Inspect.Algebra.empty(), "foo")
       iex> Inspect.Algebra.format(doc, 80)
       ["foo"]
 
@@ -342,17 +342,17 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]",
       ...>         %Inspect.Opts{limit: :infinity}, fn i, _opts -> to_string(i) end)
-      iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary
+      iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary()
       "[1,\n 2,\n 3,\n 4,\n 5]"
 
       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]",
       ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end)
-      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
+      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
       "[1, 2, 3, ...]"
 
       iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]",
       ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end, separator: "!")
-      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
+      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
       "[1! 2! 3! ...]"
 
   """
@@ -449,7 +449,7 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> Inspect.Algebra.empty
+      iex> Inspect.Algebra.empty()
       :doc_nil
 
   """

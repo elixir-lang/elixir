@@ -731,7 +731,7 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.available_compiler_options
+      iex> Code.available_compiler_options()
       [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors]
 
   """
