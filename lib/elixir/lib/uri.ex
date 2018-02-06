@@ -465,6 +465,8 @@ defmodule URI do
   @doc """
   Returns the string representation of the given `URI` struct.
 
+  ## Examples
+
       iex> URI.to_string(URI.parse("http://google.com"))
       "http://google.com"
 
@@ -481,9 +483,8 @@ defmodule URI do
       iex> URI.to_string(%URI{userinfo: "bar", host: "example.org", port: 81})
       "//bar@example.org:81"
 
-
       iex> URI.to_string(%URI{authority: "foo@example.com:80",
-      iex>                    userinfo: "bar", host: "example.org", port: 81})
+      ...>                    userinfo: "bar", host: "example.org", port: 81})
       "//bar@example.org:81"
 
   """
