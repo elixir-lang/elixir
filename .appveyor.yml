@@ -11,8 +11,6 @@ test_script:
 environment:
   ELIXIR_ASSERT_TIMEOUT: 2000
 
-configuration: Test
-
 matrix:
   allow_failures:
-    - configuration: Test
+    - APPVEYOR: True

@@ -5,6 +5,7 @@ defmodule NodeTest do
 
   doctest Node
 
+  @tag :unix
   test "start/3 and stop/0" do
     assert Node.stop() == {:error, :not_found}
     assert {:ok, _} = Node.start(:hello, :shortnames, 15000)

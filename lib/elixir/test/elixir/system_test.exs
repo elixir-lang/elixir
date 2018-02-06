@@ -92,12 +92,14 @@ defmodule SystemTest do
     end
   end
 
-  if windows?() do
-    test "cmd/2 win" do
+  describe "Windows" do
+    @describetag :windows
+
+    test "cmd/2" do
       assert {"hello\r\n", 0} = System.cmd("cmd", ~w[/c echo hello])
     end
 
-    test "cmd/3 (with options) win" do
+    test "cmd/3 (with options)" do
       assert {["hello\r\n"], 0} =
                System.cmd(
                  "cmd",
@@ -113,7 +115,7 @@ defmodule SystemTest do
 
     @echo "echo-elixir-test"
 
-    test "cmd/2 with absolute and relative Windows paths" do
+    test "cmd/2 with absolute and relative paths" do
       echo = tmp_path(@echo)
       File.mkdir_p!(Path.dirname(echo))
       File.cp!(System.find_executable("cmd"), echo)
@@ -132,12 +134,16 @@ defmodule SystemTest do
     after
       File.rm_rf!(Path.dirname(tmp_path(@echo)))
     end
-  else
-    test "cmd/2 unix" do
+  end
+
+  describe "UNIX" do
+    @describetag :unix
+
+    test "cmd/2" do
       assert {"hello\n", 0} = System.cmd("echo", ["hello"])
     end
 
-    test "cmd/3 (with options) unix" do
+    test "cmd/3 (with options)" do
       opts = [
         into: [],
         cd: System.cwd!(),
@@ -152,7 +158,7 @@ defmodule SystemTest do
 
     @echo "echo-elixir-test"
 
-    test "cmd/2 with absolute and relative Unix paths" do
+    test "cmd/2 with absolute and relative paths" do
       echo = tmp_path(@echo)
       File.mkdir_p!(Path.dirname(echo))
       File.cp!(System.find_executable("echo"), echo)

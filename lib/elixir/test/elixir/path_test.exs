@@ -36,67 +36,69 @@ defmodule PathTest do
     assert_raise ArgumentError, ~r/null byte/, fn -> Path.wildcard("foo\0bar") end
   end
 
-  if windows?() do
-    describe "Windows" do
-      test "relative/1" do
-        assert Path.relative("C:/usr/local/bin") == "usr/local/bin"
-        assert Path.relative("C:\\usr\\local\\bin") == "usr\\local\\bin"
-        assert Path.relative("C:usr\\local\\bin") == "usr\\local\\bin"
+  describe "Windows" do
+    @describetag :windows
 
-        assert Path.relative("/usr/local/bin") == "usr/local/bin"
-        assert Path.relative("usr/local/bin") == "usr/local/bin"
-        assert Path.relative("../usr/local/bin") == "../usr/local/bin"
-      end
+    test "relative/1" do
+      assert Path.relative("C:/usr/local/bin") == "usr/local/bin"
+      assert Path.relative("C:\\usr\\local\\bin") == "usr\\local\\bin"
+      assert Path.relative("C:usr\\local\\bin") == "usr\\local\\bin"
 
-      test "relative_to/2" do
-        assert Path.relative_to("D:/usr/local/foo", "D:/usr/") == "local/foo"
-        assert Path.relative_to("D:/usr/local/foo", "d:/usr/") == "local/foo"
-        assert Path.relative_to("d:/usr/local/foo", "D:/usr/") == "local/foo"
-        assert Path.relative_to("D:/usr/local/foo", "d:/") == "usr/local/foo"
-        assert Path.relative_to("D:/usr/local/foo", "D:/") == "usr/local/foo"
-        assert Path.relative_to("D:/usr/local/foo", "d:") == "D:/usr/local/foo"
-        assert Path.relative_to("D:/usr/local/foo", "D:") == "D:/usr/local/foo"
-      end
-
-      test "type/1" do
-        assert Path.type("C:/usr/local/bin") == :absolute
-        assert Path.type('C:\\usr\\local\\bin') == :absolute
-        assert Path.type("C:usr\\local\\bin") == :volumerelative
-
-        assert Path.type("/usr/local/bin") == :volumerelative
-        assert Path.type('usr/local/bin') == :relative
-        assert Path.type("../usr/local/bin") == :relative
-      end
-
-      test "split/1" do
-        assert Path.split("C:\\foo\\bar") == ["c:/", "foo", "bar"]
-        assert Path.split("C:/foo/bar") == ["c:/", "foo", "bar"]
-      end
+      assert Path.relative("/usr/local/bin") == "usr/local/bin"
+      assert Path.relative("usr/local/bin") == "usr/local/bin"
+      assert Path.relative("../usr/local/bin") == "../usr/local/bin"
     end
-  else
-    describe "Unix" do
-      test "relative/1" do
-        assert Path.relative("/usr/local/bin") == "usr/local/bin"
-        assert Path.relative("usr/local/bin") == "usr/local/bin"
-        assert Path.relative("../usr/local/bin") == "../usr/local/bin"
-        assert Path.relative("/") == "."
-        assert Path.relative('/') == "."
-        assert Path.relative(['/usr', ?/, "local/bin"]) == "usr/local/bin"
-      end
 
-      test "type/1" do
-        assert Path.type("/usr/local/bin") == :absolute
-        assert Path.type("usr/local/bin") == :relative
-        assert Path.type("../usr/local/bin") == :relative
+    test "relative_to/2" do
+      assert Path.relative_to("D:/usr/local/foo", "D:/usr/") == "local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:/usr/") == "local/foo"
+      assert Path.relative_to("d:/usr/local/foo", "D:/usr/") == "local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:/") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "D:/") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:") == "D:/usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "D:") == "D:/usr/local/foo"
+    end
 
-        assert Path.type('/usr/local/bin') == :absolute
-        assert Path.type('usr/local/bin') == :relative
-        assert Path.type('../usr/local/bin') == :relative
+    test "type/1" do
+      assert Path.type("C:/usr/local/bin") == :absolute
+      assert Path.type('C:\\usr\\local\\bin') == :absolute
+      assert Path.type("C:usr\\local\\bin") == :volumerelative
 
-        assert Path.type(['/usr/', 'local/bin']) == :absolute
-        assert Path.type(['usr/', 'local/bin']) == :relative
-        assert Path.type(['../usr', '/local/bin']) == :relative
-      end
+      assert Path.type("/usr/local/bin") == :volumerelative
+      assert Path.type('usr/local/bin') == :relative
+      assert Path.type("../usr/local/bin") == :relative
+    end
+
+    test "split/1" do
+      assert Path.split("C:\\foo\\bar") == ["c:/", "foo", "bar"]
+      assert Path.split("C:/foo/bar") == ["c:/", "foo", "bar"]
+    end
+  end
+
+  describe "Unix" do
+    @describetag :unix
+
+    test "relative/1" do
+      assert Path.relative("/usr/local/bin") == "usr/local/bin"
+      assert Path.relative("usr/local/bin") == "usr/local/bin"
+      assert Path.relative("../usr/local/bin") == "../usr/local/bin"
+      assert Path.relative("/") == "."
+      assert Path.relative('/') == "."
+      assert Path.relative(['/usr', ?/, "local/bin"]) == "usr/local/bin"
+    end
+
+    test "type/1" do
+      assert Path.type("/usr/local/bin") == :absolute
+      assert Path.type("usr/local/bin") == :relative
+      assert Path.type("../usr/local/bin") == :relative
+
+      assert Path.type('/usr/local/bin') == :absolute
+      assert Path.type('usr/local/bin') == :relative
+      assert Path.type('../usr/local/bin') == :relative
+
+      assert Path.type(['/usr/', 'local/bin']) == :absolute
+      assert Path.type(['usr/', 'local/bin']) == :relative
+      assert Path.type(['../usr', '/local/bin']) == :relative
     end
   end
 
