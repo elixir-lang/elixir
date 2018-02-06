@@ -136,7 +136,7 @@ defmodule SystemTest do
     end
   end
 
-  describe "UNIX" do
+  describe "Unix" do
     @describetag :unix
 
     test "cmd/2" do
