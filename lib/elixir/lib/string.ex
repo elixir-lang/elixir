@@ -1736,7 +1736,7 @@ defmodule String do
       ""
 
   """
-  @spec slice(t, integer, integer) :: grapheme
+  @spec slice(t, integer, non_neg_integer) :: grapheme
 
   def slice(_, _, 0) do
     ""
