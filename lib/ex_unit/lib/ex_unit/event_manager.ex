@@ -17,11 +17,11 @@ defmodule ExUnit.EventManager do
   end
 
   def stop({sup, event}) do
-    for {_, pid, _, _} <- Supervisor.which_children(sup) do
+    for {_, pid, _, _} <- DynamicSupervisor.which_children(sup) do
       GenServer.stop(pid, :normal, @timeout)
     end
 
-    Supervisor.stop(sup)
+    DynamicSupervisor.stop(sup)
     :gen_event.stop(event)
   end
 

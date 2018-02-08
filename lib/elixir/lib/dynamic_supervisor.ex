@@ -422,6 +422,22 @@ defmodule DynamicSupervisor do
   end
 
   @doc """
+  Synchronously stops the given supervisor with the given `reason`.
+
+  It returns `:ok` if the supervisor terminates with the given
+  reason. If it terminates with another reason, the call exits.
+
+  This function keeps OTP semantics regarding error reporting.
+  If the reason is any other than `:normal`, `:shutdown` or
+  `{:shutdown, _}`, an error report is logged.
+  """
+  @since "1.7.0"
+  @spec stop(Supervisor.supervisor(), reason :: term, timeout) :: :ok
+  def stop(supervisor, reason \\ :normal, timeout \\ :infinity) do
+    GenServer.stop(supervisor, reason, timeout)
+  end
+
+  @doc """
   Receives a set of options that initializes a dynamic supervisor.
 
   This is typically invoked at the end of the `c:init/1` callback of

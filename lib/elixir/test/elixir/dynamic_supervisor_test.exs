@@ -95,6 +95,9 @@ defmodule DynamicSupervisorTest do
       # And the initial call
       assert {:supervisor, DynamicSupervisorTest.Simple, 1} =
                :proc_lib.translate_initial_call(pid)
+
+      # And shuts down
+      assert DynamicSupervisor.stop(__MODULE__) == :ok
     end
 
     test "sets initial call to the same as a regular supervisor" do
