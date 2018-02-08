@@ -262,13 +262,9 @@ defmodule Mix.Tasks.Test do
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
     matched_test_files = Mix.Utils.extract_files(test_files, test_pattern)
+    display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
-    matched_warn_test_files =
-      Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
-
-    display_warn_test_pattern(matched_warn_test_files, test_pattern)
-
-    case CT.require_and_run(files, matched_test_files, test_paths, opts) do
+    case CT.require_and_run(matched_test_files, test_paths, opts) do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
         cover && cover.()
 
@@ -281,25 +277,47 @@ defmodule Mix.Tasks.Test do
           failures > 0 ->
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
-          excluded == total and option_only_present? and opts[:raise] ->
-            Mix.raise("The --only option was given to \"mix test\" but no test executed")
-
           excluded == total and option_only_present? ->
-            Mix.shell().error("The --only option was given to \"mix test\" but no test executed")
-            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+            message = "The --only option was given to \"mix test\" but no test executed"
+            raise_or_error_at_exit(message, opts)
 
           true ->
             :ok
         end
 
       :noop ->
+        cond do
+          opts[:stale] ->
+            Mix.shell().info("No stale tests")
+
+          files == [] ->
+            raise_or_error_at_exit("There are no tests to run", opts)
+
+          true ->
+            message = "Paths given to `mix test` did not match any directory/file: "
+            raise_or_error_at_exit(message <> Enum.join(files, ", "), opts)
+        end
+
         :ok
     end
   end
 
-  defp display_warn_test_pattern(files, pattern) do
+  defp raise_or_error_at_exit(message, opts) do
+    if opts[:raise] do
+      Mix.raise(message)
+    else
+      Mix.shell().error(message)
+      System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+    end
+  end
+
+  defp display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern) do
+    files = Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
+
     for file <- files do
-      Mix.shell().info("warning: #{file} does not match #{inspect(pattern)} and won't be loaded")
+      Mix.shell().info(
+        "warning: #{file} does not match #{inspect(test_pattern)} and won't be loaded"
+      )
     end
   end
 

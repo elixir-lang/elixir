@@ -20,56 +20,44 @@ defmodule Mix.Compilers.Test do
   It expects all of the test patterns, the test files that were matched for the
   test patterns, the test paths, and the opts from the test task.
   """
-  def require_and_run(test_patterns, matched_test_files, test_paths, opts) do
+  def require_and_run(matched_test_files, test_paths, opts) do
     stale = opts[:stale]
 
-    {test_files_to_run, stale_manifest_pid, parallel_require_callbacks} =
+    {test_files, stale_manifest_pid, parallel_require_callbacks} =
       if stale do
         set_up_stale(matched_test_files, test_paths, opts)
       else
         {matched_test_files, nil, []}
       end
 
-    case test_files_to_run do
-      [] when stale ->
-        Mix.shell().info("No stale tests")
-        :noop
+    if test_files == [] do
+      :noop
+    else
+      task = Task.async(ExUnit, :run, [])
 
-      [] when test_patterns == [] ->
-        Mix.shell().info("There are no tests to run")
-        :noop
-
-      [] ->
-        message = "Test patterns did not match any file: " <> Enum.join(test_patterns, ", ")
-        Mix.shell().error(message)
-        :noop
-
-      test_files ->
-        task = Task.async(ExUnit, :run, [])
-
-        try do
-          case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
-            {:ok, _, _} -> :ok
-            {:error, _, _} -> exit({:shutdown, 1})
-          end
-
-          ExUnit.Server.modules_loaded()
-          %{failures: failures} = results = Task.await(task, :infinity)
-
-          if failures == 0 do
-            agent_write_manifest(stale_manifest_pid)
-          end
-
-          {:ok, results}
-        catch
-          kind, reason ->
-            # In case there is an error, shutdown the runner task
-            # before the error propagates up and trigger links.
-            Task.shutdown(task)
-            :erlang.raise(kind, reason, __STACKTRACE__)
-        after
-          agent_stop(stale_manifest_pid)
+      try do
+        case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
+          {:ok, _, _} -> :ok
+          {:error, _, _} -> exit({:shutdown, 1})
         end
+
+        ExUnit.Server.modules_loaded()
+        %{failures: failures} = results = Task.await(task, :infinity)
+
+        if failures == 0 do
+          agent_write_manifest(stale_manifest_pid)
+        end
+
+        {:ok, results}
+      catch
+        kind, reason ->
+          # In case there is an error, shutdown the runner task
+          # before the error propagates up and trigger links.
+          Task.shutdown(task)
+          :erlang.raise(kind, reason, __STACKTRACE__)
+      after
+        agent_stop(stale_manifest_pid)
+      end
     end
   end
 
@@ -82,13 +70,12 @@ defmodule Mix.Compilers.Test do
       for source(source: source) <- all_sources, source not in matched_test_files, do: source
 
     configs = Mix.Project.config_files()
-
-    force =
-      opts[:force] || Mix.Utils.stale?(configs, [manifest]) || test_helper_stale?(test_paths)
+    test_helpers = Enum.map(test_paths, &Path.join(&1, "test_helper.exs"))
+    force = opts[:force] || Mix.Utils.stale?(test_helpers ++ configs, [modified])
 
     changed =
       if force do
-        # let's just require everything
+        # Let's just require everything
         matched_test_files
       else
         sources_mtimes = mtimes(all_sources)
@@ -144,12 +131,6 @@ defmodule Mix.Compilers.Test do
   end
 
   ## Setup helpers
-
-  defp test_helper_stale?(test_paths) do
-    test_paths
-    |> Enum.map(&Path.join(&1, "test_helper.exs"))
-    |> Mix.Utils.stale?([manifest()])
-  end
 
   defp mtimes(sources) do
     Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->
