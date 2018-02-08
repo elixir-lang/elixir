@@ -126,8 +126,8 @@ defmodule Mix.Tasks.Format do
 
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
-    formatter_opts = eval_dot_formatter(opts)
-    formatter_opts = fetch_deps_opts(formatter_opts)
+    {formatter_dir, formatter_opts} = eval_dot_formatter(opts)
+    formatter_opts = fetch_deps_opts(formatter_opts, in_directory: formatter_dir)
 
     args
     |> expand_args(formatter_opts)
@@ -138,8 +138,8 @@ defmodule Mix.Tasks.Format do
 
   defp eval_dot_formatter(opts) do
     case dot_formatter(opts) do
-      {:ok, dot_formatter} -> eval_file_with_keyword_list(dot_formatter)
-      :error -> []
+      {:ok, dot_formatter} -> {Path.dirname(dot_formatter), eval_file_with_keyword_list(dot_formatter)}
+      :error -> {nil, []}
     end
   end
 
@@ -153,6 +153,16 @@ defmodule Mix.Tasks.Format do
 
   # This function reads exported configuration from the imported dependencies and deals with
   # caching the result of reading such configuration in a manifest file.
+  defp fetch_deps_opts(formatter_opts, in_directory: nil) do
+    fetch_deps_opts(formatter_opts)
+  end
+
+  defp fetch_deps_opts(formatter_opts, in_directory: formatter_dir) do
+    File.cd!(formatter_dir, fn ->
+      fetch_deps_opts(formatter_opts)
+    end)
+  end
+
   defp fetch_deps_opts(formatter_opts) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
 
