@@ -139,7 +139,12 @@ defmodule Agent do
   @typedoc "The agent state"
   @type state :: term
 
-  @doc false
+  @doc """
+  Returns a specification to start an agent under a supervisor.
+
+  See `Supervisor`.
+  """
+  @since "1.5.0"
   def child_spec(arg) do
     %{
       id: Agent,
@@ -150,7 +155,11 @@ defmodule Agent do
   @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
-      @doc false
+      @doc """
+      Returns a specification to start this module under a supervisor.
+
+      See `Supervisor`.
+      """
       def child_spec(arg) do
         default = %{
           id: __MODULE__,

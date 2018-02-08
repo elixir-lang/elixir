@@ -173,7 +173,12 @@ defmodule Task do
 
   @type t :: %__MODULE__{}
 
-  @doc false
+  @doc """
+  Returns a specification to start a task under a supervisor.
+
+  See `Supervisor`.
+  """
+  @since "1.5.0"
   def child_spec(arg) do
     %{
       id: Task,
@@ -185,7 +190,12 @@ defmodule Task do
   @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
-      @doc false
+      @doc """
+      Returns a specification to start this module under a supervisor.
+
+      See `Supervisor`.
+      """
+      @since "1.5.0"
       def child_spec(arg) do
         default = %{
           id: __MODULE__,
