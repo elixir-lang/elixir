@@ -219,7 +219,8 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  test "can read exported configuration from dependencies with .formatter.exs in a different folder", context do
+  test "can read exported configuration from dependencies with .formatter.exs in a different folder",
+       context do
     Mix.Project.push(__MODULE__.FormatWithDepsApp)
 
     in_tmp context.test, fn ->
