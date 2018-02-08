@@ -6,7 +6,9 @@ defmodule ExUnit.Runner do
   @rand_algorithm :exs1024
 
   def run(opts, load_us) do
-    {opts, config} = configure(opts)
+    {:ok, manager} = EM.start_link()
+    {:ok, stats} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
+    {opts, config} = configure(manager, opts)
 
     :erlang.system_flag(:backtrace_depth, Keyword.fetch!(opts, :stacktrace_depth))
 
@@ -17,16 +19,13 @@ defmodule ExUnit.Runner do
       end)
 
     EM.suite_finished(config.manager, run_us, load_us)
-    result = ExUnit.RunnerStats.stats(config.stats)
+    result = ExUnit.RunnerStats.stats(stats)
     EM.stop(config.manager)
     result
   end
 
-  defp configure(opts) do
+  defp configure(manager, opts) do
     opts = normalize_opts(opts)
-
-    {:ok, manager} = EM.start_link()
-    {:ok, stats} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
     Enum.each(opts[:formatters], &EM.add_handler(manager, &1, opts))
 
     config = %{
@@ -34,7 +33,6 @@ defmodule ExUnit.Runner do
       exclude: opts[:exclude],
       include: opts[:include],
       manager: manager,
-      stats: stats,
       max_cases: opts[:max_cases],
       seed: opts[:seed],
       modules: :async,

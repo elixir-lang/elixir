@@ -4,18 +4,12 @@ defmodule ExUnit.RunnerStats do
   use GenServer
   alias ExUnit.{Manifest, Test, TestModule}
 
-  @manifest ".ex_unit_results.elixir"
+  def stats(pid) do
+    GenServer.call(pid, :stats, :infinity)
+  end
 
   def init(opts) do
-    {manifest_file, old_manifest} =
-      case Keyword.fetch(opts, :manifest_path) do
-        :error ->
-          {nil, %{}}
-
-        {:ok, manifest_path} ->
-          manifest_file = Path.join(manifest_path, @manifest)
-          {manifest_file, Manifest.read(manifest_file)}
-      end
+    {manifest_file, old_manifest} = read_manifest(opts)
 
     state = %{
       total: 0,
@@ -30,8 +24,17 @@ defmodule ExUnit.RunnerStats do
     {:ok, state}
   end
 
-  def stats(pid) do
-    GenServer.call(pid, :stats, :infinity)
+  @manifest ".ex_unit_results.elixir"
+
+  defp read_manifest(opts) do
+    case Keyword.fetch(opts, :manifest_path) do
+      :error ->
+        {nil, %{}}
+
+      {:ok, manifest_path} ->
+        manifest_file = Path.join(manifest_path, @manifest)
+        {manifest_file, Manifest.read(manifest_file)}
+    end
   end
 
   def handle_call(:stats, _from, state) do
