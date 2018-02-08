@@ -312,7 +312,8 @@ defmodule Mix.Tasks.Test do
     :timeout,
     :formatters,
     :colors,
-    :slowest
+    :slowest,
+    :manifest_path
   ]
 
   @doc false
@@ -322,6 +323,7 @@ defmodule Mix.Tasks.Test do
     |> filter_opts(:exclude)
     |> filter_opts(:only)
     |> formatter_opts()
+    |> manifest_opts()
     |> color_opts()
     |> Keyword.take(@option_keys)
     |> default_opts()
@@ -388,6 +390,10 @@ defmodule Mix.Tasks.Test do
     else
       opts
     end
+  end
+
+  defp manifest_opts(opts) do
+    Keyword.put(opts, :manifest_path, Mix.Project.manifest_path())
   end
 
   defp color_opts(opts) do
