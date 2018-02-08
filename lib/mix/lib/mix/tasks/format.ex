@@ -138,8 +138,11 @@ defmodule Mix.Tasks.Format do
 
   defp eval_dot_formatter(opts) do
     case dot_formatter(opts) do
-      {:ok, dot_formatter} -> {Path.dirname(dot_formatter), eval_file_with_keyword_list(dot_formatter)}
-      :error -> {nil, []}
+      {:ok, dot_formatter} ->
+        {Path.dirname(dot_formatter), eval_file_with_keyword_list(dot_formatter)}
+
+      :error ->
+        {nil, []}
     end
   end
 
