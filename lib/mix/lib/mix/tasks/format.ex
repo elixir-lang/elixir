@@ -13,38 +13,9 @@ defmodule Mix.Tasks.Format do
 
   ## Formatting options
 
-  Formatting is done with the `Code.format_string!/2` function.
-  For complete list of formatting options please refer to its
-  description.
-  A `.formatter.exs` file can also be defined for customizing input
-  files and the formatter itself.
-
-  ## Task-specific options
-
-    * `--check-formatted` - check that the file is already formatted.
-      This is useful in pre-commit hooks and CI scripts if you want to
-      reject contributions with unformatted code. However, keep in mind,
-      that the formatting output may differ between Elixir versions as
-      improvements and fixes are applied to the formatter.
-
-    * `--check-equivalent` - check if the file after formatting has the
-      same AST. If the ASTs are not equivalent, it is a bug in the code
-      formatter. This option is recommended if you are automatically
-      formatting files.
-
-    * `--dry-run` - do not save files after formatting.
-
-    * `--dot-formatter` - the file with formatter configuration.
-      Defaults to `.formatter.exs` if one is available, see next section.
-
-  If any of the `--check-*` flags are given and a check fails, the formatted
-  contents won't be written to disk nor printed to stdout.
-
-  ## `.formatter.exs`
-
   The formatter will read a `.formatter.exs` in the current directory for
-  formatter configuration. It should return a keyword list with any of the
-  options supported by `Code.format_string!/2`.
+  formatter configuration. Evaluating this file should return a keyword list
+  with any of the options supported by `Code.format_string!/2`.
 
   The `.formatter.exs` also supports other options:
 
@@ -53,18 +24,41 @@ defmodule Mix.Tasks.Format do
 
     * `:import_deps` (a list of dependencies as atoms) - specifies a list
        of dependencies whose formatter configuration will be imported.
-       See the "Importing dependencies configuration" section below for more
-       information.
+       When specified, the formatter should run in the same directory as
+       the `mix.exs` file that defines those depednencies. See the "Importing
+       dependencies configuration" section below for more information.
 
-    * `:export` (a keyword list) - specifies formatter configuration to be exported. See the
-      "Importing dependencies configuration" section below.
+    * `:export` (a keyword list) - specifies formatter configuration to be exported.
+      See the "Importing dependencies configuration" section below.
+
+  ## Task-specific options
+
+    * `--check-formatted` - check that the file is already formatted.
+      This is useful in pre-commit hooks and CI scripts if you want to
+      reject contributions with unformatted code. However keep in mind
+      that the formatted output may differ between Elixir versions as
+      improvements and fixes are applied to the formatter.
+
+    * `--check-equivalent` - check if the files after formatting have the
+      same AST as before formatting. If the ASTs are not equivalent,
+      it is a bug in the code formatter. This option is recommended if you
+      are automatically formatting files.
+
+    * `--dry-run` - do not save files after formatting.
+
+    * `--dot-formatter` - path to the file with formatter configuration.
+      Defaults to `.formatter.exs` if one is available. See the "`.formatter.exs`"
+      section for more information.
+
+  If any of the `--check-*` flags are given and a check fails, the formatted
+  contents won't be written to disk nor printed to standard output.
 
   ## When to format code
 
-  We recommend developers to format code directly in their editors. Either
-  automatically on save or via an explicit command/key binding. If such option
-  is not yet available in your editor of choice, adding the required integration
-  is relatively simple as it is a matter of invoking
+  We recommend developers to format code directly in their editors, either
+  automatically when saving a file or via an explicit command or key binding. If
+  such option is not yet available in your editor of choice, adding the required
+  integration is usually a matter of invoking:
 
       cd $project && mix format $file
 
@@ -72,7 +66,7 @@ defmodule Mix.Tasks.Format do
   project.
 
   It is also possible to format code across the whole project by passing a list
-  of patterns and files to `mix format`, as showed at the top of this task
+  of patterns and files to `mix format`, as shown at the top of this task
   documentation. This list can also be set in the `.formatter.exs` under the
   `:inputs` key.
 
@@ -80,15 +74,15 @@ defmodule Mix.Tasks.Format do
 
   This task supports importing formatter configuration from dependencies.
 
-  A dependency that wants to export formatter configuration needs to have a `.formatter.exs` file
-  at the root of the project. In this file, the dependency can export a `:export` option with
-  configuration to export. For now, only one option is supported under `:export`:
-  `:locals_without_parens` (whose value has the same shape as the value of the
-  `:locals_without_parens` in `Code.format_string!/2`).
+  A dependency that wants to export formatter configuration needs to have a
+  `.formatter.exs` file at the root of the project. In this file, the dependency
+  can export a `:export` option with configuration to export. For now, only one
+  option is supported under `:export`: `:locals_without_parens` (whose value has
+  the same shape as the value of the `:locals_without_parens` in `Code.format_string!/2`).
 
-  The functions listed under `:locals_without_parens` in the `:export` option of a dependency
-  can be imported in a project by listing that dependency in the `:import_deps`
-  option of the formatter configuration file of the project.
+  The functions listed under `:locals_without_parens` in the `:export` option of
+  a dependency can be imported in a project by listing that dependency in the
+  `:import_deps` option of the formatter configuration file of the project.
 
   For example, consider I have a project `my_app` that depends on `my_dep`.
   `my_dep` wants to export some configuration, so `my_dep/.formatter.exs`
