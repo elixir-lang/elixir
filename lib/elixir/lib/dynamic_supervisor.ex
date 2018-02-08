@@ -173,7 +173,12 @@ defmodule DynamicSupervisor do
     restarts: []
   ]
 
-  @doc false
+  @doc """
+  Returns a specification to start a dynamic supervisor under a supervisor.
+
+  See `Supervisor`.
+  """
+  @since "1.6.1"
   def child_spec(arg) do
     %{
       id: DynamicSupervisor,
@@ -187,7 +192,11 @@ defmodule DynamicSupervisor do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour DynamicSupervisor
 
-      @doc false
+      @doc """
+      Returns a specification to start this module under a supervisor.
+
+      See `Supervisor`.
+      """
       def child_spec(arg) do
         default = %{
           id: __MODULE__,

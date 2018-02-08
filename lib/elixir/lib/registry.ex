@@ -326,7 +326,12 @@ defmodule Registry do
     start_link([keys: keys, name: name] ++ options)
   end
 
-  @doc false
+  @doc """
+  Returns a specification to start a registry under a supervisor.
+
+  See `Supervisor`.
+  """
+  @since "1.5.0"
   def child_spec(opts) do
     %{
       id: Keyword.get(opts, :name, Registry),
