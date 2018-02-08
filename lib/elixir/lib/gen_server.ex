@@ -570,7 +570,11 @@ defmodule GenServer do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour GenServer
 
-      @doc false
+      @doc """
+      Returns a specification to start this module under a supervisor.
+
+      See `Supervisor`.
+      """
       def child_spec(arg) do
         default = %{
           id: __MODULE__,
