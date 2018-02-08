@@ -19,7 +19,7 @@ defmodule DynamicSupervisor do
         {DynamicSupervisor, strategy: :one_for_one, name: MyApp.DynamicSupervisor}
       ]
 
-      Supervisor.start_link(strategy: :one_for_one)
+      Supervisor.start_link(children, strategy: :one_for_one)
 
   The options given in the child specification are documented in `start_link/1`.
 
