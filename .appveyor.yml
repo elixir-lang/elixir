@@ -15,3 +15,4 @@ matrix:
   allow_failures:
     - platform: x86
     - platform: x64
+    - platform: Any CPU
