@@ -73,20 +73,20 @@ defmodule ExUnit.ManifestTest do
 
   @manifest_path "example.manifest"
 
-  describe "write!/2 and load_from/1" do
+  describe "write!/2 and read/1" do
     test "can roundtrip a manifest", context do
       manifest = non_blank_manifest()
 
       in_tmp context.test, fn ->
         assert write!(manifest, @manifest_path) == :ok
-        assert load_from(@manifest_path) == manifest
+        assert read(@manifest_path) == manifest
       end
     end
 
     test "returns a blank manifest when loading a file that does not exit" do
       path = tmp_path() <> "missing.manifest"
       refute File.exists?(path)
-      assert load_from(path) == %{}
+      assert read(path) == %{}
     end
 
     test "returns a blank manifest when the file cannot be read", context do
@@ -99,7 +99,7 @@ defmodule ExUnit.ManifestTest do
         stat = %{stat | mode: 0}
         File.write_stat!(@manifest_path, stat)
 
-        assert load_from(@manifest_path) == %{}
+        assert read(@manifest_path) == %{}
       end
     end
 
@@ -111,7 +111,7 @@ defmodule ExUnit.ManifestTest do
         corrupted = "corrupted" <> File.read!(@manifest_path)
         File.write!(@manifest_path, corrupted)
 
-        assert load_from(@manifest_path) == %{}
+        assert read(@manifest_path) == %{}
       end
     end
 
@@ -123,7 +123,7 @@ defmodule ExUnit.ManifestTest do
         assert {vsn, ^manifest} = @manifest_path |> File.read!() |> :erlang.binary_to_term()
         File.write!(@manifest_path, :erlang.term_to_binary({vsn + 1, manifest}))
 
-        assert load_from(@manifest_path) == %{}
+        assert read(@manifest_path) == %{}
       end
     end
   end
