@@ -249,6 +249,9 @@ defmodule Mix.RebarTest do
       end
     end
 
+    # We run only on Unix because Windows has a hard time
+    # removing the rebar executable after executed.
+    @tag [unix: true]
     test "applies variables from :system_env option when compiling dependencies for Rebar" do
       Mix.Project.push(RebarAsDepWithEnv)
 
@@ -294,6 +297,9 @@ defmodule Mix.RebarTest do
       end
     end
 
+    # We run only on Unix because Windows has a hard time
+    # removing the rebar executable after executed.
+    @tag [unix: true]
     test "applies variables from :system_env option when compiling dependencies for rebar3" do
       Mix.Project.push(Rebar3AsDep)
 
