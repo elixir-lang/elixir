@@ -1,6 +1,3 @@
-assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
-ExUnit.start(trace: "--trace" in System.argv(), assert_receive_timeout: assert_timeout)
-
 # Beam files compiled on demand
 path = Path.expand("../../tmp/beams", __DIR__)
 File.rm_rf!(path)
@@ -87,3 +84,12 @@ defmodule CodeFormatterHelpers do
     end
   end
 end
+
+assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
+exclude = if PathHelpers.windows?(), do: [unix: true], else: [windows: true]
+
+ExUnit.start(
+  trace: "--trace" in System.argv(),
+  assert_receive_timeout: assert_timeout,
+  exclude: exclude
+)

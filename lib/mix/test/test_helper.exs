@@ -1,7 +1,9 @@
 Mix.start()
 Mix.shell(Mix.Shell.Process)
 Application.put_env(:mix, :colors, enabled: false)
-ExUnit.start(trace: "--trace" in System.argv())
+
+exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
+ExUnit.start(trace: "--trace" in System.argv(), exclude: exclude)
 
 unless {1, 7, 4} <= Mix.SCM.Git.git_version() do
   IO.puts(:stderr, "Skipping tests with git sparse checkouts...")

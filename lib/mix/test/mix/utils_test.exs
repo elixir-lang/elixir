@@ -48,34 +48,31 @@ defmodule Mix.UtilsTest do
   end
 
   test "symlink or copy" do
-    in_fixture "archive", fn ->
+    in_fixture("archive", fn ->
       File.mkdir_p!("_build/archive")
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
       assert_ebin_symlinked_or_copied(result)
-    end
+    end)
   end
 
   test "symlink or copy removes previous directories" do
-    in_fixture "archive", fn ->
+    in_fixture("archive", fn ->
       File.mkdir_p!("_build/archive/ebin")
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
       assert_ebin_symlinked_or_copied(result)
-    end
+    end)
   end
 
-  @windows? match?({:win32, _}, :os.type())
-  unless @windows? do
-    test "symlink or copy erases wrong symlinks" do
-      in_fixture "archive", fn ->
-        File.mkdir_p!("_build/archive")
-        Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
+  @tag unix: true
+  test "symlink or copy erases wrong symlinks" do
+    in_fixture("archive", fn ->
+      File.mkdir_p!("_build/archive")
+      build_ebin = Path.expand("_build/archive/ebin")
+      Mix.Utils.symlink_or_copy(Path.expand("priv"), build_ebin)
 
-        result =
-          Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
-
-        assert_ebin_symlinked_or_copied(result)
-      end
-    end
+      result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), build_ebin)
+      assert_ebin_symlinked_or_copied(result)
+    end)
   end
 
   test "proxy_config reads from env and returns credentials" do

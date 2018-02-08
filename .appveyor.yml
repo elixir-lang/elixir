@@ -11,8 +11,8 @@ test_script:
 environment:
   ELIXIR_ASSERT_TIMEOUT: 2000
 
-configuration: Test
-
 matrix:
   allow_failures:
-    - configuration: Test
+    - platform: x86
+    - platform: x64
+    - platform: Any CPU
