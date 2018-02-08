@@ -81,7 +81,7 @@ defmodule Mix.Shell do
     * `:quiet` - overrides the callback to no-op
 
   """
-  def cmd(command, options, callback) when is_function(callback, 1) do
+  def cmd(command, options \\ [], callback) when is_function(callback, 1) do
     callback =
       if Keyword.get(options, :quiet, false) do
         fn x -> x end
