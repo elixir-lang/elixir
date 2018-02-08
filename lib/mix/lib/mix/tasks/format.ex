@@ -13,11 +13,23 @@ defmodule Mix.Tasks.Format do
 
   ## Formatting options
 
-  Formatting is done with the `Code.format_string!/2` function.
-  For complete list of formatting options please refer to its
-  description.
-  A `.formatter.exs` file can also be defined for customizing input
-  files and the formatter itself.
+  The formatter will read a `.formatter.exs` in the current directory for
+  formatter configuration. Evaluating this file should return a keyword list
+  with any of the options supported by `Code.format_string!/2`.
+
+  The `.formatter.exs` also supports other options:
+
+    * `:inputs` (a list of paths and patterns) - specifies the default inputs
+      to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
+
+    * `:import_deps` (a list of dependencies as atoms) - specifies a list
+       of dependencies whose formatter configuration will be imported.
+       When specified, the formatter should run in the same directory as
+       the `mix.exs` file that defines those depednencies. See the "Importing
+       dependencies configuration" section below for more information.
+
+    * `:export` (a keyword list) - specifies formatter configuration to be exported.
+      See the "Importing dependencies configuration" section below.
 
   ## Task-specific options
 
@@ -41,31 +53,12 @@ defmodule Mix.Tasks.Format do
   If any of the `--check-*` flags are given and a check fails, the formatted
   contents won't be written to disk nor printed to standard output.
 
-  ## `.formatter.exs`
-
-  The formatter will read a `.formatter.exs` in the current directory for
-  formatter configuration. Evaluating this file should return a keyword list
-  with any of the options supported by `Code.format_string!/2`.
-
-  The `.formatter.exs` also supports other options:
-
-    * `:inputs` (a list of paths and patterns) - specifies the default inputs
-      to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
-
-    * `:import_deps` (a list of dependencies as atoms) - specifies a list
-       of dependencies whose formatter configuration will be imported.
-       See the "Importing dependencies configuration" section below for more
-       information.
-
-    * `:export` (a keyword list) - specifies formatter configuration to be exported. See the
-      "Importing dependencies configuration" section below.
-
   ## When to format code
 
   We recommend developers to format code directly in their editors, either
-  automatically when saving a file or via an explicit command or key binding. If such option
-  is not yet available in your editor of choice, adding the required integration
-  is usually a matter of invoking:
+  automatically when saving a file or via an explicit command or key binding. If
+  such option is not yet available in your editor of choice, adding the required
+  integration is usually a matter of invoking:
 
       cd $project && mix format $file
 
@@ -81,15 +74,15 @@ defmodule Mix.Tasks.Format do
 
   This task supports importing formatter configuration from dependencies.
 
-  A dependency that wants to export formatter configuration needs to have a `.formatter.exs` file
-  at the root of the project. In this file, the dependency can export a `:export` option with
-  configuration to export. For now, only one option is supported under `:export`:
-  `:locals_without_parens` (whose value has the same shape as the value of the
-  `:locals_without_parens` in `Code.format_string!/2`).
+  A dependency that wants to export formatter configuration needs to have a
+  `.formatter.exs` file at the root of the project. In this file, the dependency
+  can export a `:export` option with configuration to export. For now, only one
+  option is supported under `:export`: `:locals_without_parens` (whose value has
+  the same shape as the value of the `:locals_without_parens` in `Code.format_string!/2`).
 
-  The functions listed under `:locals_without_parens` in the `:export` option of a dependency
-  can be imported in a project by listing that dependency in the `:import_deps`
-  option of the formatter configuration file of the project.
+  The functions listed under `:locals_without_parens` in the `:export` option of
+  a dependency can be imported in a project by listing that dependency in the
+  `:import_deps` option of the formatter configuration file of the project.
 
   For example, consider I have a project `my_app` that depends on `my_dep`.
   `my_dep` wants to export some configuration, so `my_dep/.formatter.exs`
