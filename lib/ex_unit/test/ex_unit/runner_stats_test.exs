@@ -51,7 +51,7 @@ defmodule ExUnit.RunnerStatsTest do
           simulate_test(formatter, :test_2, :failed)
         end)
 
-        assert load_manifest() == %{
+        assert read_manifest() == %{
                  {TestModule, :test_1} => entry(file: __ENV__.file, last_run_status: :passed),
                  {TestModule, :test_2} => entry(file: __ENV__.file, last_run_status: :failed)
                }
@@ -63,7 +63,7 @@ defmodule ExUnit.RunnerStatsTest do
         simulate_suite(&simulate_test(&1, :test_1, :passed))
         simulate_suite(&simulate_test(&1, :test_2, :failed))
 
-        assert load_manifest() == %{
+        assert read_manifest() == %{
                  {TestModule, :test_1} => entry(file: __ENV__.file, last_run_status: :passed),
                  {TestModule, :test_2} => entry(file: __ENV__.file, last_run_status: :failed)
                }
@@ -100,7 +100,7 @@ defmodule ExUnit.RunnerStatsTest do
   defp state_for(:skipped), do: {:skipped, "reason"}
   defp state_for(:excluded), do: {:excluded, "reason"}
 
-  defp load_manifest do
-    Manifest.load_from(@manifest_file)
+  defp read_manifest do
+    Manifest.read(@manifest_file)
   end
 end

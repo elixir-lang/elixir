@@ -35,8 +35,8 @@ defmodule ExUnit.Manifest do
     File.write!(file, binary)
   end
 
-  @spec load_from(Path.t()) :: t
-  def load_from(file) when is_binary(file) do
+  @spec read(Path.t()) :: t
+  def read(file) when is_binary(file) do
     with {:ok, binary} <- File.read(file),
          {:ok, {@manifest_vsn, manifest}} <- safe_binary_to_term(binary) do
       manifest
@@ -76,27 +76,22 @@ defmodule ExUnit.Manifest do
 
   defp prune_deleted_tests([], _, acc), do: acc
 
-  defp prune_deleted_tests([{{mod, name}, entry} | rest], file_existence, acc) do
-    file_exists = Map.fetch(file_existence, entry(entry, :file))
+  defp prune_deleted_tests([{{mod, name}, entry} | rest] = all, file_existence, acc) do
+    file = entry(entry, :file)
+    file_exists = Map.fetch(file_existence, file)
 
     cond do
       file_exists == :error ->
         # This is the first time we've looked up the existence of the file.
         # Cache the result and try again.
-        file_existence =
-          Map.put(file_existence, entry(entry, :file), File.regular?(entry(entry, :file)))
-
-        prune_deleted_tests([{{mod, name}, entry} | rest], file_existence, acc)
+        file_existence = Map.put(file_existence, file, File.regular?(file))
+        prune_deleted_tests(all, file_existence, acc)
 
       file_exists == {:ok, false} ->
         # The file does not exist, so we should prune the test.
         prune_deleted_tests(rest, file_existence, acc)
 
-      function_exported?(mod, name, 1) ->
-        # The test still exists, at the same file, so keep it.
-        prune_deleted_tests(rest, file_existence, [{{mod, name}, entry} | acc])
-
-      Code.ensure_loaded?(mod) ->
+      Code.ensure_loaded?(mod) and not function_exported?(mod, name, 1) ->
         # The test module has been loaded, but the test no longer exists, so prune it.
         prune_deleted_tests(rest, file_existence, acc)
 

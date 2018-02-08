@@ -7,10 +7,14 @@ defmodule ExUnit.RunnerStats do
   @manifest ".ex_unit_results.elixir"
 
   def init(opts) do
-    manifest_file =
+    {manifest_file, old_manifest} =
       case Keyword.fetch(opts, :manifest_path) do
-        :error -> nil
-        {:ok, manifest_path} -> Path.join(manifest_path, @manifest)
+        :error ->
+          {nil, %{}}
+
+        {:ok, manifest_path} ->
+          manifest_file = Path.join(manifest_path, @manifest)
+          {manifest_file, Manifest.read(manifest_file)}
       end
 
     state = %{
@@ -19,7 +23,7 @@ defmodule ExUnit.RunnerStats do
       skipped: 0,
       excluded: 0,
       manifest_file: manifest_file,
-      old_manifest: %{},
+      old_manifest: old_manifest,
       new_manifest: %{}
     }
 
@@ -33,11 +37,6 @@ defmodule ExUnit.RunnerStats do
   def handle_call(:stats, _from, state) do
     stats = Map.take(state, [:total, :failures, :skipped, :excluded])
     {:reply, stats, state}
-  end
-
-  def handle_cast({:suite_started, _opts}, %{manifest_file: file} = state) when is_binary(file) do
-    state = %{state | old_manifest: Manifest.load_from(file)}
-    {:noreply, state}
   end
 
   def handle_cast({:test_finished, %Test{} = test}, state) do
