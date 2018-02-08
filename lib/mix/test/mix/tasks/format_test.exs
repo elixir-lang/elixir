@@ -219,6 +219,45 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
+  test "can read exported configuration from dependencies with .formatter.exs in a different folder", context do
+    Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
+    in_tmp context.test, fn ->
+      File.write!(".formatter.exs", """
+      [import_deps: [:my_dep]]
+      """)
+
+      File.mkdir_p!("deps/my_dep/")
+
+      File.write!("deps/my_dep/.formatter.exs", """
+      [export: [locals_without_parens: [my_fun: 2]]]
+      """)
+
+      File.mkdir_p!("subfolder")
+
+      File.cd!("subfolder", fn ->
+        File.write!("a.ex", """
+        my_fun :foo, :bar
+        """)
+
+        Mix.Tasks.Format.run(["--dot-formatter", "../.formatter.exs", "a.ex"])
+
+        assert File.read!("a.ex") == """
+               my_fun :foo, :bar
+               """
+      end)
+
+      manifest_path = Path.join(Mix.Project.manifest_path(), "cached_formatter_deps")
+      assert File.regular?(manifest_path)
+
+      # Let's check that the manifest gets updated if it's stale.
+      File.touch!(manifest_path, {{1970, 1, 1}, {0, 0, 0}})
+
+      Mix.Tasks.Format.run(["subfolder/a.ex"])
+      assert File.stat!(manifest_path).mtime > {{1970, 1, 1}, {0, 0, 0}}
+    end
+  end
+
   test "validates dependencies in :import_deps", context do
     Mix.Project.push(__MODULE__.FormatWithDepsApp)
 
