@@ -65,6 +65,7 @@ defmodule ExUnit.Manifest do
   #   2. The test no longer exists, as indicated by the module no longer
   #      exporting the test function. Note that we can only check this for
   #      test modules that have been loaded.
+  #
   @spec merge(t, t) :: t
   def merge(%{} = old_manifest, %{} = new_manifest) do
     old_manifest
@@ -96,8 +97,7 @@ defmodule ExUnit.Manifest do
         prune_deleted_tests(rest, file_existence, acc)
 
       true ->
-        # The file exists, but the test module was not loaded. We do not know
-        # if the test still exists, so we err on the side of keeping it.
+        # The file exists, but the test module was not loaded or the function is exported.
         prune_deleted_tests(rest, file_existence, [{{mod, name}, entry} | acc])
     end
   end

@@ -89,20 +89,6 @@ defmodule ExUnit.ManifestTest do
       assert read(path) == %{}
     end
 
-    test "returns a blank manifest when the file cannot be read", context do
-      manifest = non_blank_manifest()
-
-      in_tmp context.test, fn ->
-        assert write!(manifest, @manifest_path) == :ok
-
-        stat = File.stat!(@manifest_path)
-        stat = %{stat | mode: 0}
-        File.write_stat!(@manifest_path, stat)
-
-        assert read(@manifest_path) == %{}
-      end
-    end
-
     test "returns a blank manifest when the file is corrupted", context do
       manifest = non_blank_manifest()
 
@@ -110,7 +96,6 @@ defmodule ExUnit.ManifestTest do
         assert write!(manifest, @manifest_path) == :ok
         corrupted = "corrupted" <> File.read!(@manifest_path)
         File.write!(@manifest_path, corrupted)
-
         assert read(@manifest_path) == %{}
       end
     end
