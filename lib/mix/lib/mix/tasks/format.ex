@@ -126,8 +126,8 @@ defmodule Mix.Tasks.Format do
 
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
-    formatter_opts = eval_dot_formatter(opts)
-    formatter_opts = fetch_deps_opts(formatter_opts)
+    {dot_formatter, formatter_opts} = eval_dot_formatter(opts)
+    formatter_opts = fetch_deps_opts(dot_formatter, formatter_opts)
 
     args
     |> expand_args(formatter_opts)
@@ -137,23 +137,21 @@ defmodule Mix.Tasks.Format do
   end
 
   defp eval_dot_formatter(opts) do
-    case dot_formatter(opts) do
-      {:ok, dot_formatter} -> eval_file_with_keyword_list(dot_formatter)
-      :error -> []
-    end
-  end
-
-  defp dot_formatter(opts) do
     cond do
-      dot_formatter = opts[:dot_formatter] -> {:ok, dot_formatter}
-      File.regular?(".formatter.exs") -> {:ok, ".formatter.exs"}
-      true -> :error
+      dot_formatter = opts[:dot_formatter] ->
+        {dot_formatter, eval_file_with_keyword_list(dot_formatter)}
+
+      File.regular?(".formatter.exs") ->
+        {".formatter.exs", eval_file_with_keyword_list(".formatter.exs")}
+
+      true ->
+        {".formatter.exs", []}
     end
   end
 
   # This function reads exported configuration from the imported dependencies and deals with
   # caching the result of reading such configuration in a manifest file.
-  defp fetch_deps_opts(formatter_opts) do
+  defp fetch_deps_opts(dot_formatter, formatter_opts) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
 
     cond do
@@ -161,18 +159,10 @@ defmodule Mix.Tasks.Format do
         formatter_opts
 
       is_list(deps) ->
-        # Since we have dependencies listed, we write the manifest even if those dependencies
-        # don't export anything so that we avoid lookups everytime.
+        # Since we have dependencies listed, we write the manifest even if those
+        # dependencies don't export anything so that we avoid lookups everytime.
         deps_manifest = Path.join(Mix.Project.manifest_path(), @deps_manifest)
-
-        dep_parenless_calls =
-          if deps_dot_formatters_stale?(deps_manifest) do
-            dep_parenless_calls = eval_deps_opts(deps)
-            write_deps_manifest(deps_manifest, dep_parenless_calls)
-            dep_parenless_calls
-          else
-            read_deps_manifest(deps_manifest)
-          end
+        dep_parenless_calls = maybe_cache_eval_deps_opts(dot_formatter, deps_manifest, deps)
 
         Keyword.update(
           formatter_opts,
@@ -186,8 +176,21 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  defp deps_dot_formatters_stale?(deps_manifest) do
-    Mix.Utils.stale?([".formatter.exs" | Mix.Project.config_files()], [deps_manifest])
+  defp maybe_cache_eval_deps_opts(dot_formatter, deps_manifest, deps) do
+    cond do
+      dot_formatter != ".formatter.exs" ->
+        eval_deps_opts(deps)
+
+      deps_dot_formatters_stale?(dot_formatter, deps_manifest) ->
+        write_deps_manifest(deps_manifest, eval_deps_opts(deps))
+
+      true ->
+        read_deps_manifest(deps_manifest)
+    end
+  end
+
+  defp deps_dot_formatters_stale?(dot_formatter, deps_manifest) do
+    Mix.Utils.stale?([dot_formatter | Mix.Project.config_files()], [deps_manifest])
   end
 
   defp read_deps_manifest(deps_manifest) do
@@ -197,6 +200,7 @@ defmodule Mix.Tasks.Format do
   defp write_deps_manifest(deps_manifest, parenless_calls) do
     File.mkdir_p!(Path.dirname(deps_manifest))
     File.write!(deps_manifest, :erlang.term_to_binary(parenless_calls))
+    parenless_calls
   end
 
   defp eval_deps_opts(deps) do
