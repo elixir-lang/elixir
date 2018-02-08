@@ -8,8 +8,16 @@ defmodule ExUnit.RunnerStats do
     GenServer.call(pid, :stats, :infinity)
   end
 
+  # Callbacks
+
+  @manifest ".ex_unit_results.elixir"
+
   def init(opts) do
-    {manifest_file, old_manifest} = read_manifest(opts)
+    manifest_file =
+      case Keyword.fetch(opts, :manifest_path) do
+        :error -> nil
+        {:ok, manifest_path} -> Path.join(manifest_path, @manifest)
+      end
 
     state = %{
       total: 0,
@@ -17,24 +25,11 @@ defmodule ExUnit.RunnerStats do
       skipped: 0,
       excluded: 0,
       manifest_file: manifest_file,
-      old_manifest: old_manifest,
+      old_manifest: nil,
       new_manifest: %{}
     }
 
     {:ok, state}
-  end
-
-  @manifest ".ex_unit_results.elixir"
-
-  defp read_manifest(opts) do
-    case Keyword.fetch(opts, :manifest_path) do
-      :error ->
-        {nil, %{}}
-
-      {:ok, manifest_path} ->
-        manifest_file = Path.join(manifest_path, @manifest)
-        {manifest_file, Manifest.read(manifest_file)}
-    end
   end
 
   def handle_call(:stats, _from, state) do
@@ -56,6 +51,12 @@ defmodule ExUnit.RunnerStats do
     %{failures: failures, total: total} = state
     test_count = length(test_module.tests)
     {:noreply, %{state | failures: failures + test_count, total: total + test_count}}
+  end
+
+  def handle_cast({:suite_started, _opts}, %{old_manifest: nil, manifest_file: file} = state)
+      when is_binary(file) do
+    state = %{state | old_manifest: Manifest.read(file)}
+    {:noreply, state}
   end
 
   def handle_cast({:suite_finished, _, _}, %{manifest_file: file} = state) when is_binary(file) do
