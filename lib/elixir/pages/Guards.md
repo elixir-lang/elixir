@@ -112,7 +112,8 @@ Other constructs are [`for`](`Kernel.SpecialForms.for/1`), [`with`](`Kernel.Spec
 
 ## Failing guards
 
-Errors in guards do not result in runtime errors, but in guards failing. For example, the `length/1` function only works with lists. If we use it with anything else, a runtime error is raised:
+In guards, when functions would normally raise exceptions, they cause the guard to fail instead.
+For example, the `length/1` function only works with lists. If we use it with anything else, a runtime error is raised:
 
 ```elixir
 iex> length("hello")
