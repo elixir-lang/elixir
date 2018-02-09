@@ -190,12 +190,15 @@ run_with_location_change(File, E, Callback) ->
 def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
   check_args_for_bodiless_clause(Meta, Args, E),
   [];
-def_to_clauses(Kind, Meta, _Args, _Guards, nil, E) ->
-  elixir_errors:form_error(Meta, ?key(E, file), elixir_expand, {missing_option, Kind, [do]});
 def_to_clauses(_Kind, Meta, Args, Guards, [{do, Body}], _E) ->
   [{Meta, Args, Guards, Body}];
-def_to_clauses(Kind, Meta, Args, Guards, Body, _E) ->
-  [{Meta, Args, Guards, {'try', [{origin,  Kind} | Meta], [Body]}}].
+def_to_clauses(Kind, Meta, Args, Guards, Body, E) ->
+  case is_list(Body) andalso lists:keyfind(do, 1, Body) of
+    {do, _} ->
+      [{Meta, Args, Guards, {'try', [{origin,  Kind} | Meta], [Body]}}];
+    false ->
+      elixir_errors:form_error(Meta, ?key(E, file), elixir_expand, {missing_option, Kind, [do]})
+  end.
 
 run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
   Callbacks = ets:lookup_element(elixir_module:data_table(Module), on_definition, 2),

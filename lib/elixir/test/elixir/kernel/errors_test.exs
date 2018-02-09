@@ -701,6 +701,12 @@ defmodule Kernel.ErrorsTest do
       def foo(n) when is_number(n)
     end
     '''
+
+    assert_eval_raise CompileError, "nofile:2: missing :do option in \"def\"", '''
+    defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
+      def foo(n) when is_number(n), true
+    end
+    '''
   end
 
   test "invalid args for bodyless clause" do
