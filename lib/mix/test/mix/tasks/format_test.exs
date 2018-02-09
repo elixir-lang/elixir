@@ -239,7 +239,7 @@ defmodule Mix.Tasks.FormatTest do
 
       message =
         "Unknown dependency :nonexistent_dep given to :import_deps in the formatter configuration. " <>
-          "The dependency is not listed in your mix.exs file"
+          "The dependency is not listed in your mix.exs for environment :dev"
 
       assert_raise Mix.Error, message, fn -> Mix.Tasks.Format.run([]) end
     end
