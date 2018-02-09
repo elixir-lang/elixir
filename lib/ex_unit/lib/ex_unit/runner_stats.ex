@@ -26,7 +26,7 @@ defmodule ExUnit.RunnerStats do
       excluded: 0,
       manifest_file: manifest_file,
       old_manifest: nil,
-      new_manifest: %{}
+      new_manifest: Manifest.new()
     }
 
     {:ok, state}
