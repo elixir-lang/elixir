@@ -224,7 +224,7 @@ defmodule Mix.Tasks.Format do
       :error ->
         Mix.raise(
           "Unknown dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
-            "The dependency is not listed in your mix.exs file"
+            "The dependency is not listed in your mix.exs for environment #{inspect(Mix.env())}"
         )
     end
   end
