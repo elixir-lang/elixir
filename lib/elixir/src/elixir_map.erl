@@ -9,19 +9,6 @@ expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], #{context := nil} = E) ->
   {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, EE};
 expand_map(Meta, [{'|', _, [_, _]}] = Args, #{context := Context, file := File}) ->
   form_error(Meta, File, ?MODULE, {update_syntax_in_wrong_context, Context, {'%{}', Meta, Args}});
-expand_map(Meta, Args, #{context := match} = E) ->
-  {EArgs, EE} =
-    lists:mapfoldl(fun
-      ({Key, Value}, EA) ->
-        {EKey, EK} = elixir_expand:expand(Key, EA),
-        validate_match_key(Meta, EKey, EK),
-        {EValue, EV} = elixir_expand:expand(Value, EK),
-        {{EKey, EValue}, EV};
-      (Other, EA) ->
-        elixir_expand:expand(Other, EA)
-      end, E, Args),
-  validate_kv(Meta, EArgs, Args, E),
-  {{'%{}', Meta, EArgs}, EE};
 expand_map(Meta, Args, E) ->
   {EArgs, EE} = elixir_expand:expand_args(Args, E),
   validate_kv(Meta, EArgs, Args, E),
@@ -96,9 +83,10 @@ validate_match_key(Meta, List, E) when is_list(List) ->
 validate_match_key(_, _, _) ->
   ok.
 
-validate_kv(Meta, KV, Original, E) ->
+validate_kv(Meta, KV, Original, #{context := Context} = E) ->
   lists:foldl(fun
-    ({_K, _V}, Acc) ->
+    ({K, _V}, Acc) ->
+      (Context == match) andalso validate_match_key(Meta, K, E),
       Acc + 1;
     (_, Acc) ->
       form_error(Meta, ?key(E, file), ?MODULE, {not_kv_pair, lists:nth(Acc, Original)})
