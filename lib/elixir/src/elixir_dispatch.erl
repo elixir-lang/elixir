@@ -403,6 +403,10 @@ deprecation('Elixir.Macro', unescape_tokens, 1) ->
   "instead traverse over the arguments using Enum.map/2";
 deprecation('Elixir.Macro', unescape_tokens, 2) ->
   "instead traverse over the arguments using Enum.map/2";
+deprecation('Elixir.Module', add_doc, 5) ->
+  "use @doc instead";
+deprecation('Elixir.Module', add_doc, 6) ->
+  "use @doc instead";
 deprecation('Elixir.Range', 'range?', 1) ->
   "instead pattern match on left..right";
 deprecation('Elixir.Stream', chunk, 2) ->
