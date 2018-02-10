@@ -1196,6 +1196,19 @@ defmodule Module do
   end
 
   @doc false
+  # TODO: Remove in 2.0 - deprecated.
+  def add_doc(module, line, kind, function_tuple, signature \\ [], doc) do
+    assert_not_compiled!(:add_doc, module)
+
+    if kind in [:defp, :defmacrop, :typep] do
+      if doc, do: {:error, :private_doc}, else: :ok
+    else
+      compile_doc(data_table_for(module), line, kind, function_tuple, signature, doc, __ENV__)
+      :ok
+    end
+  end
+
+  @doc false
   # Used internally to compile documentation.
   # This function is private and must be used only internally.
   def compile_definition_attributes(env, kind, name, args, _guards, _body) do
@@ -1205,22 +1218,17 @@ defmodule Module do
     pair = {name, arity}
 
     impl = compile_impl(table, name, env, kind, args)
-    compile_doc(table, pair, env, kind, args, impl)
-    compile_deprecated(table, pair)
+    _deprecated = compile_deprecated(table, pair)
+    _since = compile_since(table)
+
+    # TODO: Store @since and @deprecated alongside the docs
+    {line, doc} = get_doc_info(table, env, impl)
+    compile_doc(table, line, kind, pair, args, doc, env)
 
     :ok
   end
 
-  defp compile_doc(table, pair, env, kind, args, impl) do
-    {line, doc} = get_doc_info(table, env, impl)
-
-    # TODO: Store @since alongside the docs
-    _ = get_since_info(table)
-
-    add_doc(table, line, kind, pair, args, doc, env)
-  end
-
-  defp add_doc(_table, line, kind, {name, arity}, _args, doc, env)
+  defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env)
        when kind in [:defp, :defmacrop] do
     if doc do
       error_message =
@@ -1231,7 +1239,7 @@ defmodule Module do
     end
   end
 
-  defp add_doc(table, line, kind, pair, args, doc, env) do
+  defp compile_doc(table, line, kind, pair, args, doc, env) do
     signature = build_signature(args, env)
 
     case :ets.lookup(table, {:doc, pair}) do
@@ -1245,9 +1253,21 @@ defmodule Module do
     end
   end
 
+  defp compile_since(table) do
+    case :ets.take(table, :since) do
+      [{:since, since, _, _}] when is_binary(since) -> since
+      _ -> nil
+    end
+  end
+
   defp compile_deprecated(table, pair) do
-    if reason = get_deprecated_info(table) do
-      :ets.insert(table, {{:deprecated, pair}, reason})
+    case :ets.take(table, :deprecated) do
+      [{:deprecated, reason, _, _}] when is_binary(reason) ->
+        :ets.insert(table, {{:deprecated, pair}, reason})
+        reason
+
+      _ ->
+        nil
     end
   end
 
@@ -1733,17 +1753,6 @@ defmodule Module do
 
       [] ->
         {env.line, false}
-    end
-  end
-
-  defp get_since_info(table) do
-    :ets.take(table, :since)
-  end
-
-  defp get_deprecated_info(table) do
-    case :ets.take(table, :deprecated) do
-      [{:deprecated, reason, _, _}] -> reason
-      [] -> nil
     end
   end
 
