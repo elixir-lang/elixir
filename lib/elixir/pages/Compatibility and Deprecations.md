@@ -38,6 +38,7 @@ Deprecated feature                               | Deprecated in | Replaced by (
 `Enum.partition/2`                               | [v1.6]        | `Enum.split_with/2` (v1.4)
 `Keyword.replace/3`                              | [v1.6]        | Use `Keyword.fetch/2` + `Keyword.put/3` (v1.0)
 `Macro.unescape_tokens/1` and `Macro.unescape_tokens/2` | [v1.6] | Use `Enum.map/2` to traverse over the arguments (v1.0)
+`Module.add_doc/6`                               | [v1.6]        | Use `@doc` instead
 `Map.replace/3`                                  | [v1.6]        | Use `Map.fetch/2` + `Map.put/3` (v1.0)
 `Range.range?/1`                                 | [v1.6]        | Pattern match on `_.._` instead (v1.0)
 `Atom.to_char_list/1`                            | [v1.5]        | `Atom.to_charlist/1` (v1.3)

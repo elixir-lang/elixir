@@ -192,6 +192,9 @@ defmodule Kernel.DocsTest do
 
           @doc false
           def qux(true), do: false
+
+          Module.add_doc(__MODULE__, __ENV__.line, :def, {:nullary, 0}, [], "add_doc")
+          def nullary, do: 0
         end
       )
 
@@ -205,6 +208,7 @@ defmodule Kernel.DocsTest do
                {{:bar, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause doc"},
                {{:baz, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause and docs"},
                {{:foo, 1}, _, :def, [{:arg, _, nil}], "Function doc"},
+               {{:nullary, 0}, _, :def, [], "add_doc"},
                {{:qux, 1}, _, :def, [{:bool, _, Elixir}], false}
              ] = docs[:docs]
 
