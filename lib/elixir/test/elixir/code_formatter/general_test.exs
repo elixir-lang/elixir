@@ -329,6 +329,46 @@ defmodule Code.Formatter.GeneralTest do
       end
       """
     end
+
+    test "with -> on line limit" do
+      bad = """
+      fn ab, cd ->
+        ab + cd
+      end
+      """
+
+      good = """
+      fn ab,
+         cd ->
+        ab + cd
+      end
+      """
+
+      assert_format bad, good, @short_length
+
+      bad = """
+      fn
+        ab, cd ->
+          1
+        xy, zw ->
+          2
+      end
+      """
+
+      good = """
+      fn
+        ab,
+        cd ->
+          1
+
+        xy,
+        zw ->
+          2
+      end
+      """
+
+      assert_format bad, good, @short_length
+    end
   end
 
   describe "anonymous functions types" do
