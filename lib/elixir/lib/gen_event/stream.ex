@@ -161,7 +161,8 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   defp flush_events(ref) do
     receive do
-      {_from, {_pid, ^ref}, {notify, _event}} when notify in [:notify, :ack_notify, :sync_notify] ->
+      {_from, {_pid, ^ref}, {notify, _event}}
+      when notify in [:notify, :ack_notify, :sync_notify] ->
         flush_events(ref)
     after
       0 -> :ok

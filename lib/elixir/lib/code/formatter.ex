@@ -1549,10 +1549,16 @@ defmodule Code.Formatter do
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
+    head =
+      args_doc
+      |> ungroup_if_group()
+      |> concat(" ->")
+      |> nest(:cursor)
+      |> group()
+
     doc =
       "fn "
-      |> concat(group(nest(args_doc, :cursor)))
-      |> concat(" ->")
+      |> concat(head)
       |> glue(body_doc)
       |> nest(2)
       |> glue("end")
@@ -1598,15 +1604,12 @@ defmodule Code.Formatter do
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
-    clause_doc =
-      " ->"
-      |> glue(body_doc)
-      |> nest(2)
-
     doc =
       args_doc
+      |> ungroup_if_group()
+      |> concat(" ->")
       |> group()
-      |> concat(clause_doc)
+      |> concat(break() |> concat(body_doc) |> nest(2))
       |> wrap_in_parens()
       |> maybe_force_clauses(clauses)
       |> group()
@@ -1674,7 +1677,15 @@ defmodule Code.Formatter do
 
     state = %{state | operand_nesting: nesting}
     {body_doc, state} = block_to_algebra(body, min_line, end_line(meta), state)
-    {concat(args_doc, " ->" |> glue(body_doc) |> nest(2)), state}
+
+    doc =
+      args_doc
+      |> ungroup_if_group()
+      |> concat(" ->")
+      |> group()
+      |> concat(break() |> concat(body_doc) |> nest(2))
+
+    {doc, state}
   end
 
   defp add_max_line_to_last_clause([{op, meta, args}], max_line) do
