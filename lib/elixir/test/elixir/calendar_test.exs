@@ -20,7 +20,7 @@ defmodule DateTest do
     assert to_string(date) == "boom"
   end
 
-  test "inspect/1" do
+  test "Kernel.inspect/1" do
     assert inspect(~D[2000-01-01]) == "~D[2000-01-01]"
 
     date = %{~D[2000-01-01] | calendar: FakeCalendar}
@@ -98,7 +98,7 @@ defmodule TimeTest do
     assert to_string(~T[23:00:07.005]) == "23:00:07.005"
   end
 
-  test "inspect/1" do
+  test "Kernel.inspect/1" do
     assert inspect(~T[23:00:07.005]) == "~T[23:00:07.005]"
   end
 
@@ -143,7 +143,7 @@ defmodule NaiveDateTimeTest do
     assert to_string(ndt) == "boom"
   end
 
-  test "inspect/1" do
+  test "Kernel.inspect/1" do
     assert inspect(~N[2000-01-01 23:00:07.005]) == "~N[2000-01-01 23:00:07.005]"
 
     ndt = %{~N[2000-01-01 23:00:07.005] | calendar: FakeCalendar}
