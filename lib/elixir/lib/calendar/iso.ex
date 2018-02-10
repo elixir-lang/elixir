@@ -403,10 +403,11 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-    iex(1)> Calendar.ISO.valid_date?(2015, 2, 28)
+    iex> Calendar.ISO.valid_date?(2015, 2, 28)
     true
-    iex(2)> Calendar.ISO.valid_date?(2015, 2, 30)
+    iex> Calendar.ISO.valid_date?(2015, 2, 30)
     false
+
   """
   @impl true
   @since "1.5.0"
