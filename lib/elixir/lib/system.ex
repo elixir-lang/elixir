@@ -139,7 +139,9 @@ defmodule System do
 
   # Get the date at compilation time.
   defmacrop get_date do
-    IO.iodata_to_binary(:httpd_util.rfc1123_date())
+    {{year, month, day}, {hour, minute, second}} = :erlang.universaltime()
+    iolist = :io_lib.format("~4..0b-~2..0b-~2..0bT~2..0b:~2..0b:~2..0bZ", [year, month, day, hour, minute, second])
+    :erlang.iolist_to_binary(iolist)
   end
 
   @doc """
