@@ -216,6 +216,8 @@ defmodule Date do
       "2000-02-28"
       iex> Date.to_string(~N[2000-02-28 01:23:45])
       "2000-02-28"
+      iex> Date.to_string(~D[-0100-12-15])
+      "-0100-12-15"
 
   """
   @spec to_string(Calendar.date()) :: String.t()
@@ -254,6 +256,12 @@ defmodule Date do
     end
   end
 
+  def from_iso8601(<<?-, next, rest::binary>>, calendar) when next != ?- do
+    with {:ok, %{year: year} = date} <- from_iso8601(<<next>> <> rest, calendar) do
+      {:ok, %{date | year: -year}}
+    end
+  end
+
   def from_iso8601(<<_::binary>>, _calendar) do
     {:error, :invalid_format}
   end
@@ -270,6 +278,7 @@ defmodule Date do
       ~D[2015-01-23]
       iex> Date.from_iso8601!("2015:01:23")
       ** (ArgumentError) cannot parse "2015:01:23" as date, reason: :invalid_format
+
   """
   @spec from_iso8601!(String.t(), Calendar.calendar()) :: t
   def from_iso8601!(string, calendar \\ Calendar.ISO) do
@@ -517,9 +526,10 @@ defmodule Date do
       ~D[2000-01-01]
       iex> Date.add(~D[2000-01-01], 2)
       ~D[2000-01-03]
-
       iex> Date.add(~N[2000-01-01 09:00:00], 2)
       ~D[2000-01-03]
+      iex> Date.add(~D[-0010-01-01], -2)
+      ~D[-0011-12-30]
 
   """
   @since "1.5.0"
@@ -542,7 +552,8 @@ defmodule Date do
       2
       iex> Date.diff(~D[2000-01-01], ~D[2000-01-03])
       -2
-
+      iex> Date.diff(~D[0000-01-02], ~D[-0001-12-30])
+      3
       iex> Date.diff(~D[2000-01-01], ~N[2000-01-03 09:00:00])
       -2
 
@@ -601,6 +612,8 @@ defmodule Date do
       2
       iex> Date.day_of_week(~N[2016-11-01 01:23:45])
       2
+      iex> Date.day_of_week(~D[-0015-10-30])
+      3
 
   """
   @since "1.4.0"
