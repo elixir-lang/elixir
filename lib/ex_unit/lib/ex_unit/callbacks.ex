@@ -5,14 +5,24 @@ defmodule ExUnit.Callbacks do
   This module defines both `setup` and `setup_all` callbacks, as well as
   the `on_exit/2`, `start_supervised/2` and `stop_supervised/1` functions.
 
-  The setup callbacks are defined via macros and each one can optionally
-  receive a map with metadata, usually referred to as `context`. The context
-  to be used in the tests can be optionally extended by the callbacks by
-  returning a properly structured value (see below).
+  The setup callbacks are defined via macros and each one can
+  optionally receive a map with test state and metadata, usually
+  referred to as `context`. The context to be used in the tests can be
+  optionally extended by the setup callbacks by returning a properly
+  structured value (see below).
 
   The `setup_all` callbacks are invoked only once per module, before any
   test runs. All `setup` callbacks are run before each test. No callback
   runs if the test case has no tests or all tests have been filtered out.
+
+  Both `setup` and `setup_all` can be defined by a block, by passing
+  an atom naming a unary function, or by passing a list of such
+  atoms. Both can opt to receive the current context by specifying it
+  as parameter if defined by a block. Functions used to define a test
+  setup must accept the context as single argument.
+
+  A test module can define mutiple `setup` and `setup_all` callbacks,
+  and they are invoked in order of appearance.
 
   `start_supervised/2` is used to start processes under a supervisor. The
   supervisor is linked to the current test process. The supervisor as well
@@ -43,13 +53,10 @@ defmodule ExUnit.Callbacks do
 
   ## Context
 
-  If `setup_all` returns a keyword list, a map, or `{:ok, keywords | map}`,
-  the keyword list/map will be merged into the current context and will be
-  available in all subsequent `setup_all`, `setup`, and the `test` itself.
-
-  Similarly, if `setup` returns a keyword list, map, or `{:ok, keywords | map}`,
-  the returned keyword list/map will be merged into the current context and will
-  be available in all subsequent `setup` and the `test` itself.
+  If `setup_all` or `setup` return a keyword list, a map, or `{:ok,
+  keywords | map}`, the keyword list or map will be merged into the
+  current context and will be available in all subsequent `setup_all`,
+  `setup`, and the `test` itself.
 
   Returning `:ok` leaves the context unchanged (both in `setup` and `setup_all`
   callbacks).
@@ -132,9 +139,24 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
+  Pass a block or name of a unary function as atom, or list of such
+  atoms.
+
+  Can return values to be merged into the context, to set up state for
+  tests. See section Context above for details.
+
   ## Examples
 
+      def clean_up_tmp_directory(context) do
+        # perform setup
+        :ok
+      end
+
       setup :clean_up_tmp_directory
+
+      setup do
+        [conn: Plug.Conn.build_conn()]
+      end
 
   """
   defmacro setup(block) do
@@ -150,6 +172,12 @@ defmodule ExUnit.Callbacks do
 
   @doc """
   Defines a callback to be run before each test in a case.
+
+  Pass a block or name of a unary function as atom, or list of such
+  atoms.
+
+  Can return values to be merged into the context, to set up state for
+  tests. See section Context above for details.
 
   ## Examples
 
@@ -173,9 +201,24 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
+  Pass a block or name of a unary function as atom, or list of such
+  atoms.
+
+  Can return values to be merged into the context, to set up state for
+  tests. See section Context above for details.
+
   ## Examples
 
+      def clean_up_tmp_directory(context) do
+        # perform setup
+        :ok
+      end
+
       setup_all :clean_up_tmp_directory
+
+      setup_all do
+        [conn: Plug.Conn.build_conn()]
+      end
 
   """
   defmacro setup_all(block) do
@@ -195,6 +238,12 @@ defmodule ExUnit.Callbacks do
 
   @doc """
   Defines a callback to be run before all tests in a case.
+
+  Pass a block or name of a unary function as atom, or list of such
+  atoms.
+
+  Can return values to be merged into the context, to set up state for
+  tests. See section Context above for details.
 
   ## Examples
 
