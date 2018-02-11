@@ -139,7 +139,7 @@ defmodule System do
 
   # Get the date at compilation time.
   defmacrop get_date do
-    IO.iodata_to_binary(:httpd_util.rfc1123_date())
+    DateTime.utc_now() |> DateTime.to_iso8601()
   end
 
   @doc """
