@@ -22,17 +22,22 @@ defmodule DateTest do
 
   test "Kernel.inspect/1" do
     assert inspect(~D[2000-01-01]) == "~D[2000-01-01]"
+    assert inspect(~D[-0100-12-31]) == "~D[-0100-12-31]"
 
     date = %{~D[2000-01-01] | calendar: FakeCalendar}
     assert inspect(date) == "%Date{calendar: FakeCalendar, day: 1, month: 1, year: 2000}"
   end
 
   test "compare/2" do
-    date1 = ~D[2000-01-01]
-    date2 = ~D[2000-01-02]
+    date1 = ~D[-0001-12-30]
+    date2 = ~D[-0001-12-31]
+    date3 = ~D[0001-01-01]
     assert Date.compare(date1, date1) == :eq
     assert Date.compare(date1, date2) == :lt
     assert Date.compare(date2, date1) == :gt
+    assert Date.compare(date3, date3) == :eq
+    assert Date.compare(date2, date3) == :lt
+    assert Date.compare(date3, date2) == :gt
   end
 
   test "compare/2 across calendars" do
@@ -70,18 +75,31 @@ defmodule DateTest do
   end
 
   test "add/2" do
+    assert Date.add(~D[0000-01-01], 3_652_424) == ~D[9999-12-31]
+
     assert_raise FunctionClauseError, fn ->
       Date.add(~D[0000-01-01], 3_652_425)
     end
 
+    assert Date.add(~D[0000-01-01], -1) == ~D[-0001-12-31]
+    assert Date.add(~D[0000-01-01], -365) == ~D[-0001-01-01]
+    assert Date.add(~D[0000-01-01], -366) == ~D[-0002-12-31]
+    assert Date.add(~D[0000-01-01], -(365 * 4)) == ~D[-0004-01-02]
+    assert Date.add(~D[0000-01-01], -(365 * 5)) == ~D[-0005-01-02]
+    assert Date.add(~D[0000-01-01], -(365 * 100)) == ~D[-0100-01-25]
+    assert Date.add(~D[0000-01-01], -3_652_059) == ~D[-9999-01-01]
+
     assert_raise FunctionClauseError, fn ->
-      Date.add(~D[0000-01-01], -1)
+      Date.add(~D[0000-01-01], -3_652_060)
     end
   end
 
   test "diff/2" do
     assert Date.diff(~D[2000-01-31], ~D[2000-01-01]) == 30
     assert Date.diff(~D[2000-01-01], ~D[2000-01-31]) == -30
+
+    assert Date.diff(~D[0000-01-01], ~D[-0001-01-01]) == 365
+    assert Date.diff(~D[-0003-01-01], ~D[-0004-01-01]) == 366
 
     date1 = ~D[2000-01-01]
     date2 = Calendar.Holocene.date(12000, 01, 14)
@@ -145,6 +163,7 @@ defmodule NaiveDateTimeTest do
 
   test "Kernel.inspect/1" do
     assert inspect(~N[2000-01-01 23:00:07.005]) == "~N[2000-01-01 23:00:07.005]"
+    assert inspect(~N[-0100-12-31 23:00:07.005]) == "~N[-0100-12-31 23:00:07.005]"
 
     ndt = %{~N[2000-01-01 23:00:07.005] | calendar: FakeCalendar}
 
@@ -157,11 +176,15 @@ defmodule NaiveDateTimeTest do
     ndt1 = ~N[2000-04-16 13:30:15.0049]
     ndt2 = ~N[2000-04-16 13:30:15.0050]
     ndt3 = ~N[2001-04-16 13:30:15.0050]
+    ndt4 = ~N[-0001-04-16 13:30:15.004]
     assert NaiveDateTime.compare(ndt1, ndt1) == :eq
     assert NaiveDateTime.compare(ndt1, ndt2) == :lt
     assert NaiveDateTime.compare(ndt2, ndt1) == :gt
     assert NaiveDateTime.compare(ndt3, ndt1) == :gt
     assert NaiveDateTime.compare(ndt3, ndt2) == :gt
+    assert NaiveDateTime.compare(ndt4, ndt4) == :eq
+    assert NaiveDateTime.compare(ndt1, ndt4) == :gt
+    assert NaiveDateTime.compare(ndt4, ndt3) == :lt
   end
 
   test "to_iso8601/1" do
@@ -304,7 +327,6 @@ defmodule DateTimeTest do
   end
 
   test "from_unix/2" do
-    # with Unix times back to 0 Gregorian seconds
     min_datetime = %DateTime{
       calendar: Calendar.ISO,
       day: 1,
@@ -316,12 +338,14 @@ defmodule DateTimeTest do
       std_offset: 0,
       time_zone: "Etc/UTC",
       utc_offset: 0,
-      year: 0,
+      year: -9999,
       zone_abbr: "UTC"
     }
 
-    assert DateTime.from_unix(-62_167_219_200) == {:ok, min_datetime}
-    assert DateTime.from_unix(-62_167_219_201) == {:error, :invalid_unix_time}
+    assert DateTime.from_unix(-377_705_116_800) == {:ok, min_datetime}
+
+    assert DateTime.from_unix(-377_705_116_800_000_001, :microsecond) ==
+             {:error, :invalid_unix_time}
 
     max_datetime = %DateTime{
       calendar: Calendar.ISO,
@@ -339,6 +363,7 @@ defmodule DateTimeTest do
     }
 
     assert DateTime.from_unix(253_402_300_799_999_999, :microsecond) == {:ok, max_datetime}
+
     assert DateTime.from_unix(253_402_300_800) == {:error, :invalid_unix_time}
 
     minus_datetime = %DateTime{
@@ -379,7 +404,7 @@ defmodule DateTimeTest do
     assert DateTime.from_unix!(-62_167_219_200) == datetime
 
     assert_raise ArgumentError, fn ->
-      DateTime.from_unix!(-62_167_219_201)
+      DateTime.from_unix!(-377_705_116_801)
     end
   end
 
@@ -402,11 +427,9 @@ defmodule DateTimeTest do
 
     assert DateTime.to_unix(gregorian_0) == -62_167_219_200
 
-    before_gregorian_0 = %DateTime{gregorian_0 | year: -1}
+    min_datetime = %DateTime{gregorian_0 | year: -9999}
 
-    assert_raise FunctionClauseError, fn ->
-      DateTime.to_unix(before_gregorian_0)
-    end
+    assert DateTime.to_unix(min_datetime) == -377_705_116_800
   end
 
   test "compare/2" do
@@ -438,9 +461,26 @@ defmodule DateTimeTest do
       time_zone: "America/Manaus"
     }
 
+    datetime3 = %DateTime{
+      year: -99,
+      month: 2,
+      day: 28,
+      zone_abbr: "AMT",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {0, 0},
+      utc_offset: -14400,
+      std_offset: 0,
+      time_zone: "America/Manaus"
+    }
+
     assert DateTime.compare(datetime1, datetime1) == :eq
     assert DateTime.compare(datetime1, datetime2) == :lt
     assert DateTime.compare(datetime2, datetime1) == :gt
+    assert DateTime.compare(datetime3, datetime3) == :eq
+    assert DateTime.compare(datetime2, datetime3) == :gt
+    assert DateTime.compare(datetime3, datetime1) == :lt
   end
 
   test "convert/2" do
@@ -622,5 +662,37 @@ defmodule DateTimeTest do
 
     assert DateTime.truncate(%{datetime | microsecond: {123_456, 6}}, :second) ==
              %{datetime | microsecond: {0, 0}}
+  end
+
+  test "diff/2" do
+    dt1 = %DateTime{
+      year: 100,
+      month: 2,
+      day: 28,
+      zone_abbr: "CET",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {0, 0},
+      utc_offset: 3600,
+      std_offset: 0,
+      time_zone: "Europe/Warsaw"
+    }
+
+    dt2 = %DateTime{
+      year: -0004,
+      month: 2,
+      day: 29,
+      zone_abbr: "CET",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {0, 0},
+      utc_offset: 3600,
+      std_offset: 0,
+      time_zone: "Europe/Warsaw"
+    }
+
+    assert DateTime.diff(dt1, dt2) == 3_281_904_000
   end
 end
