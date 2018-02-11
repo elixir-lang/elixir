@@ -6,10 +6,13 @@
 
 #### Elixir
 
+  * [Calendar.ISO] Support negative dates in `Calendar.ISO`
   * [Code] Add `Code.compile_file/2` that compiles files without leaving footprints on the system
   * [Code.Formatter] Support comments in the middle of pipelines, `when` and `|` expressions
+  * [Kernel] Introduce `__STACKTRACE__` to retrieve the current stacktrace inside `catch`/`rescue` (this will be a requirement for Erlang/OTP 21+)
   * [Macro] Add `Macro.special_form?/2` and `Macro.operator?/2` that returns true if the given name/arity is a special form or operator respectively
   * [Macro.Env] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
+  * [System] Use ISO8601 in `System.build_info/0`
 
 #### ExUnit
 
