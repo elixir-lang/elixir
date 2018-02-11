@@ -140,8 +140,10 @@ defmodule System do
   # Get the date at compilation time.
   defmacrop get_date do
     {{year, month, day}, {hour, minute, second}} = :erlang.universaltime()
-    iolist = :io_lib.format("~4..0b-~2..0b-~2..0bT~2..0b:~2..0b:~2..0bZ", [year, month, day, hour, minute, second])
-    :erlang.iolist_to_binary(iolist)
+
+    "~4..0b-~2..0b-~2..0bT~2..0b:~2..0b:~2..0bZ"
+    |> :io_lib.format([year, month, day, hour, minute, second])
+    |> :erlang.iolist_to_binary()
   end
 
   @doc """
