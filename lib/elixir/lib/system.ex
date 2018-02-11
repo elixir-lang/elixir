@@ -139,7 +139,7 @@ defmodule System do
 
   # Get the date at compilation time.
   defmacrop get_date do
-    {{year, month, day}, {hour, minute, second}} = :erlang.universaltime()
+    {{year, month, day}, {hour, minute, second}} = :calendar.universal_time()
 
     "~4..0b-~2..0b-~2..0bT~2..0b:~2..0b:~2..0bZ"
     |> :io_lib.format([year, month, day, hour, minute, second])
