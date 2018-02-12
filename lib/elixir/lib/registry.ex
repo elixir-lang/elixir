@@ -271,6 +271,7 @@ defmodule Registry do
           meta: meta
         ) :: {:ok, pid} | {:error, term}
         when meta: [{meta_key, meta_value}]
+  @since "1.5.0"
   def start_link(options) do
     keys = Keyword.get(options, :keys)
 
@@ -314,12 +315,7 @@ defmodule Registry do
     Registry.Supervisor.start_link(keys, name, partitions, listeners, entries)
   end
 
-  @doc """
-  Starts the registry as a supervisor process.
-
-  Similar to `start_link/1` except the required options,
-  `keys` and `name` are given as arguments.
-  """
+  @doc false
   @since "1.4.0"
   @spec start_link(keys, registry, keyword) :: {:ok, pid} | {:error, term}
   def start_link(keys, name, options \\ []) when keys in @keys and is_atom(name) do
@@ -350,7 +346,7 @@ defmodule Registry do
 
   ## Examples
 
-      iex> Registry.start_link(:unique, Registry.UpdateTest)
+      iex> Registry.start_link(keys: :unique, name: Registry.UpdateTest)
       iex> {:ok, _} = Registry.register(Registry.UpdateTest, "hello", 1)
       iex> Registry.lookup(Registry.UpdateTest, "hello")
       [{self(), 1}]
@@ -496,7 +492,7 @@ defmodule Registry do
   In the example below we register the current process and look it up
   both from itself and other processes:
 
-      iex> Registry.start_link(:unique, Registry.UniqueLookupTest)
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueLookupTest)
       iex> Registry.lookup(Registry.UniqueLookupTest, "hello")
       []
       iex> {:ok, _} = Registry.register(Registry.UniqueLookupTest, "hello", :world)
@@ -507,7 +503,7 @@ defmodule Registry do
 
   The same applies to duplicate registries:
 
-      iex> Registry.start_link(:duplicate, Registry.DuplicateLookupTest)
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateLookupTest)
       iex> Registry.lookup(Registry.DuplicateLookupTest, "hello")
       []
       iex> {:ok, _} = Registry.register(Registry.DuplicateLookupTest, "hello", :world)
@@ -567,7 +563,7 @@ defmodule Registry do
   In the example below we register the current process under the same
   key in a duplicate registry but with different values:
 
-      iex> Registry.start_link(:duplicate, Registry.MatchTest)
+      iex> Registry.start_link(keys: :duplicate, name: Registry.MatchTest)
       iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {1, :atom, 1})
       iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {2, :atom, 2})
       iex> Registry.match(Registry.MatchTest, "hello", {1, :_, :_})
@@ -617,7 +613,7 @@ defmodule Registry do
 
   Registering under a unique registry does not allow multiple entries:
 
-      iex> Registry.start_link(:unique, Registry.UniqueKeysTest)
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueKeysTest)
       iex> Registry.keys(Registry.UniqueKeysTest, self())
       []
       iex> {:ok, _} = Registry.register(Registry.UniqueKeysTest, "hello", :world)
@@ -628,7 +624,7 @@ defmodule Registry do
 
   Such is possible for duplicate registries though:
 
-      iex> Registry.start_link(:duplicate, Registry.DuplicateKeysTest)
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateKeysTest)
       iex> Registry.keys(Registry.DuplicateKeysTest, self())
       []
       iex> {:ok, _} = Registry.register(Registry.DuplicateKeysTest, "hello", :world)
@@ -688,7 +684,7 @@ defmodule Registry do
 
   For unique registries:
 
-      iex> Registry.start_link(:unique, Registry.UniqueUnregisterTest)
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueUnregisterTest)
       iex> Registry.register(Registry.UniqueUnregisterTest, "hello", :world)
       iex> Registry.keys(Registry.UniqueUnregisterTest, self())
       ["hello"]
@@ -699,7 +695,7 @@ defmodule Registry do
 
   For duplicate registries:
 
-      iex> Registry.start_link(:duplicate, Registry.DuplicateUnregisterTest)
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateUnregisterTest)
       iex> Registry.register(Registry.DuplicateUnregisterTest, "hello", :world)
       iex> Registry.register(Registry.DuplicateUnregisterTest, "hello", :world)
       iex> Registry.keys(Registry.DuplicateUnregisterTest, self())
@@ -742,7 +738,7 @@ defmodule Registry do
   For unique registries it can be used to conditionally unregister a key on
   the basis of whether or not it matches a particular value.
 
-      iex> Registry.start_link(:unique, Registry.UniqueUnregisterMatchTest)
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueUnregisterMatchTest)
       iex> Registry.register(Registry.UniqueUnregisterMatchTest, "hello", :world)
       iex> Registry.keys(Registry.UniqueUnregisterMatchTest, self())
       ["hello"]
@@ -757,7 +753,7 @@ defmodule Registry do
 
   For duplicate registries:
 
-      iex> Registry.start_link(:duplicate, Registry.DuplicateUnregisterMatchTest)
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateUnregisterMatchTest)
       iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_a)
       iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_b)
       iex> Registry.register(Registry.DuplicateUnregisterMatchTest, "hello", :world_c)
@@ -847,7 +843,7 @@ defmodule Registry do
 
   Registering under a unique registry does not allow multiple entries:
 
-      iex> Registry.start_link(:unique, Registry.UniqueRegisterTest)
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueRegisterTest)
       iex> {:ok, _} = Registry.register(Registry.UniqueRegisterTest, "hello", :world)
       iex> Registry.register(Registry.UniqueRegisterTest, "hello", :later)
       {:error, {:already_registered, self()}}
@@ -856,7 +852,7 @@ defmodule Registry do
 
   Such is possible for duplicate registries though:
 
-      iex> Registry.start_link(:duplicate, Registry.DuplicateRegisterTest)
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateRegisterTest)
       iex> {:ok, _} = Registry.register(Registry.DuplicateRegisterTest, "hello", :world)
       iex> {:ok, _} = Registry.register(Registry.DuplicateRegisterTest, "hello", :world)
       iex> Registry.keys(Registry.DuplicateRegisterTest, self())
@@ -929,7 +925,7 @@ defmodule Registry do
 
   ## Examples
 
-      iex> Registry.start_link(:unique, Registry.MetaTest, meta: [custom_key: "custom_value"])
+      iex> Registry.start_link(keys: :unique, name: Registry.MetaTest, meta: [custom_key: "custom_value"])
       iex> Registry.meta(Registry.MetaTest, :custom_key)
       {:ok, "custom_value"}
       iex> Registry.meta(Registry.MetaTest, :unknown_key)
@@ -957,7 +953,7 @@ defmodule Registry do
 
   ## Examples
 
-      iex> Registry.start_link(:unique, Registry.PutMetaTest)
+      iex> Registry.start_link(keys: :unique, name: Registry.PutMetaTest)
       iex> Registry.put_meta(Registry.PutMetaTest, :custom_key, "custom_value")
       :ok
       iex> Registry.meta(Registry.PutMetaTest, :custom_key)
