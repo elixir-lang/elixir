@@ -73,7 +73,7 @@ defmodule Task do
 
   And then passing it to the supervisor:
 
-      Supervisor.start_link([MyTask])
+      Supervisor.start_link([{MyTask, arg}])
 
   Since these tasks are supervised and not directly linked to
   the caller, they cannot be awaited on. Note `start_link/1`,
