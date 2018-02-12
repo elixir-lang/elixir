@@ -14,7 +14,7 @@ Type specifications (sometimes referred to as *typespecs*) are defined in differ
   * `@callback`
   * `@macrocallback`
 
-See the "Defining a type" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
+See the "User-defined types" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
 
 ## Types and their syntax
 
