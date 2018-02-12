@@ -56,8 +56,18 @@ defmodule Task do
 
   ## Supervised tasks
 
-  It is also possible to spawn a task under a supervisor.
-  It is often done by defining the task in its own module:
+  It is also possible to spawn a task under a supervisor. The `Task`
+  module implements the `child_spec/1` function, which allows it to
+  be started directly under a supervisor by passing a tuple with
+  a function to run:
+
+      Supervisor.start_link([
+        {Task, fn -> ... some function ... end}
+      ])
+
+  However, if you want to invoke a specific module, function and
+  arguments, or give the task process a name, you need to define
+  the task in its own module:
 
       defmodule MyTask do
         use Task
@@ -73,7 +83,9 @@ defmodule Task do
 
   And then passing it to the supervisor:
 
-      Supervisor.start_link([{MyTask, arg}])
+      Supervisor.start_link([
+        {MyTask, arg}
+      ])
 
   Since these tasks are supervised and not directly linked to
   the caller, they cannot be awaited on. Note `start_link/1`,
