@@ -297,6 +297,8 @@ defmodule Module do
   When just a module is provided, the function is assumed to be
   `__after_compile__/2`.
 
+  Callbacks registered first will run last.
+
   #### Example
 
       defmodule MyModule do
@@ -312,12 +314,17 @@ defmodule Module do
   A hook that will be invoked before the module is compiled.
 
   Accepts a module or a `{module, function_or_macro_name}` tuple. The
-  function/macro must take one argument: the module environment. If it's a
-  macro, its returned value will be injected at the end of the module definition
-  before the compilation starts.
+  function/macro must take one argument: the module environment. If
+  it's a macro, its returned value will be injected at the end of the
+  module definition before the compilation starts.
 
   When just a module is provided, the function/macro is assumed to be
   `__before_compile__/1`.
+
+  Callbacks registered first will run last. Any overridable definition
+  will be made concrete before the first callback runs. A definition may
+  be made overridable again in another before compile callback and it
+  will be made concrete one last time after after all callbacks run.
 
   *Note*: unlike `@after_compile`, the callback function/macro must
   be placed in a separate module (because when the callback is invoked,
