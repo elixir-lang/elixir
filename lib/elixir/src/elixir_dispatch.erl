@@ -409,6 +409,10 @@ deprecation('Elixir.Module', add_doc, 6) ->
   "use @doc instead";
 deprecation('Elixir.Range', 'range?', 1) ->
   "instead pattern match on left..right";
+deprecation('Elixir.Registry', 'start_link', 2) ->
+  "use Registry.start_link/1 instead";
+deprecation('Elixir.Registry', 'start_link', 3) ->
+  "use Registry.start_link/1 instead";
 deprecation('Elixir.Stream', chunk, 2) ->
   "use Stream.chunk_every/2 instead";
 deprecation('Elixir.Stream', chunk, 3) ->
