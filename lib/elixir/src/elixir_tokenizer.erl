@@ -291,17 +291,10 @@ tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
   Token = {atom, {Line, Column, nil}, list_to_atom([T])},
   tokenize(Rest, Line, Column + 2, Scope, [Token | Tokens]);
 
-% Valid tokens followed by the same characters which makes them invalid.
-
-tokenize([T, T, T, T | _], Line, _Column, _Scope, Tokens) when T == $.; T == $&; T == $| ->
-  too_many_of_same_character_error([T, T, T], Line, Tokens);
-
-tokenize([T, T, T | _], Line, _Column, _Scope, Tokens) when T == $+; T == $- ->
-  too_many_of_same_character_error([T, T], Line, Tokens);
-
 % Stand-alone tokens
 
 tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
+  maybe_warn_too_many_of_same_char("...", Rest, Line, Scope),
   Token = check_call_identifier(Line, Column, '...', Rest),
   tokenize(Rest, Line, Column + 3, Scope, [Token | Tokens]);
 
@@ -317,12 +310,15 @@ tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?comp_op3(T1, T2
   handle_op(Rest, Line, Column, comp_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?and_op3(T1, T2, T3) ->
+  maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
   handle_op(Rest, Line, Column, and_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?or_op3(T1, T2, T3) ->
+  maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
   handle_op(Rest, Line, Column, or_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?three_op(T1, T2, T3) ->
+  maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
   handle_op(Rest, Line, Column, three_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
@@ -351,6 +347,7 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when T == $); T == $}; T == $]
 
 % ## Two Token Operators
 tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?two_op(T1, T2) ->
+  maybe_warn_too_many_of_same_char([T1, T2], Rest, Line, Scope),
   handle_op(Rest, Line, Column, two_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?arrow_op(T1, T2) ->
@@ -1229,9 +1226,14 @@ invalid_do_with_fn_error(Prefix) ->
   "    fn pattern -> expression end\n\n"
   "Syntax error before: ".
 
-too_many_of_same_character_error([T | _] = Token, Line, Tokens) ->
+maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) ->
+  Warning =
+    case T of
+      $. -> "please use parens around \"...\" instead";
+      _ -> io_lib:format("please use a space between \"~ts\" and the next \"~ts\"", [Token, [T]])
+    end,
   Message =
-    "\"~ts\" cannot be followed by \"~ts\", use parens around \"~ts\". "
-    "Syntax error before: ",
-  Formatted = io_lib:format(Message, [Token, [T], Token]),
-  {error, {Line, Formatted, Token ++ [T]}, Token ++ [T], Tokens}.
+  Message = io_lib:format("found \"~ts\" followed by \"~ts\", ~ts", [Token, [T], Warning]),
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Message);
+maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, _Scope) ->
+  ok.
