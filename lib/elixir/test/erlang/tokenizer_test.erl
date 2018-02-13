@@ -210,3 +210,7 @@ sigil_terminator_test() ->
 invalid_sigil_delimiter_test() ->
   {1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
   true = lists:prefix("\"\\\" (column 3, codepoint U+005C)", lists:flatten(Message)).
+
+too_many_of_same_character_error_test() ->
+  {1, Message, "...."} = tokenize_error("...."),
+  "\"...\" cannot be followed by \".\", use parens around \"...\". Syntax error before: " = lists:flatten(Message).
