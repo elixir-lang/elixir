@@ -1233,7 +1233,6 @@ maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) 
       $. -> "please use parens around \"...\" instead";
       _ -> io_lib:format("please use a space between \"~ts\" and the next \"~ts\"", [Token, [T]])
     end,
-  Message =
   Message = io_lib:format("found \"~ts\" followed by \"~ts\", ~ts", [Token, [T], Warning]),
   elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Message);
 maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, _Scope) ->
