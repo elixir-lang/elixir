@@ -1226,6 +1226,7 @@ invalid_do_with_fn_error(Prefix) ->
   "    fn pattern -> expression end\n\n"
   "Syntax error before: ".
 
+% TODO: Turn into an error on Elixir 2.0.
 maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) ->
   Warning =
     case T of
