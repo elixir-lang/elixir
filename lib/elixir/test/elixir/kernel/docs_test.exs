@@ -193,7 +193,9 @@ defmodule Kernel.DocsTest do
           @doc false
           def qux(true), do: false
 
-          Module.add_doc(__MODULE__, __ENV__.line, :def, {:nullary, 0}, [], "add_doc")
+          # We do this to avoid the deprecation warning.
+          module = Module
+          module.add_doc(__MODULE__, __ENV__.line, :def, {:nullary, 0}, [], "add_doc")
           def nullary, do: 0
         end
       )
