@@ -256,7 +256,7 @@ validate_spec_arg(_Meta, _Key, _Value, _E) ->
   ok.
 
 validate_size_required(Meta, true, _, _, _, {'^', _, _}, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, right_side_pin_operator);
+  form_error(Meta, ?key(E, file), ?MODULE, pin_operator_on_left_side);
 validate_size_required(Meta, true, default, Type, default, _, E) when Type == binary; Type == bitstring ->
   form_error(Meta, ?key(E, file), ?MODULE, unsized_binary);
 validate_size_required(_, _, _, _, _, _, _) ->
@@ -325,7 +325,7 @@ format_error({unaligned_bitstring_in_match, Expr}) ->
     "    <<\"foo\", <<field, rest::bitstring>>::bitstring>>\n\n"
     "Got: ~ts",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
-format_error(right_side_pin_operator) ->
+format_error(pin_operator_on_left_side) ->
   "^ operator is allowed only on the right side of the <> operator";
 format_error(unsized_binary) ->
   "a binary field without size is only allowed at the end of a binary pattern "
