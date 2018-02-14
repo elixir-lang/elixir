@@ -132,7 +132,7 @@ defmodule SystemTest do
                  System.cmd(Path.join(System.cwd!(), @echo), ~w[/c echo hello], [{:arg0, "echo"}])
       end)
     after
-      File.rm_rf!(Path.dirname(tmp_path(@echo)))
+      File.rm_rf!(tmp_path(@echo))
     end
   end
 
