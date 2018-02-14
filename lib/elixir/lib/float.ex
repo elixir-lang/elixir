@@ -16,7 +16,9 @@ defmodule Float do
 
   There are some very well known problems with floating-point numbers
   and arithmetics due to the fact most decimal fractions cannot be
-  represented by a floating-point binary.
+  represented by a floating-point binary and most operations are not exact,
+  but operate on approximations. Those issues are not specific
+  to Elixir, they are a property of floating point representation itself.
 
   For example, the numbers 0.1 and 0.01 are two of them, what means the result
   of squaring 0.1 does not give 0.01 neither the closest representable. Here is
@@ -30,6 +32,12 @@ defmodule Float do
 
   There are also other known problems like flooring or rounding numbers. See
   `round/2` and `floor/2` for more details about them.
+
+  To learn more about floting-point arithmetic visit:
+
+    * [0.30000000000000004.com](http://0.30000000000000004.com/)
+    * [What Every Programmer Should Know About Floating-Point Arithmetic](http://floating-point-gui.de/)
+
   """
 
   import Bitwise
