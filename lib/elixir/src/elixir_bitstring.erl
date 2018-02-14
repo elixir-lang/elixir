@@ -32,7 +32,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, Alignment, Re
     end,
 
   EType = expr_type(ELeft),
-  {ERight, EAlignment, ES} = expand_specs(EType, Meta, Right, EM, RequireSize or MatchSize),
+  {ERight, EAlignment, ES} = expand_specs(EType, ELeft, Meta, Right, EM, RequireSize or MatchSize),
 
   EE =
     case EL of
@@ -150,7 +150,7 @@ env_for_error(E) -> E.
 
 %% Expands and normalizes types of a bitstring.
 
-expand_specs(ExprType, Meta, Info, E, RequireSize) ->
+expand_specs(ExprType, Expr, Meta, Info, E, RequireSize) ->
   Default =
     #{size => default,
       unit => default,
@@ -160,7 +160,7 @@ expand_specs(ExprType, Meta, Info, E, RequireSize) ->
   {#{size := Size, unit := Unit, type := Type, endianness := Endianness, sign := Sign}, ES} =
     expand_each_spec(Meta, unpack_specs(Info, []), Default, E),
   MergedType = type(Meta, ExprType, Type, E),
-  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, ES),
+  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, Expr, ES),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, ES),
   Alignment = compute_alignment(MergedType, Size, Unit),
   [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, SizeAndUnit, ES),
@@ -255,9 +255,11 @@ validate_spec_arg(Meta, unit, Value, E) when not is_integer(Value) ->
 validate_spec_arg(_Meta, _Key, _Value, _E) ->
   ok.
 
-validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
+validate_size_required(Meta, true, _, _, _, {'^', _, _}, E) ->
+  form_error(Meta, ?key(E, file), ?MODULE, right_side_pin_operator);
+validate_size_required(Meta, true, default, Type, default, _, E) when Type == binary; Type == bitstring ->
   form_error(Meta, ?key(E, file), ?MODULE, unsized_binary);
-validate_size_required(_, _, _, _, _, _) ->
+validate_size_required(_, _, _, _, _, _, _) ->
   ok.
 
 size_and_unit(Meta, bitstring, Size, Unit, E) when Size /= default; Unit /= default ->
@@ -323,6 +325,8 @@ format_error({unaligned_bitstring_in_match, Expr}) ->
     "    <<\"foo\", <<field, rest::bitstring>>::bitstring>>\n\n"
     "Got: ~ts",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
+format_error(right_side_pin_operator) ->
+  "^ operator is allowed only on the right side of the <> operator";
 format_error(unsized_binary) ->
   "a binary field without size is only allowed at the end of a binary pattern "
   "and never allowed in binary generators";

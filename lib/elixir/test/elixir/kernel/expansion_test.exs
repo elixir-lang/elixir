@@ -1988,6 +1988,31 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: <<"foo", <<x::size(4), y::size(4)>>::binary>>))
              |> clean_meta([:alignment]) ==
                quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
+
+      before_expansion =
+        quote do
+          b = "b"
+          "a" <> ^b = "ab"
+        end
+
+      after_expansion =
+        quote do
+          b = "b"
+          <<"a"::binary(), ^b::binary()>> = "ab"
+        end
+
+      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+
+      message = ~r"\^ operator is allowed only on the right side of the <> operator"
+
+      assert_raise CompileError, message, fn ->
+        expand(
+          quote do
+            a = "a"
+            ^a <> "b" = "ab"
+          end
+        )
+      end
     end
 
     test "raises on unaligned binaries in match" do
