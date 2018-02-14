@@ -22,6 +22,15 @@ defmodule Kernel.WarningTest do
     assert output =~ "nofile:2"
   end
 
+  test "operators formed by many of the same character followed by that character" do
+    output =
+      capture_err(fn ->
+        Code.eval_string("quote do: ....()")
+      end)
+
+    assert output =~ "found \"...\" followed by \".\", please use parens around \"...\" instead"
+  end
+
   test "unused variable" do
     output =
       capture_err(fn ->
