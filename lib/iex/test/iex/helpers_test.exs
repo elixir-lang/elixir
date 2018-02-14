@@ -195,30 +195,38 @@ defmodule IEx.HelpersTest do
                ~r/#{@elixir_erl}:\d+$/
     end
 
-    test "opens OTP lists module" do
-      assert capture_iex("open(:lists)") |> maybe_trim_quotes() =~ ~r/#{@lists_erl}:\d+$/
+    # Some installations remove the source file once Erlang is compiled. See #7348.
+    if File.regular?(@lists_erl) do
+      test "opens OTP lists module" do
+        assert capture_iex("open(:lists)") |> maybe_trim_quotes() =~ ~r/#{@lists_erl}:\d+$/
+      end
+
+      test "opens OTP lists module.function" do
+        assert capture_iex("open(:lists.reverse)") |> maybe_trim_quotes() =~
+                 ~r/#{@lists_erl}:\d+$/
+      end
+
+      test "opens OTP lists module.function/arity" do
+        assert capture_iex("open(:lists.reverse/1)") |> maybe_trim_quotes() =~
+                 ~r/#{@lists_erl}:\d+$/
+      end
     end
 
-    test "opens OTP lists module.function" do
-      assert capture_iex("open(:lists.reverse)") |> maybe_trim_quotes() =~ ~r/#{@lists_erl}:\d+$/
-    end
+    # Some installations remove the source file once Erlang is compiled. See #7348.
+    if File.regular?(@httpc_erl) do
+      test "opens OTP httpc module" do
+        assert capture_iex("open(:httpc)") |> maybe_trim_quotes() =~ ~r/#{@httpc_erl}:\d+$/
+      end
 
-    test "opens OTP lists module.function/arity" do
-      assert capture_iex("open(:lists.reverse/1)") |> maybe_trim_quotes() =~
-               ~r/#{@lists_erl}:\d+$/
-    end
+      test "opens OTP httpc module.function" do
+        assert capture_iex("open(:httpc.request)") |> maybe_trim_quotes() =~
+                 ~r/#{@httpc_erl}:\d+$/
+      end
 
-    test "opens OTP httpc module" do
-      assert capture_iex("open(:httpc)") |> maybe_trim_quotes() =~ ~r/#{@httpc_erl}:\d+$/
-    end
-
-    test "opens OTP httpc module.function" do
-      assert capture_iex("open(:httpc.request)") |> maybe_trim_quotes() =~ ~r/#{@httpc_erl}:\d+$/
-    end
-
-    test "opens OTP httpc module.function/arity" do
-      assert capture_iex("open(:httpc.request/1)") |> maybe_trim_quotes() =~
-               ~r/#{@httpc_erl}:\d+$/
+      test "opens OTP httpc module.function/arity" do
+        assert capture_iex("open(:httpc.request/1)") |> maybe_trim_quotes() =~
+                 ~r/#{@httpc_erl}:\d+$/
+      end
     end
 
     test "errors OTP preloaded module" do
