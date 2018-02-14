@@ -475,7 +475,7 @@ defmodule StreamTest do
     stream = Stream.interval(10)
     now = :os.timestamp()
     assert Enum.take(stream, 5) == [0, 1, 2, 3, 4]
-    assert :timer.now_diff(:os.timestamp(), now) > 50000
+    assert :timer.now_diff(:os.timestamp(), now) >= 50000
   end
 
   test "into/2 and run/1" do
@@ -1033,7 +1033,7 @@ defmodule StreamTest do
     stream = Stream.timer(10)
     now = :os.timestamp()
     assert Enum.to_list(stream) == [0]
-    assert :timer.now_diff(:os.timestamp(), now) > 10000
+    assert :timer.now_diff(:os.timestamp(), now) >= 10000
   end
 
   test "unfold/2" do
