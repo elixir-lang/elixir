@@ -24,7 +24,8 @@ The notation to represent the union of types is the pipe `|`. For example, the t
 
 ### Basic types
 
-    type :: any()                   # the top type, the set of all terms
+    type ::
+          any()                     # the top type, the set of all terms
           | none()                  # the bottom type, contains no terms
           | atom()
           | map()                   # any map
@@ -58,7 +59,7 @@ The notation to represent the union of types is the pipe `|`. For example, the t
 The following literals are also supported in typespecs:
 
     type ::                               ## Atoms
-            :atom                         # atoms: :foo, :bar, ...
+          :atom                           # atoms: :foo, :bar, ...
           | true | false | nil            # special atom literals
 
                                           ## Bitstrings
@@ -67,14 +68,14 @@ The following literals are also supported in typespecs:
           | <<_::_*unit>>                 # unit is an integer from 1 to 256
           | <<_::size, _::_*unit>>
 
-                                          ## Functions
-          | (... -> type)                 # any arity, returns type
-          | (() -> type)                  # 0-arity, returns type
-          | (type1, type2 -> type)        # 2-arity, returns type
-
                                           ## Integers
           | 1                             # integer
           | 1..10                         # integer from 1 to 10
+
+                                          ## Anonymous functions
+          | (-> type)                     # 0-arity, returns type
+          | (type1, type2 -> type)        # 2-arity, returns type
+          | (... -> type)                 # any arity, returns type
 
                                           ## Lists
           | [type]                        # list with any number of type elements
