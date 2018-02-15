@@ -118,7 +118,7 @@ Blocks are multiple Elixir expressions separated by newlines or semi-colons. A n
 
 ### Left to right arrow
 
-The left to right arrow (`->`) is used to establish a relationship between left and right. The left side may have zero, one or more arguments, the right side is zero, one or more expressions separted by new line. The `->` is always between one of the following terminators: `do`/`end`, `fn`/`end` or `(`/`)`.
+The left to right arrow (`->`) is used to establish a relationship between left and right. The left side may have zero, one or more arguments, the right side is zero, one or more expressions separated by new line. The `->` is always between one of the following terminators: `do`/`end`, `fn`/`end` or `(`/`)`.
 
 It is seen on `case` and `cond` constructs between `do`/`end`:
 
