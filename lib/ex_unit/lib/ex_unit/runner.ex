@@ -3,7 +3,7 @@ defmodule ExUnit.Runner do
 
   alias ExUnit.EventManager, as: EM
 
-  @rand_algorithm :exs1024
+  @rand_algorithm :exs1024s
 
   def run(opts, load_us) do
     {:ok, manager} = EM.start_link()
