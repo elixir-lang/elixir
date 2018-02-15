@@ -32,7 +32,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, Alignment, Re
     end,
 
   EType = expr_type(ELeft),
-  {ERight, EAlignment, ES} = expand_specs(EType, ELeft, Meta, Right, EM, RequireSize or MatchSize),
+  {ERight, EAlignment, ES} = expand_specs(EType, Meta, Right, EM, RequireSize or MatchSize),
 
   EE =
     case EL of
@@ -108,6 +108,7 @@ expr_type(Integer) when is_integer(Integer) -> integer;
 expr_type(Float) when is_float(Float) -> float;
 expr_type(Binary) when is_binary(Binary) -> binary;
 expr_type({'<<>>', _, _}) -> bitstring;
+expr_type({'^', _, _}) -> pin;
 expr_type(_) -> default.
 
 %% Handling of alignment
@@ -150,7 +151,7 @@ env_for_error(E) -> E.
 
 %% Expands and normalizes types of a bitstring.
 
-expand_specs(ExprType, Expr, Meta, Info, E, RequireSize) ->
+expand_specs(ExprType, Meta, Info, E, RequireSize) ->
   Default =
     #{size => default,
       unit => default,
@@ -160,7 +161,7 @@ expand_specs(ExprType, Expr, Meta, Info, E, RequireSize) ->
   {#{size := Size, unit := Unit, type := Type, endianness := Endianness, sign := Sign}, ES} =
     expand_each_spec(Meta, unpack_specs(Info, []), Default, E),
   MergedType = type(Meta, ExprType, Type, E),
-  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, Expr, ES),
+  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, ES),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, ES),
   Alignment = compute_alignment(MergedType, Size, Unit),
   [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, SizeAndUnit, ES),
@@ -179,6 +180,8 @@ type(_, integer, Type, _) when Type == integer; Type == float; Type == utf8; Typ
 type(_, float, Type, _) when Type == float ->
   Type;
 type(_, default, Type, _) ->
+  Type;
+type(_, pin, Type, _) ->
   Type;
 type(Meta, Other, Value, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {bittype_mismatch, Value, Other, type}).
@@ -255,11 +258,11 @@ validate_spec_arg(Meta, unit, Value, E) when not is_integer(Value) ->
 validate_spec_arg(_Meta, _Key, _Value, _E) ->
   ok.
 
-validate_size_required(Meta, true, _, _, _, {'^', _, _}, E) ->
+validate_size_required(Meta, true, pin, _, _, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, pin_operator_on_left_side);
-validate_size_required(Meta, true, default, Type, default, _, E) when Type == binary; Type == bitstring ->
+validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
   form_error(Meta, ?key(E, file), ?MODULE, unsized_binary);
-validate_size_required(_, _, _, _, _, _, _) ->
+validate_size_required(_, _, _, _, _, _) ->
   ok.
 
 size_and_unit(Meta, bitstring, Size, Unit, E) when Size /= default; Unit /= default ->
