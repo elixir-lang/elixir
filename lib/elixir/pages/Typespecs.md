@@ -53,6 +53,17 @@ The notation to represent the union of types is the pipe `|`. For example, the t
           | Remotes                 # Described in section "Remote types"
           | UserDefined             # Described in section "User-defined types"
 
+### Function types
+
+Types of (anonymous) functions can be defined using the following syntax:
+
+    type ::                               ## Functions
+          | (... -> type)                 # any arity, returns type
+          | (() -> type)                  # 0-arity, returns type
+          | (type1, type2 -> type)        # 2-arity, returns type
+
+
+
 ### Literals
 
 The following literals are also supported in typespecs:
@@ -66,11 +77,6 @@ The following literals are also supported in typespecs:
           | <<_::size>>                   # size is 0 or a positive integer
           | <<_::_*unit>>                 # unit is an integer from 1 to 256
           | <<_::size, _::_*unit>>
-
-                                          ## Functions
-          | (... -> type)                 # any arity, returns type
-          | (() -> type)                  # 0-arity, returns type
-          | (type1, type2 -> type)        # 2-arity, returns type
 
                                           ## Integers
           | 1                             # integer
