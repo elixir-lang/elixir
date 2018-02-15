@@ -1291,9 +1291,9 @@ defmodule Stream do
   ## Examples
 
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsplus, {1, 2, 3})
+      iex> :rand.seed(:exsp, {1, 2, 3})
       iex> Stream.repeatedly(&:rand.uniform/0) |> Enum.take(3)
-      [0.40502929729990744, 0.45336720247823126, 0.04094511692041057]
+      [0.40502929729990744, 0.45336720247823115, 0.040945116920410474]
 
   """
   @spec repeatedly((() -> element)) :: Enumerable.t()
