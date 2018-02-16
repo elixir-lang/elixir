@@ -1055,7 +1055,7 @@ defmodule Macro do
       end
 
   The compilation will fail because `My.Module` when quoted
-  is not an atom, but a syntax tree as follow:
+  is not an atom, but a syntax tree as follows:
 
       {:__aliases__, [], [:My, :Module]}
 
