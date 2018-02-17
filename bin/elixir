@@ -117,11 +117,7 @@ if [ "$OS" = "Windows_NT" ] && [ $USE_WERL ]; then
 fi
 
 if [ -z "$ERL_PATH" ]; then
-  if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]; then
-    ERL_PATH="$SCRIPT_PATH"/"$ERL_EXEC"
-  else
-    ERL_PATH="$ERL_EXEC"
-  fi
+  ERL_PATH="$ERL_EXEC"
 fi
 
 exec "$ERL_PATH" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
