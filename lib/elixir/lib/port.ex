@@ -177,8 +177,8 @@ defmodule Port do
   Inlined by the compiler.
   """
   @spec open(name, list) :: port
-  def open(name, settings) do
-    :erlang.open_port(name, settings)
+  def open(name, options) do
+    :erlang.open_port(name, options)
   end
 
   @doc """
