@@ -1601,6 +1601,7 @@ defmodule Module do
       end
 
     :ets.insert(table, {key, typespecs, true, nil})
+    nil
   end
 
   @doc false
