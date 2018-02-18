@@ -1,4 +1,6 @@
 defmodule ExUnit.Filters do
+  alias ExUnit.Manifest
+
   @moduledoc """
   Conveniences for parsing and evaluating filters.
   """
@@ -86,6 +88,20 @@ defmodule ExUnit.Filters do
         [key] -> String.to_atom(key)
       end
     end)
+  end
+
+  @doc """
+  Returns a tuple containing useful information about test failures from the
+  manifest. The tuple contains:
+
+    - A set of files that contain tests that failed the last time they ran.
+      The paths are absolute paths.
+    - A set of test ids that failed the last time they ran
+  """
+  @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(Manifest.test_id())}
+  def failure_info(manifest_file) do
+    manifest = Manifest.read(manifest_file)
+    {Manifest.files_with_failures(manifest), Manifest.failed_test_ids(manifest)}
   end
 
   @doc """
