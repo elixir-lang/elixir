@@ -34,6 +34,7 @@ defmodule ExUnit.Runner do
       include: opts[:include],
       manager: manager,
       max_cases: opts[:max_cases],
+      only_test_ids: opts[:only_test_ids],
       seed: opts[:seed],
       modules: :async,
       timeout: opts[:timeout],
@@ -132,8 +133,9 @@ defmodule ExUnit.Runner do
     tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
+    test_ids = config.only_test_ids
 
-    for test <- tests do
+    for test <- tests, include_test?(test_ids, test) do
       tags = Map.merge(test.tags, %{test: test.name, module: test.module})
 
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
@@ -141,6 +143,12 @@ defmodule ExUnit.Runner do
         excluded_or_skipped -> %{test | state: excluded_or_skipped}
       end
     end
+  end
+
+  defp include_test?(nil, _test), do: true
+
+  defp include_test?(test_ids, test) do
+    MapSet.member?(test_ids, {test.module, test.name})
   end
 
   defp spawn_module(config, test_module, tests) do
