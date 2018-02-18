@@ -180,6 +180,36 @@ defmodule Version do
         (allow_pre or req_pre != [] or pre == [])
     end
 
+    defp match_op?(:^, {0, 0, nil, req_pre, _}, {_, _, _, pre, allow_pre} = version) do
+      compare(version, {0, 0, 0, req_pre, nil}) in [:eq, :gt] and
+        compare(version, {0, 1, 0, [0], nil}) == :lt and
+        (allow_pre or req_pre != [] or pre == [])
+    end
+
+    defp match_op?(:^, {0, 0, patch, req_pre, _}, {_, _, _, pre, allow_pre} = version) do
+      compare(version, {0, 0, patch, req_pre, nil}) in [:eq, :gt] and
+        compare(version, {0, 0, patch + 1, [0], nil}) == :lt and
+        (allow_pre or req_pre != [] or pre == [])
+    end
+
+    defp match_op?(:^, {0, nil, nil, req_pre, _}, {_, _, _, pre, allow_pre} = version) do
+      compare(version, {0, 0, 0, req_pre, nil}) in [:eq, :gt] and
+        compare(version, {1, 0, 0, [0], nil}) == :lt and
+        (allow_pre or req_pre != [] or pre == [])
+    end
+
+    defp match_op?(:^, {0, minor, patch, req_pre, _}, {_, _, _, pre, allow_pre} = version) do
+      compare(version, {0, minor, patch || 0, req_pre, nil}) in [:eq, :gt] and
+        compare(version, {0, minor + 1, 0, [0], nil}) == :lt and
+        (allow_pre or req_pre != [] or pre == [])
+    end
+
+    defp match_op?(:^, {major, minor, patch, req_pre, _}, {_, _, _, pre, allow_pre} = version) do
+      compare(version, {major, minor || 0, patch || 0, req_pre, nil}) in [:eq, :gt] and
+        compare(version, {major + 1, 0, 0, [0], nil}) == :lt and
+        (allow_pre or req_pre != [] or pre == [])
+    end
+
     defp match_op?(:>, {_, _, _, req_pre, _} = req, {_, _, _, pre, allow_pre} = version) do
       compare(version, req) == :gt and (allow_pre or req_pre != [] or pre == [])
     end
@@ -499,6 +529,7 @@ defmodule Version do
       {">=", :>=},
       {"<=", :<=},
       {"~>", :~>},
+      {"^", :^},
       {">", :>},
       {"<", :<},
       {"==", :==},
@@ -563,8 +594,8 @@ defmodule Version do
     defp revert_lexed(_rest, _acc), do: :error
 
     defp validate_requirement(op, version) do
-      case parse_version(version, true) do
-        {:ok, version} when op == :~> -> {:ok, version}
+      case parse_version(version, op == :^, true) do
+        {:ok, version} when op in [:~>, :^] -> {:ok, version}
         {:ok, {_, _, patch, _, _} = version} when is_integer(patch) -> {:ok, version}
         _ -> :error
       end
@@ -575,15 +606,16 @@ defmodule Version do
       revert_lexed(lexer(source), [])
     end
 
-    def parse_version(string, approximate? \\ false) when is_binary(string) do
+    def parse_version(string, minor_optional? \\ false, patch_optional? \\ false)
+        when is_binary(string) do
       destructure [version_with_pre, build], String.split(string, "+", parts: 2)
       destructure [version, pre], String.split(version_with_pre, "-", parts: 2)
       destructure [major, minor, patch, next], String.split(version, ".")
 
       with nil <- next,
            {:ok, major} <- require_digits(major),
-           {:ok, minor} <- require_digits(minor),
-           {:ok, patch} <- maybe_patch(patch, approximate?),
+           {:ok, minor} <- maybe_digits(minor, minor_optional?),
+           {:ok, patch} <- maybe_digits(patch, patch_optional?),
            {:ok, pre_parts} <- optional_dot_separated(pre),
            {:ok, pre_parts} <- convert_parts_to_integer(pre_parts, []),
            {:ok, build_parts} <- optional_dot_separated(build) do
@@ -608,9 +640,9 @@ defmodule Version do
     defp parse_digits(<<>>, acc) when byte_size(acc) > 0, do: {:ok, String.to_integer(acc)}
     defp parse_digits(_, _acc), do: :error
 
-    defp maybe_patch(patch, approximate?)
-    defp maybe_patch(nil, true), do: {:ok, nil}
-    defp maybe_patch(patch, _), do: require_digits(patch)
+    defp maybe_digits(string, optional?)
+    defp maybe_digits(nil, true), do: {:ok, nil}
+    defp maybe_digits(string, _), do: require_digits(string)
 
     defp optional_dot_separated(nil), do: {:ok, []}
 
