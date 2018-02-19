@@ -1069,4 +1069,17 @@ defmodule Kernel.TypespecTest do
     assert message =~ string_discouraged
     assert message =~ nonempty_string_discouraged
   end
+
+  test "typespec declarations return :ok" do
+    test_module do
+      def foo(), do: nil
+
+      assert @type(foo :: any()) == :ok
+      assert @typep(foop :: any()) == :ok
+      assert @spec(foo() :: nil) == :ok
+      assert @opaque(my_type :: atom) == :ok
+      assert @callback(foo(foop) :: integer) == :ok
+      assert @macrocallback(foo(integer) :: integer) == :ok
+    end
+  end
 end
