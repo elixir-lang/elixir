@@ -1822,7 +1822,7 @@ defmodule Kernel.ExpansionTest do
              |> clean_meta([:alignment]) ==
                quote(do: <<45::integer(), <<_::integer(), _::binary()>> = rest()::binary()>>)
 
-      message = ~r"matching nested bitstrings is not supported"
+      message = ~r"nested matching in bitstring is not supported"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: <<?-, <<_, _::binary>> = rest::binary>> = foo()))

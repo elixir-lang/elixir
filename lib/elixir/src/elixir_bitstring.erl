@@ -362,5 +362,5 @@ format_error({bad_size_argument, Size}) ->
   io_lib:format("size in bitstring expects an integer or a variable as argument, got: ~ts",
                 ['Elixir.Macro':to_string(Size)]);
 format_error({nested_match, Expr}) ->
-  io_lib:format("matching nested bitstrings is not supported, got: ~ts",
+  io_lib:format("nested matching in bitstring is not supported, got: ~ts",
                 ['Elixir.Macro':to_string(Expr)]).
