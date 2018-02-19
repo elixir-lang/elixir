@@ -73,8 +73,17 @@ prepend_unless_bitstring_in_match(Type, Meta, Left, Right, Acc, E) ->
   Expr = {'::', Meta, [Left, Right]},
 
   case E of
-    #{context := match} when Type == bitstring ->
-      form_error(Meta, ?key(E, file), ?MODULE, {unaligned_bitstring_in_match, Expr});
+    #{context := match} ->
+      if
+        Type == bitstring ->
+          form_error(Meta, ?key(E, file), ?MODULE, {unaligned_bitstring_in_match, Expr});
+        element(1, Left) == '=' ->
+          form_error(Meta, ?key(E, file), ?MODULE, {nested_match, Left});
+        element(1, Right) == '=' ->
+          form_error(Meta, ?key(E, file), ?MODULE, {nested_match, Right});
+        true ->
+          [Expr | Acc]
+      end;
     _ ->
       [Expr | Acc]
   end.
@@ -351,4 +360,7 @@ format_error({bad_unit_argument, Unit}) ->
                 ['Elixir.Macro':to_string(Unit)]);
 format_error({bad_size_argument, Size}) ->
   io_lib:format("size in bitstring expects an integer or a variable as argument, got: ~ts",
-                ['Elixir.Macro':to_string(Size)]).
+                ['Elixir.Macro':to_string(Size)]);
+format_error({nested_match, Expr}) ->
+  io_lib:format("matching nested bitstrings is not supported, got: ~ts",
+                ['Elixir.Macro':to_string(Expr)]).

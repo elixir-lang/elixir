@@ -1817,6 +1817,18 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "bitstrings" do
+    test "nested match" do
+      assert expand(quote(do: <<?-, (<<_, _::binary>> = rest())::binary>>))
+             |> clean_meta([:alignment]) ==
+               quote(do: <<45::integer(), (<<_::integer(), _::binary()>> = rest())::binary()>>)
+
+      message = ~r"matching nested bitstrings is not supported"
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<?-, (<<_, _::binary>> = rest)::binary>> = foo()))
+      end
+    end
+
     test "inlines binaries inside interpolation" do
       import Kernel.ExpansionTarget
 
