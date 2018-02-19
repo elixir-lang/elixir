@@ -400,3 +400,33 @@ defmodule OptionParserTest do
     assert original == OptionParser.to_argv(opts, switches: [counter: :count])
   end
 end
+
+defmodule OptionsParserDeprecationsTest do
+  use ExUnit.Case, async: false
+
+  test "dynamic mode is deprecated" do
+    warning = ~r[Not passing the :switches or :strict option to OptionParser is deprecated]
+
+    deprecated_cases = [
+      {["--d"], []},
+      {["--d"], [allow_nonexistent_atoms: true]}
+    ]
+
+    supported_cases = [
+      {["--d", "true"], [strict: [d: :boolean]]},
+      {["--d", "true"], [switches: [d: :boolean]]}
+    ]
+
+    Enum.each(deprecated_cases, fn {case, options} ->
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               OptionParser.parse(case, options)
+             end) =~ warning
+    end)
+
+    Enum.each(supported_cases, fn {case, options} ->
+      refute ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               OptionParser.parse(case, options)
+             end) =~ warning
+    end)
+  end
+end
