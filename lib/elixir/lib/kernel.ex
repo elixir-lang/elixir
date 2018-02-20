@@ -2709,7 +2709,10 @@ defmodule Kernel do
     case function? do
       true ->
         value =
-          with {_, doc} when doc_attr? <- Module.get_attribute(env.module, name, stack), do: doc
+          case Module.get_attribute(env.module, name, stack) do
+            {_, doc} when doc_attr? -> doc
+            other -> other
+          end
 
         try do
           :elixir_quote.escape(value, false)
@@ -2722,13 +2725,21 @@ defmodule Kernel do
           {val, _} -> val
         end
 
+      false when doc_attr? ->
+        {escaped, _} = :elixir_quote.escape(stack, false)
+
+        quote do
+          case Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)) do
+            {_, doc} -> doc
+            other -> other
+          end
+        end
+
       false ->
         {escaped, _} = :elixir_quote.escape(stack, false)
 
         quote do
-          with {_, doc} when unquote(doc_attr?) <-
-                 Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)),
-               do: doc
+          Module.get_attribute(__MODULE__, unquote(name), unquote(escaped))
         end
     end
   end
