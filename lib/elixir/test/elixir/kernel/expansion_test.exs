@@ -1818,11 +1818,18 @@ defmodule Kernel.ExpansionTest do
 
   describe "bitstrings" do
     test "nested match" do
+      assert expand(quote(do: <<foo = bar>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<foo = bar()::integer()>>)
+
       assert expand(quote(do: <<?-, <<_, _::binary>> = rest()::binary>>))
              |> clean_meta([:alignment]) ==
                quote(do: <<45::integer(), <<_::integer(), _::binary()>> = rest()::binary()>>)
 
-      message = ~r"nested matching in bitstring is not supported"
+      message = ~r"cannot pattern match inside a bitstring that is already in match"
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<bar = baz>> = foo()))
+      end
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: <<?-, <<_, _::binary>> = rest::binary>> = foo()))
