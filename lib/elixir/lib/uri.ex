@@ -258,7 +258,7 @@ defmodule URI do
   end
 
   @doc """
-  Percent-escapes all characters that require escaped in a string.
+  Percent-escapes all characters that require escaping in a string.
 
   This means reserved characters, such as `:` and `/`, and the so-
   called unreserved characters, which have the same meaning both
