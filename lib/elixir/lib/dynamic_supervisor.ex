@@ -919,8 +919,9 @@ defmodule DynamicSupervisor do
 
   defp restart_child(:one_for_one, current_pid, child, state) do
     {{m, f, args} = mfa, restart, shutdown, type, modules} = child
+    %{extra_arguments: extra} = state
 
-    case start_child(m, f, args) do
+    case start_child(m, f, extra ++ args) do
       {:ok, pid, _} ->
         state = delete_child(current_pid, state)
         {:ok, save_child(pid, mfa, restart, shutdown, type, modules, state)}
