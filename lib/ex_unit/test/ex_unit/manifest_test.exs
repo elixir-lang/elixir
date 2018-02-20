@@ -7,6 +7,12 @@ defmodule ExUnit.ManifestTest do
   import ExUnit.TestHelpers, only: [tmp_path: 0, in_tmp: 2]
 
   describe "add_test/2" do
+    test "ignores tests that have an invalid :file value (which can happen when returning a `:file` option from `setup`))" do
+      test = %ExUnit.Test{state: nil, tags: %{file: :not_a_file}}
+
+      assert add_test(new(), test) == new()
+    end
+
     test "ignores skipped tests since we know nothing about their pass/fail status" do
       test = %ExUnit.Test{state: {:skipped, "reason"}}
 
