@@ -17,6 +17,10 @@ defmodule ExUnit.Manifest do
   end
 
   @spec add_test(t, ExUnit.Test.t()) :: t
+  def add_test(manifest, %ExUnit.Test{tags: %{file: file}})
+      when not is_binary(file),
+      do: manifest
+
   def add_test(manifest, %ExUnit.Test{state: {ignored_state, _}})
       when ignored_state in [:skipped, :excluded],
       do: manifest
