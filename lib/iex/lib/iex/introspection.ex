@@ -286,6 +286,9 @@ defmodule IEx.Introspection do
           docs && has_callback?(module, function) ->
             behaviour_found("#{inspect(module)}.#{function}")
 
+          docs && has_type?(module, function) ->
+            type_found("#{inspect(module)}.#{function}")
+
           elixir_module?(module) and is_nil(docs) ->
             no_docs(module)
 
@@ -310,6 +313,9 @@ defmodule IEx.Introspection do
 
           :behaviour_found ->
             behaviour_found("#{inspect(module)}.#{function}/#{arity}")
+
+          :type_found ->
+            type_found("#{inspect(module)}.#{function}/#{arity}")
 
           :no_docs ->
             no_docs(module)
@@ -342,6 +348,9 @@ defmodule IEx.Introspection do
       docs && has_callback?(mod, fun, arity) ->
         :behaviour_found
 
+      docs && has_type?(mod, fun, arity) ->
+        :type_found
+
       is_nil(docs) and spec != [] ->
         message =
           if elixir_module?(mod) do
@@ -370,6 +379,18 @@ defmodule IEx.Introspection do
   defp has_callback?(mod, fun, arity) do
     mod
     |> Code.get_docs(:callback_docs)
+    |> Enum.any?(&match?({{^fun, ^arity}, _, _, _}, &1))
+  end
+
+  defp has_type?(mod, fun) do
+    mod
+    |> Code.get_docs(:type_docs)
+    |> Enum.any?(&match?({{^fun, _}, _, _, _}, &1))
+  end
+
+  defp has_type?(mod, fun, arity) do
+    mod
+    |> Code.get_docs(:type_docs)
     |> Enum.any?(&match?({{^fun, ^arity}, _, _, _}, &1))
   end
 
@@ -724,7 +745,14 @@ defmodule IEx.Introspection do
   defp behaviour_found(for) do
     puts_error("""
     No documentation for function #{for} was found, but there is a callback with the same name.
-    You can view callback documentations with the b/1 helper.
+    You can view callback documentation with the b/1 helper.
+    """)
+  end
+
+  defp type_found(for) do
+    puts_error("""
+    No documentation for function #{for} was found, but there is a type with the same name.
+    You can view type documentation with the t/1 helper.
     """)
   end
 
