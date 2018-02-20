@@ -487,12 +487,12 @@ defmodule IEx.HelpersTest do
 
         assert capture_io(fn -> h(MyBehaviour.first()) end) == """
                No documentation for function MyBehaviour.first was found, but there is a callback with the same name.
-               You can view callback documentations with the b/1 helper.\n
+               You can view callback documentation with the b/1 helper.\n
                """
 
         assert capture_io(fn -> h(MyBehaviour.second() / 2) end) == """
                No documentation for function MyBehaviour.second/2 was found, but there is a callback with the same name.
-               You can view callback documentations with the b/1 helper.\n
+               You can view callback documentation with the b/1 helper.\n
                """
 
         assert capture_io(fn -> h(MyBehaviour.second() / 3) end) ==
@@ -500,6 +500,33 @@ defmodule IEx.HelpersTest do
       end)
     after
       cleanup_modules([Impl, MyBehaviour])
+    end
+
+    test "prints type documentation when function docs are not available" do
+      content = """
+      defmodule MyTypes do
+        @type first() :: any()
+        @type second(a, b) :: {a, b}
+      end
+      """
+
+      filename = "my_types.ex"
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [MyTypes]
+
+        assert capture_io(fn -> h(MyTypes.first()) end) == """
+               No documentation for function MyTypes.first was found, but there is a type with the same name.
+               You can view type documentation with the t/1 helper.\n
+               """
+
+        assert capture_io(fn -> h(MyTypes.second() / 2) end) == """
+               No documentation for function MyTypes.second/2 was found, but there is a type with the same name.
+               You can view type documentation with the t/1 helper.\n
+               """
+      end)
+    after
+      cleanup_modules([MyTypes])
     end
 
     test "prints modules compiled without docs" do
