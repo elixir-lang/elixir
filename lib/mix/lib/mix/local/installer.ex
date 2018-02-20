@@ -233,7 +233,7 @@ defmodule Mix.Local.Installer do
   """
   @spec uninstall(Path.t(), String.t(), OptionParser.argv()) :: Path.t() | nil
   def uninstall(root, listing, argv) do
-    {_, argv, _} = OptionParser.parse(argv)
+    {_, argv, _} = OptionParser.parse(argv, switches: [])
 
     if name = List.first(argv) do
       path = Path.join(root, name)
