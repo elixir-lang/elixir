@@ -34,14 +34,14 @@ defmodule OptionParser do
 
   When parsing, it is common to list switches and their expected types:
 
-      iex> OptionParser.parse(["--debug"], switches: [debug: :boolean])
+      iex> OptionParser.parse(["--debug"], strict: [debug: :boolean])
       {[debug: true], [], []}
 
-      iex> OptionParser.parse(["--source", "lib"], switches: [source: :string])
+      iex> OptionParser.parse(["--source", "lib"], strict: [source: :string])
       {[source: "lib"], [], []}
 
       iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"],
-      ...>                    switches: [source_path: :string, verbose: :boolean])
+      ...>                    strict: [source_path: :string, verbose: :boolean])
       {[source_path: "lib", verbose: true], ["test/enum_test.exs"], []}
 
   We will explore the valid switches and operation modes of option parser below.
@@ -51,17 +51,17 @@ defmodule OptionParser do
   The following options are supported:
 
     * `:switches` or `:strict` - see the "Switch definitions" section below
-    * `:allow_nonexistent_atoms` - see the "Parsing dynamic switches" section below
+    * `:allow_nonexistent_atoms` - see the "Parsing unknown switches" section below
     * `:aliases` - see the "Aliases" section below
 
   ## Switch definitions
 
   Switches can be specified via one of two options:
 
-    * `:switches` - defines some switches and their types. This function
-      still attempts to parse switches that are not in this list.
     * `:strict` - defines strict switches. Any switch in `argv` that is not
       specified in the list is returned in the invalid options list.
+    * `:switches` - defines some switches and their types. This function
+      still attempts to parse switches that are not in this list.
 
   Both these options accept a keyword list of `{name, type}` tuples where `name`
   is an atom defining the name of the switch and `type` is an atom that
@@ -110,52 +110,52 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
       {[op: false], ["path/to/file"], []}
 
-  ### Parsing dynamic switches
+  ### Parsing unknown switches
 
-  WARNING: this option is deprecated.
+  When the `:switches` option is given, `OptionParser` will attempt to parse
+  unknown switches:
 
-  `OptionParser` also includes a dynamic mode where it will attempt to parse
-  switches dynamically. Such can be done by not specifying the `:switches` or
-  `:strict` option.
-
-      iex> OptionParser.parse(["--debug"])
+      iex> OptionParser.parse(["--debug"], switches: [key: :string])
       {[debug: true], [], []}
 
+  Even though we haven't specified `--debug` in the list of switches, it is part
+  of the returned options. This would also work:
+
+      iex> OptionParser.parse(["--debug", "value"], switches: [key: :string])
+      {[debug: "value"], [], []}
+
   Switches followed by a value will be assigned the value, as a string. Switches
-  without an argument, like `--debug` in the examples above, will automatically be
-  set to `true`.
+  without an argument will be set automatically to `true`. Since we cannot assert
+  the type of the switch value, it is preferred to use the `:strict` option that
+  accepts only known switches and always verify their types.
 
-  Since Elixir converts switches to atoms, the dynamic mode will only parse
-  switches that translate to atoms used by the runtime. Therefore, the code below
-  likely won't parse the given option since the `:option_parser_example` atom is
-  never used anywhere:
+  If you do want to parse unknown switches, remember that Elixir converts switches
+  to atoms. Since atoms are not garbage collected, OptionParser will only parse
+  switches that translate to atoms used by the runtime to avoid leaking atoms.
+  For instance, the code below will discard the `--option-parser-example` switch
+  because the `:option_parser_example` atom is never used anywhere:
 
-      OptionParser.parse(["--option-parser-example"])
+      OptionParser.parse(["--option-parser-example"], switches: [debug: :boolean])
       # The :option_parser_example atom is not used anywhere below
 
-  However, the code below does since the `:option_parser_example` atom is used
-  at some point later (or earlier) on:
+  However, the code below would work as long as `:option_parser_example` atom is
+  used at some point later (or earlier) **in the same module**:
 
-      {opts, _, _} = OptionParser.parse(["--option-parser-example"])
+      {opts, _, _} = OptionParser.parse(["--option-parser-example"], switches: [debug: :boolean])
       opts[:option_parser_example]
 
-  In other words, when using dynamic mode, Elixir will do the correct thing and
-  only parse options that are used by the runtime, ignoring all others. If you
-  would like to parse all switches, regardless if they exist or not, you can
-  force creation of atoms by passing `allow_nonexistent_atoms: true` as option.
-  Such option is useful when you are building command-line applications that
-  receive dynamically-named arguments but must be used with care on long-running
-  systems.
-
-  Switches followed by a value will be assigned the value, as a string.
-  Switches without an argument, like `--debug` in the examples above, will
-  automatically be set to `true`.
+  In other words, Elixir will do the correct thing and only parse options that are
+  used by the runtime, ignoring all others. If you would like to parse all switches,
+  regardless if they exist or not, you can force creation of atoms by passing
+  `allow_nonexistent_atoms: true` as option. Use this option with care. It is only
+  useful when you are building command-line applications that receive
+  dynamically-named arguments and must be avoided in long-running systems.
 
   ## Aliases
 
   A set of aliases can be specified in the `:aliases` option:
 
-      iex> OptionParser.parse(["-d"], aliases: [d: :debug])
+      iex> OptionParser.parse(["-d"], aliases: [d: :debug], strict: [debug: :boolean])
       {[debug: true], [], []}
 
   ## Examples
@@ -307,8 +307,8 @@ defmodule OptionParser do
         do_parse(rest, config, opts, args, [{option, value} | invalid], all?)
 
       {:undefined, option, _value, rest} ->
-        # the option does not exist (for strict cases)
-        do_parse(rest, config, opts, args, [{option, nil} | invalid], all?)
+        invalid = if config.strict?, do: [{option, nil} | invalid], else: invalid
+        do_parse(rest, config, opts, args, invalid, all?)
 
       {:error, ["--" | rest]} ->
         {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
@@ -337,7 +337,7 @@ defmodule OptionParser do
       (returned when the value cannot be parsed according to the switch type)
 
     * `{:undefined, key, value, rest}` - the option `key` is undefined
-      (returned in strict mode when the switch is unknown)
+      (returned in strict mode when the switch is unknown or on nonexistent atoms)
 
     * `{:error, rest}` - there are no switches at the head of the given `argv`
 
@@ -371,15 +371,21 @@ defmodule OptionParser do
   # Handles --foo or --foo=bar
   defp next_with_config(["--" <> option | rest], config) do
     {option, value} = split_option(option)
-    tagged = tag_option(option, config)
-    next_tagged(tagged, value, "--" <> option, rest, config)
+
+    if String.contains?(option, ["_"]) do
+      {:undefined, "--" <> option, value, rest}
+    else
+      tagged = tag_option(option, config)
+      next_tagged(tagged, value, "--" <> option, rest, config)
+    end
   end
 
   # Handles -a, -abc, -abc=something
   defp next_with_config(["-" <> option | rest] = argv, config) do
-    %{aliases: aliases, allow_nonexistent_atoms?: allow_nonexistent_atoms?} = config
+    %{allow_nonexistent_atoms?: allow_nonexistent_atoms?} = config
     {option, value} = split_option(option)
     original = "-" <> option
+    letters = String.graphemes(option)
 
     cond do
       is_nil(value) and negative_number?(original) ->
@@ -388,21 +394,22 @@ defmodule OptionParser do
       String.contains?(option, ["-", "_"]) ->
         {:undefined, original, value, rest}
 
-      String.length(option) > 1 ->
-        key = get_option_key(option, allow_nonexistent_atoms?)
-        option_key = aliases[key]
-
-        if key && option_key do
-          IO.warn("multi-letter aliases are deprecated, got: #{inspect(key)}")
-          next_tagged({:default, option_key}, value, original, rest, config)
-        else
-          next_with_config(expand_multiletter_alias(option, value) ++ rest, config)
-        end
-
-      true ->
+      tl(letters) == [] ->
         # We have a regular one-letter alias here
         tagged = tag_oneletter_alias(option, config)
         next_tagged(tagged, value, original, rest, config)
+
+      true ->
+        key = get_option_key(option, allow_nonexistent_atoms?)
+        option_key = config.aliases[key]
+
+        if key && option_key do
+          # TODO: Remove this in Elixir v2.0
+          IO.warn("multi-letter aliases are deprecated, got: #{inspect(key)}")
+          next_tagged({:default, option_key}, value, original, rest, config)
+        else
+          next_with_config(expand_multiletter_alias(letters, value) ++ rest, config)
+        end
     end
   end
 
@@ -410,12 +417,17 @@ defmodule OptionParser do
     {:error, argv}
   end
 
-  defp next_tagged(tagged, value, original, rest, %{switches: switches, strict?: strict?}) do
-    if strict? and not option_defined?(tagged, switches) do
+  defp next_tagged(:unknown, value, original, rest, _) do
+    {value, _kinds, rest} = normalize_value(value, [], rest)
+    {:undefined, original, value, rest}
+  end
+
+  defp next_tagged({tag, option}, value, original, rest, %{switches: switches, strict?: strict?}) do
+    if strict? and not Keyword.has_key?(switches, option) do
       {:undefined, original, value, rest}
     else
-      {option, kinds, value} = normalize_option(tagged, value, switches)
-      {value, kinds, rest} = normalize_value(value, kinds, rest, strict?)
+      {kinds, value} = normalize_tag(tag, option, value, switches)
+      {value, kinds, rest} = normalize_value(value, kinds, rest)
 
       case validate_option(value, kinds) do
         {:ok, new_value} -> {:ok, option, new_value, rest}
@@ -545,6 +557,7 @@ defmodule OptionParser do
           {strict, true}
 
         true ->
+          # TODO: Remove this in Elixir v2.0
           IO.warn("Not passing the :switches or :strict option to OptionParser is deprecated")
           {[], false}
       end
@@ -572,7 +585,7 @@ defmodule OptionParser do
 
         :count in kinds ->
           case value do
-            1 -> {false, value}
+            nil -> {false, 1}
             _ -> {true, value}
           end
 
@@ -612,10 +625,9 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_option("no-" <> option = original, %{
-         switches: switches,
-         allow_nonexistent_atoms?: allow_nonexistent_atoms?
-       }) do
+  defp tag_option("no-" <> option = original, config) do
+    %{switches: switches, allow_nonexistent_atoms?: allow_nonexistent_atoms?} = config
+
     cond do
       (negated = get_option_key(option, allow_nonexistent_atoms?)) &&
           :boolean in List.wrap(switches[negated]) ->
@@ -629,7 +641,9 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_option(option, %{allow_nonexistent_atoms?: allow_nonexistent_atoms?}) do
+  defp tag_option(option, config) do
+    %{allow_nonexistent_atoms?: allow_nonexistent_atoms?} = config
+
     if option_key = get_option_key(option, allow_nonexistent_atoms?) do
       {:default, option_key}
     else
@@ -637,11 +651,9 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_oneletter_alias(alias, %{
-         aliases: aliases,
-         allow_nonexistent_atoms?: allow_nonexistent_atoms?
-       })
-       when is_binary(alias) do
+  defp tag_oneletter_alias(alias, config) when is_binary(alias) do
+    %{aliases: aliases, allow_nonexistent_atoms?: allow_nonexistent_atoms?} = config
+
     if option_key = aliases[to_existing_key(alias, allow_nonexistent_atoms?)] do
       {:default, option_key}
     else
@@ -649,58 +661,38 @@ defmodule OptionParser do
     end
   end
 
-  defp expand_multiletter_alias(letters, value) when is_binary(letters) do
+  defp expand_multiletter_alias(letters, value) do
     {last, expanded} =
       letters
-      |> String.codepoints()
       |> Enum.map(&("-" <> &1))
       |> List.pop_at(-1)
 
     expanded ++ [last <> if(value, do: "=" <> value, else: "")]
   end
 
-  defp option_defined?(:unknown, _switches) do
-    false
-  end
-
-  defp option_defined?({:negated, option}, switches) do
-    Keyword.has_key?(switches, option)
-  end
-
-  defp option_defined?({:default, option}, switches) do
-    Keyword.has_key?(switches, option)
-  end
-
-  defp normalize_option(:unknown, value, _switches) do
-    {nil, [:invalid], value}
-  end
-
-  defp normalize_option({:negated, option}, value, switches) do
+  defp normalize_tag(:negated, option, value, switches) do
     if value do
-      {option, [:invalid], value}
+      {[:invalid], value}
     else
-      {option, List.wrap(switches[option]), false}
+      {List.wrap(switches[option]), false}
     end
   end
 
-  defp normalize_option({:default, option}, value, switches) do
-    {option, List.wrap(switches[option]), value}
+  defp normalize_tag(:default, option, value, switches) do
+    {List.wrap(switches[option]), value}
   end
 
-  defp normalize_value(nil, kinds, t, strict?) do
+  defp normalize_value(nil, kinds, t) do
     cond do
       :boolean in kinds ->
         {true, kinds, t}
 
       :count in kinds ->
-        {1, kinds, t}
+        {nil, kinds, t}
 
       value_in_tail?(t) ->
         [h | t] = t
         {h, kinds, t}
-
-      kinds == [] and strict? ->
-        {nil, kinds, t}
 
       kinds == [] ->
         {true, kinds, t}
@@ -710,7 +702,7 @@ defmodule OptionParser do
     end
   end
 
-  defp normalize_value(value, kinds, t, _strict?) do
+  defp normalize_value(value, kinds, t) do
     {value, kinds, t}
   end
 
@@ -728,15 +720,14 @@ defmodule OptionParser do
   end
 
   defp to_underscore(option), do: to_underscore(option, <<>>)
-  defp to_underscore("_" <> _rest, _acc), do: nil
   defp to_underscore("-" <> rest, acc), do: to_underscore(rest, acc <> "_")
   defp to_underscore(<<c>> <> rest, acc), do: to_underscore(rest, <<acc::binary, c>>)
   defp to_underscore(<<>>, acc), do: acc
 
   defp get_option_key(option, allow_nonexistent_atoms?) do
-    if string = to_underscore(option) do
-      to_existing_key(string, allow_nonexistent_atoms?)
-    end
+    option
+    |> to_underscore()
+    |> to_existing_key(allow_nonexistent_atoms?)
   end
 
   defp to_existing_key(option, true), do: String.to_atom(option)
