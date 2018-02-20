@@ -357,7 +357,7 @@ defmodule DynamicSupervisorTest do
     end
 
     # regression test for #7369
-    test "restarting a child with extra_args does not crash the supervisor" do
+    test "restarting a child with extra_args successfully restarts child" do
       parent = self()
 
       fun = fn ->
