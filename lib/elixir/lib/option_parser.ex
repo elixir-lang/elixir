@@ -112,6 +112,8 @@ defmodule OptionParser do
 
   ### Parsing dynamic switches
 
+  WARNING: this option is deprecated.
+
   `OptionParser` also includes a dynamic mode where it will attempt to parse
   switches dynamically. Such can be done by not specifying the `:switches` or
   `:strict` option.
@@ -543,6 +545,7 @@ defmodule OptionParser do
           {strict, true}
 
         true ->
+          IO.warn("Not passing the :switches or :strict option to OptionParser is deprecated")
           {[], false}
       end
 

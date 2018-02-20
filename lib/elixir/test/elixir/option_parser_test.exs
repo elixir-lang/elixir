@@ -5,62 +5,12 @@ defmodule OptionParserTest do
 
   doctest OptionParser
 
-  test "parses boolean option" do
-    assert OptionParser.parse(["--docs"]) == {[docs: true], [], []}
-  end
-
-  test "parses alias boolean option as the alias key" do
-    assert OptionParser.parse(["-d"], aliases: [d: :docs]) == {[docs: true], [], []}
-  end
-
-  test "parses more than one boolean option" do
-    assert OptionParser.parse(["--docs", "--compile"]) == {[docs: true, compile: true], [], []}
-  end
-
-  test "parses more than one boolean options as the alias" do
-    assert OptionParser.parse(["-d", "--compile"], aliases: [d: :docs]) ==
-             {[docs: true, compile: true], [], []}
-  end
-
-  test "parses --key value option" do
-    assert OptionParser.parse(["--source", "form_docs/"]) == {[source: "form_docs/"], [], []}
-  end
-
-  test "parses only to existing atoms" do
-    assert OptionParser.parse(["--option-key-does-not-exist"]) ==
-             {[], [], [{"--option-key-does-not-exist", nil}]}
-  end
-
-  test "parses --key=value option" do
-    assert OptionParser.parse(["--source=form_docs/", "other"]) ==
-             {[source: "form_docs/"], ["other"], []}
-  end
-
-  test "parses alias --key value option as the alias" do
-    assert OptionParser.parse(["-s", "from_docs/"], aliases: [s: :source]) ==
-             {[source: "from_docs/"], [], []}
-  end
-
-  test "parses alias --key=value option as the alias" do
-    assert OptionParser.parse(["-s=from_docs/", "other"], aliases: [s: :source]) ==
-             {[source: "from_docs/"], ["other"], []}
-  end
-
   test "does not interpret undefined options with value as boolean" do
-    assert OptionParser.parse(["--no-bool"]) == {[no_bool: true], [], []}
     assert OptionParser.parse(["--no-bool"], strict: []) == {[], [], [{"--no-bool", nil}]}
-    assert OptionParser.parse(["--no-bool=...", "other"]) == {[no_bool: "..."], ["other"], []}
-  end
-
-  test "does not parse -- as an alias" do
-    assert OptionParser.parse(["--s=from_docs/"], aliases: [s: :source]) ==
-             {[s: "from_docs/"], [], []}
   end
 
   test "parses -ab as -a -b" do
     aliases = [a: :first, b: :second]
-
-    assert OptionParser.parse(["-ab"], aliases: aliases) == {[first: true, second: true], [], []}
 
     assert OptionParser.parse(["-ab=1"], aliases: aliases, switches: [second: :integer]) ==
              {[first: true, second: 1], [], []}
@@ -169,51 +119,6 @@ defmodule OptionParserTest do
              {[], ["foo"], [{"--value", "WAT"}]}
   end
 
-  test "overrides options by default" do
-    assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"]) ==
-             {[require: "bar"], ["baz"], []}
-  end
-
-  test "parses mixed options" do
-    argv = ["--source", "from_docs/", "--compile", "-x"]
-
-    assert OptionParser.parse(argv, aliases: [x: :x]) ==
-             {[source: "from_docs/", compile: true, x: true], [], []}
-  end
-
-  test "stops on first non-option arguments" do
-    argv = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
-
-    assert OptionParser.parse_head(argv) ==
-             {[source: "from_docs/"], ["test/enum_test.exs", "--verbose"], []}
-  end
-
-  test "stops on --" do
-    options = OptionParser.parse(["--source", "foo", "--", "1", "2", "3"])
-    assert options == {[source: "foo"], ["1", "2", "3"], []}
-
-    options = OptionParser.parse_head(["--source", "foo", "--", "1", "2", "3"])
-    assert options == {[source: "foo"], ["1", "2", "3"], []}
-
-    options = OptionParser.parse(["--source", "foo", "bar", "--", "-x"])
-    assert options == {[source: "foo"], ["bar", "-x"], []}
-
-    options = OptionParser.parse_head(["--source", "foo", "bar", "--", "-x"])
-    assert options == {[source: "foo"], ["bar", "--", "-x"], []}
-  end
-
-  test "goes beyond the first non-option arguments" do
-    argv = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
-
-    assert OptionParser.parse(argv) ==
-             {[source: "from_docs/", verbose: true], ["test/enum_test.exs"], []}
-  end
-
-  test "parses more than one key/value options" do
-    assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"]) ==
-             {[source: "from_docs/", docs: "show"], [], []}
-  end
-
   test "collects multiple invalid options" do
     argv = ["--bad", "opt", "foo", "-o", "bad", "bar"]
 
@@ -270,22 +175,12 @@ defmodule OptionParserTest do
   end
 
   test "parses - as argument" do
-    assert OptionParser.parse(["-a", "-", "-", "-b", "-"], aliases: [b: :boo]) ==
-             {[boo: "-"], ["-"], [{"-a", "-"}]}
-
     argv = ["--foo", "-", "-b", "-"]
     opts = [strict: [foo: :boolean, boo: :string], aliases: [b: :boo]]
     assert OptionParser.parse(argv, opts) == {[foo: true, boo: "-"], ["-"], []}
   end
 
-  test "allow nonexistent atoms" do
-    assert OptionParser.parse(["--option-key-creates-atom"], allow_nonexistent_atoms: true) ==
-             {[{String.to_atom("option_key_creates_atom"), true}], [], []}
-  end
-
   test "correctly handles negative integers" do
-    assert OptionParser.parse(["arg1", "-43"]) == {[], ["arg1", "-43"], []}
-
     opts = [switches: [option: :integer], aliases: [o: :option]]
     assert OptionParser.parse(["arg1", "-o", "-43"], opts) == {[option: -43], ["arg1"], []}
 
@@ -294,8 +189,6 @@ defmodule OptionParserTest do
   end
 
   test "correctly handles negative floating-point numbers" do
-    assert OptionParser.parse(["arg1", "-43.2"]) == {[], ["arg1", "-43.2"], []}
-
     opts = [switches: [option: :float], aliases: [o: :option]]
     assert OptionParser.parse(["arg1", "-o", "-43.2"], opts) == {[option: -43.2], ["arg1"], []}
 
@@ -307,11 +200,6 @@ defmodule OptionParserTest do
     config = [switches: [hello_world: :boolean]]
     assert OptionParser.next(["--hello-world"], config) == {:ok, :hello_world, true, []}
     assert OptionParser.next(["--no-hello-world"], config) == {:ok, :hello_world, false, []}
-
-    assert OptionParser.next(["--hello-world"], []) == {:ok, :hello_world, true, []}
-    assert OptionParser.next(["--no-hello-world"], []) == {:ok, :no_hello_world, true, []}
-    assert OptionParser.next(["--hello_world"], []) == {:invalid, "--hello_world", nil, []}
-    assert OptionParser.next(["--no-hello_world"], []) == {:invalid, "--no-hello_world", nil, []}
 
     assert OptionParser.next(["--no-hello-world"], strict: []) ==
              {:undefined, "--no-hello-world", nil, []}
@@ -398,5 +286,199 @@ defmodule OptionParserTest do
     original = ["--counter", "--counter"]
     {opts, [], []} = OptionParser.parse(original, switches: [counter: :count])
     assert original == OptionParser.to_argv(opts, switches: [counter: :count])
+  end
+end
+
+defmodule OptionsParserDeprecationsTest do
+  use ExUnit.Case, async: false
+
+  @warning ~r[Not passing the :switches or :strict option to OptionParser is deprecated]
+
+  def assert_deprecated(fun) do
+    assert ExUnit.CaptureIO.capture_io(:stderr, fun) =~ @warning
+  end
+
+  test "parses boolean option" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--docs"]) == {[docs: true], [], []}
+    end)
+  end
+
+  test "parses alias boolean option as the alias key" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["-d"], aliases: [d: :docs]) == {[docs: true], [], []}
+    end)
+  end
+
+  test "parses more than one boolean option" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--docs", "--compile"]) == {[docs: true, compile: true], [], []}
+    end)
+  end
+
+  test "parses more than one boolean options as the alias" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["-d", "--compile"], aliases: [d: :docs]) ==
+               {[docs: true, compile: true], [], []}
+    end)
+  end
+
+  test "parses --key value option" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--source", "form_docs/"]) == {[source: "form_docs/"], [], []}
+    end)
+  end
+
+  test "parses only to existing atoms" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--option-key-does-not-exist"]) ==
+               {[], [], [{"--option-key-does-not-exist", nil}]}
+    end)
+  end
+
+  test "parses --key=value option" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--source=form_docs/", "other"]) ==
+               {[source: "form_docs/"], ["other"], []}
+    end)
+  end
+
+  test "parses alias --key value option as the alias" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["-s", "from_docs/"], aliases: [s: :source]) ==
+               {[source: "from_docs/"], [], []}
+    end)
+  end
+
+  test "does not interpret undefined options with value as boolean" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--no-bool"]) == {[no_bool: true], [], []}
+    end)
+
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--no-bool=...", "other"]) == {[no_bool: "..."], ["other"], []}
+    end)
+  end
+
+  test "parses alias --key=value option as the alias" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["-s=from_docs/", "other"], aliases: [s: :source]) ==
+               {[source: "from_docs/"], ["other"], []}
+    end)
+  end
+
+  test "parses -ab as -a -b" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["-ab"], aliases: [a: :first, b: :second]) ==
+               {[first: true, second: true], [], []}
+    end)
+  end
+
+  test "overrides options by default" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"]) ==
+               {[require: "bar"], ["baz"], []}
+    end)
+  end
+
+  test "parses mixed options" do
+    argv = ["--source", "from_docs/", "--compile", "-x"]
+
+    assert_deprecated(fn ->
+      assert OptionParser.parse(argv, aliases: [x: :x]) ==
+               {[source: "from_docs/", compile: true, x: true], [], []}
+    end)
+  end
+
+  test "stops on first non-option arguments" do
+    argv = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
+
+    assert_deprecated(fn ->
+      assert OptionParser.parse_head(argv) ==
+               {[source: "from_docs/"], ["test/enum_test.exs", "--verbose"], []}
+    end)
+  end
+
+  test "stops on --" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--source", "foo", "--", "1", "2", "3"]) ==
+               {[source: "foo"], ["1", "2", "3"], []}
+    end)
+
+    assert_deprecated(fn ->
+      assert OptionParser.parse_head(["--source", "foo", "--", "1", "2", "3"]) ==
+               {[source: "foo"], ["1", "2", "3"], []}
+    end)
+
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--source", "foo", "bar", "--", "-x"]) ==
+               {[source: "foo"], ["bar", "-x"], []}
+    end)
+
+    assert_deprecated(fn ->
+      assert OptionParser.parse_head(["--source", "foo", "bar", "--", "-x"]) ==
+               {[source: "foo"], ["bar", "--", "-x"], []}
+    end)
+  end
+
+  test "goes beyond the first non-option arguments" do
+    argv = ["--source", "from_docs/", "test/enum_test.exs", "--verbose"]
+
+    assert_deprecated(fn ->
+      assert OptionParser.parse(argv) ==
+               {[source: "from_docs/", verbose: true], ["test/enum_test.exs"], []}
+    end)
+  end
+
+  test "parses more than one key/value options" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"]) ==
+               {[source: "from_docs/", docs: "show"], [], []}
+    end)
+  end
+
+  test "parses - as argument" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["-a", "-", "-", "-b", "-"], aliases: [b: :boo]) ==
+               {[boo: "-"], ["-"], [{"-a", "-"}]}
+    end)
+  end
+
+  test "allow nonexistent atoms" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["--option-key-creates-atom"], allow_nonexistent_atoms: true) ==
+               {[{String.to_atom("option_key_creates_atom"), true}], [], []}
+    end)
+  end
+
+  test "correctly handles negative integers" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["arg1", "-43"]) == {[], ["arg1", "-43"], []}
+    end)
+  end
+
+  test "correctly handles negative floating-point numbers" do
+    assert_deprecated(fn ->
+      assert OptionParser.parse(["arg1", "-43.2"]) == {[], ["arg1", "-43.2"], []}
+    end)
+  end
+
+  test "multi-word option" do
+    assert_deprecated(fn ->
+      assert OptionParser.next(["--hello-world"], []) == {:ok, :hello_world, true, []}
+    end)
+
+    assert_deprecated(fn ->
+      assert OptionParser.next(["--no-hello-world"], []) == {:ok, :no_hello_world, true, []}
+    end)
+
+    assert_deprecated(fn ->
+      assert OptionParser.next(["--hello_world"], []) == {:invalid, "--hello_world", nil, []}
+    end)
+
+    assert_deprecated(fn ->
+      assert OptionParser.next(["--no-hello_world"], []) ==
+               {:invalid, "--no-hello_world", nil, []}
+    end)
   end
 end
