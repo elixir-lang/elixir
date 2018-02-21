@@ -101,13 +101,10 @@ defmodule Supervisor do
 
   ## Start and shutdown
 
-  When the supervisor starts, it traverses all children and retrieves
-  each child specification. It is at this moment `{Stack, [:hello]}`
-  becomes a child specification by calling `Stack.child_spec([:hello])`.
-
-  Then the supervisor starts each child in the order they are defined.
-  This is done by calling the function defined under the `:start` key
-  in the child specification and typically defaults to `start_link/1`.
+  When the supervisor starts, it traverses all child specifications and
+  then starts each child in the order they are defined. This is done by
+  calling the function defined under the `:start` key in the child
+  specification and typically defaults to `start_link/1`.
 
   The `start_link/1` (or a custom) is then called for each child process.
   The `start_link/1` function must return `{:ok, pid}` where `pid` is the
@@ -301,7 +298,9 @@ defmodule Supervisor do
   function.
 
   You may also completely override the `child_spec/1` function in the Stack module
-  and return your own child specification.
+  and return your own child specification. Note there is no guarantee the `child_spec/1`
+  function will be called by the Supervisor process, as other processes may invoke
+  it to retrieve the child specification before reaching the supervisor.
 
   ## Exit reasons and restarts
 
