@@ -963,21 +963,21 @@ defmodule DynamicSupervisor do
     end
   end
 
-  defp report_error(error, reason, pid, child, %{name: name}) do
+  defp report_error(error, reason, pid, child, %{name: name, extra_arguments: extra}) do
     :error_logger.error_report(
       :supervisor_report,
       supervisor: name,
       errorContext: error,
       reason: reason,
-      offender: extract_child(pid, child)
+      offender: extract_child(pid, child, extra)
     )
   end
 
-  defp extract_child(pid, {mfa, restart, shutdown, type, _modules}) do
+  defp extract_child(pid, {{m, f, args}, restart, shutdown, type, _modules}, extra) do
     [
       pid: pid,
       id: :undefined,
-      mfargs: mfa,
+      mfargs: {m, f, extra ++ args},
       restart_type: restart,
       shutdown: shutdown,
       child_type: type
