@@ -1229,7 +1229,7 @@ defmodule Module do
     _since = compile_since(table)
 
     # TODO: Store @since and @deprecated alongside the docs
-    {line, doc} = get_doc_info(table, env, impl)
+    {line, doc} = get_doc_info(table, env)
     compile_doc(table, line, kind, pair, args, doc, env, impl)
 
     :ok
@@ -1251,6 +1251,7 @@ defmodule Module do
 
     case :ets.lookup(table, {:doc, pair}) do
       [] ->
+        doc = if impl, do: false, else: doc
         :ets.insert(table, {{:doc, pair}, line, kind, signature, doc})
 
       [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
@@ -1771,16 +1772,13 @@ defmodule Module do
     value
   end
 
-  defp get_doc_info(table, env, impl) do
+  defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
       [{:doc, {_, _} = pair, _, _}] ->
         pair
 
-      [] when impl == false ->
-        {env.line, nil}
-
       [] ->
-        {env.line, false}
+        {env.line, nil}
     end
   end
 
