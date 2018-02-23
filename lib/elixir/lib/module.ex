@@ -1210,7 +1210,7 @@ defmodule Module do
     if kind in [:defp, :defmacrop, :typep] do
       if doc, do: {:error, :private_doc}, else: :ok
     else
-      compile_doc(data_table_for(module), line, kind, function_tuple, signature, doc, __ENV__)
+      compile_doc(data_table_for(module), line, kind, function_tuple, signature, doc, __ENV__, false)
       :ok
     end
   end
@@ -1234,8 +1234,6 @@ defmodule Module do
 
     :ok
   end
-
-  defp compile_doc(table, line, kind, pair, args, doc, env, impl \\ false)
 
   defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env, _impl)
        when kind in [:defp, :defmacrop] do
