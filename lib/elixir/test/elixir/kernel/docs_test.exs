@@ -234,6 +234,7 @@ defmodule Kernel.DocsTest do
         defmodule SampleBehaviour do
           @callback foo(any()) :: any()
           @callback bar() :: any()
+          @callback baz() :: any()
         end
 
         @behaviour SampleBehaviour
@@ -247,6 +248,10 @@ defmodule Kernel.DocsTest do
         @impl true
         def bar(), do: true
 
+        @doc "Baz docs"
+        @impl true
+        def baz(), do: true
+
         def fuz(), do: true
       end
     )
@@ -255,6 +260,7 @@ defmodule Kernel.DocsTest do
 
     assert [
              {{:bar, 0}, _, :def, [], false},
+             {{:baz, 0}, _, :def, [], "Baz docs"},
              {{:foo, 1}, _, :def, [{:arg1, [], _}], "Foo docs"},
              {{:fuz, 0}, _, :def, [], nil}
            ] = docs[:docs]

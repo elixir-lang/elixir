@@ -1261,12 +1261,13 @@ defmodule Module do
 
     case :ets.lookup(table, {:doc, pair}) do
       [] ->
-        doc = if impl, do: false, else: doc
+        doc = if is_nil(doc) && impl, do: false, else: doc
         :ets.insert(table, {{:doc, pair}, line, kind, signature, doc})
 
       [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
         signature = merge_signatures(current_sign, signature, 1)
-        doc = if is_nil(doc) || impl, do: current_doc, else: doc
+        doc = if is_nil(doc), do: current_doc, else: doc
+        doc = if is_nil(doc) && impl, do: false, else: doc
         :ets.insert(table, {doc_tuple, line, kind, signature, doc})
     end
   end
