@@ -14,7 +14,7 @@ Although we expect the vast majority of programs to remain compatible over time,
 
   * Imports: new functions may be added to the `Kernel` module, which is auto-imported. They may collide with local functions defined in your modules. Collisions can be resolved in a backwards compatible fashion using `import Kernel, except: [...]` with a list of all functions you don't want imported from `Kernel`. We reserve the right to do such additions.
 
-In order to continue evolving the language without introducing breaking changes, Elixir will rely on deprecations to demote certain practices and promote new ones. Our deprecation policy is outlined in the "Deprecations" section.
+In order to continue evolving the language without introducing breaking changes, Elixir will rely on deprecations to demote certain practices and promote new ones. Our deprecation policy is outlined [in the "Deprecations" section](#deprecations).
 
 Elixir binaries are guaranteed to be backwards compatible within the same branch. Code compiled with v1.0 shall work with Elixir v1.0.1 runtime but code compiled with Elixir v1.0 should be recompiled to work with Elixir v1.1.0 onwards. The Mix build tool automatically tracks those changes.
 
