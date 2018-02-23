@@ -1230,12 +1230,14 @@ defmodule Module do
 
     # TODO: Store @since and @deprecated alongside the docs
     {line, doc} = get_doc_info(table, env, impl)
-    compile_doc(table, line, kind, pair, args, doc, env)
+    compile_doc(table, line, kind, pair, args, doc, env, impl)
 
     :ok
   end
 
-  defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env)
+  defp compile_doc(table, line, kind, pair, args, doc, env, impl \\ false)
+
+  defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
       error_message =
@@ -1246,7 +1248,7 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, pair, args, doc, env) do
+  defp compile_doc(table, line, kind, pair, args, doc, env, impl) do
     signature = build_signature(args, env)
 
     case :ets.lookup(table, {:doc, pair}) do
@@ -1255,7 +1257,7 @@ defmodule Module do
 
       [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
         signature = merge_signatures(current_sign, signature, 1)
-        doc = if is_nil(doc), do: current_doc, else: doc
+        doc = if is_nil(doc) || impl, do: current_doc, else: doc
         :ets.insert(table, {doc_tuple, line, kind, signature, doc})
     end
   end
