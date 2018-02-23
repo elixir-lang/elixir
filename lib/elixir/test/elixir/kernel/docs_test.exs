@@ -252,11 +252,11 @@ defmodule Kernel.DocsTest do
     )
 
     docs = Code.get_docs(Docs, :all)
-    assert Code_
+
     assert [
-      {{:bar, 0}, _, :def, [], false},
-      {{:foo, 1}, _, :def, [{:arg1, [], _}], "Foo docs"},
-      {{:fuz, 0}, _, :def, [], nil},
-    ] = docs[:docs]
+             {{:bar, 0}, _, :def, [], false},
+             {{:foo, 1}, _, :def, [{:arg1, [], _}], "Foo docs"},
+             {{:fuz, 0}, _, :def, [], nil}
+           ] = docs[:docs]
   end
 end
