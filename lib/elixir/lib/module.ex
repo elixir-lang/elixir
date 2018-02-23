@@ -1210,7 +1210,8 @@ defmodule Module do
     if kind in [:defp, :defmacrop, :typep] do
       if doc, do: {:error, :private_doc}, else: :ok
     else
-      compile_doc(data_table_for(module), line, kind, function_tuple, signature, doc, __ENV__)
+      table = data_table_for(module)
+      compile_doc(table, line, kind, function_tuple, signature, doc, __ENV__, false)
       :ok
     end
   end
@@ -1229,13 +1230,13 @@ defmodule Module do
     _since = compile_since(table)
 
     # TODO: Store @since and @deprecated alongside the docs
-    {line, doc} = get_doc_info(table, env, impl)
-    compile_doc(table, line, kind, pair, args, doc, env)
+    {line, doc} = get_doc_info(table, env)
+    compile_doc(table, line, kind, pair, args, doc, env, impl)
 
     :ok
   end
 
-  defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env)
+  defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
       error_message =
@@ -1246,16 +1247,18 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, pair, args, doc, env) do
+  defp compile_doc(table, line, kind, pair, args, doc, env, impl) do
     signature = build_signature(args, env)
 
     case :ets.lookup(table, {:doc, pair}) do
       [] ->
+        doc = if is_nil(doc) && impl, do: false, else: doc
         :ets.insert(table, {{:doc, pair}, line, kind, signature, doc})
 
       [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
         signature = merge_signatures(current_sign, signature, 1)
         doc = if is_nil(doc), do: current_doc, else: doc
+        doc = if is_nil(doc) && impl, do: false, else: doc
         :ets.insert(table, {doc_tuple, line, kind, signature, doc})
     end
   end
@@ -1750,16 +1753,13 @@ defmodule Module do
     value
   end
 
-  defp get_doc_info(table, env, impl) do
+  defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
       [{:doc, {_, _} = pair, _, _}] ->
         pair
 
-      [] when impl == false ->
-        {env.line, nil}
-
       [] ->
-        {env.line, false}
+        {env.line, nil}
     end
   end
 
