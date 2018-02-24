@@ -34,13 +34,16 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "ex_unit_opts/1 includes some default options" do
-    assert ex_unit_opts([]) == [autorun: false, manifest_path: Mix.Project.manifest_path()]
+    assert ex_unit_opts([]) == [
+             autorun: false,
+             manifest_file: Path.join(Mix.Project.manifest_path(), ".ex_unit_results.elixir")
+           ]
   end
 
   defp ex_unit_opts_from_given(passed) do
     passed
     |> Mix.Tasks.Test.ex_unit_opts()
-    |> Keyword.drop([:manifest_path, :autorun])
+    |> Keyword.drop([:manifest_file, :autorun])
   end
 
   test "--stale: runs all tests for first run, then none on second" do

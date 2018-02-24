@@ -10,21 +10,13 @@ defmodule ExUnit.RunnerStats do
 
   # Callbacks
 
-  @manifest ".ex_unit_results.elixir"
-
   def init(opts) do
-    manifest_file =
-      case Keyword.fetch(opts, :manifest_path) do
-        :error -> nil
-        {:ok, manifest_path} -> Path.join(manifest_path, @manifest)
-      end
-
     state = %{
       total: 0,
       failures: 0,
       skipped: 0,
       excluded: 0,
-      manifest_file: manifest_file,
+      manifest_file: opts[:manifest_file],
       old_manifest: nil,
       new_manifest: Manifest.new()
     }
