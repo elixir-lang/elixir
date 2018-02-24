@@ -281,22 +281,22 @@ defmodule NaiveDateTime do
   """
   @since "1.4.0"
   @spec diff(t, t, System.time_unit()) :: integer
-  def diff(%NaiveDateTime{} = ndatetime1, %NaiveDateTime{} = ndatetime2, unit \\ :second) do
-    if not Calendar.compatible_calendars?(ndatetime1.calendar, ndatetime2.calendar) do
+  def diff(%NaiveDateTime{} = naive_datetime1, %NaiveDateTime{} = naive_datetime2, unit \\ :second) do
+    if not Calendar.compatible_calendars?(naive_datetime1.calendar, naive_datetime2.calendar) do
       raise ArgumentError,
-            "cannot calculate the difference between #{inspect(ndatetime1)} and " <>
-              "#{inspect(ndatetime2)} because their calendars are not compatible " <>
+            "cannot calculate the difference between #{inspect(naive_datetime1)} and " <>
+              "#{inspect(naive_datetime2)} because their calendars are not compatible " <>
               "and thus the result would be ambiguous"
     end
 
-    units1 = ndatetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
-    units2 = ndatetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
+    units1 = naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
+    units2 = naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
     units1 - units2
   end
 
   @doc """
   Returns the given naive datetime with the microsecond field truncated to the
-  given precision (`:microsecond`, `millisecond` or `:second`).
+  given precision (`:microsecond`, `:millisecond` or `:second`).
 
   ## Examples
 
@@ -312,8 +312,8 @@ defmodule NaiveDateTime do
   """
   @since "1.6.0"
   @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
-  def truncate(%NaiveDateTime{microsecond: microsecond} = ndatetime, precision) do
-    %{ndatetime | microsecond: Calendar.truncate(microsecond, precision)}
+  def truncate(%NaiveDateTime{microsecond: microsecond} = naive_datetime, precision) do
+    %{naive_datetime | microsecond: Calendar.truncate(microsecond, precision)}
   end
 
   @doc """
