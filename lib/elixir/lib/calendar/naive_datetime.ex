@@ -5,7 +5,7 @@ defmodule NaiveDateTime do
   The NaiveDateTime struct contains the fields year, month, day, hour,
   minute, second, microsecond and calendar. New naive datetimes can be
   built with the `new/2` and `new/7` functions or using the
-  [`~N`](`Kernek.sigil_N/2`) sigil:
+  [`~N`](`Kernel.sigil_N/2`) sigil:
 
       iex> ~N[2000-01-01 23:00:07]
       ~N[2000-01-01 23:00:07]
@@ -28,13 +28,13 @@ defmodule NaiveDateTime do
   `NaiveDateTime` is not validated against a time zone, such errors
   would go unnoticed.
 
-  The functions on this module work with the `NaiveDateTime` struct as well
+  The functions of this module work with the `NaiveDateTime` struct as well
   as any struct that contains the same fields as the `NaiveDateTime` struct,
   such as `DateTime`. Such functions expect
   `t:Calendar.naive_datetime/0` in their typespecs (instead of `t:t/0`).
 
   Developers should avoid creating the NaiveDateTime structs directly
-  and instead rely on the functions provided by this module as well
+  and instead, rely on the functions provided by this module as well
   as the ones in 3rd party calendar libraries.
 
   ## Comparing naive date times
@@ -208,7 +208,7 @@ defmodule NaiveDateTime do
   Adds a specified amount of time to a `NaiveDateTime`.
 
   Accepts an `integer` in any `unit` available from `t:System.time_unit/0`.
-  Negative values will be move backwards in time.
+  Negative values will move backwards in time.
 
   This operation is only possible if both calendars are convertible to `Calendar.ISO`.
 
