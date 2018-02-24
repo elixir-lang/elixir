@@ -7,8 +7,7 @@ defmodule ExUnit.RunnerStatsTest do
   import Manifest, only: [entry: 1]
   import ExUnit.TestHelpers, only: [in_tmp: 2]
 
-  @manifest_path "manifests"
-  @manifest_file "#{@manifest_path}/.ex_unit_results.elixir"
+  @manifest_file "ex_unit_manifest.elixir"
 
   describe "stats tracking" do
     test "counts total, failures, skipped, and excluded tests" do
@@ -71,7 +70,7 @@ defmodule ExUnit.RunnerStatsTest do
     end
   end
 
-  defp simulate_suite(opts \\ [manifest_path: @manifest_path], fun) do
+  defp simulate_suite(opts \\ [manifest_file: @manifest_file], fun) do
     {:ok, pid} = GenServer.start_link(RunnerStats, opts)
     GenServer.cast(pid, {:suite_started, opts})
 

@@ -331,7 +331,7 @@ defmodule Mix.Tasks.Test do
     :formatters,
     :colors,
     :slowest,
-    :manifest_path
+    :manifest_file
   ]
 
   @doc false
@@ -410,8 +410,11 @@ defmodule Mix.Tasks.Test do
     end
   end
 
+  @manifest_file_name ".ex_unit_results.elixir"
+
   defp manifest_opts(opts) do
-    Keyword.put(opts, :manifest_path, Mix.Project.manifest_path())
+    manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
+    Keyword.put(opts, :manifest_file, manifest_file)
   end
 
   defp color_opts(opts) do
