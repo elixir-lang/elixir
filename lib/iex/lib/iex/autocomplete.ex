@@ -55,10 +55,10 @@ defmodule IEx.Autocomplete do
 
   @doc false
   def exports(mod) do
-    if function_exported?(mod, :__info__, 1) do
+    if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
       mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
     else
-      mod.module_info(:exports)
+      mod.module_info(:exports) -- [module_info: 0, module_info: 1]
     end
   end
 
