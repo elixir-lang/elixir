@@ -281,7 +281,11 @@ defmodule NaiveDateTime do
   """
   @since "1.4.0"
   @spec diff(t, t, System.time_unit()) :: integer
-  def diff(%NaiveDateTime{} = naive_datetime1, %NaiveDateTime{} = naive_datetime2, unit \\ :second) do
+  def diff(
+        %NaiveDateTime{} = naive_datetime1,
+        %NaiveDateTime{} = naive_datetime2,
+        unit \\ :second
+      ) do
     if not Calendar.compatible_calendars?(naive_datetime1.calendar, naive_datetime2.calendar) do
       raise ArgumentError,
             "cannot calculate the difference between #{inspect(naive_datetime1)} and " <>
