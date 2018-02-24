@@ -258,14 +258,22 @@ Other improvements in Mix include better compiler diagnostics for editor integra
 
 #### Elixir
 
+  * [GenServer] Warn if `init/1` is not defined in `GenServer`. This brings GenServer closer to the implementation in OTP and aligns all behaviours to require the `init/1` callback
   * [Inspect.Algebra] `surround/3` and `surround_many/6` are deprecated in favor of `container_doc/6`
+  * [Kernel] Specifying map types with variable keys without defining the type as required/optional is deprecated
   * [Kernel.ParallelCompiler] `files/2` and `files_to_path/3` are deprecated in favor of `compile/2` and `compile_to_path/3`
   * [Kernel.ParallelRequire] `files/2` is deprecated in favor of `Kernel.ParallelCompiler.require/2`
-  * [GenServer] Warn if `init/1` is not defined in `GenServer`. This brings GenServer closer to the implementation in OTP and aligns all behaviours to require the `init/1` callback
+  * [Supervisor] The `:simple_one_for_one` strategy is deprecated in favor of `DynamicSupervisor`
+  * [Supervisor] Passing a list of args to `Supervisor.start_child/2` is deprecated in favor of `DynamicSupervisor`
+  * [Task.Supervisor] Passing `:restart` and `:shutdown` to `Task.Supervisor.start_link/2` is deprecated (it should be passed on start child instead)
 
 #### ExUnit
 
   * [ExUnit.Formatter] `:case_started` and `:case_finished` events are deprecated in favor of `:module_started` and `:module_finished`
+
+#### Mix
+
+  * [Mix.Compilers.Erlang] Returning `{:ok, val} | :error` from custom Erlang compilers is deprecated in favor of `{:ok, val, warnings} | {:error, errors, warnings}`
 
 ### 4. Deprecations
 
