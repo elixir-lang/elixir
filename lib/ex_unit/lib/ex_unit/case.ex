@@ -116,7 +116,18 @@ defmodule ExUnit.Case do
   A tag can be set for all tests in a module or describe block by
   setting `@moduletag` or `@describetag` respectively:
 
-      @moduletag :external
+      defmodule ApiTest do
+        use ExUnit.Case
+        @moduletag :external
+
+        @describetag :endpoint
+        describe "makes calls to the right endpoint" do
+          # ...
+        end
+      end
+
+  If you are setting a `@moduletag`, you must set that after your
+  call to `use ExUnit.Case` or you will see compilation errors.
 
   If the same key is set via `@tag`, the `@tag` value has higher
   precedence.
