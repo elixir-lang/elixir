@@ -22,6 +22,16 @@ defmodule Mix.Tasks.Format do
     * `:inputs` (a list of paths and patterns) - specifies the default inputs
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
 
+    * `:subdirectories` (a list of paths and patterns) - specifies subdirectories
+      that have their own formatting rules. Each subdirectory should have a
+      `.formatter.exs` that configures how entries in that subdirectory should be
+      formatted as. Configuration between `.formatter.exs` are not shared nor
+      inherited. If a `.formatter.exs` lists "lib/app" as a subdirectory, the rules
+      in `.formatter.exs` won't be available in the inner `lib/app/.formatter.exs`.
+      It is also important that the parent `.formatter.exs` does not specify files
+      inside the "lib/app" subdirectory in its `:inputs` configuration. If this
+      happens, the behaviour of which formatter will be picked is unspecified.
+
     * `:import_deps` (a list of dependencies as atoms) - specifies a list
        of dependencies whose formatter configuration will be imported.
        When specified, the formatter should run in the same directory as
@@ -115,16 +125,19 @@ defmodule Mix.Tasks.Format do
     dry_run: :boolean
   ]
 
-  @deps_manifest "cached_formatter_deps"
+  @manifest "cached_dot_formatter"
+  @manifest_vsn 1
 
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
     {dot_formatter, formatter_opts} = eval_dot_formatter(opts)
-    formatter_opts = fetch_deps_opts(dot_formatter, formatter_opts)
+
+    {formatter_opts_and_subs, _sources} =
+      eval_deps_and_subdirectories(dot_formatter, [], formatter_opts, [dot_formatter])
 
     args
-    |> expand_args(formatter_opts)
-    |> Task.async_stream(&format_file(&1, opts, formatter_opts), ordered: false, timeout: 30000)
+    |> expand_args(dot_formatter, formatter_opts_and_subs)
+    |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: 30000)
     |> Enum.reduce({[], [], []}, &collect_status/2)
     |> check!()
   end
@@ -142,71 +155,110 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  # This function reads exported configuration from the imported dependencies and deals with
-  # caching the result of reading such configuration in a manifest file.
-  defp fetch_deps_opts(dot_formatter, formatter_opts) do
+  # This function reads exported configuration from the imported
+  # dependencies and subdirectories and deals with caching the result
+  # of reading such configuration in a manifest file.
+  defp eval_deps_and_subdirectories(dot_formatter, prefix, formatter_opts, sources) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
+    subs = Keyword.get(formatter_opts, :subdirectories, [])
 
-    cond do
-      deps == [] ->
-        formatter_opts
+    if not is_list(deps) do
+      Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
+    end
 
-      is_list(deps) ->
-        # Since we have dependencies listed, we write the manifest even if those
-        # dependencies don't export anything so that we avoid lookups everytime.
-        deps_manifest = Path.join(Mix.Project.manifest_path(), @deps_manifest)
-        dep_parenless_calls = maybe_cache_eval_deps_opts(dot_formatter, deps_manifest, deps)
+    if not is_list(subs) do
+      Mix.raise("Expected :subdirectories to return a list of directories, got: #{inspect(subs)}")
+    end
 
-        Keyword.update(
-          formatter_opts,
-          :locals_without_parens,
-          dep_parenless_calls,
-          &(&1 ++ dep_parenless_calls)
-        )
+    if deps == [] and subs == [] do
+      {{formatter_opts, []}, sources}
+    else
+      manifest = Path.join(Mix.Project.manifest_path(), @manifest)
 
-      true ->
-        Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
+      maybe_cache_in_manifest(dot_formatter, manifest, fn ->
+        {subdirectories, sources} = eval_subs_opts(subs, prefix, sources)
+        {{eval_deps_opts(formatter_opts, deps), subdirectories}, sources}
+      end)
     end
   end
 
-  defp maybe_cache_eval_deps_opts(dot_formatter, deps_manifest, deps) do
+  defp maybe_cache_in_manifest(dot_formatter, manifest, fun) do
     cond do
-      dot_formatter != ".formatter.exs" ->
-        eval_deps_opts(deps)
-
-      deps_dot_formatters_stale?(dot_formatter, deps_manifest) ->
-        write_deps_manifest(deps_manifest, eval_deps_opts(deps))
-
-      true ->
-        read_deps_manifest(deps_manifest)
+      is_nil(Mix.Project.get()) or dot_formatter != ".formatter.exs" -> fun.()
+      entry = read_manifest(manifest) -> entry
+      true -> write_manifest!(manifest, fun.())
     end
   end
 
-  defp deps_dot_formatters_stale?(dot_formatter, deps_manifest) do
-    Mix.Utils.stale?([dot_formatter | Mix.Project.config_files()], [deps_manifest])
+  def read_manifest(manifest) do
+    with {:ok, binary} <- File.read(manifest),
+         {:ok, {@manifest_vsn, entry, sources}} <- safe_binary_to_term(binary),
+         expanded_sources = Enum.flat_map(sources, &Path.wildcard(&1, match_dot: true)),
+         false <- Mix.Utils.stale?(Mix.Project.config_files() ++ expanded_sources, [manifest]) do
+      {entry, sources}
+    else
+      _ -> nil
+    end
   end
 
-  defp read_deps_manifest(deps_manifest) do
-    deps_manifest |> File.read!() |> :erlang.binary_to_term()
+  defp safe_binary_to_term(binary) do
+    {:ok, :erlang.binary_to_term(binary)}
+  rescue
+    _ -> :error
   end
 
-  defp write_deps_manifest(deps_manifest, parenless_calls) do
-    File.mkdir_p!(Path.dirname(deps_manifest))
-    File.write!(deps_manifest, :erlang.term_to_binary(parenless_calls))
-    parenless_calls
+  defp write_manifest!(manifest, {entry, sources}) do
+    File.mkdir_p!(Path.dirname(manifest))
+    File.write!(manifest, :erlang.term_to_binary({@manifest_vsn, entry, sources}))
+    {entry, sources}
   end
 
-  defp eval_deps_opts(deps) do
+  defp eval_deps_opts(formatter_opts, []) do
+    formatter_opts
+  end
+
+  defp eval_deps_opts(formatter_opts, deps) do
     deps_paths = Mix.Project.deps_paths()
 
-    for dep <- deps,
-        dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
-        dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
-        File.regular?(dep_dot_formatter),
-        dep_opts = eval_file_with_keyword_list(dep_dot_formatter),
-        parenless_call <- dep_opts[:export][:locals_without_parens] || [],
-        uniq: true,
-        do: parenless_call
+    parenless_calls =
+      for dep <- deps,
+          dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
+          dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
+          File.regular?(dep_dot_formatter),
+          dep_opts = eval_file_with_keyword_list(dep_dot_formatter),
+          parenless_call <- dep_opts[:export][:locals_without_parens] || [],
+          uniq: true,
+          do: parenless_call
+
+    Keyword.update(
+      formatter_opts,
+      :locals_without_parens,
+      parenless_calls,
+      &(&1 ++ parenless_calls)
+    )
+  end
+
+  defp eval_subs_opts(subs, prefix, sources) do
+    {subs, sources} =
+      Enum.flat_map_reduce(subs, sources, fn sub, sources ->
+        prefix = Path.join(prefix ++ [sub])
+        {Path.wildcard(prefix), [Path.join(prefix, ".formatter.exs") | sources]}
+      end)
+
+    Enum.flat_map_reduce(subs, sources, fn sub, sources ->
+      sub_formatter = Path.join(sub, ".formatter.exs")
+
+      if File.exists?(sub_formatter) do
+        formatter_opts = eval_file_with_keyword_list(sub_formatter)
+
+        {formatter_opts_and_subs, sources} =
+          eval_deps_and_subdirectories(:in_memory, [sub], formatter_opts, sources)
+
+        {[{sub, formatter_opts_and_subs}], sources}
+      else
+        {[], sources}
+      end
+    end)
   end
 
   defp assert_valid_dep_and_fetch_path(dep, deps_paths) when is_atom(dep) do
@@ -243,22 +295,20 @@ defmodule Mix.Tasks.Format do
     opts
   end
 
-  defp expand_args([], formatter_opts) do
-    if inputs = formatter_opts[:inputs] do
-      expand_files_and_patterns(List.wrap(inputs), ".formatter.exs")
-    else
+  defp expand_args([], dot_formatter, formatter_opts_and_subs) do
+    if no_entries_in_formatter_opts?(formatter_opts_and_subs) do
       Mix.raise(
         "Expected one or more files/patterns to be given to mix format " <>
-          "or for a .formatter.exs to exist with an :inputs key"
+          "or for a .formatter.exs to exist with an :inputs or :subdirectories key"
       )
     end
+
+    dot_formatter
+    |> expand_dot_inputs([], formatter_opts_and_subs, %{})
+    |> Enum.uniq()
   end
 
-  defp expand_args(files_and_patterns, _formatter_opts) do
-    expand_files_and_patterns(files_and_patterns, "command line")
-  end
-
-  defp expand_files_and_patterns(files_and_patterns, context) do
+  defp expand_args(files_and_patterns, _dot_formatter, formatter_opts_and_subs) do
     files =
       for file_or_pattern <- files_and_patterns,
           file <- stdin_or_wildcard(file_or_pattern),
@@ -267,12 +317,48 @@ defmodule Mix.Tasks.Format do
 
     if files == [] do
       Mix.raise(
-        "Could not find a file to format. The files/patterns from #{context} " <>
+        "Could not find a file to format. The files/patterns given to command line " <>
           "did not point to any existing file. Got: #{inspect(files_and_patterns)}"
       )
     end
 
-    files
+    for file <- files do
+      if file == :stdin do
+        {file, []}
+      else
+        split = file |> Path.relative_to_cwd() |> Path.split()
+        {file, find_formatter_opts_for_file(split, formatter_opts_and_subs)}
+      end
+    end
+  end
+
+  defp expand_dot_inputs(dot_formatter, prefix, {formatter_opts, subs}, acc) do
+    if no_entries_in_formatter_opts?({formatter_opts, subs}) do
+      Mix.raise("Expected :inputs or :subdirectories key in #{dot_formatter}")
+    end
+
+    map =
+      for input <- List.wrap(formatter_opts[:inputs]),
+          file <- Path.wildcard(Path.join(prefix ++ [input])),
+          do: {file, formatter_opts},
+          into: %{}
+
+    Enum.reduce(subs, Map.merge(acc, map), fn {sub, formatter_opts_and_subs}, acc ->
+      sub_formatter = Path.join(sub, ".formatter.exs")
+      expand_dot_inputs(sub_formatter, [sub], formatter_opts_and_subs, acc)
+    end)
+  end
+
+  defp find_formatter_opts_for_file(split, {formatter_opts, subs}) do
+    Enum.find_value(subs, formatter_opts, fn {sub, formatter_opts_and_subs} ->
+      if List.starts_with?(split, Path.split(sub)) do
+        find_formatter_opts_for_file(split, formatter_opts_and_subs)
+      end
+    end)
+  end
+
+  defp no_entries_in_formatter_opts?({formatter_opts, subs}) do
+    is_nil(formatter_opts[:inputs]) and subs == []
   end
 
   defp stdin_or_wildcard("-"), do: [:stdin]
@@ -286,7 +372,7 @@ defmodule Mix.Tasks.Format do
     {File.read!(file), file: file}
   end
 
-  defp format_file(file, task_opts, formatter_opts) do
+  defp format_file({file, formatter_opts}, task_opts) do
     {input, extra_opts} = read_file(file)
     output = IO.iodata_to_binary([Code.format_string!(input, extra_opts ++ formatter_opts), ?\n])
 
