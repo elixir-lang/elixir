@@ -177,31 +177,35 @@ defmodule IO.ANSI do
   @spec cursor(integer, integer) :: String.t()
   def cursor(line, column) when line >= 0 and column >= 0, do: "\e[#{line};#{column}H"
 
-  @doc "Sends cursor `lines` up (defaults to 1)."
+  @doc "Sends cursor one line up."
   @spec cursor_up :: String.t()
   def cursor_up(), do: "\e[A"
 
+  @doc "Sends cursor `lines` up."
   @spec cursor_up(integer) :: String.t()
   def cursor_up(lines) when lines > 0, do: "\e[#{lines}A"
 
-  @doc "Sends cursor `lines` down (defaults to 1)."
+  @doc "Sends cursor one line down."
   @spec cursor_down :: String.t()
   def cursor_down(), do: "\e[B"
 
+  @doc "Sends cursor `lines` down."
   @spec cursor_down(integer) :: String.t()
   def cursor_down(lines) when lines > 0, do: "\e[#{lines}B"
 
-  @doc "Sends cursor `columns` to the left (defaults to 1)."
+  @doc "Sends cursor one line to the left"
   @spec cursor_left :: String.t()
   def cursor_left(), do: "\e[C"
 
+  @doc "Sends cursor `columns` to the left."
   @spec cursor_left(integer) :: String.t()
   def cursor_left(columns) when columns > 0, do: "\e[#{columns}C"
 
-  @doc "Sends cursor `columns` to the right (defaults to 1)."
+  @doc "Sends cursor one column to the right."
   @spec cursor_right :: String.t()
   def cursor_right(), do: "\e[D"
 
+  @doc "Sends cursor `columns` to the right."
   @spec cursor_right(integer) :: String.t()
   def cursor_right(columns) when columns > 0, do: "\e[#{columns}D"
 
