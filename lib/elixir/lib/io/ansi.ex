@@ -170,6 +170,26 @@ defmodule IO.ANSI do
   @doc "Sends cursor home."
   defsequence(:home, "", "H")
 
+  @doc "Sends cursor to specified position"
+  @spec cursor(integer, integer) :: String.t()
+  def cursor(line, col), do: "\e[#{line};#{col}H"
+
+  @doc "Sends cursor up"
+  @spec cursor_up(integer) :: String.t()
+  def cursor_up(lines), do: "\e[#{lines}A"
+
+  @doc "Sends cursor down"
+  @spec cursor_down(integer) :: String.t()
+  def cursor_down(lines), do: "\e[#{lines}B"
+
+  @doc "Sends cursor back"
+  @spec cursor_back(integer) :: String.t()
+  def cursor_back(cols), do: "\e[#{cols}C"
+
+  @doc "Sends cursor forward"
+  @spec cursor_forward(integer) :: String.t()
+  def cursor_forward(cols), do: "\e[#{cols}D"
+
   @doc "Clears screen."
   defsequence(:clear, "2", "J")
 

@@ -155,4 +155,24 @@ defmodule IO.ANSITest do
       IO.ANSI.color_background(5, -1, 1)
     end
   end
+
+  test "cursor/2" do
+    assert IO.ANSI.cursor(11,12) == "\e[11;12H"
+  end
+
+  test "cursor_up/1" do
+    assert IO.ANSI.cursor_up(1) == "\e[1A"
+  end
+
+  test "cursor_down/1" do
+    assert IO.ANSI.cursor_down(2) == "\e[2B"
+  end
+
+  test "cursor_back/1" do
+    assert IO.ANSI.cursor_back(3) == "\e[3C"
+  end
+
+  test "cursor_forward/1" do
+    assert IO.ANSI.cursor_forward(4) == "\e[4D"
+  end
 end
