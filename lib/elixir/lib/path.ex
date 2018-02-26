@@ -592,24 +592,23 @@ defmodule Path do
   Traverses paths according to the given `glob` expression and returns a
   list of matches.
 
-  The wildcard looks like an ordinary path, except that certain
-  "wildcard characters" are interpreted in a special way. The
-  following characters are special:
+  The wildcard looks like an ordinary path, except that the following
+  "wildcard characters" are interpreted in a special way:
 
-    * `?` - matches one character
+    * `?` - matches one character.
 
     * `*` - matches any number of characters up to the end of the filename, the
-      next dot, or the next slash
+      next dot, or the next slash.
 
     * `**` - two adjacent `*`'s used as a single pattern will match all
-      files and zero or more directories and subdirectories
+      files and zero or more directories and subdirectories.
 
     * `[char1,char2,...]` - matches any of the characters listed; two
       characters separated by a hyphen will match a range of characters.
       Do not add spaces before and after the comma as it would then match
       paths containing the space character itself.
 
-    * `{item1,item2,...}` - matches one of the alternatives
+    * `{item1,item2,...}` - matches one of the alternatives.
       Do not add spaces before and after the comma as it would then match
       paths containing the space character itself.
 
@@ -618,7 +617,14 @@ defmodule Path do
   that matching is case-sensitive: `"a"` will not match `"A"`.
 
   By default, the patterns `*` and `?` do not match files starting
-  with a dot `.` unless `match_dot: true` is given in `opts`.
+  with a dot `.`. See the `:match_dot` option in the "Options" section
+  below.
+
+  ## Options
+
+    * `:match_dot` - (boolean) if `false`, the special wildcard characters `*` and `?`
+      will not match files starting with a dot (`.`). If `true`, files starting with
+      a `.` will not be treated specially. Defaults to `false`.
 
   ## Examples
 
