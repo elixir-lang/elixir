@@ -168,11 +168,11 @@ defmodule IO.ANSITest do
     assert IO.ANSI.cursor_down(2) == "\e[2B"
   end
 
-  test "cursor_back/1" do
-    assert IO.ANSI.cursor_back(3) == "\e[3C"
+  test "cursor_left/1" do
+    assert IO.ANSI.cursor_left(3) == "\e[3C"
   end
 
-  test "cursor_forward/1" do
-    assert IO.ANSI.cursor_forward(4) == "\e[4D"
+  test "cursor_right/1" do
+    assert IO.ANSI.cursor_right(4) == "\e[4D"
   end
 end

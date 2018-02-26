@@ -182,13 +182,13 @@ defmodule IO.ANSI do
   @spec cursor_down(integer) :: String.t()
   def cursor_down(lines), do: "\e[#{lines}B"
 
-  @doc "Sends cursor back."
-  @spec cursor_back(integer) :: String.t()
-  def cursor_back(cols), do: "\e[#{cols}C"
+  @doc "Sends cursor left."
+  @spec cursor_left(integer) :: String.t()
+  def cursor_left(cols), do: "\e[#{cols}C"
 
-  @doc "Sends cursor forward."
-  @spec cursor_forward(integer) :: String.t()
-  def cursor_forward(cols), do: "\e[#{cols}D"
+  @doc "Sends cursor right."
+  @spec cursor_right(integer) :: String.t()
+  def cursor_right(cols), do: "\e[#{cols}D"
 
   @doc "Clears screen."
   defsequence(:clear, "2", "J")
