@@ -164,7 +164,7 @@ defmodule IO.ANSITest do
       IO.ANSI.cursor(-1, 5)
     end
 
-     assert_raise FunctionClauseError, fn ->
+    assert_raise FunctionClauseError, fn ->
       IO.ANSI.cursor(5, -1)
     end
   end

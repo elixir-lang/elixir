@@ -170,8 +170,10 @@ defmodule IO.ANSI do
   @doc "Sends cursor home."
   defsequence(:home, "", "H")
 
-  @doc "Sends cursor to the absolute position specified by `lines`, `columns`, with 0,0 being the top left corner."
-  @spec cursor(integer, integer) :: String.t()
+  @doc """
+  Sends cursor to the absolute position specified by `lines`, `columns`, 
+  with 0,0 being the top left corner.
+  """
   def cursor(line, column) when line >= 0 and column >= 0, do: "\e[#{line};#{column}H"
 
   @doc "Sends cursor `lines` up (defaults to 1)."
