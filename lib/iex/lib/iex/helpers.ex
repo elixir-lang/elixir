@@ -264,7 +264,7 @@ defmodule IEx.Helpers do
   """
   defmacro open(term) do
     quote do
-      IEx.Introspection.open(unquote(IEx.Introspection.decompose(term)))
+      IEx.Introspection.open(unquote(IEx.Introspection.decompose(term, __CALLER__)))
     end
   end
 
@@ -293,7 +293,7 @@ defmodule IEx.Helpers do
   """
   defmacro h(term) do
     quote do
-      IEx.Introspection.h(unquote(IEx.Introspection.decompose(term)))
+      IEx.Introspection.h(unquote(IEx.Introspection.decompose(term, __CALLER__)))
     end
   end
 
@@ -311,7 +311,7 @@ defmodule IEx.Helpers do
   """
   defmacro b(term) do
     quote do
-      IEx.Introspection.b(unquote(IEx.Introspection.decompose(term)))
+      IEx.Introspection.b(unquote(IEx.Introspection.decompose(term, __CALLER__)))
     end
   end
 
@@ -336,7 +336,7 @@ defmodule IEx.Helpers do
   """
   defmacro t(term) do
     quote do
-      IEx.Introspection.t(unquote(IEx.Introspection.decompose(term)))
+      IEx.Introspection.t(unquote(IEx.Introspection.decompose(term, __CALLER__)))
     end
   end
 

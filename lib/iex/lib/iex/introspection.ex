@@ -11,9 +11,8 @@ defmodule IEx.Introspection do
   Decomposes an introspection call into `{mod, fun, arity}`,
   `{mod, fun}` or `mod`.
   """
-  @default_modules [IEx.Helpers, Kernel, Kernel.SpecialForms]
 
-  def decompose({:/, _, [call, arity]} = term) do
+  def decompose({:/, _, [call, arity]} = term, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} when arity == 1 ->
         {:{}, [], [Module, :__info__, 1]}
@@ -22,14 +21,14 @@ defmodule IEx.Introspection do
         {:{}, [], [mod, fun, arity]}
 
       {fun, []} ->
-        {:{}, [], [find_decompose_fun_arity(fun, arity), fun, arity]}
+        {:{}, [], [find_decompose_fun_arity(fun, arity, context), fun, arity]}
 
       _ ->
         term
     end
   end
 
-  def decompose(call) do
+  def decompose(call, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} ->
         Macro.escape({Module, :__info__, 1})
@@ -38,26 +37,49 @@ defmodule IEx.Introspection do
         {mod, fun}
 
       {fun, []} ->
-        {find_decompose_fun(fun), fun}
+        {find_decompose_fun(fun, context), fun}
 
       _ ->
         call
     end
   end
 
-  defp find_decompose_fun(fun) do
-    Enum.find(@default_modules, Kernel, fn mod ->
-      Keyword.has_key?(mod.__info__(:functions), fun) or
-        Keyword.has_key?(mod.__info__(:macros), fun)
+  defp find_decompose_fun(fun, context) do
+    find_import(fun, context.functions) || find_import(fun, context.macros) ||
+      find_special_form(fun) || Kernel
+  end
+
+  defp find_decompose_fun_arity(fun, arity, context) do
+    pair = {fun, arity}
+
+    find_import(pair, context.functions) || find_import(pair, context.macros) ||
+      find_special_form(pair) || Kernel
+  end
+
+  defp find_import(pair, context) when is_tuple(pair) do
+    Enum.find_value(context, fn {mod, functions} ->
+      if pair in functions, do: mod
     end)
   end
 
-  defp find_decompose_fun_arity(fun, arity) do
-    pair = {fun, arity}
-
-    Enum.find(@default_modules, Kernel, fn mod ->
-      pair in mod.__info__(:functions) or pair in mod.__info__(:macros)
+  defp find_import(fun, context) do
+    Enum.find_value(context, fn {mod, functions} ->
+      if Keyword.has_key?(functions, fun), do: mod
     end)
+  end
+
+  defp find_special_form(pair) when is_tuple(pair) do
+    special_form_function? = pair in Kernel.SpecialForms.__info__(:functions)
+    special_form_macro? = pair in Kernel.SpecialForms.__info__(:macros)
+
+    if special_form_function? or special_form_macro?, do: Kernel.SpecialForms
+  end
+
+  defp find_special_form(fun) do
+    special_form_function? = Keyword.has_key?(Kernel.SpecialForms.__info__(:functions), fun)
+    special_form_macro? = Keyword.has_key?(Kernel.SpecialForms.__info__(:macros), fun)
+
+    if special_form_function? or special_form_macro?, do: Kernel.SpecialForms
   end
 
   @doc """
