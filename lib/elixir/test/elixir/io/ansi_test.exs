@@ -157,7 +157,7 @@ defmodule IO.ANSITest do
   end
 
   test "cursor/2" do
-    assert IO.ANSI.cursor(11,12) == "\e[11;12H"
+    assert IO.ANSI.cursor(11, 12) == "\e[11;12H"
   end
 
   test "cursor_up/1" do
