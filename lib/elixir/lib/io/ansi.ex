@@ -177,37 +177,21 @@ defmodule IO.ANSI do
   @spec cursor(integer, integer) :: String.t()
   def cursor(line, column) when line >= 0 and column >= 0, do: "\e[#{line};#{column}H"
 
-  @doc "Sends cursor one line up."
-  @spec cursor_up :: String.t()
-  def cursor_up(), do: "\e[A"
-
-  @doc "Sends cursor `lines` up."
+  @doc "Sends cursor `lines` up. Defaults to 1"
   @spec cursor_up(integer) :: String.t()
-  def cursor_up(lines) when lines > 0, do: "\e[#{lines}A"
+  def cursor_up(lines \\ 1) when lines > 0, do: "\e[#{lines}A"
 
-  @doc "Sends cursor one line down."
-  @spec cursor_down :: String.t()
-  def cursor_down(), do: "\e[B"
-
-  @doc "Sends cursor `lines` down."
+  @doc "Sends cursor `lines` down. Defaults to 1"
   @spec cursor_down(integer) :: String.t()
-  def cursor_down(lines) when lines > 0, do: "\e[#{lines}B"
+  def cursor_down(lines \\ 1) when lines > 0, do: "\e[#{lines}B"
 
-  @doc "Sends cursor one line to the left"
-  @spec cursor_left :: String.t()
-  def cursor_left(), do: "\e[C"
-
-  @doc "Sends cursor `columns` to the left."
+  @doc "Sends cursor `columns` to the left. Defaults to 1."
   @spec cursor_left(integer) :: String.t()
-  def cursor_left(columns) when columns > 0, do: "\e[#{columns}C"
+  def cursor_left(columns \\ 1) when columns > 0, do: "\e[#{columns}C"
 
-  @doc "Sends cursor one column to the right."
-  @spec cursor_right :: String.t()
-  def cursor_right(), do: "\e[D"
-
-  @doc "Sends cursor `columns` to the right."
+  @doc "Sends cursor `columns` to the right. Defaults to 1."
   @spec cursor_right(integer) :: String.t()
-  def cursor_right(columns) when columns > 0, do: "\e[#{columns}D"
+  def cursor_right(columns \\ 1) when columns > 0, do: "\e[#{columns}D"
 
   @doc "Clears screen."
   defsequence(:clear, "2", "J")

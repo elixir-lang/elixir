@@ -169,23 +169,17 @@ defmodule IO.ANSITest do
     end
   end
 
-  test "cursor_up/0" do
-    assert IO.ANSI.cursor_up() == "\e[A"
-  end
-
   test "cursor_up/1" do
-    assert IO.ANSI.cursor_up(1) == "\e[1A"
+    assert IO.ANSI.cursor_up() == "\e[1A"
+    assert IO.ANSI.cursor_up(12) == "\e[12A"
 
     assert_raise FunctionClauseError, fn ->
       IO.ANSI.cursor_up(-1)
     end
   end
 
-  test "cursor_down/0" do
-    assert IO.ANSI.cursor_down() == "\e[B"
-  end
-
   test "cursor_down/1" do
+    assert IO.ANSI.cursor_down() == "\e[1B"
     assert IO.ANSI.cursor_down(2) == "\e[2B"
 
     assert_raise FunctionClauseError, fn ->
@@ -193,11 +187,8 @@ defmodule IO.ANSITest do
     end
   end
 
-  test "cursor_left/0" do
-    assert IO.ANSI.cursor_left() == "\e[C"
-  end
-
   test "cursor_left/1" do
+    assert IO.ANSI.cursor_left() == "\e[1C"
     assert IO.ANSI.cursor_left(3) == "\e[3C"
 
     assert_raise FunctionClauseError, fn ->
@@ -206,10 +197,7 @@ defmodule IO.ANSITest do
   end
 
   test "cursor_right/0" do
-    assert IO.ANSI.cursor_right() == "\e[D"
-  end
-
-  test "cursor_right/1" do
+    assert IO.ANSI.cursor_right() == "\e[1D"
     assert IO.ANSI.cursor_right(4) == "\e[4D"
 
     assert_raise FunctionClauseError, fn ->
