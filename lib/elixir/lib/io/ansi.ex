@@ -171,27 +171,30 @@ defmodule IO.ANSI do
   defsequence(:home, "", "H")
 
   @doc """
-  Sends cursor to the absolute position specified by `lines`, `columns`, 
-  with 0,0 being the top left corner.
+  Sends cursor to the absolute position specified by `line` and `column`.
+
+  Line `0` and column `0` would mean the top left corner.
   """
   @spec cursor(integer, integer) :: String.t()
-  def cursor(line, column) when line >= 0 and column >= 0, do: "\e[#{line};#{column}H"
+  def cursor(line, column)
+      when is_integer(line) and line >= 0 and is_integer(column) and column >= 0,
+      do: "\e[#{line};#{column}H"
 
-  @doc "Sends cursor `lines` up. Defaults to 1"
+  @doc "Sends cursor `lines` up."
   @spec cursor_up(integer) :: String.t()
-  def cursor_up(lines \\ 1) when lines > 0, do: "\e[#{lines}A"
+  def cursor_up(lines \\ 1) when is_integer(lines) and lines > 0, do: "\e[#{lines}A"
 
-  @doc "Sends cursor `lines` down. Defaults to 1"
+  @doc "Sends cursor `lines` down."
   @spec cursor_down(integer) :: String.t()
-  def cursor_down(lines \\ 1) when lines > 0, do: "\e[#{lines}B"
+  def cursor_down(lines \\ 1) when is_integer(lines) and lines > 0, do: "\e[#{lines}B"
 
-  @doc "Sends cursor `columns` to the left. Defaults to 1."
+  @doc "Sends cursor `columns` to the left."
   @spec cursor_left(integer) :: String.t()
-  def cursor_left(columns \\ 1) when columns > 0, do: "\e[#{columns}C"
+  def cursor_left(columns \\ 1) when is_integer(columns) and columns > 0, do: "\e[#{columns}C"
 
-  @doc "Sends cursor `columns` to the right. Defaults to 1."
+  @doc "Sends cursor `columns` to the right."
   @spec cursor_right(integer) :: String.t()
-  def cursor_right(columns \\ 1) when columns > 0, do: "\e[#{columns}D"
+  def cursor_right(columns \\ 1) when is_integer(columns) and columns > 0, do: "\e[#{columns}D"
 
   @doc "Clears screen."
   defsequence(:clear, "2", "J")
