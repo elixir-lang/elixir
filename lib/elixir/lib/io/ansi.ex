@@ -177,8 +177,9 @@ defmodule IO.ANSI do
   """
   @spec cursor(integer, integer) :: String.t()
   def cursor(line, column)
-      when is_integer(line) and line >= 0 and is_integer(column) and column >= 0,
-      do: "\e[#{line};#{column}H"
+      when is_integer(line) and line >= 0 and is_integer(column) and column >= 0 do
+    "\e[#{line};#{column}H"
+  end
 
   @doc "Sends cursor `lines` up."
   @spec cursor_up(integer) :: String.t()
