@@ -175,27 +175,27 @@ defmodule IO.ANSI do
 
   Line `0` and column `0` would mean the top left corner.
   """
-  @spec cursor(integer, integer) :: String.t()
+  @spec cursor(non_neg_integer, non_neg_integer) :: String.t()
   def cursor(line, column)
       when is_integer(line) and line >= 0 and is_integer(column) and column >= 0 do
     "\e[#{line};#{column}H"
   end
 
   @doc "Sends cursor `lines` up."
-  @spec cursor_up(integer) :: String.t()
-  def cursor_up(lines \\ 1) when is_integer(lines) and lines > 0, do: "\e[#{lines}A"
+  @spec cursor_up(pos_integer) :: String.t()
+  def cursor_up(lines \\ 1) when is_integer(lines) and lines >= 1, do: "\e[#{lines}A"
 
   @doc "Sends cursor `lines` down."
-  @spec cursor_down(integer) :: String.t()
-  def cursor_down(lines \\ 1) when is_integer(lines) and lines > 0, do: "\e[#{lines}B"
+  @spec cursor_down(pos_integer) :: String.t()
+  def cursor_down(lines \\ 1) when is_integer(lines) and lines >= 1, do: "\e[#{lines}B"
 
   @doc "Sends cursor `columns` to the left."
-  @spec cursor_left(integer) :: String.t()
-  def cursor_left(columns \\ 1) when is_integer(columns) and columns > 0, do: "\e[#{columns}C"
+  @spec cursor_left(pos_integer) :: String.t()
+  def cursor_left(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}C"
 
   @doc "Sends cursor `columns` to the right."
-  @spec cursor_right(integer) :: String.t()
-  def cursor_right(columns \\ 1) when is_integer(columns) and columns > 0, do: "\e[#{columns}D"
+  @spec cursor_right(pos_integer) :: String.t()
+  def cursor_right(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}D"
 
   @doc "Clears screen."
   defsequence(:clear, "2", "J")
