@@ -208,7 +208,7 @@ defmodule IO.ANSITest do
     end
   end
 
-  test "cursor_right/0" do
+  test "cursor_right/1" do
     assert IO.ANSI.cursor_right() == "\e[1D"
     assert IO.ANSI.cursor_right(4) == "\e[4D"
 
