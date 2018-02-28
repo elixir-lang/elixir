@@ -123,14 +123,15 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
-## v1.6.2-dev
+## v1.6.2 (2018-02-28)
 
 ### 1. Enhancements
 
 #### Mix
 
-  * [mix format] Include the current environment for missing dependency errors
   * [mix compile.erlang] Teach Mix erlang compiler alternative spelling for `-behavior` declaration
+  * [mix format] Support the `:subdirectories` configuration that points to other directories with their own `.formatter.exs` file. This is useful in umbrella applications. `mix new --umbrella` has also been changed to use this new configuration by default
+  * [mix format] Include the current environment for missing dependency errors
 
 ### 2. Bug fixes
 
