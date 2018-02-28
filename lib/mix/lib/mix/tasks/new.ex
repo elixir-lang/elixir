@@ -255,7 +255,8 @@ defmodule Mix.Tasks.New do
   embed_template(:formatter_umbrella, """
   # Used by "mix format"
   [
-    inputs: ["mix.exs", "apps/*/mix.exs", "apps/*/{config,lib,test}/**/*.{ex,exs}"]
+    inputs: ["mix.exs", "config/*.exs"],
+    subdirectories: ["apps/*"]
   ]
   """)
 
