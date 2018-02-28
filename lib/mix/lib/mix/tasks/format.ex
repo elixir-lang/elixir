@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Format do
       that have their own formatting rules. Each subdirectory should have a
       `.formatter.exs` that configures how entries in that subdirectory should be
       formatted as. Configuration between `.formatter.exs` are not shared nor
-      inherited. If a `.formatter.exs` lists `"lib/app"` as a subdirectory, the rules
+      inherited. If a `.formatter.exs` lists "lib/app" as a subdirectory, the rules
       in `.formatter.exs` won't be available in `lib/app/.formatter.exs`.
       Note that the parent `.formatter.exs` must not specify files inside the "lib/app"
       subdirectory in its `:inputs` configuration. If this happens, the behaviour of
