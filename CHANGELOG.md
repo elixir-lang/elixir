@@ -9,7 +9,9 @@
   * [Calendar.ISO] Support negative dates in `Calendar.ISO`
   * [Code] Add `Code.compile_file/2` that compiles files without leaving footprints on the system
   * [Code.Formatter] Support comments in the middle of pipelines, `when` and `|` expressions
+  * [IO.ANSI] Add cursor movement to `IO.ANSI`
   * [Kernel] Introduce `__STACKTRACE__` to retrieve the current stacktrace inside `catch`/`rescue` (this will be a requirement for Erlang/OTP 21+)
+  * [Kernel] Raise on unsafe variables in order to allow us to better track unused variables
   * [Macro] Add `Macro.special_form?/2` and `Macro.operator?/2` that returns true if the given name/arity is a special form or operator respectively
   * [Macro.Env] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
   * [System] Use ISO 8601 in `System.build_info/0`
@@ -28,6 +30,10 @@
   * [Mix.Project] Add `Mix.Project.clear_deps_cache/0`
 
 ### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Raise on unsafe variables as some of the code emitted with unsafe variables would not correctly propagate variables or would disable tail call optimization semantics
 
 ### 3. Soft deprecations (no warnings emitted)
 
