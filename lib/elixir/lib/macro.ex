@@ -1322,7 +1322,7 @@ defmodule Macro do
       iex> Macro.camelize("foo_bar")
       "FooBar"
 
-  If uppercase characters are present, they are not modified in anyway
+  If uppercase characters are present, they are not modified in any way
   as a mechanism to preserve acronyms:
 
       iex> Macro.camelize("API.V1")
