@@ -11,8 +11,6 @@ end
 defmodule Kernel.MacrosTest do
   use ExUnit.Case, async: true
 
-  doctest Macro
-
   Kernel.MacrosTest.Nested = require Kernel.MacrosTest.Nested, as: Nested
 
   @spec my_macro :: Macro.t()
