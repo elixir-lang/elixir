@@ -17,6 +17,7 @@ end
 
 defmodule MacroTest do
   use ExUnit.Case, async: true
+  doctest Macro
 
   # Changing the lines above will make compilation
   # fail since we are asserting on the caller lines
