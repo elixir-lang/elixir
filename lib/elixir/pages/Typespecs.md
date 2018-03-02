@@ -16,21 +16,19 @@ Type specifications (sometimes referred to as *typespecs*) are defined in differ
 
 See the "User-defined types" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
 
-## A Simple Example
+## A simple example
 
-    defmodule MyModule do
-      @spec long_word?(word :: String.t()) :: true | false
+    defmodule StringHelpers do
+      @spec long_word?(String.t()) :: boolean()
       def long_word?(word) when is_binary(word) do
         String.length(word) > 8
       end
-
-      def long_word?(_nonword), do: false
     end
 
-In this example, the `@spec` declaration says:
+In this example, the `@spec` declaration says that:
 
-- `long_word?` takes a `word` argument, which is a string (type `String.t()`)
-- It returns either `true` or `false`
+  * `long_word?/1` takes one argument of type `String.t()` (a string)
+  * `long_word?/1` returns a boolean (`boolean()`), that is, either `true` or `false`
 
 ## Types and their syntax
 
