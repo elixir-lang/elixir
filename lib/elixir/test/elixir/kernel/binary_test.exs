@@ -175,15 +175,7 @@ defmodule Kernel.BinaryTest do
 
     assert_raise CompileError, message, fn ->
       Code.eval_string(~s[
-        a = "a"
-        ^a <> "b" = "ab"
-      ])
-    end
-
-    assert_raise CompileError, message, fn ->
-      Code.eval_string(~s[
-        b = "b"
-        "a" <> ^b <> "c" = "abc"
+        "a" <> 1 <> "c" = "abc"
       ])
     end
   end
