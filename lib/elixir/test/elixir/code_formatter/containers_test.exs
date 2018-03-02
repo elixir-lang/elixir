@@ -178,6 +178,25 @@ defmodule Code.Formatter.ContainersTest do
       assert_same keyword, @short_length
     end
 
+    test "with keyword lists on comma line limit" do
+      bad = """
+      [
+        foooo: 1,
+        barrr: 2
+      ]
+      """
+
+      good = """
+      [
+        foooo:
+          1,
+        barrr: 2
+      ]
+      """
+
+      assert_format bad, good, @short_length
+    end
+
     test "with quoted keyword lists" do
       assert_same ~S(["with spaces": 1])
       assert_same ~S(["one #{two} three": 1])
@@ -455,7 +474,7 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      assert_format bad, good, @short_length
+      assert_format bad, good, line_length: 11
     end
 
     test "removes trailing comma" do
@@ -559,7 +578,7 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      assert_format bad, good, @short_length
+      assert_format bad, good, line_length: 11
     end
 
     test "removes trailing comma" do

@@ -1077,7 +1077,7 @@ defmodule Code.Formatter do
   #
   defp call_args_to_algebra([], meta, _context, _parens, _list_to_keyword?, state) do
     {args_doc, _join, state} =
-      args_to_algebra_with_comments([], meta, false, false, :glue, state, &{&1, &2})
+      args_to_algebra_with_comments([], meta, false, :none, :glue, state, &{&1, &2})
 
     {{surround("(", args_doc, ")"), state}, false}
   end
@@ -1125,6 +1125,7 @@ defmodule Code.Formatter do
       call_args_to_algebra_with_no_parens_keywords(meta, left, right, context, extra, state)
     else
       next_break_fits? = next_break_fits?(right, state)
+      last_arg_mode = if next_break_fits?, do: :next_break_fits, else: :none
       force_keyword? = keyword? and force_keyword?(right)
       non_empty_eol? = left != [] and not next_break_fits? and Keyword.get(meta, :eol, false)
       join = if generators_count > 1 or force_keyword? or non_empty_eol?, do: :line, else: :glue
@@ -1135,7 +1136,7 @@ defmodule Code.Formatter do
           args,
           meta,
           skip_parens?,
-          next_break_fits?,
+          last_arg_mode,
           join,
           state,
           &quoted_to_algebra(&1, context, &2)
@@ -1171,12 +1172,12 @@ defmodule Code.Formatter do
     to_algebra_fun = &quoted_to_algebra(&1, context, &2)
 
     {left_doc, _join, state} =
-      args_to_algebra_with_comments(left, meta, true, false, :glue, state, to_algebra_fun)
+      args_to_algebra_with_comments(left, meta, true, :force_comma, :glue, state, to_algebra_fun)
 
     {right_doc, _join, state} =
-      args_to_algebra_with_comments(right, meta, false, false, :glue, state, to_algebra_fun)
+      args_to_algebra_with_comments(right, meta, false, :none, :glue, state, to_algebra_fun)
 
-    right_doc = "," |> glue(right_doc) |> force_keyword(right) |> group(:inherit)
+    right_doc = break() |> concat(right_doc) |> force_keyword(right) |> group(:inherit)
 
     doc =
       with_next_break_fits(true, right_doc, fn right_doc ->
@@ -1320,7 +1321,7 @@ defmodule Code.Formatter do
     {args_doc, join, state} =
       args
       |> Enum.with_index()
-      |> args_to_algebra_with_comments(meta, false, false, join, state, to_algebra_fun)
+      |> args_to_algebra_with_comments(meta, false, :none, join, state, to_algebra_fun)
 
     if join == :flex_glue do
       {"<<" |> concat(args_doc) |> nest(2) |> concat(">>") |> group(), state}
@@ -1379,7 +1380,7 @@ defmodule Code.Formatter do
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, _join, state} =
-      args_to_algebra_with_comments(args, meta, false, false, join, state, fun)
+      args_to_algebra_with_comments(args, meta, false, :none, join, state, fun)
 
     {surround("[", args_doc, "]"), state}
   end
@@ -1390,7 +1391,7 @@ defmodule Code.Formatter do
     {left_doc, state} = fun.(left, state)
 
     {right_doc, _join, state} =
-      args_to_algebra_with_comments(right, meta, false, false, join, state, fun)
+      args_to_algebra_with_comments(right, meta, false, :none, join, state, fun)
 
     args_doc =
       left_doc
@@ -1406,7 +1407,7 @@ defmodule Code.Formatter do
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, _join, state} =
-      args_to_algebra_with_comments(args, meta, false, false, join, state, fun)
+      args_to_algebra_with_comments(args, meta, false, :none, join, state, fun)
 
     name_doc = "%" |> concat(name_doc) |> concat("{")
     {surround(name_doc, args_doc, "}"), state}
@@ -1417,7 +1418,7 @@ defmodule Code.Formatter do
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, join, state} =
-      args_to_algebra_with_comments(args, meta, false, false, join, state, fun)
+      args_to_algebra_with_comments(args, meta, false, :none, join, state, fun)
 
     if join == :flex_glue do
       {"{" |> concat(args_doc) |> nest(1) |> concat("}") |> group(), state}
@@ -1527,7 +1528,7 @@ defmodule Code.Formatter do
   defp heredoc_line(["", _ | _]), do: nest(line(), :reset)
   defp heredoc_line(_), do: line()
 
-  defp args_to_algebra_with_comments(args, meta, skip_parens?, next_break_fits?, join, state, fun) do
+  defp args_to_algebra_with_comments(args, meta, skip_parens?, last_arg_mode, join, state, fun) do
     min_line = line(meta)
     max_line = end_line(meta)
 
@@ -1535,10 +1536,11 @@ defmodule Code.Formatter do
       {doc, state} = fun.(arg, state)
 
       doc =
-        cond do
-          args != [] -> concat(doc, ",")
-          next_break_fits? -> next_break_fits(doc, :enabled)
-          true -> doc
+        case args do
+          [_ | _] -> concat_to_last_group(doc, ",")
+          [] when last_arg_mode == :force_comma -> concat_to_last_group(doc, ",")
+          [] when last_arg_mode == :next_break_fits -> next_break_fits(doc, :enabled)
+          [] when last_arg_mode == :none -> doc
         end
 
       {doc, @empty, newlines, state}
@@ -1753,7 +1755,7 @@ defmodule Code.Formatter do
     fun = &clause_args_to_algebra/2
 
     {args_docs, _join, state} =
-      args_to_algebra_with_comments([args], meta, false, false, :glue, state, fun)
+      args_to_algebra_with_comments([args], meta, false, :none, :glue, state, fun)
 
     {args_docs, state}
   end
@@ -2121,6 +2123,20 @@ defmodule Code.Formatter do
   end
 
   ## Algebra helpers
+
+  # Relying on the inner document is brittle and error prone.
+  # It would be best if we had a mechanism to apply this.
+  defp concat_to_last_group({:doc_cons, left, right}, concat) do
+    {:doc_cons, left, concat_to_last_group(right, concat)}
+  end
+
+  defp concat_to_last_group({:doc_group, group, mode}, concat) do
+    {:doc_group, {:doc_cons, group, concat}, mode}
+  end
+
+  defp concat_to_last_group(other, concat) do
+    {:doc_cons, other, concat}
+  end
 
   defp ungroup_if_group({:doc_group, group, _mode}), do: group
   defp ungroup_if_group(other), do: other

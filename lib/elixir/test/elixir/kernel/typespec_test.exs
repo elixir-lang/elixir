@@ -835,8 +835,12 @@ defmodule Kernel.TypespecTest do
         quote(do: @type(literal_keyword_list_type_key() :: [{binary(), integer()}])),
         quote(do: @type(literal_empty_map() :: %{})),
         quote(do: @type(literal_map_with_key() :: %{key: integer()})),
-        quote(do: @type(literal_map_with_required_key() :: %{required(bitstring()) => integer()})),
-        quote(do: @type(literal_map_with_optional_key() :: %{optional(bitstring()) => integer()})),
+        quote(
+          do: @type(literal_map_with_required_key() :: %{required(bitstring()) => integer()})
+        ),
+        quote(
+          do: @type(literal_map_with_optional_key() :: %{optional(bitstring()) => integer()})
+        ),
         quote(do: @type(literal_struct_all_fields_any_type() :: %SomeStruct{})),
         quote(do: @type(literal_struct_all_fields_key_type() :: %SomeStruct{key: integer()})),
         quote(do: @type(literal_empty_tuple() :: {})),
@@ -863,7 +867,9 @@ defmodule Kernel.TypespecTest do
         quote(do: @type(builtin_list() :: list())),
         quote(do: @type(builtin_nonempty_list() :: nonempty_list())),
         quote(do: @type(builtin_maybe_improper_list() :: maybe_improper_list())),
-        quote(do: @type(builtin_nonempty_maybe_improper_list() :: nonempty_maybe_improper_list())),
+        quote(
+          do: @type(builtin_nonempty_maybe_improper_list() :: nonempty_maybe_improper_list())
+        ),
         quote(do: @type(builtin_mfa() :: mfa())),
         quote(do: @type(builtin_module() :: module())),
         quote(do: @type(builtin_no_return() :: no_return())),
