@@ -90,6 +90,23 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "reads file from stdin and prints to stdout with formatter", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [locals_without_parens: [foo: 1]]
+      """)
+
+      output =
+        capture_io("foo :bar", fn ->
+          Mix.Tasks.Format.run(["-"])
+        end)
+
+      assert output == """
+             foo :bar
+             """
+    end)
+  end
+
   test "checks if file is formatted with --check-formatted", context do
     in_tmp(context.test, fn ->
       File.write!("a.ex", """
