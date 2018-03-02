@@ -453,4 +453,50 @@ defmodule Code.Formatter.IntegrationTest do
             | :other
     """
   end
+
+  test "capture with operators" do
+    assert_same """
+    "this works" |> (&String.upcase/1) |> (&String.downcase/1)
+    """
+
+    assert_same """
+    "this works" || (&String.upcase/1) || (&String.downcase/1)
+    """
+
+    assert_same """
+    "this works" == (&String.upcase/1) == (&String.downcase/1)
+    """
+
+    bad = """
+    "this works" = (&String.upcase/1) = (&String.downcase/1)
+    """
+
+    assert_format bad, """
+    "this works" = (&String.upcase/1) = &String.downcase/1
+    """
+
+    bad = """
+    "this works" ++ (&String.upcase/1) ++ (&String.downcase/1)
+    """
+
+    assert_format bad, """
+    "this works" ++ (&String.upcase/1) ++ &String.downcase/1
+    """
+
+    bad = """
+    "this works" | (&String.upcase/1) | (&String.downcase/1)
+    """
+
+    assert_format bad, """
+    "this works" | (&String.upcase/1) | &String.downcase/1
+    """
+
+    bad = ~S"""
+    "this works" \\ (&String.upcase/1) \\ (&String.downcase/1)
+    """
+
+    assert_format bad, ~S"""
+    "this works" \\ &String.upcase/1 \\ &String.downcase/1
+    """
+  end
 end

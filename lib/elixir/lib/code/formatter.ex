@@ -10,6 +10,7 @@ defmodule Code.Formatter do
   @min_line 0
   @max_line 9_999_999
   @empty empty()
+  @ampersand_prec Code.Identifier.unary_op(:&) |> elem(1)
 
   # Operators that do not have space between operands
   @no_space_binary_operators [:..]
@@ -788,10 +789,11 @@ defmodule Code.Formatter do
   end
 
   defp binary_operand_to_algebra(operand, context, state, parent_op, parent_info, side, nesting) do
+    {parent_assoc, parent_prec} = parent_info
+
     with {op, meta, [left, right]} <- operand,
          op_info = Code.Identifier.binary_op(op),
          {_assoc, prec} <- op_info do
-      {parent_assoc, parent_prec} = parent_info
       op_string = Atom.to_string(op)
 
       cond do
@@ -817,7 +819,9 @@ defmodule Code.Formatter do
           binary_op_to_algebra(op, op_string, meta, left, right, context, state, 2)
       end
     else
-      {:&, _, [arg]} when not is_integer(arg) and side == :left ->
+      {:&, _, [arg]}
+      when not is_integer(arg) and side == :left
+      when not is_integer(arg) and parent_assoc == :left and parent_prec > @ampersand_prec ->
         {doc, state} = quoted_to_algebra(operand, context, state)
         {wrap_in_parens(doc), state}
 
