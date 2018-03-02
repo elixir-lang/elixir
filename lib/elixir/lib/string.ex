@@ -203,9 +203,22 @@ defmodule String do
   is generated at runtime and does not survive compile term.
   """
 
+  @typedoc """
+  A UTF-8 encoded binary.
+
+  Note `String.t()` and `binary()` are equivalent to analysis tools.
+  Although, for those reading the documentation, `String.t()` implies
+  it is a UTF-8 encoded binary.
+  """
   @type t :: binary
+
+  @typedoc "A UTF-8 codepoint. It may be one or more bytes."
   @type codepoint :: t
+
+  @typedoc "Multiple codepoints that may be perceived as a single character by readers"
   @type grapheme :: t
+
+  @typedoc "Pattern used in functions like `replace/3` and `split/2`"
   @type pattern :: t | [t] | :binary.cp()
 
   @conditional_mappings [:greek]
