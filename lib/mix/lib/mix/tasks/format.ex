@@ -308,7 +308,7 @@ defmodule Mix.Tasks.Format do
     |> Enum.uniq()
   end
 
-  defp expand_args(files_and_patterns, _dot_formatter, formatter_opts_and_subs) do
+  defp expand_args(files_and_patterns, _dot_formatter, {formatter_opts, subs}) do
     files =
       for file_or_pattern <- files_and_patterns,
           file <- stdin_or_wildcard(file_or_pattern),
@@ -324,10 +324,10 @@ defmodule Mix.Tasks.Format do
 
     for file <- files do
       if file == :stdin do
-        {file, []}
+        {file, formatter_opts}
       else
         split = file |> Path.relative_to_cwd() |> Path.split()
-        {file, find_formatter_opts_for_file(split, formatter_opts_and_subs)}
+        {file, find_formatter_opts_for_file(split, {formatter_opts, subs})}
       end
     end
   end
