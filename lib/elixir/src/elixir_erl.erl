@@ -163,18 +163,18 @@ scope(_Meta) ->
 compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
   Deprecated = get_deprecated(Data),
-  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map, Deprecated),
+  {Prefix, Forms, Defmacro} = dynamic_form(Map, Deprecated),
   Specs =
     case elixir_config:get(bootstrap) of
       true -> [];
-      false -> specs_form(Map, Data, Defmacro, Unreachable, types_form(Data, []))
+      false -> specs_form(Map, Data, Defmacro, types_form(Data, []))
     end,
   load_form(Map, Data, Prefix, Forms, Specs, Deprecated).
 
 dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
-               definitions := Definitions, unreachable := Unreachable}, Deprecated) ->
+               definitions := Definitions}, Deprecated) ->
   {Def, Defmacro, Macros, Exports, Functions} =
-    split_definition(Definitions, Unreachable, [], [], [], [], {[], []}),
+    split_definition(Definitions, [], [], [], [], {[], []}),
 
   Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
   Prefix = [{attribute, Line, file, Location},
@@ -183,44 +183,38 @@ dynamic_form(#{module := Module, line := Line, file := File, attributes := Attri
 
   Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated),
   Forms1 = attributes_form(Line, Attributes, Forms0),
-  {Prefix, Forms1, Macros, Unreachable}.
+  {Prefix, Forms1, Macros}.
 
 % Definitions
 
-split_definition([{Tuple, Kind, Meta, Clauses} | T], Unreachable,
+split_definition([{Tuple, Kind, Meta, Clauses} | T],
                  Def, Defmacro, Macros, Exports, Functions) ->
-  case lists:member(Tuple, Unreachable) of
-    false ->
-      split_definition(Tuple, Kind, Meta, Clauses, T, Unreachable,
-                       Def, Defmacro, Macros, Exports, Functions);
-    true ->
-      split_definition(T, Unreachable, Def, Defmacro, Macros, Exports, Functions)
-  end;
-split_definition([], _Unreachable, Def, Defmacro, Macros, Exports, {Head, Tail}) ->
+  split_definition(Tuple, Kind, Meta, Clauses, T, Def, Defmacro, Macros, Exports, Functions);
+split_definition([], Def, Defmacro, Macros, Exports, {Head, Tail}) ->
   {Def, Defmacro, Macros, Exports, Head ++ Tail}.
 
-split_definition(Tuple, def, Meta, Clauses, T, Unreachable,
+split_definition(Tuple, def, Meta, Clauses, T,
                  Def, Defmacro, Macros, Exports, Functions) ->
   {_, _, N, A, _} = Entry = translate_definition(def, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, [Tuple | Def], Defmacro, Macros, [{N, A} | Exports],
+  split_definition(T, [Tuple | Def], Defmacro, Macros, [{N, A} | Exports],
                    add_definition(Meta, Entry, Functions));
 
-split_definition(Tuple, defp, Meta, Clauses, T, Unreachable,
+split_definition(Tuple, defp, Meta, Clauses, T,
                  Def, Defmacro, Macros, Exports, Functions) ->
   Entry = translate_definition(defp, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, Def, Defmacro, Macros, Exports,
+  split_definition(T, Def, Defmacro, Macros, Exports,
                    add_definition(Meta, Entry, Functions));
 
-split_definition(Tuple, defmacro, Meta, Clauses, T, Unreachable,
+split_definition(Tuple, defmacro, Meta, Clauses, T,
                  Def, Defmacro, Macros, Exports, Functions) ->
   {_, _, N, A, _} = Entry = translate_definition(defmacro, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, Def, [Tuple | Defmacro], [Tuple | Macros], [{N, A} | Exports],
+  split_definition(T, Def, [Tuple | Defmacro], [Tuple | Macros], [{N, A} | Exports],
                    add_definition(Meta, Entry, Functions));
 
-split_definition(Tuple, defmacrop, Meta, Clauses, T, Unreachable,
+split_definition(Tuple, defmacrop, Meta, Clauses, T,
                  Def, Defmacro, Macros, Exports, Functions) ->
   Entry = translate_definition(defmacro, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, Def, Defmacro, [Tuple | Macros], Exports,
+  split_definition(T, Def, Defmacro, [Tuple | Macros], Exports,
                    add_definition(Meta, Entry, Functions)).
 
 add_definition(Meta, Body, {Head, Tail}) ->
@@ -359,7 +353,7 @@ types_form(Data, Forms) ->
 
 % Specs
 
-specs_form(Map, Data, Defmacro, Unreachable, Forms) ->
+specs_form(Map, Data, Defmacro, Forms) ->
   Specs =
     ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
      {Kind, Expr, Caller} <- take_type_spec(Data, spec)],
@@ -373,10 +367,10 @@ specs_form(Map, Data, Defmacro, Unreachable, Forms) ->
      {Kind, Expr, Caller} <- take_type_spec(Data, macrocallback)],
 
   Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
-  SpecsForms = specs_form(spec, Specs, Unreachable, [], Defmacro, Forms),
+  SpecsForms = specs_form(spec, Specs, [], Defmacro, Forms),
   AllCallbacks = Callbacks ++ Macrocallbacks,
   validate_optional_callbacks(Map, AllCallbacks, Optional),
-  specs_form(callback, AllCallbacks, [], Optional,
+  specs_form(callback, AllCallbacks, Optional,
              [NameArity || {_, NameArity, _, _} <- Macrocallbacks], SpecsForms).
 
 validate_optional_callbacks(Map, AllCallbacks, Optional) ->
@@ -399,19 +393,14 @@ validate_optional_callbacks(Map, AllCallbacks, Optional) ->
     maps:put(Callback, true, Acc)
   end, #{}, Optional).
 
-specs_form(_Kind, [], _Unreacheable, _Optional, _Macros, Forms) ->
+specs_form(_Kind, [], _Optional, _Macros, Forms) ->
   Forms;
-specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms) ->
+specs_form(Kind, Entries, Optional, Macros, Forms) ->
   Map =
     lists:foldl(fun({_, NameArity, Line, Spec}, Acc) ->
-      case lists:member(NameArity, Unreachable) of
-        false ->
-          case Acc of
-            #{NameArity := List} -> Acc#{NameArity := [{Spec, Line} | List]};
-            #{} -> Acc#{NameArity => [{Spec, Line}]}
-          end;
-        true ->
-          Acc
+      case Acc of
+        #{NameArity := List} -> Acc#{NameArity := [{Spec, Line} | List]};
+        #{} -> Acc#{NameArity => [{Spec, Line}]}
       end
     end, #{}, Entries),
 
