@@ -201,6 +201,21 @@ defmodule Code.Formatter.CallsTest do
       assert_format bad, good, @short_length
     end
 
+    test "with arguments on comma limit" do
+      bad = """
+      import(foo(abc, cde), :next)
+      """
+
+      good = """
+      import(
+        foo(abc, cde),
+        :next
+      )
+      """
+
+      assert_format bad, good, @medium_length
+    end
+
     test "with keyword lists" do
       assert_same "foo(foo: 1, bar: 2)"
 
@@ -263,6 +278,22 @@ defmodule Code.Formatter.CallsTest do
       assert_format bad, good, @short_length
     end
 
+    test "without parens on comma limit" do
+      bad = """
+      import foo(abc, cde), :next
+      """
+
+      good = """
+      import foo(
+               abc,
+               cde
+             ),
+             :next
+      """
+
+      assert_format bad, good, @medium_length
+    end
+
     test "without parens and with keyword lists preserves multiline" do
       assert_same """
       defstruct foo: 1,
@@ -274,6 +305,22 @@ defmodule Code.Formatter.CallsTest do
         foo: 1,
         bar: 2
       """
+    end
+
+    test "without parens and with keyword lists on comma limit" do
+      bad = """
+      import foo(abc, cde), opts: :next
+      """
+
+      good = """
+      import foo(
+               abc,
+               cde
+             ),
+             opts: :next
+      """
+
+      assert_format bad, good, @medium_length
     end
 
     test "without parens and with keyword lists on line limit" do
