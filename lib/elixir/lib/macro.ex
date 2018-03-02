@@ -392,7 +392,7 @@ defmodule Macro do
       iex> quote do: unquote(value)
       {:a, :b, :c}
 
-  `escape/2` is used to escape _values_ (either directly passed or variable
+  `escape/2` is used to escape *values* (either directly passed or variable
   bound), while `Kernel.SpecialForms.quote/2` produces syntax trees for
   expressions.
   """
