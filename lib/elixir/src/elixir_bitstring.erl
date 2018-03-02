@@ -108,7 +108,6 @@ expr_type(Integer) when is_integer(Integer) -> integer;
 expr_type(Float) when is_float(Float) -> float;
 expr_type(Binary) when is_binary(Binary) -> binary;
 expr_type({'<<>>', _, _}) -> bitstring;
-expr_type({'^', _, _}) -> pin;
 expr_type(_) -> default.
 
 %% Handling of alignment
@@ -180,8 +179,6 @@ type(_, integer, Type, _) when Type == integer; Type == float; Type == utf8; Typ
 type(_, float, Type, _) when Type == float ->
   Type;
 type(_, default, Type, _) ->
-  Type;
-type(_, pin, Type, _) ->
   Type;
 type(Meta, Other, Value, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {bittype_mismatch, Value, Other, type}).
@@ -258,8 +255,6 @@ validate_spec_arg(Meta, unit, Value, E) when not is_integer(Value) ->
 validate_spec_arg(_Meta, _Key, _Value, _E) ->
   ok.
 
-validate_size_required(Meta, true, pin, _, _, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, pin_operator_on_left_side);
 validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
   form_error(Meta, ?key(E, file), ?MODULE, unsized_binary);
 validate_size_required(_, _, _, _, _, _) ->
@@ -328,8 +323,6 @@ format_error({unaligned_bitstring_in_match, Expr}) ->
     "    <<\"foo\", <<field, rest::bitstring>>::bitstring>>\n\n"
     "Got: ~ts",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
-format_error(pin_operator_on_left_side) ->
-  "^ operator is allowed only on the right side of the <> operator";
 format_error(unsized_binary) ->
   "a binary field without size is only allowed at the end of a binary pattern "
   "and never allowed in binary generators";

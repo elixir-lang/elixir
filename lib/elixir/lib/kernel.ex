@@ -1582,7 +1582,7 @@ defmodule Kernel do
       "foobar"
 
   The `<>/2` operator can also be used in pattern matching (and guard clauses) as
-  long as the first part is a literal binary:
+  long as the left argument is a literal binary:
 
       iex> "foo" <> x = "foobar"
       iex> x
@@ -1592,17 +1592,18 @@ defmodule Kernel do
 
   """
   defmacro left <> right do
-    concats = extract_concatenations({:<>, [], [left, right]})
+    concats = extract_concatenations({:<>, [], [left, right]}, __CALLER__)
     quote(do: <<unquote_splicing(concats)>>)
   end
 
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
-  defp extract_concatenations({:<>, _, [left, right]}) do
-    [wrap_concatenation(left) | extract_concatenations(right)]
+  defp extract_concatenations({:<>, _, [left, right]}, caller) do
+    check_invalid_argument(left, caller)
+    [wrap_concatenation(left) | extract_concatenations(right, caller)]
   end
 
-  defp extract_concatenations(other) do
+  defp extract_concatenations(other, _caller) do
     [wrap_concatenation(other)]
   end
 
@@ -1612,6 +1613,29 @@ defmodule Kernel do
 
   defp wrap_concatenation(other) do
     {:::, [], [other, {:binary, [], nil}]}
+  end
+
+  defp check_invalid_argument({:^, _, _}, caller) do
+    form_error(:invalid_left_on_concat_operator, caller)
+  end
+
+  defp check_invalid_argument({name, _, nil}, %{context: :match} = caller) when is_atom(name) do
+    form_error(:invalid_left_on_concat_operator, caller)
+  end
+
+  defp check_invalid_argument(_, _caller) do
+    :ok
+  end
+
+  defp form_error(:invalid_left_on_concat_operator, caller) do
+    :erlang.error(
+      CompileError.exception(
+        file: caller.file,
+        line: caller.line,
+        description:
+          "The left argument of <> operator inside a match should be always a literal binary"
+      )
+    )
   end
 
   @doc """

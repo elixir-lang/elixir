@@ -86,6 +86,11 @@ defmodule Kernel.BinaryTest do
     assert x == ?f
   end
 
+  test "string concatenation outside match" do
+    x = "bar"
+    assert "foobar" = "foo" <> x
+  end
+
   test "hex" do
     assert "\x76" == "v"
     assert "\u00FF" == "ÿ"
@@ -140,20 +145,46 @@ defmodule Kernel.BinaryTest do
   end
 
   test "literal errors" do
-    assert_raise CompileError, fn ->
+    message = ~r"conflicting type specification for bit field"
+
+    assert_raise CompileError, message, fn ->
       Code.eval_string(~s[<<"foo"::integer>>])
     end
 
-    assert_raise CompileError, fn ->
+    assert_raise CompileError, message, fn ->
       Code.eval_string(~s[<<"foo"::float>>])
     end
 
-    assert_raise CompileError, fn ->
+    message = ~r"invalid literal 'foo'"
+
+    assert_raise CompileError, message, fn ->
       Code.eval_string(~s[<<'foo'::binary>>])
     end
 
     assert_raise ArgumentError, fn ->
       Code.eval_string(~s[<<1::4>> <> "foo"])
+    end
+
+    message = ~r"left argument of <> operator inside a match"
+
+    assert_raise CompileError, message, fn ->
+      Code.eval_string(~s[
+        a <> "b" = "ab"
+      ])
+    end
+
+    assert_raise CompileError, message, fn ->
+      Code.eval_string(~s[
+        a = "a"
+        ^a <> "b" = "ab"
+      ])
+    end
+
+    assert_raise CompileError, message, fn ->
+      Code.eval_string(~s[
+        b = "b"
+        "a" <> ^b <> "c" = "abc"
+      ])
     end
   end
 
