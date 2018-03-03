@@ -19,16 +19,20 @@ See the "User-defined types" and "Defining a specification" sub-sections below f
 ## A simple example
 
     defmodule StringHelpers do
-      @spec long_word?(String.t()) :: boolean()
+      @type word() :: String.t()
+
+      @spec long_word?(word()) :: boolean()
       def long_word?(word) when is_binary(word) do
         String.length(word) > 8
       end
     end
 
-In this example, the `@spec` declaration says that:
+In the example above, this happens:
 
-  * `long_word?/1` takes one argument of type `String.t()` (a string)
-  * `long_word?/1` returns a boolean (`boolean()`), that is, either `true` or `false`
+  * we declare a new type (`word()`) that is equivalent to the string type (`String.t()`);
+
+  * we specify that the `long_word?/1` function takes an argument of type `word()` and
+    returns a boolean (`boolean()`), that is, either `true` or `false`.
 
 ## Types and their syntax
 
