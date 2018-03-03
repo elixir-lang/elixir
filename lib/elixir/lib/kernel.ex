@@ -1592,13 +1592,7 @@ defmodule Kernel do
 
   """
   defmacro left <> right do
-    {expanded_left, expanded_right} =
-      case bootstrapped?(Macro) do
-        true -> Macro.expand({left, right}, __CALLER__)
-        false -> {left, right}
-      end
-
-    concats = extract_concatenations({:<>, [], [expanded_left, expanded_right]}, __CALLER__)
+    concats = extract_concatenations({:<>, [], [left, right]}, __CALLER__)
     quote(do: <<unquote_splicing(concats)>>)
   end
 
@@ -2438,8 +2432,8 @@ defmodule Kernel do
 
   defp nest_pop_in(_, _, [{:map, key}]) do
     raise ArgumentError,
-          <<"cannot use pop_in when the last segment is a map/struct field. ",
-            "This would effectively remove the field #{inspect(key)} from the map/struct">>
+          "cannot use pop_in when the last segment is a map/struct field. " <>
+            "This would effectively remove the field #{inspect(key)} from the map/struct"
   end
 
   defp nest_pop_in(_, h, [{:map, key} | t]) do
@@ -2475,8 +2469,8 @@ defmodule Kernel do
 
   defp unnest(other, [], _all_map?, kind) do
     raise ArgumentError,
-          <<"expected expression given to #{kind} to access at least one element, ",
-            "got: #{Macro.to_string(other)}">>
+          "expected expression given to #{kind} to access at least one element, " <>
+            "got: #{Macro.to_string(other)}"
   end
 
   defp unnest(other, acc, all_map?, kind) do
@@ -2486,8 +2480,8 @@ defmodule Kernel do
 
       false ->
         raise ArgumentError,
-              <<"expression given to #{kind} must start with a variable, local or remote call ",
-                "and be followed by an element access, got: #{Macro.to_string(other)}">>
+              "expression given to #{kind} must start with a variable, local or remote call " <>
+                "and be followed by an element access, got: #{Macro.to_string(other)}"
     end
   end
 
@@ -2742,8 +2736,8 @@ defmodule Kernel do
         rescue
           ex in [ArgumentError] ->
             raise ArgumentError,
-                  <<"cannot inject attribute @#{name} into function/macro because ",
-                    Exception.message(ex)::binary>>
+                  "cannot inject attribute @#{name} into function/macro because " <>
+                    Exception.message(ex)
         else
           {val, _} -> val
         end
@@ -2920,8 +2914,8 @@ defmodule Kernel do
 
   defp build_unless(_condition, _arguments) do
     raise ArgumentError,
-          <<"invalid or duplicate keys for unless, ",
-            "only \"do\" and an optional \"else\" are permitted">>
+          "invalid or duplicate keys for unless, " <>
+            "only \"do\" and an optional \"else\" are permitted"
   end
 
   @doc """
@@ -2993,8 +2987,8 @@ defmodule Kernel do
            when is_float(first) or is_float(last) or is_atom(first) or is_atom(last) or
                   is_binary(first) or is_binary(last) or is_list(first) or is_list(last) do
     raise ArgumentError,
-          <<"ranges (first..last) expect both sides to be integers, ",
-            "got: #{Macro.to_string({:.., [], [first, last]})}">>
+          "ranges (first..last) expect both sides to be integers, " <>
+            "got: #{Macro.to_string({:.., [], [first, last]})}"
   end
 
   defmacro first..last do
@@ -3377,7 +3371,7 @@ defmodule Kernel do
   end
 
   defp ensure_evaled_var(elem, {index, ast}) do
-    var = {String.to_atom(<<"var", Integer.to_string(index)::binary>>), [], __MODULE__}
+    var = {String.to_atom("var" <> Integer.to_string(index)), [], __MODULE__}
     {var, {index + 1, [{var, elem} | ast]}}
   end
 
@@ -4604,8 +4598,8 @@ defmodule Kernel do
     case :elixir_utils.extract_guards(guard) do
       {call, [_, _ | _]} ->
         raise ArgumentError,
-              <<"invalid syntax in defguard #{Macro.to_string(call)}, ",
-                "only a single when clause is allowed">>
+              "invalid syntax in defguard #{Macro.to_string(call)}, " <>
+                "only a single when clause is allowed"
 
       {call, impls} ->
         case Macro.decompose_call(call) do
@@ -4752,8 +4746,8 @@ defmodule Kernel do
 
         _otherwise ->
           raise ArgumentError,
-                <<"invalid arguments for use, ",
-                  "expected a compile time atom or alias, got: #{Macro.to_string(module)}">>
+                "invalid arguments for use, " <>
+                  "expected a compile time atom or alias, got: #{Macro.to_string(module)}"
       end)
 
     quote(do: (unquote_splicing(calls)))
