@@ -425,8 +425,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  @overriding_msg "  the dependency git_repo in mix.exs is overriding a child dependency"
-
   test "fails on diverged dependencies on get/update" do
     Mix.Project.push(ConflictDepsApp)
 
@@ -435,19 +433,31 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Loadpaths.run([])
       end
 
-      assert_received {:mix_shell, :error, [@overriding_msg <> _]}
+      assert_received {:mix_shell, :error,
+                       [
+                         "  the dependency git_repo in mix.exs is overriding a child dependency" <>
+                           _
+                       ]}
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run([])
       end
 
-      assert_received {:mix_shell, :error, [@overriding_msg <> _]}
+      assert_received {:mix_shell, :error,
+                       [
+                         "  the dependency git_repo in mix.exs is overriding a child dependency" <>
+                           _
+                       ]}
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Update.run(["--all"])
       end
 
-      assert_received {:mix_shell, :error, [@overriding_msg <> _]}
+      assert_received {:mix_shell, :error,
+                       [
+                         "  the dependency git_repo in mix.exs is overriding a child dependency" <>
+                           _
+                       ]}
     end
   end
 
@@ -500,8 +510,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  @overriding_msg "  the dependency git_repo in mix.exs is overriding"
-
   test "fails on diverged dependencies even when optional" do
     Mix.Project.push(ConvergedDepsApp)
 
@@ -527,7 +535,8 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Loadpaths.run([])
       end
 
-      assert_received {:mix_shell, :error, [@overriding_msg <> _]}
+      assert_received {:mix_shell, :error,
+                       ["  the dependency git_repo in mix.exs is overriding" <> _]}
     end
   end
 

@@ -1625,10 +1625,6 @@ defmodule Kernel do
     :ok
   end
 
-  defp check_invalid_argument({:@, _, _}, _caller) do
-    :ok
-  end
-
   defp check_invalid_argument(arg, %{context: :match} = caller) when not is_binary(arg) do
     :erlang.error(
       CompileError.exception(
