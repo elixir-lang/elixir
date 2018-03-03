@@ -16,6 +16,24 @@ Type specifications (sometimes referred to as *typespecs*) are defined in differ
 
 See the "User-defined types" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
 
+## A simple example
+
+    defmodule StringHelpers do
+      @type word() :: String.t()
+
+      @spec long_word?(word()) :: boolean()
+      def long_word?(word) when is_binary(word) do
+        String.length(word) > 8
+      end
+    end
+
+In the example above, this happens:
+
+  * we declare a new type (`word()`) that is equivalent to the string type (`String.t()`);
+
+  * we specify that the `long_word?/1` function takes an argument of type `word()` and
+    returns a boolean (`boolean()`), that is, either `true` or `false`.
+
 ## Types and their syntax
 
 The syntax Elixir provides for type specifications is similar to [the one in Erlang](http://www.erlang.org/doc/reference_manual/typespec.html). Most of the built-in types provided in Erlang (for example, `pid()`) are expressed in the same way: `pid()` (or simply `pid`). Parameterized types (such as `list(integer)`) are supported as well and so are remote types (such as `Enum.t`). Integers and atom literals are allowed as types (e.g., `1`, `:atom`, or `false`). All other types are built out of unions of predefined types. Some shorthands are allowed, such as `[...]`, `<<>>`, and `{...}`.
