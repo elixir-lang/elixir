@@ -337,7 +337,7 @@ defmodule Mix.Tasks.Test do
     :formatters,
     :colors,
     :slowest,
-    :manifest_file,
+    :failures_manifest_file,
     :only_test_ids
   ]
 
@@ -424,11 +424,11 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  @manifest_file_name ".ex_unit_results.elixir"
+  @manifest_file_name ".ex_unit_failures.elixir"
 
   defp manifest_opts(opts) do
     manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
-    Keyword.put(opts, :manifest_file, manifest_file)
+    Keyword.put(opts, :failures_manifest_file, manifest_file)
   end
 
   defp failed_opts(opts) do
@@ -437,7 +437,7 @@ defmodule Mix.Tasks.Test do
         Mix.raise("Combining `--failed` and `--stale` is not supported.")
       end
 
-      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(opts[:manifest_file])
+      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(opts[:failures_manifest_file])
       {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
     else
       {opts, nil}
