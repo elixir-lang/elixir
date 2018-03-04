@@ -34,7 +34,7 @@ defmodule Mix.Tasks.TestTest do
   test "ex_unit_opts/1 includes some default options" do
     assert ex_unit_opts([]) == [
              autorun: false,
-             manifest_file: Path.join(Mix.Project.manifest_path(), ".ex_unit_results.elixir")
+             failures_manifest_file: Path.join(Mix.Project.manifest_path(), ".mix_test_failures")
            ]
   end
 
@@ -46,7 +46,7 @@ defmodule Mix.Tasks.TestTest do
   defp ex_unit_opts_from_given(passed) do
     passed
     |> ex_unit_opts()
-    |> Keyword.drop([:manifest_file, :autorun])
+    |> Keyword.drop([:failures_manifest_file, :autorun])
   end
 
   test "--stale: runs all tests for first run, then none on second" do
@@ -160,7 +160,7 @@ defmodule Mix.Tasks.TestTest do
       assert output =~ "Combining `--failed` and `--stale` is not supported"
     end
   after
-    System.delete_env("PASS_FAILING_TEST")
+    System.delete_env("PASS_FAILING_TESTS")
   end
 
   test "logs test absence for a project with no test paths" do
