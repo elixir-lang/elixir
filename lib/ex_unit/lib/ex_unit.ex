@@ -214,6 +214,9 @@ defmodule ExUnit do
     * `:exclude` - specifies which tests are run by skipping tests that match the
       filter;
 
+    * `:failures_manifest_file` - specifies a path to the file used to store failures
+      between runs;
+
     * `:formatters` - the formatters that will print results,
       defaults to `[ExUnit.CLIFormatter]`;
 
@@ -229,6 +232,9 @@ defmodule ExUnit do
 
     * `:module_load_timeout` - the timeout to be used when loading a test module,
       defaults to `60_000` milliseconds;
+
+    * `:only_test_ids` - a list of `{module_name, test_name}` tuples that limits
+      what tests get run;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
       calls, defaults to `100` milliseconds;
