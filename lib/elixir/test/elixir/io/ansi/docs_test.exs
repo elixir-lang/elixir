@@ -324,6 +324,7 @@ defmodule IO.ANSI.DocsTest do
 
   test "table with formatting in cells" do
     assert format("`a` | _b_\nc | d") == "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
+    assert format("`abc` | d \n`e` | f") == "\e[36mabc\e[0m | d\n\e[36me\e[0m   | f\n\e[0m"
   end
 
   test "table with variable number of columns" do
