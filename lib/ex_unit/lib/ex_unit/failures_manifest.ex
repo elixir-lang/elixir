@@ -23,6 +23,7 @@ defmodule ExUnit.FailuresManifest do
     |> MapSet.new()
   end
 
+  @spec put_test(t, ExUnit.Test.t()) :: t
   def put_test(%{} = manifest, %ExUnit.Test{state: {ignored_state, _}})
       when ignored_state in [:skipped, :excluded],
       do: manifest
