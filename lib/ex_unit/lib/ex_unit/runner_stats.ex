@@ -2,7 +2,7 @@ defmodule ExUnit.RunnerStats do
   @moduledoc false
 
   use GenServer
-  alias ExUnit.{Manifest, Test, TestModule}
+  alias ExUnit.{FailuresManifest, Test, TestModule}
 
   def stats(pid) do
     GenServer.call(pid, :stats, :infinity)
@@ -10,23 +10,14 @@ defmodule ExUnit.RunnerStats do
 
   # Callbacks
 
-  @manifest ".ex_unit_results.elixir"
-
   def init(opts) do
-    manifest_file =
-      case Keyword.fetch(opts, :manifest_path) do
-        :error -> nil
-        {:ok, manifest_path} -> Path.join(manifest_path, @manifest)
-      end
-
     state = %{
       total: 0,
       failures: 0,
       skipped: 0,
       excluded: 0,
-      manifest_file: manifest_file,
-      old_manifest: nil,
-      new_manifest: Manifest.new()
+      failures_manifest_file: opts[:failures_manifest_file],
+      failures_manifest: FailuresManifest.new()
     }
 
     {:ok, state}
@@ -40,7 +31,7 @@ defmodule ExUnit.RunnerStats do
   def handle_cast({:test_finished, %Test{} = test}, state) do
     state =
       state
-      |> Map.update!(:new_manifest, &Manifest.add_test(&1, test))
+      |> Map.update!(:failures_manifest, &FailuresManifest.put_test(&1, test))
       |> Map.update!(:total, &(&1 + 1))
       |> increment_status_counter(test.state)
 
@@ -53,17 +44,15 @@ defmodule ExUnit.RunnerStats do
     {:noreply, %{state | failures: failures + test_count, total: total + test_count}}
   end
 
-  def handle_cast({:suite_started, _opts}, %{old_manifest: nil, manifest_file: file} = state)
+  def handle_cast({:suite_started, _opts}, %{failures_manifest_file: file} = state)
       when is_binary(file) do
-    state = %{state | old_manifest: Manifest.read(file)}
+    state = %{state | failures_manifest: FailuresManifest.read(file)}
     {:noreply, state}
   end
 
-  def handle_cast({:suite_finished, _, _}, %{manifest_file: file} = state) when is_binary(file) do
-    state.old_manifest
-    |> Manifest.merge(state.new_manifest)
-    |> Manifest.write!(file)
-
+  def handle_cast({:suite_finished, _, _}, %{failures_manifest_file: file} = state)
+      when is_binary(file) do
+    FailuresManifest.write!(state.failures_manifest, file)
     {:noreply, state}
   end
 
