@@ -34,6 +34,8 @@ defmodule Calendar.ISO do
   @days_per_nonleap_year 365
   @days_per_leap_year 366
 
+  @months_in_year 12
+
   @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.
 
@@ -231,6 +233,22 @@ defmodule Calendar.ISO do
 
   def days_in_month(_, month) when month in [4, 6, 9, 11], do: 30
   def days_in_month(_, month) when month in 1..12, do: 31
+
+  @doc """
+  Returns how many months there are in the given year.
+
+  ## Example
+
+      iex> Calendar.ISO.months_in_year(2004)
+      12
+
+  """
+  @impl true
+  @since "1.7.0"
+  @spec months_in_year(year) :: 12
+  def months_in_year(_year) do
+    @months_in_year
+  end
 
   @doc """
   Returns if the given year is a leap year.
