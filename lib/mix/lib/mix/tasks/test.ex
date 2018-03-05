@@ -424,7 +424,7 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  @manifest_file_name ".ex_unit_failures.elixir"
+  @manifest_file_name ".mix_test_failures"
 
   defp manifest_opts(opts) do
     manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
