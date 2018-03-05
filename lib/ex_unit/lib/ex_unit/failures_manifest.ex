@@ -23,14 +23,6 @@ defmodule ExUnit.FailuresManifest do
     |> MapSet.new()
   end
 
-  @spec put_test(t, ExUnit.Test.t()) :: t
-  # TODO: figure out a way to prevent ExUnit from allowing the `file` tag
-  #       to be set incorrectly instead of using this function clause
-  #       (which only ignores values of the wrong type, but not wrong binary values)
-  def put_test(%{} = manifest, %ExUnit.Test{tags: %{file: file}})
-      when not is_binary(file),
-      do: manifest
-
   def put_test(%{} = manifest, %ExUnit.Test{state: {ignored_state, _}})
       when ignored_state in [:skipped, :excluded],
       do: manifest

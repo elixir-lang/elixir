@@ -59,10 +59,6 @@ defmodule ExUnit.FailuresManifestTest do
     test "ignores excluded tests since we know nothing about their pass/fail status" do
       assert put_test(new(), new_test(@excluded)) == new()
     end
-
-    test "ignores tests that have an invalid :file value (which can happen when returning a `:file` option from `setup`))" do
-      assert put_test(new(), new_test(@failed, :not_a_string)) == new()
-    end
   end
 
   describe "put_test/2 when the test is already in the manifest" do
@@ -94,12 +90,6 @@ defmodule ExUnit.FailuresManifestTest do
 
     test "ignores excluded tests since we know nothing about their pass/fail status", context do
       test = %{context.failed_test | state: @excluded}
-      assert put_test(context.manifest, test) == context.manifest
-    end
-
-    test "ignores tests that have an invalid :file value (which can happen when returning a `:file` option from `setup`))",
-         context do
-      test = %{context.failed_test | tags: %{file: :not_a_string}}
       assert put_test(context.manifest, test) == context.manifest
     end
   end

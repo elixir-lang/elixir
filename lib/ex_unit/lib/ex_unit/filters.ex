@@ -94,21 +94,15 @@ defmodule ExUnit.Filters do
   Returns a tuple containing useful information about test failures from the
   manifest. The tuple contains:
 
-    - A set of files that contain tests that failed the last time they ran.
+    * A set of files that contain tests that failed the last time they ran.
       The paths are absolute paths.
-    - A set of test ids that failed the last time they ran
+    * A set of test ids that failed the last time they ran
+
   """
-  @spec failure_info(Path.t()) :: {
-          MapSet.t(Path.t()),
-          MapSet.t(FailuresManifest.test_id())
-        }
+  @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(FailuresManifest.test_id())}
   def failure_info(manifest_file) do
     manifest = FailuresManifest.read(manifest_file)
-
-    {
-      FailuresManifest.files_with_failures(manifest),
-      FailuresManifest.failed_test_ids(manifest)
-    }
+    {FailuresManifest.files_with_failures(manifest), FailuresManifest.failed_test_ids(manifest)}
   end
 
   @doc """
