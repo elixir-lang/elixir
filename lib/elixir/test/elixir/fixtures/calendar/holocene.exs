@@ -91,6 +91,9 @@ defmodule Calendar.Holocene do
   defdelegate days_in_month(year, month), to: Calendar.ISO
 
   @impl true
+  defdelegate months_in_year(year), to: Calendar.ISO
+
+  @impl true
   defdelegate day_of_week(year, month, day), to: Calendar.ISO
 
   @impl true
