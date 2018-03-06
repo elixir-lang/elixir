@@ -375,9 +375,20 @@ specs_form(Map, Data, Defmacro, Unreachable, Forms) ->
   Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
   SpecsForms = specs_form(spec, Specs, Unreachable, [], Defmacro, Forms),
   AllCallbacks = Callbacks ++ Macrocallbacks,
+  validate_behaviour_info_and_attributes(Map, AllCallbacks),
   validate_optional_callbacks(Map, AllCallbacks, Optional),
   specs_form(callback, AllCallbacks, [], Optional,
              [NameArity || {_, NameArity, _, _} <- Macrocallbacks], SpecsForms).
+
+validate_behaviour_info_and_attributes(#{definitions := Defs, module := Mod} = Map, AllCallbacks) ->
+  case {lists:keyfind({behaviour_info, 1}, 1, Defs), AllCallbacks} of
+    {false, _} ->
+      ok;
+    {_, [{Kind, {Name, Arity}, _, _} | _]} when Kind == callback; Kind == macrocallback ->
+      form_error(Map, {behaviour_info, {Mod, Name, Arity}});
+    {_, _} ->
+      ok
+  end.
 
 validate_optional_callbacks(Map, AllCallbacks, Optional) ->
   lists:foldl(fun(Callback, Acc) ->
@@ -555,4 +566,7 @@ format_error({ill_defined_optional_callback, Callback}) ->
 format_error({unknown_callback, {Name, Arity}}) ->
   io_lib:format("unknown callback ~ts/~B given as optional callback", [Name, Arity]);
 format_error({duplicate_optional_callback, {Name, Arity}}) ->
-  io_lib:format("~ts/~B has been specified as optional callback more than once", [Name, Arity]).
+  io_lib:format("~ts/~B has been specified as optional callback more than once", [Name, Arity]);
+format_error({behaviour_info, {_Mod, Fun, Arity}}) ->
+  io_lib:format("cannot define @callback/@macrocallback attribute for ~ts/~B when behaviour_info/1 is defined",
+                [Fun, Arity]).
