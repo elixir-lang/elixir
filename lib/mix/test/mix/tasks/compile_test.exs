@@ -137,4 +137,24 @@ defmodule Mix.Tasks.CompileTest do
       end)
     end
   end
+
+  test "skip protocol consolidation when --no-protocol-consolidation" do
+    in_fixture "no_mixfile", fn ->
+      File.rm("_build/dev/lib/sample/.mix/compile.protocols")
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:ok, []}
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
+    end
+  end
+
+  test "loads mix config with --erl-config" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("mix.config", "{erl_config_app, [{value, true}]}.")
+      assert Mix.Task.run("compile", ["--erl-config", "mix.config"]) == {:ok, []}
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      assert Application.get_env(:erl_config_app, :value)
+    end
+  after
+    Application.delete_env(:erl_config_app, :value)
+  end
 end
