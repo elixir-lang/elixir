@@ -86,7 +86,7 @@ also run tests for a specific framework `make test_#{NAME}`, for example,
 `make test_ex_unit`. If you just changed something in the Elixir's standard
 library, you can run only that portion through `make test_stdlib`.
 
-In case you are changing a single file, you can compile and run tests only
+If you are changing just one file, you can compile and run tests only
 for that particular file for fast development cycles. For example, if you
 are changing the String module, you can compile it and run its tests as:
 
@@ -142,7 +142,7 @@ rather manage all changes yourself, you can disable "Allow edits from maintainer
 feature when submitting your pull request.
 
 The Elixir team may optionally assign someone to review a pull request.
-In case someone is assigned, they must explicitly approve the code before
+If someone is assigned, they must explicitly approve the code before
 another team member can merge it.
 
 When the review finishes, your pull request will be squashed and merged
