@@ -9,7 +9,6 @@
   * [Calendar.ISO] Support negative dates in `Calendar.ISO`
   * [Calendar] Add `months_in_year/1` callback
   * [Code] Add `Code.compile_file/2` that compiles files without leaving footprints on the system
-  * [Code.Formatter] Support comments in the middle of pipelines, `when` and `|` expressions
   * [Date] Add `months_in_year/1` function
   * [IO.ANSI] Add cursor movement to `IO.ANSI`
   * [Kernel] Introduce `__STACKTRACE__` to retrieve the current stacktrace inside `catch`/`rescue` (this will be a requirement for Erlang/OTP 21+)
