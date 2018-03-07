@@ -123,6 +123,26 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
+## v1.6.3
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Code.Formatter] Support comments in the middle of pipelines, `when` and `|` expressions
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code.Formatter] Consider commas when breaking groups
+  * [Code.Formatter] Ensure proper precedence between `&` and operators
+  * [Code.Formatter] Consider `.formatter.exs` when formatting stdin
+
+#### Logger
+
+  * [Logger.Translator] Ensure logger doesn't crash when reporting named `DynamicSupervisor`
+
 ## v1.6.2 (2018-02-28)
 
 ### 1. Enhancements
