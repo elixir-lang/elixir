@@ -718,8 +718,7 @@ defmodule Logger do
     %{module: module, function: fun, file: file, line: line} = caller
 
     caller =
-      compile_time_application(file) ++
-        [module: module, function: form_fa(fun), line: line]
+      compile_time_application(file) ++ [module: module, function: form_fa(fun), line: line]
 
     metadata =
       if Keyword.keyword?(metadata) do
