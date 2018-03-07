@@ -495,7 +495,14 @@ defmodule DynamicSupervisor do
 
     case mod.init(args) do
       {:ok, flags} when is_map(flags) ->
-        state = %DynamicSupervisor{mod: mod, args: args, name: name || {self(), mod}}
+        name =
+          cond do
+            is_nil(name) -> {self(), mod}
+            is_atom(name) -> {:local, name}
+            is_tuple(name) -> name
+          end
+
+        state = %DynamicSupervisor{mod: mod, args: args, name: name}
 
         case init(state, flags) do
           {:ok, state} -> {:ok, state}

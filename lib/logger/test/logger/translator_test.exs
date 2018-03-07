@@ -731,6 +731,23 @@ defmodule Logger.TranslatorTest do
            """
   end
 
+  test "translates named DynamicSupervisor reports abnormal shutdown" do
+    assert capture_log(:info, fn ->
+             trap = Process.flag(:trap_exit, true)
+             child = %{id: __MODULE__, start: {__MODULE__, :abnormal, []}}
+             {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one, name: __MODULE__)
+             {:ok, _pid2} = DynamicSupervisor.start_child(pid, child)
+             Process.exit(pid, :normal)
+             receive do: ({:EXIT, ^pid, _} -> :ok)
+             Process.flag(:trap_exit, trap)
+           end) =~ ~r"""
+           \[error\] Child :undefined of Supervisor Logger.TranslatorTest shutdown abnormally
+           \*\* \(exit\) :stop
+           Pid: #PID<\d+\.\d+\.\d+>
+           Start Call: Logger.TranslatorTest.abnormal\(\)
+           """
+  end
+
   test "translates :supervisor_bridge progress" do
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
