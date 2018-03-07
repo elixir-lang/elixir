@@ -117,7 +117,7 @@ defmodule Kernel.TypespecTest do
   end
 
   test "behaviour_info/1 explicitly defined alongside @callback/@macrocallback" do
-    message = ~r"cannot define @callback/@macrocallback attribute for foo/1 when behaviour_info/1"
+    message = ~r"cannot define @callback attribute for foo/1 when behaviour_info/1"
 
     assert_raise CompileError, message, fn ->
       test_module do
@@ -125,6 +125,8 @@ defmodule Kernel.TypespecTest do
         def behaviour_info(_), do: []
       end
     end
+
+    message = ~r"cannot define @macrocallback attribute for foo/1 when behaviour_info/1"
 
     assert_raise CompileError, message, fn ->
       test_module do
