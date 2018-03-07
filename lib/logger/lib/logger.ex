@@ -718,7 +718,8 @@ defmodule Logger do
     %{module: module, function: fun, file: file, line: line} = caller
 
     caller =
-      compile_time_application(file) ++ [module: module, function: form_fa(fun), line: line]
+      compile_time_application_and_file(file) ++
+        [module: module, function: form_fa(fun), line: line]
 
     metadata =
       if Keyword.keyword?(metadata) do
@@ -734,7 +735,7 @@ defmodule Logger do
     end
   end
 
-  defp compile_time_application(file) do
+  defp compile_time_application_and_file(file) do
     if app = Application.get_env(:logger, :compile_time_application) do
       [application: app, file: Path.relative_to_cwd(file)]
     else
