@@ -416,7 +416,7 @@ specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms, Map) ->
   M =
     lists:foldl(fun({_, NameArity, Line, Spec}, Acc) ->
       case Kind of
-        spec -> validate_spec_for_existing_function(Map, NameArity);
+        spec -> validate_spec_for_existing_function(Map, NameArity, Line);
         _ -> ok
       end,
 
@@ -466,9 +466,9 @@ take_type_spec(Data, Key) ->
     [] -> []
   end.
 
-validate_spec_for_existing_function(#{definitions := Defs} = Map, NameAndArity) ->
+validate_spec_for_existing_function(#{definitions := Defs} = Map, NameAndArity, Line) ->
   case lists:keymember(NameAndArity, 1, Defs) of
-    false -> form_error(Map, {spec_for_undefined_function, NameAndArity});
+    false -> form_error(Map#{line := Line}, {spec_for_undefined_function, NameAndArity});
     true -> ok
   end.
 
