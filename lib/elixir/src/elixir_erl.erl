@@ -22,10 +22,10 @@ debug_info(elixir_v1, _Module, none, _Opts) ->
 debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
   {ok, Map};
 debug_info(erlang_v1, Module, {elixir_v1, Map, Specs}, _Opts) ->
-  {Prefix, Forms, _, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
+  {Prefix, Forms, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
   {ok, Prefix ++ Specs ++ Forms};
 debug_info(core_v1, Module, {elixir_v1, Map, Specs}, Opts) ->
-  {Prefix, Forms, _, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
+  {Prefix, Forms, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
   #{compile_opts := CompileOpts} = Map,
 
   %% Do not rely on elixir_erl_compiler because we don't
@@ -163,11 +163,11 @@ scope(_Meta) ->
 compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
   Deprecated = get_deprecated(Data),
-  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map, Deprecated),
+  {Prefix, Forms, Defmacro} = dynamic_form(Map, Deprecated),
   Specs =
     case elixir_config:get(bootstrap) of
       true -> [];
-      false -> specs_form(Map, Data, Defmacro, Unreachable, types_form(Data, []))
+      false -> specs_form(Map, Data, Defmacro, types_form(Data, []))
     end,
   load_form(Map, Data, Prefix, Forms, Specs, Deprecated).
 
@@ -183,7 +183,7 @@ dynamic_form(#{module := Module, line := Line, file := File, attributes := Attri
 
   Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated),
   Forms1 = attributes_form(Line, Attributes, Forms0),
-  {Prefix, Forms1, Macros, Unreachable}.
+  {Prefix, Forms1, Macros}.
 
 % Definitions
 
@@ -359,7 +359,7 @@ types_form(Data, Forms) ->
 
 % Specs
 
-specs_form(Map, Data, Defmacro, Unreachable, Forms) ->
+specs_form(Map, Data, Defmacro, Forms) ->
   Specs =
     ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
      {Kind, Expr, Caller} <- take_type_spec(Data, spec)],
@@ -373,11 +373,13 @@ specs_form(Map, Data, Defmacro, Unreachable, Forms) ->
      {Kind, Expr, Caller} <- take_type_spec(Data, macrocallback)],
 
   Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
-  SpecsForms = specs_form(spec, Specs, Unreachable, [], Defmacro, Forms, Map),
+  SpecsForms = specs_form(spec, Specs, [], Defmacro, Forms, Map),
   AllCallbacks = Callbacks ++ Macrocallbacks,
+
   validate_behaviour_info_and_attributes(Map, AllCallbacks),
   validate_optional_callbacks(Map, AllCallbacks, Optional),
-  specs_form(callback, AllCallbacks, [], Optional,
+
+  specs_form(callback, AllCallbacks, Optional,
              [NameArity || {_, NameArity, _, _} <- Macrocallbacks], SpecsForms, Map).
 
 validate_behaviour_info_and_attributes(#{definitions := Defs} = Map, AllCallbacks) ->
@@ -410,13 +412,15 @@ validate_optional_callbacks(Map, AllCallbacks, Optional) ->
     maps:put(Callback, true, Acc)
   end, #{}, Optional).
 
-specs_form(_Kind, [], _Unreacheable, _Optional, _Macros, Forms, _Map) ->
+specs_form(_Kind, [], _Optional, _Macros, Forms, _ModuleMap) ->
   Forms;
-specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms, Map) ->
-  M =
+specs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
+  #{unreachable := Unreachable} = ModuleMap,
+
+  SpecsMap =
     lists:foldl(fun({_, NameArity, Line, Spec}, Acc) ->
       case Kind of
-        spec -> validate_spec_for_existing_function(Map, NameArity, Line);
+        spec -> validate_spec_for_existing_function(ModuleMap, NameArity, Line);
         _ -> ok
       end,
 
@@ -452,7 +456,7 @@ specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms, Map) ->
       false ->
         [{attribute, Line, Kind, {Key, Value}} | Acc]
     end
-  end, Forms, M).
+  end, Forms, SpecsMap).
 
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
   NewArgs = [{type, Line, term, []} | Args],
@@ -466,10 +470,12 @@ take_type_spec(Data, Key) ->
     [] -> []
   end.
 
-validate_spec_for_existing_function(#{definitions := Defs} = Map, NameAndArity, Line) ->
+validate_spec_for_existing_function(ModuleMap, NameAndArity, Line) ->
+  #{definitions := Defs, file := File} = ModuleMap,
+
   case lists:keymember(NameAndArity, 1, Defs) of
-    false -> form_error(Map#{line := Line}, {spec_for_undefined_function, NameAndArity});
-    true -> ok
+    true -> ok;
+    false -> form_error(#{line => Line, file => File}, {spec_for_undefined_function, NameAndArity})
   end.
 
 % Attributes
