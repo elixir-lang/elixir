@@ -378,6 +378,7 @@ specs_form(Map, Data, Defmacro, Forms) ->
 
   validate_behaviour_info_and_attributes(Map, AllCallbacks),
   validate_optional_callbacks(Map, AllCallbacks, Optional),
+  maybe_warn_for_funs_with_missing_spec(Map, Specs),
 
   specs_form(callback, AllCallbacks, Optional,
              [NameArity || {_, NameArity, _, _} <- Macrocallbacks], SpecsForms, Map).
@@ -477,6 +478,26 @@ validate_spec_for_existing_function(ModuleMap, NameAndArity, Line) ->
     true -> ok;
     false -> form_error(#{line => Line, file => File}, {spec_for_undefined_function, NameAndArity})
   end.
+
+% We only warn for public functions and macros.
+maybe_warn_for_funs_with_missing_spec(ModuleMap, Specs) ->
+  case os:getenv("WARN") of
+    false -> false;
+    _ -> warn_for_funs_with_missing_spec(ModuleMap, Specs)
+  end.
+
+warn_for_funs_with_missing_spec(#{definitions := Defs, file := File} = _ModuleMap, Specs) ->
+  SortedDefs = lists:sort(fun({_, _, Meta1, _}, {_, _, Meta2, _}) -> ?line(Meta1) =< ?line(Meta2) end, Defs),
+
+  lists:foreach(fun
+    ({NameArity, Kind, Meta, _}) when Kind == def; Kind == defmacro ->
+      case lists:keymember(NameArity, 2, Specs) of
+        true -> ok;
+        false -> elixir_errors:form_warn(Meta, File, ?MODULE, {missing_spec, NameArity})
+      end;
+    (_) ->
+      ok
+  end, SortedDefs).
 
 % Attributes
 
@@ -588,4 +609,6 @@ format_error({callbacks_but_also_behaviour_info, {Type, Fun, Arity}}) ->
   io_lib:format("cannot define @~ts attribute for ~ts/~B when behaviour_info/1 is defined",
                 [Type, Fun, Arity]);
 format_error({spec_for_undefined_function, {Name, Arity}}) ->
-  io_lib:format("spec for undefined function ~ts/~B", [Name, Arity]).
+  io_lib:format("spec for undefined function ~ts/~B", [Name, Arity]);
+format_error({missing_spec, {Name, Arity}}) ->
+  io_lib:format("missing spec for ~ts/~B", [Name, Arity]).
