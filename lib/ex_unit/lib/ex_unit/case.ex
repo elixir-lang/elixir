@@ -216,7 +216,7 @@ defmodule ExUnit.Case do
         moduletag_check = Module.get_attribute(__MODULE__, :moduletag)
         tag_check = Module.get_attribute(__MODULE__, :tag)
 
-        if moduletag_check != nil or tag_check != nil do
+        if moduletag_check || tag_check do
           raise "you must set @tag and @moduletag after the call to \"use ExUnit.Case\""
         end
 
