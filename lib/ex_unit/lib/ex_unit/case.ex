@@ -213,6 +213,13 @@ defmodule ExUnit.Case do
       async = !!unquote(opts)[:async]
 
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
+        moduletag_check = Module.get_attribute(__MODULE__, :moduletag)
+        tag_check = Module.get_attribute(__MODULE__, :tag)
+
+        if moduletag_check != nil or tag_check != nil do
+          raise "you must set @tag and @moduletag after the call to \"use ExUnit.Case\""
+        end
+
         attributes = [
           :ex_unit_tests,
           :tag,
@@ -524,14 +531,8 @@ defmodule ExUnit.Case do
 
   defp normalize_tags(tags) do
     Enum.reduce(Enum.reverse(tags), %{}, fn
-      tag, acc when is_atom(tag) ->
-        Map.put(acc, tag, true)
-
-      tag, acc when is_list(tag) ->
-        tag |> Enum.into(acc)
-
-      tag, _acc when is_tuple(tag) ->
-        raise "you must set @tag and @moduletag after the call to \"use ExUnit.Case\""
+      tag, acc when is_atom(tag) -> Map.put(acc, tag, true)
+      tag, acc when is_list(tag) -> tag |> Enum.into(acc)
     end)
   end
 end
