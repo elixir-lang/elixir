@@ -748,7 +748,7 @@ defmodule Map do
   (the retrieved value, which can be operated on before being returned) and the
   new value to be stored under `key` in the resulting new map. `fun` may also
   return `:pop`, which means the current value shall be removed from `map` and
-  returned (making this function behave like `Map.pop(map, key)`.
+  returned (making this function behave like `Map.pop(map, key)`).
 
   The returned value is a tuple with the "get" value returned by
   `fun` and a new map with the updated value under `key`.
