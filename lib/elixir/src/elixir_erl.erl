@@ -164,12 +164,16 @@ compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
   Deprecated = get_deprecated(Data),
   {Prefix, Forms, Defmacro} = dynamic_form(Map, Deprecated),
-  Specs =
+  SpecsForms =
     case elixir_config:get(bootstrap) of
-      true -> [];
-      false -> specs_form(Map, Data, Defmacro, types_form(Data, []))
+      true ->
+        [];
+      false ->
+        {Types, Specs, Callbacks, Macrocallbacks, OptionalCallbacks} = 'Elixir.Kernel.Typespec':translate_typespecs_for_module(Data),
+        TypesForms = types_form(Types, []),
+        specs_form(Map, Specs, Callbacks, Macrocallbacks, OptionalCallbacks, Defmacro, TypesForms)
     end,
-  load_form(Map, Data, Prefix, Forms, Specs, Deprecated).
+  load_form(Map, Data, Prefix, Forms, SpecsForms, Deprecated).
 
 dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
                definitions := Definitions, unreachable := Unreachable}, Deprecated) ->
@@ -341,13 +345,7 @@ deprecated_info(Deprecated) ->
 
 % Types
 
-types_form(Data, Forms) ->
-  ExTypes =
-    take_type_spec(Data, type) ++ take_type_spec(Data, typep) ++ take_type_spec(Data, opaque),
-
-  Types =
-    ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) || {Kind, Expr, Caller} <- ExTypes],
-
+types_form(Types, Forms) ->
   Fun = fun
     ({Kind, NameArity, Line, Expr, true}, Acc) ->
       [{attribute, Line, export_type, [NameArity]}, {attribute, Line, Kind, Expr} | Acc];
@@ -359,20 +357,7 @@ types_form(Data, Forms) ->
 
 % Specs
 
-specs_form(Map, Data, Defmacro, Forms) ->
-  Specs =
-    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- take_type_spec(Data, spec)],
-
-  Callbacks =
-    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- take_type_spec(Data, callback)],
-
-  Macrocallbacks =
-    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- take_type_spec(Data, macrocallback)],
-
-  Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
+specs_form(Map, Specs, Callbacks, Macrocallbacks, Optional, Defmacro, Forms) ->
   SpecsForms = specs_form(spec, Specs, [], Defmacro, Forms, Map),
   AllCallbacks = Callbacks ++ Macrocallbacks,
 
@@ -463,12 +448,6 @@ spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
   {type, Line, 'fun', [{type, Line, product, NewArgs} | T]};
 spec_for_macro(Else) ->
   Else.
-
-take_type_spec(Data, Key) ->
-  case ets:take(Data, Key) of
-    [{Key, Value, _, _}] -> Value;
-    [] -> []
-  end.
 
 validate_spec_for_existing_function(ModuleMap, NameAndArity, Line) ->
   #{definitions := Defs, file := File} = ModuleMap,
