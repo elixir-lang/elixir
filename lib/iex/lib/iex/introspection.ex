@@ -11,9 +11,8 @@ defmodule IEx.Introspection do
   Decomposes an introspection call into `{mod, fun, arity}`,
   `{mod, fun}` or `mod`.
   """
-  @default_modules [IEx.Helpers, Kernel, Kernel.SpecialForms]
 
-  def decompose({:/, _, [call, arity]} = term) do
+  def decompose({:/, _, [call, arity]} = term, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} when arity == 1 ->
         {:{}, [], [Module, :__info__, 1]}
@@ -22,14 +21,14 @@ defmodule IEx.Introspection do
         {:{}, [], [mod, fun, arity]}
 
       {fun, []} ->
-        {:{}, [], [find_decompose_fun_arity(fun, arity), fun, arity]}
+        {:{}, [], [find_decompose_fun_arity(fun, arity, context), fun, arity]}
 
       _ ->
         term
     end
   end
 
-  def decompose(call) do
+  def decompose(call, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} ->
         Macro.escape({Module, :__info__, 1})
@@ -38,26 +37,49 @@ defmodule IEx.Introspection do
         {mod, fun}
 
       {fun, []} ->
-        {find_decompose_fun(fun), fun}
+        {find_decompose_fun(fun, context), fun}
 
       _ ->
         call
     end
   end
 
-  defp find_decompose_fun(fun) do
-    Enum.find(@default_modules, Kernel, fn mod ->
-      Keyword.has_key?(mod.__info__(:functions), fun) or
-        Keyword.has_key?(mod.__info__(:macros), fun)
+  defp find_decompose_fun(fun, context) do
+    find_import(fun, context.functions) || find_import(fun, context.macros) ||
+      find_special_form(fun) || Kernel
+  end
+
+  defp find_decompose_fun_arity(fun, arity, context) do
+    pair = {fun, arity}
+
+    find_import(pair, context.functions) || find_import(pair, context.macros) ||
+      find_special_form(pair) || Kernel
+  end
+
+  defp find_import(pair, context) when is_tuple(pair) do
+    Enum.find_value(context, fn {mod, functions} ->
+      if pair in functions, do: mod
     end)
   end
 
-  defp find_decompose_fun_arity(fun, arity) do
-    pair = {fun, arity}
-
-    Enum.find(@default_modules, Kernel, fn mod ->
-      pair in mod.__info__(:functions) or pair in mod.__info__(:macros)
+  defp find_import(fun, context) do
+    Enum.find_value(context, fn {mod, functions} ->
+      if Keyword.has_key?(functions, fun), do: mod
     end)
+  end
+
+  defp find_special_form(pair) when is_tuple(pair) do
+    special_form_function? = pair in Kernel.SpecialForms.__info__(:functions)
+    special_form_macro? = pair in Kernel.SpecialForms.__info__(:macros)
+
+    if special_form_function? or special_form_macro?, do: Kernel.SpecialForms
+  end
+
+  defp find_special_form(fun) do
+    special_form_function? = Keyword.has_key?(Kernel.SpecialForms.__info__(:functions), fun)
+    special_form_macro? = Keyword.has_key?(Kernel.SpecialForms.__info__(:macros), fun)
+
+    if special_form_function? or special_form_macro?, do: Kernel.SpecialForms
   end
 
   @doc """
@@ -286,6 +308,9 @@ defmodule IEx.Introspection do
           docs && has_callback?(module, function) ->
             behaviour_found("#{inspect(module)}.#{function}")
 
+          docs && has_type?(module, function) ->
+            type_found("#{inspect(module)}.#{function}")
+
           elixir_module?(module) and is_nil(docs) ->
             no_docs(module)
 
@@ -310,6 +335,9 @@ defmodule IEx.Introspection do
 
           :behaviour_found ->
             behaviour_found("#{inspect(module)}.#{function}/#{arity}")
+
+          :type_found ->
+            type_found("#{inspect(module)}.#{function}/#{arity}")
 
           :no_docs ->
             no_docs(module)
@@ -342,6 +370,9 @@ defmodule IEx.Introspection do
       docs && has_callback?(mod, fun, arity) ->
         :behaviour_found
 
+      docs && has_type?(mod, fun, arity) ->
+        :type_found
+
       is_nil(docs) and spec != [] ->
         message =
           if elixir_module?(mod) do
@@ -370,6 +401,18 @@ defmodule IEx.Introspection do
   defp has_callback?(mod, fun, arity) do
     mod
     |> Code.get_docs(:callback_docs)
+    |> Enum.any?(&match?({{^fun, ^arity}, _, _, _}, &1))
+  end
+
+  defp has_type?(mod, fun) do
+    mod
+    |> Code.get_docs(:type_docs)
+    |> Enum.any?(&match?({{^fun, _}, _, _, _}, &1))
+  end
+
+  defp has_type?(mod, fun, arity) do
+    mod
+    |> Code.get_docs(:type_docs)
     |> Enum.any?(&match?({{^fun, ^arity}, _, _, _}, &1))
   end
 
@@ -724,7 +767,14 @@ defmodule IEx.Introspection do
   defp behaviour_found(for) do
     puts_error("""
     No documentation for function #{for} was found, but there is a callback with the same name.
-    You can view callback documentations with the b/1 helper.
+    You can view callback documentation with the b/1 helper.
+    """)
+  end
+
+  defp type_found(for) do
+    puts_error("""
+    No documentation for function #{for} was found, but there is a type with the same name.
+    You can view type documentation with the t/1 helper.
     """)
   end
 

@@ -389,17 +389,22 @@ defmodule IO.ANSI.Docs do
   end
 
   defp generate_table_cell({{{col, length}, width}, :center}) do
+    ansi_diff = byte_size(col) - length
+    width = width + ansi_diff
+
     col
     |> String.pad_leading(div(width, 2) - div(length, 2) + length)
     |> String.pad_trailing(width + 1 - rem(width, 2))
   end
 
-  defp generate_table_cell({{{col, _length}, width}, :right}) do
-    String.pad_leading(col, width)
+  defp generate_table_cell({{{col, length}, width}, :right}) do
+    ansi_diff = byte_size(col) - length
+    String.pad_leading(col, width + ansi_diff)
   end
 
-  defp generate_table_cell({{{col, _length}, width}, :left}) do
-    String.pad_trailing(col, width)
+  defp generate_table_cell({{{col, length}, width}, :left}) do
+    ansi_diff = byte_size(col) - length
+    String.pad_trailing(col, width + ansi_diff)
   end
 
   defp table_line?(line) do

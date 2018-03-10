@@ -711,6 +711,43 @@ defmodule Logger.TranslatorTest do
            """
   end
 
+  test "translates DynamicSupervisor reports extra_arguments in in abnormal shutdown" do
+    assert capture_log(:info, fn ->
+             trap = Process.flag(:trap_exit, true)
+
+             {:ok, pid} =
+               DynamicSupervisor.start_link(strategy: :one_for_one, extra_arguments: [:extra])
+
+             child = %{id: __MODULE__, start: {__MODULE__, :abnormal2, [:args]}}
+             {:ok, _pid2} = DynamicSupervisor.start_child(pid, child)
+             Process.exit(pid, :normal)
+             receive do: ({:EXIT, ^pid, _} -> :ok)
+             Process.flag(:trap_exit, trap)
+           end) =~ ~r"""
+           \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
+           \*\* \(exit\) :stop
+           Pid: #PID<\d+\.\d+\.\d+>
+           Start Call: Logger.TranslatorTest.abnormal2\(:extra, :args\)
+           """
+  end
+
+  test "translates named DynamicSupervisor reports abnormal shutdown" do
+    assert capture_log(:info, fn ->
+             trap = Process.flag(:trap_exit, true)
+             child = %{id: __MODULE__, start: {__MODULE__, :abnormal, []}}
+             {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one, name: __MODULE__)
+             {:ok, _pid2} = DynamicSupervisor.start_child(pid, child)
+             Process.exit(pid, :normal)
+             receive do: ({:EXIT, ^pid, _} -> :ok)
+             Process.flag(:trap_exit, trap)
+           end) =~ ~r"""
+           \[error\] Child :undefined of Supervisor Logger.TranslatorTest shutdown abnormally
+           \*\* \(exit\) :stop
+           Pid: #PID<\d+\.\d+\.\d+>
+           Start Call: Logger.TranslatorTest.abnormal\(\)
+           """
+  end
+
   test "translates :supervisor_bridge progress" do
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
@@ -801,6 +838,10 @@ defmodule Logger.TranslatorTest do
   def error(), do: {:error, :stop}
 
   def abnormal() do
+    :proc_lib.start_link(__MODULE__, :abnormal_init, [])
+  end
+
+  def abnormal2(:extra, :args) do
     :proc_lib.start_link(__MODULE__, :abnormal_init, [])
   end
 

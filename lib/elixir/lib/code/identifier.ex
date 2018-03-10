@@ -55,22 +55,22 @@ defmodule Code.Identifier do
   @doc """
   Classifies the given atom into one of the following categories:
 
-    * :alias - a valid Elixir alias, like Foo, Foo.Bar and so on
+    * `:alias` - a valid Elixir alias, like `Foo`, `Foo.Bar` and so on
 
-    * :callable_local - an atom that can be used as a local call;
-      this category includes identifiers like :foo
+    * `:callable_local` - an atom that can be used as a local call;
+      this category includes identifiers like `:foo`
 
-    * :callable_operators - all callable operators, such as `:<>`. Note
+    * `:callable_operators` - all callable operators, such as `:<>`. Note
       operators such as `:..` are not callable because of ambiguity
 
-    * :not_callable - an atom that cannot be used as a function call after the
-      . operator (for example, :<<>> is not callable because Foo.<<>> is a
-      syntax error); this category includes atoms like :Foo, since they are
+    * `:not_callable` - an atom that cannot be used as a function call after the
+      `.` operator (for example, `:<<>>` is not callable because `Foo.<<>>` is a
+      syntax error); this category includes atoms like `:Foo`, since they are
       valid identifiers but they need quotes to be used in function calls
-      (Foo."Bar")
+      (`Foo."Bar"`)
 
-    * :other - any other atom (these are usually escaped when inspected, like
-      :"foo and bar")
+    * `:other` - any other atom (these are usually escaped when inspected, like
+      `:"foo and bar"`)
 
   """
   def classify(atom) when is_atom(atom) do

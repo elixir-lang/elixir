@@ -14,7 +14,13 @@ expand(Meta, Args, E, RequireSize) ->
     match ->
       {EArgs, Alignment, EE} =
         expand(Meta, fun elixir_expand:expand/2, Args, [], E, 0, RequireSize, Context),
-      {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, EE};
+
+      case find_match(EArgs) of
+        false ->
+          {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, EE};
+        Match ->
+          form_error(Meta, ?key(EE, file), ?MODULE, {nested_match, Match})
+      end;
     _ ->
       {EArgs, Alignment, {EC, EV}} =
         expand(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}, 0, RequireSize, Context),
@@ -323,6 +329,18 @@ number_size(Size, _) -> Size.
 add_spec(default, Spec) -> Spec;
 add_spec(Key, Spec) -> [{Key, [], []} | Spec].
 
+find_match([{'=', _, [_Left, _Right]} = Expr | _Rest]) ->
+  Expr;
+find_match([{_, _, Args} | Rest]) when is_list(Args) ->
+  case find_match(Args) of
+    false -> find_match(Rest);
+    Match -> Match
+  end;
+find_match([_Arg | Rest]) ->
+  find_match(Rest);
+find_match([]) ->
+  false.
+
 format_error({unaligned_bitstring_in_match, Expr}) ->
   Message =
     "cannot verify size of binary expression in match. "
@@ -339,7 +357,7 @@ format_error({unaligned_bitstring_in_match, Expr}) ->
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
 format_error(unsized_binary) ->
   "a binary field without size is only allowed at the end of a binary pattern "
-  "and never allowed in binary generators";
+    "and never allowed in binary generators";
 format_error(bittype_literal_bitstring) ->
   "literal <<>> in bitstring supports only type specifiers, which must be one of: "
     "binary or bitstring";
@@ -369,4 +387,9 @@ format_error({bad_unit_argument, Unit}) ->
                 ['Elixir.Macro':to_string(Unit)]);
 format_error({bad_size_argument, Size}) ->
   io_lib:format("size in bitstring expects an integer or a variable as argument, got: ~ts",
-                ['Elixir.Macro':to_string(Size)]).
+                ['Elixir.Macro':to_string(Size)]);
+format_error({nested_match, Expr}) ->
+  Message =
+    "cannot pattern match inside a bitstring "
+      "that is already in match, got: ~ts",
+  io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]).

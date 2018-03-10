@@ -227,4 +227,42 @@ defmodule Kernel.DocsTest do
              ] = docs[:callback_docs]
     end
   end
+
+  test "@impl true doesn't set @doc false if previous implementation has docs" do
+    write_beam(
+      defmodule Docs do
+        defmodule SampleBehaviour do
+          @callback foo(any()) :: any()
+          @callback bar() :: any()
+          @callback baz() :: any()
+        end
+
+        @behaviour SampleBehaviour
+
+        @doc "Foo docs"
+        def foo(nil), do: nil
+
+        @impl true
+        def foo(_), do: false
+
+        @impl true
+        def bar(), do: true
+
+        @doc "Baz docs"
+        @impl true
+        def baz(), do: true
+
+        def fuz(), do: true
+      end
+    )
+
+    docs = Code.get_docs(Docs, :all)
+
+    assert [
+             {{:bar, 0}, _, :def, [], false},
+             {{:baz, 0}, _, :def, [], "Baz docs"},
+             {{:foo, 1}, _, :def, [{:arg1, [], _}], "Foo docs"},
+             {{:fuz, 0}, _, :def, [], nil}
+           ] = docs[:docs]
+  end
 end

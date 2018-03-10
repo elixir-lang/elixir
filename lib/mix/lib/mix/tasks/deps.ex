@@ -142,7 +142,7 @@ defmodule Mix.Tasks.Deps do
   @spec run(OptionParser.argv()) :: :ok
   def run(args) do
     Mix.Project.get!()
-    {opts, _, _} = OptionParser.parse(args)
+    {opts, _, _} = OptionParser.parse(args, switches: [all: :boolean])
     loaded_opts = if opts[:all], do: [], else: [env: Mix.env()]
 
     shell = Mix.shell()

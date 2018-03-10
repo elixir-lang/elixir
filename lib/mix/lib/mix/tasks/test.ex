@@ -75,6 +75,7 @@ defmodule Mix.Tasks.Test do
       Automatically sets `--trace` and `--preload-modules`
     * `--stale` - runs only tests which reference modules that changed since the
       last `test --stale`. You can read more about this option in the "Stale" section below.
+    * `--failed` - runs only tests that failed the last time they ran
     * `--timeout` - sets the timeout for the tests
     * `--trace` - runs tests with detailed reporting; automatically sets `--max-cases` to 1
 
@@ -188,6 +189,7 @@ defmodule Mix.Tasks.Test do
     deps_check: :boolean,
     archives_check: :boolean,
     elixir_version_check: :boolean,
+    failed: :boolean,
     stale: :boolean,
     listen_on_stdin: :boolean,
     formatter: :keep,
@@ -249,7 +251,7 @@ defmodule Mix.Tasks.Test do
     # Configure ExUnit with command line options before requiring
     # test helpers so that the configuration is available in helpers.
     # Then configure ExUnit again so command line options override
-    ex_unit_opts = ex_unit_opts(opts)
+    {ex_unit_opts, allowed_files} = process_ex_unit_opts(opts)
     ExUnit.configure(ex_unit_opts)
 
     test_paths = project[:test_paths] || default_test_paths()
@@ -261,7 +263,11 @@ defmodule Mix.Tasks.Test do
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
-    matched_test_files = Mix.Utils.extract_files(test_files, test_pattern)
+    matched_test_files =
+      test_files
+      |> Mix.Utils.extract_files(test_pattern)
+      |> filter_to_allowed_files(allowed_files)
+
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
     case CT.require_and_run(matched_test_files, test_paths, opts) do
@@ -331,20 +337,28 @@ defmodule Mix.Tasks.Test do
     :formatters,
     :colors,
     :slowest,
-    :manifest_path
+    :failures_manifest_file,
+    :only_test_ids
   ]
 
   @doc false
-  def ex_unit_opts(opts) do
-    opts
-    |> filter_opts(:include)
-    |> filter_opts(:exclude)
-    |> filter_opts(:only)
-    |> formatter_opts()
-    |> manifest_opts()
-    |> color_opts()
-    |> Keyword.take(@option_keys)
-    |> default_opts()
+  def process_ex_unit_opts(opts) do
+    {opts, allowed_files} =
+      opts
+      |> manifest_opts()
+      |> failed_opts()
+
+    opts =
+      opts
+      |> filter_opts(:include)
+      |> filter_opts(:exclude)
+      |> filter_opts(:only)
+      |> formatter_opts()
+      |> color_opts()
+      |> Keyword.take(@option_keys)
+      |> default_opts()
+
+    {opts, allowed_files}
   end
 
   defp merge_helper_opts(opts) do
@@ -410,8 +424,30 @@ defmodule Mix.Tasks.Test do
     end
   end
 
+  @manifest_file_name ".mix_test_failures"
+
   defp manifest_opts(opts) do
-    Keyword.put(opts, :manifest_path, Mix.Project.manifest_path())
+    manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
+    Keyword.put(opts, :failures_manifest_file, manifest_file)
+  end
+
+  defp failed_opts(opts) do
+    if opts[:failed] do
+      if opts[:stale] do
+        Mix.raise("Combining `--failed` and `--stale` is not supported.")
+      end
+
+      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(opts[:failures_manifest_file])
+      {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
+    else
+      {opts, nil}
+    end
+  end
+
+  defp filter_to_allowed_files(matched_test_files, nil), do: matched_test_files
+
+  defp filter_to_allowed_files(matched_test_files, %MapSet{} = allowed_files) do
+    Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
   end
 
   defp color_opts(opts) do

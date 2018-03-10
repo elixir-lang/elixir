@@ -118,6 +118,11 @@ defmodule Calendar do
   @callback days_in_month(year, month) :: day
 
   @doc """
+  Returns how many months there are in the given year.
+  """
+  @callback months_in_year(year) :: month
+
+  @doc """
   Returns true if the given year is a leap year.
 
   A leap year is a year of a longer length than normal. The exact meaning

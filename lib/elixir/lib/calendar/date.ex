@@ -177,6 +177,23 @@ defmodule Date do
   end
 
   @doc """
+  Returns the number of days in the given `date` month.
+
+  ## Example
+
+      iex> Date.months_in_year(~D[1900-01-13])
+      12
+
+  """
+  @since "1.7.0"
+  @spec months_in_year(Calendar.date()) :: Calendar.month()
+  def months_in_year(date)
+
+  def months_in_year(%{calendar: calendar, year: year}) do
+    calendar.months_in_year(year)
+  end
+
+  @doc """
   Builds a new ISO date.
 
   Expects all values to be integers. Returns `{:ok, date}` if each

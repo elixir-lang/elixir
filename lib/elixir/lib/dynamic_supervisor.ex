@@ -518,7 +518,14 @@ defmodule DynamicSupervisor do
 
     case mod.init(args) do
       {:ok, flags} when is_map(flags) ->
-        state = %DynamicSupervisor{mod: mod, args: args, name: name || {self(), mod}}
+        name =
+          cond do
+            is_nil(name) -> {self(), mod}
+            is_atom(name) -> {:local, name}
+            is_tuple(name) -> name
+          end
+
+        state = %DynamicSupervisor{mod: mod, args: args, name: name}
 
         case init(state, flags) do
           {:ok, state} -> {:ok, state}
@@ -942,8 +949,9 @@ defmodule DynamicSupervisor do
 
   defp restart_child(:one_for_one, current_pid, child, state) do
     {{m, f, args} = mfa, restart, shutdown, type, modules} = child
+    %{extra_arguments: extra} = state
 
-    case start_child(m, f, args) do
+    case start_child(m, f, extra ++ args) do
       {:ok, pid, _} ->
         state = delete_child(current_pid, state)
         {:ok, save_child(pid, mfa, restart, shutdown, type, modules, state)}
@@ -962,21 +970,21 @@ defmodule DynamicSupervisor do
     end
   end
 
-  defp report_error(error, reason, pid, child, %{name: name}) do
+  defp report_error(error, reason, pid, child, %{name: name, extra_arguments: extra}) do
     :error_logger.error_report(
       :supervisor_report,
       supervisor: name,
       errorContext: error,
       reason: reason,
-      offender: extract_child(pid, child)
+      offender: extract_child(pid, child, extra)
     )
   end
 
-  defp extract_child(pid, {mfa, restart, shutdown, type, _modules}) do
+  defp extract_child(pid, {{m, f, args}, restart, shutdown, type, _modules}, extra) do
     [
       pid: pid,
       id: :undefined,
-      mfargs: mfa,
+      mfargs: {m, f, extra ++ args},
       restart_type: restart,
       shutdown: shutdown,
       child_type: type

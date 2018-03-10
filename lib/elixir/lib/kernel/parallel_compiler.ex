@@ -360,6 +360,7 @@ defmodule Kernel.ParallelCompiler do
       {:file_done, child_pid, file, {kind, reason, stack}} ->
         discard_down(child_pid)
         print_error(file, kind, reason, stack)
+        cancel_waiting_timer(queued, child_pid)
         terminate(queued)
         {:error, [to_error(file, kind, reason, stack)], warnings}
 

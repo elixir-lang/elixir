@@ -101,13 +101,10 @@ defmodule Supervisor do
 
   ## Start and shutdown
 
-  When the supervisor starts, it traverses all children and retrieves
-  each child specification. It is at this moment `{Stack, [:hello]}`
-  becomes a child specification by calling `Stack.child_spec([:hello])`.
-
-  Then the supervisor starts each child in the order they are defined.
-  This is done by calling the function defined under the `:start` key
-  in the child specification and typically defaults to `start_link/1`.
+  When the supervisor starts, it traverses all child specifications and
+  then starts each child in the order they are defined. This is done by
+  calling the function defined under the `:start` key in the child
+  specification and typically defaults to `start_link/1`.
 
   The `start_link/1` (or a custom) is then called for each child process.
   The `start_link/1` function must return `{:ok, pid}` where `pid` is the
@@ -144,15 +141,15 @@ defmodule Supervisor do
 
   ## Child specification
 
-  The child specification describes how the supervisor start, shutdown and
-  restart child processes.
+  The child specification describes how the supervisor starts, shuts down,
+  and restarts child processes.
 
-  The child specification contains 5 keys. The first two are required
+  The child specification contains 5 keys. The first two are required,
   and the remaining ones are optional:
 
     * `:id` - a value used to identify the child specification
       internally by the supervisor; defaults to the given module.
-      In case of conflicting `:id`, the supervisor will refuse
+      In the case of conflicting `:id` values, the supervisor will refuse
       to initialize and require explicit IDs. This key is required.
 
     * `:start` - a tuple with the module-function-args to be invoked
@@ -167,11 +164,11 @@ defmodule Supervisor do
       is optional and defaults to `5000` if the type is `:worker` or
       `:infinity` if the type is `:supervisor`.
 
-    * `:type` - if the child process is a `:worker` or a `:supervisor`.
-      This key is optional and defaults to `:worker`.
+    * `:type` - specifies that the child process is a `:worker` or a
+      `:supervisor`. This key is optional and defaults to `:worker`.
 
-  There is a sixth key, called `:modules`, which is rarely changed and
-  it is set automatically based on the value in `:start`.
+  There is a sixth key, `:modules`, that is rarely changed. It is set
+  automatically based on the value in `:start`.
 
   Let's understand what the `:shutdown` and `:restart` options control.
 
@@ -197,8 +194,8 @@ defmodule Supervisor do
       supervisor, the recommended value is `:infinity` to give the supervisor
       and its children enough time to shutdown. This option can be used with
       regular workers but doing so is discouraged and requires extreme care.
-      If not used carefully and the child process does not terminate, it means
-      your application will never terminate as well.
+      If not used carefully, the child process will never terminate,
+      preventing your application from terminating as well.
 
   ### Restart values (:restart)
 
@@ -216,7 +213,7 @@ defmodule Supervisor do
 
     * `:transient` - the child process is restarted only if it
       terminates abnormally, i.e., with an exit reason other than
-      `:normal`, `:shutdown` or `{:shutdown, term}`.
+      `:normal`, `:shutdown`, or `{:shutdown, term}`.
 
   For a more complete understanding of the exit reasons and their
   impact, see the "Exit reasons and restarts" section.
@@ -301,7 +298,9 @@ defmodule Supervisor do
   function.
 
   You may also completely override the `child_spec/1` function in the Stack module
-  and return your own child specification.
+  and return your own child specification. Note there is no guarantee the `child_spec/1`
+  function will be called by the Supervisor process, as other processes may invoke
+  it to retrieve the child specification before reaching the supervisor.
 
   ## Exit reasons and restarts
 

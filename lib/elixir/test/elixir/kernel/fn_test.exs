@@ -58,7 +58,7 @@ defmodule Kernel.FnTest do
     assert (&List.flatten/1).([[0]]) == [0]
     assert (&List.flatten/1).([[0]]) == [0]
     assert (&List.flatten(&1)).([[0]]) == [0]
-    assert (&List.flatten(&1)) == &List.flatten/1
+    assert (&List.flatten(&1)) == (&List.flatten/1)
   end
 
   test "capture local" do
@@ -77,7 +77,7 @@ defmodule Kernel.FnTest do
     assert (&is_atom/1).(:a)
     assert (&is_atom/1).(:a)
     assert (&is_atom(&1)).(:a)
-    assert (&is_atom(&1)) == &is_atom/1
+    assert (&is_atom(&1)) == (&is_atom/1)
   end
 
   test "capture macro" do
@@ -102,7 +102,7 @@ defmodule Kernel.FnTest do
     mod = List
     assert (&mod.flatten(&1)).([1, [2], 3]) == [1, 2, 3]
     assert (&mod.flatten/1).([1, [2], 3]) == [1, 2, 3]
-    assert (&mod.flatten/1) == &List.flatten/1
+    assert (&mod.flatten/1) == (&List.flatten/1)
   end
 
   test "local partial application" do

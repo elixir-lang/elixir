@@ -116,6 +116,26 @@ defmodule Kernel.TypespecTest do
     end
   end
 
+  test "behaviour_info/1 explicitly defined alongside @callback/@macrocallback" do
+    message = ~r"cannot define @callback attribute for foo/1 when behaviour_info/1"
+
+    assert_raise CompileError, message, fn ->
+      test_module do
+        @callback foo(:ok) :: :ok
+        def behaviour_info(_), do: []
+      end
+    end
+
+    message = ~r"cannot define @macrocallback attribute for foo/1 when behaviour_info/1"
+
+    assert_raise CompileError, message, fn ->
+      test_module do
+        @macrocallback foo(:ok) :: :ok
+        def behaviour_info(_), do: []
+      end
+    end
+  end
+
   test "@type with a single type" do
     bytecode =
       test_module do
@@ -835,8 +855,12 @@ defmodule Kernel.TypespecTest do
         quote(do: @type(literal_keyword_list_type_key() :: [{binary(), integer()}])),
         quote(do: @type(literal_empty_map() :: %{})),
         quote(do: @type(literal_map_with_key() :: %{key: integer()})),
-        quote(do: @type(literal_map_with_required_key() :: %{required(bitstring()) => integer()})),
-        quote(do: @type(literal_map_with_optional_key() :: %{optional(bitstring()) => integer()})),
+        quote(
+          do: @type(literal_map_with_required_key() :: %{required(bitstring()) => integer()})
+        ),
+        quote(
+          do: @type(literal_map_with_optional_key() :: %{optional(bitstring()) => integer()})
+        ),
         quote(do: @type(literal_struct_all_fields_any_type() :: %SomeStruct{})),
         quote(do: @type(literal_struct_all_fields_key_type() :: %SomeStruct{key: integer()})),
         quote(do: @type(literal_empty_tuple() :: {})),
@@ -863,7 +887,9 @@ defmodule Kernel.TypespecTest do
         quote(do: @type(builtin_list() :: list())),
         quote(do: @type(builtin_nonempty_list() :: nonempty_list())),
         quote(do: @type(builtin_maybe_improper_list() :: maybe_improper_list())),
-        quote(do: @type(builtin_nonempty_maybe_improper_list() :: nonempty_maybe_improper_list())),
+        quote(
+          do: @type(builtin_nonempty_maybe_improper_list() :: nonempty_maybe_improper_list())
+        ),
         quote(do: @type(builtin_mfa() :: mfa())),
         quote(do: @type(builtin_module() :: module())),
         quote(do: @type(builtin_no_return() :: no_return())),
@@ -1068,5 +1094,18 @@ defmodule Kernel.TypespecTest do
 
     assert message =~ string_discouraged
     assert message =~ nonempty_string_discouraged
+  end
+
+  test "typespec declarations return :ok" do
+    test_module do
+      def foo(), do: nil
+
+      assert @type(foo :: any()) == :ok
+      assert @typep(foop :: any()) == :ok
+      assert @spec(foo() :: nil) == :ok
+      assert @opaque(my_type :: atom) == :ok
+      assert @callback(foo(foop) :: integer) == :ok
+      assert @macrocallback(foo(integer) :: integer) == :ok
+    end
   end
 end

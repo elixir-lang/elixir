@@ -4,27 +4,33 @@ defmodule Mix.Tasks.Run do
   @shortdoc "Starts and runs the current application"
 
   @moduledoc """
-  Starts and runs the current application.
+  Starts the current application and runs code.
 
-  `mix run` can be used to start the current application dependencies
-  and the application itself. For long running systems, this is typically
-  done with the `--no-halt` option:
+  `mix run` can be used to start the current application dependencies,
+  the application itself, and optionally run some code in its context.
+  For long running systems, this is typically done with the `--no-halt`
+  option:
 
       mix run --no-halt
 
-  If there is a desire to execute a script within the current application
-  or configure the application via command line flags, it is possible to
-  do so by passing a script file or an eval expression to the command:
+  Once the current application and its dependencies have been started,
+  you can run a script in its context by passing a filename:
 
       mix run my_app_script.exs arg1 arg2 arg3
-      mix run -e "MyApp.start" -- arg1 arg2 arg3
 
-  In both cases, the command line flags are available under `System.argv/0`.
+  Code to be executed can also be passed inline with the `-e` option:
 
-  Before running any command, Mix will compile and start the current
-  application. If for some reason the application needs to be configured
-  before it is started, the `--no-start` flag can be used and you are then
-  responsible for starting all applications by using functions such as
+      mix run -e "DbUtils.delete_old_records()" -- arg1 arg2 arg3
+
+  In both cases, the command-line arguments for the script or expression
+  are available in `System.argv/0`.
+
+  Before doing anything, Mix will compile the current application if
+  needed, unless you pass `--no-compile`.
+
+  If for some reason the application needs to be configured before it is
+  started, the `--no-start` flag can be used and you are then responsible
+  for starting all applications by using functions such as
   `Application.ensure_all_started/1`. For more information about the
   application life-cycle and dynamically configuring applications, see
   the `Application` module.
@@ -34,10 +40,10 @@ defmodule Mix.Tasks.Run do
 
       elixir --sname hello -S mix run --no-halt
 
-  ## Command line options
+  ## Command-line options
 
     * `--config`, `-c`  - loads the given configuration file
-    * `--eval`, `-e` - evaluate the given code
+    * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
     * `--preload-modules` - preloads all modules defined in applications

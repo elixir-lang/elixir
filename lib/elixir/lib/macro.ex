@@ -370,6 +370,31 @@ defmodule Macro do
       iex> Macro.escape({:unquote, [], [1]}, unquote: true)
       1
 
+  ## Comparison to `Kernel.quote/2`
+
+  The `escape/2` function is sometimes confused with `Kernel.SpecialForms.quote/2`,
+  because the above examples behave the same with both. The key difference is
+  best illustrated when the value to escape is stored in a variable.
+
+      iex> Macro.escape({:a, :b, :c})
+      {:{}, [], [:a, :b, :c]}
+      iex> quote do: {:a, :b, :c}
+      {:{}, [], [:a, :b, :c]}
+
+      iex> value = {:a, :b, :c}
+      iex> Macro.escape(value)
+      {:{}, [], [:a, :b, :c]}
+
+      iex> quote do: value
+      {:value, [], __MODULE__}
+
+      iex> value = {:a, :b, :c}
+      iex> quote do: unquote(value)
+      {:a, :b, :c}
+
+  `escape/2` is used to escape *values* (either directly passed or variable
+  bound), while `Kernel.SpecialForms.quote/2` produces syntax trees for
+  expressions.
   """
   @spec escape(term, keyword) :: Macro.t()
   def escape(expr, opts \\ []) do
@@ -1055,7 +1080,7 @@ defmodule Macro do
       end
 
   The compilation will fail because `My.Module` when quoted
-  is not an atom, but a syntax tree as follow:
+  is not an atom, but a syntax tree as follows:
 
       {:__aliases__, [], [:My, :Module]}
 
@@ -1322,7 +1347,7 @@ defmodule Macro do
       iex> Macro.camelize("foo_bar")
       "FooBar"
 
-  If uppercase characters are present, they are not modified in anyway
+  If uppercase characters are present, they are not modified in any way
   as a mechanism to preserve acronyms:
 
       iex> Macro.camelize("API.V1")

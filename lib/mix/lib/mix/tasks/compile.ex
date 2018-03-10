@@ -43,12 +43,13 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
-    * `--list`              - lists all enabled compilers
+    * `--list` - lists all enabled compilers
     * `--no-archives-check` - skips checking of archives
-    * `--no-deps-check`     - skips checking of dependencies
-    * `--force`             - forces compilation
-    * `--return-errors`     - return error status and diagnostics
-                              instead of exiting on error
+    * `--no-deps-check` - skips checking of dependencies
+    * `--no-protocol-consolidation` - skips protocol consolidation
+    * `--force` - forces compilation
+    * `--return-errors` - return error status and diagnostics instead of exiting on error
+    * `--erl-config` - path to an erlang term file that will be loaded as mix config
 
   """
   def run(["--list"]) do
@@ -85,6 +86,9 @@ defmodule Mix.Tasks.Compile do
   def run(args) do
     Mix.Project.get!()
     Mix.Task.run("loadpaths", args)
+    {opts, _, _} = OptionParser.parse(args, switches: [erl_config: :string])
+
+    load_erl_config(opts)
 
     {res, diagnostics} =
       Mix.Task.run("compile.all", args)
@@ -97,7 +101,7 @@ defmodule Mix.Tasks.Compile do
     end
 
     res =
-      if consolidate_protocols?(res) do
+      if consolidate_protocols?(res) and "--no-protocol-consolidation" not in args do
         Mix.Task.run("compile.protocols", args)
         :ok
       else
@@ -167,5 +171,12 @@ defmodule Mix.Tasks.Compile do
 
   defp first_line(doc) do
     String.split(doc, "\n", parts: 2) |> hd |> String.trim() |> String.trim_trailing(".")
+  end
+
+  defp load_erl_config(opts) do
+    if path = opts[:erl_config] do
+      {:ok, terms} = :file.consult(path)
+      Mix.Config.persist(terms)
+    end
   end
 end

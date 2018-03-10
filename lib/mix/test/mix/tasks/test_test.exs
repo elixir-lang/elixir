@@ -3,8 +3,6 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.TestTest do
   use MixTest.Case
 
-  import Mix.Tasks.Test, only: [ex_unit_opts: 1]
-
   test "ex_unit_opts/1 returns ex unit options" do
     assert ex_unit_opts_from_given(unknown: "ok", seed: 13) == [seed: 13]
   end
@@ -34,13 +32,21 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "ex_unit_opts/1 includes some default options" do
-    assert ex_unit_opts([]) == [autorun: false, manifest_path: Mix.Project.manifest_path()]
+    assert ex_unit_opts([]) == [
+             autorun: false,
+             failures_manifest_file: Path.join(Mix.Project.manifest_path(), ".mix_test_failures")
+           ]
+  end
+
+  defp ex_unit_opts(opts) do
+    {ex_unit_opts, _allowed_files} = Mix.Tasks.Test.process_ex_unit_opts(opts)
+    ex_unit_opts
   end
 
   defp ex_unit_opts_from_given(passed) do
     passed
-    |> Mix.Tasks.Test.ex_unit_opts()
-    |> Keyword.drop([:manifest_path, :autorun])
+    |> ex_unit_opts()
+    |> Keyword.drop([:failures_manifest_file, :autorun])
   end
 
   test "--stale: runs all tests for first run, then none on second" do
@@ -115,6 +121,46 @@ defmodule Mix.Tasks.TestTest do
 
       assert_stale_run_output(~w[--force], "2 tests, 0 failures")
     end
+  end
+
+  test "--failed: loads only files with failures and runs just the failures" do
+    in_fixture "test_failed", fn ->
+      loading_only_passing_test_msg = "loading OnlyPassingTest"
+
+      # Run `mix test` once to record failures...
+      output = mix(["test"])
+      assert output =~ loading_only_passing_test_msg
+      assert output =~ "4 tests, 2 failures"
+
+      # `mix test --failed` runs only failed tests and avoids loading files with no failures
+      output = mix(["test", "--failed"])
+      refute output =~ loading_only_passing_test_msg
+      assert output =~ "2 tests, 2 failures"
+
+      # `mix test --failed` can be applied to a directory or file
+      output = mix(["test", "test/passing_and_failing_test_failed.exs", "--failed"])
+      assert output =~ "1 test, 1 failure"
+
+      # `--failed` composes with an `--only` filter by running the intersection.
+      # Of the failing tests, 1 is tagged with `@tag :foo`.
+      # Of the passing tests, 1 is tagged with `@tag :foo`.
+      # But only the failing test with that tag should run.
+      output = mix(["test", "--failed", "--only", "foo"])
+      assert output =~ "2 tests, 1 failure, 1 excluded"
+
+      # Run again to give it a chance to record as passed
+      System.put_env("PASS_FAILING_TESTS", "true")
+      assert mix(["test", "--failed"]) =~ "2 tests, 0 failures"
+
+      # Nothing should get run if we try it again since everything is passing.
+      assert mix(["test", "--failed"]) =~ "There are no tests to run"
+
+      # `--failed` and `--stale` cannot be combined
+      output = mix(["test", "--failed", "--stale"])
+      assert output =~ "Combining `--failed` and `--stale` is not supported"
+    end
+  after
+    System.delete_env("PASS_FAILING_TESTS")
   end
 
   test "logs test absence for a project with no test paths" do

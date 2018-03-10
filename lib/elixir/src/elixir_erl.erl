@@ -22,10 +22,10 @@ debug_info(elixir_v1, _Module, none, _Opts) ->
 debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
   {ok, Map};
 debug_info(erlang_v1, Module, {elixir_v1, Map, Specs}, _Opts) ->
-  {Prefix, Forms, _, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
+  {Prefix, Forms, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
   {ok, Prefix ++ Specs ++ Forms};
 debug_info(core_v1, Module, {elixir_v1, Map, Specs}, Opts) ->
-  {Prefix, Forms, _, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
+  {Prefix, Forms, _} = dynamic_form(Map, deprecated_chunk_from_beam(Module)),
   #{compile_opts := CompileOpts} = Map,
 
   %% Do not rely on elixir_erl_compiler because we don't
@@ -163,13 +163,17 @@ scope(_Meta) ->
 compile(#{module := Module} = Map) ->
   Data = elixir_module:data_table(Module),
   Deprecated = get_deprecated(Data),
-  {Prefix, Forms, Defmacro, Unreachable} = dynamic_form(Map, Deprecated),
-  Specs =
+  {Prefix, Forms, Defmacro} = dynamic_form(Map, Deprecated),
+  SpecsForms =
     case elixir_config:get(bootstrap) of
-      true -> [];
-      false -> specs_form(Map, Data, Defmacro, Unreachable, types_form(Data, []))
+      true ->
+        [];
+      false ->
+        {Types, Specs, Callbacks, Macrocallbacks, OptionalCallbacks} = 'Elixir.Kernel.Typespec':translate_typespecs_for_module(Data),
+        TypesForms = types_form(Types, []),
+        specs_form(Map, Specs, Callbacks, Macrocallbacks, OptionalCallbacks, Defmacro, TypesForms)
     end,
-  load_form(Map, Data, Prefix, Forms, Specs, Deprecated).
+  load_form(Map, Data, Prefix, Forms, SpecsForms, Deprecated).
 
 dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
                definitions := Definitions, unreachable := Unreachable}, Deprecated) ->
@@ -183,7 +187,7 @@ dynamic_form(#{module := Module, line := Line, file := File, attributes := Attri
 
   Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated),
   Forms1 = attributes_form(Line, Attributes, Forms0),
-  {Prefix, Forms1, Macros, Unreachable}.
+  {Prefix, Forms1, Macros}.
 
 % Definitions
 
@@ -341,13 +345,7 @@ deprecated_info(Deprecated) ->
 
 % Types
 
-types_form(Data, Forms) ->
-  ExTypes =
-    take_type_spec(Data, type) ++ take_type_spec(Data, typep) ++ take_type_spec(Data, opaque),
-
-  Types =
-    ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) || {Kind, Expr, Caller} <- ExTypes],
-
+types_form(Types, Forms) ->
   Fun = fun
     ({Kind, NameArity, Line, Expr, true}, Acc) ->
       [{attribute, Line, export_type, [NameArity]}, {attribute, Line, Kind, Expr} | Acc];
@@ -359,25 +357,25 @@ types_form(Data, Forms) ->
 
 % Specs
 
-specs_form(Map, Data, Defmacro, Unreachable, Forms) ->
-  Specs =
-    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- take_type_spec(Data, spec)],
-
-  Callbacks =
-    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- take_type_spec(Data, callback)],
-
-  Macrocallbacks =
-    ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
-     {Kind, Expr, Caller} <- take_type_spec(Data, macrocallback)],
-
-  Optional = lists:flatten(take_type_spec(Data, optional_callbacks)),
-  SpecsForms = specs_form(spec, Specs, Unreachable, [], Defmacro, Forms),
+specs_form(Map, Specs, Callbacks, Macrocallbacks, Optional, Defmacro, Forms) ->
+  SpecsForms = specs_form(spec, Specs, [], Defmacro, Forms, Map),
   AllCallbacks = Callbacks ++ Macrocallbacks,
+
+  validate_behaviour_info_and_attributes(Map, AllCallbacks),
   validate_optional_callbacks(Map, AllCallbacks, Optional),
-  specs_form(callback, AllCallbacks, [], Optional,
-             [NameArity || {_, NameArity, _, _} <- Macrocallbacks], SpecsForms).
+
+  specs_form(callback, AllCallbacks, Optional,
+             [NameArity || {_, NameArity, _, _} <- Macrocallbacks], SpecsForms, Map).
+
+validate_behaviour_info_and_attributes(#{definitions := Defs} = Map, AllCallbacks) ->
+  case {lists:keyfind({behaviour_info, 1}, 1, Defs), AllCallbacks} of
+    {false, _} ->
+      ok;
+    {_, [{Kind, {Name, Arity}, _, _} | _]} when Kind == callback; Kind == macrocallback ->
+      form_error(Map, {callbacks_but_also_behaviour_info, {Kind, Name, Arity}});
+    {_, _} ->
+      ok
+  end.
 
 validate_optional_callbacks(Map, AllCallbacks, Optional) ->
   lists:foldl(fun(Callback, Acc) ->
@@ -399,11 +397,18 @@ validate_optional_callbacks(Map, AllCallbacks, Optional) ->
     maps:put(Callback, true, Acc)
   end, #{}, Optional).
 
-specs_form(_Kind, [], _Unreacheable, _Optional, _Macros, Forms) ->
+specs_form(_Kind, [], _Optional, _Macros, Forms, _ModuleMap) ->
   Forms;
-specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms) ->
-  Map =
+specs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
+  #{unreachable := Unreachable} = ModuleMap,
+
+  SpecsMap =
     lists:foldl(fun({_, NameArity, Line, Spec}, Acc) ->
+      case Kind of
+        spec -> validate_spec_for_existing_function(ModuleMap, NameArity, Line);
+        _ -> ok
+      end,
+
       case lists:member(NameArity, Unreachable) of
         false ->
           case Acc of
@@ -436,7 +441,7 @@ specs_form(Kind, Entries, Unreachable, Optional, Macros, Forms) ->
       false ->
         [{attribute, Line, Kind, {Key, Value}} | Acc]
     end
-  end, Forms, Map).
+  end, Forms, SpecsMap).
 
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
   NewArgs = [{type, Line, term, []} | Args],
@@ -444,10 +449,12 @@ spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
 spec_for_macro(Else) ->
   Else.
 
-take_type_spec(Data, Key) ->
-  case ets:take(Data, Key) of
-    [{Key, Value, _, _}] -> Value;
-    [] -> []
+validate_spec_for_existing_function(ModuleMap, NameAndArity, Line) ->
+  #{definitions := Defs, file := File} = ModuleMap,
+
+  case lists:keymember(NameAndArity, 1, Defs) of
+    true -> ok;
+    false -> form_error(#{line => Line, file => File}, {spec_for_undefined_function, NameAndArity})
   end.
 
 % Attributes
@@ -555,4 +562,9 @@ format_error({ill_defined_optional_callback, Callback}) ->
 format_error({unknown_callback, {Name, Arity}}) ->
   io_lib:format("unknown callback ~ts/~B given as optional callback", [Name, Arity]);
 format_error({duplicate_optional_callback, {Name, Arity}}) ->
-  io_lib:format("~ts/~B has been specified as optional callback more than once", [Name, Arity]).
+  io_lib:format("~ts/~B has been specified as optional callback more than once", [Name, Arity]);
+format_error({callbacks_but_also_behaviour_info, {Type, Fun, Arity}}) ->
+  io_lib:format("cannot define @~ts attribute for ~ts/~B when behaviour_info/1 is defined",
+                [Type, Fun, Arity]);
+format_error({spec_for_undefined_function, {Name, Arity}}) ->
+  io_lib:format("spec for undefined function ~ts/~B", [Name, Arity]).
