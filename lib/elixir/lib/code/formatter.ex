@@ -254,6 +254,7 @@ defmodule Code.Formatter do
       |> Keyword.get(:locals_without_parens, [])
       |> MapSet.new()
       |> MapSet.union(@locals_without_parens)
+      |> MapSet.to_list()
 
     %{
       locals_without_parens: locals_without_parens,
@@ -2081,7 +2082,7 @@ defmodule Code.Formatter do
   defp force_keyword?([{{_, meta, _}, _} | keyword], lines) do
     line = line(meta)
 
-    if line in lines do
+    if MapSet.member?(lines, line) do
       false
     else
       force_keyword?(keyword, MapSet.put(lines, line))
