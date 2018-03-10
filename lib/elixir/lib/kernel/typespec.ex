@@ -1142,11 +1142,11 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec(list, vars, caller) when is_list(list) do
-    [h | t] = Enum.reverse(list)
+    [head | tail] = Enum.reverse(list)
 
     union =
-      Enum.reduce(t, validate_kw(h, list, caller), fn x, acc ->
-        {:|, [], [validate_kw(x, list, caller), acc]}
+      Enum.reduce(tail, validate_kw(head, list, caller), fn elem, acc ->
+        {:|, [], [validate_kw(elem, list, caller), acc]}
       end)
 
     typespec({:list, [], [union]}, vars, caller)
