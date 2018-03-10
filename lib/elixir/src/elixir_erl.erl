@@ -169,7 +169,7 @@ compile(#{module := Module} = Map) ->
       true ->
         [];
       false ->
-        {Types, Specs, Callbacks, Macrocallbacks, OptionalCallbacks} = 'Elixir.Kernel.Typespec':spec_related_info(Data),
+        {Types, Specs, Callbacks, Macrocallbacks, OptionalCallbacks} = 'Elixir.Kernel.Typespec':translate_typespecs_for_module(Data),
         TypesForms = types_form(Types, []),
         specs_form(Map, Specs, Callbacks, Macrocallbacks, OptionalCallbacks, Defmacro, TypesForms)
     end,
