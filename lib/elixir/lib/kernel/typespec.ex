@@ -174,11 +174,9 @@ defmodule Kernel.Typespec do
   @spec defines_spec?(module, atom, arity) :: boolean
   def defines_spec?(module, name, arity)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
-    finder = fn {_kind, expr, _caller} ->
+    Enum.any?(Module.get_attribute(module, :spec), fn {_kind, expr, _caller} ->
       spec_to_signature(expr) == {name, arity}
-    end
-
-    :lists.any(finder, Module.get_attribute(module, :spec))
+    end)
   end
 
   @doc """
@@ -188,11 +186,9 @@ defmodule Kernel.Typespec do
   @spec defines_callback?(module, atom, arity) :: boolean
   def defines_callback?(module, name, arity)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
-    finder = fn {_kind, expr, _caller} ->
+    Enum.any?(Module.get_attribute(module, :callback), fn {_kind, expr, _caller} ->
       spec_to_signature(expr) == {name, arity}
-    end
-
-    :lists.any(finder, Module.get_attribute(module, :callback))
+    end)
   end
 
   @doc """
@@ -298,7 +294,7 @@ defmodule Kernel.Typespec do
     case abstract_code(module) do
       {:ok, abstract_code} ->
         exported_types = for {:attribute, _, :export_type, types} <- abstract_code, do: types
-        exported_types = :lists.flatten(exported_types)
+        exported_types = List.flatten(exported_types)
 
         for {:attribute, _, kind, {name, _, args} = type} <- abstract_code,
             kind in [:opaque, :type] do
@@ -554,7 +550,7 @@ defmodule Kernel.Typespec do
   end
 
   defp ensure_no_defaults!(args) do
-    foreach_fun = fn
+    Enum.each(args, fn
       {:::, _, [left, right]} ->
         ensure_not_default(left)
         ensure_not_default(right)
@@ -563,9 +559,7 @@ defmodule Kernel.Typespec do
       other ->
         ensure_not_default(other)
         other
-    end
-
-    :lists.foreach(foreach_fun, args)
+    end)
   end
 
   defp ensure_not_default({:\\, _, [_, _]}) do
@@ -577,21 +571,18 @@ defmodule Kernel.Typespec do
   defp guard_to_constraints(guard, vars, meta, caller) do
     line = line(meta)
 
-    foldl_fun = fn
-      {_name, {:var, _, context}}, acc when is_atom(context) ->
-        acc
+    Enum.flat_map(guard, fn
+      {_name, {:var, _, context}} when is_atom(context) ->
+        []
 
-      {name, type}, acc ->
+      {name, type} ->
         constraint = [
           {:atom, line, :is_subtype},
           [{:var, line, name}, typespec(type, vars, caller)]
         ]
 
-        type = {:type, line, :constraint, constraint}
-        [type | acc]
-    end
-
-    :lists.reverse(:lists.foldl(foldl_fun, [], guard))
+        [{:type, line, :constraint, constraint}]
+    end)
   end
 
   ## To AST conversion
@@ -814,10 +805,7 @@ defmodule Kernel.Typespec do
   ## To typespec conversion
 
   defp line(meta) do
-    case :lists.keyfind(:line, 1, meta) do
-      {:line, line} -> line
-      false -> 0
-    end
+    Keyword.get(meta, :line, 0)
   end
 
   # Handle unions
@@ -870,41 +858,41 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:%{}, meta, fields} = map, vars, caller) do
-    map_fun = fn
-      {k, v} when is_atom(k) ->
-        args = [typespec(k, vars, caller), typespec(v, vars, caller)]
-        {:type, line(meta), :map_field_exact, args}
+    fields =
+      Enum.map(fields, fn
+        {k, v} when is_atom(k) ->
+          args = [typespec(k, vars, caller), typespec(v, vars, caller)]
+          {:type, line(meta), :map_field_exact, args}
 
-      {{:required, meta2, [k]}, v} ->
-        args = [typespec(k, vars, caller), typespec(v, vars, caller)]
-        {:type, line(meta2), :map_field_exact, args}
+        {{:required, meta2, [k]}, v} ->
+          args = [typespec(k, vars, caller), typespec(v, vars, caller)]
+          {:type, line(meta2), :map_field_exact, args}
 
-      {{:optional, meta2, [k]}, v} ->
-        args = [typespec(k, vars, caller), typespec(v, vars, caller)]
-        {:type, line(meta2), :map_field_assoc, args}
+        {{:optional, meta2, [k]}, v} ->
+          args = [typespec(k, vars, caller), typespec(v, vars, caller)]
+          {:type, line(meta2), :map_field_assoc, args}
 
-      {k, v} ->
-        # TODO: Warn on Elixir v1.8 (since v1.6 is the first version to drop support for 18 and
-        # older)
-        # warning =
-        #   "invalid map specification. %{foo => bar} is deprecated in favor of " <>
-        #   "%{required(foo) => bar} and %{optional(foo) => bar}."
-        # :elixir_errors.warn(caller.line, caller.file, warning)
-        args = [typespec(k, vars, caller), typespec(v, vars, caller)]
-        {:type, line(meta), :map_field_assoc, args}
+        {k, v} ->
+          # TODO: Warn on Elixir v1.8 (since v1.6 is the first version to drop support for 18 and
+          # older)
+          # warning =
+          #   "invalid map specification. %{foo => bar} is deprecated in favor of " <>
+          #   "%{required(foo) => bar} and %{optional(foo) => bar}."
+          # :elixir_errors.warn(caller.line, caller.file, warning)
+          args = [typespec(k, vars, caller), typespec(v, vars, caller)]
+          {:type, line(meta), :map_field_assoc, args}
 
-      {:|, _, [_, _]} ->
-        error =
-          "invalid map specification. When using the | operator in the map key, " <>
-            "make sure to wrap the key type in parentheses: #{Macro.to_string(map)}"
+        {:|, _, [_, _]} ->
+          error =
+            "invalid map specification. When using the | operator in the map key, " <>
+              "make sure to wrap the key type in parentheses: #{Macro.to_string(map)}"
 
-        compile_error(caller, error)
+          compile_error(caller, error)
 
-      _ ->
-        compile_error(caller, "invalid map specification: #{Macro.to_string(map)}")
-    end
+        _ ->
+          compile_error(caller, "invalid map specification: #{Macro.to_string(map)}")
+      end)
 
-    fields = :lists.map(map_fun, fields)
     {:type, line(meta), :map, fields}
   end
 
@@ -927,16 +915,16 @@ defmodule Kernel.Typespec do
       compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
     end
 
-    map_fun = fn {field, _} -> {field, Keyword.get(fields, field, quote(do: term()))} end
-    types = :lists.map(map_fun, struct)
+    types =
+      Enum.map(struct, fn {field, _} ->
+        {field, Keyword.get(fields, field, quote(do: term()))}
+      end)
 
-    foreach_fun = fn {field, _} ->
+    Enum.each(fields, fn {field, _} ->
       unless Keyword.has_key?(struct, field) do
         compile_error(caller, "undefined field #{field} on struct #{Macro.to_string(name)}")
       end
-    end
-
-    :lists.foreach(foreach_fun, fields)
+    end)
 
     typespec({:%{}, meta, [__struct__: module] ++ types}, vars, caller)
   end
@@ -951,16 +939,16 @@ defmodule Kernel.Typespec do
     # as a compile time dependency because for records it actually is one.
     case Macro.expand({atom, [], [{atom, [], []}]}, caller) do
       keyword when is_list(keyword) ->
-        map_fun = fn {field, _} -> Keyword.get(fields, field, quote(do: term())) end
-        types = :lists.map(map_fun, keyword)
+        types =
+          Enum.map(keyword, fn {field, _} ->
+            Keyword.get(fields, field, quote(do: term()))
+          end)
 
-        foreach_fun = fn {field, _} ->
+        Enum.each(fields, fn {field, _} ->
           unless Keyword.has_key?(keyword, field) do
             compile_error(caller, "undefined field #{field} on record #{inspect(atom)}")
           end
-        end
-
-        :lists.foreach(foreach_fun, fields)
+        end)
 
         typespec({:{}, meta, [atom | types]}, vars, caller)
 
@@ -1058,7 +1046,7 @@ defmodule Kernel.Typespec do
 
   # Handle variables or local calls
   defp typespec({name, meta, atom}, vars, caller) when is_atom(atom) do
-    if :lists.member(name, vars) do
+    if name in vars do
       {:var, line(meta), name}
     else
       typespec({name, meta, []}, vars, caller)
@@ -1154,10 +1142,13 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec(list, vars, caller) when is_list(list) do
-    [h | t] = :lists.reverse(list)
+    [head | tail] = Enum.reverse(list)
 
-    foldl_fun = fn x, acc -> {:|, [], [validate_kw(x, list, caller), acc]} end
-    union = :lists.foldl(foldl_fun, validate_kw(h, list, caller), t)
+    union =
+      Enum.reduce(tail, validate_kw(head, list, caller), fn elem, acc ->
+        {:|, [], [validate_kw(elem, list, caller), acc]}
+      end)
+
     typespec({:list, [], [union]}, vars, caller)
   end
 
@@ -1210,7 +1201,7 @@ defmodule Kernel.Typespec do
   end
 
   defp unpack_typespec_kw([], acc) do
-    {:ok, :lists.reverse(acc)}
+    {:ok, Enum.reverse(acc)}
   end
 
   defp unpack_typespec_kw(_, _acc) do
