@@ -1218,6 +1218,7 @@ defmodule Kernel.Typespec do
   end
 
   # Called by elixir_erl.
+  @doc false
   def translate_typespecs_for_module(table) do
     translate_type = fn {kind, expr, caller} -> translate_type(kind, expr, caller) end
     translate_spec = fn {kind, expr, caller} -> translate_spec(kind, expr, caller) end
