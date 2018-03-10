@@ -1593,7 +1593,7 @@ defmodule Kernel do
   """
   defmacro left <> right do
     concats = extract_concatenations({:<>, [], [left, right]}, __CALLER__)
-    quote(do: <<unquote_splicing(concats)>>)
+    {:<<>>, [context: :concat], concats}
   end
 
   # Extracts concatenations in order to optimize many
@@ -1615,23 +1615,24 @@ defmodule Kernel do
     {:::, [], [other, {:binary, [], nil}]}
   end
 
-  defp check_invalid_argument({:<<>>, _, _}, _caller) do
-    :ok
+  defp check_invalid_argument({var, _, nil}, %{context: :match}) when is_atom(var) do
+    form_error(:invalid_left_argument_in_concat)
   end
 
-  defp check_invalid_argument(arg, %{context: :match} = caller) when not is_binary(arg) do
-    :erlang.error(
-      CompileError.exception(
-        file: caller.file,
-        line: caller.line,
-        description:
-          "The left argument of <> operator inside a match should be always a literal binary"
-      )
-    )
+  defp check_invalid_argument({:^, _, [{var, _, nil}]}, _) when is_atom(var) do
+    form_error(:invalid_left_argument_in_concat)
   end
 
   defp check_invalid_argument(_arg, _caller) do
     :ok
+  end
+
+  defp form_error(:invalid_left_argument_in_concat) do
+    :erlang.error(
+      ArgumentError.exception(
+        "The left argument of <> operator inside a match should be always a literal binary"
+      )
+    )
   end
 
   @doc """

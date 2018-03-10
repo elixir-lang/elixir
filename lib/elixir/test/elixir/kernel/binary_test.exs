@@ -89,6 +89,7 @@ defmodule Kernel.BinaryTest do
   test "string concatenation outside match" do
     x = "bar"
     assert "foobar" = "foo" <> x
+    assert "barfoo" = x <> "foo"
   end
 
   test "hex" do
@@ -167,15 +168,25 @@ defmodule Kernel.BinaryTest do
 
     message = ~r"left argument of <> operator inside a match"
 
-    assert_raise CompileError, message, fn ->
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string(~s[a <> "b" = "ab"])
+    end
+
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string(~s["a" <> b <> "c" = "abc"])
+    end
+
+    assert_raise ArgumentError, message, fn ->
       Code.eval_string(~s[
-        a <> "b" = "ab"
+        a = "a"
+        ^a <> "b" = "ab"
       ])
     end
 
-    assert_raise CompileError, message, fn ->
+    assert_raise ArgumentError, message, fn ->
       Code.eval_string(~s[
-        "a" <> 1 <> "c" = "abc"
+        b = "b"
+        "a" <> ^b <> "c" = "abc"
       ])
     end
   end

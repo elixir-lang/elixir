@@ -4,21 +4,27 @@
 -include("elixir.hrl").
 
 expand(Meta, Args, E, RequireSize) ->
+  Context =
+    case lists:keyfind(context, 1, Meta) of
+      {context, Ctx} -> Ctx;
+      false -> default
+    end,
+
   case ?key(E, context) of
     match ->
       {EArgs, Alignment, EE} =
-        expand(Meta, fun elixir_expand:expand/2, Args, [], E, 0, RequireSize),
+        expand(Meta, fun elixir_expand:expand/2, Args, [], E, 0, RequireSize, Context),
       {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, EE};
     _ ->
       {EArgs, Alignment, {EC, EV}} =
-        expand(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}, 0, RequireSize),
+        expand(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}, 0, RequireSize, Context),
       {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, elixir_env:mergea(EV, EC)}
   end.
 
-expand(_BitstrMeta, _Fun, [], Acc, E, Alignment, _RequireSize) ->
+expand(_BitstrMeta, _Fun, [], Acc, E, Alignment, _RequireSize, _Context) ->
   {lists:reverse(Acc), Alignment, E};
-expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, Alignment, RequireSize) ->
-  {ELeft, EL} = expand_expr(Meta, Left, Fun, E),
+expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, Alignment, RequireSize, Context) ->
+  {ELeft, EL} = expand_expr(Meta, Left, Fun, Context, E),
 
   %% Variables defined outside the binary can be accounted
   %% on subparts, however we can't assign new variables.
@@ -32,7 +38,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, Alignment, Re
     end,
 
   EType = expr_type(ELeft),
-  {ERight, EAlignment, ES} = expand_specs(EType, Meta, Right, EM, RequireSize or MatchSize),
+  {ERight, EAlignment, ES} = expand_specs(EType, Meta, Right, EM, RequireSize or MatchSize, Context),
 
   EE =
     case EL of
@@ -59,15 +65,15 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, Alignment, Re
         prepend_unless_bitstring_in_match(EType, Meta, ELeft, ERight, Acc, E)
     end,
 
-  expand(BitstrMeta, Fun, T, EAcc, EE, alignment(Alignment, EAlignment), RequireSize);
-expand(BitstrMeta, Fun, [{_, Meta, _} = H | T], Acc, E, Alignment, RequireSize) ->
-  {Expr, ES} = expand_expr(Meta, H, Fun, E),
+  expand(BitstrMeta, Fun, T, EAcc, EE, alignment(Alignment, EAlignment), RequireSize, Context);
+expand(BitstrMeta, Fun, [{_, Meta, _} = H | T], Acc, E, Alignment, RequireSize, Context) ->
+  {Expr, ES} = expand_expr(Meta, H, Fun, Context, E),
   {EAcc, EAlignment} = wrap_expr(Expr, Acc),
-  expand(BitstrMeta, Fun, T, EAcc, ES, alignment(Alignment, EAlignment), RequireSize);
-expand(Meta, Fun, [H | T], Acc, E, Alignment, RequireSize) ->
-  {Expr, ES} = expand_expr(Meta, H, Fun, E),
+  expand(BitstrMeta, Fun, T, EAcc, ES, alignment(Alignment, EAlignment), RequireSize, Context);
+expand(Meta, Fun, [H | T], Acc, E, Alignment, RequireSize, Context) ->
+  {Expr, ES} = expand_expr(Meta, H, Fun, Context, E),
   {EAcc, EAlignment} = wrap_expr(Expr, Acc),
-  expand(Meta, Fun, T, EAcc, ES, alignment(Alignment, EAlignment), RequireSize).
+  expand(Meta, Fun, T, EAcc, ES, alignment(Alignment, EAlignment), RequireSize, Context).
 
 prepend_unless_bitstring_in_match(Type, Meta, Left, Right, Acc, E) ->
   Expr = {'::', Meta, [Left, Right]},
@@ -131,16 +137,22 @@ compute_alignment(_, _, _) -> unknown.
 %% Expands the expression of a bitstring, that is, the LHS of :: or
 %% an argument of the bitstring (such as "foo" in "<<foo>>").
 
-expand_expr(_, {{'.', M1, ['Elixir.Kernel', to_string]}, M2, [Arg]}, Fun, E) ->
+expand_expr(_, {{'.', M1, ['Elixir.Kernel', to_string]}, M2, [Arg]}, Fun, _Context, E) ->
   case Fun(Arg, E) of
     {EBin, EE} when is_binary(EBin) -> {EBin, EE};
     {EArg, EE} -> {{{'.', M1, ['Elixir.String.Chars', to_string]}, M2, [EArg]}, EE}
   end;
-expand_expr(Meta, Component, Fun, E) ->
+expand_expr(Meta, Component, Fun, Context, E) ->
   case Fun(Component, E) of
     {EComponent, _} when is_list(EComponent); is_atom(EComponent) ->
       ErrorE = env_for_error(E),
-      form_error(Meta, ?key(ErrorE, file), ?MODULE, {invalid_literal, EComponent});
+      case Context of
+        default ->
+          form_error(Meta, ?key(ErrorE, file), ?MODULE, {invalid_literal, EComponent});
+
+        concat ->
+          form_error(Meta, ?key(ErrorE, file), ?MODULE, {invalid_literal_in_concat, EComponent})
+      end;
     {_, _} = Expanded ->
       Expanded
   end.
@@ -150,7 +162,7 @@ env_for_error(E) -> E.
 
 %% Expands and normalizes types of a bitstring.
 
-expand_specs(ExprType, Meta, Info, E, RequireSize) ->
+expand_specs(ExprType, Meta, Info, E, RequireSize, Context) ->
   Default =
     #{size => default,
       unit => default,
@@ -159,28 +171,30 @@ expand_specs(ExprType, Meta, Info, E, RequireSize) ->
       endianness => default},
   {#{size := Size, unit := Unit, type := Type, endianness := Endianness, sign := Sign}, ES} =
     expand_each_spec(Meta, unpack_specs(Info, []), Default, E),
-  MergedType = type(Meta, ExprType, Type, E),
+  MergedType = type(Meta, ExprType, Type, Context, E),
   validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, ES),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, ES),
   Alignment = compute_alignment(MergedType, Size, Unit),
   [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, SizeAndUnit, ES),
   {lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T), Alignment, ES}.
 
-type(_, default, default, _) ->
+type(_, default, default, _, _) ->
   integer;
-type(_, ExprType, default, _) ->
+type(_, ExprType, default, _, _) ->
   ExprType;
-type(_, binary, Type, _) when Type == binary; Type == bitstring; Type == utf8; Type == utf16; Type == utf32 ->
+type(_, binary, Type, _, _) when Type == binary; Type == bitstring; Type == utf8; Type == utf16; Type == utf32 ->
   Type;
-type(_, bitstring, Type, _) when Type == binary; Type == bitstring ->
+type(_, bitstring, Type, _, _) when Type == binary; Type == bitstring ->
   Type;
-type(_, integer, Type, _) when Type == integer; Type == float; Type == utf8; Type == utf16; Type == utf32 ->
+type(_, integer, Type, _, _) when Type == integer; Type == float; Type == utf8; Type == utf16; Type == utf32 ->
   Type;
-type(_, float, Type, _) when Type == float ->
+type(_, float, Type, _, _) when Type == float ->
   Type;
-type(_, default, Type, _) ->
+type(_, default, Type, _, _) ->
   Type;
-type(Meta, Other, Value, E) ->
+type(Meta, Other, binary, concat, E) ->
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_argument_in_concat, Other});
+type(Meta, Other, Value, default, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {bittype_mismatch, Value, Other, type}).
 
 expand_each_spec(Meta, [{Expr, _, Args} = H | T], Map, E) when is_atom(Expr) ->
@@ -341,11 +355,15 @@ format_error(bittype_unit) ->
 format_error({bittype_float_size, Other}) ->
   io_lib:format("float requires size*unit to be 32 or 64 (default), got: ~p", [Other]);
 format_error({invalid_literal, Literal}) ->
-  io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
+  io_lib:format("invalid literal ~ts in <<>> operator", ['Elixir.Macro':to_string(Literal)]);
+format_error({invalid_literal_in_concat, Literal}) ->
+  io_lib:format("expected binary argument in <> operator but got: ~ts", ['Elixir.Macro':to_string(Literal)]);
 format_error({undefined_bittype, Expr}) ->
   io_lib:format("unknown bitstring specifier: ~ts", ['Elixir.Macro':to_string(Expr)]);
 format_error({bittype_mismatch, Val1, Val2, Where}) ->
   io_lib:format("conflicting ~ts specification for bit field: \"~p\" and \"~p\"", [Where, Val1, Val2]);
+format_error({invalid_argument_in_concat, Type}) ->
+  io_lib:format("expected binary argument in <> operator but got argument of type \"~p\"", [Type]);
 format_error({bad_unit_argument, Unit}) ->
   io_lib:format("unit in bitstring expects an integer as argument, got: ~ts",
                 ['Elixir.Macro':to_string(Unit)]);
