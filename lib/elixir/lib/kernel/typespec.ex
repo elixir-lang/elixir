@@ -1216,4 +1216,28 @@ defmodule Kernel.Typespec do
   defp unpack_typespec_kw(_, _acc) do
     :error
   end
+
+  # Called by elixir_erl.
+  @doc false
+  def translate_typespecs_for_module(table) do
+    translate_type = fn {kind, expr, caller} -> translate_type(kind, expr, caller) end
+    translate_spec = fn {kind, expr, caller} -> translate_spec(kind, expr, caller) end
+
+    types = take_spec(table, :type) ++ take_spec(table, :typep) ++ take_spec(table, :opaque)
+    types = Enum.map(types, translate_type)
+
+    specs = Enum.map(take_spec(table, :spec), translate_spec)
+    callbacks = Enum.map(take_spec(table, :callback), translate_spec)
+    macrocallbacks = Enum.map(take_spec(table, :macrocallback), translate_spec)
+    optional_callbacks = List.flatten(take_spec(table, :optional_callbacks))
+
+    {types, specs, callbacks, macrocallbacks, optional_callbacks}
+  end
+
+  defp take_spec(table, key) do
+    case :ets.take(table, key) do
+      [{^key, value, _, _}] -> value
+      [] -> []
+    end
+  end
 end
