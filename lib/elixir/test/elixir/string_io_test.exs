@@ -256,8 +256,8 @@ defmodule StringIOTest do
     assert contents(pid) == {"", ""}
   end
 
-  defp get_until(pid, encoding, prompt, module, function, extra_args \\ []) do
-    :io.request(pid, {:get_until, encoding, prompt, module, function, extra_args})
+  defp get_until(pid, encoding, prompt, module, function) do
+    :io.request(pid, {:get_until, encoding, prompt, module, function, []})
   end
 
   defmodule GetUntilCallbacks do
