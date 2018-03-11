@@ -9,8 +9,8 @@ defmodule ExUnit.DescribeTest do
     [setup_tag: :from_module]
   end
 
+  @describetag attribute_tag: :from_describe
   describe "tags" do
-    @describetag attribute_tag: :from_describe
 
     test "from describe have higher precedence", context do
       assert context.attribute_tag == :from_describe

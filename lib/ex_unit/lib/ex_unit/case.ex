@@ -391,7 +391,6 @@ defmodule ExUnit.Case do
 
       @ex_unit_describe {__ENV__.line, message}
       @ex_unit_used_describes message
-      Module.delete_attribute(__ENV__.module, :describetag)
 
       try do
         unquote(block)
