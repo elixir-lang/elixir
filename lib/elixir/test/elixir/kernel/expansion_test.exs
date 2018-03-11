@@ -1853,6 +1853,77 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "bitstrings" do
+    test "parallel match" do
+      assert expand(quote(do: <<foo>> = <<bar>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<foo::integer()>> = <<bar()::integer()>>)
+
+      assert expand(quote(do: <<foo>> = baz = <<bar>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<foo::integer()>> = baz = <<bar()::integer()>>)
+
+      assert expand(quote(do: <<foo>> = {<<baz>>} = bar())) |> clean_meta([:alignment]) ==
+               quote(do: <<foo::integer()>> = {<<baz::integer()>>} = bar())
+
+      message = ~r"binary patterns cannot be matched in parallel using \"=\""
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<foo>> = <<baz>> = bar()))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<foo>> = qux = <<baz>> = bar()))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: {<<foo>>} = {qux} = {<<baz>>} = bar()))
+      end
+
+      # 2-element tuples are special cased
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: {:foo, <<foo>>} = {:foo, <<baz>>} = bar()))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: %{foo: <<foo>>} = %{foo: <<baz>>} = bar()))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: %_{name: <<foo>>} = %_{foo: <<baz>>} = bar()))
+      end
+
+      assert_raise CompileError, message, fn ->
+        code =
+          quote do
+            case bar() do
+              <<foo>> = <<baz>> -> nil
+            end
+          end
+
+        expand(code)
+      end
+
+      assert_raise CompileError, message, fn ->
+        code =
+          quote do
+            case bar() do
+              <<foo>> = qux = <<baz>> -> nil
+            end
+          end
+
+        expand(code)
+      end
+
+      assert_raise CompileError, message, fn ->
+        code =
+          quote do
+            case bar() do
+              [<<foo>>] = [<<baz>>] -> nil
+            end
+          end
+
+        expand(code)
+      end
+    end
+
     test "nested match" do
       assert expand(quote(do: <<foo = bar>>)) |> clean_meta([:alignment]) ==
                quote(do: <<foo = bar()::integer()>>)
