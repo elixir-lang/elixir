@@ -114,14 +114,16 @@ defmodule ExUnit.Case do
   ### Module and describe tags
 
   A tag can be set for all tests in a module or describe block by
-  setting `@moduletag` or `@describetag` respectively:
+  setting `@moduletag` or `@describetag` inside each context
+  respectively:
 
       defmodule ApiTest do
         use ExUnit.Case
         @moduletag :external
 
-        @describetag :endpoint
         describe "makes calls to the right endpoint" do
+          @describetag :endpoint
+
           # ...
         end
       end
@@ -391,7 +393,10 @@ defmodule ExUnit.Case do
 
       @ex_unit_describe {__ENV__.line, message}
       @ex_unit_used_describes message
-      Module.delete_attribute(__ENV__.module, :describetag)
+
+      if Module.get_attribute(__ENV__.module, :describetag) != [] do
+        raise "you must set @describetag inside describe/2 blocks"
+      end
 
       try do
         unquote(block)
