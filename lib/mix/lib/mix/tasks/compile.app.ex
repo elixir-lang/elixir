@@ -67,6 +67,12 @@ defmodule Mix.Tasks.Compile.App do
       in an included application considers itself belonging to the
       primary application.
 
+    * `:maxT` - specifies the maximum time the application is allowed to run, in
+      milliseconds. Applications are stopped if `:maxT` is reached, and their
+      top-level supervisor terminated with reason `:normal`. This threshold is
+      technically valid in any resource file, but it is only effective for
+      applications with a callback module. Defaults to `:infinity`.
+
   Besides the options above, `.app` files also expect other options like
   `:modules` and `:vsn`, but these are automatically added by Mix.
 
