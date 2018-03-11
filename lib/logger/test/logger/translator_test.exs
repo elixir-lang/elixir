@@ -711,14 +711,14 @@ defmodule Logger.TranslatorTest do
            """
   end
 
-  test "translates DynamicSupervisor reports extra_arguments in in abnormal shutdown" do
+  test "translates DynamicSupervisor reports abnormal shutdown including extra_arguments" do
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
 
              {:ok, pid} =
                DynamicSupervisor.start_link(strategy: :one_for_one, extra_arguments: [:extra])
 
-             child = %{id: __MODULE__, start: {__MODULE__, :abnormal2, [:args]}}
+             child = %{id: __MODULE__, start: {__MODULE__, :abnormal, [:args]}}
              {:ok, _pid2} = DynamicSupervisor.start_child(pid, child)
              Process.exit(pid, :normal)
              receive do: ({:EXIT, ^pid, _} -> :ok)
@@ -727,7 +727,7 @@ defmodule Logger.TranslatorTest do
            \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
-           Start Call: Logger.TranslatorTest.abnormal2\(:extra, :args\)
+           Start Call: Logger.TranslatorTest.abnormal\(:extra, :args\)
            """
   end
 
@@ -841,7 +841,7 @@ defmodule Logger.TranslatorTest do
     :proc_lib.start_link(__MODULE__, :abnormal_init, [])
   end
 
-  def abnormal2(:extra, :args) do
+  def abnormal(:extra, :args) do
     :proc_lib.start_link(__MODULE__, :abnormal_init, [])
   end
 
