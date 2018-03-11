@@ -92,6 +92,40 @@ defmodule Kernel.BinaryTest do
     assert "barfoo" = x <> "foo"
   end
 
+  test "invalid string concatenation arguments" do
+    assert_raise ArgumentError, ~r"expected binary argument in <> operator but got: :bar", fn ->
+      Code.eval_string(~s["foo" <> :bar])
+    end
+
+    assert_raise ArgumentError, ~r"expected binary argument in <> operator but got: 1", fn ->
+      Code.eval_string(~s["foo" <> 1])
+    end
+
+    message = ~r"left argument of <> operator inside a match"
+
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string(~s[a <> "b" = "ab"])
+    end
+
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string(~s["a" <> b <> "c" = "abc"])
+    end
+
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string(~s[
+        a = "a"
+        ^a <> "b" = "ab"
+      ])
+    end
+
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string(~s[
+        b = "b"
+        "a" <> ^b <> "c" = "abc"
+      ])
+    end
+  end
+
   test "hex" do
     assert "\x76" == "v"
     assert "\u00FF" == "ÿ"
@@ -164,30 +198,6 @@ defmodule Kernel.BinaryTest do
 
     assert_raise ArgumentError, fn ->
       Code.eval_string(~s[<<1::4>> <> "foo"])
-    end
-
-    message = ~r"left argument of <> operator inside a match"
-
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string(~s[a <> "b" = "ab"])
-    end
-
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string(~s["a" <> b <> "c" = "abc"])
-    end
-
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string(~s[
-        a = "a"
-        ^a <> "b" = "ab"
-      ])
-    end
-
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string(~s[
-        b = "b"
-        "a" <> ^b <> "c" = "abc"
-      ])
     end
   end
 

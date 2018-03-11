@@ -1592,47 +1592,70 @@ defmodule Kernel do
 
   """
   defmacro left <> right do
-    concats = extract_concatenations({:<>, [], [left, right]}, __CALLER__)
-    {:<<>>, [context: :concat], concats}
+    concats = extract_concatenations({:<>, [], [left, right]})
+    quote(do: <<unquote_splicing(concats)>>)
   end
 
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
-  defp extract_concatenations({:<>, _, [left, right]}, caller) do
-    check_invalid_argument(left, caller)
-    [wrap_concatenation(left) | extract_concatenations(right, caller)]
+  defp extract_concatenations({:<>, _, [left, right]}) do
+    [wrap_concatenation(left, :left) | extract_concatenations(right)]
   end
 
-  defp extract_concatenations(other, _caller) do
-    [wrap_concatenation(other)]
+  defp extract_concatenations(other) do
+    [wrap_concatenation(other, :right)]
   end
 
-  defp wrap_concatenation(binary) when is_binary(binary) do
+  defp wrap_concatenation(binary, _side) when is_binary(binary) do
     binary
   end
 
-  defp wrap_concatenation(other) do
-    {:::, [], [other, {:binary, [], nil}]}
+  defp wrap_concatenation(other, side) do
+    {:::, [],
+     [
+       {:expand_concatenation_argument, [context: Elixir, import: Kernel], [other, side]},
+       {:binary, [], nil}
+     ]}
   end
 
-  defp check_invalid_argument({var, _, nil}, %{context: :match}) when is_atom(var) do
-    form_error(:invalid_left_argument_in_concat)
-  end
+  @doc false
+  # Used internally to check the arguments expansion of <> operator.
+  # This function is private and must be used only internally.
+  defmacro expand_concatenation_argument(other, side) do
+    expand =
+      case bootstrapped?(Macro) do
+        true -> &Macro.expand(&1, __CALLER__)
+        false -> & &1
+      end
 
-  defp check_invalid_argument({:^, _, [{var, _, nil}]}, _) when is_atom(var) do
-    form_error(:invalid_left_argument_in_concat)
-  end
+    case {expand.(other), __CALLER__.context, side} do
+      {literal, _, _}
+      when is_list(literal) or is_atom(literal) or is_integer(literal) or is_float(literal) ->
+        :erlang.error(
+          ArgumentError.exception(
+            "expected binary argument in <> operator but got: #{Macro.to_string(literal)}"
+          )
+        )
 
-  defp check_invalid_argument(_arg, _caller) do
-    :ok
-  end
+      {{var, _, nil}, :match, :left} when is_atom(var) ->
+        :erlang.error(
+          ArgumentError.exception(
+            "the left argument of <> operator inside a match should be always a literal" <>
+              "binary as it's size can't be verified, got: #{Atom.to_string(var)}"
+          )
+        )
 
-  defp form_error(:invalid_left_argument_in_concat) do
-    :erlang.error(
-      ArgumentError.exception(
-        "The left argument of <> operator inside a match should be always a literal binary"
-      )
-    )
+      {{:^, _, [{var, _, nil}]}, :match, :left} when is_atom(var) ->
+        :erlang.error(
+          ArgumentError.exception(
+            "the left argument of <> operator inside a match should be always a literal" <>
+              "binary as it's size can't be verified, got: ^#{Atom.to_string(var)}"
+          )
+        )
+
+      {expanded, _, _} ->
+        expanded
+    end
   end
 
   @doc """
@@ -3383,7 +3406,7 @@ defmodule Kernel do
   end
 
   defp ensure_evaled_var(elem, {index, ast}) do
-    var = {String.to_atom("var" <> Integer.to_string(index)), [], __MODULE__}
+    var = {String.to_atom(<<"var", Integer.to_string(index)::binary>>), [], __MODULE__}
     {var, {index + 1, [{var, elem} | ast]}}
   end
 

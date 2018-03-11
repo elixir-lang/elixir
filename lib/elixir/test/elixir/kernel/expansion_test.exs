@@ -1998,15 +1998,14 @@ defmodule Kernel.ExpansionTest do
     test "merges binaries" do
       import Kernel, except: [-: 2]
 
-      assert expand(quote(do: "foo" <> x)) |> clean_meta([:alignment, :context]) ==
+      assert expand(quote(do: "foo" <> x)) |> clean_meta([:alignment]) ==
                quote(do: <<"foo"::binary(), x()::binary()>>)
 
-      assert expand(quote(do: "foo" <> <<x::size(4), y::size(4)>>))
-             |> clean_meta([:alignment, :context]) ==
+      assert expand(quote(do: "foo" <> <<x::size(4), y::size(4)>>)) |> clean_meta([:alignment]) ==
                quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
 
       assert expand(quote(do: <<"foo", <<x::size(4), y::size(4)>>::binary>>))
-             |> clean_meta([:alignment, :context]) ==
+             |> clean_meta([:alignment]) ==
                quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
     end
 
@@ -2091,18 +2090,6 @@ defmodule Kernel.ExpansionTest do
 
       assert_raise CompileError, ~r"invalid literal \[\] in <<>>", fn ->
         expand(quote(do: <<[]::size(8)>>))
-      end
-    end
-
-    test "raises for invalid arguments on concat" do
-      assert_raise CompileError, ~r"expected binary argument in <> operator but got: :bar", fn ->
-        expand(quote(do: "foo" <> :bar))
-      end
-
-      message = ~r[expected binary argument in <> operator but got argument of type "integer"]
-
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: "foo" <> 1 = "foobar"))
       end
     end
 
