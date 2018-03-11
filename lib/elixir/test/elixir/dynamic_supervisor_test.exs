@@ -356,7 +356,7 @@ defmodule DynamicSupervisorTest do
       assert {:error, :max_children} = DynamicSupervisor.start_child(pid, child)
     end
 
-    test "restarting a child with extra_args successfully restarts child" do
+    test "restarting a child with extra_arguments successfully restarts child" do
       parent = self()
 
       fun = fn ->
