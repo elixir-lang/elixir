@@ -372,39 +372,43 @@ defmodule ExUnit.Case do
   """
   defmacro describe(message, do: block) do
     quote do
-      if @ex_unit_describe do
-        raise "cannot call describe/2 inside another describe. See the documentation " <>
-                "for describe/2 on named setups and how to handle hierarchies"
-      end
-
-      message = unquote(message)
-
-      cond do
-        not is_binary(message) ->
-          raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
-
-        message in @ex_unit_used_describes ->
-          raise ExUnit.DuplicateDescribeError,
-                "describe #{inspect(message)} is already defined in #{inspect(__MODULE__)}"
-
-        true ->
-          :ok
-      end
-
-      @ex_unit_describe {__ENV__.line, message}
-      @ex_unit_used_describes message
-
-      if Module.get_attribute(__ENV__.module, :describetag) != [] do
-        raise "you must set @describetag inside describe/2 blocks"
-      end
+      ExUnit.Case.__describe__(__MODULE__, __ENV__.line, unquote(message))
 
       try do
         unquote(block)
       after
         @ex_unit_describe nil
-        Module.delete_attribute(__ENV__.module, :describetag)
+        Module.delete_attribute(__MODULE__, :describetag)
       end
     end
+  end
+
+  @doc false
+  def __describe__(module, line, message) do
+    if Module.get_attribute(module, :ex_unit_describe) do
+      raise "cannot call describe/2 inside another describe. See the documentation " <>
+              "for describe/2 on named setups and how to handle hierarchies"
+    end
+
+    cond do
+      not is_binary(message) ->
+        raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
+
+      message in Module.get_attribute(module, :ex_unit_used_describes) ->
+        raise ExUnit.DuplicateDescribeError,
+              "describe #{inspect(message)} is already defined in #{inspect(module)}"
+
+      true ->
+        :ok
+    end
+
+    if Module.get_attribute(module, :describetag) != [] do
+      raise "@describetag must be set inside describe/2 blocks"
+    end
+
+    Module.put_attribute(module, :ex_unit_describe, {line, message})
+    Module.put_attribute(module, :ex_unit_used_describes, message)
+    :ok
   end
 
   @doc false
