@@ -63,12 +63,6 @@ defmodule ExUnit.DocTestTest.GoodModule do
   #MapSet<[:a, :b, :c]>
   """
   def inspect2_test, do: :ok
-
-  @doc """
-  iex> String.valid?("invalid utf8 \\xFF")
-  false
-  """
-  def invalid_utf8, do: :ok
 end
 |> write_beam
 
@@ -196,6 +190,12 @@ defmodule ExUnit.DocTestTest.Invalid do
       ```
   """
   def dedented_past_fence, do: :ok
+
+  @doc """
+  iex> String.valid?("invalid utf8 \xFF")
+  false
+  """
+  def invalid_utf8, do: :ok
 end
 |> write_beam
 
@@ -436,10 +436,10 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              1) doctest module ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:144: syntax error before: '*'
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:138: syntax error before: '*'
                 code: 1 + * 1
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:144: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:138: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -449,7 +449,7 @@ defmodule ExUnit.DocTestTest do
                 code: 1 + hd(List.flatten([1])) === 3
                 left: 2
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:147: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:141: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -459,7 +459,7 @@ defmodule ExUnit.DocTestTest do
                 code: inspect(:oops) === "#MapSet<[]>"
                 left: ":oops"
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:150: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:144: ExUnit.DocTestTest.Invalid (module)
            """
 
     # The stacktrace points to the cause of the error
@@ -470,7 +470,7 @@ defmodule ExUnit.DocTestTest do
                 code: Hello.world
                 stacktrace:
                   Hello.world()
-                  (for doctest at) test/ex_unit/doc_test_test.exs:153: (test)
+                  (for doctest at) test/ex_unit/doc_test_test.exs:147: (test)
            """
 
     assert output =~ """
@@ -479,7 +479,7 @@ defmodule ExUnit.DocTestTest do
                 Doctest failed: expected exception WhatIsThis but got RuntimeError with message "oops"
                 code: raise "oops"
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:156: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:150: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -492,11 +492,20 @@ defmodule ExUnit.DocTestTest do
                   "oops"
                 code: raise "oops"
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:159: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:153: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
              7) doctest ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:159: syntax error before: '*'
+                code: 1 + * 1
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:159: ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ """
+             8) doctest ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:165: syntax error before: '*'
                 code: 1 + * 1
@@ -505,42 +514,41 @@ defmodule ExUnit.DocTestTest do
            """
 
     assert output =~ """
-             8) doctest ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
-                test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:171: syntax error before: '*'
-                code: 1 + * 1
-                stacktrace:
-                  test/ex_unit/doc_test_test.exs:171: ExUnit.DocTestTest.Invalid (module)
-           """
-
-    assert output =~ """
              9) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:195: unexpected token: "`" (column 5, codepoint U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:189: unexpected token: "`" (column 5, codepoint U+0060)
                 code: 3
                           ```
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:194: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:188: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
             10) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:179: unexpected token: "`" (column 1, codepoint U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:173: unexpected token: "`" (column 1, codepoint U+0060)
                 code: 3
                       `
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:178: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:172: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
             11) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (11) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:187: unexpected token: "`" (column 3, codepoint U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:181: unexpected token: "`" (column 3, codepoint U+0060)
                 code: 3
                         ```
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:186: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:180: ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ """
+            12) doctest ExUnit.DocTestTest.Invalid.invalid_utf8/0 (12) (ExUnit.DocTestTest.ActuallyCompiled)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest did not compile, got: (UnicodeConversionError) invalid encoding starting at <<255, 34, 41>>
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:195: ExUnit.DocTestTest.Invalid (module)
            """
   end
 
