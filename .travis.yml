@@ -17,8 +17,6 @@ matrix:
       otp_release: 20.1
     - os: linux
       otp_release: 20.2
-    - os: linux
-      otp_release: 20.3
 
 env:
   - ELIXIR_ASSERT_TIMEOUT=2000
