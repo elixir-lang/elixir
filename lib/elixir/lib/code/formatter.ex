@@ -555,7 +555,16 @@ defmodule Code.Formatter do
         {left, state} =
           case left_arg do
             {:__block__, _, [atom]} when is_atom(atom) ->
-              {atom |> Code.Identifier.inspect_as_key() |> string(), state}
+              key =
+                case Code.Identifier.classify(atom) do
+                  type when type in [:callable_local, :callable_operator, :not_callable] ->
+                    IO.iodata_to_binary([Atom.to_string(atom), ?:])
+
+                  _ ->
+                    IO.iodata_to_binary([?", Atom.to_string(atom), ?", ?:])
+                end
+
+              {string(key), state}
 
             {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries}, :utf8]} ->
               interpolation_to_algebra(entries, @double_quote, state, "\"", "\":")
