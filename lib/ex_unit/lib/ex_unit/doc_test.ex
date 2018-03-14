@@ -408,13 +408,17 @@ defmodule ExUnit.DocTest do
     rescue
       e ->
         ex_message = "(#{inspect(e.__struct__)}) #{Exception.message(e)}"
+        message = "Doctest did not compile, got: #{ex_message}"
+
+        opts =
+          if String.valid?(expr) do
+            [message: message, expr: String.trim(expr)]
+          else
+            [message: message]
+          end
 
         quote do
-          message = "Doctest did not compile, got: #{unquote(ex_message)}"
-
-          reraise ExUnit.AssertionError,
-                  [message: message, expr: unquote(String.trim(expr))],
-                  unquote(stack)
+          reraise ExUnit.AssertionError, unquote(opts), unquote(stack)
         end
     end
   end

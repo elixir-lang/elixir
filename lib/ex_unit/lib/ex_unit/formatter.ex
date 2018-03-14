@@ -110,11 +110,8 @@ defmodule ExUnit.Formatter do
   end
 
   @doc """
-  Receives a test and formats its failure. The returned formatted failure must
-  always be a valid UTF-8 string.
+  Receives a test and formats its failure.
   """
-  @spec format_test_failure(ExUnit.Test.t(), list, non_neg_integer, pos_integer, fun) ::
-          String.t()
   def format_test_failure(test, failures, counter, width, formatter) do
     %ExUnit.Test{name: name, module: module, tags: tags} = test
 
@@ -147,7 +144,6 @@ defmodule ExUnit.Formatter do
       left: left,
       right: right
     ]
-    |> filter_out_invalid_code()
     |> format_meta(formatter, label_padding_size)
     |> make_into_lines(counter_padding)
   end
@@ -230,13 +226,6 @@ defmodule ExUnit.Formatter do
     do: formatter.(:blame_diff, Macro.to_string(node))
 
   defp blame_match(_, string, _formatter), do: string
-
-  defp filter_out_invalid_code(fields) do
-    Enum.filter(fields, fn
-      {:code, code_example} -> String.valid?(code_example)
-      _ -> true
-    end)
-  end
 
   defp format_meta(fields, formatter, padding_size) do
     for {label, value} <- fields, has_value?(value) do
