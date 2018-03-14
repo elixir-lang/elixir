@@ -200,6 +200,8 @@ defmodule Code.Formatter.ContainersTest do
     test "with quoted keyword lists" do
       assert_same ~S(["with spaces": 1])
       assert_same ~S(["one #{two} three": 1])
+      assert_same ~S(["\w": 1, "\\w": 2])
+      assert_same ~S(["Elixir.Foo": 1, "Elixir.Bar": 2])
       assert_format ~S(["Foo": 1, "Bar": 2]), ~S([Foo: 1, Bar: 2])
     end
 
