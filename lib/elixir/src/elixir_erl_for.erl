@@ -21,7 +21,7 @@ translate(Meta, Args, Return, S) ->
 
   case comprehension_expr(TInto, TExpr) of
     {inline, TIntoExpr} ->
-      {build_inline(Ann, TCases, TIntoExpr, TInto, TUniq, SF), SF};
+      build_inline(Ann, TCases, TIntoExpr, TInto, TUniq, SF);
     {into, TIntoExpr} ->
       build_into(Ann, TCases, TIntoExpr, TInto, TUniq, SF)
   end.
@@ -91,17 +91,17 @@ collect_filters([], Acc) ->
 
 build_inline(Ann, Clauses, Expr, Into, Uniq, S) ->
   case not Uniq and lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
-    true  -> build_comprehension(Ann, Clauses, Expr, Into);
+    true  -> {build_comprehension(Ann, Clauses, Expr, Into), S};
     false -> build_inline_each(Ann, Clauses, Expr, Into, Uniq, S)
   end.
 
 build_inline_each(Ann, Clauses, Expr, false, Uniq, S) ->
   InnerFun = fun(InnerExpr, _InnerAcc) -> InnerExpr end,
-  build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, S);
+  {build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, S), S};
 build_inline_each(Ann, Clauses, Expr, {nil, _} = Into, Uniq, S) ->
   InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
   ReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, S),
-  elixir_erl:remote(Ann, lists, reverse, [ReduceExpr]);
+  {elixir_erl:remote(Ann, lists, reverse, [ReduceExpr]), S};
 build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
   {InnerValue, SV} = build_var(Ann, S),
 
@@ -135,11 +135,21 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
   end,
 
   ReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, SV),
-  elixir_erl:remote(Ann, erlang, iolist_to_binary, [ReduceExpr]).
+
+  {{'case', Ann, ReduceExpr, [
+    {clause, Ann,
+     [InnerValue],
+     [[elixir_erl:remote(Ann, erlang, is_bitstring, [InnerValue])]],
+     [InnerValue]},
+    {clause, Ann,
+     [InnerValue],
+     [],
+     [elixir_erl:remote(Ann, erlang, iolist_to_binary, [InnerValue])]}
+  ]}, SV}.
 
 build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, S) ->
-  ReduceExpr = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, S),
-  {elixir_erl:remote(Ann, maps, from_list, [ReduceExpr]), S};
+  {ReduceExpr, SR} = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, S),
+  {elixir_erl:remote(Ann, maps, from_list, [ReduceExpr]), SR};
 build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
   {Fun, SF}    = build_var(Ann, S),
   {Acc, SA}    = build_var(Ann, SF),
