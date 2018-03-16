@@ -11,7 +11,6 @@ defmodule IEx.Introspection do
   Decomposes an introspection call into `{mod, fun, arity}`,
   `{mod, fun}` or `mod`.
   """
-
   def decompose({:/, _, [call, arity]} = term, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} when arity == 1 ->
@@ -481,11 +480,7 @@ defmodule IEx.Introspection do
         formatted =
           Enum.map(specs, fn spec ->
             Typespec.spec_to_ast(name, spec)
-            |> format_typespec(:spec)
-            |> IO.iodata_to_binary()
-            |> String.replace("\n", "\n    ")
-            |> prefix("    ")
-            |> pair(?\n)
+            |> format_typespec(:spec, 2)
           end)
 
         [formatted, ?\n]
@@ -593,9 +588,7 @@ defmodule IEx.Introspection do
   end
 
   defp format_optional_callbacks(callbacks) do
-    callbacks
-    |> format_typespec(:optional_callbacks)
-    |> pair(?\n)
+    format_typespec(callbacks, :optional_callbacks, 0)
   end
 
   defp format_callback(kind, name, key, callbacks) do
@@ -604,8 +597,7 @@ defmodule IEx.Introspection do
     Enum.map(specs, fn spec ->
       Typespec.spec_to_ast(name, spec)
       |> Macro.prewalk(&drop_macro_env/1)
-      |> format_typespec(kind)
-      |> pair(?\n)
+      |> format_typespec(kind, 0)
     end)
   end
 
@@ -685,36 +677,36 @@ defmodule IEx.Introspection do
 
   defp format_type({:opaque, type}) do
     {:::, _, [ast, _]} = Typespec.type_to_ast(type)
-    [format_typespec(ast, :opaque), ?\n]
+    format_typespec(ast, :opaque, 0)
   end
 
   defp format_type({kind, type}) do
     ast = Typespec.type_to_ast(type)
-    [format_typespec(ast, kind), ?\n]
+    format_typespec(ast, kind, 0)
   end
 
   ## Helpers
 
-  defp format_typespec(definition, kind) do
-    definition
-    |> Macro.to_string()
-    |> prefix("@#{kind} ")
-    |> Code.format_string!(line_length: IEx.width())
+  defp format_typespec(definition, kind, nesting) do
+    "@#{kind} #{Macro.to_string(definition)}"
+    |> Code.format_string!(line_length: IEx.width() - nesting)
     |> IO.iodata_to_binary()
     |> color_prefix_with_line()
+    |> indent(nesting)
   end
 
-  defp prefix(string, prefix) do
-    prefix <> string
+  defp indent(content, 0) do
+    [content, ?\n]
   end
 
-  defp pair(left, right) do
-    [left, right]
+  defp indent(content, nesting) do
+    whitespace = String.duplicate(" ", nesting)
+    [whitespace, String.replace(content, "\n", "\n#{whitespace}"), ?\n]
   end
 
   defp color_prefix_with_line(string) do
     [left, right] = :binary.split(string, " ")
-    [IEx.color(:doc_inline_code, left), ?\s, right]
+    IEx.color(:doc_inline_code, left) <> " " <> right
   end
 
   defp print_doc(heading, types, doc) do
