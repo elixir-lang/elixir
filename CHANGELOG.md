@@ -123,6 +123,15 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
+## v1.6.4 (2018-03-16)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code.Formatter] Do not double escape quoted keyword list identifiers
+  * [Kernel] Properly support `into: binary` in Erlang/OTP 20.3
+
 ## v1.6.3 (2018-03-09)
 
 ### 1. Enhancements
