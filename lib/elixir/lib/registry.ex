@@ -1001,6 +1001,7 @@ defmodule Registry do
       iex> Registry.count(Registry.DuplicateCountTest)
       2
   """
+  @since "1.7.0"
   @spec count(registry) :: non_neg_integer()
   def count(registry) when is_atom(registry) do
     case key_info!(registry) do
