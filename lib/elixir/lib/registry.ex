@@ -977,47 +977,47 @@ defmodule Registry do
   end
 
   @doc """
-  Counts registered keys.
+  Returns the size of the Registry (ie The number of registered keys).
 
   ## Examples
-  In the example below we register the current process and count the number
-  of registered keys:
+  In the example below we register the current process and ask for the
+  size of the Registry:
 
       iex> Registry.start_link(keys: :unique, name: Registry.UniqueCountTest)
-      iex> Registry.count(Registry.UniqueCountTest)
+      iex> Registry.size(Registry.UniqueCountTest)
       0
       iex> {:ok, _} = Registry.register(Registry.UniqueCountTest, "hello", :world)
       iex> {:ok, _} = Registry.register(Registry.UniqueCountTest, "world", :world)
-      iex> Registry.count(Registry.UniqueCountTest)
+      iex> Registry.size(Registry.UniqueCountTest)
       2
 
   The same applies to duplicate registries:
 
       iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateCountTest)
-      iex> Registry.count(Registry.DuplicateCountTest)
+      iex> Registry.size(Registry.DuplicateCountTest)
       0
       iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
       iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
-      iex> Registry.count(Registry.DuplicateCountTest)
+      iex> Registry.size(Registry.DuplicateCountTest)
       2
   """
   @since "1.7.0"
-  @spec count(registry) :: non_neg_integer()
-  def count(registry) when is_atom(registry) do
+  @spec size(registry) :: non_neg_integer()
+  def size(registry) when is_atom(registry) do
     case key_info!(registry) do
       {_kind, partitions, nil} ->
         Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
           [{^partition_index, partition_ets, _}] = :ets.lookup(registry, partition_index)
-          size = safe_count(partition_ets)
+          size = safe_size(partition_ets)
           acc + size
         end)
 
       {_kind, 1, key_ets} ->
-        safe_count(key_ets)
+        safe_size(key_ets)
     end
   end
 
-  defp safe_count(ets) do
+  defp safe_size(ets) do
     try do
       :ets.info(ets, :size)
     catch
