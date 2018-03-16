@@ -976,6 +976,54 @@ defmodule Registry do
     end
   end
 
+  @doc """
+  Counts registered keys.
+
+  ## Examples
+  In the example below we register the current process and count the number
+  of registered keys:
+
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueCountTest)
+      iex> Registry.count(Registry.UniqueCountTest)
+      0
+      iex> {:ok, _} = Registry.register(Registry.UniqueCountTest, "hello", :world)
+      iex> {:ok, _} = Registry.register(Registry.UniqueCountTest, "world", :world)
+      iex> Registry.count(Registry.UniqueCountTest)
+      2
+
+  The same applies to duplicate registries:
+
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateCountTest)
+      iex> Registry.count(Registry.DuplicateCountTest)
+      0
+      iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
+      iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
+      iex> Registry.count(Registry.DuplicateCountTest)
+      2
+  """
+  @spec count(registry) :: integer()
+  def count(registry) when is_atom(registry) do
+    case key_info!(registry) do
+      {_kind, partitions, nil} ->
+        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
+          [{^partition_index, partition_ets, _}] = :ets.lookup(registry, partition_index)
+          size = safe_count(partition_ets)
+          acc + size
+        end)
+
+      {_kind, 1, key_ets} ->
+        safe_count(key_ets)
+    end
+  end
+
+  defp safe_count(ets) do
+    try do
+      :ets.info(ets, :size)
+    catch
+      :error, :badarg -> 0
+    end
+  end
+
   ## Helpers
 
   @compile {:inline, hash: 2}

@@ -21,6 +21,17 @@ defmodule RegistryTest do
         assert length(Supervisor.which_children(registry)) == partitions
       end
 
+      test "counts 0 elements in an empty Registry", %{registry: registry} do
+        assert 0 == Registry.count(registry)
+      end
+
+      test "counts the number of keys", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, "hello", :value)
+        {:ok, _} = Registry.register(registry, "world", :value)
+
+        assert 2 == Registry.count(registry)
+      end
+
       test "has unique registrations", %{registry: registry} do
         {:ok, pid} = Registry.register(registry, "hello", :value)
         assert is_pid(pid)
@@ -229,6 +240,17 @@ defmodule RegistryTest do
 
       test "starts configured number of partitions", %{registry: registry, partitions: partitions} do
         assert length(Supervisor.which_children(registry)) == partitions
+      end
+
+      test "counts 0 elements in an empty Registry", %{registry: registry} do
+        assert 0 == Registry.count(registry)
+      end
+
+      test "counts the number of keys", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, "hello", :value)
+        {:ok, _} = Registry.register(registry, "hello", :value)
+
+        assert 2 == Registry.count(registry)
       end
 
       test "has duplicate registrations", %{registry: registry} do
