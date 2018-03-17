@@ -49,6 +49,12 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.extract_stale([__ENV__.file], [__ENV__.file]) == []
   end
 
+  test "handles missing target files" do
+    # Don't crash if target is empty
+    # This can easily happen using Path.wildcard()
+    assert Mix.Utils.stale?([__ENV__.file], []) == true
+  end
+
   test "symlink or copy" do
     in_fixture("archive", fn ->
       File.mkdir_p!("_build/archive")
