@@ -213,6 +213,9 @@ defmodule Mix.Tasks.FormatTest do
       [inputs: "a.ex", locals_without_parens: [my_fun: 2]]
       """)
 
+      formatter_opts = Mix.Tasks.Format.formatter_opts_for_file("lib/extra/a.ex")
+      assert [my_fun: 2] = Keyword.get(formatter_opts, :locals_without_parens)
+
       File.write!("lib/a.ex", """
       my_fun :foo, :bar
       other_fun :baz
@@ -279,6 +282,9 @@ defmodule Mix.Tasks.FormatTest do
 
       # Let's check that the manifest gets updated if it's stale.
       File.touch!(manifest_path, {{1970, 1, 1}, {0, 0, 0}})
+
+      formatter_opts = Mix.Tasks.Format.formatter_opts_for_file("a.ex")
+      assert [my_fun: 2] = Keyword.get(formatter_opts, :locals_without_parens)
 
       Mix.Tasks.Format.run(["a.ex"])
       assert File.stat!(manifest_path).mtime > {{1970, 1, 1}, {0, 0, 0}}
@@ -357,8 +363,8 @@ defmodule Mix.Tasks.FormatTest do
       File.touch!("lib/extra/.formatter.exs", {{2030, 1, 1}, {0, 0, 0}})
       Mix.Tasks.Format.run([])
 
-      assert [inputs: "a.ex", locals_without_parens: [other_fun: 1]] =
-               Mix.Tasks.Format.formatter_opts_for_file("lib/extra/a.ex")
+      formatter_opts = Mix.Tasks.Format.formatter_opts_for_file("lib/extra/a.ex")
+      assert [other_fun: 1] = Keyword.get(formatter_opts, :locals_without_parens)
 
       assert File.read!("lib/extra/a.ex") == """
              my_fun(:foo, :bar)
