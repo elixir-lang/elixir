@@ -1025,6 +1025,71 @@ defmodule Registry do
     end
   end
 
+  @doc """
+  Returns the number of `{pid, value}` pairs under the given `key` in `registry`
+  that match `pattern`.
+
+  Pattern must be an atom or a tuple that will match the structure of the
+  value stored in the registry. The atom `:_` can be used to ignore a given
+  value or tuple element, while :"$1" can be used to temporarily assign part
+  of pattern to a variable for a subsequent comparison.
+
+  It is possible to pass list of guard conditions for more precise matching.
+  Each guard is a tuple, which describes check that should be passed by assigned part of pattern.
+  For example :"$1" > 1 guard condition would be expressed as {:>, :"$1", 1} tuple.
+  Please note that guard conditions will work only for assigned variables like :"$1", :"$2", etc.
+  Avoid usage of special match variables :"$_" and :"$$", because it might not work as expected.
+
+  Zero will be returned if there is no match.
+
+  For unique registries, a single partition lookup is necessary. For
+  duplicate registries, all partitions must be looked up.
+
+  ## Examples
+
+  In the example below we register the current process under the same
+  key in a duplicate registry but with different values:
+
+      iex> Registry.start_link(keys: :duplicate, name: Registry.MatchTest)
+      iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {1, :atom, 1})
+      iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {2, :atom, 2})
+      iex> Registry.count_match(Registry.MatchTest, "hello", {1, :_, :_})
+      1
+      iex> Registry.count_match(Registry.MatchTest, "hello", {2, :_, :_})
+      1
+      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :atom, :_})
+      2
+      iex> Registry.count_match(Registry.MatchTest, "hello", {:"$1", :_, :"$1"})
+      2
+      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}])
+      1
+      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}])
+      2
+
+  """
+  @since "1.7.0"
+  @spec count_match(registry, key, match_pattern :: term, guards :: list()) :: non_neg_integer()
+  def count_match(registry, key, pattern, guards \\ [])
+      when is_atom(registry) and is_list(guards) do
+    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+    spec = [{{:_, {:_, pattern}}, guards, [true]}]
+
+    case key_info!(registry) do
+      {:unique, partitions, key_ets} ->
+        key_ets = key_ets || key_ets!(registry, key, partitions)
+        :ets.select_count(key_ets, spec)
+
+      {:duplicate, 1, key_ets} ->
+        :ets.select_count(key_ets, spec)
+
+      {:duplicate, partitions, _key_ets} ->
+        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
+          count = :ets.select_count(key_ets!(registry, partition_index), spec)
+          acc + count
+        end)
+    end
+  end
+
   ## Helpers
 
   @compile {:inline, hash: 2}

@@ -98,6 +98,30 @@ defmodule RegistryTest do
                  [{self(), value}]
       end
 
+      test "count_match supports match patterns", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+        assert 1 == Registry.count_match(registry, "hello", {1, :_, :_})
+        assert 0 == Registry.count_match(registry, "hello", {1.0, :_, :_})
+        assert 1 == Registry.count_match(registry, "hello", {:_, :atom, :_})
+        assert 1 == Registry.count_match(registry, "hello", {:"$1", :_, :"$1"})
+        assert 1 == Registry.count_match(registry, "hello", :_)
+        assert 0 == Registry.count_match(registry, :_, :_)
+
+        value2 = %{a: "a", b: "b"}
+        {:ok, _} = Registry.register(registry, "world", value2)
+        assert 1 == Registry.count_match(registry, "world", %{b: "b"})
+      end
+
+      test "count_match supports guard conditions", %{registry: registry} do
+        value = {1, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value)
+
+        assert 1 == Registry.count_match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}])
+        assert 0 == Registry.count_match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 2}])
+        assert 1 == Registry.count_match(registry, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}])
+      end
+
       test "unregister_match supports patterns", %{registry: registry} do
         value = {1, :atom, 1}
         {:ok, _} = Registry.register(registry, "hello", value)
@@ -410,6 +434,30 @@ defmodule RegistryTest do
 
         assert Registry.match(registry, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}])
                |> Enum.sort() == [{self(), value1}, {self(), value2}]
+      end
+
+      test "count_match supports match patterns", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+        assert 1 == Registry.count_match(registry, "hello", {1, :_, :_})
+        assert 0 == Registry.count_match(registry, "hello", {1.0, :_, :_})
+        assert 1 == Registry.count_match(registry, "hello", {:_, :atom, :_})
+        assert 1 == Registry.count_match(registry, "hello", {:"$1", :_, :"$1"})
+        assert 1 == Registry.count_match(registry, "hello", :_)
+        assert 0 == Registry.count_match(registry, :_, :_)
+
+        value2 = %{a: "a", b: "b"}
+        {:ok, _} = Registry.register(registry, "world", value2)
+        assert 1 == Registry.count_match(registry, "world", %{b: "b"})
+      end
+
+      test "count_match supports guard conditions", %{registry: registry} do
+        value = {1, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value)
+
+        assert 1 == Registry.count_match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}])
+        assert 0 == Registry.count_match(registry, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 2}])
+        assert 1 == Registry.count_match(registry, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}])
       end
 
       test "unregister_match supports patterns", %{registry: registry} do
