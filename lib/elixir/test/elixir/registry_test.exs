@@ -21,11 +21,11 @@ defmodule RegistryTest do
         assert length(Supervisor.which_children(registry)) == partitions
       end
 
-      test "returns 0 as the size of an empty Registry", %{registry: registry} do
+      test "returns 0 as the size of an empty registry", %{registry: registry} do
         assert 0 == Registry.size(registry)
       end
 
-      test "returns the size of the Registry", %{registry: registry} do
+      test "returns the size of the registry", %{registry: registry} do
         {:ok, _} = Registry.register(registry, "hello", :value)
         {:ok, _} = Registry.register(registry, "world", :value)
 
@@ -242,11 +242,11 @@ defmodule RegistryTest do
         assert length(Supervisor.which_children(registry)) == partitions
       end
 
-      test "returns 0 as the size of an empty Registry", %{registry: registry} do
+      test "returns 0 as the size of an empty registry", %{registry: registry} do
         assert 0 == Registry.size(registry)
       end
 
-      test "returns the size of the Registry", %{registry: registry} do
+      test "returns the size of the registry", %{registry: registry} do
         {:ok, _} = Registry.register(registry, "hello", :value)
         {:ok, _} = Registry.register(registry, "hello", :value)
 

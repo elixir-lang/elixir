@@ -977,11 +977,11 @@ defmodule Registry do
   end
 
   @doc """
-  Returns the size of the Registry (ie The number of registered keys).
+  Returns the size of the registry, that is, the number of registered keys.
 
   ## Examples
   In the example below we register the current process and ask for the
-  size of the Registry:
+  size of the registry:
 
       iex> Registry.start_link(keys: :unique, name: Registry.UniqueCountTest)
       iex> Registry.size(Registry.UniqueCountTest)
