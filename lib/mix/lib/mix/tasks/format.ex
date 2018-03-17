@@ -145,14 +145,14 @@ defmodule Mix.Tasks.Format do
   @doc """
   Returns formatter options to be used for the given file.
   """
-  def formatter_opts_for_file(path, opts \\ []) do
+  def formatter_opts_for_file(file, opts \\ []) do
     {dot_formatter, formatter_opts} = eval_dot_formatter(opts)
 
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(dot_formatter, [], formatter_opts, [dot_formatter])
 
-    [{^path, formatter_opts}] = expand_args([path], dot_formatter, formatter_opts_and_subs)
-    formatter_opts
+    split = file |> Path.relative_to_cwd() |> Path.split()
+    find_formatter_opts_for_file(split, formatter_opts_and_subs)
   end
 
   defp eval_dot_formatter(opts) do
