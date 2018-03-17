@@ -977,33 +977,34 @@ defmodule Registry do
   end
 
   @doc """
-  Returns the size of the registry, that is, the number of registered keys.
+  Returns the number of registered keys in a registry.
+  It runs in constant time.
 
   ## Examples
   In the example below we register the current process and ask for the
-  size of the registry:
+  number of keys in the registry:
 
       iex> Registry.start_link(keys: :unique, name: Registry.UniqueCountTest)
-      iex> Registry.size(Registry.UniqueCountTest)
+      iex> Registry.count(Registry.UniqueCountTest)
       0
       iex> {:ok, _} = Registry.register(Registry.UniqueCountTest, "hello", :world)
       iex> {:ok, _} = Registry.register(Registry.UniqueCountTest, "world", :world)
-      iex> Registry.size(Registry.UniqueCountTest)
+      iex> Registry.count(Registry.UniqueCountTest)
       2
 
   The same applies to duplicate registries:
 
       iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateCountTest)
-      iex> Registry.size(Registry.DuplicateCountTest)
+      iex> Registry.count(Registry.DuplicateCountTest)
       0
       iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
       iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
-      iex> Registry.size(Registry.DuplicateCountTest)
+      iex> Registry.count(Registry.DuplicateCountTest)
       2
   """
   @since "1.7.0"
-  @spec size(registry) :: non_neg_integer()
-  def size(registry) when is_atom(registry) do
+  @spec count(registry) :: non_neg_integer()
+  def count(registry) when is_atom(registry) do
     case key_info!(registry) do
       {_kind, partitions, nil} ->
         Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->

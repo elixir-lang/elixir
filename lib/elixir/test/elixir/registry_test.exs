@@ -21,15 +21,15 @@ defmodule RegistryTest do
         assert length(Supervisor.which_children(registry)) == partitions
       end
 
-      test "returns 0 as the size of an empty registry", %{registry: registry} do
-        assert 0 == Registry.size(registry)
+      test "counts 0 keys in an empty registry", %{registry: registry} do
+        assert 0 == Registry.count(registry)
       end
 
-      test "returns the size of the registry", %{registry: registry} do
+      test "counts the number of keys in a registry", %{registry: registry} do
         {:ok, _} = Registry.register(registry, "hello", :value)
         {:ok, _} = Registry.register(registry, "world", :value)
 
-        assert 2 == Registry.size(registry)
+        assert 2 == Registry.count(registry)
       end
 
       test "has unique registrations", %{registry: registry} do
@@ -266,15 +266,15 @@ defmodule RegistryTest do
         assert length(Supervisor.which_children(registry)) == partitions
       end
 
-      test "returns 0 as the size of an empty registry", %{registry: registry} do
-        assert 0 == Registry.size(registry)
+      test "counts 0 keys in an empty registry", %{registry: registry} do
+        assert 0 == Registry.count(registry)
       end
 
-      test "returns the size of the registry", %{registry: registry} do
+      test "counts the number of keys in a registry", %{registry: registry} do
         {:ok, _} = Registry.register(registry, "hello", :value)
         {:ok, _} = Registry.register(registry, "hello", :value)
 
-        assert 2 == Registry.size(registry)
+        assert 2 == Registry.count(registry)
       end
 
       test "has duplicate registrations", %{registry: registry} do
