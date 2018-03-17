@@ -357,6 +357,9 @@ defmodule Mix.Tasks.FormatTest do
       File.touch!("lib/extra/.formatter.exs", {{2030, 1, 1}, {0, 0, 0}})
       Mix.Tasks.Format.run([])
 
+      assert [inputs: "a.ex", locals_without_parens: [other_fun: 1]] =
+               Mix.Tasks.Format.formatter_opts_for_file("lib/extra/a.ex")
+
       assert File.read!("lib/extra/a.ex") == """
              my_fun(:foo, :bar)
              other_fun :baz
