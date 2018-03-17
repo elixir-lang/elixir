@@ -50,8 +50,6 @@ defmodule Mix.UtilsTest do
   end
 
   test "handles missing target files" do
-    # Don't crash if target is empty
-    # This can easily happen using Path.wildcard()
     assert Mix.Utils.stale?([__ENV__.file], []) == true
   end
 
