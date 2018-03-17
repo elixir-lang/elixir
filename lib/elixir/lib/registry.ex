@@ -171,6 +171,15 @@ defmodule Registry do
   @typedoc "The type of registry metadata values"
   @type meta_value :: term
 
+  @typedoc "A pattern to match on objects in a registry"
+  @type match_pattern :: atom | term
+
+  @typedoc "A guard to be evaluated when matching on objects in a registry"
+  @type guard :: {atom | term}
+
+  @typedoc "A list of guards to be evaluated when matching on objects in a registry"
+  @type guards :: [guard] | []
+
   ## Via callbacks
 
   @doc false
@@ -544,14 +553,14 @@ defmodule Registry do
 
   Pattern must be an atom or a tuple that will match the structure of the
   value stored in the registry. The atom `:_` can be used to ignore a given
-  value or tuple element, while :"$1" can be used to temporarily assign part
+  value or tuple element, while the atom `:"$1"` can be used to temporarily assign part
   of pattern to a variable for a subsequent comparison.
 
-  It is possible to pass list of guard conditions for more precise matching.
-  Each guard is a tuple, which describes check that should be passed by assigned part of pattern.
-  For example :"$1" > 1 guard condition would be expressed as {:>, :"$1", 1} tuple.
-  Please note that guard conditions will work only for assigned variables like :"$1", :"$2", etc.
-  Avoid usage of special match variables :"$_" and :"$$", because it might not work as expected.
+  Optionally, it is possible to pass a list of guard conditions for more precise matching.
+  Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
+  For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
+  Please note that guard conditions will work only for assigned variables like `:"$1"`, `:"$2"`, etc.
+  Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
 
   An empty list will be returned if there is no match.
 
@@ -581,7 +590,7 @@ defmodule Registry do
 
   """
   @since "1.4.0"
-  @spec match(registry, key, match_pattern :: term, guards :: list()) :: [{pid, term}]
+  @spec match(registry, key, match_pattern, guards) :: [{pid, term}]
   def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
     guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
     spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
@@ -1032,14 +1041,14 @@ defmodule Registry do
 
   Pattern must be an atom or a tuple that will match the structure of the
   value stored in the registry. The atom `:_` can be used to ignore a given
-  value or tuple element, while :"$1" can be used to temporarily assign part
+  value or tuple element, while the atom `:"$1"` can be used to temporarily assign part
   of pattern to a variable for a subsequent comparison.
 
-  It is possible to pass list of guard conditions for more precise matching.
-  Each guard is a tuple, which describes check that should be passed by assigned part of pattern.
-  For example :"$1" > 1 guard condition would be expressed as {:>, :"$1", 1} tuple.
-  Please note that guard conditions will work only for assigned variables like :"$1", :"$2", etc.
-  Avoid usage of special match variables :"$_" and :"$$", because it might not work as expected.
+  Optionally, it is possible to pass a list of guard conditions for more precise matching.
+  Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
+  For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
+  Please note that guard conditions will work only for assigned variables like `:"$1"`, `:"$2"`, etc.
+  Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
 
   Zero will be returned if there is no match.
 
@@ -1069,7 +1078,7 @@ defmodule Registry do
 
   """
   @since "1.7.0"
-  @spec count_match(registry, key, match_pattern :: term, guards :: list()) :: non_neg_integer()
+  @spec count_match(registry, key, match_pattern, guards) :: non_neg_integer()
   def count_match(registry, key, pattern, guards \\ [])
       when is_atom(registry) and is_list(guards) do
     guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
