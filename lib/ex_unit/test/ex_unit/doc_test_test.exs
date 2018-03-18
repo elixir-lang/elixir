@@ -190,6 +190,12 @@ defmodule ExUnit.DocTestTest.Invalid do
       ```
   """
   def dedented_past_fence, do: :ok
+
+  @doc """
+  iex> String.valid?("invalid utf8 \xFF")
+  false
+  """
+  def invalid_utf8, do: :ok
 end
 |> write_beam
 
@@ -421,15 +427,11 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.Invalid
     end
 
-    doctest_line = 421
+    doctest_line = 427
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
-
-    # Test order is not guaranteed, we can't match this as a string for each failing doctest
-    assert output =~
-             ~r/\d+\) doctest module ExUnit\.DocTestTest\.Invalid \(\d+\) \(ExUnit\.DocTestTest\.ActuallyCompiled\)/
 
     assert output =~ """
              1) doctest module ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
@@ -539,6 +541,14 @@ defmodule ExUnit.DocTestTest do
                         ```
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:180: ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ """
+            12) doctest ExUnit.DocTestTest.Invalid.invalid_utf8/0 (12) (ExUnit.DocTestTest.ActuallyCompiled)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest did not compile, got: (UnicodeConversionError) invalid encoding starting at <<255, 34, 41>>
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:195: ExUnit.DocTestTest.Invalid (module)
            """
   end
 
