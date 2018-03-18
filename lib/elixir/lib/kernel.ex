@@ -2629,7 +2629,7 @@ defmodule Kernel do
     function? = __CALLER__.function != nil
 
     cond do
-      # Check for Module as it is compiled later than Kernel
+      # Check for Macro as it is compiled later than Kernel
       not bootstrapped?(Macro) ->
         nil
 
@@ -2638,10 +2638,25 @@ defmodule Kernel do
               "invalid write attribute syntax, you probably meant to use: @#{name} expression"
 
       # Typespecs attributes are currently special cased by the compiler
-      macro = is_list(args) and length(args) == 1 and typespec(name) ->
+      is_list(args) and args != [] and tl(args) == [] and typespec?(name) ->
         case bootstrapped?(Kernel.Typespec) do
-          false -> nil
-          true -> quote(do: Kernel.Typespec.unquote(macro)(unquote(hd(args))))
+          false ->
+            :ok
+
+          true ->
+            pos = :elixir_locals.cache_env(__CALLER__)
+            %{line: line, file: file, module: module} = __CALLER__
+
+            quote do
+              Kernel.Typespec.deftypespec(
+                unquote(name),
+                unquote(Macro.escape(hd(args), unquote: true)),
+                unquote(line),
+                unquote(file),
+                unquote(module),
+                unquote(pos)
+              )
+            end
         end
 
       true ->
@@ -2665,8 +2680,8 @@ defmodule Kernel do
         warn_message = "@behavior attribute is not supported, please use @behaviour instead"
         :elixir_errors.warn(env.line, env.file, warn_message)
 
-      # TODO: Remove :compile check once on 2.0 as we no longer
-      # need to warn on parse transforms in Module.put_attribute.
+      # TODO: move parse transforms deprecation to elixir_erl on Elixir v1.8.
+      # This will allow us to remove the clause below and simplify put_attribute.
       name == :compile ->
         {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
 
@@ -2675,8 +2690,8 @@ defmodule Kernel do
             __MODULE__,
             unquote(name),
             unquote(arg),
-            unquote(stack),
-            unquote(line)
+            unquote(line),
+            unquote(stack)
           )
         end
 
@@ -2689,14 +2704,14 @@ defmodule Kernel do
             __MODULE__,
             unquote(name),
             unquote(arg),
-            unquote(stack),
-            unquote(line)
+            unquote(line),
+            unquote(stack)
           )
         end
 
       true ->
         quote do
-          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), nil, unquote(line))
+          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(line), nil)
         end
     end
   end
@@ -2749,13 +2764,13 @@ defmodule Kernel do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
 
-  defp typespec(:type), do: :deftype
-  defp typespec(:typep), do: :deftypep
-  defp typespec(:opaque), do: :defopaque
-  defp typespec(:spec), do: :defspec
-  defp typespec(:callback), do: :defcallback
-  defp typespec(:macrocallback), do: :defmacrocallback
-  defp typespec(_), do: false
+  defp typespec?(:type), do: true
+  defp typespec?(:typep), do: true
+  defp typespec?(:opaque), do: true
+  defp typespec?(:spec), do: true
+  defp typespec?(:callback), do: true
+  defp typespec?(:macrocallback), do: true
+  defp typespec?(_), do: false
 
   @doc """
   Returns the binding for the given context as a keyword list.

@@ -1,155 +1,77 @@
 defmodule Kernel.Typespec do
   @moduledoc false
 
-  @doc """
-  Defines a type.
-  This macro is responsible for handling the attribute `@type`.
+  ## Deprecated API moved to Code.
 
-  ## Examples
+  # TODO: Remove on 2.0.
 
-      @type my_type :: atom
+  @doc false
+  def spec_to_ast(name, spec) do
+    IO.warn(
+      "Kernel.Typespec.spec_to_ast/2 is deprecated, please use Code.Typespec.spec_to_quoted/2 instead"
+    )
 
-  """
-  defmacro deftype(type) do
-    pos = :elixir_locals.cache_env(__CALLER__)
-    %{line: line, file: file, module: module} = __CALLER__
+    Code.Typespec.spec_to_quoted(name, spec)
+  end
 
-    quote do
-      Kernel.Typespec.deftype(
-        :type,
-        unquote(Macro.escape(type, unquote: true)),
-        unquote(line),
-        unquote(file),
-        unquote(module),
-        unquote(pos)
-      )
+  @doc false
+  def type_to_ast(type) do
+    IO.warn(
+      "Kernel.Typespec.type_to_ast/1 is deprecated, please use Code.Typespec.type_to_quoted/1 instead"
+    )
+
+    Code.Typespec.type_to_quoted(type)
+  end
+
+  @doc false
+  def beam_typedocs(module) when is_atom(module) or is_binary(module) do
+    IO.warn("Kernel.Typespec.beam_typedocs/1 is deprecated, please use Code.get_docs/2 instead")
+
+    if docs = Code.get_docs(module, :type_docs) do
+      for {tuple, _, _, doc} <- docs, do: {tuple, doc}
     end
   end
 
-  @doc """
-  Defines an opaque type.
-  This macro is responsible for handling the attribute `@opaque`.
+  @doc false
+  def beam_types(module) when is_atom(module) or is_binary(module) do
+    IO.warn(
+      "Kernel.Typespec.beam_types/1 is deprecated, please use Code.Typespec.fetch_types/1 instead"
+    )
 
-  ## Examples
-
-      @opaque my_type :: atom
-
-  """
-  defmacro defopaque(type) do
-    pos = :elixir_locals.cache_env(__CALLER__)
-    %{line: line, file: file, module: module} = __CALLER__
-
-    quote do
-      Kernel.Typespec.deftype(
-        :opaque,
-        unquote(Macro.escape(type, unquote: true)),
-        unquote(line),
-        unquote(file),
-        unquote(module),
-        unquote(pos)
-      )
+    case Code.Typespec.fetch_types(module) do
+      {:ok, types} -> types
+      :error -> nil
     end
   end
 
-  @doc """
-  Defines a private type.
-  This macro is responsible for handling the attribute `@typep`.
+  @doc false
+  def beam_specs(module) when is_atom(module) or is_binary(module) do
+    IO.warn(
+      "Kernel.Typespec.beam_specs/1 is deprecated, please use Code.Typespec.fetch_specs/1 instead"
+    )
 
-  ## Examples
-
-      @typep my_type :: atom
-
-  """
-  defmacro deftypep(type) do
-    pos = :elixir_locals.cache_env(__CALLER__)
-    %{line: line, file: file, module: module} = __CALLER__
-
-    quote do
-      Kernel.Typespec.deftype(
-        :typep,
-        unquote(Macro.escape(type, unquote: true)),
-        unquote(line),
-        unquote(file),
-        unquote(module),
-        unquote(pos)
-      )
+    case Code.Typespec.fetch_specs(module) do
+      {:ok, specs} -> specs
+      :error -> nil
     end
   end
 
-  @doc """
-  Defines a spec.
-  This macro is responsible for handling the attribute `@spec`.
+  @doc false
+  def beam_callbacks(module) when is_atom(module) or is_binary(module) do
+    IO.warn(
+      "Kernel.Typespec.beam_callbacks/1 is deprecated, please use Code.Typespec.fetch_callbacks/1 instead"
+    )
 
-  ## Examples
-
-      @spec add(number, number) :: number
-
-  """
-  defmacro defspec(spec) do
-    pos = :elixir_locals.cache_env(__CALLER__)
-    %{line: line, file: file, module: module} = __CALLER__
-
-    quote do
-      Kernel.Typespec.defspec(
-        :spec,
-        unquote(Macro.escape(spec, unquote: true)),
-        unquote(line),
-        unquote(file),
-        unquote(module),
-        unquote(pos)
-      )
+    case Code.Typespec.fetch_callbacks(module) do
+      {:ok, callbacks} -> callbacks
+      :error -> nil
     end
   end
 
-  @doc """
-  Defines a callback.
-  This macro is responsible for handling the attribute `@callback`.
+  ## Query helpers
 
-  ## Examples
-
-      @callback add(number, number) :: number
-
-  """
-  defmacro defcallback(spec) do
-    pos = :elixir_locals.cache_env(__CALLER__)
-    %{line: line, file: file, module: module} = __CALLER__
-
-    quote do
-      Kernel.Typespec.defspec(
-        :callback,
-        unquote(Macro.escape(spec, unquote: true)),
-        unquote(line),
-        unquote(file),
-        unquote(module),
-        unquote(pos)
-      )
-    end
-  end
-
-  @doc """
-  Defines a macro callback.
-  This macro is responsible for handling the attribute `@macrocallback`.
-
-  ## Examples
-
-      @macrocallback add(number, number) :: Macro.t
-
-  """
-  defmacro defmacrocallback(spec) do
-    pos = :elixir_locals.cache_env(__CALLER__)
-    %{line: line, file: file, module: module} = __CALLER__
-
-    quote do
-      Kernel.Typespec.defspec(
-        :macrocallback,
-        unquote(Macro.escape(spec, unquote: true)),
-        unquote(line),
-        unquote(file),
-        unquote(module),
-        unquote(pos)
-      )
-    end
-  end
+  # TODO: Improve performance of the defined queries below and remove
+  # the need for spec_to_signature and type_to_signature publically.
 
   @doc """
   Returns `true` if the current module defines a given type
@@ -191,186 +113,6 @@ defmodule Kernel.Typespec do
     end)
   end
 
-  @doc """
-  Converts a spec clause back to Elixir AST.
-  """
-  @spec spec_to_ast(atom, tuple) :: {atom, keyword, [Macro.t()]}
-  def spec_to_ast(name, spec)
-
-  def spec_to_ast(name, {:type, line, :fun, [{:type, _, :product, args}, result]})
-      when is_atom(name) do
-    meta = [line: line]
-    body = {name, meta, Enum.map(args, &typespec_to_ast/1)}
-
-    vars =
-      for type_expr <- args ++ [result],
-          var <- collect_vars(type_expr),
-          uniq: true,
-          do: {var, {:var, meta, nil}}
-
-    spec = {:::, meta, [body, typespec_to_ast(result)]}
-
-    if vars == [] do
-      spec
-    else
-      {:when, meta, [spec, vars]}
-    end
-  end
-
-  def spec_to_ast(name, {:type, line, :fun, []}) when is_atom(name) do
-    {:::, [line: line], [{name, [line: line], []}, quote(do: term)]}
-  end
-
-  def spec_to_ast(name, {:type, line, :bounded_fun, [type, constrs]}) when is_atom(name) do
-    {:type, _, :fun, [{:type, _, :product, args}, result]} = type
-
-    guards =
-      for {:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, var}, type]]} <- constrs do
-        {var, typespec_to_ast(type)}
-      end
-
-    meta = [line: line]
-    ignore_vars = Keyword.keys(guards)
-
-    vars =
-      for type_expr <- args ++ [result],
-          var <- collect_vars(type_expr),
-          var not in ignore_vars,
-          uniq: true,
-          do: {var, {:var, meta, nil}}
-
-    args = for arg <- args, do: typespec_to_ast(arg)
-
-    when_args = [
-      {:::, meta, [{name, [line: line], args}, typespec_to_ast(result)]},
-      guards ++ vars
-    ]
-
-    {:when, meta, when_args}
-  end
-
-  @doc """
-  Converts a type clause back to Elixir AST.
-  """
-  def type_to_ast(type)
-
-  def type_to_ast({{:record, record}, fields, args}) when is_atom(record) do
-    fields = for field <- fields, do: typespec_to_ast(field)
-    args = for arg <- args, do: typespec_to_ast(arg)
-    type = {:{}, [], [record | fields]}
-    quote(do: unquote(record)(unquote_splicing(args)) :: unquote(type))
-  end
-
-  def type_to_ast({name, type, args}) when is_atom(name) do
-    args = for arg <- args, do: typespec_to_ast(arg)
-    quote(do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type)))
-  end
-
-  @doc false
-  # TODO: Remove on v2.0
-  def beam_typedocs(module) when is_atom(module) or is_binary(module) do
-    warning =
-      "Kernel.Typespec.beam_typedocs/1 is deprecated, please use Code.get_docs/2 instead\n" <>
-        Exception.format_stacktrace()
-
-    IO.write(:stderr, warning)
-
-    if docs = Code.get_docs(module, :type_docs) do
-      for {tuple, _, _, doc} <- docs, do: {tuple, doc}
-    end
-  end
-
-  @doc """
-  Returns all types available from the module's BEAM code.
-
-  The result is returned as a list of tuples where the first
-  element is the type (`:typep`, `:type` and `:opaque`).
-
-  The module must have a corresponding BEAM file which can be
-  located by the runtime system.
-  """
-  @spec beam_types(module | binary) :: [tuple] | nil
-  def beam_types(module) when is_atom(module) or is_binary(module) do
-    case abstract_code(module) do
-      {:ok, abstract_code} ->
-        exported_types = for {:attribute, _, :export_type, types} <- abstract_code, do: types
-        exported_types = List.flatten(exported_types)
-
-        for {:attribute, _, kind, {name, _, args} = type} <- abstract_code,
-            kind in [:opaque, :type] do
-          cond do
-            kind == :opaque -> {:opaque, type}
-            {name, length(args)} in exported_types -> {:type, type}
-            true -> {:typep, type}
-          end
-        end
-
-      _ ->
-        nil
-    end
-  end
-
-  @doc """
-  Returns all specs available from the module's BEAM code.
-
-  The result is returned as a list of tuples where the first
-  element is spec name and arity and the second is the spec.
-
-  The module must have a corresponding BEAM file which can be
-  located by the runtime system.
-  """
-  @spec beam_specs(module | binary) :: [tuple] | nil
-  def beam_specs(module) when is_atom(module) or is_binary(module) do
-    from_abstract_code(module, :spec)
-  end
-
-  @doc """
-  Returns all callbacks available from the module's BEAM code.
-
-  The result is returned as a list of tuples where the first
-  element is spec name and arity and the second is the spec.
-
-  The module must have a corresponding BEAM file
-  which can be located by the runtime system.
-  """
-  @spec beam_callbacks(module | binary) :: [tuple] | nil
-  def beam_callbacks(module) when is_atom(module) or is_binary(module) do
-    from_abstract_code(module, :callback)
-  end
-
-  defp from_abstract_code(module, kind) do
-    case abstract_code(module) do
-      {:ok, abstract_code} ->
-        for {:attribute, _, abs_kind, value} <- abstract_code, kind == abs_kind, do: value
-
-      :error ->
-        nil
-    end
-  end
-
-  defp abstract_code(module) do
-    case :beam_lib.chunks(abstract_code_beam(module), [:abstract_code]) do
-      {:ok, {_, [{:abstract_code, {_raw_abstract_v1, abstract_code}}]}} ->
-        {:ok, abstract_code}
-
-      _ ->
-        :error
-    end
-  end
-
-  defp abstract_code_beam(module) when is_atom(module) do
-    case :code.get_object_code(module) do
-      {^module, beam, _filename} -> beam
-      :error -> module
-    end
-  end
-
-  defp abstract_code_beam(binary) when is_binary(binary) do
-    binary
-  end
-
-  ## Helpers
-
   @doc false
   def spec_to_signature({:when, _, [spec, _]}), do: type_to_signature(spec)
   def spec_to_signature(other), do: type_to_signature(other)
@@ -385,10 +127,27 @@ defmodule Kernel.Typespec do
 
   def type_to_signature(_), do: :error
 
-  ## Macro callbacks
+  ## Typespec definition and storage
 
-  @doc false
-  def defspec(kind, expr, line, file, module, pos) when kind in [:callback, :macrocallback] do
+  @doc """
+  Defines a typespec.
+
+  Invoked by `Kernel.@/1` expansion.
+  """
+  def deftypespec(:spec, expr, _line, _file, module, pos) do
+    Module.store_typespec(module, :spec, {:spec, expr, pos})
+  end
+
+  def deftypespec(kind, expr, line, file, module, pos) when kind in [:type, :typep, :opaque] do
+    case type_to_signature(expr) do
+      {name, arity} -> store_typedoc(line, file, module, kind, name, arity)
+      :error -> :error
+    end
+
+    Module.store_typespec(module, kind, {kind, expr, pos})
+  end
+
+  def deftypespec(kind, expr, line, file, module, pos) when kind in [:callback, :macrocallback] do
     case spec_to_signature(expr) do
       {name, arity} ->
         store_callbackdoc(line, file, module, kind, name, arity)
@@ -397,11 +156,6 @@ defmodule Kernel.Typespec do
         :error
     end
 
-    Module.store_typespec(module, kind, {kind, expr, pos})
-  end
-
-  @doc false
-  def defspec(kind, expr, _line, _file, module, pos) do
     Module.store_typespec(module, kind, {kind, expr, pos})
   end
 
@@ -423,16 +177,6 @@ defmodule Kernel.Typespec do
     :ets.take(table, :since)
   end
 
-  @doc false
-  def deftype(kind, expr, line, file, module, pos) do
-    case type_to_signature(expr) do
-      {name, arity} -> store_typedoc(line, file, module, kind, name, arity)
-      :error -> :error
-    end
-
-    Module.store_typespec(module, kind, {kind, expr, pos})
-  end
-
   defp store_typedoc(line, file, module, kind, name, arity) do
     table = :elixir_module.data_table(module)
     {line, doc} = get_doc_info(table, :typedoc, line)
@@ -451,8 +195,30 @@ defmodule Kernel.Typespec do
   ## Translation from Elixir AST to typespec AST
 
   @doc false
-  def translate_type(kind, {:::, _, [{name, _, args}, definition]}, pos)
-      when is_atom(name) and name != ::: do
+  def translate_typespecs_for_module(table) do
+    translate_type = fn {kind, expr, caller} -> translate_type(kind, expr, caller) end
+    translate_spec = fn {kind, expr, caller} -> translate_spec(kind, expr, caller) end
+
+    types = take_spec(table, :type) ++ take_spec(table, :typep) ++ take_spec(table, :opaque)
+    types = Enum.map(types, translate_type)
+
+    specs = Enum.map(take_spec(table, :spec), translate_spec)
+    callbacks = Enum.map(take_spec(table, :callback), translate_spec)
+    macrocallbacks = Enum.map(take_spec(table, :macrocallback), translate_spec)
+    optional_callbacks = List.flatten(take_spec(table, :optional_callbacks))
+
+    {types, specs, callbacks, macrocallbacks, optional_callbacks}
+  end
+
+  defp take_spec(table, key) do
+    case :ets.take(table, key) do
+      [{^key, value, _, _}] -> value
+      [] -> []
+    end
+  end
+
+  defp translate_type(kind, {:::, _, [{name, _, args}, definition]}, pos)
+       when is_atom(name) and name != ::: do
     caller = :elixir_locals.get_cached_env(pos)
 
     args =
@@ -482,29 +248,18 @@ defmodule Kernel.Typespec do
     {kind, {name, arity}, caller.line, type, export}
   end
 
-  def translate_type(_kind, other, pos) do
+  defp translate_type(_kind, other, pos) do
     caller = :elixir_locals.get_cached_env(pos)
     type_spec = Macro.to_string(other)
     compile_error(caller, "invalid type specification: #{type_spec}")
   end
 
-  defp builtin_type?(:as_boolean, 1), do: true
-  defp builtin_type?(:struct, 0), do: true
-  defp builtin_type?(:charlist, 0), do: true
-  # TODO: Remove char_list type by 2.0
-  defp builtin_type?(:char_list, 0), do: true
-  defp builtin_type?(:nonempty_charlist, 0), do: true
-  defp builtin_type?(:keyword, 0), do: true
-  defp builtin_type?(:keyword, 1), do: true
-  defp builtin_type?(name, arity), do: :erl_internal.is_type(name, arity)
-
-  @doc false
-  def translate_spec(kind, {:when, _meta, [spec, guard]}, pos) do
+  defp translate_spec(kind, {:when, _meta, [spec, guard]}, pos) do
     caller = :elixir_locals.get_cached_env(pos)
     translate_spec(kind, spec, guard, caller)
   end
 
-  def translate_spec(kind, spec, pos) do
+  defp translate_spec(kind, spec, pos) do
     caller = :elixir_locals.get_cached_env(pos)
     translate_spec(kind, spec, [], caller)
   end
@@ -549,6 +304,16 @@ defmodule Kernel.Typespec do
     {kind, {name, arity}, caller.line, spec}
   end
 
+  # TODO: Remove char_list type by 2.0
+  defp builtin_type?(:char_list, 0), do: true
+  defp builtin_type?(:charlist, 0), do: true
+  defp builtin_type?(:as_boolean, 1), do: true
+  defp builtin_type?(:struct, 0), do: true
+  defp builtin_type?(:nonempty_charlist, 0), do: true
+  defp builtin_type?(:keyword, 0), do: true
+  defp builtin_type?(:keyword, 1), do: true
+  defp builtin_type?(name, arity), do: :erl_internal.is_type(name, arity)
+
   defp ensure_no_defaults!(args) do
     Enum.each(args, fn
       {:::, _, [left, right]} ->
@@ -563,7 +328,7 @@ defmodule Kernel.Typespec do
   end
 
   defp ensure_not_default({:\\, _, [_, _]}) do
-    raise ArgumentError, "default arguments \\\\ not supported in type spec"
+    raise ArgumentError, "default arguments \\\\ not supported in typespecs"
   end
 
   defp ensure_not_default(_), do: :ok
@@ -583,223 +348,6 @@ defmodule Kernel.Typespec do
 
         [{:type, line, :constraint, constraint}]
     end)
-  end
-
-  ## To AST conversion
-
-  defp collect_vars({:ann_type, _line, args}) when is_list(args) do
-    []
-  end
-
-  defp collect_vars({:type, _line, _kind, args}) when is_list(args) do
-    Enum.flat_map(args, &collect_vars/1)
-  end
-
-  defp collect_vars({:remote_type, _line, args}) when is_list(args) do
-    Enum.flat_map(args, &collect_vars/1)
-  end
-
-  defp collect_vars({:typed_record_field, _line, type}) do
-    collect_vars(type)
-  end
-
-  defp collect_vars({:paren_type, _line, [type]}) do
-    collect_vars(type)
-  end
-
-  defp collect_vars({:var, _line, var}) do
-    [erl_to_ex_var(var)]
-  end
-
-  defp collect_vars(_) do
-    []
-  end
-
-  defp typespec_to_ast({:user_type, line, name, args}) do
-    typespec_to_ast({:type, line, name, args})
-  end
-
-  defp typespec_to_ast({:type, line, :tuple, :any}) do
-    {:tuple, [line: line], []}
-  end
-
-  defp typespec_to_ast({:type, line, :tuple, args}) do
-    args = for arg <- args, do: typespec_to_ast(arg)
-    {:{}, [line: line], args}
-  end
-
-  defp typespec_to_ast({:type, _line, :list, [{:type, _, :union, unions} = arg]}) do
-    case unpack_typespec_kw(unions, []) do
-      {:ok, ast} -> ast
-      :error -> [typespec_to_ast(arg)]
-    end
-  end
-
-  defp typespec_to_ast({:type, line, :list, []}) do
-    {:list, [line: line], []}
-  end
-
-  defp typespec_to_ast({:type, _line, :list, [arg]}) do
-    [typespec_to_ast(arg)]
-  end
-
-  defp typespec_to_ast({:type, line, :nonempty_list, []}) do
-    [{:..., [line: line], nil}]
-  end
-
-  defp typespec_to_ast({:type, line, :nonempty_list, [arg]}) do
-    [typespec_to_ast(arg), {:..., [line: line], nil}]
-  end
-
-  defp typespec_to_ast({:type, line, :map, :any}) do
-    {:map, [line: line], []}
-  end
-
-  defp typespec_to_ast({:type, line, :map, fields}) do
-    fields =
-      Enum.map(fields, fn
-        {:type, _, :map_field_assoc, :any} ->
-          {{:optional, [], [{:any, [], []}]}, {:any, [], []}}
-
-        {:type, _, :map_field_exact, [{:atom, _, k}, v]} ->
-          {k, typespec_to_ast(v)}
-
-        {:type, _, :map_field_exact, [k, v]} ->
-          {{:required, [], [typespec_to_ast(k)]}, typespec_to_ast(v)}
-
-        {:type, _, :map_field_assoc, [k, v]} ->
-          {{:optional, [], [typespec_to_ast(k)]}, typespec_to_ast(v)}
-      end)
-
-    {struct, fields} = Keyword.pop(fields, :__struct__)
-    map = {:%{}, [line: line], fields}
-
-    if struct do
-      {:%, [line: line], [struct, map]}
-    else
-      map
-    end
-  end
-
-  defp typespec_to_ast({:type, line, :binary, [arg1, arg2]}) do
-    [arg1, arg2] = for arg <- [arg1, arg2], do: typespec_to_ast(arg)
-
-    case {typespec_to_ast(arg1), typespec_to_ast(arg2)} do
-      {arg1, 0} ->
-        quote(line: line, do: <<_::unquote(arg1)>>)
-
-      {0, arg2} ->
-        quote(line: line, do: <<_::_*unquote(arg2)>>)
-
-      {arg1, arg2} ->
-        quote(line: line, do: <<_::unquote(arg1), _::_*unquote(arg2)>>)
-    end
-  end
-
-  defp typespec_to_ast({:type, line, :union, args}) do
-    args = for arg <- args, do: typespec_to_ast(arg)
-    Enum.reduce(Enum.reverse(args), fn arg, expr -> {:|, [line: line], [arg, expr]} end)
-  end
-
-  defp typespec_to_ast({:type, line, :fun, [{:type, _, :product, args}, result]}) do
-    args = for arg <- args, do: typespec_to_ast(arg)
-    [{:->, [line: line], [args, typespec_to_ast(result)]}]
-  end
-
-  defp typespec_to_ast({:type, line, :fun, [args, result]}) do
-    [{:->, [line: line], [[typespec_to_ast(args)], typespec_to_ast(result)]}]
-  end
-
-  defp typespec_to_ast({:type, line, :fun, []}) do
-    typespec_to_ast({:type, line, :fun, [{:type, line, :any}, {:type, line, :any, []}]})
-  end
-
-  defp typespec_to_ast({:type, line, :range, [left, right]}) do
-    {:.., [line: line], [typespec_to_ast(left), typespec_to_ast(right)]}
-  end
-
-  defp typespec_to_ast({:type, _line, nil, []}) do
-    []
-  end
-
-  defp typespec_to_ast({:type, line, name, args}) do
-    args = for arg <- args, do: typespec_to_ast(arg)
-    {name, [line: line], args}
-  end
-
-  defp typespec_to_ast({:var, line, var}) do
-    {erl_to_ex_var(var), line, nil}
-  end
-
-  defp typespec_to_ast({:op, line, op, arg}) do
-    {op, [line: line], [typespec_to_ast(arg)]}
-  end
-
-  # Special shortcut(s)
-  # TODO: Remove char_list type by 2.0
-  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, type}, []]})
-       when type in [:charlist, :char_list] do
-    typespec_to_ast({:type, line, :charlist, []})
-  end
-
-  defp typespec_to_ast({
-         :remote_type,
-         line,
-         [{:atom, _, :elixir}, {:atom, _, :nonempty_charlist}, []]
-       }) do
-    typespec_to_ast({:type, line, :nonempty_charlist, []})
-  end
-
-  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :struct}, []]}) do
-    typespec_to_ast({:type, line, :struct, []})
-  end
-
-  defp typespec_to_ast(
-         {:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :as_boolean}, [arg]]}
-       ) do
-    typespec_to_ast({:type, line, :as_boolean, [arg]})
-  end
-
-  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :keyword}, args]}) do
-    typespec_to_ast({:type, line, :keyword, args})
-  end
-
-  defp typespec_to_ast({:remote_type, line, [mod, name, args]}) do
-    args = for arg <- args, do: typespec_to_ast(arg)
-    dot = {:., [line: line], [typespec_to_ast(mod), typespec_to_ast(name)]}
-    {dot, [line: line], args}
-  end
-
-  defp typespec_to_ast({:ann_type, line, [var, type]}) do
-    {:::, [line: line], [typespec_to_ast(var), typespec_to_ast(type)]}
-  end
-
-  defp typespec_to_ast({:typed_record_field, {:record_field, line, {:atom, line1, name}}, type}) do
-    typespec_to_ast({:ann_type, line, [{:var, line1, name}, type]})
-  end
-
-  defp typespec_to_ast({:type, _, :any}) do
-    quote(do: ...)
-  end
-
-  defp typespec_to_ast({:paren_type, _, [type]}) do
-    typespec_to_ast(type)
-  end
-
-  defp typespec_to_ast({t, _line, atom}) when is_atom(t) do
-    atom
-  end
-
-  defp typespec_to_ast(other), do: other
-
-  defp erl_to_ex_var(var) do
-    case Atom.to_string(var) do
-      <<"_", c::binary-1, rest::binary>> ->
-        String.to_atom("_#{String.downcase(c)}#{rest}")
-
-      <<c::binary-1, rest::binary>> ->
-        String.to_atom("#{String.downcase(c)}#{rest}")
-    end
   end
 
   ## To typespec conversion
@@ -1194,41 +742,5 @@ defmodule Kernel.Typespec do
 
   defp variable({name, meta, _}) do
     {:var, line(meta), name}
-  end
-
-  defp unpack_typespec_kw([{:type, _, :tuple, [{:atom, _, atom}, type]} | t], acc) do
-    unpack_typespec_kw(t, [{atom, typespec_to_ast(type)} | acc])
-  end
-
-  defp unpack_typespec_kw([], acc) do
-    {:ok, Enum.reverse(acc)}
-  end
-
-  defp unpack_typespec_kw(_, _acc) do
-    :error
-  end
-
-  # Called by elixir_erl.
-  @doc false
-  def translate_typespecs_for_module(table) do
-    translate_type = fn {kind, expr, caller} -> translate_type(kind, expr, caller) end
-    translate_spec = fn {kind, expr, caller} -> translate_spec(kind, expr, caller) end
-
-    types = take_spec(table, :type) ++ take_spec(table, :typep) ++ take_spec(table, :opaque)
-    types = Enum.map(types, translate_type)
-
-    specs = Enum.map(take_spec(table, :spec), translate_spec)
-    callbacks = Enum.map(take_spec(table, :callback), translate_spec)
-    macrocallbacks = Enum.map(take_spec(table, :macrocallback), translate_spec)
-    optional_callbacks = List.flatten(take_spec(table, :optional_callbacks))
-
-    {types, specs, callbacks, macrocallbacks, optional_callbacks}
-  end
-
-  defp take_spec(table, key) do
-    case :ets.take(table, key) do
-      [{^key, value, _, _}] -> value
-      [] -> []
-    end
   end
 end
