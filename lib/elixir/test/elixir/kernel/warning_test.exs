@@ -1035,6 +1035,31 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "discouraged types" do
+    message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          @type foo :: string()
+          @type bar :: nonempty_string()
+        end
+        """)
+      end)
+
+    string_discouraged =
+      "string() type use is discouraged. " <>
+        "For character lists, use charlist() type, for strings, String.t()\n"
+
+    nonempty_string_discouraged =
+      "nonempty_string() type use is discouraged. " <>
+        "For non-empty character lists, use nonempty_charlist() type, for strings, String.t()\n"
+
+    assert message =~ string_discouraged
+    assert message =~ nonempty_string_discouraged
+  after
+    purge(Sample)
+  end
+
   test "attribute with no use" do
     content =
       capture_err(fn ->
