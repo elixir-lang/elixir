@@ -5,7 +5,7 @@ defmodule IEx.Introspection do
 
   import IEx, only: [dont_display_result: 0]
 
-  alias Kernel.Typespec
+  alias Code.Typespec
 
   @doc """
   Decomposes an introspection call into `{mod, fun, arity}`,
@@ -461,7 +461,14 @@ defmodule IEx.Introspection do
     mod.module_info(:attributes)
     |> Keyword.get_values(:behaviour)
     |> Stream.concat()
-    |> Enum.find(&Enum.any?(Typespec.beam_callbacks(&1), predicate))
+    |> Enum.find(&Enum.any?(get_callbacks(&1), predicate))
+  end
+
+  defp get_callbacks(module) do
+    case Typespec.fetch_callbacks(module) do
+      {:ok, callbacks} -> callbacks
+      :error -> []
+    end
   end
 
   defp format_doc_arg({:\\, _, [left, right]}) do
@@ -473,20 +480,17 @@ defmodule IEx.Introspection do
   end
 
   defp get_spec(module, name, arity) do
-    all_specs = Typespec.beam_specs(module) || []
+    with {:ok, all_specs} <- Typespec.fetch_specs(module),
+         {_, specs} <- List.keyfind(all_specs, {name, arity}, 0) do
+      formatted =
+        Enum.map(specs, fn spec ->
+          Typespec.spec_to_quoted(name, spec)
+          |> format_typespec(:spec, 2)
+        end)
 
-    case List.keyfind(all_specs, {name, arity}, 0) do
-      {_, specs} ->
-        formatted =
-          Enum.map(specs, fn spec ->
-            Typespec.spec_to_ast(name, spec)
-            |> format_typespec(:spec, 2)
-          end)
-
-        [formatted, ?\n]
-
-      nil ->
-        []
+      [formatted, ?\n]
+    else
+      _ -> []
     end
   end
 
@@ -545,17 +549,16 @@ defmodule IEx.Introspection do
   end
 
   defp get_callback_docs(mod, filter) do
-    callbacks = Typespec.beam_callbacks(mod)
     docs = Code.get_docs(mod, :callback_docs)
 
-    cond do
-      is_nil(callbacks) ->
+    case Typespec.fetch_callbacks(mod) do
+      :error ->
         :no_beam
 
-      is_nil(docs) ->
+      _ when is_nil(docs) ->
         :no_docs
 
-      true ->
+      {:ok, callbacks} ->
         docs =
           docs
           |> Enum.filter(filter)
@@ -595,7 +598,7 @@ defmodule IEx.Introspection do
     {_, specs} = List.keyfind(callbacks, key, 0)
 
     Enum.map(specs, fn spec ->
-      Typespec.spec_to_ast(name, spec)
+      Typespec.spec_to_quoted(name, spec)
       |> Macro.prewalk(&drop_macro_env/1)
       |> format_typespec(kind, 0)
     end)
@@ -610,14 +613,14 @@ defmodule IEx.Introspection do
   Prints the types for the given module and type documentation.
   """
   def t(module) when is_atom(module) do
-    case Typespec.beam_types(module) do
-      nil ->
+    case Typespec.fetch_types(module) do
+      :error ->
         no_beam(module)
 
-      [] ->
+      {:ok, []} ->
         types_not_found(inspect(module))
 
-      types ->
+      {:ok, types} ->
         Enum.each(types, &(&1 |> format_type() |> IO.puts()))
     end
 
@@ -625,11 +628,11 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type}) when is_atom(module) and is_atom(type) do
-    case Typespec.beam_types(module) do
-      nil ->
+    case Typespec.fetch_types(module) do
+      :error ->
         no_beam(module)
 
-      types ->
+      {:ok, types} ->
         printed =
           for {_, {^type, _, args}} = typespec <- types do
             doc = {format_type(typespec), type_doc(module, type, length(args))}
@@ -645,11 +648,11 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
-    case Typespec.beam_types(module) do
-      nil ->
+    case Typespec.fetch_types(module) do
+      :error ->
         no_beam(module)
 
-      types ->
+      {:ok, types} ->
         printed =
           for {_, {^type, _, args}} = typespec <- types, length(args) == arity do
             doc = {format_type(typespec), type_doc(module, type, arity)}
@@ -676,12 +679,12 @@ defmodule IEx.Introspection do
   end
 
   defp format_type({:opaque, type}) do
-    {:::, _, [ast, _]} = Typespec.type_to_ast(type)
+    {:::, _, [ast, _]} = Typespec.type_to_quoted(type)
     format_typespec(ast, :opaque, 0)
   end
 
   defp format_type({kind, type}) do
-    ast = Typespec.type_to_ast(type)
+    ast = Typespec.type_to_quoted(type)
     format_typespec(ast, kind, 0)
   end
 
