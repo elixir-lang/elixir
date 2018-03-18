@@ -161,6 +161,17 @@ defmodule Kernel do
   "inlined by the compiler".
   """
 
+  # We need this check only for bootstrap purposes.
+  # Once Kernel is loaded and we recompile, it is a no-op.
+  @compile {:inline, bootstrapped?: 1}
+  case :code.ensure_loaded(Kernel) do
+    {:module, _} ->
+      defp bootstrapped?(_), do: true
+
+    {:error, _} ->
+      defp bootstrapped?(module), do: :code.ensure_loaded(module) == {:module, module}
+  end
+
   ## Delegations to Erlang with inlining (macros)
 
   @doc """
@@ -1582,7 +1593,7 @@ defmodule Kernel do
       "foobar"
 
   The `<>/2` operator can also be used in pattern matching (and guard clauses) as
-  long as the first part is a literal binary:
+  long as the left argument is a literal binary:
 
       iex> "foo" <> x = "foobar"
       iex> x
@@ -1592,26 +1603,67 @@ defmodule Kernel do
 
   """
   defmacro left <> right do
-    concats = extract_concatenations({:<>, [], [left, right]})
+    concats = extract_concatenations({:<>, [], [left, right]}, __CALLER__)
     quote(do: <<unquote_splicing(concats)>>)
   end
 
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
-  defp extract_concatenations({:<>, _, [left, right]}) do
-    [wrap_concatenation(left) | extract_concatenations(right)]
+  defp extract_concatenations({:<>, _, [left, right]}, caller) do
+    [wrap_concatenation(left, :left, caller) | extract_concatenations(right, caller)]
   end
 
-  defp extract_concatenations(other) do
-    [wrap_concatenation(other)]
+  defp extract_concatenations(other, caller) do
+    [wrap_concatenation(other, :right, caller)]
   end
 
-  defp wrap_concatenation(binary) when is_binary(binary) do
+  defp wrap_concatenation(binary, _side, _caller) when is_binary(binary) do
     binary
   end
 
-  defp wrap_concatenation(other) do
-    {:::, [], [other, {:binary, [], nil}]}
+  defp wrap_concatenation(literal, _side, _caller)
+       when is_list(literal) or is_atom(literal) or is_integer(literal) or is_float(literal) do
+    :erlang.error(
+      ArgumentError.exception(
+        "expected binary argument in <> operator but got: #{Macro.to_string(literal)}"
+      )
+    )
+  end
+
+  defp wrap_concatenation(other, side, caller) do
+    expanded = expand_concat_argument(other, side, caller)
+    {:::, [], [expanded, {:binary, [], nil}]}
+  end
+
+  defp expand_concat_argument(arg, side, caller) do
+    expanded_arg =
+      case {caller.context, bootstrapped?(Macro)} do
+        {:match, true} -> Macro.expand(arg, caller)
+        _ -> arg
+      end
+
+    check_concat_argument(expanded_arg, side, caller.context)
+  end
+
+  defp check_concat_argument({var, _, nil}, :left, :match) when is_atom(var) do
+    invalid_concat_left_argument_error(Atom.to_string(var))
+  end
+
+  defp check_concat_argument({:^, _, [{var, _, nil}]}, :left, :match) when is_atom(var) do
+    invalid_concat_left_argument_error("^#{Atom.to_string(var)}")
+  end
+
+  defp check_concat_argument(other, _side, _context) do
+    other
+  end
+
+  defp invalid_concat_left_argument_error(arg) do
+    :erlang.error(
+      ArgumentError.exception(
+        "the left argument of <> operator inside a match should be always a literal m" <>
+          "binary as it's size can't be verified, got: #{arg}"
+      )
+    )
   end
 
   @doc """
@@ -5131,17 +5183,6 @@ defmodule Kernel do
   end
 
   ## Shared functions
-
-  # We need this check only for bootstrap purposes.
-  # Once Kernel is loaded and we recompile, it is a no-op.
-  @compile {:inline, bootstrapped?: 1}
-  case :code.ensure_loaded(Kernel) do
-    {:module, _} ->
-      defp bootstrapped?(_), do: true
-
-    {:error, _} ->
-      defp bootstrapped?(module), do: :code.ensure_loaded(module) == {:module, module}
-  end
 
   defp assert_module_scope(env, fun, arity) do
     case env.module do
