@@ -1599,52 +1599,60 @@ defmodule Kernel do
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
   defp extract_concatenations({:<>, _, [left, right]}, caller) do
-    [wrap_concatenation(left, :left, caller) | extract_concatenations(right, caller)]
+    expanded = expand_concat_left_argument(left, caller)
+    [wrap_concatenation(expanded) | extract_concatenations(right, caller)]
   end
 
-  defp extract_concatenations(other, caller) do
-    [wrap_concatenation(other, :right, caller)]
+  defp extract_concatenations(other, _caller) do
+    [wrap_concatenation(other)]
   end
 
-  defp wrap_concatenation(binary, _side, _caller) when is_binary(binary) do
+  defp wrap_concatenation(binary) when is_binary(binary) do
     binary
   end
 
-  defp wrap_concatenation(other, side, caller) do
-    expand =
+  defp wrap_concatenation(literal)
+       when is_list(literal) or is_atom(literal) or is_integer(literal) or is_float(literal) do
+    :erlang.error(
+      ArgumentError.exception(
+        "expected binary argument in <> operator but got: #{Macro.to_string(literal)}"
+      )
+    )
+  end
+
+  defp wrap_concatenation(other) do
+    {:::, [], [other, {:binary, [], nil}]}
+  end
+
+  defp expand_concat_left_argument(arg, caller) do
+    expanded_arg =
       case {caller.context, bootstrapped?(Macro)} do
-        {:match, true} -> &Macro.expand(&1, caller)
-        _ -> & &1
+        {:match, true} -> Macro.expand(arg, caller)
+        _ -> arg
       end
 
-    case {expand.(other), caller.context, side} do
-      {literal, _, _}
-      when is_list(literal) or is_atom(literal) or is_integer(literal) or is_float(literal) ->
-        :erlang.error(
-          ArgumentError.exception(
-            "expected binary argument in <> operator but got: #{Macro.to_string(literal)}"
-          )
-        )
+    check_concat_left_argument(expanded_arg, caller.context)
+  end
 
-      {{var, _, nil}, :match, :left} when is_atom(var) ->
-        :erlang.error(
-          ArgumentError.exception(
-            <<"the left argument of <> operator inside a match should be always a literal",
-              "binary as it's size can't be verified, got: #{Atom.to_string(var)}">>
-          )
-        )
+  defp check_concat_left_argument({var, _, nil}, :match) when is_atom(var) do
+    invalid_concat_left_argument_error(Atom.to_string(var))
+  end
 
-      {{:^, _, [{var, _, nil}]}, :match, :left} when is_atom(var) ->
-        :erlang.error(
-          ArgumentError.exception(
-            <<"the left argument of <> operator inside a match should be always a literal",
-              "binary as it's size can't be verified, got: ^#{Atom.to_string(var)}">>
-          )
-        )
+  defp check_concat_left_argument({:^, _, [{var, _, nil}]}, :match) when is_atom(var) do
+    invalid_concat_left_argument_error("^#{Atom.to_string(var)}")
+  end
 
-      {expanded, _, _} ->
-        {:::, [], [expanded, {:binary, [], nil}]}
-    end
+  defp check_concat_left_argument(other, _context) do
+    other
+  end
+
+  defp invalid_concat_left_argument_error(arg) do
+    :erlang.error(
+      ArgumentError.exception(
+        <<"the left argument of <> operator inside a match should be always a literal m",
+          "binary as it's size can't be verified, got: #{arg}">>
+      )
+    )
   end
 
   @doc """
