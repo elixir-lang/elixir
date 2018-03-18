@@ -394,7 +394,7 @@ defmodule IEx.Helpers do
       "iii"
       iex(4)> %{:d => 4}
       %{d: 4}
-      iex(5)> hist
+      iex(5)> hist()
       (2)> 1 + 1
       (3)> "i" <> "i" <> "i"
       (4)> %{:d => 4}
