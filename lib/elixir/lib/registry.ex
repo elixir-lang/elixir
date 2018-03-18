@@ -1017,9 +1017,7 @@ defmodule Registry do
     case key_info!(registry) do
       {_kind, partitions, nil} ->
         Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          [{^partition_index, partition_ets, _}] = :ets.lookup(registry, partition_index)
-          size = safe_size(partition_ets)
-          acc + size
+          acc + safe_size(key_ets!(registry, partition_index))
         end)
 
       {_kind, 1, key_ets} ->
