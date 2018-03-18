@@ -736,6 +736,52 @@ defmodule IEx.HelpersTest do
                (10)> 10
                """ <> "nil"
     end
+
+    test "returns all recent iex session history if non-default history_size of 30 not 20" do
+      assert capture_iex(
+               """
+               1\n2\n3\n4\n5\n6\n7\n8\n9\n10
+               11\n12\n13\n14\n15\n16\n17\n18\n19\n20
+               21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nhist
+               """,
+               history_size: 30
+             ) ==
+               """
+               1\n2\n3\n4\n5\n6\n7\n8\n9\n10
+               11\n12\n13\n14\n15\n16\n17\n18\n19\n20
+               21\n22\n23\n24\n25\n26\n27\n28\n29\n30
+               (1)> 1
+               (2)> 2
+               (3)> 3
+               (4)> 4
+               (5)> 5
+               (6)> 6
+               (7)> 7
+               (8)> 8
+               (9)> 9
+               (10)> 10
+               (11)> 11
+               (12)> 12
+               (13)> 13
+               (14)> 14
+               (15)> 15
+               (16)> 16
+               (17)> 17
+               (18)> 18
+               (19)> 19
+               (20)> 20
+               (21)> 21
+               (22)> 22
+               (23)> 23
+               (24)> 24
+               (25)> 25
+               (26)> 26
+               (27)> 27
+               (28)> 28
+               (29)> 29
+               (30)> 30
+               """ <> "nil"
+    end
   end
 
   describe "flush" do
