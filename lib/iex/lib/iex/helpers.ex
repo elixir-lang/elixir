@@ -31,6 +31,7 @@ defmodule IEx.Helpers do
     * `flush/0`        - flushes all messages sent to the shell
     * `h/0`            - prints this help message
     * `h/1`            - prints help for the given module, function or macro
+    * `hist/0`         - prints iex session history, up to configured history size
     * `i/0`            - prints information about the last value
     * `i/1`            - prints information about the given term
     * `ls/0`           - lists the contents of the current directory
@@ -365,6 +366,59 @@ defmodule IEx.Helpers do
   """
   def v(n \\ -1) do
     IEx.History.nth(history(), n) |> elem(2)
+  end
+
+  @doc """
+  Prints iex session history, up to configured history size.
+
+  It returns nil, after printing history.
+
+  If you want to modify the history size, 
+  run `IEx.configure history_size: \#{DESIRED_HISTORY_SIZE}` first.
+   
+  For example `IEx.configure history_size: 100`
+
+  Adding configuration line (e.g. `IEx.configure history_size: 500`) 
+  to local `.iex.exs` file (located in the current
+  working directory), or to global one (located at `~/.iex.exs`)
+  is recommended.
+   
+
+  ## Examples
+
+      iex(1)> IEx.configure history_size: 3
+      :ok
+      iex(2)> 1 + 1
+      2
+      iex(3)> "i" <> "i" <> "i"
+      "iii"
+      iex(4)> %{:d => 4}
+      %{d: 4}
+      iex(5)> hist()
+      (2)> 1 + 1
+      (3)> "i" <> "i" <> "i"
+      (4)> %{:d => 4}
+      nil
+
+  """
+  def hist do
+    %IEx.History{queue: {recent_history_list, start_history_list}} = history()
+
+    start_history_list |> Enum.map(&write_hist_item/1)
+
+    recent_history_list
+    |> Enum.reverse()
+    |> Enum.map(&write_hist_item/1)
+
+    nil
+  end
+
+  defp write_hist_item({prompt_count, item, _}) do
+    IO.write("(#{prompt_count})> #{item}")
+  end
+
+  defp write_hist_item(hist_item) do
+    IO.write("(#{elem(hist_item, 0)})> #{elem(hist_item, 1)}")
   end
 
   @doc """
