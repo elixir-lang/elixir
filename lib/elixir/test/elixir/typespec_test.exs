@@ -702,22 +702,6 @@ defmodule TypespecTest do
                type
     end
 
-    test "@spec(spec) for unreachable private function" do
-      # Use capture_io/2 to capture the "my_fun/1 is unused" warning.
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          bytecode =
-            test_module do
-              defp my_fun(x), do: x
-              @spec my_fun(integer) :: integer
-            end
-
-          assert specs(bytecode) == []
-        end)
-
-      assert output != ""
-    end
-
     test "@spec(spec) with guards" do
       bytecode =
         test_module do
