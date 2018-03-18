@@ -1300,7 +1300,7 @@ defmodule Macro do
 
   """
   def underscore(atom) when is_atom(atom) do
-    <<"Elixir.", rest::binary>> = Atom.to_string(atom)
+    "Elixir." <> rest = Atom.to_string(atom)
     underscore(rest)
   end
 
