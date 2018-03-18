@@ -368,22 +368,23 @@ defmodule IEx.Helpers do
   end
 
   def hist do
-    %IEx.History{queue: {recent_history_list, start_history_list }} = history()
-    
+    %IEx.History{queue: {recent_history_list, start_history_list}} = history()
+
     start_history_list |> Enum.map(&write_hist_item/1)
 
     recent_history_list
     |> Enum.reverse()
     |> Enum.map(&write_hist_item/1)
-    
+
     nil
   end
 
-  defp write_hist_item({ prompt_count, item, _ }) do
-    IO.write "(#{prompt_count})> #{item}"
+  defp write_hist_item({prompt_count, item, _}) do
+    IO.write("(#{prompt_count})> #{item}")
   end
+
   defp write_hist_item(hist_item) do
-    IO.write "(#{elem(hist_item, 0)})> #{elem(hist_item, 1)}"
+    IO.write("(#{elem(hist_item, 0)})> #{elem(hist_item, 1)}")
   end
 
   @doc """
