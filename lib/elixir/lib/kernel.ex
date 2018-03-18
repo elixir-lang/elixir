@@ -1599,19 +1599,18 @@ defmodule Kernel do
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
   defp extract_concatenations({:<>, _, [left, right]}, caller) do
-    expanded = expand_concat_left_argument(left, caller)
-    [wrap_concatenation(expanded) | extract_concatenations(right, caller)]
+    [wrap_concatenation(left, :left, caller) | extract_concatenations(right, caller)]
   end
 
-  defp extract_concatenations(other, _caller) do
-    [wrap_concatenation(other)]
+  defp extract_concatenations(other, caller) do
+    [wrap_concatenation(other, :right, caller)]
   end
 
-  defp wrap_concatenation(binary) when is_binary(binary) do
+  defp wrap_concatenation(binary, _side, _caller) when is_binary(binary) do
     binary
   end
 
-  defp wrap_concatenation(literal)
+  defp wrap_concatenation(literal, _side, _caller)
        when is_list(literal) or is_atom(literal) or is_integer(literal) or is_float(literal) do
     :erlang.error(
       ArgumentError.exception(
@@ -1620,29 +1619,30 @@ defmodule Kernel do
     )
   end
 
-  defp wrap_concatenation(other) do
-    {:::, [], [other, {:binary, [], nil}]}
+  defp wrap_concatenation(other, side, caller) do
+    expanded = expand_concat_argument(other, side, caller)
+    {:::, [], [expanded, {:binary, [], nil}]}
   end
 
-  defp expand_concat_left_argument(arg, caller) do
+  defp expand_concat_argument(arg, side, caller) do
     expanded_arg =
       case {caller.context, bootstrapped?(Macro)} do
         {:match, true} -> Macro.expand(arg, caller)
         _ -> arg
       end
 
-    check_concat_left_argument(expanded_arg, caller.context)
+    check_concat_argument(expanded_arg, side, caller.context)
   end
 
-  defp check_concat_left_argument({var, _, nil}, :match) when is_atom(var) do
+  defp check_concat_argument({var, _, nil}, :left, :match) when is_atom(var) do
     invalid_concat_left_argument_error(Atom.to_string(var))
   end
 
-  defp check_concat_left_argument({:^, _, [{var, _, nil}]}, :match) when is_atom(var) do
+  defp check_concat_argument({:^, _, [{var, _, nil}]}, :left, :match) when is_atom(var) do
     invalid_concat_left_argument_error("^#{Atom.to_string(var)}")
   end
 
-  defp check_concat_left_argument(other, _context) do
+  defp check_concat_argument(other, _side, _context) do
     other
   end
 
