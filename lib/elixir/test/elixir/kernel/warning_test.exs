@@ -1020,19 +1020,62 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "typedoc on typep" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample do
-               @typedoc "Something"
-               @typep priv :: any
-               @spec foo() :: priv
-               def foo(), do: nil
-             end
-             """)
-           end) =~ "type priv/0 is private, @typedoc's are always discarded for private types"
-  after
-    purge(Sample)
+  describe "typespecs" do
+    test "typedoc on typep" do
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @typedoc "Something"
+                 @typep priv :: any
+                 @spec foo() :: priv
+                 def foo(), do: nil
+               end
+               """)
+             end) =~ "type priv/0 is private, @typedoc's are always discarded for private types"
+    after
+      purge(Sample)
+    end
+
+    test "discouraged types" do
+      message =
+        capture_err(fn ->
+          Code.eval_string("""
+          defmodule Sample do
+            @type foo :: string()
+            @type bar :: nonempty_string()
+          end
+          """)
+        end)
+
+      string_discouraged =
+        "string() type use is discouraged. " <>
+          "For character lists, use charlist() type, for strings, String.t()\n"
+
+      nonempty_string_discouraged =
+        "nonempty_string() type use is discouraged. " <>
+          "For non-empty character lists, use nonempty_charlist() type, for strings, String.t()\n"
+
+      assert message =~ string_discouraged
+      assert message =~ nonempty_string_discouraged
+    after
+      purge(Sample)
+    end
+
+    test "unreachable specs" do
+      message =
+        capture_err(fn ->
+          Code.eval_string("""
+          defmodule Sample do
+            defp my_fun(x), do: x
+            @spec my_fun(integer) :: integer
+          end
+          """)
+        end)
+
+      assert message != ""
+    after
+      purge(Sample)
+    end
   end
 
   test "attribute with no use" do

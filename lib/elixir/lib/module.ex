@@ -1626,7 +1626,6 @@ defmodule Module do
             "please remove access to @#{key} or explicitly set it before access"
 
         IO.warn(error_message, stack)
-
         nil
 
       [] ->
@@ -1637,7 +1636,7 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def put_attribute(module, key, value, stack, unread_line) when is_atom(key) do
+  def put_attribute(module, key, value, unread_line, stack) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = preprocess_attribute(key, value)
