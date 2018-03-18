@@ -377,10 +377,10 @@ defmodule IEx.Helpers do
   end
 
   defp write_hist_item([{ 1, item, _ }]) do
-    IO.write "iex(1)> #{item}"
+    IO.write "(1)> #{item}"
   end
   defp write_hist_item(hist_item) do
-    IO.write "iex(#{elem(hist_item, 0)})> #{elem(hist_item, 1)}"
+    IO.write "(#{elem(hist_item, 0)})> #{elem(hist_item, 1)}"
   end
 
   @doc """
