@@ -1635,33 +1635,34 @@ defmodule Kernel do
     {:::, [], [expanded, {:binary, [], nil}]}
   end
 
-  defp expand_concat_argument(arg, side, caller) do
+  defp expand_concat_argument(arg, :left, %{context: :match} = caller) do
     expanded_arg =
-      case {caller.context, bootstrapped?(Macro)} do
-        {:match, true} -> Macro.expand(arg, caller)
-        _ -> arg
+      case bootstrapped?(Macro) do
+        true -> Macro.expand(arg, caller)
+        false -> arg
       end
 
-    check_concat_argument(expanded_arg, side, caller.context)
+    case expanded_arg do
+      {var, _, nil} when is_atom(var) ->
+        invalid_concat_left_argument_error(Atom.to_string(var))
+
+      {:^, _, [{var, _, nil}]} when is_atom(var) ->
+        invalid_concat_left_argument_error("^#{Atom.to_string(var)}")
+
+      _ ->
+        expanded_arg
+    end
   end
 
-  defp check_concat_argument({var, _, nil}, :left, :match) when is_atom(var) do
-    invalid_concat_left_argument_error(Atom.to_string(var))
-  end
-
-  defp check_concat_argument({:^, _, [{var, _, nil}]}, :left, :match) when is_atom(var) do
-    invalid_concat_left_argument_error("^#{Atom.to_string(var)}")
-  end
-
-  defp check_concat_argument(other, _side, _context) do
-    other
+  defp expand_concat_argument(arg, _, _) do
+    arg
   end
 
   defp invalid_concat_left_argument_error(arg) do
     :erlang.error(
       ArgumentError.exception(
-        "the left argument of <> operator inside a match should be always a literal m" <>
-          "binary as it's size can't be verified, got: #{arg}"
+        "the left argument of <> operator inside a match should be always a literal " <>
+          "binary as its size can't be verified, got: #{arg}"
       )
     )
   end
