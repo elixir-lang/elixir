@@ -368,6 +368,39 @@ defmodule IEx.Helpers do
     IEx.History.nth(history(), n) |> elem(2)
   end
 
+  @doc """
+  Prints iex session history, up to configured history size.
+
+  It returns nil, after printing history.
+
+  If you want to modify the history size, 
+  run `IEx.configure history_size: \#{DESIRED_HISTORY_SIZE}` first.
+   
+  For example `IEx.configure history_size: 100`
+
+  Adding configuration line (e.g. `IEx.configure history_size: 500`) 
+  to local `.iex.exs` file (located in the current
+  working directory), or to global one (located at `~/.iex.exs`)
+  is recommended.
+   
+
+  ## Examples
+
+      iex(1)> IEx.configure history_size: 3
+      :ok
+      iex(2)> 1 + 1
+      2
+      iex(3)> "i" <> "i" <> "i"
+      "iii"
+      iex(4)> %{:d => 4}
+      %{d: 4}
+      iex(5)> hist
+      (2)> 1 + 1
+      (3)> "i" <> "i" <> "i"
+      (4)> %{:d => 4}
+      nil
+
+  """
   def hist do
     %IEx.History{queue: {recent_history_list, start_history_list}} = history()
 
