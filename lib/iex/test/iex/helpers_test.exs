@@ -704,6 +704,36 @@ defmodule IEx.HelpersTest do
       assert capture_iex("'a'\n'b'\n'c'\nhist") == 
                 "'a'\n'b'\n'c'\n(1)> 'a'\n(2)> 'b'\n(3)> 'c'\nnil"
     end
+
+    test "returns all recent iex session history if non-default history_size of 10 not 20" do
+      assert capture_iex("1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nhist", [history_size: 10]) == """
+              1\n2\n3\n4\n5\n6\n7\n8\n9\n10
+              (1)> 1
+              (2)> 2
+              (3)> 3
+              (4)> 4
+              (5)> 5
+              (6)> 6
+              (7)> 7
+              (8)> 8
+              (9)> 9
+              (10)> 10
+              """ <> "nil"
+    end
+    
+    test "returns all recent iex session history if non-default history_size of 8 not 20" do
+      assert capture_iex("1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nhist", [history_size: 8]) == """
+              1\n2\n3\n4\n5\n6\n7\n8\n9\n10
+              (3)> 3
+              (4)> 4
+              (5)> 5
+              (6)> 6
+              (7)> 7
+              (8)> 8
+              (9)> 9
+              (10)> 10
+              """ <> "nil"
+    end
   end
 
   describe "flush" do
