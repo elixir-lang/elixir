@@ -138,6 +138,10 @@ defmodule Mix.Utils do
     stale_stream(sources, targets) |> Enum.to_list()
   end
 
+  defp stale_stream(sources, []) do
+    sources
+  end
+
   defp stale_stream(sources, targets) do
     modified_target = targets |> Enum.map(&last_modified/1) |> Enum.min()
 
