@@ -31,6 +31,7 @@ defmodule IEx.Helpers do
     * `flush/0`        - flushes all messages sent to the shell
     * `h/0`            - prints this help message
     * `h/1`            - prints help for the given module, function or macro
+    * `hist/0`         - prints iex session history, up to configured history size
     * `i/0`            - prints information about the last value
     * `i/1`            - prints information about the given term
     * `ls/0`           - lists the contents of the current directory
