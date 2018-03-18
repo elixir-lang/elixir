@@ -374,6 +374,8 @@ defmodule IEx.Helpers do
     history_list
     |> Enum.reverse()
     |>Enum.map(&write_hist_item/1)
+    
+    nil
   end
 
   defp write_hist_item([{ 1, item, _ }]) do
