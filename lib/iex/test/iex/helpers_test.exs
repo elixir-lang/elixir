@@ -695,6 +695,17 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  describe "hist" do
+    test "returns recent iex session history" do
+      assert capture_iex("1\n2\nhist") == "1\n2\niex(1)> 1\niex(2)> 2\n[:ok]"
+    end
+    
+    test "returns more recent iex session history" do
+      assert capture_iex("'a'\n'b'\n'c'\nhist") == 
+                "'a'\n'b'\n'c'\niex(1)> 'a'\niex(2)> 'b'\niex(3)> 'c'\n[:ok, :ok]"
+    end
+  end
+
   describe "flush" do
     test "flushes messages" do
       assert capture_io(fn ->

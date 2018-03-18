@@ -367,6 +367,22 @@ defmodule IEx.Helpers do
     IEx.History.nth(history(), n) |> elem(2)
   end
 
+  def hist do
+    %IEx.History{queue: {history_list, first_item }} = history()
+    write_hist_item(first_item)
+
+    history_list
+    |> Enum.reverse()
+    |>Enum.map(&write_hist_item/1)
+  end
+
+  defp write_hist_item([{ 1, item, _ }]) do
+    IO.write "iex(1)> #{item}"
+  end
+  defp write_hist_item(hist_item) do
+    IO.write "iex(#{elem(hist_item, 0)})> #{elem(hist_item, 1)}"
+  end
+
   @doc """
   Recompiles and reloads the given `module`.
 
