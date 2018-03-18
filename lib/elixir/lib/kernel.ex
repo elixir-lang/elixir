@@ -1592,43 +1592,32 @@ defmodule Kernel do
 
   """
   defmacro left <> right do
-    concats = extract_concatenations({:<>, [], [left, right]})
+    concats = extract_concatenations({:<>, [], [left, right]}, __CALLER__)
     quote(do: <<unquote_splicing(concats)>>)
   end
 
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
-  defp extract_concatenations({:<>, _, [left, right]}) do
-    [wrap_concatenation(left, :left) | extract_concatenations(right)]
+  defp extract_concatenations({:<>, _, [left, right]}, caller) do
+    [wrap_concatenation(left, :left, caller) | extract_concatenations(right, caller)]
   end
 
-  defp extract_concatenations(other) do
-    [wrap_concatenation(other, :right)]
+  defp extract_concatenations(other, caller) do
+    [wrap_concatenation(other, :right, caller)]
   end
 
-  defp wrap_concatenation(binary, _side) when is_binary(binary) do
+  defp wrap_concatenation(binary, _side, _caller) when is_binary(binary) do
     binary
   end
 
-  defp wrap_concatenation(other, side) do
-    {:::, [],
-     [
-       {:expand_concatenation_argument, [context: Elixir, import: Kernel], [other, side]},
-       {:binary, [], nil}
-     ]}
-  end
-
-  @doc false
-  # Used internally to check the arguments expansion of <> operator.
-  # This function is private and must be used only internally.
-  defmacro expand_concatenation_argument(other, side) do
+  defp wrap_concatenation(other, side, caller) do
     expand =
-      case bootstrapped?(Macro) do
-        true -> &Macro.expand(&1, __CALLER__)
-        false -> & &1
+      case caller.context do
+        :match -> &Macro.expand(&1, caller)
+        _ -> & &1
       end
 
-    case {expand.(other), __CALLER__.context, side} do
+    case {expand.(other), caller.context, side} do
       {literal, _, _}
       when is_list(literal) or is_atom(literal) or is_integer(literal) or is_float(literal) ->
         :erlang.error(
@@ -1640,21 +1629,21 @@ defmodule Kernel do
       {{var, _, nil}, :match, :left} when is_atom(var) ->
         :erlang.error(
           ArgumentError.exception(
-            "the left argument of <> operator inside a match should be always a literal" <>
-              "binary as it's size can't be verified, got: #{Atom.to_string(var)}"
+            <<"the left argument of <> operator inside a match should be always a literal",
+              "binary as it's size can't be verified, got: #{Atom.to_string(var)}">>
           )
         )
 
       {{:^, _, [{var, _, nil}]}, :match, :left} when is_atom(var) ->
         :erlang.error(
           ArgumentError.exception(
-            "the left argument of <> operator inside a match should be always a literal" <>
-              "binary as it's size can't be verified, got: ^#{Atom.to_string(var)}"
+            <<"the left argument of <> operator inside a match should be always a literal",
+              "binary as it's size can't be verified, got: ^#{Atom.to_string(var)}">>
           )
         )
 
       {expanded, _, _} ->
-        expanded
+        {:::, [], [expanded, {:binary, [], nil}]}
     end
   end
 

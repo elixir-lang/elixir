@@ -727,7 +727,7 @@ defmodule Module do
   defp simplify_var(var, guess_priority) do
     case Atom.to_string(var) do
       "_" -> {:_, [], guess_priority}
-      "_" <> rest -> {String.to_atom(rest), [], guess_priority}
+      <<"_", rest::binary>> -> {String.to_atom(rest), [], guess_priority}
       _ -> {var, [], nil}
     end
   end
@@ -1194,7 +1194,7 @@ defmodule Module do
     split(module, _original = module)
   end
 
-  defp split("Elixir." <> name, _original) do
+  defp split(<<"Elixir.", name::binary>>, _original) do
     String.split(name, ".")
   end
 
