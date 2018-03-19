@@ -3,7 +3,7 @@ defmodule Kernel.Typespec do
 
   ## Deprecated API moved to Code.
 
-  # TODO: Remove on 2.0.
+  # TODO: Remove on 2.0 and move this module to Module.Typespec.
 
   @doc false
   def spec_to_ast(name, spec) do

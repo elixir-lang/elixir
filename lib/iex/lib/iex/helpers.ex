@@ -364,7 +364,7 @@ defmodule IEx.Helpers do
 
   """
   def v(n \\ -1) do
-    IEx.History.nth(history(), n) |> elem(2)
+    IEx.History.nth(history(), n) |> elem(1)
   end
 
   @doc """
