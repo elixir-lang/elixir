@@ -1615,6 +1615,9 @@ defmodule Module do
     table = data_table_for(module)
 
     case :ets.lookup(table, key) do
+      [{^key, val, _, nil}] ->
+        val
+
       [{^key, val, _, _}] ->
         :ets.update_element(table, key, {4, nil})
         val
