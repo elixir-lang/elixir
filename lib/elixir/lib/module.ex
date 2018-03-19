@@ -1639,20 +1639,7 @@ defmodule Module do
   def put_attribute(module, key, value, unread_line, stack) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
-    value = preprocess_attribute(key, value)
-
-    # TODO: Remove on Elixir v2.0
-    case value do
-      {:parse_transform, _} when key == :compile and is_list(stack) ->
-        error_message =
-          "@compile {:parse_transform, _} is deprecated. " <>
-            "Elixir will no longer support Erlang-based transforms in future versions"
-
-        IO.warn(error_message, stack)
-
-      _ ->
-        :ok
-    end
+    value = preprocess_attribute(key, value, stack)
 
     case :ets.lookup(table, key) do
       [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
@@ -1672,7 +1659,7 @@ defmodule Module do
 
   ## Helpers
 
-  defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
+  defp preprocess_attribute(key, value, _stack) when key in [:moduledoc, :typedoc, :doc] do
     case value do
       {line, doc} when is_integer(line) and (is_binary(doc) or is_boolean(doc) or is_nil(doc)) ->
         value
@@ -1690,7 +1677,7 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:on_load, value) do
+  defp preprocess_attribute(:on_load, value, _stack) do
     case value do
       _ when is_atom(value) ->
         {value, 0}
@@ -1706,7 +1693,7 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:impl, value) do
+  defp preprocess_attribute(:impl, value, _stack) do
     case value do
       _ when is_boolean(value) ->
         value
@@ -1724,36 +1711,36 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:before_compile, atom) when is_atom(atom),
+  defp preprocess_attribute(:before_compile, atom, _stack) when is_atom(atom),
     do: {atom, :__before_compile__}
 
-  defp preprocess_attribute(:after_compile, atom) when is_atom(atom),
+  defp preprocess_attribute(:after_compile, atom, _stack) when is_atom(atom),
     do: {atom, :__after_compile__}
 
-  defp preprocess_attribute(:on_definition, atom) when is_atom(atom),
+  defp preprocess_attribute(:on_definition, atom, _stack) when is_atom(atom),
     do: {atom, :__on_definition__}
 
-  defp preprocess_attribute(key, _value)
+  defp preprocess_attribute(key, _value, _stack)
        when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
     raise ArgumentError,
           "attributes type, typep, export_type, opaque, callback, and macrocallback" <>
             "must be set directly via the @ notation"
   end
 
-  defp preprocess_attribute(:since, value) when not is_binary(value) do
+  defp preprocess_attribute(:since, value, _stack) when not is_binary(value) do
     raise ArgumentError,
           "@since is a built-in module attribute used for documentation purposes. " <>
             "It should be a string representing the version a function, macro, type or " <>
             "callback was added, got: #{inspect(value)}"
   end
 
-  defp preprocess_attribute(:deprecated, value) when not is_binary(value) do
+  defp preprocess_attribute(:deprecated, value, _stack) when not is_binary(value) do
     raise ArgumentError,
           "@deprecated is a built-in module attribute that annotates a definition as deprecated. " <>
             "It should be a string with the reason for the deprecation, got: #{inspect(value)}"
   end
 
-  defp preprocess_attribute(:file, value) do
+  defp preprocess_attribute(:file, value, _stack) do
     case value do
       _ when is_binary(value) ->
         value
@@ -1769,7 +1756,17 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(_key, value) do
+  # TODO: Remove on Elixir v2.0
+  defp preprocess_attribute(:compile, {:parse_transform, _} = value, stack) when is_list(stack) do
+    error_message =
+      "@compile {:parse_transform, _} is deprecated. " <>
+        "Elixir will no longer support Erlang-based transforms in future versions"
+
+    IO.warn(error_message, stack)
+    value
+  end
+
+  defp preprocess_attribute(_key, value, _stack) do
     value
   end
 
