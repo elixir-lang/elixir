@@ -536,15 +536,15 @@ get_docs(Set, Def, Defmacro) ->
 get_callback_docs(Set, Callbacks) ->
   lists:sort(
     [{Tuple, Line, Kind, Doc} ||
-     {_, Tuple, _, _} <- Callbacks,
-     {_, Line, Kind, Doc} <- ets:lookup(Set, {callbackdoc, Tuple})]
+     {Kind, Tuple, _, _} <- Callbacks,
+     {_, Line, Doc} <- ets:lookup(Set, {Kind, Tuple})]
   ).
 
 get_type_docs(Set, Types) ->
   lists:sort(
     [{Tuple, Line, Kind, Doc} ||
-     {_, Tuple, _, _, true} <- Types,
-     {_, Line, Kind, Doc} <- ets:lookup(Set, {typedoc, Tuple})]
+     {Kind, Tuple, _, _, true} <- Types,
+     {_, Line, Doc} <- ets:lookup(Set, {Kind, Tuple})]
   ).
 
 %% Errors

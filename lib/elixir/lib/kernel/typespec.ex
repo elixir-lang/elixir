@@ -109,12 +109,14 @@ defmodule Kernel.Typespec do
     store_typespec(bag, :spec, {expr, pos})
   end
 
-  def deftypespec(kind, expr, line, file, module, pos) when kind in [:callback, :macrocallback] do
+  def deftypespec(kind, expr, line, _file, module, pos)
+      when kind in [:callback, :macrocallback] do
     {set, bag} = :elixir_module.data_tables(module)
 
     case spec_to_signature(expr) do
       {name, arity} ->
-        store_callbackdoc(line, file, set, kind, name, arity)
+        {line, doc} = get_doc_info(set, :doc, line)
+        store_doc(set, kind, name, arity, line, doc)
 
       :error ->
         :error
@@ -123,12 +125,27 @@ defmodule Kernel.Typespec do
     store_typespec(bag, kind, {expr, pos})
   end
 
-  def deftypespec(kind, expr, line, file, module, pos) when kind in [:type, :typep, :opaque] do
+  def deftypespec(kind, expr, line, file, module, pos)
+      when kind in [:type, :typep, :opaque] do
     {set, bag} = :elixir_module.data_tables(module)
 
     case type_to_signature(expr) do
-      {name, arity} -> store_typedoc(line, file, set, kind, name, arity)
-      :error -> :error
+      {name, arity} when kind == :typep ->
+        {line, doc} = get_doc_info(set, :typedoc, line)
+
+        if doc do
+          warning =
+            "type #{name}/#{arity} is private, @typedoc's are always discarded for private types"
+
+          :elixir_errors.warn(line, file, warning)
+        end
+
+      {name, arity} ->
+        {line, doc} = get_doc_info(set, :typedoc, line)
+        store_doc(set, kind, name, arity, line, doc)
+
+      :error ->
+        :error
     end
 
     store_typespec(bag, :type, {kind, expr, pos})
@@ -145,32 +162,12 @@ defmodule Kernel.Typespec do
     :ok
   end
 
-  # TODO: Remove duplication on doc storage.
-  defp store_typedoc(line, file, set, kind, name, arity) do
-    {line, doc} = get_doc_info(set, :typedoc, line)
-
+  defp store_doc(set, kind, name, arity, line, doc) do
     # TODO: Add and merge this information to doc metadata
     _ = get_since_info(set)
     _ = get_deprecated_info(set)
 
-    if kind == :typep && doc do
-      warning =
-        "type #{name}/#{arity} is private, @typedoc's are always discarded for private types"
-
-      :elixir_errors.warn(line, file, warning)
-    end
-
-    :ets.insert(set, {{:typedoc, {name, arity}}, line, kind, doc})
-  end
-
-  defp store_callbackdoc(line, _file, set, kind, name, arity) do
-    {line, doc} = get_doc_info(set, :doc, line)
-
-    # TODO: Add and merge this information to doc metadata
-    _ = get_since_info(set)
-    _ = get_deprecated_info(set)
-
-    :ets.insert(set, {{:callbackdoc, {name, arity}}, line, kind, doc})
+    :ets.insert(set, {{kind, {name, arity}}, line, doc})
   end
 
   defp get_doc_info(set, attr, line) do
