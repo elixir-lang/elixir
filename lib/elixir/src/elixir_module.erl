@@ -166,8 +166,8 @@ build(Line, File, Module, Lexical) ->
   %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
   %% * {{elixir, ...}, ...}
   %% * {{doc, Tuple}, ...}
-  %% * {{typedoc, Tuple}, ...}
-  %% * {{callbackdoc, Tuple}, ...}
+  %% * {{type, Tuple}, ...}, {{opaque, Tuple}, ...}
+  %% * {{callback, Tuple}, ...}, {{macrocallback, Tuple}, ...}
   %% * {{def, Tuple}, ...} (from elixir_def)
   %% * {{import, Tuple}, ...} (from_elixir_locals)
   %%
