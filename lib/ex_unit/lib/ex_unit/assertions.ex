@@ -485,6 +485,22 @@ defmodule ExUnit.Assertions do
           "No message matching #{unquote(binary)} after #{timeout}ms."
         end
 
+    timeout =
+      if is_integer(timeout) do
+        timeout
+      else
+        quote do
+          case unquote(timeout) do
+            timeout when is_integer(timeout) and timeout >= 0 ->
+              timeout
+
+            timeout ->
+              raise ArgumentError,
+                    "timeout must be a non-negative integer, got: #{inspect(timeout)}"
+          end
+        end
+      end
+
     quote do
       timeout = unquote(timeout)
 
