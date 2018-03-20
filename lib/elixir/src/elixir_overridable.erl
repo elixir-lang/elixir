@@ -4,8 +4,9 @@
 -include("elixir.hrl").
 -define(attr, {elixir, overridable}).
 
-setup(Module) ->
-  overridable(Module, #{}).
+%% TODO: Use DataSet/DataBag for overridables
+setup({DataSet, _DataBag}) ->
+  ets:insert(DataSet, {?attr, #{}}).
 
 overridable(Module) ->
   ets:lookup_element(elixir_module:data_table(Module), ?attr, 2).

@@ -6,19 +6,22 @@
 -include("elixir.hrl").
 -define(last_def, {elixir, last_def}).
 
-setup(Module) ->
-  reset_last(Module),
+setup(DataTables) ->
+  reset_last(DataTables),
   ok.
 
-reset_last(Module) ->
-  ets:insert(elixir_module:data_table(Module), {?last_def, []}).
+reset_last({DataSet, _DataBag}) ->
+  ets:insert(DataSet, {?last_def, []});
+
+reset_last(Module) when is_atom(Module) ->
+  reset_last(elixir_module:data_tables(Module)).
 
 local_for(Module, Name, Arity, Kinds) ->
   Tuple = {Name, Arity},
 
   try
-    Table = elixir_module:defs_table(Module),
-    {ets:lookup(Table, {def, Tuple}), ets:lookup(Table, {clauses, Tuple})}
+    {Set, Bag} = elixir_module:data_tables(Module),
+    {ets:lookup(Set, {def, Tuple}), ets:lookup(Bag, {clauses, Tuple})}
   of
     {[{_, Kind, Meta, _, _, _}], Clauses} ->
       case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
@@ -35,11 +38,11 @@ local_for(Module, Name, Arity, Kinds) ->
 %% Take a definition out of the table
 
 take_definition(Module, {Name, Arity} = Tuple) ->
-  Table = elixir_module:defs_table(Module),
-  case ets:take(Table, {def, Tuple}) of
+  {Set, Bag} = elixir_module:data_tables(Module),
+  case ets:take(Set, {def, Tuple}) of
     [{{def, Tuple}, _, _, _, _, {Defaults, _, _}} = Result] ->
-      ets:delete_object(Table, {{default, Name}, Arity, Defaults}),
-      {Result, [Clause || {_, Clause} <- ets:take(Table, {clauses, Tuple})]};
+      ets:delete_object(Bag, {{default, Name}, Arity, Defaults}),
+      {Result, [Clause || {_, Clause} <- ets:take(Bag, {clauses, Tuple})]};
     [] ->
       false
   end.
@@ -47,17 +50,24 @@ take_definition(Module, {Name, Arity} = Tuple) ->
 %% Fetch all available definitions
 
 fetch_definitions(File, Module) ->
-  Table = elixir_module:defs_table(Module),
-  Entries = ets:match(Table, {{def, '$1'}, '_', '_', '_', '_', '_'}),
-  {All, Private} = fetch_definition(lists:sort(Entries), File, Module, Table, [], []),
+  {Set, Bag} = elixir_module:data_tables(Module),
+
+  Entries = try
+    %% Note entries can be duplicated in overridable clauses, hence usort.
+    lists:usort(ets:lookup_element(Bag, defs, 2))
+  catch
+    error:badarg -> []
+  end,
+
+  {All, Private} = fetch_definition(Entries, File, Module, Set, Bag, [], []),
   Unreachable = elixir_locals:warn_unused_local(File, Module, All, Private),
   elixir_locals:ensure_no_import_conflict(File, Module, All),
   {All, Unreachable}.
 
-fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
-  [{_, Kind, Meta, _, Check, {Defaults, _, _}}] = ets:lookup(Table, {def, Tuple}),
+fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
+  [{_, Kind, Meta, _, Check, {Defaults, _, _}}] = ets:lookup(Set, {def, Tuple}),
 
-  try ets:lookup_element(Table, {clauses, Tuple}, 2) of
+  try ets:lookup_element(Bag, {clauses, Tuple}, 2) of
     Clauses ->
       NewAll =
         [{Tuple, Kind, add_defaults_to_meta(Defaults, Meta), Clauses} | All],
@@ -69,14 +79,14 @@ fetch_definition([[Tuple] | T], File, Module, Table, All, Private) ->
           false ->
             Private
         end,
-      fetch_definition(T, File, Module, Table, NewAll, NewPrivate)
+      fetch_definition(T, File, Module, Set, Bag, NewAll, NewPrivate)
   catch
     error:badarg ->
       warn_bodiless_function(Check, Meta, File, Module, Kind, Tuple),
-      fetch_definition(T, File, Module, Table, All, Private)
+      fetch_definition(T, File, Module, Set, Bag, All, Private)
   end;
 
-fetch_definition([], _File, _Module, _Table, All, Private) ->
+fetch_definition([], _File, _Module, _Set, _Bag, All, Private) ->
   {All, Private}.
 
 add_defaults_to_meta(0, Meta) -> Meta;
@@ -211,35 +221,33 @@ run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
   ok.
 
 store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses) ->
-  Data = elixir_module:data_table(Module),
-  Defs = elixir_module:defs_table(Module),
-
-  Tuple   = {Name, Arity},
+  {Set, Bag} = elixir_module:data_tables(Module),
+  Tuple = {Name, Arity},
   HasBody = Clauses =/= [],
 
   if
     Defaults > 0 ->
-      ets:insert(Defs, {{default, Name}, Arity, Defaults});
+      ets:insert(Bag, {{default, Name}, Arity, Defaults});
     true ->
       ok
   end,
 
   MaxDefaults =
-    case ets:take(Defs, {def, Tuple}) of
-      [{_, StoredKind, StoredMeta, StoredFile, StoredCheck,
-          {StoredDefaults, LastHasBody, LastDefaults}}] ->
+    case ets:lookup(Set, {def, Tuple}) of
+      [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, LastDefaults}}] ->
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
         (Check and StoredCheck) andalso
-          check_valid_clause(Meta, File, Name, Arity, Kind, Data, StoredMeta, StoredFile),
+          check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile),
         check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
         max(Defaults, StoredDefaults);
       [] ->
+        ets:insert(Bag, {defs, Tuple}),
         Defaults
     end,
 
-  Check andalso ets:insert(Data, {?last_def, Tuple}),
-  ets:insert(Defs, [{{clauses, Tuple}, Clause} || Clause <- Clauses]),
-  ets:insert(Defs, {{def, Tuple}, Kind, Meta, File, Check, {MaxDefaults, HasBody, Defaults}}).
+  Check andalso ets:insert(Set, {?last_def, Tuple}),
+  ets:insert(Bag, [{{clauses, Tuple}, Clause} || Clause <- Clauses]),
+  ets:insert(Set, {{def, Tuple}, Kind, Meta, File, Check, {MaxDefaults, HasBody, Defaults}}).
 
 %% Handling of defaults
 
@@ -284,15 +292,15 @@ default_var(Counter) ->
 
 %% Validations
 
-check_valid_kind(_Meta, _File, _Name, _Arity, Kind, Kind) -> [];
+check_valid_kind(_Meta, _File, _Name, _Arity, Kind, Kind) -> ok;
 check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind) ->
   elixir_errors:form_error(Meta, File, ?MODULE,
     {changed_kind, {Name, Arity, StoredKind, Kind}}).
 
-check_valid_clause(Meta, File, Name, Arity, Kind, Data, StoredMeta, StoredFile) ->
-  case ets:lookup_element(Data, ?last_def, 2) of
-    {Name, Arity} -> [];
-    [] -> [];
+check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile) ->
+  case ets:lookup_element(Set, ?last_def, 2) of
+    {Name, Arity} -> ok;
+    none -> ok;
     _ ->
       Relative = elixir_utils:relative_to_cwd(StoredFile),
       elixir_errors:form_warn(Meta, File, ?MODULE,
@@ -328,7 +336,8 @@ invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
 invalid_arg(_) -> true.
 
 check_previous_defaults(Meta, Module, Name, Arity, Kind, Defaults, E) ->
-  Matches = ets:lookup(elixir_module:defs_table(Module), {default, Name}),
+  {_Set, Bag} = elixir_module:data_tables(Module),
+  Matches = ets:lookup(Bag, {default, Name}),
   [begin
      elixir_errors:form_error(Meta, ?key(E, file), ?MODULE,
        {defs_with_defaults, Kind, Name, Arity, A})
