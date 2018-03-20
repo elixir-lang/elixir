@@ -247,11 +247,19 @@ defmodule Inspect.AlgebraTest do
   end
 
   test "formatting with infinity" do
-    s = String.duplicate("x", 50)
-    g = ";"
-    doc = glue(s, g, s) |> glue(g, s) |> glue(g, s) |> glue(g, s) |> group
+    str = String.duplicate("x", 50)
+    colon = ";"
 
-    assert render(doc, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
+    doc =
+      str
+      |> glue(colon, str)
+      |> glue(colon, str)
+      |> glue(colon, str)
+      |> glue(colon, str)
+      |> group()
+
+    assert render(doc, :infinity) ==
+             str <> colon <> str <> colon <> str <> colon <> str <> colon <> str
   end
 
   test "formatting container_doc with empty" do
