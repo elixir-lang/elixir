@@ -815,9 +815,8 @@ defmodule Module do
 
   """
   @spec defines?(module, definition) :: boolean
-  def defines?(module, {function_or_macro_name, arity} = tuple)
-      when is_atom(module) and is_atom(function_or_macro_name) and is_integer(arity) and
-             arity >= 0 and arity <= 255 do
+  def defines?(module, {name, arity} = tuple)
+      when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 do
     assert_not_compiled!(:defines?, module)
     {set, _bag} = data_tables_for(module)
     :ets.lookup(set, {:def, tuple}) != []
@@ -842,9 +841,9 @@ defmodule Module do
 
   """
   @spec defines?(module, definition, def_kind) :: boolean
-  def defines?(module, {function_macro_name, arity} = tuple, def_kind)
-      when is_atom(module) and is_atom(function_macro_name) and is_integer(arity) and arity >= 0 and
-             arity <= 255 and def_kind in [:def, :defp, :defmacro, :defmacrop] do
+  def defines?(module, {name, arity} = tuple, def_kind)
+      when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 and
+             def_kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:defines?, module)
     {set, _bag} = data_tables_for(module)
 
@@ -1228,7 +1227,7 @@ defmodule Module do
     pair = {name, arity}
 
     impl = compile_impl(set, bag, name, env, kind, args)
-    _deprecated = compile_deprecated(set, pair)
+    _deprecated = compile_deprecated(set, bag, pair)
     _since = compile_since(set)
 
     # TODO: Store @since and @deprecated alongside the docs
@@ -1272,10 +1271,10 @@ defmodule Module do
     end
   end
 
-  defp compile_deprecated(table, pair) do
-    case :ets.take(table, :deprecated) do
+  defp compile_deprecated(set, bag, pair) do
+    case :ets.take(set, :deprecated) do
       [{:deprecated, reason, _, _}] when is_binary(reason) ->
-        :ets.insert(table, {{:deprecated, pair}, reason})
+        :ets.insert(bag, {:deprecated, {pair, reason}})
         reason
 
       _ ->
@@ -1742,6 +1741,12 @@ defmodule Module do
     raise ArgumentError,
           "attributes type, typep, export_type, opaque, callback, and macrocallback" <>
             "must be set directly via the @ notation"
+  end
+
+  defp preprocess_attribute(:external_resource, value) when not is_binary(value) do
+    raise ArgumentError,
+          "@external_resource is a built-in module attribute used for specifying file " <>
+            "dependencies. It should be a string the path to a file, got: #{inspect(value)}"
   end
 
   defp preprocess_attribute(:since, value) when not is_binary(value) do
