@@ -6,7 +6,9 @@ defmodule Module.LocalsTrackerTest do
   alias Module.LocalsTracker, as: D
 
   setup do
-    {:ok, [ref: D.init()]}
+    set = :ets.new(__MODULE__, [:set, :public])
+    bag = :ets.new(__MODULE__, [:duplicate_bag, :public])
+    [ref: {set, bag}]
   end
 
   ## Locals
@@ -19,11 +21,11 @@ defmodule Module.LocalsTrackerTest do
   test "can yank and reattach nodes", config do
     D.add_local(config[:ref], {:foo, 1}, {:bar, 1})
 
-    {infoo, outfoo} = D.yank(config[:ref], {:foo, 1})
-    {inbar, outbar} = D.yank(config[:ref], {:bar, 1})
+    outfoo = D.yank(config[:ref], {:foo, 1})
+    outbar = D.yank(config[:ref], {:bar, 1})
 
-    D.reattach(config[:ref], {:bar, 1}, :defp, {:bar, 1}, {inbar, outbar})
-    D.reattach(config[:ref], {:foo, 1}, :def, {:foo, 1}, {infoo, outfoo})
+    D.reattach(config[:ref], {:bar, 1}, :defp, {:bar, 1}, outbar)
+    D.reattach(config[:ref], {:foo, 1}, :def, {:foo, 1}, outfoo)
     assert {:bar, 1} in D.reachable_from(config[:ref], {:foo, 1})
   end
 
@@ -80,11 +82,12 @@ defmodule Module.LocalsTrackerTest do
 
   test "find import conflicts", config do
     entries = [{{:conflict, 1}, :def, [], []}]
-    refute {[], {[Module], :conflict, 1}} in D.collect_imports_conflicts(config[:ref], entries)
+    refute {[], {Module, {:conflict, 1}}} in D.collect_imports_conflicts(config[:ref], entries)
 
     D.add_local(config[:ref], {:public, 1}, {:foo, 2})
     D.add_import(config[:ref], {:foo, 2}, Module, {:conflict, 1})
-    assert {[], {[Module], :conflict, 1}} in D.collect_imports_conflicts(config[:ref], entries)
+    D.add_import(config[:ref], {:foo, 2}, Module, {:conflict, 1})
+    assert {[], {Module, {:conflict, 1}}} in D.collect_imports_conflicts(config[:ref], entries)
   end
 
   defmodule NoPrivate do

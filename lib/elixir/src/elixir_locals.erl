@@ -1,32 +1,19 @@
 %% Module responsible for tracking invocations of module calls.
 -module(elixir_locals).
 -export([
-  setup/1, cleanup/1, cache_env/1, get_cached_env/1,
+  setup/1, cache_env/1, get_cached_env/1,
   record_local/3, record_import/4, record_defaults/4,
   yank/2, reattach/5,
   ensure_no_import_conflict/3, warn_unused_local/4, format_error/1
 ]).
 
 -include("elixir.hrl").
--define(attr, {elixir, locals_tracker}).
 -define(cache, {elixir, cache_env}).
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
 setup({DataSet, _DataBag}) ->
   ets:insert(DataSet, {?cache, 0, nil}),
-
-  %% TODO: Use the DataBag table for the tracker
-  case elixir_config:get(bootstrap) of
-    false ->
-      Table = ?tracker:init(),
-      ets:insert(DataSet, {?attr, Table}),
-      ok;
-    true ->
-      ok
-  end.
-
-cleanup(Module) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:delete(Tracker), ok end).
+  ok.
 
 yank(Tuple, Module) ->
   if_tracker(Module, fun(Tracker) -> ?tracker:yank(Tracker, Tuple) end).
@@ -53,10 +40,15 @@ if_tracker(Module, Callback) ->
   if_tracker(Module, ok, Callback).
 
 if_tracker(Module, Default, Callback) ->
-  try ets:lookup_element(elixir_module:data_table(Module), ?attr, 2) of
-    Tracker -> Callback(Tracker)
-  catch
-    error:badarg -> Default
+  case elixir_config:get(bootstrap) of
+    false ->
+      try elixir_module:data_tables(Module) of
+        Tracker -> Callback(Tracker)
+      catch
+        error:badarg -> Default
+      end;
+    true ->
+      Default
   end.
 
 %% CACHING
@@ -101,9 +93,9 @@ warn_unused_local(File, Module, All, Private) ->
     Unreachable
   end).
 
-format_error({function_conflict, {Receivers, Name, Arity}}) ->
+format_error({function_conflict, {Receiver, {Name, Arity}}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
-    [elixir_aliases:inspect(hd(Receivers)), Name, Arity]);
+    [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({unused_args, {Name, Arity}}) ->
   io_lib:format("default arguments in ~ts/~B are never used", [Name, Arity]);

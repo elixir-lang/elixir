@@ -114,7 +114,6 @@ compile(Line, Module, Block, Vars, E) ->
       end
   after
     put_compiler_modules(CompilerModules),
-    elixir_locals:cleanup(Module),
     ets:delete(DataSet),
     ets:delete(DataBag),
     elixir_code_server:call({undefmodule, Ref})
@@ -164,18 +163,21 @@ build(Line, File, Module, Lexical) ->
   %% In the set table we store:
   %%
   %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
-  %% * {{def, Tuple}, ...}
   %% * {{elixir, ...}, ...}
+  %% * {{def, Tuple}, ...} (from elixir_def)
+  %% * {{:import, {name, arity}}, ...} (from_elixir_locals)
   %%
   DataSet = ets:new(Module, [set, public]),
 
   %% In the bag table we store:
   %%
   %% * {{attribute, Attribute}, Value}
-  %% * {{default, Name}, ...}
-  %% * {{clauses, Tuple}, ...}
   %% * {impls, ...}
-  %% * {defs, ...}
+  %% * {defs, ...} (from elixir_def)
+  %% * {{default, Name}, ...} (from elixir_def)
+  %% * {{clauses, Tuple}, ...} (from elixir_def)
+  %% * {:reattach, ...} (from elixir_local)
+  %% * {{:local, {name, arity}}, ...} (from elixir_local)
   %%
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
