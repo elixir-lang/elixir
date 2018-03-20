@@ -159,10 +159,32 @@ defmodule Kernel.Typespec do
     Module.store_typespec(module, kind, {kind, expr, pos})
   end
 
+  defp store_typedoc(line, file, module, kind, name, arity) do
+    table = :elixir_module.data_table(module)
+    {line, doc} = get_doc_info(table, :typedoc, line)
+
+    # TODO: Add and merge this information to doc metadata
+    _ = get_since_info(table)
+    _ = get_deprecated_info(table)
+
+    if kind == :typep && doc do
+      warning =
+        "type #{name}/#{arity} is private, @typedoc's are always discarded for private types"
+
+      :elixir_errors.warn(line, file, warning)
+    end
+
+    :ets.insert(table, {{:typedoc, {name, arity}}, line, kind, doc})
+  end
+
   defp store_callbackdoc(line, _file, module, kind, name, arity) do
     table = :elixir_module.data_table(module)
     {line, doc} = get_doc_info(table, :doc, line)
+
+    # TODO: Add and merge this information to doc metadata
     _ = get_since_info(table)
+    _ = get_deprecated_info(table)
+
     :ets.insert(table, {{:callbackdoc, {name, arity}}, line, kind, doc})
   end
 
@@ -177,19 +199,8 @@ defmodule Kernel.Typespec do
     :ets.take(table, :since)
   end
 
-  defp store_typedoc(line, file, module, kind, name, arity) do
-    table = :elixir_module.data_table(module)
-    {line, doc} = get_doc_info(table, :typedoc, line)
-    _ = get_since_info(table)
-
-    if kind == :typep && doc do
-      warning =
-        "type #{name}/#{arity} is private, @typedoc's are always discarded for private types"
-
-      :elixir_errors.warn(line, file, warning)
-    end
-
-    :ets.insert(table, {{:typedoc, {name, arity}}, line, kind, doc})
+  defp get_deprecated_info(table) do
+    :ets.take(table, :deprecated)
   end
 
   ## Translation from Elixir AST to typespec AST

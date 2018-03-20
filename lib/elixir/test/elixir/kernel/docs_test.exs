@@ -206,6 +206,8 @@ defmodule Kernel.DocsTest do
       assert Code.get_docs(SampleDocs, :type_docs) == docs[:type_docs]
       assert Code.get_docs(SampleDocs, :callback_docs) == docs[:callback_docs]
 
+      assert {_, "Module doc"} = docs[:moduledoc]
+
       assert [
                {{:bar, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause doc"},
                {{:baz, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause and docs"},
@@ -213,8 +215,6 @@ defmodule Kernel.DocsTest do
                {{:nullary, 0}, _, :def, [], "add_doc"},
                {{:qux, 1}, _, :def, [{:bool, _, Elixir}], false}
              ] = docs[:docs]
-
-      assert {_, "Module doc"} = docs[:moduledoc]
 
       assert [{{:bar, 1}, _, :opaque, "Opaque type doc"}, {{:foo, 1}, _, :type, "Type doc"}] =
                docs[:type_docs]

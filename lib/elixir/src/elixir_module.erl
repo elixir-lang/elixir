@@ -78,7 +78,7 @@ compile(Line, Module, Block, Vars, E) ->
     {Result, NE, OverridablePairs} = eval_form(Line, Module, DataSet, Block, Vars, E),
 
     PersistedAttributes = ets:lookup_element(DataSet, ?persisted_attr, 2),
-    Attributes = attributes(Line, File, DataSet, PersistedAttributes),
+    Attributes = attributes(DataSet, PersistedAttributes),
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
 
     (not elixir_config:get(bootstrap)) andalso
@@ -93,7 +93,8 @@ compile(Line, Module, Block, Vars, E) ->
       attributes => Attributes,
       definitions => AllDefinitions,
       unreachable => Unreachable,
-      compile_opts => CompileOpts
+      compile_opts => CompileOpts,
+      deprecated => get_deprecated(DataBag)
     },
 
     Binary = elixir_erl:compile(ModuleMap),
@@ -164,8 +165,11 @@ build(Line, File, Module, Lexical) ->
   %%
   %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
   %% * {{elixir, ...}, ...}
+  %% * {{doc, Tuple}, ...}
+  %% * {{typedoc, Tuple}, ...}
+  %% * {{callbackdoc, Tuple}, ...}
   %% * {{def, Tuple}, ...} (from elixir_def)
-  %% * {{:import, {name, arity}}, ...} (from_elixir_locals)
+  %% * {{import, Tuple}, ...} (from_elixir_locals)
   %%
   DataSet = ets:new(Module, [set, public]),
 
@@ -173,11 +177,12 @@ build(Line, File, Module, Lexical) ->
   %%
   %% * {{attribute, Attribute}, Value}
   %% * {impls, ...}
+  %% * {deprecated, ...}
   %% * {defs, ...} (from elixir_def)
   %% * {{default, Name}, ...} (from elixir_def)
   %% * {{clauses, Tuple}, ...} (from elixir_def)
-  %% * {:reattach, ...} (from elixir_local)
-  %% * {{:local, {name, arity}}, ...} (from elixir_local)
+  %% * {reattach, ...} (from elixir_local)
+  %% * {{local, Tuple}, ...} (from elixir_local)
   %%
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
@@ -277,26 +282,32 @@ expand_callback(Line, M, F, Args, E, Fun) ->
 
 %% Add attributes handling to the form
 
-attributes(Line, File, DataSet, PersistedAttributes) ->
-  [{Key, Value} || Key <- PersistedAttributes,
-                   Value <- lookup_attribute(Line, File, DataSet, Key)].
+attributes(DataSet, PersistedAttributes) ->
+  [{Key, Value} || Key <- PersistedAttributes, Value <- lookup_attribute(DataSet, Key)].
 
-lookup_attribute(Line, File, DataSet, Key) when is_atom(Key) ->
+lookup_attribute(DataSet, Key) when is_atom(Key) ->
   case ets:lookup(DataSet, Key) of
-    [{resource, Values, true, _}] ->
-      lists:usort([validate_external_resource(Line, File, Value) || Value <- Values]);
-    [{Key, Values, true, _}] ->
-      Values;
-    [{Key, Value, false, _}] ->
-      [Value];
-    [] ->
-      []
+    [{Key, Values, true, _}] -> Values;
+    [{Key, Value, false, _}] -> [Value];
+    [] -> []
   end.
 
-validate_external_resource(_Line, _File, Value) when is_binary(Value) ->
-  Value;
-validate_external_resource(Line, File, Value) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_external_resource, Value}).
+warn_unused_attributes(File, DataSet, PersistedAttrs) ->
+  ReservedAttrs = [after_compile, before_compile, moduledoc,
+                   on_definition, optional_callbacks | PersistedAttrs],
+  Keys = ets:select(DataSet, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
+  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
+   [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
+
+get_deprecated(Bag) ->
+  lists:usort(bag_lookup_element(Bag, deprecated, 2)).
+
+bag_lookup_element(Table, Name, Pos) ->
+  try
+    ets:lookup_element(Table, Name, Pos)
+  catch
+    error:badarg -> []
+  end.
 
 %% Takes care of autoloading the module if configured.
 
@@ -313,15 +324,6 @@ beam_location(#{lexical_tracker := Pid, module := Module}) ->
       filename:join(elixir_utils:characters_to_list(Dest),
                     atom_to_list(Module) ++ ".beam")
   end.
-
-%% Handle unused attributes warnings and special cases.
-
-warn_unused_attributes(File, DataSet, PersistedAttrs) ->
-  ReservedAttrs = [after_compile, before_compile, moduledoc,
-                   on_definition, optional_callbacks | PersistedAttrs],
-  Keys = ets:select(DataSet, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
-  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
-   [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
 
 %% Integration with elixir_compiler that makes the module available
 
@@ -357,9 +359,6 @@ prune_stacktrace(Info, []) ->
 location(Line, E) ->
   [{file, elixir_utils:characters_to_list(?key(E, file))}, {line, Line}].
 
-format_error({invalid_external_resource, Value}) ->
-  io_lib:format("expected a string value for @external_resource, got: ~p",
-    ['Elixir.Kernel':inspect(Value)]);
 format_error({unused_attribute, typedoc}) ->
   "module attribute @typedoc was set but no type follows it";
 format_error({unused_attribute, doc}) ->
