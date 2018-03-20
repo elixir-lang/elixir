@@ -12,11 +12,14 @@
 -define(cache, {elixir, cache_env}).
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
-setup(Module) ->
+setup({DataSet, _DataBag}) ->
+  ets:insert(DataSet, {?cache, 0, nil}),
+
+  %% TODO: Use the DataBag table for the tracker
   case elixir_config:get(bootstrap) of
     false ->
       Table = ?tracker:init(),
-      ets:insert(elixir_module:data_table(Module), {?attr, Table}),
+      ets:insert(DataSet, {?attr, Table}),
       ok;
     true ->
       ok

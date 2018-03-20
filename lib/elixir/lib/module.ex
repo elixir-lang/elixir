@@ -819,8 +819,8 @@ defmodule Module do
       when is_atom(module) and is_atom(function_or_macro_name) and is_integer(arity) and
              arity >= 0 and arity <= 255 do
     assert_not_compiled!(:defines?, module)
-    table = defs_table_for(module)
-    :ets.lookup(table, {:def, tuple}) != []
+    {set, _bag} = data_tables_for(module)
+    :ets.lookup(set, {:def, tuple}) != []
   end
 
   @doc """
@@ -846,9 +846,9 @@ defmodule Module do
       when is_atom(module) and is_atom(function_macro_name) and is_integer(arity) and arity >= 0 and
              arity <= 255 and def_kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:defines?, module)
-    table = defs_table_for(module)
+    {set, _bag} = data_tables_for(module)
 
-    case :ets.lookup(table, {:def, tuple}) do
+    case :ets.lookup(set, {:def, tuple}) do
       [{_, ^def_kind, _, _, _, _}] -> true
       _ -> false
     end
@@ -868,8 +868,8 @@ defmodule Module do
   @spec definitions_in(module) :: [definition]
   def definitions_in(module) when is_atom(module) do
     assert_not_compiled!(:definitions_in, module)
-    table = defs_table_for(module)
-    :lists.concat(:ets.match(table, {{:def, :"$1"}, :_, :_, :_, :_, :_}))
+    {_, bag} = data_tables_for(module)
+    bag_lookup_element(bag, :defs, 2)
   end
 
   @doc """
@@ -889,8 +889,8 @@ defmodule Module do
   def definitions_in(module, def_kind)
       when is_atom(module) and def_kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:definitions_in, module)
-    table = defs_table_for(module)
-    :lists.concat(:ets.match(table, {{:def, :"$1"}, def_kind, :_, :_, :_, :_}))
+    {set, _} = data_tables_for(module)
+    :lists.concat(:ets.match(set, {{:def, :"$1"}, def_kind, :_, :_, :_, :_}))
   end
 
   @doc """
@@ -964,15 +964,17 @@ defmodule Module do
   end
 
   defp check_impls_for_overridable(module, tuples) do
-    table = data_table_for(module)
-    impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
+    {set, bag} = data_tables_for(module)
+    impls = bag_lookup_element(bag, :impls, 2)
 
-    {overridable_impls, impls} =
-      :lists.splitwith(fn {pair, _, _, _, _, _} -> pair in tuples end, impls)
+    overridable_impls = :lists.filter(fn {pair, _, _, _, _, _} -> pair in tuples end, impls)
 
     if overridable_impls != [] do
-      :ets.insert(table, {{:elixir, :impls}, impls})
-      behaviours = :ets.lookup_element(table, :behaviour, 2)
+      for impl <- overridable_impls do
+        :ets.delete_object(bag, {:impls, impl})
+      end
+
+      behaviours = :ets.lookup_element(set, :behaviour, 2)
 
       callbacks =
         for behaviour <- behaviours,
@@ -1220,18 +1222,18 @@ defmodule Module do
   # Used internally to compile documentation.
   # This function is private and must be used only internally.
   def compile_definition_attributes(env, kind, name, args, _guards, _body) do
-    module = env.module
-    table = data_table_for(module)
+    %{module: module} = env
+    {set, bag} = data_tables_for(module)
     arity = length(args)
     pair = {name, arity}
 
-    impl = compile_impl(table, name, env, kind, args)
-    _deprecated = compile_deprecated(table, pair)
-    _since = compile_since(table)
+    impl = compile_impl(set, bag, name, env, kind, args)
+    _deprecated = compile_deprecated(set, pair)
+    _since = compile_since(set)
 
     # TODO: Store @since and @deprecated alongside the docs
-    {line, doc} = get_doc_info(table, env)
-    compile_doc(table, line, kind, pair, args, doc, env, impl)
+    {line, doc} = get_doc_info(set, env)
+    compile_doc(set, line, kind, pair, args, doc, env, impl)
 
     :ok
   end
@@ -1281,15 +1283,14 @@ defmodule Module do
     end
   end
 
-  defp compile_impl(table, name, env, kind, args) do
+  defp compile_impl(set, bag, name, env, kind, args) do
     %{line: line, file: file} = env
 
-    case :ets.take(table, :impl) do
+    case :ets.take(set, :impl) do
       [{:impl, value, _, _}] ->
-        impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
         {total, defaults} = args_count(args, 0, 0)
         impl = {{name, total}, defaults, kind, line, file, value}
-        :ets.insert(table, {{:elixir, :impls}, [impl | impls]})
+        :ets.insert(bag, {:impls, impl})
         value
 
       [] ->
@@ -1308,9 +1309,9 @@ defmodule Module do
   defp args_count([], total, defaults), do: {total, defaults}
 
   @doc false
-  def check_behaviours_and_impls(env, table, all_definitions, overridable_pairs) do
-    behaviours = :ets.lookup_element(table, :behaviour, 2)
-    impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
+  def check_behaviours_and_impls(env, set, bag, all_definitions, overridable_pairs) do
+    behaviours = :ets.lookup_element(set, :behaviour, 2)
+    impls = bag_lookup_element(bag, :impls, 2)
     callbacks = check_behaviours(env, behaviours)
 
     pending_callbacks =
@@ -1790,8 +1791,14 @@ defmodule Module do
     :elixir_module.data_table(module)
   end
 
-  defp defs_table_for(module) do
-    :elixir_module.defs_table(module)
+  defp data_tables_for(module) do
+    :elixir_module.data_tables(module)
+  end
+
+  defp bag_lookup_element(table, key, pos) do
+    :ets.lookup_element(table, key, pos)
+  catch
+    :error, :badarg -> []
   end
 
   defp assert_not_compiled!(fun, module) do
