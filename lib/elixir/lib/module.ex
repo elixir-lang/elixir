@@ -854,6 +854,28 @@ defmodule Module do
   end
 
   @doc """
+  Checks if the current module defines the given type (private, opaque or not).
+
+  This function is only available for modules being compiled.
+  """
+  @since "1.7.0"
+  @spec defines_type?(module, definition) :: boolean
+  def defines_type?(module, definition) do
+    Kernel.Typespec.defines_type?(module, definition)
+  end
+
+  @doc """
+  Converts the given spec to a callback.
+
+  Returns `true` if there is such a spec and it was converted to a callback.
+  """
+  @since "1.7.0"
+  @spec spec_to_callback(module, definition) :: boolean
+  def spec_to_callback(module, definition) do
+    Kernel.Typespec.spec_to_callback(module, definition)
+  end
+
+  @doc """
   Returns all functions defined in `module`.
 
   ## Examples
@@ -1588,23 +1610,6 @@ defmodule Module do
       end
 
     ". The known callbacks are:\n#{formatted_callbacks}\n"
-  end
-
-  @doc false
-  # Used internally to compile types.
-  # This function is private and must be used only internally.
-  def store_typespec(module, key, value) when is_atom(module) and is_atom(key) do
-    assert_not_compiled!(:put_attribute, module)
-    table = data_table_for(module)
-
-    typespecs =
-      case :ets.lookup(table, key) do
-        [{^key, typespecs, _, _}] -> [value | typespecs]
-        [] -> [value]
-      end
-
-    :ets.insert(table, {key, typespecs, true, nil})
-    :ok
   end
 
   @doc false

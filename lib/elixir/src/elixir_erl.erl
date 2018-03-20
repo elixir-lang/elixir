@@ -141,9 +141,9 @@ scope(_Meta) ->
 %% Compilation hook.
 
 compile(#{module := Module, line := Line} = Map) ->
-  {Set, _Bag} = elixir_module:data_tables(Module),
+  {Set, Bag} = elixir_module:data_tables(Module),
   {Prefix, Forms, Def, Defmacro, Macros, Deprecated} = dynamic_form(Map),
-  {Types, Callbacks, TypeSpecs} = typespecs_form(Map, Set, Macros),
+  {Types, Callbacks, TypeSpecs} = typespecs_form(Map, Set, Bag, Macros),
 
   DocsChunk = docs_chunk(Set, Line, Def, Defmacro, Types, Callbacks),
   DeprecatedChunk = deprecated_chunk(Deprecated),
@@ -323,13 +323,13 @@ deprecated_info(Deprecated) ->
 
 % Typespecs
 
-typespecs_form(Map, Set, MacroNames) ->
+typespecs_form(Map, Set, Bag, MacroNames) ->
   case elixir_config:get(bootstrap) of
     true ->
       {[], [], []};
     false ->
       {Types, Specs, Callbacks, MacroCallbacks, OptionalCallbacks} =
-        'Elixir.Kernel.Typespec':translate_typespecs_for_module(Set),
+        'Elixir.Kernel.Typespec':translate_typespecs_for_module(Set, Bag),
 
       AllCallbacks = Callbacks ++ MacroCallbacks,
       MacroCallbackNames = [NameArity || {_, NameArity, _, _} <- MacroCallbacks],
@@ -426,10 +426,10 @@ callspecs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
 
     case lists:member(NameArity, Optional) of
       true ->
-        [{attribute, Line, Kind, {Key, Value}},
+        [{attribute, Line, Kind, {Key, lists:reverse(Value)}},
          {attribute, Line, optional_callbacks, [Key]} | Acc];
       false ->
-        [{attribute, Line, Kind, {Key, Value}} | Acc]
+        [{attribute, Line, Kind, {Key, lists:reverse(Value)}} | Acc]
     end
   end, Forms, SpecsMap).
 
