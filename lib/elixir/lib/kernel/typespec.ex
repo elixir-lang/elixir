@@ -1,9 +1,8 @@
 defmodule Kernel.Typespec do
+  # TODO: Remove deprecated code on 2.0 and move this module to Module.Typespec.
   @moduledoc false
 
-  ## Deprecated API moved to Code.
-
-  # TODO: Remove on 2.0 and move this module to Module.Typespec.
+  ## Deprecated API moved to Code.Typespec
 
   @doc false
   def spec_to_ast(name, spec) do
@@ -68,64 +67,35 @@ defmodule Kernel.Typespec do
     end
   end
 
-  ## Query helpers
+  ## Hooks for Module functions
 
-  # TODO: Improve performance of the defined queries below and remove
-  # the need for spec_to_signature and type_to_signature publically.
-
-  @doc """
-  Returns `true` if the current module defines a given type
-  (private, opaque or not). This function is only available
-  for modules being compiled.
-  """
-  @spec defines_type?(module, atom, arity) :: boolean
-  def defines_type?(module, name, arity)
+  def defines_type?(module, {name, arity} = signature)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
+    {_set, bag} = :elixir_module.data_tables(module)
+
     finder = fn {_kind, expr, _caller} ->
-      type_to_signature(expr) == {name, arity}
+      type_to_signature(expr) == signature
     end
 
-    :lists.any(finder, Module.get_attribute(module, :type)) or
-      :lists.any(finder, Module.get_attribute(module, :opaque))
+    :lists.any(finder, get_typespec(bag, :type))
   end
 
-  @doc """
-  Returns `true` if the current module defines a given spec.
-  This function is only available for modules being compiled.
-  """
-  @spec defines_spec?(module, atom, arity) :: boolean
-  def defines_spec?(module, name, arity)
+  def spec_to_callback(module, {name, arity} = signature)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
-    Enum.any?(Module.get_attribute(module, :spec), fn {_kind, expr, _caller} ->
-      spec_to_signature(expr) == {name, arity}
-    end)
+    {_set, bag} = :elixir_module.data_tables(module)
+
+    filter = fn {expr, _} = object ->
+      if spec_to_signature(expr) == signature do
+        :ets.delete_object(bag, {:spec, object})
+        store_typespec(bag, :callback, object)
+        true
+      else
+        false
+      end
+    end
+
+    :lists.filter(filter, get_typespec(bag, :spec)) != []
   end
-
-  @doc """
-  Returns `true` if the current module defines a callback.
-  This function is only available for modules being compiled.
-  """
-  @spec defines_callback?(module, atom, arity) :: boolean
-  def defines_callback?(module, name, arity)
-      when is_atom(module) and is_atom(name) and arity in 0..255 do
-    Enum.any?(Module.get_attribute(module, :callback), fn {_kind, expr, _caller} ->
-      spec_to_signature(expr) == {name, arity}
-    end)
-  end
-
-  @doc false
-  def spec_to_signature({:when, _, [spec, _]}), do: type_to_signature(spec)
-  def spec_to_signature(other), do: type_to_signature(other)
-
-  @doc false
-  def type_to_signature({:::, _, [{name, _, context}, _]})
-      when is_atom(name) and is_atom(context),
-      do: {name, 0}
-
-  def type_to_signature({:::, _, [{name, _, args}, _]}) when is_atom(name),
-    do: {name, length(args)}
-
-  def type_to_signature(_), do: :error
 
   ## Typespec definition and storage
 
@@ -135,37 +105,53 @@ defmodule Kernel.Typespec do
   Invoked by `Kernel.@/1` expansion.
   """
   def deftypespec(:spec, expr, _line, _file, module, pos) do
-    Module.store_typespec(module, :spec, {:spec, expr, pos})
-  end
-
-  def deftypespec(kind, expr, line, file, module, pos) when kind in [:type, :typep, :opaque] do
-    case type_to_signature(expr) do
-      {name, arity} -> store_typedoc(line, file, module, kind, name, arity)
-      :error -> :error
-    end
-
-    Module.store_typespec(module, kind, {kind, expr, pos})
+    {_set, bag} = :elixir_module.data_tables(module)
+    store_typespec(bag, :spec, {expr, pos})
   end
 
   def deftypespec(kind, expr, line, file, module, pos) when kind in [:callback, :macrocallback] do
+    {set, bag} = :elixir_module.data_tables(module)
+
     case spec_to_signature(expr) do
       {name, arity} ->
-        store_callbackdoc(line, file, module, kind, name, arity)
+        store_callbackdoc(line, file, set, kind, name, arity)
 
       :error ->
         :error
     end
 
-    Module.store_typespec(module, kind, {kind, expr, pos})
+    store_typespec(bag, kind, {expr, pos})
   end
 
-  defp store_typedoc(line, file, module, kind, name, arity) do
-    table = :elixir_module.data_table(module)
-    {line, doc} = get_doc_info(table, :typedoc, line)
+  def deftypespec(kind, expr, line, file, module, pos) when kind in [:type, :typep, :opaque] do
+    {set, bag} = :elixir_module.data_tables(module)
+
+    case type_to_signature(expr) do
+      {name, arity} -> store_typedoc(line, file, set, kind, name, arity)
+      :error -> :error
+    end
+
+    store_typespec(bag, :type, {kind, expr, pos})
+  end
+
+  defp get_typespec(bag, key) do
+    :ets.lookup_element(bag, key, 2)
+  catch
+    :error, :badarg -> []
+  end
+
+  defp store_typespec(bag, key, value) do
+    :ets.insert(bag, {key, value})
+    :ok
+  end
+
+  # TODO: Remove duplication on doc storage.
+  defp store_typedoc(line, file, set, kind, name, arity) do
+    {line, doc} = get_doc_info(set, :typedoc, line)
 
     # TODO: Add and merge this information to doc metadata
-    _ = get_since_info(table)
-    _ = get_deprecated_info(table)
+    _ = get_since_info(set)
+    _ = get_deprecated_info(set)
 
     if kind == :typep && doc do
       warning =
@@ -174,61 +160,71 @@ defmodule Kernel.Typespec do
       :elixir_errors.warn(line, file, warning)
     end
 
-    :ets.insert(table, {{:typedoc, {name, arity}}, line, kind, doc})
+    :ets.insert(set, {{:typedoc, {name, arity}}, line, kind, doc})
   end
 
-  defp store_callbackdoc(line, _file, module, kind, name, arity) do
-    table = :elixir_module.data_table(module)
-    {line, doc} = get_doc_info(table, :doc, line)
+  defp store_callbackdoc(line, _file, set, kind, name, arity) do
+    {line, doc} = get_doc_info(set, :doc, line)
 
     # TODO: Add and merge this information to doc metadata
-    _ = get_since_info(table)
-    _ = get_deprecated_info(table)
+    _ = get_since_info(set)
+    _ = get_deprecated_info(set)
 
-    :ets.insert(table, {{:callbackdoc, {name, arity}}, line, kind, doc})
+    :ets.insert(set, {{:callbackdoc, {name, arity}}, line, kind, doc})
   end
 
-  defp get_doc_info(table, attr, line) do
-    case :ets.take(table, attr) do
+  defp get_doc_info(set, attr, line) do
+    case :ets.take(set, attr) do
       [{^attr, {line, doc}, _, _}] -> {line, doc}
       [] -> {line, nil}
     end
   end
 
-  defp get_since_info(table) do
-    :ets.take(table, :since)
+  defp get_since_info(set) do
+    :ets.take(set, :since)
   end
 
-  defp get_deprecated_info(table) do
-    :ets.take(table, :deprecated)
+  defp get_deprecated_info(set) do
+    :ets.take(set, :deprecated)
   end
+
+  defp spec_to_signature({:when, _, [spec, _]}), do: type_to_signature(spec)
+  defp spec_to_signature(other), do: type_to_signature(other)
+
+  defp type_to_signature({:::, _, [{name, _, context}, _]})
+       when is_atom(name) and is_atom(context),
+       do: {name, 0}
+
+  defp type_to_signature({:::, _, [{name, _, args}, _]}) when is_atom(name),
+    do: {name, length(args)}
+
+  defp type_to_signature(_), do: :error
 
   ## Translation from Elixir AST to typespec AST
 
   @doc false
-  def translate_typespecs_for_module(table) do
-    translate_type = fn {kind, expr, caller} -> translate_type(kind, expr, caller) end
-    translate_spec = fn {kind, expr, caller} -> translate_spec(kind, expr, caller) end
-
-    types = take_spec(table, :type) ++ take_spec(table, :typep) ++ take_spec(table, :opaque)
-    types = Enum.map(types, translate_type)
-
-    specs = Enum.map(take_spec(table, :spec), translate_spec)
-    callbacks = Enum.map(take_spec(table, :callback), translate_spec)
-    macrocallbacks = Enum.map(take_spec(table, :macrocallback), translate_spec)
-    optional_callbacks = List.flatten(take_spec(table, :optional_callbacks))
-
+  def translate_typespecs_for_module(set, bag) do
+    types = Enum.map(take_typespec(bag, :type), &translate_type/1)
+    specs = Enum.map(take_typespec(bag, :spec), &translate_spec/1)
+    callbacks = Enum.map(take_typespec(bag, :callback), &translate_spec/1)
+    macrocallbacks = Enum.map(take_typespec(bag, :macrocallback), &translate_spec/1)
+    optional_callbacks = List.flatten(take_optional(set, :optional_callbacks))
     {types, specs, callbacks, macrocallbacks, optional_callbacks}
   end
 
-  defp take_spec(table, key) do
+  # TODO: Remove this once we store accumulate attributes in the bag table.
+  defp take_optional(table, key) do
     case :ets.take(table, key) do
       [{^key, value, _, _}] -> value
       [] -> []
     end
   end
 
-  defp translate_type(kind, {:::, _, [{name, _, args}, definition]}, pos)
+  defp take_typespec(set, key) do
+    :ets.take(set, key)
+  end
+
+  defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}})
        when is_atom(name) and name != ::: do
     caller = :elixir_locals.get_cached_env(pos)
 
@@ -259,18 +255,18 @@ defmodule Kernel.Typespec do
     {kind, {name, arity}, caller.line, type, export}
   end
 
-  defp translate_type(_kind, other, pos) do
+  defp translate_type({_, {_kind, other, pos}}) do
     caller = :elixir_locals.get_cached_env(pos)
     type_spec = Macro.to_string(other)
     compile_error(caller, "invalid type specification: #{type_spec}")
   end
 
-  defp translate_spec(kind, {:when, _meta, [spec, guard]}, pos) do
+  defp translate_spec({kind, {{:when, _meta, [spec, guard]}, pos}}) do
     caller = :elixir_locals.get_cached_env(pos)
     translate_spec(kind, spec, guard, caller)
   end
 
-  defp translate_spec(kind, spec, pos) do
+  defp translate_spec({kind, {spec, pos}}) do
     caller = :elixir_locals.get_cached_env(pos)
     translate_spec(kind, spec, [], caller)
   end

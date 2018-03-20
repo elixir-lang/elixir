@@ -183,6 +183,7 @@ build(Line, File, Module, Lexical) ->
   %% * {{clauses, Tuple}, ...} (from elixir_def)
   %% * {reattach, ...} (from elixir_local)
   %% * {{local, Tuple}, ...} (from elixir_local)
+  %% * {spec, ...}, {type, ...}, {callback, ...}, {macrocallback, ...}
   %%
   DataBag = ets:new(Module, [duplicate_bag, public]),
 

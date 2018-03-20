@@ -44,7 +44,7 @@ defmodule Protocol do
 
       # Convert the spec to callback if possible,
       # otherwise generate a dummy callback
-      Protocol.__spec__?(__MODULE__, name, arity) ||
+      Module.spec_to_callback(__MODULE__, {name, arity}) ||
         @callback unquote(name)(unquote_splicing(type_args)) :: term
     end
   end
@@ -612,7 +612,7 @@ defmodule Protocol do
       # Inline struct implementation for performance
       @compile {:inline, struct_impl_for: 1}
 
-      unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+      unless Module.defines_type?(__MODULE__, {:t, 0}) do
         @type t :: term
       end
 
@@ -755,22 +755,6 @@ defmodule Protocol do
     end
 
     :ok
-  end
-
-  @doc false
-  def __spec__?(module, name, arity) do
-    signature = {name, arity}
-
-    mapper = fn {:spec, expr, pos} ->
-      if Kernel.Typespec.spec_to_signature(expr) == signature do
-        Module.store_typespec(module, :callback, {:callback, expr, pos})
-        true
-      end
-    end
-
-    specs = Module.get_attribute(module, :spec)
-    found = :lists.map(mapper, specs)
-    :lists.any(&(&1 == true), found)
   end
 
   ## Helpers

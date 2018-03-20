@@ -644,9 +644,9 @@ defmodule TypespecTest do
       test_module do
         @type my_type :: tuple
         @type my_type(a) :: [a]
-        assert Kernel.Typespec.defines_type?(__MODULE__, :my_type, 0)
-        assert Kernel.Typespec.defines_type?(__MODULE__, :my_type, 1)
-        refute Kernel.Typespec.defines_type?(__MODULE__, :my_type, 2)
+        assert Kernel.Typespec.defines_type?(__MODULE__, {:my_type, 0})
+        assert Kernel.Typespec.defines_type?(__MODULE__, {:my_type, 1})
+        refute Kernel.Typespec.defines_type?(__MODULE__, {:my_type, 2})
       end
     end
 
