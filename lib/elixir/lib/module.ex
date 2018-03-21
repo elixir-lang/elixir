@@ -1071,7 +1071,7 @@ defmodule Module do
   """
   @spec put_attribute(module, atom, term) :: :ok
   def put_attribute(module, key, value) when is_atom(module) and is_atom(key) do
-    put_attribute(module, key, value, nil, nil)
+    put_attribute(module, key, value, nil)
   end
 
   @doc """
@@ -1618,7 +1618,7 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def get_attribute(module, key, stack) when is_atom(key) do
+  def get_attribute(module, key, line) when is_atom(key) do
     assert_not_compiled!(:get_attribute, module)
     {set, bag} = data_tables_for(module)
 
@@ -1626,20 +1626,20 @@ defmodule Module do
       [{_, _, :accumulate}] ->
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
 
-      [{_, val, :read}] ->
+      [{_, val, nil}] ->
         val
 
       [{_, val, _}] ->
-        :ets.update_element(set, key, {3, :read})
+        :ets.update_element(set, key, {3, nil})
         val
 
-      [] when is_list(stack) ->
+      [] when is_integer(line) ->
         # TODO: Consider raising instead of warning on v2.0 as it usually cascades
         error_message =
           "undefined module attribute @#{key}, " <>
             "please remove access to @#{key} or explicitly set it before access"
 
-        IO.warn(error_message, stack)
+        IO.warn(error_message, attribute_stack(module, line))
         nil
 
       [] ->
@@ -1650,42 +1650,47 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def put_attribute(module, key, value, unread_line, stack) when is_atom(key) do
+  def put_attribute(module, key, value, line) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     {set, bag} = data_tables_for(module)
     value = preprocess_attribute(key, value)
+    put_attribute(module, key, value, line, set, bag)
+    :ok
+  end
 
-    # TODO: Remove on Elixir v2.0
-    case value do
-      {:parse_transform, _} when key == :compile and is_list(stack) ->
-        error_message =
-          "@compile {:parse_transform, _} is deprecated. " <>
-            "Elixir will no longer support Erlang-based transforms in future versions"
-
-        IO.warn(error_message, stack)
-
+  defp put_attribute(module, key, value, line, set, _bag)
+       when key in [:doc, :typedoc, :moduledoc, :impl, :since, :deprecated] do
+    try do
+      :ets.lookup_element(set, key, 3)
+    catch
+      :error, :badarg -> :ok
+    else
+      unread_line when is_integer(line) and is_integer(unread_line) ->
+        message = "redefining @#{key} attribute previously set at line #{unread_line}"
+        IO.warn(message, attribute_stack(module, line))
       _ ->
         :ok
     end
 
-    case :ets.lookup(set, key) do
-      [{_, _, :accumulate}] ->
-        :ets.insert(bag, {{:accumulate, key}, value})
+    :ets.insert(set, {key, value, line})
+  end
 
-      [{_, {line, <<_::binary>>}, _unread_line}]
-      when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
-        IO.warn("redefining @#{key} attribute previously set at line #{line}", stack)
-        :ets.insert(set, {key, value, unread_line})
-
-      [_] ->
-        :ets.insert(set, {key, value, unread_line})
-
-      [] ->
-        :ets.insert(set, {key, value, unread_line})
+  defp put_attribute(_module, key, value, line, set, bag) do
+    try do
+      :ets.lookup_element(set, key, 3)
+    catch
+      :error, :badarg ->
+        :ets.insert(set, {key, value, line})
         :ets.insert(bag, {:attributes, key})
+    else
+      :accumulate -> :ets.insert(bag, {{:accumulate, key}, value})
+      _ -> :ets.insert(set, {key, value, line})
     end
+  end
 
-    :ok
+  defp attribute_stack(module, line) do
+    file = String.to_charlist(Path.relative_to_cwd(:elixir_module.file(module)))
+    [{module, :__MODULE__, 0, file: file, line: line}]
   end
 
   ## Helpers

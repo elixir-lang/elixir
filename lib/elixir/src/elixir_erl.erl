@@ -456,9 +456,14 @@ attributes_form(Line, Attributes, Forms) ->
 % Loading forms
 
 load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chunks) ->
+  warn_on_parse_transforms(Map, Opts),
   {ExtraChunks, CompileOpts} = extra_chunks(Chunks, debug_opts(Map, Specs, Opts)),
   {_, Binary} = elixir_erl_compiler:forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
   add_beam_chunks(Binary, ExtraChunks).
+
+%% TODO: Make this an error and skip parse transform processing on 2.0.
+warn_on_parse_transforms(Map, Opts) ->
+  [form_warn(Map, {parse_transform, M}) || {parse_transform, M} <- Opts].
 
 debug_opts(Map, Specs, Opts) ->
   case {supports_debug_tuple(), include_debug_opts(Opts)} of
@@ -550,6 +555,12 @@ get_type_docs(Set, Types) ->
 form_error(#{line := Line, file := File}, Error) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, Error).
 
+form_warn(#{line := Line, file := File}, Error) ->
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE, Error).
+
+format_error({parse_transform, Module}) ->
+  io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir will no longer support "
+                "Erlang-based transforms in future versions", ['Elixir.Kernel':inspect(Module)]);
 format_error({ill_defined_optional_callback, Callback}) ->
   io_lib:format("invalid optional callback ~ts. @optional_callbacks expects a "
                 "keyword list of callback names and arities", ['Elixir.Kernel':inspect(Callback)]);

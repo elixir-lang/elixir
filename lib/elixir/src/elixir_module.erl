@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([data_tables/1, is_open/1, delete_definition_attributes/6,
+-export([file/1, data_tables/1, is_open/1, delete_definition_attributes/6,
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2]).
 -include("elixir.hrl").
@@ -20,6 +20,9 @@ put_compiler_modules(M) when is_list(M) ->
   erlang:put(elixir_compiler_modules, M).
 
 %% Table functions
+
+file(Module) ->
+  ets:lookup_element(elixir_modules, Module, 4).
 
 data_tables(Module) ->
   ets:lookup_element(elixir_modules, Module, 2).
@@ -190,7 +193,7 @@ build(Line, File, Module, Lexical) ->
 
   ets:insert(DataSet, [
     % {Key, Value, ReadOrUnreadLine}
-    {moduledoc, nil, read},
+    {moduledoc, nil, nil},
 
     % {Key, Value, accumulate}
     {after_compile, [], accumulate},
@@ -292,14 +295,12 @@ lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
   end.
 
 warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
-  Attrs = bag_lookup_element(DataBag, attributes, 2) -- [moduledoc | PersistedAttrs],
+  StoredAttrs = bag_lookup_element(DataBag, attributes, 2),
+  Attrs = [doc, typedoc, impl, since, deprecated | StoredAttrs -- PersistedAttrs],
+  Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- lists:usort(Attrs)],
 
-  [case ets:lookup(DataSet, Key) of
-     [{_, _, Line}] when is_integer(Line) ->
-       elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key});
-     _ ->
-       ok
-   end || Key <- lists:usort(Attrs)].
+  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
+   || [Key, Line] <- ets:select(DataSet, Query)].
 
 get_deprecated(Bag) ->
   lists:usort(bag_lookup_element(Bag, deprecated, 2)).
