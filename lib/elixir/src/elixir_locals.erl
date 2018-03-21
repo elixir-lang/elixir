@@ -54,24 +54,25 @@ if_tracker(Module, Default, Callback) ->
 %% CACHING
 
 cache_env(#{line := Line, module := Module} = E) ->
-  Table = elixir_module:data_table(Module),
+  {Set, _} = elixir_module:data_tables(Module),
   Cache = elixir_env:reset_vars(E#{line := nil}),
 
   Pos =
-    case ets:lookup(Table, ?cache) of
+    case ets:lookup(Set, ?cache) of
       [{_, Key, Cache}] ->
         Key;
       [{_, PrevKey, _}] ->
         Key = PrevKey + 1,
-        ets:insert(Table, {{cache_env, Key}, Cache}),
-        ets:insert(Table, {?cache, Key, Cache}),
+        ets:insert(Set, {{cache_env, Key}, Cache}),
+        ets:insert(Set, {?cache, Key, Cache}),
         Key
     end,
 
   {Module, {Line, Pos}}.
 
 get_cached_env({Module, {Line, Pos}}) ->
-  (ets:lookup_element(elixir_module:data_table(Module), {cache_env, Pos}, 2))#{line := Line};
+  {Set, _} = elixir_module:data_tables(Module),
+  (ets:lookup_element(Set, {cache_env, Pos}, 2))#{line := Line};
 get_cached_env(Env) ->
   Env.
 

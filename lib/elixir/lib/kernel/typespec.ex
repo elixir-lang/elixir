@@ -166,13 +166,12 @@ defmodule Kernel.Typespec do
     # TODO: Add and merge this information to doc metadata
     _ = get_since_info(set)
     _ = get_deprecated_info(set)
-
     :ets.insert(set, {{kind, {name, arity}}, line, doc})
   end
 
   defp get_doc_info(set, attr, line) do
     case :ets.take(set, attr) do
-      [{^attr, {line, doc}, _, _}] -> {line, doc}
+      [{^attr, {line, doc}, _}] -> {line, doc}
       [] -> {line, nil}
     end
   end
@@ -200,25 +199,17 @@ defmodule Kernel.Typespec do
   ## Translation from Elixir AST to typespec AST
 
   @doc false
-  def translate_typespecs_for_module(set, bag) do
+  def translate_typespecs_for_module(_set, bag) do
     types = Enum.map(take_typespec(bag, :type), &translate_type/1)
     specs = Enum.map(take_typespec(bag, :spec), &translate_spec/1)
     callbacks = Enum.map(take_typespec(bag, :callback), &translate_spec/1)
     macrocallbacks = Enum.map(take_typespec(bag, :macrocallback), &translate_spec/1)
-    optional_callbacks = List.flatten(take_optional(set, :optional_callbacks))
+    optional_callbacks = List.flatten(get_typespec(bag, {:accumulate, :optional_callbacks}))
     {types, specs, callbacks, macrocallbacks, optional_callbacks}
   end
 
-  # TODO: Remove this once we store accumulate attributes in the bag table.
-  defp take_optional(table, key) do
-    case :ets.take(table, key) do
-      [{^key, value, _, _}] -> value
-      [] -> []
-    end
-  end
-
-  defp take_typespec(set, key) do
-    :ets.take(set, key)
+  defp take_typespec(bag, key) do
+    :ets.take(bag, key)
   end
 
   defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}})

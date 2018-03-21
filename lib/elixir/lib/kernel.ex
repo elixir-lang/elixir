@@ -2733,51 +2733,29 @@ defmodule Kernel do
         warn_message = "@behavior attribute is not supported, please use @behaviour instead"
         :elixir_errors.warn(env.line, env.file, warn_message)
 
-      # TODO: move parse transforms deprecation to elixir_erl on Elixir v1.8.
-      # This will allow us to remove the clause below and simplify put_attribute.
-      name == :compile ->
-        {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
-
-        quote do
-          Module.put_attribute(
-            __MODULE__,
-            unquote(name),
-            unquote(arg),
-            unquote(line),
-            unquote(stack)
-          )
-        end
-
       :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
-        {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
         arg = {env.line, arg}
 
         quote do
-          Module.put_attribute(
-            __MODULE__,
-            unquote(name),
-            unquote(arg),
-            unquote(line),
-            unquote(stack)
-          )
+          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(line))
         end
 
       true ->
         quote do
-          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(line), nil)
+          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(line))
         end
     end
   end
 
   # @attribute or @attribute()
   defp do_at(args, _meta, name, function?, env) when is_atom(args) or args == [] do
-    stack = env_stacktrace(env)
+    line = env.line
     doc_attr? = :lists.member(name, [:moduledoc, :typedoc, :doc])
 
     case function? do
       true ->
         value =
-          case Module.get_attribute(env.module, name, stack) do
+          case Module.get_attribute(env.module, name, line) do
             {_, doc} when doc_attr? -> doc
             other -> other
           end
@@ -2794,20 +2772,16 @@ defmodule Kernel do
         end
 
       false when doc_attr? ->
-        {escaped, _} = :elixir_quote.escape(stack, false)
-
         quote do
-          case Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)) do
+          case Module.get_attribute(__MODULE__, unquote(name), unquote(line)) do
             {_, doc} -> doc
             other -> other
           end
         end
 
       false ->
-        {escaped, _} = :elixir_quote.escape(stack, false)
-
         quote do
-          Module.get_attribute(__MODULE__, unquote(name), unquote(escaped))
+          Module.get_attribute(__MODULE__, unquote(name), unquote(line))
         end
     end
   end
@@ -5211,13 +5185,6 @@ defmodule Kernel do
     case env.function do
       nil -> :ok
       _ -> raise ArgumentError, "cannot invoke #{fun}/#{arity} inside function/macro"
-    end
-  end
-
-  defp env_stacktrace(env) do
-    case bootstrapped?(Path) do
-      true -> Macro.Env.stacktrace(env)
-      false -> []
     end
   end
 
