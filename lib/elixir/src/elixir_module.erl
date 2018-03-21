@@ -5,7 +5,6 @@
 -include("elixir.hrl").
 
 -define(lexical_attr, {elixir, lexical_tracker}).
--define(persisted_attr, {elixir, persisted_attributes}).
 
 %% Stores modules currently being defined by the compiler
 
@@ -75,16 +74,16 @@ compile(Line, Module, Block, Vars, E) ->
 
   try
     put_compiler_modules([Module | CompilerModules]),
-    {Result, NE, OverridablePairs} = eval_form(Line, Module, DataSet, Block, Vars, E),
+    {Result, NE, OverridablePairs} = eval_form(Line, Module, DataBag, Block, Vars, E),
 
-    PersistedAttributes = ets:lookup_element(DataSet, ?persisted_attr, 2),
-    Attributes = attributes(DataSet, PersistedAttributes),
+    PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
+    Attributes = attributes(DataSet, DataBag, PersistedAttributes),
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
 
     (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions, OverridablePairs),
 
-    CompileOpts = lists:flatten(ets:lookup_element(DataSet, compile, 2)),
+    CompileOpts = lists:flatten(bag_lookup_element(DataBag, {accumulate, compile}, 2)),
 
     ModuleMap = #{
       module => Module,
@@ -100,7 +99,7 @@ compile(Line, Module, Block, Vars, E) ->
     Binary = elixir_erl:compile(ModuleMap),
     warn_unused_attributes(File, DataSet, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
-    eval_callbacks(Line, DataSet, after_compile, [NE, Binary], NE),
+    eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     make_module_available(Module, Binary),
     {module, Module, Binary, Result}
   catch
@@ -165,6 +164,7 @@ build(Line, File, Module, Lexical) ->
   %%
   %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
   %% * {{elixir, ...}, ...}
+  %% * {{cache, ...}, ...}
   %% * {{doc, Tuple}, ...}
   %% * {{type, Tuple}, ...}, {{opaque, Tuple}, ...}
   %% * {{callback, Tuple}, ...}, {{macrocallback, Tuple}, ...}
@@ -175,9 +175,10 @@ build(Line, File, Module, Lexical) ->
 
   %% In the bag table we store:
   %%
-  %% * {{attribute, Attribute}, Value}
+  %% * {{accumulate, Attribute}, Value}
   %% * {impls, ...}
   %% * {deprecated, ...}
+  %% * {persisted_attributes, ...}
   %% * {defs, ...} (from elixir_def)
   %% * {{default, Name}, ...} (from elixir_def)
   %% * {{clauses, Tuple}, ...} (from elixir_def)
@@ -187,38 +188,35 @@ build(Line, File, Module, Lexical) ->
   %%
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
-  OnDefinition =
-    case elixir_config:get(bootstrap) of
-      false -> [{'Elixir.Module', compile_definition_attributes}];
-      _ -> [{elixir_module, delete_definition_attributes}]
-    end,
-
   ets:insert(DataSet, [
-    % {Key, Value, Accumulate?, UnreadLine}
-    {after_compile, [], true, nil},
-    {before_compile, [], true, nil},
-    {behaviour, [], true, nil},
-    {compile, [], true, nil},
-    {derive, [], true, nil},
-    {dialyzer, [], true, nil},
-    {external_resource, [], true, nil},
+    % {Key, Value, ReadOrUnreadLine}
     {moduledoc, nil, false, nil},
-    {on_definition, OnDefinition, true, nil},
-    {on_load, [], true, nil},
 
-    % Types
-    {callback, [], true, nil},
-    {opaque, [], true, nil},
-    {optional_callbacks, [], true, nil},
-    {macrocallback, [], true, nil},
-    {spec, [], true, nil},
-    {type, [], true, nil},
-    {typep, [], true, nil}
+    % {Key, Value, accumulate}
+    {after_compile, [], accumulate},
+    {before_compile, [], accumulate},
+    {behaviour, [], accumulate},
+    {compile, [], accumulate},
+    {derive, [], accumulate},
+    {dialyzer, [], accumulate},
+    {external_resource, [], accumulate},
+    {on_definition, [], accumulate},
+    {on_load, [], accumulate},
+    {optional_callbacks, [], accumulate},
+
+    % Others
+    {?lexical_attr, Lexical}
   ]),
 
   Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],
-  ets:insert(DataSet, {?persisted_attr, Persisted}),
-  ets:insert(DataSet, {?lexical_attr, Lexical}),
+  ets:insert(DataBag, [{persisted_attributes, Attr} || Attr <- Persisted]),
+
+  OnDefinition =
+    case elixir_config:get(bootstrap) of
+      false -> {'Elixir.Module', compile_definition_attributes};
+      _ -> {elixir_module, delete_definition_attributes}
+    end,
+  ets:insert(DataBag, {{accumulate, on_definition}, OnDefinition}),
 
   %% Setup definition related modules
   Tables = {DataSet, DataBag},
@@ -242,18 +240,18 @@ build(Line, File, Module, Lexical) ->
 
 %% Handles module and callback evaluations.
 
-eval_form(Line, Module, DataSet, Block, Vars, E) ->
+eval_form(Line, Module, DataBag, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
   Pairs1 = elixir_overridable:store_pending(Module),
   EV = elixir_env:linify({Line, elixir_env:reset_vars(EE)}),
-  EC = eval_callbacks(Line, DataSet, before_compile, [EV], EV),
+  EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
   Pairs2 = elixir_overridable:store_pending(Module),
   OverridablePairs = Pairs1 ++ Pairs2,
   {Value, EC, OverridablePairs}.
 
-eval_callbacks(Line, DataSet, Name, Args, E) ->
-  Callbacks = ets:lookup_element(DataSet, Name, 2),
-  lists:foldr(fun({M, F}, Acc) ->
+eval_callbacks(Line, DataBag, Name, Args, E) ->
+  Callbacks = bag_lookup_element(DataBag, {accumulate, Name}, 2),
+  lists:foldl(fun({M, F}, Acc) ->
     expand_callback(Line, M, F, Args, elixir_env:reset_vars(Acc),
                     fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
@@ -283,19 +281,19 @@ expand_callback(Line, M, F, Args, E, Fun) ->
 
 %% Add attributes handling to the form
 
-attributes(DataSet, PersistedAttributes) ->
-  [{Key, Value} || Key <- PersistedAttributes, Value <- lookup_attribute(DataSet, Key)].
+attributes(DataSet, DataBag, PersistedAttributes) ->
+  [{Key, Value} || Key <- PersistedAttributes, Value <- lookup_attribute(DataSet, DataBag, Key)].
 
-lookup_attribute(DataSet, Key) when is_atom(Key) ->
+lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
   case ets:lookup(DataSet, Key) of
+    [{Key, _, accumulate}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
     [{Key, Values, true, _}] -> Values;
     [{Key, Value, false, _}] -> [Value];
     [] -> []
   end.
 
 warn_unused_attributes(File, DataSet, PersistedAttrs) ->
-  ReservedAttrs = [after_compile, before_compile, moduledoc,
-                   on_definition, optional_callbacks | PersistedAttrs],
+  ReservedAttrs = [moduledoc | PersistedAttrs],
   Keys = ets:select(DataSet, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
    [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].

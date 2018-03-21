@@ -216,8 +216,9 @@ def_to_clauses(Kind, Meta, Args, Guards, Body, E) ->
   end.
 
 run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
-  Callbacks = ets:lookup_element(elixir_module:data_table(Module), on_definition, 2),
-  _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- Callbacks],
+  {_, Bag} = elixir_module:data_tables(Module),
+  Callbacks = ets:lookup_element(Bag, {accumulate, on_definition}, 2),
+  _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- lists:reverse(Callbacks)],
   ok.
 
 store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses) ->

@@ -985,7 +985,7 @@ defmodule Module do
   end
 
   defp check_impls_for_overridable(module, tuples) do
-    {set, bag} = data_tables_for(module)
+    {_, bag} = data_tables_for(module)
     impls = bag_lookup_element(bag, :impls, 2)
 
     overridable_impls = :lists.filter(fn {pair, _, _, _, _, _} -> pair in tuples end, impls)
@@ -995,7 +995,7 @@ defmodule Module do
         :ets.delete_object(bag, {:impls, impl})
       end
 
-      behaviours = :ets.lookup_element(set, :behaviour, 2)
+      behaviours = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
 
       callbacks =
         for behaviour <- behaviours,
@@ -1010,7 +1010,8 @@ defmodule Module do
   end
 
   defp check_module_for_overridable(module, behaviour) do
-    behaviour_definitions = :ets.lookup_element(data_table_for(module), :behaviour, 2)
+    {_, bag} = data_tables_for(module)
+    behaviour_definitions = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
 
     cond do
       not Code.ensure_compiled?(behaviour) ->
@@ -1123,20 +1124,27 @@ defmodule Module do
   @spec delete_attribute(module, atom) :: term
   def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
-    table = data_table_for(module)
+    {set, bag} = data_tables_for(module)
 
-    case :ets.take(table, key) do
+    case :ets.lookup(set, key) do
+      [{_, _, :accumulate}] ->
+        reverse_values(:ets.take(bag, {:accumulate, key}), [])
+
       [{_, value, _accumulated? = true, _}] ->
-        :ets.insert(table, {key, [], true, nil})
+        :ets.insert(set, {key, [], true, nil})
         value
 
       [{_, value, _, _}] ->
+        :ets.delete(set, key)
         value
 
       [] ->
         nil
     end
   end
+
+  defp reverse_values([{_, value} | tail], acc), do: reverse_values(tail, [value | acc])
+  defp reverse_values([], acc), do: acc
 
   @doc """
   Registers an attribute.
@@ -1174,16 +1182,15 @@ defmodule Module do
   def register_attribute(module, attribute, options)
       when is_atom(module) and is_atom(attribute) and is_list(options) do
     assert_not_compiled!(:register_attribute, module)
-    table = data_table_for(module)
+    {set, bag} = data_tables_for(module)
 
     if Keyword.get(options, :persist) do
-      attributes = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
-      :ets.insert(table, {{:elixir, :persisted_attributes}, [attribute | attributes]})
+      :ets.insert(bag, {:persisted_attributes, attribute})
     end
 
     if Keyword.get(options, :accumulate) do
-      :ets.insert_new(table, {attribute, [], _accumulated? = true, _unread_line = nil}) ||
-        :ets.update_element(table, attribute, {3, true})
+      :ets.insert_new(set, {attribute, [], _accumulated? = true, _unread_line = nil}) ||
+        :ets.update_element(set, attribute, {3, true})
     end
 
     :ok
@@ -1233,8 +1240,8 @@ defmodule Module do
     if kind in [:defp, :defmacrop, :typep] do
       if doc, do: {:error, :private_doc}, else: :ok
     else
-      table = data_table_for(module)
-      compile_doc(table, line, kind, function_tuple, signature, doc, __ENV__, false)
+      {set, _bag} = data_tables_for(module)
+      compile_doc(set, line, kind, function_tuple, signature, doc, __ENV__, false)
       :ok
     end
   end
@@ -1330,8 +1337,8 @@ defmodule Module do
   defp args_count([], total, defaults), do: {total, defaults}
 
   @doc false
-  def check_behaviours_and_impls(env, set, bag, all_definitions, overridable_pairs) do
-    behaviours = :ets.lookup_element(set, :behaviour, 2)
+  def check_behaviours_and_impls(env, _set, bag, all_definitions, overridable_pairs) do
+    behaviours = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
     impls = bag_lookup_element(bag, :impls, 2)
     callbacks = check_behaviours(env, behaviours)
 
@@ -1394,7 +1401,7 @@ defmodule Module do
       %{^callback => {_kind, conflict, _optional?}} ->
         message =
           "conflicting behaviours found. #{format_definition(kind, callback)} is required by " <>
-            "#{inspect(behaviour)} and #{inspect(conflict)} (in module #{inspect(env.module)})"
+            "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(env.module)})"
 
         :elixir_errors.warn(env.line, env.file, message)
 
@@ -1617,14 +1624,17 @@ defmodule Module do
   # This function is private and must be used only internally.
   def get_attribute(module, key, stack) when is_atom(key) do
     assert_not_compiled!(:get_attribute, module)
-    table = data_table_for(module)
+    {set, bag} = data_tables_for(module)
 
-    case :ets.lookup(table, key) do
+    case :ets.lookup(set, key) do
+      [{^key, _, :accumulate}] ->
+        :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
+
       [{^key, val, _, nil}] ->
         val
 
       [{^key, val, _, _}] ->
-        :ets.update_element(table, key, {4, nil})
+        :ets.update_element(set, key, {4, nil})
         val
 
       [] when is_list(stack) ->
@@ -1646,7 +1656,7 @@ defmodule Module do
   # This function is private and must be used only internally.
   def put_attribute(module, key, value, unread_line, stack) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
-    table = data_table_for(module)
+    {set, bag} = data_tables_for(module)
     value = preprocess_attribute(key, value)
 
     # TODO: Remove on Elixir v2.0
@@ -1662,17 +1672,20 @@ defmodule Module do
         :ok
     end
 
-    case :ets.lookup(table, key) do
+    case :ets.lookup(set, key) do
+      [{^key, _, :accumulate}] ->
+        :ets.insert(bag, {{:accumulate, key}, value})
+
       [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
       when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
         IO.warn("redefining @#{key} attribute previously set at line #{line}", stack)
-        :ets.insert(table, {key, value, accumulated?, unread_line})
+        :ets.insert(set, {key, value, accumulated?, unread_line})
 
       [{^key, current, _accumulated? = true, _read?}] ->
-        :ets.insert(table, {key, [value | current], true, unread_line})
+        :ets.insert(set, {key, [value | current], true, unread_line})
 
       _ ->
-        :ets.insert(table, {key, value, false, unread_line})
+        :ets.insert(set, {key, value, false, unread_line})
     end
 
     :ok
@@ -1795,10 +1808,6 @@ defmodule Module do
       [] ->
         {env.line, nil}
     end
-  end
-
-  defp data_table_for(module) do
-    :elixir_module.data_table(module)
   end
 
   defp data_tables_for(module) do
