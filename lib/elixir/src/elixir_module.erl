@@ -297,8 +297,7 @@ lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
 warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
   StoredAttrs = bag_lookup_element(DataBag, attributes, 2),
   Attrs = [doc, typedoc, impl, since, deprecated | StoredAttrs -- PersistedAttrs],
-  Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- lists:usort(Attrs)],
-
+  Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
    || [Key, Line] <- ets:select(DataSet, Query)].
 
