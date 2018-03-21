@@ -1658,6 +1658,7 @@ defmodule Module do
     :ok
   end
 
+  # This is the same list of attributes as in :elixir_module.
   defp put_attribute(module, key, value, line, set, _bag)
        when key in [:doc, :typedoc, :moduledoc, :impl, :since, :deprecated] do
     try do

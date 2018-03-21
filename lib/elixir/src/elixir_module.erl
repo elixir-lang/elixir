@@ -296,6 +296,8 @@ lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
 
 warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
   StoredAttrs = bag_lookup_element(DataBag, attributes, 2),
+  %% This is the same list as in Module.put_attribute
+  %% without moduledoc which are never warned on.
   Attrs = [doc, typedoc, impl, since, deprecated | StoredAttrs -- PersistedAttrs],
   Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
