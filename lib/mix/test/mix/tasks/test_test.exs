@@ -175,11 +175,11 @@ defmodule Mix.Tasks.TestTest do
     in_fixture "test_stale", fn ->
       port = mix_port(~w[test --stale --listen-on-stdin])
 
-      assert receive_until_match(port, "seed", []) =~ "2 tests"
+      assert receive_until_match(port, "seed", "") =~ "2 tests"
 
       Port.command(port, "\n")
 
-      assert receive_until_match(port, "No stale tests", []) =~ "Restarting..."
+      assert receive_until_match(port, "No stale tests", "") =~ "Restarting..."
     end
   end
 
@@ -193,7 +193,7 @@ defmodule Mix.Tasks.TestTest do
 
       port = mix_port(~w[test --listen-on-stdin])
 
-      assert receive_until_match(port, "error", []) =~ "lib/b.ex"
+      assert receive_until_match(port, "error", "") =~ "lib/b.ex"
 
       File.write!("lib/b.ex", """
       defmodule B do
@@ -203,7 +203,7 @@ defmodule Mix.Tasks.TestTest do
 
       Port.command(port, "\n")
 
-      assert receive_until_match(port, "seed", []) =~ "2 tests"
+      assert receive_until_match(port, "seed", "") =~ "2 tests"
 
       File.write!("test/b_test_stale.exs", """
       defmodule BTest do
@@ -218,7 +218,7 @@ defmodule Mix.Tasks.TestTest do
       Port.command(port, "\n")
 
       message = "undefined function error_not_a_var"
-      assert receive_until_match(port, message, []) =~ "test/b_test_stale.exs"
+      assert receive_until_match(port, message, "") =~ "test/b_test_stale.exs"
 
       File.write!("test/b_test_stale.exs", """
       defmodule BTest do
@@ -232,17 +232,17 @@ defmodule Mix.Tasks.TestTest do
 
       Port.command(port, "\n")
 
-      assert receive_until_match(port, "seed", []) =~ "2 tests"
+      assert receive_until_match(port, "seed", "") =~ "2 tests"
     end
   end
 
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
-        acc = [acc | output]
+        acc = acc <> output
 
         if output =~ expected do
-          IO.iodata_to_binary(acc)
+          acc
         else
           receive_until_match(port, expected, acc)
         end
