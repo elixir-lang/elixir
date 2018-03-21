@@ -450,10 +450,8 @@ validate_spec_for_existing_function(ModuleMap, NameAndArity, Line) ->
 % Attributes
 
 attributes_form(Line, Attributes, Forms) ->
-  Fun = fun({Key, Value}, Acc) ->
-    [{attribute, Line, Key, Value} | Acc]
-  end,
-  lists:foldl(Fun, Forms, Attributes).
+  Fun = fun({Key, Value}, Acc) -> [{attribute, Line, Key, Value} | Acc] end,
+  lists:foldr(Fun, Forms, Attributes).
 
 % Loading forms
 

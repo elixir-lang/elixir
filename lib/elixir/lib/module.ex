@@ -1130,11 +1130,7 @@ defmodule Module do
       [{_, _, :accumulate}] ->
         reverse_values(:ets.take(bag, {:accumulate, key}), [])
 
-      [{_, value, _accumulated? = true, _}] ->
-        :ets.insert(set, {key, [], true, nil})
-        value
-
-      [{_, value, _, _}] ->
+      [{_, value, _}] ->
         :ets.delete(set, key)
         value
 
@@ -1189,8 +1185,8 @@ defmodule Module do
     end
 
     if Keyword.get(options, :accumulate) do
-      :ets.insert_new(set, {attribute, [], _accumulated? = true, _unread_line = nil}) ||
-        :ets.update_element(set, attribute, {3, true})
+      :ets.insert_new(set, {attribute, [], :accumulate}) ||
+        :ets.update_element(set, attribute, {3, :accumulate})
     end
 
     :ok
@@ -1295,14 +1291,14 @@ defmodule Module do
 
   defp compile_since(table) do
     case :ets.take(table, :since) do
-      [{:since, since, _, _}] when is_binary(since) -> since
+      [{:since, since, _}] when is_binary(since) -> since
       _ -> nil
     end
   end
 
   defp compile_deprecated(set, bag, pair) do
     case :ets.take(set, :deprecated) do
-      [{:deprecated, reason, _, _}] when is_binary(reason) ->
+      [{:deprecated, reason, _}] when is_binary(reason) ->
         :ets.insert(bag, {:deprecated, {pair, reason}})
         reason
 
@@ -1315,7 +1311,7 @@ defmodule Module do
     %{line: line, file: file} = env
 
     case :ets.take(set, :impl) do
-      [{:impl, value, _, _}] ->
+      [{:impl, value, _}] ->
         {total, defaults} = args_count(args, 0, 0)
         impl = {{name, total}, defaults, kind, line, file, value}
         :ets.insert(bag, {:impls, impl})
@@ -1630,11 +1626,11 @@ defmodule Module do
       [{^key, _, :accumulate}] ->
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
 
-      [{^key, val, _, nil}] ->
+      [{^key, val, :read}] ->
         val
 
-      [{^key, val, _, _}] ->
-        :ets.update_element(set, key, {4, nil})
+      [{^key, val, _}] ->
+        :ets.update_element(set, key, {3, :read})
         val
 
       [] when is_list(stack) ->
@@ -1676,16 +1672,13 @@ defmodule Module do
       [{^key, _, :accumulate}] ->
         :ets.insert(bag, {{:accumulate, key}, value})
 
-      [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
+      [{^key, {line, <<_::binary>>}, _unread_line}]
       when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
         IO.warn("redefining @#{key} attribute previously set at line #{line}", stack)
-        :ets.insert(set, {key, value, accumulated?, unread_line})
-
-      [{^key, current, _accumulated? = true, _read?}] ->
-        :ets.insert(set, {key, [value | current], true, unread_line})
+        :ets.insert(set, {key, value, unread_line})
 
       _ ->
-        :ets.insert(set, {key, value, false, unread_line})
+        :ets.insert(set, {key, value, unread_line})
     end
 
     :ok
@@ -1802,7 +1795,7 @@ defmodule Module do
 
   defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
-      [{:doc, {_, _} = pair, _, _}] ->
+      [{:doc, {_, _} = pair, _}] ->
         pair
 
       [] ->

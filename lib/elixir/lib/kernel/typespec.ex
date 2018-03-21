@@ -166,13 +166,12 @@ defmodule Kernel.Typespec do
     # TODO: Add and merge this information to doc metadata
     _ = get_since_info(set)
     _ = get_deprecated_info(set)
-
     :ets.insert(set, {{kind, {name, arity}}, line, doc})
   end
 
   defp get_doc_info(set, attr, line) do
     case :ets.take(set, attr) do
-      [{^attr, {line, doc}, _, _}] -> {line, doc}
+      [{^attr, {line, doc}, _}] -> {line, doc}
       [] -> {line, nil}
     end
   end
@@ -209,8 +208,8 @@ defmodule Kernel.Typespec do
     {types, specs, callbacks, macrocallbacks, optional_callbacks}
   end
 
-  defp take_typespec(set, key) do
-    :ets.take(set, key)
+  defp take_typespec(bag, key) do
+    :ets.take(bag, key)
   end
 
   defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}})

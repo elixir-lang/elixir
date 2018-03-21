@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([data_table/1, data_tables/1, is_open/1, delete_definition_attributes/6,
+-export([data_tables/1, is_open/1, delete_definition_attributes/6,
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2]).
 -include("elixir.hrl").
@@ -21,27 +21,26 @@ put_compiler_modules(M) when is_list(M) ->
 
 %% Table functions
 
-data_table(Module) ->
-  ets:lookup_element(elixir_modules, Module, 2).
-
 data_tables(Module) ->
-  ets:lookup_element(elixir_modules, Module, 3).
+  ets:lookup_element(elixir_modules, Module, 2).
 
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
 
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
-  DataSet = data_table(Module),
+  {DataSet, _} = data_tables(Module),
   ets:delete(DataSet, doc),
   ets:delete(DataSet, since),
   ets:delete(DataSet, deprecated),
   ets:delete(DataSet, impl).
 
 write_cache(Module, Key, Value) ->
-  ets:insert(data_table(Module), {{cache, Key}, Value}).
+  {DataSet, _} = data_tables(Module),
+  ets:insert(DataSet, {{cache, Key}, Value}).
 
 read_cache(Module, Key) ->
-  ets:lookup_element(data_table(Module), {cache, Key}, 2).
+  {DataSet, _} = data_tables(Module),
+  ets:lookup_element(DataSet, {cache, Key}, 2).
 
 %% Compilation hook
 
@@ -190,7 +189,7 @@ build(Line, File, Module, Lexical) ->
 
   ets:insert(DataSet, [
     % {Key, Value, ReadOrUnreadLine}
-    {moduledoc, nil, false, nil},
+    {moduledoc, nil, read},
 
     % {Key, Value, accumulate}
     {after_compile, [], accumulate},
@@ -223,13 +222,13 @@ build(Line, File, Module, Lexical) ->
   elixir_def:setup(Tables),
   elixir_locals:setup(Tables),
   elixir_overridable:setup(Tables),
-  Tuple = {Module, DataSet, Tables, Line, File},
+  Tuple = {Module, Tables, Line, File},
 
   Ref =
     case elixir_code_server:call({defmodule, Module, self(), Tuple}) of
       {ok, ModuleRef} ->
         ModuleRef;
-      {error, {Module, _, _, OldLine, OldFile}} ->
+      {error, {Module, _, OldLine, OldFile}} ->
         ets:delete(DataSet),
         ets:delete(DataBag),
         Error = {module_in_definition, Module, OldFile, OldLine},
@@ -287,14 +286,14 @@ attributes(DataSet, DataBag, PersistedAttributes) ->
 lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
   case ets:lookup(DataSet, Key) of
     [{Key, _, accumulate}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
-    [{Key, Values, true, _}] -> Values;
-    [{Key, Value, false, _}] -> [Value];
+    [{Key, Value, _}] -> [Value];
     [] -> []
   end.
 
 warn_unused_attributes(File, DataSet, PersistedAttrs) ->
+  %% TODO: Maybe skip this table scan.
   ReservedAttrs = [moduledoc | PersistedAttrs],
-  Keys = ets:select(DataSet, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
+  Keys = ets:select(DataSet, [{{'$1', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
    [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
 
