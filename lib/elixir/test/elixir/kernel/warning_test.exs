@@ -1006,7 +1006,7 @@ defmodule Kernel.WarningTest do
           @doc "Another"
           def foo, do: :ok
 
-          @doc false
+          Module.eval_quoted(__MODULE__, quote(do: @doc false))
           @doc "Doc"
           def bar, do: :ok
         end

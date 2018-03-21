@@ -173,16 +173,17 @@ env_for_expansion(_Kind, Tuple, E) ->
   E#{function := Tuple, contextual_vars := []}.
 
 retrieve_location(Location, Module) ->
-  case ets:take(elixir_module:data_table(Module), file) of
+  {Set, _} = elixir_module:data_tables(Module),
+  case ets:take(Set, file) of
     [] when is_tuple(Location) ->
       {File, Line} = Location,
       {elixir_utils:relative_to_cwd(File), Line};
     [] ->
       nil;
-    [{file, File, _, _}] when is_binary(File) ->
+    [{file, File, _}] when is_binary(File) ->
       'Elixir.Module':delete_attribute(Module, file),
       {elixir_utils:relative_to_cwd(File), 0};
-    [{file, {File, Line}, _, _}] when is_binary(File) andalso is_integer(Line) ->
+    [{file, {File, Line}, _}] when is_binary(File) andalso is_integer(Line) ->
       'Elixir.Module':delete_attribute(Module, file),
       {elixir_utils:relative_to_cwd(File), Line}
   end.
@@ -216,8 +217,9 @@ def_to_clauses(Kind, Meta, Args, Guards, Body, E) ->
   end.
 
 run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
-  Callbacks = ets:lookup_element(elixir_module:data_table(Module), on_definition, 2),
-  _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- Callbacks],
+  {_, Bag} = elixir_module:data_tables(Module),
+  Callbacks = ets:lookup_element(Bag, {accumulate, on_definition}, 2),
+  _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- lists:reverse(Callbacks)],
   ok.
 
 store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses) ->
