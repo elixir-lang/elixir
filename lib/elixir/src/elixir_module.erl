@@ -96,7 +96,7 @@ compile(Line, Module, Block, Vars, E) ->
     },
 
     Binary = elixir_erl:compile(ModuleMap),
-    warn_unused_attributes(File, DataSet, PersistedAttributes),
+    warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     make_module_available(Module, Binary),
@@ -174,7 +174,8 @@ build(Line, File, Module, Lexical) ->
 
   %% In the bag table we store:
   %%
-  %% * {{accumulate, Attribute}, Value}
+  %% * {{accumulate, Attribute}, ...}
+  %% * {attributes, ...}
   %% * {impls, ...}
   %% * {deprecated, ...}
   %% * {persisted_attributes, ...}
@@ -290,12 +291,15 @@ lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
     [] -> []
   end.
 
-warn_unused_attributes(File, DataSet, PersistedAttrs) ->
-  %% TODO: Maybe skip this table scan.
-  ReservedAttrs = [moduledoc | PersistedAttrs],
-  Keys = ets:select(DataSet, [{{'$1', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
-  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
-   [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
+warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
+  Attrs = bag_lookup_element(DataBag, attributes, 2) -- [moduledoc | PersistedAttrs],
+
+  [case ets:lookup(DataSet, Key) of
+     [{_, _, Line}] when is_integer(Line) ->
+       elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key});
+     _ ->
+       ok
+   end || Key <- lists:usort(Attrs)].
 
 get_deprecated(Bag) ->
   lists:usort(bag_lookup_element(Bag, deprecated, 2)).
@@ -363,6 +367,10 @@ format_error({unused_attribute, doc}) ->
   "module attribute @doc was set but no definition follows it";
 format_error({unused_attribute, impl}) ->
   "module attribute @impl was set but no definition follows it";
+format_error({unused_attribute, deprecated}) ->
+  "module attribute @deprecated was set but no definition follows it";
+format_error({unused_attribute, since}) ->
+  "module attribute @since was set but no definition follows it";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
 format_error({invalid_module, Module}) ->

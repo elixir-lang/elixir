@@ -1623,13 +1623,13 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
-      [{^key, _, :accumulate}] ->
+      [{_, _, :accumulate}] ->
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
 
-      [{^key, val, :read}] ->
+      [{_, val, :read}] ->
         val
 
-      [{^key, val, _}] ->
+      [{_, val, _}] ->
         :ets.update_element(set, key, {3, :read})
         val
 
@@ -1669,16 +1669,20 @@ defmodule Module do
     end
 
     case :ets.lookup(set, key) do
-      [{^key, _, :accumulate}] ->
+      [{_, _, :accumulate}] ->
         :ets.insert(bag, {{:accumulate, key}, value})
 
-      [{^key, {line, <<_::binary>>}, _unread_line}]
+      [{_, {line, <<_::binary>>}, _unread_line}]
       when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
         IO.warn("redefining @#{key} attribute previously set at line #{line}", stack)
         :ets.insert(set, {key, value, unread_line})
 
-      _ ->
+      [_] ->
         :ets.insert(set, {key, value, unread_line})
+
+      [] ->
+        :ets.insert(set, {key, value, unread_line})
+        :ets.insert(bag, {:attributes, key})
     end
 
     :ok
