@@ -1668,6 +1668,7 @@ defmodule Module do
       unread_line when is_integer(line) and is_integer(unread_line) ->
         message = "redefining @#{key} attribute previously set at line #{unread_line}"
         IO.warn(message, attribute_stack(module, line))
+
       _ ->
         :ok
     end
