@@ -58,6 +58,7 @@ defmodule Mix.Tasks.Test do
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modification.
+    * `--max-fail` - sets the maximum number of tests to allow to fail before stopping
     * `--max-cases` - sets the maximum number of tests running async. Only tests from
       different modules run in parallel. Defaults to twice the number of cores.
     * `--no-archives-check` - does not check archives
@@ -177,6 +178,7 @@ defmodule Mix.Tasks.Test do
     color: :boolean,
     cover: :boolean,
     trace: :boolean,
+    max_fail: :integer,
     max_cases: :integer,
     include: :keep,
     exclude: :keep,
@@ -277,6 +279,9 @@ defmodule Mix.Tasks.Test do
         option_only_present? = Keyword.has_key?(opts, :only)
 
         cond do
+          failures >= opts[:max_fail] ->
+            Mix.raise("Maximum number of test failures reached: #{failures}")
+
           failures > 0 and opts[:raise] ->
             Mix.raise("mix test failed")
 
@@ -330,6 +335,7 @@ defmodule Mix.Tasks.Test do
   @option_keys [
     :trace,
     :max_cases,
+    :max_fail,
     :include,
     :exclude,
     :seed,
@@ -368,7 +374,7 @@ defmodule Mix.Tasks.Test do
   defp default_opts(opts) do
     # Set autorun to false because Mix
     # automatically runs the test suite for us.
-    [autorun: false] ++ opts
+    [autorun: false, max_fail: :infinity] ++ opts
   end
 
   defp parse_files([], test_paths) do
