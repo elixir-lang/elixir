@@ -85,7 +85,9 @@ compile(Line, Module, Block, Vars, E) ->
     (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions, OverridablePairs),
 
-    CompileOpts = lists:flatten(bag_lookup_element(DataBag, {accumulate, compile}, 2)),
+    RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
+    DefinitionTuples = [Name || {Name, _, _, _} <- AllDefinitions],
+    CompileOpts = validate_compile_opts(RawCompileOpts, DefinitionTuples, Unreachable, File),
 
     ModuleMap = #{
       module => Module,
@@ -120,6 +122,24 @@ compile(Line, Module, Block, Vars, E) ->
     ets:delete(DataBag),
     elixir_code_server:call({undefmodule, Ref})
   end.
+
+validate_compile_opts([], _Defs, _Unreachable, _File) ->
+  [];
+validate_compile_opts([Opts | Rest], Defs, Unreachable, File) when is_list(Opts) ->
+  validate_compile_opts(Opts, Defs, Unreachable, File) ++ validate_compile_opts(Rest, Defs, Unreachable, File);
+validate_compile_opts([{inline, Inlines} | Rest], Defs, Unreachable, File) ->
+  case Inlines -- Defs of
+    [] ->
+      [{inline, Inlines -- Unreachable} | validate_compile_opts(Rest, Defs, Unreachable, File)];
+    [{Name, Arity} | _] ->
+      elixir_errors:form_error([], File, ?MODULE, {bad_inline, Name, Arity})
+  end;
+%% TODO: Make this an error and skip parse transform processing on 2.0.
+validate_compile_opts([{parse_transform, Module} = Opt | Rest], Defs, Unreachable, File) ->
+  elixir_errors:form_warn([], File, ?MODULE, {parse_transform, Module}),
+  [Opt | validate_compile_opts(Rest, Defs, Unreachable, File)];
+validate_compile_opts([Opt | Rest], Defs, Unreachable, File) ->
+  [Opt | validate_compile_opts(Rest, Defs, Unreachable, File)].
 
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
@@ -211,7 +231,7 @@ build(Line, File, Module, Lexical) ->
     {?lexical_attr, Lexical}
   ]),
 
-  Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],
+  Persisted = [behaviour, on_load, external_resource, dialyzer, vsn],
   ets:insert(DataBag, [{persisted_attributes, Attr} || Attr <- Persisted]),
 
   OnDefinition =
@@ -392,4 +412,9 @@ format_error({module_reserved, Module}) ->
   io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
 format_error({module_in_definition, Module, File, Line}) ->
   io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
-    [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]).
+    [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]);
+format_error({bad_inline, Name, Arity}) ->
+  io_lib:format("inlined function ~ts/~B undefined", [Name, Arity]);
+format_error({parse_transform, Module}) ->
+  io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir will no longer support "
+                "Erlang-based transforms in future versions", [elixir_aliases:inspect(Module)]).
