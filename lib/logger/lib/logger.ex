@@ -275,12 +275,8 @@ defmodule Logger do
   The console backend allows you to customize the format of your log messages
   with the `:format` option.
 
-  You may set `:format` to either a string or a `{module, function}` tuple if
-  you wish to provide your own format function. The `{module, function}` will be
-  invoked with the log level, the message, the current timestamp and the
-  metadata.
-
-  Here is an example of how to configure the `:console` backend in a
+  You may set `:format` to either a string or a `{module, function}` tuple if you wish to provide
+  your own format function. Here is an example of how to configure the `:console` backend in a
   `config/config.exs` file:
 
       config :logger, :console,
@@ -297,16 +293,25 @@ defmodule Logger do
 
   It is extremely important that **the formatting function does not fail**, as
   it will bring that particular logger instance down, causing your system to
-  temporarily lose messages. If necessary, wrap the function in a "rescue" and
+  temporarily lose messages. If necessary, wrap the function in a `rescue` and
   log a default message instead:
 
       defmodule MyConsoleLogger do
         def format(level, message, timestamp, metadata) do
           # Custom formatting logic...
         rescue
-          _ -> "could not format: #{inspect {level, message, metadata}}"
+          _ -> "could not format: #{inspect({level, message, metadata}})"
         end
       end
+
+  The `{module, function}` will be invoked with four arguments:
+
+    * the log level: an atom
+    * the message: this is usually chardata, but in some cases it may not be. Since the formatting
+      function should *never* fail, you need to prepare for the message being anything (and do
+      something like the `rescue` in the example above)
+    * the current timestamp: a term of type `t:Logger.Formatter.time/0`
+    * the medatata: a keyword list
 
   You can read more about formatting in `Logger.Formatter`.
 
