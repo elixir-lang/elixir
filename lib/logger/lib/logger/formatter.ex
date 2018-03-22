@@ -62,20 +62,28 @@ defmodule Logger.Formatter do
   defp prune_binary(<<_, t::binary>>, acc), do: prune_binary(t, <<acc::binary, @replacement>>)
   defp prune_binary(<<>>, acc), do: acc
 
-  @doc ~S"""
-  Compiles a format string into a data structure that the `format/5` can handle.
+  @doc """
+  Compiles a format string into a data structure that `format/5` can handle.
 
-  Check the module doc for documentation on the valid parameters. If you
-  pass `nil`, it defaults to: `$time $metadata [$level] $levelpad$message\n`
+  Check the module doc for documentation on the valid parameters that
+  will be interpolated in the pattern. If you pass `nil` as the pattern,
+  the pattern defaults to:
 
-  If you would like to make your own custom formatter simply pass
-  `{module, function}` to `compile/1` and the rest is handled.
+      #{inspect(@default_pattern)}
 
-      iex> Logger.Formatter.compile("$time $metadata [$level] $message\n")
-      [:time, " ", :metadata, " [", :level, "] ", :message, "\n"]
+  If you want to customize formatting through a custom formatter, you can
+  pass a `{module, function}` tuple as the `pattern`.
+
+      iex> Logger.Formatter.compile("$time $metadata [$level] $message\\n")
+      [:time, " ", :metadata, " [", :level, "] ", :message, "\\n"]
+
+      iex> Logger.Formatter.compile({MyLoggerFormatter, :format})
+      {MyLoggerFormatter, :format}
+
   """
   @spec compile(binary | nil) :: [pattern | binary]
-  @spec compile({atom, atom}) :: {atom, atom}
+  @spec compile(pattern) :: pattern when pattern: {module, function :: atom}
+  def compile(pattern)
 
   def compile(nil), do: compile(@default_pattern)
   def compile({mod, fun}) when is_atom(mod) and is_atom(fun), do: {mod, fun}
@@ -94,12 +102,13 @@ defmodule Logger.Formatter do
   defp compile_code(key) when key in @valid_patterns, do: key
 
   defp compile_code(key) when is_atom(key) do
-    raise ArgumentError, "$#{key} is an invalid format pattern."
+    raise ArgumentError, "$#{key} is an invalid format pattern"
   end
 
   @doc """
   Formats time as chardata.
   """
+  @spec format_time({0..23, 0..59, 0..59, 0..999}) :: IO.chardata()
   def format_time({hh, mi, ss, ms}) do
     [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., pad3(ms)]
   end
@@ -107,6 +116,7 @@ defmodule Logger.Formatter do
   @doc """
   Formats date as chardata.
   """
+  @spec format_date({1970..10000, 1..12, 1..31}) :: IO.chardata()
   def format_date({yy, mm, dd}) do
     [Integer.to_string(yy), ?-, pad2(mm), ?-, pad2(dd)]
   end
@@ -119,18 +129,27 @@ defmodule Logger.Formatter do
   defp pad2(int), do: Integer.to_string(int)
 
   @doc """
-  Takes a compiled format and injects the, level, timestamp, message and
-  metadata listdict and returns a properly formatted string.
+  Takes a compiled format and injects the level, timestamp, message, and
+  metadata keyword list and returns a properly formatted string.
+
+  ## Examples
+
+      iex> pattern = Logger.Formatter.compile("[$level] $message")
+      iex> timestamp = {{1977, 01, 28}, {13, 29, 00, 000}}
+      iex> formatted = Logger.Formatter.format(pattern, :info, "hello", timestamp, [])
+      iex> IO.chardata_to_string(formatted)
+      "[info] hello"
+
   """
   @spec format({atom, atom} | [pattern | binary], Logger.level(), Logger.message(), time, keyword) ::
           IO.chardata()
-  def format({mod, fun}, level, msg, ts, md) do
-    apply(mod, fun, [level, msg, ts, md])
+  def format({mod, fun}, level, msg, timestamp, metadata) do
+    apply(mod, fun, [level, msg, timestamp, metadata])
   end
 
-  def format(config, level, msg, ts, md) do
-    for c <- config do
-      output(c, level, msg, ts, md)
+  def format(config, level, msg, timestamp, metadata) do
+    for config_option <- config do
+      output(config_option, level, msg, timestamp, metadata)
     end
   end
 
