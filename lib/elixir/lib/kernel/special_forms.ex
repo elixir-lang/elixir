@@ -864,7 +864,7 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-  Now invoking `square(my_number.())` as before will print the value just
+  Now invoking `squared(my_number.())` as before will print the value just
   once.
 
   In fact, this pattern is so common that most of the times you will want
