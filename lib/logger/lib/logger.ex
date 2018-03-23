@@ -275,9 +275,9 @@ defmodule Logger do
   The console backend allows you to customize the format of your log messages
   with the `:format` option.
 
-  You may set `:format` to either a string or a `{module, function}` tuple if you wish to provide
-  your own format function. Here is an example of how to configure the `:console` backend in a
-  `config/config.exs` file:
+  You may set `:format` to either a string or a `{module, function}` tuple if
+  you wish to provide your own format function. Here is an example of how to
+  configure the `:console` backend in a `config/config.exs` file:
 
       config :logger, :console,
         format: {MyConsoleLogger, :format}
@@ -307,9 +307,10 @@ defmodule Logger do
   The `{module, function}` will be invoked with four arguments:
 
     * the log level: an atom
-    * the message: this is usually chardata, but in some cases it may not be. Since the formatting
-      function should *never* fail, you need to prepare for the message being anything (and do
-      something like the `rescue` in the example above)
+    * the message: this is usually chardata, but in some cases it may not be.
+      Since the formatting function should *never* fail, you need to prepare for
+      the message being anything (and do something like the `rescue` in the example
+      above)
     * the current timestamp: a term of type `t:Logger.Formatter.time/0`
     * the medatata: a keyword list
 
