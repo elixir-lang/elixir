@@ -3,8 +3,14 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.TestTest do
   use MixTest.Case
 
+  @default_opts [:failures_manifest_file, :autorun, :max_fail]
+
   test "ex_unit_opts/1 returns ex unit options" do
     assert ex_unit_opts_from_given(unknown: "ok", seed: 13) == [seed: 13]
+  end
+
+  test "ex_unit_opts/1 returns max_fail" do
+    assert ex_unit_opts_from_given(max_fail: 13) == [max_fail: 13]
   end
 
   test "ex_unit_opts/1 returns includes and excludes" do
@@ -46,21 +52,21 @@ defmodule Mix.Tasks.TestTest do
   defp ex_unit_opts_from_given(passed) do
     passed
     |> ex_unit_opts()
-    |> Keyword.drop([:failures_manifest_file, :autorun])
+    |> Keyword.drop(@default_opts)
   end
 
   test "--stale: runs all tests for first run, then none on second" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       assert_stale_run_output("""
       No stale tests
       """)
-    end
+    end)
   end
 
   test "--stale: runs tests that depend on modified modules" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
@@ -72,11 +78,11 @@ defmodule Mix.Tasks.TestTest do
       File.touch!("lib/a.ex")
 
       assert_stale_run_output("2 tests, 0 failures")
-    end
+    end)
   end
 
   test "--stale: doesn't write manifest when there are failures" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
@@ -90,37 +96,37 @@ defmodule Mix.Tasks.TestTest do
       assert_stale_run_output("1 test, 1 failure")
 
       assert_stale_run_output("1 test, 1 failure")
-    end
+    end)
   end
 
   test "--stale: runs tests that have changed" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
       File.touch!("test/a_test_stale.exs")
 
       assert_stale_run_output("1 test, 0 failures")
-    end
+    end)
   end
 
   test "--stale: runs tests that have changed test_helpers" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
       File.touch!("test/test_helper.exs")
 
       assert_stale_run_output("2 tests, 0 failures")
-    end
+    end)
   end
 
   test "--stale: runs all tests no matter what with --force" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       assert_stale_run_output(~w[--force], "2 tests, 0 failures")
-    end
+    end)
   end
 
   test "--failed: loads only files with failures and runs just the failures" do
@@ -164,15 +170,15 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "logs test absence for a project with no test paths" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       File.rm_rf!("test")
 
       assert_run_output("There are no tests to run")
-    end
+    end)
   end
 
   test "--listen-on-stdin: runs tests after input" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       port = mix_port(~w[test --stale --listen-on-stdin])
 
       assert receive_until_match(port, "seed", "") =~ "2 tests"
@@ -184,7 +190,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--listen-on-stdin: does not exit on compilation failure" do
-    in_fixture "test_stale", fn ->
+    in_fixture("test_stale", fn ->
       File.write!("lib/b.ex", """
       defmodule B do
         def f, do: error_not_a_var
