@@ -56,7 +56,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--stale: runs all tests for first run, then none on second" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       assert_stale_run_output("""
@@ -66,7 +66,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--stale: runs tests that depend on modified modules" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--stale: doesn't write manifest when there are failures" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
@@ -100,7 +100,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--stale: runs tests that have changed" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
@@ -111,7 +111,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--stale: runs tests that have changed test_helpers" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       set_all_mtimes()
@@ -122,7 +122,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--stale: runs all tests no matter what with --force" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       assert_stale_run_output("2 tests, 0 failures")
 
       assert_stale_run_output(~w[--force], "2 tests, 0 failures")
@@ -170,7 +170,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "logs test absence for a project with no test paths" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       File.rm_rf!("test")
 
       assert_run_output("There are no tests to run")
@@ -178,7 +178,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--listen-on-stdin: runs tests after input" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       port = mix_port(~w[test --stale --listen-on-stdin])
 
       assert receive_until_match(port, "seed", "") =~ "2 tests"
@@ -190,7 +190,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--listen-on-stdin: does not exit on compilation failure" do
-    in_fixture"test_stale", fn ->
+    in_fixture "test_stale", fn ->
       File.write!("lib/b.ex", """
       defmodule B do
         def f, do: error_not_a_var
