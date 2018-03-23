@@ -15,7 +15,7 @@ defmodule StringIO do
 
   use GenServer
 
-  @doc """
+  @doc ~S"""
   Creates an IO device.
 
   `string` will be the initial input of the newly created
@@ -31,17 +31,17 @@ defmodule StringIO do
 
   ## Examples
 
-    iex> {:ok, _contents} = StringIO.open("foo", [], fn(pid) ->
-    ...>    input = IO.gets(pid, ">")
-    ...>    IO.write(pid, "The input was \#{input}")
-    ...>    StringIO.contents(pid)
+    iex> StringIO.open("foo", [], fn(pid) ->
+    ...>   input = IO.gets(pid, ">")
+    ...>   IO.write(pid, "The input was #{input}")
+    ...>   StringIO.contents(pid)
     ...> end)
     {:ok, {"", "The input was foo"}}
 
-    iex> {:ok, _contents} = StringIO.open("foo", [capture_prompt: true], fn(pid) ->
-    ...>    input = IO.gets(pid, ">")
-    ...>    IO.write(pid, "The input was \#{input}")
-    ...>    StringIO.contents(pid)
+    iex> StringIO.open("foo", [capture_prompt: true], fn(pid) ->
+    ...>   input = IO.gets(pid, ">")
+    ...>   IO.write(pid, "The input was #{input}")
+    ...>   StringIO.contents(pid)
     ...> end)
     {:ok, {"", ">The input was foo"}}
 
@@ -58,7 +58,7 @@ defmodule StringIO do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Creates an IO device.
 
   `string` will be the initial input of the newly created
@@ -90,11 +90,11 @@ defmodule StringIO do
       iex> StringIO.contents(pid)
       {"", ">"}
 
-      iex> {:ok, _contents} = StringIO.open("foo", fn(pid) ->
-      ...>     input = IO.gets(pid, ">")
-      ...>     IO.write(pid, "The input was \#{input}")
-      ...>     StringIO.contents(pid)
-      ...>   end)
+      iex> StringIO.open("foo", fn(pid) ->
+      ...>   input = IO.gets(pid, ">")
+      ...>   IO.write(pid, "The input was #{input}")
+      ...>   StringIO.contents(pid)
+      ...> end)
       {:ok, {"", "The input was foo"}}
 
   """
