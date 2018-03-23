@@ -49,16 +49,12 @@ defmodule StringIO do
   @spec open(binary, keyword, (pid -> res)) :: {:ok, res} when res: var
   def open(string, options, function)
       when is_binary(string) and is_list(options) and is_function(function, 1) do
-    case GenServer.start_link(__MODULE__, {string, options}, []) do
-      {:ok, pid} ->
-        try do
-          {:ok, function.(pid)}
-        after
-          {:ok, {_input, _output}} = close(pid)
-        end
+    {:ok, pid} = GenServer.start_link(__MODULE__, {string, options}, [])
 
-      error ->
-        error
+    try do
+      {:ok, function.(pid)}
+    after
+      {:ok, {_input, _output}} = close(pid)
     end
   end
 
