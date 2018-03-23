@@ -359,7 +359,7 @@ defmodule Kernel.ErrorsTest do
 
   test "@compile inline with undefined function" do
     assert_eval_raise CompileError,
-                      "nofile: inlined function foo/1 undefined",
+                      "nofile:1: inlined function foo/1 undefined",
                       'defmodule Test do @compile {:inline, foo: 1} end'
   end
 
