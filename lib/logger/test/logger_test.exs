@@ -337,6 +337,9 @@ defmodule LoggerTest do
       Logger.log(:debug, %{})
     end
 
+    message =
+      "cannot truncate chardata because it contains something that is not valid chardata: %{}"
+
     # Something that looks like chardata but then inside isn't still raises an error, but a
     # different one.
     assert_raise ArgumentError, message, fn ->
