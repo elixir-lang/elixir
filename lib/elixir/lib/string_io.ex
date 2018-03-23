@@ -30,31 +30,35 @@ defmodule StringIO do
   result will be a tuple with `:ok` and the result of the function.
 
   ## Examples
-      iex> {:ok, _contents} = StringIO.open("foo", [], fn(pid) ->
-      ...>     input = IO.gets(pid, ">")
-      ...>     IO.write(pid, "The input was \#{input}")
-      ...>     StringIO.contents(pid)
-      ...>   end)
-      {:ok, {"", "The input was foo"}}
 
-      iex> {:ok, _contents} = StringIO.open("foo", [capture_prompt: true], fn(pid) ->
-      ...>     input = IO.gets(pid, ">")
-      ...>     IO.write(pid, "The input was \#{input}")
-      ...>     StringIO.contents(pid)
-      ...>   end)
-      {:ok, {"", ">The input was foo"}}
+    iex> {:ok, _contents} = StringIO.open("foo", [], fn(pid) ->
+    ...>    input = IO.gets(pid, ">")
+    ...>    IO.write(pid, "The input was \#{input}")
+    ...>    StringIO.contents(pid)
+    ...> end)
+    {:ok, {"", "The input was foo"}}
+
+    iex> {:ok, _contents} = StringIO.open("foo", [capture_prompt: true], fn(pid) ->
+    ...>    input = IO.gets(pid, ">")
+    ...>    IO.write(pid, "The input was \#{input}")
+    ...>    StringIO.contents(pid)
+    ...> end)
+    {:ok, {"", ">The input was foo"}}
+
   """
   @spec open(binary, keyword, (pid -> res)) :: {:ok, res} when res: var
   def open(string, options, function)
       when is_binary(string) and is_list(options) and is_function(function, 1) do
-    with {:ok, pid} <- GenServer.start_link(__MODULE__, {string, options}, []) do
-      try do
-        {:ok, function.(pid)}
-      after
-        {:ok, {_input, _output}} = close(pid)
-      end
-    else
-      error -> error
+    case GenServer.start_link(__MODULE__, {string, options}, []) do
+      {:ok, pid} ->
+        try do
+          {:ok, function.(pid)}
+        after
+          {:ok, {_input, _output}} = close(pid)
+        end
+
+      error ->
+        error
     end
   end
 
@@ -96,6 +100,7 @@ defmodule StringIO do
       ...>     StringIO.contents(pid)
       ...>   end)
       {:ok, {"", "The input was foo"}}
+
   """
   @spec open(binary, keyword) :: {:ok, pid}
   @spec open(binary, (pid -> res)) :: {:ok, res} when res: var
