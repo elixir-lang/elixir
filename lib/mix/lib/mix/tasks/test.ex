@@ -362,6 +362,7 @@ defmodule Mix.Tasks.Test do
       |> formatter_opts()
       |> color_opts()
       |> Keyword.take(@option_keys)
+      |> max_fail_opts()
       |> default_opts()
 
     {opts, allowed_files}
@@ -374,7 +375,7 @@ defmodule Mix.Tasks.Test do
   defp default_opts(opts) do
     # Set autorun to false because Mix
     # automatically runs the test suite for us.
-    [autorun: false, max_fail: :infinity] ++ opts
+    [autorun: false] ++ opts
   end
 
   defp parse_files([], test_paths) do
@@ -454,6 +455,16 @@ defmodule Mix.Tasks.Test do
 
   defp filter_to_allowed_files(matched_test_files, %MapSet{} = allowed_files) do
     Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
+  end
+
+  defp max_fail_opts(opts) do
+    case Keyword.fetch(opts, :max_fail) do
+      {:ok, _} ->
+        opts
+
+      :error ->
+        Keyword.put(opts, :max_fail, :infinity)
+    end
   end
 
   defp color_opts(opts) do
