@@ -10,7 +10,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "ex_unit_opts/1 returns max_fail" do
-    assert ex_unit_opts_from_given(max_fail: 13) == [max_fail: 13]
+    assert Keyword.get(ex_unit_opts(max_fail: 13), :max_fail) == 13
   end
 
   test "ex_unit_opts/1 returns includes and excludes" do
@@ -40,6 +40,7 @@ defmodule Mix.Tasks.TestTest do
   test "ex_unit_opts/1 includes some default options" do
     assert ex_unit_opts([]) == [
              autorun: false,
+             max_fail: :infinity,
              failures_manifest_file: Path.join(Mix.Project.manifest_path(), ".mix_test_failures")
            ]
   end
