@@ -2179,9 +2179,29 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: (foo -> bar)))
     end
 
-    message = ~r"undefined variable \"foo\""
+    assert_raise CompileError, ~r"Clauses are only valid for", fn ->
+      code =
+        quote do
+          foo do
+            _ -> :ok
+          end
+        end
 
-    assert_raise CompileError, message, fn ->
+      expand(code)
+    end
+
+    assert_raise CompileError, ~r/If you are trying to use the "case" structure/, fn ->
+      code =
+        quote do
+          case do
+            _ -> :ok
+          end
+        end
+
+      expand(code)
+    end
+
+    assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
       code =
         quote do
           fn <<_::size(foo)>> -> :ok end

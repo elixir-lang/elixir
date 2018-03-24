@@ -406,6 +406,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
 
 expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, E),
+  assert_no_clauses(Atom, Meta, Args, E),
 
   elixir_dispatch:dispatch_import(Meta, Atom, Args, E, fun() ->
     expand_local(Meta, Atom, Args, E)
@@ -695,6 +696,20 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
   end;
 assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
   ok.
+
+assert_no_clauses(_Name, _Meta, [], _E) ->
+  ok;
+assert_no_clauses(Name, Meta, Args, E) ->
+  assert_arg_with_no_clauses(Name, Meta, lists:last(Args), E).
+
+assert_arg_with_no_clauses(_Name, _Meta, Arg, _E) when not is_list(Arg) ->
+  ok;
+assert_arg_with_no_clauses(_Name, _Meta, [], _E) ->
+  ok;
+assert_arg_with_no_clauses(Name, Meta, [{Opt, [{'->', _, _} | _]}], E) when Opt =/= rescue, Opt =/= 'catch' ->
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_clauses, Name});
+assert_arg_with_no_clauses(Name, Meta, [_ | Tail], E) ->
+  assert_arg_with_no_clauses(Name, Meta, Tail, E).
 
 expand_local(Meta, Name, Args, #{function := nil} = E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {undefined_function, Name, Args});
@@ -1008,6 +1023,20 @@ format_error({op_ambiguity, Name, Arg}) ->
     "\"~ts ~ts\" looks like a function call but there is a variable named \"~ts\", "
     "please use explicit parentheses or even spaces",
   io_lib:format(Message, [Name, 'Elixir.Macro':to_string(Arg), Name]);
+format_error({invalid_clauses, Name}) ->
+  SupportMessage =
+    case Name of
+      'case' ->
+        "If you are trying to use the \"case\" structure, it should be similar to:\n"
+        "    case value do"
+        "      pattern -> :ok"
+        "    end";
+
+      _ ->
+        "Clauses are only valid for case, cond, receive, catch, rescue and fn."
+    end,
+  io_lib:format("invalid clauses with -> operator passed to local function \"~ts\". ~s",
+                [Name, SupportMessage]);
 format_error({invalid_alias_for_as, Reason, Value}) ->
   ExpectedGot =
     case Reason of
