@@ -261,7 +261,8 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - sets to `:index` to return indexes. Defaults to `:binary`.
+    * `:return` - set to `:index` to return byte index and match length.
+      Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
 
@@ -292,9 +293,12 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the given captures as a map or `nil` if no captures are
-  found. The option `:return` can be set to `:index` to get indexes
-  back.
+  Returns the given captures as a map or `nil` if no captures are found.
+
+  ## Options
+
+    * `:return` - set to `:index` to return byte index and match length.
+      Defaults to `:binary`.
 
   ## Examples
 
@@ -376,7 +380,8 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - sets to `:index` to return indexes. Defaults to `:binary`.
+    * `:return` - set to `:index` to return byte index and match length.
+      Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
 
@@ -393,6 +398,9 @@ defmodule Regex do
 
       iex> Regex.scan(~r/\p{Sc}/u, "$, £, and €")
       [["$"], ["£"], ["€"]]
+
+      iex> Regex.scan(~r/=+/, "=ü†ƒ8===", return: :index)
+      [[{0, 1}], [{9, 3}]]
 
   """
   @spec scan(t, String.t(), [term]) :: [[String.t()]]
