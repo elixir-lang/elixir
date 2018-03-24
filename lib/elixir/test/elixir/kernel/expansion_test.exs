@@ -2179,7 +2179,7 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: (foo -> bar)))
     end
 
-    assert_raise CompileError, ~r"Clauses are only valid for", fn ->
+    assert_raise CompileError, ~r/"foo" cannot handle clauses with the ->/, fn ->
       code =
         quote do
           foo do
@@ -2190,10 +2190,10 @@ defmodule Kernel.ExpansionTest do
       expand(code)
     end
 
-    assert_raise CompileError, ~r/If you are trying to use the "case" structure/, fn ->
+    assert_raise CompileError, ~r/"length" cannot handle clauses with the ->/, fn ->
       code =
         quote do
-          case do
+          length do
             _ -> :ok
           end
         end

@@ -406,7 +406,6 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
 
 expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, E),
-  assert_no_clauses(Atom, Meta, Args, E),
 
   elixir_dispatch:dispatch_import(Meta, Atom, Args, E, fun() ->
     expand_local(Meta, Atom, Args, E)
@@ -706,7 +705,7 @@ assert_arg_with_no_clauses(_Name, _Meta, Arg, _E) when not is_list(Arg) ->
   ok;
 assert_arg_with_no_clauses(_Name, _Meta, [], _E) ->
   ok;
-assert_arg_with_no_clauses(Name, Meta, [{Opt, [{'->', _, _} | _]}], E) when Opt =/= rescue, Opt =/= 'catch' ->
+assert_arg_with_no_clauses(Name, Meta, [{_, [{'->', _, _} | _]}], E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {invalid_clauses, Name});
 assert_arg_with_no_clauses(Name, Meta, [_ | Tail], E) ->
   assert_arg_with_no_clauses(Name, Meta, Tail, E).
@@ -716,6 +715,8 @@ expand_local(Meta, Name, Args, #{function := nil} = E) ->
 expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match; Context == guard ->
   form_error(Meta, ?key(E, file), ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}});
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
+  assert_no_clauses(Name, Meta, Args, E),
+
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
   {{Name, Meta, EArgs}, EA}.
@@ -723,6 +724,8 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 %% Remote
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) ->
+  assert_no_clauses(Right, Meta, Args, E),
+
   Arity = length(Args),
   is_atom(Receiver) andalso
     elixir_lexical:record_remote(Receiver, Right, Arity,
@@ -1024,19 +1027,10 @@ format_error({op_ambiguity, Name, Arg}) ->
     "please use explicit parentheses or even spaces",
   io_lib:format(Message, [Name, 'Elixir.Macro':to_string(Arg), Name]);
 format_error({invalid_clauses, Name}) ->
-  SupportMessage =
-    case Name of
-      'case' ->
-        "If you are trying to use the \"case\" structure, it should be similar to:\n"
-        "    case value do"
-        "      pattern -> :ok"
-        "    end";
-
-      _ ->
-        "Clauses are only valid for case, cond, fn, receive, else, catch or rescue."
-    end,
-  io_lib:format("invalid clauses with -> operator passed to local function \"~ts\". ~s",
-                [Name, SupportMessage]);
+  Message =
+    "the function \"~ts\" cannot handle clauses with the -> operator because it is not macro. "
+    "Please make sure you are invoking the proper name and that it is a macro",
+  io_lib:format(Message, [Name]);
 format_error({invalid_alias_for_as, Reason, Value}) ->
   ExpectedGot =
     case Reason of
