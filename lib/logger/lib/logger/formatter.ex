@@ -88,7 +88,7 @@ defmodule Logger.Formatter do
   def compile(nil), do: compile(@default_pattern)
   def compile({mod, fun}) when is_atom(mod) and is_atom(fun), do: {mod, fun}
 
-  def compile(str) do
+  def compile(str) when is_binary(str) do
     regex = Regex.recompile!(~r/(?<head>)\$[a-z]+(?<tail>)/)
 
     for part <- Regex.split(regex, str, on: [:head, :tail], trim: true) do

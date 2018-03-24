@@ -236,7 +236,13 @@ defmodule Logger.Backends.Console do
   defp retry_log(error, %{device: device, ref: ref, output: dirty} = state) do
     Process.demonitor(ref, [:flush])
 
-    case :unicode.characters_to_binary(dirty) do
+    try do
+      :unicode.characters_to_binary(dirty)
+    rescue
+      ArgumentError ->
+        clean = ["failure while trying to log malformed data: ", inspect(dirty), ?\n]
+        %{state | ref: async_io(device, clean), output: clean}
+    else
       {_, good, bad} ->
         clean = [good | Logger.Formatter.prune(bad)]
         %{state | ref: async_io(device, clean), output: clean}
