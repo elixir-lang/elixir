@@ -1033,7 +1033,7 @@ format_error({invalid_clauses, Name}) ->
         "    end";
 
       _ ->
-        "Clauses are only valid for case, cond, receive, catch, rescue and fn."
+        "Clauses are only valid for case, cond, fn, receive, else, catch or rescue."
     end,
   io_lib:format("invalid clauses with -> operator passed to local function \"~ts\". ~s",
                 [Name, SupportMessage]);
