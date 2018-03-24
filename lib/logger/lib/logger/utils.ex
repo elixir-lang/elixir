@@ -74,6 +74,12 @@ defmodule Logger.Utils do
     truncate_n_list(list, n, [])
   end
 
+  defp truncate_n(other, _n) do
+    raise ArgumentError,
+          "cannot truncate chardata because it contains something that is not " <>
+            "valid chardata: #{inspect(other)}"
+  end
+
   defp truncate_n_list(_, n, acc) when n < 0 do
     {:lists.reverse(acc), n}
   end

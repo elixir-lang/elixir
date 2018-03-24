@@ -332,6 +332,21 @@ defmodule LoggerTest do
            end) =~ "he�lo"
   end
 
+  test "logging something that is not a binary or chardata fails right away" do
+    assert_raise Protocol.UndefinedError, "protocol String.Chars not implemented for %{}", fn ->
+      Logger.log(:debug, %{})
+    end
+
+    message =
+      "cannot truncate chardata because it contains something that is not valid chardata: %{}"
+
+    # Something that looks like chardata but then inside isn't still raises an error, but a
+    # different one.
+    assert_raise ArgumentError, message, fn ->
+      Logger.log(:debug, [%{}])
+    end
+  end
+
   test "stops the application silently" do
     Application.put_env(:logger, :backends, [])
     Logger.App.stop()
