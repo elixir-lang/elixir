@@ -734,6 +734,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
   {EArgs, EA} = expand_args(Args, E),
   Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
   maybe_warn_struct_comparison(Rewritten, Args, E),
+  assert_valid_args_for_remote(Rewritten, Context, E),
   case allowed_in_context(Rewritten, Arity, Context) of
     true ->
       {Rewritten, elixir_env:mergev(EL, EA)};
@@ -751,6 +752,11 @@ allowed_in_context(_, _Arity, guard) ->
   false;
 allowed_in_context(_, _, _) ->
   true.
+
+assert_valid_args_for_remote({{'.', _, [erlang, '++']}, Meta, [Left, _Right]}, match, E) when not is_list(Left) ->
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_lists_concatenation, Left});
+assert_valid_args_for_remote(_, _, _) ->
+  ok.
 
 maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
@@ -990,6 +996,9 @@ format_error(wrong_number_of_args_for_super) ->
   "super must be called with the same number of arguments as the current definition";
 format_error({invalid_arg_for_pin, Arg}) ->
   io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
+                ['Elixir.Macro':to_string(Arg)]);
+format_error({invalid_arg_for_lists_concatenation, Arg}) ->
+  io_lib:format("invalid argument for ++ operator inside a match, expected a literal list, got: ~ts",
                 ['Elixir.Macro':to_string(Arg)]);
 format_error({pin_outside_of_match, Arg}) ->
   io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
