@@ -733,8 +733,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
                                  ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
   Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
-  maybe_warn_struct_comparison(Rewritten, Args, E),
-  assert_valid_args_for_remote(Rewritten, Context, E),
+  check_erlang_operator_args(Rewritten, Args, Context, E),
   case allowed_in_context(Rewritten, Arity, Context) of
     true ->
       {Rewritten, elixir_env:mergev(EL, EA)};
@@ -753,12 +752,10 @@ allowed_in_context(_, _Arity, guard) ->
 allowed_in_context(_, _, _) ->
   true.
 
-assert_valid_args_for_remote({{'.', _, [erlang, '++']}, Meta, [Left, _Right]}, match, E) when not is_list(Left) ->
+check_erlang_operator_args({{'.', _, [erlang, '++']}, Meta, [ELeft, _]}, [Left, _], match, E)
+    when not is_list(ELeft) ->
   form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_lists_concatenation, Left});
-assert_valid_args_for_remote(_, _, _) ->
-  ok.
-
-maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
+check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], _, E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
   Result =
     case is_struct_expression(ELeft) of
@@ -776,7 +773,7 @@ maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [L
     StructExpr ->
       elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, StructExpr})
   end;
-maybe_warn_struct_comparison(_Other, _Args, _E) ->
+check_erlang_operator_args(_, _, _, _) ->
   ok.
 
 is_struct_expression({'%', _, [Struct, _]}) when is_atom(Struct) ->
