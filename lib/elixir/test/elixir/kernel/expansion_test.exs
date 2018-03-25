@@ -517,6 +517,22 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
+    test "raises for invalid args" do
+      message = ~r"invalid argument for \+\+ operator"
+
+      assert_raise CompileError, , fn ->
+        expand(quote(do: "a" ++ "b" = "ab"))
+      end
+
+      assert_raise CompileError, , fn ->
+        expand(quote(do: {1, 2} ++ {3} = {1, 2, 3}))
+      end
+
+      assert_raise CompileError, , fn ->
+        expand(quote(do: {1, 2, 3} ++ {4} = {1, 2, 3, 4}))
+      end
+    end
+
     test "raises when not required" do
       msg =
         ~r"you must require Kernel\.ExpansionTarget before invoking the macro Kernel\.ExpansionTarget\.seventeen/0"
