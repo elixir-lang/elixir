@@ -2179,9 +2179,44 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: (foo -> bar)))
     end
 
-    message = ~r"undefined variable \"foo\""
+    message = ~r/"wrong_fun" cannot handle clauses with the ->/
 
     assert_raise CompileError, message, fn ->
+      code =
+        quote do
+          wrong_fun do
+            _ -> :ok
+          end
+        end
+
+      expand(code)
+    end
+
+    assert_raise CompileError, message, fn ->
+      code =
+        quote do
+          wrong_fun do
+            foo -> bar
+          after
+            :ok
+          end
+        end
+
+      expand(code)
+    end
+
+    assert_raise CompileError, ~r/"length" cannot handle clauses with the ->/, fn ->
+      code =
+        quote do
+          length do
+            _ -> :ok
+          end
+        end
+
+      expand(code)
+    end
+
+    assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
       code =
         quote do
           fn <<_::size(foo)>> -> :ok end

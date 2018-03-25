@@ -696,11 +696,28 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
 assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
   ok.
 
+assert_no_clauses(_Name, _Meta, [], _E) ->
+  ok;
+assert_no_clauses(Name, Meta, Args, E) ->
+  assert_arg_with_no_clauses(Name, Meta, lists:last(Args), E).
+
+assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Key) ->
+  case Value of
+    [{'->', _, _} | _] ->
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_clauses, Name});
+    _ ->
+      assert_arg_with_no_clauses(Name, Meta, Rest, E)
+  end;
+assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
+  ok.
+
 expand_local(Meta, Name, Args, #{function := nil} = E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {undefined_function, Name, Args});
 expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match; Context == guard ->
   form_error(Meta, ?key(E, file), ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}});
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
+  assert_no_clauses(Name, Meta, Args, E),
+
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
   {{Name, Meta, EArgs}, EA}.
@@ -708,6 +725,8 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 %% Remote
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) ->
+  assert_no_clauses(Right, Meta, Args, E),
+
   Arity = length(Args),
   is_atom(Receiver) andalso
     elixir_lexical:record_remote(Receiver, Right, Arity,
@@ -1008,6 +1027,11 @@ format_error({op_ambiguity, Name, Arg}) ->
     "\"~ts ~ts\" looks like a function call but there is a variable named \"~ts\", "
     "please use explicit parentheses or even spaces",
   io_lib:format(Message, [Name, 'Elixir.Macro':to_string(Arg), Name]);
+format_error({invalid_clauses, Name}) ->
+  Message =
+    "the function \"~ts\" cannot handle clauses with the -> operator because it is not macro. "
+    "Please make sure you are invoking the proper name and that it is a macro",
+  io_lib:format(Message, [Name]);
 format_error({invalid_alias_for_as, Reason, Value}) ->
   ExpectedGot =
     case Reason of
