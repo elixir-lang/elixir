@@ -735,7 +735,7 @@ extract_heredoc(Line0, Column0, Rest0, Marker, Scope) ->
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Column0, Marker, [$\n | Rest1], []) of
         {ok, Line1, Body, Rest2, Spaces} ->
-          {ok, Line1, 1, tl(remove_heredoc_spaces(Body, Spaces, Marker, Scope)), Rest2};
+          {ok, Line1, 4 + Spaces, tl(remove_heredoc_spaces(Body, Spaces, Marker, Scope)), Rest2};
         {error, Reason, ErrorLine} ->
           Terminator = [Marker, Marker, Marker],
           {Message, Token} = heredoc_error_message(Reason, Line0, Terminator),

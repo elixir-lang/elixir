@@ -151,6 +151,10 @@ string_test() ->
   [{bin_string, {1, 1, nil}, [<<"f\"">>]}] = tokenize("\"f\\\"\""),
   [{list_string, {1, 1, nil}, [<<"foo">>]}] = tokenize("'foo'").
 
+heredoc_test() ->
+  [{bin_heredoc, {1, 1, nil}, [<<"heredoc\n">>]}] = tokenize("\"\"\"\nheredoc\n\"\"\""),
+  [{bin_heredoc, {1, 1, nil}, [<<"heredoc\n">>]}, {';', {3, 5, 0}}] = tokenize("\"\"\"\n heredoc\n \"\"\";").
+
 empty_string_test() ->
   [{bin_string, {1, 1, nil}, [<<>>]}] = tokenize("\"\""),
   [{list_string, {1, 1, nil}, [<<>>]}] = tokenize("''").
