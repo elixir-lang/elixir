@@ -357,6 +357,12 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError, "nofile:1: invalid module name: 3", 'defmodule 1 + 2, do: 3'
   end
 
+  test "@compile inline with undefined function" do
+    assert_eval_raise CompileError,
+                      "nofile:1: inlined function foo/1 undefined",
+                      'defmodule Test do @compile {:inline, foo: 1} end'
+  end
+
   test "invalid unquote" do
     assert_eval_raise CompileError, "nofile:1: unquote called outside quote", 'unquote 1'
   end

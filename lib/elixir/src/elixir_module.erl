@@ -85,7 +85,8 @@ compile(Line, Module, Block, Vars, E) ->
     (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions, OverridablePairs),
 
-    CompileOpts = lists:flatten(bag_lookup_element(DataBag, {accumulate, compile}, 2)),
+    RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
+    CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
 
     ModuleMap = #{
       module => Module,
@@ -120,6 +121,35 @@ compile(Line, Module, Block, Vars, E) ->
     ets:delete(DataBag),
     elixir_code_server:call({undefmodule, Ref})
   end.
+
+validate_compile_opts(Opts, Defs, Unreachable, File, Line) ->
+  lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Unreachable, File, Line) end, Opts).
+
+%% TODO: Make this an error and skip parse transform processing on 2.0.
+validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, File, Line) ->
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {parse_transform, Module}),
+  [Opt];
+validate_compile_opt({inline, Inlines}, Defs, Unreachable, File, Line) ->
+  case validate_inlines(Inlines, Defs, Unreachable, []) of
+    {ok, []} -> [];
+    {ok, FilteredInlines} -> [{inline, FilteredInlines}];
+    {error, Def} -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {bad_inline, Def})
+  end;
+validate_compile_opt(Opt, Defs, Unreachable, File, Line) when is_list(Opt) ->
+  validate_compile_opts(Opt, Defs, Unreachable, File, Line);
+validate_compile_opt(Opt, _Defs, _Unreachable, _File, _Line) ->
+  [Opt].
+
+validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
+  case lists:keyfind(Inline, 1, Defs) of
+    false -> {error, Inline};
+    _ ->
+      case lists:member(Inline, Unreachable) of
+        true -> validate_inlines(Inlines, Defs, Unreachable, Acc);
+        false -> validate_inlines(Inlines, Defs, Unreachable, [Inline | Acc])
+      end
+  end;
+validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
 
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
@@ -211,7 +241,7 @@ build(Line, File, Module, Lexical) ->
     {?lexical_attr, Lexical}
   ]),
 
-  Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],
+  Persisted = [behaviour, on_load, external_resource, dialyzer, vsn],
   ets:insert(DataBag, [{persisted_attributes, Attr} || Attr <- Persisted]),
 
   OnDefinition =
@@ -392,4 +422,9 @@ format_error({module_reserved, Module}) ->
   io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
 format_error({module_in_definition, Module, File, Line}) ->
   io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
-    [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]).
+    [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]);
+format_error({bad_inline, {Name, Arity}}) ->
+  io_lib:format("inlined function ~ts/~B undefined", [Name, Arity]);
+format_error({parse_transform, Module}) ->
+  io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir will no longer support "
+                "Erlang-based transforms in future versions", [elixir_aliases:inspect(Module)]).
