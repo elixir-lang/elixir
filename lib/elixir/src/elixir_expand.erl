@@ -979,7 +979,7 @@ format_error({invalid_arg_for_pin, Arg}) ->
   io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
                 ['Elixir.Macro':to_string(Arg)]);
 format_error({invalid_arg_for_lists_concatenation, Arg}) ->
-  io_lib:format("invalid argument for ++ operator, expected a list, got: ~ts",
+  io_lib:format("invalid argument for ++ operator inside a match, expected a literal list, got: ~ts",
                 ['Elixir.Macro':to_string(Arg)]);
 format_error({pin_outside_of_match, Arg}) ->
   io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
