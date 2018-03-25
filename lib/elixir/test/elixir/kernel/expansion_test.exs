@@ -2179,11 +2179,26 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: (foo -> bar)))
     end
 
-    assert_raise CompileError, ~r/"foo" cannot handle clauses with the ->/, fn ->
+    message = ~r/"wrong_fun" cannot handle clauses with the ->/
+
+    assert_raise CompileError, message, fn ->
       code =
         quote do
-          foo do
+          wrong_fun do
             _ -> :ok
+          end
+        end
+
+      expand(code)
+    end
+
+    assert_raise CompileError, message, fn ->
+      code =
+        quote do
+          wrong_fun do
+            foo -> bar
+          after
+            :ok
           end
         end
 

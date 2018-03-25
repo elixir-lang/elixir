@@ -701,14 +701,15 @@ assert_no_clauses(_Name, _Meta, [], _E) ->
 assert_no_clauses(Name, Meta, Args, E) ->
   assert_arg_with_no_clauses(Name, Meta, lists:last(Args), E).
 
-assert_arg_with_no_clauses(_Name, _Meta, Arg, _E) when not is_list(Arg) ->
-  ok;
-assert_arg_with_no_clauses(_Name, _Meta, [], _E) ->
-  ok;
-assert_arg_with_no_clauses(Name, Meta, [{_, [{'->', _, _} | _]}], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_clauses, Name});
-assert_arg_with_no_clauses(Name, Meta, [_ | Tail], E) ->
-  assert_arg_with_no_clauses(Name, Meta, Tail, E).
+assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Key) ->
+  case Value of
+    [{'->', _, _} | _] ->
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_clauses, Name});
+    _ ->
+      assert_arg_with_no_clauses(Name, Meta, Rest, E)
+  end;
+assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
+  ok.
 
 expand_local(Meta, Name, Args, #{function := nil} = E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {undefined_function, Name, Args});
