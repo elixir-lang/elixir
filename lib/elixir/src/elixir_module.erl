@@ -130,23 +130,26 @@ validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, File,
   elixir_errors:form_warn([{line, Line}], File, ?MODULE, {parse_transform, Module}),
   [Opt];
 validate_compile_opt({inline, Inlines}, Defs, Unreachable, File, Line) ->
-  try [Inline || Inline <- Inlines, validate_inline(Inline, Defs, Unreachable)] of
-    [] -> [];
-    FilteredInlines -> [{inline, FilteredInlines}]
-  catch
-    {bad_inline, _} = Error ->
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, Error)
+  case validate_inlines(Inlines, Defs, Unreachable, []) of
+    {ok, []} -> [];
+    {ok, FilteredInlines} -> [{inline, FilteredInlines}];
+    {error, Def} -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {bad_inline, Def})
   end;
 validate_compile_opt(Opt, Defs, Unreachable, File, Line) when is_list(Opt) ->
   validate_compile_opts(Opt, Defs, Unreachable, File, Line);
 validate_compile_opt(Opt, _Defs, _Unreachable, _File, _Line) ->
   [Opt].
 
-validate_inline(Inline, Defs, Unreachable) ->
+validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
   case lists:keyfind(Inline, 1, Defs) of
-    false -> throw({bad_inline, Inline});
-    _ -> not lists:member(Inline, Unreachable)
-  end.
+    false -> {error, Inline};
+    _ ->
+      case lists:member(Inline, Unreachable) of
+        true -> validate_inlines(Inlines, Defs, Unreachable, Acc);
+        false -> validate_inlines(Inlines, Defs, Unreachable, [Inline | Acc])
+      end
+  end;
+validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
 
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
