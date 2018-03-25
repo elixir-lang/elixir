@@ -764,6 +764,32 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "parse transform" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               @compile {:parse_transform, :ms_transform}
+             end
+             """)
+           end) =~ "@compile {:parse_transform, :ms_transform} is deprecated"
+  after
+    purge(Sample)
+  end
+
+  test "@compile inline no warning for unreachable function" do
+    refute capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               @compile {:inline, foo: 1}
+
+               defp foo(_), do: :ok
+             end
+             """)
+           end) =~ "inlined function foo/1 undefined"
+  after
+    purge(Sample)
+  end
+
   test "in guard empty list" do
     assert capture_err(fn ->
              Code.eval_string("""
