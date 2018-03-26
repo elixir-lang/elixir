@@ -329,7 +329,7 @@ tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T
 % ## Containers + punctuation tokens
 tokenize([$, | Rest], Line, Column, Scope, Tokens) ->
   Token = {',', {Line, Column, 0}},
-  handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
+  tokenize(Rest, Line, Column + 1, Scope, [Token | Tokens]);
 
 tokenize([$<, $< | Rest], Line, Column, Scope, Tokens) ->
   Token = {'<<', {Line, Column, nil}},
