@@ -171,7 +171,7 @@ defmodule Logger do
       until the message queue goes down to `discard_threshold * 0.75`
       entries. The threshold will be checked once again after 10% of threshold
       messages are processed, to avoid messages from being constantly dropped.
-      For exmaple, if the threshold is 500 (the default) and the inbox has
+      For example, if the threshold is 500 (the default) and the inbox has
       600 messages, 250 messages will dropped, bringing the inbox down to
       350 (0.75 * threshold) entries and 50 (0.1 * threshold) messages will
       be processed before the threshold is checked once again.
