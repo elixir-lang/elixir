@@ -1,8 +1,8 @@
 # Compatibility and Deprecations
 
-Elixir is versioned according to a vMAJOR.MINOR.TINY schema.
+Elixir is versioned according to a vMAJOR.MINOR.PATCH schema.
 
-Elixir is currently at major version v1. A new minor release happens every 6 months. Tiny releases are not scheduled and are made whenever there are bug or security fixes.
+Elixir is currently at major version v1. A new minor release happens every 6 months. Patch releases are not scheduled and are made whenever there are bug or security fixes.
 
 Elixir applies bug fixes only to the latest minor branch. Security patches are available for the last 5 minor branches:
 
