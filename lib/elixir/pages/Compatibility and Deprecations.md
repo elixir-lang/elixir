@@ -1,8 +1,24 @@
 # Compatibility and Deprecations
 
+Elixir is versioned according to a vMAJOR.MINOR.TINY schema.
+
+Elixir is currently at major version v1. A new minor release happens every 6 months. Tiny releases are not scheduled and are made whenever there are bug or security fixes.
+
+Elixir applies bug fixes only to the latest minor branch. Security patches are available for the last 5 minor branches:
+
+Elixir version | Support
+:------------- | :----------------------
+1.6            | Bug and security fixes
+1.5            | Security patches only
+1.4            | Security patches only
+1.3            | Security patches only
+1.2            | Security patches only
+
+At the moment, there are no plans for a major v2 release.
+
 ## Compatibility between Elixir v1.x versions
 
-Elixir v1.x releases are backwards compatible: well-defined behaviours and documented APIs in a given release will continue working on future releases.
+Elixir v1.x releases are backwards compatible: well-defined behaviours and documented APIs in a given version will continue working on future releases.
 
 Although we expect the vast majority of programs to remain compatible over time, it is impossible to guarantee that no future change will break any program. Under some unlikely circumstances, we may introduce changes that break existing code:
 
@@ -16,8 +32,6 @@ Although we expect the vast majority of programs to remain compatible over time,
 
 In order to continue evolving the language without introducing breaking changes, Elixir will rely on deprecations to demote certain practices and promote new ones. Our deprecation policy is outlined in the ["Deprecations" section](#deprecations).
 
-Elixir binaries are guaranteed to be backwards compatible within the same branch. Code compiled with v1.0 shall work with Elixir v1.0.1 runtime but code compiled with Elixir v1.0 should be recompiled to work from Elixir v1.1.0 onwards. The Mix build tool automatically tracks those changes.
-
 The only exception to the rules above are experimental features, which will be explicitly marked as such, and do not provide any compatibility guarantee until they are stabilized.
 
 ## Compatibility between Elixir and Erlang/OTP
@@ -25,7 +39,7 @@ The only exception to the rules above are experimental features, which will be e
 Erlang/OTP versioning is independent from the versioning of Elixir. Each version of Elixir supports a specific range of Erlang/OTP versions. The compatibility table is shown below.
 
 Elixir version | Supported Erlang/OTP versions
-:------------- | :----------------------------
+:------------- | :-------------------------------
 1.0            | 17 - 17 (and OTP 18 from v1.0.5)
 1.1            | 17 - 18
 1.2            | 18 - 18 (and OTP 19 from v1.2.6)
