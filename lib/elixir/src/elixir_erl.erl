@@ -293,29 +293,43 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated) ->
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
 
   Spec =
-    {attribute, Line, spec, {{'__info__', 1},
-      [{type, Line, 'fun', [
-        {type, Line, product, [
-          {type, Line, union, AllowedArgs}
-        ]},
-        {type, Line, union, [
-          {type, Line, atom, []},
-          {type, Line, list, [
+    %% TODO: Remove this check once we depend only on 20
+    case erlang:system_info(otp_release) of
+      "19" ->
+        {attribute, Line, spec, {{'__info__', 1},
+          [{type, Line, 'fun', [
+            {type, Line, product, [
+              {type, Line, union, AllowedArgs}
+            ]},
             {type, Line, union, [
-              {type, Line, tuple, [
-                {type, Line, atom, []},
-                {type, Line, any, []}
-              ]},
-              {type, Line, tuple, [
-                {type, Line, atom, []},
-                {type, Line, byte, []},
-                {type, Line, integer, []}
+              {type, Line, atom, []},
+              {type, Line, list, [
+                {type, Line, union, [
+                  {type, Line, tuple, [
+                    {type, Line, atom, []},
+                    {type, Line, any, []}
+                  ]},
+                  {type, Line, tuple, [
+                    {type, Line, atom, []},
+                    {type, Line, byte, []},
+                    {type, Line, integer, []}
+                  ]}
+                ]}
               ]}
             ]}
-          ]}
-        ]}
-      ]}]
-    }},
+          ]}]
+        }};
+
+      _ ->
+        {attribute, Line, spec, {{'__info__', 1},
+          [{type, Line, 'fun', [
+            {type, Line, product, [
+              {type, Line, union, AllowedArgs}
+            ]},
+            {type, Line, any, []}
+          ]}]
+        }}
+    end,
 
   Info =
     {function, 0, '__info__', 1, [
