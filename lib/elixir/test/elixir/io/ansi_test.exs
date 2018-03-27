@@ -196,8 +196,8 @@ defmodule IO.ANSITest do
   end
 
   test "cursor_left/1" do
-    assert IO.ANSI.cursor_left() == "\e[1C"
-    assert IO.ANSI.cursor_left(3) == "\e[3C"
+    assert IO.ANSI.cursor_left() == "\e[1D"
+    assert IO.ANSI.cursor_left(3) == "\e[3D"
 
     assert_raise FunctionClauseError, fn ->
       IO.ANSI.cursor_left(0)
@@ -209,8 +209,8 @@ defmodule IO.ANSITest do
   end
 
   test "cursor_right/1" do
-    assert IO.ANSI.cursor_right() == "\e[1D"
-    assert IO.ANSI.cursor_right(4) == "\e[4D"
+    assert IO.ANSI.cursor_right() == "\e[1C"
+    assert IO.ANSI.cursor_right(4) == "\e[4C"
 
     assert_raise FunctionClauseError, fn ->
       IO.ANSI.cursor_right(0)

@@ -189,13 +189,13 @@ defmodule IO.ANSI do
   @spec cursor_down(pos_integer) :: String.t()
   def cursor_down(lines \\ 1) when is_integer(lines) and lines >= 1, do: "\e[#{lines}B"
 
-  @doc "Sends cursor `columns` to the left."
-  @spec cursor_left(pos_integer) :: String.t()
-  def cursor_left(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}C"
-
   @doc "Sends cursor `columns` to the right."
   @spec cursor_right(pos_integer) :: String.t()
-  def cursor_right(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}D"
+  def cursor_right(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}C"
+
+  @doc "Sends cursor `columns` to the left."
+  @spec cursor_left(pos_integer) :: String.t()
+  def cursor_left(columns \\ 1) when is_integer(columns) and columns >= 1, do: "\e[#{columns}D"
 
   @doc "Clears screen."
   defsequence(:clear, "2", "J")
