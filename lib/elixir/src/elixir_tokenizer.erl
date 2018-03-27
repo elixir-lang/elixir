@@ -1142,8 +1142,7 @@ terminator('<<') -> '>>'.
 
 check_keyword(_Line, _Column, _Atom, [{'.', _} | _], _Rest) ->
   nomatch;
-check_keyword(DoLine, DoColumn, do,
-              [{Identifier, {Line, Column, Meta}, Atom} | T], _Rest) when Identifier == identifier ->
+check_keyword(DoLine, DoColumn, do, [{identifier, {Line, Column, Meta}, Atom} | T], _Rest) ->
   {ok, add_token_with_eol({do, {DoLine, DoColumn, nil}},
                           [{do_identifier, {Line, Column, Meta}, Atom} | T])};
 check_keyword(_Line, _Column, do, [{'fn', _} | _], _Rest) ->
