@@ -335,7 +335,7 @@ defmodule IEx.Pry do
   end
 
   def handle_call({:remove_breaks, module}, _from, counter) do
-    # Make sure to deinstrumented before clearing
+    # Make sure to deinstrument before clearing
     # up the table to avoid race conditions.
     reply = deinstrument_if_instrumented(module)
     true = :ets.match_delete(@table, {:_, module, :_, :_, :_})
