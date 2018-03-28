@@ -33,6 +33,7 @@ defmodule Function do
       &String.length/1
 
   """
+  @since "1.7.0"
   @spec capture(module, atom, integer) :: fun
   def capture(module, function_name, arity) do
     :erlang.make_fun(module, function_name, arity)
@@ -76,6 +77,7 @@ defmodule Function do
       :local
 
   """
+  @since "1.7.0"
   @spec info(fun) :: [{information, value}]
   def info(fun), do: :erlang.fun_info(fun)
 
@@ -105,6 +107,7 @@ defmodule Function do
       {:type, :local}
 
   """
+  @since "1.7.0"
   @spec info(fun) :: {information, value}
   def info(fun, item), do: :erlang.fun_info(fun, item)
 end
