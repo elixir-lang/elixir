@@ -513,7 +513,7 @@ defmodule Code.Formatter do
   defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]} = arg]}, context, state) do
     %{rename_deprecated_at: since} = state
 
-    # TODO: Remove since check on Elixir v2.0 and the OP arrengement is removed.
+    # TODO: Remove since check on Elixir v2.0 and the OP arrangement is removed.
     if meta[:operator] == :"not in" || (since && Version.match?(since, "~> 1.5")) do
       binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
     else
