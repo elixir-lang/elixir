@@ -2,10 +2,11 @@ defmodule Function do
   @moduledoc """
   A set of funtions for working with functions.
 
-  We can have two types of captures functions - external and local -
-  external functions are our normal functions residing in modules while
-  local are the anonymous functions defined with `fn/1` or the capture
-  operator `&/1`.
+  We can have two types of captures functions: external and local.
+  External functions are functions residing in modules that are captured
+  with `&/1`, such as `&String.length/1`. Local are the anonymous functions
+  defined with `fn/1` or with the capture operator `&/1` using `&1`, `&2`
+  and so on as replacements.
   """
 
   @type information ::
@@ -56,12 +57,10 @@ defmodule Function do
   the funciton
     * `:index` - an integer - is an index into the module function table.
     * `:new_index` - an integer - is an index into the module function table.
-    * `:new_uniq` - a binary-  it's a unique value for this function. It is
-    calculated from the compiled code for the entire module.
-    * `:uniq` - an integer, a unique value for this function. As from Erlang/OTP
-    R15, this integer is calculated from the compiled code for the entire
-    module. Before Erlang/OTP R15, this integer was based on only the body
-    of the function.
+    * `:new_uniq` - a binary - it's a unique value for this function. It is
+      calculated from the compiled code for the entire module.
+    * `:uniq` - an integer, a unique value for this function. This integer is
+      calculated from the compiled code for the entire module.
 
   **Note**: this function must be used only for debugging purposes.
 
