@@ -2,10 +2,10 @@ defmodule Function do
   @moduledoc """
   A set of functions for working with functions.
 
-  We can have two types of captured functions: external and local.
+  There are two types of captured functions: **external** and **local**.
   External functions are functions residing in modules that are captured
-  with `&/1`, such as `&String.length/1`. Local are the anonymous functions
-  defined with `fn/1` or with the capture operator `&/1` using `&1`, `&2`
+  with `&/1`, such as `&String.length/1`. Local functions are anonymous functions
+  defined with `fn/1` or with the capture operator `&/1` using `&1`, `&2`,
   and so on as replacements.
   """
 
@@ -20,10 +20,9 @@ defmodule Function do
           | :pid
           | :type
           | :uniq
-  @type value :: any
 
   @doc """
-  Captures a function by a given `module`, `function_name` and `arity`.
+  Captures the given function.
 
   Inlined by the compiler.
 
@@ -34,7 +33,7 @@ defmodule Function do
 
   """
   @since "1.7.0"
-  @spec capture(module, atom, integer) :: fun
+  @spec capture(module, atom, arity) :: fun
   def capture(module, function_name, arity) do
     :erlang.make_fun(module, function_name, arity)
   end
@@ -42,25 +41,35 @@ defmodule Function do
   @doc """
   Returns a keyword list with information about a function.
 
-  The `{key, value}`s will include the following:
+  The returned keys (with the corresponding possible values) for
+  all types of functions (local and external) are the following:
 
     * `:type` - `:local` (for anonymous functions) or `:external` (for
-  named functions)
-    * `:module` - an atom - the module where the function is defined when
-    anonymous or the module which the function refers to when it's a named one.
-    * `:arity` - the number of arguments the function is to be called with
-    * `:name` - the name of the functions
+      named functions).
+
+    * `:module` - an atom which is the module where the function is defined when
+    anonymous or the module which the function refers to when it's a named function.
+
+    * `:arity` - (integer) the number of arguments the function is to be called with.
+
+    * `:name` - (atom) the name of the function.
+
     * `:env` - a list of the environment or free variables. For named
       functions, the returned list is always empty.
 
-  When it is an anonymous function it will also return info about:
-    * `:pid` - process identifier of the process that originally created
-  the function
-    * `:index` - an integer - is an index into the module function table.
-    * `:new_index` - an integer - is an index into the module function table.
-    * `:new_uniq` - a binary - it's a unique value for this function. It is
+  When `fun` is an anonymous function (that is, the type is `:local`), the following
+  additional keys are returned:
+
+    * `:pid` - PID of the process that originally created the function.
+
+    * `:index` - (integer) an index into the module function table.
+
+    * `:new_index` - (integer) an index into the module function table.
+
+    * `:new_uniq` - (binary) a unique value for this function. It's
       calculated from the compiled code for the entire module.
-    * `:uniq` - an integer, a unique value for this function. This integer is
+
+    * `:uniq` - (integer) a unique value for this function. This integer is
       calculated from the compiled code for the entire module.
 
   **Note**: this function must be used only for debugging purposes.
@@ -76,14 +85,23 @@ defmodule Function do
       iex> Keyword.get(info, :type)
       :local
 
+      iex> fun = &String.length/1
+      iex> info = Function.info(fun)
+      iex> Keyword.get(info, :type)
+      :external
+      iex> Keyword.get(info, :name)
+      :length
+
   """
   @since "1.7.0"
-  @spec info(fun) :: [{information, value}]
+  @spec info(fun) :: [{information, term}]
   def info(fun), do: :erlang.fun_info(fun)
 
   @doc """
-  Returns a tuple of information about the function in the form
-  `{:info, information}`.
+  Returns a specific information about the function.
+
+  The returned information is a two-element tuple in the shape of
+  `{info, value}`.
 
   For any function, the information asked for can be any of the atoms
   `:module`, `:name`, `:arity`, `:env`, or `:type`.
@@ -93,8 +111,8 @@ defmodule Function do
   For a named function, the value of any of these items is always the
   atom `:undefined`.
 
-  For more information on each of the value returned. Check the docs for
-  `Function.info/1`.
+  For more information on each of the possible returned values, see
+  `info/1`.
 
   Inlined by the compiler.
 
@@ -106,8 +124,14 @@ defmodule Function do
       iex> Function.info(f, :type)
       {:type, :local}
 
+      iex> fun = &String.length/1
+      iex> Function.info(fun, :name)
+      {:name, :length}
+      iex> Function.info(fun, :pid)
+      {:pid, :undefined}
+
   """
   @since "1.7.0"
-  @spec info(fun) :: {information, value}
+  @spec info(fun, item) :: {item, term} when item: information
   def info(fun, item), do: :erlang.fun_info(fun, item)
 end
