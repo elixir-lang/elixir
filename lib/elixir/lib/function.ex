@@ -25,6 +25,8 @@ defmodule Function do
   @doc """
   Captures a function by a given `module`, `function_name` and `arity`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Function.capture(String, :length, 1)
@@ -32,8 +34,7 @@ defmodule Function do
 
   """
   @spec capture(module, atom, integer) :: fun
-  def capture(module, function_name, arity)
-      when is_atom(module) and is_atom(function_name) and is_integer(arity) and arity in 0..255 do
+  def capture(module, function_name, arity) do
     :erlang.make_fun(module, function_name, arity)
   end
 
@@ -41,7 +42,7 @@ defmodule Function do
   Returns a keyword list with information about a function.
 
   The `{key, value}`s will include the following:
-  
+
     * `:type` - `:local` (for anonymous functions) or `:external` (for
   named functions)
     * `:module` - an atom - the module where the function is defined when
@@ -52,7 +53,6 @@ defmodule Function do
       functions, the returned list is always empty.
 
   When it is an anonymous function it will also return info about:
-  
     * `:pid` - process identifier of the process that originally created
   the funciton
     * `:index` - an integer - is an index into the module function table.
@@ -63,6 +63,8 @@ defmodule Function do
       calculated from the compiled code for the entire module.
 
   **Note**: this function must be used only for debugging purposes.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -75,7 +77,7 @@ defmodule Function do
 
   """
   @spec info(fun) :: [{information, value}]
-  def info(fun) when is_function(fun), do: :erlang.fun_info(fun)
+  def info(fun), do: :erlang.fun_info(fun)
 
   @doc """
   Returns a tuple of information about the function in the form
@@ -92,6 +94,8 @@ defmodule Function do
   For more information on each of the value returned. Check the docs for
   `Function.info/1`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> f = fn x -> x end
@@ -102,7 +106,5 @@ defmodule Function do
 
   """
   @spec info(fun) :: {information, value}
-  def info(fun, item) when is_function(fun) and is_atom(item) do
-    :erlang.fun_info(fun, item)
-  end
+  def info(fun, item), do: :erlang.fun_info(fun, item)
 end

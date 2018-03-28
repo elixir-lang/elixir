@@ -20,6 +20,7 @@
 -define(string_chars, 'Elixir.String.Chars').
 -define(system, 'Elixir.System').
 -define(tuple, 'Elixir.Tuple').
+-define(function, 'Elixir.Function').
 
 %% Inline
 
@@ -165,6 +166,10 @@ inline(?system, unique_integer, 1) -> {erlang, unique_integer};
 
 inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
 inline(?tuple, append, 2) -> {erlang, append_element};
+
+inline(?function, capture, 3) -> {erlang, make_fun};
+inline(?function, info, 1) -> {erlang, fun_info};
+inline(?function, info, 2) -> {erlang, fun_info};
 
 inline(_, _, _) -> false.
 

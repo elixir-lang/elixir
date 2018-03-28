@@ -49,7 +49,7 @@ defmodule FunctionTest do
 
       result = info(f)
 
-      for {key, _value} <- result  do
+      for {key, _value} <- result do
         assert key in @information_keys_for_anonymous
       end
     end
