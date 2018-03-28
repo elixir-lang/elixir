@@ -14,10 +14,16 @@ defmodule Mix.Tasks.Format do
   ## Formatting options
 
   The formatter will read a `.formatter.exs` in the current directory for
-  formatter configuration. Evaluating this file should return a keyword list
-  with any of the options supported by `Code.format_string!/2`.
+  formatter configuration. Evaluating this file should return a keyword list.
 
-  The `.formatter.exs` also supports other options:
+  Here is an example `.formatter.exs` that works as a starting point:
+
+      [
+        inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
+      ]
+
+  Besides the options listed in `Code.format_string!/2`, the `.formatter.exs`
+  supports the following options:
 
     * `:inputs` (a list of paths and patterns) - specifies the default inputs
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
