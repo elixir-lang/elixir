@@ -10,11 +10,13 @@
   * [Calendar] Add `months_in_year/1` callback
   * [Code] Add `Code.compile_file/2` that compiles files without leaving footprints on the system
   * [Date] Add `months_in_year/1` function
+  * [Function] Add `Function` module with `capture/3`, `info/1` and `info/2` functions
   * [IO.ANSI] Add cursor movement to `IO.ANSI`
   * [Kernel] Introduce `__STACKTRACE__` to retrieve the current stacktrace inside `catch`/`rescue` (this will be a requirement for Erlang/OTP 21+)
   * [Kernel] Raise on unsafe variables in order to allow us to better track unused variables
   * [Macro] Add `Macro.special_form?/2` and `Macro.operator?/2` that returns true if the given name/arity is a special form or operator respectively
   * [Macro.Env] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
+  * [Registry] Add `Registry.count/1` and `Registry.count_match/4`
   * [System] Use ISO 8601 in `System.build_info/0`
 
 #### ExUnit
@@ -26,8 +28,14 @@
 
   * [IEx.Helpers] Add `IEx.Helpers.use_if_available/2`
 
+#### Logger
+
+  * [Logger] Improve error messages on invalid inputs
+
 #### Mix
 
+  * [mix compile] Improve support for external build tools such as `rebar`
+  * [mix profile] Allow all profiling tasks to run programatically
   * [mix test] Add `--failed` option that only runs previously failed tests
   * [Mix.Project] Add `Mix.Project.clear_deps_cache/0`
 
@@ -37,6 +45,12 @@
 
   * [IO.ANSI.Docs] Fix table column alignment when converting docs to ANSI escapes
   * [Kernel] Raise on unsafe variables as some of the code emitted with unsafe variables would not correctly propagate variables or would disable tail call optimization semantics
+
+#### ExUnit
+
+  * [ExUnit.Case] Raise proper error if `@tag` and `@moduletag` are used before `use ExUnit.Case`
+  * [ExUnit.Case] Raise proper error if `@describetag` is used outside of describe
+  * [ExUnit.DocTest] Emit proper assertion error on doctests with invalid UTF-8
 
 ### 3. Soft deprecations (no warnings emitted)
 

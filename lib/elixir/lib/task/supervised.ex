@@ -125,7 +125,7 @@ defmodule Task.Supervised do
   defp get_from(other), do: other
 
   defp get_running({:erlang, :apply, [fun, []]}) when is_function(fun, 0), do: {fun, []}
-  defp get_running({mod, fun, args}), do: {:erlang.make_fun(mod, fun, length(args)), args}
+  defp get_running({mod, fun, args}), do: {Function.capture(mod, fun, length(args)), args}
 
   defp get_reason({:undef, [{mod, fun, args, _info} | _] = stacktrace} = reason)
        when is_atom(mod) and is_atom(fun) do
