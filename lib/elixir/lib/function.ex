@@ -1,8 +1,8 @@
 defmodule Function do
   @moduledoc """
-  A set of funtions for working with functions.
+  A set of functions for working with functions.
 
-  We can have two types of captures functions: external and local.
+  We can have two types of captured functions: external and local.
   External functions are functions residing in modules that are captured
   with `&/1`, such as `&String.length/1`. Local are the anonymous functions
   defined with `fn/1` or with the capture operator `&/1` using `&1`, `&2`
@@ -55,7 +55,7 @@ defmodule Function do
 
   When it is an anonymous function it will also return info about:
     * `:pid` - process identifier of the process that originally created
-  the funciton
+  the function
     * `:index` - an integer - is an index into the module function table.
     * `:new_index` - an integer - is an index into the module function table.
     * `:new_uniq` - a binary - it's a unique value for this function. It is
