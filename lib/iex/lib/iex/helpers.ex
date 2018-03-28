@@ -23,8 +23,8 @@ defmodule IEx.Helpers do
   There are many other helpers available, here are some examples:
 
     * `b/1`            - prints callbacks info and docs for a given module
-    * `c/1`            - compiles a file into the memory
-    * `c/2`            - compiles a file to the given path
+    * `c/1`            - compiles a file
+    * `c/2`            - compiles a file and writes bytecode to the given path
     * `cd/1`           - changes the current directory
     * `clear/0`        - clears the screen
     * `exports/1`      - shows all exports (functions + macros) in a module
