@@ -20,13 +20,13 @@ defmodule FunctionTest do
                                     [:pid, :index, :new_index, :new_uniq, :uniq]
 
   describe "capture/3" do
-    test "that it can capture module functions with arity 0" do
+    test "captures module functions with arity 0" do
       f = capture(DummyFunction, :function_with_arity_0, 0)
 
       assert is_function(f)
     end
 
-    test "that it can capture module functions with any arity" do
+    test "captures module functions with any arity" do
       f = capture(DummyFunction, :zero?, 1)
 
       assert is_function(f)
@@ -35,7 +35,7 @@ defmodule FunctionTest do
   end
 
   describe "info/1" do
-    test "it returns info for named captured functions" do
+    test "returns info for named captured functions" do
       f = &DummyFunction.zero?/1
       expected = [module: DummyFunction, name: :zero?, arity: 1, env: [], type: :external]
 
@@ -44,35 +44,32 @@ defmodule FunctionTest do
       assert expected == result
     end
 
-    test "it returns info for anonymous functions" do
+    test "returns info for anonymous functions" do
       f = fn x -> x end
 
       result = info(f)
 
-      result
-      |> Enum.each(fn {key, _value} ->
+      for {key, _value} <- result  do
         assert key in @information_keys_for_anonymous
-      end)
+      end
     end
   end
 
   describe "info/2" do
-    test "it returns info for every possible information key for named functions" do
+    test "returns info for every possible information key for named functions" do
       f = &DummyFunction.zero?/1
 
-      @information_keys_for_named
-      |> Enum.each(fn x ->
+      for x <- @information_keys_for_named do
         assert {^x, _} = info(f, x)
-      end)
+      end
     end
 
-    test "it returns info for every possible information key for anonymous functions" do
+    test "returns info for every possible information key for anonymous functions" do
       f = &DummyFunction.zero?/1
 
-      @information_keys_for_anonymous
-      |> Enum.each(fn x ->
+      for x <- @information_keys_for_anonymous do
         assert {^x, _} = info(f, x)
-      end)
+      end
 
       assert {:arity, 1} = info(f, :arity)
     end
