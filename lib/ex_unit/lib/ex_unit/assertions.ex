@@ -465,62 +465,32 @@ defmodule ExUnit.Assertions do
         end
       end
 
-    failure_message_hit =
-      failure_message ||
-        quote do
-          """
-          Found message matching #{unquote(binary)} after #{timeout}ms.
-
-          This means the message was delivered too close to the timeout value, you may want to either:
-
-            1. Give an increased timeout to `assert_receive/2`
-            2. Increase the default timeout to all `assert_receive` in your
-               test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
-          """
-        end
-
-    failure_message_miss =
-      failure_message ||
-        quote do
-          "No message matching #{unquote(binary)} after #{timeout}ms."
-        end
-
     timeout =
       if is_integer(timeout) do
         timeout
       else
-        quote do
-          case unquote(timeout) do
-            timeout when is_integer(timeout) and timeout >= 0 ->
-              timeout
-
-            timeout ->
-              raise ArgumentError,
-                    "timeout must be a non-negative integer, got: #{inspect(timeout)}"
-          end
-        end
+        quote do: ExUnit.Assertions.__timeout__(unquote(timeout))
       end
+
+    failure_message =
+      failure_message ||
+        quote do
+          ExUnit.Assertions.__timeout__(
+            unquote(binary),
+            unquote(pins),
+            unquote(pattern_finder),
+            timeout
+          )
+        end
 
     quote do
       timeout = unquote(timeout)
 
       {received, unquote(vars)} =
         receive do
-          unquote(pattern) ->
-            {received, unquote(vars)}
+          unquote(pattern) -> {received, unquote(vars)}
         after
-          timeout ->
-            {:messages, messages} = Process.info(self(), :messages)
-
-            if Enum.any?(messages, unquote(pattern_finder)) do
-              flunk(unquote(failure_message_hit))
-            else
-              flunk(
-                unquote(failure_message_miss) <>
-                  ExUnit.Assertions.__pins__(unquote(pins)) <>
-                  ExUnit.Assertions.__mailbox__(messages)
-              )
-            end
+          timeout -> flunk(unquote(failure_message))
         end
 
       received
@@ -531,15 +501,29 @@ defmodule ExUnit.Assertions do
   @max_mailbox_length 10
 
   @doc false
-  def __mailbox__(messages) do
-    length = length(messages)
+  def __timeout__(timeout) when is_integer(timeout) and timeout >= 0, do: timeout
 
-    mailbox =
-      messages
-      |> Enum.take(@max_mailbox_length)
-      |> Enum.map_join(@indent, &inspect/1)
+  def __timeout__(timeout),
+    do: raise(ArgumentError, "timeout must be a non-negative integer, got: #{inspect(timeout)}")
 
-    mailbox_message(length, @indent <> mailbox)
+  @doc false
+  def __timeout__(binary, pins, pattern_finder, timeout) do
+    {:messages, messages} = Process.info(self(), :messages)
+
+    if Enum.any?(messages, pattern_finder) do
+      """
+      Found message matching #{binary} after #{timeout}ms.
+
+      This means the message was delivered too close to the timeout value, you may want to either:
+
+        1. Give an increased timeout to `assert_receive/2`
+        2. Increase the default timeout to all `assert_receive` in your
+           test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
+      """
+    else
+      "No message matching #{binary} after #{timeout}ms." <>
+        __pins__(pins) <> format_mailbox(messages)
+    end
   end
 
   @doc false
@@ -552,6 +536,17 @@ defmodule ExUnit.Assertions do
       |> Enum.map_join(@indent, fn {name, var} -> "#{name} = #{inspect(var)}" end)
 
     "\nThe following variables were pinned:" <> @indent <> content
+  end
+
+  defp format_mailbox(messages) do
+    length = length(messages)
+
+    mailbox =
+      messages
+      |> Enum.take(@max_mailbox_length)
+      |> Enum.map_join(@indent, &inspect/1)
+
+    mailbox_message(length, @indent <> mailbox)
   end
 
   defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
@@ -659,7 +654,7 @@ defmodule ExUnit.Assertions do
         "expected:\n  #{inspect(message)}\n" <>
         "actual:\n" <> "  #{inspect(Exception.message(error))}"
 
-    assert match?, message: message
+    unless match?, do: flunk(message)
 
     error
   end
