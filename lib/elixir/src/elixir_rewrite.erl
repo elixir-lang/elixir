@@ -103,6 +103,7 @@ inline(?kernel, throw, 1) -> {erlang, throw};
 inline(?kernel, tl, 1) -> {erlang, tl};
 inline(?kernel, trunc, 1) -> {erlang, trunc};
 inline(?kernel, tuple_size, 1) -> {erlang, tuple_size};
+inline(?kernel, 'function_exported?', 3) -> {erlang, function_exported};
 
 inline(?map, keys, 1) -> {maps, keys};
 inline(?map, merge, 2) -> {maps, merge};
