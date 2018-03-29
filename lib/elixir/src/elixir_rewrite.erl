@@ -66,6 +66,7 @@ inline(?kernel, bit_size, 1) -> {erlang, bit_size};
 inline(?kernel, byte_size, 1) -> {erlang, byte_size};
 inline(?kernel, 'div', 2) -> {erlang, 'div'};
 inline(?kernel, exit, 1) -> {erlang, exit};
+inline(?kernel, 'function_exported?', 3) -> {erlang, function_exported};
 inline(?kernel, hd, 1) -> {erlang, hd};
 inline(?kernel, is_atom, 1) -> {erlang, is_atom};
 inline(?kernel, is_binary, 1) -> {erlang, is_binary};
@@ -103,7 +104,6 @@ inline(?kernel, throw, 1) -> {erlang, throw};
 inline(?kernel, tl, 1) -> {erlang, tl};
 inline(?kernel, trunc, 1) -> {erlang, trunc};
 inline(?kernel, tuple_size, 1) -> {erlang, tuple_size};
-inline(?kernel, 'function_exported?', 3) -> {erlang, function_exported};
 
 inline(?map, keys, 1) -> {maps, keys};
 inline(?map, merge, 2) -> {maps, merge};
