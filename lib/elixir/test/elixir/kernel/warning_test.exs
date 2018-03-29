@@ -551,20 +551,51 @@ defmodule Kernel.WarningTest do
   end
 
   test "length(list) == 0 in guard" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample do
-               def list_case do
-                 v = []
-                 case v do
-                   _ when length(v) == 0 -> :ok
-                   _ -> :fail
-                 end
-               end
-             end
-             """)
-           end) =~
+    error_message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          def list_case do
+            v = []
+            case v do
+              _ when length(v) == 0 -> :ok
+              _ -> :fail
+            end
+          end
+        end
+        """)
+      end)
+
+    assert error_message =~
              "\"length(v) == 0\" is discouraged since it has to traverse the whole list to check if it is empty or not"
+
+    assert error_message =~
+             "Prefer to pattern match on an empty list or use \"v == []\" as a guard"
+  after
+    purge(Sample)
+  end
+
+  test "length(list) > 0 in guard" do
+    error_message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          def list_case do
+            v = []
+            case v do
+              _ when length(v) > 0 -> :ok
+              _ -> :fail
+            end
+          end
+        end
+        """)
+      end)
+
+    assert error_message =~
+             "\"length(v) > 0\" is discouraged since it has to traverse the whole list to check if it is empty or not"
+
+    assert error_message =~
+             "Prefer to pattern match on a non-empty list, such as [_ | _], or use \"v != []\" as a guard"
   after
     purge(Sample)
   end
