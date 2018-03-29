@@ -354,24 +354,25 @@ defmodule Supervisor do
   The difference between the two approaches is that a module-based
   supervisor gives you more direct control over how the supervisor
   is initialized. Instead of calling `Supervisor.start_link/2` with
-  a list of children that are automatically initialized, we have
-  defined a supervisor alongside its `c:init/1` callback and manually
-  initialized the children by calling `Supervisor.init/2`, passing
-  the same arguments we would have given to `start_link/2`.
+  a list of children that are automatically initialized, we manually
+  initialized the children by calling `Supervisor.init/2` inside its
+  `c:init/1` callback.
 
-  You may want to use a module-based supervisor if:
+  `use Supervisor` also defines a `child_spec/1` function which allows
+  us to run `MyApp.Supervisor` as a child of another supervisor:
 
-    * You need to perform some particular action on supervisor
-      initialization, like setting up an ETS table.
+      children = [
+        MyApp.Supervisor
+      ]
 
-    * You want to perform partial hot-code swapping of the
-      tree. The module-based approach allow you to add and remove
-      children on a case-by-case basis.
+      Supervisor.start_link(children, strategy: :one_for_one)
 
-  Note `use Supervisor` defines a `child_spec/1` function, allowing
-  the defined module itself to be put under a supervision tree.
-  The generated `child_spec/1` can be customized with the following
-  options:
+  A general guideline is to use the supervisor without a callback
+  module only at the top of your supervision tree, generally in the
+  `c:Application.start/2` callback. We recommend using module-based
+  supervisors for any other supervisor in your application, so they
+  can run as a child of another supervision in the tree. The generated
+  `child_spec/1` can be customized with the following options:
 
     * `:id` - the child specification id, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
