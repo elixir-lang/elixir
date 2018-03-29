@@ -3214,6 +3214,8 @@ defmodule Kernel do
   it is not loaded. Check `Code.ensure_loaded/1` for more
   information.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> function_exported?(Enum, :member?, 2)
