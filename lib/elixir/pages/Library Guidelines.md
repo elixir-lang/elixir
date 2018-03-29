@@ -160,7 +160,7 @@ defmodule MyLib do
 end
 ```
 
-The reason why defing the `__using__` macro above should be avoided is because when a developer writes:
+The reason why defining the `__using__` macro above should be avoided is because when a developer writes:
 
 ```elixir
 defmodule MyApp do
