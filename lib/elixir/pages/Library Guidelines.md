@@ -94,7 +94,7 @@ def my_fun(some_arg, file_to_write_to, options \\ []) when is_binary(file_to_wri
 
 Elixir also leverages pattern matching and guards in function clauses to provide clear error messages in case invalid arguments are given.
 
-This advice does not only apply to libraries but to any Elixir code. Every time you receive multiple options or work with external data, you should validate the data at the boundary and convert it to structured data. For example, if you start a `GenServer` with multiple options, you want to validate those options when the server starts and rely only on structured data throughout the process life cycle. Similarly, if a database or a socket gives you a map of strings, after you receive the data, you should validate it and potentially convert it to a struct of a map of atoms.
+This advice does not only apply to libraries but to any Elixir code. Every time you receive multiple options or work with external data, you should validate the data at the boundary and convert it to structured data. For example, if you provide a `GenServer` that can be started with multiple options, you want to validate those options when the server starts and rely only on structured data throughout the process life cycle. Similarly, if a database or a socket gives you a map of strings, after you receive the data, you should validate it and potentially convert it to a struct of a map of atoms.
 
 ### Avoid application configuration
 
