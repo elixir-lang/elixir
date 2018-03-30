@@ -539,6 +539,22 @@ defmodule Supervisor do
           optional(:modules) => [module()] | :dynamic
         }
 
+  @typedoc "Return values used by the `which_children/1` function"
+  @type child_tuple :: {
+          term() | :undefined,
+          child | :restarting,
+          :worker | :supervisor,
+          :supervisor.modules()
+        }
+
+  @typedoc "Return values of the `count_children/1` function"
+  @type child_count :: %{
+          specs: non_neg_integer,
+          active: non_neg_integer,
+          supervisors: non_neg_integer,
+          workers: non_neg_integer
+        }
+
   @doc """
   Starts a supervisor with the given children.
 
@@ -927,9 +943,7 @@ defmodule Supervisor do
     * `modules` - as specified by the child specification
 
   """
-  @spec which_children(supervisor) :: [
-          {term() | :undefined, child | :restarting, :worker | :supervisor, :supervisor.modules()}
-        ]
+  @spec which_children(supervisor) :: [ child_tuple ]
   def which_children(supervisor) do
     call(supervisor, :which_children)
   end
@@ -951,12 +965,7 @@ defmodule Supervisor do
       are still alive
 
   """
-  @spec count_children(supervisor) :: %{
-          specs: non_neg_integer,
-          active: non_neg_integer,
-          supervisors: non_neg_integer,
-          workers: non_neg_integer
-        }
+  @spec count_children(supervisor) :: child_count
   def count_children(supervisor) do
     call(supervisor, :count_children) |> :maps.from_list()
   end
