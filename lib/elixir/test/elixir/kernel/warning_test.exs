@@ -566,8 +566,7 @@ defmodule Kernel.WarningTest do
         """)
       end)
 
-    assert error_message =~
-             "do not use \"length(v) == 0\" to check if a list is empty"
+    assert error_message =~ "do not use \"length(v) == 0\" to check if a list is empty"
 
     assert error_message =~
              "Prefer to pattern match on an empty list or use \"v == []\" as a guard"
@@ -591,8 +590,7 @@ defmodule Kernel.WarningTest do
         """)
       end)
 
-    assert error_message =~
-             "do not use \"length(v) > 0\" to check if a list is not empty"
+    assert error_message =~ "do not use \"length(v) > 0\" to check if a list is not empty"
 
     assert error_message =~
              "Prefer to pattern match on a non-empty list, such as [_ | _], or use \"v != []\" as a guard"
