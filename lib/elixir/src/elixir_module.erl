@@ -72,7 +72,8 @@ compile(Line, Module, Block, Vars, E) ->
   check_module_availability(Line, File, Module),
 
   CompilerModules = compiler_modules(),
-  {DataSet, DataBag, Ref} = build(Line, File, Module, ?key(E, lexical_tracker)),
+  {Tables, Ref} = build(Line, File, Module, ?key(E, lexical_tracker)),
+  {DataSet, DataBag} = Tables,
 
   try
     put_compiler_modules([Module | CompilerModules]),
@@ -81,6 +82,10 @@ compile(Line, Module, Block, Vars, E) ->
     PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
     Attributes = attributes(DataSet, DataBag, PersistedAttributes),
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
+
+    %% We stop tracking locals here to avoid race conditions in case after_load
+    %% evaluates code in a separate process that may write to locals table.
+    elixir_locals:stop({DataSet, DataBag}),
 
     (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions, OverridablePairs),
@@ -269,7 +274,7 @@ build(Line, File, Module, Lexical) ->
         elixir_errors:form_error([{line, Line}], File, ?MODULE, Error)
     end,
 
-  {DataSet, DataBag, Ref}.
+  {Tables, Ref}.
 
 %% Handles module and callback evaluations.
 

@@ -1,7 +1,7 @@
 %% Module responsible for tracking invocations of module calls.
 -module(elixir_locals).
 -export([
-  setup/1, cache_env/1, get_cached_env/1,
+  setup/1, stop/1, cache_env/1, get_cached_env/1,
   record_local/3, record_import/4, record_defaults/4,
   yank/2, reattach/5,
   ensure_no_import_conflict/3, warn_unused_local/4, format_error/1
@@ -9,11 +9,21 @@
 
 -include("elixir.hrl").
 -define(cache, {elixir, cache_env}).
+-define(locals, {elixir, locals}).
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
 setup({DataSet, _DataBag}) ->
   ets:insert(DataSet, {?cache, 0, nil}),
+
+  case elixir_config:get(bootstrap) of
+    false -> ets:insert(DataSet, {?locals, true});
+    true -> ok
+  end,
+
   ok.
+
+stop({DataSet, _DataBag}) ->
+  ets:delete(DataSet, ?locals).
 
 yank(Tuple, Module) ->
   if_tracker(Module, fun(Tracker) -> ?tracker:yank(Tracker, Tuple) end).
@@ -40,15 +50,14 @@ if_tracker(Module, Callback) ->
   if_tracker(Module, ok, Callback).
 
 if_tracker(Module, Default, Callback) ->
-  case elixir_config:get(bootstrap) of
-    false ->
-      try elixir_module:data_tables(Module) of
-        Tracker -> Callback(Tracker)
-      catch
-        error:badarg -> Default
-      end;
-    true ->
-      Default
+  try
+    {DataSet, _} = Tables = elixir_module:data_tables(Module),
+    {ets:member(DataSet, ?locals), Tables}
+  of
+    {true, Tracker} -> Callback(Tracker);
+    {false, _} -> Default
+  catch
+    error:badarg -> Default
   end.
 
 %% CACHING
