@@ -943,7 +943,7 @@ defmodule Supervisor do
     * `modules` - as specified by the child specification
 
   """
-  @spec which_children(supervisor) :: [ child_tuple ]
+  @spec which_children(supervisor) :: [child_tuple]
   def which_children(supervisor) do
     call(supervisor, :which_children)
   end
