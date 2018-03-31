@@ -127,7 +127,7 @@ defmodule Regex do
   ## Examples
 
       iex> Regex.compile("foo")
-      {:ok, ~r"foo"}
+      {:ok, ~r/foo/}
 
       iex> Regex.compile("*foo")
       {:error, {'nothing to repeat', 0}}
