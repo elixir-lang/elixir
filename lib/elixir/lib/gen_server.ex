@@ -78,7 +78,7 @@ defmodule GenServer do
 
   See the `Supervisor` docs for more information.
 
-  ## Name Registration
+  ## Name registration
 
   Both `start_link/3` and `start/3` support the `GenServer` to register
   a name on start via the `:name` option. Registered names are also
