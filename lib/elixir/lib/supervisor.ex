@@ -413,8 +413,8 @@ defmodule Supervisor do
   The second argument is a keyword list of options:
 
     * `:strategy` - the restart strategy option. It can be either
-      `:one_for_one`, `:rest_for_one` or `:one_for_all`. See the
-      "Strategies" section.
+      `:one_for_one`, `:rest_for_one` or `:one_for_all`. Required.
+      See the "Strategies" section.
 
     * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
@@ -422,8 +422,9 @@ defmodule Supervisor do
     * `:max_seconds` - the time frame in which `:max_restarts` applies.
       Defaults to `5`.
 
-  The `:strategy` option is required and by default a maximum of 3 restarts
-  is allowed within 5 seconds.
+    * `:name` - a name to register the supervisor process. Supported values are
+      explained in the "Name registration" section of the documentation of
+      `GenServer`. Optional.
 
   ### Strategies
 
