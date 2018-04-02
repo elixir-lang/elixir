@@ -87,7 +87,7 @@ defmodule GenServer do
     * an atom - the GenServer is registered locally with the given name
       using `Process.register/2`.
 
-    * `{:global, term}`- the GenServer is registered globally with the given
+    * `{:global, term}` - the GenServer is registered globally with the given
       term using the functions in the [`:global` module](http://www.erlang.org/doc/man/global.html).
 
     * `{:via, module, term}` - the GenServer is registered with the given
@@ -181,7 +181,7 @@ defmodule GenServer do
   the GenServer callbacks as doing so will cause the GenServer to misbehave.
 
   Besides the synchronous and asynchronous communication provided by `call/3`
-  and `cast/2`, "regular" messages sent by functions such `Kernel.send/2`,
+  and `cast/2`, "regular" messages sent by functions such as `Kernel.send/2`,
   `Process.send_after/4` and similar, can be handled inside the `c:handle_info/2`
   callback.
 
