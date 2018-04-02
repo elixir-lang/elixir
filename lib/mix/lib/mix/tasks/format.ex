@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Format do
     * `:import_deps` (a list of dependencies as atoms) - specifies a list
        of dependencies whose formatter configuration will be imported.
        When specified, the formatter should run in the same directory as
-       the `mix.exs` file that defines those depednencies. See the "Importing
+       the `mix.exs` file that defines those dependencies. See the "Importing
        dependencies configuration" section below for more information.
 
     * `:export` (a keyword list) - specifies formatter configuration to be exported.
