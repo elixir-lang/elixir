@@ -51,6 +51,7 @@ defmodule DynamicSupervisor do
           DynamicSupervisor.start_link(__MODULE__, arg, name: __MODULE__)
         end
 
+        @impl true
         def init(_arg) do
           DynamicSupervisor.init(strategy: :one_for_one)
         end
@@ -84,6 +85,7 @@ defmodule DynamicSupervisor do
           Supervisor.start_child(__MODULE__, [foo, bar, baz])
         end
 
+        @impl true
         def init(initial_arg) do
           children = [
             # Or the deprecated: worker(MyWorker, [initial_arg])
@@ -110,6 +112,7 @@ defmodule DynamicSupervisor do
           DynamicSupervisor.start_child(__MODULE__, spec)
         end
 
+        @impl true
         def init(initial_arg) do
           DynamicSupervisor.init(
             strategy: :one_for_one,
@@ -208,9 +211,6 @@ defmodule DynamicSupervisor do
       end
 
       defoverridable child_spec: 1
-
-      @doc false
-      def init(arg)
     end
   end
 

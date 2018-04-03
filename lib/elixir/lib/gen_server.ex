@@ -23,10 +23,17 @@ defmodule GenServer do
 
         # Callbacks
 
+        @impl true
+        def init(stack) do
+          {:ok, stack}
+        end
+
+        @impl true
         def handle_call(:pop, _from, [h | t]) do
           {:reply, h, t}
         end
 
+        @impl true
         def handle_cast({:push, item}, state) do
           {:noreply, [item | state]}
         end
@@ -151,21 +158,14 @@ defmodule GenServer do
 
         # Server (callbacks)
 
+        @impl true
         def handle_call(:pop, _from, [h | t]) do
           {:reply, h, t}
         end
 
-        def handle_call(request, from, state) do
-          # Call the default implementation from GenServer
-          super(request, from, state)
-        end
-
+        @impl true
         def handle_cast({:push, item}, state) do
           {:noreply, [item | state]}
-        end
-
-        def handle_cast(request, state) do
-          super(request, state)
         end
       end
 
@@ -196,11 +196,13 @@ defmodule GenServer do
           GenServer.start_link(__MODULE__, %{})
         end
 
+        @impl true
         def init(state) do
           schedule_work() # Schedule work to be performed on start
           {:ok, state}
         end
 
+        @impl true
         def handle_info(:work, state) do
           # Do the desired work here
           schedule_work() # Reschedule once more
@@ -664,8 +666,8 @@ defmodule GenServer do
             {:ok, args}
           end
 
-      But you want to define your own implementation that converts the \
-      arguments given to GenServer.start_link/3 to the server state
+      You can copy the implementation above or define your own that converts \
+      the arguments given to GenServer.start_link/3 to the server state.
       """
 
       :elixir_errors.warn(env.line, env.file, message)
