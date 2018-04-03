@@ -124,8 +124,8 @@ defmodule Supervisor do
   then awaiting for a time interval for the child process to terminate. This
   interval defaults to 5000 milliseconds. If the child process does not
   terminate in this interval, the supervisor abruptly terminates the child
-  with reason `:brutal_kill`. The shutdown time can be configured in the
-  child specification which is fully detailed in the next section.
+  with reason `:kill`. The shutdown time can be configured in the child
+  specification which is fully detailed in the next section.
 
   If the child process is not trapping exits, it will shutdown immediately
   when it receives the first exit signal. If the child process is trapping
