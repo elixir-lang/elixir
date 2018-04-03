@@ -184,7 +184,8 @@ tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_
     {ok, NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, <<H, H, H>>},
-      tokenize(Final, NewLine, NewColumn, Scope, [Token | Tokens]);
+      NewColumn2 = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumn2, Scope, [Token | Tokens]);
     {error, Reason} ->
       {error, Reason, Original, Tokens}
   end;
@@ -194,7 +195,8 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, <<H>>},
-      tokenize(Final, NewLine, NewColumn, Scope, [Token | Tokens]);
+      NewColumn2 = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumn2, Scope, [Token | Tokens]);
     {error, Reason} ->
       Sigil = [$~, S, H],
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])

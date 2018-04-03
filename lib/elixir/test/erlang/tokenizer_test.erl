@@ -208,6 +208,12 @@ sigil_terminator_test() ->
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"/">>}] = tokenize("~r/foo/"),
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"[">>}] = tokenize("~r[foo]"),
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"\"">>}] = tokenize("~r\"foo\""),
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"/">>},
+   {comp_op, {1, 9, nil}, '=='},
+   {identifier, {1, 12, nil}, bar}] = tokenize("~r/foo/ == bar"),
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], "iu", <<"/">>},
+   {comp_op, {1, 11, nil}, '=='},
+   {identifier, {1, 14, nil}, bar}] = tokenize("~r/foo/iu == bar"),
   [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], [], <<"\"\"\"">>}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
   [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], [], <<"'''">>}] = tokenize("~S'''\nsigil heredoc\n'''").
 
