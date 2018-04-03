@@ -28,14 +28,17 @@ defmodule Supervisor do
 
         ## Callbacks
 
+        @impl true
         def init(stack) do
           {:ok, stack}
         end
 
+        @impl true
         def handle_call(:pop, _from, [h | t]) do
           {:reply, h, t}
         end
 
+        @impl true
         def handle_cast({:push, h}, t) do
           {:noreply, [h | t]}
         end
@@ -342,6 +345,7 @@ defmodule Supervisor do
           Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
         end
 
+        @impl true
         def init(_arg) do
           children = [
             {Stack, [:hello]}
@@ -476,9 +480,6 @@ defmodule Supervisor do
       end
 
       defoverridable child_spec: 1
-
-      @doc false
-      def init(arg)
     end
   end
 
