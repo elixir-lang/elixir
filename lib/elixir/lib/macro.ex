@@ -745,7 +745,13 @@ defmodule Macro do
   end
 
   # All other structures
-  def to_string(other, fun), do: fun.(other, inspect(other, []))
+  def to_string(other, fun) do
+    fun.(other, inspect_no_limit(other))
+  end
+
+  defp inspect_no_limit(value) do
+    Kernel.inspect(value, limit: :infinity, printable_limit: :infinity)
+  end
 
   defp bitpart_to_string({:::, _, [left, right]} = ast, fun) do
     result =
@@ -799,7 +805,7 @@ defmodule Macro do
           "\#{" <> to_string(arg, fun) <> "}"
 
         binary when is_binary(binary) ->
-          binary = inspect(binary, [])
+          binary = inspect_no_limit(binary)
           :binary.part(binary, 1, byte_size(binary) - 2)
       end)
 
@@ -807,7 +813,7 @@ defmodule Macro do
   end
 
   defp module_to_string(atom, _fun) when is_atom(atom) do
-    inspect(atom, [])
+    inspect_no_limit(atom)
   end
 
   defp module_to_string({:&, _, [val]} = expr, fun) when not is_integer(val) do
@@ -865,11 +871,25 @@ defmodule Macro do
     :error
   end
 
-  defp sigil_call({sigil, _, [{:<<>>, _, _} = bin, args]} = ast, fun)
+  defp sigil_call({sigil, _, [{:<<>>, _, _} = parts, args]} = ast, fun)
        when is_atom(sigil) and is_list(args) do
     case Atom.to_string(sigil) do
-      <<"sigil_", name>> ->
-        {:ok, fun.(ast, "~" <> <<name>> <> interpolate(bin, fun) <> sigil_args(args, fun))}
+      <<"sigil_", name>> when name in ?A..?Z ->
+        {:<<>>, _, [binary]} = parts
+
+        formatted =
+          if :binary.last(binary) == ?\n do
+            binary = String.replace(binary, ~s["""], ~s["\\""])
+            <<?~, name, ~s["""\n], binary::binary, ~s["""], sigil_args(args, fun)::binary>>
+          else
+            {left, right} = select_sigil_container(binary)
+            <<?~, name, left, binary::binary, right, sigil_args(args, fun)::binary>>
+          end
+
+        {:ok, fun.(ast, formatted)}
+
+      <<"sigil_", name>> when name in ?a..?z ->
+        {:ok, fun.(ast, "~" <> <<name>> <> interpolate(parts, fun) <> sigil_args(args, fun))}
 
       _ ->
         :error
@@ -878,6 +898,18 @@ defmodule Macro do
 
   defp sigil_call(_other, _fun) do
     :error
+  end
+
+  defp select_sigil_container(binary) do
+    cond do
+      :binary.match(binary, ["\""]) == :nomatch -> {?", ?"}
+      :binary.match(binary, ["\'"]) == :nomatch -> {?', ?'}
+      :binary.match(binary, ["(", ")"]) == :nomatch -> {?(, ?)}
+      :binary.match(binary, ["[", "]"]) == :nomatch -> {?[, ?]}
+      :binary.match(binary, ["{", "}"]) == :nomatch -> {?{, ?}}
+      :binary.match(binary, ["<", ">"]) == :nomatch -> {?<, ?>}
+      true -> {?/, ?/}
+    end
   end
 
   defp sigil_args([], _fun), do: ""
@@ -978,8 +1010,9 @@ defmodule Macro do
   end
 
   defp map_list_to_string(list, fun) do
-    Enum.map_join(list, ", ", fn {key, value} ->
-      to_string(key, fun) <> " => " <> to_string(value, fun)
+    Enum.map_join(list, ", ", fn
+      {key, value} -> to_string(key, fun) <> " => " <> to_string(value, fun)
+      other -> to_string(other, fun)
     end)
   end
 
