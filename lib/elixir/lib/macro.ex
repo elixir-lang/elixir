@@ -874,7 +874,7 @@ defmodule Macro do
   defp sigil_call({sigil, _, [{:<<>>, _, _} = parts, args]} = ast, fun)
        when is_atom(sigil) and is_list(args) do
     case Atom.to_string(sigil) do
-      <<"sigil_", name>> when name in ?A..?Z ->
+      <<"sigil_", name>> when name >= ?A and name <= ?Z ->
         {:<<>>, _, [binary]} = parts
 
         formatted =
@@ -888,7 +888,7 @@ defmodule Macro do
 
         {:ok, fun.(ast, formatted)}
 
-      <<"sigil_", name>> when name in ?a..?z ->
+      <<"sigil_", name>> when name >= ?a and name <= ?z ->
         {:ok, fun.(ast, "~" <> <<name>> <> interpolate(parts, fun) <> sigil_args(args, fun))}
 
       _ ->
