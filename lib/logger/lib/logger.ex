@@ -506,7 +506,8 @@ defmodule Logger do
     :sync_threshold,
     :truncate,
     :level,
-    :utc_log
+    :utc_log,
+    :discard_threshold
   ]
   @spec configure(keyword) :: :ok
   def configure(options) do

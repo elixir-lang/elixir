@@ -348,4 +348,21 @@ defmodule LoggerTest do
     Logger.App.stop()
     Application.start(:logger)
   end
+
+  test "configure/1 sets options" do
+    Logger.configure(sync_threshold: 10)
+    Logger.configure(truncate: 4048)
+    Logger.configure(utc_log: true)
+    Logger.configure(discard_threshold: 10_000)
+    logger_data = Logger.Config.__data__()
+    assert Map.get(logger_data, :sync_threshold) == 10
+    assert Map.get(logger_data, :truncate) == 4048
+    assert Map.get(logger_data, :utc_log) == true
+    assert Map.get(logger_data, :discard_threshold) == 10_000
+  after
+    Logger.configure(sync_threshold: 20)
+    Logger.configure(sync_threshold: 8096)
+    Logger.configure(utc_log: false)
+    Logger.configure(discard_threshold: 500)
+  end
 end
