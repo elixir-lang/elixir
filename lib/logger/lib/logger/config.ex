@@ -219,6 +219,7 @@ defmodule Logger.Config do
     utc_log = Application.get_env(:logger, :utc_log)
     truncate = Application.get_env(:logger, :truncate)
     translators = Application.get_env(:logger, :translators)
+    translator_inspect_opts = Application.get_env(:logger, :translator_inspect_opts)
 
     sync_threshold = Application.get_env(:logger, :sync_threshold)
     async_threshold = trunc(sync_threshold * 0.75)
@@ -235,7 +236,8 @@ defmodule Logger.Config do
       sync_threshold: sync_threshold,
       keep_threshold: keep_threshold,
       discard_threshold: discard_threshold,
-      translators: translators
+      translators: translators,
+      translator_inspect_opts: translator_inspect_opts
     }
 
     case compute_mode(state) do
