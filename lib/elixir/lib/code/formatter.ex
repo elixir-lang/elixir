@@ -1136,12 +1136,13 @@ defmodule Code.Formatter do
     if left != [] and keyword? and skip_parens? and generators_count == 0 do
       call_args_to_algebra_with_no_parens_keywords(meta, left, right, context, extra, state)
     else
-      next_break_fits? = next_break_fits?(right, state)
-      last_arg_mode = if next_break_fits?, do: :next_break_fits, else: :none
       force_keyword? = keyword? and force_keyword?(right)
-      non_empty_eol? = left != [] and not next_break_fits? and Keyword.get(meta, :eol, false)
+      non_empty_eol? = left != [] and Keyword.get(meta, :eol, false)
       join = if generators_count > 1 or force_keyword? or non_empty_eol?, do: :line, else: :glue
       args = if keyword?, do: left ++ right, else: left ++ [right]
+
+      next_break_fits? = join == :glue and next_break_fits?(right, state)
+      last_arg_mode = if next_break_fits?, do: :next_break_fits, else: :none
 
       {args_doc, _join, state} =
         args_to_algebra_with_comments(

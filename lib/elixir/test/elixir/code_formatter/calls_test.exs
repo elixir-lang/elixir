@@ -687,6 +687,14 @@ defmodule Code.Formatter.CallsTest do
 
       # Doesn't preserve this because only the beginning has a newline
       assert_format "Remote.call(\nfoo, bar, baz)", "Remote.call(foo, bar, baz)"
+
+      assert_same """
+      Remote.call(
+        :hello,
+        :foo,
+        fn -> :bar end
+      )
+      """
     end
   end
 
