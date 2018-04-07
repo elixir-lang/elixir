@@ -369,15 +369,18 @@ defmodule LoggerTest do
     Logger.configure(truncate: 4048)
     Logger.configure(utc_log: true)
     Logger.configure(discard_threshold: 10_000)
+    Logger.configure(translator_inspect_opts: [limit: 3])
     logger_data = Logger.Config.__data__()
     assert Map.get(logger_data, :sync_threshold) == 10
     assert Map.get(logger_data, :truncate) == 4048
     assert Map.get(logger_data, :utc_log) == true
     assert Map.get(logger_data, :discard_threshold) == 10_000
+    assert Map.get(logger_data, :translator_inspect_opts) == [limit: 3]
   after
     Logger.configure(sync_threshold: 20)
     Logger.configure(sync_threshold: 8096)
     Logger.configure(utc_log: false)
     Logger.configure(discard_threshold: 500)
+    Logger.configure(translator_inspect_opts: [])
   end
 end
