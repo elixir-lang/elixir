@@ -239,7 +239,7 @@ defmodule Logger.Config do
       async_threshold: async_threshold,
       sync_threshold: sync_threshold,
       keep_threshold: keep_threshold,
-      discard_threshold: discard_threshold,
+      discard_threshold: discard_threshold
     }
   end
 
