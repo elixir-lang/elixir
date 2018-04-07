@@ -369,14 +369,18 @@ defmodule LoggerTest do
     Logger.configure(truncate: 4048)
     Logger.configure(utc_log: true)
     Logger.configure(discard_threshold: 10_000)
+
+    assert Application.get_env(:logger, :sync_threshold) == 10
+    assert Application.get_env(:logger, :utc_log) == true
+    assert Application.get_env(:logger, :truncate) == 4048
+    assert Application.get_env(:logger, :discard_threshold) == 10_000
+
     logger_data = Logger.Config.__data__()
-    assert Map.get(logger_data, :sync_threshold) == 10
-    assert Map.get(logger_data, :truncate) == 4048
-    assert Map.get(logger_data, :utc_log) == true
-    assert Map.get(logger_data, :discard_threshold) == 10_000
+    assert logger_data.truncate == 4048
+    assert logger_data.utc_log == true
   after
     Logger.configure(sync_threshold: 20)
-    Logger.configure(sync_threshold: 8096)
+    Logger.configure(truncate: 8096)
     Logger.configure(utc_log: false)
     Logger.configure(discard_threshold: 500)
   end
