@@ -168,7 +168,7 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.push(WrongPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
-      assert {:error, "path_not_found"} = Mix.Task.run("compile", ["--force", "--return-errors"])
+      assert {:ok, []} = Mix.Task.run("compile", ["--force", "--return-errors"])
     end)
   end
 end
