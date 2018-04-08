@@ -91,10 +91,16 @@ defmodule Mix.Tasks.Compile do
     load_erl_config(opts)
 
     {res, diagnostics} =
-      Mix.Task.run("compile.all", args)
-      |> List.wrap()
-      |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
-      |> Enum.reduce(&merge_diagnostics/2)
+      case Mix.Task.run("compile.all", args) do
+        [] ->
+          {:error, "path_not_found"}
+
+        projects ->
+          projects
+          |> List.wrap()
+          |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
+          |> Enum.reduce(&merge_diagnostics/2)
+      end
 
     if res == :error and "--return-errors" not in args do
       exit({:shutdown, 1})

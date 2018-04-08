@@ -9,6 +9,12 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
+  defmodule WrongPath do
+    def project do
+      [app: :apps_path_bug, apps_path: "this_path_does_not_exist_or_is_empty"]
+    end
+  end
+
   setup do
     Mix.Project.push(MixTest.Case.Sample)
     :ok
@@ -156,5 +162,13 @@ defmodule Mix.Tasks.CompileTest do
     end
   after
     Application.delete_env(:erl_config_app, :value)
+  end
+
+  test "compile a project with wrong path" do
+    Mix.Project.push(WrongPath)
+
+    ExUnit.CaptureIO.capture_io(fn ->
+      assert {:error, "path_not_found"} = Mix.Task.run("compile", ["--force", "--return-errors"])
+    end)
   end
 end
