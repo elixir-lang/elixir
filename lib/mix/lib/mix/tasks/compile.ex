@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Compile do
       Mix.Task.run("compile.all", args)
       |> List.wrap()
       |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
-      |> Enum.reduce(&merge_diagnostics/2)
+      |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
     if res == :error and "--return-errors" not in args do
       exit({:shutdown, 1})
