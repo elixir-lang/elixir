@@ -26,7 +26,7 @@ defmodule Mix.Tasks.CompileTest do
     :ok
   end
 
-  test "compile --list with mixfile" do
+  test "compiles --list with mixfile" do
     Mix.Task.run("compile", ["--list"])
 
     msg = "\nEnabled compilers: yecc, leex, erlang, elixir, xref, app, protocols"
@@ -35,18 +35,18 @@ defmodule Mix.Tasks.CompileTest do
     assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
   end
 
-  test "compile --list with custom mixfile" do
+  test "compiles --list with custom mixfile" do
     Mix.Project.push(CustomCompilers)
     Mix.Task.run("compile", ["--list"])
     assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom, protocols"]}
   end
 
-  test "compile does not require all compilers available on manifest" do
+  test "compiles does not require all compilers available on manifest" do
     Mix.Project.push(CustomCompilers)
     assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == ["compile.elixir"]
   end
 
-  test "compile a project with mixfile" do
+  test "compiles a project with mixfile" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
@@ -74,7 +74,7 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
-  test "compile a project with multiple compilers and a syntax error in an Erlang file" do
+  test "compiles a project with multiple compilers and a syntax error in an Erlang file" do
     in_fixture "no_mixfile", fn ->
       import ExUnit.CaptureIO
 
@@ -170,7 +170,7 @@ defmodule Mix.Tasks.CompileTest do
     Application.delete_env(:erl_config_app, :value)
   end
 
-  test "compile a project with wrong path" do
+  test "compiles a project with wrong path" do
     Mix.Project.push(WrongPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
@@ -178,7 +178,7 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "compile a project with empty path" do
+  test "compiles a project with empty path" do
     Mix.Project.push(EmptyPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
