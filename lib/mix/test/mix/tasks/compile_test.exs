@@ -15,12 +15,6 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
-  defmodule EmptyPath do
-    def project do
-      [app: :apps_path_bug, apps_path: ""]
-    end
-  end
-
   setup do
     Mix.Project.push(MixTest.Case.Sample)
     :ok
@@ -172,14 +166,6 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compiles a project with wrong path" do
     Mix.Project.push(WrongPath)
-
-    ExUnit.CaptureIO.capture_io(fn ->
-      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:noop, []}
-    end)
-  end
-
-  test "compiles a project with empty path" do
-    Mix.Project.push(EmptyPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
       assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:noop, []}
