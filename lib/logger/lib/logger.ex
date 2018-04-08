@@ -513,7 +513,8 @@ defmodule Logger do
     :truncate,
     :level,
     :utc_log,
-    :discard_threshold
+    :discard_threshold,
+    :translator_inspect_opts
   ]
   @spec configure(keyword) :: :ok
   def configure(options) do
