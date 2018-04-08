@@ -369,11 +369,13 @@ defmodule LoggerTest do
     Logger.configure(truncate: 4048)
     Logger.configure(utc_log: true)
     Logger.configure(discard_threshold: 10_000)
+    Logger.configure(translator_inspect_opts: [limit: 3])
 
     assert Application.get_env(:logger, :sync_threshold) == 10
     assert Application.get_env(:logger, :utc_log) == true
     assert Application.get_env(:logger, :truncate) == 4048
     assert Application.get_env(:logger, :discard_threshold) == 10_000
+    assert Application.get_env(:logger, :translator_inspect_opts) == [limit: 3]
 
     logger_data = Logger.Config.__data__()
     assert logger_data.truncate == 4048
@@ -383,5 +385,6 @@ defmodule LoggerTest do
     Logger.configure(truncate: 8096)
     Logger.configure(utc_log: false)
     Logger.configure(discard_threshold: 500)
+    Logger.configure(translator_inspect_opts: [])
   end
 end
