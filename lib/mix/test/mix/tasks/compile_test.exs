@@ -174,7 +174,7 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.push(WrongPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
-      assert {:noop, []} = Mix.Task.run("compile", ["--force", "--return-errors"])
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:noop, []}
     end)
   end
 
@@ -182,7 +182,7 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.push(EmptyPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
-      assert {:noop, []} = Mix.Task.run("compile", ["--force", "--return-errors"])
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:noop, []}
     end)
   end
 end
