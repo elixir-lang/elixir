@@ -208,4 +208,43 @@ defmodule Mix.TaskTest do
   test "shortdoc/1" do
     assert Mix.Task.shortdoc(Mix.Tasks.Hello) == "This is short documentation, see"
   end
+
+  test "compile umbrella project with empty apps_path" do
+    in_fixture "umbrella_dep/deps/empty_umbrella", fn ->
+      Mix.Project.in_project(:empty_umbrella, ".", fn _ ->
+        assert :ok = Mix.Task.run("loadpaths")
+
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert {:error, "apps is empty"} =
+                   Mix.Task.run("compile", ["--force", "--return-errors"])
+        end)
+      end)
+    end
+  end
+
+  test "compile umbrella project with bad apps_path" do
+    in_fixture "umbrella_dep/deps/bad_apps_path", fn ->
+      Mix.Project.in_project(:bad_apps_path, ".", fn _ ->
+        assert :ok = Mix.Task.run("loadpaths")
+
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert {:error, "superrealpaththatexist is not a valid directory"} =
+                   Mix.Task.run("compile", ["--force", "--return-errors"])
+        end)
+      end)
+    end
+  end
+
+  test "compile umbrella project where app_path is not a directory" do
+    in_fixture "umbrella_dep/deps/apps_path_is_file", fn ->
+      Mix.Project.in_project(:apps_path_is_file, ".", fn _ ->
+        assert :ok = Mix.Task.run("loadpaths")
+
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert {:error, "apps is not a valid directory"} =
+                   Mix.Task.run("compile", ["--force", "--return-errors"])
+        end)
+      end)
+    end
+  end
 end

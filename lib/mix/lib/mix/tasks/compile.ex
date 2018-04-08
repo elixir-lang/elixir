@@ -91,10 +91,24 @@ defmodule Mix.Tasks.Compile do
     load_erl_config(opts)
 
     {res, diagnostics} =
-      Mix.Task.run("compile.all", args)
-      |> List.wrap()
-      |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
-      |> Enum.reduce(&merge_diagnostics/2)
+      case Mix.Task.run("compile.all", args) do
+        [] ->
+          path = Mix.Project.get!().project[:apps_path]
+
+          case validate_apps_path(path) do
+            :ok ->
+              {:error, "#{path} is empty"}
+
+            {:error, msg} ->
+              {:error, msg}
+          end
+
+        projects ->
+          projects
+          |> List.wrap()
+          |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
+          |> Enum.reduce(&merge_diagnostics/2)
+      end
 
     if res == :error and "--return-errors" not in args do
       exit({:shutdown, 1})
@@ -109,6 +123,15 @@ defmodule Mix.Tasks.Compile do
       end
 
     {res, diagnostics}
+  end
+
+  @spec validate_apps_path(binary()) :: {:error, binary()} | :ok
+  defp validate_apps_path(path) do
+    if !File.exists?(path) || !File.dir?(path) do
+      {:error, "#{path} is not a valid directory"}
+    else
+      :ok
+    end
   end
 
   defp merge_diagnostics({status1, diagnostics1}, {status2, diagnostics2}) do
