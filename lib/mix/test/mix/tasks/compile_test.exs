@@ -11,7 +11,13 @@ defmodule Mix.Tasks.CompileTest do
 
   defmodule WrongPath do
     def project do
-      [app: :apps_path_bug, apps_path: "this_path_does_not_exist_or_is_empty"]
+      [app: :apps_path_bug, apps_path: "this_path_does_not_exist"]
+    end
+  end
+
+  defmodule EmptyPath do
+    def project do
+      [app: :apps_path_bug, apps_path: ""]
     end
   end
 
@@ -147,6 +153,7 @@ defmodule Mix.Tasks.CompileTest do
   test "skip protocol consolidation when --no-protocol-consolidation" do
     in_fixture "no_mixfile", fn ->
       File.rm("_build/dev/lib/sample/.mix/compile.protocols")
+
       assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
@@ -168,7 +175,15 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.push(WrongPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
-      assert {:ok, []} = Mix.Task.run("compile", ["--force", "--return-errors"])
+      assert {:noop, []} = Mix.Task.run("compile", ["--force", "--return-errors"])
+    end)
+  end
+
+  test "compile a project with empty path" do
+    Mix.Project.push(EmptyPath)
+
+    ExUnit.CaptureIO.capture_io(fn ->
+      assert {:noop, []} = Mix.Task.run("compile", ["--force", "--return-errors"])
     end)
   end
 end

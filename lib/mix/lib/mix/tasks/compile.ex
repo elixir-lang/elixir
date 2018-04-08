@@ -90,19 +90,11 @@ defmodule Mix.Tasks.Compile do
 
     load_erl_config(opts)
 
-    diagnostics =
+    {res, diagnostics} =
       Mix.Task.run("compile.all", args)
       |> List.wrap()
       |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
-
-    {res, diagnostics} =
-      case diagnostics do
-        [] ->
-          Enum.reduce(diagnostics, {:ok, []}, &merge_diagnostics/2)
-
-        _ ->
-          Enum.reduce(diagnostics, &merge_diagnostics/2)
-      end
+      |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
     if res == :error and "--return-errors" not in args do
       exit({:shutdown, 1})
