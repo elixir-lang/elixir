@@ -599,7 +599,7 @@ defmodule Regex do
 
   def replace(regex, string, replacement, options)
       when is_binary(string) and is_function(replacement) and is_list(options) do
-    {:arity, arity} = :erlang.fun_info(replacement, :arity)
+    {:arity, arity} = Function.info(replacement, :arity)
     do_replace(regex, string, {replacement, arity}, options)
   end
 

@@ -49,6 +49,8 @@ defmodule Kernel do
 
     * `Atom` - literal constants with a name (`true`, `false`, and `nil` are atoms)
     * `Float` - numbers with floating point precision
+    * `Function` - a reference to code chunk, created with the `Kernel.SpecialForms.fn/2`
+      special form
     * `Integer` - whole numbers (not fractions)
     * `List` - collections of a variable number of elements (linked lists)
     * `Map` - collections of key-value pairs
@@ -56,13 +58,11 @@ defmodule Kernel do
     * `Port` - mechanisms to interact with the external world
     * `Tuple` - collections of a fixed number of elements
 
-  There are three data types without an accompanying module:
+  There are two data types without an accompanying module:
 
     * Bitstrings - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
       When the number of bits is divisible by 8, they are called binaries and can
       be manipulated with Erlang's `:binary` module
-    * Function - a reference to code chunk, created with the `Kernel.SpecialForms.fn/2`
-      special form
     * Reference - a unique value in the runtime system, created with `make_ref/0`
 
   ### Data types
