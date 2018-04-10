@@ -359,9 +359,31 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "with variables on keys" do
-      assert expand(quote(do: %{(x = 1) => 1})) == quote(do: %{(x = 1) => 1})
+      ast =
+        quote do
+          %{(x = 1) => 1}
+        end
 
-      assert_raise CompileError, ~r"illegal use of variable x inside map key match,", fn ->
+      assert expand(ast) == ast
+
+      ast =
+        quote do
+          x = 1
+          %{%{^x => 1} => 2} = y()
+        end
+
+      assert expand(ast) == ast
+
+      assert_raise CompileError, ~r"illegal use of pin operator \^x inside map key match", fn ->
+        expand(
+          quote do
+            x = 1
+            %{{^x} => 1} = %{}
+          end
+        )
+      end
+
+      assert_raise CompileError, ~r"illegal use of variable \"x\" inside map key match,", fn ->
         expand(quote(do: %{x => 1} = %{}))
       end
 
