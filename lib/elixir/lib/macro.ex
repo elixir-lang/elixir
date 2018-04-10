@@ -442,8 +442,8 @@ defmodule Macro do
   defp find_invalid(bin) when is_binary(bin), do: nil
 
   defp find_invalid(fun) when is_function(fun) do
-    unless :erlang.fun_info(fun, :env) == {:env, []} and
-             :erlang.fun_info(fun, :type) == {:type, :external} do
+    unless Function.info(fun, :env) == {:env, []} and
+             Function.info(fun, :type) == {:type, :external} do
       {:error, fun}
     end
   end

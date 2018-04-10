@@ -303,7 +303,7 @@ end
 
 defimpl Inspect, for: Function do
   def inspect(function, _opts) do
-    fun_info = :erlang.fun_info(function)
+    fun_info = Function.info(function)
     mod = fun_info[:module]
     name = fun_info[:name]
 
