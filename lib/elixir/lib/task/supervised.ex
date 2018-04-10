@@ -74,8 +74,8 @@ defmodule Task.Supervised do
   end
 
   defp get_initial_call({:erlang, :apply, [fun, []]}) when is_function(fun, 0) do
-    {:module, module} = :erlang.fun_info(fun, :module)
-    {:name, name} = :erlang.fun_info(fun, :name)
+    {:module, module} = Function.info(fun, :module)
+    {:name, name} = Function.info(fun, :name)
     {module, name, 0}
   end
 

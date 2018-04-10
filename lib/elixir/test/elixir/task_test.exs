@@ -75,7 +75,7 @@ defmodule TaskTest do
     receive do: (:ready -> :ok)
 
     # Assert the initial call
-    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    {:name, fun_name} = Function.info(fun, :name)
     assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
 
     # Run the task
@@ -114,7 +114,7 @@ defmodule TaskTest do
 
     receive do: (:ready -> :ok)
 
-    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    {:name, fun_name} = Function.info(fun, :name)
     assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(pid)
 
     send(pid, true)
@@ -145,7 +145,7 @@ defmodule TaskTest do
 
     receive do: (:ready -> :ok)
 
-    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    {:name, fun_name} = Function.info(fun, :name)
     assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(pid)
 
     send(pid, true)
