@@ -1630,6 +1630,17 @@ defmodule EnumTest.Map do
       Enum.slice(map, 0, 0.99)
     end
   end
+
+  test "merge/2" do
+    assert Enum.merge([a: 1, b: 2], %{}) == %{a: 1, b: 2}
+    assert Enum.merge([a: 1, b: 2], %{c: 3}) == %{a: 1, b: 2, c: 3}
+    assert Enum.merge(%{a: 1, b: 2}, []) == [a: 1, b: 2]
+    assert Enum.merge(1..3, []) == [1, 2, 3]
+    assert Enum.merge(["H", "i"], "") == "Hi"
+    assert Enum.merge([a: 2], a: 1) == [a: 2, a: 1]
+    assert Enum.merge([1, 2, 3], [:a, :b]) == [1, 2, 3, :a, :b]
+    assert Enum.merge(%{a: 1}, %{b: 2}) == %{a: 1, b: 2}
+  end
 end
 
 defmodule EnumTest.SideEffects do
