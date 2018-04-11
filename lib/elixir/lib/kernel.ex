@@ -4571,7 +4571,7 @@ defmodule Kernel do
   allowed in guards, and otherwise creates a private macro that can be used
   both inside or outside guards in the current module.
 
-  Similar to `defmacrop/2`, `defguardp/2` must be defined before its use
+  Similar to `defmacrop/2`, `defguardp/1` must be defined before its use
   in the current module.
   """
   @spec defguardp(Macro.t()) :: Macro.t()
