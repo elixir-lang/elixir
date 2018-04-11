@@ -225,7 +225,7 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
   case handle_char(Char) of
     {Escape, Name} ->
-      Msg = io_lib:format("found ? followed by codepoint 0x~.16B (~ts), please use ~ts instead",
+      Msg = io_lib:format("found ? followed by codepoint 0x~.16B (~ts), please use ?~ts instead",
                           [Char, Name, Escape]),
       elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
     false ->
