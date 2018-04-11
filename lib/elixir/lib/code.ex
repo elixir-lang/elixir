@@ -343,14 +343,14 @@ defmodule Code do
 
       [foo, bar]
 
-  You can also force keywords to be rendered on multiple lines by
-  having each entry on its own line:
+  You can also force function calls and keywords to be rendered on multiple
+  lines by having each entry on its own line:
 
       defstruct name: nil,
                 age: 0
 
   The code above will be kept with one keyword entry per line by the
-  formatter. To avoid that, just keep everything on a single line.
+  formatter. To avoid that, just squash everything into a single line.
 
   ### Parens and no parens in function calls
 
