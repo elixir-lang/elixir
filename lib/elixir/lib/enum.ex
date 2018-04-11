@@ -1150,6 +1150,55 @@ defmodule Enum do
 
   ## Examples
 
+      iex> Enum.merge([1, 2], [0])
+      [1, 2, 0]
+
+      iex> Enum.merge([a: 1, b: 2], %{})
+      %{a: 1, b: 2}
+
+      iex> Enum.merge(%{a: 1}, %{b: 2})
+      %{a: 1, b: 2}
+
+      iex> Enum.merge([a: 1, a: 2], %{})
+      %{a: 2}
+
+  """
+  @spec merge(Enumerable.t(), Collectable.t()) :: Collectable.t()
+  def merge(enumerable, collectable) when is_map(enumerable) do
+    into_protocol(enumerable, collectable)
+  end
+
+  def merge(enumerable, collectable) when is_list(collectable) do
+    enumerable ++ to_list(collectable)
+  end
+
+  def merge(%_{} = enumerable, %_{} = collectable) do
+    Map.merge(collectable, enumerable)
+  end
+
+  def merge(enumerable, %_{} = collectable) do
+    into_protocol(enumerable, collectable)
+  end
+
+  def merge(enumerable, %{} = collectable) when is_list(enumerable) do
+    Map.merge(collectable, :maps.from_list(enumerable))
+  end
+
+  def merge(enumerable, %{} = collectable) do
+    reduce(enumerable, collectable, fn {key, val}, acc ->
+      Map.put(acc, key, val)
+    end)
+  end
+
+  def merge(enumerable, collectable) do
+    into_protocol(enumerable, collectable)
+  end
+
+  @doc """
+  Inserts the given `enumerable` into a `collectable`.
+
+  ## Examples
+
       iex> Enum.into([1, 2], [0])
       [0, 1, 2]
 
