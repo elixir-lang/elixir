@@ -51,6 +51,7 @@ endef
 
 #==> Compilation tasks
 
+APP := lib/elixir/ebin/elixir.app
 KERNEL:=lib/elixir/ebin/Elixir.Kernel.beam
 UNICODE:=lib/elixir/ebin/Elixir.String.Unicode.beam
 
@@ -59,6 +60,7 @@ default: compile
 compile: erlang elixir
 
 erlang:
+	$(Q) if [ ! -f $(APP) ]; then $(call CHECK_ERLANG_RELEASE); fi
 	$(Q) cd lib/elixir && $(REBAR) compile
 
 # Since Mix depends on EEx and EEx depends on Mix,
@@ -69,7 +71,6 @@ elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
 stdlib: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then \
-	  $(call CHECK_ERLANG_RELEASE); \
 		echo "==> bootstrap (compile)"; \
 		$(ERL) -s elixir_compiler bootstrap -s erlang halt; \
 	fi
