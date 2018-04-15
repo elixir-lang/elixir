@@ -643,7 +643,7 @@ defmodule IEx do
   By default, the number of stops in a breakpoint is 1. Any follow-up
   call won't stop the code execution unless another breakpoint is set.
 
-  Alternatively, the number of be increased by passing the `stops`
+  Alternatively, the number of stops can be increased by passing the `stops`
   argument. `IEx.Helpers.reset_break/1` and `IEx.Helpers.reset_break/3`
   can be used to reset the number back to zero. Note the module remains
   "instrumented" even after all stops on all breakpoints are consumed.
