@@ -263,7 +263,7 @@ defmodule Mix.Local.Installer do
   @doc """
   Fetches `dep_spec` with `in_fetcher` and then runs `in_package`.
 
-  Generates a new mix project in a temporary directory with the given `dep_spec`
+  Generates a new Mix project in a temporary directory with the given `dep_spec`
   added to a mix.exs. Then, `in_fetcher` is executed in the fetcher project. By
   default, this fetches the dependency, but you can provide an `in_fetcher`
   during test or for other purposes. After the `in_fetcher` is executed,

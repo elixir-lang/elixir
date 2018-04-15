@@ -120,7 +120,7 @@ defmodule Module do
         end
       end
 
-  The mix compiler automatically looks for calls to deprecated modules
+  The Mix compiler automatically looks for calls to deprecated modules
   and emit warnings during compilation, computed via `mix xref warnings`.
 
   We recommend using this feature with care, especially library authors.
