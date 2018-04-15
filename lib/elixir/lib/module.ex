@@ -1234,7 +1234,8 @@ defmodule Module do
   end
 
   @doc false
-  # TODO: Remove in 2.0 - deprecated.
+  # TODO: Remove by 2.0
+  # (hard-deprecated in elixir_dispatch)
   def add_doc(module, line, kind, function_tuple, signature \\ [], doc) do
     assert_not_compiled!(:add_doc, module)
 
