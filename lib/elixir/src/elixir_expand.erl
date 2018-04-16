@@ -752,9 +752,11 @@ allowed_in_context(_, _Arity, guard) ->
 allowed_in_context(_, _, _) ->
   true.
 
-check_erlang_operator_args({{'.', _, [erlang, '++']}, Meta, [ELeft, _]}, [Left, _], match, E)
-    when not is_list(ELeft) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_lists_concatenation, Left});
+check_erlang_operator_args({{'.', _, [erlang, '++']}, Meta, [ELeft, _]}, [Left, _], match, E) ->
+  case is_proper_list(ELeft) of
+    false -> form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_lists_concatenation, Left});
+    true -> ok
+  end;
 check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], _, E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
   Result =
@@ -784,6 +786,12 @@ is_struct_expression({'%{}', _, KVs}) ->
     false -> false
   end;
 is_struct_expression(_Other) -> false.
+
+is_proper_list([]) -> true;
+is_proper_list([{'|', _, [_, Tail]}]) -> is_proper_list(Tail);
+is_proper_list([_ | Tail]) -> is_proper_list(Tail);
+is_proper_list({'++', _, [_, Tail]}) -> is_proper_list(Tail);
+is_proper_list(_) -> false.
 
 %% Lexical helpers
 
@@ -995,7 +1003,7 @@ format_error({invalid_arg_for_pin, Arg}) ->
   io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
                 ['Elixir.Macro':to_string(Arg)]);
 format_error({invalid_arg_for_lists_concatenation, Arg}) ->
-  io_lib:format("invalid argument for ++ operator inside a match, expected a literal list, got: ~ts",
+  io_lib:format("invalid argument for ++ operator inside a match, expected a literal proper list, got: ~ts",
                 ['Elixir.Macro':to_string(Arg)]);
 format_error({pin_outside_of_match, Arg}) ->
   io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);

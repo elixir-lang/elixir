@@ -559,8 +559,18 @@ defmodule Kernel.ExpansionTest do
       message = ~r"cannot invoke remote function :erlang.make_ref/0 inside match"
       assert_raise CompileError, message, fn -> expand(quote(do: make_ref() = :foo)) end
 
-      assert_raise CompileError, ~r"invalid argument for \+\+ operator", fn ->
+      message = ~r"invalid argument for \+\+ operator"
+
+      assert_raise CompileError, message, fn ->
         expand(quote(do: "a" ++ "b" = "ab"))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: [1 | 2] ++ [3] = [1, 2, 3]))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: [1] ++ 2 ++ [3] = [1, 2, 3]))
       end
     end
 
