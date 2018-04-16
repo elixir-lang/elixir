@@ -3,6 +3,23 @@ defmodule Mix.Tasks.Compile.App do
 
   @recursive true
 
+  # See http://erlang.org/doc/man/app.html.
+  @keys_whitelist [
+    :description,
+    :id,
+    :vsn,
+    :modules,
+    :maxP,
+    :maxT,
+    :registered,
+    :included_applications,
+    :applications,
+    :env,
+    :mod,
+    :start_phases,
+    :runtime_dependencies
+  ]
+
   @moduledoc """
   Writes an .app file.
 
@@ -214,6 +231,7 @@ defmodule Mix.Tasks.Compile.App do
     |> validate_properties!
     |> Keyword.put_new_lazy(:applications, fn -> apps_from_prod_non_optional_deps(properties) end)
     |> Keyword.update!(:applications, fn apps -> normalize_apps(apps, properties, config) end)
+    |> Keyword.take(@keys_whitelist)
   end
 
   defp validate_properties!(properties) do

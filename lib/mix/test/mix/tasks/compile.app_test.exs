@@ -3,6 +3,29 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.Compile.AppTest do
   use MixTest.Case
 
+  defmodule AllKeys do
+    def project do
+      [app: :all_keys, version: "0.1.0"]
+    end
+
+    def application do
+      [
+        description: 'Awesome project with all keys',
+        id: '91fed77e-41bb-11e8-842f-0ed5f89f718b',
+        modules: [:m1, :m2],
+        maxP: 100_000,
+        maxT: 5_000,
+        registered: [AllKeys.Supervisor],
+        included_applications: [:i1, :i2],
+        env: [foo: :bar],
+        mod: {AllKeys.App, []},
+        start_phases: [sp1: [0], sp2: [1]],
+        runtime_dependencies: ['kernel-3.0'],
+        extra_applications: [:logger, :runtime_tools]
+      ]
+    end
+  end
+
   defmodule CustomProject do
     def project do
       [
@@ -55,6 +78,28 @@ defmodule Mix.Tasks.Compile.AppTest do
     def project do
       [app: :invalid_vsn_project, version: "0.3"]
     end
+  end
+
+  test "generates .app whitelisting options" do
+    Mix.Project.push(AllKeys)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run([])
+      Mix.Tasks.Compile.App.run([])
+
+      properties = parse_resource_file(:all_keys)
+
+      Enum.each(AllKeys.project() ++ AllKeys.application(), fn
+        {key, _} when key in [:app, :extra_applications] ->
+          refute Keyword.has_key?(properties, key)
+
+        {:version, value} ->
+          assert properties[:vsn] == to_charlist(value)
+
+        {key, value} ->
+          assert properties[key] == value
+      end)
+    end)
   end
 
   test "generates .app file when changes happen" do
