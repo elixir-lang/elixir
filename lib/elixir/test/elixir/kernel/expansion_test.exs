@@ -2061,7 +2061,7 @@ defmodule Kernel.ExpansionTest do
       message = ~r"literal <<>> in bitstring supports only type specifiers"
 
       assert_raise CompileError, message, fn ->
-        expand(quote(do: <<(<<"foo">>::32)>>))
+        expand(quote(do: <<(<<"foo">>)::32>>))
       end
     end
 
