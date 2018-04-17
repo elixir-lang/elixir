@@ -12,12 +12,12 @@ defmodule Mix.Tasks.RunTest do
   end
 
   test "loads configuration", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       config = fixture_path("configs/good_config.exs")
       expr = "IO.puts Application.get_env(:my_app, :key)"
       output = capture_io(fn -> Mix.Task.run("run", ["--config", config, "--eval", expr]) end)
       assert output == "value\n"
-    end
+    end)
   after
     Application.delete_env(:my_app, :key)
   end
@@ -25,19 +25,19 @@ defmodule Mix.Tasks.RunTest do
   test "run requires files before evaling commands", context do
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Mix.Tasks.Run.run(["-r", git_repo, "-e", "send self(), {:hello, GitRepo.hello}"])
       assert_received {:hello, "World"}
 
       Mix.Tasks.Run.run(["-pr", git_repo, "-e", "send self(), {:hello, GitRepo.hello}"])
       assert_received {:hello, "World"}
-    end
+    end)
   after
     purge([GitRepo])
   end
 
   test "does not start applications on --no-start", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       expr = "send self(), {:apps, Application.started_applications}"
       Mix.Tasks.Run.run(["--no-start", "-e", expr])
 
@@ -48,11 +48,11 @@ defmodule Mix.Tasks.RunTest do
       Mix.Tasks.Run.run(["-e", expr])
       assert_received {:apps, apps}
       assert List.keyfind(apps, :sample, 0)
-    end
+    end)
   end
 
   test "run errors on missing files", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       message = "No files matched pattern \"non-existent\" given to --require"
 
       assert_raise Mix.Error, message, fn ->
@@ -72,13 +72,13 @@ defmodule Mix.Tasks.RunTest do
       assert_raise Mix.Error, "No such file: lib", fn ->
         Mix.Tasks.Run.run(["lib"])
       end
-    end
+    end)
   after
     purge([GitRepo])
   end
 
   test "run rewrites System.argv", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       file = "argv.exs"
       expr = "send self(), {:argv, System.argv}"
 
@@ -106,6 +106,6 @@ defmodule Mix.Tasks.RunTest do
 
       assert_received :evaled
       assert_received {:argv, [^file, "-x", "bar"]}
-    end
+    end)
   end
 end

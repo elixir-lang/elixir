@@ -23,7 +23,7 @@ defmodule Mix.Tasks.App.StartTest do
   test "compiles and starts the project" do
     Mix.Project.push(AppStartSample)
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       assert_raise Mix.Error, fn ->
         Mix.Tasks.App.Start.run(["--no-compile"])
       end
@@ -47,14 +47,14 @@ defmodule Mix.Tasks.App.StartTest do
 
       Mix.Tasks.App.Start.run(["--preload-modules"])
       assert :code.is_loaded(A)
-    end
+    end)
   end
 
   @tag apps: [:app_start_sample, :app_loaded_sample]
   test "start checks for invalid configuration", context do
     Mix.Project.push(AppStartSample)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       :ok = :application.load({:application, :app_loaded_sample, [vsn: '1.0.0', env: []]})
 
       Mix.ProjectStack.configured_applications([
@@ -71,7 +71,7 @@ defmodule Mix.Tasks.App.StartTest do
 
       refute_received {:mix_shell, :error,
                        ["You have configured application :app_loaded_sample" <> _]}
-    end
+    end)
   end
 
   @tag apps: [:error]
@@ -79,31 +79,31 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.ProjectStack.post_config(elixir: "~> ~> 0.8.1")
     Mix.Project.push(WrongElixirProject)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       assert_raise Mix.Error, ~r"Invalid Elixir version requirement", fn ->
         Mix.Tasks.App.Start.run(["--no-start"])
       end
-    end
+    end)
   end
 
   @tag apps: [:error]
   test "validates the Elixir version with requirement", context do
     Mix.Project.push(WrongElixirProject)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       assert_raise Mix.ElixirVersionError, ~r/You're trying to run :error on Elixir/, fn ->
         Mix.Tasks.App.Start.run(["--no-start"])
       end
-    end
+    end)
   end
 
   @tag apps: [:error]
   test "does not validate the Elixir version with requirement when disabled", context do
     Mix.Project.push(WrongElixirProject)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Mix.Tasks.App.Start.run(["--no-start", "--no-elixir-version-check"])
-    end
+    end)
   end
 
   test "start does nothing if app is nil" do
@@ -137,7 +137,7 @@ defmodule Mix.Tasks.App.StartTest do
   test "start points to report on error", context do
     Mix.Project.push(ReturnSample)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Process.put(:application_definition, mod: {ReturnApp, {:error, :bye}})
       Mix.Tasks.Compile.run([])
 
@@ -149,14 +149,14 @@ defmodule Mix.Tasks.App.StartTest do
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.App.Start.start([app: :return_sample], [])
       end
-    end
+    end)
   end
 
   @tag apps: [:return_sample]
   test "start points to report on exception error", context do
     Mix.Project.push(ReturnSample)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       mod = {ReturnApp, {:error, {:badarg, [{ReturnApp, :start, 2, []}]}}}
       Process.put(:application_definition, mod: mod)
       Mix.Tasks.Compile.run([])
@@ -171,14 +171,14 @@ defmodule Mix.Tasks.App.StartTest do
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.App.Start.start([app: :return_sample], [])
       end
-    end
+    end)
   end
 
   @tag apps: [:return_sample]
   test "start points to report on bad return", context do
     Mix.Project.push(ReturnSample)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Process.put(:application_definition, mod: {ReturnApp, :bad})
       Mix.Tasks.Compile.run([])
 
@@ -190,7 +190,7 @@ defmodule Mix.Tasks.App.StartTest do
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.App.Start.start([app: :return_sample], [])
       end
-    end
+    end)
   end
 
   defmodule ExitSample do
@@ -213,7 +213,7 @@ defmodule Mix.Tasks.App.StartTest do
   test "start points to report on exit", context do
     Mix.Project.push(ExitSample)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Process.put(:application_definition, mod: {ExitApp, :bye})
       Mix.Tasks.Compile.run([])
 
@@ -224,14 +224,14 @@ defmodule Mix.Tasks.App.StartTest do
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.App.Start.start([app: :exit_sample], [])
       end
-    end
+    end)
   end
 
   @tag apps: [:exit_sample]
   test "start points to report on normal exit", context do
     Mix.Project.push(ExitSample)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Process.put(:application_definition, mod: {ExitApp, :normal})
       Mix.Tasks.Compile.run([])
 
@@ -242,6 +242,6 @@ defmodule Mix.Tasks.App.StartTest do
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.App.Start.start([app: :exit_sample], [])
       end
-    end
+    end)
   end
 end

@@ -67,25 +67,25 @@ defmodule Mix.ProjectTest do
   end
 
   test "builds the project structure" do
-    in_fixture "archive", fn ->
+    in_fixture("archive", fn ->
       config = [app_path: Path.expand("_build/archive")]
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
       assert_proj_dir_linked_or_copied("_build/archive/priv", "priv", '../../priv')
-    end
+    end)
   end
 
   test "builds the project structure without symlinks" do
-    in_fixture "archive", fn ->
+    in_fixture("archive", fn ->
       config = [app_path: Path.expand("_build/archive"), build_embedded: true]
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
       assert {:error, _} = :file.read_link("_build/archive/ebin")
-    end
+    end)
   end
 
   test "builds the project structure with symlinks" do
-    in_fixture "archive", fn ->
+    in_fixture("archive", fn ->
       config = [app_path: Path.expand("_build/archive")]
       File.mkdir_p!("include")
 
@@ -97,11 +97,11 @@ defmodule Mix.ProjectTest do
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
       assert_proj_dir_linked_or_copied("_build/archive/priv", "priv", '../../priv')
-    end
+    end)
   end
 
   test "in_project pushes given configuration", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       result =
         Mix.Project.in_project(:foo, ".", [hello: :world], fn _ ->
           assert Mix.Project.config()[:app] == :foo
@@ -110,11 +110,11 @@ defmodule Mix.ProjectTest do
         end)
 
       assert result == :result
-    end
+    end)
   end
 
   test "in_project prints nice error message if fails to load file", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       File.write("mix.exs", """
       raise "oops"
       """)
@@ -126,13 +126,13 @@ defmodule Mix.ProjectTest do
       end
 
       assert_receive {:mix_shell, :error, ["Error while loading project :hello at" <> _]}
-    end
+    end)
   end
 
   test "config_files", context do
     Mix.Project.push(SampleProject)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       File.mkdir_p!("config/sub")
       File.write!("config/config.exs", "[]")
       File.write!("config/dev.exs", "[]")
@@ -146,7 +146,7 @@ defmodule Mix.ProjectTest do
       assert "config/dev.exs" in files
       refute "config/.exs" in files
       assert "config/sub/init.exs" in files
-    end
+    end)
   end
 
   defp assert_proj_dir_linked_or_copied(source, target, symlink_path) do

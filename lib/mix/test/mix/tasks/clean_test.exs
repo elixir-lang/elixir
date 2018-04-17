@@ -22,7 +22,7 @@ defmodule Mix.Tasks.CleanTest do
   end
 
   test "cleans the application build" do
-    in_fixture "deps_status", fn ->
+    in_fixture("deps_status", fn ->
       File.mkdir_p!("_build/dev/lib/sample/consolidated")
       File.mkdir_p!("_build/dev/lib/sample")
       File.mkdir_p!("_build/test/lib/sample")
@@ -33,11 +33,11 @@ defmodule Mix.Tasks.CleanTest do
       refute File.exists?("_build/dev/lib/sample")
       refute File.exists?("_build/test/lib/sample")
       assert File.exists?("_build/dev/lib/ok")
-    end
+    end)
   end
 
   test "cleans dependencies build" do
-    in_fixture "deps_status", fn ->
+    in_fixture("deps_status", fn ->
       File.mkdir_p!("_build/dev/lib/ok")
       File.mkdir_p!("_build/test/lib/ok")
 
@@ -47,6 +47,6 @@ defmodule Mix.Tasks.CleanTest do
 
       Mix.Tasks.Clean.run(["--deps"])
       refute File.exists?("_build/test")
-    end
+    end)
   end
 end

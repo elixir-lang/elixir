@@ -4,7 +4,7 @@ defmodule Mix.Tasks.NewTest do
   use MixTest.Case
 
   test "new" do
-    in_tmp "new", fn ->
+    in_tmp("new", fn ->
       Mix.Tasks.New.run(["hello_world"])
 
       assert_file("hello_world/mix.exs", fn file ->
@@ -31,11 +31,11 @@ defmodule Mix.Tasks.NewTest do
       File.cd!("hello_world", fn ->
         Mix.Tasks.Format.run(["--check-formatted"])
       end)
-    end
+    end)
   end
 
   test "new with --sup" do
-    in_tmp "new sup", fn ->
+    in_tmp("new sup", fn ->
       Mix.Tasks.New.run(["hello_world", "--sup"])
 
       assert_file("hello_world/mix.exs", fn file ->
@@ -68,11 +68,11 @@ defmodule Mix.Tasks.NewTest do
       File.cd!("hello_world", fn ->
         Mix.Tasks.Format.run(["--check-formatted"])
       end)
-    end
+    end)
   end
 
   test "new with --app" do
-    in_tmp "new app", fn ->
+    in_tmp("new app", fn ->
       Mix.Tasks.New.run(["HELLO_WORLD", "--app", "hello_world"])
 
       assert_file("HELLO_WORLD/mix.exs", fn file ->
@@ -95,11 +95,11 @@ defmodule Mix.Tasks.NewTest do
       File.cd!("HELLO_WORLD", fn ->
         Mix.Tasks.Format.run(["--check-formatted"])
       end)
-    end
+    end)
   end
 
   test "new with --umbrella" do
-    in_tmp "new umbrella", fn ->
+    in_tmp("new umbrella", fn ->
       Mix.Tasks.New.run(["hello_world", "--umbrella"])
 
       assert_file("hello_world/mix.exs", fn file ->
@@ -115,11 +115,11 @@ defmodule Mix.Tasks.NewTest do
       File.cd!("hello_world", fn ->
         Mix.Tasks.Format.run(["--check-formatted"])
       end)
-    end
+    end)
   end
 
   test "new inside umbrella" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       File.cd!("apps", fn ->
         Mix.Tasks.New.run(["hello_world"])
 
@@ -133,18 +133,18 @@ defmodule Mix.Tasks.NewTest do
           Mix.Tasks.Format.run(["--check-formatted"])
         end)
       end)
-    end
+    end)
   end
 
   test "new with dot" do
-    in_tmp "new_with_dot", fn ->
+    in_tmp("new_with_dot", fn ->
       Mix.Tasks.New.run(["."])
       assert_file("lib/new_with_dot.ex", ~r/defmodule NewWithDot do/)
-    end
+    end)
   end
 
   test "new with invalid args" do
-    in_tmp "new with an invalid application name", fn ->
+    in_tmp("new with an invalid application name", fn ->
       assert_raise Mix.Error, ~r"Application name must start with a letter and ", fn ->
         Mix.Tasks.New.run(["007invalid"])
       end
@@ -152,54 +152,54 @@ defmodule Mix.Tasks.NewTest do
       assert_raise Mix.Error, ~r"only lowercase letters, numbers and underscore", fn ->
         Mix.Tasks.New.run(["invAlid"])
       end
-    end
+    end)
 
-    in_tmp "new with an invalid application name from the app option", fn ->
+    in_tmp("new with an invalid application name from the app option", fn ->
       assert_raise Mix.Error, ~r"Application name must start with a letter and ", fn ->
         Mix.Tasks.New.run(["valid", "--app", "007invalid"])
       end
-    end
+    end)
 
-    in_tmp "new with an invalid module name from the module options", fn ->
+    in_tmp("new with an invalid module name from the module options", fn ->
       assert_raise Mix.Error, ~r"Module name must be a valid Elixir alias", fn ->
         Mix.Tasks.New.run(["valid", "--module", "not.valid"])
       end
-    end
+    end)
 
-    in_tmp "new with an already taken application name", fn ->
+    in_tmp("new with an already taken application name", fn ->
       assert_raise Mix.Error, ~r"Module name \w+ is already taken", fn ->
         Mix.Tasks.New.run(["mix"])
       end
-    end
+    end)
 
-    in_tmp "new with an already taken application name from the app option", fn ->
+    in_tmp("new with an already taken application name from the app option", fn ->
       assert_raise Mix.Error, ~r"Module name \w+ is already taken", fn ->
         Mix.Tasks.New.run(["valid", "--app", "mix"])
       end
-    end
+    end)
 
-    in_tmp "new with an already taken module name from the module options", fn ->
+    in_tmp("new with an already taken module name from the module options", fn ->
       assert_raise Mix.Error, ~r"Module name \w+ is already taken", fn ->
         Mix.Tasks.New.run(["valid", "--module", "Mix"])
       end
-    end
+    end)
 
-    in_tmp "new without a specified path", fn ->
+    in_tmp("new without a specified path", fn ->
       assert_raise Mix.Error, "Expected PATH to be given, please use \"mix new PATH\"", fn ->
         Mix.Tasks.New.run([])
       end
-    end
+    end)
   end
 
   test "new with existent directory" do
-    in_tmp "new_with_existent_directory", fn ->
+    in_tmp("new_with_existent_directory", fn ->
       File.mkdir_p!("my_app")
       send(self(), {:mix_shell_input, :yes?, false})
 
       assert_raise Mix.Error, "Please select another directory for installation", fn ->
         Mix.Tasks.New.run(["my_app"])
       end
-    end
+    end)
   end
 
   defp assert_file(file) do

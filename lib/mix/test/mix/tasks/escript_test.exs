@@ -89,30 +89,30 @@ defmodule Mix.Tasks.EscriptTest do
   test "generate escript" do
     Mix.Project.push(Escript)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       Mix.Tasks.Escript.Build.run([])
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escript_test"]) == {"TEST\n", 0}
       assert count_abstract_code("escript_test") == 0
-    end
+    end)
   end
 
   test "generate escript with --no-compile flag" do
     Mix.Project.push(Escript)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       Mix.Tasks.Compile.run([])
       purge([EscriptTest])
 
       Mix.Tasks.Escript.Build.run(["--no-compile"])
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
-    end
+    end)
   end
 
   test "generate escript with config" do
     Mix.Project.push(Escript)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       File.mkdir_p!("config")
 
       File.write!("config/config.exs", """
@@ -123,13 +123,13 @@ defmodule Mix.Tasks.EscriptTest do
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escript_test"]) == {"FROM CONFIG\n", 0}
       assert count_abstract_code("escript_test") == 0
-    end
+    end)
   end
 
   test "generate escript with debug information" do
     Mix.Project.push(EscriptWithDebugInfo)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       Mix.Tasks.Escript.Build.run([])
 
       msg = "Generated escript escript_test_with_debug_info with MIX_ENV=dev"
@@ -137,7 +137,7 @@ defmodule Mix.Tasks.EscriptTest do
 
       assert System.cmd("escript", ["escript_test_with_debug_info"]) == {"TEST\n", 0}
       assert count_abstract_code("escript_test_with_debug_info") > 0
-    end
+    end)
   end
 
   defp count_abstract_code(escript_filename) do
@@ -172,27 +172,27 @@ defmodule Mix.Tasks.EscriptTest do
   test "generate escript with path" do
     Mix.Project.push(EscriptWithPath)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript ebin/escript_test_with_path with MIX_ENV=dev"
       assert_received {:mix_shell, :info, [^message]}
 
       assert System.cmd("escript", ["ebin/escript_test_with_path"]) == {"TEST\n", 0}
-    end
+    end)
   end
 
   test "generate escript with deps" do
     Mix.Project.push(EscriptWithDeps)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript escript_test_with_deps with MIX_ENV=dev"
       assert_received {:mix_shell, :info, [^message]}
 
       assert System.cmd("escript", ["escript_test_with_deps"]) == {"TEST\n", 0}
-    end
+    end)
   after
     purge([Ok.MixProject])
   end
@@ -200,14 +200,14 @@ defmodule Mix.Tasks.EscriptTest do
   test "generate escript with Erlang and deps" do
     Mix.Project.push(EscriptErlangWithDeps)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript escript_test_erlang_with_deps with MIX_ENV=dev"
       assert_received {:mix_shell, :info, [^message]}
 
       assert System.cmd("escript", ["escript_test_erlang_with_deps"]) == {"Erlang value", 0}
-    end
+    end)
   after
     purge([Ok.MixProject])
   end
@@ -215,32 +215,32 @@ defmodule Mix.Tasks.EscriptTest do
   test "generating escript for umbrella projects fails with a nice error" do
     message = "Building escripts for umbrella projects is unsupported"
 
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert_raise Mix.Error, message, fn ->
           Mix.Tasks.Escript.Build.run([])
         end
       end)
-    end
+    end)
   end
 
   test "generate escript with consolidated protocols" do
     Mix.Project.push(EscriptConsolidated)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript escript_test_consolidated with MIX_ENV=dev"
       assert_received {:mix_shell, :info, [^message]}
       assert System.cmd("escript", ["escript_test_consolidated", "Enumerable"]) == {"true\n", 0}
-    end
+    end)
   end
 
   test "escript install and uninstall" do
     File.rm_rf!(tmp_path(".mix/escripts"))
     Mix.Project.push(Escript)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       # check that no escripts are installed
       Mix.Tasks.Escript.run([])
       assert_received {:mix_shell, :info, ["No escripts currently installed."]}
@@ -268,7 +268,7 @@ defmodule Mix.Tasks.EscriptTest do
       # check that no escripts remain
       Mix.Tasks.Escript.run([])
       assert_received {:mix_shell, :info, ["No escripts currently installed."]}
-    end
+    end)
   end
 
   test "escript invalid install" do
@@ -284,18 +284,18 @@ defmodule Mix.Tasks.EscriptTest do
   test "escript invalid main module" do
     Mix.Project.push(EscriptWithUnknownMainModule)
 
-    in_fixture "escript_test", fn ->
+    in_fixture("escript_test", fn ->
       message =
         "Could not generate escript, module Elixir.BogusEscriptTest defined as :main_module could not be loaded"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Escript.Build.run([])
       end
-    end
+    end)
   end
 
   test "escript.install from Git" do
-    in_fixture "git_repo", fn ->
+    in_fixture("git_repo", fn ->
       File.write!("lib/git_repo.ex", """
       defmodule GitRepo do
         def main(_argv) do
@@ -323,7 +323,7 @@ defmodule Mix.Tasks.EscriptTest do
 
       escript_path = Path.join([tmp_path(".mix"), "escripts", "git_repo"])
       assert System.cmd("escript", [escript_path]) == {"TEST\n", 0}
-    end
+    end)
   after
     purge([GitRepo, GitRepo.MixProject])
   end

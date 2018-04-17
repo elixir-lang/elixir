@@ -6,7 +6,7 @@ defmodule Mix.UmbrellaTest do
   @moduletag apps: [:foo, :bar]
 
   test "apps_paths" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       assert Mix.Project.apps_paths() == nil
 
       Mix.Project.in_project(:umbrella, ".", fn _ ->
@@ -17,21 +17,21 @@ defmodule Mix.UmbrellaTest do
 
         refute_received {:mix_shell, :error, ["warning: path \"apps/dont_error_on_files\"" <> _]}
       end)
-    end
+    end)
   end
 
   test "apps_paths with selection" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", [apps: [:foo, :bar]], fn _ ->
         File.mkdir_p!("apps/errors")
         File.write!("apps/errors/mix.exs", "raise :oops")
         assert Mix.Project.apps_paths() == %{bar: "apps/bar", foo: "apps/foo"}
       end)
-    end
+    end)
   end
 
   test "compiles umbrella" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("deps")
         assert_received {:mix_shell, :info, ["* bar (apps/bar) (mix)"]}
@@ -56,11 +56,11 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.clear()
         Mix.Task.run("app.start", ["--no-compile"])
       end)
-    end
+    end)
   end
 
   test "compiles umbrella with protocol consolidation" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("compile", ["--verbose"])
         assert_received {:mix_shell, :info, ["Generated bar app"]}
@@ -71,11 +71,11 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Tasks.App.Start.run([])
         assert Protocol.consolidated?(Enumerable)
       end)
-    end
+    end)
   end
 
   test "recursively compiles umbrella with protocol consolidation" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         defmodule Elixir.Mix.Tasks.Umbrella.Recur do
           use Mix.Task
@@ -92,7 +92,7 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Tasks.App.Start.run([])
         assert Protocol.consolidated?(Enumerable)
       end)
-    end
+    end)
   end
 
   defmodule UmbrellaDeps do
@@ -104,7 +104,7 @@ defmodule Mix.UmbrellaTest do
   test "loads umbrella dependencies" do
     Mix.Project.push(UmbrellaDeps)
 
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       File.mkdir_p!("deps/some_dep/ebin")
       File.mkdir_p!("_build/dev/lib/some_dep/ebin")
       File.mkdir_p!("_build/dev/lib/foo/ebin")
@@ -114,11 +114,11 @@ defmodule Mix.UmbrellaTest do
       assert to_charlist(Path.expand("_build/dev/lib/some_dep/ebin")) in :code.get_path()
       assert to_charlist(Path.expand("_build/dev/lib/foo/ebin")) in :code.get_path()
       assert to_charlist(Path.expand("_build/dev/lib/bar/ebin")) in :code.get_path()
-    end
+    end)
   end
 
   test "loads umbrella child dependencies in all environments" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/bar/mix.exs", """
         defmodule Bar.MixProject do
@@ -149,13 +149,13 @@ defmodule Mix.UmbrellaTest do
         Mix.Tasks.Deps.run([])
         assert_received {:mix_shell, :info, ["* git_repo " <> _]}
       end)
-    end
+    end)
   after
     Mix.env(:test)
   end
 
   test "loads umbrella child optional dependencies" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/bar/mix.exs", """
         defmodule Bar.MixProject do
@@ -172,11 +172,11 @@ defmodule Mix.UmbrellaTest do
         Mix.Tasks.Deps.run([])
         assert_received {:mix_shell, :info, ["* git_repo " <> _]}
       end)
-    end
+    end)
   end
 
   test "loads umbrella sibling dependencies with :in_umbrella" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/bar/mix.exs", """
         defmodule Bar.MixProject do
@@ -194,11 +194,11 @@ defmodule Mix.UmbrellaTest do
         Mix.Tasks.Deps.Get.run([])
         Mix.Tasks.Run.run([])
       end)
-    end
+    end)
   end
 
   test "finds umbrella sibling dependencies conflicts with :in_umbrella" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/bar/mix.exs", """
         defmodule Bar.MixProject do
@@ -221,7 +221,7 @@ defmodule Mix.UmbrellaTest do
         assert_received {:mix_shell, :error,
                          ["  the dependency foo in mix.exs is overriding a child" <> _]}
       end)
-    end
+    end)
   end
 
   ## Umbrellas as a dependency
@@ -237,12 +237,12 @@ defmodule Mix.UmbrellaTest do
   end
 
   test "compile for umbrella as dependency" do
-    in_fixture "umbrella_dep", fn ->
+    in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
         Mix.Task.run("deps.compile")
         assert Bar.bar() == "hello world"
       end)
-    end
+    end)
   end
 
   defmodule CycleDeps do
@@ -260,13 +260,13 @@ defmodule Mix.UmbrellaTest do
   test "handles dependencies with cycles" do
     Mix.Project.push(CycleDeps)
 
-    in_fixture "umbrella_dep", fn ->
+    in_fixture("umbrella_dep", fn ->
       assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:foo, :bar, :umbrella]
-    end
+    end)
   end
 
   test "handles dependencies with cycles and overridden deps" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/foo/mix.exs", """
         defmodule Foo.MixProject do
@@ -301,11 +301,11 @@ defmodule Mix.UmbrellaTest do
 
         assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:a, :b, :bar, :foo]
       end)
-    end
+    end)
   end
 
   test "uses dependency aliases" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/bar/mix.exs", """
         defmodule Bar.MixProject do
@@ -323,7 +323,7 @@ defmodule Mix.UmbrellaTest do
         assert_receive {:mix_shell, :info, ["no compile bar"]}
         refute_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
-    end
+    end)
   end
 
   test "recompiles after path dependency changes" do

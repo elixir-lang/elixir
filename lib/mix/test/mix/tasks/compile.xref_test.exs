@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
   end
 
   test "doesn't xref if not stale, unless forced" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       write_no_func()
 
       assert_warn_no_func(fn ->
@@ -21,11 +21,11 @@ defmodule Mix.Tasks.Compile.XrefTest do
 
       assert_no_warn(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
       assert_warn_no_func(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--force"]) end)
-    end
+    end)
   end
 
   test "xrefs if stale" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       write_no_func()
 
       assert_warn_no_func(fn ->
@@ -50,11 +50,11 @@ defmodule Mix.Tasks.Compile.XrefTest do
       Mix.Task.reenable("xref")
 
       assert_warn_no_func(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
-    end
+    end)
   end
 
   test "exits if --warnings-as-errors" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       write_no_func()
 
       assert_warn_no_func(fn ->
@@ -62,16 +62,16 @@ defmodule Mix.Tasks.Compile.XrefTest do
         assert {:error, [diagnostic]} = Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"])
         assert %Mix.Task.Compiler.Diagnostic{severity: :error} = diagnostic
       end)
-    end
+    end)
   end
 
   test "does not exit if --warnings-as-errors and no warnings" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       assert_no_warn(fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         assert Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"]) == {:noop, []}
       end)
-    end
+    end)
   end
 
   defp write_no_func do
