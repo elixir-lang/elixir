@@ -345,7 +345,9 @@ defmodule Task.Supervisor do
   end
 
   defp start_child_with_spec(supervisor, args, restart, shutdown) do
-    # TODO: Remove this on Elixir v2.0 and the associated clause in DynamicSupervisor
+    # TODO: This only exists because we need to support reading restart/shutdown
+    # from two different places. Remove this and the associated clause in DynamicSupervisor
+    # on Elixir v2.0
     GenServer.call(supervisor, {:start_task, args, restart, shutdown}, :infinity)
   end
 

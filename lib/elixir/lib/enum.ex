@@ -2812,7 +2812,7 @@ defmodule Enum do
     lower_limit + :rand.uniform(upper_limit - lower_limit + 1) - 1
   end
 
-  # TODO: Remove me on Elixir v1.8
+  # TODO: Remove me on Elixir v1.9
   defp backwards_compatible_slice(args) do
     try do
       Enumerable.slice(args)

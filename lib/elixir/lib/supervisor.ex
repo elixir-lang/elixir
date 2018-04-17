@@ -855,9 +855,9 @@ defmodule Supervisor do
   """
   @spec terminate_child(supervisor, term()) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one
-  # TODO: Deprecate this on Elixir v1.8
   def terminate_child(supervisor, child_id)
 
+  # TODO: Deprecate this clause on Elixir v1.8
   def terminate_child(supervisor, pid) when is_pid(pid) do
     call(supervisor, {:terminate_child, pid})
   end
