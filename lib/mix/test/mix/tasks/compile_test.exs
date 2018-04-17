@@ -41,7 +41,7 @@ defmodule Mix.Tasks.CompileTest do
   end
 
   test "compiles a project with mixfile" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
@@ -65,11 +65,11 @@ defmodule Mix.Tasks.CompileTest do
       purge([Enumerable])
       assert Mix.Tasks.App.Start.run(["--verbose"]) == :ok
       assert Protocol.consolidated?(Enumerable)
-    end
+    end)
   end
 
   test "compiles a project with multiple compilers and a syntax error in an Erlang file" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       import ExUnit.CaptureIO
 
       file = Path.absname("src/a.erl")
@@ -96,13 +96,13 @@ defmodule Mix.Tasks.CompileTest do
 
       refute File.regular?("ebin/Elixir.A.beam")
       refute File.regular?("ebin/Elixir.B.beam")
-    end
+    end)
   end
 
   test "add Logger application metadata" do
     import ExUnit.CaptureLog
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
       require Logger
@@ -117,11 +117,11 @@ defmodule Mix.Tasks.CompileTest do
       after
         purge([A])
       end
-    end
+    end)
   end
 
   test "returns errors from compilers when --return-errors is set" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
         def my_fn(), do: $$$
@@ -141,25 +141,25 @@ defmodule Mix.Tasks.CompileTest do
                  compiler_name: "Elixir"
                } = diagnostic
       end)
-    end
+    end)
   end
 
   test "skip protocol consolidation when --no-protocol-consolidation" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       File.rm("_build/dev/lib/sample/.mix/compile.protocols")
       assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
-    end
+    end)
   end
 
   test "loads mix config with --erl-config" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       File.write!("mix.config", "{erl_config_app, [{value, true}]}.")
       assert Mix.Task.run("compile", ["--erl-config", "mix.config"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert Application.get_env(:erl_config_app, :value)
-    end
+    end)
   after
     Application.delete_env(:erl_config_app, :value)
   end

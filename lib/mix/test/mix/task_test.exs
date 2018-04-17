@@ -65,7 +65,7 @@ defmodule Mix.TaskTest do
   end
 
   test "run/2 tries to load deps if task is missing", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Mix.Project.push(SampleProject, "sample")
 
       {:module, _, bin, _} =
@@ -91,11 +91,11 @@ defmodule Mix.TaskTest do
 
       # The compile task should not have run yet
       assert Mix.TasksServer.run({:task, "compile", Mix.Project.get()})
-    end
+    end)
   end
 
   test "run/2 tries to compile if task is missing", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Mix.Project.push(SampleProject, "sample")
 
       assert_raise Mix.NoTaskError, fn ->
@@ -104,7 +104,7 @@ defmodule Mix.TaskTest do
 
       # Check if compile task have run
       refute Mix.TasksServer.run({:task, "compile", Mix.Project.get()})
-    end
+    end)
   end
 
   test "clear/0" do
@@ -120,7 +120,7 @@ defmodule Mix.TaskTest do
   end
 
   test "reenable/1 for recursive inside umbrella" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert [:ok, :ok] = Mix.Task.run("clean")
         assert :noop = Mix.Task.run("clean")
@@ -129,17 +129,17 @@ defmodule Mix.TaskTest do
         assert [:ok, :ok] = Mix.Task.run("clean")
         assert :noop = Mix.Task.run("clean")
       end)
-    end
+    end)
   end
 
   test "reenable/1 for non-recursive inside umbrella" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert [:ok, :ok] = Mix.Task.run("clean")
         # loadpaths is not recursive
         assert :ok = Mix.Task.run("loadpaths")
       end)
-    end
+    end)
   end
 
   test "rerun/1" do
@@ -148,13 +148,13 @@ defmodule Mix.TaskTest do
   end
 
   test "rerun/1 for umbrella" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert [:ok, :ok] = Mix.Task.run("clean")
         assert :noop = Mix.Task.run("clean")
         assert [:ok, :ok] = Mix.Task.rerun("clean")
       end)
-    end
+    end)
   end
 
   test "get!" do

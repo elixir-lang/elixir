@@ -100,44 +100,44 @@ defmodule ExUnit.FailuresManifestTest do
     test "stores a manifest that can later be read with `read/1`", context do
       manifest = non_blank_manifest(context)
 
-      in_tmp context.test, fn ->
+      in_tmp(context.test, fn ->
         assert write!(manifest, @manifest_path) == :ok
         assert read(@manifest_path) == manifest
-      end
+      end)
     end
 
     test "prunes tests from files that no longer exist", context do
       test = new_test(@failed, %{context | file: "missing_file.exs"})
 
-      in_tmp context.test, fn ->
+      in_tmp(context.test, fn ->
         new()
         |> put_test(test)
         |> write!(@manifest_path)
 
         assert read(@manifest_path) == new()
-      end
+      end)
     end
 
     test "keeps tests from modules that were not loaded", context do
       test = new_test(@failed, %{context | module: SomeUnloadedModule})
       manifest = new() |> put_test(test)
 
-      in_tmp context.test, fn ->
+      in_tmp(context.test, fn ->
         write!(manifest, @manifest_path)
         assert read(@manifest_path) == manifest
-      end
+      end)
     end
 
     test "prunes tests defined in a function that no longer exists", context do
       test = new_test(@failed, %{context | test: :not_a_function_anymore})
 
-      in_tmp context.test, fn ->
+      in_tmp(context.test, fn ->
         new()
         |> put_test(test)
         |> write!(@manifest_path)
 
         assert read(@manifest_path) == new()
-      end
+      end)
     end
   end
 

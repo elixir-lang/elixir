@@ -22,15 +22,15 @@ defmodule Mix.GeneratorTest do
   end
 
   test "create file" do
-    in_tmp "create_file", fn ->
+    in_tmp("create_file", fn ->
       create_file("foo", "HELLO")
       assert File.read!("foo") == "HELLO"
       assert_received {:mix_shell, :info, ["* creating foo"]}
-    end
+    end)
   end
 
   test "force create file" do
-    in_tmp "create_file", fn ->
+    in_tmp("create_file", fn ->
       File.write!("foo", "HELLO")
 
       create_file("foo", "WORLD", force: true)
@@ -38,11 +38,11 @@ defmodule Mix.GeneratorTest do
 
       refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
       assert_received {:mix_shell, :info, ["* creating foo"]}
-    end
+    end)
   end
 
   test "create with conflict returning true" do
-    in_tmp "create_file", fn ->
+    in_tmp("create_file", fn ->
       File.write!("foo", "HELLO")
       send(self(), {:mix_shell_input, :yes?, true})
 
@@ -50,11 +50,11 @@ defmodule Mix.GeneratorTest do
       assert File.read!("foo") == "WORLD"
 
       assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
-    end
+    end)
   end
 
   test "create with conflict returning false" do
-    in_tmp "create_file", fn ->
+    in_tmp("create_file", fn ->
       File.write!("foo", "HELLO")
       send(self(), {:mix_shell_input, :yes?, false})
 
@@ -62,6 +62,6 @@ defmodule Mix.GeneratorTest do
       assert File.read!("foo") == "HELLO"
 
       assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
-    end
+    end)
   end
 end
