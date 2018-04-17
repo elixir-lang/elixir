@@ -94,7 +94,7 @@ defmodule Macro.Env do
           contextual_vars: contextual_vars
         }
 
-  # TODO: Remove :vars field
+  # TODO: Remove :vars field on v2.0
   def __struct__ do
     %{
       __struct__: __MODULE__,

@@ -78,7 +78,7 @@ defmodule System do
   `:micro_seconds` and `:nano_seconds` as time units although Elixir normalizes
   their spelling to match the SI convention.
   """
-  # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+
+  # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+ (on v1.8)
   @type time_unit ::
           :second
           | :millisecond

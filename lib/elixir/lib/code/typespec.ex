@@ -152,7 +152,7 @@ defmodule Code.Typespec do
     end
   end
 
-  # TODO: Do not rely on abstract_code when OTP support is dropped.
+  # TODO: Do not rely on abstract_code when OTP 20+ support is dropped (v1.8).
   # We should then be able to simplify this code and use `with`.
   defp typespecs_abstract_code(module) do
     case get_module_and_beam(module) do

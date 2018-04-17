@@ -930,8 +930,6 @@ defmodule DynamicSupervisor do
   defp add_restart(state) do
     %{max_seconds: max_seconds, max_restarts: max_restarts, restarts: restarts} = state
 
-    # The below is equivalent to 1 second. We avoid
-    # :second because of incompatibilties with OTP < 20
     now = :erlang.monotonic_time(1)
     restarts = add_restart([now | restarts], now, max_seconds)
     state = %{state | restarts: restarts}
