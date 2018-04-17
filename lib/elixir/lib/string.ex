@@ -2267,7 +2267,7 @@ defmodule String do
       [eq: "fox ", del: "ho", ins: "jum", eq: "ps over the ", del: "dog", ins: "lazy cat"]
 
   """
-  @spec myers_difference(t, t) :: [{:eq | :ins | :del, t}] | nil
+  @spec myers_difference(t, t) :: [{:eq | :ins | :del, t}]
   def myers_difference(string1, string2) do
     graphemes(string1)
     |> List.myers_difference(graphemes(string2))

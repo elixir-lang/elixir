@@ -866,14 +866,10 @@ defmodule List do
 
   """
   @since "1.4.0"
-  @spec myers_difference(list, list) :: [{:eq | :ins | :del, list}] | nil
+  @spec myers_difference(list, list) :: [{:eq | :ins | :del, list}]
   def myers_difference(list1, list2) when is_list(list1) and is_list(list2) do
-    path = {0, 0, list1, list2, []}
+    path = {0, list1, list2, []}
     find_script(0, length(list1) + length(list2), [path])
-  end
-
-  defp find_script(envelope, max, _paths) when envelope > max do
-    nil
   end
 
   defp find_script(envelope, max, paths) do
@@ -921,34 +917,34 @@ defmodule List do
   end
 
   defp proceed_path(_diag, _limit, [path1, path2 | rest]) do
-    if elem(path1, 1) > elem(path2, 1) do
+    if elem(path1, 0) > elem(path2, 0) do
       {move_right(path1), [path2 | rest]}
     else
       {move_down(path2), [path2 | rest]}
     end
   end
 
-  defp move_right({x, y, list1, [elem | rest], edits}) do
-    {x + 1, y, list1, rest, [{:ins, elem} | edits]}
+  defp move_right({y, list1, [elem | rest], edits}) do
+    {y, list1, rest, [{:ins, elem} | edits]}
   end
 
-  defp move_right({x, y, list1, [], edits}) do
-    {x + 1, y, list1, [], edits}
+  defp move_right({y, list1, [], edits}) do
+    {y, list1, [], edits}
   end
 
-  defp move_down({x, y, [elem | rest], list2, edits}) do
-    {x, y + 1, rest, list2, [{:del, elem} | edits]}
+  defp move_down({y, [elem | rest], list2, edits}) do
+    {y + 1, rest, list2, [{:del, elem} | edits]}
   end
 
-  defp move_down({x, y, [], list2, edits}) do
-    {x, y + 1, [], list2, edits}
+  defp move_down({y, [], list2, edits}) do
+    {y + 1, [], list2, edits}
   end
 
-  defp follow_snake({x, y, [elem | rest1], [elem | rest2], edits}) do
-    follow_snake({x + 1, y + 1, rest1, rest2, [{:eq, elem} | edits]})
+  defp follow_snake({y, [elem | rest1], [elem | rest2], edits}) do
+    follow_snake({y + 1, rest1, rest2, [{:eq, elem} | edits]})
   end
 
-  defp follow_snake({_x, _y, [], [], edits}) do
+  defp follow_snake({_y, [], [], edits}) do
     {:done, edits}
   end
 
