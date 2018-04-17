@@ -120,7 +120,7 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
-  test "no warnings on for with bitstrings", context do
+  test "no warnings on for comprehensions with bitstrings", context do
     copy_beam!(context, Dialyzer.ForBitstring)
     assert_dialyze_no_warnings!(context)
   end
