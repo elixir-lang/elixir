@@ -247,13 +247,19 @@ defmodule Code.Formatter.ContainersTest do
       assert_format "<<1,2,3>>", "<<1, 2, 3>>"
     end
 
-    test "add parens on first and last in case of ambiguity" do
+    test "add parens on first and last in case of binary ambiguity" do
       assert_format "<< <<>> >>", "<<(<<>>)>>"
       assert_format "<< <<>> + <<>> >>", "<<(<<>> + <<>>)>>"
       assert_format "<< 1 + <<>> >>", "<<(1 + <<>>)>>"
       assert_format "<< <<>> + 1 >>", "<<(<<>> + 1)>>"
       assert_format "<< <<>>, <<>>, <<>> >>", "<<(<<>>), <<>>, (<<>>)>>"
-      assert_format "<< <<>>::1, <<>>::2, <<>>::3 >>", "<<(<<>>::1), <<>>::2, <<>>::3>>"
+      assert_format "<< <<>>::1, <<>>::2, <<>>::3 >>", "<<(<<>>)::1, <<>>::2, <<>>::3>>"
+      assert_format "<< <<>>::<<>> >>", "<<(<<>>)::(<<>>)>>"
+    end
+
+    test "add parens on first in case of operator ambiguity" do
+      assert_format "<< ~~~1::8 >>", "<<(~~~1)::8>>"
+      assert_format "<< ~s[foo]::binary >>", "<<(~s[foo])::binary>>"
     end
 
     test "with modifiers" do
