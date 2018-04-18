@@ -200,8 +200,8 @@ defmodule Kernel.Utils do
 
   defp extract_refs_from_args(args) do
     Macro.postwalk(args, [], fn
-      {ref, _meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
-        {var, [{ref, context} | acc]}
+      {ref, meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
+        {var, [{ref, var_context(meta, context)} | acc]}
 
       node, acc ->
         {node, acc}
@@ -211,8 +211,8 @@ defmodule Kernel.Utils do
   # Finds every reference to `refs` in `guard` and wraps them in an unquote.
   defp unquote_every_ref(guard, refs) do
     Macro.postwalk(guard, fn
-      {ref, _meta, context} = var when is_atom(ref) and is_atom(context) ->
-        case {ref, context} in refs do
+      {ref, meta, context} = var when is_atom(ref) and is_atom(context) ->
+        case {ref, var_context(meta, context)} in refs do
           true -> literal_unquote(var)
           false -> var
         end
@@ -226,9 +226,11 @@ defmodule Kernel.Utils do
   defp unquote_refs_once(guard, refs) do
     {_, used_refs} =
       Macro.postwalk(guard, [], fn
-        {ref, _meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
-          case {ref, context} in refs and {ref, context} not in acc do
-            true -> {var, [{ref, context} | acc]}
+        {ref, meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
+          pair = {ref, var_context(meta, context)}
+
+          case pair in refs and pair not in acc do
+            true -> {var, [pair | acc]}
             false -> {var, acc}
           end
 
@@ -236,7 +238,7 @@ defmodule Kernel.Utils do
           {node, acc}
       end)
 
-    vars = for {ref, context} <- :lists.reverse(used_refs), do: {ref, [], context}
+    vars = for {ref, context} <- :lists.reverse(used_refs), do: context_to_var(ref, context)
     exprs = for var <- vars, do: literal_unquote(var)
 
     quote do
@@ -251,5 +253,15 @@ defmodule Kernel.Utils do
 
   defp literal_unquote(ast) do
     {:unquote, [], List.wrap(ast)}
+  end
+
+  defp context_to_var(ref, ctx) when is_atom(ctx), do: {ref, [], ctx}
+  defp context_to_var(ref, ctx) when is_integer(ctx), do: {ref, [counter: ctx], nil}
+
+  defp var_context(meta, kind) do
+    case :lists.keyfind(:counter, 1, meta) do
+      {:counter, counter} -> counter
+      false -> kind
+    end
   end
 end
