@@ -306,6 +306,10 @@ defmodule URITest do
       assert URI.parse("http://example.com/#").fragment == ""
       assert URI.parse("http://example.com/test#").fragment == ""
     end
+
+    test "preserves an empty query" do
+      assert URI.parse("http://foo.com/?").query == ""
+    end
   end
 
   test "default_port/1,2" do
