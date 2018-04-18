@@ -435,6 +435,21 @@ defmodule TypespecTest do
       assert [{:atom, 0, :timestamp}, {:type, 0, :term, []}, {:atom, 0, :foo}] = args
     end
 
+    test "@type with named record" do
+      bytecode =
+        test_module do
+          require Record
+          Record.defrecord(:timestamp, :my_timestamp, date: 1, time: 2)
+          @type my_type :: record(:timestamp, time: :foo)
+        end
+
+      assert [type: {:my_type, type, []}] = types(bytecode)
+      assert {:type, _, :tuple, [my_timestamp, term, foo]} = type
+      assert {:atom, 0, :my_timestamp} = my_timestamp
+      assert {:type, 0, :term, []} = term
+      assert {:atom, 0, :foo} = foo
+    end
+
     test "@type with undefined record" do
       assert_raise CompileError, ~r"unknown record :this_record_does_not_exist", fn ->
         test_module do
