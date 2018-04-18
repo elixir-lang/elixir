@@ -109,6 +109,27 @@ defmodule Kernel.GuardTest do
       end
     end
 
+    defmodule GuardFromMacro do
+      defmacro __using__(_) do
+        quote do
+          defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
+        end
+      end
+    end
+
+    test "defguard defines a guard from inside another macro" do
+      defmodule UseGuardFromMacro do
+        use GuardFromMacro
+
+        def assert! do
+          assert is_even(0)
+          refute is_even(1)
+        end
+      end
+
+      UseGuardFromMacro.assert!()
+    end
+
     defmodule IntegerPrivateGuards do
       defguardp is_even(value) when is_integer(value) and rem(value, 2) == 0
 
