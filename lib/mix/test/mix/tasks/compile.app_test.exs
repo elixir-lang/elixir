@@ -85,6 +85,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert properties[:maxT] == :infinity
       assert properties[:applications] == [:kernel, :stdlib, :elixir, :logger, :example_app]
       assert properties[:description] == 'Some UTF-8 description (uma descrição em UTF-8)'
+      refute Keyword.has_key?(properties, :extra_applications)
     end)
   end
 
