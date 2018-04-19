@@ -446,7 +446,6 @@ defmodule URI do
     }
   end
 
-  defp nillify_query("?"), do: ""
   defp nillify_query("?" <> query), do: query
   defp nillify_query(_other), do: nil
 
