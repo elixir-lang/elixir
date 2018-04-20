@@ -370,8 +370,11 @@ defmodule Record do
         {new_fields, Keyword.delete(each_keyword, field)}
       end)
 
-    case remaining do
-      [] ->
+    case {remaining, match} do
+      {[], [value]} ->
+        {tag, value}
+
+      {[], _} ->
         {:{}, [], [tag | match]}
 
       _ ->

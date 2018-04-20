@@ -89,6 +89,7 @@ defmodule RecordTest do
 
   Record.defrecord(:timestamp, [:date, :time])
   Record.defrecord(:user, __MODULE__, name: "john", age: 25)
+  Record.defrecord(:two_elements_tuple, name: "john")
 
   Record.defrecordp(:file_info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl"))
 
@@ -117,6 +118,12 @@ defmodule RecordTest do
     assert name == "meg"
 
     assert user(:name) == 1
+
+    assert Macro.expand(quote(do: user()), __ENV__) ==
+             quote(do: {:"Elixir.RecordTest", "john", 25})
+
+    assert Macro.expand(quote(do: two_elements_tuple()), __ENV__) ==
+             quote(do: {:two_elements_tuple, "john"})
   end
 
   test "records with default values" do
