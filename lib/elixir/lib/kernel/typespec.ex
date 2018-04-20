@@ -477,26 +477,26 @@ defmodule Kernel.Typespec do
     typespec({:record, meta, [atom, []]}, vars, caller)
   end
 
-  defp typespec({:record, meta, [atom, fields]}, vars, caller) do
+  defp typespec({:record, meta, [tag, field_specs]}, vars, caller) do
     # We cannot set a function name to avoid tracking
     # as a compile time dependency because for records it actually is one.
-    case Macro.expand({atom, [], [{atom, [], []}]}, caller) do
-      keyword when is_list(keyword) ->
+    case Macro.expand({tag, [], [{:{}, [], []}]}, caller) do
+      {_, _, [name, fields | _]} when is_list(fields) ->
         types =
-          Enum.map(keyword, fn {field, _} ->
-            Keyword.get(fields, field, quote(do: term()))
+          Enum.map(fields, fn {field, _} ->
+            Keyword.get(field_specs, field, quote(do: term()))
           end)
 
-        Enum.each(fields, fn {field, _} ->
-          unless Keyword.has_key?(keyword, field) do
-            compile_error(caller, "undefined field #{field} on record #{inspect(atom)}")
+        Enum.each(field_specs, fn {field, _} ->
+          unless Keyword.has_key?(fields, field) do
+            compile_error(caller, "undefined field #{field} on record #{inspect(tag)}")
           end
         end)
 
-        typespec({:{}, meta, [atom | types]}, vars, caller)
+        typespec({:{}, meta, [name | types]}, vars, caller)
 
       _ ->
-        compile_error(caller, "unknown record #{inspect(atom)}")
+        compile_error(caller, "unknown record #{inspect(tag)}")
     end
   end
 
