@@ -26,7 +26,7 @@ defmodule Process do
   not exited yet) than this function returns `true`. Otherwise, it returns
   `false`.
 
-  `pid` must refer to a process running on the local node or a `ArgumentError` is raised.
+  `pid` must refer to a process running on the local node or `ArgumentError` is raised.
 
   Inlined by the compiler.
   """
