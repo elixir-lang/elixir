@@ -1,4 +1,47 @@
 defmodule Global do
+  @moduledoc """
+  A global name registration facility.
+
+  This module consists of the following services:
+
+  Registration of global names
+  Global locks
+  Maintenance of the fully connected network
+  These services are controlled through the process global_name_server that exists on every node.
+  The global name server starts automatically when a node is started.
+  With the term global is meant over a system consisting of many Erlang nodes.
+
+  The ability to globally register names is a central concept in the programming of distributed Erlang systems.
+  In this module, the equivalent of the register/2 and whereis/1 BIFs (for local name registration) are provided,
+  but for a network of Erlang nodes. A registered name is an alias for a process identifier (pid).
+  The global name server monitors globally registered pids. If a process terminates, the name is also globally unregistered.
+
+  The registered names are stored in replica global name tables on every node.
+  There is no central storage point. Thus, the translation of a name to a pid is fast, as it is always done locally.
+  For any action resulting in a change to the global name table, all tables on other nodes are automatically updated.
+
+  Global locks have lock identities and are set on a specific resource.
+  For example, the specified resource can be a pid. When a global lock is set,
+  access to the locked resource is denied for all resources other than the lock requester.
+
+  Both the registration and lock services are atomic. All nodes involved in these actions have the same view of the information.
+
+  The global name server also performs the critical task of continuously monitoring changes in node configuration.
+  If a node that runs a globally registered process goes down, the name is globally unregistered.
+  To this end, the global name server subscribes to nodeup and nodedown messages sent from module net_kernel.
+  Relevant Kernel application variables in this context are net_setuptime, net_ticktime, and dist_auto_connect.
+  See also kernel(6).
+
+  The name server also maintains a fully connected network.
+  For example, if node N1 connects to node N2 (which is already connected to N3),
+  the global name servers on the nodes N1 and N3 ensure that also N1 and N3 are connected.
+  If this is not desired, command-line flag -connect_all false can be used (see also erl(1)).
+  In this case, the name registration service cannot be used, but the lock mechanism still works.
+
+  If the global name server fails to connect nodes (N1 and N3 in the example), a warning event is sent to the error logger.
+  The presence of such an event does not exclude the nodes to connect later (you can, for example, try command rpc:call(N1, net_adm, ping, [N2]) in the Erlang shell), but it indicates a network problem.
+  """
+
   @type id :: {resource_id :: term, lock_requester_id :: term}
 
   @doc """
