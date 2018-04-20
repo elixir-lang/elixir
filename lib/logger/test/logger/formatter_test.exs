@@ -24,12 +24,8 @@ defmodule Logger.FormatterTest do
   end
 
   test "compile/1 with str" do
-    assert compile("$level $time $date $metadata $message $node") ==
-             Enum.intersperse([:level, :time, :date, :metadata, :message, :node], " ")
-
-    assert_raise ArgumentError, "$bad is an invalid format pattern", fn ->
-      compile("$bad $good")
-    end
+    assert compile("$level $time $date $metadata $message $node $foo") ==
+             Enum.intersperse([:level, :time, :date, :metadata, :message, :node, :foo], " ")
   end
 
   test "compile/1 with {mod, fun}" do
@@ -43,6 +39,28 @@ defmodule Logger.FormatterTest do
   test "format with format string" do
     compiled = compile("[$level] $message")
     assert format(compiled, :error, "hello", nil, []) == ["[", "error", "] ", "hello"]
+
+    compiled = compile("[$level] $message $foo")
+
+    assert format(compiled, :error, "hello", nil, []) == [
+             "[",
+             "error",
+             "] ",
+             "hello",
+             " ",
+             "$foo"
+           ]
+
+    compiled = compile("[$level] $message $foo")
+
+    assert format(compiled, :error, "hello", nil, foo: "bar") == [
+             "[",
+             "error",
+             "] ",
+             "hello",
+             " ",
+             "bar"
+           ]
 
     compiled = compile("$node")
     assert format(compiled, :error, nil, nil, []) == [Atom.to_string(node())]
