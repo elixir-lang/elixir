@@ -23,6 +23,8 @@ defmodule Logger.Formatter do
     * `$metadata` - user controlled data presented in `"key=val key2=val2"` format
     * `$levelpad` - sets to a single space if level is 4 characters long,
       otherwise set to the empty space. Used to align the message after level.
+    * `$<any>`    - the value of the given key form the metadata. If there is
+      no matching key then the parameter is treated as a string.
 
   Backends typically allow developers to supply such control
   strings via configuration files. This module provides `compile/1`,
@@ -42,7 +44,6 @@ defmodule Logger.Formatter do
 
   @type time :: {{1970..10000, 1..12, 1..31}, {0..23, 0..59, 0..59, 0..999}}
   @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
-  @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
   @default_pattern "\n$time $metadata[$level] $levelpad$message\n"
   @replacement "�"
 
@@ -93,16 +94,10 @@ defmodule Logger.Formatter do
 
     for part <- Regex.split(regex, str, on: [:head, :tail], trim: true) do
       case part do
-        "$" <> code -> compile_code(String.to_atom(code))
+        "$" <> code -> String.to_atom(code)
         _ -> part
       end
     end
-  end
-
-  defp compile_code(key) when key in @valid_patterns, do: key
-
-  defp compile_code(key) when is_atom(key) do
-    raise ArgumentError, "$#{key} is an invalid format pattern"
   end
 
   @doc """
@@ -169,6 +164,10 @@ defmodule Logger.Formatter do
 
   defp output(:levelpad, level, _, _, _) do
     levelpad(level)
+  end
+
+  defp output(other, _, _, _, meta) when is_atom(other) do
+    Keyword.get(meta, other, "$#{other}")
   end
 
   defp output(other, _, _, _, _), do: other
