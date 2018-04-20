@@ -20,13 +20,13 @@ defmodule Process do
   """
 
   @doc """
-  Tells whether the given process is alive.
+  Tells whether the given process is alive on the local node.
 
   If the process identified by `pid` is alive (that is, it's not exiting and has
   not exited yet) than this function returns `true`. Otherwise, it returns
   `false`.
 
-  `pid` must refer to a process running on the local node.
+  `pid` must refer to a process running on the local node or `ArgumentError` is raised.
 
   Inlined by the compiler.
   """
