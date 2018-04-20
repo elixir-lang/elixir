@@ -11,3 +11,6 @@
 /.eunit
 .elixir.plt
 erl_crash.dump
+
+# Ingore IDE configs
+/.idea
