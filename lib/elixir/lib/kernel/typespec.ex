@@ -480,7 +480,7 @@ defmodule Kernel.Typespec do
   defp typespec({:record, meta, [tag, field_specs]}, vars, caller) do
     # We cannot set a function name to avoid tracking
     # as a compile time dependency because for records it actually is one.
-    case Macro.expand({tag, [], [{}]}, caller) do
+    case Macro.expand({tag, [], [{:{}, [], []}]}, caller) do
       {_, _, [name, fields | _]} when is_list(fields) ->
         types =
           Enum.map(fields, fn {field, _} ->
