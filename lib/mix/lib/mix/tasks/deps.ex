@@ -48,6 +48,10 @@ defmodule Mix.Tasks.Deps do
   the parent project whenever they change. While fetchable dependencies,
   like the ones using `:git`, are recompiled only when fetched/updated.
 
+  Umbrella dependencies always automatically recompile sharing the
+  current environment. By default path dependencies use `:prod` environment.
+  This can be overriden to share the current environment by setting `use_mix_env: true`
+
   The dependencies' versions are expected to be formatted according to
   Semantic Versioning and the requirements must be specified as defined
   in the `Version` module.
@@ -121,6 +125,8 @@ defmodule Mix.Tasks.Deps do
     * `:path`        - the path for the dependency
     * `:in_umbrella` - when `true`, sets a path dependency pointing to
       "../#{app}", sharing the same environment as the current application
+    * `:use_mix_env` - when `true`, shares the same environment as the
+      current application
 
   ### Hex options (`:hex`)
 
