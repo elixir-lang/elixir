@@ -1078,7 +1078,7 @@ defmodule Macro do
 
     * Macros (local or remote)
     * Aliases are expanded (if possible) and return atoms
-    * Compilation environment macros (`__ENV__/0`, `__MODULE__/0` and `__DIR__/0`)
+    * Compilation environment macros (`__CALLER__/0`, `__DIR__/0`, `__ENV__/0` and `__MODULE__/0`)
     * Module attributes reader (`@foo`)
 
   If the expression cannot be expanded, it returns the expression
