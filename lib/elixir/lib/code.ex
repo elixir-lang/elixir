@@ -317,7 +317,7 @@ defmodule Code do
 
   ## Adjusting formatted output
 
-  The formatter attempts to the fit the most it can on a single line.
+  The formatter attempts to fit the most it can on a single line.
   When the code does not fit a single line, the formatter introduces
   line breaks in the code.
 
