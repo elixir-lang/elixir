@@ -330,9 +330,9 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.in_project(:my_app, "/path/to/my_app", fn module ->
-        "Mixfile is: #{inspect module}"
+        "MixProject is: #{inspect module}"
       end)
-      #=> "Mixfile is: MyApp.MixProject"
+      #=> "MixProject is: MyApp.MixProject"
 
   """
   @spec in_project(atom, Path.t(), keyword, (module -> result)) :: result when result: term
