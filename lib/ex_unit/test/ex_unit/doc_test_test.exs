@@ -446,8 +446,9 @@ defmodule ExUnit.DocTestTest do
              2) doctest module ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest failed
-                code: 1 + hd(List.flatten([1])) === 3
-                left: 2
+                code:  1 + hd(List.flatten([1])) === 3
+                left:  2
+                right: 3
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:141: ExUnit.DocTestTest.Invalid (module)
            """
@@ -456,8 +457,9 @@ defmodule ExUnit.DocTestTest do
              3) doctest module ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest failed
-                code: inspect(:oops) === "#MapSet<[]>"
-                left: ":oops"
+                code:  inspect(:oops) === "#MapSet<[]>"
+                left:  ":oops"
+                right: "#MapSet<[]>"
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:144: ExUnit.DocTestTest.Invalid (module)
            """
