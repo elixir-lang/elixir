@@ -801,10 +801,10 @@ defmodule Code do
   given as second argument which will be used for reporting warnings
   and errors.
 
-  **Warning**: `string` can be any Elixir code and some code can be executed
-  with the same privileges as the Elixir compiler: this means that such code
+  **Warning**: `string` can be any Elixir code and code can be executed with
+  the same privileges as the Elixir compiler: this means that such code
   could compromise the machine (for example by executing system commands).
-  Don't use `oompile_string/2` with untrusted input (such as strings coming
+  Don't use `compile_string/2` with untrusted input (such as strings coming
   from the network).
   """
   @spec compile_string(List.Chars.t(), binary) :: [{module, binary}]
