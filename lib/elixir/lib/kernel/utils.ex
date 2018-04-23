@@ -125,8 +125,8 @@ defmodule Kernel.Utils do
     RuntimeError.exception(msg)
   end
 
-  def raise(atom) when is_atom(atom) do
-    atom.exception([])
+  def raise(module) when is_atom(module) do
+    module.exception([])
   end
 
   def raise(%_{__exception__: true} = exception) do
