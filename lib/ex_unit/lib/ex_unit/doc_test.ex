@@ -322,7 +322,7 @@ defmodule ExUnit.DocTest do
 
         actual ->
           expr = "#{unquote(String.trim(expr))} === #{unquote(String.trim(expected))}"
-          error = [message: "Doctest failed", expr: expr, left: actual]
+          error = [message: "Doctest failed", expr: expr, left: actual, right: expected]
           reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
@@ -345,7 +345,7 @@ defmodule ExUnit.DocTest do
 
         actual ->
           expr = "inspect(#{unquote(String.trim(expr))}) === #{unquote(String.trim(expected))}"
-          error = [message: "Doctest failed", expr: expr, left: actual]
+          error = [message: "Doctest failed", expr: expr, left: actual, right: expected]
           reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
