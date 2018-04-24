@@ -15,6 +15,17 @@ defmodule DynamicSupervisorTest do
     assert DynamicSupervisor.which_children(:dyn_sup_spec_test) == []
   end
 
+  test "multiple can be supervised with simple child spec" do
+    children = [
+      {DynamicSupervisor, strategy: :one_for_one, name: :dyn_sup_spec_test_1},
+      {DynamicSupervisor, strategy: :one_for_one, name: :dyn_sup_spec_test_2}
+    ]
+
+    assert {:ok, _} = Supervisor.start_link(children, strategy: :one_for_one)
+    assert DynamicSupervisor.which_children(:dyn_sup_spec_test_1) == []
+    assert DynamicSupervisor.which_children(:dyn_sup_spec_test_2) == []
+  end
+
   describe "use/2" do
     test "generates child_spec/1" do
       assert Simple.child_spec([:hello]) == %{

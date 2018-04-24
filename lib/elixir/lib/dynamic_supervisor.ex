@@ -191,7 +191,7 @@ defmodule DynamicSupervisor do
   @since "1.6.1"
   def child_spec(arg) do
     %{
-      id: DynamicSupervisor,
+      id: Keyword.get(arg, :name, DynamicSupervisor),
       start: {DynamicSupervisor, :start_link, [arg]},
       type: :supervisor
     }
