@@ -800,6 +800,12 @@ defmodule Code do
   and the second one is its bytecode (as a binary). A `file` can be
   given as second argument which will be used for reporting warnings
   and errors.
+
+  **Warning**: `string` can be any Elixir code and code can be executed with
+  the same privileges as the Erlang VM: this means that such code could
+  compromise the machine (for example by executing system commands).
+  Don't use `compile_string/2` with untrusted input (such as strings coming
+  from the network).
   """
   @spec compile_string(List.Chars.t(), binary) :: [{module, binary}]
   def compile_string(string, file \\ "nofile") when is_binary(file) do
