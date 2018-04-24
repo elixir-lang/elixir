@@ -212,7 +212,8 @@ defmodule Supervisor do
     * `:permanent` - the child process is always restarted.
 
     * `:temporary` - the child process is never restarted, regardless
-      of the supervision strategy.
+      of the supervision strategy: any termination (even abnormal) is
+      considered successful.
 
     * `:transient` - the child process is restarted only if it
       terminates abnormally, i.e., with an exit reason other than
@@ -444,6 +445,9 @@ defmodule Supervisor do
       the child processes, i.e., the child processes after the terminated
       one in start order, are terminated. Then the terminated child
       process and the rest of the child processes are restarted.
+      
+  In the above, process termination refers to unsuccessful termination, which
+  is determined by the `:restart` option.
 
   There is also a deprecated strategy called `:simple_one_for_one` which
   has been replaced by the `DynamicSupervisor`. The `:simple_one_for_one`
