@@ -163,7 +163,11 @@ defmodule DynamicSupervisor do
   @type strategy :: :one_for_one
 
   @typedoc "Return values of `start_child` functions"
-  @type on_start_child :: Supervisor.on_start_child() | :ignore | {:error, :max_children}
+  @type on_start_child ::
+          {:ok, pid}
+          | {:ok, pid, info :: term}
+          | :ignore
+          | {:error, {:already_started, pid} | :max_children | term}
 
   defstruct [
     :args,
