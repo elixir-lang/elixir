@@ -162,6 +162,9 @@ defmodule DynamicSupervisor do
   @typedoc "Supported strategies"
   @type strategy :: :one_for_one
 
+  @typedoc "Return values of `start_child` functions"
+  @type on_start_child :: Supervisor.on_start_child() | :ignore | {:error, :max_children}
+
   defstruct [
     :args,
     :extra_arguments,
@@ -288,7 +291,7 @@ defmodule DynamicSupervisor do
   this function returns `{:error, :max_children}`.
   """
   @spec start_child(Supervisor.supervisor(), :supervisor.child_spec() | {module, term} | module) ::
-          Supervisor.on_start_child()
+          on_start_child()
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     validate_and_start_child(supervisor, child_spec)
   end
