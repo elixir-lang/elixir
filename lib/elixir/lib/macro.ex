@@ -806,7 +806,7 @@ defmodule Macro do
 
         binary when is_binary(binary) ->
           binary = inspect_no_limit(binary)
-          :binary.part(binary, 1, byte_size(binary) - 2)
+          binary_part(binary, 1, byte_size(binary) - 2)
       end)
 
     <<?", parts::binary, ?">>

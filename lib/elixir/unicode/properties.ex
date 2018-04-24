@@ -75,7 +75,7 @@ case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk
       title
     ] = :binary.split(line, ";", [:global])
 
-    title = :binary.part(title, 0, byte_size(title) - 1)
+    title = binary_part(title, 0, byte_size(title) - 1)
 
     cacc =
       if upper != "" or lower != "" or title != "" do
@@ -391,7 +391,7 @@ defmodule String.Normalizer do
 
   defp normalize_nfd(binary, acc) do
     {n, rest} = String.Unicode.next_grapheme_size(binary)
-    part = :binary.part(binary, 0, n)
+    part = binary_part(binary, 0, n)
 
     case n do
       1 -> normalize_nfd(rest, acc <> part)
@@ -407,7 +407,7 @@ defmodule String.Normalizer do
 
   defp normalize_nfc(binary, acc) do
     {n, rest} = String.Unicode.next_grapheme_size(binary)
-    part = :binary.part(binary, 0, n)
+    part = binary_part(binary, 0, n)
 
     case n do
       1 -> normalize_nfc(rest, acc <> part)

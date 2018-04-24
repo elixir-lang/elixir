@@ -554,7 +554,7 @@ defmodule ExUnit.DocTest do
     length = byte_size(line) - indent
 
     if length > 0 do
-      :binary.part(line, indent, length)
+      binary_part(line, indent, length)
     else
       ""
     end
