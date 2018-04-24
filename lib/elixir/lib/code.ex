@@ -802,8 +802,8 @@ defmodule Code do
   and errors.
 
   **Warning**: `string` can be any Elixir code and code can be executed with
-  the same privileges as the Elixir compiler: this means that such code
-  could compromise the machine (for example by executing system commands).
+  the same privileges as the Erlang VM: this means that such code could
+  compromise the machine (for example by executing system commands).
   Don't use `compile_string/2` with untrusted input (such as strings coming
   from the network).
   """
