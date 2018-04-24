@@ -193,7 +193,7 @@ defmodule IEx.Autocomplete do
     if prefix in [0, length] do
       yes("", Enum.flat_map(entries, &to_entries/1))
     else
-      yes(:binary.part(first.name, prefix, length - prefix), [])
+      yes(binary_part(first.name, prefix, length - prefix), [])
     end
   end
 
@@ -513,7 +513,7 @@ defmodule IEx.Autocomplete do
 
   defp format_hint(name, hint) do
     hint_size = byte_size(hint)
-    :binary.part(name, hint_size, byte_size(name) - hint_size)
+    binary_part(name, hint_size, byte_size(name) - hint_size)
   end
 
   ## Evaluator interface

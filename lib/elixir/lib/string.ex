@@ -1597,7 +1597,7 @@ defmodule String do
   @spec next_grapheme(t) :: {grapheme, t} | nil
   def next_grapheme(binary) do
     case next_grapheme_size(binary) do
-      {size, rest} -> {:binary.part(binary, 0, size), rest}
+      {size, rest} -> {binary_part(binary, 0, size), rest}
       nil -> nil
     end
   end
