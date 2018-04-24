@@ -1933,23 +1933,24 @@ defmodule String do
 
   """
   @spec ends_with?(t, t | [t]) :: boolean
-  def ends_with?(string, suffixes) when is_binary(string) and is_list(suffixes) do
-    Enum.any?(suffixes, &do_ends_with(string, &1))
+  def ends_with?(string, suffix) when is_binary(string) and is_binary(suffix) do
+    ends_with_string?(string, byte_size(string), suffix)
   end
 
-  def ends_with?(string, suffix) when is_binary(string) do
-    do_ends_with(string, suffix)
-  end
-
-  defp do_ends_with(_string, "") do
-    true
-  end
-
-  defp do_ends_with(string, suffix) when is_binary(suffix) do
+  def ends_with?(string, suffix) when is_binary(string) and is_list(suffix) do
     string_size = byte_size(string)
+    Enum.any?(suffix, &ends_with_string?(string, string_size, &1))
+  end
+
+  @compile {:inline, ends_with_string?: 3}
+  defp ends_with_string?(string, string_size, suffix) when is_binary(suffix) do
     suffix_size = byte_size(suffix)
-    scope = {string_size - suffix_size, suffix_size}
-    suffix_size <= string_size and :nomatch != :binary.match(string, suffix, scope: scope)
+
+    if suffix_size <= string_size do
+      suffix == binary_part(string, string_size - suffix_size, suffix_size)
+    else
+      false
+    end
   end
 
   @doc """
