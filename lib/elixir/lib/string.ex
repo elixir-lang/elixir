@@ -275,7 +275,7 @@ defmodule String do
     recur_printable?(rest, decrement(character_limit))
   end
 
-  defp recur_printable?(string, _character_limit) do
+  defp recur_printable?(_string, _character_limit) do
     false
   end
 
