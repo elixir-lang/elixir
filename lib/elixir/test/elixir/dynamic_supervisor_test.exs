@@ -6,6 +6,7 @@ defmodule DynamicSupervisorTest do
   defmodule Simple do
     use DynamicSupervisor
 
+    @spec init([atom]) :: {:ok, DynamicSupervisor.sup_flags()} | :ignore
     def init(args), do: args
   end
 

@@ -494,7 +494,7 @@ defmodule DynamicSupervisor do
 
   """
   @since "1.6.0"
-  @spec init([init_option]) :: {:ok, map()}
+  @spec init([init_option]) :: {:ok, sup_flags()}
   def init(options) when is_list(options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
