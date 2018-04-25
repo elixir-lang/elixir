@@ -505,6 +505,8 @@ defmodule Map do
   side into the struct, even if the key is not part of the struct. Instead,
   use `Kernel.struct/2`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Map.merge(%{a: 1, b: 2}, %{a: 3, d: 4})
