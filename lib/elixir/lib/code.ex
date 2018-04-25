@@ -887,6 +887,8 @@ defmodule Code do
   must be used in rare cases, usually involving macros that need to
   invoke a module for callback information.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Code.ensure_loaded(Atom)
@@ -898,9 +900,7 @@ defmodule Code do
   """
   @spec ensure_loaded(module) ::
           {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
-  def ensure_loaded(module) when is_atom(module) do
-    :code.ensure_loaded(module)
-  end
+  def ensure_loaded(module), do: :code.ensure_loaded(module)
 
   @doc """
   Ensures the given module is loaded.

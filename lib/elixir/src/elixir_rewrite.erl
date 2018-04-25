@@ -6,6 +6,7 @@
 
 -define(atom, 'Elixir.Atom').
 -define(access, 'Elixir.Access').
+-define(code, 'Elixir.Code').
 -define(enum, 'Elixir.Enum').
 -define(io, 'Elixir.IO').
 -define(integer, 'Elixir.Integer').
@@ -28,6 +29,7 @@
 %% number and order of arguments and show up on captures.
 
 inline(?atom, to_charlist, 1) -> {erlang, atom_to_list};
+inline(?code, ensure_loaded, 1) -> {code, ensure_loaded};
 inline(?io, iodata_length, 1) -> {erlang, iolist_size};
 inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
