@@ -190,8 +190,15 @@ defmodule DynamicSupervisor do
   """
   @since "1.6.1"
   def child_spec(arg) do
+    id =
+      case Keyword.get(arg, :name, DynamicSupervisor) do
+        name when is_atom(name) -> name
+        {:global, name} -> name
+        {:via, _, name} -> name
+      end
+
     %{
-      id: Keyword.get(arg, :name, DynamicSupervisor),
+      id: id,
       start: {DynamicSupervisor, :start_link, [arg]},
       type: :supervisor
     }
