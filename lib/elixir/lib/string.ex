@@ -246,37 +246,36 @@ defmodule String do
   """
   @spec printable?(t, 0) :: true
   @spec printable?(t, pos_integer | :infinity) :: boolean
-
   def printable?(string, character_limit \\ :infinity)
       when is_binary(string) and
              (character_limit == :infinity or
                 (is_integer(character_limit) and character_limit >= 0)) do
-    do_printable?(string, character_limit)
+    recur_printable?(string, character_limit)
   end
 
-  defp do_printable?(_string, 0), do: true
-  defp do_printable?(<<>>, _character_limit), do: true
+  defp recur_printable?(_string, 0), do: true
+  defp recur_printable?(<<>>, _character_limit), do: true
 
   for char <- 0x20..0x7E do
-    defp do_printable?(<<unquote(char), rest::binary>>, character_limit) do
-      do_printable?(rest, decrement(character_limit))
+    defp recur_printable?(<<unquote(char), rest::binary>>, character_limit) do
+      recur_printable?(rest, decrement(character_limit))
     end
   end
 
   for char <- '\n\r\t\v\b\f\e\d\a' do
-    defp do_printable?(<<unquote(char), rest::binary>>, character_limit) do
-      do_printable?(rest, decrement(character_limit))
+    defp recur_printable?(<<unquote(char), rest::binary>>, character_limit) do
+      recur_printable?(rest, decrement(character_limit))
     end
   end
 
-  defp do_printable?(<<char::utf8, rest::binary>>, character_limit)
+  defp recur_printable?(<<char::utf8, rest::binary>>, character_limit)
        when char in 0xA0..0xD7FF
        when char in 0xE000..0xFFFD
        when char in 0x10000..0x10FFFF do
-    do_printable?(rest, decrement(character_limit))
+    recur_printable?(rest, decrement(character_limit))
   end
 
-  defp do_printable?(string, _character_limit) do
+  defp recur_printable?(string, _character_limit) do
     false
   end
 
