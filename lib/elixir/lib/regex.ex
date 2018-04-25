@@ -184,9 +184,8 @@ defmodule Regex do
   def recompile(%Regex{} = regex) do
     version = version()
 
-    # We use Map.get/3 by choice to support old regexes versions.
-    case Map.get(regex, :re_version, :error) do
-      ^version ->
+    case regex do
+      %{re_version: ^version} ->
         {:ok, regex}
 
       _ ->
@@ -211,12 +210,13 @@ defmodule Regex do
   Returns the version of the underlying Regex engine.
   """
   @since "1.4.0"
+  @spec version :: term()
   # TODO: No longer check for function_exported? on OTP 20+.
   def version do
     if function_exported?(:re, :version, 0) do
-      :re.version()
+      {:re.version(), :erlang.system_info(:endian)}
     else
-      "8.33 2013-05-29"
+      {"8.33 2013-05-29", :erlang.system_info(:endian)}
     end
   end
 
