@@ -224,10 +224,10 @@ defmodule String do
   @conditional_mappings [:greek]
 
   @doc """
-  Checks if a string contains only printable characters.
+  Checks if a string contains only printable characters up to `character_limit`.
 
-  Takes an optional `limit` as a second argument. `printable?/2` only
-  checks the printability of the string up to the `limit`.
+  Takes an optional `character_limit` as a second argument. If `character_limit` is `0`, this
+  function will return `true`.
 
   ## Examples
 
@@ -240,37 +240,47 @@ defmodule String do
       iex> String.printable?("abc" <> <<0>>, 2)
       true
 
-  """
-  @spec printable?(t) :: boolean
-  @spec printable?(t, non_neg_integer | :infinity) :: boolean
-  def printable?(string, counter \\ :infinity)
+      iex> String.printable?("abc" <> <<0>>, 0)
+      true
 
-  def printable?(<<>>, _), do: true
-  def printable?(_, 0), do: true
+  """
+  @spec printable?(t, 0) :: true
+  @spec printable?(t, pos_integer | :infinity) :: boolean
+  def printable?(string, character_limit \\ :infinity)
+      when is_binary(string) and
+             (character_limit == :infinity or
+                (is_integer(character_limit) and character_limit >= 0)) do
+    recur_printable?(string, character_limit)
+  end
+
+  defp recur_printable?(_string, 0), do: true
+  defp recur_printable?(<<>>, _character_limit), do: true
 
   for char <- 0x20..0x7E do
-    def printable?(<<unquote(char), rest::binary>>, counter) do
-      printable?(rest, decrement(counter))
+    defp recur_printable?(<<unquote(char), rest::binary>>, character_limit) do
+      recur_printable?(rest, decrement(character_limit))
     end
   end
 
   for char <- '\n\r\t\v\b\f\e\d\a' do
-    def printable?(<<unquote(char), rest::binary>>, counter) do
-      printable?(rest, decrement(counter))
+    defp recur_printable?(<<unquote(char), rest::binary>>, character_limit) do
+      recur_printable?(rest, decrement(character_limit))
     end
   end
 
-  def printable?(<<char::utf8, rest::binary>>, counter)
-      when char in 0xA0..0xD7FF
-      when char in 0xE000..0xFFFD
-      when char in 0x10000..0x10FFFF do
-    printable?(rest, decrement(counter))
+  defp recur_printable?(<<char::utf8, rest::binary>>, character_limit)
+       when char in 0xA0..0xD7FF
+       when char in 0xE000..0xFFFD
+       when char in 0x10000..0x10FFFF do
+    recur_printable?(rest, decrement(character_limit))
   end
 
-  def printable?(binary, _) when is_binary(binary), do: false
+  defp recur_printable?(string, _character_limit) do
+    false
+  end
 
   defp decrement(:infinity), do: :infinity
-  defp decrement(counter), do: counter - 1
+  defp decrement(character_limit), do: character_limit - 1
 
   @doc ~S"""
   Divides a string into substrings at each Unicode whitespace
