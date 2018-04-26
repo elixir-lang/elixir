@@ -15,6 +15,30 @@ defmodule DynamicSupervisorTest do
     assert DynamicSupervisor.which_children(:dyn_sup_spec_test) == []
   end
 
+  test "multiple supervisors can be supervised and identified with simple child spec" do
+    {:ok, _} = Registry.start_link(keys: :unique, name: DynSup.Registry)
+
+    children = [
+      {DynamicSupervisor, strategy: :one_for_one, name: :simple_name},
+      {DynamicSupervisor, strategy: :one_for_one, name: {:global, :global_name}},
+      {DynamicSupervisor,
+       strategy: :one_for_one, name: {:via, Registry, {DynSup.Registry, "via_name"}}}
+    ]
+
+    assert {:ok, supsup} = Supervisor.start_link(children, strategy: :one_for_one)
+
+    assert {:ok, no_name_dynsup} =
+             Supervisor.start_child(supsup, {DynamicSupervisor, strategy: :one_for_one})
+
+    assert DynamicSupervisor.which_children(:simple_name) == []
+    assert DynamicSupervisor.which_children({:global, :global_name}) == []
+    assert DynamicSupervisor.which_children({:via, Registry, {DynSup.Registry, "via_name"}}) == []
+    assert DynamicSupervisor.which_children(no_name_dynsup) == []
+
+    assert Supervisor.start_child(supsup, {DynamicSupervisor, strategy: :one_for_one}) ==
+             {:error, {:already_started, no_name_dynsup}}
+  end
+
   describe "use/2" do
     test "generates child_spec/1" do
       assert Simple.child_spec([:hello]) == %{
