@@ -194,7 +194,7 @@ defmodule DynamicSupervisor do
       case Keyword.get(arg, :name, DynamicSupervisor) do
         name when is_atom(name) -> name
         {:global, name} -> name
-        {:via, _, name} -> name
+        {:via, _module, name} -> name
       end
 
     %{
