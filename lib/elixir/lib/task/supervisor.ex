@@ -348,8 +348,8 @@ defmodule Task.Supervisor do
   defp get_info(self) do
     name =
       case Process.info(self, :registered_name) do
-        {:registered_name, []} -> self
-        {:registered_name, name} -> name
+        {:registered_name, name} when is_atom(name) -> name
+        _ -> self
       end
 
     {node(), name}

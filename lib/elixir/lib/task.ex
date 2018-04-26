@@ -439,8 +439,8 @@ defmodule Task do
   defp get_info(pid) do
     self_or_name =
       case Process.info(pid, :registered_name) do
-        {:registered_name, []} -> self()
-        {:registered_name, name} -> name
+        {:registered_name, name} when is_atom(name) -> name
+        _ -> pid
       end
 
     {node(), self_or_name}
