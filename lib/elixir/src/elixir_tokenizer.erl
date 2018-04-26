@@ -506,6 +506,7 @@ tokenize(String, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Scope) of
     {Kind, Atom, Rest, Length, Ascii, Special} ->
       HasAt = lists:member($@, Special),
+      HasBangOrQuestionMark = lists:member($?, Special) orelse lists:member($!, Special),
 
       case Rest of
         [$: | T] when ?is_space(hd(T)) ->
@@ -520,6 +521,10 @@ tokenize(String, Line, Column, Scope, Tokens) ->
           {error, Reason, String, Tokens};
         _ when Kind == alias ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
+        [$= | _] when HasBangOrQuestionMark, Kind == identifier ->
+          Msg = "use a space before = if the previous identifier ends with ! or ?",
+          elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg),
+          tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
         _ when Kind == identifier ->
           tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
         _ ->
