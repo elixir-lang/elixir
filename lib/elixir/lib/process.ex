@@ -222,6 +222,8 @@ defmodule Process do
   @doc """
   Sends a message to the given process.
 
+  Inlined by the compiler.
+
   ## Options
 
     * `:noconnect` - when used, if sending the message would require an
@@ -237,8 +239,6 @@ defmodule Process do
 
       iex> Process.send({:name, :node_that_does_not_exist}, :hi, [:noconnect])
       :noconnect
-
-  Inlined by the compiler.
   """
   @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
         when dest: pid | port | atom | {atom, node},
@@ -296,6 +296,8 @@ defmodule Process do
   Even if the timer had expired and the message was sent, this function does not
   tell you if the timeout message has arrived at its destination yet.
 
+  Inlined by the compiler.
+
   ## Options
 
     * `:async` - (boolean) when `false`, the request for cancellation is
@@ -312,8 +314,6 @@ defmodule Process do
       described above) is sent to the caller of this function when the
       cancellation has been performed. If `:async` is `true` and `:info` is
       `false`, no message is sent. Defaults to `true`.
-
-  Inlined by the compiler.
   """
   @spec cancel_timer(reference, options) :: non_neg_integer | false | :ok
         when options: [async: boolean, info: boolean]
@@ -493,7 +493,6 @@ defmodule Process do
     * `false`
     * `true`
     * `:undefined`
-
   """
   @spec register(pid | port, atom) :: true
   def register(pid_or_port, name)

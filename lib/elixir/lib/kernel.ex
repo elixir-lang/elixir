@@ -299,13 +299,13 @@ defmodule Kernel do
   Raises an `ArithmeticError` exception if one of the arguments is not an
   integer, or when the `divisor` is `0`.
 
-  Allowed in guard tests. Inlined by the compiler.
-
   `div/2` performs *truncated* integer division. This means that
   the result is always rounded towards zero.
 
   If you want to perform floored integer division (rounding towards negative infinity),
   use `Integer.floor_div/2` instead.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 

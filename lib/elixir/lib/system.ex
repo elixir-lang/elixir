@@ -451,7 +451,7 @@ defmodule System do
   return the current stacktrace but rather the stacktrace of the
   latest exception.
 
-  Inlined by the compiler into `:erlang.get_stacktrace/0`.
+  Inlined by the compiler.
   """
   def stacktrace do
     :erlang.get_stacktrace()
@@ -694,7 +694,7 @@ defmodule System do
   This time is monotonically increasing and starts in an unspecified
   point in time.
 
-  Inlined by the compiler into `:erlang.monotonic_time/0`.
+  Inlined by the compiler.
   """
   @spec monotonic_time() :: integer
   def monotonic_time do
@@ -719,7 +719,7 @@ defmodule System do
   case of time warps although the VM works towards aligning
   them. This time is not monotonic.
 
-  Inlined by the compiler into `:erlang.system_time/0`.
+  Inlined by the compiler.
   """
   @spec system_time() :: integer
   def system_time do
@@ -764,7 +764,7 @@ defmodule System do
 
   See `time_offset/1` for more information.
 
-  Inlined by the compiler into `:erlang.time_offset/0`.
+  Inlined by the compiler.
   """
   @spec time_offset() :: integer
   def time_offset do
@@ -793,7 +793,7 @@ defmodule System do
   This time may be adjusted forwards or backwards in time
   with no limitation and is not monotonic.
 
-  Inlined by the compiler into `:os.system_time/0`.
+  Inlined by the compiler.
   """
   @spec os_time() :: integer
   def os_time do
@@ -856,7 +856,7 @@ defmodule System do
   All modifiers listed above can be combined; repeated modifiers in `modifiers`
   will be ignored.
 
-  Inlined by the compiler into `:erlang.unique_integer/1`.
+  Inlined by the compiler.
   """
   @spec unique_integer([:positive | :monotonic]) :: integer
   def unique_integer(modifiers \\ []) do
