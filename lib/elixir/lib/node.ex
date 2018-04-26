@@ -59,6 +59,8 @@ defmodule Node do
   the local node.
 
   Same as `list(:visible)`.
+
+  Inlined by the compiler.
   """
   @spec list :: [t]
   def list do
@@ -72,6 +74,8 @@ defmodule Node do
   satisfying the disjunction(s) of the list elements.
 
   For more information, see `:erlang.nodes/1`.
+
+  Inlined by the compiler.
   """
   @type state :: :visible | :hidden | :connected | :this | :known
   @spec list(state | [state]) :: [t]
