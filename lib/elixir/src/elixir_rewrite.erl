@@ -4,11 +4,12 @@
 
 %% Convenience variables
 
--define(atom, 'Elixir.Atom').
 -define(access, 'Elixir.Access').
+-define(atom, 'Elixir.Atom').
 -define(enum, 'Elixir.Enum').
--define(io, 'Elixir.IO').
+-define(function, 'Elixir.Function').
 -define(integer, 'Elixir.Integer').
+-define(io, 'Elixir.IO').
 -define(kernel, 'Elixir.Kernel').
 -define(list, 'Elixir.List').
 -define(list_chars, 'Elixir.List.Chars').
@@ -20,7 +21,6 @@
 -define(string_chars, 'Elixir.String.Chars').
 -define(system, 'Elixir.System').
 -define(tuple, 'Elixir.Tuple').
--define(function, 'Elixir.Function').
 
 %% Inline
 
@@ -28,36 +28,35 @@
 %% number and order of arguments and show up on captures.
 
 inline(?atom, to_charlist, 1) -> {erlang, atom_to_list};
-inline(?io, iodata_length, 1) -> {erlang, iolist_size};
-inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
-inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
-inline(?integer, to_string, 2) -> {erlang, integer_to_binary};
+
+inline(?function, capture, 3) -> {erlang, make_fun};
+inline(?function, info, 1) -> {erlang, fun_info};
+inline(?function, info, 2) -> {erlang, fun_info};
+
 inline(?integer, to_charlist, 1) -> {erlang, integer_to_list};
 inline(?integer, to_charlist, 2) -> {erlang, integer_to_list};
-inline(?list, to_atom, 1) -> {erlang, list_to_atom};
-inline(?list, to_existing_atom, 1) -> {erlang, list_to_existing_atom};
-inline(?list, to_float, 1) -> {erlang, list_to_float};
-inline(?list, to_integer, 1) -> {erlang, list_to_integer};
-inline(?list, to_integer, 2) -> {erlang, list_to_integer};
-inline(?list, to_tuple, 1) -> {erlang, list_to_tuple};
+inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
+inline(?integer, to_string, 2) -> {erlang, integer_to_binary};
 
-inline(?kernel, '+', 2) -> {erlang, '+'};
-inline(?kernel, '-', 2) -> {erlang, '-'};
-inline(?kernel, '+', 1) -> {erlang, '+'};
-inline(?kernel, '-', 1) -> {erlang, '-'};
-inline(?kernel, '*', 2) -> {erlang, '*'};
-inline(?kernel, '/', 2) -> {erlang, '/'};
-inline(?kernel, '++', 2) -> {erlang, '++'};
-inline(?kernel, '--', 2) -> {erlang, '--'};
-inline(?kernel, 'not', 1) -> {erlang, 'not'};
-inline(?kernel, '<', 2) -> {erlang, '<'};
-inline(?kernel, '>', 2) -> {erlang, '>'};
-inline(?kernel, '<=', 2) -> {erlang, '=<'};
-inline(?kernel, '>=', 2) -> {erlang, '>='};
-inline(?kernel, '==', 2) -> {erlang, '=='};
+inline(?io, iodata_length, 1) -> {erlang, iolist_size};
+inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
+
 inline(?kernel, '!=', 2) -> {erlang, '/='};
-inline(?kernel, '===', 2) -> {erlang, '=:='};
 inline(?kernel, '!==', 2) -> {erlang, '=/='};
+inline(?kernel, '*', 2) -> {erlang, '*'};
+inline(?kernel, '+', 1) -> {erlang, '+'};
+inline(?kernel, '+', 2) -> {erlang, '+'};
+inline(?kernel, '++', 2) -> {erlang, '++'};
+inline(?kernel, '-', 1) -> {erlang, '-'};
+inline(?kernel, '-', 2) -> {erlang, '-'};
+inline(?kernel, '--', 2) -> {erlang, '--'};
+inline(?kernel, '/', 2) -> {erlang, '/'};
+inline(?kernel, '<', 2) -> {erlang, '<'};
+inline(?kernel, '<=', 2) -> {erlang, '=<'};
+inline(?kernel, '==', 2) -> {erlang, '=='};
+inline(?kernel, '===', 2) -> {erlang, '=:='};
+inline(?kernel, '>', 2) -> {erlang, '>'};
+inline(?kernel, '>=', 2) -> {erlang, '>='};
 inline(?kernel, abs, 1) -> {erlang, abs};
 inline(?kernel, apply, 2) -> {erlang, apply};
 inline(?kernel, apply, 3) -> {erlang, apply};
@@ -90,6 +89,7 @@ inline(?kernel, max, 2) -> {erlang, max};
 inline(?kernel, min, 2) -> {erlang, min};
 inline(?kernel, node, 0) -> {erlang, node};
 inline(?kernel, node, 1) -> {erlang, node};
+inline(?kernel, 'not', 1) -> {erlang, 'not'};
 inline(?kernel, 'rem', 2) -> {erlang, 'rem'};
 inline(?kernel, round, 1) -> {erlang, round};
 inline(?kernel, self, 0) -> {erlang, self};
@@ -105,11 +105,18 @@ inline(?kernel, tl, 1) -> {erlang, tl};
 inline(?kernel, trunc, 1) -> {erlang, trunc};
 inline(?kernel, tuple_size, 1) -> {erlang, tuple_size};
 
+inline(?list, to_atom, 1) -> {erlang, list_to_atom};
+inline(?list, to_existing_atom, 1) -> {erlang, list_to_existing_atom};
+inline(?list, to_float, 1) -> {erlang, list_to_float};
+inline(?list, to_integer, 1) -> {erlang, list_to_integer};
+inline(?list, to_integer, 2) -> {erlang, list_to_integer};
+inline(?list, to_tuple, 1) -> {erlang, list_to_tuple};
+
 inline(?map, keys, 1) -> {maps, keys};
 inline(?map, merge, 2) -> {maps, merge};
 inline(?map, size, 1) -> {maps, size};
-inline(?map, values, 1) -> {maps, values};
 inline(?map, to_list, 1) -> {maps, to_list};
+inline(?map, values, 1) -> {maps, values};
 
 inline(?node, list, 0) -> {erlang, nodes};
 inline(?node, list, 1) -> {erlang, nodes};
@@ -120,19 +127,28 @@ inline(?node, spawn, 5) -> {erlang, spawn_opt};
 inline(?node, spawn_link, 2) -> {erlang, spawn_link};
 inline(?node, spawn_link, 4) -> {erlang, spawn_link};
 
+inline(?port, close, 1) -> {erlang, port_close};
+inline(?port, command, 2) -> {erlang, port_command};
+inline(?port, command, 3) -> {erlang, port_command};
+inline(?port, connect, 2) -> {erlang, port_connect};
+inline(?port, demonitor, 1) -> {erlang, demonitor};
+inline(?port, demonitor, 2) -> {erlang, demonitor};
+inline(?port, list, 0) -> {erlang, ports};
+inline(?port, open, 2) -> {erlang, open_port};
+
 inline(?process, 'alive?', 1) -> {erlang, is_process_alive};
 inline(?process, cancel_timer, 1) -> {erlang, cancel_timer};
 inline(?process, cancel_timer, 2) -> {erlang, cancel_timer};
+inline(?process, demonitor, 1) -> {erlang, demonitor};
+inline(?process, demonitor, 2) -> {erlang, demonitor};
 inline(?process, exit, 2) -> {erlang, exit};
+inline(?process, flag, 2) -> {erlang, process_flag};
+inline(?process, flag, 3) -> {erlang, process_flag};
 inline(?process, get, 0) -> {erlang, get};
 inline(?process, get_keys, 0) -> {erlang, get_keys};
 inline(?process, get_keys, 1) -> {erlang, get_keys};
 inline(?process, group_leader, 0) -> {erlang, group_leader};
 inline(?process, hibernate, 3) -> {erlang, hibernate};
-inline(?process, demonitor, 1) -> {erlang, demonitor};
-inline(?process, demonitor, 2) -> {erlang, demonitor};
-inline(?process, flag, 2) -> {erlang, process_flag};
-inline(?process, flag, 3) -> {erlang, process_flag};
 inline(?process, link, 1) -> {erlang, link};
 inline(?process, list, 0) -> {erlang, processes};
 inline(?process, read_timer, 1) -> {erlang, read_timer};
@@ -143,34 +159,21 @@ inline(?process, spawn, 4) -> {erlang, spawn_opt};
 inline(?process, unlink, 1) -> {erlang, unlink};
 inline(?process, unregister, 1) -> {erlang, unregister};
 
-inline(?port, open, 2) -> {erlang, open_port};
-inline(?port, close, 1) -> {erlang, port_close};
-inline(?port, command, 2) -> {erlang, port_command};
-inline(?port, command, 3) -> {erlang, port_command};
-inline(?port, connect, 2) -> {erlang, port_connect};
-inline(?port, demonitor, 1) -> {erlang, demonitor};
-inline(?port, demonitor, 2) -> {erlang, demonitor};
-inline(?port, list, 0) -> {erlang, ports};
-
+inline(?string, duplicate, 2) -> {binary, copy};
 inline(?string, to_float, 1) -> {erlang, binary_to_float};
 inline(?string, to_integer, 1) -> {erlang, binary_to_integer};
 inline(?string, to_integer, 2) -> {erlang, binary_to_integer};
-inline(?string, duplicate, 2) -> {binary, copy};
 
-inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 inline(?system, monotonic_time, 0) -> {erlang, monotonic_time};
 inline(?system, os_time, 0) -> {os, system_time};
+inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 inline(?system, system_time, 0) -> {erlang, system_time};
 inline(?system, time_offset, 0) -> {erlang, time_offset};
 inline(?system, unique_integer, 0) -> {erlang, unique_integer};
 inline(?system, unique_integer, 1) -> {erlang, unique_integer};
 
-inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
 inline(?tuple, append, 2) -> {erlang, append_element};
-
-inline(?function, capture, 3) -> {erlang, make_fun};
-inline(?function, info, 1) -> {erlang, fun_info};
-inline(?function, info, 2) -> {erlang, fun_info};
+inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
 
 inline(_, _, _) -> false.
 
@@ -211,26 +214,26 @@ rewrite(?map, put, [Map, Key, Value]) ->
   {maps, put, [Key, Value, Map]};
 rewrite(?map, 'replace!', [Map, Key, Value]) ->
   {maps, update, [Key, Value, Map]};
-rewrite(?process, monitor, [Arg]) ->
-  {erlang, monitor, [process, Arg]};
+rewrite(?port, monitor, [Arg]) ->
+  {erlang, monitor, [port, Arg]};
 rewrite(?process, group_leader, [Pid, Leader]) ->
   {erlang, group_leader, [Leader, Pid]};
+rewrite(?process, monitor, [Arg]) ->
+  {erlang, monitor, [process, Arg]};
 rewrite(?process, send_after, [Dest, Msg, Time]) ->
   {erlang, send_after, [Time, Dest, Msg]};
 rewrite(?process, send_after, [Dest, Msg, Time, Opts]) ->
   {erlang, send_after, [Time, Dest, Msg, Opts]};
-rewrite(?port, monitor, [Arg]) ->
-  {erlang, monitor, [port, Arg]};
 rewrite(?string, to_atom, [Arg]) ->
   {erlang, binary_to_atom, [Arg, utf8]};
 rewrite(?string, to_existing_atom, [Arg]) ->
   {erlang, binary_to_existing_atom, [Arg, utf8]};
-rewrite(?tuple, insert_at, [Tuple, Index, Term]) ->
-  {erlang, insert_element, [increment(Index), Tuple, Term]};
 rewrite(?tuple, delete_at, [Tuple, Index]) ->
   {erlang, delete_element, [increment(Index), Tuple]};
 rewrite(?tuple, duplicate, [Data, Size]) ->
   {erlang, make_tuple, [Size, Data]};
+rewrite(?tuple, insert_at, [Tuple, Index, Term]) ->
+  {erlang, insert_element, [increment(Index), Tuple, Term]};
 rewrite(Receiver, Fun, Args) ->
   {Receiver, Fun, Args}.
 
