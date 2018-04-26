@@ -15,7 +15,7 @@ defmodule DynamicSupervisorTest do
     assert DynamicSupervisor.which_children(:dyn_sup_spec_test) == []
   end
 
-  test "multiple can be supervised and identified with simple child spec" do
+  test "multiple supervisors can be supervised and identified with simple child spec" do
     {:ok, _} = Registry.start_link(keys: :unique, name: DynSup.Registry)
 
     children = [
@@ -27,16 +27,16 @@ defmodule DynamicSupervisorTest do
 
     assert {:ok, supsup} = Supervisor.start_link(children, strategy: :one_for_one)
 
-    assert {:ok, noname_dynsup} =
+    assert {:ok, no_name_dynsup} =
              Supervisor.start_child(supsup, {DynamicSupervisor, strategy: :one_for_one})
 
     assert DynamicSupervisor.which_children(:simple_name) == []
     assert DynamicSupervisor.which_children({:global, :global_name}) == []
     assert DynamicSupervisor.which_children({:via, Registry, {DynSup.Registry, "via_name"}}) == []
-    assert DynamicSupervisor.which_children(noname_dynsup) == []
+    assert DynamicSupervisor.which_children(no_name_dynsup) == []
 
-    assert {:error, {:already_started, ^noname_dynsup}} =
-             Supervisor.start_child(supsup, {DynamicSupervisor, strategy: :one_for_one})
+    assert Supervisor.start_child(supsup, {DynamicSupervisor, strategy: :one_for_one}) ==
+             {:error, {:already_started, no_name_dynsup}}
   end
 
   describe "use/2" do
