@@ -506,27 +506,39 @@ tokenize(String, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Scope) of
     {Kind, Atom, Rest, Length, Ascii, Special} ->
       HasAt = lists:member($@, Special),
-      HasBangOrQuestionMark = lists:member($?, Special) orelse lists:member($!, Special),
 
       case Rest of
         [$: | T] when ?is_space(hd(T)) ->
           Token = {kw_identifier, {Line, Column, nil}, Atom},
           tokenize(T, Line, Column + Length + 1, Scope, [Token | Tokens]);
+
         [$: | T] when hd(T) /= $: ->
           AtomName = atom_to_list(Atom) ++ [$:],
           Reason = {Line, "keyword argument must be followed by space after: ", AtomName},
           {error, Reason, String, Tokens};
+
         _ when HasAt ->
           Reason = {Line, invalid_character_error(Kind, $@), atom_to_list(Atom)},
           {error, Reason, String, Tokens};
+
         _ when Kind == alias ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
-        [$= | _] when HasBangOrQuestionMark, Kind == identifier ->
-          Msg = "use a space before = if the previous identifier ends with ! or ?",
-          elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg),
-          tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
+
         _ when Kind == identifier ->
+          Identifier = atom_to_list(Atom),
+          LastChar = lists:last(Identifier),
+          case Rest of
+            [$= | _] when LastChar == $! ->
+              Msg = io_lib:format("found an identifier \"~ts\", ending with ~ts, followed by =. "
+                                  "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
+                                  "a space before or after ~ts to remove the ambiguity",
+                                  [Identifier, [LastChar], lists:droplast(Identifier), [LastChar], Identifier, [LastChar]]),
+              elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
+            _ ->
+              ok
+          end,
           tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
+
         _ ->
           unexpected_token(String, Line, Column, Tokens)
       end;
