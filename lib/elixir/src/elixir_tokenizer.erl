@@ -426,6 +426,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Scope) of
     {_Kind, Atom, Rest, Length, _Ascii, _Special} ->
+      maybe_warn_for_ambiguous_bang_before_equals(atom, Atom, Rest, Scope, Line),
       Token = {atom, {Line, Column, nil}, Atom},
       tokenize(Rest, Line, Column + 1 + Length, Scope, [Token | Tokens]);
     empty ->
@@ -525,18 +526,7 @@ tokenize(String, Line, Column, Scope, Tokens) ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
 
         _ when Kind == identifier ->
-          Identifier = atom_to_list(Atom),
-          LastChar = lists:last(Identifier),
-          case Rest of
-            [$= | _] when LastChar == $! ->
-              Msg = io_lib:format("found an identifier \"~ts\", ending with ~ts, followed by =. "
-                                  "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
-                                  "a space before or after ~ts to remove the ambiguity",
-                                  [Identifier, [LastChar], lists:droplast(Identifier), [LastChar], Identifier, [LastChar]]),
-              elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
-            _ ->
-              ok
-          end,
+          maybe_warn_for_ambiguous_bang_before_equals(identifier, Atom, Rest, Scope, Line),
           tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
 
         _ ->
@@ -547,6 +537,26 @@ tokenize(String, Line, Column, Scope, Tokens) ->
     {error, Reason} ->
       {error, Reason, String, Tokens}
   end.
+
+maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) ->
+  {What, Identifier} =
+    case Kind of
+      atom -> {"atom", [$: | atom_to_list(Atom)]};
+      identifier -> {"identifier", atom_to_list(Atom)}
+    end,
+
+  case lists:last(Identifier) of
+    Last when Last == $!; Last == $? ->
+      Msg = io_lib:format("found an ~ts \"~ts\", ending with ~ts, followed by =. "
+                          "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
+                          "a space before or after ~ts to remove the ambiguity",
+                          [What, Identifier, [Last], lists:droplast(Identifier), [Last], Identifier, [Last]]),
+      elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
+    _ ->
+      ok
+  end;
+maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, _Scope, _Line) ->
+  ok.
 
 unexpected_token([T | Rest], Line, Column, Tokens) ->
   Message = io_lib:format("\"~ts\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
