@@ -547,7 +547,7 @@ maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) -
 
   case lists:last(Identifier) of
     Last when Last == $!; Last == $? ->
-      Msg = io_lib:format("found an ~ts \"~ts\", ending with ~ts, followed by =. "
+      Msg = io_lib:format("found ~ts \"~ts\", ending with \"~ts\", followed by =. "
                           "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
                           "a space before or after ~ts to remove the ambiguity",
                           [What, Identifier, [Last], lists:droplast(Identifier), [Last], Identifier, [Last]]),
