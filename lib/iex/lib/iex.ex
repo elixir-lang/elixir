@@ -536,6 +536,7 @@ defmodule IEx do
 
       iex -S mix test --trace
       iex -S mix test path/to/file:line --trace
+
   """
   defmacro pry() do
     quote do

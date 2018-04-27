@@ -1773,6 +1773,7 @@ defmodule Kernel do
             reraise exception, stacktrace
           end
       end
+
   """
   defmacro reraise(message, stacktrace) do
     # Try to figure out the type at compilation time
@@ -5034,6 +5035,7 @@ defmodule Kernel do
 
       iex> ~D[2015-01-13]
       ~D[2015-01-13]
+
   """
   defmacro sigil_D(date, modifiers)
 

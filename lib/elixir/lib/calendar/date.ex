@@ -85,6 +85,7 @@ defmodule Date do
       true
       iex> Enum.reduce(range, 0, fn _date, acc -> acc - 1 end)
       -366
+
   """
 
   @since "1.5.0"
