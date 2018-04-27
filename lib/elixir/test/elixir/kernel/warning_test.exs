@@ -33,10 +33,10 @@ defmodule Kernel.WarningTest do
 
   test "identifier that ends in ! followed by the = operator without a space in between" do
     output = capture_err(fn -> Code.eval_string("foo!= 1") end)
-    assert output =~ "found identifier \"foo!\", ending with !"
+    assert output =~ "found identifier \"foo!\", ending with \"!\""
 
     output = capture_err(fn -> Code.eval_string(":foo!= :foo!") end)
-    assert output =~ "found atom \":foo!\", ending with !"
+    assert output =~ "found atom \":foo!\", ending with \"!\""
   end
 
   test "unused variable" do
