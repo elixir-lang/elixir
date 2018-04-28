@@ -64,8 +64,8 @@ Elixir deprecations happen in 3 steps:
 
 ### Table of deprecations
 
-Deprecated feature                               | Deprecated in | Replaced by (available since)
-:----------------------------------------------- | :------------ | :----------------------------
+Deprecated feature                               | Hard-deprecated in | Replaced by (available since)
+:----------------------------------------------- | :----------------- | :----------------------------
 `Enum.chunk/2`[`/3/4`](Enum.chunk/4)             | [v1.7]        | `Enum.chunk_every/2`[`/3/4`](`Enum.chunk_every/4`) (v1.5)
 `not left in right`                              | [v1.7]        | [`left not in right`](`Kernel.SpecialForms.in/2`) (v1.5)
 `Registry.start_link/3`                          | [v1.7]        | `Registry.start_link/1` (v1.5)
@@ -133,4 +133,4 @@ Non-map as second argument in `URI.decode_query/2` | [v1.3]      | Use a map (v1
 [v1.4]: https://github.com/elixir-lang/elixir/blob/v1.4/CHANGELOG.md#4-deprecations
 [v1.5]: https://github.com/elixir-lang/elixir/blob/v1.5/CHANGELOG.md#4-deprecations
 [v1.6]: https://github.com/elixir-lang/elixir/blob/v1.6/CHANGELOG.md#4-deprecations
-[v1.7]: https://github.com/elixir-lang/elixir/blob/master/CHANGELOG.md#4-deprecations
+[v1.7]: https://github.com/elixir-lang/elixir/blob/master/CHANGELOG.md#4-hard-deprecations

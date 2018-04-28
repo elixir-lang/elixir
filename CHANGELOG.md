@@ -52,13 +52,13 @@
   * [ExUnit.Case] Raise proper error if `@describetag` is used outside of describe
   * [ExUnit.DocTest] Emit proper assertion error on doctests with invalid UTF-8
 
-### 3. Soft deprecations (no warnings emitted)
+### 3. Soft-deprecations (no warnings emitted)
 
   * [Code] Deprecate `Code.load_file/2` in favor of `Code.compile_file/2`
   * [Code] Deprecate `Code.loaded_files/0` in favor of `Code.required_files/0`
   * [Code] Deprecate `Code.unload_files/1` in favor of `Code.unrequire_files/1`
 
-### 4. Deprecations
+### 4. Hard-deprecations
 
 #### Elixir
 
