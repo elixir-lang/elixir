@@ -63,6 +63,7 @@ defmodule Mix.Utils do
       :error
       iex> Mix.Utils.parse_mfa("Foo.bar/2/2")
       :error
+
   """
   def parse_mfa(mfa) do
     with {:ok, quoted} <- Code.string_to_quoted(mfa),
@@ -486,6 +487,7 @@ defmodule Mix.Utils do
 
     * `:sha512` - checks against the given SHA-512 checksum. Returns
       `{:checksum, message}` in case it fails
+
   """
   @spec read_path(String.t(), keyword) ::
           {:ok, binary}

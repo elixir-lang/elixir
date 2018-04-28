@@ -31,6 +31,7 @@ defmodule Mix.Tasks.Local.PublicKeys do
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
+
   """
 
   def run(argv) do

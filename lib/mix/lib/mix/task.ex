@@ -220,6 +220,7 @@ defmodule Mix.Task do
 
     * `Mix.NoTaskError`      - raised if the task could not be found
     * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
+
   """
   @spec get!(task_name) :: task_module | no_return
   def get!(task) do

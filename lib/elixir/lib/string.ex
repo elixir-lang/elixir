@@ -2047,6 +2047,7 @@ defmodule String do
 
       iex> String.to_charlist("æß")
       'æß'
+
   """
   @spec to_charlist(t) :: charlist
   def to_charlist(string) when is_binary(string) do

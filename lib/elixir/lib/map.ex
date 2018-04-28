@@ -225,6 +225,7 @@ defmodule Map do
       true
       iex> Map.has_key?(%{a: 1}, :b)
       false
+
   """
   @spec has_key?(map, key) :: boolean
   def has_key?(map, key), do: :maps.is_key(key, map)
@@ -243,6 +244,7 @@ defmodule Map do
       {:ok, 1}
       iex> Map.fetch(%{a: 1}, :b)
       :error
+
   """
   @spec fetch(map, key) :: {:ok, value} | :error
   def fetch(map, key), do: :maps.find(key, map)
@@ -324,6 +326,7 @@ defmodule Map do
 
       iex> Map.replace!(%{a: 1}, :b, 2)
       ** (KeyError) key :b not found in: %{a: 1}
+
   """
   @since "1.5.0"
   @spec replace!(map, key, value) :: map
@@ -485,6 +488,7 @@ defmodule Map do
       %{a: 1, b: 2}
       iex> Map.put(%{a: 1, b: 2}, :a, 3)
       %{a: 3, b: 2}
+
   """
   @spec put(map, key, value) :: map
   def put(map, key, value) do
