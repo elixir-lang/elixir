@@ -775,6 +775,7 @@ defmodule Registry do
       ["hello", "hello"]
       iex> Registry.lookup(Registry.DuplicateUnregisterMatchTest, "hello")
       [{self(), :world_b}, {self(), :world_c}]
+
   """
   @since "1.5.0"
   def unregister_match(registry, key, pattern, guards \\ []) when is_list(guards) do
@@ -1011,6 +1012,7 @@ defmodule Registry do
       iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
       iex> Registry.count(Registry.DuplicateCountTest)
       2
+
   """
   @since "1.7.0"
   @spec count(registry) :: non_neg_integer()

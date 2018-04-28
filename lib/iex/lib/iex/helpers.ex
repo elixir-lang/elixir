@@ -308,6 +308,7 @@ defmodule IEx.Helpers do
       iex> b(Mix.Task.run/1)
       iex> b(Mix.Task.run)
       iex> b(GenServer)
+
   """
   defmacro b(term) do
     quote do

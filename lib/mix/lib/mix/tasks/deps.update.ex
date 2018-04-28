@@ -30,6 +30,7 @@ defmodule Mix.Tasks.Deps.Update do
     * `--all` - updates all dependencies
     * `--only` - only fetches dependencies for given environment
     * `--no-archives-check` - does not check archives before fetching deps
+
   """
 
   def run(args) do

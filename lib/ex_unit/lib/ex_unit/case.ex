@@ -200,6 +200,7 @@ defmodule ExUnit.Case do
   messages as well, remove the console backend globally:
 
       config :logger, backends: []
+
   """
 
   @reserved [:module, :file, :line, :test, :async, :registered, :describe, :type]
@@ -514,6 +515,7 @@ defmodule ExUnit.Case do
           assert context.registered.hello == "world"
         end
       end
+
   """
   def register_attribute(env, name, opts \\ [])
 

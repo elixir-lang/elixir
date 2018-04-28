@@ -654,6 +654,7 @@ defmodule File do
 
       # Rename directory "samples" to "tmp"
       File.rename "samples", "tmp"
+
   """
   @spec rename(Path.t(), Path.t()) :: :ok | {:error, posix}
   def rename(source, destination) do

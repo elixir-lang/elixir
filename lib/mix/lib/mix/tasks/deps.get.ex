@@ -11,6 +11,7 @@ defmodule Mix.Tasks.Deps.Get do
 
     * `--only` - only fetches dependencies for given environment
     * `--no-archives-check` - does not check archives before fetching deps
+
   """
 
   def run(args) do
