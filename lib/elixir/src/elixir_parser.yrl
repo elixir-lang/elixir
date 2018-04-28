@@ -140,7 +140,7 @@ matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> no_parens_zero_expr : '$1'.
 matched_expr -> access_expr : '$1'.
-matched_expr -> access_expr kw_identifier : throw_invalid_kw_identifier('$2').
+matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2').
 
 unmatched_expr -> matched_expr unmatched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
@@ -470,7 +470,7 @@ parens_call -> matched_expr dot_call_op : {'.', meta_from_token('$2'), ['$1']}. 
 % Function calls with no parentheses
 
 call_args_no_parens_expr -> matched_expr : '$1'.
-call_args_no_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
+call_args_no_parens_expr -> no_parens_expr : error_no_parens_many_strict('$1').
 
 call_args_no_parens_comma_expr -> matched_expr ',' call_args_no_parens_expr : ['$3', '$1'].
 call_args_no_parens_comma_expr -> call_args_no_parens_comma_expr ',' call_args_no_parens_expr : ['$3' | '$1'].
@@ -489,8 +489,8 @@ call_args_no_parens_many -> call_args_no_parens_comma_expr : reverse('$1').
 call_args_no_parens_many -> call_args_no_parens_comma_expr ',' call_args_no_parens_kw : reverse(['$3' | '$1']).
 
 call_args_no_parens_many_strict -> call_args_no_parens_many : '$1'.
-call_args_no_parens_many_strict -> open_paren call_args_no_parens_kw close_paren : throw_no_parens_strict('$1').
-call_args_no_parens_many_strict -> open_paren call_args_no_parens_many close_paren : throw_no_parens_strict('$1').
+call_args_no_parens_many_strict -> open_paren call_args_no_parens_kw close_paren : error_no_parens_strict('$1').
+call_args_no_parens_many_strict -> open_paren call_args_no_parens_many close_paren : error_no_parens_strict('$1').
 
 stab_parens_many -> open_paren call_args_no_parens_kw close_paren : ['$2'].
 stab_parens_many -> open_paren call_args_no_parens_many close_paren : '$2'.
@@ -499,7 +499,7 @@ stab_parens_many -> open_paren call_args_no_parens_many close_paren : '$2'.
 
 container_expr -> matched_expr : '$1'.
 container_expr -> unmatched_expr : '$1'.
-container_expr -> no_parens_expr : throw_no_parens_container_strict('$1').
+container_expr -> no_parens_expr : error_no_parens_container_strict('$1').
 
 container_args_base -> container_expr : ['$1'].
 container_args_base -> container_args_base ',' container_expr : ['$3' | '$1'].
@@ -512,7 +512,7 @@ container_args -> container_args_base ',' kw : lists:reverse(['$3' | '$1']).
 
 call_args_parens_expr -> matched_expr : '$1'.
 call_args_parens_expr -> unmatched_expr : '$1'.
-call_args_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
+call_args_parens_expr -> no_parens_expr : error_no_parens_many_strict('$1').
 
 call_args_parens_base -> call_args_parens_expr : ['$1'].
 call_args_parens_base -> call_args_parens_base ',' call_args_parens_expr : ['$3' | '$1'].
@@ -778,7 +778,7 @@ build_alias({'alias', Location, Alias}) ->
 build_dot_alias(_Dot, {'__aliases__', Meta, Left}, {'alias', _, Right}) ->
   {'__aliases__', Meta, Left ++ [Right]};
 build_dot_alias(_Dot, Atom, Right) when is_atom(Atom) ->
-  throw_bad_atom(Right);
+  error_bad_atom(Right);
 build_dot_alias(Dot, Expr, {'alias', _, Right}) ->
   {'__aliases__', meta_from_token(Dot), [Expr, Right]}.
 
@@ -836,7 +836,7 @@ build_fn(Fn, Stab, End) ->
     stab ->
       {fn, meta_from_token_with_end_line(Fn, End), collect_stab(Stab, [], [])};
     block ->
-      throw(meta_from_token(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
+      return_error(meta_from_token(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
   end.
 
 %% Access
@@ -922,7 +922,7 @@ string_tokens_parse(Tokens) ->
 
 check_stab([{'->', _, [_, _]}], _) -> stab;
 check_stab([_], none) -> block;
-check_stab([_], Meta) -> throw_invalid_stab(Meta);
+check_stab([_], Meta) -> error_invalid_stab(Meta);
 check_stab([{'->', Meta, [_, _]} | T], _) -> check_stab(T, Meta);
 check_stab([_ | T], MaybeMeta) -> check_stab(T, MaybeMeta).
 
@@ -972,30 +972,30 @@ unwrap_when(Args) ->
 
 %% Warnings and errors
 
-throw(Meta, Error, Token) ->
+return_error(Meta, Error, Token) ->
   Line =
     case lists:keyfind(line, 1, Meta) of
       {line, L} -> L;
       false -> 0
     end,
-  throw({error, {Line, ?MODULE, [Error, Token]}}).
+  return_error(Line, [Error, Token]).
 
-throw_invalid_stab(MetaStab) ->
-  throw(MetaStab,
+error_invalid_stab(MetaStab) ->
+  return_error(MetaStab,
     "unexpected operator ->. If you want to define multiple clauses, the first expression must use ->. "
     "Syntax error before: ", "'->'").
 
-throw_bad_atom(Token) ->
-  throw(meta_from_token(Token), "atom cannot be followed by an alias. If the '.' was meant to be "
+error_bad_atom(Token) ->
+  return_error(meta_from_token(Token), "atom cannot be followed by an alias. If the '.' was meant to be "
     "part of the atom's name, the atom name must be quoted. Syntax error before: ", "'.'").
 
-throw_no_parens_strict(Token) ->
-  throw(meta_from_token(Token), "unexpected parentheses. If you are making a "
+error_no_parens_strict(Token) ->
+  return_error(meta_from_token(Token), "unexpected parentheses. If you are making a "
     "function call, do not insert spaces between the function name and the "
     "opening parentheses. Syntax error before: ", "'('").
 
-throw_no_parens_many_strict(Node) ->
-  throw(?meta(Node),
+error_no_parens_many_strict(Node) ->
+  return_error(?meta(Node),
     "unexpected comma. Parentheses are required to solve ambiguity in nested calls.\n\n"
     "This error happens when you have nested function calls without parentheses. "
     "For example:\n\n"
@@ -1008,8 +1008,8 @@ throw_no_parens_many_strict(Node) ->
     "    one, a, two, b, c, d\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
-throw_no_parens_container_strict(Node) ->
-  throw(?meta(Node),
+error_no_parens_container_strict(Node) ->
+  return_error(?meta(Node),
     "unexpected comma. Parentheses are required to solve ambiguity inside containers.\n\n"
     "This error may happen when you forget a comma in a list or other container:\n\n"
     "    [a, b c, d]\n\n"
@@ -1021,10 +1021,10 @@ throw_no_parens_container_strict(Node) ->
     "    [one, two(three, four), five]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
-throw_invalid_kw_identifier({_, _, do} = Token) ->
-  throw(meta_from_token(Token), elixir_tokenizer:invalid_do_error("unexpected keyword \"do:\""), "'do:'");
-throw_invalid_kw_identifier({_, _, KW} = Token) ->
-  throw(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ "':").
+error_invalid_kw_identifier({_, _, do} = Token) ->
+  return_error(meta_from_token(Token), elixir_tokenizer:invalid_do_error("unexpected keyword \"do:\""), "'do:'");
+error_invalid_kw_identifier({_, _, KW} = Token) ->
+  return_error(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ "':").
 
 %% TODO: Make this an error on Elixir v2.0.
 warn_empty_paren({_, {Line, _, _}}) ->

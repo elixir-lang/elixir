@@ -317,9 +317,6 @@ tokens_to_quoted(Tokens, File, Opts) ->
     {ok, Forms} -> {ok, Forms};
     {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
     {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
-  catch
-    {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
-    {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
   after
     erase(elixir_parser_file),
     erase(elixir_parser_columns),
