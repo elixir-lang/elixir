@@ -350,6 +350,7 @@ This version includes changes that make Elixir fully compatible with Erlang/OTP 
   * [Set] Deprecation of the `Set` module in favor of `MapSet`
   * [Stream] Deprecate `Stream.uniq/2` in favor of `Stream.uniq_by/2`
   * Anonymous functions with no expression after `->`, in favor of using an expression or returning `nil`
+
 #### IEx
 
   * [IEx.Helpers] `import_file/2` is deprecated in favor of `import_file_if_available/1`
