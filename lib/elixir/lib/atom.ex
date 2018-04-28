@@ -39,6 +39,7 @@ defmodule Atom do
 
   # TODO: Remove by 2.0
   # (hard-deprecated in elixir_dispatch)
+  # Inlined by the compiler
   @doc false
   @spec to_char_list(atom) :: charlist
   def to_char_list(atom), do: Atom.to_charlist(atom)

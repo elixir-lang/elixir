@@ -27,12 +27,15 @@
 %% Inline rules are straightforward, they keep the same
 %% number and order of arguments and show up on captures.
 
+inline(?atom, to_char_list, 1) -> {erlang, atom_to_list}; %% TODO: Remove on 2.0
 inline(?atom, to_charlist, 1) -> {erlang, atom_to_list};
 
 inline(?function, capture, 3) -> {erlang, make_fun};
 inline(?function, info, 1) -> {erlang, fun_info};
 inline(?function, info, 2) -> {erlang, fun_info};
 
+inline(?integer, to_char_list, 1) -> {erlang, integer_to_list}; %% TODO: Remove on 2.0
+inline(?integer, to_char_list, 2) -> {erlang, integer_to_list}; %% TODO: Remove on 2.0
 inline(?integer, to_charlist, 1) -> {erlang, integer_to_list};
 inline(?integer, to_charlist, 2) -> {erlang, integer_to_list};
 inline(?integer, to_string, 1) -> {erlang, integer_to_binary};

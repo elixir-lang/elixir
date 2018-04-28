@@ -402,12 +402,14 @@ defmodule Integer do
 
   # TODO: Remove by 2.0
   # (hard-deprecated in elixir_dispatch)
+  # Inlined by the compiler
   @doc false
   @spec to_char_list(integer) :: charlist
   def to_char_list(integer), do: Integer.to_charlist(integer)
 
   # TODO: Remove by 2.0
   # (hard-deprecated in elixir_dispatch)
+  # Inlined by the compiler
   @doc false
   @spec to_char_list(integer, 2..36) :: charlist
   def to_char_list(integer, base), do: Integer.to_charlist(integer, base)
