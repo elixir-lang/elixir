@@ -189,7 +189,7 @@ defmodule IEx.Pry do
               "module #{inspect(module)} was not written in Elixir"
 
             :otp_20_is_required ->
-              "you are running on an earlier OTP version than OTP 20"
+              "you are running on an earlier version than Erlang/OTP 20"
 
             :outdated_debug_info ->
               "module #{inspect(module)} was not compiled with the latest debug_info"

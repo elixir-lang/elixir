@@ -7,7 +7,7 @@
 
 ### Environment
 
-* Elixir & Erlang versions (elixir --version): 
+* Elixir & Erlang/OTP versions (elixir --version): 
 * Operating system: 
 
 ### Current behavior

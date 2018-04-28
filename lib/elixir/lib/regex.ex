@@ -41,7 +41,7 @@ defmodule Regex do
   expression engine at any time.
 
   For such reasons, we always recommend precompiling Elixir projects using
-  the OTP version meant to run in production. In case cross-compilation is
+  the Erlang/OTP version meant to run in production. In case cross-compilation is
   really necessary, you can manually invoke `Regex.recompile/1` or
   `Regex.recompile!/1` to perform a runtime version check and recompile the
   regex if necessary.

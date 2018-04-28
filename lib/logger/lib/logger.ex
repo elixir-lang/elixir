@@ -16,7 +16,7 @@ defmodule Logger do
       performant when required but also apply backpressure
       when under stress.
 
-    * Wraps OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+    * Wraps Erlang's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
       to prevent it from overflowing.
 
   Logging is useful for tracking when an event of interest happens in your
@@ -63,7 +63,7 @@ defmodule Logger do
       application is started, but may be changed during runtime
 
     * Error logger configuration - configuration for the
-      wrapper around OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+      wrapper around Erlangs's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
 
   ### Application configuration
 
@@ -152,11 +152,11 @@ defmodule Logger do
   ### Error logger configuration
 
   The following configuration applies to `Logger`'s wrapper around
-  OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html).
+  Erlang's [`:error_logger`](http://erlang.org/doc/man/error_logger.html).
   All the configurations below must be set before the `:logger` application starts.
 
     * `:handle_otp_reports` - redirects OTP reports to `Logger` so
-      they are formatted in Elixir terms. This uninstalls OTP's
+      they are formatted in Elixir terms. This uninstalls Erlang's
       logger that prints terms to terminal. Defaults to `true`.
 
     * `:handle_sasl_reports` - redirects supervisor, crash and
@@ -184,7 +184,7 @@ defmodule Logger do
         handle_otp_reports: true,
         handle_sasl_reports: true
 
-  Furthermore, `Logger` allows messages sent by OTP's `:error_logger`
+  Furthermore, `Logger` allows messages sent by Erlang's `:error_logger`
   to be translated into an Elixir format via translators. Translators
   can be dynamically added at any time with the `add_translator/1`
   and `remove_translator/1` APIs. Check `Logger.Translator` for more
@@ -540,7 +540,7 @@ defmodule Logger do
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
-      to both Logger and OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+      to both `Logger` and Erlangs's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
       are processed before the backend is added
 
   """
@@ -567,7 +567,7 @@ defmodule Logger do
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
-      to both Logger and OTP's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+      to both `Logger` and Erlangs's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
       are processed before the backend is removed
 
   """

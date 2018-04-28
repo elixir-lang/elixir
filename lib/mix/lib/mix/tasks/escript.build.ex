@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   An escript is an executable that can be invoked from the
   command line. An escript can run on any machine that has
-  Erlang installed and by default does not require Elixir to
+  Erlang/OTP installed and by default does not require Elixir to
   be installed, as Elixir is embedded as part of the escript.
 
   This task guarantees the project and its dependencies are

@@ -40,15 +40,15 @@ Erlang/OTP versioning is independent from the versioning of Elixir. Each version
 
 Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
-1.0            | 17 - 17 (and OTP 18 from v1.0.5)
+1.0            | 17 - 17 (and Erlang/OTP 18 from v1.0.5)
 1.1            | 17 - 18
-1.2            | 18 - 18 (and OTP 19 from v1.2.6)
+1.2            | 18 - 18 (and Erlang/OTP 19 from v1.2.6)
 1.3            | 18 - 19
-1.4            | 18 - 19 (and OTP 20 from v1.4.5)
+1.4            | 18 - 19 (and Erlang/OTP 20 from v1.4.5)
 1.5            | 18 - 20
 1.6            | 19 - 20
 
-While Elixir often adds compatibility to new Erlang versions on released branches, such as support for OTP 20 in v1.4.5, those releases usually contain the minimum changes for Elixir to run without errors. Only the next minor release, in this case v1.5.0, does effectively leverage the new features provided by the latest Erlang release.
+While Elixir often adds compatibility to new Erlang/OTP versions on released branches, such as support for Erlang/OTP 20 in v1.4.5, those releases usually contain the minimum changes for Elixir to run without errors. Only the next minor release, in this case v1.5.0, does effectively leverage the new features provided by the latest Erlang/OTP release.
 
 ## Deprecations
 
@@ -79,7 +79,7 @@ Deprecated feature                               | Hard-deprecated in | Replaced
 `Atom.to_char_list/1`                            | [v1.5]        | `Atom.to_charlist/1` (v1.3)
 `Enum.filter_map/3`                              | [v1.5]        | `Enum.filter/2` + `Enum.map/2` or [`for`](`Kernel.SpecialForms.for/1`) comprehensions (v1.0)
 `Float.to_char_list/1`                           | [v1.5]        | `Float.to_charlist/1` (v1.3)
-`GenEvent` module                                | [v1.5]        | `Supervisor` and `GenServer` (v1.0);<br/>[`GenStage`](https://hex.pm/packages/gen_stage) (v1.3);<br/>[`:gen_event`](http://www.erlang.org/doc/man/gen_event.html) (OTP 17)
+`GenEvent` module                                | [v1.5]        | `Supervisor` and `GenServer` (v1.0);<br/>[`GenStage`](https://hex.pm/packages/gen_stage) (v1.3);<br/>[`:gen_event`](http://www.erlang.org/doc/man/gen_event.html) (Erlang/OTP 17)
 `Integer.to_char_list/1` and `Integer.to_char_list/2` | [v1.5]   | `Integer.to_charlist/1` and `Integer.to_charlist/2` (v1.3)
 `Kernel.to_char_list/1`                          | [v1.5]        | `Kernel.to_charlist/1` (v1.3)
 `List.Chars.to_char_list/1`                      | [v1.5]        | `List.Chars.to_charlist/1` (v1.3)
@@ -98,8 +98,8 @@ EEx: `<%=` in middle and end expressions         | [v1.5]        | Use `<%` (`<%
 `Access.key/1`                                   | [v1.4]        | `Access.key/2` (v1.3)
 `Behaviour` module                               | [v1.4]        | `@callback` module attribute (v1.0)
 `Enum.uniq/2`                                    | [v1.4]        | `Enum.uniq_by/2` (v1.2)
-`Float.to_char_list/2`                           | [v1.4]        | `:erlang.float_to_list/2` (OTP 17)
-`Float.to_string/2`                              | [v1.4]        | `:erlang.float_to_binary/2` (OTP 17)
+`Float.to_char_list/2`                           | [v1.4]        | `:erlang.float_to_list/2` (Erlang/OTP 17)
+`Float.to_string/2`                              | [v1.4]        | `:erlang.float_to_binary/2` (Erlang/OTP 17)
 `HashDict` module                                | [v1.4]        | `Map` (v1.2)
 `HashSet` module                                 | [v1.4]        | `MapSet` (v1.1)
  Multi-letter aliases in `OptionParser`          | [v1.4]        | Use single-letter aliases (v1.0)

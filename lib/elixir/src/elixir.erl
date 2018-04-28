@@ -117,7 +117,7 @@ parse_otp_release() ->
     {Num, _} when Num >= 19 ->
       Num;
     _ ->
-      io:format(standard_error, "unsupported Erlang version, expected Erlang 19+~n", []),
+      io:format(standard_error, "unsupported Erlang/OTP version, expected Erlang/OTP 19+~n", []),
       erlang:halt(1)
   end.
 

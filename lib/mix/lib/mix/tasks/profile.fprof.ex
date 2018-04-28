@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   the total time spent in the function was 50ms.
 
   For a detailed explanation it's worth reading the analysis in
-  [Erlang documentation for fprof](http://www.erlang.org/doc/man/fprof.html#analysis).
+  [Erlang/OTP documentation for fprof](http://www.erlang.org/doc/man/fprof.html#analysis).
 
   ## Caveats
 
