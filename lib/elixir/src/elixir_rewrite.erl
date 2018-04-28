@@ -4,7 +4,6 @@
 
 %% Convenience variables
 
--define(access, 'Elixir.Access').
 -define(atom, 'Elixir.Atom').
 -define(enum, 'Elixir.Enum').
 -define(function, 'Elixir.Function').
@@ -12,7 +11,6 @@
 -define(io, 'Elixir.IO').
 -define(kernel, 'Elixir.Kernel').
 -define(list, 'Elixir.List').
--define(list_chars, 'Elixir.List.Chars').
 -define(map, 'Elixir.Map').
 -define(node, 'Elixir.Node').
 -define(port, 'Elixir.Port').
