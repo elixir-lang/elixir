@@ -235,7 +235,7 @@ def subtract(a, b) do
 end
 ```
 
-If you don't need a process, then you don't need a process. Use processes only to model runtime properties, never for code organization.
+Use processes only to model runtime properties, never for code organization. And even when you think something could be done in parallel with processes, often it is best to let the callers of your library decide how to paralleiize, rather than impose a certain execution flow in users of your code.
 
 ### Avoid spawning unsupervised processes
 
