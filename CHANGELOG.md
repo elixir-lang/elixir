@@ -345,11 +345,11 @@ This version includes changes that make Elixir fully compatible with Erlang/OTP 
   * [HashDict] The `HashDict` module is deprecated, in favour of the `Map`
   * [HashSet] The `HashDict` module is deprecated, in favour of the `MapSet`  
   * [Kernel] Deprecate support for making private functions overridable. Overridable functions must always be public as they must be contracts
+  * [Kernel] Anonymous functions with no expression after `->`, in favor of using an expression or returning `nil`
   * [Kernel] Warn if variable is used as a function call
   * [OptionParser] Deprecate aliases with multiple letters, such as `-abc`
   * [Set] Deprecation of the `Set` module in favor of `MapSet`
   * [Stream] Deprecate `Stream.uniq/2` in favor of `Stream.uniq_by/2`
-  * Anonymous functions with no expression after `->`, in favor of using an expression or returning `nil`
 
 #### IEx
 
