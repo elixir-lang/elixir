@@ -17,11 +17,11 @@ defmodule Mix.Tasks.Compile.App do
 
   The most commonly used options are:
 
-    * `:extra_applications` - a list of Erlang/Elixir applications
+    * `:extra_applications` - a list of OTP applications
       your application depends on which are not included in `:deps`
       (usually defined in `deps/0` in your `mix.exs`). For example,
       here you can declare a dependency on applications that ship with
-      Erlang or Elixir, like `:crypto` or `:logger`, but anything in
+      Erlang/OTP or Elixir, like `:crypto` or `:logger`, but anything in
       the code path works. Mix guarantees that these applications and
       the rest of your runtime dependencies are started before your
       application starts.

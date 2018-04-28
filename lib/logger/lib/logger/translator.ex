@@ -3,7 +3,7 @@ defmodule Logger.Translator do
   Default translation for Erlang log messages.
 
   Logger allows developers to rewrite log messages provided by
-  Erlang applications into a format more compatible with Elixir
+  OTP applications into a format more compatible with Elixir
   log messages by providing a translator.
 
   A translator is simply a tuple containing a module and a function
@@ -28,7 +28,7 @@ defmodule Logger.Translator do
   and the default messages translated by Logger.
   """
 
-  # The name_or_id checks are required to support old OTP projects.
+  # The name_or_id checks are required to support old Erlang projects.
 
   def translate(min_level, level, kind, message)
 
@@ -372,7 +372,7 @@ defmodule Logger.Translator do
     ["\n** (stop) " | Exception.format_exit(reason)]
   end
 
-  # OTP processes rewrite the :undef error to these reasons when logging
+  # Erlang processes rewrite the :undef error to these reasons when logging
   @gen_undef [:"module could not be loaded", :"function not exported"]
 
   defp format_stop_banner(undef, [{mod, fun, args, _info} | _] = stacktrace)

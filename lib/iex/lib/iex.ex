@@ -112,7 +112,7 @@ defmodule IEx do
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
   on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible, it requires OTP 20+ and
+  While `IEx.break!/4` is more flexible, it requires Erlang/OTP 20+ and
   it does not contain information about imports and aliases from
   the source code.
 
@@ -464,7 +464,7 @@ defmodule IEx do
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
   on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible, it requires OTP 20+ and
+  While `IEx.break!/4` is more flexible, it requires Erlang/OTP 20+ and
   it does not contain information about imports and aliases from
   the source code.
 
@@ -658,7 +658,7 @@ defmodule IEx do
   the process terminates, or invoke `respawn()`, which starts a new IEx
   shell, freeing up the pried one.
 
-  This functionality only works on Elixir code and requires OTP 20+.
+  This functionality only works on Elixir code and requires Erlang/OTP 20+.
 
   ## Examples
 

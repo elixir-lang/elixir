@@ -2074,7 +2074,7 @@ defmodule String do
   By default, the maximum number of atoms is `1_048_576`. This limit
   can be raised or lowered using the VM option `+t`.
 
-  The maximum atom size is of 255 characters. Prior to OTP 20,
+  The maximum atom size is of 255 characters. Prior to Erlang/OTP 20,
   only latin1 characters are allowed.
 
   Inlined by the compiler.
@@ -2093,7 +2093,7 @@ defmodule String do
   @doc """
   Converts a string to an existing atom.
 
-  The maximum atom size is of 255 characters. Prior to OTP 20,
+  The maximum atom size is of 255 characters. Prior to Erlang/OTP 20,
   only latin1 characters are allowed.
 
   Inlined by the compiler.
