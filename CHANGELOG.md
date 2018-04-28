@@ -342,10 +342,13 @@ This version includes changes that make Elixir fully compatible with Erlang/OTP 
   * [Behaviour] The `Behaviour` module is deprecated. Callbacks may now be defined directly via the `@callback` attribute
   * [Enum] Deprecate `Enum.uniq/2` in favor of `Enum.uniq_by/2`
   * [Float] `Float.to_char_list/2` and `Float.to_string/2` are deprecated (use the `:erlang.float_to_list/2` and `:erlang.float_to_binary/2` functions if such conversions are desired)
-  * [Kernel] Deprecate support for making private functions overridable. Overridable functions must always be public as they must be contracts
+  * [HashDict] The `HashDict` module is deprecated, in favour of the `Map`
+  * [HashSet] The `HashDict` module is deprecated, in favour of the `MapSet`  
+  * [Kernel] Deprecate support for making private functions overridable. Overridable functions must always be public as they must be contracts
+  * [Kernel] Anonymous functions with no expression after `->`, in favor of using an expression or returning `nil`
   * [Kernel] Warn if variable is used as a function call
   * [OptionParser] Deprecate aliases with multiple letters, such as `-abc`
-  * [Set] Deprecate the `Set` module
+  * [Set] Deprecation of the `Set` module in favor of `MapSet`
   * [Stream] Deprecate `Stream.uniq/2` in favor of `Stream.uniq_by/2`
 
 #### IEx
