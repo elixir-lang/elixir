@@ -4,15 +4,15 @@ Elixir is versioned according to a vMAJOR.MINOR.PATCH schema.
 
 Elixir is currently at major version v1. A new minor release happens every 6 months. Patch releases are not scheduled and are made whenever there are bug or security fixes.
 
-Elixir applies bug fixes only to the latest minor branch. Security patches are available for the last 5 minor branches:
+Elixir applies bug fixes only to the latest minor branch. Security fixes are available for the last 5 minor branches:
 
 Elixir version | Support
 :------------- | :----------------------
 1.6            | Bug and security fixes
-1.5            | Security patches only
-1.4            | Security patches only
-1.3            | Security patches only
-1.2            | Security patches only
+1.5            | Security fixes only
+1.4            | Security fixes only
+1.3            | Security fixes only
+1.2            | Security fixes only
 
 At the moment, there are no plans for a major v2 release.
 
