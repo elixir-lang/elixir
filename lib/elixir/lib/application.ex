@@ -74,7 +74,7 @@ defmodule Application do
   The `type` argument passed to `start/2` is usually `:normal` unless in a
   distributed setup where application takeovers and failovers are configured.
   Distributed applications is beyond the scope of this documentation. For those
-  interested on the topic, please access the OTP documentation:
+  interested on the topic, please access the Erlang/OTP documentation:
 
     * [`:application` module](http://www.erlang.org/doc/man/application.html)
     * [Applications – OTP Design Principles](http://www.erlang.org/doc/design_principles/applications.html)

@@ -141,7 +141,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   @doc """
-  Ensures the native Erlang application is available.
+  Ensures the native OTP application is available.
   """
   def ensure_application!(app, input) do
     case Application.ensure_all_started(app) do

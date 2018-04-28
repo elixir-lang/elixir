@@ -190,7 +190,7 @@ defmodule System do
     {:ok, v} = Version.parse(version())
 
     revision_string = if v.pre != [] and revision() != "", do: " (#{revision()})", else: ""
-    otp_version_string = " (compiled with OTP #{get_otp_release()})"
+    otp_version_string = " (compiled with Erlang/OTP #{get_otp_release()})"
 
     version() <> revision_string <> otp_version_string
   end
@@ -812,7 +812,7 @@ defmodule System do
   end
 
   @doc """
-  Returns the OTP release number.
+  Returns the Erlang/OTP release number.
   """
   @spec otp_release :: String.t()
   def otp_release do
