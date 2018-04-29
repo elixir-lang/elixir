@@ -698,7 +698,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "clause with defaults should be first" do
-    message = "definitions with multiple clauses and default values require a header"
+    message = "def hello/1 has multiple clauses and also declares default values"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -721,8 +721,8 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample2])
   end
 
-  test "clauses with default should use fun head" do
-    message = "definitions with multiple clauses and default values require a header"
+  test "clauses with default should use header" do
+    message = "def hello/1 has multiple clauses and also declares default values"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""

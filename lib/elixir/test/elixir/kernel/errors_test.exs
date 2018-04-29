@@ -247,17 +247,46 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "clause with defaults" do
+    message = ~r"nofile:3: def hello/1 defines defaults multiple times"
+
     assert_eval_raise CompileError,
-                      ~r"nofile:3: definitions with multiple clauses and default values require a header",
+                      message,
                       ~C'''
-                      defmodule Kernel.ErrorsTest.ClauseWithDefaults1 do
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+                        def hello(_arg \\ 0)
+                        def hello(_arg \\ 1)
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      message,
+                      ~C'''
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
                         def hello(_arg \\ 0), do: nil
                         def hello(_arg \\ 1), do: nil
                       end
                       '''
 
+    assert_eval_raise CompileError,
+                      message,
+                      ~C'''
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+                        def hello(_arg \\ 0)
+                        def hello(_arg \\ 1), do: nil
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      message,
+                      ~C'''
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+                        def hello(_arg \\ 0), do: nil
+                        def hello(_arg \\ 1)
+                      end
+                      '''
+
     assert_eval_raise CompileError, ~r"nofile:2: undefined function foo/0", ~C'''
-    defmodule Kernel.ErrorsTest.ClauseWithDefaults3 do
+    defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
       def hello(foo, bar \\ foo())
       def hello(foo, bar), do: foo + bar
     end
