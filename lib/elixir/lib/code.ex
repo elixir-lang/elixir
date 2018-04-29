@@ -283,6 +283,106 @@ defmodule Code do
   based on the name, this behaviour should be configurable, such as the
   `:locals_without_parens` option.
 
+  ## Running the formatter
+
+  While the formatter attempts to fit the most it can on a single line,
+  in many situations such may not be possible, often causing line breaks
+  to be introduced in the code.
+
+  In some cases, this may lead to undesired formatting and it is often best
+  to adjust the formatted output. To put it in other words: some code generated
+  by the formatter may not be aesthetically pleasing and they require explicit
+  intervention from the developer. That's why we do not recommend to run the
+  formatter blindly in an existing codebase. Instead you should format and
+  sanity check each formatted file.
+
+  Let's see some examples. The code below:
+
+      "this is a very long string ... #{inspect(some_value)}"
+
+  may be formatted as:
+
+      "this is a very long string ... #{
+        inspect(some_value)
+      }"
+
+  This happens because the only place the formatter can introduce a
+  new line without changing the code semantics is in the interpolation.
+  In those scenarios, we recommend developers to directly adjust the
+  code. Here we can use the binary concatenation operator `<>/2`:
+
+      "this is a very long string " <>
+        "... #{inspect(some_value)}"
+
+  The string concatenation makes the code fit on a single line and also
+  gives more options to the formatter.
+
+  A similar example is when the formatter breaks a function definition
+  over multiple clauses:
+
+      def my_function(
+        %User{name: name, age: age, ...},
+        arg1,
+        arg2
+      ) do
+        ...
+      end
+
+  While the code above is completely valid, you may prefer to match on
+  the struct variables inside the function body in order to keep the
+  definition on a single line:
+
+      def my_function(%User{} = user, arg1, arg2) do
+        %{name: name, age: age, ...} = user
+        ...
+      end
+
+  In some situations, you can use the fact the formatter does not generate
+  elegant code as a hint for refactoring. Take this code:
+
+      def board?(board_id, %User{} = user, available_permissions, required_permissions) do
+        Tracker.OrganizationMembers.user_in_organization?(user.id, board.organization_id) and
+          required_permissions == Enum.to_list(MapSet.intersection(MapSet.new(required_permissions), MapSet.new(available_permissions)))
+      end
+
+  The code above has very long lines and running the formatter is not going
+  to address this issue. In fact, the formatter may make it more obvious that
+  you have complex expressions:
+
+      def board?(board_id, %User{} = user, available_permissions, required_permissions) do
+        Tracker.OrganizationMembers.user_in_organization?(user.id, board.organization_id) and
+          required_permissions ==
+            Enum.to_list(
+              MapSet.intersection(
+                MapSet.new(required_permissions),
+                MapSet.new(available_permissions)
+              )
+            )
+      end
+
+  Take such cases as a suggestion that your code should be refactored:
+
+      def board?(board_id, %User{} = user, available_permissions, required_permissions) do
+        Tracker.OrganizationMembers.user_in_organization?(user.id, board.organization_id) and
+          matching_permissions?(required_permissions, available_permissions)
+      end
+
+      defp matching_permissions?(required_permissions, available_permissions) do
+        intersection =
+          required_permissions
+          |> MapSet.new()
+          |> MapSet.intersection(MapSet.new(available_permissions))
+          |> Enum.to_list()
+
+        required_permissions == intersection
+      end
+
+  To sum it up: since the formatter cannot change the semantics of your
+  code, sometimes it is necessary to tweak or refactor the code to get
+  optimal formatting. To help better understand how to control the formatter,
+  we describe in the next sections the cases where the formatter keeps the
+  user encoding and how to control multiline expressions.
+
   ## Keeping user's formatting
 
   The formatter respects the input format in some cases. Those are
@@ -314,53 +414,6 @@ defmodule Code do
   The behaviours above are not guaranteed. We may remove or add new
   rules in the future. The goal of documenting them is to provide better
   understanding on what to expect from the formatter.
-
-  ## Adjusting formatted output
-
-  The formatter attempts to fit the most it can on a single line.
-  When the code does not fit a single line, the formatter introduces
-  line breaks in the code.
-
-  In some rare situations, this may lead to undesired formatting.
-  For example, the code below:
-
-      "this is a very long string ... #{inspect(some_value)}"
-
-  may be formatted as:
-
-      "this is a very long string ... #{
-        inspect(some_value)
-      }"
-
-  This happens because the only place the formatter can introduce a
-  new line without changing the code semantics is in the interpolation.
-  In those scenarios, we recommend developers to directly adjust the
-  code. Here we can use the binary concatenation operator `<>/2`:
-
-      "this is a very long string " <>
-        "... #{inspect(some_value)}"
-
-  The string concatenation makes the code fit on a single line and also
-  gives more options to the formatter.
-
-  A similar example is when the formatter breaks a function definition
-  over multiple clauses:
-
-      def my_function(
-        %User{name: name, age: age, ...},
-        arg1,
-        arg2
-      ) do
-
-  While the code above is completely valid, you may prefer to match on
-  the struct variables inside the function body in order to keep the
-  definition on a single line:
-
-      def my_function(%User{} = user, arg1, arg2) do
-        %{name: name, age: age, ...} = user
-
-  Since the formatter cannot change the semantics of your code,
-  sometimes it is necessary to tweak the code to get optimal formatting.
 
   ### Multi-line lists, maps, tuples, etc
 
@@ -399,7 +452,8 @@ defmodule Code do
 
     1. calls that have do/end blocks
     2. local calls without parens where the name and arity of the local
-       call is also listed under `:locals_without_parens`
+       call is also listed under `:locals_without_parens` (except for
+       calls with arity 0, where the compiler always require parens)
 
   The choice of parens and no parens also affects indentation. When a
   function call with parens doesn't fit on the same line, the formatter
@@ -441,7 +495,7 @@ defmodule Code do
   The formatter also extracts all trailing comments to their previous line.
   For example, the code below
 
-      hello # world
+      hello #world
 
   will be rewritten to
 
