@@ -236,11 +236,11 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
 
   MaxDefaults =
     case ets:lookup(Set, {def, Tuple}) of
-      [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, LastDefaults}}] ->
+      [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, _}}] ->
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
         (Check and StoredCheck) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile),
-        check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
+        check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, HasBody, LastHasBody),
         max(Defaults, StoredDefaults);
       [] ->
         ets:insert(Bag, {defs, Tuple}),
@@ -310,16 +310,17 @@ check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile) -
   end.
 
 % Clause with defaults after clause with defaults
-check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, true, _) when Defaults > 0, StoredDefaults > 0 ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
-% Clause with defaults after clause(s) without defaults
-check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, 0, _, _) when Defaults > 0 ->
-  elixir_errors:form_warn(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
+check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _)
+    when Defaults > 0, StoredDefaults > 0 ->
+  elixir_errors:form_error(Meta, File, ?MODULE, {duplicate_defaults, {Kind, Name, Arity}});
+% Clause with defaults after clause without defaults
+check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, _, _) when Defaults > 0 ->
+  elixir_errors:form_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
 % Clause without defaults directly after clause with defaults (bodiless does not count)
-check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true, true) when LastDefaults > 0 ->
-  elixir_errors:form_warn(Meta, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
+check_valid_defaults(Meta, File, Name, Arity, Kind, 0, StoredDefaults, true, true) when StoredDefaults > 0 ->
+  elixir_errors:form_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
 % Clause without defaults
-check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredDefaults, _LastDefaults, _HasBody, _LastHasBody) ->
+check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredDefaults, _HasBody, _LastHasBody) ->
   ok.
 
 warn_bodiless_function(Check, _Meta, _File, Module, _Kind, _Tuple)
@@ -381,9 +382,25 @@ format_error({defs_with_defaults, Kind, Name, Arity, A}) when Arity < A ->
   io_lib:format("~ts ~ts/~B conflicts with defaults from ~ts/~B",
     [Kind, Name, Arity, Name, A]);
 
-format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
-  io_lib:format(""
-    "definitions with multiple clauses and default values require a header. Instead of:\n"
+format_error({duplicate_defaults, {Kind, Name, Arity}}) ->
+  io_lib:format(
+    "~ts ~ts/~B defines defaults multiple times. "
+    "Elixir allows defaults to be declared once per definition. Instead of:\n"
+    "\n"
+    "    def foo(:first_clause, b \\\\ :default) do ... end\n"
+    "    def foo(:second_clause, b \\\\ :default) do ... end\n"
+    "\n"
+    "one should write:\n"
+    "\n"
+    "    def foo(a, b \\\\ :default)\n"
+    "    def foo(:first_clause, b) do ... end\n"
+    "    def foo(:second_clause, b) do ... end\n",
+    [Kind, Name, Arity]);
+
+format_error({mixed_defaults, {Kind, Name, Arity}}) ->
+  io_lib:format(
+    "~ts ~ts/~B has multiple clauses and also declares default values. "
+    "In such cases, the default values should be defined in a header. Instead of:\n"
     "\n"
     "    def foo(:first_clause, b \\\\ :default) do ... end\n"
     "    def foo(:second_clause, b) do ... end\n"
@@ -392,9 +409,8 @@ format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
     "\n"
     "    def foo(a, b \\\\ :default)\n"
     "    def foo(:first_clause, b) do ... end\n"
-    "    def foo(:second_clause, b) do ... end\n"
-    "\n"
-   "~ts ~ts/~B has multiple clauses and defines defaults in one or more clauses", [Kind, Name, Arity]);
+    "    def foo(:second_clause, b) do ... end\n",
+    [Kind, Name, Arity]);
 
 format_error({ungrouped_clause, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
   io_lib:format("clauses for the same ~ts should be grouped together, ~ts ~ts/~B was previously defined (~ts:~B)",
