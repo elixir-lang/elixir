@@ -21,7 +21,7 @@ defmodule ExUnit.Case do
       Defaults to `false`.
 
   This module automatically includes all callbacks defined in
-  `ExUnit.Callbacks`. See that module for more information on `setup`,
+  `ExUnit.Callbacks`. See [that module](`ExUnit.Callbacks`) for more information on `setup`,
   `start_supervised`, `on_exit` and the test process lifecycle.
 
   For grouping tests together, see `describe/2` in this module.
@@ -150,7 +150,7 @@ defmodule ExUnit.Case do
 
   The following tags customize how tests behave:
 
-    * `:capture_log` - see the "Log Capture" section below
+    * `:capture_log` - see the ["Log Capture" section](#module-log-capture) below
     * `:skip` - skips the test with the given reason
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000)
 

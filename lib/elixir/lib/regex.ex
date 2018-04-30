@@ -17,7 +17,7 @@ defmodule Regex do
 
   Regular expressions created via sigils are pre-compiled and stored
   in the `.beam` file. Notice this may be a problem if you are precompiling
-  Elixir, see the "Precompilation" section for more information.
+  Elixir, see the ["Precompilation" section](#module-precompilation) for more information.
 
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.

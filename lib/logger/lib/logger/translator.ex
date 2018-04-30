@@ -24,7 +24,7 @@ defmodule Logger.Translator do
     * `:skip` - if the message is not meant to be translated nor logged
     * `:none` - if there is no translation, which triggers the next translator
 
-  See the function `translate/4` in this module for an example implementation
+  See `translate/4` in this module for an example implementation
   and the default messages translated by Logger.
   """
 

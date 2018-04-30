@@ -60,8 +60,8 @@ defmodule Mix.Tasks.Compile.App do
       module.
 
     * `:start_phases` - specifies a list of phases and their arguments
-      to be called after the application is started. See the "Phases"
-      section below.
+      to be called after the application is started. See the ["Phases"
+      section](#module-phases) below.
 
     * `:included_applications` - specifies a list of applications
       that will be included in the application. It is the responsibility of

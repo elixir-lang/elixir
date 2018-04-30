@@ -2375,7 +2375,7 @@ defmodule Kernel do
       get_and_update_in(opts, [:foo, :bar], &{&1, &1 + 1})
 
   Note that in order for this macro to work, the complete path must always
-  be visible by this macro. See the Paths section below.
+  be visible by this macro. See the ["Paths" section](#module-paths) below.
 
   ## Examples
 
@@ -4310,7 +4310,7 @@ defmodule Kernel do
 
   It is possible to implement protocols for all Elixir types:
 
-    * Structs (see below)
+    * Structs ([see below](#defprotocol/2-protocols-and-structs))
     * `Tuple`
     * `Atom`
     * `List`
@@ -4322,7 +4322,7 @@ defmodule Kernel do
     * `Map`
     * `Port`
     * `Reference`
-    * `Any` (see below)
+    * `Any` ([see below](#defprotocol/2-fallback-to-any))
 
   ## Protocols and Structs
 

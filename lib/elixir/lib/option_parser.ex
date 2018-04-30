@@ -20,7 +20,7 @@ defmodule OptionParser do
     * `parsed` is a keyword list of parsed switches with `{switch_name, value}`
       tuples in it; `switch_name` is the atom representing the switch name while
       `value` is the value for that switch parsed according to `opts` (see the
-      "Examples" section for more information)
+      ["Examples" section](#parse/2-examples) for more information)
     * `args` is a list of the remaining arguments in `argv` as strings
     * `invalid` is a list of invalid options as `{option_name, value}` where
       `option_name` is the raw option and `value` is `nil` if the option wasn't
@@ -50,9 +50,9 @@ defmodule OptionParser do
 
   The following options are supported:
 
-    * `:switches` or `:strict` - see the "Switch definitions" section below
-    * `:allow_nonexistent_atoms` - see the "Parsing unknown switches" section below
-    * `:aliases` - see the "Aliases" section below
+    * `:switches` or `:strict` - see the ["Switch definitions" section](#module-switch-definitions) below
+    * `:allow_nonexistent_atoms` - see the ["Parsing unknown switches" section](#module-parsing-unknown-switches) below
+    * `:aliases` - see the ["Aliases" section](#module-aliases) below
 
   ## Switch definitions
 
@@ -65,7 +65,7 @@ defmodule OptionParser do
 
   Both these options accept a keyword list of `{name, type}` tuples where `name`
   is an atom defining the name of the switch and `type` is an atom that
-  specifies the type for the value of this switch (see the "Types" section below
+  specifies the type for the value of this switch (see the ["Types" section](#module-types) below
   for the possible types and more information about type casting).
 
   Note that you should only supply the `:switches` or the`:strict` option.
@@ -78,7 +78,7 @@ defmodule OptionParser do
   The following switches types take no arguments:
 
     * `:boolean` - sets the value to `true` when given (see also the
-      "Negation switches" section below)
+      ["Negation switches" section](#module-negation_switches) below)
     * `:count` - counts the number of times the switch is given
 
   The following switches take one argument:

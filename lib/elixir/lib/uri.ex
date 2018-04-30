@@ -376,7 +376,7 @@ defmodule URI do
   Parses a well-formed URI reference into its components.
 
   Note this function expects a well-formed URI and does not perform
-  any validation. See the "Examples" section below for examples of how
+  any validation. See the ["Examples" section](#parse/1-examples) below for examples of how
   `URI.parse/1` can be used to parse a wide range of URIs.
 
   This function uses the parsing regular expression as defined
