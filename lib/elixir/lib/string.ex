@@ -1907,17 +1907,29 @@ defmodule String do
       true
 
   """
-  @spec starts_with?(t, t | [t]) :: boolean
-  def starts_with?(string, []) when is_binary(string) do
-    false
+  @spec starts_with?(t, pattern) :: boolean
+  def starts_with?(string, prefix) when is_binary(string) and is_binary(prefix) do
+    starts_with_string?(string, byte_size(string), prefix)
   end
 
   def starts_with?(string, prefix) when is_binary(string) and is_list(prefix) do
-    "" in prefix or Kernel.match?({0, _}, :binary.match(string, prefix))
+    string_size = byte_size(string)
+    Enum.any?(prefix, &starts_with_string?(string, string_size, &1))
   end
 
   def starts_with?(string, prefix) when is_binary(string) do
-    "" == prefix or Kernel.match?({0, _}, :binary.match(string, prefix))
+    Kernel.match?({0, _}, :binary.match(string, prefix))
+  end
+
+  @compile {:inline, starts_with_string?: 3}
+  defp starts_with_string?(string, string_size, prefix) when is_binary(prefix) do
+    prefix_size = byte_size(prefix)
+
+    if prefix_size <= string_size do
+      prefix == binary_part(string, 0, prefix_size)
+    else
+      false
+    end
   end
 
   @doc """
