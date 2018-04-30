@@ -400,6 +400,10 @@ format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
     "\n"
    "~ts ~ts/~B has multiple clauses and defines defaults in one or more clauses", [Kind, Name, Arity]);
 
+format_error({grouped_clause, {Kind, Name, _OtherArity, OrigLine, OrigFile}}) ->
+   io_lib:format("clauses with the same name should be grouped together, ~ts ~ts was previously defined (~ts:~B)",
+     [Kind, Name, OrigFile, OrigLine]);
+
 format_error({ungrouped_clause, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
   io_lib:format("clauses for the same ~ts should be grouped together, ~ts ~ts/~B was previously defined (~ts:~B)",
     [Kind, Kind, Name, Arity, OrigFile, OrigLine]);

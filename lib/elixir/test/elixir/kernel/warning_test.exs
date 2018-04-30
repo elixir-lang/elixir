@@ -960,7 +960,7 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample1.Atom])
   end
 
-  test "overridden def just name" do
+  test "overridden def name" do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule Sample do
