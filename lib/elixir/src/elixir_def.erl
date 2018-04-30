@@ -301,8 +301,12 @@ check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind) ->
 
 check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile) ->
   case ets:lookup_element(Set, ?last_def, 2) of
-    {Name, Arity} -> ok;
     none -> ok;
+    {Name, Arity} -> ok;
+    {Name, OtherArity} ->
+      Relative = elixir_utils:relative_to_cwd(StoredFile),
+      elixir_errors:form_warn(Meta, File, ?MODULE,
+        {grouped_clause, {Kind, Name, OtherArity, ?line(StoredMeta), Relative}});
     _ ->
       Relative = elixir_utils:relative_to_cwd(StoredFile),
       elixir_errors:form_warn(Meta, File, ?MODULE,
