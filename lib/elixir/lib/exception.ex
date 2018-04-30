@@ -92,7 +92,7 @@ defmodule Exception do
   @spec normalize(:error, any, stacktrace) :: t
   @spec normalize(non_error_kind, payload, stacktrace) :: payload when payload: var
 
-  @deprecated "Use normalize/3 instead"
+  @deprecated "Use normalize/3 with an explicit stacktrace instead"
   def normalize(kind, payload, stacktrace \\ nil)
 
   def normalize(:error, exception, stacktrace) do
@@ -151,7 +151,7 @@ defmodule Exception do
   """
   @spec format(kind, any, stacktrace | nil) :: String.t()
 
-  @deprecated "Use format/3 instead"
+  @deprecated "Use format/3 with an explicit stacktrace instead"
   def format(kind, payload, stacktrace \\ nil)
 
   def format({:EXIT, _} = kind, any, _) do
