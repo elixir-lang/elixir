@@ -236,11 +236,11 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
 
   MaxDefaults =
     case ets:lookup(Set, {def, Tuple}) of
-      [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, _}}] ->
+      [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, LastDefaults}}] ->
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
         (Check and StoredCheck) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile),
-        check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, HasBody, LastHasBody),
+        check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
         max(Defaults, StoredDefaults);
       [] ->
         ets:insert(Bag, {defs, Tuple}),
@@ -310,17 +310,17 @@ check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile) -
   end.
 
 % Clause with defaults after clause with defaults
-check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _)
+check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _, _)
     when Defaults > 0, StoredDefaults > 0 ->
   elixir_errors:form_error(Meta, File, ?MODULE, {duplicate_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause without defaults
-check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, _, _) when Defaults > 0 ->
+check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, _, _, _) when Defaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
 % Clause without defaults directly after clause with defaults (bodiless does not count)
-check_valid_defaults(Meta, File, Name, Arity, Kind, 0, StoredDefaults, true, true) when StoredDefaults > 0 ->
+check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true, true) when LastDefaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
 % Clause without defaults
-check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredDefaults, _HasBody, _LastHasBody) ->
+check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredDefaults, _LastDefaults, _HasBody, _LastHasBody) ->
   ok.
 
 warn_bodiless_function(Check, _Meta, _File, Module, _Kind, _Tuple)
