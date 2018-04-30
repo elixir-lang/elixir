@@ -91,7 +91,6 @@ defmodule Exception do
   """
   @spec normalize(:error, any, stacktrace) :: t
   @spec normalize(non_error_kind, payload, stacktrace) :: payload when payload: var
-
   @deprecated "Use normalize/3 with an explicit stacktrace instead"
   def normalize(kind, payload, stacktrace \\ nil)
 
@@ -150,7 +149,6 @@ defmodule Exception do
   (as they are retrieved as messages without stacktraces).
   """
   @spec format(kind, any, stacktrace | nil) :: String.t()
-
   @deprecated "Use format/3 with an explicit stacktrace instead"
   def format(kind, payload, stacktrace \\ nil)
 
