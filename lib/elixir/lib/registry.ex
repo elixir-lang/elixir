@@ -407,7 +407,7 @@ defmodule Registry do
   given as an option, the dispatching happens in parallel. In both cases,
   the callback is only invoked if there are entries for that partition.
 
-  See the module documentation for examples of using the `dispatch/3`
+  See the [module documentation](Registry) for examples of using the `dispatch/3`
   function for building custom dispatching or a pubsub system.
   """
   @since "1.4.0"

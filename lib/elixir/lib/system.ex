@@ -552,7 +552,7 @@ defmodule System do
   ports guarantee stdin/stdout devices will be closed but it does not
   automatically terminate the program. The documentation for the
   `Port` module describes this problem and possible solutions under
-  the "Zombie processes" section.
+  the ["Zombie processes" section](#module-zombie-processes).
 
   ## Examples
 

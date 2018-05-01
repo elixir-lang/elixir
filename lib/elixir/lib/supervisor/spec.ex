@@ -59,10 +59,10 @@ defmodule Supervisor.Spec do
     * `:function` - the function to invoke on the child to start it
 
     * `:restart` - an atom that defines when a terminated child process should
-      be restarted (see the "Restart values" section below)
+      be restarted (see the ["Restart values" section](#module-restart-values) below)
 
     * `:shutdown` - an atom that defines how a child process should be
-      terminated (see the "Shutdown values" section below)
+      terminated (see the ["Shutdown values" section](#module-shutdown-values) below)
 
     * `:modules` - it should be a list with one element `[module]`,
       where module is the name of the callback module only if the
@@ -186,7 +186,8 @@ defmodule Supervisor.Spec do
     raise ArgumentError,
           "invalid tuple specification given to supervise/2. If you are trying to use " <>
             "the map child specification that is part of the Elixir v1.5, use Supervisor.init/2 " <>
-            "instead of Supervisor.Spec.supervise/2. See the Supervisor module for more information. " <>
+            "instead of Supervisor.Spec.supervise/2. See the documentation for the Supervisor " <>
+            "module for more information. " <>
             "Got: #{inspect(other)}"
   end
 

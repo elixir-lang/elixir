@@ -60,7 +60,7 @@ For reference, the following is a comprehensive list of all expressions allowed 
     * [`bsr/2`](`Bitwise.bsr/2`) or the [`>>>`](`Bitwise.>>>/2`) operator
     * [`bxor/2`](`Bitwise.bxor/2`) or the [`^^^`](`Bitwise.^^^/2`) operator
 
-Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. See the section "Defining custom guard expressions" below.
+Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. See the ["Defining custom guard expressions" section](#defining-custom-guard-expressions) below.
 
 ## Why guards
 

@@ -772,7 +772,7 @@ defmodule Kernel.SpecialForms do
       inside another quote and want to control what quote is able to unquote.
 
     * `:location` - when set to `:keep`, keeps the current line and file from
-      quote. Read the Stacktrace information section below for more
+      quote. Read the ["Stacktrace information" section](#module-stacktrace-information) below for more
       information.
 
     * `:line` - sets the quoted expressions to have the given line.

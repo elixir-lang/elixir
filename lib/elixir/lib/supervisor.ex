@@ -159,11 +159,11 @@ defmodule Supervisor do
       to start the child process. This key is required.
 
     * `:restart` - an atom that defines when a terminated child process
-       should be restarted (see the "Restart values" section below).
+       should be restarted (see the ["Restart values" section](#module-restart-values) below).
        This key is optional and defaults to `:permanent`.
 
     * `:shutdown` - an atom that defines how a child process should be
-      terminated (see the "Shutdown values" section below). This key
+      terminated (see the ["Shutdown values" section](#module-shutdown-values) below). This key
       is optional and defaults to `5000` if the type is `:worker` or
       `:infinity` if the type is `:supervisor`.
 
@@ -220,7 +220,7 @@ defmodule Supervisor do
       `:normal`, `:shutdown`, or `{:shutdown, term}`.
 
   For a more complete understanding of the exit reasons and their
-  impact, see the "Exit reasons and restarts" section.
+  impact, see the ["Exit reasons and restarts" section](#module-exit-reasons-and-restarts).
 
   ## child_spec/1
 
@@ -408,7 +408,7 @@ defmodule Supervisor do
   be either:
 
     * a map representing the child specification itself - as outlined in the
-      "Child specification" section
+      ["Child specification" section](#module-child-specification)
     * a tuple with a module as first element and the start argument as second -
       such as `{Stack, [:hello]}`. In this case, `Stack.child_spec([:hello])`
       is called to retrieve the child specification
@@ -419,7 +419,7 @@ defmodule Supervisor do
 
     * `:strategy` - the restart strategy option. It can be either
       `:one_for_one`, `:rest_for_one` or `:one_for_all`. Required.
-      See the "Strategies" section.
+      See the ["Strategies" section](#module-strategies).
 
     * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
@@ -447,7 +447,7 @@ defmodule Supervisor do
       the child processes, i.e., the child processes after the terminated
       one in start order, are terminated. Then the terminated child
       process and the rest of the child processes are restarted.
-      
+
   In the above, process termination refers to unsuccessful termination, which
   is determined by the `:restart` option.
 
@@ -584,8 +584,8 @@ defmodule Supervisor do
   Receives a list of children to initialize and a set of options.
 
   This is typically invoked at the end of the `c:init/1` callback of
-  module-based supervisors. See the sections "Module-based supervisors"
-  and "start_link/2, init/2 and strategies" in the module
+  module-based supervisors. See the sections ["Module-based supervisors"](#module-module-based-supervisors)
+  and ["start_link/2, init/2 and strategies"](#module-start_link-2-init-2-and-strategies) in the module
   documentation for more information.
 
   This function returns a tuple containing the supervisor
@@ -720,7 +720,7 @@ defmodule Supervisor do
   are directly applied on the child spec. If `config` has keys that
   do not map to any child specification field, an error is raised.
 
-  See the "Child specification" section in the module documentation
+  See the ["Child specification" section](#module-child-specification) in the module documentation
   for all of the available keys for overriding.
 
   ## Examples

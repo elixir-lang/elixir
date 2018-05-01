@@ -1246,7 +1246,7 @@ defmodule String do
   The `pattern` may be a string or a regular expression.
 
   By default it replaces all occurrences but this behaviour can be controlled
-  through the `:global` option; see the "Options" section below.
+  through the `:global` option; see the options below.
 
   ## Options
 

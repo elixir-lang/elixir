@@ -18,14 +18,14 @@ defmodule Module do
   ### `@after_compile`
 
   A hook that will be invoked right after the current module is compiled.
-  Accepts a module or a `{module, function_name}`. See the "Compile callbacks"
-  section below.
+  Accepts a module or a `{module, function_name}`. See the ["Compile callbacks"
+  section](#module-compile-callbacks) below.
 
   ### `@before_compile`
 
   A hook that will be invoked before the module is compiled.
   Accepts a module or a `{module, function_or_macro_name}` tuple.
-  See the "Compile callbacks" section below.
+  See the ["Compile callbacks" section](#module-compile-callbacks) below.
 
   ### `@behaviour` (notice the British spelling)
 
@@ -107,7 +107,7 @@ defmodule Module do
       end
 
   Multiple uses of `@compile` will accumulate instead of overriding
-  previous ones. See the "Compile options" section below.
+  previous ones. See the ["Compile options" section](#module-compile-options) below.
 
   ### `@deprecated`
 
@@ -222,7 +222,7 @@ defmodule Module do
   module is defined. Useful when annotating functions.
 
   Accepts a module or a `{module, function_name}` tuple. See the
-  "Compile callbacks" section below.
+  ["Compile callbacks" section](#module-compile-callbacks) below.
 
   ### `@on_load`
 
