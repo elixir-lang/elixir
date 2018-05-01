@@ -129,14 +129,18 @@ defmodule Kernel do
   Elixir documentation also includes supporting documents under the
   "Pages" section. Those are:
 
-    * [Deprecations](deprecations.html) - lists all deprecated functions,
+    * [Compatibility and Deprecations](compatibility-and-deprecations.html) - lists compatibility
+      between every Elixir version and Erlang/OTP, release schema; lists all deprecated functions,
       when they were deprecated and alternatives
     * [Guards](guards.html) - lists all available guards and extensions
+    * [Library Guidelines](library-guidelines.html) - general guidelines, anti-patterns, and rules
+      for those writing libraries
     * [Naming Conventions](naming-conventions.html) - naming conventions
       for Elixir code
     * [Operators](operators.html) - lists all Elixir operators and their
       precedence
     * [Syntax Reference](syntax-reference.html) - the language syntax reference
+    * [Typespecs](typespecs.html)- types and function specifications, including list of types
     * [Unicode Syntax](unicode-syntax.html) - outline Elixir support for Unicode
     * [Writing Documentation](writing-documentation.html) - guidelines for
       writing documentation in Elixir.
