@@ -456,8 +456,8 @@ defmodule String do
   @doc """
   Returns an enumerable that splits a string on demand.
 
-  This is in contrast to `split/3` which splits all
-  the string upfront.
+  This is in contrast to `split/3` which splits the
+  entire string upfront.
 
   Note splitter does not support regular expressions
   (as it is often more efficient to have the regular
