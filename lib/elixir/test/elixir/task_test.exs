@@ -323,6 +323,19 @@ defmodule TaskTest do
       assert Task.yield_many([task1, task2, task3], 0) ==
                [{task1, {:ok, :result}}, {task2, nil}, {task3, {:exit, :normal}}]
     end
+
+    test "returns results on infinity timeout" do
+      task1 = %Task{ref: make_ref(), owner: self()}
+      task2 = %Task{ref: make_ref(), owner: self()}
+      task3 = %Task{ref: make_ref(), owner: self()}
+
+      send(self(), {task1.ref, :result})
+      send(self(), {task2.ref, :result})
+      send(self(), {:DOWN, task3.ref, :process, self(), :normal})
+
+      assert Task.yield_many([task1, task2, task3], :infinity) ==
+               [{task1, {:ok, :result}}, {task2, {:ok, :result}}, {task3, {:exit, :normal}}]
+    end
   end
 
   describe "shutdown/2" do
