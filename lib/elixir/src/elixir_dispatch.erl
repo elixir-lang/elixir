@@ -327,6 +327,13 @@ elixir_imported_macros() ->
     error:undef -> []
   end.
 
+%% Inline common cases.
+check_deprecation(Meta, ?kernel, to_char_list, 1, E) ->
+  elixir_errors:warn(?line(Meta), ?key(E, file), "Use Kernel.to_charlist/1");
+check_deprecation(_, ?kernel, _, _, _) ->
+  ok;
+check_deprecation(_, erlang, _, _, _) ->
+  ok;
 check_deprecation(Meta, Receiver, Name, Arity, E) ->
   case (get(elixir_compiler_dest) == undefined) andalso is_module_loaded(Receiver) andalso
         erlang:function_exported(Receiver, '__info__', 1) andalso get_deprecations(Receiver) of
