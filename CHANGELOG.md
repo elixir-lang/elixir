@@ -10,12 +10,15 @@
   * [Calendar] Add `months_in_year/1` callback
   * [Code] Add `Code.compile_file/2` that compiles files without leaving footprints on the system
   * [Date] Add `months_in_year/1` function
+  * [DynamicSupervisor] Use the name of the `DynamicSupervisor` as the ID whenever possible
   * [Function] Add `Function` module with `capture/3`, `info/1` and `info/2` functions
   * [IO.ANSI] Add cursor movement to `IO.ANSI`
   * [Kernel] Introduce `__STACKTRACE__` to retrieve the current stacktrace inside `catch`/`rescue` (this will be a requirement for Erlang/OTP 21+)
   * [Kernel] Raise on unsafe variables in order to allow us to better track unused variables
+  * [Kernel] Warn when using `length` to check if a list is not empty on guards
   * [Macro] Add `Macro.special_form?/2` and `Macro.operator?/2` that returns true if the given name/arity is a special form or operator respectively
   * [Macro.Env] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
+  * [Regex] Include endianness in the regex version. This allows regexes to be recompiled when an archive is installed in a system with a different endianness
   * [Registry] Add `Registry.count/1` and `Registry.count_match/4`
   * [System] Use ISO 8601 in `System.build_info/0`
 
@@ -23,6 +26,7 @@
 
   * [ExUnit.Assertion] Print the arguments in error reports when asserting on a function call. For example, if `assert is_list(arg)` fails, the argument will be shown in the report
   * [ExUnit.Formatter] Excluded tests, via the `--exclude` and `--only` flags, are now shown as "Excluded" in reports. Tests skipped via `@tag :skip` are now exclusively shown as "Skipped" and in yellow
+  * [ExUnit.DocTest] Show colored diffs on failed doctests
 
 #### IEx
 
@@ -35,6 +39,7 @@
 #### Mix
 
   * [mix compile] Improve support for external build tools such as `rebar`
+  * [mix local] Use ipv6 with auto fallback to ipv4 when downloading data
   * [mix profile] Allow all profiling tasks to run programatically
   * [mix test] Add `--failed` option that only runs previously failed tests
   * [Mix.Project] Add `Mix.Project.clear_deps_cache/0`
@@ -57,6 +62,7 @@
   * [Code] Deprecate `Code.load_file/2` in favor of `Code.compile_file/2`
   * [Code] Deprecate `Code.loaded_files/0` in favor of `Code.required_files/0`
   * [Code] Deprecate `Code.unload_files/1` in favor of `Code.unrequire_files/1`
+  * [Exception] Deprecate `Exception.normalize/2` and `Exception.format/2` as a stacktrace is now explicitly required
 
 ### 4. Hard-deprecations
 
