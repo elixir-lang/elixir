@@ -9,6 +9,7 @@ defmodule ProtocolTest do
     defprotocol Sample do
       @type t :: any
       @doc "Ok"
+      @deprecated "Reason"
       @spec ok(t) :: boolean
       def ok(term)
     end
@@ -104,7 +105,8 @@ defmodule ProtocolTest do
     message = "protocol ProtocolTest.Sample not implemented for :foo"
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      Sample.ok(:foo)
+      sample = Sample
+      sample.ok(:foo)
     end
   end
 
@@ -270,6 +272,7 @@ defmodule Protocol.ConsolidationTest do
     defprotocol Sample do
       @type t :: any
       @doc "Ok"
+      @deprecated "Reason"
       @spec ok(t) :: boolean
       def ok(term)
     end
@@ -430,7 +433,8 @@ defmodule Protocol.ConsolidationTest do
         "This protocol is implemented for: Protocol.ConsolidationTest.ImplStruct"
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      Sample.ok(:foo)
+      sample = Sample
+      sample.ok(:foo)
     end
   end
 
