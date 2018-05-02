@@ -123,6 +123,20 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
+## v1.6.5
+
+### 1. Bug fixes
+
+  * [Code] Preserve the user's choice in the formatter on parens call with next break fits
+  * [Code] Preserve the user's choice in the formatter on calls without parens when we have one argument per line
+  * [Code] Fix formatting when there is a tilde in the first element of a bitstring
+  * [Kernel] Support specsdiff flag on `__info__` spec clauses
+  * [Kernel] Do not exclude hygienic vars in `defguard`
+  * [Kernel.SpecialForms] Mark `for` comprehensions as generated to avoid dialyzer warnings
+  * [Macro] Make sure `Macro.to_string/2` emits valid quoted expressions
+  * [Task] Support `:infinity` timeout on `Task.yield_many/2`
+  * [Task.Supervisor] Do not crash spawning supervised tasks when the parent process is dead
+
 ## v1.6.4 (2018-03-16)
 
 ### 1. Bug fixes
