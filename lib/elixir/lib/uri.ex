@@ -128,7 +128,7 @@ defmodule URI do
       %{"percent" => "oh yes!", "starting" => "map"}
 
   """
-  @spec decode_query(binary, map) :: map
+  @spec decode_query(binary, %{binary => binary}) :: %{binary => binary}
   def decode_query(query, map \\ %{})
 
   # TODO: Remove on 2.0
