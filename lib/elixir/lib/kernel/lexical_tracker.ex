@@ -23,14 +23,6 @@ defmodule Kernel.LexicalTracker do
     :gen_server.call(to_pid(arg), :remote_dispatches, @timeout)
   end
 
-  @doc """
-  Gets the destination the lexical scope is meant to
-  compile to.
-  """
-  def dest(arg) do
-    :gen_server.call(to_pid(arg), :dest, @timeout)
-  end
-
   defp to_pid(pid) when is_pid(pid), do: pid
 
   defp to_pid(mod) when is_atom(mod) do
@@ -42,8 +34,8 @@ defmodule Kernel.LexicalTracker do
 
   # Starts the tracker and returns its PID.
   @doc false
-  def start_link(dest) do
-    :gen_server.start_link(__MODULE__, dest, [])
+  def start_link() do
+    :gen_server.start_link(__MODULE__, :ok, [])
   end
 
   @doc false
@@ -124,14 +116,13 @@ defmodule Kernel.LexicalTracker do
 
   # Callbacks
 
-  def init(dest) do
+  def init(:ok) do
     state = %{
       directives: %{},
       references: %{},
       compile: %{},
       runtime: %{},
       structs: %{},
-      dest: dest,
       cache: %{},
       file: nil
     }
@@ -156,10 +147,6 @@ defmodule Kernel.LexicalTracker do
 
   def handle_call(:remote_dispatches, _from, state) do
     {:reply, {state.compile, state.runtime}, state}
-  end
-
-  def handle_call(:dest, _from, state) do
-    {:reply, state.dest, state}
   end
 
   def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do

@@ -6,12 +6,8 @@ defmodule Kernel.LexicalTrackerTest do
   alias Kernel.LexicalTracker, as: D
 
   setup do
-    {:ok, pid} = D.start_link("dest")
+    {:ok, pid} = D.start_link()
     {:ok, [pid: pid]}
-  end
-
-  test "gets the destination", config do
-    assert D.dest(config[:pid]) == "dest"
   end
 
   test "can add remote references", config do
