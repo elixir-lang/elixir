@@ -662,7 +662,11 @@ defmodule Task do
   @spec yield_many([t], timeout) :: [{t, {:ok, term} | {:exit, term} | nil}]
   def yield_many(tasks, timeout \\ 5000) do
     timeout_ref = make_ref()
-    timer_ref = Process.send_after(self(), timeout_ref, timeout)
+
+    timer_ref =
+      if timeout != :infinity do
+        Process.send_after(self(), timeout_ref, timeout)
+      end
 
     try do
       yield_many(tasks, timeout_ref, :infinity)
@@ -670,7 +674,7 @@ defmodule Task do
       {:noconnection, reason} ->
         exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
     after
-      Process.cancel_timer(timer_ref)
+      timer_ref && Process.cancel_timer(timer_ref)
       receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
     end
   end
