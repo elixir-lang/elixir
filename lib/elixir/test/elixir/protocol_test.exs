@@ -9,7 +9,6 @@ defmodule ProtocolTest do
     defprotocol Sample do
       @type t :: any
       @doc "Ok"
-      @deprecated "Reason"
       @spec ok(t) :: boolean
       def ok(term)
     end
@@ -125,7 +124,7 @@ defmodule ProtocolTest do
     docs = Code.get_docs(SampleDocsProto, :docs)
     assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = List.keyfind(docs, {:ok, 1}, 0)
 
-    deprecated = Sample.__info__(:deprecated)
+    deprecated = SampleDocsProto.__info__(:deprecated)
     assert [{{:ok, 1}, "Reason"}] = deprecated
   end
 
@@ -271,7 +270,6 @@ defmodule Protocol.ConsolidationTest do
     defprotocol Sample do
       @type t :: any
       @doc "Ok"
-      @deprecated "Reason"
       @spec ok(t) :: boolean
       def ok(term)
     end

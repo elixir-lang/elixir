@@ -298,6 +298,7 @@ defmodule Map do
   end
 
   @doc false
+  @deprecated "Use Map.fetch/2 + Map.put/3"
   def replace(map, key, value) do
     case map do
       %{^key => _value} ->
@@ -897,8 +898,7 @@ defmodule Map do
 
   @doc false
   # TODO: Remove on 2.0
-  # Inlined by the compiler.
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Kernel.map_size/1"
   def size(map) do
     map_size(map)
   end

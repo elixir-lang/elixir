@@ -518,7 +518,7 @@ defmodule Task do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Instead pattern match on the message directly"
   def find(tasks, {ref, reply}) when is_reference(ref) do
     Enum.find_value(tasks, fn
       %Task{ref: ^ref} = task ->
