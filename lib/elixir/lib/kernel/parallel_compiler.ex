@@ -18,11 +18,13 @@ defmodule Kernel.ParallelCompiler do
   def async(fun) when is_function(fun) do
     if parent = :erlang.get(:elixir_compiler_pid) do
       file = :erlang.get(:elixir_compiler_file)
+      dest = :erlang.get(:elixir_compiler_dest)
       {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
 
       Task.async(fn ->
         :erlang.put(:elixir_compiler_pid, parent)
         :erlang.put(:elixir_compiler_file, file)
+        dest != :undefined and :erlang.put(:elixir_compiler_dest, dest)
         :erlang.process_flag(:error_handler, error_handler)
         fun.()
       end)
@@ -124,7 +126,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp spawn_workers(files, output, options) do
-    true = Code.ensure_loaded?(Kernel.ErrorHandler)
+    {:module, _} = :code.ensure_loaded(Kernel.ErrorHandler)
     compiler_pid = self()
     :elixir_code_server.cast({:reset_warnings, compiler_pid})
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
@@ -195,11 +197,13 @@ defmodule Kernel.ParallelCompiler do
               case output do
                 {:compile, path} ->
                   :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-                  :elixir_compiler.file_to_path(file, path)
+                  :erlang.put(:elixir_compiler_dest, path)
+                  :elixir_compiler.file_to_path(Path.expand(file), path)
 
                 :compile ->
                   :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-                  :elixir_compiler.file(file, dest)
+                  :erlang.put(:elixir_compiler_dest, dest)
+                  Code.compile_file(file)
 
                 :require ->
                   Code.require_file(file)

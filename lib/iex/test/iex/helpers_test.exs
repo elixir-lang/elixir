@@ -978,7 +978,8 @@ defmodule IEx.HelpersTest do
                  assert_raise UndefinedFunctionError, message, fn ->
                    Sample.run()
                  end
-               end) =~ "redefining module Sample (current version loaded from Elixir.Sample.beam)"
+               end) =~
+                 "redefining module Sample (current version loaded from ./Elixir.Sample.beam)"
       end)
     after
       # Clean up old version produced by the r helper

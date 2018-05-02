@@ -58,7 +58,7 @@ compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
 
   case ?key(LexEnv, lexical_tracker) of
     nil ->
-      elixir_lexical:run(?key(LexEnv, file), nil, fun(Pid) ->
+      elixir_lexical:run(?key(LexEnv, file), fun(Pid) ->
         compile(Line, Module, Block, Vars, LexEnv#{lexical_tracker := Pid})
       end);
     _ ->
@@ -356,12 +356,12 @@ autoload_module(Module, Binary, Opts, E) ->
     false -> ok
   end.
 
-beam_location(#{lexical_tracker := Pid, module := Module}) ->
-  case elixir_lexical:dest(Pid) of
-    nil -> "";
-    Dest ->
-      filename:join(elixir_utils:characters_to_list(Dest),
-                    atom_to_list(Module) ++ ".beam")
+beam_location(#{module := Module}) ->
+  case get(elixir_compiler_dest) of
+    Dest when is_binary(Dest) ->
+      filename:join(elixir_utils:characters_to_list(Dest), atom_to_list(Module) ++ ".beam");
+    _ ->
+      ""
   end.
 
 %% Integration with elixir_compiler that makes the module available
