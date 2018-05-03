@@ -470,8 +470,7 @@ defmodule Mix.Tasks.Xref do
     [
       Exception.format_mfa(module, function, arity),
       " is deprecated. ",
-      reason,
-      "."
+      reason
     ]
   end
 

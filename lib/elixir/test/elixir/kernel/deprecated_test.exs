@@ -14,6 +14,18 @@ defmodule Kernel.DeprecatedTest do
     end
   end
 
+  test "takes into account deprecated from defaults" do
+    defmodule DefaultDeprecated do
+      @deprecated "reason"
+      def foo(x \\ true), do: x
+    end
+
+    assert DefaultDeprecated.__info__(:deprecated) == [
+             {{:foo, 0}, "reason"},
+             {{:foo, 1}, "reason"}
+           ]
+  end
+
   test "add deprecated to __info__ and beam chuncks" do
     write_beam(
       defmodule SampleDeprecated do

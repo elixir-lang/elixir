@@ -105,7 +105,8 @@ defmodule ProtocolTest do
     message = "protocol ProtocolTest.Sample not implemented for :foo"
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      Sample.ok(:foo)
+      sample = Sample
+      sample.ok(:foo)
     end
   end
 
@@ -125,7 +126,7 @@ defmodule ProtocolTest do
     docs = Code.get_docs(SampleDocsProto, :docs)
     assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = List.keyfind(docs, {:ok, 1}, 0)
 
-    deprecated = Sample.__info__(:deprecated)
+    deprecated = SampleDocsProto.__info__(:deprecated)
     assert [{{:ok, 1}, "Reason"}] = deprecated
   end
 
@@ -432,7 +433,8 @@ defmodule Protocol.ConsolidationTest do
         "This protocol is implemented for: Protocol.ConsolidationTest.ImplStruct"
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      Sample.ok(:foo)
+      sample = Sample
+      sample.ok(:foo)
     end
   end
 

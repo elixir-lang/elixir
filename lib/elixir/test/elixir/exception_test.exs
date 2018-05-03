@@ -46,11 +46,11 @@ defmodule ExceptionTest do
   end
 
   test "normalize/2" do
-    assert Exception.normalize(:throw, :badarg) == :badarg
-    assert Exception.normalize(:exit, :badarg) == :badarg
-    assert Exception.normalize({:EXIT, self()}, :badarg) == :badarg
-    assert Exception.normalize(:error, :badarg).__struct__ == ArgumentError
-    assert Exception.normalize(:error, %ArgumentError{}).__struct__ == ArgumentError
+    assert Exception.normalize(:throw, :badarg, []) == :badarg
+    assert Exception.normalize(:exit, :badarg, []) == :badarg
+    assert Exception.normalize({:EXIT, self()}, :badarg, []) == :badarg
+    assert Exception.normalize(:error, :badarg, []).__struct__ == ArgumentError
+    assert Exception.normalize(:error, %ArgumentError{}, []).__struct__ == ArgumentError
   end
 
   test "format/2 without stacktrace" do
@@ -61,7 +61,7 @@ defmodule ExceptionTest do
         :stack -> System.stacktrace()
       end
 
-    assert Exception.format(:error, :badarg) ==
+    assert Exception.format(:error, :badarg, stacktrace) ==
              "** (ArgumentError) argument error\n" <> Exception.format_stacktrace(stacktrace)
   end
 
@@ -70,7 +70,7 @@ defmodule ExceptionTest do
   end
 
   test "format/2 with EXIT (has no stacktrace)" do
-    assert Exception.format({:EXIT, self()}, :badarg) ==
+    assert Exception.format({:EXIT, self()}, :badarg, []) ==
              "** (EXIT from #{inspect(self())}) :badarg"
   end
 

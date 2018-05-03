@@ -365,14 +365,21 @@ defmodule Enum do
   end
 
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   @doc false
+  @deprecated "Use Enum.chunk_every/2 instead"
   def chunk(enumerable, count), do: chunk(enumerable, count, count, nil)
 
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   @doc false
-  def chunk(enumerable, count, step, leftover \\ nil) do
+  @deprecated "Use Enum.chunk_every/3 instead"
+  def chunk(enum, n, step) do
+    chunk_every(enum, n, step, nil)
+  end
+
+  # TODO: Remove by 2.0
+  @doc false
+  @deprecated "Use Enum.chunk_every/4 instead"
+  def chunk(enumerable, count, step, leftover) do
     chunk_every(enumerable, count, step, leftover || :discard)
   end
 
@@ -886,7 +893,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Enum.filter/2 + Enum.map/2 or for comprehensions instead"
   def filter_map(enumerable, filter, mapper) when is_list(enumerable) do
     for item <- enumerable, filter.(item), do: mapper.(item)
   end
@@ -1747,7 +1754,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Enum.split_with/2 instead"
   def partition(enumerable, fun) do
     split_with(enumerable, fun)
   end
@@ -2611,7 +2618,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Enum.uniq_by/2 instead"
   def uniq(enumerable, fun) do
     uniq_by(enumerable, fun)
   end

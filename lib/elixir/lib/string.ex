@@ -768,12 +768,12 @@ defmodule String do
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use String.trim_trailing/1 instead"
   defdelegate rstrip(binary), to: String.Break, as: :trim_trailing
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use String.trim_trailing/2 with a binary as second argument instead"
   def rstrip(string, char) when is_integer(char) do
     replace_trailing(string, <<char::utf8>>, "")
   end
@@ -983,26 +983,26 @@ defmodule String do
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use String.trim_leading/1 instead"
   defdelegate lstrip(binary), to: String.Break, as: :trim_leading
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use String.trim_leading/2 with a binary as second argument instead"
   def lstrip(string, char) when is_integer(char) do
     replace_leading(string, <<char::utf8>>, "")
   end
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use String.trim/1 instead"
   def strip(string) do
     trim(string)
   end
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use String.trim/2 with a binary second argument instead"
   def strip(string, char) do
     trim(string, <<char::utf8>>)
   end
@@ -1227,15 +1227,29 @@ defmodule String do
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
-  def rjust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
+  @deprecated "Use String.pad_leading/2 instead"
+  def rjust(subject, len) do
+    rjust(subject, len, ?\s)
+  end
+
+  @doc false
+  # TODO: Remove by 2.0
+  @deprecated "Use String.pad_leading/3 with a binary padding instead"
+  def rjust(subject, len, pad) when is_integer(pad) and is_integer(len) and len >= 0 do
     pad(:leading, subject, len, [<<pad::utf8>>])
   end
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
-  def ljust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
+  @deprecated "Use String.pad_trailing/2 instead"
+  def ljust(subject, len) do
+    ljust(subject, len, ?\s)
+  end
+
+  @doc false
+  # TODO: Remove by 2.0
+  @deprecated "Use String.pad_trailing/3 with a binary padding instead"
+  def ljust(subject, len, pad) when is_integer(pad) and is_integer(len) and len >= 0 do
     pad(:trailing, subject, len, [<<pad::utf8>>])
   end
 
@@ -1488,7 +1502,7 @@ defmodule String do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use String.valid?/1 instead"
   def valid_character?(string) do
     case string do
       <<_::utf8>> -> valid?(string)
@@ -2298,9 +2312,9 @@ defmodule String do
     |> Enum.map(fn {kind, chars} -> {kind, IO.iodata_to_binary(chars)} end)
   end
 
-  # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   @doc false
+  # TODO: Remove by 2.0
+  @deprecated "Use String.to_charlist/1 instead"
   @spec to_char_list(t) :: charlist
   def to_char_list(string), do: String.to_charlist(string)
 end
