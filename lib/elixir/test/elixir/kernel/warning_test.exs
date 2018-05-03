@@ -970,7 +970,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "clauses with the same name should be grouped together, def foo was previously defined (nofile:2)"
+             "clauses with the same name should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
   after
     purge(Sample)
   end
@@ -985,7 +985,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "clauses for the same def should be grouped together, def foo/2 was previously defined (nofile:2)"
+             "clauses with the same name and arity (number of arguments) should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
   after
     purge(Sample)
   end
