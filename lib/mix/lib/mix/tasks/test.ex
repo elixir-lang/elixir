@@ -77,7 +77,10 @@ defmodule Mix.Tasks.Test do
       last `test --stale`. You can read more about this option in the "Stale" section below.
     * `--failed` - runs only tests that failed the last time they ran
     * `--timeout` - sets the timeout for the tests
-    * `--trace` - runs tests with detailed reporting; automatically sets `--max-cases` to 1
+    * `--trace` - runs tests with detailed reporting; automatically sets `--max-cases` to 1.
+      Note that in trace mode test timeouts will be ignored.
+
+  See `ExUnit.configure/1` for more information on configuration options.
 
   ## Filters
 
