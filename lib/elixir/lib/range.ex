@@ -59,7 +59,7 @@ defmodule Range do
 
   # TODO: Remove by 2.0
   @doc false
-  @deprecated "Instead pattern match on left..right"
+  @deprecated "Pattern match on left..right instead"
   def range?(term)
   def range?(first..last) when is_integer(first) and is_integer(last), do: true
   def range?(_), do: false

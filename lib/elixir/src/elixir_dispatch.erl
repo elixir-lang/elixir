@@ -329,7 +329,7 @@ elixir_imported_macros() ->
 
 %% Inline common cases.
 check_deprecation(Meta, ?kernel, to_char_list, 1, E) ->
-  elixir_errors:warn(?line(Meta), ?key(E, file), "Use Kernel.to_charlist/1");
+  elixir_errors:warn(?line(Meta), ?key(E, file), "Use Kernel.to_charlist/1 instead");
 check_deprecation(_, ?kernel, _, _, _) ->
   ok;
 check_deprecation(_, erlang, _, _, _) ->

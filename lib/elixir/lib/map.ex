@@ -298,7 +298,7 @@ defmodule Map do
   end
 
   @doc false
-  @deprecated "Use Map.fetch/2 + Map.put/3"
+  @deprecated "Use Map.fetch/2 + Map.put/3 instead"
   def replace(map, key, value) do
     case map do
       %{^key => _value} ->
@@ -898,7 +898,7 @@ defmodule Map do
 
   @doc false
   # TODO: Remove on 2.0
-  @deprecated "Use Kernel.map_size/1"
+  @deprecated "Use Kernel.map_size/1 instead"
   def size(map) do
     map_size(map)
   end

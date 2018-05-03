@@ -475,19 +475,19 @@ defmodule Float do
 
   @doc false
   # TODO: Remove by 2.0
-  @deprecated "Use Float.to_charlist/1"
+  @deprecated "Use Float.to_charlist/1 instead"
   def to_char_list(float), do: Float.to_charlist(float)
 
   @doc false
   # TODO: Remove by 2.0
-  @deprecated "Use :erlang.float_to_list/2"
+  @deprecated "Use :erlang.float_to_list/2 instead"
   def to_char_list(float, options) do
     :erlang.float_to_list(float, expand_compact(options))
   end
 
   @doc false
   # TODO: Remove by 2.0
-  @deprecated "Use :erlang.float_to_binary/2"
+  @deprecated "Use :erlang.float_to_binary/2 instead"
   def to_string(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
   end

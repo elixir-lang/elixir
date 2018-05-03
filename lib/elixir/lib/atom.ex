@@ -39,7 +39,7 @@ defmodule Atom do
 
   # TODO: Remove by 2.0
   @doc false
-  @deprecated "Use Atom.to_charlist/1"
+  @deprecated "Use Atom.to_charlist/1 instead"
   @spec to_char_list(atom) :: charlist
   def to_char_list(atom), do: Atom.to_charlist(atom)
 end

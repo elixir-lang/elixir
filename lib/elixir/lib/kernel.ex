@@ -5198,7 +5198,7 @@ defmodule Kernel do
 
   @doc false
   # TODO: Remove by 2.0 (also hard-coded in elixir_dispatch)
-  @deprecated "Use Kernel.to_charlist/1"
+  @deprecated "Use Kernel.to_charlist/1 instead"
   defmacro to_char_list(arg) do
     quote(do: Kernel.to_charlist(unquote(arg)))
   end

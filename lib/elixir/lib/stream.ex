@@ -474,7 +474,7 @@ defmodule Stream do
 
   @doc false
   # TODO: Remove on 2.0
-  @deprecated "Use Stream.filter/2 + Stream.map/2"
+  @deprecated "Use Stream.filter/2 + Stream.map/2 instead"
   def filter_map(enum, filter, mapper) do
     lazy(enum, fn f1 -> R.filter_map(filter, mapper, f1) end)
   end
@@ -991,7 +991,7 @@ defmodule Stream do
 
   @doc false
   # TODO: Remove on 2.0
-  @deprecated "Use Stream.uniq_by/2"
+  @deprecated "Use Stream.uniq_by/2 instead"
   def uniq(enum, fun) do
     uniq_by(enum, fun)
   end

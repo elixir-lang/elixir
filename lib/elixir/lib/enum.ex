@@ -893,7 +893,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  @deprecated "Use Enum.filter/2 + Enum.map/2 or for comprehensions"
+  @deprecated "Use Enum.filter/2 + Enum.map/2 or for comprehensions instead"
   def filter_map(enumerable, filter, mapper) when is_list(enumerable) do
     for item <- enumerable, filter.(item), do: mapper.(item)
   end
@@ -1754,7 +1754,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  @deprecated "Use Enum.split_with/2"
+  @deprecated "Use Enum.split_with/2 instead"
   def partition(enumerable, fun) do
     split_with(enumerable, fun)
   end
@@ -2618,7 +2618,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  @deprecated "Use Enum.uniq_by/2"
+  @deprecated "Use Enum.uniq_by/2 instead"
   def uniq(enumerable, fun) do
     uniq_by(enumerable, fun)
   end

@@ -623,7 +623,7 @@ defmodule Keyword do
   end
 
   @doc false
-  @deprecated "Use Keyword.fetch/2 + Keyword.put/3"
+  @deprecated "Use Keyword.fetch/2 + Keyword.put/3 instead"
   def replace(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> [{key, value} | delete(keywords, key)]
@@ -1039,7 +1039,7 @@ defmodule Keyword do
 
   @doc false
   # TODO: Remove on 2.0
-  @deprecated "Use Kernel.length/1"
+  @deprecated "Use Kernel.length/1 instead"
   def size(keyword) do
     length(keyword)
   end
