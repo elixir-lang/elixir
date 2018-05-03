@@ -299,7 +299,7 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     warning = """
-    warning: A.a/0 is deprecated. Use A.c/0 instead.
+    warning: A.a/0 is deprecated. Use A.c/0 instead
       lib/b.ex:2
 
     """

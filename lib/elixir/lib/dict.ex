@@ -13,14 +13,20 @@ defmodule Dict do
   @type value :: any
   @type t :: list | map
 
-  # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  message =
+    "Use the Map module for working with maps or the Keyword module for working with keyword lists"
 
+  # TODO: Remove by 2.0
+
+  @deprecated message
   defmacro __using__(_) do
     # Use this import to guarantee proper code expansion
     import Kernel, except: [size: 1]
 
     quote do
+      message = "Use maps and the Map module instead"
+
+      @deprecated message
       def get(dict, key, default \\ nil) do
         case fetch(dict, key) do
           {:ok, value} -> value
@@ -28,6 +34,7 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def get_lazy(dict, key, fun) when is_function(fun, 0) do
         case fetch(dict, key) do
           {:ok, value} -> value
@@ -35,12 +42,14 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def get_and_update(dict, key, fun) do
         current_value = get(dict, key)
         {get, new_value} = fun.(current_value)
         {get, put(dict, key, new_value)}
       end
 
+      @deprecated message
       def fetch!(dict, key) do
         case fetch(dict, key) do
           {:ok, value} -> value
@@ -48,10 +57,12 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def has_key?(dict, key) do
         match?({:ok, _}, fetch(dict, key))
       end
 
+      @deprecated message
       def put_new(dict, key, value) do
         case has_key?(dict, key) do
           true -> dict
@@ -59,6 +70,7 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def put_new_lazy(dict, key, fun) when is_function(fun, 0) do
         case has_key?(dict, key) do
           true -> dict
@@ -66,10 +78,12 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def drop(dict, keys) do
         Enum.reduce(keys, dict, &delete(&2, &1))
       end
 
+      @deprecated message
       def take(dict, keys) do
         Enum.reduce(keys, new(), fn key, acc ->
           case fetch(dict, key) do
@@ -79,24 +93,28 @@ defmodule Dict do
         end)
       end
 
+      @deprecated message
       def to_list(dict) do
         reduce(dict, {:cont, []}, fn kv, acc -> {:cont, [kv | acc]} end)
         |> elem(1)
         |> :lists.reverse()
       end
 
+      @deprecated message
       def keys(dict) do
         reduce(dict, {:cont, []}, fn {k, _}, acc -> {:cont, [k | acc]} end)
         |> elem(1)
         |> :lists.reverse()
       end
 
+      @deprecated message
       def values(dict) do
         reduce(dict, {:cont, []}, fn {_, v}, acc -> {:cont, [v | acc]} end)
         |> elem(1)
         |> :lists.reverse()
       end
 
+      @deprecated message
       def equal?(dict1, dict2) do
         # Use this import to avoid conflicts in the user code
         import Kernel, except: [size: 1]
@@ -116,6 +134,7 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def merge(dict1, dict2, fun \\ fn _k, _v1, v2 -> v2 end) do
         # Use this import to avoid conflicts in the user code
         import Kernel, except: [size: 1]
@@ -132,6 +151,7 @@ defmodule Dict do
         |> elem(1)
       end
 
+      @deprecated message
       def update(dict, key, initial, fun) do
         case fetch(dict, key) do
           {:ok, value} ->
@@ -142,6 +162,7 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def update!(dict, key, fun) do
         case fetch(dict, key) do
           {:ok, value} ->
@@ -152,6 +173,7 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def pop(dict, key, default \\ nil) do
         case fetch(dict, key) do
           {:ok, value} ->
@@ -162,6 +184,7 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def pop_lazy(dict, key, fun) when is_function(fun, 0) do
         case fetch(dict, key) do
           {:ok, value} ->
@@ -172,6 +195,7 @@ defmodule Dict do
         end
       end
 
+      @deprecated message
       def split(dict, keys) do
         Enum.reduce(keys, {new(), dict}, fn key, {inc, exc} = acc ->
           case fetch(exc, key) do
@@ -220,71 +244,85 @@ defmodule Dict do
     end
   end
 
+  @deprecated message
   @spec keys(t) :: [key]
   def keys(dict) do
     target(dict).keys(dict)
   end
 
+  @deprecated message
   @spec values(t) :: [value]
   def values(dict) do
     target(dict).values(dict)
   end
 
+  @deprecated message
   @spec size(t) :: non_neg_integer
   def size(dict) do
     target(dict).size(dict)
   end
 
+  @deprecated message
   @spec has_key?(t, key) :: boolean
   def has_key?(dict, key) do
     target(dict).has_key?(dict, key)
   end
 
+  @deprecated message
   @spec get(t, key, value) :: value
   def get(dict, key, default \\ nil) do
     target(dict).get(dict, key, default)
   end
 
+  @deprecated message
   @spec get_lazy(t, key, (() -> value)) :: value
   def get_lazy(dict, key, fun) do
     target(dict).get_lazy(dict, key, fun)
   end
 
+  @deprecated message
   @spec get_and_update(t, key, (value -> {value, value})) :: {value, t}
   def get_and_update(dict, key, fun) do
     target(dict).get_and_update(dict, key, fun)
   end
 
+  @deprecated message
   @spec fetch(t, key) :: value
   def fetch(dict, key) do
     target(dict).fetch(dict, key)
   end
 
+  @deprecated message
   @spec fetch!(t, key) :: value | no_return
   def fetch!(dict, key) do
     target(dict).fetch!(dict, key)
   end
 
+  @deprecated message
   @spec put(t, key, value) :: t
   def put(dict, key, val) do
     target(dict).put(dict, key, val)
   end
 
+  @deprecated message
   @spec put_new(t, key, value) :: t
   def put_new(dict, key, val) do
     target(dict).put_new(dict, key, val)
   end
 
+  @deprecated message
   @spec put_new_lazy(t, key, (() -> value)) :: t
   def put_new_lazy(dict, key, fun) do
     target(dict).put_new_lazy(dict, key, fun)
   end
 
+  @deprecated message
   @spec delete(t, key) :: t
   def delete(dict, key) do
     target(dict).delete(dict, key)
   end
 
+  @deprecated message
   @spec merge(t, t) :: t
   def merge(dict1, dict2) do
     target1 = target(dict1)
@@ -297,6 +335,7 @@ defmodule Dict do
     end
   end
 
+  @deprecated message
   @spec merge(t, t, (key, value, value -> value)) :: t
   def merge(dict1, dict2, fun) do
     target1 = target(dict1)
@@ -316,46 +355,55 @@ defmodule Dict do
     |> elem(1)
   end
 
+  @deprecated message
   @spec pop(t, key, value) :: {value, t}
   def pop(dict, key, default \\ nil) do
     target(dict).pop(dict, key, default)
   end
 
+  @deprecated message
   @spec pop_lazy(t, key, (() -> value)) :: {value, t}
   def pop_lazy(dict, key, fun) do
     target(dict).pop_lazy(dict, key, fun)
   end
 
+  @deprecated message
   @spec update!(t, key, (value -> value)) :: t
   def update!(dict, key, fun) do
     target(dict).update!(dict, key, fun)
   end
 
+  @deprecated message
   @spec update(t, key, value, (value -> value)) :: t
   def update(dict, key, initial, fun) do
     target(dict).update(dict, key, initial, fun)
   end
 
+  @deprecated message
   @spec split(t, [key]) :: {t, t}
   def split(dict, keys) do
     target(dict).split(dict, keys)
   end
 
+  @deprecated message
   @spec drop(t, [key]) :: t
   def drop(dict, keys) do
     target(dict).drop(dict, keys)
   end
 
+  @deprecated message
   @spec take(t, [key]) :: t
   def take(dict, keys) do
     target(dict).take(dict, keys)
   end
 
+  @deprecated message
   @spec empty(t) :: t
   def empty(dict) do
     target(dict).empty(dict)
   end
 
+  @deprecated message
   @spec equal?(t, t) :: boolean
   def equal?(dict1, dict2) do
     target1 = target(dict1)
@@ -379,6 +427,7 @@ defmodule Dict do
     end
   end
 
+  @deprecated message
   @spec to_list(t) :: list
   def to_list(dict) do
     target(dict).to_list(dict)

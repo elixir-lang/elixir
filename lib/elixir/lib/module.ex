@@ -1235,7 +1235,7 @@ defmodule Module do
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use @doc instead"
   def add_doc(module, line, kind, function_tuple, signature \\ [], doc) do
     assert_not_compiled!(:add_doc, module)
 
@@ -1256,9 +1256,10 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
     arity = length(args)
     pair = {name, arity}
+    {total, defaults} = args_count(args, 0, 0)
 
-    impl = compile_impl(set, bag, name, env, kind, args)
-    _deprecated = compile_deprecated(set, bag, pair)
+    impl = compile_impl(set, bag, name, env, kind, total, defaults)
+    _deprecated = compile_deprecated(set, bag, name, arity, defaults)
     _since = compile_since(set)
 
     # TODO: Store @since and @deprecated alongside the docs
@@ -1302,10 +1303,10 @@ defmodule Module do
     end
   end
 
-  defp compile_deprecated(set, bag, pair) do
+  defp compile_deprecated(set, bag, name, arity, defaults) do
     case :ets.take(set, :deprecated) do
       [{:deprecated, reason, _}] when is_binary(reason) ->
-        :ets.insert(bag, {:deprecated, {pair, reason}})
+        :ets.insert(bag, deprecated_reasons(defaults, name, arity, reason))
         reason
 
       _ ->
@@ -1313,12 +1314,25 @@ defmodule Module do
     end
   end
 
-  defp compile_impl(set, bag, name, env, kind, args) do
+  defp deprecated_reasons(0, name, arity, reason) do
+    [deprecated_reason(name, arity, reason)]
+  end
+
+  defp deprecated_reasons(defaults, name, arity, reason) do
+    [
+      deprecated_reason(name, arity - defaults, reason)
+      | deprecated_reasons(defaults - 1, name, arity, reason)
+    ]
+  end
+
+  defp deprecated_reason(name, arity, reason),
+    do: {:deprecated, {{name, arity}, reason}}
+
+  defp compile_impl(set, bag, name, env, kind, total, defaults) do
     %{line: line, file: file} = env
 
     case :ets.take(set, :impl) do
       [{:impl, value, _}] ->
-        {total, defaults} = args_count(args, 0, 0)
         impl = {{name, total}, defaults, kind, line, file, value}
         :ets.insert(bag, {:impls, impl})
         value

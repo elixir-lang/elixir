@@ -325,9 +325,7 @@ defmodule Registry do
   end
 
   @doc false
-  @since "1.4.0"
-  @spec start_link(keys, registry, keyword) :: {:ok, pid} | {:error, term}
-  # TODO: Deprecate old start_link registry API on v1.8
+  @deprecated "Use Registry.start_link/1 instead"
   def start_link(keys, name, options \\ []) when keys in @keys and is_atom(name) do
     start_link([keys: keys, name: name] ++ options)
   end
