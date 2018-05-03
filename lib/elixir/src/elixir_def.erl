@@ -301,12 +301,16 @@ check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind) ->
 
 check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile) ->
   case ets:lookup_element(Set, ?last_def, 2) of
-    {Name, Arity} -> ok;
     none -> ok;
+    {Name, Arity} -> ok;
+    {Name, _} ->
+      Relative = elixir_utils:relative_to_cwd(StoredFile),
+      elixir_errors:form_warn(Meta, File, ?MODULE,
+        {ungrouped_name, {Kind, Name, Arity, ?line(StoredMeta), Relative}});
     _ ->
       Relative = elixir_utils:relative_to_cwd(StoredFile),
       elixir_errors:form_warn(Meta, File, ?MODULE,
-        {ungrouped_clause, {Kind, Name, Arity, ?line(StoredMeta), Relative}})
+        {ungrouped_arity, {Kind, Name, Arity, ?line(StoredMeta), Relative}})
   end.
 
 % Clause with defaults after clause with defaults
@@ -412,9 +416,13 @@ format_error({mixed_defaults, {Kind, Name, Arity}}) ->
     "    def foo(:second_clause, b) do ... end\n",
     [Kind, Name, Arity]);
 
-format_error({ungrouped_clause, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
-  io_lib:format("clauses for the same ~ts should be grouped together, ~ts ~ts/~B was previously defined (~ts:~B)",
-    [Kind, Kind, Name, Arity, OrigFile, OrigLine]);
+format_error({ungrouped_name, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
+   io_lib:format("clauses with the same name should be grouped together, \"~ts ~ts/~B\" was previously defined (~ts:~B)",
+     [Kind, Name, Arity, OrigFile, OrigLine]);
+
+format_error({ungrouped_arity, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
+  io_lib:format("clauses with the same name and arity (number of arguments) should be grouped together, \"~ts ~ts/~B\" was previously defined (~ts:~B)",
+    [Kind, Name, Arity, OrigFile, OrigLine]);
 
 format_error({changed_kind, {Name, Arity, Previous, Current}}) ->
   io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]);
