@@ -20,6 +20,13 @@ defmodule Logger.Watcher do
   def init({mod, handler, args}) do
     Process.flag(:trap_exit, true)
 
+    # This is required for OTP 21. A better fix would be to not include
+    # the error_logger handler in the first place but we will do so only
+    # in future Elixir versions.
+    unless Process.whereis(mod) do
+      _ = :logger.add_handler(mod, mod, %{level: :info, filter_default: :log})
+    end
+
     case :gen_event.delete_handler(mod, handler, :ok) do
       {:error, :module_not_found} ->
         case :gen_event.add_sup_handler(mod, handler, args) do
