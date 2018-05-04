@@ -82,6 +82,10 @@ format_error(erl_lint, {undefined_function, {F, A}}) ->
 format_error(erl_lint, {spec_fun_undefined, {M, F, A}}) ->
   io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]);
 
+%% Mention the capture operator in make_fun
+format_error(sys_core_fold, {no_effect, {erlang, make_fun, 3}}) ->
+  "the result of the capture operator & (:erlang.make_fun/3) is never used";
+
 %% Make no_effect clauses pretty
 format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
   {Fmt, Args} = case erl_internal:comp_op(F, A) of

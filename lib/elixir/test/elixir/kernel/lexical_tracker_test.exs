@@ -230,21 +230,21 @@ defmodule Kernel.LexicalTrackerTest do
           NotAModule
           Remote.func()
           R.func()
-          &extract/2
-          &is_record/1
-          &R.func/0
-          &Remote.func/0
-          &Integer.is_even/1
+          _ = &extract/2
+          _ = &is_record/1
+          _ = &R.func/0
+          _ = &Remote.func/0
+          _ = &Integer.is_even/1
           %Macro.Env{}
         end
 
-        &extract/2
-        &is_record/1
-        &R.func/0
-        &Remote.func/0
-        &Integer.is_even/1
+        _ = &extract/2
+        _ = &is_record/1
+        _ = &R.func/0
+        _ = &Remote.func/0
+        _ = &Integer.is_even/1
 
-        &is_record/1; def b(a), do: is_record(a)
+        _ = &is_record/1; def b(a), do: is_record(a)
 
         %Macro.Env{}
 
