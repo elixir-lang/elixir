@@ -263,6 +263,18 @@ expand_rescue({in, Meta, [Left, Right]}, E) ->
       false
   end;
 
+%% rescue var not in _ (throws an error)
+expand_rescue({'not', Meta, [{in, _, [_Left, {'_', _, UnderscoreContext}]}]}, E)
+    when is_atom(UnderscoreContext) ->
+  form_error(Meta, ?key(E, file), ?MODULE, invalid_rescue_clause_not_in_underscore);
+
+%% rescue var not in [Exprs]
+expand_rescue({'not', Meta, [{in, _, [_, _]} = In]}, E) ->
+  case expand_rescue(In, E) of
+    false -> false;
+    {EIn, EE} -> {{'not', Meta, [EIn]}, EE}
+  end;
+
 %% rescue Error => _ in [Error]
 expand_rescue(Arg, E) ->
   expand_rescue({in, [], [{'_', [], ?key(E, module)}, Arg]}, E).
@@ -340,6 +352,9 @@ format_error(multiple_after_clauses_in_receive) ->
 format_error(invalid_rescue_clause) ->
   "invalid \"rescue\" clause. The clause should match on an alias, a variable "
     "or be in the \"var in [alias]\" format";
+
+format_error(invalid_rescue_clause_not_in_underscore) ->
+  "invalid \"rescue\" clause. \"_\" is not allowed on the right of \"not in\"";
 
 format_error(catch_before_rescue) ->
   "\"catch\" should always come after \"rescue\" in try";

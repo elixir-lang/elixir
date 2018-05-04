@@ -263,6 +263,50 @@ defmodule Kernel.RaiseTest do
 
       assert result == "an exception"
     end
+
+    test "\"not in\" with named runtime error" do
+      result =
+        try do
+          raise "an exception"
+        rescue
+          x not in [ArgumentError] -> Exception.message(x)
+        catch
+          :error, _ -> false
+        end
+
+      assert result == "an exception"
+
+      result =
+        try do
+          raise "an exception"
+        rescue
+          _x not in [ArgumentError] -> true
+        catch
+          :error, _ -> false
+        end
+
+      assert result
+
+      result =
+        try do
+          raise "an exception"
+        rescue
+          _x not in [RuntimeError] -> false
+          x -> Exception.message(x)
+        end
+
+      assert result == "an exception"
+
+      result =
+        try do
+          raise "an exception"
+        rescue
+          _x not in [ArgumentError, RuntimeError] -> false
+          x -> Exception.message(x)
+        end
+
+      assert result == "an exception"
+    end
   end
 
   describe "normalize" do
