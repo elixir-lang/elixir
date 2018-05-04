@@ -171,6 +171,19 @@ defmodule Kernel.RaiseTest do
       assert result == "an exception"
     end
 
+    test "named runtime or argument error" do
+      result =
+        try do
+          raise "an exception"
+        rescue
+          x in [ArgumentError, RuntimeError] -> Exception.message(x)
+        catch
+          :error, _ -> false
+        end
+
+      assert result == "an exception"
+    end
+
     test "with higher precedence than catch" do
       result =
         try do
