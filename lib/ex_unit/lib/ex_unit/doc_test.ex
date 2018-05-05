@@ -295,7 +295,7 @@ defmodule ExUnit.DocTest do
         # Put all tests into one context
         (unquote_splicing(tests))
       rescue
-        e in [ExUnit.AssertionError] ->
+        e in ExUnit.AssertionError ->
           reraise e, stack
 
         error ->
@@ -304,7 +304,7 @@ defmodule ExUnit.DocTest do
               inspect(Exception.message(error))
 
           error = [message: message, expr: unquote(String.trim(whole_expr))]
-          reraise ExUnit.AssertionError, error, System.stacktrace()
+          reraise ExUnit.AssertionError, error, __STACKTRACE__
       end
     end
   end

@@ -62,7 +62,7 @@ defmodule CodeTest do
         Code.eval_string("<<a::size(b)>>", a: :a, b: :b)
       rescue
         _ ->
-          assert System.stacktrace() |> Enum.any?(&(elem(&1, 0) == __MODULE__))
+          assert Enum.any?(__STACKTRACE__, &(elem(&1, 0) == __MODULE__))
       end
     end
   end

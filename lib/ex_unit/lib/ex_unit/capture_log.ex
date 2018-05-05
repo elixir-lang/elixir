@@ -85,9 +85,8 @@ defmodule ExUnit.CaptureLog do
       :ok
     catch
       kind, reason ->
-        stack = System.stacktrace()
         _ = StringIO.close(string_io)
-        :erlang.raise(kind, reason, stack)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       :ok ->
         {:ok, content} = StringIO.close(string_io)

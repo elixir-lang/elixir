@@ -1709,7 +1709,9 @@ defmodule Kernel.SpecialForms do
   pattern matching (similar to the `case` special form).
 
   Note that calls inside `try/1` are not tail recursive since the VM
-  needs to keep the stacktrace in case an exception happens.
+  needs to keep the stacktrace in case an exception happens. To
+  retrieve the stacktrace, access `__STACKTRACE__/0` inside the `rescue`
+  or `catch` clause.
 
   ## `rescue` clauses
 

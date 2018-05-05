@@ -1759,12 +1759,8 @@ defmodule Kernel do
 
   Works like `raise/1` but does not generate a new stacktrace.
 
-  Notice that `System.stacktrace/0` returns the stacktrace
-  of the last exception. That said, it is common to assign
-  the stacktrace as the first expression inside a `rescue`
-  clause as any other exception potentially raised (and
-  rescued) between the rescue clause and the raise call
-  may change the `System.stacktrace/0` value.
+  Notice that `__STACKTRACE__` can be used inside catch/rescue
+  to retrieve the current stacktrace.
 
   ## Examples
 
@@ -1772,10 +1768,7 @@ defmodule Kernel do
         raise "oops"
       rescue
         exception ->
-          stacktrace = System.stacktrace
-          if Exception.message(exception) == "oops" do
-            reraise exception, stacktrace
-          end
+          reraise exception, __STACKTRACE__
       end
 
   """
@@ -1818,8 +1811,7 @@ defmodule Kernel do
         raise "oops"
       rescue
         exception ->
-          stacktrace = System.stacktrace
-          reraise WrapperError, [exception: exception], stacktrace
+          reraise WrapperError, [exception: exception], __STACKTRACE__
       end
 
   """
