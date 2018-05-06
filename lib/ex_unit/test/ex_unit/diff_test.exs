@@ -103,17 +103,6 @@ defmodule ExUnit.DiffTest do
 
     assert script(list1, list2) == expected
 
-    list1 = [1, 2]
-    list2 = [1, 1, 2]
-
-    expected = [
-      {:eq, "["},
-      [{:eq, "1"}, {:eq, ", "}, [del: "2", ins: "1"], {:ins, ", "}, {:ins, "2"}],
-      {:eq, "]"}
-    ]
-
-    assert script(list1, list2) == expected
-
     list1 = []
     list2 = [1, 2]
     expected = [{:eq, "["}, [ins: "1, 2"], {:eq, "]"}]
@@ -125,6 +114,30 @@ defmodule ExUnit.DiffTest do
     assert script(list1, list2) == expected
 
     assert script([], []) == [eq: "[]"]
+  end
+
+  test "lists containing subsets or supersets" do
+    list1 = [1, 2]
+    list2 = [1, 1, 2]
+
+    expected = [
+      {:eq, "["},
+      [{:eq, "1"}, {:eq, ", "}, {:ins, "1"}, {:ins, ", "}, {:eq, "2"}],
+      {:eq, "]"}
+    ]
+
+    assert script(list1, list2) == expected
+
+    list1 = [1, 2, 3]
+    list2 = [2, 3]
+
+    expected = [
+      {:eq, "["},
+      [del: "1", del: ", ", eq: "2, 3"],
+      {:eq, "]"}
+    ]
+
+    assert script(list1, list2) == expected
   end
 
   test "charlists" do

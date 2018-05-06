@@ -159,11 +159,40 @@ defmodule ExUnit.Diff do
   end
 
   defp script_proper_list(list1, length1, list2, length2, keywords?) do
-    initial_path = {0, 0, list1, list2, []}
+    case diff_subset(list1, list2) do
+      {:ok, diff} ->
+        format_each_fragment(diff, [], keywords?)
 
-    find_script(0, length1 + length2, [initial_path], keywords?)
-    |> format_each_fragment([], keywords?)
+      :error ->
+        initial_path = {0, 0, list1, list2, []}
+
+        find_script(0, length1 + length2, [initial_path], keywords?)
+        |> format_each_fragment([], keywords?)
+    end
   end
+
+  def diff_subset(list1, list2) do
+    {list1, list2, prefix} = take_common_path(list1, list2, [])
+    {list1, list2, suffix} = take_common_path(Enum.reverse(list1), Enum.reverse(list2), [])
+
+    if list1 == [] or list2 == [] do
+      {:ok,
+       wrap_in(:eq, Enum.reverse(prefix)) ++
+         wrap_in(:del, Enum.reverse(list1)) ++
+         wrap_in(:ins, Enum.reverse(list2)) ++ wrap_in(:eq, suffix)}
+    else
+      :error
+    end
+  end
+
+  defp take_common_path([h | tail1], [h | tail2], acc) do
+    take_common_path(tail1, tail2, [h | acc])
+  end
+
+  defp take_common_path(list1, list2, acc), do: {list1, list2, acc}
+
+  defp wrap_in(_, []), do: []
+  defp wrap_in(tag, items), do: [{tag, items}]
 
   defp format_each_fragment([{:diff, script}], [], _keywords?) do
     script
