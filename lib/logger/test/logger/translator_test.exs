@@ -339,21 +339,21 @@ defmodule Logger.TranslatorTest do
            """s
   end
 
-  test "translates application stop" do
-    assert capture_log(fn ->
-             :ok = Application.start(:eex)
-             Application.stop(:eex)
-           end) =~ """
-           Application eex exited: :stopped
-           """
-  end
-
   test "translates application start" do
     assert capture_log(fn ->
              Application.start(:eex)
              Application.stop(:eex)
            end) =~ """
            Application eex started at #{inspect(node())}
+           """
+  end
+
+  test "translates application stop" do
+    assert capture_log(fn ->
+             :ok = Application.start(:eex)
+             Application.stop(:eex)
+           end) =~ """
+           Application eex exited: :stopped
            """
   end
 
@@ -484,7 +484,7 @@ defmodule Logger.TranslatorTest do
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
            Ancestors: \[#PID<\d+\.\d+\.\d+>\](?:
-           Message Queue Length: 1(?#TODO: Require once depend on 20)|)
+           Message Queue Length: 1(?#TODO: Require once depend on Erlang/OTP 20)|)
            Messages: \[:message\]
            Links: \[\]
            Dictionary: \[\]
@@ -516,7 +516,7 @@ defmodule Logger.TranslatorTest do
                    Stack Size: \d+
                    Reductions: \d+(?:
                    Current Stacktrace:
-                       test/logger/translator_test.exs:\d+: Logger.TranslatorTest.sleep/1(?#TODO: Require once depend on 20)|)
+                       test/logger/translator_test.exs:\d+: Logger.TranslatorTest.sleep/1(?#TODO: Require once depend on Erlang/OTP 20)|)
            """
   end
 
@@ -775,7 +775,7 @@ defmodule Logger.TranslatorTest do
            """
   end
 
-  test "handles :undefined MFA properly" do
+  test "reports :undefined MFA properly" do
     defmodule WeirdFunctionNamesGenServer do
       use GenServer
 

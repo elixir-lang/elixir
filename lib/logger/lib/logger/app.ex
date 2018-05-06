@@ -7,8 +7,15 @@ defmodule Logger.App do
   def start(_type, _args) do
     otp_reports? = Application.get_env(:logger, :handle_otp_reports)
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
-    threshold = Application.get_env(:logger, :discard_threshold_for_error_logger)
-    error_handler = {:error_logger, Logger.ErrorHandler, {otp_reports?, sasl_reports?, threshold}}
+
+    otp_children =
+      if otp_logger?() do
+        []
+      else
+        threshold = Application.get_env(:logger, :discard_threshold_for_error_logger)
+        arg = {:error_logger, Logger.ErrorHandler, {otp_reports?, sasl_reports?, threshold}}
+        [%{id: Logger.ErrorHandler, start: {Logger.Watcher, :start_link, [arg]}}]
+      end
 
     children = [
       %{
@@ -17,19 +24,23 @@ defmodule Logger.App do
         modules: :dynamic
       },
       {Logger.Watcher, {Logger, Logger.Config, []}},
-      {Logger.WatcherSupervisor, {Logger.Config, :handlers, []}},
-      %{
-        id: Logger.ErrorHandler,
-        start: {Logger.Watcher, :start_link, [error_handler]}
-      }
+      {Logger.WatcherSupervisor, {Logger.Config, :handlers, []}}
+      | otp_children
     ]
 
     config = Logger.Config.new()
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        handlers = [error_logger_tty_h: otp_reports?, sasl_report_tty_h: sasl_reports?]
-        delete_handlers(handlers)
+        if otp_logger?() do
+          if otp_reports? do
+            add_elixir_handler(sasl_reports?)
+            delete_erlang_handler()
+          end
+        else
+          delete_old_handlers(otp_reports?, sasl_reports?)
+        end
+
         {:ok, sup, config}
 
       {:error, _} = error ->
@@ -45,9 +56,11 @@ defmodule Logger.App do
 
   @doc false
   def stop(config) do
-    Logger.Config.deleted_handlers()
-    |> add_handlers()
+    if otp_logger?() do
+      _ = :logger.remove_handler(Logger)
+    end
 
+    add_handlers(Logger.Config.deleted_handlers())
     Logger.Config.delete(config)
   end
 
@@ -73,17 +86,57 @@ defmodule Logger.App do
     end
   end
 
-  defp delete_handlers(handlers) do
-    to_delete =
-      for {handler, delete?} <- handlers,
-          delete? && :error_logger.delete_report_handler(handler) != {:error, :module_not_found},
-          do: handler
+  # TODO: Remove conditional error_logger code once we require Erlang/OTP 21+.
+  defp otp_logger? do
+    is_pid(Process.whereis(:logger))
+  end
 
-    [] = Logger.Config.deleted_handlers(to_delete)
+  @sasl_domain [:beam, :erlang, :otp, :sasl]
+
+  defp add_elixir_handler(sasl_reports?) do
+    filters =
+      if sasl_reports? do
+        [
+          remote_gl: {&:logger_filters.remote_gl/2, :stop}
+        ]
+      else
+        [
+          remote_gl: {&:logger_filters.remote_gl/2, :stop},
+          no_sasl: {&:logger_filters.domain/2, {:stop, :starts_with, @sasl_domain}}
+        ]
+      end
+
+    :logger.add_handler(Logger, Logger.ErlangHandler, %{filters: filters})
+  end
+
+  defp delete_erlang_handler() do
+    with {:ok, {module, config}} <- :logger.get_handler_config(:logger_std_h),
+         :ok <- :logger.remove_handler(:logger_std_h) do
+      [] = Logger.Config.deleted_handlers([{:logger_std_h, module, config}])
+      :ok
+    else
+      _ -> :ok
+    end
+  end
+
+  defp delete_old_handlers(otp_reports?, sasl_reports?) do
+    deleted =
+      for {tty, true} <- [error_logger_tty_h: otp_reports?, sasl_report_tty_h: sasl_reports?],
+          :error_logger.delete_report_handler(tty) != {:error, :module_not_found},
+          do: tty
+
+    [] = Logger.Config.deleted_handlers(deleted)
     :ok
   end
 
   defp add_handlers(handlers) do
-    Enum.each(handlers, &:error_logger.add_report_handler/1)
+    for handler <- handlers do
+      case handler do
+        {handler, module, config} -> :logger.add_handler(handler, module, config)
+        handler -> :error_logger.add_report_handler(handler)
+      end
+    end
+
+    :ok
   end
 end
