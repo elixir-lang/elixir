@@ -110,7 +110,11 @@ defmodule Logger.ErlangHandler do
     |> :io_lib.build_text()
   end
 
+  defp translate_fallback(:report, {_type, %{} = data}, _meta, _truncate) do
+    Kernel.inspect(Map.to_list(data))
+  end
+
   defp translate_fallback(:report, {_type, data}, _meta, _truncate) do
-    Kernel.inspect(Enum.to_list(data))
+    Kernel.inspect(data)
   end
 end
