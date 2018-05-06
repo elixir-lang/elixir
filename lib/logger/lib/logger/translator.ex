@@ -86,8 +86,10 @@ defmodule Logger.Translator do
 
     case message do
       {'** Generic server ' ++ _, [name, last, state, reason | client]} ->
+        {formatted, _reason} = format_reason(reason)
+
         msg =
-          ["GenServer #{inspect(name)} terminating", format_stop(reason)] ++
+          ["GenServer #{inspect(name)} terminating", formatted] ++
             ["\nLast message#{format_from(client)}: #{inspect(last, opts)}"]
 
         if min_level == :debug do
@@ -97,9 +99,11 @@ defmodule Logger.Translator do
         end
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
+        {formatted, _reason} = format_reason(reason)
+
         msg =
           ["GenEvent handler #{inspect(name)} installed in #{inspect(manager)} terminating"] ++
-            [format_stop(reason), "\nLast message: #{inspect(last, opts)}"]
+            [formatted, "\nLast message: #{inspect(last, opts)}"]
 
         if min_level == :debug do
           {:ok, [msg | "\nState: #{inspect(state, opts)}"]}
@@ -108,9 +112,11 @@ defmodule Logger.Translator do
         end
 
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
+        {formatted, _reason} = format_reason(reason)
+
         msg =
           ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
-            [format_stop(reason), "\nFunction: #{inspect(function, opts)}"] ++
+            [formatted, "\nFunction: #{inspect(function, opts)}"] ++
             ["\n    Args: #{inspect(args, opts)}"]
 
         {:ok, msg}
@@ -169,8 +175,10 @@ defmodule Logger.Translator do
       state: state
     } = report
 
+    {formatted, _reason} = format_reason(reason)
+
     msg =
-      ["GenServer ", inspect(name), " terminating", format_stop(reason)] ++
+      ["GenServer ", inspect(name), " terminating", formatted] ++
         ["\nLast message", format_last_message_from(client), ": ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
@@ -197,9 +205,11 @@ defmodule Logger.Translator do
         _ -> reason
       end
 
+    {formatted, _reason} = format_reason(reason)
+
     msg =
       ["GenEvent handler ", inspect(handler), " installed in ", inspect(name), " terminating"] ++
-        [format_stop(reason), "\nLast message: ", inspect(last, inspect_opts)]
+        [formatted, "\nLast message: ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
       {:ok, [msg, "\nState: ", inspect(state, inspect_opts)]}
@@ -211,10 +221,10 @@ defmodule Logger.Translator do
   defp report_supervisor_progress(
          min_level,
          supervisor: sup,
-         started: [{:pid, pid}, {:id, name} | started]
+         started: [{:pid, pid}, {:id, id} | started]
        ) do
     msg =
-      ["Child ", inspect(name), " of Supervisor ", sup_name(sup), " started"] ++
+      ["Child ", inspect(id), " of Supervisor ", sup_name(sup), " started"] ++
         ["\nPid: ", inspect(pid)] ++ child_info(min_level, started)
 
     {:ok, msg}
@@ -239,7 +249,7 @@ defmodule Logger.Translator do
          supervisor: sup,
          errorContext: context,
          reason: reason,
-         offender: [{:pid, pid}, {:id, name} | offender]
+         offender: [{:pid, pid}, {:id, id} | offender]
        ) do
     pid_info =
       if is_pid(pid) and context != :shutdown do
@@ -249,7 +259,7 @@ defmodule Logger.Translator do
       end
 
     msg =
-      ["Child ", inspect(name), " of Supervisor ", sup_name(sup)] ++
+      ["Child ", inspect(id), " of Supervisor ", sup_name(sup)] ++
         [?\s, sup_context(context), "\n** (exit) ", offender_reason(reason, context)] ++
         pid_info ++ child_info(min_level, offender)
 
@@ -261,10 +271,10 @@ defmodule Logger.Translator do
          supervisor: sup,
          errorContext: context,
          reason: reason,
-         offender: [{:nb_children, n}, {:id, name} | offender]
+         offender: [{:nb_children, n}, {:id, id} | offender]
        ) do
     msg =
-      ["Children ", inspect(name), " of Supervisor ", sup_name(sup), ?\s, sup_context(context)] ++
+      ["Children ", inspect(id), " of Supervisor ", sup_name(sup), ?\s, sup_context(context)] ++
         ["\n** (exit) ", offender_reason(reason, context), "\nNumber: ", Integer.to_string(n)] ++
         child_info(min_level, offender)
 
@@ -339,8 +349,10 @@ defmodule Logger.Translator do
          ],
          linked
        ]) do
+    reason = Exception.normalize(kind, exception, stack)
+
     msg =
-      ["Process ", crash_name(pid, name), " terminating", format(kind, exception, stack)] ++
+      ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
         [crash_info(min_level, [initial_call | crashed])] ++ crash_linked(min_level, linked)
 
     {:ok, msg}
@@ -354,8 +366,10 @@ defmodule Logger.Translator do
          ],
          linked
        ]) do
+    reason = Exception.normalize(kind, exception, stack)
+
     msg =
-      ["Process ", crash_name(pid, name), " terminating", format(kind, exception, stack)] ++
+      ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
         [crash_info(min_level, crashed), crash_linked(min_level, linked)]
 
     {:ok, msg}
@@ -403,7 +417,6 @@ defmodule Logger.Translator do
   defp crash_debug(:current_stacktrace, stack, prefix) do
     stack_prefix = [prefix | "    "]
     stacktrace = Enum.map(stack, &[stack_prefix | Exception.format_stacktrace_entry(&1)])
-
     [prefix, "Current Stacktrace:" | stacktrace]
   end
 
@@ -433,17 +446,15 @@ defmodule Logger.Translator do
     end)
   end
 
-  defp crash_neighbour(min_level, [{:pid, pid}, {:registered_name, []} | info]) do
-    indent = "    "
+  @indent "    "
 
-    [?\n, indent, inspect(pid) | crash_info(min_level, info, [?\n, indent | indent])]
+  defp crash_neighbour(min_level, [{:pid, pid}, {:registered_name, []} | info]) do
+    [?\n, @indent, inspect(pid) | crash_info(min_level, info, [?\n, @indent | @indent])]
   end
 
   defp crash_neighbour(min_level, [{:pid, pid}, {:registered_name, name} | info]) do
-    indent = "    "
-
-    [?\n, indent, inspect(name), " (", inspect(pid), ")"] ++
-      crash_info(min_level, info, [?\n, indent | indent])
+    [?\n, @indent, inspect(name), " (", inspect(pid), ")"] ++
+      crash_info(min_level, info, [?\n, @indent | @indent])
   end
 
   defp format_last_message_from({_, {name, _}}), do: [" (from ", inspect(name), ")"]
@@ -457,28 +468,29 @@ defmodule Logger.Translator do
     do: ["\nClient ", inspect(from), " is remote on node ", inspect(node(from))]
 
   defp format_client_info({_, {name, stacktrace}}),
-    do: ["\nClient ", inspect(name), " is alive\n" | Exception.format_stacktrace(stacktrace)]
+    do: ["\nClient ", inspect(name), " is alive\n" | format_stacktrace(stacktrace)]
 
   defp format_client_info(_),
     do: []
 
-  defp format_stop({maybe_exception, [_ | _] = maybe_stacktrace} = reason) do
+  defp format_reason({maybe_exception, [_ | _] = maybe_stacktrace} = reason) do
     try do
       format_stacktrace(maybe_stacktrace)
     catch
       :error, _ ->
-        format_stop_banner(reason)
+        {format_stop(reason), {reason, []}}
     else
       formatted_stacktrace ->
-        [format_stop_banner(maybe_exception, maybe_stacktrace) | formatted_stacktrace]
+        {formatted, reason} = maybe_normalize(maybe_exception, maybe_stacktrace)
+        {[formatted | formatted_stacktrace], {reason, maybe_stacktrace}}
     end
   end
 
-  defp format_stop(reason) do
-    format_stop_banner(reason)
+  defp format_reason(reason) do
+    {format_stop(reason), {reason, []}}
   end
 
-  defp format_stop_banner(reason) do
+  defp format_stop(reason) do
     ["\n** (stop) " | Exception.format_exit(reason)]
   end
 
@@ -486,7 +498,7 @@ defmodule Logger.Translator do
   # TODO: This clause can be removed when we support only Erlang/OTP 21+.
   @gen_undef [:"module could not be loaded", :"function not exported"]
 
-  defp format_stop_banner(undef, [{mod, fun, args, _info} | _] = stacktrace)
+  defp maybe_normalize(undef, [{mod, fun, args, _info} | _] = stacktrace)
        when undef in @gen_undef and is_atom(mod) and is_atom(fun) do
     cond do
       is_list(args) ->
@@ -496,23 +508,23 @@ defmodule Logger.Translator do
         format_undef(mod, fun, args, undef, stacktrace)
 
       true ->
-        format_stop_banner(undef)
+        {format_stop(undef), undef}
     end
   end
 
-  defp format_stop_banner(reason, stacktrace) do
+  defp maybe_normalize(reason, stacktrace) do
     # If this is already an exception (even an ErlangError), we format it as an
     # exception. Otherwise, we try to normalize it, and if it's normalized as an
     # ErlangError we instead format it as an exit.
     if Exception.exception?(reason) do
-      [?\n | Exception.format_banner(:error, reason, stacktrace)]
+      {[?\n | Exception.format_banner(:error, reason, stacktrace)], reason}
     else
       case Exception.normalize(:error, reason, stacktrace) do
         %ErlangError{} ->
-          format_stop_banner(reason)
+          {format_stop(reason), reason}
 
         exception ->
-          [?\n | Exception.format_banner(:error, exception, stacktrace)]
+          {[?\n | Exception.format_banner(:error, exception, stacktrace)], exception}
       end
     end
   end
@@ -547,7 +559,7 @@ defmodule Logger.Translator do
   end
 
   defp format_client([from, stacktrace]) when is_list(stacktrace) do
-    ["\nClient #{inspect(from)} is alive\n" | Exception.format_stacktrace(stacktrace)]
+    ["\nClient #{inspect(from)} is alive\n" | format_stacktrace(stacktrace)]
   end
 
   defp format_client(_) do
@@ -557,6 +569,6 @@ defmodule Logger.Translator do
   defp format_undef(mod, fun, arity, undef, stacktrace) do
     opts = [module: mod, function: fun, arity: arity, reason: undef]
     exception = UndefinedFunctionError.exception(opts)
-    [?\n | Exception.format_banner(:error, exception, stacktrace)]
+    {[?\n | Exception.format_banner(:error, exception, stacktrace)], exception}
   end
 end
