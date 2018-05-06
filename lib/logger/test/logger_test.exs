@@ -4,10 +4,7 @@ defmodule LoggerTest do
 
   setup_all do
     Logger.configure_backend(:console, metadata: [:application, :module])
-
-    on_exit(fn ->
-      Logger.configure_backend(:console, metadata: [])
-    end)
+    on_exit(fn -> Logger.configure_backend(:console, metadata: []) end)
   end
 
   defp msg_with_meta(text) do

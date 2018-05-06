@@ -91,22 +91,10 @@ defmodule Logger.App do
     is_pid(Process.whereis(:logger))
   end
 
-  @sasl_domain [:beam, :erlang, :otp, :sasl]
-
   defp add_elixir_handler(sasl_reports?) do
-    filters =
-      if sasl_reports? do
-        [
-          remote_gl: {&:logger_filters.remote_gl/2, :stop}
-        ]
-      else
-        [
-          remote_gl: {&:logger_filters.remote_gl/2, :stop},
-          no_sasl: {&:logger_filters.domain/2, {:stop, :starts_with, @sasl_domain}}
-        ]
-      end
-
-    :logger.add_handler(Logger, Logger.ErlangHandler, %{filters: filters})
+    config = %{level: :debug, sasl_reports?: sasl_reports?}
+    :logger.set_logger_config(%{level: :debug})
+    :logger.add_handler(Logger, Logger.ErlangHandler, config)
   end
 
   defp delete_erlang_handler() do

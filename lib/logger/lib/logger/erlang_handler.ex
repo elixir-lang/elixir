@@ -4,6 +4,14 @@ defmodule Logger.ErlangHandler do
   @doc """
   Hook required by `:logger`.
   """
+  def log(%{meta: %{domain: [:beam, :erlang, :otp, :sasl | _]}}, %{sasl_reports?: false}) do
+    :ok
+  end
+
+  def log(%{meta: %{domain: [:supervisor_report]}}, %{sasl_reports?: false}) do
+    :ok
+  end
+
   def log(%{level: level, msg: msg, meta: erl_meta}, _config) do
     level = erlang_level_to_elixir_level(level)
 
@@ -50,7 +58,7 @@ defmodule Logger.ErlangHandler do
 
     metadata =
       case map do
-        %{mfa: {mod, fun, arity}} -> [module: mod, function: {fun, arity}] ++ metadata
+        %{mfa: {mod, fun, arity}} -> [module: mod, function: form_fa(fun, arity)] ++ metadata
         _ -> metadata
       end
 
@@ -69,6 +77,10 @@ defmodule Logger.ErlangHandler do
     metadata
   rescue
     _ -> []
+  end
+
+  defp form_fa(fun, arity) do
+    Atom.to_string(fun) <> "/" <> Integer.to_string(arity)
   end
 
   @doc """
