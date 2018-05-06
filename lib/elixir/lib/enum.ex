@@ -2594,13 +2594,10 @@ defmodule Enum do
 
   """
   @spec to_list(t) :: [element]
-  def to_list(enumerable) when is_list(enumerable) do
-    enumerable
-  end
-
-  def to_list(enumerable) do
-    reverse(enumerable) |> :lists.reverse()
-  end
+  def to_list(enumerable) when is_list(enumerable), do: enumerable
+  def to_list(%_{} = enumerable), do: reverse(enumerable) |> :lists.reverse()
+  def to_list(%{} = enumerable), do: Map.to_list(enumerable)
+  def to_list(enumerable), do: reverse(enumerable) |> :lists.reverse()
 
   @doc """
   Enumerates the `enumerable`, removing all duplicated elements.
