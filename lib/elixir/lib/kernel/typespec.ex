@@ -127,12 +127,9 @@ defmodule Kernel.Typespec do
 
   def deftypespec(kind, expr, line, file, module, pos)
       when kind in [:type, :typep, :opaque] do
-    {set, bag} = :elixir_module.data_tables(module)
+    validate_type_ast!(expr)
 
-    if invalid_type_ast?(expr) do
-      message = message_for_invalid_type_ast(expr, file)
-      raise(ArgumentError, message: message)
-    end
+    {set, bag} = :elixir_module.data_tables(module)
 
     case type_to_signature(expr) do
       {name, arity} when kind == :typep ->
@@ -156,18 +153,16 @@ defmodule Kernel.Typespec do
     store_typespec(bag, :type, {kind, expr, pos})
   end
 
-  defp invalid_type_ast?({:::, _, [{_type_name, _, [{{:., _, _}, _, _}]}, _]}), do: true
-  defp invalid_type_ast?(_), do: false
-
-  defp message_for_invalid_type_ast(expr, file) do
-    {:::, _, [{type_name, _, [{{:., _, _}, [line: line], _}]}, _]} = expr
-
-    """
-    Type definition for `#{type_name}` at #{file}:#{line} is malformed.
-    It appears you are using a concrete type instead of a variable in the type
-    definition.
-    """
+  defp validate_type_ast!({:::, _, [{type_name, _, [{{:., _, _}, _, _}]}, _]}) do
+    raise ArgumentError,
+      message: """
+      Type definition for `#{type_name}` is malformed.
+      It appears you are using a concrete type instead of a variable in the type
+      definition.
+      """
   end
+
+  defp validate_type_ast!(_), do: nil
 
   defp get_typespec(bag, key) do
     :ets.lookup_element(bag, key, 2)
