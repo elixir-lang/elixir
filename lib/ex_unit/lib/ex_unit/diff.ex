@@ -155,38 +155,28 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp format_each_fragment([{:diff, script}], [], _keywords?), do: script
+  defp format_each_fragment([{:diff, script}], [], _keywords?) do
+    script
+  end
 
-  defp format_each_fragment([{kind, elems}], [], keywords?),
-    do: [format_fragment(kind, elems, keywords?)]
+  defp format_each_fragment([{kind, elems}], [], keywords?) do
+    [format_fragment(kind, elems, keywords?)]
+  end
 
   defp format_each_fragment([_, _] = fragments, acc, keywords?) do
     result =
       case fragments do
-        [diff: script1, diff: script2] ->
-          [script1, {:eq, ", "}, script2]
-
-        [{:diff, script}, {kind, elems}] ->
-          [script, {kind, ", "}, format_fragment(kind, elems, keywords?)]
-
-        [{kind, elems}, {:diff, script}] ->
-          [format_fragment(kind, elems, keywords?), {kind, ", "}, script]
-
         [del: elems1, ins: elems2] ->
-          [format_fragment(:del, elems1, keywords?), format_fragment(:ins, elems2, keywords?)]
-
-        [{:eq, elems1}, {kind, elems2}] ->
           [
-            format_fragment(:eq, elems1, keywords?),
-            {kind, ", "},
-            format_fragment(kind, elems2, keywords?)
+            format_fragment(:del, elems1, keywords?),
+            format_fragment(:ins, elems2, keywords?)
           ]
 
-        [{kind, elems1}, {:eq, elems2}] ->
+        [{kind1, elems1}, {kind2, elems2}] ->
           [
-            format_fragment(kind, elems1, keywords?),
-            {kind, ", "},
-            format_fragment(:eq, elems2, keywords?)
+            format_fragment(kind1, elems1, keywords?),
+            script_comma(kind1, kind2),
+            format_fragment(kind2, elems2, keywords?)
           ]
       end
 
@@ -198,8 +188,19 @@ defmodule ExUnit.Diff do
   end
 
   defp format_each_fragment([{kind, elems} | rest], acc, keywords?) do
-    new_acc = [{kind, ", "}, format_fragment(kind, elems, keywords?) | acc]
+    new_acc = [script_comma(kind, kind), format_fragment(kind, elems, keywords?) | acc]
     format_each_fragment(rest, new_acc, keywords?)
+  end
+
+  defp script_comma(:diff, :diff), do: {:eq, ", "}
+  defp script_comma(:diff, kind), do: {kind, ", "}
+  defp script_comma(kind, :diff), do: {kind, ", "}
+  defp script_comma(:eq, kind), do: {kind, ", "}
+  defp script_comma(kind, :eq), do: {kind, ", "}
+  defp script_comma(kind, _), do: {kind, ", "}
+
+  defp format_fragment(:diff, script, _) do
+    script
   end
 
   defp format_fragment(kind, elems, keywords?) do
@@ -212,10 +213,6 @@ defmodule ExUnit.Diff do
     end
 
     {kind, Enum.map_join(elems, ", ", formatter)}
-  end
-
-  defp find_script(envelope, max, _paths, _keywords?) when envelope > max do
-    nil
   end
 
   defp find_script(envelope, max, paths, keywords?) do
@@ -272,9 +269,11 @@ defmodule ExUnit.Diff do
   defp script_keyword_inner({key, val1}, {key, val2}, true),
     do: [{:eq, format_key(key, true)}, script_inner(val1, val2)]
 
-  defp script_keyword_inner(_pair1, _pair2, true), do: nil
+  defp script_keyword_inner(_pair1, _pair2, true),
+    do: nil
 
-  defp script_keyword_inner(elem1, elem2, false), do: script(elem1, elem2)
+  defp script_keyword_inner(elem1, elem2, false),
+    do: script(elem1, elem2)
 
   defp move_right({x, x, [elem1 | rest1] = list1, [elem2 | rest2], edits}, keywords?) do
     if result = script_keyword_inner(elem1, elem2, keywords?) do
