@@ -129,6 +129,11 @@ defmodule Kernel.Typespec do
       when kind in [:type, :typep, :opaque] do
     {set, bag} = :elixir_module.data_tables(module)
 
+    if invalid_type_ast?(expr) do
+      message = message_for_invalid_type_ast(expr, file)
+      raise(ArgumentError, message: message)
+    end
+
     case type_to_signature(expr) do
       {name, arity} when kind == :typep ->
         {line, doc} = get_doc_info(set, :typedoc, line)
@@ -149,6 +154,19 @@ defmodule Kernel.Typespec do
     end
 
     store_typespec(bag, :type, {kind, expr, pos})
+  end
+
+  defp invalid_type_ast?({:::, _, [{_type_name, _, [{{:., _, _}, _, _}]}, _]}), do: true
+  defp invalid_type_ast?(_), do: false
+
+  defp message_for_invalid_type_ast(expr, file) do
+    {:::, _, [{type_name, _, [{{:., _, _}, [line: line], _}]}, _]} = expr
+
+    """
+    Type definition for `#{type_name}` at #{file}:#{line} is malformed.
+    It appears you are using a concrete type instead of a variable in the type
+    definition.
+    """
   end
 
   defp get_typespec(bag, key) do

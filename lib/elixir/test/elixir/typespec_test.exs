@@ -907,6 +907,17 @@ defmodule TypespecTest do
       end)
     end
 
+    test "badarg error" do
+      assert_raise ArgumentError, ~r/hello/, fn ->
+        test_module do
+          @type hello(String.t()) :: String.t()
+          def hello(world) do
+            world
+          end
+        end
+      end
+    end
+
     test "retrieval invalid data" do
       assert Code.Typespec.fetch_types(Unknown) == :error
       assert Code.Typespec.fetch_specs(Unknown) == :error
