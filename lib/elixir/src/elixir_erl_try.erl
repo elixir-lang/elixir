@@ -40,20 +40,20 @@ each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
 each_clause({rescue, Meta, [{VarName, _, Context} = Left], Expr}, S) when is_atom(VarName), is_atom(Context) ->
   {TempName, _, CS} = elixir_erl_var:build('_', S),
   TempVar = {TempName, Meta, ?var_context},
-  Body = normalize_rescue(Meta, TempVar, Left, Expr, catch_all),
+  Body = normalize_rescue(Meta, TempVar, Left, Expr, ['Elixir.ErlangError']),
   build_rescue(Meta, [{TempVar, []}], Body, CS).
 
 normalize_rescue(_Meta, _Var, {'_', _, Atom}, Expr, _) when is_atom(Atom) ->
   Expr;
 normalize_rescue(Meta, Var, Pattern, Expr, []) ->
   prepend_to_block(Meta, {'=', Meta, [Pattern, Var]}, Expr);
-normalize_rescue(Meta, Var, Pattern, Expr, CatchAllOrErlangAliases) ->
+normalize_rescue(Meta, Var, Pattern, Expr, ErlangAliases) ->
   Stacktrace =
-    case CatchAllOrErlangAliases of
-      catch_all ->
+    case lists:member('Elixir.ErlangError', ErlangAliases) of
+      true ->
         dynamic_normalize(Meta, Var, normalize_with_stacktrace());
 
-      ErlangAliases ->
+      false ->
         case lists:splitwith(fun is_normalized_with_stacktrace/1, ErlangAliases) of
           {[], _} -> [];
           {_, []} -> {'__STACKTRACE__', Meta, nil};
@@ -67,8 +67,8 @@ normalize_rescue(Meta, Var, Pattern, Expr, CatchAllOrErlangAliases) ->
 dynamic_normalize(Meta, Var, [H | T]) ->
   Guards =
     lists:foldl(fun(Alias, Acc) ->
-      {'when', Meta, [erl_rescue_guard_for(Meta, Var, Alias), Acc]}
-    end, erl_rescue_guard_for(Meta, Var, H), T),
+      {'when', Meta, [erl_rescue_stacktrace_for(Meta, Var, Alias), Acc]}
+    end, erl_rescue_stacktrace_for(Meta, Var, H), T),
 
   {'case', Meta, [
     Var,
@@ -79,7 +79,16 @@ dynamic_normalize(Meta, Var, [H | T]) ->
   ]}.
 
 normalize_with_stacktrace() ->
-  ['Elixir.FunctionClauseError', 'Elixir.UndefinedFunctionError', 'Elixir.KeyError', 'Elixir.ErlangError'].
+  ['Elixir.FunctionClauseError', 'Elixir.UndefinedFunctionError', 'Elixir.KeyError'].
+
+erl_rescue_stacktrace_for(_Meta, _Var, 'Elixir.ErlangError') ->
+  %% ErlangError is a "meta" exception, we should never expand it here.
+  error(badarg);
+erl_rescue_stacktrace_for(Meta, Var, 'Elixir.KeyError') ->
+  %% Only the two element tuple requires stacktrace.
+  erl_and(Meta, erl_tuple_size(Meta, Var, 2), erl_record_compare(Meta, Var, badkey));
+erl_rescue_stacktrace_for(Meta, Var, Module) ->
+  erl_rescue_guard_for(Meta, Var, Module).
 
 is_normalized_with_stacktrace(Module) ->
   lists:member(Module, normalize_with_stacktrace()).
