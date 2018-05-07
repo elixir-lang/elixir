@@ -924,22 +924,22 @@ assert_generator_start(Meta, _, E) ->
 
 refute_parallel_bitstring_match({'<<>>', _, _}, {'<<>>', Meta, _} = Arg, E, true) ->
   form_error(Meta, ?key(E, file), ?MODULE, {parallel_bitstring_match, Arg});
-refute_parallel_bitstring_match(Expr, {'=', _Meta, [Left, Right]}, E, Parallel) ->
-  refute_parallel_bitstring_match(Expr, Left, E, true),
-  refute_parallel_bitstring_match(Expr, Right, E, Parallel);
-refute_parallel_bitstring_match([_ | _] = Expr, [_ | _] = Arg, E, Parallel) ->
-  refute_parallel_bitstring_match_each(Expr, Arg, E, Parallel);
+refute_parallel_bitstring_match(Left, {'=', _Meta, [MatchLeft, MatchRight]}, E, Parallel) ->
+  refute_parallel_bitstring_match(Left, MatchLeft, E, true),
+  refute_parallel_bitstring_match(Left, MatchRight, E, Parallel);
+refute_parallel_bitstring_match([_ | _] = Left, [_ | _] = Right, E, Parallel) ->
+  refute_parallel_bitstring_match_each(Left, Right, E, Parallel);
 refute_parallel_bitstring_match({Left1, Left2}, {Right1, Right2}, E, Parallel) ->
   refute_parallel_bitstring_match_each([Left1, Left2], [Right1, Right2], E, Parallel);
 refute_parallel_bitstring_match({'{}', _, Args1}, {'{}', _, Args2}, E, Parallel) ->
   refute_parallel_bitstring_match_each(Args1, Args2, E, Parallel);
 refute_parallel_bitstring_match({'%{}', _, Args1}, {'%{}', _, Args2}, E, Parallel) ->
   refute_parallel_bitstring_match_map_field(lists:sort(Args1), lists:sort(Args2), E, Parallel);
-refute_parallel_bitstring_match({'%', _, [_, Args]}, Arg, E, Parallel) ->
-  refute_parallel_bitstring_match(Args, Arg, E, Parallel);
-refute_parallel_bitstring_match(Expr, {'%', _, [_, Args]}, E, Parallel) ->
-  refute_parallel_bitstring_match(Expr, Args, E, Parallel);
-refute_parallel_bitstring_match(_Expr, _Arg, _E, _Parallel) ->
+refute_parallel_bitstring_match({'%', _, [_, Args]}, Right, E, Parallel) ->
+  refute_parallel_bitstring_match(Args, Right, E, Parallel);
+refute_parallel_bitstring_match(Left, {'%', _, [_, Args]}, E, Parallel) ->
+  refute_parallel_bitstring_match(Left, Args, E, Parallel);
+refute_parallel_bitstring_match(_Left, _Right, _E, _Parallel) ->
   ok.
 
 refute_parallel_bitstring_match_each([Arg1 | Rest1], [Arg2 | Rest2], E, Parallel) ->
@@ -948,8 +948,8 @@ refute_parallel_bitstring_match_each([Arg1 | Rest1], [Arg2 | Rest2], E, Parallel
 refute_parallel_bitstring_match_each(_List1, _List2, _E, _Parallel) ->
   ok.
 
-refute_parallel_bitstring_match_map_field([{Key, Arg1} | Rest1], [{Key, Arg2} | Rest2], E, Parallel) ->
-  refute_parallel_bitstring_match(Arg1, Arg2, E, Parallel),
+refute_parallel_bitstring_match_map_field([{Key, Val1} | Rest1], [{Key, Val2} | Rest2], E, Parallel) ->
+  refute_parallel_bitstring_match(Val1, Val2, E, Parallel),
   refute_parallel_bitstring_match_map_field(Rest1, Rest2, E, Parallel);
 refute_parallel_bitstring_match_map_field([Field1 | Rest1] = Args1, [Field2 | Rest2] = Args2, E, Parallel) ->
   case Field1 > Field2 of
