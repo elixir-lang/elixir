@@ -4,42 +4,11 @@ defmodule LoggerTest do
 
   setup_all do
     Logger.configure_backend(:console, metadata: [:application, :module])
-
-    on_exit(fn ->
-      Logger.configure_backend(:console, metadata: [])
-    end)
+    on_exit(fn -> Logger.configure_backend(:console, metadata: []) end)
   end
 
   defp msg_with_meta(text) do
     msg("module=LoggerTest #{text}")
-  end
-
-  test "add_translator/1 and remove_translator/1" do
-    defmodule CustomTranslator do
-      def t(:debug, :info, :format, {'hello: ~p', [:ok]}) do
-        :skip
-      end
-
-      def t(:debug, :info, :format, {'world: ~p', [:ok]}) do
-        {:ok, "rewritten"}
-      end
-
-      def t(_, _, _, _) do
-        :none
-      end
-    end
-
-    assert Logger.add_translator({CustomTranslator, :t})
-
-    assert capture_log(fn ->
-             :error_logger.info_msg('hello: ~p', [:ok])
-           end) == ""
-
-    assert capture_log(fn ->
-             :error_logger.info_msg('world: ~p', [:ok])
-           end) =~ "\[info\]  rewritten"
-  after
-    assert Logger.remove_translator({CustomTranslator, :t})
   end
 
   test "add_backend/1 and remove_backend/1" do
