@@ -8,7 +8,8 @@
 expand({'=', Meta, [Left, Right]}, E) ->
   assert_no_guard_scope(Meta, "=", E),
   {ERight, ER} = expand(Right, E),
-  {ELeft, EL}  = elixir_clauses:match(fun expand/2, Left, E),
+  {ELeft, EL} = elixir_clauses:match(fun expand/2, Left, E),
+  refute_parallel_bitstring_match(ELeft, ERight, E, ?key(E, context) == match),
   {{'=', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
 
 %% Literal operators
@@ -921,6 +922,45 @@ assert_generator_start(Meta, _, E) ->
 
 %% Assertions
 
+refute_parallel_bitstring_match({'<<>>', _, _}, {'<<>>', Meta, _} = Arg, E, true) ->
+  form_error(Meta, ?key(E, file), ?MODULE, {parallel_bitstring_match, Arg});
+refute_parallel_bitstring_match(Left, {'=', _Meta, [MatchLeft, MatchRight]}, E, Parallel) ->
+  refute_parallel_bitstring_match(Left, MatchLeft, E, true),
+  refute_parallel_bitstring_match(Left, MatchRight, E, Parallel);
+refute_parallel_bitstring_match([_ | _] = Left, [_ | _] = Right, E, Parallel) ->
+  refute_parallel_bitstring_match_each(Left, Right, E, Parallel);
+refute_parallel_bitstring_match({Left1, Left2}, {Right1, Right2}, E, Parallel) ->
+  refute_parallel_bitstring_match_each([Left1, Left2], [Right1, Right2], E, Parallel);
+refute_parallel_bitstring_match({'{}', _, Args1}, {'{}', _, Args2}, E, Parallel) ->
+  refute_parallel_bitstring_match_each(Args1, Args2, E, Parallel);
+refute_parallel_bitstring_match({'%{}', _, Args1}, {'%{}', _, Args2}, E, Parallel) ->
+  refute_parallel_bitstring_match_map_field(lists:sort(Args1), lists:sort(Args2), E, Parallel);
+refute_parallel_bitstring_match({'%', _, [_, Args]}, Right, E, Parallel) ->
+  refute_parallel_bitstring_match(Args, Right, E, Parallel);
+refute_parallel_bitstring_match(Left, {'%', _, [_, Args]}, E, Parallel) ->
+  refute_parallel_bitstring_match(Left, Args, E, Parallel);
+refute_parallel_bitstring_match(_Left, _Right, _E, _Parallel) ->
+  ok.
+
+refute_parallel_bitstring_match_each([Arg1 | Rest1], [Arg2 | Rest2], E, Parallel) ->
+  refute_parallel_bitstring_match(Arg1, Arg2, E, Parallel),
+    refute_parallel_bitstring_match_each(Rest1, Rest2, E, Parallel);
+refute_parallel_bitstring_match_each(_List1, _List2, _E, _Parallel) ->
+  ok.
+
+refute_parallel_bitstring_match_map_field([{Key, Val1} | Rest1], [{Key, Val2} | Rest2], E, Parallel) ->
+  refute_parallel_bitstring_match(Val1, Val2, E, Parallel),
+  refute_parallel_bitstring_match_map_field(Rest1, Rest2, E, Parallel);
+refute_parallel_bitstring_match_map_field([Field1 | Rest1] = Args1, [Field2 | Rest2] = Args2, E, Parallel) ->
+  case Field1 > Field2 of
+    true ->
+      refute_parallel_bitstring_match_map_field(Args1, Rest2, E, Parallel);
+    false ->
+      refute_parallel_bitstring_match_map_field(Rest1, Args2, E, Parallel)
+  end;
+refute_parallel_bitstring_match_map_field(_Args1, _Args2, _E, _Parallel) ->
+  ok.
+
 assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_expr_in_scope, "module", Kind});
 assert_module_scope(_Meta, _Kind, #{module:=Module}) -> Module.
@@ -1110,4 +1150,8 @@ format_error({struct_comparison, StructExpr}) ->
 format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
 format_error(stacktrace_not_allowed) ->
-  "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions".
+  "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions";
+format_error({parallel_bitstring_match, Expr}) ->
+  Message =
+    "binary patterns cannot be matched in parallel using \"=\", excess pattern: ~ts",
+  io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]).
