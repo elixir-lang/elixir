@@ -367,7 +367,7 @@ defmodule DynamicSupervisorTest do
       assert %{workers: 4, active: 2} = DynamicSupervisor.count_children(pid)
     end
 
-    test "restarting children counted in max_children" do
+    test "restarting on init children counted in max_children" do
       child = current_module_worker([:restart, :error], restart: :permanent)
       opts = [strategy: :one_for_one, max_children: 1, max_restarts: 100_000]
       {:ok, pid} = DynamicSupervisor.start_link(opts)
@@ -377,6 +377,19 @@ defmodule DynamicSupervisorTest do
       assert %{workers: 1, active: 0} = DynamicSupervisor.count_children(pid)
 
       child = current_module_worker([:restart, :ok2], restart: :permanent)
+      assert {:error, :max_children} = DynamicSupervisor.start_child(pid, child)
+    end
+
+    test "restarting on exit children counted in max_children" do
+      child = current_module_worker([:ok2], restart: :permanent)
+      opts = [strategy: :one_for_one, max_children: 1, max_restarts: 100_000]
+      {:ok, pid} = DynamicSupervisor.start_link(opts)
+
+      assert {:ok, child_pid} = DynamicSupervisor.start_child(pid, child)
+      assert_kill(child_pid, :shutdown)
+      assert %{workers: 1, active: 1} = DynamicSupervisor.count_children(pid)
+
+      child = current_module_worker([:ok2], restart: :permanent)
       assert {:error, :max_children} = DynamicSupervisor.start_child(pid, child)
     end
 
