@@ -179,7 +179,6 @@ defmodule DynamicSupervisor do
     :max_restarts,
     :max_seconds,
     children: %{},
-    dynamic: 0,
     restarts: []
   ]
 
@@ -625,10 +624,10 @@ defmodule DynamicSupervisor do
   end
 
   def handle_call({:start_child, child}, _from, state) do
-    %{dynamic: dynamic, max_children: max_children} = state
+    %{children: children, max_children: max_children} = state
 
-    if dynamic < max_children do
-      handle_start_child(child, %{state | dynamic: dynamic + 1})
+    if map_size(children) < max_children do
+      handle_start_child(child, state)
     else
       {:reply, {:error, :max_children}, state}
     end
@@ -645,7 +644,7 @@ defmodule DynamicSupervisor do
         {:reply, reply, save_child(pid, mfa, restart, shutdown, type, modules, state)}
 
       _ ->
-        {:reply, reply, update_in(state.dynamic, &(&1 - 1))}
+        {:reply, reply, state}
     end
   end
 
@@ -664,13 +663,13 @@ defmodule DynamicSupervisor do
     end
   end
 
-  defp save_child(pid, {m, f, _}, :temporary, shutdown, type, modules, state) do
-    put_in(state.children[pid], {{m, f, :undefined}, :temporary, shutdown, type, modules})
-  end
-
   defp save_child(pid, mfa, restart, shutdown, type, modules, state) do
+    mfa = mfa_for_restart(mfa, restart)
     put_in(state.children[pid], {mfa, restart, shutdown, type, modules})
   end
+
+  defp mfa_for_restart({m, f, _}, :temporary), do: {m, f, :undefined}
+  defp mfa_for_restart(mfa, _), do: mfa
 
   defp exit_reason(:exit, reason, _), do: reason
   defp exit_reason(:error, reason, stack), do: {reason, stack}
@@ -888,9 +887,8 @@ defmodule DynamicSupervisor do
     {:ok, delete_child(pid, state)}
   end
 
-  defp delete_child(pid, state) do
-    %{children: children, dynamic: dynamic} = state
-    %{state | children: Map.delete(children, pid), dynamic: dynamic - 1}
+  defp delete_child(pid, %{children: children} = state) do
+    %{state | children: Map.delete(children, pid)}
   end
 
   defp restart_child(pid, child, state) do
