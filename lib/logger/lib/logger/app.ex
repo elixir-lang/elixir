@@ -28,8 +28,10 @@ defmodule Logger.App do
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        handlers = [error_logger_tty_h: otp_reports?, sasl_report_tty_h: sasl_reports?]
-        delete_handlers(handlers)
+        if otp_reports? or sasl_reports? do
+          delete_handlers(otp_reports?, sasl_reports?)
+        end
+
         {:ok, sup, config}
 
       {:error, _} = error ->
@@ -45,9 +47,7 @@ defmodule Logger.App do
 
   @doc false
   def stop(config) do
-    Logger.Config.deleted_handlers()
-    |> add_handlers()
-
+    add_handlers(Logger.Config.deleted_handlers())
     Logger.Config.delete(config)
   end
 
@@ -73,17 +73,33 @@ defmodule Logger.App do
     end
   end
 
-  defp delete_handlers(handlers) do
-    to_delete =
-      for {handler, delete?} <- handlers,
-          delete? && :error_logger.delete_report_handler(handler) != {:error, :module_not_found},
-          do: handler
+  defp delete_handlers(otp_reports?, sasl_reports?) do
+    deleted =
+      if is_pid(Process.whereis(:logger)) and Code.ensure_loaded?(:logger) do
+        with {:ok, {module, config}} <- :logger.get_handler_config(:logger_std_h),
+             :ok <- :logger.remove_handler(:logger_std_h) do
+          [{:logger_std_h, module, config}]
+        else
+          _ -> []
+        end
+      else
+        for {tty, true} <- [error_logger_tty_h: otp_reports?, sasl_report_tty_h: sasl_reports?],
+            :error_logger.delete_report_handler(tty) != {:error, :module_not_found},
+            do: tty
+      end
 
-    [] = Logger.Config.deleted_handlers(to_delete)
+    [] = Logger.Config.deleted_handlers(deleted)
     :ok
   end
 
   defp add_handlers(handlers) do
-    Enum.each(handlers, &:error_logger.add_report_handler/1)
+    for handler <- handlers do
+      case handler do
+        {handler, module, config} -> :logger.add_handler(handler, module, config)
+        handler -> :error_logger.add_report_handler(handler)
+      end
+    end
+
+    :ok
   end
 end

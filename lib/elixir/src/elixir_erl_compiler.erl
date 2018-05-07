@@ -63,6 +63,7 @@ handle_file_warning(_, _File, {_Line, erl_lint, {undefined_behaviour_func, _, _}
 handle_file_warning(_, _File, {_Line, erl_lint, {undefined_behaviour, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_behaviour_callbacks, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {ill_defined_optional_callbacks, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {deprecated,{erlang,get_stacktrace,0},_}}) -> ok;
 
 handle_file_warning(_, File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
