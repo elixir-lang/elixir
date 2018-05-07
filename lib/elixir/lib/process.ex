@@ -395,6 +395,9 @@ defmodule Process do
     * `object` is either a `pid` of the monitored process (if monitoring
       a PID) or `{name, node}` (if monitoring a remote or local name);
     * `reason` is the exit reason.
+    
+  If the process is already dead when calling `Process.monitor/1`, a
+  `:DOWN` message is delivered immediately.
 
   See [the need for monitoring](http://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
   for an example. See `:erlang.monitor/2` for more info.
