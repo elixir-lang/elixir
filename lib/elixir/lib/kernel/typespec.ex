@@ -227,7 +227,7 @@ defmodule Kernel.Typespec do
     spec = typespec(definition, vars, caller)
     vars = for {:var, _, _} = var <- args, do: var
     type = {name, spec, vars}
-    arity = length(vars)
+    arity = length(args)
 
     {kind, export} =
       case kind do
@@ -240,6 +240,18 @@ defmodule Kernel.Typespec do
       compile_error(caller, "type #{name}/#{arity} is a builtin type and it cannot be redefined")
     end
 
+    invalid_args = Enum.reject(args, &valid_variable_ast?/1)
+
+    unless invalid_args == [] do
+      invalid_args = invalid_args |> Enum.map(&Macro.to_string/1) |> Enum.join(", ")
+
+      message =
+        "@type definitions expect all arguments to be variables. The type " <>
+          "#{name}/#{arity} has an invalid argument(s): #{invalid_args}"
+
+      compile_error(caller, message)
+    end
+
     {kind, {name, arity}, caller.line, type, export}
   end
 
@@ -248,6 +260,12 @@ defmodule Kernel.Typespec do
     type_spec = Macro.to_string(other)
     compile_error(caller, "invalid type specification: #{type_spec}")
   end
+
+  defp valid_variable_ast?({variable_name, _, atom})
+       when is_atom(variable_name) and is_atom(atom),
+       do: true
+
+  defp valid_variable_ast?(_), do: false
 
   defp translate_spec({kind, {{:when, _meta, [spec, guard]}, pos}}) do
     caller = :elixir_locals.get_cached_env(pos)
@@ -735,7 +753,9 @@ defmodule Kernel.Typespec do
     {:type, line(meta), :product, args}
   end
 
-  defp variable({name, meta, _}) do
+  defp variable({name, meta, args}) when is_atom(name) and is_atom(args) do
     {:var, line(meta), name}
   end
+
+  defp variable(expr), do: expr
 end
