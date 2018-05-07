@@ -14,7 +14,7 @@ defmodule Tuple do
   Tuples store elements contiguously in memory. This means accessing a
   tuple element by index doesn't depend on the number of elements in the
   tuple. We say the operation is done in constant-time, via the
-  `Kernel.elem/1` function:
+  `Kernel.elem/2` function:
 
       iex> tuple = {1, :two, "three"}
       iex> elem(tuple, 0)
