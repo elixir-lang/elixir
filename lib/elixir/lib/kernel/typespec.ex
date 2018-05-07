@@ -127,8 +127,6 @@ defmodule Kernel.Typespec do
 
   def deftypespec(kind, expr, line, file, module, pos)
       when kind in [:type, :typep, :opaque] do
-    validate_type_ast!(expr)
-
     {set, bag} = :elixir_module.data_tables(module)
 
     case type_to_signature(expr) do
@@ -152,17 +150,6 @@ defmodule Kernel.Typespec do
 
     store_typespec(bag, :type, {kind, expr, pos})
   end
-
-  defp validate_type_ast!({:::, _, [{type_name, _, [{{:., _, _}, _, _}]}, _]}) do
-    raise ArgumentError,
-      message: """
-      Type definition for `#{type_name}` is malformed.
-      It appears you are using a concrete type instead of a variable in the type
-      definition.
-      """
-  end
-
-  defp validate_type_ast!(_), do: nil
 
   defp get_typespec(bag, key) do
     :ets.lookup_element(bag, key, 2)
@@ -225,8 +212,9 @@ defmodule Kernel.Typespec do
     :ets.take(bag, key)
   end
 
-  defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}})
+  defp translate_type({_, {kind, expr = {:::, _, [{name, _, args}, definition]}, pos}})
        when is_atom(name) and name != ::: do
+    validate_type_ast!(expr)
     caller = :elixir_locals.get_cached_env(pos)
 
     args =
@@ -261,6 +249,27 @@ defmodule Kernel.Typespec do
     type_spec = Macro.to_string(other)
     compile_error(caller, "invalid type specification: #{type_spec}")
   end
+
+  defp validate_type_ast!({:::, _, [{type_name, _, arguments}, _]}) when is_list(arguments) do
+    unless Enum.all?(arguments, &valid_variable_ast?/1) do
+      raise ArgumentError,
+        message: """
+        Type definition for `#{type_name}` is malformed.
+        It appears you are using a concrete type instead of a variable in the type
+        definition.
+        """
+    end
+  end
+
+  defp validate_type_ast!(_), do: nil
+
+  defp valid_variable_ast?({variable_name, _, nil}) when is_atom(variable_name), do: true
+
+  defp valid_variable_ast?({variable_name, _, module})
+       when is_atom(variable_name) and is_atom(module),
+       do: true
+
+  defp valid_variable_ast?(_), do: false
 
   defp translate_spec({kind, {{:when, _meta, [spec, guard]}, pos}}) do
     caller = :elixir_locals.get_cached_env(pos)

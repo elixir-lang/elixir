@@ -907,13 +907,22 @@ defmodule TypespecTest do
       end)
     end
 
-    test "badarg error" do
-      assert_raise ArgumentError, ~r/hello/, fn ->
+    test "fails with a helpful error when non-variables are given as arguments" do
+      assert_raise ArgumentError, ~r/one_bad_variable/, fn ->
         test_module do
-          @type hello(String.t()) :: String.t()
-          def hello(world) do
-            world
-          end
+          @type one_bad_variable(String.t()) :: String.t()
+        end
+      end
+
+      assert_raise ArgumentError, ~r/two_bad_variables/, fn ->
+        test_module do
+          @type two_bad_variables(:ok, Enum.t()) :: {:ok, []}
+        end
+      end
+
+      assert_raise ArgumentError, ~r/one_bad_one_good/, fn ->
+        test_module do
+          @type one_bad_one_good(input1, "") :: {:ok, input1}
         end
       end
     end
