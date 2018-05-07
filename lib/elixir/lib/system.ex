@@ -445,14 +445,19 @@ defmodule System do
   end
 
   @doc """
-  Last exception stacktrace.
+  Deprecated mechanism to retrieve the last exception stacktrace.
+
+  Accessing the stacktrace outside of a rescue/catch is deprecated.
+  If you want to support only Elixir v1.7+, you must access
+  `__STACKTRACE__/0` inside a rescue/catch. If you want to support
+  earlier Elixir versions, move `System.stacktrace/0` inside a rescue/catch.
 
   Note that the Erlang VM (and therefore this function) does not
   return the current stacktrace but rather the stacktrace of the
   latest exception.
-
-  Inlined by the compiler.
   """
+  # TODO: Fully deprecate it on Elixir v1.9.
+  # It is currently partially deprecated in elixir_dispatch.erl
   def stacktrace do
     :erlang.get_stacktrace()
   end

@@ -238,10 +238,8 @@ defmodule Access do
 
   defmacrop raise_undefined_behaviour(exception, module, top) do
     quote do
-      stacktrace = System.stacktrace()
-
       exception =
-        case stacktrace do
+        case __STACKTRACE__ do
           [unquote(top) | _] ->
             reason = "#{inspect(unquote(module))} does not implement the Access behaviour"
             %{unquote(exception) | reason: reason}
@@ -250,7 +248,7 @@ defmodule Access do
             unquote(exception)
         end
 
-      reraise exception, stacktrace
+      reraise exception, __STACKTRACE__
     end
   end
 

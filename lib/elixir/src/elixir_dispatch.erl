@@ -329,11 +329,24 @@ elixir_imported_macros() ->
 
 %% Inline common cases.
 check_deprecation(Meta, ?kernel, to_char_list, 1, E) ->
-  elixir_errors:warn(?line(Meta), ?key(E, file), "Use Kernel.to_charlist/1 instead");
+  Message = "Kernel.to_char_list/1 is deprecated. Use Kernel.to_charlist/1 instead",
+  elixir_errors:warn(?line(Meta), ?key(E, file), Message);
 check_deprecation(_, ?kernel, _, _, _) ->
   ok;
 check_deprecation(_, erlang, _, _, _) ->
   ok;
+check_deprecation(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars} = E) ->
+  case lists:member('__STACKTRACE__', Vars) of
+    true ->
+      ok;
+    false ->
+      Message =
+        "System.stacktrace/0 outside of rescue/catch clauses is deprecated. "
+          "If you want to support only Elixir v1.7+, you must access __STACKTRACE__ "
+          "inside a rescue/catch. If you want to support earlier Elixir versions, "
+          "move System.stacktrace/0 inside a rescue/catch",
+      elixir_errors:warn(?line(Meta), ?key(E, file), Message)
+  end;
 check_deprecation(Meta, Receiver, Name, Arity, E) ->
   case (get(elixir_compiler_dest) == undefined) andalso is_module_loaded(Receiver) andalso
         erlang:function_exported(Receiver, '__info__', 1) andalso get_deprecations(Receiver) of

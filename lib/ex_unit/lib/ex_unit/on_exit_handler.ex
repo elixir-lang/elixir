@@ -141,6 +141,6 @@ defmodule ExUnit.OnExitHandler do
     nil
   catch
     kind, error ->
-      {kind, error, System.stacktrace()}
+      {kind, error, __STACKTRACE__}
   end
 end

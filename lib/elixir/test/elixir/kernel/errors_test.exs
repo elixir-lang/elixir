@@ -808,12 +808,10 @@ defmodule Kernel.ErrorsTest do
       bad_remote_call(1)
     rescue
       ArgumentError ->
-        stack = System.stacktrace()
-
         assert [
                  {:erlang, :apply, [1, :foo, []], []},
                  {__MODULE__, :bad_remote_call, 1, [file: _, line: _]} | _
-               ] = stack
+               ] = __STACKTRACE__
     end
   end
 
@@ -846,14 +844,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   defp rescue_stacktrace(string) do
-    stacktrace =
-      try do
-        Code.eval_string(string)
-        nil
-      rescue
-        _ -> System.stacktrace()
-      end
-
-    stacktrace || flunk("Expected expression to fail")
+    try do
+      Code.eval_string(string)
+      nil
+    rescue
+      _ -> __STACKTRACE__
+    else
+      _ -> flunk("Expected expression to fail")
+    end
   end
 end
