@@ -123,7 +123,9 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
-## v1.6.5
+## v1.6.5 (2018-05-07)
+
+This release supports Erlang/OTP 21.0-rc by removing all warnings and by properly redirecting logger output. Note it is not guaranteed it will support Erlang/OTP 21.0 final.
 
 ### 1. Bug fixes
 
@@ -136,6 +138,7 @@ Other improvements in Mix include better compiler diagnostics for editor integra
   * [Macro] Make sure `Macro.to_string/2` emits valid quoted expressions
   * [Task] Support `:infinity` timeout on `Task.yield_many/2`
   * [Task.Supervisor] Do not crash spawning supervised tasks when the parent process is dead
+  * [URI] Fix parsing of URIs with trailing `?`
 
 ## v1.6.4 (2018-03-16)
 
