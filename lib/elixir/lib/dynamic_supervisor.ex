@@ -408,7 +408,7 @@ defmodule DynamicSupervisor do
 
   The map contains the following keys:
 
-    * `:specs` - always 1 as dynamic supervisors have a single specification
+    * `:specs` - the number of children processes
 
     * `:active` - the count of all actively running child processes managed by
       this supervisor
