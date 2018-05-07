@@ -16,8 +16,10 @@ defmodule Logger do
       performant when required but also apply backpressure
       when under stress.
 
-    * Wraps Erlang's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
-      to prevent it from overflowing.
+    * Plugs into Erlang's [`:logger`](http://erlang.org/doc/man/logger.html)
+      (from Erlang/OTP 21) to convert terms to Elixir syntax or wraps
+      Erlang's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+      in earlier Erlang/OTP versions to prevent it from overflowing.
 
   Logging is useful for tracking when an event of interest happens in your
   system. For example, it may be helpful to log whenever a user is deleted.
@@ -62,8 +64,8 @@ defmodule Logger do
     * Runtime configuration - can be set before the `:logger`
       application is started, but may be changed during runtime
 
-    * Error logger configuration - configuration for the
-      wrapper around Erlangs's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
+    * Erlang configuration - options that handle integration with
+      Erlang's logging facilities
 
   ### Application configuration
 
@@ -152,19 +154,24 @@ defmodule Logger do
   ### Error logger configuration
 
   The following configuration applies to `Logger`'s wrapper around
-  Erlang's [`:error_logger`](http://erlang.org/doc/man/error_logger.html).
-  All the configurations below must be set before the `:logger` application starts.
+  Erlang's logging functionalities. All the configurations below must
+  be set before the `:logger` application starts.
 
     * `:handle_otp_reports` - redirects OTP reports to `Logger` so
-      they are formatted in Elixir terms. This uninstalls Erlang's
-      logger that prints terms to terminal. Defaults to `true`.
+      they are formatted in Elixir terms. This effectively disables
+      Erlang standard logger. Defaults to `true`.
 
     * `:handle_sasl_reports` - redirects supervisor, crash and
       progress reports to `Logger` so they are formatted in Elixir
       terms. Your application must guarantee `:sasl` is started before
       `:logger`. This means you may see some initial reports written
-      in Erlang syntax until the Logger application kicks in and
-      uninstalls SASL's logger in favor of its own. Defaults to `false`.
+      in Erlang syntax until the Logger application kicks in.
+      Defaults to `false`.
+
+  From Erlang/OTP 21, `:handle_sasl_reports` only has an effect if
+  `:handle_otp_reports` is true.
+
+  The following configurations apply only for Erlang/OTP 20 and earlier:
 
     * `:discard_threshold_for_error_logger` - if `:error_logger` has more than
       `discard_threshold` messages in its inbox, messages will be dropped
@@ -176,19 +183,17 @@ defmodule Logger do
       375 (0.75 * threshold) entries and 50 (0.1 * threshold) messages will
       be processed before the threshold is checked once again.
 
-  For example, to configure `Logger` to redirect all
-  [`:error_logger`](http://erlang.org/doc/man/error_logger.html) messages
-  using a `config/config.exs` file:
+  For example, to configure `Logger` to redirect all Erlang messages using a
+  `config/config.exs` file:
 
       config :logger,
         handle_otp_reports: true,
         handle_sasl_reports: true
 
-  Furthermore, `Logger` allows messages sent by Erlang's `:error_logger`
-  to be translated into an Elixir format via translators. Translators
-  can be dynamically added at any time with the `add_translator/1`
-  and `remove_translator/1` APIs. Check `Logger.Translator` for more
-  information.
+  Furthermore, `Logger` allows messages sent by Erlang to be translated
+  into an Elixir format via translators. Translators can be added at any
+  time with the `add_translator/1` and `remove_translator/1` APIs. Check
+  `Logger.Translator` for more information.
 
   ## Backends
 
@@ -530,7 +535,7 @@ defmodule Logger do
   """
   @spec flush :: :ok
   def flush do
-    _ = :gen_event.which_handlers(:error_logger)
+    _ = Process.whereis(:error_logger) && :gen_event.which_handlers(:error_logger)
     :gen_event.sync_notify(Logger, :flush)
   end
 
@@ -540,8 +545,7 @@ defmodule Logger do
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
-      to both `Logger` and Erlangs's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
-      are processed before the backend is added
+      to `Logger` are processed before the backend is added
 
   """
   @spec add_backend(atom, keyword) :: Supervisor.on_start_child()
@@ -567,8 +571,7 @@ defmodule Logger do
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
-      to both `Logger` and Erlangs's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
-      are processed before the backend is removed
+      to both `Logger` are processed before the backend is removed
 
   """
   @spec remove_backend(atom, keyword) :: :ok | {:error, term}
@@ -617,14 +620,17 @@ defmodule Logger do
       when level in @levels and is_list(metadata) do
     case __metadata__() do
       {true, pdict} ->
-        %{mode: mode, truncate: truncate, level: min_level, utc_log: utc_log?} =
-          Logger.Config.__data__()
+        %{
+          mode: mode,
+          truncate: truncate,
+          level: min_level,
+          utc_log: utc_log?
+        } = Logger.Config.__data__()
 
-        if compare_levels(level, min_level) != :lt and mode != :discard do
-          metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
-          {message, metadata} = normalize_message(chardata_or_fun, metadata)
+        with true <- compare_levels(level, min_level) != :lt and mode != :discard,
+             metadata = [pid: self()] ++ Keyword.merge(pdict, metadata),
+             {message, metadata} <- normalize_message(chardata_or_fun, metadata) do
           truncated = truncate(message, truncate)
-
           tuple = {Logger, truncated, Logger.Utils.timestamp(utc_log?), metadata}
 
           try do
@@ -636,7 +642,7 @@ defmodule Logger do
             :exit, reason -> {:error, reason}
           end
         else
-          :ok
+          _ -> :ok
         end
 
       {false, _} ->
@@ -767,14 +773,16 @@ defmodule Logger do
   end
 
   defp normalize_message(fun, metadata) when is_function(fun, 0) do
-    normalize_message(fun.(), metadata)
+    case fun.() do
+      {message, fun_metadata} -> {message, Keyword.merge(metadata, fun_metadata)}
+      :skip -> :skip
+      message -> {message, metadata}
+    end
   end
 
-  defp normalize_message({message, fun_metadata}, metadata) when is_list(fun_metadata) do
-    {message, Keyword.merge(metadata, fun_metadata)}
+  defp normalize_message(message, metadata) do
+    {message, metadata}
   end
-
-  defp normalize_message(message, metadata), do: {message, metadata}
 
   defp truncate(data, n) when is_list(data) or is_binary(data), do: Logger.Utils.truncate(data, n)
   defp truncate(data, n), do: Logger.Utils.truncate(to_string(data), n)

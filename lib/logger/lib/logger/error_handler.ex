@@ -2,6 +2,8 @@ defmodule Logger.ErrorHandler do
   @moduledoc false
   @behaviour :gen_event
 
+  # TODO: Remove this when we require Erlang/OTP 21+.
+
   def init({otp?, sasl?, threshold}) do
     # We store the Logger PID in the state because when we are shutting
     # down the Logger application, the Logger process may be terminated
@@ -83,17 +85,13 @@ defmodule Logger.ErrorHandler do
     %{
       mode: mode,
       level: min_level,
-      truncate: truncate,
-      utc_log: utc_log?,
-      translators: translators
+      utc_log: utc_log?
     } = Logger.Config.__data__()
 
     with true <- Logger.compare_levels(level, min_level) != :lt and mode != :discard,
-         {:ok, message} <- translate(translators, min_level, level, kind, data, truncate) do
-      message = Logger.Utils.truncate(message, truncate)
-
+         meta = [pid: ensure_pid(pid), error_logger: ensure_type(type)],
+         {message, meta} <- Logger.ErlangHandler.translate(level, kind, data, meta, %{}) do
       # Mode is always async to avoid clogging the error_logger
-      meta = [pid: ensure_pid(pid), error_logger: ensure_type(type)]
       event = {Logger, message, Logger.Utils.timestamp(utc_log?), meta}
       :gen_event.notify(state.logger, {level, gl, event})
     end
@@ -154,26 +152,5 @@ defmodule Logger.ErrorHandler do
     after
       0 -> :ok
     end
-  end
-
-  defp translate([{mod, fun} | t], min_level, level, kind, data, truncate) do
-    case apply(mod, fun, [min_level, level, kind, data]) do
-      {:ok, chardata} -> {:ok, chardata}
-      :skip -> :skip
-      :none -> translate(t, min_level, level, kind, data, truncate)
-    end
-  end
-
-  defp translate([], _min_level, _level, :format, {format, args}, truncate) do
-    msg =
-      format
-      |> Logger.Utils.scan_inspect(args, truncate)
-      |> :io_lib.build_text()
-
-    {:ok, msg}
-  end
-
-  defp translate([], _min_level, _level, :report, {_type, data}, _truncate) do
-    {:ok, Kernel.inspect(data)}
   end
 end
