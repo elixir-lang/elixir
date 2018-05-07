@@ -1877,18 +1877,30 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: {<<foo>>} = {qux} = {<<baz>>} = bar()))
       end
 
+      assert expand(quote(do: {:foo, <<foo>>} = {<<baz>>, :baz} = bar()))
+
       # 2-element tuples are special cased
       assert_raise CompileError, message, fn ->
         expand(quote(do: {:foo, <<foo>>} = {:foo, <<baz>>} = bar()))
       end
 
       assert_raise CompileError, message, fn ->
-        expand(quote(do: %{foo: <<foo>>} = %{foo: <<baz>>} = bar()))
+        expand(quote(do: %{foo: <<foo>>} = %{baz: <<qux>>, foo: <<baz>>} = bar()))
       end
 
+      assert expand(quote(do: %{foo: <<foo>>} = %{baz: <<baz>>} = bar()))
+
       assert_raise CompileError, message, fn ->
-        expand(quote(do: %_{name: <<foo>>} = %_{foo: <<baz>>} = bar()))
+        expand(quote(do: %_{foo: <<foo>>} = %_{foo: <<baz>>} = bar()))
       end
+
+      assert expand(quote(do: %_{foo: <<foo>>} = %_{baz: <<baz>>} = bar()))
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: %_{foo: <<foo>>} = %{foo: <<baz>>} = bar()))
+      end
+
+      assert expand(quote(do: %_{foo: <<foo>>} = %{baz: <<baz>>} = bar()))
 
       assert_raise CompileError, message, fn ->
         code =

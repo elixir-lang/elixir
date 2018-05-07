@@ -934,9 +934,11 @@ refute_parallel_bitstring_match({Left1, Left2}, {Right1, Right2}, E, Parallel) -
 refute_parallel_bitstring_match({'{}', _, Args1}, {'{}', _, Args2}, E, Parallel) ->
   refute_parallel_bitstring_match_each(Args1, Args2, E, Parallel);
 refute_parallel_bitstring_match({'%{}', _, Args1}, {'%{}', _, Args2}, E, Parallel) ->
-  refute_parallel_bitstring_match(Args1, Args2, E, Parallel);
-refute_parallel_bitstring_match({'%', _, [_, Args1]}, {'%', _, [_, Args2]}, E, Parallel) ->
-  refute_parallel_bitstring_match(Args1, Args2, E, Parallel);
+  refute_parallel_bitstring_match_map_field(lists:sort(Args1), lists:sort(Args2), E, Parallel);
+refute_parallel_bitstring_match({'%', _, [_, Args]}, Arg, E, Parallel) ->
+  refute_parallel_bitstring_match(Args, Arg, E, Parallel);
+refute_parallel_bitstring_match(Expr, {'%', _, [_, Args]}, E, Parallel) ->
+  refute_parallel_bitstring_match(Expr, Args, E, Parallel);
 refute_parallel_bitstring_match(_Expr, _Arg, _E, _Parallel) ->
   ok.
 
@@ -944,6 +946,19 @@ refute_parallel_bitstring_match_each([Arg1 | Rest1], [Arg2 | Rest2], E, Parallel
   refute_parallel_bitstring_match(Arg1, Arg2, E, Parallel),
     refute_parallel_bitstring_match_each(Rest1, Rest2, E, Parallel);
 refute_parallel_bitstring_match_each(_List1, _List2, _E, _Parallel) ->
+  ok.
+
+refute_parallel_bitstring_match_map_field([{Key, Arg1} | Rest1], [{Key, Arg2} | Rest2], E, Parallel) ->
+  refute_parallel_bitstring_match(Arg1, Arg2, E, Parallel),
+  refute_parallel_bitstring_match_map_field(Rest1, Rest2, E, Parallel);
+refute_parallel_bitstring_match_map_field([Field1 | Rest1] = Args1, [Field2 | Rest2] = Args2, E, Parallel) ->
+  case Field1 > Field2 of
+    true ->
+      refute_parallel_bitstring_match_map_field(Args1, Rest2, E, Parallel);
+    false ->
+      refute_parallel_bitstring_match_map_field(Rest1, Args2, E, Parallel)
+  end;
+refute_parallel_bitstring_match_map_field(_Args1, _Args2, _E, _Parallel) ->
   ok.
 
 assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
