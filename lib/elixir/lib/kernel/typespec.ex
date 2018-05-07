@@ -212,9 +212,8 @@ defmodule Kernel.Typespec do
     :ets.take(bag, key)
   end
 
-  defp translate_type({_, {kind, expr = {:::, _, [{name, _, args}, definition]}, pos}})
+  defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}})
        when is_atom(name) and name != ::: do
-    validate_type_ast!(expr)
     caller = :elixir_locals.get_cached_env(pos)
 
     args =
@@ -228,7 +227,7 @@ defmodule Kernel.Typespec do
     spec = typespec(definition, vars, caller)
     vars = for {:var, _, _} = var <- args, do: var
     type = {name, spec, vars}
-    arity = length(vars)
+    arity = length(args)
 
     {kind, export} =
       case kind do
@@ -241,6 +240,18 @@ defmodule Kernel.Typespec do
       compile_error(caller, "type #{name}/#{arity} is a builtin type and it cannot be redefined")
     end
 
+    invalid_args = Enum.reject(args, &valid_variable_ast?/1)
+
+    unless invalid_args == [] do
+      invalid_args = invalid_args |> Enum.map(&Macro.to_string/1) |> Enum.join(", ")
+
+      message =
+        "@type definitions expect all arguments to be variables. The type " <>
+          "#{name}/#{arity} has an invalid argument(s): #{invalid_args}"
+
+      compile_error(caller, message)
+    end
+
     {kind, {name, arity}, caller.line, type, export}
   end
 
@@ -250,23 +261,8 @@ defmodule Kernel.Typespec do
     compile_error(caller, "invalid type specification: #{type_spec}")
   end
 
-  defp validate_type_ast!({:::, _, [{type_name, _, arguments}, _]}) when is_list(arguments) do
-    unless Enum.all?(arguments, &valid_variable_ast?/1) do
-      raise ArgumentError,
-        message: """
-        Type definition for `#{type_name}` is malformed.
-        It appears you are using a concrete type instead of a variable in the type
-        definition.
-        """
-    end
-  end
-
-  defp validate_type_ast!(_), do: nil
-
-  defp valid_variable_ast?({variable_name, _, nil}) when is_atom(variable_name), do: true
-
-  defp valid_variable_ast?({variable_name, _, module})
-       when is_atom(variable_name) and is_atom(module),
+  defp valid_variable_ast?({variable_name, _, atom})
+       when is_atom(variable_name) and is_atom(atom),
        do: true
 
   defp valid_variable_ast?(_), do: false
@@ -757,7 +753,9 @@ defmodule Kernel.Typespec do
     {:type, line(meta), :product, args}
   end
 
-  defp variable({name, meta, _}) do
+  defp variable({name, meta, args}) when is_atom(name) and is_atom(args) do
     {:var, line(meta), name}
   end
+
+  defp variable(expr), do: expr
 end

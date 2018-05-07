@@ -907,20 +907,26 @@ defmodule TypespecTest do
       end)
     end
 
-    test "fails with a helpful error when non-variables are given as arguments" do
-      assert_raise ArgumentError, ~r/one_bad_variable/, fn ->
+    test "non-variables are given as arguments" do
+      msg = ~r/The type one_bad_variable\/1 has an invalid argument\(s\): String.t\(\)/
+
+      assert_raise CompileError, msg, fn ->
         test_module do
           @type one_bad_variable(String.t()) :: String.t()
         end
       end
 
-      assert_raise ArgumentError, ~r/two_bad_variables/, fn ->
+      msg = ~r/The type two_bad_variables\/2 has an invalid argument\(s\): :ok, Enum.t\(\)/
+
+      assert_raise CompileError, msg, fn ->
         test_module do
           @type two_bad_variables(:ok, Enum.t()) :: {:ok, []}
         end
       end
 
-      assert_raise ArgumentError, ~r/one_bad_one_good/, fn ->
+      msg = ~r/The type one_bad_one_good\/2 has an invalid argument\(s\): \"\"/
+
+      assert_raise CompileError, msg, fn ->
         test_module do
           @type one_bad_one_good(input1, "") :: {:ok, input1}
         end
