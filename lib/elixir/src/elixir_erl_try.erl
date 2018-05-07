@@ -30,17 +30,23 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
   {[maybe_add_stracktrace(TC, TS)], TS};
 
 each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
-  {TempName, _, CS} = elixir_erl_var:build('_', S),
-  TempVar = {TempName, Meta, ?var_context},
-  {Parts, Safe, FS} = rescue_guards(Meta, TempVar, Right, CS),
-  Body = rescue_clause_body(Left, Expr, Safe, TempVar, Meta),
-  build_rescue(Meta, Parts, Body, FS);
+  in_clause(Meta, Left, Right, Expr, S, in);
+
+each_clause({rescue, Meta, [{'not', _, [{in, _, [Left, Right]}]}], Expr}, S) ->
+  in_clause(Meta, Left, Right, Expr, S, 'not in');
 
 each_clause({rescue, Meta, [{VarName, _, Context} = Left], Expr}, S) when is_atom(VarName), is_atom(Context) ->
   {TempName, _, CS} = elixir_erl_var:build('_', S),
   TempVar = {TempName, Meta, ?var_context},
   Body = rescue_clause_body(Left, Expr, false, TempVar, Meta),
   build_rescue(Meta, [{TempVar, []}], Body, CS).
+
+in_clause(Meta, Left, Right, Expr, S, Op) ->
+  {TempName, _, CS} = elixir_erl_var:build('_', S),
+  TempVar = {TempName, Meta, ?var_context},
+  {Parts, Safe, FS} = rescue_guards(Meta, TempVar, Right, CS, Op),
+  Body = rescue_clause_body(Left, Expr, Safe, TempVar, Meta),
+  build_rescue(Meta, Parts, Body, FS).
 
 rescue_clause_body({'_', _, Atom}, Expr, _Safe, _Var, _Meta) when is_atom(Atom) ->
   Expr;
@@ -73,8 +79,8 @@ build_rescue(Meta, Parts, Body, S) ->
   {TClauses, TS}.
 
 %% Convert rescue clauses ("var in [alias1, alias2]") into guards.
-rescue_guards(Meta, Var, Aliases, S) ->
-  {Elixir, Erlang} = rescue_each_ref(Meta, Var, Aliases, [], [], S),
+rescue_guards(Meta, Var, Aliases, S, Op) ->
+  {Elixir, Erlang} = rescue_each_ref(Meta, Var, Aliases, [], false, S),
 
   {ElixirParts, ES} =
     case Elixir of
@@ -84,8 +90,12 @@ rescue_guards(Meta, Var, Aliases, S) ->
         StructVar = {VarName, Meta, 'Elixir'},
         Map = {'%{}', Meta, [{'__struct__', StructVar}, {'__exception__', true}]},
         Match = {'=', Meta, [Map, Var]},
-        Guards = [{erl(Meta, '=='), Meta, [StructVar, Mod]} || Mod <- Elixir],
-        {[{Match, Guards}], CS}
+        Guards =
+          case Op of
+            in -> rescue_guards_ors(Elixir, Meta, StructVar);
+            'not in' -> {erl(Meta, 'not'), Meta, [rescue_guards_ors(Elixir, Meta, StructVar)]}
+          end,
+        {[{Match, [Guards]}], CS}
     end,
 
   ErlangParts =
@@ -95,6 +105,13 @@ rescue_guards(Meta, Var, Aliases, S) ->
     end,
 
   {ElixirParts ++ ErlangParts, ErlangParts == [], ES}.
+
+rescue_guards_ors([FirstMod | Mods], Meta, StructVar) ->
+  Acc0 = {erl(Meta, '=='), Meta, [StructVar, FirstMod]},
+
+  lists:foldl(fun(Mod, Acc) ->
+    erl_or(Meta, Acc, {erl(Meta, '=='), Meta, [StructVar, Mod]})
+  end, Acc0, Mods).
 
 maybe_add_stracktrace({clause, Line, Args, Guards, Body}, #elixir_erl{stacktrace = {Var,true}}) ->
   GetStacktrace = elixir_erl:remote(Line, erlang, get_stacktrace, []),
@@ -110,11 +127,14 @@ maybe_add_stracktrace(Clause, _) ->
 rescue_each_ref(Meta, Var, [H | T], Elixir, Erlang, S) when is_atom(H) ->
   case erl_rescue_guard_for(Meta, Var, H) of
     false -> rescue_each_ref(Meta, Var, T, [H | Elixir], Erlang, S);
-    Expr  -> rescue_each_ref(Meta, Var, T, [H | Elixir], [Expr | Erlang], S)
+    Expr -> rescue_each_ref(Meta, Var, T, [H | Elixir], erl_or(Meta, Erlang, Expr), S)
   end;
 
 rescue_each_ref(_, _, [], Elixir, Erlang, _) ->
-  {Elixir, Erlang}.
+  case Erlang of
+    false -> {Elixir, []};
+    _ -> {Elixir, [Erlang]}
+  end.
 
 %% Handle Erlang rescue matches.
 

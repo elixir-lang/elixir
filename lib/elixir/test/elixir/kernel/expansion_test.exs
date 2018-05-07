@@ -1850,6 +1850,21 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
     end
+
+    test "doesn't allow \"var not in _\"" do
+      assert_raise CompileError, ~r"invalid \"rescue\" clause. \"_\" is not allowed", fn ->
+        code =
+          quote do
+            try do
+              e
+            rescue
+              x not in _ -> :ok
+            end
+          end
+
+        expand(code)
+      end
+    end
   end
 
   describe "bitstrings" do
