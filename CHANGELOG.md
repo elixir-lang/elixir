@@ -62,7 +62,6 @@
   * [Code] Deprecate `Code.load_file/2` in favor of `Code.compile_file/2`
   * [Code] Deprecate `Code.loaded_files/0` in favor of `Code.required_files/0`
   * [Code] Deprecate `Code.unload_files/1` in favor of `Code.unrequire_files/1`
-  * [Exception] Deprecate `Exception.normalize/2` and `Exception.format/2` as a stacktrace is now explicitly required
 
 ### 4. Hard-deprecations
 

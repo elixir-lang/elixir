@@ -248,7 +248,7 @@ defmodule ExUnitTest do
               assert 1 = 2
             rescue
               e in ExUnit.AssertionError ->
-                {:error, e, System.stacktrace()}
+                {:error, e, __STACKTRACE__}
             end
 
           error2 =
@@ -256,7 +256,7 @@ defmodule ExUnitTest do
               assert 3 > 4
             rescue
               e in ExUnit.AssertionError ->
-                {:error, e, System.stacktrace()}
+                {:error, e, __STACKTRACE__}
             end
 
           raise ExUnit.MultiError, errors: [error1, error2]
@@ -277,7 +277,14 @@ defmodule ExUnitTest do
     assert output =~ "Failure #2"
 
     assert_raise ExUnit.MultiError, ~r/oops/, fn ->
-      error = {:error, RuntimeError.exception("oops"), System.stacktrace()}
+      stack =
+        try do
+          raise("oops")
+        rescue
+          _ -> __STACKTRACE__
+        end
+
+      error = {:error, RuntimeError.exception("oops"), stack}
       raise ExUnit.MultiError, errors: [error]
     end
   end

@@ -177,15 +177,30 @@ build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
         [Done],
         [],
         [{call, Ann, Fun, [Done, {atom, Ann, done}]}]}],
-      [{clause, Ann,
+      [stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack)],
+      []},
+
+  {{block, Ann, [MatchExpr, TryExpr]}, SD}.
+
+stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack) ->
+  Release = erlang:system_info(otp_release),
+
+  if
+    Release == "19"; Release == "20" ->
+      {clause, Ann,
         [{tuple, Ann, [Kind, Reason, {var, Ann, '_'}]}],
         [],
         [{match, Ann, Stack, elixir_erl:remote(Ann, erlang, get_stacktrace, [])},
          {call, Ann, Fun, [Acc, {atom, Ann, halt}]},
-         elixir_erl:remote(Ann, erlang, raise, [Kind, Reason, Stack])]}],
-      []},
+         elixir_erl:remote(Ann, erlang, raise, [Kind, Reason, Stack])]};
 
-  {{block, Ann, [MatchExpr, TryExpr]}, SD}.
+    true ->
+      {clause, Ann,
+        [{tuple, Ann, [Kind, Reason, Stack]}],
+        [],
+        [{call, Ann, Fun, [Acc, {atom, Ann, halt}]},
+         elixir_erl:remote(Ann, erlang, raise, [Kind, Reason, Stack])]}
+  end.
 
 %% Helpers
 

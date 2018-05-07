@@ -4,8 +4,7 @@ require EEx
 
 defmodule EExTest.Compiled do
   def before_compile do
-    fill_in_stacktrace()
-    {__ENV__.line, hd(tl(System.stacktrace()))}
+    {__ENV__.line, hd(tl(get_stacktrace()))}
   end
 
   EEx.function_from_string(:def, :string_sample, "<%= a + b %>", [:a, :b])
@@ -19,21 +18,19 @@ defmodule EExTest.Compiled do
   def file_sample(arg), do: private_file_sample(arg)
 
   def after_compile do
-    fill_in_stacktrace()
-    {__ENV__.line, hd(tl(System.stacktrace()))}
+    {__ENV__.line, hd(tl(get_stacktrace()))}
   end
 
   @file "unknown"
   def unknown do
-    fill_in_stacktrace()
-    {__ENV__.line, hd(tl(System.stacktrace()))}
+    {__ENV__.line, hd(tl(get_stacktrace()))}
   end
 
-  defp fill_in_stacktrace do
+  defp get_stacktrace do
     try do
       :erlang.error("failed")
-    catch
-      :error, _ -> System.stacktrace()
+    rescue
+      _ -> __STACKTRACE__
     end
   end
 end
@@ -447,13 +444,13 @@ defmodule EExTest do
       file = to_charlist(Path.relative_to_cwd(__ENV__.file))
 
       assert EExTest.Compiled.before_compile() ==
-               {8, {EExTest.Compiled, :before_compile, 0, [file: file, line: 7]}}
+               {7, {EExTest.Compiled, :before_compile, 0, [file: file, line: 7]}}
 
       assert EExTest.Compiled.after_compile() ==
-               {23, {EExTest.Compiled, :after_compile, 0, [file: file, line: 22]}}
+               {21, {EExTest.Compiled, :after_compile, 0, [file: file, line: 21]}}
 
       assert EExTest.Compiled.unknown() ==
-               {29, {EExTest.Compiled, :unknown, 0, [file: 'unknown', line: 28]}}
+               {26, {EExTest.Compiled, :unknown, 0, [file: 'unknown', line: 26]}}
     end
   end
 

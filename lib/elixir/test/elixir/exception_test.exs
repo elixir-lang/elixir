@@ -10,9 +10,7 @@ defmodule ExceptionTest do
       try do
         raise "a"
       rescue
-        _ ->
-          [top | _] = System.stacktrace()
-          top
+        _ -> hd(__STACKTRACE__)
       end
 
     file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
@@ -58,7 +56,7 @@ defmodule ExceptionTest do
       try do
         throw(:stack)
       catch
-        :stack -> System.stacktrace()
+        :stack -> __STACKTRACE__
       end
 
     assert Exception.format(:error, :badarg, stacktrace) ==
@@ -84,23 +82,29 @@ defmodule ExceptionTest do
   end
 
   test "format_stacktrace/1 from file" do
-    assert_raise ArgumentError, fn ->
+    try do
       Code.eval_string("def foo do end", [], file: "my_file")
+    rescue
+      ArgumentError ->
+        assert Exception.format_stacktrace(__STACKTRACE__) =~ "my_file:1: (file)"
+    else
+      _ -> flunk("expected failure")
     end
-
-    assert Exception.format_stacktrace(System.stacktrace()) =~ "my_file:1: (file)"
   end
 
   test "format_stacktrace/1 from module" do
-    assert_raise ArgumentError, fn ->
+    try do
       Code.eval_string(
         "defmodule FmtStack do raise ArgumentError, ~s(oops) end",
         [],
         file: "my_file"
       )
+    rescue
+      ArgumentError ->
+        assert Exception.format_stacktrace(__STACKTRACE__) =~ "my_file:1: (module)"
+    else
+      _ -> flunk("expected failure")
     end
-
-    assert Exception.format_stacktrace(System.stacktrace()) =~ "my_file:1: (module)"
   end
 
   test "format_stacktrace_entry/1 with no file or line" do

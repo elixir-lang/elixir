@@ -164,7 +164,6 @@ inline(?string, to_integer, 2) -> {erlang, binary_to_integer};
 
 inline(?system, monotonic_time, 0) -> {erlang, monotonic_time};
 inline(?system, os_time, 0) -> {os, system_time};
-inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 inline(?system, system_time, 0) -> {erlang, system_time};
 inline(?system, time_offset, 0) -> {erlang, time_offset};
 inline(?system, unique_integer, 0) -> {erlang, unique_integer};
