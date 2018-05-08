@@ -647,7 +647,7 @@ defmodule IEx.Helpers do
       bytes >= memory_unit(:GB) -> format_bytes(bytes, :GB)
       bytes >= memory_unit(:MB) -> format_bytes(bytes, :MB)
       bytes >= memory_unit(:KB) -> format_bytes(bytes, :KB)
-      bytes -> format_bytes(bytes, :B)
+      true -> format_bytes(bytes, :B)
     end
   end
 
