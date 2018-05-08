@@ -716,8 +716,8 @@ defmodule Supervisor do
   If a module is given, the specification is retrieved by calling
   `module.child_spec(arg)`.
 
-  After the child specification is retrieved, the fields on `config`
-  are directly applied on the child spec. If `config` has keys that
+  After the child specification is retrieved, the fields on `overrides`
+  are directly applied on the child spec. If `overrides` has keys that
   do not map to any child specification field, an error is raised.
 
   See the "Child specification" section in the module documentation
