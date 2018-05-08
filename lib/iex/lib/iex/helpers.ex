@@ -632,9 +632,7 @@ defmodule IEx.Helpers do
 
     case probe do
       {_, allocated, used} ->
-        IO.puts(
-          "#{pad_key(key)}#{format_bytes(allocated)} (#{format_bytes(used)} used)"
-        )
+        IO.puts("#{pad_key(key)}#{format_bytes(allocated)} (#{format_bytes(used)} used)")
 
       {_, allocated} ->
         IO.puts("#{pad_key(key)}#{format_bytes(allocated)}")
@@ -661,6 +659,7 @@ defmodule IEx.Helpers do
 
     "#{value} #{unit}"
   end
+
   defp format_bytes(bytes, :B) when is_integer(bytes), do: "#{bytes} B"
 
   defp memory_unit(:GB), do: 1024 * 1024 * 1024
