@@ -571,7 +571,7 @@ defmodule Logger do
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
-      to both `Logger` are processed before the backend is removed
+      to `Logger` are processed before the backend is removed
 
   """
   @spec remove_backend(atom, keyword) :: :ok | {:error, term}
