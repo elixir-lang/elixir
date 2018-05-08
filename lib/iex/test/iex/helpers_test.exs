@@ -27,115 +27,113 @@ defmodule IEx.HelpersTest do
     end
   end
 
-  if :erlang.system_info(:otp_release) >= '20' do
-    describe "breakpoints" do
-      setup do
-        on_exit(fn -> IEx.Pry.remove_breaks() end)
+  describe "breakpoints" do
+    setup do
+      on_exit(fn -> IEx.Pry.remove_breaks() end)
+    end
+
+    test "sets up a breakpoint with capture syntax" do
+      assert break!(URI.decode_query() / 2) == 1
+      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+    end
+
+    test "sets up a breakpoint with call syntax" do
+      assert break!(URI.decode_query(_, %{})) == 1
+      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+    end
+
+    test "sets up a breakpoint with guards syntax" do
+      assert break!(URI.decode_query(_, map) when is_map(map)) == 1
+      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+    end
+
+    test "sets up a breakpoint on the given module" do
+      assert break!(URI, :decode_query, 2) == 1
+      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+    end
+
+    test "resets breaks on the given id" do
+      assert break!(URI, :decode_query, 2) == 1
+      assert reset_break(1) == :ok
+      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+    end
+
+    test "resets breaks on the given module" do
+      assert break!(URI, :decode_query, 2) == 1
+      assert reset_break(URI, :decode_query, 2) == :ok
+      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+    end
+
+    test "removes breaks in the given module" do
+      assert break!(URI.decode_query() / 2) == 1
+      assert remove_breaks(URI) == :ok
+      assert IEx.Pry.breaks() == []
+    end
+
+    test "removes breaks on all modules" do
+      assert break!(URI.decode_query() / 2) == 1
+      assert remove_breaks() == :ok
+      assert IEx.Pry.breaks() == []
+    end
+
+    test "errors when setting up a breakpoint with invalid guard" do
+      assert_raise CompileError, ~r"cannot invoke local is_whatever/1 inside guard", fn ->
+        break!(URI.decode_query(_, map) when is_whatever(map))
       end
+    end
 
-      test "sets up a breakpoint with capture syntax" do
-        assert break!(URI.decode_query() / 2) == 1
-        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
-      end
+    test "errors when setting up a break with no beam" do
+      assert_raise RuntimeError,
+                   "could not set breakpoint, could not find .beam file for IEx.HelpersTest",
+                   fn -> break!(__MODULE__, :setup, 1) end
+    end
 
-      test "sets up a breakpoint with call syntax" do
-        assert break!(URI.decode_query(_, %{})) == 1
-        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
-      end
+    test "errors when setting up a break for unknown function" do
+      assert_raise RuntimeError,
+                   "could not set breakpoint, unknown function/macro URI.unknown/2",
+                   fn -> break!(URI, :unknown, 2) end
+    end
 
-      test "sets up a breakpoint with guards syntax" do
-        assert break!(URI.decode_query(_, map) when is_map(map)) == 1
-        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
-      end
+    test "errors for non-Elixir modules" do
+      assert_raise RuntimeError,
+                   "could not set breakpoint, module :elixir was not written in Elixir",
+                   fn -> break!(:elixir, :unknown, 2) end
+    end
 
-      test "sets up a breakpoint on the given module" do
-        assert break!(URI, :decode_query, 2) == 1
-        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
-      end
+    test "prints table with breaks" do
+      break!(URI, :decode_query, 2)
 
-      test "resets breaks on the given id" do
-        assert break!(URI, :decode_query, 2) == 1
-        assert reset_break(1) == :ok
-        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
-      end
+      assert capture_io(fn -> breaks() end) == """
 
-      test "resets breaks on the given module" do
-        assert break!(URI, :decode_query, 2) == 1
-        assert reset_break(URI, :decode_query, 2) == :ok
-        assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
-      end
+              ID   Module.function/arity   Pending stops
+             ---- ----------------------- ---------------
+              1    URI.decode_query/2      1
 
-      test "removes breaks in the given module" do
-        assert break!(URI.decode_query() / 2) == 1
-        assert remove_breaks(URI) == :ok
-        assert IEx.Pry.breaks() == []
-      end
+             """
 
-      test "removes breaks on all modules" do
-        assert break!(URI.decode_query() / 2) == 1
-        assert remove_breaks() == :ok
-        assert IEx.Pry.breaks() == []
-      end
+      assert capture_io(fn -> URI.decode_query("foo=bar", %{}) end) != ""
 
-      test "errors when setting up a breakpoint with invalid guard" do
-        assert_raise CompileError, ~r"cannot invoke local is_whatever/1 inside guard", fn ->
-          break!(URI.decode_query(_, map) when is_whatever(map))
-        end
-      end
+      assert capture_io(fn -> breaks() end) == """
 
-      test "errors when setting up a break with no beam" do
-        assert_raise RuntimeError,
-                     "could not set breakpoint, could not find .beam file for IEx.HelpersTest",
-                     fn -> break!(__MODULE__, :setup, 1) end
-      end
+              ID   Module.function/arity   Pending stops
+             ---- ----------------------- ---------------
+              1    URI.decode_query/2      0
 
-      test "errors when setting up a break for unknown function" do
-        assert_raise RuntimeError,
-                     "could not set breakpoint, unknown function/macro URI.unknown/2",
-                     fn -> break!(URI, :unknown, 2) end
-      end
+             """
 
-      test "errors for non-Elixir modules" do
-        assert_raise RuntimeError,
-                     "could not set breakpoint, module :elixir was not written in Elixir",
-                     fn -> break!(:elixir, :unknown, 2) end
-      end
+      assert capture_io(fn -> URI.decode_query("foo=bar", %{}) end) == ""
 
-      test "prints table with breaks" do
-        break!(URI, :decode_query, 2)
+      assert capture_io(fn -> breaks() end) == """
 
-        assert capture_io(fn -> breaks() end) == """
+              ID   Module.function/arity   Pending stops
+             ---- ----------------------- ---------------
+              1    URI.decode_query/2      0
 
-                ID   Module.function/arity   Pending stops
-               ---- ----------------------- ---------------
-                1    URI.decode_query/2      1
+             """
+    end
 
-               """
-
-        assert capture_io(fn -> URI.decode_query("foo=bar", %{}) end) != ""
-
-        assert capture_io(fn -> breaks() end) == """
-
-                ID   Module.function/arity   Pending stops
-               ---- ----------------------- ---------------
-                1    URI.decode_query/2      0
-
-               """
-
-        assert capture_io(fn -> URI.decode_query("foo=bar", %{}) end) == ""
-
-        assert capture_io(fn -> breaks() end) == """
-
-                ID   Module.function/arity   Pending stops
-               ---- ----------------------- ---------------
-                1    URI.decode_query/2      0
-
-               """
-      end
-
-      test "does not print table when there are no breaks" do
-        assert capture_io(fn -> breaks() end) == "No breakpoints set\n"
-      end
+    test "does not print table when there are no breaks" do
+      assert capture_io(fn -> breaks() end) == "No breakpoints set\n"
     end
   end
 

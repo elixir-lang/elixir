@@ -197,9 +197,9 @@ defmodule Application do
   Shutting down a live system cleanly can be done by calling `System.stop/1`. It
   will shut down every application in the opposite order they had been started.
 
-  From Erlang/OTP 19.1, a SIGTERM from the operating system will automatically
-  translate to `System.stop/0`. Erlang/OTP 20 gives user more explicit control
-  over OS signals via the `:os.set_signal/2` function.
+  By default, a SIGTERM from the operating system will automatically translate to
+  `System.stop/0`. You can also have more explicit control over OS signals via the
+  `:os.set_signal/2` function.
 
   ## Tooling
 

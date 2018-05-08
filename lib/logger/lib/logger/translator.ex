@@ -555,10 +555,7 @@ defmodule Logger.Translator do
   defp format_mfa(mod, fun, args),
     do: Exception.format_mfa(mod, fun, args)
 
-  defp exit_reason(:exit, reason, stack) do
-    if :erlang.system_info(:otp_release) >= '20', do: {reason, stack}, else: nil
-  end
-
+  defp exit_reason(:exit, reason, stack), do: {reason, stack}
   defp exit_reason(:error, reason, stack), do: {reason, stack}
   defp exit_reason(:throw, value, stack), do: {{:nocatch, value}, stack}
 

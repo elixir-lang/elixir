@@ -147,42 +147,39 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
-  # TODO: Remove this check once we depend only on 20
-  if :erlang.system_info(:otp_release) >= '20' do
-    defp trim_multiline_whitespace(string) do
-      String.replace(string, ~r"\n\s+\n", "\n\n")
-    end
+  defp trim_multiline_whitespace(string) do
+    String.replace(string, ~r"\n\s+\n", "\n\n")
+  end
 
-    test "blames function clause error" do
-      {error, stack} =
-        try do
-          Access.fetch(:foo, :bar)
-        rescue
-          exception -> {exception, __STACKTRACE__}
-        end
+  test "blames function clause error" do
+    {error, stack} =
+      try do
+        Access.fetch(:foo, :bar)
+      rescue
+        exception -> {exception, __STACKTRACE__}
+      end
 
-      failure = format_test_failure(test(), [{:error, error, [hd(stack)]}], 1, 80, &formatter/2)
+    failure = format_test_failure(test(), [{:error, error, [hd(stack)]}], 1, 80, &formatter/2)
 
-      assert trim_multiline_whitespace(failure) =~ """
-               1) world (Hello)
-                  test/ex_unit/formatter_test.exs:1
-                  ** (FunctionClauseError) no function clause matching in Access.fetch/2
+    assert trim_multiline_whitespace(failure) =~ """
+             1) world (Hello)
+                test/ex_unit/formatter_test.exs:1
+                ** (FunctionClauseError) no function clause matching in Access.fetch/2
 
-                  The following arguments were given to Access.fetch/2:
+                The following arguments were given to Access.fetch/2:
 
-                      # 1
-                      :foo
+                    # 1
+                    :foo
 
-                      # 2
-                      :bar
+                    # 2
+                    :bar
 
-                  Attempted function clauses (showing 5 out of 5):
+                Attempted function clauses (showing 5 out of 5):
 
-                      def fetch(%module{} = container, key)
-             """
+                    def fetch(%module{} = container, key)
+           """
 
-      assert failure =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
-    end
+    assert failure =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 
   test "formats setup all errors" do

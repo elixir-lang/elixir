@@ -320,10 +320,6 @@ defmodule Protocol do
           {:compile_info, compile_info} | extra_chunks
         ] = entries
 
-        extra_chunks =
-          for {name, contents} when is_binary(contents) <- extra_chunks,
-              do: {List.to_string(name), contents}
-
         case attributes[:protocol] do
           [fallback_to_any: any] ->
             {:ok, {protocol, any, abstract_code}, {compile_info, extra_chunks}}
@@ -499,7 +495,15 @@ defmodule Protocol do
     opts = Keyword.take(compile_info, [:source])
     opts = if Code.compiler_options()[:debug_info], do: [:debug_info | opts], else: opts
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return | opts])
-    {:ok, :elixir_erl.add_beam_chunks(binary, extra_chunks)}
+    {:ok, add_beam_chunks(binary, extra_chunks)}
+  end
+
+  defp add_beam_chunks(bin, []), do: bin
+
+  defp add_beam_chunks(bin, new_chunks) do
+    {:ok, _, old_chunks} = :beam_lib.all_chunks(bin)
+    {:ok, bin} = :beam_lib.build_module(new_chunks ++ old_chunks)
+    bin
   end
 
   ## Definition callbacks

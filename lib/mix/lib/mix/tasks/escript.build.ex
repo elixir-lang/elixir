@@ -387,14 +387,14 @@ defmodule Mix.Tasks.Escript.Build do
       erl_version = :erlang.system_info(:otp_release)
 
       case :string.to_integer(erl_version) do
-        {num, _} when num >= 19 ->
-          nil
+        {num, _} when num >= 20 ->
+          :ok
 
         _ ->
           error_message = [
             "Incompatible Erlang/OTP release: ",
             erl_version,
-            ".\nThis escript requires at least Erlang/OTP 19.0\n"
+            ".\nThis escript requires at least Erlang/OTP 20.0\n"
           ]
 
           io_error(error_message)
