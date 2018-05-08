@@ -30,10 +30,10 @@ If tests pass, you are ready to move on to the [Getting Started guide][1]
 or to try Interactive Elixir by running `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang/OTP version
-(Elixir requires Erlang/OTP 19.0 or later). You can check your Erlang/OTP version
+(Elixir requires Erlang/OTP 20.0 or later). You can check your Erlang/OTP version
 by calling `erl` in the command line. You will see some information as follows:
 
-    Erlang/OTP 19 [erts-8.0] [smp:2:2] [async-threads:10] [kernel-poll:false]
+    Erlang/OTP 20 [erts-9.0] [smp:2:2] [async-threads:10] [kernel-poll:false]
 
 If you have properly set up your dependencies and tests still fail,
 you may want to open up a bug report, as explained next.

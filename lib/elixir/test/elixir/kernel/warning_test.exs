@@ -535,20 +535,17 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  # TODO: Remove this check once we depend only on 20
-  if :erlang.system_info(:otp_release) >= '20' do
-    test "duplicate map keys" do
-      output =
-        capture_err(fn ->
-          defmodule DuplicateMapKeys do
-            assert %{a: :b, a: :c} == %{a: :c}
-            assert %{1 => 2, 1 => 3} == %{1 => 3}
-          end
-        end)
+  test "duplicate map keys" do
+    output =
+      capture_err(fn ->
+        defmodule DuplicateMapKeys do
+          assert %{a: :b, a: :c} == %{a: :c}
+          assert %{1 => 2, 1 => 3} == %{1 => 3}
+        end
+      end)
 
-      assert output =~ "key :a will be overridden in map"
-      assert output =~ "key 1 will be overridden in map"
-    end
+    assert output =~ "key :a will be overridden in map"
+    assert output =~ "key 1 will be overridden in map"
   end
 
   test "unused guard" do

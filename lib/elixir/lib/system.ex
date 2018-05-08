@@ -73,10 +73,6 @@ defmodule System do
   parts_per_second` seconds. For example, using the `:millisecond` time unit
   is equivalent to using `1000` as the time unit (as the time will be returned
   in 1/1000 seconds - milliseconds).
-
-  Keep in mind the Erlang API prior to version 19.1 will use `:milli_seconds`,
-  `:micro_seconds` and `:nano_seconds` as time units although Elixir normalizes
-  their spelling to match the SI convention.
   """
   # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+ (on v1.8)
   @type time_unit ::

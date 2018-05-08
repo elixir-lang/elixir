@@ -186,8 +186,6 @@ defmodule Exception do
 
   This function returns either `{:ok, definition, clauses}` or `:error`.
   Where `definition` is `:def`, `:defp`, `:defmacro` or `:defmacrop`.
-  Note this functionality requires Erlang/OTP 20, otherwise `:error`
-  is always returned.
   """
   @doc since: "1.5.0"
   @spec blame_mfa(module, function, args :: [term]) ::

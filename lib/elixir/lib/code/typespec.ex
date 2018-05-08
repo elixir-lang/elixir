@@ -152,37 +152,23 @@ defmodule Code.Typespec do
     end
   end
 
-  # TODO: Do not rely on abstract_code when OTP 20+ support is dropped (v1.8).
-  # We should then be able to simplify this code and use `with`.
   defp typespecs_abstract_code(module) do
-    case get_module_and_beam(module) do
-      {module, binary} ->
-        case :beam_lib.chunks(binary, [:debug_info]) do
-          {:ok, {_, [debug_info: {:debug_info_v1, backend, data}]}} ->
-            case data do
-              {:elixir_v1, %{}, specs} ->
-                # Fast path to avoid translation to Erlang from Elixir.
-                {:ok, specs}
+    with {module, binary} <- get_module_and_beam(module),
+         {:ok, {_, [debug_info: {:debug_info_v1, backend, data}]}} <-
+           :beam_lib.chunks(binary, [:debug_info]) do
+      case data do
+        {:elixir_v1, %{}, specs} ->
+          # Fast path to avoid translation to Erlang from Elixir.
+          {:ok, specs}
 
-              _ ->
-                case backend.debug_info(:erlang_v1, module, data, []) do
-                  {:ok, abstract_code} -> {:ok, abstract_code}
-                  _ -> :error
-                end
-            end
-
-          _ ->
-            case :beam_lib.chunks(binary, [:abstract_code]) do
-              {:ok, {_, [{:abstract_code, {_raw_abstract_v1, abstract_code}}]}} ->
-                {:ok, abstract_code}
-
-              _ ->
-                :error
-            end
-        end
-
-      :error ->
-        :error
+        _ ->
+          case backend.debug_info(:erlang_v1, module, data, []) do
+            {:ok, abstract_code} -> {:ok, abstract_code}
+            _ -> :error
+          end
+      end
+    else
+      _ -> :error
     end
   end
 

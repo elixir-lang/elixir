@@ -151,7 +151,6 @@ maybe_add_stacktrace(Line, Kind, Expr, Guards, Body, _) ->
 %% TODO: Remove this check once we support Erlang/OTP 21+ exclusively.
 supports_stacktrace() ->
   case erlang:system_info(otp_release) of
-    "19" -> false;
     "20" -> false;
     _ -> true
   end.

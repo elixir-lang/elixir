@@ -580,10 +580,7 @@ defmodule IEx.Helpers do
     print_uptime()
     print_entry("Run queue", :erlang.statistics(:run_queue))
 
-    if :erlang.system_info(:otp_release) >= '20' do
-      print_percentage("Atoms", :atom_count, :atom_limit)
-    end
-
+    print_percentage("Atoms", :atom_count, :atom_limit)
     print_percentage("ETS", :ets_count, :ets_limit)
     print_percentage("Ports", :port_count, :port_limit)
     print_percentage("Processes", :process_count, :process_limit)
