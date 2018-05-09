@@ -477,6 +477,14 @@ defmodule Keyword do
     [pair | delete_key_value(tail, key, value)]
   end
 
+  defp delete_key_value([not_pair | _tail], _key, _value) do
+    raise ArgumentError,
+      message:
+        "expected a keyword list as the first argument, but got list with invalid element #{
+          inspect(not_pair)
+        }"
+  end
+
   defp delete_key_value([], _key, _value) do
     []
   end
@@ -513,6 +521,14 @@ defmodule Keyword do
 
   defp delete_key([{_, _} = pair | tail], key) do
     [pair | delete_key(tail, key)]
+  end
+
+  defp delete_key([not_pair | _tail], _key) do
+    raise ArgumentError,
+      message:
+        "expected a keyword list as the first argument, but got list with invalid element #{
+          inspect(not_pair)
+        }"
   end
 
   defp delete_key([], _key) do

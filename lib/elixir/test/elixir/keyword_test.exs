@@ -176,4 +176,25 @@ defmodule KeywordTest do
       assert_raise ArgumentError, error.message, fn -> Keyword.merge(arg1, arg2, fun) end
     end
   end
+
+  test "delete/2 and delete/3" do
+    message =
+      "expected a keyword list as the first argument, but got list with invalid element :b"
+
+    assert_raise ArgumentError, message, fn ->
+      Keyword.delete([{:a, 1}, :b], :a)
+    end
+
+    assert_raise ArgumentError, message, fn ->
+      Keyword.delete([{:a, 1}, :b, {:c, 3}], :c)
+    end
+
+    assert_raise ArgumentError, message, fn ->
+      Keyword.delete([{:a, 1}, :b, {:a, 2}], :a, 1)
+    end
+
+    assert_raise ArgumentError, message, fn ->
+      Keyword.delete([{:a, 1}, :b, {:a, 2}], :a, 2)
+    end
+  end
 end
