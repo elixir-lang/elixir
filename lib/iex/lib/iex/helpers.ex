@@ -243,11 +243,12 @@ defmodule IEx.Helpers do
 
   It is important that you choose an editor command that does
   not block nor that attempts to run an editor directly in the
-  terminal. Command-line based editors likely extra configuration
-  so they open up the given file and line in a separate window.
+  terminal. Command-line based editors likely need extra
+  configuration so they open up the given file and line in a
+  separate window.
 
-  Custom editors are supported by using the __FILE__ and __LINE__
-  notations, for example:
+  Custom editors are supported by using the `__FILE__` and
+  `__LINE__` notations, for example:
 
       ELIXIR_EDITOR="my_editor +__LINE__ __FILE__"
 
