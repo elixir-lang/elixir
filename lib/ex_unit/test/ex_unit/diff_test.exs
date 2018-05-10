@@ -347,7 +347,7 @@ defmodule ExUnit.DiffTest do
 
     assert script(tuple1, tuple2) == expected
 
-    assert script(tuple1, {}) ==  [{:eq, "{"}, [{:del, ":hex, '1.1'"}], {:eq, "}"}]
+    assert script(tuple1, {}) == [{:eq, "{"}, [{:del, ":hex, '1.1'"}], {:eq, "}"}]
     assert script({}, tuple1) == [{:eq, "{"}, [{:ins, ":hex, '1.1'"}], {:eq, "}"}]
     assert script({}, {}) == [eq: "{}"]
   end
