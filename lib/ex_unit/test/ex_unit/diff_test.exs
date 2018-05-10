@@ -326,14 +326,14 @@ defmodule ExUnit.DiffTest do
   end
 
   test "improper lists" do
-    expected = [{:eq, "["}, [[eq: "1"], [eq: ", ", eq: "2"], [ins: " | 3"]], {:eq, "]"}]
+    expected = [{:eq, "["}, [[eq: "1, 2"], {:ins, " | 3"}], {:eq, "]"}]
     assert script([1, 2], [1, 2 | 3]) == expected
-    expected = [{:eq, "["}, [[eq: "1"], [eq: ", ", eq: "2"], [del: " | 3"]], {:eq, "]"}]
+    expected = [{:eq, "["}, [[eq: "1, 2"], {:del, " | 3"}], {:eq, "]"}]
     assert script([1, 2 | 3], [1, 2]) == expected
 
     expected = [
       {:eq, "["},
-      [[eq: "1"], [del: ",", ins: " |", eq: " ", del: "\"a\"", ins: "\"b\""]],
+      [[eq: "1", del: ", ", del: "\"a\""], {:ins, " | \"b\""}],
       {:eq, "]"}
     ]
 
@@ -341,7 +341,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [[eq: "1"], [del: " |", ins: ",", eq: " ", del: "\"b\"", ins: "\"a\""]],
+      [[eq: "1", ins: ", ", ins: "\"a\""], {:del, " | \"b\""}],
       {:eq, "]"}
     ]
 
@@ -352,7 +352,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [[eq: "1"], [eq: ", ", del: "'b'", ins: "'a'"], [eq: " | ", eq: "3"]],
+      [[eq: "1", eq: ", ", del: "'b'", ins: "'a'"], [eq: " | ", eq: "3"]],
       {:eq, "]"}
     ]
 
@@ -360,7 +360,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [[del: "'a'", ins: "'b'"], [eq: ", ", eq: "2"], [eq: " | ", eq: "3"]],
+      [[del: "'a'", del: ", ", ins: "'b'", ins: ", ", eq: "2"], [eq: " | ", eq: "3"]],
       {:eq, "]"}
     ]
 
