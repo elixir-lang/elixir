@@ -2060,8 +2060,8 @@ defmodule Kernel do
       iex> get_in(users, ["unknown", :age])
       nil
 
-  When one of the keys is a function, the function is invoked.
-  In the example below, we use a function to get all the maps
+  When one of the keys is a function that takes three arguments, the function
+  is invoked. In the example below, we use a function to get all the maps
   inside a list:
 
       iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
@@ -2132,23 +2132,29 @@ defmodule Kernel do
   @doc """
   Gets a value and updates a nested structure.
 
-  `data` is a nested structure (ie. a map, keyword
+  `data` is a nested structure (that is, a map, keyword
   list, or struct that implements the `Access` behaviour).
 
   The `fun` argument receives the value of `key` (or `nil` if `key`
-  is not present) and must return a two-element tuple: the "get" value
-  (the retrieved value, which can be operated on before being returned)
-  and the new value to be stored under `key`. The `fun` may also
-  return `:pop`, implying the current value shall be removed
-  from the structure and returned.
+  is not present) and must return one of the following values:
 
-  It uses the `Access` module to traverse the structures
+    * a two-element tuple `{get_value, new_value}`. In this case,
+      `get_value` is the retrieved value which can possibly be operated on before
+      being returned. `new_value` is the new value to be stored under `key`.
+
+    * `:pop`, which implies that the current value under `key`
+      should be removed from the structure and returned.
+
+  This function uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
   function.
 
   If a key is a function, the function will be invoked
-  passing three arguments, the operation (`:get_and_update`),
-  the data to be accessed, and a function to be invoked next.
+  passing three arguments:
+
+    * the operation (`:get_and_update`)
+    * the data to be accessed
+    * a function to be invoked next
 
   This means `get_and_update_in/3` can be extended to provide
   custom lookups. The downside is that functions cannot be stored
@@ -2158,8 +2164,8 @@ defmodule Kernel do
 
   This function is useful when there is a need to retrieve the current
   value (or something calculated in function of the current value) and
-  update it at the same time. For example, it could be used to increase
-  the age of a user by one and return the previous age in one pass:
+  update it at the same time. For example, it could be used to read the
+  current age of a user while increasing it by one in one pass:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_and_update_in(users, ["john", :age], &{&1, &1 + 1})
@@ -2171,7 +2177,7 @@ defmodule Kernel do
 
       iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
       iex> all = fn :get_and_update, data, next ->
-      ...>   Enum.map(data, next) |> :lists.unzip
+      ...>   data |> Enum.map(next) |> Enum.unzip()
       ...> end
       iex> get_and_update_in(users, [all, :age], &{&1, &1 + 1})
       {[27, 23], [%{name: "john", age: 28}, %{name: "meg", age: 24}]}
@@ -2182,7 +2188,7 @@ defmodule Kernel do
 
   The `Access` module ships with many convenience accessor functions,
   like the `all` anonymous function defined above. See `Access.all/0`,
-  `Access.key/2` and others as examples.
+  `Access.key/2`, and others as examples.
   """
   @spec get_and_update_in(
           structure :: Access.t(),
@@ -2222,6 +2228,11 @@ defmodule Kernel do
 
   In case any entry returns `nil`, its key will be removed
   and the deletion will be considered a success.
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> pop_in(users, ["jane", :age])
+      {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+
   """
   @spec pop_in(data, nonempty_list(Access.get_and_update_fun(term, data) | term)) :: {term, data}
         when data: Access.container()
