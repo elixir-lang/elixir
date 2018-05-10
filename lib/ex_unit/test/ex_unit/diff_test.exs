@@ -120,24 +120,40 @@ defmodule ExUnit.DiffTest do
     list1 = [1, 2]
     list2 = [1, 1, 2]
 
-    expected = [
+    expected1 = [
       {:eq, "["},
-      [{:eq, "1"}, {:eq, ", "}, {:ins, "1"}, {:ins, ", "}, {:eq, "2"}],
+      [ins: "1", ins: ", ", eq: "1, 2"],
       {:eq, "]"}
     ]
 
-    assert script(list1, list2) == expected
+    assert script(list1, list2) == expected1
+
+    expected2 = [
+      {:eq, "["},
+      [del: "1", del: ", ", eq: "1, 2"],
+      {:eq, "]"}
+    ]
+
+    assert script(list2, list1) == expected2
 
     list1 = [1, 2, 3]
     list2 = [2, 3]
 
-    expected = [
+    expected1 = [
       {:eq, "["},
       [del: "1", del: ", ", eq: "2, 3"],
       {:eq, "]"}
     ]
 
-    assert script(list1, list2) == expected
+    assert script(list1, list2) == expected1
+
+    expected2 = [
+      {:eq, "["},
+      [ins: "1", ins: ", ", eq: "2, 3"],
+      {:eq, "]"}
+    ]
+
+    assert script(list2, list1) == expected2
   end
 
   test "charlists" do
