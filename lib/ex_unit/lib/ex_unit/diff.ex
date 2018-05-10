@@ -53,7 +53,8 @@ defmodule ExUnit.Diff do
       script_string(List.to_string(left), List.to_string(right), ?')
     else
       keywords? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
-      script_list_new(left, right, keywords?)
+      diffs = script_maybe_improper_list(left, right, keywords?)
+      [{:eq, "["}, diffs, {:eq, "]"}]
     end
   end
 
@@ -65,11 +66,17 @@ defmodule ExUnit.Diff do
   end
 
   # Tuples
-  def script(left, right)
-      when is_tuple(left) and is_tuple(right) do
-    left = {left, tuple_size(left) - 1}
-    right = {right, tuple_size(right) - 1}
-    script_tuple(left, right, [])
+  def script(left, right) when is_tuple(left) and is_tuple(right) do
+    diffs =
+      script_proper_list(
+        Tuple.to_list(left),
+        tuple_size(left),
+        Tuple.to_list(right),
+        tuple_size(right),
+        false
+      )
+
+    [{:eq, "{"}, diffs, {:eq, "}"}]
   end
 
   def script(_left, _right), do: nil
@@ -94,9 +101,11 @@ defmodule ExUnit.Diff do
   defp check_if_proper_and_get_length([_ | rest], length),
     do: check_if_proper_and_get_length(rest, length + 1)
 
-  defp check_if_proper_and_get_length([], length), do: {true, length}
+  defp check_if_proper_and_get_length([], length),
+    do: {true, length}
 
-  defp check_if_proper_and_get_length(_other, length), do: {false, length + 1}
+  defp check_if_proper_and_get_length(_other, length),
+    do: {false, length + 1}
 
   # The algorithm is outlined in the
   # "String Matching with Metric Trees Using an Approximate Distance"
@@ -138,21 +147,22 @@ defmodule ExUnit.Diff do
     end)
   end
 
-  defp script_list_new(list1, list2, keywords?) do
+  defp script_maybe_improper_list(list1, list2, keywords?) do
     {proper1?, length1} = check_if_proper_and_get_length(list1, 0)
     {proper2?, length2} = check_if_proper_and_get_length(list2, 0)
 
     if proper1? and proper2? do
-      initial_path = {0, 0, list1, list2, []}
-
-      result =
-        find_script(0, length1 + length2, [initial_path], keywords?)
-        |> format_each_fragment([], keywords?)
-
-      [{:eq, "["}, result, {:eq, "]"}]
+      script_proper_list(list1, length1, list2, length2, keywords?)
     else
-      script_list(list1, list2, [])
+      script_improper_list(list1, list2, [])
     end
+  end
+
+  defp script_proper_list(list1, length1, list2, length2, keywords?) do
+    initial_path = {0, 0, list1, list2, []}
+
+    find_script(0, length1 + length2, [initial_path], keywords?)
+    |> format_each_fragment([], keywords?)
   end
 
   defp format_each_fragment([{:diff, script}], [], _keywords?) do
@@ -319,46 +329,46 @@ defmodule ExUnit.Diff do
     {:cont, path}
   end
 
-  defp script_list([], [], acc) do
+  defp script_improper_list([], [], acc) do
     [[_ | elem_diff] | rest] = Enum.reverse(acc)
-    [{:eq, "["}, [elem_diff | rest], {:eq, "]"}]
+    [elem_diff | rest]
   end
 
-  defp script_list([], [elem | rest], acc) do
+  defp script_improper_list([], [elem | rest], acc) do
     elem_diff = [ins: inspect(elem)]
-    script_list([], rest, [[ins: ", "] ++ elem_diff | acc])
+    script_improper_list([], rest, [[ins: ", "] ++ elem_diff | acc])
   end
 
-  defp script_list([elem | rest], [], acc) do
+  defp script_improper_list([elem | rest], [], acc) do
     elem_diff = [del: inspect(elem)]
-    script_list(rest, [], [[del: ", "] ++ elem_diff | acc])
+    script_improper_list(rest, [], [[del: ", "] ++ elem_diff | acc])
   end
 
-  defp script_list([elem | rest1], [elem | rest2], acc) do
+  defp script_improper_list([elem | rest1], [elem | rest2], acc) do
     elem_diff = [eq: inspect(elem)]
-    script_list(rest1, rest2, [[eq: ", "] ++ elem_diff | acc])
+    script_improper_list(rest1, rest2, [[eq: ", "] ++ elem_diff | acc])
   end
 
-  defp script_list([elem1 | rest1], [elem2 | rest2], acc) do
+  defp script_improper_list([elem1 | rest1], [elem2 | rest2], acc) do
     elem_diff = script_inner(elem1, elem2)
-    script_list(rest1, rest2, [[eq: ", "] ++ elem_diff | acc])
+    script_improper_list(rest1, rest2, [[eq: ", "] ++ elem_diff | acc])
   end
 
-  defp script_list(last, [elem | rest], acc) do
+  defp script_improper_list(last, [elem | rest], acc) do
     joiner_diff = [del: " |", ins: ",", eq: " "]
     elem_diff = script_inner(last, elem)
     new_acc = [joiner_diff ++ elem_diff | acc]
-    script_list([], rest, new_acc)
+    script_improper_list([], rest, new_acc)
   end
 
-  defp script_list([elem | rest], last, acc) do
+  defp script_improper_list([elem | rest], last, acc) do
     joiner_diff = [del: ",", ins: " |", eq: " "]
     elem_diff = script_inner(elem, last)
     new_acc = [joiner_diff ++ elem_diff | acc]
-    script_list(rest, [], new_acc)
+    script_improper_list(rest, [], new_acc)
   end
 
-  defp script_list(last1, last2, acc) do
+  defp script_improper_list(last1, last2, acc) do
     elem_diff =
       cond do
         last1 == [] ->
@@ -371,33 +381,7 @@ defmodule ExUnit.Diff do
           [eq: " | "] ++ script_inner(last1, last2)
       end
 
-    script_list([], [], [elem_diff | acc])
-  end
-
-  defp script_tuple({_tuple1, -1}, {_tuple2, -1}, acc) do
-    [[_ | elem_diff] | rest] = acc
-    [{:eq, "{"}, [elem_diff | rest], {:eq, "}"}]
-  end
-
-  defp script_tuple({tuple1, index1}, {_, index2} = right, acc)
-       when index1 > index2 do
-    elem = elem(tuple1, index1)
-    elem_diff = [del: ", ", del: inspect(elem)]
-    script_tuple({tuple1, index1 - 1}, right, [elem_diff | acc])
-  end
-
-  defp script_tuple({_, index1} = left, {tuple2, index2}, acc)
-       when index1 < index2 do
-    elem = elem(tuple2, index2)
-    elem_diff = [ins: ", ", ins: inspect(elem)]
-    script_tuple(left, {tuple2, index2 - 1}, [elem_diff | acc])
-  end
-
-  defp script_tuple({tuple1, index}, {tuple2, index}, acc) do
-    elem1 = elem(tuple1, index)
-    elem2 = elem(tuple2, index)
-    elem_diff = script_inner(elem1, elem2)
-    script_tuple({tuple1, index - 1}, {tuple2, index - 1}, [[eq: ", "] ++ elem_diff | acc])
+    script_improper_list([], [], [elem_diff | acc])
   end
 
   defp script_map(left, right, name) do

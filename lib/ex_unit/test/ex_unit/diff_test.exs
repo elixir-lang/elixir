@@ -72,7 +72,7 @@ defmodule ExUnit.DiffTest do
         {:eq, ", "},
         {:ins, inspect(self())},
         {:ins, ", "},
-        [{:eq, "{"}, [[ins: "true"]], {:eq, "}"}],
+        [{:eq, "{"}, [{:ins, "true"}], {:eq, "}"}],
         {:del, ", "},
         {:del, ":ok"}
       ],
@@ -336,27 +336,19 @@ defmodule ExUnit.DiffTest do
     expected = [
       {:eq, "{"},
       [
-        [eq: ":hex"],
-        [{:eq, ", "}, {:eq, "'"}, [del: "1", ins: "0", eq: ".1"], {:eq, "'"}],
-        [ins: ", ", ins: "[{:ex_doc}]"]
+        {:eq, ":hex"},
+        {:eq, ", "},
+        [{:eq, "'"}, [del: "1", ins: "0", eq: ".1"], {:eq, "'"}],
+        {:ins, ", "},
+        {:ins, "[{:ex_doc}]"}
       ],
       {:eq, "}"}
     ]
 
     assert script(tuple1, tuple2) == expected
 
-    assert script(tuple1, {}) == [
-             {:eq, "{"},
-             [[del: ":hex"], [del: ", ", del: "'1.1'"]],
-             {:eq, "}"}
-           ]
-
-    assert script({}, tuple1) == [
-             {:eq, "{"},
-             [[ins: ":hex"], [ins: ", ", ins: "'1.1'"]],
-             {:eq, "}"}
-           ]
-
+    assert script(tuple1, {}) ==  [{:eq, "{"}, [{:del, ":hex, '1.1'"}], {:eq, "}"}]
+    assert script({}, tuple1) == [{:eq, "{"}, [{:ins, ":hex, '1.1'"}], {:eq, "}"}]
     assert script({}, {}) == [eq: "{}"]
   end
 
