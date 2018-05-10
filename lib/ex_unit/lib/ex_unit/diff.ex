@@ -185,8 +185,8 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp take_common_path([h | tail1], [h | tail2], acc) do
-    take_common_path(tail1, tail2, [h | acc])
+  defp take_common_path([head | tail1], [head | tail2], acc) do
+    take_common_path(tail1, tail2, [head | acc])
   end
 
   defp take_common_path(list1, list2, acc), do: {list1, list2, acc}
