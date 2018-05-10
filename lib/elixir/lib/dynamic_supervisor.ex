@@ -137,13 +137,14 @@ defmodule DynamicSupervisor do
   """
   @callback init(args :: term) :: {:ok, sup_flags()} | :ignore
 
-  @opaque sup_flags() :: %{
-            strategy: strategy(),
-            intensity: non_neg_integer(),
-            period: pos_integer(),
-            max_children: non_neg_integer() | :infinity,
-            extra_arguments: [term()]
-          }
+  @typedoc "The supervisor flags returned on init"
+  @type sup_flags() :: %{
+          strategy: strategy(),
+          intensity: non_neg_integer(),
+          period: pos_integer(),
+          max_children: non_neg_integer() | :infinity,
+          extra_arguments: [term()]
+        }
 
   @typedoc "Option values used by the `start*` functions"
   @type option :: {:name, Supervisor.name()} | init_option()
