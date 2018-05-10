@@ -376,14 +376,14 @@ defmodule ExUnit.DiffTest do
 
   test "tuples containing non-empty subsets or supersets" do
     tuple1 = {:ok}
-    tuple2 = {:ok, [1,2,3]}
+    tuple2 = {:ok, [1, 2, 3]}
 
     expected = [{:eq, "{"}, [eq: ":ok", ins: ", ", ins: "[1, 2, 3]"], {:eq, "}"}]
 
     assert script(tuple1, tuple2) == expected
 
-    tuple1 = {:ok, [1,2,3]}
-    tuple2 = {[1,2,3]}
+    tuple1 = {:ok, [1, 2, 3]}
+    tuple2 = {[1, 2, 3]}
 
     expected = [{:eq, "{"}, [del: ":ok", del: ", ", eq: "[1, 2, 3]"], {:eq, "}"}]
 
