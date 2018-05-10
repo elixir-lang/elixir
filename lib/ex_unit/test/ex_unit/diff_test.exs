@@ -116,7 +116,7 @@ defmodule ExUnit.DiffTest do
     assert script([], []) == [eq: "[]"]
   end
 
-  test "lists containing subsets or supersets" do
+  test "lists containing non-empty subsets or supersets" do
     list1 = [1, 2]
     list2 = [1, 1, 2]
 
@@ -265,17 +265,6 @@ defmodule ExUnit.DiffTest do
 
     assert script(keyword1, keyword2) == expected
 
-    keyword1 = [file: nil, line: 1]
-    keyword2 = [line: 1]
-
-    expected = [
-      {:eq, "["},
-      [{:del, "file: nil"}, {:del, ", "}, {:eq, "line: 1"}],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
     keyword1 = [file: nil]
     keyword2 = []
     expected = [{:eq, "["}, [{:del, "file: nil"}], {:eq, "]"}]
@@ -298,6 +287,26 @@ defmodule ExUnit.DiffTest do
     assert script(keyword1, keyword2) == expected
 
     assert script(["foo-bar": 1], []) == [{:eq, "["}, [{:del, "\"foo-bar\": 1"}], {:eq, "]"}]
+  end
+
+  test "keyword lists containing non-empty subsets or supersets" do
+    keyword1 = [file: nil, line: 1]
+    keyword2 = [line: 1]
+
+    expected = [
+      {:eq, "["},
+      [{:del, "file: nil"}, {:del, ", "}, {:eq, "line: 1"}],
+      {:eq, "]"}
+    ]
+
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [line: 1]
+    keyword2 = [file: nil, line: 1]
+
+    expected = [{:eq, "["}, [ins: "file: nil", ins: ", ", eq: "line: 1"], {:eq, "]"}]
+
+    assert script(keyword1, keyword2) == expected
   end
 
   test "improper lists" do
@@ -363,6 +372,22 @@ defmodule ExUnit.DiffTest do
     assert script(tuple1, {}) == [{:eq, "{"}, [{:del, ":hex, '1.1'"}], {:eq, "}"}]
     assert script({}, tuple1) == [{:eq, "{"}, [{:ins, ":hex, '1.1'"}], {:eq, "}"}]
     assert script({}, {}) == [eq: "{}"]
+  end
+
+  test "tuples containing non-empty subsets or supersets" do
+    tuple1 = {:ok}
+    tuple2 = {:ok, [1,2,3]}
+
+    expected = [{:eq, "{"}, [eq: ":ok", ins: ", ", ins: "[1, 2, 3]"], {:eq, "}"}]
+
+    assert script(tuple1, tuple2) == expected
+
+    tuple1 = {:ok, [1,2,3]}
+    tuple2 = {[1,2,3]}
+
+    expected = [{:eq, "{"}, [del: ":ok", del: ", ", eq: "[1, 2, 3]"], {:eq, "}"}]
+
+    assert script(tuple1, tuple2) == expected
   end
 
   test "maps" do
