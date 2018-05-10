@@ -31,10 +31,10 @@ defmodule ExUnit.Diff do
       if inspect_left != inspect_right do
         script_string(inspect_left, inspect_right)
       else
-        script_struct(left, right)
+        script_struct(left, right, name)
       end
     else
-      script_struct(left, right)
+      script_struct(left, right, name)
     end
   end
 
@@ -422,7 +422,7 @@ defmodule ExUnit.Diff do
     [{:eq, "%" <> name <> "{"}, [elem_diff | rest], {:eq, "}"}]
   end
 
-  defp script_struct(%name{} = left, %name{} = right) do
+  defp script_struct(left, right, name) do
     left = Map.from_struct(left)
     right = Map.from_struct(right)
     script_map(left, right, inspect(name))
