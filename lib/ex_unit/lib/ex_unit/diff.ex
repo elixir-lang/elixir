@@ -159,9 +159,9 @@ defmodule ExUnit.Diff do
   end
 
   defp script_proper_list(list1, length1, list2, length2, keywords?) do
-    case diff_subset(list1, list2) do
-      {:ok, diff} ->
-        format_each_fragment(diff, [], keywords?)
+    case script_subset_list(list1, list2) do
+      {:ok, script} ->
+        format_each_fragment(script, [], keywords?)
 
       :error ->
         initial_path = {0, 0, list1, list2, []}
@@ -171,27 +171,35 @@ defmodule ExUnit.Diff do
     end
   end
 
-  def diff_subset(list1, list2) do
-    {list1, list2, prefix} = take_common_path(list1, list2, [])
-    {list1, list2, suffix} = take_common_path(Enum.reverse(list1), Enum.reverse(list2), [])
+  defp script_subset_list(list1, list2) do
+    case find_subset_list(list1, list2, []) do
+      {subset, rest1, rest2} ->
+        {:ok, wrap_in(:eq, Enum.reverse(subset)) ++ wrap_in(:del, rest1) ++ wrap_in(:ins, rest2)}
 
-    if list1 == [] or list2 == [] do
-      {:ok,
-       wrap_in(:eq, Enum.reverse(prefix)) ++
-         wrap_in(:del, Enum.reverse(list1)) ++
-         wrap_in(:ins, Enum.reverse(list2)) ++ wrap_in(:eq, suffix)}
-    else
-      :error
+      nil ->
+        case find_subset_list(Enum.reverse(list1), Enum.reverse(list2), []) do
+          {subset, rest1, rest2} ->
+            {:ok,
+             wrap_in(:del, Enum.reverse(rest1)) ++
+               wrap_in(:ins, Enum.reverse(rest2)) ++ wrap_in(:eq, subset)}
+
+          nil ->
+            :error
+        end
     end
   end
 
-  defp take_common_path([head | tail1], [head | tail2], acc) do
-    take_common_path(tail1, tail2, [head | acc])
+  defp find_subset_list([item | rest1], [item | rest2], subset) do
+    find_subset_list(rest1, rest2, [item | subset])
   end
 
-  defp take_common_path(list1, list2, acc), do: {list1, list2, acc}
+  defp find_subset_list(rest1, rest2, subset) when rest1 == [] or rest2 == [] do
+    {subset, rest1, rest2}
+  end
 
-  defp wrap_in(_, []), do: []
+  defp find_subset_list(_subset, _rest1, _rest2), do: nil
+
+  defp wrap_in(_tag, []), do: []
   defp wrap_in(tag, items), do: [{tag, items}]
 
   defp format_each_fragment([{:diff, script}], [], _keywords?) do
