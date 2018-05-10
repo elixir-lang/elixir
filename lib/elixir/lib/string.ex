@@ -310,7 +310,8 @@ defmodule String do
   Divides a string into substrings based on a pattern.
 
   Returns a list of these substrings. The pattern can
-  be a string, a list of strings, or a regular expression.
+  be a string, a list of strings, a regular expression,
+  or a compiled pattern.
 
   The string is split into as many parts as possible by
   default, but can be controlled via the `:parts` option.
@@ -366,6 +367,12 @@ defmodule String do
       iex> String.split("abc", ~r{b}, include_captures: true)
       ["a", "b", "c"]
 
+  A compiled pattern:
+
+      iex> pattern = :binary.compile_pattern([" ", ","])
+      iex> String.split("1,2 3,4", pattern)
+      ["1", "2", "3", "4"]
+
   Splitting on empty string returns graphemes:
 
       iex> String.split("abc", "")
@@ -379,12 +386,6 @@ defmodule String do
 
       iex> String.split("abc", "", parts: 3)
       ["", "a", "bc"]
-
-  A precompiled pattern can also be given:
-
-      iex> pattern = :binary.compile_pattern([" ", ","])
-      iex> String.split("1,2 3,4", pattern)
-      ["1", "2", "3", "4"]
 
   Note this function can split within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
@@ -478,6 +479,12 @@ defmodule String do
 
       iex> String.splitter("abcd", "", trim: true) |> Enum.take(10)
       ["a", "b", "c", "d"]
+
+  A compiled pattern can also be given:
+
+      iex> pattern = :binary.compile_pattern([" ", ","])
+      iex> String.splitter("1,2 3,4 5,6 7,8,...,99999", pattern) |> Enum.take(4)
+      ["1", "2", "3", "4"]
 
   """
   @spec splitter(t, pattern, keyword) :: Enumerable.t()
@@ -1257,7 +1264,7 @@ defmodule String do
   Returns a new string created by replacing occurrences of `pattern` in
   `subject` with `replacement`.
 
-  The `pattern` may be a string or a regular expression.
+  The `pattern` may be a string, a regular expression, or a compiled pattern.
 
   By default it replaces all occurrences but this behaviour can be controlled
   through the `:global` option; see the "Options" section below.
@@ -1307,6 +1314,12 @@ defmodule String do
 
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
+
+  A compiled pattern can also be given:
+
+      iex> pattern = :binary.compile_pattern(",")
+      iex> String.replace("a,b,c", pattern, "[]", insert_replaced: 2)
+      "a[],b[],c"
 
   When an empty string is provided as a `pattern`, the function will treat it as
   an implicit empty string between each grapheme and the string will be
@@ -1902,7 +1915,8 @@ defmodule String do
   @doc """
   Returns `true` if `string` starts with any of the prefixes given.
 
-  `prefix` can be either a single prefix or a list of prefixes.
+  `prefix` can be either a string, a list of strings, or a compiled
+  pattern.
 
   ## Examples
 
@@ -1912,6 +1926,12 @@ defmodule String do
       true
       iex> String.starts_with?("elixir", ["erlang", "ruby"])
       false
+
+  A compiled pattern can also be given:
+
+      iex> pattern = :binary.compile_pattern(["erlang", "elixir"])
+      iex> String.starts_with?("elixir", pattern)
+      true
 
   An empty string will always match:
 
@@ -2009,7 +2029,8 @@ defmodule String do
   @doc """
   Checks if `string` contains any of the given `contents`.
 
-  `contents` can be either a single string or a list of strings.
+  `contents` can be either a string, a list of strings,
+  or a compiled pattern.
 
   ## Examples
 
@@ -2020,17 +2041,17 @@ defmodule String do
       iex> String.contains?("elixir of life", ["death", "mercury"])
       false
 
+  The argument can also be a compiled pattern:
+
+      iex> pattern = :binary.compile_pattern(["life", "death"])
+      iex> String.contains?("elixir of life", pattern)
+      true
+
   An empty string will always match:
 
       iex> String.contains?("elixir of life", "")
       true
       iex> String.contains?("elixir of life", ["", "other"])
-      true
-
-  The argument can also be a precompiled pattern:
-
-      iex> pattern = :binary.compile_pattern(["life", "death"])
-      iex> String.contains?("elixir of life", pattern)
       true
 
   Note this function can match within or across grapheme boundaries.
