@@ -270,5 +270,5 @@ prepend_to_block(Meta, Expr, Args) ->
   {'__block__', Meta, [Expr, Args]}.
 
 erl(Meta, Op) -> {'.', Meta, [erlang, Op]}.
-erl_or(Meta, Left, Right) -> {{'.', Meta, [erlang, 'orelse']}, Meta, [Left, Right]}.
-erl_and(Meta, Left, Right) -> {{'.', Meta, [erlang, 'andalso']}, Meta, [Left, Right]}.
+erl_or(Meta, Left, Right) -> {erl(Meta, 'orelse'), Meta, [Left, Right]}.
+erl_and(Meta, Left, Right) -> {erl(Meta, 'andalso'), Meta, [Left, Right]}.
