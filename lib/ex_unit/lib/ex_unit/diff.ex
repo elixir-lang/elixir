@@ -53,8 +53,8 @@ defmodule ExUnit.Diff do
       script_string(List.to_string(left), List.to_string(right), ?')
     else
       keywords? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
-      diffs = script_list(left, right, keywords?)
-      [{:eq, "["}, diffs, {:eq, "]"}]
+      script = script_list(left, right, keywords?)
+      [{:eq, "["}, script, {:eq, "]"}]
     end
   end
 
@@ -67,7 +67,7 @@ defmodule ExUnit.Diff do
 
   # Tuples
   def script(left, right) when is_tuple(left) and is_tuple(right) do
-    diffs =
+    script =
       script_list(
         Tuple.to_list(left),
         tuple_size(left),
@@ -76,7 +76,7 @@ defmodule ExUnit.Diff do
         false
       )
 
-    [{:eq, "{"}, diffs, {:eq, "}"}]
+    [{:eq, "{"}, script, {:eq, "}"}]
   end
 
   def script(_left, _right), do: nil
