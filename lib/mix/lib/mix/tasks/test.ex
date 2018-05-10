@@ -37,8 +37,9 @@ defmodule Mix.Tasks.Test do
       total =
         results
         |> Stream.each(&display(&1, opts))
-        |> Enum.reduce({0, 0}, fn {_, {cov, not_cov}}, {tot_cov, tot_not_cov} ->
-          {tot_cov + cov, tot_not_cov + not_cov}
+        |> Enum.reduce({0, 0}, fn {_, {covered, not_covered}},
+                                  {total_covered, total_not_covered} ->
+          {total_cov + cov, total_not_cov + not_cov}
         end)
 
       Mix.shell().info("-----------|--------------------------")
@@ -84,13 +85,13 @@ defmodule Mix.Tasks.Test do
     end
 
     defp percentage({0, 0}), do: 100
-    defp percentage({cov, not_cov}), do: cov / (cov + not_cov) * 100
+    defp percentage({covered, not_covered}), do: covered / (covered + not_covered) * 100
 
-    defp format(num, len) when is_integer(num),
-      do: :io_lib.format("~#{len}b", [num])
+    defp format(number, length) when is_integer(number),
+      do: :io_lib.format("~#{length}b", [number])
 
-    defp format(num, len) when is_float(num),
-      do: :io_lib.format("~#{len}.2f", [num])
+    defp format(number, length) when is_float(number),
+      do: :io_lib.format("~#{length}.2f", [number])
 
     defp format_name(name) when is_binary(name), do: name
     defp format_name(mod) when is_atom(mod), do: inspect(mod)
