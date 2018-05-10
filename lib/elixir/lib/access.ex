@@ -2,33 +2,33 @@ defmodule Access do
   @moduledoc """
   Key-based access to data structures.
 
-  Elixir supports three main key-value constructs, keywords,
-  maps and structs, and two mechanisms to access those keys,
-  by brackets via `data[key]`, and by dot-syntax, via `data.field`.
+  Elixir supports three main key-value constructs: keywords,
+  maps, and structs. It also supports two mechanisms to access those keys:
+  by brackets (via `data[key]`) and by dot-syntax (via `data.field`).
 
-  Next we will briefly recap the key-value constructs and then
+  In the next section we will briefly recap the key-value constructs and then
   discuss the access mechanisms.
 
   ## Key-value constructs
 
   Elixir provides three main key-value constructs, summarized below:
 
-    * keyword lists - they are lists of two element tuples where
+    * keyword lists - they are lists of two-element tuples where
       the first element is an atom. Commonly written in the
       `[key: value]` syntax, they support only atom keys. Keyword
       lists are used almost exclusively to pass options to functions
       and macros. They keep the user ordering and allow duplicate
-      keys. Powered by the `Keyword` module.
+      keys. See the `Keyword` module.
 
-    * maps - they are the "go to" key-value data structure in Elixir
-      capable of supporting billions of keys of any type. They are
-      written in the `%{key => value}` syntax and also support the
+    * maps - they are the "go to" key-value data structure in Elixir.
+      They are capable of supporting billions of keys of any type. They are
+      written using the `%{key => value}` syntax and also support the
       `%{key: value}` syntax when the keys are atoms. They do not
       have any specified ordering and do not allow duplicate keys.
-      Powered by the `Map` module.
+      See the `Map` module.
 
     * structs - they are named maps with a pre-determined set of keys.
-      They are defined with `defstruct/1` and written in the
+      They are defined with `defstruct/1` and written using the
       `%StructName{key: value}` syntax.
 
   ## Key-based accessors
@@ -40,7 +40,8 @@ defmodule Access do
 
   The `data[key]` syntax is used to access data structures with a
   dynamic number of keys, such as keywords and maps. The key can
-  be of any type and it returns nil if the key does not exist:
+  be of any type. The bracket-based access syntax returns `nil`
+  if the key does not exist:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -62,10 +63,15 @@ defmodule Access do
       iex> put_in(users["john"][:age], 28)
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  Furthermore, the bracket access transparently ignores `nil` values:
+  Furthermore, the bracket-based access syntax transparently ignores
+  `nil` values. When trying to access anything on a `nil` value, `nil`
+  is returned:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:c][:unknown]
+      nil
+
+      iex> nil[:a]
       nil
 
   Internally, `data[key]` translates  to `Access.get(term, key, nil)`.
@@ -77,8 +83,8 @@ defmodule Access do
   ### Dot-based syntax
 
   The `data.field` syntax is used exclusively to access atom fields
-  in maps and structs. If the field accessed does not exist, it
-  raises an error. This is a deliberate decision: since all of the
+  in maps and structs. If the accessed field does not exist, an error is
+  raised. This is a deliberate decision: since all of the
   fields in a struct are pre-determined, structs support only the
   dot-based syntax and not the access one.
 
@@ -107,22 +113,20 @@ defmodule Access do
   ## Nested data structures
 
   Both key-based access syntaxes can be used with the nested update
-  functions in `Kernel`, such as `Kernel.get_in/2`, `Kernel.put_in/3`,
-  `Kernel.update_in/3` and `Kernel.get_and_update_in/3`.
+  functions and macros in `Kernel`, such as `Kernel.get_in/2`, `Kernel.put_in/3`,
+  `Kernel.update_in/3`, `Kernel.pop_in/2`, and `Kernel.get_and_update_in/3`.
 
-  For example, to update a map inside another map of dynamic values,
-  one can do:
+  For example, to update a map inside another map:
 
      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-     iex> put_in users["john"].age, 28
+     iex> put_in(users["john"].age, 28)
      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-
   This module provides convenience functions for traversing other
-  structures, like tuples and lists, to be used alongside `Kernel.put_in/2`
-  and others.
+  structures, like tuples and lists. These functions can be used
+  in all the `Access`-related functions and macros in `Kernel`.
 
-  For instance, given a user map with `:name` and `:languages` keys,
+  For instance, given a user map with the `:name` and `:languages` keys,
   here is how to deeply traverse the map and convert all language names
   to uppercase:
 
@@ -190,7 +194,7 @@ defmodule Access do
       def get(structure, key, default) do
         case fetch(structure, key) do
           {:ok, value} -> value
-          :error       -> default
+          :error -> default
         end
       end
 
@@ -208,9 +212,12 @@ defmodule Access do
 
   If the passed function returns `{get_value, update_value}`,
   the return value of this callback should be `{get_value, new_data}`, where:
-  - `get_value` is the retrieved value (which can be operated on before being returned)
-  - `update_value` is the new value to be stored under `key`
-  - `new_data` is `data` after updating the value of `key` with `update_value`.
+
+    * `get_value` is the retrieved value (which can be operated on before being returned)
+
+    * `update_value` is the new value to be stored under `key`
+
+    * `new_data` is `data` after updating the value of `key` with `update_value`.
 
   If the passed function returns `:pop`, the return value of this callback
   must be `{value, new_data}` where `value` is the value under `key`
@@ -258,6 +265,15 @@ defmodule Access do
 
   Returns `{:ok, value}` where `value` is the value under `key` if there is such
   a key, or `:error` if `key` is not found.
+
+  ## Examples
+
+      iex> Access.fetch(%{name: "meg", age: 26}, :name)
+      {:ok, "meg"}
+
+      iex> Access.fetch([ordered: true, on_timeout: :exit], :timeout)
+      :error
+
   """
   @spec fetch(container, term) :: {:ok, term} | :error
   @spec fetch(nil_container, any) :: :error
@@ -299,6 +315,17 @@ defmodule Access do
 
   Returns the value under `key` if there is such a key, or `default` if `key` is
   not found.
+
+  ## Examples
+
+      iex> Access.get(%{name: "john"}, :name, "default name")
+      "john"
+      iex> Access.get(%{name: "john"}, :age, 25)
+      25
+
+      iex> Access.get([ordered: true], :timeout)
+      nil
+
   """
   @spec get(container, term, term) :: term
   @spec get(nil_container, any, default) :: default when default: var
@@ -437,8 +464,8 @@ defmodule Access do
   The returned function uses the default value if the key does not exist.
   This can be used to specify defaults and safely traverse missing keys:
 
-      iex> get_in(%{}, [Access.key(:user, %{}), Access.key(:name)])
-      nil
+      iex> get_in(%{}, [Access.key(:user, %{name: "meg"}), Access.key(:name)])
+      "meg"
 
   Such is also useful when using update functions, allowing us to introduce
   values as we traverse the data structure for updates:
