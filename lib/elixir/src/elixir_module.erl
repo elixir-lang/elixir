@@ -77,7 +77,7 @@ compile(Line, Module, Block, Vars, E) ->
 
   try
     put_compiler_modules([Module | CompilerModules]),
-    {Result, NE, OverridablePairs} = eval_form(Line, Module, DataBag, Block, Vars, E),
+    {Result, NE} = eval_form(Line, Module, DataBag, Block, Vars, E),
 
     PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
     Attributes = attributes(DataSet, DataBag, PersistedAttributes),
@@ -88,7 +88,7 @@ compile(Line, Module, Block, Vars, E) ->
     elixir_locals:stop({DataSet, DataBag}),
 
     (not elixir_config:get(bootstrap)) andalso
-     'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions, OverridablePairs),
+     'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
 
     RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
     CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
@@ -280,12 +280,11 @@ build(Line, File, Module, Lexical) ->
 
 eval_form(Line, Module, DataBag, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
-  Pairs1 = elixir_overridable:store_pending(Module),
+  elixir_overridable:store_pending(Module),
   EV = elixir_env:linify({Line, elixir_env:reset_vars(EE)}),
   EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
-  Pairs2 = elixir_overridable:store_pending(Module),
-  OverridablePairs = Pairs1 ++ Pairs2,
-  {Value, EC, OverridablePairs}.
+  elixir_overridable:store_pending(Module),
+  {Value, EC}.
 
 eval_callbacks(Line, DataBag, Name, Args, E) ->
   Callbacks = bag_lookup_element(DataBag, {accumulate, Name}, 2),

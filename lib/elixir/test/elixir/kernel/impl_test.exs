@@ -28,6 +28,34 @@ defmodule Kernel.ImplTest do
     @callback foo(any, any, any) :: any
   end
 
+  defmodule UseBehaviourWithoutImpl do
+    @callback foo() :: any
+    @callback bar() :: any
+    @callback baz() :: any
+
+    defmacro __using__(_opts) do
+      quote do
+        @behaviour Kernel.ImplTest.UseBehaviourWithoutImpl
+        def foo(), do: :auto_generated
+      end
+    end
+  end
+
+  defmodule UseBehaviourWithImpl do
+    @callback foo() :: any
+    @callback bar() :: any
+    @callback baz() :: any
+
+    defmacro __using__(_opts) do
+      quote do
+        @behaviour Kernel.ImplTest.UseBehaviourWithImpl
+        @impl true
+        def foo(), do: :auto_generated
+        def bar(), do: :auto_generated
+      end
+    end
+  end
+
   defmodule MacroBehaviour do
     @macrocallback bar :: any
   end
@@ -458,28 +486,6 @@ defmodule Kernel.ImplTest do
              "module attribute @impl was not set for function foo/0 callback (specified in Kernel.ImplTest.Behaviour)"
   end
 
-  test "warns correctly for missing @impl even if it was set in overridable callback" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Kernel.ImplTest.ImplAttributes do
-               @behaviour Kernel.ImplTest.Behaviour
-               @behaviour Kernel.ImplTest.MacroBehaviour
-
-               @impl Kernel.ImplTest.Behaviour
-               def foo(), do: :overridable
-
-               defoverridable Kernel.ImplTest.Behaviour
-
-               def foo(), do: :overridden
-
-               @impl Kernel.ImplTest.MacroBehaviour
-               defmacro bar(), do: :overridden
-             end
-             """)
-           end) =~
-             "module attribute @impl was not set for function foo/0 callback (specified in Kernel.ImplTest.Behaviour)"
-  end
-
   test "warns correctly for incorrect @impl in overridable callback" do
     assert capture_err(fn ->
              Code.eval_string("""
@@ -498,6 +504,39 @@ defmodule Kernel.ImplTest do
              """)
            end) =~
              "got \"@impl Kernel.ImplTest.MacroBehaviour\" for function foo/0 but this behaviour does not specify such callback"
+  end
+
+  test "warns only for non-generated functions in non-generated @impl" do
+    message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Kernel.ImplTest.ImplAttributes do
+          use Kernel.ImplTest.UseBehaviourWithoutImpl
+
+          @impl true
+          def bar(), do: :overridden
+          def baz(), do: :overridden
+        end
+        """)
+      end)
+
+    assert message =~ "module attribute @impl was not set for function baz/0 callback"
+    refute message =~ "foo/0"
+  end
+
+  test "warns only for generated functions in generated @impl" do
+    message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Kernel.ImplTest.ImplAttributes do
+          use Kernel.ImplTest.UseBehaviourWithImpl
+          def baz(), do: :overridden
+        end
+        """)
+      end)
+
+    assert message =~ "module attribute @impl was not set for function bar/0 callback"
+    refute message =~ "foo/0"
   end
 
   test "does not warn for overridable callback when using __before_compile__/1 hook" do

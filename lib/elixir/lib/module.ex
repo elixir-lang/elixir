@@ -929,7 +929,6 @@ defmodule Module do
   @spec make_overridable(module, [definition]) :: :ok
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
-    check_impls_for_overridable(module, tuples)
 
     func = fn
       {function_name, arity} = tuple
@@ -984,34 +983,11 @@ defmodule Module do
       end
 
     tuples =
-      for definition <- definitions_in(module), definition in behaviour_callbacks, do: definition
+      for definition <- definitions_in(module),
+          definition in behaviour_callbacks,
+          do: definition
 
     make_overridable(module, tuples)
-  end
-
-  defp check_impls_for_overridable(module, tuples) do
-    {_, bag} = data_tables_for(module)
-    impls = bag_lookup_element(bag, :impls, 2)
-
-    overridable_impls = :lists.filter(fn {pair, _, _, _, _, _} -> pair in tuples end, impls)
-
-    if overridable_impls != [] do
-      for impl <- overridable_impls do
-        :ets.delete_object(bag, {:impls, impl})
-      end
-
-      behaviours = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
-
-      callbacks =
-        for behaviour <- behaviours,
-            function_exported?(behaviour, :behaviour_info, 1),
-            callback <- behaviour_info(behaviour, :callbacks),
-            {callback, kind} = normalize_macro_or_function_callback(callback),
-            do: {callback, {kind, behaviour, true}},
-            into: %{}
-
-      check_impls(behaviours, callbacks, overridable_impls)
-    end
   end
 
   defp check_module_for_overridable(module, behaviour) do
@@ -1254,11 +1230,10 @@ defmodule Module do
   def compile_definition_attributes(env, kind, name, args, _guards, _body) do
     %{module: module} = env
     {set, bag} = data_tables_for(module)
-    arity = length(args)
+    {arity, defaults} = args_count(args, 0, 0)
     pair = {name, arity}
-    {total, defaults} = args_count(args, 0, 0)
 
-    impl = compile_impl(set, bag, name, env, kind, total, defaults)
+    impl = compile_impl(set, bag, name, env, kind, arity, defaults)
     _deprecated = compile_deprecated(set, bag, name, arity, defaults)
     _since = compile_since(set)
 
@@ -1328,12 +1303,14 @@ defmodule Module do
   defp deprecated_reason(name, arity, reason),
     do: {:deprecated, {{name, arity}, reason}}
 
-  defp compile_impl(set, bag, name, env, kind, total, defaults) do
+  defp compile_impl(set, bag, name, env, kind, arity, defaults) do
     %{line: line, file: file} = env
 
     case :ets.take(set, :impl) do
       [{:impl, value, _}] ->
-        impl = {{name, total}, defaults, kind, line, file, value}
+        pair = {name, arity}
+        meta = :ets.lookup_element(set, {:def, pair}, 3)
+        impl = {pair, Keyword.get(meta, :context), defaults, kind, line, file, value}
         :ets.insert(bag, {:impls, impl})
         value
 
@@ -1353,15 +1330,15 @@ defmodule Module do
   defp args_count([], total, defaults), do: {total, defaults}
 
   @doc false
-  def check_behaviours_and_impls(env, _set, bag, all_definitions, overridable_pairs) do
+  def check_behaviours_and_impls(env, _set, bag, all_definitions) do
     behaviours = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
     impls = bag_lookup_element(bag, :impls, 2)
     callbacks = check_behaviours(env, behaviours)
 
     pending_callbacks =
       if impls != [] do
-        non_implemented_callbacks = check_impls(behaviours, callbacks, impls)
-        warn_missing_impls(env, non_implemented_callbacks, all_definitions, overridable_pairs)
+        {non_implemented_callbacks, contexts} = check_impls(behaviours, callbacks, impls)
+        warn_missing_impls(env, non_implemented_callbacks, contexts, all_definitions)
         non_implemented_callbacks
       else
         callbacks
@@ -1477,10 +1454,16 @@ defmodule Module do
   end
 
   defp check_impls(behaviours, callbacks, impls) do
-    Enum.reduce(impls, callbacks, fn {fa, defaults, kind, line, file, value}, acc ->
+    acc = {callbacks, %{}}
+
+    Enum.reduce(impls, acc, fn {fa, context, defaults, kind, line, file, value}, acc ->
       case impl_behaviours(fa, defaults, kind, value, behaviours, callbacks) do
         {:ok, impl_behaviours} ->
-          Enum.reduce(impl_behaviours, acc, fn {fa, _}, acc -> Map.delete(acc, fa) end)
+          Enum.reduce(impl_behaviours, acc, fn {fa, behaviour}, {callbacks, contexts} ->
+            callbacks = Map.delete(callbacks, fa)
+            contexts = Map.update(contexts, behaviour, [context], &[context | &1])
+            {callbacks, contexts}
+          end)
 
         {:error, message} ->
           :elixir_errors.warn(line, file, format_impl_warning(fa, kind, message))
@@ -1503,21 +1486,21 @@ defmodule Module do
   end
 
   defp impl_behaviours(impls, _, false, _, callbacks) do
-    case impl_callbacks(impls, callbacks) do
+    case callbacks_for_impls(impls, callbacks) do
       [] -> {:ok, []}
       [impl | _] -> {:error, {:impl_not_defined, impl}}
     end
   end
 
   defp impl_behaviours(impls, _, true, _, callbacks) do
-    case impl_callbacks(impls, callbacks) do
+    case callbacks_for_impls(impls, callbacks) do
       [] -> {:error, {:impl_defined, callbacks}}
       impls -> {:ok, impls}
     end
   end
 
   defp impl_behaviours(impls, _, behaviour, behaviours, callbacks) do
-    filtered = impl_behaviours(impls, behaviour, callbacks)
+    filtered = behaviour_callbacks_for_impls(impls, behaviour, callbacks)
 
     cond do
       filtered != [] ->
@@ -1531,30 +1514,28 @@ defmodule Module do
     end
   end
 
-  defp impl_behaviours(impls, behaviour, callbacks) do
-    impl_behaviours(impl_callbacks(impls, callbacks), behaviour)
-  end
-
-  defp impl_behaviours([], _) do
+  defp behaviour_callbacks_for_impls([], _behaviour, _callbacks) do
     []
   end
 
-  defp impl_behaviours([{_, behaviour} = impl | tail], behaviour) do
-    [impl | impl_behaviours(tail, behaviour)]
-  end
-
-  defp impl_behaviours([_ | tail], behaviour) do
-    impl_behaviours(tail, behaviour)
-  end
-
-  defp impl_callbacks([], _) do
-    []
-  end
-
-  defp impl_callbacks([fa | tail], callbacks) do
+  defp behaviour_callbacks_for_impls([fa | tail], behaviour, callbacks) do
     case callbacks[fa] do
-      nil -> impl_callbacks(tail, callbacks)
-      {_, behaviour, _} -> [{fa, behaviour} | impl_callbacks(tail, callbacks)]
+      {_, ^behaviour, _} ->
+        [{fa, behaviour} | behaviour_callbacks_for_impls(tail, behaviour, callbacks)]
+
+      _ ->
+        behaviour_callbacks_for_impls(tail, behaviour, callbacks)
+    end
+  end
+
+  defp callbacks_for_impls([], _) do
+    []
+  end
+
+  defp callbacks_for_impls([fa | tail], callbacks) do
+    case callbacks[fa] do
+      {_, behaviour, _} -> [{fa, behaviour} | callbacks_for_impls(tail, callbacks)]
+      nil -> callbacks_for_impls(tail, callbacks)
     end
   end
 
@@ -1586,30 +1567,33 @@ defmodule Module do
       "but this behaviour does not specify such callback#{known_callbacks(callbacks)}"
   end
 
-  defp warn_missing_impls(_env, callbacks, _defs, _) when map_size(callbacks) == 0 do
+  defp warn_missing_impls(_env, callbacks, _contexts, _defs) when map_size(callbacks) == 0 do
     :ok
   end
 
-  defp warn_missing_impls(env, non_implemented_callbacks, defs, overridable_pairs) do
+  defp warn_missing_impls(env, non_implemented_callbacks, contexts, defs) do
     for {pair, kind, meta, _clauses} <- defs,
-        kind in [:def, :defmacro],
-        pair not in overridable_pairs do
-      case Map.fetch(non_implemented_callbacks, pair) do
-        {:ok, {_, behaviour, _}} ->
-          message =
-            "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
-              "callback (specified in #{inspect(behaviour)}). " <>
-              "This either means you forgot to add the \"@impl true\" annotation before the " <>
-              "definition or that you are accidentally overriding this callback"
+        kind in [:def, :defmacro] do
+      with {:ok, {_, behaviour, _}} <- Map.fetch(non_implemented_callbacks, pair),
+           true <- missing_impl_in_context?(meta, behaviour, contexts) do
+        message =
+          "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
+            "callback (specified in #{inspect(behaviour)}). " <>
+            "This either means you forgot to add the \"@impl true\" annotation before the " <>
+            "definition or that you are accidentally overriding this callback"
 
-          :elixir_errors.warn(:elixir_utils.get_line(meta), env.file, message)
-
-        :error ->
-          :ok
+        :elixir_errors.warn(:elixir_utils.get_line(meta), env.file, message)
       end
     end
 
     :ok
+  end
+
+  defp missing_impl_in_context?(meta, behaviour, contexts) do
+    case contexts do
+      %{^behaviour => known} -> Keyword.get(meta, :context) in known
+      %{} -> not Keyword.has_key?(meta, :context)
+    end
   end
 
   defp format_definition(kind, {name, arity}) do

@@ -108,11 +108,18 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   %% Now that we have verified the call format,
   %% extract meta information like file and context.
   {_, Meta, _} = Call,
-  DoCheckClauses = (not lists:keymember(context, 1, Meta)) andalso (CheckClauses),
-  Generated = case lists:keyfind(generated, 1, Meta) of
-    {generated, true} -> ?generated([]);
+
+  Context = case lists:keyfind(context, 1, Meta) of
+    {context, _} = ContextPair -> [ContextPair];
     _ -> []
   end,
+
+  Generated = case lists:keyfind(generated, 1, Meta) of
+    {generated, true} -> [?generated([]) | Context];
+    _ -> Context
+  end,
+
+  DoCheckClauses = (Context == []) andalso (CheckClauses),
 
   %% Check if there is a file information in the definition.
   %% If so, we assume this come from another source and
@@ -159,12 +166,13 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
   check_previous_defaults(Meta, Module, Name, Arity, Kind, DefaultsLength, E),
-  run_on_definition_callbacks(Kind, Module, Name, DefaultsArgs, Guards, Body, E),
 
   store_definition(CheckClauses, Kind, Meta, Name, Arity, File,
                    Module, DefaultsLength, Clauses),
   [store_definition(false, Kind, Meta, Name, length(DefaultArgs), File,
                     Module, 0, [Default]) || {_, DefaultArgs, _, _} = Default <- Defaults],
+
+  run_on_definition_callbacks(Kind, Module, Name, DefaultsArgs, Guards, Body, E),
   Tuple.
 
 env_for_expansion(Kind, Tuple, E) when Kind =:= defmacro; Kind =:= defmacrop ->
