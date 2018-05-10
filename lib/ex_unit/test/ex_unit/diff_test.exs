@@ -10,7 +10,7 @@ defmodule ExUnit.DiffTest do
   end
 
   defmodule Opaque do
-    defstruct [:x]
+    defstruct [:data]
 
     defimpl Inspect do
       def inspect(_, _) do
@@ -487,13 +487,13 @@ defmodule ExUnit.DiffTest do
     assert script(date1, date2) == [eq: "~D[2017-10-0", del: "1", ins: "2", eq: "]"]
   end
 
-  test "structs with no inspect difference" do
-    opaque1 = %Opaque{x: 1}
-    opaque2 = %Opaque{x: 2}
+  test "structs without inspect difference" do
+    opaque1 = %Opaque{data: 1}
+    opaque2 = %Opaque{data: 2}
 
     assert script(opaque1, opaque2) == [
              {:eq, "%ExUnit.DiffTest.Opaque{"},
-             [[{:eq, "x: "}, [del: "1", ins: "2"]]],
+             [[{:eq, "data: "}, [del: "1", ins: "2"]]],
              {:eq, "}"}
            ]
   end
