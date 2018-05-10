@@ -69,13 +69,13 @@ fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
 
   try ets:lookup_element(Bag, {clauses, Tuple}, 2) of
     Clauses ->
+      MetaCheck = add_check_to_meta(Check, Meta),
       NewAll =
-        [{Tuple, Kind, add_defaults_to_meta(Defaults, Meta), Clauses} | All],
+        [{Tuple, Kind, add_defaults_to_meta(Defaults, MetaCheck), Clauses} | All],
       NewPrivate =
         case (Kind == defp) orelse (Kind == defmacrop) of
           true ->
-            WarnMeta = case Check of true -> Meta; false -> false end,
-            [{Tuple, Kind, WarnMeta, Defaults} | Private];
+            [{Tuple, Kind, MetaCheck, Defaults} | Private];
           false ->
             Private
         end,
@@ -91,6 +91,9 @@ fetch_definition([], _File, _Module, _Set, _Bag, All, Private) ->
 
 add_defaults_to_meta(0, Meta) -> Meta;
 add_defaults_to_meta(Defaults, Meta) -> [{defaults, Defaults} | Meta].
+
+add_check_to_meta(true, Meta) -> Meta;
+add_check_to_meta(false, Meta) -> [{check, false} | Meta].
 
 %% Section for storing definitions
 

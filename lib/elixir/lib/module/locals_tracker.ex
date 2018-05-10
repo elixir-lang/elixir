@@ -118,7 +118,7 @@ defmodule Module.LocalsTracker do
     :lists.foldl(&collect_warnings(&1, &2, reachable), [], private)
   end
 
-  defp collect_warnings({_, _, false, _}, acc, _reachable) do
+  defp collect_warnings({_, _, [{:check, false} | _], _}, acc, _reachable) do
     acc
   end
 
