@@ -53,7 +53,7 @@ defmodule ExUnit.Diff do
       script_string(List.to_string(left), List.to_string(right), ?')
     else
       keywords? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
-      diffs = script_maybe_improper_list(left, right, keywords?)
+      diffs = script_list(left, right, keywords?)
       [{:eq, "["}, diffs, {:eq, "]"}]
     end
   end
@@ -68,7 +68,7 @@ defmodule ExUnit.Diff do
   # Tuples
   def script(left, right) when is_tuple(left) and is_tuple(right) do
     diffs =
-      script_proper_list(
+      script_list(
         Tuple.to_list(left),
         tuple_size(left),
         Tuple.to_list(right),
@@ -97,15 +97,6 @@ defmodule ExUnit.Diff do
   defp script_string(string1, string2) do
     String.myers_difference(string1, string2)
   end
-
-  defp check_if_proper_and_get_length([_ | rest], length),
-    do: check_if_proper_and_get_length(rest, length + 1)
-
-  defp check_if_proper_and_get_length([], length),
-    do: {true, length}
-
-  defp check_if_proper_and_get_length(_other, length),
-    do: {false, length + 1}
 
   # The algorithm is outlined in the
   # "String Matching with Metric Trees Using an Approximate Distance"
@@ -147,18 +138,40 @@ defmodule ExUnit.Diff do
     end)
   end
 
-  defp script_maybe_improper_list(list1, list2, keywords?) do
-    {proper1?, length1} = check_if_proper_and_get_length(list1, 0)
-    {proper2?, length2} = check_if_proper_and_get_length(list2, 0)
+  defp length_and_slice_proper_part([item | rest], length, result) do
+    length_and_slice_proper_part(rest, length + 1, [item | result])
+  end
 
-    if proper1? and proper2? do
-      script_proper_list(list1, length1, list2, length2, keywords?)
-    else
-      script_improper_list(list1, list2, [])
+  defp length_and_slice_proper_part([], length, result) do
+    {length, Enum.reverse(result), []}
+  end
+
+  defp length_and_slice_proper_part(item, length, result) do
+    {length, Enum.reverse(result), [item]}
+  end
+
+  defp script_list(list1, list2, keywords?) do
+    {length1, list1, improper_rest1} = length_and_slice_proper_part(list1, 0, [])
+    {length2, list2, improper_rest2} = length_and_slice_proper_part(list2, 0, [])
+
+    script = script_list(list1, length1, list2, length2, keywords?)
+
+    case {improper_rest1, improper_rest2} do
+      {[item1], [item2]} ->
+        [script, [eq: " | "] ++ script_inner(item1, item2)]
+
+      {[item1], []} ->
+        [script, del: " | " <> inspect(item1)]
+
+      {[], [item2]} ->
+        [script, ins: " | " <> inspect(item2)]
+
+      {[], []} ->
+        script
     end
   end
 
-  defp script_proper_list(list1, length1, list2, length2, keywords?) do
+  defp script_list(list1, length1, list2, length2, keywords?) do
     case script_subset_list(list1, list2) do
       {:ok, script} ->
         format_each_fragment(script, [], keywords?)
@@ -364,61 +377,6 @@ defmodule ExUnit.Diff do
 
   defp follow_snake(path) do
     {:cont, path}
-  end
-
-  defp script_improper_list([], [], acc) do
-    [[_ | elem_diff] | rest] = Enum.reverse(acc)
-    [elem_diff | rest]
-  end
-
-  defp script_improper_list([], [elem | rest], acc) do
-    elem_diff = [ins: inspect(elem)]
-    script_improper_list([], rest, [[ins: ", "] ++ elem_diff | acc])
-  end
-
-  defp script_improper_list([elem | rest], [], acc) do
-    elem_diff = [del: inspect(elem)]
-    script_improper_list(rest, [], [[del: ", "] ++ elem_diff | acc])
-  end
-
-  defp script_improper_list([elem | rest1], [elem | rest2], acc) do
-    elem_diff = [eq: inspect(elem)]
-    script_improper_list(rest1, rest2, [[eq: ", "] ++ elem_diff | acc])
-  end
-
-  defp script_improper_list([elem1 | rest1], [elem2 | rest2], acc) do
-    elem_diff = script_inner(elem1, elem2)
-    script_improper_list(rest1, rest2, [[eq: ", "] ++ elem_diff | acc])
-  end
-
-  defp script_improper_list(last, [elem | rest], acc) do
-    joiner_diff = [del: " |", ins: ",", eq: " "]
-    elem_diff = script_inner(last, elem)
-    new_acc = [joiner_diff ++ elem_diff | acc]
-    script_improper_list([], rest, new_acc)
-  end
-
-  defp script_improper_list([elem | rest], last, acc) do
-    joiner_diff = [del: ",", ins: " |", eq: " "]
-    elem_diff = script_inner(elem, last)
-    new_acc = [joiner_diff ++ elem_diff | acc]
-    script_improper_list(rest, [], new_acc)
-  end
-
-  defp script_improper_list(last1, last2, acc) do
-    elem_diff =
-      cond do
-        last1 == [] ->
-          [ins: " | " <> inspect(last2)]
-
-        last2 == [] ->
-          [del: " | " <> inspect(last1)]
-
-        true ->
-          [eq: " | "] ++ script_inner(last1, last2)
-      end
-
-    script_improper_list([], [], [elem_diff | acc])
   end
 
   defp script_map(left, right, name) do
