@@ -478,8 +478,8 @@ defmodule Access do
       iex> map = %{user: %{name: "john"}}
       iex> get_in(map, [Access.key(:unknown, %{}), Access.key(:name, "john")])
       "john"
-      iex> get_and_update_in(map, [Access.key(:user), Access.key(:name)], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(map, [Access.key(:user), Access.key(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: %{name: "JOHN"}}}
       iex> pop_in(map, [Access.key(:user), Access.key(:name)])
@@ -516,15 +516,15 @@ defmodule Access do
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
-  The returned function raises if the key does not exist.
+  Similar to `key/2`, but the returned function raises if the key does not exist.
 
   ## Examples
 
       iex> map = %{user: %{name: "john"}}
       iex> get_in(map, [Access.key!(:user), Access.key!(:name)])
       "john"
-      iex> get_and_update_in(map, [Access.key!(:user), Access.key!(:name)], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(map, [Access.key!(:user), Access.key!(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: %{name: "JOHN"}}}
       iex> pop_in(map, [Access.key!(:user), Access.key!(:name)])
@@ -565,13 +565,16 @@ defmodule Access do
 
   The returned function raises if `index` is out of bounds.
 
+  Note that popping elements out of tuples is not possible and raises an
+  error.
+
   ## Examples
 
       iex> map = %{user: {"john", 27}}
       iex> get_in(map, [:user, Access.elem(0)])
       "john"
-      iex> get_and_update_in(map, [:user, Access.elem(0)], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(map, [:user, Access.elem(0)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: {"JOHN", 27}}}
       iex> pop_in(map, [:user, Access.elem(0)])
@@ -584,7 +587,7 @@ defmodule Access do
 
   """
   @spec elem(non_neg_integer) :: access_fun(data :: tuple, get_value :: term)
-  def elem(index) when is_integer(index) do
+  def elem(index) when is_integer(index) and index >= 0 do
     pos = index + 1
 
     fn
@@ -615,8 +618,8 @@ defmodule Access do
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.all(), :name])
       ["john", "mary"]
-      iex> get_and_update_in(list, [Access.all(), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.all(), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {["john", "mary"], [%{name: "JOHN"}, %{name: "MARY"}]}
       iex> pop_in(list, [Access.all(), :name])
@@ -626,8 +629,8 @@ defmodule Access do
   numbers and multiplying odd numbers by 2:
 
       iex> require Integer
-      iex> get_and_update_in([1, 2, 3, 4, 5], [Access.all], fn
-      ...>   num -> if Integer.is_even(num), do: :pop, else: {num, num * 2}
+      iex> get_and_update_in([1, 2, 3, 4, 5], [Access.all], fn num ->
+      ...>   if Integer.is_even(num), do: :pop, else: {num, num * 2}
       ...> end)
       {[1, 2, 3, 4, 5], [2, 6, 10]}
 
@@ -676,8 +679,8 @@ defmodule Access do
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.at(1), :name])
       "mary"
-      iex> get_and_update_in(list, [Access.at(0), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.at(0), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", [%{name: "JOHN"}, %{name: "mary"}]}
 
@@ -695,8 +698,8 @@ defmodule Access do
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.at(10), :name])
       nil
-      iex> get_and_update_in(list, [Access.at(10), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.at(10), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {nil, [%{name: "john"}, %{name: "mary"}]}
 
@@ -754,8 +757,8 @@ defmodule Access do
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.filter(&(&1.salary > 20)), :name])
       ["francine"]
-      iex> get_and_update_in(list, [Access.filter(&(&1.salary <= 20)), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.filter(&(&1.salary <= 20)), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {["john"], [%{name: "JOHN", salary: 10}, %{name: "francine", salary: 30}]}
 
@@ -773,8 +776,8 @@ defmodule Access do
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.filter(&(&1.salary >= 50)), :name])
       []
-      iex> get_and_update_in(list, [Access.filter(&(&1.salary >= 50)), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.filter(&(&1.salary >= 50)), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {[], [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
 
