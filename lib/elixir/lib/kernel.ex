@@ -2076,8 +2076,8 @@ defmodule Kernel do
   @spec get_in(Access.t(), nonempty_list(term)) :: term
   def get_in(data, keys)
 
-  def get_in(data, [h]) when is_function(h, 3), do: h.(:get, data, & &1)
-  def get_in(data, [h | t]) when is_function(h, 3), do: h.(:get, data, &get_in(&1, t))
+  def get_in(data, [h]) when is_function(h), do: h.(:get, data, & &1)
+  def get_in(data, [h | t]) when is_function(h), do: h.(:get, data, &get_in(&1, t))
 
   def get_in(nil, [_]), do: nil
   def get_in(nil, [_ | t]), do: get_in(nil, t)
@@ -2103,7 +2103,7 @@ defmodule Kernel do
   an error will be raised when trying to access it next.
   """
   @spec put_in(Access.t(), nonempty_list(term), term) :: Access.t()
-  def put_in(data, keys, value) when is_list(keys) and keys != [] do
+  def put_in(data, [_ | _] = keys, value) do
     elem(get_and_update_in(data, keys, fn _ -> {nil, value} end), 1)
   end
 
@@ -2125,7 +2125,7 @@ defmodule Kernel do
   an error will be raised when trying to access it next.
   """
   @spec update_in(Access.t(), nonempty_list(term), (term -> term)) :: Access.t()
-  def update_in(data, keys, fun) when is_list(keys) and keys != [] and is_function(fun, 1) do
+  def update_in(data, [_ | _] = keys, fun) when is_function(fun) do
     elem(get_and_update_in(data, keys, fn x -> {nil, fun.(x)} end), 1)
   end
 
@@ -2242,16 +2242,16 @@ defmodule Kernel do
     raise ArgumentError, "could not pop key #{inspect(key)} on a nil value"
   end
 
-  def pop_in(data, keys) when is_list(keys) and keys != [] do
+  def pop_in(data, [_ | _] = keys) do
     pop_in_data(data, keys)
   end
 
   defp pop_in_data(nil, [_ | _]), do: :pop
 
-  defp pop_in_data(data, [fun]) when is_function(fun, 3),
+  defp pop_in_data(data, [fun]) when is_function(fun),
     do: fun.(:get_and_update, data, fn _ -> :pop end)
 
-  defp pop_in_data(data, [fun | tail]) when is_function(fun, 3),
+  defp pop_in_data(data, [fun | tail]) when is_function(fun),
     do: fun.(:get_and_update, data, &pop_in_data(&1, tail))
 
   defp pop_in_data(data, [key]), do: Access.pop(data, key)
