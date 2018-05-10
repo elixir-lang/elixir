@@ -1357,11 +1357,17 @@ defmodule Module do
     behaviours = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
     impls = bag_lookup_element(bag, :impls, 2)
     callbacks = check_behaviours(env, behaviours)
+    check_defs = check_defs(all_definitions, overridable_pairs)
+
+    filtered_impls =
+      Enum.filter(impls, fn {fa, _, _, _, _, _} ->
+        :maps.get(fa, check_defs, false)
+      end)
 
     pending_callbacks =
-      if impls != [] do
-        non_implemented_callbacks = check_impls(behaviours, callbacks, impls)
-        warn_missing_impls(env, non_implemented_callbacks, all_definitions, overridable_pairs)
+      if filtered_impls != [] do
+        non_implemented_callbacks = check_impls(behaviours, callbacks, filtered_impls)
+        warn_missing_impls(env, non_implemented_callbacks, check_defs)
         non_implemented_callbacks
       else
         callbacks
@@ -1369,6 +1375,16 @@ defmodule Module do
 
     check_callbacks(env, pending_callbacks, all_definitions)
     :ok
+  end
+
+  defp check_defs(defs, overridable_pairs) do
+    filtered =
+      for {pair, kind, meta, _clauses} <- defs,
+          pair not in overridable_pairs,
+          Keyword.get(meta, :check, true),
+          do: {pair, {kind, meta}}
+
+    :maps.from_list(filtered)
   end
 
   defp check_behaviours(%{lexical_tracker: pid} = env, behaviours) do
@@ -1586,14 +1602,13 @@ defmodule Module do
       "but this behaviour does not specify such callback#{known_callbacks(callbacks)}"
   end
 
-  defp warn_missing_impls(_env, callbacks, _defs, _) when map_size(callbacks) == 0 do
+  defp warn_missing_impls(_env, callbacks, _defs) when map_size(callbacks) == 0 do
     :ok
   end
 
-  defp warn_missing_impls(env, non_implemented_callbacks, defs, overridable_pairs) do
-    for {pair, kind, meta, _clauses} <- defs,
-        kind in [:def, :defmacro],
-        pair not in overridable_pairs do
+  defp warn_missing_impls(env, non_implemented_callbacks, defs) do
+    for {pair, {kind, meta}} <- defs,
+        kind in [:def, :defmacro] do
       case Map.fetch(non_implemented_callbacks, pair) do
         {:ok, {_, behaviour, _}} ->
           message =
