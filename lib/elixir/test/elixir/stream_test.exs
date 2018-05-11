@@ -196,6 +196,11 @@ defmodule StreamTest do
     assert Enum.take(stream, 13) == [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1]
   end
 
+  test "concat/2 is zippable" do
+    stream = Stream.concat(1..2 |> Stream.take(2), 3..4)
+    assert Enum.zip(1..4, [1, 2, 3, 4]) == Enum.zip(1..4, stream)
+  end
+
   test "concat/2 does not intercept wrapped lazy enumeration" do
     # concat returns a lazy enumeration that does not halt
     assert Stream.concat([[0], Stream.map([1, 2, 3], & &1), [4]])
