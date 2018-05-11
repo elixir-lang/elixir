@@ -21,6 +21,22 @@ defmodule StreamTest do
     end
   end
 
+  defmodule HaltAcc do
+    defstruct [:acc]
+
+    defimpl Enumerable do
+      def count(_lazy), do: {:error, __MODULE__}
+
+      def member?(_lazy, _value), do: {:error, __MODULE__}
+
+      def slice(_lazy), do: {:error, __MODULE__}
+
+      def reduce(lazy, _acc, _fun) do
+        {:halted, Enum.to_list(lazy.acc)}
+      end
+    end
+  end
+
   test "streams as enumerables" do
     stream = Stream.map([1, 2, 3], &(&1 * 2))
 
@@ -1091,6 +1107,9 @@ defmodule StreamTest do
 
     assert Stream.chunk_every([0, 1, 2, 3], 2) |> Stream.zip() |> Enum.to_list() ==
              [{0, 2}, {1, 3}]
+
+    stream = %HaltAcc{acc: 1..3}
+    assert Stream.zip(1..3, stream) |> Enum.to_list() == [{1, 1}, {2, 2}, {3, 3}]
   end
 
   test "zip/1 does not leave streams suspended" do
