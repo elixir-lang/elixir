@@ -19,10 +19,11 @@ defmodule Mix.Tasks.Test do
       fn ->
         Mix.shell().info("\nGenerating cover results ...\n")
         {:result, ok, _fail} = :cover.analyse(:coverage, :module)
-
         results = Enum.sort_by(ok, &percentage(elem(&1, 1)), &>=/2)
 
-        if summary_opts = Keyword.get(opts, :summary, true), do: console(results, summary_opts)
+        if summary_opts = Keyword.get(opts, :summary, true) do
+          console(results, summary_opts)
+        end
 
         html(results, opts)
       end
@@ -39,16 +40,13 @@ defmodule Mix.Tasks.Test do
         |> Stream.each(&display(&1, opts))
         |> Enum.reduce({0, 0}, fn {_, {covered, not_covered}},
                                   {total_covered, total_not_covered} ->
-          {total_cov + cov, total_not_cov + not_cov}
+          {total_covered + covered, total_not_covered + not_covered}
         end)
 
       Mix.shell().info("-----------|--------------------------")
-
       display({"Total", total}, opts)
       Mix.shell().info("")
     end
-
-    defp console(_, value) when value in [nil, false], do: nil
 
     defp html(results, opts) do
       output = opts[:output]
