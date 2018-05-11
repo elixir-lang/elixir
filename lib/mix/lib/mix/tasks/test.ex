@@ -1,5 +1,7 @@
 defmodule Mix.Tasks.Test do
   defmodule Cover do
+    @default_threshold 90
+
     @moduledoc false
 
     def start(compile_path, opts) do
@@ -14,17 +16,83 @@ defmodule Mix.Tasks.Test do
           Mix.raise("Failed to cover compile directory: " <> compile_path)
       end
 
-      output = opts[:output]
-
       fn ->
-        Mix.shell().info("\nGenerating cover results ...")
-        File.mkdir_p!(output)
+        Mix.shell().info("\nGenerating cover results ...\n")
+        {:result, ok, _fail} = :cover.analyse(:coverage, :module)
+        results = Enum.sort_by(ok, &percentage(elem(&1, 1)), &>=/2)
 
-        Enum.each(:cover.modules(), fn mod ->
-          {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
-        end)
+        if summary_opts = Keyword.get(opts, :summary, true) do
+          console(results, summary_opts)
+        end
+
+        html(results, opts)
       end
     end
+
+    defp console(results, true), do: console(results, [])
+
+    defp console(results, opts) when is_list(opts) do
+      Mix.shell().info("Percentage | Module")
+      Mix.shell().info("-----------|--------------------------")
+
+      total =
+        results
+        |> Stream.each(&display(&1, opts))
+        |> Enum.reduce({0, 0}, fn {_, {covered, not_covered}},
+                                  {total_covered, total_not_covered} ->
+          {total_covered + covered, total_not_covered + not_covered}
+        end)
+
+      Mix.shell().info("-----------|--------------------------")
+      display({"Total", total}, opts)
+      Mix.shell().info("")
+    end
+
+    defp html(results, opts) do
+      output = opts[:output]
+      File.mkdir_p!(output)
+
+      for {mod, _} <- results do
+        {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
+      end
+
+      Mix.shell().info([
+        "Generated HTML coverage results in '",
+        output,
+        "' directory\n"
+      ])
+    end
+
+    defp color(percentage, true), do: color(percentage, @default_threshold)
+    defp color(_, false), do: ""
+    defp color(percentage, threshold) when percentage > threshold, do: :green
+    defp color(_, _), do: :red
+
+    defp display({name, coverage}, opts) do
+      threshold = Keyword.get(opts, :threshold, @default_threshold)
+      percentage = percentage(coverage)
+
+      Mix.shell().info([
+        color(percentage, threshold),
+        format(percentage, 9),
+        "%",
+        :reset,
+        " | ",
+        format_name(name)
+      ])
+    end
+
+    defp percentage({0, 0}), do: 100
+    defp percentage({covered, not_covered}), do: covered / (covered + not_covered) * 100
+
+    defp format(number, length) when is_integer(number),
+      do: :io_lib.format("~#{length}b", [number])
+
+    defp format(number, length) when is_float(number),
+      do: :io_lib.format("~#{length}.2f", [number])
+
+    defp format_name(name) when is_binary(name), do: name
+    defp format_name(mod) when is_atom(mod), do: inspect(mod)
   end
 
   use Mix.Task
@@ -151,6 +219,12 @@ defmodule Mix.Tasks.Test do
 
     * `:output` - the output for cover results, defaults to `"cover"`
     * `:tool`   - the coverage tool
+    * `:summary` - summary output configuration, can be either boolean
+      or keyword list, when keyword list is passed it can specify `:threshold`
+      which can be boolean or numeric value which would enable colouring
+      of percentages red/green depending either below/over threshold
+      respectively, defaults to `[threshold: 90]`
+
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:
