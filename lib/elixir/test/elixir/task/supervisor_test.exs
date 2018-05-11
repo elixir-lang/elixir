@@ -27,6 +27,30 @@ defmodule Task.SupervisorTest do
     assert Process.whereis(config.test)
   end
 
+  test "multiple supervisors can be supervised and identified with simple child spec" do
+    {:ok, _} = Registry.start_link(keys: :unique, name: TaskSup.Registry)
+
+    children = [
+      {Task.Supervisor, strategy: :one_for_one, name: :simple_name},
+      {Task.Supervisor, strategy: :one_for_one, name: {:global, :global_name}},
+      {Task.Supervisor,
+       strategy: :one_for_one, name: {:via, Registry, {TaskSup.Registry, "via_name"}}}
+    ]
+
+    assert {:ok, supsup} = Supervisor.start_link(children, strategy: :one_for_one)
+
+    assert {:ok, no_name_dynsup} =
+             Supervisor.start_child(supsup, {Task.Supervisor, strategy: :one_for_one})
+
+    assert Task.Supervisor.children(:simple_name) == []
+    assert Task.Supervisor.children({:global, :global_name}) == []
+    assert Task.Supervisor.children({:via, Registry, {TaskSup.Registry, "via_name"}}) == []
+    assert Task.Supervisor.children(no_name_dynsup) == []
+
+    assert Supervisor.start_child(supsup, {Task.Supervisor, strategy: :one_for_one}) ==
+             {:error, {:already_started, no_name_dynsup}}
+  end
+
   test "counts and returns children", config do
     assert Task.Supervisor.children(config[:supervisor]) == []
 

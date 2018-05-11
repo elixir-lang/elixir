@@ -31,10 +31,17 @@ defmodule Task.Supervisor do
           | {:shutdown, :supervisor.shutdown()}
 
   @doc false
-  def child_spec(arg) do
+  def child_spec(opts) when is_list(opts) do
+    id =
+      case Keyword.get(opts, :name, Task.Supervisor) do
+        name when is_atom(name) -> name
+        {:global, name} -> name
+        {:via, _module, name} -> name
+      end
+
     %{
-      id: Task.Supervisor,
-      start: {Task.Supervisor, :start_link, [arg]},
+      id: id,
+      start: {Task.Supervisor, :start_link, [opts]},
       type: :supervisor
     }
   end
