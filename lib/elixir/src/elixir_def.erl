@@ -115,7 +115,7 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   end,
 
   Generated = case lists:keyfind(generated, 1, Meta) of
-    {generated, true} -> [?generated([]) | Context];
+    {generated, true} -> ?generated(Context);
     _ -> Context
   end,
 
