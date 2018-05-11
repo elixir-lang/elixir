@@ -673,9 +673,10 @@ defmodule IEx.Introspection do
   end
 
   defp type_doc(module, type, arity) do
-    docs = Code.get_docs(module, :type_docs)
-    {_, _, _, content} = Enum.find(docs, &match?({{^type, ^arity}, _, _, _}, &1))
-    content
+    if docs = Code.get_docs(module, :type_docs) do
+      {_, _, _, content} = Enum.find(docs, &match?({{^type, ^arity}, _, _, _}, &1))
+      content
+    end
   end
 
   defp format_type({:opaque, type}) do

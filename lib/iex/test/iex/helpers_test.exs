@@ -645,12 +645,9 @@ defmodule IEx.HelpersTest do
     end
 
     test "prints type information" do
-      assert "@type t() :: " <> _ = capture_io(fn -> t(Enum.t()) end)
+      assert "@type t() ::" <> _ = capture_io(fn -> t(Enum.t()) end)
       assert capture_io(fn -> t(Enum.t()) end) == capture_io(fn -> t(Enum.t() / 0) end)
-
-      assert "@type t() :: t(term())\n\n@opaque t(value)\n\n" =
-               capture_io(fn -> t(MapSet.t()) end)
-
+      assert "@type child_spec() ::" <> _ = capture_io(fn -> t(:supervisor.child_spec) end)
       assert capture_io(fn -> t(URI.t()) end) == capture_io(fn -> t(URI.t() / 0) end)
     end
 
