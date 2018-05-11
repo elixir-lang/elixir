@@ -2103,7 +2103,7 @@ defmodule Kernel do
   an error will be raised when trying to access it next.
   """
   @spec put_in(Access.t(), nonempty_list(term), term) :: Access.t()
-  def put_in(data, keys, value) do
+  def put_in(data, [_ | _] = keys, value) do
     elem(get_and_update_in(data, keys, fn _ -> {nil, value} end), 1)
   end
 
@@ -2125,7 +2125,7 @@ defmodule Kernel do
   an error will be raised when trying to access it next.
   """
   @spec update_in(Access.t(), nonempty_list(term), (term -> term)) :: Access.t()
-  def update_in(data, keys, fun) when is_function(fun, 1) do
+  def update_in(data, [_ | _] = keys, fun) when is_function(fun) do
     elem(get_and_update_in(data, keys, fn x -> {nil, fun.(x)} end), 1)
   end
 
@@ -2242,7 +2242,7 @@ defmodule Kernel do
     raise ArgumentError, "could not pop key #{inspect(key)} on a nil value"
   end
 
-  def pop_in(data, keys) when is_list(keys) do
+  def pop_in(data, [_ | _] = keys) do
     pop_in_data(data, keys)
   end
 
