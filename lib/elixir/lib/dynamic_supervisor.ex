@@ -189,9 +189,9 @@ defmodule DynamicSupervisor do
   See `Supervisor`.
   """
   @since "1.6.1"
-  def child_spec(arg) do
+  def child_spec(opts) when is_list(opts) do
     id =
-      case Keyword.get(arg, :name, DynamicSupervisor) do
+      case Keyword.get(opts, :name, DynamicSupervisor) do
         name when is_atom(name) -> name
         {:global, name} -> name
         {:via, _module, name} -> name
@@ -199,7 +199,7 @@ defmodule DynamicSupervisor do
 
     %{
       id: id,
-      start: {DynamicSupervisor, :start_link, [arg]},
+      start: {DynamicSupervisor, :start_link, [opts]},
       type: :supervisor
     }
   end
