@@ -1995,11 +1995,11 @@ defmodule Enum do
   def reverse(enumerable), do: reduce(enumerable, [], &[&1 | &2])
 
   @doc """
-  Reverses the elements in `enumerable`, appends the tail, and returns
+  Reverses the elements in `enumerable`, appends the `tail`, and returns
   it as a list.
 
   This is an optimization for
-  `Enum.concat(Enum.reverse(enumerable), tail)`.
+  `enumerable |> Enum.reverse() |> Enum.concat(tail)`.
 
   ## Examples
 
