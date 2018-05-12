@@ -674,10 +674,16 @@ defmodule String do
   end
 
   def upcase(string, :ascii) when is_binary(string) do
-    for <<x <- string>>,
-      do: if(x >= ?a and x <= ?z, do: <<x - 32>>, else: <<x>>),
-      into: ""
+    upcase_ascii(string)
   end
+
+  defp upcase_ascii(string), do: upcase_ascii(string, [])
+
+  defp upcase_ascii(<<c, rest::bits>>, acc) when c >= ?a and c <= ?z,
+    do: upcase_ascii(rest, [c - 32 | acc])
+
+  defp upcase_ascii(<<c, rest::bits>>, acc), do: upcase_ascii(rest, [c | acc])
+  defp upcase_ascii(<<>>, acc), do: IO.iodata_to_binary(:lists.reverse(acc))
 
   def upcase(string, mode) when mode in @conditional_mappings do
     String.Casing.upcase(string, [], mode)
@@ -730,10 +736,16 @@ defmodule String do
   end
 
   def downcase(string, :ascii) when is_binary(string) do
-    for <<x <- string>>,
-      do: if(x >= ?A and x <= ?Z, do: <<x + 32>>, else: <<x>>),
-      into: ""
+    downcase_ascii(string)
   end
+
+  defp downcase_ascii(string), do: downcase_ascii(string, [])
+
+  defp downcase_ascii(<<c, rest::bits>>, acc) when c >= ?A and c <= ?Z,
+    do: downcase_ascii(rest, [c + 32 | acc])
+
+  defp downcase_ascii(<<c, rest::bits>>, acc), do: downcase_ascii(rest, [c | acc])
+  defp downcase_ascii(<<>>, acc), do: IO.iodata_to_binary(:lists.reverse(acc))
 
   def downcase(string, mode) when mode in @conditional_mappings do
     String.Casing.downcase(string, [], mode)
