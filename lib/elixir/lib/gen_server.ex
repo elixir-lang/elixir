@@ -29,8 +29,8 @@ defmodule GenServer do
         end
 
         @impl true
-        def handle_call(:pop, _from, [h | t]) do
-          {:reply, h, t}
+        def handle_call(:pop, _from, [head | tail]) do
+          {:reply, head, tail}
         end
 
         @impl true
@@ -92,8 +92,8 @@ defmodule GenServer do
         # Server (callbacks)
 
         @impl true
-        def handle_call(:pop, _from, [h | t]) do
-          {:reply, h, t}
+        def handle_call(:pop, _from, [head | tail]) do
+          {:reply, head, tail}
         end
 
         @impl true
