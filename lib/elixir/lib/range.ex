@@ -70,20 +70,25 @@ defimpl Enumerable, for: Range do
     reduce(first, last, acc, fun, _up? = last >= first)
   end
 
-  defp reduce(_first, _last, {:halt, acc}, _fun, _up?),
-    do: {:halted, acc}
+  defp reduce(_first, _last, {:halt, acc}, _fun, _up?) do
+    {:halted, acc}
+  end
 
-  defp reduce(first, last, {:suspend, acc}, fun, up?),
-    do: {:suspended, acc, &reduce(first, last, &1, fun, up?)}
+  defp reduce(first, last, {:suspend, acc}, fun, up?) do
+    {:suspended, acc, &reduce(first, last, &1, fun, up?)}
+  end
 
-  defp reduce(first, last, {:cont, acc}, fun, _up? = true) when first <= last,
-    do: reduce(first + 1, last, fun.(first, acc), fun, _up? = true)
+  defp reduce(first, last, {:cont, acc}, fun, _up? = true) when first <= last do
+    reduce(first + 1, last, fun.(first, acc), fun, _up? = true)
+  end
 
-  defp reduce(first, last, {:cont, acc}, fun, _up? = false) when first >= last,
-    do: reduce(first - 1, last, fun.(first, acc), fun, _up? = false)
+  defp reduce(first, last, {:cont, acc}, fun, _up? = false) when first >= last do
+    reduce(first - 1, last, fun.(first, acc), fun, _up? = false)
+  end
 
-  defp reduce(_, _, {:cont, acc}, _fun, _up),
-    do: {:done, acc}
+  defp reduce(_, _, {:cont, acc}, _fun, _up) do
+    {:done, acc}
+  end
 
   def member?(first..last, value) when is_integer(value) do
     if first <= last do
