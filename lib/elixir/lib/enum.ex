@@ -2216,6 +2216,19 @@ defmodule Enum do
     :lists.sort(enumerable)
   end
 
+  def sort(first..last = range) do
+    cond do
+      first < last ->
+        reverse(last..first)
+
+      first > last ->
+        reverse(range)
+
+      true ->
+        [first]
+    end
+  end
+
   def sort(enumerable) do
     sort(enumerable, &(&1 <= &2))
   end
@@ -2595,9 +2608,24 @@ defmodule Enum do
   """
   @spec to_list(t) :: [element]
   def to_list(enumerable) when is_list(enumerable), do: enumerable
-  def to_list(%_{} = enumerable), do: reverse(enumerable) |> :lists.reverse()
-  def to_list(%{} = enumerable), do: Map.to_list(enumerable)
-  def to_list(enumerable), do: reverse(enumerable) |> :lists.reverse()
+
+  def to_list(%_{} = enumerable) do
+    case enumerable do
+      first..last ->
+        reverse(last..first)
+
+      _ ->
+        reverse_twice(enumerable)
+    end
+  end
+
+  def to_list(%{} = enumerable) do
+    Map.to_list(enumerable)
+  end
+
+  def to_list(enumerable) do
+    reverse_twice(enumerable)
+  end
 
   @doc """
   Enumerates the `enumerable`, removing all duplicated elements.
@@ -2758,7 +2786,12 @@ defmodule Enum do
   ## Helpers
 
   @compile {:inline,
-            aggregate: 3, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3}
+            aggregate: 3,
+            entry_to_string: 1,
+            reduce: 3,
+            reduce_by: 3,
+            reduce_enumerable: 3,
+            reverse_twice: 1}
 
   defp entry_to_string(entry) when is_binary(entry), do: entry
   defp entry_to_string(entry), do: String.Chars.to_string(entry)
@@ -2815,6 +2848,9 @@ defmodule Enum do
   defp random_integer(lower_limit, upper_limit) do
     lower_limit + :rand.uniform(upper_limit - lower_limit + 1) - 1
   end
+
+  defp reverse_twice(enumerable),
+    do: reverse(enumerable) |> :lists.reverse()
 
   # TODO: Remove me on Elixir v1.9
   defp backwards_compatible_slice(args) do
