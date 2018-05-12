@@ -14,12 +14,17 @@ defmodule IEx do
 
   ## Autocomplete
 
-  To discover all available functions for a module, type the module name
+  To discover module's public functions or other modules, type the module name
   followed by a dot, then press tab to trigger autocomplete. For example:
 
       Enum.
 
-  Such function may not be available on some Windows shells. You may need
+  Note: Module may export functions that are not meant to be used directly
+  and these functions won't be autocompleted by IEx. This is the case when
+  functions are annotated with `@doc false`, `@impl true`, or if function
+  name is in the form of `__foo__` and isn't explicitly documented.
+
+  Autocomplete may not be available on some Windows shells. You may need
   to pass the `--werl` flag when starting IEx, as in `iex --werl` for it
   to work. `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
   environment variable.
