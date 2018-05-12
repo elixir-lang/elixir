@@ -221,7 +221,7 @@ defmodule Mix.Tasks.Test do
     * `:tool`   - the coverage tool
     * `:summary` - summary output configuration, can be either boolean
       or keyword list, when keyword list is passed it can specify `:threshold`
-      which can be boolean or numeric value which would enable colouring
+      which can be boolean or numeric value which would enable coloring
       of percentages red/green depending either below/over threshold
       respectively, defaults to `[threshold: 90]`
 
