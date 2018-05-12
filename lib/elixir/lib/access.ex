@@ -182,28 +182,6 @@ defmodule Access do
   @callback fetch(term :: t, key) :: {:ok, value} | :error
 
   @doc """
-  Invoked in order to access the value stored under `key` in the given term `term`,
-  defaulting to `default` if not present.
-
-  This function should return the value under `key` in `term` if there's
-  such key, otherwise `default`.
-
-  For most data structures, this can be implemented using `fetch/2` internally;
-  for example:
-
-      def get(structure, key, default) do
-        case fetch(structure, key) do
-          {:ok, value} -> value
-          :error -> default
-        end
-      end
-
-  See the `Map.get/3` and `Keyword.get/3` implementations for examples of
-  how to implement this callback.
-  """
-  @callback get(term :: t, key, default :: value) :: value
-
-  @doc """
   Invoked in order to access the value under `key` and update it at the same time.
 
   The implementation of this callback should invoke `fun` with the value under
@@ -330,6 +308,10 @@ defmodule Access do
   @spec get(container, term, term) :: term
   @spec get(nil_container, any, default) :: default when default: var
   def get(container, key, default \\ nil)
+
+  # Reimplementing the same logic as Access.fetch/2 here is done for performance, since
+  # this is called a lot and calling fetch/2 means introducing some overhead (like
+  # building the "{:ok, _}" tuple and deconstructing it back right away).
 
   def get(%module{} = container, key, default) do
     try do
