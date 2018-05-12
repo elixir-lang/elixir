@@ -1638,8 +1638,8 @@ defmodule Enum do
         when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
-  def min_max(left..right, _empty_fallback) do
-    {Kernel.min(left, right), Kernel.max(left, right)}
+  def min_max(first..last, _empty_fallback) do
+    {Kernel.min(first, last), Kernel.max(first, last)}
   end
 
   def min_max(enumerable, empty_fallback) do
@@ -2771,8 +2771,8 @@ defmodule Enum do
     empty.()
   end
 
-  defp aggregate(left..right, fun, _empty) do
-    fun.(left, right)
+  defp aggregate(first..last, fun, _empty) do
+    fun.(first, last)
   end
 
   defp aggregate(enumerable, fun, empty) do
