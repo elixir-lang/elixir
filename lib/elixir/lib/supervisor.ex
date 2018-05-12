@@ -34,13 +34,13 @@ defmodule Supervisor do
         end
 
         @impl true
-        def handle_call(:pop, _from, [h | t]) do
-          {:reply, h, t}
+        def handle_call(:pop, _from, [head | tail]) do
+          {:reply, head, tail}
         end
 
         @impl true
-        def handle_cast({:push, h}, t) do
-          {:noreply, [h | t]}
+        def handle_cast({:push, head}, tail) do
+          {:noreply, [head | tail]}
         end
       end
 
@@ -447,7 +447,7 @@ defmodule Supervisor do
       the child processes, i.e., the child processes after the terminated
       one in start order, are terminated. Then the terminated child
       process and the rest of the child processes are restarted.
-      
+
   In the above, process termination refers to unsuccessful termination, which
   is determined by the `:restart` option.
 
