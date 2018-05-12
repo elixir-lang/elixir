@@ -4230,18 +4230,21 @@ defmodule Kernel do
       struct = defstruct([__exception__: true] ++ fields)
 
       if Map.has_key?(struct, :message) do
+        @impl true
         def message(exception) do
           exception.message
         end
 
         defoverridable message: 1
 
+        @impl true
         def exception(msg) when is_binary(msg) do
           exception(message: msg)
         end
       end
 
       # TODO: Only call Kernel.struct! by 2.0
+      @impl true
       def exception(args) when is_list(args) do
         struct = __struct__()
         {valid, invalid} = Enum.split_with(args, fn {k, _} -> Map.has_key?(struct, k) end)
