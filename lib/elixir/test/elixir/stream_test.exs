@@ -213,7 +213,7 @@ defmodule StreamTest do
   end
 
   test "concat/2 is zippable" do
-    stream = Stream.concat(1..2 |> Stream.take(2), 3..4)
+    stream = 1..2 |> Stream.take(2) |> Stream.concat(3..4)
     assert Enum.zip(1..4, [1, 2, 3, 4]) == Enum.zip(1..4, stream)
   end
 
