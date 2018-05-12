@@ -131,10 +131,10 @@ defprotocol Enumerable do
 
   As an example, here is the implementation of `reduce` for lists:
 
-      def reduce(_,       {:halt, acc}, _fun),   do: {:halted, acc}
-      def reduce(list,    {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
-      def reduce([],      {:cont, acc}, _fun),   do: {:done, acc}
-      def reduce([h | t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
+      def reduce(_list, {:halt, acc}, _fun), do: {:halted, acc}
+      def reduce(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
+      def reduce([], {:cont, acc}, _fun), do: {:done, acc}
+      def reduce([head | tail], {:cont, acc}, fun), do: reduce(tail, fun.(head, acc), fun)
 
   """
   @spec reduce(t, acc, reducer) :: result
@@ -448,11 +448,11 @@ defmodule Enum do
 
   ## Examples
 
-      iex> chunk_fun = fn x, acc ->
-      ...>   if rem(x, 2) == 0 do
-      ...>     {:cont, Enum.reverse([x | acc]), []}
+      iex> chunk_fun = fn item, acc ->
+      ...>   if rem(item, 2) == 0 do
+      ...>     {:cont, Enum.reverse([item | acc]), []}
       ...>   else
-      ...>     {:cont, [x | acc]}
+      ...>     {:cont, [item | acc]}
       ...>   end
       ...> end
       iex> after_fun = fn
@@ -3262,16 +3262,16 @@ defimpl Enumerable, for: List do
   def member?(_list, _value), do: {:error, __MODULE__}
   def slice(_list), do: {:error, __MODULE__}
 
-  def reduce(_, {:halt, acc}, _fun), do: {:halted, acc}
+  def reduce(_list, {:halt, acc}, _fun), do: {:halted, acc}
   def reduce(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
   def reduce([], {:cont, acc}, _fun), do: {:done, acc}
-  def reduce([h | t], {:cont, acc}, fun), do: reduce(t, fun.(h, acc), fun)
+  def reduce([head | tail], {:cont, acc}, fun), do: reduce(tail, fun.(head, acc), fun)
 
   @doc false
   def slice([], _start, _count), do: []
   def slice(_list, _start, 0), do: []
   def slice([head | tail], 0, count), do: [head | slice(tail, 0, count - 1)]
-  def slice([_ | tail], start, count), do: slice(tail, start - 1, count)
+  def slice([_head | tail], start, count), do: slice(tail, start - 1, count)
 end
 
 defimpl Enumerable, for: Map do
@@ -3295,10 +3295,10 @@ defimpl Enumerable, for: Map do
     reduce_list(:maps.to_list(map), acc, fun)
   end
 
-  defp reduce_list(_, {:halt, acc}, _fun), do: {:halted, acc}
+  defp reduce_list(_list, {:halt, acc}, _fun), do: {:halted, acc}
   defp reduce_list(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce_list(list, &1, fun)}
   defp reduce_list([], {:cont, acc}, _fun), do: {:done, acc}
-  defp reduce_list([h | t], {:cont, acc}, fun), do: reduce_list(t, fun.(h, acc), fun)
+  defp reduce_list([head | tail], {:cont, acc}, fun), do: reduce_list(tail, fun.(head, acc), fun)
 end
 
 defimpl Enumerable, for: Function do
