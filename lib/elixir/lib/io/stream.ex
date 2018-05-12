@@ -1,6 +1,7 @@
 defmodule IO.StreamError do
   defexception [:reason, :message]
 
+  @impl true
   def exception(opts) do
     reason = opts[:reason]
     formatted = IO.iodata_to_binary(:file.format_error(reason))

@@ -150,6 +150,7 @@ defmodule ExUnit.DocTest do
   defmodule Error do
     defexception [:message]
 
+    @impl true
     def exception(opts) do
       module = Keyword.fetch!(opts, :module)
       message = Keyword.fetch!(opts, :message)

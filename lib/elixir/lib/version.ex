@@ -106,10 +106,12 @@ defmodule Version do
   defmodule InvalidRequirementError do
     defexception [:requirement]
 
+    @impl true
     def exception(requirement) when is_binary(requirement) do
       %__MODULE__{requirement: requirement}
     end
 
+    @impl true
     def message(%{requirement: requirement}) do
       "invalid requirement: #{inspect(requirement)}"
     end
@@ -118,10 +120,12 @@ defmodule Version do
   defmodule InvalidVersionError do
     defexception [:version]
 
+    @impl true
     def exception(version) when is_binary(version) do
       %__MODULE__{version: version}
     end
 
+    @impl true
     def message(%{version: version}) do
       "invalid version: #{inspect(version)}"
     end

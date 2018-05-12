@@ -281,6 +281,7 @@ defmodule ExUnit.FormatterTest do
   defmodule BadMessage do
     defexception key: 0
 
+    @impl true
     def message(_message) do
       raise "oops"
     end
