@@ -809,6 +809,8 @@ defmodule EnumTest do
 
   test "to_list/1" do
     assert Enum.to_list([]) == []
+    assert Enum.to_list([1, 2, 3]) == [1, 2, 3]
+    assert Enum.to_list(MapSet.new(1..3)) == [1, 2, 3]
   end
 
   test "uniq/1" do
@@ -1350,7 +1352,9 @@ defmodule EnumTest.Range do
   end
 
   test "sort/1" do
-    assert Enum.sort(3..1) == [1, 2, 3]
+    assert Enum.sort(1..5) == [1, 2, 3, 4, 5]
+    assert Enum.sort(5..1) == [1, 2, 3, 4, 5]
+    assert Enum.sort(1..2) == [1, 2]
     assert Enum.sort(2..1) == [1, 2]
     assert Enum.sort(1..1) == [1]
   end
@@ -1463,9 +1467,9 @@ defmodule EnumTest.Range do
   end
 
   test "to_list/1" do
-    assert Enum.to_list([1, 2, 3]) == [1, 2, 3]
-    assert Enum.to_list(MapSet.new(1..3)) == [1, 2, 3]
-    assert Enum.to_list(1..3) == [1, 2, 3]
+    assert Enum.to_list(1..5) == [1, 2, 3, 4, 5]
+    assert Enum.to_list(5..1) == [5, 4, 3, 2, 1]
+    assert Enum.to_list(1..1) == [1]
   end
 
   test "uniq/1" do
