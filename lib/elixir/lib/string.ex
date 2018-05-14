@@ -674,10 +674,9 @@ defmodule String do
   end
 
   def upcase(string, :ascii) when is_binary(string) do
-    upcase_ascii(string)
+    IO.iodata_to_binary(upcase_ascii(string))
   end
 
-  defp upcase_ascii(string), do: IO.iodata_to_binary(upcase_ascii(string))
   defp upcase_ascii(<<c, rest::bits>>) when c >= ?a and c <= ?z, do: [c - 32 | upcase_ascii(rest)]
   defp upcase_ascii(<<c, rest::bits>>), do: [c | upcase_ascii(rest)]
   defp upcase_ascii(<<>>), do: []
@@ -733,10 +732,8 @@ defmodule String do
   end
 
   def downcase(string, :ascii) when is_binary(string) do
-    downcase_ascii(string)
+    IO.iodata_to_binary(downcase_ascii(string))
   end
-
-  defp downcase_ascii(string), do: IO.iodata_to_binary(downcase_ascii(string))
 
   defp downcase_ascii(<<c, rest::bits>>) when c >= ?A and c <= ?Z,
     do: [c + 32 | downcase_ascii(rest)]
