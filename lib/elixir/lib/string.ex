@@ -677,13 +677,10 @@ defmodule String do
     upcase_ascii(string)
   end
 
-  defp upcase_ascii(string), do: upcase_ascii(string, [])
-
-  defp upcase_ascii(<<c, rest::bits>>, acc) when c >= ?a and c <= ?z,
-    do: upcase_ascii(rest, [c - 32 | acc])
-
-  defp upcase_ascii(<<c, rest::bits>>, acc), do: upcase_ascii(rest, [c | acc])
-  defp upcase_ascii(<<>>, acc), do: IO.iodata_to_binary(:lists.reverse(acc))
+  defp upcase_ascii(string), do: IO.iodata_to_binary(upcase_ascii(string))
+  defp upcase_ascii(<<c, rest::bits>>) when c >= ?a and c <= ?z, do: [c - 32 | upcase_ascii(rest)]
+  defp upcase_ascii(<<c, rest::bits>>), do: [c | upcase_ascii(rest)]
+  defp upcase_ascii(<<>>), do: []
 
   def upcase(string, mode) when mode in @conditional_mappings do
     String.Casing.upcase(string, [], mode)
@@ -739,13 +736,13 @@ defmodule String do
     downcase_ascii(string)
   end
 
-  defp downcase_ascii(string), do: downcase_ascii(string, [])
+  defp downcase_ascii(string), do: IO.iodata_to_binary(downcase_ascii(string))
 
-  defp downcase_ascii(<<c, rest::bits>>, acc) when c >= ?A and c <= ?Z,
-    do: downcase_ascii(rest, [c + 32 | acc])
+  defp downcase_ascii(<<c, rest::bits>>) when c >= ?A and c <= ?Z,
+    do: [c + 32 | downcase_ascii(rest)]
 
-  defp downcase_ascii(<<c, rest::bits>>, acc), do: downcase_ascii(rest, [c | acc])
-  defp downcase_ascii(<<>>, acc), do: IO.iodata_to_binary(:lists.reverse(acc))
+  defp downcase_ascii(<<c, rest::bits>>), do: [c | downcase_ascii(rest)]
+  defp downcase_ascii(<<>>), do: []
 
   def downcase(string, mode) when mode in @conditional_mappings do
     String.Casing.downcase(string, [], mode)
