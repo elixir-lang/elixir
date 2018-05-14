@@ -623,13 +623,13 @@ defmodule Stream do
   Open up a file, replace all `#` by `%` and stream to another file
   without loading the whole file in memory:
 
-      stream = File.stream!("code")
+      File.stream!("/path/to/file")
       |> Stream.map(&String.replace(&1, "#", "%"))
-      |> Stream.into(File.stream!("new"))
-      |> Stream.run
+      |> Stream.into(File.stream!("/path/to/other/file"))
+      |> Stream.run()
 
-  No computation will be done until we call one of the Enum functions
-  or `Stream.run/1`.
+  No computation will be done until we call one of the `Enum` functions
+  or `run/1`.
   """
   @spec run(Enumerable.t()) :: :ok
   def run(stream) do
