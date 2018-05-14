@@ -677,13 +677,13 @@ defmodule String do
     IO.iodata_to_binary(upcase_ascii(string))
   end
 
-  defp upcase_ascii(<<c, rest::bits>>) when c >= ?a and c <= ?z, do: [c - 32 | upcase_ascii(rest)]
-  defp upcase_ascii(<<c, rest::bits>>), do: [c | upcase_ascii(rest)]
-  defp upcase_ascii(<<>>), do: []
-
   def upcase(string, mode) when mode in @conditional_mappings do
     String.Casing.upcase(string, [], mode)
   end
+
+  defp upcase_ascii(<<c, rest::bits>>) when c >= ?a and c <= ?z, do: [c - 32 | upcase_ascii(rest)]
+  defp upcase_ascii(<<c, rest::bits>>), do: [c | upcase_ascii(rest)]
+  defp upcase_ascii(<<>>), do: []
 
   @doc """
   Converts all characters in the given string to lowercase according to `mode`.
@@ -735,15 +735,15 @@ defmodule String do
     IO.iodata_to_binary(downcase_ascii(string))
   end
 
+  def downcase(string, mode) when mode in @conditional_mappings do
+    String.Casing.downcase(string, [], mode)
+  end
+
   defp downcase_ascii(<<c, rest::bits>>) when c >= ?A and c <= ?Z,
     do: [c + 32 | downcase_ascii(rest)]
 
   defp downcase_ascii(<<c, rest::bits>>), do: [c | downcase_ascii(rest)]
   defp downcase_ascii(<<>>), do: []
-
-  def downcase(string, mode) when mode in @conditional_mappings do
-    String.Casing.downcase(string, [], mode)
-  end
 
   @doc """
   Converts the first character in the given string to
