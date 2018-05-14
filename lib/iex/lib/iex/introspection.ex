@@ -353,7 +353,15 @@ defmodule IEx.Introspection do
   end
 
   def h(invalid) do
-    puts_error("Invalid arguments for h helper: #{inspect(invalid)}")
+    puts_error(
+      "The \"h\" helper expects a Module, Module.fun or Module.fun/arity, got: #{inspect(invalid)}"
+    )
+
+    puts_error(
+      "If instead of accessing documentation you would like to more information about a value " <>
+        "or about the result of an expression, use the \"i\" helper instead"
+    )
+
     dont_display_result()
   end
 
