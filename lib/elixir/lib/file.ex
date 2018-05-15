@@ -1033,14 +1033,19 @@ defmodule File do
 
   @doc """
   Tries to delete the dir at `path`.
+
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+  It returns `{:error, :eexist}` if the directory is not empty.
 
   ## Examples
 
-      File.rmdir('tmp_dir')
+      File.rmdir("tmp_dir")
       #=> :ok
 
-      File.rmdir('file.txt')
+      File.rmdir("non_empty_dir")
+      #=> {:error, :eexist}
+
+      File.rmdir("file.txt")
       #=> {:error, :enotdir}
 
   """
