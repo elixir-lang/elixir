@@ -1032,7 +1032,7 @@ defmodule File do
   end
 
   @doc """
-  Tries to delete the dir at `path`.
+  Tries to delete the dir at `path`, unlike `File.rm_rf/1` it only deletes dir when it is empty.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   ## Examples
