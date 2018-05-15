@@ -236,8 +236,9 @@ defmodule Port do
 
   def info(port, :registered_name) do
     case :erlang.port_info(port, :registered_name) do
+      :undefined -> nil
       [] -> {:registered_name, []}
-      other -> nillify(other)
+      other -> other
     end
   end
 

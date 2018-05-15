@@ -370,6 +370,31 @@ defmodule Macro do
       iex> Macro.escape({:unquote, [], [1]}, unquote: true)
       1
 
+  ## Comparison to `Kernel.quote/2`
+
+  The `escape/2` function is sometimes confused with `Kernel.SpecialForms.quote/2`,
+  because the above examples behave the same with both. The key difference is
+  best illustrated when the value to escape is stored in a variable.
+
+      iex> Macro.escape({:a, :b, :c})
+      {:{}, [], [:a, :b, :c]}
+      iex> quote do: {:a, :b, :c}
+      {:{}, [], [:a, :b, :c]}
+
+      iex> value = {:a, :b, :c}
+      iex> Macro.escape(value)
+      {:{}, [], [:a, :b, :c]}
+
+      iex> quote do: value
+      {:value, [], __MODULE__}
+
+      iex> value = {:a, :b, :c}
+      iex> quote do: unquote(value)
+      {:a, :b, :c}
+
+  `escape/2` is used to escape *values* (either directly passed or variable
+  bound), while `Kernel.SpecialForms.quote/2` produces syntax trees for
+  expressions.
   """
   @spec escape(term, keyword) :: Macro.t()
   def escape(expr, opts \\ []) do
@@ -417,8 +442,8 @@ defmodule Macro do
   defp find_invalid(bin) when is_binary(bin), do: nil
 
   defp find_invalid(fun) when is_function(fun) do
-    unless :erlang.fun_info(fun, :env) == {:env, []} and
-             :erlang.fun_info(fun, :type) == {:type, :external} do
+    unless Function.info(fun, :env) == {:env, []} and
+             Function.info(fun, :type) == {:type, :external} do
       {:error, fun}
     end
   end
@@ -501,11 +526,13 @@ defmodule Macro do
   end
 
   @doc false
+  @deprecated "Traverse over the arguments using Enum.map/2 instead"
   def unescape_tokens(tokens) do
     :elixir_interpolation.unescape_tokens(tokens)
   end
 
   @doc false
+  @deprecated "Traverse over the arguments using Enum.map/2 instead"
   def unescape_tokens(tokens, map) do
     :elixir_interpolation.unescape_tokens(tokens, map)
   end
@@ -720,7 +747,13 @@ defmodule Macro do
   end
 
   # All other structures
-  def to_string(other, fun), do: fun.(other, inspect(other, []))
+  def to_string(other, fun) do
+    fun.(other, inspect_no_limit(other))
+  end
+
+  defp inspect_no_limit(value) do
+    Kernel.inspect(value, limit: :infinity, printable_limit: :infinity)
+  end
 
   defp bitpart_to_string({:::, _, [left, right]} = ast, fun) do
     result =
@@ -774,15 +807,15 @@ defmodule Macro do
           "\#{" <> to_string(arg, fun) <> "}"
 
         binary when is_binary(binary) ->
-          binary = inspect(binary, [])
-          :binary.part(binary, 1, byte_size(binary) - 2)
+          binary = inspect_no_limit(binary)
+          binary_part(binary, 1, byte_size(binary) - 2)
       end)
 
     <<?", parts::binary, ?">>
   end
 
   defp module_to_string(atom, _fun) when is_atom(atom) do
-    inspect(atom, [])
+    inspect_no_limit(atom)
   end
 
   defp module_to_string({:&, _, [val]} = expr, fun) when not is_integer(val) do
@@ -840,11 +873,25 @@ defmodule Macro do
     :error
   end
 
-  defp sigil_call({sigil, _, [{:<<>>, _, _} = bin, args]} = ast, fun)
+  defp sigil_call({sigil, _, [{:<<>>, _, _} = parts, args]} = ast, fun)
        when is_atom(sigil) and is_list(args) do
     case Atom.to_string(sigil) do
-      <<"sigil_", name>> ->
-        {:ok, fun.(ast, "~" <> <<name>> <> interpolate(bin, fun) <> sigil_args(args, fun))}
+      <<"sigil_", name>> when name >= ?A and name <= ?Z ->
+        {:<<>>, _, [binary]} = parts
+
+        formatted =
+          if :binary.last(binary) == ?\n do
+            binary = String.replace(binary, ~s["""], ~s["\\""])
+            <<?~, name, ~s["""\n], binary::binary, ~s["""], sigil_args(args, fun)::binary>>
+          else
+            {left, right} = select_sigil_container(binary)
+            <<?~, name, left, binary::binary, right, sigil_args(args, fun)::binary>>
+          end
+
+        {:ok, fun.(ast, formatted)}
+
+      <<"sigil_", name>> when name >= ?a and name <= ?z ->
+        {:ok, fun.(ast, "~" <> <<name>> <> interpolate(parts, fun) <> sigil_args(args, fun))}
 
       _ ->
         :error
@@ -853,6 +900,18 @@ defmodule Macro do
 
   defp sigil_call(_other, _fun) do
     :error
+  end
+
+  defp select_sigil_container(binary) do
+    cond do
+      :binary.match(binary, ["\""]) == :nomatch -> {?", ?"}
+      :binary.match(binary, ["\'"]) == :nomatch -> {?', ?'}
+      :binary.match(binary, ["(", ")"]) == :nomatch -> {?(, ?)}
+      :binary.match(binary, ["[", "]"]) == :nomatch -> {?[, ?]}
+      :binary.match(binary, ["{", "}"]) == :nomatch -> {?{, ?}}
+      :binary.match(binary, ["<", ">"]) == :nomatch -> {?<, ?>}
+      true -> {?/, ?/}
+    end
   end
 
   defp sigil_args([], _fun), do: ""
@@ -953,8 +1012,9 @@ defmodule Macro do
   end
 
   defp map_list_to_string(list, fun) do
-    Enum.map_join(list, ", ", fn {key, value} ->
-      to_string(key, fun) <> " => " <> to_string(value, fun)
+    Enum.map_join(list, ", ", fn
+      {key, value} -> to_string(key, fun) <> " => " <> to_string(value, fun)
+      other -> to_string(other, fun)
     end)
   end
 
@@ -1020,7 +1080,7 @@ defmodule Macro do
 
     * Macros (local or remote)
     * Aliases are expanded (if possible) and return atoms
-    * Compilation environment macros (`__ENV__/0`, `__MODULE__/0` and `__DIR__/0`)
+    * Compilation environment macros (`__CALLER__/0`, `__DIR__/0`, `__ENV__/0` and `__MODULE__/0`)
     * Module attributes reader (`@foo`)
 
   If the expression cannot be expanded, it returns the expression
@@ -1322,7 +1382,7 @@ defmodule Macro do
       iex> Macro.camelize("foo_bar")
       "FooBar"
 
-  If uppercase characters are present, they are not modified in anyway
+  If uppercase characters are present, they are not modified in any way
   as a mechanism to preserve acronyms:
 
       iex> Macro.camelize("API.V1")

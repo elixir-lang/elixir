@@ -4,7 +4,7 @@
 -export([match/3, clause/5, def/2, head/2,
          'case'/3, 'receive'/3, 'try'/3, 'cond'/3, with/3,
          format_error/1]).
--import(elixir_errors, [form_error/4]).
+-import(elixir_errors, [form_error/4, form_warn/4]).
 -include("elixir.hrl").
 
 match(Fun, Expr, #{context := match} = E) ->
@@ -46,14 +46,14 @@ guard(Guard, E) ->
   warn_zero_length_guard(EGuard, EG),
   {EGuard, EG}.
 
-warn_zero_length_guard({{'.', _, [erlang, '==']}, Meta,
-                        [{{'.', _, [erlang, length]}, _, [Arg]}, 0]}, E) ->
-  ArgString = 'Elixir.Macro':to_string(Arg),
-  Message = io_lib:format("\"length(~ts) == 0\" is discouraged since it has to "
-                          "traverse the whole list to check if it is empty or not. "
-                          "Prefer to pattern match on an empty list or use "
-                          "\"~ts == []\" as a guard", [ArgString, ArgString]),
-  elixir_errors:warn(?line(Meta), ?key(E, file), Message);
+warn_zero_length_guard({{'.', _, [erlang, Op]}, Meta,
+                        [{{'.', _, [erlang, length]}, _, [Arg]}, 0]}, E) when Op == '=='; Op == '>' ->
+  Warn =
+    case Op of
+      '==' -> {zero_list_length_in_guard, Arg};
+      '>' -> {positive_list_length_in_guard, Arg}
+    end,
+  form_warn(Meta, ?key(E, file), ?MODULE, Warn);
 warn_zero_length_guard({Op, _, [L, R]}, E) when Op == 'or'; Op == 'and' ->
   warn_zero_length_guard(L, E),
   warn_zero_length_guard(R, E);
@@ -170,11 +170,8 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
   case lists:keytake(else, 1, Opts) of
     {value, Pair, RestOpts} ->
       if
-        HasMatch ->
-          ok;
-        true ->
-          Message = "\"else\" clauses will never match because all patterns in \"with\" will always match",
-          elixir_errors:warn(?line(Meta), ?key(E, file), Message)
+        HasMatch -> ok;
+        true -> form_warn(Meta, ?key(E, file), ?MODULE, unmatchable_else_in_with)
       end,
       Fun = expand_one(Meta, 'with', 'else', fun head/2),
       {EPair, EE} = expand_clauses(Meta, 'with', Fun, Pair, E),
@@ -314,11 +311,10 @@ assert_at_most_once(Kind, [{Kind, _} | Rest], Count, Fun) ->
 assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
   assert_at_most_once(Kind, Rest, Count, Fun).
 
-warn_catch_before_rescue([], _, _, _) -> ok;
-warn_catch_before_rescue([{'rescue', _} | _], Meta, E, true) ->
-  Message = "\"catch\" should always come after \"rescue\" in try",
-  elixir_errors:warn(?line(Meta), ?key(E, file), Message),
+warn_catch_before_rescue([], _, _, _) ->
   ok;
+warn_catch_before_rescue([{'rescue', _} | _], Meta, E, true) ->
+  form_warn(Meta, ?key(E, file), ?MODULE, catch_before_rescue);
 warn_catch_before_rescue([{'catch', _} | Rest], Meta, E, _) ->
   warn_catch_before_rescue(Rest, Meta, E, true);
 warn_catch_before_rescue([_ | Rest], Meta, E, Found) ->
@@ -343,4 +339,22 @@ format_error(multiple_after_clauses_in_receive) ->
 
 format_error(invalid_rescue_clause) ->
   "invalid \"rescue\" clause. The clause should match on an alias, a variable "
-    "or be in the \"var in [alias]\" format".
+    "or be in the \"var in [alias]\" format";
+
+format_error(catch_before_rescue) ->
+  "\"catch\" should always come after \"rescue\" in try";
+
+format_error(unmatchable_else_in_with) ->
+  "\"else\" clauses will never match because all patterns in \"with\" will always match";
+
+format_error({zero_list_length_in_guard, ListArg}) ->
+  Arg = 'Elixir.Macro':to_string(ListArg),
+  io_lib:format("do not use \"length(~ts) == 0\" to check if a list is empty since length "
+                "always traverses the whole list. Prefer to pattern match on an empty list or "
+                "use \"~ts == []\" as a guard", [Arg, Arg]);
+
+format_error({positive_list_length_in_guard, ListArg}) ->
+  Arg = 'Elixir.Macro':to_string(ListArg),
+  io_lib:format("do not use \"length(~ts) > 0\" to check if a list is not empty since length "
+                "always traverses the whole list. Prefer to pattern match on a non-empty list, "
+                "such as [_ | _], or use \"~ts != []\" as a guard", [Arg, Arg]).

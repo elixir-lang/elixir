@@ -1,20 +1,19 @@
 %% Module responsible for tracking lexical information.
 -module(elixir_lexical).
--export([run/3, dest/1,
+-export([run/2, set_file/2, reset_file/1,
   record_alias/4, record_alias/2,
   record_import/6, record_import/5,
   record_remote/3, record_remote/6,
-  set_file/2, reset_file/1,
   record_struct/3, format_error/1
 ]).
 -include("elixir.hrl").
 
 -define(tracker, 'Elixir.Kernel.LexicalTracker').
 
-run(File, Dest, Callback) ->
+run(File, Callback) ->
   case elixir_config:get(bootstrap) of
     false ->
-      {ok, Pid} = ?tracker:start_link(Dest),
+      {ok, Pid} = ?tracker:start_link(),
       try Callback(Pid) of
         Res ->
           warn_unused_aliases(File, Pid),
@@ -27,9 +26,6 @@ run(File, Dest, Callback) ->
     true ->
       Callback(nil)
   end.
-
-dest(nil) -> nil;
-dest(Pid) -> ?tracker:dest(Pid).
 
 %% RECORD
 

@@ -184,7 +184,8 @@ tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_
     {ok, NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, <<H, H, H>>},
-      tokenize(Final, NewLine, NewColumn, Scope, [Token | Tokens]);
+      NewColumn2 = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumn2, Scope, [Token | Tokens]);
     {error, Reason} ->
       {error, Reason, Original, Tokens}
   end;
@@ -194,7 +195,8 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, <<H>>},
-      tokenize(Final, NewLine, NewColumn, Scope, [Token | Tokens]);
+      NewColumn2 = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumn2, Scope, [Token | Tokens]);
     {error, Reason} ->
       Sigil = [$~, S, H],
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
@@ -223,7 +225,7 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
   case handle_char(Char) of
     {Escape, Name} ->
-      Msg = io_lib:format("found ? followed by codepoint 0x~.16B (~ts), please use ~ts instead",
+      Msg = io_lib:format("found ? followed by codepoint 0x~.16B (~ts), please use ?~ts instead",
                           [Char, Name, Escape]),
       elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
     false ->
@@ -329,7 +331,7 @@ tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T
 % ## Containers + punctuation tokens
 tokenize([$, | Rest], Line, Column, Scope, Tokens) ->
   Token = {',', {Line, Column, 0}},
-  handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
+  tokenize(Rest, Line, Column + 1, Scope, [Token | Tokens]);
 
 tokenize([$<, $< | Rest], Line, Column, Scope, Tokens) ->
   Token = {'<<', {Line, Column, nil}},
@@ -424,6 +426,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Scope) of
     {_Kind, Atom, Rest, Length, _Ascii, _Special} ->
+      maybe_warn_for_ambiguous_bang_before_equals(atom, Atom, Rest, Scope, Line),
       Token = {atom, {Line, Column, nil}, Atom},
       tokenize(Rest, Line, Column + 1 + Length, Scope, [Token | Tokens]);
     empty ->
@@ -509,17 +512,23 @@ tokenize(String, Line, Column, Scope, Tokens) ->
         [$: | T] when ?is_space(hd(T)) ->
           Token = {kw_identifier, {Line, Column, nil}, Atom},
           tokenize(T, Line, Column + Length + 1, Scope, [Token | Tokens]);
+
         [$: | T] when hd(T) /= $: ->
           AtomName = atom_to_list(Atom) ++ [$:],
           Reason = {Line, "keyword argument must be followed by space after: ", AtomName},
           {error, Reason, String, Tokens};
+
         _ when HasAt ->
           Reason = {Line, invalid_character_error(Kind, $@), atom_to_list(Atom)},
           {error, Reason, String, Tokens};
+
         _ when Kind == alias ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
+
         _ when Kind == identifier ->
+          maybe_warn_for_ambiguous_bang_before_equals(identifier, Atom, Rest, Scope, Line),
           tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
+
         _ ->
           unexpected_token(String, Line, Column, Tokens)
       end;
@@ -528,6 +537,26 @@ tokenize(String, Line, Column, Scope, Tokens) ->
     {error, Reason} ->
       {error, Reason, String, Tokens}
   end.
+
+maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) ->
+  {What, Identifier} =
+    case Kind of
+      atom -> {"atom", [$: | atom_to_list(Atom)]};
+      identifier -> {"identifier", atom_to_list(Atom)}
+    end,
+
+  case lists:last(Identifier) of
+    Last when Last == $!; Last == $? ->
+      Msg = io_lib:format("found ~ts \"~ts\", ending with \"~ts\", followed by =. "
+                          "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
+                          "a space before or after ~ts to remove the ambiguity",
+                          [What, Identifier, [Last], lists:droplast(Identifier), [Last], Identifier, [Last]]),
+      elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
+    _ ->
+      ok
+  end;
+maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, _Scope, _Line) ->
+  ok.
 
 unexpected_token([T | Rest], Line, Column, Tokens) ->
   Message = io_lib:format("\"~ts\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
@@ -745,7 +774,7 @@ extract_heredoc(Line0, Column0, Rest0, Marker, Scope) ->
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Column0, Marker, [$\n | Rest1], []) of
         {ok, Line1, Body, Rest2, Spaces} ->
-          {ok, Line1, 1, tl(remove_heredoc_spaces(Body, Spaces, Marker, Scope)), Rest2};
+          {ok, Line1, 4 + Spaces, tl(remove_heredoc_spaces(Body, Spaces, Marker, Scope)), Rest2};
         {error, Reason, ErrorLine} ->
           Terminator = [Marker, Marker, Marker],
           {Message, Token} = heredoc_error_message(Reason, Line0, Terminator),
@@ -1142,8 +1171,7 @@ terminator('<<') -> '>>'.
 
 check_keyword(_Line, _Column, _Atom, [{'.', _} | _], _Rest) ->
   nomatch;
-check_keyword(DoLine, DoColumn, do,
-              [{Identifier, {Line, Column, Meta}, Atom} | T], _Rest) when Identifier == identifier ->
+check_keyword(DoLine, DoColumn, do, [{identifier, {Line, Column, Meta}, Atom} | T], _Rest) ->
   {ok, add_token_with_eol({do, {DoLine, DoColumn, nil}},
                           [{do_identifier, {Line, Column, Meta}, Atom} | T])};
 check_keyword(_Line, _Column, do, [{'fn', _} | _], _Rest) ->

@@ -5,47 +5,22 @@
 # ## Implementation
 #
 # The implementation uses ets to track all dependencies
-# resembling a graph. The graph has the following vertices:
+# resembling a graph. The keys and what they point to are:
 #
-#   * `Module` - a module that was invoked via an import
-#   * `{name, arity}` - a local function/arity pair
-#   * `{:import, name, arity}` - an invoked function/arity import
-#   * `:reattach` - points to reattached functions
+#   * `:reattach` points to `{name, arity}`
+#   * `{:local, {name, arity}}` points to `{name, arity}`
+#   * `{:import, {name, arity}}` points to `Module`
 #
-# Those vertices can associate to other vertices as described
-# below:
-#
-#   * `{name, arity}`
-#     * in neighbours: `:reattach`, `{name, arity}`
-#     * out neighbours: `{:import, name, arity}`
-#
-#   * `{:import, name, arity}`
-#     * in neighbours: `{name, arity}`
-#     * out neighbours: `Module`
-#
+# This is built on top of the internal module tables.
 defmodule Module.LocalsTracker do
   @moduledoc false
 
   @doc """
-  Starts the tracker table.
-  """
-  def init do
-    :ets.new(__MODULE__, [:bag, :public])
-  end
-
-  @doc """
-  Deletes the tracker table.
-  """
-  def delete(d) do
-    :ets.delete(d)
-  end
-
-  @doc """
   Adds and tracks defaults for a definition into the tracker.
   """
-  def add_defaults(d, _kind, {name, arity}, defaults) do
+  def add_defaults({_set, bag}, _kind, {name, arity} = pair, defaults) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
-      put_edge(d, {name, i}, {name, arity})
+      put_edge(bag, {:local, {name, i}}, pair)
     end
 
     :ok
@@ -54,58 +29,53 @@ defmodule Module.LocalsTracker do
   @doc """
   Adds a local dispatch from-to the given target.
   """
-  def add_local(d, from, to) when is_tuple(from) and is_tuple(to) do
-    put_edge(d, from, to)
+  def add_local({_set, bag}, from, to) when is_tuple(from) and is_tuple(to) do
+    if from != to do
+      put_edge(bag, {:local, from}, to)
+    end
+
+    :ok
   end
 
   @doc """
   Adds an import dispatch to the given target.
   """
-  def add_import(d, function, module, {name, arity})
+  def add_import({set, _bag}, function, module, imported)
       when is_tuple(function) and is_atom(module) do
-    tuple = {:import, name, arity}
-    put_edge(d, tuple, module)
-    put_edge(d, function, tuple)
+    put_edge(set, {:import, imported}, module)
     :ok
   end
 
   @doc """
   Yanks a local node. Returns its in and out vertices in a tuple.
   """
-  def yank(d, local) do
-    {[], take_out_neighbours(d, local)}
+  def yank({_set, bag}, local) do
+    :lists.usort(take_out_neighbours(bag, {:local, local}))
   end
 
   @doc """
   Reattach a previously yanked node.
   """
-  def reattach(d, tuple, _kind, function, {in_neigh, out_neigh}) do
-    # Reattach the old function
-    for from <- in_neigh do
-      put_edge(d, from, function)
-    end
-
+  def reattach({_set, bag}, tuple, _kind, function, out_neigh) do
     for to <- out_neigh do
-      put_edge(d, function, to)
+      put_edge(bag, {:local, function}, to)
     end
 
     # Make a call from the old function to the new one
     if function != tuple do
-      put_edge(d, function, tuple)
+      put_edge(bag, {:local, function}, tuple)
     end
 
     # Finally marked the new one as reattached
-    put_edge(d, :reattach, tuple)
+    put_edge(bag, :reattach, tuple)
     :ok
   end
 
   # Collecting all conflicting imports with the given functions
   @doc false
-  def collect_imports_conflicts(d, all_defined) do
-    for {{name, arity}, _, meta, _} <- all_defined,
-        n = out_neighbours(d, {:import, name, arity}),
-        n != [] do
-      {meta, {n, name, arity}}
+  def collect_imports_conflicts({set, _bag}, all_defined) do
+    for {pair, _, meta, _} <- all_defined, n = out_neighbour(set, {:import, pair}) do
+      {meta, {n, pair}}
     end
   end
 
@@ -114,17 +84,17 @@ defmodule Module.LocalsTracker do
   given, also accounting the expected number of default
   clauses a private function have.
   """
-  def collect_unused_locals(d, all_defined, private) do
+  def collect_unused_locals({_set, bag}, all_defined, private) do
     reachable =
       Enum.reduce(all_defined, %{}, fn {pair, kind, _, _}, acc ->
         if kind in [:def, :defmacro] do
-          reachable_from(d, pair, acc)
+          reachable_from(bag, pair, acc)
         else
           acc
         end
       end)
 
-    reattached = out_neighbours(d, :reattach)
+    reattached = :lists.usort(out_neighbours(bag, :reattach))
     {unreachable(reachable, reattached, private), collect_warnings(reachable, private)}
   end
 
@@ -191,24 +161,20 @@ defmodule Module.LocalsTracker do
   A private function is only reachable if it has
   a public function that it invokes directly.
   """
-  def reachable_from(d, vertex) do
-    d
-    |> reachable_from(vertex, %{})
+  def reachable_from({_, bag}, local) do
+    bag
+    |> reachable_from(local, %{})
     |> Map.keys()
   end
 
-  defp reachable_from(d, vertex, vertices) do
-    vertices = Map.put(vertices, vertex, true)
+  defp reachable_from(bag, local, vertices) do
+    vertices = Map.put(vertices, local, true)
 
-    Enum.reduce(out_neighbours(d, vertex), vertices, fn
-      {_, _} = local, acc ->
-        case acc do
-          %{^local => true} -> acc
-          _ -> reachable_from(d, local, acc)
-        end
-
-      _, acc ->
-        acc
+    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {_, _} = local, acc ->
+      case acc do
+        %{^local => true} -> acc
+        _ -> reachable_from(bag, local, acc)
+      end
     end)
   end
 
@@ -216,6 +182,14 @@ defmodule Module.LocalsTracker do
 
   defp put_edge(d, from, to) do
     :ets.insert(d, {from, to})
+  end
+
+  defp out_neighbour(d, from) do
+    try do
+      :ets.lookup_element(d, from, 2)
+    catch
+      :error, :badarg -> nil
+    end
   end
 
   defp out_neighbours(d, from) do

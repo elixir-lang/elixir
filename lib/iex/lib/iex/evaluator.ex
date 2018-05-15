@@ -268,9 +268,9 @@ defmodule IEx.Evaluator do
     :elixir_errors.parse_error(line, "iex", error, token)
   end
 
-  defp update_history(state, counter, cache, result) do
+  defp update_history(state, counter, _cache, result) do
     history_size = IEx.Config.history_size()
-    update_in(state.history, &IEx.History.append(&1, {counter, cache, result}, history_size))
+    update_in(state.history, &IEx.History.append(&1, {counter, result}, history_size))
   end
 
   defp io_inspect(result) do

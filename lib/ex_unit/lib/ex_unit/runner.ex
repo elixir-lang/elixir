@@ -34,6 +34,7 @@ defmodule ExUnit.Runner do
       include: opts[:include],
       manager: manager,
       max_cases: opts[:max_cases],
+      only_test_ids: opts[:only_test_ids],
       seed: opts[:seed],
       modules: :async,
       timeout: opts[:timeout],
@@ -132,8 +133,9 @@ defmodule ExUnit.Runner do
     tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
+    test_ids = config.only_test_ids
 
-    for test <- tests do
+    for test <- tests, include_test?(test_ids, test) do
       tags = Map.merge(test.tags, %{test: test.name, module: test.module})
 
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
@@ -141,6 +143,12 @@ defmodule ExUnit.Runner do
         excluded_or_skipped -> %{test | state: excluded_or_skipped}
       end
     end
+  end
+
+  defp include_test?(nil, _test), do: true
+
+  defp include_test?(test_ids, test) do
+    MapSet.member?(test_ids, {test.module, test.name})
   end
 
   defp spawn_module(config, test_module, tests) do
@@ -182,7 +190,7 @@ defmodule ExUnit.Runner do
     {:ok, test_module, module.__ex_unit__(:setup_all, %{module: module, case: module})}
   catch
     kind, error ->
-      failed = failed(kind, error, pruned_stacktrace())
+      failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
       {:error, %{test_module | state: failed}}
   end
 
@@ -297,7 +305,7 @@ defmodule ExUnit.Runner do
     {:ok, %{test | tags: module.__ex_unit__(:setup, context)}}
   catch
     kind, error ->
-      {:error, %{test | state: failed(kind, error, pruned_stacktrace())}}
+      {:error, %{test | state: failed(kind, error, prune_stacktrace(__STACKTRACE__))}}
   end
 
   defp exec_test(%ExUnit.Test{module: module, name: name, tags: context} = test) do
@@ -305,7 +313,7 @@ defmodule ExUnit.Runner do
     test
   catch
     kind, error ->
-      %{test | state: failed(kind, error, pruned_stacktrace())}
+      %{test | state: failed(kind, error, prune_stacktrace(__STACKTRACE__))}
   end
 
   defp exec_on_exit(test_or_case, pid, timeout) do
@@ -341,17 +349,15 @@ defmodule ExUnit.Runner do
   defp failed(:error, %ExUnit.MultiError{errors: errors}, _stack) do
     errors =
       Enum.map(errors, fn {kind, reason, stack} ->
-        {kind, Exception.normalize(kind, reason), prune_stacktrace(stack)}
+        {kind, Exception.normalize(kind, reason, stack), prune_stacktrace(stack)}
       end)
 
     {:failed, errors}
   end
 
   defp failed(kind, reason, stack) do
-    {:failed, [{kind, Exception.normalize(kind, reason), stack}]}
+    {:failed, [{kind, Exception.normalize(kind, reason, stack), stack}]}
   end
-
-  defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace())
 
   # Assertions can pop-up in the middle of the stack
   defp prune_stacktrace([{ExUnit.Assertions, _, _, _} | t]), do: prune_stacktrace(t)

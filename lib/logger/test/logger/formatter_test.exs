@@ -27,7 +27,7 @@ defmodule Logger.FormatterTest do
     assert compile("$level $time $date $metadata $message $node") ==
              Enum.intersperse([:level, :time, :date, :metadata, :message, :node], " ")
 
-    assert_raise ArgumentError, "$bad is an invalid format pattern.", fn ->
+    assert_raise ArgumentError, "$bad is an invalid format pattern", fn ->
       compile("$bad $good")
     end
   end

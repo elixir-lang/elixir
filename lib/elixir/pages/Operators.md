@@ -26,7 +26,7 @@ Operator                                                                        
 `\|`                                                                                     | Right to left
 `::`                                                                                     | Right to left
 `when`                                                                                   | Right to left
-`<-`, `\\`                                                                               | Left to right
+`<-` `\\`                                                                                | Left to right
 
 ## Comparison operators
 

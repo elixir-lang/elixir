@@ -78,17 +78,17 @@ defmodule Mix.LocalTest do
   end
 
   test "select correct versions from csv" do
-    in_tmp "select correct versions from csv", fn ->
+    in_tmp("select correct versions from csv", fn ->
       File.write!("csv", @csv)
       File.write!("csv.signed", @csv_signed)
 
       assert {"1.0.0", "1.2.4", "GHI"} =
                Mix.Local.find_matching_versions_from_signed_csv!("name", "csv")
-    end
+    end)
   end
 
   test "raise on bad signature" do
-    in_tmp "raise on bad signature", fn ->
+    in_tmp("raise on bad signature", fn ->
       csv_signed = String.replace(@csv_signed, "VRy", "BAD")
       File.write!("csv", @csv)
       File.write!("csv.signed", csv_signed)
@@ -96,6 +96,6 @@ defmodule Mix.LocalTest do
       assert_raise Mix.Error, fn ->
         Mix.Local.find_matching_versions_from_signed_csv!("name", "csv")
       end
-    end
+    end)
   end
 end

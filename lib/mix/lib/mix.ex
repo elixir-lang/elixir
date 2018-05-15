@@ -168,6 +168,7 @@ defmodule Mix do
   Mix responds to the following variables:
 
     * `MIX_ARCHIVES` - specifies the directory into which the archives should be installed
+    * `MIX_BUILD_PATH` - sets the project build_path config
     * `MIX_DEBUG` - outputs debug information about each task before running it
     * `MIX_ENV` - specifies which environment should be used. See [Environments](#module-environments)
     * `MIX_EXS` - changes the full path to the `mix.exs` file

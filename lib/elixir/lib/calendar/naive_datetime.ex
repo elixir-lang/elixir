@@ -4,8 +4,8 @@ defmodule NaiveDateTime do
 
   The NaiveDateTime struct contains the fields year, month, day, hour,
   minute, second, microsecond and calendar. New naive datetimes can be
-  built with the `new/2` and `new/7` functions or using the
-  [`~N`](`Kernek.sigil_N/2`) sigil:
+  built with the `new/2` and `new/8` functions or using the
+  [`~N`](`Kernel.sigil_N/2`) sigil:
 
       iex> ~N[2000-01-01 23:00:07]
       ~N[2000-01-01 23:00:07]
@@ -28,13 +28,13 @@ defmodule NaiveDateTime do
   `NaiveDateTime` is not validated against a time zone, such errors
   would go unnoticed.
 
-  The functions on this module work with the `NaiveDateTime` struct as well
+  The functions of this module work with the `NaiveDateTime` struct as well
   as any struct that contains the same fields as the `NaiveDateTime` struct,
   such as `DateTime`. Such functions expect
   `t:Calendar.naive_datetime/0` in their typespecs (instead of `t:t/0`).
 
   Developers should avoid creating the NaiveDateTime structs directly
-  and instead rely on the functions provided by this module as well
+  and instead, rely on the functions provided by this module as well
   as the ones in 3rd party calendar libraries.
 
   ## Comparing naive date times
@@ -157,6 +157,9 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 1_000_000)
       {:error, :invalid_time}
 
+      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, {0, 1}, Calendar.ISO)
+      {:ok, ~N[2000-01-01 23:59:59.0]}
+
   """
   @spec new(
           Calendar.year(),
@@ -208,7 +211,7 @@ defmodule NaiveDateTime do
   Adds a specified amount of time to a `NaiveDateTime`.
 
   Accepts an `integer` in any `unit` available from `t:System.time_unit/0`.
-  Negative values will be move backwards in time.
+  Negative values will move backwards in time.
 
   This operation is only possible if both calendars are convertible to `Calendar.ISO`.
 
@@ -281,22 +284,26 @@ defmodule NaiveDateTime do
   """
   @since "1.4.0"
   @spec diff(t, t, System.time_unit()) :: integer
-  def diff(%NaiveDateTime{} = ndatetime1, %NaiveDateTime{} = ndatetime2, unit \\ :second) do
-    if not Calendar.compatible_calendars?(ndatetime1.calendar, ndatetime2.calendar) do
+  def diff(
+        %NaiveDateTime{} = naive_datetime1,
+        %NaiveDateTime{} = naive_datetime2,
+        unit \\ :second
+      ) do
+    if not Calendar.compatible_calendars?(naive_datetime1.calendar, naive_datetime2.calendar) do
       raise ArgumentError,
-            "cannot calculate the difference between #{inspect(ndatetime1)} and " <>
-              "#{inspect(ndatetime2)} because their calendars are not compatible " <>
+            "cannot calculate the difference between #{inspect(naive_datetime1)} and " <>
+              "#{inspect(naive_datetime2)} because their calendars are not compatible " <>
               "and thus the result would be ambiguous"
     end
 
-    units1 = ndatetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
-    units2 = ndatetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
+    units1 = naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
+    units2 = naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
     units1 - units2
   end
 
   @doc """
   Returns the given naive datetime with the microsecond field truncated to the
-  given precision (`:microsecond`, `millisecond` or `:second`).
+  given precision (`:microsecond`, `:millisecond` or `:second`).
 
   ## Examples
 
@@ -312,8 +319,8 @@ defmodule NaiveDateTime do
   """
   @since "1.6.0"
   @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
-  def truncate(%NaiveDateTime{microsecond: microsecond} = ndatetime, precision) do
-    %{ndatetime | microsecond: Calendar.truncate(microsecond, precision)}
+  def truncate(%NaiveDateTime{microsecond: microsecond} = naive_datetime, precision) do
+    %{naive_datetime | microsecond: Calendar.truncate(microsecond, precision)}
   end
 
   @doc """

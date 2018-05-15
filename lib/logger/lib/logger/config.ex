@@ -86,9 +86,9 @@ defmodule Logger.Config do
   ## Callbacks
 
   def init(_) do
-    # Use previous data if available in case this handler crashed.
-    state = :ets.lookup_element(@table, @data, 2) || compute_state(:async)
-    {:ok, state}
+    thresholds = compute_thresholds()
+    state = :ets.lookup_element(@table, @data, 2) || compute_state(:async, thresholds)
+    {:ok, {state, thresholds}}
   end
 
   def handle_event({_type, gl, _msg} = event, state) when node(gl) != node() do
@@ -99,10 +99,12 @@ defmodule Logger.Config do
     {:ok, state}
   end
 
-  def handle_event(_event, %{mode: mode} = state) do
-    case compute_mode(state) do
+  def handle_event(_event, {state, thresholds}) do
+    %{mode: mode} = state
+
+    case compute_mode(mode, thresholds) do
       ^mode ->
-        {:ok, state}
+        {:ok, {state, thresholds}}
 
       new_mode ->
         if new_mode == :discard do
@@ -118,35 +120,33 @@ defmodule Logger.Config do
           log(:warn, "Logger has stopped discarding messages", state)
         end
 
-        {:ok, persist(%{state | mode: new_mode})}
+        state = persist(%{state | mode: new_mode})
+        {:ok, {state, thresholds}}
     end
-  end
-
-  defp log(level, message, state) do
-    event = {Logger, message, Logger.Utils.timestamp(state.utc_log), pid: self()}
-    :gen_event.notify(self(), {level, Process.group_leader(), event})
   end
 
   def handle_call(:backends, state) do
     {:ok, Application.get_env(:logger, :backends), state}
   end
 
-  def handle_call({:configure, options}, state) do
+  def handle_call({:configure, options}, {%{mode: mode}, _}) do
     Enum.each(options, fn {key, value} ->
       Application.put_env(:logger, key, value)
     end)
 
-    {:ok, :ok, compute_state(state.mode)}
+    thresholds = compute_thresholds()
+    state = compute_state(mode, thresholds)
+    {:ok, :ok, {state, thresholds}}
   end
 
-  def handle_call({:add_translator, translator}, state) do
+  def handle_call({:add_translator, translator}, {state, thresholds}) do
     state = update_translators(state, fn t -> [translator | List.delete(t, translator)] end)
-    {:ok, :ok, state}
+    {:ok, :ok, {state, thresholds}}
   end
 
-  def handle_call({:remove_translator, translator}, state) do
+  def handle_call({:remove_translator, translator}, {state, thresholds}) do
     state = update_translators(state, &List.delete(&1, translator))
-    {:ok, :ok, state}
+    {:ok, :ok, {state, thresholds}}
   end
 
   def handle_call({:add_backend, backend}, state) do
@@ -179,23 +179,9 @@ defmodule Logger.Config do
 
   ## Helpers
 
-  defp compute_mode(state) do
-    %{
-      mode: mode,
-      async_threshold: async_threshold,
-      sync_threshold: sync_threshold,
-      keep_threshold: keep_threshold,
-      discard_threshold: discard_threshold
-    } = state
-
-    Logger.Utils.compute_mode(
-      mode,
-      message_queue_length(),
-      async_threshold,
-      sync_threshold,
-      keep_threshold,
-      discard_threshold
-    )
+  defp log(level, message, state) do
+    event = {Logger, message, Logger.Utils.timestamp(state.utc_log), pid: self()}
+    :gen_event.notify(self(), {level, Process.group_leader(), event})
   end
 
   defp message_queue_length() do
@@ -214,34 +200,47 @@ defmodule Logger.Config do
     persist(%{state | translators: translators})
   end
 
-  defp compute_state(mode) do
-    level = Application.get_env(:logger, :level)
-    utc_log = Application.get_env(:logger, :utc_log)
-    truncate = Application.get_env(:logger, :truncate)
-    translators = Application.get_env(:logger, :translators)
+  defp compute_state(mode, thresholds) do
+    persist(%{
+      mode: compute_mode(mode, thresholds),
+      level: Application.get_env(:logger, :level),
+      translators: Application.get_env(:logger, :translators),
+      truncate: Application.get_env(:logger, :truncate),
+      utc_log: Application.get_env(:logger, :utc_log)
+    })
+  end
 
+  defp compute_mode(mode, thresholds) do
+    %{
+      async_threshold: async_threshold,
+      sync_threshold: sync_threshold,
+      keep_threshold: keep_threshold,
+      discard_threshold: discard_threshold
+    } = thresholds
+
+    Logger.Utils.compute_mode(
+      mode,
+      message_queue_length(),
+      async_threshold,
+      sync_threshold,
+      keep_threshold,
+      discard_threshold
+    )
+  end
+
+  defp compute_thresholds() do
     sync_threshold = Application.get_env(:logger, :sync_threshold)
     async_threshold = trunc(sync_threshold * 0.75)
 
     discard_threshold = Application.get_env(:logger, :discard_threshold)
     keep_threshold = trunc(discard_threshold * 0.75)
 
-    state = %{
-      level: level,
-      mode: mode,
-      truncate: truncate,
-      utc_log: utc_log,
+    %{
       async_threshold: async_threshold,
       sync_threshold: sync_threshold,
       keep_threshold: keep_threshold,
-      discard_threshold: discard_threshold,
-      translators: translators
+      discard_threshold: discard_threshold
     }
-
-    case compute_mode(state) do
-      ^mode -> persist(state)
-      new_mode -> persist(%{state | mode: new_mode})
-    end
   end
 
   defp persist(state) do

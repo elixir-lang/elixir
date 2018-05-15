@@ -463,19 +463,23 @@ defmodule Keyword do
   """
   @spec delete(t, key, value) :: t
   def delete(keywords, key, value) when is_list(keywords) and is_atom(key) do
-    delete_key_value(keywords, key, value, _deleted? = false)
-  catch
-    :not_deleted -> keywords
+    case :lists.keymember(key, 1, keywords) do
+      true -> delete_key_value(keywords, key, value)
+      _ -> keywords
+    end
   end
 
-  defp delete_key_value([{key, value} | rest], key, value, _deleted?),
-    do: delete_key_value(rest, key, value, true)
+  defp delete_key_value([{key, value} | tail], key, value) do
+    delete_key_value(tail, key, value)
+  end
 
-  defp delete_key_value([{_, _} = pair | rest], key, value, deleted?),
-    do: [pair | delete_key_value(rest, key, value, deleted?)]
+  defp delete_key_value([{_, _} = pair | tail], key, value) do
+    [pair | delete_key_value(tail, key, value)]
+  end
 
-  defp delete_key_value([], _key, _value, _deleted? = true), do: []
-  defp delete_key_value([], _key, _value, _deleted? = false), do: throw(:not_deleted)
+  defp delete_key_value([], _key, _value) do
+    []
+  end
 
   @doc """
   Deletes the entries in the keyword list for a specific `key`.
@@ -497,18 +501,23 @@ defmodule Keyword do
   @spec delete(t, key) :: t
   @compile {:inline, delete: 2}
   def delete(keywords, key) when is_list(keywords) and is_atom(key) do
-    delete_key(keywords, key, _deleted? = false)
-  catch
-    :not_deleted -> keywords
+    case :lists.keymember(key, 1, keywords) do
+      true -> delete_key(keywords, key)
+      _ -> keywords
+    end
   end
 
-  defp delete_key([{key, _} | rest], key, _deleted?), do: delete_key(rest, key, true)
+  defp delete_key([{key, _} | tail], key) do
+    delete_key(tail, key)
+  end
 
-  defp delete_key([{_, _} = pair | rest], key, deleted?),
-    do: [pair | delete_key(rest, key, deleted?)]
+  defp delete_key([{_, _} = pair | tail], key) do
+    [pair | delete_key(tail, key)]
+  end
 
-  defp delete_key([], _key, _deleted? = true), do: []
-  defp delete_key([], _key, _deleted? = false), do: throw(:not_deleted)
+  defp delete_key([], _key) do
+    []
+  end
 
   @doc """
   Deletes the first entry in the keyword list for a specific `key`.
@@ -525,14 +534,23 @@ defmodule Keyword do
   """
   @spec delete_first(t, key) :: t
   def delete_first(keywords, key) when is_list(keywords) and is_atom(key) do
-    delete_first_key(keywords, key)
-  catch
-    :not_deleted -> keywords
+    case :lists.keymember(key, 1, keywords) do
+      true -> delete_first_key(keywords, key)
+      _ -> keywords
+    end
   end
 
-  defp delete_first_key([{key, _} | rest], key), do: rest
-  defp delete_first_key([{_, _} = pair | rest], key), do: [pair | delete_first_key(rest, key)]
-  defp delete_first_key([], _key), do: throw(:not_deleted)
+  defp delete_first_key([{key, _} | tail], key) do
+    tail
+  end
+
+  defp delete_first_key([{_, _} = pair | tail], key) do
+    [pair | delete_first_key(tail, key)]
+  end
+
+  defp delete_first_key([], _key) do
+    []
+  end
 
   @doc """
   Puts the given `value` under `key`.
@@ -605,6 +623,7 @@ defmodule Keyword do
   end
 
   @doc false
+  @deprecated "Use Keyword.fetch/2 + Keyword.put/3 instead"
   def replace(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> [{key, value} | delete(keywords, key)]
@@ -678,6 +697,11 @@ defmodule Keyword do
 
   """
   @spec merge(t, t) :: t
+  def merge(keywords1, keywords2)
+
+  def merge(keywords1, []), do: keywords1
+  def merge([], keywords2), do: keywords2
+
   def merge(keywords1, keywords2) when is_list(keywords1) and is_list(keywords2) do
     if keyword?(keywords2) do
       fun = fn
@@ -1020,7 +1044,7 @@ defmodule Keyword do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Kernel.length/1 instead"
   def size(keyword) do
     length(keyword)
   end

@@ -14,12 +14,17 @@ defmodule IEx do
 
   ## Autocomplete
 
-  To discover all available functions for a module, type the module name
+  To discover a module's public functions or other modules, type the module name
   followed by a dot, then press tab to trigger autocomplete. For example:
 
       Enum.
 
-  Such function may not be available on some Windows shells. You may need
+  A module may export functions that are not meant to be used directly: these
+  functions won't be autocompleted by IEx. IEx will not autocomplete functions
+  annotated with `@doc false`, `@impl true`, or functions that aren't explicitly
+  documented and where the function name is in the form of `__foo__`.
+
+  Autocomplete may not be available on some Windows shells. You may need
   to pass the `--werl` flag when starting IEx, as in `iex --werl` for it
   to work. `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
   environment variable.
@@ -112,7 +117,7 @@ defmodule IEx do
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
   on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible, it requires OTP 20+ and
+  While `IEx.break!/4` is more flexible, it requires Erlang/OTP 20+ and
   it does not contain information about imports and aliases from
   the source code.
 
@@ -464,7 +469,7 @@ defmodule IEx do
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
   on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible, it requires OTP 20+ and
+  While `IEx.break!/4` is more flexible, it requires Erlang/OTP 20+ and
   it does not contain information about imports and aliases from
   the source code.
 
@@ -536,6 +541,7 @@ defmodule IEx do
 
       iex -S mix test --trace
       iex -S mix test path/to/file:line --trace
+
   """
   defmacro pry() do
     quote do
@@ -644,7 +650,7 @@ defmodule IEx do
   By default, the number of stops in a breakpoint is 1. Any follow-up
   call won't stop the code execution unless another breakpoint is set.
 
-  Alternatively, the number of be increased by passing the `stops`
+  Alternatively, the number of stops can be increased by passing the `stops`
   argument. `IEx.Helpers.reset_break/1` and `IEx.Helpers.reset_break/3`
   can be used to reset the number back to zero. Note the module remains
   "instrumented" even after all stops on all breakpoints are consumed.
@@ -657,7 +663,7 @@ defmodule IEx do
   the process terminates, or invoke `respawn()`, which starts a new IEx
   shell, freeing up the pried one.
 
-  This functionality only works on Elixir code and requires OTP 20+.
+  This functionality only works on Elixir code and requires Erlang/OTP 20+.
 
   ## Examples
 

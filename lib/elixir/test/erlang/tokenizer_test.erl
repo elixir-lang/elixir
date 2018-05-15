@@ -151,6 +151,10 @@ string_test() ->
   [{bin_string, {1, 1, nil}, [<<"f\"">>]}] = tokenize("\"f\\\"\""),
   [{list_string, {1, 1, nil}, [<<"foo">>]}] = tokenize("'foo'").
 
+heredoc_test() ->
+  [{bin_heredoc, {1, 1, nil}, [<<"heredoc\n">>]}] = tokenize("\"\"\"\nheredoc\n\"\"\""),
+  [{bin_heredoc, {1, 1, nil}, [<<"heredoc\n">>]}, {';', {3, 5, 0}}] = tokenize("\"\"\"\n heredoc\n \"\"\";").
+
 empty_string_test() ->
   [{bin_string, {1, 1, nil}, [<<>>]}] = tokenize("\"\""),
   [{list_string, {1, 1, nil}, [<<>>]}] = tokenize("''").
@@ -204,6 +208,12 @@ sigil_terminator_test() ->
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"/">>}] = tokenize("~r/foo/"),
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"[">>}] = tokenize("~r[foo]"),
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"\"">>}] = tokenize("~r\"foo\""),
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"/">>},
+   {comp_op, {1, 9, nil}, '=='},
+   {identifier, {1, 12, nil}, bar}] = tokenize("~r/foo/ == bar"),
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], "iu", <<"/">>},
+   {comp_op, {1, 11, nil}, '=='},
+   {identifier, {1, 14, nil}, bar}] = tokenize("~r/foo/iu == bar"),
   [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], [], <<"\"\"\"">>}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
   [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], [], <<"'''">>}] = tokenize("~S'''\nsigil heredoc\n'''").
 

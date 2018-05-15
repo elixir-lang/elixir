@@ -280,23 +280,29 @@ defmodule Kernel.QuoteTest.ErrorsTest do
   defraise()
 
   test "inside function error" do
-    assert_raise RuntimeError, fn ->
+    try do
       will_raise(:a, :b)
+    rescue
+      RuntimeError ->
+        mod = Kernel.QuoteTest.ErrorsTest
+        file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
+        assert [{^mod, :will_raise, 2, [file: ^file, line: 266]} | _] = __STACKTRACE__
+    else
+      _ -> flunk("expected failure")
     end
-
-    mod = Kernel.QuoteTest.ErrorsTest
-    file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-    assert [{^mod, :will_raise, 2, [file: ^file, line: 266]} | _] = System.stacktrace()
   end
 
   test "outside function error" do
-    assert_raise RuntimeError, fn ->
+    try do
       will_raise()
+    rescue
+      RuntimeError ->
+        mod = Kernel.QuoteTest.ErrorsTest
+        file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
+        assert [{^mod, _, _, [file: ^file, line: 297]} | _] = __STACKTRACE__
+    else
+      _ -> flunk("expected failure")
     end
-
-    mod = Kernel.QuoteTest.ErrorsTest
-    file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-    assert [{^mod, _, _, [file: ^file, line: 294]} | _] = System.stacktrace()
   end
 end
 

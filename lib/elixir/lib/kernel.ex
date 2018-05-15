@@ -49,6 +49,8 @@ defmodule Kernel do
 
     * `Atom` - literal constants with a name (`true`, `false`, and `nil` are atoms)
     * `Float` - numbers with floating point precision
+    * `Function` - a reference to code chunk, created with the `Kernel.SpecialForms.fn/2`
+      special form
     * `Integer` - whole numbers (not fractions)
     * `List` - collections of a variable number of elements (linked lists)
     * `Map` - collections of key-value pairs
@@ -56,13 +58,11 @@ defmodule Kernel do
     * `Port` - mechanisms to interact with the external world
     * `Tuple` - collections of a fixed number of elements
 
-  There are three data types without an accompanying module:
+  There are two data types without an accompanying module:
 
     * Bitstrings - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
       When the number of bits is divisible by 8, they are called binaries and can
       be manipulated with Erlang's `:binary` module
-    * Function - a reference to code chunk, created with the `Kernel.SpecialForms.fn/2`
-      special form
     * Reference - a unique value in the runtime system, created with `make_ref/0`
 
   ### Data types
@@ -129,14 +129,18 @@ defmodule Kernel do
   Elixir documentation also includes supporting documents under the
   "Pages" section. Those are:
 
-    * [Deprecations](deprecations.html) - lists all deprecated functions,
+    * [Compatibility and Deprecations](compatibility-and-deprecations.html) - lists compatibility
+      between every Elixir version and Erlang/OTP, release schema; lists all deprecated functions,
       when they were deprecated and alternatives
     * [Guards](guards.html) - lists all available guards and extensions
+    * [Library Guidelines](library-guidelines.html) - general guidelines, anti-patterns, and rules
+      for those writing libraries
     * [Naming Conventions](naming-conventions.html) - naming conventions
       for Elixir code
     * [Operators](operators.html) - lists all Elixir operators and their
       precedence
     * [Syntax Reference](syntax-reference.html) - the language syntax reference
+    * [Typespecs](typespecs.html)- types and function specifications, including list of types
     * [Unicode Syntax](unicode-syntax.html) - outline Elixir support for Unicode
     * [Writing Documentation](writing-documentation.html) - guidelines for
       writing documentation in Elixir.
@@ -160,6 +164,17 @@ defmodule Kernel do
   Those functions will be explicitly marked in their docs as
   "inlined by the compiler".
   """
+
+  # We need this check only for bootstrap purposes.
+  # Once Kernel is loaded and we recompile, it is a no-op.
+  @compile {:inline, bootstrapped?: 1}
+  case :code.ensure_loaded(Kernel) do
+    {:module, _} ->
+      defp bootstrapped?(_), do: true
+
+    {:error, _} ->
+      defp bootstrapped?(module), do: :code.ensure_loaded(module) == {:module, module}
+  end
 
   ## Delegations to Erlang with inlining (macros)
 
@@ -288,13 +303,13 @@ defmodule Kernel do
   Raises an `ArithmeticError` exception if one of the arguments is not an
   integer, or when the `divisor` is `0`.
 
-  Allowed in guard tests. Inlined by the compiler.
-
   `div/2` performs *truncated* integer division. This means that
   the result is always rounded towards zero.
 
   If you want to perform floored integer division (rounding towards negative infinity),
   use `Integer.floor_div/2` instead.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -371,11 +386,11 @@ defmodule Kernel do
       exit({:shutdown, integer})
 
   This will cause the OS process to exit with the status given by
-  `integer` while signaling all linked OTP processes to politely
+  `integer` while signaling all linked Erlang processes to politely
   shutdown.
 
   Any other exit reason will cause the OS process to exit with
-  status `1` and linked OTP processes to crash.
+  status `1` and linked Erlang processes to crash.
   """
   @spec exit(term) :: no_return
   def exit(reason) do
@@ -1582,7 +1597,7 @@ defmodule Kernel do
       "foobar"
 
   The `<>/2` operator can also be used in pattern matching (and guard clauses) as
-  long as the first part is a literal binary:
+  long as the left argument is a literal binary:
 
       iex> "foo" <> x = "foobar"
       iex> x
@@ -1592,26 +1607,68 @@ defmodule Kernel do
 
   """
   defmacro left <> right do
-    concats = extract_concatenations({:<>, [], [left, right]})
+    concats = extract_concatenations({:<>, [], [left, right]}, __CALLER__)
     quote(do: <<unquote_splicing(concats)>>)
   end
 
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
-  defp extract_concatenations({:<>, _, [left, right]}) do
-    [wrap_concatenation(left) | extract_concatenations(right)]
+  defp extract_concatenations({:<>, _, [left, right]}, caller) do
+    [wrap_concatenation(left, :left, caller) | extract_concatenations(right, caller)]
   end
 
-  defp extract_concatenations(other) do
-    [wrap_concatenation(other)]
+  defp extract_concatenations(other, caller) do
+    [wrap_concatenation(other, :right, caller)]
   end
 
-  defp wrap_concatenation(binary) when is_binary(binary) do
+  defp wrap_concatenation(binary, _side, _caller) when is_binary(binary) do
     binary
   end
 
-  defp wrap_concatenation(other) do
-    {:::, [], [other, {:binary, [], nil}]}
+  defp wrap_concatenation(literal, _side, _caller)
+       when is_list(literal) or is_atom(literal) or is_integer(literal) or is_float(literal) do
+    :erlang.error(
+      ArgumentError.exception(
+        "expected binary argument in <> operator but got: #{Macro.to_string(literal)}"
+      )
+    )
+  end
+
+  defp wrap_concatenation(other, side, caller) do
+    expanded = expand_concat_argument(other, side, caller)
+    {:::, [], [expanded, {:binary, [], nil}]}
+  end
+
+  defp expand_concat_argument(arg, :left, %{context: :match} = caller) do
+    expanded_arg =
+      case bootstrapped?(Macro) do
+        true -> Macro.expand(arg, caller)
+        false -> arg
+      end
+
+    case expanded_arg do
+      {var, _, nil} when is_atom(var) ->
+        invalid_concat_left_argument_error(Atom.to_string(var))
+
+      {:^, _, [{var, _, nil}]} when is_atom(var) ->
+        invalid_concat_left_argument_error("^#{Atom.to_string(var)}")
+
+      _ ->
+        expanded_arg
+    end
+  end
+
+  defp expand_concat_argument(arg, _, _) do
+    arg
+  end
+
+  defp invalid_concat_left_argument_error(arg) do
+    :erlang.error(
+      ArgumentError.exception(
+        "the left argument of <> operator inside a match should be always a literal " <>
+          "binary as its size can't be verified, got: #{arg}"
+      )
+    )
   end
 
   @doc """
@@ -1702,12 +1759,8 @@ defmodule Kernel do
 
   Works like `raise/1` but does not generate a new stacktrace.
 
-  Notice that `System.stacktrace/0` returns the stacktrace
-  of the last exception. That said, it is common to assign
-  the stacktrace as the first expression inside a `rescue`
-  clause as any other exception potentially raised (and
-  rescued) between the rescue clause and the raise call
-  may change the `System.stacktrace/0` value.
+  Notice that `__STACKTRACE__` can be used inside catch/rescue
+  to retrieve the current stacktrace.
 
   ## Examples
 
@@ -1715,11 +1768,9 @@ defmodule Kernel do
         raise "oops"
       rescue
         exception ->
-          stacktrace = System.stacktrace
-          if Exception.message(exception) == "oops" do
-            reraise exception, stacktrace
-          end
+          reraise exception, __STACKTRACE__
       end
+
   """
   defmacro reraise(message, stacktrace) do
     # Try to figure out the type at compilation time
@@ -1760,8 +1811,7 @@ defmodule Kernel do
         raise "oops"
       rescue
         exception ->
-          stacktrace = System.stacktrace
-          reraise WrapperError, [exception: exception], stacktrace
+          reraise WrapperError, [exception: exception], __STACKTRACE__
       end
 
   """
@@ -2010,8 +2060,8 @@ defmodule Kernel do
       iex> get_in(users, ["unknown", :age])
       nil
 
-  When one of the keys is a function, the function is invoked.
-  In the example below, we use a function to get all the maps
+  When one of the keys is a function that takes three arguments, the function
+  is invoked. In the example below, we use a function to get all the maps
   inside a list:
 
       iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
@@ -2053,7 +2103,7 @@ defmodule Kernel do
   an error will be raised when trying to access it next.
   """
   @spec put_in(Access.t(), nonempty_list(term), term) :: Access.t()
-  def put_in(data, keys, value) do
+  def put_in(data, [_ | _] = keys, value) do
     elem(get_and_update_in(data, keys, fn _ -> {nil, value} end), 1)
   end
 
@@ -2075,30 +2125,36 @@ defmodule Kernel do
   an error will be raised when trying to access it next.
   """
   @spec update_in(Access.t(), nonempty_list(term), (term -> term)) :: Access.t()
-  def update_in(data, keys, fun) when is_function(fun, 1) do
+  def update_in(data, [_ | _] = keys, fun) when is_function(fun) do
     elem(get_and_update_in(data, keys, fn x -> {nil, fun.(x)} end), 1)
   end
 
   @doc """
   Gets a value and updates a nested structure.
 
-  `data` is a nested structure (ie. a map, keyword
+  `data` is a nested structure (that is, a map, keyword
   list, or struct that implements the `Access` behaviour).
 
   The `fun` argument receives the value of `key` (or `nil` if `key`
-  is not present) and must return a two-element tuple: the "get" value
-  (the retrieved value, which can be operated on before being returned)
-  and the new value to be stored under `key`. The `fun` may also
-  return `:pop`, implying the current value shall be removed
-  from the structure and returned.
+  is not present) and must return one of the following values:
 
-  It uses the `Access` module to traverse the structures
+    * a two-element tuple `{get_value, new_value}`. In this case,
+      `get_value` is the retrieved value which can possibly be operated on before
+      being returned. `new_value` is the new value to be stored under `key`.
+
+    * `:pop`, which implies that the current value under `key`
+      should be removed from the structure and returned.
+
+  This function uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
   function.
 
   If a key is a function, the function will be invoked
-  passing three arguments, the operation (`:get_and_update`),
-  the data to be accessed, and a function to be invoked next.
+  passing three arguments:
+
+    * the operation (`:get_and_update`)
+    * the data to be accessed
+    * a function to be invoked next
 
   This means `get_and_update_in/3` can be extended to provide
   custom lookups. The downside is that functions cannot be stored
@@ -2108,8 +2164,8 @@ defmodule Kernel do
 
   This function is useful when there is a need to retrieve the current
   value (or something calculated in function of the current value) and
-  update it at the same time. For example, it could be used to increase
-  the age of a user by one and return the previous age in one pass:
+  update it at the same time. For example, it could be used to read the
+  current age of a user while increasing it by one in one pass:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_and_update_in(users, ["john", :age], &{&1, &1 + 1})
@@ -2121,7 +2177,7 @@ defmodule Kernel do
 
       iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
       iex> all = fn :get_and_update, data, next ->
-      ...>   Enum.map(data, next) |> :lists.unzip
+      ...>   data |> Enum.map(next) |> Enum.unzip()
       ...> end
       iex> get_and_update_in(users, [all, :age], &{&1, &1 + 1})
       {[27, 23], [%{name: "john", age: 28}, %{name: "meg", age: 24}]}
@@ -2132,7 +2188,7 @@ defmodule Kernel do
 
   The `Access` module ships with many convenience accessor functions,
   like the `all` anonymous function defined above. See `Access.all/0`,
-  `Access.key/2` and others as examples.
+  `Access.key/2`, and others as examples.
   """
   @spec get_and_update_in(
           structure :: Access.t(),
@@ -2172,6 +2228,11 @@ defmodule Kernel do
 
   In case any entry returns `nil`, its key will be removed
   and the deletion will be considered a success.
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> pop_in(users, ["jane", :age])
+      {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+
   """
   @spec pop_in(data, nonempty_list(Access.get_and_update_fun(term, data) | term)) :: {term, data}
         when data: Access.container()
@@ -2181,7 +2242,7 @@ defmodule Kernel do
     raise ArgumentError, "could not pop key #{inspect(key)} on a nil value"
   end
 
-  def pop_in(data, keys) when is_list(keys) do
+  def pop_in(data, [_ | _] = keys) do
     pop_in_data(data, keys)
   end
 
@@ -2629,7 +2690,7 @@ defmodule Kernel do
     function? = __CALLER__.function != nil
 
     cond do
-      # Check for Module as it is compiled later than Kernel
+      # Check for Macro as it is compiled later than Kernel
       not bootstrapped?(Macro) ->
         nil
 
@@ -2638,10 +2699,25 @@ defmodule Kernel do
               "invalid write attribute syntax, you probably meant to use: @#{name} expression"
 
       # Typespecs attributes are currently special cased by the compiler
-      macro = is_list(args) and length(args) == 1 and typespec(name) ->
+      is_list(args) and args != [] and tl(args) == [] and typespec?(name) ->
         case bootstrapped?(Kernel.Typespec) do
-          false -> nil
-          true -> quote(do: Kernel.Typespec.unquote(macro)(unquote(hd(args))))
+          false ->
+            :ok
+
+          true ->
+            pos = :elixir_locals.cache_env(__CALLER__)
+            %{line: line, file: file, module: module} = __CALLER__
+
+            quote do
+              Kernel.Typespec.deftypespec(
+                unquote(name),
+                unquote(Macro.escape(hd(args), unquote: true)),
+                unquote(line),
+                unquote(file),
+                unquote(module),
+                unquote(pos)
+              )
+            end
         end
 
       true ->
@@ -2665,51 +2741,29 @@ defmodule Kernel do
         warn_message = "@behavior attribute is not supported, please use @behaviour instead"
         :elixir_errors.warn(env.line, env.file, warn_message)
 
-      # TODO: Remove :compile check once on 2.0 as we no longer
-      # need to warn on parse transforms in Module.put_attribute.
-      name == :compile ->
-        {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
-
-        quote do
-          Module.put_attribute(
-            __MODULE__,
-            unquote(name),
-            unquote(arg),
-            unquote(stack),
-            unquote(line)
-          )
-        end
-
       :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
-        {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
         arg = {env.line, arg}
 
         quote do
-          Module.put_attribute(
-            __MODULE__,
-            unquote(name),
-            unquote(arg),
-            unquote(stack),
-            unquote(line)
-          )
+          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(line))
         end
 
       true ->
         quote do
-          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), nil, unquote(line))
+          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(line))
         end
     end
   end
 
   # @attribute or @attribute()
   defp do_at(args, _meta, name, function?, env) when is_atom(args) or args == [] do
-    stack = env_stacktrace(env)
+    line = env.line
     doc_attr? = :lists.member(name, [:moduledoc, :typedoc, :doc])
 
     case function? do
       true ->
         value =
-          case Module.get_attribute(env.module, name, stack) do
+          case Module.get_attribute(env.module, name, line) do
             {_, doc} when doc_attr? -> doc
             other -> other
           end
@@ -2726,20 +2780,16 @@ defmodule Kernel do
         end
 
       false when doc_attr? ->
-        {escaped, _} = :elixir_quote.escape(stack, false)
-
         quote do
-          case Module.get_attribute(__MODULE__, unquote(name), unquote(escaped)) do
+          case Module.get_attribute(__MODULE__, unquote(name), unquote(line)) do
             {_, doc} -> doc
             other -> other
           end
         end
 
       false ->
-        {escaped, _} = :elixir_quote.escape(stack, false)
-
         quote do
-          Module.get_attribute(__MODULE__, unquote(name), unquote(escaped))
+          Module.get_attribute(__MODULE__, unquote(name), unquote(line))
         end
     end
   end
@@ -2749,13 +2799,13 @@ defmodule Kernel do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
 
-  defp typespec(:type), do: :deftype
-  defp typespec(:typep), do: :deftypep
-  defp typespec(:opaque), do: :defopaque
-  defp typespec(:spec), do: :defspec
-  defp typespec(:callback), do: :defcallback
-  defp typespec(:macrocallback), do: :defmacrocallback
-  defp typespec(_), do: false
+  defp typespec?(:type), do: true
+  defp typespec?(:typep), do: true
+  defp typespec?(:opaque), do: true
+  defp typespec?(:spec), do: true
+  defp typespec?(:callback), do: true
+  defp typespec?(:macrocallback), do: true
+  defp typespec?(_), do: false
 
   @doc """
   Returns the binding for the given context as a keyword list.
@@ -3171,6 +3221,8 @@ defmodule Kernel do
   Note that this function does not load the module in case
   it is not loaded. Check `Code.ensure_loaded/1` for more
   information.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -4576,7 +4628,7 @@ defmodule Kernel do
   allowed in guards, and otherwise creates a private macro that can be used
   both inside or outside guards in the current module.
 
-  Similar to `defmacrop/2`, `defguardp/2` must be defined before its use
+  Similar to `defmacrop/2`, `defguardp/1` must be defined before its use
   in the current module.
   """
   @since "1.6.0"
@@ -4990,6 +5042,7 @@ defmodule Kernel do
 
       iex> ~D[2015-01-13]
       ~D[2015-01-13]
+
   """
   defmacro sigil_D(date, modifiers)
 
@@ -5132,17 +5185,6 @@ defmodule Kernel do
 
   ## Shared functions
 
-  # We need this check only for bootstrap purposes.
-  # Once Kernel is loaded and we recompile, it is a no-op.
-  @compile {:inline, bootstrapped?: 1}
-  case :code.ensure_loaded(Kernel) do
-    {:module, _} ->
-      defp bootstrapped?(_), do: true
-
-    {:error, _} ->
-      defp bootstrapped?(module), do: :code.ensure_loaded(module) == {:module, module}
-  end
-
   defp assert_module_scope(env, fun, arity) do
     case env.module do
       nil -> raise ArgumentError, "cannot invoke #{fun}/#{arity} outside module"
@@ -5157,16 +5199,9 @@ defmodule Kernel do
     end
   end
 
-  defp env_stacktrace(env) do
-    case bootstrapped?(Path) do
-      true -> Macro.Env.stacktrace(env)
-      false -> []
-    end
-  end
-
   @doc false
-  # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  # TODO: Remove by 2.0 (also hard-coded in elixir_dispatch)
+  @deprecated "Use Kernel.to_charlist/1 instead"
   defmacro to_char_list(arg) do
     quote(do: Kernel.to_charlist(unquote(arg)))
   end

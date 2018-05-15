@@ -339,7 +339,7 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(:timer.sleep() / 1) end) == """
              * :timer.sleep/1
 
-                 @spec sleep(time) :: :ok when Time: timeout(), time: var
+               @spec sleep(time) :: :ok when Time: timeout(), time: var
 
              Documentation is not available for non-Elixir modules. Showing only specs.
              """
@@ -347,30 +347,30 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(:timer.send_interval()) end) == """
              * :timer.send_interval/3
 
-                 @spec send_interval(time, pid, message) :: {:ok, tRef} | {:error, reason}
-                       when Time: time(),
-                            Pid: pid() | (regName :: atom()),
-                            Message: term(),
-                            TRef: tref(),
-                            Reason: term(),
-                            time: var,
-                            pid: var,
-                            message: var,
-                            tRef: var,
-                            reason: var
+               @spec send_interval(time, pid, message) :: {:ok, tRef} | {:error, reason}
+                     when Time: time(),
+                          Pid: pid() | (regName :: atom()),
+                          Message: term(),
+                          TRef: tref(),
+                          Reason: term(),
+                          time: var,
+                          pid: var,
+                          message: var,
+                          tRef: var,
+                          reason: var
 
              Documentation is not available for non-Elixir modules. Showing only specs.
              * :timer.send_interval/2
 
-                 @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
-                       when Time: time(),
-                            Message: term(),
-                            TRef: tref(),
-                            Reason: term(),
-                            time: var,
-                            message: var,
-                            tRef: var,
-                            reason: var
+               @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
+                     when Time: time(),
+                          Message: term(),
+                          TRef: tref(),
+                          Reason: term(),
+                          time: var,
+                          message: var,
+                          tRef: var,
+                          reason: var
 
              Documentation is not available for non-Elixir modules. Showing only specs.
              """
@@ -392,7 +392,7 @@ defmodule IEx.HelpersTest do
       c_h = "* def c(files, path \\\\ :in_memory)\n\nCompiles the given files."
 
       eq_h =
-        "* def ==(left, right)\n\n    @spec term() == term() :: boolean()\n\nReturns `true` if the two items are equal.\n\n"
+        "* def ==(left, right)\n\n  @spec term() == term() :: boolean()\n\nReturns `true` if the two items are equal.\n\n"
 
       def_h =
         "* defmacro def(call, expr \\\\ nil)\n\nDefines a function with the given name and body."
@@ -547,7 +547,7 @@ defmodule IEx.HelpersTest do
         assert capture_io(fn -> h(Sample.foo() / 1) end) == """
                * Sample.foo/1
 
-                   @spec foo(any()) :: any()
+                 @spec foo(any()) :: any()
 
                Module was compiled without docs. Showing only specs.
                """
@@ -645,12 +645,9 @@ defmodule IEx.HelpersTest do
     end
 
     test "prints type information" do
-      assert "@type t() :: " <> _ = capture_io(fn -> t(Enum.t()) end)
+      assert "@type t() ::" <> _ = capture_io(fn -> t(Enum.t()) end)
       assert capture_io(fn -> t(Enum.t()) end) == capture_io(fn -> t(Enum.t() / 0) end)
-
-      assert "@opaque t(value)\n\n@type t() :: t(term())\n\n" =
-               capture_io(fn -> t(MapSet.t()) end)
-
+      assert "@type child_spec() ::" <> _ = capture_io(fn -> t(:supervisor.child_spec()) end)
       assert capture_io(fn -> t(URI.t()) end) == capture_io(fn -> t(URI.t() / 0) end)
     end
 
@@ -978,7 +975,8 @@ defmodule IEx.HelpersTest do
                  assert_raise UndefinedFunctionError, message, fn ->
                    Sample.run()
                  end
-               end) =~ "redefining module Sample (current version loaded from Elixir.Sample.beam)"
+               end) =~
+                 "redefining module Sample (current version loaded from ./Elixir.Sample.beam)"
       end)
     after
       # Clean up old version produced by the r helper

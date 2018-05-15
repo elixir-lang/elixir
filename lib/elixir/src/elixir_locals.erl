@@ -1,29 +1,29 @@
 %% Module responsible for tracking invocations of module calls.
 -module(elixir_locals).
 -export([
-  setup/1, cleanup/1, cache_env/1, get_cached_env/1,
+  setup/1, stop/1, cache_env/1, get_cached_env/1,
   record_local/3, record_import/4, record_defaults/4,
   yank/2, reattach/5,
   ensure_no_import_conflict/3, warn_unused_local/4, format_error/1
 ]).
 
 -include("elixir.hrl").
--define(attr, {elixir, locals_tracker}).
 -define(cache, {elixir, cache_env}).
+-define(locals, {elixir, locals}).
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
-setup(Module) ->
-  case elixir_config:get(bootstrap) of
-    false ->
-      Table = ?tracker:init(),
-      ets:insert(elixir_module:data_table(Module), {?attr, Table}),
-      ok;
-    true ->
-      ok
-  end.
+setup({DataSet, _DataBag}) ->
+  ets:insert(DataSet, {?cache, 0, nil}),
 
-cleanup(Module) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:delete(Tracker), ok end).
+  case elixir_config:get(bootstrap) of
+    false -> ets:insert(DataSet, {?locals, true});
+    true -> ok
+  end,
+
+  ok.
+
+stop({DataSet, _DataBag}) ->
+  ets:delete(DataSet, ?locals).
 
 yank(Tuple, Module) ->
   if_tracker(Module, fun(Tracker) -> ?tracker:yank(Tracker, Tuple) end).
@@ -50,8 +50,12 @@ if_tracker(Module, Callback) ->
   if_tracker(Module, ok, Callback).
 
 if_tracker(Module, Default, Callback) ->
-  try ets:lookup_element(elixir_module:data_table(Module), ?attr, 2) of
-    Tracker -> Callback(Tracker)
+  try
+    {DataSet, _} = Tables = elixir_module:data_tables(Module),
+    {ets:member(DataSet, ?locals), Tables}
+  of
+    {true, Tracker} -> Callback(Tracker);
+    {false, _} -> Default
   catch
     error:badarg -> Default
   end.
@@ -59,24 +63,25 @@ if_tracker(Module, Default, Callback) ->
 %% CACHING
 
 cache_env(#{line := Line, module := Module} = E) ->
-  Table = elixir_module:data_table(Module),
+  {Set, _} = elixir_module:data_tables(Module),
   Cache = elixir_env:reset_vars(E#{line := nil}),
 
   Pos =
-    case ets:lookup(Table, ?cache) of
+    case ets:lookup(Set, ?cache) of
       [{_, Key, Cache}] ->
         Key;
       [{_, PrevKey, _}] ->
         Key = PrevKey + 1,
-        ets:insert(Table, {{cache_env, Key}, Cache}),
-        ets:insert(Table, {?cache, Key, Cache}),
+        ets:insert(Set, {{cache_env, Key}, Cache}),
+        ets:insert(Set, {?cache, Key, Cache}),
         Key
     end,
 
   {Module, {Line, Pos}}.
 
 get_cached_env({Module, {Line, Pos}}) ->
-  (ets:lookup_element(elixir_module:data_table(Module), {cache_env, Pos}, 2))#{line := Line};
+  {Set, _} = elixir_module:data_tables(Module),
+  (ets:lookup_element(Set, {cache_env, Pos}, 2))#{line := Line};
 get_cached_env(Env) ->
   Env.
 
@@ -98,9 +103,9 @@ warn_unused_local(File, Module, All, Private) ->
     Unreachable
   end).
 
-format_error({function_conflict, {Receivers, Name, Arity}}) ->
+format_error({function_conflict, {Receiver, {Name, Arity}}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
-    [elixir_aliases:inspect(hd(Receivers)), Name, Arity]);
+    [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({unused_args, {Name, Arity}}) ->
   io_lib:format("default arguments in ~ts/~B are never used", [Name, Arity]);

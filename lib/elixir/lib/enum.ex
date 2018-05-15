@@ -131,10 +131,10 @@ defprotocol Enumerable do
 
   As an example, here is the implementation of `reduce` for lists:
 
-      def reduce(_,       {:halt, acc}, _fun),   do: {:halted, acc}
-      def reduce(list,    {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
-      def reduce([],      {:cont, acc}, _fun),   do: {:done, acc}
-      def reduce([h | t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
+      def reduce(_list, {:halt, acc}, _fun), do: {:halted, acc}
+      def reduce(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
+      def reduce([], {:cont, acc}, _fun), do: {:done, acc}
+      def reduce([head | tail], {:cont, acc}, fun), do: reduce(tail, fun.(head, acc), fun)
 
   """
   @spec reduce(t, acc, reducer) :: result
@@ -365,14 +365,21 @@ defmodule Enum do
   end
 
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   @doc false
+  @deprecated "Use Enum.chunk_every/2 instead"
   def chunk(enumerable, count), do: chunk(enumerable, count, count, nil)
 
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   @doc false
-  def chunk(enumerable, count, step, leftover \\ nil) do
+  @deprecated "Use Enum.chunk_every/3 instead"
+  def chunk(enum, n, step) do
+    chunk_every(enum, n, step, nil)
+  end
+
+  # TODO: Remove by 2.0
+  @doc false
+  @deprecated "Use Enum.chunk_every/4 instead"
+  def chunk(enumerable, count, step, leftover) do
     chunk_every(enumerable, count, step, leftover || :discard)
   end
 
@@ -441,11 +448,11 @@ defmodule Enum do
 
   ## Examples
 
-      iex> chunk_fun = fn x, acc ->
-      ...>   if rem(x, 2) == 0 do
-      ...>     {:cont, Enum.reverse([x | acc]), []}
+      iex> chunk_fun = fn item, acc ->
+      ...>   if rem(item, 2) == 0 do
+      ...>     {:cont, Enum.reverse([item | acc]), []}
       ...>   else
-      ...>     {:cont, [x | acc]}
+      ...>     {:cont, [item | acc]}
       ...>   end
       ...> end
       iex> after_fun = fn
@@ -886,7 +893,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Enum.filter/2 + Enum.map/2 or for comprehensions instead"
   def filter_map(enumerable, filter, mapper) when is_list(enumerable) do
     for item <- enumerable, filter.(item), do: mapper.(item)
   end
@@ -1631,8 +1638,8 @@ defmodule Enum do
         when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
-  def min_max(left..right, _empty_fallback) do
-    {Kernel.min(left, right), Kernel.max(left, right)}
+  def min_max(first..last, _empty_fallback) do
+    {Kernel.min(first, last), Kernel.max(first, last)}
   end
 
   def min_max(enumerable, empty_fallback) do
@@ -1747,7 +1754,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Enum.split_with/2 instead"
   def partition(enumerable, fun) do
     split_with(enumerable, fun)
   end
@@ -1988,11 +1995,11 @@ defmodule Enum do
   def reverse(enumerable), do: reduce(enumerable, [], &[&1 | &2])
 
   @doc """
-  Reverses the elements in `enumerable`, appends the tail, and returns
+  Reverses the elements in `enumerable`, appends the `tail`, and returns
   it as a list.
 
   This is an optimization for
-  `Enum.concat(Enum.reverse(enumerable), tail)`.
+  `enumerable |> Enum.reverse() |> Enum.concat(tail)`.
 
   ## Examples
 
@@ -2587,13 +2594,10 @@ defmodule Enum do
 
   """
   @spec to_list(t) :: [element]
-  def to_list(enumerable) when is_list(enumerable) do
-    enumerable
-  end
-
-  def to_list(enumerable) do
-    reverse(enumerable) |> :lists.reverse()
-  end
+  def to_list(enumerable) when is_list(enumerable), do: enumerable
+  def to_list(%_{} = enumerable), do: reverse(enumerable) |> :lists.reverse()
+  def to_list(%{} = enumerable), do: Map.to_list(enumerable)
+  def to_list(enumerable), do: reverse(enumerable) |> :lists.reverse()
 
   @doc """
   Enumerates the `enumerable`, removing all duplicated elements.
@@ -2611,7 +2615,7 @@ defmodule Enum do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Enum.uniq_by/2 instead"
   def uniq(enumerable, fun) do
     uniq_by(enumerable, fun)
   end
@@ -2767,8 +2771,8 @@ defmodule Enum do
     empty.()
   end
 
-  defp aggregate(left..right, fun, _empty) do
-    fun.(left, right)
+  defp aggregate(first..last, fun, _empty) do
+    fun.(first, last)
   end
 
   defp aggregate(enumerable, fun, empty) do
@@ -2812,7 +2816,7 @@ defmodule Enum do
     lower_limit + :rand.uniform(upper_limit - lower_limit + 1) - 1
   end
 
-  # TODO: Remove me on Elixir v1.8
+  # TODO: Remove me on Elixir v1.9
   defp backwards_compatible_slice(args) do
     try do
       Enumerable.slice(args)
@@ -3258,16 +3262,16 @@ defimpl Enumerable, for: List do
   def member?(_list, _value), do: {:error, __MODULE__}
   def slice(_list), do: {:error, __MODULE__}
 
-  def reduce(_, {:halt, acc}, _fun), do: {:halted, acc}
+  def reduce(_list, {:halt, acc}, _fun), do: {:halted, acc}
   def reduce(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
   def reduce([], {:cont, acc}, _fun), do: {:done, acc}
-  def reduce([h | t], {:cont, acc}, fun), do: reduce(t, fun.(h, acc), fun)
+  def reduce([head | tail], {:cont, acc}, fun), do: reduce(tail, fun.(head, acc), fun)
 
   @doc false
   def slice([], _start, _count), do: []
   def slice(_list, _start, 0), do: []
   def slice([head | tail], 0, count), do: [head | slice(tail, 0, count - 1)]
-  def slice([_ | tail], start, count), do: slice(tail, start - 1, count)
+  def slice([_head | tail], start, count), do: slice(tail, start - 1, count)
 end
 
 defimpl Enumerable, for: Map do
@@ -3291,10 +3295,10 @@ defimpl Enumerable, for: Map do
     reduce_list(:maps.to_list(map), acc, fun)
   end
 
-  defp reduce_list(_, {:halt, acc}, _fun), do: {:halted, acc}
+  defp reduce_list(_list, {:halt, acc}, _fun), do: {:halted, acc}
   defp reduce_list(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce_list(list, &1, fun)}
   defp reduce_list([], {:cont, acc}, _fun), do: {:done, acc}
-  defp reduce_list([h | t], {:cont, acc}, fun), do: reduce_list(t, fun.(h, acc), fun)
+  defp reduce_list([head | tail], {:cont, acc}, fun), do: reduce_list(tail, fun.(head, acc), fun)
 end
 
 defimpl Enumerable, for: Function do

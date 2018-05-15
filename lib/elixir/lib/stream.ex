@@ -122,14 +122,21 @@ defmodule Stream do
   ## Transformers
 
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   @doc false
+  @deprecated "Use Stream.chunk_every/2 instead"
   def chunk(enum, n), do: chunk(enum, n, n, nil)
 
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   @doc false
-  def chunk(enum, n, step, leftover \\ nil)
+  @deprecated "Use Stream.chunk_every/3 instead"
+  def chunk(enum, n, step) do
+    chunk_every(enum, n, step, nil)
+  end
+
+  # TODO: Remove by 2.0
+  @doc false
+  @deprecated "Use Stream.chunk_every/4 instead"
+  def chunk(enum, n, step, leftover)
       when is_integer(n) and n > 0 and is_integer(step) and step > 0 do
     chunk_every(enum, n, step, leftover || :discard)
   end
@@ -209,11 +216,11 @@ defmodule Stream do
 
   ## Examples
 
-      iex> chunk_fun = fn i, acc ->
-      ...>   if rem(i, 2) == 0 do
-      ...>     {:cont, Enum.reverse([i | acc]), []}
+      iex> chunk_fun = fn item, acc ->
+      ...>   if rem(item, 2) == 0 do
+      ...>     {:cont, Enum.reverse([item | acc]), []}
       ...>   else
-      ...>     {:cont, [i | acc]}
+      ...>     {:cont, [item | acc]}
       ...>   end
       ...> end
       iex> after_fun = fn
@@ -467,7 +474,7 @@ defmodule Stream do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Stream.filter/2 + Stream.map/2 instead"
   def filter_map(enum, filter, mapper) do
     lazy(enum, fn f1 -> R.filter_map(filter, mapper, f1) end)
   end
@@ -616,13 +623,13 @@ defmodule Stream do
   Open up a file, replace all `#` by `%` and stream to another file
   without loading the whole file in memory:
 
-      stream = File.stream!("code")
+      File.stream!("/path/to/file")
       |> Stream.map(&String.replace(&1, "#", "%"))
-      |> Stream.into(File.stream!("new"))
-      |> Stream.run
+      |> Stream.into(File.stream!("/path/to/other/file"))
+      |> Stream.run()
 
-  No computation will be done until we call one of the Enum functions
-  or `Stream.run/1`.
+  No computation will be done until we call one of the `Enum` functions
+  or `run/1`.
   """
   @spec run(Enumerable.t()) :: :ok
   def run(stream) do
@@ -984,7 +991,7 @@ defmodule Stream do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use Stream.uniq_by/2 instead"
   def uniq(enum, fun) do
     uniq_by(enum, fun)
   end

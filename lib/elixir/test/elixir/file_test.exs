@@ -1418,7 +1418,7 @@ defmodule FileTest do
     end
   end
 
-  test "stream map" do
+  test "stream struct" do
     src = fixture_path("file.txt")
     stream = File.stream!(src)
     assert %File.Stream{} = stream
@@ -1426,7 +1426,16 @@ defmodule FileTest do
     assert stream.raw
     assert stream.line_or_bytes == :line
 
-    src = fixture_path("file.txt")
+    stream = File.stream!(src, read_ahead: false)
+    assert %File.Stream{} = stream
+    assert stream.modes == [:raw, :binary]
+    assert stream.raw
+
+    stream = File.stream!(src, read_ahead: 5000)
+    assert %File.Stream{} = stream
+    assert stream.modes == [:raw, {:read_ahead, 5000}, :binary]
+    assert stream.raw
+
     stream = File.stream!(src, [:utf8], 10)
     assert %File.Stream{} = stream
     assert stream.modes == [{:encoding, :utf8}, :binary]

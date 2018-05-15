@@ -31,10 +31,17 @@ defmodule Task.Supervisor do
           | {:shutdown, :supervisor.shutdown()}
 
   @doc false
-  def child_spec(arg) do
+  def child_spec(opts) when is_list(opts) do
+    id =
+      case Keyword.get(opts, :name, Task.Supervisor) do
+        name when is_atom(name) -> name
+        {:global, name} -> name
+        {:via, _module, name} -> name
+      end
+
     %{
-      id: Task.Supervisor,
-      start: {Task.Supervisor, :start_link, [arg]},
+      id: id,
+      start: {Task.Supervisor, :start_link, [opts]},
       type: :supervisor
     }
   end
@@ -345,15 +352,17 @@ defmodule Task.Supervisor do
   end
 
   defp start_child_with_spec(supervisor, args, restart, shutdown) do
-    # TODO: Remove this on Elixir v2.0 and the associated clause in DynamicSupervisor
+    # TODO: This only exists because we need to support reading restart/shutdown
+    # from two different places. Remove this and the associated clause in DynamicSupervisor
+    # on Elixir v2.0
     GenServer.call(supervisor, {:start_task, args, restart, shutdown}, :infinity)
   end
 
   defp get_info(self) do
     name =
       case Process.info(self, :registered_name) do
-        {:registered_name, []} -> self
-        {:registered_name, name} -> name
+        {:registered_name, name} when is_atom(name) -> name
+        _ -> self
       end
 
     {node(), name}

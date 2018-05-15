@@ -78,7 +78,7 @@ defmodule System do
   `:micro_seconds` and `:nano_seconds` as time units although Elixir normalizes
   their spelling to match the SI convention.
   """
-  # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+
+  # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+ (on v1.8)
   @type time_unit ::
           :second
           | :millisecond
@@ -190,7 +190,7 @@ defmodule System do
     {:ok, v} = Version.parse(version())
 
     revision_string = if v.pre != [] and revision() != "", do: " (#{revision()})", else: ""
-    otp_version_string = " (compiled with OTP #{get_otp_release()})"
+    otp_version_string = " (compiled with Erlang/OTP #{get_otp_release()})"
 
     version() <> revision_string <> otp_version_string
   end
@@ -445,14 +445,19 @@ defmodule System do
   end
 
   @doc """
-  Last exception stacktrace.
+  Deprecated mechanism to retrieve the last exception stacktrace.
+
+  Accessing the stacktrace outside of a rescue/catch is deprecated.
+  If you want to support only Elixir v1.7+, you must access
+  `__STACKTRACE__/0` inside a rescue/catch. If you want to support
+  earlier Elixir versions, move `System.stacktrace/0` inside a rescue/catch.
 
   Note that the Erlang VM (and therefore this function) does not
   return the current stacktrace but rather the stacktrace of the
   latest exception.
-
-  Inlined by the compiler into `:erlang.get_stacktrace/0`.
   """
+  # TODO: Fully deprecate it on Elixir v1.9.
+  # It is currently partially deprecated in elixir_dispatch.erl
   def stacktrace do
     :erlang.get_stacktrace()
   end
@@ -694,7 +699,7 @@ defmodule System do
   This time is monotonically increasing and starts in an unspecified
   point in time.
 
-  Inlined by the compiler into `:erlang.monotonic_time/0`.
+  Inlined by the compiler.
   """
   @spec monotonic_time() :: integer
   def monotonic_time do
@@ -719,7 +724,7 @@ defmodule System do
   case of time warps although the VM works towards aligning
   them. This time is not monotonic.
 
-  Inlined by the compiler into `:erlang.system_time/0`.
+  Inlined by the compiler.
   """
   @spec system_time() :: integer
   def system_time do
@@ -764,7 +769,7 @@ defmodule System do
 
   See `time_offset/1` for more information.
 
-  Inlined by the compiler into `:erlang.time_offset/0`.
+  Inlined by the compiler.
   """
   @spec time_offset() :: integer
   def time_offset do
@@ -793,7 +798,7 @@ defmodule System do
   This time may be adjusted forwards or backwards in time
   with no limitation and is not monotonic.
 
-  Inlined by the compiler into `:os.system_time/0`.
+  Inlined by the compiler.
   """
   @spec os_time() :: integer
   def os_time do
@@ -812,7 +817,7 @@ defmodule System do
   end
 
   @doc """
-  Returns the OTP release number.
+  Returns the Erlang/OTP release number.
   """
   @spec otp_release :: String.t()
   def otp_release do
@@ -856,7 +861,7 @@ defmodule System do
   All modifiers listed above can be combined; repeated modifiers in `modifiers`
   will be ignored.
 
-  Inlined by the compiler into `:erlang.unique_integer/1`.
+  Inlined by the compiler.
   """
   @spec unique_integer([:positive | :monotonic]) :: integer
   def unique_integer(modifiers \\ []) do

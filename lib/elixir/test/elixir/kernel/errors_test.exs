@@ -247,17 +247,46 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "clause with defaults" do
+    message = ~r"nofile:3: def hello/1 defines defaults multiple times"
+
     assert_eval_raise CompileError,
-                      ~r"nofile:3: definitions with multiple clauses and default values require a header",
+                      message,
                       ~C'''
-                      defmodule Kernel.ErrorsTest.ClauseWithDefaults1 do
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+                        def hello(_arg \\ 0)
+                        def hello(_arg \\ 1)
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      message,
+                      ~C'''
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
                         def hello(_arg \\ 0), do: nil
                         def hello(_arg \\ 1), do: nil
                       end
                       '''
 
+    assert_eval_raise CompileError,
+                      message,
+                      ~C'''
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+                        def hello(_arg \\ 0)
+                        def hello(_arg \\ 1), do: nil
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      message,
+                      ~C'''
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+                        def hello(_arg \\ 0), do: nil
+                        def hello(_arg \\ 1)
+                      end
+                      '''
+
     assert_eval_raise CompileError, ~r"nofile:2: undefined function foo/0", ~C'''
-    defmodule Kernel.ErrorsTest.ClauseWithDefaults3 do
+    defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
       def hello(foo, bar \\ foo())
       def hello(foo, bar), do: foo + bar
     end
@@ -355,6 +384,12 @@ defmodule Kernel.ErrorsTest do
 
   test "name for defmodule" do
     assert_eval_raise CompileError, "nofile:1: invalid module name: 3", 'defmodule 1 + 2, do: 3'
+  end
+
+  test "@compile inline with undefined function" do
+    assert_eval_raise CompileError,
+                      "nofile:1: inlined function foo/1 undefined",
+                      'defmodule Test do @compile {:inline, foo: 1} end'
   end
 
   test "invalid unquote" do
@@ -773,12 +808,10 @@ defmodule Kernel.ErrorsTest do
       bad_remote_call(1)
     rescue
       ArgumentError ->
-        stack = System.stacktrace()
-
         assert [
                  {:erlang, :apply, [1, :foo, []], []},
                  {__MODULE__, :bad_remote_call, 1, [file: _, line: _]} | _
-               ] = stack
+               ] = __STACKTRACE__
     end
   end
 
@@ -811,14 +844,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   defp rescue_stacktrace(string) do
-    stacktrace =
-      try do
-        Code.eval_string(string)
-        nil
-      rescue
-        _ -> System.stacktrace()
-      end
-
-    stacktrace || flunk("Expected expression to fail")
+    try do
+      Code.eval_string(string)
+      nil
+    rescue
+      _ -> __STACKTRACE__
+    else
+      _ -> flunk("Expected expression to fail")
+    end
   end
 end

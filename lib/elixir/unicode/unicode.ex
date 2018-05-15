@@ -258,7 +258,7 @@ defmodule String.Unicode do
   end
 
   defp do_graphemes({size, rest}, binary) do
-    [:binary.part(binary, 0, size) | do_graphemes(next_grapheme_size(rest), rest)]
+    [binary_part(binary, 0, size) | do_graphemes(next_grapheme_size(rest), rest)]
   end
 
   defp do_graphemes(nil, _) do

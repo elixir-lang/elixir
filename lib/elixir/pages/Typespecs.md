@@ -16,6 +16,24 @@ Type specifications (sometimes referred to as *typespecs*) are defined in differ
 
 See the "User-defined types" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
 
+## A simple example
+
+    defmodule StringHelpers do
+      @type word() :: String.t()
+
+      @spec long_word?(word()) :: boolean()
+      def long_word?(word) when is_binary(word) do
+        String.length(word) > 8
+      end
+    end
+
+In the example above, this happens:
+
+  * we declare a new type (`word()`) that is equivalent to the string type (`String.t()`);
+
+  * we specify that the `long_word?/1` function takes an argument of type `word()` and
+    returns a boolean (`boolean()`), that is, either `true` or `false`.
+
 ## Types and their syntax
 
 The syntax Elixir provides for type specifications is similar to [the one in Erlang](http://www.erlang.org/doc/reference_manual/typespec.html). Most of the built-in types provided in Erlang (for example, `pid()`) are expressed in the same way: `pid()` (or simply `pid`). Parameterized types (such as `list(integer)`) are supported as well and so are remote types (such as `Enum.t`). Integers and atom literals are allowed as types (e.g., `1`, `:atom`, or `false`). All other types are built out of unions of predefined types. Some shorthands are allowed, such as `[...]`, `<<>>`, and `{...}`.
@@ -238,8 +256,8 @@ If a callback module that implements a given behaviour doesn't export all the fu
 
 Elixir's standard library contains a few frequently used behaviours such as `GenServer`, `Supervisor`, and `Application`.
 
-## Notes
+## The `string()` type
 
-Elixir discourages the use of type `t:string/0` as it might be confused with binaries which are referred to as "strings" in Elixir (as opposed to character lists). In order to use the type that is called `t:string/0` in Erlang, one has to use the `t:charlist/0` type which is a synonym for `string`. If you use `string`, you'll get a warning from the compiler.
+Elixir discourages the use of the `string()` type. The `string()` type refers to Erlang strings, which are known as "charlists" in Elixir. They do not refer to Elixir strings, which are UTF-8 encoded binaries. To avoid confusion, if you attempt to use the type `string()`, Elixir will emit a warning. You should use `charlist()`, `binary()` or `String.t()` accordingly.
 
-If you want to refer to the "string" type (the one operated on by functions in the `String` module), use `t:String.t/0` type instead.
+Note `String.t()` and `binary()` are equivalent to analysis tools. Although, for those reading the documentation, `String.t()` implies it is a UTF-8 encoded binary.

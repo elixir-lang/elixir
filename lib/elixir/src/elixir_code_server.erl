@@ -28,12 +28,14 @@ init(ok) ->
   _ = ets:new(elixir_modules, [set, protected, named_table, {read_concurrency, true}]),
   {ok, #elixir_code_server{}}.
 
-handle_call({defmodule, Pid, Tuple}, _From, Config) ->
-  {Ref, New} = defmodule(Pid, Tuple, Config),
-  {reply, Ref, New};
-
-handle_call({lookup, Module}, _From, Config) ->
-  {reply, ets:lookup(elixir_modules, Module), Config};
+handle_call({defmodule, Module, Pid, Tuple}, _From, Config) ->
+  case ets:lookup(elixir_modules, Module) of
+    [] ->
+      {Ref, NewConfig} = defmodule(Pid, Tuple, Config),
+      {reply, {ok, Ref}, NewConfig};
+    [CurrentTuple] ->
+      {reply, {error, CurrentTuple}, Config}
+  end;
 
 handle_call({undefmodule, Ref}, _From, Config) ->
   {reply, ok, undefmodule(Ref, Config)};

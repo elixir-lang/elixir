@@ -8,7 +8,8 @@
 expand({'=', Meta, [Left, Right]}, E) ->
   assert_no_guard_scope(Meta, "=", E),
   {ERight, ER} = expand(Right, E),
-  {ELeft, EL}  = elixir_clauses:match(fun expand/2, Left, E),
+  {ELeft, EL} = elixir_clauses:match(fun expand/2, Left, E),
+  refute_parallel_bitstring_match(ELeft, ERight, E, ?key(E, context) == match),
   {{'=', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
 
 %% Literal operators
@@ -696,11 +697,28 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
 assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
   ok.
 
+assert_no_clauses(_Name, _Meta, [], _E) ->
+  ok;
+assert_no_clauses(Name, Meta, Args, E) ->
+  assert_arg_with_no_clauses(Name, Meta, lists:last(Args), E).
+
+assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Key) ->
+  case Value of
+    [{'->', _, _} | _] ->
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_clauses, Name});
+    _ ->
+      assert_arg_with_no_clauses(Name, Meta, Rest, E)
+  end;
+assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
+  ok.
+
 expand_local(Meta, Name, Args, #{function := nil} = E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {undefined_function, Name, Args});
 expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match; Context == guard ->
   form_error(Meta, ?key(E, file), ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}});
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
+  assert_no_clauses(Name, Meta, Args, E),
+
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
   {{Name, Meta, EArgs}, EA}.
@@ -708,13 +726,15 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 %% Remote
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) ->
+  assert_no_clauses(Right, Meta, Args, E),
+
   Arity = length(Args),
   is_atom(Receiver) andalso
     elixir_lexical:record_remote(Receiver, Right, Arity,
                                  ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
   Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
-  maybe_warn_struct_comparison(Rewritten, Args, E),
+  check_erlang_operator_args(Rewritten, Args, Context, E),
   case allowed_in_context(Rewritten, Arity, Context) of
     true ->
       {Rewritten, elixir_env:mergev(EL, EA)};
@@ -733,7 +753,12 @@ allowed_in_context(_, _Arity, guard) ->
 allowed_in_context(_, _, _) ->
   true.
 
-maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
+check_erlang_operator_args({{'.', _, [erlang, '++']}, Meta, [ELeft, _]}, [Left, _], match, E) ->
+  case is_proper_list(ELeft) of
+    false -> form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_lists_concatenation, Left});
+    true -> ok
+  end;
+check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], _, E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
   Result =
     case is_struct_expression(ELeft) of
@@ -751,7 +776,7 @@ maybe_warn_struct_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [L
     StructExpr ->
       elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, StructExpr})
   end;
-maybe_warn_struct_comparison(_Other, _Args, _E) ->
+check_erlang_operator_args(_, _, _, _) ->
   ok.
 
 is_struct_expression({'%', _, [Struct, _]}) when is_atom(Struct) ->
@@ -762,6 +787,12 @@ is_struct_expression({'%{}', _, KVs}) ->
     false -> false
   end;
 is_struct_expression(_Other) -> false.
+
+is_proper_list([]) -> true;
+is_proper_list([{'|', _, [_, Tail]}]) -> is_proper_list(Tail);
+is_proper_list([_ | Tail]) -> is_proper_list(Tail);
+is_proper_list({'++', _, [_, Tail]}) -> is_proper_list(Tail);
+is_proper_list(_) -> false.
 
 %% Lexical helpers
 
@@ -891,6 +922,45 @@ assert_generator_start(Meta, _, E) ->
 
 %% Assertions
 
+refute_parallel_bitstring_match({'<<>>', _, _}, {'<<>>', Meta, _} = Arg, E, true) ->
+  form_error(Meta, ?key(E, file), ?MODULE, {parallel_bitstring_match, Arg});
+refute_parallel_bitstring_match(Left, {'=', _Meta, [MatchLeft, MatchRight]}, E, Parallel) ->
+  refute_parallel_bitstring_match(Left, MatchLeft, E, true),
+  refute_parallel_bitstring_match(Left, MatchRight, E, Parallel);
+refute_parallel_bitstring_match([_ | _] = Left, [_ | _] = Right, E, Parallel) ->
+  refute_parallel_bitstring_match_each(Left, Right, E, Parallel);
+refute_parallel_bitstring_match({Left1, Left2}, {Right1, Right2}, E, Parallel) ->
+  refute_parallel_bitstring_match_each([Left1, Left2], [Right1, Right2], E, Parallel);
+refute_parallel_bitstring_match({'{}', _, Args1}, {'{}', _, Args2}, E, Parallel) ->
+  refute_parallel_bitstring_match_each(Args1, Args2, E, Parallel);
+refute_parallel_bitstring_match({'%{}', _, Args1}, {'%{}', _, Args2}, E, Parallel) ->
+  refute_parallel_bitstring_match_map_field(lists:sort(Args1), lists:sort(Args2), E, Parallel);
+refute_parallel_bitstring_match({'%', _, [_, Args]}, Right, E, Parallel) ->
+  refute_parallel_bitstring_match(Args, Right, E, Parallel);
+refute_parallel_bitstring_match(Left, {'%', _, [_, Args]}, E, Parallel) ->
+  refute_parallel_bitstring_match(Left, Args, E, Parallel);
+refute_parallel_bitstring_match(_Left, _Right, _E, _Parallel) ->
+  ok.
+
+refute_parallel_bitstring_match_each([Arg1 | Rest1], [Arg2 | Rest2], E, Parallel) ->
+  refute_parallel_bitstring_match(Arg1, Arg2, E, Parallel),
+    refute_parallel_bitstring_match_each(Rest1, Rest2, E, Parallel);
+refute_parallel_bitstring_match_each(_List1, _List2, _E, _Parallel) ->
+  ok.
+
+refute_parallel_bitstring_match_map_field([{Key, Val1} | Rest1], [{Key, Val2} | Rest2], E, Parallel) ->
+  refute_parallel_bitstring_match(Val1, Val2, E, Parallel),
+  refute_parallel_bitstring_match_map_field(Rest1, Rest2, E, Parallel);
+refute_parallel_bitstring_match_map_field([Field1 | Rest1] = Args1, [Field2 | Rest2] = Args2, E, Parallel) ->
+  case Field1 > Field2 of
+    true ->
+      refute_parallel_bitstring_match_map_field(Args1, Rest2, E, Parallel);
+    false ->
+      refute_parallel_bitstring_match_map_field(Rest1, Args2, E, Parallel)
+  end;
+refute_parallel_bitstring_match_map_field(_Args1, _Args2, _E, _Parallel) ->
+  ok.
+
 assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_expr_in_scope, "module", Kind});
 assert_module_scope(_Meta, _Kind, #{module:=Module}) -> Module.
@@ -972,6 +1042,9 @@ format_error(wrong_number_of_args_for_super) ->
 format_error({invalid_arg_for_pin, Arg}) ->
   io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
                 ['Elixir.Macro':to_string(Arg)]);
+format_error({invalid_arg_for_lists_concatenation, Arg}) ->
+  io_lib:format("invalid argument for ++ operator inside a match, expected a literal proper list, got: ~ts",
+                ['Elixir.Macro':to_string(Arg)]);
 format_error({pin_outside_of_match, Arg}) ->
   io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
 format_error(unbound_underscore) ->
@@ -1008,6 +1081,11 @@ format_error({op_ambiguity, Name, Arg}) ->
     "\"~ts ~ts\" looks like a function call but there is a variable named \"~ts\", "
     "please use explicit parentheses or even spaces",
   io_lib:format(Message, [Name, 'Elixir.Macro':to_string(Arg), Name]);
+format_error({invalid_clauses, Name}) ->
+  Message =
+    "the function \"~ts\" cannot handle clauses with the -> operator because it is not macro. "
+    "Please make sure you are invoking the proper name and that it is a macro",
+  io_lib:format(Message, [Name]);
 format_error({invalid_alias_for_as, Reason, Value}) ->
   ExpectedGot =
     case Reason of
@@ -1072,4 +1150,8 @@ format_error({struct_comparison, StructExpr}) ->
 format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
 format_error(stacktrace_not_allowed) ->
-  "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions".
+  "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions";
+format_error({parallel_bitstring_match, Expr}) ->
+  Message =
+    "binary patterns cannot be matched in parallel using \"=\", excess pattern: ~ts",
+  io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]).

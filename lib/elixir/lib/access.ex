@@ -2,33 +2,33 @@ defmodule Access do
   @moduledoc """
   Key-based access to data structures.
 
-  Elixir supports three main key-value constructs, keywords,
-  maps and structs, and two mechanisms to access those keys,
-  by brackets via `data[key]`, and by dot-syntax, via `data.field`.
+  Elixir supports three main key-value constructs: keywords,
+  maps, and structs. It also supports two mechanisms to access those keys:
+  by brackets (via `data[key]`) and by dot-syntax (via `data.field`).
 
-  Next we will briefly recap the key-value constructs and then
+  In the next section we will briefly recap the key-value constructs and then
   discuss the access mechanisms.
 
   ## Key-value constructs
 
   Elixir provides three main key-value constructs, summarized below:
 
-    * keyword lists - they are lists of two element tuples where
+    * keyword lists - they are lists of two-element tuples where
       the first element is an atom. Commonly written in the
       `[key: value]` syntax, they support only atom keys. Keyword
       lists are used almost exclusively to pass options to functions
       and macros. They keep the user ordering and allow duplicate
-      keys. Powered by the `Keyword` module.
+      keys. See the `Keyword` module.
 
-    * maps - they are the "go to" key-value data structure in Elixir
-      capable of supporting billions of keys of any type. They are
-      written in the `%{key => value}` syntax and also support the
+    * maps - they are the "go to" key-value data structure in Elixir.
+      They are capable of supporting billions of keys of any type. They are
+      written using the `%{key => value}` syntax and also support the
       `%{key: value}` syntax when the keys are atoms. They do not
       have any specified ordering and do not allow duplicate keys.
-      Powered by the `Map` module.
+      See the `Map` module.
 
     * structs - they are named maps with a pre-determined set of keys.
-      They are defined with `defstruct/1` and written in the
+      They are defined with `defstruct/1` and written using the
       `%StructName{key: value}` syntax.
 
   ## Key-based accessors
@@ -40,7 +40,8 @@ defmodule Access do
 
   The `data[key]` syntax is used to access data structures with a
   dynamic number of keys, such as keywords and maps. The key can
-  be of any type and it returns nil if the key does not exist:
+  be of any type. The bracket-based access syntax returns `nil`
+  if the key does not exist:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -62,10 +63,15 @@ defmodule Access do
       iex> put_in(users["john"][:age], 28)
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  Furthermore, the bracket access transparently ignores `nil` values:
+  Furthermore, the bracket-based access syntax transparently ignores
+  `nil` values. When trying to access anything on a `nil` value, `nil`
+  is returned:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:c][:unknown]
+      nil
+
+      iex> nil[:a]
       nil
 
   Internally, `data[key]` translates  to `Access.get(term, key, nil)`.
@@ -77,8 +83,8 @@ defmodule Access do
   ### Dot-based syntax
 
   The `data.field` syntax is used exclusively to access atom fields
-  in maps and structs. If the field accessed does not exist, it
-  raises an error. This is a deliberate decision: since all of the
+  in maps and structs. If the accessed field does not exist, an error is
+  raised. This is a deliberate decision: since all of the
   fields in a struct are pre-determined, structs support only the
   dot-based syntax and not the access one.
 
@@ -107,22 +113,20 @@ defmodule Access do
   ## Nested data structures
 
   Both key-based access syntaxes can be used with the nested update
-  functions in `Kernel`, such as `Kernel.get_in/2`, `Kernel.put_in/3`,
-  `Kernel.update_in/3` and `Kernel.get_and_update_in/3`.
+  functions and macros in `Kernel`, such as `Kernel.get_in/2`, `Kernel.put_in/3`,
+  `Kernel.update_in/3`, `Kernel.pop_in/2`, and `Kernel.get_and_update_in/3`.
 
-  For example, to update a map inside another map of dynamic values,
-  one can do:
+  For example, to update a map inside another map:
 
      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-     iex> put_in users["john"].age, 28
+     iex> put_in(users["john"].age, 28)
      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-
   This module provides convenience functions for traversing other
-  structures, like tuples and lists, to be used alongside `Kernel.put_in/2`
-  and others.
+  structures, like tuples and lists. These functions can be used
+  in all the `Access`-related functions and macros in `Kernel`.
 
-  For instance, given a user map with `:name` and `:languages` keys,
+  For instance, given a user map with the `:name` and `:languages` keys,
   here is how to deeply traverse the map and convert all language names
   to uppercase:
 
@@ -178,28 +182,6 @@ defmodule Access do
   @callback fetch(term :: t, key) :: {:ok, value} | :error
 
   @doc """
-  Invoked in order to access the value stored under `key` in the given term `term`,
-  defaulting to `default` if not present.
-
-  This function should return the value under `key` in `term` if there's
-  such key, otherwise `default`.
-
-  For most data structures, this can be implemented using `fetch/2` internally;
-  for example:
-
-      def get(structure, key, default) do
-        case fetch(structure, key) do
-          {:ok, value} -> value
-          :error       -> default
-        end
-      end
-
-  See the `Map.get/3` and `Keyword.get/3` implementations for examples of
-  how to implement this callback.
-  """
-  @callback get(term :: t, key, default :: value) :: value
-
-  @doc """
   Invoked in order to access the value under `key` and update it at the same time.
 
   The implementation of this callback should invoke `fun` with the value under
@@ -208,9 +190,12 @@ defmodule Access do
 
   If the passed function returns `{get_value, update_value}`,
   the return value of this callback should be `{get_value, new_data}`, where:
-  - `get_value` is the retrieved value (which can be operated on before being returned)
-  - `update_value` is the new value to be stored under `key`
-  - `new_data` is `data` after updating the value of `key` with `update_value`.
+
+    * `get_value` is the retrieved value (which can be operated on before being returned)
+
+    * `update_value` is the new value to be stored under `key`
+
+    * `new_data` is `data` after updating the value of `key` with `update_value`.
 
   If the passed function returns `:pop`, the return value of this callback
   must be `{value, new_data}` where `value` is the value under `key`
@@ -238,10 +223,8 @@ defmodule Access do
 
   defmacrop raise_undefined_behaviour(exception, module, top) do
     quote do
-      stacktrace = System.stacktrace()
-
       exception =
-        case stacktrace do
+        case __STACKTRACE__ do
           [unquote(top) | _] ->
             reason = "#{inspect(unquote(module))} does not implement the Access behaviour"
             %{unquote(exception) | reason: reason}
@@ -250,7 +233,7 @@ defmodule Access do
             unquote(exception)
         end
 
-      reraise exception, stacktrace
+      reraise exception, __STACKTRACE__
     end
   end
 
@@ -260,6 +243,15 @@ defmodule Access do
 
   Returns `{:ok, value}` where `value` is the value under `key` if there is such
   a key, or `:error` if `key` is not found.
+
+  ## Examples
+
+      iex> Access.fetch(%{name: "meg", age: 26}, :name)
+      {:ok, "meg"}
+
+      iex> Access.fetch([ordered: true, on_timeout: :exit], :timeout)
+      :error
+
   """
   @spec fetch(container, term) :: {:ok, term} | :error
   @spec fetch(nil_container, any) :: :error
@@ -301,10 +293,25 @@ defmodule Access do
 
   Returns the value under `key` if there is such a key, or `default` if `key` is
   not found.
+
+  ## Examples
+
+      iex> Access.get(%{name: "john"}, :name, "default name")
+      "john"
+      iex> Access.get(%{name: "john"}, :age, 25)
+      25
+
+      iex> Access.get([ordered: true], :timeout)
+      nil
+
   """
   @spec get(container, term, term) :: term
   @spec get(nil_container, any, default) :: default when default: var
   def get(container, key, default \\ nil)
+
+  # Reimplementing the same logic as Access.fetch/2 here is done for performance, since
+  # this is called a lot and calling fetch/2 means introducing some overhead (like
+  # building the "{:ok, _}" tuple and deconstructing it back right away).
 
   def get(%module{} = container, key, default) do
     try do
@@ -439,8 +446,8 @@ defmodule Access do
   The returned function uses the default value if the key does not exist.
   This can be used to specify defaults and safely traverse missing keys:
 
-      iex> get_in(%{}, [Access.key(:user, %{}), Access.key(:name)])
-      nil
+      iex> get_in(%{}, [Access.key(:user, %{name: "meg"}), Access.key(:name)])
+      "meg"
 
   Such is also useful when using update functions, allowing us to introduce
   values as we traverse the data structure for updates:
@@ -453,8 +460,8 @@ defmodule Access do
       iex> map = %{user: %{name: "john"}}
       iex> get_in(map, [Access.key(:unknown, %{}), Access.key(:name, "john")])
       "john"
-      iex> get_and_update_in(map, [Access.key(:user), Access.key(:name)], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(map, [Access.key(:user), Access.key(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: %{name: "JOHN"}}}
       iex> pop_in(map, [Access.key(:user), Access.key(:name)])
@@ -491,15 +498,15 @@ defmodule Access do
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
-  The returned function raises if the key does not exist.
+  Similar to `key/2`, but the returned function raises if the key does not exist.
 
   ## Examples
 
       iex> map = %{user: %{name: "john"}}
       iex> get_in(map, [Access.key!(:user), Access.key!(:name)])
       "john"
-      iex> get_and_update_in(map, [Access.key!(:user), Access.key!(:name)], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(map, [Access.key!(:user), Access.key!(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: %{name: "JOHN"}}}
       iex> pop_in(map, [Access.key!(:user), Access.key!(:name)])
@@ -540,13 +547,16 @@ defmodule Access do
 
   The returned function raises if `index` is out of bounds.
 
+  Note that popping elements out of tuples is not possible and raises an
+  error.
+
   ## Examples
 
       iex> map = %{user: {"john", 27}}
       iex> get_in(map, [:user, Access.elem(0)])
       "john"
-      iex> get_and_update_in(map, [:user, Access.elem(0)], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(map, [:user, Access.elem(0)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: {"JOHN", 27}}}
       iex> pop_in(map, [:user, Access.elem(0)])
@@ -559,7 +569,7 @@ defmodule Access do
 
   """
   @spec elem(non_neg_integer) :: access_fun(data :: tuple, get_value :: term)
-  def elem(index) when is_integer(index) do
+  def elem(index) when is_integer(index) and index >= 0 do
     pos = index + 1
 
     fn
@@ -590,8 +600,8 @@ defmodule Access do
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.all(), :name])
       ["john", "mary"]
-      iex> get_and_update_in(list, [Access.all(), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.all(), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {["john", "mary"], [%{name: "JOHN"}, %{name: "MARY"}]}
       iex> pop_in(list, [Access.all(), :name])
@@ -601,8 +611,8 @@ defmodule Access do
   numbers and multiplying odd numbers by 2:
 
       iex> require Integer
-      iex> get_and_update_in([1, 2, 3, 4, 5], [Access.all], fn
-      ...>   num -> if Integer.is_even(num), do: :pop, else: {num, num * 2}
+      iex> get_and_update_in([1, 2, 3, 4, 5], [Access.all], fn num ->
+      ...>   if Integer.is_even(num), do: :pop, else: {num, num * 2}
       ...> end)
       {[1, 2, 3, 4, 5], [2, 6, 10]}
 
@@ -651,8 +661,8 @@ defmodule Access do
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.at(1), :name])
       "mary"
-      iex> get_and_update_in(list, [Access.at(0), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.at(0), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", [%{name: "JOHN"}, %{name: "mary"}]}
 
@@ -670,8 +680,8 @@ defmodule Access do
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.at(10), :name])
       nil
-      iex> get_and_update_in(list, [Access.at(10), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.at(10), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {nil, [%{name: "john"}, %{name: "mary"}]}
 
@@ -729,8 +739,8 @@ defmodule Access do
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.filter(&(&1.salary > 20)), :name])
       ["francine"]
-      iex> get_and_update_in(list, [Access.filter(&(&1.salary <= 20)), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.filter(&(&1.salary <= 20)), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {["john"], [%{name: "JOHN", salary: 10}, %{name: "francine", salary: 30}]}
 
@@ -748,8 +758,8 @@ defmodule Access do
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.filter(&(&1.salary >= 50)), :name])
       []
-      iex> get_and_update_in(list, [Access.filter(&(&1.salary >= 50)), :name], fn
-      ...>   prev -> {prev, String.upcase(prev)}
+      iex> get_and_update_in(list, [Access.filter(&(&1.salary >= 50)), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
       ...> end)
       {[], [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
 
@@ -762,6 +772,7 @@ defmodule Access do
 
       iex> get_in(%{}, [Access.filter(fn a -> a == 10 end)])
       ** (RuntimeError) Access.filter/1 expected a list, got: %{}
+
   """
   @since "1.6.0"
   @spec filter((term -> boolean)) :: access_fun(data :: list, get_value :: list)

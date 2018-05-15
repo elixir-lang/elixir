@@ -17,6 +17,7 @@ end
 
 defmodule MacroTest do
   use ExUnit.Case, async: true
+  doctest Macro
 
   # Changing the lines above will make compilation
   # fail since we are asserting on the caller lines
@@ -318,16 +319,26 @@ defmodule MacroTest do
     end
 
     test "sigil call" do
-      assert Macro.to_string(quote(do: ~r"123")) == ~s/~r"123"/
-      assert Macro.to_string(quote(do: ~r"123"u)) == ~s/~r"123"u/
-      assert Macro.to_string(quote(do: ~r"\n123")) == ~s/~r"\\\\n123"/
+      assert Macro.to_string(quote(do: ~r"123")) == ~S/~r"123"/
+      assert Macro.to_string(quote(do: ~r"123"u)) == ~S/~r"123"u/
+      assert Macro.to_string(quote(do: ~r"\n123")) == ~S/~r"\\n123"/
 
       assert Macro.to_string(quote(do: ~r"1#{two}3")) == ~S/~r"1#{two}3"/
       assert Macro.to_string(quote(do: ~r"1#{two}3"u)) == ~S/~r"1#{two}3"u/
 
-      assert Macro.to_string(quote(do: ~R"123")) == ~s/~R"123"/
-      assert Macro.to_string(quote(do: ~R"123"u)) == ~s/~R"123"u/
-      assert Macro.to_string(quote(do: ~R"\n123")) == ~s/~R"\\\\n123"/
+      assert Macro.to_string(quote(do: ~R"123")) == ~S/~R"123"/
+      assert Macro.to_string(quote(do: ~R"123"u)) == ~S/~R"123"u/
+      assert Macro.to_string(quote(do: ~R"\n123")) == ~S/~R"\n123"/
+
+      assert Macro.to_string(quote(do: ~S["'(123)'"])) == ~S/~S["'(123)'"]/
+
+      assert Macro.to_string(
+               quote do
+                 ~S"""
+                 "123"
+                 """
+               end
+             ) == ~s[~S"""\n"123"\n"""]
     end
 
     test "tuple call" do
@@ -586,6 +597,7 @@ defmodule MacroTest do
       assert Macro.to_string(quote(do: %Test{foo: 1, bar: 1})) == "%Test{foo: 1, bar: 1}"
       assert Macro.to_string(quote(do: %Test{struct | foo: 2})) == "%Test{struct | foo: 2}"
       assert Macro.to_string(quote(do: %Test{} + 1)) == "%Test{} + 1"
+      assert Macro.to_string(quote(do: %Test{foo(1)} + 2)) == "%Test{foo(1)} + 2"
     end
 
     test "binary operators" do

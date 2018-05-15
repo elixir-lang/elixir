@@ -70,7 +70,7 @@ defmodule ExUnit.CaptureLog do
     {:ok, string_io} = StringIO.open("")
 
     try do
-      _ = :gen_event.which_handlers(:error_logger)
+      _ = Process.whereis(:error_logger) && :gen_event.which_handlers(:error_logger)
       :ok = add_capture(string_io, opts)
       ref = ExUnit.CaptureServer.log_capture_on(self())
 
@@ -85,9 +85,8 @@ defmodule ExUnit.CaptureLog do
       :ok
     catch
       kind, reason ->
-        stack = System.stacktrace()
         _ = StringIO.close(string_io)
-        :erlang.raise(kind, reason, stack)
+        :erlang.raise(kind, reason, __STACKTRACE__)
     else
       :ok ->
         {:ok, content} = StringIO.close(string_io)

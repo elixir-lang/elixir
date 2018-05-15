@@ -453,8 +453,8 @@ defmodule Task do
   defp get_info(pid) do
     self_or_name =
       case Process.info(pid, :registered_name) do
-        {:registered_name, []} -> self()
-        {:registered_name, name} -> name
+        {:registered_name, name} when is_atom(name) -> name
+        _ -> pid
       end
 
     {node(), self_or_name}
@@ -518,7 +518,7 @@ defmodule Task do
 
   @doc false
   # TODO: Remove on 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Pattern match on the message directly instead"
   def find(tasks, {ref, reply}) when is_reference(ref) do
     Enum.find_value(tasks, fn
       %Task{ref: ^ref} = task ->
@@ -662,7 +662,11 @@ defmodule Task do
   @spec yield_many([t], timeout) :: [{t, {:ok, term} | {:exit, term} | nil}]
   def yield_many(tasks, timeout \\ 5000) do
     timeout_ref = make_ref()
-    timer_ref = Process.send_after(self(), timeout_ref, timeout)
+
+    timer_ref =
+      if timeout != :infinity do
+        Process.send_after(self(), timeout_ref, timeout)
+      end
 
     try do
       yield_many(tasks, timeout_ref, :infinity)
@@ -670,7 +674,7 @@ defmodule Task do
       {:noconnection, reason} ->
         exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
     after
-      Process.cancel_timer(timer_ref)
+      timer_ref && Process.cancel_timer(timer_ref)
       receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
     end
   end

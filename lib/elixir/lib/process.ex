@@ -20,13 +20,13 @@ defmodule Process do
   """
 
   @doc """
-  Tells whether the given process is alive.
+  Tells whether the given process is alive on the local node.
 
   If the process identified by `pid` is alive (that is, it's not exiting and has
   not exited yet) than this function returns `true`. Otherwise, it returns
   `false`.
 
-  `pid` must refer to a process running on the local node.
+  `pid` must refer to a process running on the local node or `ArgumentError` is raised.
 
   Inlined by the compiler.
   """
@@ -222,6 +222,8 @@ defmodule Process do
   @doc """
   Sends a message to the given process.
 
+  Inlined by the compiler.
+
   ## Options
 
     * `:noconnect` - when used, if sending the message would require an
@@ -238,7 +240,6 @@ defmodule Process do
       iex> Process.send({:name, :node_that_does_not_exist}, :hi, [:noconnect])
       :noconnect
 
-  Inlined by the compiler.
   """
   @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
         when dest: pid | port | atom | {atom, node},
@@ -296,6 +297,8 @@ defmodule Process do
   Even if the timer had expired and the message was sent, this function does not
   tell you if the timeout message has arrived at its destination yet.
 
+  Inlined by the compiler.
+
   ## Options
 
     * `:async` - (boolean) when `false`, the request for cancellation is
@@ -313,7 +316,6 @@ defmodule Process do
       cancellation has been performed. If `:async` is `true` and `:info` is
       `false`, no message is sent. Defaults to `true`.
 
-  Inlined by the compiler.
   """
   @spec cancel_timer(reference, options) :: non_neg_integer | false | :ok
         when options: [async: boolean, info: boolean]
@@ -393,6 +395,9 @@ defmodule Process do
     * `object` is either a `pid` of the monitored process (if monitoring
       a PID) or `{name, node}` (if monitoring a remote or local name);
     * `reason` is the exit reason.
+    
+  If the process is already dead when calling `Process.monitor/1`, a
+  `:DOWN` message is delivered immediately.
 
   See [the need for monitoring](http://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
   for an example. See `:erlang.monitor/2` for more info.
@@ -577,8 +582,6 @@ defmodule Process do
   Returns the old value of `flag`.
 
   See `:erlang.process_flag/2` for more info.
-
-  Note that `flag` values `:max_heap_size` and `:message_queue_data` are only available since OTP 19.
 
   Inlined by the compiler.
   """

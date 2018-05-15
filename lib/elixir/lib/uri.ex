@@ -128,7 +128,7 @@ defmodule URI do
       %{"percent" => "oh yes!", "starting" => "map"}
 
   """
-  @spec decode_query(binary, map) :: map
+  @spec decode_query(binary, %{binary => binary}) :: %{binary => binary}
   def decode_query(query, map \\ %{})
 
   # TODO: Remove on 2.0
@@ -422,11 +422,13 @@ defmodule URI do
 
     parts = Regex.run(regex, string)
 
-    destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
+    destructure [_, _, scheme, _, authority, path, query_with_question_mark, _, _, fragment],
+                parts
+
     scheme = nillify(scheme)
     authority = nillify(authority)
     path = nillify(path)
-    query = nillify(query)
+    query = nillify_query(query_with_question_mark)
     {userinfo, host, port} = split_authority(authority)
 
     scheme = scheme && String.downcase(scheme)
@@ -443,6 +445,9 @@ defmodule URI do
       port: port
     }
   end
+
+  defp nillify_query("?" <> query), do: query
+  defp nillify_query(_other), do: nil
 
   # Split an authority into its userinfo, host and port parts.
   defp split_authority(string) do

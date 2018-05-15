@@ -31,6 +31,14 @@ defmodule Kernel.WarningTest do
     assert output =~ "found \"...\" followed by \".\", please use parens around \"...\" instead"
   end
 
+  test "identifier that ends in ! followed by the = operator without a space in between" do
+    output = capture_err(fn -> Code.eval_string("foo!= 1") end)
+    assert output =~ "found identifier \"foo!\", ending with \"!\""
+
+    output = capture_err(fn -> Code.eval_string(":foo!= :foo!") end)
+    assert output =~ "found atom \":foo!\", ending with \"!\""
+  end
+
   test "unused variable" do
     output =
       capture_err(fn ->
@@ -551,20 +559,49 @@ defmodule Kernel.WarningTest do
   end
 
   test "length(list) == 0 in guard" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample do
-               def list_case do
-                 v = []
-                 case v do
-                   _ when length(v) == 0 -> :ok
-                   _ -> :fail
-                 end
-               end
-             end
-             """)
-           end) =~
-             "\"length(v) == 0\" is discouraged since it has to traverse the whole list to check if it is empty or not"
+    error_message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          def list_case do
+            v = []
+            case v do
+              _ when length(v) == 0 -> :ok
+              _ -> :fail
+            end
+          end
+        end
+        """)
+      end)
+
+    assert error_message =~ "do not use \"length(v) == 0\" to check if a list is empty"
+
+    assert error_message =~
+             "Prefer to pattern match on an empty list or use \"v == []\" as a guard"
+  after
+    purge(Sample)
+  end
+
+  test "length(list) > 0 in guard" do
+    error_message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          def list_case do
+            v = []
+            case v do
+              _ when length(v) > 0 -> :ok
+              _ -> :fail
+            end
+          end
+        end
+        """)
+      end)
+
+    assert error_message =~ "do not use \"length(v) > 0\" to check if a list is not empty"
+
+    assert error_message =~
+             "Prefer to pattern match on a non-empty list, such as [_ | _], or use \"v != []\" as a guard"
   after
     purge(Sample)
   end
@@ -661,7 +698,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "clause with defaults should be first" do
-    message = "definitions with multiple clauses and default values require a header"
+    message = "def hello/1 has multiple clauses and also declares default values"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -684,8 +721,8 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample2])
   end
 
-  test "clauses with default should use fun head" do
-    message = "definitions with multiple clauses and default values require a header"
+  test "clauses with default should use header" do
+    message = "def hello/1 has multiple clauses and also declares default values"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -760,6 +797,32 @@ defmodule Kernel.WarningTest do
              """)
            end) =~
              "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
+  after
+    purge(Sample)
+  end
+
+  test "parse transform" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               @compile {:parse_transform, :ms_transform}
+             end
+             """)
+           end) =~ "@compile {:parse_transform, :ms_transform} is deprecated"
+  after
+    purge(Sample)
+  end
+
+  test "@compile inline no warning for unreachable function" do
+    refute capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               @compile {:inline, foo: 1}
+
+               defp foo(_), do: :ok
+             end
+             """)
+           end) =~ "inlined function foo/1 undefined"
   after
     purge(Sample)
   end
@@ -934,7 +997,22 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample1.Atom])
   end
 
-  test "overridden def" do
+  test "overridden def name" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               def foo(x, 1), do: x + 1
+               def foo(), do: nil
+               def foo(x, 2), do: x * 2
+             end
+             """)
+           end) =~
+             "clauses with the same name should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
+  after
+    purge(Sample)
+  end
+
+  test "overridden def name and arity" do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule Sample do
@@ -944,7 +1022,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "clauses for the same def should be grouped together, def foo/2 was previously defined (nofile:2)"
+             "clauses with the same name and arity (number of arguments) should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
   after
     purge(Sample)
   end
@@ -994,7 +1072,7 @@ defmodule Kernel.WarningTest do
   test "warning on codepoint escape" do
     assert capture_err(fn ->
              Code.eval_string("? ")
-           end) =~ "found ? followed by codepoint 0x20 (space), please use \\s instead"
+           end) =~ "found ? followed by codepoint 0x20 (space), please use ?\\s instead"
   end
 
   test "duplicated docs" do
@@ -1006,7 +1084,7 @@ defmodule Kernel.WarningTest do
           @doc "Another"
           def foo, do: :ok
 
-          @doc false
+          Module.eval_quoted(__MODULE__, quote(do: @doc false))
           @doc "Doc"
           def bar, do: :ok
         end
@@ -1020,19 +1098,62 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "typedoc on typep" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample do
-               @typedoc "Something"
-               @typep priv :: any
-               @spec foo() :: priv
-               def foo(), do: nil
-             end
-             """)
-           end) =~ "type priv/0 is private, @typedoc's are always discarded for private types"
-  after
-    purge(Sample)
+  describe "typespecs" do
+    test "typedoc on typep" do
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @typedoc "Something"
+                 @typep priv :: any
+                 @spec foo() :: priv
+                 def foo(), do: nil
+               end
+               """)
+             end) =~ "type priv/0 is private, @typedoc's are always discarded for private types"
+    after
+      purge(Sample)
+    end
+
+    test "discouraged types" do
+      message =
+        capture_err(fn ->
+          Code.eval_string("""
+          defmodule Sample do
+            @type foo :: string()
+            @type bar :: nonempty_string()
+          end
+          """)
+        end)
+
+      string_discouraged =
+        "string() type use is discouraged. " <>
+          "For character lists, use charlist() type, for strings, String.t()\n"
+
+      nonempty_string_discouraged =
+        "nonempty_string() type use is discouraged. " <>
+          "For non-empty character lists, use nonempty_charlist() type, for strings, String.t()\n"
+
+      assert message =~ string_discouraged
+      assert message =~ nonempty_string_discouraged
+    after
+      purge(Sample)
+    end
+
+    test "unreachable specs" do
+      message =
+        capture_err(fn ->
+          Code.eval_string("""
+          defmodule Sample do
+            defp my_fun(x), do: x
+            @spec my_fun(integer) :: integer
+          end
+          """)
+        end)
+
+      assert message != ""
+    after
+      purge(Sample)
+    end
   end
 
   test "attribute with no use" do
@@ -1142,6 +1263,26 @@ defmodule Kernel.WarningTest do
       end)
 
     assert output =~ ~s("catch" should always come after "rescue" in try)
+  end
+
+  test "System.stacktrace is deprecated outside catch/rescue" do
+    output = capture_err(fn -> Code.eval_string("System.stacktrace()") end)
+    assert output =~ "System.stacktrace/0 outside of rescue/catch clauses is deprecated"
+
+    output =
+      capture_err(fn ->
+        Code.eval_string("""
+        try do
+          :trying
+        rescue
+          _ -> System.stacktrace()
+        catch
+          _ -> System.stacktrace()
+        end
+        """)
+      end)
+
+    assert output == ""
   end
 
   test "unused variable in defguard" do

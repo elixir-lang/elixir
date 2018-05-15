@@ -101,6 +101,9 @@ defimpl Collectable, for: BitString do
       acc, {:cont, x} when is_bitstring(x) ->
         <<IO.iodata_to_binary(acc)::bitstring, x::bitstring>>
 
+      acc, :done when is_bitstring(acc) ->
+        acc
+
       acc, :done ->
         IO.iodata_to_binary(acc)
 

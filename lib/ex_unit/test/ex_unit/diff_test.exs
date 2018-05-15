@@ -10,7 +10,7 @@ defmodule ExUnit.DiffTest do
   end
 
   defmodule Opaque do
-    defstruct [:x]
+    defstruct [:data]
 
     defimpl Inspect do
       def inspect(_, _) do
@@ -72,7 +72,7 @@ defmodule ExUnit.DiffTest do
         {:eq, ", "},
         {:ins, inspect(self())},
         {:ins, ", "},
-        [{:eq, "{"}, [[ins: "true"]], {:eq, "}"}],
+        [{:eq, "{"}, [{:ins, "true"}], {:eq, "}"}],
         {:del, ", "},
         {:del, ":ok"}
       ],
@@ -103,17 +103,6 @@ defmodule ExUnit.DiffTest do
 
     assert script(list1, list2) == expected
 
-    list1 = [1, 2]
-    list2 = [1, 1, 2]
-
-    expected = [
-      {:eq, "["},
-      [{:eq, "1"}, {:eq, ", "}, [del: "2", ins: "1"], {:ins, ", "}, {:ins, "2"}],
-      {:eq, "]"}
-    ]
-
-    assert script(list1, list2) == expected
-
     list1 = []
     list2 = [1, 2]
     expected = [{:eq, "["}, [ins: "1, 2"], {:eq, "]"}]
@@ -125,6 +114,46 @@ defmodule ExUnit.DiffTest do
     assert script(list1, list2) == expected
 
     assert script([], []) == [eq: "[]"]
+  end
+
+  test "lists containing non-empty subsets or supersets" do
+    list1 = [1, 2]
+    list2 = [1, 1, 2]
+
+    expected1 = [
+      {:eq, "["},
+      [ins: "1", ins: ", ", eq: "1, 2"],
+      {:eq, "]"}
+    ]
+
+    assert script(list1, list2) == expected1
+
+    expected2 = [
+      {:eq, "["},
+      [del: "1", del: ", ", eq: "1, 2"],
+      {:eq, "]"}
+    ]
+
+    assert script(list2, list1) == expected2
+
+    list1 = [1, 2, 3]
+    list2 = [2, 3]
+
+    expected1 = [
+      {:eq, "["},
+      [del: "1", del: ", ", eq: "2, 3"],
+      {:eq, "]"}
+    ]
+
+    assert script(list1, list2) == expected1
+
+    expected2 = [
+      {:eq, "["},
+      [ins: "1", ins: ", ", eq: "2, 3"],
+      {:eq, "]"}
+    ]
+
+    assert script(list2, list1) == expected2
   end
 
   test "charlists" do
@@ -252,17 +281,6 @@ defmodule ExUnit.DiffTest do
 
     assert script(keyword1, keyword2) == expected
 
-    keyword1 = [file: nil, line: 1]
-    keyword2 = [line: 1]
-
-    expected = [
-      {:eq, "["},
-      [{:del, "file: nil"}, {:del, ", "}, {:eq, "line: 1"}],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
     keyword1 = [file: nil]
     keyword2 = []
     expected = [{:eq, "["}, [{:del, "file: nil"}], {:eq, "]"}]
@@ -287,15 +305,35 @@ defmodule ExUnit.DiffTest do
     assert script(["foo-bar": 1], []) == [{:eq, "["}, [{:del, "\"foo-bar\": 1"}], {:eq, "]"}]
   end
 
+  test "keyword lists containing non-empty subsets or supersets" do
+    keyword1 = [file: nil, line: 1]
+    keyword2 = [line: 1]
+
+    expected = [
+      {:eq, "["},
+      [{:del, "file: nil"}, {:del, ", "}, {:eq, "line: 1"}],
+      {:eq, "]"}
+    ]
+
+    assert script(keyword1, keyword2) == expected
+
+    keyword1 = [line: 1]
+    keyword2 = [file: nil, line: 1]
+
+    expected = [{:eq, "["}, [ins: "file: nil", ins: ", ", eq: "line: 1"], {:eq, "]"}]
+
+    assert script(keyword1, keyword2) == expected
+  end
+
   test "improper lists" do
-    expected = [{:eq, "["}, [[eq: "1"], [eq: ", ", eq: "2"], [ins: " | 3"]], {:eq, "]"}]
+    expected = [{:eq, "["}, [[eq: "1, 2"], {:ins, " | 3"}], {:eq, "]"}]
     assert script([1, 2], [1, 2 | 3]) == expected
-    expected = [{:eq, "["}, [[eq: "1"], [eq: ", ", eq: "2"], [del: " | 3"]], {:eq, "]"}]
+    expected = [{:eq, "["}, [[eq: "1, 2"], {:del, " | 3"}], {:eq, "]"}]
     assert script([1, 2 | 3], [1, 2]) == expected
 
     expected = [
       {:eq, "["},
-      [[eq: "1"], [del: ",", ins: " |", eq: " ", del: "\"a\"", ins: "\"b\""]],
+      [[eq: "1", del: ", ", del: "\"a\""], {:ins, " | \"b\""}],
       {:eq, "]"}
     ]
 
@@ -303,7 +341,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [[eq: "1"], [del: " |", ins: ",", eq: " ", del: "\"b\"", ins: "\"a\""]],
+      [[eq: "1", ins: ", ", ins: "\"a\""], {:del, " | \"b\""}],
       {:eq, "]"}
     ]
 
@@ -314,7 +352,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [[eq: "1"], [eq: ", ", del: "'b'", ins: "'a'"], [eq: " | ", eq: "3"]],
+      [[eq: "1", eq: ", ", del: "'b'", ins: "'a'"], [eq: " | ", eq: "3"]],
       {:eq, "]"}
     ]
 
@@ -322,7 +360,7 @@ defmodule ExUnit.DiffTest do
 
     expected = [
       {:eq, "["},
-      [[del: "'a'", ins: "'b'"], [eq: ", ", eq: "2"], [eq: " | ", eq: "3"]],
+      [[del: "'a'", del: ", ", ins: "'b'", ins: ", ", eq: "2"], [eq: " | ", eq: "3"]],
       {:eq, "]"}
     ]
 
@@ -336,28 +374,36 @@ defmodule ExUnit.DiffTest do
     expected = [
       {:eq, "{"},
       [
-        [eq: ":hex"],
-        [{:eq, ", "}, {:eq, "'"}, [del: "1", ins: "0", eq: ".1"], {:eq, "'"}],
-        [ins: ", ", ins: "[{:ex_doc}]"]
+        {:eq, ":hex"},
+        {:eq, ", "},
+        [{:eq, "'"}, [del: "1", ins: "0", eq: ".1"], {:eq, "'"}],
+        {:ins, ", "},
+        {:ins, "[{:ex_doc}]"}
       ],
       {:eq, "}"}
     ]
 
     assert script(tuple1, tuple2) == expected
 
-    assert script(tuple1, {}) == [
-             {:eq, "{"},
-             [[del: ":hex"], [del: ", ", del: "'1.1'"]],
-             {:eq, "}"}
-           ]
-
-    assert script({}, tuple1) == [
-             {:eq, "{"},
-             [[ins: ":hex"], [ins: ", ", ins: "'1.1'"]],
-             {:eq, "}"}
-           ]
-
+    assert script(tuple1, {}) == [{:eq, "{"}, [{:del, ":hex, '1.1'"}], {:eq, "}"}]
+    assert script({}, tuple1) == [{:eq, "{"}, [{:ins, ":hex, '1.1'"}], {:eq, "}"}]
     assert script({}, {}) == [eq: "{}"]
+  end
+
+  test "tuples containing non-empty subsets or supersets" do
+    tuple1 = {:ok}
+    tuple2 = {:ok, [1, 2, 3]}
+
+    expected = [{:eq, "{"}, [eq: ":ok", ins: ", ", ins: "[1, 2, 3]"], {:eq, "}"}]
+
+    assert script(tuple1, tuple2) == expected
+
+    tuple1 = {:ok, [1, 2, 3]}
+    tuple2 = {[1, 2, 3]}
+
+    expected = [{:eq, "{"}, [del: ":ok", del: ", ", eq: "[1, 2, 3]"], {:eq, "}"}]
+
+    assert script(tuple1, tuple2) == expected
   end
 
   test "maps" do
@@ -441,13 +487,13 @@ defmodule ExUnit.DiffTest do
     assert script(date1, date2) == [eq: "~D[2017-10-0", del: "1", ins: "2", eq: "]"]
   end
 
-  test "structs with no inspect difference" do
-    opaque1 = %Opaque{x: 1}
-    opaque2 = %Opaque{x: 2}
+  test "structs without inspect difference" do
+    opaque1 = %Opaque{data: 1}
+    opaque2 = %Opaque{data: 2}
 
     assert script(opaque1, opaque2) == [
              {:eq, "%ExUnit.DiffTest.Opaque{"},
-             [[{:eq, "x: "}, [del: "1", ins: "2"]]],
+             [[{:eq, "data: "}, [del: "1", ins: "2"]]],
              {:eq, "}"}
            ]
   end

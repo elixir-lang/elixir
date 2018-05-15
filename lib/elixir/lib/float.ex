@@ -473,21 +473,21 @@ defmodule Float do
     IO.iodata_to_binary(:io_lib_format.fwrite_g(float))
   end
 
-  # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
   @doc false
+  # TODO: Remove by 2.0
+  @deprecated "Use Float.to_charlist/1 instead"
   def to_char_list(float), do: Float.to_charlist(float)
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use :erlang.float_to_list/2 instead"
   def to_char_list(float, options) do
     :erlang.float_to_list(float, expand_compact(options))
   end
 
   @doc false
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
+  @deprecated "Use :erlang.float_to_binary/2 instead"
   def to_string(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
   end

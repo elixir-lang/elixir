@@ -1,11 +1,10 @@
 -module(elixir_module).
--export([data_table/1, defs_table/1, is_open/1, delete_definition_attributes/6,
+-export([file/1, data_tables/1, is_open/1, delete_definition_attributes/6,
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2]).
 -include("elixir.hrl").
 
 -define(lexical_attr, {elixir, lexical_tracker}).
--define(persisted_attr, {elixir, persisted_attributes}).
 
 %% Stores modules currently being defined by the compiler
 
@@ -22,27 +21,29 @@ put_compiler_modules(M) when is_list(M) ->
 
 %% Table functions
 
-data_table(Module) ->
-  ets:lookup_element(elixir_modules, Module, 2).
+file(Module) ->
+  ets:lookup_element(elixir_modules, Module, 4).
 
-defs_table(Module) ->
-  ets:lookup_element(elixir_modules, Module, 3).
+data_tables(Module) ->
+  ets:lookup_element(elixir_modules, Module, 2).
 
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
 
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
-  Data = data_table(Module),
-  ets:delete(Data, doc),
-  ets:delete(Data, since),
-  ets:delete(Data, deprecated),
-  ets:delete(Data, impl).
+  {DataSet, _} = data_tables(Module),
+  ets:delete(DataSet, doc),
+  ets:delete(DataSet, since),
+  ets:delete(DataSet, deprecated),
+  ets:delete(DataSet, impl).
 
 write_cache(Module, Key, Value) ->
-  ets:insert(data_table(Module), {{cache, Key}, Value}).
+  {DataSet, _} = data_tables(Module),
+  ets:insert(DataSet, {{cache, Key}, Value}).
 
 read_cache(Module, Key) ->
-  ets:lookup_element(data_table(Module), {cache, Key}, 2).
+  {DataSet, _} = data_tables(Module),
+  ets:lookup_element(DataSet, {cache, Key}, 2).
 
 %% Compilation hook
 
@@ -57,7 +58,7 @@ compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
 
   case ?key(LexEnv, lexical_tracker) of
     nil ->
-      elixir_lexical:run(?key(LexEnv, file), nil, fun(Pid) ->
+      elixir_lexical:run(?key(LexEnv, file), fun(Pid) ->
         compile(Line, Module, Block, Vars, LexEnv#{lexical_tracker := Pid})
       end);
     _ ->
@@ -71,20 +72,26 @@ compile(Line, Module, Block, Vars, E) ->
   check_module_availability(Line, File, Module),
 
   CompilerModules = compiler_modules(),
-  {Data, Defs, Ref} = build(Line, File, Module, ?key(E, lexical_tracker)),
+  {Tables, Ref} = build(Line, File, Module, ?key(E, lexical_tracker)),
+  {DataSet, DataBag} = Tables,
 
   try
     put_compiler_modules([Module | CompilerModules]),
-    {Result, NE, OverridablePairs} = eval_form(Line, Module, Data, Block, Vars, E),
+    {Result, NE} = eval_form(Line, Module, DataBag, Block, Vars, E),
 
-    PersistedAttributes = ets:lookup_element(Data, ?persisted_attr, 2),
-    Attributes = attributes(Line, File, Data, PersistedAttributes),
+    PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
+    Attributes = attributes(DataSet, DataBag, PersistedAttributes),
     {AllDefinitions, Unreachable} = elixir_def:fetch_definitions(File, Module),
 
-    (not elixir_config:get(bootstrap)) andalso
-     'Elixir.Module':check_behaviours_and_impls(E, Data, AllDefinitions, OverridablePairs),
+    %% We stop tracking locals here to avoid race conditions in case after_load
+    %% evaluates code in a separate process that may write to locals table.
+    elixir_locals:stop({DataSet, DataBag}),
 
-    CompileOpts = lists:flatten(ets:lookup_element(Data, compile, 2)),
+    (not elixir_config:get(bootstrap)) andalso
+     'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
+
+    RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
+    CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
 
     ModuleMap = #{
       module => Module,
@@ -93,13 +100,14 @@ compile(Line, Module, Block, Vars, E) ->
       attributes => Attributes,
       definitions => AllDefinitions,
       unreachable => Unreachable,
-      compile_opts => CompileOpts
+      compile_opts => CompileOpts,
+      deprecated => get_deprecated(DataBag)
     },
 
     Binary = elixir_erl:compile(ModuleMap),
-    warn_unused_attributes(File, Data, PersistedAttributes),
+    warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
-    eval_callbacks(Line, Data, after_compile, [NE, Binary], NE),
+    eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     make_module_available(Module, Binary),
     {module, Module, Binary, Result}
   catch
@@ -114,11 +122,39 @@ compile(Line, Module, Block, Vars, E) ->
       end
   after
     put_compiler_modules(CompilerModules),
-    elixir_locals:cleanup(Module),
-    ets:delete(Data),
-    ets:delete(Defs),
+    ets:delete(DataSet),
+    ets:delete(DataBag),
     elixir_code_server:call({undefmodule, Ref})
   end.
+
+validate_compile_opts(Opts, Defs, Unreachable, File, Line) ->
+  lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Unreachable, File, Line) end, Opts).
+
+%% TODO: Make this an error and skip parse transform processing on 2.0.
+validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, File, Line) ->
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {parse_transform, Module}),
+  [Opt];
+validate_compile_opt({inline, Inlines}, Defs, Unreachable, File, Line) ->
+  case validate_inlines(Inlines, Defs, Unreachable, []) of
+    {ok, []} -> [];
+    {ok, FilteredInlines} -> [{inline, FilteredInlines}];
+    {error, Def} -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {bad_inline, Def})
+  end;
+validate_compile_opt(Opt, Defs, Unreachable, File, Line) when is_list(Opt) ->
+  validate_compile_opts(Opt, Defs, Unreachable, File, Line);
+validate_compile_opt(Opt, _Defs, _Unreachable, _File, _Line) ->
+  [Opt].
+
+validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
+  case lists:keyfind(Inline, 1, Defs) of
+    false -> {error, Inline};
+    _ ->
+      case lists:member(Inline, Unreachable) of
+        true -> validate_inlines(Inlines, Defs, Unreachable, Acc);
+        false -> validate_inlines(Inlines, Defs, Unreachable, [Inline | Acc])
+      end
+  end;
+validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
 
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
@@ -138,7 +174,7 @@ compile_undef(Module, Fun, Arity, Stack) ->
 %% Handle reserved modules and duplicates.
 
 check_module_availability(Line, File, Module) ->
-  Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.Function', 'Elixir.PID',
+  Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.PID',
               'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
 
   case lists:member(Module, Reserved) of
@@ -161,77 +197,98 @@ check_module_availability(Line, File, Module) ->
 %% Hook that builds both attribute and functions and set up common hooks.
 
 build(Line, File, Module, Lexical) ->
-  case elixir_code_server:call({lookup, Module}) of
-    [{Module, _, _, OldLine, OldFile}] ->
-      Error = {module_in_definition, Module, OldFile, OldLine},
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, Error);
-    _ ->
-      []
-  end,
+  %% In the set table we store:
+  %%
+  %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
+  %% * {{elixir, ...}, ...}
+  %% * {{cache, ...}, ...}
+  %% * {{doc, Tuple}, ...}
+  %% * {{type, Tuple}, ...}, {{opaque, Tuple}, ...}
+  %% * {{callback, Tuple}, ...}, {{macrocallback, Tuple}, ...}
+  %% * {{def, Tuple}, ...} (from elixir_def)
+  %% * {{import, Tuple}, ...} (from_elixir_locals)
+  %%
+  DataSet = ets:new(Module, [set, public]),
 
-  Data = ets:new(Module, [set, public]),
-  Defs = ets:new(Module, [duplicate_bag, public]),
-  Ref  = elixir_code_server:call({defmodule, self(),
-                                 {Module, Data, Defs, Line, File}}),
+  %% In the bag table we store:
+  %%
+  %% * {{accumulate, Attribute}, ...}
+  %% * {attributes, ...}
+  %% * {impls, ...}
+  %% * {deprecated, ...}
+  %% * {persisted_attributes, ...}
+  %% * {defs, ...} (from elixir_def)
+  %% * {{default, Name}, ...} (from elixir_def)
+  %% * {{clauses, Tuple}, ...} (from elixir_def)
+  %% * {reattach, ...} (from elixir_local)
+  %% * {{local, Tuple}, ...} (from elixir_local)
+  %% * {spec, ...}, {type, ...}, {callback, ...}, {macrocallback, ...}
+  %%
+  DataBag = ets:new(Module, [duplicate_bag, public]),
+
+  ets:insert(DataSet, [
+    % {Key, Value, ReadOrUnreadLine}
+    {moduledoc, nil, nil},
+
+    % {Key, Value, accumulate}
+    {after_compile, [], accumulate},
+    {before_compile, [], accumulate},
+    {behaviour, [], accumulate},
+    {compile, [], accumulate},
+    {derive, [], accumulate},
+    {dialyzer, [], accumulate},
+    {external_resource, [], accumulate},
+    {on_definition, [], accumulate},
+    {on_load, [], accumulate},
+    {optional_callbacks, [], accumulate},
+
+    % Others
+    {?lexical_attr, Lexical}
+  ]),
+
+  Persisted = [behaviour, on_load, external_resource, dialyzer, vsn],
+  ets:insert(DataBag, [{persisted_attributes, Attr} || Attr <- Persisted]),
 
   OnDefinition =
     case elixir_config:get(bootstrap) of
-      false -> [{'Elixir.Module', compile_definition_attributes}];
-      _ -> [{elixir_module, delete_definition_attributes}]
+      false -> {'Elixir.Module', compile_definition_attributes};
+      _ -> {elixir_module, delete_definition_attributes}
     end,
-
-  ets:insert(Data, [
-    % {Key, Value, Accumulate?, UnreadLine}
-    {after_compile, [], true, nil},
-    {before_compile, [], true, nil},
-    {behaviour, [], true, nil},
-    {compile, [], true, nil},
-    {derive, [], true, nil},
-    {dialyzer, [], true, nil},
-    {external_resource, [], true, nil},
-    {moduledoc, nil, false, nil},
-    {on_definition, OnDefinition, true, nil},
-    {on_load, [], true, nil},
-
-    % Types
-    {callback, [], true, nil},
-    {opaque, [], true, nil},
-    {optional_callbacks, [], true, nil},
-    {macrocallback, [], true, nil},
-    {spec, [], true, nil},
-    {type, [], true, nil},
-    {typep, [], true, nil},
-
-    % Internal
-    {{elixir, impls}, []},
-    {{elixir, cache_env}, 0, nil}
-  ]),
-
-  Persisted = [behaviour, on_load, compile, external_resource, dialyzer, vsn],
-  ets:insert(Data, {?persisted_attr, Persisted}),
-  ets:insert(Data, {?lexical_attr, Lexical}),
+  ets:insert(DataBag, {{accumulate, on_definition}, OnDefinition}),
 
   %% Setup definition related modules
-  elixir_def:setup(Module),
-  elixir_locals:setup(Module),
-  elixir_overridable:setup(Module),
+  Tables = {DataSet, DataBag},
+  elixir_def:setup(Tables),
+  elixir_locals:setup(Tables),
+  elixir_overridable:setup(Tables),
+  Tuple = {Module, Tables, Line, File},
 
-  {Data, Defs, Ref}.
+  Ref =
+    case elixir_code_server:call({defmodule, Module, self(), Tuple}) of
+      {ok, ModuleRef} ->
+        ModuleRef;
+      {error, {Module, _, OldLine, OldFile}} ->
+        ets:delete(DataSet),
+        ets:delete(DataBag),
+        Error = {module_in_definition, Module, OldFile, OldLine},
+        elixir_errors:form_error([{line, Line}], File, ?MODULE, Error)
+    end,
+
+  {Tables, Ref}.
 
 %% Handles module and callback evaluations.
 
-eval_form(Line, Module, Data, Block, Vars, E) ->
+eval_form(Line, Module, DataBag, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
-  Pairs1 = elixir_overridable:store_pending(Module),
+  elixir_overridable:store_pending(Module),
   EV = elixir_env:linify({Line, elixir_env:reset_vars(EE)}),
-  EC = eval_callbacks(Line, Data, before_compile, [EV], EV),
-  Pairs2 = elixir_overridable:store_pending(Module),
-  OverridablePairs = Pairs1 ++ Pairs2,
-  {Value, EC, OverridablePairs}.
+  EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
+  elixir_overridable:store_pending(Module),
+  {Value, EC}.
 
-eval_callbacks(Line, Data, Name, Args, E) ->
-  Callbacks = ets:lookup_element(Data, Name, 2),
-  lists:foldr(fun({M, F}, Acc) ->
+eval_callbacks(Line, DataBag, Name, Args, E) ->
+  Callbacks = bag_lookup_element(DataBag, {accumulate, Name}, 2),
+  lists:foldl(fun({M, F}, Acc) ->
     expand_callback(Line, M, F, Args, elixir_env:reset_vars(Acc),
                     fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
@@ -261,26 +318,34 @@ expand_callback(Line, M, F, Args, E, Fun) ->
 
 %% Add attributes handling to the form
 
-attributes(Line, File, Data, PersistedAttributes) ->
-  [{Key, Value} || Key <- PersistedAttributes,
-                   Value <- lookup_attribute(Line, File, Data, Key)].
+attributes(DataSet, DataBag, PersistedAttributes) ->
+  [{Key, Value} || Key <- PersistedAttributes, Value <- lookup_attribute(DataSet, DataBag, Key)].
 
-lookup_attribute(Line, File, Data, Key) when is_atom(Key) ->
-  case ets:lookup(Data, Key) of
-    [{resource, Values, true, _}] ->
-      lists:usort([validate_external_resource(Line, File, Value) || Value <- Values]);
-    [{Key, Values, true, _}] ->
-      Values;
-    [{Key, Value, false, _}] ->
-      [Value];
-    [] ->
-      []
+lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
+  case ets:lookup(DataSet, Key) of
+    [{Key, _, accumulate}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
+    [{Key, Value, _}] -> [Value];
+    [] -> []
   end.
 
-validate_external_resource(_Line, _File, Value) when is_binary(Value) ->
-  Value;
-validate_external_resource(Line, File, Value) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_external_resource, Value}).
+warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
+  StoredAttrs = bag_lookup_element(DataBag, attributes, 2),
+  %% This is the same list as in Module.put_attribute
+  %% without moduledoc which are never warned on.
+  Attrs = [doc, typedoc, impl, since, deprecated | StoredAttrs -- PersistedAttrs],
+  Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
+  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
+   || [Key, Line] <- ets:select(DataSet, Query)].
+
+get_deprecated(Bag) ->
+  lists:usort(bag_lookup_element(Bag, deprecated, 2)).
+
+bag_lookup_element(Table, Name, Pos) ->
+  try
+    ets:lookup_element(Table, Name, Pos)
+  catch
+    error:badarg -> []
+  end.
 
 %% Takes care of autoloading the module if configured.
 
@@ -290,22 +355,13 @@ autoload_module(Module, Binary, Opts, E) ->
     false -> ok
   end.
 
-beam_location(#{lexical_tracker := Pid, module := Module}) ->
-  case elixir_lexical:dest(Pid) of
-    nil -> "";
-    Dest ->
-      filename:join(elixir_utils:characters_to_list(Dest),
-                    atom_to_list(Module) ++ ".beam")
+beam_location(#{module := Module}) ->
+  case get(elixir_compiler_dest) of
+    Dest when is_binary(Dest) ->
+      filename:join(elixir_utils:characters_to_list(Dest), atom_to_list(Module) ++ ".beam");
+    _ ->
+      ""
   end.
-
-%% Handle unused attributes warnings and special cases.
-
-warn_unused_attributes(File, Data, PersistedAttrs) ->
-  ReservedAttrs = [after_compile, before_compile, moduledoc,
-                   on_definition, optional_callbacks | PersistedAttrs],
-  Keys = ets:select(Data, [{{'$1', '_', '_', '$2'}, [{is_atom, '$1'}, {is_integer, '$2'}], [['$1', '$2']]}]),
-  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key}) ||
-   [Key, Line] <- Keys, not lists:member(Key, ReservedAttrs)].
 
 %% Integration with elixir_compiler that makes the module available
 
@@ -341,15 +397,16 @@ prune_stacktrace(Info, []) ->
 location(Line, E) ->
   [{file, elixir_utils:characters_to_list(?key(E, file))}, {line, Line}].
 
-format_error({invalid_external_resource, Value}) ->
-  io_lib:format("expected a string value for @external_resource, got: ~p",
-    ['Elixir.Kernel':inspect(Value)]);
 format_error({unused_attribute, typedoc}) ->
   "module attribute @typedoc was set but no type follows it";
 format_error({unused_attribute, doc}) ->
   "module attribute @doc was set but no definition follows it";
 format_error({unused_attribute, impl}) ->
   "module attribute @impl was set but no definition follows it";
+format_error({unused_attribute, deprecated}) ->
+  "module attribute @deprecated was set but no definition follows it";
+format_error({unused_attribute, since}) ->
+  "module attribute @since was set but no definition follows it";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
 format_error({invalid_module, Module}) ->
@@ -369,4 +426,9 @@ format_error({module_reserved, Module}) ->
   io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
 format_error({module_in_definition, Module, File, Line}) ->
   io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
-    [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]).
+    [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]);
+format_error({bad_inline, {Name, Arity}}) ->
+  io_lib:format("inlined function ~ts/~B undefined", [Name, Arity]);
+format_error({parse_transform, Module}) ->
+  io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir will no longer support "
+                "Erlang-based transforms in future versions", [elixir_aliases:inspect(Module)]).

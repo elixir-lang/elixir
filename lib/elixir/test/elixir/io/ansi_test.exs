@@ -155,4 +155,69 @@ defmodule IO.ANSITest do
       IO.ANSI.color_background(5, -1, 1)
     end
   end
+
+  test "cursor/2" do
+    assert IO.ANSI.cursor(0, 0) == "\e[0;0H"
+    assert IO.ANSI.cursor(11, 12) == "\e[11;12H"
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor(-1, 5)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor(5, -1)
+    end
+  end
+
+  test "cursor_up/1" do
+    assert IO.ANSI.cursor_up() == "\e[1A"
+    assert IO.ANSI.cursor_up(12) == "\e[12A"
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor_up(0)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor_up(-1)
+    end
+  end
+
+  test "cursor_down/1" do
+    assert IO.ANSI.cursor_down() == "\e[1B"
+    assert IO.ANSI.cursor_down(2) == "\e[2B"
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor_right(0)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor_down(-1)
+    end
+  end
+
+  test "cursor_left/1" do
+    assert IO.ANSI.cursor_left() == "\e[1D"
+    assert IO.ANSI.cursor_left(3) == "\e[3D"
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor_left(0)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor_left(-1)
+    end
+  end
+
+  test "cursor_right/1" do
+    assert IO.ANSI.cursor_right() == "\e[1C"
+    assert IO.ANSI.cursor_right(4) == "\e[4C"
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor_right(0)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      IO.ANSI.cursor_right(-1)
+    end
+  end
 end

@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Xref do
   Prints a file dependency graph where an edge from `A` to `B` indicates
   that `A` depends on `B`.
 
-      mix xref graph --format dot
+      mix xref graph --format stats
 
   The following options are accepted:
 
@@ -470,8 +470,7 @@ defmodule Mix.Tasks.Xref do
     [
       Exception.format_mfa(module, function, arity),
       " is deprecated. ",
-      reason,
-      "."
+      reason
     ]
   end
 

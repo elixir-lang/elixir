@@ -6,21 +6,21 @@ defmodule Mix.Tasks.HelpTest do
   import ExUnit.CaptureIO
 
   test "help lists all tasks", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Mix.Tasks.Help.run([])
       assert_received {:mix_shell, :info, ["mix" <> _]}
       assert_received {:mix_shell, :info, ["mix help" <> _]}
       assert_received {:mix_shell, :info, ["mix compile" <> _]}
-    end
+    end)
   end
 
   test "help list default task", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Mix.Tasks.Help.run([])
 
       assert_received {:mix_shell, :info, [output]}
       assert output =~ ~r/^mix\s+# Runs the default task \(current: \"mix run\"\)/m
-    end
+    end)
   end
 
   defmodule Aliases do
@@ -32,7 +32,7 @@ defmodule Mix.Tasks.HelpTest do
   test "help --names", context do
     Mix.Project.push(Aliases)
 
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["--names"])
       assert_received {:mix_shell, :info, ["c"]}
       assert_received {:mix_shell, :info, ["compile"]}
@@ -40,11 +40,11 @@ defmodule Mix.Tasks.HelpTest do
       assert_received {:mix_shell, :info, ["help"]}
       assert_received {:mix_shell, :info, ["escript.build"]}
       refute_received {:mix_shell, :info, ["compile.all"]}
-    end
+    end)
   end
 
   test "help TASK", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       output =
         capture_io(fn ->
           Mix.Tasks.Help.run(["compile"])
@@ -61,15 +61,15 @@ defmodule Mix.Tasks.HelpTest do
 
       assert output =~ "# mix compile.all\n"
       assert output =~ "There is no documentation for this task"
-    end
+    end)
   end
 
   test "help --search PATTERN", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["--search", "deps"])
       assert_received {:mix_shell, :info, ["mix deps" <> _]}
       assert_received {:mix_shell, :info, ["mix deps.clean" <> _]}
-    end
+    end)
   end
 
   test "help --search without pattern" do
@@ -79,14 +79,14 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "help --search without results", context do
-    in_tmp context.test, fn ->
+    in_tmp(context.test, fn ->
       output =
         capture_io(fn ->
           Mix.Tasks.Help.run(["--search", "foo"])
         end)
 
       assert output == ""
-    end
+    end)
   end
 
   test "bad arguments" do

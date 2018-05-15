@@ -5,15 +5,13 @@ defmodule IEx.Introspection do
 
   import IEx, only: [dont_display_result: 0]
 
-  alias Kernel.Typespec
+  alias Code.Typespec
 
   @doc """
   Decomposes an introspection call into `{mod, fun, arity}`,
   `{mod, fun}` or `mod`.
   """
-  @default_modules [IEx.Helpers, Kernel, Kernel.SpecialForms]
-
-  def decompose({:/, _, [call, arity]} = term) do
+  def decompose({:/, _, [call, arity]} = term, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} when arity == 1 ->
         {:{}, [], [Module, :__info__, 1]}
@@ -22,14 +20,14 @@ defmodule IEx.Introspection do
         {:{}, [], [mod, fun, arity]}
 
       {fun, []} ->
-        {:{}, [], [find_decompose_fun_arity(fun, arity), fun, arity]}
+        {:{}, [], [find_decompose_fun_arity(fun, arity, context), fun, arity]}
 
       _ ->
         term
     end
   end
 
-  def decompose(call) do
+  def decompose(call, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} ->
         Macro.escape({Module, :__info__, 1})
@@ -38,26 +36,49 @@ defmodule IEx.Introspection do
         {mod, fun}
 
       {fun, []} ->
-        {find_decompose_fun(fun), fun}
+        {find_decompose_fun(fun, context), fun}
 
       _ ->
         call
     end
   end
 
-  defp find_decompose_fun(fun) do
-    Enum.find(@default_modules, Kernel, fn mod ->
-      Keyword.has_key?(mod.__info__(:functions), fun) or
-        Keyword.has_key?(mod.__info__(:macros), fun)
+  defp find_decompose_fun(fun, context) do
+    find_import(fun, context.functions) || find_import(fun, context.macros) ||
+      find_special_form(fun) || Kernel
+  end
+
+  defp find_decompose_fun_arity(fun, arity, context) do
+    pair = {fun, arity}
+
+    find_import(pair, context.functions) || find_import(pair, context.macros) ||
+      find_special_form(pair) || Kernel
+  end
+
+  defp find_import(pair, context) when is_tuple(pair) do
+    Enum.find_value(context, fn {mod, functions} ->
+      if pair in functions, do: mod
     end)
   end
 
-  defp find_decompose_fun_arity(fun, arity) do
-    pair = {fun, arity}
-
-    Enum.find(@default_modules, Kernel, fn mod ->
-      pair in mod.__info__(:functions) or pair in mod.__info__(:macros)
+  defp find_import(fun, context) do
+    Enum.find_value(context, fn {mod, functions} ->
+      if Keyword.has_key?(functions, fun), do: mod
     end)
+  end
+
+  defp find_special_form(pair) when is_tuple(pair) do
+    special_form_function? = pair in Kernel.SpecialForms.__info__(:functions)
+    special_form_macro? = pair in Kernel.SpecialForms.__info__(:macros)
+
+    if special_form_function? or special_form_macro?, do: Kernel.SpecialForms
+  end
+
+  defp find_special_form(fun) do
+    special_form_function? = Keyword.has_key?(Kernel.SpecialForms.__info__(:functions), fun)
+    special_form_macro? = Keyword.has_key?(Kernel.SpecialForms.__info__(:macros), fun)
+
+    if special_form_function? or special_form_macro?, do: Kernel.SpecialForms
   end
 
   @doc """
@@ -440,7 +461,14 @@ defmodule IEx.Introspection do
     mod.module_info(:attributes)
     |> Keyword.get_values(:behaviour)
     |> Stream.concat()
-    |> Enum.find(&Enum.any?(Typespec.beam_callbacks(&1), predicate))
+    |> Enum.find(&Enum.any?(get_callbacks(&1), predicate))
+  end
+
+  defp get_callbacks(module) do
+    case Typespec.fetch_callbacks(module) do
+      {:ok, callbacks} -> callbacks
+      :error -> []
+    end
   end
 
   defp format_doc_arg({:\\, _, [left, right]}) do
@@ -452,24 +480,17 @@ defmodule IEx.Introspection do
   end
 
   defp get_spec(module, name, arity) do
-    all_specs = Typespec.beam_specs(module) || []
+    with {:ok, all_specs} <- Typespec.fetch_specs(module),
+         {_, specs} <- List.keyfind(all_specs, {name, arity}, 0) do
+      formatted =
+        Enum.map(specs, fn spec ->
+          Typespec.spec_to_quoted(name, spec)
+          |> format_typespec(:spec, 2)
+        end)
 
-    case List.keyfind(all_specs, {name, arity}, 0) do
-      {_, specs} ->
-        formatted =
-          Enum.map(specs, fn spec ->
-            Typespec.spec_to_ast(name, spec)
-            |> format_typespec(:spec)
-            |> IO.iodata_to_binary()
-            |> String.replace("\n", "\n    ")
-            |> prefix("    ")
-            |> pair(?\n)
-          end)
-
-        [formatted, ?\n]
-
-      nil ->
-        []
+      [formatted, ?\n]
+    else
+      _ -> []
     end
   end
 
@@ -528,17 +549,16 @@ defmodule IEx.Introspection do
   end
 
   defp get_callback_docs(mod, filter) do
-    callbacks = Typespec.beam_callbacks(mod)
     docs = Code.get_docs(mod, :callback_docs)
 
-    cond do
-      is_nil(callbacks) ->
+    case Typespec.fetch_callbacks(mod) do
+      :error ->
         :no_beam
 
-      is_nil(docs) ->
+      _ when is_nil(docs) ->
         :no_docs
 
-      true ->
+      {:ok, callbacks} ->
         docs =
           docs
           |> Enum.filter(filter)
@@ -571,19 +591,16 @@ defmodule IEx.Introspection do
   end
 
   defp format_optional_callbacks(callbacks) do
-    callbacks
-    |> format_typespec(:optional_callbacks)
-    |> pair(?\n)
+    format_typespec(callbacks, :optional_callbacks, 0)
   end
 
   defp format_callback(kind, name, key, callbacks) do
     {_, specs} = List.keyfind(callbacks, key, 0)
 
     Enum.map(specs, fn spec ->
-      Typespec.spec_to_ast(name, spec)
+      Typespec.spec_to_quoted(name, spec)
       |> Macro.prewalk(&drop_macro_env/1)
-      |> format_typespec(kind)
-      |> pair(?\n)
+      |> format_typespec(kind, 0)
     end)
   end
 
@@ -596,14 +613,14 @@ defmodule IEx.Introspection do
   Prints the types for the given module and type documentation.
   """
   def t(module) when is_atom(module) do
-    case Typespec.beam_types(module) do
-      nil ->
+    case Typespec.fetch_types(module) do
+      :error ->
         no_beam(module)
 
-      [] ->
+      {:ok, []} ->
         types_not_found(inspect(module))
 
-      types ->
+      {:ok, types} ->
         Enum.each(types, &(&1 |> format_type() |> IO.puts()))
     end
 
@@ -611,11 +628,11 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type}) when is_atom(module) and is_atom(type) do
-    case Typespec.beam_types(module) do
-      nil ->
+    case Typespec.fetch_types(module) do
+      :error ->
         no_beam(module)
 
-      types ->
+      {:ok, types} ->
         printed =
           for {_, {^type, _, args}} = typespec <- types do
             doc = {format_type(typespec), type_doc(module, type, length(args))}
@@ -631,11 +648,11 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
-    case Typespec.beam_types(module) do
-      nil ->
+    case Typespec.fetch_types(module) do
+      :error ->
         no_beam(module)
 
-      types ->
+      {:ok, types} ->
         printed =
           for {_, {^type, _, args}} = typespec <- types, length(args) == arity do
             doc = {format_type(typespec), type_doc(module, type, arity)}
@@ -656,43 +673,44 @@ defmodule IEx.Introspection do
   end
 
   defp type_doc(module, type, arity) do
-    docs = Code.get_docs(module, :type_docs)
-    {_, _, _, content} = Enum.find(docs, &match?({{^type, ^arity}, _, _, _}, &1))
-    content
+    if docs = Code.get_docs(module, :type_docs) do
+      {_, _, _, content} = Enum.find(docs, &match?({{^type, ^arity}, _, _, _}, &1))
+      content
+    end
   end
 
   defp format_type({:opaque, type}) do
-    {:::, _, [ast, _]} = Typespec.type_to_ast(type)
-    [format_typespec(ast, :opaque), ?\n]
+    {:::, _, [ast, _]} = Typespec.type_to_quoted(type)
+    format_typespec(ast, :opaque, 0)
   end
 
   defp format_type({kind, type}) do
-    ast = Typespec.type_to_ast(type)
-    [format_typespec(ast, kind), ?\n]
+    ast = Typespec.type_to_quoted(type)
+    format_typespec(ast, kind, 0)
   end
 
   ## Helpers
 
-  defp format_typespec(definition, kind) do
-    definition
-    |> Macro.to_string()
-    |> prefix("@#{kind} ")
-    |> Code.format_string!(line_length: IEx.width())
+  defp format_typespec(definition, kind, nesting) do
+    "@#{kind} #{Macro.to_string(definition)}"
+    |> Code.format_string!(line_length: IEx.width() - nesting)
     |> IO.iodata_to_binary()
     |> color_prefix_with_line()
+    |> indent(nesting)
   end
 
-  defp prefix(string, prefix) do
-    prefix <> string
+  defp indent(content, 0) do
+    [content, ?\n]
   end
 
-  defp pair(left, right) do
-    [left, right]
+  defp indent(content, nesting) do
+    whitespace = String.duplicate(" ", nesting)
+    [whitespace, String.replace(content, "\n", "\n#{whitespace}"), ?\n]
   end
 
   defp color_prefix_with_line(string) do
     [left, right] = :binary.split(string, " ")
-    [IEx.color(:doc_inline_code, left), ?\s, right]
+    IEx.color(:doc_inline_code, left) <> " " <> right
   end
 
   defp print_doc(heading, types, doc) do

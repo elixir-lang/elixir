@@ -12,10 +12,6 @@
     assert_same: 2,
 
     # Errors tests
-    assert_eval_raise: 3,
-
-    # Mix tests
-    in_fixture: 2,
-    in_tmp: 2
+    assert_eval_raise: 3
   ]
 ]

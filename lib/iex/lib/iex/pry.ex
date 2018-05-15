@@ -189,7 +189,7 @@ defmodule IEx.Pry do
               "module #{inspect(module)} was not written in Elixir"
 
             :otp_20_is_required ->
-              "you are running on an earlier OTP version than OTP 20"
+              "you are running on an earlier version than Erlang/OTP 20"
 
             :outdated_debug_info ->
               "module #{inspect(module)} was not compiled with the latest debug_info"
@@ -335,7 +335,7 @@ defmodule IEx.Pry do
   end
 
   def handle_call({:remove_breaks, module}, _from, counter) do
-    # Make sure to deinstrumented before clearing
+    # Make sure to deinstrument before clearing
     # up the table to avoid race conditions.
     reply = deinstrument_if_instrumented(module)
     true = :ets.match_delete(@table, {:_, module, :_, :_, :_})

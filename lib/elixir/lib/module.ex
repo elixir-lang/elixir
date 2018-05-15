@@ -57,9 +57,9 @@ defmodule Module do
 
   To aid in the correct implementation of behaviours, you may optionally declare
   `@impl` for implemented callbacks of a behaviour. This makes callbacks
-  explicit and can help you to catch errors in your code (the compiler will warn
+  explicit and can help you to catch errors in your code. The compiler will warn
   you if you mark a function as `@impl` when in fact it is not a callback, and
-  vice versa). It also helps with maintainability by making it clear to other
+  vice-versa. It also helps with maintainability by making it clear to other
   developers that the function's purpose is to implement a callback.
 
   Using `@impl` the example above can be rewritten as:
@@ -86,6 +86,11 @@ defmodule Module do
         @impl Baz # will warn if Baz does not specify a callback named baz/0
         def baz(), do: :ok
       end
+
+  Readability of the code is increased, as it is now clear which functions are
+  part of your API and which ones are callback implementations. To reinforce this
+  idea, `@impl true` automatically marks the function as `@doc false`, disabling
+  documentation unless `@doc` is explicitly set.
 
   ### `@compile`
 
@@ -115,7 +120,7 @@ defmodule Module do
         end
       end
 
-  The mix compiler automatically looks for calls to deprecated modules
+  The Mix compiler automatically looks for calls to deprecated modules
   and emit warnings during compilation, computed via `mix xref warnings`.
 
   We recommend using this feature with care, especially library authors.
@@ -815,12 +820,11 @@ defmodule Module do
 
   """
   @spec defines?(module, definition) :: boolean
-  def defines?(module, {function_or_macro_name, arity} = tuple)
-      when is_atom(module) and is_atom(function_or_macro_name) and is_integer(arity) and
-             arity >= 0 and arity <= 255 do
+  def defines?(module, {name, arity} = tuple)
+      when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 do
     assert_not_compiled!(:defines?, module)
-    table = defs_table_for(module)
-    :ets.lookup(table, {:def, tuple}) != []
+    {set, _bag} = data_tables_for(module)
+    :ets.lookup(set, {:def, tuple}) != []
   end
 
   @doc """
@@ -842,16 +846,38 @@ defmodule Module do
 
   """
   @spec defines?(module, definition, def_kind) :: boolean
-  def defines?(module, {function_macro_name, arity} = tuple, def_kind)
-      when is_atom(module) and is_atom(function_macro_name) and is_integer(arity) and arity >= 0 and
-             arity <= 255 and def_kind in [:def, :defp, :defmacro, :defmacrop] do
+  def defines?(module, {name, arity} = tuple, def_kind)
+      when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 and
+             def_kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:defines?, module)
-    table = defs_table_for(module)
+    {set, _bag} = data_tables_for(module)
 
-    case :ets.lookup(table, {:def, tuple}) do
+    case :ets.lookup(set, {:def, tuple}) do
       [{_, ^def_kind, _, _, _, _}] -> true
       _ -> false
     end
+  end
+
+  @doc """
+  Checks if the current module defines the given type (private, opaque or not).
+
+  This function is only available for modules being compiled.
+  """
+  @since "1.7.0"
+  @spec defines_type?(module, definition) :: boolean
+  def defines_type?(module, definition) do
+    Kernel.Typespec.defines_type?(module, definition)
+  end
+
+  @doc """
+  Converts the given spec to a callback.
+
+  Returns `true` if there is such a spec and it was converted to a callback.
+  """
+  @since "1.7.0"
+  @spec spec_to_callback(module, definition) :: boolean
+  def spec_to_callback(module, definition) do
+    Kernel.Typespec.spec_to_callback(module, definition)
   end
 
   @doc """
@@ -868,8 +894,8 @@ defmodule Module do
   @spec definitions_in(module) :: [definition]
   def definitions_in(module) when is_atom(module) do
     assert_not_compiled!(:definitions_in, module)
-    table = defs_table_for(module)
-    :lists.concat(:ets.match(table, {{:def, :"$1"}, :_, :_, :_, :_, :_}))
+    {_, bag} = data_tables_for(module)
+    bag_lookup_element(bag, :defs, 2)
   end
 
   @doc """
@@ -889,8 +915,8 @@ defmodule Module do
   def definitions_in(module, def_kind)
       when is_atom(module) and def_kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(:definitions_in, module)
-    table = defs_table_for(module)
-    :lists.concat(:ets.match(table, {{:def, :"$1"}, def_kind, :_, :_, :_, :_}))
+    {set, _} = data_tables_for(module)
+    :lists.concat(:ets.match(set, {{:def, :"$1"}, def_kind, :_, :_, :_, :_}))
   end
 
   @doc """
@@ -903,7 +929,6 @@ defmodule Module do
   @spec make_overridable(module, [definition]) :: :ok
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
     assert_not_compiled!(:make_overridable, module)
-    check_impls_for_overridable(module, tuples)
 
     func = fn
       {function_name, arity} = tuple
@@ -958,36 +983,16 @@ defmodule Module do
       end
 
     tuples =
-      for definition <- definitions_in(module), definition in behaviour_callbacks, do: definition
+      for definition <- definitions_in(module),
+          definition in behaviour_callbacks,
+          do: definition
 
     make_overridable(module, tuples)
   end
 
-  defp check_impls_for_overridable(module, tuples) do
-    table = data_table_for(module)
-    impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
-
-    {overridable_impls, impls} =
-      :lists.splitwith(fn {pair, _, _, _, _, _} -> pair in tuples end, impls)
-
-    if overridable_impls != [] do
-      :ets.insert(table, {{:elixir, :impls}, impls})
-      behaviours = :ets.lookup_element(table, :behaviour, 2)
-
-      callbacks =
-        for behaviour <- behaviours,
-            function_exported?(behaviour, :behaviour_info, 1),
-            callback <- behaviour_info(behaviour, :callbacks),
-            {callback, kind} = normalize_macro_or_function_callback(callback),
-            do: {callback, {kind, behaviour, true}},
-            into: %{}
-
-      check_impls(behaviours, callbacks, overridable_impls)
-    end
-  end
-
   defp check_module_for_overridable(module, behaviour) do
-    behaviour_definitions = :ets.lookup_element(data_table_for(module), :behaviour, 2)
+    {_, bag} = data_tables_for(module)
+    behaviour_definitions = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
 
     cond do
       not Code.ensure_compiled?(behaviour) ->
@@ -1047,7 +1052,7 @@ defmodule Module do
   """
   @spec put_attribute(module, atom, term) :: :ok
   def put_attribute(module, key, value) when is_atom(module) and is_atom(key) do
-    put_attribute(module, key, value, nil, nil)
+    put_attribute(module, key, value, nil)
   end
 
   @doc """
@@ -1100,20 +1105,23 @@ defmodule Module do
   @spec delete_attribute(module, atom) :: term
   def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
-    table = data_table_for(module)
+    {set, bag} = data_tables_for(module)
 
-    case :ets.take(table, key) do
-      [{_, value, _accumulated? = true, _}] ->
-        :ets.insert(table, {key, [], true, nil})
-        value
+    case :ets.lookup(set, key) do
+      [{_, _, :accumulate}] ->
+        reverse_values(:ets.take(bag, {:accumulate, key}), [])
 
-      [{_, value, _, _}] ->
+      [{_, value, _}] ->
+        :ets.delete(set, key)
         value
 
       [] ->
         nil
     end
   end
+
+  defp reverse_values([{_, value} | tail], acc), do: reverse_values(tail, [value | acc])
+  defp reverse_values([], acc), do: acc
 
   @doc """
   Registers an attribute.
@@ -1151,16 +1159,15 @@ defmodule Module do
   def register_attribute(module, attribute, options)
       when is_atom(module) and is_atom(attribute) and is_list(options) do
     assert_not_compiled!(:register_attribute, module)
-    table = data_table_for(module)
+    {set, bag} = data_tables_for(module)
 
     if Keyword.get(options, :persist) do
-      attributes = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
-      :ets.insert(table, {{:elixir, :persisted_attributes}, [attribute | attributes]})
+      :ets.insert(bag, {:persisted_attributes, attribute})
     end
 
     if Keyword.get(options, :accumulate) do
-      :ets.insert_new(table, {attribute, [], _accumulated? = true, _unread_line = nil}) ||
-        :ets.update_element(table, attribute, {3, true})
+      :ets.insert_new(set, {attribute, [], :accumulate}) ||
+        :ets.update_element(set, attribute, {3, :accumulate})
     end
 
     :ok
@@ -1203,14 +1210,16 @@ defmodule Module do
   end
 
   @doc false
-  # TODO: Remove in 2.0 - deprecated.
+  # TODO: Remove by 2.0
+  @deprecated "Use @doc instead"
   def add_doc(module, line, kind, function_tuple, signature \\ [], doc) do
     assert_not_compiled!(:add_doc, module)
 
     if kind in [:defp, :defmacrop, :typep] do
       if doc, do: {:error, :private_doc}, else: :ok
     else
-      compile_doc(data_table_for(module), line, kind, function_tuple, signature, doc, __ENV__)
+      {set, _bag} = data_tables_for(module)
+      compile_doc(set, line, kind, function_tuple, signature, doc, __ENV__, false)
       :ok
     end
   end
@@ -1219,23 +1228,23 @@ defmodule Module do
   # Used internally to compile documentation.
   # This function is private and must be used only internally.
   def compile_definition_attributes(env, kind, name, args, _guards, _body) do
-    module = env.module
-    table = data_table_for(module)
-    arity = length(args)
+    %{module: module} = env
+    {set, bag} = data_tables_for(module)
+    {arity, defaults} = args_count(args, 0, 0)
     pair = {name, arity}
 
-    impl = compile_impl(table, name, env, kind, args)
-    _deprecated = compile_deprecated(table, pair)
-    _since = compile_since(table)
+    impl = compile_impl(set, bag, name, env, kind, arity, defaults)
+    _deprecated = compile_deprecated(set, bag, name, arity, defaults)
+    _since = compile_since(set)
 
     # TODO: Store @since and @deprecated alongside the docs
-    {line, doc} = get_doc_info(table, env, impl)
-    compile_doc(table, line, kind, pair, args, doc, env)
+    {line, doc} = get_doc_info(set, env)
+    compile_doc(set, line, kind, pair, args, doc, env, impl)
 
     :ok
   end
 
-  defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env)
+  defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
       error_message =
@@ -1246,31 +1255,33 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, pair, args, doc, env) do
+  defp compile_doc(table, line, kind, pair, args, doc, env, impl) do
     signature = build_signature(args, env)
 
     case :ets.lookup(table, {:doc, pair}) do
       [] ->
+        doc = if is_nil(doc) && impl, do: false, else: doc
         :ets.insert(table, {{:doc, pair}, line, kind, signature, doc})
 
       [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
         signature = merge_signatures(current_sign, signature, 1)
         doc = if is_nil(doc), do: current_doc, else: doc
+        doc = if is_nil(doc) && impl, do: false, else: doc
         :ets.insert(table, {doc_tuple, line, kind, signature, doc})
     end
   end
 
   defp compile_since(table) do
     case :ets.take(table, :since) do
-      [{:since, since, _, _}] when is_binary(since) -> since
+      [{:since, since, _}] when is_binary(since) -> since
       _ -> nil
     end
   end
 
-  defp compile_deprecated(table, pair) do
-    case :ets.take(table, :deprecated) do
-      [{:deprecated, reason, _, _}] when is_binary(reason) ->
-        :ets.insert(table, {{:deprecated, pair}, reason})
+  defp compile_deprecated(set, bag, name, arity, defaults) do
+    case :ets.take(set, :deprecated) do
+      [{:deprecated, reason, _}] when is_binary(reason) ->
+        :ets.insert(bag, deprecated_reasons(defaults, name, arity, reason))
         reason
 
       _ ->
@@ -1278,15 +1289,29 @@ defmodule Module do
     end
   end
 
-  defp compile_impl(table, name, env, kind, args) do
+  defp deprecated_reasons(0, name, arity, reason) do
+    [deprecated_reason(name, arity, reason)]
+  end
+
+  defp deprecated_reasons(defaults, name, arity, reason) do
+    [
+      deprecated_reason(name, arity - defaults, reason)
+      | deprecated_reasons(defaults - 1, name, arity, reason)
+    ]
+  end
+
+  defp deprecated_reason(name, arity, reason),
+    do: {:deprecated, {{name, arity}, reason}}
+
+  defp compile_impl(set, bag, name, env, kind, arity, defaults) do
     %{line: line, file: file} = env
 
-    case :ets.take(table, :impl) do
-      [{:impl, value, _, _}] ->
-        impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
-        {total, defaults} = args_count(args, 0, 0)
-        impl = {{name, total}, defaults, kind, line, file, value}
-        :ets.insert(table, {{:elixir, :impls}, [impl | impls]})
+    case :ets.take(set, :impl) do
+      [{:impl, value, _}] ->
+        pair = {name, arity}
+        meta = :ets.lookup_element(set, {:def, pair}, 3)
+        impl = {pair, Keyword.get(meta, :context), defaults, kind, line, file, value}
+        :ets.insert(bag, {:impls, impl})
         value
 
       [] ->
@@ -1305,15 +1330,15 @@ defmodule Module do
   defp args_count([], total, defaults), do: {total, defaults}
 
   @doc false
-  def check_behaviours_and_impls(env, table, all_definitions, overridable_pairs) do
-    behaviours = :ets.lookup_element(table, :behaviour, 2)
-    impls = :ets.lookup_element(table, {:elixir, :impls}, 2)
+  def check_behaviours_and_impls(env, _set, bag, all_definitions) do
+    behaviours = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
+    impls = bag_lookup_element(bag, :impls, 2)
     callbacks = check_behaviours(env, behaviours)
 
     pending_callbacks =
       if impls != [] do
-        non_implemented_callbacks = check_impls(behaviours, callbacks, impls)
-        warn_missing_impls(env, non_implemented_callbacks, all_definitions, overridable_pairs)
+        {non_implemented_callbacks, contexts} = check_impls(behaviours, callbacks, impls)
+        warn_missing_impls(env, non_implemented_callbacks, contexts, all_definitions)
         non_implemented_callbacks
       else
         callbacks
@@ -1369,7 +1394,7 @@ defmodule Module do
       %{^callback => {_kind, conflict, _optional?}} ->
         message =
           "conflicting behaviours found. #{format_definition(kind, callback)} is required by " <>
-            "#{inspect(behaviour)} and #{inspect(conflict)} (in module #{inspect(env.module)})"
+            "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(env.module)})"
 
         :elixir_errors.warn(env.line, env.file, message)
 
@@ -1429,10 +1454,16 @@ defmodule Module do
   end
 
   defp check_impls(behaviours, callbacks, impls) do
-    Enum.reduce(impls, callbacks, fn {fa, defaults, kind, line, file, value}, acc ->
+    acc = {callbacks, %{}}
+
+    Enum.reduce(impls, acc, fn {fa, context, defaults, kind, line, file, value}, acc ->
       case impl_behaviours(fa, defaults, kind, value, behaviours, callbacks) do
         {:ok, impl_behaviours} ->
-          Enum.reduce(impl_behaviours, acc, fn {fa, _}, acc -> Map.delete(acc, fa) end)
+          Enum.reduce(impl_behaviours, acc, fn {fa, behaviour}, {callbacks, contexts} ->
+            callbacks = Map.delete(callbacks, fa)
+            contexts = Map.update(contexts, behaviour, [context], &[context | &1])
+            {callbacks, contexts}
+          end)
 
         {:error, message} ->
           :elixir_errors.warn(line, file, format_impl_warning(fa, kind, message))
@@ -1455,21 +1486,21 @@ defmodule Module do
   end
 
   defp impl_behaviours(impls, _, false, _, callbacks) do
-    case impl_callbacks(impls, callbacks) do
+    case callbacks_for_impls(impls, callbacks) do
       [] -> {:ok, []}
       [impl | _] -> {:error, {:impl_not_defined, impl}}
     end
   end
 
   defp impl_behaviours(impls, _, true, _, callbacks) do
-    case impl_callbacks(impls, callbacks) do
+    case callbacks_for_impls(impls, callbacks) do
       [] -> {:error, {:impl_defined, callbacks}}
       impls -> {:ok, impls}
     end
   end
 
   defp impl_behaviours(impls, _, behaviour, behaviours, callbacks) do
-    filtered = impl_behaviours(impls, behaviour, callbacks)
+    filtered = behaviour_callbacks_for_impls(impls, behaviour, callbacks)
 
     cond do
       filtered != [] ->
@@ -1483,30 +1514,28 @@ defmodule Module do
     end
   end
 
-  defp impl_behaviours(impls, behaviour, callbacks) do
-    impl_behaviours(impl_callbacks(impls, callbacks), behaviour)
-  end
-
-  defp impl_behaviours([], _) do
+  defp behaviour_callbacks_for_impls([], _behaviour, _callbacks) do
     []
   end
 
-  defp impl_behaviours([{_, behaviour} = impl | tail], behaviour) do
-    [impl | impl_behaviours(tail, behaviour)]
-  end
-
-  defp impl_behaviours([_ | tail], behaviour) do
-    impl_behaviours(tail, behaviour)
-  end
-
-  defp impl_callbacks([], _) do
-    []
-  end
-
-  defp impl_callbacks([fa | tail], callbacks) do
+  defp behaviour_callbacks_for_impls([fa | tail], behaviour, callbacks) do
     case callbacks[fa] do
-      nil -> impl_callbacks(tail, callbacks)
-      {_, behaviour, _} -> [{fa, behaviour} | impl_callbacks(tail, callbacks)]
+      {_, ^behaviour, _} ->
+        [{fa, behaviour} | behaviour_callbacks_for_impls(tail, behaviour, callbacks)]
+
+      _ ->
+        behaviour_callbacks_for_impls(tail, behaviour, callbacks)
+    end
+  end
+
+  defp callbacks_for_impls([], _) do
+    []
+  end
+
+  defp callbacks_for_impls([fa | tail], callbacks) do
+    case callbacks[fa] do
+      {_, behaviour, _} -> [{fa, behaviour} | callbacks_for_impls(tail, callbacks)]
+      nil -> callbacks_for_impls(tail, callbacks)
     end
   end
 
@@ -1538,30 +1567,33 @@ defmodule Module do
       "but this behaviour does not specify such callback#{known_callbacks(callbacks)}"
   end
 
-  defp warn_missing_impls(_env, callbacks, _defs, _) when map_size(callbacks) == 0 do
+  defp warn_missing_impls(_env, callbacks, _contexts, _defs) when map_size(callbacks) == 0 do
     :ok
   end
 
-  defp warn_missing_impls(env, non_implemented_callbacks, defs, overridable_pairs) do
+  defp warn_missing_impls(env, non_implemented_callbacks, contexts, defs) do
     for {pair, kind, meta, _clauses} <- defs,
-        kind in [:def, :defmacro],
-        pair not in overridable_pairs do
-      case Map.fetch(non_implemented_callbacks, pair) do
-        {:ok, {_, behaviour, _}} ->
-          message =
-            "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
-              "callback (specified in #{inspect(behaviour)}). " <>
-              "This either means you forgot to add the \"@impl true\" annotation before the " <>
-              "definition or that you are accidentally overriding this callback"
+        kind in [:def, :defmacro] do
+      with {:ok, {_, behaviour, _}} <- Map.fetch(non_implemented_callbacks, pair),
+           true <- missing_impl_in_context?(meta, behaviour, contexts) do
+        message =
+          "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
+            "callback (specified in #{inspect(behaviour)}). " <>
+            "This either means you forgot to add the \"@impl true\" annotation before the " <>
+            "definition or that you are accidentally overriding this callback"
 
-          :elixir_errors.warn(:elixir_utils.get_line(meta), env.file, message)
-
-        :error ->
-          :ok
+        :elixir_errors.warn(:elixir_utils.get_line(meta), env.file, message)
       end
     end
 
     :ok
+  end
+
+  defp missing_impl_in_context?(meta, behaviour, contexts) do
+    case contexts do
+      %{^behaviour => known} -> Keyword.get(meta, :context) in known
+      %{} -> not Keyword.has_key?(meta, :context)
+    end
   end
 
   defp format_definition(kind, {name, arity}) do
@@ -1588,42 +1620,30 @@ defmodule Module do
   end
 
   @doc false
-  # Used internally to compile types.
-  # This function is private and must be used only internally.
-  def store_typespec(module, key, value) when is_atom(module) and is_atom(key) do
-    assert_not_compiled!(:put_attribute, module)
-    table = data_table_for(module)
-
-    typespecs =
-      case :ets.lookup(table, key) do
-        [{^key, typespecs, _, _}] -> [value | typespecs]
-        [] -> [value]
-      end
-
-    :ets.insert(table, {key, typespecs, true, nil})
-    :ok
-  end
-
-  @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def get_attribute(module, key, stack) when is_atom(key) do
+  def get_attribute(module, key, line) when is_atom(key) do
     assert_not_compiled!(:get_attribute, module)
-    table = data_table_for(module)
+    {set, bag} = data_tables_for(module)
 
-    case :ets.lookup(table, key) do
-      [{^key, val, _, _}] ->
-        :ets.update_element(table, key, {4, nil})
+    case :ets.lookup(set, key) do
+      [{_, _, :accumulate}] ->
+        :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
+
+      [{_, val, nil}] ->
         val
 
-      [] when is_list(stack) ->
+      [{_, val, _}] ->
+        :ets.update_element(set, key, {3, nil})
+        val
+
+      [] when is_integer(line) ->
         # TODO: Consider raising instead of warning on v2.0 as it usually cascades
         error_message =
           "undefined module attribute @#{key}, " <>
             "please remove access to @#{key} or explicitly set it before access"
 
-        IO.warn(error_message, stack)
-
+        IO.warn(error_message, attribute_stack(module, line))
         nil
 
       [] ->
@@ -1634,38 +1654,51 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def put_attribute(module, key, value, stack, unread_line) when is_atom(key) do
+  def put_attribute(module, key, value, line) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
-    table = data_table_for(module)
+    {set, bag} = data_tables_for(module)
     value = preprocess_attribute(key, value)
+    put_attribute(module, key, value, line, set, bag)
+    :ok
+  end
 
-    # TODO: Remove on Elixir v2.0
-    case value do
-      {:parse_transform, _} when key == :compile and is_list(stack) ->
-        error_message =
-          "@compile {:parse_transform, _} is deprecated. " <>
-            "Elixir will no longer support Erlang-based transforms in future versions"
-
-        IO.warn(error_message, stack)
+  # This is the same list of attributes as in :elixir_module.
+  # We do not insert into the :attributes key in the bag table
+  # because those attributes are deleted on every definition.
+  defp put_attribute(module, key, value, line, set, _bag)
+       when key in [:doc, :typedoc, :moduledoc, :impl, :since, :deprecated] do
+    try do
+      :ets.lookup_element(set, key, 3)
+    catch
+      :error, :badarg -> :ok
+    else
+      unread_line when is_integer(line) and is_integer(unread_line) ->
+        message = "redefining @#{key} attribute previously set at line #{unread_line}"
+        IO.warn(message, attribute_stack(module, line))
 
       _ ->
         :ok
     end
 
-    case :ets.lookup(table, key) do
-      [{^key, {line, <<_::binary>>}, accumulated?, _unread_line}]
-      when key in [:doc, :typedoc, :moduledoc] and is_list(stack) ->
-        IO.warn("redefining @#{key} attribute previously set at line #{line}", stack)
-        :ets.insert(table, {key, value, accumulated?, unread_line})
+    :ets.insert(set, {key, value, line})
+  end
 
-      [{^key, current, _accumulated? = true, _read?}] ->
-        :ets.insert(table, {key, [value | current], true, unread_line})
-
-      _ ->
-        :ets.insert(table, {key, value, false, unread_line})
+  defp put_attribute(_module, key, value, line, set, bag) do
+    try do
+      :ets.lookup_element(set, key, 3)
+    catch
+      :error, :badarg ->
+        :ets.insert(set, {key, value, line})
+        :ets.insert(bag, {:attributes, key})
+    else
+      :accumulate -> :ets.insert(bag, {{:accumulate, key}, value})
+      _ -> :ets.insert(set, {key, value, line})
     end
+  end
 
-    :ok
+  defp attribute_stack(module, line) do
+    file = String.to_charlist(Path.relative_to_cwd(:elixir_module.file(module)))
+    [{module, :__MODULE__, 0, file: file, line: line}]
   end
 
   ## Helpers
@@ -1738,6 +1771,12 @@ defmodule Module do
             "must be set directly via the @ notation"
   end
 
+  defp preprocess_attribute(:external_resource, value) when not is_binary(value) do
+    raise ArgumentError,
+          "@external_resource is a built-in module attribute used for specifying file " <>
+            "dependencies. It should be a string the path to a file, got: #{inspect(value)}"
+  end
+
   defp preprocess_attribute(:since, value) when not is_binary(value) do
     raise ArgumentError,
           "@since is a built-in module attribute used for documentation purposes. " <>
@@ -1771,25 +1810,24 @@ defmodule Module do
     value
   end
 
-  defp get_doc_info(table, env, impl) do
+  defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
-      [{:doc, {_, _} = pair, _, _}] ->
+      [{:doc, {_, _} = pair, _}] ->
         pair
 
-      [] when impl == false ->
-        {env.line, nil}
-
       [] ->
-        {env.line, false}
+        {env.line, nil}
     end
   end
 
-  defp data_table_for(module) do
-    :elixir_module.data_table(module)
+  defp data_tables_for(module) do
+    :elixir_module.data_tables(module)
   end
 
-  defp defs_table_for(module) do
-    :elixir_module.defs_table(module)
+  defp bag_lookup_element(table, key, pos) do
+    :ets.lookup_element(table, key, pos)
+  catch
+    :error, :badarg -> []
   end
 
   defp assert_not_compiled!(fun, module) do

@@ -71,7 +71,7 @@ defmodule IEx.AutocompleteTest do
     assert expand('b :strin') == {:yes, 'g', []}
     assert expand('b String') == {:yes, '', ['String', 'StringIO']}
     assert expand('b String.') == {:no, '', []}
-    assert expand('b Access.') == {:yes, '', ['fetch/2', 'get/3', 'get_and_update/3', 'pop/2']}
+    assert expand('b Access.') == {:yes, '', ['fetch/2', 'get_and_update/3', 'pop/2']}
     assert expand('b GenServer.term') == {:yes, 'inate', []}
     assert expand('b   GenServer.term') == {:yes, 'inate', []}
   end

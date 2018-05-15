@@ -117,7 +117,7 @@ parse_otp_release() ->
     {Num, _} when Num >= 19 ->
       Num;
     _ ->
-      io:format(standard_error, "unsupported Erlang version, expected Erlang 19+~n", []),
+      io:format(standard_error, "unsupported Erlang/OTP version, expected Erlang/OTP 19+~n", []),
       erlang:halt(1)
   end.
 
@@ -317,11 +317,9 @@ tokens_to_quoted(Tokens, File, Opts) ->
     {ok, Forms} -> {ok, Forms};
     {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
     {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
-  catch
-    {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
-    {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
   after
     erase(elixir_parser_file),
+    erase(elixir_parser_columns),
     erase(elixir_formatter_metadata)
   end.
 

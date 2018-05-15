@@ -15,7 +15,7 @@ defmodule StringIO do
 
   use GenServer
 
-  @doc """
+  @doc ~S"""
   Creates an IO device.
 
   `string` will be the initial input of the newly created
@@ -23,7 +23,58 @@ defmodule StringIO do
 
   If the `:capture_prompt` option is set to `true`,
   prompts (specified as arguments to `IO.get*` functions)
-  are captured.
+  are captured in the output.
+
+  The device will be created and sent to the function given.
+  When the function returns, the device will be closed. The final
+  result will be a tuple with `:ok` and the result of the function.
+
+  ## Examples
+
+    iex> StringIO.open("foo", [], fn(pid) ->
+    ...>   input = IO.gets(pid, ">")
+    ...>   IO.write(pid, "The input was #{input}")
+    ...>   StringIO.contents(pid)
+    ...> end)
+    {:ok, {"", "The input was foo"}}
+
+    iex> StringIO.open("foo", [capture_prompt: true], fn(pid) ->
+    ...>   input = IO.gets(pid, ">")
+    ...>   IO.write(pid, "The input was #{input}")
+    ...>   StringIO.contents(pid)
+    ...> end)
+    {:ok, {"", ">The input was foo"}}
+
+  """
+  @spec open(binary, keyword, (pid -> res)) :: {:ok, res} when res: var
+  def open(string, options, function)
+      when is_binary(string) and is_list(options) and is_function(function, 1) do
+    {:ok, pid} = GenServer.start_link(__MODULE__, {string, options}, [])
+
+    try do
+      {:ok, function.(pid)}
+    after
+      {:ok, {_input, _output}} = close(pid)
+    end
+  end
+
+  @doc ~S"""
+  Creates an IO device.
+
+  `string` will be the initial input of the newly created
+  device.
+
+  `options_or_function` can be a keyword list of options or
+  a function.
+
+  If options are provided, the result will be `{:ok, pid}`, returning the
+  IO device created. The option `:capture_prompt`, when set to `true`, causes
+  prompts (which are specified as arguments to `IO.get*` functions) to be
+  included in the device's output.
+
+  If a function is provided, the device will be created and sent to the
+  function. When the function returns, the device will be closed. The final
+  result will be a tuple with `:ok` and the result of the function.
 
   ## Examples
 
@@ -39,10 +90,25 @@ defmodule StringIO do
       iex> StringIO.contents(pid)
       {"", ">"}
 
+      iex> StringIO.open("foo", fn(pid) ->
+      ...>   input = IO.gets(pid, ">")
+      ...>   IO.write(pid, "The input was #{input}")
+      ...>   StringIO.contents(pid)
+      ...> end)
+      {:ok, {"", "The input was foo"}}
+
   """
   @spec open(binary, keyword) :: {:ok, pid}
-  def open(string, options \\ []) when is_binary(string) do
-    GenServer.start_link(__MODULE__, {string, options}, [])
+  @spec open(binary, (pid -> res)) :: {:ok, res} when res: var
+  def open(path, options_or_function \\ [])
+
+  def open(string, options_or_function) when is_binary(string) and is_list(options_or_function) do
+    GenServer.start_link(__MODULE__, {string, options_or_function}, [])
+  end
+
+  def open(string, options_or_function)
+      when is_binary(string) and is_function(options_or_function, 1) do
+    open(string, [], options_or_function)
   end
 
   @doc """

@@ -6,6 +6,13 @@ defmodule Kernel.ParallelCompilerTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
 
+  defp purge(modules) do
+    Enum.map(modules, fn mod ->
+      :code.purge(mod)
+      :code.delete(mod)
+    end)
+  end
+
   describe "compile" do
     test "solves dependencies between modules" do
       fixtures = [
@@ -18,10 +25,7 @@ defmodule Kernel.ParallelCompilerTest do
                         Kernel.ParallelCompiler.compile(fixtures)
              end) =~ "message_from_foo"
     after
-      Enum.map([FooParallel, BarParallel], fn mod ->
-        :code.purge(mod)
-        :code.delete(mod)
-      end)
+      purge([FooParallel, BarParallel])
     end
 
     test "solves dependencies between structs" do
@@ -33,10 +37,7 @@ defmodule Kernel.ParallelCompilerTest do
       assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
       assert [BarStruct, FooStruct] = Enum.sort(modules)
     after
-      Enum.map([FooStruct, BarStruct], fn mod ->
-        :code.purge(mod)
-        :code.delete(mod)
-      end)
+      purge([FooStruct, BarStruct])
     end
 
     test "returns struct undefined error when local struct is undefined" do
@@ -52,7 +53,7 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "does not hang on missing dependencies" do
-      fixture = fixture_path("parallel_compiler/bat.ex")
+      fixture = fixture_path("parallel_compiler/with_behaviour_and_struct.ex")
 
       expected_msg =
         "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
@@ -104,8 +105,7 @@ defmodule Kernel.ParallelCompilerTest do
                  "Compilation failed due to warnings while using the --warnings-as-errors option\n"
       after
         Code.compiler_options(warnings_as_errors: warnings_as_errors)
-        :code.purge(WarningsSample)
-        :code.delete(WarningsSample)
+        purge([WarningsSample])
       end
     end
 
@@ -153,6 +153,13 @@ defmodule Kernel.ParallelCompilerTest do
         assert {:error, [{^file, 2, _}], _} = Kernel.ParallelCompiler.compile([file])
       end)
     end
+
+    test "gets proper beam destinations from dynamic modules" do
+      fixtures = [fixture_path("parallel_compiler/dynamic.ex")]
+      assert {:ok, [Dynamic], []} = Kernel.ParallelCompiler.compile(fixtures, dest: "sample")
+    after
+      purge([FooParallel, BarParallel])
+    end
   end
 
   describe "require" do
@@ -169,7 +176,7 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "does not hang on missing dependencies" do
-      fixture = fixture_path("parallel_compiler/bat.ex")
+      fixture = fixture_path("parallel_compiler/with_behaviour_and_struct.ex")
 
       expected_msg =
         "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
@@ -203,8 +210,7 @@ defmodule Kernel.ParallelCompilerTest do
                  "Compilation failed due to warnings while using the --warnings-as-errors option\n"
       after
         Code.compiler_options(warnings_as_errors: warnings_as_errors)
-        :code.purge(WarningsSample)
-        :code.delete(WarningsSample)
+        purge([WarningsSample])
       end
     end
   end

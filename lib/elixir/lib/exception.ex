@@ -2,10 +2,8 @@ defmodule Exception do
   @moduledoc """
   Functions to format throw/catch/exit and exceptions.
 
-  Note that stacktraces in Elixir are updated on throw,
-  errors and exits. For example, at any given moment,
-  `System.stacktrace/0` will return the stacktrace for the
-  last throw/error/exit that occurred in the current process.
+  Note that stacktraces in Elixir are only available inside
+  catch and rescue by using the `__STACKTRACE__/0` variable.
 
   Do not rely on the particular format returned by the `format*`
   functions in this module. They may be changed in future releases
@@ -82,31 +80,16 @@ defmodule Exception do
   normalizes only `:error`, returning the untouched payload
   for others.
 
-  The third argument, a stacktrace, is optional. If it is
-  not supplied `System.stacktrace/0` will sometimes be used
-  to get additional information for the `kind` `:error`. If
-  the stacktrace is unknown and `System.stacktrace/0` would
-  not return the stacktrace corresponding to the exception
-  an empty stacktrace, `[]`, must be used.
+  The third argument is the stacktrace which is used to enrich
+  a normalized error with more information. It is only used when
+  the kind is an error.
   """
   @spec normalize(:error, any, stacktrace) :: t
   @spec normalize(non_error_kind, payload, stacktrace) :: payload when payload: var
-
-  # Generating a stacktrace is expensive, default to nil
-  # to only fetch it when needed.
-  def normalize(kind, payload, stacktrace \\ nil)
-
-  def normalize(:error, exception, stacktrace) do
-    if exception?(exception) do
-      exception
-    else
-      ErlangError.normalize(exception, stacktrace)
-    end
-  end
-
-  def normalize(_kind, payload, _stacktrace) do
-    payload
-  end
+  def normalize(kind, payload, stacktrace \\ [])
+  def normalize(:error, %_{__exception__: true} = payload, _stacktrace), do: payload
+  def normalize(:error, payload, stacktrace), do: ErlangError.normalize(payload, stacktrace)
+  def normalize(_kind, payload, _stacktrace), do: payload
 
   @doc """
   Normalizes and formats any throw/error/exit.
@@ -114,15 +97,12 @@ defmodule Exception do
   The message is formatted and displayed in the same
   format as used by Elixir's CLI.
 
-  The third argument, a stacktrace, is optional. If it is
-  not supplied `System.stacktrace/0` will sometimes be used
-  to get additional information for the `kind` `:error`. If
-  the stacktrace is unknown and `System.stacktrace/0` would
-  not return the stacktrace corresponding to the exception
-  an empty stacktrace, `[]`, must be used.
+  The third argument is the stacktrace which is used to enrich
+  a normalized error with more information. It is only used when
+  the kind is an error.
   """
-  @spec format_banner(kind, any, stacktrace | nil) :: String.t()
-  def format_banner(kind, exception, stacktrace \\ nil)
+  @spec format_banner(kind, any, stacktrace) :: String.t()
+  def format_banner(kind, exception, stacktrace \\ [])
 
   def format_banner(:error, exception, stacktrace) do
     exception = normalize(:error, exception, stacktrace)
@@ -150,15 +130,14 @@ defmodule Exception do
   Note that `{:EXIT, pid}` do not generate a stacktrace though
   (as they are retrieved as messages without stacktraces).
   """
-  @spec format(kind, any, stacktrace | nil) :: String.t()
-  def format(kind, payload, stacktrace \\ nil)
+  @spec format(kind, any, stacktrace) :: String.t()
+  def format(kind, payload, stacktrace \\ [])
 
   def format({:EXIT, _} = kind, any, _) do
     format_banner(kind, any)
   end
 
   def format(kind, payload, stacktrace) do
-    stacktrace = stacktrace || System.stacktrace()
     message = format_banner(kind, payload, stacktrace)
 
     case stacktrace do
@@ -171,7 +150,7 @@ defmodule Exception do
   Attaches information to exceptions for extra debugging.
 
   This operation is potentially expensive, as it reads data
-  from the filesystem, parse beam files, evaluates code and
+  from the filesystem, parses beam files, evaluates code and
   so on.
 
   If the exception module implements the optional `c:blame/2`
@@ -812,7 +791,7 @@ defmodule BadArityError do
     fun = exception.function
     args = exception.args
     insp = Enum.map_join(args, ", ", &inspect/1)
-    {:arity, arity} = :erlang.fun_info(fun, :arity)
+    {:arity, arity} = Function.info(fun, :arity)
     "#{inspect(fun)} with arity #{arity} called with #{count(length(args), insp)}"
   end
 
@@ -1193,7 +1172,7 @@ defmodule ErlangError do
 
   def normalize({:badkey, key}, stacktrace) do
     term =
-      case ensure_stacktrace(stacktrace) do
+      case stacktrace do
         [{Map, :get_and_update!, [map, _, _], _} | _] -> map
         [{Map, :update!, [map, _, _], _} | _] -> map
         [{:maps, :update, [_, _, map], _} | _] -> map
@@ -1221,13 +1200,12 @@ defmodule ErlangError do
   end
 
   def normalize(:undef, stacktrace) do
-    stacktrace = ensure_stacktrace(stacktrace)
     {mod, fun, arity} = from_stacktrace(stacktrace)
     %UndefinedFunctionError{module: mod, function: fun, arity: arity}
   end
 
   def normalize(:function_clause, stacktrace) do
-    {mod, fun, arity} = from_stacktrace(ensure_stacktrace(stacktrace))
+    {mod, fun, arity} = from_stacktrace(stacktrace)
     %FunctionClauseError{module: mod, function: fun, arity: arity}
   end
 
@@ -1237,18 +1215,6 @@ defmodule ErlangError do
 
   def normalize(other, _stacktrace) do
     %ErlangError{original: other}
-  end
-
-  defp ensure_stacktrace(nil) do
-    try do
-      :erlang.get_stacktrace()
-    rescue
-      _ -> []
-    end
-  end
-
-  defp ensure_stacktrace(stacktrace) do
-    stacktrace
   end
 
   defp from_stacktrace([{module, function, args, _} | _]) when is_list(args) do

@@ -4,42 +4,11 @@ defmodule LoggerTest do
 
   setup_all do
     Logger.configure_backend(:console, metadata: [:application, :module])
-
-    on_exit(fn ->
-      Logger.configure_backend(:console, metadata: [])
-    end)
+    on_exit(fn -> Logger.configure_backend(:console, metadata: []) end)
   end
 
   defp msg_with_meta(text) do
     msg("module=LoggerTest #{text}")
-  end
-
-  test "add_translator/1 and remove_translator/1" do
-    defmodule CustomTranslator do
-      def t(:debug, :info, :format, {'hello: ~p', [:ok]}) do
-        :skip
-      end
-
-      def t(:debug, :info, :format, {'world: ~p', [:ok]}) do
-        {:ok, "rewritten"}
-      end
-
-      def t(_, _, _, _) do
-        :none
-      end
-    end
-
-    assert Logger.add_translator({CustomTranslator, :t})
-
-    assert capture_log(fn ->
-             :error_logger.info_msg('hello: ~p', [:ok])
-           end) == ""
-
-    assert capture_log(fn ->
-             :error_logger.info_msg('world: ~p', [:ok])
-           end) =~ "\[info\]  rewritten"
-  after
-    assert Logger.remove_translator({CustomTranslator, :t})
   end
 
   test "add_backend/1 and remove_backend/1" do
@@ -332,6 +301,21 @@ defmodule LoggerTest do
            end) =~ "he�lo"
   end
 
+  test "logging something that is not a binary or chardata fails right away" do
+    assert_raise Protocol.UndefinedError, "protocol String.Chars not implemented for %{}", fn ->
+      Logger.log(:debug, %{})
+    end
+
+    message =
+      "cannot truncate chardata because it contains something that is not valid chardata: %{}"
+
+    # Something that looks like chardata but then inside isn't still raises an error, but a
+    # different one.
+    assert_raise ArgumentError, message, fn ->
+      Logger.log(:debug, [%{}])
+    end
+  end
+
   test "stops the application silently" do
     Application.put_env(:logger, :backends, [])
     Logger.App.stop()
@@ -347,5 +331,29 @@ defmodule LoggerTest do
     Application.put_env(:logger, :backends, [:console])
     Logger.App.stop()
     Application.start(:logger)
+  end
+
+  test "configure/1 sets options" do
+    Logger.configure(sync_threshold: 10)
+    Logger.configure(truncate: 4048)
+    Logger.configure(utc_log: true)
+    Logger.configure(discard_threshold: 10_000)
+    Logger.configure(translator_inspect_opts: [limit: 3])
+
+    assert Application.get_env(:logger, :sync_threshold) == 10
+    assert Application.get_env(:logger, :utc_log) == true
+    assert Application.get_env(:logger, :truncate) == 4048
+    assert Application.get_env(:logger, :discard_threshold) == 10_000
+    assert Application.get_env(:logger, :translator_inspect_opts) == [limit: 3]
+
+    logger_data = Logger.Config.__data__()
+    assert logger_data.truncate == 4048
+    assert logger_data.utc_log == true
+  after
+    Logger.configure(sync_threshold: 20)
+    Logger.configure(truncate: 8096)
+    Logger.configure(utc_log: false)
+    Logger.configure(discard_threshold: 500)
+    Logger.configure(translator_inspect_opts: [])
   end
 end

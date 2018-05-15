@@ -60,49 +60,53 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "generates .app file when changes happen" do
     Mix.Project.push(MixTest.Case.Sample)
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
-      contents = File.read!("_build/dev/lib/sample/ebin/sample.app")
-      assert contents =~ "{application,sample"
-      assert contents =~ "0.1.0"
-      assert contents =~ "'Elixir.A'"
-      assert contents =~ "{applications,[kernel,stdlib,elixir]}"
+      properties = parse_resource_file(:sample)
+      assert properties[:vsn] == '0.1.0'
+      assert properties[:modules] == [A, B]
+      assert properties[:applications] == [:kernel, :stdlib, :elixir]
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
-    end
+    end)
   end
 
   test "uses custom application settings" do
     Mix.Project.push(CustomProject)
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
-      contents = File.read!("_build/dev/lib/custom_project/ebin/custom_project.app")
-      assert contents =~ "0.2.0"
-      assert contents =~ "{maxT,infinity}"
-      assert contents =~ "{applications,[kernel,stdlib,elixir,logger,example_app]}"
-      assert contents =~ "Some UTF-8 description (uma descrição em UTF-8)"
-    end
+
+      properties = parse_resource_file(:custom_project)
+      assert properties[:vsn] == '0.2.0'
+      assert properties[:maxT] == :infinity
+      assert properties[:applications] == [:kernel, :stdlib, :elixir, :logger, :example_app]
+      assert properties[:description] == 'Some UTF-8 description (uma descrição em UTF-8)'
+      refute Keyword.has_key?(properties, :extra_applications)
+    end)
   end
 
   test "automatically infers applications" do
     Mix.Project.push(CustomDeps)
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
-      contents = File.read!("_build/dev/lib/custom_deps/ebin/custom_deps.app")
-      assert contents =~ "{applications,[kernel,stdlib,elixir,logger,ok1,ok3,ok4,ok7]}"
-    end
+
+      properties = parse_resource_file(:custom_deps)
+
+      assert properties[:applications] ==
+               [:kernel, :stdlib, :elixir, :logger, :ok1, :ok3, :ok4, :ok7]
+    end)
   end
 
   test "application properties validation" do
     Mix.Project.push(InvalidProject)
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       Process.put(:application, [:not_a_keyword, applications: []])
       message = "Application configuration returned from application/0 should be a keyword list"
 
@@ -191,34 +195,40 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])
       end
-    end
+    end)
   end
 
   test ".app contains description and registered (as required by systools)" do
     Mix.Project.push(MixTest.Case.Sample)
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
-      {:ok, [{_app, _, properties}]} = :file.consult("_build/dev/lib/sample/ebin/sample.app")
+      properties = parse_resource_file(:sample)
       assert properties[:registered] == []
       assert properties[:description] == 'sample'
       assert properties[:applications] == [:kernel, :stdlib, :elixir]
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
-    end
+    end)
   end
 
   test "raise on invalid version" do
     Mix.Project.push(InvalidVsnProject)
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       message = "Expected :version to be a SemVer version, got: \"0.3\""
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])
       end
-    end
+    end)
+  end
+
+  defp parse_resource_file(app) do
+    {:ok, [term]} = :file.consult("_build/dev/lib/#{app}/ebin/#{app}.app")
+    {:application, ^app, properties} = term
+    properties
   end
 end

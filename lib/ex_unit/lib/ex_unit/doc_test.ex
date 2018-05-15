@@ -177,7 +177,8 @@ defmodule ExUnit.DocTest do
     * `:import` - when `true`, one can test a function defined in the module
       without referring to the module name. However, this is not feasible when
       there is a clash with a module like Kernel. In these cases, `:import`
-      should be set to `false` and a full `M.f` construct should be used.
+      should be set to `false` and a full `Module.function` construct should be
+      used.
 
   ## Examples
 
@@ -294,7 +295,7 @@ defmodule ExUnit.DocTest do
         # Put all tests into one context
         (unquote_splicing(tests))
       rescue
-        e in [ExUnit.AssertionError] ->
+        e in ExUnit.AssertionError ->
           reraise e, stack
 
         error ->
@@ -303,7 +304,7 @@ defmodule ExUnit.DocTest do
               inspect(Exception.message(error))
 
           error = [message: message, expr: unquote(String.trim(whole_expr))]
-          reraise ExUnit.AssertionError, error, System.stacktrace()
+          reraise ExUnit.AssertionError, error, __STACKTRACE__
       end
     end
   end
@@ -321,7 +322,7 @@ defmodule ExUnit.DocTest do
 
         actual ->
           expr = "#{unquote(String.trim(expr))} === #{unquote(String.trim(expected))}"
-          error = [message: "Doctest failed", expr: expr, left: actual]
+          error = [message: "Doctest failed", expr: expr, left: actual, right: expected]
           reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
@@ -344,7 +345,7 @@ defmodule ExUnit.DocTest do
 
         actual ->
           expr = "inspect(#{unquote(String.trim(expr))}) === #{unquote(String.trim(expected))}"
-          error = [message: "Doctest failed", expr: expr, left: actual]
+          error = [message: "Doctest failed", expr: expr, left: actual, right: expected]
           reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
@@ -407,13 +408,17 @@ defmodule ExUnit.DocTest do
     rescue
       e ->
         ex_message = "(#{inspect(e.__struct__)}) #{Exception.message(e)}"
+        message = "Doctest did not compile, got: #{ex_message}"
+
+        opts =
+          if String.valid?(expr) do
+            [message: message, expr: String.trim(expr)]
+          else
+            [message: message]
+          end
 
         quote do
-          message = "Doctest did not compile, got: #{unquote(ex_message)}"
-
-          reraise ExUnit.AssertionError,
-                  [message: message, expr: unquote(String.trim(expr))],
-                  unquote(stack)
+          reraise ExUnit.AssertionError, unquote(opts), unquote(stack)
         end
     end
   end
@@ -549,7 +554,7 @@ defmodule ExUnit.DocTest do
     length = byte_size(line) - indent
 
     if length > 0 do
-      :binary.part(line, indent, length)
+      binary_part(line, indent, length)
     else
       ""
     end

@@ -85,6 +85,7 @@ defmodule Date do
       true
       iex> Enum.reduce(range, 0, fn _date, acc -> acc - 1 end)
       -366
+
   """
 
   @since "1.5.0"
@@ -174,6 +175,23 @@ defmodule Date do
 
   def days_in_month(%{calendar: calendar, year: year, month: month}) do
     calendar.days_in_month(year, month)
+  end
+
+  @doc """
+  Returns the number of days in the given `date` month.
+
+  ## Example
+
+      iex> Date.months_in_year(~D[1900-01-13])
+      12
+
+  """
+  @since "1.7.0"
+  @spec months_in_year(Calendar.date()) :: Calendar.month()
+  def months_in_year(date)
+
+  def months_in_year(%{calendar: calendar, year: year}) do
+    calendar.months_in_year(year)
   end
 
   @doc """

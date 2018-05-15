@@ -1,7 +1,7 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
 # TODO: Remove this check once we depend only on 20
-# TODO: Remove String.to_atom/1 when we support 20+
+# TODO: Remove String.to_atom/1 calls when we support 20+
 if :erlang.system_info(:otp_release) >= '20' do
   defmodule Kernel.StringTokenizerTest do
     use ExUnit.Case, async: true

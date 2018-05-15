@@ -122,13 +122,15 @@ defmodule Mix.Tasks.Profile.Cprof do
   end
 
   defp profile_code(code_string, opts) do
+    opts = Enum.map(opts, &parse_opt/1)
+
     content =
       quote do
         unquote(__MODULE__).profile(
           fn ->
             unquote(Code.string_to_quoted!(code_string))
           end,
-          unquote(opts)
+          unquote(Macro.escape(opts))
         )
       end
 
@@ -136,8 +138,31 @@ defmodule Mix.Tasks.Profile.Cprof do
     Code.compile_quoted(content)
   end
 
-  @doc false
-  def profile(fun, opts) do
+  defp parse_opt({:matching, matching}) do
+    case Mix.Utils.parse_mfa(matching) do
+      {:ok, [m, f, a]} -> {:matching, {m, f, a}}
+      {:ok, [m, f]} -> {:matching, {m, f, :_}}
+      {:ok, [m]} -> {:matching, {m, :_, :_}}
+      :error -> Mix.raise("Invalid matching pattern: #{matching}")
+    end
+  end
+
+  defp parse_opt({:module, module}), do: {:module, string_to_existing_module(module)}
+  defp parse_opt(other), do: other
+
+  @doc """
+  Allows to programatically run the `cprof` profiler on expression in `fun`.
+
+  ## Options
+
+    * `:matching` - only profile calls matching the given pattern in form of
+      `{module, function, arity}`, where each element may be replaced by `:_`
+      to allow any value
+    * `:limit` - filters out any results with a call count less than the limit
+    * `:module` - filters out any results not pertaining to the given module
+
+  """
+  def profile(fun, opts \\ []) when is_function(fun, 0) do
     fun
     |> profile_and_analyse(opts)
     |> print_output
@@ -152,15 +177,9 @@ defmodule Mix.Tasks.Profile.Cprof do
     end
 
     num_matched_functions =
-      case Keyword.get(opts, :matching) do
-        nil ->
-          :cprof.start()
-
-        matching ->
-          case Mix.Utils.parse_mfa(matching) do
-            {:ok, args} -> apply(:cprof, :start, args)
-            :error -> Mix.raise("Invalid matching pattern: #{matching}")
-          end
+      case Keyword.fetch(opts, :matching) do
+        {:ok, matching} -> :cprof.start(matching)
+        :error -> :cprof.start()
       end
 
     apply(fun, [])
@@ -179,8 +198,6 @@ defmodule Mix.Tasks.Profile.Cprof do
           :cprof.analyse(limit)
 
         {limit, module} ->
-          module = string_to_existing_module(module)
-
           if limit do
             :cprof.analyse(module, limit)
           else

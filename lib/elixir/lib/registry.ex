@@ -171,6 +171,15 @@ defmodule Registry do
   @typedoc "The type of registry metadata values"
   @type meta_value :: term
 
+  @typedoc "A pattern to match on objects in a registry"
+  @type match_pattern :: atom | term
+
+  @typedoc "A guard to be evaluated when matching on objects in a registry"
+  @type guard :: {atom | term}
+
+  @typedoc "A list of guards to be evaluated when matching on objects in a registry"
+  @type guards :: [guard] | []
+
   ## Via callbacks
 
   @doc false
@@ -316,8 +325,7 @@ defmodule Registry do
   end
 
   @doc false
-  @since "1.4.0"
-  @spec start_link(keys, registry, keyword) :: {:ok, pid} | {:error, term}
+  @deprecated "Use Registry.start_link/1 instead"
   def start_link(keys, name, options \\ []) when keys in @keys and is_atom(name) do
     start_link([keys: keys, name: name] ++ options)
   end
@@ -401,7 +409,8 @@ defmodule Registry do
   function for building custom dispatching or a pubsub system.
   """
   @since "1.4.0"
-  @spec dispatch(registry, key, (entries :: [{pid, value}] -> term), keyword) :: :ok
+  @spec dispatch(registry, key, dispatcher, keyword) :: :ok
+        when dispatcher: (entries :: [{pid, value}] -> term) | {module(), atom(), [any()]}
   def dispatch(registry, key, mfa_or_fun, opts \\ [])
       when is_atom(registry) and is_function(mfa_or_fun, 1)
       when is_atom(registry) and tuple_size(mfa_or_fun) == 3 do
@@ -544,14 +553,14 @@ defmodule Registry do
 
   Pattern must be an atom or a tuple that will match the structure of the
   value stored in the registry. The atom `:_` can be used to ignore a given
-  value or tuple element, while :"$1" can be used to temporarily assign part
+  value or tuple element, while the atom `:"$1"` can be used to temporarily assign part
   of pattern to a variable for a subsequent comparison.
 
-  It is possible to pass list of guard conditions for more precise matching.
-  Each guard is a tuple, which describes check that should be passed by assigned part of pattern.
-  For example :"$1" > 1 guard condition would be expressed as {:>, :"$1", 1} tuple.
-  Please note that guard conditions will work only for assigned variables like :"$1", :"$2", etc.
-  Avoid usage of special match variables :"$_" and :"$$", because it might not work as expected.
+  Optionally, it is possible to pass a list of guard conditions for more precise matching.
+  Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
+  For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
+  Please note that guard conditions will work only for assigned variables like `:"$1"`, `:"$2"`, etc.
+  Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
 
   An empty list will be returned if there is no match.
 
@@ -581,7 +590,7 @@ defmodule Registry do
 
   """
   @since "1.4.0"
-  @spec match(registry, key, match_pattern :: term, guards :: list()) :: [{pid, term}]
+  @spec match(registry, key, match_pattern, guards) :: [{pid, term}]
   def match(registry, key, pattern, guards \\ []) when is_atom(registry) and is_list(guards) do
     guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
     spec = [{{:_, {:_, pattern}}, guards, [{:element, 2, :"$_"}]}]
@@ -765,6 +774,7 @@ defmodule Registry do
       ["hello", "hello"]
       iex> Registry.lookup(Registry.DuplicateUnregisterMatchTest, "hello")
       [{self(), :world_b}, {self(), :world_c}]
+
   """
   @since "1.5.0"
   def unregister_match(registry, key, pattern, guards \\ []) when is_list(guards) do
@@ -973,6 +983,120 @@ defmodule Registry do
     catch
       :error, :badarg ->
         raise ArgumentError, "unknown registry: #{inspect(registry)}"
+    end
+  end
+
+  @doc """
+  Returns the number of registered keys in a registry.
+  It runs in constant time.
+
+  ## Examples
+  In the example below we register the current process and ask for the
+  number of keys in the registry:
+
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueCountTest)
+      iex> Registry.count(Registry.UniqueCountTest)
+      0
+      iex> {:ok, _} = Registry.register(Registry.UniqueCountTest, "hello", :world)
+      iex> {:ok, _} = Registry.register(Registry.UniqueCountTest, "world", :world)
+      iex> Registry.count(Registry.UniqueCountTest)
+      2
+
+  The same applies to duplicate registries:
+
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateCountTest)
+      iex> Registry.count(Registry.DuplicateCountTest)
+      0
+      iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
+      iex> {:ok, _} = Registry.register(Registry.DuplicateCountTest, "hello", :world)
+      iex> Registry.count(Registry.DuplicateCountTest)
+      2
+
+  """
+  @since "1.7.0"
+  @spec count(registry) :: non_neg_integer()
+  def count(registry) when is_atom(registry) do
+    case key_info!(registry) do
+      {_kind, partitions, nil} ->
+        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
+          acc + safe_size(key_ets!(registry, partition_index))
+        end)
+
+      {_kind, 1, key_ets} ->
+        safe_size(key_ets)
+    end
+  end
+
+  defp safe_size(ets) do
+    try do
+      :ets.info(ets, :size)
+    catch
+      :error, :badarg -> 0
+    end
+  end
+
+  @doc """
+  Returns the number of `{pid, value}` pairs under the given `key` in `registry`
+  that match `pattern`.
+
+  Pattern must be an atom or a tuple that will match the structure of the
+  value stored in the registry. The atom `:_` can be used to ignore a given
+  value or tuple element, while the atom `:"$1"` can be used to temporarily assign part
+  of pattern to a variable for a subsequent comparison.
+
+  Optionally, it is possible to pass a list of guard conditions for more precise matching.
+  Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
+  For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
+  Please note that guard conditions will work only for assigned variables like `:"$1"`, `:"$2"`, etc.
+  Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
+
+  Zero will be returned if there is no match.
+
+  For unique registries, a single partition lookup is necessary. For
+  duplicate registries, all partitions must be looked up.
+
+  ## Examples
+
+  In the example below we register the current process under the same
+  key in a duplicate registry but with different values:
+
+      iex> Registry.start_link(keys: :duplicate, name: Registry.MatchTest)
+      iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {1, :atom, 1})
+      iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {2, :atom, 2})
+      iex> Registry.count_match(Registry.MatchTest, "hello", {1, :_, :_})
+      1
+      iex> Registry.count_match(Registry.MatchTest, "hello", {2, :_, :_})
+      1
+      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :atom, :_})
+      2
+      iex> Registry.count_match(Registry.MatchTest, "hello", {:"$1", :_, :"$1"})
+      2
+      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}])
+      1
+      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}])
+      2
+
+  """
+  @since "1.7.0"
+  @spec count_match(registry, key, match_pattern, guards) :: non_neg_integer()
+  def count_match(registry, key, pattern, guards \\ [])
+      when is_atom(registry) and is_list(guards) do
+    guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
+    spec = [{{:_, {:_, pattern}}, guards, [true]}]
+
+    case key_info!(registry) do
+      {:unique, partitions, key_ets} ->
+        key_ets = key_ets || key_ets!(registry, key, partitions)
+        :ets.select_count(key_ets, spec)
+
+      {:duplicate, 1, key_ets} ->
+        :ets.select_count(key_ets, spec)
+
+      {:duplicate, partitions, _key_ets} ->
+        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
+          count = :ets.select_count(key_ets!(registry, partition_index), spec)
+          acc + count
+        end)
     end
   end
 

@@ -864,7 +864,7 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-  Now invoking `square(my_number.())` as before will print the value just
+  Now invoking `squared(my_number.())` as before will print the value just
   once.
 
   In fact, this pattern is so common that most of the times you will want
@@ -1349,8 +1349,9 @@ defmodule Kernel.SpecialForms do
 
       iex> opts = %{width: 10, height: 15}
       iex> with {:ok, width} <- Map.fetch(opts, :width),
-      ...>      {:ok, height} <- Map.fetch(opts, :height),
-      ...>      do: {:ok, width * height}
+      ...>      {:ok, height} <- Map.fetch(opts, :height) do
+      ...>   {:ok, width * height}
+      ...> end
       {:ok, 150}
 
   If all clauses match, the `do` block is executed, returning its result.
@@ -1358,15 +1359,17 @@ defmodule Kernel.SpecialForms do
 
       iex> opts = %{width: 10}
       iex> with {:ok, width} <- Map.fetch(opts, :width),
-      ...>      {:ok, height} <- Map.fetch(opts, :height),
-      ...>      do: {:ok, width * height}
+      ...>      {:ok, height} <- Map.fetch(opts, :height) do
+      ...>   {:ok, width * height}
+      ...> end
       :error
 
   Guards can be used in patterns as well:
 
       iex> users = %{"melany" => "guest", "bob" => :admin}
-      iex> with {:ok, role} when not is_binary(role) <- Map.fetch(users, "bob"),
-      ...>      do: {:ok, to_string(role)}
+      iex> with {:ok, role} when not is_binary(role) <- Map.fetch(users, "bob") do
+      ...>   {:ok, to_string(role)}
+      ...> end
       {:ok, "admin"}
 
   As in `for/1`, variables bound inside `with/1` won't leak;
@@ -1376,8 +1379,9 @@ defmodule Kernel.SpecialForms do
       iex> opts = %{width: 10, height: 15}
       iex> with {:ok, width} <- Map.fetch(opts, :width),
       ...>      double_width = width * 2,
-      ...>      {:ok, height} <- Map.fetch(opts, :height),
-      ...>      do: {:ok, double_width * height}
+      ...>      {:ok, height} <- Map.fetch(opts, :height) do
+      ...>   {:ok, double_width * height}
+      ...> end
       {:ok, 300}
       iex> width
       nil
@@ -1387,6 +1391,20 @@ defmodule Kernel.SpecialForms do
 
       with :foo = :bar, do: :ok
       #=> ** (MatchError) no match of right hand side value: :bar
+
+  As with any other function or macro call in Elixir, explicit parens can
+  also be used around the arguments before the `do`/`end` block:
+
+      iex> opts = %{width: 10, height: 15}
+      iex> with(
+      ...>   {:ok, width} <- Map.fetch(opts, :width),
+      ...>   {:ok, height} <- Map.fetch(opts, :height)
+      ...> ) do
+      ...>   {:ok, width * height}
+      ...> end
+      {:ok, 150}
+
+  The choice between parens and no parens is a matter of preference.
 
   An `else` option can be given to modify what is being returned from
   `with` in the case of a failed match:
@@ -1691,7 +1709,9 @@ defmodule Kernel.SpecialForms do
   pattern matching (similar to the `case` special form).
 
   Note that calls inside `try/1` are not tail recursive since the VM
-  needs to keep the stacktrace in case an exception happens.
+  needs to keep the stacktrace in case an exception happens. To
+  retrieve the stacktrace, access `__STACKTRACE__/0` inside the `rescue`
+  or `catch` clause.
 
   ## `rescue` clauses
 

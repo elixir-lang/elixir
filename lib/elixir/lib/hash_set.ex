@@ -6,12 +6,13 @@ defmodule HashSet do
   """
 
   # TODO: Remove by 2.0
-  # (hard-deprecated in elixir_dispatch)
 
   @node_bitmap 0b111
   @node_shift 3
   @node_size 8
   @node_template :erlang.make_tuple(@node_size, [])
+
+  message = "Use the MapSet module instead"
 
   @opaque t :: %__MODULE__{size: non_neg_integer, root: term}
   @doc false
@@ -21,33 +22,40 @@ defmodule HashSet do
   @compile :inline_list_funcs
   @compile {:inline, key_hash: 1, key_mask: 1, key_shift: 1}
 
+  @deprecated message
   @spec new :: Set.t()
   def new do
     %HashSet{}
   end
 
+  @deprecated message
   def union(%HashSet{size: size1} = set1, %HashSet{size: size2} = set2) when size1 <= size2 do
     set_fold(set1, set2, fn v, acc -> put(acc, v) end)
   end
 
+  @deprecated message
   def union(%HashSet{} = set1, %HashSet{} = set2) do
     set_fold(set2, set1, fn v, acc -> put(acc, v) end)
   end
 
+  @deprecated message
   def intersection(%HashSet{} = set1, %HashSet{} = set2) do
     set_fold(set1, %HashSet{}, fn v, acc ->
       if member?(set2, v), do: put(acc, v), else: acc
     end)
   end
 
+  @deprecated message
   def difference(%HashSet{} = set1, %HashSet{} = set2) do
     set_fold(set2, set1, fn v, acc -> delete(acc, v) end)
   end
 
+  @deprecated message
   def to_list(set) do
     set_fold(set, [], &[&1 | &2]) |> :lists.reverse()
   end
 
+  @deprecated message
   def equal?(%HashSet{size: size1} = set1, %HashSet{size: size2} = set2) do
     case size1 do
       ^size2 -> subset?(set1, set2)
@@ -55,6 +63,7 @@ defmodule HashSet do
     end
   end
 
+  @deprecated message
   def subset?(%HashSet{} = set1, %HashSet{} = set2) do
     reduce(set1, {:cont, true}, fn member, acc ->
       case member?(set2, member) do
@@ -65,6 +74,7 @@ defmodule HashSet do
     |> elem(1)
   end
 
+  @deprecated message
   def disjoint?(%HashSet{} = set1, %HashSet{} = set2) do
     reduce(set2, {:cont, true}, fn member, acc ->
       case member?(set1, member) do
@@ -75,15 +85,18 @@ defmodule HashSet do
     |> elem(1)
   end
 
+  @deprecated message
   def member?(%HashSet{root: root}, term) do
     do_member?(root, term, key_hash(term))
   end
 
+  @deprecated message
   def put(%HashSet{root: root, size: size}, term) do
     {root, counter} = do_put(root, term, key_hash(term))
     %HashSet{root: root, size: size + counter}
   end
 
+  @deprecated message
   def delete(%HashSet{root: root, size: size} = set, term) do
     case do_delete(root, term, key_hash(term)) do
       {:ok, root} -> %HashSet{root: root, size: size - 1}
@@ -100,6 +113,7 @@ defmodule HashSet do
     end)
   end
 
+  @deprecated message
   def size(%HashSet{size: size}) do
     size
   end

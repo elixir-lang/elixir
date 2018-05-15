@@ -48,8 +48,23 @@ defmodule Kernel.DialyzerTest do
       |> String.to_charlist()
 
     File.cp!(context.base_plt, plt)
-    dialyzer = [analysis_type: :succ_typings, check_plt: false, files_rec: [dir], plts: [plt]]
+    warnings = Map.get(context, :warnings, [])
+
+    dialyzer = [
+      analysis_type: :succ_typings,
+      check_plt: false,
+      files_rec: [dir],
+      plts: [plt],
+      warnings: warnings
+    ]
+
     {:ok, [outdir: dir, dialyzer: dialyzer]}
+  end
+
+  @tag warnings: [:specdiffs]
+  test "no warnings on specdiffs", context do
+    copy_beam!(context, Dialyzer.RemoteCall)
+    assert_dialyze_no_warnings!(context)
   end
 
   test "no warnings on valid remote calls", context do
@@ -102,6 +117,11 @@ defmodule Kernel.DialyzerTest do
 
   test "no warnings on and/2 and or/2", context do
     copy_beam!(context, Dialyzer.BooleanCheck)
+    assert_dialyze_no_warnings!(context)
+  end
+
+  test "no warnings on for comprehensions with bitstrings", context do
+    copy_beam!(context, Dialyzer.ForBitstring)
     assert_dialyze_no_warnings!(context)
   end
 

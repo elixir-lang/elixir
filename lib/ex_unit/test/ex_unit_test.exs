@@ -136,6 +136,26 @@ defmodule ExUnitTest do
     assert config[:max_cases] == 1
   end
 
+  test "filters to the given test ids when an `only_test_ids` option is provided" do
+    defmodule TestIdTestModule do
+      use ExUnit.Case
+
+      test "passing", do: :ok
+      test "failing", do: assert(1 == 2)
+    end
+
+    test_ids =
+      MapSet.new([
+        {TestIdTestModule, :"test failing"},
+        {TestIdTestModule, :"test missing"},
+        {MissingModule, :"test passing"}
+      ])
+
+    {result, output} = run_with_filter([only_test_ids: test_ids], [])
+    assert result == %{failures: 1, skipped: 0, excluded: 0, total: 1}
+    assert output =~ "1 test, 1 failure"
+  end
+
   test "filtering cases with tags" do
     defmodule ParityTest do
       use ExUnit.Case
@@ -228,7 +248,7 @@ defmodule ExUnitTest do
               assert 1 = 2
             rescue
               e in ExUnit.AssertionError ->
-                {:error, e, System.stacktrace()}
+                {:error, e, __STACKTRACE__}
             end
 
           error2 =
@@ -236,7 +256,7 @@ defmodule ExUnitTest do
               assert 3 > 4
             rescue
               e in ExUnit.AssertionError ->
-                {:error, e, System.stacktrace()}
+                {:error, e, __STACKTRACE__}
             end
 
           raise ExUnit.MultiError, errors: [error1, error2]
@@ -257,7 +277,14 @@ defmodule ExUnitTest do
     assert output =~ "Failure #2"
 
     assert_raise ExUnit.MultiError, ~r/oops/, fn ->
-      error = {:error, RuntimeError.exception("oops"), System.stacktrace()}
+      stack =
+        try do
+          raise("oops")
+        rescue
+          _ -> __STACKTRACE__
+        end
+
+      error = {:error, RuntimeError.exception("oops"), stack}
       raise ExUnit.MultiError, errors: [error]
     end
   end

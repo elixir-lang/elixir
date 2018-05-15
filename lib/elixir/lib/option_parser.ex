@@ -281,6 +281,7 @@ defmodule OptionParser do
       ** (OptionParser.ParseError) 2 errors found!
       --verbose : Missing argument of type integer
       --source : Expected type integer, got "lib"
+
   """
   @spec parse_head!(argv, options) :: {parsed, argv} | no_return
   def parse_head!(argv, opts \\ []) when is_list(argv) and is_list(opts) do

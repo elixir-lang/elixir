@@ -87,7 +87,7 @@ defmodule Inspect.AtomTest do
   end
 
   # TODO: Remove this check once we depend only on 20
-  # TODO: Remove String.to_atom/1 when we support 20+
+  # TODO: Remove String.to_atom/1 calls when we support 20+
   if :erlang.system_info(:otp_release) >= '20' do
     test "unicode" do
       assert inspect(String.to_atom("olá")) == ":olá"
@@ -116,21 +116,21 @@ defmodule Inspect.BitStringTest do
     assert inspect(<<?a, ?b, ?c>>) == "\"abc\""
   end
 
-  test "escape" do
+  test "escaping" do
     assert inspect("f\no") == "\"f\\no\""
     assert inspect("f\\o") == "\"f\\\\o\""
     assert inspect("f\ao") == "\"f\\ao\""
+
+    assert inspect("\a\b\d\e\f\n\r\s\t\v") == "\"\\a\\b\\d\\e\\f\\n\\r \\t\\v\""
   end
 
   test "UTF-8" do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
+    # BOM
+    assert inspect("\uFEFFhello world") == "\"\\uFEFFhello world\""
   end
 
-  test "all escapes" do
-    assert inspect("\a\b\d\e\f\n\r\s\t\v") == "\"\\a\\b\\d\\e\\f\\n\\r \\t\\v\""
-  end
-
-  test "opt infer" do
+  test "infer" do
     assert inspect(<<"john", 193, "doe">>, binaries: :infer) ==
              ~s(<<106, 111, 104, 110, 193, 100, 111, 101>>)
 
@@ -138,46 +138,39 @@ defmodule Inspect.BitStringTest do
     assert inspect(<<193>>, binaries: :infer) == ~s(<<193>>)
   end
 
-  test "opt as strings" do
+  test "as strings" do
     assert inspect(<<"john", 193, "doe">>, binaries: :as_strings) == ~s("john\\xC1doe")
     assert inspect(<<"john">>, binaries: :as_strings) == ~s("john")
     assert inspect(<<193>>, binaries: :as_strings) == ~s("\\xC1")
   end
 
-  test "opt as binaries" do
+  test "as binaries" do
     assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries) ==
              "<<106, 111, 104, 110, 193, 100, 111, 101>>"
 
     assert inspect(<<"john">>, binaries: :as_binaries) == "<<106, 111, 104, 110>>"
     assert inspect(<<193>>, binaries: :as_binaries) == "<<193>>"
 
-    # base: :hex is recognized
-    assert inspect("abc", binaries: :as_binary, base: :hex) == "<<0x61, 0x62, 0x63>>"
-
-    # any base other than :decimal implies binaries: :as_binaries
+    # Any base other than :decimal implies "binaries: :as_binaries"
     assert inspect("abc", base: :hex) == "<<0x61, 0x62, 0x63>>"
     assert inspect("abc", base: :octal) == "<<0o141, 0o142, 0o143>>"
 
-    # size is still represented as decimal
+    # Size is still represented as decimal
     assert inspect(<<10, 11, 12::4>>, base: :hex) == "<<0xA, 0xB, 0xC::size(4)>>"
   end
 
-  test "unprintable with opts" do
+  test "unprintable with limit" do
     assert inspect(<<193, 193, 193, 193>>, limit: 3) == "<<193, 193, 193, ...>>"
   end
 
   test "printable limit" do
     assert inspect("hello world", printable_limit: 4) == ~s("hell" <> ...)
 
-    # non printable characters after the limit don't matter
+    # Non-printable characters after the limit don't matter
     assert inspect("hello world" <> <<0>>, printable_limit: 4) == ~s("hell" <> ...)
 
-    # non printable strings aren't affected by printable limit
+    # Non printable strings aren't affected by printable limit
     assert inspect(<<0, 1, 2, 3, 4>>, printable_limit: 3) == ~s(<<0, 1, 2, 3, 4>>)
-  end
-
-  test "utf-8 BOM" do
-    assert inspect("\uFEFFhello world") == "\"\\uFEFFhello world\""
   end
 end
 
@@ -280,9 +273,9 @@ defmodule Inspect.ListTest do
 
   test "printable limit" do
     assert inspect('hello world', printable_limit: 4) == ~s('hell' ++ ...)
-    # non printable characters after the limit don't matter
+    # Non printable characters after the limit don't matter
     assert inspect('hello world' ++ [0], printable_limit: 4) == ~s('hell' ++ ...)
-    # non printable strings aren't affected by printable limit
+    # Non printable strings aren't affected by printable limit
     assert inspect([0, 1, 2, 3, 4], printable_limit: 3) == ~s([0, 1, 2, 3, 4])
   end
 
@@ -448,11 +441,15 @@ defmodule Inspect.MapTest do
         "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
         "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
-    assert_raise Inspect.Error, msg, fn ->
+    try do
       inspect(%Failing{}, safe: false)
+    rescue
+      e in Inspect.Error ->
+        assert Exception.message(e) =~ msg
+        assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _} | _] = __STACKTRACE__
+    else
+      _ -> flunk("expected failure")
     end
-
-    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _} | _] = System.stacktrace()
   end
 
   test "bad implementation safe" do

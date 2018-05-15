@@ -249,7 +249,7 @@ end
 
 defimpl IEx.Info, for: Function do
   def info(fun) do
-    fun_info = :erlang.fun_info(fun)
+    fun_info = Function.info(fun)
 
     specific_info =
       if fun_info[:type] == :external and fun_info[:env] == [] do

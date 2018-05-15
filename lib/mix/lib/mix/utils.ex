@@ -63,6 +63,7 @@ defmodule Mix.Utils do
       :error
       iex> Mix.Utils.parse_mfa("Foo.bar/2/2")
       :error
+
   """
   def parse_mfa(mfa) do
     with {:ok, quoted} <- Code.string_to_quoted(mfa),
@@ -136,6 +137,10 @@ defmodule Mix.Utils do
 
   def extract_stale(sources, targets) do
     stale_stream(sources, targets) |> Enum.to_list()
+  end
+
+  defp stale_stream(sources, []) do
+    sources
   end
 
   defp stale_stream(sources, targets) do
@@ -482,6 +487,7 @@ defmodule Mix.Utils do
 
     * `:sha512` - checks against the given SHA-512 checksum. Returns
       `{:checksum, message}` in case it fails
+
   """
   @spec read_path(String.t(), keyword) ::
           {:ok, binary}
@@ -569,6 +575,8 @@ defmodule Mix.Utils do
     #
     # If a proxy environment variable was supplied add a proxy to httpc.
     http_options = [relaxed: true] ++ proxy_config(path)
+
+    :httpc.set_option(:ipfamily, :inet6fb4, :mix)
 
     case :httpc.request(:get, request, http_options, [body_format: :binary], :mix) do
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->

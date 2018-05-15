@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
   end
 
   test "compilation continues if one file fails to compile" do
-    in_fixture "compile_yecc", fn ->
+    in_fixture("compile_yecc", fn ->
       file = Path.absname("src/zzz.yrl")
 
       File.write!(file, """
@@ -30,11 +30,11 @@ defmodule Mix.Tasks.Compile.YeccTest do
       end)
 
       assert File.regular?("src/test_ok.erl")
-    end
+    end)
   end
 
   test "compiles src/test_ok.yrl" do
-    in_fixture "compile_yecc", fn ->
+    in_fixture("compile_yecc", fn ->
       assert Mix.Tasks.Compile.Yecc.run(["--verbose"]) == {:ok, []}
 
       assert_received {:mix_shell, :info, ["Compiled src/test_ok.yrl"]}
@@ -45,17 +45,17 @@ defmodule Mix.Tasks.Compile.YeccTest do
 
       assert Mix.Tasks.Compile.Yecc.run(["--force", "--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled src/test_ok.yrl"]}
-    end
+    end)
   end
 
   test "removes old artifact files" do
-    in_fixture "compile_yecc", fn ->
+    in_fixture("compile_yecc", fn ->
       assert Mix.Tasks.Compile.Yecc.run([]) == {:ok, []}
       assert File.regular?("src/test_ok.erl")
 
       File.rm!("src/test_ok.yrl")
       assert Mix.Tasks.Compile.Yecc.run([]) == {:ok, []}
       refute File.regular?("src/test_ok.erl")
-    end
+    end)
   end
 end

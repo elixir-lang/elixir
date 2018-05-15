@@ -327,12 +327,51 @@ elixir_imported_macros() ->
     error:undef -> []
   end.
 
-check_deprecation(Meta, Receiver, Name, Arity, #{file := File}) ->
-  case deprecation(Receiver, Name, Arity) of
-    false -> ok;
-    Message ->
-      Warning = deprecation_message(Receiver, Name, Arity, Message),
-      elixir_errors:warn(?line(Meta), File, Warning)
+%% Inline common cases.
+check_deprecation(Meta, ?kernel, to_char_list, 1, E) ->
+  Message = "Kernel.to_char_list/1 is deprecated. Use Kernel.to_charlist/1 instead",
+  elixir_errors:warn(?line(Meta), ?key(E, file), Message);
+check_deprecation(_, ?kernel, _, _, _) ->
+  ok;
+check_deprecation(_, erlang, _, _, _) ->
+  ok;
+check_deprecation(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars} = E) ->
+  case lists:member('__STACKTRACE__', Vars) of
+    true ->
+      ok;
+    false ->
+      Message =
+        "System.stacktrace/0 outside of rescue/catch clauses is deprecated. "
+          "If you want to support only Elixir v1.7+, you must access __STACKTRACE__ "
+          "inside a rescue/catch. If you want to support earlier Elixir versions, "
+          "move System.stacktrace/0 inside a rescue/catch",
+      elixir_errors:warn(?line(Meta), ?key(E, file), Message)
+  end;
+check_deprecation(Meta, Receiver, Name, Arity, E) ->
+  case (get(elixir_compiler_dest) == undefined) andalso is_module_loaded(Receiver) andalso
+        erlang:function_exported(Receiver, '__info__', 1) andalso get_deprecations(Receiver) of
+    [_ | _] = Deprecations ->
+      case lists:keyfind({Name, Arity}, 1, Deprecations) of
+        {_, Message} ->
+          Warning = deprecation_message(Receiver, Name, Arity, Message),
+          elixir_errors:warn(?line(Meta), ?key(E, file), Warning);
+        false ->
+          ok
+      end;
+    _ ->
+      ok
+  end.
+
+%% TODO: Do not rely on erlang:module_loaded/1 on Erlang/OTP 21+.
+is_module_loaded(Receiver) ->
+  erlang:module_loaded(Receiver) orelse
+    (code:ensure_loaded(Receiver) == {module, Receiver}).
+
+get_deprecations(Receiver) ->
+  try
+    Receiver:'__info__'(deprecated)
+  catch
+    error:_ -> []
   end.
 
 deprecation_message(Receiver, '__using__', _Arity, Message) ->
@@ -347,108 +386,5 @@ deprecation_message(Receiver, Name, Arity, Message) ->
 deprecation_message(Warning, Message) ->
   case Message of
     true -> Warning;
-    Message -> Warning ++ ", " ++ Message
+    Message -> Warning ++ ". " ++ Message
   end.
-
-%% Modules
-deprecation('Elixir.Dict', _, _) ->
-  "use the Map module for working with maps or the Keyword module for working with keyword lists";
-deprecation('Elixir.GenEvent', _, _) ->
-  "use one of the alternatives described in the documentation for the GenEvent module";
-deprecation('Elixir.HashDict', _, _) ->
-  "use maps and the Map module instead";
-deprecation('Elixir.HashSet', _, _) ->
-  "use the MapSet module instead";
-deprecation('Elixir.Set', _, _) ->
-  "use the MapSet module for working with sets";
-
-%% Single functions
-deprecation('Elixir.Atom', to_char_list, 1) ->
-  "use Atom.to_charlist/1";
-deprecation('Elixir.Enum', chunk, 2) ->
-  "use Enum.chunk_every/2 instead";
-deprecation('Elixir.Enum', chunk, 3) ->
-  "use Enum.chunk_every/3 instead";
-deprecation('Elixir.Enum', chunk, 4) ->
-  "use Enum.chunk_every/4 instead";
-deprecation('Elixir.Enum', filter_map, 3) ->
-  "use Enum.filter/2 + Enum.map/2 or for comprehensions";
-deprecation('Elixir.Enum', partition, 2) ->
-  "use Enum.split_with/2";
-deprecation('Elixir.Enum', uniq, 2) ->
-  "use Enum.uniq_by/2";
-deprecation('Elixir.Float', to_char_list, 1) ->
-  "use Float.to_charlist/1";
-deprecation('Elixir.Float', to_char_list, 2) ->
-  "use :erlang.float_to_list/2";
-deprecation('Elixir.Float', to_string, 2) ->
-  "use :erlang.float_to_binary/2";
-deprecation('Elixir.Integer', to_char_list, 1) ->
-  "use Integer.to_charlist/1";
-deprecation('Elixir.Integer', to_char_list, 2) ->
-  "use Integer.to_charlist/2";
-deprecation('Elixir.Kernel', to_char_list, 1) ->
-  "use Kernel.to_charlist/1";
-deprecation('Elixir.Keyword', replace, 3) ->
-  "use Keyword.fetch/2 + Keyword.put/3";
-deprecation('Elixir.Keyword', size, 1) ->
-  "use Kernel.length/1";
-deprecation('Elixir.List.Chars', to_char_list, 1) ->
-  "use List.Chars.to_charlist/1";
-deprecation('Elixir.Map', replace, 3) ->
-  "use Map.fetch/2 + Map.put/3";
-deprecation('Elixir.Map', size, 1) ->
-  "use Kernel.map_size/1";
-deprecation('Elixir.Macro', unescape_tokens, 1) ->
-  "instead traverse over the arguments using Enum.map/2";
-deprecation('Elixir.Macro', unescape_tokens, 2) ->
-  "instead traverse over the arguments using Enum.map/2";
-deprecation('Elixir.Module', add_doc, 5) ->
-  "use @doc instead";
-deprecation('Elixir.Module', add_doc, 6) ->
-  "use @doc instead";
-deprecation('Elixir.Range', 'range?', 1) ->
-  "instead pattern match on left..right";
-deprecation('Elixir.Registry', 'start_link', 2) ->
-  "use Registry.start_link/1 instead";
-deprecation('Elixir.Registry', 'start_link', 3) ->
-  "use Registry.start_link/1 instead";
-deprecation('Elixir.Stream', chunk, 2) ->
-  "use Stream.chunk_every/2 instead";
-deprecation('Elixir.Stream', chunk, 3) ->
-  "use Stream.chunk_every/3 instead";
-deprecation('Elixir.Stream', chunk, 4) ->
-  "use Stream.chunk_every/4 instead";
-deprecation('Elixir.Stream', filter_map, 3) ->
-  "use Stream.filter/2 + Stream.map/2";
-deprecation('Elixir.Stream', uniq, 2) ->
-  "use Stream.uniq_by/2";
-deprecation('Elixir.String', ljust, 2) ->
-  "use String.pad_trailing/2";
-deprecation('Elixir.String', ljust, 3) ->
-  "use String.pad_trailing/3 with a binary padding";
-deprecation('Elixir.String', lstrip, 1) ->
-  "use String.trim_leading/1";
-deprecation('Elixir.String', lstrip, 2) ->
-  "use String.trim_leading/2 with a binary as second argument";
-deprecation('Elixir.String', rjust, 2) ->
-  "use String.pad_leading/2";
-deprecation('Elixir.String', rjust, 3) ->
-  "use String.pad_leading/3 with a binary padding";
-deprecation('Elixir.String', rstrip, 1) ->
-  "use String.trim_trailing/1";
-deprecation('Elixir.String', rstrip, 2) ->
-  "use String.trim_trailing/2 with a binary as second argument";
-deprecation('Elixir.String', strip, 1) ->
-  "use String.trim/1";
-deprecation('Elixir.String', strip, 2) ->
-  "use String.trim/2 with a binary second argument";
-deprecation('Elixir.String', to_char_list, 1) ->
-  "use String.to_charlist/1";
-deprecation('Elixir.String', 'valid_character?', 1) ->
-  "use String.valid?/1";
-deprecation('Elixir.Task', find, 2) ->
-  "match on the message directly";
-
-deprecation(_, _, _) ->
-  false.

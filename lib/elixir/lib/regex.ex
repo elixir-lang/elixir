@@ -41,7 +41,7 @@ defmodule Regex do
   expression engine at any time.
 
   For such reasons, we always recommend precompiling Elixir projects using
-  the OTP version meant to run in production. In case cross-compilation is
+  the Erlang/OTP version meant to run in production. In case cross-compilation is
   really necessary, you can manually invoke `Regex.recompile/1` or
   `Regex.recompile!/1` to perform a runtime version check and recompile the
   regex if necessary.
@@ -127,7 +127,7 @@ defmodule Regex do
   ## Examples
 
       iex> Regex.compile("foo")
-      {:ok, ~r"foo"}
+      {:ok, ~r/foo/}
 
       iex> Regex.compile("*foo")
       {:error, {'nothing to repeat', 0}}
@@ -184,9 +184,8 @@ defmodule Regex do
   def recompile(%Regex{} = regex) do
     version = version()
 
-    # We use Map.get/3 by choice to support old regexes versions.
-    case Map.get(regex, :re_version, :error) do
-      ^version ->
+    case regex do
+      %{re_version: ^version} ->
         {:ok, regex}
 
       _ ->
@@ -211,12 +210,13 @@ defmodule Regex do
   Returns the version of the underlying Regex engine.
   """
   @since "1.4.0"
+  @spec version :: term()
   # TODO: No longer check for function_exported? on OTP 20+.
   def version do
     if function_exported?(:re, :version, 0) do
-      :re.version()
+      {:re.version(), :erlang.system_info(:endian)}
     else
-      "8.33 2013-05-29"
+      {"8.33 2013-05-29", :erlang.system_info(:endian)}
     end
   end
 
@@ -261,7 +261,8 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - sets to `:index` to return indexes. Defaults to `:binary`.
+    * `:return` - set to `:index` to return byte index and match length.
+      Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
 
@@ -292,9 +293,12 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the given captures as a map or `nil` if no captures are
-  found. The option `:return` can be set to `:index` to get indexes
-  back.
+  Returns the given captures as a map or `nil` if no captures are found.
+
+  ## Options
+
+    * `:return` - set to `:index` to return byte index and match length.
+      Defaults to `:binary`.
 
   ## Examples
 
@@ -376,7 +380,8 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - sets to `:index` to return indexes. Defaults to `:binary`.
+    * `:return` - set to `:index` to return byte index and match length.
+      Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
 
@@ -393,6 +398,9 @@ defmodule Regex do
 
       iex> Regex.scan(~r/\p{Sc}/u, "$, £, and €")
       [["$"], ["£"], ["€"]]
+
+      iex> Regex.scan(~r/=+/, "=ü†ƒ8===", return: :index)
+      [[{0, 1}], [{9, 3}]]
 
   """
   @spec scan(t, String.t(), [term]) :: [[String.t()]]
@@ -591,7 +599,7 @@ defmodule Regex do
 
   def replace(regex, string, replacement, options)
       when is_binary(string) and is_function(replacement) and is_list(options) do
-    {:arity, arity} = :erlang.fun_info(replacement, :arity)
+    {:arity, arity} = Function.info(replacement, :arity)
     do_replace(regex, string, {replacement, arity}, options)
   end
 

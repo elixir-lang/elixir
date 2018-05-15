@@ -12,7 +12,7 @@ defmodule Mix.Tasks.CmdTest do
   end
 
   test "runs the command for each app" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("cmd", ["echo", "hello"])
         nl = os_newline()
@@ -21,11 +21,11 @@ defmodule Mix.Tasks.CmdTest do
         assert_received {:mix_shell, :info, ["==> foo"]}
         assert_received {:mix_shell, :run, ["hello" <> ^nl]}
       end)
-    end
+    end)
   end
 
   test "only runs the cmd for specified apps" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("cmd", ["--app", "bar", "echo", "hello"])
         nl = os_newline()
@@ -34,6 +34,6 @@ defmodule Mix.Tasks.CmdTest do
         refute_received {:mix_shell, :info, ["==> foo"]}
         refute_received {:mix_shell, :run, ["hello" <> ^nl]}
       end)
-    end
+    end)
   end
 end

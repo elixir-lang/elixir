@@ -22,10 +22,10 @@ defmodule File.Stream do
     modes =
       case raw do
         true ->
-          if :lists.keyfind(:read_ahead, 1, modes) == {:read_ahead, false} do
-            [:raw | modes]
-          else
-            [:raw, :read_ahead | modes]
+          case :lists.keyfind(:read_ahead, 1, modes) do
+            {:read_ahead, false} -> [:raw | :lists.keydelete(:read_ahead, 1, modes)]
+            {:read_ahead, _} -> [:raw | modes]
+            false -> [:raw, :read_ahead | modes]
           end
 
         false ->

@@ -9,12 +9,18 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
+  defmodule WrongPath do
+    def project do
+      [app: :apps_path_bug, apps_path: "this_path_does_not_exist"]
+    end
+  end
+
   setup do
     Mix.Project.push(MixTest.Case.Sample)
     :ok
   end
 
-  test "compile --list with mixfile" do
+  test "compiles --list with mixfile" do
     Mix.Task.run("compile", ["--list"])
 
     msg = "\nEnabled compilers: yecc, leex, erlang, elixir, xref, app, protocols"
@@ -23,19 +29,19 @@ defmodule Mix.Tasks.CompileTest do
     assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
   end
 
-  test "compile --list with custom mixfile" do
+  test "compiles --list with custom mixfile" do
     Mix.Project.push(CustomCompilers)
     Mix.Task.run("compile", ["--list"])
     assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom, protocols"]}
   end
 
-  test "compile does not require all compilers available on manifest" do
+  test "compiles does not require all compilers available on manifest" do
     Mix.Project.push(CustomCompilers)
     assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == ["compile.elixir"]
   end
 
-  test "compile a project with mixfile" do
-    in_fixture "no_mixfile", fn ->
+  test "compiles a project with mixfile" do
+    in_fixture("no_mixfile", fn ->
       assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
@@ -59,11 +65,11 @@ defmodule Mix.Tasks.CompileTest do
       purge([Enumerable])
       assert Mix.Tasks.App.Start.run(["--verbose"]) == :ok
       assert Protocol.consolidated?(Enumerable)
-    end
+    end)
   end
 
-  test "compile a project with multiple compilers and a syntax error in an Erlang file" do
-    in_fixture "no_mixfile", fn ->
+  test "compiles a project with multiple compilers and a syntax error in an Erlang file" do
+    in_fixture("no_mixfile", fn ->
       import ExUnit.CaptureIO
 
       file = Path.absname("src/a.erl")
@@ -90,13 +96,13 @@ defmodule Mix.Tasks.CompileTest do
 
       refute File.regular?("ebin/Elixir.A.beam")
       refute File.regular?("ebin/Elixir.B.beam")
-    end
+    end)
   end
 
   test "add Logger application metadata" do
     import ExUnit.CaptureLog
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
       require Logger
@@ -111,11 +117,11 @@ defmodule Mix.Tasks.CompileTest do
       after
         purge([A])
       end
-    end
+    end)
   end
 
   test "returns errors from compilers when --return-errors is set" do
-    in_fixture "no_mixfile", fn ->
+    in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
         def my_fn(), do: $$$
@@ -135,6 +141,34 @@ defmodule Mix.Tasks.CompileTest do
                  compiler_name: "Elixir"
                } = diagnostic
       end)
-    end
+    end)
+  end
+
+  test "skip protocol consolidation when --no-protocol-consolidation" do
+    in_fixture("no_mixfile", fn ->
+      File.rm("_build/dev/lib/sample/.mix/compile.protocols")
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:ok, []}
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
+    end)
+  end
+
+  test "loads mix config with --erl-config" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("mix.config", "{erl_config_app, [{value, true}]}.")
+      assert Mix.Task.run("compile", ["--erl-config", "mix.config"]) == {:ok, []}
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      assert Application.get_env(:erl_config_app, :value)
+    end)
+  after
+    Application.delete_env(:erl_config_app, :value)
+  end
+
+  test "compiles a project with wrong path" do
+    Mix.Project.push(WrongPath)
+
+    ExUnit.CaptureIO.capture_io(fn ->
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:noop, []}
+    end)
   end
 end

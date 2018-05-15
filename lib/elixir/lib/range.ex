@@ -59,7 +59,7 @@ defmodule Range do
 
   # TODO: Remove by 2.0
   @doc false
-  @spec range?(term) :: boolean
+  @deprecated "Pattern match on first..last instead"
   def range?(term)
   def range?(first..last) when is_integer(first) and is_integer(last), do: true
   def range?(_), do: false
@@ -70,20 +70,20 @@ defimpl Enumerable, for: Range do
     reduce(first, last, acc, fun, _up? = last >= first)
   end
 
-  defp reduce(_x, _y, {:halt, acc}, _fun, _up?) do
+  defp reduce(_first, _last, {:halt, acc}, _fun, _up?) do
     {:halted, acc}
   end
 
-  defp reduce(x, y, {:suspend, acc}, fun, up?) do
-    {:suspended, acc, &reduce(x, y, &1, fun, up?)}
+  defp reduce(first, last, {:suspend, acc}, fun, up?) do
+    {:suspended, acc, &reduce(first, last, &1, fun, up?)}
   end
 
-  defp reduce(x, y, {:cont, acc}, fun, _up? = true) when x <= y do
-    reduce(x + 1, y, fun.(x, acc), fun, _up? = true)
+  defp reduce(first, last, {:cont, acc}, fun, _up? = true) when first <= last do
+    reduce(first + 1, last, fun.(first, acc), fun, _up? = true)
   end
 
-  defp reduce(x, y, {:cont, acc}, fun, _up? = false) when x >= y do
-    reduce(x - 1, y, fun.(x, acc), fun, _up? = false)
+  defp reduce(first, last, {:cont, acc}, fun, _up? = false) when first >= last do
+    reduce(first - 1, last, fun.(first, acc), fun, _up? = false)
   end
 
   defp reduce(_, _, {:cont, acc}, _fun, _up) do

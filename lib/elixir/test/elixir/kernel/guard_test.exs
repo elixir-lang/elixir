@@ -4,7 +4,7 @@ defmodule Kernel.GuardTest do
   use ExUnit.Case, async: true
 
   describe "Kernel.defguard(p) usage" do
-    defmodule Guards.In.Macros do
+    defmodule GuardsInMacros do
       defguard is_foo(atom) when atom == :foo
 
       defmacro is_compile_time_foo(atom) when is_foo(atom) do
@@ -13,13 +13,13 @@ defmodule Kernel.GuardTest do
     end
 
     test "guards can be used in other macros in the same module" do
-      require Guards.In.Macros
-      assert Guards.In.Macros.is_foo(:foo)
-      refute Guards.In.Macros.is_foo(:baz)
-      assert Guards.In.Macros.is_compile_time_foo(:foo)
+      require GuardsInMacros
+      assert GuardsInMacros.is_foo(:foo)
+      refute GuardsInMacros.is_foo(:baz)
+      assert GuardsInMacros.is_compile_time_foo(:foo)
     end
 
-    defmodule Guards.In.Funs do
+    defmodule GuardsInFuns do
       defguard is_foo(atom) when atom == :foo
       defguard is_equal(foo, bar) when foo == bar
 
@@ -29,19 +29,19 @@ defmodule Kernel.GuardTest do
     end
 
     test "guards can be used in other funs in the same module" do
-      require Guards.In.Funs
-      assert Guards.In.Funs.is_foo(:foo)
-      refute Guards.In.Funs.is_foo(:bar)
+      require GuardsInFuns
+      assert GuardsInFuns.is_foo(:foo)
+      refute GuardsInFuns.is_foo(:bar)
     end
 
     test "guards do not change code evaluation semantics" do
-      require Guards.In.Funs
+      require GuardsInFuns
       x = 1
-      assert Guards.In.Funs.is_equal(x = 2, x) == false
+      assert GuardsInFuns.is_equal(x = 2, x) == false
       assert x == 2
     end
 
-    defmodule Macros.In.Guards do
+    defmodule MacrosInGuards do
       defmacro is_foo(atom) do
         quote do
           unquote(atom) == :foo
@@ -52,35 +52,35 @@ defmodule Kernel.GuardTest do
     end
 
     test "macros can be used in other guards in the same module" do
-      require Macros.In.Guards
-      assert Macros.In.Guards.is_foobar(:foo)
-      assert Macros.In.Guards.is_foobar(:bar)
-      refute Macros.In.Guards.is_foobar(:baz)
+      require MacrosInGuards
+      assert MacrosInGuards.is_foobar(:foo)
+      assert MacrosInGuards.is_foobar(:bar)
+      refute MacrosInGuards.is_foobar(:baz)
     end
 
-    defmodule Guards.In.Guards do
+    defmodule GuardsInGuards do
       defguard is_foo(atom) when atom == :foo
       defguard is_foobar(atom) when is_foo(atom) or atom == :bar
     end
 
     test "guards can be used in other guards in the same module" do
-      require Guards.In.Guards
-      assert Guards.In.Guards.is_foobar(:foo)
-      assert Guards.In.Guards.is_foobar(:bar)
-      refute Guards.In.Guards.is_foobar(:baz)
+      require GuardsInGuards
+      assert GuardsInGuards.is_foobar(:foo)
+      assert GuardsInGuards.is_foobar(:bar)
+      refute GuardsInGuards.is_foobar(:baz)
     end
 
-    defmodule Default.Args do
+    defmodule DefaultArgs do
       defguard is_divisible(value, remainder \\ 2)
                when is_integer(value) and rem(value, remainder) == 0
     end
 
     test "permits default values in args" do
-      require Default.Args
-      assert Default.Args.is_divisible(2)
-      refute Default.Args.is_divisible(1)
-      assert Default.Args.is_divisible(3, 3)
-      refute Default.Args.is_divisible(3, 4)
+      require DefaultArgs
+      assert DefaultArgs.is_divisible(2)
+      refute DefaultArgs.is_divisible(1)
+      assert DefaultArgs.is_divisible(3, 3)
+      refute DefaultArgs.is_divisible(3, 4)
     end
 
     test "doesn't allow matching in args" do
@@ -109,7 +109,28 @@ defmodule Kernel.GuardTest do
       end
     end
 
-    defmodule Integer.Private.Guards do
+    defmodule GuardFromMacro do
+      defmacro __using__(_) do
+        quote do
+          defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
+        end
+      end
+    end
+
+    test "defguard defines a guard from inside another macro" do
+      defmodule UseGuardFromMacro do
+        use GuardFromMacro
+
+        def assert! do
+          assert is_even(0)
+          refute is_even(1)
+        end
+      end
+
+      UseGuardFromMacro.assert!()
+    end
+
+    defmodule IntegerPrivateGuards do
       defguardp is_even(value) when is_integer(value) and rem(value, 2) == 0
 
       def is_even_and_large?(value) when is_even(value) and value > 100, do: true
@@ -121,19 +142,19 @@ defmodule Kernel.GuardTest do
     end
 
     test "defguardp defines private guards that work inside and outside guard clauses" do
-      assert Integer.Private.Guards.is_even_and_large?(102)
-      refute Integer.Private.Guards.is_even_and_large?(98)
-      refute Integer.Private.Guards.is_even_and_large?(99)
-      refute Integer.Private.Guards.is_even_and_large?(103)
+      assert IntegerPrivateGuards.is_even_and_large?(102)
+      refute IntegerPrivateGuards.is_even_and_large?(98)
+      refute IntegerPrivateGuards.is_even_and_large?(99)
+      refute IntegerPrivateGuards.is_even_and_large?(103)
 
-      assert Integer.Private.Guards.is_even_and_small?(98)
-      refute Integer.Private.Guards.is_even_and_small?(99)
-      refute Integer.Private.Guards.is_even_and_small?(102)
-      refute Integer.Private.Guards.is_even_and_small?(103)
+      assert IntegerPrivateGuards.is_even_and_small?(98)
+      refute IntegerPrivateGuards.is_even_and_small?(99)
+      refute IntegerPrivateGuards.is_even_and_small?(102)
+      refute IntegerPrivateGuards.is_even_and_small?(103)
 
       assert_raise CompileError, ~r"cannot invoke local is_even/1 inside guard", fn ->
-        defmodule Integer.Private.Guard.Utils do
-          import Integer.Private.Guards
+        defmodule IntegerPrivateGuardUtils do
+          import IntegerPrivateGuards
 
           def is_even_and_large?(value) when is_even(value) and value > 100, do: true
           def is_even_and_large?(_), do: false
@@ -141,8 +162,8 @@ defmodule Kernel.GuardTest do
       end
 
       assert_raise CompileError, ~r"undefined function is_even/1", fn ->
-        defmodule Integer.Private.Function.Utils do
-          import Integer.Private.Guards
+        defmodule IntegerPrivateFunctionUtils do
+          import IntegerPrivateGuards
 
           def is_even_and_small?(value) do
             if is_even(value) and value <= 100, do: true, else: false

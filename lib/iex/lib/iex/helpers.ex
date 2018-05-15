@@ -23,8 +23,8 @@ defmodule IEx.Helpers do
   There are many other helpers available, here are some examples:
 
     * `b/1`            - prints callbacks info and docs for a given module
-    * `c/1`            - compiles a file into the current directory
-    * `c/2`            - compiles a file to the given path
+    * `c/1`            - compiles a file
+    * `c/2`            - compiles a file and writes bytecode to the given path
     * `cd/1`           - changes the current directory
     * `clear/0`        - clears the screen
     * `exports/1`      - shows all exports (functions + macros) in a module
@@ -241,10 +241,16 @@ defmodule IEx.Helpers do
 
       subl path/to/file:line
 
-  Custom editors are supported by using the __FILE__ and __LINE__
-  notations. For example, vi/vim users can set `ELIXIR_EDITOR` to:
+  It is important that you choose an editor command that does
+  not block nor that attempts to run an editor directly in the
+  terminal. Command-line based editors likely need extra
+  configuration so they open up the given file and line in a
+  separate window.
 
-      ELIXIR_EDITOR="vi +__LINE__ __FILE__"
+  Custom editors are supported by using the `__FILE__` and
+  `__LINE__` notations, for example:
+
+      ELIXIR_EDITOR="my_editor +__LINE__ __FILE__"
 
   and Elixir will properly interpolate values.
 
@@ -252,8 +258,8 @@ defmodule IEx.Helpers do
   `ELIXIR_EDITOR` can be set "echo" if you prefer to display the
   location rather than opening it.
 
-  Keep in mind the location may not exist when opening
-  precompiled source code, such as Elixir itself.
+  Keep in mind the location may not exist when opening precompiled
+  source code.
 
   ## Examples
 
@@ -264,7 +270,7 @@ defmodule IEx.Helpers do
   """
   defmacro open(term) do
     quote do
-      IEx.Introspection.open(unquote(IEx.Introspection.decompose(term)))
+      IEx.Introspection.open(unquote(IEx.Introspection.decompose(term, __CALLER__)))
     end
   end
 
@@ -293,7 +299,7 @@ defmodule IEx.Helpers do
   """
   defmacro h(term) do
     quote do
-      IEx.Introspection.h(unquote(IEx.Introspection.decompose(term)))
+      IEx.Introspection.h(unquote(IEx.Introspection.decompose(term, __CALLER__)))
     end
   end
 
@@ -308,10 +314,11 @@ defmodule IEx.Helpers do
       iex> b(Mix.Task.run/1)
       iex> b(Mix.Task.run)
       iex> b(GenServer)
+
   """
   defmacro b(term) do
     quote do
-      IEx.Introspection.b(unquote(IEx.Introspection.decompose(term)))
+      IEx.Introspection.b(unquote(IEx.Introspection.decompose(term, __CALLER__)))
     end
   end
 
@@ -336,7 +343,7 @@ defmodule IEx.Helpers do
   """
   defmacro t(term) do
     quote do
-      IEx.Introspection.t(unquote(IEx.Introspection.decompose(term)))
+      IEx.Introspection.t(unquote(IEx.Introspection.decompose(term, __CALLER__)))
     end
   end
 
@@ -364,7 +371,7 @@ defmodule IEx.Helpers do
 
   """
   def v(n \\ -1) do
-    IEx.History.nth(history(), n) |> elem(2)
+    IEx.History.nth(history(), n) |> elem(1)
   end
 
   @doc """
@@ -518,7 +525,7 @@ defmodule IEx.Helpers do
     print_pane("System and architecture")
 
     print_entry("Elixir version", System.version())
-    print_entry("OTP version", :erlang.system_info(:otp_release))
+    print_entry("Erlang/OTP version", :erlang.system_info(:otp_release))
     print_entry("ERTS version", :erlang.system_info(:version))
     print_entry("Compiled for", :erlang.system_info(:system_architecture))
     print_entry("Schedulers", :erlang.system_info(:schedulers))

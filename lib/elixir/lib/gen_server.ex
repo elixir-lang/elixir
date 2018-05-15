@@ -23,10 +23,17 @@ defmodule GenServer do
 
         # Callbacks
 
-        def handle_call(:pop, _from, [h | t]) do
-          {:reply, h, t}
+        @impl true
+        def init(stack) do
+          {:ok, stack}
         end
 
+        @impl true
+        def handle_call(:pop, _from, [head | tail]) do
+          {:reply, head, tail}
+        end
+
+        @impl true
         def handle_cast({:push, item}, state) do
           {:noreply, [item | state]}
         end
@@ -56,12 +63,53 @@ defmodule GenServer do
   that must be handled by the `c:handle_call/3` callback in the GenServer.
   A `cast/2` message must be handled by `c:handle_cast/2`.
 
+  ## Client / Server APIs
+
+  Although in the example above we have used `GenServer.start_link/3` and
+  friends to directly start and communicate with the server, most of the
+  time we don't call the `GenServer` functions directly. Instead, we wrap
+  the calls in new functions representing the public API of the server.
+
+  Here is a better implementation of our Stack module:
+
+      defmodule Stack do
+        use GenServer
+
+        # Client
+
+        def start_link(default) when is_list(default) do
+          GenServer.start_link(__MODULE__, default)
+        end
+
+        def push(pid, item) do
+          GenServer.cast(pid, {:push, item})
+        end
+
+        def pop(pid) do
+          GenServer.call(pid, :pop)
+        end
+
+        # Server (callbacks)
+
+        @impl true
+        def handle_call(:pop, _from, [head | tail]) do
+          {:reply, head, tail}
+        end
+
+        @impl true
+        def handle_cast({:push, item}, state) do
+          {:noreply, [item | state]}
+        end
+      end
+
+  In practice, it is common to have both server and client functions in
+  the same module. If the server and/or client implementations are growing
+  complex, you may want to have them in different modules.
+
   ## use GenServer and callbacks
 
-  There are 6 callbacks required to be implemented in a `GenServer`. By
-  adding `use GenServer` to your module, Elixir will automatically define
-  all 6 callbacks for you, leaving it up to you to implement the ones
-  you want to customize.
+  There are 7 callbacks to be implemented when you use a `GenServer`.
+  The only required callback is `init/1`.
 
   `use GenServer` also defines a `child_spec/1` function, allowing the
   defined module to be put under a supervision tree. The generated
@@ -78,7 +126,7 @@ defmodule GenServer do
 
   See the `Supervisor` docs for more information.
 
-  ## Name Registration
+  ## Name registration
 
   Both `start_link/3` and `start/3` support the `GenServer` to register
   a name on start via the `:name` option. Registered names are also
@@ -87,7 +135,7 @@ defmodule GenServer do
     * an atom - the GenServer is registered locally with the given name
       using `Process.register/2`.
 
-    * `{:global, term}`- the GenServer is registered globally with the given
+    * `{:global, term}` - the GenServer is registered globally with the given
       term using the functions in the [`:global` module](http://www.erlang.org/doc/man/global.html).
 
     * `{:via, module, term}` - the GenServer is registered with the given
@@ -123,65 +171,15 @@ defmodule GenServer do
   generated atoms won't be garbage collected. For such cases, you can
   set up your own local registry by using the `Registry` module.
 
-  ## Client / Server APIs
-
-  Although in the example above we have used `GenServer.start_link/3` and
-  friends to directly start and communicate with the server, most of the
-  time we don't call the `GenServer` functions directly. Instead, we wrap
-  the calls in new functions representing the public API of the server.
-
-  Here is a better implementation of our Stack module:
-
-      defmodule Stack do
-        use GenServer
-
-        # Client
-
-        def start_link(default) do
-          GenServer.start_link(__MODULE__, default)
-        end
-
-        def push(pid, item) do
-          GenServer.cast(pid, {:push, item})
-        end
-
-        def pop(pid) do
-          GenServer.call(pid, :pop)
-        end
-
-        # Server (callbacks)
-
-        def handle_call(:pop, _from, [h | t]) do
-          {:reply, h, t}
-        end
-
-        def handle_call(request, from, state) do
-          # Call the default implementation from GenServer
-          super(request, from, state)
-        end
-
-        def handle_cast({:push, item}, state) do
-          {:noreply, [item | state]}
-        end
-
-        def handle_cast(request, state) do
-          super(request, state)
-        end
-      end
-
-  In practice, it is common to have both server and client functions in
-  the same module. If the server and/or client implementations are growing
-  complex, you may want to have them in different modules.
-
   ## Receiving "regular" messages
 
   The goal of a `GenServer` is to abstract the "receive" loop for developers,
-  automatically handling system messages, support code change, synchronous
+  automatically handling system messages, supporting code change, synchronous
   calls and more. Therefore, you should never call your own "receive" inside
   the GenServer callbacks as doing so will cause the GenServer to misbehave.
 
   Besides the synchronous and asynchronous communication provided by `call/3`
-  and `cast/2`, "regular" messages sent by functions such `Kernel.send/2`,
+  and `cast/2`, "regular" messages sent by functions such as `Kernel.send/2`,
   `Process.send_after/4` and similar, can be handled inside the `c:handle_info/2`
   callback.
 
@@ -196,11 +194,13 @@ defmodule GenServer do
           GenServer.start_link(__MODULE__, %{})
         end
 
+        @impl true
         def init(state) do
           schedule_work() # Schedule work to be performed on start
           {:ok, state}
         end
 
+        @impl true
         def handle_info(:work, state) do
           # Do the desired work here
           schedule_work() # Reschedule once more
@@ -212,13 +212,55 @@ defmodule GenServer do
         end
       end
 
+  ## When (not) to use a GenServer
+
+  So far, we have learned that a `GenServer` can be used as a supervised process
+  that handles sync and async calls. It can also handle system messages, such as
+  periodic messages and monitoring events. GenServer processes may also be named.
+
+  A GenServer, or a process in general, must be used to model runtime characteristics
+  of your system. A GenServer must never be used for code organization purposes.
+
+  In Elixir, code organization is done by modules and functions, processes are not
+  necessary. For example, imagine you are implementing a calculator and you decide
+  to put all the calculator operations behind a GenServer:
+
+      def add(a, b) do
+        GenServer.call(__MODULE__, {:add, a, b})
+      end
+
+      def handle_call({:add, a, b}, _from, state) do
+        {:reply, a + b, state}
+      end
+
+      def handle_call({:subtract, a, b}, _from, state) do
+        {:reply, a - b, state}
+      end
+
+  This is an anti-pattern not only because it convolutes the calculator logic but
+  also because you put the calculator logic behind a single process that will
+  potentially become a bottleneck in your system, especially as the number of
+  calls grow. Instead just define the functions directly:
+
+      def add(a, b) do
+        a + b
+      end
+
+      def subtract(a, b) do
+        a - b
+      end
+
+  If you don't need a process, then you don't need a process. Use processes only to
+  model runtime properties, such as mutable state, concurrency and failures, never
+  for code organization.
+
   ## Debugging with the :sys module
 
   GenServers, as [special processes](http://erlang.org/doc/design_principles/spec_proc.html),
-  can be debugged using the [`:sys` module](http://www.erlang.org/doc/man/sys.html). Through various hooks, this module
-  allows developers to introspect the state of the process and trace
-  system events that happen during its execution, such as received messages,
-  sent replies and state changes.
+  can be debugged using the [`:sys` module](http://www.erlang.org/doc/man/sys.html).
+  Through various hooks, this module allows developers to introspect the state of
+  the process and trace system events that happen during its execution, such as
+  received messages, sent replies and state changes.
 
   Let's explore the basic functions from the
   [`:sys` module](http://www.erlang.org/doc/man/sys.html) used for debugging:
@@ -287,6 +329,7 @@ defmodule GenServer do
     * [`:gen_server` module documentation](http://www.erlang.org/doc/man/gen_server.html)
     * [gen_server Behaviour – OTP Design Principles](http://www.erlang.org/doc/design_principles/gen_server_concepts.html)
     * [Clients and Servers – Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/clients-and-servers)
+
   """
 
   @doc """
@@ -664,8 +707,8 @@ defmodule GenServer do
             {:ok, args}
           end
 
-      But you want to define your own implementation that converts the \
-      arguments given to GenServer.start_link/3 to the server state
+      You can copy the implementation above or define your own that converts \
+      the arguments given to GenServer.start_link/3 to the server state.
       """
 
       :elixir_errors.warn(env.line, env.file, message)

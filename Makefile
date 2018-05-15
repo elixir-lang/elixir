@@ -24,7 +24,7 @@ GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$hea
 define CHECK_ERLANG_RELEASE
 	erl -noshell -eval '{V,_} = string:to_integer(erlang:system_info(otp_release)), io:fwrite("~s", [is_integer(V) and (V >= 19)])' -s erlang halt | grep -q '^true'; \
 		if [ $$? != 0 ]; then \
-		  echo "At least Erlang 19.0 is required to build Elixir"; \
+		  echo "At least Erlang/OTP 19.0 is required to build Elixir"; \
 		  exit 1; \
 		fi
 endef
@@ -51,6 +51,7 @@ endef
 
 #==> Compilation tasks
 
+APP := lib/elixir/ebin/elixir.app
 KERNEL:=lib/elixir/ebin/Elixir.Kernel.beam
 UNICODE:=lib/elixir/ebin/Elixir.String.Unicode.beam
 
@@ -59,17 +60,17 @@ default: compile
 compile: erlang elixir
 
 erlang:
+	$(Q) if [ ! -f $(APP) ]; then $(call CHECK_ERLANG_RELEASE); fi
 	$(Q) cd lib/elixir && $(REBAR) compile
 
 # Since Mix depends on EEx and EEx depends on Mix,
 # we first compile EEx without the .app file,
-# then mix and then compile EEx fully
+# then Mix and then compile EEx fully
 elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
 
 stdlib: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then \
-	  $(call CHECK_ERLANG_RELEASE); \
 		echo "==> bootstrap (compile)"; \
 		$(ERL) -s elixir_compiler bootstrap -s erlang halt; \
 	fi
