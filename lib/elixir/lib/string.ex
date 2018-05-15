@@ -681,8 +681,10 @@ defmodule String do
     String.Casing.upcase(string, [], mode)
   end
 
-  defp upcase_ascii(<<c, rest::bits>>) when c >= ?a and c <= ?z, do: [c - 32 | upcase_ascii(rest)]
-  defp upcase_ascii(<<c, rest::bits>>), do: [c | upcase_ascii(rest)]
+  defp upcase_ascii(<<char, rest::bits>>) when char >= ?a and char <= ?z,
+    do: [char - 32 | upcase_ascii(rest)]
+
+  defp upcase_ascii(<<char, rest::bits>>), do: [char | upcase_ascii(rest)]
   defp upcase_ascii(<<>>), do: []
 
   @doc """
@@ -739,10 +741,10 @@ defmodule String do
     String.Casing.downcase(string, [], mode)
   end
 
-  defp downcase_ascii(<<c, rest::bits>>) when c >= ?A and c <= ?Z,
-    do: [c + 32 | downcase_ascii(rest)]
+  defp downcase_ascii(<<char, rest::bits>>) when char >= ?A and char <= ?Z,
+    do: [char + 32 | downcase_ascii(rest)]
 
-  defp downcase_ascii(<<c, rest::bits>>), do: [c | downcase_ascii(rest)]
+  defp downcase_ascii(<<char, rest::bits>>), do: [char | downcase_ascii(rest)]
   defp downcase_ascii(<<>>), do: []
 
   @doc """
