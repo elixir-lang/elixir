@@ -194,7 +194,7 @@ defmodule Code.Formatter do
 
   Returns `{:ok, doc}` or `{:error, parser_error}`.
 
-  See `format!/2` for the list of options.
+  See `Code.format_string!/2` for the list of options.
   """
   def to_algebra(string, opts \\ []) when is_binary(string) and is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
@@ -224,7 +224,7 @@ defmodule Code.Formatter do
 
   Raises if the `string` cannot be parsed.
 
-  See `format!/2` for the list of options.
+  See `Code.format_string!/2` for the list of options.
   """
   def to_algebra!(string, opts \\ []) do
     case to_algebra(string, opts) do
