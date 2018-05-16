@@ -38,30 +38,33 @@ defmodule Mix.Config do
     end
   end
 
+  @config_key {__MODULE__, :config}
+  @files_key {__MODULE__, :files}
+
   defp get_config!() do
-    Process.get({__MODULE__, :config}) || raise_improper_use!()
+    Process.get(@config_key) || raise_improper_use!()
   end
 
   defp put_config(value) do
-    Process.put({__MODULE__, :config}, value)
+    Process.put(@config_key, value)
     :ok
   end
 
   defp delete_config() do
-    Process.delete({__MODULE__, :config})
+    Process.delete(@config_key)
   end
 
   defp get_files!() do
-    Process.get({__MODULE__, :files}) || raise_improper_use!()
+    Process.get(@files_key) || raise_improper_use!()
   end
 
   defp put_files(value) do
-    Process.put({__MODULE__, :files}, value)
+    Process.put(@files_key, value)
     :ok
   end
 
   defp delete_files() do
-    Process.delete({__MODULE__, :files})
+    Process.delete(@files_key)
   end
 
   defp raise_improper_use!() do
