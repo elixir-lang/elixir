@@ -261,6 +261,11 @@ defmodule Code do
       expects a valid `Version` which is usually the minimum Elixir
       version supported by the project.
 
+    * `:trailing_comma` - if set `true`, multi-line list, map, and
+      struct literals will include a trailing comma after the last item
+      or pair in the data structure. Does not affect argument lists,
+      tuples, or lists/maps/structs rendered on a single line.
+
   ## Design principles
 
   The formatter was designed under three principles.
