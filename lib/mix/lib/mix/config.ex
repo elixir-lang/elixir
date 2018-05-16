@@ -33,6 +33,7 @@ defmodule Mix.Config do
   defmodule LoadError do
     defexception [:file, :error]
 
+    @impl true
     def message(%LoadError{file: file, error: error}) do
       "could not load config #{Path.relative_to_cwd(file)}\n    " <>
         "#{Exception.format_banner(:error, error)}"

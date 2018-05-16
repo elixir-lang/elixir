@@ -18,6 +18,7 @@ defmodule ExUnit.AssertionError do
     @no_value
   end
 
+  @impl true
   def message(exception) do
     "\n\n" <> ExUnit.Formatter.format_assertion_error(exception)
   end
@@ -30,6 +31,7 @@ defmodule ExUnit.MultiError do
 
   defexception errors: []
 
+  @impl true
   def message(%{errors: errors}) do
     "got the following errors:\n\n" <>
       Enum.map_join(errors, "\n\n", fn {kind, error, stack} ->

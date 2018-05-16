@@ -1,6 +1,7 @@
 defmodule Mix.NoTaskError do
   defexception [:task, :message, mix: true]
 
+  @impl true
   def exception(opts) do
     task = opts[:task]
     %Mix.NoTaskError{task: task, message: msg(task)}
@@ -45,6 +46,7 @@ end
 defmodule Mix.InvalidTaskError do
   defexception [:task, :message, mix: true]
 
+  @impl true
   def exception(opts) do
     task = opts[:task]
     %Mix.InvalidTaskError{task: task, message: "The task #{inspect(task)} does not export run/1"}
@@ -54,6 +56,7 @@ end
 defmodule Mix.ElixirVersionError do
   defexception [:target, :expected, :actual, :message, mix: true]
 
+  @impl true
   def exception(opts) do
     target = opts[:target]
     actual = opts[:actual]

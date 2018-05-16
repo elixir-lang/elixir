@@ -129,6 +129,7 @@ defmodule ExUnit do
   defmodule TimeoutError do
     defexception [:timeout, :type]
 
+    @impl true
     def message(%{timeout: timeout, type: type}) do
       """
       #{type} timed out after #{timeout}ms. You can change the timeout:
