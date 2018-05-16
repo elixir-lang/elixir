@@ -682,6 +682,7 @@ end
 defmodule SystemLimitError do
   defexception []
 
+  @impl true
   def message(_) do
     "a system limit has been reached"
   end
@@ -690,6 +691,7 @@ end
 defmodule SyntaxError do
   defexception [:file, :line, description: "syntax error"]
 
+  @impl true
   def message(exception) do
     Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
       " " <> exception.description
@@ -699,6 +701,7 @@ end
 defmodule TokenMissingError do
   defexception [:file, :line, description: "expression is incomplete"]
 
+  @impl true
   def message(%{file: file, line: line, description: description}) do
     Exception.format_file_line(file && Path.relative_to_cwd(file), line) <> " " <> description
   end
@@ -707,6 +710,7 @@ end
 defmodule CompileError do
   defexception [:file, :line, description: "compile error"]
 
+  @impl true
   def message(%{file: file, line: line, description: description}) do
     Exception.format_file_line(file && Path.relative_to_cwd(file), line) <> " " <> description
   end
@@ -715,6 +719,7 @@ end
 defmodule BadFunctionError do
   defexception [:term]
 
+  @impl true
   def message(exception) do
     "expected a function, got: #{inspect(exception.term)}"
   end
@@ -723,6 +728,7 @@ end
 defmodule BadStructError do
   defexception [:struct, :term]
 
+  @impl true
   def message(exception) do
     "expected a struct named #{inspect(exception.struct)}, got: #{inspect(exception.term)}"
   end
@@ -731,6 +737,7 @@ end
 defmodule BadMapError do
   defexception [:term]
 
+  @impl true
   def message(exception) do
     "expected a map, got: #{inspect(exception.term)}"
   end
@@ -739,6 +746,7 @@ end
 defmodule BadBooleanError do
   defexception [:term, :operator]
 
+  @impl true
   def message(exception) do
     "expected a boolean on left-side of \"#{exception.operator}\", got: #{inspect(exception.term)}"
   end
@@ -747,6 +755,7 @@ end
 defmodule MatchError do
   defexception [:term]
 
+  @impl true
   def message(exception) do
     "no match of right hand side value: #{inspect(exception.term)}"
   end
@@ -755,6 +764,7 @@ end
 defmodule CaseClauseError do
   defexception [:term]
 
+  @impl true
   def message(exception) do
     "no case clause matching: #{inspect(exception.term)}"
   end
@@ -763,6 +773,7 @@ end
 defmodule WithClauseError do
   defexception [:term]
 
+  @impl true
   def message(exception) do
     "no with clause matching: #{inspect(exception.term)}"
   end
@@ -771,6 +782,7 @@ end
 defmodule CondClauseError do
   defexception []
 
+  @impl true
   def message(_exception) do
     "no cond clause evaluated to a true value"
   end
@@ -779,6 +791,7 @@ end
 defmodule TryClauseError do
   defexception [:term]
 
+  @impl true
   def message(exception) do
     "no try clause matching: #{inspect(exception.term)}"
   end
@@ -787,6 +800,7 @@ end
 defmodule BadArityError do
   defexception [:function, :args]
 
+  @impl true
   def message(exception) do
     fun = exception.function
     args = exception.args
@@ -803,6 +817,7 @@ end
 defmodule UndefinedFunctionError do
   defexception [:module, :function, :arity, :reason, :exports]
 
+  @impl true
   def message(%{reason: nil, module: module, function: function, arity: arity} = e) do
     cond do
       is_nil(function) or is_nil(arity) ->
@@ -919,6 +934,7 @@ end
 defmodule FunctionClauseError do
   defexception [:module, :function, :arity, :kind, :args, :clauses]
 
+  @impl true
   def message(exception) do
     case exception do
       %{function: nil} ->
@@ -931,6 +947,7 @@ defmodule FunctionClauseError do
     end
   end
 
+  @impl true
   def blame(%{module: module, function: function, arity: arity} = exception, stacktrace) do
     case stacktrace do
       [{^module, ^function, args, meta} | rest] when length(args) == arity ->
@@ -1010,6 +1027,7 @@ end
 defmodule Protocol.UndefinedError do
   defexception [:protocol, :value, description: ""]
 
+  @impl true
   def message(%{protocol: protocol, value: value, description: description}) do
     "protocol #{inspect(protocol)} not implemented for #{inspect(value)}" <>
       maybe_description(description) <> maybe_available(protocol)
@@ -1035,6 +1053,7 @@ end
 defmodule KeyError do
   defexception [:key, :term]
 
+  @impl true
   def message(exception) do
     msg = "key #{inspect(exception.key)} not found"
 
@@ -1080,6 +1099,7 @@ end
 defmodule File.Error do
   defexception [:reason, :path, action: ""]
 
+  @impl true
   def message(%{action: action, reason: reason, path: path}) do
     formatted =
       case {action, reason} do
@@ -1097,6 +1117,7 @@ end
 defmodule File.CopyError do
   defexception [:reason, :source, :destination, on: "", action: ""]
 
+  @impl true
   def message(exception) do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
 
@@ -1114,6 +1135,7 @@ end
 defmodule File.LinkError do
   defexception [:reason, :existing, :new, action: ""]
 
+  @impl true
   def message(exception) do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
 
@@ -1125,6 +1147,7 @@ end
 defmodule ErlangError do
   defexception [:original]
 
+  @impl true
   def message(exception) do
     "Erlang error: #{inspect(exception.original)}"
   end
