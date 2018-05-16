@@ -9,6 +9,7 @@ end
 defmodule ExUnit.AssertionsTest.BrokenError do
   defexception [:message]
 
+  @impl true
   def message(_) do
     raise "error"
   end
