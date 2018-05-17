@@ -12,7 +12,7 @@ defmodule Task.Supervisor do
         {Task.Supervisor, name: MyApp.TaskSupervisor}
       ]
 
-      Supervisor.start_link(strategy: :one_for_one)
+      Supervisor.start_link(children, strategy: :one_for_one)
 
   The options given in the child specification are documented in `start_link/1`.
 
