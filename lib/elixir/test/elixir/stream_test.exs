@@ -1109,7 +1109,7 @@ defmodule StreamTest do
              [{0, 2}, {1, 3}]
 
     stream = %HaltAcc{acc: 1..3}
-    assert Stream.zip(1..3, stream) |> Enum.to_list() == [{1, 1}, {2, 2}, {3, 3}]
+    assert Stream.zip([1..3, stream]) |> Enum.to_list() == [{1, 1}, {2, 2}, {3, 3}]
   end
 
   test "zip/1 does not leave streams suspended" do
