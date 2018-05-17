@@ -938,8 +938,7 @@ defmodule Stream do
     else
       # Only take into account outer halts when the op is not halt itself.
       # Otherwise, we were the ones wishing to halt, so we should just stop.
-      {:halted, [:outer | acc]}
-      when op != :halt ->
+      {:halted, [:outer | acc]} when op != :halt ->
         do_transform_user(vals, user_acc, next_op, next, {:cont, acc}, funs)
 
       {:halted, [_ | acc]} ->
@@ -1124,7 +1123,7 @@ defmodule Stream do
 
     enum_funs =
       Enum.map(enumerables, fn enum ->
-        {&Enumerable.reduce(enum, &1, step), :cont}
+        {&Enumerable.reduce(enum, &1, step), [], :cont}
       end)
 
     do_zip(enum_funs, acc, fun)
@@ -1165,18 +1164,20 @@ defmodule Stream do
   # do_zip_next_tuple/5 computes the next tuple formed by
   # the next element of each zipped stream.
 
-  defp do_zip_next_tuple([{_, :halt} | zips], acc, _callback, _yielded_elems, buffer) do
+  defp do_zip_next_tuple([{_, [], :halt} | zips], acc, _callback, _yielded_elems, buffer) do
     do_zip_close(:lists.reverse(buffer, zips))
     {:done, acc}
   end
 
-  defp do_zip_next_tuple([{fun, :cont} | zips], acc, callback, yielded_elems, buffer) do
+  defp do_zip_next_tuple([{fun, [], :cont} | zips], acc, callback, yielded_elems, buffer) do
     case fun.({:cont, []}) do
-      {:suspended, [elem], fun} ->
-        do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], [{fun, :cont} | buffer])
+      {:suspended, [elem | next_acc], fun} ->
+        next_buffer = [{fun, next_acc, :cont} | buffer]
+        do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], next_buffer)
 
-      {_, [elem]} ->
-        do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], [{fun, :halt} | buffer])
+      {_, [elem | next_acc]} ->
+        next_buffer = [{fun, next_acc, :halt} | buffer]
+        do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], next_buffer)
 
       {_, []} ->
         # The current zipped stream terminated, so we close all the streams
@@ -1184,6 +1185,12 @@ defmodule Stream do
         do_zip_close(:lists.reverse(buffer, zips))
         {:done, acc}
     end
+  end
+
+  defp do_zip_next_tuple([{fun, zip_acc, zip_op} | zips], acc, callback, yielded_elems, buffer) do
+    [elem | rest] = zip_acc
+    next_buffer = [{fun, rest, zip_op} | buffer]
+    do_zip_next_tuple(zips, acc, callback, [elem | yielded_elems], next_buffer)
   end
 
   defp do_zip_next_tuple([] = _zips, acc, callback, yielded_elems, buffer) do
@@ -1195,11 +1202,11 @@ defmodule Stream do
   end
 
   defp do_zip_close(zips) do
-    :lists.foreach(fn {fun, _} -> fun.({:halt, []}) end, zips)
+    :lists.foreach(fn {fun, _, _} -> fun.({:halt, []}) end, zips)
   end
 
-  defp do_zip_step(x, []) do
-    {:suspend, [x]}
+  defp do_zip_step(x, acc) do
+    {:suspend, :lists.reverse([x | acc])}
   end
 
   ## Sources
