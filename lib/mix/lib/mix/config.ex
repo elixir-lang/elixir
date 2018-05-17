@@ -30,23 +30,47 @@ defmodule Mix.Config do
 
   """
 
-  defmodule LoadError do
-    defexception [:file, :error]
-
-    @impl true
-    def message(%LoadError{file: file, error: error}) do
-      "could not load config #{Path.relative_to_cwd(file)}\n    " <>
-        "#{Exception.format_banner(:error, error)}"
-    end
-  end
-
   @doc false
   defmacro __using__(_) do
     quote do
+      # TODO: If we split User API from Mix API, we no longer need to use Mix.Config.
       import Mix.Config, only: [config: 2, config: 3, import_config: 1]
-      {:ok, agent} = Mix.Config.Agent.start_link()
-      var!(config_agent, Mix.Config) = agent
     end
+  end
+
+  @config_key {__MODULE__, :config}
+  @files_key {__MODULE__, :files}
+
+  defp get_config!() do
+    Process.get(@config_key) || raise_improper_use!()
+  end
+
+  defp put_config(value) do
+    Process.put(@config_key, value)
+    :ok
+  end
+
+  defp delete_config() do
+    Process.delete(@config_key)
+  end
+
+  defp get_files!() do
+    Process.get(@files_key) || raise_improper_use!()
+  end
+
+  defp put_files(value) do
+    Process.put(@files_key, value)
+    :ok
+  end
+
+  defp delete_files() do
+    Process.delete(@files_key)
+  end
+
+  defp raise_improper_use!() do
+    raise "could not set configuration via Mix.Config. " <>
+            "This usually means you are trying to execute a configuration file " <>
+            "directly instead of using the proper command, such as mix loadconfig"
   end
 
   @doc """
@@ -77,10 +101,10 @@ defmodule Mix.Config do
       Application.get_all_env(:lager)
 
   """
-  defmacro config(app, opts) do
-    quote do
-      Mix.Config.Agent.merge(var!(config_agent, Mix.Config), [{unquote(app), unquote(opts)}])
-    end
+  def config(app, opts) when is_atom(app) and is_list(opts) do
+    get_config!()
+    |> merge([{app, opts}])
+    |> put_config()
   end
 
   @doc """
@@ -113,12 +137,10 @@ defmodule Mix.Config do
       Application.get_env(:ecto, Repo)
 
   """
-  defmacro config(app, key, opts) do
-    quote do
-      Mix.Config.Agent.merge(var!(config_agent, Mix.Config), [
-        {unquote(app), [{unquote(key), unquote(opts)}]}
-      ])
-    end
+  def config(app, key, opts) when is_atom(app) do
+    get_config!()
+    |> merge([{app, [{key, opts}]}])
+    |> put_config()
   end
 
   @doc ~S"""
@@ -129,10 +151,9 @@ defmodule Mix.Config do
   the wildcard, no errors are raised. If `path_or_wildcard` is
   not a wildcard but a path to a single file, then that file is
   imported; in case the file doesn't exist, an error is raised.
-  This behaviour is analogous to the one for `read_wildcard!/1`.
 
-  If path/wildcard is a relative path/wildcard, it will be expanded relatively
-  to the directory the current configuration file is in.
+  If path/wildcard is a relative path/wildcard, it will be expanded
+  relatively to the directory the current configuration file is in.
 
   ## Examples
 
@@ -146,83 +167,63 @@ defmodule Mix.Config do
 
   """
   defmacro import_config(path_or_wildcard) do
-    loaded_paths_quote =
-      unless Macro.Env.has_var?(__CALLER__, {:loaded_paths, Mix.Config}) do
-        quote do
-          var!(loaded_paths, Mix.Config) = [__ENV__.file]
-        end
+    quote do
+      Mix.Config.__import__!(unquote(path_or_wildcard), __DIR__)
+    end
+  end
+
+  @doc false
+  def __import__!(path_or_wildcard, dir) do
+    path_or_wildcard = Path.expand(path_or_wildcard, dir)
+
+    paths =
+      if String.contains?(path_or_wildcard, ~w(* ? [ {)) do
+        Path.wildcard(path_or_wildcard)
+      else
+        [path_or_wildcard]
       end
 
-    quote do
-      unquote(loaded_paths_quote)
-
-      Mix.Config.Agent.merge(
-        var!(config_agent, Mix.Config),
-        Mix.Config.read_wildcard!(
-          Path.expand(unquote(path_or_wildcard), __DIR__),
-          var!(loaded_paths, Mix.Config)
-        )
-      )
+    for path <- paths do
+      eval_config!(path)
     end
+
+    :ok
+  end
+
+  defp eval_config!(file) do
+    current_files = get_files!()
+
+    if file in current_files do
+      raise ArgumentError,
+            "attempting to load configuration #{Path.relative_to_cwd(file)} recursively"
+    end
+
+    put_files([file | current_files])
+    Code.eval_file(file)
   end
 
   @doc """
   Reads and validates a configuration file.
-
-  `file` is the path to the configuration file to be read. If that file doesn't
-  exist or if there's an error loading it, a `Mix.Config.LoadError` exception
-  will be raised.
-
-  `loaded_paths` is a list of configuration files that have been previously
-  read. If `file` exists in `loaded_paths`, a `Mix.Config.LoadError` exception
-  will be raised.
   """
   def read!(file, loaded_paths \\ []) do
-    try do
-      if file in loaded_paths do
-        raise ArgumentError, message: "recursive load of #{file} detected"
-      end
+    put_config([])
+    put_files(loaded_paths)
+    {eval_config, _} = eval_config!(Path.expand(file))
 
-      binding = [{{:loaded_paths, Mix.Config}, [file | loaded_paths]}]
+    case get_config!() do
+      [] when is_list(eval_config) ->
+        validate!(eval_config)
 
-      {config, binding} =
-        Code.eval_string(
-          File.read!(file),
-          binding,
-          file: file,
-          line: 1
-        )
-
-      config =
-        case List.keyfind(binding, {:config_agent, Mix.Config}, 0) do
-          {_, agent} -> get_config_and_stop_agent(agent)
-          nil -> config
-        end
-
-      validate!(config)
-      config
-    rescue
-      e in [LoadError] -> reraise(e, __STACKTRACE__)
-      e -> reraise(LoadError, [file: file, error: e], __STACKTRACE__)
+      pdict_config ->
+        pdict_config
     end
+  after
+    delete_config()
+    delete_files()
   end
 
-  defp get_config_and_stop_agent(agent) do
-    config = Mix.Config.Agent.get(agent)
-    Mix.Config.Agent.stop(agent)
-    config
-  end
-
-  @doc """
-  Reads many configuration files given by wildcard into a single config.
-
-  Raises an error if `path` is a concrete filename (with no wildcards)
-  but the corresponding file does not exist; if `path` matches no files,
-  no errors are raised.
-
-  `loaded_paths` is a list of configuration files that have been previously
-  read.
-  """
+  @doc false
+  @deprecated "Use read!/2 instead"
   def read_wildcard!(path, loaded_paths \\ []) do
     paths =
       if String.contains?(path, ~w(* ? [ {)) do
@@ -261,10 +262,13 @@ defmodule Mix.Config do
     end
   end
 
-  @doc """
-  Validates a configuration.
-  """
+  @doc false
+  @deprecated "Manually validate the data instead"
   def validate!(config) do
+    validate!(config, "runtime")
+  end
+
+  defp validate!(config, file) do
     if is_list(config) do
       Enum.all?(config, fn
         {app, value} when is_atom(app) ->
@@ -272,16 +276,20 @@ defmodule Mix.Config do
             true
           else
             raise ArgumentError,
-                  "expected config for app #{inspect(app)} to return keyword list, " <>
-                    "got: #{inspect(value)}"
+                  "expected #{Path.relative_to_cwd(file)} config for app #{inspect(app)} " <>
+                    "to return keyword list, got: #{inspect(value)}"
           end
 
         _ ->
           false
       end)
     else
-      raise ArgumentError, "expected config file to return keyword list, got: #{inspect(config)}"
+      raise ArgumentError,
+            "expected #{Path.relative_to_cwd(file)} config to return " <>
+              "keyword list, got: #{inspect(config)}"
     end
+
+    config
   end
 
   @doc """
