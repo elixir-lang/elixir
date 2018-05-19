@@ -96,8 +96,8 @@ defmodule Supervisor do
 
   Supervisors support different strategies; in the example above, we
   have chosen `:one_for_one`. Furthermore, each supervisor can have many
-  workers and supervisors as children, each of them with their specific
-  configuration, shutdown values, and supervision strategies.
+  workers and/or supervisors as children, with each one having its own
+  configuration (as outlined in the “Child specification” section).
 
   The rest of this document will cover how child processes are started,
   how they can be specified, different supervision strategies and more.
