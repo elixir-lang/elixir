@@ -88,6 +88,21 @@ defmodule Code.Formatter.GeneralTest do
       assert_format bad, good, @short_length
     end
 
+    test "with assert on line limit" do
+      bad = ~S"""
+      assert foobar = bazqux
+      """
+
+      good = ~S"""
+      assert(
+        foobar =
+          bazqux
+      )
+      """
+
+      assert_format bad, good, @short_length
+    end
+
     test "with heredoc syntax" do
       assert_same ~S"""
       ~s'''
