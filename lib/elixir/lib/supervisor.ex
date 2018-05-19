@@ -96,8 +96,8 @@ defmodule Supervisor do
 
   Supervisors support different strategies; in the example above, we
   have chosen `:one_for_one`. Furthermore, each supervisor can have many
-  workers and supervisors as children, each of them with their specific
-  configuration, shutdown values, and restart strategies.
+  workers and/or supervisors as children, with each one having its own
+  configuration (as outlined in the “Child specification” section).
 
   The rest of this document will cover how child processes are started,
   how they can be specified, different supervision strategies and more.
@@ -417,7 +417,7 @@ defmodule Supervisor do
 
   The second argument is a keyword list of options:
 
-    * `:strategy` - the restart strategy option. It can be either
+    * `:strategy` - the supervision strategy option. It can be either
       `:one_for_one`, `:rest_for_one` or `:one_for_all`. Required.
       See the "Strategies" section.
 
@@ -601,7 +601,7 @@ defmodule Supervisor do
 
   ## Options
 
-    * `:strategy` - the restart strategy option. It can be either
+    * `:strategy` - the supervision strategy option. It can be either
       `:one_for_one`, `:rest_for_one`, `:one_for_all`, or the deprecated
       `:simple_one_for_one`.
 
