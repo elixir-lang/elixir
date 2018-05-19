@@ -180,6 +180,34 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "expands patterns in inputs from .formatter.exs", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["{a,.b}.ex"]
+      ]
+      """)
+
+      File.write!("a.ex", """
+      foo bar
+      """)
+
+      File.write!(".b.ex", """
+      foo bar
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             foo(bar)
+             """
+
+      assert File.read!(".b.ex") == """
+             foo(bar)
+             """
+    end)
+  end
+
   test "uses inputs and configuration from --dot-formatter", context do
     in_tmp(context.test, fn ->
       File.write!("custom_formatter.exs", """

@@ -352,7 +352,7 @@ defmodule Mix.Tasks.Format do
 
     map =
       for input <- List.wrap(formatter_opts[:inputs]),
-          file <- Path.wildcard(Path.join(prefix ++ [input])),
+          file <- Path.wildcard(Path.join(prefix ++ [input]), match_dot: true),
           do: {file, formatter_opts},
           into: %{}
 
@@ -375,7 +375,7 @@ defmodule Mix.Tasks.Format do
   end
 
   defp stdin_or_wildcard("-"), do: [:stdin]
-  defp stdin_or_wildcard(path), do: Path.wildcard(path)
+  defp stdin_or_wildcard(path), do: Path.wildcard(path, match_dot: true)
 
   defp read_file(:stdin) do
     {IO.stream(:stdio, :line) |> Enum.to_list() |> IO.iodata_to_binary(), file: "stdin"}
