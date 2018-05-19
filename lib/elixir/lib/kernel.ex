@@ -1473,8 +1473,8 @@ defmodule Kernel do
 
   ## Implemented in Elixir
 
-  defp optimize_boolean({:case, meta, args}) do
-    {:case, [{:optimize_boolean, true} | meta], args}
+  defp optimize_boolean({:case, meta, args}, generated \\ true) do
+    {:case, [{:optimize_boolean, generated: generated} | meta], args}
   end
 
   @doc """
@@ -2640,6 +2640,179 @@ defmodule Kernel do
           false
       end
     end
+  end
+
+  @doc """
+  Evaluates the expression corresponding to the first clause that
+  evaluates to a truthy value.
+
+      cond do
+        hd([1, 2, 3]) ->
+          "1 is considered as true"
+      end
+      #=> "1 is considered as true"
+
+  Raises an error if all conditions evaluate to `nil` or `false`.
+  For this reason, it may be necessary to add a final always-truthy condition
+  (anything non-`false` and non-`nil`), which will always match.
+
+  ## Examples
+
+      cond do
+        1 + 1 == 1 ->
+          "This will never match"
+        2 * 2 != 4 ->
+          "Nor this"
+        true ->
+          "This will"
+      end
+      #=> "This will"
+
+  """
+
+  defmacro cond(clauses) do
+    build_cond(clauses, __CALLER__)
+  end
+
+  defp build_cond([do: do_clause], caller) do
+    %{module: module, line: line} = caller
+
+    [{:->, meta, [[condition], body]} | tail] =
+      reversed_clauses = reverse_cond_clauses(do_clause, [])
+
+    case_clause =
+      case condition do
+        value when is_atom(value) and value != false and value != nil ->
+          build_cond_clauses(tail, body, meta, module)
+
+        _ ->
+          error =
+            quote do
+              :erlang.error(CondClauseError.exception([]))
+            end
+
+          build_cond_clauses(reversed_clauses, error, meta, module)
+      end
+
+    replace_case_meta(case_clause, line)
+  end
+
+  defp build_cond([], _caller) do
+    :erlang.error(ArgumentError.exception("missing :do option in \"cond\""))
+  end
+
+  defp build_cond(clauses, _caller) when is_list(clauses) do
+    check_at_most_once(:do, clauses, 0, "cond")
+    check_unexpected_options([:do], clauses, "cond")
+  end
+
+  defp build_cond(_invalid_args, _caller) do
+    invalid_arguments_error("cond")
+  end
+
+  defp build_cond_clauses([], acc, _old_meta, _module) do
+    acc
+  end
+
+  defp build_cond_clauses([{:->, new_meta, [[condition], body]} | tail], acc, old_meta, module) do
+    var = {:cond, [], module}
+
+    case_clause =
+      {:case, new_meta,
+       [
+         condition,
+         [
+           do: [
+             {:->, new_meta,
+              [
+                [
+                  {:when, [],
+                   [
+                     var,
+                     {{:., [], [:erlang, :andalso]}, [],
+                      [
+                        {:!=, [], [var, nil]},
+                        {:!=, [], [var, false]}
+                      ]}
+                   ]}
+                ],
+                body
+              ]},
+             {:->, old_meta, [[{:_, [], nil}], acc]}
+           ]
+         ]
+       ]}
+
+    next_acc = optimize_boolean(case_clause, false)
+    build_cond_clauses(tail, next_acc, new_meta, module)
+  end
+
+  defp reverse_cond_clauses([], acc) do
+    acc
+  end
+
+  defp reverse_cond_clauses([{:->, _, [[_], _]} = head | tail], acc) do
+    reverse_cond_clauses(tail, [head | acc])
+  end
+
+  defp reverse_cond_clauses([{:->, _, [args, _]} | _], _acc) when is_list(args) do
+    :erlang.error(ArgumentError.exception("expected one arg for :do clauses (->) in \"cond\""))
+  end
+
+  defp reverse_cond_clauses(_invalid_clauses, _acc) do
+    :erlang.error(ArgumentError.exception("expected -> clauses for :do in \"cond\""))
+  end
+
+  defp check_at_most_once(_kind, [], _count, _name) do
+    :ok
+  end
+
+  defp check_at_most_once(kind, [{kind, _} | _], 1, name) do
+    :erlang.error(ArgumentError.exception("duplicated :#{kind} clauses given for \"#{name}\""))
+  end
+
+  defp check_at_most_once(kind, [{kind, _} | rest], count, name) do
+    check_at_most_once(kind, rest, count + 1, name)
+  end
+
+  defp check_at_most_once(kind, [_ | rest], count, name) do
+    check_at_most_once(kind, rest, count, name)
+  end
+
+  defp check_unexpected_options(_valid_options, [], _name) do
+    :ok
+  end
+
+  defp check_unexpected_options(valid_options, [{kind, _} | rest], name) when is_atom(kind) do
+    case :lists.member(kind, valid_options) do
+      true ->
+        check_unexpected_options(valid_options, rest, name)
+
+      false ->
+        :erlang.error(ArgumentError.exception("unexpected option :#{kind} in \"#{name}\""))
+    end
+  end
+
+  defp check_unexpected_options(_valid_options, _invalid_arguments, name) do
+    invalid_arguments_error(name)
+  end
+
+  defp invalid_arguments_error(name) do
+    :erlang.error(ArgumentError.exception("invalid arguments for \"#{name}\""))
+  end
+
+  defp replace_case_meta({:case, meta, args}, line) do
+    new_meta =
+      case :lists.keytake(:line, 1, meta) do
+        {_, _, remaining_meta} -> [{:line, line} | remaining_meta]
+        false -> [{:line, line} | meta]
+      end
+
+    {:case, new_meta, args}
+  end
+
+  defp replace_case_meta(other, _line) do
+    other
   end
 
   @doc """

@@ -1652,35 +1652,6 @@ defmodule Kernel.SpecialForms do
   """
   defmacro case(condition, clauses), do: error!([condition, clauses])
 
-  @doc """
-  Evaluates the expression corresponding to the first clause that
-  evaluates to a truthy value.
-
-      cond do
-        hd([1, 2, 3]) ->
-          "1 is considered as true"
-      end
-      #=> "1 is considered as true"
-
-  Raises an error if all conditions evaluate to `nil` or `false`.
-  For this reason, it may be necessary to add a final always-truthy condition
-  (anything non-`false` and non-`nil`), which will always match.
-
-  ## Examples
-
-      cond do
-        1 + 1 == 1 ->
-          "This will never match"
-        2 * 2 != 4 ->
-          "Nor this"
-        true ->
-          "This will"
-      end
-      #=> "This will"
-
-  """
-  defmacro cond(clauses), do: error!([clauses])
-
   @doc ~S"""
   Evaluates the given expressions and handles any error, exit,
   or throw that may have happened.

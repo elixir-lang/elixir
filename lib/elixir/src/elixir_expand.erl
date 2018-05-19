@@ -223,12 +223,6 @@ expand({fn, Meta, Pairs}, E) ->
 
 %% Case/Receive/Try
 
-expand({'cond', Meta, [Opts]}, E) ->
-  assert_no_match_or_guard_scope(Meta, "cond", E),
-  assert_no_underscore_clause_in_cond(Opts, E),
-  {EClauses, EC} = elixir_clauses:'cond'(Meta, Opts, E),
-  {{'cond', Meta, [EClauses]}, EC};
-
 expand({'case', Meta, [Expr, Options]}, E) ->
   assert_no_match_or_guard_scope(Meta, "case", E),
   expand_case(Meta, Expr, Options, E);
@@ -407,6 +401,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
 
 expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, E),
+  assert_no_underscore_clause_in_cond(Atom, Args, E),
 
   elixir_dispatch:dispatch_import(Meta, Atom, Args, E, fun() ->
     expand_local(Meta, Atom, Args, E)
@@ -635,20 +630,52 @@ expand_case(Meta, Expr, Opts, E) ->
 
   ROpts =
     case proplists:get_value(optimize_boolean, Meta, false) of
-      true ->
-        case elixir_utils:returns_boolean(EExpr) of
-          true -> rewrite_case_clauses(Opts);
-          false -> generated_case_clauses(Opts)
-        end;
-
-      false ->
-        Opts
+      false -> Opts;
+      OptimizeOpts -> optimize_boolean_clauses(EExpr, Opts, OptimizeOpts)
     end,
 
   {EOpts, EO} = elixir_clauses:'case'(Meta, ROpts, EE),
   {{'case', Meta, [EExpr, EOpts]}, EO}.
 
-rewrite_case_clauses([{do, [
+optimize_boolean_clauses(Condition, Clauses, Opts) ->
+  RewrittenClauses =
+    case extract_boolean_clauses(Condition, Clauses) of
+      nil -> Clauses;
+      ExtractedClauses -> rewrite_case_clauses(ExtractedClauses)
+    end,
+
+  case lists:keyfind(generated, 1, Opts) of
+    {generated, true} -> generated_case_clauses(RewrittenClauses);
+    _ -> RewrittenClauses
+  end.
+
+%% In case a variable is defined to match in a condition
+%% but a condition returns boolean, we can replace the
+%% variable directly by the boolean result.
+extract_boolean_clauses({'=', _, [{Var, _, Ctx}, Condition]}, Opts) when is_atom(Var), is_atom(Ctx) ->
+  case elixir_utils:returns_boolean(Condition) of
+    true ->
+      case extract_boolean_clauses(Opts) of
+        {FalseMeta, FalseExpr, TrueMeta, {Var, _, Ctx}} ->
+          {FalseMeta, FalseExpr, TrueMeta, true};
+
+        _ ->
+          nil
+      end;
+
+    false ->
+      nil
+  end;
+
+%% For all other cases, we check the condition but
+%% return the condtions untouched.
+extract_boolean_clauses(Condition, Opts) ->
+  case elixir_utils:returns_boolean(Condition) of
+    true -> extract_boolean_clauses(Opts);
+    false -> nil
+  end.
+
+extract_boolean_clauses([{do, [
   {'->', FalseMeta, [
     [{'when', _, [Var, {{'.', _, ['Elixir.Kernel', 'in']}, _, [Var, [false, nil]]}]}],
     FalseExpr
@@ -658,21 +685,35 @@ rewrite_case_clauses([{do, [
     TrueExpr
   ]}
 ]}]) ->
-  rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr);
+  {FalseMeta, FalseExpr, TrueMeta, TrueExpr};
 
-rewrite_case_clauses([{do, [
+extract_boolean_clauses([{do, [
+  {'->', TrueMeta, [
+    [{'when', _, [Var, {{'.', _, [erlang, 'andalso']}, _, [
+      {'!=', _, [Var, nil]},
+      {'!=', _, [Var, false]}]}]}],
+    TrueExpr
+  ]},
+  {'->', FalseMeta, [
+    [{'_', _, _}],
+    FalseExpr
+  ]}
+]}]) ->
+  {FalseMeta, FalseExpr, TrueMeta, TrueExpr};
+
+extract_boolean_clauses([{do, [
   {'->', FalseMeta, [[false], FalseExpr]},
   {'->', TrueMeta, [[true], TrueExpr]} | _
 ]}]) ->
-  rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr);
+  {FalseMeta, FalseExpr, TrueMeta, TrueExpr};
 
-rewrite_case_clauses(Other) ->
-  generated_case_clauses(Other).
+extract_boolean_clauses(_Other) ->
+  nil.
 
-rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr) ->
+rewrite_case_clauses({FalseMeta, FalseExpr, TrueMeta, TrueExpr}) ->
   [{do, [
-    {'->', ?generated(FalseMeta), [[false], FalseExpr]},
-    {'->', ?generated(TrueMeta), [[true], TrueExpr]}
+    {'->', TrueMeta, [[true], TrueExpr]},
+    {'->', FalseMeta, [[false], FalseExpr]}
   ]}].
 
 generated_case_clauses([{do, Clauses}]) ->
@@ -991,14 +1032,14 @@ assert_contextual_var(Meta, Name, #{contextual_vars := Vars, file := File}, Erro
 %% would raise if we found a "_ -> ..." clause in a "cond". For this reason, if
 %% Clauses has a bad shape, we just do nothing and let future functions catch
 %% this.
-assert_no_underscore_clause_in_cond([{do, Clauses}], E) when is_list(Clauses) ->
+assert_no_underscore_clause_in_cond('cond', [[{do, Clauses}]], E) when is_list(Clauses) ->
   case lists:last(Clauses) of
     {'->', Meta, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
       form_error(Meta, ?key(E, file), ?MODULE, underscore_in_cond);
     _Other ->
       ok
   end;
-assert_no_underscore_clause_in_cond(_Other, _E) ->
+assert_no_underscore_clause_in_cond(_Name, _Other, _E) ->
   ok.
 
 %% Errors

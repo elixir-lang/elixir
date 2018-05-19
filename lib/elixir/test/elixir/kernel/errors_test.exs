@@ -417,6 +417,38 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError, "nofile:1: undefined function call/2", 'call foo, do: :foo'
   end
 
+  test "invalid cond" do
+    assert_eval_raise ArgumentError, "missing :do option in \"cond\"", 'cond([])'
+
+    assert_eval_raise ArgumentError,
+                      "duplicated :do clauses given for \"cond\"",
+                      'cond(do: (x -> x), do: (y -> y))'
+
+    assert_eval_raise ArgumentError, "expected -> clauses for :do in \"cond\"", 'cond(do: :ok)'
+
+    assert_eval_raise ArgumentError,
+                      "expected -> clauses for :do in \"cond\"",
+                      'cond(do: [:not, :clauses])'
+
+    assert_eval_raise ArgumentError,
+                      "expected one arg for :do clauses \(->\) in \"cond\"",
+                      'cond(do: (_, _ -> :ok))'
+
+    assert_eval_raise ArgumentError, "invalid arguments for \"cond\"", 'cond(:foo)'
+
+    assert_eval_raise ArgumentError,
+                      "invalid arguments for \"cond\"",
+                      'cond([{:do, (1 -> 1)}, :foo])'
+
+    assert_eval_raise ArgumentError,
+                      "unexpected option :foo in \"cond\"",
+                      'cond(do: (1 -> 1), foo: :bar)'
+
+    message = ~r"invalid use of _ inside \"cond\"\. If you want the last clause"
+
+    assert_eval_raise CompileError, message, 'cond(do: (1 -> 1; _ -> :raise))'
+  end
+
   test "invalid attribute" do
     msg = ~r"cannot inject attribute @foo into function/macro because cannot escape "
 

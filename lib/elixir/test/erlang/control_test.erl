@@ -17,6 +17,24 @@ booleans_test() ->
   {true, _} = eval("true"),
   {false, _} = eval("false").
 
+% Cond
+
+cond_kv_args_test() ->
+  {1, _} = eval("cond(do: (true -> 1))"),
+  {1, _} = eval("cond(do: (1 -> 1))"),
+  {2, _} = eval("cond(do: (false -> 1; true -> 2))"),
+  {2, _} = eval("cond(do: (nil -> 1; true -> 2))").
+
+cond_kv_blocks_test() ->
+  {2, _} = eval("cond do\nfalse -> 1\ntrue -> 2\nend"),
+  {2, _} = eval("cond do nil -> 1; true -> 2; end").
+
+cond_line_test() ->
+  {'case', 1, _,
+    [{clause, 2, _, _, _},
+     {clause, 3, _, _, _}]
+  } = to_erl("cond do\n  1 -> :ok\n  2 -> :ok\nend").
+
 % If
 
 if_else_kv_args_test() ->
@@ -183,18 +201,34 @@ oror_test() ->
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
 
-cond_line_test() ->
-  {'case', 1, _,
-    [{clause, 2, _, _, _},
-     {clause, 3, _, _, _}]
-  } = to_erl("cond do\n  1 -> :ok\n  2 -> :ok\nend").
-
 % Optimized
+
+optimized_boolean_cond_test() ->
+  {'case', _, _,
+    [{clause, _, [{atom, _, true}], [], [{atom, _, foo}]},
+     {clause, _, [{atom, _, false}], [],
+       [{'case', _, _,
+          [{clause, _, [{atom, _, true}], [], [{atom, _, bar}]},
+           {clause, _, [{atom, _, false}], [],
+             [{call, _, {remote, _, {atom, _, erlang}, {atom, _, error}}, _}]}]}]}]
+  } = to_erl("cond(do: (is_list(1) -> :foo; is_list([]) -> :bar))").
+
+optimized_last_clause_cond_test() ->
+  {'case', _, _,
+    [{clause, _, [{atom, _, true}], [], [{atom, _, foo}]},
+     {clause, _, [{atom, _, false}], [], [{atom, _, bar}]}]
+  } = to_erl("cond(do: (is_list(1) -> :foo; true -> :bar))").
+
+optimized_boolean_var_cond_test() ->
+  {'case', _, _,
+    [{clause, _, [{atom, _, true}], [], [{atom, _, true}]},
+     {clause, _, [{atom, _, false}], [], [{atom, _, bar}]}]
+  } = to_erl("cond(do: (x = is_list(1) -> x; true -> :bar))").
 
 optimized_if_test() ->
   {'case', _, _,
-    [{clause, _, [{atom, _, false}], [], [{atom, _, else}]},
-     {clause, _, [{atom, _, true}], [], [{atom, _, do}]}]
+    [{clause, _, [{atom, _, true}], [], [{atom, _, do}]},
+     {clause, _, [{atom, _, false}], [], [{atom, _, else}]}]
   } = to_erl("if is_list([]), do: :do, else: :else").
 
 optimized_andand_test() ->

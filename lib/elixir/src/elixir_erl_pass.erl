@@ -106,21 +106,6 @@ translate({fn, Meta, Clauses}, S) ->
   {TClauses, NS} = lists:mapfoldl(Transformer, S, Clauses),
   {{'fun', ?ann(Meta), {clauses, TClauses}}, NS};
 
-%% Cond
-
-translate({'cond', CondMeta, [[{do, Clauses}]]}, S) ->
-  [{'->', Meta, [[Condition], Body]} = H | T] = lists:reverse(Clauses),
-
-  Case =
-    case Condition of
-      X when is_atom(X) and (X /= false) and (X /= nil) ->
-        build_cond_clauses(T, Body, Meta);
-      _ ->
-        Error = {{'.', Meta, [erlang, error]}, [], [cond_clause]},
-        build_cond_clauses([H | T], Error, Meta)
-    end,
-  translate(replace_case_meta(CondMeta, Case), S);
-
 %% Case
 
 translate({'case', Meta, [Expr, Opts]}, S) ->
@@ -330,53 +315,6 @@ translate_block([{'=', _, [{'_', _, Ctx}, {for, Meta, [_ | _] = Args}]} | T], Ac
 translate_block([H | T], Acc, S) ->
   {TH, TS} = translate(H, S),
   translate_block(T, [TH | Acc], TS).
-
-%% Cond
-
-build_cond_clauses([{'->', NewMeta, [[Condition], Body]} | T], Acc, OldMeta) ->
-  {NewCondition, Truthy, Other} = build_truthy_clause(NewMeta, Condition, Body),
-  Falsy = {'->', OldMeta, [[Other], Acc]},
-  Case = {'case', NewMeta, [NewCondition, [{do, [Truthy, Falsy]}]]},
-  build_cond_clauses(T, Case, NewMeta);
-build_cond_clauses([], Acc, _) ->
-  Acc.
-
-replace_case_meta(Meta, {'case', _, Args}) ->
-  {'case', Meta, Args};
-replace_case_meta(_Meta, Other) ->
-  Other.
-
-build_truthy_clause(Meta, Condition, Body) ->
-  case returns_boolean(Condition, Body) of
-    {NewCondition, NewBody} ->
-      {NewCondition, {'->', Meta, [[true], NewBody]}, false};
-    false ->
-      Var = {'cond', [], ?var_context},
-      Head = {'when', [], [Var,
-        {{'.', [], [erlang, 'andalso']}, [], [
-          {{'.', [], [erlang, '/=']}, [], [Var, nil]},
-          {{'.', [], [erlang, '/=']}, [], [Var, false]}
-        ]}
-      ]},
-      {Condition, {'->', Meta, [[Head], Body]}, {'_', [], nil}}
-  end.
-
-%% In case a variable is defined to match in a condition
-%% but a condition returns boolean, we can replace the
-%% variable directly by the boolean result.
-returns_boolean({'=', _, [{Var, _, Ctx}, Condition]}, {Var, _, Ctx}) when is_atom(Var), is_atom(Ctx) ->
-  case elixir_utils:returns_boolean(Condition) of
-    true  -> {Condition, true};
-    false -> false
-  end;
-
-%% For all other cases, we check the condition but
-%% return both condition and body untouched.
-returns_boolean(Condition, Body) ->
-  case elixir_utils:returns_boolean(Condition) of
-    true  -> {Condition, Body};
-    false -> false
-  end.
 
 %% with
 
