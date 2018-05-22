@@ -438,9 +438,20 @@ defmodule Kernel.ErrorsTest do
                       "expected one arg for :do clauses \(->\) in \"cond\"",
                       'cond(do: (_, _ -> :ok))'
 
-    message = ~r"invalid use of _ inside \"cond\"\. If you want the last clause"
+    assert_raise ArgumentError, ~r"invalid use of _ inside \"cond\"\.", fn ->
+      defmodule UnderscoreInCond do
+        cond do
+          1 -> 1
+          _ -> :raise
+        end
+      end
+    end
 
-    assert_eval_raise ArgumentError, message, 'cond(do: (1 -> 1; _ -> :raise))'
+    assert_raise ArgumentError, ~r"invalid pattern in match", fn ->
+      defmodule CondInMatch do
+        cond(do: (true -> true)) = true
+      end
+    end
   end
 
   test "invalid attribute" do

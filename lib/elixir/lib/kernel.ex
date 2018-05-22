@@ -2675,7 +2675,8 @@ defmodule Kernel do
   end
 
   defp build_cond([do: do_clause], caller) do
-    %{line: line} = caller
+    assert_no_match_scope("cond", caller)
+    assert_no_guard_scope("cond", caller)
 
     [{:->, meta, [[condition], body]} | tail] =
       reversed_clauses = reverse_cond_clauses(do_clause, [])
@@ -2695,6 +2696,7 @@ defmodule Kernel do
           {reversed_clauses, error}
       end
 
+    %{line: line} = caller
     case_clause = build_cond_clauses(next_clauses, next_acc, meta)
     replace_case_line(case_clause, line)
   end
@@ -2760,6 +2762,24 @@ defmodule Kernel do
 
   defp replace_case_line(other, _line) do
     other
+  end
+
+  defp assert_no_guard_scope(kind, %{context: :guard}) do
+    raise ArgumentError,
+          "invalid expression in guard, \"#{kind}\" is not allowed in guards. " <>
+            "To learn more about guards, visit: https://hexdocs.pm/elixir/guards.html"
+  end
+
+  defp assert_no_guard_scope(_other, _caller) do
+    :ok
+  end
+
+  defp assert_no_match_scope(kind, %{context: :match}) do
+    raise ArgumentError, "invalid pattern in match, \"#{kind}\" is not allowed in matches"
+  end
+
+  defp assert_no_match_scope(_other, _caller) do
+    :ok
   end
 
   @doc """

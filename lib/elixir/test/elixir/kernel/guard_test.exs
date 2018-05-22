@@ -362,7 +362,7 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_raise ArgumentError, ~r"invalid expression in guard", fn ->
         defmodule CondUsage do
           defguard foo(bar) when cond(do: (bar -> :baz))
         end
