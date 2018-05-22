@@ -689,7 +689,7 @@ extract_boolean_clauses([{do, [
 
 extract_boolean_clauses([{do, [
   {'->', TrueMeta, [
-    [{'when', _, [Var, {{'.', _, [erlang, 'andalso']}, _, [
+    [{'when', _, [Var, {'and', _, [
       {'!=', _, [Var, nil]},
       {'!=', _, [Var, false]}]}]}],
     TrueExpr

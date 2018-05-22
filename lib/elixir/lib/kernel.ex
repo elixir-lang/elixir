@@ -2675,26 +2675,22 @@ defmodule Kernel do
   end
 
   defp build_cond([do: do_clause], caller) do
-    %{module: module, line: line} = caller
+    %{line: line} = caller
 
     [{:->, meta, [[condition], body]} | tail] =
       reversed_clauses = reverse_cond_clauses(do_clause, [])
 
-    case_clause =
+    {next_clauses, next_acc} =
       case condition do
         value when is_atom(value) and value != false and value != nil ->
-          build_cond_clauses(tail, body, meta, module)
+          {tail, body}
 
         _ ->
-          error =
-            quote do
-              :erlang.error(CondClauseError.exception([]))
-            end
-
-          build_cond_clauses(reversed_clauses, error, meta, module)
+          error = quote(do: raise(CondClauseError))
+          {reversed_clauses, error}
       end
 
-    replace_case_meta(case_clause, line)
+    build_cond_clauses(next_clauses, next_acc, meta, line)
   end
 
   defp build_cond([], _caller) do
@@ -2710,41 +2706,36 @@ defmodule Kernel do
     invalid_arguments_error("cond")
   end
 
-  defp build_cond_clauses([], acc, _old_meta, _module) do
+  defp build_cond_clauses([], acc, _old_meta, _line) do
     acc
   end
 
-  defp build_cond_clauses([{:->, new_meta, [[condition], body]} | tail], acc, old_meta, module) do
-    var = {:cond, [], module}
+  defp build_cond_clauses([{:->, new_meta, [[condition], body]} | tail], acc, old_meta, line) do
+    truthy_clause =
+      quote line: get_line(new_meta) do
+        value when value != nil and value != false -> unquote(body)
+      end
+
+    falsy_clause =
+      quote line: get_line(old_meta) do
+        _ -> unquote(acc)
+      end
+
+    clauses = truthy_clause ++ falsy_clause
+
+    case_line =
+      case tail do
+        [] -> line
+        _ -> get_line(new_meta)
+      end
 
     case_clause =
-      {:case, new_meta,
-       [
-         condition,
-         [
-           do: [
-             {:->, new_meta,
-              [
-                [
-                  {:when, [],
-                   [
-                     var,
-                     {{:., [], [:erlang, :andalso]}, [],
-                      [
-                        {:!=, [], [var, nil]},
-                        {:!=, [], [var, false]}
-                      ]}
-                   ]}
-                ],
-                body
-              ]},
-             {:->, old_meta, [[{:_, [], nil}], acc]}
-           ]
-         ]
-       ]}
+      quote line: case_line do
+        case unquote(condition), do: unquote(clauses)
+      end
 
     next_acc = optimize_boolean(case_clause, false)
-    build_cond_clauses(tail, next_acc, new_meta, module)
+    build_cond_clauses(tail, next_acc, new_meta, line)
   end
 
   defp reverse_cond_clauses([], acc) do
@@ -2801,18 +2792,11 @@ defmodule Kernel do
     :erlang.error(ArgumentError.exception("invalid arguments for \"#{name}\""))
   end
 
-  defp replace_case_meta({:case, meta, args}, line) do
-    new_meta =
-      case :lists.keytake(:line, 1, meta) do
-        {_, _, remaining_meta} -> [{:line, line} | remaining_meta]
-        false -> [{:line, line} | meta]
-      end
-
-    {:case, new_meta, args}
-  end
-
-  defp replace_case_meta(other, _line) do
-    other
+  defp get_line(meta) do
+    case :lists.keyfind(:line, 1, meta) do
+      {:line, line} -> line
+      false -> 0
+    end
   end
 
   @doc """
