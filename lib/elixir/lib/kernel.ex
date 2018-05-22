@@ -2682,6 +2682,11 @@ defmodule Kernel do
 
     {next_clauses, next_acc} =
       case condition do
+        {:_, _, context} when is_atom(context) ->
+          raise ArgumentError,
+                "invalid use of _ inside \"cond\". If you want the last clause " <>
+                  "to always match, you probably meant to use: true ->"
+
         value when is_atom(value) and value != false and value != nil ->
           {tail, body}
 
@@ -2690,52 +2695,39 @@ defmodule Kernel do
           {reversed_clauses, error}
       end
 
-    build_cond_clauses(next_clauses, next_acc, meta, line)
-  end
-
-  defp build_cond([], _caller) do
-    :erlang.error(ArgumentError.exception("missing :do option in \"cond\""))
-  end
-
-  defp build_cond(clauses, _caller) when is_list(clauses) do
-    check_at_most_once(:do, clauses, 0, "cond")
-    check_unexpected_options([:do], clauses, "cond")
+    case_clause = build_cond_clauses(next_clauses, next_acc, meta)
+    replace_case_line(case_clause, line)
   end
 
   defp build_cond(_invalid_args, _caller) do
-    invalid_arguments_error("cond")
+    raise ArgumentError, "invalid arguments for \"cond\" as it expects a single :do keyword"
   end
 
-  defp build_cond_clauses([], acc, _old_meta, _line) do
+  defp build_cond_clauses([], acc, _old_meta) do
     acc
   end
 
-  defp build_cond_clauses([{:->, new_meta, [[condition], body]} | tail], acc, old_meta, line) do
+  defp build_cond_clauses([{:->, new_meta, [[condition], body]} | tail], acc, old_meta) do
+    new_meta_line = get_line(new_meta)
+    old_meta_line = get_line(old_meta)
+
     truthy_clause =
-      quote line: get_line(new_meta) do
+      quote line: new_meta_line do
         value when value != nil and value != false -> unquote(body)
       end
 
     falsy_clause =
-      quote line: get_line(old_meta) do
+      quote line: old_meta_line do
         _ -> unquote(acc)
       end
 
-    clauses = truthy_clause ++ falsy_clause
-
-    case_line =
-      case tail do
-        [] -> line
-        _ -> get_line(new_meta)
-      end
-
     case_clause =
-      quote line: case_line do
-        case unquote(condition), do: unquote(clauses)
+      quote line: new_meta_line do
+        case unquote(condition), do: unquote(truthy_clause ++ falsy_clause)
       end
 
     next_acc = optimize_boolean(case_clause, false)
-    build_cond_clauses(tail, next_acc, new_meta, line)
+    build_cond_clauses(tail, next_acc, new_meta)
   end
 
   defp reverse_cond_clauses([], acc) do
@@ -2747,49 +2739,11 @@ defmodule Kernel do
   end
 
   defp reverse_cond_clauses([{:->, _, [args, _]} | _], _acc) when is_list(args) do
-    :erlang.error(ArgumentError.exception("expected one arg for :do clauses (->) in \"cond\""))
+    raise ArgumentError, "expected one arg for :do clauses (->) in \"cond\""
   end
 
   defp reverse_cond_clauses(_invalid_clauses, _acc) do
-    :erlang.error(ArgumentError.exception("expected -> clauses for :do in \"cond\""))
-  end
-
-  defp check_at_most_once(_kind, [], _count, _name) do
-    :ok
-  end
-
-  defp check_at_most_once(kind, [{kind, _} | _], 1, name) do
-    :erlang.error(ArgumentError.exception("duplicated :#{kind} clauses given for \"#{name}\""))
-  end
-
-  defp check_at_most_once(kind, [{kind, _} | rest], count, name) do
-    check_at_most_once(kind, rest, count + 1, name)
-  end
-
-  defp check_at_most_once(kind, [_ | rest], count, name) do
-    check_at_most_once(kind, rest, count, name)
-  end
-
-  defp check_unexpected_options(_valid_options, [], _name) do
-    :ok
-  end
-
-  defp check_unexpected_options(valid_options, [{kind, _} | rest], name) when is_atom(kind) do
-    case :lists.member(kind, valid_options) do
-      true ->
-        check_unexpected_options(valid_options, rest, name)
-
-      false ->
-        :erlang.error(ArgumentError.exception("unexpected option :#{kind} in \"#{name}\""))
-    end
-  end
-
-  defp check_unexpected_options(_valid_options, _invalid_arguments, name) do
-    invalid_arguments_error(name)
-  end
-
-  defp invalid_arguments_error(name) do
-    :erlang.error(ArgumentError.exception("invalid arguments for \"#{name}\""))
+    raise ArgumentError, "expected -> clauses for :do in \"cond\""
   end
 
   defp get_line(meta) do
@@ -2797,6 +2751,15 @@ defmodule Kernel do
       {:line, line} -> line
       false -> 0
     end
+  end
+
+  defp replace_case_line({:case, meta, args}, line) do
+    new_meta = :lists.keyreplace(:line, 1, meta, {:line, line})
+    {:case, new_meta, args}
+  end
+
+  defp replace_case_line(other, _line) do
+    other
   end
 
   @doc """

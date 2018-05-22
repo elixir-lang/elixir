@@ -401,7 +401,6 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
 
 expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, E),
-  assert_no_underscore_clause_in_cond(Atom, Args, E),
 
   elixir_dispatch:dispatch_import(Meta, Atom, Args, E, fun() ->
     expand_local(Meta, Atom, Args, E)
@@ -1026,22 +1025,6 @@ assert_contextual_var(Meta, Name, #{contextual_vars := Vars, file := File}, Erro
     false -> form_error(Meta, File, ?MODULE, Error)
   end.
 
-%% Here we look into the Clauses "optimistically", that is, we don't check for
-%% multiple "do"s and similar stuff. After all, the error we're gonna give here
-%% is just a friendlier version of the "undefined variable _" error that we
-%% would raise if we found a "_ -> ..." clause in a "cond". For this reason, if
-%% Clauses has a bad shape, we just do nothing and let future functions catch
-%% this.
-assert_no_underscore_clause_in_cond('cond', [[{do, Clauses}]], E) when is_list(Clauses) ->
-  case lists:last(Clauses) of
-    {'->', Meta, [[{'_', _, Atom}], _]} when is_atom(Atom) ->
-      form_error(Meta, ?key(E, file), ?MODULE, underscore_in_cond);
-    _Other ->
-      ok
-  end;
-assert_no_underscore_clause_in_cond(_Name, _Other, _E) ->
-  ok.
-
 %% Errors
 
 format_error({useless_literal, Term}) ->
@@ -1098,9 +1081,6 @@ format_error({undefined_var_pin, Name, Kind}) ->
 format_error({undefined_var_bang, Name, Kind}) ->
   Message = "expected \"~ts\"~ts to expand to an existing variable or be part of a match",
   io_lib:format(Message, [Name, context_info(Kind)]);
-format_error(underscore_in_cond) ->
-  "invalid use of _ inside \"cond\". If you want the last clause to always match, "
-    "you probably meant to use: true ->";
 format_error({invalid_expr_in_guard, Kind}) ->
   Message =
     "invalid expression in guard, ~ts is not allowed in guards. To learn more about "

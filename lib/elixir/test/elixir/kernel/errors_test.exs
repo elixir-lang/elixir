@@ -418,11 +418,15 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid cond" do
-    assert_eval_raise ArgumentError, "missing :do option in \"cond\"", 'cond([])'
+    message = "invalid arguments for \"cond\" as it expects a single :do keyword"
 
-    assert_eval_raise ArgumentError,
-                      "duplicated :do clauses given for \"cond\"",
-                      'cond(do: (x -> x), do: (y -> y))'
+    assert_eval_raise ArgumentError, message, 'cond([])'
+
+    assert_eval_raise ArgumentError, message, 'cond(do: (x -> x), do: (y -> y))'
+
+    assert_eval_raise ArgumentError, message, 'cond(:foo)'
+
+    assert_eval_raise ArgumentError, message, 'cond(do: (1 -> 1), foo: :bar)'
 
     assert_eval_raise ArgumentError, "expected -> clauses for :do in \"cond\"", 'cond(do: :ok)'
 
@@ -434,19 +438,9 @@ defmodule Kernel.ErrorsTest do
                       "expected one arg for :do clauses \(->\) in \"cond\"",
                       'cond(do: (_, _ -> :ok))'
 
-    assert_eval_raise ArgumentError, "invalid arguments for \"cond\"", 'cond(:foo)'
-
-    assert_eval_raise ArgumentError,
-                      "invalid arguments for \"cond\"",
-                      'cond([{:do, (1 -> 1)}, :foo])'
-
-    assert_eval_raise ArgumentError,
-                      "unexpected option :foo in \"cond\"",
-                      'cond(do: (1 -> 1), foo: :bar)'
-
     message = ~r"invalid use of _ inside \"cond\"\. If you want the last clause"
 
-    assert_eval_raise CompileError, message, 'cond(do: (1 -> 1; _ -> :raise))'
+    assert_eval_raise ArgumentError, message, 'cond(do: (1 -> 1; _ -> :raise))'
   end
 
   test "invalid attribute" do
