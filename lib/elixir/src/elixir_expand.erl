@@ -630,22 +630,16 @@ expand_case(Meta, Expr, Opts, E) ->
   ROpts =
     case proplists:get_value(optimize_boolean, Meta, false) of
       false -> Opts;
-      OptimizeOpts -> optimize_boolean_clauses(EExpr, Opts, OptimizeOpts)
+      true -> optimize_boolean_clauses(EExpr, Opts)
     end,
 
   {EOpts, EO} = elixir_clauses:'case'(Meta, ROpts, EE),
   {{'case', Meta, [EExpr, EOpts]}, EO}.
 
-optimize_boolean_clauses(Condition, Clauses, Opts) ->
-  RewrittenClauses =
-    case extract_boolean_clauses(Condition, Clauses) of
-      nil -> Clauses;
-      ExtractedClauses -> rewrite_case_clauses(ExtractedClauses)
-    end,
-
-  case lists:keyfind(generated, 1, Opts) of
-    {generated, true} -> generated_case_clauses(RewrittenClauses);
-    _ -> RewrittenClauses
+optimize_boolean_clauses(Condition, Clauses) ->
+  case extract_boolean_clauses(Condition, Clauses) of
+    nil -> Clauses;
+    ExtractedClauses -> rewrite_case_clauses(ExtractedClauses)
   end.
 
 %% In case a variable is defined to match in a condition
@@ -675,18 +669,6 @@ extract_boolean_clauses(Condition, Opts) ->
   end.
 
 extract_boolean_clauses([{do, [
-  {'->', FalseMeta, [
-    [{'when', _, [Var, {{'.', _, ['Elixir.Kernel', 'in']}, _, [Var, [false, nil]]}]}],
-    FalseExpr
-  ]},
-  {'->', TrueMeta, [
-    [{'_', _, _}],
-    TrueExpr
-  ]}
-]}]) ->
-  {FalseMeta, FalseExpr, TrueMeta, TrueExpr};
-
-extract_boolean_clauses([{do, [
   {'->', TrueMeta, [
     [{'when', _, [Var, {'and', _, [
       {'!=', _, [Var, nil]},
@@ -714,10 +696,6 @@ rewrite_case_clauses({FalseMeta, FalseExpr, TrueMeta, TrueExpr}) ->
     {'->', TrueMeta, [[true], TrueExpr]},
     {'->', FalseMeta, [[false], FalseExpr]}
   ]}].
-
-generated_case_clauses([{do, Clauses}]) ->
-  RClauses = [{'->', ?generated(Meta), Args} || {'->', Meta, Args} <- Clauses],
-  [{do, RClauses}].
 
 %% Locals
 

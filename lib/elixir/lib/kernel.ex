@@ -1473,8 +1473,8 @@ defmodule Kernel do
 
   ## Implemented in Elixir
 
-  defp optimize_boolean({:case, meta, args}, generated \\ true) do
-    {:case, [{:optimize_boolean, generated: generated} | meta], args}
+  defp optimize_boolean({:case, meta, args}) do
+    {:case, [{:optimize_boolean, true} | meta], args}
   end
 
   @doc """
@@ -1531,18 +1531,27 @@ defmodule Kernel do
   end
 
   defp build_boolean_check(operator, check, true_clause, false_clause) do
+    true_clause =
+      quote generated: true do
+        true -> unquote(true_clause)
+      end
+
+    false_clause =
+      quote generated: true do
+        false -> unquote(false_clause)
+      end
+
+    error_clause =
+      quote generated: true do
+        other ->
+          :erlang.error(BadBooleanError.exception(operator: unquote(operator), term: other))
+      end
+
+    clauses = true_clause ++ false_clause ++ error_clause
+
     optimize_boolean(
       quote do
-        case unquote(check) do
-          true ->
-            unquote(true_clause)
-
-          false ->
-            unquote(false_clause)
-
-          other ->
-            :erlang.error(BadBooleanError.exception(operator: unquote(operator), term: other))
-        end
+        case unquote(check), do: unquote(clauses)
       end
     )
   end
@@ -1567,23 +1576,29 @@ defmodule Kernel do
   defmacro !value
 
   defmacro !{:!, _, [value]} do
-    optimize_boolean(
-      quote do
-        case unquote(value) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> false
-          _ -> true
-        end
-      end
-    )
+    build_truthy_check(value, true, false)
   end
 
   defmacro !value do
+    build_truthy_check(value, false, true)
+  end
+
+  defp build_truthy_check(condition, true_body, false_body) do
+    truthy_clause =
+      quote generated: true do
+        value when value != nil and value != false -> unquote(true_body)
+      end
+
+    falsy_clause =
+      quote generated: true do
+        _ -> unquote(false_body)
+      end
+
+    clauses = truthy_clause ++ falsy_clause
+
     optimize_boolean(
       quote do
-        case unquote(value) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> true
-          _ -> false
-        end
+        case unquote(condition), do: unquote(clauses)
       end
     )
   end
@@ -2723,12 +2738,13 @@ defmodule Kernel do
         _ -> unquote(acc)
       end
 
-    case_clause =
-      quote line: new_meta_line do
-        case unquote(condition), do: unquote(truthy_clause ++ falsy_clause)
-      end
+    next_acc =
+      optimize_boolean(
+        quote line: new_meta_line do
+          case unquote(condition), do: unquote(truthy_clause ++ falsy_clause)
+        end
+      )
 
-    next_acc = optimize_boolean(case_clause, false)
     build_cond_clauses(tail, next_acc, new_meta)
   end
 
@@ -3039,14 +3055,7 @@ defmodule Kernel do
   end
 
   defp build_if(condition, do: do_clause, else: else_clause) do
-    optimize_boolean(
-      quote do
-        case unquote(condition) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> unquote(else_clause)
-          _ -> unquote(do_clause)
-        end
-      end
-    )
+    build_truthy_check(condition, do_clause, else_clause)
   end
 
   defp build_if(_condition, _arguments) do
