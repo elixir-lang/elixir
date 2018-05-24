@@ -1453,6 +1453,8 @@ defmodule Enum do
       iex> Enum.max_by([~D[2017-03-31], ~D[2017-04-01]], &Date.to_erl/1)
       ~D[2017-04-01]
 
+  For selecting a maximum value out of two consider using `Kernel.max/2`.
+
   """
   @spec max(t, (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
   def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
@@ -1570,6 +1572,8 @@ defmodule Enum do
 
       iex> Enum.min_by([~D[2017-03-31], ~D[2017-04-01]], &Date.to_erl/1)
       ~D[2017-03-31]
+
+  For selecting a minimal value out of two consider using `Kernel.min/2`.
 
   """
   @spec min(t, (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
