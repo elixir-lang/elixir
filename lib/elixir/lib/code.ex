@@ -481,7 +481,7 @@ defmodule Code do
         # code
       end)
 
-      some_funtion_without_parens %{
+      some_function_without_parens %{
         foo: :bar,
         baz: :bat
       }
