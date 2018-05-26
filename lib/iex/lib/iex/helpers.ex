@@ -79,7 +79,7 @@ defmodule IEx.Helpers do
   This function is meant to be used for development and
   debugging purposes. Do not depend on it in production code.
   """
-  def recompile do
+  def recompile(force? \\ false) do
     if mix_started?() do
       config = Mix.Project.config()
       consolidation = Mix.Project.consolidation_path(config)
@@ -89,7 +89,8 @@ defmodule IEx.Helpers do
       Code.delete_path(consolidation)
       purge_protocols(consolidation)
 
-      {result, _} = Mix.Task.run("compile")
+      arguments = if force?, do: ["--force"], else: []
+      {result, _} = Mix.Task.run("compile", arguments)
 
       # Reenable consolidation and allow them to be loaded.
       Code.prepend_path(consolidation)
