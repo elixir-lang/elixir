@@ -145,7 +145,7 @@ defmodule Logger.Utils do
     # arguments according to the truncate limit.
     {args, _} =
       Enum.map_reduce(args, truncate, fn arg, acc ->
-        if is_binary(arg) do
+        if is_binary(arg) and acc != :infinity do
           truncate_n(arg, acc)
         else
           {arg, acc}

@@ -5,9 +5,9 @@ defmodule Logger.UtilsTest do
 
   import Kernel, except: [inspect: 2]
 
-  defp inspect(format, args) do
+  defp inspect(format, args, truncate \\ 10) do
     format
-    |> Logger.Utils.scan_inspect(args, 10)
+    |> Logger.Utils.scan_inspect(args, truncate)
     |> :io_lib.unscan_format()
   end
 
@@ -90,13 +90,13 @@ defmodule Logger.UtilsTest do
     assert truncate(long_string, :infinity) == long_string
   end
 
-  test "inspect/2 formats" do
+  test "scan_inspect/3 formats" do
     assert inspect('~p', [1]) == {'~ts', [["1"]]}
     assert inspect("~p", [1]) == {'~ts', [["1"]]}
     assert inspect(:"~p", [1]) == {'~ts', [["1"]]}
   end
 
-  test "inspect/2 sigils" do
+  test "scan_inspect/3 sigils" do
     assert inspect('~10.10tp', [1]) == {'~ts', [["1"]]}
     assert inspect('~-10.10tp', [1]) == {'~ts', [["1"]]}
 
@@ -104,24 +104,24 @@ defmodule Logger.UtilsTest do
     assert inspect('~10.10x~p~n', [1, 2, 3]) == {'~10.10x~ts~n', [1, 2, ["3"]]}
   end
 
-  test "inspect/2 with modifier t has no effect (as it is the default)" do
+  test "scan_inspect/3 with modifier t has no effect (as it is the default)" do
     assert inspect('~tp', [1]) == {'~ts', [["1"]]}
     assert inspect('~tw', [1]) == {'~ts', [["1"]]}
   end
 
-  test "inspect/2 with modifier l always prints lists" do
+  test "scan_inspect/3 with modifier l always prints lists" do
     assert inspect('~lp', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
     assert inspect('~lw', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
   end
 
-  test "inspect/2 with modifier for width" do
+  test "scan_inspect/3 with modifier for width" do
     assert inspect('~5lp', ['abc']) ==
              {'~ts', [["[", "97", ",", "\n ", "98", ",", "\n ", "99", "]"]]}
 
     assert inspect('~5lw', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
   end
 
-  test "inspect/2 with modifier for limit" do
+  test "scan_inspect/3 with modifier for limit" do
     assert inspect('~5lP', ['abc', 2]) ==
              {'~ts', [["[", "97", ",", "\n ", "98", ",", "\n ", "...", "]"]]}
 
@@ -129,11 +129,16 @@ defmodule Logger.UtilsTest do
              {'~ts', [["[", "97", ",", " ", "98", ",", " ", "...", "]"]]}
   end
 
-  test "inspect/2 truncates binaries" do
+  test "scan_inspect/3 truncates binaries" do
     assert inspect('~ts', ["abcdeabcdeabcdeabcde"]) == {'~ts', ["abcdeabcde"]}
 
     assert inspect('~ts~ts~ts', ["abcdeabcde", "abcde", "abcde"]) ==
              {'~ts~ts~ts', ["abcdeabcde", "", ""]}
+  end
+
+  test "scan_inspect/3 with :infinity truncate" do
+    long_string = String.duplicate("foo", 10000)
+    assert inspect('~ts', [long_string], :infinity) == {'~ts', [long_string]}
   end
 
   test "timestamp/1" do
