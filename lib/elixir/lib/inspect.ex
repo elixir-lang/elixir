@@ -9,10 +9,10 @@ defprotocol Inspect do
   data structure into an algebra document. This document is then
   formatted, either in pretty printing format or a regular one.
 
-  `Inspect` protocol basically returns a string for the data
+  The `Inspect` protocol basically returns a string for the data
   structure it's given. The string returned by the `Inspect` 
-  protocol, generated using both the options from `Inspect.Opts`
-  and the internal algebra representation of the datastructure. 
+  protocol is generated using both the options from `Inspect.Opts`
+  and the internal algebra representation of the data structure. 
 
   The `inspect/2` function receives the entity to be inspected
   followed by the inspecting options, represented by the struct
@@ -56,7 +56,7 @@ defprotocol Inspect do
       "[1, 2, \"three\", 'four']"
 
 
-  Options can be passed in `inspect`, see them all in `Inspect.Opts`
+  Options can be passed in `inspect/2`, see them all in `Inspect.Opts`.
 
       iex> Kernel.inspect([1,2,3,4,5,6,7,8,9], limit: 2) 
       "[1, 2, ...]"
