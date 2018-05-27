@@ -8,23 +8,23 @@ The following is a list of all operators that Elixir is capable of parsing, orde
 
 Operator                                                                                 | Associativity
 ---------------------------------------------------------------------------------------- | -------------
-[`@`](`Kernel.@/1`)                                                                      | Unary
-[`.`](`Kernel.SpecialForms../2`)                                                         | Left to right
-[`+`](`Kernel.+/1`) [`-`](`Kernel.-/1`) [`!`](`Kernel.!/1`) [`^`](`Kernel.SpecialForms.^/1`) [`not`](`Kernel.not/1`) `~~~` | Unary
-[`*`](`Kernel.*/2`), [`/`](`Kernel.//2`) .                                               | Left to right
-[`+`](`Kernel.+/2`) [`-`](`Kernel.-/2`)                                                  | Left to right
-[`++`](`Kernel.++/2`) [`--`](`Kernel.--/2`) [`..`](`Kernel.../2`) [`<>`](`Kernel.<>/2`)  | Right to left
-[`in`](`Kernel.in/2`) [`not in`](`Kernel.not_in/2`)                                          | Left to right
-[`\|>`](`Kernel.\|>/2`) `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                   | Left to right
-[`<`](`Kernel.</2`) [`>`](`Kernel.>/2`) [`<=`](`Kernel.<=/2`) [`>=`](`Kernel.>=/2`)      | Left to right
-[`==`](`Kernel.==/2`) [`!=`](`Kernel.!=/2`) [`=~`](`Kernel.=~/2`) [`===`](`Kernel.===/2`) [`!==`](`Kernel.!==/2`) | Left to right
-[`&&`](`Kernel.&&/2`) `&&&` [`and`](`Kernel.and/2`)                                      | Left to right
-[`\|\|`](`Kernel.\|\|/2`) `\|\|\|` [`or`](`Kernel.or/2`)                                 | Left to right
-[`&`](`Kernel.SpecialForms.&/1`)                                                         | Unary
-[`=`](`Kernel.SpecialForms.=/1`)                                                         | Right to left
+`@`                                                                                      | Unary
+`.`                                                                                      | Left to right
+`+` `-` `!` `^` `not` `~~~`                                                              | Unary
+`*` `/`                                                                                  | Left to right
+`+` `-`                                                                                  | Left to right
+`++` `--` `..` `<>`                                                                      | Right to left
+`in` `not in`                                                                            | Left to right
+`\|>` `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                                     | Left to right
+`<` `>` `<=` `>=`                                                                        | Left to right
+`==` `!=` `=~` `===` `!==`                                                               | Left to right
+`&&` `&&&` `and`                                                                         | Left to right
+`\|\|` `\|\|\|` `or`                                                                     | Left to right
+`&`                                                                                      | Unary
+`=`                                                                                      | Right to left
 `=>`                                                                                     | Right to left
 `\|`                                                                                     | Right to left
-[`::`](`Kernel.SpecialForms.::/2`)                                                       | Right to left
+`::`                                                                                     | Right to left
 `when`                                                                                   | Right to left
 `<-` `\\`                                                                                | Left to right
 
