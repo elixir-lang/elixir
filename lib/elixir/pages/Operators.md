@@ -15,11 +15,11 @@ Operator                                                                        
 [`+`](`Kernel.+/2`) [`-`](`Kernel.-/2`)                                                  | Left to right
 [`++`](`Kernel.++/2`) [`--`](`Kernel.--/2`) [`..`](`Kernel.../2`) [`<>`](`Kernel.<>/2`)  | Right to left
 [`in`](`Kernel.in/2`) [`not in`](`Kernel.in/2`)                                          | Left to right
-`\|>` `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                                     | Left to right
+[`\|>`](`Kernel.\|>/2`) `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                   | Left to right
 [`<`](`Kernel.</2`) [`>`](`Kernel.>/2`) [`<=`](`Kernel.<=/2`) [`>=`](`Kernel.>=/2`)      | Left to right
 [`==`](`Kernel.==/2`) [`!=`](`Kernel.!=/2`) [`=~`](`Kernel.=~/2`) [`===`](`Kernel.===/2`) [`!==`](`Kernel.!==/2`) | Left to right
 [`&&`](`Kernel.&&/2`) `&&&` [`and`](`Kernel.and/2`)                                      | Left to right
-`\|\|` `\|\|\|` [`or`](`Kernel.or/2`)                                                    | Left to right
+[`\|\|`](`Kernel.\|\|/2`) `\|\|\|` [`or`](`Kernel.or/2`)                                 | Left to right
 [`&`](`Kernel.SpecialForms.&/1`)                                                         | Unary
 [`=`](`Kernel.SpecialForms.=/1`)                                                         | Right to left
 `=>`                                                                                     | Right to left
