@@ -5,15 +5,17 @@ alias Code.Identifier
 
 defprotocol Inspect do
   @moduledoc """
-  The `Inspect` protocol is responsible for converting any Elixir
-  data structure into an algebra document. This document is then
-  formatted, either in pretty printing format or a regular one.
+  The `Inspect` protocol converts an Elixir data structure into an
+  algebra document.
+
+  This documentation refers to implementing the `Inspect` protocol
+  for your own data structures. To learn more about using inspect,
+  see `Kernel.inspect/2` and `IO.inspect/2`.
 
   The `inspect/2` function receives the entity to be inspected
   followed by the inspecting options, represented by the struct
-  `Inspect.Opts`.
-
-  Inspection is done using the functions available in `Inspect.Algebra`.
+  `Inspect.Opts`. Building of the algebra document is done with
+  `Inspect.Algebra`.
 
   ## Examples
 
