@@ -50,7 +50,7 @@ defprotocol Inspect do
       "23"
       iex> Kernel.inspect(1.1)
       "1.1"
-      iex> Kernel.inspect %{hello: "world", name: "steve", count: 2}
+      iex> Kernel.inspect(%{hello: "world", name: "steve", count: 2})
       "%{count: 2, hello: \"world\", name: \"steve\"}"
       iex> Kernel.inspect [1, 2, "three", 'four']
       "[1, 2, \"three\", 'four']"
