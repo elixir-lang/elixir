@@ -184,16 +184,19 @@ defmodule Base do
   end
 
   defp decode_char_clauses(alphabet, :mixed) when length(alphabet) == 32 do
-    alphabet
-    |> Stream.with_index()
-    |> Enum.flat_map(fn {encoding, value} = pair ->
-      if encoding in ?A..?Z do
-        [pair, {encoding - ?A + ?a, value}]
-      else
-        [pair]
-      end
-    end)
-    |> decode_clauses()
+    clauses =
+      alphabet
+      |> Stream.with_index()
+      |> Enum.flat_map(fn {encoding, value} = pair ->
+        if encoding in ?A..?Z do
+          [pair, {encoding - ?A + ?a, value}]
+        else
+          [pair]
+        end
+      end)
+      |> decode_clauses()
+
+    clauses ++ bad_digit_clause()
   end
 
   defp decode_mixed_clauses(first, second) do

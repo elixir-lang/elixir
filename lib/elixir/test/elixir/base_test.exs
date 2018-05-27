@@ -487,10 +487,6 @@ defmodule BaseTest do
     end
 
     assert_raise ArgumentError, "non-alphabet digit found: \"0\" (byte 48)", fn ->
-      decode32!("0ZXW6YTB0I======", case: :lower)
-    end
-
-    assert_raise ArgumentError, "non-alphabet digit found: \"0\" (byte 48)", fn ->
       decode32!("0ZXW6YTB0I======", case: :mixed)
     end
   end
