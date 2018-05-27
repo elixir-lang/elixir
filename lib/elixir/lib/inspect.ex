@@ -64,7 +64,7 @@ defprotocol Inspect do
       "[1, 2, 3, 4, 5, 6, 7, 8, 9]"
 
   If you want to automatically print this string to STDOUT see
-  `IO.inspect`
+  `IO.inspect/2`.
 
   ## Error handling
 
