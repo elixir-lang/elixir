@@ -10,7 +10,7 @@ Operator                                                                        
 ---------------------------------------------------------------------------------------- | -------------
 [`@`](`Kernel.@/1`)                                                                      | Unary
 [`.`](`Kernel.SpecialForms../2`)                                                         | Left to right
-[`+`](`Kernel.+/1`) [`-`](`Kernel.-/1`) [`!`](`Kernel.!/1`) [`^`](`Kernel.SpecialForms.^/1`) [`not`](`Kernel.not/1`) [`~~~`](`Bitwise.~~~/1`) | Unary
+[`+`](`Kernel.+/1`) [`-`](`Kernel.-/1`) [`!`](`Kernel.!/1`) [`^`](`Kernel.SpecialForms.^/1`) [`not`](`Kernel.not/1`) `~~~` | Unary
 [`*`](`Kernel.*/2`), [`/`](`Kernel.//2`) .                                               | Left to right
 [`+`](`Kernel.+/2`) [`-`](`Kernel.-/2`)                                                  | Left to right
 [`++`](`Kernel.++/2`) [`--`](`Kernel.--/2`) [`..`](`Kernel.../2`) [`<>`](`Kernel.<>/2`)  | Right to left
