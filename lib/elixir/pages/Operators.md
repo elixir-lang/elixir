@@ -8,23 +8,23 @@ The following is a list of all operators that Elixir is capable of parsing, orde
 
 Operator                                                                                 | Associativity
 ---------------------------------------------------------------------------------------- | -------------
-`@`                                                                                      | Unary
-`.`                                                                                      | Left to right
-`+` `-` `!` `^` `not` `~~~`                                                              | Unary
-`*` `/`                                                                                  | Left to right
-`+` `-`                                                                                  | Left to right
-`++` `--` `..` `<>`                                                                      | Right to left
-`in` `not in`                                                                            | Left to right
+[`@`](`Kernel.@/1`)                                                                      | Unary
+[`.`](`Kernel.SpecialForms../2`)                                                         | Left to right
+[`+`](`Kernel.+/1`) [`-`](`Kernel.-/1`) [`!`](`Kernel.!/1`) [`^`](`Kernel.SpecialForms.^/1`) [`not`](`Kernel.not/1`) [`~~~`](`Bitwise.~~~/1`) | Unary
+[`*`](`Kernel.*/2`), [`/`](`Kernel.//2`) .                                               | Left to right
+[`+`](`Kernel.+/2`) [`-`](`Kernel.-/2`)                                                  | Left to right
+[`++`](`Kernel.++/2`) [`--`](`Kernel.--/2`) [`..`](`Kernel.../2`) [`<>`](`Kernel.<>/2`)  | Right to left
+[`in`](`Kernel.in/2`) [`not in`](`Kernel.in/2`)                                          | Left to right
 `\|>` `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                                     | Left to right
-`<` `>` `<=` `>=`                                                                        | Left to right
-`==` `!=` `=~` `===` `!==`                                                               | Left to right
-`&&` `&&&` `and`                                                                         | Left to right
-`\|\|` `\|\|\|` `or`                                                                     | Left to right
-`&`                                                                                      | Unary
-`=`                                                                                      | Right to left
+[`<`](`Kernel.</2`) [`>`](`Kernel.>/2`) [`<=`](`Kernel.<=/2`) [`>=`](`Kernel.>=/2`)      | Left to right
+[`==`](`Kernel.==/2`) [`!=`](`Kernel.!=/2`) [`=~`](`Kernel.=~/2`) [`===`](`Kernel.===/2`) [`!==`](`Kernel.!==/2`) | Left to right
+[`&&`](`Kernel.&&/2`) `&&&` [`and`](`Kernel.and/2`)                                      | Left to right
+`\|\|` `\|\|\|` [`or`](`Kernel.or/2`)                                                    | Left to right
+[`&`](`Kernel.SpecialForms.&/1`)                                                         | Unary
+[`=`](`Kernel.SpecialForms.=/1`)                                                         | Right to left
 `=>`                                                                                     | Right to left
 `\|`                                                                                     | Right to left
-`::`                                                                                     | Right to left
+[`::`](`Kernel.SpecialForms.::/1`)                                                       | Right to left
 `when`                                                                                   | Right to left
 `<-` `\\`                                                                                | Left to right
 
@@ -32,16 +32,16 @@ Operator                                                                        
 
 Elixir provides the following built-in comparison operators:
 
-  * `==` - equality
-  * `===` - strict equality
-  * `!=` - inequality
-  * `!==` - strict inequality
-  * `>` - greater than
-  * `<` - less than
-  * `>=` - greater than or equal
-  * `<=` - less than or equal
+  * [`==`](`Kernel.==/2`) - equality
+  * [`===`](`Kernel.===/2`) - strict equality
+  * [`!=`](`Kernel.!=/2`) - inequality
+  * [`!==`](`Kernel.!==/2`) - strict inequality
+  * [`>`](`Kernel.>/2`) - greater than
+  * [`<`](`Kernel.</2`) - less than
+  * [`>=`](`Kernel.>=/2`) - greater than or equal
+  * [`<=`](`Kernel.<=/2`) - less than or equal
 
-The only difference between `==` and `===` is that `===` is stricter when it comes to comparing integers and floats:
+The only difference between [`==`](`Kernel.==/2`) and [`===`](`Kernel.===/2`) is that [`===`](`Kernel.===/2`) is stricter when it comes to comparing integers and floats:
 
 ```elixir
 iex> 1 == 1.0
@@ -50,7 +50,7 @@ iex> 1 === 1.0
 false
 ```
 
-`!=` and `!==` act as the negation of `==` and `===`, respectively.
+[`!=`](`Kernel.!=/2`) and [`!==`](`Kernel.!==/2`) act as the negation of [`==`](`Kernel.==/2`) and [`===`](`Kernel.===/2`), respectively.
 
 ### Term ordering
 
@@ -120,7 +120,7 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `^^^`
   * `~~~`
 
-The following operators are used by the `Bitwise` module when imported: `&&&`, `^^^`, `<<<`, `>>>`, `|||`, `~~~`. See the documentation for `Bitwise` for more information.
+The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`^^^`](`Bitwise.^^^/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), [`|||`](`Bitwise.|||/2`), [`~~~`](`Bitwise.~~~/2`). See the documentation for `Bitwise` for more information.
 
 ### Redefining existing operators
 
