@@ -9,10 +9,9 @@ defprotocol Inspect do
   data structure into an algebra document. This document is then
   formatted, either in pretty printing format or a regular one.
 
-  The `Inspect` protocol basically returns a string for the data
-  structure it's given. The string returned by the `Inspect` 
-  protocol is generated using both the options from `Inspect.Opts`
-  and the internal algebra representation of the data structure. 
+  This documentation refers to implementing inspecting the `Inspect`
+  protocol for your own data structures. To learn more about using 
+  inspect, see `Kernel.inspect/2` and `IO.inspect/2`.
 
   The `inspect/2` function receives the entity to be inspected
   followed by the inspecting options, represented by the struct
@@ -44,27 +43,6 @@ defprotocol Inspect do
   Since regular strings are valid entities in an algebra document,
   an implementation of inspect may simply return a string,
   although that will devoid it of any pretty-printing.
-
-
-      iex> Kernel.inspect(23)
-      "23"
-      iex> Kernel.inspect(1.1)
-      "1.1"
-      iex> Kernel.inspect(%{hello: "world", name: "steve", count: 2})
-      "%{count: 2, hello: \"world\", name: \"steve\"}"
-      iex> Kernel.inspect [1, 2, "three", 'four']
-      "[1, 2, \"three\", 'four']"
-
-
-  Options can be passed in `inspect/2`, see them all in `Inspect.Opts`.
-
-      iex> Kernel.inspect([1,2,3,4,5,6,7,8,9], limit: 2) 
-      "[1, 2, ...]"
-      iex> Kernel.inspect([1,2,3,4,5,6,7,8,9])          
-      "[1, 2, 3, 4, 5, 6, 7, 8, 9]"
-
-  If you want to automatically print this string to STDOUT see
-  `IO.inspect/2`.
 
   ## Error handling
 
