@@ -45,25 +45,23 @@ defprotocol Inspect do
   an implementation of inspect may simply return a string,
   although that will devoid it of any pretty-printing.
   
-  ```iex
-  iex> Kernel.inspect(23)
-  "23"
-  iex> Kernel.inspect(1.1)
-  "1.1"
-  iex> Kernel.inspect %{hello: "world", name: "steve", count: 2}
-  "%{count: 2, hello: \"world\", name: \"steve\"}"
-  iex> Kernel.inspect [1, 2, "three", 'four']
-  "[1, 2, \"three\", 'four']"
-  ```
+
+      iex> Kernel.inspect(23)
+      "23"
+      iex> Kernel.inspect(1.1)
+      "1.1"
+      iex> Kernel.inspect %{hello: "world", name: "steve", count: 2}
+      "%{count: 2, hello: \"world\", name: \"steve\"}"
+      iex> Kernel.inspect [1, 2, "three", 'four']
+      "[1, 2, \"three\", 'four']"
+
   
   Options can be passed in `inspect`, see them all in `Inspect.Opts`
   
-  ```iex
-  iex> Kernel.inspect([1,2,3,4,5,6,7,8,9], limit: 2) 
-  "[1, 2, ...]"
-  iex> Kernel.inspect([1,2,3,4,5,6,7,8,9])          
-  "[1, 2, 3, 4, 5, 6, 7, 8, 9]"
-  ```
+      iex> Kernel.inspect([1,2,3,4,5,6,7,8,9], limit: 2) 
+      "[1, 2, ...]"
+      iex> Kernel.inspect([1,2,3,4,5,6,7,8,9])          
+      "[1, 2, 3, 4, 5, 6, 7, 8, 9]"
   
   If you want to automatically print this string to STDOUT see
   `IO.inspect`
