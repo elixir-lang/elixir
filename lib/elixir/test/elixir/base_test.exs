@@ -473,7 +473,7 @@ defmodule BaseTest do
     assert :error == decode32("66FF", case: :lower)
   end
 
-  test "decode32!/1,2 error on non-alphabet digit" do
+  test "decode32!/1,2 argument error on non-alphabet digit" do
     assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
       decode32!("MZX)6YTB")
     end
@@ -484,6 +484,10 @@ defmodule BaseTest do
 
     assert_raise ArgumentError, "non-alphabet digit found: \"M\" (byte 77)", fn ->
       decode32!("MZXW6YTBOI======", case: :lower)
+    end
+
+    assert_raise ArgumentError, "non-alphabet digit found: \"0\" (byte 48)", fn ->
+      decode32!("0ZXW6YTB0I======", case: :mixed)
     end
   end
 
