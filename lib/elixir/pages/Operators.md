@@ -14,7 +14,7 @@ Operator                                                                        
 [`*`](`Kernel.*/2`), [`/`](`Kernel.//2`) .                                               | Left to right
 [`+`](`Kernel.+/2`) [`-`](`Kernel.-/2`)                                                  | Left to right
 [`++`](`Kernel.++/2`) [`--`](`Kernel.--/2`) [`..`](`Kernel.../2`) [`<>`](`Kernel.<>/2`)  | Right to left
-[`in`](`Kernel.in/2`) [`not in`](`Kernel.in/2`)                                          | Left to right
+[`in`](`Kernel.in/2`) [`not in`](`Kernel.not_in/2`)                                          | Left to right
 [`\|>`](`Kernel.\|>/2`) `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                   | Left to right
 [`<`](`Kernel.</2`) [`>`](`Kernel.>/2`) [`<=`](`Kernel.<=/2`) [`>=`](`Kernel.>=/2`)      | Left to right
 [`==`](`Kernel.==/2`) [`!=`](`Kernel.!=/2`) [`=~`](`Kernel.=~/2`) [`===`](`Kernel.===/2`) [`!==`](`Kernel.!==/2`) | Left to right
@@ -24,7 +24,7 @@ Operator                                                                        
 [`=`](`Kernel.SpecialForms.=/1`)                                                         | Right to left
 `=>`                                                                                     | Right to left
 `\|`                                                                                     | Right to left
-[`::`](`Kernel.SpecialForms.::/1`)                                                       | Right to left
+[`::`](`Kernel.SpecialForms.::/2`)                                                       | Right to left
 `when`                                                                                   | Right to left
 `<-` `\\`                                                                                | Left to right
 
@@ -120,7 +120,7 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `^^^`
   * `~~~`
 
-The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`^^^`](`Bitwise.^^^/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), [`|||`](`Bitwise.|||/2`), [`~~~`](`Bitwise.~~~/2`). See the documentation for `Bitwise` for more information.
+The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`^^^`](`Bitwise.^^^/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), [`|||`](`Bitwise.|||/2`), [`~~~`](`Bitwise.~~~/1`). See the documentation for `Bitwise` for more information.
 
 ### Redefining existing operators
 
