@@ -356,16 +356,39 @@ defmodule Mix.Tasks.Format do
       Mix.raise("Expected :inputs or :subdirectories key in #{dot_formatter}")
     end
 
-    map =
-      for input <- List.wrap(formatter_opts[:inputs]),
-          file <- Path.wildcard(Path.join(prefix ++ [input]), match_dot: true),
-          do: {file, formatter_opts},
-          into: %{}
+    {included_entries, excluded_entries} = get_entry_types(formatter_opts)
 
-    Enum.reduce(subs, Map.merge(acc, map), fn {sub, formatter_opts_and_subs}, acc ->
+    included_map = expand_set_of_inputs(prefix, formatter_opts, included_entries)
+    excluded_map = expand_set_of_inputs(prefix, formatter_opts, excluded_entries)
+
+    filtered_map =
+      included_map
+      |> Map.drop(Map.keys(excluded_map))
+
+    Enum.reduce(subs, Map.merge(acc, filtered_map), fn {sub, formatter_opts_and_subs}, acc ->
       sub_formatter = Path.join(sub, ".formatter.exs")
       expand_dot_inputs(sub_formatter, [sub], formatter_opts_and_subs, acc)
     end)
+  end
+
+  defp get_entry_types(formatter_opts) do
+    included_entries =
+      formatter_opts[:inputs]
+      |> List.wrap()
+
+    excluded_entries =
+      included_entries
+      |> Enum.filter(&String.starts_with?(&1, "!"))
+      |> Enum.map(&String.replace(&1, "!", ""))
+
+    {included_entries, excluded_entries}
+  end
+
+  defp expand_set_of_inputs(prefix, formatter_opts, inputs) do
+    for input <- inputs,
+        file <- Path.wildcard(Path.join(prefix ++ [input]), match_dot: true),
+        do: {file, formatter_opts},
+        into: %{}
   end
 
   defp find_formatter_opts_for_file(split, {formatter_opts, subs}) do
