@@ -27,6 +27,7 @@ defmodule Mix.Tasks.Format do
 
     * `:inputs` (a list of paths and patterns) - specifies the default inputs
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
+      Patterns are expanded with `Path.wildcard/2`.
 
     * `:subdirectories` (a list of paths and patterns) - specifies subdirectories
       that have their own formatting rules. Each subdirectory should have a
