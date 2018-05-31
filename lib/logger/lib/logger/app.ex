@@ -98,9 +98,9 @@ defmodule Logger.App do
   end
 
   defp delete_erlang_handler() do
-    with {:ok, {module, config}} <- :logger.get_handler_config(:logger_std_h),
-         :ok <- :logger.remove_handler(:logger_std_h) do
-      [] = Logger.Config.deleted_handlers([{:logger_std_h, module, config}])
+    with {:ok, {module, config}} <- :logger.get_handler_config(:default),
+         :ok <- :logger.remove_handler(:default) do
+      [] = Logger.Config.deleted_handlers([{:default, module, config}])
       :ok
     else
       _ -> :ok
