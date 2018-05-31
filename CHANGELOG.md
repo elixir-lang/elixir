@@ -26,6 +26,7 @@
 
   * [ExUnit.Assertion] Print the arguments in error reports when asserting on a function call. For example, if `assert is_list(arg)` fails, the argument will be shown in the report
   * [ExUnit.Formatter] Excluded tests, via the `--exclude` and `--only` flags, are now shown as "Excluded" in reports. Tests skipped via `@tag :skip` are now exclusively shown as "Skipped" and in yellow
+  * [ExUnit.Diff] Improve diffing of lists when one list is a subset of the other
   * [ExUnit.DocTest] Show colored diffs on failed doctests
 
 #### IEx
@@ -42,6 +43,7 @@
   * [mix local] Use ipv6 with auto fallback to ipv4 when downloading data
   * [mix profile] Allow all profiling tasks to run programatically
   * [mix test] Add `--failed` option that only runs previously failed tests
+  * [mix test] Print coverage summary by default when the `--cover` flag is given
   * [Mix.Project] Add `Mix.Project.clear_deps_cache/0`
 
 ### 2. Bug fixes
