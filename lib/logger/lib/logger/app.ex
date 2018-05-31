@@ -76,9 +76,9 @@ defmodule Logger.App do
   defp delete_handlers(otp_reports?, sasl_reports?) do
     deleted =
       if is_pid(Process.whereis(:logger)) and Code.ensure_loaded?(:logger) do
-        with {:ok, {module, config}} <- :logger.get_handler_config(:logger_std_h),
-             :ok <- :logger.remove_handler(:logger_std_h) do
-          [{:logger_std_h, module, config}]
+        with {:ok, {module, config}} <- :logger.get_handler_config(:default),
+             :ok <- :logger.remove_handler(:default) do
+          [{:default, module, config}]
         else
           _ -> []
         end
