@@ -290,7 +290,7 @@ defmodule ExUnit.Runner do
             exception =
               ExUnit.TimeoutError.exception(
                 timeout: timeout,
-                type: Atom.to_string(test.tags.type)
+                type: Atom.to_string(test.tags.test_type)
               )
 
             %{test | state: failed(:error, exception, stacktrace)}
