@@ -143,7 +143,6 @@ defmodule ExUnit.Case do
     * `:file`       - the file on which the test was defined
     * `:line`       - the line on which the test was defined
     * `:test`       - the test name
-    * `:type`       - the type of the test (`:test`, `:doctest`, `:property`, etc)
     * `:async`      - if the test case is in async mode
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
     * `:describe`   - the describe block the test belongs to
@@ -153,6 +152,9 @@ defmodule ExUnit.Case do
     * `:capture_log` - see the "Log Capture" section below
     * `:skip` - skips the test with the given reason
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000)
+
+  The `:test_type` tag is automatically set by ExUnit, but is _not_ reserved.
+  This tag is available for users to customize if they desire.
 
   ## Filters
 
@@ -203,7 +205,7 @@ defmodule ExUnit.Case do
 
   """
 
-  @reserved [:module, :file, :line, :test, :async, :registered, :describe, :type]
+  @reserved [:module, :file, :line, :test, :async, :registered, :describe]
 
   @doc false
   defmacro __using__(opts) do
@@ -442,11 +444,11 @@ defmodule ExUnit.Case do
   display. You can use `ExUnit.plural_rule/2` to set a custom
   pluralization.
   """
-  def register_test(%{module: mod, file: file, line: line}, type, name, tags) do
+  def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
     moduletag = Module.get_attribute(mod, :moduletag)
 
     unless moduletag do
-      raise "cannot define #{type}. Please make sure you have invoked " <>
+      raise "cannot define #{test_type}. Please make sure you have invoked " <>
               "\"use ExUnit.Case\" in the current module"
     end
 
@@ -459,11 +461,11 @@ defmodule ExUnit.Case do
     {name, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
         {line, describe} ->
-          description = :"#{type} #{describe} #{name}"
+          description = :"#{test_type} #{describe} #{name}"
           {description, describe, line, Module.get_attribute(mod, :describetag)}
 
         _ ->
-          {:"#{type} #{name}", nil, nil, []}
+          {:"#{test_type} #{name}", nil, nil, []}
       end
 
     if Module.defines?(mod, {name, 1}) do
@@ -481,7 +483,7 @@ defmodule ExUnit.Case do
         async: async,
         describe: describe,
         describe_line: describe_line,
-        type: type
+        test_type: test_type
       })
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
@@ -533,8 +535,8 @@ defmodule ExUnit.Case do
       raise "cannot set tag #{inspect(tag)} because it is reserved by ExUnit"
     end
 
-    unless is_atom(tags[:type]) do
-      raise("value for tag \":type\" must be an atom")
+    unless is_atom(tags[:test_type]) do
+      raise("value for tag \":test_type\" must be an atom")
     end
 
     tags
