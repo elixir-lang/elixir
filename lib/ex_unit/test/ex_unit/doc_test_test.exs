@@ -584,7 +584,7 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.NoImport
 
       setup test do
-        assert test.type == :doctest
+        assert test.test_type == :doctest
         :ok
       end
     end

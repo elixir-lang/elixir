@@ -196,8 +196,8 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp update_test_counter(test_counter, %{tags: %{type: type}}) do
-    Map.update(test_counter, type, 1, &(&1 + 1))
+  defp update_test_counter(test_counter, %{tags: %{test_type: test_type}}) do
+    Map.update(test_counter, test_type, 1, &(&1 + 1))
   end
 
   ## Slowest
@@ -296,8 +296,8 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp format_test_type_counts(%{test_counter: test_counter} = _config) do
-    Enum.map(test_counter, fn {type, count} ->
-      type_pluralized = pluralize(count, type, ExUnit.plural_rule(type |> to_string()))
+    Enum.map(test_counter, fn {test_type, count} ->
+      type_pluralized = pluralize(count, test_type, ExUnit.plural_rule(test_type |> to_string()))
       "#{count} #{type_pluralized}, "
     end)
   end
