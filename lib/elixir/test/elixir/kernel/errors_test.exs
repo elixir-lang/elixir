@@ -417,6 +417,43 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError, "nofile:1: undefined function call/2", 'call foo, do: :foo'
   end
 
+  test "invalid cond" do
+    message = "invalid arguments for \"cond\" as it expects a single :do keyword"
+
+    assert_eval_raise ArgumentError, message, 'cond([])'
+
+    assert_eval_raise ArgumentError, message, 'cond(do: (x -> x), do: (y -> y))'
+
+    assert_eval_raise ArgumentError, message, 'cond(:foo)'
+
+    assert_eval_raise ArgumentError, message, 'cond(do: (1 -> 1), foo: :bar)'
+
+    assert_eval_raise ArgumentError, "expected -> clauses for :do in \"cond\"", 'cond(do: :ok)'
+
+    assert_eval_raise ArgumentError,
+                      "expected -> clauses for :do in \"cond\"",
+                      'cond(do: [:not, :clauses])'
+
+    assert_eval_raise ArgumentError,
+                      "expected one arg for :do clauses \(->\) in \"cond\"",
+                      'cond(do: (_, _ -> :ok))'
+
+    assert_raise ArgumentError, ~r"invalid use of _ inside \"cond\"\.", fn ->
+      defmodule UnderscoreInCond do
+        cond do
+          1 -> 1
+          _ -> :raise
+        end
+      end
+    end
+
+    assert_raise ArgumentError, ~r"invalid pattern in match", fn ->
+      defmodule CondInMatch do
+        cond(do: (true -> true)) = true
+      end
+    end
+  end
+
   test "invalid attribute" do
     msg = ~r"cannot inject attribute @foo into function/macro because cannot escape "
 

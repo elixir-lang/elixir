@@ -2,7 +2,7 @@
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
 -export([match/3, clause/5, def/2, head/2,
-         'case'/3, 'receive'/3, 'try'/3, 'cond'/3, with/3,
+         'case'/3, 'receive'/3, 'try'/3, with/3,
          format_error/1]).
 -import(elixir_errors, [form_error/4, form_warn/4]).
 -include("elixir.hrl").
@@ -77,24 +77,6 @@ expand_case(Meta, {'do', _} = Do, E) ->
   expand_clauses(Meta, 'case', Fun, Do, E);
 expand_case(Meta, {Key, _}, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'case', Key}).
-
-%% Cond
-
-'cond'(Meta, [], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'cond', [do]});
-'cond'(Meta, Opts, E) when not is_list(Opts) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'cond'});
-'cond'(Meta, Opts, E) ->
-  ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
-    form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'cond', Key})
-  end),
-  lists:mapfoldl(fun(X, Acc) -> expand_cond(Meta, X, Acc) end, E, Opts).
-
-expand_cond(Meta, {'do', _} = Do, E) ->
-  Fun = expand_one(Meta, 'cond', 'do', fun elixir_expand:expand_args/2),
-  expand_clauses(Meta, 'cond', Fun, Do, E);
-expand_cond(Meta, {Key, _}, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {unexpected_option, 'cond', Key}).
 
 %% Receive
 

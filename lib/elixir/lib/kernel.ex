@@ -1531,18 +1531,27 @@ defmodule Kernel do
   end
 
   defp build_boolean_check(operator, check, true_clause, false_clause) do
+    true_clause =
+      quote generated: true do
+        true -> unquote(true_clause)
+      end
+
+    false_clause =
+      quote generated: true do
+        false -> unquote(false_clause)
+      end
+
+    error_clause =
+      quote generated: true do
+        other ->
+          :erlang.error(BadBooleanError.exception(operator: unquote(operator), term: other))
+      end
+
+    clauses = true_clause ++ false_clause ++ error_clause
+
     optimize_boolean(
       quote do
-        case unquote(check) do
-          true ->
-            unquote(true_clause)
-
-          false ->
-            unquote(false_clause)
-
-          other ->
-            :erlang.error(BadBooleanError.exception(operator: unquote(operator), term: other))
-        end
+        case unquote(check), do: unquote(clauses)
       end
     )
   end
@@ -1567,23 +1576,29 @@ defmodule Kernel do
   defmacro !value
 
   defmacro !{:!, _, [value]} do
-    optimize_boolean(
-      quote do
-        case unquote(value) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> false
-          _ -> true
-        end
-      end
-    )
+    build_truthy_check(value, true, false)
   end
 
   defmacro !value do
+    build_truthy_check(value, false, true)
+  end
+
+  defp build_truthy_check(condition, true_body, false_body) do
+    truthy_clause =
+      quote generated: true do
+        value when value != nil and value != false -> unquote(true_body)
+      end
+
+    falsy_clause =
+      quote generated: true do
+        _ -> unquote(false_body)
+      end
+
+    clauses = truthy_clause ++ falsy_clause
+
     optimize_boolean(
       quote do
-        case unquote(value) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> true
-          _ -> false
-        end
+        case unquote(condition), do: unquote(clauses)
       end
     )
   end
@@ -2643,6 +2658,147 @@ defmodule Kernel do
   end
 
   @doc """
+  Evaluates the expression corresponding to the first clause that
+  evaluates to a truthy value.
+
+      cond do
+        hd([1, 2, 3]) ->
+          "1 is considered as true"
+      end
+      #=> "1 is considered as true"
+
+  Raises an error if all conditions evaluate to `nil` or `false`.
+  For this reason, it may be necessary to add a final always-truthy condition
+  (anything non-`false` and non-`nil`), which will always match.
+
+  ## Examples
+
+      cond do
+        1 + 1 == 1 ->
+          "This will never match"
+        2 * 2 != 4 ->
+          "Nor this"
+        true ->
+          "This will"
+      end
+      #=> "This will"
+
+  """
+
+  defmacro cond(clauses) do
+    build_cond(clauses, __CALLER__)
+  end
+
+  defp build_cond([do: do_clause], caller) do
+    assert_no_match_scope("cond", caller)
+    assert_no_guard_scope("cond", caller)
+
+    [{:->, meta, [[condition], body]} | tail] =
+      reversed_clauses = reverse_cond_clauses(do_clause, [])
+
+    {next_clauses, next_acc} =
+      case condition do
+        {:_, _, context} when is_atom(context) ->
+          raise ArgumentError,
+                "invalid use of _ inside \"cond\". If you want the last clause " <>
+                  "to always match, you probably meant to use: true ->"
+
+        value when is_atom(value) and value != false and value != nil ->
+          {tail, body}
+
+        _ ->
+          error = quote(do: raise(CondClauseError))
+          {reversed_clauses, error}
+      end
+
+    %{line: line} = caller
+    case_clause = build_cond_clauses(next_clauses, next_acc, meta)
+    replace_case_line(case_clause, line)
+  end
+
+  defp build_cond(_invalid_args, _caller) do
+    raise ArgumentError, "invalid arguments for \"cond\" as it expects a single :do keyword"
+  end
+
+  defp build_cond_clauses([], acc, _old_meta) do
+    acc
+  end
+
+  defp build_cond_clauses([{:->, new_meta, [[condition], body]} | tail], acc, old_meta) do
+    new_meta_line = get_line(new_meta)
+    old_meta_line = get_line(old_meta)
+
+    truthy_clause =
+      quote line: new_meta_line do
+        value when value != nil and value != false -> unquote(body)
+      end
+
+    falsy_clause =
+      quote line: old_meta_line do
+        _ -> unquote(acc)
+      end
+
+    next_acc =
+      optimize_boolean(
+        quote line: new_meta_line do
+          case unquote(condition), do: unquote(truthy_clause ++ falsy_clause)
+        end
+      )
+
+    build_cond_clauses(tail, next_acc, new_meta)
+  end
+
+  defp reverse_cond_clauses([], acc) do
+    acc
+  end
+
+  defp reverse_cond_clauses([{:->, _, [[_], _]} = head | tail], acc) do
+    reverse_cond_clauses(tail, [head | acc])
+  end
+
+  defp reverse_cond_clauses([{:->, _, [args, _]} | _], _acc) when is_list(args) do
+    raise ArgumentError, "expected one arg for :do clauses (->) in \"cond\""
+  end
+
+  defp reverse_cond_clauses(_invalid_clauses, _acc) do
+    raise ArgumentError, "expected -> clauses for :do in \"cond\""
+  end
+
+  defp get_line(meta) do
+    case :lists.keyfind(:line, 1, meta) do
+      {:line, line} -> line
+      false -> 0
+    end
+  end
+
+  defp replace_case_line({:case, meta, args}, line) do
+    new_meta = :lists.keyreplace(:line, 1, meta, {:line, line})
+    {:case, new_meta, args}
+  end
+
+  defp replace_case_line(other, _line) do
+    other
+  end
+
+  defp assert_no_guard_scope(kind, %{context: :guard}) do
+    raise ArgumentError,
+          "invalid expression in guard, \"#{kind}\" is not allowed in guards. " <>
+            "To learn more about guards, visit: https://hexdocs.pm/elixir/guards.html"
+  end
+
+  defp assert_no_guard_scope(_other, _caller) do
+    :ok
+  end
+
+  defp assert_no_match_scope(kind, %{context: :match}) do
+    raise ArgumentError, "invalid pattern in match, \"#{kind}\" is not allowed in matches"
+  end
+
+  defp assert_no_match_scope(_other, _caller) do
+    :ok
+  end
+
+  @doc """
   Reads and writes attributes of the current module.
 
   The canonical example for attributes is annotating that a module
@@ -2899,14 +3055,7 @@ defmodule Kernel do
   end
 
   defp build_if(condition, do: do_clause, else: else_clause) do
-    optimize_boolean(
-      quote do
-        case unquote(condition) do
-          x when :"Elixir.Kernel".in(x, [false, nil]) -> unquote(else_clause)
-          _ -> unquote(do_clause)
-        end
-      end
-    )
+    build_truthy_check(condition, do_clause, else_clause)
   end
 
   defp build_if(_condition, _arguments) do
