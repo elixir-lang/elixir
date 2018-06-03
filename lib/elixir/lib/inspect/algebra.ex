@@ -798,14 +798,15 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-    iex> doc = Inspect.Algebra.concat(
-    ...>   Inspect.Algebra.concat(
-    ...>     "Hughes",
-    ...>     Inspect.Algebra.line()
-    ...>   ), "Wadler"
-    ...> )
-    iex> Inspect.Algebra.format(doc, 80)
-    ["Hughes", "\n", "Wadler"]
+      iex> doc =
+      ...>   Inspect.Algebra.concat(
+      ...>     Inspect.Algebra.concat(
+      ...>       "Hughes",
+      ...>       Inspect.Algebra.line()
+      ...>     ), "Wadler"
+      ...>   )
+      iex> Inspect.Algebra.format(doc, 80)
+      ["Hughes", "\n", "Wadler"]
 
   """
   @since "1.6.0"
