@@ -40,7 +40,7 @@ defmodule Code.Typespec do
       end
 
     meta = [line: line]
-    ignore_vars = Keyword.keys(guards)
+    ignore_vars = Keyword.keys(guards) |> Enum.map(&erl_to_ex_var/1)
 
     vars =
       for type_expr <- args ++ [result],
