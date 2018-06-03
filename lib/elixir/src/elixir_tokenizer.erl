@@ -617,8 +617,9 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
         true  -> kw_identifier_safe;
         false -> kw_identifier_unsafe
       end,
+      NewColumn2 = NewColumn + 1,
       Token = {Key, {Line, Column - 1, nil}, Unescaped},
-      tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+      tokenize(Rest, NewLine, NewColumn2, Scope, [Token | Tokens]);
     {NewLine, NewColumn, Parts, Rest} ->
       Token = {string_type(H), {Line, Column - 1, nil}, unescape_tokens(Parts, Scope)},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens])
