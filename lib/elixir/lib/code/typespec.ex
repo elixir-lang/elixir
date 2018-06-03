@@ -36,11 +36,11 @@ defmodule Code.Typespec do
 
     guards =
       for {:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, var}, type]]} <- constrs do
-        {var, typespec_to_quoted(type)}
+        {erl_to_ex_var(var), typespec_to_quoted(type)}
       end
 
     meta = [line: line]
-    ignore_vars = Keyword.keys(guards) |> Enum.map(&erl_to_ex_var/1)
+    ignore_vars = Keyword.keys(guards)
 
     vars =
       for type_expr <- args ++ [result],
