@@ -339,7 +339,7 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(:timer.sleep() / 1) end) == """
              * :timer.sleep/1
 
-               @spec sleep(time) :: :ok when Time: timeout(), time: var
+               @spec sleep(time) :: :ok when time: timeout()
 
              Documentation is not available for non-Elixir modules. Showing only specs.
              """
@@ -348,29 +348,17 @@ defmodule IEx.HelpersTest do
              * :timer.send_interval/3
 
                @spec send_interval(time, pid, message) :: {:ok, tRef} | {:error, reason}
-                     when Time: time(),
-                          Pid: pid() | (regName :: atom()),
-                          Message: term(),
-                          TRef: tref(),
-                          Reason: term(),
-                          time: var,
-                          pid: var,
-                          message: var,
-                          tRef: var,
-                          reason: var
+                     when time: time(),
+                          pid: pid() | (regName :: atom()),
+                          message: term(),
+                          tRef: tref(),
+                          reason: term()
 
              Documentation is not available for non-Elixir modules. Showing only specs.
              * :timer.send_interval/2
 
                @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
-                     when Time: time(),
-                          Message: term(),
-                          TRef: tref(),
-                          Reason: term(),
-                          time: var,
-                          message: var,
-                          tRef: var,
-                          reason: var
+                     when time: time(), message: term(), tRef: tref(), reason: term()
 
              Documentation is not available for non-Elixir modules. Showing only specs.
              """

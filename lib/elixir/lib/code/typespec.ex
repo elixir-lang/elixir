@@ -36,7 +36,7 @@ defmodule Code.Typespec do
 
     guards =
       for {:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, var}, type]]} <- constrs do
-        {var, typespec_to_quoted(type)}
+        {erl_to_ex_var(var), typespec_to_quoted(type)}
       end
 
     meta = [line: line]
