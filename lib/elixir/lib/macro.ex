@@ -127,6 +127,10 @@ defmodule Macro do
     raise ArgumentError, bad_pipe(expr, call_args)
   end
 
+  def pipe(expr, {:<<>>, _, _} = call_args, _integer) do
+    raise ArgumentError, bad_pipe(expr, call_args)
+  end
+
   # {:fn, _, _} is what we get when we pipe into an anonymous function without
   # calling it, e.g., `:foo |> (fn x -> x end)`.
   def pipe(expr, {:fn, _, _}, _integer) do
