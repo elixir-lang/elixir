@@ -184,8 +184,8 @@ tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_
     {ok, NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, <<H, H, H>>},
-      NewColumn2 = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumn2, Scope, [Token | Tokens]);
+      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
     {error, Reason} ->
       {error, Reason, Original, Tokens}
   end;
@@ -195,8 +195,8 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, <<H>>},
-      NewColumn2 = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumn2, Scope, [Token | Tokens]);
+      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
     {error, Reason} ->
       Sigil = [$~, S, H],
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
@@ -618,7 +618,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
         false -> kw_identifier_unsafe
       end,
       Token = {Key, {Line, Column - 1, nil}, Unescaped},
-      tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+      tokenize(Rest, NewLine, NewColumn + 1, Scope, [Token | Tokens]);
     {NewLine, NewColumn, Parts, Rest} ->
       Token = {string_type(H), {Line, Column - 1, nil}, unescape_tokens(Parts, Scope)},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens])
