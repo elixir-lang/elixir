@@ -74,7 +74,8 @@ kw_test() ->
   [{kw_identifier, {1, 1, nil}, a@b}] = tokenize("a@b: "),
   [{kw_identifier, {1, 1, nil}, 'A@!'}] = tokenize("A@!: "),
   [{kw_identifier, {1, 1, nil}, 'a@!'}] = tokenize("a@!: "),
-  [{kw_identifier_unsafe, {1, 1, nil}, [<<"foo bar">>]}] = tokenize("\"foo bar\": ").
+  [{kw_identifier, {1, 1, nil}, foo}, {bin_string, {1, 6, nil}, [<<"bar">>]}] = tokenize("foo: \"bar\""),
+  [{kw_identifier_unsafe, {1, 1, nil}, [<<"foo">>]}, {bin_string, {1, 8, nil}, [<<"bar">>]}] = tokenize("\"foo\": \"bar\"").
 
 int_test() ->
   [{int, {1, 1, 123}, "123"}] = tokenize("123"),
