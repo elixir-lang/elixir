@@ -10,50 +10,52 @@ To check the Unicode version of your current Elixir installation, run `String.Un
 
 ## R1. Default Identifiers
 
-Elixir identifiers are specified as:
+The general Elixir identifier rule is specified as:
 
     <Identifier> := <Start> <Continue>* <Ending>?
 
-where `<Start>` is:
+where `<Start>` uses the same categories as the spec but restricts them to the NFC form (see R6):
 
 > characters derived from the Unicode General Category of uppercase letters, lowercase letters, titlecase letters, modifier letters, other letters, letter numbers, plus `Other_ID_Start`, minus `Pattern_Syntax` and `Pattern_White_Space` code points
 >
-> In set notation: `[[:L:][:Nl:][:Other_ID_Start:]--[:Pattern_Syntax:]--[:Pattern_White_Space:]]`
+> In set notation: `[\p{L}\p{Nl}\p{Other_ID_Start}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`
 
-and `<Continue>` is:
+and `<Continue>` uses the same categories as the spec but restricts them to the NFC form (see R6):
 
 > ID_Start characters, plus characters having the Unicode General Category of nonspacing marks, spacing combining marks, decimal number, connector punctuation, plus `Other_ID_Continue`, minus `Pattern_Syntax` and `Pattern_White_Space` code points.
 >
-> In set notation: `[[:ID_Start:][:Mn:][:Mc:][:Nd:][:Pc:][:Other_ID_Continue:]--[:Pattern_Syntax:]--[:Pattern_White_Space:]]`
+> In set notation: `[\p{ID_Start}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\p{Other_ID_Continue}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`
 
-`<Ending>` is an addition specific to Elixir that includes the codepoints ? (003F) and ! (0021).
+`<Ending>` is an addition specific to Elixir that includes only the codepoints `?` (003F) and `!` (0021).
 
-Elixir also implements requirements R1a for security and R1b for backwards compatibility.
+The spec also provides a `<Medial>` set but Elixir does not include any character on this set. Therefore the identifier rule has been simplified to consider this.
+
+Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. R1b is guaranteed for backwards compatibility purposes.
 
 ### Atoms
 
 Atoms in Elixir follow the identifier rule above with the following modifications:
 
-  * `<Start>` includes the codepoint _ (005F)
-  * `<Continue>` includes the codepoint @ (0040)
+  * `<Start>` includes the codepoint `_` (005F)
+  * `<Continue>` includes the codepoint `@` (0040)
 
 ### Variables
 
 Variables in Elixir follow the identifier rule above with the following modifications:
 
-  * `<Start>` includes the codepoint _ (005F)
+  * `<Start>` includes the codepoint `_` (005F)
   * `<Start>` must not include Lu (letter uppercase) and Lt (letter titlecase) characters
 
 ## R3. Pattern_White_Space and Pattern_Syntax Characters
 
-Elixir supports only codepoints \t (0009), \n (000A), \r (000D) and \s (0020) as whitespace and therefore does not follow requirement R3. R3 requires a wider variety of whitespace and syntax characters to be supported.
+Elixir supports only codepoints `\t` (0009), `\n` (000A), `\r` (000D) and `\s` (0020) as whitespace and therefore does not follow requirement R3. R3 requires a wider variety of whitespace and syntax characters to be supported.
 
 ## R6. Filtered Normalized Identifiers
 
 Identifiers in Elixir are case sensitive.
 
-Elixir requires all atoms and variables to be in NFC form. Any other form will fail with a relevant error message. Quoted-atoms and variables can, however, be in any form and are not verified by the parser.
+Elixir requires all atoms and variables to be in NFC form. Any other form will fail with a relevant error message. Quoted-atoms and strings can, however, be in any form and are not verified by the parser.
 
-In other words, the atom `:josé` can only be written with the codepoints 006A 006F 0073 00E9. Using another normalization form will lead to a tokenizer error. On the other hand, `:"josé"` may be written as 006A 006F 0073 00E9 or 006A 006F 0073 0065 0301, since it is written in quotes.
+In other words, the atom `:josé` can only be written with the codepoints `006A 006F 0073 00E9`. Using another normalization form will lead to a tokenizer error. On the other hand, `:"josé"` may be written as `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301`, since it is written between quotes.
 
 Choosing requirement R6 automatically excludes requirements R4, R5 and R7.
