@@ -85,6 +85,6 @@ defmodule Mix.Local.InstallerTest do
 
   test "parse_args Hex with organization" do
     assert Mix.Local.Installer.parse_args(["hex", "a_package"], organization: "my_org") ==
-             {:fetcher, {:a_package, ">= 0.0.0", [organization: "my_org", hex: :a_package]}}
+             {:fetcher, {:a_package, ">= 0.0.0", [hex: :a_package, organization: "my_org"]}}
   end
 end
