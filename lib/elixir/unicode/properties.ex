@@ -136,9 +136,19 @@ defmodule String.Casing do
 
   codes =
     Enum.reduce(File.stream!(special_path), codes, fn line, acc ->
-      [codepoint, lower, title, upper, _] = :binary.split(line, "; ", [:global])
-      key = to_binary.(codepoint)
-      :lists.keystore(key, 1, acc, {key, to_binary.(upper), to_binary.(lower), to_binary.(title)})
+      if String.starts_with?(line, ["#", "\n"]) do
+        acc
+      else
+        [codepoint, lower, title, upper, _] = :binary.split(line, "; ", [:global])
+        key = to_binary.(codepoint)
+
+        :lists.keystore(
+          key,
+          1,
+          acc,
+          {key, to_binary.(upper), to_binary.(lower), to_binary.(title)}
+        )
+      end
     end)
 
   # Downcase
