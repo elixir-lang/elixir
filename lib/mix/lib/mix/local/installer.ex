@@ -213,7 +213,12 @@ defmodule Mix.Local.Installer do
         package_name
       end
 
-    {:fetcher, {String.to_atom(app_name), version, hex: String.to_atom(package_name)}}
+    dep_opts =
+      opts
+      |> Keyword.take([:organization])
+      |> Keyword.put(:hex, String.to_atom(package_name))
+
+    {:fetcher, {String.to_atom(app_name), version, dep_opts}}
   end
 
   def parse_args(["hex" | [_package_name | rest]], _opts) do

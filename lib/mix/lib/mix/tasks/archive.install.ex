@@ -51,11 +51,21 @@ defmodule Mix.Tasks.Archive.Install do
     * `--app` - specifies a custom app name to be used for building the archive
       from Git, GitHub, or Hex
 
+    * `--organization` - specifies an organization to use if fetching the package
+      from a private Hex repository
+
   """
 
   @behaviour Mix.Local.Installer
 
-  @switches [force: :boolean, sha512: :string, submodules: :boolean, app: :string]
+  @switches [
+    force: :boolean,
+    sha512: :string,
+    submodules: :boolean,
+    app: :string,
+    organization: :string
+  ]
+
   def run(argv) do
     Mix.Local.Installer.install(__MODULE__, argv, @switches)
   end
