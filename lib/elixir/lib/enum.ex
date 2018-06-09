@@ -197,30 +197,51 @@ defmodule Enum do
   import Kernel, except: [max: 2, min: 2]
 
   @moduledoc """
-  Provides a set of algorithms that enumerate over enumerables according
-  to the `Enumerable` protocol.
+  Provides a set of algorithms to work with enumerables.
+
+  In Elixir, an enumerable is any data type that implements the
+  `Enumerable` protocol. `List`s (`[1, 2, 3]`), `Map`s (`%{foo: 1, bar: 2}`)
+  and `Range`s (`1..3`) are common data types used as enumerables:
 
       iex> Enum.map([1, 2, 3], fn x -> x * 2 end)
       [2, 4, 6]
 
-  Some particular types, like maps, yield a specific format on enumeration.
-  For example, the argument is always a `{key, value}` tuple for maps:
+      iex> Enum.sum([1, 2, 3])
+      6
 
-      iex> map = %{a: 1, b: 2}
+      iex> Enum.map(1..3, fn x -> x * 2 end)
+      [2, 4, 6]
+
+      iex> Enum.sum(1..3)
+      6
+
+      iex> map = %{"a" => 1, "b" => 2}
       iex> Enum.map(map, fn {k, v} -> {k, v * 2} end)
-      [a: 2, b: 4]
+      [{"a", 2}, {"b", 4}]
 
-  Note that the functions in the `Enum` module are eager: they always
-  start the enumeration of the given enumerable. The `Stream` module
-  allows lazy enumeration of enumerables and provides infinite streams.
+  However, many other enumerables exist in the language, such as `MapSet`s
+  and the data type returned by `File.stream!/3` which allows a file to be
+  traversed as if it was an enumerable.
 
-  Since the majority of the functions in `Enum` enumerate the whole
-  enumerable and return a list as result, infinite streams need to
-  be carefully used with such functions, as they can potentially run
-  forever. For example:
+  The functions in this module work in linear time. This means that,
+  the larger the enumerable, the longer it will take to perform the desired
+  operation. This is expected on operations such as `Enum.map/2`. After all,
+  if we want to traverse every element on a list, the longer the list, the
+  more elements we need to traverse, and the longer it will take.
 
-      Enum.each Stream.cycle([1, 2, 3]), &IO.puts(&1)
+  This linear behaviour should also be expected on operations like `count/1`,
+  `member?/2`, `at/2` and similar. While Elixir does allow data types to
+  provide performant variants for such operations, you should not expect it
+  to always be available, since the `Enum` module is meant to work with a
+  large variety of data types and not all data types can provide optimized
+  behaviour.
 
+  Finally, note the functions in the `Enum` module are eager: they will
+  traverse the enumerable as soon as they are invoked. This is particularly
+  dangerous when working with infinite enumerables. In such cases, you should
+  use the `Stream` module, which allows you to lazily express computations,
+  without traversing collections, and work with possibly infinite collections.
+  See the `Stream` module for examples and documentation.
   """
 
   @compile :inline_list_funcs
@@ -231,7 +252,6 @@ defmodule Enum do
   @type index :: integer
   @type default :: any
 
-  # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
 
   defmacrop skip(acc) do
@@ -336,10 +356,6 @@ defmodule Enum do
   A negative `index` can be passed, which means the `enumerable` is
   enumerated once and the `index` is counted from the end (e.g.
   `-1` finds the last element).
-
-  Note this operation takes linear time. In order to access
-  the element at index `index`, it will need to traverse `index`
-  previous elements.
 
   ## Examples
 
@@ -799,10 +815,6 @@ defmodule Enum do
   enumerated once and the `index` is counted from the end (e.g.
   `-1` fetches the last element).
 
-  Note this operation takes linear time. In order to access
-  the element at index `index`, it will need to traverse `index`
-  previous elements.
-
   ## Examples
 
       iex> Enum.fetch([2, 4, 6], 0)
@@ -831,9 +843,6 @@ defmodule Enum do
 
   Raises `OutOfBoundsError` if the given `index` is outside the range of
   the enumerable.
-
-  Note this operation takes linear time. In order to access the element
-  at index `index`, it will need to traverse `index` previous elements.
 
   ## Examples
 

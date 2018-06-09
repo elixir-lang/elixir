@@ -1,8 +1,9 @@
 defmodule Stream do
   @moduledoc """
-  Module for creating and composing streams.
+  Functions for creating and composing streams.
 
-  Streams are composable, lazy enumerables. Any enumerable that generates
+  Streams are composable, lazy enumerables (for an introduction on
+  enumerables, see the `Enum` module). Any enumerable that generates
   items one by one during enumeration is called a stream. For example,
   Elixir's `Range` is a stream:
 
