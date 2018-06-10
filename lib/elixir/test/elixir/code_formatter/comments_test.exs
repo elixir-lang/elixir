@@ -452,7 +452,8 @@ defmodule Code.Formatter.CommentsTest do
       # before head
       # middle head
       # after head
-      fn hello ->
+      fn 
+        hello ->
         # before body
         # middle body
         world

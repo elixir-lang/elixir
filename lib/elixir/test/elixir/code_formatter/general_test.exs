@@ -187,6 +187,33 @@ defmodule Code.Formatter.GeneralTest do
       assert_same code, @short_length
     end
 
+    test "with a single clause, followed by a newline, and can fit in one line" do
+      bad = ~S"""
+      fn
+        hello -> world
+      end
+      """
+
+      assert_format bad, ~S"""
+      fn hello -> world end
+      """
+    end
+
+    test "with a single clause, followed by a newline, and can not fit in one line" do
+      bad = ~S"""
+      SomeModule.long_function_name_that_approaches_max_columns(argument, acc, fn 
+        %SomeStruct{key: key}, acc -> more_code(key, acc)
+      end)
+      """
+
+      assert_format bad, ~S"""
+      SomeModule.long_function_name_that_approaches_max_columns(argument, acc, fn 
+        %SomeStruct{key: key}, acc ->
+        more_code(key, acc)
+      end)
+      """
+    end
+
     test "with multiple clauses" do
       code = """
       fn
