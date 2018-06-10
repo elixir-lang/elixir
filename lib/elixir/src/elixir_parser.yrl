@@ -658,8 +658,7 @@ end_meta(Token) ->
 meta_from_token_with_end_line(Begin, End) ->
   case ?formatter_metadata() of
     true ->
-      [{end_line, line_from_location(?location(End))}
-       | eol_op(?location(Begin)) ++ meta_from_token(Begin)];
+      [{end_line, line_from_location(?location(End))} | meta_from_token(Begin)];
     false ->
       meta_from_token(Begin)
   end.
@@ -834,7 +833,8 @@ build_identifier({_, Location, Identifier}, Args) ->
 build_fn(Fn, Stab, End) ->
   case check_stab(Stab, none) of
     stab ->
-      {fn, meta_from_token_with_end_line(Fn, End), collect_stab(Stab, [], [])};
+      Meta = eol_op(?location(Fn)) ++ meta_from_token_with_end_line(Fn, End),
+      {fn, Meta, collect_stab(Stab, [], [])};
     block ->
       return_error(meta_from_token(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
   end.
