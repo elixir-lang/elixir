@@ -305,7 +305,7 @@ eoe -> ';' : '$1'.
 eoe -> eol ';' : '$1'.
 
 fn_eoe -> 'fn' : '$1'.
-fn_eoe -> 'fn' eoe : '$1'.
+fn_eoe -> 'fn' eoe : next_is_eol('$1').
 
 do_eoe -> 'do' : '$1'.
 do_eoe -> 'do' eoe : '$1'.
@@ -649,6 +649,18 @@ meta_from_location({Line, Column, _}) ->
     false -> [{line, Line}]
   end.
 
+meta_from_token_keep_eol(Token) ->
+  meta_from_location_keep_eol(?location(Token)).
+
+meta_from_location_keep_eol({Line, Column, eol}) ->
+  case ?columns() of
+    true -> [{eol, true}, {line, Line}, {column, Column}];
+    false -> [{eol, true}, {line, Line}]
+  end;
+
+meta_from_location_keep_eol(Token) ->
+  meta_from_location(Token).
+
 line_from_location({Line, _Column, _}) ->
   Line.
 
@@ -659,9 +671,9 @@ meta_from_token_with_end_line(Begin, End) ->
   case ?formatter_metadata() of
     true ->
       [{end_line, line_from_location(?location(End))}
-       | meta_from_token(Begin)];
+       | meta_from_token_keep_eol(Begin)];
     false ->
-      meta_from_token(Begin)
+      meta_from_token_keep_eol(Begin)
   end.
 
 append_non_empty(Left, []) -> Left;
