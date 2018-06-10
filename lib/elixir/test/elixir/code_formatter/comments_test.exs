@@ -449,30 +449,15 @@ defmodule Code.Formatter.CommentsTest do
 
       assert_format bad, ~S"""
       # fn
-      fn
-        # before head
-        # middle head
+      # before head
+      # middle head
+      # after head
+      fn 
         hello ->
-          # after head
-          # before body
-          # middle body
-          world
-          # after body
-      end
-      """
-    end
-
-    test "fn is followed by newline" do
-      bad = ~S"""
-      fn # the newline will be reserved
-        hello -> world
-      end
-      """
-
-      assert_format bad, ~S"""
-      # the newline will be reserved
-      fn
-        hello -> world
+        # before body
+        # middle body
+        world
+        # after body
       end
       """
     end
