@@ -1600,7 +1600,13 @@ defmodule Code.Formatter do
   ## Anonymous functions
 
   # fn -> block end
-  defp anon_fun_to_algebra([{:->, meta, [[], body]}] = clauses, _min_line, max_line, state, _multi_clauses_style) do
+  defp anon_fun_to_algebra(
+         [{:->, meta, [[], body]}] = clauses,
+         _min_line,
+         max_line,
+         state,
+         _multi_clauses_style
+       ) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
@@ -1619,7 +1625,13 @@ defmodule Code.Formatter do
   # fn x ->
   #   y
   # end
-  defp anon_fun_to_algebra([{:->, meta, [args, body]}] = clauses, _min_line, max_line, state, false = _multi_clauses_style) do
+  defp anon_fun_to_algebra(
+         [{:->, meta, [args, body]}] = clauses,
+         _min_line,
+         max_line,
+         state,
+         false = _multi_clauses_style
+       ) do
     min_line = line(meta)
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
