@@ -39,7 +39,7 @@ scientific_test() ->
   [{float, {1, 1, 0.1}, "1.0e-1"}] = tokenize("1.0e-1"),
   [{float, {1, 1, 0.1}, "1.0E-1"}] = tokenize("1.0E-1"),
   [{float, {1, 1, 1.2345678e-7}, "1_234.567_8e-10"}] = tokenize("1_234.567_8e-10"),
-  {1, "invalid float number ", "1.0e309"} = tokenize_error("1.0e309").
+  {1, 1, "invalid float number ", "1.0e309"} = tokenize_error("1.0e309").
 
 hex_bin_octal_test() ->
   [{int, {1, 1, 255}, "0xFF"}] = tokenize("0xFF"),
@@ -62,7 +62,7 @@ quoted_atom_test() ->
 
 oversized_atom_test() ->
   OversizedAtom = [$: | string:copies("a", 256)],
-  {1, "atom length must be less than system limit: ", OversizedAtom} = tokenize_error(OversizedAtom).
+  {1, 1, "atom length must be less than system limit: ", OversizedAtom} = tokenize_error(OversizedAtom).
 
 op_atom_test() ->
   [{atom, {1, 1, nil}, f0_1}] = tokenize(":f0_1").
@@ -92,7 +92,7 @@ float_test() ->
   [{float, {1, 3, 12.3}, "12.3"}, {float, {1, 9, 23.4}, "23.4"}] = tokenize("  12.3  23.4  "),
   [{float, {1, 1, 12.3}, "00_12.3_00"}] = tokenize("00_12.3_00"),
   OversizedFloat = string:copies("9", 310) ++ ".0",
-  {1, "invalid float number ", OversizedFloat} = tokenize_error(OversizedFloat).
+  {1, 1, "invalid float number ", OversizedFloat} = tokenize_error(OversizedFloat).
 
 identifier_test() ->
   [{identifier, {1, 1, nil}, abc}] = tokenize("abc "),
@@ -202,7 +202,7 @@ capture_test() ->
    {int, {1, 9, 2}, "2"}] = tokenize("&not 1, 2").
 
 vc_merge_conflict_test() ->
-  {1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
+  {1, 1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
     tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").
 
 sigil_terminator_test() ->
@@ -219,5 +219,5 @@ sigil_terminator_test() ->
   [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], [], <<"'''">>}] = tokenize("~S'''\nsigil heredoc\n'''").
 
 invalid_sigil_delimiter_test() ->
-  {1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
+  {1, 1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
   true = lists:prefix("\"\\\" (column 3, codepoint U+005C)", lists:flatten(Message)).

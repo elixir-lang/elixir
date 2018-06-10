@@ -21,13 +21,13 @@ defmodule IEx.InteractionTest do
 
   test "invalid input" do
     assert capture_iex("if true do ) false end") =~
-             "** (SyntaxError) iex:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1"
+             "** (SyntaxError) iex:1: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\""
   end
 
   test "multiple vars" do
     code = """
-    << a, b, c, d, e, f, g, h, i, j :: binary >> = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
-    << a, b, c, d, e, f, g, h, i, x :: binary >> = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
+    <<a, b, c, d, e, f, g, h, i, j :: binary>> = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
+    <<a, b, c, d, e, f, g, h, i, x :: binary>> = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
     x
     """
 

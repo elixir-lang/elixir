@@ -304,9 +304,9 @@ string_to_tokens(String, StartLine, File, Opts) when is_integer(StartLine), is_b
   case elixir_tokenizer:tokenize(String, StartLine, [{file, File} | Opts]) of
     {ok, _Tokens} = Ok ->
       Ok;
-    {error, {Line, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
+    {error, {Line, _, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
       {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
-    {error, {Line, Error, Token}, _Rest, _SoFar} ->
+    {error, {Line, _, Error, Token}, _Rest, _SoFar} ->
       {error, {Line, to_binary(Error), to_binary(Token)}}
   end.
 
@@ -314,13 +314,24 @@ tokens_to_quoted(Tokens, File, Opts) ->
   handle_parsing_opts(File, Opts),
 
   try elixir_parser:parse(Tokens) of
-    {ok, Forms} -> {ok, Forms};
-    {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
-    {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
+    {ok, Forms} ->
+      {ok, Forms};
+    {error, {Line, _, [{ErrorPrefix, ErrorSuffix}, Token]}} ->
+      {error, {parser_line(Line), {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
+    {error, {Line, _, [Error, Token]}} ->
+      {error, {parser_line(Line), to_binary(Error), to_binary(Token)}}
   after
     erase(elixir_parser_file),
     erase(elixir_parser_columns),
     erase(elixir_formatter_metadata)
+  end.
+
+parser_line({Line, _, _}) ->
+  Line;
+parser_line(Meta) ->
+  case lists:keyfind(line, 1, Meta) of
+    {line, L} -> L;
+    false -> 0
   end.
 
 'string_to_quoted!'(String, StartLine, File, Opts) ->
@@ -340,10 +351,8 @@ to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
 to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, utf8).
 
 handle_parsing_opts(File, Opts) ->
-  FormatterMetadata =
-    lists:keyfind(formatter_metadata, 1, Opts) == {formatter_metadata, true},
-  Columns =
-    lists:keyfind(columns, 1, Opts) == {columns, true},
+  FormatterMetadata = lists:keyfind(formatter_metadata, 1, Opts) == {formatter_metadata, true},
+  Columns = lists:keyfind(columns, 1, Opts) == {columns, true},
   put(elixir_parser_file, File),
   put(elixir_parser_columns, Columns),
   put(elixir_formatter_metadata, FormatterMetadata).
