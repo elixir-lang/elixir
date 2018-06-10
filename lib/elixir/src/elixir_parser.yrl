@@ -305,7 +305,7 @@ eoe -> ';' : '$1'.
 eoe -> eol ';' : '$1'.
 
 fn_eoe -> 'fn' : '$1'.
-fn_eoe -> 'fn' eoe : '$1'.
+fn_eoe -> 'fn' eoe : next_is_eol('$1').
 
 do_eoe -> 'do' : '$1'.
 do_eoe -> 'do' eoe : '$1'.
@@ -659,7 +659,7 @@ meta_from_token_with_end_line(Begin, End) ->
   case ?formatter_metadata() of
     true ->
       [{end_line, line_from_location(?location(End))}
-       | meta_from_token(Begin)];
+       | eol_op(?location(Begin)) ++ meta_from_token(Begin)];
     false ->
       meta_from_token(Begin)
   end.
