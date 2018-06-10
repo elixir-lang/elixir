@@ -57,15 +57,25 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid quoted token" do
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"world\"", '"hello" "world"'
+    assert_eval_raise SyntaxError,
+                      "nofile:1: syntax error before: \"world\"",
+                      '"hello" "world"'
 
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: 'Foobar'", '1 Foobar'
+    assert_eval_raise SyntaxError,
+                      "nofile:1: syntax error before: 'Foobar'",
+                      '1 Foobar'
 
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: foo", 'Foo.:foo'
+    assert_eval_raise SyntaxError,
+                      "nofile:1: syntax error before: foo",
+                      'Foo.:foo'
 
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"foo\"", 'Foo.:"foo\#{:bar}"'
+    assert_eval_raise SyntaxError,
+                      "nofile:1: syntax error before: \"foo\"",
+                      'Foo.:"foo\#{:bar}"'
 
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"", 'Foo.:"\#{:bar}"'
+    assert_eval_raise SyntaxError,
+                      "nofile:1: syntax error before: \"",
+                      'Foo.:"\#{:bar}"'
   end
 
   test "invalid identifier" do
@@ -168,6 +178,62 @@ defmodule Kernel.ErrorsTest do
 
   test "unexpected end" do
     assert_eval_raise SyntaxError, "nofile:1: unexpected token: end", '1 end'
+
+    assert_eval_raise SyntaxError,
+                      ~r"you may have forgotten to define a \"do\" somewhere above line 3",
+                      '''
+                      defmodule MyApp do
+                        def one
+                        end
+
+                        def two do
+                        end
+                      end
+                      '''
+
+    assert_eval_raise SyntaxError,
+                      ~r"you may have forgotten to define a \"do\" somewhere above line 6",
+                      '''
+                      defmodule MyApp do
+                        def one do
+                        end
+
+                        def two
+                        end
+                      end
+                      '''
+  end
+
+  test "missing end" do
+    assert_eval_raise TokenMissingError,
+                      "nofile:1: missing terminator: end (for \"do\" starting at line 1)",
+                      'foo do 1'
+
+    assert_eval_raise TokenMissingError,
+                      ~r"we found what looks like a non-terminated \"do\" on line 2",
+                      '''
+                      defmodule MyApp do
+                        def one do
+                        # end
+
+                        def two do
+                        end
+                      end
+                      '''
+
+    assert_eval_raise SyntaxError,
+                      ~r"we found what looks like a non-terminated \"do\" on line 3",
+                      '''
+                      defmodule MyApp do
+                        (
+                          def one do
+                          # end
+
+                          def two do
+                          end
+                        )
+                      end
+                      '''
   end
 
   test "syntax error" do
@@ -190,9 +256,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "syntax error with do" do
-    assert_eval_raise SyntaxError, ~r/nofile:1: unexpected token "do"./, 'if true, do\n'
+    assert_eval_raise SyntaxError, ~r/nofile:1: unexpected token: do./, 'if true, do\n'
 
-    assert_eval_raise SyntaxError, ~r/nofile:1: unexpected keyword "do:"./, 'if true do:\n'
+    assert_eval_raise SyntaxError, ~r/nofile:1: unexpected keyword: do:./, 'if true do:\n'
   end
 
   test "syntax error on parens call" do
@@ -640,7 +706,7 @@ defmodule Kernel.ErrorsTest do
 
   test "interpolation error" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: \"do\" is missing terminator \"end\". unexpected token: \")\" at line 1",
+                      "nofile:1: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\"",
                       '"foo\#{case 1 do )}bar"'
   end
 
@@ -715,8 +781,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid \"fn do expr end\"" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: unexpected token \"do\". Anonymous functions are written as:\n\n" <>
-                        "    fn pattern -> expression end\n\n" <> "Syntax error before: do",
+                      "nofile:1: unexpected token: do. Anonymous functions are written as:\n\n    fn pattern -> expression end",
                       'fn do :ok end'
   end
 

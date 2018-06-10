@@ -19,8 +19,8 @@ extract(Line, Column, Raw, Interpol, String, Last) ->
 extract(Line, Column, _Scope, _Interpol, [], Buffer, Output, []) ->
   finish_extraction(Line, Column, Buffer, Output, []);
 
-extract(Line, _Column, _Scope, _Interpol, [], _Buffer, _Output, Last) ->
-  {error, {string, Line, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
+extract(Line, Column, _Scope, _Interpol, [], _Buffer, _Output, Last) ->
+  {error, {string, Line, Column, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
 extract(Line, Column, _Scope, _Interpol, [Last | Remaining], Buffer, Output, Last) ->
   finish_extraction(Line, Column + 1, Buffer, Output, Remaining);
@@ -55,13 +55,13 @@ extract(Line, Column, Scope, true, [$\\, $#, ${ | Rest], Buffer, Output, Last) -
 extract(Line, Column, Scope, true, [$#, ${ | Rest], Buffer, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
   case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope) of
-    {error, {{EndLine, EndColumn, _}, _, "}"}, [$} | NewRest], Tokens} ->
+    {error, {EndLine, EndColumn, _, "}"}, [$} | NewRest], Tokens} ->
       Output2 = build_interpol(Line, Column, EndLine, Tokens, Output1),
       extract(EndLine, EndColumn + 1, Scope, true, NewRest, [], Output2, Last);
     {error, Reason, _, _} ->
       {error, Reason};
     {ok, _} ->
-      {error, {string, Line, "missing interpolation terminator:}", []}}
+      {error, {string, Line, Column, "missing interpolation terminator: \"}\"", []}}
   end;
 
 extract(Line, Column, Scope, Interpol, [$\\, Char | Rest], Buffer, Output, Last) ->

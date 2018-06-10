@@ -973,12 +973,7 @@ unwrap_when(Args) ->
 %% Warnings and errors
 
 return_error(Meta, Error, Token) ->
-  Line =
-    case lists:keyfind(line, 1, Meta) of
-      {line, L} -> L;
-      false -> 0
-    end,
-  return_error(Line, [Error, Token]).
+  return_error(Meta, [Error, Token]).
 
 error_invalid_stab(MetaStab) ->
   return_error(MetaStab,
@@ -986,8 +981,9 @@ error_invalid_stab(MetaStab) ->
     "Syntax error before: ", "'->'").
 
 error_bad_atom(Token) ->
-  return_error(meta_from_token(Token), "atom cannot be followed by an alias. If the '.' was meant to be "
-    "part of the atom's name, the atom name must be quoted. Syntax error before: ", "'.'").
+  return_error(meta_from_token(Token), "atom cannot be followed by an alias. "
+    "If the '.' was meant to be part of the atom's name, "
+    "the atom name must be quoted. Syntax error before: ", "'.'").
 
 error_no_parens_strict(Token) ->
   return_error(meta_from_token(Token), "unexpected parentheses. If you are making a "
@@ -1022,9 +1018,9 @@ error_no_parens_container_strict(Node) ->
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
 error_invalid_kw_identifier({_, _, do} = Token) ->
-  return_error(meta_from_token(Token), elixir_tokenizer:invalid_do_error("unexpected keyword \"do:\""), "'do:'");
+  return_error(meta_from_token(Token), elixir_tokenizer:invalid_do_error("unexpected keyword: "), "do:");
 error_invalid_kw_identifier({_, _, KW} = Token) ->
-  return_error(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ "':").
+  return_error(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ ":'").
 
 %% TODO: Make this an error on Elixir v2.0.
 warn_empty_paren({_, {Line, _, _}}) ->

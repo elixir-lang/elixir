@@ -35,5 +35,7 @@
   check_terminators=true,
   existing_atoms_only=false,
   preserve_comments=nil,
-  identifier_tokenizer=elixir_tokenizer
+  identifier_tokenizer=elixir_tokenizer,
+  indentation=0,
+  mismatch_hints=[]
 }).
