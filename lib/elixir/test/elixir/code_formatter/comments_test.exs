@@ -462,21 +462,6 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
-    test "fn is followed by newline" do
-      bad = ~S"""
-      fn # the newline will be reserved
-        hello -> world
-      end
-      """
-
-      assert_format bad, ~S"""
-      # the newline will be reserved
-      fn
-        hello -> world
-      end
-      """
-    end
-
     test "with multiple clauses and args" do
       bad = ~S"""
       fn # fn
