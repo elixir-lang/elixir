@@ -649,18 +649,6 @@ meta_from_location({Line, Column, _}) ->
     false -> [{line, Line}]
   end.
 
-meta_from_token_keep_eol(Token) ->
-  meta_from_location_keep_eol(?location(Token)).
-
-meta_from_location_keep_eol({Line, Column, eol}) ->
-  case ?columns() of
-    true -> [{eol, true}, {line, Line}, {column, Column}];
-    false -> [{eol, true}, {line, Line}]
-  end;
-
-meta_from_location_keep_eol(Token) ->
-  meta_from_location(Token).
-
 line_from_location({Line, _Column, _}) ->
   Line.
 
@@ -671,9 +659,9 @@ meta_from_token_with_end_line(Begin, End) ->
   case ?formatter_metadata() of
     true ->
       [{end_line, line_from_location(?location(End))}
-       | meta_from_token_keep_eol(Begin)];
+       | eol_op(?location(Begin)) ++ meta_from_token(Begin)];
     false ->
-      meta_from_token_keep_eol(Begin)
+      meta_from_token(Begin)
   end.
 
 append_non_empty(Left, []) -> Left;
