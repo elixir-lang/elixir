@@ -198,7 +198,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Invokes the given `fun` with the list of arguments `args`.
+  Invokes the given anonymous function `fun` with the list of
+  arguments `args`.
 
   Inlined by the compiler.
 
@@ -214,7 +215,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Invokes the given `fun` from `module` with the list of arguments `args`.
+  Invokes the given function `fun` from `module` with the list of
+  arguments `args`.
+
+  `apply/3` is used to invoke functions where the module, function
+  name or arguments are defined dynamically at runtime. For this
+  reason, you can't invoke macros using `apply/3`, only functions.
 
   Inlined by the compiler.
 
