@@ -232,19 +232,6 @@ defmodule Inspect.Algebra do
     quote do: {:doc_color, unquote(doc), unquote(color)}
   end
 
-  defmacrop is_doc(doc) do
-    if Macro.Env.in_guard?(__CALLER__) do
-      do_is_doc(doc)
-    else
-      var = quote(do: doc)
-
-      quote do
-        unquote(var) = unquote(doc)
-        unquote(do_is_doc(var))
-      end
-    end
-  end
-
   @docs [
     :doc_string,
     :doc_cons,
@@ -257,12 +244,9 @@ defmodule Inspect.Algebra do
     :doc_collapse
   ]
 
-  defp do_is_doc(doc) do
-    quote do
-      is_binary(unquote(doc)) or unquote(doc) in [:doc_nil, :doc_line] or
-        (is_tuple(unquote(doc)) and elem(unquote(doc), 0) in unquote(@docs))
-    end
-  end
+  defguard is_doc(doc)
+           when is_binary(doc) or doc in [:doc_nil, :doc_line] or
+                  (is_tuple(doc) and elem(doc, 0) in @docs)
 
   # Elixir + Inspect.Opts conveniences
 
