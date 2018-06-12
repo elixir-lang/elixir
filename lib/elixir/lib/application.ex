@@ -547,8 +547,26 @@ defmodule Application do
 
   @doc """
   Returns the given path inside `app_dir/1`.
+
+  If `path` is a string, then it will be used as the path inside `app_dir/1`. If
+  `path` is a list of strings, it will be joined (see `Path.join/1`) and the result
+  will be used as the path inside `app_dir/1`.
+
+  ## Examples
+
+      File.mkdir_p!("foo/ebin")
+      Code.prepend_path("foo/ebin")
+
+      Application.app_dir(:foo, "my_path")
+      #=> "foo/my_path"
+
+      Application.app_dir(:foo, ["my", "nested", "path"])
+      #=> "foo/my/nested/path"
+
   """
   @spec app_dir(app, String.t() | [String.t()]) :: String.t()
+  def app_dir(app, path)
+
   def app_dir(app, path) when is_binary(path) do
     Path.join(app_dir(app), path)
   end
