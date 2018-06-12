@@ -313,7 +313,7 @@ defmodule Enum do
   @doc """
   Returns true if the given `fun` evaluates to true on any of the items in the enumerable.
 
-  It stops the iteration at the first invocation that returns a truthy value (not `false` or `nil`).
+  It stops the iteration at the first invocation that returns a truthy value (neither `false` nor `nil`).
 
   ## Examples
 
@@ -869,7 +869,7 @@ defmodule Enum do
   for which `fun` returns a truthy value.
 
   See also `reject/2` which discards all elements where the
-  function returns true.
+  function a truthy value.
 
   ## Examples
 
@@ -1969,8 +1969,8 @@ defmodule Enum do
   end
 
   @doc """
-  Returns elements of `enumerable` for which the function `fun` returns
-  `false` or `nil`.
+  Returns a list of elements in `enumerable` excluding those for which the function `fun` returns
+  a truthy value.
 
   See also `filter/2`.
 
