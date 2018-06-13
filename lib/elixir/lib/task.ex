@@ -388,7 +388,7 @@ defmodule Task do
       Defaults to `true`.
     * `:timeout` - the maximum amount of time (in milliseconds) each
       task is allowed to execute for. Defaults to `5000`.
-    * `:on_timeout` - what do to when a task times out. The possible
+    * `:on_timeout` - what to do when a task times out. The possible
       values are:
       * `:exit` (default) - the process that spawned the tasks exits.
       * `:kill_task` - the task that timed out is killed. The value
