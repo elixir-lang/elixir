@@ -19,7 +19,7 @@ make clean test
 ```
 
 > Note: if you are running on Windows,
-[this article includes important notes for compiling Elixir from source
+[This article includes important notes for compiling Elixir from source
 on Windows](https://github.com/elixir-lang/elixir/wiki/Windows).
 
 If Elixir fails to build (specifically when pulling in a new version via
@@ -133,7 +133,7 @@ We outline our process below to clarify the roles of everyone involved.
 
 All pull requests must be approved by two committers before being merged into
 the repository. If any changes are necessary, the team will leave appropriate
-comments requesting changes to the code. Unfortunately we cannot guarantee a
+comments requesting changes to the code. Unfortunately, we cannot guarantee a
 pull request will be merged, even when modifications are requested, as the Elixir
 team will re-evaluate the contribution as it changes.
 
