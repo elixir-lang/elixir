@@ -294,7 +294,7 @@ defmodule ModuleTest do
       end
 
     atoms = :beam_lib.chunks(binary, [:atoms])
-    assert :erlang.phash2(atoms) == 98_328_115
+    assert :erlang.phash2(atoms) == 61_635_213
   end
 
   test "create with generated true does not emit warnings" do
