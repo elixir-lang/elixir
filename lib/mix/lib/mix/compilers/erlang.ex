@@ -22,7 +22,7 @@ defmodule Mix.Compilers.Erlang do
 
       compile manifest, [{"src", dest}], :lfe, :beam, opts, fn input, output ->
         :lfe_comp.file(to_erl_file(input),
-                       [{output_dir, Path.dirname(output)}, :return])
+                       [{:outdir, Path.dirname(output)}, :return, :report])
       end
 
   The command above will:
