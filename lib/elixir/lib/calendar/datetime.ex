@@ -665,6 +665,8 @@ defmodule DateTime do
   Subtracts `datetime2` from `datetime1`.
 
   The answer can be returned in any `unit` available from `t:System.time_unit/0`.
+  
+  Leaps in time are not considered, such as leap seconds or leap days.
 
   This function returns the difference in seconds where seconds are measured
   according to `Calendar.ISO`.
