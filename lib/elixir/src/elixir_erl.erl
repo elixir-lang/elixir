@@ -329,8 +329,8 @@ macros_info(Defmacro) ->
   {clause, 0, [{atom, 0, macros}], [], [elixir_erl:elixir_to_erl(lists:sort(Defmacro))]}.
 
 get_module_info(Module, Key) ->
-  Call = remote(0, erlang, get_module_info, [{atom, 0, Module}, {atom, 0, Key}]),
-  {clause, 0, [{atom, 0, Key}], [], [Call]}.
+  Call = remote(0, erlang, get_module_info, [{atom, 0, Module}, {var, 0, 'Key'}]),
+  {clause, 0, [{match, 0, {var, 0, 'Key'}, {atom, 0, Key}}], [], [Call]}.
 
 deprecated_info(Deprecated) ->
   {clause, 0, [{atom, 0, deprecated}], [], [elixir_erl:elixir_to_erl(Deprecated)]}.
