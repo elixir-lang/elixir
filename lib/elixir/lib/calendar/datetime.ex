@@ -666,7 +666,7 @@ defmodule DateTime do
 
   The answer can be returned in any `unit` available from `t:System.time_unit/0`.
   
-  Leaps in time are not considered, such as leap seconds or leap days.
+  Leap seconds are not taken into account.
 
   This function returns the difference in seconds where seconds are measured
   according to `Calendar.ISO`.
