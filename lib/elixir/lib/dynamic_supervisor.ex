@@ -35,7 +35,7 @@ defmodule DynamicSupervisor do
       Agent.get(agent2, & &1)
       #=> %{}
 
-      DynamicSupervisor.count_children(sup)
+      DynamicSupervisor.count_children(MyApp.DynamicSupervisor)
       #=> %{active: 2, specs: 2, supervisors: 0, workers: 2}
 
   ## Module-based supervisors
