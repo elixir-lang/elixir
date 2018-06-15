@@ -1,4 +1,4 @@
-{erl_opts, [
+{'src/*', [
   warn_unused_vars,
   warn_export_all,
   warn_shadow_vars,
@@ -14,10 +14,6 @@
   %% warn_missing_spec,
   %% warn_untyped_record,
   %% warnings_as_errors,
-  debug_info
-]}.
-
-{yrl_opts, [
-  {report, true},
-  {verbose, false}
+  debug_info,
+  {outdir, "ebin/"}
 ]}.
