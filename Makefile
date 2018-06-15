@@ -1,10 +1,10 @@
-REBAR ?= "$(CURDIR)/rebar"
 PREFIX ?= /usr/local
 SHARE_PREFIX ?= $(PREFIX)/share
 CANONICAL := master/
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
+GENERATE_APP := $(CURDIR)/generate_app.escript
 VERSION := $(strip $(shell cat VERSION))
 Q := @
 LIBDIR := lib
@@ -16,7 +16,7 @@ INSTALL_PROGRAM = $(INSTALL) -m755
 GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
 GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1) )
 
-.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
+.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -52,16 +52,20 @@ endef
 #==> Compilation tasks
 
 APP := lib/elixir/ebin/elixir.app
-KERNEL:=lib/elixir/ebin/Elixir.Kernel.beam
-UNICODE:=lib/elixir/ebin/Elixir.String.Unicode.beam
+PARSER := lib/elixir/src/elixir_parser.erl
+KERNEL := lib/elixir/ebin/Elixir.Kernel.beam
+UNICODE := lib/elixir/ebin/Elixir.String.Unicode.beam
 
 default: compile
 
-compile: erlang elixir
+compile: erlang $(APP) elixir
 
-erlang:
+erlang: $(PARSER)
 	$(Q) if [ ! -f $(APP) ]; then $(call CHECK_ERLANG_RELEASE); fi
-	$(Q) cd lib/elixir && $(REBAR) compile
+	$(Q) cd lib/elixir && mkdir -p ebin && erl -make
+
+$(PARSER): lib/elixir/src/elixir_parser.yrl
+	$(Q) erlc -o $@ +'{versbose,true}' +'{report,true}' $<
 
 # Since Mix depends on EEx and EEx depends on Mix,
 # we first compile EEx without the .app file,
@@ -78,8 +82,12 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/kernel.ex" -o ebin;
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
 	$(Q) $(MAKE) unicode
-	$(Q) rm -f lib/elixir/ebin/elixir.app
-	$(Q) cd lib/elixir && $(REBAR) compile
+	$(Q) $(MAKE) app
+
+app: $(APP)
+$(APP): lib/elixir/src/elixir.app.src lib/elixir/ebin VERSION $(GENERATE_APP)
+	@ echo "==> app (compile)";
+	$(Q) $(GENERATE_APP) $< $@ $(VERSION)
 
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
@@ -110,9 +118,9 @@ install: compile
 	$(MAKE) install_man
 
 clean:
-	cd lib/elixir && $(REBAR) clean
 	rm -rf ebin
 	rm -rf lib/*/ebin
+	rm -rf $(PARSER)
 	$(Q) $(MAKE) clean_residual_files
 
 clean_elixir:

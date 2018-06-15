@@ -1,9 +1,7 @@
 {application, elixir,
 [{description, "elixir"},
- {vsn, "1.7.0-dev"},
- {modules, [
-	elixir
-  ]},
+ {vsn, '$will-be-replaced'},
+ {modules, '$will-be-replaced'},
  {registered, [elixir_config, elixir_code_server]},
  {applications, [kernel,stdlib,compiler]},
  {mod, {elixir,[]}},
