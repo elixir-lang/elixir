@@ -4,7 +4,7 @@
 main([Source, Target, Version]) ->
   {ok, [{application, Name, Props0}]} = file:consult(Source),
   Ebin = filename:dirname(Target),
-  {ok, Files} = file:list_dir(Ebin),
+  Files = filelib:wildcard(filename:join(Ebin, "*.beam")),
   Mods = [list_to_atom(filename:basename(F, ".beam")) || F <- Files],
   Props1 = lists:keyreplace(modules, 1, Props0, {modules, Mods}),
   Props = lists:keyreplace(vsn, 1, Props1, {vsn, Version}),
