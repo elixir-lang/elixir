@@ -443,7 +443,7 @@ defmodule Kernel.ParallelCompiler do
 
     IO.puts(
       "\nEnsure there are no compile-time dependencies between those files " <>
-        "and that the modules they reference exist and are correctly named.\n"
+        "and that the modules they reference exist and are correctly named\n"
     )
 
     for {file, _, description} <- deadlock, do: {Path.absname(file), nil, description}
