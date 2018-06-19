@@ -24,7 +24,6 @@ defmodule Logger.ConfigTest do
     Process.whereis(Logger) |> Process.exit(:kill)
     wait_for_logger()
     wait_for_handler(Logger, Logger.Config)
-    wait_for_handler(:error_logger, Logger.ErrorHandler)
   end
 
   test "Logger.Config updates config on config_change/3" do

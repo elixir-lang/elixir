@@ -20,7 +20,7 @@ defmodule Logger.Formatter do
     * `$message`  - the log message
     * `$level`    - the log level
     * `$node`     - the node that prints the message
-    * `$metadata` - user controlled data presented in `"key=val key2=val2"` format
+    * `$metadata` - user controlled data presented in `"key=val key2=val2 "` format
     * `$levelpad` - sets to a single space if level is 4 characters long,
       otherwise set to the empty space. Used to align the message after level.
 

@@ -1,5 +1,7 @@
 Logger.configure_backend(:console, colors: [enabled: false])
-ExUnit.start()
+
+exclude = if Process.whereis(:logger), do: [:error_logger], else: [:logger]
+ExUnit.start(exclude: exclude)
 
 defmodule Logger.Case do
   use ExUnit.CaseTemplate
