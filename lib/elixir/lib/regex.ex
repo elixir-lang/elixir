@@ -9,7 +9,7 @@ defmodule Regex do
   Regular expressions in Elixir can be created using the sigils
   [`~r`](`Kernel.sigil_r/2`) or [`~R`](`Kernel.sigil_R/2`):
 
-      # A simple regular expressions that matches foo anywhere in the string
+      # A simple regular expression that matches foo anywhere in the string
       ~r/foo/
 
       # A regular expression with case insensitive and Unicode options
@@ -93,7 +93,7 @@ defmodule Regex do
       complete matching part of the string; all explicitly captured subpatterns
       are discarded
 
-    * `:all_but_first`- all but the first matching subpattern, i.e. all
+    * `:all_but_first` - all but the first matching subpattern, i.e. all
       explicitly captured subpatterns, but not the complete matching part of
       the string
 
