@@ -1,0 +1,109 @@
+defmodule Logger.ErlangHandlerTest do
+  use Logger.Case
+  @moduletag :logger
+
+  defmodule CustomTranslator do
+    def t(:debug, :info, :format, {'hello: ~p', [:ok]}) do
+      :skip
+    end
+
+    def t(:debug, :info, :format, {'world: ~p', [:ok]}) do
+      {:ok, "rewritten"}
+    end
+
+    def t(:debug, :info, :report, {:logger, %{hello: :ok}}) do
+      :skip
+    end
+
+    def t(:debug, :info, :report, {:logger, %{world: :ok}}) do
+      {:ok, "rewritten"}
+    end
+
+    def t(:debug, :info, :report, {:logger, %{error: error}}) do
+      raise(error)
+    end
+
+    def t(_, _, _, _) do
+      :none
+    end
+  end
+
+  test "add_translator/1 and remove_translator/1 for error_logger" do
+    assert Logger.add_translator({CustomTranslator, :t})
+
+    assert capture_log(fn ->
+             :error_logger.info_msg('hello: ~p', [:ok])
+           end) == ""
+
+    assert capture_log(fn ->
+             :error_logger.info_msg('world: ~p', [:ok])
+           end) =~ "[info]  rewritten"
+  after
+    assert Logger.remove_translator({CustomTranslator, :t})
+  end
+
+  test "add_translator/1 and remove_translator/1 for logger formats" do
+    assert Logger.add_translator({CustomTranslator, :t})
+
+    assert capture_log(fn ->
+             :logger.info('hello: ~p', [:ok])
+           end) == ""
+
+    assert capture_log(fn ->
+             :logger.info('world: ~p', [:ok])
+           end) =~ "[info]  rewritten"
+
+    assert capture_log(fn ->
+             :logger.info(%{hello: :ok})
+           end) == ""
+
+    assert capture_log(fn ->
+             :logger.info(%{world: :ok})
+           end) =~ "[info]  rewritten"
+  after
+    assert Logger.remove_translator({CustomTranslator, :t})
+  end
+
+  test "handles translation error" do
+    assert Logger.add_translator({CustomTranslator, :t})
+
+    message = capture_log(fn -> :logger.info(%{error: "oops"}) end)
+    assert message =~ "[info]  Failure while translating Erlang's logger event\n"
+    assert message =~ "** (RuntimeError) oops\n"
+  after
+    assert Logger.remove_translator({CustomTranslator, :t})
+  end
+
+  test "converts Erlang metadata" do
+    Logger.configure_backend(:console, metadata: [:file, :line, :module, :function])
+
+    message =
+      capture_log(fn ->
+        :logger.info("ok", %{file: 'file.erl', line: 13, mfa: {Foo, :bar, 3}})
+      end)
+
+    assert message =~ "module=Foo"
+    assert message =~ "function=bar/3"
+    assert message =~ "file=file.erl"
+    assert message =~ "line=13"
+  after
+    Logger.configure_backend(:console, metadata: [])
+  end
+
+  test "uses reporting callback with Elixir inspection" do
+    assert capture_log(fn ->
+             callback = fn %{hello: :world} -> {"~p~n", [:formatted]} end
+             :logger.info(%{hello: :world}, %{report_cb: callback})
+           end) =~ "[info]  :formatted"
+  end
+
+  test "converts log levels" do
+    assert capture_log(fn -> :logger.emergency('ok') end) =~ "[error] ok"
+    assert capture_log(fn -> :logger.alert('ok') end) =~ "[error] ok"
+    assert capture_log(fn -> :logger.critical('ok') end) =~ "[error] ok"
+    assert capture_log(fn -> :logger.error('ok') end) =~ "[error] ok"
+    assert capture_log(fn -> :logger.warning('ok') end) =~ "[warn]  ok"
+    assert capture_log(fn -> :logger.info('ok') end) =~ "[info]  ok"
+    assert capture_log(fn -> :logger.debug('ok') end) =~ "[debug] ok"
+  end
+end
