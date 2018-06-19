@@ -123,11 +123,35 @@ Those improvements will help developers better understand the relationship betwe
 
 Other improvements in Mix include better compiler diagnostics for editor integration, support for the `--slowest N` flag in `mix test` that shows the slowest tests in your suite, and a new `mix profile.eprof` task that provides time based profiling, complementing the existing `mix profile.cprof` (count based) and `mix profile.fprof` (flame based).
 
+## v1.6.6 (2018-06-20)
+
+This release supports Erlang/OTP 21.0 by removing all warnings and by properly supporting the new Erlang logger module.
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Base] Do not raise when finding bad digits in `Base.decode32!` with `case: :mixed`
+  * [Code] Preserve the user's choice when `fn` is followed by a newline and it has only a single clause
+  * [DynamicSupervisor] Properly account for restarting children in the `:max_children` configuration
+  * [String] Add performant impl for string upcase/downcase `:ascii` mode
+  * [Task.Supervisor] Fix type spec for `start_child/4`
+
+#### Logger
+
+  * [Logger] Do not crash truncation when truncate is set to infinity
+
+#### Mix
+
+  * [mix format] Match files starting with dot
+
 ## v1.6.5 (2018-05-07)
 
 This release supports Erlang/OTP 21.0-rc by removing all warnings and by properly redirecting logger output. Note it is not guaranteed it will support Erlang/OTP 21.0 final.
 
 ### 1. Bug fixes
+
+#### Elixir
 
   * [Code] Preserve the user's choice in the formatter on parens call with next break fits
   * [Code] Preserve the user's choice in the formatter on calls without parens when we have one argument per line
