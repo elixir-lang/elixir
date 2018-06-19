@@ -275,9 +275,20 @@ defmodule Supervisor do
   with other developers and they can add it directly to their supervision tree
   without worrying about the low-level details of the worker.
 
-  If you need to access or modify how a worker or a supervisor runs, you can use
-  the `Supervisor.child_spec/2` function. For example, to run the stack with a
-  different `:id` and a `:shutdown` value of 10 seconds (10_000 milliseconds):
+  Overall, the child specification can be one of:
+
+    * a map representing the child specification itself - as outlined in the
+      "Child specification" section
+    * a tuple with a module as first element and the start argument as second -
+      such as `{Stack, [:hello]}`. In this case, `Stack.child_spec([:hello])`
+      is called to retrieve the child specification
+    * a module - such as `Stack`. In this case, `Stack.child_spec([])`
+      is called to retrieve the child specification
+
+  If you need to convert how a tuple or module child specification to a map or
+  modify a child specification, you can use the `Supervisor.child_spec/2` function.
+  For example, to run the stack with a different `:id` and a `:shutdown` value of
+  10 seconds (10_000 milliseconds):
 
       children = [
         Supervisor.child_spec({Stack, [:hello]}, id: MyStack, shutdown: 10_000)
@@ -398,22 +409,8 @@ defmodule Supervisor do
         {Stack, [:hello]}
       ], strategy: :one_for_one)
 
-  Although we have mentioned that the supervisor automatically expands
-  `{Stack, [:hello]}` to a child specification by calling
-  `Stack.child_spec([:hello])`, we haven't formally defined all of the
-  arguments accepted by `start_link/2` and `init/2`. Let's rectify that
-  now.
-
-  The first argument given to `start_link/2` is a list of children which may
-  be either:
-
-    * a map representing the child specification itself - as outlined in the
-      "Child specification" section
-    * a tuple with a module as first element and the start argument as second -
-      such as `{Stack, [:hello]}`. In this case, `Stack.child_spec([:hello])`
-      is called to retrieve the child specification
-    * a module - such as `Stack`. In this case, `Stack.child_spec([])`
-      is called to retrieve the child specification
+  The first argument given to `start_link/2` and `init/2` is a list of child
+  specifications as defined in the "child_spec/1" section above.
 
   The second argument is a keyword list of options:
 
