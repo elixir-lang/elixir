@@ -4,7 +4,7 @@ defmodule Logger.ErlangHandler do
   @doc """
   Hook required by `:logger`.
   """
-  def log(%{meta: %{domain: [:beam, :erlang, :otp, :sasl | _]}}, %{sasl_reports?: false}) do
+  def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{sasl_reports?: false}) do
     :ok
   end
 
