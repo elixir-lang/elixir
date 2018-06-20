@@ -129,26 +129,6 @@ defmodule Mix.ProjectTest do
     end)
   end
 
-  test "config_files", context do
-    Mix.Project.push(SampleProject)
-
-    in_tmp(context.test, fn ->
-      File.mkdir_p!("config/sub")
-      File.write!("config/config.exs", "[]")
-      File.write!("config/dev.exs", "[]")
-      File.write!("config/.exs", "[]")
-      File.write!("config/sub/init.exs", "[]")
-
-      files = Mix.Project.config_files()
-
-      assert __ENV__.file in files
-      assert "config/config.exs" in files
-      assert "config/dev.exs" in files
-      refute "config/.exs" in files
-      assert "config/sub/init.exs" in files
-    end)
-  end
-
   defp assert_proj_dir_linked_or_copied(source, target, symlink_path) do
     case :file.read_link(source) do
       {:ok, path} ->

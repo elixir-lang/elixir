@@ -107,7 +107,6 @@ defmodule Mix.Project do
   @doc false
   def push(atom, file \\ nil, app \\ nil) when is_atom(atom) do
     file = file || (atom && List.to_string(atom.__info__(:compile)[:source]))
-
     config = Keyword.merge([app: app] ++ default_config(), get_project_config(atom))
 
     case Mix.ProjectStack.push(atom, config, file) do
@@ -208,25 +207,22 @@ defmodule Mix.Project do
   """
   @spec config_files() :: [Path.t()]
   def config_files do
-    manifest = Mix.Dep.Lock.manifest()
+    [Mix.Dep.Lock.manifest() | Mix.ProjectStack.config_files()]
+  end
 
-    configs =
-      case Mix.ProjectStack.peek() do
-        %{config: config, file: file} ->
-          configs =
-            config[:config_path]
-            |> Path.dirname()
-            |> Path.join("**/*.*")
-            |> Path.wildcard()
-            |> Enum.reject(&String.starts_with?(Path.basename(&1), "."))
+  @doc """
+  Returns the latest modification time from config files.
 
-          [file | configs]
-
-        _ ->
-          []
-      end
-
-    [manifest] ++ configs
+  This function is usually used in compilation tasks to trigger
+  a full recompilation whenever such configuration files change.
+  For this reason, the mtime is cached to avoid file system lookups.
+  """
+  @since "1.7.0"
+  @spec config_mtime() :: posix_mtime when posix_mtime: integer()
+  def config_mtime do
+    Mix.Dep.Lock.manifest()
+    |> Mix.Utils.last_modified()
+    |> max(Mix.ProjectStack.config_mtime())
   end
 
   @doc """

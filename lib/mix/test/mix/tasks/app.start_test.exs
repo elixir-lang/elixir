@@ -57,11 +57,14 @@ defmodule Mix.Tasks.App.StartTest do
     in_tmp(context.test, fn ->
       :ok = :application.load({:application, :app_loaded_sample, [vsn: '1.0.0', env: []]})
 
-      Mix.ProjectStack.configured_applications([
-        :app_start_sample,
-        :app_unknown_sample,
-        :app_loaded_sample
-      ])
+      Mix.ProjectStack.loaded_config(
+        [
+          :app_start_sample,
+          :app_unknown_sample,
+          :app_loaded_sample
+        ],
+        []
+      )
 
       Mix.Tasks.Compile.run([])
       Mix.Tasks.App.Start.run([])

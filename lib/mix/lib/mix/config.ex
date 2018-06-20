@@ -73,6 +73,8 @@ defmodule Mix.Config do
             "directly instead of using the proper command, such as mix loadconfig"
   end
 
+  ## User API
+
   @doc """
   Configures the given application.
 
@@ -202,20 +204,27 @@ defmodule Mix.Config do
     Code.eval_file(file)
   end
 
+  ## Mix API
+
   @doc """
-  Reads and validates a configuration file.
+  Evaluates the given configuration file.
+
+  It accepts a list of `imported_paths` that should raise if attempted
+  to be imported again (to avoid recursive imports).
+
+  It returns a tuple with the configuration and the imported paths.
   """
-  def read!(file, loaded_paths \\ []) do
+  def eval!(file, imported_paths \\ []) do
     put_config([])
-    put_files(loaded_paths)
+    put_files(imported_paths)
     {eval_config, _} = eval_config!(Path.expand(file))
 
     case get_config!() do
       [] when is_list(eval_config) ->
-        validate!(eval_config)
+        {validate!(eval_config), get_files!()}
 
       pdict_config ->
-        pdict_config
+        {pdict_config, get_files!()}
     end
   after
     delete_config()
@@ -223,7 +232,13 @@ defmodule Mix.Config do
   end
 
   @doc false
-  @deprecated "Use read!/2 instead"
+  @deprecated "Use eval!/2 instead"
+  def read!(file, loaded_paths \\ []) do
+    eval!(file, loaded_paths) |> elem(0)
+  end
+
+  @doc false
+  @deprecated "Use eval!/2 instead"
   def read_wildcard!(path, loaded_paths \\ []) do
     paths =
       if String.contains?(path, ~w(* ? [ {)) do
@@ -233,33 +248,6 @@ defmodule Mix.Config do
       end
 
     Enum.reduce(paths, [], &merge(&2, read!(&1, loaded_paths)))
-  end
-
-  @doc """
-  Persists the given configuration by modifying
-  the configured applications environment.
-
-  `config` should be a list of `{app, app_config}` tuples or a
-  `%{app => app_config}` map where `app` are the applications to
-  be configured and `app_config` are the configuration (as key-value
-  pairs) for each of those applications.
-
-  Returns the configured applications.
-
-  ## Examples
-
-      Mix.Config.persist(logger: [level: :error], my_app: [my_config: 1])
-      #=> [:logger, :my_app]
-
-  """
-  def persist(config) do
-    for {app, kw} <- config do
-      for {k, v} <- kw do
-        Application.put_env(app, k, v, persistent: true)
-      end
-
-      app
-    end
   end
 
   @doc false
@@ -290,6 +278,33 @@ defmodule Mix.Config do
     end
 
     config
+  end
+
+  @doc """
+  Persists the given configuration by modifying
+  the configured applications environment.
+
+  `config` should be a list of `{app, app_config}` tuples or a
+  `%{app => app_config}` map where `app` are the applications to
+  be configured and `app_config` are the configuration (as key-value
+  pairs) for each of those applications.
+
+  Returns the configured applications.
+
+  ## Examples
+
+      Mix.Config.persist(logger: [level: :error], my_app: [my_config: 1])
+      #=> [:logger, :my_app]
+
+  """
+  def persist(config) do
+    for {app, kw} <- config do
+      for {k, v} <- kw do
+        Application.put_env(app, k, v, persistent: true)
+      end
+
+      app
+    end
   end
 
   @doc """
