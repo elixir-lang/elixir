@@ -465,7 +465,6 @@ expand(Function, E) when is_function(Function) ->
       form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Function})
   end;
 
-
 expand(Pid, E) when is_pid(Pid) ->
   case ?key(E, function) of
     nil ->
@@ -748,6 +747,9 @@ allowed_in_context(_, _Arity, match) ->
   false;
 allowed_in_context({{'.', _, [erlang, Right]}, _, _}, Arity, guard) ->
   erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity);
+allowed_in_context({{'.', _, [{Name, _, Context}, _]}, _, []}, _, guard)
+    when is_atom(Name), is_atom(Context) ->
+  true;
 allowed_in_context(_, _Arity, guard) ->
   false;
 allowed_in_context(_, _, _) ->
