@@ -18,6 +18,18 @@ defmodule Mix.Tasks.Cmd do
       mix cmd --app app1 --app app2 echo pwd
 
   Aborts when a command exits with a non-zero status.
+
+  ## Zombie OS processes
+
+  Beware that the Erlang VM does not terminate child processes
+  when it shuts down. Therefore, if you use `mix cmd` to start
+  long running processes and then shutdown the VM, it is likely
+  that those child processes won't be terminated with the VM.
+
+  A solution is to make sure the child processes listen to the
+  stdndard input and terminate when standard input is closed.
+  We discuss this topic at length in the "Zombie OS processes"
+  of the `Port` module documentation.
   """
 
   def run(args) do
