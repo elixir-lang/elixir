@@ -78,12 +78,11 @@ defmodule Application do
         [mod: {MyApp, []}]
       end
 
-  This key is optional, only needed for applications implemented as a
-  supervision tree.
+  This key is optional, only needed for applications that start a supervision tree.
 
-  `MyApp` needs to implement the `Application` behavior. This can be done by
-  putting `use Application` in that module and defining a `c:start/2` callback,
-  for example:
+  The `MyApp` module given to `:mod` needs to implement the `Application` behaviour.
+  This can be done by putting `use Application` in that module and implementing the
+  `c:start/2` callback, for example:
 
       defmodule MyApp do
         use Application
