@@ -4,7 +4,7 @@ CANONICAL := master/
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
-GENERATE_APP := $(CURDIR)/generate_app.escript
+GENERATE_APP := $(CURDIR)/lib/elixir/generate_app.escript
 VERSION := $(strip $(shell cat VERSION))
 Q := @
 LIBDIR := lib
@@ -86,7 +86,6 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 
 app: $(APP)
 $(APP): lib/elixir/src/elixir.app.src lib/elixir/ebin VERSION $(GENERATE_APP)
-	@ echo "==> app (compile)";
 	$(Q) $(GENERATE_APP) $< $@ $(VERSION)
 
 unicode: $(UNICODE)
