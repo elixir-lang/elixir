@@ -3,8 +3,14 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.TestTest do
   use MixTest.Case
 
+  @default_opts [:failures_manifest_file, :autorun, :max_fail]
+
   test "ex_unit_opts/1 returns ex unit options" do
     assert ex_unit_opts_from_given(unknown: "ok", seed: 13) == [seed: 13]
+  end
+
+  test "ex_unit_opts/1 returns max_fail" do
+    assert Keyword.get(ex_unit_opts(max_fail: 13), :max_fail) == 13
   end
 
   test "ex_unit_opts/1 returns includes and excludes" do
@@ -34,6 +40,7 @@ defmodule Mix.Tasks.TestTest do
   test "ex_unit_opts/1 includes some default options" do
     assert ex_unit_opts([]) == [
              autorun: false,
+             max_fail: :infinity,
              failures_manifest_file: Path.join(Mix.Project.manifest_path(), ".mix_test_failures")
            ]
   end
@@ -46,7 +53,7 @@ defmodule Mix.Tasks.TestTest do
   defp ex_unit_opts_from_given(passed) do
     passed
     |> ex_unit_opts()
-    |> Keyword.drop([:failures_manifest_file, :autorun])
+    |> Keyword.drop(@default_opts)
   end
 
   test "--stale: runs all tests for first run, then none on second" do

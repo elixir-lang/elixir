@@ -126,6 +126,7 @@ defmodule Mix.Tasks.Test do
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modification.
+    * `--max-fail` - sets the maximum number of tests to allow to fail before stopping
     * `--max-cases` - sets the maximum number of tests running async. Only tests from
       different modules run in parallel. Defaults to twice the number of cores.
     * `--no-archives-check` - does not check archives
@@ -254,6 +255,7 @@ defmodule Mix.Tasks.Test do
     color: :boolean,
     cover: :boolean,
     trace: :boolean,
+    max_fail: :integer,
     max_cases: :integer,
     include: :keep,
     exclude: :keep,
@@ -354,6 +356,9 @@ defmodule Mix.Tasks.Test do
         option_only_present? = Keyword.has_key?(opts, :only)
 
         cond do
+          failures >= opts[:max_fail] ->
+            Mix.raise("Maximum number of test failures reached: #{failures}")
+
           failures > 0 and opts[:raise] ->
             Mix.raise("mix test failed")
 
@@ -407,6 +412,7 @@ defmodule Mix.Tasks.Test do
   @option_keys [
     :trace,
     :max_cases,
+    :max_fail,
     :include,
     :exclude,
     :seed,
@@ -433,6 +439,7 @@ defmodule Mix.Tasks.Test do
       |> formatter_opts()
       |> color_opts()
       |> Keyword.take(@option_keys)
+      |> max_fail_opts()
       |> default_opts()
 
     {opts, allowed_files}
@@ -525,6 +532,16 @@ defmodule Mix.Tasks.Test do
 
   defp filter_to_allowed_files(matched_test_files, %MapSet{} = allowed_files) do
     Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
+  end
+
+  defp max_fail_opts(opts) do
+    case Keyword.fetch(opts, :max_fail) do
+      {:ok, _} ->
+        opts
+
+      :error ->
+        Keyword.put(opts, :max_fail, :infinity)
+    end
   end
 
   defp color_opts(opts) do
