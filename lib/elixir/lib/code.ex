@@ -795,6 +795,27 @@ defmodule Code do
   end
 
   @doc """
+  Purge compiler modules.
+
+  The compiler utilizes temporary modules to compile code. For example,
+  `elixir_compiler_1`, `elixir_compiler_2`, etc. In case the compiled code
+  stores references to anonymous functions or similar, the Elixir compiler
+  may be unable to reclaim those modules, keeping an unecessary amount of
+  code in memory and eventually leading to modules such as `elixir_compiler_12345`.
+
+  This function purges all modules currently kept by the compiler, allowing
+  old compiler module names to be resued. If there are any processes running
+  any code from such modules, they will be terminated too.
+
+  It returns `{:ok, number_of_modules_purged}`.
+  """
+  @since "1.7.0"
+  @spec purge_compiler_modules() :: {:ok, non_neg_integer()}
+  def purge_compiler_modules() do
+    :elixir_code_server.call(:purge_compiler_modules)
+  end
+
+  @doc """
   Sets compilation options.
 
   These options are global since they are stored by Elixir's Code Server.

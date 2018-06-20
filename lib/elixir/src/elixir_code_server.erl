@@ -7,7 +7,7 @@
 -define(timeout, 30000).
 -record(elixir_code_server, {
   required=#{},
-  mod_pool={[], 0},
+  mod_pool={[], [], 0},
   mod_ets=#{},
   compilation_status=#{}
 }).
@@ -65,11 +65,17 @@ handle_call({compilation_status, CompilerPid}, _From, Config) ->
 
 handle_call(retrieve_compiler_module, _From, Config) ->
   case Config#elixir_code_server.mod_pool of
-    {[H | T], Counter} ->
-      {reply, module_tuple(H), Config#elixir_code_server{mod_pool={T, Counter}}};
-    {[], Counter} ->
-      {reply, module_tuple(Counter), Config#elixir_code_server{mod_pool={[], Counter+1}}}
+    {Used, [Mod | Unused], Counter} ->
+      {reply, Mod, Config#elixir_code_server{mod_pool={Used, Unused, Counter}}};
+    {Used, [], Counter} ->
+      {reply, compiler_module(Counter), Config#elixir_code_server{mod_pool={Used, [], Counter+1}}}
   end;
+
+handle_call(purge_compiler_modules, _From, Config) ->
+  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
+  _ = [code:purge(Module) || Module <- Used],
+  ModPool = {[], Used ++ Unused, Counter},
+  {reply, {ok, length(Used)}, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_call(Request, _From, Config) ->
   {stop, {badcall, Request}, Config}.
@@ -107,8 +113,16 @@ handle_cast({unrequire_files, Files}, Config) ->
   Unrequired = maps:without(Files, Current),
   {noreply, Config#elixir_code_server{required=Unrequired}};
 
-handle_cast({return_compiler_module, H}, #elixir_code_server{mod_pool={T, Counter}} = Config) ->
-  {noreply, Config#elixir_code_server{mod_pool={[H | T], Counter}}};
+handle_cast({return_compiler_module, Module, Purgeable}, Config) ->
+  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
+
+  ModPool =
+    case Purgeable of
+      true -> {Used, [Module | Unused], Counter};
+      false -> {[Module | Used], Unused, Counter}
+    end,
+
+  {noreply, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.
@@ -125,8 +139,8 @@ terminate(_Reason, _Config) ->
 code_change(_Old, Config, _Extra) ->
   {ok, Config}.
 
-module_tuple(I) ->
-  {list_to_atom("elixir_compiler_" ++ integer_to_list(I)), I}.
+compiler_module(I) ->
+  list_to_atom("elixir_compiler_" ++ integer_to_list(I)).
 
 defmodule(Pid, Tuple, #elixir_code_server{mod_ets=ModEts} = Config) ->
   ets:insert(elixir_modules, Tuple),
