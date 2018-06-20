@@ -4,7 +4,8 @@ defmodule Mix.Tasks.Format do
   @shortdoc "Formats the given files/patterns"
 
   @moduledoc """
-  Formats the given files and patterns.
+  Formats the given files and patterns. In compliance with
+  [lexmag's Elixir Style Guide](https://github.com/lexmag/elixir-style-guide).
 
       mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
