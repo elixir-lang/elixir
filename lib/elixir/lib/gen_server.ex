@@ -90,7 +90,7 @@ defmodule GenServer do
         end
 
         # Server (callbacks)
-        
+
         @impl true
         def init(stack) do
           {:ok, stack}
@@ -350,18 +350,24 @@ defmodule GenServer do
   except `handle_info(:timeout, state)` will be called after `timeout`
   milliseconds if no messages are received within the timeout.
 
-  Returning `{:ok, state, :hibernate}` is similar to
-  `{:ok, state}` except the process is hibernated before entering the loop. See
+  Returning `{:ok, state, :hibernate}` is similar to `{:ok, state}`
+  except the process is hibernated before entering the loop. See
   `c:handle_call/3` for more information on hibernation.
 
-  Returning `:ignore` will cause `start_link/3` to return `:ignore` and the
-  process will exit normally without entering the loop or calling `c:terminate/2`.
-  If used when part of a supervision tree the parent supervisor will not fail
-  to start nor immediately try to restart the `GenServer`. The remainder of the
-  supervision tree will be (re)started and so the `GenServer` should not be
-  required by other processes. It can be started later with
-  `Supervisor.restart_child/2` as the child specification is saved in the parent
-  supervisor. The main use cases for this are:
+  Returning `{:ok, state, {:continue, continue}}` is similar to
+  `{:ok, state}` except that immediately after entering the loop
+  the `c:handle_continue/2` callback will be invoked with `Continue`
+  as first argument.
+
+  Returning `:ignore` will cause `start_link/3` to return `:ignore` and
+  the process will exit normally without entering the loop or calling
+  `c:terminate/2`. If used when part of a supervision tree the parent
+  supervisor will not fail to start nor immediately try to restart the
+  `GenServer`. The remainder of the supervision tree will be started
+  and so the `GenServer` should not be required by other processes.
+  It can be started later with `Supervisor.restart_child/2` as the child
+  specification is saved in the parent supervisor. The main use cases for
+  this are:
 
     * The `GenServer` is disabled by configuration but might be enabled later.
     * An error occurred and it will be handled by a different mechanism than the
@@ -374,7 +380,7 @@ defmodule GenServer do
   """
   @callback init(args :: term) ::
               {:ok, state}
-              | {:ok, state, timeout | :hibernate}
+              | {:ok, state, timeout | :hibernate | {:continue, term}}
               | :ignore
               | {:stop, reason :: any}
             when state: any
@@ -401,6 +407,10 @@ defmodule GenServer do
   `GenServer` causes garbage collection and leaves a continuous heap that
   minimises the memory used by the process.
 
+  Returning `{:reply, reply, new_state, {:continue, continue}}` is similar to
+  `{:reply, reply, new_state}` except `c:handle_continue/2` will be invoked
+  immediately after with `continue` as first argument.
+
   Hibernating should not be used aggressively as too much time could be spent
   garbage collecting. Normally it should only be used when a message is not
   expected soon and minimising the memory of the process is shown to be
@@ -422,9 +432,9 @@ defmodule GenServer do
   process exits without replying as the caller will be blocking awaiting a
   reply.
 
-  Returning `{:noreply, new_state, timeout | :hibernate}` is similar to
-  `{:noreply, new_state}` except a timeout or hibernation occurs as with a
-  `:reply` tuple.
+  Returning `{:noreply, new_state, timeout | :hibernate | {:continue, continue}}`
+  is similar to `{:noreply, new_state}` except a timeout, hibernation or continue
+  occurs as with a `:reply` tuple.
 
   Returning `{:stop, reason, reply, new_state}` stops the loop and `c:terminate/2`
   is called with reason `reason` and state `new_state`. Then the `reply` is sent
@@ -433,15 +443,14 @@ defmodule GenServer do
   Returning `{:stop, reason, new_state}` is similar to
   `{:stop, reason, reply, new_state}` except a reply is not sent.
 
-  If this callback is not implemented, the default implementation by
-  `use GenServer` will fail with a `RuntimeError` exception with a message:
-  attempted to call `GenServer` but no `handle_call/3` clause was provided.
+  This callback is optional. If one is not implemented, the server will fail
+  if a call is performed against it.
   """
   @callback handle_call(request :: term, from, state :: term) ::
               {:reply, reply, new_state}
-              | {:reply, reply, new_state, timeout | :hibernate}
+              | {:reply, reply, new_state, timeout | :hibernate | {:continue, term}}
               | {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate}
+              | {:noreply, new_state, timeout | :hibernate, {:continue, term}}
               | {:stop, reason, reply, new_state}
               | {:stop, reason, new_state}
             when reply: term, new_state: term, reason: term
@@ -462,17 +471,20 @@ defmodule GenServer do
   `{:noreply, new_state}` except the process is hibernated before continuing the
   loop. See `c:handle_call/3` for more information.
 
+  Returning `{:noreply, new_state, {:continue, continue}}` is similar to
+  `{:nreply, new_state}` except `c:handle_continue/2` will be invoked
+  immediately after with `continue` as first argument.
+
   Returning `{:stop, reason, new_state}` stops the loop and `c:terminate/2` is
   called with the reason `reason` and state `new_state`. The process exits with
   reason `reason`.
 
-  If this callback is not implemented, the default implementation by
-  `use GenServer` will fail with a `RuntimeError` exception with a message:
-  attempted to call `GenServer` but no `handle_cast/2` clause was provided.
+  This callback is optional. If one is not implemented, the server will fail
+  if a cast is performed against it.
   """
   @callback handle_cast(request :: term, state :: term) ::
               {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
               | {:stop, reason :: term, new_state}
             when new_state: term
 
@@ -484,12 +496,31 @@ defmodule GenServer do
 
   Return values are the same as `c:handle_cast/2`.
 
-  If this callback is not implemented, the default implementation by
-  `use GenServer` will return `{:noreply, state}`.
+  This callback is optional. If one is not implemented, the received message
+  will be logged.
   """
   @callback handle_info(msg :: :timeout | term, state :: term) ::
               {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
+              | {:stop, reason :: term, new_state}
+            when new_state: term
+
+  @doc """
+  Invoked to handle `continue` instructions.
+
+  It is useful for performing work after initialization or for splitting the work
+  in a callback in multiple steps, updating the process state along the way.
+
+  Return values are the same as `c:handle_cast/2`.
+
+  This callback is optional. If one is not implemented, the server will fail
+  if a continue instruction is used.
+
+  This callback is only supported on Erlang/OTP 21+.
+  """
+  @callback handle_continue(continue :: term, state :: term) ::
+              {:noreply, new_state}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
               | {:stop, reason :: term, new_state}
             when new_state: term
 
@@ -532,6 +563,8 @@ defmodule GenServer do
 
   If `reason` is not `:normal`, `:shutdown`, nor `{:shutdown, term}` an error is
   logged.
+
+  This callback is optional.
   """
   @callback terminate(reason, state :: term) :: term
             when reason: :normal | :shutdown | {:shutdown, term}
@@ -554,6 +587,8 @@ defmodule GenServer do
 
   If `c:code_change/3` raises the code change fails and the loop will continue
   with its previous state. Therefore this callback does not usually contain side effects.
+
+  This callback is optional.
   """
   @callback code_change(old_vsn, state :: term, extra :: term) ::
               {:ok, new_state :: term}
@@ -581,7 +616,13 @@ defmodule GenServer do
   @callback format_status(reason, pdict_and_state :: list) :: term
             when reason: :normal | :terminate
 
-  @optional_callbacks format_status: 2
+  @optional_callbacks code_change: 3,
+                      terminate: 2,
+                      handle_info: 2,
+                      handle_cast: 2,
+                      handle_call: 3,
+                      format_status: 2,
+                      handle_continue: 2
 
   @typedoc "Return values of `start*` functions"
   @type on_start :: {:ok, pid} | :ignore | {:error, {:already_started, pid} | term}
@@ -696,7 +737,7 @@ defmodule GenServer do
         {:ok, state}
       end
 
-      defoverridable GenServer
+      defoverridable code_change: 3, terminate: 2, handle_info: 2, handle_cast: 2, handle_call: 3
     end
   end
 

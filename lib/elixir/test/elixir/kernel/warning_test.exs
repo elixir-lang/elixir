@@ -1380,6 +1380,22 @@ defmodule Kernel.WarningTest do
     end
   end
 
+  test "deprecated GenServer super" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               use GenServer
+
+               def handle_call(a, b, c) do
+                 super(a, b, c)
+               end
+             end
+             """)
+           end) =~ "calling super for GenServer callback handle_call/3 is deprecated"
+  after
+    purge(Sample)
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end

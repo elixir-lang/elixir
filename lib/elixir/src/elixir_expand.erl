@@ -290,7 +290,7 @@ expand({with, Meta, [_ | _] = Args}, E) ->
 
 %% Super
 
-expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
+expand({super, Meta, Args}, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "super", E),
   Module = assert_module_scope(Meta, super, E),
   Function = assert_function_scope(Meta, super, E),
@@ -298,11 +298,27 @@ expand({super, Meta, Args}, #{file := File} = E) when is_list(Args) ->
 
   case length(Args) of
     Arity ->
-      {Kind, Name} = elixir_overridable:super(Meta, File, Module, Function),
+      {Kind, Name, SuperMeta} = elixir_overridable:super(Meta, Module, Function, E),
+
+      %% TODO: Remove this on Elixir v2.0 and make all GenServer callbacks optional
+      case lists:keyfind(context, 1, SuperMeta) of
+        {context, 'Elixir.GenServer'} ->
+          Message =
+            io_lib:format(
+              "calling super for GenServer callback ~ts/~B is deprecated",
+              [element(1, Function), Arity]
+            ),
+
+          elixir_errors:warn(?line(Meta), ?key(E, file), Message);
+
+        _ ->
+          ok
+      end,
+
       {EArgs, EA} = expand_args(Args, E),
       {{super, Meta, [{Kind, Name} | EArgs]}, EA};
     _ ->
-      form_error(Meta, File, ?MODULE, wrong_number_of_args_for_super)
+      form_error(Meta, ?key(E, file), ?MODULE, wrong_number_of_args_for_super)
   end;
 
 %% Vars
