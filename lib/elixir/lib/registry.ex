@@ -1313,8 +1313,4 @@ defmodule Registry.Partition do
 
     {:noreply, ets}
   end
-
-  def handle_info(msg, state) do
-    super(msg, state)
-  end
 end
