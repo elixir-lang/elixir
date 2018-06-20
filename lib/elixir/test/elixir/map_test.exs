@@ -141,11 +141,19 @@ defmodule MapTest do
     end
   end
 
-  test "map access" do
+  test "map dot access" do
     assert @sample.a == 1
 
     assert_raise KeyError, fn ->
       @sample.c
+    end
+  end
+
+  if :erlang.system_info(:otp_release) >= '21' do
+    test "map dot access in guards" do
+      case @sample do
+        map when map.a == 1 -> assert(true)
+      end
     end
   end
 

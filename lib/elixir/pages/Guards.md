@@ -16,6 +16,7 @@ For reference, the following is a comprehensive list of all expressions allowed 
   * arithmetic binary operators ([`+`](`Kernel.+/2`), [`-`](`Kernel.-/2`), [`*`](`Kernel.*/2`), [`/`](`Kernel.//2`))
   * arithmetic unary operators ([`+`](`Kernel.+/1`), [`-`](`Kernel.-/1`))
   * binary concatenation operator ([`<>`](`Kernel.<>/2`))
+  * the dot syntax to access atom fields in maps and structs, such as `map.field`, from Erlang/OTP 21 forward
   * [`in`](`Kernel.in/2`) and [`not in`](`Kernel.in/2`) operators (as long as the right-hand side is a list or a range)
   * the following "type-check" functions (all documented in the `Kernel` module):
     * `is_atom/1`
