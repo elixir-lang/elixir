@@ -202,6 +202,7 @@ defmodule Mix.Compilers.Elixir do
         warnings = Enum.map(warnings, &diagnostic(&1, :warning)) ++ warning_diagnostics(sources)
         {:error, warnings ++ errors}
     after
+      Code.purge_compiler_modules()
       delete_compiler_info()
     end
   end
