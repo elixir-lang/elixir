@@ -21,7 +21,6 @@ defmodule Mix.ProjectStack do
       # because we don't need to print anything unless another
       # project takes ahold of the shell.
       io_done? = stack == []
-
       config = Keyword.merge(config, state.post_config)
 
       project = %{
@@ -31,7 +30,9 @@ defmodule Mix.ProjectStack do
         pos: length(stack),
         recursing?: false,
         io_done: io_done?,
-        configured_applications: []
+        config_apps: [],
+        config_files: [file],
+        config_mtime: nil
       }
 
       cond do
@@ -44,20 +45,55 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  @spec configured_applications([atom]) :: :ok
-  def configured_applications(apps) do
+  @spec loaded_config([atom], [binary()]) :: :ok
+  def loaded_config(apps, files) do
     cast(fn state ->
       update_in(state.stack, fn
-        [h | t] -> [%{h | configured_applications: apps} | t]
-        [] -> []
+        [%{config_apps: h_apps, config_files: h_files} = h | t] ->
+          h = %{
+            h
+            | config_apps: apps ++ h_apps,
+              config_files: files ++ h_files,
+              config_mtime: nil
+          }
+
+          [h | t]
+
+        [] ->
+          []
       end)
     end)
   end
 
-  @spec configured_applications() :: [atom]
-  def configured_applications() do
+  @spec config_mtime() :: [integer]
+  def config_mtime() do
+    get_and_update(fn state ->
+      get_and_update_in(state.stack, fn
+        [%{config_mtime: nil, config_files: files} = h | t] ->
+          mtime = files |> Enum.map(&Mix.Utils.last_modified/1) |> Enum.max()
+          {mtime, [%{h | config_mtime: mtime} | t]}
+
+        [%{config_mtime: mtime} | _] = stack ->
+          {mtime, stack}
+
+        [] ->
+          {0, []}
+      end)
+    end)
+  end
+
+  @spec config_apps() :: [atom]
+  def config_apps() do
     get(fn
-      %{stack: [h | _]} -> h.configured_applications
+      %{stack: [h | _]} -> h.config_apps
+      %{stack: []} -> []
+    end)
+  end
+
+  @spec config_files() :: [binary]
+  def config_files() do
+    get(fn
+      %{stack: [h | _]} -> h.config_files
       %{stack: []} -> []
     end)
   end

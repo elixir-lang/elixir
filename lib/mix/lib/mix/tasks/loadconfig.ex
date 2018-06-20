@@ -34,8 +34,9 @@ defmodule Mix.Tasks.Loadconfig do
   end
 
   defp load(file) do
-    apps = Mix.Config.persist(Mix.Config.read!(file))
-    Mix.ProjectStack.configured_applications(apps)
+    {config, files} = Mix.Config.eval!(file)
+    apps = Mix.Config.persist(config)
+    Mix.ProjectStack.loaded_config(apps, files)
     :ok
   end
 end

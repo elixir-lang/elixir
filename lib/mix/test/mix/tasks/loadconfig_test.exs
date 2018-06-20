@@ -49,6 +49,21 @@ defmodule Mix.Tasks.LoadconfigTest do
     end)
   end
 
+  test "updates config files and config mtime", context do
+    Mix.Project.push(MixTest.Case.Sample)
+
+    in_tmp(context.test, fn ->
+      mtime = Mix.Project.config_mtime()
+      config = Path.expand("config/config.exs")
+      refute config in Mix.Project.config_files()
+
+      write_config(config, "[]")
+      Mix.Task.run("loadconfig", [config])
+      assert config in Mix.Project.config_files()
+      assert Mix.Project.config_mtime() > mtime
+    end)
+  end
+
   defp write_config(path \\ "config/config.exs", contents) do
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, contents)

@@ -96,22 +96,26 @@ defmodule Mix.ConfigTest do
     end
   end
 
-  test "read!/1" do
-    assert Mix.Config.read!(fixture_path("configs/good_kw.exs")) == [my_app: [key: :value]]
-    assert Mix.Config.read!(fixture_path("configs/good_config.exs")) == [my_app: [key: :value]]
-    assert Mix.Config.read!(fixture_path("configs/good_import.exs")) == [my_app: [key: :value]]
+  test "eval!/2" do
+    assert Mix.Config.eval!(fixture_path("configs/good_kw.exs")) ==
+             {[my_app: [key: :value]], [fixture_path("configs/good_kw.exs")]}
+
+    assert Mix.Config.eval!(fixture_path("configs/good_config.exs")) ==
+             {[my_app: [key: :value]], [fixture_path("configs/good_config.exs")]}
+
+    assert Mix.Config.eval!(fixture_path("configs/good_import.exs")) ==
+             {[my_app: [key: :value]],
+              [fixture_path("configs/good_config.exs"), fixture_path("configs/good_import.exs")]}
 
     assert_raise ArgumentError,
                  ~r"expected runtime config for app :sample to return keyword list",
-                 fn -> Mix.Config.read!(fixture_path("configs/bad_app.exs")) end
+                 fn -> Mix.Config.eval!(fixture_path("configs/bad_app.exs")) end
 
-    assert_raise Code.LoadError, fn ->
-      Mix.Config.read!(fixture_path("configs/bad_root.exs"))
-    end
+    assert_raise Code.LoadError,
+                 fn -> Mix.Config.eval!(fixture_path("configs/bad_root.exs")) end
 
-    assert_raise Code.LoadError, fn ->
-      Mix.Config.read!(fixture_path("configs/bad_import.exs"))
-    end
+    assert_raise Code.LoadError,
+                 fn -> Mix.Config.eval!(fixture_path("configs/bad_import.exs")) end
   end
 
   test "persist/1" do

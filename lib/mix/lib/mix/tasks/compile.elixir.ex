@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     manifest = manifest()
-    configs = Mix.Project.config_files() ++ Mix.Tasks.Compile.Erlang.manifests()
+    configs = [Mix.Project.config_mtime() | Mix.Tasks.Compile.Erlang.manifests()]
     force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
     opts = Keyword.merge(project[:elixirc_options] || [], opts)

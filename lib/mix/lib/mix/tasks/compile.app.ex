@@ -129,9 +129,9 @@ defmodule Mix.Tasks.Compile.App do
     mods = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort()
 
     target = Path.join(path, "#{app}.app")
-    sources = Mix.Project.config_files()
+    source = Mix.Project.config_mtime()
 
-    if opts[:force] || Mix.Utils.stale?(sources, [target]) || modules_changed?(mods, target) do
+    if opts[:force] || Mix.Utils.stale?([source], [target]) || modules_changed?(mods, target) do
       best_guess = [
         description: to_charlist(config[:description] || app),
         modules: mods,

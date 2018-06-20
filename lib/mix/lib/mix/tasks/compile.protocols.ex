@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Compile.Protocols do
     protocols_and_impls = protocols_and_impls(config)
 
     cond do
-      opts[:force] || Mix.Utils.stale?(Mix.Project.config_files(), [manifest]) ->
+      opts[:force] || Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest]) ->
         clean()
         paths = consolidation_paths()
 

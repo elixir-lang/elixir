@@ -214,7 +214,7 @@ defmodule Mix.Tasks.Format do
     with {:ok, binary} <- File.read(manifest),
          {:ok, {@manifest_vsn, entry, sources}} <- safe_binary_to_term(binary),
          expanded_sources = Enum.flat_map(sources, &Path.wildcard(&1, match_dot: true)),
-         false <- Mix.Utils.stale?(Mix.Project.config_files() ++ expanded_sources, [manifest]) do
+         false <- Mix.Utils.stale?([Mix.Project.config_mtime() | expanded_sources], [manifest]) do
       {entry, sources}
     else
       _ -> nil

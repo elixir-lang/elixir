@@ -167,7 +167,7 @@ defmodule Mix.Tasks.App.Start do
   end
 
   defp check_configured(loaded) do
-    configured = Mix.ProjectStack.configured_applications()
+    configured = Mix.ProjectStack.config_apps()
 
     for app <- configured -- loaded, :code.lib_dir(app) == {:error, :bad_name} do
       Mix.shell().error("""

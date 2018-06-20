@@ -316,7 +316,8 @@ defmodule Mix.Tasks.Escript.Build do
   defp gen_main(project, name, module, app, language) do
     config =
       if File.regular?(project[:config_path]) do
-        Macro.escape(Mix.Config.read!(project[:config_path]))
+        {config, _} = Mix.Config.eval!(project[:config_path])
+        Macro.escape(config)
       else
         []
       end
