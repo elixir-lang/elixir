@@ -222,17 +222,25 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
-  test "formats assertions with function call arguments" do
-    failure = [{:error, catch_assertion(assert is_list({1, 2, 3})), []}]
+  test "formats assertions with complex function call arguments" do
+    failure = [{:error, catch_assertion(assert is_list(List.to_tuple([1, 2, 3]))), []}]
 
     assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) =~ """
              1) Hello: failure on setup_all callback, test invalidated
                 Expected truthy, got false
-                code: assert is_list({1, 2, 3})
+                code: assert is_list(List.to_tuple([1, 2, 3]))
                 arguments:
 
                     # 1
                     {1, 2, 3}
+           """
+
+    failure = [{:error, catch_assertion(assert is_list({1, 2})), []}]
+
+    assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) =~ """
+             1) Hello: failure on setup_all callback, test invalidated
+                Expected truthy, got false
+                code: assert is_list({1, 2})
            """
   end
 
