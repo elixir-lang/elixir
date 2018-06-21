@@ -239,11 +239,13 @@ defmodule LoggerTest do
   end
 
   test "remove unused calls at compile time based on matching metadata" do
-    Logger.configure(compile_time_purge_matching: [
-      [module: LoggerTest.PurgeMatching, function: "two_filters/0"],
-      [function: "one_filter/0"],
-      [custom: true]
-    ])
+    Logger.configure(
+      compile_time_purge_matching: [
+        [module: LoggerTest.PurgeMatching, function: "two_filters/0"],
+        [function: "one_filter/0"],
+        [custom: true]
+      ]
+    )
 
     defmodule PurgeMatching do
       def two_filters do
