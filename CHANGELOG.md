@@ -20,7 +20,6 @@
   * [Kernel] Warn when using `length` to check if a list is not empty on guards
   * [Kernel] Add hints on mismatched `do`/`end` and others pairs
   * [Kernel] Warn when comparing structs using the `>`, `<`, `>=` and `<=` operators
-  * [Kernel] `map.field` is now allowed in guards on Erlang/OTP 21 onwards
   * [Macro] Add `Macro.special_form?/2` and `Macro.operator?/2` that returns true if the given name/arity is a special form or operator respectively
   * [Macro.Env] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
   * [Regex] Include endianness in the regex version. This allows regexes to be recompiled when an archive is installed in a system with a different endianness
