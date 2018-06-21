@@ -208,12 +208,6 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
 
 %% Remote calls
 
-translate({{'.', _, [Left, Right]}, Meta, []}, #elixir_erl{context=guard} = S)
-    when is_tuple(Left), is_atom(Right), is_list(Meta) ->
-  Ann = ?ann(Meta),
-  {TLeft, SL} = translate(Left, S),
-  {elixir_erl:remote(Ann, erlang, map_get, [{atom, Ann, Right}, TLeft]), SL};
-
 translate({{'.', _, [Left, Right]}, Meta, []}, S)
     when is_tuple(Left), is_atom(Right), is_list(Meta) ->
   {TLeft, SL}  = translate(Left, S),

@@ -149,14 +149,6 @@ defmodule MapTest do
     end
   end
 
-  if :erlang.system_info(:otp_release) >= '21' do
-    test "map dot access in guards" do
-      case @sample do
-        map when map.a == 1 -> assert(true)
-      end
-    end
-  end
-
   test "merge/3" do
     # When first map is bigger
     assert Map.merge(%{a: 1, b: 2, c: 3}, %{c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
