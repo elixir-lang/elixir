@@ -25,23 +25,24 @@ defmodule Logger do
   system. For example, it may be helpful to log whenever a user is deleted.
 
       def delete_user(user) do
-        Logger.info fn ->
-          "Deleting user from the system: #{inspect(user)}"
-        end
+        Logger.info "Deleting user from the system: #{inspect(user)}"
         # ...
       end
 
   The `Logger.info/2` macro emits the provided message at the `:info`
-  level. There are additional macros for other levels. Notice the argument
-  passed to `Logger.info/2` in the above example is a zero argument function.
+  level. Note the arguments given to `info/2` will only be evaluated
+  if a message will be logged. For instance, if the Logger level is
+  set to `:warn`, `:info` messages are never logged and therefore the
+  arguments given above won't even be executed.
 
-  The `Logger` macros also accept messages as strings, but keep in mind that
-  strings are **always** evaluated regardless of log-level. As such, it is
-  recommended to use a function whenever the message is expensive to compute.
+  There are additional macros for other levels.
 
-  Another option that does not depend on the message type is to purge the log
-  calls at compile-time using the `:compile_time_purge_level` option (see
-  below).
+  Logger also allows log commands to be removed altogether via the
+  `:compile_time_purge_level` option (see below).
+
+  For dynamically logging messages, see `bare_log/3`. But note that
+  `bare_log/3` always evaluates its arguments (unless the argument
+  is an anonymous function).
 
   ## Levels
 
@@ -627,41 +628,56 @@ defmodule Logger do
   @doc """
   Logs a message dynamically.
 
-  Use this function only when there is a need to
-  explicitly avoid embedding metadata.
+  Opposite to `log/3`, `debug/2`, `info/2`, and friends, the arguments
+  given to `bare_log/3` are always evaluated. However, you can pass
+  anonymous functions to `bare_log/3` and they will only be evaluated
+  if there is something to be logged.
   """
   @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) ::
           :ok | {:error, :noproc} | {:error, term}
-  def bare_log(level, chardata_or_fun, metadata \\ [])
-      when level in @levels and is_list(metadata) do
+  def bare_log(level, chardata_or_fun, metadata \\ []) do
+    case __should_log__(level) do
+      :error -> :ok
+      info -> __do_log__(info, chardata_or_fun, metadata)
+    end
+  end
+
+  @doc false
+  def __should_log__(level) when level in @levels do
     case __metadata__() do
       {true, pdict} ->
-        %{
-          mode: mode,
-          truncate: truncate,
-          level: min_level,
-          utc_log: utc_log?
-        } = Logger.Config.__data__()
+        %{mode: mode, level: min_level} = config = Logger.Config.__data__()
 
-        with true <- compare_levels(level, min_level) != :lt and mode != :discard,
-             metadata = [pid: self()] ++ Keyword.merge(pdict, metadata),
-             {message, metadata} <- normalize_message(chardata_or_fun, metadata) do
-          truncated = truncate(message, truncate)
-          tuple = {Logger, truncated, Logger.Utils.timestamp(utc_log?), metadata}
-
-          try do
-            notify(mode, {level, Process.group_leader(), tuple})
-            :ok
-          rescue
-            ArgumentError -> {:error, :noproc}
-          catch
-            :exit, reason -> {:error, reason}
-          end
+        if compare_levels(level, min_level) != :lt and mode != :discard do
+          {level, config, pdict}
         else
-          _ -> :ok
+          :error
         end
 
       {false, _} ->
+        :error
+    end
+  end
+
+  @doc false
+  def __do_log__({level, config, pdict}, chardata_or_fun, metadata) when is_list(metadata) do
+    %{utc_log: utc_log?, truncate: truncate, mode: mode} = config
+    metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
+
+    case normalize_message(chardata_or_fun, metadata) do
+      {message, metadata} ->
+        tuple = {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
+
+        try do
+          notify(mode, {level, Process.group_leader(), tuple})
+          :ok
+        rescue
+          ArgumentError -> {:error, :noproc}
+        catch
+          :exit, reason -> {:error, reason}
+        end
+
+      :skip ->
         :ok
     end
   end
@@ -674,8 +690,8 @@ defmodule Logger do
   ## Examples
 
       Logger.warn "knob turned too far to the right"
-      Logger.warn fn -> "expensive to calculate warning" end
-      Logger.warn fn -> {"expensive to calculate warning", [additional: :metadata]} end
+      Logger.warn fn -> "dynamically calculated warning" end
+      Logger.warn fn -> {"dynamically calculated warning", [additional: :metadata]} end
 
   """
   defmacro warn(chardata_or_fun, metadata \\ []) do
@@ -690,8 +706,8 @@ defmodule Logger do
   ## Examples
 
       Logger.info "mission accomplished"
-      Logger.info fn -> "expensive to calculate info" end
-      Logger.info fn -> {"expensive to calculate info", [additional: :metadata]} end
+      Logger.info fn -> "dynamically calculated info" end
+      Logger.info fn -> {"dynamically calculated info", [additional: :metadata]} end
 
   """
   defmacro info(chardata_or_fun, metadata \\ []) do
@@ -706,8 +722,8 @@ defmodule Logger do
   ## Examples
 
       Logger.error "oops"
-      Logger.error fn -> "expensive to calculate error" end
-      Logger.error fn -> {"expensive to calculate error", [additional: :metadata]} end
+      Logger.error fn -> "dynamically calculated error" end
+      Logger.error fn -> {"dynamically calculated error", [additional: :metadata]} end
 
   """
   defmacro error(chardata_or_fun, metadata \\ []) do
@@ -722,8 +738,8 @@ defmodule Logger do
   ## Examples
 
       Logger.debug "hello?"
-      Logger.debug fn -> "expensive to calculate debug" end
-      Logger.debug fn -> {"expensive to calculate debug", [additional: :metadata]} end
+      Logger.debug fn -> "dynamically calculated debug" end
+      Logger.debug fn -> {"dynamically calculated debug", [additional: :metadata]} end
 
   """
   defmacro debug(chardata_or_fun, metadata \\ []) do
@@ -766,7 +782,10 @@ defmodule Logger do
       no_log(data, quoted_metadata)
     else
       quote do
-        Logger.bare_log(unquote(level), unquote(data), unquote(quoted_metadata))
+        case Logger.__should_log__(unquote(level)) do
+          :error -> :ok
+          info -> Logger.__do_log__(info, unquote(data), unquote(quoted_metadata))
+        end
       end
     end
   end
