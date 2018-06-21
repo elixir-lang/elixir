@@ -85,13 +85,15 @@ defmodule Mix.Compilers.Elixir do
               into: new_paths,
               do: source
 
+        stale_local_deps = stale_local_deps(manifest, modified)
+
         {modules, structs, changed} =
           update_stale_entries(
             all_modules,
             all_sources,
             removed ++ changed,
-            stale_local_deps(manifest, modified),
-            %{}
+            stale_local_deps,
+            stale_local_deps
           )
 
         {modules, structs, changed, sources_stats}
