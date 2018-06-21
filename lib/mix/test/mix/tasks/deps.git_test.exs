@@ -145,7 +145,8 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/deps_on_git_repo/.fetch")
       assert File.exists?("deps/git_repo/.fetch")
 
-      # Compile Git repo but unload it so...
+      # Clear tasks to recompile git repo but unload it so...
+      Mix.Task.clear
       Mix.Tasks.Deps.Compile.run(["git_repo"])
       assert File.exists?("_build/dev/lib/git_repo/ebin")
       Code.delete_path("_build/dev/lib/git_repo/ebin")
