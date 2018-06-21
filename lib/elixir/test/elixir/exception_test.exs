@@ -419,7 +419,13 @@ defmodule ExceptionTest do
   end
 
   describe "blaming" do
-    test "annotates apply errors" do
+    test "does not annotate throws/exits" do
+      stack = [{Keyword, :pop, [%{}, :key, nil], [line: 13]}]
+      assert Exception.blame(:throw, :function_clause, stack) == {:function_clause, stack}
+      assert Exception.blame(:exit, :function_clause, stack) == {:function_clause, stack}
+    end
+
+    test "annotates badarg on apply" do
       assert blame_message([], & &1.foo) ==
                "you attempted to apply :foo on []. If you are using apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
@@ -436,6 +442,44 @@ defmodule ExceptionTest do
       assert blame_message(123, &apply(Kernel, :+, &1)) ==
                "you attempted to apply :+ on module Kernel with arguments 123. " <>
                  "Arguments (the third argument of apply) must always be a list"
+    end
+
+    test "annotates undefined function error with suggestions" do
+      assert blame_message(Enum, & &1.map(:ok)) == """
+             function Enum.map/1 is undefined or private. Did you mean one of:
+
+                   * map/2
+             """
+
+      assert blame_message(Enum, & &1.man(:ok)) == """
+             function Enum.man/1 is undefined or private. Did you mean one of:
+
+                   * map/2
+                   * max/1
+                   * max/2
+                   * min/1
+                   * min/2
+             """
+
+      assert blame_message(:erlang, & &1.gt_cookie()) == """
+             function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
+
+                   * get_cookie/0
+                   * set_cookie/2
+             """
+    end
+
+    test "annotates undefined function clause error with macro hints" do
+      assert blame_message(Integer, & &1.is_odd(1)) ==
+               "function Integer.is_odd/1 is undefined or private. However there is " <>
+                 "a macro with the same name and arity. Be sure to require Integer if " <>
+                 "you intend to invoke this macro"
+    end
+
+    test "annotates undefined function clause error with nil hints" do
+      assert blame_message(nil, & &1.foo) ==
+               "function nil.foo/0 is undefined. If you are using the dot syntax, " <>
+                 "such as map.field or module.function, make sure the left side of the dot is an atom or a map"
     end
 
     defp blame_message(arg, fun) do
@@ -456,12 +500,6 @@ defmodule ExceptionTest do
 
         assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
         assert stack == [{Keyword, :pop, 3, [line: 13]}]
-      end
-
-      test "does not annotate throws/exits" do
-        stack = [{Keyword, :pop, [%{}, :key, nil], [line: 13]}]
-        assert Exception.blame(:throw, :function_clause, stack) == {:function_clause, stack}
-        assert Exception.blame(:exit, :function_clause, stack) == {:function_clause, stack}
       end
 
       test "annotates args and clauses from mfa" do
@@ -514,21 +552,21 @@ defmodule ExceptionTest do
                  "{[+value+], []}"
                ]
       end
-    end
 
-    defp annotated_clauses_to_string(clauses) do
-      Enum.map(clauses, fn args_and_clauses ->
-        Macro.to_string(args_and_clauses, fn
-          %{match?: true, node: node}, _string ->
-            "+" <> Macro.to_string(node) <> "+"
+      defp annotated_clauses_to_string(clauses) do
+        Enum.map(clauses, fn args_and_clauses ->
+          Macro.to_string(args_and_clauses, fn
+            %{match?: true, node: node}, _string ->
+              "+" <> Macro.to_string(node) <> "+"
 
-          %{match?: false, node: node}, _string ->
-            "-" <> Macro.to_string(node) <> "-"
+            %{match?: false, node: node}, _string ->
+              "-" <> Macro.to_string(node) <> "-"
 
-          _node, string ->
-            string
+            _node, string ->
+              string
+          end)
         end)
-      end)
+      end
     end
   end
 
@@ -581,47 +619,7 @@ defmodule ExceptionTest do
              |> message == "function nil.bar/3 is undefined"
 
       assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0}
-             |> message ==
-               "function nil.bar/0 is undefined. If you are using the dot syntax, " <>
-                 "such as map.field or module.function, make sure the left side of the dot is an atom or a map"
-    end
-
-    test "UndefinedFunctionError with suggestions" do
-      assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1}
-             |> message == """
-             function Enum.map/1 is undefined or private. Did you mean one of:
-
-                   * map/2
-             """
-
-      assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1}
-             |> message == """
-             function Enum.man/1 is undefined or private. Did you mean one of:
-
-                   * map/2
-                   * max/1
-                   * max/2
-                   * min/1
-                   * min/2
-             """
-
-      assert %UndefinedFunctionError{module: :erlang, function: :gt_cookie, arity: 0}
-             |> message == """
-             function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
-
-                   * get_cookie/0
-                   * set_cookie/2
-             """
-    end
-
-    test "UndefinedFunctionError when the mfa is a macro but require wasn't called" do
-      _ = Code.ensure_loaded(Integer)
-
-      assert %UndefinedFunctionError{module: Integer, function: :is_odd, arity: 1}
-             |> message ==
-               "function Integer.is_odd/1 is undefined or private. However there is " <>
-                 "a macro with the same name and arity. Be sure to require Integer if " <>
-                 "you intend to invoke this macro"
+             |> message == "function nil.bar/0 is undefined"
     end
 
     test "FunctionClauseError" do

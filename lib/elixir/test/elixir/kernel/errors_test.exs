@@ -562,7 +562,7 @@ defmodule Kernel.ErrorsTest do
   test "macro with undefined local" do
     assert_eval_raise UndefinedFunctionError,
                       "function Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1" <>
-                        " is undefined (function unknown/1 is not available)",
+                        " is undefined (function not available)",
                       '''
                       defmodule Kernel.ErrorsTest.MacroWithUndefinedLocal do
                         defmacrop bar, do: unknown(1)
@@ -573,7 +573,7 @@ defmodule Kernel.ErrorsTest do
 
   test "private macro" do
     assert_eval_raise UndefinedFunctionError,
-                      "function Kernel.ErrorsTest.PrivateMacro.foo/0 is undefined (function foo/0 is not available)",
+                      "function Kernel.ErrorsTest.PrivateMacro.foo/0 is undefined (function not available)",
                       '''
                       defmodule Kernel.ErrorsTest.PrivateMacro do
                         defmacrop foo, do: 1
