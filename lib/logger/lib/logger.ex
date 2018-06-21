@@ -89,10 +89,10 @@ defmodule Logger do
       executed if the `:compile_time_purge_level` is `:info` or higher.
 
     * `:compile_time_purge_matching` - purges *at compilation time* all calls
-      that matches the given metadata. This configuration expects a list of
+      that match the given metadata. This configuration expects a list of
       keyword lists. Each keyword list contains a metadata key and the matching
-      value that should be purged. Remember that if you want to put purge log
-      calls from a dependency, the dependency must be recompiled
+      value that should be purged. Remember that if you want to purge log calls
+      from a dependency, the dependency must be recompiled.
 
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
@@ -115,7 +115,6 @@ defmodule Logger do
           [application: :foo],
           [module: Bar, function: "foo/3"]
         ]
-
 
   ### Runtime Configuration
 
