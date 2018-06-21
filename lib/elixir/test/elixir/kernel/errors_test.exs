@@ -180,7 +180,16 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, "nofile:1: unexpected token: end", '1 end'
 
     assert_eval_raise SyntaxError,
-                      ~r"you may have forgotten to define a \"do\" somewhere above line 3",
+                      ~r" HINT: it looks like the \"end\" on line 2 does not have a matching \"do\" defined before it",
+                      '''
+                      defmodule MyApp do
+                        def one end
+                        def two do end
+                      end
+                      '''
+
+    assert_eval_raise SyntaxError,
+                      ~r" HINT: it looks like the \"end\" on line 3 does not have a matching \"do\" defined before it",
                       '''
                       defmodule MyApp do
                         def one
@@ -192,7 +201,7 @@ defmodule Kernel.ErrorsTest do
                       '''
 
     assert_eval_raise SyntaxError,
-                      ~r"you may have forgotten to define a \"do\" somewhere above line 6",
+                      ~r" HINT: it looks like the \"end\" on line 6 does not have a matching \"do\" defined before it",
                       '''
                       defmodule MyApp do
                         def one do
@@ -210,7 +219,7 @@ defmodule Kernel.ErrorsTest do
                       'foo do 1'
 
     assert_eval_raise TokenMissingError,
-                      ~r"we found what looks like a non-terminated \"do\" on line 2",
+                      ~r"HINT: it looks like the \"do\" on line 2 does not have a matching \"end\"",
                       '''
                       defmodule MyApp do
                         def one do
@@ -222,7 +231,7 @@ defmodule Kernel.ErrorsTest do
                       '''
 
     assert_eval_raise SyntaxError,
-                      ~r"we found what looks like a non-terminated \"do\" on line 3",
+                      ~r"HINT: it looks like the \"do\" on line 3 does not have a matching \"end\"",
                       '''
                       defmodule MyApp do
                         (
