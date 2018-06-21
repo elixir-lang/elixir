@@ -382,6 +382,15 @@ defmodule Mix.Dep do
   def diverged?(%Mix.Dep{}), do: false
 
   @doc """
+  Returns true if the depednency is compilable.
+  """
+  def compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
+  def compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
+  def compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
+  def compilable?(%Mix.Dep{status: :compile}), do: true
+  def compilable?(_), do: false
+
+  @doc """
   Formats a dependency for printing.
   """
   def format_dep(%Mix.Dep{scm: scm, app: app, status: status, opts: opts}) do

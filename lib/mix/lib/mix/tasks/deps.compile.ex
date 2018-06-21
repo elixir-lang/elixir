@@ -30,8 +30,6 @@ defmodule Mix.Tasks.Deps.Compile do
   `b` is included in the compilation step, pass `--include-children`.
   """
 
-  import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2, make?: 1, mix?: 1]
-
   @switches [include_children: :boolean, force: :boolean]
 
   @spec run(OptionParser.argv()) :: :ok
@@ -47,10 +45,10 @@ defmodule Mix.Tasks.Deps.Compile do
         # Because this command may be invoked explicitly with
         # deps.compile, we simply try to compile any available
         # dependency.
-        compile(Enum.filter(loaded(env: Mix.env()), &available?/1), opts)
+        compile(Enum.filter(Mix.Dep.loaded(env: Mix.env()), &Mix.Dep.available?/1), opts)
 
       {opts, tail, _} ->
-        compile(loaded_by_name(tail, [env: Mix.env()] ++ opts), opts)
+        compile(Mix.Dep.loaded_by_name(tail, [env: Mix.env()] ++ opts), opts)
     end
   end
 
@@ -64,18 +62,17 @@ defmodule Mix.Tasks.Deps.Compile do
     compiled =
       Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
-
-        maybe_clean(app, options)
+        maybe_clean(dep, options)
 
         compiled? =
           cond do
             not is_nil(opts[:compile]) ->
               do_compile(dep, config)
 
-            mix?(dep) ->
+            Mix.Dep.mix?(dep) ->
               do_mix(dep, config)
 
-            make?(dep) ->
+            Mix.Dep.make?(dep) ->
               do_make(dep, config)
 
             dep.manager == :rebar ->
@@ -93,20 +90,24 @@ defmodule Mix.Tasks.Deps.Compile do
               false
           end
 
-        unless mix?(dep), do: build_structure(dep, config)
+        unless Mix.Dep.mix?(dep), do: build_structure(dep, config)
+
         # We should touch fetchable dependencies even if they
         # did not compile otherwise they will always be marked
         # as stale, even when there is nothing to do.
         fetchable? = touch_fetchable(scm, opts[:build])
+
         compiled? and fetchable?
       end)
 
     if true in compiled, do: Mix.Dep.Lock.touch_manifest(), else: :ok
   end
 
-  defp maybe_clean(app, opts) do
-    if Keyword.get(opts, :force, false) do
-      File.rm_rf!(Path.join([Mix.Project.build_path(), "lib", Atom.to_string(app)]))
+  defp maybe_clean(dep, opts) do
+    # If a dependency was marked as fetched or with an out of date lock
+    # or missing the app file, we always compile it from scratch.
+    if Keyword.get(opts, :force, false) or Mix.Dep.compilable?(dep) do
+      File.rm_rf!(Path.join([Mix.Project.build_path(), "lib", Atom.to_string(dep.app)]))
     end
   end
 
@@ -134,16 +135,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_mix(dep, _config) do
     Mix.Dep.in_dependency(dep, fn _ ->
-      if req = old_elixir_req(Mix.Project.config()) do
+      config = Mix.Project.config()
+
+      if req = old_elixir_req(config) do
         Mix.shell().error(
           "warning: the dependency #{inspect(dep.app)} requires Elixir #{inspect(req)} " <>
             "but you are running on v#{System.version()}"
         )
-      end
-
-      # Force recompilation on compile status
-      if dep.status == :compile do
-        Mix.Dep.Lock.touch_manifest()
       end
 
       try do
@@ -155,7 +153,6 @@ defmodule Mix.Tasks.Deps.Compile do
         ]
 
         res = Mix.Task.run("compile", options)
-
         match?({:ok, _}, res)
       catch
         kind, reason ->

@@ -1,8 +1,7 @@
 defmodule Mix.Tasks.Deps.Loadpaths do
   use Mix.Task
 
-  import Mix.Dep,
-    only: [loaded_by_name: 2, format_dep: 1, ok?: 1, format_status: 1, check_lock: 1]
+  import Mix.Dep, only: [loaded_by_name: 2, format_dep: 1, format_status: 1, check_lock: 1]
 
   @moduledoc """
   Checks and loads all dependencies along the way.
@@ -92,21 +91,21 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         compile
         |> Enum.map(& &1.app)
         |> loaded_by_name(env: Mix.env())
-        |> Enum.filter(&(not ok?(&1)))
+        |> Enum.filter(&(not Mix.Dep.ok?(&1)))
         |> show_not_ok!
     end
   end
 
   defp partition([dep | deps], not_ok, compile) do
     cond do
-      compilable?(dep) ->
+      Mix.Dep.compilable?(dep) or (Mix.Dep.ok?(dep) and local?(dep)) ->
         if from_umbrella?(dep) do
           partition(deps, not_ok, compile)
         else
           partition(deps, not_ok, [dep | compile])
         end
 
-      ok?(dep) ->
+      Mix.Dep.ok?(dep) ->
         partition(deps, not_ok, compile)
 
       true ->
@@ -128,13 +127,6 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   defp local?(dep) do
     not dep.scm.fetchable?
   end
-
-  # Can the dependency be compiled automatically without user intervention?
-  defp compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
-  defp compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
-  defp compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
-  defp compilable?(%Mix.Dep{status: :compile}), do: true
-  defp compilable?(%Mix.Dep{} = dep), do: ok?(dep) and local?(dep)
 
   defp show_not_ok!([]) do
     :ok
