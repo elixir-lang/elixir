@@ -214,10 +214,10 @@ defmodule LoggerTest do
            end) =~ msg_with_meta("[error] hello")
   end
 
-  test "remove unused calls at compile time" do
+  test "remove unused calls at compile time based on the level" do
     Logger.configure(compile_time_purge_level: :info)
 
-    defmodule Sample do
+    defmodule PurgeLevel do
       def debug do
         Logger.debug("hello")
       end
@@ -228,14 +228,49 @@ defmodule LoggerTest do
     end
 
     assert capture_log(fn ->
-             assert Sample.debug() == :ok
+             assert PurgeLevel.debug() == :ok
            end) == ""
 
     assert capture_log(fn ->
-             assert Sample.info() == :ok
-           end) =~ msg("module=LoggerTest.Sample [info]  hello")
+             assert PurgeLevel.info() == :ok
+           end) =~ msg("module=LoggerTest.PurgeLevel [info]  hello")
   after
     Logger.configure(compile_time_purge_level: :debug)
+  end
+
+  test "remove unused calls at compile time based on matching metadata" do
+    Logger.configure(
+      compile_time_purge_matching: [
+        [module: LoggerTest.PurgeMatching, function: "two_filters/0"],
+        [function: "one_filter/0"],
+        [custom: true]
+      ]
+    )
+
+    defmodule PurgeMatching do
+      def two_filters do
+        Logger.debug("two_filters")
+      end
+
+      def one_filter do
+        Logger.debug("one_filter")
+      end
+
+      def custom_filters do
+        Logger.debug("custom_filters", custom: true)
+      end
+
+      def works do
+        Logger.debug("works")
+      end
+    end
+
+    assert capture_log(fn -> assert PurgeMatching.works() == :ok end) =~ "works"
+    assert capture_log(fn -> assert PurgeMatching.one_filter() == :ok end) == ""
+    assert capture_log(fn -> assert PurgeMatching.two_filters() == :ok end) == ""
+    assert capture_log(fn -> assert PurgeMatching.custom_filters() == :ok end) == ""
+  after
+    Logger.configure(compile_time_purge_matching: [])
   end
 
   test "unused variable warnings suppressed when we remove macros from the AST" do
