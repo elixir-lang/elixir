@@ -177,8 +177,8 @@ defmodule StringIO do
     {:noreply, state}
   end
 
-  def handle_info(message, state) do
-    super(message, state)
+  def handle_info(_message, state) do
+    {:noreply, state}
   end
 
   @impl true
@@ -192,10 +192,6 @@ defmodule StringIO do
 
   def handle_call(:close, _from, %{input: input, output: output} = state) do
     {:stop, :normal, {:ok, {input, output}}, state}
-  end
-
-  def handle_call(request, from, state) do
-    super(request, from, state)
   end
 
   defp io_request(from, reply_as, req, state) do

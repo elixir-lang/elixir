@@ -903,6 +903,18 @@ defmodule MacroTest do
     Macro.postwalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
   end
 
+  test "operator?/2" do
+    assert Macro.operator?(:+, 2)
+    assert Macro.operator?(:+, 1)
+    refute Macro.operator?(:+, 0)
+  end
+
+  test "quoted_literal?/1" do
+    assert Macro.quoted_literal?(quote(do: "foo"))
+    assert Macro.quoted_literal?(quote(do: {"foo", 1}))
+    refute Macro.quoted_literal?(quote(do: {"foo", var}))
+  end
+
   test "underscore/1" do
     assert Macro.underscore("foo") == "foo"
     assert Macro.underscore("foo_bar") == "foo_bar"

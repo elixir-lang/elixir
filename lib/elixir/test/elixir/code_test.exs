@@ -4,7 +4,6 @@ defmodule CodeTest do
   use ExUnit.Case, async: true
 
   doctest Code
-
   import PathHelpers
 
   def genmodule(name) do
@@ -32,7 +31,7 @@ defmodule CodeTest do
       assert {3, _} = Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
     end
 
-    test "can return bindings from a different context" do
+    test "returns bindings from a different context" do
       assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a, Sample}, 1}]}
     end
 
@@ -280,5 +279,16 @@ defmodule Code.SyncTest do
 
     Code.delete_path(path)
     refute to_charlist(path) in :code.get_path()
+  end
+
+  test "purges compiler modules" do
+    quoted = quote(do: Agent.start_link(fn -> :ok end))
+    Code.compile_quoted(quoted)
+
+    {:ok, claimed} = Code.purge_compiler_modules()
+    assert claimed > 0
+
+    {:ok, claimed} = Code.purge_compiler_modules()
+    assert claimed == 0
   end
 end

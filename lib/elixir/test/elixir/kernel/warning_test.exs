@@ -1380,6 +1380,46 @@ defmodule Kernel.WarningTest do
     end
   end
 
+  test "deprecated GenServer super" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               use GenServer
+
+               def handle_call(a, b, c) do
+                 super(a, b, c)
+               end
+             end
+             """)
+           end) =~ "calling super for GenServer callback handle_call/3 is deprecated"
+  after
+    purge(Sample)
+  end
+
+  test "nested comparison operators" do
+    message =
+      capture_err(fn ->
+        Code.compile_string("""
+         1 < 3 < 5
+        """)
+      end)
+
+    assert message =~ "Elixir does not support nested comparisons"
+    assert message =~ "1 < 3 < 5"
+
+    message =
+      capture_err(fn ->
+        Code.compile_string("""
+          x = 5
+          y = 7
+          1 < x < y < 10
+        """)
+      end)
+
+    assert message =~ "Elixir does not support nested comparisons"
+    assert message =~ "1 < x < y < 10"
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end

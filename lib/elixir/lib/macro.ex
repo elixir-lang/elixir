@@ -1285,6 +1285,21 @@ defmodule Macro do
   def operator?(name, arity) when is_atom(name) and is_integer(arity), do: false
 
   @doc """
+  Returns true if the given quoted expression is an AST literal.
+  """
+  @since "1.7.0"
+  @spec quoted_literal?(literal) :: true
+  @spec quoted_literal?(expr) :: false
+  def quoted_literal?(term)
+
+  def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
+  def quoted_literal?(list) when is_list(list), do: Enum.all?(list, &quoted_literal?/1)
+
+  def quoted_literal?(term) do
+    is_atom(term) or is_number(term) or is_binary(term) or is_function(term)
+  end
+
+  @doc """
   Receives an AST node and expands it until it can no longer
   be expanded.
 

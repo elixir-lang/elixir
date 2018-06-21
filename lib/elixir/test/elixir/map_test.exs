@@ -141,7 +141,7 @@ defmodule MapTest do
     end
   end
 
-  test "map access" do
+  test "map dot access" do
     assert @sample.a == 1
 
     assert_raise KeyError, fn ->

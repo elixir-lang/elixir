@@ -455,7 +455,12 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp warning_message({:unknown_function, module, function, arity, exports}) do
-    UndefinedFunctionError.function_not_exported(module, function, arity, exports)
+    [
+      "function ",
+      Exception.format_mfa(module, function, arity),
+      " is undefined or private",
+      UndefinedFunctionError.hint_for_loaded_module(module, function, arity, exports)
+    ]
   end
 
   defp warning_message({:unknown_module, module, function, arity, _}) do

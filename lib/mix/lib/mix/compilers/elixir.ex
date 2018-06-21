@@ -85,13 +85,15 @@ defmodule Mix.Compilers.Elixir do
               into: new_paths,
               do: source
 
+        stale_local_deps = stale_local_deps(manifest, modified)
+
         {modules, structs, changed} =
           update_stale_entries(
             all_modules,
             all_sources,
             removed ++ changed,
-            stale_local_deps(manifest, modified),
-            %{}
+            stale_local_deps,
+            stale_local_deps
           )
 
         {modules, structs, changed, sources_stats}
@@ -202,6 +204,7 @@ defmodule Mix.Compilers.Elixir do
         warnings = Enum.map(warnings, &diagnostic(&1, :warning)) ++ warning_diagnostics(sources)
         {:error, warnings ++ errors}
     after
+      Code.purge_compiler_modules()
       delete_compiler_info()
     end
   end

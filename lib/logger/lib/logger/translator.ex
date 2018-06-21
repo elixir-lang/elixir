@@ -80,6 +80,7 @@ defmodule Logger.Translator do
   end
 
   ## Erlang/OTP 20 and before
+  # TODO: This clauses can be removed when we support only Erlang/OTP 21+.
 
   def translate(min_level, :error, :format, message) do
     opts = Application.get_env(:logger, :translator_inspect_opts)
@@ -102,7 +103,7 @@ defmodule Logger.Translator do
         {formatted, _reason} = format_reason(reason)
 
         msg =
-          ["GenEvent handler #{inspect(name)} installed in #{inspect(manager)} terminating"] ++
+          [":gen_event handler #{inspect(name)} installed in #{inspect(manager)} terminating"] ++
             [formatted, "\nLast message: #{inspect(last, opts)}"]
 
         if min_level == :debug do
@@ -208,7 +209,7 @@ defmodule Logger.Translator do
     {formatted, _reason} = format_reason(reason)
 
     msg =
-      ["GenEvent handler ", inspect(handler), " installed in ", inspect(name), " terminating"] ++
+      [":gen_event handler ", inspect(handler), " installed in ", inspect(name), " terminating"] ++
         [formatted, "\nLast message: ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
@@ -495,7 +496,6 @@ defmodule Logger.Translator do
   end
 
   # Erlang processes rewrite the :undef error to these reasons when logging
-  # TODO: This clause can be removed when we support only Erlang/OTP 21+.
   @gen_undef [:"module could not be loaded", :"function not exported"]
 
   defp maybe_normalize(undef, [{mod, fun, args, _info} | _] = stacktrace)

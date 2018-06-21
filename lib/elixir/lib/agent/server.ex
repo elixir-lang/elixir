@@ -23,16 +23,8 @@ defmodule Agent.Server do
     {:reply, :ok, run(fun, [state])}
   end
 
-  def handle_call(msg, from, state) do
-    super(msg, from, state)
-  end
-
   def handle_cast({:cast, fun}, state) do
     {:noreply, run(fun, [state])}
-  end
-
-  def handle_cast(msg, state) do
-    super(msg, state)
   end
 
   def code_change(_old, state, fun) do
