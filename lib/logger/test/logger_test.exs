@@ -7,6 +7,34 @@ defmodule LoggerTest do
     on_exit(fn -> Logger.configure_backend(:console, metadata: []) end)
   end
 
+  defmodule MyBackend do
+    @behaviour :gen_event
+
+    def init({MyBackend, :hello}) do
+      {:ok, :hello}
+    end
+
+    def handle_event(_event, state) do
+      {:ok, state}
+    end
+
+    def handle_call(:error, _) do
+      raise "oops"
+    end
+
+    def handle_info(_msg, state) do
+      {:ok, state}
+    end
+
+    def code_change(_old_vsn, state, _extra) do
+      {:ok, state}
+    end
+
+    def terminate(_reason, _state) do
+      :ok
+    end
+  end
+
   defp msg_with_meta(text) do
     msg("module=LoggerTest #{text}")
   end
@@ -27,37 +55,30 @@ defmodule LoggerTest do
   end
 
   test "add_backend/1 with {module, id}" do
-    defmodule MyBackend do
-      @behaviour :gen_event
-
-      def init({MyBackend, :hello}) do
-        {:ok, :hello}
-      end
-
-      def handle_event(_event, state) do
-        {:ok, state}
-      end
-
-      def handle_call(:error, _) do
-        raise "oops"
-      end
-
-      def handle_info(_msg, state) do
-        {:ok, state}
-      end
-
-      def code_change(_old_vsn, state, _extra) do
-        {:ok, state}
-      end
-
-      def terminate(_reason, _state) do
-        :ok
-      end
-    end
-
     assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
     assert {:error, :already_present} = Logger.add_backend({MyBackend, :hello})
     assert :ok = Logger.remove_backend({MyBackend, :hello})
+  end
+
+  test "logs or writes to stderr on failed backends" do
+    assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
+
+    assert capture_log(fn ->
+             :gen_event.call(Logger, {MyBackend, :hello}, :error)
+             wait_for_handler(Logger, {MyBackend, :hello})
+           end) =~
+             ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
+
+    assert :ok = Logger.remove_backend(:console)
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             :gen_event.call(Logger, {MyBackend, :hello}, :error)
+             wait_for_handler(Logger, {MyBackend, :hello})
+           end) =~
+             ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
+  after
+    Logger.remove_backend({MyBackend, :hello})
+    Logger.add_backend(:console)
   end
 
   test "level/0" do

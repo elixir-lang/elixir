@@ -102,7 +102,7 @@ defmodule Logger.Translator do
         {formatted, _reason} = format_reason(reason)
 
         msg =
-          ["GenEvent handler #{inspect(name)} installed in #{inspect(manager)} terminating"] ++
+          [":gen_event handler #{inspect(name)} installed in #{inspect(manager)} terminating"] ++
             [formatted, "\nLast message: #{inspect(last, opts)}"]
 
         if min_level == :debug do
@@ -208,7 +208,7 @@ defmodule Logger.Translator do
     {formatted, _reason} = format_reason(reason)
 
     msg =
-      ["GenEvent handler ", inspect(handler), " installed in ", inspect(name), " terminating"] ++
+      [":gen_event handler ", inspect(handler), " installed in ", inspect(name), " terminating"] ++
         [formatted, "\nLast message: ", inspect(last, inspect_opts)]
 
     if min_level == :debug do

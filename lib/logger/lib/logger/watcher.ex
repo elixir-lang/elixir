@@ -4,6 +4,9 @@ defmodule Logger.Watcher do
   require Logger
   use GenServer
 
+  # TODO: Once we remove :error_logger, there is no reason to pass
+  # the `mod` argument in, as we will only ever watch Logger handlers
+
   @doc """
   Starts a watcher server.
 
@@ -52,19 +55,33 @@ defmodule Logger.Watcher do
     message = [
       ":gen_event handler ",
       inspect(handler),
-      " installed at ",
+      " installed in ",
       inspect(mod),
+      " terminating",
       ?\n,
       "** (exit) ",
       format_exit(reason)
     ]
 
-    _ = Logger.error(message)
+    cond do
+      mod == :error_logger -> Logger.error(message)
+      logger_has_backends?() -> :ok
+      true -> IO.puts(:stderr, message)
+    end
+
     {:stop, reason, state}
   end
 
   def handle_info(_msg, state) do
     {:noreply, state}
+  end
+
+  defp logger_has_backends?() do
+    try do
+      :gen_event.which_handlers(Logger) != [Logger.Config]
+    catch
+      _, _ -> false
+    end
   end
 
   def terminate(_reason, {mod, handler}) do
