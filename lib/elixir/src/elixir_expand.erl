@@ -831,7 +831,6 @@ is_comparison_expression({{'.',_,[erlang,Op]},_,_})
   when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' -> true;
 is_comparison_expression(_Other) -> false.
 
-
 %% Lexical helpers
 
 expand_opts(Meta, Kind, Allowed, Opts, E) ->
