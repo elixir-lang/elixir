@@ -186,6 +186,10 @@ defmodule LoggerTest do
     assert capture_log(:info, fn ->
              assert Logger.debug("hello", []) == :ok
            end) == ""
+
+    assert capture_log(:info, fn ->
+             assert Logger.debug(raise("not invoked"), []) == :ok
+           end) == ""
   end
 
   test "info/2" do
@@ -196,6 +200,10 @@ defmodule LoggerTest do
     assert capture_log(:warn, fn ->
              assert Logger.info("hello", []) == :ok
            end) == ""
+
+    assert capture_log(:warn, fn ->
+             assert Logger.info(raise("not invoked"), []) == :ok
+           end) == ""
   end
 
   test "warn/2" do
@@ -205,6 +213,10 @@ defmodule LoggerTest do
 
     assert capture_log(:error, fn ->
              assert Logger.warn("hello", []) == :ok
+           end) == ""
+
+    assert capture_log(:error, fn ->
+             assert Logger.warn(raise("not invoked"), []) == :ok
            end) == ""
   end
 
