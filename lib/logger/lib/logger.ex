@@ -636,14 +636,14 @@ defmodule Logger do
   @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) ::
           :ok | {:error, :noproc} | {:error, term}
   def bare_log(level, chardata_or_fun, metadata \\ []) do
-    case __maybe_log__(level) do
+    case __should_log__(level) do
       :error -> :ok
       info -> __do_log__(info, chardata_or_fun, metadata)
     end
   end
 
   @doc false
-  def __maybe_log__(level) when level in @levels do
+  def __should_log__(level) when level in @levels do
     case __metadata__() do
       {true, pdict} ->
         %{mode: mode, level: min_level} = config = Logger.Config.__data__()
@@ -782,9 +782,9 @@ defmodule Logger do
       no_log(data, quoted_metadata)
     else
       quote do
-        case Logger.__maybe_log__(unquote(level)) do
+        case Logger.__should_log__(unquote(level)) do
           :error -> :ok
-          info -> Logger.__do_log__(info, unquote(data), unquote(metadata))
+          info -> Logger.__do_log__(info, unquote(data), unquote(quoted_metadata))
         end
       end
     end
