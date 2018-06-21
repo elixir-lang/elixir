@@ -674,6 +674,7 @@ end
 defmodule ArgumentError do
   defexception message: "argument error"
 
+  @impl true
   def blame(
         %{message: "argument error"} = exception,
         [{:erlang, :apply, [module, function, args], _} | _] = stacktrace
@@ -848,86 +849,80 @@ defmodule BadArityError do
 end
 
 defmodule UndefinedFunctionError do
-  defexception [:module, :function, :arity, :reason, :exports]
+  defexception [:module, :function, :arity, :reason, :message]
 
   @impl true
-  def message(%{reason: nil, module: module, function: function, arity: arity} = e) do
+  def message(%{message: nil} = exception) do
+    %{reason: reason, module: module, function: function, arity: arity} = exception
+    {message, _loaded?} = message(reason, module, function, arity)
+    message
+  end
+
+  def message(%{message: message}) do
+    message
+  end
+
+  defp message(nil, module, function, arity) do
     cond do
       is_nil(function) or is_nil(arity) ->
-        "undefined function"
+        {"undefined function", false}
 
       is_nil(module) ->
         formatted_fun = Exception.format_mfa(module, function, arity)
-        message = "function #{formatted_fun} is undefined"
+        {"function #{formatted_fun} is undefined", false}
 
-        if arity == 0 do
-          message <>
-            ". If you are using the dot syntax, such as map.field or module.function, " <>
-            "make sure the left side of the dot is an atom or a map"
-        else
-          message
-        end
-
-      :code.is_loaded(module) == false ->
-        message(%{e | reason: :"module could not be loaded"})
+      function_exported?(module, :module_info, 0) ->
+        message(:"function not exported", module, function, arity)
 
       true ->
-        message(%{e | reason: :"function not exported"})
+        message(:"module could not be loaded", module, function, arity)
     end
   end
 
-  def message(%{
-        reason: :"module could not be loaded",
-        module: module,
-        function: function,
-        arity: arity
-      }) do
+  defp message(:"module could not be loaded", module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
-    "function #{formatted_fun} is undefined (module #{inspect(module)} is not available)"
+    {"function #{formatted_fun} is undefined (module #{inspect(module)} is not available)", false}
   end
 
-  def message(%{
-        reason: :"function not exported",
-        module: module,
-        function: function,
-        arity: arity
-      }) do
-    IO.iodata_to_binary(function_not_exported(module, function, arity, nil))
+  defp message(:"function not exported", module, function, arity) do
+    formatted_fun = Exception.format_mfa(module, function, arity)
+    {"function #{formatted_fun} is undefined or private", true}
   end
 
-  def message(%{
-        reason: :"function not available",
-        module: module,
-        function: function,
-        arity: arity
-      }) do
-    "nil." <> fa = Exception.format_mfa(nil, function, arity)
-
-    "function " <>
-      Exception.format_mfa(module, function, arity) <>
-      " is undefined (function #{fa} is not available)"
+  defp message(reason, module, function, arity) do
+    formatted_fun = Exception.format_mfa(module, function, arity)
+    {"function #{formatted_fun} is undefined (#{reason})", false}
   end
 
-  def message(%{reason: reason, module: module, function: function, arity: arity}) do
-    "function " <> Exception.format_mfa(module, function, arity) <> " is undefined (#{reason})"
+  @impl true
+  def blame(exception, stacktrace) do
+    %{reason: reason, module: module, function: function, arity: arity} = exception
+    {message, loaded?} = message(reason, module, function, arity)
+    message = message <> hint(module, function, arity, loaded?)
+    {%{exception | message: message}, stacktrace}
+  end
+
+  defp hint(nil, _function, 0, _loaded?) do
+    ". If you are using the dot syntax, such as map.field or module.function, " <>
+      "make sure the left side of the dot is an atom or a map"
+  end
+
+  defp hint(module, function, arity, true) do
+    hint_for_loaded_module(module, function, arity, nil)
+  end
+
+  defp hint(_module, _function, _arity, _loaded?) do
+    ""
   end
 
   @doc false
-  def function_not_exported(module, function, arity, exports) do
-    suffix =
-      if macro_exported?(module, function, arity) do
-        ". However there is a macro with the same name and arity. " <>
-          "Be sure to require #{inspect(module)} if you intend to invoke this macro"
-      else
-        did_you_mean(module, function, exports)
-      end
-
-    [
-      "function ",
-      Exception.format_mfa(module, function, arity),
-      " is undefined or private",
-      suffix
-    ]
+  def hint_for_loaded_module(module, function, arity, exports) do
+    if macro_exported?(module, function, arity) do
+      ". However there is a macro with the same name and arity. " <>
+        "Be sure to require #{inspect(module)} if you intend to invoke this macro"
+    else
+      IO.iodata_to_binary(did_you_mean(module, function, exports))
+    end
   end
 
   @function_threshold 0.77

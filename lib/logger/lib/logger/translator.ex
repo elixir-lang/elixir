@@ -80,6 +80,7 @@ defmodule Logger.Translator do
   end
 
   ## Erlang/OTP 20 and before
+  # TODO: This clauses can be removed when we support only Erlang/OTP 21+.
 
   def translate(min_level, :error, :format, message) do
     opts = Application.get_env(:logger, :translator_inspect_opts)
@@ -495,7 +496,6 @@ defmodule Logger.Translator do
   end
 
   # Erlang processes rewrite the :undef error to these reasons when logging
-  # TODO: This clause can be removed when we support only Erlang/OTP 21+.
   @gen_undef [:"module could not be loaded", :"function not exported"]
 
   defp maybe_normalize(undef, [{mod, fun, args, _info} | _] = stacktrace)
