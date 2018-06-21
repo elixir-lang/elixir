@@ -612,7 +612,7 @@ defmodule Logger do
   @doc """
   Logs a message dynamically.
 
-  Opposite to `log/3`, `debug/2`, `info/2` and friends. The arguments
+  Opposite to `log/3`, `debug/2`, `info/2`, and friends, the arguments
   given to `bare_log/3` are always evaluated. However, you can pass
   anonymous functions to `bare_log/3` and they will only be evaluated
   if there is something to be logged.
