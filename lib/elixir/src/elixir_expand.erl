@@ -775,24 +775,28 @@ check_erlang_operator_args({{'.', _, [erlang, '++']}, Meta, [ELeft, _]}, [Left, 
   end;
 check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], _, E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
-  Result =
-    case is_struct_expression(ELeft) of
-      true -> Left;
-      false ->
-        case is_struct_expression(ERight) of
-          true -> Right;
-          false -> false
-        end
-    end,
-
-  case Result of
+  case is_struct_comparison(ELeft, ERight, Left, Right) of
     false ->
-      ok;
+      case is_nested_comparison(Op, ELeft, ERight, Left, Right) of
+        false -> ok;
+        CompExpr ->
+          elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {nested_comparison, CompExpr})
+      end;
     StructExpr ->
       elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, StructExpr})
   end;
 check_erlang_operator_args(_, _, _, _) ->
   ok.
+
+is_struct_comparison(ELeft, ERight, Left, Right) ->
+  case is_struct_expression(ELeft) of
+    true -> Left;
+    false ->
+      case is_struct_expression(ERight) of
+        true -> Right;
+        false -> false
+      end
+  end.
 
 is_struct_expression({'%', _, [Struct, _]}) when is_atom(Struct) ->
   true;
@@ -808,6 +812,21 @@ is_proper_list([{'|', _, [_, Tail]}]) -> is_proper_list(Tail);
 is_proper_list([_ | Tail]) -> is_proper_list(Tail);
 is_proper_list({'++', _, [_, Tail]}) -> is_proper_list(Tail);
 is_proper_list(_) -> false.
+
+is_nested_comparison(Op, ELeft, ERight, Left, Right) ->
+  NestedExpr = {elixir_utils:erlang_comparison_op_to_elixir(Op), [], [Left, Right]},
+  case is_comparison_expression(ELeft) of
+    true ->
+      NestedExpr;
+    false ->
+      case is_comparison_expression(ERight) of
+        true -> NestedExpr;
+        false -> false
+      end
+  end.
+is_comparison_expression({{'.',_,[erlang,Op]},_,_})
+  when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' -> true;
+is_comparison_expression(_Other) -> false.
 
 %% Lexical helpers
 
@@ -1162,6 +1181,17 @@ format_error({struct_comparison, StructExpr}) ->
                 "Comparing with a struct literal is unlikely to give a meaningful result. "
                 "Modules typically define a compare/2 function that can be used for "
                 "semantic comparison", [String]);
+format_error({nested_comparison, CompExpr}) ->
+  String = 'Elixir.Macro':to_string(CompExpr),
+  io_lib:format("Elixir does not support nested comparisons. Something like\n\n"
+                "     x < y < z\n\n"
+                "is equivalent to\n\n"
+                "     (x < y) < z\n\n"
+                "which ultimately compares z with the boolean result of (x < y). "
+                "Instead, consider joining together each comparison segment with an \"and\", e.g.\n\n"
+                "     x < y and y < z\n\n"
+                "You wrote: ~ts", [String]);
+
 format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
 format_error(stacktrace_not_allowed) ->
