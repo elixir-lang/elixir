@@ -776,23 +776,34 @@ check_erlang_operator_args({{'.', _, [erlang, '++']}, Meta, [ELeft, _]}, [Left, 
     false -> form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_lists_concatenation, Left});
     true -> ok
   end;
-check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], _, E)
+check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]} = Node, [Left, Right], _, E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
+
   Result =
     case is_struct_expression(ELeft) of
-      true -> Left;
+      true -> {Left, nil};
       false ->
         case is_struct_expression(ERight) of
-          true -> Right;
-          false -> false
+          true -> {Right, nil};
+          false ->
+            case is_comparison_expression(Left) of
+              true -> {nil, Node};
+              false ->
+                case is_comparison_expression(Right) of
+                  true -> {nil, Node};
+                  false -> false
+                end
+            end
         end
     end,
 
   case Result of
     false ->
       ok;
-    StructExpr ->
-      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, StructExpr})
+    {StructExpr, nil} ->
+      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, StructExpr});
+    {nil, CompExpr} ->
+      elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {nested_comparison, CompExpr})
   end;
 check_erlang_operator_args(_, _, _, _) ->
   ok.
@@ -811,6 +822,11 @@ is_proper_list([{'|', _, [_, Tail]}]) -> is_proper_list(Tail);
 is_proper_list([_ | Tail]) -> is_proper_list(Tail);
 is_proper_list({'++', _, [_, Tail]}) -> is_proper_list(Tail);
 is_proper_list(_) -> false.
+
+is_comparison_expression({Op, _Meta, [_ELeft, _ERight]})
+  when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' -> true;
+is_comparison_expression(_Other) -> false.
+
 
 %% Lexical helpers
 
@@ -1165,6 +1181,12 @@ format_error({struct_comparison, StructExpr}) ->
                 "Comparing with a struct literal is unlikely to give a meaningful result. "
                 "Modules typically define a compare/2 function that can be used for "
                 "semantic comparison", [String]);
+format_error({nested_comparison, CompExpr}) ->
+  String = 'Elixir.Macro':to_string(CompExpr),
+  io_lib:format("nested comparisons are discouraged. Instead of ~ts,"
+                "consider joining together each comparison segment "
+                "with an &&.", [String]);
+
 format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
 format_error(stacktrace_not_allowed) ->

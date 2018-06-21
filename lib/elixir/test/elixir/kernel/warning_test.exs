@@ -1396,6 +1396,22 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "nested comparison operators" do
+    assert capture_err(fn ->
+             Code.compile_string("""
+              1 < 3 < 5
+             """)
+           end) =~ "nested comparisons are discouraged"
+
+    assert capture_err(fn ->
+          Code.compile_string("""
+            x = 5
+            y = 7
+            1 < x < y
+          """)
+        end) =~ "nested comparisons are discouraged"
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end
