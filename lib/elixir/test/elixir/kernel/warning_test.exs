@@ -1397,19 +1397,23 @@ defmodule Kernel.WarningTest do
   end
 
   test "nested comparison operators" do
-    assert capture_err(fn ->
+    message = capture_err(fn ->
              Code.compile_string("""
               1 < 3 < 5
              """)
-           end) =~ "nested comparisons are discouraged"
+           end)
+    assert message =~ "Elixir does not support nested comparisons"
+    assert message =~ "1 < 3 < 5"
 
-    assert capture_err(fn ->
+    message = capture_err(fn ->
           Code.compile_string("""
             x = 5
             y = 7
-            1 < x < y
+            1 < x < y < 10
           """)
-        end) =~ "nested comparisons are discouraged"
+        end)
+    assert message =~ "Elixir does not support nested comparisons"
+    assert message =~ "1 < x < y < 10"
   end
 
   defp purge(list) when is_list(list) do
