@@ -32,7 +32,7 @@ defmodule Logger.ErrorHandlerTest do
 
   test "survives after crashes" do
     expected_result =
-      "[error] :gen_event handler Logger.ErrorHandler installed at :error_logger\n" <>
+      "[error] :gen_event handler Logger.ErrorHandler installed in :error_logger terminating\n" <>
         "** (exit) an exception was raised:"
 
     assert capture_log(fn ->
