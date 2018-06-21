@@ -778,20 +778,16 @@ check_erlang_operator_args({{'.', _, [erlang, '++']}, Meta, [ELeft, _]}, [Left, 
   end;
 check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], _, E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
-
   case is_struct_comparison(ELeft, ERight, Left, Right) of
     false ->
       case is_nested_comparison(Op, ELeft, ERight, Left, Right) of
         false -> ok;
-
         CompExpr ->
           elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {nested_comparison, CompExpr})
       end;
-
     StructExpr ->
       elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, StructExpr})
   end;
-
 check_erlang_operator_args(_, _, _, _) ->
   ok.
 
