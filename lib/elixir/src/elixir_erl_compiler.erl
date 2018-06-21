@@ -89,7 +89,7 @@ format_error(sys_core_fold, {no_effect, {erlang, make_fun, 3}}) ->
 %% Make no_effect clauses pretty
 format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
   {Fmt, Args} = case erl_internal:comp_op(F, A) of
-    true -> {"use of operator ~ts has no effect", [translate_comp_op(F)]};
+    true -> {"use of operator ~ts has no effect", [elixir_utils:erlang_comparison_op_to_elixir(F)]};
     false ->
       case erl_internal:bif(F, A) of
         false -> {"the call to :erlang.~ts/~B has no effect", [F, A]};
@@ -116,11 +116,3 @@ format_error([], Desc) ->
 
 format_error(Module, Desc) ->
   Module:format_error(Desc).
-
-%% Helpers
-
-translate_comp_op('/=') -> '!=';
-translate_comp_op('=<') -> '<=';
-translate_comp_op('=:=') -> '===';
-translate_comp_op('=/=') -> '!==';
-translate_comp_op(Other) -> Other.
