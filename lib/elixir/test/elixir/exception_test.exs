@@ -577,8 +577,13 @@ defmodule ExceptionTest do
       assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1}
              |> message == "function Foo.bar/1 is undefined (module Foo is not available)"
 
+      assert %UndefinedFunctionError{module: nil, function: :bar, arity: 3}
+             |> message == "function nil.bar/3 is undefined"
+
       assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0}
-             |> message == "function nil.bar/0 is undefined or private"
+             |> message ==
+               "function nil.bar/0 is undefined. If you are using the dot syntax, " <>
+                 "such as map.field or module.function, make sure the left side of the dot is an atom or a map"
     end
 
     test "UndefinedFunctionError with suggestions" do
