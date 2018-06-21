@@ -440,7 +440,7 @@ defmodule Kernel.ErrorsTest do
     end
 
     assert_eval_raise KeyError,
-                      "key :age not found in: %Kernel.ErrorsTest.GoodStruct{name: \"john\"}",
+                      "key :age not found",
                       '%#{GoodStruct}{age: 27}'
 
     assert_eval_raise CompileError,
