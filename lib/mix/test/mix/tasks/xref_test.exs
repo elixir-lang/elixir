@@ -1231,13 +1231,14 @@ defmodule Mix.Tasks.XrefTest do
           Mix.Tasks.Xref.run(["graph", "--format", "stats", "--include-siblings"])
 
           assert receive_until_no_messages([]) == """
-                 Tracked files: 2 (nodes)
+                 Tracked files: 3 (nodes)
                  Compile dependencies: 0 (edges)
                  Structs dependencies: 0 (edges)
                  Runtime dependencies: 1 (edges)
 
-                 Top 2 files with most outgoing dependencies:
+                 Top 3 files with most outgoing dependencies:
                    * lib/bar.ex (1)
+                   * lib/foo_struct.ex (0)
                    * lib/foo.ex (0)
 
                  Top 1 files with most incoming dependencies:

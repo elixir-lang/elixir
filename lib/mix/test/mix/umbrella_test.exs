@@ -326,7 +326,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "recompiles after path dependency changes" do
+  test "recompiles after runtime path dependency changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Task.run("compile", ["--verbose"])
@@ -360,22 +360,49 @@ defmodule Mix.UmbrellaTest do
         # Noop for runtime dependencies
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
-
-        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+      end)
+    end)
+  end
+
+  test "recompiles after compile time path dependency changes" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        Mix.Task.run("compile", ["--verbose"])
 
         # Add compile time dependency
         File.write!("lib/bar.ex", "defmodule Bar, do: Foo.foo")
+
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for compile time dependencies
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
+        ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+      end)
+    end)
+  end
+
+  test "recompiles after struct path dependency changes" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        Mix.Task.run("compile", ["--verbose"])
+
+        # Add struct dependency
+        File.write!("lib/bar.ex", "defmodule Bar, do: %FooStruct{bar: true}")
+
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # Recompiles for struct dependencies
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.FooStruct.beam", mtime)
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
