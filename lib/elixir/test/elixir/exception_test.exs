@@ -418,9 +418,36 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
   end
 
-  # TODO: Remove this check once we depend only on 20
-  if :erlang.system_info(:otp_release) >= '20' do
-    describe "blaming" do
+  describe "blaming" do
+    test "annotates apply errors" do
+      assert blame_message([], & &1.foo) ==
+               "you attempted to apply :foo on []. If you are using apply/3, make sure " <>
+                 "the module is an atom. If you are using the dot syntax, such as " <>
+                 "map.field or module.function, make sure the left side of the dot is an atom or a map"
+
+      assert blame_message([], &apply(&1, :foo, [])) ==
+               "you attempted to apply :foo on []. If you are using apply/3, make sure " <>
+                 "the module is an atom. If you are using the dot syntax, such as " <>
+                 "map.field or module.function, make sure the left side of the dot is an atom or a map"
+
+      assert blame_message([], &apply(Kernel, &1, [1, 2])) ==
+               "you attempted to apply [] on module Kernel. Functions (the second argument of apply) must always be an atom"
+
+      assert blame_message(123, &apply(Kernel, :+, &1)) ==
+               "you attempted to apply :+ on module Kernel with arguments 123. " <>
+                 "Arguments (the third argument of apply) must always be a list"
+    end
+
+    defp blame_message(arg, fun) do
+      try do
+        fun.(arg)
+      rescue
+        e -> Exception.blame(:error, e, __STACKTRACE__) |> elem(0) |> Exception.message()
+      end
+    end
+
+    # TODO: Remove this check once we depend only on 20
+    if :erlang.system_info(:otp_release) >= '20' do
       test "annotates function clause errors" do
         args = [%{}, :key, nil]
 

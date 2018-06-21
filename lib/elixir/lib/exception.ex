@@ -127,8 +127,8 @@ defmodule Exception do
   It relies on `format_banner/3` and `format_stacktrace/1`
   to generate the final format.
 
-  Note that `{:EXIT, pid}` do not generate a stacktrace though
-  (as they are retrieved as messages without stacktraces).
+  If `kind` is `{:EXIT, pid}`, it does not generate a stacktrace,
+  as such exits are retrieved as messages without stacktraces.
   """
   @spec format(kind, any, stacktrace) :: String.t()
   def format(kind, payload, stacktrace \\ [])
@@ -673,6 +673,39 @@ end
 
 defmodule ArgumentError do
   defexception message: "argument error"
+
+  def blame(
+        %{message: "argument error"} = exception,
+        [{:erlang, :apply, [module, function, args], _} | _] = stacktrace
+      ) do
+    message =
+      cond do
+        # Note that args may be an empty list even if they were supplied
+        not is_atom(module) and is_atom(function) and args == [] ->
+          "you attempted to apply #{inspect(function)} on #{inspect(module)}. " <>
+            "If you are using apply/3, make sure the module is an atom. " <>
+            "If you are using the dot syntax, such as map.field or module.function, " <>
+            "make sure the left side of the dot is an atom or a map"
+
+        not is_atom(module) ->
+          "you attempted to apply a function on #{inspect(module)}. " <>
+            "Modules (the first argument of apply) must always be an atom"
+
+        not is_atom(function) ->
+          "you attempted to apply #{inspect(function)} on module #{inspect(module)}. " <>
+            "Functions (the second argument of apply) must always be an atom"
+
+        not is_list(args) ->
+          "you attempted to apply #{inspect(function)} on module #{inspect(module)} " <>
+            "with arguments #{inspect(args)}. Arguments (the third argument of apply) must always be a list"
+      end
+
+    {%{exception | message: message}, stacktrace}
+  end
+
+  def blame(exception, stacktrace) do
+    {exception, stacktrace}
+  end
 end
 
 defmodule ArithmeticError do
