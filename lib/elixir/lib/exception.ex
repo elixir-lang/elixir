@@ -856,7 +856,19 @@ defmodule UndefinedFunctionError do
       is_nil(function) or is_nil(arity) ->
         "undefined function"
 
-      not is_nil(module) and :code.is_loaded(module) == false ->
+      is_nil(module) ->
+        formatted_fun = Exception.format_mfa(module, function, arity)
+        message = "function #{formatted_fun} is undefined"
+
+        if arity == 0 do
+          message <>
+            ". If you are using the dot syntax, such as map.field or module.function, " <>
+            "make sure the left side of the dot is an atom or a map"
+        else
+          message
+        end
+
+      :code.is_loaded(module) == false ->
         message(%{e | reason: :"module could not be loaded"})
 
       true ->
@@ -1233,6 +1245,7 @@ defmodule ErlangError do
         [{Map, :update!, [map, _, _], _} | _] -> map
         [{:maps, :update, [_, _, map], _} | _] -> map
         [{:maps, :get, [_, map], _} | _] -> map
+        [{:erlang, :map_get, [_, map], _} | _] -> map
         _ -> nil
       end
 
