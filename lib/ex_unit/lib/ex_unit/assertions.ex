@@ -326,8 +326,10 @@ defmodule ExUnit.Assertions do
     reserved? =
       is_atom(root) and (Macro.special_form?(root, arity) or Macro.operator?(root, arity))
 
+    all_quoted_literals? = Enum.all?(args, &Macro.quoted_literal?/1)
+
     case Macro.expand_once(expr, env) do
-      ^expr when not reserved? ->
+      ^expr when not reserved? and not all_quoted_literals? ->
         vars = for i <- 1..arity, do: Macro.var(:"arg#{i}", __MODULE__)
 
         quoted =
