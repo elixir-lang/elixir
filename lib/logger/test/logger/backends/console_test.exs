@@ -43,7 +43,7 @@ defmodule Logger.Backends.ConsoleTest do
            end) =~ "hello"
   end
 
-  test "can configure format" do
+  test "configures format" do
     Logger.configure_backend(:console, format: "$message [$level]")
 
     assert capture_log(fn ->
@@ -51,7 +51,7 @@ defmodule Logger.Backends.ConsoleTest do
            end) =~ "hello [debug]"
   end
 
-  test "can configure metadata" do
+  test "configures metadata" do
     Logger.configure_backend(:console, format: "$metadata$message", metadata: [:user_id])
 
     assert capture_log(fn ->
@@ -66,7 +66,7 @@ defmodule Logger.Backends.ConsoleTest do
            end) =~ "user_id=13 hello"
   end
 
-  test "can configure formatter to {module, function} tuple" do
+  test "configures formatter to {module, function} tuple" do
     Logger.configure_backend(:console, format: {__MODULE__, :format})
 
     assert capture_log(fn ->
@@ -78,7 +78,7 @@ defmodule Logger.Backends.ConsoleTest do
     "my_format: #{message}"
   end
 
-  test "can configure metadata to :all" do
+  test "configures metadata to :all" do
     Logger.configure_backend(:console, format: "$metadata", metadata: :all)
 
     Logger.metadata(user_id: 11)
@@ -98,7 +98,7 @@ defmodule Logger.Backends.ConsoleTest do
     assert log =~ "dynamic_metadata=5 user_id=11"
   end
 
-  test "metadata defaults" do
+  test "provides metadata defaults" do
     metadata = [:file, :line, :module, :function]
     Logger.configure_backend(:console, format: "$metadata", metadata: metadata)
 
@@ -110,7 +110,7 @@ defmodule Logger.Backends.ConsoleTest do
              "file=#{file} line=#{line + 3} module=#{inspect(mod)} function=#{name}/#{arity}"
   end
 
-  test "can configure level" do
+  test "configures level" do
     Logger.configure_backend(:console, level: :info)
 
     assert capture_log(fn ->
@@ -118,7 +118,7 @@ defmodule Logger.Backends.ConsoleTest do
            end) == ""
   end
 
-  test "can configure colors" do
+  test "configures colors" do
     Logger.configure_backend(:console, format: "$message", colors: [enabled: true])
 
     assert capture_log(fn ->
@@ -162,7 +162,7 @@ defmodule Logger.Backends.ConsoleTest do
            end) == IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
   end
 
-  test "can use colors from metadata" do
+  test "uses colors from metadata" do
     Logger.configure_backend(:console, format: "$message", colors: [enabled: true])
 
     assert capture_log(fn ->
