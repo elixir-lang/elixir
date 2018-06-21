@@ -392,17 +392,19 @@ defmodule Mix.UmbrellaTest do
   test "recompiles after struct path dependency changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
+        File.write!("../foo/lib/foo.ex", "defmodule Foo, do: defstruct [:bar]")
+
         Mix.Task.run("compile", ["--verbose"])
 
         # Add struct dependency
-        File.write!("lib/bar.ex", "defmodule Bar, do: %FooStruct{bar: true}")
+        File.write!("lib/bar.ex", "defmodule Bar, do: %Foo{bar: true}")
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for struct dependencies
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("_build/dev/lib/foo/ebin/Elixir.FooStruct.beam", mtime)
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
