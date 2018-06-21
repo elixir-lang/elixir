@@ -88,18 +88,33 @@ defmodule Logger do
       #{perform_cleanup()}")` as in the example `perform_cleanup/0` won't be
       executed if the `:compile_time_purge_level` is `:info` or higher.
 
+    * `:compile_time_purge_matching` - purges *at compilation time* all calls
+      that match the given metadata. This configuration expects a list of
+      keyword lists. Each keyword list contains a metadata key and the matching
+      value that should be purged. Remember that if you want to purge log calls
+      from a dependency, the dependency must be recompiled.
+
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
       usually only useful for build tools to automatically add the
       application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc.
       style of calls.
 
-  For example, to configure the `:backends` and `compile_time_purge_level`
+  For example, to configure the `:backends` and `:compile_time_purge_level`
   options in a `config/config.exs` file:
 
       config :logger,
         backends: [:console],
         compile_time_purge_level: :info
+
+  If you want to purge all log calls from an application named `:foo` or
+  the function "foo/3" from module `Bar`, you can set up two different matches:
+
+      config :logger,
+        compile_time_purge_matching: [
+          [application: :foo],
+          [module: Bar, function: "foo/3"]
+        ]
 
   ### Runtime Configuration
 
@@ -512,8 +527,9 @@ defmodule Logger do
   documentation for the available options.
   """
   @valid_options [
-    :compile_time_purge_level,
     :compile_time_application,
+    :compile_time_purge_level,
+    :compile_time_purge_matching,
     :sync_threshold,
     :truncate,
     :level,
@@ -735,17 +751,23 @@ defmodule Logger do
       compile_time_application_and_file(file) ++
         [module: module, function: form_fa(fun), line: line]
 
-    metadata =
+    {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
-        Keyword.merge(caller, metadata)
+        metadata = Keyword.merge(caller, metadata)
+        {metadata, metadata}
       else
-        quote do
-          Keyword.merge(unquote(caller), unquote(metadata))
-        end
+        {metadata,
+         quote do
+           Keyword.merge(unquote(caller), unquote(metadata))
+         end}
       end
 
-    quote do
-      Logger.bare_log(unquote(level), unquote(data), unquote(metadata))
+    if compile_time_purge_matching?(compile_metadata) do
+      no_log(data, quoted_metadata)
+    else
+      quote do
+        Logger.bare_log(unquote(level), unquote(data), unquote(quoted_metadata))
+      end
     end
   end
 
@@ -757,18 +779,37 @@ defmodule Logger do
     end
   end
 
+  defp compile_time_purge_matching?(compile_metadata) do
+    matching = Application.get_env(:logger, :compile_time_purge_matching, [])
+
+    Enum.any?(matching, fn filter ->
+      Enum.all?(filter, fn
+        {k, v} when is_atom(k) ->
+          Keyword.fetch(compile_metadata, k) == {:ok, v}
+
+        _ ->
+          raise "expected :compile_time_purge_matching to be a list of keyword lists, " <>
+                  "got: #{inspect(matching)}"
+      end)
+    end)
+  end
+
   defp maybe_log(level, data, metadata, caller) do
     min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)
 
     if compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
-      # We wrap the contents in an anonymous function
-      # to avoid unused variable warnings.
-      quote do
-        _ = fn -> {unquote(data), unquote(metadata)} end
-        :ok
-      end
+      no_log(data, metadata)
+    end
+  end
+
+  defp no_log(data, metadata) do
+    # We wrap the contents in an anonymous function
+    # to avoid unused variable warnings.
+    quote do
+      _ = fn -> {unquote(data), unquote(metadata)} end
+      :ok
     end
   end
 
