@@ -1164,10 +1164,14 @@ defmodule Enum do
   @doc """
   Inserts the given `enumerable` into a `collectable`.
 
+  Note that passing a non-empty list as the `collectable` is deprecated. If you're collecting
+  into a non-empty keyword list, consider using `Keyword.merge/2`. If you're collecting into a
+  non-empty list, consider something like `to_list(enumerable) ++ collectable`.
+
   ## Examples
 
-      iex> Enum.into([1, 2], [0])
-      [0, 1, 2]
+      iex> Enum.into([1, 2], [])
+      [1, 2]
 
       iex> Enum.into([a: 1, b: 2], %{})
       %{a: 1, b: 2}
@@ -1180,7 +1184,20 @@ defmodule Enum do
 
   """
   @spec into(Enumerable.t(), Collectable.t()) :: Collectable.t()
+  def into(enumerable, collectable)
+
+  def into(enumerable, []) do
+    to_list(enumerable)
+  end
+
   def into(enumerable, collectable) when is_list(collectable) do
+    IO.warn(
+      "passing a non-empty list as the second argument to Enum.into/2 is deprecated " <>
+        "because the behaviour is incorrect. If you're collecting into a non-empty keyword " <>
+        "list, consider using Keyword.merge/2 instead. If you're collecting into a non-empty " <>
+        "list, consider appending the first argument to Enum.into/2 to the collectable"
+    )
+
     collectable ++ to_list(enumerable)
   end
 
