@@ -356,8 +356,8 @@ defmodule GenServer do
 
   Returning `{:ok, state, {:continue, continue}}` is similar to
   `{:ok, state}` except that immediately after entering the loop
-  the `c:handle_continue/2` callback will be invoked with `Continue`
-  as first argument.
+  the `c:handle_continue/2` callback will be invoked with the value
+  `continue` as first argument.
 
   Returning `:ignore` will cause `start_link/3` to return `:ignore` and
   the process will exit normally without entering the loop or calling
@@ -409,7 +409,7 @@ defmodule GenServer do
 
   Returning `{:reply, reply, new_state, {:continue, continue}}` is similar to
   `{:reply, reply, new_state}` except `c:handle_continue/2` will be invoked
-  immediately after with `continue` as first argument.
+  immediately after with the value `continue` as first argument.
 
   Hibernating should not be used aggressively as too much time could be spent
   garbage collecting. Normally it should only be used when a message is not
@@ -473,7 +473,7 @@ defmodule GenServer do
 
   Returning `{:noreply, new_state, {:continue, continue}}` is similar to
   `{:nreply, new_state}` except `c:handle_continue/2` will be invoked
-  immediately after with `continue` as first argument.
+  immediately after with the value `continue` as first argument.
 
   Returning `{:stop, reason, new_state}` stops the loop and `c:terminate/2` is
   called with the reason `reason` and state `new_state`. The process exits with
