@@ -493,7 +493,7 @@ defmodule DynamicSupervisor do
 
     * `:max_children` - the maximum amount of children to be running
       under this supervisor at the same time. When `:max_children` is
-      exceeded, `start_child/2` returns `{:error, :dynamic}`. Defaults
+      exceeded, `start_child/2` returns `{:error, :max_children}`. Defaults
       to `:infinity`.
 
     * `:extra_arguments` - arguments that are prepended to the arguments
