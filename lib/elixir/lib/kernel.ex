@@ -3145,7 +3145,7 @@ defmodule Kernel do
 
   Assignment is also possible with the pipe operator.  In the example below we
   assign flatten list to the variable `flattened_list`:
-  
+
       iex> flattened_list = [1, [2], 3] |> List.flatten()
       [1, 2, 3]
 
