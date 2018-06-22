@@ -3149,6 +3149,12 @@ defmodule Kernel do
 
       Enum.map(List.flatten([1, [2], 3]), fn x -> x * 2 end)
 
+  Assignment is also possible with the pipe operator.  In the example below we
+  assign flatten list to the variable `flattened_list`:
+
+      iex> flattened_list = [1, [2], 3] |> List.flatten()
+      [1, 2, 3]
+
   ## Pitfalls
 
   There are two common pitfalls when using the pipe operator.
