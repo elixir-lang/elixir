@@ -1190,10 +1190,6 @@ defmodule Enum do
     to_list(enumerable)
   end
 
-  def into(enumerable, collectable) when is_list(collectable) do
-    into_protocol(enumerable, collectable)
-  end
-
   def into(%_{} = enumerable, collectable) do
     into_protocol(enumerable, collectable)
   end
