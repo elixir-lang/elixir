@@ -1191,14 +1191,7 @@ defmodule Enum do
   end
 
   def into(enumerable, collectable) when is_list(collectable) do
-    IO.warn(
-      "passing a non-empty list as the second argument to Enum.into/2 is deprecated " <>
-        "because the behaviour is incorrect. If you're collecting into a non-empty keyword " <>
-        "list, consider using Keyword.merge/2 instead. If you're collecting into a non-empty " <>
-        "list, consider appending the first argument to Enum.into/2 to the collectable"
-    )
-
-    collectable ++ to_list(enumerable)
+    into_protocol(enumerable, collectable)
   end
 
   def into(%_{} = enumerable, collectable) do

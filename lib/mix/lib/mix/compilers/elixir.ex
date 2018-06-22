@@ -82,8 +82,9 @@ defmodule Mix.Compilers.Elixir do
               {last_mtime, last_size} = Map.fetch!(sources_stats, source),
               times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
               size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
-              into: new_paths,
               do: source
+
+        changed = new_paths ++ changed
 
         stale_local_deps = stale_local_deps(manifest, modified)
 
