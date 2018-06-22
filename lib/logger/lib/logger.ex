@@ -31,7 +31,7 @@ defmodule Logger do
 
   The `Logger.info/2` macro emits the provided message at the `:info`
   level. Note the arguments given to `info/2` will only be evaluated
-  if a message will be logged. For instance, if the Logger level is
+  if a message is logged. For instance, if the Logger level is
   set to `:warn`, `:info` messages are never logged and therefore the
   arguments given above won't even be executed.
 
