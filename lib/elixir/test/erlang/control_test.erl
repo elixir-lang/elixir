@@ -215,6 +215,18 @@ optimized_oror_test() ->
     {clause, 1, [{var, 1, Var}], [], [{var, 1, Var}]}]
   } = to_erl("is_list([]) || :done").
 
+optimized_and_test() ->
+  {'case',_, _,
+   [{clause, _, [{atom, 0, false}], [], [{atom, 0, false}]},
+    {clause, _, [{atom, 0, true}], [], [{atom, 0, done}]}]
+  } = to_erl("is_list([]) and :done").
+
+optimized_or_test() ->
+  {'case', _, _,
+    [{clause, _, [{atom, 0, false}], [], [{atom, 0, done}]},
+     {clause, _, [{atom, 0, true}], [], [{atom, 0, true}]}]
+  } = to_erl("is_list([]) or :done").
+
 no_after_in_try_test() ->
   {'try', _, [_], [_], _, []} = to_erl("try do :foo.bar() else _ -> :ok end").
 
