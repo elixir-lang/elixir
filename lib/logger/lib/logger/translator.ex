@@ -14,7 +14,7 @@ defmodule Logger.Translator do
     * `min_level` - the current Logger level
     * `level` - the level of the message being translated
     * `kind` - if the message is a `:report` or `:format`
-    * `message` - the message to format. If it is :report`, it is a tuple
+    * `message` - the message to format. If it is `:report`, it is a tuple
       with `{report_type, report_data}`, if it is `:format`, it is a
       tuple with `{format_message, format_args}`.
 
