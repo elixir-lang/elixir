@@ -2041,8 +2041,11 @@ defmodule Kernel do
   function.
 
   If a key is a function, the function will be invoked
-  passing three arguments, the operation (`:get`), the
-  data to be accessed, and a function to be invoked next.
+  passing three arguments: 
+  
+    * the operation (`:get`)
+    * the data to be accessed
+    * a function to be invoked next
 
   This means `get_in/2` can be extended to provide
   custom lookups. The downside is that functions cannot be
@@ -2054,8 +2057,8 @@ defmodule Kernel do
       iex> get_in(users, ["john", :age])
       27
 
-  In case any of entries in the middle returns `nil`, `nil` will be returned
-  as per the Access module:
+  In case of any of the entries in the middle returns `nil`, `nil` will 
+  be returned as per the `Access` module:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])
@@ -2100,7 +2103,7 @@ defmodule Kernel do
       iex> put_in(users, ["john", :age], 28)
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  In case any of entries in the middle returns `nil`,
+  In case of any of the entries in the middle returns `nil`,
   an error will be raised when trying to access it next.
   """
   @spec put_in(Access.t(), nonempty_list(term), term) :: Access.t()
@@ -2122,7 +2125,7 @@ defmodule Kernel do
       iex> update_in(users, ["john", :age], &(&1 + 1))
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  In case any of entries in the middle returns `nil`,
+  In case of any of the entries in the middle returns `nil`,
   an error will be raised when trying to access it next.
   """
   @spec update_in(Access.t(), nonempty_list(term), (term -> term)) :: Access.t()
@@ -2227,7 +2230,7 @@ defmodule Kernel do
       iex> pop_in(users, ["john", :age])
       {27, %{"john" => %{}, "meg" => %{age: 23}}}
 
-  In case any entry returns `nil`, its key will be removed
+  In case of any entry returns `nil`, its key will be removed
   and the deletion will be considered a success.
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
@@ -2324,7 +2327,7 @@ defmodule Kernel do
       iex> pop_in(users.john[:age])
       {27, %{john: %{}, meg: %{age: 23}}}
 
-  In case any entry returns `nil`, its key will be removed
+  In case of any entry returns `nil`, its key will be removed
   and the deletion will be considered a success.
   """
   defmacro pop_in(path) do
