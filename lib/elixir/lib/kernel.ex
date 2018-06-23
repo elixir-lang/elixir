@@ -2042,7 +2042,7 @@ defmodule Kernel do
 
   If a key is a function, the function will be invoked
   passing three arguments: 
-  
+
     * the operation (`:get`)
     * the data to be accessed
     * a function to be invoked next
