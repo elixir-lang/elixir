@@ -1540,14 +1540,9 @@ defmodule Kernel do
     optimize_boolean(
       quote do
         case unquote(check) do
-          true ->
-            unquote(true_clause)
-
-          false ->
-            unquote(false_clause)
-
-          other ->
-            :erlang.error(BadBooleanError.exception(operator: unquote(operator), term: other))
+          false -> unquote(false_clause)
+          true -> unquote(true_clause)
+          other -> :erlang.error({:badbool, unquote(operator), other})
         end
       end
     )
