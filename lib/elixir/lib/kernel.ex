@@ -2057,7 +2057,7 @@ defmodule Kernel do
       iex> get_in(users, ["john", :age])
       27
 
-  In case of any of the entries in the middle returns `nil`, `nil` will 
+  In case any of the entries in the middle returns `nil`, `nil` will 
   be returned as per the `Access` module:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
