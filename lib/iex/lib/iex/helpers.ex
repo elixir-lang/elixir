@@ -480,7 +480,7 @@ defmodule IEx.Helpers do
     |> Enum.map_join(", ", &inspect/1)
   end
 
-  @runtime_info_topics [:system, :memory, :memory_details, :limits, :applications]
+  @runtime_info_topics [:system, :memory, :allocators, :limits, :applications]
   @doc """
   Prints vm/runtime information such as versions, memory usage and statistics.
   Additional topics are available via `runtime_info/1`.
@@ -542,27 +542,30 @@ defmodule IEx.Helpers do
     print_memory("Processes", :processes)
   end
 
-  defp print_runtime_info_topic(:memory_details) do
-    print_pane("Memory Details")
-    print_memory_detail("Atom Space", :atom_space)
-    print_memory_detail("Atom Table", :atom_table)
-    print_memory_detail("BIF Timer", :bif_timer)
-    print_memory_detail("Bits Bufs Size", :bits_bufs_size)
-    print_memory_detail("Dist Table", :dist_table)
-    print_memory_detail("ETS Misc", :ets_misc)
-    print_memory_detail("Export List", :export_list)
-    print_memory_detail("Export Table", :export_table)
-    print_memory_detail("Function Table", :fun_table)
-    print_memory_detail("Link LH", :link_lh)
-    print_memory_detail("Loaded Code", :loaded_code)
-    print_memory_detail("Module Refs", :module_refs)
-    print_memory_detail("Module Table", :module_table)
-    print_memory_detail("Node Table", :node_table)
-    print_memory_detail("Port Table", :port_table)
-    print_memory_detail("Process Table", :process_table)
-    print_memory_detail("Register Table", :register_table)
-    print_memory_detail("Static", :static)
-    print_memory_detail("System Misc", :sys_misc)
+  defp print_runtime_info_topic(:allocators) do
+    print_pane("Allocators")
+
+    areas = :erlang.system_info(:allocated_areas)
+
+    print_allocator(areas, "Atom Space", :atom_space)
+    print_allocator(areas, "Atom Table", :atom_table)
+    print_allocator(areas, "BIF Timer", :bif_timer)
+    print_allocator(areas, "Bits Bufs Size", :bits_bufs_size)
+    print_allocator(areas, "Dist Table", :dist_table)
+    print_allocator(areas, "ETS Misc", :ets_misc)
+    print_allocator(areas, "Export List", :export_list)
+    print_allocator(areas, "Export Table", :export_table)
+    print_allocator(areas, "Function Table", :fun_table)
+    print_allocator(areas, "Link LH", :link_lh)
+    print_allocator(areas, "Loaded Code", :loaded_code)
+    print_allocator(areas, "Module Refs", :module_refs)
+    print_allocator(areas, "Module Table", :module_table)
+    print_allocator(areas, "Node Table", :node_table)
+    print_allocator(areas, "Port Table", :port_table)
+    print_allocator(areas, "Process Table", :process_table)
+    print_allocator(areas, "Register Table", :register_table)
+    print_allocator(areas, "Static", :static)
+    print_allocator(areas, "System Misc", :sys_misc)
   end
 
   defp print_runtime_info_topic(:limits) do
@@ -625,12 +628,8 @@ defmodule IEx.Helpers do
     IO.puts("#{pad_key(key)}#{format_bytes(value)}")
   end
 
-  defp print_memory_detail(key, probe) do
-    probe =
-      :erlang.system_info(:allocated_areas)
-      |> List.keyfind(probe, 0)
-
-    case probe do
+  defp print_allocator(allocated_areas, key, probe) do
+    case List.keyfind(allocated_areas, probe, 0) do
       {_, allocated, used} ->
         IO.puts("#{pad_key(key)}#{format_bytes(allocated)} (#{format_bytes(used)} used)")
 
