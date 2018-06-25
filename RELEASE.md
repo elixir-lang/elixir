@@ -22,7 +22,7 @@ This document simply outlines the release process:
 
 9. Push branch and the new tag
 
-10. Publish new zips with `make zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases
+10. Publish new zips with `make zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases, and include SHAs+CHANGELOG
 
 11. Add the release to `elixir.csv` and `_data/elixir-versions.yml` files in `elixir-lang/elixir-lang.github.com`
 
