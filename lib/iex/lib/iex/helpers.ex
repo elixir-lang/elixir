@@ -480,7 +480,7 @@ defmodule IEx.Helpers do
     |> Enum.map_join(", ", &inspect/1)
   end
 
-  @runtime_info_topics [:system, :memory, :limits, :applications]
+  @runtime_info_topics [:system, :memory, :allocators, :limits, :applications]
   @doc """
   Prints vm/runtime information such as versions, memory usage and statistics.
   Additional topics are available via `runtime_info/1`.
@@ -534,12 +534,37 @@ defmodule IEx.Helpers do
 
   defp print_runtime_info_topic(:memory) do
     print_pane("Memory")
-    print_memory("Total", :total, :MB)
+    print_memory("Total", :total)
     print_memory("Atoms", :atom)
     print_memory("Binaries", :binary)
     print_memory("Code", :code)
     print_memory("ETS", :ets)
     print_memory("Processes", :processes)
+  end
+
+  defp print_runtime_info_topic(:allocators) do
+    print_pane("Allocators")
+
+    areas = :erlang.system_info(:allocated_areas)
+
+    print_allocator(areas, "Atom Space", :atom_space)
+    print_allocator(areas, "Atom Table", :atom_table)
+    print_allocator(areas, "BIF Timer", :bif_timer)
+    print_allocator(areas, "Bits Bufs Size", :bits_bufs_size)
+    print_allocator(areas, "Dist Table", :dist_table)
+    print_allocator(areas, "ETS Misc", :ets_misc)
+    print_allocator(areas, "Export List", :export_list)
+    print_allocator(areas, "Export Table", :export_table)
+    print_allocator(areas, "Function Table", :fun_table)
+    print_allocator(areas, "Loaded Code", :loaded_code)
+    print_allocator(areas, "Module Refs", :module_refs)
+    print_allocator(areas, "Module Table", :module_table)
+    print_allocator(areas, "Node Table", :node_table)
+    print_allocator(areas, "Port Table", :port_table)
+    print_allocator(areas, "Process Table", :process_table)
+    print_allocator(areas, "Register Table", :register_table)
+    print_allocator(areas, "Static", :static)
+    print_allocator(areas, "System Misc", :sys_misc)
   end
 
   defp print_runtime_info_topic(:limits) do
@@ -597,18 +622,47 @@ defmodule IEx.Helpers do
   defp get_stat(:ets_count), do: length(:ets.all())
   defp get_stat(other), do: :erlang.system_info(other)
 
-  defp print_memory(key, memory, unit \\ :kB) do
+  defp print_memory(key, memory) do
+    value = :erlang.memory(memory)
+    IO.puts("#{pad_key(key)}#{format_bytes(value)}")
+  end
+
+  defp print_allocator(allocated_areas, key, probe) do
+    case List.keyfind(allocated_areas, probe, 0) do
+      {_, allocated, used} ->
+        IO.puts("#{pad_key(key)}#{format_bytes(allocated)} (#{format_bytes(used)} used)")
+
+      {_, allocated} ->
+        IO.puts("#{pad_key(key)}#{format_bytes(allocated)}")
+
+      _ ->
+        IO.puts("#{pad_key(key)}N/A")
+    end
+  end
+
+  defp format_bytes(bytes) when is_integer(bytes) do
+    cond do
+      bytes >= memory_unit(:GB) -> format_bytes(bytes, :GB)
+      bytes >= memory_unit(:MB) -> format_bytes(bytes, :MB)
+      bytes >= memory_unit(:KB) -> format_bytes(bytes, :KB)
+      true -> format_bytes(bytes, :B)
+    end
+  end
+
+  defp format_bytes(bytes, unit) when is_integer(bytes) and unit in [:GB, :MB, :KB] do
     value =
-      memory
-      |> :erlang.memory()
+      bytes
       |> div(memory_unit(unit))
       |> round()
 
-    IO.puts("#{pad_key(key)}#{value} #{unit}")
+    "#{value} #{unit}"
   end
 
+  defp format_bytes(bytes, :B) when is_integer(bytes), do: "#{bytes} B"
+
+  defp memory_unit(:GB), do: 1024 * 1024 * 1024
   defp memory_unit(:MB), do: 1024 * 1024
-  defp memory_unit(:kB), do: 1024
+  defp memory_unit(:KB), do: 1024
 
   defp pad_key(key), do: String.pad_trailing("#{key}:", 20, " ")
 
