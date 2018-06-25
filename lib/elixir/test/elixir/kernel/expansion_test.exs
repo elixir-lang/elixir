@@ -374,16 +374,18 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(ast) == ast
 
-      assert_raise CompileError, ~r"illegal use of pin operator \^x inside map key match", fn ->
-        expand(
-          quote do
-            x = 1
-            %{{^x} => 1} = %{}
-          end
-        )
-      end
+      assert_raise CompileError,
+                   ~r"cannot use pin operator \^x inside a data structure as a map key in a pattern",
+                   fn ->
+                     expand(
+                       quote do
+                         x = 1
+                         %{{^x} => 1} = %{}
+                       end
+                     )
+                   end
 
-      assert_raise CompileError, ~r"illegal use of variable \"x\" inside map key match,", fn ->
+      assert_raise CompileError, ~r"cannot use variable x as map key inside a pattern", fn ->
         expand(quote(do: %{x => 1} = %{}))
       end
 
