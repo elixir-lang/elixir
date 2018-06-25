@@ -11,3 +11,5 @@
 /.eunit
 .elixir.plt
 erl_crash.dump
+lib/ex_unit/.elixir_ls/**
+**/.DS_Store

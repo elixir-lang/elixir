@@ -135,7 +135,43 @@ defmodule ExUnit.Formatter do
     format_assertion_error(%{}, struct, [], :infinity, fn _, msg -> msg end, "")
   end
 
+  def format_assertion_error(
+        test,
+        %{left: %ExUnit.Pattern{} = pattern, right: {:ex_unit_mailbox_contents, mailbox}} =
+          struct,
+        stack,
+        width,
+        formatter,
+        counter_padding
+      ) do
+    label_padding_size = if has_value?(struct.right), do: 7, else: 6
+    padding_size = label_padding_size + byte_size(@counter_padding)
+    inspect = &inspect_multiline(&1, padding_size, width)
+
+    patterns =
+      mailbox
+      |> Enum.map(fn msg ->
+        # jowens, instead of format diff, let's do format pattern
+        {_left, right} = format_pattern(pattern, msg, formatter)
+        {:note, "message: " <> IO.iodata_to_binary(right)}
+      end)
+
+    ([
+       note: if_value(struct.message, &format_message(&1, formatter))
+     ] ++
+       patterns ++
+       [
+         code: if_value(struct.expr, &code_multiline(&1, padding_size)),
+         code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end)
+       ])
+    |> format_meta(formatter, label_padding_size)
+    |> make_into_lines(counter_padding)
+  end
+
   def format_assertion_error(test, struct, stack, width, formatter, counter_padding) do
+    # jowens - we can tap the formatter here, we have struct
+    # left: %ExUnit.Pattern{}
+    # right: {:ex_unit_mailbox_contents, _}
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
@@ -185,6 +221,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_kind_reason(test, :error, %FunctionClauseError{} = struct, stack, _width, formatter) do
+    IO.inspect("I'm a blaming")
     {blamed, stack} = Exception.blame(:error, struct, stack)
     banner = Exception.format_banner(:error, struct)
     blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter))
@@ -320,6 +357,35 @@ defmodule ExUnit.Formatter do
     end
   end
 
+  defp format_pattern(left, right, formatter) do
+    IO.inspect(binding(), label: "format_pattern")
+    IO.inspect(formatter.(:diff_enabled?, false))
+
+    if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
+      if script = pattern_diff(left, right) |> IO.inspect(label: "pattern_diff") do
+        IO.inspect(script, label: "Script?")
+
+        list =
+          Enum.reduce(script, [], fn
+            {key, val}, acc ->
+              [formatter.(key, val) | acc]
+
+            v, acc ->
+              [v | acc]
+          end)
+
+        ret = Enum.reverse(list)
+        # ret = ["%{"]
+        # ret = [formatter.(:diff_insert, "Hello:") | ret]
+        # ret = [formatter.(:diff_delete, " Goodbye") | ret]
+        # ret = ["}" | ret]
+        # ret = Enum.reverse(ret)
+        # {ret, ret}
+        {ret, ret}
+      end
+    end
+  end
+
   defp format_diff(left, right, formatter) do
     if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
       if script = edit_script(left, right) do
@@ -356,6 +422,15 @@ defmodule ExUnit.Formatter do
 
   defp edit_script(left, right) do
     task = Task.async(ExUnit.Diff, :script, [left, right])
+
+    case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
+      {:ok, script} -> script
+      nil -> nil
+    end
+  end
+
+  defp pattern_diff(left, right) do
+    task = Task.async(ExUnit.PatternFormat2, :script, [left, right])
 
     case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
       {:ok, script} -> script

@@ -3,7 +3,6 @@ defmodule ExUnit.AssertionError do
   Raised to signal an assertion error.
   """
 
-
   @no_value :ex_unit_no_meaningful_value
 
   defexception left: @no_value,
@@ -163,8 +162,8 @@ defmodule ExUnit.Assertions do
       left
       |> collect_vars_from_pattern()
       |> Enum.map(fn {var, _, _} -> var end)
-      |> Enum.uniq
-      |> Enum.map(&({&1, :ex_unit_unbound_var}))
+      |> Enum.uniq()
+      |> Enum.map(&{&1, :ex_unit_unbound_var})
 
     left = expand_pattern(left, __CALLER__)
     left_pattern = escape_quoted(:pattern, left)
@@ -452,12 +451,13 @@ defmodule ExUnit.Assertions do
     binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
-    pattern = expand_pattern(pattern, caller)
+    expanded_pattern = expand_pattern(pattern, caller)
+    left_pattern = escape_quoted(:pattern, expanded_pattern)
     vars = collect_vars_from_pattern(pattern)
     pins = collect_pins_from_pattern(pattern, Macro.Env.vars(caller))
 
     pattern =
-      case pattern do
+      case expanded_pattern do
         {:when, meta, [left, right]} ->
           {:when, meta, [quote(do: unquote(left) = received), right]}
 
@@ -504,6 +504,9 @@ defmodule ExUnit.Assertions do
 
     quote do
       timeout = unquote(timeout)
+
+      {:pattern, [], [left]} = unquote(left_pattern)
+      pattern = Pattern.new(left, unquote(pins), unquote(vars))
 
       {received, unquote(vars)} =
         receive do
