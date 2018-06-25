@@ -472,7 +472,7 @@ defmodule GenServer do
   loop. See `c:handle_call/3` for more information.
 
   Returning `{:noreply, new_state, {:continue, continue}}` is similar to
-  `{:nreply, new_state}` except `c:handle_continue/2` will be invoked
+  `{:noreply, new_state}` except `c:handle_continue/2` will be invoked
   immediately after with the value `continue` as first argument.
 
   Returning `{:stop, reason, new_state}` stops the loop and `c:terminate/2` is
