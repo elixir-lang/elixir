@@ -556,7 +556,6 @@ defmodule IEx.Helpers do
     print_allocator(areas, "Export List", :export_list)
     print_allocator(areas, "Export Table", :export_table)
     print_allocator(areas, "Function Table", :fun_table)
-    print_allocator(areas, "Link LH", :link_lh)
     print_allocator(areas, "Loaded Code", :loaded_code)
     print_allocator(areas, "Module Refs", :module_refs)
     print_allocator(areas, "Module Table", :module_table)
