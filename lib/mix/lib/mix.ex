@@ -158,10 +158,12 @@ defmodule Mix do
   Where `&clean_extra/1` would be a function in your `mix.exs`
   with extra cleanup logic.
 
-  Note aliases do not show up on `mix help`.
-  Aliases defined in the current project do not affect its dependencies and aliases defined in dependencies are not accessible from the current project.
+  Aliases do not show up on `mix help`. Futhermore, aliases defined
+  in the current project do not affect its dependencies and aliases
+  defined in dependencies are not accessible from the current project.
 
-  Aliases can be used very powerfully to also run elixir scripts and bash commands, for example:
+  Aliases can be used very powerfully to also run elixir scripts and
+  bash commands, for example:
       
       #priv/hello.exs
       IO.puts("hello")
