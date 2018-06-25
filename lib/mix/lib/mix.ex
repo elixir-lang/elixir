@@ -161,6 +161,30 @@ defmodule Mix do
   Note aliases do not show up on `mix help`.
   Aliases defined in the current project do not affect its dependencies and aliases defined in dependencies are not accessible from the current project.
 
+  Aliases can be used very powerfully to also run elixir scripts and bash commands, for example:
+      
+      #priv/hello.exs
+      IO.puts("hello")
+
+      #priv/world.sh
+      #!/bin/sh
+      echo "world!"
+
+      defp create_aliases do
+        [
+          "taskalias": ["hex.info", "run priv/hello.exs", "cmd priv/world.sh"],
+          "taskalias2": ["run priv/hello.exs", "run priv/hello.exs"]
+        ]
+      end
+
+  In the example above we have created 3 aliases, the first example 
+  `taskalias` will run task `hex.info`, then (run)[Mix.Tasks.Run.run/1]
+  to run a elixir script, then (cmd)[Mix.Tasks.Cmd.run/1] to run a 
+  command line bash script. This shows how powerful aliases mixed 
+  with Tasks can be.  `taskalias2` shows a limitation of tasks where 
+  only one of a give task will run, the second execution of `run priv/hello.exs` 
+  will not run.
+
   ## Environment variables
 
   Several environment variables can be used to modify Mix's behaviour.
