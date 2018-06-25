@@ -182,10 +182,10 @@ defmodule Mix do
 
   In the example above we have created 3 aliases, the first example 
   `taskalias` will run task `hex.info`, then (run)[Mix.Tasks.Run.run/1]
-  to run a elixir script, then (cmd)[Mix.Tasks.Cmd.run/1] to run a 
+  to run an elixir script, then (cmd)[Mix.Tasks.Cmd.run/1] to run a 
   command line bash script. This shows how powerful aliases mixed 
-  with Tasks can be.  `taskalias2` shows a limitation of tasks where 
-  only one of a give task will run, the second execution of `run priv/hello.exs` 
+  with Mix.Task can be. `taskalias2` shows a limitation of tasks where 
+  only one of the given tasks will run, the second execution of `run priv/hello.exs` 
   will not run.
 
   ## Environment variables
