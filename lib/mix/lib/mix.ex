@@ -165,13 +165,14 @@ defmodule Mix do
   Aliases can be used very powerfully to also run elixir scripts and
   bash commands, for example:
       
-      #priv/hello.exs
+      # priv/hello.exs
       IO.puts("hello")
 
-      #priv/world.sh
+      # priv/world.sh
       #!/bin/sh
       echo "world!"
 
+      # mix.exs
       defp create_aliases do
         [
           "taskalias": ["hex.info", "run priv/hello.exs", "cmd priv/world.sh"],
