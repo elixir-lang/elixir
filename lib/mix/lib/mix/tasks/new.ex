@@ -40,6 +40,12 @@ defmodule Mix.Tasks.New do
 
       mix new hello_world --sup
 
+  To generate an umbrella application with sub applications:
+
+      mix new hello_world --umbrella
+      cd hello_world/apps
+      mix new child_app
+
   """
 
   @switches [
