@@ -65,7 +65,7 @@ erlang: $(PARSER)
 	$(Q) cd lib/elixir && mkdir -p ebin && erl -make
 
 $(PARSER): lib/elixir/src/elixir_parser.yrl
-	$(Q) erlc -o $@ +'{versbose,true}' +'{report,true}' $<
+	$(Q) erlc -o $@ +'{verbose,true}' +'{report,true}' $<
 
 # Since Mix depends on EEx and EEx depends on Mix,
 # we first compile EEx without the .app file,
