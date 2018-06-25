@@ -103,4 +103,8 @@ defmodule ExUnit.SeeItMatch do
   test "nested simple list 2" do
     assert match?([[1, 1], :a], [[1, 2], :a])
   end
+
+  test "list cons operator" do
+    assert match?([1 | _rest], [2, 3, 4])
+  end
 end

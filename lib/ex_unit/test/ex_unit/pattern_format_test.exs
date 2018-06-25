@@ -5,6 +5,23 @@ defmodule ExUnit.PatternFormatTest do
 
   alias ExUnit.{Pattern, PatternDiff, PatternFormat}
 
+  test "nothing in common" do
+    simple = quote do
+      %{}
+    end
+
+    pattern = Pattern.new(simple, [], [])
+    diff = PatternDiff.cmp(pattern, [])
+    actual = PatternFormat.format(diff)
+
+    expected = [
+      del: "%{}",
+      ins: "[]"
+    ]
+
+    assert actual == expected
+  end
+
   test "simple pattern match" do
     simple =
       quote do
@@ -567,5 +584,3 @@ defmodule ExUnit.PatternFormatTest do
     assert actual == expected
   end
 end
-
-
