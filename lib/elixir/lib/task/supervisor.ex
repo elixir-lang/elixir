@@ -328,7 +328,8 @@ defmodule Task.Supervisor do
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
 
   """
-  @spec start_child(Supervisor.supervisor(), (() -> any)) :: DynamicSupervisor.on_start_child()
+  @spec start_child(Supervisor.supervisor(), (() -> any), keyword) ::
+          DynamicSupervisor.on_start_child()
   def start_child(supervisor, fun, options \\ []) do
     restart = options[:restart]
     shutdown = options[:shutdown]
@@ -342,7 +343,7 @@ defmodule Task.Supervisor do
   Similar to `start_child/2` except the task is specified
   by the given `module`, `fun` and `args`.
   """
-  @spec start_child(Supervisor.supervisor(), module, atom, [term]) ::
+  @spec start_child(Supervisor.supervisor(), module, atom, [term], keyword) ::
           DynamicSupervisor.on_start_child()
   def start_child(supervisor, module, fun, args, options \\ [])
       when is_atom(fun) and is_list(args) do
