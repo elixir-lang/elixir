@@ -711,6 +711,64 @@ end
 
 defmodule ArithmeticError do
   defexception message: "bad argument in arithmetic expression"
+
+  @impl true
+  def blame(%{message: message} = exception, [{:erlang, fun, args, _} | _] = stacktrace) do
+    message =
+      message <>
+        case {fun, args} do
+          {:+, [a]} ->
+            ": +(#{inspect(a)})"
+
+          {:+, [a, b]} ->
+            ": #{inspect(a)} + #{inspect(b)}"
+
+          {:-, [a]} ->
+            ": -(#{inspect(a)})"
+
+          {:-, [a, b]} ->
+            ": #{inspect(a)} - #{inspect(b)}"
+
+          {:*, [a, b]} ->
+            ": #{inspect(a)} * #{inspect(b)}"
+
+          {:/, [a, b]} ->
+            ": #{inspect(a)} / #{inspect(b)}"
+
+          {:div, [a, b]} ->
+            ": div(#{inspect(a)}, #{inspect(b)})"
+
+          {:rem, [a, b]} ->
+            ": rem(#{inspect(a)}, #{inspect(b)})"
+
+          {:band, [a, b]} ->
+            ": Bitwise.band(#{inspect(a)}, #{inspect(b)})"
+
+          {:bor, [a, b]} ->
+            ": Bitwise.bor(#{inspect(a)}, #{inspect(b)})"
+
+          {:bxor, [a, b]} ->
+            ": Bitwise.bxor(#{inspect(a)}, #{inspect(b)})"
+
+          {:bsl, [a, b]} ->
+            ": Bitwise.bsl(#{inspect(a)}, #{inspect(b)})"
+
+          {:bsr, [a, b]} ->
+            ": Bitwise.bsr(#{inspect(a)}, #{inspect(b)})"
+
+          {:bnot, [a]} ->
+            ": Bitwise.bnot(#{inspect(a)})"
+
+          _ ->
+            ""
+        end
+
+    {%{exception | message: message}, stacktrace}
+  end
+
+  def blame(exception, stacktrace) do
+    {exception, stacktrace}
+  end
 end
 
 defmodule SystemLimitError do

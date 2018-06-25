@@ -510,11 +510,92 @@ defmodule ExceptionTest do
              """
     end
 
+    if :erlang.system_info(:otp_release) >= '21' do
+      test "annotates +/1 arithmetic errors" do
+        assert blame_message(:foo, &(+&1)) == "bad argument in arithmetic expression: +(:foo)"
+      end
+
+      test "annotates -/1 arithmetic errors" do
+        assert blame_message(:foo, &(-&1)) == "bad argument in arithmetic expression: -(:foo)"
+      end
+
+      test "annotates div arithmetic errors" do
+        assert blame_message(0, &div(10, &1)) ==
+                 "bad argument in arithmetic expression: div(10, 0)"
+      end
+
+      test "annotates rem arithmetic errors" do
+        assert blame_message(0, &rem(10, &1)) ==
+                 "bad argument in arithmetic expression: rem(10, 0)"
+      end
+
+      test "annotates band arithmetic errors" do
+        use Bitwise
+
+        assert blame_message(:foo, &band(10, &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.band(10, :foo)"
+
+        assert blame_message(:foo, &(10 &&& &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.band(10, :foo)"
+      end
+
+      test "annotates bor arithmetic errors" do
+        use Bitwise
+
+        assert blame_message(:foo, &bor(10, &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bor(10, :foo)"
+
+        assert blame_message(:foo, &(10 ||| &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bor(10, :foo)"
+      end
+
+      test "annotates bxor arithmetic errors" do
+        use Bitwise
+
+        assert blame_message(:foo, &bxor(10, &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bxor(10, :foo)"
+
+        assert blame_message(:foo, &(10 ^^^ &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bxor(10, :foo)"
+      end
+
+      test "annotates bsl arithmetic errors" do
+        use Bitwise
+
+        assert blame_message(:foo, &bsl(10, &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bsl(10, :foo)"
+
+        assert blame_message(:foo, &(10 <<< &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bsl(10, :foo)"
+      end
+
+      test "annotates bsr arithmetic errors" do
+        use Bitwise
+
+        assert blame_message(:foo, &bsr(10, &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bsr(10, :foo)"
+
+        assert blame_message(:foo, &(10 >>> &1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bsr(10, :foo)"
+      end
+
+      test "annotates bnot arithmetic errors" do
+        use Bitwise
+
+        assert blame_message(:foo, &bnot(&1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bnot(:foo)"
+
+        assert blame_message(:foo, &(~~~&1)) ==
+                 "bad argument in arithmetic expression: Bitwise.bnot(:foo)"
+      end
+    end
+
     defp blame_message(arg, fun) do
       try do
         fun.(arg)
       rescue
-        e -> Exception.blame(:error, e, __STACKTRACE__) |> elem(0) |> Exception.message()
+        e ->
+          Exception.blame(:error, e, __STACKTRACE__) |> elem(0) |> Exception.message()
       end
     end
 
