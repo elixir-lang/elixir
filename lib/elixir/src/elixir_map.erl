@@ -186,14 +186,15 @@ format_error({invalid_struct_name, Expr}) ->
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
 format_error({invalid_pin_in_map_key_match, Name}) ->
   Message =
-    "illegal use of pin operator ^~ts inside map key match, the pin operator can only be used "
-    "as the whole key and not inside another data structure",
+    "cannot use pin operator ^~ts inside a data structure as a map key in a pattern. "
+    "The pin operator can only be used as the whole key",
   io_lib:format(Message, [Name]);
 format_error({invalid_variable_in_map_key_match, Name}) ->
   Message =
-    "illegal use of variable \"~ts\" inside map key match, maps can only match on "
-    "existing variables by using ^~ts",
-  io_lib:format(Message, [Name, Name]);
+    "cannot use variable ~ts as map key inside a pattern. Map keys in patterns can only be literals "
+    "(such as atoms, strings, tuples, etc) or an existing variable matched with the pin operator "
+    "(such as ^some_var)",
+  io_lib:format(Message, [Name]);
 format_error({not_kv_pair, Expr}) ->
   io_lib:format("expected key-value pairs in a map, got: ~ts",
                 ['Elixir.Macro':to_string(Expr)]);
