@@ -1098,12 +1098,12 @@ defmodule KeyError do
   def message(%{message: message}), do: message
 
   def message(key, term) do
-    msg = "key #{inspect(key)} not found"
+    message = "key #{inspect(key)} not found"
 
     if term != nil do
-      msg <> " in: #{inspect(term)}"
+      message <> " in: #{inspect(term)}"
     else
-      msg
+      message
     end
   end
 
@@ -1141,7 +1141,7 @@ defmodule KeyError do
     result =
       available_keys
       |> Enum.map(&distance_for_key(&1, missing_key))
-      |> Enum.filter(fn {dist, _} -> dist >= @threshold end)
+      |> Enum.filter(fn {distance, _} -> distance >= @threshold end)
       |> Enum.sort(&(elem(&1, 0) >= elem(&2, 0)))
       |> Enum.take(@max_suggestions)
       |> Enum.sort(&(elem(&1, 1) <= elem(&2, 1)))
@@ -1156,13 +1156,13 @@ defmodule KeyError do
 
   defp distance_for_key(key, missing_key) when is_atom(key) do
     stringified_key = Atom.to_string(key)
-    dist = String.jaro_distance(missing_key, stringified_key)
-    {dist, key}
+    distance = String.jaro_distance(missing_key, stringified_key)
+    {distance, key}
   end
 
   defp distance_for_key(key, missing_key) when is_binary(key) do
-    dist = String.jaro_distance(missing_key, key)
-    {dist, key}
+    distance = String.jaro_distance(missing_key, key)
+    {distance, key}
   end
 
   defp distance_for_key(key, _), do: {0, key}
