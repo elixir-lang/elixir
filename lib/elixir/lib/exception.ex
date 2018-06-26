@@ -1091,17 +1091,84 @@ defmodule Protocol.UndefinedError do
 end
 
 defmodule KeyError do
-  defexception [:key, :term]
+  defexception [:key, :term, :message]
 
   @impl true
-  def message(exception) do
-    msg = "key #{inspect(exception.key)} not found"
+  def message(exception = %{message: nil}), do: message(exception.key, exception.term)
+  def message(%{message: message}), do: message
 
-    if exception.term != nil do
-      msg <> " in: #{inspect(exception.term)}"
+  def message(key, term) do
+    msg = "key #{inspect(key)} not found"
+
+    if term != nil do
+      msg <> " in: #{inspect(term)}"
     else
       msg
     end
+  end
+
+  @impl true
+  def blame(exception = %{term: nil}, stacktrace) do
+    message = message(exception.key, exception.term)
+    {%{exception | message: message}, stacktrace}
+  end
+
+  def blame(exception = %{term: term}, stacktrace) when is_map(term) do
+    available_keys = Map.keys(term)
+    hint = did_you_mean(exception.key, available_keys)
+    message = message(exception.key, term) <> IO.iodata_to_binary(hint)
+    {%{exception | message: message}, stacktrace}
+  end
+
+  def blame(exception = %{term: term}, stacktrace) when is_list(term) do
+    available_keys = Keyword.keys(term)
+    hint = did_you_mean(exception.key, available_keys)
+    message = message(exception.key, term) <> IO.iodata_to_binary(hint)
+    {%{exception | message: message}, stacktrace}
+  end
+
+  def blame(exception, stacktrace), do: {exception, stacktrace}
+
+  @threshold 0.77
+  @max_suggestions 5
+  defp did_you_mean(missing_key, available_keys) when is_atom(missing_key) do
+    missing_key
+    |> Atom.to_string()
+    |> did_you_mean(available_keys)
+  end
+
+  defp did_you_mean(missing_key, available_keys) when is_binary(missing_key) do
+    result =
+      available_keys
+      |> Enum.map(&distance_for_key(&1, missing_key))
+      |> Enum.filter(fn {dist, _} -> dist >= @threshold end)
+      |> Enum.sort(&(elem(&1, 0) >= elem(&2, 0)))
+      |> Enum.take(@max_suggestions)
+      |> Enum.sort(&(elem(&1, 1) <= elem(&2, 1)))
+
+    case result do
+      [] -> []
+      suggestions -> [". Did you mean one of:\n\n" | Enum.map(suggestions, &format_fa/1)]
+    end
+  end
+
+  defp did_you_mean(_, _), do: []
+
+  defp distance_for_key(key, missing_key) when is_atom(key) do
+    stringified_key = Atom.to_string(key)
+    dist = String.jaro_distance(missing_key, stringified_key)
+    {dist, key}
+  end
+
+  defp distance_for_key(key, missing_key) when is_binary(key) do
+    dist = String.jaro_distance(missing_key, key)
+    {dist, key}
+  end
+
+  defp distance_for_key(key, _), do: {0, key}
+
+  defp format_fa({_dist, key}) do
+    ["      * ", inspect(key), ?\n]
   end
 end
 
