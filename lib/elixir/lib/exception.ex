@@ -713,13 +713,10 @@ defmodule ArithmeticError do
   defexception message: "bad argument in arithmetic expression"
 
   @impl true
-  def blame(
-        %{message: default_message} = exception,
-        [{:erlang, func, args, _} | _] = stacktrace
-      ) do
+  def blame(%{message: message} = exception, [{:erlang, fun, args, _} | _] = stacktrace) do
     message =
-      default_message <>
-        case {func, args} do
+      message <>
+        case {fun, args} do
           {:+, [a]} ->
             ": +(#{inspect(a)})"
 
