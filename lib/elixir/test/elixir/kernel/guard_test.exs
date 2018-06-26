@@ -290,19 +290,19 @@ defmodule Kernel.GuardTest do
 
       # Consistent errors
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_raise ArgumentError, ~r"invalid expression in guard", fn ->
         defmodule SoftNegationLogicUsage do
           defguard foo(logic) when !logic
         end
       end
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_raise ArgumentError, ~r"invalid expression in guard", fn ->
         defmodule SoftAndLogicUsage do
           defguard foo(soft, logic) when soft && logic
         end
       end
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_raise ArgumentError, ~r"invalid expression in guard", fn ->
         defmodule SoftOrLogicUsage do
           defguard foo(soft, logic) when soft || logic
         end
