@@ -162,7 +162,7 @@ defmodule Mix do
   in the current project do not affect its dependencies and aliases
   defined in dependencies are not accessible from the current project.
 
-  Aliases can be used very powerfully to also run elixir scripts and
+  Aliases can be used very powerfully to also run Elixir scripts and
   bash commands, for example:
       
       # priv/hello.exs
@@ -180,13 +180,13 @@ defmodule Mix do
         ]
       end
 
-  In the example above we have created 3 aliases, the first example 
+  In the example above we have created 2 aliases, the first example 
   `taskalias` will run task `hex.info`, then (`run`)[`Mix.Tasks.Run`]
-  to run an elixir script, then (`cmd`)[`Mix.Tasks.Cmd`] to run a 
+  to run an Elixir script, then (`cmd`)[`Mix.Tasks.Cmd`] to run a 
   command line bash script. This shows how powerful aliases mixed 
   with mix tasks can be.
 
-  `taskalias2` shows a limitation of tasks where  only one of the given
+  `taskalias2` shows a limitation of tasks where only one of the given
   tasks will run, the execution of `run priv/hello2.exs` will not run.
   The `run` command, however, can accept multiple files, so in case
   of running multiple files, it can be rewritten to:
