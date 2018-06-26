@@ -1568,6 +1568,8 @@ defmodule Kernel do
   defmacro !value
 
   defmacro !{:!, _, [value]} do
+    assert_no_guard_scope(__CALLER__.context, "!")
+
     optimize_boolean(
       quote do
         case unquote(value) do
@@ -1579,6 +1581,8 @@ defmodule Kernel do
   end
 
   defmacro !value do
+    assert_no_guard_scope(__CALLER__.context, "!")
+
     optimize_boolean(
       quote do
         case unquote(value) do
@@ -3072,6 +3076,8 @@ defmodule Kernel do
   as the first argument, not only booleans.
   """
   defmacro left && right do
+    assert_no_guard_scope(__CALLER__.context, "&&")
+
     quote do
       case unquote(left) do
         x when :"Elixir.Kernel".in(x, [false, nil]) ->
@@ -3108,6 +3114,8 @@ defmodule Kernel do
   as the first argument, not only booleans.
   """
   defmacro left || right do
+    assert_no_guard_scope(__CALLER__.context, "||")
+
     quote do
       case unquote(left) do
         x when :"Elixir.Kernel".in(x, [false, nil]) ->
@@ -5204,6 +5212,17 @@ defmodule Kernel do
     case env.function do
       nil -> :ok
       _ -> raise ArgumentError, "cannot invoke #{fun}/#{arity} inside function/macro"
+    end
+  end
+
+  defp assert_no_guard_scope(context, exp) do
+    case context do
+      :guard ->
+        raise ArgumentError,
+              "invalid expression in guard, #{exp} is not allowed in guards. To learn more about guards, visit: https://hexdocs.pm/elixir/guards.html"
+
+      _ ->
+        :ok
     end
   end
 
