@@ -176,17 +176,22 @@ defmodule Mix do
       defp create_aliases do
         [
           "taskalias": ["hex.info", "run priv/hello.exs", "cmd priv/world.sh"],
-          "taskalias2": ["run priv/hello.exs", "run priv/hello.exs"]
+          "taskalias2": ["run priv/hello1.exs", "run priv/hello2.exs"]
         ]
       end
 
   In the example above we have created 3 aliases, the first example 
-  `taskalias` will run task `hex.info`, then (run)[Mix.Tasks.Run.run/1]
-  to run an elixir script, then (cmd)[Mix.Tasks.Cmd.run/1] to run a 
+  `taskalias` will run task `hex.info`, then (`run`)[`Mix.Tasks.Run`]
+  to run an elixir script, then (`cmd`)[`Mix.Tasks.Cmd`] to run a 
   command line bash script. This shows how powerful aliases mixed 
-  with Mix.Task can be. `taskalias2` shows a limitation of tasks where 
-  only one of the given tasks will run, the second execution of `run priv/hello.exs` 
-  will not run.
+  with mix tasks can be.
+
+  `taskalias2` shows a limitation of tasks where  only one of the given
+  tasks will run, the execution of `run priv/hello2.exs` will not run.
+  The `run` command, however, can accept multiple files, so in case
+  of running multiple files, it can be rewritten to:
+
+      "taskalias2": ["run -r priv/hello1.exs -r priv/hello2.exs"]
 
   ## Environment variables
 
