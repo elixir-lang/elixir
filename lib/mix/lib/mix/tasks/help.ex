@@ -195,6 +195,11 @@ defmodule Mix.Tasks.Help do
     end)
   end
 
+  defp task_str(task_name) when is_list(task_name) do
+    task_strs = Enum.map(task_name, &task_str/1) |> Enum.join(", ")
+    "[" <> task_strs <> "]"
+  end
+
   defp task_str(task_name) when is_bitstring(task_name), do: task_name
   defp task_str(task_name), do: inspect(task_name)
 end

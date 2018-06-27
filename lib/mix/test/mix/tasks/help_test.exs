@@ -25,7 +25,16 @@ defmodule Mix.Tasks.HelpTest do
 
   defmodule Aliases do
     def project do
-      [aliases: [h: "hello", c: "compile"]]
+      [
+        aliases: [
+          h: "hello",
+          c: "compile",
+          p: &inspect/1,
+          compile: "hello",
+          help: ["help", "hello"],
+          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"]
+        ]
+      ]
     end
   end
 
@@ -35,11 +44,22 @@ defmodule Mix.Tasks.HelpTest do
     in_tmp(context.test, fn ->
       Mix.Tasks.Help.run([])
 
-      assert_received {:mix_shell, :info, ["mix h" <> h_message]}
-      assert h_message =~ ~r/# Alias for hello/
+      assert_received {:mix_shell, :info, ["mix h" <> message]}
+      assert message =~ ~r/# Alias for hello/
 
-      assert_received {:mix_shell, :info, ["mix c" <> c_message]}
-      assert c_message =~ ~r/# Alias for compile/
+      assert_received {:mix_shell, :info, ["mix c" <> message]}
+      assert message =~ ~r/# Alias for compile/
+
+      assert_received {:mix_shell, :info, ["mix p" <> message]}
+      assert message =~ ~r/# Alias for &Kernel.inspect\/1/
+
+      assert_received {:mix_shell, :info, ["mix help" <> message]}
+      assert message =~ ~r/# Alias for \[help, hello\]/
+
+      assert_received {:mix_shell, :info, ["mix nested.h" <> message]}
+
+      assert message =~
+               ~r/# Alias for \[#Function<.*\/1 in Mix.Tasks.HelpTest.Aliases.project\/0>, h foo bar\]/
     end)
   end
 
