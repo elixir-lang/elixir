@@ -712,49 +712,27 @@ end
 defmodule ArithmeticError do
   defexception message: "bad argument in arithmetic expression"
 
+  @unary_ops [:+, :-]
+  @binary_ops [:+, :-, :*, :/]
+  @binary_funs [:div, :rem]
+  @bitwise_binary_funs [:band, :bor, :bxor, :bsl, :bsr]
+
   @impl true
   def blame(%{message: message} = exception, [{:erlang, fun, args, _} | _] = stacktrace) do
     message =
       message <>
         case {fun, args} do
-          {:+, [a]} ->
-            ": +(#{inspect(a)})"
+          {op, [a]} when op in @unary_ops ->
+            ": #{op}(#{inspect(a)})"
 
-          {:+, [a, b]} ->
-            ": #{inspect(a)} + #{inspect(b)}"
+          {op, [a, b]} when op in @binary_ops ->
+            ": #{inspect(a)} #{op} #{inspect(b)}"
 
-          {:-, [a]} ->
-            ": -(#{inspect(a)})"
+          {fun, [a, b]} when fun in @binary_funs ->
+            ": #{fun}(#{inspect(a)}, #{inspect(b)})"
 
-          {:-, [a, b]} ->
-            ": #{inspect(a)} - #{inspect(b)}"
-
-          {:*, [a, b]} ->
-            ": #{inspect(a)} * #{inspect(b)}"
-
-          {:/, [a, b]} ->
-            ": #{inspect(a)} / #{inspect(b)}"
-
-          {:div, [a, b]} ->
-            ": div(#{inspect(a)}, #{inspect(b)})"
-
-          {:rem, [a, b]} ->
-            ": rem(#{inspect(a)}, #{inspect(b)})"
-
-          {:band, [a, b]} ->
-            ": Bitwise.band(#{inspect(a)}, #{inspect(b)})"
-
-          {:bor, [a, b]} ->
-            ": Bitwise.bor(#{inspect(a)}, #{inspect(b)})"
-
-          {:bxor, [a, b]} ->
-            ": Bitwise.bxor(#{inspect(a)}, #{inspect(b)})"
-
-          {:bsl, [a, b]} ->
-            ": Bitwise.bsl(#{inspect(a)}, #{inspect(b)})"
-
-          {:bsr, [a, b]} ->
-            ": Bitwise.bsr(#{inspect(a)}, #{inspect(b)})"
+          {fun, [a, b]} when fun in @bitwise_binary_funs ->
+            ": Bitwise.#{fun}(#{inspect(a)}, #{inspect(b)})"
 
           {:bnot, [a]} ->
             ": Bitwise.bnot(#{inspect(a)})"
