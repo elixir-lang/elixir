@@ -1091,17 +1091,71 @@ defmodule Protocol.UndefinedError do
 end
 
 defmodule KeyError do
-  defexception [:key, :term]
+  defexception [:key, :term, :message]
 
   @impl true
-  def message(exception) do
-    msg = "key #{inspect(exception.key)} not found"
+  def message(exception = %{message: nil}), do: message(exception.key, exception.term)
+  def message(%{message: message}), do: message
 
-    if exception.term != nil do
-      msg <> " in: #{inspect(exception.term)}"
+  def message(key, term) do
+    message = "key #{inspect(key)} not found"
+
+    if term != nil do
+      message <> " in: #{inspect(term)}"
     else
-      msg
+      message
     end
+  end
+
+  @impl true
+  def blame(exception = %{term: nil}, stacktrace) do
+    message = message(exception.key, exception.term)
+    {%{exception | message: message}, stacktrace}
+  end
+
+  def blame(exception, stacktrace) do
+    %{term: term, key: key} = exception
+    message = message(key, term)
+
+    if is_atom(key) and (map_with_atom_keys_only?(term) or Keyword.keyword?(term)) do
+      hint = did_you_mean(key, available_keys(term))
+      message = message <> IO.iodata_to_binary(hint)
+      {%{exception | message: message}, stacktrace}
+    else
+      {%{exception | message: message}, stacktrace}
+    end
+  end
+
+  defp map_with_atom_keys_only?(term) do
+    is_map(term) and Enum.all?(term, fn {k, _} -> is_atom(k) end)
+  end
+
+  defp available_keys(term) when is_map(term), do: Map.keys(term)
+  defp available_keys(term) when is_list(term), do: Keyword.keys(term)
+
+  @threshold 0.77
+  @max_suggestions 5
+  defp did_you_mean(missing_key, available_keys) do
+    stringified_key = Atom.to_string(missing_key)
+
+    suggestions =
+      for key <- available_keys,
+          distance = String.jaro_distance(stringified_key, Atom.to_string(key)),
+          distance >= @threshold,
+          do: {distance, key}
+
+    case suggestions do
+      [] -> []
+      suggestions -> [". Did you mean one of:\n\n" | format_suggestions(suggestions)]
+    end
+  end
+
+  defp format_suggestions(suggestions) do
+    suggestions
+    |> Enum.sort(&(elem(&1, 0) >= elem(&2, 0)))
+    |> Enum.take(@max_suggestions)
+    |> Enum.sort(&(elem(&1, 1) <= elem(&2, 1)))
+    |> Enum.map(fn {_, key} -> ["      * ", inspect(key), ?\n] end)
   end
 end
 
