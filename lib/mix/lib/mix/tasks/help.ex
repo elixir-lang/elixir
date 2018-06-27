@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Help do
   @shortdoc "Prints help information for tasks"
 
   @moduledoc """
-  Lists all aliases and tasks or prints the documentation for a given task.
+  Lists all tasks and aliases or prints the documentation for a given task or alias.
 
   ## Arguments
 

@@ -29,7 +29,7 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-  test "help list alias task", context do
+  test "help lists all aliases", context do
     Mix.Project.push(Aliases)
 
     in_tmp(context.test, fn ->
@@ -146,8 +146,8 @@ defmodule Mix.Tasks.HelpTest do
     Mix.Project.push(Aliases)
 
     in_tmp(context.test, fn ->
-      Mix.Tasks.Help.run(["--search", "c"])
-      assert_received {:mix_shell, :info, ["mix c" <> _]}
+      Mix.Tasks.Help.run(["--search", "h"])
+      assert_received {:mix_shell, :info, ["mix h" <> _]}
     end)
   end
 
