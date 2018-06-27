@@ -482,7 +482,7 @@ defmodule ExceptionTest do
                  "such as map.field or module.function, make sure the left side of the dot is an atom or a map"
     end
 
-    test "annotates key error with suggestions" do
+    test "annotates key error with suggestions if keys are atoms" do
       message = blame_message(%{first: nil, second: nil}, fn map -> map.firts end)
 
       assert message == """
@@ -493,20 +493,12 @@ defmodule ExceptionTest do
 
       message = blame_message(%{"first" => nil, "second" => nil}, fn map -> map.firts end)
 
-      assert message == """
-             key :firts not found in: %{\"first\" => nil, \"second\" => nil}. Did you mean one of:
-
-                   * \"first\"
-             """
+      assert message == "key :firts not found in: %{\"first\" => nil, \"second\" => nil}"
 
       message =
         blame_message(%{"first" => nil, "second" => nil}, fn map -> Map.fetch!(map, "firts") end)
 
-      assert message == """
-             key \"firts\" not found in: %{\"first\" => nil, \"second\" => nil}. Did you mean one of:
-
-                   * \"first\"
-             """
+      assert message == "key \"firts\" not found in: %{\"first\" => nil, \"second\" => nil}"
 
       message =
         blame_message([first: nil, second: nil], fn kwlist -> Keyword.fetch!(kwlist, :firts) end)

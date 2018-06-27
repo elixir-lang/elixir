@@ -1113,62 +1113,47 @@ defmodule KeyError do
     {%{exception | message: message}, stacktrace}
   end
 
-  def blame(exception = %{term: term}, stacktrace) when is_map(term) do
-    available_keys = Map.keys(term)
-    hint = did_you_mean(exception.key, available_keys)
-    message = message(exception.key, term) <> IO.iodata_to_binary(hint)
-    {%{exception | message: message}, stacktrace}
+  def blame(exception, stacktrace) do
+    %{term: term, key: key} = exception
+    message = message(key, term)
+
+    if (is_map(term) or Keyword.keyword?(term)) and Enum.all?(term, fn {k, _} -> is_atom(k) end) do
+      hint = did_you_mean(key, available_keys(term))
+      message = message <> IO.iodata_to_binary(hint)
+      {%{exception | message: message}, stacktrace}
+    else
+      {%{exception | message: message}, stacktrace}
+    end
   end
 
-  def blame(exception = %{term: term}, stacktrace) when is_list(term) do
-    available_keys = Keyword.keys(term)
-    hint = did_you_mean(exception.key, available_keys)
-    message = message(exception.key, term) <> IO.iodata_to_binary(hint)
-    {%{exception | message: message}, stacktrace}
-  end
-
-  def blame(exception, stacktrace), do: {exception, stacktrace}
+  defp available_keys(term) when is_map(term), do: Map.keys(term)
+  defp available_keys(term) when is_list(term), do: Keyword.keys(term)
 
   @threshold 0.77
   @max_suggestions 5
   defp did_you_mean(missing_key, available_keys) when is_atom(missing_key) do
-    missing_key
-    |> Atom.to_string()
-    |> did_you_mean(available_keys)
-  end
+    stringified_key = Atom.to_string(missing_key)
 
-  defp did_you_mean(missing_key, available_keys) when is_binary(missing_key) do
-    result =
-      available_keys
-      |> Enum.map(&distance_for_key(&1, missing_key))
-      |> Enum.filter(fn {distance, _} -> distance >= @threshold end)
-      |> Enum.sort(&(elem(&1, 0) >= elem(&2, 0)))
-      |> Enum.take(@max_suggestions)
-      |> Enum.sort(&(elem(&1, 1) <= elem(&2, 1)))
+    suggestions =
+      for key <- available_keys,
+          distance = String.jaro_distance(stringified_key, Atom.to_string(key)),
+          distance >= @threshold,
+          do: {distance, key}
 
-    case result do
+    case suggestions do
       [] -> []
-      suggestions -> [". Did you mean one of:\n\n" | Enum.map(suggestions, &format_fa/1)]
+      suggestions -> [". Did you mean one of:\n\n" | format_suggestions(suggestions)]
     end
   end
 
   defp did_you_mean(_, _), do: []
 
-  defp distance_for_key(key, missing_key) when is_atom(key) do
-    stringified_key = Atom.to_string(key)
-    distance = String.jaro_distance(missing_key, stringified_key)
-    {distance, key}
-  end
-
-  defp distance_for_key(key, missing_key) when is_binary(key) do
-    distance = String.jaro_distance(missing_key, key)
-    {distance, key}
-  end
-
-  defp distance_for_key(key, _), do: {0, key}
-
-  defp format_fa({_dist, key}) do
-    ["      * ", inspect(key), ?\n]
+  defp format_suggestions(suggestions) do
+    suggestions
+    |> Enum.sort(&(elem(&1, 0) >= elem(&2, 0)))
+    |> Enum.take(@max_suggestions)
+    |> Enum.sort(&(elem(&1, 1) <= elem(&2, 1)))
+    |> Enum.map(fn {_, key} -> ["      * ", inspect(key), ?\n] end)
   end
 end
 
