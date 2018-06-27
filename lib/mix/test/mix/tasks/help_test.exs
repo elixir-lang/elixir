@@ -29,6 +29,20 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
+  test "help list alias task", context do
+    Mix.Project.push(Aliases)
+
+    in_tmp(context.test, fn ->
+      Mix.Tasks.Help.run([])
+
+      assert_received {:mix_shell, :info, ["mix h" <> h_message]}
+      assert h_message =~ ~r/# Alias for hello/
+
+      assert_received {:mix_shell, :info, ["mix c" <> c_message]}
+      assert c_message =~ ~r/# Alias for compile/
+    end)
+  end
+
   test "help --names", context do
     Mix.Project.push(Aliases)
 
@@ -69,6 +83,13 @@ defmodule Mix.Tasks.HelpTest do
       Mix.Tasks.Help.run(["--search", "deps"])
       assert_received {:mix_shell, :info, ["mix deps" <> _]}
       assert_received {:mix_shell, :info, ["mix deps.clean" <> _]}
+    end)
+
+    Mix.Project.push(Aliases)
+
+    in_tmp(context.test, fn ->
+      Mix.Tasks.Help.run(["--search", "c"])
+      assert_received {:mix_shell, :info, ["mix c" <> _]}
     end)
   end
 

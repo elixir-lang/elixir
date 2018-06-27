@@ -43,10 +43,12 @@ defmodule Mix.Tasks.Help do
     loadpaths!()
 
     modules = load_tasks()
-    {docs, max} = build_task_doc_list(modules)
+    aliases = load_aliases()
+
+    {docs, max} = build_doc_list(modules, aliases)
 
     display_default_task_doc(max)
-    display_task_doc_list(docs, max)
+    display_doc_list(docs, max)
     display_iex_task_doc(max)
   end
 
@@ -71,9 +73,13 @@ defmodule Mix.Tasks.Help do
       load_tasks()
       |> Enum.filter(&String.contains?(Mix.Task.task_name(&1), pattern))
 
-    {docs, max} = build_task_doc_list(modules)
+    aliases =
+      load_aliases()
+      |> Enum.filter(&String.contains?(elem(&1, 0), pattern))
 
-    display_task_doc_list(docs, max)
+    {docs, max} = build_doc_list(modules, aliases)
+
+    display_doc_list(docs, max)
   end
 
   def run(["--search"]) do
@@ -116,6 +122,11 @@ defmodule Mix.Tasks.Help do
     |> Enum.filter(&(Mix.Task.moduledoc(&1) != false))
   end
 
+  defp load_aliases() do
+    Mix.Project.config()[:aliases]
+    |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
+  end
+
   defp ansi_docs?(opts) do
     Keyword.get(opts, :enabled, IO.ANSI.enabled?())
   end
@@ -153,10 +164,16 @@ defmodule Mix.Tasks.Help do
     Mix.shell().info(format_task("iex -S mix", max, "Starts IEx and runs the default task"))
   end
 
-  defp display_task_doc_list(docs, max) do
+  defp display_doc_list(docs, max) do
     Enum.each(Enum.sort(docs), fn {task, doc} ->
       Mix.shell().info(format_task(task, max, doc))
     end)
+  end
+
+  defp build_doc_list(modules, aliases) do
+    {task_docs, task_max} = build_task_doc_list(modules)
+    {alias_docs, alias_max} = build_alias_doc_list(aliases)
+    {task_docs ++ alias_docs, max(task_max, alias_max)}
   end
 
   defp build_task_doc_list(modules) do
@@ -167,6 +184,14 @@ defmodule Mix.Tasks.Help do
       else
         {docs, max}
       end
+    end)
+  end
+
+  defp build_alias_doc_list(aliases) do
+    Enum.reduce(aliases, {[], 0}, fn {alias_name, task_name}, {docs, max} ->
+      doc = "Alias for " <> task_name
+      task = "mix " <> alias_name
+      {[{task, doc} | docs], max(byte_size(task), max)}
     end)
   end
 end
