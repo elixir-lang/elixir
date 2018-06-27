@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Help do
     loadpaths!()
 
     modules = Enum.filter(load_tasks(), &String.contains?(Mix.Task.task_name(&1), pattern))
-    aliases = Enum.filter(load_aliases(), &String.contains?(elem(&1, 0), pattern))
+    aliases = Enum.filter(load_aliases(), fn {name, _} -> String.contains?(name, pattern) end)
 
     {docs, max} = build_doc_list(modules, aliases)
 
