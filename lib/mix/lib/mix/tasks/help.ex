@@ -118,9 +118,9 @@ defmodule Mix.Tasks.Help do
   end
 
   defp load_aliases() do
-    Mix.Project.config()[:aliases]
-    |> Enum.map(fn {alias_name, alias_tasks} -> {Atom.to_string(alias_name), alias_tasks} end)
-    |> Map.new()
+    aliases = Mix.Project.config()[:aliases]
+
+    Map.new(aliases, fn {alias_name, alias_tasks} -> {Atom.to_string(alias_name), alias_tasks} end)
   end
 
   defp ansi_docs?(opts) do

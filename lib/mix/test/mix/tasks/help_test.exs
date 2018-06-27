@@ -147,7 +147,8 @@ defmodule Mix.Tasks.HelpTest do
 
     in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["--search", "h"])
-      assert_received {:mix_shell, :info, ["mix h" <> _]}
+      assert_received {:mix_shell, :info, ["mix h" <> message]}
+      assert message =~ ~r/# Alias defined in mix.exs/
     end)
   end
 
