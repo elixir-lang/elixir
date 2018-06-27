@@ -189,9 +189,12 @@ defmodule Mix.Tasks.Help do
 
   defp build_alias_doc_list(aliases) do
     Enum.reduce(aliases, {[], 0}, fn {alias_name, task_name}, {docs, max} ->
-      doc = "Alias for " <> task_name
+      doc = "Alias for " <> task_str(task_name)
       task = "mix " <> alias_name
       {[{task, doc} | docs], max(byte_size(task), max)}
     end)
   end
+
+  defp task_str(task_name) when is_bitstring(task_name), do: task_name
+  defp task_str(task_name), do: inspect(task_name)
 end
