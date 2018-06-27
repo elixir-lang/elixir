@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Help do
 
   ## Arguments
 
-      mix help                  - prints all aliases, tasks and task shortdoc
+      mix help                  - prints all aliases, tasks and their short descriptions
       mix help ALIAS            - prints the definition for the given alias
       mix help TASK             - prints full docs for the given task
       mix help --search PATTERN - prints all tasks and aliases that contain PATTERN in the name
