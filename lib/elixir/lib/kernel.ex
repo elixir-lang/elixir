@@ -4877,7 +4877,8 @@ defmodule Kernel do
 
       if is_list(funs) do
         message =
-          "passing a list to Kernel.defdelegate/2 is deprecated, please define each delegate separately"
+          "passing a list to Kernel.defdelegate/2 is deprecated, " <>
+            "please define each delegate separately"
 
         :elixir_errors.warn(line, file, message)
       end
@@ -5219,7 +5220,8 @@ defmodule Kernel do
     case context do
       :guard ->
         raise ArgumentError,
-              "invalid expression in guard, #{exp} is not allowed in guards. To learn more about guards, visit: https://hexdocs.pm/elixir/guards.html"
+              "invalid expression in guard, #{exp} is not allowed in guards. " <>
+                "To learn more about guards, visit: https://hexdocs.pm/elixir/guards.html"
 
       _ ->
         :ok
