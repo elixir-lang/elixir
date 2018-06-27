@@ -1117,7 +1117,7 @@ defmodule KeyError do
     %{term: term, key: key} = exception
     message = message(key, term)
 
-    if (is_map(term) or Keyword.keyword?(term)) and Enum.all?(term, fn {k, _} -> is_atom(k) end) do
+    if (is_map(term) and Enum.all?(term, fn {k, _} -> is_atom(k) end)) or Keyword.keyword?(term) do
       hint = did_you_mean(key, available_keys(term))
       message = message <> IO.iodata_to_binary(hint)
       {%{exception | message: message}, stacktrace}
