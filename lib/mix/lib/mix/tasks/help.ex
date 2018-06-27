@@ -59,8 +59,9 @@ defmodule Mix.Tasks.Help do
     tasks = Enum.map(load_tasks(), &Mix.Task.task_name/1)
 
     aliases =
-      Mix.Project.config()[:aliases]
-      |> Enum.map(fn {k, _} -> Atom.to_string(k) end)
+      Enum.map(Mix.Project.config()[:aliases], fn {alias_name, _} ->
+        Atom.to_string(alias_name)
+      end)
 
     for info <- Enum.sort(aliases ++ tasks) do
       Mix.shell().info(info)
@@ -70,13 +71,8 @@ defmodule Mix.Tasks.Help do
   def run(["--search", pattern]) do
     loadpaths!()
 
-    modules =
-      load_tasks()
-      |> Enum.filter(&String.contains?(Mix.Task.task_name(&1), pattern))
-
-    aliases =
-      load_aliases()
-      |> Enum.filter(&String.contains?(elem(&1, 0), pattern))
+    modules = Enum.filter(load_tasks(), &String.contains?(Mix.Task.task_name(&1), pattern))
+    aliases = Enum.filter(load_aliases(), &String.contains?(elem(&1, 0), pattern))
 
     {docs, max} = build_doc_list(modules, aliases)
 
@@ -118,13 +114,12 @@ defmodule Mix.Tasks.Help do
   end
 
   defp load_tasks() do
-    Mix.Task.load_all()
-    |> Enum.filter(&(Mix.Task.moduledoc(&1) != false))
+    Enum.filter(Mix.Task.load_all(), &(Mix.Task.moduledoc(&1) != false))
   end
 
   defp load_aliases() do
     Mix.Project.config()[:aliases]
-    |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
+    |> Enum.map(fn {alias_name, alias_tasks} -> {Atom.to_string(alias_name), alias_tasks} end)
     |> Map.new()
   end
 
