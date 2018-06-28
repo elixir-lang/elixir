@@ -81,7 +81,7 @@ defmodule IEx.Helpers do
 
   ## Options
 
-  * `force?` - when `true`, force recompile the application.
+    * `:force` - when `true`, forces the application to recompile
 
   """
   def recompile(options \\ []) do
