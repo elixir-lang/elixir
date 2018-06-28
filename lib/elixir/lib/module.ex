@@ -27,7 +27,9 @@ defmodule Module do
   Accepts a module or a `{module, function_or_macro_name}` tuple.
   See the "Compile callbacks" section below.
 
-  ### `@behaviour` (notice the British spelling)
+  ### `@behaviour`
+
+  Note the British spelling!
 
   Behaviours can be referenced by modules to ensure they implement
   required specific function signatures defined by `@callback`.
