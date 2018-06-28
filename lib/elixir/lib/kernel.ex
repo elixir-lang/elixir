@@ -3852,7 +3852,7 @@ defmodule Kernel do
       end
 
   Note that `\\` can't be used with anonymous functions because they
-  can only have a single arity.
+  can only have a sole arity.
 
   ## Function and variable names
 
