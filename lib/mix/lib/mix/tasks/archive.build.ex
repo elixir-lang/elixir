@@ -109,7 +109,12 @@ defmodule Mix.Tasks.Archive.Build do
   defp create(source, target, include_dot_files?) do
     source_path = Path.expand(source)
     target_path = Path.expand(target)
-    dir = Mix.Local.archive_name(target_path) |> String.to_charlist()
+
+    dir =
+      target_path
+      |> Mix.Local.archive_name()
+      |> String.to_charlist()
+
     file_list = files_to_add(source_path, dir, include_dot_files?)
     {:ok, _} = :zip.create(String.to_charlist(target_path), file_list)
     :ok
@@ -124,7 +129,7 @@ defmodule Mix.Tasks.Archive.Build do
       Enum.reduce(evsn ++ ebin ++ priv, [], fn f, acc ->
         case File.read(f) do
           {:ok, bin} ->
-            [{Path.join(dir, f) |> String.to_charlist(), bin} | acc]
+            [{String.to_charlist(Path.join(dir, f)), bin} | acc]
 
           {:error, _} ->
             acc

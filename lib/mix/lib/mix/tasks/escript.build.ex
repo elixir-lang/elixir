@@ -202,7 +202,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp get_files(app) do
     Path.wildcard("#{app}/ebin/*.{app,beam}") ++
-      (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(&File.regular?/1))
+      Enum.filter(Path.wildcard("#{app}/priv/**/*"), &File.regular?/1)
   end
 
   defp set_perms(filename) do

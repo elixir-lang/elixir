@@ -131,7 +131,10 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   defp scan_sources(files, include_path, source_paths) do
     include_paths = [include_path | source_paths]
-    Enum.reduce(files, [], &scan_source(&2, &1, include_paths)) |> Enum.reverse()
+
+    files
+    |> Enum.reduce([], &scan_source(&2, &1, include_paths))
+    |> Enum.reverse()
   end
 
   defp scan_source(acc, file, include_paths) do

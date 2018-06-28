@@ -44,7 +44,9 @@ defmodule Mix.Tasks.Deps.Clean do
           checked_deps(build_path, deps_path)
 
         opts[:unused] ->
-          checked_deps(build_path, deps_path) |> filter_loaded(loaded_deps)
+          build_path
+          |> checked_deps(deps_path)
+          |> filter_loaded(loaded_deps)
 
         apps != [] ->
           apps

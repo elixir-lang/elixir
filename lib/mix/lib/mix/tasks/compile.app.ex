@@ -126,7 +126,11 @@ defmodule Mix.Tasks.Compile.App do
     validate_version(version)
 
     path = Mix.Project.compile_path()
-    mods = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort()
+
+    mods =
+      Path.wildcard("#{path}/*.beam")
+      |> modules_from()
+      |> Enum.sort()
 
     target = Path.join(path, "#{app}.app")
     source = Mix.Project.config_mtime()
