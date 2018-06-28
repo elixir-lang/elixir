@@ -166,7 +166,9 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp format(expression, args) do
-    :io_lib.format(expression, args) |> IO.iodata_to_binary()
+    expression
+    |> :io_lib.format(args)
+    |> IO.iodata_to_binary()
   end
 
   defp first_line(doc) do

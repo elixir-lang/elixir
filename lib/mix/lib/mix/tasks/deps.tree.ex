@@ -70,7 +70,11 @@ defmodule Mix.Tasks.Deps.Tree do
   end
 
   defp callback(formatter, deps, opts) do
-    excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
+    excluded =
+      opts
+      |> Keyword.get_values(:exclude)
+      |> Enum.map(&String.to_atom/1)
+
     top_level = Enum.filter(deps, & &1.top_level)
 
     fn

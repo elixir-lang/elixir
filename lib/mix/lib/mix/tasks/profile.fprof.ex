@@ -208,8 +208,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     {total_row, analysis_output} = next_term(analysis_output)
     print_total_row(total_row)
 
-    Stream.unfold(analysis_output, &next_term/1)
-    |> Enum.each(&print_analysis_result/1)
+    Enum.each(Stream.unfold(analysis_output, &next_term/1), &print_analysis_result/1)
   end
 
   defp next_term(charlist) do
