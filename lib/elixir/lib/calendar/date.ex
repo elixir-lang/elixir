@@ -178,7 +178,7 @@ defmodule Date do
   end
 
   @doc """
-  Returns the number of days in the given `date` month.
+  Returns the number of months in the given `date` year.
 
   ## Example
 
