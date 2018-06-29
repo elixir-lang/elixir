@@ -90,6 +90,29 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "preserves surrounding whitespace when working with stdio", context do
+    in_tmp(context.test, fn ->
+      input = """
+
+          foo bar
+
+
+      """
+
+      output =
+        capture_io(input, fn ->
+          Mix.Tasks.Format.run(["-"])
+        end)
+
+      assert output == """
+
+                 foo(bar)
+
+
+             """
+    end)
+  end
+
   test "reads file from stdin and prints to stdout with formatter", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
