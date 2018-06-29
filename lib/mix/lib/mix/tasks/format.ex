@@ -394,7 +394,11 @@ defmodule Mix.Tasks.Format do
 
   defp format_file({file, formatter_opts}, task_opts) do
     {input, extra_opts} = read_file(file)
-    output = IO.iodata_to_binary([Code.format_string!(input, extra_opts ++ formatter_opts), ?\n])
+
+    output =
+      [Code.format_string!(input, extra_opts ++ formatter_opts), ?\n]
+      |> IO.iodata_to_binary()
+      |> restore_whitespace(input, file)
 
     check_equivalent? = Keyword.get(task_opts, :check_equivalent, false)
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
@@ -417,6 +421,43 @@ defmodule Mix.Tasks.Format do
     exception ->
       {:exit, file, exception, __STACKTRACE__}
   end
+
+  defp restore_whitespace(output, input, :stdin) do
+    output
+    |> restore_indent(indent(input))
+    |> restore_leading_whitespace(leading_whitespace(input))
+    |> restore_trailing_whitespace(trailing_whitespace(input))
+  end
+
+  defp restore_whitespace(output, _input, _file) do
+    output
+  end
+
+  defp indent(input) do
+    List.last(Regex.run(~r/([ \t]*)\S/, input) || [""])
+  end
+
+  defp leading_whitespace(input) do
+    List.first(Regex.run(~r/\A(\s*\n)*/, input) || [""])
+  end
+
+  defp trailing_whitespace(input) do
+    List.first(Regex.run(~r/^(\s*\n)*\Z/m, input) || [""])
+  end
+
+  defp restore_indent(output, indent) do
+    output
+    |> String.split("\n")
+    |> Enum.map(&restore_line_indent(&1, indent))
+    |> Enum.join("\n")
+  end
+
+  defp restore_line_indent("", _indent), do: ""
+  defp restore_line_indent(line, indent), do: indent <> line
+
+  defp restore_leading_whitespace(output, leading_whitespace), do: leading_whitespace <> output
+
+  defp restore_trailing_whitespace(output, trailing_whitespace), do: output <> trailing_whitespace
 
   defp write_or_print(file, input, output) do
     cond do
