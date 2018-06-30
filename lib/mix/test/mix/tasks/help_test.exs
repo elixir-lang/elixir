@@ -29,6 +29,20 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
+  test "help lists all aliases", context do
+    Mix.Project.push(Aliases)
+
+    in_tmp(context.test, fn ->
+      Mix.Tasks.Help.run([])
+
+      assert_received {:mix_shell, :info, ["mix h" <> message]}
+      assert message =~ ~r/# Alias defined in mix.exs/
+
+      assert_received {:mix_shell, :info, ["mix c" <> message]}
+      assert message =~ ~r/# Alias defined in mix.exs/
+    end)
+  end
+
   test "help --names", context do
     Mix.Project.push(Aliases)
 
@@ -40,6 +54,64 @@ defmodule Mix.Tasks.HelpTest do
       assert_received {:mix_shell, :info, ["help"]}
       assert_received {:mix_shell, :info, ["escript.build"]}
       refute_received {:mix_shell, :info, ["compile.all"]}
+    end)
+  end
+
+  defmodule ComplexAliases do
+    def project do
+      [
+        aliases: [
+          h: "hello",
+          p: &inspect/1,
+          help: ["help", "hello"],
+          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"]
+        ]
+      ]
+    end
+  end
+
+  test "help ALIAS", context do
+    Mix.Project.push(ComplexAliases)
+
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["h"])
+        end)
+
+      assert output =~ "# mix h\n\n"
+      assert output =~ "Alias for \"hello\"\n"
+      assert output =~ ~r/^Location: mix.exs/m
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["p"])
+        end)
+
+      assert output =~ "# mix p\n\n"
+      assert output =~ "Alias for &Kernel.inspect/1\n"
+      assert output =~ ~r/^Location: mix.exs/m
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["help"])
+        end)
+
+      assert output =~ "# mix help\n\n"
+      assert output =~ "Alias for [\"help\", \"hello\"]\n"
+      assert output =~ ~r/^Location: mix.exs/m
+
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["nested.h"])
+        end)
+
+      assert output =~ "# mix nested.h\n\n"
+
+      assert output =~
+               ~r/Alias for \[#Function<.*\/1 in .*ComplexAliases.project\/0>, \"h foo bar\"\]\n/
+
+      assert output =~ ~r/^Location: mix.exs/m
     end)
   end
 
@@ -69,6 +141,14 @@ defmodule Mix.Tasks.HelpTest do
       Mix.Tasks.Help.run(["--search", "deps"])
       assert_received {:mix_shell, :info, ["mix deps" <> _]}
       assert_received {:mix_shell, :info, ["mix deps.clean" <> _]}
+    end)
+
+    Mix.Project.push(Aliases)
+
+    in_tmp(context.test, fn ->
+      Mix.Tasks.Help.run(["--search", "h"])
+      assert_received {:mix_shell, :info, ["mix h" <> message]}
+      assert message =~ ~r/# Alias defined in mix.exs/
     end)
   end
 

@@ -4,13 +4,14 @@ defmodule Mix.Tasks.Help do
   @shortdoc "Prints help information for tasks"
 
   @moduledoc """
-  Lists all tasks or prints the documentation for a given task.
+  Lists all tasks and aliases or prints the documentation for a given task or alias.
 
   ## Arguments
 
-      mix help                  - prints all tasks and their shortdoc
+      mix help                  - prints all aliases, tasks and their short descriptions
+      mix help ALIAS            - prints the definition for the given alias
       mix help TASK             - prints full docs for the given task
-      mix help --search PATTERN - prints all tasks that contain PATTERN in the name
+      mix help --search PATTERN - prints all tasks and aliases that contain PATTERN in the name
       mix help --names          - prints all task names and aliases
                                   (useful for autocompleting)
 
@@ -43,10 +44,12 @@ defmodule Mix.Tasks.Help do
     loadpaths!()
 
     modules = load_tasks()
-    {docs, max} = build_task_doc_list(modules)
+    aliases = load_aliases()
+
+    {docs, max} = build_doc_list(modules, aliases)
 
     display_default_task_doc(max)
-    display_task_doc_list(docs, max)
+    display_doc_list(docs, max)
     display_iex_task_doc(max)
   end
 
@@ -56,8 +59,9 @@ defmodule Mix.Tasks.Help do
     tasks = Enum.map(load_tasks(), &Mix.Task.task_name/1)
 
     aliases =
-      Mix.Project.config()[:aliases]
-      |> Enum.map(fn {k, _} -> Atom.to_string(k) end)
+      Enum.map(Mix.Project.config()[:aliases], fn {alias_name, _} ->
+        Atom.to_string(alias_name)
+      end)
 
     for info <- Enum.sort(aliases ++ tasks) do
       Mix.shell().info(info)
@@ -67,13 +71,12 @@ defmodule Mix.Tasks.Help do
   def run(["--search", pattern]) do
     loadpaths!()
 
-    modules =
-      load_tasks()
-      |> Enum.filter(&String.contains?(Mix.Task.task_name(&1), pattern))
+    modules = Enum.filter(load_tasks(), &String.contains?(Mix.Task.task_name(&1), pattern))
+    aliases = Enum.filter(load_aliases(), fn {name, _} -> String.contains?(name, pattern) end)
 
-    {docs, max} = build_task_doc_list(modules)
+    {docs, max} = build_doc_list(modules, aliases)
 
-    display_task_doc_list(docs, max)
+    display_doc_list(docs, max)
   end
 
   def run(["--search"]) do
@@ -83,8 +86,7 @@ defmodule Mix.Tasks.Help do
   def run([task]) do
     loadpaths!()
 
-    module = Mix.Task.get!(task)
-    doc = Mix.Task.moduledoc(module) || "There is no documentation for this task"
+    {doc, location} = verbose_doc(task)
     opts = Application.get_env(:mix, :colors)
 
     if ansi_docs?(opts) do
@@ -96,7 +98,7 @@ defmodule Mix.Tasks.Help do
       IO.puts(doc)
     end
 
-    IO.puts("Location: #{where_is_file(module)}")
+    IO.puts("Location: #{location}")
   end
 
   def run(_) do
@@ -112,8 +114,13 @@ defmodule Mix.Tasks.Help do
   end
 
   defp load_tasks() do
-    Mix.Task.load_all()
-    |> Enum.filter(&(Mix.Task.moduledoc(&1) != false))
+    Enum.filter(Mix.Task.load_all(), &(Mix.Task.moduledoc(&1) != false))
+  end
+
+  defp load_aliases() do
+    aliases = Mix.Project.config()[:aliases]
+
+    Map.new(aliases, fn {alias_name, alias_tasks} -> {Atom.to_string(alias_name), alias_tasks} end)
   end
 
   defp ansi_docs?(opts) do
@@ -153,10 +160,16 @@ defmodule Mix.Tasks.Help do
     Mix.shell().info(format_task("iex -S mix", max, "Starts IEx and runs the default task"))
   end
 
-  defp display_task_doc_list(docs, max) do
+  defp display_doc_list(docs, max) do
     Enum.each(Enum.sort(docs), fn {task, doc} ->
       Mix.shell().info(format_task(task, max, doc))
     end)
+  end
+
+  defp build_doc_list(modules, aliases) do
+    {task_docs, task_max} = build_task_doc_list(modules)
+    {alias_docs, alias_max} = build_alias_doc_list(aliases)
+    {task_docs ++ alias_docs, max(task_max, alias_max)}
   end
 
   defp build_task_doc_list(modules) do
@@ -168,5 +181,27 @@ defmodule Mix.Tasks.Help do
         {docs, max}
       end
     end)
+  end
+
+  defp build_alias_doc_list(aliases) do
+    Enum.reduce(aliases, {[], 0}, fn {alias_name, _task_name}, {docs, max} ->
+      doc = "Alias defined in mix.exs"
+      task = "mix " <> alias_name
+      {[{task, doc} | docs], max(byte_size(task), max)}
+    end)
+  end
+
+  defp verbose_doc(task) do
+    aliases = load_aliases()
+
+    if Map.has_key?(aliases, task) do
+      task_name = aliases[task]
+      doc = "Alias for " <> inspect(task_name)
+      {doc, "mix.exs"}
+    else
+      module = Mix.Task.get!(task)
+      doc = Mix.Task.moduledoc(module) || "There is no documentation for this task"
+      {doc, where_is_file(module)}
+    end
   end
 end
