@@ -2,8 +2,8 @@ defmodule List do
   @moduledoc """
   Functions that work on (linked) lists.
   
-  Please note that most of the functions provided for lists are
-  found in `Enum`.
+  Please note that most of the functions provided for lists--which implement 
+  the `Enumerable` protocol--are found in `Enum`.
   
   Additionally, the following functions for lists are found in `Kernel`:
   
