@@ -8,7 +8,9 @@ import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
-  `Kernel` is Elixir's set of core functionality, mainly consisting of:
+  `Kernel` is Elixir's set of core functionality.
+  
+  It mainly consists of:
   
     * syntactic sugar - for more readable and intuitive code
     * [macros](https://elixir-lang.org/getting-started/meta/macros.html) - for defining new functionality
@@ -21,7 +23,8 @@ defmodule Kernel do
       iex> is_number(13)
       true
       
-  For optimizations, you can tell Elixir not to import a given function or macro:
+  If you don't want to import a function or macro from `Kernel`, use `except:` 
+  and then list the functionality by arity:
   
         import Kernel, except: [if: 2]
 
