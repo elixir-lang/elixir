@@ -8,32 +8,25 @@ import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
-  This module is the entry point of the Elixir programming language.
-
-  It provides the default functions and macros Elixir imports into your
-  environment. Those can be directly invoked in your code without the
-  module name:
-
+  `Kernel` is Elixir's set of core functionality, mainly consisting of:
+  
+    * syntactic sugar - for more readable and intuitive code
+    * [macros](https://elixir-lang.org/getting-started/meta/macros.html) - for defining new functionality
+    * [guard](guards.html) checks - for more powerful function definitions
+    
+  `Kernel` is automatically imported into all `.ex` and `.exs` files,
+  meaning that you can use its functions and macros in any file or `IEx` 
+  without using the module name:
+  
       iex> is_number(13)
       true
-
-  These functions and macros can be skipped or cherry-picked via the
-  `Kernel.SpecialForms.import/2` macro. For instance, if you want to tell
-  Elixir not to import the `if/2` macro, you can do:
-
-      import Kernel, except: [if: 2]
+      
+  For optimizations, you can tell Elixir not to import a given function or macro:
+  
+        import Kernel, except: [if: 2]
 
   Elixir also has special forms that are always imported and
   cannot be skipped. These are described in `Kernel.SpecialForms`.
-
-  This module provides a variety of code definition, flow-control
-  and data type functionality. For example, new processes can be
-  created with `spawn/1`, modules can be defined with `defmodule/2`,
-  short-circuit operators are found in `&&/2` and `||/2`, numbers
-  can be added with `+/2`, and more. This module also contains all
-  built-in guards, which are a set of functions that augment pattern
-  matching with complex checks. More information about guards can be
-  found in the [Guards page](guards.html).
 
   ## The standard library
 
