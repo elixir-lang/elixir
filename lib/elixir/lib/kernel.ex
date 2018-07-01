@@ -23,10 +23,10 @@ defmodule Kernel do
       iex> is_number(13)
       true
       
-  If you don't want to import a function or macro from `Kernel`, use `except:` 
-  and then list the functionality by arity:
+  If you don't want to import a function or macro from `Kernel`, use the `:except` 
+  option and then list the function/macro by arity:
   
-        import Kernel, except: [if: 2]
+        import Kernel, except: [if: 2, unless: 2]
 
   Elixir also has special forms that are always imported and
   cannot be skipped. These are described in `Kernel.SpecialForms`.
