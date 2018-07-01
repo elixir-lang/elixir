@@ -9,6 +9,7 @@ defmodule List do
   
     * `hd/1`
     * `tl/1`
+    * `in/2` - equivalent to `Enum.member?/2`
     * `length/1` - requires traversing the full list
 
   Lists in Elixir are specified between square brackets:
