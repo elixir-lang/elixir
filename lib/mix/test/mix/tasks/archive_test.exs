@@ -51,6 +51,19 @@ defmodule Mix.Tasks.ArchiveTest do
     assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/archive.app')
   end
 
+  test "archive install --force" do
+    in_fixture("archive", fn ->
+      Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
+      Mix.Tasks.Archive.Install.run(["--force"])
+
+      message = "Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"
+      assert_received {:mix_shell, :info, [^message]}
+
+      Mix.Tasks.Archive.Uninstall.run(["archive-0.1.0", "--force"])
+      refute File.dir?(tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin"))
+    end)
+  end
+
   test "archive install" do
     in_fixture("archive", fn ->
       # Build and install archive

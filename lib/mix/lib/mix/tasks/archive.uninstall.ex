@@ -8,8 +8,16 @@ defmodule Mix.Tasks.Archive.Uninstall do
 
       mix archive.uninstall archive.ez
 
+  ## Command line options
+    * `--force` - forces uninstallation without a shell prompt; primarily
+      intended for automation
   """
+
+  @switches [
+    force: :boolean
+  ]
+
   def run(argv) do
-    Mix.Local.Installer.uninstall(Mix.Local.path_for(:archive), "archive", argv)
+    Mix.Local.Installer.uninstall(Mix.Local.path_for(:archive), "archive", argv, @switches)
   end
 end
