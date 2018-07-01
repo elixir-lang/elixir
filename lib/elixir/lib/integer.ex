@@ -1,6 +1,14 @@
 defmodule Integer do
   @moduledoc """
   Functions for working with integers.
+  
+  Please note the following functions for integers are found in `Kernel`:
+  
+    * `abs/2`
+    * `div/2`
+    * `max/2`
+    * `min/2`
+    * `rem/2`
   """
 
   import Bitwise
