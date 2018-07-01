@@ -2,11 +2,11 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
   
-  Please note the following functions for tuples are found in `Kernel`:
+  Please note the following functions for tuples--_all constant-time_--are found in `Kernel`:
   
-    * `elem/2` - for accessing a tuple by index
-    * `put_elem/3`
-    * `tuple_size/3`
+    * `elem/2` - access a tuple by index
+    * `put_elem/3` - insert a value into a tuple by index
+    * `tuple_size/3` - get the number of elements in a tuple
     
   When deciding between whether to use a tuple or a list, please bear in mind
   that tuples are not meant to be used as a "collection" type but rather as a
@@ -39,26 +39,9 @@ defmodule Tuple do
 
   Tuples store elements contiguously in memory. This means accessing a
   tuple element by index doesn't depend on the number of elements in the
-  tuple. We say the operation is done in constant-time, via the
-  `Kernel.elem/2` function:
-
-      iex> tuple = {1, :two, "three"}
-      iex> elem(tuple, 0)
-      1
-      iex> elem(tuple, 2)
-      "three"
-
-  Same goes for getting the tuple size with `Kernel.tuple_size/1`:
-
-      iex> tuple_size({})
-      0
-      iex> tuple_size({1, 2, 3})
-      3
-
-  Tuples being stored contiguously in memory also means that updating a tuple
-  (for example replacing an element with `Kernel.put_elem/3`) will make a
-  shallow copy of the whole tuple. The tuple elements are still shared thanks
-  to immutability.
+  tuple. Tuples being stored contiguously in memory also means that updating 
+  a tuple will make a shallow copy of the whole tuple. The tuple elements 
+  are still shared due to immutability.
 
   For example, tuples are often used to have functions return "enriched"
   values: a common pattern is for functions to return `{:ok, value}` for
