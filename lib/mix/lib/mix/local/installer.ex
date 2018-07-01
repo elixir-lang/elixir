@@ -236,9 +236,9 @@ defmodule Mix.Local.Installer do
   @doc """
   A common implementation for uninstalling archives and scripts.
   """
-  @spec uninstall(Path.t(), String.t(), OptionParser.argv()) :: Path.t() | nil
-  def uninstall(root, listing, argv) do
-    {_, argv, _} = OptionParser.parse(argv, switches: [])
+  @spec uninstall(Path.t(), String.t(), OptionParser.argv(), keyword) :: Path.t() | nil
+  def uninstall(root, listing, argv, switches) do
+    {opts, argv} = OptionParser.parse!(argv, switches: switches)
 
     if name = List.first(argv) do
       path = Path.join(root, name)
@@ -249,7 +249,7 @@ defmodule Mix.Local.Installer do
           Mix.Task.rerun(listing)
           nil
 
-        should_uninstall?(path) ->
+        should_uninstall?(path, opts) ->
           File.rm_rf!(path)
           path
 
@@ -261,8 +261,8 @@ defmodule Mix.Local.Installer do
     end
   end
 
-  defp should_uninstall?(path) do
-    Mix.shell().yes?("Are you sure you want to uninstall #{path}?")
+  defp should_uninstall?(path, opts) do
+    opts[:force] || Mix.shell().yes?("Are you sure you want to uninstall #{path}?")
   end
 
   @doc """
