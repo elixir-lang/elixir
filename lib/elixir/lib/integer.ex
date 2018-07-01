@@ -9,6 +9,7 @@ defmodule Integer do
     * `max/2`
     * `min/2`
     * `rem/2`
+
   """
 
   import Bitwise
