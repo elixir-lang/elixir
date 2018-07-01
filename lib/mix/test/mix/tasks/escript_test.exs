@@ -271,6 +271,27 @@ defmodule Mix.Tasks.EscriptTest do
     end)
   end
 
+  test "escript install and uninstall --force" do
+    File.rm_rf!(tmp_path(".mix/escripts"))
+    Mix.Project.push(Escript)
+
+    in_fixture("escript_test", fn ->
+      Mix.Tasks.Escript.Install.run(["--force"])
+
+      # check that it shows in the list
+      Mix.Tasks.Escript.run([])
+      assert_received {:mix_shell, :info, ["* escript_test"]}
+      refute_received {:mix_shell, :info, ["* escript_test.bat"]}
+
+      # uninstall the escript
+      Mix.Tasks.Escript.Uninstall.run(["escript_test", "--force"])
+
+      # check that no escripts remain
+      Mix.Tasks.Escript.run([])
+      assert_received {:mix_shell, :info, ["No escripts currently installed."]}
+    end)
+  end
+
   test "escript invalid install" do
     # Install our escript
     send(self(), {:mix_shell_input, :yes?, true})

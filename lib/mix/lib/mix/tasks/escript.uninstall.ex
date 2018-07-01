@@ -8,9 +8,14 @@ defmodule Mix.Tasks.Escript.Uninstall do
 
       mix escript.uninstall escript_name
 
+  ## Command line options
+    * `--force` - forces uninstallation without a shell prompt; primarily
+      intended for automation
   """
 
-  @switches []
+  @switches [
+    force: :boolean
+  ]
 
   def run(argv) do
     if path =
