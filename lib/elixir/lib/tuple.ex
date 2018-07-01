@@ -2,15 +2,16 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
   
-  Please note the following functions for tuples--_all constant-time_--are found in `Kernel`:
+  Please note the following functions for tuples--_all constant-time_
+  --are found in `Kernel`:
   
     * `elem/2` - access a tuple by index
     * `put_elem/3` - insert a value into a tuple by index
     * `tuple_size/3` - get the number of elements in a tuple
     
-  When deciding between whether to use a tuple or a list, please bear in mind
-  that tuples are not meant to be used as a "collection" type but rather as a
-  fixed-size container for multiple elements. That's why it is not possible
+  When deciding whether to use a tuple or a list, please bear in mind
+  that tuples are not meant to be used as a "collection" type but rather 
+  as a fixed-size container for multiple elements. That's why it is not possible
   to traverse a tuple dynamically using the functions in the `Enum` module.
   
   The functions that add and remove elements from tuples, changing their size, 
@@ -27,10 +28,15 @@ defmodule Tuple do
       # Prefer
       {:ok, atom} = tuple
       {:ok, atom, %{}}
+  
+  Rather, tuples are typically used when a function has multiple return values.
+  A common pattern is for functions to return `{:ok, value}` for successful cases 
+  and `{:error, reason}` for unsuccessful cases. For example, `File.read/1` returns 
+  `{:ok, contents}` if reading the given file is successful, or else `{:error, reason}` 
+  such as when the file does not exist.
 
-  Tuples are composite data types with a fixed number of elements. Tuples
-  can contain elements of any type, and a tuple can contain elements of
-  different types. Curly braces can be used to create tuples:
+  Tuples can contain a fixed number of elements of different types. 
+  Curly braces are used to create a tuple:
 
       iex> {}
       {}
@@ -42,13 +48,6 @@ defmodule Tuple do
   tuple. Tuples being stored contiguously in memory also means that updating 
   a tuple will make a shallow copy of the whole tuple. The tuple elements 
   are still shared due to immutability.
-
-  For example, tuples are often used to have functions return "enriched"
-  values: a common pattern is for functions to return `{:ok, value}` for
-  successful cases and `{:error, reason}` for unsuccessful cases. This is
-  exactly what `File.read/1` does: it returns `{:ok, contents}` if reading
-  the given file is successful, or `{:error, reason}` otherwise, such as
-  when the file does not exist.
 
   """
 
