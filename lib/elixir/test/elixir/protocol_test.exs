@@ -123,8 +123,10 @@ defmodule ProtocolTest do
       end
     )
 
-    docs = Code.get_docs(SampleDocsProto, :docs)
-    assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = List.keyfind(docs, {:ok, 1}, 0)
+    {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(SampleDocsProto)
+
+    assert {{:function, :ok, 1}, _, ["ok(term)"], %{"en" => "Ok"}, _} =
+             List.keyfind(docs, {:function, :ok, 1}, 0)
 
     deprecated = SampleDocsProto.__info__(:deprecated)
     assert [{{:ok, 1}, "Reason"}] = deprecated
@@ -378,11 +380,11 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidation keeps docs" do
-    {:ok, {Sample, [{'ExDc', docs_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExDc'])
-    {:elixir_docs_v1, docs} = :erlang.binary_to_term(docs_bin)
-    ok_doc = Keyword.get(docs, :docs) |> List.keyfind({:ok, 1}, 0)
+    {:ok, {Sample, [{'Docs', docs_bin}]}} = :beam_lib.chunks(@sample_binary, ['Docs'])
+    {:docs_v1, _, _, _, _, _, docs} = :erlang.binary_to_term(docs_bin)
+    ok_doc = List.keyfind(docs, {:function, :ok, 1}, 0)
 
-    assert {{:ok, 1}, _, :def, [{:term, _, nil}], "Ok"} = ok_doc
+    assert {{:function, :ok, 1}, _, ["ok(term)"], %{"en" => "Ok"}, _} = ok_doc
   end
 
   test "consolidation keeps deprecated" do

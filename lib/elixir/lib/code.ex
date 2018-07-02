@@ -1045,6 +1045,66 @@ defmodule Code do
   When given a path to a `.beam` file, it will load the docs directly from that
   file.
 
+  It returns the term stored in the documentation chunk in the format defined by
+  [EEP 48](http://erlang.org/eep/eeps/eep-0048.html) or `{:error, reason}` if
+  the chunk is not available.
+
+  ## Examples
+
+      # Module documentation of an existing module
+      iex> {:docs_v1, _, :elixir, _, %{"en" => module_doc}, _, _} = Code.fetch_docs(Atom)
+      iex> module_doc |> String.split("\n") |> Enum.at(0)
+      "Convenience functions for working with atoms."
+
+      # A module that doesn't exist
+      iex> Code.fetch_docs(ModuleNotGood)
+      {:error, :module_not_found}
+
+  """
+  @spec fetch_docs(module) ::
+          {:docs_v1, anno, beam_language, format, module_doc :: doc, metadata,
+           docs :: [{{kind, name, arity}, anno, signature, doc, metadata}]}
+          | {:error, :module_not_found | :docs_chunk_not_found}
+        when anno: :erl_anno.anno(),
+             beam_language: atom,
+             format: binary,
+             doc: %{binary => binary} | :none | :hidden,
+             kind: atom,
+             name: atom,
+             signature: [binary],
+             metadata: map
+  @since "1.7.0"
+  def fetch_docs(module) when is_atom(module) do
+    case :code.get_object_code(module) do
+      {_module, bin, _beam_path} -> do_fetch_docs(bin)
+      :error -> {:error, :module_not_found}
+    end
+  end
+
+  def fetch_docs(binpath) when is_binary(binpath) do
+    do_fetch_docs(String.to_charlist(binpath))
+  end
+
+  @docs_chunk 'Docs'
+
+  defp do_fetch_docs(bin_or_path) do
+    case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
+      {:ok, {_module, [{@docs_chunk, bin}]}} ->
+        :erlang.binary_to_term(bin)
+
+      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
+        {:error, :docs_chunk_not_found}
+    end
+  end
+
+  @doc ~S"""
+  Returns the docs for the given module.
+
+  When given a module name, it finds its BEAM code and reads the docs from it.
+
+  When given a path to a `.beam` file, it will load the docs directly from that
+  file.
+
   The return value depends on the `kind` value:
 
     * `:moduledoc` - tuple `{line, doc}` where `line` is the line on
@@ -1108,14 +1168,14 @@ defmodule Code do
     do_get_docs(String.to_charlist(binpath), kind)
   end
 
-  @docs_chunk 'ExDc'
+  @legacy_docs_chunk 'ExDc'
 
   defp do_get_docs(bin_or_path, kind) do
-    case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
-      {:ok, {_module, [{@docs_chunk, bin}]}} ->
+    case :beam_lib.chunks(bin_or_path, [@legacy_docs_chunk]) do
+      {:ok, {_module, [{@legacy_docs_chunk, bin}]}} ->
         lookup_docs(:erlang.binary_to_term(bin), kind)
 
-      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
+      {:error, :beam_lib, {:missing_chunk, _, @legacy_docs_chunk}} ->
         nil
     end
   end
