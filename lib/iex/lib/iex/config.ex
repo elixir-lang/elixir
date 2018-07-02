@@ -14,7 +14,7 @@ defmodule IEx.Config do
 
   def width() do
     columns = columns()
-    value = Application.get_env(:iex, :width) || min(columns, 80)
+    value = Application.get_env(:iex, :width) || 80
     min(value, columns)
   end
 
