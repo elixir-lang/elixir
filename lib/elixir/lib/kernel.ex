@@ -8,7 +8,7 @@ import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
-  `Kernel` is Elixir's set of core functionality.
+  `Kernel` is Elixir's default environment.
   
   It mainly consists of:
   
@@ -16,9 +16,8 @@ defmodule Kernel do
     * [macros](https://elixir-lang.org/getting-started/meta/macros.html) - for defining new functionality
     * [guard](guards.html) checks - for more powerful function definitions
     
-  `Kernel` is automatically imported into all `.ex` and `.exs` files,
-  meaning that you can use its functions and macros in any file or `IEx` 
-  without using the module name:
+  You can use its functions and macros anywhere, including `.ex` and `.exs` files
+  and `IEx`, without using the module name:
   
       iex> is_number(13)
       true
