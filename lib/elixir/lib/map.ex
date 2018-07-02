@@ -3,20 +3,10 @@ defmodule Map do
   A set of functions for working with maps.
   
   Please note many functions for maps--which implement the `Enumerable` protocol
-  --can be found in `Enum`.
+  --are found in `Enum`.
   
-  Additionally, the following functions for maps are found in `Kernel`:
-  
-    * `get_and_update_in/2`
-    * `get_and_update_in/3`
-    * `get_in/2`
-    * `map_size/1`
-    * `pop_in/1`
-    * `pop_in/2`
-    * `put_in/2`
-    * `put_in/3`
-    * `update_in/2`
-    * `update_in/3`
+  Additionally, functionality for accessing maps and getting a map's number of 
+  key-value pairs are found in `Kernel`.
 
   Maps are the "go to" key-value data structure in Elixir. Maps can be created
   with the `%{}` syntax, and key-value pairs can be expressed as `key => value`:
