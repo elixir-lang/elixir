@@ -9,8 +9,8 @@ defmodule List do
   
     * `hd/1`
     * `tl/1`
-    * `in/2` - equivalent to `Enum.member?/2`
-    * `length/1` - requires traversing the full list
+    * `in/2` - checks if element is in list
+    * `length/1`
 
   Lists in Elixir are specified between square brackets:
 
@@ -60,9 +60,10 @@ defmodule List do
       iex> list ++ [4] # slow
       [1, 2, 3, 4]
       
-  Additonally, accessing a list by index is a linear operation. Negative indexes 
-  are also supported but they imply the list will be iterated twice, 
-  once to calculate the proper index and another time to perform the operation.
+  Additonally, getting a list's length and accessing it by index are 
+  linear time operations. Negative indexes are also supported but 
+  they imply the list will be iterated twice, once to calculate the 
+  proper index and another time to perform the operation.
 
   ## Charlists
 
