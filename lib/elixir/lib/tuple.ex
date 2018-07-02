@@ -2,23 +2,34 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
   
-  Please note the following functions for tuples--_all constant-time_
-  --are found in `Kernel`:
+  Please note the following functions for tuples are found in `Kernel`:
   
     * `elem/2` - access a tuple by index
     * `put_elem/3` - insert a value into a tuple by index
     * `tuple_size/3` - get the number of elements in a tuple
     
-  When deciding whether to use a tuple or a list, please bear in mind
-  that tuples are not meant to be used as a "collection" type but rather 
-  as a fixed-size container for multiple elements. That's why it is not possible
-  to traverse a tuple dynamically using the functions in the `Enum` module.
+  Tuples are intended as fixed-size containers for multiple elements.
+  To _manipulate_ a collection of elements, use a list instead--
+  `Enum` functions do not work on tuples.
   
-  The functions that add and remove elements from tuples, changing their size, 
-  are rarely used in practice, as they typically imply tuples are being used as 
-  collections. Even if you have a tuple `{:ok, atom}` and you want to append 
-  another element to it, such as an empty map, it is preferrable to rely on 
-  pattern matching and create a new tuple than manipulating it dynamically:
+  Tuples are denoted with curly braces:
+
+      iex> {}
+      {}
+      iex> {1, :two, "three"}
+      {1, :two, "three"}
+
+  A tuple may contain elements of different types, which are 
+  stored contiguously in memory. Accessing any element takes constant time, 
+  but modifying a tuple, which produces a shallow copy, takes linear time. 
+  Tuples are good for reading data while lists are better for writes.
+  
+  Tuples are typically used either when a function has multiple return values
+  or for error handling. `File.read/1` returns `{:ok, contents}` if reading 
+  the given file is successful, or else `{:error, reason}` such as when 
+  the file does not exist.
+  
+  To append to a tuple, it is preferrable to use pattern matching:
 
       tuple = {:ok, :example}
 
@@ -28,26 +39,6 @@ defmodule Tuple do
       # Prefer
       {:ok, atom} = tuple
       {:ok, atom, %{}}
-  
-  Rather, tuples are typically used when a function has multiple return values.
-  A common pattern is for functions to return `{:ok, value}` for successful cases 
-  and `{:error, reason}` for unsuccessful cases. For example, `File.read/1` returns 
-  `{:ok, contents}` if reading the given file is successful, or else `{:error, reason}` 
-  such as when the file does not exist.
-
-  Tuples can contain a fixed number of elements of different types. 
-  Curly braces are used to create a tuple:
-
-      iex> {}
-      {}
-      iex> {1, :two, "three"}
-      {1, :two, "three"}
-
-  Tuples store elements contiguously in memory. This means accessing a
-  tuple element by index doesn't depend on the number of elements in the
-  tuple. Tuples being stored contiguously in memory also means that updating 
-  a tuple will make a shallow copy of the whole tuple. The tuple elements 
-  are still shared due to immutability.
 
   """
 
