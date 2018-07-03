@@ -1075,7 +1075,7 @@ defmodule Kernel.WarningTest do
            end) =~ "found ? followed by codepoint 0x20 (space), please use ?\\s instead"
   end
 
-  test "duplicated docs" do
+  test "duplicated docs in the same clause" do
     output =
       capture_err(fn ->
         Code.eval_string("""
@@ -1094,6 +1094,34 @@ defmodule Kernel.WarningTest do
     assert output =~ "redefining @doc attribute previously set at line 2"
     assert output =~ "nofile:3: Sample (module)"
     refute output =~ "nofile:7"
+  after
+    purge(Sample)
+  end
+
+  test "duplicated docs across multiple clauses" do
+    output =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          @doc "Something"
+          def foo(a)
+
+          @doc "Something"
+          def foo(1), do: :ok
+
+          @doc "Something"
+          def foo(2), do: :ok
+
+          @doc "Something"
+          def foo(a)
+        end
+        """)
+      end)
+
+    assert output =~ "redefining @doc attribute previously set at line 2"
+    assert output =~ "nofile:5"
+    assert output =~ "nofile:8"
+    refute output =~ "nofile:11"
   after
     purge(Sample)
   end
