@@ -12,14 +12,18 @@
   * [Code] Add `Code.purge_compiler_modules/0` that purges any compiler module left behind. This is useful for live systems dynamically compiling code
   * [Date] Add `Date.months_in_year/1` function
   * [DynamicSupervisor] Use the name of the `DynamicSupervisor` as the ID whenever possible
+  * [Exception] Provide "did you mean" suggestions on KeyError
+  * [Exception] Provide more information on ArithmeticError on Erlang/OTP 21+
   * [Function] Add `Function` module with `capture/3`, `info/1` and `info/2` functions
-  * [GenServer] Support the new `handle_continue/2` callback on Erlang/OTP 21 onwards
+  * [GenServer] Support the new `handle_continue/2` callback on Erlang/OTP 21+
   * [IO.ANSI] Add cursor movement to `IO.ANSI`
   * [Kernel] Introduce `__STACKTRACE__` to retrieve the current stacktrace inside `catch`/`rescue` (this will be a requirement for Erlang/OTP 21+)
   * [Kernel] Raise on unsafe variables in order to allow us to better track unused variables
   * [Kernel] Warn when using `length` to check if a list is not empty on guards
   * [Kernel] Add hints on mismatched `do`/`end` and others pairs
   * [Kernel] Warn when comparing structs using the `>`, `<`, `>=` and `<=` operators
+  * [Kernel] Warn on unsupported nested comparisons such as `x < y < z`
+  * [Kernel] Warn if redefining documentation across clauses of the same definition
   * [Macro] Add `Macro.special_form?/2` and `Macro.operator?/2` that returns true if the given name/arity is a special form or operator respectively
   * [Macro.Env] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
   * [Regex] Include endianness in the regex version. This allows regexes to be recompiled when an archive is installed in a system with a different endianness
@@ -36,17 +40,24 @@
 
 #### IEx
 
-  * [IEx.Helpers] Add `IEx.Helpers.use_if_available/2`
+  * [IEx.Helpers] Add `use_if_available/2`
+  * [IEx.Helpers] Allow `force: true` option in `recompile/1`
+  * [IEx.Helpers] Add `:allocators` pane to `runtime_info/1`
 
 #### Logger
 
-  * [Logger] Improve error messages on invalid inputs
+  * [Logger] Only evaluate Logger macro arguments when the message will be logged
+  * [Logger] Add `:compile_time_purge_matching` to purge logger calls that match certain compile time metadata, such as module names and application names
+  * [Logger] Log to `:stderr` if a backend fails and there are no other backends
 
 #### Mix
 
   * [mix archive.install] Add support for the Hex organization via `--organization`
+  * [mix archive.uninstall] Support `--force` flag
   * [mix compile] Improve support for external build tools such as `rebar`
   * [mix escript.install] Add support for the Hex organization via `--organization`
+  * [mix escript.uninstall] Support `--force` flag
+  * [mix help] Also list aliases
   * [mix local] Use ipv6 with auto fallback to ipv4 when downloading data
   * [mix profile] Allow all profiling tasks to run programatically
   * [mix test] Add `--failed` option that only runs previously failed tests
@@ -70,6 +81,8 @@
 #### Mix
 
   * [mix compile] Properly track config files in umbrella projects and recompile when any relevant umbrella configuration changes
+  * [mix deps.compile] Perform clean builds for dependencies on outdated locks to avoid old modules from affecting future compilation
+  * [Mix.Dep] Ensure the same dependency from different SCMs are tagged as diverged when those SCMs are remote and non-remote
 
 ### 3. Soft-deprecations (no warnings emitted)
 
