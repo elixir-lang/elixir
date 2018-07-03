@@ -1749,7 +1749,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> raise(ArgumentError, message: "Sample")
+      iex> raise(ArgumentError, "Sample")
       ** (ArgumentError) Sample
 
   """
@@ -5232,14 +5232,14 @@ defmodule Kernel do
   defp unescape_tokens(tokens) do
     case :elixir_interpolation.unescape_tokens(tokens) do
       {:ok, unescaped_tokens} -> unescaped_tokens
-      {:error, reason} -> raise(ArgumentError, to_string(reason))
+      {:error, reason} -> raise ArgumentError, to_string(reason)
     end
   end
 
   defp unescape_tokens(tokens, unescape_map) do
     case :elixir_interpolation.unescape_tokens(tokens, unescape_map) do
       {:ok, unescaped_tokens} -> unescaped_tokens
-      {:error, reason} -> raise(ArgumentError, to_string(reason))
+      {:error, reason} -> raise ArgumentError, to_string(reason)
     end
   end
 

@@ -119,8 +119,17 @@ defmodule CodeTest do
     end
 
     test "returns an error tuple on hex errors" do
-      assert Code.string_to_quoted("\"\\x\"") ==
+      assert Code.string_to_quoted(~S["\x"]) ==
                {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\""}}
+
+      assert Code.string_to_quoted(~S[:"\x"]) ==
+               {:error, {1, "missing hex sequence after \\x, expected \\xHH", ":\""}}
+
+      assert Code.string_to_quoted(~S["\x": 123]) ==
+               {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\""}}
+
+      assert Code.string_to_quoted(~s["""\n\\x\n"""]) ==
+               {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\"\"\""}}
     end
 
     test "raises on errors when string_to_quoted!/2 is used" do
