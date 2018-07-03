@@ -1506,7 +1506,8 @@ defmodule Kernel do
   defmacro left or right do
     case __CALLER__.context do
       nil -> build_boolean_check(:or, left, true, right)
-      _ -> quote(do: :erlang.orelse(unquote(left), unquote(right)))
+      :match -> invalid_match!(:or)
+      :guard -> quote(do: :erlang.orelse(unquote(left), unquote(right)))
     end
   end
 
@@ -1532,7 +1533,8 @@ defmodule Kernel do
   defmacro left and right do
     case __CALLER__.context do
       nil -> build_boolean_check(:and, left, right, false)
-      _ -> quote(do: :erlang.andalso(unquote(left), unquote(right)))
+      :match -> invalid_match!(:and)
+      :guard -> quote(do: :erlang.andalso(unquote(left), unquote(right)))
     end
   end
 
@@ -1568,7 +1570,7 @@ defmodule Kernel do
   defmacro !value
 
   defmacro !{:!, _, [value]} do
-    assert_no_guard_scope(__CALLER__.context, "!")
+    assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     optimize_boolean(
       quote do
@@ -1581,7 +1583,7 @@ defmodule Kernel do
   end
 
   defmacro !value do
-    assert_no_guard_scope(__CALLER__.context, "!")
+    assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     optimize_boolean(
       quote do
@@ -3076,7 +3078,7 @@ defmodule Kernel do
   as the first argument, not only booleans.
   """
   defmacro left && right do
-    assert_no_guard_scope(__CALLER__.context, "&&")
+    assert_no_match_or_guard_scope(__CALLER__.context, "&&")
 
     quote do
       case unquote(left) do
@@ -3114,7 +3116,7 @@ defmodule Kernel do
   as the first argument, not only booleans.
   """
   defmacro left || right do
-    assert_no_guard_scope(__CALLER__.context, "||")
+    assert_no_match_or_guard_scope(__CALLER__.context, "||")
 
     quote do
       case unquote(left) do
@@ -5216,8 +5218,11 @@ defmodule Kernel do
     end
   end
 
-  defp assert_no_guard_scope(context, exp) do
+  defp assert_no_match_or_guard_scope(context, exp) do
     case context do
+      :match ->
+        invalid_match!(exp)
+
       :guard ->
         raise ArgumentError,
               "invalid expression in guard, #{exp} is not allowed in guards. " <>
@@ -5226,6 +5231,12 @@ defmodule Kernel do
       _ ->
         :ok
     end
+  end
+
+  defp invalid_match!(exp) do
+    raise ArgumentError,
+          "invalid expression in match, #{exp} is not allowed on patterns " <>
+            "such as function clauses, case clauses or on the left side of the = operator"
   end
 
   # Helper to handle the :ok | :error tuple returned from :elixir_interpolation.unescape_tokens
