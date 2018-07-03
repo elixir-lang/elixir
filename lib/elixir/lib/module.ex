@@ -1221,7 +1221,7 @@ defmodule Module do
       if doc, do: {:error, :private_doc}, else: :ok
     else
       {set, _bag} = data_tables_for(module)
-      compile_doc(set, line, kind, function_tuple, signature, doc, __ENV__, false)
+      compile_doc(set, line, kind, function_tuple, signature, nil, doc, __ENV__, false)
       :ok
     end
   end
@@ -1229,7 +1229,7 @@ defmodule Module do
   @doc false
   # Used internally to compile documentation.
   # This function is private and must be used only internally.
-  def compile_definition_attributes(env, kind, name, args, _guards, _body) do
+  def compile_definition_attributes(env, kind, name, args, _guards, body) do
     %{module: module} = env
     {set, bag} = data_tables_for(module)
     {arity, defaults} = args_count(args, 0, 0)
@@ -1241,23 +1241,23 @@ defmodule Module do
 
     # TODO: Store @since and @deprecated alongside the docs
     {line, doc} = get_doc_info(set, env)
-    compile_doc(set, line, kind, pair, args, doc, env, impl)
+    compile_doc(set, line, kind, pair, args, body, doc, env, impl)
 
     :ok
   end
 
-  defp compile_doc(_table, line, kind, {name, arity}, _args, doc, env, _impl)
+  defp compile_doc(_table, line, kind, {name, arity}, _args, _body, doc, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
-      error_message =
+      message =
         "#{kind} #{name}/#{arity} is private, " <>
           "@doc attribute is always discarded for private functions/macros/types"
 
-      :elixir_errors.warn(line, env.file, error_message)
+      :elixir_errors.warn(line, env.file, message)
     end
   end
 
-  defp compile_doc(table, line, kind, pair, args, doc, env, impl) do
+  defp compile_doc(table, line, kind, pair, args, body, doc, env, impl) do
     signature = build_signature(args, env)
 
     case :ets.lookup(table, {:doc, pair}) do
@@ -1265,11 +1265,21 @@ defmodule Module do
         doc = if is_nil(doc) && impl, do: false, else: doc
         :ets.insert(table, {{:doc, pair}, line, kind, signature, doc})
 
-      [{doc_tuple, line, _current_kind, current_sign, current_doc}] ->
+      [{doc_tuple, current_line, _current_kind, current_sign, current_doc}] ->
         signature = merge_signatures(current_sign, signature, 1)
+
+        if is_binary(doc) and is_binary(current_doc) and not is_nil(body) do
+          message =
+            "redefining @doc attribute previously set at line #{current_line}. " <>
+              "If you want to redefine a previously specified doc, " <>
+              "use a definition without a body after the original documentation"
+
+          :elixir_errors.warn(line, env.file, message)
+        end
+
         doc = if is_nil(doc), do: current_doc, else: doc
         doc = if is_nil(doc) && impl, do: false, else: doc
-        :ets.insert(table, {doc_tuple, line, kind, signature, doc})
+        :ets.insert(table, {doc_tuple, current_line, kind, signature, doc})
     end
   end
 
