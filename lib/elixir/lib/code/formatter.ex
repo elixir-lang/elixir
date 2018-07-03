@@ -1134,10 +1134,11 @@ defmodule Code.Formatter do
 
     args = if keyword?, do: left ++ right, else: left ++ [right]
     many_eol? = match?([_, _ | _], args) and Keyword.get(meta, :eol, false)
+    no_generators? = no_generators?(args)
     to_algebra_fun = &quoted_to_algebra(&1, context, &2)
 
     {args_doc, next_break_fits?, state} =
-      if left != [] and keyword? and no_generators?(args) do
+      if left != [] and keyword? and no_generators? do
         join = if force_args?(left) or many_eol?, do: :line, else: :break
 
         {left_doc, _join, state} =
@@ -1207,7 +1208,7 @@ defmodule Code.Formatter do
 
     doc =
       cond do
-        left != [] and keyword? and skip_parens? and no_generators?(args) ->
+        left != [] and keyword? and skip_parens? and no_generators? ->
           " "
           |> concat(args_doc)
           |> nest(2)
