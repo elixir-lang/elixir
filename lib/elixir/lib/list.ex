@@ -2,14 +2,17 @@ defmodule List do
   @moduledoc """
   Functions that work on (linked) lists.
   
-  Please note that most of the functions provided for lists--which implement 
-  the `Enumerable` protocol--are found in `Enum`.
+  Many of the functions provided for lists, which implement 
+  the `Enumerable` protocol, are found in the `Enum` module.
   
-  Additionally, the following functions for lists are found in `Kernel`:
+  Additionally, the following functions and operators for lists are
+  found in `Kernel`:
   
+    * `Kernel.++/2`
+    * `Kernel.--/2`
     * `hd/1`
     * `tl/1`
-    * `in/2` - checks if element is in list
+    * `in/2`
     * `length/1`
 
   Lists in Elixir are specified between square brackets:
