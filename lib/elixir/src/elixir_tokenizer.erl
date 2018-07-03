@@ -417,13 +417,19 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest} ->
-      Unescaped = unescape_tokens(Parts, Scope),
-      Key = case Scope#elixir_tokenizer.existing_atoms_only of
-        true  -> atom_safe;
-        false -> atom_unsafe
-      end,
-      Token = {Key, {Line, Column, nil}, Unescaped},
-      tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+      case unescape_tokens(Parts, Scope) of
+        {ok, Unescaped} ->
+          Key = case Scope#elixir_tokenizer.existing_atoms_only of
+            true  -> atom_safe;
+            false -> atom_unsafe
+          end,
+          Token = {Key, {Line, Column, nil}, Unescaped},
+          tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+
+        {error, Msg} ->
+          {error, {Line, Column, Msg, [$:, H]}, Rest, Tokens}
+      end;
+
     {error, Reason} ->
       interpolation_error(Reason, Original, Tokens, " (for atom starting at line ~B)", [Line])
   end;
@@ -590,8 +596,15 @@ handle_char(_)  -> false.
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, true, T, H) of
     {ok, NewLine, NewColumn, Parts, Rest} ->
-      Token = {heredoc_type(H), {Line, Column, nil}, unescape_tokens(Parts, Scope)},
-      tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+      case unescape_tokens(Parts, Scope) of
+        {ok, Unescaped} ->
+          Token = {heredoc_type(H), {Line, Column, nil}, Unescaped},
+          tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+
+        {error, Msg} ->
+          {error, {Line, Column, Msg, [H, H, H]}, Rest, Tokens}
+      end;
+
     {error, Reason} ->
       {error, Reason, [H, H, H] ++ T, Tokens}
   end.
@@ -601,20 +614,27 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
     {error, Reason} ->
       interpolation_error(Reason, [H | T], Tokens, " (for string starting at line ~B)", [Line]);
     {NewLine, NewColumn, Parts, [$: | Rest]} when ?is_space(hd(Rest)) ->
-      Unescaped = unescape_tokens(Parts, Scope),
-      Key = case Scope#elixir_tokenizer.existing_atoms_only of
-        true  -> kw_identifier_safe;
-        false -> kw_identifier_unsafe
-      end,
-      Token = {Key, {Line, Column - 1, nil}, Unescaped},
-      tokenize(Rest, NewLine, NewColumn + 1, Scope, [Token | Tokens]);
+      case unescape_tokens(Parts, Scope) of
+        {ok, Unescaped} ->
+          Key = case Scope#elixir_tokenizer.existing_atoms_only of
+            true  -> kw_identifier_safe;
+            false -> kw_identifier_unsafe
+          end,
+          Token = {Key, {Line, Column - 1, nil}, Unescaped},
+          tokenize(Rest, NewLine, NewColumn + 1, Scope, [Token | Tokens]);
+
+        {error, Msg} ->
+          {error, {Line, Column, Msg, [H]}, Rest, Tokens}
+      end;
+
     {NewLine, NewColumn, Parts, Rest} ->
       case unescape_tokens(Parts, Scope) of
-        {error, Msg} ->
-          {error, {Line, Column, Msg, [H]}, Rest, Tokens};
-        Unescaped ->
+        {ok, Unescaped} ->
           Token = {string_type(H), {Line, Column - 1, nil}, Unescaped},
-          tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens])
+          tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+
+        {error, Msg} ->
+          {error, {Line, Column, Msg, [H]}, Rest, Tokens}
       end
   end.
 
@@ -881,14 +901,9 @@ extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
   extract_heredoc_line(Marker, Rest, Buffer).
 
 unescape_tokens(Tokens, #elixir_tokenizer{unescape=true}) ->
-  case elixir_interpolation:unescape_tokens(Tokens) of
-    {ok, UnescapedTokens} ->
-      UnescapedTokens;
-    {error, _Reason} = Error ->
-      Error
-    end;
+  elixir_interpolation:unescape_tokens(Tokens);
 unescape_tokens(Tokens, #elixir_tokenizer{unescape=false}) ->
-  Tokens.
+  {ok, Tokens}.
 
 %% Integers and floats
 %% At this point, we are at least sure the first digit is a number.

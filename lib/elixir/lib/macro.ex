@@ -534,7 +534,7 @@ defmodule Macro do
   def unescape_tokens(tokens) do
     case :elixir_interpolation.unescape_tokens(tokens) do
       {:ok, unescaped_tokens} -> unescaped_tokens
-      {:error, reason} -> raise(ArgumentError, to_string(reason))
+      {:error, reason} -> raise ArgumentError, to_string(reason)
     end
   end
 
@@ -543,7 +543,7 @@ defmodule Macro do
   def unescape_tokens(tokens, map) do
     case :elixir_interpolation.unescape_tokens(tokens, map) do
       {:ok, unescaped_tokens} -> unescaped_tokens
-      {:error, reason} -> raise(ArgumentError, to_string(reason))
+      {:error, reason} -> raise ArgumentError, to_string(reason)
     end
   end
 
