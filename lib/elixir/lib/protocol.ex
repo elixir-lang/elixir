@@ -309,7 +309,7 @@ defmodule Protocol do
   end
 
   defp beam_protocol(protocol) do
-    chunk_ids = [:abstract_code, :attributes, :compile_info, 'ExDc', 'ExDp']
+    chunk_ids = [:abstract_code, :attributes, :compile_info, 'Docs', 'ExDc', 'ExDp']
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do

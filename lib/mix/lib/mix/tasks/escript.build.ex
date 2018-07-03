@@ -280,7 +280,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp strip_beam(beam) when is_binary(beam) do
     {:ok, _, all_chunks} = :beam_lib.all_chunks(beam)
-    strip_chunks = ['Abst', 'CInf', 'Dbgi', 'ExDc']
+    strip_chunks = ['Abst', 'CInf', 'Dbgi', 'Docs', 'ExDc']
     preserved_chunks = for {name, _} = chunk <- all_chunks, name not in strip_chunks, do: chunk
     {:ok, content} = :beam_lib.build_module(preserved_chunks)
     compress(content)

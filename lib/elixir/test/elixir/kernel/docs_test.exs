@@ -38,10 +38,7 @@ defmodule Kernel.DocsTest do
       end
     )
 
-    assert Code.get_docs(WithoutDocs, :docs) == nil
-    assert Code.get_docs(WithoutDocs, :moduledoc) == nil
-    assert Code.get_docs(WithoutDocs, :type_docs) == nil
-    assert Code.get_docs(WithoutDocs, :callback_docs) == nil
+    assert Code.fetch_docs(WithoutDocs) == {:error, :docs_chunk_not_found}
   after
     Code.compiler_options(docs: true)
   end
@@ -54,9 +51,7 @@ defmodule Kernel.DocsTest do
       def foobar(arg), do: arg
     end
 
-    assert Code.get_docs(InMemoryDocs, :docs) == nil
-    assert Code.get_docs(InMemoryDocs, :moduledoc) == nil
-    assert Code.get_docs(InMemoryDocs, :callback_docs) == nil
+    assert Code.fetch_docs(InMemoryDocs) == {:error, :module_not_found}
   end
 
   test "raises on invalid @since" do
@@ -105,6 +100,10 @@ defmodule Kernel.DocsTest do
         end
       )
 
+      assert {:docs_v1, _, :elixir, _, _, _, docs} = Code.fetch_docs(SignatureDocs)
+
+      signatures = for {{:function, n, a}, _, signature, _, %{}} <- docs, do: {{n, a}, signature}
+
       assert [
                arg_names,
                only_underscore,
@@ -112,41 +111,26 @@ defmodule Kernel.DocsTest do
                with_defaults,
                with_struct,
                with_underscore
-             ] = Code.get_docs(SignatureDocs, :docs)
+             ] = Enum.sort(signatures)
 
       # arg_names/5
-      assert {{:arg_names, 5}, _, :def, args, nil} = arg_names
-
-      assert [
-               {:list1, _, Elixir},
-               {:list2, _, Elixir},
-               {:map1, _, Elixir},
-               {:list3, _, Elixir},
-               {:map2, _, Elixir}
-             ] = args
+      assert {{:arg_names, 5}, ["arg_names(list1, list2, map1, list3, map2)"]} = arg_names
 
       # only_underscore/1
-      assert {{:only_underscore, 1}, _, :def, [{:_, _, Elixir}], nil} = only_underscore
+      assert {{:only_underscore, 1}, ["only_underscore(_)"]} = only_underscore
 
       # two_good_names/2
-      assert {{:two_good_names, 2}, _, :def, args, nil} = two_good_names
-      assert [{:first, _, nil}, {:atom, _, Elixir}] = args
+      assert {{:two_good_names, 2}, ["two_good_names(first, atom)"]} = two_good_names
 
       # with_defaults/4
-      assert {{:with_defaults, 4}, _, :def, args, nil} = with_defaults
-
-      assert [
-               {:int, _, Elixir},
-               {:\\, _, [{:arg, _, nil}, 0]},
-               {:\\, _, [{:year, _, nil}, 2015]},
-               {:\\, _, [{:fun, _, nil}, {:&, _, [{:/, _, [{:>=, _, nil}, 2]}]}]}
-             ] = args
+      assert {{:with_defaults, 4},
+              ["with_defaults(int, arg \\\\ 0, year \\\\ 2015, fun \\\\ &>=/2)"]} = with_defaults
 
       # with_struct/1
-      assert {{:with_struct, 1}, _, :def, [{:uri, _, Elixir}], nil} = with_struct
+      assert {{:with_struct, 1}, ["with_struct(uri)"]} = with_struct
 
       # with_underscore/1
-      assert {{:with_underscore, 1}, _, :def, [{:two_tuple, _, nil}], nil} = with_underscore
+      assert {{:with_underscore, 1}, ["with_underscore(two_tuple)"]} = with_underscore
     end
 
     test "includes docs for functions, modules, types and callbacks" do
@@ -200,31 +184,26 @@ defmodule Kernel.DocsTest do
         end
       )
 
-      docs = Code.get_docs(SampleDocs, :all)
-      assert Code.get_docs(SampleDocs, :docs) == docs[:docs]
-      assert Code.get_docs(SampleDocs, :moduledoc) == docs[:moduledoc]
-      assert Code.get_docs(SampleDocs, :type_docs) == docs[:type_docs]
-      assert Code.get_docs(SampleDocs, :callback_docs) == docs[:callback_docs]
+      assert {:docs_v1, _, :elixir, "text/markdown", %{"en" => module_doc}, %{}, docs} =
+               Code.fetch_docs(SampleDocs)
 
-      assert {_, "Module doc"} = docs[:moduledoc]
+      assert module_doc == "Module doc"
 
       assert [
-               {{:bar, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause doc"},
-               {{:baz, 1}, _, :def, [{:arg, _, nil}], "Multiple bodiless clause and docs"},
-               {{:foo, 1}, _, :def, [{:arg, _, nil}], "Function doc"},
-               {{:nullary, 0}, _, :def, [], "add_doc"},
-               {{:qux, 1}, _, :def, [{:bool, _, Elixir}], false}
-             ] = docs[:docs]
-
-      assert [{{:bar, 1}, _, :opaque, "Opaque type doc"}, {{:foo, 1}, _, :type, "Type doc"}] =
-               docs[:type_docs]
-
-      assert [
-               {{:bar, 0}, _, :callback, false},
-               {{:baz, 2}, _, :callback, nil},
-               {{:foo, 1}, _, :callback, "Callback doc"},
-               {{:qux, 1}, _, :macrocallback, "Macrocallback doc"}
-             ] = docs[:callback_docs]
+               {{:callback, :bar, 0}, _, [], :hidden, %{}},
+               {{:callback, :baz, 2}, _, [], :none, %{}},
+               {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"}, %{}},
+               {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple bodiless clause doc"},
+                %{}},
+               {{:function, :baz, 1}, _, ["baz(arg)"],
+                %{"en" => "Multiple bodiless clause and docs"}, %{}},
+               {{:function, :foo, 1}, _, ["foo(arg)"], %{"en" => "Function doc"}, %{}},
+               {{:function, :nullary, 0}, _, ["nullary()"], %{"en" => "add_doc"}, %{}},
+               {{:function, :qux, 1}, _, ["qux(bool)"], :hidden, %{}},
+               {{:macrocallback, :qux, 1}, _, [], %{"en" => "Macrocallback doc"}, %{}},
+               {{:type, :bar, 1}, _, [], %{"en" => "Opaque type doc"}, %{opaque: true}},
+               {{:type, :foo, 1}, _, [], %{"en" => "Type doc"}, %{}}
+             ] = Enum.sort(docs)
     end
   end
 
@@ -256,13 +235,14 @@ defmodule Kernel.DocsTest do
       end
     )
 
-    docs = Code.get_docs(Docs, :all)
+    {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(Docs)
+    function_docs = for {{:function, name, arity}, _, _, doc, _} <- docs, do: {{name, arity}, doc}
 
     assert [
-             {{:bar, 0}, _, :def, [], false},
-             {{:baz, 0}, _, :def, [], "Baz docs"},
-             {{:foo, 1}, _, :def, [{:arg1, [], _}], "Foo docs"},
-             {{:fuz, 0}, _, :def, [], nil}
-           ] = docs[:docs]
+             {{:bar, 0}, :hidden},
+             {{:baz, 0}, %{"en" => "Baz docs"}},
+             {{:foo, 1}, %{"en" => "Foo docs"}},
+             {{:fuz, 0}, :none}
+           ] = Enum.sort(function_docs)
   end
 end

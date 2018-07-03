@@ -515,14 +515,29 @@ supports_extra_chunks_option() ->
 docs_chunk(Set, Line, Def, Defmacro, Types, Callbacks) ->
   case elixir_compiler:get_opt(docs) of
     true ->
-      ChunkData = term_to_binary({elixir_docs_v1, [
+      {DocLine, Doc} = get_moduledoc(Line, Set),
+
+      FunctionAndMacroDocs = get_docs(Set, Def, Defmacro),
+      CallbackDocs = get_callback_docs(Set, Callbacks),
+      TypeDocs = get_type_docs(Set, Types),
+
+      DocsChunkData = term_to_binary({docs_v1,
+        erl_anno:new(DocLine),
+        elixir,
+        <<"text/markdown">>,
+        doc_value(Doc),
+        #{},
+        [translate_doc(EntityDoc) || EntityDoc <- FunctionAndMacroDocs ++ CallbackDocs ++ TypeDocs]
+      }, [compressed]),
+
+      ExDcChunkData = term_to_binary({elixir_docs_v1, [
         {moduledoc, get_moduledoc(Line, Set)},
-        {docs, get_docs(Set, Def, Defmacro)},
-        {callback_docs, get_callback_docs(Set, Callbacks)},
-        {type_docs, get_type_docs(Set, Types)}
+        {docs, FunctionAndMacroDocs},
+        {callback_docs, CallbackDocs},
+        {type_docs, TypeDocs}
       ]}, [compressed]),
 
-      [{<<"ExDc">>, ChunkData}];
+      [{<<"Docs">>, DocsChunkData}, {<<"ExDc">>, ExDcChunkData}];
 
     false ->
       []
@@ -531,6 +546,13 @@ docs_chunk(Set, Line, Def, Defmacro, Types, Callbacks) ->
 deprecated_chunk(Deprecated) ->
   ChunkData = term_to_binary({elixir_deprecated_v1, Deprecated}, [compressed]),
   [{<<"ExDp">>, ChunkData}].
+
+doc_value(Doc) ->
+  case Doc of
+    nil -> none;
+    false -> hidden;
+    Doc -> #{<<"en">> => Doc}
+  end.
 
 get_moduledoc(Line, Set) ->
   case ets:lookup_element(Set, moduledoc, 2) of
@@ -558,6 +580,41 @@ get_type_docs(Set, Types) ->
      {Kind, Tuple, _, _, true} <- Types,
      {_, Line, Doc} <- ets:lookup(Set, {Kind, Tuple})]
   ).
+
+translate_doc({{Name, Arity}, Line, Kind, Signature, Doc}) ->
+  {{translate_doc_kind(Kind), Name, Arity},
+   erl_anno:new(Line),
+   [signature_to_binary(Name, Signature)],
+   doc_value(Doc),
+   doc_metadata(Kind)
+  };
+translate_doc({{Name, Arity}, Line, Kind, Doc}) ->
+  {{translate_doc_kind(Kind), Name, Arity},
+   erl_anno:new(Line),
+   [],
+   doc_value(Doc),
+   doc_metadata(Kind)
+  }.
+
+translate_doc_kind(def)           -> function;
+translate_doc_kind(callback)      -> callback;
+translate_doc_kind(type)          -> type;
+translate_doc_kind(opaque)        -> type;
+translate_doc_kind(defmacro)      -> macro;
+translate_doc_kind(macrocallback) -> macrocallback.
+
+signature_to_binary(Name, Signature) ->
+  BinaryName = atom_to_binary(Name, utf8),
+  Args = lists:map(fun
+    FormatArg({'\\\\', _, [Left, Right]}) ->
+      [FormatArg(Left), " \\\\ ", 'Elixir.Macro':to_string(Right)];
+    FormatArg({Var, _, _}) ->
+      atom_to_binary(Var, utf8)
+  end, Signature),
+  iolist_to_binary([BinaryName, "(", lists:join(", ", Args), ")"]).
+
+doc_metadata(opaque) -> #{opaque => true};
+doc_metadata(_)      -> #{}.
 
 %% Errors
 
