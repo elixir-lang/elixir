@@ -41,6 +41,7 @@ take_definition(Module, {Name, Arity} = Tuple) ->
   {Set, Bag} = elixir_module:data_tables(Module),
   case ets:take(Set, {def, Tuple}) of
     [{{def, Tuple}, _, _, _, _, {Defaults, _, _}} = Result] ->
+      ets:delete_object(Bag, {defs, Tuple}),
       ets:delete_object(Bag, {{default, Name}, Arity, Defaults}),
       {Result, [Clause || {_, Clause} <- ets:take(Bag, {clauses, Tuple})]};
     [] ->
@@ -53,8 +54,7 @@ fetch_definitions(File, Module) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   Entries = try
-    %% Note entries can be duplicated in overridable clauses, hence usort.
-    lists:usort(ets:lookup_element(Bag, defs, 2))
+    lists:sort(ets:lookup_element(Bag, defs, 2))
   catch
     error:badarg -> []
   end,

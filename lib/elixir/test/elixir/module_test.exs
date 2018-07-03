@@ -373,6 +373,12 @@ defmodule ModuleTest do
       assert Module.definitions_in(__MODULE__) == [foo: 3]
       assert Module.definitions_in(__MODULE__, :def) == [foo: 3]
       assert Module.definitions_in(__MODULE__, :defp) == []
+
+      defoverridable foo: 3
+
+      assert Module.definitions_in(__MODULE__) == []
+      assert Module.definitions_in(__MODULE__, :def) == []
+      assert Module.definitions_in(__MODULE__, :defp) == []
     end
   end
 
