@@ -13,19 +13,22 @@ defmodule Kernel do
   It mainly consists of:
   
     * syntactic sugar - for more readable and intuitive code
-    * [macros](https://elixir-lang.org/getting-started/meta/macros.html) - for defining new functionality
-    * [guard](guards.html) checks - for more powerful function definitions
+    * [macros](https://elixir-lang.org/getting-started/meta/macros.html) - for defining new
+      functionality (modules, functions, and so on)
+    * [guard](guards.html) checks - for augmenting pattern matching
     
-  You can use its functions and macros anywhere, including `.ex` and `.exs` files
-  and `IEx`, without using the module name:
-  
+  You can use `Kernel` functions/macros without the `Kernel` prefix anywhere in Elixir code
+  as all its functions and macros are automatically imported. For example, in IEx:
+
       iex> is_number(13)
       true
-      
+
   If you don't want to import a function or macro from `Kernel`, use the `:except` 
   option and then list the function/macro by arity:
   
         import Kernel, except: [if: 2, unless: 2]
+        
+  See `Kernel.SpecialForms.import/2` for more information on importing.
 
   Elixir also has special forms that are always imported and
   cannot be skipped. These are described in `Kernel.SpecialForms`.
