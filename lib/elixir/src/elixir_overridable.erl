@@ -25,11 +25,13 @@ super(Meta, Module, Function, E) ->
   end.
 
 store_pending(Module) ->
+  {Set, _} = elixir_module:data_tables(Module),
+
   [begin
     {_, _, _} = store(Module, Pair, false),
     Pair
    end || {Pair, {_, _, _, false}} <- maps:to_list(overridable(Module)),
-          not 'Elixir.Module':'defines?'(Module, Pair)].
+          not ets:member(Set, {def, Pair})].
 
 %% Private
 

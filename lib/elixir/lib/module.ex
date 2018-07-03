@@ -826,7 +826,7 @@ defmodule Module do
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 do
     assert_not_compiled!(:defines?, module)
     {set, _bag} = data_tables_for(module)
-    :ets.lookup(set, {:def, tuple}) != []
+    :ets.member(set, {:def, tuple})
   end
 
   @doc """
