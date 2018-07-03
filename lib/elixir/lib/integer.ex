@@ -2,7 +2,7 @@ defmodule Integer do
   @moduledoc """
   Functions for working with integers.
   
-  Please note the following functions for integers are found in `Kernel`:
+  Some functions that work on integers are found in `Kernel`:
   
     * `abs/2`
     * `div/2`
