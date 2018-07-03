@@ -118,6 +118,11 @@ defmodule CodeTest do
       assert string_to_quoted.("foo + bar") == {:ok, {:+, [line: 1, column: 5], [foo, bar]}}
     end
 
+    test "returns an error tuple on hex errors" do
+      assert Code.string_to_quoted("\"\\x\"") ==
+               {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\""}}
+    end
+
     test "raises on errors when string_to_quoted!/2 is used" do
       assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
 

@@ -78,7 +78,13 @@ unescape_tokens(Tokens) ->
   unescape_tokens(Tokens, fun unescape_map/1).
 
 unescape_tokens(Tokens, Map) ->
-  [unescape_token(Token, Map) || Token <- Tokens].
+  try [unescape_token(Token, Map) || Token <- Tokens] of
+    Unescaped ->
+      {ok, Unescaped}
+  catch
+    {error, _Reason} = Error ->
+      Error
+  end.
 
 unescape_token(Token, Map) when is_binary(Token) -> unescape_chars(Token, Map);
 unescape_token(Other, _Map) -> Other.
@@ -151,8 +157,7 @@ unescape_hex(<<${, A, B, C, D, E, F, $}, Rest/binary>>, Map, Acc) when ?is_hex(A
   append_codepoint(Rest, Map, [A, B, C, D, E, F], Acc, 16);
 
 unescape_hex(<<_/binary>>, _Map, _Acc) ->
-  Msg = <<"missing hex sequence after \\x, expected \\xHH">>,
-  error('Elixir.ArgumentError':exception([{message, Msg}])).
+  throw({error, "missing hex sequence after \\x, expected \\xHH"}).
 
 %% Finish deprecated sequences
 

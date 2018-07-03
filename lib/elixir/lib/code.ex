@@ -661,8 +661,12 @@ defmodule Code do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
 
-    with {:ok, tokens} <- :elixir.string_to_tokens(to_charlist(string), line, file, opts) do
-      :elixir.tokens_to_quoted(tokens, file, opts)
+    case :elixir.string_to_tokens(to_charlist(string), line, file, opts) do
+      {:ok, tokens} ->
+        :elixir.tokens_to_quoted(tokens, file, opts)
+
+      {:error, _error_msg} = error ->
+        error
     end
   end
 

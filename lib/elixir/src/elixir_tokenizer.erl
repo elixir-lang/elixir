@@ -609,8 +609,13 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
       Token = {Key, {Line, Column - 1, nil}, Unescaped},
       tokenize(Rest, NewLine, NewColumn + 1, Scope, [Token | Tokens]);
     {NewLine, NewColumn, Parts, Rest} ->
-      Token = {string_type(H), {Line, Column - 1, nil}, unescape_tokens(Parts, Scope)},
-      tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens])
+      case unescape_tokens(Parts, Scope) of
+        {error, Msg} ->
+          {error, {Line, Column, Msg, [H]}, Rest, Tokens};
+        Unescaped ->
+          Token = {string_type(H), {Line, Column - 1, nil}, Unescaped},
+          tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens])
+      end
   end.
 
 handle_unary_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
@@ -876,7 +881,12 @@ extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
   extract_heredoc_line(Marker, Rest, Buffer).
 
 unescape_tokens(Tokens, #elixir_tokenizer{unescape=true}) ->
-  elixir_interpolation:unescape_tokens(Tokens);
+  case elixir_interpolation:unescape_tokens(Tokens) of
+    {ok, UnescapedTokens} ->
+      UnescapedTokens;
+    {error, _Reason} = Error ->
+      Error
+    end;
 unescape_tokens(Tokens, #elixir_tokenizer{unescape=false}) ->
   Tokens.
 
