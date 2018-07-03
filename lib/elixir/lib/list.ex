@@ -8,8 +8,8 @@ defmodule List do
   Additionally, the following functions and operators for lists are
   found in `Kernel`:
   
-    * `Kernel.++/2`
-    * `Kernel.--/2`
+    * `++/2`
+    * `--/2`
     * `hd/1`
     * `tl/1`
     * `in/2`
