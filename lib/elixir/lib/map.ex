@@ -1,12 +1,12 @@
 defmodule Map do
   @moduledoc """
   A set of functions for working with maps.
-  
-  Please note many functions for maps--which implement the `Enumerable` protocol
-  --are found in `Enum`.
-  
-  Additionally, functionality for accessing maps and getting a map's number of 
-  key-value pairs are found in `Kernel`.
+
+  Many functions for maps, which implement the `Enumerable` protocol,
+  are found in the `Enum` module. Additionally, the following functions
+  for maps are found in `Kernel`:
+
+    * `map_size/1`
 
   Maps are the "go to" key-value data structure in Elixir. Maps can be created
   with the `%{}` syntax, and key-value pairs can be expressed as `key => value`:
