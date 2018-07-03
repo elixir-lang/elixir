@@ -88,6 +88,7 @@ defmodule Kernel.DocsTest do
             {fun, arg + year}
           end
 
+          def with_map_and_default(%{key: value} \\ %{key: :default}), do: value
           def with_struct(%URI{}), do: :ok
 
           def with_underscore({_, _} = _two_tuple), do: :ok
@@ -101,7 +102,6 @@ defmodule Kernel.DocsTest do
       )
 
       assert {:docs_v1, _, :elixir, _, _, _, docs} = Code.fetch_docs(SignatureDocs)
-
       signatures = for {{:function, n, a}, _, signature, _, %{}} <- docs, do: {{n, a}, signature}
 
       assert [
@@ -109,6 +109,7 @@ defmodule Kernel.DocsTest do
                only_underscore,
                two_good_names,
                with_defaults,
+               with_map_and_default,
                with_struct,
                with_underscore
              ] = Enum.sort(signatures)
@@ -125,6 +126,10 @@ defmodule Kernel.DocsTest do
       # with_defaults/4
       assert {{:with_defaults, 4},
               ["with_defaults(int, arg \\\\ 0, year \\\\ 2015, fun \\\\ &>=/2)"]} = with_defaults
+
+      # with_map_and_default/1
+      assert {{:with_map_and_default, 1}, ["with_map_and_default(map \\\\ %{key: :default})"]} =
+               with_map_and_default
 
       # with_struct/1
       assert {{:with_struct, 1}, ["with_struct(uri)"]} = with_struct
