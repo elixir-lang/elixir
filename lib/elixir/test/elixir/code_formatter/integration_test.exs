@@ -382,6 +382,25 @@ defmodule Code.Formatter.IntegrationTest do
     assert_format bad, good, line_length: 18
   end
 
+  test "keyword lists in last line" do
+    assert_same """
+    content =
+      config(VeryLongModuleNameThatWillCauseBreak, "new.html",
+        conn: conn,
+        changeset: changeset,
+        categories: categories
+      )
+    """
+
+    assert_same """
+    content =
+      config VeryLongModuleNameThatWillCauseBreak, "new.html",
+        conn: conn,
+        changeset: changeset,
+        categories: categories
+    """
+  end
+
   test "do at the end of the line with single argument" do
     bad = """
     defmodule Location do

@@ -1132,79 +1132,109 @@ defmodule Code.Formatter do
         if skip_parens?, do: :no_parens_arg, else: :parens_arg
       end
 
-    if left != [] and keyword? and skip_parens? and no_generators?(args) do
-      call_args_to_algebra_with_no_parens_keywords(meta, left, right, context, extra, state)
-    else
-      args = if keyword?, do: left ++ right, else: left ++ [right]
-      many_eol? = match?([_, _ | _], args) and Keyword.get(meta, :eol, false)
-      join = if force_args?(args) or many_eol?, do: :line, else: :break
-
-      next_break_fits? = join == :break and next_break_fits?(right, state)
-      last_arg_mode = if next_break_fits?, do: :next_break_fits, else: :none
-
-      {args_doc, _join, state} =
-        args_to_algebra_with_comments(
-          args,
-          meta,
-          skip_parens?,
-          last_arg_mode,
-          join,
-          state,
-          &quoted_to_algebra(&1, context, &2)
-        )
-
-      # If we have a single argument, then we won't have an option to break
-      # before the "extra" part, so we ungroup it and build it later.
-      args_doc = ungroup_if_group(args_doc)
-
-      doc =
-        if skip_parens? do
-          " "
-          |> concat(nest(args_doc, :cursor, :break))
-          |> concat(extra)
-          |> group()
-        else
-          glue("(", "", args_doc)
-          |> nest(2, :break)
-          |> glue("", ")")
-          |> concat(extra)
-          |> group()
-        end
-
-      if next_break_fits? do
-        {next_break_fits(doc, :disabled), state}
-      else
-        {doc, state}
-      end
-    end
-  end
-
-  defp call_args_to_algebra_with_no_parens_keywords(meta, left, right, context, extra, state) do
+    args = if keyword?, do: left ++ right, else: left ++ [right]
+    many_eol? = match?([_, _ | _], args) and Keyword.get(meta, :eol, false)
     to_algebra_fun = &quoted_to_algebra(&1, context, &2)
-    join = if force_args?(left), do: :line, else: :break
 
-    {left_doc, _join, state} =
-      args_to_algebra_with_comments(left, meta, true, :force_comma, join, state, to_algebra_fun)
+    {args_doc, next_break_fits?, state} =
+      if left != [] and keyword? and no_generators?(args) do
+        join = if force_args?(left) or many_eol?, do: :line, else: :break
 
-    join = if force_args?(right) or force_args?(left ++ right), do: :line, else: :break
+        {left_doc, _join, state} =
+          args_to_algebra_with_comments(
+            left,
+            Keyword.delete(meta, :end_line),
+            skip_parens?,
+            :force_comma,
+            join,
+            state,
+            to_algebra_fun
+          )
 
-    {right_doc, _join, state} =
-      args_to_algebra_with_comments(right, meta, false, :none, join, state, to_algebra_fun)
+        join = if force_args?(right) or force_args?(args) or many_eol?, do: :line, else: :break
 
-    right_doc = apply(Inspect.Algebra, join, []) |> concat(right_doc) |> group(:inherit)
+        {right_doc, _join, state} =
+          args_to_algebra_with_comments(right, meta, false, :none, join, state, to_algebra_fun)
+
+        right_doc = apply(Inspect.Algebra, join, []) |> concat(right_doc)
+
+        args_doc =
+          if skip_parens? do
+            left_doc
+            |> concat(next_break_fits(group(right_doc, :inherit), :enabled))
+            |> nest(:cursor, :break)
+          else
+            right_doc =
+              right_doc
+              |> nest(2, :break)
+              |> concat(break(""))
+              |> group(:inherit)
+              |> next_break_fits(:enabled)
+
+            concat(nest(left_doc, 2, :break), right_doc)
+          end
+
+        {args_doc, true, state}
+      else
+        join = if force_args?(args) or many_eol?, do: :line, else: :break
+        next_break_fits? = join == :break and next_break_fits?(right, state)
+        last_arg_mode = if next_break_fits?, do: :next_break_fits, else: :none
+
+        {args_doc, _join, state} =
+          args_to_algebra_with_comments(
+            args,
+            meta,
+            skip_parens?,
+            last_arg_mode,
+            join,
+            state,
+            to_algebra_fun
+          )
+
+        # If we have a single argument, then we won't have an option to break
+        # before the "extra" part, so we ungroup it and build it later.
+        args_doc = ungroup_if_group(args_doc)
+
+        args_doc =
+          if skip_parens? do
+            nest(args_doc, :cursor, :break)
+          else
+            nest(args_doc, 2, :break) |> concat(break(""))
+          end
+
+        {args_doc, next_break_fits?, state}
+      end
 
     doc =
-      with_next_break_fits(true, right_doc, fn right_doc ->
-        args_doc = concat(left_doc, right_doc)
+      cond do
+        left != [] and keyword? and skip_parens? and no_generators?(args) ->
+          " "
+          |> concat(args_doc)
+          |> nest(2)
+          |> concat(extra)
+          |> group()
 
-        " "
-        |> concat(nest(args_doc, :cursor, :break))
-        |> nest(2)
-        |> concat(extra)
-        |> group()
-      end)
+        skip_parens? ->
+          " "
+          |> concat(args_doc)
+          |> concat(extra)
+          |> group()
 
-    {doc, state}
+        true ->
+          "("
+          |> concat(break(""))
+          |> nest(2, :break)
+          |> concat(args_doc)
+          |> concat(")")
+          |> concat(extra)
+          |> group()
+      end
+
+    if next_break_fits? do
+      {next_break_fits(doc, :disabled), state}
+    else
+      {doc, state}
+    end
   end
 
   defp local_without_parens?(fun, args, %{locals_without_parens: locals_without_parens}) do

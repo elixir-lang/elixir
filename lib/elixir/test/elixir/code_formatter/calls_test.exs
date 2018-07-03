@@ -236,11 +236,11 @@ defmodule Code.Formatter.CallsTest do
 
       bad = """
       foo(:hello, foo: 1,
-        bar: 2)
+        bar: 2, baz: 3)
       """
 
       assert_format bad, """
-      foo(:hello, foo: 1, bar: 2)
+      foo(:hello, foo: 1, bar: 2, baz: 3)
       """
     end
 
