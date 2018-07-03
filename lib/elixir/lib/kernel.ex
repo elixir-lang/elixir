@@ -4943,7 +4943,7 @@ defmodule Kernel do
   end
 
   defmacro sigil_s({:<<>>, line, pieces}, []) do
-    {:<<>>, line, :elixir_interpolation.unescape_tokens(pieces)}
+    {:<<>>, line, unescape_tokens(pieces)}
   end
 
   @doc ~S"""
@@ -4994,7 +4994,7 @@ defmodule Kernel do
   end
 
   defmacro sigil_c({:<<>>, meta, pieces}, []) do
-    binary = {:<<>>, meta, :elixir_interpolation.unescape_tokens(pieces)}
+    binary = {:<<>>, meta, unescape_tokens(pieces)}
     quote(do: String.to_charlist(unquote(binary)))
   end
 
@@ -5024,7 +5024,7 @@ defmodule Kernel do
   end
 
   defmacro sigil_r({:<<>>, meta, pieces}, options) do
-    binary = {:<<>>, meta, :elixir_interpolation.unescape_tokens(pieces, &Regex.unescape_map/1)}
+    binary = {:<<>>, meta, unescape_tokens(pieces, &Regex.unescape_map/1)}
     quote(do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options))))
   end
 
@@ -5141,7 +5141,7 @@ defmodule Kernel do
   end
 
   defmacro sigil_w({:<<>>, meta, pieces}, modifiers) do
-    binary = {:<<>>, meta, :elixir_interpolation.unescape_tokens(pieces)}
+    binary = {:<<>>, meta, unescape_tokens(pieces)}
     split_words(binary, modifiers)
   end
 
@@ -5225,6 +5225,21 @@ defmodule Kernel do
 
       _ ->
         :ok
+    end
+  end
+
+  # Helper to handle the :ok | :error tuple returned from :elixir_interpolation.unescape_tokens
+  defp unescape_tokens(tokens) do
+    case :elixir_interpolation.unescape_tokens(tokens) do
+      {:ok, unescaped_tokens} -> unescaped_tokens
+      {:error, reason} -> raise(ArgumentError, to_string(reason))
+    end
+  end
+
+  defp unescape_tokens(tokens, unescape_map) do
+    case :elixir_interpolation.unescape_tokens(tokens, unescape_map) do
+      {:ok, unescaped_tokens} -> unescaped_tokens
+      {:error, reason} -> raise(ArgumentError, to_string(reason))
     end
   end
 

@@ -532,13 +532,19 @@ defmodule Macro do
   @doc false
   @deprecated "Traverse over the arguments using Enum.map/2 instead"
   def unescape_tokens(tokens) do
-    :elixir_interpolation.unescape_tokens(tokens)
+    case :elixir_interpolation.unescape_tokens(tokens) do
+      {:ok, unescaped_tokens} -> unescaped_tokens
+      {:error, reason} -> raise(ArgumentError, to_string(reason))
+    end
   end
 
   @doc false
   @deprecated "Traverse over the arguments using Enum.map/2 instead"
   def unescape_tokens(tokens, map) do
-    :elixir_interpolation.unescape_tokens(tokens, map)
+    case :elixir_interpolation.unescape_tokens(tokens, map) do
+      {:ok, unescaped_tokens} -> unescaped_tokens
+      {:error, reason} -> raise(ArgumentError, to_string(reason))
+    end
   end
 
   @doc """
