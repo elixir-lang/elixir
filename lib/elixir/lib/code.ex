@@ -1069,7 +1069,11 @@ defmodule Code do
   @spec fetch_docs(module) ::
           {:docs_v1, anno, beam_language, format, module_doc :: doc, metadata,
            docs :: [{{kind, name, arity}, anno, signature, doc, metadata}]}
-          | {:error, :module_not_found | :docs_chunk_not_found}
+          | {:error,
+             :module_not_found
+             | :docs_chunk_not_found
+             | {:unsupported_version, atom}
+             | {:unrecognized_chunk, term}}
         when anno: :erl_anno.anno(),
              beam_language: atom,
              format: binary,
@@ -1095,7 +1099,16 @@ defmodule Code do
   defp do_fetch_docs(bin_or_path) do
     case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
       {:ok, {_module, [{@docs_chunk, bin}]}} ->
-        :erlang.binary_to_term(bin)
+        case :erlang.binary_to_term(bin) do
+          {:docs_v1, _, _, _, _, _, _} = chunk ->
+            chunk
+
+          tuple when is_tuple(tuple) and is_atom(elem(tuple, 0)) ->
+            {:error, {:unsupported_version, elem(tuple, 0)}}
+
+          unknown ->
+            {:error, {:unrecognized_chunk, unknown}}
+        end
 
       {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
         {:error, :docs_chunk_not_found}
