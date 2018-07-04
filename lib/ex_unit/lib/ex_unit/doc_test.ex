@@ -441,7 +441,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp explain_docs_error(:module_not_found),
-    do: "The BEAM file of the modoule cannot be accessed"
+    do: "The BEAM file of the module cannot be accessed"
 
   defp explain_docs_error(:docs_chunk_not_found),
     do: "The module was not compiled with documentation"
