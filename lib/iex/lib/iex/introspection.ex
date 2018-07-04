@@ -375,7 +375,7 @@ defmodule IEx.Introspection do
         :type_found
 
       is_nil(docs) and spec != [] ->
-        message = "Module was compiled without docs. Showing only specs."
+        message = %{"en" => "Module was compiled without docs. Showing only specs."}
         print_doc("#{inspect(mod)}.#{fun}/#{arity}", spec, message)
         :ok
 
@@ -390,25 +390,25 @@ defmodule IEx.Introspection do
   defp has_callback?(mod, fun) do
     mod
     |> get_docs([:callback, :macrocallback])
-    |> Enum.any?(&match?({{_, ^fun, _}, _, _, _, _}, &1))
+    |> Enum.any?(&match?({_, ^fun, _}, elem(&1, 0)))
   end
 
   defp has_callback?(mod, fun, arity) do
     mod
     |> get_docs([:callback, :macrocallback])
-    |> Enum.any?(&match?({{_, ^fun, ^arity}, _, _, _, _}, &1))
+    |> Enum.any?(&match?({_, ^fun, ^arity}, elem(&1, 0)))
   end
 
   defp has_type?(mod, fun) do
     mod
     |> get_docs([:type])
-    |> Enum.any?(&match?({{_, ^fun, _}, _, _, _, _}, &1))
+    |> Enum.any?(&match?({_, ^fun, _}, elem(&1, 0)))
   end
 
   defp has_type?(mod, fun, arity) do
     mod
     |> get_docs([:type])
-    |> Enum.any?(&match?({{_, ^fun, ^arity}, _, _, _, _}, &1))
+    |> Enum.any?(&match?({_, ^fun, ^arity}, elem(&1, 0)))
   end
 
   defp get_docs(mod, kinds) do
@@ -429,7 +429,7 @@ defmodule IEx.Introspection do
 
   defp find_doc(docs, fun, arity) do
     doc =
-      Enum.find(docs, &match?({{_, ^fun, ^arity}, _, _, _, _}, &1)) ||
+      Enum.find(docs, &match?({_, ^fun, ^arity}, elem(&1, 0))) ||
         find_doc_defaults(docs, fun, arity)
 
     if doc != nil and has_content?(doc), do: doc
@@ -685,8 +685,10 @@ defmodule IEx.Introspection do
 
   defp type_doc(module, type, arity) do
     if docs = get_docs(module, [:type]) do
-      {_, _, _, content, _} = Enum.find(docs, &match?({{:type, ^type, ^arity}, _, _, _, _}, &1))
+      {_, _, _, content, _} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
       content
+    else
+      :none
     end
   end
 
@@ -749,10 +751,8 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp translate_doc(nil), do: nil
   defp translate_doc(:none), do: nil
   defp translate_doc(:hidden), do: nil
-  defp translate_doc(binary) when is_binary(binary), do: binary
   defp translate_doc(%{"en" => doc}), do: doc
 
   defp no_beam(module) do
