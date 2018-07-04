@@ -409,7 +409,7 @@ defmodule IEx.Autocomplete do
       not ensure_loaded?(mod) ->
         []
 
-      docs = Code.get_docs(mod, :docs) ->
+      docs = get_docs(mod, [:function, :macro]) ->
         exports(mod)
         |> Kernel.--(default_arg_functions_with_doc_false(docs))
         |> Enum.reject(&hidden_fun?(&1, docs))
@@ -424,8 +424,8 @@ defmodule IEx.Autocomplete do
       not ensure_loaded?(mod) ->
         []
 
-      docs = Code.get_docs(mod, :type_docs) ->
-        Enum.map(docs, &elem(&1, 0))
+      docs = get_docs(mod, [:type]) ->
+        Enum.map(docs, &extract_name_and_arity/1)
 
       true ->
         exports(mod)
@@ -437,43 +437,50 @@ defmodule IEx.Autocomplete do
       not ensure_loaded?(mod) ->
         []
 
-      docs = Code.get_docs(mod, :callback_docs) ->
-        Enum.map(docs, &elem(&1, 0))
+      docs = get_docs(mod, [:callback, :macrocallback]) ->
+        Enum.map(docs, &extract_name_and_arity/1)
 
       true ->
         exports(mod)
     end
   end
 
+  defp get_docs(mod, kinds) do
+    case Code.fetch_docs(mod) do
+      {:docs_v1, _, _, _, _, _, docs} ->
+        for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+
+      {:error, _} ->
+        nil
+    end
+  end
+
+  defp extract_name_and_arity({{_, name, arity}, _, _, _, _}), do: {name, arity}
+
   defp default_arg_functions_with_doc_false(docs) do
-    for {{fun_name, arity}, _, _, args, false} <- docs,
-        count = count_defaults(args),
+    for {{_, fun_name, arity}, _, signature, :hidden, _} <- docs,
+        count = count_defaults(signature),
         count > 0,
         new_arity <- (arity - count)..arity,
         do: {fun_name, new_arity}
   end
 
-  defp count_defaults(args) do
-    Enum.count(args, &match?({:\\, _, _}, &1))
+  defp count_defaults(signature) do
+    signature
+    |> Stream.flat_map(&Regex.scan(~r/ \\\\ /, &1))
+    |> Enum.count()
   end
 
-  defp hidden_fun?(fun, docs) do
-    case List.keyfind(docs, fun, 0) do
-      nil ->
-        underscored_fun?(fun)
-
-      {_, _, _, _, false} ->
-        true
-
-      {fun, _, _, _, nil} ->
-        underscored_fun?(fun)
-
-      {_, _, _, _, _} ->
-        false
+  defp hidden_fun?({name, arity}, docs) do
+    case Enum.find(docs, &match?({{_, ^name, ^arity}, _, _, _, _}, &1)) do
+      nil -> underscored_fun?(name)
+      {_, _, _, :hidden, _} -> true
+      {_, _, _, :none, _} -> underscored_fun?(name)
+      {_, _, _, _, _} -> false
     end
   end
 
-  defp underscored_fun?({name, _}), do: hd(Atom.to_charlist(name)) == ?_
+  defp underscored_fun?(name), do: hd(Atom.to_charlist(name)) == ?_
 
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)

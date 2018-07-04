@@ -38,7 +38,7 @@ defmodule Kernel.DocsTest do
       end
     )
 
-    assert Code.fetch_docs(WithoutDocs) == {:error, :docs_chunk_not_found}
+    assert Code.fetch_docs(WithoutDocs) == {:error, :chunk_not_found}
   after
     Code.compiler_options(docs: true)
   end
