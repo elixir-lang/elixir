@@ -9,8 +9,8 @@ defmodule Tuple do
     * `tuple_size/3` - get the number of elements in a tuple
     
   Tuples are intended as fixed-size containers for multiple elements.
-  To _manipulate_ a collection of elements, use a list instead--
-  `Enum` functions do not work on tuples.
+  To manipulate a collection of elements, use a list instead. `Enum`
+  functions do not work on tuples.
   
   Tuples are denoted with curly braces:
 
@@ -19,17 +19,19 @@ defmodule Tuple do
       iex> {1, :two, "three"}
       {1, :two, "three"}
 
-  A tuple may contain elements of different types, which are 
-  stored contiguously in memory. Accessing any element takes constant time, 
+  A tuple may contain elements of different types, which are stored
+  contiguously in memory. Accessing any element takes constant time, 
   but modifying a tuple, which produces a shallow copy, takes linear time. 
-  Tuples are good for reading data while lists are better for writes.
-  
+  Tuples are good for reading data while lists are better for traversals.
+
   Tuples are typically used either when a function has multiple return values
   or for error handling. `File.read/1` returns `{:ok, contents}` if reading 
   the given file is successful, or else `{:error, reason}` such as when 
   the file does not exist.
   
-  To append to a tuple, it is preferrable to use pattern matching:
+  The functions in this module that add and remove elements from tuples are
+  rarely used in practice, as they typically imply tuples are being used as
+  collections. To append to a tuple, it is preferrable to use pattern matching:
 
       tuple = {:ok, :example}
 
