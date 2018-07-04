@@ -126,7 +126,6 @@ defmodule Mix.Task do
   def moduledoc(module) when is_atom(module) do
     case Code.fetch_docs(module) do
       {:docs_v1, _, _, _, %{"en" => moduledoc}, _, _} -> moduledoc
-      {:docs_v1, _, _, _, :hidden, _, _} -> false
       _ -> nil
     end
   end

@@ -436,15 +436,12 @@ defmodule IEx.Introspection do
   end
 
   defp find_doc_defaults(docs, function, min) do
-    Enum.find(docs, fn doc ->
-      case elem(doc, 0) do
-        {_, ^function, arity} when arity > min ->
-          defaults = count_defaults(elem(doc, 2))
-          arity <= min + defaults
+    Enum.find(docs, fn
+      {{_, ^function, arity}, _, signature, _, _} when arity > min ->
+        arity <= min + count_defaults(signature)
 
-        _ ->
-          false
-      end
+      _ ->
+        false
     end)
   end
 

@@ -428,7 +428,8 @@ defmodule ExUnit.DocTest do
 
   defp extract(module) do
     case Code.fetch_docs(module) do
-      {:docs_v1, line, _, _, moduledoc, _, docs} ->
+      {:docs_v1, anno, _, _, moduledoc, _, docs} ->
+        line = :erl_anno.line(anno)
         extract_from_moduledoc({line, moduledoc}, module) ++ extract_from_docs(docs, module)
 
       {:error, reason} ->
@@ -443,14 +444,11 @@ defmodule ExUnit.DocTest do
   defp explain_docs_error(:module_not_found),
     do: "The BEAM file of the module cannot be accessed"
 
-  defp explain_docs_error(:docs_chunk_not_found),
+  defp explain_docs_error(:chunk_not_found),
     do: "The module was not compiled with documentation"
 
-  defp explain_docs_error({:unsupported_version, version}),
-    do: "The documentation version is not supported: #{version}"
-
-  defp explain_docs_error({:unrecognized_chunk, _}),
-    do: "The documentation chunk in the module cannot be recognized"
+  defp explain_docs_error({:invalid_chunk, _}),
+    do: "The documentation chunk in the module is invalid"
 
   defp extract_from_moduledoc({_, doc}, _module) when doc in [:none, :hidden], do: []
 
@@ -468,7 +466,9 @@ defmodule ExUnit.DocTest do
        when kind not in [:function, :macro] or doc in [:none, :hidden],
        do: []
 
-  defp extract_from_doc({{_, name, arity}, line, _, %{"en" => doc}, _}, module) do
+  defp extract_from_doc({{_, name, arity}, anno, _, %{"en" => doc}, _}, module) do
+    line = :erl_anno.line(anno)
+
     for test <- extract_tests(line, doc, module) do
       normalize_test(test, {name, arity})
     end

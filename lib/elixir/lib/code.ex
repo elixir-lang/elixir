@@ -1069,11 +1069,8 @@ defmodule Code do
   @spec fetch_docs(module) ::
           {:docs_v1, anno, beam_language, format, module_doc :: doc, metadata,
            docs :: [{{kind, name, arity}, anno, signature, doc, metadata}]}
-          | {:error,
-             :module_not_found
-             | :docs_chunk_not_found
-             | {:unsupported_version, atom}
-             | {:unrecognized_chunk, term}}
+          | {:error, :module_not_found | :chunk_not_found | {:invalid_chunk, binary}}
+          | future_formats
         when anno: :erl_anno.anno(),
              beam_language: atom,
              format: binary,
@@ -1081,7 +1078,8 @@ defmodule Code do
              kind: atom,
              name: atom,
              signature: [binary],
-             metadata: map
+             metadata: map,
+             future_formats: term
   @since "1.7.0"
   def fetch_docs(module) when is_atom(module) do
     case :code.get_object_code(module) do
@@ -1099,19 +1097,14 @@ defmodule Code do
   defp do_fetch_docs(bin_or_path) do
     case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
       {:ok, {_module, [{@docs_chunk, bin}]}} ->
-        case :erlang.binary_to_term(bin) do
-          {:docs_v1, _, _, _, _, _, _} = chunk ->
-            chunk
-
-          tuple when is_tuple(tuple) and is_atom(elem(tuple, 0)) ->
-            {:error, {:unsupported_version, elem(tuple, 0)}}
-
-          unknown ->
-            {:error, {:unrecognized_chunk, unknown}}
+        try do
+          :erlang.binary_to_term(bin)
+        rescue
+          _ -> {:error, {:invalid_chunk, bin}}
         end
 
       {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
-        {:error, :docs_chunk_not_found}
+        {:error, :chunk_not_found}
     end
   end
 

@@ -23,9 +23,8 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
+  @deprecated "Use Code.fetch_docs/1 instead"
   def beam_typedocs(module) when is_atom(module) or is_binary(module) do
-    IO.warn("Kernel.Typespec.beam_typedocs/1 is deprecated, please use Code.fetch_docs/1 instead")
-
     case Code.fetch_docs(module) do
       {:docs_v1, _, _, _, _, _, docs} ->
         for {{:type, name, arity}, _, _, doc, _} <- docs do
