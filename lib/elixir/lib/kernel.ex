@@ -12,13 +12,14 @@ defmodule Kernel do
   
   It mainly consists of:
   
-    * syntactic sugar - for more readable and intuitive code
-    * [macros](https://elixir-lang.org/getting-started/meta/macros.html) - for defining new
-      functionality (modules, functions, and so on)
-    * [guard](guards.html) checks - for augmenting pattern matching
+    * basic language primitives, such as arithmetic operators, spawning of processes,
+      data type handling, etc
+    * macros for control-flow and defining new functionality (modules, functions, and so on)
+    * [guard](guards.html) checks for augmenting pattern matching
     
-  You can use `Kernel` functions/macros without the `Kernel` prefix anywhere in Elixir code
-  as all its functions and macros are automatically imported. For example, in IEx:
+  You can use `Kernel` functions/macros without the `Kernel` prefix anywhere in
+  Elixir code as all its functions and macros are automatically imported. For
+  example, in IEx:
 
       iex> is_number(13)
       true
