@@ -431,21 +431,26 @@ defmodule ExUnit.DocTest do
       {:docs_v1, line, _, _, moduledoc, _, docs} ->
         extract_from_moduledoc({line, moduledoc}, module) ++ extract_from_docs(docs, module)
 
-      {:error, :module_not_found} ->
+      {:error, reason} ->
         raise Error,
           module: module,
           message:
             "could not retrieve the documentation for module #{inspect(module)}. " <>
-              "The BEAM file of the modoule cannot be accessed"
-
-      {:error, :docs_chunk_not_found} ->
-        raise Error,
-          module: module,
-          message:
-            "could not retrieve the documentation for module #{inspect(module)}. " <>
-              "The module was not compiled with documentation"
+              explain_docs_error(reason)
     end
   end
+
+  defp explain_docs_error(:module_not_found),
+    do: "The BEAM file of the modoule cannot be accessed"
+
+  defp explain_docs_error(:docs_chunk_not_found),
+    do: "The module was not compiled with documentation"
+
+  defp explain_docs_error({:unsupported_version, version}),
+    do: "The documentation version is not supported: #{version}"
+
+  defp explain_docs_error({:unrecognized_chunk, _}),
+    do: "The documentation chunk in the module cannot be recognized"
 
   defp extract_from_moduledoc({_, doc}, _module) when doc in [:none, :hidden], do: []
 
