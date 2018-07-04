@@ -325,23 +325,23 @@ defmodule IEx.HelpersTest do
 
     test "prints non-Elixir module specs" do
       assert capture_io(fn -> h(:timer.nonexistent_function()) end) ==
-               "No documentation for :timer.nonexistent_function was found\n"
+               ":timer was not compiled with docs\n"
 
       assert capture_io(fn -> h(:timer.nonexistent_function() / 1) end) ==
-               "No documentation for :timer.nonexistent_function/1 was found\n"
+               ":timer was not compiled with docs\n"
 
       assert capture_io(fn -> h(:erlang.trace_pattern()) end) ==
-               "No documentation for :erlang.trace_pattern was found\n"
+               ":erlang was not compiled with docs\n"
 
       assert capture_io(fn -> h(:erlang.trace_pattern() / 2) end) ==
-               "No documentation for :erlang.trace_pattern/2 was found\n"
+               ":erlang was not compiled with docs\n"
 
       assert capture_io(fn -> h(:timer.sleep() / 1) end) == """
              * :timer.sleep/1
 
                @spec sleep(time) :: :ok when time: timeout()
 
-             Documentation is not available for non-Elixir modules. Showing only specs.
+             Module was compiled without docs. Showing only specs.
              """
 
       assert capture_io(fn -> h(:timer.send_interval()) end) == """
@@ -354,13 +354,13 @@ defmodule IEx.HelpersTest do
                           tRef: tref(),
                           reason: term()
 
-             Documentation is not available for non-Elixir modules. Showing only specs.
+             Module was compiled without docs. Showing only specs.
              * :timer.send_interval/2
 
                @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
                      when time: time(), message: term(), tRef: tref(), reason: term()
 
-             Documentation is not available for non-Elixir modules. Showing only specs.
+             Module was compiled without docs. Showing only specs.
              """
     end
 
@@ -371,8 +371,7 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(:whatever) end) ==
                "Could not load module :whatever, got: nofile\n"
 
-      assert capture_io(fn -> h(:lists) end) ==
-               "Documentation is not available for non-Elixir modules, got: :lists\n"
+      assert capture_io(fn -> h(:lists) end) == ":lists was not compiled with docs\n"
     end
 
     test "prints function/macro documentation" do

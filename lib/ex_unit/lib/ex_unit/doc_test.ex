@@ -427,39 +427,45 @@ defmodule ExUnit.DocTest do
   ## Extraction of the tests
 
   defp extract(module) do
-    all_docs = Code.get_docs(module, :all)
+    case Code.fetch_docs(module) do
+      {:docs_v1, line, _, _, moduledoc, _, docs} ->
+        extract_from_moduledoc({line, moduledoc}, module) ++ extract_from_docs(docs, module)
 
-    unless all_docs do
-      raise Error,
-        module: module,
-        message:
-          "could not retrieve the documentation for module #{inspect(module)}. " <>
-            "The module was not compiled with documentation or its BEAM file cannot be accessed"
+      {:error, :module_not_found} ->
+        raise Error,
+          module: module,
+          message:
+            "could not retrieve the documentation for module #{inspect(module)}. " <>
+              "The BEAM file of the modoule cannot be accessed"
+
+      {:error, :docs_chunk_not_found} ->
+        raise Error,
+          module: module,
+          message:
+            "could not retrieve the documentation for module #{inspect(module)}. " <>
+              "The module was not compiled with documentation"
     end
-
-    moduledocs = extract_from_moduledoc(all_docs[:moduledoc], module)
-
-    docs =
-      for doc <- all_docs[:docs],
-          doc <- extract_from_doc(doc, module),
-          do: doc
-
-    moduledocs ++ docs
   end
 
-  defp extract_from_moduledoc({_, doc}, _module) when doc in [false, nil], do: []
+  defp extract_from_moduledoc({_, doc}, _module) when doc in [:none, :hidden], do: []
 
-  defp extract_from_moduledoc({line, doc}, module) do
+  defp extract_from_moduledoc({line, %{"en" => doc}}, module) do
     for test <- extract_tests(line, doc, module) do
       normalize_test(test, :moduledoc)
     end
   end
 
-  defp extract_from_doc({_, _, _, _, doc}, _module) when doc in [false, nil], do: []
+  defp extract_from_docs(docs, module) do
+    for doc <- docs, doc <- extract_from_doc(doc, module), do: doc
+  end
 
-  defp extract_from_doc({fa, line, _, _, doc}, module) do
+  defp extract_from_doc({{kind, _, _}, _, _, doc, _}, _module)
+       when kind not in [:function, :macro] or doc in [:none, :hidden],
+       do: []
+
+  defp extract_from_doc({{_, name, arity}, line, _, %{"en" => doc}, _}, module) do
     for test <- extract_tests(line, doc, module) do
-      normalize_test(test, fa)
+      normalize_test(test, {name, arity})
     end
   end
 

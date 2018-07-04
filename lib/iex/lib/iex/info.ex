@@ -45,10 +45,9 @@ defimpl IEx.Info, for: Atom do
 
   defp info_module(mod) do
     extra =
-      if Code.get_docs(mod, :moduledoc) do
-        "Use h(#{inspect(mod)}) to access its documentation.\n"
-      else
-        ""
+      case Code.fetch_docs(mod) do
+        {:docs_v1, _, _, _, %{}, _, _} -> "Use h(#{inspect(mod)}) to access its documentation.\n"
+        _ -> ""
       end
 
     mod_info = mod.module_info()

@@ -108,7 +108,7 @@ defmodule IEx.AutocompleteTest do
       end
 
     File.write!("Elixir.Sample.beam", bytecode)
-    assert Code.get_docs(Sample, :docs)
+    assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Sample)
     assert expand('Sample._') == {:yes, '_bar__', []}
   after
     File.rm("Elixir.Sample.beam")
@@ -147,7 +147,7 @@ defmodule IEx.AutocompleteTest do
       end
 
     File.write!("Elixir.DefaultArgumentFunctions.beam", bytecode)
-    assert Code.get_docs(DefaultArgumentFunctions, :docs)
+    assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(DefaultArgumentFunctions)
 
     functions_list = ['bar/0', 'biz/2', 'biz/3', 'foo/1', 'foo/2', 'foo/3']
     assert expand('DefaultArgumentFunctions.') == {:yes, '', functions_list}
@@ -337,7 +337,7 @@ defmodule IEx.AutocompleteTest do
       end
 
     File.write!("Elixir.IEx.AutocompleteTest.Sample.beam", bytecode)
-    assert Code.get_docs(Sample, :docs)
+    assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Sample)
     assert expand('IEx.AutocompleteTest.Sample.foo') == {:yes, '', ['foo/0']}
 
     Code.compiler_options(ignore_module_conflict: true)

@@ -124,9 +124,10 @@ defmodule Mix.Task do
   """
   @spec moduledoc(task_module) :: String.t() | nil
   def moduledoc(module) when is_atom(module) do
-    case Code.get_docs(module, :moduledoc) do
-      {_line, moduledoc} -> moduledoc
-      nil -> nil
+    case Code.fetch_docs(module) do
+      {:docs_v1, _, _, _, %{"en" => moduledoc}, _, _} -> moduledoc
+      {:docs_v1, _, _, _, :hidden, _, _} -> false
+      _ -> nil
     end
   end
 
