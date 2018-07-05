@@ -429,8 +429,8 @@ defmodule ExUnit.DocTest do
   defp extract(module) do
     case Code.fetch_docs(module) do
       {:docs_v1, anno, _, _, moduledoc, _, docs} ->
-        line = :erl_anno.line(anno)
-        extract_from_moduledoc({line, moduledoc}, module) ++ extract_from_docs(docs, module)
+        extract_from_moduledoc(anno, moduledoc, module) ++
+          extract_from_docs(Enum.sort(docs), module)
 
       {:error, reason} ->
         raise Error,
@@ -450,10 +450,10 @@ defmodule ExUnit.DocTest do
   defp explain_docs_error({:invalid_chunk, _}),
     do: "The documentation chunk in the module is invalid"
 
-  defp extract_from_moduledoc({_, doc}, _module) when doc in [:none, :hidden], do: []
+  defp extract_from_moduledoc(_, doc, _module) when doc in [:none, :hidden], do: []
 
-  defp extract_from_moduledoc({line, %{"en" => doc}}, module) do
-    for test <- extract_tests(line, doc, module) do
+  defp extract_from_moduledoc(anno, %{"en" => doc}, module) do
+    for test <- extract_tests(:erl_anno.line(anno), doc, module) do
       normalize_test(test, :moduledoc)
     end
   end

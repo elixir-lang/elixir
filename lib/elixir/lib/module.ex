@@ -1235,14 +1235,14 @@ defmodule Module do
   @doc false
   # TODO: Remove by 2.0
   @deprecated "Use @doc instead"
-  def add_doc(module, line, kind, function_tuple, signature \\ [], doc) do
+  def add_doc(module, line, kind, {name, arity}, signature \\ [], doc) do
     assert_not_compiled!(:add_doc, module)
 
     if kind in [:defp, :defmacrop, :typep] do
       if doc, do: {:error, :private_doc}, else: :ok
     else
       {set, _bag} = data_tables_for(module)
-      compile_doc(set, line, kind, function_tuple, signature, nil, doc, __ENV__, false)
+      compile_doc(set, line, kind, name, arity, signature, nil, doc, __ENV__, false)
       :ok
     end
   end
@@ -1254,7 +1254,6 @@ defmodule Module do
     %{module: module} = env
     {set, bag} = data_tables_for(module)
     {arity, defaults} = args_count(args, 0, 0)
-    pair = {name, arity}
 
     impl = compile_impl(set, bag, name, env, kind, arity, defaults)
     _deprecated = compile_deprecated(set, bag, name, arity, defaults)
@@ -1262,12 +1261,12 @@ defmodule Module do
 
     # TODO: Store @since and @deprecated alongside the docs
     {line, doc} = get_doc_info(set, env)
-    compile_doc(set, line, kind, pair, args, body, doc, env, impl)
+    compile_doc(set, line, kind, name, arity, args, body, doc, env, impl)
 
     :ok
   end
 
-  defp compile_doc(_table, line, kind, {name, arity}, _args, _body, doc, env, _impl)
+  defp compile_doc(_table, line, kind, name, arity, _args, _body, doc, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
       message =
@@ -1278,15 +1277,16 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, pair, args, body, doc, env, impl) do
+  defp compile_doc(table, line, kind, name, arity, args, body, doc, env, impl) do
+    key = {doc_key(kind), name, arity}
     signature = build_signature(args, env)
 
-    case :ets.lookup(table, {:doc, pair}) do
+    case :ets.lookup(table, key) do
       [] ->
         doc = if is_nil(doc) && impl, do: false, else: doc
-        :ets.insert(table, {{:doc, pair}, line, kind, signature, doc})
+        :ets.insert(table, {key, line, signature, doc})
 
-      [{doc_tuple, current_line, _current_kind, current_sign, current_doc}] ->
+      [{_, current_line, current_sign, current_doc}] ->
         signature = merge_signatures(current_sign, signature, 1)
 
         if is_binary(doc) and is_binary(current_doc) and not is_nil(body) do
@@ -1300,9 +1300,12 @@ defmodule Module do
 
         doc = if is_nil(doc), do: current_doc, else: doc
         doc = if is_nil(doc) && impl, do: false, else: doc
-        :ets.insert(table, {doc_tuple, current_line, kind, signature, doc})
+        :ets.insert(table, {key, current_line, signature, doc})
     end
   end
+
+  defp doc_key(:def), do: :function
+  defp doc_key(:defmacro), do: :macro
 
   defp compile_since(table) do
     case :ets.take(table, :since) do
