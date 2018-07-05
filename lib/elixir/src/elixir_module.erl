@@ -202,7 +202,7 @@ build(Line, File, Module, Lexical) ->
   %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
   %% * {{elixir, ...}, ...}
   %% * {{cache, ...}, ...}
-  %% * {{doc, Tuple}, ...}
+  %% * {{function, Tuple}, ...}, {{macro, Tuple}, ...}
   %% * {{type, Tuple}, ...}, {{opaque, Tuple}, ...}
   %% * {{callback, Tuple}, ...}, {{macrocallback, Tuple}, ...}
   %% * {{def, Tuple}, ...} (from elixir_def)

@@ -1066,7 +1066,7 @@ defmodule Code do
       {:error, :module_not_found}
 
   """
-  @spec fetch_docs(module) ::
+  @spec fetch_docs(module | String.t()) ::
           {:docs_v1, anno, beam_language, format, module_doc :: doc, metadata,
            docs :: [{{kind, name, arity}, anno, signature, doc, metadata}]}
           | {:error, :module_not_found | :chunk_not_found | {:invalid_chunk, binary}}
@@ -1109,95 +1109,19 @@ defmodule Code do
   end
 
   @doc ~S"""
-  Returns the docs for the given module.
+  Deprecated function to retrieve old documentation format.
 
-  When given a module name, it finds its BEAM code and reads the docs from it.
-
-  When given a path to a `.beam` file, it will load the docs directly from that
-  file.
-
-  The return value depends on the `kind` value:
-
-    * `:moduledoc` - tuple `{line, doc}` where `line` is the line on
-      which the module definition starts and `doc` is the string
-      attached to the module using the `@moduledoc` attribute,
-      `false` if `@moduledoc false` was used, or `nil` if no `@moduledoc`
-      was used.
-
-    * `:docs` - list of all docstrings attached to functions and macros
-      using the `@doc` attribute. Each tuple has the form
-      `{{name, arity}, line, kind, arguments, doc}`. `doc` can be either a
-      string, `false` if `@doc false` was used, or `nil` if no doc was used.
-
-    * `:callback_docs` - list of all docstrings attached to
-      `@callbacks` using the `@doc` attribute. Each tuple has the form
-      `{{name, arity}, line, kind, doc}`. `doc` can be either a string or
-      `nil` if no `@doc` was set.
-
-    * `:type_docs` - list of all docstrings attached to `@type` callbacks
-      using the `@typedoc` attribute. Each tuple has the form
-      `{{name, arity}, line, kind, doc}`. `doc` can be either a string or
-      `nil` if no `@typedoc` was used.
-
-    * `:all` - a keyword list with `:docs`, `:moduledoc`, `:callback_docs`,
-      and `:type_docs`.
-
-  If the module cannot be found, it returns `nil`.
-
-  ## Examples
-
-      # Module documentation of an existing module
-      iex> {_line, text} = Code.get_docs(Atom, :moduledoc)
-      iex> text |> String.split("\n") |> Enum.at(0)
-      "Convenience functions for working with atoms."
-
-      # A module that doesn't exist
-      iex> Code.get_docs(ModuleNotGood, :all)
-      nil
-
+  Elixir v1.7 adopts [EEP 48](http://erlang.org/eep/eeps/eep-0048.html)
+  which is a new documentation format meant to be shared across all
+  BEAM languages. The old format, used by `Code.get_docs/2`, is no
+  longer available, and therefore this function always returns `nil`.
+  Use `Code.fetch_docs/1` instead.
   """
-  @doc_kinds [:docs, :moduledoc, :callback_docs, :type_docs, :all]
-
-  @spec get_docs(module, :moduledoc) :: {line :: pos_integer, doc :: false | binary} | nil
-  @spec get_docs(module, :docs) :: [{function, line, kind, list, doc}] | nil
-        when function: {atom, arity}, line: pos_integer, kind: atom, doc: nil | false | binary
-  @spec get_docs(module, :callback_docs) :: [{callback, line, kind, doc}] | nil
-        when callback: {atom, arity}, line: pos_integer, kind: atom, doc: nil | false | binary
-  @spec get_docs(module, :type_docs) :: [{type, line, kind, doc}] | nil
-        when type: {atom, arity}, line: pos_integer, kind: atom, doc: nil | false | binary
-  @spec get_docs(module, :all) :: keyword | nil
-  def get_docs(module, kind)
-
-  def get_docs(module, kind) when is_atom(module) and kind in @doc_kinds do
-    case :code.get_object_code(module) do
-      {_module, bin, _beam_path} -> do_get_docs(bin, kind)
-      :error -> nil
-    end
+  # TODO: Deprecate on Elixir v1.9
+  @spec get_docs(module, :moduledoc | :docs | :callback_docs | :type_docs | :all) :: nil
+  def get_docs(_module, _kind) do
+    nil
   end
-
-  def get_docs(binpath, kind) when is_binary(binpath) and kind in @doc_kinds do
-    do_get_docs(String.to_charlist(binpath), kind)
-  end
-
-  @legacy_docs_chunk 'ExDc'
-
-  defp do_get_docs(bin_or_path, kind) do
-    case :beam_lib.chunks(bin_or_path, [@legacy_docs_chunk]) do
-      {:ok, {_module, [{@legacy_docs_chunk, bin}]}} ->
-        lookup_docs(:erlang.binary_to_term(bin), kind)
-
-      {:error, :beam_lib, {:missing_chunk, _, @legacy_docs_chunk}} ->
-        nil
-    end
-  end
-
-  defp lookup_docs({:elixir_docs_v1, docs}, kind), do: do_lookup_docs(docs, kind)
-
-  # unsupported chunk version
-  defp lookup_docs(_, _), do: nil
-
-  defp do_lookup_docs(docs, :all), do: docs
-  defp do_lookup_docs(docs, kind), do: Keyword.get(docs, kind)
 
   ## Helpers
 

@@ -515,29 +515,22 @@ supports_extra_chunks_option() ->
 docs_chunk(Set, Line, Def, Defmacro, Types, Callbacks) ->
   case elixir_compiler:get_opt(docs) of
     true ->
-      {DocLine, Doc} = get_moduledoc(Line, Set),
-
-      FunctionAndMacroDocs = get_docs(Set, Def, Defmacro),
+      {ModuleDocLine, ModuleDoc} = get_moduledoc(Line, Set),
+      FunctionDocs = get_docs(Set, Def, function),
+      MacroDocs = get_docs(Set, Defmacro, macro),
       CallbackDocs = get_callback_docs(Set, Callbacks),
       TypeDocs = get_type_docs(Set, Types),
 
       DocsChunkData = term_to_binary({docs_v1,
-        erl_anno:new(DocLine),
+        erl_anno:new(ModuleDocLine),
         elixir,
         <<"text/markdown">>,
-        doc_value(Doc),
+        ModuleDoc,
         #{},
-        [translate_doc(EntityDoc) || EntityDoc <- FunctionAndMacroDocs ++ CallbackDocs ++ TypeDocs]
+        FunctionDocs ++ MacroDocs ++ CallbackDocs ++ TypeDocs
       }, [compressed]),
 
-      ExDcChunkData = term_to_binary({elixir_docs_v1, [
-        {moduledoc, get_moduledoc(Line, Set)},
-        {docs, FunctionAndMacroDocs},
-        {callback_docs, CallbackDocs},
-        {type_docs, TypeDocs}
-      ]}, [compressed]),
-
-      [{<<"Docs">>, DocsChunkData}, {<<"ExDc">>, ExDcChunkData}];
+      [{<<"Docs">>, DocsChunkData}];
 
     false ->
       []
@@ -556,52 +549,36 @@ doc_value(Doc) ->
 
 get_moduledoc(Line, Set) ->
   case ets:lookup_element(Set, moduledoc, 2) of
-    nil -> {Line, nil};
-    {DocLine, Doc} -> {DocLine, Doc}
+    nil -> {Line, none};
+    {DocLine, Doc} -> {DocLine, doc_value(Doc)}
   end.
 
-get_docs(Set, Def, Defmacro) ->
-  lists:sort(
-    [{Tuple, Line, Kind, Signature, Doc} ||
-      Tuple <- (Def ++ Defmacro),
-      {_, Line, Kind, Signature, Doc} <- ets:lookup(Set, {doc, Tuple})]
-  ).
+get_docs(Set, Definitions, Kind) ->
+  [{Key,
+    erl_anno:new(Line),
+    [signature_to_binary(Name, Signature)],
+    doc_value(Doc),
+    doc_metadata(Kind)
+   } || {Name, Arity} <- Definitions,
+        {Key, Line, Signature, Doc} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_callback_docs(Set, Callbacks) ->
-  lists:sort(
-    [{Tuple, Line, Kind, Doc} ||
-     {Kind, Tuple, _, _} <- Callbacks,
-     {_, Line, Doc} <- ets:lookup(Set, {Kind, Tuple})]
-  ).
+  [{Key,
+    erl_anno:new(Line),
+    [],
+    doc_value(Doc),
+    doc_metadata(Kind)
+   } || {Kind, {Name, Arity}, _, _} <- Callbacks,
+        {Key, Line, Doc} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_type_docs(Set, Types) ->
-  lists:sort(
-    [{Tuple, Line, Kind, Doc} ||
-     {Kind, Tuple, _, _, true} <- Types,
-     {_, Line, Doc} <- ets:lookup(Set, {Kind, Tuple})]
-  ).
-
-translate_doc({{Name, Arity}, Line, Kind, Signature, Doc}) ->
-  {{translate_doc_kind(Kind), Name, Arity},
-   erl_anno:new(Line),
-   [signature_to_binary(Name, Signature)],
-   doc_value(Doc),
-   doc_metadata(Kind)
-  };
-translate_doc({{Name, Arity}, Line, Kind, Doc}) ->
-  {{translate_doc_kind(Kind), Name, Arity},
-   erl_anno:new(Line),
-   [],
-   doc_value(Doc),
-   doc_metadata(Kind)
-  }.
-
-translate_doc_kind(def)           -> function;
-translate_doc_kind(callback)      -> callback;
-translate_doc_kind(type)          -> type;
-translate_doc_kind(opaque)        -> type;
-translate_doc_kind(defmacro)      -> macro;
-translate_doc_kind(macrocallback) -> macrocallback.
+  [{Key,
+    erl_anno:new(Line),
+    [],
+    doc_value(Doc),
+    doc_metadata(Kind)
+   } || {Kind, {Name, Arity}, _, _, true} <- Types,
+        {Key, Line, Doc} <- ets:lookup(Set, {type, Name, Arity})].
 
 signature_to_binary(Name, Signature) ->
   BinaryName = atom_to_binary(Name, utf8),

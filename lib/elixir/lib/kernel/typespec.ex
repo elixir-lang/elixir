@@ -136,7 +136,7 @@ defmodule Kernel.Typespec do
 
       {name, arity} ->
         {line, doc} = get_doc_info(set, :typedoc, line)
-        store_doc(set, kind, name, arity, line, doc)
+        store_doc(set, :type, name, arity, line, doc)
 
       :error ->
         :error
@@ -160,7 +160,7 @@ defmodule Kernel.Typespec do
     # TODO: Add and merge this information to doc metadata
     _ = get_since_info(set)
     _ = get_deprecated_info(set)
-    :ets.insert(set, {{kind, {name, arity}}, line, doc})
+    :ets.insert(set, {{kind, name, arity}, line, doc})
   end
 
   defp get_doc_info(set, attr, line) do
