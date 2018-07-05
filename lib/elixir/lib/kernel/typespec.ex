@@ -5,20 +5,14 @@ defmodule Kernel.Typespec do
   ## Deprecated API moved to Code.Typespec
 
   @doc false
+  @deprecated "Use Code.Typespec.spec_to_quoted/2 instead"
   def spec_to_ast(name, spec) do
-    IO.warn(
-      "Kernel.Typespec.spec_to_ast/2 is deprecated, please use Code.Typespec.spec_to_quoted/2 instead"
-    )
-
     Code.Typespec.spec_to_quoted(name, spec)
   end
 
   @doc false
+  @deprecated "Use Code.Typespec.type_to_quoted/1 instead"
   def type_to_ast(type) do
-    IO.warn(
-      "Kernel.Typespec.type_to_ast/1 is deprecated, please use Code.Typespec.type_to_quoted/1 instead"
-    )
-
     Code.Typespec.type_to_quoted(type)
   end
 
@@ -41,11 +35,8 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
+  @deprecated "Use Code.Typespec.fetch_types/1 instead"
   def beam_types(module) when is_atom(module) or is_binary(module) do
-    IO.warn(
-      "Kernel.Typespec.beam_types/1 is deprecated, please use Code.Typespec.fetch_types/1 instead"
-    )
-
     case Code.Typespec.fetch_types(module) do
       {:ok, types} -> types
       :error -> nil
@@ -53,11 +44,8 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
+  @deprecated "Use Code.Typespec.fetch_specs/1 instead"
   def beam_specs(module) when is_atom(module) or is_binary(module) do
-    IO.warn(
-      "Kernel.Typespec.beam_specs/1 is deprecated, please use Code.Typespec.fetch_specs/1 instead"
-    )
-
     case Code.Typespec.fetch_specs(module) do
       {:ok, specs} -> specs
       :error -> nil
@@ -65,11 +53,8 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
+  @deprecated "Use Code.Typespec.fetch_callbacks/1 instead"
   def beam_callbacks(module) when is_atom(module) or is_binary(module) do
-    IO.warn(
-      "Kernel.Typespec.beam_callbacks/1 is deprecated, please use Code.Typespec.fetch_callbacks/1 instead"
-    )
-
     case Code.Typespec.fetch_callbacks(module) do
       {:ok, callbacks} -> callbacks
       :error -> nil
