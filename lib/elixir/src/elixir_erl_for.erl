@@ -260,32 +260,37 @@ build_reduce_each([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   {Tail, ST} = build_var(Ann, S),
   {Fun, SF}  = build_var(Ann, ST),
 
-  True  = build_reduce_each(T, Expr, Acc, Acc, SF),
+  True = build_reduce_each(T, Expr, Acc, Acc, SF),
   False = Acc,
-
   {bin, _, Elements} = Left,
-
-  BinMatch =
-    {bin, Ann, Elements ++ [{bin_element, Ann, Tail, default, [bitstring]}]},
-  NoVarMatch =
-    {bin, Ann, no_var(Elements) ++ [{bin_element, Ann, Tail, default, [bitstring]}]},
+  TailElement = {bin_element, Ann, Tail, default, [bitstring]},
 
   Clauses =
-    [{clause, Ann,
-      [BinMatch, Acc], [],
-      [{call, Ann, Fun, [Tail, join_filters(Generated, Filters, True, False)]}]},
-     {clause, Generated,
-      [NoVarMatch, Acc], [],
-      [{call, Ann, Fun, [Tail, False]}]},
-     {clause, Generated,
-      [{bin, Ann, []}, Acc], [],
+    [{clause, Generated,
+      [{bin, Ann, [TailElement]}, Acc], [],
       [Acc]},
      {clause, Generated,
       [Tail, {var, Ann, '_'}], [],
       [elixir_erl:remote(Ann, erlang, error, [pair(Ann, badarg, Tail)])]}],
 
+  NoVarClauses =
+    case no_var(Generated, Elements) of
+      error ->
+        Clauses;
+
+      NoVarElements ->
+        NoVarMatch = {bin, Ann, NoVarElements ++ [TailElement]},
+        [{clause, Generated, [NoVarMatch, Acc], [], [{call, Ann, Fun, [Tail, False]}]} | Clauses]
+    end,
+
+  BinMatch = {bin, Ann, Elements ++ [TailElement]},
+  VarClauses =
+    [{clause, Ann,
+     [BinMatch, Acc], [],
+     [{call, Ann, Fun, [Tail, join_filters(Generated, Filters, True, False)]}]} | NoVarClauses],
+
   {call, Ann,
-    {named_fun, Ann, element(3, Fun), Clauses},
+    {named_fun, Ann, element(3, Fun), VarClauses},
     [Right, Arg]};
 
 build_reduce_each([], Expr, _Arg, _Acc, _S) ->
@@ -301,11 +306,19 @@ build_var(Ann, S) ->
   {Name, _, ST} = elixir_erl_var:build('_', S),
   {{var, Ann, Name}, ST}.
 
-no_var(Elements) ->
-  [{bin_element, Ann, no_var_expr(Expr), Size, Types} ||
-    {bin_element, Ann, Expr, Size, Types} <- Elements].
-no_var_expr({var, Ann, _}) ->
-  {var, Ann, '_'}.
+no_var(ParentAnn, Elements) ->
+  try
+    [{bin_element, Ann, NoVarExpr, no_var_size(Size), Types} ||
+     {bin_element, Ann, Expr, Size, Types} <- Elements,
+     NoVarExpr <- no_var_expr(ParentAnn, Expr)]
+  catch
+    unbound_size -> error
+  end.
+
+no_var_expr(Ann, {string, _, String}) -> [{var, Ann, '_'} || _ <- String];
+no_var_expr(Ann, _) -> [{var, Ann, '_'}].
+no_var_size({var, _, _}) -> throw(unbound_size);
+no_var_size(Size) -> Size.
 
 build_comprehension(Ann, Clauses, Expr, false) ->
   {lc, Ann, Expr, comprehension_clause(Clauses)};
