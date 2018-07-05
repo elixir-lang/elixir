@@ -9,6 +9,12 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
+  defmodule DepsApp do
+    def project do
+      [app: :deps_app, version: "0.1.0", deps: [{:ok, "0.1.0", path: "deps/ok"}]]
+    end
+  end
+
   defmodule WrongPath do
     def project do
       [app: :apps_path_bug, apps_path: "this_path_does_not_exist"]
@@ -38,6 +44,27 @@ defmodule Mix.Tasks.CompileTest do
   test "compiles does not require all compilers available on manifest" do
     Mix.Project.push(CustomCompilers)
     assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == ["compile.elixir"]
+  end
+
+  test "compiles a project with cached deps information" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
+      File.mkdir_p!("lib")
+
+      File.write!("lib/a.ex", """
+      root = File.cwd!
+      File.cd!("lib", fn ->
+        %{ok: path} = Mix.Project.deps_paths()
+
+        if Path.relative_to(path, root) != "deps/ok" do
+          raise "non cached path"
+        end
+      end)
+      """)
+
+      assert Mix.Task.run("compile", ["--force", "--no-deps"]) == {:ok, []}
+    end)
   end
 
   test "compiles a project with mixfile" do
@@ -99,7 +126,7 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "add Logger application metadata" do
+  test "adds Logger application metadata" do
     import ExUnit.CaptureLog
 
     in_fixture("no_mixfile", fn ->

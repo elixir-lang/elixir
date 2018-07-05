@@ -11,6 +11,11 @@ defmodule Mix.Tasks.Compile.All do
   def run(args) do
     Mix.Project.get!()
 
+    # Make sure Mix.Dep is cached to avoid loading dependencies
+    # during compilation. It is likely this will be invoked anyway,
+    # as both elixir and app compilers rely on it.
+    Mix.Dep.cached()
+
     # Build the project structure so we can write down compiled files.
     Mix.Project.build_structure()
 
