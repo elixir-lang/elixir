@@ -500,35 +500,6 @@ defmodule Mix.DepTest do
     end)
   end
 
-  test "nested deps on only matching" do
-    # deps_repo wants git_repo for test, git_repo is restricted to only test
-    # We assert the dependencies match as expected, happens in umbrella apps
-    Process.put(:custom_deps_git_repo_opts, only: :test)
-
-    # We need to pass env: :test so the child dependency is loaded
-    # in the first place (otherwise only :prod deps are loaded)
-    deps = [
-      {:deps_repo, "0.1.0", path: "custom/deps_repo", env: :test},
-      {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}
-    ]
-
-    with_deps(deps, fn ->
-      in_fixture("deps_status", fn ->
-        loaded = Mix.Dep.loaded([])
-        assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, & &1.status)
-
-        loaded = Mix.Dep.loaded(env: :dev)
-        assert [:deps_repo] = Enum.map(loaded, & &1.app)
-        assert [noappfile: _] = Enum.map(loaded, & &1.status)
-
-        loaded = Mix.Dep.loaded(env: :test)
-        assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, & &1.status)
-      end)
-    end)
-  end
-
   test "nested deps on only conflict" do
     # deps_repo wants all git_repo, git_repo is restricted to only test
     deps = [
@@ -670,7 +641,7 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps converge and diverge when only is not in_upper" do
-    loaded_only = fn deps ->
+    loaded = fn deps ->
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
           File.mkdir_p!("custom/other_repo")
@@ -680,7 +651,7 @@ defmodule Mix.DepTest do
             use Mix.Project
 
             def project do
-              [app: :deps_repo,
+              [app: :other_repo,
                version: "0.1.0",
                deps: [{:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}]]
             end
@@ -689,8 +660,7 @@ defmodule Mix.DepTest do
 
           Mix.ProjectStack.clear_cache()
           loaded = Mix.Dep.loaded([])
-          assert [:git_repo, _, _] = Enum.map(loaded, & &1.app)
-          hd(loaded).opts()[:only]
+          Enum.map(loaded, &{&1.app, &1.opts[:only]})
         end)
       end)
     end
@@ -700,28 +670,29 @@ defmodule Mix.DepTest do
       {:other_repo, "0.1.0", path: "custom/other_repo", only: :test}
     ]
 
-    assert loaded_only.(deps) == [:test, :prod]
+    assert loaded.(deps) ==
+             [git_repo: [:test, :prod], other_repo: :test, deps_repo: :prod]
 
     deps = [
       {:deps_repo, "0.1.0", path: "custom/deps_repo"},
       {:other_repo, "0.1.0", path: "custom/other_repo", only: :test}
     ]
 
-    refute loaded_only.(deps)
+    assert loaded.(deps) == [git_repo: nil, other_repo: :test, deps_repo: nil]
 
     deps = [
       {:deps_repo, "0.1.0", path: "custom/deps_repo", only: :prod},
       {:other_repo, "0.1.0", path: "custom/other_repo"}
     ]
 
-    refute loaded_only.(deps)
+    assert loaded.(deps) == [git_repo: nil, other_repo: nil, deps_repo: :prod]
 
     deps = [
       {:deps_repo, "0.1.0", path: "custom/deps_repo"},
       {:other_repo, "0.1.0", path: "custom/other_repo"}
     ]
 
-    refute loaded_only.(deps)
+    assert loaded.(deps) == [git_repo: nil, other_repo: nil, deps_repo: nil]
 
     Process.put(:custom_deps_git_repo_opts, optional: true)
 
@@ -730,6 +701,39 @@ defmodule Mix.DepTest do
       {:other_repo, "0.1.0", path: "custom/other_repo", only: :test}
     ]
 
-    assert loaded_only.(deps) == :test
+    assert loaded.(deps) == [git_repo: :test, other_repo: :test, deps_repo: :prod]
+  end
+
+  test "nested deps converge and diverge when only is not specified" do
+    Process.put(:custom_deps_git_repo_opts, only: :test)
+
+    # Pass nil environment to mimic behaviour in umbrellas
+    # where the children are loaded without an environment.
+    deps = [
+      {:abc_repo, "0.1.0", path: "custom/abc_repo", env: nil},
+      {:deps_repo, "0.1.0", path: "custom/deps_repo", env: nil},
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        File.mkdir_p!("custom/abc_repo")
+
+        File.write!("custom/abc_repo/mix.exs", """
+        defmodule OtherRepo do
+          use Mix.Project
+
+          def project do
+            [app: :abc_repo,
+             version: "0.1.0",
+             deps: [{:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}]]
+          end
+        end
+        """)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+        refute_receive {:mix_shell, :error, ["Could not compile :git_repo" <> _]}
+      end)
+    end)
   end
 end
