@@ -373,10 +373,53 @@ defmodule Kernel.ComprehensionTest do
             end) == <<7::size(1), 0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
   end
 
+  test "binary for comprehensions with literal matches" do
+    # Integers
+    bin = <<1, 2, 1, 3, 1, 4>>
+    assert for(<<1, x <- bin>>, into: "", do: to_bin(x)) == <<2, 3, 4>>
+    assert for(<<1, x <- bin>>, into: %{}, do: {x, x}) == %{2 => 2, 3 => 3, 4 => 4}
+
+    bin = <<1, 2, 3, 1, 4>>
+    assert for(<<1, x <- bin>>, into: "", do: to_bin(x)) == <<2>>
+    assert for(<<1, x <- bin>>, into: %{}, do: {x, x}) == %{2 => 2}
+
+    # Floats
+    bin = <<1.0, 2, 1.0, 3, 1.0, 4>>
+    assert for(<<1.0, x <- bin>>, into: "", do: to_bin(x)) == <<2, 3, 4>>
+    assert for(<<1.0, x <- bin>>, into: %{}, do: {x, x}) == %{2 => 2, 3 => 3, 4 => 4}
+
+    bin = <<1.0, 2, 3, 1.0, 4>>
+    assert for(<<1.0, x <- bin>>, into: "", do: to_bin(x)) == <<2>>
+    assert for(<<1.0, x <- bin>>, into: %{}, do: {x, x}) == %{2 => 2}
+
+    # Binaries
+    bin = <<"foo", 2, "foo", 3, "foo", 4>>
+    assert for(<<"foo", x <- bin>>, into: "", do: to_bin(x)) == <<2, 3, 4>>
+    assert for(<<"foo", x <- bin>>, into: %{}, do: {x, x}) == %{2 => 2, 3 => 3, 4 => 4}
+
+    bin = <<"foo", 2, 3, "foo", 4>>
+    assert for(<<"foo", x <- bin>>, into: "", do: to_bin(x)) == <<2>>
+    assert for(<<"foo", x <- bin>>, into: %{}, do: {x, x}) == %{2 => 2}
+
+    bin = <<"foo", 2, 3, 4, "foo", 5>>
+    assert for(<<"foo", x <- bin>>, into: "", do: to_bin(x)) == <<2>>
+    assert for(<<"foo", x <- bin>>, into: %{}, do: {x, x}) == %{2 => 2}
+  end
+
   test "binary for comprehensions with variable size" do
     s = 16
     bin = <<1, 2, 3, 4, 5, 6>>
     assert for(<<x::size(s) <- bin>>, into: "", do: to_bin(div(x, 2))) == <<129, 130, 131>>
+
+    # Aligned
+    bin = <<8, 1, 16, 2, 3>>
+    assert for(<<s, x::size(s) <- bin>>, into: "", do: <<x::size(s)>>) == <<1, 2, 3>>
+    assert for(<<s, x::size(s) <- bin>>, into: %{}, do: {s, x}) == %{8 => 1, 16 => 515}
+
+    # Unaligned
+    bin = <<8, 1, 32, 2, 3>>
+    assert for(<<s, x::size(s) <- bin>>, into: "", do: <<x::size(s)>>) == <<1>>
+    assert for(<<s, x::size(s) <- bin>>, into: %{}, do: {s, x}) == %{8 => 1}
   end
 
   test "binary for comprehensions where value is not used" do
