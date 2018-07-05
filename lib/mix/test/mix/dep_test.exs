@@ -670,8 +670,7 @@ defmodule Mix.DepTest do
       {:other_repo, "0.1.0", path: "custom/other_repo", only: :test}
     ]
 
-    assert loaded.(deps) ==
-             [git_repo: [:test, :prod], other_repo: :test, deps_repo: :prod]
+    assert loaded.(deps) == [git_repo: [:test, :prod], other_repo: :test, deps_repo: :prod]
 
     deps = [
       {:deps_repo, "0.1.0", path: "custom/deps_repo"},
@@ -711,7 +710,7 @@ defmodule Mix.DepTest do
     # where the children are loaded without an environment.
     deps = [
       {:abc_repo, "0.1.0", path: "custom/abc_repo", env: nil},
-      {:deps_repo, "0.1.0", path: "custom/deps_repo", env: nil},
+      {:deps_repo, "0.1.0", path: "custom/deps_repo", env: nil}
     ]
 
     with_deps(deps, fn ->
