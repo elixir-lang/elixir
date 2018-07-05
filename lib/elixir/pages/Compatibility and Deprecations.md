@@ -14,7 +14,7 @@ Elixir version | Support
 1.4            | Security patches only
 1.3            | Security patches only
 
-Major Elixir releases may contain breaking changes and those will be explicitly outlined in the CHANGELOG. At the moment, there are no plans for a major v2 release.
+Major Elixir releases may contain breaking changes and those will be explicitly outlined in the CHANGELOG. There are currently no plans for a major v2 release.
 
 ## Compatibility between Elixir non-major versions
 
@@ -47,6 +47,7 @@ Elixir version | Supported Erlang/OTP versions
 1.4            | 18 - 19 (and Erlang/OTP 20 from v1.4.5)
 1.5            | 18 - 20
 1.6            | 19 - 20 (and Erlang/OTP 21 from v1.6.6)
+1.7            | 19 - 21
 
 While Elixir often adds compatibility to new Erlang/OTP versions on released branches, such as support for Erlang/OTP 20 in v1.4.5, those releases usually contain the minimum changes for Elixir to run without errors. Only the next minor release, in this case v1.5.0, does effectively leverage the new features provided by the latest Erlang/OTP release.
 
@@ -66,6 +67,7 @@ Elixir deprecations happen in 3 steps:
 
 Deprecated feature                               | Hard-deprecated in | Replaced by (available since)
 :----------------------------------------------- | :----------------- | :----------------------------
+`Code.get_docs/2`                                | [v1.7]        | `Code.fetch_docs/1` (v1.7)
 Calling `super` on GenServer callbacks           | [v1.7]        | Not calling super (v1.0)
 `Enum.chunk/2`[`/3/4`](Enum.chunk/4)             | [v1.7]        | `Enum.chunk_every/2`[`/3/4`](`Enum.chunk_every/4`) (v1.5)
 `not left in right`                              | [v1.7]        | [`left not in right`](`Kernel.SpecialForms.in/2`) (v1.5)

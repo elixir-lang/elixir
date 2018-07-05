@@ -94,6 +94,7 @@
 
 #### Elixir
 
+  * [Code] `Code.get_docs/2` is deprecated in favor of `Code.fetch_docs/1`
   * [Enum] `Enum.chunk/2/3/4` is deprecated in favor of `Enum.chunk_every/2/3/4` - notice `chunk_every` does not discard incomplete chunks by default
   * [GenServer] Warn if `super` is used in any of the GenServer callbacks
   * [Kernel] `not left in right` is ambiguous and is deprecated in favor of `left not in right`
