@@ -51,6 +51,7 @@ defmodule Mix.Tasks.CompileTest do
       Mix.Project.push(DepsApp)
 
       File.mkdir_p!("lib")
+
       File.write!("lib/a.ex", """
       root = File.cwd!
       File.cd!("lib", fn ->
