@@ -8,32 +8,31 @@ import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
-  This module is the entry point of the Elixir programming language.
+  `Kernel` is Elixir's default environment.
 
-  It provides the default functions and macros Elixir imports into your
-  environment. Those can be directly invoked in your code without the
-  module name:
+  It mainly consists of:
+
+    * basic language primitives, such as arithmetic operators, spawning of processes,
+      data type handling, etc
+    * macros for control-flow and defining new functionality (modules, functions, and so on)
+    * [guard](guards.html) checks for augmenting pattern matching
+    
+  You can use `Kernel` functions/macros without the `Kernel` prefix anywhere in
+  Elixir code as all its functions and macros are automatically imported. For
+  example, in IEx:
 
       iex> is_number(13)
       true
 
-  These functions and macros can be skipped or cherry-picked via the
-  `Kernel.SpecialForms.import/2` macro. For instance, if you want to tell
-  Elixir not to import the `if/2` macro, you can do:
+  If you don't want to import a function or macro from `Kernel`, use the `:except` 
+  option and then list the function/macro by arity:
 
-      import Kernel, except: [if: 2]
+        import Kernel, except: [if: 2, unless: 2]
+        
+  See `Kernel.SpecialForms.import/2` for more information on importing.
 
   Elixir also has special forms that are always imported and
   cannot be skipped. These are described in `Kernel.SpecialForms`.
-
-  This module provides a variety of code definition, flow-control
-  and data type functionality. For example, new processes can be
-  created with `spawn/1`, modules can be defined with `defmodule/2`,
-  short-circuit operators are found in `&&/2` and `||/2`, numbers
-  can be added with `+/2`, and more. This module also contains all
-  built-in guards, which are a set of functions that augment pattern
-  matching with complex checks. More information about guards can be
-  found in the [Guards page](guards.html).
 
   ## The standard library
 
