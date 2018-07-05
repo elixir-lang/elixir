@@ -1,9 +1,9 @@
 defmodule Integer do
   @moduledoc """
   Functions for working with integers.
-  
+
   Some functions that work on integers are found in `Kernel`:
-  
+
     * `abs/2`
     * `div/2`
     * `max/2`

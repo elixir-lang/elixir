@@ -1,9 +1,9 @@
 defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
-  
+
   Please note the following functions for tuples are found in `Kernel`:
-  
+
     * `elem/2` - access a tuple by index
     * `put_elem/3` - insert a value into a tuple by index
     * `tuple_size/3` - get the number of elements in a tuple
@@ -11,7 +11,7 @@ defmodule Tuple do
   Tuples are intended as fixed-size containers for multiple elements.
   To manipulate a collection of elements, use a list instead. `Enum`
   functions do not work on tuples.
-  
+
   Tuples are denoted with curly braces:
 
       iex> {}
@@ -28,7 +28,7 @@ defmodule Tuple do
   or for error handling. `File.read/1` returns `{:ok, contents}` if reading 
   the given file is successful, or else `{:error, reason}` such as when 
   the file does not exist.
-  
+
   The functions in this module that add and remove elements from tuples are
   rarely used in practice, as they typically imply tuples are being used as
   collections. To append to a tuple, it is preferrable to use pattern matching:

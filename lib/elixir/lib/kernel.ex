@@ -9,9 +9,9 @@ import :elixir_bootstrap
 defmodule Kernel do
   @moduledoc """
   `Kernel` is Elixir's default environment.
-  
+
   It mainly consists of:
-  
+
     * basic language primitives, such as arithmetic operators, spawning of processes,
       data type handling, etc
     * macros for control-flow and defining new functionality (modules, functions, and so on)
@@ -26,7 +26,7 @@ defmodule Kernel do
 
   If you don't want to import a function or macro from `Kernel`, use the `:except` 
   option and then list the function/macro by arity:
-  
+
         import Kernel, except: [if: 2, unless: 2]
         
   See `Kernel.SpecialForms.import/2` for more information on importing.

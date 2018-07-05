@@ -1,13 +1,13 @@
 defmodule List do
   @moduledoc """
   Functions that work on (linked) lists.
-  
+
   Many of the functions provided for lists, which implement 
   the `Enumerable` protocol, are found in the `Enum` module.
-  
+
   Additionally, the following functions and operators for lists are
   found in `Kernel`:
-  
+
     * `++/2`
     * `--/2`
     * `hd/1`
