@@ -68,7 +68,7 @@ defmodule Mix.Dep.Converger do
     # dependencies. Since the remote converger may be
     # lazily loaded, we need to check for it on every
     # iteration.
-    {deps, rest, lock} =
+    {deps, acc, lock} =
       all(main, apps, callback, acc, lock, env, fn dep ->
         if (remote = Mix.RemoteConverger.get()) && remote.remote?(dep) do
           {:loaded, dep}
@@ -104,8 +104,8 @@ defmodule Mix.Dep.Converger do
       # In case no lock was given, we will use the local lock
       # which is potentially stale. So remote.deps/2 needs to always
       # check if the data it finds in the lock is actually valid.
-      {deps, rest, lock} =
-        all(main, apps, callback, rest, lock, env, fn dep ->
+      {deps, acc, lock} =
+        all(main, apps, callback, acc, lock, env, fn dep ->
           if cached = cache[{dep.app, dep.scm}] do
             {:loaded, cached}
           else
@@ -113,9 +113,9 @@ defmodule Mix.Dep.Converger do
           end
         end)
 
-      {reject_non_fulfilled_optional(deps), rest, lock}
+      {reject_non_fulfilled_optional(deps), acc, lock}
     else
-      {reject_non_fulfilled_optional(deps), rest, lock}
+      {reject_non_fulfilled_optional(deps), acc, lock}
     end
   end
 
@@ -168,16 +168,19 @@ defmodule Mix.Dep.Converger do
   # exception is going to be raised since d is considered
   # to be the authoritative source.
   defp all([dep | t], acc, upper_breadths, current_breadths, callback, rest, lock, env, cache) do
-    cond do
-      new_acc = diverged_deps(acc, upper_breadths, dep) ->
-        all(t, new_acc, upper_breadths, current_breadths, callback, rest, lock, env, cache)
+    case match_deps(acc, upper_breadths, dep, env) do
+      {:replace, dep, acc} ->
+        all([dep | t], acc, upper_breadths, current_breadths, callback, rest, lock, env, cache)
 
-      Mix.Dep.Loader.skip?(dep, env) ->
+      {:match, acc} ->
+        all(t, acc, upper_breadths, current_breadths, callback, rest, lock, env, cache)
+
+      :skip ->
         # We still keep skipped dependencies around to detect conflicts.
         # They must be rejected after every all iteration.
         all(t, [dep | acc], upper_breadths, current_breadths, callback, rest, lock, env, cache)
 
-      true ->
+      :nomatch ->
         {dep, rest, lock} =
           case cache.(dep) do
             {:loaded, cached_dep} ->
@@ -212,7 +215,7 @@ defmodule Mix.Dep.Converger do
     put_in(dep.opts[:lock], lock[app])
   end
 
-  # Look for divergence in dependencies.
+  # Look for matching and divergence in dependencies.
   #
   # If the same dependency is specified more than once,
   # we need to guarantee they converge. If they don't
@@ -222,14 +225,19 @@ defmodule Mix.Dep.Converger do
   # diverges is in the upper breadth, in those cases we
   # also check for the override option and mark the dependency
   # as overridden instead of diverged.
-  defp diverged_deps(list, upper_breadths, %Mix.Dep{app: app} = dep) do
-    in_upper? = app in upper_breadths
+  defp match_deps(list, upper_breadths, %Mix.Dep{app: app} = dep, env) do
+    case Enum.split_while(list, &(&1.app != app)) do
+      {_, []} ->
+        if Mix.Dep.Loader.skip?(dep, env) do
+          :skip
+        else
+          :nomatch
+        end
 
-    {acc, match} =
-      Enum.map_reduce(list, false, fn other, match ->
-        %Mix.Dep{app: other_app, opts: other_opts} = other
+      {pre, [%Mix.Dep{opts: other_opts} = other | pos]} ->
+        in_upper? = app in upper_breadths
 
-        if other_app == app and other.top_level and dep.top_level do
+        if other.top_level and dep.top_level do
           Mix.shell().error(
             "warning: the dependency #{inspect(dep.app)} is " <>
               "duplicated at the top level, please remove one of them"
@@ -237,28 +245,36 @@ defmodule Mix.Dep.Converger do
         end
 
         cond do
-          app != other_app ->
-            {other, match}
-
           in_upper? && other_opts[:override] ->
-            {other |> with_matching_only(dep, in_upper?), true}
+            {:match, list}
 
-          converge?(other, dep) ->
+          not converge?(other, dep) ->
+            tag = if in_upper?, do: :overridden, else: :diverged
+            other = %{other | status: {tag, dep}}
+            {:match, pre ++ [other | pos]}
+
+          vsn = req_mismatch(other, dep) ->
+            other = %{other | status: {:divergedreq, vsn, dep}}
+            {:match, pre ++ [other | pos]}
+
+          not in_upper? and Mix.Dep.Loader.skip?(other, env) and
+              not Mix.Dep.Loader.skip?(dep, env) ->
+            dep =
+              dep
+              |> with_matching_only(other, in_upper?)
+              |> merge_manager(other, in_upper?)
+
+            {:replace, dep, pre ++ pos}
+
+          true ->
             other =
               other
               |> with_matching_only(dep, in_upper?)
-              |> with_matching_req(dep)
               |> merge_manager(dep, in_upper?)
 
-            {other, true}
-
-          true ->
-            tag = if in_upper?, do: :overridden, else: :diverged
-            {%{other | status: {tag, dep}}, true}
+            {:match, pre ++ [other | pos]}
         end
-      end)
-
-    if match, do: acc
+    end
   end
 
   defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep, in_upper?) do
@@ -355,16 +371,12 @@ defmodule Mix.Dep.Converger do
     List.first(@managers -- to_exclude) || other_manager || manager
   end
 
-  defp with_matching_req(%Mix.Dep{} = other, %Mix.Dep{} = dep) do
-    case other.status do
-      {:ok, vsn} when not is_nil(vsn) ->
-        case Mix.Dep.Loader.vsn_match(dep.requirement, vsn, dep.app) do
-          {:ok, true} -> other
-          _ -> %{other | status: {:divergedreq, vsn, dep}}
-        end
-
-      _ ->
-        other
+  defp req_mismatch(%Mix.Dep{status: status}, %Mix.Dep{app: app, requirement: requirement}) do
+    with {:ok, vsn} when not is_nil(vsn) <- status,
+         true <- Mix.Dep.Loader.vsn_match(requirement, vsn, app) != {:ok, true} do
+      vsn
+    else
+      _ -> nil
     end
   end
 end
