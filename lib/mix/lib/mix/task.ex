@@ -307,7 +307,7 @@ defmodule Mix.Task do
         end)
 
       not recursive && Mix.ProjectStack.recursing() ->
-        Mix.ProjectStack.root(fn -> run(task, args) end)
+        Mix.ProjectStack.on_recursing_root(fn -> run(task, args) end)
 
       true ->
         Mix.TasksServer.put({:task, task, proj})

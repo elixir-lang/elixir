@@ -39,16 +39,17 @@ defmodule Mix.Tasks.Deps.Compile do
     end
 
     Mix.Project.get!()
+    deps = Mix.Dep.load_and_cache()
 
     case OptionParser.parse(args, switches: @switches) do
       {opts, [], _} ->
         # Because this command may be invoked explicitly with
         # deps.compile, we simply try to compile any available
         # dependency.
-        compile(Enum.filter(Mix.Dep.loaded(env: Mix.env()), &Mix.Dep.available?/1), opts)
+        compile(Enum.filter(deps, &Mix.Dep.available?/1), opts)
 
       {opts, tail, _} ->
-        compile(Mix.Dep.loaded_by_name(tail, [env: Mix.env()] ++ opts), opts)
+        compile(Mix.Dep.filter_by_name(tail, deps, opts), opts)
     end
   end
 

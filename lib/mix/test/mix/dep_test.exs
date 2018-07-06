@@ -35,24 +35,9 @@ defmodule Mix.DepTest do
   defp assert_wrong_dependency(deps) do
     with_deps(deps, fn ->
       assert_raise Mix.Error, ~r"Dependency specified in the wrong format", fn ->
-        Mix.Dep.loaded([])
+        Mix.Dep.load_on_environment([])
       end
     end)
-  end
-
-  test "respects the MIX_NO_DEPS flag" do
-    Mix.Project.push(DepsApp)
-
-    in_fixture("deps_status", fn ->
-      deps = Mix.Dep.cached()
-      assert length(deps) == 6
-
-      System.put_env("MIX_NO_DEPS", "1")
-      deps = Mix.Dep.cached()
-      assert length(deps) == 0
-    end)
-  after
-    System.delete_env("MIX_NO_DEPS")
   end
 
   test "clear deps cache" do
@@ -70,7 +55,7 @@ defmodule Mix.DepTest do
     Mix.Project.push(DepsApp)
 
     in_fixture("deps_status", fn ->
-      deps = Mix.Dep.loaded([])
+      deps = Mix.Dep.load_on_environment([])
       assert length(deps) == 6
       assert Enum.find(deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1))
       assert Enum.find(deps, &match?(%Mix.Dep{app: :invalidvsn, status: {:invalidvsn, :ok}}, &1))
@@ -103,7 +88,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        deps = Mix.Dep.loaded([])
+        deps = Mix.Dep.load_on_environment([])
         assert Enum.find(deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1))
       end)
     end)
@@ -116,7 +101,7 @@ defmodule Mix.DepTest do
       in_fixture("deps_status", fn ->
         send(self(), {:mix_shell_input, :yes?, false})
         msg = "Could not find an SCM for dependency :ok from Mix.DepTest.ProcessDepsApp"
-        assert_raise Mix.Error, msg, fn -> Mix.Dep.loaded([]) end
+        assert_raise Mix.Error, msg, fn -> Mix.Dep.load_on_environment([]) end
       end)
     end)
   end
@@ -140,7 +125,7 @@ defmodule Mix.DepTest do
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
         assert_raise Mix.Error, ~r"Invalid requirement", fn ->
-          Mix.Dep.loaded([])
+          Mix.Dep.load_on_environment([])
         end
       end)
     end)
@@ -151,7 +136,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:git_repo, :deps_repo]
+        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:git_repo, :deps_repo]
       end)
     end)
   end
@@ -173,7 +158,7 @@ defmodule Mix.DepTest do
         end
         """)
 
-        assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:deps_repo]
+        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:deps_repo]
       end)
     end)
   end
@@ -186,7 +171,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:git_repo, :deps_repo]
+        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:git_repo, :deps_repo]
       end)
     end)
   end
@@ -201,7 +186,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        [dep1, dep2] = Mix.Dep.loaded([])
+        [dep1, dep2] = Mix.Dep.load_on_environment([])
         assert dep1.manager == nil
         assert dep2.manager == :rebar
       end)
@@ -228,7 +213,7 @@ defmodule Mix.DepTest do
         end
         """)
 
-        assert Enum.map(Mix.Dep.loaded([]), & &1.app) == [:git_repo, :deps_repo]
+        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:git_repo, :deps_repo]
       end)
     end)
   end
@@ -286,7 +271,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_tmp("load dependency with env vars", fn ->
-        Mix.Dep.loaded([])
+        Mix.Dep.load_on_environment([])
         assert {:ok, "contents dep test"} = File.read(file_path)
       end)
     end)
@@ -454,13 +439,13 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        deps = Mix.Dep.loaded(env: :other_env)
+        deps = Mix.Dep.load_on_environment(env: :other_env)
         assert length(deps) == 2
 
-        deps = Mix.Dep.loaded([])
+        deps = Mix.Dep.load_on_environment([])
         assert length(deps) == 2
 
-        assert [dep] = Mix.Dep.loaded(env: :prod)
+        assert [dep] = Mix.Dep.load_on_environment(env: :prod)
         assert dep.app == :foo
       end)
     end)
@@ -491,10 +476,10 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        loaded = Mix.Dep.loaded([])
+        loaded = Mix.Dep.load_on_environment([])
         assert [:deps_repo] = Enum.map(loaded, & &1.app)
 
-        loaded = Mix.Dep.loaded(env: :test)
+        loaded = Mix.Dep.load_on_environment(env: :test)
         assert [:deps_repo] = Enum.map(loaded, & &1.app)
       end)
     end)
@@ -509,15 +494,15 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        loaded = Mix.Dep.loaded([])
+        loaded = Mix.Dep.load_on_environment([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :dev)
+        loaded = Mix.Dep.load_on_environment(env: :dev)
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :test)
+        loaded = Mix.Dep.load_on_environment(env: :test)
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
@@ -540,15 +525,15 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        loaded = Mix.Dep.loaded([])
+        loaded = Mix.Dep.load_on_environment([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :dev)
+        loaded = Mix.Dep.load_on_environment(env: :dev)
         assert [:deps_repo] = Enum.map(loaded, & &1.app)
         assert [noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :test)
+        loaded = Mix.Dep.load_on_environment(env: :test)
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, & &1.status)
       end)
@@ -564,18 +549,18 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        loaded = Mix.Dep.loaded([])
+        loaded = Mix.Dep.load_on_environment([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :dev)
+        loaded = Mix.Dep.load_on_environment(env: :dev)
         assert [] = Enum.map(loaded, & &1.app)
 
-        loaded = Mix.Dep.loaded(env: :test)
+        loaded = Mix.Dep.load_on_environment(env: :test)
         assert [:git_repo] = Enum.map(loaded, & &1.app)
         assert [unavailable: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :prod)
+        loaded = Mix.Dep.load_on_environment(env: :prod)
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, & &1.status)
       end)
@@ -591,15 +576,15 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        loaded = Mix.Dep.loaded([])
+        loaded = Mix.Dep.load_on_environment([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :dev)
+        loaded = Mix.Dep.load_on_environment(env: :dev)
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :test)
+        loaded = Mix.Dep.load_on_environment(env: :test)
         assert [:git_repo] = Enum.map(loaded, & &1.app)
         assert [unavailable: _] = Enum.map(loaded, & &1.status)
 
@@ -622,19 +607,19 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        loaded = Mix.Dep.loaded([])
+        loaded = Mix.Dep.load_on_environment([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :dev)
+        loaded = Mix.Dep.load_on_environment(env: :dev)
         assert [:deps_repo] = Enum.map(loaded, & &1.app)
         assert [noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :test)
+        loaded = Mix.Dep.load_on_environment(env: :test)
         assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, & &1.status)
 
-        loaded = Mix.Dep.loaded(env: :prod)
+        loaded = Mix.Dep.load_on_environment(env: :prod)
         assert [] = Enum.map(loaded, & &1.app)
       end)
     end)
@@ -659,7 +644,7 @@ defmodule Mix.DepTest do
           """)
 
           Mix.ProjectStack.clear_cache()
-          loaded = Mix.Dep.loaded([])
+          loaded = Mix.Dep.load_on_environment([])
           Enum.map(loaded, &{&1.app, &1.opts[:only]})
         end)
       end)

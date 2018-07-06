@@ -186,14 +186,14 @@ defmodule Mix.RebarTest do
   describe "integration with Mix" do
     test "inherits Rebar manager" do
       Mix.Project.push(Rebar3AsDep)
-      deps = Mix.Dep.loaded([])
+      deps = Mix.Dep.load_on_environment([])
       assert Enum.all?(deps, &(&1.manager == :rebar3))
     end
 
     test "parses Rebar dependencies from rebar.config" do
       Mix.Project.push(RebarAsDep)
 
-      deps = Mix.Dep.loaded([])
+      deps = Mix.Dep.load_on_environment([])
       assert Enum.find(deps, &(&1.app == :rebar_dep))
 
       assert Enum.find(deps, fn %Mix.Dep{app: app, opts: opts} ->
@@ -211,7 +211,7 @@ defmodule Mix.RebarTest do
       in_tmp("Rebar overrides", fn ->
         Mix.Tasks.Deps.Get.run([])
 
-        assert Mix.Dep.loaded([]) |> Enum.map(& &1.app) ==
+        assert Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app) ==
                  [:git_repo, :git_rebar, :rebar_override]
       end)
     after
@@ -232,7 +232,7 @@ defmodule Mix.RebarTest do
         assert :rebar_dep.any_function() == :ok
 
         load_paths =
-          Mix.Dep.loaded([])
+          Mix.Dep.load_on_environment([])
           |> Enum.map(&Mix.Dep.load_paths(&1))
           |> Enum.concat()
 
@@ -280,7 +280,7 @@ defmodule Mix.RebarTest do
         assert :rebar_dep.any_function() == :ok
 
         load_paths =
-          Mix.Dep.loaded([])
+          Mix.Dep.load_on_environment([])
           |> Enum.map(&Mix.Dep.load_paths(&1))
           |> Enum.concat()
 

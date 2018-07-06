@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Deps.Clean do
     deps_path = Mix.Project.deps_path()
 
     loaded_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
-    loaded_deps = Mix.Dep.loaded(loaded_opts)
+    loaded_deps = Mix.Dep.load_on_environment(loaded_opts)
 
     apps_to_clean =
       cond do

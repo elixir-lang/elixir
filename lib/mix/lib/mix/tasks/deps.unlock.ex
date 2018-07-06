@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         Mix.Dep.Lock.write(%{})
 
       opts[:unused] ->
-        apps = Mix.Dep.loaded([]) |> Enum.map(& &1.app)
+        apps = Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app)
         Mix.Dep.Lock.read() |> Map.take(apps) |> Mix.Dep.Lock.write()
 
       filter = opts[:filter] ->

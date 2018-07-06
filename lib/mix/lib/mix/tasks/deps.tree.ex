@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Deps.Tree do
     {opts, args, _} = OptionParser.parse(args, switches: @switches)
 
     deps_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
-    deps = Mix.Dep.loaded(deps_opts)
+    deps = Mix.Dep.load_on_environment(deps_opts)
 
     root =
       case args do
