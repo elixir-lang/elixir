@@ -454,9 +454,10 @@ defmodule ExUnit.Assertions do
     expanded_pattern = expand_pattern(pattern, caller)
     left_pattern = escape_quoted(:pattern, expanded_pattern)
 
-    vars =
-      pattern
-      |> collect_vars_from_pattern()
+    vars = collect_vars_from_pattern(pattern)
+
+    pattern_vars =
+      vars
       |> Enum.map(fn {var, _, _} -> var end)
       |> Enum.uniq()
       |> Enum.map(&{&1, :ex_unit_unbound_var})
@@ -476,8 +477,7 @@ defmodule ExUnit.Assertions do
       quote do
         case message do
           unquote(pattern) ->
-            _ = unquote(vars)
-            true
+            unquote(vars)
 
           _ ->
             false
@@ -513,7 +513,7 @@ defmodule ExUnit.Assertions do
       timeout = unquote(timeout)
 
       {:pattern, [], [left]} = unquote(left_pattern)
-      pattern = Pattern.new(left, unquote(pins), unquote(vars))
+      pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
 
       {received, unquote(vars)} =
         receive do
