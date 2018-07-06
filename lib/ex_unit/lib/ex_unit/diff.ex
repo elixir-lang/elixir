@@ -26,7 +26,7 @@ defmodule ExUnit.Diff do
   def script(%Pattern{} = p, right) do
     p
     |> ExUnit.PatternDiff.cmp(right)
-    |> ExUnit.PatternFormat.format()
+    |> ExUnit.MatchPatternFormat.format()
   end
 
   # Structs

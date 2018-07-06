@@ -140,13 +140,12 @@ defmodule ExUnit.Formatter do
         %{left: %ExUnit.Pattern{} = pattern, right: {:ex_unit_mailbox_contents, mailbox}} =
           struct,
         stack,
-        width,
+        _width,
         formatter,
         counter_padding
       ) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
-    inspect = &inspect_multiline(&1, padding_size, width)
 
     patterns =
       mailbox
@@ -221,7 +220,6 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_kind_reason(test, :error, %FunctionClauseError{} = struct, stack, _width, formatter) do
-    IO.inspect("I'm a blaming")
     {blamed, stack} = Exception.blame(:error, struct, stack)
     banner = Exception.format_banner(:error, struct)
     blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter))
@@ -358,13 +356,8 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_pattern(left, right, formatter) do
-    IO.inspect(binding(), label: "format_pattern")
-    IO.inspect(formatter.(:diff_enabled?, false))
-
     if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
-      if script = pattern_diff(left, right) |> IO.inspect(label: "pattern_diff") do
-        IO.inspect(script, label: "Script?")
-
+      if script = pattern_diff(left, right) do
         list =
           Enum.reduce(script, [], fn
             {key, val}, acc ->
@@ -430,7 +423,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp pattern_diff(left, right) do
-    task = Task.async(ExUnit.PatternFormat2, :script, [left, right])
+    task = Task.async(ExUnit.ReceivePatternFormat, :script, [left, right])
 
     case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
       {:ok, script} -> script
