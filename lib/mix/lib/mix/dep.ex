@@ -78,28 +78,42 @@ defmodule Mix.Dep do
   @doc """
   Returns loaded dependencies from the cache for the current environment.
 
+  If dependencies have not been cached yet, they are loaded
+  and then cached.
+
   Because the dependencies are cached during deps.loadpaths,
   their status may be outdated (for example, `:compile` did not
   yet become `:ok`). Therefore it is recommended to not rely
   on their status, also given they haven't been checked
   against the lock.
-
-  If MIX_NO_DEPS is set, we return an empty list of dependencies
-  without loading them.
   """
   def cached() do
-    cond do
-      System.get_env("MIX_NO_DEPS") in ~w(1 true) ->
-        []
+    if project = Mix.Project.get() do
+      key = {:cached_deps, Mix.env(), project}
+      Mix.ProjectStack.read_cache(key) || load_and_cache()
+    else
+      load_and_cache()
+    end
+  end
 
-      project = Mix.Project.get() ->
-        key = {:cached_deps, Mix.env(), project}
+  @doc """
+  Returns loaded dependencies recursively and caches it.
 
-        Mix.ProjectStack.read_cache(key) ||
-          Mix.ProjectStack.write_cache(key, loaded(env: Mix.env()))
+  The result is cached for future `cached/0` calls.
 
-      true ->
-        loaded(env: Mix.env())
+  ## Exceptions
+
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
+  """
+  def load_and_cache() do
+    env = Mix.env()
+    project = Mix.Project.get()
+
+    if env && project do
+      Mix.ProjectStack.write_cache({:cached_deps, env, project}, converge(env: env))
+    else
+      converge(env: env)
     end
   end
 
@@ -113,30 +127,38 @@ defmodule Mix.Dep do
     end
   end
 
+  # TODO: Remove this on v1.8
+  @doc false
+  @deprecated "Mix.Dep.loaded/1 was private API and you should not use it"
+  def loaded([]) do
+    load_on_environment([])
+  end
+
   @doc """
-  Returns loaded dependencies recursively as a `Mix.Dep` struct.
+  Returns loaded dependencies recursively on the given environment.
+
+  If no environment is passed, dependencies are loaded across all
+  environments. The result is not cached.
 
   ## Exceptions
 
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def loaded(opts) do
+  def load_on_environment(opts) do
+    converge(opts)
+  end
+
+  defp converge(opts) do
     Mix.Dep.Converger.converge(nil, nil, opts, &{&1, &2, &3}) |> elem(0)
   end
 
   @doc """
-  Receives a list of dependency names and returns loaded `Mix.Dep`s.
-  Logs a message if the dependency could not be found.
+  Filters the given dependencies by name.
 
-  ## Exceptions
-
-  This function raises an exception if any of the dependencies
-  provided in the project are in the wrong format.
+  Raises if any of the names are missing.
   """
-  def loaded_by_name(given, all_deps \\ nil, opts) do
-    all_deps = all_deps || loaded(opts)
-
+  def filter_by_name(given, all_deps, opts \\ []) do
     # Ensure all apps are atoms
     apps = to_app_names(given)
 

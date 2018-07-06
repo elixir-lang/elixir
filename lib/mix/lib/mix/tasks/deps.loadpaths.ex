@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Loadpaths do
   use Mix.Task
 
-  import Mix.Dep, only: [loaded_by_name: 2, format_dep: 1, format_status: 1, check_lock: 1]
+  import Mix.Dep, only: [format_dep: 1, format_status: 1, check_lock: 1]
 
   @moduledoc """
   Checks and loads all dependencies along the way.
@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   """
 
   def run(args) do
-    all = Mix.Dep.cached()
+    all = Mix.Dep.load_and_cache()
 
     unless "--no-deps-check" in args do
       deps_check(all, "--no-compile" in args)
@@ -33,11 +33,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         path
       end
 
-    # Since MIX_NO_DEPS returns no dependencies, it would
-    # cause all paths to be pruned, so we never enter here.
-    unless System.get_env("MIX_NO_DEPS") in ~w(1 true) do
-      prune_deps(load_paths, "--no-deps-check" in args)
-    end
+    prune_deps(load_paths, "--no-deps-check" in args)
   end
 
   # If the build is per environment, we should be able to look
@@ -90,7 +86,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
         compile
         |> Enum.map(& &1.app)
-        |> loaded_by_name(env: Mix.env())
+        |> Mix.Dep.filter_by_name(Mix.Dep.load_and_cache())
         |> Enum.filter(&(not Mix.Dep.ok?(&1)))
         |> show_not_ok!
     end

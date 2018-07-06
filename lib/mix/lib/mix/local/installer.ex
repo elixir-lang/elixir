@@ -282,30 +282,34 @@ defmodule Mix.Local.Installer do
       File.mkdir_p!(tmp_path)
 
       File.write!(Path.join(tmp_path, "mix.exs"), """
-      defmodule Mix.Local.Installer.Fetcher.MixProject do
+      defmodule Mix.Local.Installer.MixProject do
         use Mix.Project
 
         def project do
-          [app: Mix.Local.Installer.Fetcher,
-           version: "1.0.0",
-           deps: [#{inspect(dep_spec)}]]
+          [
+            app: :mix_local_installer,
+            version: "1.0.0",
+            deps: [#{inspect(dep_spec)}]
+          ]
         end
       end
       """)
 
       with_mix_env_prod(fn ->
-        Mix.Project.in_project(Mix.Local.Installer.Fetcher, tmp_path, in_fetcher)
+        Mix.ProjectStack.on_clean_slate(fn ->
+          Mix.Project.in_project(:mix_local_installer, tmp_path, in_fetcher)
 
-        package_name = elem(dep_spec, 0)
-        package_name_string = Atom.to_string(package_name)
-        package_path = Path.join([tmp_path, "deps", package_name_string])
+          package_name = elem(dep_spec, 0)
+          package_name_string = Atom.to_string(package_name)
+          package_path = Path.join([tmp_path, "deps", package_name_string])
 
-        post_config = [
-          deps_path: Path.join(tmp_path, "deps"),
-          lockfile: Path.join(tmp_path, "mix.lock")
-        ]
+          post_config = [
+            deps_path: Path.join(tmp_path, "deps"),
+            lockfile: Path.join(tmp_path, "mix.lock")
+          ]
 
-        Mix.Project.in_project(package_name, package_path, post_config, in_package)
+          Mix.Project.in_project(package_name, package_path, post_config, in_package)
+        end)
       end)
     end)
   after

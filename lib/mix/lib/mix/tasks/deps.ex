@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps do
   use Mix.Task
 
-  import Mix.Dep, only: [loaded: 1, format_dep: 1, format_status: 1, check_lock: 1]
+  import Mix.Dep, only: [load_on_environment: 1, format_dep: 1, format_status: 1, check_lock: 1]
 
   @shortdoc "Lists dependencies and their status"
 
@@ -147,7 +147,7 @@ defmodule Mix.Tasks.Deps do
 
     shell = Mix.shell()
 
-    Enum.each(loaded(loaded_opts), fn dep ->
+    Enum.each(load_on_environment(loaded_opts), fn dep ->
       %Mix.Dep{scm: scm, manager: manager} = dep
       dep = check_lock(dep)
       extra = if manager, do: " (#{manager})", else: ""
