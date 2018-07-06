@@ -2,6 +2,7 @@ defmodule Mix.ProjectStack do
   @moduledoc false
 
   use Agent
+  @name __MODULE__
   @timeout 30000
 
   @typep file :: binary
@@ -10,8 +11,39 @@ defmodule Mix.ProjectStack do
 
   @spec start_link(keyword) :: {:ok, pid}
   def start_link(_opts) do
-    initial = %{stack: [], post_config: [], cache: %{}}
-    Agent.start_link(fn -> initial end, name: __MODULE__)
+    Agent.start_link(&initial_state/0, name: @name)
+  end
+
+  defp initial_state do
+    %{stack: [], post_config: [], cache: %{}}
+  end
+
+  @spec on_clean_slate((() -> result)) :: result when result: var
+  def on_clean_slate(callback) do
+    previous_state = get_and_update(fn state -> {state, initial_state()} end)
+
+    try do
+      callback.()
+    after
+      cast(fn _ -> previous_state end)
+    end
+  end
+
+  @spec on_recursing_root((() -> result)) :: result when result: var
+  def on_recursing_root(fun) do
+    {top, file} =
+      get_and_update(fn %{stack: stack} = state ->
+        {top, [mid | bottom]} = Enum.split_while(stack, &(not &1.recursing?))
+        {{top, mid.file}, %{state | stack: [%{mid | recursing?: false} | bottom]}}
+      end)
+
+    try do
+      File.cd!(Path.dirname(file), fun)
+    after
+      cast(fn %{stack: [mid | bottom]} = state ->
+        %{state | stack: top ++ [%{mid | recursing?: true} | bottom]}
+      end)
+    end
   end
 
   @spec push(module, config, file) :: :ok | {:error, file}
@@ -118,23 +150,6 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  @spec root((() -> result)) :: result when result: var
-  def root(fun) do
-    {top, file} =
-      get_and_update(fn %{stack: stack} = state ->
-        {top, [mid | bottom]} = Enum.split_while(stack, &(not &1.recursing?))
-        {{top, mid.file}, %{state | stack: [%{mid | recursing?: false} | bottom]}}
-      end)
-
-    try do
-      File.cd!(Path.dirname(file), fun)
-    after
-      cast(fn %{stack: [mid | bottom]} = state ->
-        %{state | stack: top ++ [%{mid | recursing?: true} | bottom]}
-      end)
-    end
-  end
-
   @spec post_config(config) :: :ok
   def post_config(config) do
     cast(fn state ->
@@ -232,14 +247,14 @@ defmodule Mix.ProjectStack do
   end
 
   defp get_and_update(fun) do
-    Agent.get_and_update(__MODULE__, fun, @timeout)
+    Agent.get_and_update(@name, fun, @timeout)
   end
 
   defp get(fun) do
-    Agent.get(__MODULE__, fun, @timeout)
+    Agent.get(@name, fun, @timeout)
   end
 
   defp cast(fun) do
-    Agent.cast(__MODULE__, fun)
+    Agent.cast(@name, fun)
   end
 end
