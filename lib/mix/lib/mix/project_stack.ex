@@ -150,6 +150,16 @@ defmodule Mix.ProjectStack do
     end)
   end
 
+  @spec top_and_bottom() :: {project, project} | nil
+  def top_and_bottom do
+    get(fn %{stack: stack} ->
+      case stack do
+        [h | _] -> {take(h), take(List.last(stack))}
+        [] -> nil
+      end
+    end)
+  end
+
   @spec post_config(config) :: :ok
   def post_config(config) do
     cast(fn state ->

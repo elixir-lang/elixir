@@ -44,8 +44,11 @@ defmodule Mix.DepTest do
     Mix.Project.push(DepsApp)
 
     Mix.Dep.cached()
-    key = {:cached_deps, Mix.env(), DepsApp}
-    assert length(Mix.ProjectStack.read_cache(key)) == 6
+    key = {:cached_deps, DepsApp}
+
+    {env, deps} = Mix.ProjectStack.read_cache(key)
+    assert env == Mix.env()
+    assert length(deps) == 6
 
     Mix.Dep.clear_cached()
     refute Mix.ProjectStack.read_cache(key)
@@ -481,6 +484,28 @@ defmodule Mix.DepTest do
 
         loaded = Mix.Dep.load_on_environment(env: :test)
         assert [:deps_repo] = Enum.map(loaded, & &1.app)
+      end)
+    end)
+  end
+
+  test "nested deps with overrides" do
+    # deps_repo brings git_repo but it is overriden
+    deps = [
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+      {:git_repo, ">= 0.0.0", git: MixTest.Case.fixture_path("git_repo"), override: true}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        File.mkdir_p!("custom/deps_repo/lib")
+
+        File.write!("custom/deps_repo/lib/a.ex", """
+        # Check that the overriden requirement shows up in the child dependency
+        [%Mix.Dep{app: :git_repo, requirement: ">= 0.0.0"}] = Mix.Dep.cached()
+        """)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
       end)
     end)
   end

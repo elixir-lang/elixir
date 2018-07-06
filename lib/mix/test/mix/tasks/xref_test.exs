@@ -689,6 +689,7 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
 
+    Mix.Project.pop()
     Mix.Project.push(ExcludeSample)
 
     files = %{
@@ -1215,6 +1216,8 @@ defmodule Mix.Tasks.XrefTest do
 
   describe "inside umbrellas" do
     test "generates reports considering siblings" do
+      Mix.Project.pop()
+
       in_fixture("umbrella_dep/deps/umbrella", fn ->
         Mix.Project.in_project(:bar, "apps/bar", fn _ ->
           File.write!("lib/bar.ex", """
