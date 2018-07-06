@@ -453,7 +453,14 @@ defmodule ExUnit.Assertions do
     # Expand before extracting metadata
     expanded_pattern = expand_pattern(pattern, caller)
     left_pattern = escape_quoted(:pattern, expanded_pattern)
-    vars = collect_vars_from_pattern(pattern)
+
+    vars =
+      pattern
+      |> collect_vars_from_pattern()
+      |> Enum.map(fn {var, _, _} -> var end)
+      |> Enum.uniq()
+      |> Enum.map(&{&1, :ex_unit_unbound_var})
+
     pins = collect_pins_from_pattern(pattern, Macro.Env.vars(caller))
 
     pattern =
@@ -512,7 +519,31 @@ defmodule ExUnit.Assertions do
         receive do
           unquote(pattern) -> {received, unquote(vars)}
         after
-          timeout -> flunk(unquote(failure_message))
+          # timeout ->
+          #   {:messages, messages} = Process.info(self(), :messages)
+
+          #   if Enum.any?(messages, unquote(pattern_finder)) do
+          #     flunk(unquote(failure_message_hit))
+          #   else
+          #     assert false,
+          #       right: {:ex_unit_mailbox_contents, messages},
+          #       left: pattern,
+          #       message:
+          #         unquote(failure_message_miss) <> ExUnit.Assertions.__pins__(unquote(pins))
+          #   end
+
+          # =======
+          timeout ->
+            case unquote(failure_message) do
+              {:flunk, msg} ->
+                flunk(msg)
+
+              {:pattern, messages, msg} ->
+                assert false,
+                  right: {:ex_unit_mailbox_contents, messages},
+                  left: pattern,
+                  message: msg
+            end
         end
 
       received
@@ -520,8 +551,6 @@ defmodule ExUnit.Assertions do
   end
 
   @indent "\n  "
-  @max_mailbox_length 10
-
   @doc false
   def __timeout__(timeout) when is_integer(timeout) and timeout >= 0, do: timeout
 
@@ -533,18 +562,18 @@ defmodule ExUnit.Assertions do
     {:messages, messages} = Process.info(self(), :messages)
 
     if Enum.any?(messages, pattern_finder) do
-      """
-      Found message matching #{binary} after #{timeout}ms.
+      {:flunk,
+       """
+       Found message matching #{binary} after #{timeout}ms.
 
-      This means the message was delivered too close to the timeout value, you may want to either:
+       This means the message was delivered too close to the timeout value, you may want to either:
 
-        1. Give an increased timeout to `assert_receive/2`
-        2. Increase the default timeout to all `assert_receive` in your
-           test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
-      """
+         1. Give an increased timeout to `assert_receive/2`
+         2. Increase the default timeout to all `assert_receive` in your
+            test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
+       """}
     else
-      "No message matching #{binary} after #{timeout}ms." <>
-        __pins__(pins) <> format_mailbox(messages)
+      {:pattern, messages, "No message matching #{binary} after #{timeout}ms." <> __pins__(pins)}
     end
   end
 
@@ -558,28 +587,6 @@ defmodule ExUnit.Assertions do
       |> Enum.map_join(@indent, fn {name, var} -> "#{name} = #{inspect(var)}" end)
 
     "\nThe following variables were pinned:" <> @indent <> content
-  end
-
-  defp format_mailbox(messages) do
-    length = length(messages)
-
-    mailbox =
-      messages
-      |> Enum.take(-@max_mailbox_length)
-      |> Enum.map_join(@indent, &inspect/1)
-
-    mailbox_message(length, @indent <> mailbox)
-  end
-
-  defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
-
-  defp mailbox_message(length, mailbox) when length > 10 do
-    "\nProcess mailbox:" <>
-      mailbox <> "\nShowing only last #{@max_mailbox_length} of #{length} messages."
-  end
-
-  defp mailbox_message(_length, mailbox) do
-    "\nProcess mailbox:" <> mailbox
   end
 
   defp collect_pins_from_pattern(expr, vars) do

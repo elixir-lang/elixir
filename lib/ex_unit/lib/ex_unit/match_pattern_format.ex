@@ -1,4 +1,4 @@
-defmodule ExUnit.PatternFormat do
+defmodule ExUnit.MatchPatternFormat do
   @moduledoc "Formats the output of PatternDiff"
 
   alias ExUnit.{ContainerDiff, PatternDiff}

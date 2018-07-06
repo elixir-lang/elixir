@@ -17,16 +17,15 @@ defmodule ExUnit.WhenDiff do
         }
 end
 
-
 defmodule ExUnit.PatternDiff do
   alias ExUnit.{ContainerDiff, WhenDiff}
 
   defstruct [:type, :lh, :rh, :diff_result]
 
   @type lhs :: %{
-    type: atom(),
-    ast: any()
-  }
+          type: atom(),
+          ast: any()
+        }
 
   @type t :: %__MODULE__{
           type: :value | :key | :different | :map | :struct | :list | :tuple,
@@ -170,7 +169,8 @@ defmodule ExUnit.PatternDiff do
     like_value_compare(pattern, rh_value, env)
   end
 
-  def cmp(%{ast: lh_value} = pattern, rh_value, env) when is_atom(lh_value) and is_atom(rh_value) do
+  def cmp(%{ast: lh_value} = pattern, rh_value, env)
+      when is_atom(lh_value) and is_atom(rh_value) do
     like_value_compare(pattern, rh_value, env)
   end
 
@@ -207,7 +207,7 @@ defmodule ExUnit.PatternDiff do
   end
 
   defp compare_list(pattern, rh, env) do
-    patterns = Enum.map(pattern.ast, &(%{ast: &1}))
+    patterns = Enum.map(pattern.ast, &%{ast: &1})
     compare_list_items(patterns, rh, env)
   end
 
@@ -235,13 +235,13 @@ defmodule ExUnit.PatternDiff do
     patterns =
       pattern.ast
       |> Tuple.to_list()
-      |> Enum.map(&(%{ast: &1}))
+      |> Enum.map(&%{ast: &1})
 
     compare_list_items(patterns, Tuple.to_list(rh_tuple), env)
   end
 
   defp compare_tuple(%{ast: {:{}, _, members}}, rh_tuple, env) do
-    patterns = Enum.map(members, &(%{ast: &1}))
+    patterns = Enum.map(members, &%{ast: &1})
     compare_list_items(patterns, Tuple.to_list(rh_tuple), env)
   end
 
@@ -252,6 +252,7 @@ defmodule ExUnit.PatternDiff do
   defp compare_map_items(pattern, [lh_h | lh_t], rh_map, env) do
     {key, lh_value} = lh_h
     map_key = translate_key(key, env)
+
     {rh_value, rh_map} =
       case Map.pop(rh_map, map_key) do
         {nil, rh_map} ->
@@ -312,6 +313,14 @@ defmodule ExUnit.PatternDiff do
     %WhenDiff{op: :or, bindings: [l, r], result: result}
   end
 
+  defp evaluate_when({{:., _env, [:erlang, :andalso]}, env, when_vars}, {vars, pins}) do
+    evaluate_when({:and, env, when_vars}, {vars, pins})
+  end
+
+  defp evaluate_when({{:., _env, [:erlang, :orelse]}, env, when_vars}, {vars, pins}) do
+    evaluate_when({:or, env, when_vars}, {vars, pins})
+  end
+
   defp evaluate_when({atom, _, when_vars}, {vars, _pins}) do
     v =
       when_vars
@@ -329,6 +338,7 @@ defmodule ExUnit.PatternDiff do
   defp translate_key({:^, _, [{pin, _, _}]}, {_vars, pins}) do
     pins[pin]
   end
+
   defp translate_key(rest, _) do
     rest
   end
