@@ -89,8 +89,7 @@ defmodule Mix.Dep do
   """
   def cached() do
     if project = Mix.Project.get() do
-      key = {:cached_deps, Mix.env(), project}
-      Mix.ProjectStack.read_cache(key) || load_and_cache()
+      read_cached_deps(project, Mix.env()) || load_and_cache()
     else
       load_and_cache()
     end
@@ -108,13 +107,37 @@ defmodule Mix.Dep do
   """
   def load_and_cache() do
     env = Mix.env()
-    project = Mix.Project.get()
 
-    if env && project do
-      Mix.ProjectStack.write_cache({:cached_deps, env, project}, converge(env: env))
-    else
-      converge(env: env)
+    case Mix.ProjectStack.top_and_bottom() do
+      {%{name: top, config: config}, %{name: bottom}} ->
+        write_cached_deps(top, env, load_and_cache(config, top, bottom, env))
+
+      _ ->
+        converge(env: env)
     end
+  end
+
+  defp load_and_cache(_config, top, top, env) do
+    converge(env: env)
+  end
+
+  defp load_and_cache(config, _top, bottom, _env) do
+    {_, deps} = Mix.ProjectStack.read_cache({:cached_deps, bottom})
+    apps = [Keyword.fetch!(config, :app)]
+    seen = populate_seen(MapSet.new(), apps)
+    get_deps(deps, tl(Enum.uniq(get_children(deps, seen, apps))))
+  end
+
+  defp read_cached_deps(project, env) do
+    case Mix.ProjectStack.read_cache({:cached_deps, project}) do
+      {^env, deps} -> deps
+      _ -> nil
+    end
+  end
+
+  defp write_cached_deps(project, env, deps) do
+    Mix.ProjectStack.write_cache({:cached_deps, project}, {env, deps})
+    deps
   end
 
   @doc """
@@ -122,7 +145,7 @@ defmodule Mix.Dep do
   """
   def clear_cached() do
     if project = Mix.Project.get() do
-      key = {:cached_deps, Mix.env(), project}
+      key = {:cached_deps, project}
       Mix.ProjectStack.delete_cache(key)
     end
   end
@@ -164,7 +187,8 @@ defmodule Mix.Dep do
 
     deps =
       if opts[:include_children] do
-        get_deps_with_children(all_deps, apps)
+        seen = populate_seen(MapSet.new(), apps)
+        get_deps(all_deps, Enum.uniq(get_children(all_deps, seen, apps)))
       else
         get_deps(all_deps, apps)
       end
@@ -182,26 +206,20 @@ defmodule Mix.Dep do
     Enum.filter(all_deps, &(&1.app in apps))
   end
 
-  defp get_deps_with_children(all_deps, apps) do
-    deps = get_children(all_deps, apps)
-    apps = deps |> Enum.map(& &1.app) |> Enum.uniq()
-    get_deps(all_deps, apps)
-  end
+  defp get_children(_all_deps, _seen, []), do: []
 
-  defp get_children(_all_deps, []), do: []
-
-  defp get_children(all_deps, apps) do
-    # Current deps
-    deps = get_deps(all_deps, apps)
-
-    # Children apps
-    apps =
-      for %{deps: children} <- deps,
+  defp get_children(all_deps, seen, apps) do
+    children_apps =
+      for %{deps: children} <- get_deps(all_deps, apps),
           %{app: app} <- children,
+          app not in seen,
           do: app
 
-    # Current deps + children deps
-    deps ++ get_children(all_deps, apps)
+    apps ++ get_children(all_deps, populate_seen(seen, children_apps), children_apps)
+  end
+
+  defp populate_seen(seen, apps) do
+    Enum.reduce(apps, seen, &MapSet.put(&2, &1))
   end
 
   @doc """

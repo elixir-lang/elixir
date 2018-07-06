@@ -36,20 +36,23 @@ defmodule Mix.Tasks.CompileTest do
   end
 
   test "compiles --list with custom mixfile" do
+    Mix.Project.pop()
     Mix.Project.push(CustomCompilers)
     Mix.Task.run("compile", ["--list"])
     assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom, protocols"]}
   end
 
   test "compiles does not require all compilers available on manifest" do
+    Mix.Project.pop()
     Mix.Project.push(CustomCompilers)
     assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == ["compile.elixir"]
   end
 
   test "compiles a project with cached deps information" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(DepsApp)
+    Mix.Project.pop()
+    Mix.Project.push(DepsApp)
 
+    in_fixture("deps_status", fn ->
       File.mkdir_p!("lib")
 
       File.write!("lib/a.ex", """
@@ -192,6 +195,7 @@ defmodule Mix.Tasks.CompileTest do
   end
 
   test "compiles a project with wrong path" do
+    Mix.Project.pop()
     Mix.Project.push(WrongPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
