@@ -202,7 +202,12 @@ defmodule Code.Formatter do
     charlist = String.to_charlist(string)
 
     Process.put(:code_formatter_comments, [])
-    tokenizer_options = [unescape: false, preserve_comments: &preserve_comments/5]
+
+    tokenizer_options = [
+      unescape: false,
+      preserve_comments: &preserve_comments/5,
+      warn_on_unnecessary_quote: false
+    ]
 
     with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, file, tokenizer_options),
          {:ok, forms} <- :elixir.tokens_to_quoted(tokens, file, formatter_metadata: true) do

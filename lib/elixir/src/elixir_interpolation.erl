@@ -86,8 +86,12 @@ unescape_tokens(Tokens, Map) ->
       Error
   end.
 
-unescape_token(Token, Map) when is_binary(Token) -> unescape_chars(Token, Map);
-unescape_token(Other, _Map) -> Other.
+unescape_token(Token, Map) when is_list(Token) ->
+  unescape_chars(elixir_utils:characters_to_binary(Token), Map);
+unescape_token(Token, Map) when is_binary(Token) ->
+  unescape_chars(Token, Map);
+unescape_token(Other, _Map) ->
+  Other.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
@@ -215,15 +219,14 @@ unescape_map(E)  -> E.
 
 finish_extraction(Line, Column, Buffer, Output, Remaining) ->
   Final = case build_string(Line, Buffer, Output) of
-    [] -> [<<>>];
+    [] -> [[]];
     F  -> F
   end,
 
   {Line, Column, lists:reverse(Final), Remaining}.
 
 build_string(_Line, [], Output) -> Output;
-build_string(_Line, Buffer, Output) ->
-  [elixir_utils:characters_to_binary(lists:reverse(Buffer)) | Output].
+build_string(_Line, Buffer, Output) -> [lists:reverse(Buffer) | Output].
 
 build_interpol(Line, Column, EndLine, Buffer, Output) ->
   [{{Line, Column, EndLine}, lists:reverse(Buffer)} | Output].

@@ -387,16 +387,13 @@ defmodule Kernel.SpecialForms do
       iex> Kernel.+(1, 2)
       3
 
-      iex> Kernel."length"([1, 2, 3])
+      iex> Kernel."+"(1, 2)
       3
 
-      iex> Kernel.'+'(1, 2)
-      3
-
-  Note that `Kernel."FUNCTION_NAME"` will be treated as a remote call and not an alias.
-  This choice was done so every time single- or double-quotes are used, we have
-  a remote call regardless of the quote contents. This decision is also reflected
-  in the quoted expressions discussed below.
+  Note that wrapping the function name in single- or double-quotes is always a
+  remote call. Therefore `Kernel."Foo"` will attempt to call the function "Foo"
+  and not return the alias `Kernel.Foo`. This is done by design as module names
+  are more strict than function names.
 
   When the dot is used to invoke an anonymous function there is only one
   operand, but it is still written using a postfix notation:
@@ -425,15 +422,7 @@ defmodule Kernel.SpecialForms do
   with the name as first argument, some keyword list as metadata as second,
   and the list of arguments as third. In this case, the arguments are the
   alias `String` and the atom `:downcase`. The second argument in a remote call
-  is **always** an atom regardless of the literal used in the call:
-
-      iex> quote do
-      ...>   String."downcase"("FOO")
-      ...> end
-      {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
-
-  The tuple containing `:.` is wrapped in another tuple, which actually
-  represents the function call, and has `"FOO"` as argument.
+  is **always** an atom.
 
   In the case of calls to anonymous functions, the inner tuple with the dot
   special form has only one argument, reflecting the fact that the operator is

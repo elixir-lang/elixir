@@ -312,7 +312,7 @@ defmodule Kernel.ErrorsTest do
         "part of the atom's name, the atom name must be quoted. Syntax error before: '.'"
 
     assert_eval_raise SyntaxError, msg, ':foo.Bar'
-    assert_eval_raise SyntaxError, msg, ':"foo".Bar'
+    assert_eval_raise SyntaxError, msg, ':"+".Bar'
   end
 
   test "syntax error with no token" do

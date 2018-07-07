@@ -130,6 +130,8 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{preserve_comments=PreserveComments};
       ({unescape, Unescape}, Acc) when is_boolean(Unescape) ->
         Acc#elixir_tokenizer{unescape=Unescape};
+      ({warn_on_unnecessary_quote, Unnecessary}, Acc) when is_boolean(Unnecessary) ->
+        Acc#elixir_tokenizer{warn_on_unnecessary_quote=Unnecessary};
       (_, Acc) ->
         Acc
     end, #elixir_tokenizer{identifier_tokenizer=IdentifierTokenizer}, Opts),
@@ -191,6 +193,7 @@ tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_
       Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, <<H, H, H>>},
       NewColumnWithModifiers = NewColumn + length(Modifiers),
       tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
+
     {error, Reason} ->
       {error, Reason, Original, Tokens}
   end;
@@ -199,9 +202,10 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
   case elixir_interpolation:extract(Line, Column + 3, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, <<H>>},
+      Token = {sigil, {Line, Column, nil}, S, tokens_to_binary(Parts), Modifiers, <<H>>},
       NewColumnWithModifiers = NewColumn + length(Modifiers),
       tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
+
     {error, Reason} ->
       Sigil = [$~, S, H],
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
@@ -417,6 +421,18 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest} ->
+      case is_unnecessary_quote(Parts, Scope) of
+        true ->
+          elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+            "found quoted atom \"~ts\" but the quotes are not required. "
+            "Quotes should only be used to introduced atoms with foreign characters in them",
+            [hd(Parts)]
+          ));
+
+        false ->
+          ok
+      end,
+
       case unescape_tokens(Parts, Scope) of
         {ok, Unescaped} ->
           Key = case Scope#elixir_tokenizer.existing_atoms_only of
@@ -613,7 +629,21 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
   case elixir_interpolation:extract(Line, Column, Scope, true, T, H) of
     {error, Reason} ->
       interpolation_error(Reason, [H | T], Tokens, " (for string starting at line ~B)", [Line]);
+
     {NewLine, NewColumn, Parts, [$: | Rest]} when ?is_space(hd(Rest)) ->
+      case is_unnecessary_quote(Parts, Scope) of
+        true ->
+          elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+            "found quoted keyword \"~ts\" but the quotes are not required. "
+            "Note that keywords are always atoms, even when quoted, and quotes "
+            "should only be used to introduced keywords with foreign characters in them",
+            [hd(Parts)]
+          ));
+
+        false ->
+          ok
+      end,
+
       case unescape_tokens(Parts, Scope) of
         {ok, Unescaped} ->
           Key = case Scope#elixir_tokenizer.existing_atoms_only of
@@ -637,6 +667,8 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
           {error, {Line, Column, Msg, [H]}, Rest, Tokens}
       end
   end.
+
+
 
 handle_unary_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   Token = {kw_identifier, {Line, Column, nil}, Op},
@@ -691,12 +723,25 @@ handle_dot([$., $( | Rest], Line, Column, DotInfo, Scope, Tokens) ->
 
 handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
-    {NewLine, NewColumn, [Part], Rest} when is_binary(Part) ->
+    {NewLine, NewColumn, [Part], Rest} when is_list(Part) ->
+      case is_unnecessary_quote([Part], Scope) of
+        true ->
+          elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+            "found quoted call \"~ts\" but the quotes are not required. "
+            "Quotes should only be used to perform calls with foreign characters in them",
+            [Part]
+          ));
+
+        false ->
+          ok
+      end,
+
       case unsafe_to_atom(Part, Line, Column, Scope) of
         {ok, Atom} ->
           Token = check_call_identifier(Line, Column, Atom, Rest),
           TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
           tokenize(Rest, NewLine, NewColumn, Scope, [Token | TokensSoFar]);
+
         {error, Reason} ->
           {error, Reason, Original, Tokens}
       end;
@@ -738,8 +783,17 @@ eol(_Line, _Column, [{eol, {Line, Column, Count}} | Tokens]) ->
 eol(Line, Column, Tokens) ->
   [{eol, {Line, Column, 1}} | Tokens].
 
+is_unnecessary_quote([Part], #elixir_tokenizer{warn_on_unnecessary_quote=true} = Scope) when is_list(Part) ->
+  case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(Part) of
+    {identifier, _, [], _, _, _} -> true;
+    _ -> false
+  end;
+
+is_unnecessary_quote(_Parts, _Scope) ->
+  false.
+
 unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{}) when
-    is_binary(Part) andalso size(Part) > 255;
+    is_binary(Part) andalso byte_size(Part) > 255;
     is_list(Part) andalso length(Part) > 255 ->
   {error, {Line, Column, "atom length must be less than system limit: ", [$: | Part]}};
 unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{existing_atoms_only=true}) when is_binary(Binary) ->
@@ -773,9 +827,11 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
       case elixir_interpolation:extract(Line + 1, 1, Scope, Interpol, Body, 0) of
         {error, Reason} ->
           {error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line])};
+
         {_, _, Parts, []} ->
-          {ok, NewLine, NewColumn, Parts, Rest}
+          {ok, NewLine, NewColumn, tokens_to_binary(Parts), Rest}
       end;
+
     {error, _} = Error ->
       Error
   end.
@@ -903,7 +959,11 @@ extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
 unescape_tokens(Tokens, #elixir_tokenizer{unescape=true}) ->
   elixir_interpolation:unescape_tokens(Tokens);
 unescape_tokens(Tokens, #elixir_tokenizer{unescape=false}) ->
-  {ok, Tokens}.
+  {ok, tokens_to_binary(Tokens)}.
+
+tokens_to_binary(Tokens) ->
+  [if is_list(Token) -> elixir_utils:characters_to_binary(Token); true -> Token end
+   || Token <- Tokens].
 
 %% Integers and floats
 %% At this point, we are at least sure the first digit is a number.
