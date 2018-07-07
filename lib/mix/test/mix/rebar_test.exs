@@ -85,35 +85,30 @@ defmodule Mix.RebarTest do
   @git_rebar_string "../../test/fixtures/git_rebar"
 
   describe "deps/1" do
+    defp parse_dep(dep) do
+      [deps: [dep]] |> Mix.Rebar.deps() |> hd()
+    end
+
     test "parses Rebar dependencies" do
-      config = [deps: [{:git_rebar, '~> 1.0'}]]
-      assert Mix.Rebar.deps(config) == [{:git_rebar, "~> 1.0"}]
+      assert parse_dep({:git_rebar, '~> 1.0'}) == {:git_rebar, "~> 1.0", override: true}
 
-      config = [deps: [{:git_rebar, '~> 1.0', {:pkg, :rebar_fork}}]]
-      assert Mix.Rebar.deps(config) == [{:git_rebar, "~> 1.0", hex: :rebar_fork}]
+      assert parse_dep({:git_rebar, '~> 1.0', {:pkg, :rebar_fork}}) ==
+               {:git_rebar, "~> 1.0", override: true, hex: :rebar_fork}
 
-      config = [deps: [{:git_rebar, {:pkg, :rebar_fork}}]]
-      assert Mix.Rebar.deps(config) == [{:git_rebar, ">= 0.0.0", hex: :rebar_fork}]
+      assert parse_dep({:git_rebar, {:pkg, :rebar_fork}}) ==
+               {:git_rebar, ">= 0.0.0", override: true, hex: :rebar_fork}
 
-      config = [deps: [{:git_rebar, '0.1..*', {:git, @git_rebar_charlist, :master}}]]
+      assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist, :master}}) ==
+               {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, ref: "master"}
 
-      assert Mix.Rebar.deps(config) ==
-               [{:git_rebar, ~r"0.1..*", [git: @git_rebar_string, ref: "master"]}]
+      assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, :master}}) ==
+               {:git_rebar, ">= 0.0.0", override: true, git: @git_rebar_string, ref: "master"}
 
-      config = [deps: [{:git_rebar, {:git, @git_rebar_charlist, :master}}]]
+      assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist}, [:raw]}) ==
+               {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, compile: false}
 
-      assert Mix.Rebar.deps(config) ==
-               [{:git_rebar, ">= 0.0.0", [git: @git_rebar_string, ref: "master"]}]
-
-      config = [deps: [{:git_rebar, '0.1..*', {:git, @git_rebar_charlist}, [:raw]}]]
-
-      assert Mix.Rebar.deps(config) ==
-               [{:git_rebar, ~r"0.1..*", [git: @git_rebar_string, compile: false]}]
-
-      config = [deps: [{:git_rebar, '', {:git, @git_rebar_charlist, {:ref, '64691eb'}}}]]
-
-      assert Mix.Rebar.deps(config) ==
-               [{:git_rebar, ~r"", [git: @git_rebar_string, ref: "64691eb"]}]
+      assert parse_dep({:git_rebar, '', {:git, @git_rebar_charlist, {:ref, '64691eb'}}}) ==
+               {:git_rebar, ~r"", override: true, git: @git_rebar_string, ref: "64691eb"}
     end
   end
 
