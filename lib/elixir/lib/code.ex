@@ -651,8 +651,8 @@ defmodule Code do
       Defaults to `false`.
 
     * `:warn_on_unnecessary_quotes` - when `false`, does not warn
-      when atoms, keywords and calls have unnecessary quotes on
-      them
+      when atoms, keywords or calls have unnecessary quotes on
+      them.
 
   ## `Macro.to_string/2`
 
