@@ -87,45 +87,46 @@ defmodule Logger.Translator do
 
     case message do
       {'** Generic server ' ++ _, [name, last, state, reason | client]} ->
-        {formatted, _reason} = format_reason(reason)
+        {formatted, reason} = format_reason(reason)
 
         msg =
           ["GenServer #{inspect(name)} terminating", formatted] ++
             ["\nLast message#{format_from(client)}: #{inspect(last, opts)}"]
 
         if min_level == :debug do
-          {:ok, [msg, "\nState: #{inspect(state, opts)}" | format_client(client)]}
+          msg = [msg, "\nState: #{inspect(state, opts)}" | format_client(client)]
+          {:ok, msg, [crash_reason: reason]}
         else
-          {:ok, msg}
+          {:ok, msg, [crash_reason: reason]}
         end
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
-        {formatted, _reason} = format_reason(reason)
+        {formatted, reason} = format_reason(reason)
 
         msg =
           [":gen_event handler #{inspect(name)} installed in #{inspect(manager)} terminating"] ++
             [formatted, "\nLast message: #{inspect(last, opts)}"]
 
         if min_level == :debug do
-          {:ok, [msg | "\nState: #{inspect(state, opts)}"]}
+          {:ok, [msg | "\nState: #{inspect(state, opts)}"], [crash_reason: reason]}
         else
-          {:ok, msg}
+          {:ok, msg, [crash_reason: reason]}
         end
 
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
-        {formatted, _reason} = format_reason(reason)
+        {formatted, reason} = format_reason(reason)
 
         msg =
           ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
             [formatted, "\nFunction: #{inspect(function, opts)}"] ++
             ["\n    Args: #{inspect(args, opts)}"]
 
-        {:ok, msg}
+        {:ok, msg, [crash_reason: reason]}
 
       {'Error in process ' ++ _, [pid, {reason, stack}]} ->
         msg = ["Process ", inspect(pid), " raised an exception" | format(:error, reason, stack)]
 
-        {:ok, msg}
+        {:ok, msg, [crash_reason: exit_reason(:error, reason, stack)]}
 
       _ ->
         :none
@@ -176,16 +177,17 @@ defmodule Logger.Translator do
       state: state
     } = report
 
-    {formatted, _reason} = format_reason(reason)
+    {formatted, reason} = format_reason(reason)
 
     msg =
       ["GenServer ", inspect(name), " terminating", formatted] ++
         ["\nLast message", format_last_message_from(client), ": ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
-      {:ok, [msg, "\nState: ", inspect(state, inspect_opts) | format_client_info(client)]}
+      msg = [msg, "\nState: ", inspect(state, inspect_opts) | format_client_info(client)]
+      {:ok, msg, [crash_reason: reason]}
     else
-      {:ok, msg}
+      {:ok, msg, [crash_reason: reason]}
     end
   end
 
@@ -206,16 +208,16 @@ defmodule Logger.Translator do
         _ -> reason
       end
 
-    {formatted, _reason} = format_reason(reason)
+    {formatted, reason} = format_reason(reason)
 
     msg =
       [":gen_event handler ", inspect(handler), " installed in ", inspect(name), " terminating"] ++
         [formatted, "\nLast message: ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
-      {:ok, [msg, "\nState: ", inspect(state, inspect_opts)]}
+      {:ok, [msg, "\nState: ", inspect(state, inspect_opts)], [crash_reason: reason]}
     else
-      {:ok, msg}
+      {:ok, msg, [crash_reason: reason]}
     end
   end
 
@@ -264,7 +266,7 @@ defmodule Logger.Translator do
         [?\s, sup_context(context), "\n** (exit) ", offender_reason(reason, context)] ++
         pid_info ++ child_info(min_level, offender)
 
-    {:ok, msg}
+    {:ok, msg, [crash_reason: reason]}
   end
 
   defp report_supervisor(
@@ -279,7 +281,7 @@ defmodule Logger.Translator do
         ["\n** (exit) ", offender_reason(reason, context), "\nNumber: ", Integer.to_string(n)] ++
         child_info(min_level, offender)
 
-    {:ok, msg}
+    {:ok, msg, [crash_reason: reason]}
   end
 
   defp report_supervisor(
@@ -294,7 +296,7 @@ defmodule Logger.Translator do
         ["\n** (exit) ", offender_reason(reason, context), "\nPid: ", inspect(pid)] ++
         child_info(min_level, offender)
 
-    {:ok, msg}
+    {:ok, msg, [crash_reason: reason]}
   end
 
   defp report_supervisor(_min_level, _other), do: :none
@@ -356,7 +358,7 @@ defmodule Logger.Translator do
       ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
         [crash_info(min_level, [initial_call | crashed])] ++ crash_linked(min_level, linked)
 
-    {:ok, msg}
+    {:ok, msg, [crash_reason: exit_reason(kind, exception, stack)]}
   end
 
   defp report_crash(min_level, [
@@ -373,7 +375,7 @@ defmodule Logger.Translator do
       ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
         [crash_info(min_level, crashed), crash_linked(min_level, linked)]
 
-    {:ok, msg}
+    {:ok, msg, [crash_reason: exit_reason(kind, exception, stack)]}
   end
 
   defp crash_name(pid, []), do: inspect(pid)
@@ -544,6 +546,14 @@ defmodule Logger.Translator do
 
   defp format_mfa(mod, fun, args),
     do: Exception.format_mfa(mod, fun, args)
+
+  if :erlang.system_info(:otp_release) >= '20' do
+    defp exit_reason(:exit, reason, _), do: reason
+    defp exit_reason(:error, reason, stack), do: {reason, stack}
+    defp exit_reason(:throw, value, stack), do: {{:nocatch, value}, stack}
+  else
+    defp exit_reason(_, reason, _), do: reason
+  end
 
   ## Deprecated helpers
 
