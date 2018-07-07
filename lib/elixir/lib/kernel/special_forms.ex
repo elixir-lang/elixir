@@ -1981,10 +1981,10 @@ defmodule Kernel.SpecialForms do
   ## Examples
 
       receive do
-        {:selector, i, value} when is_integer(i) ->
-          value
-        value when is_atom(value) ->
-          value
+        {:selector, number, name} when is_integer(number) ->
+          name
+        name when is_atom(name) ->
+          name
         _ ->
           IO.puts :stderr, "Unexpected message received"
       end
@@ -1993,10 +1993,10 @@ defmodule Kernel.SpecialForms do
   received after the given timeout period, specified in milliseconds:
 
       receive do
-        {:selector, i, value} when is_integer(i) ->
-          value
-        value when is_atom(value) ->
-          value
+        {:selector, number, name} when is_integer(number) ->
+          name
+        name when is_atom(name) ->
+          name
         _ ->
           IO.puts :stderr, "Unexpected message received"
       after
