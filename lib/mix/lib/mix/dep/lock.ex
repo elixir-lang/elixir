@@ -33,7 +33,7 @@ defmodule Mix.Dep.Lock do
   @spec read() :: map
   def read() do
     lockfile = lockfile()
-    opts = [file: lockfile, warn_on_unnecessary_quote: false]
+    opts = [file: lockfile, warn_on_unnecessary_quotes: false]
 
     with {:ok, contents} <- File.read(lockfile),
          assert_no_merge_conflicts_in_lockfile(lockfile, contents),

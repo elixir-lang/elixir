@@ -650,7 +650,7 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
-    * `:warn_on_unnecessary_quote` - when `false`, does not warn
+    * `:warn_on_unnecessary_quotes` - when `false`, does not warn
       when atoms, keywords and calls have unnecessary quotes on
       them
 

@@ -38,5 +38,5 @@
   identifier_tokenizer=elixir_tokenizer,
   indentation=0,
   mismatch_hints=[],
-  warn_on_unnecessary_quote=true
+  warn_on_unnecessary_quotes=true
 }).
