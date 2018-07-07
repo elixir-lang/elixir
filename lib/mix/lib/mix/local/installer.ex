@@ -308,7 +308,10 @@ defmodule Mix.Local.Installer do
             lockfile: Path.join(tmp_path, "mix.lock")
           ]
 
-          Mix.Project.in_project(package_name, package_path, post_config, in_package)
+          Mix.Project.in_project(package_name, package_path, post_config, fn mix_exs ->
+            in_fetcher.(mix_exs)
+            in_package.(mix_exs)
+          end)
         end)
       end)
     end)
@@ -318,7 +321,7 @@ defmodule Mix.Local.Installer do
   end
 
   defp in_fetcher(_mix_exs) do
-    Mix.Task.run("deps.get", [])
+    Mix.Task.run("deps.get", ["--only", Atom.to_string(Mix.env())])
   end
 
   defp with_tmp_dir(fun) do
