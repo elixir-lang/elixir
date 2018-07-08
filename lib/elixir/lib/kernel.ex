@@ -4894,7 +4894,7 @@ defmodule Kernel do
   ## Sigils
 
   @doc ~S"""
-  Handles the sigil `~S`.
+  Handles the sigil `~S` for strings.
 
   It simply returns a string without escaping characters and without
   interpolations.
@@ -4912,7 +4912,7 @@ defmodule Kernel do
   defmacro sigil_S({:<<>>, _, [binary]}, []) when is_binary(binary), do: binary
 
   @doc ~S"""
-  Handles the sigil `~s`.
+  Handles the sigil `~s` for strings.
 
   It returns a string as if it was a double quoted string, unescaping characters
   and replacing interpolations.
@@ -4940,7 +4940,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~C`.
+  Handles the sigil `~C` for charlists.
 
   It simply returns a charlist without escaping characters and without
   interpolations.
@@ -4961,7 +4961,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~c`.
+  Handles the sigil `~c` for charlists.
 
   It returns a charlist as if it were a single quoted string, unescaping
   characters and replacing interpolations.
@@ -4992,12 +4992,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil `~r`.
+  Handles the sigil `~r` for regular expressions.
 
   It returns a regular expression pattern, unescaping characters and replacing
   interpolations.
 
-  More information on regexes can be found in the `Regex` module.
+  More information on regular expressions can be found in the `Regex` module.
 
   ## Examples
 
@@ -5022,7 +5022,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~R`.
+  Handles the sigil `~R` for regular expressions.
 
   It returns a regular expression pattern without escaping
   nor interpreting interpolations.
@@ -5048,6 +5048,8 @@ defmodule Kernel do
   The lower case `~d` variant does not exist as interpolation
   and escape characters are not useful for date sigils.
 
+  More information on dates can be found in the `Date` module.
+
   ## Examples
 
       iex> ~D[2015-01-13]
@@ -5065,6 +5067,8 @@ defmodule Kernel do
 
   The lower case `~t` variant does not exist as interpolation
   and escape characters are not useful for time sigils.
+
+  More information on times can be found in the `Time` module.
 
   ## Examples
 
@@ -5086,6 +5090,8 @@ defmodule Kernel do
   The lower case `~n` variant does not exist as interpolation
   and escape characters are not useful for datetime sigils.
 
+  More information on naive date times can be found in the `NaiveDateTime` module.
+
   ## Examples
 
       iex> ~N[2015-01-13 13:00:07]
@@ -5101,7 +5107,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~w`.
+  Handles the sigil `~w` for list of words.
 
   It returns a list of "words" split by whitespace. Character unescaping and
   interpolation happens for each word.
@@ -5139,7 +5145,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~W`.
+  Handles the sigil `~W` for list of words.
 
   It returns a list of "words" split by whitespace without escaping nor
   interpreting interpolations.
