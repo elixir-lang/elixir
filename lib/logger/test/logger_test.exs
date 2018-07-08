@@ -334,20 +334,14 @@ defmodule LoggerTest do
 
   test "log/2 truncates messages" do
     Logger.configure(truncate: 4)
-
-    assert capture_log(fn ->
-             Logger.log(:debug, "hello")
-           end) =~ "hell (truncated)"
+    assert capture_log(fn -> Logger.log(:debug, "hello") end) =~ "hell (truncated)"
   after
     Logger.configure(truncate: 8096)
   end
 
   test "log/2 with to_string/1 conversion" do
     Logger.configure(truncate: 4)
-
-    assert capture_log(fn ->
-             Logger.log(:debug, :hello)
-           end) =~ "hell (truncated)"
+    assert capture_log(fn -> Logger.log(:debug, :hello) end) =~ "hell (truncated)"
   after
     Logger.configure(truncate: 8096)
   end
