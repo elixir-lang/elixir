@@ -83,31 +83,44 @@ defmodule Task.Supervised do
     {mod, fun, length(args)}
   end
 
+  # TODO: Remove conditionals once we depend on Erlang/OTP 20+
   defp do_apply(info, {module, fun, args} = mfa) do
     try do
       apply(module, fun, args)
     catch
       :error, value ->
         reason = {value, __STACKTRACE__}
-        exit(info, mfa, reason, reason)
+        log(info, mfa, reason)
+
+        if :erlang.system_info(:otp_release) >= '20' do
+          :erlang.raise(:error, value, __STACKTRACE__)
+        else
+          exit(reason)
+        end
 
       :throw, value ->
         reason = {{:nocatch, value}, __STACKTRACE__}
-        exit(info, mfa, reason, reason)
+        log(info, mfa, reason)
+
+        if :erlang.system_info(:otp_release) >= '20' do
+          :erlang.raise(:throw, value, __STACKTRACE__)
+        else
+          exit(reason)
+        end
+
+      :exit, value
+      when value == :normal
+      when value == :shutdown
+      when tuple_size(value) == 2 and elem(value, 0) == :shutdown ->
+        exit(value)
 
       :exit, value ->
-        exit(info, mfa, {value, __STACKTRACE__}, value)
+        log(info, mfa, {value, __STACKTRACE__})
+        :erlang.raise(:exit, value, __STACKTRACE__)
     end
   end
 
-  defp exit(_info, _mfa, _log_reason, reason)
-       when reason == :normal
-       when reason == :shutdown
-       when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown do
-    exit(reason)
-  end
-
-  defp exit(info, mfa, log_reason, reason) do
+  defp log(info, mfa, reason) do
     {fun, args} = get_running(mfa)
 
     message =
@@ -116,9 +129,7 @@ defmodule Task.Supervised do
         '** When function  == ~p~n' ++
         '**      arguments == ~p~n' ++ '** Reason for termination == ~n' ++ '** ~p~n'
 
-    :error_logger.format(message, [self(), get_from(info), fun, args, get_reason(log_reason)])
-
-    exit(reason)
+    :error_logger.format(message, [self(), get_from(info), fun, args, get_reason(reason)])
   end
 
   defp get_from({node, pid_or_name}) when node == node(), do: pid_or_name
