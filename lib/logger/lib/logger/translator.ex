@@ -124,8 +124,8 @@ defmodule Logger.Translator do
         {:ok, msg, [crash_reason: reason]}
 
       {'Error in process ' ++ _, [pid, {reason, stack}]} ->
+        reason = Exception.normalize(:error, reason, stack)
         msg = ["Process ", inspect(pid), " raised an exception" | format(:error, reason, stack)]
-
         {:ok, msg, [crash_reason: exit_reason(:error, reason, stack)]}
 
       _ ->
@@ -266,7 +266,7 @@ defmodule Logger.Translator do
         [?\s, sup_context(context), "\n** (exit) ", offender_reason(reason, context)] ++
         pid_info ++ child_info(min_level, offender)
 
-    {:ok, msg, [crash_reason: reason]}
+    {:ok, msg}
   end
 
   defp report_supervisor(
@@ -281,7 +281,7 @@ defmodule Logger.Translator do
         ["\n** (exit) ", offender_reason(reason, context), "\nNumber: ", Integer.to_string(n)] ++
         child_info(min_level, offender)
 
-    {:ok, msg, [crash_reason: reason]}
+    {:ok, msg}
   end
 
   defp report_supervisor(
@@ -296,7 +296,7 @@ defmodule Logger.Translator do
         ["\n** (exit) ", offender_reason(reason, context), "\nPid: ", inspect(pid)] ++
         child_info(min_level, offender)
 
-    {:ok, msg, [crash_reason: reason]}
+    {:ok, msg}
   end
 
   defp report_supervisor(_min_level, _other), do: :none
@@ -348,34 +348,34 @@ defmodule Logger.Translator do
            {:initial_call, _} = initial_call,
            {:pid, pid},
            {:registered_name, name},
-           {:error_info, {kind, exception, stack}} | crashed
+           {:error_info, {kind, reason, stack}} | crashed
          ],
          linked
        ]) do
-    reason = Exception.normalize(kind, exception, stack)
+    reason = Exception.normalize(kind, reason, stack)
 
     msg =
       ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
         [crash_info(min_level, [initial_call | crashed])] ++ crash_linked(min_level, linked)
 
-    {:ok, msg, [crash_reason: exit_reason(kind, exception, stack)]}
+    {:ok, msg, [crash_reason: exit_reason(kind, reason, stack)]}
   end
 
   defp report_crash(min_level, [
          [
            {:pid, pid},
            {:registered_name, name},
-           {:error_info, {kind, exception, stack}} | crashed
+           {:error_info, {kind, reason, stack}} | crashed
          ],
          linked
        ]) do
-    reason = Exception.normalize(kind, exception, stack)
+    reason = Exception.normalize(kind, reason, stack)
 
     msg =
       ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
         [crash_info(min_level, crashed), crash_linked(min_level, linked)]
 
-    {:ok, msg, [crash_reason: exit_reason(kind, exception, stack)]}
+    {:ok, msg, [crash_reason: exit_reason(kind, reason, stack)]}
   end
 
   defp crash_name(pid, []), do: inspect(pid)
@@ -547,13 +547,12 @@ defmodule Logger.Translator do
   defp format_mfa(mod, fun, args),
     do: Exception.format_mfa(mod, fun, args)
 
-  if :erlang.system_info(:otp_release) >= '20' do
-    defp exit_reason(:exit, reason, _), do: reason
-    defp exit_reason(:error, reason, stack), do: {reason, stack}
-    defp exit_reason(:throw, value, stack), do: {{:nocatch, value}, stack}
-  else
-    defp exit_reason(_, reason, _), do: reason
+  defp exit_reason(:exit, reason, stack) do
+    if :erlang.system_info(:otp_release) >= '20', do: {reason, stack}, else: nil
   end
+
+  defp exit_reason(:error, reason, stack), do: {reason, stack}
+  defp exit_reason(:throw, value, stack), do: {{:nocatch, value}, stack}
 
   ## Deprecated helpers
 

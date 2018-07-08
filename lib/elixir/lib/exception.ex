@@ -369,8 +369,8 @@ defmodule Exception do
         format_exit_reason(reason)
     else
       mfa ->
-        # Assume tuple formattable as an mfa is an mfa, so exit was caused by
-        # failed mfa.
+        # Assume tuple formattable as an mfa is an mfa,
+        # so exit was caused by failed mfa.
         "exited in: " <>
           mfa <> joiner <> "** (EXIT) " <> format_exit(reason2, joiner <> <<"    ">>)
     end
