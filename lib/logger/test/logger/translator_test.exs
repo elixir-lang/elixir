@@ -72,6 +72,11 @@ defmodule Logger.TranslatorTest do
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
     Application.put_env(:logger, :handle_sasl_reports, true)
 
+    # Configure backend specific for tests to assert on metadata
+    # We could rely exclusively on this backend and skip the console one
+    # but using capture_log+console is desired as an integration test
+    Logger.add_backend(Logger.TestBackend)
+
     # Restart the app but change the level before to avoid warnings
     level = Logger.level()
     Logger.configure(level: :error)
@@ -80,14 +85,18 @@ defmodule Logger.TranslatorTest do
     Logger.configure(level: level)
 
     on_exit(fn ->
+      Logger.remove_backend(Logger.TestBackend)
       Application.put_env(:logger, :handle_sasl_reports, sasl_reports?)
       Logger.App.stop()
       Application.start(:logger)
     end)
   end
 
+  setup do
+    Logger.configure_backend(Logger.TestBackend, callback_pid: self())
+  end
+
   test "translates GenServer crashes" do
-    add_test_logger_backend()
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
     assert capture_log(:info, fn ->
@@ -110,7 +119,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates GenServer crashes with custom inspect options" do
-    add_test_logger_backend()
     {:ok, pid} = GenServer.start(MyGenServer, List.duplicate(:ok, 1000))
     Application.put_env(:logger, :translator_inspect_opts, limit: 3)
 
@@ -139,7 +147,6 @@ defmodule Logger.TranslatorTest do
   # TODO: Remove this check once we depend only on 20
   if :erlang.system_info(:otp_release) >= '20' do
     test "translates GenServer crashes on debug" do
-      add_test_logger_backend()
       {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
       assert capture_log(:debug, fn ->
@@ -169,7 +176,6 @@ defmodule Logger.TranslatorTest do
     end
 
     test "translates GenServer crashes with named client on debug" do
-      add_test_logger_backend()
       {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
       assert capture_log(:debug, fn ->
@@ -200,7 +206,6 @@ defmodule Logger.TranslatorTest do
     end
 
     test "translates GenServer crashes with dead client on debug" do
-      add_test_logger_backend()
       {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
       assert capture_log(:debug, fn ->
@@ -235,7 +240,6 @@ defmodule Logger.TranslatorTest do
     end
   else
     test "translates GenServer crashes on debug" do
-      add_test_logger_backend()
       {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
       assert capture_log(:debug, fn ->
@@ -264,7 +268,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates GenServer crashes with no client" do
-    add_test_logger_backend()
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
     assert capture_log(:debug, fn ->
@@ -294,7 +297,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates GenServer crashes with no client on debug" do
-    add_test_logger_backend()
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
     refute capture_log(:debug, fn ->
@@ -318,7 +320,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :gen_event crashes" do
-    add_test_logger_backend()
     {:ok, pid} = :gen_event.start()
     :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
 
@@ -336,7 +337,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :gen_event crashes on debug" do
-    add_test_logger_backend()
     {:ok, pid} = :gen_event.start()
     :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
 
@@ -355,7 +355,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Task crashes" do
-    add_test_logger_backend()
     {:ok, pid} = Task.start_link(__MODULE__, :task, [self()])
 
     assert capture_log(fn ->
@@ -381,7 +380,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Task async_stream crashes with neighbour" do
-    add_test_logger_backend()
     fun = fn -> Task.async_stream([:oops], :erlang, :error, []) |> Enum.to_list() end
     {:ok, pid} = Task.start(__MODULE__, :task, [self(), fun])
 
@@ -406,8 +404,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Task undef module crash" do
-    add_test_logger_backend()
-
     assert capture_log(fn ->
              {:ok, pid} = Task.start(:module_does_not_exist, :undef, [])
              ref = Process.monitor(pid)
@@ -433,8 +429,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Task undef function crash" do
-    add_test_logger_backend()
-
     assert capture_log(fn ->
              {:ok, pid} = Task.start(__MODULE__, :undef, [])
              ref = Process.monitor(pid)
@@ -460,8 +454,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Task raising ErlangError" do
-    add_test_logger_backend()
-
     assert capture_log(fn ->
              exception =
                try do
@@ -493,8 +485,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Task raising Erlang badarg error" do
-    add_test_logger_backend()
-
     assert capture_log(fn ->
              {:ok, pid} = Task.start(:erlang, :error, [:badarg])
              ref = Process.monitor(pid)
@@ -520,8 +510,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Task exiting abnormally" do
-    add_test_logger_backend()
-
     assert capture_log(fn ->
              {:ok, pid} = Task.start(:erlang, :exit, [:abnormal])
              ref = Process.monitor(pid)
@@ -562,8 +550,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Process crashes" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              {_, ref} = spawn_monitor(fn -> raise "oops" end)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
@@ -584,7 +570,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes" do
-    add_test_logger_backend()
     pid = :proc_lib.spawn_link(__MODULE__, :task, [self()])
 
     assert capture_log(:info, fn ->
@@ -609,8 +594,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes with name" do
-    add_test_logger_backend()
-
     fun = fn ->
       Process.register(self(), __MODULE__)
       raise "oops"
@@ -640,8 +623,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes without initial call" do
-    add_test_logger_backend()
-
     fun = fn ->
       Process.delete(:"$initial_call")
       raise "oops"
@@ -670,7 +651,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes with neighbour" do
-    add_test_logger_backend()
     {:ok, pid} = Task.start_link(__MODULE__, :sub_task, [self()])
 
     assert capture_log(:info, fn ->
@@ -698,8 +678,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes with neighbour with name" do
-    add_test_logger_backend()
-
     fun = fn pid2 ->
       Process.register(pid2, __MODULE__)
       raise "oops"
@@ -732,7 +710,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes on debug" do
-    add_test_logger_backend()
     {:ok, pid} = Task.start_link(__MODULE__, :task, [self()])
 
     assert capture_log(:debug, fn ->
@@ -764,7 +741,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes with neighbour on debug" do
-    add_test_logger_backend()
     {:ok, pid} = Task.start_link(__MODULE__, :sub_task, [self()])
 
     assert capture_log(:debug, fn ->
@@ -879,8 +855,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports start error with raise" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
              children = [worker(__MODULE__, [], function: :undef)]
@@ -899,8 +873,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports terminated" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
              children = [worker(Task, [Kernel, :exit, [:stop]])]
@@ -926,8 +898,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports max restarts shutdown" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
              children = [worker(Task, [Kernel, :exit, [:stop]])]
@@ -952,8 +922,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports abnormal shutdown" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              children = [worker(__MODULE__, [], function: :abnormal)]
              {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
@@ -974,8 +942,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports abnormal shutdown on debug" do
-    add_test_logger_backend()
-
     assert capture_log(:debug, fn ->
              children = [
                worker(__MODULE__, [], function: :abnormal, restart: :permanent, shutdown: 5000)
@@ -1001,8 +967,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports abnormal shutdown in simple_one_for_one" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
              children = [worker(__MODULE__, [], function: :abnormal)]
@@ -1027,8 +991,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates DynamicSupervisor reports abnormal shutdown" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
              child = %{id: __MODULE__, start: {__MODULE__, :abnormal, []}}
@@ -1053,8 +1015,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates DynamicSupervisor reports abnormal shutdown including extra_arguments" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
 
@@ -1082,8 +1042,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates named DynamicSupervisor reports abnormal shutdown" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
              child = %{id: __MODULE__, start: {__MODULE__, :abnormal, []}}
@@ -1121,8 +1079,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :supervisor_bridge reports" do
-    add_test_logger_backend()
-
     assert capture_log(:info, fn ->
              trap = Process.flag(:trap_exit, true)
              {:ok, pid} = :supervisor_bridge.start_link(MyBridge, :stop)
@@ -1147,8 +1103,6 @@ defmodule Logger.TranslatorTest do
   end
 
   test "reports :undefined MFA properly" do
-    add_test_logger_backend()
-
     defmodule WeirdFunctionNamesGenServer do
       use GenServer
 

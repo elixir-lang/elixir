@@ -37,17 +37,6 @@ defmodule Logger.Case do
     end
   end
 
-  def add_test_logger_backend(inspect \\ false) do
-    capture_log(:info, fn ->
-      Logger.add_backend(TestLoggerBackend)
-      Logger.configure_backend(TestLoggerBackend, callback_pid: self(), inspect: inspect)
-    end)
-
-    ExUnit.Callbacks.on_exit(fn ->
-      :ok = Logger.remove_backend(TestLoggerBackend)
-    end)
-  end
-
   def capture_log(level \\ :debug, fun) do
     Logger.configure(level: level)
 
@@ -60,7 +49,7 @@ defmodule Logger.Case do
   end
 end
 
-defmodule TestLoggerBackend do
+defmodule Logger.TestBackend do
   @moduledoc """
   A module that implements a custom `Logger` backend for use in testing.
 
@@ -70,36 +59,20 @@ defmodule TestLoggerBackend do
   @behaviour :gen_event
 
   def init(_) do
-    {:ok, %{events: []}}
-  end
-
-  def handle_call(:get, %{events: events} = state) do
-    {:ok, events, state}
+    {:ok, %{}}
   end
 
   def handle_call({:configure, opts}, state) do
     callback_pid = Keyword.get(opts, :callback_pid)
-    inspect = Keyword.get(opts, :inspect)
-
-    state =
-      state
-      |> Map.put(:callback_pid, callback_pid)
-      |> Map.put(:inspect, inspect)
-
-    {:ok, :ok, state}
+    {:ok, :ok, Map.put(state, :callback_pid, callback_pid)}
   end
 
   def handle_event(
         {_level, _gl, {Logger, _msg, _ts, _md}} = event,
-        %{events: events, callback_pid: pid, inspect: inspect} = state
+        %{callback_pid: pid} = state
       ) do
-    inspect && IO.inspect(event)
     send(pid, event)
-    {:ok, %{state | events: [event | events]}}
-  end
-
-  def handle_event(:flush, state) do
-    {:ok, %{state | events: []}}
+    {:ok, state}
   end
 
   def handle_event(_, state) do
