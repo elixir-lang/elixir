@@ -28,10 +28,14 @@ defmodule ExUnit.ReceivePatternFormat do
 
   def format(diff, ctx \\ nil)
 
-  def format(%ContainerDiff{type: :map, items: items}, %{keys: :atom_keys, missing: false} = ctx) do
+  def format(
+        %ContainerDiff{type: :map, items: items},
+        %{keys: :atom_keys, missing: false, comma: comma} = ctx
+      ) do
     [h | rest] = items
 
     [
+      comma,
       "%{",
       format(h, ctx),
       Enum.map(rest, &format(&1, %{ctx | comma: ", "})),
@@ -40,9 +44,9 @@ defmodule ExUnit.ReceivePatternFormat do
     |> List.flatten()
   end
 
-  def format(%ContainerDiff{type: :map, items: _items} = diff, _) do
-    ctx = create_context(diff)
-    format(diff, ctx)
+  def format(%ContainerDiff{type: :map, items: _items} = diff, ctx) do
+    map_ctx = create_context(diff)
+    [ctx.comma, format(diff, map_ctx)]
   end
 
   def format(
@@ -65,10 +69,22 @@ defmodule ExUnit.ReceivePatternFormat do
     |> List.flatten()
   end
 
-  def format(%ContainerDiff{type: :list, items: _items} = diff, _) do
+  def format(%ContainerDiff{type: :list, items: _items} = diff, %{comma: comma}) do
     ctx = create_context(diff)
 
     format(diff, ctx)
+  end
+
+  def format(%ContainerDiff{type: :tuple, items: items}, %{keys: :none} = ctx) do
+    [h | rest] = items
+
+    [
+      "{",
+      format(h, ctx),
+      Enum.map(rest, &format(&1, %{ctx | comma: ", "})),
+      "}"
+    ]
+    |> List.flatten()
   end
 
   def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :atom_keys, comma: comma}) do
@@ -84,7 +100,7 @@ defmodule ExUnit.ReceivePatternFormat do
     right =
       case r do
         %PatternDiff{diff_result: :eq} ->
-          match("#{r.rh}")
+          match("#{inspect(r.rh)}")
 
         %ContainerDiff{} ->
           format(r)
@@ -166,7 +182,6 @@ defmodule ExUnit.ReceivePatternFormat do
     missing = Enum.all?(items, &right_missing_keys?/1)
 
     %{keys: keys, missing: missing, comma: "", print_when?: true}
-    |> IO.inspect(label: "create contect for a map")
   end
 
   defp keyword_tuple?(%ContainerDiff{items: [key, _value], type: :tuple}) do
