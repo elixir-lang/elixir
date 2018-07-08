@@ -127,19 +127,6 @@ defmodule Logger.TranslatorTest do
            end) =~ """
            [:ok, :ok, :ok, ...]
            """
-
-    assert_receive {:error, _pid,
-                    {Logger, [["GenServer " <> _ | _] | _], _ts, gen_server_metadata}}
-
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-
-    assert {%RuntimeError{message: "oops"}, [_ | _]} =
-             Keyword.get(gen_server_metadata, :crash_reason)
-
-    if :erlang.system_info(:otp_release) >= '20' do
-      assert {%RuntimeError{message: "oops"}, [_ | _]} =
-               Keyword.get(process_metadata, :crash_reason)
-    end
   after
     Application.put_env(:logger, :translator_inspect_opts, [])
   end
@@ -169,10 +156,9 @@ defmodule Logger.TranslatorTest do
       assert {%RuntimeError{message: "oops"}, [_ | _]} =
                Keyword.get(gen_server_metadata, :crash_reason)
 
-      if :erlang.system_info(:otp_release) >= '20' do
+
         assert {%RuntimeError{message: "oops"}, [_ | _]} =
                  Keyword.get(process_metadata, :crash_reason)
-      end
     end
 
     test "translates GenServer crashes with named client on debug" do
@@ -191,18 +177,6 @@ defmodule Logger.TranslatorTest do
              .*
              """s
 
-      assert_receive {:error, _pid,
-                      {Logger, [["GenServer " <> _ | _] | _], _ts, gen_server_metadata}}
-
-      assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-
-      assert {%RuntimeError{message: "oops"}, [_ | _]} =
-               Keyword.get(gen_server_metadata, :crash_reason)
-
-      if :erlang.system_info(:otp_release) >= '20' do
-        assert {%RuntimeError{message: "oops"}, [_ | _]} =
-                 Keyword.get(process_metadata, :crash_reason)
-      end
     end
 
     test "translates GenServer crashes with dead client on debug" do
@@ -225,18 +199,6 @@ defmodule Logger.TranslatorTest do
              Client #PID<\d+\.\d+\.\d+> is dead
              """s
 
-      assert_receive {:error, _pid,
-                      {Logger, [["GenServer " <> _ | _] | _], _ts, gen_server_metadata}}
-
-      assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-
-      assert {%RuntimeError{message: "oops"}, [_ | _]} =
-               Keyword.get(gen_server_metadata, :crash_reason)
-
-      if :erlang.system_info(:otp_release) >= '20' do
-        assert {%RuntimeError{message: "oops"}, [_ | _]} =
-                 Keyword.get(process_metadata, :crash_reason)
-      end
     end
   else
     test "translates GenServer crashes on debug" do
@@ -282,18 +244,6 @@ defmodule Logger.TranslatorTest do
            State: :ok
            """s
 
-    assert_receive {:error, _pid,
-                    {Logger, [["GenServer " <> _ | _] | _], _ts, gen_server_metadata}}
-
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-
-    assert {%RuntimeError{message: "oops"}, [_ | _]} =
-             Keyword.get(gen_server_metadata, :crash_reason)
-
-    if :erlang.system_info(:otp_release) >= '20' do
-      assert {%RuntimeError{message: "oops"}, [_ | _]} =
-               Keyword.get(process_metadata, :crash_reason)
-    end
   end
 
   test "translates GenServer crashes with no client on debug" do
@@ -310,13 +260,6 @@ defmodule Logger.TranslatorTest do
 
     assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
 
-    assert {%RuntimeError{message: "oops"}, [_ | _]} =
-             Keyword.get(gen_server_metadata, :crash_reason)
-
-    if :erlang.system_info(:otp_release) >= '20' do
-      assert {%RuntimeError{message: "oops"}, [_ | _]} =
-               Keyword.get(process_metadata, :crash_reason)
-    end
   end
 
   test "translates :gen_event crashes" do
@@ -549,7 +492,7 @@ defmodule Logger.TranslatorTest do
            """
   end
 
-  test "translates Process crashes" do
+  test "translates bare process crashes" do
     assert capture_log(:info, fn ->
              {_, ref} = spawn_monitor(fn -> raise "oops" end)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
@@ -570,27 +513,48 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :proc_lib crashes" do
-    pid = :proc_lib.spawn_link(__MODULE__, :task, [self()])
+    fun = fn ->
+      Logger.metadata(foo: :bar)
+      raise "oops"
+    end
+
+    pid = :proc_lib.spawn_link(__MODULE__, :task, [self(), fun])
 
     assert capture_log(:info, fn ->
              ref = Process.monitor(pid)
-
              send(pid, :go)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
            \[error\] Process #PID<\d+\.\d+\.\d+> terminating
            \*\* \(RuntimeError\) oops
            .*
-           Initial Call: Logger.TranslatorTest.task/1
+           Initial Call: Logger.TranslatorTest.task/2
            Ancestors: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
     assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
 
+    assert Keyword.get(process_metadata, :foo) == :bar
+
     if :erlang.system_info(:otp_release) >= '20' do
       assert {%RuntimeError{message: "oops"}, [_ | _]} =
                Keyword.get(process_metadata, :crash_reason)
     end
+  end
+
+test "skips :proc_lib crashes with disabled metadata" do
+    fun = fn ->
+      Logger.disable(self())
+      raise "oops"
+    end
+
+    pid = :proc_lib.spawn_link(__MODULE__, :task, [self(), fun])
+
+    assert capture_log(:info, fn ->
+             ref = Process.monitor(pid)
+             send(pid, :go)
+             receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+           end) == ""
   end
 
   test "translates :proc_lib crashes with name" do
@@ -666,15 +630,6 @@ defmodule Logger.TranslatorTest do
                    Current Call: Logger.TranslatorTest.sleep/1
                    Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
            """
-
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert {%RuntimeError{message: "oops"}, [_ | _]} = Keyword.get(task_metadata, :crash_reason)
-
-    if :erlang.system_info(:otp_release) >= '20' do
-      assert {%RuntimeError{message: "oops"}, [_ | _]} =
-               Keyword.get(process_metadata, :crash_reason)
-    end
   end
 
   test "translates :proc_lib crashes with neighbour with name" do
@@ -698,15 +653,6 @@ defmodule Logger.TranslatorTest do
                    Current Call: Logger.TranslatorTest.sleep/1
                    Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
            """
-
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert {%RuntimeError{message: "oops"}, [_ | _]} = Keyword.get(task_metadata, :crash_reason)
-
-    if :erlang.system_info(:otp_release) >= '20' do
-      assert {%RuntimeError{message: "oops"}, [_ | _]} =
-               Keyword.get(process_metadata, :crash_reason)
-    end
   end
 
   test "translates :proc_lib crashes on debug" do
@@ -762,15 +708,6 @@ defmodule Logger.TranslatorTest do
                    Current Stacktrace:
                        test/logger/translator_test.exs:\d+: Logger.TranslatorTest.sleep/1(?#TODO: Require once depend on Erlang/OTP 20)|)
            """
-
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert {%RuntimeError{message: "oops"}, [_ | _]} = Keyword.get(task_metadata, :crash_reason)
-
-    if :erlang.system_info(:otp_release) >= '20' do
-      assert {%RuntimeError{message: "oops"}, [_ | _]} =
-               Keyword.get(process_metadata, :crash_reason)
-    end
   end
 
   test "translates Supervisor progress" do
