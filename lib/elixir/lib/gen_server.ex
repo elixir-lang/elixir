@@ -742,7 +742,7 @@ defmodule GenServer do
   ## Options
 
     * `:name` - used for name registration as described in the "Name
-      registration" section of the module documentation
+      registration" section in the documentation for `GenServer`
 
     * `:timeout` - if present, the server is allowed to spend the given number of
       milliseconds initializing or it will be terminated and the start function
