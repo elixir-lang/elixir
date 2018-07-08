@@ -343,45 +343,38 @@ defmodule Logger.Translator do
     []
   end
 
-  defp report_crash(min_level, [
-         [
-           {:initial_call, _} = initial_call,
-           {:pid, pid},
-           {:registered_name, name},
-           {:error_info, {kind, reason, stack}} | crashed
-         ],
-         linked
-       ]) do
-    reason = Exception.normalize(kind, reason, stack)
-
-    msg =
-      ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
-        [crash_info(min_level, [initial_call | crashed])] ++ crash_linked(min_level, linked)
-
-    {:ok, msg, [crash_reason: exit_reason(kind, reason, stack)]}
+  defp report_crash(min_level, [[{:initial_call, _} = initial_call | crashed], linked]) do
+    report_crash(min_level, crashed, [initial_call], linked)
   end
 
-  defp report_crash(min_level, [
-         [
-           {:pid, pid},
-           {:registered_name, name},
-           {:error_info, {kind, reason, stack}} | crashed
-         ],
-         linked
-       ]) do
+  defp report_crash(min_level, [crashed, linked]) do
+    report_crash(min_level, crashed, [], linked)
+  end
+
+  defp report_crash(min_level, crashed, extra, linked) do
+    [
+      {:pid, pid},
+      {:registered_name, name},
+      {:error_info, {kind, reason, stack}} | crashed
+    ] = crashed
+
     reason = Exception.normalize(kind, reason, stack)
 
-    msg =
-      ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
-        [crash_info(min_level, crashed), crash_linked(min_level, linked)]
+    case crashed[:dictionary][:logger_metadata] || {true, []} do
+      {false, _} ->
+        :skip
 
-    {:ok, msg, [crash_reason: exit_reason(kind, reason, stack)]}
+      {true, metadata} ->
+        msg =
+          ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
+            [crash_info(min_level, extra ++ crashed, [?\n]), crash_linked(min_level, linked)]
+
+        {:ok, msg, [crash_reason: exit_reason(kind, reason, stack)] ++ metadata}
+    end
   end
 
   defp crash_name(pid, []), do: inspect(pid)
   defp crash_name(pid, name), do: [inspect(name), " (", inspect(pid), ?)]
-
-  defp crash_info(min_level, info, prefix \\ [?\n])
 
   defp crash_info(min_level, [{:initial_call, {mod, fun, args}} | info], prefix) do
     [prefix, "Initial Call: ", crash_call(mod, fun, args) | crash_info(min_level, info, prefix)]
