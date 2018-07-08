@@ -156,9 +156,8 @@ defmodule Logger.TranslatorTest do
       assert {%RuntimeError{message: "oops"}, [_ | _]} =
                Keyword.get(gen_server_metadata, :crash_reason)
 
-
-        assert {%RuntimeError{message: "oops"}, [_ | _]} =
-                 Keyword.get(process_metadata, :crash_reason)
+      assert {%RuntimeError{message: "oops"}, [_ | _]} =
+               Keyword.get(process_metadata, :crash_reason)
     end
 
     test "translates GenServer crashes with named client on debug" do
@@ -176,7 +175,6 @@ defmodule Logger.TranslatorTest do
              Client :named_client is alive
              .*
              """s
-
     end
 
     test "translates GenServer crashes with dead client on debug" do
@@ -198,7 +196,6 @@ defmodule Logger.TranslatorTest do
              State: :ok
              Client #PID<\d+\.\d+\.\d+> is dead
              """s
-
     end
   else
     test "translates GenServer crashes on debug" do
@@ -243,7 +240,6 @@ defmodule Logger.TranslatorTest do
            Last message: {:"\$gen_cast", :error}
            State: :ok
            """s
-
   end
 
   test "translates GenServer crashes with no client on debug" do
@@ -259,7 +255,6 @@ defmodule Logger.TranslatorTest do
                     {Logger, [["GenServer " <> _ | _] | _], _ts, gen_server_metadata}}
 
     assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-
   end
 
   test "translates :gen_event crashes" do
@@ -542,7 +537,7 @@ defmodule Logger.TranslatorTest do
     end
   end
 
-test "skips :proc_lib crashes with disabled metadata" do
+  test "skips :proc_lib crashes with disabled metadata" do
     fun = fn ->
       Logger.disable(self())
       raise "oops"
