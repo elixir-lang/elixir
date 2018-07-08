@@ -191,7 +191,9 @@ defmodule Logger.Backends.Console do
     |> color_event(level, colors, md)
   end
 
-  defp take_metadata(metadata, :all), do: metadata
+  defp take_metadata(metadata, :all) do
+    Keyword.drop(metadata, [:crash_reason])
+  end
 
   defp take_metadata(metadata, keys) do
     Enum.reduce(keys, [], fn key, acc ->

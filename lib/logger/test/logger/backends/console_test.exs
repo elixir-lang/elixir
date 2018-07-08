@@ -66,6 +66,15 @@ defmodule Logger.Backends.ConsoleTest do
            end) =~ "user_id=13 hello"
   end
 
+  test "ignores crash_reason metadata when configured with metadata: :all" do
+    Logger.configure_backend(:console, format: "$metadata$message", metadata: :all)
+    Logger.metadata(crash_reason: {%RuntimeError{message: "oops"}, []})
+
+    assert capture_log(fn ->
+             Logger.debug("hello")
+           end) =~ "hello"
+  end
+
   test "configures formatter to {module, function} tuple" do
     Logger.configure_backend(:console, format: {__MODULE__, :format})
 
