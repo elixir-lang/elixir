@@ -63,7 +63,8 @@ end
 defmodule TestLoggerBackend do
   @moduledoc """
   A module that implements a custom `Logger` backend for use in testing.
-  This module can be used to verify events sent with `Logger`.
+
+  This module can be used to verify events sent to `Logger`.
   """
 
   @behaviour :gen_event
@@ -81,7 +82,8 @@ defmodule TestLoggerBackend do
     inspect = Keyword.get(opts, :inspect)
 
     state =
-      Map.put(state, :callback_pid, callback_pid)
+      state
+      |> Map.put(:callback_pid, callback_pid)
       |> Map.put(:inspect, inspect)
 
     {:ok, :ok, state}
@@ -91,7 +93,7 @@ defmodule TestLoggerBackend do
         {_level, _gl, {Logger, _msg, _ts, _md}} = event,
         %{events: events, callback_pid: pid, inspect: inspect} = state
       ) do
-    if inspect, do: IO.inspect(event)
+    inspect && IO.inspect(event)
     send(pid, event)
     {:ok, %{state | events: [event | events]}}
   end
