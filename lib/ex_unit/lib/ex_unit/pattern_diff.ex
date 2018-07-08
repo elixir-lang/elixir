@@ -39,6 +39,7 @@ defmodule ExUnit.PatternDiff do
   # {:^, _, var}
   # {:|, _, [l, r]}
   # {:when, _, [l, r]}
+  # {:=, _, [l, r]}
   # {:%{}, _, members}
   # {:{}, _, members}
   # {var, _, _}
@@ -113,6 +114,19 @@ defmodule ExUnit.PatternDiff do
     when_result = evaluate_when(clause, env)
     {%ContainerDiff{type: :when, items: [ast_result, when_result]}, env}
   end
+
+  def cmp(%{ast: {:=, _, [l, r]}}, rh_value, env) do
+    # Assignment in a pattern, identify which is the binding and which is the source data
+    {var, val} =
+      case l do
+        {_, _, nil} -> {l, r}
+        _ -> {r, l}
+      end
+
+    cmp(%{ast: var}, rh_value, env)
+  end
+
+  def order_assingment()
 
   def cmp(%{ast: {var, _, var_ctx}} = pattern, rh_value, {vars, pins} = env)
       when is_atom(var) and is_atom(var_ctx) do
