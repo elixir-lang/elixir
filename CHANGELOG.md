@@ -48,12 +48,12 @@ We recommend Elixir libraries that previously hooked into Erlang's `:error_logge
 
 Previously, Logger macros such as `debug`, `info`, and so on would always evaluate its arguments, even when nothing would be logged. From Elixir v1.7, the arguments are only evaluated when the message is logged.
 
-The Logger configuration system also accepts a new option called `:compile_time_purge_matching` that allows you to remove log calls with specific compile-time metadata. For example, to remove all logger calls from application `:foo` with level `:info` or inferior, as well as remove all logger calls from `Bar.foo/3`, you can use the following configuration:
+The Logger configuration system also accepts a new option called `:compile_time_purge_matching` that allows you to remove log calls with specific compile-time metadata. For example, to remove all logger calls from application `:foo` with level lower than `:info`, as well as remove all logger calls from `Bar.foo/3`, you can use the following configuration:
 
 ```elixir
 config :logger,
   compile_time_purge_matching: [
-    [application: :foo, level: :info],
+    [application: :foo, level_lower_than: :info],
     [module: Bar, function: "foo/3"]
   ]
 ```
