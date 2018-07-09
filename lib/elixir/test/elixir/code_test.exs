@@ -132,6 +132,11 @@ defmodule CodeTest do
                {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\"\"\""}}
     end
 
+    test "returns an error tuple on handle dot errors" do
+      assert Code.string_to_quoted(".\"\#{}\"") ==
+               {:error, {1, "interpolation is not allowed when invoking functions", "\""}}
+    end
+
     test "raises on errors when string_to_quoted!/2 is used" do
       assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
 
