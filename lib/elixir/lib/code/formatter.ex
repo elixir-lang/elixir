@@ -1815,13 +1815,19 @@ defmodule Code.Formatter do
   end
 
   defp clause_args_to_algebra(args, min_line, state) do
-    meta = [line: min_line]
-    fun = &clause_args_to_algebra/2
+    arg_to_algebra = fn arg, _args, newlines, state ->
+      {doc, state} = clause_args_to_algebra(arg, state)
+      {doc, @empty, newlines, state}
+    end
 
-    {args_docs, _join, state} =
-      args_to_algebra_with_comments([args], meta, false, :none, :break, state, fun)
+    {args_docs, comments?, state} =
+      quoted_to_algebra_with_comments([args], [], min_line, @min_line, 1, state, arg_to_algebra)
 
-    {args_docs, state}
+    if comments? do
+      {Enum.reduce(args_docs, &line(&2, &1)), state}
+    else
+      {Enum.reduce(args_docs, &glue(&2, &1)), state}
+    end
   end
 
   # fn a, b, c when d -> e end
