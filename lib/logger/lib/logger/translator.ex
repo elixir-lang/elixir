@@ -103,7 +103,7 @@ defmodule Logger.Translator do
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
         {formatted, reason} = format_reason(reason)
-        metadata = [crash_reason: reason] ++ registered_name(name)
+        metadata = [crash_reason: reason] ++ registered_name(manager)
 
         msg =
           [":gen_event handler #{inspect(name)} installed in #{inspect(manager)} terminating"] ++
