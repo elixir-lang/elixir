@@ -76,6 +76,12 @@ defmodule Logger do
     * `:backends` - the backends to be used. Defaults to `[:console]`.
       See the "Backends" section for more information.
 
+    * `:compile_time_application` - sets the `:application` metadata value
+      to the configured value at compilation time. This configuration is
+      usually only useful for build tools to automatically add the
+      application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc.
+      style of calls.
+
     * `:compile_time_purge_matching` - purges *at compilation time* all calls
       that match the given conditions. This means that `Logger` calls with
       level lower than this option will be completely removed at compile time,
@@ -85,12 +91,6 @@ defmodule Logger do
       be used to purge all messages with a lower logger level. Remember that
       if you want to purge log calls from a dependency, the dependency must be
       recompiled.
-
-    * `:compile_time_application` - sets the `:application` metadata value
-      to the configured value at compilation time. This configuration is
-      usually only useful for build tools to automatically add the
-      application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc.
-      style of calls.
 
   For example, to configure the `:backends` and purge all calls that happen
   at compile time with level lower than `:info` in a `config/config.exs` file:
