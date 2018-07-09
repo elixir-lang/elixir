@@ -418,6 +418,16 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
   case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest} ->
       case unescape_tokens(Parts, Scope) of
+        {ok, [Part]} when is_binary(Part) ->
+          case unsafe_to_atom(Part, Line, Column, Scope) of
+            {ok, Atom} ->
+              Token = {atom, {Line, Column, nil}, Atom},
+              tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+
+            {error, Reason} ->
+              {error, Reason, Rest, Tokens}
+          end;
+
         {ok, Unescaped} ->
           Key = case Scope#elixir_tokenizer.existing_atoms_only of
             true  -> atom_safe;
@@ -743,12 +753,12 @@ eol(Line, Column, Tokens) ->
 unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{}) when
     is_binary(Part) andalso size(Part) > 255;
     is_list(Part) andalso length(Part) > 255 ->
-  {error, {Line, Column, "atom length must be less than system limit: ", [$: | Part]}};
+  {error, {Line, Column, "atom length must be less than system limit: ", elixir_utils:characters_to_list(Part)}};
 unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{existing_atoms_only=true}) when is_binary(Binary) ->
   try
     {ok, binary_to_existing_atom(Binary, utf8)}
   catch
-    error:badarg -> {error, {Line, Column, "unsafe atom does not exist: ", Binary}}
+    error:badarg -> {error, {Line, Column, "unsafe atom does not exist: ", elixir_utils:characters_to_list(Binary)}}
   end;
 unsafe_to_atom(Binary, _Line, _Column, #elixir_tokenizer{}) when is_binary(Binary) ->
   {ok, binary_to_atom(Binary, utf8)};

@@ -132,12 +132,25 @@ defmodule CodeTest do
                {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\"\"\""}}
     end
 
-    test "returns an error tuple on handle dot errors" do
+    test "returns an error tuple on interpolation in calls" do
       assert Code.string_to_quoted(".\"\#{}\"") ==
                {:error, {1, "interpolation is not allowed when invoking functions", "\""}}
 
       assert Code.string_to_quoted(".\"a\#{:b}\"c") ==
                {:error, {1, "interpolation is not allowed when invoking functions", "\""}}
+    end
+
+    test "returns an error tuple on long atoms" do
+      atom =
+        "@GR{+z]`_XrNla!d<GTZ]iw[s'l2N<5hGD0(.xh&}>0ptDp(amr.oS&<q(FA)5T3=},^{=JnwIOE*DPOslKV KF-kb7NF&Y#Lp3D7l/!s],^hnz1iB |E8~Y'-Rp&*E(O}|zoB#xsE.S/~~'=%H'2HOZu0PCfz6j=eHq5:yk{7&|}zeRONM+KWBCAUKWFw(tv9vkHTu#Ek$&]Q:~>,UbT}v$L|rHHXGV{;W!>avHbD[T-G5xrzR6m?rQPot-37B@"
+
+      assert Code.string_to_quoted(~s[:"#{atom}"]) ==
+               {:error, {1, "atom length must be less than system limit: ", atom}}
+    end
+
+    test "returns an error tuple when no atom is found with :existing_atoms_only" do
+      assert Code.string_to_quoted(":there_is_no_such_atom", existing_atoms_only: true) ==
+               {:error, {1, "unsafe atom does not exist: ", "there_is_no_such_atom"}}
     end
 
     test "raises on errors when string_to_quoted!/2 is used" do
@@ -149,15 +162,6 @@ defmodule CodeTest do
 
       assert_raise TokenMissingError, fn ->
         Code.string_to_quoted!("1 +")
-      end
-    end
-
-    test "raises when string_to_quoted!/2 is used and no atom is found with :existing_atoms_only" do
-      unknown_atom = ":there_is_no_such_atom"
-      message = "nofile:1: unsafe atom does not exist: there_is_no_such_atom"
-
-      assert_raise SyntaxError, message, fn ->
-        Code.string_to_quoted!(unknown_atom, existing_atoms_only: true)
       end
     end
   end
