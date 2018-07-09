@@ -58,11 +58,12 @@ unquoted_atom_test() ->
   [{atom, {1, 1, nil}, '&&'}] = tokenize(":&&").
 
 quoted_atom_test() ->
-  [{atom_unsafe, {1, 1, nil}, [<<"foo bar">>]}] = tokenize(":\"foo bar\"").
+  [{atom, {1, 1, nil}, 'foo bar'}] = tokenize(":\"foo bar\"").
 
 oversized_atom_test() ->
-  OversizedAtom = [$: | string:copies("a", 256)],
-  {1, 1, "atom length must be less than system limit: ", OversizedAtom} = tokenize_error(OversizedAtom).
+  OversizedAtom = string:copies("a", 256),
+  {1, 1, "atom length must be less than system limit: ", OversizedAtom} =
+    tokenize_error([$: | OversizedAtom]).
 
 op_atom_test() ->
   [{atom, {1, 1, nil}, f0_1}] = tokenize(":f0_1").
