@@ -112,7 +112,7 @@ defmodule Task.Supervised do
       when value == :normal
       when value == :shutdown
       when tuple_size(value) == 2 and elem(value, 0) == :shutdown ->
-        exit(value)
+        :erlang.raise(:exit, value, __STACKTRACE__)
 
       :exit, value ->
         log(info, mfa, {value, __STACKTRACE__})
