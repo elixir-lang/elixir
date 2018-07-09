@@ -654,6 +654,42 @@ defmodule Code.Formatter.CommentsTest do
       """
     end
 
+    test "with one-line clauses" do
+      bad = ~S"""
+      assert do # do
+        # before
+        one -> two
+      end
+      """
+
+      assert_format bad, ~S"""
+      # do
+      assert do
+        # before
+        one -> two
+      end
+      """
+
+      bad = ~S"""
+      assert do # do
+        # before
+        one -> two
+        # after
+        three -> four
+      end
+      """
+
+      assert_format bad, ~S"""
+      # do
+      assert do
+        # before
+        one -> two
+        # after
+        three -> four
+      end
+      """
+    end
+
     test "with multiple clauses and args" do
       bad = ~S"""
       assert do # do
