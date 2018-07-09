@@ -117,16 +117,14 @@ defmodule ExUnit.PatternDiff do
 
   def cmp(%{ast: {:=, _, [l, r]}}, rh_value, env) do
     # Assignment in a pattern, identify which is the binding and which is the source data
-    {var, val} =
+    val =
       case l do
-        {_, _, nil} -> {l, r}
-        _ -> {r, l}
+        {_, _, nil} -> r
+        _ -> l
       end
 
-    cmp(%{ast: var}, rh_value, env)
+    cmp(%{ast: val}, rh_value, env)
   end
-
-  def order_assingment()
 
   def cmp(%{ast: {var, _, var_ctx}} = pattern, rh_value, {vars, pins} = env)
       when is_atom(var) and is_atom(var_ctx) do
