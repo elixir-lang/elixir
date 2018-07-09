@@ -1,5 +1,107 @@
 # Changelog for Elixir v1.7
 
+Elixir v1.7 is the last release to support Erlang/OTP 19. We recommend everyone to migrate to Erlang/OTP 20+.
+
+## The `__STACKTRACE__` construct
+
+Erlang/OTP 21.0 introduces a new way to retrieve the stacktrace that is lexically scoped and no longer relies on side-effects like `System.stacktrace/0` does. Before one would write:
+
+```elixir
+try do
+  ... something that may fail ...
+rescue
+  e ->
+    log(e, System.stacktrace())
+    reraise e, System.stacktrace()
+end
+```
+
+In Elixir v1.7, this can be written as:
+
+```elixir
+try do
+  ... something that may fail ...
+rescue
+  e ->
+    log(e, __STACKTRACE__)
+    reraise e, __STACKTRACE__
+end
+```
+
+This change may also yield performance improvements in the future, since the lexical scope allows us to track precisely when a stacktrace is used and we no longer need to keep references to stacktrace entries after the `try` construct finishes.
+
+Other parts of the exception system have been improved. For example, more information is provided on error messages certain occurrences of `ArgumentError`, `ArithmeticError` and `KeyError`.
+
+## Erlang/OTP logger integration
+
+Erlang/OTP 21 includes a new `:logger` module. Elixir v1.7 fully integrates with the new `:logger` and leverages its metadata system. The `Logger.Translator` mechanism has also been improved to export metadata, allowing custom Logger backends to leverage information such as:
+
+  * `:crash_reason` - a two-element tuple with the throw/error/exit reason as first argument and the stacktrace as second
+
+  * `:initial_call` - the initial call that started the process
+
+  * `:registered_name` - the process registered name as an atom
+
+We recommend Elixir libraries that previously hooked into Erlang's `:error_logger` to hook into `Logger` instead, so those libraries support all current and future Erlang/OTP versions.
+
+## Other Logger improvements
+
+Previously, Logger macros such as `debug`, `info`, and so on would always evaluate its arguments, even when nothing would be logged. From Elixir v1.7, the arguments are only evaluated when the message is logged.
+
+The Logger configuration system also accepts a new option called `:compile_time_purge_matching` that allows you to remove log calls with specific compile-time metadata. For example, to remove all logger calls from application `:foo` with level `:info` or inferior, as well as remove all logger calls from `Bar.foo/3`, you can use the following configuration:
+
+```elixir
+config :logger,
+  compile_time_purge_matching: [
+    [application: :foo, level: :info],
+    [module: Bar, function: "foo/3"]
+  ]
+```
+
+## ExUnit improvements
+
+ExUnit has also seen its own share of improvements. Assertions such as `assert some_fun(arg1, arg2, arg3)` will now include the value of each argument in the failure report:
+
+```elixir
+  1) test function call arguments (TestOneOfEach)
+     lib/ex_unit/examples/one_of_each.exs:157
+     Expected truthy, got false
+     code: assert some_vars(1 + 2, 3 + 4)
+     arguments:
+
+         # 1
+         3
+
+         # 2
+         7
+
+     stacktrace:
+       lib/ex_unit/examples/one_of_each.exs:158: (test)
+```
+
+Furthermore, failures in doctests are now colored and diffed.
+
+On `mix test` side of things, there is a new `--failed` flag that runs all tests that failed in the previous run. Finally, coverage reports generated with `mix test --cover` include a summary out of the box:
+
+```
+Generating cover results ...
+
+Percentage | Module
+-----------|--------------------------
+    93.85% | Plug.Conn.Query
+    92.16% | Plug.Router.Utils
+    91.30% | Plug.CSRFProtection
+    91.03% | Plug.Adapters.Test.Conn
+    90.70% | Plug.Crypto
+    89.13% | Plug.Parsers
+    88.89% | Plug.Test
+    88.66% | Plug.Static
+    87.69% | Plug.Conn.Utils
+       ... | ...
+-----------|--------------------------
+    61.55% | Total
+```
+
 ## v1.7.0-dev
 
 ### 1. Enhancements
