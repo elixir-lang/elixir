@@ -242,7 +242,8 @@ defmodule Logger do
 
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata).
-      Setting `:metadata` to `:all` prints all metadata.
+      Setting `:metadata` to `:all` prints all metadata. See
+      the "Metadata" section for more information.
 
     * `:colors` - a keyword list of coloring options.
 
@@ -253,21 +254,6 @@ defmodule Logger do
       for a confirmation from the IO device (default: 32).
       Once the buffer is full, the backend will block until
       a confirmation is received.
-
-  In addition to the keys provided by the user via `Logger.metadata/1`,
-  the following extra keys are available to the `:metadata` list:
-
-    * `:application` - the current application
-
-    * `:module` - the current module
-
-    * `:function` - the current function
-
-    * `:file` - the current file
-
-    * `:line` - the current line
-
-    * `:pid` - the current process ID
 
   The supported keys in the `:colors` keyword list are:
 
@@ -290,6 +276,30 @@ defmodule Logger do
       config :logger, :console,
         format: "\n$time $metadata[$level] $levelpad$message\n",
         metadata: [:user_id]
+
+  ## Metadata
+
+  In addition to the keys provided by the user via `Logger.metadata/1`,
+  the following extra keys are available to the `:metadata` list:
+
+    * `:application` - the current application
+
+    * `:module` - the current module
+
+    * `:function` - the current function
+
+    * `:file` - the current file
+
+    * `:line` - the current line
+
+    * `:pid` - the current process ID
+
+    * `:crash_reason` - a two-element tuple with the throw/error/exit reason
+      as first argument and the stacktrace as second. A throw will always be
+      `{:nocatch, term}`. An error is always an `Exception` struct. All other
+      entries are exits. The console backend ignores this metadata by default
+      but it can be useful to other backends, such as the ones that report
+      errors to third-party services
 
   ### Custom formatting
 

@@ -10,6 +10,7 @@
   * [Calendar] Add `Calendar.months_in_year/1` callback
   * [Code] Add `Code.compile_file/2` that compiles files without leaving footprints on the system
   * [Code] Add `Code.purge_compiler_modules/0` that purges any compiler module left behind. This is useful for live systems dynamically compiling code
+  * [Code] Add `Code.fetch_docs/1` that returns docs in the [EEP 48](http://erlang.org/eep/eeps/eep-0048.html) format
   * [Date] Add `Date.months_in_year/1` function
   * [DynamicSupervisor] Use the name of the `DynamicSupervisor` as the ID whenever possible
   * [Exception] Provide "did you mean" suggestions on KeyError
@@ -49,12 +50,15 @@
   * [Logger] Only evaluate Logger macro arguments when the message will be logged
   * [Logger] Add `:compile_time_purge_matching` to purge logger calls that match certain compile time metadata, such as module names and application names
   * [Logger] Log to `:stderr` if a backend fails and there are no other backends
+  * [Logger] Allow translators to return custom metadata
+  * [Logger] Return `:crash_reason`, `:initial_call` and `:registered_name` as metadata in crash reports coming from Erlang/OTP
 
 #### Mix
 
   * [mix archive.install] Add support for the Hex organization via `--organization`
   * [mix archive.uninstall] Support `--force` flag
   * [mix compile] Improve support for external build tools such as `rebar`
+  * [mix deps] Include `override: true` in rebar dependencies to make the behaviour closer to how rebar3 works (although diverged deps are still marked as diverged)
   * [mix escript.install] Add support for the Hex organization via `--organization`
   * [mix escript.uninstall] Support `--force` flag
   * [mix help] Also list aliases
@@ -70,7 +74,13 @@
 #### Elixir
 
   * [IO.ANSI.Docs] Fix table column alignment when converting docs to ANSI escapes
+  * [Code] Ensure `string_to_quoted` return error tuples instead of raising in certain constructs
+  * [Code.Formatter] Consistently format keyword lists in functions calls with and without parens
+  * [Code.Formatter] Do not break after `->` when there are only comments and one-line clauses
   * [Kernel] Raise on unsafe variables as some of the code emitted with unsafe variables would not correctly propagate variables or would disable tail call optimization semantics
+  * [Kernel] Do not crash on dynamic sizes in binary generators with collectable into in comprehensions
+  * [Kernel] Do not crash on literals with non-unary size in binary generators with collectable into in comprehensions
+  * [Task] Improve error reports and exit reasons for failed tasks on Erlang/OTP 20+
 
 #### ExUnit
 
@@ -80,9 +90,12 @@
 
 #### Mix
 
+  * [mix archive.install] Fetch optional dependencies when installing an archive from git/hex
   * [mix compile] Properly track config files in umbrella projects and recompile when any relevant umbrella configuration changes
+  * [mix deps] Ensure the same dependency from different SCMs are tagged as diverged when those SCMs are remote and non-remote
+  * [mix deps] Ensure we re-run dependency resolution when overriding a skipped dep in umbrella
   * [mix deps.compile] Perform clean builds for dependencies on outdated locks to avoid old modules from affecting future compilation
-  * [Mix.Dep] Ensure the same dependency from different SCMs are tagged as diverged when those SCMs are remote and non-remote
+  * [mix escript.install] Fetch optional dependencies when installing an escript from git/hex
 
 ### 3. Soft-deprecations (no warnings emitted)
 
