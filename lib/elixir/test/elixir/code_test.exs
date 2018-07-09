@@ -135,6 +135,9 @@ defmodule CodeTest do
     test "returns an error tuple on handle dot errors" do
       assert Code.string_to_quoted(".\"\#{}\"") ==
                {:error, {1, "interpolation is not allowed when invoking functions", "\""}}
+
+      assert Code.string_to_quoted(".\"a\#{:b}\"c") ==
+               {:error, {1, "interpolation is not allowed when invoking functions", "\""}}
     end
 
     test "raises on errors when string_to_quoted!/2 is used" do
