@@ -123,13 +123,22 @@ defmodule ExUnit.PatternReceiveTest do
   #   assert_receive [a, b, 3] when is_binary(a) and is_integer(b)
   # end
 
-  test "using multiple when or clauses" do
-    send(self(), [1, 2, 3])
-    assert_receive [a, b, 3] when is_binary(a) or is_binary(b)
-  end
+  # test "using multiple when or clauses" do
+  #   send(self(), [1, 2, 3])
+  #   assert_receive [a, b, 3] when is_binary(a) or is_binary(b)
+  # end
 
-  test "Using a list" do
-    send(self(), [1, 2, 3])
-    assert_receive [1, 2, 4]
+  # test "Using a list" do
+  #   send(self(), [1, 2, 3])
+  #   assert_receive [1, 2, 4]
+  # end
+
+  test "broken" do
+    send(
+      self(),
+      {:save_doc, %{:status => :created, :sync_history => %{"map" => true}, "other" => true}}
+    )
+
+    assert_receive {:save_doc, %{status: :creted, sync_history: sync_history} = doc}
   end
 end
