@@ -18,8 +18,13 @@ defmodule Mix.Tasks.Test do
 
       fn ->
         Mix.shell().info("\nGenerating cover results ...\n")
-        {:result, ok, _fail} = :cover.analyse(:coverage, :module)
-        results = Enum.sort_by(ok, &percentage(elem(&1, 1)), &>=/2)
+        {:result, ok, _fail} = :cover.analyse(:coverage, :line)
+
+        results =
+          ok
+          |> gather_coverage()
+          |> Map.take(:cover.modules())
+          |> Enum.sort_by(&percentage(elem(&1, 1)), &>=/2)
 
         if summary_opts = Keyword.get(opts, :summary, true) do
           console(results, summary_opts)
@@ -29,21 +34,37 @@ defmodule Mix.Tasks.Test do
       end
     end
 
+    defp gather_coverage(results) do
+      # When gathering coverage results, we need to skip any
+      # entry with line equal to 0 as those are generated code.
+      Enum.reduce(results, %{}, fn
+        {{_, 0}, _}, acc ->
+          acc
+
+        {{module, _}, {1, 0}}, acc ->
+          {covered, not_covered} = Map.get(acc, module, {0, 0})
+          Map.put(acc, module, {covered + 1, not_covered})
+
+        {{module, _}, {0, 1}}, acc ->
+          {covered, not_covered} = Map.get(acc, module, {0, 0})
+          Map.put(acc, module, {covered, not_covered + 1})
+      end)
+    end
+
     defp console(results, true), do: console(results, [])
 
     defp console(results, opts) when is_list(opts) do
       Mix.shell().info("Percentage | Module")
       Mix.shell().info("-----------|--------------------------")
+      Enum.each(results, &display(&1, opts))
+      Mix.shell().info("-----------|--------------------------")
 
       total =
-        results
-        |> Stream.each(&display(&1, opts))
-        |> Enum.reduce({0, 0}, fn {_, {covered, not_covered}},
-                                  {total_covered, total_not_covered} ->
+        Enum.reduce(results, {0, 0}, fn {_, {covered, not_covered}},
+                                        {total_covered, total_not_covered} ->
           {total_covered + covered, total_not_covered + not_covered}
         end)
 
-      Mix.shell().info("-----------|--------------------------")
       display({"Total", total}, opts)
       Mix.shell().info("")
     end
