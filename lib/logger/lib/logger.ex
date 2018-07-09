@@ -306,11 +306,11 @@ defmodule Logger do
     * `:registered_name` - the process registered name as an atom
 
   Note that all metadata is optional and may not always be available.
-  The `:module`, `:function`, `:line` and similar metadata are automatically
-  included when using the `Logger` macros. `Logger.bare_log/3` does not
-  include such metadata by default. Other metadata, such as `:crash_reason`,
-  `:initial_call` and `:registered_name` are extracted from Erlang/OTP
-  crash reports and available only under those circumstances.
+  The `:module`, `:function`, `:line`, and similar metadata are automatically
+  included when using `Logger` macros. `Logger.bare_log/3` does not include
+  any metadata beyond the `:pid` by default. Other metadata, such as
+  `:crash_reason`, `:initial_call`, and `:registered_name` are extracted
+  from Erlang/OTP crash reports and available only in those cases.
 
   ### Custom formatting
 
