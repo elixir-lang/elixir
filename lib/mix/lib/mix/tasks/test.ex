@@ -22,8 +22,7 @@ defmodule Mix.Tasks.Test do
 
         results =
           ok
-          |> gather_coverage()
-          |> Map.take(:cover.modules())
+          |> gather_coverage(:cover.modules())
           |> Enum.sort_by(&percentage(elem(&1, 1)), &>=/2)
 
         if summary_opts = Keyword.get(opts, :summary, true) do
@@ -34,21 +33,40 @@ defmodule Mix.Tasks.Test do
       end
     end
 
-    defp gather_coverage(results) do
+    defp gather_coverage(results, keep) do
       # When gathering coverage results, we need to skip any
       # entry with line equal to 0 as those are generated code.
-      Enum.reduce(results, %{}, fn
-        {{_, 0}, _}, acc ->
-          acc
+      #
+      # We may also have multiple entries on the same line.
+      # Each line is only considered once.
+      #
+      # We use the process dictionary for performance, to avoid
+      # working with nested maps, but we clean it up afterwards.
+      modules =
+        Enum.reduce(results, MapSet.new(), fn
+          {{module, 0}, _}, acc ->
+            MapSet.put(acc, module)
 
-        {{module, _}, {1, 0}}, acc ->
-          {covered, not_covered} = Map.get(acc, module, {0, 0})
-          Map.put(acc, module, {covered + 1, not_covered})
+          {{module, line}, {1, 0}}, acc ->
+            coverage = Process.get(module) || %{}
+            Process.put(module, Map.put(coverage, line, true))
+            MapSet.put(acc, module)
 
-        {{module, _}, {0, 1}}, acc ->
-          {covered, not_covered} = Map.get(acc, module, {0, 0})
-          Map.put(acc, module, {covered, not_covered + 1})
-      end)
+          {{module, line}, {0, 1}}, acc ->
+            coverage = Process.get(module) || %{}
+            Process.put(module, Map.put_new(coverage, line, false))
+            MapSet.put(acc, module)
+        end)
+
+      for module <- modules, results = Process.delete(module) || %{}, module in keep do
+        result =
+          Enum.reduce(results, {0, 0}, fn
+            {_line, true}, {covered, not_covered} -> {covered + 1, not_covered}
+            {_line, false}, {covered, not_covered} -> {covered, not_covered + 1}
+          end)
+
+        {module, result}
+      end
     end
 
     defp console(results, true), do: console(results, [])
