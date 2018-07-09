@@ -88,18 +88,17 @@ Generating cover results ...
 
 Percentage | Module
 -----------|--------------------------
-    93.85% | Plug.Conn.Query
-    92.16% | Plug.Router.Utils
-    91.30% | Plug.CSRFProtection
-    91.03% | Plug.Adapters.Test.Conn
-    90.70% | Plug.Crypto
-    89.13% | Plug.Parsers
-    88.89% | Plug.Test
-    88.66% | Plug.Static
-    87.69% | Plug.Conn.Utils
+   100.00% | Plug.Exception.Any
+   100.00% | Plug.Adapters.Cowboy2.Stream
+   100.00% | Collectable.Plug.Conn
+   100.00% | Plug.Crypto.KeyGenerator
+   100.00% | Plug.Parsers
+   100.00% | Plug.Head
+   100.00% | Plug.Router.Utils
+   100.00% | Plug.RequestId
        ... | ...
 -----------|--------------------------
-    61.55% | Total
+    77.19% | Total
 ```
 
 ## v1.7.0-dev
