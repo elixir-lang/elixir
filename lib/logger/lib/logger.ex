@@ -301,6 +301,17 @@ defmodule Logger do
       but it can be useful to other backends, such as the ones that report
       errors to third-party services
 
+    * `:initial_call` - the initial call that started the process
+
+    * `:registered_name` - the process registered name as an atom
+
+  Note that all metadata is optional and may not always be available.
+  The `:module`, `:function`, `:line` and similar metadata are automatically
+  included when using the `Logger` macros. `Logger.bare_log/3` does not
+  include such metadata by default. Other metadata, such as `:crash_reason`,
+  `:initial_call` and `:registered_name` are extracted from Erlang/OTP
+  crash reports and available only under those circumstances.
+
   ### Custom formatting
 
   The console backend allows you to customize the format of your log messages
