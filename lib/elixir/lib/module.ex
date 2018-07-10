@@ -1256,17 +1256,15 @@ defmodule Module do
     {arity, defaults} = args_count(args, 0, 0)
 
     impl = compile_impl(set, bag, name, env, kind, arity, defaults)
-    _deprecated = compile_deprecated(set, bag, name, arity, defaults)
-    _since = compile_since(set)
+    doc_meta = compile_doc_meta(set, bag, name, arity, defaults)
 
-    # TODO: Store @since and @deprecated alongside the docs
     {line, doc} = get_doc_info(set, env)
-    compile_doc(set, line, kind, name, arity, args, body, doc, %{}, env, impl)
+    compile_doc(set, line, kind, name, arity, args, body, doc, doc_meta, env, impl)
 
     :ok
   end
 
-  defp compile_doc(_table, line, kind, name, arity, _args, _body, doc, _meta, env, _impl)
+  defp compile_doc(_table, line, kind, name, arity, _args, _body, doc, _doc_meta, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
       message =
@@ -1277,16 +1275,16 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, name, arity, args, body, doc, meta, env, impl) do
+  defp compile_doc(table, line, kind, name, arity, args, body, doc, doc_meta, env, impl) do
     key = {doc_key(kind), name, arity}
     signature = build_signature(args, env)
 
     case :ets.lookup(table, key) do
       [] ->
         doc = if is_nil(doc) && impl, do: false, else: doc
-        :ets.insert(table, {key, line, signature, doc, meta})
+        :ets.insert(table, {key, line, signature, doc, doc_meta})
 
-      [{_, current_line, current_sign, current_doc, current_meta}] ->
+      [{_, current_line, current_sign, current_doc, current_doc_meta}] ->
         signature = merge_signatures(current_sign, signature, 1)
 
         if is_binary(doc) and is_binary(current_doc) and not is_nil(body) do
@@ -1300,31 +1298,40 @@ defmodule Module do
 
         doc = if is_nil(doc), do: current_doc, else: doc
         doc = if is_nil(doc) && impl, do: false, else: doc
-        meta = Map.merge(current_meta, meta)
-        :ets.insert(table, {key, current_line, signature, doc, meta})
+        doc_meta = Map.merge(current_doc_meta, doc_meta)
+        :ets.insert(table, {key, current_line, signature, doc, doc_meta})
     end
   end
 
   defp doc_key(:def), do: :function
   defp doc_key(:defmacro), do: :macro
 
-  defp compile_since(table) do
+  defp compile_doc_meta(set, bag, name, arity, defaults) do
+    doc_meta = compile_since(%{}, set)
+    doc_meta = compile_deprecated(doc_meta, set, bag, name, arity, defaults)
+    add_defaults_count(doc_meta, defaults)
+  end
+
+  defp compile_since(doc_meta, table) do
     case :ets.take(table, :since) do
-      [{:since, since, _}] when is_binary(since) -> since
-      _ -> nil
+      [{:since, since, _}] when is_binary(since) -> Map.put(doc_meta, :since, since)
+      _ -> doc_meta
     end
   end
 
-  defp compile_deprecated(set, bag, name, arity, defaults) do
+  defp compile_deprecated(doc_meta, set, bag, name, arity, defaults) do
     case :ets.take(set, :deprecated) do
       [{:deprecated, reason, _}] when is_binary(reason) ->
         :ets.insert(bag, deprecated_reasons(defaults, name, arity, reason))
-        reason
+        Map.put(doc_meta, :deprecated, reason)
 
       _ ->
-        nil
+        doc_meta
     end
   end
+
+  defp add_defaults_count(doc_meta, 0), do: doc_meta
+  defp add_defaults_count(doc_meta, n), do: Map.put(doc_meta, :defaults, n)
 
   defp deprecated_reasons(0, name, arity, reason) do
     [deprecated_reason(name, arity, reason)]
