@@ -126,6 +126,7 @@ Percentage | Module
   * [Kernel] Warn when comparing structs using the `>`, `<`, `>=` and `<=` operators
   * [Kernel] Warn on unsupported nested comparisons such as `x < y < z`
   * [Kernel] Warn if redefining documentation across clauses of the same definition
+  * [Kernel] Warn on unnecessary quotes around atoms, keywords and calls
   * [Macro] Add `Macro.special_form?/2` and `Macro.operator?/2` that returns true if the given name/arity is a special form or operator respectively
   * [Macro.Env] Add `Macro.Env.vars/1` and `Macro.Env.has_var?/2` that gives access to environment data without accessing private fields
   * [Regex] Include endianness in the regex version. This allows regexes to be recompiled when an archive is installed in a system with a different endianness
@@ -200,9 +201,15 @@ Percentage | Module
 
 ### 3. Soft-deprecations (no warnings emitted)
 
+#### Elixir
+
   * [Code] Deprecate `Code.load_file/2` in favor of `Code.compile_file/2`
   * [Code] Deprecate `Code.loaded_files/0` in favor of `Code.required_files/0`
   * [Code] Deprecate `Code.unload_files/1` in favor of `Code.unrequire_files/1`
+
+#### Logger
+
+  * [Logger] `compile_time_purge_level` is deprecated in favor of `compile_time_purge_matching`
 
 ### 4. Hard-deprecations
 
