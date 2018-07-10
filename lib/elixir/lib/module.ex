@@ -1242,7 +1242,7 @@ defmodule Module do
       if doc, do: {:error, :private_doc}, else: :ok
     else
       {set, _bag} = data_tables_for(module)
-      compile_doc(set, line, kind, name, arity, signature, nil, doc, __ENV__, false)
+      compile_doc(set, line, kind, name, arity, signature, nil, doc, %{}, __ENV__, false)
       :ok
     end
   end
@@ -1261,12 +1261,12 @@ defmodule Module do
 
     # TODO: Store @since and @deprecated alongside the docs
     {line, doc} = get_doc_info(set, env)
-    compile_doc(set, line, kind, name, arity, args, body, doc, env, impl)
+    compile_doc(set, line, kind, name, arity, args, body, doc, %{}, env, impl)
 
     :ok
   end
 
-  defp compile_doc(_table, line, kind, name, arity, _args, _body, doc, env, _impl)
+  defp compile_doc(_table, line, kind, name, arity, _args, _body, doc, _meta, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
       message =
@@ -1277,16 +1277,16 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, name, arity, args, body, doc, env, impl) do
+  defp compile_doc(table, line, kind, name, arity, args, body, doc, meta, env, impl) do
     key = {doc_key(kind), name, arity}
     signature = build_signature(args, env)
 
     case :ets.lookup(table, key) do
       [] ->
         doc = if is_nil(doc) && impl, do: false, else: doc
-        :ets.insert(table, {key, line, signature, doc})
+        :ets.insert(table, {key, line, signature, doc, meta})
 
-      [{_, current_line, current_sign, current_doc}] ->
+      [{_, current_line, current_sign, current_doc, current_meta}] ->
         signature = merge_signatures(current_sign, signature, 1)
 
         if is_binary(doc) and is_binary(current_doc) and not is_nil(body) do
@@ -1300,7 +1300,8 @@ defmodule Module do
 
         doc = if is_nil(doc), do: current_doc, else: doc
         doc = if is_nil(doc) && impl, do: false, else: doc
-        :ets.insert(table, {key, current_line, signature, doc})
+        meta = Map.merge(current_meta, meta)
+        :ets.insert(table, {key, current_line, signature, doc, meta})
     end
   end
 

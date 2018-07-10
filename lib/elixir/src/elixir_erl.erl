@@ -558,27 +558,27 @@ get_docs(Set, Module, Definitions, Kind) ->
     erl_anno:new(Line),
     [signature_to_binary(Module, Name, Signature)],
     doc_value(Doc),
-    doc_metadata(Kind)
+    Meta
    } || {Name, Arity} <- Definitions,
-        {Key, Line, Signature, Doc} <- ets:lookup(Set, {Kind, Name, Arity})].
+        {Key, Line, Signature, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_callback_docs(Set, Callbacks) ->
   [{Key,
     erl_anno:new(Line),
     [],
     doc_value(Doc),
-    doc_metadata(Kind)
+    Meta
    } || {Kind, {Name, Arity}, _, _} <- Callbacks,
-        {Key, Line, Doc} <- ets:lookup(Set, {Kind, Name, Arity})].
+        {Key, Line, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_type_docs(Set, Types) ->
   [{Key,
     erl_anno:new(Line),
     [],
     doc_value(Doc),
-    doc_metadata(Kind)
-   } || {Kind, {Name, Arity}, _, _, true} <- Types,
-        {Key, Line, Doc} <- ets:lookup(Set, {type, Name, Arity})].
+    Meta
+   } || {_Kind, {Name, Arity}, _, _, true} <- Types,
+        {Key, Line, Doc, Meta} <- ets:lookup(Set, {type, Name, Arity})].
 
 signature_to_binary(_Module, Name, _Signature) when Name == '__aliases__'; Name == '__block__' ->
   <<(atom_to_binary(Name, utf8))/binary, "(args)">>;
@@ -596,9 +596,6 @@ signature_to_binary(Module, '__struct__', 0) ->
 
 signature_to_binary(_, Name, Signature) ->
   'Elixir.Macro':to_string({Name, [], Signature}).
-
-doc_metadata(opaque) -> #{opaque => true};
-doc_metadata(_)      -> #{}.
 
 %% Errors
 
