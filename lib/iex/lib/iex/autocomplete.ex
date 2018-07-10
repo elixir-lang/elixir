@@ -458,17 +458,9 @@ defmodule IEx.Autocomplete do
   defp extract_name_and_arity({{_, name, arity}, _, _, _, _}), do: {name, arity}
 
   defp default_arg_functions_with_doc_false(docs) do
-    for {{_, fun_name, arity}, _, signature, :hidden, _} <- docs,
-        count = count_defaults(signature),
-        count > 0,
+    for {{_, fun_name, arity}, _, _, :hidden, %{defaults: count}} <- docs,
         new_arity <- (arity - count)..arity,
         do: {fun_name, new_arity}
-  end
-
-  defp count_defaults(signature) do
-    signature
-    |> Stream.flat_map(&Regex.scan(~r/ \\\\ /, &1))
-    |> Enum.count()
   end
 
   defp hidden_fun?({name, arity}, docs) do
