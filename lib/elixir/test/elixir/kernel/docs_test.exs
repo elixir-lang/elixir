@@ -54,10 +54,10 @@ defmodule Kernel.DocsTest do
     assert Code.fetch_docs(InMemoryDocs) == {:error, :module_not_found}
   end
 
-  test "raises on invalid @since" do
+  test "raises on invalid @doc since: ..." do
     assert_raise ArgumentError, ~r"should be a string representing the version", fn ->
       defmodule InvalidSince do
-        @since 1.2
+        @doc since: 1.2
         def foo, do: :bar
       end
     end

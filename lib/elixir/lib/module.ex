@@ -1921,8 +1921,18 @@ defmodule Module do
   end
 
   defp preprocess_doc_meta([{key, value} | tail], module, line, map) when is_atom(key) do
+    validate_doc_meta(key, value)
     preprocess_doc_meta(tail, module, line, Map.put(map, key, value))
   end
+
+  defp validate_doc_meta(:since, value) when not is_binary(value) do
+    raise ArgumentError,
+          ":since is a built-in documentation metadata key. " <>
+            "It should be a string representing the version a function, macro, type or " <>
+            "callback was added, got: #{inspect(value)}"
+  end
+
+  defp validate_doc_meta(_, _), do: :ok
 
   defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
