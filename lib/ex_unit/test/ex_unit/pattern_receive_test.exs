@@ -133,6 +133,13 @@ defmodule ExUnit.PatternReceiveTest do
   #   assert_receive [1, 2, 4]
   # end
 
+  test "Using a list" do
+    send(self(), [1, 2, 3])
+    send(self(), [1, 2])
+    send(self(), [1, 2, 3, 4, 5])
+    assert_receive [1, 2, 3, 4]
+  end
+
   test "broken" do
     send(
       self(),

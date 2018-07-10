@@ -88,6 +88,8 @@ defmodule ExUnit.ReceivePatternFormat do
     ctx = create_context(diff)
 
     [comma, format(diff, ctx)]
+    |> List.flatten()
+
     # |> IO.inspect(label: "Format list")
   end
 
