@@ -220,7 +220,11 @@ defmodule Process do
   end
 
   @doc """
-  Sends a message to the given process.
+  Sends a message to the given `dest`.
+
+  `dest` may be a remote or local PID, a local port, a locally
+  registered name, or a tuple in the form of `{registered_name, node}` for a
+  registered name at another node.
 
   Inlined by the compiler.
 
@@ -395,7 +399,7 @@ defmodule Process do
     * `object` is either a `pid` of the monitored process (if monitoring
       a PID) or `{name, node}` (if monitoring a remote or local name);
     * `reason` is the exit reason.
-    
+
   If the process is already dead when calling `Process.monitor/1`, a
   `:DOWN` message is delivered immediately.
 
