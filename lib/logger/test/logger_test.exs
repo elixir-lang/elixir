@@ -255,7 +255,8 @@ defmodule LoggerTest do
       compile_time_purge_matching: [
         [module: LoggerTest.PurgeMatching, function: "two_filters/0"],
         [function: "one_filter/0"],
-        [custom: true]
+        [custom: true],
+        [function: "level_filter/0", level_lower_than: :info]
       ]
     )
 
@@ -272,6 +273,11 @@ defmodule LoggerTest do
         Logger.debug("custom_filters", custom: true)
       end
 
+      def level_filter do
+        Logger.debug("debug_filter")
+        Logger.info("info_filter")
+      end
+
       def works do
         Logger.debug("works")
       end
@@ -281,6 +287,8 @@ defmodule LoggerTest do
     assert capture_log(fn -> assert PurgeMatching.one_filter() == :ok end) == ""
     assert capture_log(fn -> assert PurgeMatching.two_filters() == :ok end) == ""
     assert capture_log(fn -> assert PurgeMatching.custom_filters() == :ok end) == ""
+    assert capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "info_filter"
+    refute capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "debug_filter"
   after
     Logger.configure(compile_time_purge_matching: [])
   end
