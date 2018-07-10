@@ -143,6 +143,9 @@ defmodule Kernel.DocsTest do
         defmodule SampleDocs do
           @moduledoc "Module doc"
 
+          @doc "My struct"
+          defstruct [:sample]
+
           @typedoc "Type doc"
           @since "1.2.3"
           @type foo(any) :: any
@@ -200,6 +203,8 @@ defmodule Kernel.DocsTest do
         callback_bar,
         callback_baz,
         callback_foo,
+        function_struct_0,
+        function_struct_1,
         function_bar,
         function_baz,
         function_foo,
@@ -215,6 +220,11 @@ defmodule Kernel.DocsTest do
 
       assert {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"},
               %{since: "1.2.3", deprecated: "use baz/2 instead"}} = callback_foo
+
+      assert {{:function, :__struct__, 0}, _, ["%Kernel.DocsTest.SampleDocs{}"],
+              %{"en" => "My struct"}, %{}} = function_struct_0
+
+      assert {{:function, :__struct__, 1}, _, ["__struct__(kv)"], :none, %{}} = function_struct_1
 
       assert {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple bodiless clause doc"},
               %{since: "1.2.3"}} = function_bar
