@@ -136,8 +136,8 @@ defmodule Kernel.Typespec do
 
       {name, arity} ->
         {line, doc} = get_doc_info(set, :typedoc, line)
-        meta = if kind == :opaque, do: %{opaque: true}, else: %{}
-        store_doc(set, :type, name, arity, line, doc, meta)
+        doc_meta = if kind == :opaque, do: %{opaque: true}, else: %{}
+        store_doc(set, :type, name, arity, line, doc, doc_meta)
 
       :error ->
         :error
@@ -157,11 +157,9 @@ defmodule Kernel.Typespec do
     :ok
   end
 
-  defp store_doc(set, kind, name, arity, line, doc, meta) do
-    # TODO: Add and merge this information to doc metadata
-    _ = get_since_info(set)
-    _ = get_deprecated_info(set)
-    :ets.insert(set, {{kind, name, arity}, line, doc, meta})
+  defp store_doc(set, kind, name, arity, line, doc, doc_meta) do
+    doc_meta = get_doc_meta(doc_meta, set)
+    :ets.insert(set, {{kind, name, arity}, line, doc, doc_meta})
   end
 
   defp get_doc_info(set, attr, line) do
@@ -171,12 +169,24 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp get_since_info(set) do
-    :ets.take(set, :since)
+  defp get_doc_meta(doc_meta, set) do
+    doc_meta
+    |> get_since_info(set)
+    |> get_deprecated_info(set)
   end
 
-  defp get_deprecated_info(set) do
-    :ets.take(set, :deprecated)
+  defp get_since_info(doc_meta, set) do
+    case :ets.take(set, :since) do
+      [{:since, since, _}] when is_binary(since) -> Map.put(doc_meta, :since, since)
+      _ -> doc_meta
+    end
+  end
+
+  defp get_deprecated_info(doc_meta, set) do
+    case :ets.take(set, :deprecated) do
+      [{:deprecated, reason, _}] when is_binary(reason) -> Map.put(doc_meta, :deprecated, reason)
+      _ -> doc_meta
+    end
   end
 
   defp spec_to_signature({:when, _, [spec, _]}), do: type_to_signature(spec)

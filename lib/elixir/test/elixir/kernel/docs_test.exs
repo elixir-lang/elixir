@@ -152,6 +152,7 @@ defmodule Kernel.DocsTest do
 
           @doc "Callback doc"
           @since "1.2.3"
+          @deprecated "use baz/2 instead"
           @callback foo(any) :: any
 
           @doc false
@@ -163,7 +164,8 @@ defmodule Kernel.DocsTest do
 
           @doc "Function doc"
           @since "1.2.3"
-          def foo(arg), do: arg + 1
+          @deprecated "use baz/2 instead"
+          def foo(arg \\ 0), do: arg + 1
 
           @doc "Multiple bodiless clause doc"
           @since "1.2.3"
@@ -194,21 +196,45 @@ defmodule Kernel.DocsTest do
 
       assert module_doc == "Module doc"
 
-      assert [
-               {{:callback, :bar, 0}, _, [], :hidden, %{}},
-               {{:callback, :baz, 2}, _, [], :none, %{}},
-               {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"}, %{}},
-               {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple bodiless clause doc"},
-                %{}},
-               {{:function, :baz, 1}, _, ["baz(arg)"],
-                %{"en" => "Multiple bodiless clause and docs"}, %{}},
-               {{:function, :foo, 1}, _, ["foo(arg)"], %{"en" => "Function doc"}, %{}},
-               {{:function, :nullary, 0}, _, ["nullary()"], %{"en" => "add_doc"}, %{}},
-               {{:function, :qux, 1}, _, ["qux(bool)"], :hidden, %{}},
-               {{:macrocallback, :qux, 1}, _, [], %{"en" => "Macrocallback doc"}, %{}},
-               {{:type, :bar, 1}, _, [], %{"en" => "Opaque type doc"}, %{opaque: true}},
-               {{:type, :foo, 1}, _, [], %{"en" => "Type doc"}, %{}}
-             ] = Enum.sort(docs)
+      [
+        callback_bar,
+        callback_baz,
+        callback_foo,
+        function_bar,
+        function_baz,
+        function_foo,
+        function_nullary,
+        function_qux,
+        macrocallback_qux,
+        type_bar,
+        type_foo
+      ] = Enum.sort(docs)
+
+      assert {{:callback, :bar, 0}, _, [], :hidden, %{}} = callback_bar
+      assert {{:callback, :baz, 2}, _, [], :none, %{}} = callback_baz
+
+      assert {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"},
+              %{since: "1.2.3", deprecated: "use baz/2 instead"}} = callback_foo
+
+      assert {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple bodiless clause doc"},
+              %{since: "1.2.3"}} = function_bar
+
+      assert {{:function, :baz, 1}, _, ["baz(arg)"],
+              %{"en" => "Multiple bodiless clause and docs"}, %{since: "1.2.3"}} = function_baz
+
+      assert {{:function, :foo, 1}, _, ["foo(arg \\\\ 0)"], %{"en" => "Function doc"},
+              %{since: "1.2.3", deprecated: "use baz/2 instead", defaults: 1}} = function_foo
+
+      assert {{:function, :nullary, 0}, _, ["nullary()"], %{"en" => "add_doc"}, %{}} =
+               function_nullary
+
+      assert {{:function, :qux, 1}, _, ["qux(bool)"], :hidden, %{}} = function_qux
+
+      assert {{:macrocallback, :qux, 1}, _, [], %{"en" => "Macrocallback doc"}, %{}} =
+               macrocallback_qux
+
+      assert {{:type, :bar, 1}, _, [], %{"en" => "Opaque type doc"}, %{opaque: true}} = type_bar
+      assert {{:type, :foo, 1}, _, [], %{"en" => "Type doc"}, %{since: "1.2.3"}} = type_foo
     end
   end
 
