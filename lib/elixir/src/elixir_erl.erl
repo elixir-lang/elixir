@@ -591,7 +591,7 @@ signature_to_binary(_Module, Name, _Signature)
 signature_to_binary(_Module, '%', _) ->
   <<"%struct{}">>;
 
-signature_to_binary(Module, '__struct__', 0) ->
+signature_to_binary(Module, '__struct__', []) ->
   <<"%", ('Elixir.Kernel':inspect(Module))/binary, "{}">>;
 
 signature_to_binary(_, Name, Signature) ->
