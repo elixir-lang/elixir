@@ -437,18 +437,12 @@ defmodule IEx.Introspection do
 
   defp find_doc_defaults(docs, function, min) do
     Enum.find(docs, fn
-      {{_, ^function, arity}, _, signature, _, _} when arity > min ->
-        arity <= min + count_defaults(signature)
+      {{_, ^function, arity}, _, _, _, %{defaults: defaults}} when arity > min ->
+        arity <= min + defaults
 
       _ ->
         false
     end)
-  end
-
-  defp count_defaults(signature) do
-    signature
-    |> Stream.flat_map(&Regex.scan(~r/ \\\\ /, &1))
-    |> Enum.count()
   end
 
   defp has_content?({_, _, _, :hidden, _}), do: false
