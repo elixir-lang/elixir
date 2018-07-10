@@ -30,6 +30,15 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+
+  @type dest :: pid | port | registered_name :: atom | {registered_name :: atom, node}
+  @typedoc """
+  A process destination.
+
+  A remote or local PID, a local port, a locally registered name, or a tuple in
+  the form of `{registered_name, node}` for a registered name at another node.
+  """
+
   @spec alive?(pid) :: boolean
   defdelegate alive?(pid), to: :erlang, as: :is_process_alive
 
@@ -246,7 +255,7 @@ defmodule Process do
 
   """
   @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
-        when dest: pid | port | atom | {atom, node},
+        when dest: dest(),
              msg: any,
              option: :noconnect | :nosuspend
   defdelegate send(dest, msg, options), to: :erlang

@@ -810,7 +810,7 @@ defmodule Kernel do
       :hello
 
   """
-  @spec send(dest :: pid | port | atom | {atom, node}, message) :: message when message: any
+  @spec send(dest :: Process.dest(), message) :: message when message: any
   def send(dest, message) do
     :erlang.send(dest, message)
   end
