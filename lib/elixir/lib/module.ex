@@ -1741,12 +1741,15 @@ defmodule Module do
   # into the same map overriding duplicate keys.
   defp put_attribute(_module, key, {_, metadata}, line, set, _bag)
        when key in [:doc, :typedoc, :moduledoc] and is_list(metadata) do
-    case :ets.lookup(set, {key, :meta}) do
-      [] ->
-        :ets.insert(set, {{key, :meta}, Enum.into(metadata, %{}), line})
+    metadata_map = Map.new(metadata)
 
-      [{{^key, :meta}, current_metadata, _}] ->
-        :ets.update_element(set, {key, :meta}, {2, Enum.into(metadata, current_metadata)})
+    case :ets.insert_new(set, {{key, :meta}, metadata_map, line}) do
+      true ->
+        :ok
+
+      false ->
+        current_metadata = :ets.lookup_element(set, {key, :meta}, 2)
+        :ets.update_element(set, {key, :meta}, {2, Map.merge(current_metadata, metadata_map)})
     end
   end
 
