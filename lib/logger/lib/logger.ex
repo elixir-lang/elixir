@@ -38,7 +38,7 @@ defmodule Logger do
   There are additional macros for other levels.
 
   Logger also allows log commands to be removed altogether via the
-  `:compile_time_purge_level` option (see below).
+  `:compile_time_purge_matching` option (see below).
 
   For dynamically logging messages, see `bare_log/3`. But note that
   `bare_log/3` always evaluates its arguments (unless the argument
@@ -76,45 +76,38 @@ defmodule Logger do
     * `:backends` - the backends to be used. Defaults to `[:console]`.
       See the "Backends" section for more information.
 
-    * `:compile_time_purge_level` - purges *at compilation time* all calls that
-      have log level lower than the value of this option. This means that
-      `Logger` calls with level lower than this option will be completely
-      removed at compile time, accruing no overhead at runtime. Defaults to
-      `:debug` and only applies to the `Logger.debug/2`, `Logger.info/2`,
-      `Logger.warn/2`, and `Logger.error/2` macros (for example, it doesn't apply to
-      `Logger.log/3`). Note that arguments passed to `Logger` calls that are
-      removed from the AST at compilation time are never evaluated, thus any
-      function call that occurs in these arguments is never executed. As a
-      consequence, avoid code that looks like `Logger.debug("Cleanup:
-      #{perform_cleanup()}")` as in the example `perform_cleanup/0` won't be
-      executed if the `:compile_time_purge_level` is `:info` or higher.
-
-    * `:compile_time_purge_matching` - purges *at compilation time* all calls
-      that match the given metadata. This configuration expects a list of
-      keyword lists. Each keyword list contains a metadata key and the matching
-      value that should be purged. Remember that if you want to purge log calls
-      from a dependency, the dependency must be recompiled.
-
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
       usually only useful for build tools to automatically add the
       application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc.
       style of calls.
 
-  For example, to configure the `:backends` and `:compile_time_purge_level`
-  options in a `config/config.exs` file:
+    * `:compile_time_purge_matching` - purges *at compilation time* all calls
+      that match the given conditions. This means that `Logger` calls with
+      level lower than this option will be completely removed at compile time,
+      accruing no overhead at runtime. This configuration expects a list of
+      keyword lists. Each keyword list contains a metadata key and the matching
+      value that should be purged. A special key named `:level_lower_than` can
+      be used to purge all messages with a lower logger level. Remember that
+      if you want to purge log calls from a dependency, the dependency must be
+      recompiled.
+
+  For example, to configure the `:backends` and purge all calls that happen
+  at compile time with level lower than `:info` in a `config/config.exs` file:
 
       config :logger,
         backends: [:console],
-        compile_time_purge_level: :info
+        compile_time_purge_matching: [
+          [level_lower_than: :info]
+        ]
 
-  If you want to purge all log calls from an application named `:foo` or
-  the function "foo/3" from module `Bar`, you can set up two different matches:
+  If you want to purge all log calls from an application named `:foo` and only
+  keep errors from `Bar.foo/3`, you can set up two different matches:
 
       config :logger,
         compile_time_purge_matching: [
           [application: :foo],
-          [module: Bar, function: "foo/3"]
+          [module: Bar, function: "foo/3", level_lower_than: :error]
         ]
 
   ### Runtime Configuration
@@ -126,20 +119,15 @@ defmodule Logger do
     * `:level` - the logging level. Attempting to log any message
       with severity less than the configured level will simply
       cause the message to be ignored. Keep in mind that each backend
-      may have its specific level, too. Note that, unlike what happens with the
-      `:compile_time_purge_level` option, the argument passed to `Logger` calls
-      is evaluated even if the level of the call is lower than
-      `:level`. For this reason, messages that are expensive to
-      compute should be wrapped in 0-arity anonymous functions that are
-      evaluated only when the `:level` option demands it.
+      may have its specific level, too.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e., it defaults to `false`).
 
-    * `:truncate` - the maximum message size to be logged (in bytes). Defaults
-      to 8192 bytes. Note this configuration is approximate. Truncated messages
-      will have `" (truncated)"` at the end.  The atom `:infinity` can be passed
-      to disable this behavior.
+    * `:truncate` - the maximum message size to be logged (in bytes).
+      Defaults to 8192 bytes. Note this configuration is approximate.
+      Truncated messages will have `" (truncated)"` at the end.
+      The atom `:infinity` can be passed to disable this behavior.
 
     * `:sync_threshold` - if the `Logger` manager has more than
       `:sync_threshold` messages in its queue, `Logger` will change
@@ -799,7 +787,9 @@ defmodule Logger do
          end}
       end
 
-    if compile_time_purge_matching?(compile_metadata) do
+    compile_level = if is_atom(level), do: level, else: :error
+
+    if compile_time_purge_matching?(compile_level, compile_metadata) do
       no_log(data, quoted_metadata)
     else
       quote do
@@ -819,11 +809,14 @@ defmodule Logger do
     end
   end
 
-  defp compile_time_purge_matching?(compile_metadata) do
+  defp compile_time_purge_matching?(level, compile_metadata) do
     matching = Application.get_env(:logger, :compile_time_purge_matching, [])
 
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
+        {:level_lower_than, min_level} ->
+          compare_levels(level, min_level) == :lt
+
         {k, v} when is_atom(k) ->
           Keyword.fetch(compile_metadata, k) == {:ok, v}
 
@@ -834,6 +827,7 @@ defmodule Logger do
     end)
   end
 
+  # TODO: Deprecate compile_time_purge_level in favor of compile_time_purge_matching on 1.9
   defp maybe_log(level, data, metadata, caller) do
     min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)
 
