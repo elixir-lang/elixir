@@ -145,7 +145,7 @@ compile(#{module := Module, line := Line} = Map) ->
   {Prefix, Forms, Def, Defmacro, Macros, Deprecated} = dynamic_form(Map),
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, Set, Bag, Macros),
 
-  DocsChunk = docs_chunk(Set, Line, Def, Defmacro, Types, Callbacks),
+  DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
   DeprecatedChunk = deprecated_chunk(Deprecated),
   Chunks = lists:flatten([DocsChunk, DeprecatedChunk]),
 
@@ -512,12 +512,12 @@ supports_extra_chunks_option() ->
     _ -> true
   end.
 
-docs_chunk(Set, Line, Def, Defmacro, Types, Callbacks) ->
+docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
   case elixir_compiler:get_opt(docs) of
     true ->
       {ModuleDocLine, ModuleDoc} = get_moduledoc(Line, Set),
-      FunctionDocs = get_docs(Set, Def, function),
-      MacroDocs = get_docs(Set, Defmacro, macro),
+      FunctionDocs = get_docs(Set, Module, Def, function),
+      MacroDocs = get_docs(Set, Module, Defmacro, macro),
       CallbackDocs = get_callback_docs(Set, Callbacks),
       TypeDocs = get_type_docs(Set, Types),
 
@@ -553,10 +553,10 @@ get_moduledoc(Line, Set) ->
     {DocLine, Doc} -> {DocLine, doc_value(Doc)}
   end.
 
-get_docs(Set, Definitions, Kind) ->
+get_docs(Set, Module, Definitions, Kind) ->
   [{Key,
     erl_anno:new(Line),
-    [signature_to_binary(Name, Signature)],
+    [signature_to_binary(Module, Name, Signature)],
     doc_value(Doc),
     doc_metadata(Kind)
    } || {Name, Arity} <- Definitions,
@@ -580,15 +580,22 @@ get_type_docs(Set, Types) ->
    } || {Kind, {Name, Arity}, _, _, true} <- Types,
         {Key, Line, Doc} <- ets:lookup(Set, {type, Name, Arity})].
 
-signature_to_binary(Name, Signature) ->
-  BinaryName = atom_to_binary(Name, utf8),
-  Args = lists:map(fun
-    FormatArg({'\\\\', _, [Left, Right]}) ->
-      [FormatArg(Left), " \\\\ ", 'Elixir.Macro':to_string(Right)];
-    FormatArg({Var, _, _}) ->
-      atom_to_binary(Var, utf8)
-  end, Signature),
-  iolist_to_binary([BinaryName, "(", lists:join(", ", Args), ")"]).
+signature_to_binary(_Module, Name, _Signature) when Name == '__aliases__'; Name == '__block__' ->
+  <<(atom_to_binary(Name, utf8))/binary, "(args)">>;
+
+signature_to_binary(_Module, Name, _Signature)
+    when Name == '__CALLER__'; Name == '__DIR__'; Name == '__ENV__';
+         Name == '__MODULE__'; Name == '__STACKTRACE__'; Name == '%{}' ->
+  atom_to_binary(Name, utf8);
+
+signature_to_binary(_Module, '%', _) ->
+  <<"%struct{}">>;
+
+signature_to_binary(Module, '__struct__', 0) ->
+  <<"%", ('Elixir.Kernel':inspect(Module))/binary, "{}">>;
+
+signature_to_binary(_, Name, Signature) ->
+  'Elixir.Macro':to_string({Name, [], Signature}).
 
 doc_metadata(opaque) -> #{opaque => true};
 doc_metadata(_)      -> #{}.
