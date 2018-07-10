@@ -42,6 +42,7 @@ defmodule ExUnit.PatternDiff do
   # {:=, _, [l, r]}
   # {:%{}, _, members}
   # {:{}, _, members}
+  # {:_, _, _}
   # {var, _, _}
   # {key, val}
   # list
@@ -124,6 +125,18 @@ defmodule ExUnit.PatternDiff do
       end
 
     cmp(%{ast: val}, rh_value, env)
+  end
+
+  def cmp(%{ast: {:_, _, _}} = pattern, rh_value, env) do
+    {
+      %__MODULE__{
+        type: :value,
+        lh: pattern,
+        rh: rh_value,
+        diff_result: :eq
+      },
+      env
+    }
   end
 
   def cmp(%{ast: {var, _, var_ctx}} = pattern, rh_value, {vars, pins} = env)
