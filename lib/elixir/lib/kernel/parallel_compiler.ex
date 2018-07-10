@@ -14,7 +14,7 @@ defmodule Kernel.ParallelCompiler do
   See `Task.async/1` for more information. The task spawned must be
   always awaited on by calling `Task.await/1`
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   def async(fun) when is_function(fun) do
     if parent = :erlang.get(:elixir_compiler_pid) do
       file = :erlang.get(:elixir_compiler_file)
@@ -72,12 +72,12 @@ defmodule Kernel.ParallelCompiler do
       `dest`, use `compile_to_path/3` instead.
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   def compile(files, options \\ []) when is_list(options) do
     spawn_workers(files, :compile, options)
   end
 
-  @since "1.6.0"
+  @doc since: "1.6.0"
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
     spawn_workers(files, {:compile, path}, options)
   end
@@ -102,7 +102,7 @@ defmodule Kernel.ParallelCompiler do
       the file, module and the module bytecode
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   def require(files, options \\ []) when is_list(options) do
     spawn_workers(files, :require, options)
   end

@@ -201,7 +201,7 @@ defmodule Macro do
       [{:var1, [], __MODULE__}, {:var2, [], __MODULE__}]
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   def generate_arguments(0, _), do: []
 
   def generate_arguments(amount, context)
@@ -1275,7 +1275,7 @@ defmodule Macro do
   @doc """
   Returns true if the given name and arity is a special form.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec special_form?(name :: atom(), arity()) :: boolean()
   def special_form?(name, arity) when is_atom(name) and is_integer(arity) do
     :elixir_import.special_form(name, arity)
@@ -1284,7 +1284,7 @@ defmodule Macro do
   @doc """
   Returns true if the given name and arity is an operator.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec operator?(name :: atom(), arity()) :: boolean()
   def operator?(name, 2) when is_atom(name), do: Identifier.binary_op(name) != :error
   def operator?(name, 1) when is_atom(name), do: Identifier.unary_op(name) != :error
@@ -1293,7 +1293,7 @@ defmodule Macro do
   @doc """
   Returns true if the given quoted expression is an AST literal.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec quoted_literal?(literal) :: true
   @spec quoted_literal?(expr) :: false
   def quoted_literal?(term)

@@ -16,7 +16,7 @@ defmodule Kernel do
       data type handling, etc
     * macros for control-flow and defining new functionality (modules, functions, and so on)
     * [guard](guards.html) checks for augmenting pattern matching
-    
+
   You can use `Kernel` functions/macros without the `Kernel` prefix anywhere in
   Elixir code as all its functions and macros are automatically imported. For
   example, in IEx:
@@ -24,11 +24,11 @@ defmodule Kernel do
       iex> is_number(13)
       true
 
-  If you don't want to import a function or macro from `Kernel`, use the `:except` 
+  If you don't want to import a function or macro from `Kernel`, use the `:except`
   option and then list the function/macro by arity:
 
         import Kernel, except: [if: 2, unless: 2]
-        
+
   See `Kernel.SpecialForms.import/2` for more information on importing.
 
   Elixir also has special forms that are always imported and
@@ -4632,7 +4632,7 @@ defmodule Kernel do
       end
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec defguard(Macro.t()) :: Macro.t()
   defmacro defguard(guard) do
     define_guard(:defmacro, guard, __CALLER__)
@@ -4648,7 +4648,7 @@ defmodule Kernel do
   Similar to `defmacrop/2`, `defguardp/1` must be defined before its use
   in the current module.
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec defguardp(Macro.t()) :: Macro.t()
   defmacro defguardp(guard) do
     define_guard(:defmacrop, guard, __CALLER__)

@@ -87,8 +87,7 @@ defmodule Date do
       -366
 
   """
-
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec range(Date.t(), Date.t()) :: Date.Range.t()
   def range(%Date{calendar: calendar} = first, %Date{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
@@ -116,7 +115,7 @@ defmodule Date do
       true
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec utc_today(Calendar.calendar()) :: t
   def utc_today(calendar \\ Calendar.ISO)
 
@@ -148,7 +147,7 @@ defmodule Date do
       true
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec leap_year?(Calendar.date()) :: boolean()
   def leap_year?(date)
 
@@ -169,7 +168,7 @@ defmodule Date do
       29
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec days_in_month(Calendar.date()) :: Calendar.day()
   def days_in_month(date)
 
@@ -186,7 +185,7 @@ defmodule Date do
       12
 
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec months_in_year(Calendar.date()) :: Calendar.month()
   def months_in_year(date)
 
@@ -436,7 +435,7 @@ defmodule Date do
       :eq
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec compare(Calendar.date(), Calendar.date()) :: :lt | :eq | :gt
   def compare(%{calendar: calendar} = date1, %{calendar: calendar} = date2) do
     %{year: year1, month: month1, day: day1} = date1
@@ -484,7 +483,7 @@ defmodule Date do
       {:ok, %Date{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1}}
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec convert(Calendar.date(), Calendar.calendar()) ::
           {:ok, t} | {:error, :incompatible_calendars}
   def convert(%{calendar: calendar, year: year, month: month, day: day}, calendar) do
@@ -518,7 +517,7 @@ defmodule Date do
       %Date{calendar: Calendar.Holocene, year: 12000, month: 1, day: 1}
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec convert!(Calendar.date(), Calendar.calendar()) :: t
   def convert!(date, calendar) do
     case convert(date, calendar) do
@@ -550,7 +549,7 @@ defmodule Date do
       ~D[-0011-12-30]
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec add(Calendar.date(), integer()) :: t
   def add(%{calendar: calendar} = date, days) do
     {iso_days, fraction} = to_iso_days(date)
@@ -576,7 +575,7 @@ defmodule Date do
       -2
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec diff(Calendar.date(), Calendar.date()) :: integer
   def diff(%{calendar: Calendar.ISO} = date1, %{calendar: Calendar.ISO} = date2) do
     %{year: year1, month: month1, day: day1} = date1
@@ -634,7 +633,7 @@ defmodule Date do
       3
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec day_of_week(Calendar.date()) :: non_neg_integer()
   def day_of_week(date)
 

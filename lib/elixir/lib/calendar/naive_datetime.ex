@@ -96,7 +96,7 @@ defmodule NaiveDateTime do
       true
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec utc_now(Calendar.calendar()) :: t
   def utc_now(calendar \\ Calendar.ISO)
 
@@ -243,7 +243,7 @@ defmodule NaiveDateTime do
       ~N[2014-10-02 00:29:10]
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec add(t, integer, System.time_unit()) :: t
   def add(%NaiveDateTime{} = naive_datetime, integer, unit \\ :second)
       when is_integer(integer) do
@@ -282,7 +282,7 @@ defmodule NaiveDateTime do
       63579428950
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec diff(t, t, System.time_unit()) :: integer
   def diff(
         %NaiveDateTime{} = naive_datetime1,
@@ -317,7 +317,7 @@ defmodule NaiveDateTime do
       ~N[2017-11-06 00:23:51]
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
   def truncate(%NaiveDateTime{microsecond: microsecond} = naive_datetime, precision) do
     %{naive_datetime | microsecond: Calendar.truncate(microsecond, precision)}
@@ -702,7 +702,7 @@ defmodule NaiveDateTime do
       :lt
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec compare(Calendar.naive_datetime(), Calendar.naive_datetime()) :: :lt | :eq | :gt
   def compare(%{calendar: calendar1} = naive_datetime1, %{calendar: calendar2} = naive_datetime2) do
     if Calendar.compatible_calendars?(calendar1, calendar2) do
@@ -739,7 +739,7 @@ defmodule NaiveDateTime do
                            hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec convert(Calendar.naive_datetime(), Calendar.calendar()) ::
           {:ok, t} | {:error, :incompatible_calendars}
 
@@ -801,7 +801,7 @@ defmodule NaiveDateTime do
                      hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec convert!(Calendar.naive_datetime(), Calendar.calendar()) :: t
   def convert!(naive_datetime, calendar) do
     case convert(naive_datetime, calendar) do

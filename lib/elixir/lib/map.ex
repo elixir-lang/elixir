@@ -325,7 +325,7 @@ defmodule Map do
       ** (KeyError) key :b not found in: %{a: 1}
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec replace!(map, key, value) :: map
   def replace!(map, key, value) do
     :maps.update(key, value, map)

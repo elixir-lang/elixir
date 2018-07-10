@@ -915,7 +915,7 @@ defmodule Module do
 
   This function is only available for modules being compiled.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec defines_type?(module, definition) :: boolean
   def defines_type?(module, definition) do
     Kernel.Typespec.defines_type?(module, definition)
@@ -926,7 +926,7 @@ defmodule Module do
 
   Returns `true` if there is such a spec and it was converted to a callback.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec spec_to_callback(module, definition) :: boolean
   def spec_to_callback(module, definition) do
     Kernel.Typespec.spec_to_callback(module, definition)
