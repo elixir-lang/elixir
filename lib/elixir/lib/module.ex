@@ -1717,9 +1717,9 @@ defmodule Module do
   # If any of the doc attributes are called with a keyword list that
   # will become documentation metadata. Multiple calls will be merged
   # into the same map overriding duplicate keys.
-  defp put_attribute(_module, key, {_, metadata}, line, set, _bag)
+  defp put_attribute(module, key, {_, metadata}, line, set, _bag)
        when key in [:doc, :typedoc, :moduledoc] and is_list(metadata) do
-    metadata_map = Map.new(metadata)
+    metadata_map = preprocess_doc_meta(metadata, module, line, %{})
 
     case :ets.insert_new(set, {{key, :meta}, metadata_map, line}) do
       true ->
@@ -1880,6 +1880,19 @@ defmodule Module do
 
   defp preprocess_attribute(_key, value) do
     value
+  end
+
+  defp preprocess_doc_meta([], _module, _line, map), do: map
+
+  defp preprocess_doc_meta([{key, _} | tail], module, line, map)
+       when key in [:opaque, :defaults, :deprecated] do
+    message = "ignoring reserved documentation metadata key: :#{key}"
+    IO.warn(message, attribute_stack(module, line))
+    preprocess_doc_meta(tail, module, line, map)
+  end
+
+  defp preprocess_doc_meta([{key, value} | tail], module, line, map) when is_atom(key) do
+    preprocess_doc_meta(tail, module, line, Map.put(map, key, value))
   end
 
   defp get_doc_info(table, env) do
