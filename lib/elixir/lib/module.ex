@@ -1714,28 +1714,6 @@ defmodule Module do
     :ok
   end
 
-  # This is the same list of attributes as in :elixir_module.
-  # We do not insert into the :attributes key in the bag table
-  # because those attributes are deleted on every definition.
-  defp put_attribute(module, key, value, line, set, _bag)
-       when (key in [:doc, :typedoc, :moduledoc] and not is_list(elem(value, 1))) or
-              key in [:impl, :since, :deprecated] do
-    try do
-      :ets.lookup_element(set, key, 3)
-    catch
-      :error, :badarg -> :ok
-    else
-      unread_line when is_integer(line) and is_integer(unread_line) ->
-        message = "redefining @#{key} attribute previously set at line #{unread_line}"
-        IO.warn(message, attribute_stack(module, line))
-
-      _ ->
-        :ok
-    end
-
-    :ets.insert(set, {key, value, line})
-  end
-
   # If any of the doc attributes are called with a keyword list that
   # will become documentation metadata. Multiple calls will be merged
   # into the same map overriding duplicate keys.
@@ -1751,6 +1729,27 @@ defmodule Module do
         current_metadata = :ets.lookup_element(set, {key, :meta}, 2)
         :ets.update_element(set, {key, :meta}, {2, Map.merge(current_metadata, metadata_map)})
     end
+  end
+
+  # This is the same list of attributes as in :elixir_module.
+  # We do not insert into the :attributes key in the bag table
+  # because those attributes are deleted on every definition.
+  defp put_attribute(module, key, value, line, set, _bag)
+       when key in [:doc, :typedoc, :moduledoc, :impl, :since, :deprecated] do
+    try do
+      :ets.lookup_element(set, key, 3)
+    catch
+      :error, :badarg -> :ok
+    else
+      unread_line when is_integer(line) and is_integer(unread_line) ->
+        message = "redefining @#{key} attribute previously set at line #{unread_line}"
+        IO.warn(message, attribute_stack(module, line))
+
+      _ ->
+        :ok
+    end
+
+    :ets.insert(set, {key, value, line})
   end
 
   defp put_attribute(_module, key, value, line, set, bag) do
