@@ -21,6 +21,9 @@ defmodule Mix.Tasks.Profile.Cprof do
       mix profile.cprof -e "[1, 2, 3] |> Enum.reverse |> Enum.map(&Integer.to_string/1)"
       mix profile.cprof my_script.exs arg1 arg2 arg3
 
+  This task is automatically reenabled, so you can profile multiple times
+  in the same Mix invocation.
+
   ## Command line options
 
     * `--matching` - only profile calls matching the given `Module.function/arity` pattern
@@ -111,6 +114,7 @@ defmodule Mix.Tasks.Profile.Cprof do
 
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args, aliases: @aliases, strict: @switches)
+    Mix.Task.reenable("profile.cprof")
 
     Mix.Tasks.Run.run(
       ["--no-mix-exs" | args],
