@@ -125,6 +125,12 @@ defmodule Module do
   The Mix compiler automatically looks for calls to deprecated modules
   and emit warnings during compilation, computed via `mix xref warnings`.
 
+  The `@deprecated` attribute may also be used to annotate callbacks or
+  types. In these cases the annotation is only informational and doesn't
+  come with compile time checks. In any case, the annotation will also
+  become part of the documentation metadata to be used by tools like
+  ExDoc or IEx.
+
   We recommend using this feature with care, especially library authors.
   Deprecating code always pushes the burden towards library users. We
   also recommend for deprecated functionality to be maintained for long
@@ -132,18 +138,23 @@ defmodule Module do
   time to update (except for cases where keeping the deprecated API is
   undesired, such as in the presence of security issues).
 
-  ### `@doc` (and `@since`)
+  ### `@doc` and `@typedoc`
 
-  Provides documentation for the function or macro that follows the
-  attribute.
+  Provides documentation for the entity that follows the attribute.
+  `@doc` is to be used with a function, macro, callback, or
+  macrocallback, while `@typedoc` with a type (public or opaque).
 
   Accepts a string (often a heredoc) or `false` where `@doc false` will
-  make the function/macro invisible to documentation extraction tools
-  like ExDoc. For example:
+  make the entity invisible to documentation extraction tools like
+  ExDoc. For example:
 
       defmodule MyModule do
+        @typedoc "This type"
+        @typedoc since: "1.1.0"
+        @type t :: term
+
         @doc "Hello world"
-        @since "1.1.0"
+        @doc since: "1.1.0"
         def hello do
           "world"
         end
@@ -156,8 +167,21 @@ defmodule Module do
         end
       end
 
-  `@since` is an optional attribute that annotates which version the
-  function was introduced.
+  As can be seen in the example above, `@doc` and `@typedoc` also accept
+  a keyword list that serves as a way to provide arbitrary metadata
+  about the entity. Tools like ExDoc and IEx may use this information to
+  display annotations. A common use case is `since` that may be used
+  to annotate in which version the function was introduced.
+
+  As illustrated in the example, it is possible to use these attributes
+  more than once before an entity. However, the compiler will warn if
+  used twice with binaries as that replaces the documentation text from
+  the preceding use. Multiple uses with keyword lists will merge the
+  lists into one.
+
+  Note that since the compiler also defines some additional metadata,
+  there are a few reserved keys that will be ignored and warned if used.
+  Currently these are: `:opaque`, `:defaults`, and `:deprecated`.
 
   ### `@dialyzer`
 
@@ -212,11 +236,16 @@ defmodule Module do
         @moduledoc """
         A very useful module.
         """
+        @moduledoc authors: ["Alice", "Bob"]
       end
 
-  Accepts a string (often a heredoc) or `false` where
-  `@moduledoc false` will make the module invisible to
-  documentation extraction tools like ExDoc.
+  Accepts a string (often a heredoc) or `false` where `@moduledoc false`
+  will make the module invisible to documentation extraction tools like
+  ExDoc.
+
+  Similarly to `@doc` also accepts a keyword list to provide metadata
+  about the module. For more details, see the documentation of `@doc`
+  above.
 
   ### `@on_definition`
 
