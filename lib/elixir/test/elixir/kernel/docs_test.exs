@@ -142,6 +142,7 @@ defmodule Kernel.DocsTest do
       write_beam(
         defmodule SampleDocs do
           @moduledoc "Module doc"
+          @moduledoc authors: "Elixir Contributors", purpose: :test
 
           @doc "My struct"
           defstruct [:sample]
@@ -198,10 +199,12 @@ defmodule Kernel.DocsTest do
         end
       )
 
-      assert {:docs_v1, _, :elixir, "text/markdown", %{"en" => module_doc}, %{}, docs} =
+      assert {:docs_v1, _, :elixir, "text/markdown", %{"en" => module_doc}, module_doc_meta, docs} =
                Code.fetch_docs(SampleDocs)
 
       assert module_doc == "Module doc"
+
+      assert %{authors: "Elixir Contributors", purpose: :test} = module_doc_meta
 
       [
         callback_bar,
