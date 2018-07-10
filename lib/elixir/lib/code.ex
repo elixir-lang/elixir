@@ -650,6 +650,10 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
+    * `:warn_on_unnecessary_quotes` - when `false`, does not warn
+      when atoms, keywords or calls have unnecessary quotes on
+      them. Defaults to `true`.
+
   ## `Macro.to_string/2`
 
   The opposite of converting a string to its quoted form is

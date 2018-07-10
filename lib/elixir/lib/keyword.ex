@@ -20,13 +20,15 @@ defmodule Keyword do
       iex> [{:active, :once}]
       [active: :once]
 
-  The two syntaxes are completely equivalent. When using the colon syntax,
-  the key is always an atom, even when wrapped in quotes:
+  The two syntaxes are completely equivalent. If the keyword has foreign
+  characters, such as spaces, you can wrap it in quotes:
 
-      iex> ["exit_on_close": true]
-      [exit_on_close: true]
+      iex> ["exit on close": true]
+      ["exit on close": true]
 
-  This mirrors the quoted atom syntax such as `:"exit_on_close"`.
+  Wrapping a keyword in quotes does not make it a string. Keywords are
+  always atoms and quotes should only be used to handle foreign characters.
+  In fact, if you attempt use quotes when not necessary, Elixir will warn.
 
   Note that when keyword lists are passed as the last argument to a function,
   if the short-hand syntax is used then the square brackets around the keyword list
