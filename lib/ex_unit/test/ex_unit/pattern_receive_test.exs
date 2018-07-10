@@ -139,6 +139,6 @@ defmodule ExUnit.PatternReceiveTest do
       {:save_doc, %{:status => :created, :sync_history => %{"map" => true}, "other" => true}}
     )
 
-    assert_receive {:save_doc, %{status: :creted, sync_history: sync_history} = doc}
+    assert_receive {:save_doc, %{status: :creted, sync_history: []} = doc}
   end
 end
