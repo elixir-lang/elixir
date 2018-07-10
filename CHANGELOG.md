@@ -12,7 +12,7 @@ try do
 rescue
   e ->
     log(e, System.stacktrace())
-    reraise e, System.stacktrace()
+    reraise(e, System.stacktrace())
 end
 ```
 
@@ -24,13 +24,13 @@ try do
 rescue
   e ->
     log(e, __STACKTRACE__)
-    reraise e, __STACKTRACE__
+    reraise(e, __STACKTRACE__)
 end
 ```
 
 This change may also yield performance improvements in the future, since the lexical scope allows us to track precisely when a stacktrace is used and we no longer need to keep references to stacktrace entries after the `try` construct finishes.
 
-Other parts of the exception system have been improved. For example, more information is provided on error messages certain occurrences of `ArgumentError`, `ArithmeticError` and `KeyError`.
+Other parts of the exception system have been improved. For example, more information is provided in certain occurrences of `ArgumentError`, `ArithmeticError` and `KeyError` messages.
 
 ## Erlang/OTP logger integration
 
@@ -42,7 +42,7 @@ Erlang/OTP 21 includes a new `:logger` module. Elixir v1.7 fully integrates with
 
   * `:registered_name` - the process registered name as an atom
 
-We recommend Elixir libraries that previously hooked into Erlang's `:error_logger` to hook into `Logger` instead, so those libraries support all current and future Erlang/OTP versions.
+We recommend Elixir libraries that previously hooked into Erlang's `:error_logger` to hook into `Logger` instead, in order to support all current and future Erlang/OTP versions.
 
 ## Other Logger improvements
 
