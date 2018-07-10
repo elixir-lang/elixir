@@ -110,7 +110,7 @@ defmodule Kernel.Typespec do
     case spec_to_signature(expr) do
       {name, arity} ->
         {line, doc} = get_doc_info(set, :doc, line)
-        store_doc(set, kind, name, arity, line, doc, %{})
+        store_doc(set, kind, name, arity, line, :doc, doc, %{})
 
       :error ->
         :error
@@ -136,8 +136,8 @@ defmodule Kernel.Typespec do
 
       {name, arity} ->
         {line, doc} = get_doc_info(set, :typedoc, line)
-        doc_meta = if kind == :opaque, do: %{opaque: true}, else: %{}
-        store_doc(set, :type, name, arity, line, doc, doc_meta)
+        spec_meta = if kind == :opaque, do: %{opaque: true}, else: %{}
+        store_doc(set, :type, name, arity, line, :typedoc, doc, spec_meta)
 
       :error ->
         :error
@@ -157,8 +157,8 @@ defmodule Kernel.Typespec do
     :ok
   end
 
-  defp store_doc(set, kind, name, arity, line, doc, doc_meta) do
-    doc_meta = get_doc_meta(doc_meta, set)
+  defp store_doc(set, kind, name, arity, line, doc_kind, doc, spec_meta) do
+    doc_meta = get_doc_meta(spec_meta, doc_kind, set)
     :ets.insert(set, {{kind, name, arity}, line, doc, doc_meta})
   end
 
@@ -169,7 +169,13 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp get_doc_meta(doc_meta, set) do
+  defp get_doc_meta(spec_meta, doc_kind, set) do
+    doc_meta =
+      case :ets.take(set, {doc_kind, :meta}) do
+        [{{^doc_kind, :meta}, metadata, _}] -> Map.merge(metadata, spec_meta)
+        [] -> spec_meta
+      end
+
     doc_meta
     |> get_since_info(set)
     |> get_deprecated_info(set)
@@ -177,15 +183,18 @@ defmodule Kernel.Typespec do
 
   defp get_since_info(doc_meta, set) do
     case :ets.take(set, :since) do
-      [{:since, since, _}] when is_binary(since) -> Map.put(doc_meta, :since, since)
+      [{:since, since, _}] when is_binary(since) -> Map.put_new(doc_meta, :since, since)
       _ -> doc_meta
     end
   end
 
   defp get_deprecated_info(doc_meta, set) do
     case :ets.take(set, :deprecated) do
-      [{:deprecated, reason, _}] when is_binary(reason) -> Map.put(doc_meta, :deprecated, reason)
-      _ -> doc_meta
+      [{:deprecated, reason, _}] when is_binary(reason) ->
+        Map.put_new(doc_meta, :deprecated, reason)
+
+      _ ->
+        doc_meta
     end
   end
 

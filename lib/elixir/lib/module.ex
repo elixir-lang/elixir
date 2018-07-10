@@ -1309,7 +1309,15 @@ defmodule Module do
   defp compile_doc_meta(set, bag, name, arity, defaults) do
     doc_meta = compile_since(%{}, set)
     doc_meta = compile_deprecated(doc_meta, set, bag, name, arity, defaults)
+    doc_meta = get_doc_meta(doc_meta, set)
     add_defaults_count(doc_meta, defaults)
+  end
+
+  defp get_doc_meta(existing_meta, set) do
+    case :ets.take(set, {:doc, :meta}) do
+      [{{:doc, :meta}, metadata, _}] -> Map.merge(existing_meta, metadata)
+      [] -> existing_meta
+    end
   end
 
   defp compile_since(doc_meta, table) do
@@ -1710,7 +1718,8 @@ defmodule Module do
   # We do not insert into the :attributes key in the bag table
   # because those attributes are deleted on every definition.
   defp put_attribute(module, key, value, line, set, _bag)
-       when key in [:doc, :typedoc, :moduledoc, :impl, :since, :deprecated] do
+       when (key in [:doc, :typedoc, :moduledoc] and not is_list(elem(value, 1))) or
+              key in [:impl, :since, :deprecated] do
     try do
       :ets.lookup_element(set, key, 3)
     catch
@@ -1725,6 +1734,20 @@ defmodule Module do
     end
 
     :ets.insert(set, {key, value, line})
+  end
+
+  # If any of the doc attributes are called with a keyword list that
+  # will become documentation metadata. Multiple calls will be merged
+  # into the same map overriding duplicate keys.
+  defp put_attribute(_module, key, {_, metadata}, line, set, _bag)
+       when key in [:doc, :typedoc, :moduledoc] and is_list(metadata) do
+    case :ets.lookup(set, {key, :meta}) do
+      [] ->
+        :ets.insert(set, {{key, :meta}, Enum.into(metadata, %{}), line})
+
+      [{{^key, :meta}, current_metadata, _}] ->
+        :ets.update_element(set, {key, :meta}, {2, Enum.into(metadata, current_metadata)})
+    end
   end
 
   defp put_attribute(_module, key, value, line, set, bag) do
@@ -1752,15 +1775,18 @@ defmodule Module do
       {line, doc} when is_integer(line) and (is_binary(doc) or is_boolean(doc) or is_nil(doc)) ->
         value
 
+      {line, [{key, _} | _]} when is_integer(line) and is_atom(key) ->
+        value
+
       {line, doc} when is_integer(line) ->
         raise ArgumentError,
               "@#{key} is a built-in module attribute for documentation. It should be " <>
-                "a binary, a boolean, or nil, got: #{inspect(doc)}"
+                "a binary, boolean, keyword list, or nil, got: #{inspect(doc)}"
 
       _other ->
         raise ArgumentError,
               "@#{key} is a built-in module attribute for documentation. When set dynamically, " <>
-                "it should be {line, doc} (where \"doc\" is a string, boolean, or nil), " <>
+                "it should be {line, doc} (where \"doc\" is a string, boolean, keyword list, or nil), " <>
                 "got: #{inspect(value)}"
     end
   end

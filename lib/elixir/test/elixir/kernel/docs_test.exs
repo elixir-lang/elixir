@@ -70,7 +70,7 @@ defmodule Kernel.DocsTest do
       end
     end
 
-    assert_raise ArgumentError, ~r/should be a binary, a boolean, or nil/, fn ->
+    assert_raise ArgumentError, ~r/should be a binary, boolean, keyword list, or nil/, fn ->
       defmodule AtSyntaxDocAttributesFormat do
         @moduledoc :not_a_binary
       end
@@ -147,18 +147,20 @@ defmodule Kernel.DocsTest do
           defstruct [:sample]
 
           @typedoc "Type doc"
-          @since "1.2.3"
+          @typedoc since: "1.2.3", color: :red
           @type foo(any) :: any
 
           @typedoc "Opaque type doc"
           @opaque bar(any) :: any
 
           @doc "Callback doc"
-          @since "1.2.3"
+          @doc since: "1.2.3", color: :red
+          @doc color: :blue, stable: true
           @deprecated "use baz/2 instead"
           @callback foo(any) :: any
 
           @doc false
+          @doc since: "1.2.3"
           @callback bar() :: term
           @callback baz(any, term) :: any
 
@@ -166,7 +168,9 @@ defmodule Kernel.DocsTest do
           @macrocallback qux(any) :: any
 
           @doc "Function doc"
-          @since "1.2.3"
+          @doc since: "1.2.3", color: :red
+          @since "1.2-doc-meta-takes-precedence"
+          @doc color: :blue, stable: true
           @deprecated "use baz/2 instead"
           def foo(arg \\ 0), do: arg + 1
 
@@ -177,11 +181,11 @@ defmodule Kernel.DocsTest do
           def bar(arg), do: arg + 1
 
           @doc "Wrong doc"
-          @since "1.2"
+          @doc since: "1.2"
           def baz(_arg)
           def baz(arg), do: arg + 1
           @doc "Multiple bodiless clause and docs"
-          @since "1.2.3"
+          @doc since: "1.2.3"
           def baz(_arg)
 
           @doc false
@@ -219,7 +223,8 @@ defmodule Kernel.DocsTest do
       assert {{:callback, :baz, 2}, _, [], :none, %{}} = callback_baz
 
       assert {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"},
-              %{since: "1.2.3", deprecated: "use baz/2 instead"}} = callback_foo
+              %{since: "1.2.3", deprecated: "use baz/2 instead", color: :blue, stable: true}} =
+               callback_foo
 
       assert {{:function, :__struct__, 0}, _, ["%Kernel.DocsTest.SampleDocs{}"],
               %{"en" => "My struct"}, %{}} = function_struct_0
@@ -233,7 +238,13 @@ defmodule Kernel.DocsTest do
               %{"en" => "Multiple bodiless clause and docs"}, %{since: "1.2.3"}} = function_baz
 
       assert {{:function, :foo, 1}, _, ["foo(arg \\\\ 0)"], %{"en" => "Function doc"},
-              %{since: "1.2.3", deprecated: "use baz/2 instead", defaults: 1}} = function_foo
+              %{
+                since: "1.2.3",
+                deprecated: "use baz/2 instead",
+                color: :blue,
+                stable: true,
+                defaults: 1
+              }} = function_foo
 
       assert {{:function, :nullary, 0}, _, ["nullary()"], %{"en" => "add_doc"}, %{}} =
                function_nullary
@@ -244,7 +255,9 @@ defmodule Kernel.DocsTest do
                macrocallback_qux
 
       assert {{:type, :bar, 1}, _, [], %{"en" => "Opaque type doc"}, %{opaque: true}} = type_bar
-      assert {{:type, :foo, 1}, _, [], %{"en" => "Type doc"}, %{since: "1.2.3"}} = type_foo
+
+      assert {{:type, :foo, 1}, _, [], %{"en" => "Type doc"}, %{since: "1.2.3", color: :red}} =
+               type_foo
     end
   end
 
