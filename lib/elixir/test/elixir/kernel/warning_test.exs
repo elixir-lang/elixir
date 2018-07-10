@@ -39,6 +39,17 @@ defmodule Kernel.WarningTest do
     assert output =~ "found atom \":foo!\", ending with \"!\""
   end
 
+  test "unnecessary quotes" do
+    assert capture_err(fn -> Code.eval_string(~s/:"foo"/) end) =~
+             "found quoted atom \"foo\" but the quotes are not required"
+
+    assert capture_err(fn -> Code.eval_string(~s/["foo": :bar]/) end) =~
+             "found quoted keyword \"foo\" but the quotes are not required"
+
+    assert capture_err(fn -> Code.eval_string(~s/[Kernel."length"([])]/) end) =~
+             "found quoted call \"length\" but the quotes are not required"
+  end
+
   test "unused variable" do
     output =
       capture_err(fn ->

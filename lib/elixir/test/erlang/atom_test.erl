@@ -27,9 +27,9 @@ kv_with_interpolation_test() ->
   {'foo', _} = eval("a = \"f\"; :atom_test.kv(\"#{a}#{\"o\"}o\": nil)").
 
 quoted_atom_test() ->
-  {foo, []} = eval(":\"foo\""),
-  {foo, []} = eval(":'foo'"),
-  {'foo.Bar', []} = eval(":\"foo.Bar\"").
+  {'+', []} = eval(":\"+\""),
+  {'+', []} = eval(":'+'"),
+  {'foo bar', []} = eval(":\"foo bar\"").
 
 atom_with_interpolation_test() ->
   {foo, []} = eval(":\"f#{\"o\"}o\""),

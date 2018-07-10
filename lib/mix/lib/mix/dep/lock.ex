@@ -33,18 +33,15 @@ defmodule Mix.Dep.Lock do
   @spec read() :: map
   def read() do
     lockfile = lockfile()
+    opts = [file: lockfile, warn_on_unnecessary_quotes: false]
 
-    case File.read(lockfile) do
-      {:ok, info} ->
-        assert_no_merge_conflicts_in_lockfile(lockfile, info)
-
-        case Code.eval_string(info, [], file: lockfile) do
-          {lock, _binding} when is_map(lock) -> lock
-          {_, _binding} -> %{}
-        end
-
-      {:error, _} ->
-        %{}
+    with {:ok, contents} <- File.read(lockfile),
+         assert_no_merge_conflicts_in_lockfile(lockfile, contents),
+         {:ok, quoted} <- Code.string_to_quoted(contents, opts),
+         {%{} = lock, _binding} <- Code.eval_quoted(quoted, opts) do
+      lock
+    else
+      _ -> %{}
     end
   end
 
