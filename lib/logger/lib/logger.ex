@@ -502,7 +502,7 @@ defmodule Logger do
   Compares log levels.
 
   Receives two log levels and compares the `left` level
-  against the `right` level and returns
+  against the `right` level and returns:
 
     * `:lt` if `left` is less than `right`
     * `:eq` if `left` and `right` are equal
