@@ -125,6 +125,12 @@ defmodule Module do
   The Mix compiler automatically looks for calls to deprecated modules
   and emit warnings during compilation, computed via `mix xref warnings`.
 
+  The `@deprecated` attribute may also be used to annotate callbacks or
+  types. In these cases the annotation is only informational and doesn't
+  come with compile time checks. In any case, the annotation will also
+  become part of the documentation metadata to be used by tools like
+  ExDoc or IEx.
+
   We recommend using this feature with care, especially library authors.
   Deprecating code always pushes the burden towards library users. We
   also recommend for deprecated functionality to be maintained for long
@@ -132,18 +138,23 @@ defmodule Module do
   time to update (except for cases where keeping the deprecated API is
   undesired, such as in the presence of security issues).
 
-  ### `@doc` (and `@since`)
+  ### `@doc` and `@typedoc`
 
-  Provides documentation for the function or macro that follows the
-  attribute.
+  Provides documentation for the entity that follows the attribute.
+  `@doc` is to be used with a function, macro, callback, or
+  macrocallback, while `@typedoc` with a type (public or opaque).
 
   Accepts a string (often a heredoc) or `false` where `@doc false` will
-  make the function/macro invisible to documentation extraction tools
-  like ExDoc. For example:
+  make the entity invisible to documentation extraction tools like
+  ExDoc. For example:
 
       defmodule MyModule do
+        @typedoc "This type"
+        @typedoc since: "1.1.0"
+        @type t :: term
+
         @doc "Hello world"
-        @since "1.1.0"
+        @doc since: "1.1.0"
         def hello do
           "world"
         end
@@ -156,8 +167,21 @@ defmodule Module do
         end
       end
 
-  `@since` is an optional attribute that annotates which version the
-  function was introduced.
+  As can be seen in the example above, `@doc` and `@typedoc` also accept
+  a keyword list that serves as a way to provide arbitrary metadata
+  about the entity. Tools like ExDoc and IEx may use this information to
+  display annotations. A common use case is `since` that may be used
+  to annotate in which version the function was introduced.
+
+  As illustrated in the example, it is possible to use these attributes
+  more than once before an entity. However, the compiler will warn if
+  used twice with binaries as that replaces the documentation text from
+  the preceding use. Multiple uses with keyword lists will merge the
+  lists into one.
+
+  Note that since the compiler also defines some additional metadata,
+  there are a few reserved keys that will be ignored and warned if used.
+  Currently these are: `:opaque`, `:defaults`, and `:deprecated`.
 
   ### `@dialyzer`
 
@@ -212,11 +236,16 @@ defmodule Module do
         @moduledoc """
         A very useful module.
         """
+        @moduledoc authors: ["Alice", "Bob"]
       end
 
-  Accepts a string (often a heredoc) or `false` where
-  `@moduledoc false` will make the module invisible to
-  documentation extraction tools like ExDoc.
+  Accepts a string (often a heredoc) or `false` where `@moduledoc false`
+  will make the module invisible to documentation extraction tools like
+  ExDoc.
+
+  Similarly to `@doc` also accepts a keyword list to provide metadata
+  about the module. For more details, see the documentation of `@doc`
+  above.
 
   ### `@on_definition`
 
@@ -886,7 +915,7 @@ defmodule Module do
 
   This function is only available for modules being compiled.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec defines_type?(module, definition) :: boolean
   def defines_type?(module, definition) do
     Kernel.Typespec.defines_type?(module, definition)
@@ -897,7 +926,7 @@ defmodule Module do
 
   Returns `true` if there is such a spec and it was converted to a callback.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec spec_to_callback(module, definition) :: boolean
   def spec_to_callback(module, definition) do
     Kernel.Typespec.spec_to_callback(module, definition)
@@ -1309,7 +1338,15 @@ defmodule Module do
   defp compile_doc_meta(set, bag, name, arity, defaults) do
     doc_meta = compile_since(%{}, set)
     doc_meta = compile_deprecated(doc_meta, set, bag, name, arity, defaults)
+    doc_meta = get_doc_meta(doc_meta, set)
     add_defaults_count(doc_meta, defaults)
+  end
+
+  defp get_doc_meta(existing_meta, set) do
+    case :ets.take(set, {:doc, :meta}) do
+      [{{:doc, :meta}, metadata, _}] -> Map.merge(existing_meta, metadata)
+      [] -> existing_meta
+    end
   end
 
   defp compile_since(doc_meta, table) do
@@ -1706,6 +1743,23 @@ defmodule Module do
     :ok
   end
 
+  # If any of the doc attributes are called with a keyword list that
+  # will become documentation metadata. Multiple calls will be merged
+  # into the same map overriding duplicate keys.
+  defp put_attribute(module, key, {_, metadata}, line, set, _bag)
+       when key in [:doc, :typedoc, :moduledoc] and is_list(metadata) do
+    metadata_map = preprocess_doc_meta(metadata, module, line, %{})
+
+    case :ets.insert_new(set, {{key, :meta}, metadata_map, line}) do
+      true ->
+        :ok
+
+      false ->
+        current_metadata = :ets.lookup_element(set, {key, :meta}, 2)
+        :ets.update_element(set, {key, :meta}, {2, Map.merge(current_metadata, metadata_map)})
+    end
+  end
+
   # This is the same list of attributes as in :elixir_module.
   # We do not insert into the :attributes key in the bag table
   # because those attributes are deleted on every definition.
@@ -1752,15 +1806,18 @@ defmodule Module do
       {line, doc} when is_integer(line) and (is_binary(doc) or is_boolean(doc) or is_nil(doc)) ->
         value
 
+      {line, [{key, _} | _]} when is_integer(line) and is_atom(key) ->
+        value
+
       {line, doc} when is_integer(line) ->
         raise ArgumentError,
               "@#{key} is a built-in module attribute for documentation. It should be " <>
-                "a binary, a boolean, or nil, got: #{inspect(doc)}"
+                "a binary, boolean, keyword list, or nil, got: #{inspect(doc)}"
 
       _other ->
         raise ArgumentError,
               "@#{key} is a built-in module attribute for documentation. When set dynamically, " <>
-                "it should be {line, doc} (where \"doc\" is a string, boolean, or nil), " <>
+                "it should be {line, doc} (where \"doc\" is a string, boolean, keyword list, or nil), " <>
                 "got: #{inspect(value)}"
     end
   end
@@ -1853,6 +1910,29 @@ defmodule Module do
   defp preprocess_attribute(_key, value) do
     value
   end
+
+  defp preprocess_doc_meta([], _module, _line, map), do: map
+
+  defp preprocess_doc_meta([{key, _} | tail], module, line, map)
+       when key in [:opaque, :defaults, :deprecated] do
+    message = "ignoring reserved documentation metadata key: :#{key}"
+    IO.warn(message, attribute_stack(module, line))
+    preprocess_doc_meta(tail, module, line, map)
+  end
+
+  defp preprocess_doc_meta([{key, value} | tail], module, line, map) when is_atom(key) do
+    validate_doc_meta(key, value)
+    preprocess_doc_meta(tail, module, line, Map.put(map, key, value))
+  end
+
+  defp validate_doc_meta(:since, value) when not is_binary(value) do
+    raise ArgumentError,
+          ":since is a built-in documentation metadata key. " <>
+            "It should be a string representing the version a function, macro, type or " <>
+            "callback was added, got: #{inspect(value)}"
+  end
+
+  defp validate_doc_meta(_, _), do: :ok
 
   defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do

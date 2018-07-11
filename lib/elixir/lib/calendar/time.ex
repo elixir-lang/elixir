@@ -55,7 +55,7 @@ defmodule Time do
       true
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec utc_now(Calendar.calendar()) :: t
   def utc_now(calendar \\ Calendar.ISO) do
     {:ok, _, time, microsecond} = Calendar.ISO.from_unix(:os.system_time(), :native)
@@ -397,7 +397,7 @@ defmodule Time do
       ~T[22:59:00.000000]
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec add(Calendar.time(), integer, System.time_unit()) :: t
   def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
     number = System.convert_time_unit(number, unit, :microsecond)
@@ -444,7 +444,7 @@ defmodule Time do
       :gt
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec compare(Calendar.time(), Calendar.time()) :: :lt | :eq | :gt
   def compare(%{calendar: calendar} = time1, %{calendar: calendar} = time2) do
     %{hour: hour1, minute: minute1, second: second1, microsecond: {microsecond1, _}} = time1
@@ -484,7 +484,7 @@ defmodule Time do
       {:ok, %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}}
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec convert(Calendar.time(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
 
   # Keep it multiline for proper function clause errors.
@@ -540,7 +540,7 @@ defmodule Time do
       %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec convert!(Calendar.time(), Calendar.calendar()) :: t
   def convert!(time, calendar) do
     case convert(time, calendar) do
@@ -591,7 +591,7 @@ defmodule Time do
       -2_000_000
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec diff(Calendar.time(), Calendar.time(), System.time_unit()) :: integer
   def diff(time1, time2, unit \\ :second) do
     fraction1 = to_day_fraction(time1)
@@ -617,7 +617,7 @@ defmodule Time do
       ~T[01:01:01]
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec truncate(t(), :microsecond | :millisecond | :second) :: t()
   def truncate(%Time{microsecond: microsecond} = time, precision) do
     %{time | microsecond: Calendar.truncate(microsecond, precision)}

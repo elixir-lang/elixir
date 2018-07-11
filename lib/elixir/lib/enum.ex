@@ -402,7 +402,7 @@ defmodule Enum do
   @doc """
   Shortcut to `chunk_every(enumerable, count, count)`.
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec chunk_every(t, pos_integer) :: [list]
   def chunk_every(enumerable, count), do: chunk_every(enumerable, count, count, [])
 
@@ -442,7 +442,7 @@ defmodule Enum do
       [[1, 2], [4, 5]]
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec chunk_every(t, pos_integer, pos_integer, t | :discard) :: [list]
   def chunk_every(enumerable, count, step, leftover \\ [])
       when is_integer(count) and count > 0 and is_integer(step) and step > 0 do
@@ -479,7 +479,7 @@ defmodule Enum do
       [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec chunk_while(
           t,
           acc,
@@ -1345,7 +1345,7 @@ defmodule Enum do
       [1001, 1002, 1003]
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec map_every(t, non_neg_integer, (element -> any)) :: list
   def map_every(enumerable, nth, fun)
 
@@ -1750,7 +1750,7 @@ defmodule Enum do
       {[], []}
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec split_with(t, (element -> any)) :: {list, list}
   def split_with(enumerable, fun) do
     {acc1, acc2} =
@@ -2158,7 +2158,7 @@ defmodule Enum do
       []
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, first..last) do
     {count, fun} = slice_count_and_fun(enumerable)
@@ -2756,7 +2756,7 @@ defmodule Enum do
       [{1, :a}, {2, :b}, {3, :c}]
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec zip([t]) :: t
   @spec zip(t) :: t
 

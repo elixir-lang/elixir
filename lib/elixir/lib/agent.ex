@@ -144,7 +144,7 @@ defmodule Agent do
 
   See `Supervisor`.
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   def child_spec(arg) do
     %{
       id: Agent,

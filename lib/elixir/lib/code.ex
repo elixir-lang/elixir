@@ -40,7 +40,7 @@ defmodule Code do
       #=> true
 
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec required_files() :: [binary]
   def required_files do
     :elixir_code_server.call(:required)
@@ -72,8 +72,8 @@ defmodule Code do
       #=> true
 
   """
+  @doc since: "1.7.0"
   @spec unrequire_files([binary]) :: :ok
-  @since "1.7.0"
   def unrequire_files(files) do
     :elixir_code_server.cast({:unrequire_files, files})
   end
@@ -531,7 +531,7 @@ defmodule Code do
   user formatting). In such cases, the code formatter will always format to
   the latter.
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec format_string!(binary, keyword) :: iodata
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
     line_length = Keyword.get(opts, :line_length, 98)
@@ -545,7 +545,7 @@ defmodule Code do
   See `format_string!/2` for more information on code formatting and
   available options.
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec format_file!(binary, keyword) :: iodata
   def format_file!(file, opts \\ []) when is_binary(file) and is_list(opts) do
     string = File.read!(file)
@@ -818,7 +818,7 @@ defmodule Code do
 
   It returns `{:ok, number_of_modules_purged}`.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec purge_compiler_modules() :: {:ok, non_neg_integer()}
   def purge_compiler_modules() do
     :elixir_code_server.call(:purge_compiler_modules)
@@ -1070,6 +1070,7 @@ defmodule Code do
       {:error, :module_not_found}
 
   """
+  @doc since: "1.7.0"
   @spec fetch_docs(module | String.t()) ::
           {:docs_v1, anno, beam_language, format, module_doc :: doc, metadata,
            docs :: [{{kind, name, arity}, anno, signature, doc, metadata}]}
@@ -1084,7 +1085,6 @@ defmodule Code do
              signature: [binary],
              metadata: map,
              future_formats: term
-  @since "1.7.0"
   def fetch_docs(module) when is_atom(module) do
     case :code.get_object_code(module) do
       {_module, bin, _beam_path} -> do_fetch_docs(bin)

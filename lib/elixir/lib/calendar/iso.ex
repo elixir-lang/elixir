@@ -51,8 +51,8 @@ defmodule Calendar.ISO do
       {-365, {0, 86400000000}}
 
   """
+  @doc since: "1.5.0"
   @impl true
-  @since "1.5.0"
   @spec naive_datetime_to_iso_days(
           Calendar.year(),
           Calendar.month(),
@@ -81,6 +81,7 @@ defmodule Calendar.ISO do
       {-1, 1, 1, 0, 0, 0, {0, 6}}
 
   """
+  @doc since: "1.5.0"
   @spec naive_datetime_from_iso_days(Calendar.iso_days()) :: {
           Calendar.year(),
           Calendar.month(),
@@ -91,7 +92,6 @@ defmodule Calendar.ISO do
           Calendar.microsecond()
         }
   @impl true
-  @since "1.5.0"
   def naive_datetime_from_iso_days({days, day_fraction}) do
     {year, month, day} = date_from_iso_days(days)
     {hour, minute, second, microsecond} = time_from_day_fraction(day_fraction)
@@ -109,8 +109,8 @@ defmodule Calendar.ISO do
       {45296000123, 86400000000}
 
   """
+  @doc since: "1.5.0"
   @impl true
-  @since "1.5.0"
   @spec time_to_day_fraction(
           Calendar.hour(),
           Calendar.minute(),
@@ -137,8 +137,8 @@ defmodule Calendar.ISO do
       {13, 0, 0, {0, 6}}
 
   """
+  @doc since: "1.5.0"
   @impl true
-  @since "1.5.0"
   @spec time_from_day_fraction(Calendar.day_fraction()) ::
           {Calendar.hour(), Calendar.minute(), Calendar.second(), Calendar.microsecond()}
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
@@ -156,7 +156,7 @@ defmodule Calendar.ISO do
 
   # Converts year, month, day to count of days since 0000-01-01.
   @doc false
-  @since "1.5.0"
+  @doc since: "1.5.0"
   def date_to_iso_days(0, 1, 1) do
     0
   end
@@ -174,7 +174,7 @@ defmodule Calendar.ISO do
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  @since "1.5.0"
+  @doc since: "1.5.0"
   def date_from_iso_days(days) when days in 0..3_652_424 do
     {year, day_of_year} = days_to_year(days)
     extra_day = if leap_year?(year), do: 1, else: 0
@@ -243,8 +243,8 @@ defmodule Calendar.ISO do
       12
 
   """
+  @doc since: "1.7.0"
   @impl true
-  @since "1.7.0"
   @spec months_in_year(year) :: 12
   def months_in_year(_year) do
     @months_in_year
@@ -462,8 +462,8 @@ defmodule Calendar.ISO do
     false
 
   """
+  @doc since: "1.5.0"
   @impl true
-  @since "1.5.0"
   @spec valid_date?(year, month, day) :: boolean
   def valid_date?(year, month, day) do
     month in 1..12 and year in -9999..9999 and day in 1..days_in_month(year, month)
@@ -484,8 +484,8 @@ defmodule Calendar.ISO do
     false
 
   """
+  @doc since: "1.5.0"
   @impl true
-  @since "1.5.0"
   @spec valid_time?(Calendar.hour(), Calendar.minute(), Calendar.secon(), Calendar.microsecond()) ::
           boolean
   def valid_time?(hour, minute, second, {microsecond, precision}) do
@@ -496,8 +496,8 @@ defmodule Calendar.ISO do
   @doc """
   See `c:Calendar.day_rollover_relative_to_midlight_utc/0` for documentation.
   """
+  @doc since: "1.5.0"
   @impl true
-  @since "1.5.0"
   @spec day_rollover_relative_to_midnight_utc() :: {0, 1}
   def day_rollover_relative_to_midnight_utc() do
     {0, 1}
@@ -566,7 +566,7 @@ defmodule Calendar.ISO do
     do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc false
-  @since "1.5.0"
+  @doc since: "1.5.0"
   def date_to_iso8601(year, month, day, format \\ :extended) do
     date_to_string(year, month, day, format)
   end
@@ -671,7 +671,7 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  @since "1.5.0"
+  @doc since: "1.5.0"
   def iso_days_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @parts_per_day
     microseconds = div(parts * @parts_per_day, ppd)
@@ -679,7 +679,7 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  @since "1.5.0"
+  @doc since: "1.5.0"
   def add_day_fraction_to_iso_days({days, {parts, ppd}}, add, ppd) do
     normalize_iso_days(days, parts + add, ppd)
   end

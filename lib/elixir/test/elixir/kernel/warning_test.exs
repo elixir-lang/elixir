@@ -1137,6 +1137,28 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "reserved doc metadata keys" do
+    output =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          @typedoc opaque: false, deprecated: "do not use"
+          @type t :: binary
+
+          @doc defaults: 3, since: "1.2.3"
+          def foo(a), do: a
+        end
+        """)
+      end)
+
+    assert output =~ "ignoring reserved documentation metadata key: :opaque"
+    assert output =~ "ignoring reserved documentation metadata key: :deprecated"
+    assert output =~ "ignoring reserved documentation metadata key: :defaults"
+    refute output =~ ":since"
+  after
+    purge(Sample)
+  end
+
   describe "typespecs" do
     test "typedoc on typep" do
       assert capture_err(fn ->

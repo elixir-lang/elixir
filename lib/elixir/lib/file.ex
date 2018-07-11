@@ -437,7 +437,7 @@ defmodule File do
     * `:enotsup` - symbolic links are not supported on the current platform
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec read_link(Path.t()) :: {:ok, binary} | {:error, posix}
   def read_link(path) do
     case path |> IO.chardata_to_string() |> :file.read_link() do
@@ -450,7 +450,7 @@ defmodule File do
   Same as `read_link/1` but returns the target directly or throws `File.Error` if an error is
   returned.
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec read_link!(Path.t()) :: binary | no_return
   def read_link!(path) do
     case read_link(path) do
@@ -536,7 +536,7 @@ defmodule File do
   If the operating system does not support hard links, returns
   `{:error, :enotsup}`.
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec ln(Path.t(), Path.t()) :: :ok | {:error, posix}
   def ln(existing, new) do
     :file.make_link(IO.chardata_to_string(existing), IO.chardata_to_string(new))
@@ -547,7 +547,7 @@ defmodule File do
 
   Returns `:ok` otherwise
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec ln!(Path.t(), Path.t()) :: :ok | no_return
   def ln!(existing, new) do
     case ln(existing, new) do
@@ -570,7 +570,7 @@ defmodule File do
   If the operating system does not support symlinks, returns
   `{:error, :enotsup}`.
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec ln_s(Path.t(), Path.t()) :: :ok | {:error, posix}
   def ln_s(existing, new) do
     :file.make_symlink(IO.chardata_to_string(existing), IO.chardata_to_string(new))

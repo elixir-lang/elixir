@@ -32,7 +32,7 @@ defmodule Function do
       &String.length/1
 
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec capture(module, atom, arity) :: fun
   def capture(module, function_name, arity) do
     :erlang.make_fun(module, function_name, arity)
@@ -93,7 +93,7 @@ defmodule Function do
       :length
 
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec info(fun) :: [{information, term}]
   def info(fun), do: :erlang.fun_info(fun)
 
@@ -131,7 +131,7 @@ defmodule Function do
       {:pid, :undefined}
 
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec info(fun, item) :: {item, term} when item: information
   def info(fun, item), do: :erlang.fun_info(fun, item)
 end

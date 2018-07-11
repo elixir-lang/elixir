@@ -156,7 +156,7 @@ defmodule Exception do
   If the exception module implements the optional `c:blame/2`
   callback, it will be invoked to perform the computation.
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec blame(:error, any, stacktrace) :: {t, stacktrace}
   @spec blame(non_error_kind, payload, stacktrace) :: {payload, stacktrace} when payload: var
   def blame(kind, error, stacktrace)
@@ -189,7 +189,7 @@ defmodule Exception do
   Note this functionality requires Erlang/OTP 20, otherwise `:error`
   is always returned.
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec blame_mfa(module, function, args :: [term]) ::
           {:ok, :def | :defp | :defmacro | :defmacrop, [{args :: [term], guards :: [term]}]}
           | :error
