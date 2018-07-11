@@ -40,11 +40,14 @@ defmodule Mix.Tasks.Run do
 
       elixir --sname hello -S mix run --no-halt
 
+  This task is automatically reenabled, so it can be called multiple times
+  with different arguments.
+
   ## Command-line options
 
     * `--config`, `-c`  - loads the given configuration file
     * `--eval`, `-e` - evaluates the given code
-    * `--require`, `-r` - requires pattern before running the command
+    * `--require`, `-r` - executes the given pattern/file
     * `--parallel`, `-p` - makes all requires parallel
     * `--preload-modules` - preloads all modules defined in applications
     * `--no-compile` - does not compile even if files require compilation
@@ -81,6 +84,7 @@ defmodule Mix.Tasks.Run do
 
     run(args, opts, head, &Code.eval_string/1, &Code.require_file/1)
     unless Keyword.get(opts, :halt, true), do: Process.sleep(:infinity)
+    Mix.Task.reenable("run")
     :ok
   end
 
