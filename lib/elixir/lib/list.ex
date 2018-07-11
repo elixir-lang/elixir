@@ -388,10 +388,10 @@ defmodule List do
   end
 
   @doc """
-  Wraps the argument in a list.
+  Wraps `term` in a list if this is not list.
 
-  If the argument is already a list, returns the list.
-  If the argument is `nil`, returns an empty list.
+  If `term` is already a list, it returns the list.
+  If `term` is `nil`, it returns an empty list.
 
   ## Examples
 
@@ -405,7 +405,11 @@ defmodule List do
       []
 
   """
-  @spec wrap(list | any) :: list
+  @spec wrap(nil) :: []
+  @spec wrap(list) :: list when list: maybe_improper_list()
+  @spec wrap(term) :: nonempty_list(term) when term: any()
+  def wrap(term)
+
   def wrap(list) when is_list(list) do
     list
   end
