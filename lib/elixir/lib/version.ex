@@ -2,7 +2,7 @@ defmodule Version do
   @moduledoc ~S"""
   Functions for parsing and matching versions against requirements.
 
-  [A version](`Version:t/0`) is a string in a specific format or a `Version`
+  A version is a string in a specific format or a `Version`
   generated after parsing via `Version.parse/1`.
 
   `Version` parsing and requirements follow
@@ -24,7 +24,7 @@ defmodule Version do
 
   ## Struct
 
-  The [version](`Version.t:t/0`) is represented by the `Version` struct and fields
+  The version is represented by the `Version` struct and fields
   are named according to SemVer: `:major`, `:minor`, `:patch`,
   `:pre`, and `:build`.
 
