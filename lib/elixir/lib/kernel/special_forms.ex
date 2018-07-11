@@ -2025,13 +2025,13 @@ defmodule Kernel.SpecialForms do
   one of the allowed values:
 
     * `:infinity` - the process should wait indefinitely for a matching
-      message, this is the same as not using a timeout
+      message, this is the same as not using the after clause
 
     * `0` - if there is no matching message in the mailbox, the timeout
       will occur immediately
 
-    * positive integer smaller than `4_294_967_295` (`0xFFFFFFFF`
-      in hex notation) - it should be possible to represent the timeout
+    * positive integer smaller than or equal to `4_294_967_295` (`0xFFFFFFFF`
+      in hexadecimal notation) - it should be possible to represent the timeout
       value as an unsigned 32-bit integer.
 
   ## Variables handling
