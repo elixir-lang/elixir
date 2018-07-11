@@ -13,9 +13,9 @@ defmodule Mix.Tasks.Compile.App do
   In order to generate the `.app` file, Mix expects your project
   to have both `:app` and `:version` keys. Furthermore, you can
   configure the generated application by defining an `application/0`
-  function in your `mix.exs` with the following options.
+  function in your `mix.exs` that returns a keyword list.
 
-  The most commonly used options are:
+  The most commonly used keys are:
 
     * `:extra_applications` - a list of OTP applications
       your application depends on which are not included in `:deps`
@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Compile.App do
       to this list. It is most useful in detecting conflicts
       between applications that register the same names.
 
-    * `:env` - default values for the application environment.
+    * `:env` - the default values for the application environment.
       The application environment is one of the most common ways
       to configure applications. See the `Application` module for
       mechanisms to read and write to the application environment.

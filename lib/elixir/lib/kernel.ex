@@ -59,7 +59,7 @@ defmodule Kernel do
 
   There are two data types without an accompanying module:
 
-    * Bitstrings - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
+    * Bitstring - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
       When the number of bits is divisible by 8, they are called binaries and can
       be manipulated with Erlang's `:binary` module
     * Reference - a unique value in the runtime system, created with `make_ref/0`
@@ -797,9 +797,9 @@ defmodule Kernel do
   @doc """
   Sends a message to the given `dest` and returns the message.
 
-  `dest` may be a remote or local PID, a (local) port, a locally
-  registered name, or a tuple `{registered_name, node}` for a registered
-  name at another node.
+  `dest` may be a remote or local PID, a local port, a locally
+  registered name, or a tuple in the form of `{registered_name, node}` for a
+  registered name at another node.
 
   Inlined by the compiler.
 
@@ -809,7 +809,7 @@ defmodule Kernel do
       :hello
 
   """
-  @spec send(dest :: pid | port | atom | {atom, node}, message) :: message when message: any
+  @spec send(dest :: Process.dest(), message) :: message when message: any
   def send(dest, message) do
     :erlang.send(dest, message)
   end
@@ -1392,8 +1392,8 @@ defmodule Kernel do
 
   The items are only considered to be exactly equal if they
   have the same value and are of the same type. For example,
-  `1 == 1.0` returns true, but since they are of different
-  types, `1 === 1.0` returns false.
+  `1 == 1.0` returns `true`, but since they are of different
+  types, `1 === 1.0` returns `false`.
 
   All terms in Elixir can be compared with each other.
 
@@ -1485,11 +1485,10 @@ defmodule Kernel do
   @doc """
   Boolean or.
 
-  If the first argument is `true`, `true` is returned; otherwise, the second
-  argument is returned.
+  If `left` is `true`, returns `true`; otherwise returns `right`.
 
-  Requires only the first argument to be a boolean since it short-circuits.
-  If the first argument is not a boolean, an `ArgumentError` exception is
+  Requires only the `left` operand to be a boolean since it short-circuits.
+  If the `left` operand is not a boolean, an `ArgumentError` exception is
   raised.
 
   Allowed in guard tests.
@@ -1513,11 +1512,10 @@ defmodule Kernel do
   @doc """
   Boolean and.
 
-  If the first argument is `false`, `false` is returned; otherwise, the second
-  argument is returned.
+  If `left` is `false`, returns `false`; otherwise returns `right`.
 
-  Requires only the first argument to be a boolean since it short-circuits. If
-  the first argument is not a boolean, an `ArgumentError` exception is raised.
+  Requires only the `left` operand to be a boolean since it short-circuits. If
+  the `left` operand is not a boolean, an `ArgumentError` exception is raised.
 
   Allowed in guard tests.
 
@@ -4902,7 +4900,7 @@ defmodule Kernel do
   ## Sigils
 
   @doc ~S"""
-  Handles the sigil `~S`.
+  Handles the sigil `~S` for strings.
 
   It simply returns a string without escaping characters and without
   interpolations.
@@ -4920,7 +4918,7 @@ defmodule Kernel do
   defmacro sigil_S({:<<>>, _, [binary]}, []) when is_binary(binary), do: binary
 
   @doc ~S"""
-  Handles the sigil `~s`.
+  Handles the sigil `~s` for strings.
 
   It returns a string as if it was a double quoted string, unescaping characters
   and replacing interpolations.
@@ -4948,7 +4946,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~C`.
+  Handles the sigil `~C` for charlists.
 
   It simply returns a charlist without escaping characters and without
   interpolations.
@@ -4969,9 +4967,9 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~c`.
+  Handles the sigil `~c` for charlists.
 
-  It returns a charlist as if it were a single quoted string, unescaping
+  It returns a charlist as if it was a single quoted string, unescaping
   characters and replacing interpolations.
 
   ## Examples
@@ -5000,12 +4998,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil `~r`.
+  Handles the sigil `~r` for regular expressions.
 
   It returns a regular expression pattern, unescaping characters and replacing
   interpolations.
 
-  More information on regexes can be found in the `Regex` module.
+  More information on regular expressions can be found in the `Regex` module.
 
   ## Examples
 
@@ -5030,7 +5028,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~R`.
+  Handles the sigil `~R` for regular expressions.
 
   It returns a regular expression pattern without escaping
   nor interpreting interpolations.
@@ -5056,6 +5054,8 @@ defmodule Kernel do
   The lower case `~d` variant does not exist as interpolation
   and escape characters are not useful for date sigils.
 
+  More information on dates can be found in the `Date` module.
+
   ## Examples
 
       iex> ~D[2015-01-13]
@@ -5073,6 +5073,8 @@ defmodule Kernel do
 
   The lower case `~t` variant does not exist as interpolation
   and escape characters are not useful for time sigils.
+
+  More information on times can be found in the `Time` module.
 
   ## Examples
 
@@ -5094,6 +5096,8 @@ defmodule Kernel do
   The lower case `~n` variant does not exist as interpolation
   and escape characters are not useful for datetime sigils.
 
+  More information on naive date times can be found in the `NaiveDateTime` module.
+
   ## Examples
 
       iex> ~N[2015-01-13 13:00:07]
@@ -5109,7 +5113,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~w`.
+  Handles the sigil `~w` for list of words.
 
   It returns a list of "words" split by whitespace. Character unescaping and
   interpolation happens for each word.
@@ -5147,7 +5151,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~W`.
+  Handles the sigil `~W` for list of words.
 
   It returns a list of "words" split by whitespace without escaping nor
   interpreting interpolations.

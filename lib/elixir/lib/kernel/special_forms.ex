@@ -1997,10 +1997,10 @@ defmodule Kernel.SpecialForms do
   ## Examples
 
       receive do
-        {:selector, i, value} when is_integer(i) ->
-          value
-        value when is_atom(value) ->
-          value
+        {:selector, number, name} when is_integer(number) ->
+          name
+        name when is_atom(name) ->
+          name
         _ ->
           IO.puts :stderr, "Unexpected message received"
       end
@@ -2009,10 +2009,10 @@ defmodule Kernel.SpecialForms do
   received after the given timeout period, specified in milliseconds:
 
       receive do
-        {:selector, i, value} when is_integer(i) ->
-          value
-        value when is_atom(value) ->
-          value
+        {:selector, number, name} when is_integer(number) ->
+          name
+        name when is_atom(name) ->
+          name
         _ ->
           IO.puts :stderr, "Unexpected message received"
       after
@@ -2025,13 +2025,13 @@ defmodule Kernel.SpecialForms do
   one of the allowed values:
 
     * `:infinity` - the process should wait indefinitely for a matching
-      message, this is the same as not using a timeout
+      message, this is the same as not using the after clause
 
     * `0` - if there is no matching message in the mailbox, the timeout
       will occur immediately
 
-    * positive integer smaller than `4_294_967_295` (`0xFFFFFFFF`
-      in hex notation) - it should be possible to represent the timeout
+    * positive integer smaller than or equal to `4_294_967_295` (`0xFFFFFFFF`
+      in hexadecimal notation) - it should be possible to represent the timeout
       value as an unsigned 32-bit integer.
 
   ## Variables handling

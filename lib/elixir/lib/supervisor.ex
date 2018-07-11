@@ -425,7 +425,7 @@ defmodule Supervisor do
       Defaults to `5`.
 
     * `:name` - a name to register the supervisor process. Supported values are
-      explained in the "Name registration" section of the documentation of
+      explained in the "Name registration" section in the documentation for
       `GenServer`. Optional.
 
   ### Strategies

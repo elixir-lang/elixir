@@ -389,13 +389,13 @@ defmodule String do
 
   Note this function can split within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
-  "e" and the acute accent. The following returns true:
+  "e" and the acute accent. The following returns `true`:
 
       iex> String.split(String.normalize("é", :nfd), "e")
       ["", "́"]
 
   However, if "é" is represented by the single character "e with acute"
-  accent, then it will return false:
+  accent, then it will return `false`:
 
       iex> String.split(String.normalize("é", :nfc), "e")
       ["é"]
@@ -2064,13 +2064,13 @@ defmodule String do
 
   Note this function can match within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
-  "e" and the acute accent. The following returns true:
+  "e" and the acute accent. The following returns `true`:
 
       iex> String.contains?(String.normalize("é", :nfd), "e")
       true
 
   However, if "é" is represented by the single character "e with acute"
-  accent, then it will return false:
+  accent, then it will return `false`:
 
       iex> String.contains?(String.normalize("é", :nfc), "e")
       false
@@ -2123,7 +2123,7 @@ defmodule String do
   Converts a string to an atom.
 
   Warning: this function creates atoms dynamically and atoms are
-  not garbage collected. Therefore, `string` should not be an
+  not garbage-collected. Therefore, `string` should not be an
   untrusted value, such as input received from a socket or during
   a web request. Consider using `to_existing_atom/1` instead.
 

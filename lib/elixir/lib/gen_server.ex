@@ -120,7 +120,7 @@ defmodule GenServer do
   defined module to be put under a supervision tree. The generated
   `child_spec/1` can be customized with the following options:
 
-    * `:id` - the child specification id, defaults to the current module
+    * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the child should be restarted, defaults to `:permanent`
     * `:shutdown` - how to shut down the child
@@ -161,19 +161,19 @@ defmodule GenServer do
       GenServer.call(MyStack, :pop) #=> :hello
 
   Once the server is started, the remaining functions in this module (`call/3`,
-  `cast/2`, and friends) will also accept an atom, or any `:global` or `:via`
-  tuples. In general, the following formats are supported:
+  `cast/2`, and friends) will also accept an atom, or any `{:global, ...}` or
+  `{:via, ...}` tuples. In general, the following formats are supported:
 
-    * a `pid`
-    * an `atom` if the server is locally registered
+    * a PID
+    * an atom if the server is locally registered
     * `{atom, node}` if the server is locally registered at another node
     * `{:global, term}` if the server is globally registered
     * `{:via, module, name}` if the server is registered through an alternative
       registry
 
   If there is an interest to register dynamic names locally, do not use
-  atoms, as atoms are never garbage collected and therefore dynamically
-  generated atoms won't be garbage collected. For such cases, you can
+  atoms, as atoms are never garbage-collected and therefore dynamically
+  generated atoms won't be garbage-collected. For such cases, you can
   set up your own local registry by using the `Registry` module.
 
   ## Receiving "regular" messages
@@ -558,7 +558,7 @@ defmodule GenServer do
   exits. For such reasons, we usually recommend important clean-up rules to
   happen in separated processes either by use of monitoring or by links
   themselves. There is no cleanup needed when the `GenServer` controls a `port` (e.g.
-  `:gen_tcp.socket`) or `t:File.io_device/0`, because these will be closed on 
+  `:gen_tcp.socket`) or `t:File.io_device/0`, because these will be closed on
   receiving a `GenServer`'s exit signal and do not need to be closed manually
   in `c:terminate/2`.
 
@@ -789,7 +789,7 @@ defmodule GenServer do
   ## Options
 
     * `:name` - used for name registration as described in the "Name
-      registration" section of the module documentation
+      registration" section in the documentation for `GenServer`
 
     * `:timeout` - if present, the server is allowed to spend the given number of
       milliseconds initializing or it will be terminated and the start function

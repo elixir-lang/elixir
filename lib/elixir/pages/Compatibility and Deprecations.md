@@ -16,7 +16,7 @@ Elixir version | Support
 
 Major Elixir releases may contain breaking changes and those will be explicitly outlined in the CHANGELOG. There are currently no plans for a major v2 release.
 
-## Compatibility between Elixir non-major versions
+## Compatibility between non-major Elixir versions
 
 Elixir minor and patch releases are backwards compatible: well-defined behaviours and documented APIs in a given version will continue working on future versions.
 

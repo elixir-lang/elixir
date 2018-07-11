@@ -280,7 +280,7 @@ defmodule Logger do
 
     * `:line` - the current line
 
-    * `:pid` - the current process ID
+    * `:pid` - the current process identifier
 
     * `:crash_reason` - a two-element tuple with the throw/error/exit reason
       as first argument and the stacktrace as second. A throw will always be

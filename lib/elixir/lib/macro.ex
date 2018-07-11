@@ -1273,7 +1273,7 @@ defmodule Macro do
   defp do_expand_once(other, _env), do: {other, false}
 
   @doc """
-  Returns true if the given name and arity is a special form.
+  Returns `true` if the given name and arity is a special form.
   """
   @since "1.7.0"
   @spec special_form?(name :: atom(), arity()) :: boolean()
@@ -1282,7 +1282,7 @@ defmodule Macro do
   end
 
   @doc """
-  Returns true if the given name and arity is an operator.
+  Returns `true` if the given name and arity is an operator.
   """
   @since "1.7.0"
   @spec operator?(name :: atom(), arity()) :: boolean()
@@ -1291,7 +1291,7 @@ defmodule Macro do
   def operator?(name, arity) when is_atom(name) and is_integer(arity), do: false
 
   @doc """
-  Returns true if the given quoted expression is an AST literal.
+  Returns `true` if the given quoted expression is an AST literal.
   """
   @since "1.7.0"
   @spec quoted_literal?(literal) :: true

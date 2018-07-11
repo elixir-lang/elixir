@@ -123,7 +123,7 @@ defmodule Calendar do
   @callback months_in_year(year) :: month
 
   @doc """
-  Returns true if the given year is a leap year.
+  Returns `true` if the given year is a leap year.
 
   A leap year is a year of a longer length than normal. The exact meaning
   is up to the calendar. A calendar must return `false` if it does not support
