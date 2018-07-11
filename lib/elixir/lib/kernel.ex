@@ -140,7 +140,7 @@ defmodule Kernel do
       precedence
     * [Syntax Reference](syntax-reference.html) - the language syntax reference
     * [Typespecs](typespecs.html)- types and function specifications, including list of types
-    * [Unicode Syntax](unicode-syntax.html) - outline Elixir support for Unicode
+    * [Unicode Syntax](unicode-syntax.html) - outlines Elixir support for Unicode
     * [Writing Documentation](writing-documentation.html) - guidelines for
       writing documentation in Elixir.
 

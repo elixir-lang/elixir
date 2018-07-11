@@ -50,18 +50,18 @@ defmodule Mix.Tasks.Format do
 
   ## Task-specific options
 
-    * `--check-formatted` - check that the file is already formatted.
+    * `--check-formatted` - checks that the file is already formatted.
       This is useful in pre-commit hooks and CI scripts if you want to
       reject contributions with unformatted code. However keep in mind
       that the formatted output may differ between Elixir versions as
       improvements and fixes are applied to the formatter.
 
-    * `--check-equivalent` - check if the files after formatting have the
+    * `--check-equivalent` - checks if the files after formatting have the
       same AST as before formatting. If the ASTs are not equivalent,
       it is a bug in the code formatter. This option is recommended if you
       are automatically formatting files.
 
-    * `--dry-run` - do not save files after formatting.
+    * `--dry-run` - does not save files after formatting.
 
     * `--dot-formatter` - path to the file with formatter configuration.
       Defaults to `.formatter.exs` if one is available. See the "`.formatter.exs`"
