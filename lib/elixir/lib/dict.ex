@@ -1,6 +1,6 @@
 defmodule Dict do
   @moduledoc ~S"""
-  WARNING: this module is deprecated.
+  Generic API for dictionaries.
 
   If you need a general dictionary, use the `Map` module.
   If you need to manipulate keyword lists, use `Keyword`.
@@ -8,6 +8,8 @@ defmodule Dict do
   To convert maps into keywords and vice-versa, use the
   `new` function in the respective modules.
   """
+
+  @moduledoc deprecated: "Use Map or Keyword modules instead"
 
   @type key :: any
   @type value :: any

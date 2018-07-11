@@ -1,6 +1,6 @@
 defmodule Supervisor.Spec do
   @moduledoc """
-  WARNING: this module is deprecated.
+  Outdated functions for building child specifications.
 
   The functions in this module are deprecated and they do not work
   with the module-based child specs introduced in Elixir v1.5.
@@ -105,6 +105,9 @@ defmodule Supervisor.Spec do
       using `Process.exit(child, :kill)`
 
   """
+
+  @moduledoc deprecated:
+               "Use the new child specifications outlined in the Supervisor module instead"
 
   # TODO: Deprecate all functions in this module on Elixir v1.8.
   # Also deprecate entry in Supervisor.Default.
