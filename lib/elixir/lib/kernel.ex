@@ -59,7 +59,7 @@ defmodule Kernel do
 
   There are two data types without an accompanying module:
 
-    * Bitstrings - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
+    * Bitstring - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
       When the number of bits is divisible by 8, they are called binaries and can
       be manipulated with Erlang's `:binary` module
     * Reference - a unique value in the runtime system, created with `make_ref/0`
@@ -4969,7 +4969,7 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~c` for charlists.
 
-  It returns a charlist as if it were a single quoted string, unescaping
+  It returns a charlist as if it was a single quoted string, unescaping
   characters and replacing interpolations.
 
   ## Examples

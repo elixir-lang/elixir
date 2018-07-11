@@ -15,8 +15,8 @@ defmodule Logger.Formatter do
 
   The valid parameters you can use are:
 
-    * `$time`     - time the log message was sent
-    * `$date`     - date the log message was sent
+    * `$time`     - the time the log message was sent
+    * `$date`     - the date the log message was sent
     * `$message`  - the log message
     * `$level`    - the log level
     * `$node`     - the node that prints the message

@@ -14,7 +14,7 @@ defmodule IO.ANSI.Docs do
     * `:doc_code`          - code blocks (cyan)
     * `:doc_headings`      - h1, h2, h3, h4, h5, h6 headings (yellow)
     * `:doc_inline_code`   - inline code (cyan)
-    * `:doc_table_heading` - style for table headings
+    * `:doc_table_heading` - the style for table headings
     * `:doc_title`         - top level heading (reverse, yellow)
     * `:doc_underline`     - underlined text (underline)
     * `:width`             - the width to format the text (80)
