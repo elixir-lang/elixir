@@ -46,7 +46,7 @@ We recommend Elixir libraries that previously hooked into Erlang's `:error_logge
 
 ## Other Logger improvements
 
-Previously, Logger macros such as `debug`, `info`, and so on would always evaluate its arguments, even when nothing would be logged. From Elixir v1.7, the arguments are only evaluated when the message is logged.
+Previously, Logger macros such as `debug`, `info`, and so on would always evaluate their arguments, even when nothing would be logged. From Elixir v1.7, the arguments are only evaluated when the message is logged.
 
 The Logger configuration system also accepts a new option called `:compile_time_purge_matching` that allows you to remove log calls with specific compile-time metadata. For example, to remove all logger calls from application `:foo` with level lower than `:info`, as well as remove all logger calls from `Bar.foo/3`, you can use the following configuration:
 
@@ -62,7 +62,7 @@ config :logger,
 
 ExUnit has also seen its own share of improvements. Assertions such as `assert some_fun(arg1, arg2, arg3)` will now include the value of each argument in the failure report:
 
-```elixir
+```
   1) test function call arguments (TestOneOfEach)
      lib/ex_unit/examples/one_of_each.exs:157
      Expected truthy, got false
@@ -176,8 +176,8 @@ Percentage | Module
 #### Elixir
 
   * [IO.ANSI.Docs] Fix table column alignment when converting docs to ANSI escapes
-  * [Code] Ensure `string_to_quoted` return error tuples instead of raising in certain constructs
-  * [Code.Formatter] Consistently format keyword lists in functions calls with and without parens
+  * [Code] Ensure `string_to_quoted` returns error tuples instead of raising in certain constructs
+  * [Code.Formatter] Consistently format keyword lists in function calls with and without parens
   * [Code.Formatter] Do not break after `->` when there are only comments and one-line clauses
   * [Kernel] Raise on unsafe variables as some of the code emitted with unsafe variables would not correctly propagate variables or would disable tail call optimization semantics
   * [Kernel] Do not crash on dynamic sizes in binary generators with collectable into in comprehensions
@@ -187,17 +187,17 @@ Percentage | Module
 #### ExUnit
 
   * [ExUnit.Case] Raise proper error if `@tag` and `@moduletag` are used before `use ExUnit.Case`
-  * [ExUnit.Case] Raise proper error if `@describetag` is used outside of describe
+  * [ExUnit.Case] Raise proper error if `@describetag` is used outside of `describe/2` blocks
   * [ExUnit.DocTest] Emit proper assertion error on doctests with invalid UTF-8
 
 #### Mix
 
-  * [mix archive.install] Fetch optional dependencies when installing an archive from git/hex
+  * [mix archive.install] Fetch optional dependencies when installing an archive from Git/Hex
   * [mix compile] Properly track config files in umbrella projects and recompile when any relevant umbrella configuration changes
   * [mix deps] Ensure the same dependency from different SCMs are tagged as diverged when those SCMs are remote and non-remote
   * [mix deps] Ensure we re-run dependency resolution when overriding a skipped dep in umbrella
   * [mix deps.compile] Perform clean builds for dependencies on outdated locks to avoid old modules from affecting future compilation
-  * [mix escript.install] Fetch optional dependencies when installing an escript from git/hex
+  * [mix escript.install] Fetch optional dependencies when installing an escript from Git/Hex
 
 ### 3. Soft-deprecations (no warnings emitted)
 
