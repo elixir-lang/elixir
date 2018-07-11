@@ -48,7 +48,7 @@ The notation to represent the union of types is the pipe `|`. For example, the t
           | atom()
           | map()                   # any map
           | pid()                   # process identifier
-          | port()
+          | port()                  # port identifier
           | reference()
           | struct()                # any struct
           | tuple()                 # tuple of any size
