@@ -132,7 +132,7 @@ defmodule Date do
   end
 
   @doc """
-  Returns true if the year in the given `date` is a leap year.
+  Returns `true` if the year in the given `date` is a leap year.
 
   ## Examples
 

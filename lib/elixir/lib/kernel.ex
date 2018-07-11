@@ -16,7 +16,7 @@ defmodule Kernel do
       data type handling, etc
     * macros for control-flow and defining new functionality (modules, functions, and so on)
     * [guard](guards.html) checks for augmenting pattern matching
-    
+
   You can use `Kernel` functions/macros without the `Kernel` prefix anywhere in
   Elixir code as all its functions and macros are automatically imported. For
   example, in IEx:
@@ -24,11 +24,11 @@ defmodule Kernel do
       iex> is_number(13)
       true
 
-  If you don't want to import a function or macro from `Kernel`, use the `:except` 
+  If you don't want to import a function or macro from `Kernel`, use the `:except`
   option and then list the function/macro by arity:
 
         import Kernel, except: [if: 2, unless: 2]
-        
+
   See `Kernel.SpecialForms.import/2` for more information on importing.
 
   Elixir also has special forms that are always imported and
@@ -1392,8 +1392,8 @@ defmodule Kernel do
 
   The items are only considered to be exactly equal if they
   have the same value and are of the same type. For example,
-  `1 == 1.0` returns true, but since they are of different
-  types, `1 === 1.0` returns false.
+  `1 == 1.0` returns `true`, but since they are of different
+  types, `1 === 1.0` returns `false`.
 
   All terms in Elixir can be compared with each other.
 

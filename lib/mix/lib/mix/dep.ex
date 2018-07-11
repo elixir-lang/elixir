@@ -422,7 +422,7 @@ defmodule Mix.Dep do
   def diverged?(%Mix.Dep{}), do: false
 
   @doc """
-  Returns true if the depednency is compilable.
+  Returns `true` if the depednency is compilable.
   """
   def compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
   def compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
