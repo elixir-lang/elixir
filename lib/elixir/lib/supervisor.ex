@@ -147,10 +147,10 @@ defmodule Supervisor do
   The child specification describes how the supervisor starts, shuts down,
   and restarts child processes.
 
-  The child specification contains 5 keys. The first two are required,
+  The child specification contains 6 keys. The first two are required,
   and the remaining ones are optional:
 
-    * `:id` - a value used to identify the child specification
+    * `:id` - any term used to identify the child specification
       internally by the supervisor; defaults to the given module.
       In the case of conflicting `:id` values, the supervisor will refuse
       to initialize and require explicit IDs. This key is required.
@@ -338,7 +338,7 @@ defmodule Supervisor do
       restarts in transient mode, and linked processes exit with the same
       reason unless they're trapping exits
 
-  Notice that supervisor that reached maximum restart intensity will exit with
+  Notice that the supervisor that reaches maximum restart intensity will exit with
   `:shutdown` reason. In this case the supervisor will only be restarted if its
   child specification was defined with the `:restart` option set to `:permanent`
   (the default).
@@ -390,7 +390,7 @@ defmodule Supervisor do
   can run as a child of another supervision in the tree. The generated
   `child_spec/1` can be customized with the following options:
 
-    * `:id` - the child specification id, defaults to the current module
+    * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the supervisor should be restarted, defaults to `:permanent`
 
@@ -440,10 +440,9 @@ defmodule Supervisor do
       processes are terminated and then all child processes (including
       the terminated one) are restarted.
 
-    * `:rest_for_one` - if a child process terminates, the "rest" of
-      the child processes, i.e., the child processes after the terminated
-      one in start order, are terminated. Then the terminated child
-      process and the rest of the child processes are restarted.
+    * `:rest_for_one` - if a child process terminates, the terminated child
+      process and the rest of the children started after it, are terminated and
+      restarted.
 
   In the above, process termination refers to unsuccessful termination, which
   is determined by the `:restart` option.
@@ -452,7 +451,7 @@ defmodule Supervisor do
   has been replaced by the `DynamicSupervisor`. The `:simple_one_for_one`
   supervisor was similar to `:one_for_one` but suits better when dynamically
   attaching children. Many functions in this module behaved slightly
-  differently when this strategy is used. See the `DynamicSupervisor` module
+  differently when this strategy was used. See the `DynamicSupervisor` module
   for more information and migration strategies.
 
   ## Name registration
@@ -534,7 +533,7 @@ defmodule Supervisor do
   # Note we have inlined all types for readability
   @typedoc "The supervisor specification"
   @type child_spec :: %{
-          required(:id) => term(),
+          required(:id) => atom() | term(),
           required(:start) => {module(), atom(), [term()]},
           optional(:restart) => :permanent | :transient | :temporary,
           optional(:shutdown) => timeout() | :brutal_kill,
