@@ -63,15 +63,15 @@ defmodule GenServerTest do
   end
 
   test "start_link/3" do
-    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+    assert_raise ArgumentError, ~r"expected :name option to be one of the following:", fn ->
       GenServer.start_link(Stack, [:hello], name: "my_gen_server_name")
     end
 
-    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+    assert_raise ArgumentError, ~r"expected :name option to be one of the following:", fn ->
       GenServer.start_link(Stack, [:hello], name: {:invalid_tuple, "my_gen_server_name"})
     end
 
-    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+    assert_raise ArgumentError, ~r"expected :name option to be one of the following:", fn ->
       GenServer.start_link(Stack, [:hello], name: {:via, "Via", "my_gen_server_name"})
     end
 

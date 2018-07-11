@@ -558,7 +558,7 @@ defmodule GenServer do
   exits. For such reasons, we usually recommend important clean-up rules to
   happen in separated processes either by use of monitoring or by links
   themselves. There is no cleanup needed when the `GenServer` controls a `port` (e.g.
-  `:gen_tcp.socket`) or `t:File.io_device/0`, because these will be closed on 
+  `:gen_tcp.socket`) or `t:File.io_device/0`, because these will be closed on
   receiving a `GenServer`'s exit signal and do not need to be closed manually
   in `c:terminate/2`.
 
@@ -843,7 +843,7 @@ defmodule GenServer do
 
       {other, _} ->
         raise ArgumentError, """
-        expected :name option to be one of:
+        expected :name option to be one of the following:
 
           * nil
           * atom

@@ -275,7 +275,7 @@ defmodule Supervisor do
   with other developers and they can add it directly to their supervision tree
   without worrying about the low-level details of the worker.
 
-  Overall, the child specification can be one of:
+  Overall, the child specification can be one of the following:
 
     * a map representing the child specification itself - as outlined in the
       "Child specification" section
@@ -655,7 +655,7 @@ defmodule Supervisor do
 
   defp init_child(other) do
     raise ArgumentError, """
-    supervisors expect each child to be one of:
+    supervisors expect each child to be one of the following:
 
       * a module
       * a {module, arg} tuple
@@ -789,7 +789,7 @@ defmodule Supervisor do
 
       other ->
         raise ArgumentError, """
-        expected :name option to be one of:
+        expected :name option to be one of the following:
 
           * nil
           * atom
