@@ -28,10 +28,10 @@ defmodule Mix.Tasks.Profile.Eprof do
     * `--time` - filters out any results that took lower than specified (in µs)
     * `--sort` - sorts the results by `time` or `calls` (default: `time`)
     * `--config`, `-c` - loads the given configuration file
-    * `--eval`, `-e` - evaluate the given code
+    * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
-    * `--no-warmup` - skip the warmup step before profiling
+    * `--no-warmup` - skips the warmup step before profiling
     * `--no-compile` - does not compile even if files require compilation
     * `--no-deps-check` - does not check dependencies
     * `--no-archives-check` - does not check archives
