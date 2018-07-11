@@ -387,7 +387,7 @@ defmodule Float do
       {-16, 1}
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec ratio(float) :: {pos_integer | neg_integer, pos_integer}
   def ratio(float) when is_float(float) do
     <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>

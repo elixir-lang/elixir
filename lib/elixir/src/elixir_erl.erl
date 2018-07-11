@@ -516,6 +516,7 @@ docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
   case elixir_compiler:get_opt(docs) of
     true ->
       {ModuleDocLine, ModuleDoc} = get_moduledoc(Line, Set),
+      ModuleDocMeta = get_moduledoc_meta(Set),
       FunctionDocs = get_docs(Set, Module, Def, function),
       MacroDocs = get_docs(Set, Module, Defmacro, macro),
       CallbackDocs = get_callback_docs(Set, Callbacks),
@@ -526,7 +527,7 @@ docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
         elixir,
         <<"text/markdown">>,
         ModuleDoc,
-        #{},
+        ModuleDocMeta,
         FunctionDocs ++ MacroDocs ++ CallbackDocs ++ TypeDocs
       }, [compressed]),
 
@@ -551,6 +552,12 @@ get_moduledoc(Line, Set) ->
   case ets:lookup_element(Set, moduledoc, 2) of
     nil -> {Line, none};
     {DocLine, Doc} -> {DocLine, doc_value(Doc)}
+  end.
+
+get_moduledoc_meta(Set) ->
+  case ets:lookup(Set, {moduledoc, meta}) of
+    [] -> #{};
+    [{{moduledoc, meta}, Map, _}] when is_map(Map) -> Map
   end.
 
 get_docs(Set, Module, Definitions, Kind) ->

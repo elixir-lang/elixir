@@ -2,7 +2,7 @@ defmodule List do
   @moduledoc """
   Functions that work on (linked) lists.
 
-  Many of the functions provided for lists, which implement 
+  Many of the functions provided for lists, which implement
   the `Enumerable` protocol, are found in the `Enum` module.
 
   Additionally, the following functions and operators for lists are
@@ -62,10 +62,10 @@ defmodule List do
       [0, 1, 2, 3]
       iex> list ++ [4] # slow
       [1, 2, 3, 4]
-      
-  Additonally, getting a list's length and accessing it by index are 
-  linear time operations. Negative indexes are also supported but 
-  they imply the list will be iterated twice, once to calculate the 
+
+  Additonally, getting a list's length and accessing it by index are
+  linear time operations. Negative indexes are also supported but
+  they imply the list will be iterated twice, once to calculate the
   proper index and another time to perform the operation.
 
   ## Charlists
@@ -468,7 +468,7 @@ defmodule List do
       false
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   def ascii_printable?(list, counter \\ :infinity)
 
   def ascii_printable?(_, 0) do
@@ -650,7 +650,7 @@ defmodule List do
       {3, [1, 2]}
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec pop_at(list, integer, any) :: {any, list}
   def pop_at(list, index, default \\ nil) when is_integer(index) do
     if index < 0 do
@@ -680,7 +680,7 @@ defmodule List do
       false
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec starts_with?(list, list) :: boolean
   @spec starts_with?(list, []) :: true
   @spec starts_with?([], nonempty_list) :: false
@@ -867,7 +867,7 @@ defmodule List do
       [eq: [1], del: [4], eq: [2, 3], ins: [4]]
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec myers_difference(list, list) :: [{:eq | :ins | :del, list}]
   def myers_difference(list1, list2) when is_list(list1) and is_list(list2) do
     path = {0, list1, list2, []}

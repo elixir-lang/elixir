@@ -130,8 +130,8 @@ defmodule Macro.Env do
   and the second element is its context, which may be an
   atom or an integer.
   """
+  @doc since: "1.7.0"
   @spec vars(t) :: [var]
-  @since "1.7.0"
   def vars(env)
 
   def vars(%{__struct__: Macro.Env, current_vars: current_vars}) do
@@ -141,8 +141,8 @@ defmodule Macro.Env do
   @doc """
   Checks if a variable belongs to the environment.
   """
+  @doc since: "1.7.0"
   @spec has_var?(t, var) :: boolean()
-  @since "1.7.0"
   def has_var?(env, var)
 
   def has_var?(%{__struct__: Macro.Env, current_vars: current_vars}, var) do

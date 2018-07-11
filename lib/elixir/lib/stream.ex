@@ -145,7 +145,7 @@ defmodule Stream do
   @doc """
   Shortcut to `chunk_every(enum, count, count)`.
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec chunk_every(Enumerable.t(), pos_integer) :: Enumerable.t()
   def chunk_every(enum, count), do: chunk_every(enum, count, count, [])
 
@@ -179,7 +179,7 @@ defmodule Stream do
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec chunk_every(Enumerable.t(), pos_integer, pos_integer, Enumerable.t() | :discard) ::
           Enumerable.t()
   def chunk_every(enum, count, step, leftover \\ [])
@@ -233,7 +233,7 @@ defmodule Stream do
       [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
 
   """
-  @since "1.5.0"
+  @doc since: "1.5.0"
   @spec chunk_while(
           Enumerable.t(),
           acc,
@@ -585,7 +585,7 @@ defmodule Stream do
       [1, 2, 3, 4, 5]
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec map_every(Enumerable.t(), non_neg_integer, (element -> any)) :: Enumerable.t()
   def map_every(enum, nth, fun)
 
@@ -1112,7 +1112,7 @@ defmodule Stream do
       [{1, :a, "foo"}, {2, :b, "bar"}, {3, :c, "baz"}]
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec zip([Enumerable.t()]) :: Enumerable.t()
   @spec zip(Enumerable.t()) :: Enumerable.t()
   def zip(enumerables) do
@@ -1500,7 +1500,7 @@ defmodule Stream do
       []
 
   """
-  @since "1.6.0"
+  @doc since: "1.6.0"
   @spec intersperse(Enumerable.t(), any) :: Enumerable.t()
   def intersperse(enumerable, intersperse_element) do
     Stream.transform(enumerable, false, fn

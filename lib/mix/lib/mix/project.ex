@@ -217,7 +217,7 @@ defmodule Mix.Project do
   a full recompilation whenever such configuration files change.
   For this reason, the mtime is cached to avoid file system lookups.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec config_mtime() :: posix_mtime when posix_mtime: integer()
   def config_mtime do
     Mix.Dep.Lock.manifest()
@@ -254,7 +254,7 @@ defmodule Mix.Project do
       #=> %{my_app1: "apps/my_app1", my_app2: "apps/my_app2"}
 
   """
-  @since "1.4.0"
+  @doc since: "1.4.0"
   @spec apps_paths() :: %{optional(atom) => Path.t()} | nil
   def apps_paths(config \\ config()) do
     if apps_path = config[:apps_path] do
@@ -396,7 +396,7 @@ defmodule Mix.Project do
 
   Useful when dependencies need to be reloaded due to change of global state.
   """
-  @since "1.7.0"
+  @doc since: "1.7.0"
   @spec clear_deps_cache() :: :ok
   def clear_deps_cache() do
     Mix.Dep.clear_cached()
