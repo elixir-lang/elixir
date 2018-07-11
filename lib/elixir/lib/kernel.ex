@@ -16,7 +16,7 @@ defmodule Kernel do
       data type handling, etc
     * macros for control-flow and defining new functionality (modules, functions, and so on)
     * [guard](guards.html) checks for augmenting pattern matching
-    
+
   You can use `Kernel` functions/macros without the `Kernel` prefix anywhere in
   Elixir code as all its functions and macros are automatically imported. For
   example, in IEx:
@@ -24,11 +24,11 @@ defmodule Kernel do
       iex> is_number(13)
       true
 
-  If you don't want to import a function or macro from `Kernel`, use the `:except` 
+  If you don't want to import a function or macro from `Kernel`, use the `:except`
   option and then list the function/macro by arity:
 
         import Kernel, except: [if: 2, unless: 2]
-        
+
   See `Kernel.SpecialForms.import/2` for more information on importing.
 
   Elixir also has special forms that are always imported and
@@ -214,7 +214,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Invokes the given function `fun` from `module` with the list of
+  Invokes the given function from `module` with the list of
   arguments `args`.
 
   `apply/3` is used to invoke functions where the module, function
@@ -229,9 +229,9 @@ defmodule Kernel do
       [3, 2, 1]
 
   """
-  @spec apply(module, atom, [any]) :: any
-  def apply(module, fun, args) do
-    :erlang.apply(module, fun, args)
+  @spec apply(module, function_name :: atom, [any]) :: any
+  def apply(module, function_name, args) do
+    :erlang.apply(module, function_name, args)
   end
 
   @doc """
