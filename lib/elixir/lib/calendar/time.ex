@@ -555,7 +555,7 @@ defmodule Time do
   end
 
   @doc """
-  Returns the difference between two times, considering only the hour, minute
+  Returns the difference between two times, considering only the hour, minute,
   second and microsecond.
 
   As with the `compare/2` function both `Time` structs and other structures
