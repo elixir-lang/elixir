@@ -51,7 +51,6 @@ defmodule Mix.Tasks.Test do
         module_results =
           for module <- keep,
               results = read_module_cover_results(table, module),
-              results != {0, 0},
               do: {module, results}
 
         total_covered = :ets.select_count(table, [{{:_, true}, [], [true]}])
