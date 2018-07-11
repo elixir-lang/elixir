@@ -4971,7 +4971,7 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~c`.
 
-  It returns a charlist as if it were a single quoted string, unescaping
+  It returns a charlist as if it was a single quoted string, unescaping
   characters and replacing interpolations.
 
   ## Examples

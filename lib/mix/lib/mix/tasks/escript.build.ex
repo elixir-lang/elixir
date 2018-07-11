@@ -56,7 +56,7 @@ defmodule Mix.Tasks.Escript.Build do
     * `:path` - the path to write the escript to.
       Defaults to app name.
 
-    * `:app` - the app to start with the escript.
+    * `:app` - the app that starts with the escript.
       Defaults to app name. Set it to `nil` if no application should
       be started.
 

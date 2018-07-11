@@ -19,11 +19,11 @@ defmodule Mix.Config do
   `merge/2` and friends which help manipulate configurations
   in general.
 
-  Configuration set using `Mix.Config` will set the application env, so
+  Configuration set using `Mix.Config` will set the application environment, so
   that `Application.get_env/3` and other `Application` functions can be used
   at run or compile time to retrieve or change the configuration.
 
-  For example, the `:key1` value from application `:plug` (see above) can be
+  For example, the `:key1` value from the application `:plug` (see example above) can be
   retrieved with:
 
       "value1" = Application.fetch_env!(:plug, :key1)

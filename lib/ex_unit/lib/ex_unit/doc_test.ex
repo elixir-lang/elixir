@@ -165,7 +165,7 @@ defmodule ExUnit.DocTest do
   This macro is used to generate ExUnit test cases for doctests.
 
   Calling `doctest(Module)` will generate tests for all doctests found
-  in the module `Module`
+  in the `module`.
 
   Options can also be given:
 
@@ -187,7 +187,7 @@ defmodule ExUnit.DocTest do
 
   This macro is auto-imported with every `ExUnit.Case`.
   """
-  defmacro doctest(mod, opts \\ []) do
+  defmacro doctest(module, opts \\ []) do
     require =
       if is_atom(Macro.expand(mod, __CALLER__)) do
         quote do
