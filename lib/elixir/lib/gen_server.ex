@@ -172,8 +172,8 @@ defmodule GenServer do
       registry
 
   If there is an interest to register dynamic names locally, do not use
-  atoms, as atoms are never garbage collected and therefore dynamically
-  generated atoms won't be garbage collected. For such cases, you can
+  atoms, as atoms are never garbage-collected and therefore dynamically
+  generated atoms won't be garbage-collected. For such cases, you can
   set up your own local registry by using the `Registry` module.
 
   ## Receiving "regular" messages

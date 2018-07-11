@@ -976,7 +976,7 @@ defmodule Stream do
   Keep in mind that, in order to know if an element is unique
   or not, this function needs to store all unique values emitted
   by the stream. Therefore, if the stream is infinite, the number
-  of items stored will grow infinitely, never being garbage collected.
+  of items stored will grow infinitely, never being garbage-collected.
 
   ## Examples
 
@@ -1006,7 +1006,7 @@ defmodule Stream do
   Keep in mind that, in order to know if an element is unique
   or not, this function needs to store all unique values emitted
   by the stream. Therefore, if the stream is infinite, the number
-  of items stored will grow infinitely, never being garbage collected.
+  of items stored will grow infinitely, never being garbage-collected.
 
   ## Example
 
