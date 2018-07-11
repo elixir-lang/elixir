@@ -166,17 +166,17 @@ defmodule SupervisorTest do
     assert GenServer.call(:dyn_stack, :pop) == :hello
     Supervisor.stop(pid)
 
-    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+    assert_raise ArgumentError, ~r"expected :name option to be one of the following:", fn ->
       name = "my_gen_server_name"
       Supervisor.start_link(children, name: name, strategy: :one_for_one)
     end
 
-    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+    assert_raise ArgumentError, ~r"expected :name option to be one of the following:", fn ->
       name = {:invalid_tuple, "my_gen_server_name"}
       Supervisor.start_link(children, name: name, strategy: :one_for_one)
     end
 
-    assert_raise ArgumentError, ~r"expected :name option to be one of:", fn ->
+    assert_raise ArgumentError, ~r"expected :name option to be one of the following:", fn ->
       name = {:via, "Via", "my_gen_server_name"}
       Supervisor.start_link(children, name: name, strategy: :one_for_one)
     end

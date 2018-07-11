@@ -843,7 +843,7 @@ defmodule GenServer do
 
       {other, _} ->
         raise ArgumentError, """
-        expected :name option to be one of:
+        expected :name option to be one of the following:
 
           * nil
           * atom
