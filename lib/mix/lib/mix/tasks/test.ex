@@ -20,16 +20,14 @@ defmodule Mix.Tasks.Test do
         Mix.shell().info("\nGenerating cover results ...\n")
         {:result, ok, _fail} = :cover.analyse(:coverage, :line)
 
-        results =
-          ok
-          |> gather_coverage(:cover.modules())
-          |> Enum.sort_by(&percentage(elem(&1, 1)), &>=/2)
+        {module_results, totals} = gather_coverage(ok, :cover.modules())
+        module_results = Enum.sort_by(module_results, &percentage(elem(&1, 1)), &>=/2)
 
         if summary_opts = Keyword.get(opts, :summary, true) do
-          console(results, summary_opts)
+          console(module_results, totals, summary_opts)
         end
 
-        html(results, opts)
+        html(module_results, opts)
       end
     end
 
@@ -40,50 +38,44 @@ defmodule Mix.Tasks.Test do
       # We may also have multiple entries on the same line.
       # Each line is only considered once.
       #
-      # We use the process dictionary for performance, to avoid
-      # working with nested maps, but we clean it up afterwards.
-      modules =
-        Enum.reduce(results, MapSet.new(), fn
-          {{module, 0}, _}, acc ->
-            MapSet.put(acc, module)
+      # We use ets for performance, to avoid working with nested maps
+      table = :ets.new(__MODULE__, [:set, :private])
 
-          {{module, line}, {1, 0}}, acc ->
-            coverage = Process.get(module) || %{}
-            Process.put(module, Map.put(coverage, line, true))
-            MapSet.put(acc, module)
-
-          {{module, line}, {0, 1}}, acc ->
-            coverage = Process.get(module) || %{}
-            Process.put(module, Map.put_new(coverage, line, false))
-            MapSet.put(acc, module)
+      try do
+        Enum.each(results, fn
+          {{module, 0}, _} -> :ets.insert(table, {{module, 0}, :dummy})
+          {{module, line}, {1, 0}} -> :ets.insert(table, {{module, line}, true})
+          {{module, line}, {0, 1}} -> :ets.insert_new(table, {{module, line}, false})
         end)
 
-      for module <- modules, results = Process.delete(module) || %{}, module in keep do
-        result =
-          Enum.reduce(results, {0, 0}, fn
-            {_line, true}, {covered, not_covered} -> {covered + 1, not_covered}
-            {_line, false}, {covered, not_covered} -> {covered, not_covered + 1}
-          end)
+        module_results =
+          for module <- keep,
+              results = read_module_cover_results(table, module),
+              do: {module, results}
 
-        {module, result}
+        total_covered = :ets.select_count(table, [{{:_, true}, [], [true]}])
+        total_not_covered = :ets.select_count(table, [{{:_, false}, [], [true]}])
+
+        {module_results, {total_covered, total_not_covered}}
+      after
+        :ets.delete(table)
       end
     end
 
-    defp console(results, true), do: console(results, [])
+    defp read_module_cover_results(table, module) do
+      covered = :ets.select_count(table, [{{{module, :_}, true}, [], [true]}])
+      not_covered = :ets.select_count(table, [{{{module, :_}, false}, [], [true]}])
+      {covered, not_covered}
+    end
 
-    defp console(results, opts) when is_list(opts) do
+    defp console(results, totals, true), do: console(results, totals, [])
+
+    defp console(results, totals, opts) when is_list(opts) do
       Mix.shell().info("Percentage | Module")
       Mix.shell().info("-----------|--------------------------")
       Enum.each(results, &display(&1, opts))
       Mix.shell().info("-----------|--------------------------")
-
-      total =
-        Enum.reduce(results, {0, 0}, fn {_, {covered, not_covered}},
-                                        {total_covered, total_not_covered} ->
-          {total_covered + covered, total_not_covered + not_covered}
-        end)
-
-      display({"Total", total}, opts)
+      display({"Total", totals}, opts)
       Mix.shell().info("")
     end
 
@@ -121,14 +113,10 @@ defmodule Mix.Tasks.Test do
       ])
     end
 
-    defp percentage({0, 0}), do: 100
+    defp percentage({0, 0}), do: 100.0
     defp percentage({covered, not_covered}), do: covered / (covered + not_covered) * 100
 
-    defp format(number, length) when is_integer(number),
-      do: :io_lib.format("~#{length}b", [number])
-
-    defp format(number, length) when is_float(number),
-      do: :io_lib.format("~#{length}.2f", [number])
+    defp format(number, length), do: :io_lib.format("~#{length}.2f", [number])
 
     defp format_name(name) when is_binary(name), do: name
     defp format_name(mod) when is_atom(mod), do: inspect(mod)
