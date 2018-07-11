@@ -70,7 +70,7 @@ defmodule Kernel.DocsTest do
       end
     end
 
-    assert_raise ArgumentError, ~r/should be a binary, boolean, keyword list, or nil/, fn ->
+    assert_raise ArgumentError, ~r/should be a string, boolean, keyword list, or nil/, fn ->
       defmodule AtSyntaxDocAttributesFormat do
         @moduledoc :not_a_binary
       end
@@ -155,9 +155,8 @@ defmodule Kernel.DocsTest do
           @opaque bar(any) :: any
 
           @doc "Callback doc"
-          @doc since: "1.2.3", color: :red
+          @doc since: "1.2.3", color: :red, deprecated: "use baz/2 instead"
           @doc color: :blue, stable: true
-          @deprecated "use baz/2 instead"
           @callback foo(any) :: any
 
           @doc false
@@ -170,13 +169,12 @@ defmodule Kernel.DocsTest do
 
           @doc "Function doc"
           @doc since: "1.2.3", color: :red
-          @since "1.2-doc-meta-takes-precedence"
           @doc color: :blue, stable: true
           @deprecated "use baz/2 instead"
           def foo(arg \\ 0), do: arg + 1
 
           @doc "Multiple bodiless clause doc"
-          @since "1.2.3"
+          @deprecated "something else"
           def bar(_arg)
           def bar(_arg)
           def bar(arg), do: arg + 1
@@ -235,7 +233,7 @@ defmodule Kernel.DocsTest do
       assert {{:function, :__struct__, 1}, _, ["__struct__(kv)"], :none, %{}} = function_struct_1
 
       assert {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple bodiless clause doc"},
-              %{since: "1.2.3"}} = function_bar
+              %{deprecated: "something else"}} = function_bar
 
       assert {{:function, :baz, 1}, _, ["baz(arg)"],
               %{"en" => "Multiple bodiless clause and docs"}, %{since: "1.2.3"}} = function_baz

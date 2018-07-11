@@ -125,11 +125,26 @@ defmodule Module do
   The Mix compiler automatically looks for calls to deprecated modules
   and emit warnings during compilation, computed via `mix xref warnings`.
 
-  The `@deprecated` attribute may also be used to annotate callbacks or
-  types. In these cases the annotation is only informational and doesn't
-  come with compile time checks. In any case, the annotation will also
-  become part of the documentation metadata to be used by tools like
-  ExDoc or IEx.
+  Using the `@deprecated` attribute will also be reflected in the
+  documentation of the given function and macro. You can choose between
+  the `@deprecated` attribute and the documentation metadata to provide
+  hard-deprecations (with warnings) and soft-deprecations (with warnings):
+
+  This is a soft-deprecation as it simply annotates the documentation
+  as deprecated:
+
+      @doc deprecated: "Use Kernel.length/1 instead"
+      def size(keyword)
+
+  This is a hard-deprecation as it emits warnings and annotates the
+  documentation as deprecated:
+
+      @deprecated "Use Kernel.length/1 instead"
+      def size(keyword)
+
+  Currently `@deprecated` only supports functions and macros. However
+  you can use the `:deprecated` key in the annotation metadata to
+  annotate the docs of modules, types and callbacks too.
 
   We recommend using this feature with care, especially library authors.
   Deprecating code always pushes the burden towards library users. We
@@ -181,7 +196,7 @@ defmodule Module do
 
   Note that since the compiler also defines some additional metadata,
   there are a few reserved keys that will be ignored and warned if used.
-  Currently these are: `:opaque`, `:defaults`, and `:deprecated`.
+  Currently these are: `:opaque` and `:defaults`.
 
   ### `@dialyzer`
 
@@ -1336,8 +1351,7 @@ defmodule Module do
   defp doc_key(:defmacro), do: :macro
 
   defp compile_doc_meta(set, bag, name, arity, defaults) do
-    doc_meta = compile_since(%{}, set)
-    doc_meta = compile_deprecated(doc_meta, set, bag, name, arity, defaults)
+    doc_meta = compile_deprecated(%{}, set, bag, name, arity, defaults)
     doc_meta = get_doc_meta(doc_meta, set)
     add_defaults_count(doc_meta, defaults)
   end
@@ -1346,13 +1360,6 @@ defmodule Module do
     case :ets.take(set, {:doc, :meta}) do
       [{{:doc, :meta}, metadata, _}] -> Map.merge(existing_meta, metadata)
       [] -> existing_meta
-    end
-  end
-
-  defp compile_since(doc_meta, table) do
-    case :ets.take(table, :since) do
-      [{:since, since, _}] when is_binary(since) -> Map.put(doc_meta, :since, since)
-      _ -> doc_meta
     end
   end
 
@@ -1764,7 +1771,7 @@ defmodule Module do
   # We do not insert into the :attributes key in the bag table
   # because those attributes are deleted on every definition.
   defp put_attribute(module, key, value, line, set, _bag)
-       when key in [:doc, :typedoc, :moduledoc, :impl, :since, :deprecated] do
+       when key in [:doc, :typedoc, :moduledoc, :impl, :deprecated] do
     try do
       :ets.lookup_element(set, key, 3)
     catch
@@ -1812,7 +1819,7 @@ defmodule Module do
       {line, doc} when is_integer(line) ->
         raise ArgumentError,
               "@#{key} is a built-in module attribute for documentation. It should be " <>
-                "a binary, boolean, keyword list, or nil, got: #{inspect(doc)}"
+                "a string, boolean, keyword list, or nil, got: #{inspect(doc)}"
 
       _other ->
         raise ArgumentError,
@@ -1878,13 +1885,6 @@ defmodule Module do
             "dependencies. It should be a string the path to a file, got: #{inspect(value)}"
   end
 
-  defp preprocess_attribute(:since, value) when not is_binary(value) do
-    raise ArgumentError,
-          "@since is a built-in module attribute used for documentation purposes. " <>
-            "It should be a string representing the version a function, macro, type or " <>
-            "callback was added, got: #{inspect(value)}"
-  end
-
   defp preprocess_attribute(:deprecated, value) when not is_binary(value) do
     raise ArgumentError,
           "@deprecated is a built-in module attribute that annotates a definition as deprecated. " <>
@@ -1902,7 +1902,7 @@ defmodule Module do
       _ ->
         raise ArgumentError,
               "@file is a built-in module attribute that annotates the file and line the next " <>
-                "definition comes from. It should be a string or a {string, line} tuple as value, " <>
+                "definition comes from. It should be a string or {string, line} tuple as value, " <>
                 "got: #{inspect(value)}"
     end
   end
@@ -1914,8 +1914,8 @@ defmodule Module do
   defp preprocess_doc_meta([], _module, _line, map), do: map
 
   defp preprocess_doc_meta([{key, _} | tail], module, line, map)
-       when key in [:opaque, :defaults, :deprecated] do
-    message = "ignoring reserved documentation metadata key: :#{key}"
+       when key in [:opaque, :defaults] do
+    message = "ignoring reserved documentation metadata key: #{inspect(key)}"
     IO.warn(message, attribute_stack(module, line))
     preprocess_doc_meta(tail, module, line, map)
   end
@@ -1927,9 +1927,14 @@ defmodule Module do
 
   defp validate_doc_meta(:since, value) when not is_binary(value) do
     raise ArgumentError,
-          ":since is a built-in documentation metadata key. " <>
-            "It should be a string representing the version a function, macro, type or " <>
-            "callback was added, got: #{inspect(value)}"
+          ":since is a built-in documentation metadata key. It should be a string representing " <>
+            "the version in which the documented entity was added, got: #{inspect(value)}"
+  end
+
+  defp validate_doc_meta(:deprecated, value) when not is_binary(value) do
+    raise ArgumentError,
+          ":deprecated is a built-in documentation metadata key. It should be a string " <>
+            "representing the replacement for the deprecated entity, got: #{inspect(value)}"
   end
 
   defp validate_doc_meta(_, _), do: :ok
