@@ -130,7 +130,7 @@ defmodule OptionParser do
   accepts only known switches and always verify their types.
 
   If you do want to parse unknown switches, remember that Elixir converts switches
-  to atoms. Since atoms are not garbage collected, OptionParser will only parse
+  to atoms. Since atoms are not garbage-collected, OptionParser will only parse
   switches that translate to atoms used by the runtime to avoid leaking atoms.
   For instance, the code below will discard the `--option-parser-example` switch
   because the `:option_parser_example` atom is never used anywhere:

@@ -2123,7 +2123,7 @@ defmodule String do
   Converts a string to an atom.
 
   Warning: this function creates atoms dynamically and atoms are
-  not garbage collected. Therefore, `string` should not be an
+  not garbage-collected. Therefore, `string` should not be an
   untrusted value, such as input received from a socket or during
   a web request. Consider using `to_existing_atom/1` instead.
 
