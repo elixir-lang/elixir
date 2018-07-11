@@ -675,7 +675,7 @@ defmodule IEx.Helpers do
   defp pad_key(key), do: String.pad_trailing("#{key}:", 20, " ")
 
   @doc """
-  Flushes all messages sent to the shell and prints them out.
+  Clears out all messages sent to the shell's inbox and prints them out.
   """
   def flush do
     do_flush(IEx.inspect_opts())
