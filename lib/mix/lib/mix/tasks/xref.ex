@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Xref do
     * `--label` - only shows relationships with the given label
       The labels are "compile", "struct" and "runtime" (runtime is now shown on the graph)
 
-    * `--only-nodes` - only show the node names (no edges)
+    * `--only-nodes` - only shows the node names (no edges)
 
     * `--source` - displays all files that the given source file references (directly or indirectly)
 
@@ -113,9 +113,9 @@ defmodule Mix.Tasks.Xref do
 
   Those options are shared across all modes:
 
-    * `--include-siblings` - include dependencies that have `:in_umbrella` set
+    * `--include-siblings` - includes dependencies that have `:in_umbrella` set
       to true in the current project in the reports. This can be used to find
-      callers or analyze graphs between projects
+      callers or to analyze graphs between projects
 
     * `--no-compile` - does not compile even if files require compilation
 
