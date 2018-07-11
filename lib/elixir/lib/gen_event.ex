@@ -4,7 +4,7 @@ defmodule GenEvent do
   # Functions from this module are deprecated in elixir_dispatch.
 
   @moduledoc """
-  WARNING: this module is deprecated.
+  A event manager with event handlers behaviour.
 
   If you are interested in implementing an event manager, please read the
   "Alternatives" section below. If you have to implement an event handler to
@@ -42,6 +42,8 @@ defmodule GenEvent do
   integrate with an existing `:gen_event`-based system, you can still use the
   [`:gen_event`](http://erlang.org/doc/man/gen_event.html) Erlang module.
   """
+
+  @moduledoc deprecated: "Use Erlang/OTP's :gen_event module instead"
 
   @callback init(args :: term) ::
               {:ok, state}

@@ -1,14 +1,18 @@
 defmodule Behaviour do
   @moduledoc """
-  WARNING: this module is deprecated.
+  Mechanism for handling behaviours.
 
-  Instead of `defcallback/1` and `defmacrocallback/1`, the `@callback` and
-  `@macrocallback` module attributes can be used (respectively). See the
-  documentation for `Module` for more information on these attributes.
+  This module is deprecated. Instead of `defcallback/1` and
+  `defmacrocallback/1`, the `@callback` and `@macrocallback`
+  module attributes can be used (respectively). See the
+  documentation for `Module` for more information on these
+  attributes.
 
   Instead of `MyModule.__behaviour__(:callbacks)`,
   `MyModule.behaviour_info(:callbacks)` can be used.
   """
+
+  @moduledoc deprecated: "Use @callback and @macrocallback attributes instead"
 
   @doc """
   Defines a function callback according to the given type specification.

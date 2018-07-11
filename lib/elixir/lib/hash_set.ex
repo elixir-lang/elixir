@@ -1,11 +1,11 @@
 defmodule HashSet do
   @moduledoc """
-  WARNING: this module is deprecated.
+  Tuple-based HashSet implementation.
 
-  Use the `MapSet` module instead.
+  This module is deprecated. Use the `MapSet` module instead.
   """
 
-  # TODO: Remove by 2.0
+  @moduledoc deprecated: "Use MapSet instead"
 
   @node_bitmap 0b111
   @node_shift 3
