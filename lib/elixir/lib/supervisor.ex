@@ -528,12 +528,12 @@ defmodule Supervisor do
           | {:max_seconds, pos_integer}
 
   @typedoc "Supported strategies"
-  @type strategy :: :one_for_one | :one_for_all | :rest_for_one | :simple_one_for_one
+  @type strategy :: :one_for_one | :one_for_all | :rest_for_one
 
   # Note we have inlined all types for readability
   @typedoc "The supervisor specification"
   @type child_spec :: %{
-          required(:id) => module() | term(),
+          required(:id) => atom() | term(),
           required(:start) => {module(), atom(), [term()]},
           optional(:restart) => :permanent | :transient | :temporary,
           optional(:shutdown) => timeout() | :brutal_kill,
