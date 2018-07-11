@@ -1067,7 +1067,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Evaluates the contents of the file at `path` as if it were directly typed into
+  Evaluates the contents of the file at `path` as if it was directly typed into
   the shell.
 
   `path` has to be a literal string. `path` is automatically expanded via
