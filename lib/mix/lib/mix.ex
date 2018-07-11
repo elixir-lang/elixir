@@ -158,12 +158,12 @@ defmodule Mix do
   Where `&clean_extra/1` would be a function in your `mix.exs`
   with extra cleanup logic.
 
-  Aliases defined in the current project do not affect its dependencies and 
+  Aliases defined in the current project do not affect its dependencies and
   aliases defined in dependencies are not accessible from the current project.
 
   Aliases can be used very powerfully to also run Elixir scripts and
   bash commands, for example:
-      
+
       # priv/hello.exs
       IO.puts("hello")
 
@@ -179,10 +179,10 @@ defmodule Mix do
         ]
       end
 
-  In the example above we have created 2 aliases, the first example 
+  In the example above we have created 2 aliases, the first example
   `taskalias` will run task `hex.info`, then (`run`)[`Mix.Tasks.Run`]
-  to run an Elixir script, then (`cmd`)[`Mix.Tasks.Cmd`] to run a 
-  command line bash script. This shows how powerful aliases mixed 
+  to run an Elixir script, then (`cmd`)[`Mix.Tasks.Cmd`] to run a
+  command line bash script. This shows how powerful aliases mixed
   with mix tasks can be.
 
   `taskalias2` shows a limitation of tasks where only one of the given
@@ -302,7 +302,7 @@ defmodule Mix do
   end
 
   @doc """
-  Returns true if Mix is in debug mode.
+  Returns `true` if Mix is in debug mode.
   """
   def debug? do
     Mix.State.get(:debug, false)
