@@ -33,7 +33,6 @@ is_open(Module) ->
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
   {DataSet, _} = data_tables(Module),
   ets:delete(DataSet, doc),
-  ets:delete(DataSet, since),
   ets:delete(DataSet, deprecated),
   ets:delete(DataSet, impl).
 
@@ -332,7 +331,7 @@ warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
   StoredAttrs = bag_lookup_element(DataBag, attributes, 2),
   %% This is the same list as in Module.put_attribute
   %% without moduledoc which are never warned on.
-  Attrs = [doc, typedoc, impl, since, deprecated | StoredAttrs -- PersistedAttrs],
+  Attrs = [doc, typedoc, impl, deprecated | StoredAttrs -- PersistedAttrs],
   Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
    || [Key, Line] <- ets:select(DataSet, Query)].
@@ -405,8 +404,8 @@ format_error({unused_attribute, impl}) ->
   "module attribute @impl was set but no definition follows it";
 format_error({unused_attribute, deprecated}) ->
   "module attribute @deprecated was set but no definition follows it";
-format_error({unused_attribute, since}) ->
-  "module attribute @since was set but no definition follows it";
+format_error({unused_attribute, since}) -> %% TODO: Remove this on v1.8
+  "module attribute @since is deprecated, please use \"@doc since: ...\" instead";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
 format_error({invalid_module, Module}) ->

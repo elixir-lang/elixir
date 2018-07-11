@@ -189,18 +189,18 @@ defmodule ExUnit.DocTest do
   """
   defmacro doctest(module, opts \\ []) do
     require =
-      if is_atom(Macro.expand(mod, __CALLER__)) do
+      if is_atom(Macro.expand(module, __CALLER__)) do
         quote do
-          require unquote(mod)
+          require unquote(module)
         end
       end
 
     tests =
-      quote bind_quoted: [mod: mod, opts: opts] do
+      quote bind_quoted: [module: module, opts: opts] do
         env = __ENV__
-        file = ExUnit.DocTest.__file__(mod)
+        file = ExUnit.DocTest.__file__(module)
 
-        for {name, test} <- ExUnit.DocTest.__doctests__(mod, opts) do
+        for {name, test} <- ExUnit.DocTest.__doctests__(module, opts) do
           @file file
           doc = ExUnit.Case.register_test(env, :doctest, name, [])
           def unquote(doc)(_), do: unquote(test)

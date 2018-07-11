@@ -170,31 +170,9 @@ defmodule Kernel.Typespec do
   end
 
   defp get_doc_meta(spec_meta, doc_kind, set) do
-    doc_meta =
-      case :ets.take(set, {doc_kind, :meta}) do
-        [{{^doc_kind, :meta}, metadata, _}] -> Map.merge(metadata, spec_meta)
-        [] -> spec_meta
-      end
-
-    doc_meta
-    |> get_since_info(set)
-    |> get_deprecated_info(set)
-  end
-
-  defp get_since_info(doc_meta, set) do
-    case :ets.take(set, :since) do
-      [{:since, since, _}] when is_binary(since) -> Map.put_new(doc_meta, :since, since)
-      _ -> doc_meta
-    end
-  end
-
-  defp get_deprecated_info(doc_meta, set) do
-    case :ets.take(set, :deprecated) do
-      [{:deprecated, reason, _}] when is_binary(reason) ->
-        Map.put_new(doc_meta, :deprecated, reason)
-
-      _ ->
-        doc_meta
+    case :ets.take(set, {doc_kind, :meta}) do
+      [{{^doc_kind, :meta}, metadata, _}] -> Map.merge(metadata, spec_meta)
+      [] -> spec_meta
     end
   end
 
