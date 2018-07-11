@@ -214,7 +214,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Invokes the given function `fun` from `module` with the list of
+  Invokes the given function from `module` with the list of
   arguments `args`.
 
   `apply/3` is used to invoke functions where the module, function
@@ -229,9 +229,9 @@ defmodule Kernel do
       [3, 2, 1]
 
   """
-  @spec apply(module, atom, [any]) :: any
-  def apply(module, fun, args) do
-    :erlang.apply(module, fun, args)
+  @spec apply(module, function_name :: atom, [any]) :: any
+  def apply(module, function_name, args) do
+    :erlang.apply(module, function_name, args)
   end
 
   @doc """
