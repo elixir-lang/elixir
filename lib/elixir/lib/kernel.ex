@@ -1485,11 +1485,10 @@ defmodule Kernel do
   @doc """
   Boolean or.
 
-  If the first argument is `true`, `true` is returned; otherwise, the second
-  argument is returned.
+  If `left` is `true`, returns `true`; otherwise returns `right`.
 
-  Requires only the first argument to be a boolean since it short-circuits.
-  If the first argument is not a boolean, an `ArgumentError` exception is
+  Requires only the `left` operand to be a boolean since it short-circuits.
+  If the `left` operand is not a boolean, an `ArgumentError` exception is
   raised.
 
   Allowed in guard tests.
@@ -1513,11 +1512,10 @@ defmodule Kernel do
   @doc """
   Boolean and.
 
-  If the first argument is `false`, `false` is returned; otherwise, the second
-  argument is returned.
+  If `left` is `false`, returns `false`; otherwise returns `right`.
 
-  Requires only the first argument to be a boolean since it short-circuits. If
-  the first argument is not a boolean, an `ArgumentError` exception is raised.
+  Requires only the `left` operand to be a boolean since it short-circuits. If
+  the `left` operand is not a boolean, an `ArgumentError` exception is raised.
 
   Allowed in guard tests.
 
