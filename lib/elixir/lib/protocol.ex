@@ -168,8 +168,7 @@ defmodule Protocol do
   """
   defmacro derive(protocol, module, options \\ []) do
     quote do
-      module = unquote(module)
-      Protocol.__derive__([{unquote(protocol), unquote(options)}], module, __ENV__)
+      Protocol.__derive__([{unquote(protocol), unquote(options)}], unquote(module), __ENV__)
     end
   end
 
@@ -313,13 +312,14 @@ defmodule Protocol do
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
-      {:ok, {^protocol, [{:debug_info, debug_info} | extra_chunks]}} ->
+      {:ok, {^protocol, [{:debug_info, debug_info} | chunks]}} ->
         {:debug_info_v1, _backend, {:elixir_v1, info, specs}} = debug_info
         %{attributes: attributes, definitions: definitions} = info
+        chunks = :lists.map(fn {name, value} -> {List.to_string(name), value} end, chunks)
 
         case attributes[:protocol] do
           [fallback_to_any: any] ->
-            {:ok, {any, definitions}, specs, {info, extra_chunks}}
+            {:ok, {any, definitions}, specs, {info, chunks}}
 
           _ ->
             {:error, :not_a_protocol}
@@ -423,9 +423,9 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile(definitions, specs, {info, extra_chunks}) do
+  defp compile(definitions, specs, {info, chunks}) do
     info = %{info | definitions: definitions}
-    {:ok, :elixir_erl.consolidate(info, specs, extra_chunks)}
+    {:ok, :elixir_erl.consolidate(info, specs, chunks)}
   end
 
   ## Definition callbacks
