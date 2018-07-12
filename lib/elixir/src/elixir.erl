@@ -25,7 +25,7 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  OTPRelease = parse_otp_release(),
+  _ = parse_otp_release(),
   Encoding = file:native_name_encoding(),
 
   preload_common_modules(),
