@@ -1569,24 +1569,76 @@ defmodule FileTest do
       src = fixture_path("utf8_bom.txt")
 
       assert src
-             |> File.stream!([:utf8])
+             |> File.stream!([{:encoding, :utf8}])
              |> Enum.take(1) == [<<239, 187, 191>> <> "Русский\n"]
 
       assert src
-             |> File.stream!([:utf8], 1)
+             |> File.stream!([{:encoding, :utf8}], 1)
              |> Enum.take(9) == ["\uFEFF", "Р", "у", "с", "с", "к", "и", "й", "\n"]
+    end
+
+    test "does not trim first char when no BOM" do
+      src = fixture_path("utf8.txt")
+
+      assert src
+             |> File.stream!([{:encoding, :utf8}, :trim_bom])
+             |> Enum.take(1) == ["Русский\n"]
+
+      assert src
+             |> File.stream!([{:encoding, :utf8}, :trim_bom], 1)
+             |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
     end
 
     test "trims BOM via option with utf8 encoding" do
       src = fixture_path("utf8_bom.txt")
 
       assert src
-             |> File.stream!([:utf8, :trim_bom])
+             |> File.stream!([{:encoding, :utf8}, :trim_bom])
              |> Enum.take(1) == ["Русский\n"]
 
       assert src
-             |> File.stream!([:utf8, :trim_bom], 1)
+             |> File.stream!([{:encoding, :utf8}, :trim_bom], 1)
              |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
+    end
+
+    test "trims BOM via option with utf16 BE encoding" do
+      src = fixture_path("utf16_be_bom.txt")
+
+      assert src
+             |> File.stream!([{:encoding, {:utf16, :big}}, :trim_bom])
+             |> Enum.take(1) == ["Русский\n"]
+
+      assert src
+             |> File.stream!([{:encoding, {:utf16, :big}}, :trim_bom], 1)
+             |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
+    end
+
+    test "trims BOM via option with utf16 LE encoding" do
+      src = fixture_path("utf16_le_bom.txt")
+
+      assert src
+             |> File.stream!([{:encoding, {:utf16, :little}}, :trim_bom])
+             |> Enum.take(1) == ["Русский\n"]
+
+      assert src
+             |> File.stream!([{:encoding, {:utf16, :little}}, :trim_bom], 1)
+             |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
+    end
+
+    test "keeps BOM with UTF16 BE" do
+      src = fixture_path("utf16_be_bom.txt")
+
+      assert src
+             |> File.stream!([{:encoding, {:utf16, :big}}])
+             |> Enum.take(1) == ["\uFEFFРусский\n"]
+    end
+
+    test "keeps BOM with UTF16 LE" do
+      src = fixture_path("utf16_le_bom.txt")
+
+      assert src
+             |> File.stream!([{:encoding, {:utf16, :little}}])
+             |> Enum.take(1) == ["\uFEFFРусский\n"]
     end
 
     test "reads and writes line by line in UTF-8" do
