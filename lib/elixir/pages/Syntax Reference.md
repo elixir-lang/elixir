@@ -21,7 +21,7 @@ Integers (`1234`) and floats (`123.4`) in Elixir are represented as a sequence o
 
 ### Atoms
 
-Atoms in Elixir start with a colon (`:`) which must be followed by non-combining Unicode characters and underscore. The atom may continue using a sequence of Unicode characters, including numbers, underscore and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification.
+Atoms in Elixir start with a colon (`:`) which must be followed by a non-combining Unicode character or underscore. The atom may continue using a sequence of Unicode characters, including numbers, underscore, and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification.
 
 All operators in Elixir are also valid atoms. Valid examples are `:foo`, `:FOO`, `:foo_42`, `:foo@bar` and `:++`. Invalid examples are `:@foo` (`@` is not allowed at start), `:123` (numbers are not allowed at start) and `:(*)` (not a valid operator).
 
@@ -118,7 +118,7 @@ Blocks are multiple Elixir expressions separated by newlines or semi-colons. A n
 
 ### Left to right arrow
 
-The left to right arrow (`->`) is used to establish a relationship between left and right. The left side may have zero, one or more arguments, the right side is zero, one or more expressions separated by new line. The `->` is always between one of the following terminators: `do`/`end`, `fn`/`end` or `(`/`)`.
+The left to right arrow (`->`) is used to establish a relationship between left and right. The left side may have zero, one, or more arguments; the right side is zero, one, or more expressions separated by new line. The `->` is always between one of the following terminators: `do`/`end`, `fn`/`end` or `(`/`)`.
 
 It is seen on `case` and `cond` constructs between `do`/`end`:
 
