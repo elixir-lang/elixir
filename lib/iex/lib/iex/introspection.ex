@@ -458,12 +458,14 @@ defmodule IEx.Introspection do
         _ -> nil
       end
     else
-      print_doc("#{kind_to_def(kind)} #{Enum.join(signature, " ")}", spec, doc, metadata)
+      guard? = metadata[:guard]
+      print_doc("#{kind_to_def(kind, guard?)} #{Enum.join(signature, " ")}", spec, doc, metadata)
     end
   end
 
-  defp kind_to_def(:function), do: :def
-  defp kind_to_def(:macro), do: :defmacro
+  defp kind_to_def(:function, _), do: :def
+  defp kind_to_def(:macro, true), do: :defguard
+  defp kind_to_def(:macro, _), do: :defmacro
 
   defp callback_module(mod, fun, arity) do
     predicate = &match?({{^fun, ^arity}, _}, &1)

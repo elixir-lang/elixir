@@ -4664,18 +4664,24 @@ defmodule Kernel do
           {_name, args} ->
             validate_variable_only_args!(call, args)
 
-            case impls do
-              [] ->
-                define(kind, call, nil, env)
+            macro_definition =
+              case impls do
+                [] ->
+                  define(kind, call, nil, env)
 
-              [guard] ->
-                quoted =
-                  quote do
-                    require Kernel.Utils
-                    Kernel.Utils.defguard(unquote(args), unquote(guard))
-                  end
+                [guard] ->
+                  quoted =
+                    quote do
+                      require Kernel.Utils
+                      Kernel.Utils.defguard(unquote(args), unquote(guard))
+                    end
 
-                define(kind, call, [do: quoted], env)
+                  define(kind, call, [do: quoted], env)
+              end
+
+            quote do
+              @doc guard: true
+              unquote(macro_definition)
             end
 
           _invalid_definition ->
