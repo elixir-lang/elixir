@@ -216,7 +216,7 @@ build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, S) ->
 
   NewInto = {tuple, Ann, [Into, {map, Ann, []}]},
   AccTuple = {tuple, Ann, [IntoAcc, UniqAcc]},
-  PutUniqExpr = elixir_erl:remote(Ann, maps, put, [Value, {atom, Ann, true}, UniqAcc]),
+  PutUniqExpr = {map, Ann, UniqAcc, [{map_field_assoc, Ann, Value, {atom, Ann, true}}]},
 
   InnerExpr = {block, Ann, [
     {match, Ann, AccTuple, Acc},
