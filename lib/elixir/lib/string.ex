@@ -632,8 +632,24 @@ defmodule String do
       "leña"
 
   """
-  @spec normalize(t, atom) :: t
-  defdelegate normalize(string, form), to: String.Normalizer
+  # TODO: Fully deprecate it on v1.10
+  @doc deprecated:
+         "Use :unicode.characters_to_nfc_binary/1 or :unicode.characters_to_nfd_binary/1 instead"
+  def normalize(string, form)
+
+  def normalize(string, :nfd) do
+    case :unicode.characters_to_nfd_binary(string) do
+      string when is_binary(string) -> string
+      {:error, bad, rest} -> bad <> normalize(rest, :nfd)
+    end
+  end
+
+  def normalize(string, :nfc) do
+    case :unicode.characters_to_nfc_binary(string) do
+      string when is_binary(string) -> string
+      {:error, bad, rest} -> bad <> normalize(rest, :nfc)
+    end
+  end
 
   @doc """
   Converts all characters in the given string to uppercase according to `mode`.
@@ -2066,13 +2082,13 @@ defmodule String do
   For example, take the grapheme "é" which is made of the characters
   "e" and the acute accent. The following returns `true`:
 
-      iex> String.contains?(String.normalize("é", :nfd), "e")
+      iex> String.contains?(:unicode.characters_to_nfd_binary("é"), "e")
       true
 
   However, if "é" is represented by the single character "e with acute"
   accent, then it will return `false`:
 
-      iex> String.contains?(String.normalize("é", :nfc), "e")
+      iex> String.contains?(:unicode.characters_to_nfc_binary("é"), "e")
       false
 
   """
