@@ -519,7 +519,7 @@ defmodule EExTest do
   end
 
   defp assert_eval(expected, actual, binding \\ [], opts \\ []) do
-    opts = Enum.into([file: __ENV__.file, engine: opts[:engine] || EEx.Engine], opts)
+    opts = Keyword.merge([file: __ENV__.file, engine: opts[:engine] || EEx.Engine], opts)
     result = EEx.eval_string(actual, binding, opts)
     assert result == expected
   end

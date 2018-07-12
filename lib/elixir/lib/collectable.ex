@@ -79,6 +79,16 @@ end
 
 defimpl Collectable, for: List do
   def into(original) do
+    if original != [] do
+      IO.warn(
+        "the Collectable protocol is deprecated for non-empty lists. The behaviour of " <>
+          "things like Enum.into/2 or \"for\" comprehensions with an :into option is incorrect " <>
+          "when collecting into non-empty lists. If you're collecting into a non-empty keyword " <>
+          "list, consider using Keyword.merge/2 instead. If you're collecting into a non-empty " <>
+          "list, consider concatenating the two lists with the ++ operator."
+      )
+    end
+
     fun = fn
       list, {:cont, x} -> [x | list]
       list, :done -> original ++ :lists.reverse(list)
