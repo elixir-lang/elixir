@@ -8,6 +8,10 @@ defmodule IO.ANSI.DocsTest do
     capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.trim_trailing()
   end
 
+  def format_metadata(map) do
+    capture_io(fn -> IO.ANSI.Docs.print_metadata(map, []) end)
+  end
+
   def format(str) do
     capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.trim_trailing()
   end
@@ -17,6 +21,12 @@ defmodule IO.ANSI.DocsTest do
     assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m")
     assert String.ends_with?(result, "\e[0m\n\e[0m")
     assert String.contains?(result, " wibble ")
+  end
+
+  test "metadata is formatted" do
+    result = format_metadata(%{since: "1.2.3", deprecated: "Use that other one", author: "Alice"})
+    assert result == "\e[33mdeprecated:\e[0m Use that other one\n\e[33msince:\e[0m 1.2.3\n\n"
+    assert format_metadata(%{author: "Alice"}) == ""
   end
 
   test "first level heading is converted" do
