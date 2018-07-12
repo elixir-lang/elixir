@@ -447,6 +447,20 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "when with keywords inside call" do
+    assert_same """
+    quote((bar(foo(1)) when bat: foo(1)), [])
+    """
+
+    assert_same """
+    quote(do: (bar(foo(1)) when bat: foo(1)), line: 1)
+    """
+
+    assert_same """
+    typespec(quote(do: (bar(foo(1)) when bat: foo(1))), [foo: 1], [])
+    """
+  end
+
   test "capture with operators" do
     assert_same """
     "this works" |> (&String.upcase/1) |> (&String.downcase/1)
