@@ -334,7 +334,7 @@ defmodule Mix.Project do
   @spec in_project(atom, Path.t(), keyword, (module -> result)) :: result when result: term
   def in_project(app, path, post_config \\ [], fun)
 
-  def in_project(app, ".", post_config, fun) do
+  def in_project(app, ".", post_config, fun) when is_atom(app) do
     cached =
       try do
         load_project(app, post_config)
@@ -351,7 +351,7 @@ defmodule Mix.Project do
     end
   end
 
-  def in_project(app, path, post_config, fun) do
+  def in_project(app, path, post_config, fun) when is_atom(app) do
     File.cd!(path, fn ->
       in_project(app, ".", post_config, fun)
     end)

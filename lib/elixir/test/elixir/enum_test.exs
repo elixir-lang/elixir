@@ -1098,7 +1098,6 @@ defmodule EnumTest.Range do
   end
 
   test "into/2" do
-    assert Enum.into(3..5, [1, 2]) == [1, 2, 3, 4, 5]
     assert Enum.into(1..5, []) == [1, 2, 3, 4, 5]
   end
 

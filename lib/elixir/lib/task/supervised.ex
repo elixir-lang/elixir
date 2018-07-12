@@ -83,42 +83,24 @@ defmodule Task.Supervised do
     {mod, fun, length(args)}
   end
 
-  # TODO: Remove conditionals once we depend on Erlang/OTP 20+
   defp do_apply(info, {module, fun, args} = mfa) do
     try do
       apply(module, fun, args)
     catch
-      :error, value ->
-        reason = {value, __STACKTRACE__}
-        log(info, mfa, reason)
-
-        if :erlang.system_info(:otp_release) >= '20' do
-          :erlang.raise(:error, value, __STACKTRACE__)
-        else
-          exit(reason)
-        end
-
-      :throw, value ->
-        reason = {{:nocatch, value}, __STACKTRACE__}
-        log(info, mfa, reason)
-
-        if :erlang.system_info(:otp_release) >= '20' do
-          :erlang.raise(:throw, value, __STACKTRACE__)
-        else
-          exit(reason)
-        end
-
       :exit, value
       when value == :normal
       when value == :shutdown
       when tuple_size(value) == 2 and elem(value, 0) == :shutdown ->
         :erlang.raise(:exit, value, __STACKTRACE__)
 
-      :exit, value ->
-        log(info, mfa, {value, __STACKTRACE__})
-        :erlang.raise(:exit, value, __STACKTRACE__)
+      kind, value ->
+        log(info, mfa, {log_value(kind, value), __STACKTRACE__})
+        :erlang.raise(kind, value, __STACKTRACE__)
     end
   end
+
+  defp log_value(:throw, value), do: {:nocatch, value}
+  defp log_value(_, value), do: value
 
   defp log(info, mfa, reason) do
     {fun, args} = get_running(mfa)

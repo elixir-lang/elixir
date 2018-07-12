@@ -73,22 +73,13 @@ defmodule System do
   parts_per_second` seconds. For example, using the `:millisecond` time unit
   is equivalent to using `1000` as the time unit (as the time will be returned
   in 1/1000 seconds - milliseconds).
-
-  Keep in mind the Erlang API prior to version 19.1 will use `:milli_seconds`,
-  `:micro_seconds` and `:nano_seconds` as time units although Elixir normalizes
-  their spelling to match the SI convention.
   """
-  # TODO: Warn all old mappings once Elixir requires Erlang/OTP 19.1+ (on v1.8)
   @type time_unit ::
           :second
           | :millisecond
           | :microsecond
           | :nanosecond
           | pos_integer
-          | :seconds
-          | :milliseconds
-          | :microseconds
-          | :nanoseconds
 
   @base_dir :filename.join(__DIR__, "../../..")
   @version_file :filename.join(@base_dir, "VERSION")
@@ -881,26 +872,34 @@ defmodule System do
 
   defp normalize_time_unit(:native), do: :native
 
-  defp normalize_time_unit(:second), do: :seconds
-  defp normalize_time_unit(:millisecond), do: :milli_seconds
-  defp normalize_time_unit(:microsecond), do: :micro_seconds
-  defp normalize_time_unit(:nanosecond), do: :nano_seconds
+  defp normalize_time_unit(:second), do: :second
+  defp normalize_time_unit(:millisecond), do: :millisecond
+  defp normalize_time_unit(:microsecond), do: :microsecond
+  defp normalize_time_unit(:nanosecond), do: :nanosecond
 
-  defp normalize_time_unit(:seconds), do: :seconds
-  defp normalize_time_unit(:milliseconds), do: :milli_seconds
-  defp normalize_time_unit(:microseconds), do: :micro_seconds
-  defp normalize_time_unit(:nanoseconds), do: :nano_seconds
+  defp normalize_time_unit(:seconds), do: warn(:second)
+  defp normalize_time_unit(:milliseconds), do: warn(:millisecond)
+  defp normalize_time_unit(:microseconds), do: warn(:microsecond)
+  defp normalize_time_unit(:nanoseconds), do: warn(:nanosecond)
+
+  defp normalize_time_unit(:milli_seconds), do: warn(:millisecond)
+  defp normalize_time_unit(:micro_seconds), do: warn(:microsecond)
+  defp normalize_time_unit(:nano_seconds), do: warn(:nanosecond)
 
   defp normalize_time_unit(unit) when is_integer(unit) and unit > 0, do: unit
-
-  defp normalize_time_unit(erlang_unit)
-       when erlang_unit in [:milli_seconds, :micro_seconds, :nano_seconds] do
-    erlang_unit
-  end
 
   defp normalize_time_unit(other) do
     raise ArgumentError,
           "unsupported time unit. Expected :second, :millisecond, " <>
             ":microsecond, :nanosecond, or a positive integer, " <> "got #{inspect(other)}"
+  end
+
+  defp warn(unit) do
+    IO.warn(
+      "deprecated time unit: #{inspect(unit)}. A time unit should be " <>
+        ":second, :millisecond, :microsecond, :nanosecond, or a positive integer"
+    )
+
+    unit
   end
 end

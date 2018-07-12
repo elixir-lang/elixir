@@ -25,7 +25,7 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  OTPRelease = parse_otp_release(),
+  _ = parse_otp_release(),
   Encoding = file:native_name_encoding(),
 
   preload_common_modules(),
@@ -33,9 +33,8 @@ start(_Type, _Args) ->
   check_file_encoding(Encoding),
   check_endianness(),
 
-  %% TODO: Remove OTPRelease check once we support OTP 20+.
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
-    {module, Mod} when OTPRelease >= 20 -> Mod;
+    {module, Mod} -> Mod;
     _ -> elixir_tokenizer
   end,
 
@@ -103,21 +102,15 @@ preload_common_modules() ->
   %% the codebase we can avoid code:ensure_loaded/1 checks.
   _ = code:ensure_loaded('Elixir.Kernel'),
   _ = code:ensure_loaded('Elixir.Macro.Env'),
-
-  %% We need to make sure the re module is preloaded to make
-  %% function_exported checks inside Regex.version is fast.
-  %% TODO: Remove this once we support OTP 20+.
-  _ = code:ensure_loaded(re),
-
   ok.
 
 parse_otp_release() ->
   %% Whenever we change this check, we should also change escript.build and Makefile.
   case string:to_integer(erlang:system_info(otp_release)) of
-    {Num, _} when Num >= 19 ->
+    {Num, _} when Num >= 20 ->
       Num;
     _ ->
-      io:format(standard_error, "unsupported Erlang/OTP version, expected Erlang/OTP 19+~n", []),
+      io:format(standard_error, "unsupported Erlang/OTP version, expected Erlang/OTP 20+~n", []),
       erlang:halt(1)
   end.
 

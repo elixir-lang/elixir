@@ -31,9 +31,8 @@ defmodule IEx do
 
   ## Shell history
 
-  From Erlang/OTP 20, it is possible to get shell history by passing some
-  flags that enable it in the VM. This can be done on a per-need basis
-  when starting IEx:
+  It is possible to get shell history by passing some flags that enable it
+  in the VM. This can be done on a per-need basis when starting IEx:
 
       iex --erl "-kernel shell_history enabled"
 
@@ -117,9 +116,8 @@ defmodule IEx do
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
   on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible, it requires Erlang/OTP 20+ and
-  it does not contain information about imports and aliases from
-  the source code.
+  While `IEx.break!/4` is more flexible,  it does not contain
+  information about imports and aliases from the source code.
 
   ## The User Switch command
 
@@ -255,7 +253,7 @@ defmodule IEx do
   results in:
 
       $ iex
-      Erlang 19 [...]
+      Erlang/OTP 20 [...]
 
       hello world
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
@@ -279,7 +277,7 @@ defmodule IEx do
   Now run the shell:
 
       $ iex
-      Erlang 19 [...]
+      Erlang/OTP 20 [...]
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
@@ -469,9 +467,8 @@ defmodule IEx do
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
   on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible, it requires Erlang/OTP 20+ and
-  it does not contain information about imports and aliases from
-  the source code.
+  While `IEx.break!/4` is more flexible,  it does not contain
+  information about imports and aliases from the source code.
 
   ## Examples
 
@@ -662,8 +659,6 @@ defmodule IEx do
   which will block the shell until the next breakpoint is found or
   the process terminates, or invoke `respawn()`, which starts a new IEx
   shell, freeing up the pried one.
-
-  This functionality only works on Elixir code and requires Erlang/OTP 20+.
 
   ## Examples
 

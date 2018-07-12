@@ -697,7 +697,7 @@ defmodule IEx.Introspection do
 
   defp format_typespec(definition, kind, nesting) do
     "@#{kind} #{Macro.to_string(definition)}"
-    |> Code.format_string!(line_length: IEx.width() - nesting)
+    |> Code.format_string!(line_length: IEx.width() - 2 * nesting)
     |> IO.iodata_to_binary()
     |> color_prefix_with_line()
     |> indent(nesting)

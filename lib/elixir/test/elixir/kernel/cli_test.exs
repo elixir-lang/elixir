@@ -75,16 +75,13 @@ defmodule Kernel.CLI.ErrorTest do
              'false\n'
   end
 
-  # TODO: Remove this check once we depend only on 20
-  if :erlang.system_info(:otp_release) >= '20' do
-    test "blames exceptions" do
-      error = to_string(elixir('-e "Access.fetch :foo, :bar"'))
-      assert error =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
-      assert error =~ "The following arguments were given to Access.fetch/2"
-      assert error =~ ":foo"
-      assert error =~ "def fetch(-%module{} = container-, +key+)"
-      assert error =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
-    end
+  test "blames exceptions" do
+    error = to_string(elixir('-e "Access.fetch :foo, :bar"'))
+    assert error =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
+    assert error =~ "The following arguments were given to Access.fetch/2"
+    assert error =~ ":foo"
+    assert error =~ "def fetch(-%module{} = container-, +key+)"
+    assert error =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 end
 

@@ -1,19 +1,8 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/4, compile/1,
-         get_ann/1, remote/4, add_beam_chunks/2, debug_info/4,
-         scope/1, format_error/1]).
+         get_ann/1, remote/4, debug_info/4, scope/1, format_error/1]).
 -include("elixir.hrl").
-
-%% TODO: Remove extra chunk functionality when OTP 20+.
-
-add_beam_chunks(Bin, []) when is_binary(Bin) ->
-  Bin;
-add_beam_chunks(Bin, NewChunks) when is_binary(Bin), is_list(NewChunks) ->
-  {ok, _, OldChunks} = beam_lib:all_chunks(Bin),
-  Chunks = [{binary_to_list(K), V} || {K, V} <- NewChunks] ++ OldChunks,
-  {ok, NewBin} = beam_lib:build_module(Chunks),
-  NewBin.
 
 %% debug_info callback
 
@@ -268,43 +257,14 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated) ->
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
 
   Spec =
-    %% TODO: Remove this check once we depend only on 20
-    case erlang:system_info(otp_release) of
-      "19" ->
-        {attribute, Line, spec, {{'__info__', 1},
-          [{type, Line, 'fun', [
-            {type, Line, product, [
-              {type, Line, union, AllowedArgs}
-            ]},
-            {type, Line, union, [
-              {type, Line, atom, []},
-              {type, Line, list, [
-                {type, Line, union, [
-                  {type, Line, tuple, [
-                    {type, Line, atom, []},
-                    {type, Line, any, []}
-                  ]},
-                  {type, Line, tuple, [
-                    {type, Line, atom, []},
-                    {type, Line, byte, []},
-                    {type, Line, integer, []}
-                  ]}
-                ]}
-              ]}
-            ]}
-          ]}]
-        }};
-
-      _ ->
-        {attribute, Line, spec, {{'__info__', 1},
-          [{type, Line, 'fun', [
-            {type, Line, product, [
-              {type, Line, union, AllowedArgs}
-            ]},
-            {type, Line, any, []}
-          ]}]
-        }}
-    end,
+    {attribute, Line, spec, {{'__info__', 1},
+      [{type, Line, 'fun', [
+        {type, Line, product, [
+          {type, Line, union, AllowedArgs}
+        ]},
+        {type, Line, any, []}
+      ]}]
+    }},
 
   Info =
     {function, 0, '__info__', 1, [
@@ -470,16 +430,14 @@ attributes_form(Line, Attributes, Forms) ->
 % Loading forms
 
 load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chunks) ->
-  {ExtraChunks, CompileOpts} = extra_chunks(Chunks, debug_opts(Map, Specs, Opts)),
+  CompileOpts = extra_chunks_opts(Chunks, debug_opts(Map, Specs, Opts)),
   {_, Binary} = elixir_erl_compiler:forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
-  add_beam_chunks(Binary, ExtraChunks).
+  Binary.
 
 debug_opts(Map, Specs, Opts) ->
-  case {supports_debug_tuple(), include_debug_opts(Opts)} of
-    {true, true} -> [{debug_info, {?MODULE, {elixir_v1, Map, Specs}}}];
-    {true, false} -> [{debug_info, {?MODULE, none}}];
-    {false, true} -> [debug_info];
-    {false, false} -> []
+  case include_debug_opts(Opts) of
+    true -> [{debug_info, {?MODULE, {elixir_v1, Map, Specs}}}];
+    false -> [{debug_info, {?MODULE, none}}]
   end.
 
 include_debug_opts(Opts) ->
@@ -489,28 +447,8 @@ include_debug_opts(Opts) ->
     undefined -> elixir_compiler:get_opt(debug_info)
   end.
 
-supports_debug_tuple() ->
-  case erlang:system_info(otp_release) of
-    "18" -> false;
-    "19" -> false;
-    _ -> true
-  end.
-
-extra_chunks(Chunks, Opts) ->
-  Supported = supports_extra_chunks_option(),
-
-  case Chunks of
-    [] -> {[], Opts};
-    _ when Supported -> {[], [{extra_chunks, Chunks} | Opts]};
-    _ -> {Chunks, Opts}
-  end.
-
-supports_extra_chunks_option() ->
-  case erlang:system_info(otp_release) of
-    "18" -> false;
-    "19" -> false;
-    _ -> true
-  end.
+extra_chunks_opts([], Opts) -> Opts;
+extra_chunks_opts(Chunks, Opts) -> [{extra_chunks, Chunks} | Opts].
 
 docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
   case elixir_compiler:get_opt(docs) of

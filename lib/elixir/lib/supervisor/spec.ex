@@ -109,7 +109,7 @@ defmodule Supervisor.Spec do
   @moduledoc deprecated:
                "Use the new child specifications outlined in the Supervisor module instead"
 
-  # TODO: Deprecate all functions in this module on Elixir v1.8.
+  # TODO: Deprecate all functions in this module on Elixir v1.9.
   # Also deprecate entry in Supervisor.Default.
 
   @typedoc "Supported strategies"

@@ -404,8 +404,6 @@ format_error({unused_attribute, impl}) ->
   "module attribute @impl was set but no definition follows it";
 format_error({unused_attribute, deprecated}) ->
   "module attribute @deprecated was set but no definition follows it";
-format_error({unused_attribute, since}) -> %% TODO: Remove this on v1.8
-  "module attribute @since is deprecated, please use \"@doc since: ...\" instead";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
 format_error({invalid_module, Module}) ->

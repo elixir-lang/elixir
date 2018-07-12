@@ -144,16 +144,13 @@ defmodule IEx.InteractionTest do
              ~r"\*\* \(exit\) exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
   end
 
-  # TODO: Remove this check once we depend only on 20
-  if :erlang.system_info(:otp_release) >= '20' do
-    test "blames function clause error" do
-      content = capture_iex("Access.fetch(:foo, :bar)")
-      assert content =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
-      assert content =~ "The following arguments were given to Access.fetch/2"
-      assert content =~ ":foo"
-      assert content =~ "def fetch(-%module{} = container-, key)"
-      assert content =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
-    end
+  test "blames function clause error" do
+    content = capture_iex("Access.fetch(:foo, :bar)")
+    assert content =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
+    assert content =~ "The following arguments were given to Access.fetch/2"
+    assert content =~ ":foo"
+    assert content =~ "def fetch(-%module{} = container-, key)"
+    assert content =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 
   ## .iex file loading

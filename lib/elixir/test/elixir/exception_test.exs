@@ -179,20 +179,14 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(Foo, :..., 1) == "Foo.\"...\"/1"
   end
 
-  # TODO: Remove this check once we depend only on 20
-  # TODO: Remove String.to_atom/1 when we support 20+
-  if :erlang.system_info(:otp_release) >= '20' do
-    test "format_mfa/3 with unicode" do
-      assert Exception.format_mfa(Foo, String.to_atom("olá"), [1, 2]) == "Foo.olá(1, 2)"
-      assert Exception.format_mfa(Foo, String.to_atom("Olá"), [1, 2]) == "Foo.\"Olá\"(1, 2)"
-      assert Exception.format_mfa(Foo, String.to_atom("Ólá"), [1, 2]) == "Foo.\"Ólá\"(1, 2)"
+  test "format_mfa/3 with unicode" do
+    assert Exception.format_mfa(Foo, :olá, [1, 2]) == "Foo.olá(1, 2)"
+    assert Exception.format_mfa(Foo, :Olá, [1, 2]) == "Foo.\"Olá\"(1, 2)"
+    assert Exception.format_mfa(Foo, :Ólá, [1, 2]) == "Foo.\"Ólá\"(1, 2)"
+    assert Exception.format_mfa(Foo, :こんにちは世界, [1, 2]) == "Foo.こんにちは世界(1, 2)"
 
-      hello_world = String.to_atom("こんにちは世界")
-      assert Exception.format_mfa(Foo, hello_world, [1, 2]) == "Foo.こんにちは世界(1, 2)"
-
-      nfd = :unicode.characters_to_nfd_binary("olá")
-      assert Exception.format_mfa(Foo, String.to_atom(nfd), [1, 2]) == "Foo.\"#{nfd}\"(1, 2)"
-    end
+    nfd = :unicode.characters_to_nfd_binary("olá")
+    assert Exception.format_mfa(Foo, String.to_atom(nfd), [1, 2]) == "Foo.\"#{nfd}\"(1, 2)"
   end
 
   test "format_fa/2" do
@@ -599,83 +593,80 @@ defmodule ExceptionTest do
       end
     end
 
-    # TODO: Remove this check once we depend only on 20
-    if :erlang.system_info(:otp_release) >= '20' do
-      test "annotates function clause errors" do
-        args = [%{}, :key, nil]
+    test "annotates function clause errors" do
+      args = [%{}, :key, nil]
 
-        {exception, stack} =
-          Exception.blame(:error, :function_clause, [{Keyword, :pop, args, [line: 13]}])
+      {exception, stack} =
+        Exception.blame(:error, :function_clause, [{Keyword, :pop, args, [line: 13]}])
 
-        assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
-        assert stack == [{Keyword, :pop, 3, [line: 13]}]
-      end
+      assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
+      assert stack == [{Keyword, :pop, 3, [line: 13]}]
+    end
 
-      test "annotates args and clauses from mfa" do
-        import PathHelpers
+    test "annotates args and clauses from mfa" do
+      import PathHelpers
 
-        write_beam(
-          defmodule Blaming do
-            def with_elem(x, y) when elem(x, 1) == 0 and elem(x, y) == 1 do
-              {x, y}
-            end
-
-            def fetch(%module{} = container, key), do: {module, container, key}
-            def fetch(map, key) when is_map(map), do: {map, key}
-            def fetch(list, key) when is_list(list) and is_atom(key), do: {list, key}
-            def fetch(nil, _key), do: nil
-
-            require Integer
-            def even_and_odd(foo, bar) when Integer.is_even(foo) and Integer.is_odd(bar), do: :ok
+      write_beam(
+        defmodule Blaming do
+          def with_elem(x, y) when elem(x, 1) == 0 and elem(x, y) == 1 do
+            {x, y}
           end
-        )
 
-        :code.delete(Blaming)
-        :code.purge(Blaming)
+          def fetch(%module{} = container, key), do: {module, container, key}
+          def fetch(map, key) when is_map(map), do: {map, key}
+          def fetch(list, key) when is_list(list) and is_atom(key), do: {list, key}
+          def fetch(nil, _key), do: nil
 
-        {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :with_elem, [1, 2])
+          require Integer
+          def even_and_odd(foo, bar) when Integer.is_even(foo) and Integer.is_odd(bar), do: :ok
+        end
+      )
 
-        assert annotated_clauses_to_string(clauses) == [
-                 "{[+x+, +y+], [-elem(x, 1) == 0- and -elem(x, y) == 1-]}"
-               ]
+      :code.delete(Blaming)
+      :code.purge(Blaming)
 
-        {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :fetch, [self(), "oops"])
+      {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :with_elem, [1, 2])
 
-        assert annotated_clauses_to_string(clauses) == [
-                 "{[-%module{} = container-, +key+], []}",
-                 "{[+map+, +key+], [-is_map(map)-]}",
-                 "{[+list+, +key+], [-is_list(list)- and -is_atom(key)-]}",
-                 "{[-nil-, +_key+], []}"
-               ]
+      assert annotated_clauses_to_string(clauses) == [
+               "{[+x+, +y+], [-elem(x, 1) == 0- and -elem(x, y) == 1-]}"
+             ]
 
-        {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :even_and_odd, [1, 1])
+      {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :fetch, [self(), "oops"])
 
-        assert annotated_clauses_to_string(clauses) == [
-                 "{[+foo+, +bar+], [+is_integer(foo)+ and -Bitwise.band(foo, 1) == 0- and (+is_integer(bar)+ and +Bitwise.band(bar, 1) == 1+)]}"
-               ]
+      assert annotated_clauses_to_string(clauses) == [
+               "{[-%module{} = container-, +key+], []}",
+               "{[+map+, +key+], [-is_map(map)-]}",
+               "{[+list+, +key+], [-is_list(list)- and -is_atom(key)-]}",
+               "{[-nil-, +_key+], []}"
+             ]
 
-        {:ok, :defmacro, clauses} = Exception.blame_mfa(Kernel, :!, [true])
+      {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :even_and_odd, [1, 1])
 
-        assert annotated_clauses_to_string(clauses) == [
-                 "{[-{:!, _, [value]}-], []}",
-                 "{[+value+], []}"
-               ]
-      end
+      assert annotated_clauses_to_string(clauses) == [
+               "{[+foo+, +bar+], [+is_integer(foo)+ and -Bitwise.band(foo, 1) == 0- and (+is_integer(bar)+ and +Bitwise.band(bar, 1) == 1+)]}"
+             ]
 
-      defp annotated_clauses_to_string(clauses) do
-        Enum.map(clauses, fn args_and_clauses ->
-          Macro.to_string(args_and_clauses, fn
-            %{match?: true, node: node}, _string ->
-              "+" <> Macro.to_string(node) <> "+"
+      {:ok, :defmacro, clauses} = Exception.blame_mfa(Kernel, :!, [true])
 
-            %{match?: false, node: node}, _string ->
-              "-" <> Macro.to_string(node) <> "-"
+      assert annotated_clauses_to_string(clauses) == [
+               "{[-{:!, _, [value]}-], []}",
+               "{[+value+], []}"
+             ]
+    end
 
-            _node, string ->
-              string
-          end)
+    defp annotated_clauses_to_string(clauses) do
+      Enum.map(clauses, fn args_and_clauses ->
+        Macro.to_string(args_and_clauses, fn
+          %{match?: true, node: node}, _string ->
+            "+" <> Macro.to_string(node) <> "+"
+
+          %{match?: false, node: node}, _string ->
+            "-" <> Macro.to_string(node) <> "-"
+
+          _node, string ->
+            string
         end)
-      end
+      end)
     end
   end
 
@@ -738,28 +729,25 @@ defmodule ExceptionTest do
              |> message == "no function clause matching in Foo.bar/1"
     end
 
-    # TODO: Remove this check once we depend only on 20
-    if :erlang.system_info(:otp_release) >= '20' do
-      test "FunctionClauseError with blame" do
-        {exception, _} =
-          Exception.blame(:error, :function_clause, [{Access, :fetch, [:foo, :bar], [line: 13]}])
+    test "FunctionClauseError with blame" do
+      {exception, _} =
+        Exception.blame(:error, :function_clause, [{Access, :fetch, [:foo, :bar], [line: 13]}])
 
-        assert message(exception) =~ """
-               no function clause matching in Access.fetch/2
+      assert message(exception) =~ """
+             no function clause matching in Access.fetch/2
 
-               The following arguments were given to Access.fetch/2:
+             The following arguments were given to Access.fetch/2:
 
-                   # 1
-                   :foo
+                 # 1
+                 :foo
 
-                   # 2
-                   :bar
+                 # 2
+                 :bar
 
-               Attempted function clauses (showing 5 out of 5):
+             Attempted function clauses (showing 5 out of 5):
 
-                   def fetch(-%module{} = container-, key)
-               """
-      end
+                 def fetch(-%module{} = container-, key)
+             """
     end
 
     test "ErlangError" do

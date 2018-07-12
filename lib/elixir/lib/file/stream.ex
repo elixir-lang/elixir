@@ -77,7 +77,7 @@ defmodule File.Stream do
       start_fun = fn ->
         case :file.open(path, read_modes(modes)) do
           {:ok, device} ->
-            if :trim_bom in modes, do: trim_bom(device), else: device
+            if :trim_bom in modes, do: trim_bom(device, raw) |> elem(0), else: device
 
           {:error, reason} ->
             raise File.Error, reason: reason, action: "stream", path: path
@@ -87,15 +87,7 @@ defmodule File.Stream do
       next_fun =
         case raw do
           true -> &IO.each_binstream(&1, line_or_bytes)
-          false -> fn
-            {device, :trim_bom} ->
-              # maybe trim BOM and fall back to regular IO.each_stream/2 afterwards
-              case IO.each_stream(device, line_or_bytes) do
-                {["\uFEFF" <> rest], device} -> {[rest], device}
-                other -> other
-              end
-            device -> IO.each_stream(device, line_or_bytes)
-          end
+          false -> &IO.each_stream(&1, line_or_bytes)
         end
 
       Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
@@ -114,17 +106,22 @@ defmodule File.Stream do
       end
     end
 
-    def count(%{path: path, line_or_bytes: bytes}) do
+    def count(%{path: path, line_or_bytes: bytes, raw: true, modes: modes}) do
       case File.stat(path) do
         {:ok, %{size: 0}} ->
           {:error, __MODULE__}
 
         {:ok, %{size: size}} ->
-          {:ok, div(size, bytes) + if(rem(size, bytes) == 0, do: 0, else: 1)}
+          remainder = if rem(size, bytes) == 0, do: 0, else: 1
+          {:ok, div(size, bytes) + remainder - count_raw_bom(path, modes)}
 
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
       end
+    end
+
+    def count(_stream) do
+      {:error, __MODULE__}
     end
 
     def member?(_stream, _term) do
@@ -135,15 +132,18 @@ defmodule File.Stream do
       {:error, __MODULE__}
     end
 
-    defp trim_bom(device) when is_pid(device) do
-      # file is opened in character mode, mark to trim on first read
-      {device, :trim_bom}
+    defp count_raw_bom(path, modes) do
+      if :trim_bom in modes do
+        File.open!(path, read_modes(modes), &(&1 |> trim_bom(true) |> elem(1)))
+      else
+        0
+      end
     end
 
-    defp trim_bom(device) do
-      header = IO.binread(device, 4)
-      {:ok, _new_pos} = :file.position(device, bom_length(header))
-      device
+    defp trim_bom(device, raw) do
+      header = if raw, do: IO.binread(device, 4), else: IO.read(device, 1)
+      {:ok, new_pos} = :file.position(device, bom_length(header))
+      {device, new_pos}
     end
 
     defp bom_length(<<239, 187, 191, _rest::binary>>), do: 3
