@@ -877,14 +877,14 @@ defmodule System do
   defp normalize_time_unit(:microsecond), do: :microsecond
   defp normalize_time_unit(:nanosecond), do: :nanosecond
 
-  defp normalize_time_unit(:seconds), do: warn(:second)
-  defp normalize_time_unit(:milliseconds), do: warn(:millisecond)
-  defp normalize_time_unit(:microseconds), do: warn(:microsecond)
-  defp normalize_time_unit(:nanoseconds), do: warn(:nanosecond)
+  defp normalize_time_unit(:seconds), do: warn(:seconds, :second)
+  defp normalize_time_unit(:milliseconds), do: warn(:milliseconds, :millisecond)
+  defp normalize_time_unit(:microseconds), do: warn(:microseconds, :microsecond)
+  defp normalize_time_unit(:nanoseconds), do: warn(:nanoseconds, :nanosecond)
 
-  defp normalize_time_unit(:milli_seconds), do: warn(:millisecond)
-  defp normalize_time_unit(:micro_seconds), do: warn(:microsecond)
-  defp normalize_time_unit(:nano_seconds), do: warn(:nanosecond)
+  defp normalize_time_unit(:milli_seconds), do: warn(:milli_seconds, :millisecond)
+  defp normalize_time_unit(:micro_seconds), do: warn(:micro_seconds, :microsecond)
+  defp normalize_time_unit(:nano_seconds), do: warn(:nano_seconds, :nanosecond)
 
   defp normalize_time_unit(unit) when is_integer(unit) and unit > 0, do: unit
 
@@ -894,12 +894,12 @@ defmodule System do
             ":microsecond, :nanosecond, or a positive integer, " <> "got #{inspect(other)}"
   end
 
-  defp warn(unit) do
+  defp warn(unit, replacement_unit) do
     IO.warn(
       "deprecated time unit: #{inspect(unit)}. A time unit should be " <>
         ":second, :millisecond, :microsecond, :nanosecond, or a positive integer"
     )
 
-    unit
+    replacement_unit
   end
 end
