@@ -95,7 +95,7 @@ defmodule Macro do
   `div/2` function, so that the AST for that function will become `{:div, [],
   [100, 5]}` (`div(100, 5)`).
   """
-  @spec unpipe(Macro.t()) :: [Macro.t()]
+  @spec unpipe(t()) :: [t()]
   def unpipe(expr) do
     :lists.reverse(unpipe(expr, []))
   end
@@ -111,7 +111,7 @@ defmodule Macro do
   @doc """
   Pipes `expr` into the `call_args` at the given `position`.
   """
-  @spec pipe(Macro.t(), Macro.t(), integer) :: Macro.t() | no_return
+  @spec pipe(t(), t(), integer) :: t() | no_return
   def pipe(expr, call_args, position)
 
   def pipe(expr, {:&, _, _} = call_args, _integer) do
@@ -206,7 +206,7 @@ defmodule Macro do
 
   def generate_arguments(amount, context)
       when is_integer(amount) and amount > 0 and is_atom(context) do
-    for id <- 1..amount, do: Macro.var(String.to_atom("var" <> Integer.to_string(id)), context)
+    for id <- 1..amount, do: var(String.to_atom("var" <> Integer.to_string(id)), context)
   end
 
   @doc """
@@ -342,7 +342,7 @@ defmodule Macro do
       :error
 
   """
-  @spec decompose_call(Macro.t()) :: {atom, [Macro.t()]} | {Macro.t(), atom, [Macro.t()]} | :error
+  @spec decompose_call(t()) :: {atom, [t()]} | {t(), atom, [t()]} | :error
   def decompose_call(ast)
 
   def decompose_call({{:., _, [remote, function]}, _, args})
@@ -400,7 +400,7 @@ defmodule Macro do
   bound), while `Kernel.SpecialForms.quote/2` produces syntax trees for
   expressions.
   """
-  @spec escape(term, keyword) :: Macro.t()
+  @spec escape(term, keyword) :: t()
   def escape(expr, opts \\ []) do
     elem(:elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)), 0)
   end
@@ -570,7 +570,7 @@ defmodule Macro do
       "one + two"
 
   """
-  @spec to_string(Macro.t(), (Macro.t(), String.t() -> String.t())) :: String.t()
+  @spec to_string(t(), (t(), String.t() -> String.t())) :: String.t()
   def to_string(tree, fun \\ fn _ast, string -> string end)
 
   # Variables
