@@ -414,7 +414,7 @@ defmodule Protocol.ConsolidationTest do
     assert Sample.__protocol__(:consolidated?)
     assert Sample.__protocol__(:impls) == {:consolidated, [ImplStruct]}
     assert WithAny.__protocol__(:consolidated?)
-    assert WithAny.__protocol__(:impls) == {:consolidated, [Any, Map, ImplStruct]}
+    assert WithAny.__protocol__(:impls) == {:consolidated, [Any, ImplStruct, Map]}
   end
 
   test "consolidation extracts protocols" do
@@ -437,32 +437,6 @@ defmodule Protocol.ConsolidationTest do
     assert_raise Protocol.UndefinedError, message, fn ->
       sample = Sample
       sample.ok(:foo)
-    end
-  end
-
-  test "consolidation updates __protocol__/1 spec" do
-    {:ok, {Sample, [{:abstract_code, {:raw_abstract_v1, forms}}]}} =
-      :beam_lib.chunks(@sample_binary, [:abstract_code])
-
-    for {:attribute, _line, :spec, {{:__protocol__, 1}, specs}} <- forms,
-        {:type, _line, :fun, [{:type, _, :product, [{:atom, _, clause}]}, return_type]} <- specs do
-      # Only check that :consolidated? and :impls types changed after consolidation.
-      # This prevents underspec warnings in dialyzer on consolidated protocols.
-      case clause do
-        :consolidated? ->
-          assert {:atom, _, true} = return_type
-
-        :impls ->
-          {:type, _, :tuple, tuple_args} = return_type
-
-          assert [
-                   {:atom, _, :consolidated},
-                   {:type, _, :list, [{:type, _, :union, [{:atom, _, ImplStruct}]}]}
-                 ] = tuple_args
-
-        _ ->
-          :ok
-      end
     end
   end
 end

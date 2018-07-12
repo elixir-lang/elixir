@@ -11,7 +11,7 @@ defprotocol Dialyzer.ProtocolOpaque.Entity do
 end
 
 defmodule Dialyzer.ProtocolOpaque.Duck do
-  @opaque t :: %__MODULE__{}
+  @opaque t :: %__MODULE__{feathers: :white_and_grey}
   defstruct feathers: :white_and_grey
 
   @spec new :: t

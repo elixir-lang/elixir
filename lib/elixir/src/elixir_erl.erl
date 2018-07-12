@@ -1,6 +1,6 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
--export([elixir_to_erl/1, definition_to_anonymous/4, compile/1,
+-export([elixir_to_erl/1, definition_to_anonymous/4, compile/1, consolidate/3,
          get_ann/1, remote/4, debug_info/4, scope/1, format_error/1]).
 -include("elixir.hrl").
 
@@ -127,7 +127,13 @@ elixir_to_erl_cons2([], Acc) ->
 scope(_Meta) ->
   #elixir_erl{}.
 
-%% Compilation hook.
+%% Static compilation hook, used in protocol consolidation
+
+consolidate(Map, TypeSpecs, Chunks) ->
+  {Prefix, Forms, _Def, _Defmacro, _Macros, _Deprecated} = dynamic_form(Map),
+  load_form(Map, Prefix, Forms, TypeSpecs, Chunks).
+
+%% Dynamic compilation hook, used in regular compiler
 
 compile(#{module := Module, line := Line} = Map) ->
   {Set, Bag} = elixir_module:data_tables(Module),
@@ -136,7 +142,7 @@ compile(#{module := Module, line := Line} = Map) ->
 
   DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
   DeprecatedChunk = deprecated_chunk(Deprecated),
-  Chunks = lists:flatten([DocsChunk, DeprecatedChunk]),
+  Chunks = DocsChunk ++ DeprecatedChunk,
 
   load_form(Map, Prefix, Forms, TypeSpecs, Chunks).
 
