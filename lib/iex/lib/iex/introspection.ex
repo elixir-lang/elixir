@@ -513,7 +513,7 @@ defmodule IEx.Introspection do
       {:ok, docs} ->
         docs
         |> add_optional_callback_docs(mod)
-        |> Enum.each(fn {definition, _} -> IO.puts(definition) end)
+        |> Enum.each(fn {definition, _, _} -> IO.puts(definition) end)
     end
 
     dont_display_result()
@@ -565,12 +565,12 @@ defmodule IEx.Introspection do
           docs
           |> Enum.filter(filter)
           |> Enum.map(fn
-            {{:macrocallback, fun, arity}, _, _, doc, _} ->
+            {{:macrocallback, fun, arity}, _, _, doc, metadata} ->
               macro = {:"MACRO-#{fun}", arity + 1}
-              {format_callback(:macrocallback, fun, macro, callbacks), doc}
+              {format_callback(:macrocallback, fun, macro, callbacks), doc, metadata}
 
-            {{kind, fun, arity}, _, _, doc, _} ->
-              {format_callback(kind, fun, {fun, arity}, callbacks), doc}
+            {{kind, fun, arity}, _, _, doc, metadata} ->
+              {format_callback(kind, fun, {fun, arity}, callbacks), doc, metadata}
           end)
 
         {:ok, docs}
@@ -588,7 +588,7 @@ defmodule IEx.Introspection do
     if optional_callbacks == [] do
       docs
     else
-      docs ++ [{format_optional_callbacks(optional_callbacks), ""}]
+      docs ++ [{format_optional_callbacks(optional_callbacks), "", %{}}]
     end
   end
 
@@ -637,8 +637,9 @@ defmodule IEx.Introspection do
       {:ok, types} ->
         printed =
           for {_, {^type, _, args}} = typespec <- types do
-            doc = {format_type(typespec), type_doc(module, type, length(args))}
-            print_typespec(doc)
+            type_doc(module, type, length(args))
+            |> Tuple.insert_at(0, format_type(typespec))
+            |> print_typespec()
           end
 
         if printed == [] do
@@ -657,8 +658,9 @@ defmodule IEx.Introspection do
       {:ok, types} ->
         printed =
           for {_, {^type, _, args}} = typespec <- types, length(args) == arity do
-            doc = {format_type(typespec), type_doc(module, type, arity)}
-            print_typespec(doc)
+            type_doc(module, type, arity)
+            |> Tuple.insert_at(0, format_type(typespec))
+            |> print_typespec()
           end
 
         if printed == [] do
@@ -676,10 +678,10 @@ defmodule IEx.Introspection do
 
   defp type_doc(module, type, arity) do
     if docs = get_docs(module, [:type]) do
-      {_, _, _, content, _} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
-      content
+      {_, _, _, content, metadata} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
+      {content, metadata}
     else
-      :none
+      {:none, %{}}
     end
   end
 
@@ -744,13 +746,15 @@ defmodule IEx.Introspection do
 
   defp print_single_metadata(_, printed), do: printed
 
-  defp print_typespec({types, doc}) do
+  defp print_typespec({types, doc, metadata}) do
     IO.puts(types)
     doc = translate_doc(doc)
 
     if opts = IEx.Config.ansi_docs() do
+      IO.ANSI.Docs.print_metadata(metadata, opts)
       doc && IO.ANSI.Docs.print(doc, opts)
     else
+      print_each_metadata(metadata) && IO.write("\n")
       doc && IO.puts(doc)
     end
   end

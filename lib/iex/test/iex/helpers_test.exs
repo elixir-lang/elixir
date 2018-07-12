@@ -625,6 +625,27 @@ defmodule IEx.HelpersTest do
                "@callback message(t()) :: String.t()\n\n"
     end
 
+    test "prints callback documentation metadata" do
+      filename = "callback_with_metadata.ex"
+
+      content = """
+      defmodule CallbackWithMetadata do
+        @doc "callback"
+        @doc since: "1.2.3", deprecated: "Use handle_test/1", purpose: :test
+        @callback test(:foo) :: integer
+      end
+      """
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [CallbackWithMetadata]
+
+        assert capture_io(fn -> b(CallbackWithMetadata.test()) end) ==
+                 "@callback test(:foo) :: integer()\n\ndeprecated: Use handle_test/1\nsince: 1.2.3\n\ncallback\n"
+      end)
+    after
+      cleanup_modules([CallbackWithMetadata])
+    end
+
     test "prints optional callback" do
       filename = "optional_callbacks.ex"
 
@@ -691,6 +712,33 @@ defmodule IEx.HelpersTest do
 
         assert capture_io(fn -> t(TypeSample.id_with_desc()) end) == """
                @type id_with_desc() :: {number(), String.t()}
+
+               An id with description.
+               """
+      end)
+    after
+      cleanup_modules([TypeSample])
+    end
+
+    test "prints type documentation metadata" do
+      content = """
+      defmodule TypeSample do
+        @typedoc "An id with description."
+        @typedoc since: "1.2.3", deprecated: "Use t/0", purpose: :test
+        @type id_with_desc :: {number, String.t}
+      end
+      """
+
+      filename = "typesample.ex"
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [TypeSample]
+
+        assert capture_io(fn -> t(TypeSample.id_with_desc()) end) == """
+               @type id_with_desc() :: {number(), String.t()}
+
+               deprecated: Use t/0
+               since: 1.2.3
 
                An id with description.
                """
