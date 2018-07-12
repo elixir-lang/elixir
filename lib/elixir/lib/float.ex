@@ -149,6 +149,11 @@ defmodule Float do
   @spec floor(float, precision_range) :: float
   def floor(number, precision \\ 0)
 
+  def floor(number, 0) when is_float(number) do
+    int = :erlang.floor(number)
+    :erlang.float(int)
+  end
+
   def floor(number, precision) when is_float(number) and precision in @precision_range do
     round(number, precision, :floor)
   end
@@ -191,6 +196,11 @@ defmodule Float do
   """
   @spec ceil(float, precision_range) :: float
   def ceil(number, precision \\ 0)
+
+  def ceil(number, 0) when is_float(number) do
+    int = :erlang.ceil(number)
+    :erlang.float(int)
+  end
 
   def ceil(number, precision) when is_float(number) and precision in @precision_range do
     round(number, precision, :ceil)
