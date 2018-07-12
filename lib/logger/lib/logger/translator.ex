@@ -339,6 +339,10 @@ defmodule Logger.Translator do
     ["\nStart Module: ", inspect(mod) | child_debug(min_level, debug)]
   end
 
+  defp child_info(_min_level, _child) do
+    []
+  end
+
   defp child_debug(:debug, restart_type: restart, shutdown: shutdown, child_type: type) do
     ["\nRestart: ", inspect(restart), "\nShutdown: ", inspect(shutdown)] ++
       ["\nType: ", inspect(type)]
