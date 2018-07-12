@@ -637,8 +637,7 @@ defmodule IEx.Introspection do
       {:ok, types} ->
         printed =
           for {_, {^type, _, args}} = typespec <- types do
-            type_doc(module, type, length(args))
-            |> Tuple.insert_at(0, format_type(typespec))
+            type_doc(module, type, length(args), typespec)
             |> print_typespec()
           end
 
@@ -658,8 +657,7 @@ defmodule IEx.Introspection do
       {:ok, types} ->
         printed =
           for {_, {^type, _, args}} = typespec <- types, length(args) == arity do
-            type_doc(module, type, arity)
-            |> Tuple.insert_at(0, format_type(typespec))
+            type_doc(module, type, arity, typespec)
             |> print_typespec()
           end
 
@@ -676,12 +674,12 @@ defmodule IEx.Introspection do
     dont_display_result()
   end
 
-  defp type_doc(module, type, arity) do
+  defp type_doc(module, type, arity, typespec) do
     if docs = get_docs(module, [:type]) do
       {_, _, _, content, metadata} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
-      {content, metadata}
+      {format_type(typespec), content, metadata}
     else
-      {:none, %{}}
+      {format_type(typespec), :none, %{}}
     end
   end
 
@@ -743,7 +741,7 @@ defmodule IEx.Introspection do
       IO.ANSI.Docs.print_metadata(metadata, opts)
       doc && IO.ANSI.Docs.print(doc, opts)
     else
-      print_each_metadata(metadata) && IO.write("\n")
+      IO.ANSI.Docs.print_metadata(metadata, enabled: false)
       doc && IO.puts(doc)
     end
   end
