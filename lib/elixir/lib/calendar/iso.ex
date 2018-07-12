@@ -351,12 +351,12 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-    iex> Calendar.ISO.date_to_string(2015, 2, 28)
-    "2015-02-28"
-    iex> Calendar.ISO.date_to_string(2017, 8, 1)
-    "2017-08-01"
-    iex> Calendar.ISO.date_to_string(-99, 1, 31)
-    "-0099-01-31"
+      iex> Calendar.ISO.date_to_string(2015, 2, 28)
+      "2015-02-28"
+      iex> Calendar.ISO.date_to_string(2017, 8, 1)
+      "2017-08-01"
+      iex> Calendar.ISO.date_to_string(-99, 1, 31)
+      "-0099-01-31"
 
   """
   @spec date_to_string(year, month, day) :: String.t()
@@ -378,10 +378,10 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-    iex> Calendar.ISO.naive_datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 6})
-    "2015-02-28 01:02:03.000004"
-    iex> Calendar.ISO.naive_datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5})
-    "2017-08-01 01:02:03.00000"
+      iex> Calendar.ISO.naive_datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 6})
+      "2015-02-28 01:02:03.000004"
+      iex> Calendar.ISO.naive_datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5})
+      "2017-08-01 01:02:03.00000"
 
   """
   @impl true
@@ -403,14 +403,14 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-    iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, "Europe/Berlin", "CET", 3600, 0)
-    "2017-08-01 01:02:03.00000+01:00 CET Europe/Berlin"
-    iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, "Europe/Berlin", "CDT", 3600, 3600)
-    "2017-08-01 01:02:03.00000+02:00 CDT Europe/Berlin"
-    iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, "America/Los_Angeles", "PST", -28800, 0)
-    "2015-02-28 01:02:03.00000-08:00 PST America/Los_Angeles"
-    iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, "America/Los_Angeles", "PDT", -28800, 3600)
-    "2015-02-28 01:02:03.00000-07:00 PDT America/Los_Angeles"
+      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, "Europe/Berlin", "CET", 3600, 0)
+      "2017-08-01 01:02:03.00000+01:00 CET Europe/Berlin"
+      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, "Europe/Berlin", "CDT", 3600, 3600)
+      "2017-08-01 01:02:03.00000+02:00 CDT Europe/Berlin"
+      iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, "America/Los_Angeles", "PST", -28800, 0)
+      "2015-02-28 01:02:03.00000-08:00 PST America/Los_Angeles"
+      iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, "America/Los_Angeles", "PDT", -28800, 3600)
+      "2015-02-28 01:02:03.00000-07:00 PDT America/Los_Angeles"
 
   """
   @impl true
@@ -452,14 +452,14 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-    iex> Calendar.ISO.valid_date?(2015, 2, 28)
-    true
-    iex> Calendar.ISO.valid_date?(2015, 2, 30)
-    false
-    iex> Calendar.ISO.valid_date?(-1, 12, 31)
-    true
-    iex> Calendar.ISO.valid_date?(-1, 12, 32)
-    false
+      iex> Calendar.ISO.valid_date?(2015, 2, 28)
+      true
+      iex> Calendar.ISO.valid_date?(2015, 2, 30)
+      false
+      iex> Calendar.ISO.valid_date?(-1, 12, 31)
+      true
+      iex> Calendar.ISO.valid_date?(-1, 12, 32)
+      false
 
   """
   @doc since: "1.5.0"
@@ -476,12 +476,12 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-    iex> Calendar.ISO.valid_time?(10, 50, 25, {3006, 6})
-    true
-    iex> Calendar.ISO.valid_time?(23, 59, 60, {0, 0})
-    true
-    iex> Calendar.ISO.valid_time?(24, 0, 0, {0, 0})
-    false
+      iex> Calendar.ISO.valid_time?(10, 50, 25, {3006, 6})
+      true
+      iex> Calendar.ISO.valid_time?(23, 59, 60, {0, 0})
+      true
+      iex> Calendar.ISO.valid_time?(24, 0, 0, {0, 0})
+      false
 
   """
   @doc since: "1.5.0"
