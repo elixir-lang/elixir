@@ -150,8 +150,7 @@ defmodule Float do
   def floor(number, precision \\ 0)
 
   def floor(number, 0) when is_float(number) do
-    int = :erlang.floor(number)
-    :erlang.float(int)
+    :math.floor(number)
   end
 
   def floor(number, precision) when is_float(number) and precision in @precision_range do
@@ -198,8 +197,7 @@ defmodule Float do
   def ceil(number, precision \\ 0)
 
   def ceil(number, 0) when is_float(number) do
-    int = :erlang.ceil(number)
-    :erlang.float(int)
+    :math.ceil(number)
   end
 
   def ceil(number, precision) when is_float(number) and precision in @precision_range do
