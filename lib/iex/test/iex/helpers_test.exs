@@ -403,6 +403,38 @@ defmodule IEx.HelpersTest do
                "No documentation for Kernel.__info__ was found\n"
     end
 
+    test "prints documentation metadata" do
+      content = """
+      defmodule Sample do
+        @moduledoc "Sample module"
+        @moduledoc deprecated: "Use OtherSample", since: "1.2.3", authors: ["Alice", "Bob"]
+        @doc "With metadata"
+        @doc since: "1.2.3", author: "Alice"
+        @deprecated "Use OtherSample.with_metadata/0"
+        def with_metadata(), do: 0
+        @doc "Without metadata"
+        def without_metadata(), do: 1
+      end
+      """
+
+      filename = "sample.ex"
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [Sample]
+
+        assert capture_io(fn -> h(Sample) end) ==
+                 "* Sample\n\ndeprecated: Use OtherSample\nsince: 1.2.3\n\nSample module\n"
+
+        assert capture_io(fn -> h(Sample.with_metadata()) end) ==
+                 "* def with_metadata()\n\ndeprecated: Use OtherSample.with_metadata/0\nsince: 1.2.3\n\nWith metadata\n"
+
+        assert capture_io(fn -> h(Sample.without_metadata()) end) ==
+                 "* def without_metadata()\n\nWithout metadata\n"
+      end)
+    after
+      cleanup_modules([Sample])
+    end
+
     test "considers underscored functions without docs by default" do
       content = """
       defmodule Sample do

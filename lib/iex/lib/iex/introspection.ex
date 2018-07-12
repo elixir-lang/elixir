@@ -250,8 +250,8 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         case Code.fetch_docs(module) do
-          {:docs_v1, _, _, _, %{} = doc, _, _} ->
-            print_doc(inspect(module), [], doc)
+          {:docs_v1, _, _, _, %{} = doc, metadata, _} ->
+            print_doc(inspect(module), [], doc, metadata)
 
           {:docs_v1, _, _, _, _, _, _} ->
             docs_not_found(inspect(module))
@@ -376,7 +376,7 @@ defmodule IEx.Introspection do
 
       is_nil(docs) and spec != [] ->
         message = %{"en" => "Module was compiled without docs. Showing only specs."}
-        print_doc("#{inspect(mod)}.#{fun}/#{arity}", spec, message)
+        print_doc("#{inspect(mod)}.#{fun}/#{arity}", spec, message, %{})
         :ok
 
       is_nil(docs) ->
@@ -449,7 +449,7 @@ defmodule IEx.Introspection do
   defp has_content?({{_, name, _}, _, _, :none, _}), do: hd(Atom.to_charlist(name)) != ?_
   defp has_content?({_, _, _, _, _}), do: true
 
-  defp print_fun(mod, {{kind, fun, arity}, _line, signature, doc, _meta}, spec) do
+  defp print_fun(mod, {{kind, fun, arity}, _line, signature, doc, metadata}, spec) do
     if callback_module = doc == :none and callback_module(mod, fun, arity) do
       filter = &match?({_, ^fun, ^arity}, elem(&1, 0))
 
@@ -458,7 +458,7 @@ defmodule IEx.Introspection do
         _ -> nil
       end
     else
-      print_doc("#{kind_to_def(kind)} #{Enum.join(signature, " ")}", spec, doc)
+      print_doc("#{kind_to_def(kind)} #{Enum.join(signature, " ")}", spec, doc, metadata)
     end
   end
 
@@ -717,19 +717,32 @@ defmodule IEx.Introspection do
     IEx.color(:doc_inline_code, left) <> " " <> right
   end
 
-  defp print_doc(heading, types, doc) do
+  defp print_doc(heading, types, doc, metadata) do
     doc = translate_doc(doc) || ""
 
     if opts = IEx.Config.ansi_docs() do
       IO.ANSI.Docs.print_heading(heading, opts)
       IO.write(types)
+      IO.ANSI.Docs.print_metadata(metadata, opts)
       IO.ANSI.Docs.print(doc, opts)
     else
       IO.puts("* #{heading}\n")
       IO.write(types)
+      print_each_metadata(metadata) && IO.write("\n")
       IO.puts(doc)
     end
   end
+
+  defp print_each_metadata(metadata) do
+    Enum.reduce(metadata, false, &print_single_metadata/2)
+  end
+
+  # only printing deprecated and since for now
+  defp print_single_metadata({key, value}, _printed) when key in [:deprecated, :since] do
+    IO.puts("#{key}: #{value}")
+  end
+
+  defp print_single_metadata(_, printed), do: printed
 
   defp print_typespec({types, doc}) do
     IO.puts(types)
