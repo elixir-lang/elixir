@@ -408,7 +408,7 @@ defmodule Inspect.Algebra do
 
   # TODO: Remove on 2.0
   @doc false
-  @deprecated "Use Inspect.Algebra.container_doc/6 instead"
+  @deprecated "Use a combination of concat/2 and nest/2 instead"
   def surround(left, doc, right) when is_doc(left) and is_doc(doc) and is_doc(right) do
     concat(concat(left, nest(doc, 1)), right)
   end
