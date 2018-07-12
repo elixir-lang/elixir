@@ -87,7 +87,15 @@ defmodule File.Stream do
       next_fun =
         case raw do
           true -> &IO.each_binstream(&1, line_or_bytes)
-          false -> &IO.each_stream(&1, line_or_bytes)
+          false -> fn
+            {device, :trim_bom} ->
+              # maybe trim BOM and fall back to regular IO.each_stream/2 afterwards
+              case IO.each_stream(device, line_or_bytes) do
+                {["\uFEFF" <> rest], device} -> {[rest], device}
+                other -> other
+              end
+            device -> IO.each_stream(device, line_or_bytes)
+          end
         end
 
       Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
@@ -125,6 +133,11 @@ defmodule File.Stream do
 
     def slice(_stream) do
       {:error, __MODULE__}
+    end
+
+    defp trim_bom(device) when is_pid(device) do
+      # file is opened in character mode, mark to trim on first read
+      {device, :trim_bom}
     end
 
     defp trim_bom(device) do
