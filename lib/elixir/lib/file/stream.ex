@@ -77,7 +77,7 @@ defmodule File.Stream do
       start_fun = fn ->
         case :file.open(path, read_modes(modes)) do
           {:ok, device} ->
-            if :trim_bom in modes, do: trim_bom(device), else: device
+            if :trim_bom in modes, do: trim_bom(device, raw) |> elem(0), else: device
 
           {:error, reason} ->
             raise File.Error, reason: reason, action: "stream", path: path
@@ -106,17 +106,22 @@ defmodule File.Stream do
       end
     end
 
-    def count(%{path: path, line_or_bytes: bytes}) do
+    def count(%{path: path, line_or_bytes: bytes, raw: true, modes: modes}) do
       case File.stat(path) do
         {:ok, %{size: 0}} ->
           {:error, __MODULE__}
 
         {:ok, %{size: size}} ->
-          {:ok, div(size, bytes) + if(rem(size, bytes) == 0, do: 0, else: 1)}
+          remainder = if rem(size, bytes) == 0, do: 0, else: 1
+          {:ok, div(size, bytes) + remainder - count_raw_bom(path, modes)}
 
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
       end
+    end
+
+    def count(_stream) do
+      {:error, __MODULE__}
     end
 
     def member?(_stream, _term) do
@@ -127,10 +132,18 @@ defmodule File.Stream do
       {:error, __MODULE__}
     end
 
-    defp trim_bom(device) do
-      header = IO.binread(device, 4)
-      {:ok, _new_pos} = :file.position(device, bom_length(header))
-      device
+    defp count_raw_bom(path, modes) do
+      if :trim_bom in modes do
+        File.open!(path, read_modes(modes), &(&1 |> trim_bom(true) |> elem(1)))
+      else
+        0
+      end
+    end
+
+    defp trim_bom(device, raw) do
+      header = if raw, do: IO.binread(device, 4), else: IO.read(device, 1)
+      {:ok, new_pos} = :file.position(device, bom_length(header))
+      {device, new_pos}
     end
 
     defp bom_length(<<239, 187, 191, _rest::binary>>), do: 3
