@@ -584,10 +584,12 @@ defmodule ExUnit.Assertions do
   defp collect_vars_from_pattern({:when, _, [left, right]}) do
     pattern = collect_vars_from_pattern(left)
 
-    for {name, _, context} = var <- collect_vars_from_pattern(right),
-        Enum.any?(pattern, &match?({^name, _, ^context}, &1)),
-        into: pattern,
-        do: var
+    vars =
+      for {name, _, context} = var <- collect_vars_from_pattern(right),
+          Enum.any?(pattern, &match?({^name, _, ^context}, &1)),
+          do: var
+
+    pattern ++ vars
   end
 
   defp collect_vars_from_pattern(expr) do
