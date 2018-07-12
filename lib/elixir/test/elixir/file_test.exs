@@ -1601,7 +1601,7 @@ defmodule FileTest do
              |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
     end
 
-    test "trims BOM via option with utf13 LE encoding" do
+    test "trims BOM via option with utf16 LE encoding" do
       src = fixture_path("utf8_bom.txt")
 
       assert src
