@@ -877,14 +877,14 @@ defmodule System do
   defp normalize_time_unit(:microsecond), do: :microsecond
   defp normalize_time_unit(:nanosecond), do: :nanosecond
 
-  defp normalize_time_unit(:seconds), do: warn(:second)
-  defp normalize_time_unit(:milliseconds), do: warn(:millisecond)
-  defp normalize_time_unit(:microseconds), do: warn(:microsecond)
-  defp normalize_time_unit(:nanoseconds), do: warn(:nanosecond)
+  defp normalize_time_unit(:seconds), do: warn(:seconds)
+  defp normalize_time_unit(:milliseconds), do: warn(:milliseconds)
+  defp normalize_time_unit(:microseconds), do: warn(:microseconds)
+  defp normalize_time_unit(:nanoseconds), do: warn(:nanoseconds)
 
-  defp normalize_time_unit(:milli_seconds), do: warn(:millisecond)
-  defp normalize_time_unit(:micro_seconds), do: warn(:microsecond)
-  defp normalize_time_unit(:nano_seconds), do: warn(:nanosecond)
+  defp normalize_time_unit(:milli_seconds), do: warn(:milli_seconds)
+  defp normalize_time_unit(:micro_seconds), do: warn(:micro_seconds)
+  defp normalize_time_unit(:nano_seconds), do: warn(:nano_seconds)
 
   defp normalize_time_unit(unit) when is_integer(unit) and unit > 0, do: unit
 
