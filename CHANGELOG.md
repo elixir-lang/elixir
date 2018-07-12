@@ -2,6 +2,21 @@
 
 Elixir v1.7 is the last release to support Erlang/OTP 19. We recommend everyone to migrate to Erlang/OTP 20+.
 
+## Documentation metadata
+
+Elixir v1.7 implements [EEP 48](http://erlang.org/eep/eeps/eep-0048.html). EEP 48 aims to bring documentation interoperability across all languages running on the Erlang VM. The documentation format proposed by EEP 48 also supports metadata, which is now fully exposed to Elixir developers:
+
+```elixir
+@moduledoc "A brand new module"
+@moduledoc authors: ["Jane", "Mary"], since: "1.4.0"
+```
+
+Currently Elixir supports two metadata keys: `:deprecated` and `:since`. Other keys will be added in the future. Passing metadata is supported on `@doc`, `@moduledoc` and `@typedoc`.
+
+To access the new documentation, developers should use `Code.fetch_docs/1`. The old documentation format is no longer available and the old `Code.get_docs/1` function will return `nil` accordingly.
+
+Tools like IEx and ExDoc have been updated to leverage the new format and show relevant metadata to users.
+
 ## The `__STACKTRACE__` construct
 
 Erlang/OTP 21.0 introduces a new way to retrieve the stacktrace that is lexically scoped and no longer relies on side-effects like `System.stacktrace/0` does. Before one would write:
@@ -119,6 +134,7 @@ Percentage | Module
   * [Function] Add `Function` module with `capture/3`, `info/1` and `info/2` functions
   * [GenServer] Support the new `handle_continue/2` callback on Erlang/OTP 21+
   * [IO.ANSI] Add cursor movement to `IO.ANSI`
+  * [Kernel] Support adding arbitrary documentation metadata by passing a keyword list to `@doc`, `@moduledoc` and `@typedoc`
   * [Kernel] Introduce `__STACKTRACE__` to retrieve the current stacktrace inside `catch`/`rescue` (this will be a requirement for Erlang/OTP 21+)
   * [Kernel] Raise on unsafe variables in order to allow us to better track unused variables
   * [Kernel] Warn when using `length` to check if a list is not empty on guards
@@ -146,6 +162,7 @@ Percentage | Module
   * [IEx.Helpers] Add `use_if_available/2`
   * [IEx.Helpers] Allow `force: true` option in `recompile/1`
   * [IEx.Helpers] Add `:allocators` pane to `runtime_info/1`
+  * [IEx.Helpers] Show documentation metadata in `h/1` helpers
 
 #### Logger
 
@@ -179,6 +196,7 @@ Percentage | Module
   * [Code] Ensure `string_to_quoted` returns error tuples instead of raising in certain constructs
   * [Code.Formatter] Consistently format keyword lists in function calls with and without parens
   * [Code.Formatter] Do not break after `->` when there are only comments and one-line clauses
+  * [File] Allow the `:trim_bom` option to be used with `:encoding`
   * [Kernel] Raise on unsafe variables as some of the code emitted with unsafe variables would not correctly propagate variables or would disable tail call optimization semantics
   * [Kernel] Do not crash on dynamic sizes in binary generators with collectable into in comprehensions
   * [Kernel] Do not crash on literals with non-unary size in binary generators with collectable into in comprehensions
