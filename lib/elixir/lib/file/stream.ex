@@ -140,10 +140,22 @@ defmodule File.Stream do
       end
     end
 
-    defp trim_bom(device, raw) do
-      header = if raw, do: IO.binread(device, 4), else: IO.read(device, 1)
-      {:ok, new_pos} = :file.position(device, bom_length(header))
+    defp trim_bom(device, true) do
+      bom_length = device |> IO.binread(4) |> bom_length()
+      {:ok, new_pos} = :file.position(device, bom_length)
       {device, new_pos}
+    end
+
+    defp trim_bom(device, false) do
+      # Or we read the bom in the correct amount or it isn't there
+      case bom_length(IO.read(device, 1)) do
+        0 ->
+          {:ok, _} = :file.position(device, 0)
+          {device, 0}
+
+        _ ->
+          {device, 1}
+      end
     end
 
     defp bom_length(<<239, 187, 191, _rest::binary>>), do: 3
