@@ -129,7 +129,7 @@ compile(Line, Module, Block, Vars, E) ->
 validate_compile_opts(Opts, Defs, Unreachable, File, Line) ->
   lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Unreachable, File, Line) end, Opts).
 
-%% TODO: Make this an error and skip parse transform processing on 2.0.
+%% TODO: Make this an error on 2.0
 validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, File, Line) ->
   elixir_errors:form_warn([{line, Line}], File, ?MODULE, {parse_transform, Module}),
   [Opt];
@@ -427,5 +427,5 @@ format_error({module_in_definition, Module, File, Line}) ->
 format_error({bad_inline, {Name, Arity}}) ->
   io_lib:format("inlined function ~ts/~B undefined", [Name, Arity]);
 format_error({parse_transform, Module}) ->
-  io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir will no longer support "
-                "Erlang-based transforms in future versions", [elixir_aliases:inspect(Module)]).
+  io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir no longer supports "
+                "Erlang-based transforms", [elixir_aliases:inspect(Module)]).
