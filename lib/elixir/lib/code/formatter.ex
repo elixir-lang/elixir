@@ -716,14 +716,21 @@ defmodule Code.Formatter do
         {concat(op_string, doc), @empty, newlines, state}
     end
 
-    operand_to_algebra_with_comments(
-      operands,
-      meta,
-      min_line,
-      max_line,
-      state,
-      operand_to_algebra
-    )
+    {doc, state} =
+      operand_to_algebra_with_comments(
+        operands,
+        meta,
+        min_line,
+        max_line,
+        state,
+        operand_to_algebra
+      )
+
+    if keyword?(right_arg) and context in [:parens_arg, :no_parens_arg] do
+      {wrap_in_parens(doc), state}
+    else
+      {doc, state}
+    end
   end
 
   defp binary_op_to_algebra(op, _, meta, left_arg, right_arg, context, state, _nesting)
