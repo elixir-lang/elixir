@@ -227,7 +227,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp do_compile({input, output}, callback, timestamp, verbose) do
-    # TODO: Deprecate {:ok, _} and :error return on Elixir v1.8
+    # TODO: Remove deprecated {:ok, _} and :error on 2.0
     case callback.(input, output) do
       {:ok, _, warnings} ->
         File.touch!(output, timestamp)
@@ -238,9 +238,19 @@ defmodule Mix.Compilers.Erlang do
         {:error, [], warnings, errors}
 
       {:ok, _} ->
+        IO.warn(
+          "returning {:ok, contents} in the Mix.Compilers.Erlang.compile/6 callback is deprecated " <>
+            "The callback should return {:ok, contents, warnings} or {:error, errors, warnings}"
+        )
+
         {:ok, [], [], []}
 
       :error ->
+        IO.warn(
+          "returning :error in the Mix.Compilers.Erlang.compile/6 callback is deprecated " <>
+            "The callback should return {:ok, contents, warnings} or {:error, errors, warnings}"
+        )
+
         {:error, [], [], []}
     end
   end

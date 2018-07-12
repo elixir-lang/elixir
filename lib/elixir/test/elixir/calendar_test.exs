@@ -242,7 +242,7 @@ defmodule NaiveDateTimeTest do
     assert NaiveDateTime.convert(~N[1970-01-01 00:00:00], Calendar.Holocene) ==
              {:ok, Calendar.Holocene.naive_datetime(11970, 1, 1, 0, 0, 0, {0, 0})}
 
-    assert NaiveDateTime.convert(DateTime.from_unix!(0, :seconds), Calendar.Holocene) ==
+    assert NaiveDateTime.convert(DateTime.from_unix!(0, :second), Calendar.Holocene) ==
              {:ok, Calendar.Holocene.naive_datetime(11970, 1, 1, 0, 0, 0, {0, 0})}
   end
 
