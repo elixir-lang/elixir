@@ -730,21 +730,10 @@ defmodule IEx.Introspection do
     else
       IO.puts("* #{heading}\n")
       IO.write(types)
-      print_each_metadata(metadata) && IO.write("\n")
+      IO.ANSI.Docs.print_metadata(metadata, enabled: false)
       IO.puts(doc)
     end
   end
-
-  defp print_each_metadata(metadata) do
-    Enum.reduce(metadata, false, &print_single_metadata/2)
-  end
-
-  # only printing deprecated and since for now
-  defp print_single_metadata({key, value}, _printed) when key in [:deprecated, :since] do
-    IO.puts("#{key}: #{value}")
-  end
-
-  defp print_single_metadata(_, printed), do: printed
 
   defp print_typespec({types, doc, metadata}) do
     IO.puts(types)

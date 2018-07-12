@@ -63,27 +63,29 @@ defmodule IO.ANSI.Docs do
   @spec print_metadata(map, keyword) :: :ok
   def print_metadata(metadata, options \\ []) when is_map(metadata) do
     options = Keyword.merge(default_options(), options)
-    print_each_metadata(metadata, options) && newline_after_block()
+    print_each_metadata(metadata, options) && IO.write("\n")
   end
+
+  @metadata_filter [:deprecated, :since]
 
   defp print_each_metadata(metadata, options) do
-    Enum.reduce(metadata, false, &print_single_metadata({&1, options}, &2))
-  end
+    Enum.reduce(metadata, false, fn
+      {key, value}, _printed when is_binary(value) and key in @metadata_filter ->
+        label = metadata_label(key, options)
+        indent = String.duplicate(" ", length_without_escape(label, 0) + 1)
+        write_with_wrap([label | String.split(value, @spaces)], options[:width], indent, true)
 
-  defp print_single_metadata({{:deprecated, value}, options}, _printed) do
-    [metadata_label(:deprecated, options) | String.split(value, @spaces)]
-    |> write_with_wrap(options[:width], "            ", true)
+      _metadata, printed ->
+        printed
+    end)
   end
-
-  defp print_single_metadata({{:since, value}, options}, _printed) do
-    IO.puts([metadata_label(:since, options), " ", value])
-  end
-
-  # only printing deprecated and since for now
-  defp print_single_metadata(_, printed), do: printed
 
   defp metadata_label(key, options) do
-    "#{color(:doc_metadata, options)}#{key}:#{IO.ANSI.reset()}"
+    if options[:enabled] do
+      "#{color(:doc_metadata, options)}#{key}:#{IO.ANSI.reset()}"
+    else
+      "#{key}:"
+    end
   end
 
   @doc """

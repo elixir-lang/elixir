@@ -25,7 +25,7 @@ defmodule IO.ANSI.DocsTest do
 
   test "metadata is formatted" do
     result = format_metadata(%{since: "1.2.3", deprecated: "Use that other one", author: "Alice"})
-    assert result == "\e[33mdeprecated:\e[0m Use that other one\n\e[33msince:\e[0m 1.2.3\n\e[0m\n"
+    assert result == "\e[33mdeprecated:\e[0m Use that other one\n\e[33msince:\e[0m 1.2.3\n\n"
     assert format_metadata(%{author: "Alice"}) == ""
   end
 
