@@ -136,4 +136,5 @@ Non-map as second argument in `URI.decode_query/2` | [v1.3]      | Use a map (v1
 [v1.4]: https://github.com/elixir-lang/elixir/blob/v1.4/CHANGELOG.md#4-deprecations
 [v1.5]: https://github.com/elixir-lang/elixir/blob/v1.5/CHANGELOG.md#4-deprecations
 [v1.6]: https://github.com/elixir-lang/elixir/blob/v1.6/CHANGELOG.md#4-deprecations
-[v1.7]: https://github.com/elixir-lang/elixir/blob/master/CHANGELOG.md#4-hard-deprecations
+[v1.7]: https://github.com/elixir-lang/elixir/blob/v1.7/CHANGELOG.md#4-hard-deprecations
+[v1.8]: https://github.com/elixir-lang/elixir/blob/master/CHANGELOG.md#4-hard-deprecations

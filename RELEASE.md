@@ -28,7 +28,7 @@
 
 1. Set `CANONICAL=` in /Makefile
 
-2. Update **all** tables in "Compatibility and Deprecations"
+2. Update tables in "Compatibility and Deprecations"
 
 3. Commit "Prepare vMAJOR.MINOR for release"
 
@@ -38,4 +38,6 @@
 
 2. Start new /CHANGELOG.md
 
-3. Commit "Start vMAJOR.MINOR+1"
+3. Update tables in "Compatibility and Deprecations"
+
+4. Commit "Start vMAJOR.MINOR+1"
