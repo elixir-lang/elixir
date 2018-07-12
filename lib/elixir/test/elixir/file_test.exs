@@ -1577,6 +1577,18 @@ defmodule FileTest do
              |> Enum.take(9) == ["\uFEFF", "Р", "у", "с", "с", "к", "и", "й", "\n"]
     end
 
+    test "does not trim first char when no BOM" do
+      src = fixture_path("utf8.txt")
+
+      assert src
+             |> File.stream!([{:encoding, :utf8}, :trim_bom])
+             |> Enum.take(1) == ["Русский\n"]
+
+      assert src
+             |> File.stream!([{:encoding, :utf8}, :trim_bom], 1)
+             |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
+    end
+
     test "trims BOM via option with utf8 encoding" do
       src = fixture_path("utf8_bom.txt")
 
@@ -1590,7 +1602,7 @@ defmodule FileTest do
     end
 
     test "trims BOM via option with utf16 BE encoding" do
-      src = fixture_path("utf8_bom.txt")
+      src = fixture_path("utf16_be_bom.txt")
 
       assert src
              |> File.stream!([{:encoding, {:utf16, :big}}, :trim_bom])
@@ -1602,7 +1614,7 @@ defmodule FileTest do
     end
 
     test "trims BOM via option with utf16 LE encoding" do
-      src = fixture_path("utf8_bom.txt")
+      src = fixture_path("utf16_le_bom.txt")
 
       assert src
              |> File.stream!([{:encoding, {:utf16, :little}}, :trim_bom])
