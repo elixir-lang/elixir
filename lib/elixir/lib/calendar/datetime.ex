@@ -172,7 +172,9 @@ defmodule DateTime do
   Converts the given `NaiveDateTime` to `DateTime`.
 
   It expects a time zone to put the NaiveDateTime in.
-  Currently it only supports "Etc/UTC" as time zone.
+
+  It only supports "Etc/UTC" as time zone if a TimeZoneDatabase
+  is not provided as a third argument.
 
   ## Examples
 
@@ -180,12 +182,124 @@ defmodule DateTime do
       iex> datetime
       #DateTime<2016-05-24 13:26:08.003Z>
 
+  When the datetime is ambiguous - for instance during changing from summer
+  to winter time - the two possible valid datetimes are returned. First the one
+  that happens first, then the one that happens after.
+
+      iex> {:ambiguous, [first_dt, second_dt]} = DateTime.from_naive(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> first_dt
+      #DateTime<2018-10-28 02:30:00+02:00 CEST Europe/Copenhagen>
+      iex> second_dt
+      #DateTime<2018-10-28 02:30:00+01:00 CET Europe/Copenhagen>
+
+  When there is a gap in wall time - for instance in spring when the clocks are
+  turned forward - the latest valid datetime just before the gap and the first
+  valid datetime just after the gap.
+
+      iex> {:gap, [just_before, just_after]} = DateTime.from_naive(~N[2019-03-31 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> just_before
+      #DateTime<2019-03-31 01:59:59.999999+01:00 CET Europe/Copenhagen>
+      iex> just_after
+      #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
+
+  Most of the time there is one, and just one, valid datetime for a certain
+  date and time in a certain time zone.
+
+      iex> {:ok, datetime} = DateTime.from_naive(~N[2018-07-28 12:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> datetime
+      #DateTime<2018-07-28 12:30:00+02:00 CEST Europe/Copenhagen>
   """
   @doc since: "1.4.0"
-  @spec from_naive(NaiveDateTime.t(), Calendar.time_zone()) :: {:ok, t}
-  def from_naive(naive_datetime, time_zone)
+  @spec from_naive(NaiveDateTime.t(), Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
+          {:ok, t}
+          | {:ambiguous, [TimeZoneDatabase.time_zone_period()]}
+          | {:gap, [TimeZoneDatabase.time_zone_period()]}
+          | {:error, :time_zone_not_found}
 
-  def from_naive(%NaiveDateTime{} = naive_datetime, "Etc/UTC") do
+  def from_naive(naive_datetime, time_zone, time_zone_data_module \\ :from_config)
+
+  def from_naive(%NaiveDateTime{} = naive_datetime, "Etc/UTC", _) do
+    do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
+  end
+
+  def from_naive(%NaiveDateTime{} = naive_datetime, time_zone, time_zone_data_module) do
+    gregorian_seconds =
+      naive_datetime
+      |> NaiveDateTime.to_erl()
+      |> :calendar.datetime_to_gregorian_seconds()
+
+    case by_wall(time_zone_data_module, time_zone, gregorian_seconds) do
+      {:single, period} ->
+        do_from_naive(
+          naive_datetime,
+          time_zone,
+          period.std_offset,
+          period.utc_offset,
+          period.zone_abbr
+        )
+
+      {:ambiguous, [first_period, second_period]} ->
+        {:ok, first_datetime} =
+          do_from_naive(
+            naive_datetime,
+            time_zone,
+            first_period.std_offset,
+            first_period.utc_offset,
+            first_period.zone_abbr
+          )
+
+        {:ok, second_datetime} =
+          do_from_naive(
+            naive_datetime,
+            time_zone,
+            second_period.std_offset,
+            second_period.utc_offset,
+            second_period.zone_abbr
+          )
+
+        {:ambiguous, [first_datetime, second_datetime]}
+
+      {:gap, [first_period, second_period]} ->
+        # `until_wall` is not valid, but any time just before is.
+        # So by subtracting a second and adding .999999 seconds
+        # we get the last microsecond just before.
+        before_naive =
+          first_period.until_wall
+          |> :calendar.gregorian_seconds_to_datetime()
+          |> NaiveDateTime.from_erl!({999_999, 6})
+          |> NaiveDateTime.add(-1)
+
+        after_naive =
+          second_period.from_wall
+          |> :calendar.gregorian_seconds_to_datetime()
+          |> NaiveDateTime.from_erl!()
+
+        {:ok, latest_datetime_before} =
+          do_from_naive(
+            before_naive,
+            time_zone,
+            first_period.std_offset,
+            first_period.utc_offset,
+            first_period.zone_abbr
+          )
+
+        {:ok, first_datetime_after} =
+          do_from_naive(
+            after_naive,
+            time_zone,
+            second_period.std_offset,
+            second_period.utc_offset,
+            second_period.zone_abbr
+          )
+
+        {:gap, [latest_datetime_before, first_datetime_after]}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp do_from_naive(naive_datetime, time_zone, std_offset, utc_offset, zone_abbr) do
     %{
       calendar: calendar,
       hour: hour,
@@ -206,10 +320,10 @@ defmodule DateTime do
       minute: minute,
       second: second,
       microsecond: microsecond,
-      std_offset: 0,
-      utc_offset: 0,
-      zone_abbr: "UTC",
-      time_zone: "Etc/UTC"
+      std_offset: std_offset,
+      utc_offset: utc_offset,
+      zone_abbr: zone_abbr,
+      time_zone: time_zone
     }
 
     {:ok, datetime}
@@ -219,18 +333,21 @@ defmodule DateTime do
   Converts the given `NaiveDateTime` to `DateTime`.
 
   It expects a time zone to put the NaiveDateTime in.
-  Currently it only supports "Etc/UTC" as time zone.
 
   ## Examples
 
       iex> DateTime.from_naive!(~N[2016-05-24 13:26:08.003], "Etc/UTC")
       #DateTime<2016-05-24 13:26:08.003Z>
 
+      iex> DateTime.from_naive!(~N[2018-05-24 13:26:08.003], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      #DateTime<2018-05-24 13:26:08.003+02:00 CEST Europe/Copenhagen>
+
   """
   @doc since: "1.4.0"
-  @spec from_naive!(NaiveDateTime.t(), Calendar.time_zone()) :: t
-  def from_naive!(naive_datetime, time_zone) do
-    case from_naive(naive_datetime, time_zone) do
+  @spec from_naive!(NaiveDateTime.t(), Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
+          t
+  def from_naive!(naive_datetime, time_zone, time_zone_data_module \\ :from_config) do
+    case from_naive(naive_datetime, time_zone, time_zone_data_module) do
       {:ok, datetime} ->
         datetime
 
@@ -238,6 +355,75 @@ defmodule DateTime do
         raise ArgumentError,
               "cannot parse #{inspect(naive_datetime)} to datetime, reason: #{inspect(reason)}"
     end
+  end
+
+  @doc """
+  Takes a DateTime and a time zone.
+
+  Returns a DateTime for the same point in time, but instead at the
+  time zone provided.
+
+      iex> cph_datetime = DateTime.from_naive!(~N[2018-07-16 12:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> {:ok, pacific_datetime} = DateTime.shift_zone(cph_datetime, "America/Los_Angeles", FakeTimeZoneDatabase)
+      iex> pacific_datetime
+      #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
+  """
+  @spec shift_zone(t, Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
+          {:ok, t} | {:error, :time_zone_not_found}
+  def shift_zone(
+        %{calendar: Calendar.ISO} = datetime,
+        time_zone,
+        time_zone_data_module \\ :from_config
+      ) do
+    in_utc = datetime |> to_unix |> from_unix! |> Map.put(:microsecond, datetime.microsecond)
+
+    gregorian_seconds_utc =
+      :calendar.datetime_to_gregorian_seconds(in_utc |> NaiveDateTime.to_erl())
+
+    case by_utc(time_zone_data_module, time_zone, gregorian_seconds_utc) do
+      {:ok, period} ->
+        gregorian_seconds_wall = gregorian_seconds_utc + period.utc_offset + period.std_offset
+
+        naive_datetime =
+          gregorian_seconds_wall
+          |> :calendar.gregorian_seconds_to_datetime()
+          |> NaiveDateTime.from_erl!(datetime.microsecond)
+
+        do_from_naive(
+          naive_datetime,
+          time_zone,
+          period.std_offset,
+          period.utc_offset,
+          period.zone_abbr
+        )
+
+      {:error, :time_zone_not_found} ->
+        {:error, :time_zone_not_found}
+    end
+  end
+
+  @doc """
+  Returns the current datetime in the provided time zone.
+
+  Requires a module implementing the `TimeZoneDatabase` behaviour.
+
+  ## Examples
+
+      iex> {:ok, datetime} = DateTime.now("Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> datetime.time_zone
+      "Europe/Copenhagen"
+
+  """
+  @spec now(Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
+          {:ok, t} | {:error, :time_zone_not_found}
+  def now(time_zone, time_zone_data_module \\ :from_config)
+
+  def now("Etc/UTC", _) do
+    {:ok, utc_now()}
+  end
+
+  def now(time_zone, time_zone_data_module) do
+    utc_now() |> shift_zone(time_zone, time_zone_data_module)
   end
 
   @doc """
@@ -898,6 +1084,46 @@ defmodule DateTime do
 
   defp apply_tz_offset(iso_days, offset) do
     Calendar.ISO.add_day_fraction_to_iso_days(iso_days, -offset, 86400)
+  end
+
+  @no_valid_time_zone_database_error "No valid TimeZoneDatabase provided or configured. Configure with :elixir_config.put(:time_zone_module, module_name)"
+  @spec by_wall(TimeZoneDatabase.t(), Calendar.time_zone(), TimeZoneDatabase.gregorian_seconds()) ::
+          {:single, TimeZoneDatabase.time_zone_period()}
+          | {:ambiguous, [TimeZoneDatabase.time_zone_period()]}
+          | {:gap, [TimeZoneDatabase.time_zone_period()]}
+          | {:error, :time_zone_not_found}
+  defp by_wall(time_zone_data_module, time_zone, gregorian_seconds) do
+    time_zone_data_module = time_zone_data_module_from_parameter(time_zone_data_module)
+
+    try do
+      time_zone_data_module.by_wall(time_zone, gregorian_seconds)
+    rescue
+      UndefinedFunctionError ->
+        raise @no_valid_time_zone_database_error
+    end
+  end
+
+  @spec by_utc(TimeZoneDatabase.t(), Calendar.time_zone(), TimeZoneDatabase.gregorian_seconds()) ::
+          {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
+  defp by_utc(time_zone_data_module, time_zone, gregorian_seconds) do
+    time_zone_data_module = time_zone_data_module_from_parameter(time_zone_data_module)
+
+    try do
+      time_zone_data_module.by_utc(time_zone, gregorian_seconds)
+    rescue
+      UndefinedFunctionError ->
+        raise @no_valid_time_zone_database_error
+    end
+  end
+
+  @spec time_zone_data_module_from_parameter(:from_config | TimeZoneDatabase.t()) ::
+          TimeZoneDatabase.t()
+  defp time_zone_data_module_from_parameter(:from_config) do
+    :elixir_config.safe_get(:time_zone_module, :from_config)
+  end
+
+  defp time_zone_data_module_from_parameter(time_zone_data_module) do
+    time_zone_data_module
   end
 
   defimpl String.Chars do
