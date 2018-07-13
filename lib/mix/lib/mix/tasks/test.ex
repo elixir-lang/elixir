@@ -145,7 +145,7 @@ defmodule Mix.Tasks.Test do
   ## Command line options
 
     * `--color` - enables color in the output
-    * `--cover` - the directory to include coverage results
+    * `--cover` - runs coverage tool. See "Coverage" section below
     * `--exclude` - excludes tests that match the filter
     * `--force` - forces compilation regardless of modification times
     * `--formatter` - formatter module
