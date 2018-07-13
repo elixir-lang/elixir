@@ -1,5 +1,6 @@
 Code.require_file("test_helper.exs", __DIR__)
 Code.require_file("fixtures/calendar/holocene.exs", __DIR__)
+Code.require_file("fixtures/calendar/fake_time_zone_database.exs", __DIR__)
 
 defmodule FakeCalendar do
   def date_to_string(_, _, _), do: "boom"
@@ -509,6 +510,14 @@ defmodule DateTimeTest do
              }
   end
 
+  test "from_iso8601 handles invalid date, time, formats correctly" do
+    assert DateTime.from_iso8601("2015-01-23T23:50:07") == {:error, :missing_offset}
+    assert DateTime.from_iso8601("2015-01-23 23:50:61") == {:error, :invalid_time}
+    assert DateTime.from_iso8601("2015-01-32 23:50:07") == {:error, :invalid_date}
+    assert DateTime.from_iso8601("2015-01-23 23:50:07A") == {:error, :invalid_format}
+    assert DateTime.from_iso8601("2015-01-23T23:50:07.123-00:60") == {:error, :invalid_format}
+  end
+
   test "from_unix/2" do
     min_datetime = %DateTime{
       calendar: Calendar.ISO,
@@ -877,5 +886,180 @@ defmodule DateTimeTest do
     }
 
     assert DateTime.diff(dt1, dt2) == 3_281_904_000
+  end
+
+  describe "from_naive" do
+    test "uses default time zone database from config" do
+      Calendar.put_time_zone_database(FakeTimeZoneDatabase)
+
+      assert DateTime.from_naive(
+               ~N[2018-07-01 12:34:25.123456],
+               "Europe/Copenhagen",
+               FakeTimeZoneDatabase
+             ) ==
+               {:ok,
+                %DateTime{
+                  day: 1,
+                  hour: 12,
+                  microsecond: {123_456, 6},
+                  minute: 34,
+                  month: 7,
+                  second: 25,
+                  std_offset: 3600,
+                  time_zone: "Europe/Copenhagen",
+                  utc_offset: 3600,
+                  year: 2018,
+                  zone_abbr: "CEST"
+                }}
+    after
+      Calendar.put_time_zone_database(Calendar.UTCOnlyTimeZoneDatabase)
+    end
+
+    test "with compatible calendar on unambiguous wall clock" do
+      holocene_ndt = %NaiveDateTime{
+        calendar: Calendar.Holocene,
+        year: 12018,
+        month: 7,
+        day: 1,
+        hour: 12,
+        minute: 34,
+        second: 25,
+        microsecond: {123_456, 6}
+      }
+
+      assert DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
+               {:ok,
+                %DateTime{
+                  calendar: Calendar.Holocene,
+                  day: 1,
+                  hour: 12,
+                  microsecond: {123_456, 6},
+                  minute: 34,
+                  month: 7,
+                  second: 25,
+                  std_offset: 3600,
+                  time_zone: "Europe/Copenhagen",
+                  utc_offset: 3600,
+                  year: 12018,
+                  zone_abbr: "CEST"
+                }}
+    end
+
+    test "with compatible calendar on ambiguous wall clock" do
+      holocene_ndt = %NaiveDateTime{
+        calendar: Calendar.Holocene,
+        year: 12018,
+        month: 10,
+        day: 28,
+        hour: 02,
+        minute: 30,
+        second: 00,
+        microsecond: {123_456, 6}
+      }
+
+      assert {:ambiguous, first_dt, second_dt} =
+               DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+      assert %DateTime{calendar: Calendar.Holocene, zone_abbr: "CEST"} = first_dt
+      assert %DateTime{calendar: Calendar.Holocene, zone_abbr: "CET"} = second_dt
+    end
+
+    test "with compatible calendar on gap" do
+      holocene_ndt = %NaiveDateTime{
+        calendar: Calendar.Holocene,
+        year: 12019,
+        month: 03,
+        day: 31,
+        hour: 02,
+        minute: 30,
+        second: 00,
+        microsecond: {123_456, 6}
+      }
+
+      assert {:gap, first_dt, second_dt} =
+               DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+      assert %DateTime{calendar: Calendar.Holocene, zone_abbr: "CET"} = first_dt
+      assert %DateTime{calendar: Calendar.Holocene, zone_abbr: "CEST"} = second_dt
+    end
+
+    test "with incompatible calendar" do
+      ndt = %{~N[2018-07-20 00:00:00] | calendar: FakeCalendar}
+
+      assert DateTime.from_naive(ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
+               {:error, :incompatible_calendars}
+    end
+  end
+
+  describe "from_naive!" do
+    test "raises on ambiguous wall clock" do
+      assert_raise ArgumentError, ~r"ambiguous", fn ->
+        DateTime.from_naive!(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      end
+    end
+
+    test "raises on gap" do
+      assert_raise ArgumentError, ~r"gap", fn ->
+        DateTime.from_naive!(~N[2019-03-31 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      end
+    end
+  end
+
+  describe "shift_zone" do
+    test "with compatible calendar" do
+      holocene_ndt = %NaiveDateTime{
+        calendar: Calendar.Holocene,
+        year: 12018,
+        month: 7,
+        day: 1,
+        hour: 12,
+        minute: 34,
+        second: 25,
+        microsecond: {123_456, 6}
+      }
+
+      {:ok, holocene_dt} =
+        DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+      {:ok, dt} = DateTime.shift_zone(holocene_dt, "America/Los_Angeles", FakeTimeZoneDatabase)
+
+      assert dt == %DateTime{
+               calendar: Calendar.Holocene,
+               day: 1,
+               hour: 3,
+               microsecond: {123_456, 6},
+               minute: 34,
+               month: 7,
+               second: 25,
+               std_offset: 3600,
+               time_zone: "America/Los_Angeles",
+               utc_offset: -28800,
+               year: 12018,
+               zone_abbr: "PDT"
+             }
+    end
+
+    test "uses default time zone database from config" do
+      Calendar.put_time_zone_database(FakeTimeZoneDatabase)
+
+      {:ok, dt} = DateTime.from_naive(~N[2018-07-01 12:34:25.123456], "Europe/Copenhagen")
+      {:ok, dt} = DateTime.shift_zone(dt, "America/Los_Angeles")
+
+      assert dt == %DateTime{
+               day: 1,
+               hour: 3,
+               microsecond: {123_456, 6},
+               minute: 34,
+               month: 7,
+               second: 25,
+               std_offset: 3600,
+               time_zone: "America/Los_Angeles",
+               utc_offset: -28800,
+               year: 2018,
+               zone_abbr: "PDT"
+             }
+    after
+      Calendar.put_time_zone_database(Calendar.UTCOnlyTimeZoneDatabase)
+    end
   end
 end
