@@ -53,6 +53,12 @@ defmodule Process do
   @doc """
   Returns the value for the given `key` in the process dictionary,
   or `default` if `key` is not set.
+
+  ## Examples
+
+      Process.get(:iex_evaluator)
+      #=> :ack
+
   """
   @spec get(term, default :: term) :: term
   def get(key, default \\ nil) do
@@ -66,6 +72,12 @@ defmodule Process do
   Returns all keys in the process dictionary.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      Process.get_keys()
+      #=> [:"$ancestors", :iex_history, :iex_evaluator, ...]
+
   """
   @spec get_keys() :: [term]
   defdelegate get_keys(), to: :erlang
@@ -373,6 +385,14 @@ defmodule Process do
   check `:erlang.spawn_opt/4`.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      Process.spawn(fn -> 1 + 2 end, [:monitor])
+      #=> {#PID<0.93.0>, #Reference<0.18808174.1939079169.202418>}
+      Process.spawn(fn -> 1 + 2 end, [:link])
+      #=> #PID<0.95.0>
+
   """
   @spec spawn((() -> any), spawn_opts) :: pid | {pid, reference}
   defdelegate spawn(fun, opts), to: :erlang, as: :spawn_opt
@@ -416,6 +436,16 @@ defmodule Process do
   for an example. See `:erlang.monitor/2` for more info.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      pid = spawn fn -> 1 + 2 end
+      #=> #PID<0.118.0>
+      Process.monitor(pid)
+      #=> #Reference<0.906660723.3006791681.40191>
+      Process.exit(pid, :kill)
+      #=> {:DOWN, #Reference<0.906660723.3006791681.40191>, :process, #PID<0.118.0>, :noproc}
+
   """
   @spec monitor(pid | {name :: atom, node :: atom} | name :: atom) :: reference
   def monitor(item) do
@@ -432,6 +462,14 @@ defmodule Process do
   See `:erlang.demonitor/2` for more info.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      pid = spawn fn -> 1 + 2 end
+      ref = Process.monitor(pid)
+      Process.demonitor(ref)
+      #=> true
+
   """
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
   defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
@@ -447,6 +485,12 @@ defmodule Process do
   See `:erlang.processes/0` for more info.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      Process.list()
+      #=> [#PID<0.0.0>, #PID<0.1.0>, #PID<0.2.0>, #PID<0.3.0>, ...]
+
   """
   @spec list() :: [pid]
   defdelegate list(), to: :erlang, as: :processes
@@ -512,6 +556,15 @@ defmodule Process do
     * `true`
     * `:undefined`
 
+  ## Examples
+
+      Process.register(self(), :test)
+      #=> true
+      send(:test, :hello)
+      #=> :hello
+      send(:wrong_name, :hello)
+      #=> ** (ArgumentError) argument error
+
   """
   @spec register(pid | port, atom) :: true
   def register(pid_or_port, name)
@@ -539,6 +592,16 @@ defmodule Process do
   to any PID or port.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      Process.register(self(), :test)
+      #=> true
+      Process.unregister(:test)
+      #=> true
+      Process.unregister(:wrong_name)
+      #=> ** (ArgumentError) argument error
+
   """
   @spec unregister(atom) :: true
   defdelegate unregister(name), to: :erlang
@@ -548,6 +611,15 @@ defmodule Process do
   name is not registered.
 
   See `:erlang.whereis/1` for more info.
+
+  ## Examples
+
+      Process.register(self(), :test)
+      Process.whereis(:test)
+      #=> #PID<0.84.0>
+      Process.whereis(:wrong_name)
+      #=> nil
+
   """
   @spec whereis(atom) :: pid | port | nil
   def whereis(name) do
@@ -558,6 +630,12 @@ defmodule Process do
   Returns the PID of the group leader for the calling process.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      Process.group_leader()
+      #=> #PID<0.53.0>
+
   """
   @spec group_leader() :: pid
   defdelegate group_leader(), to: :erlang
@@ -579,6 +657,13 @@ defmodule Process do
   Returns a list of names which have been registered using `register/2`.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      Process.register(self(), :test)
+      Process.registered()
+      #=> [:test, :elixir_config, :inet_db, ...]
+
   """
   @spec registered() :: [atom]
   defdelegate registered(), to: :erlang
