@@ -80,9 +80,10 @@ defmodule Time do
   Expects all values to be integers. Returns `{:ok, time}` if each
   entry fits its appropriate range, returns `{:error, reason}` otherwise.
 
-  Note a time may have 60 seconds in case of leap seconds. Microseconds
-  can also be given with a precision, which must be an integer between
-  0 and 6.
+  Microseconds can also be given with a precision, which must be an
+  integer between 0 and 6.
+
+  The built-in calendar does not support leap seconds.
 
   ## Examples
 
@@ -90,18 +91,12 @@ defmodule Time do
       {:ok, ~T[00:00:00.000000]}
       iex> Time.new(23, 59, 59, 999_999)
       {:ok, ~T[23:59:59.999999]}
-      iex> Time.new(23, 59, 60, 999_999)
-      {:ok, ~T[23:59:60.999999]}
-
-      # Time with microseconds and their precision
-      iex> Time.new(23, 59, 60, {10_000, 2})
-      {:ok, ~T[23:59:60.01]}
 
       iex> Time.new(24, 59, 59, 999_999)
       {:error, :invalid_time}
       iex> Time.new(23, 60, 59, 999_999)
       {:error, :invalid_time}
-      iex> Time.new(23, 59, 61, 999_999)
+      iex> Time.new(23, 59, 60, 999_999)
       {:error, :invalid_time}
       iex> Time.new(23, 59, 59, 1_000_000)
       {:error, :invalid_time}
@@ -189,6 +184,7 @@ defmodule Time do
 
   Note that while ISO 8601 allows times to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
+  Leap seconds are not supported as well by the built-in Calendar.ISO.
 
   ## Examples
 

@@ -12,7 +12,6 @@
       Base,
       Bitwise,
       Calendar,
-      Calendar.ISO,
       Date,
       DateTime,
       Exception,
@@ -51,6 +50,11 @@
       Port,
       StringIO,
       System
+    ],
+    "Calendar": [
+      Calendar.ISO,
+      Calendar.TimeZoneDatabase,
+      Calendar.UTCOnlyTimeZoneDatabase
     ],
     "Modules & Code": [
       Code,

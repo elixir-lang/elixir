@@ -90,6 +90,28 @@ defmodule Calendar do
           microsecond: microsecond
         }
 
+  @typedoc """
+  Specifies the time zone database for calendar operations.
+
+  Many functions in the `DateTime` module require a time zone database.
+  By default, it uses the default time zone database returned by
+  `Calendar.get_time_zone_database/0`, which defaults to
+  `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC"
+  datetimes and returns `{:error, :utc_only_time_zone_database}`
+  for any other time zone.
+
+  Other time zone databases (including ones provided by packages)
+  can be configure as default either via configuration:
+
+      config :elixir, :time_zone_database, CustomTimeZoneDatabase
+
+  or by calling `Calendar.put_time_zone_database/1`.
+
+  See `Calendar.TimeZoneDatabase` for more information on custom
+  time zone databases.
+  """
+  @type time_zone_database :: module()
+
   @doc """
   Returns how many days there are in the given year-month.
   """
@@ -236,4 +258,22 @@ defmodule Calendar do
   end
 
   def truncate(_, :second), do: {0, 0}
+
+  @doc """
+  Sets the currente time zone database.
+  """
+  @doc since: "1.8.0"
+  @spec put_time_zone_database(time_zone_database()) :: :ok
+  def put_time_zone_database(database) do
+    Application.put_env(:elixir, :time_zone_database, database)
+  end
+
+  @doc """
+  Gets the current time zone database.
+  """
+  @doc since: "1.8.0"
+  @spec get_time_zone_database() :: time_zone_database()
+  def get_time_zone_database() do
+    Application.get_env(:elixir, :time_zone_database, Calendar.UTCOnlyTimeZoneDatabase)
+  end
 end

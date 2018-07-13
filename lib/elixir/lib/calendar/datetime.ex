@@ -16,17 +16,21 @@ defmodule DateTime do
   and instead rely on the functions provided by this module as
   well as the ones in third-party calendar libraries.
 
-  ## Where are my functions?
+  ## Time zone database
 
-  You will notice this module only contains conversion
-  functions as well as functions that work on UTC. This
-  is because a proper `DateTime` implementation requires a
-  time zone database which currently is not provided as part
-  of Elixir.
+  Many functions in this module require a time zone database.
+  By default, it uses the default time zone database returned by
+  `Calendar.get_time_zone_database/0`, which defaults to
+  `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC"
+  datetimes and returns `{:error, :utc_only_time_zone_database}`
+  for any other time zone.
 
-  Such may be addressed in upcoming versions, meanwhile,
-  use third-party packages to provide `DateTime` building and
-  similar functionality with time zone backing.
+  Other time zone databases (including ones provided by packages)
+  can be configure as default either via configuration:
+
+      config :elixir, :time_zone_database, CustomTimeZoneDatabase
+
+  or by calling `Calendar.put_time_zone_database/1`.
   """
 
   @enforce_keys [:year, :month, :day, :hour, :minute, :second] ++
@@ -171,8 +175,11 @@ defmodule DateTime do
   @doc """
   Converts the given `NaiveDateTime` to `DateTime`.
 
-  It expects a time zone to put the NaiveDateTime in.
-  Currently it only supports "Etc/UTC" as time zone.
+  It expects a time zone to put the `NaiveDateTime` in.
+  If the timezone is "Etc/UTC", it always succeeds. Otherwise,
+  the NaiveDateTime is checked against the time zone database
+  given as `time_zone_database`. See the "Time zone database"
+  section in the module documentation.
 
   ## Examples
 
@@ -180,12 +187,118 @@ defmodule DateTime do
       iex> datetime
       #DateTime<2016-05-24 13:26:08.003Z>
 
+  When the datetime is ambiguous - for instance during changing from summer
+  to winter time - the two possible valid datetimes are returned. First the one
+  that happens first, then the one that happens after.
+
+      iex> {:ambiguous, first_dt, second_dt} = DateTime.from_naive(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> first_dt
+      #DateTime<2018-10-28 02:30:00+02:00 CEST Europe/Copenhagen>
+      iex> second_dt
+      #DateTime<2018-10-28 02:30:00+01:00 CET Europe/Copenhagen>
+
+  When there is a gap in wall time - for instance in spring when the clocks are
+  turned forward - the latest valid datetime just before the gap and the first
+  valid datetime just after the gap.
+
+      iex> {:gap, just_before, just_after} = DateTime.from_naive(~N[2019-03-31 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> just_before
+      #DateTime<2019-03-31 01:59:59.999999+01:00 CET Europe/Copenhagen>
+      iex> just_after
+      #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
+
+  Most of the time there is one, and just one, valid datetime for a certain
+  date and time in a certain time zone.
+
+      iex> {:ok, datetime} = DateTime.from_naive(~N[2018-07-28 12:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> datetime
+      #DateTime<2018-07-28 12:30:00+02:00 CEST Europe/Copenhagen>
+
   """
   @doc since: "1.4.0"
-  @spec from_naive(NaiveDateTime.t(), Calendar.time_zone()) :: {:ok, t}
-  def from_naive(naive_datetime, time_zone)
+  @spec from_naive(
+          NaiveDateTime.t(),
+          Calendar.time_zone(),
+          Calendar.get_time_zone_database()
+        ) ::
+          {:ok, t}
+          | {:ambiguous, t, t}
+          | {:gap, t, t}
+          | {:error,
+             :incompatible_calendars | :time_zone_not_found | :utc_only_time_zone_database}
 
-  def from_naive(%NaiveDateTime{} = naive_datetime, "Etc/UTC") do
+  def from_naive(
+        naive_datetime,
+        time_zone,
+        time_zone_database \\ Calendar.get_time_zone_database()
+      )
+
+  def from_naive(naive_datetime, "Etc/UTC", _) do
+    utc_period = %{std_offset: 0, utc_offset: 0, zone_abbr: "UTC"}
+    {:ok, from_naive_with_period(naive_datetime, "Etc/UTC", utc_period)}
+  end
+
+  def from_naive(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_database) do
+    case time_zone_database.time_zone_periods_from_wall_datetime(naive_datetime, time_zone) do
+      {:ok, period} ->
+        {:ok, from_naive_with_period(naive_datetime, time_zone, period)}
+
+      {:ambiguous, first_period, second_period} ->
+        first_datetime = from_naive_with_period(naive_datetime, time_zone, first_period)
+        second_datetime = from_naive_with_period(naive_datetime, time_zone, second_period)
+        {:ambiguous, first_datetime, second_datetime}
+
+      {:gap, {first_period, first_period_until_wall}, {second_period, second_period_from_wall}} ->
+        # `until_wall` is not valid, but any time just before is.
+        # So by subtracting a second and adding .999999 seconds
+        # we get the last microsecond just before.
+        before_naive =
+          first_period_until_wall
+          |> Map.put(:microsecond, {999_999, 6})
+          |> NaiveDateTime.add(-1)
+
+        after_naive = second_period_from_wall
+
+        latest_datetime_before = from_naive_with_period(before_naive, time_zone, first_period)
+        first_datetime_after = from_naive_with_period(after_naive, time_zone, second_period)
+        {:gap, latest_datetime_before, first_datetime_after}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  def from_naive(%{calendar: calendar} = naive_datetime, time_zone, time_zone_database)
+      when calendar != Calendar.ISO do
+    # For non-ISO calendars, convert to ISO, create ISO DateTime, and then
+    # convert to original calendar
+    iso_result =
+      with {:ok, in_iso} <- NaiveDateTime.convert(naive_datetime, Calendar.ISO) do
+        from_naive(in_iso, time_zone, time_zone_database)
+      end
+
+    case iso_result do
+      {:ok, dt} ->
+        convert(dt, calendar)
+
+      {:ambiguous, dt1, dt2} ->
+        with {:ok, dt1converted} <- convert(dt1, calendar),
+             {:ok, dt2converted} <- convert(dt2, calendar),
+             do: {:ambiguous, dt1converted, dt2converted}
+
+      {:gap, dt1, dt2} ->
+        with {:ok, dt1converted} <- convert(dt1, calendar),
+             {:ok, dt2converted} <- convert(dt2, calendar),
+             do: {:gap, dt1converted, dt2converted}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp from_naive_with_period(naive_datetime, time_zone, period) do
+    %{std_offset: std_offset, utc_offset: utc_offset, zone_abbr: zone_abbr} = period
+
     %{
       calendar: calendar,
       hour: hour,
@@ -197,7 +310,7 @@ defmodule DateTime do
       day: day
     } = naive_datetime
 
-    datetime = %DateTime{
+    %DateTime{
       calendar: calendar,
       year: year,
       month: month,
@@ -206,38 +319,165 @@ defmodule DateTime do
       minute: minute,
       second: second,
       microsecond: microsecond,
-      std_offset: 0,
-      utc_offset: 0,
-      zone_abbr: "UTC",
-      time_zone: "Etc/UTC"
+      std_offset: std_offset,
+      utc_offset: utc_offset,
+      zone_abbr: zone_abbr,
+      time_zone: time_zone
     }
-
-    {:ok, datetime}
   end
 
   @doc """
   Converts the given `NaiveDateTime` to `DateTime`.
 
   It expects a time zone to put the NaiveDateTime in.
-  Currently it only supports "Etc/UTC" as time zone.
+  If the timezone is "Etc/UTC", it always succeeds. Otherwise,
+  the NaiveDateTime is checked against the time zone database
+  given as `time_zone_database`. See the "Time zone database"
+  section in the module documentation.
 
   ## Examples
 
       iex> DateTime.from_naive!(~N[2016-05-24 13:26:08.003], "Etc/UTC")
       #DateTime<2016-05-24 13:26:08.003Z>
 
+      iex> DateTime.from_naive!(~N[2018-05-24 13:26:08.003], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      #DateTime<2018-05-24 13:26:08.003+02:00 CEST Europe/Copenhagen>
+
   """
   @doc since: "1.4.0"
-  @spec from_naive!(NaiveDateTime.t(), Calendar.time_zone()) :: t
-  def from_naive!(naive_datetime, time_zone) do
-    case from_naive(naive_datetime, time_zone) do
+  @spec from_naive!(
+          NaiveDateTime.t(),
+          Calendar.time_zone(),
+          Calendar.get_time_zone_database()
+        ) :: t
+  def from_naive!(
+        naive_datetime,
+        time_zone,
+        time_zone_database \\ Calendar.get_time_zone_database()
+      ) do
+    case from_naive(naive_datetime, time_zone, time_zone_database) do
       {:ok, datetime} ->
         datetime
 
+      {:ambiguous, dt1, dt2} ->
+        raise ArgumentError,
+              "cannot convert #{inspect(naive_datetime)} to datetime because such " <>
+                "instant is ambiguous in time zone #{time_zone} as there is an overlap " <>
+                "between #{inspect(dt1)} and #{inspect(dt2)}"
+
+      {:gap, dt1, dt2} ->
+        raise ArgumentError,
+              "cannot convert #{inspect(naive_datetime)} to datetime because such " <>
+                "instant does not exist in time zone #{time_zone} as there is a gap " <>
+                "between #{inspect(dt1)} and #{inspect(dt2)}"
+
       {:error, reason} ->
         raise ArgumentError,
-              "cannot parse #{inspect(naive_datetime)} to datetime, reason: #{inspect(reason)}"
+              "cannot convert #{inspect(naive_datetime)} to datetime, reason: #{inspect(reason)}"
     end
+  end
+
+  @doc """
+  Changes the time zone of a `DateTime`.
+
+  Returns a `DateTime` for the same point in time, but instead at
+  the time zone provided. It assumes that `DateTime` is valid and
+  exists in the given timezone and calendar.
+
+  By default, it uses the default time zone database returned by
+  `Calendar.get_time_zone_database/0`, which defaults to
+  `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC" datetimes.
+  Other time zone databases can be passed as argument or set globally.
+  See the "Time zone database" section in the module docs.
+
+  ## Examples
+
+      iex> cph_datetime = DateTime.from_naive!(~N[2018-07-16 12:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> {:ok, pacific_datetime} = DateTime.shift_zone(cph_datetime, "America/Los_Angeles", FakeTimeZoneDatabase)
+      iex> pacific_datetime
+      #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
+
+  """
+  @doc since: "1.8.0"
+  @spec shift_zone(t, Calendar.time_zone(), Calendar.get_time_zone_database()) ::
+          {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
+  def shift_zone(datetime, time_zone, time_zone_database \\ Calendar.get_time_zone_database())
+
+  def shift_zone(%{time_zone: time_zone} = datetime, time_zone, _) do
+    # When the desired time_zone is the same as the existing time_zone just return it unchanged.
+    {:ok, datetime}
+  end
+
+  def shift_zone(
+        %{std_offset: std_offset, utc_offset: utc_offset} = datetime,
+        time_zone,
+        time_zone_database
+      ) do
+    iso_days_utc =
+      datetime
+      |> to_iso_days()
+      |> apply_tz_offset(utc_offset + std_offset)
+
+    case time_zone_database.time_zone_period_from_utc_iso_days(iso_days_utc, time_zone) do
+      {:ok, %{std_offset: std_offset, utc_offset: utc_offset, zone_abbr: zone_abbr}} ->
+        %{calendar: calendar, microsecond: {_, microsecond_precision}} = datetime
+
+        {year, month, day, hour, minute, second, {microsecond_without_precision, _}} =
+          iso_days_utc
+          |> apply_tz_offset(-(utc_offset + std_offset))
+          |> calendar.naive_datetime_from_iso_days()
+
+        datetime = %DateTime{
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: {microsecond_without_precision, microsecond_precision},
+          std_offset: std_offset,
+          utc_offset: utc_offset,
+          zone_abbr: zone_abbr,
+          time_zone: time_zone
+        }
+
+        {:ok, datetime}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Returns the current datetime in the provided time zone.
+
+  By default, it uses the default time_zone returned by
+  `Calendar.get_time_zone_database/0`, which defaults to
+  `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC" datetimes.
+  Other time zone databases can be passed as argument or set globally.
+  See the "Time zone database" section in the module docs.
+
+  ## Examples
+
+      iex> {:ok, datetime} = DateTime.now("Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> datetime.time_zone
+      "Europe/Copenhagen"
+      iex> DateTime.now("not a real time zone name", FakeTimeZoneDatabase)
+      {:error, :time_zone_not_found}
+
+  """
+  @doc since: "1.8.0"
+  @spec now(Calendar.time_zone(), Calendar.get_time_zone_database()) ::
+          {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
+  def now(time_zone, time_zone_database \\ Calendar.get_time_zone_database())
+
+  def now("Etc/UTC", _) do
+    {:ok, utc_now()}
+  end
+
+  def now(time_zone, time_zone_database) do
+    shift_zone(utc_now(), time_zone, time_zone_database)
   end
 
   @doc """
@@ -464,6 +704,7 @@ defmodule DateTime do
   The year parsed by this function is limited to four digits and,
   while ISO 8601 allows datetimes to specify 24:00:00 as the zero
   hour of the next day, this notation is not supported by Elixir.
+  Note leap seconds are not supported by the built-in Calendar.ISO.
 
   ## Examples
 
@@ -489,18 +730,13 @@ defmodule DateTime do
 
       iex> DateTime.from_iso8601("2015-01-23P23:50:07")
       {:error, :invalid_format}
-      iex> DateTime.from_iso8601("2015-01-23 23:50:07A")
-      {:error, :invalid_format}
       iex> DateTime.from_iso8601("2015-01-23T23:50:07")
       {:error, :missing_offset}
       iex> DateTime.from_iso8601("2015-01-23 23:50:61")
       {:error, :invalid_time}
       iex> DateTime.from_iso8601("2015-01-32 23:50:07")
       {:error, :invalid_date}
-
       iex> DateTime.from_iso8601("2015-01-23T23:50:07.123-00:00")
-      {:error, :invalid_format}
-      iex> DateTime.from_iso8601("2015-01-23T23:50:07.123-00:60")
       {:error, :invalid_format}
 
   """
@@ -521,14 +757,14 @@ defmodule DateTime do
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
   [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
 
-  defp raw_from_iso8601(string, calendar, is_negative_datetime) do
+  defp raw_from_iso8601(string, calendar, is_year_negative) do
     with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
          {offset, ""} <- Calendar.ISO.parse_offset(rest) do
       {year, month, day} = unquote(read_date)
       {hour, minute, second} = unquote(read_time)
-      year = if is_negative_datetime, do: -year, else: year
+      year = if is_year_negative, do: -year, else: year
 
       cond do
         not calendar.valid_date?(year, month, day) ->
