@@ -116,7 +116,7 @@ Percentage | Module
     77.19% | Total
 ```
 
-## v1.7.0-dev
+## v1.7.0-rc.0 (2018-07-13)
 
 ### 1. Enhancements
 
