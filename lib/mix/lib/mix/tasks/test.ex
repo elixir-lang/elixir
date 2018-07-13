@@ -256,7 +256,13 @@ defmodule Mix.Tasks.Test do
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:
 
-      test_coverage: [tool: CoverModule]
+      def project() do
+        [
+          ...
+          test_coverage: [tool: CoverModule]
+          ...
+        ]
+      end
 
   `CoverModule` can be any module that exports `start/2`, receiving the
   compilation path and the `test_coverage` options as arguments.
