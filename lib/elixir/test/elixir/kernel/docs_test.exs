@@ -190,6 +190,9 @@ defmodule Kernel.DocsTest do
           @doc false
           def qux(true), do: false
 
+          @doc "A guard"
+          defguard is_zero(v) when v == 0
+
           # We do this to avoid the deprecation warning.
           module = Module
           module.add_doc(__MODULE__, __ENV__.line, :def, {:nullary, 0}, [], "add_doc")
@@ -215,6 +218,7 @@ defmodule Kernel.DocsTest do
         function_foo,
         function_nullary,
         function_qux,
+        guard_is_zero,
         macrocallback_qux,
         type_bar,
         type_foo
@@ -251,6 +255,9 @@ defmodule Kernel.DocsTest do
                function_nullary
 
       assert {{:function, :qux, 1}, _, ["qux(bool)"], :hidden, %{}} = function_qux
+
+      assert {{:macro, :is_zero, 1}, _, ["is_zero(v)"], %{"en" => "A guard"}, %{guard: true}} =
+               guard_is_zero
 
       assert {{:macrocallback, :qux, 1}, _, [], %{"en" => "Macrocallback doc"}, %{}} =
                macrocallback_qux
