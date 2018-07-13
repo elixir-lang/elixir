@@ -303,6 +303,20 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns the smallest integer not greater than `number`.
+
+  If you want to perform ceil operation on other decimal places,
+  use `Float.ceil/2` instead.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @doc since: "1.8.0"
+  @spec ceil(number) :: integer
+  def ceil(number) do
+    :erlang.ceil(number)
+  end
+
+  @doc """
   Performs an integer division.
 
   Raises an `ArithmeticError` exception if one of the arguments is not an
@@ -400,6 +414,20 @@ defmodule Kernel do
   @spec exit(term) :: no_return
   def exit(reason) do
     :erlang.exit(reason)
+  end
+
+  @doc """
+  Returns the largest integer not greater than `number`.
+
+  If you want to perform floor operation on other decimal places,
+  use `Float.floor/2` instead.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @doc since: "1.8.0"
+  @spec floor(number) :: integer
+  def floor(number) do
+    :erlang.floor(number)
   end
 
   @doc """

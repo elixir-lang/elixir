@@ -939,6 +939,34 @@ defmodule KernelTest do
     assert hd([1 | 2]) == 1
   end
 
+  test "floor/1" do
+    assert floor(1) === 1
+    assert floor(1.0) === 1
+    assert floor(0) === 0
+    assert floor(0.0) === 0
+    assert floor(-0.0) === 0
+    assert floor(1.123) === 1
+    assert floor(-10.123) === -11
+    assert floor(-10) === -10
+    assert floor(-10.0) === -10
+
+    assert match?(x when floor(x) == 0, 0.2)
+  end
+
+  test "ceil/1" do
+    assert ceil(1) === 1
+    assert ceil(1.0) === 1
+    assert ceil(0) === 0
+    assert ceil(0.0) === 0
+    assert ceil(-0.0) === 0
+    assert ceil(1.123) === 2
+    assert ceil(-10.123) === -10
+    assert ceil(-10) === -10
+    assert ceil(-10.0) === -10
+
+    assert match?(x when ceil(x) == 1, 0.2)
+  end
+
   defp purge(module) do
     :code.delete(module)
     :code.purge(module)
