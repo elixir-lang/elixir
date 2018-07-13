@@ -56,8 +56,13 @@ defmodule Process do
 
   ## Examples
 
-      Process.get(:iex_evaluator)
-      #=> :ack
+      # Assuming :locale was not set
+      iex> Process.get(:locale, "pt")
+      "pt"
+      iex> Process.put(:locale, "fr")
+      nil
+      iex> Process.get(:locale, "pt")
+      "fr"
 
   """
   @spec get(term, default :: term) :: term
@@ -75,8 +80,13 @@ defmodule Process do
 
   ## Examples
 
-      Process.get_keys()
-      #=> [:"$ancestors", :iex_history, :iex_evaluator, ...]
+      # Assuming :locale was not set
+      iex> :locale in Process.get_keys()
+      false
+      iex> Process.put(:locale, "pt")
+      nil
+      iex> :locale in Process.get_keys()
+      true
 
   """
   @spec get_keys() :: [term]
@@ -99,10 +109,10 @@ defmodule Process do
   ## Examples
 
       # Assuming :locale was not set
-      Process.put(:locale, "en")
-      #=> nil
-      Process.put(:locale, "fr")
-      #=> "en"
+      iex> Process.put(:locale, "en")
+      nil
+      iex> Process.put(:locale, "fr")
+      "en"
 
   """
   @spec put(term, term) :: term | nil
@@ -118,11 +128,11 @@ defmodule Process do
 
   ## Examples
 
-      Process.put(:comments, ["comment", "other comment"])
-      Process.delete(:comments)
-      #=> ["comment", "other comment"]
-      Process.delete(:comments)
-      #=> nil
+      iex> Process.put(:comments, ["comment", "other comment"])
+      iex> Process.delete(:comments)
+      ["comment", "other comment"]
+      iex> Process.delete(:comments)
+      nil
 
   """
   @spec delete(term) :: term | nil
@@ -444,6 +454,10 @@ defmodule Process do
       Process.monitor(pid)
       #=> #Reference<0.906660723.3006791681.40191>
       Process.exit(pid, :kill)
+      #=> true
+      receive do
+        msg -> msg
+      end
       #=> {:DOWN, #Reference<0.906660723.3006791681.40191>, :process, #PID<0.118.0>, :noproc}
 
   """
