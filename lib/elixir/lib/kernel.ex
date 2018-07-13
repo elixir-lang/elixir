@@ -1548,6 +1548,7 @@ defmodule Kernel do
       42
 
   """
+  @doc guard: true
   defmacro left or right do
     case __CALLER__.context do
       nil -> build_boolean_check(:or, left, true, right)
@@ -1574,6 +1575,7 @@ defmodule Kernel do
       "yay!"
 
   """
+  @doc guard: true
   defmacro left and right do
     case __CALLER__.context do
       nil -> build_boolean_check(:and, left, right, false)
@@ -2635,6 +2637,7 @@ defmodule Kernel do
       true
 
   """
+  @doc guard: true
   defmacro is_nil(term) do
     quote(do: unquote(term) == nil)
   end
@@ -3376,6 +3379,7 @@ defmodule Kernel do
   Additionally, `Macro.to_string/2` will translate all occurrences of
   this AST to `left not in right`.
   """
+  @doc guard: true
   defmacro left in right do
     in_module? = __CALLER__.context == nil
 
