@@ -192,6 +192,14 @@ Precompiled.zip: build_man compile
 	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
 
 zips: Precompiled.zip Docs.zip
+	@ echo ""
+	@ echo "## Checksums"
+	@ echo ""
+	@ shasum -a 1 < Precompiled-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA1:"
+	@ shasum -a 512 < Precompiled-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA512:"
+	@ shasum -a 1 < Docs-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Docs.zip SHA1:"
+	@ shasum -a 512 < Docs-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Docs.zip SHA512:"
+	@ echo ""
 
 #==> Test tasks
 
