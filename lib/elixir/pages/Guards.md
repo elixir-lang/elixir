@@ -39,8 +39,10 @@ For reference, the following is a comprehensive list of all expressions allowed 
     * `binary_part/3`
     * `bit_size/1`
     * `byte_size/1`
+    * `ceil/1`
     * `div/2`
     * `elem/2`
+    * `floor/1`
     * `hd/1`
     * `length/1`
     * `map_size/1`
