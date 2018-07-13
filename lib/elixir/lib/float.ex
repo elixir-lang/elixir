@@ -256,11 +256,15 @@ defmodule Float do
   # and could be implemented in the future.
   def round(float, precision \\ 0)
 
+  def round(float, 0) when is_float(float) do
+    float |> :erlang.round() |> :erlang.float()
+  end
+
   def round(float, precision) when is_float(float) and precision in @precision_range do
     round(float, precision, :half_up)
   end
 
-  def round(number, precision) when is_float(number) do
+  def round(float, precision) when is_float(float) do
     raise ArgumentError, invalid_precision_message(precision)
   end
 
