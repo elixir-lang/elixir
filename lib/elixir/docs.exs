@@ -14,6 +14,7 @@
       DateTime,
       Exception,
       Float,
+      Function,
       Integer,
       NaiveDateTime,
       Record,
