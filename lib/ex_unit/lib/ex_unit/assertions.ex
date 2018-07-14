@@ -762,6 +762,9 @@ defmodule ExUnit.Assertions do
   Asserts `expression` will exit.
   Returns the exit status/message or fails otherwise.
 
+  catch_exit is about catching an exit raised by the current process itself.
+  To assert exits from linked processes stared from the test use Process.flag(:trap_exit, true) with assert_received.
+
   ## Examples
 
       assert catch_exit(exit 1) == 1
