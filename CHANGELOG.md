@@ -11,11 +11,11 @@ Elixir v1.7 implements [EEP 48](http://erlang.org/eep/eeps/eep-0048.html). EEP 4
 @moduledoc authors: ["Jane", "Mary"], since: "1.4.0"
 ```
 
-Currently Elixir supports two metadata keys: `:deprecated` and `:since`. Other keys will be added in the future. Passing metadata is supported on `@doc`, `@moduledoc` and `@typedoc`.
+Passing metadata is supported on `@doc`, `@moduledoc` and `@typedoc`.
 
-To access the new documentation, developers should use `Code.fetch_docs/1`. The old documentation format is no longer available and the old `Code.get_docs/1` function will return `nil` accordingly.
+To access the new documentation format, developers should use `Code.fetch_docs/1`. The old documentation format is no longer available and the old `Code.get_docs/1` function will return `nil` accordingly.
 
-Tools like IEx and ExDoc have been updated to leverage the new format and show relevant metadata to users.
+Tools like IEx and ExDoc have been updated to leverage the new format and show relevant metadata to users. While Elixir allows any metadata to be given, those tools currently exhibit only `:deprecated` and `:since`. Other keys may be shown in the future.
 
 ## The `__STACKTRACE__` construct
 
