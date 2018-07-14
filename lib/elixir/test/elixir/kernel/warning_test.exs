@@ -40,6 +40,9 @@ defmodule Kernel.WarningTest do
   end
 
   test "unnecessary quotes" do
+    _ = Code.eval_string(~s/:"Foo"/)
+    _ = Code.eval_string(~s/["Foo": :bar]/)
+
     assert capture_err(fn -> Code.eval_string(~s/:"foo"/) end) =~
              "found quoted atom \"foo\" but the quotes are not required"
 
