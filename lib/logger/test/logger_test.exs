@@ -76,6 +76,9 @@ defmodule LoggerTest do
              wait_for_handler(Logger, {MyBackend, :hello})
            end) =~
              ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
+
+    # Flush logs before reattaching to avoid OTP reports
+    Logger.flush()
   after
     Logger.remove_backend({MyBackend, :hello})
     Logger.add_backend(:console)
