@@ -6,61 +6,17 @@ Not all expressions are allowed in guard clauses, but only a handful of them. Th
 
 ## List of allowed expressions
 
-For reference, the following is a comprehensive list of all expressions allowed in guards:
+You can find the built-in list of guards [in the `Kernel` module](Kernel.html#guards). Here is an overview:
 
   * comparison operators ([`==`](`Kernel.==/2`), [`!=`](`Kernel.!=/2`), [`===`](`Kernel.===/2`), [`!==`](`Kernel.!==/2`),
     [`>`](`Kernel.>/2`), [`>=`](`Kernel.>=/2`), [`<`](`Kernel.</2`), [`<=`](`Kernel.<=/2`))
-  * strictly boolean operators ([`and`](`Kernel.and/2`), [`or`](`Kernel.or/2`), [`not`](`Kernel.not/1`))
-    - __NOTE__: [`&&`](`Kernel.&&/2`), [`||`](`Kernel.||/2`), and [`!`](`Kernel.!/1`) sibling operators are not allowed as they're not
-    *strictly* boolean - meaning they don't require both sides to be booleans
-  * arithmetic binary operators ([`+`](`Kernel.+/2`), [`-`](`Kernel.-/2`), [`*`](`Kernel.*/2`), [`/`](`Kernel.//2`))
-  * arithmetic unary operators ([`+`](`Kernel.+/1`), [`-`](`Kernel.-/1`))
-  * binary concatenation operator ([`<>`](`Kernel.<>/2`))
+  * strictly boolean operators ([`and`](`Kernel.and/2`), [`or`](`Kernel.or/2`), [`not`](`Kernel.not/1`)). Note [`&&`](`Kernel.&&/2`), [`||`](`Kernel.||/2`), and [`!`](`Kernel.!/1`) sibling operators are **not allowed** as they're not *strictly* boolean - meaning they don't require arguments to be booleans
+  * arithmetic unary and binary operators ([`+`](`Kernel.+/1`), [`-`](`Kernel.-/1`), [`+`](`Kernel.+/2`), [`-`](`Kernel.-/2`), [`*`](`Kernel.*/2`), [`/`](`Kernel.//2`))
   * [`in`](`Kernel.in/2`) and [`not in`](`Kernel.in/2`) operators (as long as the right-hand side is a list or a range)
-  * the following "type-check" functions (all documented in the `Kernel` module):
-    * `is_atom/1`
-    * `is_binary/1`
-    * `is_bitstring/1`
-    * `is_boolean/1`
-    * `is_float/1`
-    * `is_function/1`
-    * `is_function/2`
-    * `is_integer/1`
-    * `is_list/1`
-    * `is_map/1`
-    * `is_nil/1`
-    * `is_number/1`
-    * `is_pid/1`
-    * `is_port/1`
-    * `is_reference/1`
-    * `is_tuple/1`
-  * the following guard-friendly functions (all documented in the `Kernel` module):
-    * `abs/1`
-    * `binary_part/3`
-    * `bit_size/1`
-    * `byte_size/1`
-    * `ceil/1`
-    * `div/2`
-    * `elem/2`
-    * `floor/1`
-    * `hd/1`
-    * `length/1`
-    * `map_size/1`
-    * `node/0`
-    * `node/1`
-    * `rem/2`
-    * `round/1`
-    * `self/0`
-    * `tl/1`
-    * `trunc/1`
-    * `tuple_size/1`
-  * the following handful of Erlang bitwise operations, if imported from the `Bitwise` module:
-    * [`band/2`](`Bitwise.band/2`) or the [`&&&`](`Bitwise.&&&/2`) operator
-    * [`bor/2`](`Bitwise.bor/2`) or the [`|||`](`Bitwise.|||/2`) operator
-    * [`bnot/1`](`Bitwise.bnot/1`) or the [`~~~`](`Bitwise.~~~/1`) operator
-    * [`bsl/2`](`Bitwise.bsl/2`) or the [`<<<`](`Bitwise.<<</2`) operator
-    * [`bsr/2`](`Bitwise.bsr/2`) or the [`>>>`](`Bitwise.>>>/2`) operator
-    * [`bxor/2`](`Bitwise.bxor/2`) or the [`^^^`](`Bitwise.^^^/2`) operator
+  * "type-check" functions ([`is_list/1`](`Kernel.is_list/1`), [`is_number/1`](`Kernel.is_number/1`), etc)
+  * functions that work on built-in datatypes ([`abs/1`](`Kernel.abs/1`), [`map_size/1`](`Kernel.map_size/1`), etc)
+
+The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
 
 Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. See the section "Defining custom guard expressions" below.
 
