@@ -760,14 +760,17 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `expression` will exit.
-  Returns the exit status/message or fails otherwise.
+  Returns the exit status/message of the current process or fails otherwise
 
-  catch_exit is about catching an exit raised by the current process itself.
-  To assert exits from linked processes stared from the test use Process.flag(:trap_exit, true) with assert_received.
+  To assert exits from linked processes started from the test use `Process.flag(:trap_exit, true)` with `assert_received/2`.
 
   ## Examples
 
       assert catch_exit(exit 1) == 1
+
+      Process.flag(:trap_exit, true)
+      pid = spawn_link(fn -> Process.exit(self(), :normal) end)
+      assert_receive {:EXIT, ^pid, :normal}
 
   """
   defmacro catch_exit(expression) do
