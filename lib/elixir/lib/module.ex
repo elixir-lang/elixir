@@ -466,7 +466,8 @@ defmodule Module do
       of the corresponding setting in `Code.compiler_options/1`
 
     * `@compile {:inline, some_fun: 2, other_fun: 3}` - inlines the given
-      name/arity pairs
+      name/arity pairs. Inlining is applied locally, calls from another 
+      module are not affected by this option
 
     * `@compile {:autoload, false}` - disables automatic loading of
       modules after compilation. Instead, the module will be loaded after
