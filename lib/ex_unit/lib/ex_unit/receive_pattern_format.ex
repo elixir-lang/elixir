@@ -22,7 +22,6 @@ defmodule ExUnit.ReceivePatternFormat do
     _diff =
       left
       |> ExUnit.PatternDiff.cmp(right)
-      |> IO.inspect(label: "Compare")
       |> format
       |> Enum.reject(&(&1 == ""))
   end
@@ -59,6 +58,7 @@ defmodule ExUnit.ReceivePatternFormat do
       end
 
     [comma, format(diff, map_ctx)]
+    |> List.flatten()
   end
 
   def format(

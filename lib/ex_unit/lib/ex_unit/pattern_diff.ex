@@ -96,16 +96,9 @@ defmodule ExUnit.PatternDiff do
           env
         }
 
-      _other_value ->
-        {
-          %__MODULE__{
-            type: :value,
-            lh: pattern,
-            rh: rh_value,
-            diff_result: :neq
-          },
-          env
-        }
+      other_value ->
+        val = Macro.escape(other_value)
+        cmp(%{ast: val}, rh_value, env)
     end
   end
 
