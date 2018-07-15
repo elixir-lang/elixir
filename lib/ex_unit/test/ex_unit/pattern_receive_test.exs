@@ -133,19 +133,67 @@ defmodule ExUnit.PatternReceiveTest do
   #   assert_receive [1, 2, 4]
   # end
 
-  test "Using a list" do
-    send(self(), [1, 2, 3])
-    send(self(), [1, 2])
-    send(self(), [1, 2, 3, 4, 5])
-    assert_receive [1, 2, 3, 4]
+  # test "Using a list" do
+  #   send(self(), [1, 2, 3])
+  #   send(self(), [1, 2])
+  #   send(self(), [1, 2, 3, 4, 5])
+  #   assert_receive [1, 2, 3, 4]
+  # end
+
+  # test "broken" do
+  #   send(
+  #     self(),
+  #     {:save_doc, %{:status => :created, :sync_history => %{"map" => true}, "other" => true}}
+  #   )
+
+  #   assert_receive {:save_doc, %{status: :creted, sync_history: []} = doc}
+  # end
+
+  test "simple" do
+    map = %{a: "1"}
+    send(self(), map)
+
+    match = %{a: "1", b: "2"}
+    assert_receive(^match)
   end
 
-  test "broken" do
-    send(
-      self(),
-      {:save_doc, %{:status => :created, :sync_history => %{"map" => true}, "other" => true}}
-    )
+  describe "string" do
+    test "simple" do
+      string = "abc"
+      send(self(), string)
 
-    assert_receive {:save_doc, %{status: :creted, sync_history: []} = doc}
+      match = "cde"
+      assert_receive(^match)
+    end
+  end
+
+  describe "map" do
+    test "simple" do
+      map = %{a: "1"}
+      send(self(), map)
+
+      match = %{a: "1", b: "2"}
+      assert_receive(^match)
+    end
+  end
+
+  describe "array" do
+    test "simple" do
+      array = [1, 2, 3, 4, 5, 6]
+      send(self(), array)
+
+      match = [3, 4, 5, 6]
+      assert_receive(^match)
+    end
+  end
+
+  describe "map nested" do
+    test "map with atom keys" do
+      map = %{a: "1", b: "string", c: [1, 2, 3], d: %{foo: :bar}}
+      send(self(), map)
+
+      match = %{a: "2", b: "string", c: [3, 4, 5], d: %{bar: :foo}}
+      assert_receive(^match)
+    end
   end
 end
