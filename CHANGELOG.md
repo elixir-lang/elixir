@@ -96,7 +96,7 @@ ExUnit has also seen its own share of improvements. Assertions such as `assert s
 
 Furthermore, failures in doctests are now colored and diffed.
 
-On the `mix test` side of things, there is a new `--failed` flag that runs all tests that failed in the previous run. Finally, coverage reports generated with `mix test --cover` include a summary out of the box:
+On the `mix test` side of things, there is a new `--failed` flag that runs all tests that failed the last time they ran. Finally, coverage reports generated with `mix test --cover` include a summary out of the box:
 
 ```
 Generating cover results ...
