@@ -6,7 +6,7 @@ defmodule Tuple do
 
     * `elem/2` - access a tuple by index
     * `put_elem/3` - insert a value into a tuple by index
-    * `tuple_size/3` - get the number of elements in a tuple
+    * `tuple_size/1` - get the number of elements in a tuple
     
   Tuples are intended as fixed-size containers for multiple elements.
   To manipulate a collection of elements, use a list instead. `Enum`
