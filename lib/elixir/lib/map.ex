@@ -108,6 +108,7 @@ defmodule Map do
       [:a, :b]
 
   """
+  @doc inlined: true
   @spec keys(map) :: [key]
   defdelegate keys(map), to: :maps
 
@@ -122,6 +123,7 @@ defmodule Map do
       [1, 2]
 
   """
+  @doc inlined: true
   @spec values(map) :: [value]
   defdelegate values(map), to: :maps
 
@@ -141,6 +143,7 @@ defmodule Map do
       [{1, 2}]
 
   """
+  @doc inlined: true
   @spec to_list(map) :: [{term, term}]
   defdelegate to_list(map), to: :maps
 
@@ -223,6 +226,7 @@ defmodule Map do
       false
 
   """
+  @doc inlined: true
   @spec has_key?(map, key) :: boolean
   def has_key?(map, key), do: :maps.is_key(key, map)
 
@@ -242,6 +246,7 @@ defmodule Map do
       :error
 
   """
+  @doc inlined: true
   @spec fetch(map, key) :: {:ok, value} | :error
   def fetch(map, key), do: :maps.find(key, map)
 
@@ -262,6 +267,7 @@ defmodule Map do
       ** (KeyError) key :b not found in: %{a: 1}
 
   """
+  @doc inlined: true
   @spec fetch!(map, key) :: value | no_return
   def fetch!(map, key) do
     :maps.get(key, map)
@@ -325,7 +331,7 @@ defmodule Map do
       ** (KeyError) key :b not found in: %{a: 1}
 
   """
-  @doc since: "1.5.0"
+  @doc since: "1.5.0", inlined: true
   @spec replace!(map, key, value) :: map
   def replace!(map, key, value) do
     :maps.update(key, value, map)
@@ -487,6 +493,7 @@ defmodule Map do
       %{a: 3, b: 2}
 
   """
+  @doc inlined: true
   @spec put(map, key, value) :: map
   def put(map, key, value) do
     :maps.put(key, value, map)
@@ -506,8 +513,8 @@ defmodule Map do
       iex> Map.delete(%{b: 2}, :a)
       %{b: 2}
 
-  Inlined by the compiler.
   """
+  @doc inlined: true
   @spec delete(map, key) :: map
   def delete(map, key), do: :maps.remove(key, map)
 
@@ -530,6 +537,7 @@ defmodule Map do
       %{a: 3, b: 2, d: 4}
 
   """
+  @doc inlined: true
   @spec merge(map, map) :: map
   defdelegate merge(map1, map2), to: :maps
 

@@ -493,6 +493,7 @@ defmodule IO do
       <<1, 2, 3>>
 
   """
+  @doc inlined: true
   @spec iodata_to_binary(iodata) :: binary
   def iodata_to_binary(item) do
     :erlang.iolist_to_binary(item)
@@ -509,6 +510,7 @@ defmodule IO do
       4
 
   """
+  @doc inlined: true
   @spec iodata_length(iodata) :: non_neg_integer
   def iodata_length(item) do
     :erlang.iolist_size(item)

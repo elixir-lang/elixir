@@ -30,6 +30,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
 
   @typedoc """
   A process destination.
@@ -47,6 +48,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec get() :: [{term, term}]
   defdelegate get(), to: :erlang
 
@@ -89,6 +91,7 @@ defmodule Process do
       true
 
   """
+  @doc inlined: true
   @spec get_keys() :: [term]
   defdelegate get_keys(), to: :erlang
 
@@ -97,6 +100,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec get_keys(term) :: [term]
   defdelegate get_keys(value), to: :erlang
 
@@ -170,6 +174,7 @@ defmodule Process do
       #=> true
 
   """
+  @doc inlined: true
   @spec exit(pid, term) :: true
   defdelegate exit(pid, reason), to: :erlang
 
@@ -276,6 +281,7 @@ defmodule Process do
       :noconnect
 
   """
+  @doc inlined: true
   @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend
         when dest: dest(),
              msg: any,
@@ -313,6 +319,7 @@ defmodule Process do
       timer_ref = Process.send_after(pid, :hi, 1000)
 
   """
+  @doc inlined: true
   @spec send_after(pid | atom, term, non_neg_integer, [option]) :: reference
         when option: {:abs, boolean}
   def send_after(dest, msg, time, opts \\ []) do
@@ -352,6 +359,7 @@ defmodule Process do
       `false`, no message is sent. Defaults to `true`.
 
   """
+  @doc inlined: true
   @spec cancel_timer(reference, options) :: non_neg_integer | false | :ok
         when options: [async: boolean, info: boolean]
   defdelegate cancel_timer(timer_ref, options \\ []), to: :erlang
@@ -371,6 +379,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec read_timer(reference) :: non_neg_integer | false
   defdelegate read_timer(timer_ref), to: :erlang
 
@@ -404,6 +413,7 @@ defmodule Process do
       #=> #PID<0.95.0>
 
   """
+  @doc inlined: true
   @spec spawn((() -> any), spawn_opts) :: pid | {pid, reference}
   defdelegate spawn(fun, opts), to: :erlang, as: :spawn_opt
 
@@ -421,6 +431,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec spawn(module, atom, list, spawn_opts) :: pid | {pid, reference}
   defdelegate spawn(mod, fun, args, opts), to: :erlang, as: :spawn_opt
 
@@ -461,6 +472,7 @@ defmodule Process do
       #=> {:DOWN, #Reference<0.906660723.3006791681.40191>, :process, #PID<0.118.0>, :noproc}
 
   """
+  @doc inlined: true
   @spec monitor(pid | {name :: atom, node :: atom} | name :: atom) :: reference
   def monitor(item) do
     :erlang.monitor(:process, item)
@@ -485,6 +497,7 @@ defmodule Process do
       #=> true
 
   """
+  @doc inlined: true
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
   defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
 
@@ -506,6 +519,7 @@ defmodule Process do
       #=> [#PID<0.0.0>, #PID<0.1.0>, #PID<0.2.0>, #PID<0.3.0>, ...]
 
   """
+  @doc inlined: true
   @spec list() :: [pid]
   defdelegate list(), to: :erlang, as: :processes
 
@@ -531,6 +545,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec link(pid | port) :: true
   defdelegate link(pid_or_port), to: :erlang
 
@@ -547,6 +562,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec unlink(pid | port) :: true
   defdelegate unlink(pid_or_port), to: :erlang
 
@@ -617,6 +633,7 @@ defmodule Process do
       #=> ** (ArgumentError) argument error
 
   """
+  @doc inlined: true
   @spec unregister(atom) :: true
   defdelegate unregister(name), to: :erlang
 
@@ -651,6 +668,7 @@ defmodule Process do
       #=> #PID<0.53.0>
 
   """
+  @doc inlined: true
   @spec group_leader() :: pid
   defdelegate group_leader(), to: :erlang
 
@@ -662,6 +680,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec group_leader(pid, leader :: pid) :: true
   def group_leader(pid, leader) do
     :erlang.group_leader(leader, pid)
@@ -679,6 +698,7 @@ defmodule Process do
       #=> [:test, :elixir_config, :inet_db, ...]
 
   """
+  @doc inlined: true
   @spec registered() :: [atom]
   defdelegate registered(), to: :erlang
 
@@ -697,6 +717,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec flag(:error_handler, module) :: module
   @spec flag(:max_heap_size, heap_size) :: heap_size
   @spec flag(:message_queue_data, :erlang.message_queue_data()) :: :erlang.message_queue_data()
@@ -724,6 +745,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec flag(pid, :save_calls, 0..10000) :: 0..10000
   defdelegate flag(pid, flag, value), to: :erlang, as: :process_flag
 
@@ -773,6 +795,7 @@ defmodule Process do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec hibernate(module, atom, list) :: no_return
   defdelegate hibernate(mod, fun_name, args), to: :erlang
 

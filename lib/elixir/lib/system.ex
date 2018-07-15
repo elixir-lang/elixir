@@ -692,6 +692,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec monotonic_time() :: integer
   def monotonic_time do
     :erlang.monotonic_time()
@@ -717,6 +718,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec system_time() :: integer
   def system_time do
     :erlang.system_time()
@@ -762,6 +764,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec time_offset() :: integer
   def time_offset do
     :erlang.time_offset()
@@ -791,6 +794,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec os_time() :: integer
   def os_time do
     :os.system_time()
@@ -854,6 +858,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec unique_integer([:positive | :monotonic]) :: integer
   def unique_integer(modifiers \\ []) do
     :erlang.unique_integer(modifiers)

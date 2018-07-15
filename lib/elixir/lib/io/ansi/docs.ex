@@ -66,7 +66,7 @@ defmodule IO.ANSI.Docs do
     print_each_metadata(metadata, options) && IO.write("\n")
   end
 
-  @metadata_filter [:deprecated, :guard, :since]
+  @metadata_filter [:deprecated, :guard, :inlined, :since]
 
   defp print_each_metadata(metadata, options) do
     Enum.reduce(metadata, false, fn

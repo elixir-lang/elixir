@@ -168,7 +168,7 @@ defmodule Kernel.DocsTest do
           @macrocallback qux(any) :: any
 
           @doc "Function doc"
-          @doc since: "1.2.3", color: :red
+          @doc since: "1.2.3", color: :red, inlined: true
           @doc color: :blue, stable: true
           @deprecated "use baz/2 instead"
           def foo(arg \\ 0), do: arg + 1
@@ -248,6 +248,7 @@ defmodule Kernel.DocsTest do
                 deprecated: "use baz/2 instead",
                 color: :blue,
                 stable: true,
+                inlined: true,
                 defaults: 1
               }} = function_foo
 

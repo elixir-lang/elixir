@@ -62,6 +62,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec list :: [t]
   def list do
     :erlang.nodes()
@@ -77,6 +78,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @type state :: :visible | :hidden | :connected | :this | :known
   @spec list(state | [state]) :: [t]
   def list(args) do
@@ -163,6 +165,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec spawn(t, (() -> any)) :: pid
   def spawn(node, fun) do
     :erlang.spawn(node, fun)
@@ -178,6 +181,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec spawn(t, (() -> any), Process.spawn_opts()) :: pid | {pid, reference}
   def spawn(node, fun, opts) do
     :erlang.spawn_opt(node, fun, opts)
@@ -193,6 +197,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec spawn(t, module, atom, [any]) :: pid
   def spawn(node, module, fun, args) do
     :erlang.spawn(node, module, fun, args)
@@ -208,6 +213,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec spawn(t, module, atom, [any], Process.spawn_opts()) :: pid | {pid, reference}
   def spawn(node, module, fun, args, opts) do
     :erlang.spawn_opt(node, module, fun, args, opts)
@@ -222,6 +228,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec spawn_link(t, (() -> any)) :: pid
   def spawn_link(node, fun) do
     :erlang.spawn_link(node, fun)
@@ -237,6 +244,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec spawn_link(t, module, atom, [any]) :: pid
   def spawn_link(node, module, fun, args) do
     :erlang.spawn_link(node, module, fun, args)

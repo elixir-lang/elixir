@@ -16,6 +16,7 @@ defmodule Atom do
       "foo"
 
   """
+  @doc inlined: true
   @spec to_string(atom) :: String.t()
   def to_string(atom) do
     :erlang.atom_to_binary(atom, :utf8)
@@ -32,6 +33,7 @@ defmodule Atom do
       'An atom'
 
   """
+  @doc inlined: true
   @spec to_charlist(atom) :: charlist
   def to_charlist(atom) do
     :erlang.atom_to_list(atom)
