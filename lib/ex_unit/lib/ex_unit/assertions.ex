@@ -747,6 +747,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `expression` will throw a value.
+
   Returns the thrown value or fails otherwise.
 
   ## Examples
@@ -760,6 +761,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `expression` will exit.
+
   Returns the exit status/message of the current process or fails otherwise.
 
   ## Examples
@@ -780,6 +782,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `expression` will cause an error.
+
   Returns the error or fails otherwise.
 
   ## Examples
