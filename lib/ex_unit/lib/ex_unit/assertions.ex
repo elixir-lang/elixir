@@ -760,7 +760,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `expression` will exit.
-  Returns the exit status/message of the current process or fails otherwise
+  Returns the exit status/message of the current process or fails otherwise.
 
   To assert exits from linked processes started from the test use `Process.flag(:trap_exit, true)` with `assert_received/2`.
 
