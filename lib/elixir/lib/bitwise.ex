@@ -66,6 +66,7 @@ defmodule Bitwise do
       1
 
   """
+  @doc guard: true
   defmacro bnot(expr) do
     quote(do: :erlang.bnot(unquote(expr)))
   end
@@ -79,6 +80,7 @@ defmodule Bitwise do
       1
 
   """
+  @doc guard: true
   defmacro ~~~expr do
     quote(do: :erlang.bnot(unquote(expr)))
   end
@@ -90,6 +92,7 @@ defmodule Bitwise do
       1
 
   """
+  @doc guard: true
   defmacro band(left, right) do
     quote(do: :erlang.band(unquote(left), unquote(right)))
   end
@@ -101,6 +104,7 @@ defmodule Bitwise do
       1
 
   """
+  @doc guard: true
   defmacro left &&& right do
     quote(do: :erlang.band(unquote(left), unquote(right)))
   end
@@ -112,6 +116,7 @@ defmodule Bitwise do
       11
 
   """
+  @doc guard: true
   defmacro bor(left, right) do
     quote(do: :erlang.bor(unquote(left), unquote(right)))
   end
@@ -123,6 +128,7 @@ defmodule Bitwise do
       11
 
   """
+  @doc guard: true
   defmacro left ||| right do
     quote(do: :erlang.bor(unquote(left), unquote(right)))
   end
@@ -134,6 +140,7 @@ defmodule Bitwise do
       10
 
   """
+  @doc guard: true
   defmacro bxor(left, right) do
     quote(do: :erlang.bxor(unquote(left), unquote(right)))
   end
@@ -145,6 +152,7 @@ defmodule Bitwise do
       10
 
   """
+  @doc guard: true
   defmacro left ^^^ right do
     quote(do: :erlang.bxor(unquote(left), unquote(right)))
   end
@@ -162,6 +170,7 @@ defmodule Bitwise do
       -1
 
   """
+  @doc guard: true
   defmacro bsl(left, right) do
     quote(do: :erlang.bsl(unquote(left), unquote(right)))
   end
@@ -179,6 +188,7 @@ defmodule Bitwise do
       -1
 
   """
+  @doc guard: true
   defmacro left <<< right do
     quote(do: :erlang.bsl(unquote(left), unquote(right)))
   end
@@ -196,6 +206,7 @@ defmodule Bitwise do
       -4
 
   """
+  @doc guard: true
   defmacro bsr(left, right) do
     quote(do: :erlang.bsr(unquote(left), unquote(right)))
   end
@@ -213,6 +224,7 @@ defmodule Bitwise do
       -4
 
   """
+  @doc guard: true
   defmacro left >>> right do
     quote(do: :erlang.bsr(unquote(left), unquote(right)))
   end

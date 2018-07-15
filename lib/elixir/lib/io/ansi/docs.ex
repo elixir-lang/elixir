@@ -66,7 +66,7 @@ defmodule IO.ANSI.Docs do
     print_each_metadata(metadata, options) && IO.write("\n")
   end
 
-  @metadata_filter [:deprecated, :since]
+  @metadata_filter [:deprecated, :guard, :since]
 
   defp print_each_metadata(metadata, options) do
     Enum.reduce(metadata, false, fn
@@ -74,6 +74,9 @@ defmodule IO.ANSI.Docs do
         label = metadata_label(key, options)
         indent = String.duplicate(" ", length_without_escape(label, 0) + 1)
         write_with_wrap([label | String.split(value, @spaces)], options[:width], indent, true)
+
+      {key, value}, _printed when is_boolean(value) and key in @metadata_filter ->
+        IO.puts([metadata_label(key, options), ' ', to_string(value)])
 
       _metadata, printed ->
         printed
