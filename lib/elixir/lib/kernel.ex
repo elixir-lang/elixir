@@ -191,6 +191,7 @@ defmodule Kernel do
       3
 
   """
+  @doc guard: true
   @spec abs(number) :: number
   def abs(number) do
     :erlang.abs(number)
@@ -255,6 +256,7 @@ defmodule Kernel do
       "llo"
 
   """
+  @doc guard: true
   @spec binary_part(binary, non_neg_integer, integer) :: binary
   def binary_part(binary, start, length) do
     :erlang.binary_part(binary, start, length)
@@ -274,6 +276,7 @@ defmodule Kernel do
       24
 
   """
+  @doc guard: true
   @spec bit_size(bitstring) :: non_neg_integer
   def bit_size(bitstring) do
     :erlang.bit_size(bitstring)
@@ -297,6 +300,7 @@ defmodule Kernel do
       3
 
   """
+  @doc guard: true
   @spec byte_size(bitstring) :: non_neg_integer
   def byte_size(bitstring) do
     :erlang.byte_size(bitstring)
@@ -345,6 +349,7 @@ defmodule Kernel do
       #=> ** (ArithmeticError) bad argument in arithmetic expression
 
   """
+  @doc guard: true
   @spec div(integer, neg_integer | pos_integer) :: integer
   def div(dividend, divisor) do
     :erlang.div(dividend, divisor)
@@ -449,6 +454,7 @@ defmodule Kernel do
       #=> 1
 
   """
+  @doc guard: true
   @spec hd(nonempty_maybe_improper_list(elem, any)) :: elem when elem: term
   def hd(list) do
     :erlang.hd(list)
@@ -459,6 +465,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_atom(term) :: boolean
   def is_atom(term) do
     :erlang.is_atom(term)
@@ -479,6 +486,7 @@ defmodule Kernel do
       false
 
   """
+  @doc guard: true
   @spec is_binary(term) :: boolean
   def is_binary(term) do
     :erlang.is_binary(term)
@@ -497,6 +505,7 @@ defmodule Kernel do
       true
 
   """
+  @doc guard: true
   @spec is_bitstring(term) :: boolean
   def is_bitstring(term) do
     :erlang.is_bitstring(term)
@@ -508,6 +517,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_boolean(term) :: boolean
   def is_boolean(term) do
     :erlang.is_boolean(term)
@@ -518,6 +528,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_float(term) :: boolean
   def is_float(term) do
     :erlang.is_float(term)
@@ -528,6 +539,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_function(term) :: boolean
   def is_function(term) do
     :erlang.is_function(term)
@@ -547,6 +559,7 @@ defmodule Kernel do
       false
 
   """
+  @doc guard: true
   @spec is_function(term, non_neg_integer) :: boolean
   def is_function(term, arity) do
     :erlang.is_function(term, arity)
@@ -557,6 +570,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_integer(term) :: boolean
   def is_integer(term) do
     :erlang.is_integer(term)
@@ -567,6 +581,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_list(term) :: boolean
   def is_list(term) do
     :erlang.is_list(term)
@@ -578,6 +593,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_number(term) :: boolean
   def is_number(term) do
     :erlang.is_number(term)
@@ -588,6 +604,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_pid(term) :: boolean
   def is_pid(term) do
     :erlang.is_pid(term)
@@ -598,6 +615,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_port(term) :: boolean
   def is_port(term) do
     :erlang.is_port(term)
@@ -608,6 +626,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_reference(term) :: boolean
   def is_reference(term) do
     :erlang.is_reference(term)
@@ -618,6 +637,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_tuple(term) :: boolean
   def is_tuple(term) do
     :erlang.is_tuple(term)
@@ -628,6 +648,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec is_map(term) :: boolean
   def is_map(term) do
     :erlang.is_map(term)
@@ -644,6 +665,7 @@ defmodule Kernel do
       9
 
   """
+  @doc guard: true
   @spec length(list) :: non_neg_integer
   def length(list) do
     :erlang.length(list)
@@ -682,6 +704,7 @@ defmodule Kernel do
       2
 
   """
+  @doc guard: true
   @spec map_size(map) :: non_neg_integer
   def map_size(map) do
     :erlang.map_size(map)
@@ -755,6 +778,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec node() :: node
   def node do
     :erlang.node()
@@ -767,6 +791,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
+  @doc guard: true
   @spec node(pid | reference | port) :: node
   def node(arg) do
     :erlang.node(arg)
@@ -791,6 +816,7 @@ defmodule Kernel do
       2
 
   """
+  @doc guard: true
   @spec rem(integer, neg_integer | pos_integer) :: integer
   def rem(dividend, divisor) do
     :erlang.rem(dividend, divisor)
@@ -816,6 +842,7 @@ defmodule Kernel do
       -9
 
   """
+  @doc guard: true
   @spec round(float) :: integer
   @spec round(value) :: value when value: integer
   def round(number) do
@@ -847,6 +874,7 @@ defmodule Kernel do
 
   Allowed in guard clauses. Inlined by the compiler.
   """
+  @doc guard: true
   @spec self() :: pid
   def self() do
     :erlang.self()
@@ -1044,6 +1072,7 @@ defmodule Kernel do
       #=> %{b: 1}
 
   """
+  @doc guard: true
   @spec tl(nonempty_maybe_improper_list(elem, tail)) :: maybe_improper_list(elem, tail) | tail
         when elem: term, tail: term
   def tl(list) do
@@ -1067,6 +1096,7 @@ defmodule Kernel do
       -5
 
   """
+  @doc guard: true
   @spec trunc(value) :: value when value: integer
   @spec trunc(float) :: integer
   def trunc(number) do
@@ -1086,6 +1116,7 @@ defmodule Kernel do
       3
 
   """
+  @doc guard: true
   @spec tuple_size(tuple) :: non_neg_integer
   def tuple_size(tuple) do
     :erlang.tuple_size(tuple)
@@ -1102,6 +1133,7 @@ defmodule Kernel do
       3
 
   """
+  @doc guard: true
   @spec integer + integer :: integer
   @spec float + float :: float
   @spec integer + float :: float
@@ -1121,6 +1153,7 @@ defmodule Kernel do
       -1
 
   """
+  @doc guard: true
   @spec integer - integer :: integer
   @spec float - float :: float
   @spec integer - float :: float
@@ -1140,6 +1173,7 @@ defmodule Kernel do
       1
 
   """
+  @doc guard: true
   @spec +value :: value when value: number
   def +value do
     :erlang.+(value)
@@ -1156,6 +1190,7 @@ defmodule Kernel do
       -2
 
   """
+  @doc guard: true
   @spec -0 :: 0
   @spec -pos_integer :: neg_integer
   @spec -neg_integer :: pos_integer
@@ -1175,6 +1210,7 @@ defmodule Kernel do
       2
 
   """
+  @doc guard: true
   @spec integer * integer :: integer
   @spec float * float :: float
   @spec integer * float :: float
@@ -1208,6 +1244,7 @@ defmodule Kernel do
       #=> ** (ArithmeticError) bad argument in arithmetic expression
 
   """
+  @doc guard: true
   @spec number / number :: float
   def left / right do
     :erlang./(left, right)
@@ -1289,6 +1326,7 @@ defmodule Kernel do
       true
 
   """
+  @doc guard: true
   @spec not true :: false
   @spec not false :: true
   def not value do
@@ -1308,6 +1346,7 @@ defmodule Kernel do
       true
 
   """
+  @doc guard: true
   @spec term < term :: boolean
   def left < right do
     :erlang.<(left, right)
@@ -1326,6 +1365,7 @@ defmodule Kernel do
       false
 
   """
+  @doc guard: true
   @spec term > term :: boolean
   def left > right do
     :erlang.>(left, right)
@@ -1344,6 +1384,7 @@ defmodule Kernel do
       true
 
   """
+  @doc guard: true
   @spec term <= term :: boolean
   def left <= right do
     :erlang."=<"(left, right)
@@ -1362,6 +1403,7 @@ defmodule Kernel do
       false
 
   """
+  @doc guard: true
   @spec term >= term :: boolean
   def left >= right do
     :erlang.>=(left, right)
@@ -1386,6 +1428,7 @@ defmodule Kernel do
       true
 
   """
+  @doc guard: true
   @spec term == term :: boolean
   def left == right do
     :erlang.==(left, right)
@@ -1410,6 +1453,7 @@ defmodule Kernel do
       false
 
   """
+  @doc guard: true
   @spec term != term :: boolean
   def left != right do
     :erlang."/="(left, right)
@@ -1436,6 +1480,7 @@ defmodule Kernel do
       false
 
   """
+  @doc guard: true
   @spec term === term :: boolean
   def left === right do
     :erlang."=:="(left, right)
@@ -1457,6 +1502,7 @@ defmodule Kernel do
       true
 
   """
+  @doc guard: true
   @spec term !== term :: boolean
   def left !== right do
     :erlang."=/="(left, right)
@@ -1482,6 +1528,7 @@ defmodule Kernel do
       #=> ** (ArgumentError) argument error
 
   """
+  @doc guard: true
   @spec elem(tuple, non_neg_integer) :: term
   def elem(tuple, index) do
     :erlang.element(index + 1, tuple)
@@ -1529,6 +1576,7 @@ defmodule Kernel do
       42
 
   """
+  @doc guard: true
   defmacro left or right do
     case __CALLER__.context do
       nil -> build_boolean_check(:or, left, true, right)
@@ -1555,6 +1603,7 @@ defmodule Kernel do
       "yay!"
 
   """
+  @doc guard: true
   defmacro left and right do
     case __CALLER__.context do
       nil -> build_boolean_check(:and, left, right, false)
@@ -2616,6 +2665,7 @@ defmodule Kernel do
       true
 
   """
+  @doc guard: true
   defmacro is_nil(term) do
     quote(do: unquote(term) == nil)
   end
@@ -3357,6 +3407,7 @@ defmodule Kernel do
   Additionally, `Macro.to_string/2` will translate all occurrences of
   this AST to `left not in right`.
   """
+  @doc guard: true
   defmacro left in right do
     in_module? = __CALLER__.context == nil
 
@@ -4692,18 +4743,24 @@ defmodule Kernel do
           {_name, args} ->
             validate_variable_only_args!(call, args)
 
-            case impls do
-              [] ->
-                define(kind, call, nil, env)
+            macro_definition =
+              case impls do
+                [] ->
+                  define(kind, call, nil, env)
 
-              [guard] ->
-                quoted =
-                  quote do
-                    require Kernel.Utils
-                    Kernel.Utils.defguard(unquote(args), unquote(guard))
-                  end
+                [guard] ->
+                  quoted =
+                    quote do
+                      require Kernel.Utils
+                      Kernel.Utils.defguard(unquote(args), unquote(guard))
+                    end
 
-                define(kind, call, [do: quoted], env)
+                  define(kind, call, [do: quoted], env)
+              end
+
+            quote do
+              @doc guard: true
+              unquote(macro_definition)
             end
 
           _invalid_definition ->
