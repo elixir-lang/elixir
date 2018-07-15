@@ -747,6 +747,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `expression` will throw a value.
+
   Returns the thrown value or fails otherwise.
 
   ## Examples
@@ -760,11 +761,19 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `expression` will exit.
-  Returns the exit status/message or fails otherwise.
+
+  Returns the exit status/message of the current process or fails otherwise.
 
   ## Examples
 
       assert catch_exit(exit 1) == 1
+      
+  To assert exits from linked processes started from the test, trap exits
+  with `Process.flag/2` and assert the exit message with `assert_received/2`.
+
+      Process.flag(:trap_exit, true)
+      pid = spawn_link(fn -> Process.exit(self(), :normal) end)
+      assert_receive {:EXIT, ^pid, :normal}
 
   """
   defmacro catch_exit(expression) do
@@ -773,6 +782,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts `expression` will cause an error.
+
   Returns the error or fails otherwise.
 
   ## Examples
