@@ -1456,6 +1456,7 @@ defmodule String do
       "abcabc"
 
   """
+  @doc inlined: true
   @spec duplicate(t, non_neg_integer) :: t
   def duplicate(subject, n) do
     :binary.copy(subject, n)
@@ -2156,6 +2157,7 @@ defmodule String do
       :my_atom
 
   """
+  @doc inlined: true
   @spec to_atom(String.t()) :: atom
   def to_atom(string) do
     :erlang.binary_to_atom(string, :utf8)
@@ -2178,6 +2180,7 @@ defmodule String do
       ** (ArgumentError) argument error
 
   """
+  @doc inlined: true
   @spec to_existing_atom(String.t()) :: atom
   def to_existing_atom(string) do
     :erlang.binary_to_existing_atom(string, :utf8)
@@ -2194,6 +2197,7 @@ defmodule String do
       123
 
   """
+  @doc inlined: true
   @spec to_integer(String.t()) :: integer
   def to_integer(string) do
     :erlang.binary_to_integer(string)
@@ -2210,6 +2214,7 @@ defmodule String do
       1023
 
   """
+  @doc inlined: true
   @spec to_integer(String.t(), 2..36) :: integer
   def to_integer(string, base) do
     :erlang.binary_to_integer(string, base)
@@ -2236,6 +2241,7 @@ defmodule String do
       #=> ** (ArgumentError) argument error
 
   """
+  @doc inlined: true
   @spec to_float(String.t()) :: float
   def to_float(string) do
     :erlang.binary_to_float(string)

@@ -7,7 +7,7 @@ defmodule Tuple do
     * `elem/2` - access a tuple by index
     * `put_elem/3` - insert a value into a tuple by index
     * `tuple_size/3` - get the number of elements in a tuple
-    
+
   Tuples are intended as fixed-size containers for multiple elements.
   To manipulate a collection of elements, use a list instead. `Enum`
   functions do not work on tuples.
@@ -20,13 +20,13 @@ defmodule Tuple do
       {1, :two, "three"}
 
   A tuple may contain elements of different types, which are stored
-  contiguously in memory. Accessing any element takes constant time, 
-  but modifying a tuple, which produces a shallow copy, takes linear time. 
+  contiguously in memory. Accessing any element takes constant time,
+  but modifying a tuple, which produces a shallow copy, takes linear time.
   Tuples are good for reading data while lists are better for traversals.
 
   Tuples are typically used either when a function has multiple return values
-  or for error handling. `File.read/1` returns `{:ok, contents}` if reading 
-  the given file is successful, or else `{:error, reason}` such as when 
+  or for error handling. `File.read/1` returns `{:ok, contents}` if reading
+  the given file is successful, or else `{:error, reason}` such as when
   the file does not exist.
 
   The functions in this module that add and remove elements from tuples are
@@ -58,6 +58,7 @@ defmodule Tuple do
       {:hello, :hello, :hello}
 
   """
+  @doc inlined: true
   @spec duplicate(term, non_neg_integer) :: tuple
   def duplicate(data, size) do
     :erlang.make_tuple(size, data)
@@ -81,6 +82,7 @@ defmodule Tuple do
       {:bar, :baz, :bong}
 
   """
+  @doc inlined: true
   @spec insert_at(tuple, non_neg_integer, term) :: tuple
   def insert_at(tuple, index, value) do
     :erlang.insert_element(index + 1, tuple, value)
@@ -101,6 +103,7 @@ defmodule Tuple do
       {:foo, :bar, :baz}
 
   """
+  @doc inlined: true
   @spec append(tuple, term) :: tuple
   def append(tuple, value) do
     :erlang.append_element(tuple, value)
@@ -122,6 +125,7 @@ defmodule Tuple do
       {:bar, :baz}
 
   """
+  @doc inlined: true
   @spec delete_at(tuple, non_neg_integer) :: tuple
   def delete_at(tuple, index) do
     :erlang.delete_element(index + 1, tuple)
@@ -141,6 +145,7 @@ defmodule Tuple do
       [:foo, :bar, :baz]
 
   """
+  @doc inlined: true
   @spec to_list(tuple) :: list
   def to_list(tuple) do
     :erlang.tuple_to_list(tuple)

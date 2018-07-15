@@ -290,6 +290,7 @@ defmodule Integer do
       "123"
 
   """
+  @doc inlined: true
   @spec to_string(integer) :: String.t()
   def to_string(integer) do
     :erlang.integer_to_binary(integer)
@@ -315,6 +316,7 @@ defmodule Integer do
       "ELIXIR"
 
   """
+  @doc inlined: true
   @spec to_string(integer, 2..36) :: String.t()
   def to_string(integer, base) do
     :erlang.integer_to_binary(integer, base)
@@ -340,6 +342,7 @@ defmodule Integer do
       '123'
 
   """
+  @doc inlined: true
   @spec to_charlist(integer) :: charlist
   def to_charlist(integer) do
     :erlang.integer_to_list(integer)
@@ -364,6 +367,7 @@ defmodule Integer do
       'ELIXIR'
 
   """
+  @doc inlined: true
   @spec to_charlist(integer, 2..36) :: charlist
   def to_charlist(integer, base) do
     :erlang.integer_to_list(integer, base)

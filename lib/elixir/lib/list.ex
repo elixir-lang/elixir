@@ -704,6 +704,7 @@ defmodule List do
       :elixir
 
   """
+  @doc inlined: true
   @spec to_atom(charlist) :: atom
   def to_atom(charlist) do
     :erlang.list_to_atom(charlist)
@@ -728,6 +729,7 @@ defmodule List do
       ** (ArgumentError) argument error
 
   """
+  @doc inlined: true
   @spec to_existing_atom(charlist) :: atom
   def to_existing_atom(charlist) do
     :erlang.list_to_existing_atom(charlist)
@@ -744,6 +746,7 @@ defmodule List do
       2.2017764
 
   """
+  @doc inlined: true
   @spec to_float(charlist) :: float
   def to_float(charlist) do
     :erlang.list_to_float(charlist)
@@ -760,6 +763,7 @@ defmodule List do
       123
 
   """
+  @doc inlined: true
   @spec to_integer(charlist) :: integer
   def to_integer(charlist) do
     :erlang.list_to_integer(charlist)
@@ -776,6 +780,7 @@ defmodule List do
       1023
 
   """
+  @doc inlined: true
   @spec to_integer(charlist, 2..36) :: integer
   def to_integer(charlist, base) do
     :erlang.list_to_integer(charlist, base)
@@ -792,6 +797,7 @@ defmodule List do
       {:share, [:elixir, 163]}
 
   """
+  @doc inlined: true
   @spec to_tuple(list) :: tuple
   def to_tuple(list) do
     :erlang.list_to_tuple(list)

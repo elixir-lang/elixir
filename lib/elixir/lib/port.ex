@@ -176,6 +176,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec open(name, list) :: port
   def open(name, options) do
     :erlang.open_port(name, options)
@@ -188,6 +189,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec close(port) :: true
   def close(port) do
     :erlang.port_close(port)
@@ -200,6 +202,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec command(port, iodata, [:force | :nosuspend]) :: boolean
   def command(port, data, options \\ []) do
     :erlang.port_command(port, data, options)
@@ -212,6 +215,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec connect(port, pid) :: true
   def connect(port, pid) do
     :erlang.port_connect(port, pid)
@@ -265,7 +269,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
-  @doc since: "1.6.0"
+  @doc since: "1.6.0", inlined: true
   @spec monitor(port | {name :: atom, node :: atom} | name :: atom) :: reference
   def monitor(port) do
     :erlang.monitor(:port, port)
@@ -282,7 +286,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
-  @doc since: "1.6.0"
+  @doc since: "1.6.0", inlined: true
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
   defdelegate demonitor(monitor_ref, options \\ []), to: :erlang
 
@@ -291,6 +295,7 @@ defmodule Port do
 
   Inlined by the compiler.
   """
+  @doc inlined: true
   @spec list :: [port]
   def list do
     :erlang.ports()
