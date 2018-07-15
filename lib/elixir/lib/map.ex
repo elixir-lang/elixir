@@ -506,7 +506,6 @@ defmodule Map do
       iex> Map.delete(%{b: 2}, :a)
       %{b: 2}
 
-  Inlined by the compiler.
   """
   @spec delete(map, key) :: map
   def delete(map, key), do: :maps.remove(key, map)
