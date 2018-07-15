@@ -314,7 +314,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
-  @doc since: "1.8.0"
+  @doc since: "1.8.0", guard: true
   @spec ceil(number) :: integer
   def ceil(number) do
     :erlang.ceil(number)
@@ -429,7 +429,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
-  @doc since: "1.8.0"
+  @doc since: "1.8.0", guard: true
   @spec floor(number) :: integer
   def floor(number) do
     :erlang.floor(number)
