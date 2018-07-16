@@ -58,7 +58,7 @@ defmodule Regex do
 
     * `dotall` (s) - causes dot to match newlines and also set newline to
       anycrlf; the new line setting can be overridden by setting `(*CR)` or
-      `(*LF)` or `(*CRLF)` or `(*ANY)` according to re documentation
+      `(*LF)` or `(*CRLF)` or `(*ANY)` according to `:re` documentation
 
     * `multiline` (m) - causes `^` and `$` to mark the beginning and end of
       each line; use `\A` and `\z` to match the end or beginning of the string
@@ -79,7 +79,7 @@ defmodule Regex do
     * `no_auto_capture` - not available, use `?:` instead
     * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
       `(*ANYCRLF)` or `(*ANY)` at the beginning of the regexp according to the
-      re documentation
+      `:re` documentation
 
   ## Captures
 
