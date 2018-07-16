@@ -2254,6 +2254,8 @@ defmodule String do
       0.8222222222222223
       iex> String.jaro_distance("even", "odd")
       0.0
+      iex> String.jaro_distance("same", "same")
+      1.0
 
   """
   @spec jaro_distance(t, t) :: float
