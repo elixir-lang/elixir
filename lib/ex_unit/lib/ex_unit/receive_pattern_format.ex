@@ -192,7 +192,7 @@ defmodule ExUnit.ReceivePatternFormat do
         keys: :atom_keys
       }) do
     # IO.inspect("pattern not equal, missing left")
-    [comma, delete("#{to_string(key)}: #{inspect(value)}")]
+    [comma, match("#{to_string(key)}: #{inspect(value)}")]
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: {key, value}, lh: @no_value}, %{
