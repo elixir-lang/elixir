@@ -2186,7 +2186,7 @@ defmodule String do
   @doc """
   Returns an integer whose text representation is `string`.
 
-  `string` must be the string representation of a integer. In order to parse
+  `string` must be the string representation of an integer. In order to parse
   a string that can contain ill-formatted integer then `Integer.parse/1`
   should be used. Otherwise, an `ArgumentError` will be raised.
 
