@@ -31,19 +31,19 @@ defmodule StringIO do
 
   ## Examples
 
-    iex> StringIO.open("foo", [], fn(pid) ->
-    ...>   input = IO.gets(pid, ">")
-    ...>   IO.write(pid, "The input was #{input}")
-    ...>   StringIO.contents(pid)
-    ...> end)
-    {:ok, {"", "The input was foo"}}
+      iex> StringIO.open("foo", [], fn(pid) ->
+      ...>   input = IO.gets(pid, ">")
+      ...>   IO.write(pid, "The input was #{input}")
+      ...>   StringIO.contents(pid)
+      ...> end)
+      {:ok, {"", "The input was foo"}}
 
-    iex> StringIO.open("foo", [capture_prompt: true], fn(pid) ->
-    ...>   input = IO.gets(pid, ">")
-    ...>   IO.write(pid, "The input was #{input}")
-    ...>   StringIO.contents(pid)
-    ...> end)
-    {:ok, {"", ">The input was foo"}}
+      iex> StringIO.open("foo", [capture_prompt: true], fn(pid) ->
+      ...>   input = IO.gets(pid, ">")
+      ...>   IO.write(pid, "The input was #{input}")
+      ...>   StringIO.contents(pid)
+      ...> end)
+      {:ok, {"", ">The input was foo"}}
 
   """
   @spec open(binary, keyword, (pid -> res)) :: {:ok, res} when res: var
