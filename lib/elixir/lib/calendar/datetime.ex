@@ -17,7 +17,7 @@ defmodule DateTime do
   Such functions expect `t:Calendar.datetime/0` in their typespecs
   (instead of `t:t/0`).
 
-  Developers should avoid creating the DateTime struct directly
+  Developers should avoid creating the `DateTime` struct directly
   and instead rely on the functions provided by this module as
   well as the ones in 3rd party calendar libraries.
 
@@ -25,12 +25,12 @@ defmodule DateTime do
 
   You will notice this module only contains conversion
   functions as well as functions that work on UTC. This
-  is because a proper DateTime implementation requires a
+  is because a proper `DateTime` implementation requires a
   time zone database which currently is not provided as part
   of Elixir.
 
   Such may be addressed in upcoming versions, meanwhile,
-  use 3rd party packages to provide DateTime building and
+  use 3rd party packages to provide `DateTime` building and
   similar functionality with time zone backing.
   """
 
