@@ -94,13 +94,13 @@ defmodule Mix.SCM.Git do
     File.mkdir_p!(path)
 
     File.cd!(path, fn ->
-      git!(~w[-c core.hooksPath='' -c core.templateDir='' init --quiet])
+      git!(~w[-c core.hooksPath='' -c init.templateDir='' init --quiet])
 
       git!([
         "-c",
         "core.hooksPath=''",
         "-c",
-        "core.templateDir=''",
+        "init.templateDir=''",
         "--git-dir=.git",
         "remote",
         "add",
