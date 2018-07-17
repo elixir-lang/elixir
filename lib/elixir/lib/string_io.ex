@@ -15,7 +15,6 @@ defmodule StringIO do
 
   use GenServer
 
-  @doc since: "1.7.0"
   @doc ~S"""
   Creates an IO device.
 
