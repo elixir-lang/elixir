@@ -70,10 +70,10 @@ defmodule Kernel do
   listed above. Some of them are:
 
     * `Date` - `year-month-day` structs in a given calendar
-    * `DateTime` - date and time with timezone in a given calendar
+    * `DateTime` - date and time with time zone in a given calendar
     * `Exception` - data raised from errors and unexpected scenarios
     * `MapSet` - unordered collections of unique elements
-    * `NaiveDateTime` - date and time without timezone in a given calendar
+    * `NaiveDateTime` - date and time without time zone in a given calendar
     * `Keyword` - lists of two-element tuples, often representing optional values
     * `Range` - inclusive ranges between two integers
     * `Regex` - regular expressions
