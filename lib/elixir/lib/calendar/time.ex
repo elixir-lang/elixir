@@ -177,7 +177,7 @@ defmodule Time do
   Parses the extended "Local time" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  Timezone offset may be included in the string but they will be
+  Time zone offset may be included in the string but they will be
   simply discarded as such information is not included in times.
 
   As specified in the standard, the separator "T" may be omitted if

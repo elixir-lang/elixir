@@ -26,7 +26,7 @@ defmodule DateTime do
   You will notice this module only contains conversion
   functions as well as functions that work on UTC. This
   is because a proper DateTime implementation requires a
-  TimeZone database which currently is not provided as part
+  time zone database which currently is not provided as part
   of Elixir.
 
   Such may be addressed in upcoming versions, meanwhile,

@@ -194,7 +194,7 @@ defmodule IEx.InfoTest do
       assert get_key(info, "Reference modules") == "NaiveDateTime, Calendar, Map"
 
       assert get_key(info, "Description") =~
-               ~S{a "naive" datetime (that is, a datetime without a timezone)}
+               ~S{a "naive" datetime (that is, a datetime without a time zone)}
 
       assert get_key(info, "Description") =~ "`~N`"
     end

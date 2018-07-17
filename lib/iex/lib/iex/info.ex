@@ -338,7 +338,7 @@ defimpl IEx.Info, for: [Date, Time, NaiveDateTime] do
     case @for do
       Date -> {"D", "date"}
       Time -> {"T", "time"}
-      NaiveDateTime -> {"N", ~S{"naive" datetime (that is, a datetime without a timezone)}}
+      NaiveDateTime -> {"N", ~S{"naive" datetime (that is, a datetime without a time zone)}}
     end
 
   def info(value) do
