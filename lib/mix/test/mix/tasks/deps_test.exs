@@ -120,7 +120,9 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push(DepsApp)
 
     in_fixture("deps_status", fn ->
-      File.cd!("deps/ok", fn -> System.cmd("git", ["init"]) end)
+      File.cd!("deps/ok", fn ->
+        System.cmd("git", ~w[-c core.hooksPath='' -c core.templateDir='' init])
+      end)
 
       Mix.Tasks.Deps.run([])
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git) (mix)"]}
