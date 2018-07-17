@@ -2186,12 +2186,19 @@ defmodule String do
   @doc """
   Returns an integer whose text representation is `string`.
 
+  `string` must be the string representation of a integer. In order to parse
+  a string that can contain ill-formatted integer then `Integer.parse/1`
+  should be used. Otherwise, an `ArgumentError` will be raised.
+
   Inlined by the compiler.
 
   ## Examples
 
       iex> String.to_integer("123")
       123
+
+      String.to_integer("invalid data")
+      #=> ** (ArgumentError) argument error
 
   """
   @spec to_integer(String.t()) :: integer
