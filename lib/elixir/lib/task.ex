@@ -150,7 +150,7 @@ defmodule Task do
 
   ## Distributed tasks
 
-  Since Elixir provides a Task supervisor, it is easy to use one
+  Since Elixir provides a `Task.Supervisor`, it is easy to use one
   to dynamically spawn tasks across nodes:
 
       # On the remote node
