@@ -112,7 +112,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
              assert Logger.bare_log(:info, "ok", application: nil, module: LoggerTest) == :ok
-           end) =~ msg("application= module=LoggerTest [info]  ok")
+           end) =~ msg("module=LoggerTest [info]  ok")
   end
 
   test "metadata compile-time merge" do
@@ -120,7 +120,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
              assert Logger.log(:info, "ok", application: nil, module: CustomTest) == :ok
-           end) =~ msg("application= module=CustomTest [info]  ok")
+           end) =~ msg("module=CustomTest [info]  ok")
   end
 
   test "metadata merge when the argument function returns metadata" do
@@ -130,7 +130,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
              assert Logger.bare_log(:info, fun, application: nil, module: LoggerTest) == :ok
-           end) =~ msg("application= module=Function [info]  ok")
+           end) =~ msg("module=Function [info]  ok")
   end
 
   test "enable/1 and disable/1" do
