@@ -1789,19 +1789,15 @@ defmodule Module do
     :ets.insert(set, {key, value, line})
   end
 
-  defp put_attribute(module, :on_load, value, line, _set, bag) do
+  defp put_attribute(_module, :on_load, value, line, set, bag) do
     try do
-      :ets.lookup_element(bag, {:accumulate, :on_load}, 2)
+      :ets.lookup_element(set, :on_load, 3)
     catch
-      :error, :badarg -> :ets.insert(bag, {{:accumulate, :on_load}, value})
+      :error, :badarg ->
+        :ets.insert(set, {:on_load, value, line})
+        :ets.insert(bag, {:attributes, :on_load})
     else
-      _ ->
-        [{_, _, _, file: file, line: line}] = attribute_stack(module, line)
-
-        raise CompileError,
-          line: line,
-          file: file,
-          description: "the @on_load attribute can only be called once per module"
+      _ -> raise ArgumentError, "the @on_load attribute can only be called once per module"
     end
   end
 

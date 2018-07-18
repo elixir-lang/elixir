@@ -711,14 +711,12 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "duplicated @on_load attribute" do
-    assert_eval_raise CompileError,
-                      "nofile:3: the @on_load attribute can only be called once per module",
-                      '''
-                      defmodule DuplicatedOnLoadAttribute do
-                        @on_load :foo
-                        @on_load :bar
-                      end
-                      '''
+    assert_raise ArgumentError, "the @on_load attribute can only be called once per module", fn ->
+      defmodule DuplicatedOnLoadAttribute do
+        @on_load :foo
+        @on_load :bar
+      end
+    end
   end
 
   test "interpolation error" do
