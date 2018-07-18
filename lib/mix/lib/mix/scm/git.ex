@@ -95,19 +95,7 @@ defmodule Mix.SCM.Git do
 
     File.cd!(path, fn ->
       git!(~w[-c core.hooksPath='' -c init.templateDir='' init --quiet])
-
-      git!([
-        "-c",
-        "core.hooksPath=''",
-        "-c",
-        "init.templateDir=''",
-        "--git-dir=.git",
-        "remote",
-        "add",
-        "origin",
-        opts[:git]
-      ])
-
+      git!(["remote", "add", "origin", opts[:git]])
       checkout(path, opts)
     end)
   end
@@ -136,7 +124,9 @@ defmodule Mix.SCM.Git do
     git!(["--git-dir=.git", "checkout", "--quiet", rev])
 
     if opts[:submodules] do
-      git!(["--git-dir=.git", "submodule", "update", "--init", "--recursive"])
+      git!(
+        ~w[-c core.hooksPath='' -c init.templateDir='' --git-dir=.git submodule update --init --recursive]
+      )
     end
 
     # Get the new repo lock
