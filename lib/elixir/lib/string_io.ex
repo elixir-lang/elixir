@@ -46,6 +46,7 @@ defmodule StringIO do
       {:ok, {"", ">The input was foo"}}
 
   """
+  @doc since: "1.7.0"
   @spec open(binary, keyword, (pid -> res)) :: {:ok, res} when res: var
   def open(string, options, function)
       when is_binary(string) and is_list(options) and is_function(function, 1) do
