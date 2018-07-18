@@ -1797,7 +1797,7 @@ defmodule Module do
         :ets.insert(set, {:on_load, value, line})
         :ets.insert(bag, {:attributes, :on_load})
     else
-      _ -> raise ArgumentError, "the @on_load attribute can only be called once per module"
+      _ -> raise ArgumentError, "the @on_load attribute can only be set once per module"
     end
   end
 

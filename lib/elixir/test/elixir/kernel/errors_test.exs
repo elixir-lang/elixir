@@ -711,7 +711,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "duplicated @on_load attribute" do
-    assert_raise ArgumentError, "the @on_load attribute can only be called once per module", fn ->
+    assert_raise ArgumentError, "the @on_load attribute can only be set once per module", fn ->
       defmodule DuplicatedOnLoadAttribute do
         @on_load :foo
         @on_load :bar
