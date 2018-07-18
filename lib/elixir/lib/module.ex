@@ -466,7 +466,7 @@ defmodule Module do
       of the corresponding setting in `Code.compiler_options/1`
 
     * `@compile {:inline, some_fun: 2, other_fun: 3}` - inlines the given
-      name/arity pairs. Inlining is applied locally, calls from another 
+      name/arity pairs. Inlining is applied locally, calls from another
       module are not affected by this option
 
     * `@compile {:autoload, false}` - disables automatic loading of
@@ -1787,6 +1787,18 @@ defmodule Module do
     end
 
     :ets.insert(set, {key, value, line})
+  end
+
+  defp put_attribute(_module, :on_load, value, line, set, bag) do
+    try do
+      :ets.lookup_element(set, :on_load, 3)
+    catch
+      :error, :badarg ->
+        :ets.insert(set, {:on_load, value, line})
+        :ets.insert(bag, {:attributes, :on_load})
+    else
+      _ -> raise ArgumentError, "the @on_load attribute can only be set once per module"
+    end
   end
 
   defp put_attribute(_module, key, value, line, set, bag) do
