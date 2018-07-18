@@ -153,8 +153,8 @@ defmodule Mix.Dep do
   # TODO: Remove this on v1.8
   @doc false
   @deprecated "Mix.Dep.loaded/1 was private API and you should not use it"
-  def loaded([]) do
-    load_on_environment([])
+  def loaded(opts) do
+    load_on_environment(opts)
   end
 
   @doc """
