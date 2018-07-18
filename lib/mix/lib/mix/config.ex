@@ -47,7 +47,6 @@ defmodule Mix.Config do
 
   defp put_config(value) do
     Process.put(@config_key, value)
-    :ok
   end
 
   defp delete_config() do
@@ -60,7 +59,6 @@ defmodule Mix.Config do
 
   defp put_files(value) do
     Process.put(@files_key, value)
-    :ok
   end
 
   defp delete_files() do
@@ -215,20 +213,23 @@ defmodule Mix.Config do
   It returns a tuple with the configuration and the imported paths.
   """
   def eval!(file, imported_paths \\ []) do
-    put_config([])
-    put_files(imported_paths)
-    {eval_config, _} = eval_config!(Path.expand(file))
+    previous_config = put_config([])
+    previous_files = put_files(imported_paths)
 
-    case get_config!() do
-      [] when is_list(eval_config) ->
-        {validate!(eval_config), get_files!()}
+    try do
+      {eval_config, _} = eval_config!(Path.expand(file))
 
-      pdict_config ->
-        {pdict_config, get_files!()}
+      case get_config!() do
+        [] when is_list(eval_config) ->
+          {validate!(eval_config), get_files!()}
+
+        pdict_config ->
+          {pdict_config, get_files!()}
+      end
+    after
+      if previous_config, do: put_config(previous_config), else: delete_config()
+      if previous_files, do: put_files(previous_files), else: delete_files()
     end
-  after
-    delete_config()
-    delete_files()
   end
 
   @doc false

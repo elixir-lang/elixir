@@ -107,6 +107,9 @@ defmodule Mix.ConfigTest do
              {[my_app: [key: :value]],
               [fixture_path("configs/good_config.exs"), fixture_path("configs/good_import.exs")]}
 
+    assert Mix.Config.eval!(fixture_path("configs/nested_import.exs")) ==
+             {[], [fixture_path("configs/nested_import.exs")]}
+
     assert_raise ArgumentError,
                  ~r"expected runtime config for app :sample to return keyword list",
                  fn -> Mix.Config.eval!(fixture_path("configs/bad_app.exs")) end
