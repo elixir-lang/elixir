@@ -491,7 +491,7 @@ defmodule Mix.DepTest do
   test "nested deps with no overrides" do
     # deps_repo brings git_repo but it is overriden
     deps = [
-      {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"}
     ]
 
     with_deps(deps, fn ->

@@ -128,7 +128,7 @@ defmodule Mix.Dep do
 
     seen = populate_seen(MapSet.new(), [app])
     children = get_deps(deps, tl(Enum.uniq(get_children(deps, seen, [app]))))
-    Enum.map(children, & %{&1 | top_level: &1.app in top_level})
+    Enum.map(children, &%{&1 | top_level: &1.app in top_level})
   end
 
   defp read_cached_deps(project, env) do
