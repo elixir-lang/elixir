@@ -404,9 +404,9 @@ defmodule Application do
 
   If the configuration parameter does not exist, the function returns the
   `default` value.
-  
+
   ## Examples 
-  
+
   `get_env/3` is commonly used to read the configuration of your OTP applications.
   Since Mix configurations are commonly used to configure applications, we will use
   this as a point of illustration. 
