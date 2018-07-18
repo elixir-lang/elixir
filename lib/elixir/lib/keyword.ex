@@ -712,13 +712,13 @@ defmodule Keyword do
 
         _ ->
           raise ArgumentError,
-            message: "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
+                "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
       end
 
       :lists.filter(fun, keywords1) ++ keywords2
     else
       raise ArgumentError,
-        message: "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
+            "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
     end
   end
 
@@ -763,7 +763,7 @@ defmodule Keyword do
       do_merge(keywords2, [], keywords1, keywords1, fun, keywords2)
     else
       raise ArgumentError,
-        message: "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
+            "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
     end
   end
 
@@ -785,7 +785,7 @@ defmodule Keyword do
 
   defp do_merge(_other, _acc, _rest, _original, _fun, keywords2) do
     raise ArgumentError,
-      message: "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
+          "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
   end
 
   @doc """
