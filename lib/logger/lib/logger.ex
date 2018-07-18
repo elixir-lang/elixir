@@ -416,7 +416,7 @@ defmodule Logger do
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
   @type level :: :error | :info | :warn | :debug
-  @type metadata :: keyword(String.Chars.t())
+  @type metadata :: keyword()
   @levels [:error, :info, :warn, :debug]
 
   @metadata :logger_metadata
@@ -436,15 +436,23 @@ defmodule Logger do
   @spec metadata(metadata) :: :ok
   def metadata(keyword) do
     {enabled?, metadata} = __metadata__()
-
-    metadata =
-      Enum.reduce(keyword, metadata, fn
-        {key, nil}, acc -> Keyword.delete(acc, key)
-        {key, val}, acc -> Keyword.put(acc, key, val)
-      end)
-
-    Process.put(@metadata, {enabled?, metadata})
+    Process.put(@metadata, {enabled?, into_metadata(keyword, metadata)})
     :ok
+  end
+
+  defp into_metadata([], metadata), do: metadata
+  defp into_metadata(keyword, metadata), do: into_metadata(keyword, [], metadata)
+
+  defp into_metadata([{key, nil} | keyword], prepend, metadata) do
+    into_metadata(keyword, prepend, :lists.keydelete(key, 1, metadata))
+  end
+
+  defp into_metadata([{key, _} = pair | keyword], prepend, metadata) do
+    into_metadata(keyword, [pair | prepend], :lists.keydelete(key, 1, metadata))
+  end
+
+  defp into_metadata([], prepend, metadata) do
+    prepend ++ metadata
   end
 
   @doc """
@@ -671,7 +679,7 @@ defmodule Logger do
   @doc false
   def __do_log__({level, config, pdict}, chardata_or_fun, metadata) when is_list(metadata) do
     %{utc_log: utc_log?, truncate: truncate, mode: mode} = config
-    metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
+    metadata = [pid: self()] ++ into_metadata(metadata, pdict)
 
     case normalize_message(chardata_or_fun, metadata) do
       {message, metadata} ->
@@ -851,7 +859,7 @@ defmodule Logger do
 
   defp normalize_message(fun, metadata) when is_function(fun, 0) do
     case fun.() do
-      {message, fun_metadata} -> {message, Keyword.merge(metadata, fun_metadata)}
+      {message, fun_metadata} -> {message, into_metadata(fun_metadata, metadata)}
       :skip -> :skip
       message -> {message, metadata}
     end
