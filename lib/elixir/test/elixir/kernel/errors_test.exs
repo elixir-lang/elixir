@@ -710,6 +710,15 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
+  test "duplicated @on_load attribute" do
+    assert_raise ArgumentError, "the @on_load attribute can only be set once per module", fn ->
+      defmodule DuplicatedOnLoadAttribute do
+        @on_load :foo
+        @on_load :bar
+      end
+    end
+  end
+
   test "interpolation error" do
     assert_eval_raise SyntaxError,
                       "nofile:1: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\"",

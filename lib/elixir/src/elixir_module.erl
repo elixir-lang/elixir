@@ -238,7 +238,6 @@ build(Line, File, Module, Lexical) ->
     {dialyzer, [], accumulate},
     {external_resource, [], accumulate},
     {on_definition, [], accumulate},
-    {on_load, [], accumulate},
     {optional_callbacks, [], accumulate},
 
     % Others
