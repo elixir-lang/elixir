@@ -405,6 +405,8 @@ defmodule Application do
   If the configuration parameter does not exist, the function returns the
   `default` value.
   
+  ## Examples 
+  
   Within Elixir, get_env is commonly used to resolve configurations within an OTP application. Since Mix configurations are commonly used to generate an OTP application's environment in Elixir, we will use this as a point of illustration. 
 
   Consider a new application `my_otp_app`. `my_otp_app` contains a database engine which supports a pool of databases. The database engine needs to know the configuration for each of those databases, and that configuration is supplied by key-value pairs in environment of `my_otp_app`. 
@@ -431,6 +433,7 @@ defmodule Application do
     port: 20717
   ]
   ```
+
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) do
