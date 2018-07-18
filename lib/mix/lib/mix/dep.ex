@@ -123,9 +123,12 @@ defmodule Mix.Dep do
 
   defp load_and_cache(config, _top, bottom, _env) do
     {_, deps} = Mix.ProjectStack.read_cache({:cached_deps, bottom})
-    apps = [Keyword.fetch!(config, :app)]
-    seen = populate_seen(MapSet.new(), apps)
-    get_deps(deps, tl(Enum.uniq(get_children(deps, seen, apps))))
+    app = Keyword.fetch!(config, :app)
+    top_level = for dep <- deps, dep.app == app, child <- dep.deps, do: child.app
+
+    seen = populate_seen(MapSet.new(), [app])
+    children = get_deps(deps, tl(Enum.uniq(get_children(deps, seen, [app]))))
+    Enum.map(children, &%{&1 | top_level: &1.app in top_level})
   end
 
   defp read_cached_deps(project, env) do
