@@ -409,21 +409,21 @@ defmodule Application do
 
   `get_env/3` is commonly used to read the configuration of your OTP applications.
   Since Mix configurations are commonly used to configure applications, we will use
-  this as a point of illustration. 
+  this as a point of illustration.
 
   Consider a new application `:my_app`. `:my_app` contains a database engine which
   supports a pool of databases. The database engine needs to know the configuration for
   each of those databases, and that configuration is supplied by key-value pairs in
-  environment of `:my_app`. 
+  environment of `:my_app`.
 
       config :my_app, Databases.RepoOne,
-        # A database configuration. 
-        ip: localhost 
+        # A database configuration
+        ip: "localhost"
         port: 5433
 
       config :my_app, Databases.RepoTwo,
-        # Another database configuration (for the same OTP app).
-        ip: localhost 
+        # Another database configuration (for the same OTP app)
+        ip: "localhost"
         port: 20717
 
       config :my_app, my_app_databases: [Databases.RepoOne, Databases.RepoTwo]
@@ -433,7 +433,7 @@ defmodule Application do
   `get_env(:my_app, :my_app_databases)` to retrieve the list of databases (specified
   by module names). Our database engine can then traverse each repository in the
   list and then call `get_env(:my_app, Databases.RepoOne)` and so forth to retrieve
-  the configuration of each one. 
+  the configuration of each one.
 
   **Important:** if you are writing a library to be used by other developers,
   it is generally recommended to avoid the application environment, as the
