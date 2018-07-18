@@ -400,10 +400,26 @@ defmodule Application do
   end
 
   @doc """
-  Returns the value for `key` in `app`'s environment.
+  Returns the value for `key` in `app`'s environment. 
 
   If the configuration parameter does not exist, the function returns the
   `default` value.
+  
+  Within Elixir, get_env is commonly used to resolve configurations within an OTP application. Since Mix configurations are *commonly* used to generate an OTP application's environment in Elixir, we will use this as a point of illustration. 
+
+  Consider a new application `my_otp_app`. `my_otp_app` contains a database engine which supports a pool of databases. The database engine needs to know the configuration for each of those databases, and that configuration is supplied by key-value pairs in environment of `my_otp_app`. 
+ 
+  ```
+  config :my_otp_app, Databases.RepoOne,
+  # A database configuration. 
+   config :my_otp_app, Databases.RepoTwo,
+  # Another database configuration (for the same OTP app). 
+   config :my_otp_app, my_otp_apps_databases: [Databases.RepoOne, Databases.RepoTwo]
+  ```
+
+  Our database engine used by `my_otp_app` needs to know what databases exist, and what the database configurations are. The database engine can make a call to `get_env(:my_otp_app, :my_otp_apps_databases)` to retrieve the list of databases (specified by module names). Our database engine can then make function calls to each repository in the list i.e. with `Enum.map` in order to then call  `get_env(:my_otp_app, :Databases.RepoOne)` and `get_env(:my_otp_app, :Databases.RepoTwo)`, retrieving the configurations for each. 
+
+  So, by supplying our OTP application as the first parameter, and the keys to retrieve as the second parameter, to `Application.get_env`, and some `Enum.map` magic we can scope configuration both repositories used by the database engine for the OTP application.
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) do
