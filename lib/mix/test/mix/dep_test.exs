@@ -488,6 +488,27 @@ defmodule Mix.DepTest do
     end)
   end
 
+  test "nested deps with no overrides" do
+    # deps_repo brings git_repo but it is overriden
+    deps = [
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        File.mkdir_p!("custom/deps_repo/lib")
+
+        File.write!("custom/deps_repo/lib/a.ex", """
+        # Check that the child dependency is top_level
+        [%Mix.Dep{app: :git_repo, top_level: true}] = Mix.Dep.cached()
+        """)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+      end)
+    end)
+  end
+
   test "nested deps with overrides" do
     # deps_repo brings git_repo but it is overriden
     deps = [
