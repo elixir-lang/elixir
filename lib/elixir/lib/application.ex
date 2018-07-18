@@ -404,6 +404,41 @@ defmodule Application do
 
   If the configuration parameter does not exist, the function returns the
   `default` value.
+
+  ## Examples 
+
+  `get_env/3` is commonly used to read the configuration of your OTP applications.
+  Since Mix configurations are commonly used to configure applications, we will use
+  this as a point of illustration.
+
+  Consider a new application `:my_app`. `:my_app` contains a database engine which
+  supports a pool of databases. The database engine needs to know the configuration for
+  each of those databases, and that configuration is supplied by key-value pairs in
+  environment of `:my_app`.
+
+      config :my_app, Databases.RepoOne,
+        # A database configuration
+        ip: "localhost"
+        port: 5433
+
+      config :my_app, Databases.RepoTwo,
+        # Another database configuration (for the same OTP app)
+        ip: "localhost"
+        port: 20717
+
+      config :my_app, my_app_databases: [Databases.RepoOne, Databases.RepoTwo]
+
+  Our database engine used by `:my_app` needs to know what databases exist, and
+  what the database configurations are. The database engine can make a call to
+  `get_env(:my_app, :my_app_databases)` to retrieve the list of databases (specified
+  by module names). Our database engine can then traverse each repository in the
+  list and then call `get_env(:my_app, Databases.RepoOne)` and so forth to retrieve
+  the configuration of each one.
+
+  **Important:** if you are writing a library to be used by other developers,
+  it is generally recommended to avoid the application environment, as the
+  application environment is effectively a global storage. For more information,
+  read our [library guidelines](/library-guidelines.html).
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) do
