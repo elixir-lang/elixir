@@ -107,7 +107,7 @@ relative_to_cwd(Path) ->
 characters_to_list(Data) when is_list(Data) ->
   Data;
 characters_to_list(Data) ->
-  case elixir_config:safe_get(bootstrap, true) of
+  case elixir_config:get(bootstrap, true) of
     true  -> unicode:characters_to_list(Data);
     false -> 'Elixir.String':to_charlist(Data)
   end.
@@ -115,7 +115,7 @@ characters_to_list(Data) ->
 characters_to_binary(Data) when is_binary(Data) ->
   Data;
 characters_to_binary(Data) ->
-  case elixir_config:safe_get(bootstrap, true) of
+  case elixir_config:get(bootstrap, true) of
     true -> unicode:characters_to_binary(Data);
     false -> 'Elixir.List':to_string(Data)
   end.

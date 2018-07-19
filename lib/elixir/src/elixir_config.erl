@@ -1,6 +1,6 @@
 -module(elixir_config).
 -compile({no_auto_import, [get/1]}).
--export([new/1, delete/1, put/2, get/1, safe_get/2, update/2, get_and_put/2, warn/2]).
+-export([new/1, delete/1, put/2, get/1, get/2, update/2, get_and_put/2, warn/2]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2,
   handle_info/2, code_change/3, terminate/2]).
 -behaviour(gen_server).
@@ -22,7 +22,7 @@ get(Key) ->
   [{_, Value}] = ets:lookup(?MODULE, Key),
   Value.
 
-safe_get(Key, Default) ->
+get(Key, Default) ->
   try ets:lookup(?MODULE, Key) of
     [{_, Value}] -> Value;
     [] -> Default
