@@ -1161,7 +1161,7 @@ defmodule KeyError do
   end
 
   defp map_with_atom_keys_only?(term) do
-    is_map(term) and Enum.all?(term, fn {k, _} -> is_atom(k) end)
+    is_map(term) and Enum.all?(Map.to_list(term), fn {k, _} -> is_atom(k) end)
   end
 
   defp available_keys(term) when is_map(term), do: Map.keys(term)
