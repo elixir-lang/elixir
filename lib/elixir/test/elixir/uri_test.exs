@@ -22,10 +22,9 @@ defmodule URITest do
     assert URI.encode_query([{:foo, :bar}, {:baz, :quux}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
-
-    assert_raise ArgumentError, fn ->
-      URI.encode_query([{"foo", 'bar'}])
-    end
+    assert URI.encode_query([{:foo, [:bar, :baz]}]) == "foo%5B%5D=bar&foo%5B%5D=baz"
+    assert URI.encode_query([{:foo, [{:bar, :a}, {:baz, :b}]}]) == "foo%5Bbar%5D=a&foo%5Bbaz%5D=b"
+    assert URI.encode_query([{"foo", 'bar'}]) == "foo%5B%5D=98&foo%5B%5D=97&foo%5B%5D=114"
 
     assert_raise ArgumentError, fn ->
       URI.encode_query([{'foo', "bar"}])
