@@ -145,7 +145,6 @@ defmodule ExUnit.Formatter do
     patterns =
       mailbox
       |> Enum.map(fn msg ->
-        # jowens, instead of format diff, let's do format pattern
         {_left, right} = format_pattern(pattern, msg, formatter)
         {:note, "message: " <> IO.iodata_to_binary(right)}
       end)
@@ -163,9 +162,6 @@ defmodule ExUnit.Formatter do
   end
 
   def format_assertion_error(test, struct, stack, width, formatter, counter_padding) do
-    # jowens - we can tap the formatter here, we have struct
-    # left: %ExUnit.Pattern{}
-    # right: {:ex_unit_mailbox_contents, _}
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
@@ -336,6 +332,16 @@ defmodule ExUnit.Formatter do
 
   defp make_into_lines(reasons, padding) do
     padding <> Enum.join(reasons, "\n" <> padding) <> "\n"
+  end
+
+  defp format_sides(%{left: %ExUnit.Pattern{} = left, right: right}, formatter, inspect) do
+    case format_pattern(left, right, formatter) do
+      {l, r} ->
+        {IO.iodata_to_binary(left.binary), IO.iodata_to_binary(l)}
+
+      nil ->
+        {if_value(left, inspect), if_value(right, inspect)}
+    end
   end
 
   defp format_sides(struct, formatter, inspect) do

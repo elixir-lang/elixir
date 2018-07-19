@@ -149,51 +149,65 @@ defmodule ExUnit.PatternReceiveTest do
   #   assert_receive {:save_doc, %{status: :creted, sync_history: []} = doc}
   # end
 
-  test "simple" do
-    map = %{a: "1"}
-    send(self(), map)
+  # test "simple" do
+  #   map = %{a: "1"}
+  #   send(self(), map)
 
-    match = %{a: "1", b: "2"}
-    assert_receive(^match)
+  #   match = %{a: "1", b: "2"}
+  #   assert_receive(^match)
+  # end
+
+  # describe "string" do
+  #   test "simple" do
+  #     string = "abc"
+  #     send(self(), string)
+
+  #     match = "cde"
+  #     assert_receive(^match)
+  #   end
+  # end
+
+  # describe "map" do
+  #   test "simple" do
+  #     map = %{a: "1"}
+  #     send(self(), map)
+
+  #     match = %{a: "1", b: "2"}
+  #     assert_receive(^match)
+  #   end
+  # end
+
+  # describe "array" do
+  #   test "simple" do
+  #     array = [1, 2, 3, 4, 5, 6]
+  #     send(self(), array)
+
+  #     match = [3, 4, 5, 6]
+  #     assert_receive(^match)
+  #   end
+  # end
+
+  # describe "map nested" do
+  #   test "map with atom keys" do
+  #     map = %{a: "1", b: "string", c: [1, 2, 3], d: %{foo: :bar, a: 1, b: 2, c: 3}}
+  #     send(self(), map)
+
+  #     match = %{a: "2", b: "string", c: [1, 2, 4, 5], d: %{bar: :foo}}
+  #     assert_receive(^match)
+  #   end
+  # end
+
+  test "find the match" do
+    a = 1
+    assert match?(%{a: ^a, b: 3}, %{a: 2, b: 3})
+    # assert %{a: 1} == %{a: 2, b: 3}
+    # send(self(), %{a: 2, b: 3})
+    # assert_receive(%{a: 1})
   end
 
-  describe "string" do
-    test "simple" do
-      string = "abc"
-      send(self(), string)
-
-      match = "cde"
-      assert_receive(^match)
-    end
-  end
-
-  describe "map" do
-    test "simple" do
-      map = %{a: "1"}
-      send(self(), map)
-
-      match = %{a: "1", b: "2"}
-      assert_receive(^match)
-    end
-  end
-
-  describe "array" do
-    test "simple" do
-      array = [1, 2, 3, 4, 5, 6]
-      send(self(), array)
-
-      match = [3, 4, 5, 6]
-      assert_receive(^match)
-    end
-  end
-
-  describe "map nested" do
-    test "map with atom keys" do
-      map = %{a: "1", b: "string", c: [1, 2, 3], d: %{foo: :bar}}
-      send(self(), map)
-
-      match = %{a: "2", b: "string", c: [3, 4, 5], d: %{bar: :foo}}
-      assert_receive(^match)
-    end
-  end
+  # test "pinned map key doesn't exist" do
+  #   val = 3
+  #   send(self(), %{a: 1, b: 2, c: 3})
+  #   assert_receive(%{a: 1, d: ^val})
+  # end
 end
