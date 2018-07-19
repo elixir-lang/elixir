@@ -425,7 +425,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
         true ->
           elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
             "found quoted atom \"~ts\" but the quotes are not required. "
-            "Quotes should only be used to introduced atoms with foreign characters in them",
+            "Quotes should only be used to introduce atoms with foreign characters in them",
             [hd(Parts)]
           ));
 
@@ -646,7 +646,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
           elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
             "found quoted keyword \"~ts\" but the quotes are not required. "
             "Note that keywords are always atoms, even when quoted, and quotes "
-            "should only be used to introduced keywords with foreign characters in them",
+            "should only be used to introduce keywords with foreign characters in them",
             [hd(Parts)]
           ));
 
