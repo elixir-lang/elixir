@@ -350,14 +350,14 @@ defmodule Mix.Utils do
   defp quoted(data), do: [?", to_string(data), ?"]
 
   @doc false
+  @deprecated "Use Macro.underscore/1 instead"
   def underscore(value) do
-    IO.warn("Mix.Utils.underscore/1 is deprecated, use Macro.underscore/1 instead")
     Macro.underscore(value)
   end
 
   @doc false
+  @deprecated "Use Macro.camelize/1 instead"
   def camelize(value) do
-    IO.warn("Mix.Utils.camelize/1 is deprecated, use Macro.camelize/1 instead")
     Macro.camelize(value)
   end
 
