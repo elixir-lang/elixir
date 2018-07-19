@@ -218,17 +218,12 @@ defmodule DateTime do
 
   def from_naive(naive_datetime, time_zone, time_zone_data_module \\ :from_config)
 
-  def from_naive(%NaiveDateTime{} = naive_datetime, "Etc/UTC", _) do
+  def from_naive(naive_datetime, "Etc/UTC", _) do
     do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
   end
 
-  def from_naive(%NaiveDateTime{} = naive_datetime, time_zone, time_zone_data_module) do
-    gregorian_seconds =
-      naive_datetime
-      |> NaiveDateTime.to_erl()
-      |> :calendar.datetime_to_gregorian_seconds()
-
-    case by_wall(time_zone_data_module, time_zone, gregorian_seconds) do
+  def from_naive(naive_datetime, time_zone, time_zone_data_module) do
+    case by_wall(time_zone_data_module, time_zone, naive_datetime) do
       {:single, period} ->
         do_from_naive(
           naive_datetime,
@@ -265,13 +260,13 @@ defmodule DateTime do
         # we get the last microsecond just before.
         before_naive =
           first_period.until_wall
-          |> :calendar.gregorian_seconds_to_datetime()
+          |> Calendar.ISO.iso_seconds_to_datetime()
           |> NaiveDateTime.from_erl!({999_999, 6})
           |> NaiveDateTime.add(-1)
 
         after_naive =
           second_period.from_wall
-          |> :calendar.gregorian_seconds_to_datetime()
+          |> Calendar.ISO.iso_seconds_to_datetime()
           |> NaiveDateTime.from_erl!()
 
         {:ok, latest_datetime_before} =
@@ -377,16 +372,15 @@ defmodule DateTime do
       ) do
     in_utc = datetime |> to_unix |> from_unix! |> Map.put(:microsecond, datetime.microsecond)
 
-    gregorian_seconds_utc =
-      :calendar.datetime_to_gregorian_seconds(in_utc |> NaiveDateTime.to_erl())
+    iso_seconds_utc = Calendar.ISO.datetime_to_iso_seconds(in_utc |> NaiveDateTime.to_erl())
 
-    case by_utc(time_zone_data_module, time_zone, gregorian_seconds_utc) do
+    case by_utc(time_zone_data_module, time_zone, in_utc) do
       {:ok, period} ->
-        gregorian_seconds_wall = gregorian_seconds_utc + period.utc_offset + period.std_offset
+        iso_seconds_wall = iso_seconds_utc + period.utc_offset + period.std_offset
 
         naive_datetime =
-          gregorian_seconds_wall
-          |> :calendar.gregorian_seconds_to_datetime()
+          iso_seconds_wall
+          |> Calendar.ISO.iso_seconds_to_datetime()
           |> NaiveDateTime.from_erl!(datetime.microsecond)
 
         do_from_naive(
@@ -1087,29 +1081,31 @@ defmodule DateTime do
   end
 
   @no_valid_time_zone_database_error "No valid TimeZoneDatabase provided or configured. Configure with :elixir_config.put(:time_zone_module, module_name)"
-  @spec by_wall(TimeZoneDatabase.t(), Calendar.time_zone(), TimeZoneDatabase.gregorian_seconds()) ::
+  @spec by_wall(TimeZoneDatabase.t(), Calendar.time_zone(), Calendar.naive_datetime()) ::
           {:single, TimeZoneDatabase.time_zone_period()}
           | {:ambiguous, [TimeZoneDatabase.time_zone_period()]}
           | {:gap, [TimeZoneDatabase.time_zone_period()]}
           | {:error, :time_zone_not_found}
-  defp by_wall(time_zone_data_module, time_zone, gregorian_seconds) do
+  defp by_wall(time_zone_data_module, time_zone, naive_datetime) do
+    iso_seconds = to_iso_seconds(naive_datetime)
     time_zone_data_module = time_zone_data_module_from_parameter(time_zone_data_module)
 
     try do
-      time_zone_data_module.by_wall(time_zone, gregorian_seconds)
+      time_zone_data_module.by_wall(time_zone, iso_seconds)
     rescue
       UndefinedFunctionError ->
         raise @no_valid_time_zone_database_error
     end
   end
 
-  @spec by_utc(TimeZoneDatabase.t(), Calendar.time_zone(), TimeZoneDatabase.gregorian_seconds()) ::
+  @spec by_utc(TimeZoneDatabase.t(), Calendar.time_zone(), Calendar.naive_datetime()) ::
           {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
-  defp by_utc(time_zone_data_module, time_zone, gregorian_seconds) do
+  defp by_utc(time_zone_data_module, time_zone, naive_datetime) do
+    iso_seconds = to_iso_seconds(naive_datetime)
     time_zone_data_module = time_zone_data_module_from_parameter(time_zone_data_module)
 
     try do
-      time_zone_data_module.by_utc(time_zone, gregorian_seconds)
+      time_zone_data_module.by_utc(time_zone, iso_seconds)
     rescue
       UndefinedFunctionError ->
         raise @no_valid_time_zone_database_error
@@ -1124,6 +1120,13 @@ defmodule DateTime do
 
   defp time_zone_data_module_from_parameter(time_zone_data_module) do
     time_zone_data_module
+  end
+
+  @spec to_iso_seconds(Calendar.naive_datetime()) :: non_neg_integer()
+  defp to_iso_seconds(%{calendar: Calendar.ISO} = ndt) do
+    Calendar.ISO.datetime_to_iso_seconds(
+      {{ndt.year, ndt.month, ndt.day}, {ndt.hour, ndt.minute, ndt.second}}
+    )
   end
 
   defimpl String.Chars do

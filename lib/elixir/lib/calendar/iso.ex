@@ -23,6 +23,7 @@ defmodule Calendar.ISO do
   @type year :: -9999..9999
   @type month :: 1..12
   @type day :: 1..31
+  @type iso_seconds :: non_neg_integer()
 
   @seconds_per_minute 60
   @seconds_per_hour 60 * 60
@@ -830,12 +831,21 @@ defmodule Calendar.ISO do
     {12, day_of_year - (334 + extra_day)}
   end
 
-  defp iso_seconds_to_datetime(seconds) do
+  @doc false
+  @spec iso_seconds_to_datetime(iso_seconds) :: :calendar.datetime()
+  def iso_seconds_to_datetime(seconds) do
     {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
 
     date = date_from_iso_days(days)
     time = seconds_to_time(rest_seconds)
     {date, time}
+  end
+
+  @doc false
+  @spec datetime_to_iso_seconds(:calendar.datetime()) :: iso_seconds
+  def datetime_to_iso_seconds({{year, month, day}, {hour, minute, second}}) do
+    date_to_iso_days(year, month, day) * @seconds_per_day + hour * @seconds_per_hour +
+      minute * @seconds_per_minute + second
   end
 
   defp seconds_to_time(seconds) when seconds in 0..(@seconds_per_day - 1) do
