@@ -76,7 +76,7 @@ defmodule URI do
   values are URL encoded as per `encode_www_form/1`.
 
   Keys and values can be any term that implements the `String.Chars`
-  protocol, except lists which are explicitly forbidden.
+  protocol. However, it's explicitly forbidden for keys to be lists.
 
   ## Examples
 
@@ -89,20 +89,31 @@ defmodule URI do
       "key=value+with+spaces"
 
       iex> URI.encode_query(%{key: [:a, :list]})
-      ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
+      "key%5B%5D=a&key%5B%5D=list"
+
+      iex> URI.encode_query(%{key: [{:foo, :a}, {:bar, :list}]})
+      "key%5Bfoo%5D=a&key%5Bbar%5D=list"
+
+      iex> URI.encode_query([{'key', "value"}])
+      ** (ArgumentError) encode_query/1 keys cannot be lists, got: 'key'
 
   """
   @spec encode_query(term) :: binary
   def encode_query(enumerable) do
-    Enum.map_join(enumerable, "&", &encode_kv_pair/1)
+    Enum.map(enumerable, &encode_kv_pair/1)
+    |> List.flatten()
+    |> Enum.join("&")
   end
 
   defp encode_kv_pair({key, _}) when is_list(key) do
     raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect(key)}"
   end
 
-  defp encode_kv_pair({_, value}) when is_list(value) do
-    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect(value)}"
+  defp encode_kv_pair({key, value}) when is_list(value) do
+    Enum.map(value, fn
+      {item_key, item_value} -> encode_kv_pair({"#{key}[#{item_key}]", item_value})
+      item_value -> encode_kv_pair({"#{key}[]", item_value})
+    end)
   end
 
   defp encode_kv_pair({key, value}) do
