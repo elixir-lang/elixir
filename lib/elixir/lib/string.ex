@@ -2186,9 +2186,10 @@ defmodule String do
   @doc """
   Returns an integer whose text representation is `string`.
 
-  `string` must be the string representation of an integer. In order to parse
-  a string that may contain an ill-formatted integer then `Integer.parse/1`
-  should be used. Otherwise, an `ArgumentError` will be raised.
+  `string` must be the string representation of an integer.
+  Otherwise, an `ArgumentError` will be raised. If you want
+  to parse a string that may contain an ill-formatted integer,
+  use `Integer.parse/1`.
 
   Inlined by the compiler.
 
@@ -2196,6 +2197,8 @@ defmodule String do
 
       iex> String.to_integer("123")
       123
+
+  Passing a string that does not represent an integer leads to an error:
 
       String.to_integer("invalid data")
       #=> ** (ArgumentError) argument error
