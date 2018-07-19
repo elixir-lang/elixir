@@ -116,6 +116,19 @@ Percentage | Module
     77.19% | Total
 ```
 
+## v1.7.0-rc.1 (2018-07-19)
+
+### 1. Bug fixes
+
+#### Logger
+
+  * [Logger] Ensure nil metadata is always pruned
+
+#### Mix
+
+  * [Mix] Properly tag which dependencies are `top_level` when processing child dependencies (regression)
+  * [Mix] Allow calls to `Mix.Config.eval!/2` to be nested (regression)
+
 ## v1.7.0-rc.0 (2018-07-13)
 
 ### 1. Enhancements
