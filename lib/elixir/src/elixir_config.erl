@@ -1,6 +1,6 @@
 -module(elixir_config).
 -compile({no_auto_import, [get/1]}).
--export([new/1, delete/1, put/2, get/1, safe_get/2, update/2, get_and_put/2]).
+-export([new/1, delete/1, put/2, get/1, safe_get/2, update/2, get_and_put/2, warn/2]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2,
   handle_info/2, code_change/3, terminate/2]).
 -behaviour(gen_server).
@@ -38,6 +38,17 @@ get_and_put(Key, Value) ->
 
 start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, ?MODULE, []).
+
+%% Used to guarantee warnings are emitted only once per caller.
+warn(Key, [{Mod, Fun, ArgsOrArity, _} | _]) ->
+  EtsKey = {warn, Key, Mod, Fun, to_arity(ArgsOrArity)},
+  ets:update_counter(?MODULE, EtsKey, {2, 1, 1, 1}, {EtsKey, -1}) =:= 0;
+
+warn(_, _) ->
+  true.
+
+to_arity(Args) when is_list(Args) -> length(Args);
+to_arity(Arity) -> Arity.
 
 %% gen_server api
 
