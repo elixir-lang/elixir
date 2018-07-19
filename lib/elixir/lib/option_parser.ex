@@ -559,7 +559,7 @@ defmodule OptionParser do
 
         true ->
           # TODO: Remove this in Elixir v2.0
-          IO.warn("Not passing the :switches or :strict option to OptionParser is deprecated")
+          IO.warn("not passing the :switches or :strict option to OptionParser is deprecated")
           {[], false}
       end
 

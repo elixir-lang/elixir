@@ -1092,8 +1092,8 @@ defmodule IEx.Helpers do
   end
 
   @doc false
+  @deprecated "Use import_file_if_available/1 instead"
   defmacro import_file(path, opts) when is_binary(path) and is_list(opts) do
-    IO.warn("import_file/2 is deprecated, please use import_file_if_available/1 instead")
     import_file_if_available(path, Keyword.get(opts, :optional, false))
   end
 
