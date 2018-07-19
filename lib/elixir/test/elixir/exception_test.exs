@@ -504,6 +504,13 @@ defmodule ExceptionTest do
              """
     end
 
+    test "annotates key error with suggestions for structs" do
+      message = blame_message(%URI{}, fn map -> map.schema end)
+      assert message =~ "key :schema not found in: %URI{"
+      assert message =~ "Did you mean one of:"
+      assert message =~ "* :scheme"
+    end
+
     if :erlang.system_info(:otp_release) >= '21' do
       test "annotates +/1 arithmetic errors" do
         assert blame_message(:foo, &(+&1)) == "bad argument in arithmetic expression: +(:foo)"
