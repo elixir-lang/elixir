@@ -24,36 +24,42 @@ defmodule MacroTest do
   import Macro.ExternalTest
 
   describe "escape/2" do
-    test "handles tuples with size different than two" do
+    test "returns tuples with size equal to two" do
+      assert Macro.escape({:a, :b}) == {:a, :b}
+    end
+
+    test "returns lists" do
+      assert Macro.escape([1, 2, 3]) == [1, 2, 3]
+    end
+
+    test "escapes tuples with size different than two" do
       assert Macro.escape({:a}) == {:{}, [], [:a]}
       assert Macro.escape({:a, :b, :c}) == {:{}, [], [:a, :b, :c]}
       assert Macro.escape({:a, {1, 2, 3}, :c}) == {:{}, [], [:a, {:{}, [], [1, 2, 3]}, :c]}
     end
 
-    test "simply returns tuples with size equal to two" do
-      assert Macro.escape({:a, :b}) == {:a, :b}
-    end
-
-    test "simply returns any other structure" do
-      assert Macro.escape([1, 2, 3]) == [1, 2, 3]
-    end
-
-    test "handles maps" do
+    test "escapes maps" do
       assert Macro.escape(%{a: 1}) == {:%{}, [], [a: 1]}
     end
 
-    test "handles bitstring" do
+    test "escapes bitstring" do
       assert {:<<>>, [], args} = Macro.escape(<<300::12>>)
       assert [{:::, [], [1, {:size, [], [4]}]}, {:::, [], [",", {:binary, [], []}]}] = args
     end
 
-    test "works recursively" do
+    test "escapes recursively" do
       assert Macro.escape([1, {:a, :b, :c}, 3]) == [1, {:{}, [], [:a, :b, :c]}, 3]
     end
 
-    test "with improper lists" do
+    test "escapes improper lists" do
       assert Macro.escape([1 | 2]) == [{:|, [], [1, 2]}]
       assert Macro.escape([1, 2 | 3]) == [1, {:|, [], [2, 3]}]
+    end
+
+    test "prunes metadata" do
+      meta = [nothing: :important, counter: 1]
+      assert Macro.escape({:foo, meta, []}) == {:{}, [], [:foo, meta, []]}
+      assert Macro.escape({:foo, meta, []}, prune_metadata: true) == {:{}, [], [:foo, [], []]}
     end
 
     test "with unquote" do

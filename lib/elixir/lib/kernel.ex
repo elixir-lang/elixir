@@ -2866,7 +2866,7 @@ defmodule Kernel do
           end
 
         try do
-          :elixir_quote.escape(value, false)
+          :elixir_quote.escape(value, :default, false)
         rescue
           ex in [ArgumentError] ->
             raise ArgumentError,
@@ -3789,7 +3789,7 @@ defmodule Kernel do
           quote(do: Kernel.LexicalTracker.read_cache(unquote(pid), unquote(integer)))
 
         %{} ->
-          {escaped, _} = :elixir_quote.escape(block, false)
+          {escaped, _} = :elixir_quote.escape(block, :default, false)
           escaped
       end
 
@@ -4063,8 +4063,8 @@ defmodule Kernel do
     module = assert_module_scope(env, kind, 2)
     assert_no_function_scope(env, kind, 2)
 
-    {escaped_call, unquoted_call} = :elixir_quote.escape(call, true)
-    {escaped_expr, unquoted_expr} = :elixir_quote.escape(expr, true)
+    {escaped_call, unquoted_call} = :elixir_quote.escape(call, :default, true)
+    {escaped_expr, unquoted_expr} = :elixir_quote.escape(expr, :default, true)
 
     escaped_expr =
       case unquoted_expr do
