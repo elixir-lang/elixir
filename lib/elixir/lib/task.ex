@@ -9,7 +9,7 @@ defmodule Task do
   by computing a value asynchronously:
 
       task = Task.async(fn -> do_some_work() end)
-      res  = do_some_other_work()
+      res = do_some_other_work()
       res + Task.await(task)
 
   Tasks spawned with `async` can be awaited on by their caller
@@ -122,9 +122,12 @@ defmodule Task do
   A short example is:
 
       {:ok, pid} = Task.Supervisor.start_link()
-      task = Task.Supervisor.async(pid, fn ->
-        # Do something
-      end)
+
+      task =
+        Task.Supervisor.async(pid, fn ->
+          # Do something
+        end)
+
       Task.await(task)
 
   However, in the majority of cases, you want to add the task supervisor
@@ -144,7 +147,8 @@ defmodule Task do
 
       Task.Supervisor.async(MyApp.TaskSupervisor, fn ->
         # Do something
-      end) |> Task.await()
+      end)
+      |> Task.await()
 
   Finally, check `Task.Supervisor` for other supported operations.
 
@@ -157,8 +161,8 @@ defmodule Task do
       Task.Supervisor.start_link(name: MyApp.DistSupervisor)
 
       # On the client
-      Task.Supervisor.async({MyApp.DistSupervisor, :remote@local},
-                            MyMod, :my_fun, [arg1, arg2, arg3])
+      supervisor = {MyApp.DistSupervisor, :remote@local}
+      Task.Supervisor.async(supervisor, MyMod, :my_fun, [arg1, arg2, arg3])
 
   Note that, when working with distributed tasks, one should use the `Task.Supervisor.async/4` function
   that expects explicit module, function and arguments, instead of `Task.Supervisor.async/2` that
@@ -404,7 +408,7 @@ defmodule Task do
   The concurrency can be increased or decreased using the `:max_concurrency`
   option. For example, if the tasks are IO heavy, the value can be increased:
 
-      max_concurrency = System.schedulers_online * 2
+      max_concurrency = System.schedulers_online() * 2
       stream = Task.async_stream(collection, Mod, :expensive_fun, [], max_concurrency: max_concurrency)
       Enum.to_list(stream)
 
@@ -572,8 +576,9 @@ defmodule Task do
       case Task.yield(task, timeout) || Task.shutdown(task) do
         {:ok, result} ->
           result
+
         nil ->
-          Logger.warn "Failed to get a result in #{timeout}ms"
+          Logger.warn("Failed to get a result in #{timeout}ms")
           nil
       end
 
@@ -641,15 +646,16 @@ defmodule Task do
 
       tasks_with_results = Task.yield_many(tasks, 5000)
 
-      results = Enum.map(tasks_with_results, fn {task, res} ->
-        # Shutdown the tasks that did not reply nor exit
-        res || Task.shutdown(task, :brutal_kill)
-      end)
+      results =
+        Enum.map(tasks_with_results, fn {task, res} ->
+          # Shutdown the tasks that did not reply nor exit
+          res || Task.shutdown(task, :brutal_kill)
+        end)
 
       # Here we are matching only on {:ok, value} and
       # ignoring {:exit, _} (crashed tasks) and `nil` (no replies)
       for {:ok, value} <- results do
-        IO.inspect value
+        IO.inspect(value)
       end
 
   In the example above, we create tasks that sleep from 1
