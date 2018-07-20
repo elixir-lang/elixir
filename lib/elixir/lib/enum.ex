@@ -754,7 +754,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.each(["some", "example"], fn(x) -> IO.puts x end)
+      Enum.each(["some", "example"], fn x -> IO.puts(x) end)
       "some"
       "example"
       #=> :ok
@@ -883,10 +883,13 @@ defmodule Enum do
   discard the invalid one in one pass:
 
       strings = ["1234", "abc", "12ab"]
+
       Enum.flat_map(strings, fn string ->
         case Integer.parse(string) do
-          {int, _rest} -> [int] # transform to integer
-          :error -> [] # skip the value
+          # transform to integer
+          {int, _rest} -> [int]
+          # skip the value
+          :error -> []
         end
       end)
 
@@ -1913,8 +1916,8 @@ defmodule Enum do
 
       def my_map(enumerable, fun) do
         enumerable
-        |> Enum.reduce([], fn(x, acc) -> [fun.(x) | acc] end)
-        |> Enum.reverse
+        |> Enum.reduce([], fn x, acc -> [fun.(x) | acc] end)
+        |> Enum.reverse()
       end
 
   In the example above, `Enum.reduce/3` accumulates the result of each call
