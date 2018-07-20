@@ -215,6 +215,7 @@ defmodule DateTime do
           | {:ambiguous, t, t}
           | {:gap, t, t}
           | {:error, :time_zone_not_found}
+          | {:error, :incompatible_calendars}
 
   def from_naive(naive_datetime, time_zone, time_zone_data_module \\ :from_config)
 
@@ -292,6 +293,34 @@ defmodule DateTime do
     end
   end
 
+  def from_naive(%{calendar: calendar} = naive_datetime, time_zone, time_zone_data_module)
+      when calendar != Calendar.ISO do
+    # For non-ISO calendars, convert to ISO, create ISO DateTime, and then
+    # convert to original calendar
+    iso_result =
+      with {:ok, in_iso} <- NaiveDateTime.convert(naive_datetime, Calendar.ISO) do
+        from_naive(in_iso, time_zone, time_zone_data_module)
+      end
+
+    case iso_result do
+      {:ok, dt} ->
+        convert(dt, calendar)
+
+      {:ambiguous, dt1, dt2} ->
+        with {:ok, dt1converted} <- convert(dt1, calendar),
+             {:ok, dt2converted} <- convert(dt2, calendar),
+             do: {:ambiguous, dt1converted, dt2converted}
+
+      {:gap, dt1, dt2} ->
+        with {:ok, dt1converted} <- convert(dt1, calendar),
+             {:ok, dt2converted} <- convert(dt2, calendar),
+             do: {:gap, dt1converted, dt2converted}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
   defp do_from_naive(naive_datetime, time_zone, std_offset, utc_offset, zone_abbr) do
     %{
       calendar: calendar,
@@ -362,7 +391,7 @@ defmodule DateTime do
       #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
   """
   @spec shift_zone(t, Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
-          {:ok, t} | {:error, :time_zone_not_found}
+          {:ok, t} | {:error, :time_zone_not_found} | {:error, :incompatible_calendars}
   def shift_zone(datetime, time_zone, time_zone_database \\ :from_config)
 
   def shift_zone(%{time_zone: time_zone} = datetime, time_zone, _) do
@@ -394,6 +423,15 @@ defmodule DateTime do
 
       {:error, :time_zone_not_found} ->
         {:error, :time_zone_not_found}
+    end
+  end
+
+  def shift_zone(%{calendar: calendar} = datetime, time_zone, time_zone_database)
+      when calendar != Calendar.ISO do
+    with {:ok, iso_datetime} <- DateTime.convert(datetime, Calendar.ISO),
+         {:ok, shifted_zone_iso_dt} <- shift_zone(iso_datetime, time_zone, time_zone_database),
+         {:ok, shifted_zone_original_calendar_dt} <- convert(shifted_zone_iso_dt, calendar) do
+      {:ok, shifted_zone_original_calendar_dt}
     end
   end
 

@@ -879,4 +879,84 @@ defmodule DateTimeTest do
 
     assert DateTime.diff(dt1, dt2) == 3_281_904_000
   end
+
+  test "from_naive" do
+    holocene_ndt = %NaiveDateTime{
+      calendar: Calendar.Holocene,
+      year: 12018,
+      month: 7,
+      day: 1,
+      hour: 12,
+      minute: 34,
+      second: 25,
+      microsecond: {123_456, 6}
+    }
+
+    assert DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
+             {:ok,
+              %DateTime{
+                calendar: Calendar.Holocene,
+                day: 1,
+                hour: 12,
+                microsecond: {123_456, 6},
+                minute: 34,
+                month: 7,
+                second: 25,
+                std_offset: 3600,
+                time_zone: "Europe/Copenhagen",
+                utc_offset: 3600,
+                year: 12018,
+                zone_abbr: "CEST"
+              }}
+  end
+
+  test "shift zone" do
+    holocene_ndt = %NaiveDateTime{
+      calendar: Calendar.Holocene,
+      year: 12018,
+      month: 7,
+      day: 1,
+      hour: 12,
+      minute: 34,
+      second: 25,
+      microsecond: {123_456, 6}
+    }
+
+    {:ok, holocene_dt} =
+      DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+    {:ok, dt} = DateTime.shift_zone(holocene_dt, "America/Los_Angeles", FakeTimeZoneDatabase)
+
+    assert dt == %DateTime{
+             calendar: Calendar.Holocene,
+             day: 1,
+             hour: 3,
+             microsecond: {123_456, 6},
+             minute: 34,
+             month: 7,
+             second: 25,
+             std_offset: 3600,
+             time_zone: "America/Los_Angeles",
+             utc_offset: -28800,
+             year: 12018,
+             zone_abbr: "PDT"
+           }
+  end
+
+  test "from_naive with calendar not compatible with ISO" do
+    ndt = %{~N[2018-07-20 00:00:00] | calendar: FakeCalendar}
+
+    assert DateTime.from_naive(ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
+             {:error, :incompatible_calendars}
+  end
+
+  test "shift_zone for DateTime with a calendar not compatible with ISO" do
+    {:ok, dt} =
+      DateTime.from_naive(~N[2018-07-20 00:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+    dt_fake_calendar = %{dt | calendar: FakeCalendar}
+
+    assert DateTime.shift_zone(dt_fake_calendar, "America/Los_Angeles", FakeTimeZoneDatabase) ==
+             {:error, :incompatible_calendars}
+  end
 end
