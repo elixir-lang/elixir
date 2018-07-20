@@ -87,12 +87,14 @@ defmodule List do
   instead of Elixir strings. One example of such functions
   is `Application.loaded_applications/0`:
 
-      Application.loaded_applications
-      #=>  [{:stdlib, 'ERTS  CXC 138 10', '2.6'},
-      #=>   {:compiler, 'ERTS  CXC 138 10', '6.0.1'},
-      #=>   {:elixir, 'elixir', '1.0.0'},
-      #=>   {:kernel, 'ERTS  CXC 138 10', '4.1'},
-      #=>   {:logger, 'logger', '1.0.0'}]
+      Application.loaded_applications()
+      #=>  [
+      #=>    {:stdlib, 'ERTS  CXC 138 10', '2.6'},
+      #=>    {:compiler, 'ERTS  CXC 138 10', '6.0.1'},
+      #=>    {:elixir, 'elixir', '1.0.0'},
+      #=>    {:kernel, 'ERTS  CXC 138 10', '4.1'},
+      #=>    {:logger, 'logger', '1.0.0'}
+      #=>  ]
 
   A list can be checked if it is made of printable ascii
   codepoints with `ascii_printable?/2`.
