@@ -89,7 +89,7 @@ defmodule DynamicSupervisor do
         def init(initial_arg) do
           children = [
             # Or the deprecated: worker(MyWorker, [initial_arg])
-            %{id: MyWorker, start: {MyWorker, :start_link, [initial_arg]})
+            %{id: MyWorker, start: {MyWorker, :start_link, [initial_arg]}}
           ]
 
           Supervisor.init(children, strategy: :simple_one_for_one)
