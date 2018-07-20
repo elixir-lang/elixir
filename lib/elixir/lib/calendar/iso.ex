@@ -36,6 +36,39 @@ defmodule Calendar.ISO do
 
   @months_in_year 12
 
+  @doc false
+  def __match_date__ do
+    quote do
+      [
+        <<y1, y2, y3, y4, ?-, m1, m2, ?-, d1, d2>>,
+        y1 >= ?0 and y1 <= ?9 and y2 >= ?0 and y2 <= ?9 and y3 >= ?0 and y3 <= ?9 and y4 >= ?0 and
+          y4 <= ?9 and m1 >= ?0 and m1 <= ?9 and m2 >= ?0 and m2 <= ?9 and d1 >= ?0 and d1 <= ?9 and
+          d2 >= ?0 and d2 <= ?9,
+        {
+          (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
+          (m1 - ?0) * 10 + (m2 - ?0),
+          (d1 - ?0) * 10 + (d2 - ?0)
+        }
+      ]
+    end
+  end
+
+  @doc false
+  def __match_time__ do
+    quote do
+      [
+        <<h1, h2, ?:, i1, i2, ?:, s1, s2>>,
+        h1 >= ?0 and h1 <= ?9 and h2 >= ?0 and h2 <= ?9 and i1 >= ?0 and i1 <= ?9 and i2 >= ?0 and
+          i2 <= ?9 and s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9,
+        {
+          (h1 - ?0) * 10 + (h2 - ?0),
+          (i1 - ?0) * 10 + (i2 - ?0),
+          (s1 - ?0) * 10 + (s2 - ?0)
+        }
+      ]
+    end
+  end
+
   @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.
 

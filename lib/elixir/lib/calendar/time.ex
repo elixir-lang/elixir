@@ -221,21 +221,20 @@ defmodule Time do
     from_iso8601(<<h, rest::binary>>, calendar)
   end
 
-  def from_iso8601(<<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>, calendar) do
-    with {hour, ""} <- Integer.parse(hour),
-         {min, ""} <- Integer.parse(min),
-         {sec, ""} <- Integer.parse(sec),
+  [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
+
+  def from_iso8601(string, calendar) do
+    with <<unquote(match_time), rest::binary>> when unquote(guard_time) <- string,
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
          {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      with {:ok, utc_time} <- new(hour, min, sec, microsec, Calendar.ISO),
-           do: convert(utc_time, calendar)
+      {hour, min, sec} = unquote(read_time)
+
+      with {:ok, utc_time} <- new(hour, min, sec, microsec, Calendar.ISO) do
+        convert(utc_time, calendar)
+      end
     else
       _ -> {:error, :invalid_format}
     end
-  end
-
-  def from_iso8601(<<_::binary>>, _calendar) do
-    {:error, :invalid_format}
   end
 
   @doc """
