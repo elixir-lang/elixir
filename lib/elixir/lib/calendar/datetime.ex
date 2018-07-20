@@ -186,7 +186,7 @@ defmodule DateTime do
   to winter time - the two possible valid datetimes are returned. First the one
   that happens first, then the one that happens after.
 
-      iex> {:ambiguous, [first_dt, second_dt]} = DateTime.from_naive(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> {:ambiguous, first_dt, second_dt} = DateTime.from_naive(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> first_dt
       #DateTime<2018-10-28 02:30:00+02:00 CEST Europe/Copenhagen>
       iex> second_dt
@@ -196,7 +196,7 @@ defmodule DateTime do
   turned forward - the latest valid datetime just before the gap and the first
   valid datetime just after the gap.
 
-      iex> {:gap, [just_before, just_after]} = DateTime.from_naive(~N[2019-03-31 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> {:gap, just_before, just_after} = DateTime.from_naive(~N[2019-03-31 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> just_before
       #DateTime<2019-03-31 01:59:59.999999+01:00 CET Europe/Copenhagen>
       iex> just_after
@@ -212,8 +212,8 @@ defmodule DateTime do
   @doc since: "1.4.0"
   @spec from_naive(NaiveDateTime.t(), Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
           {:ok, t}
-          | {:ambiguous, [TimeZoneDatabase.time_zone_period()]}
-          | {:gap, [TimeZoneDatabase.time_zone_period()]}
+          | {:ambiguous, t, t}
+          | {:gap, t, t}
           | {:error, :time_zone_not_found}
 
   def from_naive(naive_datetime, time_zone, time_zone_data_module \\ :from_config)
@@ -222,7 +222,7 @@ defmodule DateTime do
     do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
   end
 
-  def from_naive(naive_datetime, time_zone, time_zone_data_module) do
+  def from_naive(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_data_module) do
     case by_wall(time_zone_data_module, time_zone, naive_datetime) do
       {:single, period} ->
         do_from_naive(
@@ -233,7 +233,7 @@ defmodule DateTime do
           period.zone_abbr
         )
 
-      {:ambiguous, [first_period, second_period]} ->
+      {:ambiguous, first_period, second_period} ->
         {:ok, first_datetime} =
           do_from_naive(
             naive_datetime,
@@ -252,9 +252,9 @@ defmodule DateTime do
             second_period.zone_abbr
           )
 
-        {:ambiguous, [first_datetime, second_datetime]}
+        {:ambiguous, first_datetime, second_datetime}
 
-      {:gap, [first_period, second_period]} ->
+      {:gap, first_period, second_period} ->
         # `until_wall` is not valid, but any time just before is.
         # So by subtracting a second and adding .999999 seconds
         # we get the last microsecond just before.
@@ -287,7 +287,7 @@ defmodule DateTime do
             second_period.zone_abbr
           )
 
-        {:gap, [latest_datetime_before, first_datetime_after]}
+        {:gap, latest_datetime_before, first_datetime_after}
 
       {:error, _} = error ->
         error
@@ -1082,9 +1082,10 @@ defmodule DateTime do
 
   @no_valid_time_zone_database_error "No valid TimeZoneDatabase provided or configured. Configure with :elixir_config.put(:time_zone_module, module_name)"
   @spec by_wall(TimeZoneDatabase.t(), Calendar.time_zone(), Calendar.naive_datetime()) ::
-          {:single, TimeZoneDatabase.time_zone_period()}
-          | {:ambiguous, [TimeZoneDatabase.time_zone_period()]}
-          | {:gap, [TimeZoneDatabase.time_zone_period()]}
+          {:single, TimeZoneDatabase.light_time_zone_period()}
+          | {:ambiguous, TimeZoneDatabase.light_time_zone_period(),
+             TimeZoneDatabase.light_time_zone_period()}
+          | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
           | {:error, :time_zone_not_found}
   defp by_wall(time_zone_data_module, time_zone, naive_datetime) do
     iso_seconds = to_iso_seconds(naive_datetime)

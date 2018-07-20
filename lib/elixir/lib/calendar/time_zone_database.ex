@@ -61,8 +61,8 @@ defmodule TimeZoneDatabase do
   """
   @callback by_wall(Calendar.time_zone(), Calendar.ISO.iso_seconds()) ::
               {:single, light_time_zone_period}
-              | {:ambiguous, [light_time_zone_period]}
-              | {:gap, [time_zone_period]}
+              | {:ambiguous, light_time_zone_period, light_time_zone_period}
+              | {:gap, time_zone_period, time_zone_period}
               | {:error, :time_zone_not_found}
 
   @doc """
