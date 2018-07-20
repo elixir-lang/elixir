@@ -192,10 +192,10 @@ defmodule Process do
 
   In other words, **do not**:
 
-      Task.start_link fn ->
+      Task.start_link(fn ->
         do_something()
         ...
-      end
+      end)
 
       # Wait until work is done
       Process.sleep(2000)
@@ -203,16 +203,18 @@ defmodule Process do
   But **do**:
 
       parent = self()
-      Task.start_link fn ->
+
+      Task.start_link(fn ->
         do_something()
-        send parent, :work_is_done
+        send(parent, :work_is_done)
         ...
-      end
+      end)
 
       receive do
         :work_is_done -> :ok
       after
-        30_000 -> :timeout # Optional timeout
+        # Optional timeout
+        30_000 -> :timeout
       end
 
   For cases like the one above, `Task.async/1` and `Task.await/2` are
@@ -221,9 +223,9 @@ defmodule Process do
   Similarly, if you are waiting for a process to terminate,
   monitor that process instead of sleeping. **Do not**:
 
-      Task.start_link fn ->
+      Task.start_link(fn ->
         ...
-      end
+      end)
 
       # Wait until task terminates
       Process.sleep(2000)
@@ -231,15 +233,17 @@ defmodule Process do
   Instead **do**:
 
       {:ok, pid} =
-        Task.start_link fn ->
+        Task.start_link(fn ->
           ...
-        end
+        end)
 
       ref = Process.monitor(pid)
+
       receive do
         {:DOWN, ^ref, _, _, _} -> :task_is_down
       after
-        30_000 -> :timeout # Optional timeout
+        # Optional timeout
+        30_000 -> :timeout
       end
 
   """
@@ -449,7 +453,7 @@ defmodule Process do
 
   ## Examples
 
-      pid = spawn fn -> 1 + 2 end
+      pid = spawn(fn -> 1 + 2 end)
       #=> #PID<0.118.0>
       Process.monitor(pid)
       #=> #Reference<0.906660723.3006791681.40191>
@@ -479,7 +483,7 @@ defmodule Process do
 
   ## Examples
 
-      pid = spawn fn -> 1 + 2 end
+      pid = spawn(fn -> 1 + 2 end)
       ref = Process.monitor(pid)
       Process.demonitor(ref)
       #=> true
