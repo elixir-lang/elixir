@@ -418,12 +418,12 @@ defmodule Application do
 
       config :my_app, Databases.RepoOne,
         # A database configuration
-        ip: "localhost"
+        ip: "localhost",
         port: 5433
 
       config :my_app, Databases.RepoTwo,
         # Another database configuration (for the same OTP app)
-        ip: "localhost"
+        ip: "localhost",
         port: 20717
 
       config :my_app, my_app_databases: [Databases.RepoOne, Databases.RepoTwo]
