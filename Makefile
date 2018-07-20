@@ -254,7 +254,7 @@ build_plt: clean_plt $(PLT)
 
 dialyze: compile $(PLT)
 	@ echo "==> Dialyzing Elixir..."
-	$(Q) dialyzer --plt $(PLT) $(DIALYZER_OPTS) lib/*/ebin
+	$(Q) dialyzer -pa lib/elixir/ebin --plt $(PLT) $(DIALYZER_OPTS) lib/*/ebin
 
 #==> Man page tasks
 
