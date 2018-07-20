@@ -24,10 +24,11 @@ defmodule ExUnit.ReceivePatternFormat do
     _diff =
       left
       |> ExUnit.PatternDiff.cmp(right)
-      |> IO.inspect(label: "Compare")
+      # |> IO.inspect(label: "Compare")
       |> format
       |> Enum.reject(&(&1 == ""))
-      |> IO.inspect(label: "Diff")
+
+    # |> IO.inspect(label: "Diff")
   end
 
   def format(diff, ctx \\ nil)
@@ -37,7 +38,7 @@ defmodule ExUnit.ReceivePatternFormat do
         %{keys: key_type, missing: false, comma: comma} = ctx
       )
       when key_type == :atom_keys or key_type == :non_atom_keys do
-    IO.inspect("Container Map")
+    # IO.inspect("Container Map")
     [h | rest] = items
 
     [
@@ -117,8 +118,8 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :non_atom_keys, comma: comma}) do
-    IO.inspect(l, label: "Container non-atom tuple pair: L")
-    IO.inspect(r, label: "Container non-atom tuple pair: R")
+    # IO.inspect(l, label: "Container non-atom tuple pair: L")
+    # IO.inspect(r, label: "Container non-atom tuple pair: R")
 
     left =
       case l do
@@ -193,8 +194,8 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh}, %{comma: comma} = ctx) do
-    IO.inspect(lh, label: "pattern not equal, missing right")
-    IO.inspect(ctx, label: "context")
+    # IO.inspect(lh, label: "pattern not equal, missing right")
+    # IO.inspect(ctx, label: "context")
     [comma, insert(textify_ast(lh, ctx))]
   end
 
@@ -215,7 +216,7 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: rh, lh: _lh}, %{comma: comma} = ctx) do
-    IO.inspect(ctx, label: "pattern not equal, but not part of match")
+    # IO.inspect(ctx, label: "pattern not equal, but not part of match")
     [comma, delete(inspect(rh))]
   end
 
@@ -289,8 +290,8 @@ defmodule ExUnit.ReceivePatternFormat do
   defp textify_ast(%{ast: ast}, ctx), do: textify_ast(ast, ctx)
 
   defp textify_ast({:^, _, [{var, _, _}]}, ctx) do
-    IO.inspect(var, label: "var")
-    IO.inspect(ctx, label: "ctx")
+    # IO.inspect(var, label: "var")
+    # IO.inspect(ctx, label: "ctx")
     "^#{var}"
   end
 

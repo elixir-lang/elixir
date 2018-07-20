@@ -187,22 +187,28 @@ defmodule ExUnit.PatternReceiveTest do
   #   end
   # end
 
-  # describe "map nested" do
-  #   test "map with atom keys" do
-  #     map = %{a: "1", b: "string", c: [1, 2, 3], d: %{foo: :bar, a: 1, b: 2, c: 3}}
-  #     send(self(), map)
+  describe "map nested" do
+    test "map with atom keys" do
+      map = %{a: "1", b: "string", c: [1, 2, 3], d: %{foo: :bar, a: 1, b: 2, c: 3}}
+      send(self(), map)
 
-  #     match = %{a: "2", b: "string", c: [1, 2, 4, 5], d: %{bar: :foo}}
-  #     assert_receive(^match)
-  #   end
-  # end
+      match = %{a: "2", b: "string", c: [1, 2, 4, 5], d: %{bar: :foo}}
+      assert_receive(^match)
+    end
+  end
 
   test "find the match" do
-    a = 1
-    assert match?(%{a: ^a, b: 3}, %{a: 2, b: 3})
+    # a = 1
+    # assert match?(%{a: ^a, b: 3}, %{a: 2, b: 3})
     # assert %{a: 1} == %{a: 2, b: 3}
+    assert %{a: b, b: b} = %{a: 2, b: 3}
+    # assert match?(%{a: b, b: b}, %{a: 2, b: 3})
     # send(self(), %{a: 2, b: 3})
-    # assert_receive(%{a: 1})
+    # assert_receive(%{a: a, b: b})
+  end
+
+  test "binary match" do
+    assert match?("hello" <> world, "hello world")
   end
 
   # test "pinned map key doesn't exist" do

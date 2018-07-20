@@ -110,6 +110,14 @@ defmodule ExUnit.Assertions do
     vars = collect_vars_from_pattern(left)
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
+    left_pattern = escape_quoted(:pattern, left)
+
+    pattern_vars =
+      vars
+      |> Enum.map(fn {var, _, _} -> var end)
+      |> Enum.uniq()
+      |> Enum.map(&{&1, :ex_unit_unbound_var})
+
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
     # to avoid silly warnings though.
@@ -137,7 +145,11 @@ defmodule ExUnit.Assertions do
               unquote(vars)
 
             _ ->
+              {:pattern, [], [left]} = unquote(left_pattern)
+              pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
+
               raise ExUnit.AssertionError,
+                left: pattern,
                 right: right,
                 expr: expr,
                 message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins))
