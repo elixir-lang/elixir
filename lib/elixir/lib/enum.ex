@@ -887,12 +887,9 @@ defmodule Enum do
       Enum.flat_map(strings, fn string ->
         case Integer.parse(string) do
           # transform to integer
-          {int, _rest} ->
-            [int]
-
+          {int, _rest} -> [int]
           # skip the value
-          :error ->
-            []
+          :error -> []
         end
       end)
 
