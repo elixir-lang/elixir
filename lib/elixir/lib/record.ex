@@ -28,10 +28,10 @@ defmodule Record do
 
       defmodule MyModule do
         require Record
-        Record.defrecord :user, name: "john", age: 25
+        Record.defrecord(:user, name: "john", age: 25)
 
-        @type user :: record(:user, name: String.t, age: integer)
-        # expands to: "@type user :: {:user, String.t, integer}"
+        @type user :: record(:user, name: String.t(), age: integer)
+        # expands to: "@type user :: {:user, String.t(), integer}"
       end
 
   """
@@ -74,10 +74,21 @@ defmodule Record do
   ## Examples
 
       iex> Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-      [size: :undefined, type: :undefined, access: :undefined, atime: :undefined,
-       mtime: :undefined, ctime: :undefined, mode: :undefined, links: :undefined,
-       major_device: :undefined, minor_device: :undefined, inode: :undefined,
-       uid: :undefined, gid: :undefined]
+      [
+        size: :undefined,
+        type: :undefined,
+        access: :undefined,
+        atime: :undefined,
+        mtime: :undefined,
+        ctime: :undefined,
+        mode: :undefined,
+        links: :undefined,
+        major_device: :undefined,
+        minor_device: :undefined,
+        inode: :undefined,
+        uid: :undefined,
+        gid: :undefined
+      ]
 
   """
   @spec extract(name :: atom, keyword) :: keyword
@@ -175,7 +186,7 @@ defmodule Record do
 
       defmodule User do
         require Record
-        Record.defrecord :user, [name: "meg", age: "25"]
+        Record.defrecord(:user, name: "meg", age: "25")
       end
 
   In the example above, a set of macros named `user` but with different
@@ -215,7 +226,7 @@ defmodule Record do
 
       defmodule User do
         require Record
-        Record.defrecord :user, Customer, name: nil
+        Record.defrecord(:user, Customer, name: nil)
       end
 
       require User
@@ -228,7 +239,7 @@ defmodule Record do
   a record after extracting it from an Erlang library that uses anonymous
   functions for defaults.
 
-      Record.defrecord :my_rec, Record.extract(...)
+      Record.defrecord(:my_rec, Record.extract(...))
       #=> ** (ArgumentError) invalid value for record field fun_field,
       #=>   cannot escape #Function<12.90072148/2 in :erl_eval.expr/5>.
 
@@ -237,7 +248,7 @@ defmodule Record do
 
       defmodule MyRec do
         require Record
-        Record.defrecord :my_rec, Record.extract(...) |> Keyword.merge(fun_field: &__MODULE__.foo/2)
+        Record.defrecord(:my_rec, Record.extract(...) |> Keyword.merge(fun_field: &__MODULE__.foo/2))
         def foo(bar, baz), do: IO.inspect({bar, baz})
       end
 
