@@ -1121,7 +1121,8 @@ defmodule Code do
   longer available, and therefore this function always returns `nil`.
   Use `Code.fetch_docs/1` instead.
   """
-  @doc deprecated: "Code.get_docs/2 always returns nil as its outdated documentation is no longer stored on BEAM files. Use Code.fetch_docs/1 instead"
+  @doc deprecated:
+         "Code.get_docs/2 always returns nil as its outdated documentation is no longer stored on BEAM files. Use Code.fetch_docs/1 instead"
   @spec get_docs(module, :moduledoc | :docs | :callback_docs | :type_docs | :all) :: nil
   def get_docs(_module, _kind) do
     nil
