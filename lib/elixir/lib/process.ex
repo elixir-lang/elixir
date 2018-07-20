@@ -214,8 +214,7 @@ defmodule Process do
         :work_is_done -> :ok
       after
         # Optional timeout
-        30_000 ->
-          :timeout
+        30_000 -> :timeout
       end
 
   For cases like the one above, `Task.async/1` and `Task.await/2` are
@@ -244,8 +243,7 @@ defmodule Process do
         {:DOWN, ^ref, _, _, _} -> :task_is_down
       after
         # Optional timeout
-        30_000 ->
-          :timeout
+        30_000 -> :timeout
       end
 
   """
