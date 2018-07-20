@@ -132,13 +132,17 @@ defmodule Access do
 
       iex> languages = [
       ...>   %{name: "elixir", type: :functional},
-      ...>   %{name: "c", type: :procedural},
+      ...>   %{name: "c", type: :procedural}
       ...> ]
       iex> user = %{name: "john", languages: languages}
       iex> update_in(user, [:languages, Access.all(), :name], &String.upcase/1)
-      %{name: "john",
-        languages: [%{name: "ELIXIR", type: :functional},
-                    %{name: "C", type: :procedural}]}
+      %{
+        name: "john",
+        languages: [
+          %{name: "ELIXIR", type: :functional},
+          %{name: "C", type: :procedural}
+        ]
+      }
 
   See the functions `key/1`, `key!/1`, `elem/1`, and `all/0` for some of the
   available accessors.
@@ -611,7 +615,7 @@ defmodule Access do
   numbers and multiplying odd numbers by 2:
 
       iex> require Integer
-      iex> get_and_update_in([1, 2, 3, 4, 5], [Access.all], fn num ->
+      iex> get_and_update_in([1, 2, 3, 4, 5], [Access.all()], fn num ->
       ...>   if Integer.is_even(num), do: :pop, else: {num, num * 2}
       ...> end)
       {[1, 2, 3, 4, 5], [2, 6, 10]}
