@@ -9,27 +9,28 @@ defmodule TimeZoneDatabase do
   @typedoc """
   Limit for when a certain time zone period begins and ends.
 
-  It can either be an integer representing ISO seconds or `:min` or `:max`.
+  It can either be an Erlang-style datetime tuple or `:min` or `:max`.
 
   `:min` basically means "since the beginning of time" and `:max` "until forever".
   """
-  @type time_zone_period_limit :: Calendar.ISO.iso_seconds() | :min | :max
+  @type time_zone_period_limit :: :calendar.datetime() | :min | :max
 
   @typedoc """
   A period where a certain combination of UTC offset, standard offset and zone
   abbreviation is in effect.
 
   `from_utc` and `from_wall` is inclusive while `until_utc` and `until_wall` is
-  exclusive. Eg. if a period from 63594810000 and until 63612954000, the period
-  includes and begins from the begining of second 63594810000 and lasts until
-  just before second 63612954000.
+  exclusive. Eg. if a period from {{2015, 3, 29}, {1, 0, 0}} and until
+  {{2015, 10, 25}, {1, 0, 0}}, the period includes and begins from the begining
+  of {{2015, 3, 29}, {1, 0, 0}} and lasts until just before
+  {{2015, 10, 25}, {1, 0, 0}}.
   """
   @type time_zone_period :: %{
           utc_offset: Calendar.utc_offset(),
           std_offset: Calendar.std_offset(),
           zone_abbr: Calendar.zone_abbr(),
-          from_wall: time_zone_period_limit,
-          until_wall: time_zone_period_limit
+          from_wall: time_zone_period_limit(),
+          until_wall: time_zone_period_limit()
         }
 
   @typedoc """
@@ -45,21 +46,21 @@ defmodule TimeZoneDatabase do
   Takes a time zone name and a point in time for UTC and returns a
   `time_zone_period` for that point in time.
   """
-  @callback by_utc(Calendar.time_zone(), Calendar.ISO.iso_seconds()) ::
+  @callback by_utc(Calendar.time_zone(), :calendar.datetime()) ::
               {:ok, light_time_zone_period} | {:error, :time_zone_not_found}
 
   @doc """
-  When the provided `iso_seconds` is ambiguous for the datetime a tuple with `:ambiguous` and a list of two possible
+  When the provided `datetime` is ambiguous a tuple with `:ambiguous` and a list of two possible
   periods. The periods in the list are sorted with the first element being the one that begins first.
 
-  When the provided `iso_seconds` datetime is in a gap - for instance during the "spring forward" when going
+  When the provided `datetime` is in a gap - for instance during the "spring forward" when going
   from winter time to summer time, a tuple with `:gap` and a list of two time zone periods are returned. The first
   period in the list is the period before the gap and the second period is the period just after the gap.
 
-  If there is only a single possible period for the provided `iso_seconds`, the a tuple with `:single`
+  If there is only a single possible period for the provided `datetime`, the a tuple with `:single`
   and the `time_zone_period` is returned.
   """
-  @callback by_wall(Calendar.time_zone(), Calendar.ISO.iso_seconds()) ::
+  @callback by_wall(Calendar.time_zone(), :calendar.datetime()) ::
               {:single, light_time_zone_period}
               | {:ambiguous, light_time_zone_period, light_time_zone_period}
               | {:gap, time_zone_period, time_zone_period}
