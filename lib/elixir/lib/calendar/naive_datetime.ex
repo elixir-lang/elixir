@@ -476,20 +476,21 @@ defmodule NaiveDateTime do
     end
   end
 
+  @sep [?\s, ?T]
+  [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
+  [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
+
   def from_iso8601(string, calendar) when is_binary(string) do
-    with <<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep, rest::binary>> <- string,
-         true <- sep in [?\s, ?T],
-         <<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>> <- rest,
-         {year, ""} <- Integer.parse(year),
-         {month, ""} <- Integer.parse(month),
-         {day, ""} <- Integer.parse(day),
-         {hour, ""} <- Integer.parse(hour),
-         {min, ""} <- Integer.parse(min),
-         {sec, ""} <- Integer.parse(sec),
+    with <<unquote(match_date), sep, unquote(match_time), rest::binary>>
+         when unquote(guard_date) and sep in @sep and unquote(guard_time) <- string,
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
          {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      with {:ok, utc_date} <- new(year, month, day, hour, min, sec, microsec, Calendar.ISO),
-           do: convert(utc_date, calendar)
+      {year, month, day} = unquote(read_date)
+      {hour, min, sec} = unquote(read_time)
+
+      with {:ok, utc_date} <- new(year, month, day, hour, min, sec, microsec, Calendar.ISO) do
+        convert(utc_date, calendar)
+      end
     else
       _ -> {:error, :invalid_format}
     end
