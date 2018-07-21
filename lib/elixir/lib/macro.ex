@@ -385,7 +385,7 @@ defmodule Macro do
       an assertion fails we can show code snippets to users. Without this
       option, each time the test module is compiled, we get a different
       MD5 of the module byte code, because the AST contains metadata,
-      such as counters, specific the compilation environment. By pruning
+      such as counters, specific to the compilation environment. By pruning
       the metadata, we ensure that the module is deterministic and reduce
       the amount of data `ExUnit` needs to keep around.
 
