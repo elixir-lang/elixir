@@ -693,7 +693,8 @@ defmodule Kernel do
 
   ## Examples
 
-      make_ref() #=> #Reference<0.0.0.135>
+      make_ref()
+      #=> #Reference<0.0.0.135>
 
   """
   @spec make_ref() :: reference
@@ -909,10 +910,10 @@ defmodule Kernel do
   ## Examples
 
       current = self()
-      child = spawn(fn -> send current, {self(), 1 + 2} end)
+      child = spawn(fn -> send(current, {self(), 1 + 2}) end)
 
       receive do
-        {^child, 3} -> IO.puts "Received 3 back"
+        {^child, 3} -> IO.puts("Received 3 back")
       end
 
   """
@@ -965,7 +966,7 @@ defmodule Kernel do
       child = spawn_link(fn -> send(current, {self(), 1 + 2}) end)
 
       receive do
-        {^child, 3} -> IO.puts "Received 3 back"
+        {^child, 3} -> IO.puts("Received 3 back")
       end
 
   """
@@ -1016,7 +1017,7 @@ defmodule Kernel do
   ## Examples
 
       current = self()
-      spawn_monitor(fn -> send current, {self(), 1 + 2} end)
+      spawn_monitor(fn -> send(current, {self(), 1 + 2}) end)
 
   """
   @spec spawn_monitor((() -> any)) :: {pid, reference}
@@ -1787,7 +1788,7 @@ defmodule Kernel do
         1 + :foo
       rescue
         x in [ArithmeticError] ->
-          IO.puts "that was expected"
+          IO.puts("that was expected")
           raise x
       end
 
@@ -2001,7 +2002,7 @@ defmodule Kernel do
   representation of an Elixir term. In such cases, the inspected result
   must start with `#`. For example, inspecting a function will return:
 
-      inspect fn a, b -> a + b end
+      inspect(fn a, b -> a + b end)
       #=> #Function<...>
 
   """
@@ -2501,7 +2502,7 @@ defmodule Kernel do
 
       users["john"][:age]
       users["john"].age
-      User.all["john"].age
+      User.all()["john"].age
       all_users()["john"].age
 
   Here are some invalid ones:
@@ -2755,7 +2756,7 @@ defmodule Kernel do
 
       defmodule MyServer do
         @my_data 13
-        IO.inspect @my_data #=> 13
+        IO.inspect(@my_data) #=> 13
       end
 
   Unlike Erlang, such attributes are not stored in the module by default since
@@ -2772,8 +2773,11 @@ defmodule Kernel do
         def second_data, do: @my_data
       end
 
-      MyServer.first_data #=> 11
-      MyServer.second_data #=> 13
+      MyServer.first_data()
+      #=> 11
+
+      MyServer.second_data()
+      #=> 13
 
   It is important to note that reading an attribute takes a snapshot of
   its current value. In other words, the value is read at compilation
@@ -3255,16 +3259,16 @@ defmodule Kernel do
 
   Translates to:
 
-      String.graphemes("Hello" |> Enum.reverse)
+      String.graphemes("Hello" |> Enum.reverse())
 
   which results in an error as the `Enumerable` protocol is not defined
   for binaries. Adding explicit parentheses resolves the ambiguity:
 
-      String.graphemes("Hello") |> Enum.reverse
+      String.graphemes("Hello") |> Enum.reverse()
 
   Or, even better:
 
-      "Hello" |> String.graphemes |> Enum.reverse
+      "Hello" |> String.graphemes() |> Enum.reverse()
 
   The second pitfall is that the `|>` operator works on calls.
   For example, when you write:
@@ -3894,7 +3898,8 @@ defmodule Kernel do
         def bar, do: :baz
       end
 
-      Foo.bar() #=> :baz
+      Foo.bar()
+      #=> :baz
 
   A function that expects arguments can be defined as follows:
 
@@ -3918,8 +3923,11 @@ defmodule Kernel do
         end
       end
 
-      MyMath.multiply_by(4, 3) #=> 12
-      MyMath.multiply_by(4) #=> 8
+      MyMath.multiply_by(4, 3)
+      #=> 12
+
+      MyMath.multiply_by(4)
+      #=> 8
 
   The compiler translates this into multiple functions with different arities,
   here `Foo.multiply_by/1` and `Foo.multiply_by/2`, that represent cases when
@@ -4012,8 +4020,11 @@ defmodule Kernel do
         defp sum(a, b), do: a + b
       end
 
-      Foo.bar() #=> 3
-      Foo.sum(1, 2) #=> ** (UndefinedFunctionError) undefined function Foo.sum/2
+      Foo.bar()
+      #=> 3
+
+      Foo.sum(1, 2)
+      #=> ** (UndefinedFunctionError) undefined function Foo.sum/2
 
   """
   defmacro defp(call, expr \\ nil) do
@@ -4036,8 +4047,9 @@ defmodule Kernel do
       end
 
       require MyLogic
+
       MyLogic.unless false do
-        IO.puts "It works"
+        IO.puts("It works")
       end
 
   """
@@ -4191,7 +4203,7 @@ defmodule Kernel do
 
       defmodule User do
         defstruct name: "John", age: 25
-        @type t :: %User{name: String.t, age: non_neg_integer}
+        @type t :: %User{name: String.t(), age: non_neg_integer}
       end
 
   It is recommended to only use the struct syntax when defining the struct's
@@ -4307,7 +4319,7 @@ defmodule Kernel do
       value = [:hello]
 
       raise MyAppError,
-        message: "did not get what was expected, got: #{inspect value}"
+        message: "did not get what was expected, got: #{inspect(value)}"
 
   In many cases it is more convenient to pass the expected value to
   `raise/2` and generate the message in the `c:Exception.exception/1` callback:
@@ -4317,7 +4329,7 @@ defmodule Kernel do
 
         @impl true
         def exception(value) do
-          msg = "did not get what was expected, got: #{inspect value}"
+          msg = "did not get what was expected, got: #{inspect(value)}"
           %MyAppError{message: msg}
         end
       end
@@ -4456,7 +4468,8 @@ defmodule Kernel do
         defstruct [:email, :name]
 
         defimpl Size do
-          def size(%User{}), do: 2 # two fields
+          # two fields
+          def size(%User{}), do: 2
         end
       end
 
@@ -4508,13 +4521,16 @@ defmodule Kernel do
   Defining a protocol automatically defines a type named `t`, which
   can be used as follows:
 
-      @spec print_size(Size.t) :: :ok
+      @spec print_size(Size.t()) :: :ok
       def print_size(data) do
-        IO.puts(case Size.size(data) do
-          0 -> "data has no items"
-          1 -> "data has one item"
-          n -> "data has #{n} items"
-        end)
+        result =
+          case Size.size(data) do
+            0 -> "data has no items"
+            1 -> "data has one item"
+            n -> "data has #{n} items"
+          end
+
+        IO.puts(result)
       end
 
   The `@spec` above expresses that all types allowed to implement the
@@ -4565,7 +4581,7 @@ defmodule Kernel do
 
       def project do
         ...
-        elixirc_paths: elixirc_paths(Mix.env)
+        elixirc_paths: elixirc_paths(Mix.env())
         ...
       end
 
@@ -4580,7 +4596,7 @@ defmodule Kernel do
 
       def project do
         ...
-        consolidate_protocols: Mix.env != :test
+        consolidate_protocols: Mix.env() != :test
         ...
       end
 
@@ -4626,7 +4642,7 @@ defmodule Kernel do
               x + y
             end
 
-            defoverridable [test: 2]
+            defoverridable test: 2
           end
         end
       end
@@ -4716,7 +4732,7 @@ defmodule Kernel do
         end
 
         defp step(n, step_count) do
-          step(3*n + 1, step_count + 1)
+          step(3 * n + 1, step_count + 1)
         end
       end
 
@@ -4824,7 +4840,7 @@ defmodule Kernel do
 
       defmodule AssertionTest do
         require ExUnit.Case
-        ExUnit.Case.__using__([async: true])
+        ExUnit.Case.__using__(async: true)
 
         test "always pass" do
           assert true
