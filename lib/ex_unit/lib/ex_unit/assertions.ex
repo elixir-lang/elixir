@@ -317,7 +317,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp escape_quoted(kind, expr) do
-    Macro.escape({kind, [], [expr]})
+    Macro.escape({kind, [], [expr]}, prune_metadata: true)
   end
 
   defp extract_args({root, meta, [_ | _] = args} = expr, env) do

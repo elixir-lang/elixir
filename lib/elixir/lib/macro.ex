@@ -356,12 +356,7 @@ defmodule Macro do
   def decompose_call(_), do: :error
 
   @doc """
-  Recursively escapes a value so it can be inserted
-  into a syntax tree.
-
-  One may pass `unquote: true` to `escape/2`
-  which leaves `unquote/1` statements unescaped, effectively
-  unquoting the contents on escape.
+  Recursively escapes a value so it can be inserted into a syntax tree.
 
   ## Examples
 
@@ -373,6 +368,26 @@ defmodule Macro do
 
       iex> Macro.escape({:unquote, [], [1]}, unquote: true)
       1
+
+  ## Options
+
+    * `:unquote` - when true, this function leaves `unquote/1` and
+      `unquote_splicing/1` statements unescaped, effectively unquoting
+      the contents on escape. This option is useful only when escaping
+      ASTs which may have quoted fragments in them. Defaults to false.
+
+    * `:prune_metadata` - when true, removes metadata from escaped AST
+      nodes. Note this option changes the semantics of escaped code and
+      it should only be used when escaping ASTs, never values. Defaults
+      to false.
+      
+      As an example, `ExUnit` stores the AST of every assertion, so when
+      an assertion fails we can show code snippets to users. Without this
+      option, each time the test module is compiled, we get a different
+      MD5 of the module byte code, because the AST contains metadata,
+      such as counters, specific to the compilation environment. By pruning
+      the metadata, we ensure that the module is deterministic and reduce
+      the amount of data `ExUnit` needs to keep around.
 
   ## Comparison to `Kernel.quote/2`
 
@@ -402,7 +417,9 @@ defmodule Macro do
   """
   @spec escape(term, keyword) :: Macro.t()
   def escape(expr, opts \\ []) do
-    elem(:elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)), 0)
+    unquote = Keyword.get(opts, :unquote, false)
+    kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :default
+    elem(:elixir_quote.escape(expr, kind, unquote), 0)
   end
 
   @doc """
