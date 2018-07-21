@@ -399,15 +399,19 @@ defmodule Supervisor do
   So far we have started the supervisor passing a single child as a tuple
   as well as a strategy called `:one_for_one`:
 
-      Supervisor.start_link([
+      children = [
         {Stack, [:hello]}
-      ], strategy: :one_for_one)
+      ]
+
+      Supervisor.start_link(children, strategy: :one_for_one)
 
   or from inside the `c:init/1` callback:
 
-      Supervisor.init([
+      children = [
         {Stack, [:hello]}
-      ], strategy: :one_for_one)
+      ]
+
+      Supervisor.init(children, strategy: :one_for_one)
 
   The first argument given to `start_link/2` and `init/2` is a list of child
   specifications as defined in the "child_spec/1" section above.
@@ -590,9 +594,11 @@ defmodule Supervisor do
   ## Examples
 
       def init(_arg) do
-        Supervisor.init([
+        children = [
           {Stack, [:hello]}
-        ], strategy: :one_for_one)
+        ]
+
+        Supervisor.init(children, strategy: :one_for_one)
       end
 
   ## Options
