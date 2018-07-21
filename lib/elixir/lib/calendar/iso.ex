@@ -436,13 +436,16 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, "Europe/Berlin", "CET", 3600, 0)
+      iex> time_zone = "Europe/Berlin"
+      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "CET", 3600, 0)
       "2017-08-01 01:02:03.00000+01:00 CET Europe/Berlin"
-      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, "Europe/Berlin", "CDT", 3600, 3600)
+      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "CDT", 3600, 3600)
       "2017-08-01 01:02:03.00000+02:00 CDT Europe/Berlin"
-      iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, "America/Los_Angeles", "PST", -28800, 0)
+
+      iex> time_zone = "America/Los_Angeles"
+      iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, time_zone, "PST", -28800, 0)
       "2015-02-28 01:02:03.00000-08:00 PST America/Los_Angeles"
-      iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, "America/Los_Angeles", "PDT", -28800, 3600)
+      iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, time_zone, "PDT", -28800, 3600)
       "2015-02-28 01:02:03.00000-07:00 PDT America/Los_Angeles"
 
   """
