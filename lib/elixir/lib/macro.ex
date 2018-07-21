@@ -380,6 +380,14 @@ defmodule Macro do
       nodes. Note this option changes the semantics of escaped code and
       it should only be used when escaping ASTs, never values. Defaults
       to false.
+      
+      As an example, `ExUnit` stores the AST of every assertion, so when
+      an assertion fails we can show code snippets to users. Without this
+      option, each time the test module is compiled, we get a different
+      MD5 of the module byte code, because the AST contains metadata
+      specific, such as counters, specific the compilation environment.
+      By pruning the metadata, we ensure that the module is deterministic
+      and reduce the amount of data ExUnit needs to keep around.
 
   ## Comparison to `Kernel.quote/2`
 
