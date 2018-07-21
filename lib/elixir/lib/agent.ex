@@ -19,12 +19,13 @@ defmodule Agent do
         use Agent
 
         def start_link(_) do
-          Agent.start_link(fn -> MapSet.new end, name: __MODULE__)
+          Agent.start_link(fn -> MapSet.new() end, name: __MODULE__)
         end
 
         @doc "Checks if the task has already executed"
         def executed?(task, project) do
           item = {task, project}
+
           Agent.get(__MODULE__, fn set ->
             item in set
           end)
@@ -39,7 +40,7 @@ defmodule Agent do
         @doc "Resets the executed tasks and returns the previous list of tasks"
         def take_all() do
           Agent.get_and_update(__MODULE__, fn set ->
-            {Enum.into(set, []), MapSet.new}
+            {Enum.into(set, []), MapSet.new()}
           end)
         end
       end
@@ -59,7 +60,7 @@ defmodule Agent do
 
       # Compute in the agent/client
       def get_something(agent) do
-        Agent.get(agent, &(&1)) |> do_something_expensive()
+        Agent.get(agent, & &1) |> do_something_expensive()
       end
 
   The first function blocks the agent. The second function copies all the state
