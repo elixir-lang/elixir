@@ -505,48 +505,48 @@ defmodule DateTime do
   @doc since: "1.4.0"
   @spec from_iso8601(String.t(), Calendar.calendar()) ::
           {:ok, t, Calendar.utc_offset()} | {:error, atom}
+
+  @sep [?\s, ?T]
+  [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
+  [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
+
   def from_iso8601(string, calendar \\ Calendar.ISO) when is_binary(string) do
-    with <<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep, rest::binary>> <- string,
-         true <- sep in [?\s, ?T],
-         <<hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>> <- rest,
-         {year, ""} <- Integer.parse(year),
-         {month, ""} <- Integer.parse(month),
-         {day, ""} <- Integer.parse(day),
-         {hour, ""} <- Integer.parse(hour),
-         {minute, ""} <- Integer.parse(min),
-         {second, ""} <- Integer.parse(sec),
+    with <<unquote(match_date), sep, unquote(match_time), rest::binary>>
+         when unquote(guard_date) and sep in @sep and unquote(guard_time) <- string,
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {:ok, date} <- Date.new(year, month, day),
-         {:ok, time} <- Time.new(hour, minute, second, microsecond),
-         {:ok, offset} <- parse_offset(rest) do
-      %{year: year, month: month, day: day} = date
-      %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
-      {_, precision} = microsecond
+         {offset, ""} <- Calendar.ISO.parse_offset(rest) do
+      {year, month, day} = unquote(read_date)
+      {hour, minute, second} = unquote(read_time)
 
-      datetime =
-        Calendar.ISO.naive_datetime_to_iso_days(
-          year,
-          month,
-          day,
-          hour,
-          minute,
-          second,
-          microsecond
-        )
-        |> apply_tz_offset(offset)
-        |> from_iso_days("Etc/UTC", "UTC", 0, 0, calendar, precision)
+      cond do
+        not calendar.valid_date?(year, month, day) ->
+          {:error, :invalid_date}
 
-      {:ok, %{datetime | microsecond: microsecond}, offset}
+        not calendar.valid_time?(hour, minute, second, microsecond) ->
+          {:error, :invalid_time}
+
+        is_nil(offset) ->
+          {:error, :missing_offset}
+
+        true ->
+          {_, precision} = microsecond
+
+          datetime =
+            Calendar.ISO.naive_datetime_to_iso_days(
+              year,
+              month,
+              day,
+              hour,
+              minute,
+              second,
+              microsecond
+            )
+            |> apply_tz_offset(offset)
+            |> from_iso_days("Etc/UTC", "UTC", 0, 0, calendar, precision)
+
+          {:ok, %{datetime | microsecond: microsecond}, offset}
+      end
     else
-      {:error, reason} -> {:error, reason}
-      _ -> {:error, :invalid_format}
-    end
-  end
-
-  defp parse_offset(rest) do
-    case Calendar.ISO.parse_offset(rest) do
-      {offset, ""} when is_integer(offset) -> {:ok, offset}
-      {nil, ""} -> {:error, :missing_offset}
       _ -> {:error, :invalid_format}
     end
   end

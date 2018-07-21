@@ -263,13 +263,13 @@ defmodule Date do
   @spec from_iso8601(String.t(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
-  def from_iso8601(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes>>, calendar) do
-    with {year, ""} <- Integer.parse(year),
-         {month, ""} <- Integer.parse(month),
-         {day, ""} <- Integer.parse(day) do
-      with {:ok, date} <- new(year, month, day, Calendar.ISO), do: convert(date, calendar)
-    else
-      _ -> {:error, :invalid_format}
+  [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
+
+  def from_iso8601(unquote(match_date), calendar) when unquote(guard_date) do
+    {year, month, day} = unquote(read_date)
+
+    with {:ok, date} <- new(year, month, day, Calendar.ISO) do
+      convert(date, calendar)
     end
   end
 
