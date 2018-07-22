@@ -165,7 +165,7 @@ defmodule Map do
 
       iex> Map.new([{:b, 1}, {:a, 2}])
       %{a: 2, b: 1}
-      iex> Map.new([a: 1, a: 2, a: 3])
+      iex> Map.new(a: 1, a: 2, a: 3)
       %{a: 3}
 
   """
