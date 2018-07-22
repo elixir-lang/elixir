@@ -161,6 +161,7 @@ Percentage | Module
   * [Regex] Include endianness in the regex version. This allows regexes to be recompiled when an archive is installed in a system with a different endianness
   * [Registry] Add `Registry.count/1` and `Registry.count_match/4`
   * [String] Update to Unicode 11
+  * [StringIO] Add `StringIO.open/3`
   * [System] Use ISO 8601 in `System.build_info/0`
 
 #### ExUnit
