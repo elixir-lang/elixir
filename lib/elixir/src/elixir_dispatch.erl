@@ -163,7 +163,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
 
 expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
   check_deprecation(Meta, Receiver, Name, Arity, E),
-  Required = (Receiver == ?key(E, module)) orelse is_element(Receiver, ?key(E, requires)) orelse required(Meta),
+  Required = (Receiver == ?key(E, module)) orelse required(Meta) orelse is_element(Receiver, ?key(E, requires)),
 
   case is_element(Tuple, get_macros(Receiver, Required)) of
     true when Required ->

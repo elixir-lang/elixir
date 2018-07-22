@@ -16,14 +16,14 @@ translate({'=', Meta, [Left, Right]}, S) ->
     {TLeft, #elixir_erl{extra_guards=ExtraGuards, context=Context} = SL0}
         when ExtraGuards =/= [], Context =/= match ->
       SL1 = SL0#elixir_erl{extra_guards=[]},
+      {ResultVarName, _, SL2} = elixir_erl_var:build('_', SL1),
       Match = {match, ?ann(Meta), TLeft, TRight},
       Generated = ?ann(?generated(Meta)),
-      {ResultVarName, _, SL2} = elixir_erl_var:build('_', SL1),
       ResultVar = {var, Generated, ResultVarName},
       ResultMatch = {match, Generated, ResultVar, Match},
       True = {atom, Generated, true},
       Reason = {tuple, Generated, [{atom, Generated, badmatch}, ResultVar]},
-      RaiseExpr = elixir_erl:remote(Generated, erlang, error, [Reason]),
+      RaiseExpr = ?remote(Generated, erlang, error, [Reason]),
       GuardsExp = {'if', Generated, [
         {clause, Generated, [], [ExtraGuards], [ResultVar]},
         {clause, Generated, [], [[True]], [RaiseExpr]}
@@ -226,8 +226,8 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
       [TVar]},
     {clause, Generated,
       [TVar],
-      [[elixir_erl:remote(Generated, erlang, is_map, [TVar])]],
-      [elixir_erl:remote(Ann, erlang, error, [TError])]},
+      [[?remote(Generated, erlang, is_map, [TVar])]],
+      [?remote(Ann, erlang, error, [TError])]},
     {clause, Generated,
       [TVar],
       [],
@@ -464,7 +464,7 @@ translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
 
   {{'case', Generated, TUpdate, [
     {clause, Ann, [Match], [], [TAssocs]},
-    {clause, Generated, [Var], [], [elixir_erl:remote(Ann, erlang, error, [Error])]}
+    {clause, Generated, [Var], [], [?remote(Ann, erlang, error, [Error])]}
   ]}, TS};
 translate_struct(Meta, Name, {'%{}', _, Assocs}, S) ->
   translate_map(Meta, Assocs ++ [{'__struct__', Name}], none, S).
@@ -558,7 +558,7 @@ extract_bit_type({Other, _, []}, Acc) ->
 translate_remote('Elixir.Access' = Mod, get, Meta, [Container, Value], S) ->
   Ann = ?ann(Meta),
   {TArgs, SA} = translate_args([Container, Value, nil], S),
-  {elixir_erl:remote(Ann, Mod, get, TArgs), SA};
+  {?remote(Ann, Mod, get, TArgs), SA};
 translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
   case is_always_string(Arg) of
     true ->
@@ -569,8 +569,8 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
 
       Generated = ?ann(?generated(Meta)),
       Var = {var, Generated, VarName},
-      Guard = elixir_erl:remote(Generated, erlang, is_binary, [Var]),
-      Slow = elixir_erl:remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
+      Guard = ?remote(Generated, erlang, is_binary, [Var]),
+      Slow = ?remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
       Fast = Var,
 
       {{'case', Generated, TArg, [
@@ -618,7 +618,7 @@ generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key
   Generated = erl_anno:set_generated(true, Ann),
   ModuleVar = {var, Generated, ModuleVarName},
   Match = {match, Generated, ModuleVar, Var},
-  Guard = elixir_erl:remote(Generated, erlang, is_atom, [ModuleVar]),
+  Guard = ?remote(Generated, erlang, is_atom, [ModuleVar]),
   S2 = S1#elixir_erl{extra_guards=[Guard | S1#elixir_erl.extra_guards]},
   {lists:reverse(Acc, [{map_field_exact, Ann, Key, Match} | Rest]), S2};
 generate_struct_name_guard([Field | Rest], Acc, S) ->

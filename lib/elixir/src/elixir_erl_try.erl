@@ -141,7 +141,7 @@ maybe_add_stacktrace(Line, Kind, Expr, Guards, Body, #elixir_erl{stacktrace = {V
       {clause, Line, [Match], Guards, Body};
     false ->
       Match = {tuple, Line, [Kind, Expr, {var, Line, '_'}]},
-      Stack = {match, Line, {var, Line, Var}, elixir_erl:remote(Line, erlang, get_stacktrace, [])},
+      Stack = {match, Line, {var, Line, Var}, ?remote(Line, erlang, get_stacktrace, [])},
       {clause, Line, [Match], Guards, [Stack | Body]}
   end;
 maybe_add_stacktrace(Line, Kind, Expr, Guards, Body, _) ->

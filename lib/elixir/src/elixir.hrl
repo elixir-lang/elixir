@@ -3,6 +3,7 @@
 -define(line(Opts), elixir_utils:get_line(Opts)).
 -define(generated(Meta), [{generated, true} | Meta]).
 -define(var_context, ?MODULE).
+-define(remote(Ann, Module, Function, Args), {call, Ann, {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}}, Args}).
 
 -record(elixir_erl, {
   context=nil,             %% can be match, guards or nil
