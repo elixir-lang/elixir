@@ -41,7 +41,7 @@ defmodule Module do
         @callback default_port() :: integer
 
         @doc "Parses the given URL"
-        @callback parse(uri_info :: URI.t) :: URI.t
+        @callback parse(uri_info :: URI.t()) :: URI.t()
       end
 
   And then a module may use it as:
@@ -67,7 +67,7 @@ defmodule Module do
   Using `@impl` the example above can be rewritten as:
 
       defmodule URI.HTTP do
-        @behaviour URI.parser
+        @behaviour URI.Parser
 
         @impl true
         def default_port(), do: 80
@@ -82,10 +82,12 @@ defmodule Module do
         @behaviour Bar
         @behaviour Baz
 
-        @impl true # will warn if neither Bar nor Baz specify a callback named bar/0
+        # will warn if neither Bar nor Baz specify a callback named bar/0
+        @impl true
         def bar(), do: :ok
 
-        @impl Baz # will warn if Baz does not specify a callback named baz/0
+        # will warn if Baz does not specify a callback named baz/0
+        @impl Baz
         def baz(), do: :ok
       end
 
@@ -356,7 +358,7 @@ defmodule Module do
         @after_compile __MODULE__
 
         def __after_compile__(env, _bytecode) do
-          IO.inspect env
+          IO.inspect(env)
         end
       end
 
@@ -524,11 +526,16 @@ defmodule Module do
   ## Examples
 
       defmodule Foo do
-        contents = quote do: (def sum(a, b), do: a + b)
+        contents =
+          quote do
+            def sum(a, b), do: a + b
+          end
+
         Module.eval_quoted(__MODULE__, contents)
       end
 
-      Foo.sum(1, 2) #=> 3
+      Foo.sum(1, 2)
+      #=> 3
 
   For convenience, you can pass any `Macro.Env` struct, such
   as  `__ENV__/0`, as the first argument or as options. Both
@@ -536,11 +543,16 @@ defmodule Module do
   from the environment:
 
       defmodule Foo do
-        contents = quote do: (def sum(a, b), do: a + b)
+        contents =
+          quote do
+            def sum(a, b), do: a + b
+          end
+
         Module.eval_quoted(__ENV__, contents)
       end
 
-      Foo.sum(1, 2) #=> 3
+      Foo.sum(1, 2)
+      #=> 3
 
   Note that if you pass a `Macro.Env` struct as first argument
   while also passing `opts`, they will be merged with `opts`
@@ -595,7 +607,8 @@ defmodule Module do
 
       Module.create(Hello, contents, Macro.Env.location(__ENV__))
 
-      Hello.world #=> true
+      Hello.world()
+      #=> true
 
   ## Differences from `defmodule`
 
