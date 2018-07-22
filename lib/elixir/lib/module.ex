@@ -432,12 +432,12 @@ defmodule Module do
 
       defmodule Hooks do
         def on_def(_env, kind, name, args, guards, body) do
-          IO.puts "Defining #{kind} named #{name} with args:"
-          IO.inspect args
-          IO.puts "and guards"
-          IO.inspect guards
-          IO.puts "and body"
-          IO.puts Macro.to_string(body)
+          IO.puts("Defining #{kind} named #{name} with args:")
+          IO.inspect(args)
+          IO.puts("and guards")
+          IO.inspect(guards)
+          IO.puts("and body")
+          IO.puts(Macro.to_string(body))
         end
       end
 
@@ -525,7 +525,7 @@ defmodule Module do
 
       defmodule Foo do
         contents = quote do: (def sum(a, b), do: a + b)
-        Module.eval_quoted __MODULE__, contents
+        Module.eval_quoted(__MODULE__, contents)
       end
 
       Foo.sum(1, 2) #=> 3
@@ -537,7 +537,7 @@ defmodule Module do
 
       defmodule Foo do
         contents = quote do: (def sum(a, b), do: a + b)
-        Module.eval_quoted __ENV__, contents
+        Module.eval_quoted(__ENV__, contents)
       end
 
       Foo.sum(1, 2) #=> 3
@@ -881,9 +881,9 @@ defmodule Module do
   ## Examples
 
       defmodule Example do
-        Module.defines? __MODULE__, {:version, 0} #=> false
+        Module.defines?(__MODULE__, {:version, 0}) #=> false
         def version, do: 1
-        Module.defines? __MODULE__, {:version, 0} #=> true
+        Module.defines?(__MODULE__, {:version, 0}) #=> true
       end
 
   """
@@ -907,9 +907,9 @@ defmodule Module do
   ## Examples
 
       defmodule Example do
-        Module.defines? __MODULE__, {:version, 0}, :def #=> false
+        Module.defines?(__MODULE__, {:version, 0}, :def) #=> false
         def version, do: 1
-        Module.defines? __MODULE__, {:version, 0}, :def #=> true
+        Module.defines?(__MODULE__, {:version, 0}, :def) #=> true
       end
 
   """
@@ -955,7 +955,7 @@ defmodule Module do
 
       defmodule Example do
         def version, do: 1
-        Module.definitions_in __MODULE__ #=> [{:version, 0}]
+        Module.definitions_in(__MODULE__) #=> [{:version, 0}]
       end
 
   """
@@ -974,8 +974,8 @@ defmodule Module do
 
       defmodule Example do
         def version, do: 1
-        Module.definitions_in __MODULE__, :def  #=> [{:version, 0}]
-        Module.definitions_in __MODULE__, :defp #=> []
+        Module.definitions_in(__MODULE__, :def)  #=> [{:version, 0}]
+        Module.definitions_in(__MODULE__, :defp) #=> []
       end
 
   """
@@ -1114,7 +1114,7 @@ defmodule Module do
   ## Examples
 
       defmodule MyModule do
-        Module.put_attribute __MODULE__, :custom_threshold_for_lib, 10
+        Module.put_attribute(__MODULE__, :custom_threshold_for_lib, 10)
       end
 
   """
@@ -1143,12 +1143,12 @@ defmodule Module do
   ## Examples
 
       defmodule Foo do
-        Module.put_attribute __MODULE__, :value, 1
-        Module.get_attribute __MODULE__, :value #=> 1
+        Module.put_attribute(__MODULE__, :value, 1)
+        Module.get_attribute(__MODULE__, :value) #=> 1
 
-        Module.register_attribute __MODULE__, :value, accumulate: true
-        Module.put_attribute __MODULE__, :value, 1
-        Module.get_attribute __MODULE__, :value #=> [1]
+        Module.register_attribute(__MODULE__, :value, accumulate: true)
+        Module.put_attribute(__MODULE__, :value, 1)
+        Module.get_attribute(__MODULE__, :value) #=> [1]
       end
 
   """
@@ -1165,8 +1165,8 @@ defmodule Module do
   ## Examples
 
       defmodule MyModule do
-        Module.put_attribute __MODULE__, :custom_threshold_for_lib, 10
-        Module.delete_attribute __MODULE__, :custom_threshold_for_lib
+        Module.put_attribute(__MODULE__, :custom_threshold_for_lib, 10)
+        Module.delete_attribute(__MODULE__, :custom_threshold_for_lib)
       end
 
   """
@@ -1213,9 +1213,12 @@ defmodule Module do
   ## Examples
 
       defmodule MyModule do
-        Module.register_attribute __MODULE__,
+        Module.register_attribute(
+          __MODULE__,
           :custom_threshold_for_lib,
-          accumulate: true, persist: false
+          accumulate: true,
+          persist: false
+        )
 
         @custom_threshold_for_lib 10
         @custom_threshold_for_lib 20
