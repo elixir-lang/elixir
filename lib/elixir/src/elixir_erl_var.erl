@@ -81,7 +81,7 @@ merge_vars(V1, V2) ->
   maps:fold(fun(K, M2, Acc) ->
     case Acc of
       #{K := M1} when M1 >= M2 -> Acc;
-      _ -> maps:put(K, M2, Acc)
+      _ -> Acc#{K => M2}
     end
   end, V1, V2).
 

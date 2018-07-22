@@ -101,7 +101,7 @@ build_inline_each(Ann, Clauses, Expr, false, Uniq, S) ->
 build_inline_each(Ann, Clauses, Expr, {nil, _} = Into, Uniq, S) ->
   InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
   ReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, S),
-  {elixir_erl:remote(Ann, lists, reverse, [ReduceExpr]), S};
+  {?remote(Ann, lists, reverse, [ReduceExpr]), S};
 build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
   {InnerValue, SV} = build_var(Ann, S),
   Generated = erl_anno:set_generated(true, Ann),
@@ -110,28 +110,28 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
     {'case', Ann, InnerExpr, [
       {clause, Generated,
        [InnerValue],
-       [[elixir_erl:remote(Ann, erlang, is_binary, [InnerValue]),
-         elixir_erl:remote(Ann, erlang, is_list, [InnerAcc])]],
+       [[?remote(Ann, erlang, is_binary, [InnerValue]),
+         ?remote(Ann, erlang, is_list, [InnerAcc])]],
        [{cons, Generated, InnerAcc, InnerValue}]},
       {clause, Generated,
        [InnerValue],
-       [[elixir_erl:remote(Ann, erlang, is_bitstring, [InnerValue]),
-         elixir_erl:remote(Ann, erlang, is_bitstring, [InnerAcc])]],
+       [[?remote(Ann, erlang, is_bitstring, [InnerValue]),
+         ?remote(Ann, erlang, is_bitstring, [InnerAcc])]],
        [{bin, Ann, [
           {bin_element, Ann, InnerAcc, default, [bitstring]},
           {bin_element, Ann, InnerValue, default, [bitstring]}
        ]}]},
       {clause, Generated,
        [InnerValue],
-       [[elixir_erl:remote(Ann, erlang, is_bitstring, [InnerValue])]],
+       [[?remote(Ann, erlang, is_bitstring, [InnerValue])]],
        [{bin, Ann, [
-          {bin_element, Ann, elixir_erl:remote(Ann, erlang, iolist_to_binary, [InnerAcc]), default, [bitstring]},
+          {bin_element, Ann, ?remote(Ann, erlang, iolist_to_binary, [InnerAcc]), default, [bitstring]},
           {bin_element, Ann, InnerValue, default, [bitstring]}
        ]}]},
       {clause, Generated,
        [InnerValue],
        [],
-       [elixir_erl:remote(Ann, erlang, error, [{tuple, Ann, [{atom, Ann, badarg}, InnerValue]}])]}
+       [?remote(Ann, erlang, error, [{tuple, Ann, [{atom, Ann, badarg}, InnerValue]}])]}
     ]}
   end,
 
@@ -140,17 +140,17 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
   {{'case', Ann, ReduceExpr, [
     {clause, Ann,
      [InnerValue],
-     [[elixir_erl:remote(Ann, erlang, is_bitstring, [InnerValue])]],
+     [[?remote(Ann, erlang, is_bitstring, [InnerValue])]],
      [InnerValue]},
     {clause, Ann,
      [InnerValue],
      [],
-     [elixir_erl:remote(Ann, erlang, iolist_to_binary, [InnerValue])]}
+     [?remote(Ann, erlang, iolist_to_binary, [InnerValue])]}
   ]}, SV}.
 
 build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, S) ->
   {ReduceExpr, SR} = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, S),
-  {elixir_erl:remote(Ann, maps, from_list, [ReduceExpr]), SR};
+  {?remote(Ann, maps, from_list, [ReduceExpr]), SR};
 build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
   {Fun, SF}    = build_var(Ann, S),
   {Acc, SA}    = build_var(Ann, SF),
@@ -165,7 +165,7 @@ build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
 
   MatchExpr = {match, Ann,
     {tuple, Ann, [Acc, Fun]},
-    elixir_erl:remote(Ann, 'Elixir.Collectable', into, [Into])
+    ?remote(Ann, 'Elixir.Collectable', into, [Into])
   },
 
   IntoReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, Acc, Uniq, SD),
@@ -189,16 +189,16 @@ stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack) ->
       {clause, Ann,
         [{tuple, Ann, [Kind, Reason, {var, Ann, '_'}]}],
         [],
-        [{match, Ann, Stack, elixir_erl:remote(Ann, erlang, get_stacktrace, [])},
+        [{match, Ann, Stack, ?remote(Ann, erlang, get_stacktrace, [])},
          {call, Ann, Fun, [Acc, {atom, Ann, halt}]},
-         elixir_erl:remote(Ann, erlang, raise, [Kind, Reason, Stack])]};
+         ?remote(Ann, erlang, raise, [Kind, Reason, Stack])]};
 
     _ ->
       {clause, Ann,
         [{tuple, Ann, [Kind, Reason, Stack]}],
         [],
         [{call, Ann, Fun, [Acc, {atom, Ann, halt}]},
-         elixir_erl:remote(Ann, erlang, raise, [Kind, Reason, Stack])]}
+         ?remote(Ann, erlang, raise, [Kind, Reason, Stack])]}
   end.
 
 %% Helpers
@@ -228,7 +228,7 @@ build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, S) ->
   ]},
 
   EnumReduceCall = build_reduce_each(Clauses, InnerExpr, NewInto, Acc, SU),
-  elixir_erl:remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]).
+  ?remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]).
 
 build_reduce_each([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
@@ -251,7 +251,7 @@ build_reduce_each([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) -
       [join_filters(Generated, Filters, True, False)]} | Clauses0],
 
   Args  = [Right, Arg, {'fun', Ann, {clauses, Clauses1}}],
-  elixir_erl:remote(Ann, 'Elixir.Enum', reduce, Args);
+  ?remote(Ann, 'Elixir.Enum', reduce, Args);
 
 build_reduce_each([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
@@ -270,7 +270,7 @@ build_reduce_each([{bin, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
       [Acc]},
      {clause, Generated,
       [Tail, {var, Ann, '_'}], [],
-      [elixir_erl:remote(Ann, erlang, error, [pair(Ann, badarg, Tail)])]}],
+      [?remote(Ann, erlang, error, [pair(Ann, badarg, Tail)])]}],
 
   NoVarClauses =
     case no_var(Generated, Elements) of
