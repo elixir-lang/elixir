@@ -141,13 +141,15 @@ defmodule Port do
 
   Now instead of:
 
-      Port.open({:spawn_executable, "/path/to/program"},
+      Port.open(
+        {:spawn_executable, "/path/to/program"},
         args: ["a", "b", "c"]
       )
 
   You may invoke:
 
-      Port.open({:spawn_executable, "/path/to/wrapper"},
+      Port.open(
+        {:spawn_executable, "/path/to/wrapper"},
         args: ["/path/to/program", "a", "b", "c"]
       )
 
