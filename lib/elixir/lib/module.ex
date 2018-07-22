@@ -276,8 +276,8 @@ defmodule Module do
 
   Accepts the function name (as an atom) of a function in the current module or
   `{function_name, 0}` tuple where `function_name` is the name of a function in
-  the current module. The function must have arity 0 (no arguments) and has to
-  return `:ok`, otherwise the loading of the module will be aborted. For
+  the current module. The function must have arity 0 (no arguments), public, and
+  has to return `:ok`, otherwise the loading of the module will be aborted. For
   example:
 
       defmodule MyModule do

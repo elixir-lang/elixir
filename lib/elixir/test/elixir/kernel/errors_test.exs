@@ -719,6 +719,29 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
+  test "@on_load attribute with undefined function" do
+    assert_eval_raise CompileError,
+                      "nofile:1: @on_load function foo/0 is undefined",
+                      'defmodule UndefinedOnLoadAttribute do @on_load :foo end'
+  end
+
+  test "@on_load attribute with private function" do
+    # Capture warning: function foo/0 is unused
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert_eval_raise CompileError,
+                        "nofile:1: @on_load function foo/0 cannot be private",
+                        '''
+                        defmodule PrivateOnLoadAttribute do
+                          @on_load :foo
+
+                          defp foo do
+                            :ok
+                          end
+                        end
+                        '''
+    end)
+  end
+
   test "interpolation error" do
     assert_eval_raise SyntaxError,
                       "nofile:1: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\"",
