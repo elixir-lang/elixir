@@ -1213,12 +1213,7 @@ defmodule Module do
   ## Examples
 
       defmodule MyModule do
-        Module.register_attribute(
-          __MODULE__,
-          :custom_threshold_for_lib,
-          accumulate: true,
-          persist: false
-        )
+        Module.register_attribute(__MODULE__, :custom_threshold_for_lib, accumulate: true)
 
         @custom_threshold_for_lib 10
         @custom_threshold_for_lib 20
