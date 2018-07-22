@@ -488,8 +488,8 @@ defmodule NaiveDateTime do
       {year, month, day} = unquote(read_date)
       {hour, min, sec} = unquote(read_time)
 
-      with {:ok, utc_date} <- new(year, month, day, hour, min, sec, microsec, Calendar.ISO) do
-        convert(utc_date, calendar)
+      with {:ok, iso_naive_dt} <- new(year, month, day, hour, min, sec, microsec, Calendar.ISO) do
+        convert(iso_naive_dt, calendar)
       end
     else
       _ -> {:error, :invalid_format}
@@ -642,8 +642,8 @@ defmodule NaiveDateTime do
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
   def from_erl({{year, month, day}, {hour, minute, second}}, microsecond, calendar) do
-    with {:ok, utc_date} <- new(year, month, day, hour, minute, second, microsecond),
-         do: convert(utc_date, calendar)
+    with {:ok, iso_naive_dt} <- new(year, month, day, hour, minute, second, microsecond),
+         do: convert(iso_naive_dt, calendar)
   end
 
   @doc """
