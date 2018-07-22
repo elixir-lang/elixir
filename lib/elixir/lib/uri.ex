@@ -391,21 +391,52 @@ defmodule URI do
   ## Examples
 
       iex> URI.parse("http://elixir-lang.org/")
-      %URI{scheme: "http", path: "/", query: nil, fragment: nil,
-           authority: "elixir-lang.org", userinfo: nil,
-           host: "elixir-lang.org", port: 80}
+      %URI{
+        authority: "elixir-lang.org",
+        fragment: nil,
+        host: "elixir-lang.org",
+        path: "/",
+        port: 80,
+        query: nil,
+        scheme: "http",
+        userinfo: nil
+      }
 
       iex> URI.parse("//elixir-lang.org/")
-      %URI{authority: "elixir-lang.org", fragment: nil, host: "elixir-lang.org",
-           path: "/", port: nil, query: nil, scheme: nil, userinfo: nil}
+      %URI{
+        authority: "elixir-lang.org",
+        fragment: nil,
+        host: "elixir-lang.org",
+        path: "/",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
+      }
 
       iex> URI.parse("/foo/bar")
-      %URI{authority: nil, fragment: nil, host: nil, path: "/foo/bar",
-           port: nil, query: nil, scheme: nil, userinfo: nil}
+      %URI{
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "/foo/bar",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
+      }
 
       iex> URI.parse("foo/bar")
-      %URI{authority: nil, fragment: nil, host: nil, path: "foo/bar",
-           port: nil, query: nil, scheme: nil, userinfo: nil}
+      %URI{
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "foo/bar",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
+      }
 
   """
   @spec parse(t | binary) :: t
@@ -488,8 +519,12 @@ defmodule URI do
       iex> URI.to_string(%URI{userinfo: "bar", host: "example.org", port: 81})
       "//bar@example.org:81"
 
-      iex> URI.to_string(%URI{authority: "foo@example.com:80",
-      ...>                    userinfo: "bar", host: "example.org", port: 81})
+      iex> URI.to_string(%URI{
+      ...>   authority: "foo@example.com:80",
+      ...>   userinfo: "bar",
+      ...>   host: "example.org",
+      ...>   port: 81
+      ...> })
       "//bar@example.org:81"
 
   """
@@ -504,10 +539,10 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.merge(URI.parse("http://google.com"), "/query") |> to_string
+      iex> URI.merge(URI.parse("http://google.com"), "/query") |> to_string()
       "http://google.com/query"
 
-      iex> URI.merge("http://example.com", "http://google.com") |> to_string
+      iex> URI.merge("http://example.com", "http://google.com") |> to_string()
       "http://google.com"
 
   """
