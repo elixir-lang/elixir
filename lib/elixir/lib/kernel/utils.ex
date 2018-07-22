@@ -170,14 +170,17 @@ defmodule Kernel.Utils do
       > variable_references = [value: Elixir]
       > Kernel.Utils.defguard(expression, variable_references) |> Macro.to_string |> IO.puts
 
-      case Macro.Env.in_guard? __CALLER__ do
-        true -> quote do
-          is_integer(unquote(value)) and rem(unquote(value), 2) == 0
-        end
-        false -> quote do
-          value = unquote(value)
-          is_integer(value) and rem(value, 2) == 0
-        end
+      case Macro.Env.in_guard?(__CALLER__) do
+        true ->
+          quote do
+            is_integer(unquote(value)) and rem(unquote(value), 2) == 0
+          end
+
+        false ->
+          quote do
+            value = unquote(value)
+            is_integer(value) and rem(value, 2) == 0
+          end
       end
 
   """
