@@ -40,8 +40,10 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--source", "lib"], strict: [source: :string])
       {[source: "lib"], [], []}
 
-      iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"],
-      ...>                    strict: [source_path: :string, verbose: :boolean])
+      iex> OptionParser.parse(
+      ...>   ["--source-path", "lib", "test/enum_test.exs", "--verbose"],
+      ...>   strict: [source_path: :string, verbose: :boolean]
+      ...> )
       {[source_path: "lib", verbose: true], ["test/enum_test.exs"], []}
 
   We will explore the valid switches and operation modes of option parser below.
@@ -165,8 +167,10 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--unlock", "path/to/file"], strict: [unlock: :boolean])
       {[unlock: true], ["path/to/file"], []}
 
-      iex> OptionParser.parse(["--unlock", "--limit", "0", "path/to/file"],
-      ...>                    strict: [unlock: :boolean, limit: :integer])
+      iex> OptionParser.parse(
+      ...>   ["--unlock", "--limit", "0", "path/to/file"],
+      ...>   strict: [unlock: :boolean, limit: :integer]
+      ...> )
       {[unlock: true, limit: 0], ["path/to/file"], []}
 
       iex> OptionParser.parse(["--limit", "3"], strict: [limit: :integer])
@@ -184,11 +188,16 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--unknown", "xyz"], strict: [])
       {[], ["xyz"], [{"--unknown", nil}]}
 
-      iex> OptionParser.parse(["--limit", "3", "--unknown", "xyz"],
-      ...>                    switches: [limit: :integer])
+      iex> OptionParser.parse(
+      ...>   ["--limit", "3", "--unknown", "xyz"],
+      ...>   switches: [limit: :integer]
+      ...> )
       {[limit: 3, unknown: "xyz"], [], []}
 
-      iex> OptionParser.parse(["--unlock", "path/to/file", "--unlock", "path/to/another/file"], strict: [unlock: :keep])
+      iex> OptionParser.parse(
+      ...>   ["--unlock", "path/to/file", "--unlock", "path/to/another/file"],
+      ...>   strict: [unlock: :keep]
+      ...> )
       {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
 
   """
@@ -219,8 +228,11 @@ defmodule OptionParser do
       ** (OptionParser.ParseError) 1 error found!
       --unknown : Unknown option
 
-      iex> OptionParser.parse!(["-l", "xyz", "-f", "bar"],
-      ...>                     switches: [limit: :integer, foo: :integer], aliases: [l: :limit, f: :foo])
+      iex> OptionParser.parse!(
+      ...>   ["-l", "xyz", "-f", "bar"],
+      ...>   switches: [limit: :integer, foo: :integer],
+      ...>   aliases: [l: :limit, f: :foo]
+      ...> )
       ** (OptionParser.ParseError) 2 errors found!
       -l : Expected type integer, got "xyz"
       -f : Expected type integer, got "bar"
@@ -242,12 +254,16 @@ defmodule OptionParser do
 
   ## Example
 
-      iex> OptionParser.parse_head(["--source", "lib", "test/enum_test.exs", "--verbose"],
-      ...>                         switches: [source: :string, verbose: :boolean])
+      iex> OptionParser.parse_head(
+      ...>   ["--source", "lib", "test/enum_test.exs", "--verbose"],
+      ...>   switches: [source: :string, verbose: :boolean]
+      ...> )
       {[source: "lib"], ["test/enum_test.exs", "--verbose"], []}
 
-      iex> OptionParser.parse_head(["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"],
-      ...>                         switches: [source: :string, verbose: :boolean, unlock: :boolean])
+      iex> OptionParser.parse_head(
+      ...>   ["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"],
+      ...>   switches: [source: :string, verbose: :boolean, unlock: :boolean]
+      ...> )
       {[verbose: true, source: "lib"], ["test/enum_test.exs", "--unlock"], []}
 
   """
@@ -267,17 +283,23 @@ defmodule OptionParser do
 
   ## Examples
 
-      iex> OptionParser.parse_head!(["--source", "lib", "path/to/file", "--verbose"],
-      ...>                         switches: [source: :string, verbose: :boolean])
+      iex> OptionParser.parse_head!(
+      ...>   ["--source", "lib", "path/to/file", "--verbose"],
+      ...>   switches: [source: :string, verbose: :boolean]
+      ...> )
       {[source: "lib"], ["path/to/file", "--verbose"]}
 
-      iex> OptionParser.parse_head!(["--number", "lib", "test/enum_test.exs", "--verbose"],
-      ...>                          strict: [number: :integer])
+      iex> OptionParser.parse_head!(
+      ...>   ["--number", "lib", "test/enum_test.exs", "--verbose"],
+      ...>   strict: [number: :integer]
+      ...> )
       ** (OptionParser.ParseError) 1 error found!
       --number : Expected type integer, got "lib"
 
-      iex> OptionParser.parse_head!(["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"],
-      ...>                          strict: [verbose: :integer, source: :integer])
+      iex> OptionParser.parse_head!(
+      ...>   ["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"],
+      ...>   strict: [verbose: :integer, source: :integer]
+      ...> )
       ** (OptionParser.ParseError) 2 errors found!
       --verbose : Missing argument of type integer
       --source : Expected type integer, got "lib"
