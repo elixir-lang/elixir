@@ -380,7 +380,7 @@ defmodule Macro do
       nodes. Note this option changes the semantics of escaped code and
       it should only be used when escaping ASTs, never values. Defaults
       to false.
-      
+
       As an example, `ExUnit` stores the AST of every assertion, so when
       an assertion fails we can show code snippets to users. Without this
       option, each time the test module is compiled, we get a different
@@ -525,7 +525,7 @@ defmodule Macro do
       def unescape_map(?s), do: ?\s
       def unescape_map(?t), do: ?\t
       def unescape_map(?v), do: ?\v
-      def unescape_map(e),  do: e
+      def unescape_map(e), do: e
 
   If the `unescape_map/1` function returns `false`, the char is
   not escaped and the backslash is kept in the string.
@@ -538,7 +538,7 @@ defmodule Macro do
 
   Using the `unescape_map/1` function defined above is easy:
 
-      Macro.unescape_string "example\\n", &unescape_map(&1)
+      Macro.unescape_string("example\\n", &unescape_map(&1))
 
   """
   @spec unescape_string(String.t(), (non_neg_integer -> non_neg_integer | false)) :: String.t()
@@ -1165,7 +1165,7 @@ defmodule Macro do
 
       defmacro defmodule_with_length(name, do: block) do
         expanded = Macro.expand(name, __CALLER__)
-        length   = length(Atom.to_charlist(expanded))
+        length = length(Atom.to_charlist(expanded))
 
         quote do
           defmodule unquote(name) do
