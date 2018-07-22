@@ -147,10 +147,10 @@ defmodule IO do
 
   ## Examples
 
-      IO.write "sample"
+      IO.write("sample")
       #=> sample
 
-      IO.write :stderr, "error"
+      IO.write(:stderr, "error")
       #=> error
 
   """
@@ -183,10 +183,10 @@ defmodule IO do
 
   ## Examples
 
-      IO.puts "Hello World!"
+      IO.puts("Hello World!")
       #=> Hello World!
 
-      IO.puts :stderr, "error"
+      IO.puts(:stderr, "error")
       #=> error
 
   """
@@ -207,7 +207,7 @@ defmodule IO do
   ## Examples
 
       stacktrace = [{MyApp, :main, 1, [file: 'my_app.ex', line: 4]}]
-      IO.warn "variable bar is unused", stacktrace
+      IO.warn("variable bar is unused", stacktrace)
       #=> warning: variable bar is unused
       #=>   my_app.ex:4: MyApp.main/1
 
@@ -232,7 +232,7 @@ defmodule IO do
 
   ## Examples
 
-      IO.warn "variable bar is unused"
+      IO.warn("variable bar is unused")
       #=> warning: variable bar is unused
       #=>   (iex) evaluator.ex:108: IEx.Evaluator.eval/4
 
@@ -263,7 +263,7 @@ defmodule IO do
 
   ## Examples
 
-      IO.inspect <<0, 1, 2>>, width: 40
+      IO.inspect(<<0, 1, 2>>, width: 40)
 
   Prints:
 
@@ -271,7 +271,7 @@ defmodule IO do
 
   We can use the `:label` option to decorate the output:
 
-      IO.inspect 1..100, label: "a wonderful range"
+      IO.inspect(1..100, label: "a wonderful range")
 
   Prints:
 
@@ -283,7 +283,7 @@ defmodule IO do
       |> IO.inspect(label: "before")
       |> Enum.map(&(&1 * 2))
       |> IO.inspect(label: "after")
-      |> Enum.sum
+      |> Enum.sum()
 
   Prints:
 
@@ -374,7 +374,7 @@ defmodule IO do
 
   To display "What is your name?" as a prompt and await user input:
 
-      IO.gets "What is your name?\n"
+      IO.gets("What is your name?\n")
 
   """
   @spec gets(device, chardata | String.Chars.t()) :: chardata | nodata
@@ -403,7 +403,7 @@ defmodule IO do
   Here is an example on how we mimic an echo server
   from the command line:
 
-      Enum.each IO.stream(:stdio, :line), &IO.write(&1)
+      Enum.each(IO.stream(:stdio, :line), &IO.write(&1))
 
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t()
