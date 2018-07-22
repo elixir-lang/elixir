@@ -122,7 +122,8 @@ defmodule File do
 
   ## Examples
 
-      File.regular? __ENV__.file #=> true
+      File.regular?(__ENV__.file)
+      #=> true
 
   """
   @spec regular?(Path.t()) :: boolean
@@ -150,7 +151,7 @@ defmodule File do
       File.dir?("~/Downloads")
       #=> false
 
-      "~/Downloads" |> Path.expand |> File.dir?
+      "~/Downloads" |> Path.expand() |> File.dir?()
       #=> true
 
   """
@@ -659,10 +660,10 @@ defmodule File do
   ## Examples
 
       # Rename file "a.txt" to "b.txt"
-      File.rename "a.txt", "b.txt"
+      File.rename("a.txt", "b.txt")
 
       # Rename directory "samples" to "tmp"
-      File.rename "samples", "tmp"
+      File.rename("samples", "tmp")
 
   """
   @spec rename(Path.t(), Path.t()) :: :ok | {:error, posix}
@@ -756,15 +757,15 @@ defmodule File do
   ## Examples
 
       # Copies file "a.txt" to "b.txt"
-      File.cp_r "a.txt", "b.txt"
+      File.cp_r("a.txt", "b.txt")
 
       # Copies all files in "samples" to "tmp"
-      File.cp_r "samples", "tmp"
+      File.cp_r("samples", "tmp")
 
       # Same as before, but asks the user how to proceed in case of conflicts
-      File.cp_r "samples", "tmp", fn source, destination ->
+      File.cp_r("samples", "tmp", fn source, destination ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
-      end
+      end)
 
   """
   @spec cp_r(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) ::
@@ -1082,10 +1083,10 @@ defmodule File do
 
   ## Examples
 
-      File.rm_rf "samples"
+      File.rm_rf("samples")
       #=> {:ok, ["samples", "samples/1.txt"]}
 
-      File.rm_rf "unknown"
+      File.rm_rf("unknown")
       #=> {:ok, []}
 
   """
@@ -1301,7 +1302,7 @@ defmodule File do
 
   ## Examples
 
-      File.open("file.txt", [:read, :write], fn(file) ->
+      File.open("file.txt", [:read, :write], fn file ->
         IO.read(file, :line)
       end)
 
