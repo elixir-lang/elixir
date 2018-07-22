@@ -907,9 +907,9 @@ defmodule Module do
   ## Examples
 
       defmodule Example do
-        Module.defines? __MODULE__, {:version, 0}, :defp #=> false
+        Module.defines? __MODULE__, {:version, 0}, :def #=> false
         def version, do: 1
-        Module.defines? __MODULE__, {:version, 0}, :defp #=> false
+        Module.defines? __MODULE__, {:version, 0}, :def #=> true
       end
 
   """
