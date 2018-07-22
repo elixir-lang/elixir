@@ -158,7 +158,8 @@ defmodule GenServer do
       {:ok, _} = GenServer.start_link(Stack, [:hello], name: MyStack)
 
       # Now messages can be sent directly to MyStack
-      GenServer.call(MyStack, :pop) #=> :hello
+      GenServer.call(MyStack, :pop)
+      #=> :hello
 
   Once the server is started, the remaining functions in this module (`call/3`,
   `cast/2`, and friends) will also accept an atom, or any `{:global, ...}` or
@@ -195,25 +196,32 @@ defmodule GenServer do
       defmodule MyApp.Periodically do
         use GenServer
 
-        def start_link do
+        def start_link(_) do
           GenServer.start_link(__MODULE__, %{})
         end
 
         @impl true
         def init(state) do
-          schedule_work() # Schedule work to be performed on start
+          # Schedule work to be performed on start
+          schedule_work()
+
           {:ok, state}
         end
 
         @impl true
         def handle_info(:work, state) do
           # Do the desired work here
-          schedule_work() # Reschedule once more
+          ...
+
+          # Reschedule once more
+          schedule_work()
+
           {:noreply, state}
         end
 
-        defp schedule_work() do
-          Process.send_after(self(), :work, 2 * 60 * 60 * 1000) # In 2 hours
+        defp schedule_work do
+          # In 2 hours
+          Process.send_after(self(), :work, 2 * 60 * 60 * 1000)
         end
       end
 
@@ -300,29 +308,48 @@ defmodule GenServer do
       *DBG* <0.122.0> got cast {push,1}
       *DBG* <0.122.0> new state [1]
       :ok
+
       iex> :sys.get_state(pid)
       [1]
+
       iex> Stack.pop(pid)
       *DBG* <0.122.0> got call pop from <0.80.0>
       *DBG* <0.122.0> sent 1 to <0.80.0>, new state []
       1
+
       iex> :sys.statistics(pid, :get)
       {:ok,
-       [start_time: {{2016, 7, 16}, {12, 29, 41}},
-        current_time: {{2016, 7, 16}, {12, 29, 50}},
-        reductions: 117, messages_in: 2, messages_out: 0]}
+       [
+         start_time: {{2016, 7, 16}, {12, 29, 41}},
+         current_time: {{2016, 7, 16}, {12, 29, 50}},
+         reductions: 117,
+         messages_in: 2,
+         messages_out: 0
+       ]}
+
       iex> :sys.no_debug(pid) # turn off all debug handlers
       :ok
+
       iex> :sys.get_status(pid)
       {:status, #PID<0.122.0>, {:module, :gen_server},
-       [["$initial_call": {Stack, :init, 1},            # pdict
-         "$ancestors": [#PID<0.80.0>, #PID<0.51.0>]],
-        :running,                                       # :running | :suspended
-        #PID<0.80.0>,                                   # parent
-        [],                                             # debugger state
-        [header: 'Status for generic server <0.122.0>', # module status
-         data: [{'Status', :running}, {'Parent', #PID<0.80.0>},
-           {'Logged events', []}], data: [{'State', [1]}]]]}
+       [
+         [
+           "$initial_call": {Stack, :init, 1},            # process dictionary
+           "$ancestors": [#PID<0.80.0>, #PID<0.51.0>]
+         ],
+         :running,                                        # :running | :suspended
+         #PID<0.80.0>,                                    # parent
+         [],                                              # debugger state
+         [
+           header: 'Status for generic server <0.122.0>', # module status
+           data: [
+             {'Status', :running},
+             {'Parent', #PID<0.80.0>},
+             {'Logged events', []}
+           ],
+           data: [{'State', [1]}]
+         ]
+       ]}
 
   ## Learn more
 
