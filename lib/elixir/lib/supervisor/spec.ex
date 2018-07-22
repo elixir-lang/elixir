@@ -216,11 +216,13 @@ defmodule Supervisor.Spec do
   By default, the function `start_link` is invoked on the given
   module. Overall, the default values for the options are:
 
-      [id: module,
-       function: :start_link,
-       restart: :permanent,
-       shutdown: 5000,
-       modules: [module]]
+      [
+        id: module,
+        function: :start_link,
+        restart: :permanent,
+        shutdown: 5000,
+        modules: [module]
+      ]
 
   Check the documentation for the `Supervisor.Spec` module for more
   information on the options.
@@ -247,11 +249,13 @@ defmodule Supervisor.Spec do
   By default, the function `start_link` is invoked on the given
   module. Overall, the default values for the options are:
 
-      [id: module,
-       function: :start_link,
-       restart: :permanent,
-       shutdown: :infinity,
-       modules: [module]]
+      [
+        id: module,
+        function: :start_link,
+        restart: :permanent,
+        shutdown: :infinity,
+        modules: [module]
+      ]
 
   Check the documentation for the `Supervisor.Spec` module for more
   information on the options.
