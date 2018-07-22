@@ -30,9 +30,10 @@ defmodule Path do
 
   ### Windows
 
-      Path.absname("foo").
+      Path.absname("foo")
       #=> "D:/usr/local/foo"
-      Path.absname("../x").
+
+      Path.absname("../x")
       #=> "D:/usr/local/../x"
 
   """
@@ -171,9 +172,10 @@ defmodule Path do
       #=> "/quux/baz/foo/bar"
 
       Path.expand("foo/bar/../bar", "/baz")
-      "/baz/foo/bar"
+      #=> "/baz/foo/bar"
+
       Path.expand("/foo/bar/../bar", "/baz")
-      "/foo/bar"
+      #=> "/foo/bar"
 
   """
   @spec expand(t, t) :: binary
