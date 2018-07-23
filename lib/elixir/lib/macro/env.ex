@@ -45,6 +45,7 @@ defmodule Macro.Env do
     * `current_vars`
     * `unused_vars`
     * `prematch_vars`
+    * `contextual_vars`
 
   The following fields are deprecated and must not be accessed or relied on:
 
