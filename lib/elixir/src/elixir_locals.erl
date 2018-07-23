@@ -72,8 +72,7 @@ cache_env(#{line := Line, module := Module} = E) ->
         Key;
       [{_, PrevKey, _}] ->
         Key = PrevKey + 1,
-        ets:insert(Set, {{cache_env, Key}, Cache}),
-        ets:insert(Set, {?cache, Key, Cache}),
+        ets:insert(Set, [{{cache_env, Key}, Cache},{?cache, Key, Cache}]),
         Key
     end,
 
