@@ -72,7 +72,7 @@ elixir_to_erl([]) ->
 elixir_to_erl(<<>>) ->
   {bin, 0, []};
 elixir_to_erl(Tree) when is_list(Tree) ->
-  elixir_to_erl_cons1(Tree, []);
+  elixir_to_erl_cons(Tree);
 elixir_to_erl(Tree) when is_atom(Tree) ->
   {atom, 0, Tree};
 elixir_to_erl(Tree) when is_integer(Tree) ->
@@ -105,13 +105,8 @@ elixir_to_erl(Pid) when is_pid(Pid) ->
 elixir_to_erl(_Other) ->
   error(badarg).
 
-elixir_to_erl_cons1([H | T], Acc) -> elixir_to_erl_cons1(T, [H | Acc]);
-elixir_to_erl_cons1(Other, Acc) -> elixir_to_erl_cons2(Acc, elixir_to_erl(Other)).
-
-elixir_to_erl_cons2([H | T], Acc) ->
-  elixir_to_erl_cons2(T, {cons, 0, elixir_to_erl(H), Acc});
-elixir_to_erl_cons2([], Acc) ->
-  Acc.
+elixir_to_erl_cons([H | T]) -> {cons, 0, elixir_to_erl(H), elixir_to_erl_cons(T)};
+elixir_to_erl_cons(T) -> elixir_to_erl(T).
 
 %% Returns a scope for translation.
 
