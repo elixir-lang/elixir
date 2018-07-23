@@ -52,6 +52,7 @@ reset_vars(Env) ->
 
 %% Receives two scopes and return a new scope based on the second
 %% with their variables merged.
+mergev(E, E) -> E;
 mergev(#{vars := V1, unused_vars := U1, current_vars := C1},
        #{vars := V2, unused_vars := U2, current_vars := C2} = E2) ->
   E2#{
@@ -64,6 +65,7 @@ mergev(#{vars := V1, unused_vars := U1, current_vars := C1},
 %% keeping the variables from the first (imports
 %% and everything else are passed forward).
 
+mergea(E, E) -> E;
 mergea(#{vars := V1, unused_vars := U1, current_vars := C1}, E2) ->
   E2#{vars := V1, unused_vars := U1, current_vars := C1}.
 
