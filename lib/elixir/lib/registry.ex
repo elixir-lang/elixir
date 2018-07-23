@@ -32,7 +32,7 @@ defmodule Registry do
       {:ok, _} = Agent.start_link(fn -> 0 end, name: name)
       Agent.get(name, & &1)
       #=> 0
-      Agent.update(name, & &1 + 1)
+      Agent.update(name, &(&1 + 1))
       Agent.get(name, & &1)
       #=> 1
 
@@ -83,6 +83,7 @@ defmodule Registry do
   errors:
 
       require Logger
+
       Registry.dispatch(Registry.DispatcherTest, "hello", fn entries ->
         for {pid, {module, function}} <- entries do
           try do
@@ -90,7 +91,7 @@ defmodule Registry do
           catch
             kind, reason ->
               formatted = Exception.format(kind, reason, __STACKTRACE__)
-              Logger.error "Registry.dispatch/3 failed with #{formatted}"
+              Logger.error("Registry.dispatch/3 failed with #{formatted}")
           end
         end
       end)
@@ -111,9 +112,15 @@ defmodule Registry do
   schedulers online, which will make the registry more performant on highly
   concurrent environments:
 
-      {:ok, _} = Registry.start_link(keys: :duplicate, name: Registry.PubSubTest,
-                                     partitions: System.schedulers_online)
+      {:ok, _} =
+        Registry.start_link(
+          keys: :duplicate,
+          name: Registry.PubSubTest,
+          partitions: System.schedulers_online()
+        )
+
       {:ok, _} = Registry.register(Registry.PubSubTest, "hello", [])
+
       Registry.dispatch(Registry.PubSubTest, "hello", fn entries ->
         for {pid, _} <- entries, do: send(pid, {:broadcast, "world"})
       end)
@@ -245,14 +252,16 @@ defmodule Registry do
   the `:partitions` option). If partitioning is required then a good default is to
   set the number of partitions to the number of schedulers available:
 
-      Registry.start_link(keys: :unique, name: MyApp.Registry,
-                          partitions: System.schedulers_online())
+      Registry.start_link(
+        keys: :unique,
+        name: MyApp.Registry,
+        partitions: System.schedulers_online()
+      )
 
   or:
 
       Supervisor.start_link([
-        {Registry, keys: :unique, name: MyApp.Registry,
-                   partitions: System.schedulers_online()}
+        {Registry, keys: :unique, name: MyApp.Registry, partitions: System.schedulers_online()}
       ])
 
   ## Options
@@ -583,9 +592,11 @@ defmodule Registry do
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
       iex> Registry.match(Registry.MatchTest, "hello", {:"$1", :_, :"$1"}) |> Enum.sort()
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
-      iex> Registry.match(Registry.MatchTest, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}])
+      iex> guards = [{:>, :"$1", 1}]
+      iex> Registry.match(Registry.MatchTest, "hello", {:_, :_, :"$1"}, guards)
       [{self(), {2, :atom, 2}}]
-      iex> Registry.match(Registry.MatchTest, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}]) |> Enum.sort()
+      iex> guards = [{:is_atom, :"$1"}]
+      iex> Registry.match(Registry.MatchTest, "hello", {:_, :"$1", :_}, guards) |> Enum.sort()
       [{self(), {1, :atom, 1}}, {self(), {2, :atom, 2}}]
 
   """
