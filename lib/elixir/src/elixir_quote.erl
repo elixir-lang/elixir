@@ -5,53 +5,53 @@
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop; Kind == '@').
 -define(lexical(Kind), Kind == import; Kind == alias; Kind == require).
--compile({inline, [keyfind/2, keystore/3, keydelete/2, keynew/3]}).
+-compile({inline, [keyfind/2, keystore/3, keydelete/2, keynew/3, do_tuple_linify/5]}).
 
 %% Apply the line from site call on quoted contents.
 %% Receives a Key to look for the default line as argument.
 linify(0, _Key, Exprs) ->
   Exprs;
 linify(Line, Key, Exprs) when is_integer(Line) ->
-  do_linify(Line, Key, nil, Exprs).
+  LinifyMeta = linify_meta(Line, Key),
+  do_linify(LinifyMeta, Exprs, nil).
 
 %% Same as linify but also considers the context counter.
 linify_with_context_counter(Line, Var, Exprs) when is_integer(Line) ->
-  do_linify(Line, line, Var, Exprs).
+  LinifyMeta = linify_meta(Line, line),
+  do_linify(LinifyMeta, Exprs, Var).
 
-do_linify(Line, Key, {Receiver, Counter} = Var, {Left, Meta, Receiver})
+do_linify(LinifyMeta, {Left, Meta, Receiver}, {Receiver, Counter} = Var)
     when is_atom(Left), is_list(Meta), Left /= '_' ->
-  do_tuple_linify(Line, Key, Var, keynew(counter, Meta, Counter), Left, Receiver);
+  do_tuple_linify(LinifyMeta, keynew(counter, Meta, Counter), Left, Receiver, Var);
 
-do_linify(Line, Key, {_, Counter} = Var, {Lexical, [_ | _] = Meta, [_ | _] = Args})
+do_linify(LinifyMeta, {Lexical, [_ | _] = Meta, [_ | _] = Args}, {_, Counter} = Var)
     when ?lexical(Lexical); Lexical == '__aliases__' ->
-  do_tuple_linify(Line, Key, Var, keynew(counter, Meta, Counter), Lexical, Args);
+  do_tuple_linify(LinifyMeta, keynew(counter, Meta, Counter), Lexical, Args, Var);
 
-do_linify(Line, Key, Var, {Left, Meta, Right}) when is_list(Meta) ->
-  do_tuple_linify(Line, Key, Var, Meta, Left, Right);
+do_linify(LinifyMeta, {Left, Meta, Right}, Var) when is_list(Meta) ->
+  do_tuple_linify(LinifyMeta, Meta, Left, Right, Var);
 
-do_linify(Line, Key, Var, {Left, Right}) ->
-  {do_linify(Line, Key, Var, Left), do_linify(Line, Key, Var, Right)};
+do_linify(LinifyMeta, {Left, Right}, Var) ->
+  {do_linify(LinifyMeta, Left, Var), do_linify(LinifyMeta, Right, Var)};
 
-do_linify(Line, Key, Var, List) when is_list(List) ->
-  [do_linify(Line, Key, Var, X) || X <- List];
+do_linify(LinifyMeta, List, Var) when is_list(List) ->
+  [do_linify(LinifyMeta, X, Var) || X <- List];
 
-do_linify(_, _, _, Else) -> Else.
+do_linify(_, Else, _) -> Else.
 
-do_tuple_linify(Line, Key, Var, Meta, Left, Right) ->
-  {do_linify(Line, Key, Var, Left),
-    do_linify_meta(Line, Key, Meta),
-    do_linify(Line, Key, Var, Right)}.
+do_tuple_linify(LinifyMeta, Meta, Left, Right, Var) ->
+  {do_linify(LinifyMeta, Left, Var), LinifyMeta(Meta), do_linify(LinifyMeta, Right, Var)}.
 
-do_linify_meta(0, line, Meta) ->
-  Meta;
-do_linify_meta(Line, line, Meta) ->
-  keynew(line, Meta, Line);
-do_linify_meta(Line, keep, Meta) ->
-  case lists:keytake(keep, 1, Meta) of
-    {value, {keep, {_, Int}}, MetaNoFile} ->
-      [{line, Int} | keydelete(line, MetaNoFile)];
-    _ ->
-      keynew(line, Meta, Line)
+linify_meta(0, line) -> fun(Meta) -> Meta end;
+linify_meta(Line, line) -> fun(Meta) -> keynew(line, Meta, Line) end;
+linify_meta(Line, keep) ->
+  fun(Meta) ->
+    case lists:keytake(keep, 1, Meta) of
+      {value, {keep, {_, Int}}, MetaNoFile} ->
+        [{line, Int} | keydelete(line, MetaNoFile)];
+      _ ->
+        keynew(line, Meta, Line)
+    end
   end.
 
 %% Some expressions cannot be unquoted at compilation time.
@@ -418,7 +418,7 @@ keystore(_Key, Meta, nil) ->
 keystore(Key, Meta, Value) ->
   lists:keystore(Key, 1, Meta, {Key, Value}).
 keynew(Key, Meta, Value) ->
-  case keyfind(Key, Meta) of
-    {Key, _} -> Meta;
-    _ -> keystore(Key, Meta, Value)
+  case lists:keymember(Key, 1, Meta) of
+    true -> Meta;
+    false -> [{Key, Value} | Meta]
   end.
