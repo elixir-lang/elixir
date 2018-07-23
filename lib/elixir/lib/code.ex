@@ -208,7 +208,7 @@ defmodule Code do
       iex> Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
       {3, [a: 1, b: 2, c: 3]}
 
-      iex> Code.eval_string("a = a + b", [a: 1, b: 2])
+      iex> Code.eval_string("a = a + b", a: 1, b: 2)
       {3, [a: 3, b: 2]}
 
   For convenience, you can pass `__ENV__/0` as the `opts` argument and
