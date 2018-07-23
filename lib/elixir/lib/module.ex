@@ -635,7 +635,7 @@ defmodule Module do
       raise ArgumentError, "expected :file to be given as option"
     end
 
-    next = :erlang.unique_integer()
+    next = :elixir_module.next_counter(nil)
     line = Keyword.get(opts, :line, 0)
     quoted = :elixir_quote.linify_with_context_counter(line, {module, next}, quoted)
     :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
