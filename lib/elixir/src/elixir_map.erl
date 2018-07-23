@@ -34,7 +34,7 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
           assert_struct_keys(Meta, ELeft, Struct, Assocs, EE),
           Keys = ['__struct__'] ++ [K || {K, _} <- Assocs],
           WithoutKeys = maps:to_list(maps:without(Keys, Struct)),
-          {StructAssocs, _} = elixir_quote:escape(WithoutKeys, default, false),
+          StructAssocs = elixir_quote:escape(WithoutKeys, default, false),
           {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, EE};
 
         {_, _, Assocs} -> %% Update or match

@@ -419,7 +419,7 @@ defmodule Macro do
   def escape(expr, opts \\ []) do
     unquote = Keyword.get(opts, :unquote, false)
     kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :default
-    elem(:elixir_quote.escape(expr, kind, unquote), 0)
+    :elixir_quote.escape(expr, kind, unquote)
   end
 
   @doc """

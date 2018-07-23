@@ -24,7 +24,6 @@
   aliases_hygiene=true,
   imports_hygiene=true,
   unquote=true,
-  unquoted=false,
   generated=false
 }).
 

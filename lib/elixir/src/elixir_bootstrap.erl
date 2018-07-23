@@ -19,7 +19,7 @@
 'MACRO-defmacrop'(Caller, Call, Expr) -> define(Caller, defmacrop, Call, Expr).
 
 'MACRO-defmodule'(_Caller, Alias, [{do, Block}]) ->
-  {Escaped, _} = elixir_quote:escape(Block, default, false),
+  Escaped = elixir_quote:escape(Block, default, false),
   Args = [Alias, Escaped, [], env()],
   {{'.', [], [elixir_module, compile]}, [], Args}.
 
@@ -36,8 +36,10 @@
    {defp, 2}].
 
 define({Line, E}, Kind, Call, Expr) ->
-  {EscapedCall, UC} = elixir_quote:escape(Call, default, true),
-  {EscapedExpr, UE} = elixir_quote:escape(Expr, default, true),
+  UC = elixir_quote:has_unquotes(Call),
+  UE = elixir_quote:has_unquotes(Expr),
+  EscapedCall = elixir_quote:escape(Call, default, true),
+  EscapedExpr = elixir_quote:escape(Expr, default, true),
   Args = [Kind, not(UC or UE), EscapedCall, EscapedExpr, elixir_locals:cache_env(E#{line := Line})],
   {{'.', [], [elixir_def, store_definition]}, [], Args}.
 

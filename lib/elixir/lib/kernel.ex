@@ -2876,8 +2876,6 @@ defmodule Kernel do
             raise ArgumentError,
                   "cannot inject attribute @#{name} into function/macro because " <>
                     Exception.message(ex)
-        else
-          {val, _} -> val
         end
 
       false when doc_attr? ->
@@ -3793,8 +3791,7 @@ defmodule Kernel do
           quote(do: Kernel.LexicalTracker.read_cache(unquote(pid), unquote(integer)))
 
         %{} ->
-          {escaped, _} = :elixir_quote.escape(block, :default, false)
-          escaped
+          :elixir_quote.escape(block, :default, false)
       end
 
     # We reimplement Macro.Env.vars/1 due to bootstrap concerns.
@@ -4075,13 +4072,14 @@ defmodule Kernel do
     module = assert_module_scope(env, kind, 2)
     assert_no_function_scope(env, kind, 2)
 
-    {escaped_call, unquoted_call} = :elixir_quote.escape(call, :default, true)
-    {escaped_expr, unquoted_expr} = :elixir_quote.escape(expr, :default, true)
+    unquoted_call = :elixir_quote.has_unquotes(call)
+    unquoted_expr = :elixir_quote.has_unquotes(expr)
+    escaped_call = :elixir_quote.escape(call, :default, true)
 
     escaped_expr =
       case unquoted_expr do
         true ->
-          escaped_expr
+          :elixir_quote.escape(expr, :default, true)
 
         false ->
           key = :erlang.unique_integer()
