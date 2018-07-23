@@ -93,8 +93,7 @@ compile(Line, Module, Block, Vars, E) ->
     CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
 
     OnLoadAttribute = lists:keyfind(on_load, 1, Attributes),
-    OnLoadAttribute /= false andalso
-      validate_on_load_attribute(OnLoadAttribute, AllDefinitions, Unreachable, File, Line),
+    validate_on_load_attribute(OnLoadAttribute, AllDefinitions, File, Line),
 
     ModuleMap = #{
       module => Module,
@@ -159,14 +158,16 @@ validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
   end;
 validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
 
-validate_on_load_attribute({on_load, Def}, Defs, Unreachable, File, Line) ->
+validate_on_load_attribute({on_load, Def}, Defs, File, Line) ->
   case lists:keyfind(Def, 1, Defs) of
     false ->
       elixir_errors:form_error([{line, Line}], File, ?MODULE, {undefined_on_load, Def});
-    _ ->
-      lists:member(Def, Unreachable) andalso
-        elixir_errors:form_error([{line, Line}], File, ?MODULE, {private_on_load, Def})
-  end.
+    {_, def, _, _} ->
+      ok;
+    {_, WrongKind, _, _} ->
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, {wrong_kind_on_load, Def, WrongKind})
+  end;
+validate_on_load_attribute(false, _Defs, _File, _Line) -> ok.
 
 
 %% An undef error for a function in the module being compiled might result in an
@@ -441,8 +442,9 @@ format_error({bad_inline, {Name, Arity}}) ->
   io_lib:format("inlined function ~ts/~B undefined", [Name, Arity]);
 format_error({undefined_on_load, {Name, Arity}}) ->
   io_lib:format("@on_load function ~ts/~B is undefined", [Name, Arity]);
-format_error({private_on_load, {Name, Arity}}) ->
-  io_lib:format("@on_load function ~ts/~B cannot be private", [Name, Arity]);
+format_error({wrong_kind_on_load, {Name, Arity}, WrongKind}) ->
+  io_lib:format("expected @on_load function ~ts/~B to be defined as \"def\", got \"~ts\"",
+                [Name, Arity, WrongKind]);
 format_error({parse_transform, Module}) ->
   io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir no longer supports "
                 "Erlang-based transforms", [elixir_aliases:inspect(Module)]).

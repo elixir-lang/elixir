@@ -725,11 +725,12 @@ defmodule Kernel.ErrorsTest do
                       'defmodule UndefinedOnLoadAttribute do @on_load :foo end'
   end
 
-  test "@on_load attribute with private function" do
+  test "wrong kind for @on_load attribute" do
     # Capture warning: function foo/0 is unused
     ExUnit.CaptureIO.capture_io(:stderr, fn ->
       assert_eval_raise CompileError,
-                        "nofile:1: @on_load function foo/0 cannot be private",
+                        "nofile:1: expected @on_load function foo/0 to be defined as \"def\", " <>
+                          "got \"defp\"",
                         '''
                         defmodule PrivateOnLoadAttribute do
                           @on_load :foo
