@@ -636,7 +636,7 @@ defmodule Process do
 
   See `:erlang.process_info/1` for more info.
   """
-  @spec info(pid) :: keyword
+  @spec info(pid) :: keyword | nil
   def info(pid) do
     nillify(:erlang.process_info(pid))
   end
