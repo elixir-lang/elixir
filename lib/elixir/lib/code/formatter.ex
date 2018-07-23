@@ -1059,6 +1059,8 @@ defmodule Code.Formatter do
   defp deprecated(Enum, :partition, 2), do: {"split_with", "~> 1.4"}
   defp deprecated(Code, :unload_files, 2), do: {"unrequire_files", "~> 1.7"}
   defp deprecated(Code, :loaded_files, 2), do: {"required_files", "~> 1.7"}
+  defp deprecated(Kernel.ParallelCompiler, :files, 2), do: {"compile", "~> 1.6"}
+  defp deprecated(Kernel.ParallelCompiler, :files_to_path, 2), do: {"compile_to_path", "~> 1.6"}
   defp deprecated(_, _, _), do: :error
 
   defp remote_target_to_algebra({:fn, _, [_ | _]} = quoted, state) do
