@@ -324,37 +324,31 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc =
-      ...>   Inspect.Algebra.container_doc(
-      ...>     "[",
-      ...>     Enum.to_list(1..5),
-      ...>     "]",
-      ...>     %Inspect.Opts{limit: :infinity},
-      ...>     fn i, _opts -> to_string(i) end
-      ...>   )
+      iex> left = "["
+      iex> collection = Enum.to_list(1..5)
+      iex> right = "]"
+      iex> inspect = %Inspect.Opts{limit: :infinity}
+      iex> fun = fn i, _opts -> to_string(i) end
+      iex> doc = Inspect.Algebra.container_doc(left, collection, right, inspect, fun)
       iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary()
       "[1,\n 2,\n 3,\n 4,\n 5]"
 
-      iex> doc =
-      ...>   Inspect.Algebra.container_doc(
-      ...>     "[",
-      ...>     Enum.to_list(1..5),
-      ...>     "]",
-      ...>     %Inspect.Opts{limit: 3},
-      ...>     fn i, _opts -> to_string(i) end
-      ...>   )
+      iex> left = "["
+      iex> collection = Enum.to_list(1..5)
+      iex> right = "]"
+      iex> inspect = %Inspect.Opts{limit: 3}
+      iex> fun = fn i, _opts -> to_string(i) end
+      iex> doc = Inspect.Algebra.container_doc(left, collection, right, inspect, fun)
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
       "[1, 2, 3, ...]"
 
-      iex> doc =
-      ...>   Inspect.Algebra.container_doc(
-      ...>     "[",
-      ...>     Enum.to_list(1..5),
-      ...>     "]",
-      ...>     %Inspect.Opts{limit: 3},
-      ...>     fn i, _opts -> to_string(i) end,
-      ...>     separator: "!"
-      ...>   )
+      iex> left = "["
+      iex> collection = Enum.to_list(1..5)
+      iex> right = "]"
+      iex> inspect = %Inspect.Opts{limit: 3}
+      iex> fun = fn i, _opts -> to_string(i) end
+      iex> opts = [separator: "!"]
+      iex> doc = Inspect.Algebra.container_doc(left, collection, right, inspect, fun, opts)
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
       "[1! 2! 3! ...]"
 
