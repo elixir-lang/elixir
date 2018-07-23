@@ -737,22 +737,24 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.group(
-      ...>   Inspect.Algebra.concat(
-      ...>     Inspect.Algebra.group(
-      ...>       Inspect.Algebra.concat(
-      ...>         "Hello,",
-      ...>         Inspect.Algebra.concat(
-      ...>           Inspect.Algebra.break,
-      ...>           "A"
-      ...>         )
-      ...>       )
-      ...>     ),
+      iex> doc =
+      ...>   Inspect.Algebra.group(
       ...>     Inspect.Algebra.concat(
-      ...>       Inspect.Algebra.break,
-      ...>       "B"
+      ...>       Inspect.Algebra.group(
+      ...>         Inspect.Algebra.concat(
+      ...>           "Hello,",
+      ...>           Inspect.Algebra.concat(
+      ...>             Inspect.Algebra.break(),
+      ...>             "A"
+      ...>           )
+      ...>         )
+      ...>       ),
+      ...>       Inspect.Algebra.concat(
+      ...>         Inspect.Algebra.break(),
+      ...>         "B"
+      ...>       )
       ...>     )
-      ...> ))
+      ...>   )
       iex> Inspect.Algebra.format(doc, 80)
       ["Hello,", " ", "A", " ", "B"]
       iex> Inspect.Algebra.format(doc, 6)
@@ -789,7 +791,8 @@ defmodule Inspect.Algebra do
       ...>     Inspect.Algebra.concat(
       ...>       "Hughes",
       ...>       Inspect.Algebra.line()
-      ...>     ), "Wadler"
+      ...>     ),
+      ...>     "Wadler"
       ...>   )
       iex> Inspect.Algebra.format(doc, 80)
       ["Hughes", "\n", "Wadler"]
@@ -824,9 +827,10 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> docs = ["A", "B", "C"]
-      iex> docs = Inspect.Algebra.fold_doc(docs, fn(doc, acc) ->
-      ...>   Inspect.Algebra.concat([doc, "!", acc])
-      ...> end)
+      iex> docs =
+      ...>   Inspect.Algebra.fold_doc(docs, fn doc, acc ->
+      ...>     Inspect.Algebra.concat([doc, "!", acc])
+      ...>   end)
       iex> Inspect.Algebra.format(docs, 80)
       ["A", "!", "B", "!", "C"]
 
