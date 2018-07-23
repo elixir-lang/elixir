@@ -233,7 +233,7 @@ eval(String, Binding, #{line := Line, file := File} = E) when
 eval_quoted(Tree, Binding, Opts) when is_list(Opts) ->
   eval_quoted(Tree, Binding, env_for_eval(Opts));
 eval_quoted(Tree, Binding, #{line := Line} = E) ->
-  eval_forms(elixir_quote:linify(Line, Tree), Binding, E).
+  eval_forms(elixir_quote:linify(Line, line, Tree), Binding, E).
 
 %% Handle forms evaluation. The main difference to
 %% eval_quoted is that it does not linify the given

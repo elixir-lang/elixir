@@ -1,5 +1,5 @@
 -module(elixir_quote).
--export([escape/3, linify/2, linify/3, linify_with_context_counter/3, quote/4]).
+-export([escape/3, linify/3, linify_with_context_counter/3, quote/4]).
 -export([dot/5, tail_list/3, list/2]). %% Quote callbacks
 
 -include("elixir.hrl").
@@ -9,9 +9,8 @@
 
 %% Apply the line from site call on quoted contents.
 %% Receives a Key to look for the default line as argument.
-linify(Line, Exprs) when is_integer(Line) ->
-  do_linify(Line, line, nil, Exprs).
-
+linify(0, _Key, Exprs) ->
+  Exprs;
 linify(Line, Key, Exprs) when is_integer(Line) ->
   do_linify(Line, Key, nil, Exprs).
 
@@ -232,7 +231,7 @@ do_quote({_, _, _} = Tuple, Q, E) ->
   do_quote_tuple(Annotated, Q, E);
 
 do_quote(List, Q, E) when is_list(List) ->
-  do_quote_splice(lists:reverse(List), Q, E);
+  do_quote_tail(lists:reverse(List), Q, E);
 
 do_quote(Other, Q, _) ->
   {Other, Q}.
@@ -263,12 +262,13 @@ do_escape(Map, Q, E) when is_map(Map) ->
 
 do_escape(List, Q, E) when is_list(List) ->
   %% The improper case is a bit inefficient, but improper lists are rare.
-  case reverse_improper(List) of
-    {L} -> do_quote_splice(L, Q, E);
+  case reverse_improper(List, []) of
     {L, R} ->
       {TL, QL} = do_quote_splice(L, Q, E, [], []),
       {TR, QR} = do_quote(R, QL, E),
-      {update_last(TL, fun(X) -> {'|', [], [X, TR]} end), QR}
+      {update_last(TL, fun(X) -> {'|', [], [X, TR]} end), QR};
+    L ->
+      do_quote_tail(L, Q, E)
   end;
 
 do_escape(Other, Q, _)
@@ -347,7 +347,7 @@ do_quote_tuple(Left, Meta, Right, Q, E) ->
   {TRight, RQ} = do_quote(Right, LQ, E),
   {{'{}', [], [TLeft, meta(Meta, Q), TRight]}, RQ}.
 
-do_quote_splice([{'|', Meta, [{unquote_splicing, _, [Left]}, Right]} | T], #elixir_quote{unquote=true} = Q, E) ->
+do_quote_tail([{'|', Meta, [{unquote_splicing, _, [Left]}, Right]} | T], #elixir_quote{unquote=true} = Q, E) ->
   %% Process the remaining entries on the list.
   %% For [1, 2, 3, unquote_splicing(arg) | tail], this will quote
   %% 1, 2 and 3, which could even be unquotes.
@@ -355,7 +355,7 @@ do_quote_splice([{'|', Meta, [{unquote_splicing, _, [Left]}, Right]} | T], #elix
   {TR, QR} = do_quote(Right, QT, E),
   {do_runtime_list(Meta, tail_list, [Left, TR, TT]), QR#elixir_quote{unquoted=true}};
 
-do_quote_splice(List, Q, E) ->
+do_quote_tail(List, Q, E) ->
   do_quote_splice(List, Q, E, [], []).
 
 do_quote_splice([{unquote_splicing, Meta, [Expr]} | T], #elixir_quote{unquote=true} = Q, E, Buffer, Acc) ->
@@ -401,10 +401,9 @@ line(Meta, false) ->
 line(Meta, Line) ->
   keystore(line, Meta, Line).
 
-reverse_improper(L) -> reverse_improper(L, []).
-reverse_improper([], Acc) -> {Acc};
-reverse_improper([H | T], Acc) when is_list(T) -> reverse_improper(T, [H | Acc]);
-reverse_improper([H | T], Acc) -> {[H | Acc], T}.
+reverse_improper([H | T], Acc) -> reverse_improper(T, [H | Acc]);
+reverse_improper([], Acc) -> Acc;
+reverse_improper(T, Acc) -> {Acc, T}.
 
 update_last([], _) -> [];
 update_last([H], F) -> [F(H)];
