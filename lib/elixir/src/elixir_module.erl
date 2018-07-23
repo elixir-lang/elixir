@@ -169,7 +169,6 @@ validate_on_load_attribute({on_load, Def}, Defs, File, Line) ->
   end;
 validate_on_load_attribute(false, _Defs, _File, _Line) -> ok.
 
-
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
 %% misleading so use a custom reason.
