@@ -174,12 +174,12 @@ quote(Expr, Binding, Q, E) ->
   } || {K, V} <- Binding],
 
   TExprs = do_quote(Expr, Q, E),
-  {'{}', [], ['__block__', [], Vars ++ [TExprs] ]}.
+  {'{}', [], ['__block__', [], Vars ++ [TExprs]]}.
 
 %% Actual quoting and helpers
 
-do_quote({quote, _, Args} = Tuple, #elixir_quote{unquote=true} = Q, E) when length(Args) == 1; length(Args) == 2 ->
-  do_quote_tuple(Tuple, Q#elixir_quote{unquote=false}, E);
+do_quote({quote, Meta, Args}, #elixir_quote{unquote=true} = Q, E) when length(Args) == 1; length(Args) == 2 ->
+  do_quote_tuple(quote, Meta, Args, Q#elixir_quote{unquote=false}, E);
 
 do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _) ->
   Expr;
@@ -241,8 +241,14 @@ do_quote({_, _, _} = Tuple, Q, E) ->
   Annotated = annotate(Tuple, Q#elixir_quote.context),
   do_quote_tuple(Annotated, Q, E);
 
-do_quote(List, Q, E) when is_list(List) ->
-  do_quote_tail(lists:reverse(List), Q, E);
+do_quote([], _, _) ->
+  [];
+
+do_quote([H | T], #elixir_quote{unquote=false} = Q, E) ->
+  do_quote_simple_list(T, do_quote(H, Q, E), Q, E);
+
+do_quote([H | T], Q, E) ->
+  do_quote_tail(lists:reverse(T, [H]), Q, E);
 
 do_quote(Other, _, _) ->
   Other.
@@ -271,13 +277,18 @@ do_escape(Map, Q, E) when is_map(Map) ->
   TT = do_quote(maps:to_list(Map), Q, E),
   {'%{}', [], TT};
 
-do_escape(List, Q, E) when is_list(List) ->
+do_escape([], _, _) -> [];
+
+do_escape([H | T], #elixir_quote{unquote=false} = Q, E) ->
+  do_quote_simple_list(T, do_quote(H, Q, E), Q, E);
+
+do_escape([H | T], Q, E) ->
   %% The improper case is inefficient, but improper lists are rare.
-  try lists:reverse(List) of
+  try lists:reverse(T, [H]) of
     L -> do_quote_tail(L, Q, E)
   catch
     _:_ ->
-      {L, R} = reverse_improper(List, []),
+      {L, R} = reverse_improper(T, [H]),
       TL = do_quote_splice(L, Q, E, [], []),
       TR = do_quote(R, Q, E),
       update_last(TL, fun(X) -> {'|', [], [X, TR]} end)
@@ -358,6 +369,12 @@ do_quote_tuple(Left, Meta, Right, Q, E) ->
   TLeft = do_quote(Left, Q, E),
   TRight = do_quote(Right, Q, E),
   {'{}', [], [TLeft, meta(Meta, Q), TRight]}.
+
+do_quote_simple_list([], Prev, _, _) -> [Prev];
+do_quote_simple_list([H | T], Prev, Q, E) ->
+  [Prev | do_quote_simple_list(T, do_quote(H, Q, E), Q, E)];
+do_quote_simple_list(Other, Prev, Q, E) ->
+  [{'|', [], [Prev, do_quote(Other, Q, E)]}].
 
 do_quote_tail([{'|', Meta, [{unquote_splicing, _, [Left]}, Right]} | T], #elixir_quote{unquote=true} = Q, E) ->
   %% Process the remaining entries on the list.
