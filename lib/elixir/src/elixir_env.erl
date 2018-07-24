@@ -53,19 +53,17 @@ reset_vars(Env) ->
 %% Receives two scopes and return a new scope based on the second
 %% with their variables merged.
 %% Unrolled for performance reasons.
-mergev(#{vars := V1, unused_vars := U1, current_vars := C1},
-       #{vars := V2, unused_vars := U2, current_vars := C2} = E2) ->
+mergev(#{unused_vars := U1, current_vars := C1},
+       #{unused_vars := U2, current_vars := C2} = E2) ->
   if
     C1 =/= C2 ->
       if
         U1 =/= U2 ->
-          E2#{
-            vars := ordsets:union(V1, V2),
-            unused_vars := merge_vars(U1, U2),
-            current_vars := merge_vars(C1, C2)
-          };
+          C = merge_vars(C1, C2),
+          E2#{vars := maps:keys(C), unused_vars := merge_vars(U1, U2), current_vars := C};
         true ->
-          E2#{vars := ordsets:union(V1, V2), current_vars := merge_vars(C1, C2)}
+          C = merge_vars(C1, C2),
+          E2#{vars := maps:keys(C), current_vars := C}
       end;
 
     U1 =/= U2 ->
