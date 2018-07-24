@@ -11,26 +11,26 @@ translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Tuple = {Name, Kind},
 
   Current =
-    case maps:find(Tuple, S#elixir_erl.vars) of
-      {ok, {_, VarC}} -> VarC;
-      error -> nil
+    case S#elixir_erl.vars of
+      #{Tuple := {_, VarC}} -> VarC;
+      _ -> nil
     end,
 
-  case S#elixir_erl.context of
-    match ->
+  if
+    S#elixir_erl.context =:= match ->
       Previous =
-        case maps:find(Tuple, S#elixir_erl.backup_vars) of
-          {ok, {_, BackupVarC}} -> BackupVarC;
-          error -> nil
+        case S#elixir_erl.backup_vars of
+          #{Tuple := {_, BackupVarC}} -> BackupVarC;
+          _ -> nil
         end,
 
       if
-        Current /= nil, Current /= Previous ->
+        Current =/= nil, Current =/= Previous ->
           {{var, ?ann(Meta), Current}, S};
         true ->
           assign(Meta, Name, Kind, S)
       end;
-    _  when Current /= nil ->
+    Current =/= nil ->
       {{var, ?ann(Meta), Current}, S}
   end.
 
@@ -39,32 +39,33 @@ assign(Meta, Name, Kind, S) ->
 
   {NewVar, Counter, NS} =
     if
-      Kind /= nil ->
-        build('_', S);
-      true ->
-        build(Name, S)
+      Kind /= nil -> build('_', S);
+      true -> build(Name, S)
     end,
 
-  FS = NS#elixir_erl{vars=maps:put(Tuple, {Counter, NewVar}, S#elixir_erl.vars)},
+  FS = NS#elixir_erl{vars=(S#elixir_erl.vars)#{Tuple => {Counter, NewVar}}},
   {{var, ?ann(Meta), NewVar}, FS}.
 
 build(Key, #elixir_erl{counter=Counter} = S) ->
   Cnt =
-    case maps:find(Key, Counter) of
-      {ok, Val} -> Val + 1;
-      error -> 1
+    case Counter of
+      #{Key := Val} -> Val + 1;
+      _ -> 1
     end,
-  {list_to_atom([$_ | atom_to_list(Key)] ++ "@" ++ integer_to_list(Cnt)),
+  {list_to_atom("_" ++ atom_to_list(Key) ++ "@" ++ integer_to_list(Cnt)),
    Cnt,
-   S#elixir_erl{counter=maps:put(Key, Cnt, Counter)}}.
+   S#elixir_erl{counter=Counter#{Key => Cnt}}}.
 
 %% SCOPE MERGING
 
 %% Receives two scopes and return a new scope based on
 %% the second with their variables merged.
 
-mergev(S1, S2) ->
-  S2#elixir_erl{vars=merge_vars(S1#elixir_erl.vars, S2#elixir_erl.vars)}.
+mergev(#elixir_erl{vars=V1}, #elixir_erl{vars=V2} = S2) ->
+  if
+    V1 =/= V2 -> S2#elixir_erl{vars=merge_vars(V1, V2)};
+    true -> S2
+  end.
 
 %% Receives two scopes and return the first scope with
 %% counters and flags from the later.
@@ -76,7 +77,6 @@ mergec(S1, S2) ->
     stacktrace=S2#elixir_erl.stacktrace
   }.
 
-merge_vars(V, V) -> V;
 merge_vars(V1, V2) ->
   maps:fold(fun(K, M2, Acc) ->
     case Acc of
