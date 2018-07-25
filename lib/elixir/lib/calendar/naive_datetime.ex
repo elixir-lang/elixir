@@ -171,10 +171,35 @@ defmodule NaiveDateTime do
           Calendar.microsecond(),
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
-  def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
-    with {:ok, date} <- Date.new(year, month, day, calendar),
-         {:ok, time} <- Time.new(hour, minute, second, microsecond, calendar),
-         do: new(date, time)
+  def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
+
+  def new(year, month, day, hour, minute, second, microsecond, calendar)
+      when is_integer(microsecond) do
+    new(year, month, day, hour, minute, second, {microsecond, 6}, calendar)
+  end
+
+  def new(year, month, day, hour, minute, second, microsecond, calendar) do
+    cond do
+      not calendar.valid_date?(year, month, day) ->
+        {:error, :invalid_date}
+
+      not calendar.valid_time?(hour, minute, second, microsecond) ->
+        {:error, :invalid_time}
+
+      true ->
+        naive_datetime = %NaiveDateTime{
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond
+        }
+
+        {:ok, naive_datetime}
+    end
   end
 
   @doc """
