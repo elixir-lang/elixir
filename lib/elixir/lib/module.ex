@@ -1347,7 +1347,8 @@ defmodule Module do
           message =
             "redefining @doc attribute previously set at line #{current_line}. " <>
               "If you want to redefine a previously specified doc, " <>
-              "use a definition without a body after the original documentation"
+              "use a definition without a body after the original documentation\n" <>
+              "Example for definition without a body: def foo(a, b)\n"
 
           :elixir_errors.warn(line, env.file, message)
         end
