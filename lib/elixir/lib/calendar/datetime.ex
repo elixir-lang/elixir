@@ -525,6 +525,24 @@ defmodule DateTime do
         not calendar.valid_time?(hour, minute, second, microsecond) ->
           {:error, :invalid_time}
 
+        offset == 0 ->
+          datetime = %DateTime{
+            calendar: calendar,
+            year: year,
+            month: month,
+            day: day,
+            hour: hour,
+            minute: minute,
+            second: second,
+            microsecond: microsecond,
+            std_offset: 0,
+            utc_offset: 0,
+            zone_abbr: "UTC",
+            time_zone: "Etc/UTC"
+          }
+
+          {:ok, datetime, 0}
+
         is_nil(offset) ->
           {:error, :missing_offset}
 
