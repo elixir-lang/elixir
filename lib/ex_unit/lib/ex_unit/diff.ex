@@ -1,6 +1,5 @@
 defmodule ExUnit.Diff do
   @moduledoc false
-  alias ExUnit.Pattern
 
   @doc """
   Returns an edit script representing the difference between `left` and `right`.
@@ -21,12 +20,6 @@ defmodule ExUnit.Diff do
     if String.printable?(left) and String.printable?(right) do
       script_string(left, right, ?\")
     end
-  end
-
-  def script(%Pattern{} = p, right) do
-    p
-    |> ExUnit.PatternDiff.cmp(right)
-    |> ExUnit.MatchPatternFormat.format()
   end
 
   # Structs

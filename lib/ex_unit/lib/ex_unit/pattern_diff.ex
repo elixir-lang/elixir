@@ -272,8 +272,8 @@ defmodule ExUnit.PatternDiff do
     map_key = translate_key(key, env)
 
     {rh_value, rh_map} =
-      case Map.pop(rh_map, map_key) do
-        {nil, rh_map} ->
+      case Map.pop(rh_map, map_key, @no_value) do
+        {@no_value, rh_map} ->
           {@no_value, rh_map}
 
         {val, map} ->

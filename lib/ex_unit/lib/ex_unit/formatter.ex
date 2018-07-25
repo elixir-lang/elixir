@@ -336,7 +336,7 @@ defmodule ExUnit.Formatter do
 
   defp format_sides(%{left: %ExUnit.Pattern{} = left, right: right}, formatter, inspect) do
     case format_pattern(left, right, formatter) do
-      {l, r} ->
+      {l, _r} ->
         {IO.iodata_to_binary(left.binary), IO.iodata_to_binary(l)}
 
       nil ->
