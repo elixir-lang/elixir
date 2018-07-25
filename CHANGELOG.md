@@ -116,20 +116,7 @@ Percentage | Module
     77.19% | Total
 ```
 
-## v1.7.0-rc.1 (2018-07-19)
-
-### 1. Bug fixes
-
-#### Logger
-
-  * [Logger] Ensure nil metadata is always pruned
-
-#### Mix
-
-  * [Mix] Properly tag which dependencies are `top_level` when processing child dependencies (regression)
-  * [Mix] Allow calls to `Mix.Config.eval!/2` to be nested (regression)
-
-## v1.7.0-rc.0 (2018-07-13)
+## v1.7.0 (2018-07-25)
 
 ### 1. Enhancements
 
@@ -180,6 +167,7 @@ Percentage | Module
 
 #### Logger
 
+  * [Logger] Ensure nil metadata is always pruned
   * [Logger] Only evaluate Logger macro arguments when the message will be logged
   * [Logger] Add `:compile_time_purge_matching` to purge logger calls that match certain compile time metadata, such as module names and application names
   * [Logger] Log to `:stderr` if a backend fails and there are no other backends
