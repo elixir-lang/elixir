@@ -5,174 +5,233 @@ defmodule ExUnit.PatternDiffMapTest do
 
   alias ExUnit.{ContainerDiff, Pattern, PatternDiff}
 
-    test "that a map can compare" do
-      simple =
-        quote do
-          %{a: 1}
-        end
-
-      pattern = Pattern.new(simple, [], [])
-
-      expected_match = %ContainerDiff{
-        type: :map,
-        items: [
-          %ContainerDiff {
-            type: :tuple,
-            items: [
-              %PatternDiff{
-                type: :value,
-                lh: %{ast: :a},
-                rh: :a,
-                diff_result: :eq
-              },
-              %PatternDiff{
-                type: :value,
-                lh: %{ast: 1},
-                rh: 1,
-                diff_result: :eq
-              }
-            ]
-          }
-        ]
-      }
-
-      actual = PatternDiff.cmp(pattern, %{a: 1})
-
-      assert actual == expected_match
-
-      expected_no_match = %ContainerDiff{
-        type: :map,
-        items: [
-          %ContainerDiff {
-            type: :tuple,
-            items: [
-              %PatternDiff{
-                type: :value,
-                lh: %{ast: :a},
-                rh: :a,
-                diff_result: :eq
-              },
-              %PatternDiff{
-                type: :value,
-                lh: %{ast: 1},
-                rh: 2,
-                diff_result: :neq
-              }
-            ]
-          }
-        ]
-      }
-
-      actual = PatternDiff.cmp(pattern, %{a: 2})
-
-      assert actual == expected_no_match
-    end
-
-    test "that a map with nothing in common can compare" do
-      simple =
-        quote do
+  test "that a map can compare" do
+    simple =
+      quote do
         %{a: 1}
       end
 
-      pattern = Pattern.new(simple, [], [])
+    pattern = Pattern.new(simple, [], [])
 
-      expected_no_match = %ContainerDiff{
-        type: :map,
-        items: [
-              %PatternDiff{
-                type: :different,
-                lh: %{ast: {:a, 1}},
-                rh: :ex_unit_no_meaningful_value,
-                diff_result: :neq
-              },
-              %PatternDiff{
-                type: :different,
-                lh: :ex_unit_no_meaningful_value,
-                rh: {:b, 2},
-                diff_result: :neq
-              }
-        ]
-      }
+    expected_match = %ContainerDiff{
+      type: :map,
+      items: [
+        %ContainerDiff{
+          type: :tuple,
+          items: [
+            %PatternDiff{
+              type: :value,
+              lh: %{ast: :a},
+              rh: :a,
+              diff_result: :eq
+            },
+            %PatternDiff{
+              type: :value,
+              lh: %{ast: 1},
+              rh: 1,
+              diff_result: :eq
+            }
+          ]
+        }
+      ]
+    }
 
-      actual = PatternDiff.cmp(pattern, %{b: 2})
+    actual = PatternDiff.cmp(pattern, %{a: 1})
 
-      assert actual == expected_no_match
-    end
+    assert actual == expected_match
 
-    test "map compare with empty map" do
-      simple = quote do
+    expected_no_match = %ContainerDiff{
+      type: :map,
+      items: [
+        %ContainerDiff{
+          type: :tuple,
+          items: [
+            %PatternDiff{
+              type: :value,
+              lh: %{ast: :a},
+              rh: :a,
+              diff_result: :eq
+            },
+            %PatternDiff{
+              type: :value,
+              lh: %{ast: 1},
+              rh: 2,
+              diff_result: :neq
+            }
+          ]
+        }
+      ]
+    }
+
+    actual = PatternDiff.cmp(pattern, %{a: 2})
+
+    assert actual == expected_no_match
+  end
+
+  test "that a map with nothing in common can compare" do
+    simple =
+      quote do
         %{a: 1}
       end
-      pattern = Pattern.new(simple, [], [])
-      expected_no_match = %ContainerDiff{
-        type: :map,
-        items: [
-          %PatternDiff{
-            type: :different,
-            lh: %{ast: {:a, 1}},
-            rh: :ex_unit_no_meaningful_value,
-            diff_result: :neq
-          },
-        ]
-      }
 
-      actual = PatternDiff.cmp(pattern, %{})
+    pattern = Pattern.new(simple, [], [])
 
-      assert actual == expected_no_match
+    expected_no_match = %ContainerDiff{
+      type: :map,
+      items: [
+        %PatternDiff{
+          type: :different,
+          lh: %{ast: {:a, 1}},
+          rh: :ex_unit_no_meaningful_value,
+          diff_result: :neq
+        },
+        %PatternDiff{
+          type: :different,
+          lh: :ex_unit_no_meaningful_value,
+          rh: {:b, 2},
+          diff_result: :neq
+        }
+      ]
+    }
 
-      simple = quote do
+    actual = PatternDiff.cmp(pattern, %{b: 2})
+
+    assert actual == expected_no_match
+  end
+
+  test "map compare with empty map" do
+    simple =
+      quote do
+        %{a: 1}
+      end
+
+    pattern = Pattern.new(simple, [], [])
+
+    expected_no_match = %ContainerDiff{
+      type: :map,
+      items: [
+        %PatternDiff{
+          type: :different,
+          lh: %{ast: {:a, 1}},
+          rh: :ex_unit_no_meaningful_value,
+          diff_result: :neq
+        }
+      ]
+    }
+
+    actual = PatternDiff.cmp(pattern, %{})
+
+    assert actual == expected_no_match
+
+    simple =
+      quote do
         %{}
       end
-      pattern = Pattern.new(simple, [], [])
-      expected_no_match = %ContainerDiff{
-        type: :map,
-        items: [
-          %PatternDiff{
-            type: :different,
-            lh: :ex_unit_no_meaningful_value,
-            rh: {:a, 1},
-            diff_result: :neq
-          }
-        ]
-      }
 
-      actual = PatternDiff.cmp(pattern, %{a: 1})
+    pattern = Pattern.new(simple, [], [])
 
-      assert actual == expected_no_match
-    end
+    expected_no_match = %ContainerDiff{
+      type: :map,
+      items: [
+        %PatternDiff{
+          type: :different,
+          lh: :ex_unit_no_meaningful_value,
+          rh: {:a, 1},
+          diff_result: :neq
+        }
+      ]
+    }
 
-    test "map with a pinned key" do
-      simple = quote do
+    actual = PatternDiff.cmp(pattern, %{a: 1})
+
+    assert actual == expected_no_match
+  end
+
+  test "map with a pinned key" do
+    simple =
+      quote do
         %{^a => 1}
       end
-      pattern = Pattern.new(simple, [a: :a], [])
-      actual = PatternDiff.cmp(pattern, %{a: 1})
 
-      expected_match = %ContainerDiff{
-        type: :map,
-        items: [
-          %ContainerDiff {
-            type: :tuple,
-            items: [
-              %PatternDiff{
-                type: :value,
-                lh: %{ast: {:^, [], [{:a, [], ExUnit.PatternDiffMapTest}]}},
-                rh: :a,
-                diff_result: :eq
-              },
-              %PatternDiff{
-                type: :value,
-                lh: %{ast: 1},
-                rh: 1,
-                diff_result: :eq
-              }
-            ]
-          }
-        ]
-      }
-      assert actual == expected_match
-      a = :a
-      assert match?(%{^a => 1}, %{a: 2})
-    end
+    pattern = Pattern.new(simple, [a: :a], [])
+    actual = PatternDiff.cmp(pattern, %{a: 1})
 
+    expected_match = %ContainerDiff{
+      type: :map,
+      items: [
+        %ContainerDiff{
+          type: :tuple,
+          items: [
+            %PatternDiff{
+              type: :value,
+              lh: %{ast: {:^, [], [{:a, [], ExUnit.PatternDiffMapTest}]}},
+              rh: :a,
+              diff_result: :eq
+            },
+            %PatternDiff{
+              type: :value,
+              lh: %{ast: 1},
+              rh: 1,
+              diff_result: :eq
+            }
+          ]
+        }
+      ]
+    }
+
+    assert actual == expected_match
+  end
+
+  test "map with nil keys" do
+    simple =
+      quote do
+        %{a: nil, b: nil}
+      end
+
+    pattern = Pattern.new(simple, [], [])
+
+    actual = PatternDiff.cmp(pattern, %{a: nil, b: 1})
+
+    expected_match = %ExUnit.ContainerDiff{
+      items: [
+        %ExUnit.ContainerDiff{
+          items: [
+            %ExUnit.PatternDiff{
+              diff_result: :eq,
+              lh: %{ast: :a},
+              rh: :a,
+              type: :value
+            },
+            %ExUnit.PatternDiff{
+              diff_result: :eq,
+              lh: %{ast: nil},
+              rh: nil,
+              type: :value
+            }
+          ],
+          type: :tuple
+        },
+        %ExUnit.ContainerDiff{
+          items: [
+            %ExUnit.PatternDiff{
+              diff_result: :eq,
+              lh: %{ast: :b},
+              rh: :b,
+              type: :value
+            },
+            %ExUnit.PatternDiff{
+              diff_result: :neq,
+              lh: %{ast: nil},
+              rh: 1,
+              type: :different
+            }
+          ],
+          type: :tuple
+        }
+      ],
+      type: :map
+    }
+
+    assert actual == expected_match
+  end
 end

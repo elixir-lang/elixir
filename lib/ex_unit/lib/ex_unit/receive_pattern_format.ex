@@ -2,40 +2,29 @@ defmodule ExUnit.ReceivePatternFormat do
   @moduledoc """
   Formats the output of Pattern diff.
   1) Matches will be printed in green, conflicts in red, and neutral in the default color
-  2) If pattern and target are maps, structs or a keyword list
-     and all keywords of the pattern are present, only the keywords in the pattern will be listed
-     e.g.  left: %{a: 1, b: 2}
-           right: %{a: 2, b: 2, ...}
-  3) If a key is missing, then all will be printed.
-  4) Example coloring:
-     [eq: "working", diff_insert: " hello", diff_delete: " good bye"]
-      = (normal)message: %{(green)Hello: (red)Goodbye(normal)}
   """
 
   alias ExUnit.{ContainerDiff, PatternDiff, WhenDiff}
 
   @no_value :ex_unit_no_meaningful_value
 
-  # JOWENS
-  # Create context function that includes vars & pins from `left`
   def script(left, right) do
-    # IO.inspect(binding(), label: "script")
+    IO.inspect(binding(), label: "script")
+    ctx = new_context(:none, left)
 
     _diff =
       left
       |> ExUnit.PatternDiff.cmp(right)
-      # |> IO.inspect(label: "Compare")
-      |> format
+      |> IO.inspect(label: "Compare")
+      |> format(ctx)
       |> Enum.reject(&(&1 == ""))
 
-    # |> IO.inspect(label: "Diff")
+    #      |> IO.inspect(label: "Diff")
   end
-
-  def format(diff, ctx \\ nil)
 
   def format(
         %ContainerDiff{type: :map, items: items},
-        %{keys: key_type, missing: false, comma: comma} = ctx
+        %{keys: key_type, comma: comma} = ctx
       )
       when key_type == :atom_keys or key_type == :non_atom_keys do
     # IO.inspect("Container Map")
@@ -52,9 +41,9 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(%ContainerDiff{type: :map, items: _items} = diff, ctx) do
-    IO.inspect(ctx, label: "Container Map - ")
-    #    IO.inspect(_items, label: "items")
-    map_ctx = create_context(diff)
+    # IO.inspect(ctx, label: "Container Map - ")
+    # IO.inspect(_items, label: "items")
+    map_ctx = create_context(diff, ctx)
 
     comma =
       case ctx do
@@ -67,15 +56,27 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(
-        %ContainerDiff{type: :list, items: items},
-        %{keys: :list, missing: false} = ctx
+        %ContainerDiff{type: :list, items: [%{lh: %{type: :cons_l}} = l, r]},
+        %{comma: comma} = ctx
       ) do
-    IO.inspect("Container list")
+    # IO.inspect("list cons")
+    new_ctx = new_context(:none, ctx)
+
+    [comma, "[", format(l, new_ctx), " | ", format(r, new_ctx), "]"]
+    |> List.flatten()
+  end
+
+  def format(
+        %ContainerDiff{type: :list, items: items},
+        %{keys: :list, comma: comma} = ctx
+      ) do
+    # IO.inspect("Container list")
     [h | rest] = items
 
     [
+      comma,
       "[",
-      format(h, ctx),
+      format(h, %{ctx | comma: ""}),
       Enum.map(rest, &format(&1, %{ctx | comma: ", "})),
       "]"
     ]
@@ -83,20 +84,20 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(%ContainerDiff{type: :when, items: [l, r]}, %{comma: comma} = ctx) do
-    IO.inspect("Container when")
+    # IO.inspect("Container when")
 
     [comma, format(l, ctx), " ", format(r, ctx)]
     |> List.flatten()
   end
 
-  def format(%ContainerDiff{type: :list, items: []} = diff, %{comma: comma}) do
+  def format(%ContainerDiff{type: :list, items: []}, %{comma: comma}) do
     [comma, "[]"]
   end
 
-  def format(%ContainerDiff{type: :list, items: _items} = diff, %{comma: comma}) do
-    IO.inspect("Cointainer diff list")
+  def format(%ContainerDiff{type: :list, items: _items} = diff, %{comma: comma} = ctx) do
+    # IO.inspect("Cointainer diff list")
 
-    ctx = create_context(diff)
+    ctx = create_context(diff, ctx)
 
     [comma, format(diff, ctx)]
     |> List.flatten()
@@ -104,20 +105,24 @@ defmodule ExUnit.ReceivePatternFormat do
     # |> IO.inspect(label: "Format list")
   end
 
-  def format(%ContainerDiff{type: :tuple, items: items}, %{keys: :none} = ctx) do
-    IO.inspect("Container tuple")
+  def format(%ContainerDiff{type: :tuple, items: items}, %{keys: :none, comma: comma} = ctx) do
+    # IO.inspect("Container tuple")
     [h | rest] = items
 
     [
+      comma,
       "{",
-      format(h, ctx),
+      format(h, %{ctx | comma: ""}),
       Enum.map(rest, &format(&1, %{ctx | comma: ", "})),
       "}"
     ]
     |> List.flatten()
   end
 
-  def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :non_atom_keys, comma: comma}) do
+  def format(
+        %ContainerDiff{type: :tuple, items: [l, r]},
+        %{keys: :non_atom_keys, comma: comma} = ctx
+      ) do
     # IO.inspect(l, label: "Container non-atom tuple pair: L")
     # IO.inspect(r, label: "Container non-atom tuple pair: R")
 
@@ -136,7 +141,8 @@ defmodule ExUnit.ReceivePatternFormat do
           match("#{inspect(r.rh)}")
 
         %ContainerDiff{} ->
-          format(r)
+          new_ctx = new_context(r, ctx)
+          format(r, new_ctx)
 
         _ ->
           delete(inspect(r.rh))
@@ -151,25 +157,33 @@ defmodule ExUnit.ReceivePatternFormat do
     # |> IO.inspect(label: "Returning")
   end
 
-  def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :atom_keys, comma: comma}) do
-    IO.inspect("Container keyword tuple")
+  def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :atom_keys, comma: comma} = ctx) do
+    # IO.inspect("Container keyword tuple")
 
     left =
       case l do
         %PatternDiff{diff_result: :eq} ->
           match("#{l.rh}: ")
 
+        %ContainerDiff{} ->
+          new_ctx = create_context(r, ctx)
+          delete(format(l, new_ctx))
+
         _ ->
+          # IO.inspect(l.rh, label: "left")
           delete(inspect(l.rh))
       end
 
     right =
       case r do
         %PatternDiff{diff_result: :eq} ->
+          # IO.inspect("matching")
           match("#{inspect(r.rh)}")
 
         %ContainerDiff{} ->
-          format(r)
+          new_ctx = create_context(r, ctx)
+          # IO.inspect(r, label: "formating")
+          format(r, new_ctx)
 
         _ ->
           delete(inspect(r.rh))
@@ -183,19 +197,20 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(diff, nil) do
-    IO.inspect("Format with a nil context")
+    # IO.inspect("Format with a nil context")
     # Jowens - extract context to it's own deal, this is repeated 3 times now
-    format(diff, %{comma: "", keys: :none, missing: false, print_when?: true})
+    format(diff, %{comma: "", keys: :none, print_when?: true})
   end
 
   def format(%PatternDiff{diff_result: :eq, rh: rh}, %{comma: comma}) do
-    IO.inspect("pattern equal")
+    # IO.inspect("pattern equal")
     [comma, match(inspect(rh))]
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh}, %{comma: comma} = ctx) do
     # IO.inspect(lh, label: "pattern not equal, missing right")
     # IO.inspect(ctx, label: "context")
+
     [comma, insert(textify_ast(lh, ctx))]
   end
 
@@ -203,7 +218,7 @@ defmodule ExUnit.ReceivePatternFormat do
         comma: comma,
         keys: :atom_keys
       }) do
-    IO.inspect("pattern not equal, missing left")
+    # IO.inspect("pattern not equal, missing left - 1")
     [comma, match("#{to_string(key)}: #{inspect(value)}")]
   end
 
@@ -211,17 +226,17 @@ defmodule ExUnit.ReceivePatternFormat do
         comma: comma,
         keys: :non_atom_keys
       }) do
-    IO.inspect("pattern not equal, missing left")
+    # IO.inspect("pattern not equal, missing left - 2")
     [comma, "#{inspect(key)} => #{inspect(value)}"]
   end
 
-  def format(%PatternDiff{diff_result: :neq, rh: rh, lh: _lh}, %{comma: comma} = ctx) do
+  def format(%PatternDiff{diff_result: :neq, rh: rh, lh: _lh}, %{comma: comma}) do
     # IO.inspect(ctx, label: "pattern not equal, but not part of match")
     [comma, delete(inspect(rh))]
   end
 
   def format(%WhenDiff{result: res, op: :and, bindings: keys}, ctx) do
-    IO.inspect("When Diff")
+    # IO.inspect("When Diff")
     [left, right] = keys
     prefix = if ctx.print_when?, do: "when ", else: ""
     ctx = %{ctx | print_when?: false}
@@ -250,19 +265,25 @@ defmodule ExUnit.ReceivePatternFormat do
   def format(other, context) do
     IO.inspect(context, label: "context")
     IO.inspect(other, label: "No matching format")
+    raise "Missing format for #{other}-#{context}"
   end
 
-  defp create_context(%ContainerDiff{type: :list, items: items}) do
+  defp create_context(%ContainerDiff{type: :list, items: items}, old_ctx) do
     if Enum.all?(items, &keyword_tuple?/1),
-      do: %{keys: :atom_keys, missing: false, comma: "", print_when?: true},
-      else: %{keys: :list, missing: false, comma: "", print_when?: true}
+      do: new_context(:atom_keys, old_ctx),
+      else: new_context(:list, old_ctx)
   end
 
-  defp create_context(%ContainerDiff{type: :map, items: items}) do
+  defp create_context(%ContainerDiff{type: :map, items: items}, old_ctx) do
     keys = if Enum.all?(items, &keyword_tuple?/1), do: :atom_keys, else: :non_atom_keys
-    missing = Enum.all?(items, &right_missing_keys?/1)
 
-    %{keys: keys, missing: missing, comma: "", print_when?: true}
+    new_context(keys, old_ctx)
+  end
+
+  def new_context(keys, %{vars: vars, pins: pins}), do: new_context(keys, vars, pins)
+
+  def new_context(keys, vars, pins) do
+    %{comma: "", keys: keys, print_when?: true, vars: vars, pins: pins}
   end
 
   defp keyword_tuple?(%ContainerDiff{items: [key, _value], type: :tuple}) do
@@ -283,16 +304,12 @@ defmodule ExUnit.ReceivePatternFormat do
     false
   end
 
-  defp right_missing_keys?(%ContainerDiff{items: [_key, _value], type: :tuple}), do: false
-  defp right_missing_keys?(%PatternDiff{rh: {_key, _value}, lh: @no_value}), do: false
-  defp right_missing_keys?(_), do: true
-
   defp textify_ast(%{ast: ast}, ctx), do: textify_ast(ast, ctx)
 
   defp textify_ast({:^, _, [{var, _, _}]}, ctx) do
     # IO.inspect(var, label: "var")
     # IO.inspect(ctx, label: "ctx")
-    "^#{var}"
+    inspect(ctx.pins[var])
   end
 
   defp textify_ast({:%{}, _, elements}, ctx) do
@@ -307,7 +324,6 @@ defmodule ExUnit.ReceivePatternFormat do
     "#{key} => #{textify_ast(value, ctx)}"
   end
 
-  defp textify_ast(elem, _ctx) when is_atom(elem), do: elem
   defp textify_ast(elem, _ctx), do: inspect(elem)
 
   defp delete(term) do
