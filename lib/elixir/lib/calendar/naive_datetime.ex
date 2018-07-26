@@ -497,7 +497,7 @@ defmodule NaiveDateTime do
 
   def from_iso8601(<<?-, rest::binary>>, calendar) do
     with {:ok, %{year: year} = naive_datetime} <- raw_from_iso8601(rest, calendar) do
-      {:ok, %{naive_datetime | year: - year}}
+      {:ok, %{naive_datetime | year: -year}}
     end
   end
 

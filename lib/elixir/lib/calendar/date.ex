@@ -265,7 +265,7 @@ defmodule Date do
 
   def from_iso8601(<<?-, rest::binary>>, calendar) do
     with {:ok, %{year: year} = date} <- raw_from_iso8601(rest, calendar) do
-      {:ok, %{date | year: - year}}
+      {:ok, %{date | year: -year}}
     end
   end
 
@@ -279,6 +279,7 @@ defmodule Date do
     with unquote(match_date) <- string,
          true <- unquote(guard_date) do
       {year, month, day} = unquote(read_date)
+
       with {:ok, date} <- new(year, month, day, Calendar.ISO) do
         convert(date, calendar)
       end
