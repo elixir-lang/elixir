@@ -4964,8 +4964,8 @@ defmodule Kernel do
   ## Examples
 
       defmodule MyList do
-        defdelegate reverse(list), to: :lists
-        defdelegate other_reverse(list), to: :lists, as: :reverse
+        defdelegate reverse(list), to: Enum
+        defdelegate other_reverse(list), to: Enum, as: :reverse
       end
 
       MyList.reverse([1, 2, 3])
