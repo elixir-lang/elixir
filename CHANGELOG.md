@@ -116,6 +116,14 @@ Percentage | Module
     77.19% | Total
 ```
 
+## v1.7.1 (2018-07-26)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Calendar] Work-around a Dialyzer bug that causes it to loop for a long time, potentially indefinitely
+
 ## v1.7.0 (2018-07-25)
 
 ### 1. Enhancements
