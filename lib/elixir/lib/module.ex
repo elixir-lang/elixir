@@ -1344,11 +1344,14 @@ defmodule Module do
         signature = merge_signatures(current_sign, signature, 1)
 
         if is_binary(doc) and is_binary(current_doc) and not is_nil(body) do
-          message =
-            "redefining @doc attribute previously set at line #{current_line}. " <>
-              "If you want to redefine a previously specified doc, " <>
-              "use a definition without a body after the original documentation\n" <>
-              "Example for definition without a body: def foo(a, b)\n"
+          message = """
+          redefining @doc attribute previously set at line #{current_line}. \
+          If you want to redefine a previously specified doc, \
+          use a function head after the original documentation:
+
+              @doc "Overriding previous doc for foo/2"
+              def foo(a, b)
+          """
 
           :elixir_errors.warn(line, env.file, message)
         end
