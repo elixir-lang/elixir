@@ -1,5 +1,6 @@
 PREFIX ?= /usr/local
 SHARE_PREFIX ?= $(PREFIX)/share
+MAN_PREFIX ?= $(SHARE_PREFIX)/man
 CANONICAL := master/ # master/ or vMAJOR.MINOR/
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
@@ -279,9 +280,9 @@ clean_man:
 	rm -f man/iex.1.bak
 
 install_man: build_man
-	$(Q) mkdir -p $(DESTDIR)$(SHARE_PREFIX)/man/man1
-	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(SHARE_PREFIX)/man/man1
-	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(SHARE_PREFIX)/man/man1
-	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(SHARE_PREFIX)/man/man1
-	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(SHARE_PREFIX)/man/man1
+	$(Q) mkdir -p $(DESTDIR)$(MAN_PREFIX)/man1
+	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(MAN_PREFIX)/man1
+	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(MAN_PREFIX)/man1
+	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(MAN_PREFIX)/man1
+	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(MAN_PREFIX)/man1
 	$(MAKE) clean_man
