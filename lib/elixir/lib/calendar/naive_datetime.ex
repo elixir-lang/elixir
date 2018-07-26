@@ -495,19 +495,23 @@ defmodule NaiveDateTime do
   @spec from_iso8601(String.t(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
-  def from_iso8601(<<?-, next, rest::binary>>, calendar) when next != ?- do
-    with {:ok, %{year: year} = naive_datetime} <- from_iso8601(<<next>> <> rest, calendar) do
+  def from_iso8601(<<?-, rest::binary>>, calendar) do
+    with {:ok, %{year: year} = naive_datetime} <- raw_from_iso8601(rest, calendar) do
       {:ok, %{naive_datetime | year: -year}}
     end
+  end
+
+  def from_iso8601(<<rest::binary>>, calendar) do
+    raw_from_iso8601(rest, calendar)
   end
 
   @sep [?\s, ?T]
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
   [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
 
-  def from_iso8601(string, calendar) when is_binary(string) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>>
-         when unquote(guard_date) and sep in @sep and unquote(guard_time) <- string,
+  defp raw_from_iso8601(string, calendar) do
+    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
+         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
          {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
       {year, month, day} = unquote(read_date)
