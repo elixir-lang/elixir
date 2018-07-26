@@ -67,13 +67,6 @@ defmodule TimeZoneDatabase do
               | {:error, :time_zone_not_found}
 
   @doc """
-  Returns a list of all known leap seconds. Each element in the list is a tuple
-  with the first element being the UTC datetime for the leap second and the
-  second element being the difference between TAI and UTC in seconds. (TAI-UTC)
-  """
-  @callback leap_seconds() :: [{Calendar.naive_datetime(), integer()}]
-
-  @doc """
   Returns a datetime tuple with the UTC datetime for when the leap second
   data returned by `leap_seconds/0` is valid until.
 
@@ -82,4 +75,71 @@ defmodule TimeZoneDatabase do
   ~6 months.
   """
   @callback leap_second_data_valid_until() :: Calendar.naive_datetime()
+end
+
+defmodule TimeZoneDatabaseClient do
+  @moduledoc """
+  Module used by Elixir for getting time zone data from a TimeZoneDatabase client.
+  """
+
+  @type tz_db_or_config :: TimeZoneDatabase.t() | :from_config
+
+  @no_valid_time_zone_database_error "No valid TimeZoneDatabase provided or configured. Configure with TimeZoneDatabaseClient.set_database/1"
+
+  @doc """
+  Function for setting a global time zone database.
+
+  Takes the module name of a module that implements the TimeZoneDatabase behaviour.
+  """
+  def set_database(time_zone_database) do
+    :elixir_config.put(:time_zone_database, time_zone_database)
+  end
+
+  @doc false
+  @spec by_wall(
+          Calendar.naive_datetime(),
+          Calendar.time_zone(),
+          tz_db_or_config
+        ) ::
+          {:single, TimeZoneDatabase.light_time_zone_period()}
+          | {:ambiguous, TimeZoneDatabase.light_time_zone_period(),
+             TimeZoneDatabase.light_time_zone_period()}
+          | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
+          | {:error, :time_zone_not_found}
+  def by_wall(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_database) do
+    time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
+
+    try do
+      time_zone_data_module.by_wall(time_zone, naive_datetime)
+    rescue
+      UndefinedFunctionError ->
+        raise @no_valid_time_zone_database_error
+    end
+  end
+
+  @doc false
+  @spec by_utc(
+          Calendar.naive_datetime(),
+          Calendar.time_zone(),
+          tz_db_or_config
+        ) :: {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
+  def by_utc(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_database) do
+    time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
+
+    try do
+      time_zone_data_module.by_utc(time_zone, naive_datetime)
+    rescue
+      UndefinedFunctionError ->
+        raise @no_valid_time_zone_database_error
+    end
+  end
+
+  @spec time_zone_data_module_from_parameter(tz_db_or_config) :: TimeZoneDatabase.t()
+  defp time_zone_data_module_from_parameter(:from_config) do
+    :elixir_config.get(:time_zone_database, :from_config)
+  end
+
+  defp time_zone_data_module_from_parameter(time_zone_data_module) do
+    time_zone_data_module
+  end
 end

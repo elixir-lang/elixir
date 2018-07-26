@@ -210,21 +210,25 @@ defmodule DateTime do
       #DateTime<2018-07-28 12:30:00+02:00 CEST Europe/Copenhagen>
   """
   @doc since: "1.4.0"
-  @spec from_naive(NaiveDateTime.t(), Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
+  @spec from_naive(
+          NaiveDateTime.t(),
+          Calendar.time_zone(),
+          TimeZoneDatabaseClient.tz_db_or_config()
+        ) ::
           {:ok, t}
           | {:ambiguous, t, t}
           | {:gap, t, t}
           | {:error, :time_zone_not_found}
           | {:error, :incompatible_calendars}
 
-  def from_naive(naive_datetime, time_zone, time_zone_data_module \\ :from_config)
+  def from_naive(naive_datetime, time_zone, tz_db_or_config \\ :from_config)
 
   def from_naive(naive_datetime, "Etc/UTC", _) do
     do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
   end
 
-  def from_naive(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_data_module) do
-    case by_wall(time_zone_data_module, time_zone, naive_datetime) do
+  def from_naive(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
+    case TimeZoneDatabaseClient.by_wall(naive_datetime, time_zone, tz_db_or_config) do
       {:single, period} ->
         do_from_naive(
           naive_datetime,
@@ -291,13 +295,13 @@ defmodule DateTime do
     end
   end
 
-  def from_naive(%{calendar: calendar} = naive_datetime, time_zone, time_zone_data_module)
+  def from_naive(%{calendar: calendar} = naive_datetime, time_zone, tz_db_or_config)
       when calendar != Calendar.ISO do
     # For non-ISO calendars, convert to ISO, create ISO DateTime, and then
     # convert to original calendar
     iso_result =
       with {:ok, in_iso} <- NaiveDateTime.convert(naive_datetime, Calendar.ISO) do
-        from_naive(in_iso, time_zone, time_zone_data_module)
+        from_naive(in_iso, time_zone, tz_db_or_config)
       end
 
     case iso_result do
@@ -364,10 +368,13 @@ defmodule DateTime do
 
   """
   @doc since: "1.4.0"
-  @spec from_naive!(NaiveDateTime.t(), Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
-          t
-  def from_naive!(naive_datetime, time_zone, time_zone_data_module \\ :from_config) do
-    case from_naive(naive_datetime, time_zone, time_zone_data_module) do
+  @spec from_naive!(
+          NaiveDateTime.t(),
+          Calendar.time_zone(),
+          TimeZoneDatabaseClient.tz_db_or_config()
+        ) :: t
+  def from_naive!(naive_datetime, time_zone, tz_db_or_config \\ :from_config) do
+    case from_naive(naive_datetime, time_zone, tz_db_or_config) do
       {:ok, datetime} ->
         datetime
 
@@ -388,9 +395,10 @@ defmodule DateTime do
       iex> pacific_datetime
       #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
   """
-  @spec shift_zone(t, Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
+  @doc since: "1.8.0-dev"
+  @spec shift_zone(t, Calendar.time_zone(), TimeZoneDatabaseClient.tz_db_or_config()) ::
           {:ok, t} | {:error, :time_zone_not_found} | {:error, :incompatible_calendars}
-  def shift_zone(datetime, time_zone, time_zone_database \\ :from_config)
+  def shift_zone(datetime, time_zone, tz_db_or_config \\ :from_config)
 
   def shift_zone(%{time_zone: time_zone} = datetime, time_zone, _) do
     # When the desired time_zone is the same as the existing time_zone just
@@ -401,11 +409,11 @@ defmodule DateTime do
   def shift_zone(
         %{calendar: Calendar.ISO} = datetime,
         time_zone,
-        time_zone_database
+        tz_db_or_config
       ) do
     in_utc = to_zero_total_offset(datetime)
 
-    case by_utc(time_zone_database, time_zone, in_utc) do
+    case TimeZoneDatabaseClient.by_utc(in_utc, time_zone, tz_db_or_config) do
       {:ok, period} ->
         naive_datetime =
           in_utc
@@ -424,10 +432,10 @@ defmodule DateTime do
     end
   end
 
-  def shift_zone(%{calendar: calendar} = datetime, time_zone, time_zone_database)
+  def shift_zone(%{calendar: calendar} = datetime, time_zone, tz_db_or_config)
       when calendar != Calendar.ISO do
     with {:ok, iso_datetime} <- DateTime.convert(datetime, Calendar.ISO),
-         {:ok, shifted_zone_iso_dt} <- shift_zone(iso_datetime, time_zone, time_zone_database),
+         {:ok, shifted_zone_iso_dt} <- shift_zone(iso_datetime, time_zone, tz_db_or_config),
          {:ok, shifted_zone_original_calendar_dt} <- convert(shifted_zone_iso_dt, calendar) do
       {:ok, shifted_zone_original_calendar_dt}
     end
@@ -456,16 +464,16 @@ defmodule DateTime do
       "Europe/Copenhagen"
 
   """
-  @spec now(Calendar.time_zone(), TimeZoneDatabase.t() | :from_config) ::
+  @spec now(Calendar.time_zone(), TimeZoneDatabaseClient.tz_db_or_config()) ::
           {:ok, t} | {:error, :time_zone_not_found}
-  def now(time_zone, time_zone_database \\ :from_config)
+  def now(time_zone, tz_db_or_config \\ :from_config)
 
   def now("Etc/UTC", _) do
     {:ok, utc_now()}
   end
 
-  def now(time_zone, time_zone_database) do
-    utc_now() |> shift_zone(time_zone, time_zone_database)
+  def now(time_zone, tz_db_or_config) do
+    utc_now() |> shift_zone(time_zone, tz_db_or_config)
   end
 
   @doc """
@@ -1126,54 +1134,6 @@ defmodule DateTime do
 
   defp apply_tz_offset(iso_days, offset) do
     Calendar.ISO.add_day_fraction_to_iso_days(iso_days, -offset, 86400)
-  end
-
-  @no_valid_time_zone_database_error "No valid TimeZoneDatabase provided or configured. Configure with :elixir_config.put(:time_zone_module, module_name)"
-  @spec by_wall(
-          TimeZoneDatabase.t() | :from_config,
-          Calendar.time_zone(),
-          Calendar.naive_datetime()
-        ) ::
-          {:single, TimeZoneDatabase.light_time_zone_period()}
-          | {:ambiguous, TimeZoneDatabase.light_time_zone_period(),
-             TimeZoneDatabase.light_time_zone_period()}
-          | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
-          | {:error, :time_zone_not_found}
-  defp by_wall(time_zone_database, time_zone, %{calendar: Calendar.ISO} = naive_datetime) do
-    time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
-
-    try do
-      time_zone_data_module.by_wall(time_zone, naive_datetime)
-    rescue
-      UndefinedFunctionError ->
-        raise @no_valid_time_zone_database_error
-    end
-  end
-
-  @spec by_utc(
-          TimeZoneDatabase.t() | :from_config,
-          Calendar.time_zone(),
-          Calendar.naive_datetime()
-        ) :: {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
-  defp by_utc(time_zone_database, time_zone, %{calendar: Calendar.ISO} = naive_datetime) do
-    time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
-
-    try do
-      time_zone_data_module.by_utc(time_zone, naive_datetime)
-    rescue
-      UndefinedFunctionError ->
-        raise @no_valid_time_zone_database_error
-    end
-  end
-
-  @spec time_zone_data_module_from_parameter(:from_config | TimeZoneDatabase.t()) ::
-          TimeZoneDatabase.t()
-  defp time_zone_data_module_from_parameter(:from_config) do
-    :elixir_config.safe_get(:time_zone_module, :from_config)
-  end
-
-  defp time_zone_data_module_from_parameter(time_zone_data_module) do
-    time_zone_data_module
   end
 
   defimpl String.Chars do
