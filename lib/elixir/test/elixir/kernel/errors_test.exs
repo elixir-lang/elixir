@@ -841,7 +841,7 @@ defmodule Kernel.ErrorsTest do
     '''
   end
 
-  test "invalid args for bodyless clause" do
+  test "invalid args for function head" do
     assert_eval_raise CompileError,
                       ~r"nofile:2: only variables and \\\\ are allowed as arguments in definition header.",
                       '''

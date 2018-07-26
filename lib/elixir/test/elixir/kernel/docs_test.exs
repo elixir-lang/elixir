@@ -173,7 +173,7 @@ defmodule Kernel.DocsTest do
           @deprecated "use baz/2 instead"
           def foo(arg \\ 0), do: arg + 1
 
-          @doc "Multiple bodiless clause doc"
+          @doc "Multiple function head doc"
           @deprecated "something else"
           def bar(_arg)
           def bar(_arg)
@@ -183,7 +183,7 @@ defmodule Kernel.DocsTest do
           @doc since: "1.2"
           def baz(_arg)
           def baz(arg), do: arg + 1
-          @doc "Multiple bodiless clause and docs"
+          @doc "Multiple function head and docs"
           @doc since: "1.2.3"
           def baz(_arg)
 
@@ -236,11 +236,11 @@ defmodule Kernel.DocsTest do
 
       assert {{:function, :__struct__, 1}, _, ["__struct__(kv)"], :none, %{}} = function_struct_1
 
-      assert {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple bodiless clause doc"},
+      assert {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple function head doc"},
               %{deprecated: "something else"}} = function_bar
 
-      assert {{:function, :baz, 1}, _, ["baz(arg)"],
-              %{"en" => "Multiple bodiless clause and docs"}, %{since: "1.2.3"}} = function_baz
+      assert {{:function, :baz, 1}, _, ["baz(arg)"], %{"en" => "Multiple function head and docs"},
+              %{since: "1.2.3"}} = function_baz
 
       assert {{:function, :foo, 1}, _, ["foo(arg \\\\ 0)"], %{"en" => "Function doc"},
               %{
