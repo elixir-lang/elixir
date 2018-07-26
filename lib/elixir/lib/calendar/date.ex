@@ -263,24 +263,28 @@ defmodule Date do
   @spec from_iso8601(String.t(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
+  def from_iso8601(<<?-, rest::binary>>, calendar) do
+    with {:ok, %{year: year} = date} <- raw_from_iso8601(rest, calendar) do
+      {:ok, %{date | year: - year}}
+    end
+  end
+
+  def from_iso8601(<<rest::binary>>, calendar) do
+    raw_from_iso8601(rest, calendar)
+  end
+
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
 
-  def from_iso8601(unquote(match_date), calendar) when unquote(guard_date) do
-    {year, month, day} = unquote(read_date)
-
-    with {:ok, date} <- new(year, month, day, Calendar.ISO) do
-      convert(date, calendar)
+  def raw_from_iso8601(string, calendar) do
+    with unquote(match_date) <- string,
+         true <- unquote(guard_date) do
+      {year, month, day} = unquote(read_date)
+      with {:ok, date} <- new(year, month, day, Calendar.ISO) do
+        convert(date, calendar)
+      end
+    else
+      _ -> {:error, :invalid_format}
     end
-  end
-
-  def from_iso8601(<<?-, next, rest::binary>>, calendar) when next != ?- do
-    with {:ok, %{year: year} = date} <- from_iso8601(<<next>> <> rest, calendar) do
-      {:ok, %{date | year: -year}}
-    end
-  end
-
-  def from_iso8601(<<_::binary>>, _calendar) do
-    {:error, :invalid_format}
   end
 
   @doc """
