@@ -102,6 +102,9 @@ compile(Line, Module, Block, Vars, E) ->
     RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
     CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
 
+    OnLoadAttribute = lists:keyfind(on_load, 1, Attributes),
+    validate_on_load_attribute(OnLoadAttribute, AllDefinitions, File, Line),
+
     ModuleMap = #{
       module => Module,
       line => Line,
@@ -164,6 +167,17 @@ validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
       end
   end;
 validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
+
+validate_on_load_attribute({on_load, Def}, Defs, File, Line) ->
+  case lists:keyfind(Def, 1, Defs) of
+    false ->
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, {undefined_on_load, Def});
+    {_, def, _, _} ->
+      ok;
+    {_, WrongKind, _, _} ->
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, {wrong_kind_on_load, Def, WrongKind})
+  end;
+validate_on_load_attribute(false, _Defs, _File, _Line) -> ok.
 
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
@@ -436,6 +450,11 @@ format_error({module_in_definition, Module, File, Line}) ->
     [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]);
 format_error({bad_inline, {Name, Arity}}) ->
   io_lib:format("inlined function ~ts/~B undefined", [Name, Arity]);
+format_error({undefined_on_load, {Name, Arity}}) ->
+  io_lib:format("@on_load function ~ts/~B is undefined", [Name, Arity]);
+format_error({wrong_kind_on_load, {Name, Arity}, WrongKind}) ->
+  io_lib:format("expected @on_load function ~ts/~B to be defined as \"def\", got \"~ts\"",
+                [Name, Arity, WrongKind]);
 format_error({parse_transform, Module}) ->
   io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir no longer supports "
                 "Erlang-based transforms", [elixir_aliases:inspect(Module)]).
