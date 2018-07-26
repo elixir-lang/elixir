@@ -511,8 +511,8 @@ defmodule DateTime do
   [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
 
   def from_iso8601(string, calendar \\ Calendar.ISO) when is_binary(string) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>>
-         when unquote(guard_date) and sep in @sep and unquote(guard_time) <- string,
+    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
+         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
          {offset, ""} <- Calendar.ISO.parse_offset(rest) do
       {year, month, day} = unquote(read_date)
