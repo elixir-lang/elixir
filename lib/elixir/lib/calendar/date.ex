@@ -275,7 +275,7 @@ defmodule Date do
 
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
 
-  def raw_from_iso8601(string, calendar) do
+  defp raw_from_iso8601(string, calendar) do
     with unquote(match_date) <- string,
          true <- unquote(guard_date) do
       {year, month, day} = unquote(read_date)
