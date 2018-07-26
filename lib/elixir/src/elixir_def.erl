@@ -212,7 +212,7 @@ run_with_location_change(File, E, Callback) ->
   end.
 
 def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
-  check_args_for_bodiless_clause(Meta, Args, E),
+  check_args_for_function_head(Meta, Args, E),
   [];
 def_to_clauses(_Kind, Meta, Args, Guards, [{do, Body}], _E) ->
   [{Meta, Args, Guards, Body}];
@@ -339,12 +339,12 @@ warn_bodiless_function(Check, _Meta, _File, Module, _Kind, _Tuple)
     when Check == false; Module == 'Elixir.Module' ->
   ok;
 warn_bodiless_function(_Check, Meta, File, _Module, Kind, Tuple) ->
-  elixir_errors:form_warn(Meta, File, ?MODULE, {bodiless_clause, Kind, Tuple}),
+  elixir_errors:form_warn(Meta, File, ?MODULE, {function_head, Kind, Tuple}),
   ok.
 
-check_args_for_bodiless_clause(Meta, Args, E) ->
+check_args_for_function_head(Meta, Args, E) ->
   [begin
-     elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_bodiless_clause)
+     elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_function_head)
    end || Arg <- Args, invalid_arg(Arg)].
 
 invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
@@ -380,7 +380,7 @@ assert_valid_name(_Meta, _Kind, _Name, _Args, _S) ->
 
 %% Format errors
 
-format_error({bodiless_clause, Kind, {Name, Arity}}) ->
+format_error({function_head, Kind, {Name, Arity}}) ->
   io_lib:format("implementation not provided for predefined ~ts ~ts/~B", [Kind, Name, Arity]);
 
 format_error({no_module, {Kind, Name, Arity}}) ->
@@ -441,12 +441,16 @@ format_error({no_alias, Atom}) ->
 format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
 
-format_error(invalid_args_for_bodiless_clause) ->
-  "only variables and \\\\ are allowed as arguments in definition header.\n"
+format_error(invalid_args_for_function_head) ->
+  "only variables and \\\\ are allowed as arguments in function head.\n"
   "\n"
-  "If you did not intend to define a header, make sure your function "
+  "If you did not intend to define a function head, make sure your function "
   "definition has the proper syntax by wrapping the arguments in parentheses "
-  "and ensuring there is no space between the function name and arguments";
+  "and using the do instruction accordingly:\n\n"
+  "    def add(a, b), do: a + b\n\n"
+  "    def add(a, b) do\n"
+  "      a + b\n"
+  "    end\n";
 
 format_error({'__info__', Kind}) ->
   io_lib:format("cannot define ~ts __info__/1 as it is automatically defined by Elixir", [Kind]);

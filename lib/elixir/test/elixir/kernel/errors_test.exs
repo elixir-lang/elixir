@@ -843,7 +843,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid args for function head" do
     assert_eval_raise CompileError,
-                      ~r"nofile:2: only variables and \\\\ are allowed as arguments in definition header.",
+                      ~r"nofile:2: only variables and \\\\ are allowed as arguments in function head.",
                       '''
                       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
                         def foo(nil)
