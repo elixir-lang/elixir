@@ -2,51 +2,56 @@ defmodule FakeTimeZoneDatabase do
   @behaviour TimeZoneDatabase
 
   @time_zone_period_cph_summer_2018 %{
-    from_wall: 63_689_166_000,
+    from_wall: {{2018, 3, 25}, {3, 0, 0}},
     std_offset: 3600,
-    until_wall: 63_707_914_800,
+    until_wall: {{2018, 10, 28}, {3, 0, 0}},
     utc_offset: 3600,
     zone_abbr: "CEST"
   }
 
   @time_zone_period_cph_winter_2018_2019 %{
-    from_wall: 63_707_911_200,
+    from_wall: {{2018, 10, 28}, {2, 0, 0}},
     std_offset: 0,
-    until_wall: 63_721_216_800,
+    until_wall: {{2019, 3, 31}, {2, 0, 0}},
     utc_offset: 3600,
     zone_abbr: "CET"
   }
 
   @time_zone_period_cph_summer_2019 %{
-    from_wall: 63_721_220_400,
+    from_wall: {{2019, 3, 31}, {3, 0, 0}},
     std_offset: 3600,
-    until_wall: 63_739_364_400,
+    until_wall: {{2019, 10, 27}, {3, 0, 0}},
     utc_offset: 3600,
     zone_abbr: "CEST"
   }
 
-  def by_utc(time_zone, erl_datetime) do
-    gregorian_seconds = :calendar.datetime_to_gregorian_seconds(erl_datetime)
-    do_by_utc(time_zone, gregorian_seconds)
+  def by_utc(time_zone, naive_datetime) do
+    erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
+
+    do_by_utc(time_zone, erl_datetime)
   end
 
-  def by_wall(time_zone, erl_datetime) do
-    gregorian_seconds = :calendar.datetime_to_gregorian_seconds(erl_datetime)
-    do_by_wall(time_zone, gregorian_seconds)
+  def by_wall(time_zone, naive_datetime) do
+    erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
+
+    do_by_wall(time_zone, erl_datetime)
   end
 
-  defp do_by_utc("Europe/Copenhagen", gregorian_seconds)
-       when gregorian_seconds >= 63_689_158_800 and gregorian_seconds < 63_707_914_800 do
+  defp do_by_utc("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2018, 3, 25}, {1, 0, 0}} and
+              erl_datetime < {{2018, 10, 28}, {3, 0, 0}} do
     {:ok, @time_zone_period_cph_summer_2018 |> to_light_period}
   end
 
-  defp do_by_utc("Europe/Copenhagen", gregorian_seconds)
-       when gregorian_seconds >= 63_689_158_800 and gregorian_seconds < 63_707_907_600 do
+  defp do_by_utc("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2018, 3, 25}, {1, 0, 0}} and
+              erl_datetime < {{2018, 10, 28}, {1, 0, 0}} do
     {:ok, @time_zone_period_cph_winter_2018_2019 |> to_light_period}
   end
 
-  defp do_by_utc("America/Los_Angeles", gregorian_seconds)
-       when gregorian_seconds >= 63_687_981_600 and gregorian_seconds < 63_708_541_200 do
+  defp do_by_utc("America/Los_Angeles", erl_datetime)
+       when erl_datetime >= {{2018, 3, 11}, {10, 0, 0}} and
+              erl_datetime < {{2018, 11, 4}, {9, 0, 0}} do
     {:ok,
      %{
        std_offset: 3600,
@@ -55,30 +60,35 @@ defmodule FakeTimeZoneDatabase do
      }}
   end
 
-  defp do_by_wall("Europe/Copenhagen", gregorian_seconds)
-       when gregorian_seconds >= 63_721_216_800 and gregorian_seconds < 63_721_220_400 do
+  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2019, 3, 31}, {2, 0, 0}} and
+              erl_datetime < {{2019, 3, 31}, {3, 0, 0}} do
     {:gap, @time_zone_period_cph_winter_2018_2019 |> to_full_period_datetime_tuple,
      @time_zone_period_cph_summer_2019 |> to_full_period_datetime_tuple}
   end
 
-  defp do_by_wall("Europe/Copenhagen", gregorian_seconds)
-       when gregorian_seconds < 63_707_914_800 and gregorian_seconds >= 63_707_911_200 do
+  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+       when erl_datetime < {{2018, 10, 28}, {3, 0, 0}} and
+              erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} do
     {:ambiguous, @time_zone_period_cph_summer_2018 |> to_light_period,
      @time_zone_period_cph_winter_2018_2019 |> to_light_period}
   end
 
-  defp do_by_wall("Europe/Copenhagen", gregorian_seconds)
-       when gregorian_seconds >= 63_689_166_000 and gregorian_seconds < 63_707_914_800 do
+  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2018, 3, 25}, {3, 0, 0}} and
+              erl_datetime < {{2018, 10, 28}, {3, 0, 0}} do
     {:single, @time_zone_period_cph_summer_2018 |> to_light_period}
   end
 
-  defp do_by_wall("Europe/Copenhagen", gregorian_seconds)
-       when gregorian_seconds >= 63_707_911_200 and gregorian_seconds < 63_721_216_800 do
+  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} and
+              erl_datetime < {{2019, 3, 31}, {2, 0, 0}} do
     {:single, @time_zone_period_cph_winter_2018_2019 |> to_light_period}
   end
 
-  defp do_by_wall("Europe/Copenhagen", gregorian_seconds)
-       when gregorian_seconds >= 63_721_220_400 and gregorian_seconds < 63_739_364_400 do
+  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2019, 3, 31}, {3, 0, 0}} and
+              erl_datetime < {{2019, 10, 27}, {3, 0, 0}} do
     {:single, @time_zone_period_cph_summer_2019 |> to_light_period}
   end
 
@@ -128,10 +138,13 @@ defmodule FakeTimeZoneDatabase do
   end
 
   defp to_full_period_datetime_tuple(full_period_iso_seconds) do
-    from_wall_erl = full_period_iso_seconds.from_wall |> :calendar.gregorian_seconds_to_datetime()
+    from_wall_erl =
+      full_period_iso_seconds.from_wall
+      |> NaiveDateTime.from_erl!()
 
     until_wall_erl =
-      full_period_iso_seconds.until_wall |> :calendar.gregorian_seconds_to_datetime()
+      full_period_iso_seconds.until_wall
+      |> NaiveDateTime.from_erl!()
 
     %{full_period_iso_seconds | from_wall: from_wall_erl, until_wall: until_wall_erl}
   end

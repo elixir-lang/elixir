@@ -13,7 +13,7 @@ defmodule TimeZoneDatabase do
 
   `:min` basically means "since the beginning of time" and `:max` "until forever".
   """
-  @type time_zone_period_limit :: :calendar.datetime() | :min | :max
+  @type time_zone_period_limit :: Calendar.datetime() | :min | :max
 
   @typedoc """
   A period where a certain combination of UTC offset, standard offset and zone
@@ -46,7 +46,7 @@ defmodule TimeZoneDatabase do
   Takes a time zone name and a point in time for UTC and returns a
   `time_zone_period` for that point in time.
   """
-  @callback by_utc(Calendar.time_zone(), :calendar.datetime()) ::
+  @callback by_utc(Calendar.time_zone(), Calendar.naive_datetime()) ::
               {:ok, light_time_zone_period} | {:error, :time_zone_not_found}
 
   @doc """
@@ -60,7 +60,7 @@ defmodule TimeZoneDatabase do
   If there is only a single possible period for the provided `datetime`, the a tuple with `:single`
   and the `time_zone_period` is returned.
   """
-  @callback by_wall(Calendar.time_zone(), :calendar.datetime()) ::
+  @callback by_wall(Calendar.time_zone(), Calendar.naive_datetime()) ::
               {:single, light_time_zone_period}
               | {:ambiguous, light_time_zone_period, light_time_zone_period}
               | {:gap, time_zone_period, time_zone_period}
@@ -71,7 +71,7 @@ defmodule TimeZoneDatabase do
   with the first element being the UTC datetime for the leap second and the
   second element being the difference between TAI and UTC in seconds. (TAI-UTC)
   """
-  @callback leap_seconds() :: [{:calendar.datetime(), integer()}]
+  @callback leap_seconds() :: [{Calendar.naive_datetime(), integer()}]
 
   @doc """
   Returns a datetime tuple with the UTC datetime for when the leap second
@@ -81,5 +81,5 @@ defmodule TimeZoneDatabase do
   periodically announces if there will be any leap seconds for the next
   ~6 months.
   """
-  @callback leap_second_data_valid_until() :: :calendar.datetime()
+  @callback leap_second_data_valid_until() :: Calendar.naive_datetime()
 end

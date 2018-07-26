@@ -261,12 +261,10 @@ defmodule DateTime do
         # we get the last microsecond just before.
         before_naive =
           first_period.until_wall
-          |> NaiveDateTime.from_erl!({999_999, 6})
+          |> Map.put(:microsecond, {999_999, 6})
           |> NaiveDateTime.add(-1)
 
-        after_naive =
-          second_period.from_wall
-          |> NaiveDateTime.from_erl!()
+        after_naive = second_period.from_wall
 
         {:ok, latest_datetime_before} =
           do_from_naive(
@@ -1141,19 +1139,11 @@ defmodule DateTime do
              TimeZoneDatabase.light_time_zone_period()}
           | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
           | {:error, :time_zone_not_found}
-  defp by_wall(time_zone_database, time_zone, %{
-         calendar: Calendar.ISO,
-         year: year,
-         month: month,
-         day: day,
-         hour: hour,
-         minute: minute,
-         second: second
-       }) do
+  defp by_wall(time_zone_database, time_zone, %{calendar: Calendar.ISO} = naive_datetime) do
     time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
 
     try do
-      time_zone_data_module.by_wall(time_zone, {{year, month, day}, {hour, minute, second}})
+      time_zone_data_module.by_wall(time_zone, naive_datetime)
     rescue
       UndefinedFunctionError ->
         raise @no_valid_time_zone_database_error
@@ -1165,19 +1155,11 @@ defmodule DateTime do
           Calendar.time_zone(),
           Calendar.naive_datetime()
         ) :: {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
-  defp by_utc(time_zone_database, time_zone, %{
-         calendar: Calendar.ISO,
-         year: year,
-         month: month,
-         day: day,
-         hour: hour,
-         minute: minute,
-         second: second
-       }) do
+  defp by_utc(time_zone_database, time_zone, %{calendar: Calendar.ISO} = naive_datetime) do
     time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
 
     try do
-      time_zone_data_module.by_utc(time_zone, {{year, month, day}, {hour, minute, second}})
+      time_zone_data_module.by_utc(time_zone, naive_datetime)
     rescue
       UndefinedFunctionError ->
         raise @no_valid_time_zone_database_error
