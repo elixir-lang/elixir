@@ -155,13 +155,6 @@ load_struct(Meta, Name, Args, InContext, E) ->
       erlang:raise(Kind, Reason, Info)
   end.
 
-prune_stacktrace([{Module, '__struct__', Arity, _} | _], Module, Arity) ->
-  [];
-prune_stacktrace([H | T], Module, Arity) ->
-  [H | prune_stacktrace(T, Module, Arity)];
-prune_stacktrace([], _Module, _Arity) ->
-  [].
-
 ensure_loaded(Module) ->
   code:ensure_loaded(Module) == {module, Module}.
 
