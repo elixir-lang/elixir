@@ -46,7 +46,7 @@ defmodule TimeZoneDatabase do
   Takes a time zone name and a point in time for UTC and returns a
   `time_zone_period` for that point in time.
   """
-  @callback by_utc(Calendar.time_zone(), Calendar.naive_datetime()) ::
+  @callback by_utc(Calendar.naive_datetime(), Calendar.time_zone()) ::
               {:ok, light_time_zone_period} | {:error, :time_zone_not_found}
 
   @doc """
@@ -60,7 +60,7 @@ defmodule TimeZoneDatabase do
   If there is only a single possible period for the provided `datetime`, the a tuple with `:single`
   and the `time_zone_period` is returned.
   """
-  @callback by_wall(Calendar.time_zone(), Calendar.naive_datetime()) ::
+  @callback by_wall(Calendar.naive_datetime(), Calendar.time_zone()) ::
               {:single, light_time_zone_period}
               | {:ambiguous, light_time_zone_period, light_time_zone_period}
               | {:gap, time_zone_period, time_zone_period}
@@ -110,7 +110,7 @@ defmodule TimeZoneDatabaseClient do
     time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
 
     try do
-      time_zone_data_module.by_wall(time_zone, naive_datetime)
+      time_zone_data_module.by_wall(naive_datetime, time_zone)
     rescue
       UndefinedFunctionError ->
         raise @no_valid_time_zone_database_error
@@ -127,7 +127,7 @@ defmodule TimeZoneDatabaseClient do
     time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
 
     try do
-      time_zone_data_module.by_utc(time_zone, naive_datetime)
+      time_zone_data_module.by_utc(naive_datetime, time_zone)
     rescue
       UndefinedFunctionError ->
         raise @no_valid_time_zone_database_error

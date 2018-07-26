@@ -25,13 +25,13 @@ defmodule FakeTimeZoneDatabase do
     zone_abbr: "CEST"
   }
 
-  def by_utc(time_zone, naive_datetime) do
+  def by_utc(naive_datetime, time_zone) do
     erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
 
     do_by_utc(time_zone, erl_datetime)
   end
 
-  def by_wall(time_zone, naive_datetime) do
+  def by_wall(naive_datetime, time_zone) do
     erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
 
     do_by_wall(time_zone, erl_datetime)
