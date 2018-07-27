@@ -22,6 +22,8 @@
 
 10. Add the release to `elixir.csv` and `_data/elixir-versions.yml` files in `elixir-lang/elixir-lang.github.com`
 
+11. Send an e-mail to elixir-lang-ann@googlegroups.com with title "Elixir vVERSION released". The body should be a link to the Release page on GitHub. If it is a security release, prefix the title with the `[security]` tag
+
 ## Creating a new vMAJOR.MINOR branch
 
 ### In the new branch
