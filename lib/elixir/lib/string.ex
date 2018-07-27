@@ -1145,7 +1145,7 @@ defmodule String do
   When `count` is less than or equal to the length of `string`,
   given `string` is returned.
 
-  Raises `ArgumentError` if the given `padding` contains non-string element.
+  Raises `ArgumentError` if the given `padding` contains a non-string element.
 
   ## Examples
 
@@ -1187,7 +1187,7 @@ defmodule String do
   When `count` is less than or equal to the length of `string`,
   given `string` is returned.
 
-  Raises `ArgumentError` if the given `padding` contains non-string element.
+  Raises `ArgumentError` if the given `padding` contains a non-string element.
 
   ## Examples
 
