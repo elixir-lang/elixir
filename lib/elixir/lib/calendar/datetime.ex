@@ -220,6 +220,7 @@ defmodule DateTime do
           | {:gap, t, t}
           | {:error, :time_zone_not_found}
           | {:error, :incompatible_calendars}
+          | {:error, :invalid_time_zone_database}
 
   def from_naive(naive_datetime, time_zone, tz_db_or_config \\ :from_config)
 
@@ -428,8 +429,10 @@ defmodule DateTime do
   # check if it is a known leap second.
   # In case of a hypothetical negative leap second (e.g. 23:59:59) skipped
   # there is no point of using this function as it does nothing for it.
+  # All datetimes with non ISO calendars return :ok
   @spec validate_leap_second(Calendar.datetime(), TimeZoneDatabaseClient.tz_db_or_config()) :: :ok
-  defp validate_leap_second(%{second: second}, _) when second != 60 do
+  defp validate_leap_second(%{second: second, calendar: calendar}, _)
+       when second != 60 or calendar != Calendar.ISO do
     :ok
   end
 
@@ -807,39 +810,45 @@ defmodule DateTime do
 
       iex> DateTime.from_iso8601("2015-01-23P23:50:07")
       {:error, :invalid_format}
-      iex> DateTime.from_iso8601("2015-01-23 23:50:07A")
-      {:error, :invalid_format}
       iex> DateTime.from_iso8601("2015-01-23T23:50:07")
       {:error, :missing_offset}
       iex> DateTime.from_iso8601("2015-01-23 23:50:61")
       {:error, :invalid_time}
       iex> DateTime.from_iso8601("2015-01-32 23:50:07")
       {:error, :invalid_date}
-
       iex> DateTime.from_iso8601("2015-01-23T23:50:07.123-00:00")
       {:error, :invalid_format}
-      iex> DateTime.from_iso8601("2015-01-23T23:50:07.123-00:60")
-      {:error, :invalid_format}
+
+      iex> {:ok, datetime, 0} = DateTime.from_iso8601("2015-06-30 23:59:60Z", Calendar.ISO, FakeTimeZoneDatabase)
+      iex> datetime
+      #DateTime<2015-06-30 23:59:60Z>
+      iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
+      {:error, :invalid_leap_second}
+
+      # If a TimeZoneDatabase has not been set with TimeZoneDatabaseClient.set_database
+      # and the second of the parsed datetime is 60
+      iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00")
+      {:error, :invalid_time_zone_database}
 
   """
   @doc since: "1.4.0"
-  @spec from_iso8601(String.t(), Calendar.calendar()) ::
+  @spec from_iso8601(String.t(), Calendar.calendar(), TimeZoneDatabaseClient.tz_db_or_config()) ::
           {:ok, t, Calendar.utc_offset()} | {:error, atom}
-  def from_iso8601(string, calendar \\ Calendar.ISO)
+  def from_iso8601(string, calendar \\ Calendar.ISO, tz_db_or_config \\ :from_config)
 
-  def from_iso8601(<<?-, rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar, true)
+  def from_iso8601(<<?-, rest::binary>>, calendar, tz_db_or_config) do
+    raw_from_iso8601(rest, calendar, tz_db_or_config, true)
   end
 
-  def from_iso8601(<<rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar, false)
+  def from_iso8601(<<rest::binary>>, calendar, tz_db_or_config) do
+    raw_from_iso8601(rest, calendar, tz_db_or_config, false)
   end
 
   @sep [?\s, ?T]
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
   [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
 
-  defp raw_from_iso8601(string, calendar, is_negative_datetime) do
+  defp raw_from_iso8601(string, calendar, tz_db_or_config, is_negative_datetime) do
     with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
@@ -848,68 +857,127 @@ defmodule DateTime do
       {hour, minute, second} = unquote(read_time)
       year = if is_negative_datetime, do: -year, else: year
 
-      cond do
-        not calendar.valid_date?(year, month, day) ->
-          {:error, :invalid_date}
-
-        not calendar.valid_time?(hour, minute, second, microsecond) ->
-          {:error, :invalid_time}
-
-        offset == 0 ->
-          datetime = %DateTime{
-            calendar: calendar,
-            year: year,
-            month: month,
-            day: day,
-            hour: hour,
-            minute: minute,
-            second: second,
-            microsecond: microsecond,
-            std_offset: 0,
-            utc_offset: 0,
-            zone_abbr: "UTC",
-            time_zone: "Etc/UTC"
-          }
-
-          {:ok, datetime, 0}
-
-        is_nil(offset) ->
-          {:error, :missing_offset}
-
-        true ->
-          day_fraction = Calendar.ISO.time_to_day_fraction(hour, minute, second, {0, 0})
-
-          {{year, month, day}, {hour, minute, second, _}} =
-            case apply_tz_offset({0, day_fraction}, offset) do
-              {0, day_fraction} ->
-                {{year, month, day}, Calendar.ISO.time_from_day_fraction(day_fraction)}
-
-              {extra_days, day_fraction} ->
-                base_days = Calendar.ISO.date_to_iso_days(year, month, day)
-
-                {Calendar.ISO.date_from_iso_days(base_days + extra_days),
-                 Calendar.ISO.time_from_day_fraction(day_fraction)}
-            end
-
-          datetime = %DateTime{
-            calendar: calendar,
-            year: year,
-            month: month,
-            day: day,
-            hour: hour,
-            minute: minute,
-            second: second,
-            microsecond: microsecond,
-            std_offset: 0,
-            utc_offset: 0,
-            zone_abbr: "UTC",
-            time_zone: "Etc/UTC"
-          }
-
-          {:ok, datetime, offset}
-      end
+      do_from_iso8601(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        offset,
+        calendar,
+        tz_db_or_config
+      )
     else
       _ -> {:error, :invalid_format}
+    end
+  end
+
+  defp do_from_iso8601(
+         year,
+         month,
+         day,
+         hour,
+         minute,
+         second,
+         microsecond,
+         offset,
+         calendar,
+         tz_db_or_config
+       ) do
+    cond do
+      not calendar.valid_date?(year, month, day) ->
+        {:error, :invalid_date}
+
+      not calendar.valid_time?(hour, minute, second, microsecond) ->
+        {:error, :invalid_time}
+
+      offset == 0 ->
+        datetime = %DateTime{
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond,
+          std_offset: 0,
+          utc_offset: 0,
+          zone_abbr: "UTC",
+          time_zone: "Etc/UTC"
+        }
+
+        case validate_leap_second(datetime, tz_db_or_config) do
+          :ok ->
+            {:ok, datetime, 0}
+
+          error ->
+            error
+        end
+
+      is_nil(offset) ->
+        {:error, :missing_offset}
+
+      second == 60 && calendar == Calendar.ISO ->
+        # Get the datetime as if the second is 59, then set the second back to 60
+        # and check that it is a valid leap second.
+        with {:ok, datetime, offset} <-
+               do_from_iso8601(
+                 year,
+                 month,
+                 day,
+                 hour,
+                 minute,
+                 59,
+                 microsecond,
+                 offset,
+                 calendar,
+                 tz_db_or_config
+               ) do
+          datetime = %{datetime | second: 60}
+
+          case validate_leap_second(datetime, tz_db_or_config) do
+            :ok ->
+              {:ok, %{datetime | microsecond: microsecond}, offset}
+
+            error ->
+              error
+          end
+        end
+
+      true ->
+        day_fraction = Calendar.ISO.time_to_day_fraction(hour, minute, second, {0, 0})
+
+        {{year, month, day}, {hour, minute, second, _}} =
+          case apply_tz_offset({0, day_fraction}, offset) do
+            {0, day_fraction} ->
+              {{year, month, day}, Calendar.ISO.time_from_day_fraction(day_fraction)}
+
+            {extra_days, day_fraction} ->
+              base_days = Calendar.ISO.date_to_iso_days(year, month, day)
+
+              {Calendar.ISO.date_from_iso_days(base_days + extra_days),
+               Calendar.ISO.time_from_day_fraction(day_fraction)}
+          end
+
+        datetime = %DateTime{
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond,
+          std_offset: 0,
+          utc_offset: 0,
+          zone_abbr: "UTC",
+          time_zone: "Etc/UTC"
+        }
+
+        {:ok, datetime, offset}
     end
   end
 

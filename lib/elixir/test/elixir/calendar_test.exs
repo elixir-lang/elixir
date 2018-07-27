@@ -510,6 +510,37 @@ defmodule DateTimeTest do
              }
   end
 
+  test "from_iso8601 handles invalid date, time, formats correctly" do
+    assert DateTime.from_iso8601("2015-01-23T23:50:07") == {:error, :missing_offset}
+    assert DateTime.from_iso8601("2015-01-23 23:50:61") == {:error, :invalid_time}
+    assert DateTime.from_iso8601("2015-01-32 23:50:07") == {:error, :invalid_date}
+    assert DateTime.from_iso8601("2015-01-23 23:50:07A") == {:error, :invalid_format}
+    assert DateTime.from_iso8601("2015-01-23T23:50:07.123-00:60") == {:error, :invalid_format}
+  end
+
+  test "from_iso8601 handles leap seconds correctly" do
+    assert DateTime.from_iso8601("2018-06-30 23:59:60Z", Calendar.ISO, FakeTimeZoneDatabase) ==
+             {:error, :invalid_leap_second}
+
+    {:ok, datetime, 0} =
+      DateTime.from_iso8601("2015-06-30 23:59:60Z", Calendar.ISO, FakeTimeZoneDatabase)
+
+    assert datetime == %DateTime{
+             calendar: Calendar.ISO,
+             day: 30,
+             hour: 23,
+             microsecond: {0, 0},
+             minute: 59,
+             month: 6,
+             second: 60,
+             std_offset: 0,
+             time_zone: "Etc/UTC",
+             utc_offset: 0,
+             year: 2015,
+             zone_abbr: "UTC"
+           }
+  end
+
   test "from_unix/2" do
     min_datetime = %DateTime{
       calendar: Calendar.ISO,

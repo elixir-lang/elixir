@@ -77,8 +77,6 @@ defmodule TimeZoneDatabaseClient do
 
   @type tz_db_or_config :: TimeZoneDatabase.t() | :from_config
 
-  @no_valid_time_zone_database_error "No valid TimeZoneDatabase provided or configured. Configure with TimeZoneDatabaseClient.set_database/1"
-
   @doc """
   Function for setting a global time zone database.
 
@@ -99,14 +97,15 @@ defmodule TimeZoneDatabaseClient do
              TimeZoneDatabase.light_time_zone_period()}
           | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
           | {:error, :time_zone_not_found}
+          | {:error, :invalid_time_zone_database}
   def by_wall(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_database) do
     time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
 
     try do
       time_zone_data_module.by_wall(naive_datetime, time_zone)
     rescue
-      e in UndefinedFunctionError ->
-        undefined_function_error(e)
+      UndefinedFunctionError ->
+        {:error, :invalid_time_zone_database}
     end
   end
 
@@ -115,38 +114,40 @@ defmodule TimeZoneDatabaseClient do
           Calendar.naive_datetime(),
           Calendar.time_zone(),
           tz_db_or_config
-        ) :: {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
+        ) ::
+          {:ok, TimeZoneDatabase.time_zone_period()}
+          | {:error, :time_zone_not_found}
+          | {:error, :invalid_time_zone_database}
   def by_utc(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_database) do
     time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
 
     try do
       time_zone_data_module.by_utc(naive_datetime, time_zone)
     rescue
-      e in UndefinedFunctionError ->
-        undefined_function_error(e)
+      UndefinedFunctionError ->
+        {:error, :invalid_time_zone_database}
     end
   end
 
   @spec is_leap_second(Calendar.naive_datetime(), tz_db_or_config) ::
-          {:ok, boolean} | {:error, :outside_leap_second_data_validity_range}
+          {:ok, boolean}
+          | {:error, :outside_leap_second_data_validity_range}
+          | {:error, :invalid_time_zone_database}
   def is_leap_second(naive_datetime, tz_db_or_config) do
     time_zone_data_module = time_zone_data_module_from_parameter(tz_db_or_config)
 
     try do
       time_zone_data_module.is_leap_second(naive_datetime)
     rescue
-      e in UndefinedFunctionError ->
-        undefined_function_error(e)
+      UndefinedFunctionError ->
+        {:error, :invalid_time_zone_database}
     end
   end
 
-  defp undefined_function_error(error) do
-    raise @no_valid_time_zone_database_error <> " " <> inspect(error)
-  end
-
-  @spec time_zone_data_module_from_parameter(tz_db_or_config) :: TimeZoneDatabase.t()
+  @spec time_zone_data_module_from_parameter(tz_db_or_config) ::
+          TimeZoneDatabase.t() | :no_time_zone_database
   defp time_zone_data_module_from_parameter(:from_config) do
-    :elixir_config.get(:time_zone_database, :from_config)
+    :elixir_config.get(:time_zone_database, :no_time_zone_database)
   end
 
   defp time_zone_data_module_from_parameter(time_zone_data_module) do
