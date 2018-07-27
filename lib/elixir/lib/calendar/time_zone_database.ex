@@ -66,15 +66,8 @@ defmodule TimeZoneDatabase do
               | {:gap, time_zone_period, time_zone_period}
               | {:error, :time_zone_not_found}
 
-  @doc """
-  Returns a datetime tuple with the UTC datetime for when the leap second
-  data returned by `leap_seconds/0` is valid until.
-
-  International Earth Rotation and Reference Systems Service (IERS)
-  periodically announces if there will be any leap seconds for the next
-  ~6 months.
-  """
-  @callback leap_second_data_valid_until() :: Calendar.naive_datetime()
+  @callback is_leap_second(Calander.naive_datetime()) ::
+              {:ok, boolean} | {:error, :outside_leap_second_data_validity_range}
 end
 
 defmodule TimeZoneDatabaseClient do
@@ -112,8 +105,8 @@ defmodule TimeZoneDatabaseClient do
     try do
       time_zone_data_module.by_wall(naive_datetime, time_zone)
     rescue
-      UndefinedFunctionError ->
-        raise @no_valid_time_zone_database_error
+      e in UndefinedFunctionError ->
+        undefined_function_error(e)
     end
   end
 
@@ -129,9 +122,26 @@ defmodule TimeZoneDatabaseClient do
     try do
       time_zone_data_module.by_utc(naive_datetime, time_zone)
     rescue
-      UndefinedFunctionError ->
-        raise @no_valid_time_zone_database_error
+      e in UndefinedFunctionError ->
+        undefined_function_error(e)
     end
+  end
+
+  @spec is_leap_second(Calendar.naive_datetime(), tz_db_or_config) ::
+          {:ok, boolean} | {:error, :outside_leap_second_data_validity_range}
+  def is_leap_second(naive_datetime, tz_db_or_config) do
+    time_zone_data_module = time_zone_data_module_from_parameter(tz_db_or_config)
+
+    try do
+      time_zone_data_module.is_leap_second(naive_datetime)
+    rescue
+      e in UndefinedFunctionError ->
+        undefined_function_error(e)
+    end
+  end
+
+  defp undefined_function_error(error) do
+    raise @no_valid_time_zone_database_error <> " " <> inspect(error)
   end
 
   @spec time_zone_data_module_from_parameter(tz_db_or_config) :: TimeZoneDatabase.t()

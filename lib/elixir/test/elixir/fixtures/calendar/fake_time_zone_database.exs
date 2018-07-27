@@ -44,9 +44,20 @@ defmodule FakeTimeZoneDatabase do
   end
 
   defp do_by_utc("Europe/Copenhagen", erl_datetime)
-       when erl_datetime >= {{2018, 3, 25}, {1, 0, 0}} and
-              erl_datetime < {{2018, 10, 28}, {1, 0, 0}} do
+       when erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} and
+              erl_datetime < {{2019, 3, 31}, {2, 0, 0}} do
     {:ok, @time_zone_period_cph_winter_2018_2019 |> to_light_period}
+  end
+
+  defp do_by_utc("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2015, 3, 29}, {1, 0, 0}} and
+              erl_datetime < {{2015, 10, 25}, {1, 0, 0}} do
+    {:ok,
+     %{
+       std_offset: 3600,
+       utc_offset: 3600,
+       zone_abbr: "CEST"
+     }}
   end
 
   defp do_by_utc("America/Los_Angeles", erl_datetime)
@@ -92,11 +103,51 @@ defmodule FakeTimeZoneDatabase do
     {:single, @time_zone_period_cph_summer_2019 |> to_light_period}
   end
 
+  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2015, 3, 29}, {3, 0, 0}} and
+              erl_datetime < {{2015, 10, 25}, {3, 0, 0}} do
+    {:single,
+     %{
+       std_offset: 3600,
+       utc_offset: 3600,
+       zone_abbr: "CEST"
+     }}
+  end
+
+  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+       when erl_datetime >= {{2090, 3, 26}, {3, 0, 0}} and
+              erl_datetime < {{2090, 10, 29}, {3, 0, 0}} do
+    {:single,
+     %{
+       std_offset: 3600,
+       utc_offset: 3600,
+       zone_abbr: "CEST"
+     }}
+  end
+
   defp do_by_wall(time_zone, _) when time_zone != "Europe/Copenhagen" do
     {:error, :time_zone_not_found}
   end
 
-  def leap_seconds do
+  def is_leap_second(naive_datetime) do
+    erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
+
+    leap_seconds_only = leap_seconds() |> Enum.map(fn {dt, _} -> dt end)
+
+    case Enum.member?(leap_seconds_only, erl_datetime) do
+      true ->
+        {:ok, true}
+
+      false ->
+        if erl_datetime > leap_second_data_valid_until() do
+          {:error, :outside_leap_second_data_validity_range}
+        else
+          {:ok, false}
+        end
+    end
+  end
+
+  defp leap_seconds do
     [
       {{{1971, 12, 31}, {23, 59, 60}}, 10},
       {{{1972, 6, 30}, {23, 59, 60}}, 11},
@@ -129,7 +180,7 @@ defmodule FakeTimeZoneDatabase do
     ]
   end
 
-  def leap_second_data_valid_until do
+  defp leap_second_data_valid_until do
     {{2018, 12, 28}, {0, 0, 0}}
   end
 

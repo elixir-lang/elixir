@@ -223,6 +223,14 @@ defmodule DateTime do
 
   def from_naive(naive_datetime, time_zone, tz_db_or_config \\ :from_config)
 
+  def from_naive(%{second: 60} = naive_datetime, "Etc/UTC", tz_db_or_config) do
+    {:ok, dt} = do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
+
+    with :ok <- validate_leap_second(dt, tz_db_or_config) do
+      {:ok, dt}
+    end
+  end
+
   def from_naive(naive_datetime, "Etc/UTC", _) do
     do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
   end
@@ -230,12 +238,13 @@ defmodule DateTime do
   def from_naive(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
     case TimeZoneDatabaseClient.by_wall(naive_datetime, time_zone, tz_db_or_config) do
       {:single, period} ->
-        do_from_naive(
+        do_from_naive_check_leap_second(
           naive_datetime,
           time_zone,
           period.std_offset,
           period.utc_offset,
-          period.zone_abbr
+          period.zone_abbr,
+          tz_db_or_config
         )
 
       {:ambiguous, first_period, second_period} ->
@@ -323,6 +332,37 @@ defmodule DateTime do
     end
   end
 
+  # This assumes there are no time zones with offsets other than whole minutes during
+  # the period where leap seconds are in use.
+  defp do_from_naive_check_leap_second(
+         %{second: 60} = naive_datetime,
+         time_zone,
+         std_offset,
+         utc_offset,
+         zone_abbr,
+         tz_db_or_config
+       ) do
+    {:ok, datetime} = do_from_naive(naive_datetime, time_zone, std_offset, utc_offset, zone_abbr)
+    utc_dt = to_zero_total_offset(datetime)
+
+    case TimeZoneDatabaseClient.is_leap_second(utc_dt, tz_db_or_config) do
+      {:ok, true} -> {:ok, datetime}
+      {:ok, false} -> {:error, :invalid_leap_second}
+      {:error, _} = error -> error
+    end
+  end
+
+  defp do_from_naive_check_leap_second(
+         naive_datetime,
+         time_zone,
+         std_offset,
+         utc_offset,
+         zone_abbr,
+         _
+       ) do
+    do_from_naive(naive_datetime, time_zone, std_offset, utc_offset, zone_abbr)
+  end
+
   defp do_from_naive(naive_datetime, time_zone, std_offset, utc_offset, zone_abbr) do
     %{
       calendar: calendar,
@@ -384,6 +424,30 @@ defmodule DateTime do
     end
   end
 
+  # Takes a datetime and in case it is is on the 61st second (:60) it will
+  # check if it is a known leap second.
+  # In case of a hypothetical negative leap second (e.g. 23:59:59) skipped
+  # there is no point of using this function as it does nothing for it.
+  @spec validate_leap_second(Calendar.datetime(), TimeZoneDatabaseClient.tz_db_or_config()) :: :ok
+  defp validate_leap_second(%{second: second}, _) when second != 60 do
+    :ok
+  end
+
+  defp validate_leap_second(dt, tz_db_or_config) do
+    utc_dt = to_zero_total_offset(dt)
+
+    case TimeZoneDatabaseClient.is_leap_second(utc_dt, tz_db_or_config) do
+      {:ok, true} ->
+        :ok
+
+      {:ok, false} ->
+        {:error, :invalid_leap_second}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
   @doc """
   Takes a DateTime and a time zone.
 
@@ -417,7 +481,7 @@ defmodule DateTime do
       {:ok, period} ->
         naive_datetime =
           in_utc
-          |> NaiveDateTime.add(period.utc_offset + period.std_offset)
+          |> naive_add_preserve_second_60(period.utc_offset + period.std_offset)
 
         do_from_naive(
           naive_datetime,
@@ -441,15 +505,32 @@ defmodule DateTime do
     end
   end
 
+  # To be used for shifting zones while keeping leap seconds
+  @spec naive_add_preserve_second_60(Calendar.naive_datetime(), integer()) ::
+          Calendar.naive_datetime()
+  defp naive_add_preserve_second_60(%{second: 60, calendar: Calendar.ISO} = ndt, seconds_to_add)
+       when rem(seconds_to_add, 60) == 0 do
+    ndt_second_59 =
+      %{ndt | second: 59}
+      |> naive_add_preserve_second_60(seconds_to_add)
+
+    %{ndt_second_59 | second: 60}
+  end
+
+  defp naive_add_preserve_second_60(%{calendar: Calendar.ISO} = naive_datetime, seconds_to_add) do
+    NaiveDateTime.add(naive_datetime, seconds_to_add)
+  end
+
   # Takes Calendar.naive_datetime and makes sure it has a zero total offset
-  @spec to_zero_total_offset(Calendar.naive_datetime()) :: Calendar.naive_datetime()
+  @spec to_zero_total_offset(Calendar.datetime()) :: Calendar.datetime()
   defp to_zero_total_offset(%{utc_offset: utc_offset, std_offset: std_offset} = datetime)
        when utc_offset + std_offset == 0 do
+    # If the offset is already zero, return the datetime unchanged
     datetime
   end
 
   defp to_zero_total_offset(%{calendar: Calendar.ISO} = datetime) do
-    datetime |> NaiveDateTime.add(-1 * (datetime.utc_offset + datetime.std_offset))
+    datetime |> naive_add_preserve_second_60(-1 * (datetime.utc_offset + datetime.std_offset))
   end
 
   @doc """
