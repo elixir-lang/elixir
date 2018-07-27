@@ -14,7 +14,9 @@ Elixir version | Support
 1.4            | Security patches only
 1.3            | Security patches only
 
-Major Elixir releases may contain breaking changes and those will be explicitly outlined in the CHANGELOG. There are currently no plans for a major v2 release.
+New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
+
+There are currently no plans for a major v2 release.
 
 ## Compatibility between non-major Elixir versions
 
