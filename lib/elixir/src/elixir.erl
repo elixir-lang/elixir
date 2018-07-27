@@ -255,7 +255,7 @@ eval_forms(Tree, Binding, Env, Scope) ->
       % Below must be all one line for locations to be the same
       % when the stacktrace is extended to the full stacktrace.
       {value, Value, NewBinding} =
-        try erl_eval:expr(Erl, ParsedBinding, none, none, none) catch Class:Exception -> erlang:raise(Class, Exception, get_stacktrace(erlang:get_stacktrace())) end,
+        try erl_eval:expr(Erl, ParsedBinding, none, none, none) catch ?WITH_STACKTRACE(Class, Exception, Stacktrace) erlang:raise(Class, Exception, get_stacktrace(Stacktrace)) end,
       {Value, elixir_erl_var:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
   end.
 
@@ -266,10 +266,9 @@ get_stacktrace(Stacktrace) ->
   try
     throw(stack)
   catch
-    throw:stack ->
+    ?WITH_STACKTRACE(throw, stack, CurrentStack)
       % Ignore stack item for current function.
-      [_ | CurrentStack] = erlang:get_stacktrace(),
-      merge_stacktrace(Stacktrace, CurrentStack)
+      merge_stacktrace(Stacktrace, tl(CurrentStack))
   end.
 
 % The stacktrace did not include the current stack, re-add it.

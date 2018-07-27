@@ -450,7 +450,7 @@ defmodule System do
   # TODO: Fully deprecate it on Elixir v1.9.
   # It is currently partially deprecated in elixir_dispatch.erl
   def stacktrace do
-    :erlang.get_stacktrace()
+    apply(:erlang, :get_stacktrace, [])
   end
 
   @doc """
