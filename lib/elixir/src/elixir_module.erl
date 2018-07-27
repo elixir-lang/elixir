@@ -123,8 +123,8 @@ compile(Line, Module, Block, Vars, E) ->
     make_module_available(Module, Binary),
     {module, Module, Binary, Result}
   catch
-    error:undef ->
-      case erlang:get_stacktrace() of
+    ?WITH_STACKTRACE(error, undef, Stacktrace)
+      case Stacktrace of
         [{Module, Fun, Args, _Info} | _] = Stack when is_list(Args) ->
           compile_undef(Module, Fun, length(Args), Stack);
         [{Module, Fun, Arity, _Info} | _] = Stack ->
@@ -332,8 +332,7 @@ expand_callback(Line, M, F, Args, E, Fun) ->
         {_Value, _Binding, EF, _S} = elixir:eval_forms(EE, [], ET),
         EF
       catch
-        Kind:Reason ->
-          Stacktrace = erlang:get_stacktrace(),
+        ?WITH_STACKTRACE(Kind, Reason, Stacktrace)
           Info = {M, F, length(Args), location(Line, E)},
           erlang:raise(Kind, Reason, prune_stacktrace(Info, Stacktrace))
       end
