@@ -3,10 +3,15 @@
 [![Travis build](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
 "Build Status")](https://travis-ci.org/elixir-lang/elixir)
 
-Elixir is a dynamic, functional language designed for building scalable and maintainable applications.
+Elixir is a dynamic, functional language designed for building scalable
+and maintainable applications.
 
 For more about Elixir, installation and documentation,
 [check Elixir's website](http://elixir-lang.org/).
+
+## Announcements
+
+New releases are announced in the [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
 ## Compiling from source
 
@@ -41,8 +46,8 @@ you may want to open up a bug report, as explained next.
 ## Bug reports
 
 For reporting bugs, [visit our issues tracker][2] and follow the steps
-for reporting a new issue. Please disclose security vulnerabilities
-privately at elixir-security@googlegroups.com.
+for reporting a new issue. **Please disclose security vulnerabilities
+privately at elixir-security@googlegroups.com**.
 
 ## Proposing new features
 
