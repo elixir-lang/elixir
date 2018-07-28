@@ -167,105 +167,105 @@ defmodule ExUnit.PatternDiffWhenTest do
     end
   end
 
-  test "multiple when clauses, :and, expanded" do
-    # simple =
-    #   quote do
-    #     {a, b} when is_integer(a) and is_binary(b)
-    #   end
+  # test "multiple when clauses, :and, expanded" do
+  #   # simple =
+  #   #   quote do
+  #   #     {a, b} when is_integer(a) and is_binary(b)
+  #   #   end
 
-    simple = expand({a, b} when is_integer(a) and is_binary(b))
+  #   simple = expand({a, b} when is_integer(a) and is_binary(b))
 
-    pattern =
-      Pattern.new(
-        simple,
-        [],
-        a: :ex_unit_unbound_var,
-        b: :ex_unit_unbound_var
-      )
+  #   pattern =
+  #     Pattern.new(
+  #       simple,
+  #       [],
+  #       a: :ex_unit_unbound_var,
+  #       b: :ex_unit_unbound_var
+  #     )
 
-    expected_match = %ContainerDiff{
-      type: :when,
-      items: [
-        %ContainerDiff{
-          type: :tuple,
-          items: [
-            %PatternDiff{
-              type: :value,
-              lh: %{ast: {:a, [line: 176], nil}},
-              rh: 1,
-              diff_result: :eq
-            },
-            %PatternDiff{
-              type: :value,
-              lh: %{ast: {:b, [line: 176], nil}},
-              rh: "foo",
-              diff_result: :eq
-            }
-          ]
-        },
-        %WhenDiff{
-          op: :and,
-          bindings: [
-            %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq},
-            %WhenDiff{op: :is_binary, bindings: [b: "foo"], result: :eq}
-          ],
-          result: :eq
-        }
-      ]
-    }
+  #   expected_match = %ContainerDiff{
+  #     type: :when,
+  #     items: [
+  #       %ContainerDiff{
+  #         type: :tuple,
+  #         items: [
+  #           %PatternDiff{
+  #             type: :value,
+  #             lh: %{ast: {:a, [line: 176], nil}},
+  #             rh: 1,
+  #             diff_result: :eq
+  #           },
+  #           %PatternDiff{
+  #             type: :value,
+  #             lh: %{ast: {:b, [line: 176], nil}},
+  #             rh: "foo",
+  #             diff_result: :eq
+  #           }
+  #         ]
+  #       },
+  #       %WhenDiff{
+  #         op: :and,
+  #         bindings: [
+  #           %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq},
+  #           %WhenDiff{op: :is_binary, bindings: [b: "foo"], result: :eq}
+  #         ],
+  #         result: :eq
+  #       }
+  #     ]
+  #   }
 
-    actual = PatternDiff.cmp(pattern, {1, "foo"})
-    assert actual == expected_match
-  end
+  #   actual = PatternDiff.cmp(pattern, {1, "foo"})
+  #   assert actual == expected_match
+  # end
 
-  test "multiple when clauses, :or, expanded" do
-    # simple =
-    #   quote do
-    #     {a, b} when is_integer(a) and is_binary(b)
-    #   end
+  # test "multiple when clauses, :or, expanded" do
+  #   # simple =
+  #   #   quote do
+  #   #     {a, b} when is_integer(a) and is_binary(b)
+  #   #   end
 
-    simple = expand({a, b} when is_integer(a) or is_binary(b))
+  #   simple = expand({a, b} when is_integer(a) or is_binary(b))
 
-    pattern =
-      Pattern.new(
-        simple,
-        [],
-        a: :ex_unit_unbound_var,
-        b: :ex_unit_unbound_var
-      )
+  #   pattern =
+  #     Pattern.new(
+  #       simple,
+  #       [],
+  #       a: :ex_unit_unbound_var,
+  #       b: :ex_unit_unbound_var
+  #     )
 
-    expected_match = %ContainerDiff{
-      type: :when,
-      items: [
-        %ContainerDiff{
-          type: :tuple,
-          items: [
-            %PatternDiff{
-              type: :value,
-              lh: %{ast: {:a, [line: 227], nil}},
-              rh: 1,
-              diff_result: :eq
-            },
-            %PatternDiff{
-              type: :value,
-              lh: %{ast: {:b, [line: 227], nil}},
-              rh: "foo",
-              diff_result: :eq
-            }
-          ]
-        },
-        %WhenDiff{
-          op: :or,
-          bindings: [
-            %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq},
-            %WhenDiff{op: :is_binary, bindings: [b: "foo"], result: :eq}
-          ],
-          result: :eq
-        }
-      ]
-    }
+  #   expected_match = %ContainerDiff{
+  #     type: :when,
+  #     items: [
+  #       %ContainerDiff{
+  #         type: :tuple,
+  #         items: [
+  #           %PatternDiff{
+  #             type: :value,
+  #             lh: %{ast: {:a, [line: 227], nil}},
+  #             rh: 1,
+  #             diff_result: :eq
+  #           },
+  #           %PatternDiff{
+  #             type: :value,
+  #             lh: %{ast: {:b, [line: 227], nil}},
+  #             rh: "foo",
+  #             diff_result: :eq
+  #           }
+  #         ]
+  #       },
+  #       %WhenDiff{
+  #         op: :or,
+  #         bindings: [
+  #           %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq},
+  #           %WhenDiff{op: :is_binary, bindings: [b: "foo"], result: :eq}
+  #         ],
+  #         result: :eq
+  #       }
+  #     ]
+  #   }
 
-    actual = PatternDiff.cmp(pattern, {1, "foo"})
-    assert actual == expected_match
-  end
+  #   actual = PatternDiff.cmp(pattern, {1, "foo"})
+  #   assert actual == expected_match
+  # end
 end
