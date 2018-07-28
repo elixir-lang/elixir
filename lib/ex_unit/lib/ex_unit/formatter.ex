@@ -388,10 +388,6 @@ defmodule ExUnit.Formatter do
     Enum.reduce(script, acc, &colorize_diff(&1, formatter, &2))
   end
 
-  defp colorize_diff({:equiv, {left_content, right_content}}, _formatter, {left, right}) do
-    {[left | left_content], [right | right_content]}
-  end
-
   defp colorize_diff({:eq, content}, _formatter, {left, right}) do
     {[left | content], [right | content]}
   end
@@ -420,7 +416,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp pattern_diff(left, right) do
-    task = Task.async(ExUnit.ReceivePatternFormat, :script, [left, right])
+    task = Task.async(ExUnit.PatternFormat, :script, [left, right])
 
     case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
       {:ok, script} -> script

@@ -7,9 +7,10 @@ defmodule ExUnit.PatternDiffTupleTest do
 
   describe "Comparing Tuples" do
     test "one element tuple" do
-      simple = quote do
-        {1}
-      end
+      simple =
+        quote do
+          {1}
+        end
 
       pattern = Pattern.new(simple, [], [])
 
@@ -47,9 +48,10 @@ defmodule ExUnit.PatternDiffTupleTest do
     end
 
     test "two element tuple" do
-      simple = quote do
-        {1, 2}
-      end
+      simple =
+        quote do
+          {1, 2}
+        end
 
       pattern = Pattern.new(simple, [], [])
 
@@ -97,6 +99,5 @@ defmodule ExUnit.PatternDiffTupleTest do
 
       assert actual == expected_no_match
     end
-
   end
 end

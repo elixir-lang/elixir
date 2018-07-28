@@ -177,8 +177,8 @@ defmodule ExUnit.PatternDiffValueTest do
     test "that a tuple is not anything else" do
       tuple =
         quote do
-        {1, 2, 3}
-      end
+          {1, 2, 3}
+        end
 
       pattern = Pattern.new(tuple, [], [])
       actual = PatternDiff.cmp(pattern, 1)
@@ -204,8 +204,8 @@ defmodule ExUnit.PatternDiffValueTest do
 
       tuple =
         quote do
-        {1, 2}
-      end
+          {1, 2}
+        end
 
       pattern = Pattern.new(tuple, [], [])
       actual = PatternDiff.cmp(pattern, 1)
@@ -234,15 +234,18 @@ defmodule ExUnit.PatternDiffValueTest do
   test "simple unbound var" do
     simple =
       quote do
-       a
+        a
       end
-    pattern = Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+
+    pattern = Pattern.new(simple, [], a: :ex_unit_unbound_var)
+
     expected_match = %PatternDiff{
       type: :value,
       lh: %{ast: pattern.val},
       rh: 1,
       diff_result: :eq
     }
+
     actual = PatternDiff.cmp(pattern, 1)
     assert actual == expected_match
   end
@@ -250,10 +253,12 @@ defmodule ExUnit.PatternDiffValueTest do
   test "simple bound var" do
     simple =
       quote do
-      {a, a}
-    end
-    pattern = Pattern.new(simple, [], [a: :ex_unit_unbound_var])
+        {a, a}
+      end
+
+    pattern = Pattern.new(simple, [], a: :ex_unit_unbound_var)
     expected_var_pattern = %{ast: {:a, [], ExUnit.PatternDiffValueTest}}
+
     expected_match = %ContainerDiff{
       type: :tuple,
       items: [
@@ -271,6 +276,7 @@ defmodule ExUnit.PatternDiffValueTest do
         }
       ]
     }
+
     actual = PatternDiff.cmp(pattern, {1, 1})
     assert actual == expected_match
 
@@ -291,34 +297,38 @@ defmodule ExUnit.PatternDiffValueTest do
         }
       ]
     }
+
     actual = PatternDiff.cmp(pattern, {1, 2})
     assert actual == expected_no_match
   end
 
   test "pin" do
-    simple = quote do
-      ^a
-    end
+    simple =
+      quote do
+        ^a
+      end
+
     pattern = Pattern.new(simple, [a: 1], [])
 
     expected_match = %PatternDiff{
       type: :value,
-      lh: %{ast: pattern.val},
+      lh: %{ast: {:^, [], [{:a, [], ExUnit.PatternDiffValueTest}]}},
       rh: 1,
       diff_result: :eq
     }
+
     actual = PatternDiff.cmp(pattern, 1)
     assert actual == expected_match
 
-
     actual = PatternDiff.cmp(pattern, 2)
+
     expected_match = %PatternDiff{
       type: :value,
-      lh: %{ast: pattern.val},
+      lh: %{ast: 1},
       rh: 2,
       diff_result: :neq
     }
+
     assert actual == expected_match
   end
-
 end

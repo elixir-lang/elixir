@@ -1,17 +1,13 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
-defmodule ExUnit.PatternReceiveTest do
+defmodule ExUnit.PatternFormatTest do
   use ExUnit.Case
 
-  alias ExUnit.{Pattern, PatternDiff, ReceivePatternFormat}
-
-  # test "message recevied, no messages" do
-  #   assert_receive 1
-  # end
+  alias ExUnit.{Pattern, PatternDiff, PatternFormat}
 
   test "Two primatives" do
-    #   send(self(), 2)
-    #   assert_receive 1
+    # send(self(), 2)
+    # assert_receive 1
 
     left =
       quote do
@@ -19,7 +15,7 @@ defmodule ExUnit.PatternReceiveTest do
       end
 
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, 2)
+    actual = PatternFormat.script(pattern, 2)
 
     expected = [
       diff_delete: "2"
@@ -38,7 +34,7 @@ defmodule ExUnit.PatternReceiveTest do
       end
 
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, %{a: 1, b: 1, d: 2, c: 3})
+    actual = PatternFormat.script(pattern, %{a: 1, b: 1, d: 2, c: 3})
 
     expected = [
       "%{",
@@ -63,7 +59,7 @@ defmodule ExUnit.PatternReceiveTest do
     left = quote do: %{a: 1, b: 2}
 
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, %{a: 1, b: 1, d: 2, c: 3})
+    actual = PatternFormat.script(pattern, %{a: 1, b: 1, d: 2, c: 3})
 
     expected = [
       "%{",
@@ -89,7 +85,7 @@ defmodule ExUnit.PatternReceiveTest do
     left = quote do: %{a: 1, b: 2}
 
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, %{a: 2, b: 1})
+    actual = PatternFormat.script(pattern, %{a: 2, b: 1})
 
     expected = ["%{", "a: ", {:diff_delete, "2"}, ", ", "b: ", {:diff_delete, "1"}, "}"]
     assert actual == expected
@@ -104,12 +100,12 @@ defmodule ExUnit.PatternReceiveTest do
     left = quote do: [1, 2, 3, 4]
     pattern = Pattern.new(left, [], [])
 
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3])
+    actual = PatternFormat.script(pattern, [1, 2, 3])
     expected = ["[", "1", ", ", "2", ", ", "3", ", ", {:diff_insert, "4"}, "]"]
 
     assert actual == expected
 
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3, 4, 5])
+    actual = PatternFormat.script(pattern, [1, 2, 3, 4, 5])
     expected = ["[", "1", ", ", "2", ", ", "3", ", ", "4", ", ", {:diff_delete, "5"}, "]"]
 
     assert actual == expected
@@ -121,7 +117,7 @@ defmodule ExUnit.PatternReceiveTest do
 
     left = quote do: [2 | _rest]
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3])
+    actual = PatternFormat.script(pattern, [1, 2, 3])
     expected = ["[", {:diff_delete, "1"}, " | ", {:diff_delete, "[2, 3]"}, "]"]
     assert actual == expected
   end
@@ -134,7 +130,7 @@ defmodule ExUnit.PatternReceiveTest do
 
     pattern = Pattern.new(left, [b: 3], _rest: :ex_unit_unbound_var)
 
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3])
+    actual = PatternFormat.script(pattern, [1, 2, 3])
     expected = ["[", "1", " | ", "[", {:diff_delete, "2"}, ", ", "[3]", "]", "]"]
     assert actual == expected
   end
@@ -147,7 +143,7 @@ defmodule ExUnit.PatternReceiveTest do
     pattern = Pattern.new(left, [], [])
 
     actual =
-      ReceivePatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"})
+      PatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"})
 
     expected = [
       "%{",
@@ -184,7 +180,7 @@ defmodule ExUnit.PatternReceiveTest do
     left = quote do: %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"}
     pattern = Pattern.new(left, [], [])
 
-    actual = ReceivePatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4}}, e: "hello"})
+    actual = PatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4}}, e: "hello"})
 
     expected = [
       "%{",
@@ -223,7 +219,7 @@ defmodule ExUnit.PatternReceiveTest do
     pattern = Pattern.new(left, [], [])
 
     actual =
-      ReceivePatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"})
+      PatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"})
 
     expected = [
       "%{",
@@ -259,7 +255,7 @@ defmodule ExUnit.PatternReceiveTest do
     left = quote do: [a, a, 3]
     pattern = Pattern.new(left, [], a: :ex_unit_unbound_var)
 
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3])
+    actual = PatternFormat.script(pattern, [1, 2, 3])
 
     expected = ["[", "1", ", ", {:diff_delete, "2"}, ", ", "3", "]"]
     assert actual == expected
@@ -273,7 +269,7 @@ defmodule ExUnit.PatternReceiveTest do
 
     pattern = Pattern.new(left, [], a: :ex_unit_unbound_var)
 
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3])
+    actual = PatternFormat.script(pattern, [1, 2, 3])
 
     expected = ["[", "1", ", ", "2", ", ", "3", "]", " ", {:diff_delete, "when is_binary(a)"}]
     assert actual == expected
@@ -287,7 +283,7 @@ defmodule ExUnit.PatternReceiveTest do
 
     pattern = Pattern.new(left, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
 
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3])
+    actual = PatternFormat.script(pattern, [1, 2, 3])
 
     expected = [
       "[",
@@ -314,7 +310,7 @@ defmodule ExUnit.PatternReceiveTest do
 
     pattern = Pattern.new(left, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
 
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3])
+    actual = PatternFormat.script(pattern, [1, 2, 3])
 
     expected = [
       "[",
@@ -342,7 +338,7 @@ defmodule ExUnit.PatternReceiveTest do
 
     pattern = Pattern.new(left, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
 
-    actual = ReceivePatternFormat.script(pattern, [1, 2, 3])
+    actual = PatternFormat.script(pattern, [1, 2, 3])
 
     expected = [
       "[",
@@ -374,7 +370,7 @@ defmodule ExUnit.PatternReceiveTest do
     pattern = Pattern.new(left, [], doc: :ex_unit_unbound_var)
 
     actual =
-      ReceivePatternFormat.script(
+      PatternFormat.script(
         pattern,
         {:save_doc, %{:status => :created, :sync_history => %{"map" => true}, "other" => true}}
       )
@@ -398,9 +394,41 @@ defmodule ExUnit.PatternReceiveTest do
     assert actual == expected
   end
 
-  # test "binary match" do
-  #   assert match?("hello" <> world, "hello world")
-  # end
+  test "pinned map value does exist, but is different" do
+    # val = 3
+    # send(self(), %{a: 1, b: 2})
+    # assert_receive(%{a: ^val, b: 2})
+
+    left =
+      quote do
+        %{a: ^val, b: 2}
+      end
+
+    pattern = Pattern.new(left, [val: 3], [])
+    actual = PatternFormat.script(pattern, %{a: 1, b: 2})
+
+    expected = ["%{", "a: ", {:diff_delete, "1"}, ", ", "b: ", "2", "}"]
+
+    assert actual == expected
+  end
+
+  test "pinned map value matches, but others don't" do
+    # val = 3
+    # send(self(), %{a: 3, b: 3})
+    # assert_receive(%{a: ^val, b: 2})
+
+    left =
+      quote do
+        %{a: ^val, b: 2}
+      end
+
+    pattern = Pattern.new(left, [val: 3], [])
+    actual = PatternFormat.script(pattern, %{a: 3, b: 3})
+
+    expected = ["%{", "a: ", "3", ", ", "b: ", {:diff_delete, "3"}, "}"]
+
+    assert actual == expected
+  end
 
   test "pinned map key doesn't exist" do
     # val = 3
@@ -413,7 +441,7 @@ defmodule ExUnit.PatternReceiveTest do
       end
 
     pattern = Pattern.new(left, [val: 3], [])
-    actual = ReceivePatternFormat.script(pattern, %{a: 1, b: 2, c: 3})
+    actual = PatternFormat.script(pattern, %{a: 1, b: 2, c: 3})
 
     expected = ["%{", "a: ", "1", ", ", {:diff_insert, "d: 3"}, ", ", "b: 2", ", ", "c: 3", "}"]
 
@@ -430,7 +458,7 @@ defmodule ExUnit.PatternReceiveTest do
     left = quote do: %{a: ^now}
     pattern = Pattern.new(left, [now: ~N[2018-01-01 12:30:00]], [])
 
-    actual = ReceivePatternFormat.script(pattern, %{b: ~N[2008-01-01 12:30:00]})
+    actual = PatternFormat.script(pattern, %{b: ~N[2008-01-01 12:30:00]})
 
     expected = [
       "%{",
@@ -447,7 +475,7 @@ defmodule ExUnit.PatternReceiveTest do
     # assert match?({:a, :b, :c, :d}, {:a, :b, :c})
     left = quote do: {:a, :b, :c, :d}
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, {:a, :b, :c})
+    actual = PatternFormat.script(pattern, {:a, :b, :c})
 
     expected = ["{", ":a", ", ", ":b", ", ", ":c", ", ", {:diff_insert, ":d"}, "}"]
     assert actual == expected
@@ -457,7 +485,7 @@ defmodule ExUnit.PatternReceiveTest do
     # assert match?(%{a: 1, b: %{a: 1}}, %{a: 1, b: %{a: 2}})
     left = quote do: %{a: 1, b: %{a: 1}}
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, %{a: 1, b: %{a: 2}})
+    actual = PatternFormat.script(pattern, %{a: 1, b: %{a: 2}})
 
     expected = ["%{", "a: ", "1", ", ", "b: ", "%{", "a: ", {:diff_delete, "2"}, "}", "}"]
     assert actual == expected
@@ -467,7 +495,7 @@ defmodule ExUnit.PatternReceiveTest do
     # assert match?({1, {1, 2}, {3, 4}}, {1, {3, 4}, {1, 2}})
     left = quote do: {1, {1, 2}, {3, 4}}
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, {1, {3, 4}, {1, 2}})
+    actual = PatternFormat.script(pattern, {1, {3, 4}, {1, 2}})
 
     expected = [
       "{",
@@ -494,7 +522,7 @@ defmodule ExUnit.PatternReceiveTest do
     # assert match?([1, [1, 2], [3, 4]], [1, [3, 4], [1, 2]])
     left = quote do: [1, [1, 2], [3, 4]]
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, [1, [3, 4], [1, 2]])
+    actual = PatternFormat.script(pattern, [1, [3, 4], [1, 2]])
 
     expected = [
       "[",
@@ -521,7 +549,7 @@ defmodule ExUnit.PatternReceiveTest do
     # assert match?(%{nested: [2 | [2 | _rest]]}, %{nested: [2, 3, 4]})
     left = quote do: %{nested: [2 | [2 | _rest]]}
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, %{nested: [2, 3, 4]})
+    actual = PatternFormat.script(pattern, %{nested: [2, 3, 4]})
 
     expected = [
       "%{",
@@ -545,7 +573,7 @@ defmodule ExUnit.PatternReceiveTest do
     # assert match?([1 | [2, 3]], %{a: 1})
     left = quote do: [1 | [2, 3]]
     pattern = Pattern.new(left, [], [])
-    actual = ReceivePatternFormat.script(pattern, %{a: 1})
+    actual = PatternFormat.script(pattern, %{a: 1})
 
     expected = [diff_delete: "%{a: 1}"]
     assert actual == expected

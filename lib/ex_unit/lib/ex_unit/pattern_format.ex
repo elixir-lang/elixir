@@ -1,4 +1,4 @@
-defmodule ExUnit.ReceivePatternFormat do
+defmodule ExUnit.PatternFormat do
   @moduledoc """
   Formats the output of Pattern diff.
   1) Matches will be printed in green, conflicts in red, and neutral in the default color
@@ -9,17 +9,12 @@ defmodule ExUnit.ReceivePatternFormat do
   @no_value :ex_unit_no_meaningful_value
 
   def script(left, right) do
-    # IO.inspect(binding(), label: "script")
     ctx = new_context(:none, left)
 
-    _diff =
-      left
-      |> ExUnit.PatternDiff.cmp(right)
-      # |> IO.inspect(label: "Compare")
-      |> format(ctx)
-      |> Enum.reject(&(&1 == ""))
-
-    #      |> IO.inspect(label: "Diff")
+    left
+    |> ExUnit.PatternDiff.cmp(right)
+    |> format(ctx)
+    |> Enum.reject(&(&1 == ""))
   end
 
   def format(
@@ -27,7 +22,6 @@ defmodule ExUnit.ReceivePatternFormat do
         %{keys: key_type, comma: comma} = ctx
       )
       when key_type == :atom_keys or key_type == :non_atom_keys do
-    # IO.inspect("Container Map")
     [h | rest] = items
 
     [
@@ -41,8 +35,6 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(%ContainerDiff{type: :map, items: _items} = diff, ctx) do
-    # IO.inspect(ctx, label: "Container Map - ")
-    # IO.inspect(_items, label: "items")
     map_ctx = create_context(diff, ctx)
 
     comma =
@@ -59,7 +51,6 @@ defmodule ExUnit.ReceivePatternFormat do
         %ContainerDiff{type: :list, items: [%{lh: %{type: :cons_l}} = l, r]},
         %{comma: comma} = ctx
       ) do
-    # IO.inspect("list cons")
     new_ctx = new_context(:none, ctx)
 
     [comma, "[", format(l, new_ctx), " | ", format(r, new_ctx), "]"]
@@ -70,7 +61,6 @@ defmodule ExUnit.ReceivePatternFormat do
         %ContainerDiff{type: :list, items: items},
         %{keys: :list, comma: comma} = ctx
       ) do
-    # IO.inspect("Container list")
     [h | rest] = items
 
     [
@@ -84,8 +74,6 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(%ContainerDiff{type: :when, items: [l, r]}, %{comma: comma} = ctx) do
-    # IO.inspect("Container when")
-
     [comma, format(l, ctx), " ", format(r, ctx)]
     |> List.flatten()
   end
@@ -95,18 +83,13 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(%ContainerDiff{type: :list, items: _items} = diff, %{comma: comma} = ctx) do
-    # IO.inspect("Cointainer diff list")
-
     ctx = create_context(diff, ctx)
 
     [comma, format(diff, ctx)]
     |> List.flatten()
-
-    # |> IO.inspect(label: "Format list")
   end
 
   def format(%ContainerDiff{type: :tuple, items: items}, %{keys: :none, comma: comma} = ctx) do
-    # IO.inspect("Container tuple")
     [h | rest] = items
 
     [
@@ -123,9 +106,6 @@ defmodule ExUnit.ReceivePatternFormat do
         %ContainerDiff{type: :tuple, items: [l, r]},
         %{keys: :non_atom_keys, comma: comma} = ctx
       ) do
-    # IO.inspect(l, label: "Container non-atom tuple pair: L")
-    # IO.inspect(r, label: "Container non-atom tuple pair: R")
-
     left =
       case l do
         %PatternDiff{diff_result: :eq} ->
@@ -153,13 +133,9 @@ defmodule ExUnit.ReceivePatternFormat do
       left,
       right
     ]
-
-    # |> IO.inspect(label: "Returning")
   end
 
   def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :atom_keys, comma: comma} = ctx) do
-    # IO.inspect("Container keyword tuple")
-
     left =
       case l do
         %PatternDiff{diff_result: :eq} ->
@@ -170,19 +146,16 @@ defmodule ExUnit.ReceivePatternFormat do
           delete(format(l, new_ctx))
 
         _ ->
-          # IO.inspect(l.rh, label: "left")
           delete(inspect(l.rh))
       end
 
     right =
       case r do
         %PatternDiff{diff_result: :eq} ->
-          # IO.inspect("matching")
           match("#{inspect(r.rh)}")
 
         %ContainerDiff{} ->
           new_ctx = create_context(r, ctx)
-          # IO.inspect(r, label: "formating")
           format(r, new_ctx)
 
         _ ->
@@ -197,20 +170,14 @@ defmodule ExUnit.ReceivePatternFormat do
   end
 
   def format(diff, nil) do
-    # IO.inspect("Format with a nil context")
-    # Jowens - extract context to it's own deal, this is repeated 3 times now
-    format(diff, %{comma: "", keys: :none, print_when?: true})
+    format(diff, new_context(:none, [], []))
   end
 
   def format(%PatternDiff{diff_result: :eq, rh: rh}, %{comma: comma}) do
-    # IO.inspect("pattern equal")
     [comma, match(inspect(rh))]
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh}, %{comma: comma} = ctx) do
-    # IO.inspect(lh, label: "pattern not equal, missing right")
-    # IO.inspect(ctx, label: "context")
-
     [comma, insert(textify_ast(lh, ctx))]
   end
 
@@ -218,7 +185,6 @@ defmodule ExUnit.ReceivePatternFormat do
         comma: comma,
         keys: :atom_keys
       }) do
-    # IO.inspect("pattern not equal, missing left - 1")
     [comma, match("#{to_string(key)}: #{inspect(value)}")]
   end
 
@@ -226,17 +192,14 @@ defmodule ExUnit.ReceivePatternFormat do
         comma: comma,
         keys: :non_atom_keys
       }) do
-    # IO.inspect("pattern not equal, missing left - 2")
     [comma, "#{inspect(key)} => #{inspect(value)}"]
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: rh, lh: _lh}, %{comma: comma}) do
-    # IO.inspect(ctx, label: "pattern not equal, but not part of match")
     [comma, delete(inspect(rh))]
   end
 
   def format(%WhenDiff{result: res, op: :and, bindings: keys}, ctx) do
-    # IO.inspect("When Diff")
     [left, right] = keys
     prefix = if ctx.print_when?, do: "when ", else: ""
     ctx = %{ctx | print_when?: false}
@@ -307,8 +270,6 @@ defmodule ExUnit.ReceivePatternFormat do
   defp textify_ast(%{ast: ast}, ctx), do: textify_ast(ast, ctx)
 
   defp textify_ast({:^, _, [{var, _, _}]}, ctx) do
-    # IO.inspect(var, label: "var")
-    # IO.inspect(ctx, label: "ctx")
     inspect(ctx.pins[var])
   end
 
