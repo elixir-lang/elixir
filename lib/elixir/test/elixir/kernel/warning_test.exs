@@ -1109,34 +1109,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "duplicated docs across multiple clauses" do
-    output =
-      capture_err(fn ->
-        Code.eval_string("""
-        defmodule Sample do
-          @doc "Something"
-          def foo(a)
-
-          @doc "Something"
-          def foo(1), do: :ok
-
-          @doc "Something"
-          def foo(2), do: :ok
-
-          @doc "Something"
-          def foo(a)
-        end
-        """)
-      end)
-
-    assert output =~ "redefining @doc attribute previously set at line 2"
-    assert output =~ "nofile:5"
-    assert output =~ "nofile:8"
-    refute output =~ "nofile:11"
-  after
-    purge(Sample)
-  end
-
   test "reserved doc metadata keys" do
     output =
       capture_err(fn ->

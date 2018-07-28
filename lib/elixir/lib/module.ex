@@ -1331,16 +1331,6 @@ defmodule Module do
 
       [{_, current_line, current_sign, current_doc, current_doc_meta}] ->
         signature = merge_signatures(current_sign, signature, 1)
-
-        if is_binary(doc) and is_binary(current_doc) and not is_nil(body) do
-          message =
-            "redefining @doc attribute previously set at line #{current_line}. " <>
-              "If you want to redefine a previously specified doc, " <>
-              "use a definition without a body after the original documentation"
-
-          :elixir_errors.warn(line, env.file, message)
-        end
-
         doc = if is_nil(doc), do: current_doc, else: doc
         doc = if is_nil(doc) && impl, do: false, else: doc
         doc_meta = Map.merge(current_doc_meta, doc_meta)
