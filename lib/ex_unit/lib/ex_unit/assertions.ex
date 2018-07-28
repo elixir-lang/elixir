@@ -536,20 +536,6 @@ defmodule ExUnit.Assertions do
         receive do
           unquote(pattern) -> {received, unquote(vars)}
         after
-          # timeout ->
-          #   {:messages, messages} = Process.info(self(), :messages)
-
-          #   if Enum.any?(messages, unquote(pattern_finder)) do
-          #     flunk(unquote(failure_message_hit))
-          #   else
-          #     assert false,
-          #       right: {:ex_unit_mailbox_contents, messages},
-          #       left: pattern,
-          #       message:
-          #         unquote(failure_message_miss) <> ExUnit.Assertions.__pins__(unquote(pins))
-          #   end
-
-          # =======
           timeout ->
             case unquote(failure_message) do
               {:flunk, msg} ->

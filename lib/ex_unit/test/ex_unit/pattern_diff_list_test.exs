@@ -48,11 +48,10 @@ defmodule ExUnit.PatternDiffListTest do
     end
 
     test "That a two element list can compare" do
-
       simple =
         quote do
-        [1, 2]
-      end
+          [1, 2]
+        end
 
       pattern = Pattern.new(simple, [], [])
 
@@ -189,11 +188,10 @@ defmodule ExUnit.PatternDiffListTest do
     end
 
     test "That an uneven list can compare" do
-
       simple =
         quote do
-        [1, 2]
-      end
+          [1, 2]
+        end
 
       pattern = Pattern.new(simple, [], [])
 
@@ -221,8 +219,8 @@ defmodule ExUnit.PatternDiffListTest do
 
       simple =
         quote do
-        [1]
-      end
+          [1]
+        end
 
       pattern = Pattern.new(simple, [], [])
 
