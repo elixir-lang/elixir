@@ -3,7 +3,7 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule ExUnit.PatternFormatTest do
   use ExUnit.Case
 
-  alias ExUnit.{Pattern, PatternDiff, PatternFormat}
+  alias ExUnit.{Pattern, PatternFormat}
 
   test "Two primatives" do
     # send(self(), 2)
