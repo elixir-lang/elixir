@@ -9,13 +9,13 @@ defmodule ExUnit.ReceivePatternFormat do
   @no_value :ex_unit_no_meaningful_value
 
   def script(left, right) do
-    IO.inspect(binding(), label: "script")
+    # IO.inspect(binding(), label: "script")
     ctx = new_context(:none, left)
 
     _diff =
       left
       |> ExUnit.PatternDiff.cmp(right)
-      |> IO.inspect(label: "Compare")
+      # |> IO.inspect(label: "Compare")
       |> format(ctx)
       |> Enum.reject(&(&1 == ""))
 

@@ -398,104 +398,156 @@ defmodule ExUnit.PatternReceiveTest do
     assert actual == expected
   end
 
-  # test "simple" do
-  #   map = %{a: "1"}
-  #   send(self(), map)
-
-  #   match = %{a: "1", b: "2"}
-  #   assert_receive(^match)
-  # end
-
-  # describe "string" do
-  #   test "simple" do
-  #     string = "abc"
-  #     send(self(), string)
-
-  #     match = "cde"
-  #     assert_receive(^match)
-  #   end
-  # end
-
-  # describe "map" do
-  #   test "simple" do
-  #     map = %{a: "1"}
-  #     send(self(), map)
-
-  #     match = %{a: "1", b: "2"}
-  #     assert_receive(^match)
-  #   end
-  # end
-
-  # describe "array" do
-  #   test "simple" do
-  #     array = [1, 2, 3, 4, 5, 6]
-  #     send(self(), array)
-
-  #     match = [3, 4, 5, 6]
-  #     assert_receive(^match)
-  #   end
-  # end
-
-  # describe "map nested" do
-  #   test "map with atom keys" do
-  #     map = %{a: "1", b: "string", c: [1, 2, 3], d: %{foo: :bar, a: 1, b: 2, c: 3}}
-  #     send(self(), map)
-
-  #     match = %{a: "2", b: "string", c: [1, 2, 4, 5], d: %{bar: :foo}}
-  #     assert_receive(^match)
-  #   end
-  # end
-
-  test "find the match" do
-    # a = 1
-    # assert match?(%{a: ^a, b: 3}, %{a: 2, b: 3})
-    # assert %{a: 1} == %{a: 2, b: 3}
-    # assert %{a: b, b: b} = %{a: 2, b: 3}
-    # assert match?(%{a: b, b: b}, %{a: 2, b: 3})
-    # send(self(), %{a: 2, b: 3})
-    # assert_receive(%{a: a, b: b})
-  end
-
   # test "binary match" do
   #   assert match?("hello" <> world, "hello world")
   # end
 
-  # test "pinned map key doesn't exist" do
-  #   val = 3
-  #   send(self(), %{a: 1, b: 2, c: 3})
-  #   assert_receive(%{a: 1, d: ^val})
-  # end
+  test "pinned map key doesn't exist" do
+    # val = 3
+    # send(self(), %{a: 1, b: 2, c: 3})
+    # assert_receive(%{a: 1, d: ^val})
 
-  # test "date time match" do
-  #   now = ~N[2018-01-01 12:30:00]
-  #   then = ~N[2008-01-01 12:30:00]
-  #   send(self(), now)
-  #   # assert_receive ^then
-  #   assert match?(%{a: ^now}, %{b: then})
-  #   assert now == then
-  # end
+    left =
+      quote do
+        %{a: 1, d: ^val}
+      end
 
-  # test "mismatched tuple size - left" do
-  #   assert match?({:a, :b, :c, :d}, {:a, :b, :c})
-  # end
+    pattern = Pattern.new(left, [val: 3], [])
+    actual = ReceivePatternFormat.script(pattern, %{a: 1, b: 2, c: 3})
 
-  # test "nested map, nested does not match" do
-  #   assert match?(%{a: 1, b: %{a: 1}}, %{a: 1, b: %{a: 2}})
-  # end
+    expected = ["%{", "a: ", "1", ", ", {:diff_insert, "d: 3"}, ", ", "b: 2", ", ", "c: 3", "}"]
 
-  # test "nested tuple" do
-  #   assert match?({1, {1, 2}, {3, 4}}, {1, {3, 4}, {1, 2}})
-  # end
+    assert actual == expected
+  end
 
-  # test "nested list" do
-  #   assert match?([1, [1, 2], [3, 4]], [1, [3, 4], [1, 2]])
-  # end
+  test "date time match" do
+    # now = ~N[2018-01-01 12:30:00]
+    # then = ~N[2008-01-01 12:30:00]
+    # send(self(), now)
 
-  # test "nested list cons operator in a map" do
-  #   assert match?(%{nested: [2 | [2 | _rest]]}, %{nested: [2, 3, 4]})
-  # end
+    # assert match?(%{a: ^now}, %{b: then})
+    # assert now == then
+    left = quote do: %{a: ^now}
+    pattern = Pattern.new(left, [now: ~N[2018-01-01 12:30:00]], [])
 
-  # test "unmatched cons" do
-  #   assert match?([1 | [2, 3]], %{a: 1})
-  # end
+    actual = ReceivePatternFormat.script(pattern, %{b: ~N[2008-01-01 12:30:00]})
+
+    expected = [
+      "%{",
+      {:diff_insert, "a: ~N[2018-01-01 12:30:00]"},
+      ", ",
+      "b: ~N[2008-01-01 12:30:00]",
+      "}"
+    ]
+
+    assert actual == expected
+  end
+
+  test "mismatched tuple size - left" do
+    # assert match?({:a, :b, :c, :d}, {:a, :b, :c})
+    left = quote do: {:a, :b, :c, :d}
+    pattern = Pattern.new(left, [], [])
+    actual = ReceivePatternFormat.script(pattern, {:a, :b, :c})
+
+    expected = ["{", ":a", ", ", ":b", ", ", ":c", ", ", {:diff_insert, ":d"}, "}"]
+    assert actual == expected
+  end
+
+  test "nested map, nested does not match" do
+    # assert match?(%{a: 1, b: %{a: 1}}, %{a: 1, b: %{a: 2}})
+    left = quote do: %{a: 1, b: %{a: 1}}
+    pattern = Pattern.new(left, [], [])
+    actual = ReceivePatternFormat.script(pattern, %{a: 1, b: %{a: 2}})
+
+    expected = ["%{", "a: ", "1", ", ", "b: ", "%{", "a: ", {:diff_delete, "2"}, "}", "}"]
+    assert actual == expected
+  end
+
+  test "nested tuple" do
+    # assert match?({1, {1, 2}, {3, 4}}, {1, {3, 4}, {1, 2}})
+    left = quote do: {1, {1, 2}, {3, 4}}
+    pattern = Pattern.new(left, [], [])
+    actual = ReceivePatternFormat.script(pattern, {1, {3, 4}, {1, 2}})
+
+    expected = [
+      "{",
+      "1",
+      ", ",
+      "{",
+      {:diff_delete, "3"},
+      ", ",
+      {:diff_delete, "4"},
+      "}",
+      ", ",
+      "{",
+      {:diff_delete, "1"},
+      ", ",
+      {:diff_delete, "2"},
+      "}",
+      "}"
+    ]
+
+    assert actual == expected
+  end
+
+  test "nested list" do
+    # assert match?([1, [1, 2], [3, 4]], [1, [3, 4], [1, 2]])
+    left = quote do: [1, [1, 2], [3, 4]]
+    pattern = Pattern.new(left, [], [])
+    actual = ReceivePatternFormat.script(pattern, [1, [3, 4], [1, 2]])
+
+    expected = [
+      "[",
+      "1",
+      ", ",
+      "[",
+      {:diff_delete, "3"},
+      ", ",
+      {:diff_delete, "4"},
+      "]",
+      ", ",
+      "[",
+      {:diff_delete, "1"},
+      ", ",
+      {:diff_delete, "2"},
+      "]",
+      "]"
+    ]
+
+    assert actual == expected
+  end
+
+  test "nested list cons operator in a map" do
+    # assert match?(%{nested: [2 | [2 | _rest]]}, %{nested: [2, 3, 4]})
+    left = quote do: %{nested: [2 | [2 | _rest]]}
+    pattern = Pattern.new(left, [], [])
+    actual = ReceivePatternFormat.script(pattern, %{nested: [2, 3, 4]})
+
+    expected = [
+      "%{",
+      "nested: ",
+      "[",
+      "2",
+      " | ",
+      "[",
+      {:diff_delete, "3"},
+      " | ",
+      {:diff_delete, "[4]"},
+      "]",
+      "]",
+      "}"
+    ]
+
+    assert actual == expected
+  end
+
+  test "unmatched cons" do
+    # assert match?([1 | [2, 3]], %{a: 1})
+    left = quote do: [1 | [2, 3]]
+    pattern = Pattern.new(left, [], [])
+    actual = ReceivePatternFormat.script(pattern, %{a: 1})
+
+    expected = [diff_delete: "%{a: 1}"]
+    assert actual == expected
+  end
 end
