@@ -29,6 +29,11 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  require Record
+  Record.defrecordp(:vec, x: 0, y: 0, z: 0)
+
+  defguardp is_zero(zero) when zero == 0
+
   test "assert inside macro" do
     assert_ok(42)
   end
@@ -131,6 +136,11 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when equal" do
     {2, 1} = assert {2, 1} = Value.tuple()
+  end
+
+  test "assert match expands argument in match context" do
+    {x, y, z} = {1, 2, 3}
+    assert vec(x: ^x, y: ^y) = vec(x: x, y: y, z: z)
   end
 
   test "assert match with pinned variable" do
@@ -264,13 +274,15 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  require Record
-  Record.defrecordp(:vec, x: 0, y: 0, z: 0)
-
-  test "assert_receive should not expand argument" do
+  test "assert_receive expands argument in match context" do
     {x, y, z} = {1, 2, 3}
     send(self(), vec(x: x, y: y, z: z))
     assert_receive vec(x: ^x, y: ^y)
+  end
+
+  test "assert_receive expands argument in guard context" do
+    send(self(), {:ok, 0, :other})
+    assert_receive {:ok, val, atom} when is_zero(val) and is_atom(atom)
   end
 
   test "assert received does not wait" do
