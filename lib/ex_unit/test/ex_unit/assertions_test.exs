@@ -308,9 +308,7 @@ defmodule ExUnit.AssertionsTest do
         """
         No message matching {:status, ^status} after 0ms.
         The following variables were pinned:
-          status = :valid
-        Process mailbox:
-          {:status, :invalid}\
+          status = :valid\
         """ = error.message
     end
   end
@@ -326,9 +324,7 @@ defmodule ExUnit.AssertionsTest do
         """
         No message matching {:status, ^status, ^status} after 0ms.
         The following variables were pinned:
-          status = :valid
-        Process mailbox:
-          {:status, :invalid, :invalid}\
+          status = :valid\
         """ = error.message
     end
   end
@@ -346,9 +342,7 @@ defmodule ExUnit.AssertionsTest do
         No message matching {:status, ^status, ^other_status} after 0ms.
         The following variables were pinned:
           status = :valid
-          other_status = :invalid
-        Process mailbox:
-          {:status, :invalid, :invalid}\
+          other_status = :invalid\
         """ = error.message
     end
   end
@@ -370,9 +364,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         """
-        No message matching :hello after 0ms.
-        Process mailbox:
-          {:message, :not_expected, :at_all}\
+        No message matching :hello after 0ms.\
         """ = error.message
     end
   end
@@ -386,17 +378,6 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         """
         No message matching x when x == :hello after 0ms.
-        Process mailbox:
-          {:message, 2}
-          {:message, 3}
-          {:message, 4}
-          {:message, 5}
-          {:message, 6}
-          {:message, 7}
-          {:message, 8}
-          {:message, 9}
-          {:message, 10}
-          {:message, 11}
         Showing only last 10 of 11 messages.\
         """ = error.message
     end
@@ -813,6 +794,7 @@ defmodule ExUnit.AssertionsTest do
 
       match (=) failed
       code:  assert :a = :b
+      left:  :a
       right: :b
       """ = Exception.message(error)
   end

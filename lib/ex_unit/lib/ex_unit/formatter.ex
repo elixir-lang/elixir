@@ -336,8 +336,8 @@ defmodule ExUnit.Formatter do
 
   defp format_sides(%{left: %ExUnit.Pattern{} = left, right: right}, formatter, inspect) do
     case format_pattern(left, right, formatter) do
-      {l, _r} ->
-        {IO.iodata_to_binary(left.binary), IO.iodata_to_binary(l)}
+      {l, r} ->
+        {IO.iodata_to_binary(l), IO.iodata_to_binary(r)}
 
       nil ->
         {if_value(left, inspect), if_value(right, inspect)}
@@ -369,14 +369,10 @@ defmodule ExUnit.Formatter do
           end)
 
         ret = Enum.reverse(list)
-        # ret = ["%{"]
-        # ret = [formatter.(:diff_insert, "Hello:") | ret]
-        # ret = [formatter.(:diff_delete, " Goodbye") | ret]
-        # ret = ["}" | ret]
-        # ret = Enum.reverse(ret)
-        # {ret, ret}
-        {ret, ret}
+        {left.binary, ret}
       end
+    else
+      {left.binary, inspect(right)}
     end
   end
 

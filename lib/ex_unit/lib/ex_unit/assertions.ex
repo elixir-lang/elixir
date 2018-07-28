@@ -466,7 +466,7 @@ defmodule ExUnit.Assertions do
     expanded_pattern = expand_pattern(pattern, caller)
     left_pattern = escape_quoted(:pattern, expanded_pattern)
 
-    vars = collect_vars_from_pattern(pattern)
+    vars = collect_vars_from_pattern(expanded_pattern)
 
     pattern_vars =
       vars
@@ -511,7 +511,11 @@ defmodule ExUnit.Assertions do
       end
 
     failure_message =
-      failure_message ||
+      if failure_message do
+        quote do
+          {:flunk, unquote(failure_message)}
+        end
+      else
         quote do
           ExUnit.Assertions.__timeout__(
             unquote(binary),
@@ -520,6 +524,7 @@ defmodule ExUnit.Assertions do
             timeout
           )
         end
+      end
 
     quote do
       timeout = unquote(timeout)
@@ -563,6 +568,8 @@ defmodule ExUnit.Assertions do
   end
 
   @indent "\n  "
+  @max_mailbox_length 10
+
   @doc false
   def __timeout__(timeout) when is_integer(timeout) and timeout >= 0, do: timeout
 
@@ -585,7 +592,23 @@ defmodule ExUnit.Assertions do
             test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
        """}
     else
-      {:pattern, messages, "No message matching #{binary} after #{timeout}ms." <> __pins__(pins)}
+      msg = "No message matching #{binary} after #{timeout}ms." <> __pins__(pins)
+      length = length(messages)
+      messages = Enum.take(messages, @max_mailbox_length)
+
+      msg =
+        case length do
+          0 ->
+            msg <> "\nThe process mailbox is empty."
+
+          len when len > @max_mailbox_length ->
+            msg <> "\nShowing only #{@max_mailbox_length} messages of #{length}"
+
+          _len ->
+            msg
+        end
+
+      {:pattern, messages, msg}
     end
   end
 
