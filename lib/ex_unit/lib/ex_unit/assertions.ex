@@ -436,10 +436,9 @@ defmodule ExUnit.Assertions do
     binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
-    caller = Macro.Env.to_match(caller)
-    expanded = expand_pattern(pattern, caller)
-    vars = collect_vars_from_pattern(expanded)
-    pins = collect_pins_from_pattern(expanded, Macro.Env.vars(caller))
+    pattern = expand_pattern(pattern, caller)
+    vars = collect_vars_from_pattern(pattern)
+    pins = collect_pins_from_pattern(pattern, Macro.Env.vars(caller))
 
     pattern =
       case pattern do
@@ -612,13 +611,20 @@ defmodule ExUnit.Assertions do
     |> elem(1)
   end
 
-  defp expand_pattern(expr, caller) do
-    Macro.prewalk(expr, fn
-      {var, _, context} = node when is_atom(var) and is_atom(context) ->
-        node
+  defp expand_pattern({:when, meta, [left, right]}, caller) do
+    left = expand_pattern_except_vars(left, Macro.Env.to_match(caller))
+    right = expand_pattern_except_vars(right, %{caller | context: :guard})
+    {:when, meta, [left, right]}
+  end
 
-      other ->
-        Macro.expand(other, caller)
+  defp expand_pattern(expr, caller) do
+    expand_pattern_except_vars(expr, Macro.Env.to_match(caller))
+  end
+
+  defp expand_pattern_except_vars(expr, caller) do
+    Macro.prewalk(expr, fn
+      {var, _, context} = node when is_atom(var) and is_atom(context) -> node
+      other -> Macro.expand(other, caller)
     end)
   end
 
@@ -767,7 +773,7 @@ defmodule ExUnit.Assertions do
   ## Examples
 
       assert catch_exit(exit 1) == 1
-      
+
   To assert exits from linked processes started from the test, trap exits
   with `Process.flag/2` and assert the exit message with `assert_received/2`.
 
