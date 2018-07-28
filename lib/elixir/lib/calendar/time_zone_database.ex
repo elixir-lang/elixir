@@ -13,7 +13,7 @@ defmodule TimeZoneDatabase do
 
   `:min` basically means "since the beginning of time" and `:max` "until forever".
   """
-  @type time_zone_period_limit :: Calendar.datetime() | :min | :max
+  @type time_zone_period_limit :: Calendar.naive_datetime() | :min | :max
 
   @typedoc """
   A period where a certain combination of UTC offset, standard offset and zone
@@ -80,7 +80,7 @@ defmodule TimeZoneDatabaseClient do
   @doc """
   Function for setting a global time zone database.
 
-  Takes the module name of a module that implements the TimeZoneDatabase behaviour.
+  Takes a module that implements the TimeZoneDatabase behaviour.
   """
   def set_database(time_zone_database) do
     :elixir_config.put(:time_zone_database, time_zone_database)
@@ -97,15 +97,10 @@ defmodule TimeZoneDatabaseClient do
              TimeZoneDatabase.light_time_zone_period()}
           | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
           | {:error, :time_zone_not_found}
-          | {:error, :invalid_time_zone_database}
-  def by_wall(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_database) do
-    time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
-
-    try do
-      time_zone_data_module.by_wall(naive_datetime, time_zone)
-    rescue
-      UndefinedFunctionError ->
-        {:error, :invalid_time_zone_database}
+          | {:error, :no_time_zone_database}
+  def by_wall(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
+    with {:ok, time_zone_database} <- time_zone_database_from_parameter(tz_db_or_config) do
+      time_zone_database.by_wall(naive_datetime, time_zone)
     end
   end
 
@@ -117,40 +112,33 @@ defmodule TimeZoneDatabaseClient do
         ) ::
           {:ok, TimeZoneDatabase.time_zone_period()}
           | {:error, :time_zone_not_found}
-          | {:error, :invalid_time_zone_database}
-  def by_utc(%{calendar: Calendar.ISO} = naive_datetime, time_zone, time_zone_database) do
-    time_zone_data_module = time_zone_data_module_from_parameter(time_zone_database)
-
-    try do
-      time_zone_data_module.by_utc(naive_datetime, time_zone)
-    rescue
-      UndefinedFunctionError ->
-        {:error, :invalid_time_zone_database}
+          | {:error, :no_time_zone_database}
+  def by_utc(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
+    with {:ok, time_zone_database} <- time_zone_database_from_parameter(tz_db_or_config) do
+      time_zone_database.by_utc(naive_datetime, time_zone)
     end
   end
 
   @spec is_leap_second(Calendar.naive_datetime(), tz_db_or_config) ::
           {:ok, boolean}
           | {:error, :outside_leap_second_data_validity_range}
-          | {:error, :invalid_time_zone_database}
+          | {:error, :no_time_zone_database}
   def is_leap_second(naive_datetime, tz_db_or_config) do
-    time_zone_data_module = time_zone_data_module_from_parameter(tz_db_or_config)
-
-    try do
-      time_zone_data_module.is_leap_second(naive_datetime)
-    rescue
-      UndefinedFunctionError ->
-        {:error, :invalid_time_zone_database}
+    with {:ok, time_zone_database} <- time_zone_database_from_parameter(tz_db_or_config) do
+      time_zone_database.is_leap_second(naive_datetime)
     end
   end
 
-  @spec time_zone_data_module_from_parameter(tz_db_or_config) ::
-          TimeZoneDatabase.t() | :no_time_zone_database
-  defp time_zone_data_module_from_parameter(:from_config) do
-    :elixir_config.get(:time_zone_database, :no_time_zone_database)
+  @spec time_zone_database_from_parameter(tz_db_or_config) ::
+          {:ok, TimeZoneDatabase.t()} | {:error, :no_time_zone_database}
+  defp time_zone_database_from_parameter(:from_config) do
+    case :elixir_config.get(:time_zone_database, :no_time_zone_database) do
+      :no_time_zone_database -> {:error, :no_time_zone_database}
+      atom when is_atom(atom) -> {:ok, atom}
+    end
   end
 
-  defp time_zone_data_module_from_parameter(time_zone_data_module) do
-    time_zone_data_module
+  defp time_zone_database_from_parameter(time_zone_database) do
+    {:ok, time_zone_database}
   end
 end

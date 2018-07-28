@@ -220,7 +220,7 @@ defmodule DateTime do
           | {:gap, t, t}
           | {:error, :time_zone_not_found}
           | {:error, :incompatible_calendars}
-          | {:error, :invalid_time_zone_database}
+          | {:error, :no_time_zone_database}
 
   def from_naive(naive_datetime, time_zone, tz_db_or_config \\ :from_config)
 
@@ -824,11 +824,13 @@ defmodule DateTime do
       #DateTime<2015-06-30 23:59:60Z>
       iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
       {:error, :invalid_leap_second}
+      iex> DateTime.from_iso8601("2090-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
+      {:error, :outside_leap_second_data_validity_range}
 
       # If a TimeZoneDatabase has not been set with TimeZoneDatabaseClient.set_database
       # and the second of the parsed datetime is 60
       iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00")
-      {:error, :invalid_time_zone_database}
+      {:error, :no_time_zone_database}
 
   """
   @doc since: "1.4.0"
