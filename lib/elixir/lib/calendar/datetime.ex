@@ -547,22 +547,36 @@ defmodule DateTime do
           {:error, :missing_offset}
 
         true ->
-          {_, precision} = microsecond
+          day_fraction = Calendar.ISO.time_to_day_fraction(hour, minute, second, {0, 0})
 
-          datetime =
-            Calendar.ISO.naive_datetime_to_iso_days(
-              year,
-              month,
-              day,
-              hour,
-              minute,
-              second,
-              microsecond
-            )
-            |> apply_tz_offset(offset)
-            |> from_iso_days("Etc/UTC", "UTC", 0, 0, calendar, precision)
+          {{year, month, day}, {hour, minute, second, _}} =
+            case apply_tz_offset({0, day_fraction}, offset) do
+              {0, day_fraction} ->
+                {{year, month, day}, Calendar.ISO.time_from_day_fraction(day_fraction)}
 
-          {:ok, %{datetime | microsecond: microsecond}, offset}
+              {extra_days, day_fraction} ->
+                iso_days = Calendar.ISO.date_to_iso_days(year, month, day)
+
+                {Calendar.ISO.date_from_iso_days(iso_days + extra_days),
+                 Calendar.ISO.time_from_day_fraction(day_fraction)}
+            end
+
+          datetime = %DateTime{
+            calendar: calendar,
+            year: year,
+            month: month,
+            day: day,
+            hour: hour,
+            minute: minute,
+            second: second,
+            microsecond: microsecond,
+            std_offset: 0,
+            utc_offset: 0,
+            zone_abbr: "UTC",
+            time_zone: "Etc/UTC"
+          }
+
+          {:ok, datetime, offset}
       end
     else
       _ -> {:error, :invalid_format}
@@ -880,10 +894,6 @@ defmodule DateTime do
     %{time_zone: time_zone, zone_abbr: zone_abbr, utc_offset: utc_offset, std_offset: std_offset} =
       datetime
 
-    from_iso_days(iso_days, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision)
-  end
-
-  defp from_iso_days(iso_days, time_zone, zone_abbr, utc_offset, std_offset, calendar, precision) do
     {year, month, day, hour, minute, second, {microsecond, _}} =
       calendar.naive_datetime_from_iso_days(iso_days)
 
