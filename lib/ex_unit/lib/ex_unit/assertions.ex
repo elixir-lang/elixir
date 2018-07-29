@@ -489,7 +489,8 @@ defmodule ExUnit.Assertions do
       quote do
         case message do
           unquote(pattern) ->
-            unquote(vars)
+            _ = unquote(vars)
+            true
 
           _ ->
             false
@@ -529,9 +530,6 @@ defmodule ExUnit.Assertions do
     quote do
       timeout = unquote(timeout)
 
-      {:pattern, [], [left]} = unquote(left_pattern)
-      pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
-
       {received, unquote(vars)} =
         receive do
           unquote(pattern) -> {received, unquote(vars)}
@@ -542,6 +540,9 @@ defmodule ExUnit.Assertions do
                 flunk(msg)
 
               {:pattern, messages, msg} ->
+                {:pattern, [], [left]} = unquote(left_pattern)
+                pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
+
                 assert false,
                   right: {:ex_unit_mailbox_contents, messages},
                   left: pattern,
