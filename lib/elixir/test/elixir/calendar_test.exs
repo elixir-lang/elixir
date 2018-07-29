@@ -959,8 +959,23 @@ defmodule DateTimeTest do
   test "from_naive with possible but unknown future positive leap second UTC" do
     ndt = ~N[2090-06-30 23:59:60]
 
-    assert DateTime.from_naive(ndt, "Etc/UTC", FakeTimeZoneDatabase) ==
-             {:error, :outside_leap_second_data_validity_range}
+    {:outside_leap_second_data_range, datetime} =
+      DateTime.from_naive(ndt, "Etc/UTC", FakeTimeZoneDatabase)
+
+    assert datetime == %DateTime{
+             calendar: Calendar.ISO,
+             day: 30,
+             hour: 23,
+             microsecond: {0, 0},
+             minute: 59,
+             month: 6,
+             second: 60,
+             std_offset: 0,
+             time_zone: "Etc/UTC",
+             utc_offset: 0,
+             year: 2090,
+             zone_abbr: "UTC"
+           }
   end
 
   test "from_naive with invalid leap second UTC" do
@@ -985,8 +1000,23 @@ defmodule DateTimeTest do
   end
 
   test "from_naive with possible but unknown future positive leap second non-UTC" do
-    assert DateTime.from_naive(~N[2090-06-30 01:59:60], "Europe/Copenhagen", FakeTimeZoneDatabase) ==
-             {:error, :outside_leap_second_data_validity_range}
+    {:outside_leap_second_data_range, datetime} =
+      DateTime.from_naive(~N[2090-06-30 01:59:60], "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+    assert datetime == %DateTime{
+             calendar: Calendar.ISO,
+             day: 30,
+             hour: 1,
+             microsecond: {0, 0},
+             minute: 59,
+             month: 6,
+             second: 60,
+             std_offset: 3600,
+             time_zone: "Europe/Copenhagen",
+             utc_offset: 3600,
+             year: 2090,
+             zone_abbr: "CEST"
+           }
   end
 
   test "shift_zone for DateTime with a calendar not compatible with ISO" do
@@ -1065,6 +1095,6 @@ defmodule TimeZoneDatabaseClientTest do
              {:ok, true}
 
     assert TimeZoneDatabaseClient.is_leap_second(~N[2090-06-30 23:59:60], FakeTimeZoneDatabase) ==
-             {:error, :outside_leap_second_data_validity_range}
+             {:error, :outside_leap_second_data_range}
   end
 end

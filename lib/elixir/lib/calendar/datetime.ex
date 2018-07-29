@@ -216,6 +216,7 @@ defmodule DateTime do
           TimeZoneDatabaseClient.tz_db_or_config()
         ) ::
           {:ok, t}
+          | {:outside_leap_second_data_range, t}
           | {:ambiguous, t, t}
           | {:gap, t, t}
           | {:error, :time_zone_not_found}
@@ -227,8 +228,15 @@ defmodule DateTime do
   def from_naive(%{second: 60} = naive_datetime, "Etc/UTC", tz_db_or_config) do
     {:ok, dt} = do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
 
-    with :ok <- validate_leap_second(dt, tz_db_or_config) do
-      {:ok, dt}
+    case validate_leap_second(dt, tz_db_or_config) do
+      :ok ->
+        {:ok, dt}
+
+      {:error, :outside_leap_second_data_range} ->
+        {:outside_leap_second_data_range, dt}
+
+      error ->
+        error
     end
   end
 
@@ -349,6 +357,7 @@ defmodule DateTime do
     case TimeZoneDatabaseClient.is_leap_second(utc_dt, tz_db_or_config) do
       {:ok, true} -> {:ok, datetime}
       {:ok, false} -> {:error, :invalid_leap_second}
+      {:error, :outside_leap_second_data_range} -> {:outside_leap_second_data_range, datetime}
       {:error, _} = error -> error
     end
   end
@@ -824,8 +833,9 @@ defmodule DateTime do
       #DateTime<2015-06-30 23:59:60Z>
       iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
       {:error, :invalid_leap_second}
-      iex> DateTime.from_iso8601("2090-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
-      {:error, :outside_leap_second_data_validity_range}
+      iex> {:outside_leap_second_data_range, datetime, 7200} = DateTime.from_iso8601("2090-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
+      iex> datetime
+      #DateTime<2090-06-30 23:59:60Z>
 
       # If a TimeZoneDatabase has not been set with TimeZoneDatabaseClient.set_database
       # and the second of the parsed datetime is 60
@@ -835,7 +845,9 @@ defmodule DateTime do
   """
   @doc since: "1.4.0"
   @spec from_iso8601(String.t(), Calendar.calendar(), TimeZoneDatabaseClient.tz_db_or_config()) ::
-          {:ok, t, Calendar.utc_offset()} | {:error, atom}
+          {:ok, t, Calendar.utc_offset()}
+          | {:outside_leap_second_data_range, t, Calendar.utc_offset()}
+          | {:error, atom}
   def from_iso8601(string, calendar \\ Calendar.ISO, tz_db_or_config \\ :from_config)
 
   def from_iso8601(<<?-, rest::binary>>, calendar, tz_db_or_config) do
@@ -938,11 +950,14 @@ defmodule DateTime do
                  calendar,
                  tz_db_or_config
                ) do
-          datetime = %{datetime | second: 60}
+          datetime = %{datetime | second: 60, microsecond: microsecond}
 
           case validate_leap_second(datetime, tz_db_or_config) do
             :ok ->
-              {:ok, %{datetime | microsecond: microsecond}, offset}
+              {:ok, datetime, offset}
+
+            {:error, :outside_leap_second_data_range} ->
+              {:outside_leap_second_data_range, datetime, offset}
 
             error ->
               error

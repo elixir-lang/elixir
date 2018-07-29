@@ -140,7 +140,7 @@ defmodule FakeTimeZoneDatabase do
 
       false ->
         if erl_datetime > leap_second_data_valid_until() do
-          {:error, :outside_leap_second_data_validity_range}
+          {:error, :outside_leap_second_data_range}
         else
           {:ok, false}
         end

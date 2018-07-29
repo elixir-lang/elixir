@@ -67,7 +67,7 @@ defmodule TimeZoneDatabase do
               | {:error, :time_zone_not_found}
 
   @callback is_leap_second(Calander.naive_datetime()) ::
-              {:ok, boolean} | {:error, :outside_leap_second_data_validity_range}
+              {:ok, boolean} | {:error, :outside_leap_second_data_range}
 end
 
 defmodule TimeZoneDatabaseClient do
@@ -121,7 +121,7 @@ defmodule TimeZoneDatabaseClient do
 
   @spec is_leap_second(Calendar.naive_datetime(), tz_db_or_config) ::
           {:ok, boolean}
-          | {:error, :outside_leap_second_data_validity_range}
+          | {:error, :outside_leap_second_data_range}
           | {:error, :no_time_zone_database}
   def is_leap_second(naive_datetime, tz_db_or_config) do
     with {:ok, time_zone_database} <- time_zone_database_from_parameter(tz_db_or_config) do
