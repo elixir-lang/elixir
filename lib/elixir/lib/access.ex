@@ -118,9 +118,9 @@ defmodule Access do
 
   For example, to update a map inside another map:
 
-     iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-     iex> put_in(users["john"].age, 28)
-     %{"john" => %{age: 28}, "meg" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> put_in(users["john"].age, 28)
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
   This module provides convenience functions for traversing other
   structures, like tuples and lists. These functions can be used
