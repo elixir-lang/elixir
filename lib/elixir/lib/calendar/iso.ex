@@ -189,7 +189,6 @@ defmodule Calendar.ISO do
 
   # Converts year, month, day to count of days since 0000-01-01.
   @doc false
-  @doc since: "1.5.0"
   def date_to_iso_days(0, 1, 1) do
     0
   end
@@ -207,7 +206,6 @@ defmodule Calendar.ISO do
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  @doc since: "1.5.0"
   def date_from_iso_days(days) when days in 0..3_652_424 do
     {year, day_of_year} = days_to_year(days)
     extra_day = if leap_year?(year), do: 1, else: 0
@@ -602,7 +600,6 @@ defmodule Calendar.ISO do
     do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc false
-  @doc since: "1.5.0"
   def date_to_iso8601(year, month, day, format \\ :extended) do
     date_to_string(year, month, day, format)
   end
@@ -707,7 +704,6 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  @doc since: "1.5.0"
   def iso_days_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @parts_per_day
     microseconds = div(parts * @parts_per_day, ppd)
@@ -715,7 +711,6 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  @doc since: "1.5.0"
   def add_day_fraction_to_iso_days({days, {parts, ppd}}, add, ppd) do
     normalize_iso_days(days, parts + add, ppd)
   end
