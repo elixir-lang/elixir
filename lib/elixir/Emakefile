@@ -10,10 +10,9 @@
   warn_obsolete_guard,
   strict_validation,
   warn_exported_vars,
-  %% warn_export_vars,
   %% warn_missing_spec,
   %% warn_untyped_record,
-  %% warnings_as_errors,
+  warnings_as_errors,
   debug_info,
   {outdir, "ebin/"}
 ]}.
