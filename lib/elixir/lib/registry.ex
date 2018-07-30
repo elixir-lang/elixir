@@ -207,7 +207,10 @@ defmodule Registry do
 
   @doc false
   @doc since: "1.4.0"
-  def whereis_name({registry, key}) do
+  def whereis_name({registry, key}), do: whereis_name(registry, key)
+  def whereis_name({registry, key, _value}), do: whereis_name(registry, key)
+
+  defp whereis_name(registry, key) do
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
@@ -226,20 +229,11 @@ defmodule Registry do
   end
 
   @doc false
-  @doc since: "1.x.x"
-  def whereis_name({registry, key, _value}) do
-    whereis_name({registry, key})
-  end
-
-  @doc false
   @doc since: "1.4.0"
-  def register_name({registry, key}, pid) do
-    register_name({registry, key, nil}, pid)
-  end
+  def register_name({registry, key}, pid), do: register_name(registry, key, nil, pid)
+  def register_name({registry, key, value}, pid), do: register_name(registry, key, value, pid)
 
-  @doc false
-  @doc since: "1.x.x"
-  def register_name({registry, key, value}, pid) when pid == self() do
+  defp register_name(registry, key, value, pid) when pid == self() do
     case register(registry, key, value) do
       {:ok, _} -> :yes
       {:error, _} -> :no
