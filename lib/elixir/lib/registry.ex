@@ -36,6 +36,22 @@ defmodule Registry do
       Agent.get(name, & &1)
       #=> 1
 
+  In the previous example, we were not interested in associating a value to the
+  process:
+
+      Registry.lookup(Registry.ViaTest, "agent")
+      #=> [{self(), nil}]
+
+  However, in some cases it may be desired to associate a value to the process
+  using the alternate `{:via, Registry, {registry, key, value}}` tuple:
+
+      {:ok, _} = Registry.start_link(keys: :unique, name: Registry.ViaTest)
+      name = {:via, Registry, {Registry.ViaTest, "agent", :hello}}
+      {:ok, _} = Agent.start_link(fn -> 0 end, name: name)
+      Registry.lookup(Registry.ViaTest, "agent")
+      #=> [{self(), :hello}]
+
+  To this point, we have been starting `Registry` using `start_link/1`.
   Typically the registry is started as part of a supervision tree though:
 
       {Registry, keys: :unique, name: Registry.ViaTest}
@@ -191,7 +207,10 @@ defmodule Registry do
 
   @doc false
   @doc since: "1.4.0"
-  def whereis_name({registry, key}) do
+  def whereis_name({registry, key}), do: whereis_name(registry, key)
+  def whereis_name({registry, key, _value}), do: whereis_name(registry, key)
+
+  defp whereis_name(registry, key) do
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
@@ -211,8 +230,11 @@ defmodule Registry do
 
   @doc false
   @doc since: "1.4.0"
-  def register_name({registry, key}, pid) when pid == self() do
-    case register(registry, key, nil) do
+  def register_name({registry, key}, pid), do: register_name(registry, key, nil, pid)
+  def register_name({registry, key, value}, pid), do: register_name(registry, key, value, pid)
+
+  defp register_name(registry, key, value, pid) when pid == self() do
+    case register(registry, key, value) do
       {:ok, _} -> :yes
       {:error, _} -> :no
     end
