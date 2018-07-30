@@ -489,7 +489,9 @@ defmodule Task do
 
   It is not recommended to `await` a long-running task inside an OTP
   behaviour such as `GenServer`. Instead, you should match on the message
-  coming from a task inside your `GenServer.handle_info/2` callback.
+  coming from a task inside your `GenServer.handle_info/2` callback. For
+  more information on the format of the message, see the documentation for
+  `async/1`.
 
   ## Examples
 
