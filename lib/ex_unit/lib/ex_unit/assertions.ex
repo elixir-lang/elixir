@@ -52,7 +52,7 @@ defmodule ExUnit.Assertions do
   `some_fun()` returns `13`):
 
       Comparison (using ==) failed in:
-      code:  some_fun() == 10
+      code:  assert some_fun() == 10
       left:  13
       right: 10
 
@@ -75,7 +75,7 @@ defmodule ExUnit.Assertions do
    will fail with the message:
 
       Assertion with > failed
-      code:  1 + 2 + 3 + 4 > 15
+      code:  assert 1 + 2 + 3 + 4 > 15
       left:  10
       right: 15
 
@@ -87,7 +87,7 @@ defmodule ExUnit.Assertions do
   you'll see:
 
       match (=) failed
-      code:  [1] = [2]
+      code:  assert [1] = [2]
       right: [2]
 
   Keep in mind that `assert` does not change its semantics
