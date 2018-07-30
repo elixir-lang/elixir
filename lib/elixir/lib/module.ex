@@ -130,7 +130,7 @@ defmodule Module do
   Using the `@deprecated` attribute will also be reflected in the
   documentation of the given function and macro. You can choose between
   the `@deprecated` attribute and the documentation metadata to provide
-  hard-deprecations (with warnings) and soft-deprecations (with warnings):
+  hard-deprecations (with warnings) and soft-deprecations (without warnings):
 
   This is a soft-deprecation as it simply annotates the documentation
   as deprecated:
