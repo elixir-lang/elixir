@@ -255,6 +255,12 @@ defmodule RegistryTest do
         # errors
         assert {:error, {:already_started, ^pid}} = Agent.start(fn -> 0 end, name: name)
       end
+
+      test "uses value provided in via", %{registry: registry} do
+        name = {:via, Registry, {registry, "hello", :value}}
+        {:ok, pid} = Agent.start_link(fn -> 0 end, name: name)
+        assert Registry.lookup(registry, "hello") == [{pid, :value}]
+      end
     end
   end
 
