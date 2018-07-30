@@ -412,6 +412,13 @@ defmodule Task do
       stream = Task.async_stream(collection, Mod, :expensive_fun, [], max_concurrency: max_concurrency)
       Enum.to_list(stream)
 
+  If you do not care about the results of the computation, you can run
+  the stream with `Stream.run/1`. Also set `ordered: false`, as you don't
+  care about the order of the results either:
+
+      stream = Task.async_stream(collection, Mod, :expensive_fun, [], ordered: false)
+      Stream.run(stream)
+
   """
   @doc since: "1.4.0"
   @spec async_stream(Enumerable.t(), module, atom, [term], keyword) :: Enumerable.t()
@@ -436,6 +443,13 @@ defmodule Task do
       iex> stream = Task.async_stream(strings, fn text -> text |> String.codepoints() |> Enum.count() end)
       iex> Enum.reduce(stream, 0, fn {:ok, num}, acc -> num + acc end)
       47
+
+  If you do not care about the results of the computation, you can run
+  the stream with `Stream.run/1`. Also set `ordered: false`, as you don't
+  care about the order of the results either:
+
+      stream = Task.async_stream(collection, fn item -> ... end, ordered: false)
+      Stream.run(stream)
 
   See `async_stream/5` for discussion, options, and more examples.
   """
