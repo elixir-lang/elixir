@@ -863,6 +863,8 @@ defmodule List do
   corresponding key is `:del`), or left alone (if the corresponding key is
   `:eq`) in `list1` in order to be closer to `list2`.
 
+  See `myers_difference/3` if you want to handle nesting in the diff scripts.
+
   ## Examples
 
       iex> List.myers_difference([1, 4, 2, 3], [1, 2, 3, 4])
@@ -872,18 +874,48 @@ defmodule List do
   @doc since: "1.4.0"
   @spec myers_difference(list, list) :: [{:eq | :ins | :del, list}]
   def myers_difference(list1, list2) when is_list(list1) and is_list(list2) do
-    path = {0, list1, list2, []}
-    find_script(0, length(list1) + length(list2), [path])
+    myers_difference_with_diff_script(list1, list2, nil)
   end
 
-  defp find_script(envelope, max, paths) do
-    case each_diagonal(-envelope, envelope, paths, []) do
+  @doc """
+  Returns a keyword list that represents an *edit script* with nested diffs.
+
+  This is an extension of `myers_difference/2` where a `diff_script` function
+  can be given in case it is desired to compute nested differences. The function
+  may return a list with the inner edit script or `nil` in case there is no
+  such script. The returned inner edit will be under the `:diff` key.
+
+  ## Examples
+
+      iex> List.myers_difference(["a", "db", "c"], ["a", "bc"], &String.myers_difference/2)
+      [eq: ["a"], diff: [del: "d", eq: "b", ins: "c"], del: ["c"]]
+
+  """
+  @doc since: "1.8.0"
+  @spec myers_difference(list, list, (term, term -> script | nil)) :: script
+        when script: [{:eq | :ins | :del | :diff, list}]
+  def myers_difference(list1, list2, diff_script)
+      when is_list(list1) and is_list(list2) and is_function(diff_script) do
+    myers_difference_with_diff_script(list1, list2, diff_script)
+  end
+
+  defp myers_difference_with_diff_script(list1, list2, diff_script) do
+    path = {0, list1, list2, []}
+    find_script(0, length(list1) + length(list2), [path], diff_script)
+  end
+
+  defp find_script(envelope, max, paths, diff_script) do
+    case each_diagonal(-envelope, envelope, paths, [], diff_script) do
       {:done, edits} -> compact_reverse(edits, [])
-      {:next, paths} -> find_script(envelope + 1, max, paths)
+      {:next, paths} -> find_script(envelope + 1, max, paths, diff_script)
     end
   end
 
   defp compact_reverse([], acc), do: acc
+
+  defp compact_reverse([{:diff, _} = fragment | rest], acc) do
+    compact_reverse(rest, [fragment | acc])
+  end
 
   defp compact_reverse([{kind, elem} | rest], [{kind, result} | acc]) do
     compact_reverse(rest, [{kind, [elem | result]} | acc])
@@ -897,50 +929,68 @@ defmodule List do
     compact_reverse(rest, [{kind, [elem]} | acc])
   end
 
-  defp each_diagonal(diag, limit, _paths, next_paths) when diag > limit do
+  defp each_diagonal(diag, limit, _paths, next_paths, _diff_script) when diag > limit do
     {:next, :lists.reverse(next_paths)}
   end
 
-  defp each_diagonal(diag, limit, paths, next_paths) do
-    {path, rest} = proceed_path(diag, limit, paths)
+  defp each_diagonal(diag, limit, paths, next_paths, diff_script) do
+    {path, rest} = proceed_path(diag, limit, paths, diff_script)
 
     case follow_snake(path) do
-      {:cont, path} -> each_diagonal(diag + 2, limit, rest, [path | next_paths])
+      {:cont, path} -> each_diagonal(diag + 2, limit, rest, [path | next_paths], diff_script)
       {:done, edits} -> {:done, edits}
     end
   end
 
-  defp proceed_path(0, 0, [path]), do: {path, []}
+  defp proceed_path(0, 0, [path], _diff_script), do: {path, []}
 
-  defp proceed_path(diag, limit, [path | _] = paths) when diag == -limit do
-    {move_down(path), paths}
+  defp proceed_path(diag, limit, [path | _] = paths, diff_script) when diag == -limit do
+    {move_down(path, diff_script), paths}
   end
 
-  defp proceed_path(diag, limit, [path]) when diag == limit do
-    {move_right(path), []}
+  defp proceed_path(diag, limit, [path], diff_script) when diag == limit do
+    {move_right(path, diff_script), []}
   end
 
-  defp proceed_path(_diag, _limit, [path1, path2 | rest]) do
+  defp proceed_path(_diag, _limit, [path1, path2 | rest], diff_script) do
     if elem(path1, 0) > elem(path2, 0) do
-      {move_right(path1), [path2 | rest]}
+      {move_right(path1, diff_script), [path2 | rest]}
     else
-      {move_down(path2), [path2 | rest]}
+      {move_down(path2, diff_script), [path2 | rest]}
     end
   end
 
-  defp move_right({y, list1, [elem | rest], edits}) do
+  defp move_right({y, [elem1 | rest1] = list1, [elem2 | rest2], edits}, diff_script)
+       when diff_script != nil do
+    if diff = diff_script.(elem1, elem2) do
+      {y + 1, rest1, rest2, [{:diff, diff} | edits]}
+    else
+      {y, list1, rest2, [{:ins, elem2} | edits]}
+    end
+  end
+
+  defp move_right({y, list1, [elem | rest], edits}, _diff_script) do
     {y, list1, rest, [{:ins, elem} | edits]}
   end
 
-  defp move_right({y, list1, [], edits}) do
+  defp move_right({y, list1, [], edits}, _diff_script) do
     {y, list1, [], edits}
   end
 
-  defp move_down({y, [elem | rest], list2, edits}) do
+  defp move_right({y, [elem1 | rest1], [elem2 | rest2] = list2, edits}, diff_script)
+       when diff_script != nil do
+    if diff = diff_script.(elem1, elem2) do
+      {y + 1, rest1, rest2, [{:diff, diff} | edits]}
+    else
+      {y + 1, rest1, list2, [{:del, elem1} | edits]}
+    end
+  end
+
+  defp move_down({y, [elem | rest], list2, edits}, _diff_script) do
     {y + 1, rest, list2, [{:del, elem} | edits]}
   end
 
-  defp move_down({y, [], list2, edits}) do
+  defp move_down({y, [], list2, edits}, _diff_script) do
     {y + 1, [], list2, edits}
   end
 
