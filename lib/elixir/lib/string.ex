@@ -2252,11 +2252,82 @@ defmodule String do
   end
 
   @doc """
-  Returns a float value between 0 (equates to no similarity) and 1 (is an exact match)
-  representing [Jaro](https://en.wikipedia.org/wiki/Jaro–Winkler_distance)
+  Computes the bag distance of two strings.
+
+  Returns a float value between 0 and 1 representing the bag
   distance between `string1` and `string2`.
 
-  The Jaro distance metric is designed and best suited for short strings such as person names.
+  The bag distance is meant to be an efficient approximation
+  of the distance between two strings to quickly rule out strings
+  that are largely different.
+
+  The algorithm is outlined in the "String Matching with Metric
+  Trees Using an Approximate Distance" paper by Ilaria Bartolini,
+  Paolo Ciaccia, and Marco Patella.
+
+  ## Examples
+
+      iex> String.bag_distance("abc", "")
+      0.0
+      iex> String.bag_distance("abcd", "a")
+      0.25
+      iex> String.bag_distance("abcd", "ab")
+      0.5
+      iex> String.bag_distance("abcd", "abc")
+      0.75
+      iex> String.bag_distance("abcd", "abcd")
+      1.0
+
+  """
+  @spec bag_distance(t, t) :: float
+  @doc since: "1.8.0"
+  def bag_distance(_string, ""), do: 0.0
+  def bag_distance("", _string), do: 0.0
+
+  def bag_distance(string1, string2) do
+    {bag1, length1} = string_to_bag(string1, %{}, 0)
+    {bag2, length2} = string_to_bag(string2, %{}, 0)
+
+    diff1 = bag_difference(bag1, bag2)
+    diff2 = bag_difference(bag2, bag1)
+
+    1 - max(diff1, diff2) / max(length1, length2)
+  end
+
+  defp string_to_bag(string, bag, length) do
+    case next_grapheme(string) do
+      {char, rest} ->
+        bag =
+          case bag do
+            %{^char => current} -> %{bag | char => current + 1}
+            %{} -> Map.put(bag, char, 1)
+          end
+
+        string_to_bag(rest, bag, length + 1)
+
+      nil ->
+        {bag, length}
+    end
+  end
+
+  defp bag_difference(bag1, bag2) do
+    Enum.reduce(bag1, 0, fn {char, count1}, sum ->
+      case bag2 do
+        %{^char => count2} -> sum + max(count1 - count2, 0)
+        %{} -> sum + count1
+      end
+    end)
+  end
+
+  @doc """
+  Computes the jaro distance between two strings.
+
+  Returns a float value between 0 (equates to no similarity) and 1
+  (is an exact match) representing [Jaro](https://en.wikipedia.org/wiki/Jaro–Winkler_distance)
+  distance between `string1` and `string2`.
+
+  The Jaro distance metric is designed and best suited for short
+  strings such as person names.
 
   ## Examples
 
