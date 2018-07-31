@@ -101,7 +101,7 @@ defmodule StringIO do
   """
   @spec open(binary, keyword) :: {:ok, pid}
   @spec open(binary, (pid -> res)) :: {:ok, res} when res: var
-  def open(path, options_or_function \\ [])
+  def open(string, options_or_function \\ [])
 
   def open(string, options_or_function) when is_binary(string) and is_list(options_or_function) do
     GenServer.start_link(__MODULE__, {string, options_or_function}, [])
