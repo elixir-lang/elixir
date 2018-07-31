@@ -136,6 +136,33 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  defmodule ShadowedAliases do
+    def project do
+      [aliases: [compile: "compile"]]
+    end
+  end
+
+  test "help TASK && ALIAS", context do
+    Mix.Project.push(ShadowedAliases)
+
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["compile"])
+        end)
+
+      assert output =~ "# mix compile\n\n"
+      assert output =~ "Alias for \"compile\"\n"
+      assert output =~ ~r/^Location: mix.exs/m
+
+      assert output =~
+               "\nThere is also a task named \"compile\". The documentation is shown next.\n"
+
+      assert output =~ "## Command line options"
+      assert output =~ ~r/^Location:/m
+    end)
+  end
+
   test "help --search PATTERN", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["--search", "deps"])
