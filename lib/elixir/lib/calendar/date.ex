@@ -557,8 +557,8 @@ defmodule Date do
   @doc since: "1.5.0"
   @spec add(Calendar.date(), integer()) :: t
   def add(%{calendar: calendar} = date, days) do
-    {iso_days, fraction} = to_iso_days(date)
-    from_iso_days({iso_days + days, fraction}, calendar)
+    {base_days, fraction} = to_iso_days(date)
+    from_iso_days({base_days + days, fraction}, calendar)
   end
 
   @doc """

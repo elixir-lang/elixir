@@ -555,9 +555,9 @@ defmodule DateTime do
                 {{year, month, day}, Calendar.ISO.time_from_day_fraction(day_fraction)}
 
               {extra_days, day_fraction} ->
-                iso_days = Calendar.ISO.date_to_iso_days(year, month, day)
+                base_days = Calendar.ISO.date_to_iso_days(year, month, day)
 
-                {Calendar.ISO.date_from_iso_days(iso_days + extra_days),
+                {Calendar.ISO.date_from_iso_days(base_days + extra_days),
                  Calendar.ISO.time_from_day_fraction(day_fraction)}
             end
 
@@ -683,13 +683,13 @@ defmodule DateTime do
       |> apply_tz_offset(utc_offset2 + std_offset2)
 
     # Ensure fraction tuples have same denominator.
-    iso_days1 = {days1, parts1 * ppd2}
-    iso_days2 = {days2, parts2 * ppd1}
+    first = {days1, parts1 * ppd2}
+    second = {days2, parts2 * ppd1}
 
-    case {iso_days1, iso_days2} do
-      {first, second} when first > second -> :gt
-      {first, second} when first < second -> :lt
-      _ -> :eq
+    cond do
+      first > second -> :gt
+      first < second -> :lt
+      true -> :eq
     end
   end
 
