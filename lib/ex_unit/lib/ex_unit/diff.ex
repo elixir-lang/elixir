@@ -53,7 +53,7 @@ defmodule ExUnit.Diff do
       script_string(List.to_string(left), List.to_string(right), ?')
     else
       keywords? = Inspect.List.keyword?(left) and Inspect.List.keyword?(right)
-      script = script_list(left, right, keywords?)
+      script = script_maybe_improper_list(left, right, keywords?)
       [{:eq, "["}, script, {:eq, "]"}]
     end
   end
@@ -67,15 +67,7 @@ defmodule ExUnit.Diff do
 
   # Tuples
   def script(left, right) when is_tuple(left) and is_tuple(right) do
-    script =
-      script_list(
-        Tuple.to_list(left),
-        tuple_size(left),
-        Tuple.to_list(right),
-        tuple_size(right),
-        false
-      )
-
+    script = script_list(Tuple.to_list(left), Tuple.to_list(right), false)
     [{:eq, "{"}, script, {:eq, "}"}]
   end
 
@@ -138,23 +130,15 @@ defmodule ExUnit.Diff do
     end)
   end
 
-  defp length_and_slice_proper_part([item | rest], length, result) do
-    length_and_slice_proper_part(rest, length + 1, [item | result])
-  end
+  defp slice_proper_part([item | rest], result), do: slice_proper_part(rest, [item | result])
+  defp slice_proper_part([], result), do: {Enum.reverse(result), []}
+  defp slice_proper_part(item, result), do: {Enum.reverse(result), [item]}
 
-  defp length_and_slice_proper_part([], length, result) do
-    {length, Enum.reverse(result), []}
-  end
+  defp script_maybe_improper_list(list1, list2, keywords?) do
+    {list1, improper_rest1} = slice_proper_part(list1, [])
+    {list2, improper_rest2} = slice_proper_part(list2, [])
 
-  defp length_and_slice_proper_part(item, length, result) do
-    {length, Enum.reverse(result), [item]}
-  end
-
-  defp script_list(list1, list2, keywords?) do
-    {length1, list1, improper_rest1} = length_and_slice_proper_part(list1, 0, [])
-    {length2, list2, improper_rest2} = length_and_slice_proper_part(list2, 0, [])
-
-    script = script_list(list1, length1, list2, length2, keywords?)
+    script = script_list(list1, list2, keywords?)
 
     case {improper_rest1, improper_rest2} do
       {[item1], [item2]} ->
@@ -171,18 +155,22 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp script_list(list1, length1, list2, length2, keywords?) do
-    case script_subset_list(list1, list2) do
-      {:ok, script} ->
-        format_each_fragment(script, [], keywords?)
+  defp script_list(list1, list2, keywords?) do
+    script =
+      case script_subset_list(list1, list2) do
+        {:ok, script} -> script
+        :error when keywords? -> List.myers_difference(list1, list2, &script_keyword/2)
+        :error -> List.myers_difference(list1, list2, &script/2)
+      end
 
-      :error ->
-        initial_path = {0, 0, list1, list2, []}
-
-        find_script(0, length1 + length2, [initial_path], keywords?)
-        |> format_each_fragment([], keywords?)
-    end
+    format_each_fragment(script, [], keywords?)
   end
+
+  defp script_keyword({key, val1}, {key, val2}),
+    do: [{:eq, format_key(key, true)}, script_inner(val1, val2)]
+
+  defp script_keyword(_pair1, _pair2),
+    do: nil
 
   defp script_subset_list(list1, list2) do
     case find_subset_list(list1, list2, []) do
@@ -273,110 +261,6 @@ defmodule ExUnit.Diff do
     end
 
     {kind, Enum.map_join(elems, ", ", formatter)}
-  end
-
-  defp find_script(envelope, max, paths, keywords?) do
-    case each_diagonal(-envelope, envelope, paths, [], keywords?) do
-      {:done, edits} ->
-        compact_reverse(edits, [])
-
-      {:next, paths} ->
-        find_script(envelope + 1, max, paths, keywords?)
-    end
-  end
-
-  defp compact_reverse([], acc), do: acc
-
-  defp compact_reverse([{:diff, _} = fragment | rest], acc),
-    do: compact_reverse(rest, [fragment | acc])
-
-  defp compact_reverse([{kind, char} | rest], [{kind, chars} | acc]),
-    do: compact_reverse(rest, [{kind, [char | chars]} | acc])
-
-  defp compact_reverse([{kind, char} | rest], acc),
-    do: compact_reverse(rest, [{kind, [char]} | acc])
-
-  defp each_diagonal(diag, limit, _paths, next_paths, _keywords?) when diag > limit do
-    {:next, Enum.reverse(next_paths)}
-  end
-
-  defp each_diagonal(diag, limit, paths, next_paths, keywords?) do
-    {path, rest} = proceed_path(diag, limit, paths, keywords?)
-
-    with {:cont, path} <- follow_snake(path) do
-      each_diagonal(diag + 2, limit, rest, [path | next_paths], keywords?)
-    end
-  end
-
-  defp proceed_path(0, 0, [path], _keywords?), do: {path, []}
-
-  defp proceed_path(diag, limit, [path | _] = paths, keywords?) when diag == -limit do
-    {move_down(path, keywords?), paths}
-  end
-
-  defp proceed_path(diag, limit, [path], keywords?) when diag == limit do
-    {move_right(path, keywords?), []}
-  end
-
-  defp proceed_path(_diag, _limit, [path1, path2 | rest], keywords?) do
-    if elem(path1, 1) > elem(path2, 1) do
-      {move_right(path1, keywords?), [path2 | rest]}
-    else
-      {move_down(path2, keywords?), [path2 | rest]}
-    end
-  end
-
-  defp script_keyword_inner({key, val1}, {key, val2}, true),
-    do: [{:eq, format_key(key, true)}, script_inner(val1, val2)]
-
-  defp script_keyword_inner(_pair1, _pair2, true),
-    do: nil
-
-  defp script_keyword_inner(elem1, elem2, false),
-    do: script(elem1, elem2)
-
-  defp move_right({x, x, [elem1 | rest1] = list1, [elem2 | rest2], edits}, keywords?) do
-    if result = script_keyword_inner(elem1, elem2, keywords?) do
-      {x + 1, x + 1, rest1, rest2, [{:diff, result} | edits]}
-    else
-      {x + 1, x, list1, rest2, [{:ins, elem2} | edits]}
-    end
-  end
-
-  defp move_right({x, y, list1, [elem | rest], edits}, _keywords?) do
-    {x + 1, y, list1, rest, [{:ins, elem} | edits]}
-  end
-
-  defp move_right({x, y, list1, [], edits}, _keywords?) do
-    {x + 1, y, list1, [], edits}
-  end
-
-  defp move_down({x, x, [elem1 | rest1], [elem2 | rest2] = list2, edits}, keywords?) do
-    if result = script_keyword_inner(elem1, elem2, keywords?) do
-      {x + 1, x + 1, rest1, rest2, [{:diff, result} | edits]}
-    else
-      {x, x + 1, rest1, list2, [{:del, elem1} | edits]}
-    end
-  end
-
-  defp move_down({x, y, [elem | rest], list2, edits}, _keywords?) do
-    {x, y + 1, rest, list2, [{:del, elem} | edits]}
-  end
-
-  defp move_down({x, y, [], list2, edits}, _keywords?) do
-    {x, y + 1, [], list2, edits}
-  end
-
-  defp follow_snake({x, y, [elem | rest1], [elem | rest2], edits}) do
-    follow_snake({x + 1, y + 1, rest1, rest2, [{:eq, elem} | edits]})
-  end
-
-  defp follow_snake({_x, _y, [], [], edits}) do
-    {:done, edits}
-  end
-
-  defp follow_snake(path) do
-    {:cont, path}
   end
 
   defp script_map(left, right, name) do
