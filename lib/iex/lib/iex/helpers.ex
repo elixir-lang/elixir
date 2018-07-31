@@ -1211,8 +1211,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Creates a Reference with 4 non-negative integers passed as arguments
-  to the function.
+  Creates a Reference from its 4 non-negative integers components.
 
   ## Examples
 
