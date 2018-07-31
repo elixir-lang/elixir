@@ -863,27 +863,42 @@ defmodule List do
   corresponding key is `:del`), or left alone (if the corresponding key is
   `:eq`) in `list1` in order to be closer to `list2`.
 
-  A `diff_script` function can be given in case it is desired to compute
-  nested differences. The function may return a list with the inner edit
-  script or `nil` in case there is no such script. The returned inner edit
-  will be under the `:diff` key.
+  See `myers_difference/3` if you want to handle nesting in the diff scripts.
 
   ## Examples
 
       iex> List.myers_difference([1, 4, 2, 3], [1, 2, 3, 4])
       [eq: [1], del: [4], eq: [2, 3], ins: [4]]
 
-  To handle a list of words, we can pass `String.myers_difference/2` for
-  the inner diffs:
+  """
+  @doc since: "1.4.0"
+  @spec myers_difference(list, list) :: [{:eq | :ins | :del, list}]
+  def myers_difference(list1, list2) when is_list(list1) and is_list(list2) do
+    myers_difference_with_diff_script(list1, list2, nil)
+  end
+
+  @doc """
+  Returns a keyword list that represents an *edit script* with nested diffs.
+
+  This is an extension of `myers_difference/2` where a `diff_script` function
+  can be given in case it is desired to compute nested differences. The function
+  may return a list with the inner edit script or `nil` in case there is no
+  such script. The returned inner edit will be under the `:diff` key.
+
+  ## Examples
 
       iex> List.myers_difference(["a", "db", "c"], ["a", "bc"], &String.myers_difference/2)
       [eq: ["a"], diff: [del: "d", eq: "b", ins: "c"], del: ["c"]]
 
   """
-  @doc since: "1.4.0"
-  @spec myers_difference(list, list) :: [{:eq | :ins | :del | :diff, list}]
-  def myers_difference(list1, list2, diff_script \\ nil)
-      when is_list(list1) and is_list(list2) do
+  @doc since: "1.8.0"
+  @spec myers_difference(list, list, (term, term -> list | nil)) :: [{:eq | :ins | :del | :diff, list}]
+  def myers_difference(list1, list2, diff_script)
+      when is_list(list1) and is_list(list2) and is_function(diff_script) do
+    myers_difference_with_diff_script(list1, list2, diff_script)
+  end
+
+  defp myers_difference_with_diff_script(list1, list2, diff_script) do
     path = {0, list1, list2, []}
     find_script(0, length(list1) + length(list2), [path], diff_script)
   end
