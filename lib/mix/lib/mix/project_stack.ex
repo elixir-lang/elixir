@@ -99,19 +99,25 @@ defmodule Mix.ProjectStack do
 
   @spec config_mtime() :: [integer]
   def config_mtime() do
-    get_and_update(fn state ->
-      get_and_update_in(state.stack, fn
-        [%{config_mtime: nil, config_files: files} = h | t] ->
-          mtime = files |> Enum.map(&Mix.Utils.last_modified/1) |> Enum.max()
-          {mtime, [%{h | config_mtime: mtime} | t]}
-
-        [%{config_mtime: mtime} | _] = stack ->
-          {mtime, stack}
-
-        [] ->
-          {0, []}
+    mtime_or_files =
+      get(fn
+        %{stack: [%{config_mtime: nil, config_files: files} | _]} -> files
+        %{stack: [%{config_mtime: mtime} | _]} -> mtime
+        %{stack: []} -> 0
       end)
-    end)
+
+    if is_list(mtime_or_files) do
+      mtime = mtime_or_files |> Enum.map(&Mix.Utils.last_modified/1) |> Enum.max()
+
+      cast(fn state ->
+        update_in(state.stack, fn [h | t] -> [%{h | config_mtime: mtime} | t] end)
+      end)
+
+      mtime
+    else
+      mtime = mtime_or_files
+      mtime
+    end
   end
 
   @spec config_apps() :: [atom]
