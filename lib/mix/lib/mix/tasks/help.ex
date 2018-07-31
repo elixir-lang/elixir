@@ -86,11 +86,40 @@ defmodule Mix.Tasks.Help do
   def run([task]) do
     loadpaths!()
 
-    {doc, location} = verbose_doc(task)
     opts = Application.get_env(:mix, :colors)
 
+    opts =
+      if ansi_docs?(opts) do
+        [width: width()] ++ opts
+      else
+        opts
+      end
+
+    case verbose_doc(task) do
+      [single] ->
+        print_doc(task, single, opts)
+
+      [alias_doc, task_doc] ->
+        print_doc(task, alias_doc, opts)
+
+        note = "\nThere is also a task named \"#{task}\". The documentation is shown next.\n"
+
+        if ansi_docs?(opts) do
+          IO.ANSI.Docs.print(note, opts)
+        else
+          IO.puts(note)
+        end
+
+        print_doc(task, task_doc, opts)
+    end
+  end
+
+  def run(_) do
+    Mix.raise("Unexpected arguments, expected \"mix help\" or \"mix help TASK\"")
+  end
+
+  defp print_doc(task, {doc, location}, opts) do
     if ansi_docs?(opts) do
-      opts = [width: width()] ++ opts
       IO.ANSI.Docs.print_heading("mix #{task}", opts)
       IO.ANSI.Docs.print(doc, opts)
     else
@@ -99,10 +128,6 @@ defmodule Mix.Tasks.Help do
     end
 
     IO.puts("Location: #{location}")
-  end
-
-  def run(_) do
-    Mix.raise("Unexpected arguments, expected \"mix help\" or \"mix help TASK\"")
   end
 
   # Loadpaths without checks because tasks may be defined in deps.
@@ -194,14 +219,29 @@ defmodule Mix.Tasks.Help do
   defp verbose_doc(task) do
     aliases = load_aliases()
 
-    if Map.has_key?(aliases, task) do
-      task_name = aliases[task]
-      doc = "Alias for " <> inspect(task_name)
-      {doc, "mix.exs"}
-    else
-      module = Mix.Task.get!(task)
-      doc = Mix.Task.moduledoc(module) || "There is no documentation for this task"
-      {doc, where_is_file(module)}
+    has_alias? = Map.has_key?(aliases, task)
+    has_task? = Mix.Task.get(task)
+
+    cond do
+      has_alias? and has_task? ->
+        [alias_doc(aliases[task]), task_doc(task)]
+
+      has_alias? ->
+        [alias_doc(aliases[task])]
+
+      true ->
+        [task_doc(task)]
     end
+  end
+
+  defp alias_doc(task_name) do
+    doc = "Alias for " <> inspect(task_name)
+    {doc, "mix.exs"}
+  end
+
+  defp task_doc(task) do
+    module = Mix.Task.get!(task)
+    doc = Mix.Task.moduledoc(module) || "There is no documentation for this task"
+    {doc, where_is_file(module)}
   end
 end
