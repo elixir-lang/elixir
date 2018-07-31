@@ -892,7 +892,7 @@ defmodule List do
 
   """
   @doc since: "1.8.0"
-  @spec myers_difference(list, list, (term, term -> script)) :: script
+  @spec myers_difference(list, list, (term, term -> script | nil)) :: script
         when script: [{:eq | :ins | :del | :diff, list}]
   def myers_difference(list1, list2, diff_script)
       when is_list(list1) and is_list(list2) and is_function(diff_script) do
