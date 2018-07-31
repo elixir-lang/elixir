@@ -75,7 +75,6 @@ defmodule Mix.Tasks.Help do
     aliases = Enum.filter(load_aliases(), fn {name, _} -> String.contains?(name, pattern) end)
 
     {docs, max} = build_doc_list(modules, aliases)
-
     display_doc_list(docs, max)
   end
 
@@ -95,22 +94,8 @@ defmodule Mix.Tasks.Help do
         opts
       end
 
-    case verbose_doc(task) do
-      [single] ->
-        print_doc(task, single, opts)
-
-      [alias_doc, task_doc] ->
-        print_doc(task, alias_doc, opts)
-
-        note = "\nThere is also a task named \"#{task}\". The documentation is shown next.\n"
-
-        if ansi_docs?(opts) do
-          IO.ANSI.Docs.print(note, opts)
-        else
-          IO.puts(note)
-        end
-
-        print_doc(task, task_doc, opts)
+    for doc <- verbose_doc(task) do
+      print_doc(task, doc, opts)
     end
   end
 
@@ -118,16 +103,19 @@ defmodule Mix.Tasks.Help do
     Mix.raise("Unexpected arguments, expected \"mix help\" or \"mix help TASK\"")
   end
 
-  defp print_doc(task, {doc, location}, opts) do
+  defp print_doc(task, {doc, location, note}, opts) do
     if ansi_docs?(opts) do
+      opts = [width: width()] ++ opts
       IO.ANSI.Docs.print_heading("mix #{task}", opts)
       IO.ANSI.Docs.print(doc, opts)
+      IO.puts("Location: #{location}")
+      note && IO.puts("") && IO.ANSI.Docs.print(note, opts)
     else
       IO.puts("# mix #{task}\n")
       IO.puts(doc)
+      IO.puts("\nLocation: #{location}")
+      note && IO.puts([?\n, note, ?\n, ?\n])
     end
-
-    IO.puts("Location: #{location}")
   end
 
   # Loadpaths without checks because tasks may be defined in deps.
@@ -224,24 +212,24 @@ defmodule Mix.Tasks.Help do
 
     cond do
       has_alias? and has_task? ->
-        [alias_doc(aliases[task]), task_doc(task)]
+        note = "There is also a task named \"#{task}\". The documentation is shown next."
+        [alias_doc(aliases[task], note), task_doc(task)]
 
       has_alias? ->
-        [alias_doc(aliases[task])]
+        [alias_doc(aliases[task], nil)]
 
       true ->
         [task_doc(task)]
     end
   end
 
-  defp alias_doc(task_name) do
-    doc = "Alias for " <> inspect(task_name)
-    {doc, "mix.exs"}
+  defp alias_doc(task_name, note) do
+    {"Alias for " <> inspect(task_name), "mix.exs", note}
   end
 
   defp task_doc(task) do
     module = Mix.Task.get!(task)
     doc = Mix.Task.moduledoc(module) || "There is no documentation for this task"
-    {doc, where_is_file(module)}
+    {doc, where_is_file(module), nil}
   end
 end
