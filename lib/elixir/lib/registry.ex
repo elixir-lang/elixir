@@ -206,7 +206,6 @@ defmodule Registry do
   ## Via callbacks
 
   @doc false
-  @doc since: "1.4.0"
   def whereis_name({registry, key}), do: whereis_name(registry, key)
   def whereis_name({registry, key, _value}), do: whereis_name(registry, key)
 
@@ -229,7 +228,6 @@ defmodule Registry do
   end
 
   @doc false
-  @doc since: "1.4.0"
   def register_name({registry, key}, pid), do: register_name(registry, key, nil, pid)
   def register_name({registry, key, value}, pid), do: register_name(registry, key, value, pid)
 
@@ -241,7 +239,6 @@ defmodule Registry do
   end
 
   @doc false
-  @doc since: "1.4.0"
   def send({registry, key}, msg) do
     case lookup(registry, key) do
       [{pid, _}] -> Kernel.send(pid, msg)
@@ -250,7 +247,6 @@ defmodule Registry do
   end
 
   @doc false
-  @doc since: "1.4.0"
   def unregister_name({registry, key}) do
     unregister(registry, key)
   end
