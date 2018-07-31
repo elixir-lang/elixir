@@ -1210,16 +1210,26 @@ defmodule IEx.Helpers do
     :erlang.list_to_ref('#Ref<#{string}>')
   end
 
+  @doc """
+  Creates a Reference with 4 non-negative integers passed as arguments
+  to the function.
+
+  ## Examples
+
+      iex> ref(0, 21, 32, 43)
+      #Reference<0.21.32.43>
+
+  """
   @doc since: "1.6.0"
   def ref(w, x, y, z)
       when is_integer(w) and w >= 0 and is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and
              is_integer(z) and z >= 0 do
     :erlang.list_to_ref(
-      '<' ++
+      '#Ref<' ++
         Integer.to_charlist(w) ++
         '.' ++
         Integer.to_charlist(x) ++
-        '.' ++ '.' ++ Integer.to_charlist(y) ++ '.' ++ '.' ++ Integer.to_charlist(z) ++ '.' ++ '>'
+        '.' ++ Integer.to_charlist(y) ++ '.' ++ Integer.to_charlist(z) ++ '>'
     )
   end
 
