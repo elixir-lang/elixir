@@ -883,7 +883,7 @@ defmodule List do
   This is an extension of `myers_difference/2` where a `diff_script` function
   can be given in case it is desired to compute nested differences. The function
   may return a list with the inner edit script or `nil` in case there is no
-  such script. The returned inner edit will be under the `:diff` key.
+  such script. The returned inner edit script will be under the `:diff` key.
 
   ## Examples
 
@@ -977,7 +977,7 @@ defmodule List do
     {y, list1, [], edits}
   end
 
-  defp move_right({y, [elem1 | rest1], [elem2 | rest2] = list2, edits}, diff_script)
+  defp move_down({y, [elem1 | rest1], [elem2 | rest2] = list2, edits}, diff_script)
        when diff_script != nil do
     if diff = diff_script.(elem1, elem2) do
       {y + 1, rest1, rest2, [{:diff, diff} | edits]}
