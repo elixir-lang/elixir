@@ -6,6 +6,10 @@
 
 #### Elixir
 
+  * [List] Add `List.myers_difference/3`
+  * [Registry] Allow associating a value on `:via` tuple
+  * [String] Add `String.bag_distance/2`
+
 #### ExUnit
 
 #### IEx
@@ -15,6 +19,10 @@
 #### Mix
 
 ### 2. Bug fixes
+
+#### ExUnit
+
+  * [ExUnit.Assertions] Consistently expand patterns and guards in assertions
 
 ### 3. Soft-deprecations (no warnings emitted)
 
