@@ -830,7 +830,7 @@ defmodule Calendar.ISO do
     {12, day_of_year - (334 + extra_day)}
   end
 
-  @spec iso_seconds_to_datetime(non_neg_integer) :: :calendar.datetime()
+  @spec iso_seconds_to_datetime(integer) :: :calendar.datetime()
   defp iso_seconds_to_datetime(seconds) do
     {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
 

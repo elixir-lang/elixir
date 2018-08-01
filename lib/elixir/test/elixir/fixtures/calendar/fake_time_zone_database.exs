@@ -2,39 +2,45 @@ defmodule FakeTimeZoneDatabase do
   @behaviour TimeZoneDatabase
 
   @time_zone_period_cph_summer_2018 %{
-    from_wall: {{2018, 3, 25}, {3, 0, 0}},
+    from_wall: ~N[2018-03-25 03:00:00],
     std_offset: 3600,
-    until_wall: {{2018, 10, 28}, {3, 0, 0}},
+    until_wall: ~N[2018-10-28 03:00:00],
     utc_offset: 3600,
     zone_abbr: "CEST"
   }
 
   @time_zone_period_cph_winter_2018_2019 %{
-    from_wall: {{2018, 10, 28}, {2, 0, 0}},
+    from_wall: ~N[2018-10-28 02:00:00],
     std_offset: 0,
-    until_wall: {{2019, 3, 31}, {2, 0, 0}},
+    until_wall: ~N[2019-03-31 02:00:00],
     utc_offset: 3600,
     zone_abbr: "CET"
   }
 
   @time_zone_period_cph_summer_2019 %{
-    from_wall: {{2019, 3, 31}, {3, 0, 0}},
+    from_wall: ~N[2019-03-31 03:00:00],
     std_offset: 3600,
-    until_wall: {{2019, 10, 27}, {3, 0, 0}},
+    until_wall: ~N[2019-10-27 03:00:00],
     utc_offset: 3600,
     zone_abbr: "CEST"
   }
 
+  @spec by_utc(Calendar.naive_datetime(), Calendar.time_zone()) ::
+          {:ok, TimeZoneDatabase.light_time_zone_period()} | {:error, :time_zone_not_found}
+  @impl true
   def by_utc(naive_datetime, time_zone) do
-    erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
-
-    do_by_utc(time_zone, erl_datetime)
+    do_by_utc(time_zone, NaiveDateTime.to_erl(naive_datetime))
   end
 
+  @spec by_wall(Calendar.naive_datetime(), Calendar.time_zone()) ::
+          {:single, TimeZoneDatabase.light_time_zone_period()}
+          | {:ambiguous, TimeZoneDatabase.light_time_zone_period(),
+             TimeZoneDatabase.light_time_zone_period()}
+          | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
+          | {:error, :time_zone_not_found}
+  @impl true
   def by_wall(naive_datetime, time_zone) do
-    erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
-
-    do_by_wall(time_zone, erl_datetime)
+    do_by_wall(time_zone, NaiveDateTime.to_erl(naive_datetime))
   end
 
   defp do_by_utc("Europe/Copenhagen", erl_datetime)
@@ -74,8 +80,7 @@ defmodule FakeTimeZoneDatabase do
   defp do_by_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2019, 3, 31}, {2, 0, 0}} and
               erl_datetime < {{2019, 3, 31}, {3, 0, 0}} do
-    {:gap, @time_zone_period_cph_winter_2018_2019 |> to_full_period_datetime_tuple,
-     @time_zone_period_cph_summer_2019 |> to_full_period_datetime_tuple}
+    {:gap, @time_zone_period_cph_winter_2018_2019, @time_zone_period_cph_summer_2019}
   end
 
   defp do_by_wall("Europe/Copenhagen", erl_datetime)
@@ -129,6 +134,7 @@ defmodule FakeTimeZoneDatabase do
     {:error, :time_zone_not_found}
   end
 
+  @impl true
   def is_leap_second(naive_datetime) do
     erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
 
@@ -146,6 +152,7 @@ defmodule FakeTimeZoneDatabase do
   end
 
   @spec leap_second_diff(Calendar.naive_datetime(), Calendar.naive_datetime()) :: integer
+  @impl true
   def leap_second_diff(%{year: year1}, %{year: year2}) when year1 < 1972 or year2 < 1972 do
     {:error, :pre_1972_leap_seconds_not_supported}
   end
@@ -216,19 +223,9 @@ defmodule FakeTimeZoneDatabase do
     {{2018, 12, 28}, {0, 0, 0}}
   end
 
-  defp to_light_period(full_period_iso_seconds) do
-    Map.drop(full_period_iso_seconds, [:from_wall, :until_wall])
-  end
-
-  defp to_full_period_datetime_tuple(full_period_iso_seconds) do
-    from_wall_erl =
-      full_period_iso_seconds.from_wall
-      |> NaiveDateTime.from_erl!()
-
-    until_wall_erl =
-      full_period_iso_seconds.until_wall
-      |> NaiveDateTime.from_erl!()
-
-    %{full_period_iso_seconds | from_wall: from_wall_erl, until_wall: until_wall_erl}
+  @spec to_light_period(TimeZoneDatabase.time_zone_period()) ::
+          TimeZoneDatabase.light_time_zone_period()
+  defp to_light_period(full_period) do
+    Map.drop(full_period, [:from_wall, :until_wall])
   end
 end

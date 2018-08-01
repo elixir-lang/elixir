@@ -173,7 +173,7 @@ defmodule DateTime do
 
   It expects a time zone to put the NaiveDateTime in.
 
-  It only supports "Etc/UTC" as time zone if a TimeZoneDatabase
+  It only supports "Etc/UTC" as time zone if a `TimeZoneDatabase`
   is not provided as a third argument.
 
   ## Examples
@@ -208,6 +208,7 @@ defmodule DateTime do
       iex> {:ok, datetime} = DateTime.from_naive(~N[2018-07-28 12:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> datetime
       #DateTime<2018-07-28 12:30:00+02:00 CEST Europe/Copenhagen>
+
   """
   @doc since: "1.4.0"
   @spec from_naive(
@@ -228,7 +229,7 @@ defmodule DateTime do
   def from_naive(%{second: 60} = naive_datetime, "Etc/UTC", tz_db_or_config) do
     {:ok, dt} = do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
 
-    case validate_leap_second(dt, tz_db_or_config) do
+    case validate_positive_leap_second(dt, tz_db_or_config) do
       :ok ->
         {:ok, dt}
 
@@ -436,16 +437,17 @@ defmodule DateTime do
 
   # Takes a datetime and in case it is is on the 61st second (:60) it will
   # check if it is a known leap second.
-  # In case of a hypothetical negative leap second (e.g. 23:59:59) skipped
-  # there is no point of using this function as it does nothing for it.
   # All datetimes with non ISO calendars return :ok
-  @spec validate_leap_second(Calendar.datetime(), TimeZoneDatabaseClient.tz_db_or_config()) :: :ok
-  defp validate_leap_second(%{second: second, calendar: calendar}, _)
+  @spec validate_positive_leap_second(
+          Calendar.datetime(),
+          TimeZoneDatabaseClient.tz_db_or_config()
+        ) :: :ok | {:error, atom}
+  defp validate_positive_leap_second(%{second: second, calendar: calendar}, _)
        when second != 60 or calendar != Calendar.ISO do
     :ok
   end
 
-  defp validate_leap_second(dt, tz_db_or_config) do
+  defp validate_positive_leap_second(dt, tz_db_or_config) do
     utc_dt = to_zero_total_offset(dt)
 
     case TimeZoneDatabaseClient.is_leap_second(utc_dt, tz_db_or_config) do
@@ -461,15 +463,21 @@ defmodule DateTime do
   end
 
   @doc """
-  Takes a DateTime and a time zone.
+  Takes a `DateTime` and a time zone.
 
-  Returns a DateTime for the same point in time, but instead at the
-  time zone provided.
+  Returns a `DateTime` for the same point in time, but instead at the time zone
+  provided.
+
+  Requires passing a `TimeZoneDatabase` as an argument or setting it with
+  `TimeZoneDatabaseClient.set_database/1`.
+
+  ## Examples
 
       iex> cph_datetime = DateTime.from_naive!(~N[2018-07-16 12:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> {:ok, pacific_datetime} = DateTime.shift_zone(cph_datetime, "America/Los_Angeles", FakeTimeZoneDatabase)
       iex> pacific_datetime
       #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
+
   """
   @doc since: "1.8.0-dev"
   @spec shift_zone(t, Calendar.time_zone(), TimeZoneDatabaseClient.tz_db_or_config()) ::
@@ -548,7 +556,8 @@ defmodule DateTime do
   @doc """
   Returns the current datetime in the provided time zone.
 
-  Requires a module implementing the `TimeZoneDatabase` behaviour.
+  Requires passing a `TimeZoneDatabase` as an argument or setting it with
+  `TimeZoneDatabaseClient.set_database/1`.
 
   ## Examples
 
@@ -566,7 +575,7 @@ defmodule DateTime do
   end
 
   def now(time_zone, tz_db_or_config) do
-    utc_now() |> shift_zone(time_zone, tz_db_or_config)
+    shift_zone(utc_now(), time_zone, tz_db_or_config)
   end
 
   @doc """
@@ -795,6 +804,11 @@ defmodule DateTime do
   Note that while ISO 8601 allows datetimes to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
 
+  Validates positive leap seconds (when the second is 60). When passed a
+  valid positive leap second, `{:error, :no_time_zone_database}` an error will
+  be returned unless a `TimeZoneDatabase` has been passed as the third argument
+  or set with `TimeZoneDatabaseClient.set_database/1`.
+
   ## Examples
 
       iex> {:ok, datetime, 0} = DateTime.from_iso8601("2015-01-23T23:50:07Z")
@@ -828,17 +842,21 @@ defmodule DateTime do
       iex> DateTime.from_iso8601("2015-01-23T23:50:07.123-00:00")
       {:error, :invalid_format}
 
+  ## Examples with positive leap seconds
+
       iex> {:ok, datetime, 0} = DateTime.from_iso8601("2015-06-30 23:59:60Z", Calendar.ISO, FakeTimeZoneDatabase)
       iex> datetime
       #DateTime<2015-06-30 23:59:60Z>
+
       iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
       {:error, :invalid_leap_second}
       iex> {:outside_leap_second_data_range, datetime, 7200} = DateTime.from_iso8601("2090-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
       iex> datetime
       #DateTime<2090-06-30 23:59:60Z>
 
-      # If a TimeZoneDatabase has not been set with TimeZoneDatabaseClient.set_database
-      # and the second of the parsed datetime is 60
+   If a TimeZoneDatabase has not been set with
+   `TimeZoneDatabaseClient.set_database/1` and the second of the parsed datetime is 60:
+
       iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00")
       {:error, :no_time_zone_database}
 
@@ -923,7 +941,7 @@ defmodule DateTime do
           time_zone: "Etc/UTC"
         }
 
-        case validate_leap_second(datetime, tz_db_or_config) do
+        case validate_positive_leap_second(datetime, tz_db_or_config) do
           :ok ->
             {:ok, datetime, 0}
 
@@ -952,7 +970,7 @@ defmodule DateTime do
                ) do
           datetime = %{datetime | second: 60, microsecond: microsecond}
 
-          case validate_leap_second(datetime, tz_db_or_config) do
+          case validate_positive_leap_second(datetime, tz_db_or_config) do
             :ok ->
               {:ok, datetime, offset}
 
