@@ -1135,8 +1135,10 @@ format_error({invalid_call, Call}) ->
 format_error({invalid_quoted_expr, Expr}) ->
   io_lib:format("invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Expr, [])]);
 format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
-  io_lib:format("cannot invoke local ~ts/~B inside ~ts, called as: ~ts",
-                [Name, length(Args), Context, 'Elixir.Macro':to_string(Call)]);
+  Message =
+    "cannot find or invoke local ~ts/~B inside ~ts. "
+    "Only macros can be invoked in a ~ts and they must be defined before their invocation. Called as: ~ts",
+  io_lib:format(Message, [Name, length(Args), Context, Context, 'Elixir.Macro':to_string(Call)]);
 format_error({invalid_remote_invocation, Context, Receiver, Right, Arity}) ->
   io_lib:format("cannot invoke remote function ~ts.~ts/~B inside ~ts",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);

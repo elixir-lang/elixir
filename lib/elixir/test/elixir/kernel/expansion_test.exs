@@ -307,7 +307,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "in matches" do
-      message = ~r"cannot invoke local foo/1 inside match, called as: foo\(:bar\)"
+      message = ~r"cannot find or invoke local foo/1 inside match. .+ Called as: foo\(:bar\)"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: foo(:bar) = :bar))
@@ -319,7 +319,7 @@ defmodule Kernel.ExpansionTest do
       expanded_code = quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
       assert clean_meta(expand(code), [:import, :context]) == expanded_code
 
-      message = ~r"cannot invoke local foo/1 inside guard, called as: foo\(arg\)"
+      message = ~r"cannot find or invoke local foo/1"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: fn arg when foo(arg) -> arg end))
