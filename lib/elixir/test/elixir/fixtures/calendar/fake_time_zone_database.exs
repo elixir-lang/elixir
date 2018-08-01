@@ -139,11 +139,43 @@ defmodule FakeTimeZoneDatabase do
         {:ok, true}
 
       false ->
-        if erl_datetime > leap_second_data_valid_until() do
-          {:error, :outside_leap_second_data_range}
-        else
+        with :ok <- within_leap_second_data_range(naive_datetime) do
           {:ok, false}
         end
+    end
+  end
+
+  @spec leap_second_diff(Calendar.naive_datetime(), Calendar.naive_datetime()) :: integer
+  def leap_second_diff(%{year: year1}, %{year: year2}) when year1 < 1972 or year2 < 1972 do
+    {:error, :pre_1972_leap_seconds_not_supported}
+  end
+
+  def leap_second_diff(datetime1, datetime2) do
+    with :ok <- within_leap_second_data_range(datetime1),
+         :ok <- within_leap_second_data_range(datetime2) do
+      {_, tai_diff1} = latest_leap_second_for_datetime(datetime1)
+      {_, tai_diff2} = latest_leap_second_for_datetime(datetime2)
+      {:ok, tai_diff1 - tai_diff2}
+    end
+  end
+
+  @spec latest_leap_second_for_datetime(Calendar.naive_datetime()) ::
+          {:calendar.datetime(), integer}
+  defp latest_leap_second_for_datetime(naive_datetime) do
+    p_erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
+
+    leap_seconds()
+    |> Enum.filter(fn {leap_second_only, _tai_diff} -> p_erl_datetime >= leap_second_only end)
+    |> List.last()
+  end
+
+  @spec within_leap_second_data_range(Calendar.naive_datetime()) ::
+          :ok | {:error, :outside_leap_second_data_range}
+  defp within_leap_second_data_range(naive_datetime) do
+    if NaiveDateTime.to_erl(naive_datetime) > leap_second_data_valid_until() do
+      {:error, :outside_leap_second_data_range}
+    else
+      :ok
     end
   end
 

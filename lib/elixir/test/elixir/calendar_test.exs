@@ -1097,4 +1097,60 @@ defmodule TimeZoneDatabaseClientTest do
     assert TimeZoneDatabaseClient.is_leap_second(~N[2090-06-30 23:59:60], FakeTimeZoneDatabase) ==
              {:error, :outside_leap_second_data_range}
   end
+
+  test "leap seconds diff" do
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[2090-06-30 23:59:60],
+             ~N[2007-06-30 12:00:00],
+             FakeTimeZoneDatabase
+           ) == {:error, :outside_leap_second_data_range}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[2007-06-30 12:00:00],
+             ~N[2090-06-30 23:59:60],
+             FakeTimeZoneDatabase
+           ) == {:error, :outside_leap_second_data_range}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[1960-06-30 12:00:00],
+             ~N[2008-06-30 12:00:00],
+             FakeTimeZoneDatabase
+           ) == {:error, :pre_1972_leap_seconds_not_supported}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[2015-07-01 00:00:01],
+             ~N[2015-06-30 23:59:59],
+             FakeTimeZoneDatabase
+           ) == {:ok, 1}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[2015-06-30 23:59:60],
+             ~N[2015-06-30 23:59:59],
+             FakeTimeZoneDatabase
+           ) == {:ok, 1}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[2015-06-30 23:59:60],
+             ~N[2015-06-30 23:59:60],
+             FakeTimeZoneDatabase
+           ) == {:ok, 0}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[2016-12-31 23:59:60],
+             ~N[2015-06-30 23:59:60],
+             FakeTimeZoneDatabase
+           ) == {:ok, 1}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[2016-12-31 23:59:60],
+             ~N[2015-06-30 23:59:58],
+             FakeTimeZoneDatabase
+           ) == {:ok, 2}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[2017-01-01 00:59:59],
+             ~N[2015-06-30 23:59:58],
+             FakeTimeZoneDatabase
+           ) == {:ok, 2}
+  end
 end
