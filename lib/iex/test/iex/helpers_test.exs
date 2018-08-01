@@ -77,7 +77,7 @@ defmodule IEx.HelpersTest do
     end
 
     test "errors when setting up a breakpoint with invalid guard" do
-      assert_raise CompileError, ~r"cannot invoke local is_whatever/1 inside guard", fn ->
+      assert_raise CompileError, ~r"cannot find local is_whatever/1", fn ->
         break!(URI.decode_query(_, map) when is_whatever(map))
       end
     end

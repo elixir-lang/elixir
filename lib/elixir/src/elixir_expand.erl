@@ -1134,6 +1134,8 @@ format_error({invalid_call, Call}) ->
   io_lib:format("invalid call ~ts", ['Elixir.Macro':to_string(Call)]);
 format_error({invalid_quoted_expr, Expr}) ->
   io_lib:format("invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Expr, [])]);
+format_error({invalid_local_invocation, guard, {Name, _, Args} = Call}) ->
+  io_lib:format("cannot find local ~ts/~B", [Name, length(Args)]);
 format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
   io_lib:format("cannot invoke local ~ts/~B inside ~ts, called as: ~ts",
                 [Name, length(Args), Context, 'Elixir.Macro':to_string(Call)]);

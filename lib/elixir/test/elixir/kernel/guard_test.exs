@@ -152,7 +152,7 @@ defmodule Kernel.GuardTest do
       refute IntegerPrivateGuards.is_even_and_small?(102)
       refute IntegerPrivateGuards.is_even_and_small?(103)
 
-      assert_raise CompileError, ~r"cannot invoke local is_even/1 inside guard", fn ->
+      assert_raise CompileError, ~r"cannot find local is_even/1", fn ->
         defmodule IntegerPrivateGuardUtils do
           import IntegerPrivateGuards
 
@@ -260,7 +260,7 @@ defmodule Kernel.GuardTest do
 
   describe "Kernel.defguard compilation" do
     test "refuses to compile non-sensical code" do
-      assert_raise CompileError, ~r"cannot invoke local undefined/1 inside guard", fn ->
+      assert_raise CompileError, ~r"cannot find local undefined/1", fn ->
         defmodule UndefinedUsage do
           defguard foo(function) when undefined(function)
         end
