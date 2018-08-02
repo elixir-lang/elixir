@@ -4,7 +4,7 @@
 -export([get_line/1, split_last/1, noop/0,
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
   macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
-  read_file_type/1, read_link_type/1, read_posix_mtime_and_size/1,
+  read_file_type/1, read_file_type/2, read_link_type/1, read_posix_mtime_and_size/1,
   change_posix_time/2, change_universal_time/2,
   guard_op/2, match_op/2, extract_splat_guards/1, extract_guards/1,
   erlang_comparison_op_to_elixir/1]).
@@ -71,7 +71,11 @@ split_last([H], Acc)     -> {lists:reverse(Acc), H};
 split_last([H | T], Acc) -> split_last(T, [H | Acc]).
 
 read_file_type(File) ->
-  case file:read_file_info(File) of
+  read_file_type(File, []).
+
+read_file_type(File, Opts) ->
+  Opts1 = [{time, posix} | Opts],
+  case file:read_file_info(File, Opts1) of
     {ok, #file_info{type=Type}} -> {ok, Type};
     {error, _} = Error -> Error
   end.

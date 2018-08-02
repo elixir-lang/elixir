@@ -120,15 +120,21 @@ defmodule File do
   This function follows symbolic links, so if a symbolic link points to a
   regular file, `true` is returned.
 
+  ## Options
+
+   - The list of options currently supports a single option, the atom `:raw`,
+     which bypasses the file server and only checks for the file locally.
+
   ## Examples
 
       File.regular?(__ENV__.file)
       #=> true
 
   """
-  @spec regular?(Path.t()) :: boolean
-  def regular?(path) do
-    :elixir_utils.read_file_type(IO.chardata_to_string(path)) == {:ok, :regular}
+  @spec regular?(Path.t(), [regular_option]) :: boolean
+        when regular_option: :raw
+  def regular?(path, opts \\ []) do
+    :elixir_utils.read_file_type(IO.chardata_to_string(path), opts) == {:ok, :regular}
   end
 
   @doc """
@@ -136,6 +142,11 @@ defmodule File do
 
   This function follows symbolic links, so if a symbolic link points to a
   directory, `true` is returned.
+
+  ## Options
+
+   - The list of options currently supports a single option, the atom `:raw`,
+     which bypasses the file server and only checks for the directory locally.
 
   ## Examples
 
@@ -155,9 +166,10 @@ defmodule File do
       #=> true
 
   """
-  @spec dir?(Path.t()) :: boolean
-  def dir?(path) do
-    :elixir_utils.read_file_type(IO.chardata_to_string(path)) == {:ok, :directory}
+  @spec dir?(Path.t(), [dir_option]) :: boolean
+        when dir_option: :raw
+  def dir?(path, opts \\ []) do
+    :elixir_utils.read_file_type(IO.chardata_to_string(path), opts) == {:ok, :directory}
   end
 
   @doc """
