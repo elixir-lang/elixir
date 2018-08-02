@@ -166,6 +166,11 @@ defmodule File do
   It can be regular file, directory, socket, symbolic link, named pipe or device file.
   Returns `false` for symbolic links pointing to non-existing targets.
 
+  ## Options
+
+   - The list of options currently supports a single option, the atom `:raw`,
+     which bypasses the file server and only checks for the file locally.
+
   ## Examples
 
       File.exists?("test/")
@@ -178,9 +183,11 @@ defmodule File do
       #=> true
 
   """
-  @spec exists?(Path.t()) :: boolean
-  def exists?(path) do
-    match?({:ok, _}, :file.read_file_info(IO.chardata_to_string(path)))
+  @spec exists?(Path.t(), [exists_option]) :: boolean
+        when exists_option: :raw
+  def exists?(path, opts \\ []) do
+    opts = [{:time, :posix}] ++ opts
+    match?({:ok, _}, :file.read_file_info(IO.chardata_to_string(path), opts))
   end
 
   @doc """
