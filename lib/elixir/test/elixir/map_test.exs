@@ -161,7 +161,15 @@ defmodule MapTest do
 
   test "implements (almost) all functions in Keyword" do
     assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
-             [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
+             [
+               delete: 3,
+               delete_first: 2,
+               fetch: 3,
+               get_values: 2,
+               keyword?: 1,
+               pop_first: 2,
+               pop_first: 3
+             ]
   end
 
   test "variable keys" do

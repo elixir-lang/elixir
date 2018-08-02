@@ -367,6 +367,30 @@ defmodule Keyword do
   end
 
   @doc """
+  Fetches the value for a specific `key` and returns it in a tuple.
+
+  If the `key` does not exist, returns `{:error, error_message}` where error_message
+  is any value provided to fetch/3. Keyword.fetch/3 can be used as an alternative to
+  Keyword.fetch/2 in more involved pipelined operations where a specific error message
+  should be propogated up.
+
+  ## Examples
+
+      iex> Keyword.fetch([a: 1], :a, "this will not be returned")
+      {:ok, 1}
+      iex> Keyword.fetch([a: 1], :b, ":b is not available")
+      {:error, ":b is not available"}
+
+  """
+  @spec fetch(t, key, any) :: {:ok, value} | {:error, any}
+  def fetch(keywords, key, error_message) when is_list(keywords) and is_atom(key) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> {:ok, value}
+      false -> {:error, error_message}
+    end
+  end
+
+  @doc """
   Fetches the value for specific `key`.
 
   If `key` does not exist, a `KeyError` is raised.
