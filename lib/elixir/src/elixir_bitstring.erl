@@ -331,7 +331,7 @@ format_error({unaligned_bitstring_in_match, Expr}) ->
   Message =
     "cannot verify size of binary expression in match. "
     "If you are concatenating two binaries or nesting a binary inside a bitstring, "
-    "you need to make sure the size of all fieds in the binary expression are known. "
+    "you need to make sure the size of all fields in the binary expression are known. "
     "The following examples are invalid:\n\n"
     "    \"foo\" <> <<field, rest::bits>>\n"
     "    <<\"foo\", <<field, rest::bitstring>>::binary>>\n\n"
