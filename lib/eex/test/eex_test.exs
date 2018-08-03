@@ -44,7 +44,7 @@ defmodule Clause do
 end
 
 defmodule EExTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest EEx
   doctest EEx.Engine
@@ -451,6 +451,23 @@ defmodule EExTest do
 
       assert EExTest.Compiled.unknown() ==
                {26, {EExTest.Compiled, :unknown, 0, [file: 'unknown', line: 26]}}
+    end
+
+    test "does not output compiler warning for unused variables" do
+      filename = Path.join(__DIR__, "fixtures/eex_empty_file.eex")
+
+      new_module =
+        quote do
+          defmodule EExTest.CompiledEmptyFile do
+            require EEx
+            EEx.function_from_file(:def, :empty_file_a, unquote(filename), [:bar])
+            EEx.function_from_file(:defp, :empty_file_b, unquote(filename), [:bar])
+          end
+        end
+
+      refute ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               Code.eval_quoted(new_module, filename: filename)
+             end) =~ ~s[variable \"bar\" is unused]
     end
   end
 

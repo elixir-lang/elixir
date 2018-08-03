@@ -151,14 +151,26 @@ defmodule EEx do
   defmacro function_from_file(kind, name, file, args \\ [], options \\ []) do
     quote bind_quoted: binding() do
       info = Keyword.merge(options, file: file, line: 1)
+
       args = Enum.map(args, fn arg -> {arg, [line: 1], nil} end)
+      used_args = Enum.map(args, fn arg -> quote do: _ = unquote(arg) end)
+
       compiled = EEx.compile_file(file, info)
 
       @external_resource file
       @file file
       case kind do
-        :def -> def unquote(name)(unquote_splicing(args)), do: unquote(compiled)
-        :defp -> defp unquote(name)(unquote_splicing(args)), do: unquote(compiled)
+        :def ->
+          def unquote(name)(unquote_splicing(args)) do
+            unquote(used_args)
+            unquote(compiled)
+          end
+
+        :defp ->
+          defp unquote(name)(unquote_splicing(args)) do
+            unquote(used_args)
+            unquote(compiled)
+          end
       end
     end
   end
