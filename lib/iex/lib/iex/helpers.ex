@@ -1201,8 +1201,8 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      iex> ref("0.21.32.43")
-      #Reference<0.21.32.43>
+      iex> ref("0.1.2.3")
+      #Reference<0.1.2.3>
 
   """
   @doc since: "1.6.0"
@@ -1215,8 +1215,8 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      iex> ref(0, 21, 32, 43)
-      #Reference<0.21.32.43>
+      iex> ref(0, 1, 2, 3)
+      #Reference<0.1.2.3>
 
   """
   @doc since: "1.6.0"
