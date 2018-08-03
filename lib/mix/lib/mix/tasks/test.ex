@@ -407,7 +407,7 @@ defmodule Mix.Tasks.Test do
             Mix.shell().info("No stale tests")
 
           files == [] ->
-            raise_or_error_at_exit("There are no tests to run", opts)
+            Mix.shell().info("There are no tests to run")
 
           true ->
             message = "Paths given to `mix test` did not match any directory/file: "
