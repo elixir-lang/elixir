@@ -122,8 +122,10 @@ defmodule File do
 
   ## Options
 
-   - The list of options currently supports a single option, the atom `:raw`,
-     which bypasses the file server and only checks for the file locally.
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
 
   ## Examples
 
@@ -145,8 +147,10 @@ defmodule File do
 
   ## Options
 
-   - The list of options currently supports a single option, the atom `:raw`,
-     which bypasses the file server and only checks for the directory locally.
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
 
   ## Examples
 
@@ -180,8 +184,10 @@ defmodule File do
 
   ## Options
 
-   - The list of options currently supports a single option, the atom `:raw`,
-     which bypasses the file server and only checks for the file locally.
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
 
   ## Examples
 
