@@ -280,6 +280,22 @@ defmodule Mix.DepTest do
     end)
   end
 
+  test "diverged with system_env set" do
+    Process.put(:custom_deps_git_repo_opts, system_env: [{"FOO", "BAR"}])
+
+    deps = [
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+      {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        [git_repo, _] = Mix.Dep.load_on_environment([])
+        %{app: :git_repo, status: {:overridden, _}} = git_repo
+      end)
+    end)
+  end
+
   ## Remote converger
 
   defmodule IdentityRemoteConverger do
