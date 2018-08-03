@@ -543,11 +543,20 @@ defmodule List do
 
   """
   @spec insert_at(list, integer, any) :: list
-  def insert_at(list, index, value) when is_integer(index) do
-    if index < 0 do
-      do_insert_at(list, length(list) + index + 1, value)
-    else
-      do_insert_at(list, index, value)
+  def insert_at(list, index, value)
+      when is_integer(index) and is_list(list) do
+    cond do
+      index == -1 ->
+        list ++ [value]
+
+      index == 0 ->
+        [value | list]
+
+      index > 0 ->
+        do_insert_at(list, index, value)
+
+      index < 0 ->
+        do_insert_at(list, length(list) + index + 1, value)
     end
   end
 
