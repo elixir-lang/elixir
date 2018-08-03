@@ -543,20 +543,19 @@ defmodule List do
 
   """
   @spec insert_at(list, integer, any) :: list
-  def insert_at(list, index, value)
-      when is_integer(index) and is_list(list) do
-    cond do
-      index == -1 ->
+  def insert_at(list, index, value) when is_list(list) and is_integer(index) do
+    case index do
+      -1 ->
         list ++ [value]
 
-      index == 0 ->
-        [value | list]
+      _ when index < 0 ->
+        case length(list) + index + 1 do
+          index when index < 0 -> [value | list]
+          index -> do_insert_at(list, index, value)
+        end
 
-      index > 0 ->
+      _ ->
         do_insert_at(list, index, value)
-
-      index < 0 ->
-        do_insert_at(list, length(list) + index + 1, value)
     end
   end
 
@@ -582,9 +581,12 @@ defmodule List do
 
   """
   @spec replace_at(list, integer, any) :: list
-  def replace_at(list, index, value) when is_integer(index) do
+  def replace_at(list, index, value) when is_list(list) and is_integer(index) do
     if index < 0 do
-      do_replace_at(list, length(list) + index, value)
+      case length(list) + index do
+        index when index < 0 -> list
+        index -> do_replace_at(list, index, value)
+      end
     else
       do_replace_at(list, index, value)
     end
@@ -612,9 +614,12 @@ defmodule List do
 
   """
   @spec update_at([elem], integer, (elem -> any)) :: list when elem: var
-  def update_at(list, index, fun) when is_function(fun, 1) and is_integer(index) do
+  def update_at(list, index, fun) when is_list(list) and is_function(fun) and is_integer(index) do
     if index < 0 do
-      do_update_at(list, length(list) + index, fun)
+      case length(list) + index do
+        index when index < 0 -> list
+        index -> do_update_at(list, index, fun)
+      end
     else
       do_update_at(list, index, fun)
     end
@@ -1023,10 +1028,6 @@ defmodule List do
     []
   end
 
-  defp do_replace_at(list, index, _value) when index < 0 do
-    list
-  end
-
   defp do_replace_at([_old | rest], 0, value) do
     [value | rest]
   end
@@ -1041,7 +1042,7 @@ defmodule List do
     [value]
   end
 
-  defp do_insert_at(list, index, value) when index <= 0 do
+  defp do_insert_at(list, 0, value) do
     [value | list]
   end
 
@@ -1053,10 +1054,6 @@ defmodule List do
 
   defp do_update_at([value | list], 0, fun) do
     [fun.(value) | list]
-  end
-
-  defp do_update_at(list, index, _fun) when index < 0 do
-    list
   end
 
   defp do_update_at([head | tail], index, fun) do
@@ -1071,10 +1068,6 @@ defmodule List do
 
   defp do_pop_at([], _index, default, acc) do
     {default, :lists.reverse(acc)}
-  end
-
-  defp do_pop_at(list, index, default, []) when index < 0 do
-    {default, list}
   end
 
   defp do_pop_at([head | tail], 0, _default, acc) do
