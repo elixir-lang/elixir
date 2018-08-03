@@ -110,13 +110,13 @@ defmodule ExUnit.Assertions do
     vars = collect_vars_from_pattern(left)
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
-    left_pattern = escape_quoted(:pattern, left)
-
     pattern_vars =
       vars
-      |> Enum.map(fn {var, _, _} -> var end)
+      |> Enum.map(&Pattern.get_var/1)
       |> Enum.uniq()
       |> Enum.map(&{&1, :ex_unit_unbound_var})
+      |> Map.new()
+      |> Macro.escape()
 
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
@@ -145,7 +145,7 @@ defmodule ExUnit.Assertions do
               unquote(vars)
 
             _ ->
-              {:pattern, [], [left]} = unquote(left_pattern)
+              left = unquote(escape_pattern(left))
               pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
 
               raise ExUnit.AssertionError,
@@ -173,16 +173,17 @@ defmodule ExUnit.Assertions do
     vars =
       left
       |> collect_vars_from_pattern()
-      |> Enum.map(fn {var, _, _} -> var end)
+      |> Enum.map(&Pattern.get_var/1)
       |> Enum.uniq()
       |> Enum.map(&{&1, :ex_unit_unbound_var})
+      |> Map.new()
+      |> Macro.escape()
 
     left = expand_pattern(left, __CALLER__)
-    left_pattern = escape_quoted(:pattern, left)
 
     quote do
       right = unquote(right)
-      {:pattern, [], [left]} = unquote(left_pattern)
+      left = unquote(escape_pattern(left))
       pattern = Pattern.new(left, unquote(pins), unquote(vars))
 
       assert unquote(match?),
@@ -347,6 +348,10 @@ defmodule ExUnit.Assertions do
     Macro.escape({kind, [], [expr]}, prune_metadata: true)
   end
 
+  defp escape_pattern(pattern) do
+    Macro.escape(pattern)
+  end
+
   defp extract_args({root, meta, [_ | _] = args} = expr, env) do
     arity = length(args)
 
@@ -464,17 +469,17 @@ defmodule ExUnit.Assertions do
 
     # Expand before extracting metadata
     expanded_pattern = expand_pattern(pattern, caller)
-    left_pattern = escape_quoted(:pattern, expanded_pattern)
-
     vars = collect_vars_from_pattern(expanded_pattern)
 
     pattern_vars =
       vars
-      |> Enum.map(fn {var, _, _} -> var end)
+      |> Enum.map(&Pattern.get_var/1)
       |> Enum.uniq()
       |> Enum.map(&{&1, :ex_unit_unbound_var})
+      |> Map.new()
+      |> Macro.escape()
 
-    pins = collect_pins_from_pattern(pattern, Macro.Env.vars(caller))
+    pins = collect_pins_from_pattern(expanded_pattern, Macro.Env.vars(caller))
 
     pattern =
       case expanded_pattern do
@@ -540,7 +545,7 @@ defmodule ExUnit.Assertions do
                 flunk(msg)
 
               {:pattern, messages, msg} ->
-                {:pattern, [], [left]} = unquote(left_pattern)
+                left = unquote(escape_pattern(expanded_pattern))
                 pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
 
                 assert false,

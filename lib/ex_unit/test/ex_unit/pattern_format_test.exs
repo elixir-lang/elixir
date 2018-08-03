@@ -14,7 +14,7 @@ defmodule ExUnit.PatternFormatTest do
         1
       end
 
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, 2)
 
     expected = [
@@ -33,7 +33,7 @@ defmodule ExUnit.PatternFormatTest do
         %{a: 2}
       end
 
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, %{a: 1, b: 1, d: 2, c: 3})
 
     expected = [
@@ -58,7 +58,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: %{a: 1, b: 2}
 
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, %{a: 1, b: 1, d: 2, c: 3})
 
     expected = [
@@ -84,7 +84,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: %{a: 1, b: 2}
 
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, %{a: 2, b: 1})
 
     expected = ["%{", "a: ", {:diff_delete, "2"}, ", ", "b: ", {:diff_delete, "1"}, "}"]
@@ -98,7 +98,7 @@ defmodule ExUnit.PatternFormatTest do
     # assert_receive [1, 2, 3, 4]
 
     left = quote do: [1, 2, 3, 4]
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
 
     actual = PatternFormat.script(pattern, [1, 2, 3])
     expected = ["[", "1", ", ", "2", ", ", "3", ", ", {:diff_insert, "4"}, "]"]
@@ -116,9 +116,9 @@ defmodule ExUnit.PatternFormatTest do
     # assert_receive [2 | _rest]
 
     left = quote do: [2 | _rest]
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, [1, 2, 3])
-    expected = ["[", {:diff_delete, "1"}, " | ", {:diff_delete, "[2, 3]"}, "]"]
+    expected = ["[", {:diff_delete, "1"}, " | ", "[2, 3]", "]"]
     assert actual == expected
   end
 
@@ -128,7 +128,7 @@ defmodule ExUnit.PatternFormatTest do
     # assert_receive [1 | [^b | _rest]]
     left = quote do: [1 | [^b | _rest]]
 
-    pattern = Pattern.new(left, [b: 3], _rest: :ex_unit_unbound_var)
+    pattern = Pattern.new(left, [b: 3], %{_rest: :ex_unit_unbound_var})
 
     actual = PatternFormat.script(pattern, [1, 2, 3])
     expected = ["[", "1", " | ", "[", {:diff_delete, "2"}, ", ", "[3]", "]", "]"]
@@ -140,7 +140,7 @@ defmodule ExUnit.PatternFormatTest do
     # assert_receive %{a: 1, b: %{a: 2, c: %{d: 4, f: "worl"}}, e: "hello"}
 
     left = quote do: %{a: 1, b: %{a: 2, c: %{d: 4, f: "worl"}}, e: "hello"}
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
 
     actual =
       PatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"})
@@ -178,7 +178,7 @@ defmodule ExUnit.PatternFormatTest do
     # assert_receive %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"}
 
     left = quote do: %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"}
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
 
     actual = PatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4}}, e: "hello"})
 
@@ -216,7 +216,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: %{a: 1, b: %{a: 2, c: %{d: 4}}, e: "hello"}
 
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
 
     actual =
       PatternFormat.script(pattern, %{a: 1, b: %{a: 2, c: %{d: 4, f: "world"}}, e: "hello"})
@@ -253,7 +253,7 @@ defmodule ExUnit.PatternFormatTest do
     # assert_receive([a, a, 3])
 
     left = quote do: [a, a, 3]
-    pattern = Pattern.new(left, [], a: :ex_unit_unbound_var)
+    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var})
 
     actual = PatternFormat.script(pattern, [1, 2, 3])
 
@@ -267,7 +267,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: [a, 2, 3] when is_binary(a)
 
-    pattern = Pattern.new(left, [], a: :ex_unit_unbound_var)
+    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var})
 
     actual = PatternFormat.script(pattern, [1, 2, 3])
 
@@ -281,7 +281,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: [a, b, 3, 4] when is_binary(a)
 
-    pattern = Pattern.new(left, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
+    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var, b: :ex_unit_unbound_var})
 
     actual = PatternFormat.script(pattern, [1, 2, 3])
 
@@ -308,7 +308,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: [a, b, 3] when is_binary(a) and is_integer(b)
 
-    pattern = Pattern.new(left, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
+    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var, b: :ex_unit_unbound_var})
 
     actual = PatternFormat.script(pattern, [1, 2, 3])
 
@@ -336,7 +336,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: [a, b, 3] when is_binary(a) or is_binary(b)
 
-    pattern = Pattern.new(left, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
+    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var, b: :ex_unit_unbound_var})
 
     actual = PatternFormat.script(pattern, [1, 2, 3])
 
@@ -367,7 +367,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: {:save_doc, %{status: :creted, sync_history: []} = doc}
 
-    pattern = Pattern.new(left, [], doc: :ex_unit_unbound_var)
+    pattern = Pattern.new(left, [], %{doc: :ex_unit_unbound_var})
 
     actual =
       PatternFormat.script(
@@ -404,7 +404,7 @@ defmodule ExUnit.PatternFormatTest do
         %{a: ^val, b: 2}
       end
 
-    pattern = Pattern.new(left, [val: 3], [])
+    pattern = Pattern.new(left, [val: 3], %{})
     actual = PatternFormat.script(pattern, %{a: 1, b: 2})
 
     expected = ["%{", "a: ", {:diff_delete, "1"}, ", ", "b: ", "2", "}"]
@@ -422,7 +422,7 @@ defmodule ExUnit.PatternFormatTest do
         %{a: ^val, b: 2}
       end
 
-    pattern = Pattern.new(left, [val: 3], [])
+    pattern = Pattern.new(left, [val: 3], %{})
     actual = PatternFormat.script(pattern, %{a: 3, b: 3})
 
     expected = ["%{", "a: ", "3", ", ", "b: ", {:diff_delete, "3"}, "}"]
@@ -440,7 +440,7 @@ defmodule ExUnit.PatternFormatTest do
         %{a: 1, d: ^val}
       end
 
-    pattern = Pattern.new(left, [val: 3], [])
+    pattern = Pattern.new(left, [val: 3], %{})
     actual = PatternFormat.script(pattern, %{a: 1, b: 2, c: 3})
 
     expected = ["%{", "a: ", "1", ", ", {:diff_insert, "d: 3"}, ", ", "b: 2", ", ", "c: 3", "}"]
@@ -456,7 +456,7 @@ defmodule ExUnit.PatternFormatTest do
     # assert match?(%{a: ^now}, %{b: then})
     # assert now == then
     left = quote do: %{a: ^now}
-    pattern = Pattern.new(left, [now: ~N[2018-01-01 12:30:00]], [])
+    pattern = Pattern.new(left, [now: ~N[2018-01-01 12:30:00]], %{})
 
     actual = PatternFormat.script(pattern, %{b: ~N[2008-01-01 12:30:00]})
 
@@ -474,7 +474,7 @@ defmodule ExUnit.PatternFormatTest do
   test "mismatched tuple size - left" do
     # assert match?({:a, :b, :c, :d}, {:a, :b, :c})
     left = quote do: {:a, :b, :c, :d}
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, {:a, :b, :c})
 
     expected = ["{", ":a", ", ", ":b", ", ", ":c", ", ", {:diff_insert, ":d"}, "}"]
@@ -484,7 +484,7 @@ defmodule ExUnit.PatternFormatTest do
   test "nested map, nested does not match" do
     # assert match?(%{a: 1, b: %{a: 1}}, %{a: 1, b: %{a: 2}})
     left = quote do: %{a: 1, b: %{a: 1}}
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, %{a: 1, b: %{a: 2}})
 
     expected = ["%{", "a: ", "1", ", ", "b: ", "%{", "a: ", {:diff_delete, "2"}, "}", "}"]
@@ -494,7 +494,7 @@ defmodule ExUnit.PatternFormatTest do
   test "nested tuple" do
     # assert match?({1, {1, 2}, {3, 4}}, {1, {3, 4}, {1, 2}})
     left = quote do: {1, {1, 2}, {3, 4}}
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, {1, {3, 4}, {1, 2}})
 
     expected = [
@@ -521,7 +521,7 @@ defmodule ExUnit.PatternFormatTest do
   test "nested list" do
     # assert match?([1, [1, 2], [3, 4]], [1, [3, 4], [1, 2]])
     left = quote do: [1, [1, 2], [3, 4]]
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, [1, [3, 4], [1, 2]])
 
     expected = [
@@ -548,7 +548,7 @@ defmodule ExUnit.PatternFormatTest do
   test "nested list cons operator in a map" do
     # assert match?(%{nested: [2 | [2 | _rest]]}, %{nested: [2, 3, 4]})
     left = quote do: %{nested: [2 | [2 | _rest]]}
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, %{nested: [2, 3, 4]})
 
     expected = [
@@ -560,7 +560,7 @@ defmodule ExUnit.PatternFormatTest do
       "[",
       {:diff_delete, "3"},
       " | ",
-      {:diff_delete, "[4]"},
+      "[4]",
       "]",
       "]",
       "}"
@@ -572,7 +572,7 @@ defmodule ExUnit.PatternFormatTest do
   test "unmatched cons" do
     # assert match?([1 | [2, 3]], %{a: 1})
     left = quote do: [1 | [2, 3]]
-    pattern = Pattern.new(left, [], [])
+    pattern = Pattern.new(left, [], %{})
     actual = PatternFormat.script(pattern, %{a: 1})
 
     expected = [diff_delete: "%{a: 1}"]

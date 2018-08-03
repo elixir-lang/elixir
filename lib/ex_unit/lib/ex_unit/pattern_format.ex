@@ -177,7 +177,7 @@ defmodule ExUnit.PatternFormat do
     [comma, match(inspect(rh))]
   end
 
-  def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh}, %{comma: comma} = ctx) do
+  def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh} = p, %{comma: comma} = ctx) do
     [comma, insert(textify_ast(lh, ctx))]
   end
 
@@ -217,7 +217,7 @@ defmodule ExUnit.PatternFormat do
   end
 
   def format(%WhenDiff{result: res, op: op, bindings: keys}, %{print_when?: print_when?}) do
-    [{key, _value}] = keys
+    [{{key, _}, _value}] = Map.to_list(keys)
     prefix = if print_when?, do: "when ", else: ""
     ret = "#{prefix}#{to_string(op)}(#{key})"
     ret = if res == :neq, do: delete(ret), else: ret
@@ -267,25 +267,29 @@ defmodule ExUnit.PatternFormat do
     false
   end
 
-  defp textify_ast(%{ast: ast}, ctx), do: textify_ast(ast, ctx)
+  defp textify_ast(%{ast: ast}, ctx) do
+    textify_ast(ast, ctx)
+  end
 
   defp textify_ast({:^, _, [{var, _, _}]}, ctx) do
     inspect(ctx.pins[var])
   end
 
-  defp textify_ast({:%{}, _, elements}, ctx) do
-    inspect(Map.new(Enum.map(elements, &textify_ast(&1, ctx))))
+  defp textify_ast({:%{}, _, _elements} = map, _ctx) do
+    Macro.to_string(map)
   end
 
   defp textify_ast({key, value}, %{keys: :atom_keys} = ctx) when is_atom(key) do
     "#{key}: #{textify_ast(value, ctx)}"
   end
 
-  defp textify_ast({key, value}, %{keys: :non_atom_keys} = ctx) when is_atom(key) do
-    "#{key} => #{textify_ast(value, ctx)}"
+  defp textify_ast({key, value}, %{keys: :non_atom_keys} = ctx) do
+    "#{inspect(key)} => #{textify_ast(value, ctx)}"
   end
 
-  defp textify_ast(elem, _ctx), do: inspect(elem)
+  defp textify_ast(elem, _ctx) do
+    Macro.to_string(elem)
+  end
 
   defp delete(term) do
     {:diff_delete, term}
