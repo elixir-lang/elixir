@@ -485,6 +485,14 @@ defmodule DateTime do
       iex> datetime
       #DateTime<2015-01-23 21:20:07.123Z>
 
+      iex> {:ok, datetime, 0} = DateTime.from_iso8601("-2015-01-23T23:50:07Z")
+      iex> datetime
+      #DateTime<-2015-01-23 23:50:07Z>
+
+      iex> {:ok, datetime, 9000} = DateTime.from_iso8601("-2015-01-23T23:50:07,123+02:30")
+      iex> datetime
+      #DateTime<-2015-01-23 21:20:07.123Z>
+
       iex> DateTime.from_iso8601("2015-01-23P23:50:07")
       {:error, :invalid_format}
       iex> DateTime.from_iso8601("2015-01-23 23:50:07A")
@@ -506,11 +514,23 @@ defmodule DateTime do
   @spec from_iso8601(String.t(), Calendar.calendar()) ::
           {:ok, t, Calendar.utc_offset()} | {:error, atom}
 
+  def from_iso8601(string, calendar \\ Calendar.ISO)
+
+  def from_iso8601(<<?-, rest::binary>>, calendar) do
+    with {:ok, %{year: year} = datetime, offset} <- raw_from_iso8601(rest, calendar) do
+      {:ok, %{datetime | year: -year}, offset}
+    end
+  end
+
+  def from_iso8601(<<rest::binary>>, calendar) do
+    raw_from_iso8601(rest, calendar)
+  end
+
   @sep [?\s, ?T]
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
   [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
 
-  def from_iso8601(string, calendar \\ Calendar.ISO) when is_binary(string) do
+  defp raw_from_iso8601(string, calendar) do
     with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
