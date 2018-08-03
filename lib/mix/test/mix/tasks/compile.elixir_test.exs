@@ -136,7 +136,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         "warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"
 
       refute_received {:mix_shell, :error, [^message]}
-
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 

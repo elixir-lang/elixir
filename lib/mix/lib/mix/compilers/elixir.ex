@@ -38,6 +38,7 @@ defmodule Mix.Compilers.Elixir do
 
     {all_modules, all_sources} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
+    stale_local_deps = stale_local_deps(manifest, modified)
     prev_paths = for source(source: source) <- all_sources, into: MapSet.new(), do: source
 
     removed =
@@ -86,8 +87,6 @@ defmodule Mix.Compilers.Elixir do
 
         changed = new_paths ++ changed
 
-        stale_local_deps = stale_local_deps(manifest, modified)
-
         {modules, structs, changed} =
           update_stale_entries(
             all_modules,
@@ -113,7 +112,9 @@ defmodule Mix.Compilers.Elixir do
       stale != [] ->
         compile_manifest(manifest, exts, modules, structs, sources, stale, dest, timestamp, opts)
 
-      removed != [] ->
+      # We need to return ok if stale_local_deps changed
+      # because we want that to propagate to compile.protocols
+      removed != [] or stale_local_deps != %{} ->
         write_manifest(manifest, modules, sources, dest, timestamp)
         {:ok, warning_diagnostics(sources)}
 
