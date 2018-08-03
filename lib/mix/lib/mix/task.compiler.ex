@@ -83,10 +83,7 @@ defmodule Mix.Task.Compiler do
   produces errors, warnings, or any other diagnostic information,
   it should return a tuple with the status and a list of diagnostics.
   """
-  @callback run([binary]) ::
-              :ok
-              | :noop
-              | {:ok | :noop | :error, [Diagnostic.t()]}
+  @callback run([binary]) :: {:ok | :noop | :error, [Diagnostic.t()]}
 
   @doc """
   Lists manifest files for the compiler.
@@ -113,6 +110,7 @@ defmodule Mix.Task.Compiler do
   end
 
   # Normalize the compiler result to a diagnostic tuple.
+  # TODO: Deprecate :ok and :noop on v1.9
   @doc false
   def normalize(result, name) do
     case result do
@@ -125,8 +123,7 @@ defmodule Mix.Task.Compiler do
       _ ->
         Mix.shell().error(
           "[warning] Mix compiler #{inspect(name)} was supposed to return " <>
-            ":ok | :noop | {:ok | :noop | :error, [diagnostic]} but it " <>
-            "returned #{inspect(result)}"
+            "{:ok | :noop | :error, [diagnostic]} but it returned #{inspect(result)}"
         )
 
         {:noop, []}
