@@ -11,7 +11,7 @@ defmodule ExUnit.PatternDiffWhenTest do
         a when is_integer(a)
       end
 
-    pattern = Pattern.new(simple, [], a: :ex_unit_unbound_var)
+    pattern = Pattern.new(simple, [], %{a: :ex_unit_unbound_var})
 
     expected_match = %ContainerDiff{
       type: :when,
@@ -22,7 +22,11 @@ defmodule ExUnit.PatternDiffWhenTest do
           rh: 1,
           diff_result: :eq
         },
-        %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq}
+        %WhenDiff{
+          op: :is_integer,
+          bindings: %{{:a, ExUnit.PatternDiffWhenTest} => 1},
+          result: :eq
+        }
       ]
     }
 
@@ -38,7 +42,11 @@ defmodule ExUnit.PatternDiffWhenTest do
           rh: "foo",
           diff_result: :eq
         },
-        %WhenDiff{op: :is_integer, bindings: [a: "foo"], result: :neq}
+        %WhenDiff{
+          op: :is_integer,
+          bindings: %{{:a, ExUnit.PatternDiffWhenTest} => "foo"},
+          result: :neq
+        }
       ]
     }
 
@@ -52,7 +60,7 @@ defmodule ExUnit.PatternDiffWhenTest do
         a when is_integer(a) or is_binary(a)
       end
 
-    pattern = Pattern.new(simple, [], a: :ex_unit_unbound_var)
+    pattern = Pattern.new(simple, [], %{a: :ex_unit_unbound_var})
 
     expected_match = %ContainerDiff{
       type: :when,
@@ -66,8 +74,16 @@ defmodule ExUnit.PatternDiffWhenTest do
         %WhenDiff{
           op: :or,
           bindings: [
-            %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq},
-            %WhenDiff{op: :is_binary, bindings: [a: 1], result: :neq}
+            %WhenDiff{
+              op: :is_integer,
+              bindings: %{{:a, ExUnit.PatternDiffWhenTest} => 1},
+              result: :eq
+            },
+            %WhenDiff{
+              op: :is_binary,
+              bindings: %{{:a, ExUnit.PatternDiffWhenTest} => 1},
+              result: :neq
+            }
           ],
           result: :eq
         }
@@ -89,8 +105,16 @@ defmodule ExUnit.PatternDiffWhenTest do
         %WhenDiff{
           op: :or,
           bindings: [
-            %WhenDiff{op: :is_integer, bindings: [a: :foo], result: :neq},
-            %WhenDiff{op: :is_binary, bindings: [a: :foo], result: :neq}
+            %WhenDiff{
+              op: :is_integer,
+              bindings: %{{:a, ExUnit.PatternDiffWhenTest} => :foo},
+              result: :neq
+            },
+            %WhenDiff{
+              op: :is_binary,
+              bindings: %{{:a, ExUnit.PatternDiffWhenTest} => :foo},
+              result: :neq
+            }
           ],
           result: :neq
         }
@@ -107,7 +131,7 @@ defmodule ExUnit.PatternDiffWhenTest do
         {a, b} when is_integer(a) and is_binary(b)
       end
 
-    pattern = Pattern.new(simple, [], a: :ex_unit_unbound_var, b: :ex_unit_unbound_var)
+    pattern = Pattern.new(simple, [], %{a: :ex_unit_unbound_var, b: :ex_unit_unbound_var})
 
     expected_match = %ContainerDiff{
       type: :when,
@@ -132,8 +156,16 @@ defmodule ExUnit.PatternDiffWhenTest do
         %WhenDiff{
           op: :and,
           bindings: [
-            %WhenDiff{op: :is_integer, bindings: [a: 1], result: :eq},
-            %WhenDiff{op: :is_binary, bindings: [b: "foo"], result: :eq}
+            %WhenDiff{
+              op: :is_integer,
+              bindings: %{{:a, ExUnit.PatternDiffWhenTest} => 1},
+              result: :eq
+            },
+            %WhenDiff{
+              op: :is_binary,
+              bindings: %{{:b, ExUnit.PatternDiffWhenTest} => "foo"},
+              result: :eq
+            }
           ],
           result: :eq
         }

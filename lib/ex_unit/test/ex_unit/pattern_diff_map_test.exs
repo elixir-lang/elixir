@@ -11,7 +11,7 @@ defmodule ExUnit.PatternDiffMapTest do
         %{a: 1}
       end
 
-    pattern = Pattern.new(simple, [], [])
+    pattern = Pattern.new(simple, [], %{})
 
     expected_match = %ContainerDiff{
       type: :map,
@@ -74,7 +74,7 @@ defmodule ExUnit.PatternDiffMapTest do
         %{a: 1}
       end
 
-    pattern = Pattern.new(simple, [], [])
+    pattern = Pattern.new(simple, [], %{})
 
     expected_no_match = %ContainerDiff{
       type: :map,
@@ -105,7 +105,7 @@ defmodule ExUnit.PatternDiffMapTest do
         %{a: 1}
       end
 
-    pattern = Pattern.new(simple, [], [])
+    pattern = Pattern.new(simple, [], %{})
 
     expected_no_match = %ContainerDiff{
       type: :map,
@@ -128,7 +128,7 @@ defmodule ExUnit.PatternDiffMapTest do
         %{}
       end
 
-    pattern = Pattern.new(simple, [], [])
+    pattern = Pattern.new(simple, [], %{})
 
     expected_no_match = %ContainerDiff{
       type: :map,
@@ -153,7 +153,7 @@ defmodule ExUnit.PatternDiffMapTest do
         %{^a => 1}
       end
 
-    pattern = Pattern.new(simple, [a: :a], [])
+    pattern = Pattern.new(simple, [a: :a], %{})
     actual = PatternDiff.cmp(pattern, %{a: 1})
 
     expected_match = %ContainerDiff{
@@ -188,7 +188,7 @@ defmodule ExUnit.PatternDiffMapTest do
         %{a: nil, b: nil}
       end
 
-    pattern = Pattern.new(simple, [], [])
+    pattern = Pattern.new(simple, [], %{})
 
     actual = PatternDiff.cmp(pattern, %{a: nil, b: 1})
 

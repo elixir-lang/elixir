@@ -4,17 +4,21 @@ defmodule ExUnit.Pattern do
   @type t :: %__MODULE__{
           binary: String.t(),
           val: any(),
-          vars: [key: atom()],
-          pins: [key: atom()]
+          vars: map,
+          pins: map
         }
 
-  def new(lh_pattern, pins, unbound_vars) when is_list(pins) and is_list(unbound_vars) do
+  def new(lh_pattern, pins, unbound_vars) when is_list(pins) and is_map(unbound_vars) do
     %__MODULE__{
       binary: Macro.to_string(lh_pattern),
       val: lh_pattern,
       pins: pins,
       vars: unbound_vars
     }
+  end
+
+  def get_var({var, meta, context}) when is_atom(var) and is_atom(context) do
+    {var, meta[:counter] || context}
   end
 end
 
@@ -63,19 +67,13 @@ defmodule ExUnit.PatternDiff do
   # {:%{}, _, members}
   # {:{}, _, members}
   # {:_, _, _}
-  # {var, _, _}
+  # {var, _, context}
   # {key, val}
   # list
   # integer
   # float
   # string
   # atom
-
-  # @type t :: %__MODULE__{
-  #   val: any(),
-  #   vars: [key: atom()],
-  #   pins: [key: atom()],
-  # }
 
   def cmp(pattern, r) do
     l = %{ast: pattern.val}
@@ -152,11 +150,13 @@ defmodule ExUnit.PatternDiff do
     }
   end
 
-  def cmp(%{ast: {var, _, var_ctx}} = pattern, rh_value, {vars, pins} = env)
-      when is_atom(var) and is_atom(var_ctx) do
-    case Keyword.get(vars, var) do
+  def cmp(%{ast: {var_name, _, var_ctx} = var} = pattern, rh_value, {vars, pins} = env)
+      when is_atom(var_name) and is_atom(var_ctx) do
+    var = get_var(var)
+
+    case Map.get(vars, var, :ex_unit_unbound_var) do
       :ex_unit_unbound_var ->
-        new_vars = Keyword.put(vars, var, rh_value)
+        new_vars = Map.put(vars, var, rh_value)
 
         {
           %__MODULE__{
@@ -362,11 +362,12 @@ defmodule ExUnit.PatternDiff do
   defp evaluate_when({atom, _, when_vars}, {vars, _pins}) do
     v =
       when_vars
-      |> Enum.map(fn {v_atom, _, _} -> Keyword.get(vars, v_atom) end)
+      |> Enum.map(fn var -> Map.get(vars, get_var(var)) end)
 
     bindings =
       when_vars
-      |> Enum.map(fn {v_atom, _, _} -> {v_atom, Keyword.get(vars, v_atom)} end)
+      |> Enum.map(fn var -> {get_var(var), Map.get(vars, get_var(var))} end)
+      |> Map.new()
 
     result = if :erlang.apply(Kernel, atom, v), do: :eq, else: :neq
 
@@ -379,5 +380,9 @@ defmodule ExUnit.PatternDiff do
 
   defp translate_key(rest, _) do
     rest
+  end
+
+  defp get_var({var, meta, context}) when is_atom(var) and is_atom(context) do
+    {var, meta[:counter] || context}
   end
 end
