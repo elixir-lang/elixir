@@ -74,8 +74,7 @@ read_file_type(File) ->
   read_file_type(File, []).
 
 read_file_type(File, Opts) ->
-  Opts1 = [{time, posix} | Opts],
-  case file:read_file_info(File, Opts1) of
+  case file:read_file_info(File, [{time, posix} | Opts]) of
     {ok, #file_info{type=Type}} -> {ok, Type};
     {error, _} = Error -> Error
   end.
