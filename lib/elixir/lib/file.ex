@@ -120,15 +120,23 @@ defmodule File do
   This function follows symbolic links, so if a symbolic link points to a
   regular file, `true` is returned.
 
+  ## Options
+
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
+
   ## Examples
 
       File.regular?(__ENV__.file)
       #=> true
 
   """
-  @spec regular?(Path.t()) :: boolean
-  def regular?(path) do
-    :elixir_utils.read_file_type(IO.chardata_to_string(path)) == {:ok, :regular}
+  @spec regular?(Path.t(), [regular_option]) :: boolean
+        when regular_option: :raw
+  def regular?(path, opts \\ []) do
+    :elixir_utils.read_file_type(IO.chardata_to_string(path), opts) == {:ok, :regular}
   end
 
   @doc """
@@ -136,6 +144,13 @@ defmodule File do
 
   This function follows symbolic links, so if a symbolic link points to a
   directory, `true` is returned.
+
+  ## Options
+
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
 
   ## Examples
 
@@ -155,9 +170,10 @@ defmodule File do
       #=> true
 
   """
-  @spec dir?(Path.t()) :: boolean
-  def dir?(path) do
-    :elixir_utils.read_file_type(IO.chardata_to_string(path)) == {:ok, :directory}
+  @spec dir?(Path.t(), [dir_option]) :: boolean
+        when dir_option: :raw
+  def dir?(path, opts \\ []) do
+    :elixir_utils.read_file_type(IO.chardata_to_string(path), opts) == {:ok, :directory}
   end
 
   @doc """
@@ -165,6 +181,13 @@ defmodule File do
 
   It can be regular file, directory, socket, symbolic link, named pipe or device file.
   Returns `false` for symbolic links pointing to non-existing targets.
+
+  ## Options
+
+  The supported options are:
+
+    * `:raw` - a single atom to bypass the file server and only check
+      for the file locally
 
   ## Examples
 
@@ -178,9 +201,11 @@ defmodule File do
       #=> true
 
   """
-  @spec exists?(Path.t()) :: boolean
-  def exists?(path) do
-    match?({:ok, _}, :file.read_file_info(IO.chardata_to_string(path)))
+  @spec exists?(Path.t(), [exists_option]) :: boolean
+        when exists_option: :raw
+  def exists?(path, opts \\ []) do
+    opts = [{:time, :posix}] ++ opts
+    match?({:ok, _}, :file.read_file_info(IO.chardata_to_string(path), opts))
   end
 
   @doc """
