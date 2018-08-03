@@ -546,7 +546,7 @@ defmodule ExUnit.Assertions do
 
     mailbox =
       messages
-      |> Enum.take(@max_mailbox_length)
+      |> Enum.take(-@max_mailbox_length)
       |> Enum.map_join(@indent, &inspect/1)
 
     mailbox_message(length, @indent <> mailbox)
@@ -556,7 +556,7 @@ defmodule ExUnit.Assertions do
 
   defp mailbox_message(length, mailbox) when length > 10 do
     "\nProcess mailbox:" <>
-      mailbox <> "\nShowing only #{@max_mailbox_length} of #{length} messages."
+      mailbox <> "\nShowing only last #{@max_mailbox_length} of #{length} messages."
   end
 
   defp mailbox_message(_length, mailbox) do

@@ -387,7 +387,6 @@ defmodule ExUnit.AssertionsTest do
         """
         No message matching x when x == :hello after 0ms.
         Process mailbox:
-          {:message, 1}
           {:message, 2}
           {:message, 3}
           {:message, 4}
@@ -397,7 +396,8 @@ defmodule ExUnit.AssertionsTest do
           {:message, 8}
           {:message, 9}
           {:message, 10}
-        Showing only 10 of 11 messages.\
+          {:message, 11}
+        Showing only last 10 of 11 messages.\
         """ = error.message
     end
   end
