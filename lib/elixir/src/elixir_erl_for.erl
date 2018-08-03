@@ -110,24 +110,9 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
     {'case', Ann, InnerExpr, [
       {clause, Generated,
        [InnerValue],
-       [[?remote(Ann, erlang, is_binary, [InnerValue]),
+       [[?remote(Ann, erlang, is_bitstring, [InnerValue]),
          ?remote(Ann, erlang, is_list, [InnerAcc])]],
        [{cons, Generated, InnerAcc, InnerValue}]},
-      {clause, Generated,
-       [InnerValue],
-       [[?remote(Ann, erlang, is_bitstring, [InnerValue]),
-         ?remote(Ann, erlang, is_bitstring, [InnerAcc])]],
-       [{bin, Ann, [
-          {bin_element, Ann, InnerAcc, default, [bitstring]},
-          {bin_element, Ann, InnerValue, default, [bitstring]}
-       ]}]},
-      {clause, Generated,
-       [InnerValue],
-       [[?remote(Ann, erlang, is_bitstring, [InnerValue])]],
-       [{bin, Ann, [
-          {bin_element, Ann, ?remote(Ann, erlang, iolist_to_binary, [InnerAcc]), default, [bitstring]},
-          {bin_element, Ann, InnerValue, default, [bitstring]}
-       ]}]},
       {clause, Generated,
        [InnerValue],
        [],
@@ -136,17 +121,7 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
   end,
 
   ReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, SV),
-
-  {{'case', Ann, ReduceExpr, [
-    {clause, Ann,
-     [InnerValue],
-     [[?remote(Ann, erlang, is_bitstring, [InnerValue])]],
-     [InnerValue]},
-    {clause, Ann,
-     [InnerValue],
-     [],
-     [?remote(Ann, erlang, iolist_to_binary, [InnerValue])]}
-  ]}, SV}.
+  {?remote(Ann, erlang, list_to_bitstring, [ReduceExpr]), SV}.
 
 build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, S) ->
   {ReduceExpr, SR} = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, S),
