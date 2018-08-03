@@ -117,6 +117,8 @@ defmodule Mix.Dep do
     end
   end
 
+  @child_keep_opts [:optional, :runtime]
+
   defp load_and_cache(_config, top, top, env) do
     converge(env: env)
   end
@@ -131,7 +133,7 @@ defmodule Mix.Dep do
       for dep <- deps,
           dep.app == app,
           child <- dep.deps,
-          do: {child.app, child.opts},
+          do: {child.app, Keyword.take(child.opts, @child_keep_opts)},
           into: %{}
 
     Enum.map(children, fn %{app: app} = dep ->
@@ -140,8 +142,12 @@ defmodule Mix.Dep do
           # Only top level dependencies can be optional.
           # Any non-top level dependency that is optional and
           # is still available means it has been fulfilled.
-          optional = Keyword.get(child_opts, :optional, false)
-          %{dep | top_level: true, opts: Keyword.put(dep.opts, :optional, optional)}
+          opts =
+            dep.opts
+            |> Keyword.drop(@child_keep_opts)
+            |> Keyword.merge(child_opts)
+
+          %{dep | top_level: true, opts: opts}
 
         %{} ->
           %{dep | top_level: false}
