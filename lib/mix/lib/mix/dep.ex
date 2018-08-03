@@ -117,6 +117,9 @@ defmodule Mix.Dep do
     end
   end
 
+  # optional and runtime only matter at the top level.
+  # Any non-top level dependency that is optional and
+  # is still available means it has been fulfilled.
   @child_keep_opts [:optional, :runtime]
 
   defp load_and_cache(_config, top, top, env) do
@@ -139,9 +142,6 @@ defmodule Mix.Dep do
     Enum.map(children, fn %{app: app} = dep ->
       case top_level do
         %{^app => child_opts} ->
-          # Only top level dependencies can be optional.
-          # Any non-top level dependency that is optional and
-          # is still available means it has been fulfilled.
           opts =
             dep.opts
             |> Keyword.drop(@child_keep_opts)
