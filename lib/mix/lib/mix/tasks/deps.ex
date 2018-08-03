@@ -96,6 +96,9 @@ defmodule Mix.Tasks.Deps do
       Defaults to `true` which automatically adds the application to the list
       of apps that are started automatically and included in releases
 
+    * `:system_env` - an enumerable of key-value tuples of binaries to be set
+      as environment variables when loading or compiling the dependency
+
   ### Git options (`:git`)
 
     * `:git` - the Git repository URI

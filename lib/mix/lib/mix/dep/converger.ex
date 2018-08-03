@@ -333,8 +333,12 @@ defmodule Mix.Dep.Converger do
     end
   end
 
-  defp converge?(%Mix.Dep{scm: scm1, opts: opts1}, %Mix.Dep{scm: scm2, opts: opts2}) do
-    scm1 == scm2 and opts_equal?(opts1, opts2) and scm1.equal?(opts1, opts2)
+  defp converge?(
+         %Mix.Dep{scm: scm1, opts: opts1, system_env: system_env1},
+         %Mix.Dep{scm: scm2, opts: opts2, system_env: system_env2}
+       ) do
+    scm1 == scm2 and system_env1 == system_env2 and opts_equal?(opts1, opts2) and
+      scm1.equal?(opts1, opts2)
   end
 
   defp opts_equal?(opts1, opts2) do

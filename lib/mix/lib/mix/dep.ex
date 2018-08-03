@@ -354,11 +354,22 @@ defmodule Mix.Dep do
     "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
   end
 
-  defp dep_status(%Mix.Dep{app: app, requirement: req, manager: manager, opts: opts, from: from}) do
+  defp dep_status(%Mix.Dep{} = dep) do
+    %{
+      app: app,
+      requirement: req,
+      manager: manager,
+      opts: opts,
+      from: from,
+      system_env: system_env
+    } = dep
+
     opts =
-      opts
-      |> Keyword.drop([:dest, :build, :lock, :manager, :checkout])
+      []
       |> Kernel.++(if manager, do: [manager: manager], else: [])
+      |> Kernel.++(if system_env != [], do: [system_env: system_env], else: [])
+      |> Kernel.++(opts)
+      |> Keyword.drop([:dest, :build, :lock, :manager, :checkout])
 
     info = if req, do: {app, req, opts}, else: {app, opts}
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect(info)}\n"
