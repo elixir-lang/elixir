@@ -293,8 +293,7 @@ defmodule DateTimeTest do
   end
 
   test "from_iso8601/1 handles positive and negative offsets" do
-    assert DateTime.from_iso8601("2015-01-24T09:50:07-10:00")
-           |> elem(1) ==
+    assert DateTime.from_iso8601("2015-01-24T09:50:07-10:00") |> elem(1) ==
              %DateTime{
                microsecond: {0, 0},
                month: 1,
@@ -309,8 +308,7 @@ defmodule DateTimeTest do
                second: 7
              }
 
-    assert DateTime.from_iso8601("2015-01-24T09:50:07+10:00")
-           |> elem(1) ==
+    assert DateTime.from_iso8601("2015-01-24T09:50:07+10:00") |> elem(1) ==
              %DateTime{
                microsecond: {0, 0},
                month: 1,
@@ -318,6 +316,38 @@ defmodule DateTimeTest do
                time_zone: "Etc/UTC",
                utc_offset: 0,
                year: 2015,
+               zone_abbr: "UTC",
+               day: 23,
+               hour: 23,
+               minute: 50,
+               second: 7
+             }
+  end
+
+  test "from_iso8601/1 handles negative dates" do
+    assert DateTime.from_iso8601("-2015-01-24T09:50:07-10:00") |> elem(1) ==
+             %DateTime{
+               microsecond: {0, 0},
+               month: 1,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               utc_offset: 0,
+               year: -2015,
+               zone_abbr: "UTC",
+               day: 24,
+               hour: 19,
+               minute: 50,
+               second: 7
+             }
+
+    assert DateTime.from_iso8601("-2015-01-24T09:50:07+10:00") |> elem(1) ==
+             %DateTime{
+               microsecond: {0, 0},
+               month: 1,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               utc_offset: 0,
+               year: -2015,
                zone_abbr: "UTC",
                day: 23,
                hour: 23,
