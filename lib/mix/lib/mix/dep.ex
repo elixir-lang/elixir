@@ -124,11 +124,29 @@ defmodule Mix.Dep do
   defp load_and_cache(config, _top, bottom, _env) do
     {_, deps} = Mix.ProjectStack.read_cache({:cached_deps, bottom})
     app = Keyword.fetch!(config, :app)
-    top_level = for dep <- deps, dep.app == app, child <- dep.deps, do: child.app
-
     seen = populate_seen(MapSet.new(), [app])
     children = get_deps(deps, tl(Enum.uniq(get_children(deps, seen, [app]))))
-    Enum.map(children, &%{&1 | top_level: &1.app in top_level})
+
+    top_level =
+      for dep <- deps,
+          dep.app == app,
+          child <- dep.deps,
+          do: {child.app, child.opts},
+          into: %{}
+
+    Enum.map(children, fn %{app: app} = dep ->
+      case top_level do
+        %{^app => child_opts} ->
+          # Only top level dependencies can be optional.
+          # Any non-top level dependency that is optional and
+          # is still available means it has been fulfilled.
+          optional = Keyword.get(child_opts, :optional, false)
+          %{dep | top_level: true, opts: Keyword.put(dep.opts, :optional, optional)}
+
+        %{} ->
+          %{dep | top_level: false}
+      end
+    end)
   end
 
   defp read_cached_deps(project, env) do
