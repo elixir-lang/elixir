@@ -389,15 +389,15 @@ defmodule Kernel.GuardTest do
       args = quote(do: [1 + 1, 2 + 2, 3 + 3])
 
       assert expand_defguard_to_string(:with_unused_vars, args, :guard) == """
-      :erlang.+(1 + 1, 2 + 2)
-      """
+             :erlang.+(1 + 1, 2 + 2)
+             """
 
       assert expand_defguard_to_string(:with_unused_vars, args, nil) == """
-      (
-        {foo, bar} = {1 + 1, 2 + 2}
-        :erlang.+(foo, bar)
-      )
-      """
+             (
+               {foo, bar} = {1 + 1, 2 + 2}
+               :erlang.+(foo, bar)
+             )
+             """
     end
 
     defguard with_reused_vars(foo, bar, baz) when foo + foo + bar + baz
@@ -406,15 +406,15 @@ defmodule Kernel.GuardTest do
       args = quote(do: [1 + 1, 2 + 2, 3 + 3])
 
       assert expand_defguard_to_string(:with_reused_vars, args, :guard) == """
-      :erlang.+(:erlang.+(:erlang.+(1 + 1, 1 + 1), 2 + 2), 3 + 3)
-      """
+             :erlang.+(:erlang.+(:erlang.+(1 + 1, 1 + 1), 2 + 2), 3 + 3)
+             """
 
       assert expand_defguard_to_string(:with_reused_vars, args, nil) == """
-      (
-        {foo, bar, baz} = {1 + 1, 2 + 2, 3 + 3}
-        :erlang.+(:erlang.+(:erlang.+(foo, foo), bar), baz)
-      )
-      """
+             (
+               {foo, bar, baz} = {1 + 1, 2 + 2, 3 + 3}
+               :erlang.+(:erlang.+(:erlang.+(foo, foo), bar), baz)
+             )
+             """
     end
 
     defp expand_defguard_to_string(fun, args, context) do
