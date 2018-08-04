@@ -1252,7 +1252,7 @@ defmodule Macro do
 
       case expand do
         {:ok, receiver, quoted} ->
-          next = :elixir_module.next_counter(module)
+          next = :erlang.unique_integer()
           {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
 
         {:ok, _receiver, _name, _args} ->
@@ -1277,7 +1277,7 @@ defmodule Macro do
 
         case expand do
           {:ok, receiver, quoted} ->
-            next = :elixir_module.next_counter(env.module)
+            next = :erlang.unique_integer()
             {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
 
           :error ->
