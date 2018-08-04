@@ -738,7 +738,7 @@ defmodule DateTime do
 
   """
   @doc since: "1.5.0"
-  @spec diff(Calendar.datetime(), Calendar.datetime()) :: integer()
+  @spec diff(Calendar.datetime(), Calendar.datetime(), System.time_unit()) :: integer()
   def diff(
         %{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
         %{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2,
