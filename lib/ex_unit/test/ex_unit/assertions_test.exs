@@ -323,7 +323,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert_received :no_message_was_sent
     rescue
       error in [ExUnit.AssertionError] ->
-        %ExUnit.Pattern{} = error.left
+        %ExUnit.Pattern{match_single?: false} = error.left
     end
   end
 
@@ -340,6 +340,8 @@ defmodule ExUnit.AssertionsTest do
         The following variables were pinned:
           status = :valid\
         """ = error.message
+
+        %ExUnit.Pattern{match_single?: false} = error.left
     end
   end
 
@@ -356,6 +358,8 @@ defmodule ExUnit.AssertionsTest do
         The following variables were pinned:
           status = :valid\
         """ = error.message
+
+        %ExUnit.Pattern{} = error.left
     end
   end
 
@@ -374,6 +378,8 @@ defmodule ExUnit.AssertionsTest do
           status = :valid
           other_status = :invalid\
         """ = error.message
+
+        %ExUnit.Pattern{} = error.left
     end
   end
 
