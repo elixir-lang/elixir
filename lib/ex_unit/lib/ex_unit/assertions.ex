@@ -242,11 +242,25 @@ defmodule ExUnit.Assertions do
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
+    left = expand_pattern(left, __CALLER__)
+
+    vars =
+      left
+      |> collect_vars_from_pattern()
+      |> Enum.map(&Pattern.get_var/1)
+      |> Enum.uniq()
+      |> Enum.map(&{&1, :ex_unit_unbound_var})
+      |> Map.new()
+      |> Macro.escape()
+
     quote do
       right = unquote(right)
+      left = unquote(escape_pattern(left))
+      pattern = Pattern.new(left, unquote(pins), unquote(vars))
 
       refute unquote(match?),
         right: right,
+        left: pattern,
         expr: unquote(code),
         message:
           "match (match?) succeeded, but should have failed" <>
