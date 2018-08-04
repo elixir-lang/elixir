@@ -161,10 +161,18 @@ quote({unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _) ->
     "wrap it in parens if you want it to work with one-liners">>);
 
 quote(Expr, nil, Q, E) ->
-  do_quote(Expr, Q, E);
+  do_quote(Expr, Q, E, #{});
 
 quote(Expr, Binding, Q, E) ->
   Context = Q#elixir_quote.context,
+
+  ReplaceBinding =
+    [
+      {{Var, meta(Meta, Q), VarContext}, {K, [], Context}}
+      || {K, {Var, Meta, VarContext}} <- Binding
+    ],
+
+  TExprs = do_quote(Expr, Q, E, maps:from_list(ReplaceBinding)),
 
   Vars = [ {'{}', [],
     [ '=', [], [
@@ -173,98 +181,97 @@ quote(Expr, Binding, Q, E) ->
     ] ]
   } || {K, V} <- Binding],
 
-  TExprs = do_quote(Expr, Q, E),
   {'{}', [], ['__block__', [], Vars ++ [TExprs]]}.
 
 %% Actual quoting and helpers
 
-do_quote({quote, Meta, Args}, #elixir_quote{unquote=true} = Q, E) when length(Args) == 1; length(Args) == 2 ->
-  do_quote_tuple(quote, Meta, Args, Q#elixir_quote{unquote=false}, E);
+do_quote({quote, Meta, Args}, #elixir_quote{unquote=true} = Q, E, Binding) when length(Args) == 1; length(Args) == 2 ->
+  do_quote_tuple(quote, Meta, Args, Q#elixir_quote{unquote=false}, E, Binding);
 
-do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _) ->
+do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _, _) ->
   Expr;
 
 %% Aliases
 
-do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=true} = Q, E) when is_atom(H) and (H /= 'Elixir') ->
+do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=true} = Q, E, Binding) when is_atom(H) and (H /= 'Elixir') ->
   Annotation =
     case elixir_aliases:expand(Alias, ?key(E, aliases), ?key(E, macro_aliases), ?key(E, lexical_tracker)) of
       Atom when is_atom(Atom) -> Atom;
       Aliases when is_list(Aliases) -> false
     end,
   AliasMeta = keystore(alias, keydelete(counter, Meta), Annotation),
-  do_quote_tuple('__aliases__', AliasMeta, [H | T], Q, E);
+  do_quote_tuple('__aliases__', AliasMeta, [H | T], Q, E, Binding);
 
 %% Vars
 
-do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true, imports_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_import(Left, Meta, Q#elixir_quote.context, Q, E);
+do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true, imports_hygiene=true} = Q, E, Binding) when is_atom(Left) ->
+  do_quote_import(Left, Meta, Q#elixir_quote.context, Q, E, Binding);
 
-do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_tuple(Left, Meta, Q#elixir_quote.context, Q, E);
+do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, E, Binding) when is_atom(Left) ->
+  do_quote_tuple(Left, Meta, Q#elixir_quote.context, Q, E, Binding);
 
 %% Unquote
 
-do_quote({{{'.', Meta, [Left, unquote]}, _, [Expr]}, _, Args}, #elixir_quote{unquote=true} = Q, E) ->
-  do_quote_call(Left, Meta, Expr, Args, Q, E);
+do_quote({{{'.', Meta, [Left, unquote]}, _, [Expr]}, _, Args}, #elixir_quote{unquote=true} = Q, E, Binding) ->
+  do_quote_call(Left, Meta, Expr, Args, Q, E, Binding);
 
-do_quote({{'.', Meta, [Left, unquote]}, _, [Expr]}, #elixir_quote{unquote=true} = Q, E) ->
-  do_quote_call(Left, Meta, Expr, nil, Q, E);
+do_quote({{'.', Meta, [Left, unquote]}, _, [Expr]}, #elixir_quote{unquote=true} = Q, E, Binding) ->
+  do_quote_call(Left, Meta, Expr, nil, Q, E, Binding);
 
 %% Imports
 
 do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
-         #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(F), is_integer(A), is_atom(C) ->
-  do_quote_fa('&', Meta, Args, F, A, Q, E);
+         #elixir_quote{imports_hygiene=true} = Q, E, Binding) when is_atom(F), is_integer(A), is_atom(C) ->
+  do_quote_fa('&', Meta, Args, F, A, Q, E, Binding);
 
-do_quote({Name, Meta, ArgsOrAtom}, #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(Name) ->
-  do_quote_import(Name, Meta, ArgsOrAtom, Q, E);
+do_quote({Name, Meta, ArgsOrAtom}, #elixir_quote{imports_hygiene=true} = Q, E, Binding) when is_atom(Name) ->
+  do_quote_import(Name, Meta, ArgsOrAtom, Q, E, Binding);
 
 %% Two element tuples
 
-do_quote({Left, Right}, #elixir_quote{unquote=true} = Q, E) when
+do_quote({Left, Right}, #elixir_quote{unquote=true} = Q, E, Binding) when
     is_tuple(Left)  andalso (element(1, Left) == unquote_splicing);
     is_tuple(Right) andalso (element(1, Right) == unquote_splicing) ->
-  do_quote({'{}', [], [Left, Right]}, Q, E);
+  do_quote({'{}', [], [Left, Right]}, Q, E, Binding);
 
-do_quote({Left, Right}, Q, E) ->
-  TLeft  = do_quote(Left, Q, E),
-  TRight = do_quote(Right, Q, E),
+do_quote({Left, Right}, Q, E, Binding) ->
+  TLeft  = do_quote(Left, Q, E, Binding),
+  TRight = do_quote(Right, Q, E, Binding),
   {TLeft, TRight};
 
 %% Everything else
 
-do_quote(Other, Q, E) when is_atom(E) ->
-  do_escape(Other, Q, E);
+do_quote(Other, Q, E, Binding) when is_atom(E) ->
+  do_escape(Other, Q, E, Binding);
 
-do_quote({_, _, _} = Tuple, Q, E) ->
+do_quote({_, _, _} = Tuple, Q, E, Binding) ->
   Annotated = annotate(Tuple, Q#elixir_quote.context),
-  do_quote_tuple(Annotated, Q, E);
+  do_quote_tuple(Annotated, Q, E, Binding);
 
-do_quote([], _, _) ->
+do_quote([], _, _, _) ->
   [];
 
-do_quote([H | T], #elixir_quote{unquote=false} = Q, E) ->
-  do_quote_simple_list(T, do_quote(H, Q, E), Q, E);
+do_quote([H | T], #elixir_quote{unquote=false} = Q, E, Binding) ->
+  do_quote_simple_list(T, do_quote(H, Q, E, Binding), Q, E, Binding);
 
-do_quote([H | T], Q, E) ->
-  do_quote_tail(lists:reverse(T, [H]), Q, E);
+do_quote([H | T], Q, E, Binding) ->
+  do_quote_tail(lists:reverse(T, [H]), Q, E, Binding);
 
-do_quote(Other, _, _) ->
+do_quote(Other, _, _, _) ->
   Other.
 
 %% do_escape
 
-do_escape({Left, _Meta, Right}, Q, E = prune_metadata) ->
-  TL = do_quote(Left, Q, E),
-  TR = do_quote(Right, Q, E),
+do_escape({Left, _Meta, Right}, Q, E = prune_metadata, Binding) ->
+  TL = do_quote(Left, Q, E, Binding),
+  TR = do_quote(Right, Q, E, Binding),
   {'{}', [], [TL, [], TR]};
 
-do_escape(Tuple, Q, E) when is_tuple(Tuple) ->
-  TT = do_quote(tuple_to_list(Tuple), Q, E),
+do_escape(Tuple, Q, E, Binding) when is_tuple(Tuple) ->
+  TT = do_quote(tuple_to_list(Tuple), Q, E, Binding),
   {'{}', [], TT};
 
-do_escape(BitString, _, _) when is_bitstring(BitString) ->
+do_escape(BitString, _, _, _) when is_bitstring(BitString) ->
   case bit_size(BitString) rem 8 of
     0 ->
       BitString;
@@ -273,39 +280,39 @@ do_escape(BitString, _, _) when is_bitstring(BitString) ->
       {'<<>>', [], [{'::', [], [Bits, {size, [], [Size]}]}, {'::', [], [Bytes, {binary, [], []}]}]}
   end;
 
-do_escape(Map, Q, E) when is_map(Map) ->
-  TT = do_quote(maps:to_list(Map), Q, E),
+do_escape(Map, Q, E, Binding) when is_map(Map) ->
+  TT = do_quote(maps:to_list(Map), Q, E, Binding),
   {'%{}', [], TT};
 
-do_escape([], _, _) -> [];
+do_escape([], _, _, _) -> [];
 
-do_escape([H | T], #elixir_quote{unquote=false} = Q, E) ->
-  do_quote_simple_list(T, do_quote(H, Q, E), Q, E);
+do_escape([H | T], #elixir_quote{unquote=false} = Q, E, Binding) ->
+  do_quote_simple_list(T, do_quote(H, Q, E, Binding), Q, E, Binding);
 
-do_escape([H | T], Q, E) ->
+do_escape([H | T], Q, E, Binding) ->
   %% The improper case is inefficient, but improper lists are rare.
   try lists:reverse(T, [H]) of
-    L -> do_quote_tail(L, Q, E)
+    L -> do_quote_tail(L, Q, E, Binding)
   catch
     _:_ ->
       {L, R} = reverse_improper(T, [H]),
-      TL = do_quote_splice(L, Q, E, [], []),
-      TR = do_quote(R, Q, E),
+      TL = do_quote_splice(L, Q, E, [], [], Binding),
+      TR = do_quote(R, Q, E, Binding),
       update_last(TL, fun(X) -> {'|', [], [X, TR]} end)
   end;
 
-do_escape(Other, _, _)
+do_escape(Other, _, _, _)
     when is_number(Other); is_pid(Other); is_atom(Other) ->
   Other;
 
-do_escape(Fun, _, _) when is_function(Fun) ->
+do_escape(Fun, _, _, _) when is_function(Fun) ->
   case (erlang:fun_info(Fun, env) == {env, []}) andalso
        (erlang:fun_info(Fun, type) == {type, external}) of
     true  -> Fun;
     false -> bad_escape(Fun)
   end;
 
-do_escape(Other, _, _) ->
+do_escape(Other, _, _, _) ->
   bad_escape(Other).
 
 bad_escape(Arg) ->
@@ -315,7 +322,7 @@ bad_escape(Arg) ->
 
 %% do_quote_*
 
-do_quote_import(Name, Meta, ArgsOrAtom, #elixir_quote{imports_hygiene=true} = Q, E) ->
+do_quote_import(Name, Meta, ArgsOrAtom, #elixir_quote{imports_hygiene=true} = Q, E, Binding) ->
   Arity = case is_atom(ArgsOrAtom) of
     true  -> 0;
     false -> length(ArgsOrAtom)
@@ -333,69 +340,77 @@ do_quote_import(Name, Meta, ArgsOrAtom, #elixir_quote{imports_hygiene=true} = Q,
   end,
 
   Annotated = annotate({Name, NewMeta, ArgsOrAtom}, Q#elixir_quote.context),
-  do_quote_tuple(Annotated, Q, E).
+  do_quote_tuple(Annotated, Q, E, Binding).
 
-do_quote_call(Left, Meta, Expr, Args, Q, E) ->
+do_quote_call(Left, Meta, Expr, Args, Q, E, Binding) ->
   All  = [meta(Meta, Q), Left, {unquote, Meta, [Expr]}, Args,
           Q#elixir_quote.context],
-  TAll = [do_quote(X, Q, E) || X <- All],
+  TAll = [do_quote(X, Q, E, Binding) || X <- All],
   {{'.', Meta, [elixir_quote, dot]}, Meta, TAll}.
 
-do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
+do_quote_fa(Target, Meta, Args, F, A, Q, E, Binding) ->
   NewMeta =
     case (keyfind(import_fa, Meta) == false) andalso
          elixir_dispatch:find_import(Meta, F, A, E) of
       false    -> Meta;
       Receiver -> keystore(import_fa, Meta, {Receiver, Q#elixir_quote.context})
     end,
-  do_quote_tuple(Target, NewMeta, Args, Q, E).
+  do_quote_tuple(Target, NewMeta, Args, Q, E, Binding).
 
-do_quote_tuple({Left, Meta, Right}, Q, E) ->
-  do_quote_tuple(Left, Meta, Right, Q, E).
+do_quote_tuple({Left, Meta, Right} = Tuple, Q, E, Binding) ->
+  ReplaceTuple = {Left, meta(Meta, Q), Right},
+
+  {NewLeft, NewMeta, NewRight} =
+    case Binding of
+      #{ReplaceTuple := T} -> T;
+      _ -> Tuple
+    end,
+
+  do_quote_tuple(NewLeft, NewMeta, NewRight, Q, E, Binding).
 
 % In a def unquote(name)(args) expression name will be an atom literal,
 % thus location: :keep will not have enough information to generate the proper file/line annotation.
 % This alters metadata to force Elixir to show the file to which the definition is added
 % instead of the file where definition is quoted (i.e. we behave the opposite to location: :keep).
-do_quote_tuple(Left, Meta, [{{unquote, _, _}, _, _}, _] = Right, Q, E) when ?defs(Left) ->
-  TLeft  = do_quote(Left, Q, E),
-  [Head, Body] = do_quote(Right, Q, E),
+do_quote_tuple(Left, Meta, [{{unquote, _, _}, _, _}, _] = Right, Q, E, Binding) when ?defs(Left) ->
+  TLeft  = do_quote(Left, Q, E, Binding),
+  [Head, Body] = do_quote(Right, Q, E, Binding),
   {'{}', [], [HLeft, HMeta, HRight]} = Head,
   NewMeta = lists:keydelete(file, 1, HMeta),
   NewHead = {'{}', [], [HLeft, NewMeta, HRight]},
   {'{}', [], [TLeft, meta(Meta, Q), [NewHead, Body]]};
 
-do_quote_tuple(Left, Meta, Right, Q, E) ->
-  TLeft = do_quote(Left, Q, E),
-  TRight = do_quote(Right, Q, E),
+do_quote_tuple(Left, Meta, Right, Q, E, Binding) ->
+  TLeft = do_quote(Left, Q, E, Binding),
+  TRight = do_quote(Right, Q, E, Binding),
   {'{}', [], [TLeft, meta(Meta, Q), TRight]}.
 
-do_quote_simple_list([], Prev, _, _) -> [Prev];
-do_quote_simple_list([H | T], Prev, Q, E) ->
-  [Prev | do_quote_simple_list(T, do_quote(H, Q, E), Q, E)];
-do_quote_simple_list(Other, Prev, Q, E) ->
-  [{'|', [], [Prev, do_quote(Other, Q, E)]}].
+do_quote_simple_list([], Prev, _, _, _) -> [Prev];
+do_quote_simple_list([H | T], Prev, Q, E, Binding) ->
+  [Prev | do_quote_simple_list(T, do_quote(H, Q, E, Binding), Q, E, Binding)];
+do_quote_simple_list(Other, Prev, Q, E, Binding) ->
+  [{'|', [], [Prev, do_quote(Other, Q, E, Binding)]}].
 
-do_quote_tail([{'|', Meta, [{unquote_splicing, _, [Left]}, Right]} | T], #elixir_quote{unquote=true} = Q, E) ->
+do_quote_tail([{'|', Meta, [{unquote_splicing, _, [Left]}, Right]} | T], #elixir_quote{unquote=true} = Q, E, Binding) ->
   %% Process the remaining entries on the list.
   %% For [1, 2, 3, unquote_splicing(arg) | tail], this will quote
   %% 1, 2 and 3, which could even be unquotes.
-  TT = do_quote_splice(T, Q, E, [], []),
-  TR = do_quote(Right, Q, E),
+  TT = do_quote_splice(T, Q, E, [], [], Binding),
+  TR = do_quote(Right, Q, E, Binding),
   do_runtime_list(Meta, tail_list, [Left, TR, TT]);
 
-do_quote_tail(List, Q, E) ->
-  do_quote_splice(List, Q, E, [], []).
+do_quote_tail(List, Q, E, Binding) ->
+  do_quote_splice(List, Q, E, [], [], Binding).
 
-do_quote_splice([{unquote_splicing, Meta, [Expr]} | T], #elixir_quote{unquote=true} = Q, E, Buffer, Acc) ->
+do_quote_splice([{unquote_splicing, Meta, [Expr]} | T], #elixir_quote{unquote=true} = Q, E, Buffer, Acc, Binding) ->
   Runtime = do_runtime_list(Meta, list, [Expr, do_list_concat(Buffer, Acc)]),
-  do_quote_splice(T, Q, E, [], Runtime);
+  do_quote_splice(T, Q, E, [], Runtime, Binding);
 
-do_quote_splice([H | T], Q, E, Buffer, Acc) ->
-  TH = do_quote(H, Q, E),
-  do_quote_splice(T, Q, E, [TH | Buffer], Acc);
+do_quote_splice([H | T], Q, E, Buffer, Acc, Binding) ->
+  TH = do_quote(H, Q, E, Binding),
+  do_quote_splice(T, Q, E, [TH | Buffer], Acc, Binding);
 
-do_quote_splice([], _Q, _E, Buffer, Acc) ->
+do_quote_splice([], _Q, _E, Buffer, Acc, _) ->
   do_list_concat(Buffer, Acc).
 
 do_list_concat(Left, []) -> Left;
