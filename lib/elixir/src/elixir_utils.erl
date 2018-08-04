@@ -6,7 +6,7 @@
   macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
   read_file_type/1, read_file_type/2, read_link_type/1, read_posix_mtime_and_size/1,
   change_posix_time/2, change_universal_time/2,
-  guard_op/2, match_op/2, extract_splat_guards/1, extract_guards/1,
+  guard_op/2, extract_splat_guards/1, extract_guards/1,
   erlang_comparison_op_to_elixir/1]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
@@ -15,13 +15,6 @@
 
 macro_name(Macro) ->
   list_to_atom("MACRO-" ++ atom_to_list(Macro)).
-
-% Operators
-
-match_op('++', 2) -> true;
-match_op('+', 1) -> true;
-match_op('-', 1) -> true;
-match_op(_, _) -> false.
 
 guard_op('andalso', 2) ->
   true;

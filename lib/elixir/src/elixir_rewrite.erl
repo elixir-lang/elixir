@@ -1,5 +1,5 @@
 -module(elixir_rewrite).
--export([rewrite/5, inline/3]).
+-export([rewrite/5, match_rewrite/5, guard_rewrite/5, inline/3, format_error/1]).
 -include("elixir.hrl").
 
 %% Convenience variables
@@ -240,3 +240,55 @@ increment(Number) when is_number(Number) ->
   Number + 1;
 increment(Other) ->
   {{'.', [], [erlang, '+']}, [], [Other, 1]}.
+
+%% Match rewrite
+%%
+%% Match rewrite is similar to regular rewrite, except
+%% it also verifies the rewrite rule applies in a match context
+%% The allowed operations are very limited.
+%% The Kernel operators are already inlined by now, we only need to
+%% care about erlang ones.
+match_rewrite(erlang, _, '+', _, [Arg]) when is_number(Arg) -> {ok, Arg};
+match_rewrite(erlang, _, '-', _, [Arg]) when is_number(Arg) -> {ok, -Arg};
+match_rewrite(erlang, _, '++', Meta, [Left, Right]) ->
+  try {ok, static_append(Left, Right, Meta)}
+  catch impossible -> {error, {invalid_match_append, Left}}
+  end;
+match_rewrite(Receiver, _, Right, _, Args) ->
+  {error, {invalid_match, Receiver, Right, length(Args)}}.
+
+static_append([], Right, _Meta) -> Right;
+static_append([{'|', InnerMeta, [Head, Tail]}], Right, Meta) when is_list(Tail) ->
+  [{'|', InnerMeta, [Head, static_append(Tail, Right, Meta)]}];
+static_append([{'|', _, [_, _]}], _, _) -> throw(impossible);
+static_append([Last], Right, Meta) -> [{'|', Meta, [Last, Right]}];
+static_append([Head | Tail], Right, Meta) -> [Head | static_append(Tail, Right, Meta)];
+static_append(_, _, _) -> throw(impossible).
+
+%% Guard rewrite
+%%
+%% Guard rewrite is similar to regular rewrite, except
+%% it also verifies the resulting function is supported in
+%% guard context - only certain BIFs and operators are.
+guard_rewrite(Receiver, DotMeta, Right, Meta, Args) ->
+  case rewrite(Receiver, Right, Args) of
+    {erlang, RRight, RArgs} ->
+      case allowed_guard(RRight, length(RArgs)) of
+        true -> {ok, {{'.', DotMeta, [erlang, RRight]}, Meta, RArgs}};
+        false -> {error, {invalid_guard, Receiver, Right, length(Args)}}
+      end;
+    _ -> {error, {invalid_guard, Receiver, Right, length(Args)}}
+  end.
+
+allowed_guard(Right, Arity) ->
+  erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity).
+
+format_error({invalid_guard, Receiver, Right, Arity}) ->
+  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside guards",
+                ['Elixir.Macro':to_string(Receiver), Right, Arity]);
+format_error({invalid_match, Receiver, Right, Arity}) ->
+  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside pattern matching",
+                ['Elixir.Macro':to_string(Receiver), Right, Arity]);
+format_error({invalid_match_append, Arg}) ->
+  io_lib:format("invalid argument for ++ operator inside a match, expected a literal proper list, got: ~ts",
+                ['Elixir.Macro':to_string(Arg)]).
