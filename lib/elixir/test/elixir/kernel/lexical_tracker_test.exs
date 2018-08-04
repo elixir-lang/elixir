@@ -226,7 +226,6 @@ defmodule Kernel.LexicalTrackerTest do
           _ = extract(1, 2)
           _ = is_record(1)
           _ = Integer.is_even(2)
-
           NotAModule
           Remote.func()
           R.func()
@@ -243,9 +242,7 @@ defmodule Kernel.LexicalTrackerTest do
         _ = &R.func/0
         _ = &Remote.func/0
         _ = &Integer.is_even/1
-
-        _ = &is_record/1; def b(a), do: is_record(a)
-
+        _ = &is_record/1; def b(a), do: is_record(a) # both runtime and compile
         %Macro.Env{}
 
         Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
@@ -256,30 +253,30 @@ defmodule Kernel.LexicalTrackerTest do
     assert {6, Kernel, :def, 2} in compile_remote_calls
     assert {8, Record, :is_record, 1} in compile_remote_calls
     assert {9, Integer, :is_even, 1} in compile_remote_calls
-    assert {15, Record, :is_record, 1} in compile_remote_calls
-    assert {18, Integer, :is_even, 1} in compile_remote_calls
-    assert {19, Macro.Env, :__struct__, 1} in compile_remote_calls
-    assert {22, Record, :extract, 2} in compile_remote_calls
-    assert {23, Record, :is_record, 1} in compile_remote_calls
+    assert {14, Record, :is_record, 1} in compile_remote_calls
+    assert {17, Integer, :is_even, 1} in compile_remote_calls
+    assert {18, Macro.Env, :__struct__, 1} in compile_remote_calls
+    assert {21, Record, :extract, 2} in compile_remote_calls
+    assert {22, Record, :is_record, 1} in compile_remote_calls
+    assert {23, Remote, :func, 0} in compile_remote_calls
     assert {24, Remote, :func, 0} in compile_remote_calls
-    assert {25, Remote, :func, 0} in compile_remote_calls
-    assert {26, Integer, :is_even, 1} in compile_remote_calls
-    assert {28, Kernel, :def, 2} in compile_remote_calls
-    assert {28, Record, :is_record, 1} in compile_remote_calls
-    assert {30, Macro.Env, :__struct__, 1} in compile_remote_calls
-    assert {32, Kernel.LexicalTracker, :remote_dispatches, 1} in compile_remote_calls
+    assert {25, Integer, :is_even, 1} in compile_remote_calls
+    assert {26, Kernel, :def, 2} in compile_remote_calls
+    assert {26, Record, :is_record, 1} in compile_remote_calls
+    assert {27, Macro.Env, :__struct__, 1} in compile_remote_calls
+    assert {29, Kernel.LexicalTracker, :remote_dispatches, 1} in compile_remote_calls
 
     runtime_remote_calls = unroll_dispatches(runtime_remote_calls)
     assert {7, Record, :extract, 2} in runtime_remote_calls
     assert {8, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {11, Remote, :func, 0} in runtime_remote_calls
     assert {12, Remote, :func, 0} in runtime_remote_calls
-    assert {13, Remote, :func, 0} in runtime_remote_calls
-    assert {14, Record, :extract, 2} in runtime_remote_calls
-    assert {15, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {13, Record, :extract, 2} in runtime_remote_calls
+    assert {14, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {15, Remote, :func, 0} in runtime_remote_calls
     assert {16, Remote, :func, 0} in runtime_remote_calls
-    assert {17, Remote, :func, 0} in runtime_remote_calls
-    assert {18, :erlang, :==, 2} in runtime_remote_calls
-    assert {28, :erlang, :is_tuple, 1} in runtime_remote_calls
+    assert {17, :erlang, :==, 2} in runtime_remote_calls
+    assert {26, :erlang, :is_tuple, 1} in runtime_remote_calls
   end
 
   test "remote dispatches with external source" do

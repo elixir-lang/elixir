@@ -459,8 +459,8 @@ defmodule KernelTest do
 
       result = expand_to_string(quote(do: rand() in [1 | some_call()]))
       assert result =~ "var = rand()"
-      assert result =~ "{var0} = {some_call()}"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :lists.member(var, var0))"
+      assert result =~ "{arg0} = {some_call()}"
+      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :lists.member(var, arg0))"
     end
 
     defp expand_to_string(ast) do

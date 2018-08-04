@@ -24,7 +24,7 @@ do_linify(LinifyMeta, {Left, Meta, Receiver}, {Receiver, Counter} = Var)
     when is_atom(Left), is_list(Meta), Left /= '_' ->
   do_tuple_linify(LinifyMeta, keynew(counter, Meta, Counter), Left, Receiver, Var);
 
-do_linify(LinifyMeta, {Lexical, [_ | _] = Meta, [_ | _] = Args}, {_, Counter} = Var)
+do_linify(LinifyMeta, {Lexical, Meta, [_ | _] = Args}, {_, Counter} = Var)
     when ?lexical(Lexical); Lexical == '__aliases__' ->
   do_tuple_linify(LinifyMeta, keynew(counter, Meta, Counter), Lexical, Args, Var);
 
@@ -178,8 +178,14 @@ quote(Expr, Binding, Q, E) ->
 
 %% Actual quoting and helpers
 
-do_quote({quote, Meta, Args}, #elixir_quote{unquote=true} = Q, E) when length(Args) == 1; length(Args) == 2 ->
-  do_quote_tuple(quote, Meta, Args, Q#elixir_quote{unquote=false}, E);
+do_quote({quote, Meta, [Arg]}, #elixir_quote{unquote=true} = Q, E) ->
+  TArg = do_quote(Arg, Q#elixir_quote{unquote=false}, E),
+  {'{}', [], [quote, meta(Meta, Q), [TArg]]};
+
+do_quote({quote, Meta, [Opts, Arg]}, #elixir_quote{unquote=true} = Q, E) ->
+  TOpts = do_quote(Opts, Q, E),
+  TArg = do_quote(Arg, Q#elixir_quote{unquote=false}, E),
+  {'{}', [], [quote, meta(Meta, Q), [TOpts, TArg]]};
 
 do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _) ->
   Expr;
@@ -198,10 +204,13 @@ do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=t
 %% Vars
 
 do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true, imports_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_import(Left, Meta, Q#elixir_quote.context, Q, E);
+  do_quote_import(Left, keydelete(counter, Meta), Q#elixir_quote.context, Q, E);
 
 do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_tuple(Left, Meta, Q#elixir_quote.context, Q, E);
+  do_quote_tuple(Left, keydelete(counter, Meta), Q#elixir_quote.context, Q, E);
+
+do_quote({Left, Meta, Context}, #elixir_quote{vars_hygiene=true} = Q, E) when is_atom(Left), is_atom(Context) ->
+  do_quote_tuple(Left, keydelete(counter, Meta), Context, Q, E);
 
 %% Unquote
 

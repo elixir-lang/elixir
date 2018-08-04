@@ -228,25 +228,36 @@ defmodule Kernel.Utils do
 
   # Prefaces `guard` with unquoted versions of `refs`.
   defp unquote_refs_once(guard, refs) do
-    {_, used_refs} =
-      Macro.postwalk(guard, [], fn
+    {guard, used_refs} =
+      Macro.postwalk(guard, %{}, fn
         {ref, meta, context} = var, acc when is_atom(ref) and is_atom(context) ->
           pair = {ref, var_context(meta, context)}
 
-          case pair in refs and pair not in acc do
-            true -> {var, [pair | acc]}
-            false -> {var, acc}
+          case pair in refs do
+            true ->
+              case acc do
+                %{^pair => {new_var, _}} ->
+                  {new_var, acc}
+
+                %{} ->
+                  generated = String.to_atom("arg" <> Integer.to_string(map_size(acc)))
+                  new_var = Macro.var(generated, Elixir)
+                  {new_var, Map.put(acc, pair, {new_var, var})}
+              end
+
+            false ->
+              {var, acc}
           end
 
         node, acc ->
           {node, acc}
       end)
 
-    vars = for {ref, context} <- :lists.reverse(used_refs), do: context_to_var(ref, context)
-    exprs = for var <- vars, do: literal_unquote(var)
+    all_used = for ref <- :lists.reverse(refs), used = Map.get(used_refs, ref), do: used
+    {vars, exprs} = :lists.unzip(all_used)
 
     quote do
-      {unquote_splicing(vars)} = {unquote_splicing(exprs)}
+      {unquote_splicing(vars)} = {unquote_splicing(Enum.map(exprs, &literal_unquote/1))}
       unquote(guard)
     end
   end
@@ -258,9 +269,6 @@ defmodule Kernel.Utils do
   defp literal_unquote(ast) do
     {:unquote, [], List.wrap(ast)}
   end
-
-  defp context_to_var(ref, ctx) when is_atom(ctx), do: {ref, [], ctx}
-  defp context_to_var(ref, ctx), do: {ref, [counter: ctx], nil}
 
   defp var_context(meta, kind) do
     case :lists.keyfind(:counter, 1, meta) do

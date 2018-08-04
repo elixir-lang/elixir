@@ -374,7 +374,11 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
     read_interference()
   end
 
-  test "nested" do
+  test "hat" do
+    assert hat() == 1
+  end
+
+  test "nested macro" do
     assert (nested 1 do
               nested 2 do
                 _ = :ok
@@ -382,8 +386,28 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
             end) == 1
   end
 
-  test "hat" do
-    assert hat() == 1
+  test "nested quote" do
+    defmodule NestedQuote do
+      defmacrop macro(arg) do
+        quote bind_quoted: [arg: arg] do
+          quote bind_quoted: [arg: arg], do: String.duplicate(arg, 2)
+        end
+      end
+
+      defmacro __using__(_) do
+        quote do
+          def test do
+            unquote(macro("foo"))
+          end
+        end
+      end
+    end
+
+    defmodule UseNestedQuote do
+      use NestedQuote
+    end
+
+    assert UseNestedQuote.test() == "foofoo"
   end
 end
 
