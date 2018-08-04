@@ -22,7 +22,7 @@ defmodule Protocol do
     type_args = :lists.map(fn _ -> quote(do: term) end, :lists.seq(2, arity))
     type_args = [quote(do: t) | type_args]
 
-    varify = fn pos -> Macro.var(String.to_atom("var" <> Integer.to_string(pos)), __MODULE__) end
+    varify = fn pos -> Macro.var(String.to_atom("arg" <> Integer.to_string(pos)), __MODULE__) end
 
     call_args = :lists.map(varify, :lists.seq(2, arity))
     call_args = [quote(do: term) | call_args]
