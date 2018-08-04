@@ -609,7 +609,7 @@ defmodule ExUnit.Assertions do
             msg <> "\nThe process mailbox is empty."
 
           len when len > @max_mailbox_length ->
-            msg <> "\nShowing only last #{@max_mailbox_length} messages of #{length}"
+            msg <> "\nShowing only last #{@max_mailbox_length} of #{length} messages."
 
           _len ->
             msg
