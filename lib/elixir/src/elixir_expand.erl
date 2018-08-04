@@ -748,32 +748,21 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
     elixir_lexical:record_remote(Receiver, Right, Arity,
                                  ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
   {EArgs, EA} = expand_args(Args, E),
-  Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
-  check_erlang_operator_args(Rewritten, Args, Context, E),
-  case allowed_in_context(Rewritten, Arity, Context) of
-    true ->
+  case rewrite(Context, Receiver, DotMeta, Right, Meta, EArgs) of
+    {ok, Rewritten} ->
+      maybe_warn_comparison(Rewritten, Args, E),
       {Rewritten, elixir_env:mergev(EL, EA)};
-    false ->
-      form_error(Meta, ?key(E, file), ?MODULE, {invalid_remote_invocation, Context, Receiver, Right, Arity})
+    {error, Error} -> form_error(Meta, ?key(E, file), elixir_rewrite, Error)
   end.
 
-allowed_in_context({{'.', _, [erlang, Right]}, _, _}, Arity, match) ->
-  elixir_utils:match_op(Right, Arity);
-allowed_in_context(_, _Arity, match) ->
-  false;
-allowed_in_context({{'.', _, [erlang, Right]}, _, _}, Arity, guard) ->
-  erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity);
-allowed_in_context(_, _Arity, guard) ->
-  false;
-allowed_in_context(_, _, _) ->
-  true.
+rewrite(match, Receiver, DotMeta, Right, Meta, EArgs) ->
+  elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
+rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs) ->
+  elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
+rewrite(_, Receiver, DotMeta, Right, Meta, EArgs) ->
+  {ok, elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs)}.
 
-check_erlang_operator_args({{'.', _, [erlang, '++']}, Meta, [ELeft, _]}, [Left, _], match, E) ->
-  case is_proper_list(ELeft) of
-    false -> form_error(Meta, ?key(E, file), ?MODULE, {invalid_arg_for_lists_concatenation, Left});
-    true -> ok
-  end;
-check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], _, E)
+maybe_warn_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
   case is_struct_comparison(ELeft, ERight, Left, Right) of
     false ->
@@ -785,7 +774,7 @@ check_erlang_operator_args({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Lef
     StructExpr ->
       elixir_errors:form_warn(Meta, ?key(E, file), ?MODULE, {struct_comparison, StructExpr})
   end;
-check_erlang_operator_args(_, _, _, _) ->
+maybe_warn_comparison(_, _, _) ->
   ok.
 
 is_struct_comparison(ELeft, ERight, Left, Right) ->
@@ -806,12 +795,6 @@ is_struct_expression({'%{}', _, KVs}) ->
     false -> false
   end;
 is_struct_expression(_Other) -> false.
-
-is_proper_list([]) -> true;
-is_proper_list([{'|', _, [_, Tail]}]) -> is_proper_list(Tail);
-is_proper_list([_ | Tail]) -> is_proper_list(Tail);
-is_proper_list({'++', _, [_, Tail]}) -> is_proper_list(Tail);
-is_proper_list(_) -> false.
 
 is_nested_comparison(Op, ELeft, ERight, Left, Right) ->
   NestedExpr = {elixir_utils:erlang_comparison_op_to_elixir(Op), [], [Left, Right]},
@@ -1076,9 +1059,6 @@ format_error(wrong_number_of_args_for_super) ->
 format_error({invalid_arg_for_pin, Arg}) ->
   io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
                 ['Elixir.Macro':to_string(Arg)]);
-format_error({invalid_arg_for_lists_concatenation, Arg}) ->
-  io_lib:format("invalid argument for ++ operator inside a match, expected a literal proper list, got: ~ts",
-                ['Elixir.Macro':to_string(Arg)]);
 format_error({pin_outside_of_match, Arg}) ->
   io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
 format_error(unbound_underscore) ->
@@ -1139,9 +1119,6 @@ format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
     "cannot find or invoke local ~ts/~B inside ~ts. "
     "Only macros can be invoked in a ~ts and they must be defined before their invocation. Called as: ~ts",
   io_lib:format(Message, [Name, length(Args), Context, Context, 'Elixir.Macro':to_string(Call)]);
-format_error({invalid_remote_invocation, Context, Receiver, Right, Arity}) ->
-  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside ~ts",
-                ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);
 format_error({invalid_pid_in_function, Pid, {Name, Arity}}) ->
   io_lib:format("cannot compile PID ~ts inside quoted expression for function ~ts/~B",
                 ['Elixir.Kernel':inspect(Pid, []), Name, Arity]);
