@@ -544,7 +544,7 @@ defmodule Inspect.Algebra do
       ["hello", "\n     ", "world"]
 
   """
-  @spec nest(t, non_neg_integer) :: doc_nest
+  @spec nest(t, non_neg_integer | :cursor | :reset, :always | :break) :: doc_nest
   def nest(doc, level, mode \\ :always)
 
   def nest(doc, :cursor, mode) when is_doc(doc) and mode in [:always, :break] do
@@ -646,7 +646,7 @@ defmodule Inspect.Algebra do
 
   """
   @doc since: "1.6.0"
-  @spec next_break_fits(t) :: doc_fits
+  @spec next_break_fits(t, :enabled | :disabled) :: doc_fits
   def next_break_fits(doc, mode \\ @next_break_fits)
       when is_doc(doc) and mode in [:enabled, :disabled] do
     doc_fits(doc, mode)
@@ -765,7 +765,7 @@ defmodule Inspect.Algebra do
       ["Hello,", "\n", "A", "\n", "B"]
 
   """
-  @spec group(t) :: doc_group
+  @spec group(t, :self | :inherit) :: doc_group
   def group(doc, mode \\ :self) when is_doc(doc) do
     doc_group(doc, mode)
   end
