@@ -169,13 +169,28 @@ defmodule Kernel.QuoteTest do
     assert [{:->, _, [[], 1]}] = quote(do: (() -> 1))
   end
 
-  test "bind quoted" do
-    args = [
-      {:=, [], [{:foo, [], Kernel.QuoteTest}, 3]},
-      {:foo, [], Kernel.QuoteTest}
-    ]
+  defmacro nested_bind_quoted_in_macro(x) do
+    quote bind_quoted: [x: x] do
+      quote bind_quoted: [x: x] do
+        x
+      end
+    end
+  end
 
-    assert quote(bind_quoted: [foo: 1 + 2], do: foo) == {:__block__, [], args}
+  test "bind quoted" do
+    assert quote(bind_quoted: [x: 1 + 2], do: x) ==
+             {:__block__, [],
+              [
+                {:=, [], [{:x, [], Kernel.QuoteTest}, 3]},
+                {:x, [], Kernel.QuoteTest}
+              ]}
+
+    assert nested_bind_quoted_in_macro(1 + 2) ==
+             {:__block__, [],
+              [
+                {:=, [], [{:x, [], Kernel.QuoteTest}, 3]},
+                {:x, [], Kernel.QuoteTest}
+              ]}
   end
 
   test "literals" do
@@ -286,7 +301,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, :will_raise, 2, [file: ^file, line: 266]} | _] = __STACKTRACE__
+        assert [{^mod, :will_raise, 2, [file: ^file, line: 281]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -299,7 +314,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, _, _, [file: ^file, line: 297]} | _] = __STACKTRACE__
+        assert [{^mod, _, _, [file: ^file, line: 312]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
