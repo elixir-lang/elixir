@@ -1,10 +1,11 @@
 -module(elixir_module).
 -export([file/1, data_tables/1, is_open/1, delete_definition_attributes/6,
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
-         write_cache/3, read_cache/2]).
+         write_cache/3, read_cache/2, next_counter/1]).
 -include("elixir.hrl").
 
 -define(lexical_attr, {elixir, lexical_tracker}).
+-define(counter_attr, {elixir, counter}).
 
 %% Stores modules currently being defined by the compiler
 
@@ -28,7 +29,7 @@ data_tables(Module) ->
   ets:lookup_element(elixir_modules, Module, 2).
 
 is_open(Module) ->
-  ets:lookup(elixir_modules, Module) /= [].
+  ets:member(elixir_modules, Module).
 
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
   {DataSet, _} = data_tables(Module),
@@ -43,6 +44,15 @@ write_cache(Module, Key, Value) ->
 read_cache(Module, Key) ->
   {DataSet, _} = data_tables(Module),
   ets:lookup_element(DataSet, {cache, Key}, 2).
+
+next_counter(nil) -> erlang:unique_integer();
+next_counter(Module) ->
+  try
+    {DataSet, _} = data_tables(Module),
+    {Module, ets:update_counter(DataSet, ?counter_attr, 1)}
+  catch
+    _:_ -> erlang:unique_integer()
+  end.
 
 %% Compilation hook
 
@@ -255,7 +265,8 @@ build(Line, File, Module, Lexical) ->
     {optional_callbacks, [], accumulate},
 
     % Others
-    {?lexical_attr, Lexical}
+    {?lexical_attr, Lexical},
+    {?counter_attr, 0}
   ]),
 
   Persisted = [behaviour, on_load, external_resource, dialyzer, vsn],
