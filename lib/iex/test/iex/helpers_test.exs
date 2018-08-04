@@ -1090,26 +1090,6 @@ defmodule IEx.HelpersTest do
     end
   end
 
-  describe "ref" do
-    test "builds a ref from string" do
-      assert inspect(ref("0.419006.1377304581.1")) == "#Reference<0.419006.1377304581.1>"
-      assert inspect(ref("0.1.2.3")) == "#Reference<0.1.2.3>"
-
-      assert_raise ArgumentError, fn ->
-        ref("0.6.6.-6")
-      end
-    end
-
-    test "builds a ref from integers" do
-      assert inspect(ref(0, 419_006, 1_377_304_581, 1)) == "#Reference<0.419006.1377304581.1>"
-      assert inspect(ref(0, 1, 2, 3)) == "#Reference<0.1.2.3>"
-
-      assert_raise FunctionClauseError, fn ->
-        ref(0, 6, 6, -6)
-      end
-    end
-  end
-
   describe "i" do
     test "prints information about the data type" do
       assert capture_io(fn -> i(:ok) end) =~ """
