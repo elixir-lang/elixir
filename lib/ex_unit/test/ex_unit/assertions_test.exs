@@ -156,6 +156,7 @@ defmodule ExUnit.AssertionsTest do
           error.message
 
         "assert({^a, 1} = Value.tuple())" = Macro.to_string(error.expr)
+        %ExUnit.Pattern{} = error.left
     end
   end
 
@@ -169,6 +170,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
         "assert({^var!(a, Elixir), 1} = Value.tuple())" = Macro.to_string(error.expr)
+        %ExUnit.Pattern{} = error.left
     end
   end
 
@@ -182,6 +184,7 @@ defmodule ExUnit.AssertionsTest do
         "match (match?) failed" = error.message
         "assert(match?({:ok, _}, error(true)))" = Macro.to_string(error.expr)
         "{:error, true}" = Macro.to_string(error.right)
+        %ExUnit.Pattern{} = error.left
     end
   end
 
@@ -195,6 +198,7 @@ defmodule ExUnit.AssertionsTest do
         "match (match?) succeeded, but should have failed" = error.message
         "refute(match?({:error, _}, error(true)))" = Macro.to_string(error.expr)
         "{:error, true}" = Macro.to_string(error.right)
+        %ExUnit.Pattern{} = error.left
     end
   end
 
@@ -208,6 +212,7 @@ defmodule ExUnit.AssertionsTest do
         "match (match?) failed\nThe following variables were pinned:\n  a = 1" = error.message
 
         "assert(match?({^a, 1}, Value.tuple()))" = Macro.to_string(error.expr)
+        %ExUnit.Pattern{} = error.left
     end
   end
 
@@ -225,6 +230,7 @@ defmodule ExUnit.AssertionsTest do
         """ = error.message
 
         "refute(match?({^a, 1}, Value.tuple()))" = Macro.to_string(error.expr)
+        %ExUnit.Pattern{} = error.left
     end
   end
 
@@ -246,6 +252,21 @@ defmodule ExUnit.AssertionsTest do
     send(self(), :hello)
     assert_receive message, 0, "failure message"
     :hello = message
+  end
+
+  test "assert receive returns a pattern" do
+    parent = self()
+    # This is testing a race condition, so it's not
+    # guaranteed this works under all loads of the system
+    timeout = 10
+    spawn(fn -> send(parent, :hello) end)
+
+    try do
+      assert_receive :goodbye, timeout
+    rescue
+      error in [ExUnit.AssertionError] ->
+        %ExUnit.Pattern{} = error.left
+    end
   end
 
   test "assert receive with message in mailbox after timeout, but before reading mailbox tells user to increase timeout" do
@@ -304,6 +325,15 @@ defmodule ExUnit.AssertionsTest do
   test "assert received with module attribute" do
     send(self(), :hello)
     :hello = assert_received @received
+  end
+
+  test "assert received returns a pattern" do
+    try do
+      "This should never be tested" = assert_received :no_message_was_sent
+    rescue
+      error in [ExUnit.AssertionError] ->
+        %ExUnit.Pattern{} = error.left
+    end
   end
 
   test "assert received with pinned variable" do
