@@ -509,6 +509,77 @@ defmodule Mix.DepTest do
     end)
   end
 
+  test "nested deps with optional matching" do
+    Process.put(:custom_deps_git_repo_opts, optional: true)
+
+    # deps_repo brings git_repo but it is optional
+    deps = [
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+      {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        File.mkdir_p!("custom/deps_repo/lib")
+
+        File.write!("custom/deps_repo/lib/a.ex", """
+        # Check that the child dependency is top_level and optional
+        [%Mix.Dep{app: :git_repo, top_level: true, opts: opts}] = Mix.Dep.cached()
+        true = Keyword.fetch!(opts, :optional)
+        """)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+      end)
+    end)
+  end
+
+  test "nested deps with runtime override on parent" do
+    Process.put(:custom_deps_git_repo_opts, runtime: false)
+
+    deps = [
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+      {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        File.mkdir_p!("custom/deps_repo/lib")
+
+        File.write!("custom/deps_repo/lib/a.ex", """
+        # Check that the child dependency is top_level and optional
+        [%Mix.Dep{app: :git_repo, top_level: true, opts: opts}] = Mix.Dep.cached()
+        false = Keyword.fetch!(opts, :runtime)
+        """)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+      end)
+    end)
+  end
+
+  test "nested deps with runtime override on child" do
+    deps = [
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+      {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), runtime: false}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        File.mkdir_p!("custom/deps_repo/lib")
+
+        File.write!("custom/deps_repo/lib/a.ex", """
+        # Check that the child dependency is top_level and optional
+        [%Mix.Dep{app: :git_repo, top_level: true, opts: opts}] = Mix.Dep.cached()
+        false = Keyword.has_key?(opts, :runtime)
+        """)
+
+        Mix.Tasks.Deps.Get.run([])
+        Mix.Tasks.Deps.Compile.run([])
+      end)
+    end)
+  end
+
   test "nested deps with overrides" do
     # deps_repo brings git_repo but it is overriden
     deps = [
