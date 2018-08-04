@@ -1088,6 +1088,9 @@ defmodule TimeZoneDatabaseClientTest do
   doctest TimeZoneDatabaseClient
 
   test "is leap second TimeZoneData test" do
+    assert TimeZoneDatabaseClient.is_leap_second(~N[1971-12-31 23:59:60], FakeTimeZoneDatabase) ==
+             {:ok, false}
+
     assert TimeZoneDatabaseClient.is_leap_second(~N[2018-01-01 00:00:00], FakeTimeZoneDatabase) ==
              {:ok, false}
 
@@ -1112,10 +1115,28 @@ defmodule TimeZoneDatabaseClientTest do
            ) == {:error, :outside_leap_second_data_range}
 
     assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[1972-01-01 00:00:00],
              ~N[1960-06-30 12:00:00],
-             ~N[2008-06-30 12:00:00],
              FakeTimeZoneDatabase
-           ) == {:error, :pre_1972_leap_seconds_not_supported}
+           ) == {:ok, 0}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[1972-07-01 00:00:00],
+             ~N[1960-06-30 12:00:00],
+             FakeTimeZoneDatabase
+           ) == {:ok, 1}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[1972-12-31 23:59:60],
+             ~N[1972-12-30 12:00:00],
+             FakeTimeZoneDatabase
+           ) == {:ok, 1}
+
+    assert TimeZoneDatabaseClient.leap_second_diff(
+             ~N[1972-06-30 23:59:60],
+             ~N[1960-06-30 12:00:00],
+             FakeTimeZoneDatabase
+           ) == {:ok, 1}
 
     assert TimeZoneDatabaseClient.leap_second_diff(
              ~N[2015-07-01 00:00:01],

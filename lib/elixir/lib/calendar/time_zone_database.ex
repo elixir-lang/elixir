@@ -86,13 +86,9 @@ defmodule TimeZoneDatabase do
   Returns the difference in leap seconds between them. For instance when passed
   `~N[2018-01-01 00:00:00]` and `~N[2014-01-01 00:00:00]` it should return `{:ok, 2}`
   representing two leap seconds.
-
-  The leap second system was not introduced until 1972. When passed a datetime
-  from before 1972 `{:error, :pre_1972_leap_seconds_not_supported}` should be returned.
   """
   @callback leap_second_diff(Calendar.naive_datetime(), Calendar.naive_datetime()) ::
               {:ok, integer}
-              | {:error, :pre_1972_leap_seconds_not_supported}
               | {:error, :outside_leap_second_data_range}
 end
 
@@ -166,7 +162,6 @@ defmodule TimeZoneDatabaseClient do
   @spec leap_second_diff(Calendar.naive_datetime(), Calendar.naive_datetime(), tz_db_or_config) ::
           {:ok, boolean}
           | {:error, :no_time_zone_database}
-          | {:error, :pre_1972_leap_seconds_not_supported}
           | {:error, :outside_leap_second_data_range}
   def leap_second_diff(datetime1, datetime2, tz_db_or_config) do
     with {:ok, time_zone_database} <- time_zone_database_from_tz_db_or_config(tz_db_or_config) do

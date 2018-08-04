@@ -1,5 +1,6 @@
 defmodule FakeTimeZoneDatabase do
   @behaviour TimeZoneDatabase
+  @tai_utc_second_difference_before_1972_06_30_23_59_60_utc 10
 
   @time_zone_period_cph_summer_2018 %{
     from_wall: ~N[2018-03-25 03:00:00],
@@ -135,6 +136,10 @@ defmodule FakeTimeZoneDatabase do
   end
 
   @impl true
+  def is_leap_second(%{year: year}) when year < 1972 do
+    {:ok, false}
+  end
+
   def is_leap_second(naive_datetime) do
     erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
 
@@ -153,17 +158,32 @@ defmodule FakeTimeZoneDatabase do
 
   @spec leap_second_diff(Calendar.naive_datetime(), Calendar.naive_datetime()) :: integer
   @impl true
-  def leap_second_diff(%{year: year1}, %{year: year2}) when year1 < 1972 or year2 < 1972 do
-    {:error, :pre_1972_leap_seconds_not_supported}
-  end
-
   def leap_second_diff(datetime1, datetime2) do
     with :ok <- within_leap_second_data_range(datetime1),
          :ok <- within_leap_second_data_range(datetime2) do
-      {_, tai_diff1} = latest_leap_second_for_datetime(datetime1)
-      {_, tai_diff2} = latest_leap_second_for_datetime(datetime2)
+      tai_diff1 = latest_utc_tai_difference(datetime1)
+      tai_diff2 = latest_utc_tai_difference(datetime2)
       {:ok, tai_diff1 - tai_diff2}
     end
+  end
+
+  # For a specific datetime (UTC) return the difference between UTC and TAI
+  @spec latest_utc_tai_difference(Calendar.naive_datetime()) :: integer
+  defp latest_utc_tai_difference(%{
+         year: year,
+         month: month,
+         day: day,
+         hour: hour,
+         minute: minute,
+         second: second
+       })
+       when {{year, month, day}, {hour, minute, second}} < {{1972, 6, 30}, {23, 59, 60}} do
+    @tai_utc_second_difference_before_1972_06_30_23_59_60_utc
+  end
+
+  defp latest_utc_tai_difference(naive_datetime) do
+    {_, utc_tai_diff} = latest_leap_second_for_datetime(naive_datetime)
+    utc_tai_diff
   end
 
   @spec latest_leap_second_for_datetime(Calendar.naive_datetime()) ::
@@ -188,7 +208,6 @@ defmodule FakeTimeZoneDatabase do
 
   defp leap_seconds do
     [
-      {{{1971, 12, 31}, {23, 59, 60}}, 10},
       {{{1972, 6, 30}, {23, 59, 60}}, 11},
       {{{1972, 12, 31}, {23, 59, 60}}, 12},
       {{{1973, 12, 31}, {23, 59, 60}}, 13},
