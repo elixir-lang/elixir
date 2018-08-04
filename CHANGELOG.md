@@ -6,17 +6,22 @@
 
 #### Elixir
 
+  * [File] Allow `:raw` option in `File.exists?/2`, `File.regular?/2` and `File.dir?/2`
+  * [Kernel] Do not propagate counters to variables in quote inside another quote
   * [List] Add `List.myers_difference/3`
   * [Registry] Allow associating a value on `:via` tuple
   * [String] Add `String.bag_distance/2`
 
 #### ExUnit
 
-#### IEx
+  * [ExUnit.Assertions] Show last n messages from mailbox on `assert_receive` fail
 
 #### Logger
 
 #### Mix
+
+  * [mix compile.protocols] Reconsolidate protocols if local deps is stale
+  * [mix deps] Mark dependencies with different `:system_env` as diverged
 
 ### 2. Bug fixes
 
