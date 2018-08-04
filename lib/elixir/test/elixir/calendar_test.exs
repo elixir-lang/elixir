@@ -322,6 +322,21 @@ defmodule DateTimeTest do
                minute: 50,
                second: 7
              }
+
+    assert DateTime.from_iso8601("0000-01-01T01:22:07+10:30") |> elem(1) ==
+             %DateTime{
+               microsecond: {0, 0},
+               month: 12,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               utc_offset: 0,
+               year: -1,
+               zone_abbr: "UTC",
+               day: 31,
+               hour: 14,
+               minute: 52,
+               second: 7
+             }
   end
 
   test "from_iso8601/1 handles negative dates" do
@@ -352,6 +367,51 @@ defmodule DateTimeTest do
                day: 23,
                hour: 23,
                minute: 50,
+               second: 7
+             }
+
+    assert DateTime.from_iso8601("-0001-01-01T01:22:07+10:30") |> elem(1) ==
+             %DateTime{
+               microsecond: {0, 0},
+               month: 12,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               utc_offset: 0,
+               year: -2,
+               zone_abbr: "UTC",
+               day: 31,
+               hour: 14,
+               minute: 52,
+               second: 7
+             }
+
+    assert DateTime.from_iso8601("-0001-01-01T01:22:07-10:30") |> elem(1) ==
+             %DateTime{
+               microsecond: {0, 0},
+               month: 1,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               utc_offset: 0,
+               year: -1,
+               zone_abbr: "UTC",
+               day: 1,
+               hour: 11,
+               minute: 52,
+               second: 7
+             }
+
+    assert DateTime.from_iso8601("-0001-12-31T23:22:07-10:30") |> elem(1) ==
+             %DateTime{
+               microsecond: {0, 0},
+               month: 1,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               utc_offset: 0,
+               year: 0,
+               zone_abbr: "UTC",
+               day: 1,
+               hour: 9,
+               minute: 52,
                second: 7
              }
   end
