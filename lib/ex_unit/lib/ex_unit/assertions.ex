@@ -90,6 +90,7 @@ defmodule ExUnit.Assertions do
 
       match (=) failed
       code:  assert [1] = [2]
+      left: [1]
       right: [2]
 
   Keep in mind that `assert` does not change its semantics
@@ -170,6 +171,8 @@ defmodule ExUnit.Assertions do
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
+    left = expand_pattern(left, __CALLER__)
+
     vars =
       left
       |> collect_vars_from_pattern()
@@ -178,8 +181,6 @@ defmodule ExUnit.Assertions do
       |> Enum.map(&{&1, :ex_unit_unbound_var})
       |> Map.new()
       |> Macro.escape()
-
-    left = expand_pattern(left, __CALLER__)
 
     quote do
       right = unquote(right)
@@ -546,10 +547,10 @@ defmodule ExUnit.Assertions do
 
               {:pattern, messages, msg} ->
                 left = unquote(escape_pattern(expanded_pattern))
-                pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
+                pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars), false)
 
                 assert false,
-                  right: {:ex_unit_mailbox_contents, messages},
+                  right: messages,
                   left: pattern,
                   message: msg
             end
@@ -586,7 +587,7 @@ defmodule ExUnit.Assertions do
     else
       msg = "No message matching #{binary} after #{timeout}ms." <> __pins__(pins)
       length = length(messages)
-      messages = Enum.take(messages, @max_mailbox_length)
+      messages = Enum.take(messages, -@max_mailbox_length)
 
       msg =
         case length do
@@ -594,7 +595,7 @@ defmodule ExUnit.Assertions do
             msg <> "\nThe process mailbox is empty."
 
           len when len > @max_mailbox_length ->
-            msg <> "\nShowing only #{@max_mailbox_length} messages of #{length}"
+            msg <> "\nShowing only last #{@max_mailbox_length} messages of #{length}"
 
           _len ->
             msg

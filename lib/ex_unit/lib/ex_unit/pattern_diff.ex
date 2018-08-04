@@ -1,19 +1,22 @@
 defmodule ExUnit.Pattern do
-  defstruct [:binary, :val, :vars, :pins]
+  defstruct [:binary, :val, :match_single?, :vars, :pins]
 
   @type t :: %__MODULE__{
           binary: String.t(),
           val: any(),
           vars: map,
-          pins: map
+          pins: [key: atom()],
+          match_single?: boolean()
         }
 
-  def new(lh_pattern, pins, unbound_vars) when is_list(pins) and is_map(unbound_vars) do
+  def new(lh_pattern, pins, unbound_vars, match_single? \\ true)
+      when is_list(pins) and is_map(unbound_vars) do
     %__MODULE__{
       binary: Macro.to_string(lh_pattern),
       val: lh_pattern,
       pins: pins,
-      vars: unbound_vars
+      vars: unbound_vars,
+      match_single?: match_single?
     }
   end
 
