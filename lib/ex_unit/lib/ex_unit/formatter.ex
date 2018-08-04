@@ -132,13 +132,13 @@ defmodule ExUnit.Formatter do
 
   def format_assertion_error(
         test,
-        %{left: %ExUnit.Pattern{} = pattern, right: {:ex_unit_mailbox_contents, mailbox}} =
-          struct,
+        %{left: %ExUnit.Pattern{match_single?: false} = pattern, right: mailbox} = struct,
         stack,
         _width,
         formatter,
         counter_padding
-      ) do
+      )
+      when is_list(mailbox) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
 

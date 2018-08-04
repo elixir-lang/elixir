@@ -177,7 +177,7 @@ defmodule ExUnit.PatternFormat do
     [comma, match(inspect(rh))]
   end
 
-  def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh} = p, %{comma: comma} = ctx) do
+  def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh}, %{comma: comma} = ctx) do
     [comma, insert(textify_ast(lh, ctx))]
   end
 
