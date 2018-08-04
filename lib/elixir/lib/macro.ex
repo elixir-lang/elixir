@@ -198,7 +198,7 @@ defmodule Macro do
   ## Examples
 
       iex> Macro.generate_arguments(2, __MODULE__)
-      [{:var1, [], __MODULE__}, {:var2, [], __MODULE__}]
+      [{:arg1, [], __MODULE__}, {:arg2, [], __MODULE__}]
 
   """
   @doc since: "1.5.0"
@@ -206,7 +206,7 @@ defmodule Macro do
 
   def generate_arguments(amount, context)
       when is_integer(amount) and amount > 0 and is_atom(context) do
-    for id <- 1..amount, do: var(String.to_atom("var" <> Integer.to_string(id)), context)
+    for id <- 1..amount, do: var(String.to_atom("arg" <> Integer.to_string(id)), context)
   end
 
   @doc """

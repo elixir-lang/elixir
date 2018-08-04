@@ -207,6 +207,10 @@ rewrite(?map, fetch, [Map, Key]) ->
   {maps, find, [Key, Map]};
 rewrite(?map, 'fetch!', [Map, Key]) ->
   {maps, get, [Key, Map]};
+rewrite(?map, 'get', [Map, Key]) ->
+  {maps, get, [Key, Map, nil]};
+rewrite(?map, 'get', [Map, Key, Default]) ->
+  {maps, get, [Key, Map, Default]};
 rewrite(?map, 'has_key?', [Map, Key]) ->
   {maps, is_key, [Key, Map]};
 rewrite(?map, put, [Map, Key, Value]) ->

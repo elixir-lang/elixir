@@ -3518,7 +3518,7 @@ defmodule Kernel do
   end
 
   defp ensure_evaled_var(elem, {index, ast}) do
-    var = {String.to_atom("var" <> Integer.to_string(index)), [], __MODULE__}
+    var = {String.to_atom("arg" <> Integer.to_string(index)), [], __MODULE__}
     {var, {index + 1, [{var, elem} | ast]}}
   end
 
