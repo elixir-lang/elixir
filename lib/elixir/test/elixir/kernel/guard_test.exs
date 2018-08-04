@@ -3,7 +3,7 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.GuardTest do
   use ExUnit.Case, async: true
 
-  describe "Kernel.defguard(p) usage" do
+  describe "defguard(p) usage" do
     defmodule GuardsInMacros do
       defguard is_foo(atom) when atom == :foo
 
@@ -258,7 +258,7 @@ defmodule Kernel.GuardTest do
     end
   end
 
-  describe "Kernel.defguard compilation" do
+  describe "defguard(p) compilation" do
     test "refuses to compile non-sensical code" do
       assert_raise CompileError, ~r"cannot find or invoke local undefined/1", fn ->
         defmodule UndefinedUsage do
@@ -382,75 +382,46 @@ defmodule Kernel.GuardTest do
     end
   end
 
-  describe "Kernel.Utils.defguard/2" do
-    test "generates unquoted variables based on context" do
-      args = quote(do: [foo, bar, baz])
-      expr = quote(do: foo + bar + baz)
-
-      {:ok, goal} =
-        Code.string_to_quoted("""
-        case Macro.Env.in_guard? __CALLER__ do
-          true -> quote do
-            :erlang.+(:erlang.+(unquote(foo), unquote(bar)), unquote(baz))
-          end
-          false -> quote do
-            {foo, bar, baz} = {unquote(foo), unquote(bar), unquote(baz)}
-            :erlang.+(:erlang.+(foo, bar), baz)
-          end
-        end
-        """)
-
-      assert expand_defguard_to_string(args, expr) == Macro.to_string(goal)
-    end
+  describe "defguard(p) expansion" do
+    defguard with_unused_vars(foo, bar, _baz) when foo + bar
 
     test "doesn't obscure unused variables" do
-      args = quote(do: [foo, bar, baz])
-      expr = quote(do: foo + bar)
+      args = quote(do: [1 + 1, 2 + 2, 3 + 3])
 
-      {:ok, goal} =
-        Code.string_to_quoted("""
-        case Macro.Env.in_guard? __CALLER__ do
-          true -> quote do
-            :erlang.+(unquote(foo), unquote(bar))
-          end
-          false -> quote do
-            {foo, bar} = {unquote(foo), unquote(bar)}
-            :erlang.+(foo, bar)
-          end
-        end
-        """)
+      assert expand_defguard_to_string(:with_unused_vars, args, :guard) == """
+      :erlang.+(1 + 1, 2 + 2)
+      """
 
-      assert expand_defguard_to_string(args, expr) == Macro.to_string(goal)
+      assert expand_defguard_to_string(:with_unused_vars, args, nil) == """
+      (
+        {foo, bar} = {1 + 1, 2 + 2}
+        :erlang.+(foo, bar)
+      )
+      """
     end
+
+    defguard with_reused_vars(foo, bar, baz) when foo + foo + bar + baz
 
     test "handles re-used variables" do
-      args = quote(do: [foo, bar, baz])
-      expr = quote(do: foo + foo + bar + baz)
+      args = quote(do: [1 + 1, 2 + 2, 3 + 3])
 
-      {:ok, goal} =
-        Code.string_to_quoted("""
-        case(Macro.Env.in_guard?(__CALLER__)) do
-          true ->
-            quote() do
-              :erlang.+(:erlang.+(:erlang.+(unquote(foo), unquote(foo)), unquote(bar)), unquote(baz))
-            end
-          false ->
-            quote() do
-              {foo, bar, baz} = {unquote(foo), unquote(bar), unquote(baz)}
-              :erlang.+(:erlang.+(:erlang.+(foo, foo), bar), baz)
-            end
-        end
-        """)
+      assert expand_defguard_to_string(:with_reused_vars, args, :guard) == """
+      :erlang.+(:erlang.+(:erlang.+(1 + 1, 1 + 1), 2 + 2), 3 + 3)
+      """
 
-      assert expand_defguard_to_string(args, expr) == Macro.to_string(goal)
+      assert expand_defguard_to_string(:with_reused_vars, args, nil) == """
+      (
+        {foo, bar, baz} = {1 + 1, 2 + 2, 3 + 3}
+        :erlang.+(:erlang.+(:erlang.+(foo, foo), bar), baz)
+      )
+      """
     end
 
-    defp expand_defguard_to_string(args, expr) do
-      require Kernel.Utils
-
-      quote(do: Kernel.Utils.defguard(unquote(args), unquote(expr)))
-      |> Macro.expand(__ENV__)
+    defp expand_defguard_to_string(fun, args, context) do
+      {{:., [], [__MODULE__, fun]}, [], args}
+      |> Macro.expand(%{__ENV__ | context: context})
       |> Macro.to_string()
+      |> Kernel.<>("\n")
     end
   end
 end

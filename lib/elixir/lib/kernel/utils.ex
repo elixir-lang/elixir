@@ -196,8 +196,8 @@ defmodule Kernel.Utils do
 
     quote do
       case Macro.Env.in_guard?(__CALLER__) do
-        true -> unquote(literal_quote(unquote_every_ref(expr, vars)))
-        false -> unquote(literal_quote(unquote_refs_once(expr, vars)))
+        true -> unquote(Macro.escape(unquote_every_ref(expr, vars), unquote: true))
+        false -> unquote(Macro.escape(unquote_refs_once(expr, vars), unquote: true))
       end
     end
   end
@@ -249,10 +249,6 @@ defmodule Kernel.Utils do
       {unquote_splicing(vars)} = {unquote_splicing(exprs)}
       unquote(guard)
     end
-  end
-
-  defp literal_quote(ast) do
-    {:quote, [], [[do: ast]]}
   end
 
   defp literal_unquote(ast) do
