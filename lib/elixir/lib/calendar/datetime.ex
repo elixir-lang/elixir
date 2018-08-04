@@ -513,30 +513,28 @@ defmodule DateTime do
   @doc since: "1.4.0"
   @spec from_iso8601(String.t(), Calendar.calendar()) ::
           {:ok, t, Calendar.utc_offset()} | {:error, atom}
-
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
   def from_iso8601(<<?-, rest::binary>>, calendar) do
-    with {:ok, %{year: year} = datetime, offset} <- raw_from_iso8601(rest, calendar) do
-      {:ok, %{datetime | year: -year}, offset}
-    end
+    raw_from_iso8601(rest, calendar, true)
   end
 
   def from_iso8601(<<rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar)
+    raw_from_iso8601(rest, calendar, false)
   end
 
   @sep [?\s, ?T]
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
   [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
 
-  defp raw_from_iso8601(string, calendar) do
+  defp raw_from_iso8601(string, calendar, is_negative_datetime) do
     with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
          {offset, ""} <- Calendar.ISO.parse_offset(rest) do
       {year, month, day} = unquote(read_date)
       {hour, minute, second} = unquote(read_time)
+      year = if is_negative_datetime, do: -year, else: year
 
       cond do
         not calendar.valid_date?(year, month, day) ->
@@ -738,7 +736,7 @@ defmodule DateTime do
 
   """
   @doc since: "1.5.0"
-  @spec diff(Calendar.datetime(), Calendar.datetime()) :: integer()
+  @spec diff(Calendar.datetime(), Calendar.datetime(), System.time_unit()) :: integer()
   def diff(
         %{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
         %{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2,

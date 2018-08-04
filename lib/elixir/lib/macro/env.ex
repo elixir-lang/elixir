@@ -57,14 +57,14 @@ defmodule Macro.Env do
   @type file :: binary
   @type line :: non_neg_integer
   @type aliases :: [{module, module}]
-  @type macro_aliases :: [{module, {integer, module}}]
+  @type macro_aliases :: [{module, {term, module}}]
   @type context :: :match | :guard | nil
   @type requires :: [module]
   @type functions :: [{module, [name_arity]}]
   @type macros :: [{module, [name_arity]}]
   @type context_modules :: [module]
   @type lexical_tracker :: pid | nil
-  @type var :: {atom, atom | non_neg_integer}
+  @type var :: {atom, atom | term}
 
   @typep vars :: [var]
   @typep var_type :: :term

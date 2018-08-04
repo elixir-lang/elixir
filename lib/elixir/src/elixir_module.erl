@@ -49,7 +49,7 @@ next_counter(nil) -> erlang:unique_integer();
 next_counter(Module) ->
   try
     {DataSet, _} = data_tables(Module),
-    ets:update_counter(DataSet, ?counter_attr, 1)
+    {Module, ets:update_counter(DataSet, ?counter_attr, 1)}
   catch
     _:_ -> erlang:unique_integer()
   end.

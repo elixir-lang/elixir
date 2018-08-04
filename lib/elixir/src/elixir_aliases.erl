@@ -22,7 +22,7 @@ store_alias(New, Old, Aliases) ->
 
 store_macro_alias(Meta, New, Old, Aliases) ->
   case lists:keyfind(counter, 1, Meta) of
-    {counter, Counter} when is_integer(Counter) ->
+    {counter, Counter} ->
       lists:keystore(New, 1, Aliases, {New, {Counter, Old}});
     false ->
       Aliases
@@ -33,7 +33,7 @@ remove_alias(Atom, Aliases) ->
 
 remove_macro_alias(Meta, Atom, Aliases) ->
   case lists:keyfind(counter, 1, Meta) of
-    {counter, Counter} when is_integer(Counter) ->
+    {counter, Counter} ->
       lists:keydelete(Atom, 1, Aliases);
     false ->
       Aliases

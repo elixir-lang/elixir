@@ -197,7 +197,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "finds umbrella sibling dependencies conflicts with :in_umbrella" do
+  test "umbrella sibling dependencies conflicts with :in_umbrella" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/bar/mix.exs", """
@@ -337,15 +337,17 @@ defmodule Mix.UmbrellaTest do
 
         # Noop by default
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+        Mix.Shell.Process.flush()
 
-        # Noop when there is no runtime dependency
+        # Ok but no compilation when there is no runtime dependency
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
 
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        refute_received {:mix_shell, :info, ["Compiled " <> _]}
 
         # Add runtime dependency
         File.write!("lib/bar.ex", """
@@ -355,14 +357,7 @@ defmodule Mix.UmbrellaTest do
         """)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-
-        # Noop for runtime dependencies
-        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
-        ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
-
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
     end)
   end
