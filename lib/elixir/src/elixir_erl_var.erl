@@ -7,7 +7,7 @@
 
 %% VAR HANDLING
 
-translate(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
+translate(Meta, Name, Kind, S) ->
   Tuple = {Name, Kind},
 
   Current =

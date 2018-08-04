@@ -260,7 +260,7 @@ defmodule Kernel.Utils do
   end
 
   defp context_to_var(ref, ctx) when is_atom(ctx), do: {ref, [], ctx}
-  defp context_to_var(ref, ctx) when is_integer(ctx), do: {ref, [counter: ctx], nil}
+  defp context_to_var(ref, ctx), do: {ref, [counter: ctx], nil}
 
   defp var_context(meta, kind) do
     case :lists.keyfind(:counter, 1, meta) do

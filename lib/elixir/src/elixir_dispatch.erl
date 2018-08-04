@@ -200,7 +200,7 @@ expand_macro_named(Meta, Receiver, Name, Arity, Args, E) ->
 
 expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
   Line = ?line(Meta),
-  Next = erlang:unique_integer(),
+  Next = elixir_module:next_counter(?key(E, module)),
 
   try
     elixir_expand:expand(
