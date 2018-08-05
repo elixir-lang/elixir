@@ -1016,7 +1016,7 @@ defmodule IEx.HelpersTest do
       end
     end
 
-    test "reloads elixir modules" do
+    test "reloads Elixir modules" do
       message = ~r"function Sample.run/0 is undefined \(module Sample is not available\)"
 
       assert_raise UndefinedFunctionError, message, fn ->
