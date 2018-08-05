@@ -520,7 +520,7 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.5.0"
   @impl true
-  @spec valid_time?(Calendar.hour(), Calendar.minute(), Calendar.secon(), Calendar.microsecond()) ::
+  @spec valid_time?(Calendar.hour(), Calendar.minute(), Calendar.second(), Calendar.microsecond()) ::
           boolean
   def valid_time?(hour, minute, second, {microsecond, precision}) do
     hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999 and
