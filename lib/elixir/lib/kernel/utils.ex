@@ -253,7 +253,7 @@ defmodule Kernel.Utils do
           {node, acc}
       end)
 
-    all_used = for ref <- :lists.reverse(refs), used = Map.get(used_refs, ref), do: used
+    all_used = for ref <- :lists.reverse(refs), used = :maps.get(ref, used_refs, nil), do: used
     {vars, exprs} = :lists.unzip(all_used)
 
     quote do
