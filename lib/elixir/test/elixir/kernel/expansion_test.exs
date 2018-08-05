@@ -551,17 +551,16 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "in matches" do
-      message =
-        ~r"cannot invoke remote function Hello.something_that_does_not_exist/0 inside pattern"
+      message = ~r"cannot invoke remote function Hello.fun_that_does_not_exist/0 inside a match"
 
       assert_raise CompileError, message, fn ->
-        expand(quote(do: Hello.something_that_does_not_exist() = :foo))
+        expand(quote(do: Hello.fun_that_does_not_exist() = :foo))
       end
 
-      message = ~r"cannot invoke remote function :erlang.make_ref/0 inside pattern"
+      message = ~r"cannot invoke remote function :erlang.make_ref/0 inside a match"
       assert_raise CompileError, message, fn -> expand(quote(do: make_ref() = :foo)) end
 
-      message = ~r"invalid argument for \+\+ operator"
+      message = ~r"invalid argument for \+\+ operator inside a match"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: "a" ++ "b" = "ab"))
