@@ -291,7 +291,7 @@ format_error({invalid_guard, Receiver, Right, Arity}) ->
   io_lib:format("cannot invoke remote function ~ts.~ts/~B inside guards",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity]);
 format_error({invalid_match, Receiver, Right, Arity}) ->
-  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside pattern matching",
+  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside a match",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity]);
 format_error({invalid_match_append, Arg}) ->
   io_lib:format("invalid argument for ++ operator inside a match, expected a literal proper list, got: ~ts",
