@@ -179,4 +179,4 @@ format_error({unused_var, Name, true}) ->
                 "      else\n"
                 "        :two\n"
                 "      end\n\n"
-                "Unused variable found at:", [Name, Name]).
+                "Unused variable \"~ts\" found at:", [Name, Name, Name]).
