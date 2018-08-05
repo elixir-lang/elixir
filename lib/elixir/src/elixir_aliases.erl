@@ -33,7 +33,7 @@ remove_alias(Atom, Aliases) ->
 
 remove_macro_alias(Meta, Atom, Aliases) ->
   case lists:keyfind(counter, 1, Meta) of
-    {counter, Counter} ->
+    {counter, _Counter} ->
       lists:keydelete(Atom, 1, Aliases);
     false ->
       Aliases
