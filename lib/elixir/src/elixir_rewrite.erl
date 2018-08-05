@@ -248,10 +248,10 @@ increment(Other) ->
 %% Match rewrite
 %%
 %% Match rewrite is similar to regular rewrite, except
-%% it also verifies the rewrite rule applies in a match context
+%% it also verifies the rewrite rule applies in a match context.
 %% The allowed operations are very limited.
 %% The Kernel operators are already inlined by now, we only need to
-%% care about erlang ones.
+%% care about Erlang ones.
 match_rewrite(erlang, _, '+', _, [Arg]) when is_number(Arg) -> {ok, Arg};
 match_rewrite(erlang, _, '-', _, [Arg]) when is_number(Arg) -> {ok, -Arg};
 match_rewrite(erlang, _, '++', Meta, [Left, Right]) ->
