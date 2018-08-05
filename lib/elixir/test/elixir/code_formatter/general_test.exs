@@ -20,7 +20,7 @@ defmodule Code.Formatter.GeneralTest do
 
     test "starting with expression" do
       assert_same "__MODULE__.Foo.Bar"
-      # Syntatically valid, semantically invalid
+      # Syntactically valid, semantically invalid
       assert_same "'Foo'.Bar.Baz"
     end
 
