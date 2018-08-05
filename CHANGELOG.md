@@ -123,15 +123,14 @@ Percentage | Module
 #### Elixir
 
   * [DateTime] Take negative years into account in `DateTime.from_iso8601/1`
-  * [Kernel] Do not emit warnings for repeated docs over different clauses due to false negatives
+  * [Kernel] Do not emit warnings for repeated docs over different clauses due to false positives
 
 #### Mix
 
   * [mix compile] Properly mark top-level dependencies as optional and as runtime. This fixes a bug where Mix attempted to start optional dependencies of a package when those optional dependencies were not available
-  * [mix compile] Avoid deadlock when a timestamp later than current time is found
+  * [mix compile] Avoid deadlock when a config has a timestamp later than current time
   * [mix help] Show task and alias help when both are available
-  * [mix test] Do not fail suite if there are no tests to run
-
+  * [mix test] Do not fail suite if there are no test files
 
 ## v1.7.1 (2018-07-26)
 
