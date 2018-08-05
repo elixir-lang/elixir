@@ -1000,14 +1000,12 @@ defmodule IEx.HelpersTest do
   end
 
   describe "nl" do
+    @tag :capture_log
     test "loads a given module on the given nodes" do
       assert nl(:nonexistent_module) == {:error, :nofile}
-      assert nl([node()], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}
+      assert nl([node()], :lists) == {:ok, [{:nonode@nohost, :error, :sticky_directory}]}
       assert nl([:nosuchnode@badhost], Enum) == {:ok, [{:nosuchnode@badhost, :badrpc, :nodedown}]}
-
-      capture_log(fn ->
-        assert nl([node()], :lists) == {:ok, [{:nonode@nohost, :error, :sticky_directory}]}
-      end)
+      assert nl([node()], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}
     end
   end
 
@@ -1018,7 +1016,7 @@ defmodule IEx.HelpersTest do
       end
     end
 
-    test "reloads elixir modules" do
+    test "reloads Elixir modules" do
       message = ~r"function Sample.run/0 is undefined \(module Sample is not available\)"
 
       assert_raise UndefinedFunctionError, message, fn ->
