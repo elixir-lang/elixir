@@ -48,7 +48,7 @@ defmodule Mix do
         use Mix.Task
 
         def run(_) do
-          Mix.shell.info "hello"
+          Mix.shell().info("hello")
         end
       end
 
@@ -127,7 +127,7 @@ defmodule Mix do
         end
 
         defp hello(_) do
-          Mix.shell.info "Hello world"
+          Mix.shell().info("Hello world")
         end
       end
 
@@ -139,7 +139,7 @@ defmodule Mix do
   Aliases may also be lists, specifying multiple tasks to be run
   consecutively:
 
-      [all: [&hello/1, "deps.get --only #{Mix.env}", "compile"]]
+      [all: [&hello/1, "deps.get --only #{Mix.env()}", "compile"]]
 
   In the example above, we have defined an alias named `mix all`,
   that prints hello, then fetches dependencies specific to the
@@ -268,7 +268,7 @@ defmodule Mix do
   append new compilers to Mix:
 
       def project do
-        [compilers: Mix.compilers ++ [:foo, :bar]]
+        [compilers: Mix.compilers() ++ [:foo, :bar]]
       end
 
   """
