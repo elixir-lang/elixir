@@ -1088,8 +1088,9 @@ defmodule IEx.HelpersTest do
 
   describe "ref" do
     test "builds a ref from string" do
-      assert inspect(ref("0.419006.1377304581.1")) == "#Reference<0.419006.1377304581.1>"
-      assert inspect(ref("0.1.2.3")) == "#Reference<0.1.2.3>"
+      ref = make_ref()
+      [_, inner, _] = String.split(inspect(ref), ["<", ">"])
+      assert ref(inner) == ref
 
       assert_raise ArgumentError, fn ->
         ref("0.6.6.-6")
@@ -1097,8 +1098,10 @@ defmodule IEx.HelpersTest do
     end
 
     test "builds a ref from integers" do
-      assert inspect(ref(0, 419_006, 1_377_304_581, 1)) == "#Reference<0.419006.1377304581.1>"
-      assert inspect(ref(0, 1, 2, 3)) == "#Reference<0.1.2.3>"
+      ref = make_ref()
+      [_, inner, _] = String.split(inspect(ref), ["<", ">"])
+      [p1, p2, p3, p4] = inner |> String.split(".") |> Enum.map(&String.to_integer/1)
+      assert ref(p1, p2, p3, p4) == ref
 
       assert_raise FunctionClauseError, fn ->
         ref(0, 6, 6, -6)
