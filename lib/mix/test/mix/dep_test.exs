@@ -505,7 +505,7 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps with no overrides" do
-    # deps_repo brings git_repo but it is overriden
+    # deps_repo brings git_repo but it is overridden
     deps = [
       {:deps_repo, "0.1.0", path: "custom/deps_repo"}
     ]
@@ -597,7 +597,7 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps with overrides" do
-    # deps_repo brings git_repo but it is overriden
+    # deps_repo brings git_repo but it is overridden
     deps = [
       {:deps_repo, "0.1.0", path: "custom/deps_repo"},
       {:git_repo, ">= 0.0.0", git: MixTest.Case.fixture_path("git_repo"), override: true}
