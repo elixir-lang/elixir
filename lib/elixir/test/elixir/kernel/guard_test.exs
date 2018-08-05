@@ -184,42 +184,42 @@ defmodule Kernel.GuardTest do
 
     test "handles overriding appropriately" do
       assert_raise CompileError, ~r"defmacro (.*?) already defined as def", fn ->
-        defmodule OverridenFunUsage do
+        defmodule OverriddenFunUsage do
           def foo(bar), do: bar
           defguard foo(bar) when bar
         end
       end
 
       assert_raise CompileError, ~r"defmacro (.*?) already defined as defp", fn ->
-        defmodule OverridenPrivateFunUsage do
+        defmodule OverriddenPrivateFunUsage do
           defp foo(bar), do: bar
           defguard foo(bar) when bar
         end
       end
 
       assert_raise CompileError, ~r"defmacro (.*?) already defined as defmacrop", fn ->
-        defmodule OverridenPrivateFunUsage do
+        defmodule OverriddenPrivateFunUsage do
           defmacrop foo(bar), do: bar
           defguard foo(bar) when bar
         end
       end
 
       assert_raise CompileError, ~r"defmacrop (.*?) already defined as def", fn ->
-        defmodule OverridenFunUsage do
+        defmodule OverriddenFunUsage do
           def foo(bar), do: bar
           defguardp foo(bar) when bar
         end
       end
 
       assert_raise CompileError, ~r"defmacrop (.*?) already defined as defp", fn ->
-        defmodule OverridenPrivateFunUsage do
+        defmodule OverriddenPrivateFunUsage do
           defp foo(bar), do: bar
           defguardp foo(bar) when bar
         end
       end
 
       assert_raise CompileError, ~r"defmacrop (.*?) already defined as defmacro", fn ->
-        defmodule OverridenPrivateFunUsage do
+        defmodule OverriddenPrivateFunUsage do
           defmacro foo(bar), do: bar
           defguardp foo(bar) when bar
         end
