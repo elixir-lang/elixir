@@ -342,7 +342,7 @@ defmodule Logger do
       the message being anything (and do something like the `rescue` in the example
       above)
     * the current timestamp: a term of type `t:Logger.Formatter.time/0`
-    * the medatata: a keyword list
+    * the metadata: a keyword list
 
   You can read more about formatting in `Logger.Formatter`.
 

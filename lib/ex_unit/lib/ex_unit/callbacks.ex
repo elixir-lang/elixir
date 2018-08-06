@@ -21,7 +21,7 @@ defmodule ExUnit.Callbacks do
   as parameter if defined by a block. Functions used to define a test
   setup must accept the context as single argument.
 
-  A test module can define mutiple `setup` and `setup_all` callbacks,
+  A test module can define multiple `setup` and `setup_all` callbacks,
   and they are invoked in order of appearance.
 
   `start_supervised/2` is used to start processes under a supervisor. The

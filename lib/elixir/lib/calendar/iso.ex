@@ -528,7 +528,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  See `c:Calendar.day_rollover_relative_to_midlight_utc/0` for documentation.
+  See `c:Calendar.day_rollover_relative_to_midnight_utc/0` for documentation.
   """
   @doc since: "1.5.0"
   @impl true
