@@ -145,10 +145,10 @@ defmodule Mix.Tasks.Compile.Protocols do
 
     case Protocol.consolidate(protocol, impls) do
       {:ok, binary} ->
-        File.write!(Path.join(output, "#{protocol}.beam"), binary)
+        File.write!(Path.join(output, "#{Atom.to_string(protocol)}.beam"), binary)
 
         if opts[:verbose] do
-          Mix.shell().info("Consolidated #{inspect(protocol)}")
+          Mix.shell().info("Consolidated #{inspect_protocol(protocol)}")
         end
 
       # If we remove a dependency and we have implemented one of its
@@ -161,9 +161,15 @@ defmodule Mix.Tasks.Compile.Protocols do
         remove_consolidated(protocol, output)
 
         if opts[:verbose] do
-          Mix.shell().info("Unavailable #{inspect(protocol)}")
+          Mix.shell().info("Unavailable #{inspect_protocol(protocol)}")
         end
     end
+  end
+
+  # We cannot use the inspect protocol while consolidating
+  # since inspect may not be available.
+  defp inspect_protocol(protocol) do
+    Code.Identifier.inspect_as_atom(protocol)
   end
 
   defp reload(module) do
@@ -227,6 +233,6 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp remove_consolidated(protocol, output) do
-    File.rm(Path.join(output, "#{protocol}.beam"))
+    File.rm(Path.join(output, "#{Atom.to_string(protocol)}.beam"))
   end
 end
