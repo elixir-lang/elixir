@@ -26,7 +26,7 @@ defmodule Code do
   times. This is common in scripts.
 
   `compile_file/2` must be used when you are interested in the modules defined in a
-  file, without tracking. `eval_file/2` should be used when you are intested on
+  file, without tracking. `eval_file/2` should be used when you are interested in
   the result of evaluating the file rather than the modules it defines.
   """
 
