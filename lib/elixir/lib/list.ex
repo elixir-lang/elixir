@@ -63,7 +63,7 @@ defmodule List do
       iex> list ++ [4] # slow
       [1, 2, 3, 4]
 
-  Additonally, getting a list's length and accessing it by index are
+  Additionally, getting a list's length and accessing it by index are
   linear time operations. Negative indexes are also supported but
   they imply the list will be iterated twice, once to calculate the
   proper index and another time to perform the operation.
