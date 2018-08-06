@@ -66,7 +66,7 @@ defmodule Application do
   own environment. Please do not use the functions in this module for directly
   accessing or modifying the environment of other applications.
 
-  The application environment can be overriden via the `-config` option of
+  The application environment can be overridden via the `-config` option of
   `erl`, as well as command-line flags, as we are going to see below.
 
   ## The application callback module

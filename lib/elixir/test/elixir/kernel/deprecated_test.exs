@@ -26,7 +26,7 @@ defmodule Kernel.DeprecatedTest do
            ]
   end
 
-  test "add deprecated to __info__ and beam chuncks" do
+  test "add deprecated to __info__ and beam chunks" do
     write_beam(
       defmodule SampleDeprecated do
         @deprecated "Use SampleDeprecated.bar/0 instead"

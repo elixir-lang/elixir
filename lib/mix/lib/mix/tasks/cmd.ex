@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Cmd do
   that those child processes won't be terminated with the VM.
 
   A solution is to make sure the child processes listen to the
-  stdndard input and terminate when standard input is closed.
+  standard input and terminate when standard input is closed.
   We discuss this topic at length in the "Zombie OS processes"
   of the `Port` module documentation.
   """

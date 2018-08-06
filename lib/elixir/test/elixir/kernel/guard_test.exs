@@ -259,7 +259,7 @@ defmodule Kernel.GuardTest do
   end
 
   describe "defguard(p) compilation" do
-    test "refuses to compile non-sensical code" do
+    test "refuses to compile nonsensical code" do
       assert_raise CompileError, ~r"cannot find or invoke local undefined/1", fn ->
         defmodule UndefinedUsage do
           defguard foo(function) when undefined(function)

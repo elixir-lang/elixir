@@ -169,7 +169,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   defp parse_opt(other), do: other
 
   @doc """
-  Allows to programatically run the `eprof` profiler on expression in `fun`.
+  Allows to programmatically run the `eprof` profiler on expression in `fun`.
 
   ## Options
 

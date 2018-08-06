@@ -415,7 +415,7 @@ defmodule Kernel.ImplTest do
            end) == ""
   end
 
-  test "does not warn for @impl with defaults when the same function is defined mutiple times" do
+  test "does not warn for @impl with defaults when the same function is defined multiple times" do
     assert capture_err(fn ->
              Code.eval_string(~S"""
              defmodule Kernel.ImplTest.ImplAttributes do

@@ -105,7 +105,7 @@ defmodule Access do
   ### Summing up
 
   The bracket-based syntax, `user[:name]`, is used by dynamic structures,
-  is extensible and returns nil on misisng keys.
+  is extensible and returns nil on missing keys.
 
   The dot-based syntax, `user.name`, is used exclusively to access atom
   keys in maps and structs, and it raises on missing keys.
