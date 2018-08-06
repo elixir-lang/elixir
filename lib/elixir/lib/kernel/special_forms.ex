@@ -687,7 +687,7 @@ defmodule Kernel.SpecialForms do
   defmacro __CALLER__, do: error!([])
 
   @doc """
-  Returns the stacktrace for the curently handled exception.
+  Returns the stacktrace for the currently handled exception.
 
   It is available only in the `catch` and `rescue` clauses of `try/1`
   expressions.
