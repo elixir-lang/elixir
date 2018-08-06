@@ -31,7 +31,7 @@ defmodule Tuple do
 
   The functions in this module that add and remove elements from tuples are
   rarely used in practice, as they typically imply tuples are being used as
-  collections. To append to a tuple, it is preferrable to use pattern matching:
+  collections. To append to a tuple, it is preferable to use pattern matching:
 
       tuple = {:ok, :example}
 
