@@ -809,7 +809,7 @@ defmodule Code do
   The compiler utilizes temporary modules to compile code. For example,
   `elixir_compiler_1`, `elixir_compiler_2`, etc. In case the compiled code
   stores references to anonymous functions or similar, the Elixir compiler
-  may be unable to reclaim those modules, keeping an unecessary amount of
+  may be unable to reclaim those modules, keeping an unnecessary amount of
   code in memory and eventually leading to modules such as `elixir_compiler_12345`.
 
   This function purges all modules currently kept by the compiler, allowing
