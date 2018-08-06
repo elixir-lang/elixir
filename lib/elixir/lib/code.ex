@@ -813,7 +813,7 @@ defmodule Code do
   code in memory and eventually leading to modules such as `elixir_compiler_12345`.
 
   This function purges all modules currently kept by the compiler, allowing
-  old compiler module names to be resued. If there are any processes running
+  old compiler module names to be reused. If there are any processes running
   any code from such modules, they will be terminated too.
 
   It returns `{:ok, number_of_modules_purged}`.
