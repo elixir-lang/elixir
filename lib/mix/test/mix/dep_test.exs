@@ -608,7 +608,7 @@ defmodule Mix.DepTest do
         File.mkdir_p!("custom/deps_repo/lib")
 
         File.write!("custom/deps_repo/lib/a.ex", """
-        # Check that the overriden requirement shows up in the child dependency
+        # Check that the overridden requirement shows up in the child dependency
         [%Mix.Dep{app: :git_repo, requirement: ">= 0.0.0"}] = Mix.Dep.cached()
         """)
 

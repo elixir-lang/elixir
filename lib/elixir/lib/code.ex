@@ -26,7 +26,7 @@ defmodule Code do
   times. This is common in scripts.
 
   `compile_file/2` must be used when you are interested in the modules defined in a
-  file, without tracking. `eval_file/2` should be used when you are intested on
+  file, without tracking. `eval_file/2` should be used when you are interested in
   the result of evaluating the file rather than the modules it defines.
   """
 
@@ -809,11 +809,11 @@ defmodule Code do
   The compiler utilizes temporary modules to compile code. For example,
   `elixir_compiler_1`, `elixir_compiler_2`, etc. In case the compiled code
   stores references to anonymous functions or similar, the Elixir compiler
-  may be unable to reclaim those modules, keeping an unecessary amount of
+  may be unable to reclaim those modules, keeping an unnecessary amount of
   code in memory and eventually leading to modules such as `elixir_compiler_12345`.
 
   This function purges all modules currently kept by the compiler, allowing
-  old compiler module names to be resued. If there are any processes running
+  old compiler module names to be reused. If there are any processes running
   any code from such modules, they will be terminated too.
 
   It returns `{:ok, number_of_modules_purged}`.
