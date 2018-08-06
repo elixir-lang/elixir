@@ -1,7 +1,7 @@
 defmodule Calendar.Holocene do
   # This calendar is used to test conversions between calendars.
   # It implements the Holocene calendar, which is based on the
-  # Propleptic Gregorian calendar with every year + 10000.
+  # Proleptic Gregorian calendar with every year + 10000.
 
   @behaviour Calendar
 
