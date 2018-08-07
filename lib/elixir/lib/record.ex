@@ -356,38 +356,30 @@ defmodule Record do
 
   # Gets the index of field.
   defp index(tag, fields, field) do
-    if index = find_index(fields, field, 0) do
-      # Convert to Elixir index
-      index - 1
-    else
+    find_index(fields, field, 1) ||
       raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(field)}"
-    end
   end
 
   # Creates a new record with the given default fields and keyword values.
   defp create(tag, fields, keyword, caller) do
-    in_match = Macro.Env.in_match?(caller)
-    keyword = apply_underscore(fields, keyword)
+    # Using {} here is safe, since it's not valid AST
+    default = if Macro.Env.in_match?(caller), do: {:_, [], nil}, else: {}
+    {default, keyword} = Keyword.pop(keyword, :_, default)
 
-    {match, remaining} =
-      Enum.map_reduce(fields, keyword, fn {field, default}, each_keyword ->
-        new_fields =
-          case Keyword.fetch(each_keyword, field) do
-            {:ok, value} -> value
-            :error when in_match -> {:_, [], nil}
-            :error -> Macro.escape(default)
-          end
-
-        {new_fields, Keyword.delete(each_keyword, field)}
+    {elements, remaining} =
+      Enum.map_reduce(fields, keyword, fn {key, field_default}, remaining ->
+        case Keyword.pop(remaining, key, default) do
+          {{}, remaining} -> {Macro.escape(field_default), remaining}
+          {default, remaining} -> {default, remaining}
+        end
       end)
 
     case remaining do
       [] ->
-        {:{}, [], [tag | match]}
+        quote(do: {unquote(tag), unquote_splicing(elements)})
 
-      _ ->
-        keys = for {key, _} <- remaining, do: key
-        raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(hd(keys))}"
+      [{key, _} | _] ->
+        raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
     end
   end
 
@@ -397,35 +389,85 @@ defmodule Record do
       raise ArgumentError, "cannot invoke update style macro inside match"
     end
 
-    keyword = apply_underscore(fields, keyword)
+    case build_updates(keyword, fields, [], [], []) do
+      {updates, [], []} ->
+        build_update(updates, var)
 
-    Enum.reduce(keyword, var, fn {key, value}, acc ->
-      index = find_index(fields, key, 0)
+      {updates, vars, exprs} ->
 
-      if index do
         quote do
-          :erlang.setelement(unquote(index), unquote(acc), unquote(value))
+          {unquote_splicing(:lists.reverse(vars))} = {unquote_splicing(:lists.reverse(exprs))}
+          unquote(build_update(updates, var))
         end
-      else
+
+      {:error, key} ->
         raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
-      end
-    end)
-  end
-
-  # Gets a record key from the given var.
-  defp get(tag, fields, var, key) do
-    index = find_index(fields, key, 0)
-
-    if index do
-      quote do
-        :erlang.element(unquote(index), unquote(var))
-      end
-    else
-      raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
     end
   end
 
-  defp find_index([{k, _} | _], k, i), do: i + 2
+  defp build_update(updates, initial) do
+    updates
+    |> Enum.sort(fn {left, _}, {right, _} -> right <= left end)
+    |> Enum.reduce(initial, fn {key, value}, acc ->
+      quote(do: :erlang.setelement(unquote(key), unquote(acc), unquote(value)))
+    end)
+  end
+
+  defp build_updates([{:_, value} | rest], fields, updates, vars, exprs) do
+    {updates, vars, exprs} = build_updates(rest, fields, updates, vars, exprs)
+
+    if simple_argument?(value) do
+      updates = add_defaults(fields, updates, value, 2)
+      {updates, vars, exprs}
+    else
+      var = Macro.var(:default, __MODULE__)
+      updates = add_defaults(fields, updates, var, 2)
+      {updates, [var | vars], [value | exprs]}
+    end
+  end
+
+  defp build_updates([{key, value} | rest], fields, updates, vars, exprs) do
+    if index = find_index(fields, key, 2) do
+      if simple_argument?(value) do
+        build_updates(rest, fields, [{index, value} | updates], vars, exprs)
+      else
+        var = Macro.var(key, __MODULE__)
+        build_updates(rest, fields, [{index, var} | updates], [var | vars], [value | exprs])
+      end
+    else
+      {:error, key}
+    end
+  end
+
+  defp build_updates([], _fields, updates, vars, exprs), do: {updates, vars, exprs}
+
+  defp add_defaults([_ | fields], [{i, _} = update | updates], value, i) do
+    [update | add_defaults(fields, updates, value, i + 1)]
+  end
+
+  defp add_defaults([_ | fields], updates, value, i) do
+    [{i, value} | add_defaults(fields, updates, value, i + 1)]
+  end
+
+  defp add_defaults([], [], _, _) do
+    []
+  end
+
+  defp simple_argument?({name, _, ctx}) when is_atom(name) and is_atom(ctx), do: true
+  defp simple_argument?(other), do: Macro.quoted_literal?(other)
+
+  # Gets a record key from the given var.
+  defp get(tag, fields, var, key) do
+    index =
+      find_index(fields, key, 2) ||
+        raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
+
+    quote do
+      :erlang.element(unquote(index), unquote(var))
+    end
+  end
+
+  defp find_index([{k, _} | _], k, i), do: i
   defp find_index([{_, _} | t], k, i), do: find_index(t, k, i + 1)
   defp find_index([], _k, _i), do: nil
 
@@ -457,17 +499,4 @@ defmodule Record do
 
   defp join_keyword([], [], acc), do: :lists.reverse(acc)
   defp join_keyword(rest_fields, _rest_values, acc), do: length(acc) + length(rest_fields)
-
-  defp apply_underscore(fields, keyword) do
-    case Keyword.fetch(keyword, :_) do
-      {:ok, default} ->
-        fields
-        |> Enum.map(fn {k, _} -> {k, default} end)
-        |> Keyword.merge(keyword)
-        |> Keyword.delete(:_)
-
-      :error ->
-        keyword
-    end
-  end
 end
