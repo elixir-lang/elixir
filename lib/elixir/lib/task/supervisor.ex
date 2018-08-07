@@ -172,12 +172,12 @@ defmodule Task.Supervisor do
       end
 
       def handle_cast(:start_task, %{ref: nil} = state) do
-        ref = Task.Supervisor.async_nolink(TaskTest.TaskSupervisor, fn ->
+        task = Task.Supervisor.async_nolink(TaskTest.TaskSupervisor, fn ->
           .. do something ..
         end)
 
         .. genserver remains unblocked and can handle other messages ..
-        {:noreply, %{state | ref: ref}}
+        {:noreply, %{state | ref: task.ref}}
       end
 
       def handle_info({ref, answer}, %{ref: ref} = state) do
