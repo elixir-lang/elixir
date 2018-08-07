@@ -853,4 +853,18 @@ defmodule Mix.DepTest do
       end)
     end)
   end
+
+  test "deps_paths" do
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"}]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:git_repo, :deps_repo]
+        assert Map.keys(Mix.Project.deps_paths()) == [:deps_repo, :git_repo]
+        assert Map.keys(Mix.Project.deps_paths(depth: 1)) == [:deps_repo]
+        assert Map.keys(Mix.Project.deps_paths(depth: 2)) == [:deps_repo, :git_repo]
+        assert Map.keys(Mix.Project.deps_paths(depth: 3)) == [:deps_repo, :git_repo]
+      end)
+    end)
+  end
 end
