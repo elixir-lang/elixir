@@ -159,27 +159,39 @@ defmodule Task.Supervisor do
 
   ## Examples
 
-  With a GenServer
+  Typically, you use async_nolink when there is a reasonable expectation that
+  the task may fail, and you don't want it to take down the caller.
+  For example:
+
       use GenServer
       ...
 
-      def handle_cast(:start_task, state) do
-        Task.Supervisor.async_nolink(TaskTest.TaskSupervisor, fn ->
+      def handle_cast(:start_task, %{ref: ref} = state) when is_reference(ref) do
+        .. task is already running ..
+        {:noreply, state}
+      end
+
+      def handle_cast(:start_task, %{ref: nil} = state) do
+        ref = Task.Supervisor.async_nolink(TaskTest.TaskSupervisor, fn ->
           .. do something ..
         end)
 
-        {:noreply, state}
+        .. genserver remains unblocked and can handle other messages ..
+        {:noreply, %{state | ref: ref}}
       end
 
-      def handle_info({ref, answer}, state) when is_reference(ref) do
+      def handle_info({ref, answer}, %{ref: ref} = state) do
+        # Process.demonitor(ref, [:flush]) removes our reference to the task and
+        # flushes the :DOWN message so :DOWN won't be received on a successful result
         Elixir.Process.demonitor(ref, [:flush]) # Flushes the :DOWN message
         .. do something with the result ..
-        {:noreply, state}
+        {:noreply, %{state | ref: nil}}
       end
 
-      def handle_info({:DOWN, ref, _, _pid, _reason}, state) when is_reference(ref) do
+      def handle_info({:DOWN, ref, :process, _pid, _reason}, %{ref: ref} = state)
+        when is_reference(ref) do
         .. handle the failure of the task ..
-        {:noreply, state}
+        {:noreply, %{state | ref: nil}}
       end
 
   """
