@@ -156,6 +156,32 @@ defmodule Task.Supervisor do
   terminates, the caller's process will always receive a `:DOWN` message
   with the same `ref` value that is held by the task struct. If the task
   terminates normally, the reason in the `:DOWN` message will be `:normal`.
+
+  ## Examples
+
+  With a GenServer
+      use GenServer
+      ...
+
+      def handle_cast(:start_task, state) do
+        Task.Supervisor.async_nolink(TaskTest.TaskSupervisor, fn ->
+          .. do something ..
+        end)
+
+        {:noreply, state}
+      end
+
+      def handle_info({ref, answer}, state) when is_reference(ref) do
+        Elixir.Process.demonitor(ref, [:flush]) # Flushes the :DOWN message
+        .. do something with the result ..
+        {:noreply, state}
+      end
+
+      def handle_info({:DOWN, ref, _, _pid, _reason}, state) when is_reference(ref) do
+        .. handle the failure of the task ..
+        {:noreply, state}
+      end
+
   """
   @spec async_nolink(Supervisor.supervisor(), (() -> any), Keyword.t()) :: Task.t()
   def async_nolink(supervisor, fun, options \\ []) do
