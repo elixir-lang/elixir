@@ -521,6 +521,13 @@ defmodule File do
   the given file.
 
   The file is created if it doesn’t exist. Requires datetime in UTC.
+
+  ## Examples
+
+      File.touch("/tmp/a.txt", {{2018, 1, 30}, {13, 59, 59}})
+      #=> :ok
+      File.touch("/fakedir/b.txt", {{2018, 1, 30}, {13, 59, 59}})
+      {:error, :enoent}
   """
   @spec touch(Path.t(), :calendar.datetime()) :: :ok | {:error, posix}
   def touch(path, time \\ :calendar.universal_time()) do
@@ -543,6 +550,13 @@ defmodule File do
   Same as `touch/2` but raises an exception if it fails.
 
   Returns `:ok` otherwise. Requires datetime in UTC.
+
+  ## Examples
+
+      File.touch!("/tmp/a.txt", {{2018, 1, 30}, {13, 59, 59}})
+      #=> :ok
+      File.touch!("/fakedir/b.txt", {{2018, 1, 30}, {13, 59, 59}})
+      #=> ** (File.Error) could not touch "/fakedir/b.txt": no such file or directory
   """
   @spec touch!(Path.t(), :calendar.datetime()) :: :ok | no_return
   def touch!(path, time \\ :calendar.universal_time()) do
