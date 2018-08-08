@@ -382,8 +382,8 @@ defmodule Mix.Project do
 
     * `:depth` - only return dependencies to the depth level,
       a depth of 1 will only return top-level dependencies
-    * `:parents` - only return dependencies that have the
-      given parents
+    * `:parents` - starts the dependency traversal from the
+      given parents instead of the application root
 
   ## Examples
 
