@@ -378,17 +378,60 @@ defmodule Mix.Project do
   @doc """
   Returns the full path of all dependencies as a map.
 
+  ## Options
+
+    * `:depth` - only return dependencies to the depth level,
+      a depth of 1 will only return top-level dependencies
+    * `:parents` - starts the dependency traversal from the
+      given parents instead of the application root
+
   ## Examples
 
       Mix.Project.deps_paths()
       #=> %{foo: "deps/foo", bar: "custom/path/dep"}
 
   """
-  @spec deps_paths() :: %{optional(atom) => Path.t()}
-  def deps_paths do
-    Enum.reduce(Mix.Dep.cached(), %{}, fn %{app: app, opts: opts}, acc ->
+  @spec deps_paths(keyword) :: %{optional(atom) => Path.t()}
+  def deps_paths(opts \\ []) do
+    all_deps = Mix.Dep.cached()
+    parents = opts[:parents]
+    depth = opts[:depth] || :infinity
+
+    parent_deps =
+      if parents do
+        Enum.filter(all_deps, &(&1.app in parents))
+      else
+        Enum.filter(all_deps, & &1.top_level)
+      end
+
+    deps = deps_paths_depth(all_deps, parent_deps, 1, depth)
+
+    Enum.reduce(deps, %{}, fn %{app: app, opts: opts}, acc ->
       Map.put(acc, app, opts[:dest])
     end)
+  end
+
+  defp deps_paths_depth(_all_deps, deps, depth, depth) do
+    deps
+  end
+
+  defp deps_paths_depth(all_deps, parents, depth, target_depth) do
+    children =
+      Enum.flat_map(all_deps, fn dep ->
+        if dep.app in Enum.map(parents, & &1.app) do
+          dep.deps
+        else
+          []
+        end
+      end)
+
+    new_parents = Enum.uniq(parents ++ children)
+
+    if new_parents == parents do
+      parents
+    else
+      deps_paths_depth(all_deps, new_parents, depth + 1, target_depth)
+    end
   end
 
   @doc """
