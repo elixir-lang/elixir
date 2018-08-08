@@ -880,14 +880,14 @@ defmodule DateTime do
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
   [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
 
-  defp raw_from_iso8601(string, calendar, tz_db_or_config, is_negative_datetime) do
+  defp raw_from_iso8601(string, calendar, tz_db_or_config, is_year_negative) do
     with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
          {offset, ""} <- Calendar.ISO.parse_offset(rest) do
       {year, month, day} = unquote(read_date)
       {hour, minute, second} = unquote(read_time)
-      year = if is_negative_datetime, do: -year, else: year
+      year = if is_year_negative, do: -year, else: year
 
       do_from_iso8601(
         year,
