@@ -196,7 +196,7 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   Q = #elixir_quote{line=Line, file=File, unquote=Unquote,
                     context=Context, generated=Generated},
 
-  Quoted = elixir_quote:quote(Exprs, Binding, Q, ET),
+  Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, ET),
   expand(Quoted, ET);
 
 expand({quote, Meta, [_, _]}, E) ->
