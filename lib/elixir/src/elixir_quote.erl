@@ -1,5 +1,5 @@
 -module(elixir_quote).
--export([escape/3, linify/3, linify_with_context_counter/3, quote/4, has_unquotes/1]).
+-export([escape/3, linify/3, linify_with_context_counter/3, quote/5, has_unquotes/1]).
 -export([dot/5, tail_list/3, list/2]). %% Quote callbacks
 
 -include("elixir.hrl").
@@ -19,6 +19,15 @@ linify(Line, Key, Exprs) when is_integer(Line) ->
 linify_with_context_counter(Line, Var, Exprs) when is_integer(Line) ->
   LinifyMeta = linify_meta(Line, line),
   do_linify(LinifyMeta, Exprs, Var).
+
+do_linify(LinifyMeta, {quote, Meta, [_ | _] = Args}, {Receiver, Counter} = Var)
+    when is_list(Meta) ->
+  NewMeta =
+    case keyfind(context, Meta) == {context, Receiver} of
+      true -> keynew(counter, Meta, Counter);
+      false -> Meta
+    end,
+  do_tuple_linify(LinifyMeta, NewMeta, quote, Args, Var);
 
 do_linify(LinifyMeta, {Left, Meta, Receiver}, {Receiver, Counter} = Var)
     when is_atom(Left), is_list(Meta), Left /= '_' ->
@@ -145,7 +154,7 @@ has_unquotes(_Other) -> false.
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
 escape(Expr, Kind, Unquote) ->
-  quote(Expr, nil, #elixir_quote{
+  do_quote(Expr, #elixir_quote{
     line=true,
     file=nil,
     vars_hygiene=false,
@@ -156,19 +165,20 @@ escape(Expr, Kind, Unquote) ->
 
 %% Quotes an expression and return its quoted Elixir AST.
 
-quote({unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _) ->
+quote(_Meta, {unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
     "wrap it in parens if you want it to work with one-liners">>);
 
-quote(Expr, nil, Q, E) ->
+quote(_Meta, Expr, nil, Q, E) ->
   do_quote(Expr, Q, E);
 
-quote(Expr, Binding, Q, E) ->
+quote(Meta, Expr, Binding, Q, E) ->
   Context = Q#elixir_quote.context,
+  VarMeta = [Pair || {K, _} = Pair <- Meta, K == counter],
 
   Vars = [ {'{}', [],
     [ '=', [], [
-      {'{}', [], [K, [], Context]},
+      {'{}', [], [K, VarMeta, Context]},
       V
     ] ]
   } || {K, V} <- Binding],
@@ -178,14 +188,14 @@ quote(Expr, Binding, Q, E) ->
 
 %% Actual quoting and helpers
 
-do_quote({quote, Meta, [Arg]}, #elixir_quote{unquote=true} = Q, E) ->
+do_quote({quote, Meta, [Arg]}, #elixir_quote{context=Context} = Q, E) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}, E),
-  {'{}', [], [quote, meta(Meta, Q), [TArg]]};
+  {'{}', [], [quote, keystore(context, meta(Meta, Q), Context), [TArg]]};
 
-do_quote({quote, Meta, [Opts, Arg]}, #elixir_quote{unquote=true} = Q, E) ->
+do_quote({quote, Meta, [Opts, Arg]}, #elixir_quote{context=Context} = Q, E) ->
   TOpts = do_quote(Opts, Q, E),
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}, E),
-  {'{}', [], [quote, meta(Meta, Q), [TOpts, TArg]]};
+  {'{}', [], [quote, keystore(context, meta(Meta, Q), Context), [TOpts, TArg]]};
 
 do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _) ->
   Expr;
@@ -204,13 +214,10 @@ do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=t
 %% Vars
 
 do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true, imports_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_import(Left, keydelete(counter, Meta), Q#elixir_quote.context, Q, E);
+  do_quote_import(Left, Meta, Q#elixir_quote.context, Q, E);
 
 do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_tuple(Left, keydelete(counter, Meta), Q#elixir_quote.context, Q, E);
-
-do_quote({Left, Meta, Context}, #elixir_quote{vars_hygiene=true} = Q, E) when is_atom(Left), is_atom(Context) ->
-  do_quote_tuple(Left, keydelete(counter, Meta), Context, Q, E);
+  do_quote_tuple(Left, Meta, Q#elixir_quote.context, Q, E);
 
 %% Unquote
 
@@ -345,8 +352,7 @@ do_quote_import(Name, Meta, ArgsOrAtom, #elixir_quote{imports_hygiene=true} = Q,
   do_quote_tuple(Annotated, Q, E).
 
 do_quote_call(Left, Meta, Expr, Args, Q, E) ->
-  All  = [meta(Meta, Q), Left, {unquote, Meta, [Expr]}, Args,
-          Q#elixir_quote.context],
+  All  = [meta(Meta, Q), Left, {unquote, Meta, [Expr]}, Args, Q#elixir_quote.context],
   TAll = [do_quote(X, Q, E) || X <- All],
   {{'.', Meta, [elixir_quote, dot]}, Meta, TAll}.
 

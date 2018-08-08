@@ -320,7 +320,7 @@ defmodule Mix.Dep.Converger do
   #
   # In this case, the two dependencies do not have a common path and
   # only solution is to merge the environments. We have decided to
-  # perform it explicitly as, opposite to in_upper above, the
+  # perform it automatically as, opposite to in_upper above, the
   # dependencies are never really laid out in the parent tree.
   defp with_matching_only(other, other_opts, _dep, opts, false) do
     other_only = Keyword.get(other_opts, :only)

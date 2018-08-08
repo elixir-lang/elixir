@@ -175,7 +175,8 @@ defmodule Kernel.QuoteTest do
       {:foo, [], Kernel.QuoteTest}
     ]
 
-    assert quote(bind_quoted: [foo: 1 + 2], do: foo) == {:__block__, [], args}
+    quoted = quote(bind_quoted: [foo: 1 + 2], do: foo)
+    assert quoted == {:__block__, [], args}
   end
 
   test "literals" do
@@ -286,7 +287,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, :will_raise, 2, [file: ^file, line: 266]} | _] = __STACKTRACE__
+        assert [{^mod, :will_raise, 2, [file: ^file, line: 267]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -299,7 +300,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, _, _, [file: ^file, line: 297]} | _] = __STACKTRACE__
+        assert [{^mod, _, _, [file: ^file, line: 298]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -386,8 +387,28 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
             end) == 1
   end
 
-  test "nested quote" do
+  test "nested quoted" do
     defmodule NestedQuote do
+      defmacro __using__(_) do
+        quote unquote: false do
+          arg = quote(do: arg)
+
+          def test(arg) do
+            unquote(arg)
+          end
+        end
+      end
+    end
+
+    defmodule UseNestedQuote do
+      use NestedQuote
+    end
+
+    assert UseNestedQuote.test("foo") == "foo"
+  end
+
+  test "nested bind quoted" do
+    defmodule NestedBindQuoted do
       defmacrop macro(arg) do
         quote bind_quoted: [arg: arg] do
           quote bind_quoted: [arg: arg], do: String.duplicate(arg, 2)
@@ -403,11 +424,11 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
       end
     end
 
-    defmodule UseNestedQuote do
-      use NestedQuote
+    defmodule UseNestedBindQuoted do
+      use NestedBindQuoted
     end
 
-    assert UseNestedQuote.test() == "foofoo"
+    assert UseNestedBindQuoted.test() == "foofoo"
   end
 end
 
