@@ -330,6 +330,9 @@ defmodule NaiveDateTime do
   Returns the given naive datetime with the microsecond field truncated to the
   given precision (`:microsecond`, `:millisecond` or `:second`).
 
+  The given naive datetime is returned unchanged if it already has lower precision
+  than the given precision.
+
   ## Examples
 
       iex> NaiveDateTime.truncate(~N[2017-11-06 00:23:51.123456], :microsecond)
