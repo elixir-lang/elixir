@@ -754,6 +754,9 @@ defmodule DateTime do
   Returns the given datetime with the microsecond field truncated to the given
   precision (`:microsecond`, `millisecond` or `:second`).
 
+  The given datetime is returned unchanged if it already has lower precision than
+  the given precision.
+
   ## Examples
 
       iex> dt1 = %DateTime{year: 2017, month: 11, day: 7, zone_abbr: "CET",
