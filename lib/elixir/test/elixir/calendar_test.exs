@@ -217,11 +217,47 @@ defmodule NaiveDateTimeTest do
              }
   end
 
+  test "add/2 with datetime" do
+    dt = %DateTime{
+      year: 2000,
+      month: 2,
+      day: 29,
+      zone_abbr: "CET",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {0, 0},
+      utc_offset: 3600,
+      std_offset: 0,
+      time_zone: "Europe/Warsaw"
+    }
+
+    assert NaiveDateTime.add(dt, 21, :second) == ~N[2000-02-29 23:00:28]
+  end
+
   test "diff/2 with other calendars" do
     assert ~N[2000-01-01 12:34:15.123456]
            |> NaiveDateTime.convert!(Calendar.Holocene)
            |> NaiveDateTime.add(10, :second)
            |> NaiveDateTime.diff(~N[2000-01-01 12:34:15.123456]) == 10
+  end
+
+  test "diff/2 with datetime" do
+    dt = %DateTime{
+      year: 2000,
+      month: 2,
+      day: 29,
+      zone_abbr: "CET",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {0, 0},
+      utc_offset: 3600,
+      std_offset: 0,
+      time_zone: "Europe/Warsaw"
+    }
+
+    assert NaiveDateTime.diff(%{dt | second: 57}, dt, :second) == 50
   end
 
   test "convert/2" do
@@ -267,6 +303,63 @@ defmodule NaiveDateTimeTest do
 
     assert NaiveDateTime.truncate(~N[2017-11-06 00:23:51.123456], :second) ==
              ~N[2017-11-06 00:23:51]
+  end
+
+  test "truncate/2 with datetime" do
+    dt = %DateTime{
+      year: 2000,
+      month: 2,
+      day: 29,
+      zone_abbr: "CET",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {3000, 6},
+      utc_offset: 3600,
+      std_offset: 0,
+      time_zone: "Europe/Warsaw"
+    }
+
+    assert NaiveDateTime.truncate(dt, :millisecond) == ~N[2000-02-29 23:00:07.003]
+    assert catch_error(NaiveDateTime.truncate(~T[00:00:00.000000], :millisecond))
+  end
+
+  test "to_date/2 with datetime" do
+    dt = %DateTime{
+      year: 2000,
+      month: 2,
+      day: 29,
+      zone_abbr: "CET",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {3000, 6},
+      utc_offset: 3600,
+      std_offset: 0,
+      time_zone: "Europe/Warsaw"
+    }
+
+    assert NaiveDateTime.to_date(dt) == ~D[2000-02-29]
+    assert catch_error(NaiveDateTime.to_date(~D[2000-02-29]))
+  end
+
+  test "to_time/2 with datetime" do
+    dt = %DateTime{
+      year: 2000,
+      month: 2,
+      day: 29,
+      zone_abbr: "CET",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {3000, 6},
+      utc_offset: 3600,
+      std_offset: 0,
+      time_zone: "Europe/Warsaw"
+    }
+
+    assert NaiveDateTime.to_time(dt) == ~T[23:00:07.003000]
+    assert catch_error(NaiveDateTime.to_time(~T[00:00:00.000000]))
   end
 end
 

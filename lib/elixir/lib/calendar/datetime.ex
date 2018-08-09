@@ -12,11 +12,6 @@ defmodule DateTime do
   are structural and based on the DateTime struct fields. For proper
   comparison between datetimes, use the `compare/2` function.
 
-  The functions on this module work with the `DateTime` struct as well
-  as any struct that contains the same fields as the `DateTime` struct.
-  Such functions expect `t:Calendar.datetime/0` in their typespecs
-  (instead of `t:t/0`).
-
   Developers should avoid creating the `DateTime` struct directly
   and instead rely on the functions provided by this module as
   well as the ones in 3rd party calendar libraries.
@@ -272,10 +267,10 @@ defmodule DateTime do
       -17412508655
 
   """
-  @spec to_unix(Calendar.datetime(), System.time_unit()) :: integer
+  @spec to_unix(t, System.time_unit()) :: integer
   def to_unix(datetime, unit \\ :second)
 
-  def to_unix(%{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
+  def to_unix(%DateTime{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
     {days, fraction} = to_iso_days(datetime)
     unix_units = Calendar.ISO.iso_days_to_unit({days - @unix_days, fraction}, unit)
     offset_units = System.convert_time_unit(utc_offset + std_offset, :second, unit)
@@ -413,10 +408,10 @@ defmodule DateTime do
       "20000229T230007-0400"
 
   """
-  @spec to_iso8601(Calendar.datetime(), :extended | :basic) :: String.t()
+  @spec to_iso8601(t, :extended | :basic) :: String.t()
   def to_iso8601(datetime, format \\ :extended)
 
-  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format)
+  def to_iso8601(%DateTime{calendar: Calendar.ISO} = datetime, format)
       when format in [:extended, :basic] do
     %{
       year: year,
@@ -448,7 +443,7 @@ defmodule DateTime do
     )
   end
 
-  def to_iso8601(%{calendar: _} = datetime, format) when format in [:extended, :basic] do
+  def to_iso8601(%DateTime{calendar: _} = datetime, format) when format in [:extended, :basic] do
     datetime
     |> convert!(Calendar.ISO)
     |> to_iso8601(format)
@@ -631,8 +626,8 @@ defmodule DateTime do
       "-0100-12-19 03:20:31+01:00 CET Europe/Stockholm"
 
   """
-  @spec to_string(Calendar.datetime()) :: String.t()
-  def to_string(%{calendar: calendar} = datetime) do
+  @spec to_string(t) :: String.t()
+  def to_string(%DateTime{calendar: calendar} = datetime) do
     %{
       year: year,
       month: month,
@@ -685,10 +680,10 @@ defmodule DateTime do
 
   """
   @doc since: "1.4.0"
-  @spec compare(Calendar.datetime(), Calendar.datetime()) :: :lt | :eq | :gt
+  @spec compare(t, t) :: :lt | :eq | :gt
   def compare(
-        %{calendar: _, utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
-        %{calendar: _, utc_offset: utc_offset2, std_offset: std_offset2} = datetime2
+        %DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
+        %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2
       ) do
     {days1, {parts1, ppd1}} =
       datetime1
@@ -736,10 +731,10 @@ defmodule DateTime do
 
   """
   @doc since: "1.5.0"
-  @spec diff(Calendar.datetime(), Calendar.datetime(), System.time_unit()) :: integer()
+  @spec diff(t, t, System.time_unit()) :: integer()
   def diff(
-        %{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
-        %{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2,
+        %DateTime{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
+        %DateTime{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2,
         unit \\ :second
       ) do
     naive_diff =
@@ -808,46 +803,13 @@ defmodule DateTime do
 
   """
   @doc since: "1.5.0"
-  @spec convert(Calendar.datetime(), Calendar.calendar()) ::
-          {:ok, t} | {:error, :incompatible_calendars}
+  @spec convert(t, Calendar.calendar()) :: {:ok, t} | {:error, :incompatible_calendars}
 
-  # Keep it multiline for proper function clause errors.
-  def convert(
-        %{
-          calendar: calendar,
-          year: year,
-          month: month,
-          day: day,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          time_zone: time_zone,
-          zone_abbr: zone_abbr,
-          utc_offset: utc_offset,
-          std_offset: std_offset
-        },
-        calendar
-      ) do
-    datetime = %DateTime{
-      calendar: calendar,
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      time_zone: time_zone,
-      zone_abbr: zone_abbr,
-      utc_offset: utc_offset,
-      std_offset: std_offset
-    }
-
+  def convert(%DateTime{calendar: calendar} = datetime, calendar) do
     {:ok, datetime}
   end
 
-  def convert(%{calendar: dt_calendar, microsecond: {_, precision}} = datetime, calendar) do
+  def convert(%DateTime{calendar: dt_calendar, microsecond: {_, precision}} = datetime, calendar) do
     if Calendar.compatible_calendars?(dt_calendar, calendar) do
       result_datetime =
         datetime
@@ -883,7 +845,7 @@ defmodule DateTime do
 
   """
   @doc since: "1.5.0"
-  @spec convert!(Calendar.datetime(), Calendar.calendar()) :: t | no_return
+  @spec convert!(t, Calendar.calendar()) :: t | no_return
   def convert!(datetime, calendar) do
     case convert(datetime, calendar) do
       {:ok, value} ->
