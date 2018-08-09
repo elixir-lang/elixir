@@ -28,11 +28,6 @@ defmodule NaiveDateTime do
   `NaiveDateTime` is not validated against a time zone, such errors
   would go unnoticed.
 
-  The functions of this module work with the `NaiveDateTime` struct as well
-  as any struct that contains the same fields as the `NaiveDateTime` struct,
-  such as `DateTime`. Such functions expect
-  `t:Calendar.naive_datetime/0` in their typespecs (instead of `t:t/0`).
-
   Developers should avoid creating the NaiveDateTime structs directly
   and instead, rely on the functions provided by this module as well
   as the ones in 3rd party calendar libraries.
@@ -267,12 +262,24 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63_579_428_950)
       ~N[2014-10-02 00:29:10]
 
+  Passing a `Datetime` automatically converts it to `NaiveDateTime`,
+  discarding the timezone information:
+
+      iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
+      ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+      iex> NaiveDateTime.add(dt, 21, :second)
+      ~N[2000-02-29 23:00:28]
+
   """
   @doc since: "1.4.0"
-  @spec add(t, integer, System.time_unit()) :: t
-  def add(%NaiveDateTime{} = naive_datetime, integer, unit \\ :second)
+  @spec add(Calendar.naive_datetime(), integer, System.time_unit()) :: t
+  def add(
+        %{microsecond: {_, precision}, calendar: calendar} = naive_datetime,
+        integer,
+        unit \\ :second
+      )
       when is_integer(integer) do
-    %{microsecond: {_, precision}, calendar: calendar} = naive_datetime
     ppd = System.convert_time_unit(86400, :second, unit)
 
     naive_datetime
@@ -308,13 +315,13 @@ defmodule NaiveDateTime do
 
   """
   @doc since: "1.4.0"
-  @spec diff(t, t, System.time_unit()) :: integer
+  @spec diff(Calendar.naive_datetime(), Calendar.naive_datetime(), System.time_unit()) :: integer
   def diff(
-        %NaiveDateTime{} = naive_datetime1,
-        %NaiveDateTime{} = naive_datetime2,
+        %{calendar: calendar1} = naive_datetime1,
+        %{calendar: calendar2} = naive_datetime2,
         unit \\ :second
       ) do
-    if not Calendar.compatible_calendars?(naive_datetime1.calendar, naive_datetime2.calendar) do
+    if not Calendar.compatible_calendars?(calendar1, calendar2) do
       raise ArgumentError,
             "cannot calculate the difference between #{inspect(naive_datetime1)} and " <>
               "#{inspect(naive_datetime2)} because their calendars are not compatible " <>
@@ -351,6 +358,31 @@ defmodule NaiveDateTime do
     %{naive_datetime | microsecond: Calendar.truncate(microsecond, precision)}
   end
 
+  def truncate(
+        %{
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond
+        },
+        precision
+      ) do
+    %NaiveDateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: Calendar.truncate(microsecond, precision)
+    }
+  end
+
   @doc """
   Converts a `NaiveDateTime` into a `Date`.
 
@@ -363,8 +395,21 @@ defmodule NaiveDateTime do
       ~D[2002-01-13]
 
   """
-  @spec to_date(t) :: Date.t()
+  @spec to_date(Calendar.naive_datetime()) :: Date.t()
   def to_date(%NaiveDateTime{year: year, month: month, day: day, calendar: calendar}) do
+    %Date{year: year, month: month, day: day, calendar: calendar}
+  end
+
+  def to_date(%{
+        year: year,
+        month: month,
+        day: day,
+        calendar: calendar,
+        hour: _,
+        minute: _,
+        second: _,
+        microsecond: _
+      }) do
     %Date{year: year, month: month, day: day, calendar: calendar}
   end
 
@@ -380,7 +425,7 @@ defmodule NaiveDateTime do
       ~T[23:00:07]
 
   """
-  @spec to_time(t) :: Time.t()
+  @spec to_time(Calendar.naive_datetime()) :: Time.t()
   def to_time(%NaiveDateTime{} = naive_datetime) do
     %{
       hour: hour,
@@ -390,6 +435,25 @@ defmodule NaiveDateTime do
       calendar: calendar
     } = naive_datetime
 
+    %Time{
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      calendar: calendar
+    }
+  end
+
+  def to_time(%{
+        year: _,
+        month: _,
+        day: _,
+        calendar: calendar,
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond
+      }) do
     %Time{
       hour: hour,
       minute: minute,
