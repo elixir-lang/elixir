@@ -27,17 +27,17 @@ defmodule FakeTimeZoneDatabase do
   }
 
   @spec by_utc(Calendar.naive_datetime(), Calendar.time_zone()) ::
-          {:ok, TimeZoneDatabase.light_time_zone_period()} | {:error, :time_zone_not_found}
+          {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
   @impl true
   def by_utc(naive_datetime, time_zone) do
     do_by_utc(time_zone, NaiveDateTime.to_erl(naive_datetime))
   end
 
   @spec by_wall(Calendar.naive_datetime(), Calendar.time_zone()) ::
-          {:single, TimeZoneDatabase.light_time_zone_period()}
-          | {:ambiguous, TimeZoneDatabase.light_time_zone_period(),
-             TimeZoneDatabase.light_time_zone_period()}
-          | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
+          {:single, TimeZoneDatabase.time_zone_period()}
+          | {:ambiguous, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
+          | {:gap, TimeZoneDatabase.time_zone_period_with_wall_limits(),
+             TimeZoneDatabase.time_zone_period_with_wall_limits()}
           | {:error, :time_zone_not_found}
   @impl true
   def by_wall(naive_datetime, time_zone) do
@@ -47,13 +47,13 @@ defmodule FakeTimeZoneDatabase do
   defp do_by_utc("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 3, 25}, {1, 0, 0}} and
               erl_datetime < {{2018, 10, 28}, {3, 0, 0}} do
-    {:ok, @time_zone_period_cph_summer_2018 |> to_light_period}
+    {:ok, @time_zone_period_cph_summer_2018 |> remove_wall_limits_from_period}
   end
 
   defp do_by_utc("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} and
               erl_datetime < {{2019, 3, 31}, {2, 0, 0}} do
-    {:ok, @time_zone_period_cph_winter_2018_2019 |> to_light_period}
+    {:ok, @time_zone_period_cph_winter_2018_2019 |> remove_wall_limits_from_period}
   end
 
   defp do_by_utc("Europe/Copenhagen", erl_datetime)
@@ -87,26 +87,26 @@ defmodule FakeTimeZoneDatabase do
   defp do_by_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime < {{2018, 10, 28}, {3, 0, 0}} and
               erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} do
-    {:ambiguous, @time_zone_period_cph_summer_2018 |> to_light_period,
-     @time_zone_period_cph_winter_2018_2019 |> to_light_period}
+    {:ambiguous, @time_zone_period_cph_summer_2018 |> remove_wall_limits_from_period,
+     @time_zone_period_cph_winter_2018_2019 |> remove_wall_limits_from_period}
   end
 
   defp do_by_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 3, 25}, {3, 0, 0}} and
               erl_datetime < {{2018, 10, 28}, {3, 0, 0}} do
-    {:single, @time_zone_period_cph_summer_2018 |> to_light_period}
+    {:single, @time_zone_period_cph_summer_2018 |> remove_wall_limits_from_period}
   end
 
   defp do_by_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} and
               erl_datetime < {{2019, 3, 31}, {2, 0, 0}} do
-    {:single, @time_zone_period_cph_winter_2018_2019 |> to_light_period}
+    {:single, @time_zone_period_cph_winter_2018_2019 |> remove_wall_limits_from_period}
   end
 
   defp do_by_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2019, 3, 31}, {3, 0, 0}} and
               erl_datetime < {{2019, 10, 27}, {3, 0, 0}} do
-    {:single, @time_zone_period_cph_summer_2019 |> to_light_period}
+    {:single, @time_zone_period_cph_summer_2019 |> remove_wall_limits_from_period}
   end
 
   defp do_by_wall("Europe/Copenhagen", erl_datetime)
@@ -242,9 +242,9 @@ defmodule FakeTimeZoneDatabase do
     {{2018, 12, 28}, {0, 0, 0}}
   end
 
-  @spec to_light_period(TimeZoneDatabase.time_zone_period()) ::
-          TimeZoneDatabase.light_time_zone_period()
-  defp to_light_period(full_period) do
+  @spec remove_wall_limits_from_period(TimeZoneDatabase.time_zone_period_with_wall_limits()) ::
+          TimeZoneDatabase.time_zone_period()
+  defp remove_wall_limits_from_period(full_period) do
     Map.drop(full_period, [:from_wall, :until_wall])
   end
 end

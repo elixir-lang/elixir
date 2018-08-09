@@ -18,14 +18,23 @@ defmodule TimeZoneDatabase do
   @typedoc """
   A period where a certain combination of UTC offset, standard offset and zone
   abbreviation is in effect.
-
-  `from_utc` and `from_wall` is inclusive while `until_utc` and `until_wall` is
-  exclusive. Eg. if a period from {{2015, 3, 29}, {1, 0, 0}} and until
-  {{2015, 10, 25}, {1, 0, 0}}, the period includes and begins from the begining
-  of {{2015, 3, 29}, {1, 0, 0}} and lasts until just before
-  {{2015, 10, 25}, {1, 0, 0}}.
   """
   @type time_zone_period :: %{
+          utc_offset: Calendar.utc_offset(),
+          std_offset: Calendar.std_offset(),
+          zone_abbr: Calendar.zone_abbr()
+        }
+
+  @typedoc """
+  Like `time_zone_period`, but with two added fields indicating when the period
+  begins and ends. In wall time. The fields are `from_wall` and `until_wall`.
+
+  `from_wall` is inclusive. `until_wall` is exclusive. Eg. if a period is from
+  2015-03-29 01:00:00 and until 2015-10-25 01:00:00, the period includes and
+  begins from the begining of 2015-03-29 01:00:00 and lasts until just before
+  2015-10-25 01:00:00.
+  """
+  @type time_zone_period_with_wall_limits :: %{
           utc_offset: Calendar.utc_offset(),
           std_offset: Calendar.std_offset(),
           zone_abbr: Calendar.zone_abbr(),
@@ -33,21 +42,12 @@ defmodule TimeZoneDatabase do
           until_wall: time_zone_period_limit()
         }
 
-  @typedoc """
-  Like `time_zone_period`, but without `from_wall` and `until_wall`.
-  """
-  @type light_time_zone_period :: %{
-          utc_offset: Calendar.utc_offset(),
-          std_offset: Calendar.std_offset(),
-          zone_abbr: Calendar.zone_abbr()
-        }
-
   @doc """
   Takes a time zone name and a point in time for UTC and returns a
   `time_zone_period` for that point in time.
   """
   @callback by_utc(Calendar.naive_datetime(), Calendar.time_zone()) ::
-              {:ok, light_time_zone_period} | {:error, :time_zone_not_found}
+              {:ok, time_zone_period} | {:error, :time_zone_not_found}
 
   @doc """
   When the provided `datetime` is ambiguous a tuple with `:ambiguous` and a list of two possible
@@ -61,9 +61,9 @@ defmodule TimeZoneDatabase do
   and the `time_zone_period` is returned.
   """
   @callback by_wall(Calendar.naive_datetime(), Calendar.time_zone()) ::
-              {:single, light_time_zone_period}
-              | {:ambiguous, light_time_zone_period, light_time_zone_period}
-              | {:gap, time_zone_period, time_zone_period}
+              {:single, time_zone_period}
+              | {:ambiguous, time_zone_period, time_zone_period}
+              | {:gap, time_zone_period_with_wall_limits, time_zone_period_with_wall_limits}
               | {:error, :time_zone_not_found}
 
   @doc """
@@ -120,10 +120,10 @@ defmodule TimeZoneDatabaseClient do
           Calendar.time_zone(),
           tz_db_or_config
         ) ::
-          {:single, TimeZoneDatabase.light_time_zone_period()}
-          | {:ambiguous, TimeZoneDatabase.light_time_zone_period(),
-             TimeZoneDatabase.light_time_zone_period()}
-          | {:gap, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
+          {:single, TimeZoneDatabase.time_zone_period()}
+          | {:ambiguous, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
+          | {:gap, TimeZoneDatabase.time_zone_period_with_wall_limits(),
+             TimeZoneDatabase.time_zone_period_with_wall_limits()}
           | {:error, :time_zone_not_found}
           | {:error, :no_time_zone_database}
   def by_wall(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
