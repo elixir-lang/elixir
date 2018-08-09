@@ -122,6 +122,10 @@ defmodule MacroTest do
 
       assert eval_escaped(contents) == [1, 2, 3, 4, 5]
     end
+
+    test "does not add context to quote" do
+      assert Macro.escape({:quote, [], [[do: :foo]]}) == {:{}, [], [:quote, [], [[do: :foo]]]}
+    end
   end
 
   describe "expand_once/2" do
