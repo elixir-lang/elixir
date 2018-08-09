@@ -2108,7 +2108,7 @@ defmodule String do
   @doc """
   Converts a string into a charlist.
 
-  Specifically, this functions takes a UTF-8 encoded binary and returns a list of its integer
+  Specifically, this function takes a UTF-8 encoded binary and returns a list of its integer
   codepoints. It is similar to `codepoints/1` except that the latter returns a list of codepoints as
   strings.
 
