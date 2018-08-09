@@ -46,7 +46,7 @@ defmodule TimeZoneDatabase do
   Takes a time zone name and a point in time for UTC and returns a
   `time_zone_period` for that point in time.
   """
-  @callback by_utc(Calendar.naive_datetime(), Calendar.time_zone()) ::
+  @callback time_zone_period_from_utc_iso_days(Calendar.iso_days(), Calendar.time_zone()) ::
               {:ok, time_zone_period} | {:error, :time_zone_not_found}
 
   @doc """
@@ -60,7 +60,7 @@ defmodule TimeZoneDatabase do
   If there is only a single possible period for the provided `datetime`, the a tuple with `:single`
   and the `time_zone_period` is returned.
   """
-  @callback by_wall(Calendar.naive_datetime(), Calendar.time_zone()) ::
+  @callback time_zone_periods_from_wall_datetime(Calendar.naive_datetime(), Calendar.time_zone()) ::
               {:single, time_zone_period}
               | {:ambiguous, time_zone_period, time_zone_period}
               | {:gap, time_zone_period_with_wall_limits, time_zone_period_with_wall_limits}
@@ -115,7 +115,7 @@ defmodule TimeZoneDatabaseClient do
   end
 
   @doc false
-  @spec by_wall(
+  @spec time_zone_periods_from_wall_datetime(
           Calendar.naive_datetime(),
           Calendar.time_zone(),
           tz_db_or_config
@@ -126,24 +126,32 @@ defmodule TimeZoneDatabaseClient do
              TimeZoneDatabase.time_zone_period_with_wall_limits()}
           | {:error, :time_zone_not_found}
           | {:error, :no_time_zone_database}
-  def by_wall(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
+  def time_zone_periods_from_wall_datetime(
+        %{calendar: Calendar.ISO} = naive_datetime,
+        time_zone,
+        tz_db_or_config
+      ) do
     with {:ok, time_zone_database} <- time_zone_database_from_tz_db_or_config(tz_db_or_config) do
-      time_zone_database.by_wall(naive_datetime, time_zone)
+      time_zone_database.time_zone_periods_from_wall_datetime(naive_datetime, time_zone)
     end
   end
 
   @doc false
-  @spec by_utc(
-          Calendar.naive_datetime(),
+  @spec time_zone_period_from_utc_iso_days(
+          Calendar.iso_days(),
           Calendar.time_zone(),
           tz_db_or_config
         ) ::
           {:ok, TimeZoneDatabase.time_zone_period()}
           | {:error, :time_zone_not_found}
           | {:error, :no_time_zone_database}
-  def by_utc(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
+  def time_zone_period_from_utc_iso_days(
+        iso_days,
+        time_zone,
+        tz_db_or_config
+      ) do
     with {:ok, time_zone_database} <- time_zone_database_from_tz_db_or_config(tz_db_or_config) do
-      time_zone_database.by_utc(naive_datetime, time_zone)
+      time_zone_database.time_zone_period_from_utc_iso_days(iso_days, time_zone)
     end
   end
 

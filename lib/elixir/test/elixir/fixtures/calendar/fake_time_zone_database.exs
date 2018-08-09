@@ -26,37 +26,38 @@ defmodule FakeTimeZoneDatabase do
     zone_abbr: "CEST"
   }
 
-  @spec by_utc(Calendar.naive_datetime(), Calendar.time_zone()) ::
+  @spec time_zone_period_from_utc_iso_days(Calendar.iso_days(), Calendar.time_zone()) ::
           {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
   @impl true
-  def by_utc(naive_datetime, time_zone) do
-    do_by_utc(time_zone, NaiveDateTime.to_erl(naive_datetime))
+  def time_zone_period_from_utc_iso_days(iso_days, time_zone) do
+    {:ok, ndt} = naive_datetime_from_iso_days(iso_days)
+    time_zone_periods_from_utc(time_zone, NaiveDateTime.to_erl(ndt))
   end
 
-  @spec by_wall(Calendar.naive_datetime(), Calendar.time_zone()) ::
+  @spec time_zone_periods_from_wall_datetime(Calendar.naive_datetime(), Calendar.time_zone()) ::
           {:single, TimeZoneDatabase.time_zone_period()}
           | {:ambiguous, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
           | {:gap, TimeZoneDatabase.time_zone_period_with_wall_limits(),
              TimeZoneDatabase.time_zone_period_with_wall_limits()}
           | {:error, :time_zone_not_found}
   @impl true
-  def by_wall(naive_datetime, time_zone) do
-    do_by_wall(time_zone, NaiveDateTime.to_erl(naive_datetime))
+  def time_zone_periods_from_wall_datetime(naive_datetime, time_zone) do
+    time_zone_periods_from_wall(time_zone, NaiveDateTime.to_erl(naive_datetime))
   end
 
-  defp do_by_utc("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_utc("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 3, 25}, {1, 0, 0}} and
               erl_datetime < {{2018, 10, 28}, {3, 0, 0}} do
     {:ok, @time_zone_period_cph_summer_2018 |> remove_wall_limits_from_period}
   end
 
-  defp do_by_utc("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_utc("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} and
               erl_datetime < {{2019, 3, 31}, {2, 0, 0}} do
     {:ok, @time_zone_period_cph_winter_2018_2019 |> remove_wall_limits_from_period}
   end
 
-  defp do_by_utc("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_utc("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2015, 3, 29}, {1, 0, 0}} and
               erl_datetime < {{2015, 10, 25}, {1, 0, 0}} do
     {:ok,
@@ -67,7 +68,7 @@ defmodule FakeTimeZoneDatabase do
      }}
   end
 
-  defp do_by_utc("America/Los_Angeles", erl_datetime)
+  defp time_zone_periods_from_utc("America/Los_Angeles", erl_datetime)
        when erl_datetime >= {{2018, 3, 11}, {10, 0, 0}} and
               erl_datetime < {{2018, 11, 4}, {9, 0, 0}} do
     {:ok,
@@ -78,38 +79,38 @@ defmodule FakeTimeZoneDatabase do
      }}
   end
 
-  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2019, 3, 31}, {2, 0, 0}} and
               erl_datetime < {{2019, 3, 31}, {3, 0, 0}} do
     {:gap, @time_zone_period_cph_winter_2018_2019, @time_zone_period_cph_summer_2019}
   end
 
-  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime < {{2018, 10, 28}, {3, 0, 0}} and
               erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} do
     {:ambiguous, @time_zone_period_cph_summer_2018 |> remove_wall_limits_from_period,
      @time_zone_period_cph_winter_2018_2019 |> remove_wall_limits_from_period}
   end
 
-  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 3, 25}, {3, 0, 0}} and
               erl_datetime < {{2018, 10, 28}, {3, 0, 0}} do
     {:single, @time_zone_period_cph_summer_2018 |> remove_wall_limits_from_period}
   end
 
-  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} and
               erl_datetime < {{2019, 3, 31}, {2, 0, 0}} do
     {:single, @time_zone_period_cph_winter_2018_2019 |> remove_wall_limits_from_period}
   end
 
-  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2019, 3, 31}, {3, 0, 0}} and
               erl_datetime < {{2019, 10, 27}, {3, 0, 0}} do
     {:single, @time_zone_period_cph_summer_2019 |> remove_wall_limits_from_period}
   end
 
-  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2015, 3, 29}, {3, 0, 0}} and
               erl_datetime < {{2015, 10, 25}, {3, 0, 0}} do
     {:single,
@@ -120,7 +121,7 @@ defmodule FakeTimeZoneDatabase do
      }}
   end
 
-  defp do_by_wall("Europe/Copenhagen", erl_datetime)
+  defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2090, 3, 26}, {3, 0, 0}} and
               erl_datetime < {{2090, 10, 29}, {3, 0, 0}} do
     {:single,
@@ -131,7 +132,7 @@ defmodule FakeTimeZoneDatabase do
      }}
   end
 
-  defp do_by_wall(time_zone, _) when time_zone != "Europe/Copenhagen" do
+  defp time_zone_periods_from_wall(time_zone, _) when time_zone != "Europe/Copenhagen" do
     {:error, :time_zone_not_found}
   end
 
@@ -246,5 +247,12 @@ defmodule FakeTimeZoneDatabase do
           TimeZoneDatabase.time_zone_period()
   defp remove_wall_limits_from_period(full_period) do
     Map.drop(full_period, [:from_wall, :until_wall])
+  end
+
+  defp naive_datetime_from_iso_days(iso_days) do
+    {year, month, day, hour, minute, second, microsecond} =
+      Calendar.ISO.naive_datetime_from_iso_days(iso_days)
+
+    NaiveDateTime.new(year, month, day, hour, minute, second, microsecond)
   end
 end

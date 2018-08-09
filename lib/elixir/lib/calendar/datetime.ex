@@ -246,7 +246,11 @@ defmodule DateTime do
   end
 
   def from_naive(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
-    case TimeZoneDatabaseClient.by_wall(naive_datetime, time_zone, tz_db_or_config) do
+    case TimeZoneDatabaseClient.time_zone_periods_from_wall_datetime(
+           naive_datetime,
+           time_zone,
+           tz_db_or_config
+         ) do
       {:single, period} ->
         do_from_naive_check_leap_second(
           naive_datetime,
@@ -435,9 +439,8 @@ defmodule DateTime do
     end
   end
 
-  # Takes a datetime and in case it is is on the 61st second (:60) it will
-  # check if it is a known leap second.
-  # All datetimes with non ISO calendars return :ok
+  # Takes a datetime and in case it is is on the 61st second (60) it will check
+  # if it is a known leap second. All datetimes with non ISO calendars return :ok
   @spec validate_positive_leap_second(
           Calendar.datetime(),
           TimeZoneDatabaseClient.tz_db_or_config()
@@ -447,7 +450,11 @@ defmodule DateTime do
     :ok
   end
 
-  defp validate_positive_leap_second(dt, tz_db_or_config) do
+  defp validate_positive_leap_second(
+         %{utc_offset: utc_offset, std_offset: std_offset} = dt,
+         tz_db_or_config
+       )
+       when utc_offset + std_offset == 0 do
     utc_dt = to_zero_total_offset(dt)
 
     case TimeZoneDatabaseClient.is_leap_second(utc_dt, tz_db_or_config) do
@@ -463,7 +470,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Takes a `DateTime` and a time zone.
+  Changes the time zone of a `DateTime`.
 
   Returns a `DateTime` for the same point in time, but instead at the time zone
   provided.
@@ -481,27 +488,53 @@ defmodule DateTime do
   """
   @doc since: "1.8.0-dev"
   @spec shift_zone(t, Calendar.time_zone(), TimeZoneDatabaseClient.tz_db_or_config()) ::
-          {:ok, t} | {:error, :time_zone_not_found} | {:error, :incompatible_calendars}
+          {:ok, t} | {:error, :time_zone_not_found} | {:error, atom}
   def shift_zone(datetime, time_zone, tz_db_or_config \\ :from_config)
 
   def shift_zone(%{time_zone: time_zone} = datetime, time_zone, _) do
-    # When the desired time_zone is the same as the existing time_zone just
-    # return the passed datetime unchanged.
+    # When the desired time_zone is the same as the existing time_zone just return it unchanged.
     {:ok, datetime}
   end
 
+  def shift_zone(%{second: 60, calendar: Calendar.ISO} = datetime, time_zone, tz_db_or_config) do
+    # If second is 60 (positive leap second) adjust it to 59, calculate, then adjust back to 60.
+    case shift_zone(%{datetime | second: 59}, time_zone, tz_db_or_config) do
+      {:ok, %{second: second} = dt_result} when second == 59 ->
+        {:ok, %{dt_result | second: 60}}
+
+      {:ok, _} ->
+        {:error, :non_whole_minute_offsets_not_supported_for_leap_seconds}
+
+      error ->
+        error
+    end
+  end
+
   def shift_zone(
-        %{calendar: Calendar.ISO} = datetime,
+        %{
+          calendar: Calendar.ISO,
+          std_offset: std_offset,
+          utc_offset: utc_offset,
+          microsecond: {_, microsecond_precision}
+        } = datetime,
         time_zone,
         tz_db_or_config
       ) do
-    in_utc = to_zero_total_offset(datetime)
+    datetime_in_utc_iso_days =
+      datetime
+      |> to_iso_days()
+      |> apply_tz_offset(utc_offset + std_offset)
 
-    case TimeZoneDatabaseClient.by_utc(in_utc, time_zone, tz_db_or_config) do
+    case TimeZoneDatabaseClient.time_zone_period_from_utc_iso_days(
+           datetime_in_utc_iso_days,
+           time_zone,
+           tz_db_or_config
+         ) do
       {:ok, period} ->
         naive_datetime =
-          in_utc
-          |> naive_add_preserve_second_60(period.utc_offset + period.std_offset)
+          datetime_in_utc_iso_days
+          |> apply_tz_offset(-period.utc_offset - period.std_offset)
+          |> iso_days_to_iso_naive_datetime(microsecond_precision)
 
         do_from_naive(
           naive_datetime,
@@ -525,32 +558,22 @@ defmodule DateTime do
     end
   end
 
-  # To be used for shifting zones while keeping leap seconds
-  @spec naive_add_preserve_second_60(Calendar.naive_datetime(), integer()) ::
-          Calendar.naive_datetime()
-  defp naive_add_preserve_second_60(%{second: 60, calendar: Calendar.ISO} = ndt, seconds_to_add)
-       when rem(seconds_to_add, 60) == 0 do
-    ndt_second_59 =
-      %{ndt | second: 59}
-      |> naive_add_preserve_second_60(seconds_to_add)
-
-    %{ndt_second_59 | second: 60}
-  end
-
-  defp naive_add_preserve_second_60(%{calendar: Calendar.ISO} = naive_datetime, seconds_to_add) do
-    NaiveDateTime.add(naive_datetime, seconds_to_add)
-  end
-
   # Takes Calendar.naive_datetime and makes sure it has a zero total offset
-  @spec to_zero_total_offset(Calendar.datetime()) :: Calendar.datetime()
+  @spec to_zero_total_offset(Calendar.naive_datetime()) :: Calendar.naive_datetime()
   defp to_zero_total_offset(%{utc_offset: utc_offset, std_offset: std_offset} = datetime)
        when utc_offset + std_offset == 0 do
     # If the offset is already zero, return the datetime unchanged
     datetime
   end
 
+  defp to_zero_total_offset(%{calendar: Calendar.ISO, second: 60} = datetime) do
+    datetime_with_second_59 = to_zero_total_offset(%{datetime | second: 59})
+    %{datetime_with_second_59 | second: 60}
+  end
+
   defp to_zero_total_offset(%{calendar: Calendar.ISO} = datetime) do
-    datetime |> naive_add_preserve_second_60(-1 * (datetime.utc_offset + datetime.std_offset))
+    datetime
+    |> NaiveDateTime.add(-1 * (datetime.utc_offset + datetime.std_offset))
   end
 
   @doc """
@@ -1318,6 +1341,23 @@ defmodule DateTime do
 
   defp apply_tz_offset(iso_days, offset) do
     Calendar.ISO.add_day_fraction_to_iso_days(iso_days, -offset, 86400)
+  end
+
+  @spec iso_days_to_iso_naive_datetime(Calendar.iso_days(), 0..6) :: NaiveDateTime.t()
+  defp iso_days_to_iso_naive_datetime(iso_days, microsecond_precision) do
+    {year, month, day, hour, minute, second, {microsecond_without_precision, _}} =
+      Calendar.ISO.naive_datetime_from_iso_days(iso_days)
+
+    %NaiveDateTime{
+      calendar: Calendar.ISO,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: {microsecond_without_precision, microsecond_precision}
+    }
   end
 
   defimpl String.Chars do
