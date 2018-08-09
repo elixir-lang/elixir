@@ -392,13 +392,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "literal on map and struct" do
+    assert_eval_raise SyntaxError, "nofile:1: syntax error before: '}'", '%{:a}'
     assert_eval_raise SyntaxError, "nofile:1: syntax error before: '}'", '%{{:a, :b}}'
-
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: '{'", '%{:a, :b}{a: :b}'
+    assert_eval_raise SyntaxError, "nofile:1: syntax error before: '{'", '%{a, b}{a: :b}'
 
     assert_eval_raise CompileError,
                       "nofile:1: expected key-value pairs in a map, got: put_in(foo.bar().baz(), nil)",
-                      'foo = 1; %{put_in(foo.bar.baz, nil), :bar}'
+                      'foo = 1; %{put_in(foo.bar.baz, nil), foo}'
   end
 
   test "struct fields on defstruct" do
