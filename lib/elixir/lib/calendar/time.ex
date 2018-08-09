@@ -609,6 +609,9 @@ defmodule Time do
   Returns the given time with the microsecond field truncated to the given
   precision (`:microsecond`, `millisecond` or `:second`).
 
+  The given time is returned unchanged if it already has lower precision than
+  the given precision.
+
   ## Examples
 
       iex> Time.truncate(~T[01:01:01.123456], :microsecond)
