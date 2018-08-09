@@ -188,14 +188,26 @@ quote(Meta, Expr, Binding, Q, E) ->
 
 %% Actual quoting and helpers
 
-do_quote({quote, Meta, [Arg]}, #elixir_quote{context=Context} = Q, E) ->
+do_quote({quote, Meta, [Arg]}, Q, E) ->
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}, E),
-  {'{}', [], [quote, keystore(context, meta(Meta, Q), Context), [TArg]]};
 
-do_quote({quote, Meta, [Opts, Arg]}, #elixir_quote{context=Context} = Q, E) ->
+  NewMeta = case Q of
+    #elixir_quote{vars_hygiene=true, context=Context} -> keystore(context, Meta, Context);
+    _ -> Meta
+  end,
+
+  {'{}', [], [quote, meta(NewMeta, Q), [TArg]]};
+
+do_quote({quote, Meta, [Opts, Arg]}, Q, E) ->
   TOpts = do_quote(Opts, Q, E),
   TArg = do_quote(Arg, Q#elixir_quote{unquote=false}, E),
-  {'{}', [], [quote, keystore(context, meta(Meta, Q), Context), [TOpts, TArg]]};
+
+  NewMeta = case Q of
+    #elixir_quote{vars_hygiene=true, context=Context} -> keystore(context, Meta, Context);
+    _ -> Meta
+  end,
+
+  {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
 
 do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _) ->
   Expr;
