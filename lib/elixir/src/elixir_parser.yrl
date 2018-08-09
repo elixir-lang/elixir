@@ -2,7 +2,7 @@ Nonterminals
   grammar expr_list
   expr container_expr block_expr access_expr
   no_parens_expr no_parens_zero_expr no_parens_one_expr no_parens_one_ambig_expr
-  bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr max_expr
+  bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
   add_op_eol mult_op_eol two_op_eol three_op_eol pipe_op_eol stab_op_eol
@@ -12,7 +12,7 @@ Nonterminals
   list list_args open_bracket close_bracket
   tuple open_curly close_curly
   bit_string open_bit close_bit
-  map map_op map_close map_args map_expr struct_op
+  map map_op map_close map_args struct_expr struct_op
   assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
   container_args_base container_args
   call_args_parens_expr call_args_parens_base call_args_parens parens_call
@@ -21,7 +21,7 @@ Nonterminals
   call_args_no_parens_many_strict
   stab stab_eoe stab_expr stab_op_eol_and_expr stab_parens_many
   kw_eol kw_base kw call_args_no_parens_kw_expr call_args_no_parens_kw
-  dot_op dot_alias dot_bracket_identifier
+  dot_op dot_alias dot_bracket_identifier dot_call_identifier
   dot_identifier dot_op_identifier dot_do_identifier dot_paren_identifier
   do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
   number
@@ -158,8 +158,8 @@ no_parens_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> no_parens_one_ambig_expr : '$1'.
 no_parens_expr -> no_parens_many_expr : '$1'.
 
-block_expr -> parens_call call_args_parens do_block : build_parens('$1', '$2', '$3').
-block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3', '$4').
+block_expr -> dot_call_identifier call_args_parens do_block : build_parens('$1', '$2', '$3').
+block_expr -> dot_call_identifier call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3', '$4').
 block_expr -> dot_do_identifier do_block : build_no_parens('$1', '$2').
 block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_no_parens('$1', '$2' ++ '$3').
 block_expr -> dot_identifier call_args_no_parens_all do_block : build_no_parens('$1', '$2' ++ '$3').
@@ -258,20 +258,20 @@ access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
-access_expr -> max_expr : '$1'.
+access_expr -> atom : handle_literal(?exprs('$1'), '$1', []).
+access_expr -> atom_safe : build_quoted_atom('$1', true, []).
+access_expr -> atom_unsafe : build_quoted_atom('$1', false, []).
+access_expr -> dot_alias : '$1'.
+access_expr -> parens_call : '$1'.
 
 %% Augment integer literals with representation format if formatter_metadata option is true
 number -> int : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
 number -> char : handle_literal(?exprs('$1'), '$1', [{original, number_value('$1')}]).
 number -> float : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
 
-%% Aliases and properly formed calls. Used by map_expr.
-max_expr -> atom : handle_literal(?exprs('$1'), '$1', []).
-max_expr -> atom_safe : build_quoted_atom('$1', true, []).
-max_expr -> atom_unsafe : build_quoted_atom('$1', false, []).
-max_expr -> parens_call call_args_parens : build_parens('$1', '$2', []).
-max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3', []).
-max_expr -> dot_alias : '$1'.
+%% Also used by maps and structs
+parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', []).
+parens_call -> dot_call_identifier call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3', []).
 
 bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2', '$3').
@@ -464,8 +464,8 @@ dot_bracket_identifier -> matched_expr dot_op bracket_identifier : build_dot('$2
 dot_paren_identifier -> paren_identifier : '$1'.
 dot_paren_identifier -> matched_expr dot_op paren_identifier : build_dot('$2', '$1', '$3').
 
-parens_call -> dot_paren_identifier : '$1'.
-parens_call -> matched_expr dot_call_op : {'.', meta_from_token('$2'), ['$1']}. % Fun/local calls
+dot_call_identifier -> dot_paren_identifier : '$1'.
+dot_call_identifier -> matched_expr dot_call_op : {'.', meta_from_token('$2'), ['$1']}. % Fun/local calls
 
 % Function calls with no parentheses
 
@@ -575,12 +575,6 @@ bit_string -> open_bit container_args close_bit : build_bit('$1', '$2', '$3').
 
 % Map and structs
 
-%% Allow unquote/@something/aliases inside maps and structs.
-map_expr -> max_expr : '$1'.
-map_expr -> dot_identifier : build_identifier('$1', nil).
-map_expr -> unary_op_eol map_expr : build_unary_op('$1', '$2').
-map_expr -> at_op_eol map_expr : build_unary_op('$1', '$2').
-
 assoc_op_eol -> assoc_op : '$1'.
 assoc_op_eol -> assoc_op eol : '$1'.
 
@@ -588,7 +582,8 @@ assoc_expr -> matched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
 assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
 assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
 assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
-assoc_expr -> map_expr : '$1'.
+assoc_expr -> dot_identifier : build_identifier('$1', nil).
+assoc_expr -> parens_call : '$1'.
 
 assoc_update -> matched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
 assoc_update -> unmatched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
@@ -617,10 +612,16 @@ map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2',
 map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', '$3', []).
 
 struct_op -> '%' : '$1'.
+struct_expr -> atom : handle_literal(?exprs('$1'), '$1', []).
+struct_expr -> dot_alias : '$1'.
+struct_expr -> dot_identifier : build_identifier('$1', nil).
+struct_expr -> at_op_eol struct_expr : build_unary_op('$1', '$2').
+struct_expr -> unary_op_eol struct_expr : build_unary_op('$1', '$2').
+struct_expr -> parens_call : '$1'.
 
 map -> map_op map_args : '$2'.
-map -> struct_op map_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
-map -> struct_op map_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
+map -> struct_op struct_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
+map -> struct_op struct_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
 
 Erlang code.
 

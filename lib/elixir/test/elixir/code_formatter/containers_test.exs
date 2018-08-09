@@ -428,17 +428,17 @@ defmodule Code.Formatter.ContainersTest do
     test "preserves user choice even when it fits with trailing comma" do
       bad = """
       %{
-        :hello,
-        :foo,
-        :bar,
+        hello,
+        foo,
+        bar,
       }
       """
 
       assert_format bad, """
       %{
-        :hello,
-        :foo,
-        :bar
+        hello,
+        foo,
+        bar
       }
       """
     end
