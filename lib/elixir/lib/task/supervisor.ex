@@ -159,39 +159,48 @@ defmodule Task.Supervisor do
 
   ## Examples
 
-  Typically, you use async_nolink when there is a reasonable expectation that
-  the task may fail, and you don't want it to take down the caller.
-  For example:
+  Typically, you use `async_nolink/3` when there is a reasonable expectation that
+  the task may fail, and you don't want it to take down the caller. Let's see an
+  example where a `GenSever` is meant to run a single task and track its status:
 
-      use GenServer
-      ...
+      defmodule MyApp.Server do
+        use GenServer
 
-      def handle_cast(:start_task, %{ref: ref} = state) when is_reference(ref) do
-        .. task is already running ..
-        {:noreply, state}
-      end
+        # ...
 
-      def handle_cast(:start_task, %{ref: nil} = state) do
-        task = Task.Supervisor.async_nolink(TaskTest.TaskSupervisor, fn ->
-          .. do something ..
-        end)
+        def start_task do
+          GenServer.call(__MODULE__, :Start_task)
+        end
 
-        .. genserver remains unblocked and can handle other messages ..
-        {:noreply, %{state | ref: task.ref}}
-      end
+        # In this case the task is already running, so we just return :ok.
+        def handle_call(:start_task, %{ref: ref} = state) when is_reference(ref) do
+          {:reply, :ok, state}
+        end
 
-      def handle_info({ref, answer}, %{ref: ref} = state) do
-        # Process.demonitor(ref, [:flush]) removes our reference to the task and
-        # flushes the :DOWN message so :DOWN won't be received on a successful result
-        Elixir.Process.demonitor(ref, [:flush]) # Flushes the :DOWN message
-        .. do something with the result ..
-        {:noreply, %{state | ref: nil}}
-      end
+        # The task is not running yet, so let's start it.
+        def handle_cast(:start_task, %{ref: nil} = state) do
+          task =
+            Task.Supervisor.async_nolink(MyApp.TaskSupervisor, fn ->
+              ...
+            end)
 
-      def handle_info({:DOWN, ref, :process, _pid, _reason}, %{ref: ref} = state)
-        when is_reference(ref) do
-        .. handle the failure of the task ..
-        {:noreply, %{state | ref: nil}}
+          # We return :ok and the server will continue running
+          {:reply, :ok, %{state | ref: task.ref}}
+        end
+
+        # The task completed successfully
+        def handle_info({ref, answer}, %{ref: ref} = state) do
+          # We don't care about the DOWN message now, so let's demonitor and flush it
+          Process.demonitor(ref, [:flush])
+          # Do something with the result and then return
+          {:noreply, %{state | ref: nil}}
+        end
+
+        # The task failed
+        def handle_info({:DOWN, ref, :process, _pid, _reason}, %{ref: ref} = state) do
+          # Log and possibly restart the task...
+          {:noreply, %{state | ref: nil}}
+        end
       end
 
   """
