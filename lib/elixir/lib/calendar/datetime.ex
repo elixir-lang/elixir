@@ -282,16 +282,16 @@ defmodule DateTime do
 
         {:ambiguous, first_datetime, second_datetime}
 
-      {:gap, first_period, second_period} ->
+      {:gap, {first_period, first_period_until_wall}, {second_period, second_period_from_wall}} ->
         # `until_wall` is not valid, but any time just before is.
         # So by subtracting a second and adding .999999 seconds
         # we get the last microsecond just before.
         before_naive =
-          first_period.until_wall
+          first_period_until_wall
           |> Map.put(:microsecond, {999_999, 6})
           |> NaiveDateTime.add(-1)
 
-        after_naive = second_period.from_wall
+        after_naive = second_period_from_wall
 
         {:ok, latest_datetime_before} =
           do_from_naive(
