@@ -598,8 +598,8 @@ expand_args([Arg], E) ->
 expand_args(Args, #{context := match} = E) ->
   lists:mapfoldl(fun expand/2, E, Args);
 expand_args(Args, E) ->
-  {EArgs, {EC, EV}} = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
-  {EArgs, elixir_env:mergea(EV, EC)}.
+  {EArgs, {_EC, EV}} = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
+  {EArgs, EV}.
 
 %% Match/var helpers
 
