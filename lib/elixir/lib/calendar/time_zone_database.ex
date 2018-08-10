@@ -20,6 +20,7 @@ defmodule TimeZoneDatabase do
   abbreviation is in effect.
   """
   @type time_zone_period :: %{
+          optional(any) => any,
           utc_offset: Calendar.utc_offset(),
           std_offset: Calendar.std_offset(),
           zone_abbr: Calendar.zone_abbr()
@@ -35,6 +36,7 @@ defmodule TimeZoneDatabase do
   2015-10-25 01:00:00.
   """
   @type time_zone_period_with_wall_limits :: %{
+          optional(any) => any,
           utc_offset: Calendar.utc_offset(),
           std_offset: Calendar.std_offset(),
           zone_abbr: Calendar.zone_abbr(),
