@@ -161,7 +161,7 @@ defmodule Task.Supervisor do
 
   Typically, you use `async_nolink/3` when there is a reasonable expectation that
   the task may fail, and you don't want it to take down the caller. Let's see an
-  example where a `GenSever` is meant to run a single task and track its status:
+  example where a `GenServer` is meant to run a single task and track its status:
 
       defmodule MyApp.Server do
         use GenServer
@@ -169,7 +169,7 @@ defmodule Task.Supervisor do
         # ...
 
         def start_task do
-          GenServer.call(__MODULE__, :Start_task)
+          GenServer.call(__MODULE__, :start_task)
         end
 
         # In this case the task is already running, so we just return :ok.
