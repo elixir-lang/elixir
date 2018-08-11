@@ -233,6 +233,14 @@ defmodule ExUnit.AssertionsTest do
     :hello = assert_receive :hello
   end
 
+  @string "hello"
+
+  test "assert receive with interpolated compile-time string" do
+    parent = self()
+    spawn(fn -> send(parent, "string: hello") end)
+    "string: #{@string}" = assert_receive "string: #{@string}"
+  end
+
   test "assert receive accepts custom failure message" do
     send(self(), :hello)
     assert_receive message, 0, "failure message"
