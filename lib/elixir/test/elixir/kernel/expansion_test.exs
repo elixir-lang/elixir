@@ -1969,6 +1969,15 @@ defmodule Kernel.ExpansionTest do
                quote(do: <<"foo"::binary(), "bar"::binary()>> = "foobar")
     end
 
+    test "inlines binaries inside interpolation is isomorphic after manual expansion" do
+      import Kernel.ExpansionTarget
+
+      quoted = Macro.prewalk(quote(do: "foo#{bar()}" = "foobar"), &Macro.expand(&1, __ENV__))
+
+      assert expand(quoted) |> clean_meta([:alignment]) ==
+               quote(do: <<"foo"::binary(), "bar"::binary()>> = "foobar")
+    end
+
     test "expands size * unit" do
       import Kernel, except: [-: 2]
 

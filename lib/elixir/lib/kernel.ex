@@ -2648,7 +2648,7 @@ defmodule Kernel do
 
   """
   defmacro to_string(term) do
-    quote(do: String.Chars.to_string(unquote(term)))
+    quote(do: :"Elixir.String.Chars".to_string(unquote(term)))
   end
 
   @doc """
