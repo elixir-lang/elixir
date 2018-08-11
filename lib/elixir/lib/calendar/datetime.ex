@@ -544,8 +544,8 @@ defmodule DateTime do
           period.zone_abbr
         )
 
-      {:error, :time_zone_not_found} ->
-        {:error, :time_zone_not_found}
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -587,6 +587,8 @@ defmodule DateTime do
       iex> {:ok, datetime} = DateTime.now("Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> datetime.time_zone
       "Europe/Copenhagen"
+      iex> DateTime.now("not a real time zone name", FakeTimeZoneDatabase)
+      {:error, :time_zone_not_found}
 
   """
   @spec now(Calendar.time_zone(), TimeZoneDatabaseClient.tz_db_or_config()) ::

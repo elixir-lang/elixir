@@ -80,6 +80,10 @@ defmodule FakeTimeZoneDatabase do
      }}
   end
 
+  defp time_zone_periods_from_utc(time_zone, _) when time_zone != "Europe/Copenhagen" do
+    {:error, :time_zone_not_found}
+  end
+
   defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2019, 3, 31}, {2, 0, 0}} and
               erl_datetime < {{2019, 3, 31}, {3, 0, 0}} do
