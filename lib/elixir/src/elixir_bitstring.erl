@@ -16,9 +16,9 @@ expand(Meta, Args, E, RequireSize) ->
           form_error(Meta, ?key(EE, file), ?MODULE, {nested_match, Match})
       end;
     _ ->
-      {EArgs, Alignment, {EC, EV}} =
+      {EArgs, Alignment, {_EC, EV}} =
         expand(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}, 0, RequireSize),
-      {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, elixir_env:mergea(EV, EC)}
+      {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, EV}
   end.
 
 expand(_BitstrMeta, _Fun, [], Acc, E, Alignment, _RequireSize) ->
