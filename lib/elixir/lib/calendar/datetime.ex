@@ -218,7 +218,7 @@ defmodule DateTime do
   @doc """
   Converts the given `NaiveDateTime` to `DateTime`.
 
-  It expects a time zone to put the NaiveDateTime in.
+  It expects a time zone to put the `NaiveDateTime` in.
   Currently it only supports "Etc/UTC" as time zone.
 
   ## Examples
@@ -230,14 +230,8 @@ defmodule DateTime do
   @doc since: "1.4.0"
   @spec from_naive!(NaiveDateTime.t(), Calendar.time_zone()) :: t
   def from_naive!(naive_datetime, time_zone) do
-    case from_naive(naive_datetime, time_zone) do
-      {:ok, datetime} ->
-        datetime
-
-      {:error, reason} ->
-        raise ArgumentError,
-              "cannot parse #{inspect(naive_datetime)} to datetime, reason: #{inspect(reason)}"
-    end
+    {:ok, datetime} = from_naive(naive_datetime, time_zone)
+    datetime
   end
 
   @doc """
