@@ -147,6 +147,7 @@ defmodule Mix.Tasks.Test do
     * `--color` - enables color in the output
     * `--cover` - runs coverage tool. See "Coverage" section below
     * `--exclude` - excludes tests that match the filter
+    * `--failed` - runs only tests that failed the last time they ran
     * `--force` - forces compilation regardless of modification times
     * `--formatter` - formatter module
     * `--include` - includes tests that match the filter
@@ -170,7 +171,6 @@ defmodule Mix.Tasks.Test do
       Automatically sets `--trace` and `--preload-modules`
     * `--stale` - runs only tests which reference modules that changed since the
       last `test --stale`. You can read more about this option in the "Stale" section below.
-    * `--failed` - runs only tests that failed the last time they ran
     * `--timeout` - sets the timeout for the tests
     * `--trace` - runs tests with detailed reporting; automatically sets `--max-cases` to 1.
       Note that in trace mode test timeouts will be ignored.
