@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Test do
       # We may also have multiple entries on the same line.
       # Each line is only considered once.
       #
-      # We use ets for performance, to avoid working with nested maps
+      # We use ETS for performance, to avoid working with nested maps.
       table = :ets.new(__MODULE__, [:set, :private])
 
       try do
@@ -153,27 +153,28 @@ defmodule Mix.Tasks.Test do
     * `--include` - includes tests that match the filter
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
-      external commands which produce output on stdout upon file system modification.
+      external commands which produce output on stdout upon file system modification
     * `--max-cases` - sets the maximum number of tests running async. Only tests from
-      different modules run in parallel. Defaults to twice the number of cores.
+      different modules run in parallel. Defaults to twice the number of cores
     * `--no-archives-check` - does not check archives
     * `--no-color` - disables color in the output
     * `--no-compile` - does not compile, even if files require compilation
     * `--no-deps-check` - does not check dependencies
-    * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
+    * `--no-elixir-version-check` - does not check the Elixir version from `mix.exs`
     * `--no-start` - does not start applications after compilation
     * `--only` - runs only tests that match the filter
     * `--preload-modules` - preloads all modules defined in applications
     * `--raise` - raises if the test suite failed
     * `--seed` - seeds the random number generator used to randomize tests order;
       `--seed 0` disables randomization
-    * `--slowest` - prints timing information for the N slowest tests
+    * `--slowest` - prints timing information for the N slowest tests.
       Automatically sets `--trace` and `--preload-modules`
     * `--stale` - runs only tests which reference modules that changed since the
-      last `test --stale`. You can read more about this option in the "Stale" section below.
+      last time tests were ran with `--stale`. You can read more about this option 
+      in the "Stale" section below
     * `--timeout` - sets the timeout for the tests
-    * `--trace` - runs tests with detailed reporting; automatically sets `--max-cases` to 1.
-      Note that in trace mode test timeouts will be ignored.
+    * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to 1.
+      Note that in trace mode test timeouts will be ignored
 
   See `ExUnit.configure/1` for more information on configuration options.
 
@@ -230,28 +231,27 @@ defmodule Mix.Tasks.Test do
 
     * `:test_paths` - list of paths containing test files, defaults to
       `["test"]` if the `test` directory exists, otherwise it defaults to `[]`.
-      It is expected all test paths to contain a `test_helper.exs` file.
+      It is expected all test paths to contain a `test_helper.exs` file
 
-    * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`.
+    * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`
 
     * `:warn_test_pattern` - a pattern to match potentially missed test files
-      and display a warning, defaults to `*_test.ex`.
+      and display a warning, defaults to `*_test.ex`
 
     * `:test_coverage` - a set of options to be passed down to the coverage
-      mechanism.
+      mechanism
 
   ## Coverage
 
   The `:test_coverage` configuration accepts the following options:
 
     * `:output` - the output for cover results, defaults to `"cover"`
-    * `:tool`   - the coverage tool
+    * `:tool` - the coverage tool
     * `:summary` - summary output configuration, can be either boolean
-      or keyword list, when keyword list is passed it can specify `:threshold`
+      or keyword list. When a keyword list is passed, it can specify `:threshold`
       which can be boolean or numeric value which would enable coloring
       of percentages red/green depending either below/over threshold
       respectively, defaults to `[threshold: 90]`
-
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:
@@ -344,9 +344,9 @@ defmodule Mix.Tasks.Test do
         cover[:tool].start(compile_path, cover)
       end
 
-    # Start the app and configure exunit with command line options
+    # Start the app and configure ExUnit with command line options
     # before requiring test_helper.exs so that the configuration is
-    # available in test_helper.exs. Then configure exunit again so
+    # available in test_helper.exs. Then configure ExUnit again so
     # that command line options override test_helper.exs
     Mix.shell().print_app
     app_start_args = if opts[:slowest], do: ["--preload-modules" | args], else: args
@@ -388,7 +388,7 @@ defmodule Mix.Tasks.Test do
 
         cond do
           failures > 0 and opts[:raise] ->
-            Mix.raise("mix test failed")
+            Mix.raise("\"mix test\" failed")
 
           failures > 0 ->
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
@@ -410,7 +410,7 @@ defmodule Mix.Tasks.Test do
             Mix.shell().info("There are no tests to run")
 
           true ->
-            message = "Paths given to `mix test` did not match any directory/file: "
+            message = "Paths given to \"mix test\" did not match any directory/file: "
             raise_or_error_at_exit(message <> Enum.join(files, ", "), opts)
         end
 
