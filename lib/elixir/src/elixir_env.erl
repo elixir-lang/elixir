@@ -160,13 +160,13 @@ not_underscored(Name) ->
   end.
 
 format_error({unused_var, Name, false}) ->
-  io_lib:format("variable \"~ts\" is unused", [Name]);
+  io_lib:format("variable \"~ts\" is unused (if the variable is not meant to be used, prefix it with an underscore)", [Name]);
 
 format_error({unused_var, Name, true}) ->
   io_lib:format("variable \"~ts\" is unused\n\n"
-                "Note variables defined inside case, cond, fn, if and similar do not leak. "
-                "If you want to conditionally override an existing variable \"~ts\", "
-                "you will have to explicitly return the variable. For example:\n\n"
+                "Note variables defined inside case, cond, fn, if and similar do not affect "
+                "variables defined outside of the construct. Instead you have to explicitly "
+                "return those values. For example:\n\n"
                 "    if some_condition? do\n"
                 "      atom = :one\n"
                 "    else\n"
@@ -179,4 +179,4 @@ format_error({unused_var, Name, true}) ->
                 "      else\n"
                 "        :two\n"
                 "      end\n\n"
-                "Unused variable \"~ts\" found at:", [Name, Name, Name]).
+                "Unused variable \"~ts\" found at:", [Name, Name]).
