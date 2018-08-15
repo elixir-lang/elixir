@@ -249,7 +249,10 @@ defmodule Enum do
   @type t :: Enumerable.t()
   @type acc :: any
   @type element :: any
+
+  @typedoc "Zero-based index. It can also be negative integer."
   @type index :: integer
+
   @type default :: any
 
   require Stream.Reducers, as: R
@@ -2040,7 +2043,7 @@ defmodule Enum do
   end
 
   @doc """
-  Reverses the enumerable in the range from initial position `start`
+  Reverses the enumerable in the range from initial `start_index`
   through `count` elements.
 
   If `count` is greater than the size of the rest of the enumerable,
@@ -2053,14 +2056,14 @@ defmodule Enum do
 
   """
   @spec reverse_slice(t, non_neg_integer, non_neg_integer) :: list
-  def reverse_slice(enumerable, start, count)
-      when is_integer(start) and start >= 0 and is_integer(count) and count >= 0 do
+  def reverse_slice(enumerable, start_index, count)
+      when is_integer(start_index) and start_index >= 0 and is_integer(count) and count >= 0 do
     list = reverse(enumerable)
     length = length(list)
-    count = Kernel.min(count, length - start)
+    count = Kernel.min(count, length - start_index)
 
     if count > 0 do
-      reverse_slice(list, length, start + count, count, [])
+      reverse_slice(list, length, start_index + count, count, [])
     else
       :lists.reverse(list)
     end
@@ -2129,17 +2132,22 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given enumerable, from `range.first` to `range.last` positions.
+  Returns a subset list of the given enumerable, from `index_range.first` (zero-based) to
+  `index_range.last`.
 
-  Given `enumerable`, it drops elements until element position `range.first`,
-  then takes elements until element position `range.last` (inclusive).
+  `index_range` must be a `(range)[t:Range.t/0]`.
 
-  Positions are normalized, meaning that negative positions will be counted from the end
+  Given `enumerable`, it drops elements before `index_range.first`,
+  then takes elements until element `index_range.last` (inclusively).
+
+  Indexes are normalized, meaning that negative indexes will be counted from the end
   (e.g. `-1` means the last element of the enumerable).
-  If `range.last` is out of bounds, then it is assigned as the position of the last element.
 
-  If the normalized `range.first` position is out of bounds of the given enumerable,
-  or this one is greater than the normalized `range.last` position, then `[]` is returned.
+  If `index_range.last` is out of bounds, then it is assigned as the index of the last element.
+
+  If the normalized `index_range.first` is out of bounds of the given enumerable,
+  or this one is greater than the normalized `index_range.last`, then `[]` is returned.
+
 
   ## Examples
 
@@ -2149,11 +2157,11 @@ defmodule Enum do
       iex> Enum.slice(1..10, 5..20)
       [6, 7, 8, 9, 10]
 
-      # last five elements (negative positions)
+      # last five elements (negative indexes)
       iex> Enum.slice(1..30, -5..-1)
       [26, 27, 28, 29, 30]
 
-      # last five elements (mixed positive and negative positions)
+      # last five elements (mixed positive and negative indexes)
       iex> Enum.slice(1..30, 25..-1)
       [26, 27, 28, 29, 30]
 
@@ -2161,13 +2169,15 @@ defmodule Enum do
       iex> Enum.slice(1..10, 11..20)
       []
 
-      # range.first is greater than range.last
+      # index_range.first is greater than index_range.last
       iex> Enum.slice(1..10, 6..5)
       []
 
   """
   @doc since: "1.6.0"
   @spec slice(t, Range.t()) :: list
+  def slice(enumerable, index_range)
+
   def slice(enumerable, first..last) do
     {count, fun} = slice_count_and_fun(enumerable)
     corr_first = if first >= 0, do: first, else: first + count
@@ -2182,15 +2192,14 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given enumerable, from `start` position with `amount` of elements if available.
+  Returns a subset list of the given enumerable, from `start_index` (zero-based) with `amount` number of elements
+  if available.
 
-  Given `enumerable`, it drops elements until element position `start`,
-  then takes `amount` of elements until the end of the enumerable.
+  Given `enumerable`, it drops elements right before element `start_index`,
+  then takes `amount` of elements, returning as many elements as possible if there are not enough
+  elements.
 
-  If `start` is out of bounds, it returns `[]`.
-
-  If `amount` is greater than `enumerable` length, it returns as many elements as possible.
-  If `amount` is zero, then `[]` is returned.
+  It returns `[]` if `amount` is `0` or if `start_index` is out of bounds.
 
   ## Examples
 
@@ -2204,21 +2213,21 @@ defmodule Enum do
       iex> Enum.slice(1..10, 5, 0)
       []
 
-      # out of bound start position
+      # out of bound start index
       iex> Enum.slice(1..10, 10, 5)
       []
 
-      # out of bound start position (negative)
+      # out of bound start index (negative)
       iex> Enum.slice(1..10, -11, 5)
       []
 
   """
   @spec slice(t, index, non_neg_integer) :: list
-  def slice(_enumerable, start, 0) when is_integer(start), do: []
+  def slice(_enumerable, start_index, 0) when is_integer(start_index), do: []
 
-  def slice(enumerable, start, amount)
-      when is_integer(start) and is_integer(amount) and amount >= 0 do
-    slice_any(enumerable, start, amount)
+  def slice(enumerable, start_index, amount)
+      when is_integer(start_index) and is_integer(amount) and amount >= 0 do
+    slice_any(enumerable, start_index, amount)
   end
 
   @doc """
