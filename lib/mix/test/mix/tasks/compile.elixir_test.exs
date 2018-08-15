@@ -487,8 +487,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         file: Path.absname("lib/a.ex"),
         severity: :warning,
         position: 2,
-        message: "variable \"unused\" is unused",
-        compiler_name: "Elixir"
+        compiler_name: "Elixir",
+        message:
+          "variable \"unused\" is unused (if the variable is not meant to be used, prefix it with an underscore)"
       }
 
       ExUnit.CaptureIO.capture_io(:standard_error, fn ->
