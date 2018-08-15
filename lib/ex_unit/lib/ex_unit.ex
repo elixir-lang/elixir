@@ -312,6 +312,19 @@ defmodule ExUnit do
     ExUnit.Runner.run(config, nil)
   end
 
+  @doc """
+  Allows users to configure functions to run after the test suite has finished.
+  Functions passed in will be executed after all tests have finished running. If
+  `after_suite/1` is called multiple times, the functions will be executed in
+  reverse order (i.e. the last function given will be executed first).
+  """
+  @spec after_suite(fun) :: :ok
+  def after_suite(function) do
+    current_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
+    configure(after_suite: [function | current_callbacks])
+    :ok
+  end
+
   # Persists default values in application
   # environment before the test suite starts.
   defp persist_defaults(config) do

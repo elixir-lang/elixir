@@ -170,7 +170,7 @@ defmodule Mix.Tasks.Test do
     * `--slowest` - prints timing information for the N slowest tests.
       Automatically sets `--trace` and `--preload-modules`
     * `--stale` - runs only tests which reference modules that changed since the
-      last time tests were ran with `--stale`. You can read more about this option 
+      last time tests were ran with `--stale`. You can read more about this option
       in the "Stale" section below
     * `--timeout` - sets the timeout for the tests
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to 1.
