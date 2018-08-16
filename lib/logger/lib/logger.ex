@@ -330,7 +330,7 @@ defmodule Logger do
         def format(level, message, timestamp, metadata) do
           # Custom formatting logic...
         rescue
-          _ -> "could not format: #{inspect({level, message, metadata}})"
+          _ -> "could not format: #{inspect({level, message, metadata})}"
         end
       end
 
