@@ -457,7 +457,7 @@ defmodule IO do
       "string"
 
   """
-  @spec chardata_to_string(chardata) :: String.t() | no_return
+  @spec chardata_to_string(chardata) :: String.t()
   def chardata_to_string(string) when is_binary(string) do
     string
   end

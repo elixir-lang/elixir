@@ -167,7 +167,7 @@ defmodule Mix.Project do
   function raises a `Mix.NoProjectError` exception in
   case no project is available.
   """
-  @spec get!() :: module | no_return
+  @spec get!() :: module
   def get! do
     get() || raise Mix.NoProjectError, []
   end

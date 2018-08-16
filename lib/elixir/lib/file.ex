@@ -233,7 +233,7 @@ defmodule File do
   @doc """
   Same as `mkdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec mkdir!(Path.t()) :: :ok | no_return
+  @spec mkdir!(Path.t()) :: :ok
   def mkdir!(path) do
     case mkdir(path) do
       :ok ->
@@ -296,7 +296,7 @@ defmodule File do
   @doc """
   Same as `mkdir_p/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec mkdir_p!(Path.t()) :: :ok | no_return
+  @spec mkdir_p!(Path.t()) :: :ok
   def mkdir_p!(path) do
     case mkdir_p(path) do
       :ok ->
@@ -335,7 +335,7 @@ defmodule File do
   Returns a binary with the contents of the given filename or raises
   `File.Error` if an error occurs.
   """
-  @spec read!(Path.t()) :: binary | no_return
+  @spec read!(Path.t()) :: binary
   def read!(path) do
     case read(path) do
       {:ok, binary} ->
@@ -383,7 +383,7 @@ defmodule File do
   Same as `stat/2` but returns the `File.Stat` directly, or
   throws `File.Error` if an error is returned.
   """
-  @spec stat!(Path.t(), stat_options) :: File.Stat.t() | no_return
+  @spec stat!(Path.t(), stat_options) :: File.Stat.t()
   def stat!(path, opts \\ []) do
     case stat(path, opts) do
       {:ok, info} ->
@@ -434,7 +434,7 @@ defmodule File do
   Same as `lstat/2` but returns the `File.Stat` struct directly, or
   throws `File.Error` if an error is returned.
   """
-  @spec lstat!(Path.t(), stat_options) :: File.Stat.t() | no_return
+  @spec lstat!(Path.t(), stat_options) :: File.Stat.t()
   def lstat!(path, opts \\ []) do
     case lstat(path, opts) do
       {:ok, info} ->
@@ -477,7 +477,7 @@ defmodule File do
   returned.
   """
   @doc since: "1.5.0"
-  @spec read_link!(Path.t()) :: binary | no_return
+  @spec read_link!(Path.t()) :: binary
   def read_link!(path) do
     case read_link(path) do
       {:ok, resolved} ->
@@ -502,7 +502,7 @@ defmodule File do
   Same as `write_stat/3` but raises an exception if it fails.
   Returns `:ok` otherwise.
   """
-  @spec write_stat!(Path.t(), File.Stat.t(), stat_options) :: :ok | no_return
+  @spec write_stat!(Path.t(), File.Stat.t(), stat_options) :: :ok
   def write_stat!(path, stat, opts \\ []) do
     case write_stat(path, stat, opts) do
       :ok ->
@@ -560,7 +560,7 @@ defmodule File do
       #=> ** (File.Error) could not touch "/fakedir/b.txt": no such file or directory
 
   """
-  @spec touch!(Path.t(), :calendar.datetime()) :: :ok | no_return
+  @spec touch!(Path.t(), :calendar.datetime()) :: :ok
   def touch!(path, time \\ :calendar.universal_time()) do
     case touch(path, time) do
       :ok ->
@@ -590,7 +590,7 @@ defmodule File do
   Returns `:ok` otherwise
   """
   @doc since: "1.5.0"
-  @spec ln!(Path.t(), Path.t()) :: :ok | no_return
+  @spec ln!(Path.t(), Path.t()) :: :ok
   def ln!(existing, new) do
     case ln(existing, new) do
       :ok ->
@@ -623,7 +623,7 @@ defmodule File do
 
   Returns `:ok` otherwise
   """
-  @spec ln_s!(Path.t(), Path.t()) :: :ok | no_return
+  @spec ln_s!(Path.t(), Path.t()) :: :ok
   def ln_s!(existing, new) do
     case ln_s(existing, new) do
       :ok ->
@@ -671,7 +671,7 @@ defmodule File do
   Returns the `bytes_copied` otherwise.
   """
   @spec copy!(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
-          non_neg_integer | no_return
+          non_neg_integer
   def copy!(source, destination, bytes_count \\ :infinity) do
     case copy(source, destination, bytes_count) do
       {:ok, bytes_count} ->
@@ -752,7 +752,7 @@ defmodule File do
   The same as `cp/3`, but raises `File.CopyError` if it fails.
   Returns `:ok` otherwise.
   """
-  @spec cp!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: :ok | no_return
+  @spec cp!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: :ok
   def cp!(source, destination, callback \\ fn _, _ -> true end) do
     case cp(source, destination, callback) do
       :ok ->
@@ -832,7 +832,7 @@ defmodule File do
   The same as `cp_r/3`, but raises `File.CopyError` if it fails.
   Returns the list of copied files otherwise.
   """
-  @spec cp_r!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: [binary] | no_return
+  @spec cp_r!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: [binary]
   def cp_r!(source, destination, callback \\ fn _, _ -> true end) do
     case cp_r(source, destination, callback) do
       {:ok, files} ->
@@ -983,7 +983,7 @@ defmodule File do
   @doc """
   Same as `write/3` but raises an exception if it fails, returns `:ok` otherwise.
   """
-  @spec write!(Path.t(), iodata, [mode]) :: :ok | no_return
+  @spec write!(Path.t(), iodata, [mode]) :: :ok
   def write!(path, content, modes \\ []) do
     modes = normalize_modes(modes, false)
 
@@ -1062,7 +1062,7 @@ defmodule File do
   @doc """
   Same as `rm/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec rm!(Path.t()) :: :ok | no_return
+  @spec rm!(Path.t()) :: :ok
   def rm!(path) do
     case rm(path) do
       :ok ->
@@ -1221,7 +1221,7 @@ defmodule File do
   Same as `rm_rf/1` but raises `File.Error` in case of failures,
   otherwise the list of files or directories removed.
   """
-  @spec rm_rf!(Path.t()) :: [binary] | no_return
+  @spec rm_rf!(Path.t()) :: [binary]
   def rm_rf!(path) do
     case rm_rf(path) do
       {:ok, files} ->
@@ -1372,8 +1372,8 @@ defmodule File do
 
   See `open/2` for the list of available modes.
   """
-  @spec open!(Path.t(), [mode | :ram]) :: io_device | no_return
-  @spec open!(Path.t(), (io_device -> res)) :: res | no_return when res: var
+  @spec open!(Path.t(), [mode | :ram]) :: io_device
+  @spec open!(Path.t(), (io_device -> res)) :: res when res: var
   def open!(path, modes_or_function \\ []) do
     case open(path, modes_or_function) do
       {:ok, io_device_or_function_result} ->
@@ -1391,7 +1391,7 @@ defmodule File do
 
   See `open/2` for the list of available `modes`.
   """
-  @spec open!(Path.t(), [mode | :ram], (io_device -> res)) :: res | no_return when res: var
+  @spec open!(Path.t(), [mode | :ram], (io_device -> res)) :: res when res: var
   def open!(path, modes, function) do
     case open(path, modes, function) do
       {:ok, function_result} ->
@@ -1430,7 +1430,7 @@ defmodule File do
   @doc """
   The same as `cwd/0`, but raises an exception if it fails.
   """
-  @spec cwd!() :: binary | no_return
+  @spec cwd!() :: binary
   def cwd!() do
     case cwd() do
       {:ok, cwd} ->
@@ -1454,7 +1454,7 @@ defmodule File do
   @doc """
   The same as `cd/1`, but raises an exception if it fails.
   """
-  @spec cd!(Path.t()) :: :ok | no_return
+  @spec cd!(Path.t()) :: :ok
   def cd!(path) do
     case cd(path) do
       :ok ->
@@ -1506,7 +1506,7 @@ defmodule File do
   The same as `ls/1` but raises `File.Error`
   in case of an error.
   """
-  @spec ls!(Path.t()) :: [binary] | no_return
+  @spec ls!(Path.t()) :: [binary]
   def ls!(path \\ ".") do
     case ls(path) do
       {:ok, value} ->
@@ -1620,7 +1620,7 @@ defmodule File do
   @doc """
   Same as `chmod/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec chmod!(Path.t(), non_neg_integer) :: :ok | no_return
+  @spec chmod!(Path.t(), non_neg_integer) :: :ok
   def chmod!(path, mode) do
     case chmod(path, mode) do
       :ok ->
@@ -1647,7 +1647,7 @@ defmodule File do
   @doc """
   Same as `chgrp/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec chgrp!(Path.t(), non_neg_integer) :: :ok | no_return
+  @spec chgrp!(Path.t(), non_neg_integer) :: :ok
   def chgrp!(path, gid) do
     case chgrp(path, gid) do
       :ok ->
@@ -1674,7 +1674,7 @@ defmodule File do
   @doc """
   Same as `chown/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec chown!(Path.t(), non_neg_integer) :: :ok | no_return
+  @spec chown!(Path.t(), non_neg_integer) :: :ok
   def chown!(path, uid) do
     case chown(path, uid) do
       :ok ->

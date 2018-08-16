@@ -262,7 +262,7 @@ defmodule Map do
       ** (KeyError) key :b not found in: %{a: 1}
 
   """
-  @spec fetch!(map, key) :: value | no_return
+  @spec fetch!(map, key) :: value
   def fetch!(map, key) do
     :maps.get(key, map)
   end
@@ -824,7 +824,7 @@ defmodule Map do
       {1, %{}}
 
   """
-  @spec get_and_update!(map, key, (value -> {get, value} | :pop)) :: {get, map} | no_return
+  @spec get_and_update!(map, key, (value -> {get, value} | :pop)) :: {get, map}
         when get: term
   def get_and_update!(map, key, fun) when is_function(fun, 1) do
     value = fetch!(map, key)

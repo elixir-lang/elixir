@@ -514,7 +514,7 @@ defmodule Task do
       2
 
   """
-  @spec await(t, timeout) :: term | no_return
+  @spec await(t, timeout) :: term
   def await(task, timeout \\ 5000)
 
   def await(%Task{owner: owner} = task, _) when owner != self() do

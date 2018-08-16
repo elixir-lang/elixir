@@ -167,7 +167,7 @@ defmodule EEx do
   Gets a string `source` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
-  @spec compile_string(String.t(), keyword) :: Macro.t() | no_return
+  @spec compile_string(String.t(), keyword) :: Macro.t()
   def compile_string(source, options \\ []) when is_binary(source) and is_list(options) do
     EEx.Compiler.compile(source, options)
   end
@@ -176,7 +176,7 @@ defmodule EEx do
   Gets a `filename` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
-  @spec compile_file(String.t(), keyword) :: Macro.t() | no_return
+  @spec compile_file(String.t(), keyword) :: Macro.t()
   def compile_file(filename, options \\ []) when is_binary(filename) and is_list(options) do
     options = Keyword.merge(options, file: filename, line: 1)
     compile_string(File.read!(filename), options)

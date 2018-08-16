@@ -9,7 +9,7 @@ defmodule EEx.Compiler do
   and the engine together by handling the tokens and invoking
   the engine every time a full expression or text is received.
   """
-  @spec compile(String.t(), keyword) :: Macro.t() | no_return
+  @spec compile(String.t(), keyword) :: Macro.t()
   def compile(source, opts) when is_binary(source) and is_list(opts) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1

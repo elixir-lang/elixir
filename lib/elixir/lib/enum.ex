@@ -856,7 +856,7 @@ defmodule Enum do
       ** (Enum.OutOfBoundsError) out of bounds error
 
   """
-  @spec fetch!(t, index) :: element | no_return
+  @spec fetch!(t, index) :: element
   def fetch!(enumerable, index) do
     case slice_any(enumerable, index, 1) do
       [value] -> value
@@ -1474,7 +1474,7 @@ defmodule Enum do
   For selecting a maximum value out of two consider using `Kernel.max/2`.
 
   """
-  @spec max(t, (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
+  @spec max(t, (() -> empty_result)) :: element | empty_result when empty_result: any
   def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
     aggregate(enumerable, &Kernel.max/2, empty_fallback)
   end
@@ -1501,7 +1501,7 @@ defmodule Enum do
       nil
 
   """
-  @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result | no_return
+  @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
         when empty_result: any
   def max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end) do
     first_fun = &{&1, fun.(&1)}
@@ -1594,7 +1594,7 @@ defmodule Enum do
   For selecting a minimal value out of two consider using `Kernel.min/2`.
 
   """
-  @spec min(t, (() -> empty_result)) :: element | empty_result | no_return when empty_result: any
+  @spec min(t, (() -> empty_result)) :: element | empty_result when empty_result: any
   def min(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
     aggregate(enumerable, &Kernel.min/2, empty_fallback)
   end
@@ -1621,7 +1621,7 @@ defmodule Enum do
       nil
 
   """
-  @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result | no_return
+  @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
         when empty_result: any
   def min_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end) do
     first_fun = &{&1, fun.(&1)}
@@ -1656,7 +1656,7 @@ defmodule Enum do
       {nil, nil}
 
   """
-  @spec min_max(t, (() -> empty_result)) :: {element, element} | empty_result | no_return
+  @spec min_max(t, (() -> empty_result)) :: {element, element} | empty_result
         when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
@@ -1699,8 +1699,7 @@ defmodule Enum do
       {nil, nil}
 
   """
-  @spec min_max_by(t, (element -> any), (() -> empty_result)) ::
-          {element, element} | empty_result | no_return
+  @spec min_max_by(t, (element -> any), (() -> empty_result)) :: {element, element} | empty_result
         when empty_result: any
   def min_max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
@@ -1812,7 +1811,7 @@ defmodule Enum do
       776
 
   """
-  @spec random(t) :: element | no_return
+  @spec random(t) :: element
   def random(enumerable)
 
   def random(enumerable) when is_list(enumerable) do
