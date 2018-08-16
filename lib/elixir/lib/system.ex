@@ -339,9 +339,10 @@ defmodule System do
 
   The function must receive the exit status code as an argument.
   """
-  @spec at_exit((non_neg_integer -> any)) :: list(fun)
+  @spec at_exit((non_neg_integer -> any)) :: :ok
   def at_exit(fun) when is_function(fun, 1) do
     :elixir_config.update(:at_exit, &[fun | &1])
+    :ok
   end
 
   @doc """
