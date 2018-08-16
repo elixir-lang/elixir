@@ -177,7 +177,7 @@ defmodule ExUnit do
   If you want to run tests manually, you can set the `:autorun` option
   to `false` and use `run/0` to run tests.
   """
-  @spec start(Keyword.t()) :: nil | :ok
+  @spec start(Keyword.t()) :: :ok
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
@@ -199,6 +199,8 @@ defmodule ExUnit do
         _ ->
           :ok
       end)
+    else
+      :ok
     end
   end
 
