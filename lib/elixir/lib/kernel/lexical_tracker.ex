@@ -162,7 +162,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:remote_struct, module, line}, state) do
-    state = add_remote_dispatch(state, module, {:__struct__, 1}, line, :compile)
+    state = add_remote_dispatch(state, module, {:__struct__, 0}, line, :compile)
     structs = :maps.put(module, true, state.structs)
     {:noreply, %{state | structs: structs}}
   end

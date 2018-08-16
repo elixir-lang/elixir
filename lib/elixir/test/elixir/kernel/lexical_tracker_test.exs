@@ -255,7 +255,7 @@ defmodule Kernel.LexicalTrackerTest do
     assert {9, Integer, :is_even, 1} in compile_remote_calls
     assert {14, Record, :is_record, 1} in compile_remote_calls
     assert {17, Integer, :is_even, 1} in compile_remote_calls
-    assert {18, Macro.Env, :__struct__, 1} in compile_remote_calls
+    assert {18, Macro.Env, :__struct__, 0} in compile_remote_calls
     assert {21, Record, :extract, 2} in compile_remote_calls
     assert {22, Record, :is_record, 1} in compile_remote_calls
     assert {23, Remote, :func, 0} in compile_remote_calls
@@ -263,7 +263,7 @@ defmodule Kernel.LexicalTrackerTest do
     assert {25, Integer, :is_even, 1} in compile_remote_calls
     assert {26, Kernel, :def, 2} in compile_remote_calls
     assert {26, Record, :is_record, 1} in compile_remote_calls
-    assert {27, Macro.Env, :__struct__, 1} in compile_remote_calls
+    assert {27, Macro.Env, :__struct__, 0} in compile_remote_calls
     assert {29, Kernel.LexicalTracker, :remote_dispatches, 1} in compile_remote_calls
 
     runtime_remote_calls = unroll_dispatches(runtime_remote_calls)
