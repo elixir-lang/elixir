@@ -313,16 +313,26 @@ defmodule ExUnit do
   end
 
   @doc """
-  Allows users to configure functions to run after the test suite has finished.
-  Functions passed in will be executed after all tests have finished running. If
-  `after_suite/1` is called multiple times, the functions will be executed in
-  reverse order (i.e. the last function given will be executed first).
+  Sets a callback to be executed after the completion of a test suite.
+
+  Callbacks set with `after_suite/1` must accept a single argument, which is a
+  map containing the results of the test suite's execution.
+
+  If `after_suite/1` is called multiple times, the callbacks will be called in
+  reverse order - i.e. the last callback set will be the first to be called.
   """
-  @spec after_suite(fun) :: :ok
-  def after_suite(function) do
+  @spec after_suite(
+          (%{
+             excluded: non_neg_integer,
+             failures: non_neg_integer,
+             skipped: non_neg_integer,
+             total: non_neg_integer
+           } ->
+             any)
+        ) :: :ok
+  def after_suite(function) when is_function(function) do
     current_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
     configure(after_suite: [function | current_callbacks])
-    :ok
   end
 
   # Persists default values in application
