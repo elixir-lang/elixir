@@ -21,6 +21,8 @@ defmodule ExUnit.Runner do
     EM.suite_finished(config.manager, run_us, load_us)
     result = ExUnit.RunnerStats.stats(stats)
     EM.stop(config.manager)
+    after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
+    Enum.each(after_suite_callbacks, fn callback -> callback.(result) end)
     result
   end
 

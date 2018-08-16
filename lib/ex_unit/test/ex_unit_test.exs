@@ -498,6 +498,40 @@ defmodule ExUnitTest do
     ExUnit.configure(seed: global_seed)
   end
 
+  describe "after_suite/1" do
+    test "executes all callbacks set in reverse order" do
+      Process.register(self(), :after_suite_test_process)
+
+      defmodule MultipleAfterSuiteTest do
+        use ExUnit.Case
+
+        test "true" do
+          send(:after_suite_test_process, :in_first_test)
+        end
+      end
+
+      ExUnit.Server.modules_loaded()
+
+      ExUnit.after_suite(fn _ -> send(:after_suite_test_process, :first_after_suite) end)
+      ExUnit.after_suite(fn result -> send(:after_suite_test_process, result) end)
+      ExUnit.after_suite(fn _ -> send(:after_suite_test_process, :third_after_suite) end)
+
+      capture_io(fn -> ExUnit.run() end)
+
+      # Because `after_suite` is global, we need to be sure to clear out the
+      # test callbacks here, otherwise it will attempt to execute them after
+      # every subsequent call to `ExUnit.run()` in any tests run after these.
+      Application.put_env(:ex_unit, :after_suite, [])
+
+      assert next_message_in_mailbox() == :in_first_test
+      assert next_message_in_mailbox() == :third_after_suite
+      assert next_message_in_mailbox() == %{excluded: 0, failures: 0, skipped: 0, total: 1}
+      assert next_message_in_mailbox() == :first_after_suite
+      # Check to make sure the mailbox is empty after these four messages
+      refute_receive _
+    end
+  end
+
   defp on_exit_reload_config(extra \\ []) do
     old_config = ExUnit.configuration()
     on_exit(fn -> ExUnit.configure(extra ++ old_config) end)
@@ -509,5 +543,13 @@ defmodule ExUnitTest do
     opts = Keyword.merge(ExUnit.configuration(), filters)
     output = capture_io(fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end)
     {Process.get(:capture_result), output}
+  end
+
+  defp next_message_in_mailbox() do
+    receive do
+      msg -> msg
+    after
+      0 -> nil
+    end
   end
 end
