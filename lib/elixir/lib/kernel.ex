@@ -4275,10 +4275,13 @@ defmodule Kernel do
         _ -> Protocol.__derive__(derive, __MODULE__, __ENV__)
       end
 
+      deprecation = Module.get_attribute(__MODULE__, :deprecated)
+
       def __struct__() do
         @struct
       end
 
+      if deprecation, do: @deprecated deprecation
       unquote(builder)
       Kernel.Utils.announce_struct(__MODULE__)
       struct
