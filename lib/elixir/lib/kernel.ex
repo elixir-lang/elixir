@@ -4281,7 +4281,7 @@ defmodule Kernel do
         @struct
       end
 
-      if deprecation, do: @deprecated deprecation
+      if deprecation, do: @deprecated(deprecation)
       unquote(builder)
       Kernel.Utils.announce_struct(__MODULE__)
       struct
