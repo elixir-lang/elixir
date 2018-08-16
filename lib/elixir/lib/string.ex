@@ -832,7 +832,7 @@ defmodule String do
       "ola ola world"
 
   """
-  @spec replace_leading(t, t, t) :: t | no_return
+  @spec replace_leading(t, t, t) :: t
   def replace_leading(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     if match == "" do
@@ -889,7 +889,7 @@ defmodule String do
       "hello mundo mundo"
 
   """
-  @spec replace_trailing(t, t, t) :: t | no_return
+  @spec replace_trailing(t, t, t) :: t
   def replace_trailing(string, match, replacement)
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     if match == "" do

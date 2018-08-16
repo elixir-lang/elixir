@@ -278,7 +278,7 @@ defmodule Version do
       ** (Version.InvalidVersionError) invalid version: "2.0-alpha1"
 
   """
-  @spec parse!(String.t()) :: t | no_return
+  @spec parse!(String.t()) :: t
   def parse!(string) when is_binary(string) do
     case parse(string) do
       {:ok, version} -> version

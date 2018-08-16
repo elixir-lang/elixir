@@ -463,7 +463,7 @@ defmodule Application do
 
   If the configuration parameter does not exist, raises `ArgumentError`.
   """
-  @spec fetch_env!(app, key) :: value | no_return
+  @spec fetch_env!(app, key) :: value
   def fetch_env!(app, key) do
     case fetch_env(app, key) do
       {:ok, value} ->

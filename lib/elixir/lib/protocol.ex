@@ -58,7 +58,7 @@ defmodule Protocol do
 
   Returns `:ok` if so, otherwise raises `ArgumentError`.
   """
-  @spec assert_protocol!(module) :: :ok | no_return
+  @spec assert_protocol!(module) :: :ok
   def assert_protocol!(module) do
     assert_protocol!(module, "")
   end
@@ -85,7 +85,7 @@ defmodule Protocol do
 
   Returns `:ok` if so, otherwise raises `ArgumentError`.
   """
-  @spec assert_impl!(module, module) :: :ok | no_return
+  @spec assert_impl!(module, module) :: :ok
   def assert_impl!(protocol, base) do
     assert_impl!(protocol, base, "")
   end

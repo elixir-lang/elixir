@@ -845,7 +845,7 @@ defmodule DateTime do
 
   """
   @doc since: "1.5.0"
-  @spec convert!(t, Calendar.calendar()) :: t | no_return
+  @spec convert!(t, Calendar.calendar()) :: t
   def convert!(datetime, calendar) do
     case convert(datetime, calendar) do
       {:ok, value} ->

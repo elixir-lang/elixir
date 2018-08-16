@@ -111,7 +111,7 @@ defmodule Macro do
   @doc """
   Pipes `expr` into the `call_args` at the given `position`.
   """
-  @spec pipe(t(), t(), integer) :: t() | no_return
+  @spec pipe(t(), t(), integer) :: t()
   def pipe(expr, call_args, position)
 
   def pipe(expr, {:&, _, _} = call_args, _integer) do
