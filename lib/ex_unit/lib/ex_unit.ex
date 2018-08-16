@@ -312,6 +312,30 @@ defmodule ExUnit do
     ExUnit.Runner.run(config, nil)
   end
 
+  @doc """
+  Sets a callback to be executed after the completion of a test suite.
+
+  Callbacks set with `after_suite/1` must accept a single argument, which is a
+  map containing the results of the test suite's execution.
+
+  If `after_suite/1` is called multiple times, the callbacks will be called in
+  reverse order. In other words, the last callback set will be the first to be
+  called.
+  """
+  @spec after_suite(
+          (%{
+             excluded: non_neg_integer,
+             failures: non_neg_integer,
+             skipped: non_neg_integer,
+             total: non_neg_integer
+           } ->
+             any)
+        ) :: :ok
+  def after_suite(function) when is_function(function) do
+    current_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
+    configure(after_suite: [function | current_callbacks])
+  end
+
   # Persists default values in application
   # environment before the test suite starts.
   defp persist_defaults(config) do
