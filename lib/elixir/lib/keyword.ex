@@ -319,7 +319,7 @@ defmodule Keyword do
       {1, []}
 
   """
-  @spec get_and_update!(t, key, (value -> {get, value})) :: {get, t} | no_return when get: term
+  @spec get_and_update!(t, key, (value -> {get, value})) :: {get, t} when get: term
   def get_and_update!(keywords, key, fun) do
     get_and_update!(keywords, key, fun, [])
   end
@@ -379,7 +379,7 @@ defmodule Keyword do
       ** (KeyError) key :b not found in: [a: 1]
 
   """
-  @spec fetch!(t, key) :: value | no_return
+  @spec fetch!(t, key) :: value
   def fetch!(keywords, key) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, value} -> value
@@ -823,7 +823,7 @@ defmodule Keyword do
       ** (KeyError) key :b not found in: [a: 1]
 
   """
-  @spec update!(t, key, (value -> value)) :: t | no_return
+  @spec update!(t, key, (value -> value)) :: t
   def update!(keywords, key, fun) do
     update!(keywords, key, fun, keywords)
   end

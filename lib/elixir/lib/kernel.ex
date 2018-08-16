@@ -2093,7 +2093,7 @@ defmodule Kernel do
       only when building;
 
   """
-  @spec struct!(module | struct, Enum.t()) :: struct | no_return
+  @spec struct!(module | struct, Enum.t()) :: struct
   def struct!(struct, fields \\ [])
 
   def struct!(struct, fields) when is_atom(struct) do

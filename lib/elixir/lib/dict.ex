@@ -295,7 +295,7 @@ defmodule Dict do
   end
 
   @deprecated message
-  @spec fetch!(t, key) :: value | no_return
+  @spec fetch!(t, key) :: value
   def fetch!(dict, key) do
     target(dict).fetch!(dict, key)
   end

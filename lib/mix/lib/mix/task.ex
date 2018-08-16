@@ -223,7 +223,7 @@ defmodule Mix.Task do
     * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
 
   """
-  @spec get!(task_name) :: task_module | no_return
+  @spec get!(task_name) :: task_module
   def get!(task) do
     case fetch(task) do
       {:ok, module} ->
