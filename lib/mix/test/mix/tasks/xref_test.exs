@@ -651,6 +651,26 @@ defmodule Mix.Tasks.XrefTest do
     assert_deprecated(code, warning)
   end
 
+  test "deprecated: reports deprecated structs" do
+    code = """
+    defmodule A do
+      @deprecated "oops"
+      defstruct [:x, :y]
+      def match(%A{}), do: :ok
+      def build(:ok), do: %A{}
+    end
+    """
+
+    warning = """
+    Compiling 2 files (.ex)
+    Generated sample app
+    lib/a.ex:4: A.__struct__/0
+    lib/a.ex:5: A.__struct__/0
+    """
+
+    assert_deprecated(code, warning)
+  end
+
   test "deprecated: aborts if any" do
     code = """
     defmodule A do

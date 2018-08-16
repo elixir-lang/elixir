@@ -1769,9 +1769,8 @@ defmodule Module do
     end
   end
 
-  # This is the same list of attributes as in :elixir_module.
-  # We do not insert into the :attributes key in the bag table
-  # because those attributes are deleted on every definition.
+  # Optimize some attributes by avoiding writing to the attributes key
+  # in the bag table since we handle them internally.
   defp put_attribute(module, key, value, line, set, _bag)
        when key in [:doc, :typedoc, :moduledoc, :impl, :deprecated] do
     try do
