@@ -169,6 +169,7 @@ defmodule ExUnit do
   If you want to run tests manually, you can set the `:autorun` option
   to `false` and use `run/0` to run tests.
   """
+  @spec start(Keyword.t()) :: nil | list(fun)
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
@@ -259,6 +260,7 @@ defmodule ExUnit do
       will be ignored.
 
   """
+  @spec configure(Keyword.t()) :: :ok
   def configure(options) do
     Enum.each(options, fn {k, v} ->
       Application.put_env(:ex_unit, k, v)
@@ -268,6 +270,7 @@ defmodule ExUnit do
   @doc """
   Returns ExUnit configuration.
   """
+  @spec configuration() :: Keyword.t()
   def configuration do
     Application.get_all_env(:ex_unit)
     |> put_seed()
@@ -305,8 +308,14 @@ defmodule ExUnit do
   if ExUnit is started via `start/1`.
 
   Returns a map containing the total number of tests, the number
-  of failures and the number of skipped tests.
+  of failures, the number of excluded tests and the number of skipped tests.
   """
+  @spec run() :: %{
+          total: non_neg_integer,
+          failures: non_neg_integer,
+          excluded: non_neg_integer,
+          skipped: non_neg_integer
+        }
   def run do
     config = persist_defaults(configuration())
     ExUnit.Runner.run(config, nil)
