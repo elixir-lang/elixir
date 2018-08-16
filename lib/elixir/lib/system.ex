@@ -237,7 +237,7 @@ defmodule System do
 
   Returns the current working directory or raises `RuntimeError`.
   """
-  @spec cwd!() :: String.t() | no_return
+  @spec cwd!() :: String.t()
   def cwd! do
     cwd() ||
       raise RuntimeError,
@@ -261,7 +261,7 @@ defmodule System do
   Same as `user_home/0` but raises `RuntimeError`
   instead of returning `nil` if no user home is set.
   """
-  @spec user_home!() :: String.t() | no_return
+  @spec user_home!() :: String.t()
   def user_home! do
     user_home() ||
       raise RuntimeError,
@@ -294,7 +294,7 @@ defmodule System do
   Same as `tmp_dir/0` but raises `RuntimeError`
   instead of returning `nil` if no temp dir is set.
   """
-  @spec tmp_dir!() :: String.t() | no_return
+  @spec tmp_dir!() :: String.t()
   def tmp_dir! do
     tmp_dir() ||
       raise RuntimeError,
