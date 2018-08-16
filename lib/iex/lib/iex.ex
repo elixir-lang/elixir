@@ -84,7 +84,7 @@ defmodule IEx do
   ## The Break command
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
-  menu you can quit the shell, see process and ets tables information
+  menu you can quit the shell, see process and ETS tables information
   and much more.
 
   ## Exiting the shell

@@ -202,7 +202,7 @@ When you absolutely have to use a macro, make sure that a macro is not the only 
 
 A developer must never use a process for code organization purposes. A process must be used to model runtime properties such as:
 
-  * Mutable state and access to shared resources (such as ets, files, etc)
+  * Mutable state and access to shared resources (such as ETS, files, etc)
   * Concurrency and distribution
   * Initialization, shutdown and restart logic (as seen in supervisors)
   * System messages such as timer messages and monitoring events
