@@ -106,7 +106,8 @@ defmodule ExUnit do
             module: module,
             state: ExUnit.state(),
             time: non_neg_integer,
-            tags: map
+            tags: map,
+            logs: String.t()
           }
   end
 
