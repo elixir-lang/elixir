@@ -2,11 +2,9 @@ defmodule ExUnit.Runner do
   @moduledoc false
 
   alias ExUnit.EventManager, as: EM
-  alias ExUnit.Formatter
 
   @rand_algorithm :exs1024
 
-  @spec run(Keyword.t(), Formatter.load_us()) :: ExUnit.suite_result()
   def run(opts, load_us) do
     {:ok, manager} = EM.start_link()
     {:ok, stats} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
