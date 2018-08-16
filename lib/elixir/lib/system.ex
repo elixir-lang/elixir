@@ -140,6 +140,7 @@ defmodule System do
   @doc """
   Returns the endianness.
   """
+  @spec endianness() :: :little | :big
   def endianness do
     :erlang.system_info(:endian)
   end
@@ -148,6 +149,7 @@ defmodule System do
   Returns the endianness the system was compiled with.
   """
   @endianness :erlang.system_info(:endian)
+  @spec compiled_endianness() :: :little | :big
   def compiled_endianness do
     @endianness
   end
@@ -213,6 +215,7 @@ defmodule System do
   Returns the current working directory or `nil` if one
   is not available.
   """
+  @spec cwd() :: String.t() | nil
   def cwd do
     case :file.get_cwd() do
       {:ok, base} -> IO.chardata_to_string(fix_drive_letter(base))
@@ -234,6 +237,7 @@ defmodule System do
 
   Returns the current working directory or raises `RuntimeError`.
   """
+  @spec cwd!() :: String.t() | no_return
   def cwd! do
     cwd() ||
       raise RuntimeError,
@@ -246,6 +250,7 @@ defmodule System do
 
   Returns the user home directory (platform independent).
   """
+  @spec user_home() :: String.t() | nil
   def user_home do
     :elixir_config.get(:home)
   end
@@ -256,6 +261,7 @@ defmodule System do
   Same as `user_home/0` but raises `RuntimeError`
   instead of returning `nil` if no user home is set.
   """
+  @spec user_home!() :: String.t() | no_return
   def user_home! do
     user_home() ||
       raise RuntimeError,
@@ -276,6 +282,7 @@ defmodule System do
 
   Returns `nil` if none of the above are writable.
   """
+  @spec tmp_dir() :: String.t() | nil
   def tmp_dir do
     write_env_tmp_dir('TMPDIR') || write_env_tmp_dir('TEMP') || write_env_tmp_dir('TMP') ||
       write_tmp_dir('/tmp') || ((cwd = cwd()) && write_tmp_dir(cwd))
@@ -287,6 +294,7 @@ defmodule System do
   Same as `tmp_dir/0` but raises `RuntimeError`
   instead of returning `nil` if no temp dir is set.
   """
+  @spec tmp_dir!() :: String.t() | no_return
   def tmp_dir! do
     tmp_dir() ||
       raise RuntimeError,
@@ -331,6 +339,7 @@ defmodule System do
 
   The function must receive the exit status code as an argument.
   """
+  @spec at_exit((non_neg_integer -> any)) :: list(fun)
   def at_exit(fun) when is_function(fun, 1) do
     :elixir_config.update(:at_exit, &[fun | &1])
   end
