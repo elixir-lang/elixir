@@ -528,7 +528,7 @@ defmodule ExUnitTest do
       assert next_message_in_mailbox() == %{excluded: 0, failures: 0, skipped: 0, total: 1}
       assert next_message_in_mailbox() == :first_after_suite
       # Check to make sure the mailbox is empty after these four messages
-      refute_receive _
+      refute_received _
     end
   end
 
