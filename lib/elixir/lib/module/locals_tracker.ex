@@ -4,7 +4,7 @@
 #
 # ## Implementation
 #
-# The implementation uses ets to track all dependencies
+# The implementation uses ETS to track all dependencies
 # resembling a graph. The keys and what they point to are:
 #
 #   * `:reattach` points to `{name, arity}`

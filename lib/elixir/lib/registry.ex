@@ -907,7 +907,7 @@ defmodule Registry do
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
-    # Notice we write first to the pid ets table because it will
+    # Notice we write first to the pid_ets table because it will
     # always be able to do the cleanup. If we register first to the
     # key one and the process crashes, the key will stay there forever.
     Process.link(pid_server)
@@ -1233,7 +1233,7 @@ end
 defmodule Registry.Partition do
   @moduledoc false
 
-  # This process owns the equivalent key and pid ets tables
+  # This process owns the equivalent key and pid ETS tables
   # and is responsible for monitoring processes that map to
   # its own pid table.
   use GenServer
@@ -1325,7 +1325,7 @@ defmodule Registry.Partition do
     for {_pid, key, key_ets} <- entries do
       key_ets =
         case key_ets do
-          # In case the fake key ets is being used. See unregister_match/2.
+          # In case the fake key_ets is being used. See unregister_match/2.
           {key_ets, _} ->
             key_ets
 
