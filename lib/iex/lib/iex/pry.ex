@@ -450,7 +450,7 @@ defmodule IEx.Pry do
 
     update_op = Macro.escape({5, -1, -1, -1})
 
-    # Generate the take_over condition with the ets lookup.
+    # Generate the take_over condition with the ETS lookup.
     # Remember this is expanded AST, so no aliases allowed,
     # no locals (such as the unary -) and so on.
     condition =
