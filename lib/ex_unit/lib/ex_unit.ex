@@ -319,7 +319,8 @@ defmodule ExUnit do
   map containing the results of the test suite's execution.
 
   If `after_suite/1` is called multiple times, the callbacks will be called in
-  reverse order - i.e. the last callback set will be the first to be called.
+  reverse order. In other words, the last callback set will be the first to be
+  called.
   """
   @spec after_suite(
           (%{
