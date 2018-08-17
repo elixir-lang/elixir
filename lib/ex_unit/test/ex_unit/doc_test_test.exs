@@ -427,7 +427,7 @@ defmodule ExUnit.DocTestTest do
     ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
 
-    assert output =~ "0 failure"
+    assert output =~ "0 failures"
     refute output =~ "doctest"
   end
 
