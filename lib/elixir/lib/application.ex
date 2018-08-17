@@ -296,7 +296,7 @@ defmodule Application do
   @callback stop(state) :: term
 
   @doc """
-  Start an application in synchronous phases.
+  Starts an application in synchronous phases.
 
   This function is called after `start/2` finishes but before
   `Application.start/2` returns. It will be called once for every start phase
@@ -306,7 +306,18 @@ defmodule Application do
   @callback start_phase(phase :: term, start_type, phase_args :: term) ::
               :ok | {:error, reason :: term}
 
-  @optional_callbacks start_phase: 3, prep_stop: 1
+  @doc """
+  Callback invoked after code upgrade, if the application environment
+  has changed.
+
+  `changed` is a keyword list of keys and their changed values in the
+  application environment. `new` is a keyword list with all new keys
+  and their values. `removed` is a list with all removed keys.
+  """
+  @callback config_change(changed, new, removed) :: :ok
+            when changed: keyword, new: keyword, removed: [atom]
+
+  @optional_callbacks start_phase: 3, prep_stop: 1, config_change: 3
 
   @doc false
   defmacro __using__(_) do
