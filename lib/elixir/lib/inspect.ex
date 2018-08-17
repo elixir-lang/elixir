@@ -391,25 +391,29 @@ end
 
 defimpl Inspect, for: Any do
   defmacro __deriving__(module, struct, options) do
-    only = Keyword.get(options, :only, [])
-    except = Keyword.get(options, :except, [])
-
     fields =
       struct
+      |> Map.drop([:__exception__, :__struct__])
       |> Map.keys()
-      |> Enum.reject(&(&1 in except or &1 in [:__exception__, :__struct__]))
-      |> Enum.filter(&(Enum.empty?(only) or &1 in only))
+
+    only = Keyword.get(options, :only, fields)
+    except = Keyword.get(options, :except, [])
+
+    filtered_fields =
+      fields
+      |> Enum.reject(&(&1 in except))
+      |> Enum.filter(&(&1 in only))
 
     inspect_fun =
       case {only, except} do
-        {[], []} -> quote(do: Inspect.Map.inspect(map, name, opts))
+        {^fields, []} -> quote(do: Inspect.Map.inspect(map, name, opts))
         _ -> quote(do: Inspect.Any.inspect(map, name, opts))
       end
 
     quote do
       defimpl Inspect, for: unquote(module) do
         def inspect(struct, opts) do
-          map = Map.take(struct, unquote(fields))
+          map = Map.take(struct, unquote(filtered_fields))
           colorless_opts = %{opts | syntax_colors: []}
           name = Inspect.Atom.inspect(unquote(module), colorless_opts)
           unquote(inspect_fun)
