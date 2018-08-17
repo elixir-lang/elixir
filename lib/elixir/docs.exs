@@ -1,6 +1,9 @@
 # Returns config for Elixir docs
 [
   extras: Path.wildcard("lib/elixir/pages/*.md"),
+  groups_for_functions: [
+    Guards: & &1[:guard] == true
+  ],
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 
