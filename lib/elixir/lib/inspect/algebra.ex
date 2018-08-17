@@ -1,6 +1,6 @@
 defmodule Inspect.Opts do
   @moduledoc """
-  Defines the Inspect.Opts used by the Inspect protocol.
+  Defines the options used by the `Inspect` protocol.
 
   The following fields are available:
 
@@ -148,7 +148,7 @@ defmodule Inspect.Algebra do
 
   ## Implementation details
 
-  The implementation of Inspect.Algebra is based on the Strictly Pretty
+  The implementation of `Inspect.Algebra` is based on the Strictly Pretty
   paper by [Lindig][0] which builds on top of previous pretty printing
   algorithms but is tailored to strict languages, such as Elixir.
   The core idea in the paper is the use of explicit document groups which
@@ -312,7 +312,7 @@ defmodule Inspect.Algebra do
   attempts to put as much as possible on the same line. If they are not simple,
   only one entry is shown per line if they do not fit.
 
-  The limit in the given `Inspect.Opts` is respected and when reached this
+  The limit in the given `inspect_opts` is respected and when reached this
   function stops processing and outputs `"..."` instead.
 
   ## Options
@@ -324,22 +324,22 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> inspect = %Inspect.Opts{limit: :infinity}
+      iex> inspect_opts = %Inspect.Opts{limit: :infinity}
       iex> fun = fn i, _opts -> to_string(i) end
-      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect, fun)
+      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun)
       iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary()
       "[1,\n 2,\n 3,\n 4,\n 5]"
 
-      iex> inspect = %Inspect.Opts{limit: 3}
+      iex> inspect_opts = %Inspect.Opts{limit: 3}
       iex> fun = fn i, _opts -> to_string(i) end
-      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect, fun)
+      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun)
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
       "[1, 2, 3, ...]"
 
-      iex> inspect = %Inspect.Opts{limit: 3}
+      iex> inspect_opts = %Inspect.Opts{limit: 3}
       iex> fun = fn i, _opts -> to_string(i) end
       iex> opts = [separator: "!"]
-      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect, fun, opts)
+      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun, opts)
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
       "[1! 2! 3! ...]"
 
@@ -347,7 +347,7 @@ defmodule Inspect.Algebra do
   @doc since: "1.6.0"
   @spec container_doc(t, [any], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
           t
-  def container_doc(left, collection, right, inspect, fun, opts \\ [])
+  def container_doc(left, collection, right, inspect_opts, fun, opts \\ [])
       when is_doc(left) and is_list(collection) and is_doc(right) and is_function(fun, 2) and
              is_list(opts) do
     case collection do
@@ -359,7 +359,7 @@ defmodule Inspect.Algebra do
         separator = Keyword.get(opts, :separator, @container_separator)
 
         {docs, simple?} =
-          container_each(collection, inspect.limit, inspect, fun, [], break == :maybe)
+          container_each(collection, inspect_opts.limit, inspect_opts, fun, [], break == :maybe)
 
         flex? = simple? or break == :flex
         docs = fold_doc(docs, &join(&1, &2, flex?, separator))
