@@ -96,9 +96,6 @@ defmodule Mix.Tasks.Deps do
       If the `:applications` key is not provided in `def application` in your
       mix.exs file, Mix will automatically included all dependencies as a runtime
       application, except if `runtime: false` is given. Defaults to true.
-      Note this option is not preserved if you are publishing a package to Hex.
-      In such cases, you should remove the `:runtime` option in the dependency
-      and list all runtime applications under `:applications` explicitly.
 
     * `:system_env` - an enumerable of key-value tuples of binaries to be set
       as environment variables when loading or compiling the dependency
