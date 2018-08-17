@@ -273,7 +273,6 @@ defmodule ExUnit do
   Any arbitrary configuration can also be passed to `configure/1`, and these options
   can then be used in places such as custom formatters. These other options will be
   ignored by ExUnit itself.
-
   """
   @spec configure(Keyword.t()) :: :ok
   def configure(options) do
