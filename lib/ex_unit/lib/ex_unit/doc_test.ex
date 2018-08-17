@@ -234,17 +234,17 @@ defmodule ExUnit.DocTest do
   defp filter_by_opts(tests, opts) do
     except = Keyword.get(opts, :except, [])
 
-    case Keyword.get(opts, :only) do
-      [] ->
+    case Keyword.fetch(opts, :only) do
+      {:ok, []} ->
         []
 
-      nil ->
-        Stream.reject(tests, &(&1.fun_arity in except))
-
-      only ->
+      {:ok, only} ->
         tests
         |> Stream.reject(&(&1.fun_arity in except))
         |> Stream.filter(&(&1.fun_arity in only))
+
+      :error ->
+        Stream.reject(tests, &(&1.fun_arity in except))
     end
   end
 
