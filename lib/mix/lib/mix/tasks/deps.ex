@@ -93,8 +93,12 @@ defmodule Mix.Tasks.Deps do
       and override it by setting the `:override` option in a top-level project.
 
     * `:runtime` - whether the dependency is part of runtime applications.
-      Defaults to `true` which automatically adds the application to the list
-      of apps that are started automatically and included in releases
+      If the `:applications` key is not provided in `def application` in your
+      mix.exs file, Mix will automatically included all dependencies as a runtime
+      application, except if `runtime: false` is given. Defaults to true.
+
+    * `:system_env` - an enumerable of key-value tuples of binaries to be set
+      as environment variables when loading or compiling the dependency
 
   ### Git options (`:git`)
 

@@ -117,11 +117,6 @@ defmodule Mix.Dep do
     end
   end
 
-  # optional and runtime only matter at the top level.
-  # Any non-top level dependency that is optional and
-  # is still available means it has been fulfilled.
-  @child_keep_opts [:optional, :runtime]
-
   defp load_and_cache(_config, top, top, env) do
     converge(env: env)
   end
@@ -136,21 +131,18 @@ defmodule Mix.Dep do
       for dep <- deps,
           dep.app == app,
           child <- dep.deps,
-          do: {child.app, Keyword.take(child.opts, @child_keep_opts)},
+          do: {child.app, Keyword.get(child.opts, :optional, false)},
           into: %{}
 
-    Enum.map(children, fn %{app: app} = dep ->
+    Enum.map(children, fn %{app: app, opts: opts} = dep ->
+      # optional only matters at the top level. Any non-top level dependency
+      # that is optional and is still available means it has been fulfilled.
       case top_level do
-        %{^app => child_opts} ->
-          opts =
-            dep.opts
-            |> Keyword.drop(@child_keep_opts)
-            |> Keyword.merge(child_opts)
-
-          %{dep | top_level: true, opts: opts}
+        %{^app => optional} ->
+          %{dep | top_level: true, opts: Keyword.put(opts, :optional, optional)}
 
         %{} ->
-          %{dep | top_level: false}
+          %{dep | top_level: false, opts: Keyword.delete(opts, :optional)}
       end
     end)
   end
