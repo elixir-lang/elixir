@@ -14,7 +14,7 @@ defmodule Process do
 
   While this module provides low-level conveniences to work with processes,
   developers typically use abstractions such as `Agent`, `GenServer`,
-  `Registry`, `Supervisor` and `Task`  for building their systems and
+  `Registry`, `Supervisor` and `Task` for building their systems and
   resort to this module for gathering information, trapping exits, links
   and monitoring.
   """
