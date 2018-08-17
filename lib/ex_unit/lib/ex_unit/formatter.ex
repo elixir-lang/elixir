@@ -40,7 +40,6 @@ defmodule ExUnit.Formatter do
   formatter, you can add any configuration needed by using `ExUnit.configure/1`,
   and this will then be included in the options passed to the GenServer's
   `init/1` callback.
-
   """
 
   @type id :: term
