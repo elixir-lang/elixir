@@ -483,6 +483,26 @@ defmodule Inspect.MapTest do
     assert inspect(%{a: 9999}, opts) ==
              "\e[32m%{\e[36m" <> "\e[31ma:\e[36m " <> "\e[34m9999\e[36m" <> "\e[32m}\e[36m"
   end
+
+  defmodule StructWithOnly do
+    @derive {Inspect, only: [:b, :c]}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with :only option" do
+    struct = %StructWithOnly{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "%Inspect.MapTest.StructWithOnly{b: 2, c: 3}"
+  end
+
+  defmodule StructWithExcept do
+    @derive {Inspect, except: [:b, :c]}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with :except option" do
+    struct = %StructWithExcept{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "%Inspect.MapTest.StructWithExcept{a: 1, d: 4}"
+  end
 end
 
 defmodule Inspect.OthersTest do
