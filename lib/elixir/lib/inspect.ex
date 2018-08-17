@@ -70,7 +70,7 @@ defprotocol Inspect do
       end
 
       inspect(%User{id: 1, name: "Homer", address: "742 Evergreen Terrace"})
-      #=> %User{id: 1, name: "Homer"}
+      #=> #User<id: 1, name: "Homer", ...>
 
   """
 
@@ -243,11 +243,21 @@ defimpl Inspect, for: Map do
     inspect(map, "", opts)
   end
 
-  def inspect(map, name, opts) do
+  def inspect(map, name, opts, partial \\ false)
+
+  def inspect(map, name, opts, false) do
     map = :maps.to_list(map)
     open = color("%" <> name <> "{", :map, opts)
     sep = color(",", :map, opts)
     close = color("}", :map, opts)
+    container_doc(open, map, close, opts, traverse_fun(map, opts), separator: sep, break: :strict)
+  end
+
+  def inspect(map, name, opts, true) do
+    map = :maps.to_list(map)
+    open = color("#" <> name <> "<", :map, opts)
+    sep = color(",", :map, opts)
+    close = color(", ...>", :map, opts)
     container_doc(open, map, close, opts, traverse_fun(map, opts), separator: sep, break: :strict)
   end
 
@@ -392,12 +402,13 @@ end
 defimpl Inspect, for: Any do
   defmacro __deriving__(module, struct, options) do
     only = Keyword.get(options, :only, [])
-    except = Keyword.get(options, :except, []) ++ [:__exception__, :__struct__]
+    except = Keyword.get(options, :except, [])
+    partial = only != [] or except != []
 
     fields =
       struct
       |> Map.keys()
-      |> Enum.reject(&(&1 in except))
+      |> Enum.reject(&(&1 in except or &1 in [:__exception__, :__struct__]))
       |> Enum.filter(&(Enum.empty?(only) or &1 in only))
 
     quote do
@@ -405,7 +416,8 @@ defimpl Inspect, for: Any do
         def inspect(struct, opts) do
           pruned = Map.take(struct, unquote(fields))
           colorless_opts = %{opts | syntax_colors: []}
-          Inspect.Map.inspect(pruned, Inspect.Atom.inspect(unquote(module), colorless_opts), opts)
+          name = Inspect.Atom.inspect(unquote(module), colorless_opts)
+          Inspect.Map.inspect(pruned, name, opts, unquote(partial))
         end
       end
     end
