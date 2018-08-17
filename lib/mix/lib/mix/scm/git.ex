@@ -124,9 +124,7 @@ defmodule Mix.SCM.Git do
     git!(["--git-dir=.git", "checkout", "--quiet", rev])
 
     if opts[:submodules] do
-      git!(
-        ~w[-c core.hooksPath='' --git-dir=.git submodule update --init --recursive]
-      )
+      git!(~w[-c core.hooksPath='' --git-dir=.git submodule update --init --recursive])
     end
 
     # Get the new repo lock
