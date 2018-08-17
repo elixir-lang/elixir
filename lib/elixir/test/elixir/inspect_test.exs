@@ -492,6 +492,9 @@ defmodule Inspect.MapTest do
   test "struct without options" do
     struct = %StructWithoutOptions{a: 1, b: 2, c: 3, d: 4}
     assert inspect(struct) == "%Inspect.MapTest.StructWithoutOptions{a: 1, b: 2, c: 3, d: 4}"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "%Inspect.MapTest.StructWithoutOptions{\n  a: 1,\n  b: 2,\n  c: 3,\n  d: 4\n}"
   end
 
   defmodule StructWithOnly do
@@ -502,6 +505,9 @@ defmodule Inspect.MapTest do
   test "struct with :only option" do
     struct = %StructWithOnly{a: 1, b: 2, c: 3, d: 4}
     assert inspect(struct) == "#Inspect.MapTest.StructWithOnly<b: 2, c: 3, ...>"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "#Inspect.MapTest.StructWithOnly<\n  b: 2,\n  c: 3,\n  ...\n>"
   end
 
   defmodule StructWithExcept do
@@ -512,6 +518,9 @@ defmodule Inspect.MapTest do
   test "struct with :except option" do
     struct = %StructWithExcept{a: 1, b: 2, c: 3, d: 4}
     assert inspect(struct) == "#Inspect.MapTest.StructWithExcept<a: 1, d: 4, ...>"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "#Inspect.MapTest.StructWithExcept<\n  a: 1,\n  d: 4,\n  ...\n>"
   end
 
   defmodule StructWithBothOnlyAndExcept do
@@ -522,6 +531,9 @@ defmodule Inspect.MapTest do
   test "struct with both :only and :except options" do
     struct = %StructWithBothOnlyAndExcept{a: 1, b: 2, c: 3, d: 4}
     assert inspect(struct) == "#Inspect.MapTest.StructWithBothOnlyAndExcept<a: 1, ...>"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "#Inspect.MapTest.StructWithBothOnlyAndExcept<\n  a: 1,\n  ...\n>"
   end
 end
 

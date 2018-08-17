@@ -243,21 +243,11 @@ defimpl Inspect, for: Map do
     inspect(map, "", opts)
   end
 
-  def inspect(map, name, opts, partial \\ false)
-
-  def inspect(map, name, opts, false) do
+  def inspect(map, name, opts) do
     map = :maps.to_list(map)
     open = color("%" <> name <> "{", :map, opts)
     sep = color(",", :map, opts)
     close = color("}", :map, opts)
-    container_doc(open, map, close, opts, traverse_fun(map, opts), separator: sep, break: :strict)
-  end
-
-  def inspect(map, name, opts, true) do
-    map = :maps.to_list(map)
-    open = color("#" <> name <> "<", :map, opts)
-    sep = color(",", :map, opts)
-    close = color(", ...>", :map, opts)
     container_doc(open, map, close, opts, traverse_fun(map, opts), separator: sep, break: :strict)
   end
 
@@ -403,7 +393,6 @@ defimpl Inspect, for: Any do
   defmacro __deriving__(module, struct, options) do
     only = Keyword.get(options, :only, [])
     except = Keyword.get(options, :except, [])
-    partial = only != [] or except != []
 
     fields =
       struct
@@ -411,13 +400,19 @@ defimpl Inspect, for: Any do
       |> Enum.reject(&(&1 in except or &1 in [:__exception__, :__struct__]))
       |> Enum.filter(&(Enum.empty?(only) or &1 in only))
 
+    inspect_fun =
+      case {only, except} do
+        {[], []} -> quote(do: Inspect.Map.inspect(map, name, opts))
+        _ -> quote(do: Inspect.Any.inspect(map, name, opts))
+      end
+
     quote do
       defimpl Inspect, for: unquote(module) do
         def inspect(struct, opts) do
-          pruned = Map.take(struct, unquote(fields))
+          map = Map.take(struct, unquote(fields))
           colorless_opts = %{opts | syntax_colors: []}
           name = Inspect.Atom.inspect(unquote(module), colorless_opts)
-          Inspect.Map.inspect(pruned, name, opts, unquote(partial))
+          unquote(inspect_fun)
         end
       end
     end
@@ -438,5 +433,18 @@ defimpl Inspect, for: Any do
           Inspect.Map.inspect(struct, opts)
         end
     end
+  end
+
+  def inspect(map, name, opts) do
+    # Use the :limit option and an extra element to force
+    # `container_doc/6` to append "...".
+    opts = %{opts | limit: min(opts.limit, map_size(map))}
+    map = :maps.to_list(map) ++ ["..."]
+
+    open = color("#" <> name <> "<", :map, opts)
+    sep = color(",", :map, opts)
+    close = color(">", :map, opts)
+
+    container_doc(open, map, close, opts, &Inspect.List.keyword/2, separator: sep, break: :strict)
   end
 end
