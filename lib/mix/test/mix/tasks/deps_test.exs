@@ -121,7 +121,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture("deps_status", fn ->
       File.cd!("deps/ok", fn ->
-        System.cmd("git", ~w[-c core.hooksPath='' -c init.templateDir='' init])
+        System.cmd("git", ~w[-c core.hooksPath='' init --template=''])
       end)
 
       Mix.Tasks.Deps.run([])

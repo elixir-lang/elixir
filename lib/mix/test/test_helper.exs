@@ -206,7 +206,7 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[-c core.hooksPath='' -c init.templateDir='' init])
+    System.cmd("git", ~w[-c core.hooksPath='' init --template=''])
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
@@ -297,7 +297,7 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[-c core.hooksPath='' -c init.templateDir='' init])
+    System.cmd("git", ~w[-c core.hooksPath='' init --template=''])
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
@@ -352,7 +352,7 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[-c core.hooksPath='' -c init.templateDir='' init])
+    System.cmd("git", ~w[-c core.hooksPath='' init --template=''])
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])

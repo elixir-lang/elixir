@@ -94,8 +94,8 @@ defmodule Mix.SCM.Git do
     File.mkdir_p!(path)
 
     File.cd!(path, fn ->
-      git!(~w[-c core.hooksPath='' -c init.templateDir='' init --quiet])
-      git!(["remote", "add", "origin", opts[:git]])
+      git!(~w[-c core.hooksPath='' init --template='' --quiet])
+      git!(["--git-dir=.git", "remote", "add", "origin", opts[:git]])
       checkout(path, opts)
     end)
   end
@@ -125,7 +125,7 @@ defmodule Mix.SCM.Git do
 
     if opts[:submodules] do
       git!(
-        ~w[-c core.hooksPath='' -c init.templateDir='' --git-dir=.git submodule update --init --recursive]
+        ~w[-c core.hooksPath='' --git-dir=.git submodule update --init --recursive]
       )
     end
 
