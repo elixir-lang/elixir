@@ -404,10 +404,11 @@ defimpl Inspect, for: Any do
       |> Enum.reject(&(&1 in except))
       |> Enum.filter(&(&1 in only))
 
-    inspect_fun =
-      case {only, except} do
-        {^fields, []} -> quote(do: Inspect.Map.inspect(map, name, opts))
-        _ -> quote(do: Inspect.Any.inspect(map, name, opts))
+    inspect_module =
+      if fields == only and except == [] do
+        quote(do: Inspect.Map)
+      else
+        quote(do: Inspect.Any)
       end
 
     quote do
@@ -416,7 +417,7 @@ defimpl Inspect, for: Any do
           map = Map.take(struct, unquote(filtered_fields))
           colorless_opts = %{opts | syntax_colors: []}
           name = Inspect.Atom.inspect(unquote(module), colorless_opts)
-          unquote(inspect_fun)
+          unquote(inspect_module).inspect(map, name, opts)
         end
       end
     end
