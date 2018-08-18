@@ -40,8 +40,8 @@ defmodule Range do
 
   defstruct first: nil, last: nil
 
-  @type t :: %Range{first: integer, last: integer}
-  @type t(first, last) :: %Range{first: first, last: last}
+  @type t :: %__MODULE__{first: integer, last: integer}
+  @type t(first, last) :: %__MODULE__{first: first, last: last}
 
   @doc """
   Creates a new range.
