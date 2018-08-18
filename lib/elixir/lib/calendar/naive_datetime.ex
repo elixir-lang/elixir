@@ -67,7 +67,7 @@ defmodule NaiveDateTime do
     calendar: Calendar.ISO
   ]
 
-  @type t :: %NaiveDateTime{
+  @type t :: %__MODULE__{
           year: Calendar.year(),
           month: Calendar.month(),
           day: Calendar.day(),
