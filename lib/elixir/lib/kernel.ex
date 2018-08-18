@@ -4201,7 +4201,7 @@ defmodule Kernel do
 
       defmodule User do
         defstruct name: "John", age: 25
-        @type t :: %User{name: String.t(), age: non_neg_integer}
+        @type t :: %__MODULE__{name: String.t(), age: non_neg_integer}
       end
 
   It is recommended to only use the struct syntax when defining the struct's

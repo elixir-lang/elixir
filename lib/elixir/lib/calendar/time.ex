@@ -37,7 +37,7 @@ defmodule Time do
   @enforce_keys [:hour, :minute, :second]
   defstruct [:hour, :minute, :second, microsecond: {0, 0}, calendar: Calendar.ISO]
 
-  @type t :: %Time{
+  @type t :: %__MODULE__{
           hour: Calendar.hour(),
           minute: Calendar.minute(),
           second: Calendar.second(),
