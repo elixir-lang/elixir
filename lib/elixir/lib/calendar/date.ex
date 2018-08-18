@@ -53,7 +53,7 @@ defmodule Date do
   @enforce_keys [:year, :month, :day]
   defstruct [:year, :month, :day, calendar: Calendar.ISO]
 
-  @type t :: %Date{
+  @type t :: %__MODULE__{
           year: Calendar.year(),
           month: Calendar.month(),
           day: Calendar.day(),
