@@ -35,6 +35,11 @@ defmodule ExUnit.Formatter do
     * `{:case_finished, test_module}` -
       a test module has finished. See `ExUnit.TestCase` for details.
 
+  The full ExUnit configuration is passed as the argument to `init/1` when the
+  formatters are started. If you need to do runtime configuration of a
+  formatter, you can add any configuration needed by using `ExUnit.configure/1`
+  or `ExUnit.start/1`, and this will then be included in the options passed to
+  the GenServer's `init/1` callback.
   """
 
   @type id :: term

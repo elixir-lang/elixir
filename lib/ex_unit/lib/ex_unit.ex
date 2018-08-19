@@ -270,6 +270,9 @@ defmodule ExUnit do
       prints each test case and test while running. Note that in trace mode test timeouts
       will be ignored.
 
+  Any arbitrary configuration can also be passed to `configure/1` or `start/1`,
+  and these options can then be used in places such as custom formatters. These
+  other options will be ignored by ExUnit itself.
   """
   @spec configure(Keyword.t()) :: :ok
   def configure(options) do
