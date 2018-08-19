@@ -198,6 +198,9 @@ defmodule Task do
           owner: pid() | nil
         }
 
+  defguardp is_timeout(timeout)
+            when timeout == :infinity or (is_integer(timeout) and timeout >= 0)
+
   @doc """
   Returns a specification to start a task under a supervisor.
 
@@ -248,10 +251,12 @@ defmodule Task do
   @doc """
   Starts a process linked to the current process.
 
+  `fun` must be a zero-arity anonymous function.
+
   This is often used to start the process as part of a supervision tree.
   """
   @spec start_link((() -> any)) :: {:ok, pid}
-  def start_link(fun) do
+  def start_link(fun) when is_function(fun, 0) do
     start_link(:erlang, :apply, [fun, []])
   end
 
@@ -259,19 +264,24 @@ defmodule Task do
   Starts a task as part of a supervision tree.
   """
   @spec start_link(module, atom, [term]) :: {:ok, pid}
-  def start_link(mod, fun, args) do
-    Task.Supervised.start_link(get_info(self()), {mod, fun, args})
+  def start_link(module, function_name, args)
+      when is_atom(module) and is_atom(function_name) and is_list(args) do
+    self()
+    |> get_info()
+    |> Task.Supervised.start_link({module, function_name, args})
   end
 
   @doc """
   Starts a task.
+
+  `fun` must be a zero-arity anonymous function.
 
   This is only used when the task is used for side-effects
   (i.e. no interest in the returned result) and it should not
   be linked to the current process.
   """
   @spec start((() -> any)) :: {:ok, pid}
-  def start(fun) do
+  def start(fun) when is_function(fun, 0) do
     start(:erlang, :apply, [fun, []])
   end
 
@@ -283,13 +293,17 @@ defmodule Task do
   be linked to the current process.
   """
   @spec start(module, atom, [term]) :: {:ok, pid}
-  def start(mod, fun, args) do
-    Task.Supervised.start(get_info(self()), {mod, fun, args})
+  def start(module, function_name, args)
+      when is_atom(module) and is_atom(function_name) and is_list(args) do
+    self()
+    |> get_info()
+    |> Task.Supervised.start({module, function_name, args})
   end
 
   @doc """
   Starts a task that must be awaited on.
 
+  `fun` must be a zero-arity anonymous function.
   This function spawns a process that is linked to and monitored
   by the caller process. A `Task` struct is returned containing
   the relevant information.
@@ -300,7 +314,7 @@ defmodule Task do
   See also `async/3`.
   """
   @spec async((() -> any)) :: t
-  def async(fun) do
+  def async(fun) when is_function(fun, 0) do
     async(:erlang, :apply, [fun, []])
   end
 
@@ -368,8 +382,9 @@ defmodule Task do
   and `result` is the return value of the task function.
   """
   @spec async(module, atom, [term]) :: t
-  def async(mod, fun, args) do
-    mfa = {mod, fun, args}
+  def async(module, function_name, args)
+      when is_atom(module) and is_atom(function_name) and is_list(args) do
+    mfa = {module, function_name, args}
     owner = self()
     pid = Task.Supervised.spawn_link(owner, get_info(owner), mfa)
     ref = Process.monitor(pid)
@@ -378,7 +393,7 @@ defmodule Task do
   end
 
   @doc """
-  Returns a stream that runs the given `module`, `function`, and `args`
+  Returns a stream that runs the given `module`, `function_name`, and `args`
   concurrently on each item in `enumerable`.
 
   Each item will be prepended to the given `args` and processed by its
@@ -441,14 +456,16 @@ defmodule Task do
   """
   @doc since: "1.4.0"
   @spec async_stream(Enumerable.t(), module, atom, [term], keyword) :: Enumerable.t()
-  def async_stream(enumerable, module, function, args, options \\ [])
-      when is_atom(module) and is_atom(function) and is_list(args) do
-    build_stream(enumerable, {module, function, args}, options)
+  def async_stream(enumerable, module, function_name, args, options \\ [])
+      when is_atom(module) and is_atom(function_name) and is_list(args) do
+    build_stream(enumerable, {module, function_name, args}, options)
   end
 
   @doc """
   Returns a stream that runs the given function `fun` concurrently
   on each item in `enumerable`.
+
+  `fun` must be a one-arity anonymous function.
 
   Each `enumerable` item is passed as argument to the given function `fun` and
   processed by its own task. The tasks will be linked to the current process,
@@ -474,7 +491,8 @@ defmodule Task do
   """
   @doc since: "1.4.0"
   @spec async_stream(Enumerable.t(), (term -> term), keyword) :: Enumerable.t()
-  def async_stream(enumerable, fun, options \\ []) when is_function(fun, 1) do
+  def async_stream(enumerable, fun, options \\ [])
+      when is_function(fun, 1) and is_list(options) do
     build_stream(enumerable, fun, options)
   end
 
@@ -485,7 +503,7 @@ defmodule Task do
   end
 
   # Returns a tuple with the node where this is executed and either the
-  # registered name of the given pid or the pid of where this is executed. Used
+  # registered name of the given PID or the PID of where this is executed. Used
   # when exiting from tasks to print out from where the task was started.
   defp get_info(pid) do
     self_or_name =
@@ -503,7 +521,7 @@ defmodule Task do
   In case the task process dies, the current process will exit with the same
   reason as the task.
 
-  A timeout, in milliseconds, can be given with default value of `5000`. If the
+  A timeout in milliseconds or `:infinity`, can be given with a default value of `5000`. If the
   timeout is exceeded, then the current process will exit. If the task process
   is linked to the current process which is the case when a task is started with
   `async`, then the task process will also exit. If the task process is trapping
@@ -534,13 +552,11 @@ defmodule Task do
 
   """
   @spec await(t, timeout) :: term
-  def await(task, timeout \\ 5000)
+  def await(%Task{ref: ref, owner: owner} = task, timeout \\ 5000) when is_timeout(timeout) do
+    if owner != self() do
+      raise ArgumentError, invalid_owner_error(task)
+    end
 
-  def await(%Task{owner: owner} = task, _) when owner != self() do
-    raise ArgumentError, invalid_owner_error(task)
-  end
-
-  def await(%Task{ref: ref} = task, timeout) do
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -557,7 +573,7 @@ defmodule Task do
 
   @doc false
   # TODO: Remove on 2.0
-  @deprecated "Pattern match on the message directly instead"
+  @deprecated "Pattern match directly on the message instead"
   def find(tasks, {ref, reply}) when is_reference(ref) do
     Enum.find_value(tasks, fn
       %Task{ref: ^ref} = task ->
@@ -594,7 +610,7 @@ defmodule Task do
     * it isn't linked to the caller
     * the caller is trapping exits
 
-  A timeout, in milliseconds, can be given with default value
+  A timeout, in milliseconds or `:infinity`, can be given with a default value
   of `5000`. If the time runs out before a message from
   the task is received, this function will return `nil`
   and the monitor will remain active. Therefore `yield/2` can be
@@ -622,13 +638,11 @@ defmodule Task do
   handle this case and return the result.
   """
   @spec yield(t, timeout) :: {:ok, term} | {:exit, term} | nil
-  def yield(task, timeout \\ 5000)
+  def yield(%Task{ref: ref, owner: owner} = task, timeout \\ 5000) when is_timeout(timeout) do
+    if owner != self() do
+      raise ArgumentError, invalid_owner_error(task)
+    end
 
-  def yield(%Task{owner: owner} = task, _) when owner != self() do
-    raise ArgumentError, invalid_owner_error(task)
-  end
-
-  def yield(%Task{ref: ref} = task, timeout) do
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -650,7 +664,7 @@ defmodule Task do
 
   This function receives a list of tasks and waits for their
   replies in the given time interval. It returns a list
-  of tuples of two elements, with the task as the first element
+  of two-element tuples, with the task as the first element
   and the yielded result as the second. The tasks in the returned
   list will be in the same order as the tasks supplied in the `tasks`
   input argument.
@@ -661,6 +675,9 @@ defmodule Task do
       result back in the given time interval
     * `{:exit, reason}` if the task has died
     * `nil` if the task keeps running past the timeout
+
+  A timeout, in milliseconds or `:infinity`, can be given with a default value
+  of `5000`.
 
   Check `yield/2` for more information.
 
@@ -696,14 +713,14 @@ defmodule Task do
       end
 
   In the example above, we create tasks that sleep from 1
-  up to 10 seconds and return the number of seconds they slept.
+  up to 10 seconds and return the number of seconds they slept for.
   If you execute the code all at once, you should see 1 up to 5
   printed, as those were the tasks that have replied in the
   given time. All other tasks will have been shut down using
   the `Task.shutdown/2` call.
   """
   @spec yield_many([t], timeout) :: [{t, {:ok, term} | {:exit, term} | nil}]
-  def yield_many(tasks, timeout \\ 5000) do
+  def yield_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
     timeout_ref = make_ref()
 
     timer_ref =
@@ -756,8 +773,9 @@ defmodule Task do
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
   `{:exit, reason}` if the task died, otherwise `nil`.
 
-  The second argument is either a timeout or `:brutal_kill`. In case
-  of a `timeout`, a `:shutdown` exit signal is sent to the task process
+  The second argument is either a timeout value in milliseconds or`:brutal_kill`.
+  Note that `:infinity` is not an accepted timeout value.
+  In case of a timeout, a `:shutdown` exit signal is sent to the task process
   and if it does not exit within the timeout, it is killed. With `:brutal_kill`
   the task is killed straight away. In case the task terminates abnormally
   (possibly killed by another process), this function will exit with the same reason.
@@ -773,18 +791,29 @@ defmodule Task do
   a response waiting in the message queue this function will return
   `{:exit, :noproc}` as the result or exit reason can not be determined.
   """
-  @spec shutdown(t, timeout | :brutal_kill) :: {:ok, term} | {:exit, term} | nil
-  def shutdown(task, shutdown \\ 5000)
+  @spec shutdown(t, timeout :: non_neg_integer | :brutal_kill) ::
+          {:ok, term} | {:exit, term} | nil
+  def shutdown(task, timeout_or_brutal_kill \\ 5000)
 
-  def shutdown(%Task{pid: nil} = task, _) do
-    raise ArgumentError, "task #{inspect(task)} does not have an associated task process"
+  def shutdown(%Task{pid: pid, owner: owner} = task, timeout)
+      when is_timeout(timeout) or timeout == :brutal_kill do
+    cond do
+      timeout == :infinity ->
+        raise ArgumentError,
+              ":infinity is not a valid timeout, please a value in milliseconds or :brutal_kill"
+
+      is_nil(pid) ->
+        raise ArgumentError, "task #{inspect(task)} does not have an associated task process"
+
+      owner != self() ->
+        raise ArgumentError, invalid_owner_error(task)
+
+      true ->
+        shutdown(task, pid, timeout)
+    end
   end
 
-  def shutdown(%Task{owner: owner} = task, _) when owner != self() do
-    raise ArgumentError, invalid_owner_error(task)
-  end
-
-  def shutdown(%Task{pid: pid} = task, :brutal_kill) do
+  def shutdown(task, pid, :brutal_kill) do
     mon = Process.monitor(pid)
     exit(pid, :kill)
 
@@ -800,7 +829,7 @@ defmodule Task do
     end
   end
 
-  def shutdown(%Task{pid: pid} = task, timeout) do
+  def shutdown(task, pid, timeout) do
     mon = Process.monitor(pid)
     exit(pid, :shutdown)
 
