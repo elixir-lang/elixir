@@ -184,6 +184,7 @@ defmodule Task do
 
     * `:owner` - the PID of the process that started the task
   """
+  @enforce_keys [:pid, :ref, :owner]
   defstruct pid: nil, ref: nil, owner: nil
 
   @typedoc """
