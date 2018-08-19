@@ -183,11 +183,19 @@ defmodule Task do
     * `:ref` - the task monitor reference
 
     * `:owner` - the PID of the process that started the task
-
   """
   defstruct pid: nil, ref: nil, owner: nil
 
-  @type t :: %__MODULE__{}
+  @typedoc """
+  The Task type.
+
+  See `%Task{}` for information about each field of the structure.
+  """
+  @type t :: %__MODULE__{
+          pid: pid() | nil,
+          ref: reference() | nil,
+          owner: pid() | nil
+        }
 
   @doc """
   Returns a specification to start a task under a supervisor.
