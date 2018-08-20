@@ -418,6 +418,19 @@ defmodule ExUnit.DocTestTest do
     assert capture_io(fn -> ExUnit.run() end) =~ "2 doctests, 1 failure"
   end
 
+  test "empty :only" do
+    defmodule EmptyOnly do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [], import: true
+    end
+
+    ExUnit.Server.modules_loaded()
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ "0 failures"
+    refute output =~ "doctest"
+  end
+
   test "doctest failures" do
     # When adding or removing lines above this line, the tests below will
     # fail because we are explicitly asserting some doctest lines from
@@ -427,7 +440,7 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.Invalid
     end
 
-    doctest_line = 427
+    doctest_line = 440
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     ExUnit.Server.modules_loaded()

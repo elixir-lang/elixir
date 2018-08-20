@@ -232,12 +232,20 @@ defmodule ExUnit.DocTest do
   end
 
   defp filter_by_opts(tests, opts) do
-    only = opts[:only] || []
-    except = opts[:except] || []
+    except = Keyword.get(opts, :except, [])
 
-    tests
-    |> Stream.reject(&(&1.fun_arity in except))
-    |> Stream.filter(&(Enum.empty?(only) or &1.fun_arity in only))
+    case Keyword.fetch(opts, :only) do
+      {:ok, []} ->
+        []
+
+      {:ok, only} ->
+        tests
+        |> Stream.reject(&(&1.fun_arity in except))
+        |> Stream.filter(&(&1.fun_arity in only))
+
+      :error ->
+        Stream.reject(tests, &(&1.fun_arity in except))
+    end
   end
 
   ## Compilation of extracted tests
