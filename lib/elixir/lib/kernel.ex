@@ -2005,6 +2005,10 @@ defmodule Kernel do
       inspect(fn a, b -> a + b end)
       #=> #Function<...>
 
+  The `Inspect` protocol can be derived to hide certain fields
+  from structs, so they don't show up in logs, inspects and similar.
+  See the "Deriving" section of the documentation of the `Inspect`
+  protocol for more information.
   """
   @spec inspect(Inspect.t(), keyword) :: String.t()
   def inspect(term, opts \\ []) when is_list(opts) do

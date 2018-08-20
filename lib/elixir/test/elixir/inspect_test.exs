@@ -483,6 +483,81 @@ defmodule Inspect.MapTest do
     assert inspect(%{a: 9999}, opts) ==
              "\e[32m%{\e[36m" <> "\e[31ma:\e[36m " <> "\e[34m9999\e[36m" <> "\e[32m}\e[36m"
   end
+
+  defmodule StructWithoutOptions do
+    @derive Inspect
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct without options" do
+    struct = %StructWithoutOptions{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "%Inspect.MapTest.StructWithoutOptions{a: 1, b: 2, c: 3, d: 4}"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "%Inspect.MapTest.StructWithoutOptions{\n  a: 1,\n  b: 2,\n  c: 3,\n  d: 4\n}"
+  end
+
+  defmodule StructWithOnlyOption do
+    @derive {Inspect, only: [:b, :c]}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with :only option" do
+    struct = %StructWithOnlyOption{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "#Inspect.MapTest.StructWithOnlyOption<b: 2, c: 3, ...>"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "#Inspect.MapTest.StructWithOnlyOption<\n  b: 2,\n  c: 3,\n  ...\n>"
+  end
+
+  defmodule StructWithEmptyOnlyOption do
+    @derive {Inspect, only: []}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with empty :only option" do
+    struct = %StructWithEmptyOnlyOption{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "#Inspect.MapTest.StructWithEmptyOnlyOption<...>"
+  end
+
+  defmodule StructWithAllFieldsInOnlyOption do
+    @derive {Inspect, only: [:a, :b]}
+    defstruct [:a, :b]
+  end
+
+  test "struct with all fields in the :only option" do
+    struct = %StructWithAllFieldsInOnlyOption{a: 1, b: 2}
+    assert inspect(struct) == "%Inspect.MapTest.StructWithAllFieldsInOnlyOption{a: 1, b: 2}"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "%Inspect.MapTest.StructWithAllFieldsInOnlyOption{\n  a: 1,\n  b: 2\n}"
+  end
+
+  defmodule StructWithExceptOption do
+    @derive {Inspect, except: [:b, :c]}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with :except option" do
+    struct = %StructWithExceptOption{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "#Inspect.MapTest.StructWithExceptOption<a: 1, d: 4, ...>"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "#Inspect.MapTest.StructWithExceptOption<\n  a: 1,\n  d: 4,\n  ...\n>"
+  end
+
+  defmodule StructWithBothOnlyAndExceptOptions do
+    @derive {Inspect, only: [:a, :b], except: [:b, :c]}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with both :only and :except options" do
+    struct = %StructWithBothOnlyAndExceptOptions{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "#Inspect.MapTest.StructWithBothOnlyAndExceptOptions<a: 1, ...>"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "#Inspect.MapTest.StructWithBothOnlyAndExceptOptions<\n  a: 1,\n  ...\n>"
+  end
 end
 
 defmodule Inspect.OthersTest do
