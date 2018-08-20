@@ -117,9 +117,11 @@ defmodule ExUnit.Runner do
     # run and which ones were skipped.
     tests = prepare_tests(config, test_module.tests)
 
-    {test_module, pending} =
+    {test_module, pending, finished_tests} =
       if Enum.all?(tests, & &1.state) do
-        {test_module, tests}
+        # The pending tests here aren't actually run, so they're already
+        # "finished"
+        {test_module, tests, tests}
       else
         spawn_module(config, test_module, tests)
       end
@@ -127,6 +129,7 @@ defmodule ExUnit.Runner do
     # Run the pending tests. We don't actually spawn those
     # tests but we do send the notifications to formatter.
     Enum.each(pending, &run_test(config, &1, []))
+    test_module = %{test_module | tests: finished_tests}
     EM.module_finished(config.manager, test_module)
     send(pid, {self(), :module_finished, test_module})
   end
@@ -162,30 +165,30 @@ defmodule ExUnit.Runner do
 
         case exec_module_setup(test_module) do
           {:ok, test_module, context} ->
-            Enum.each(tests, &run_test(config, &1, context))
-            send(parent, {self(), :module_finished, test_module, []})
+            finished_tests = Enum.map(tests, &run_test(config, &1, context))
+            send(parent, {self(), :module_finished, test_module, [], finished_tests})
 
           {:error, test_module} ->
             failed_tests = Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
-            send(parent, {self(), :module_finished, test_module, failed_tests})
+            send(parent, {self(), :module_finished, test_module, failed_tests, []})
         end
 
         exit(:shutdown)
       end)
 
-    {test_module, pending} =
+    {test_module, pending, finished_tests} =
       receive do
-        {^module_pid, :module_finished, test_module, tests} ->
+        {^module_pid, :module_finished, test_module, failed_tests, finished_tests} ->
           Process.demonitor(module_ref, [:flush])
-          {test_module, tests}
+          {test_module, failed_tests, finished_tests}
 
         {:DOWN, ^module_ref, :process, ^module_pid, error} ->
           test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
-          {test_module, []}
+          {test_module, [], []}
       end
 
     timeout = get_timeout(%{}, config)
-    {exec_on_exit(test_module, module_pid, timeout), pending}
+    {exec_on_exit(test_module, module_pid, timeout), pending, finished_tests}
   end
 
   defp exec_module_setup(%ExUnit.TestModule{name: module} = test_module) do
@@ -238,6 +241,7 @@ defmodule ExUnit.Runner do
       end
 
     EM.test_finished(config.manager, test)
+    test
   end
 
   defp spawn_test(config, test, context) do
