@@ -394,7 +394,7 @@ defmodule Version do
       to_matchspec(lexed)
     end
 
-    @spec parse_version(String.t()) :: {:ok, Version.matchable()} | :error
+    @spec parse_version(String.t(), boolean) :: {:ok, Version.matchable()} | :error
     def parse_version(string, approximate? \\ false) when is_binary(string) do
       destructure [version_with_pre, build], String.split(string, "+", parts: 2)
       destructure [version, pre], String.split(version_with_pre, "-", parts: 2)
