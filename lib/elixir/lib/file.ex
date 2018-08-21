@@ -179,7 +179,7 @@ defmodule File do
   @doc """
   Returns `true` if the given path exists.
 
-  It can be regular file, directory, socket, symbolic link, named pipe or device file.
+  It can be a regular file, directory, socket, symbolic link, named pipe, or device file.
   Returns `false` for symbolic links pointing to non-existing targets.
 
   ## Options
