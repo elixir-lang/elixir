@@ -582,7 +582,7 @@ defmodule Logger do
       to `Logger` are processed before the backend is added
 
   """
-  @spec add_backend(atom, keyword) :: Supervisor.on_start_child()
+  @spec add_backend(backend, keyword) :: Supervisor.on_start_child()
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
 
@@ -608,7 +608,7 @@ defmodule Logger do
       to `Logger` are processed before the backend is removed
 
   """
-  @spec remove_backend(atom, keyword) :: :ok | {:error, term}
+  @spec remove_backend(backend, keyword) :: :ok | {:error, term}
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
     Logger.Config.remove_backend(backend)
