@@ -231,7 +231,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `mkdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `mkdir/1`, but raises a `File.Error` exception in case of failure.
+  Otherwise `:ok`.
   """
   @spec mkdir!(Path.t()) :: :ok
   def mkdir!(path) do
@@ -294,7 +295,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `mkdir_p/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `mkdir_p/1`, but raises a `File.Error` exception in case of failure.
+  Otherwise `:ok`.
   """
   @spec mkdir_p!(Path.t()) :: :ok
   def mkdir_p!(path) do
@@ -332,8 +334,8 @@ defmodule File do
   end
 
   @doc """
-  Returns a binary with the contents of the given filename or raises
-  `File.Error` if an error occurs.
+  Returns a binary with the contents of the given filename,
+  or raises a `File.Error` exception if an error occurs.
   """
   @spec read!(Path.t()) :: binary
   def read!(path) do
@@ -380,8 +382,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `stat/2` but returns the `File.Stat` directly, or
-  throws `File.Error` if an error is returned.
+  Same as `stat/2` but returns the `File.Stat` directly,
+  or raises a `File.Error` exception if an error is returned.
   """
   @spec stat!(Path.t(), stat_options) :: File.Stat.t()
   def stat!(path, opts \\ []) do
@@ -431,8 +433,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `lstat/2` but returns the `File.Stat` struct directly, or
-  throws `File.Error` if an error is returned.
+  Same as `lstat/2` but returns the `File.Stat` struct directly,
+  or raises a `File.Error` exception if an error is returned.
   """
   @spec lstat!(Path.t(), stat_options) :: File.Stat.t()
   def lstat!(path, opts \\ []) do
@@ -473,8 +475,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `read_link/1` but returns the target directly or throws `File.Error` if an error is
-  returned.
+  Same as `read_link/1` but returns the target directly,
+  or raises a `File.Error` exception if an error is returned.
   """
   @doc since: "1.5.0"
   @spec read_link!(Path.t()) :: binary
@@ -499,7 +501,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `write_stat/3` but raises an exception if it fails.
+  Same as `write_stat/3` but raises a `File.Error` exception if it fails.
   Returns `:ok` otherwise.
   """
   @spec write_stat!(Path.t(), File.Stat.t(), stat_options) :: :ok
@@ -548,9 +550,10 @@ defmodule File do
   end
 
   @doc """
-  Same as `touch/2` but raises an exception if it fails.
+  Same as `touch/2` but raises a `File.Error` exception if it fails.
+  Returns `:ok` otherwise.
 
-  Returns `:ok` otherwise. Requires datetime in UTC.
+  Requires datetime in UTC.
 
   ## Examples
 
@@ -585,9 +588,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `ln/2` but raises an exception if it fails.
-
-  Returns `:ok` otherwise
+  Same as `ln/2` but raises a `File.LinkError` exception if it fails.
+  Returns `:ok` otherwise.
   """
   @doc since: "1.5.0"
   @spec ln!(Path.t(), Path.t()) :: :ok
@@ -619,9 +621,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `ln_s/2` but raises an exception if it fails.
-
-  Returns `:ok` otherwise
+  Same as `ln_s/2` but raises a `File.LinkError` exception if it fails.
+  Returns `:ok` otherwise.
   """
   @spec ln_s!(Path.t(), Path.t()) :: :ok
   def ln_s!(existing, new) do
@@ -667,7 +668,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `copy/3` but raises an `File.CopyError` if it fails.
+  The same as `copy/3` but raises a `File.CopyError` exception if it fails.
   Returns the `bytes_copied` otherwise.
   """
   @spec copy!(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
@@ -749,7 +750,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `cp/3`, but raises `File.CopyError` if it fails.
+  The same as `cp/3`, but raises a `File.CopyError` exception if it fails.
   Returns `:ok` otherwise.
   """
   @spec cp!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: :ok
@@ -829,7 +830,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `cp_r/3`, but raises `File.CopyError` if it fails.
+  The same as `cp_r/3`, but raises a `File.CopyError` exception if it fails.
   Returns the list of copied files otherwise.
   """
   @spec cp_r!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: [binary]
@@ -981,7 +982,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `write/3` but raises an exception if it fails, returns `:ok` otherwise.
+  Same as `write/3` but raises a `File.Error` exception if it fails.
+  Returns `:ok` otherwise.
   """
   @spec write!(Path.t(), iodata, [mode]) :: :ok
   def write!(path, content, modes \\ []) do
@@ -1060,7 +1062,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `rm/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `rm/1`, but raises a `File.Error` exception in case of failure.
+  Otherwise `:ok`.
   """
   @spec rm!(Path.t()) :: :ok
   def rm!(path) do
@@ -1097,7 +1100,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `rmdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `rmdir/1`, but raises a `File.Error` exception in case of failure.
+  Otherwise `:ok`.
   """
   @spec rmdir!(Path.t()) :: :ok | {:error, posix}
   def rmdir!(path) do
@@ -1218,7 +1222,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `rm_rf/1` but raises `File.Error` in case of failures,
+  Same as `rm_rf/1` but raises a `File.Error` exception in case of failures,
   otherwise the list of files or directories removed.
   """
   @spec rm_rf!(Path.t()) :: [binary]
@@ -1366,9 +1370,8 @@ defmodule File do
   end
 
   @doc """
-  Similar to `open/2` but raises an error if file could not be opened.
-
-  Returns the IO device otherwise.
+  Similar to `open/2` but raises a `File.Error` exception if the file
+  could not be opened. Returns the IO device otherwise.
 
   See `open/2` for the list of available modes.
   """
@@ -1385,7 +1388,8 @@ defmodule File do
   end
 
   @doc """
-  Similar to `open/3` but raises an error if file could not be opened.
+  Similar to `open/3` but raises a `File.Error` exception if the file
+  could not be opened.
 
   If it succeeds opening the file, it returns the `function` result on the IO device.
 
@@ -1428,7 +1432,7 @@ defmodule File do
   defp fix_drive_letter(original), do: original
 
   @doc """
-  The same as `cwd/0`, but raises an exception if it fails.
+  The same as `cwd/0`, but raises a `File.Error` exception if it fails.
   """
   @spec cwd!() :: binary
   def cwd!() do
@@ -1452,7 +1456,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `cd/1`, but raises an exception if it fails.
+  The same as `cd/1`, but raises a `File.Error` exception if it fails.
   """
   @spec cd!(Path.t()) :: :ok
   def cd!(path) do
@@ -1503,8 +1507,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `ls/1` but raises `File.Error`
-  in case of an error.
+  The same as `ls/1` but raises a `File.Error` exception in case of an error.
   """
   @spec ls!(Path.t()) :: [binary]
   def ls!(path \\ ".") do
@@ -1578,7 +1581,6 @@ defmodule File do
       #=>   path: "./test/test.data", raw: true}
 
   See `Stream.run/1` for an example of streaming into a file.
-
   """
   @spec stream!(Path.t(), stream_mode, :line | pos_integer) :: File.Stream.t()
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
@@ -1618,7 +1620,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `chmod/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `chmod/2`, but raises a `File.Error` exception in case of failure.
+  Otherwise `:ok`.
   """
   @spec chmod!(Path.t(), non_neg_integer) :: :ok
   def chmod!(path, mode) do
@@ -1645,7 +1648,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `chgrp/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `chgrp/2`, but raises a `File.Error` exception in case of failure.
+  Otherwise `:ok`.
   """
   @spec chgrp!(Path.t(), non_neg_integer) :: :ok
   def chgrp!(path, gid) do
@@ -1672,7 +1676,8 @@ defmodule File do
   end
 
   @doc """
-  Same as `chown/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `chown/2`, but raises a `File.Error` exception in case of failure.
+  Otherwise `:ok`.
   """
   @spec chown!(Path.t(), non_neg_integer) :: :ok
   def chown!(path, uid) do
