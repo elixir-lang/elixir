@@ -1435,7 +1435,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:error, :wrong_data}
 
-  If an else block is used and there is no matching clause, a `WithClauseError`
+  If an `else` block is used and there are no matching clauses, a `WithClauseError`
   exception is raised.
   """
   defmacro with(args), do: error!([args])
