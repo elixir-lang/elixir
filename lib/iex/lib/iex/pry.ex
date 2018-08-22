@@ -14,10 +14,10 @@ defmodule IEx.Pry do
   @type break :: {id, module, {function, arity}, pending :: non_neg_integer}
 
   @doc """
-  Callback for `IEx.pry/1`.
+  Callback for `IEx.pry/0`.
 
   You can invoke this function directly when you are not able to invoke
-  `IEx.pry/1` as a macro. This function expects the binding (from
+  `IEx.pry/0` as a macro. This function expects the binding (from
   `Kernel.binding/0`) and the environment (from `__ENV__/0`).
   """
   def pry(binding, %Macro.Env{} = env) do
@@ -169,7 +169,7 @@ defmodule IEx.Pry do
   @doc """
   Raising variant of `break/5`.
   """
-  @spec break(module, function, arity, Macro.t(), pos_integer) :: id()
+  @spec break!(module, function, arity, Macro.t(), pos_integer) :: id()
   def break!(module, function, arity, condition, breaks \\ 1) do
     case break(module, function, arity, condition, breaks) do
       {:ok, id} ->
