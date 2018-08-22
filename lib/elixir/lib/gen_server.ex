@@ -477,7 +477,7 @@ defmodule GenServer do
               {:reply, reply, new_state}
               | {:reply, reply, new_state, timeout | :hibernate | {:continue, term}}
               | {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate, {:continue, term}}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
               | {:stop, reason, reply, new_state}
               | {:stop, reason, new_state}
             when reply: term, new_state: term, reason: term
