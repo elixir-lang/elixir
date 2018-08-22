@@ -697,7 +697,7 @@ defmodule Code do
 
   Accepts `relative_to` as an argument to tell where the file is located.
 
-  While `require_file/2` and `compile_file/2` returns the loaded modules and their
+  While `require_file/2` and `compile_file/2` return the loaded modules and their
   bytecode, `eval_file/2` simply evaluates the file contents and returns the
   evaluation result and its bindings (exactly the same return value as `eval_string/3`).
   """
@@ -732,7 +732,7 @@ defmodule Code do
   others will get `nil`.
 
   See `compile_file/2` if you would like to compile a file without tracking its
-  filenames. Finally, if you would like to get the result of evaluating file rather
+  filenames. Finally, if you would like to get the result of evaluating a file rather
   than the modules defined in it, see `eval_file/2`.
 
   ## Examples
@@ -743,7 +743,7 @@ defmodule Code do
       List.first(modules)
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
-  If the code has been required, it returns `nil`:
+  If the file has been required, it returns `nil`:
 
       Code.require_file("eex_test.exs", "../eex/test")
       #=> nil
