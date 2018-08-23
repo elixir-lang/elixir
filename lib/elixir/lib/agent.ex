@@ -11,45 +11,42 @@ defmodule Agent do
 
   ## Examples
 
-  For example, in the Mix tool that ships with Elixir, we need
-  to keep a set of all tasks executed by a given project. Since
-  this set is shared, we can implement it with an agent:
+  For example, the following agent implements a counter:
 
-      defmodule Mix.TasksServer do
+      defmodule Counter do
         use Agent
 
-        def start_link(_) do
-          Agent.start_link(fn -> MapSet.new() end, name: __MODULE__)
+        def start_link do
+          Agent.start_link(fn -> 0 end, name: __MODULE__)
         end
 
-        @doc "Checks if the task has already executed"
-        def executed?(task, project) do
-          item = {task, project}
-
-          Agent.get(__MODULE__, fn set ->
-            item in set
-          end)
+        def value do
+          Agent.get(__MODULE__, & &1)
         end
 
-        @doc "Marks a task as executed"
-        def put_task(task, project) do
-          item = {task, project}
-          Agent.update(__MODULE__, &MapSet.put(&1, item))
-        end
-
-        @doc "Resets the executed tasks and returns the previous list of tasks"
-        def take_all() do
-          Agent.get_and_update(__MODULE__, fn set ->
-            {Enum.into(set, []), MapSet.new()}
-          end)
+        def increment do
+          Agent.update(__MODULE__, &(&1 + 1))
         end
       end
 
-  Agents provide a segregation between the client and server APIs (similar
-  to GenServers). In particular, the anonymous functions given to the `Agent`
-  are executed inside the agent (the server). This distinction is important
-  because you may want to avoid expensive operations inside the agent,
-  as they will effectively block the agent until the request is fulfilled.
+  Usage would be:
+
+      Counter.start_link
+
+      Counter.value     #=> 0
+      Counter.increment #=> :ok
+      Counter.increment #=> :ok
+      Counter.value     #=> 2
+
+  Thanks to the agent server process, the counter can be safely incremented
+  concurrently.
+
+  Agents provide a segregation between the client and server APIs (similar to
+  GenServers). In particular, the functions passed as arguments to the calls to
+  `Agent` functions are invoked inside the agent (the server). This distinction
+  is important because you may want to avoid expensive operations inside the
+  agent, as they will effectively block the agent until the request is
+  fulfilled.
 
   Consider these two examples:
 
@@ -179,9 +176,9 @@ defmodule Agent do
 
   This is often used to start the agent as part of a supervision tree.
 
-  Once the agent is spawned, the given function `fun` is invoked and its return
-  value is used as the agent state. Note that `start_link/2` does not return
-  until the given function has returned.
+  Once the agent is spawned, the given function `fun` is invoked in the server
+  process, and should return the initial agent state. Note that `start_link/2`
+  does not return until the given function has returned.
 
   ## Options
 
