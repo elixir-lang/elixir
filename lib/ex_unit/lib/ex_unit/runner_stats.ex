@@ -16,6 +16,7 @@ defmodule ExUnit.RunnerStats do
       failures: 0,
       skipped: 0,
       excluded: 0,
+      max_failures: opts[:max_failures],
       failures_manifest_file: opts[:failures_manifest_file],
       failures_manifest: FailuresManifest.new()
     }
@@ -34,6 +35,7 @@ defmodule ExUnit.RunnerStats do
       |> Map.update!(:failures_manifest, &FailuresManifest.put_test(&1, test))
       |> Map.update!(:total, &(&1 + 1))
       |> increment_status_counter(test.state)
+      |> handle_max_failures
 
     {:noreply, state}
   end
@@ -73,4 +75,11 @@ defmodule ExUnit.RunnerStats do
   end
 
   defp increment_status_counter(state, _), do: state
+
+  defp handle_max_failures(state) do
+    if(state.failures >= state.max_failures) do
+      IO.puts("STOP TESTING")
+    end
+    state
+  end
 end

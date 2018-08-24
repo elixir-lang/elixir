@@ -36,6 +36,7 @@ defmodule ExUnit.Runner do
       include: opts[:include],
       manager: manager,
       max_cases: opts[:max_cases],
+      max_failures: opts[:max_failures],
       only_test_ids: opts[:only_test_ids],
       seed: opts[:seed],
       modules: :async,

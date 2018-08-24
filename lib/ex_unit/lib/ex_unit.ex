@@ -181,7 +181,6 @@ defmodule ExUnit do
   @spec start(Keyword.t()) :: :ok
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
-
     configure(options)
 
     if Application.fetch_env!(:ex_unit, :autorun) do
@@ -243,6 +242,9 @@ defmodule ExUnit do
       different modules run in parallel. It defaults to `System.schedulers_online * 2`
       to optimize both CPU-bound and IO-bound tests;
 
+    * `:max_failures` - maximum number of tests that may fail. When the maximum is reached, the
+       execution of tests is stopped and the results are returned.
+
     * `:module_load_timeout` - the timeout to be used when loading a test module,
       defaults to `60_000` milliseconds;
 
@@ -290,6 +292,15 @@ defmodule ExUnit do
     |> put_seed()
     |> put_slowest()
     |> put_max_cases()
+    |> put_max_failures()
+  end
+
+  defp put_max_failures(opts) do
+    if opts[:max_failures] > 0 do
+      Keyword.put(opts, :max_failures, opts[:max_failures])
+    else
+      opts
+    end
   end
 
   @doc """
@@ -349,7 +360,7 @@ defmodule ExUnit do
   # Persists default values in application
   # environment before the test suite starts.
   defp persist_defaults(config) do
-    config |> Keyword.take([:max_cases, :seed, :trace]) |> configure()
+    config |> Keyword.take([:max_cases, :seed, :trace, :max_failures]) |> configure()
     config
   end
 
