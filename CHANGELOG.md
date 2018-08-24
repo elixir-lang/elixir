@@ -116,6 +116,18 @@ Percentage | Module
     77.19% | Total
 ```
 
+## v1.7.3 (2018-08-24)
+
+### 1. Bug fixes
+
+#### ExUnit
+
+  * [ExUnit.Assertions] Do not attempt to expand `try/1` as it is a special form
+
+#### Mix
+
+  * [mix compile.app] Do not include applications with `runtime: false` as a runtime dependency for applications coming from Hex
+
 ## v1.7.2 (2018-08-05)
 
 ### 1. Bug fixes
