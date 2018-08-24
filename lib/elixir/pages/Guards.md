@@ -162,32 +162,42 @@ def foo(_other) do
 end
 ```
 
-For most cases, the two forms are exactly the same. However, there exists a subtle difference in the case of failing guards, as discussed in the section above.
-In case of a boolean expression guard, a failed element means the whole guard fails. In case of multiple guards it means the next one will be evaluated.
-The difference can be highlighted with an example:
+If each guard expression always returns a boolean, the two forms are equivalent.
+
+However, recall that if any function call in a guard raises an exception, the entire guard fails.
+So this function will not not detect empty tuples:
 
 ```elixir
-def multiguard(value)
-    when map_size(value) < 1
-    when tuple_size(value) < 1 do
-  :guard_passed
-end
-def multiguard(_value) do
-  :guard_failed
+defmodule Check do
+  def empty?(val)
+      # If given a tuple, map_size/1 will raise, and tuple_size/1 will not be evaluated
+      when map_size(val) == 0 or tuple_size(val) == 0 do
+    true
+  end
+
+  def empty?(_val), do: false
 end
 
-def boolean(value) when map_size(value) < 1 or tuple_size(value) < 1 do
-  :guard_passed
-end
-def boolean(value) do
-  :guard_failed
-end
-
-multiguard(%{}) #=> :guard_passed
-multiguard({})  #=> :guard_passed
-
-boolean(%{}) #=> :guard_passed
-boolean({})  #=> :guard_failed
+Check.empty?(%{}) #=> true
+Check.empty?({}) #=> false (!)
 ```
 
-For cases where guards do not rely on the failing guard behavior the two forms are exactly the same semantically but there are cases where multiple guard clauses may be more aesthetically pleasing.
+This could be corrected by ensuring that no exception is raised, either via type checks like `is_map(val) and map_size(val) == 0`, or by checking equality instead, like `val == %{}`.
+
+It could also be corrected by using multiple guards, so that if an exception causes one guard to fail, the next one is evaluated.
+
+```elixir
+defmodule Check do
+  def empty?(val)
+      # If given a tuple, map_size/1 will raise, and the second guard will be evaluated
+      when map_size(val) == 0
+      when tuple_size(val) == 0 do
+    true
+  end
+
+  def empty?(_val), do: false
+end
+
+Check.empty?(%{}) #=> true
+Check.empty?({}) #=> true
+```
