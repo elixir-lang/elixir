@@ -757,6 +757,17 @@ defmodule ExceptionTest do
              """
     end
 
+    test "FunctionClauseError with blame and arity 1" do
+      {exception, _} =
+        Exception.blame(:error, :function_clause, [{Foo, :arity_one, [1], [line: 13]}])
+
+      assert message(exception) =~ """
+             no function clause matching in Foo.arity_one/1
+
+             The following argument was given to Foo.arity_one/1:
+             """
+    end
+
     test "ErlangError" do
       assert %ErlangError{original: :sample} |> message == "Erlang error: :sample"
     end

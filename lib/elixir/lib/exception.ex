@@ -1051,7 +1051,14 @@ defmodule FunctionClauseError do
     %{module: module, function: function, arity: arity, kind: kind, args: args, clauses: clauses} =
       exception
 
-    mfa = Exception.format_mfa(module, function, arity)
+    formatted_mfa = Exception.format_mfa(module, function, arity)
+
+    formatted_msg =
+      if arity == 1 do
+        "The following argument was given to #{formatted_mfa}:\n"
+      else
+        "The following arguments were given to #{formatted_mfa}:\n"
+      end
 
     formatted_args =
       args
@@ -1081,7 +1088,7 @@ defmodule FunctionClauseError do
         ""
       end
 
-    "\n\nThe following arguments were given to #{mfa}:\n#{formatted_args}#{formatted_clauses}"
+    "\n\n#{formatted_msg}#{formatted_args}#{formatted_clauses}"
   end
 
   defp pad(string) do
