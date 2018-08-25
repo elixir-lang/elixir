@@ -9,7 +9,7 @@ defmodule Mix.SCM do
   @doc """
   Returns a boolean if the dependency can be fetched
   or it is meant to be previously available in the
-  filesystem.
+  file system.
 
   Local dependencies (i.e. non-fetchable ones) are automatically
   recompiled every time the parent project is compiled.

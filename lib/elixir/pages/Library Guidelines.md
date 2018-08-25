@@ -70,7 +70,7 @@ iex> File.read(1)
 ** (FunctionClauseError) no function clause matching in IO.chardata_to_string/1
 ```
 
-The usage of `:ok`/`:error` tuples is about the domain that the function works on, in this case, filesystem access. Bad arguments, logical errors, invalid options should raise regardless of the function name. If in doubt, prefer to return tuples instead of raising, as users of your library can always match on the results and raise if necessary.
+The usage of `:ok`/`:error` tuples is about the domain that the function works on, in this case, file system access. Bad arguments, logical errors, invalid options should raise regardless of the function name. If in doubt, prefer to return tuples instead of raising, as users of your library can always match on the results and raise if necessary.
 
 ### Avoid working with invalid data
 

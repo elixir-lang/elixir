@@ -464,7 +464,7 @@ defmodule File do
   end
 
   @doc """
-  Writes the given `File.Stat` back to the filesystem at the given
+  Writes the given `File.Stat` back to the file system at the given
   path. Returns `:ok` or `{:error, reason}`.
   """
   @spec write_stat(Path.t(), File.Stat.t(), stat_options) :: :ok | {:error, posix}
