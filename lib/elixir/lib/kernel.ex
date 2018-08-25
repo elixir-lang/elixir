@@ -4166,10 +4166,10 @@ defmodule Kernel do
       MyProtocol.call(john) #=> works
 
   For each protocol in the `@derive` list, Elixir will assert there is an
-  implementation of that protocol for any (regardless if fallback to any
+  implementation of that protocol for any (regardless if `@fallback_to_any`
   is `true`) and check if the any implementation defines a `__deriving__/3`
   callback (via `Protocol.derive/3`). If so, the callback is invoked,
-  otherwise an implementation that simply points to the any implementation
+  otherwise an implementation that simply points to the `Any` implementation
   is automatically derived.
 
   ## Enforcing keys
@@ -4213,7 +4213,7 @@ defmodule Kernel do
   `%User{}`.
 
   The types of the struct fields that are not included in `%User{}` default to
-  `term`.
+  `t:term/0`.
 
   Structs whose internal structure is private to the local module (pattern
   matching them or directly accessing their fields should not be allowed) should
@@ -4482,7 +4482,7 @@ defmodule Kernel do
   for more information about deriving
   protocols.
 
-  ## Fallback to any
+  ## Fallback to `Any`
 
   In some cases, it may be convenient to provide a default
   implementation for all types. This can be achieved by setting
@@ -4501,8 +4501,8 @@ defmodule Kernel do
       end
 
   Although the implementation above is arguably not a reasonable
-  one. For example, it makes no sense to say a PID or an Integer
-  have a size of 0. That's one of the reasons why `@fallback_to_any`
+  one. For example, it makes no sense to say a PID or an integer
+  have a size of `0`. That's one of the reasons why `@fallback_to_any`
   is an opt-in behaviour. For the majority of protocols, raising
   an error when a protocol is not implemented is the proper behaviour.
 
