@@ -1,6 +1,21 @@
 defmodule ExUnit.Runner do
   @moduledoc false
 
+  defmodule MaxFailureCounter do
+    use Agent
+
+    def start_link do
+      Agent.start_link(fn -> 0 end)
+    end
+
+    def increase(fail_counter) do
+      Agent.get_and_update(fail_counter, fn state ->
+        state = state + 1
+        {state, state}
+      end)
+    end
+  end
+
   alias ExUnit.EventManager, as: EM
 
   @rand_algorithm :exs1024
@@ -8,7 +23,8 @@ defmodule ExUnit.Runner do
   def run(opts, load_us) do
     {:ok, manager} = EM.start_link()
     {:ok, stats} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
-    {opts, config} = configure(manager, opts)
+    {:ok, fail_counter} = MaxFailureCounter.start_link()
+    {opts, config} = configure(manager, fail_counter, opts)
 
     :erlang.system_flag(:backtrace_depth, Keyword.fetch!(opts, :stacktrace_depth))
 
@@ -26,7 +42,7 @@ defmodule ExUnit.Runner do
     result
   end
 
-  defp configure(manager, opts) do
+  defp configure(manager, fail_counter, opts) do
     opts = normalize_opts(opts)
     Enum.each(opts[:formatters], &EM.add_handler(manager, &1, opts))
 
@@ -35,7 +51,9 @@ defmodule ExUnit.Runner do
       exclude: opts[:exclude],
       include: opts[:include],
       manager: manager,
+      fail_counter: fail_counter,
       max_cases: opts[:max_cases],
+      max_failures: opts[:max_failures],
       only_test_ids: opts[:only_test_ids],
       seed: opts[:seed],
       modules: :async,
@@ -241,8 +259,18 @@ defmodule ExUnit.Runner do
       end
 
     EM.test_finished(config.manager, test)
+    handle_result(config, test)
     test
   end
+
+  defp handle_result(config, %{state: {:failed, _}}) do
+    failures = MaxFailureCounter.increase(config.fail_counter)
+    if(config.max_failures == failures) do
+      EM.stop(config.manager)
+    end
+  end
+
+  defp handle_result(_, _), do: :ok
 
   defp spawn_test(config, test, context) do
     parent = self()
