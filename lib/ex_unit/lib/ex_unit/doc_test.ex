@@ -436,8 +436,8 @@ defmodule ExUnit.DocTest do
 
   defp extract(module) do
     case Code.fetch_docs(module) do
-      {:docs_v1, anno, _, _, moduledoc, _, docs} ->
-        extract_from_moduledoc(anno, moduledoc, module) ++
+      {:docs_v1, annotation, _, _, moduledoc, _, docs} ->
+        extract_from_moduledoc(annotation, moduledoc, module) ++
           extract_from_docs(Enum.sort(docs), module)
 
       {:error, reason} ->
@@ -460,8 +460,8 @@ defmodule ExUnit.DocTest do
 
   defp extract_from_moduledoc(_, doc, _module) when doc in [:none, :hidden], do: []
 
-  defp extract_from_moduledoc(anno, %{"en" => doc}, module) do
-    for test <- extract_tests(:erl_anno.line(anno), doc, module) do
+  defp extract_from_moduledoc(annotation, %{"en" => doc}, module) do
+    for test <- extract_tests(:erl_anno.line(annotation), doc, module) do
       normalize_test(test, :moduledoc)
     end
   end
@@ -474,8 +474,8 @@ defmodule ExUnit.DocTest do
        when kind not in [:function, :macro] or doc in [:none, :hidden],
        do: []
 
-  defp extract_from_doc({{_, name, arity}, anno, _, %{"en" => doc}, _}, module) do
-    line = :erl_anno.line(anno)
+  defp extract_from_doc({{_, name, arity}, annotation, _, %{"en" => doc}, _}, module) do
+    line = :erl_anno.line(annotation)
 
     for test <- extract_tests(line, doc, module) do
       normalize_test(test, {name, arity})
