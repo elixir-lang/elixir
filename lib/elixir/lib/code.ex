@@ -1047,7 +1047,7 @@ defmodule Code do
   end
 
   @doc ~S"""
-  Returns the docs for the given module.
+  Returns the docs for the given module or path to `.beam` file.
 
   When given a module name, it finds its BEAM code and reads the docs from it.
 
@@ -1072,19 +1072,20 @@ defmodule Code do
   """
   @doc since: "1.7.0"
   @spec fetch_docs(module | String.t()) ::
-          {:docs_v1, anno, beam_language, format, module_doc :: doc, metadata,
-           docs :: [{{kind, name, arity}, anno, signature, doc, metadata}]}
+          {:docs_v1, annotation, beam_language, format, module_doc :: doc_content, metadata,
+           docs :: [doc_element]}
           | {:error, :module_not_found | :chunk_not_found | {:invalid_chunk, binary}}
-          | future_formats
-        when anno: :erl_anno.anno(),
-             beam_language: atom,
+        when annotation: :erl_anno.anno(),
+             beam_language: :elixir | :erlang | :lfe | :alpaca | atom(),
+             doc_content: %{binary => binary} | :none | :hidden,
+             doc_element:
+               {{kind :: atom, function_name :: atom, arity}, annotation, signature, doc_content,
+                metadata},
              format: binary,
-             doc: %{binary => binary} | :none | :hidden,
-             kind: atom,
-             name: atom,
              signature: [binary],
-             metadata: map,
-             future_formats: term
+             metadata: map
+  def fetch_docs(module_or_path)
+
   def fetch_docs(module) when is_atom(module) do
     case :code.get_object_code(module) do
       {_module, bin, _beam_path} -> do_fetch_docs(bin)
@@ -1092,8 +1093,8 @@ defmodule Code do
     end
   end
 
-  def fetch_docs(binpath) when is_binary(binpath) do
-    do_fetch_docs(String.to_charlist(binpath))
+  def fetch_docs(path) when is_binary(path) do
+    do_fetch_docs(String.to_charlist(path))
   end
 
   @docs_chunk 'Docs'
