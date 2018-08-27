@@ -31,7 +31,7 @@ defprotocol Enumerable do
   while also guaranteeing the resource will be closed at the end of the
   enumeration. This protocol also allows suspension of the enumeration,
   which is useful when interleaving between many enumerables is required
-  (as in the `zip/*` functions).
+  (as in the `zip/1` and `zip/2` functions).
 
   This protocol requires four functions to be implemented, `reduce/3`,
   `count/1`, `member?/2`, and `slice/1`. The core of the protocol is the
@@ -2672,7 +2672,7 @@ defmodule Enum do
   end
 
   @doc """
-  Opposite of `Enum.zip/2`; extracts a two-element tuples from the
+  Opposite of `zip/2`; extracts a two-element tuples from the
   enumerable and groups them together.
 
   It takes an enumerable with items being two-element tuples and returns
