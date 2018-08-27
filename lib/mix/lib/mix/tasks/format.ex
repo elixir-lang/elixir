@@ -289,7 +289,7 @@ defmodule Mix.Tasks.Format do
         else
           Mix.raise(
             "Unavailable dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
-              "The dependency cannot be found in the filesystem, please run mix deps.get and try again"
+              "The dependency cannot be found in the file system, please run mix deps.get and try again"
           )
         end
 

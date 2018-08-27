@@ -477,7 +477,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Opens and reads content from either a URL or a local filesystem path.
+  Opens and reads content from either a URL or a local file system path.
 
   Returns the contents as a `{:ok, binary}`, `:badpath` for invalid
   paths or `{:local, message}` for local errors and `{:remote, message}`
