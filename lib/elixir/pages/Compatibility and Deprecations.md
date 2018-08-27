@@ -78,7 +78,7 @@ Passing a non-empty list to `:into` in `for`     | [v1.8]        | `Kernel.++/2`
 `Kernel.ParallelCompiler.files_to_path/2`        | [v1.8]        | `Kernel.ParallelCompiler.compile_to_path/2` (v1.6)
 `Kernel.ParallelRequire.files/2`                 | [v1.8]        | `Kernel.ParallelCompiler.require/2` (v1.6)
 `Code.get_docs/2`                                | [v1.7]        | `Code.fetch_docs/1` (v1.7)
-Calling `super/1` on GenServer callbacks           | [v1.7]        | Not calling `super/1` (v1.0)
+Calling `super/1` on GenServer callbacks         | [v1.7]        | Not calling `super/1` (v1.0)
 `Enum.chunk/2`[`/3/4`](Enum.chunk/4)             | [v1.7]        | `Enum.chunk_every/2`[`/3/4`](`Enum.chunk_every/4`) (v1.5)
 `not left in right`                              | [v1.7]        | [`left not in right`](`Kernel.SpecialForms.in/2`) (v1.5)
 `Registry.start_link/3`                          | [v1.7]        | `Registry.start_link/1` (v1.5)
