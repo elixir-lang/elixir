@@ -31,7 +31,7 @@ defprotocol Enumerable do
   while also guaranteeing the resource will be closed at the end of the
   enumeration. This protocol also allows suspension of the enumeration,
   which is useful when interleaving between many enumerables is required
-  (as in zip).
+  (as in the `zip/*` functions).
 
   This protocol requires four functions to be implemented, `reduce/3`,
   `count/1`, `member?/2`, and `slice/1`. The core of the protocol is the
