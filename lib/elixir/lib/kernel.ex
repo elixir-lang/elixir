@@ -3751,7 +3751,7 @@ defmodule Kernel do
   ## Reserved aliases
 
   Elixir reserves the following module aliases: `Elixir`, `Any`, `BitString`,
-  `PID` and `Reference`.
+  `PID`, and `Reference`.
 
   Trying to define a module with any of these aliases will result in a
   compilation error.
