@@ -250,7 +250,7 @@ defmodule Enum do
   @type acc :: any
   @type element :: any
 
-  @typedoc "Zero-based index. It can also be negative integer."
+  @typedoc "Zero-based index. It can also be a negative integer."
   @type index :: integer
 
   @type default :: any
@@ -2132,12 +2132,12 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given enumerable, from `index_range.first` (zero-based) to
+  Returns a subset list of the given `enumerable`, from `index_range.first` (zero-based) to
   `index_range.last`.
 
-  `index_range` must be a `(range)[t:Range.t/0]`.
+  `index_range` must be a [range](`t:Range.t/0`).
 
-  Given `enumerable`, it drops elements before `index_range.first`,
+  Given an `enumerable`, it drops elements before `index_range.first`,
   then takes elements until element `index_range.last` (inclusively).
 
   Indexes are normalized, meaning that negative indexes will be counted from the end
@@ -2147,7 +2147,6 @@ defmodule Enum do
 
   If the normalized `index_range.first` is out of bounds of the given enumerable,
   or this one is greater than the normalized `index_range.last`, then `[]` is returned.
-
 
   ## Examples
 
@@ -2192,10 +2191,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given enumerable, from `start_index` (zero-based) with `amount` number of elements
-  if available.
+  Returns a subset list of the given `enumerable`, from `start_index` (zero-based)
+  with `amount` number of elements if available.
 
-  Given `enumerable`, it drops elements right before element `start_index`,
+  Given an `enumerable`, it drops elements right before element `start_index`,
   then takes `amount` of elements, returning as many elements as possible if there are not enough
   elements.
 
