@@ -4482,7 +4482,7 @@ defmodule Kernel do
   for more information about deriving
   protocols.
 
-  ## Fall back to `Any`
+  ## Fallback to `Any`
 
   In some cases, it may be convenient to provide a default
   implementation for all types. This can be achieved by setting
