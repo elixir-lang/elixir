@@ -162,24 +162,17 @@ def foo(_other) do
 end
 ```
 
-If each guard expression always returns a boolean, the two forms are equivalent.
-
-However, recall that if any function call in a guard raises an exception, the entire guard fails.
-So this function will not not detect empty tuples:
+If each guard expression always returns a boolean, the two forms are equivalent. However, recall that if any function call in a guard raises an exception, the entire guard fails. So this function will not not detect empty tuples:
 
 ```elixir
 defmodule Check do
-  def empty?(val)
-      # If given a tuple, map_size/1 will raise, and tuple_size/1 will not be evaluated
-      when map_size(val) == 0 or tuple_size(val) == 0 do
-    true
-  end
-
+  # If given a tuple, map_size/1 will raise, and tuple_size/1 will not be evaluated
+  def empty?(val) when map_size(val) == 0 or tuple_size(val) == 0, do: true
   def empty?(_val), do: false
 end
 
 Check.empty?(%{}) #=> true
-Check.empty?({}) #=> false (!)
+Check.empty?({}) #=> false # true was expected!
 ```
 
 This could be corrected by ensuring that no exception is raised, either via type checks like `is_map(val) and map_size(val) == 0`, or by checking equality instead, like `val == %{}`.
@@ -188,12 +181,11 @@ It could also be corrected by using multiple guards, so that if an exception cau
 
 ```elixir
 defmodule Check do
+  # If given a tuple, map_size/1 will raise, and the second guard will be evaluated
   def empty?(val)
-      # If given a tuple, map_size/1 will raise, and the second guard will be evaluated
       when map_size(val) == 0
-      when tuple_size(val) == 0 do
-    true
-  end
+      when tuple_size(val) == 0,
+      do: true
 
   def empty?(_val), do: false
 end
