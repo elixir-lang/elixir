@@ -800,7 +800,7 @@ defmodule Task do
     cond do
       timeout == :infinity ->
         raise ArgumentError,
-              ":infinity is not a valid timeout, please a value in milliseconds or :brutal_kill"
+              ":infinity is not a valid timeout, please use a value in milliseconds or :brutal_kill"
 
       is_nil(pid) ->
         raise ArgumentError, "task #{inspect(task)} does not have an associated task process"
