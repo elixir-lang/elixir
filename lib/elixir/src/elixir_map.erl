@@ -125,7 +125,7 @@ load_struct(Meta, Name, Args, InContext, E) ->
         %% By the time we got to execute the function, the ETS table
         %% with temporary definitions for the given module may no longer
         %% be available, so any function invocation happening inside the
-        %% local function will fail. In this case, we need to fallback to
+        %% local function will fail. In this case, we need to fall back to
         %% the regular dispatching since the module will be available if
         %% the table has not been deleted (unless compilation of that
         %% module failed which should then cause this call to fail too).
