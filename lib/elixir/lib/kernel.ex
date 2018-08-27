@@ -3748,19 +3748,22 @@ defmodule Kernel do
   Note that, when a dynamic name is used, Elixir won't nest the name under the
   current module nor automatically set up an alias.
 
-  ## Reserved aliases
+  ## Reserved module names
 
-  Elixir reserves the following module aliases: `Elixir`, `Any`, `BitString`,
-  `PID`, and `Reference`.
+  If you attempt to define a module that already exists, you will get a
+  warning saying that a module has been redefined.
 
-  Trying to define a module with any of these aliases will result in a
-  compilation error.
+  There are some modules that Elixir does not currently implement but it
+  may be implement in the future. Those modules are reserved and defining
+  them will result in a compilation error:
 
       defmodule Any do
         # code
       end
       #=> ** (CompileError) iex:1: module Any is reserved and cannot be defined
 
+  Elixir reserves the following module names: `Elixir`, `Any`, `BitString`,
+  `PID`, and `Reference`.
   """
   defmacro defmodule(alias, do_block)
 
