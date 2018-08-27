@@ -2672,8 +2672,8 @@ defmodule Enum do
   end
 
   @doc """
-  Opposite of `zip/2`; extracts a two-element tuples from the
-  enumerable and groups them together.
+  Opposite of `zip/2`. Extracts two-element tuples from the
+  given enumerable and groups them together.
 
   It takes an enumerable with items being two-element tuples and returns
   a tuple with two lists, each of which is formed by the first and
