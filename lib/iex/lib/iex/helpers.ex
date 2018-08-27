@@ -434,7 +434,7 @@ defmodule IEx.Helpers do
   old version was properly purged before).
 
   This function is useful when you know the bytecode for module
-  has been updated in the filesystem and you want to tell the VM
+  has been updated in the file system and you want to tell the VM
   to load it.
   """
   def l(module) when is_atom(module) do

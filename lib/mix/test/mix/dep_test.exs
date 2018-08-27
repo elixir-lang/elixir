@@ -111,7 +111,7 @@ defmodule Mix.DepTest do
 
   test "does not set the manager before the dependency was loaded" do
     # It is important to not eagerly set the manager because the dependency
-    # needs to be loaded (i.e. available in the filesystem) in order to get
+    # needs to be loaded (i.e. available in the file system) in order to get
     # the proper manager.
     Mix.Project.push(DepsApp)
 

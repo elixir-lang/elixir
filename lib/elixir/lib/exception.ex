@@ -150,7 +150,7 @@ defmodule Exception do
   Attaches information to exceptions for extra debugging.
 
   This operation is potentially expensive, as it reads data
-  from the filesystem, parses beam files, evaluates code and
+  from the file system, parses beam files, evaluates code and
   so on.
 
   If the exception module implements the optional `c:blame/2`

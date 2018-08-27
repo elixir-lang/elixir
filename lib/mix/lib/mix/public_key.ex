@@ -14,7 +14,7 @@ defmodule Mix.PublicKey do
   """
 
   @doc """
-  Returns the filesystem path for public keys.
+  Returns the file system path for public keys.
   """
   def public_keys_path, do: Path.join(Mix.Utils.mix_home(), "public_keys")
 
