@@ -81,7 +81,7 @@ defmodule IEx do
       ...(1)> #iex:break
       ** (TokenMissingError) iex:1: incomplete expression
 
-  ## The Break command
+  ## The BREAK menu
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
   menu you can quit the shell, see process and ETS tables information
@@ -119,10 +119,10 @@ defmodule IEx do
   While `IEx.break!/4` is more flexible,  it does not contain
   information about imports and aliases from the source code.
 
-  ## The User Switch command
+  ## The User switch command
 
-  Besides the break command, one can type `Ctrl+G` to get to the
-  user switch command menu. When reached, you can type `h` to
+  Besides the `BREAK` menu, one can type `Ctrl+G` to get to the
+  `User switch command` menu. When reached, you can type `h` to
   get more information.
 
   In this menu, developers are able to start new shells and
@@ -151,7 +151,7 @@ defmodule IEx do
   Since shells are isolated from each other, you can't access the
   variables defined in one shell from the other one.
 
-  The User Switch command can also be used to terminate an existing
+  The `User switch command` can also be used to terminate an existing
   session, for example when the evaluator gets stuck in an infinite
   loop or when you are stuck typing an expression:
 
@@ -159,7 +159,7 @@ defmodule IEx do
        --> i
        --> c
 
-  The user switch command menu also allows developers to connect to
+  The `User switch command` menu also allows developers to connect to
   remote shells using the `r` command. A topic which we will discuss next.
 
   ## Remote shells
@@ -200,7 +200,7 @@ defmodule IEx do
       ** (UndefinedFunctionError) undefined function Hello.world/0
 
   However, we can connect to the other shell remotely. Open up
-  the User Switch prompt (Ctrl+G) and type:
+  the `User switch command` prompt (Ctrl+G) and type:
 
       User switch command
        --> r 'foo@HOST' 'Elixir.IEx'
@@ -530,10 +530,10 @@ defmodule IEx do
   so they don't collide with variables defined by the users of the
   macros. Therefore the original names are not available.
 
-  ## Pry and mix test
+  ## Pry and `mix test`
 
-  To use `IEx.pry/0` during tests, you need to run Mix inside
-  `iex` and pass the `--trace` to `mix test` to avoid running
+  To use `IEx.pry/0` during tests, you need to run `mix` inside
+  the `iex` command and pass the `--trace` to `mix test` to avoid running
   into timeouts:
 
       iex -S mix test --trace
@@ -716,10 +716,10 @@ defmodule IEx do
   the macro will receive the AST representing the `self()` call, and not
   the PID itself.
 
-  ## Breaks and mix test
+  ## Breaks and `mix test`
 
-  To use `IEx.break!/4` during tests, you need to run Mix inside
-  `iex` and pass the `--trace` to `mix test` to avoid running
+  To use `IEx.break!/4` during tests, you need to run `mix` inside
+  the `iex` command and pass the `--trace` to `mix test` to avoid running
   into timeouts:
 
       iex -S mix test --trace
