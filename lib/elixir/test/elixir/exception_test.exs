@@ -745,10 +745,10 @@ defmodule ExceptionTest do
 
              The following arguments were given to Access.fetch/2:
 
-                 # 1
+                 # 1 (container)
                  :foo
 
-                 # 2
+                 # 2 (key)
                  :bar
 
              Attempted function clauses (showing 5 out of 5):

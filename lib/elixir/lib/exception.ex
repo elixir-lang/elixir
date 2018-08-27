@@ -1048,22 +1048,38 @@ defmodule FunctionClauseError do
   end
 
   def blame(exception, inspect_fun, ast_fun) do
-    %{module: module, function: function, arity: arity, kind: kind, args: args, clauses: clauses} =
-      exception
+    %{
+      module: module,
+      function: function_name,
+      arity: arity,
+      kind: kind,
+      args: args,
+      clauses: clauses
+    } = exception
 
-    mfa = Exception.format_mfa(module, function, arity)
+    mfa = Exception.format_mfa(module, function_name, arity)
+    arg_names = arg_names(module, function_name, arity)
 
-    formatted_args =
+    {formatted_args, _} =
       args
-      |> Enum.with_index(1)
-      |> Enum.map(fn {arg, i} ->
-        ["\n    # ", Integer.to_string(i), "\n    ", pad(inspect_fun.(arg)), "\n"]
+      |> Enum.zip(arg_names)
+      |> Enum.map_reduce(1, fn {arg, arg_name}, arg_number ->
+        {
+          [
+            "\n    # ",
+            Integer.to_string(arg_number),
+            " (#{arg_name})\n    ",
+            pad(inspect_fun.(arg)),
+            "\n"
+          ],
+          arg_number + 1
+        }
       end)
 
     formatted_clauses =
       if clauses do
         format_clause_fun = fn {args, guards} ->
-          code = Enum.reduce(guards, {function, [], args}, &{:when, [], [&2, &1]})
+          code = Enum.reduce(guards, {function_name, [], args}, &{:when, [], [&2, &1]})
           "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
         end
 
@@ -1082,6 +1098,30 @@ defmodule FunctionClauseError do
       end
 
     "\n\nThe following arguments were given to #{mfa}:\n#{formatted_args}#{formatted_clauses}"
+  end
+
+  defp arg_names(module, function_name, arity) when arity > 0 do
+    {:docs_v1, _annotation, _beam_language, _format, _module_doc, _metadata, docs} =
+      Code.fetch_docs(module)
+
+    {_, _, signature, _, _} =
+      Enum.find(docs, fn
+        {{_type, f_n, a}, _annotation, _signature, _doc, _defaults}
+        when f_n == function_name and a == arity ->
+          true
+
+        _ ->
+          false
+      end)
+
+    # QUESTION: Why signature is a list and not just a string.
+    # When would we get a list of more than one element?
+    split_signature(hd(signature), arity)
+  end
+
+  defp split_signature(signature, _) do
+    [match] = Regex.run(~r/.+\((.+)\)/, signature, capture: :all_but_first)
+    String.split(match, ", ")
   end
 
   defp pad(string) do
