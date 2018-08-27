@@ -1191,7 +1191,7 @@ defmodule File do
 
   # On Windows, symlinks are treated as directory and must be removed
   # with rmdir/1. But on Unix, we remove them via rm/1. So we first try
-  # to remove it as a directory and, if we get :enotdir, we fallback to
+  # to remove it as a directory and, if we get :enotdir, we fall back to
   # a file removal.
   defp do_rm_directory(path, {:ok, acc} = entry) do
     case rmdir(path) do

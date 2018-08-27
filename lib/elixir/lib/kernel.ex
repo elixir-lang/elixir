@@ -4477,12 +4477,12 @@ defmodule Kernel do
 
   If a protocol implementation is not found for a given type,
   invoking the protocol will raise unless it is configured to
-  fallback to `Any`. Conveniences for building implementations
+  fall back to `Any`. Conveniences for building implementations
   on top of existing ones are also available, look at `defstruct/1`
   for more information about deriving
   protocols.
 
-  ## Fallback to any
+  ## Fall back to `Any`
 
   In some cases, it may be convenient to provide a default
   implementation for all types. This can be achieved by setting

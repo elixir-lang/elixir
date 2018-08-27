@@ -92,7 +92,7 @@ defmodule ProtocolTest do
     assert Sample.impl_for(%NoImplStruct{}) == nil
   end
 
-  test "protocol implementation with any and structs fallback" do
+  test "protocol implementation with Any and struct fallbacks" do
     assert WithAny.impl_for(%NoImplStruct{}) == WithAny.Any
     # Derived
     assert WithAny.impl_for(%ImplStruct{}) == WithAny.Any
