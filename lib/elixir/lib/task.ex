@@ -773,9 +773,8 @@ defmodule Task do
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
   `{:exit, reason}` if the task died, otherwise `nil`.
 
-  The second argument is either a timeout value in milliseconds or`:brutal_kill`.
-  Note that `:infinity` is not an accepted timeout value.
-  In case of a timeout, a `:shutdown` exit signal is sent to the task process
+  The second argument is either a timeout or `:brutal_kill`. In case
+  of a `timeout`, a `:shutdown` exit signal is sent to the task process
   and if it does not exit within the timeout, it is killed. With `:brutal_kill`
   the task is killed straight away. In case the task terminates abnormally
   (possibly killed by another process), this function will exit with the same reason.
@@ -791,29 +790,18 @@ defmodule Task do
   a response waiting in the message queue this function will return
   `{:exit, :noproc}` as the result or exit reason can not be determined.
   """
-  @spec shutdown(t, timeout :: non_neg_integer | :brutal_kill) ::
-          {:ok, term} | {:exit, term} | nil
-  def shutdown(task, timeout_or_brutal_kill \\ 5000)
+  @spec shutdown(t, timeout | :brutal_kill) :: {:ok, term} | {:exit, term} | nil
+  def shutdown(task, shutdown \\ 5000)
 
-  def shutdown(%Task{pid: pid, owner: owner} = task, timeout)
-      when is_timeout(timeout) or timeout == :brutal_kill do
-    cond do
-      timeout == :infinity ->
-        raise ArgumentError,
-              ":infinity is not a valid timeout, please use a value in milliseconds or :brutal_kill"
-
-      is_nil(pid) ->
-        raise ArgumentError, "task #{inspect(task)} does not have an associated task process"
-
-      owner != self() ->
-        raise ArgumentError, invalid_owner_error(task)
-
-      true ->
-        shutdown(task, pid, timeout)
-    end
+  def shutdown(%Task{pid: nil} = task, _) do
+    raise ArgumentError, "task #{inspect(task)} does not have an associated task process"
   end
 
-  def shutdown(task, pid, :brutal_kill) do
+  def shutdown(%Task{owner: owner} = task, _) when owner != self() do
+    raise ArgumentError, invalid_owner_error(task)
+  end
+
+  def shutdown(%Task{pid: pid} = task, :brutal_kill) do
     mon = Process.monitor(pid)
     exit(pid, :kill)
 
@@ -829,7 +817,7 @@ defmodule Task do
     end
   end
 
-  def shutdown(task, pid, timeout) do
+  def shutdown(%Task{pid: pid} = task, timeout) when is_timeout(timeout) do
     mon = Process.monitor(pid)
     exit(pid, :shutdown)
 
