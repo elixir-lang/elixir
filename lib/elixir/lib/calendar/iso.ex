@@ -755,12 +755,15 @@ defmodule Calendar.ISO do
       days_to_year(year_estimate, days, days_to_end_of_epoch(year_estimate))
 
     leap_year_pad = if leap_year?(year), do: 1, else: 0
-    {year, leap_year_pad + 365 + days - days_before_year}
+    {year, leap_year_pad + @days_per_nonleap_year + days - days_before_year}
   end
 
   defp days_to_year(days) do
-    year = div(days, @days_per_nonleap_year)
-    {year, days_before_year} = days_to_year(year, days, days_in_previous_years(year))
+    year_estimate = div(days, @days_per_nonleap_year)
+
+    {year, days_before_year} =
+      days_to_year(year_estimate, days, days_in_previous_years(year_estimate))
+
     {year, days - days_before_year}
   end
 
