@@ -162,7 +162,7 @@ def foo(_other) do
 end
 ```
 
-If each guard expression always returns a boolean, the two forms are equivalent. However, recall that if any function call in a guard raises an exception, the entire guard fails. So this function will not not detect empty tuples:
+If each guard expression always returns a boolean, the two forms are equivalent. However, recall that if any function call in a guard raises an exception, the entire guard fails. So this function will not detect empty tuples:
 
 ```elixir
 defmodule Check do
