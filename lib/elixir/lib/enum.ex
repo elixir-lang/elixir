@@ -869,7 +869,7 @@ defmodule Enum do
   for which `fun` returns a truthy value.
 
   See also `reject/2` which discards all elements where the
-  function a truthy value.
+  function returns a truthy value.
 
   ## Examples
 
