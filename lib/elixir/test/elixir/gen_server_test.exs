@@ -157,27 +157,23 @@ defmodule GenServerTest do
     GenServer.stop(pid)
   end
 
-  test "abcast/3" do
-    {:ok, _} = GenServer.start_link(Stack, [], name: :stack)
+  test "abcast/3", %{test: name} do
+    {:ok, _} = GenServer.start_link(Stack, [], name: name)
 
-    assert GenServer.abcast(:stack, {:push, :hello}) == :abcast
-    assert GenServer.call({:stack, node()}, :pop) == :hello
+    assert GenServer.abcast(name, {:push, :hello}) == :abcast
+    assert GenServer.call({name, node()}, :pop) == :hello
 
-    assert GenServer.abcast([node(), :foo@bar], :stack, {:push, :world}) == :abcast
-    assert GenServer.call(:stack, :pop) == :world
-
-    GenServer.stop(:stack)
+    assert GenServer.abcast([node(), :foo@bar], name, {:push, :world}) == :abcast
+    assert GenServer.call(name, :pop) == :world
   end
 
-  test "multi_call/4" do
-    {:ok, _} = GenServer.start_link(Stack, [:hello, :world], name: :stack)
+  test "multi_call/4", %{test: name} do
+    {:ok, _} = GenServer.start_link(Stack, [:hello, :world], name: name)
 
-    assert GenServer.multi_call(:stack, :pop) == {[{node(), :hello}], []}
+    assert GenServer.multi_call(name, :pop) == {[{node(), :hello}], []}
 
-    assert GenServer.multi_call([node(), :foo@bar], :stack, :pop) ==
+    assert GenServer.multi_call([node(), :foo@bar], name, :pop) ==
              {[{node(), :world}], [:foo@bar]}
-
-    GenServer.stop(:stack)
   end
 
   test "whereis/1" do
@@ -197,7 +193,7 @@ defmodule GenServerTest do
     assert GenServer.whereis({:via, :global, :whereis_bad_server}) == nil
   end
 
-  test "stop/3" do
+  test "stop/3", %{test: name} do
     {:ok, pid} = GenServer.start(Stack, [])
     assert GenServer.stop(pid, :normal) == :ok
 
@@ -214,7 +210,7 @@ defmodule GenServerTest do
     assert GenServer.call(pid, :stop_self) ==
              {:calling_self, {GenServer, :stop, [pid, :normal, :infinity]}}
 
-    {:ok, _} = GenServer.start(Stack, [], name: :stack_for_stop)
-    assert GenServer.stop(:stack_for_stop, :normal) == :ok
+    {:ok, _} = GenServer.start(Stack, [], name: name)
+    assert GenServer.stop(name, :normal) == :ok
   end
 end
