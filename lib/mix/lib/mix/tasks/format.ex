@@ -382,7 +382,7 @@ defmodule Mix.Tasks.Format do
   end
 
   defp stdin_or_wildcard("-"), do: [:stdin]
-  defp stdin_or_wildcard(path), do: Path.wildcard(path, match_dot: true)
+  defp stdin_or_wildcard(path), do: path |> Path.expand() |> Path.wildcard(match_dot: true)
 
   defp read_file(:stdin) do
     {IO.stream(:stdio, :line) |> Enum.to_list() |> IO.iodata_to_binary(), file: "stdin"}
@@ -447,7 +447,7 @@ defmodule Mix.Tasks.Format do
   end
 
   defp check!({[{:exit, file, exception, stacktrace} | _], _not_equivalent, _not_formatted}) do
-    Mix.shell().error("mix format failed for file: #{file}")
+    Mix.shell().error("mix format failed for file: #{Path.relative_to_cwd(file)}")
     reraise exception, stacktrace
   end
 
