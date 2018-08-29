@@ -617,6 +617,8 @@ defmodule Path do
   Other characters represent themselves. Only paths that have
   exactly the same character in the same position will match. Note
   that matching is case-sensitive: `"a"` will not match `"A"`.
+  
+  Directory separators must always be written as `/`, even on Windows.
 
   By default, the patterns `*` and `?` do not match files starting
   with a dot `.`. See the `:match_dot` option in the "Options" section
