@@ -504,9 +504,9 @@ container_expr -> no_parens_expr : error_no_parens_container_strict('$1').
 container_args_base -> container_expr : ['$1'].
 container_args_base -> container_args_base ',' container_expr : ['$3' | '$1'].
 
-container_args -> container_args_base : lists:reverse('$1').
-container_args -> container_args_base ',' : lists:reverse('$1').
-container_args -> container_args_base ',' kw : lists:reverse(['$3' | '$1']).
+container_args -> container_args_base : reverse('$1').
+container_args -> container_args_base ',' : reverse('$1').
+container_args -> container_args_base ',' kw : reverse(['$3' | '$1']).
 
 % Function calls with parentheses
 
