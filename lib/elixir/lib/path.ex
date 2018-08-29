@@ -617,6 +617,10 @@ defmodule Path do
   Other characters represent themselves. Only paths that have
   exactly the same character in the same position will match. Note
   that matching is case-sensitive: `"a"` will not match `"A"`.
+  
+  Directory separators must always be written as `/`, even on Windows.
+  You may call `Path.expand/1` to normalize the path before invoking
+  this function.
 
   By default, the patterns `*` and `?` do not match files starting
   with a dot `.`. See the `:match_dot` option in the "Options" section
