@@ -130,6 +130,32 @@ defmodule Kernel.ParallelCompilerTest do
              end) =~ "== Compilation error"
     end
 
+    test "does not deadlock on missing dependencies" do
+      [missing_struct, depends_on] =
+        write_tmp(
+          "does_not_deadlock",
+          missing_struct: """
+          defmodule MissingStruct do
+            %ThisModuleWillNeverBeAvailable{}
+            def hello, do: :ok
+          end
+          """,
+          depends_on_missing_struct: """
+          MissingStruct.hello()
+          """
+        )
+
+      expected_msg =
+        "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
+
+      assert capture_io(fn ->
+               assert {:error, [{^missing_struct, 2, msg}], []} =
+                        Kernel.ParallelCompiler.compile([missing_struct, depends_on])
+
+               assert msg =~ expected_msg
+             end) =~ "== Compilation error"
+    end
+
     test "handles possible deadlocks" do
       [foo, bar] =
         write_tmp(
