@@ -740,7 +740,7 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 
 %% Remote
 
-expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) ->
+expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) when is_atom(Receiver) or is_tuple(Receiver) ->
   assert_no_clauses(Right, Meta, Args, E),
 
   Arity = length(Args),
@@ -753,7 +753,10 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
       maybe_warn_comparison(Rewritten, Args, E),
       {Rewritten, elixir_env:mergev(EL, EA)};
     {error, Error} -> form_error(Meta, ?key(E, file), elixir_rewrite, Error)
-  end.
+  end;
+expand_remote(Receiver, DotMeta, Right, Meta, Args, E, _) ->
+  Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_call, Call}).
 
 rewrite(match, Receiver, DotMeta, Right, Meta, EArgs) ->
   elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
