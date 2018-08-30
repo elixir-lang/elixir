@@ -252,14 +252,16 @@ defmodule Kernel.ParallelCompiler do
        when length(waiting) == length(queued) do
     # The goal of this function is to find leaves in the dependency graph,
     # i.e. to find code that depends on code that we know is not being defined.
+    without_definition =
+      for {pid, _, _, _} <- queued,
+          entry = waiting_on_without_definition(waiting, pid),
+          do: entry
+
     # Note we only release modules because those can be rescued. A missing
     # struct is a guaranteed compile error, so we never release it and treat
     # it exclusively a missing entry/deadlock.
     pending =
-      for {pid, _, _, _} <- queued,
-          entry = waiting_on_without_definition(waiting, pid),
-          {kind, _, ref, on, _} = entry,
-          kind == :module,
+      for {:module, _, ref, on, _} <- without_definition,
           do: {on, {ref, :not_found}}
 
     # Instead of releasing all files at once, we release them in groups
@@ -279,8 +281,16 @@ defmodule Kernel.ParallelCompiler do
         spawn_workers(refs, waiting, queued, result, warnings, state)
 
       [] ->
-        errors = handle_deadlock(waiting, queued)
-        {:error, errors, warnings}
+        # There is a deadlock. Instead of printing a deadlock, let's release
+        # structs, as a missing struct error is clearer than a deadlock one.
+        structs = for {:struct, _, ref, _, _} <- without_definition, do: {ref, :not_found}
+
+        if structs != [] do
+          spawn_workers(structs, waiting, queued, result, warnings, state)
+        else
+          errors = handle_deadlock(waiting, queued)
+          {:error, errors, warnings}
+        end
     end
   end
 
