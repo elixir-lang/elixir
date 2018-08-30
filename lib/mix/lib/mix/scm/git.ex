@@ -94,7 +94,7 @@ defmodule Mix.SCM.Git do
     File.mkdir_p!(path)
 
     File.cd!(path, fn ->
-      git!(~w[-c core.hooksPath='' init --template='' --quiet])
+      git!(~w[-c core.hooksPath='' init --quiet])
       git!(["--git-dir=.git", "remote", "add", "origin", opts[:git]])
       checkout(path, opts)
     end)
