@@ -165,13 +165,7 @@ defmodule Version do
   def match?(version, requirement, opts \\ [])
 
   def match?(version, requirement, opts) when is_binary(requirement) do
-    case parse_requirement(requirement) do
-      {:ok, requirement} ->
-        match?(version, requirement, opts)
-
-      :error ->
-        raise InvalidRequirementError, requirement
-    end
+    match?(version, parse_requirement!(requirement), opts)
   end
 
   def match?(version, %Requirement{matchspec: spec, compiled: false}, opts) do
@@ -267,7 +261,7 @@ defmodule Version do
   @doc """
   Parses a version string into a `Version`.
 
-  If `string` is an invalid version, an `InvalidVersionError` is raised.
+  If `string` is an invalid version, a `Version.InvalidVersionError` is raised.
 
   ## Examples
 
@@ -307,6 +301,32 @@ defmodule Version do
 
       :error ->
         :error
+    end
+  end
+
+  @doc """
+  Parses a version requirement string into a `Version.Requirement` struct.
+
+  If `string` is an invalid requirement, a `Version.InvalidRequirementError` is raised.
+
+  ## Examples
+
+      iex> Version.parse_requirement!("== 2.0.1")
+      #Version.Requirement<== 2.0.1>
+
+      iex> Version.parse_requirement!("== == 2.0.1")
+      ** (Version.InvalidRequirementError) invalid requirement: "== == 2.0.1"
+
+  """
+  @doc since: "1.8.0"
+  @spec parse_requirement!(String.t()) :: Requirement.t()
+  def parse_requirement!(string) when is_binary(string) do
+    case Version.Parser.parse_requirement(string) do
+      {:ok, spec} ->
+        %Requirement{source: string, matchspec: spec, compiled: false}
+
+      :error ->
+        raise InvalidRequirementError, string
     end
   end
 
