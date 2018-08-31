@@ -311,6 +311,31 @@ defmodule Version do
   end
 
   @doc """
+  Parses a version requirement string into a `Version.Requirement` struct.
+
+  If `string` is an invalid requirement, an `InvalidRequirementError` is raised.
+
+  ## Examples
+
+      iex> Version.parse_requirement!("== 2.0.1")
+      #Version.Requirement<== 2.0.1>
+
+      iex> Version.parse_requirement!("== == 2.0.1")
+      ** (Version.InvalidRequirementError) invalid requirement: "== == 2.0.1"
+
+  """
+  @spec parse_requirement!(String.t()) :: Requirement.t()
+  def parse_requirement!(string) when is_binary(string) do
+    case Version.Parser.parse_requirement(string) do
+      {:ok, spec} ->
+        %Requirement{source: string, matchspec: spec, compiled: false}
+
+      :error ->
+        raise InvalidRequirementError, string
+    end
+  end
+
+  @doc """
   Compiles a requirement to its internal representation with
   `:ets.match_spec_compile/1` for faster matching.
 
