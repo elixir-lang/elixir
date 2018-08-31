@@ -165,13 +165,7 @@ defmodule Version do
   def match?(version, requirement, opts \\ [])
 
   def match?(version, requirement, opts) when is_binary(requirement) do
-    case parse_requirement(requirement) do
-      {:ok, requirement} ->
-        match?(version, requirement, opts)
-
-      :error ->
-        raise InvalidRequirementError, requirement
-    end
+    match?(version, parse_requirement!(requirement), opts)
   end
 
   def match?(version, %Requirement{matchspec: spec, compiled: false}, opts) do
