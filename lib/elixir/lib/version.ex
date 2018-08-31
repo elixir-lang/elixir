@@ -267,7 +267,7 @@ defmodule Version do
   @doc """
   Parses a version string into a `Version`.
 
-  If `string` is an invalid version, an `InvalidVersionError` is raised.
+  If `string` is an invalid version, a `Version.InvalidVersionError` is raised.
 
   ## Examples
 
@@ -313,7 +313,7 @@ defmodule Version do
   @doc """
   Parses a version requirement string into a `Version.Requirement` struct.
 
-  If `string` is an invalid requirement, an `InvalidRequirementError` is raised.
+  If `string` is an invalid requirement, a `Version.InvalidRequirementError` is raised.
 
   ## Examples
 
