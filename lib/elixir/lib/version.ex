@@ -324,6 +324,7 @@ defmodule Version do
       ** (Version.InvalidRequirementError) invalid requirement: "== == 2.0.1"
 
   """
+  @doc since: "1.8.0"
   @spec parse_requirement!(String.t()) :: Requirement.t()
   def parse_requirement!(string) when is_binary(string) do
     case Version.Parser.parse_requirement(string) do
