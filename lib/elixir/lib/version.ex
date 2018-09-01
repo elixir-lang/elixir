@@ -94,7 +94,6 @@ defmodule Version do
   @type patch :: non_neg_integer | nil
   @type pre :: [String.t() | non_neg_integer]
   @type build :: String.t() | nil
-  @type matchable :: {major :: major, minor :: minor, patch :: patch, pre :: pre}
   @type t :: %__MODULE__{major: major, minor: minor, patch: patch, pre: pre, build: build}
 
   defmodule Requirement do
@@ -414,7 +413,6 @@ defmodule Version do
       to_matchspec(lexed)
     end
 
-    @spec parse_version(String.t(), boolean) :: {:ok, Version.matchable()} | :error
     def parse_version(string, approximate? \\ false) when is_binary(string) do
       destructure [version_with_pre, build], String.split(string, "+", parts: 2)
       destructure [version, pre], String.split(version_with_pre, "-", parts: 2)
