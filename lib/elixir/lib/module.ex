@@ -1320,7 +1320,7 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, name, arity, args, body, doc, doc_meta, env, impl) do
+  defp compile_doc(table, line, kind, name, arity, args, _body, doc, doc_meta, env, impl) do
     key = {doc_key(kind), name, arity}
     signature = build_signature(args, env)
 
