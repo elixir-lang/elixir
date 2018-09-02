@@ -16,12 +16,12 @@ defmodule EEx.Engine do
     * `handle_expr(state, marker, expr)` - it receives the state,
       the marker, the expr and must return a new state.
 
-    * `handle_begin(state)` - called every time there a new state
+    * `handle_begin(state)` - called every time a new state
       is needed with an empty buffer. Typically called for do/end
-      blocks, case expressions, anonymous functions, etc
+      blocks, case expressions, anonymous functions, etc.
 
     * `handle_end(state)` - opposite of `handle_begin(state)` and
-      it must return quoted expression
+      it must return quoted expression.
 
       The marker is what follows exactly after `<%`. For example,
       `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
