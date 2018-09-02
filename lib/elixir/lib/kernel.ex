@@ -3994,10 +3994,10 @@ defmodule Kernel do
       end
       #=> warning: the underscored variable "_bar" is used after being set
 
-  ## rescue/catch/after
+  ## `rescue`/`catch`/`after`/`else`
 
-  Function bodies support `rescue`, `catch` and `after` as `Kernel.SpecialForms.try/1`
-  does. The following two functions are equivalent:
+  Function bodies support `rescue`, `catch`, `after`, and `else` as `Kernel.SpecialForms.try/1`
+  does. For example, the following two functions are equivalent:
 
       def format(value) do
         try do
