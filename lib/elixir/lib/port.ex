@@ -270,7 +270,7 @@ defmodule Port do
   Inlined by the compiler.
   """
   @doc since: "1.6.0"
-  @spec monitor(port | {name :: atom, node :: atom} | name :: atom) :: reference
+  @spec monitor(port | {name, node} | name) :: reference when name: atom
   def monitor(port) do
     :erlang.monitor(:port, port)
   end
