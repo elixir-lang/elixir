@@ -36,7 +36,7 @@ defmodule Tuple do
       tuple = {:ok, :example}
 
       # Avoid
-      Tuple.insert_at(tuple, 2, %{}}
+      Tuple.insert_at(tuple, 2, %{})
 
       # Prefer
       {:ok, atom} = tuple
