@@ -303,6 +303,64 @@ defmodule Kernel.ErrorsTest do
              "assert([] = TestRepo.all(from(p in Post, where: p.title() in ^[])))"
   end
 
+  test "nested type annotations" do
+    message = ~r"nofile:2: invalid type annotation. Type annotations cannot be nested"
+
+    assert_eval_raise CompileError,
+                      message,
+                      '''
+                      defmodule NestedAnnType do
+                        @type my_type :: ann_type :: nested_ann_type :: atom
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      message,
+                      '''
+                      defmodule NestedAnnType do
+                        @type my_type :: ann_type :: nested_ann_type :: atom | port
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      message,
+                      '''
+                      defmodule NestedAnnType do
+                        @spec foo :: {pid, ann_type :: nested_ann_type :: atom}
+                        def foo, do: nil
+                      end
+                      '''
+  end
+
+  test "invalid type annotations" do
+    message =
+      ~r"nofile:2: invalid type annotation. When using the | operator to represent the union of types, make sure to wrap type annotations in parentheses"
+
+    assert_eval_raise CompileError,
+                      message,
+                      '''
+                      defmodule InvalidAnnType do
+                        @type my_type :: pid | ann_type :: atom
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      message,
+                      '''
+                      defmodule InvalidAnnType do
+                        @type my_type :: pid | ann_type :: atom | port
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      message,
+                      '''
+                      defmodule InvalidAnnType do
+                        @type my_type :: {port, pid | ann_type :: atom | port}
+                      end
+                      '''
+  end
+
   test "syntax error on atom dot alias" do
     msg =
       "nofile:1: atom cannot be followed by an alias. If the '.' was meant to be " <>

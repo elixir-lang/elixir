@@ -25,7 +25,7 @@ defmodule Process do
   A remote or local PID, a local port, a locally registered name, or a tuple in
   the form of `{registered_name, node}` for a registered name at another node.
   """
-  @type dest :: pid | port | registered_name :: atom | {registered_name :: atom, node}
+  @type dest :: pid | port | (registered_name :: atom) | {registered_name :: atom, node}
 
   @doc """
   Tells whether the given process is alive on the local node.
@@ -464,7 +464,7 @@ defmodule Process do
       #=> {:DOWN, #Reference<0.906660723.3006791681.40191>, :process, #PID<0.118.0>, :noproc}
 
   """
-  @spec monitor(pid | {name :: atom, node :: atom} | name :: atom) :: reference
+  @spec monitor(pid | {name, node} | name) :: reference when name: atom
   def monitor(item) do
     :erlang.monitor(:process, item)
   end
