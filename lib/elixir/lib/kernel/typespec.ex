@@ -535,10 +535,29 @@ defmodule Kernel.Typespec do
   end
 
   # Handle type operator
-  defp typespec({:::, meta, [var, expr]}, vars, caller) do
-    left = typespec(var, [elem(var, 0) | vars], caller)
-    right = typespec(expr, vars, caller)
-    {:ann_type, line(meta), [left, right]}
+  defp typespec({:::, meta, [var, expr]} = orig, vars, caller) do
+    case var do
+      {var_name, _meta, context} when is_atom(var_name) and is_atom(context) ->
+        case typespec(expr, vars, caller) do
+          {:ann_type, _, _} ->
+            message =
+              "invalid type annotation. Type annotations cannot be nested: " <>
+                "#{Macro.to_string(orig)}"
+
+            compile_error(caller, message)
+
+          right ->
+            left = typespec(var, [elem(var, 0) | vars], caller)
+            {:ann_type, line(meta), [left, right]}
+        end
+
+      _ ->
+        message =
+          "invalid type annotation. When using the | operator to represent the union of " <>
+            "types, make sure to wrap type annotations in parentheses: #{Macro.to_string(orig)}"
+
+        compile_error(caller, message)
+    end
   end
 
   # Handle unary ops
