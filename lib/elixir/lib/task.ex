@@ -643,6 +643,9 @@ defmodule Task do
 
   Check `yield/2` for more information.
 
+  The tasks in the returned list will be in the same order as the
+  tasks supplied in the `tasks` input argument.
+
   ## Example
 
   `Task.yield_many/2` allows developers to spawn multiple tasks
