@@ -1135,6 +1135,36 @@ defmodule Kernel.WarningTest do
   end
 
   describe "typespecs" do
+    test "unused types" do
+      output =
+        capture_err(fn ->
+          Code.eval_string("""
+          defmodule Sample do
+            @type pub :: any
+            @opaque op :: any
+            @typep priv :: any
+            @typep priv_args(var1, var2) :: {var1, var2}
+            @typep priv2 :: any
+            @typep priv3 :: priv2 | atom
+
+            @spec my_fun(priv3) :: pub
+            def my_fun(var), do: var
+          end
+          """)
+        end)
+
+      assert output =~ "nofile:4"
+      assert output =~ "type priv/0 is unused"
+      assert output =~ "nofile:5"
+      assert output =~ "type priv_args/2 is unused"
+      refute output =~ "type pub/0 is unused"
+      refute output =~ "type op/0 is unused"
+      refute output =~ "type priv2/0 is unused"
+      refute output =~ "type priv3/0 is unused"
+    after
+      purge(Sample)
+    end
+
     test "typedoc on typep" do
       assert capture_err(fn ->
                Code.eval_string("""

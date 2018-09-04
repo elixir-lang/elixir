@@ -297,16 +297,20 @@ typespecs_form(Map, Set, Bag, MacroNames) ->
       {Types, Specs, Callbacks, MacroCallbacks, OptionalCallbacks} =
         'Elixir.Kernel.Typespec':translate_typespecs_for_module(Set, Bag),
 
+      DefinedTypePairs = collect_defined_type_pairs(Map, Types),
+      UsedTypePairs = collect_used_type_pairs(Map, DefinedTypePairs, Types, Specs, Callbacks, MacroCallbacks),
+      UsedTypes = filter_used_types(Map, UsedTypePairs, Types),
+
       AllCallbacks = Callbacks ++ MacroCallbacks,
       MacroCallbackNames = [NameArity || {_, NameArity, _, _} <- MacroCallbacks],
       validate_behaviour_info_and_attributes(Map, AllCallbacks),
       validate_optional_callbacks(Map, AllCallbacks, OptionalCallbacks),
 
       Forms0 = [],
-      Forms1 = types_form(Types, Forms0),
+      Forms1 = types_form(UsedTypes, Forms0),
       Forms2 = callspecs_form(spec, Specs, [], MacroNames, Forms1, Map),
       Forms3 = callspecs_form(callback, AllCallbacks, OptionalCallbacks, MacroCallbackNames, Forms2, Map),
-      {Types, AllCallbacks, Forms3}
+      {UsedTypes, AllCallbacks, Forms3}
   end.
 
 %% Types
@@ -320,6 +324,61 @@ types_form(Types, Forms) ->
   end,
 
   lists:foldl(Fun, Forms, Types).
+
+collect_defined_type_pairs(Map, Types) ->
+  lists:foldl(fun({_, TypePair, Line, _, _}, TypePairs) ->
+    case lists:member(TypePair, TypePairs) of
+      true ->
+        #{file := File} = Map,
+        form_error(#{line => Line, file => File}, {redefine_type, TypePair});
+
+      false ->
+        [TypePair | TypePairs]
+    end
+  end, [], Types).
+
+collect_used_type_pairs(Map, DefinedTypePairs, Types, Specs, Callbacks, MacroCallbacks) ->
+  collect_used_type_pairs(Map, DefinedTypePairs, Types ++ Specs ++ Callbacks ++ MacroCallbacks, []).
+
+collect_used_type_pairs(Map, DefinedTypePairs, {user_type, Line, Name, Args}, Acc) ->
+  Arity = length(Args),
+  TypePair = {Name, Arity},
+
+  case lists:member(TypePair, DefinedTypePairs) of
+    true ->
+      TypePairs = collect_used_type_pairs(Map, DefinedTypePairs, Args, Acc),
+
+      case lists:member(TypePair, TypePairs) of
+        true -> TypePairs;
+        false -> [TypePair | TypePairs]
+      end;
+
+    false ->
+      #{file := File} = Map,
+      form_error(#{line => Line, file => File}, {undefined_type, TypePair})
+  end;
+
+collect_used_type_pairs(Map, DefinedTypePairs, [H | T], Acc) ->
+  TypePairs = collect_used_type_pairs(Map, DefinedTypePairs, H, Acc),
+  collect_used_type_pairs(Map, DefinedTypePairs, T, TypePairs);
+
+collect_used_type_pairs(Map, DefinedTypePairs, Spec, Acc) when is_tuple(Spec) ->
+  collect_used_type_pairs(Map, DefinedTypePairs, tuple_to_list(Spec), Acc);
+
+collect_used_type_pairs(_Map, _DefinedTypePairs, _, Acc) -> Acc.
+
+filter_used_types(Map, UsedTypePairs, Types) ->
+  lists:filter(fun({_Kind, TypePair, Line, _Type, Export}) ->
+    case {lists:member(TypePair, UsedTypePairs), Export} of
+      {false, false} ->
+        #{file := File} = Map,
+        elixir_errors:warn(Line, File, format_error({unused_type, TypePair})),
+        false;
+
+      _ ->
+        true
+    end
+  end, Types).
 
 %% Specs and callbacks
 
@@ -550,4 +609,10 @@ format_error({callbacks_but_also_behaviour_info, {Type, Fun, Arity}}) ->
   io_lib:format("cannot define @~ts attribute for ~ts/~B when behaviour_info/1 is defined",
                 [Type, Fun, Arity]);
 format_error({spec_for_undefined_function, {Name, Arity}}) ->
-  io_lib:format("spec for undefined function ~ts/~B", [Name, Arity]).
+  io_lib:format("spec for undefined function ~ts/~B", [Name, Arity]);
+format_error({redefine_type, {Name, Arity}}) ->
+  io_lib:format("type ~ts/~B is already defined", [Name, Arity]);
+format_error({undefined_type, {Name, Arity}}) ->
+  io_lib:format("type ~ts/~B undefined", [Name, Arity]);
+format_error({unused_type, {Name, Arity}}) ->
+  io_lib:format("type ~ts/~B is unused", [Name, Arity]).
