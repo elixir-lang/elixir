@@ -632,7 +632,9 @@ defmodule Task do
   This function receives a list of tasks and waits for their
   replies in the given time interval. It returns a list
   of tuples of two elements, with the task as the first element
-  and the yielded result as the second.
+  and the yielded result as the second. The tasks in the returned
+  list will be in the same order as the tasks supplied in the `tasks`
+  input argument.
 
   Similarly to `yield/2`, each task's result will be
 
