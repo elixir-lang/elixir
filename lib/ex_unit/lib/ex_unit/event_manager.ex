@@ -54,8 +54,8 @@ defmodule ExUnit.EventManager do
 
   def module_started(ref, test_module) do
     # TODO: Remove case_started in Elixir v2.0
-    notify(ref, {:module_started, test_module})
     notify(ref, {:case_started, Map.put(test_module, :__struct__, ExUnit.TestCase)})
+    notify(ref, {:module_started, test_module})
   end
 
   def module_finished(ref, test_module) do
@@ -70,6 +70,10 @@ defmodule ExUnit.EventManager do
 
   def test_finished(ref, test) do
     notify(ref, {:test_finished, test})
+  end
+
+  def max_failures_exceeded(ref) do
+    notify(ref, :max_failures_exceeded)
   end
 
   defp notify({sup, event}, msg) do

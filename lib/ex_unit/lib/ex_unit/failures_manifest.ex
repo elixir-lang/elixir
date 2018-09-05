@@ -25,7 +25,7 @@ defmodule ExUnit.FailuresManifest do
 
   @spec put_test(t, ExUnit.Test.t()) :: t
   def put_test(%{} = manifest, %ExUnit.Test{state: {ignored_state, _}})
-      when ignored_state in [:skipped, :excluded],
+      when ignored_state in [:skipped, :excluded, :not_executed],
       do: manifest
 
   def put_test(%{} = manifest, %ExUnit.Test{state: nil} = test) do

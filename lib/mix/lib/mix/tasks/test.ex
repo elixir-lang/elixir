@@ -157,6 +157,8 @@ defmodule Mix.Tasks.Test do
       external commands which produce output on stdout upon file system modification
     * `--max-cases` - sets the maximum number of tests running async. Only tests from
       different modules run in parallel. Defaults to twice the number of cores
+    * `--max-failures` - maximum allowed number of test failures. The test suite stops
+      evaluating tests if the number of failures is exceeded
     * `--no-archives-check` - does not check archives
     * `--no-color` - disables color in the output
     * `--no-compile` - does not compile, even if files require compilation
@@ -289,6 +291,7 @@ defmodule Mix.Tasks.Test do
     cover: :boolean,
     trace: :boolean,
     max_cases: :integer,
+    max_failures: :string,
     include: :keep,
     exclude: :keep,
     seed: :integer,
@@ -334,6 +337,8 @@ defmodule Mix.Tasks.Test do
     if Keyword.get(opts, :compile, true) do
       Mix.Project.compile(args)
     end
+
+    opts = validate_max_failures_opts(opts)
 
     project = Mix.Project.config()
 
@@ -439,6 +444,7 @@ defmodule Mix.Tasks.Test do
   @option_keys [
     :trace,
     :max_cases,
+    :max_failures,
     :include,
     :exclude,
     :seed,
@@ -565,6 +571,34 @@ defmodule Mix.Tasks.Test do
         Keyword.put(opts, :colors, enabled: enabled?)
 
       :error ->
+        opts
+    end
+  end
+
+  defp validate_max_failures_opts(opts) do
+    case Keyword.fetch(opts, :max_failures) do
+      {:ok, value} ->
+        validate_max_failures_opt!(opts, value)
+
+      :error ->
+        Keyword.put(opts, :max_failures, :infinity)
+    end
+  end
+
+  defp validate_max_failures_opt!(opts, value) when value in ["infinity", ":infinity"],
+    do: Keyword.put(opts, :max_failures, :infinity)
+
+  defp validate_max_failures_opt!(opts, value) do
+    try do
+      String.to_integer(value)
+    rescue
+      ArgumentError ->
+        opts
+    else
+      integer when integer >= 0 ->
+        Keyword.put(opts, :max_failures, integer)
+
+      _ ->
         opts
     end
   end

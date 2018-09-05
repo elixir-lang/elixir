@@ -65,12 +65,18 @@ defmodule ExUnit do
     1. Passed (also represented by `nil`)
     2. Failed
     3. Skipped (via @tag :skip)
-    4. Excluded (via :exclude filters)
-    5. Invalid (when setup_all fails)
+    4. Not executed, due to `:max_failures` passed before test completed.
+    5. Excluded (via :exclude filters)
+    6. Invalid (when setup_all fails)
 
   """
   @type state ::
-          nil | {:failed, failed} | {:skipped, binary} | {:excluded, binary} | {:invalid, module}
+          nil
+          | {:failed, failed}
+          | {:skipped, binary}
+          | {:not_executed, binary}
+          | {:excluded, binary}
+          | {:invalid, module}
 
   @typedoc "The error state returned by `ExUnit.Test` and `ExUnit.TestModule`"
   @type failed :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
@@ -79,6 +85,7 @@ defmodule ExUnit do
   @type suite_result :: %{
           excluded: non_neg_integer,
           failures: non_neg_integer,
+          not_executed: non_neg_integer,
           skipped: non_neg_integer,
           total: non_neg_integer
         }
@@ -181,7 +188,6 @@ defmodule ExUnit do
   @spec start(Keyword.t()) :: :ok
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
-
     configure(options)
 
     if Application.fetch_env!(:ex_unit, :autorun) do
@@ -242,6 +248,8 @@ defmodule ExUnit do
     * `:max_cases` - maximum number of tests to run in parallel. Only tests from
       different modules run in parallel. It defaults to `System.schedulers_online * 2`
       to optimize both CPU-bound and IO-bound tests;
+
+    * `:max_failures` - maximum number of allowed test failures, defaults to `:infinity`;
 
     * `:module_load_timeout` - the timeout to be used when loading a test module,
       defaults to `60_000` milliseconds;
