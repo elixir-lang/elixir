@@ -532,6 +532,165 @@ defmodule ExUnitTest do
     end
   end
 
+  describe ":max_failures" do
+    test "default value to :infinity" do
+      on_exit_reload_config()
+      ExUnit.start(autorun: false)
+      config = ExUnit.configuration()
+      assert config[:max_failures] == :infinity
+    end
+
+    test "sets value of :max_failures" do
+      on_exit_reload_config()
+      ExUnit.start(max_failures: 5, autorun: false)
+      config = ExUnit.configuration()
+      assert config[:max_failures] == 5
+    end
+
+    test ":max_failures are reached" do
+      defmodule TestMaxFailuresReached do
+        use ExUnit.Case
+
+        @tag :skip
+        test __ENV__.line, do: assert(true)
+        test __ENV__.line, do: assert(true)
+        test __ENV__.line, do: assert(true)
+        test __ENV__.line, do: assert(false)
+        test __ENV__.line, do: assert(false)
+        test __ENV__.line, do: assert(true)
+      end
+
+      ExUnit.Server.modules_loaded()
+      on_exit_reload_config()
+
+      output =
+        capture_io(fn ->
+          predictable_ex_unit_start(max_failures: 2)
+          assert ExUnit.run() == %{total: 4, failures: 2, skipped: 0, excluded: 0}
+        end)
+
+      assert output =~ max_failures_reached_msg()
+      assert output =~ "4 tests, 2 failures"
+    end
+
+    test ":max_failures is not reached" do
+      defmodule TestMaxFailuresNotReached do
+        use ExUnit.Case
+
+        @tag :skip
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "fail #{__ENV__.line}", do: assert(false)
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "fail #{__ENV__.line}", do: assert(false)
+        test "pass #{__ENV__.line}", do: assert(true)
+      end
+
+      ExUnit.Server.modules_loaded()
+      on_exit_reload_config()
+
+      output =
+        capture_io(fn ->
+          predictable_ex_unit_start(max_failures: 3)
+          assert ExUnit.run() == %{total: 6, excluded: 0, failures: 2, skipped: 1}
+        end)
+
+      refute output =~ max_failures_reached_msg()
+      assert output =~ "6 tests, 2 failures"
+    end
+
+    test ":max_failures has been reached" do
+      defmodule TestMaxFailuresAlreadyReached do
+        use ExUnit.Case
+
+        @tag :skip
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "fail #{__ENV__.line}", do: assert(false)
+        test "fail #{__ENV__.line}", do: assert(false)
+        test "fail #{__ENV__.line}", do: assert(false)
+        test "pass #{__ENV__.line}", do: assert(true)
+      end
+
+      ExUnit.Server.modules_loaded()
+      on_exit_reload_config()
+
+      output =
+        capture_io(fn ->
+          predictable_ex_unit_start(max_failures: 2)
+          assert ExUnit.run() == %{total: 3, failures: 2, excluded: 0, skipped: 0}
+        end)
+
+      assert output =~ max_failures_reached_msg()
+      assert output =~ "3 tests, 2 failures"
+    end
+
+    test ":max_failures on setup all errors" do
+      defmodule TestMaxFailuresSetupAll do
+        use ExUnit.Case
+
+        setup_all do
+          raise "oops"
+        end
+
+        @tag :skip
+        test "skipped", do: assert(true)
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "fail #{__ENV__.line}", do: assert(true)
+        test "pass #{__ENV__.line}", do: assert(false)
+        test "fail #{__ENV__.line}", do: assert(false)
+      end
+
+      ExUnit.Server.modules_loaded()
+      on_exit_reload_config()
+
+      output =
+        capture_io(fn ->
+          predictable_ex_unit_start(max_failures: 2)
+          assert ExUnit.run() == %{total: 2, failures: 2, excluded: 0, skipped: 0}
+        end)
+
+      assert output =~ max_failures_reached_msg()
+      assert output =~ "2 tests, 2 failures"
+    end
+
+    test ":max_failures flushes all async/sync cases" do
+      defmodule TestMaxFailuresAsync1 do
+        use ExUnit.Case, async: true
+        test "error", do: assert(false)
+      end
+
+      defmodule TestMaxFailuresAsync2 do
+        use ExUnit.Case, async: true
+        test "error", do: assert(false)
+      end
+
+      defmodule TestMaxFailuresSync do
+        use ExUnit.Case
+        test "error", do: assert(false)
+      end
+
+      ExUnit.Server.modules_loaded()
+      on_exit_reload_config()
+
+      output =
+        capture_io(fn ->
+          predictable_ex_unit_start(max_failures: 1)
+          assert ExUnit.run() == %{total: 1, failures: 1, excluded: 0, skipped: 0}
+        end)
+
+      assert output =~ max_failures_reached_msg()
+      assert output =~ "1 test, 1 failure"
+
+      capture_io(fn ->
+        ExUnit.Server.modules_loaded()
+        assert ExUnit.run() == %{total: 0, failures: 0, excluded: 0, skipped: 0}
+      end)
+    end
+  end
+
+  ##  Helpers
+
   defp on_exit_reload_config(extra \\ []) do
     old_config = ExUnit.configuration()
     on_exit(fn -> ExUnit.configure(extra ++ old_config) end)
@@ -551,5 +710,14 @@ defmodule ExUnitTest do
     after
       0 -> nil
     end
+  end
+
+  # Runs ExUnit.start/1 with common options needed for predictability
+  def predictable_ex_unit_start(options) do
+    ExUnit.start(options ++ [autorun: false, seed: 0])
+  end
+
+  defp max_failures_reached_msg() do
+    "--max-failures reached, aborting test suite"
   end
 end
