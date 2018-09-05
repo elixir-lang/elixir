@@ -62,11 +62,11 @@ defmodule ExUnit do
 
   A finished test can be in one of five states:
 
-    1. Passed (also represented by `nil`)
+    1. Passed (represented by `nil`)
     2. Failed
-    3. Skipped (via @tag :skip)
-    4. Excluded (via :exclude filters)
-    5. Invalid (when setup_all fails)
+    3. Skipped (via `@tag :skip`)
+    4. Excluded (via `:exclude` filters)
+    5. Invalid (when `setup_all/1,2` fail)
 
   """
   @type state ::
@@ -242,6 +242,10 @@ defmodule ExUnit do
     * `:max_cases` - maximum number of tests to run in parallel. Only tests from
       different modules run in parallel. It defaults to `System.schedulers_online * 2`
       to optimize both CPU-bound and IO-bound tests;
+
+    * `:max_failures` - the suite stops evaluating tests when this number of test failures
+      is reached. All tests within a module that fails when using the `setup_all/1,2` callbacks
+      are counted as failures. Defaults to `:infinity`;
 
     * `:module_load_timeout` - the timeout to be used when loading a test module,
       defaults to `60_000` milliseconds;

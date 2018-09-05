@@ -4,7 +4,9 @@ defmodule ExUnit.RunnerStatsTest do
   use ExUnit.Case, async: false
 
   alias ExUnit.{FailuresManifest, RunnerStats}
+  alias ExUnit.EventManager, as: EM
   import ExUnit.TestHelpers, only: [in_tmp: 2]
+  import IEx.Helpers, only: [pid: 3]
 
   @failures_manifest_file "ex_unit_failures_manifest.elixir"
 
@@ -64,6 +66,19 @@ defmodule ExUnit.RunnerStatsTest do
                }
       end)
     end
+  end
+
+  test "get_registered_pids/1" do
+    {:ok, manager} = EM.start_link()
+    {:ok, stat_sup} = EM.add_handler(manager, RunnerStats, [])
+
+    RunnerStats.register(stat_sup, pid(0, 1, 5))
+    RunnerStats.register(stat_sup, pid(0, 1, 6))
+
+    assert RunnerStats.get_registered_pids(stat_sup) |> Enum.sort() == [
+             pid(0, 1, 5),
+             pid(0, 1, 6)
+           ]
   end
 
   defp simulate_suite(opts \\ [failures_manifest_file: @failures_manifest_file], fun) do

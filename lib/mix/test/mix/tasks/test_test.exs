@@ -2,6 +2,7 @@ Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.TestTest do
   use MixTest.Case
+  import MixTest.Case, except: [mix: 1, mix: 2]
 
   test "ex_unit_opts/1 returns ex unit options" do
     assert ex_unit_opts_from_given(unknown: "ok", seed: 13) == [seed: 13]
@@ -257,6 +258,76 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
+  describe "--max-failures" do
+    test "validates flags" do
+      in_tmp("flag", fn ->
+        Mix.Tasks.New.run(["flag"])
+
+        File.cd!("flag", fn ->
+          flag_error_msg = "Expected type positive integer or \"infinity\", got "
+
+          assert mix(~w[test --max-failures 0]) =~ flag_error_msg
+          assert mix(~w[test --max-failures -1]) =~ flag_error_msg
+          assert mix(~w[test --max-failures 1.23]) =~ flag_error_msg
+
+          refute mix(~w[test --max-failures 100]) =~ flag_error_msg
+          refute mix(~w[test --max-failures infinity]) =~ flag_error_msg
+          refute mix(~w[test --max-failures :infinity]) =~ flag_error_msg
+        end)
+      end)
+    end
+
+    test "stops on max-failures - sequentially" do
+      in_fixture("max_failures", fn ->
+        assert mix(:sequential, ~w[test --max-failures 2]) =~ "\n3 tests, 2 failures\n"
+      end)
+    end
+
+    test "stops on max-failures - concurrently" do
+      in_fixture("max_failures", fn ->
+        assert mix(:concurrent, ~w[test --max-failures 2 --max-cases 1]) =~
+                 "\n3 tests, 2 failures\n"
+
+        assert mix(:concurrent, ~w[test --max-failures 2 --max-cases 2]) =~
+                 "\n4 tests, 2 failures\n"
+
+        assert mix(:concurrent, ~w[test --max-failures 2 --max-cases 3]) =~
+                 "\n5 tests, 2 failures\n"
+
+        assert mix(:concurrent, ~w[test --max-failures 8 --max-cases 10]) =~
+                 "\n12 tests, 3 failures, 5 invalid\n"
+      end)
+    end
+
+    test "aborts concurrent running tests" do
+      in_fixture("max_failures", fn ->
+        # this will launch a test that will sleep for 1 second, when all other
+        # tests will sleep only for 500 milliseconds, and max-failures will be reached,
+        # having to kill the running tests
+        assert mix(:concurrent, ~w[test --max-failures 2 --max-cases 4]) =~
+                 "\n6 tests, 2 failures\n"
+      end)
+    end
+
+    test "aborts concurrent running tests during spawn modules" do
+      in_fixture("max_failures", fn ->
+        # this will spawn 3 modules, and the first one will be invalid,
+        # and max-failures will be reached
+        # so when run_module is run, it will detect that max-failures have been reached
+        assert mix(:reached_during_spawn_modules, ~w[test --max-failures 1 --max-cases 3]) =~
+                 "\n1 test, 0 failures, 1 invalid\n"
+      end)
+    end
+
+    test "--max-failures reached during setup_all" do
+      in_fixture("max_failures", fn ->
+        # max-failures is reached when setup_all fails before any other test is finished
+        assert mix(:reached_during_setup_all, ~w[test --max-failures 4 --max-cases 3]) =~
+                 "\n5 tests, 0 failures, 5 invalid\n"
+      end)
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
@@ -280,5 +351,30 @@ defmodule Mix.Tasks.TestTest do
 
   defp assert_run_output(opts \\ [], expected) do
     assert mix(["test" | opts]) =~ expected
+  end
+
+  defp mix(args) when is_list(args),
+    do: MixTest.Case.mix(args, [])
+
+  defp mix(args, envs) when is_list(args),
+    do: MixTest.Case.mix(args, envs)
+
+  defp mix(name, args, envs \\ []) when is_atom(name) and is_list(args) do
+    file =
+      case name do
+        :concurrent ->
+          "test/max_failures_concurrent_test!.exs"
+
+        :sequential ->
+          "test/max_failures_sequential_test!.exs"
+
+        :reached_during_setup_all ->
+          "test/max_failures_reached_during_setup_all_test!.exs"
+
+        :reached_during_spawn_modules ->
+          "test/max_failures_reached_during_spawn_modules_test!.exs"
+      end
+
+    mix(args ++ ~w(--seed 0 #{file}), envs)
   end
 end

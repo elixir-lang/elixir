@@ -20,6 +20,17 @@ defmodule ExUnit.OnExitHandler do
     :ets.insert(@name, {pid, nil, []})
   end
 
+  @spec registered?(pid) :: boolean
+  def registered?(pid) when is_pid(pid) do
+    case :ets.lookup(@name, pid) do
+      [] ->
+        false
+
+      _ ->
+        true
+    end
+  end
+
   @spec add(pid, term, (() -> term)) :: :ok | :error
   def add(pid, name_or_ref, callback) when is_pid(pid) and is_function(callback, 0) do
     try do
