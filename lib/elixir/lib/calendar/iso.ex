@@ -208,21 +208,11 @@ defmodule Calendar.ISO do
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  @doc since: "1.5.0"
-  def date_from_iso_days(days) when days in 0..3_652_424 do
+  def date_from_iso_days(days) when days in -3_652_059..3_652_424 do
     {year, day_of_year} = days_to_year(days)
     extra_day = if leap_year?(year), do: 1, else: 0
     {month, day_in_month} = year_day_to_year_date(extra_day, day_of_year)
     {year, month, day_in_month + 1}
-  end
-
-  def date_from_iso_days(days) when days in -3_652_059..-1 do
-    {year, day_of_year} = days_to_year(-days)
-    previous_extra_day = if leap_year?(year), do: 1, else: 0
-    extra_day = if leap_year?(year + 1), do: 1, else: 0
-    day_of_year = @days_per_nonleap_year + extra_day - day_of_year
-    {month, day_in_month} = year_day_to_year_date(extra_day, day_of_year)
-    {-year - 1, month, day_in_month + previous_extra_day}
   end
 
   defp div_mod(int1, int2) do
@@ -761,18 +751,42 @@ defmodule Calendar.ISO do
     if leap_year?(year), do: 1, else: 0
   end
 
+  defp days_to_year(days) when days < 0 do
+    year_estimate = -div(-days, @days_per_nonleap_year) - 1
+
+    {year, days_before_year} =
+      days_to_year(year_estimate, days, days_to_end_of_epoch(year_estimate))
+
+    leap_year_pad = if leap_year?(year), do: 1, else: 0
+    {year, leap_year_pad + @days_per_nonleap_year + days - days_before_year}
+  end
+
   defp days_to_year(days) do
-    year = Integer.floor_div(days, @days_per_nonleap_year)
-    {year, days_before_year} = days_to_year(year, days, days_in_previous_years(year))
+    year_estimate = div(days, @days_per_nonleap_year)
+
+    {year, days_before_year} =
+      days_to_year(year_estimate, days, days_in_previous_years(year_estimate))
+
     {year, days - days_before_year}
   end
 
-  defp days_to_year(year, days1, days2) when days1 < days2 do
+  defp days_to_year(year, days1, days2) when year < 0 and days1 >= days2 do
+    days_to_year(year + 1, days1, days_to_end_of_epoch(year + 1))
+  end
+
+  defp days_to_year(year, days1, days2) when year >= 0 and days1 < days2 do
     days_to_year(year - 1, days1, days_in_previous_years(year - 1))
   end
 
   defp days_to_year(year, _days1, days2) do
     {year, days2}
+  end
+
+  defp days_to_end_of_epoch(year) when year < 0 do
+    previous_year = year + 1
+
+    div(previous_year, 4) - div(previous_year, 100) + div(previous_year, 400) +
+      previous_year * @days_per_nonleap_year
   end
 
   defp days_in_previous_years(0), do: 0
