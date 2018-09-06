@@ -239,6 +239,19 @@ defmodule Kernel.SpecialForms do
       iex> {name, species}
       {"Frank", "Walrus"}
 
+  The size can be a variable:
+
+      iex> name_size = 5
+      iex> <<name::binary-size(name_size), " the ", species::binary>> = <<"Frank the Walrus">>
+      iex> {name, species}
+      {"Frank", "Walrus"}
+
+  And the variable can be defined in the match itself:
+
+      iex> <<name_size::size(8), name::binary-size(name_size), " the ", species::binary>> = <<5, "Frank the Walrus">>
+      iex> {name, species}
+      {"Frank", "Walrus"}
+
   Failing to specify the size for the non-last causes compilation to fail:
 
       <<name::binary, " the ", species::binary>> = <<"Frank the Walrus">>
