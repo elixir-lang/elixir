@@ -2299,6 +2299,10 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: 1.foo))
     end
 
+    assert_raise CompileError, ~r"invalid call 0\.foo\(\)", fn ->
+      expand(quote(do: __ENV__.line.foo))
+    end
+
     assert_raise CompileError, ~r"unhandled operator ->", fn ->
       expand(quote(do: (foo -> bar)))
     end
