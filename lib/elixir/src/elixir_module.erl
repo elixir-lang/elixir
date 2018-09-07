@@ -455,5 +455,5 @@ format_error({wrong_kind_on_load, {Name, Arity}, WrongKind}) ->
   io_lib:format("expected @on_load function ~ts/~B to be defined as \"def\", got \"~ts\"",
                 [Name, Arity, WrongKind]);
 format_error({parse_transform, Module}) ->
-  io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir no longer supports "
-                "Erlang-based transforms", [elixir_aliases:inspect(Module)]).
+  io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir will no longer support "
+                "Erlang-based transforms in future versions", [elixir_aliases:inspect(Module)]).
