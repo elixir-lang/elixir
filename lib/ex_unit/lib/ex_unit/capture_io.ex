@@ -154,8 +154,8 @@ defmodule ExUnit.CaptureIO do
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
       _ ->
-        {:ok, output} = StringIO.close(string_io)
-        elem(output, 1)
+        {:ok, {_input, output}} = StringIO.close(string_io)
+        output
     end
   end
 end
