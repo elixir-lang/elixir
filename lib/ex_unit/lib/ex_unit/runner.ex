@@ -385,7 +385,6 @@ defmodule ExUnit.Runner do
     failure_counter = increment_failure_counter(config.manager, test)
 
     if max_failures_exceeded?(failure_counter, config.max_failures) do
-      # Stop all running tests in the suite
       terminate_all_running_processes(config.manager, parent_pid, test_pid)
       {:error, {:max_failures_exceeded, test}}
     else

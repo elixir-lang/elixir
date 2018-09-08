@@ -33,9 +33,7 @@ defmodule ExUnitMaxFailuresTest do
 
       output =
         capture_io(fn ->
-          ex_unit_start(trace: true, max_failures: 0, module_load_timeout: 88_888)
-          config = ExUnit.configuration()
-          assert config[:module_load_timeout] == 88_888
+          ex_unit_start(trace: true, max_failures: 0)
 
           assert ExUnit.run() == %{
                    total: 2,
@@ -65,9 +63,7 @@ defmodule ExUnitMaxFailuresTest do
 
       output =
         capture_io(fn ->
-          ex_unit_start(max_failures: 2, max_cases: 5, module_load_timeout: 99_999)
-          config = ExUnit.configuration()
-          assert config[:module_load_timeout] == 99_999
+          ex_unit_start(max_failures: 2, max_cases: 5)
 
           assert ExUnit.run() == %{
                    total: 5,
