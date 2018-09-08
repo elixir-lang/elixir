@@ -2710,7 +2710,7 @@ defmodule Kernel do
       iex> match?(^a, 1)
       true
 
-  `match?/2` is very useful when filtering of finding a value in an enumerable:
+  `match?/2` is very useful when filtering or finding a value in an enumerable:
 
       iex> list = [a: 1, b: 2, a: 3]
       iex> Enum.filter(list, &match?({:a, _}, &1))
