@@ -61,7 +61,7 @@ defprotocol Enumerable do
   @typedoc """
   The reducer function.
 
-  Should be called with the enumerable element and the
+  Should be called with the `enumerable` element and the
   accumulator contents.
 
   Returns the accumulator for the next enumeration step.
@@ -107,7 +107,7 @@ defprotocol Enumerable do
   number of elements in the slice.
 
   The `start` position is a number `>= 0` and guaranteed to
-  exist in the enumerable. The length is a number `>= 1` in a way
+  exist in the `enumerable`. The length is a number `>= 1` in a way
   that `start + length <= count`, where `count` is the maximum
   amount of elements in the enumerable.
 
@@ -117,11 +117,11 @@ defprotocol Enumerable do
   @type slicing_fun :: (start :: non_neg_integer, length :: pos_integer -> [term()])
 
   @doc """
-  Reduces the enumerable into an element.
+  Reduces the `enumerable` into an element.
 
   Most of the operations in `Enum` are implemented in terms of reduce.
   This function should apply the given `t:reducer/0` function to each
-  item in the enumerable and proceed as expected by the returned
+  item in the `enumerable` and proceed as expected by the returned
   accumulator.
 
   See the documentation of the types `t:result/0` and `t:acc/0` for
@@ -141,10 +141,10 @@ defprotocol Enumerable do
   def reduce(enumerable, acc, fun)
 
   @doc """
-  Retrieves the number of elements in the enumerable.
+  Retrieves the number of elements in the `enumerable`.
 
   It should return `{:ok, count}` if you can count the number of elements
-  in the enumerable.
+  in the `enumerable`.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.
@@ -153,10 +153,10 @@ defprotocol Enumerable do
   def count(enumerable)
 
   @doc """
-  Checks if an element exists within the enumerable.
+  Checks if an `element` exists within the `enumerable`.
 
   It should return `{:ok, boolean}` if you can check the membership of a
-  given element in the enumerable with `===/2` without traversing the whole
+  given element in the `enumerable` with `===/2` without traversing the whole
   enumerable.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
@@ -168,8 +168,8 @@ defprotocol Enumerable do
   @doc """
   Returns a function that slices the data structure contiguously.
 
-  It should return `{:ok, size, slicing_fun}` if the enumerable has
-  a known bound and can access a position in the enumerable without
+  It should return `{:ok, size, slicing_fun}` if the `enumerable` has
+  a known bound and can access a position in the `enumerable` without
   traversing all previous elements.
 
   Otherwise it should return `{:error, __MODULE__}` and a default
@@ -180,7 +180,7 @@ defprotocol Enumerable do
 
   The `size` value returned by this function is used for boundary checks,
   therefore it is extremely important that this function only returns `:ok`
-  if retrieving the `size` of the enumerable is cheap, fast and takes constant
+  if retrieving the `size` of the `enumerable` is cheap, fast and takes constant
   time. Otherwise the simplest of operations, such as `Enum.at(enumerable, 0)`,
   will become too expensive.
 
@@ -276,7 +276,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if the given `fun` evaluates to true on all of the items in the enumerable.
+  Returns `true` if the given `fun` evaluates to true on all of the items in the `enumerable`.
 
   It stops the iteration at the first invocation that returns `false` or `nil`.
 
@@ -289,7 +289,7 @@ defmodule Enum do
       false
 
   If no function is given, it defaults to checking if
-  all items in the enumerable are truthy values.
+  all items in the `enumerable` are truthy values.
 
       iex> Enum.all?([1, 2, 3])
       true
@@ -314,7 +314,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if the given `fun` evaluates to true on any of the items in the enumerable.
+  Returns `true` if the given `fun` evaluates to true on any of the items in the `enumerable`.
 
   It stops the iteration at the first invocation that returns a truthy value (neither `false` nor `nil`).
 
@@ -327,7 +327,7 @@ defmodule Enum do
       true
 
   If no function is given, it defaults to checking if at least one item
-  in the enumerable is a truthy value.
+  in the `enumerable` is a truthy value.
 
       iex> Enum.any?([false, false, false])
       false
@@ -411,7 +411,7 @@ defmodule Enum do
 
   @doc """
   Returns list of lists containing `count` items each, where
-  each new chunk starts `step` elements into the enumerable.
+  each new chunk starts `step` elements into the `enumerable`.
 
   `step` is optional and, if not passed, defaults to `count`, i.e.
   chunks do not overlap.
@@ -524,7 +524,7 @@ defmodule Enum do
   end
 
   @doc """
-  Given an enumerable of enumerables, concatenates the enumerables into
+  Given an enumerable of enumerables, concatenates the `enumerables` into
   a single list.
 
   ## Examples
@@ -543,8 +543,8 @@ defmodule Enum do
   end
 
   @doc """
-  Concatenates the enumerable on the right with the enumerable on the
-  left.
+  Concatenates the enumerable on the `right` with the enumerable on the
+  `left`.
 
   This function produces the same result as the `Kernel.++/2` operator
   for lists.
@@ -568,7 +568,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the size of the enumerable.
+  Returns the size of the `enumerable`.
 
   ## Examples
 
@@ -592,7 +592,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the count of items in the enumerable for which `fun` returns
+  Returns the count of items in the `enumerable` for which `fun` returns
   a truthy value.
 
   ## Examples
@@ -654,7 +654,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the `amount` of items from the enumerable.
+  Drops the `amount` of items from the `enumerable`.
 
   If a negative `amount` is given, the `amount` of last values will be dropped.
   The `enumerable` will be enumerated once to retrieve the proper index and
@@ -698,7 +698,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list of every `nth` item in the enumerable dropped,
+  Returns a list of every `nth` item in the `enumerable` dropped,
   starting with the first element.
 
   The first item is always dropped, unless `nth` is 0.
@@ -731,7 +731,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops items at the beginning of the enumerable while `fun` returns a
+  Drops items at the beginning of the `enumerable` while `fun` returns a
   truthy value.
 
   ## Examples
@@ -751,7 +751,7 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the enumerable.
+  Invokes the given `fun` for each item in the `enumerable`.
 
   Returns `:ok`.
 
@@ -779,7 +779,7 @@ defmodule Enum do
   end
 
   @doc """
-  Determines if the enumerable is empty.
+  Determines if the `enumerable` is empty.
 
   Returns `true` if `enumerable` is empty, otherwise `false`.
 
@@ -845,7 +845,7 @@ defmodule Enum do
   Finds the element at the given `index` (zero-based).
 
   Raises `OutOfBoundsError` if the given `index` is outside the range of
-  the enumerable.
+  the `enumerable`.
 
   ## Examples
 
@@ -868,7 +868,7 @@ defmodule Enum do
   end
 
   @doc """
-  Filters the enumerable, i.e. returns only those elements
+  Filters the `enumerable`, i.e. returns only those elements
   for which `fun` returns a truthy value.
 
   See also `reject/2` which discards all elements where the
@@ -1045,7 +1045,7 @@ defmodule Enum do
   end
 
   @doc """
-  Maps and reduces an enumerable, flattening the given results (only one level deep).
+  Maps and reduces an `enumerable`, flattening the given results (only one level deep).
 
   It expects an accumulator and a function that receives each enumerable
   item, and must return a tuple containing a new enumerable (often a list)
@@ -1090,11 +1090,11 @@ defmodule Enum do
   end
 
   @doc """
-  Splits the enumerable into groups based on `key_fun`.
+  Splits the `enumerable` into groups based on `key_fun`.
 
   The result is a map where each key is given by `key_fun`
   and each value is a list of elements given by `value_fun`.
-  The order of elements within each list is preserved from the enumerable.
+  The order of elements within each list is preserved from the `enumerable`.
   However, like all maps, the resulting map is unordered.
 
   ## Examples
@@ -1270,12 +1270,12 @@ defmodule Enum do
   end
 
   @doc """
-  Joins the given enumerable into a binary using `joiner` as a
+  Joins the given `enumerable` into a binary using `joiner` as a
   separator.
 
   If `joiner` is not passed at all, it defaults to the empty binary.
 
-  All items in the enumerable must be convertible to a binary,
+  All items in the `enumerable` must be convertible to a binary,
   otherwise an error is raised.
 
   ## Examples
@@ -1371,7 +1371,7 @@ defmodule Enum do
   end
 
   @doc """
-  Maps and joins the given enumerable in one pass.
+  Maps and joins the given `enumerable` in one pass.
 
   `joiner` can be either a binary or a list and the result will be of
   the same type as `joiner`.
@@ -1407,7 +1407,7 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given function to each item in the enumerable to reduce
+  Invokes the given function to each item in the `enumerable` to reduce
   it to a single element, while keeping an accumulator.
 
   Returns a tuple where the first element is the mapped enumerable and
@@ -1441,7 +1441,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the maximal element in the enumerable according
+  Returns the maximal element in the `enumerable` according
   to Erlang's term ordering.
 
   If multiple elements are considered maximal, the first one that was found
@@ -1483,7 +1483,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the maximal element in the enumerable as calculated
+  Returns the maximal element in the `enumerable` as calculated
   by the given function.
 
   If multiple elements are considered maximal, the first one that was found
@@ -1521,7 +1521,7 @@ defmodule Enum do
   end
 
   @doc """
-  Checks if `element` exists within the enumerable.
+  Checks if `element` exists within the `enumerable`.
 
   Membership is tested with the match (`===/2`) operator.
 
@@ -1561,7 +1561,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the minimal element in the enumerable according
+  Returns the minimal element in the `enumerable` according
   to Erlang's term ordering.
 
   If multiple elements are considered minimal, the first one that was found
@@ -1603,7 +1603,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the minimal element in the enumerable as calculated
+  Returns the minimal element in the `enumerable` as calculated
   by the given function.
 
   If multiple elements are considered minimal, the first one that was found
@@ -1784,7 +1784,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a random element of an enumerable.
+  Returns a random element of an `enumerable`.
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
@@ -1849,11 +1849,11 @@ defmodule Enum do
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
-  The first element of the enumerable is used as the initial value
+  The first element of the `enumerable` is used as the initial value
   of the accumulator. Then the function is invoked with the next
   element and the accumulator. The result returned by the function
   is used as the accumulator for the next iteration, recursively.
-  When the enumerable is done, the last accumulator is returned.
+  When the `enumerable` is done, the last accumulator is returned.
 
   Since the first element of the enumerable is used as the initial
   value of the accumulator, `fun` will only be executed `n - 1` times
@@ -1957,7 +1957,7 @@ defmodule Enum do
   end
 
   @doc """
-  Reduces the enumerable until `fun` returns `{:halt, term}`.
+  Reduces the `enumerable` until `fun` returns `{:halt, term}`.
 
   The return value for `fun` is expected to be
 
@@ -2043,10 +2043,10 @@ defmodule Enum do
   end
 
   @doc """
-  Reverses the enumerable in the range from initial `start_index`
+  Reverses the `enumerable` in the range from initial `start_index`
   through `count` elements.
 
-  If `count` is greater than the size of the rest of the enumerable,
+  If `count` is greater than the size of the rest of the `enumerable`,
   then this function will reverse the rest of the enumerable.
 
   ## Examples
@@ -2070,9 +2070,9 @@ defmodule Enum do
   end
 
   @doc """
-  Applies the given function to each element in the enumerable,
+  Applies the given function to each element in the `enumerable`,
   storing the result in a list and passing it as the accumulator
-  for the next computation. Uses the first element in the enumerable
+  for the next computation. Uses the first element in the `enumerable`
   as the starting value.
 
   ## Examples
@@ -2088,7 +2088,7 @@ defmodule Enum do
   end
 
   @doc """
-  Applies the given function to each element in the enumerable,
+  Applies the given function to each element in the `enumerable`,
   storing the result in a list and passing it as the accumulator
   for the next computation. Uses the given `acc` as the starting value.
 
@@ -2141,11 +2141,11 @@ defmodule Enum do
   then takes elements until element `index_range.last` (inclusively).
 
   Indexes are normalized, meaning that negative indexes will be counted from the end
-  (e.g. `-1` means the last element of the enumerable).
+  (e.g. `-1` means the last element of the `enumerable`).
 
   If `index_range.last` is out of bounds, then it is assigned as the index of the last element.
 
-  If the normalized `index_range.first` is out of bounds of the given enumerable,
+  If the normalized `index_range.first` is out of bounds of the given `enumerable`,
   or this one is greater than the normalized `index_range.last`, then `[]` is returned.
 
   ## Examples
@@ -2230,7 +2230,7 @@ defmodule Enum do
   end
 
   @doc """
-  Sorts the enumerable according to Erlang's term ordering.
+  Sorts the `enumerable` according to Erlang's term ordering.
 
   Uses the merge sort algorithm.
 
@@ -2250,7 +2250,7 @@ defmodule Enum do
   end
 
   @doc """
-  Sorts the enumerable by the given function.
+  Sorts the `enumerable` by the given function.
 
   This function uses the merge sort algorithm. The given function should compare
   two arguments, and return `true` if the first argument precedes the second one.
@@ -2285,10 +2285,10 @@ defmodule Enum do
   end
 
   @doc """
-  Sorts the mapped results of the enumerable according to the provided `sorter`
+  Sorts the mapped results of the `enumerable` according to the provided `sorter`
   function.
 
-  This function maps each element of the enumerable using the provided `mapper`
+  This function maps each element of the `enumerable` using the provided `mapper`
   function. The enumerable is then sorted by the mapped elements
   using the `sorter` function, which defaults to `Kernel.<=/2`.
 
@@ -2333,7 +2333,7 @@ defmodule Enum do
   elements in the first one.
 
   If `count` is a negative number, it starts counting from the
-  back to the beginning of the enumerable.
+  back to the beginning of the `enumerable`.
 
   Be aware that a negative `count` implies the `enumerable`
   will be enumerated twice: once to calculate the position, and
@@ -2430,7 +2430,7 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the first `amount` items from the enumerable.
+  Takes the first `amount` items from the `enumerable`.
 
   If a negative `amount` is given, the `amount` of last values will be taken.
   The `enumerable` will be enumerated once to retrieve the proper index and
@@ -2480,7 +2480,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list of every `nth` item in the enumerable,
+  Returns a list of every `nth` item in the `enumerable`,
   starting with the first element.
 
   The first item is always included, unless `nth` is 0.
@@ -2586,7 +2586,7 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the items from the beginning of the enumerable while `fun` returns
+  Takes the items from the beginning of the `enumerable` while `fun` returns
   a truthy value.
 
   ## Examples
@@ -2681,9 +2681,9 @@ defmodule Enum do
 
   @doc """
   Opposite of `zip/2`. Extracts two-element tuples from the
-  given enumerable and groups them together.
+  given `enumerable` and groups them together.
 
-  It takes an enumerable with items being two-element tuples and returns
+  It takes an `enumerable` with items being two-element tuples and returns
   a tuple with two lists, each of which is formed by the first and
   second element of each tuple, respectively.
 
@@ -2710,7 +2710,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the enumerable with each element wrapped in a tuple
+  Returns the `enumerable` with each element wrapped in a tuple
   alongside its index.
 
   If an `offset` is given, we will index from the given offset instead of from zero.
