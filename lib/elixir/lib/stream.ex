@@ -95,7 +95,10 @@ defmodule Stream do
 
   @type acc :: any
   @type element :: any
+
+  @typedoc "Zero-based index."
   @type index :: non_neg_integer
+
   @type default :: any
 
   # Require Stream.Reducers and its callbacks
