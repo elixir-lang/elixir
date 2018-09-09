@@ -123,6 +123,27 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
+  test "--cover: in an umbrella application, reports on the coverage of each app's modules exactly once" do
+    in_fixture("umbrella_cover", fn ->
+      output = mix(["test", "--cover"])
+
+      occurrences_of_bar_coverage =
+        output
+        |> String.split("100.00% | Bar")
+        |> length()
+        |> (&(&1 - 1)).()
+
+      occurrences_of_foo_coverage =
+        output
+        |> String.split("100.00% | Foo")
+        |> length()
+        |> (&(&1 - 1)).()
+
+      assert occurrences_of_bar_coverage == 1
+      assert occurrences_of_foo_coverage == 1
+    end)
+  end
+
   test "--failed: loads only files with failures and runs just the failures" do
     in_fixture("test_failed", fn ->
       loading_only_passing_test_msg = "loading OnlyPassingTest"
