@@ -166,7 +166,7 @@ defmodule Mix.Tasks.Test do
     * `--only` - runs only tests that match the filter
     * `--preload-modules` - preloads all modules defined in applications
     * `--raise` - raises if the test suite failed
-    * `--seed` - seeds the random number generator used to randomize tests order;
+    * `--seed` - seeds the random number generator used to randomize the order of tests;
       `--seed 0` disables randomization
     * `--slowest` - prints timing information for the N slowest tests.
       Automatically sets `--trace` and `--preload-modules`
@@ -181,7 +181,7 @@ defmodule Mix.Tasks.Test do
 
   ## Filters
 
-  ExUnit provides tags and filtering functionality that allows developers
+  ExUnit provides tags and filtering functionality that allow developers
   to select which tests to run. The most common functionality is to exclude
   some particular tests from running by default in your test helper file:
 
@@ -200,7 +200,7 @@ defmodule Mix.Tasks.Test do
       mix test --include external
 
   Note that all tests are included by default, so unless they are excluded
-  first (either in the test helper or via the `--exclude` option), the
+  first (either in the test helper or via the `--exclude` option) the
   `--include` flag has no effect.
 
   For this reason, Mix also provides an `--only` option that excludes all
@@ -212,7 +212,7 @@ defmodule Mix.Tasks.Test do
 
       mix test --include external --exclude test
 
-  In case a single file is being tested, it is possible pass a specific
+  In case a single file is being tested, it is possible to pass a specific
   line number:
 
       mix test test/some/particular/file_test.exs:12
@@ -224,20 +224,20 @@ defmodule Mix.Tasks.Test do
   If the given line starts a `describe` block, the line filter runs all tests in it.
   Otherwise, it runs the closest test on or before the given line number.
 
-  Note that in the case a single file contains more than one test module (test case),
-  line filter applies to every test case before the given line number, thus more
-  than one test might be taken for the run.
+  Note that in the case where a single file contains more than one test module (test case),
+  the line filter applies to every test case before the given line number. Thus, more
+  than one test might be executed for the run.
 
   ## Configuration
 
-    * `:test_paths` - list of paths containing test files, defaults to
-      `["test"]` if the `test` directory exists, otherwise it defaults to `[]`.
-      It is expected all test paths to contain a `test_helper.exs` file
+    * `:test_paths` - list of paths containing test files. Defaults to
+      `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
+      It is expected that all test paths contain a `test_helper.exs` file
 
-    * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`
+    * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
 
-    * `:warn_test_pattern` - a pattern to match potentially missed test files
-      and display a warning, defaults to `*_test.ex`
+    * `:warn_test_pattern` - a pattern to match potentially misnamed test files
+      and display a warning. Defaults to `*_test.ex`
 
     * `:test_coverage` - a set of options to be passed down to the coverage
       mechanism
@@ -246,13 +246,13 @@ defmodule Mix.Tasks.Test do
 
   The `:test_coverage` configuration accepts the following options:
 
-    * `:output` - the output for cover results, defaults to `"cover"`
+    * `:output` - the output directory for cover results. Defaults to `"cover"`
     * `:tool` - the coverage tool
-    * `:summary` - summary output configuration, can be either boolean
-      or keyword list. When a keyword list is passed, it can specify `:threshold`
-      which can be boolean or numeric value which would enable coloring
-      of percentages red/green depending either below/over threshold
-      respectively, defaults to `[threshold: 90]`
+    * `:summary` - summary output configuration; can be either a boolean
+      or a keyword list. When a keyword list is passed, it can specify a `:threshold`,
+      which is a boolean or numeric value that enables coloring of code coverage
+      results in red or green depending on whether the percentage is below or
+      above the specified threshold, respectively. Defaults to `[threshold: 90]`
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:
@@ -324,8 +324,8 @@ defmodule Mix.Tasks.Test do
 
     unless System.get_env("MIX_ENV") || Mix.env() == :test do
       Mix.raise(
-        "\"mix test\" is running on environment \"#{Mix.env()}\". If you are " <>
-          "running tests along another task, please set MIX_ENV explicitly"
+        "\"mix test\" is running in the \"#{Mix.env()}\" environment. If you are " <>
+          "running tests alongside another task, please set MIX_ENV explicitly"
       )
     end
 
@@ -395,7 +395,7 @@ defmodule Mix.Tasks.Test do
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
           excluded == total and option_only_present? ->
-            message = "The --only option was given to \"mix test\" but no test executed"
+            message = "The --only option was given to \"mix test\" but no test was executed"
             raise_or_error_at_exit(message, opts)
 
           true ->
@@ -487,7 +487,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp parse_files([single_file], _test_paths) do
-    # Check if the single file path matches test/path/to_test.exs:123, if it does
+    # Check if the single file path matches test/path/to_test.exs:123. If it does,
     # apply "--only line:123" and trim the trailing :123 part.
     {single_file, opts} = ExUnit.Filters.parse_path(single_file)
     ExUnit.configure(opts)
