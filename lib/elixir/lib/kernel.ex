@@ -4229,7 +4229,7 @@ defmodule Kernel do
   `%User{}`.
 
   The types of the struct fields that are not included in `%User{}` default to
-  `t:term/0`.
+  [`term()`](`t:term/0`).
 
   Structs whose internal structure is private to the local module (pattern
   matching them or directly accessing their fields should not be allowed) should
