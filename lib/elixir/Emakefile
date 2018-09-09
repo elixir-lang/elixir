@@ -8,7 +8,6 @@
   warn_unused_record,
   warn_deprecated_function,
   warn_obsolete_guard,
-  strict_validation,
   warn_exported_vars,
   %% warn_missing_spec,
   %% warn_untyped_record,
