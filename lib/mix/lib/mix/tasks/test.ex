@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Test do
 
     def start(compile_path, opts) do
       Mix.shell().info("Cover compiling modules ...")
+      _ = :cover.stop()
       _ = :cover.start()
 
       case :cover.compile_beam_directory(compile_path |> to_charlist) do
