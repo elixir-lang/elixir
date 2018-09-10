@@ -1002,8 +1002,8 @@ defmodule IEx.HelpersTest do
   describe "nl" do
     @tag :capture_log
     test "loads a given module on the given nodes" do
-      assert nl(:nonexistent_module) == {:error, :nofile}
       assert nl([node()], :lists) == {:ok, [{:nonode@nohost, :error, :sticky_directory}]}
+      assert nl(:nonexistent_module) == {:error, :nofile}
       assert nl([:nosuchnode@badhost], Enum) == {:ok, [{:nosuchnode@badhost, :badrpc, :nodedown}]}
       assert nl([node()], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}
     end
