@@ -4,7 +4,7 @@ defmodule Integer do
 
   Some functions that work on integers are found in `Kernel`:
 
-    * `abs/2`
+    * `abs/1`
     * `div/2`
     * `max/2`
     * `min/2`
