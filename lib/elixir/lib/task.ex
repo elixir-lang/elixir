@@ -775,7 +775,7 @@ defmodule Task do
   `{:exit, reason}` if the task died, otherwise `nil`.
 
   The second argument is either a timeout or `:brutal_kill`. In case
-  of a `timeout`, a `:shutdown` exit signal is sent to the task process
+  of a timeout, a `:shutdown` exit signal is sent to the task process
   and if it does not exit within the timeout, it is killed. With `:brutal_kill`
   the task is killed straight away. In case the task terminates abnormally
   (possibly killed by another process), this function will exit with the same reason.
