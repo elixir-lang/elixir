@@ -990,7 +990,7 @@ defmodule IEx.Helpers do
 
       77:
       78:   def recompile do
-      79:     require IEx; IEx.pry
+      79:     require IEx; IEx.pry()
       80:     if mix_started?() do
       81:       config = Mix.Project.config
 

@@ -107,7 +107,7 @@ defmodule IEx do
   code directly and recompile it:
 
       def my_fun(arg1, arg2) do
-        require IEx; IEx.pry
+        require IEx; IEx.pry()
         ... implementation ...
       end
 
@@ -473,7 +473,7 @@ defmodule IEx do
   ## Examples
 
   Let's suppose you want to investigate what is happening
-  with some particular function. By invoking `IEx.pry/1` from
+  with some particular function. By invoking `IEx.pry/0` from
   the function, IEx will allow you to access its binding
   (variables), verify its lexical information and access
   the process information. Let's see an example:
@@ -483,7 +483,7 @@ defmodule IEx do
       defmodule Adder do
         def add(a, b) do
           c = a + b
-          require IEx; IEx.pry
+          require IEx; IEx.pry()
         end
       end
 
@@ -497,7 +497,7 @@ defmodule IEx do
       2
       3
 
-  Keep in mind that `IEx.pry/1` runs in the caller process,
+  Keep in mind that `IEx.pry/0` runs in the caller process,
   blocking the caller during the evaluation cycle. The caller
   process can be freed by calling `respawn/0`, which starts a
   new IEx evaluation cycle, letting this one go:
@@ -519,7 +519,7 @@ defmodule IEx do
         quote do
           def add(a, b) do
             c = a + b
-            require IEx; IEx.pry
+            require IEx; IEx.pry()
           end
         end
       end
