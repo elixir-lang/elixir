@@ -48,16 +48,18 @@ defmodule ExUnit.DescribeTest do
     end
 
     test "when using describe inside describe" do
-      assert_raise RuntimeError, ~r"cannot call describe/2 inside another describe", fn ->
-        defmodule Sample do
-          use ExUnit.Case
+      assert_raise RuntimeError,
+                   ~r"cannot call ExUnit.Case.describe/2 inside another describe",
+                   fn ->
+                     defmodule Sample do
+                       use ExUnit.Case
 
-          describe "hello" do
-            describe "another" do
-            end
-          end
-        end
-      end
+                       describe "hello" do
+                         describe "another" do
+                         end
+                       end
+                     end
+                   end
     end
 
     test "when using non-string describe name" do

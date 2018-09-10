@@ -2,8 +2,9 @@ defmodule ExUnit.Callbacks do
   @moduledoc ~S"""
   Defines ExUnit callbacks.
 
-  This module defines both `setup` and `setup_all` callbacks, as well as
-  the `on_exit/2`, `start_supervised/2` and `stop_supervised/1` functions.
+  This module defines the `setup/1`, `setup/2`, `setup_all/1` and
+  `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`
+  and `stop_supervised/1` functions.
 
   The setup callbacks are defined via macros and each one can
   optionally receive a map with test state and metadata, usually
@@ -12,10 +13,10 @@ defmodule ExUnit.Callbacks do
   structured value (see below).
 
   The `setup_all` callbacks are invoked only once per module, before any
-  test runs. All `setup` callbacks are run before each test. No callback
-  runs if the test case has no tests or all tests have been filtered out.
+  test is run. All `setup` callbacks are run before each test. No callback
+  is run if the test case has no tests or all tests have been filtered out.
 
-  Both `setup` and `setup_all` can be defined by a block, by passing
+  `setup/1` and `setup_all` callbacks can be defined by a block, by passing
   an atom naming a unary function, or by passing a list of such
   atoms. Both can opt to receive the current context by specifying it
   as parameter if defined by a block. Functions used to define a test
@@ -31,8 +32,8 @@ defmodule ExUnit.Callbacks do
 
   `on_exit/2` callbacks are registered on demand, usually to undo an action
   performed by a setup callback. `on_exit/2` may also take a reference,
-  allowing callback to be overridden in the future. A registered `on_exit/2`
-  callback always runs, while failures in `setup` and `setup_all` will stop
+  allowing the callback to be overridden in the future. A registered `on_exit/2`
+  callback will always run, while failures in `setup` and `setup_all` will stop
   all remaining setup callbacks from executing.
 
   Finally, `setup_all` callbacks run in a separate process per module, while
@@ -58,7 +59,7 @@ defmodule ExUnit.Callbacks do
   current context and will be available in all subsequent `setup_all`,
   `setup`, and the `test` itself.
 
-  Returning `:ok` leaves the context unchanged (both in `setup` and `setup_all`
+  Returning `:ok` leaves the context unchanged (in `setup` and `setup_all`
   callbacks).
 
   Returning anything else from `setup_all` will force all tests to fail,
@@ -143,7 +144,7 @@ defmodule ExUnit.Callbacks do
   atoms.
 
   Can return values to be merged into the context, to set up state for
-  tests. See section Context above for details.
+  tests. See the section "Context" above for details.
 
   ## Examples
 
@@ -177,7 +178,7 @@ defmodule ExUnit.Callbacks do
   atoms.
 
   Can return values to be merged into the context, to set up state for
-  tests. See section Context above for details.
+  tests. See the section "Context" above for details.
 
   ## Examples
 
@@ -205,7 +206,7 @@ defmodule ExUnit.Callbacks do
   atoms.
 
   Can return values to be merged into the context, to set up state for
-  tests. See section Context above for details.
+  tests. See the section "Context" above for details.
 
   ## Examples
 
@@ -243,7 +244,7 @@ defmodule ExUnit.Callbacks do
   atoms.
 
   Can return values to be merged into the context, to set up state for
-  tests. See section Context above for details.
+  tests. See the section "Context" above for details.
 
   ## Examples
 
@@ -272,7 +273,7 @@ defmodule ExUnit.Callbacks do
   runs in a separate process than the caller.
 
   `on_exit/2` is usually called from `setup` and `setup_all`
-  callbacks, often to undo the action performed during `setup`.
+  callbacks, often to undo the action performed during the setup.
   However, `on_exit/2` may also be called dynamically, where a
   reference can be used to guarantee the callback will be invoked
   only once.

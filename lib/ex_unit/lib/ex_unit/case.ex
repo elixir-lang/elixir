@@ -16,7 +16,7 @@ defmodule ExUnit.Case do
   When used, it accepts the following options:
 
     * `:async` - configures tests in this module to run concurrently with
-      tests in other modules. Tests in the same module do not run concurrently.
+      tests in other modules. By default, tests in the same module do not run concurrently.
       It should be enabled only if tests do not change any global state.
       Defaults to `false`.
 
@@ -60,7 +60,7 @@ defmodule ExUnit.Case do
   As the context is a map, it can be pattern matched on to extract
   information:
 
-      test "stores key-value pairs", %{pid: pid} do
+      test "stores key-value pairs", %{pid: pid} = _context do
         assert KV.put(pid, :hello, :world) == :ok
         assert KV.get(pid, :hello) == :world
       end
@@ -92,7 +92,7 @@ defmodule ExUnit.Case do
 
         @tag cd: "fixtures"
         test "reads UTF-8 fixtures" do
-          File.read("hello")
+          File.read("README.md")
         end
       end
 
@@ -129,7 +129,7 @@ defmodule ExUnit.Case do
       end
 
   If you are setting a `@moduletag`, you must set that after your
-  call to `use ExUnit.Case` or you will see compilation errors.
+  call to `use ExUnit.Case` otherwise you will see compilation errors.
 
   If the same key is set via `@tag`, the `@tag` value has higher
   precedence.
@@ -166,7 +166,7 @@ defmodule ExUnit.Case do
       # Exclude all external tests from running
       ExUnit.configure(exclude: [external: true])
 
-  From now on, ExUnit will not run any test that has the `external` flag
+  From now on, ExUnit will not run any test that has the `:external` flag
   set to `true`. This behaviour can be reversed with the `:include` option
   which is usually passed through the command line:
 
@@ -199,7 +199,7 @@ defmodule ExUnit.Case do
 
   Since `setup_all` blocks don't belong to a specific test, log messages generated
   in them (or between tests) are never captured. If you want to suppress these
-  messages as well, remove the console backend globally:
+  messages as well, remove the console backend globally by setting:
 
       config :logger, backends: []
 
@@ -297,7 +297,7 @@ defmodule ExUnit.Case do
 
   Provides a convenient macro that allows a test to be defined
   with a string, but not yet implemented. The resulting test will
-  always fail and print "Not implemented" error message. The
+  always fail and print a "Not implemented" error message. The
   resulting test case is also tagged with `:not_implemented`.
 
   ## Examples
@@ -390,7 +390,7 @@ defmodule ExUnit.Case do
   def __describe__(module, line, message) do
     if Module.get_attribute(module, :ex_unit_describe) do
       raise "cannot call describe/2 inside another describe. See the documentation " <>
-              "for describe/2 on named setups and how to handle hierarchies"
+              "for ExUnit.Case.describe/2 on named setups and how to handle hierarchies"
     end
 
     cond do
