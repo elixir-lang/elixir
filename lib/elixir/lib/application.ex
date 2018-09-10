@@ -513,7 +513,7 @@ defmodule Application do
   environment values specified in the `.app` file will override the ones
   previously set.
 
-  The persistent option can be set to `true` when there is a need to guarantee
+  The `:persistent` option can be set to `true` when there is a need to guarantee
   parameters set with this function will not be overridden by the ones defined
   in the application resource file on load. This means persistent values will
   stick after the application is loaded and also on application reload.

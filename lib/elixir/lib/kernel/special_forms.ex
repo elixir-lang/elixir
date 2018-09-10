@@ -386,7 +386,7 @@ defmodule Kernel.SpecialForms do
 
   ## Syntax
 
-  The right side of `.` may be a word starting in upcase, which represents
+  The right side of `.` may be a word starting with an uppercase letter, which represents
   an alias, a word starting with lowercase or underscore, any valid language
   operator or any name wrapped in single- or double-quotes. Those are all valid
   examples:

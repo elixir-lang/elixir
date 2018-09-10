@@ -275,8 +275,8 @@ defmodule Task do
   by the caller process. A `Task` struct is returned containing
   the relevant information.
 
-  Read the `Task` module documentation for more info on general
-  usage of `async/1` and `async/3`.
+  Read the `Task` module documentation for more information about the
+  general usage of `async/1` and `async/3`.
 
   See also `async/3`.
   """
@@ -292,8 +292,8 @@ defmodule Task do
   Developers must eventually call `Task.await/2` or `Task.yield/2`
   followed by `Task.shutdown/2` on the returned task.
 
-  Read the `Task` module documentation for more info on general
-  usage of `async/1` and `async/3`.
+  Read the `Task` module documentation for more information about
+  the general usage of `async/1` and `async/3`.
 
   ## Linking
 

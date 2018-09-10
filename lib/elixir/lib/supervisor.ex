@@ -285,7 +285,7 @@ defmodule Supervisor do
     * a module - such as `Stack`. In this case, `Stack.child_spec([])`
       is called to retrieve the child specification
 
-  If you need to convert how a tuple or module child specification to a map or
+  If you need to convert a tuple or a module child specification to a map or
   modify a child specification, you can use the `Supervisor.child_spec/2` function.
   For example, to run the stack with a different `:id` and a `:shutdown` value of
   10 seconds (10_000 milliseconds):
@@ -551,7 +551,7 @@ defmodule Supervisor do
   The children is a list of modules, 2-element tuples with module and
   arguments or a map with the child specification. A strategy is required
   to be provided through the `:strategy` option. See
-  "start_link/2, init/2 and strategies" for examples and other options.
+  "start_link/2, init/2, and strategies" for examples and other options.
 
   The options can also be used to register a supervisor name.
   The supported values are described under the "Name registration"
@@ -585,7 +585,7 @@ defmodule Supervisor do
 
   This is typically invoked at the end of the `c:init/1` callback of
   module-based supervisors. See the sections "Module-based supervisors"
-  and "start_link/2, init/2 and strategies" in the module
+  and "start_link/2, init/2, and strategies" in the module
   documentation for more information.
 
   This function returns a tuple containing the supervisor
@@ -610,7 +610,7 @@ defmodule Supervisor do
     * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
 
-    * `:max_seconds` - the time frame in which `:max_restarts` applies.
+    * `:max_seconds` - the time frame *in seconds* in which `:max_restarts` applies.
       Defaults to `5`.
 
   The `:strategy` option is required and by default a maximum of 3 restarts

@@ -692,7 +692,7 @@ defmodule IEx.HelpersTest do
     test "prints type documentation" do
       content = """
       defmodule TypeSample do
-        @typedoc "An id with description."
+        @typedoc "An ID with description."
         @type id_with_desc :: {number, String.t}
       end
       """
@@ -705,13 +705,13 @@ defmodule IEx.HelpersTest do
         assert capture_io(fn -> t(TypeSample.id_with_desc() / 0) end) == """
                @type id_with_desc() :: {number(), String.t()}
 
-               An id with description.
+               An ID with description.
                """
 
         assert capture_io(fn -> t(TypeSample.id_with_desc()) end) == """
                @type id_with_desc() :: {number(), String.t()}
 
-               An id with description.
+               An ID with description.
                """
       end)
     after
@@ -721,7 +721,7 @@ defmodule IEx.HelpersTest do
     test "prints type documentation metadata" do
       content = """
       defmodule TypeSample do
-        @typedoc "An id with description."
+        @typedoc "An ID with description."
         @typedoc since: "1.2.3", deprecated: "Use t/0", purpose: :test
         @type id_with_desc :: {number, String.t}
       end
@@ -738,7 +738,7 @@ defmodule IEx.HelpersTest do
                deprecated: Use t/0
                since: 1.2.3
 
-               An id with description.
+               An ID with description.
                """
       end)
     after

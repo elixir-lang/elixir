@@ -17,7 +17,7 @@ These are the reserved words in the Elixir language. They are detailed throughou
 
 ### Numbers
 
-Integers (`1234`) and floats (`123.4`) in Elixir are represented as a sequence of digits that may be separated by underscore for readability purposes, such as `1_000_000`. Integers never contain a dot (`.`) in their representation. Floats contain a dot and at least one other digit after the dot. Floats also support the scientific format, such as `123.4e10` or `123.4E10`.
+Integers (`1234`) and floats (`123.4`) in Elixir are represented as a sequence of digits that may be separated by underscore for readability purposes, such as `1_000_000`. Integers never contain a dot (`.`) in their representation. Floats contain a dot and at least one other digit after the dot. Floats also support the scientific notation, such as `123.4e10` or `123.4E10`.
 
 ### Atoms
 
