@@ -28,7 +28,7 @@ defmodule ExUnit.Filters do
   end
 
   @doc """
-  Normalizes include and excludes to remove duplicates
+  Normalizes `include` and `exclude` filters to remove duplicates
   and keep precedence.
 
   ## Examples
@@ -110,10 +110,10 @@ defmodule ExUnit.Filters do
   determine if tests should be skipped or excluded.
 
   Some filters, like `:line`, may require the whole test collection to
-  find the closest line, that's why it must also be passed as argument.
+  find the closest line, that's why it must also be passed as an argument.
 
   Filters can either be a regular expression or any data structure
-  that implements to `String.Chars`, which is invoked before comparing
+  that implements the `String.Chars` protocol, which is invoked before comparing
   the filter with the tag value.
 
   ## Examples
