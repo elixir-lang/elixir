@@ -787,7 +787,7 @@ defmodule Task do
   `:shutdown` to shutdown all of its linked processes, including tasks, that
   are not trapping exits without generating any log messages.
 
-  If a task's monitor has already been demonitored or received  and there is not
+  If a task's monitor has already been demonitored or received and there is not
   a response waiting in the message queue this function will return
   `{:exit, :noproc}` as the result or exit reason can not be determined.
   """
