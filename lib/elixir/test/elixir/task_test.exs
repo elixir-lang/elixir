@@ -400,12 +400,6 @@ defmodule TaskTest do
                {{:nodedown, node()}, {Task, :shutdown, [task, 5000]}}
     end
 
-    test "raises if timeout is :infinity" do
-      task = %Task{ref: make_ref(), owner: nil, pid: nil}
-      message = ":infinity is not a valid timeout, please a value in milliseconds or :brutal_kill"
-      assert_raise ArgumentError, message, fn -> Task.shutdown(task, :infinity) end
-    end
-
     test "raises if task PID is nil" do
       task = %Task{ref: make_ref(), owner: nil, pid: nil}
       message = "task #{inspect(task)} does not have an associated task process"
