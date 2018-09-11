@@ -249,7 +249,8 @@ defmodule ExUnit do
       different modules run in parallel. It defaults to `System.schedulers_online * 2`
       to optimize both CPU-bound and IO-bound tests;
 
-    * `:max_failures` - maximum number of allowed test failures, defaults to `:infinity`;
+    * `:max_failures` - the suite stops evaluating tests when this number of test failures
+      is reached. Defaults to `:infinity`;
 
     * `:module_load_timeout` - the timeout to be used when loading a test module,
       defaults to `60_000` milliseconds;

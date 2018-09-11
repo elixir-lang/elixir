@@ -174,9 +174,9 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast(:max_failures_exceeded, config) do
+  def handle_cast(:max_failures_reached, config) do
     if config.trace() do
-      "max failures exceeded"
+      "max failures reached"
       |> failure(config)
       |> IO.puts()
     end

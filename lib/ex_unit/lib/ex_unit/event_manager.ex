@@ -72,8 +72,8 @@ defmodule ExUnit.EventManager do
     notify(ref, {:test_finished, test})
   end
 
-  def max_failures_exceeded(ref) do
-    notify(ref, :max_failures_exceeded)
+  def max_failures_reached(ref) do
+    notify(ref, :max_failures_reached)
   end
 
   defp notify({sup, event}, msg) do

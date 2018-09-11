@@ -20,8 +20,8 @@ defmodule ExUnitMaxFailuresTest do
       assert config[:max_failures] == 5
     end
 
-    test "failures are over max failures, async: false, max_cases: 1" do
-      defmodule TestMaxFailuresExceeded do
+    test "max failures are reached, async: false, max_cases: 1" do
+      defmodule TestMaxFailuresReached do
         use ExUnit.Case, async: false
 
         test __ENV__.line, do: assert(false)
@@ -33,7 +33,7 @@ defmodule ExUnitMaxFailuresTest do
 
       output =
         capture_io(fn ->
-          ex_unit_start(trace: true, max_failures: 0)
+          ex_unit_start(trace: true, max_failures: 1)
 
           assert ExUnit.run() == %{
                    total: 2,
@@ -47,7 +47,7 @@ defmodule ExUnitMaxFailuresTest do
       assert strip(output) =~ "2 tests, 1 failure, 1 not executed"
     end
 
-    test "max failures is on the exact number of failures" do
+    test "max failures is right bellow the limit" do
       defmodule TestMaxFailures do
         use ExUnit.Case, async: false
 
@@ -63,7 +63,7 @@ defmodule ExUnitMaxFailuresTest do
 
       output =
         capture_io(fn ->
-          ex_unit_start(max_failures: 2, max_cases: 5)
+          ex_unit_start(max_failures: 3, max_cases: 5)
 
           assert ExUnit.run() == %{
                    total: 5,
@@ -77,8 +77,8 @@ defmodule ExUnitMaxFailuresTest do
       assert strip(output) =~ "5 tests, 2 failures"
     end
 
-    test "failures are over max failures" do
-      defmodule TestMaxFailuresExceeded2 do
+    test "max failures are reached" do
+      defmodule TestMaxFailuresReached2 do
         use ExUnit.Case, async: false
 
         defp sleep(time) do
@@ -123,7 +123,7 @@ defmodule ExUnitMaxFailuresTest do
 
       output =
         capture_io(fn ->
-          ex_unit_start(max_failures: 1)
+          ex_unit_start(max_failures: 2)
 
           assert ExUnit.run() == %{
                    total: 15,

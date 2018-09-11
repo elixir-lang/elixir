@@ -4,7 +4,7 @@ defmodule ExUnit.Runner do
   alias ExUnit.EventManager, as: EM
 
   @rand_algorithm :exs1024
-  @not_executed_msg "not executed due to maximum number of failures exceeded"
+  @not_executed_msg "not executed due to maximum number of failures reached"
 
   def run(opts, load_us) do
     {:ok, manager} = EM.start_link()
@@ -172,7 +172,7 @@ defmodule ExUnit.Runner do
           Process.demonitor(module_ref, [:flush])
           {test_module, failed_tests, finished_tests}
 
-        {:DOWN, ^module_ref, :process, ^module_pid, :max_failures_exceeded} ->
+        {:DOWN, ^module_ref, :process, ^module_pid, :max_failures_reached} ->
           test_module = %{test_module | state: {:not_executed, @not_executed_msg}}
           process_failure(test_module, options)
           {test_module, [], []}
@@ -190,7 +190,7 @@ defmodule ExUnit.Runner do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self(), config.manager)
 
-      if max_failures_exceeded?(config.manager, config.max_failures) do
+      if max_failures_reached?(config.manager, config.max_failures) do
         test_module = %{test_module | state: {:not_executed, @not_executed_msg}}
         not_executed_tests = Enum.map(tests, &%{&1 | state: {:not_executed, @not_executed_msg}})
         send(parent_pid, {self(), :module_finished, test_module, not_executed_tests, []})
@@ -282,7 +282,7 @@ defmodule ExUnit.Runner do
         {:ok, test} ->
           test
 
-        {:error, {:max_failures_exceeded, test}} ->
+        {:error, {:max_failures_reached, test}} ->
           test
       end
 
@@ -298,7 +298,7 @@ defmodule ExUnit.Runner do
 
       {time, test} =
         :timer.tc(fn ->
-          if max_failures_exceeded?(config.manager, config.max_failures) do
+          if max_failures_reached?(config.manager, config.max_failures) do
             %{test | state: {:not_executed, @not_executed_msg}, time: 0}
           else
             case exec_test_setup(test, context) do
@@ -331,9 +331,9 @@ defmodule ExUnit.Runner do
         Process.demonitor(test_ref, [:flush])
         result
 
-      {:DOWN, ^test_ref, :process, ^test_pid, :max_failures_exceeded} ->
+      {:DOWN, ^test_ref, :process, ^test_pid, :max_failures_reached} ->
         test = %{test | state: {:not_executed, @not_executed_msg}}
-        {:error, {:max_failures_exceeded, test}}
+        {:error, {:max_failures_reached, test}}
 
       {:DOWN, ^test_ref, :process, ^test_pid, error} ->
         test = %{test | state: failed({:EXIT, test_pid}, error, [])}
@@ -367,9 +367,9 @@ defmodule ExUnit.Runner do
        when tag in [:failed, :invalid] do
     failure_counter = increment_failure_counter(config.manager, test_module, length(tests))
 
-    if max_failures_exceeded?(failure_counter, config.max_failures) do
+    if max_failures_reached?(failure_counter, config.max_failures) do
       terminate_all_running_processes(config.manager, parent_pid, module_pid)
-      {:error, {:max_failures_exceeded, test_module}}
+      {:error, {:max_failures_reached, test_module}}
     else
       {:ok, test_module}
     end
@@ -386,9 +386,9 @@ defmodule ExUnit.Runner do
        when tag in [:failed, :invalid] do
     failure_counter = increment_failure_counter(config.manager, test)
 
-    if max_failures_exceeded?(failure_counter, config.max_failures) do
+    if max_failures_reached?(failure_counter, config.max_failures) do
       terminate_all_running_processes(config.manager, parent_pid, test_pid)
-      {:error, {:max_failures_exceeded, test}}
+      {:error, {:max_failures_reached, test}}
     else
       {:ok, test}
     end
@@ -403,7 +403,7 @@ defmodule ExUnit.Runner do
     for registered_pid when registered_pid not in [parent_pid, current_pid] <-
           ExUnit.OnExitHandler.get_registered_pids(manager) do
       if Process.alive?(registered_pid) do
-        Process.exit(registered_pid, :max_failures_exceeded)
+        Process.exit(registered_pid, :max_failures_reached)
       end
     end
   end
@@ -456,13 +456,13 @@ defmodule ExUnit.Runner do
 
   ## Helpers
 
-  defp max_failures_exceeded?(failure_counter, max_failures)
+  defp max_failures_reached?(failure_counter, max_failures)
        when is_integer(failure_counter) and failure_counter >= 0 do
-    is_integer(max_failures) and failure_counter > max_failures
+    is_integer(max_failures) and failure_counter >= max_failures
   end
 
-  defp max_failures_exceeded?(manager, max_failures) do
-    is_integer(max_failures) and get_failure_counter(manager) > max_failures
+  defp max_failures_reached?(manager, max_failures) when is_tuple(manager) do
+    is_integer(max_failures) and get_failure_counter(manager) >= max_failures
   end
 
   defp get_timeout(tags, config) do

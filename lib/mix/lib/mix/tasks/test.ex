@@ -157,8 +157,8 @@ defmodule Mix.Tasks.Test do
       external commands which produce output on stdout upon file system modification
     * `--max-cases` - sets the maximum number of tests running async. Only tests from
       different modules run in parallel. Defaults to twice the number of cores
-    * `--max-failures` - maximum allowed number of test failures. The test suite stops
-      evaluating tests if the number of failures is exceeded
+    * `--max-failures` - the suite stops evaluating tests when this number of test failures
+      is reached
     * `--no-archives-check` - does not check archives
     * `--no-color` - disables color in the output
     * `--no-compile` - does not compile, even if files require compilation
@@ -595,7 +595,7 @@ defmodule Mix.Tasks.Test do
       ArgumentError ->
         opts
     else
-      integer when integer >= 0 ->
+      integer when integer >= 1 ->
         Keyword.put(opts, :max_failures, integer)
 
       _ ->
