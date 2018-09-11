@@ -4,6 +4,7 @@ defmodule ExUnitMaxFailuresTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
+  import IEx.Helpers, only: [pid: 3]
 
   describe "max failures" do
     test "default value to :infinity" do
@@ -18,6 +19,20 @@ defmodule ExUnitMaxFailuresTest do
       ExUnit.start(max_failures: 5, autorun: false)
       config = ExUnit.configuration()
       assert config[:max_failures] == 5
+    end
+
+    # TODO: move this test to test/ex_unit/on_exit_handler_test.exs
+    test "get_registered_pids" do
+      manager1 = {pid(0, 100, 1), pid(0, 100, 2)}
+      manager2 = {pid(0, 200, 1), pid(0, 200, 2)}
+
+      ExUnit.OnExitHandler.register(pid(0, 1, 1), manager1)
+      ExUnit.OnExitHandler.register(pid(0, 1, 2), manager1)
+      ExUnit.OnExitHandler.register(pid(0, 1, 3), manager1)
+      ExUnit.OnExitHandler.register(pid(0, 1, 4), manager1)
+      ExUnit.OnExitHandler.register(pid(0, 1, 5), manager2)
+      ExUnit.OnExitHandler.register(pid(0, 1, 6), manager2)
+      assert ExUnit.OnExitHandler.get_registered_pids(manager2) == [pid(0, 1, 5), pid(0, 1, 6)]
     end
 
     test "max failures are reached, async: false, max_cases: 1" do

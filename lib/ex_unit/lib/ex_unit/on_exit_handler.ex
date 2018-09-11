@@ -34,7 +34,7 @@ defmodule ExUnit.OnExitHandler do
 
   @spec get_registered_pids(term) :: list()
   def get_registered_pids(manager) do
-    :ets.match(@name, {:"$#{@pid}", manager, :_, :_, :_})
+    :ets.match(@name, {:"$#{@pid}", manager, :_, :_})
     |> List.flatten()
   end
 
@@ -90,6 +90,7 @@ defmodule ExUnit.OnExitHandler do
   @spec get_failure_counter({pid, pid}) :: non_neg_integer()
   def get_failure_counter(manager) do
     [{{:failure_counter, _manager}, counter}] = :ets.lookup(@name, {:failure_counter, manager})
+
     counter
   end
 
