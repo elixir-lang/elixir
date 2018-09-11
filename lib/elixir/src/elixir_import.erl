@@ -65,7 +65,8 @@ record_warn(Meta, Ref, Opts, Added, E) ->
 calculate(Meta, Key, Opts, Old, File, Existing) ->
   New = case keyfind(only, Opts) of
     {only, Only} when is_list(Only) ->
-      ok = ensure_keyword_list(Meta, File, Only, only),
+      ensure_keyword_list(Meta, File, Only, only),
+      ensure_no_duplicates(Meta, File, Only, only),
       case keyfind(except, Opts) of
         false ->
           ok;
@@ -83,7 +84,8 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
         false ->
           remove_underscored(Existing());
         {except, Except} when is_list(Except) ->
-          ok = ensure_keyword_list(Meta, File, Except, except),
+          ensure_keyword_list(Meta, File, Except, except),
+          ensure_no_duplicates(Meta, File, Except, except),
           %% We are not checking existence of exports listed in :except option
           %% on purpose: to support backwards compatible code.
           %% For example, "import String, except: [trim: 1]"
@@ -154,11 +156,24 @@ ensure_keyword_list(Meta, File, [{Key, Value} | Rest], Kind) when is_atom(Key), 
 ensure_keyword_list(Meta, File, _Other, Kind) ->
   elixir_errors:form_error(Meta, File, ?MODULE, {invalid_option, Kind}).
 
+ensure_no_duplicates(Meta, File, Option, Kind) ->
+  lists:foldl(fun({Name, Arity}, Acc) ->
+    case lists:member({Name, Arity}, Acc) of
+      true ->
+        elixir_errors:form_error(Meta, File, ?MODULE, {duplicated_import, {Kind, Name, Arity}});
+      false ->
+        [{Name, Arity} | Acc]
+    end
+  end, [], Option).
+
 %% ERROR HANDLING
 
 format_error(only_and_except_given) ->
   ":only and :except can only be given together to import "
   "when :only is either :functions or :macros";
+
+format_error({duplicated_import, {Option, Name, Arity}}) ->
+  io_lib:format("invalid :~s option for import, ~ts/~B is duplicated", [Option, Name, Arity]);
 
 format_error({invalid_import, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it is undefined or private",
