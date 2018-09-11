@@ -2,10 +2,12 @@ defmodule ExUnit.OnExitHandler do
   @moduledoc false
 
   @name __MODULE__
+  @ets_opts [:public, :named_table, read_concurrency: true, write_concurrency: true]
+
+  # ETS column numbers
   @pid 1
   @supervisor 3
   @on_exit 4
-  @ets_opts [:public, :named_table, read_concurrency: true, write_concurrency: true]
 
   use Agent
 
@@ -17,6 +19,17 @@ defmodule ExUnit.OnExitHandler do
   @spec register(pid, term) :: :ok
   def register(pid, manager) when is_pid(pid) do
     :ets.insert(@name, {pid, manager, nil, []})
+  end
+
+  @spec registered?(pid) :: boolean
+  def registered?(pid) when is_pid(pid) do
+    case :ets.lookup(@name, pid) do
+      [] ->
+        false
+
+      _ ->
+        true
+    end
   end
 
   @spec get_registered_pids(term) :: list()

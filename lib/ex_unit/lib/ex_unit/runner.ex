@@ -123,7 +123,7 @@ defmodule ExUnit.Runner do
         # "finished"
         {test_module, tests, tests}
       else
-        spawn_module(config, test_module, tests)
+        spawn_module(test_module, tests, config)
       end
 
     # Run the pending tests. We don't actually spawn those
@@ -158,42 +158,12 @@ defmodule ExUnit.Runner do
     MapSet.member?(test_ids, {test.module, test.name})
   end
 
-  defp spawn_module(config, test_module, tests) do
+  defp spawn_module(test_module, tests, config) do
     parent_pid = self()
+    timeout = get_timeout(%{}, config)
 
-    {module_pid, module_ref} =
-      spawn_monitor(fn ->
-        ExUnit.OnExitHandler.register(self(), config.manager)
-
-        if max_failures_exceeded?(config.manager, config.max_failures) do
-          test_module =
-            case exec_module_setup(test_module) do
-              {:ok, test_module, _context} ->
-                test_module
-
-              {:error, test_module} ->
-                test_module
-            end
-
-          test_module = %{test_module | state: {:not_executed, @not_executed_msg}}
-          not_executed_tests = Enum.map(tests, &%{&1 | state: {:not_executed, @not_executed_msg}})
-          send(parent_pid, {self(), :module_finished, test_module, not_executed_tests, []})
-        else
-          case exec_module_setup(test_module) do
-            {:ok, test_module, context} ->
-              finished_tests = Enum.map(tests, &run_test(config, &1, context))
-              send(parent_pid, {self(), :module_finished, test_module, [], finished_tests})
-
-            {:error, test_module} ->
-              failed_tests = Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
-              send(parent_pid, {self(), :module_finished, test_module, failed_tests, []})
-          end
-        end
-
-        exit(:shutdown)
-      end)
-
-    options = %{config: config}
+    {module_pid, module_ref} = spawn_module_monitor(test_module, parent_pid, tests, config)
+    options = %{pid: module_pid, parent_pid: parent_pid, config: config}
 
     {test_module, pending, finished_tests} =
       receive do
@@ -213,8 +183,31 @@ defmodule ExUnit.Runner do
           {test_module, [], []}
       end
 
-    timeout = get_timeout(%{}, config)
     {exec_on_exit(test_module, module_pid, timeout), pending, finished_tests}
+  end
+
+  defp spawn_module_monitor(test_module, parent_pid, tests, config) do
+    spawn_monitor(fn ->
+      ExUnit.OnExitHandler.register(self(), config.manager)
+
+      if max_failures_exceeded?(config.manager, config.max_failures) do
+        test_module = %{test_module | state: {:not_executed, @not_executed_msg}}
+        not_executed_tests = Enum.map(tests, &%{&1 | state: {:not_executed, @not_executed_msg}})
+        send(parent_pid, {self(), :module_finished, test_module, not_executed_tests, []})
+      else
+        case exec_module_setup(test_module) do
+          {:ok, test_module, context} ->
+            finished_tests = Enum.map(tests, &run_test(config, &1, context))
+            send(parent_pid, {self(), :module_finished, test_module, [], finished_tests})
+
+          {:error, test_module} ->
+            failed_tests = Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
+            send(parent_pid, {self(), :module_finished, test_module, failed_tests, []})
+        end
+      end
+
+      exit(:shutdown)
+    end)
   end
 
   defp exec_module_setup(%ExUnit.TestModule{name: module} = test_module) do
@@ -272,34 +265,9 @@ defmodule ExUnit.Runner do
 
   defp spawn_test(test, context, config) do
     parent_pid = self()
-
-    {test_pid, test_ref} =
-      spawn_monitor(fn ->
-        ExUnit.OnExitHandler.register(self(), config.manager)
-        generate_test_seed(config, test)
-
-        {time, test} =
-          :timer.tc(fn ->
-            if max_failures_exceeded?(config.manager, config.max_failures) do
-              {_, test} = exec_test_setup(test, context)
-              %{test | state: {:not_executed, @not_executed_msg}}
-            else
-              case exec_test_setup(test, context) do
-                {:ok, test} ->
-                  exec_test(test)
-
-                {:error, test} ->
-                  # %{test | state: {:invalid, test}}
-                  test
-              end
-            end
-          end)
-
-        send(parent_pid, {self(), :test_finished, %{test | time: time}})
-        exit(:shutdown)
-      end)
-
     timeout = get_timeout(test.tags, config)
+
+    {test_pid, test_ref} = spawn_test_monitor(test, parent_pid, context, config)
 
     receive_test_reply_options = %{
       pid: test_pid,
@@ -321,7 +289,35 @@ defmodule ExUnit.Runner do
     exec_on_exit(test, test_pid, timeout)
   end
 
-  defp generate_test_seed(%{seed: seed}, %ExUnit.Test{module: module, name: name}) do
+  defp spawn_test_monitor(test, parent_pid, context, config) do
+    spawn_monitor(fn ->
+      test_pid = self()
+      generate_test_seed(test, config)
+
+      ExUnit.OnExitHandler.register(test_pid, config.manager)
+
+      {time, test} =
+        :timer.tc(fn ->
+          if max_failures_exceeded?(config.manager, config.max_failures) do
+            %{test | state: {:not_executed, @not_executed_msg}, time: 0}
+          else
+            case exec_test_setup(test, context) do
+              {:ok, test} ->
+                exec_test(test)
+
+              {:error, test} ->
+                # %{test | state: {:invalid, test}}
+                test
+            end
+          end
+        end)
+
+      send(parent_pid, {test_pid, :test_finished, %{test | time: time}})
+      exit(:shutdown)
+    end)
+  end
+
+  defp generate_test_seed(%ExUnit.Test{module: module, name: name}, %{seed: seed}) do
     :rand.seed(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
   end
 
@@ -366,11 +362,17 @@ defmodule ExUnit.Runner do
 
   defp process_failure(
          %ExUnit.TestModule{state: {tag, _}, tests: tests} = test_module,
-         %{config: config} = _options
+         %{pid: module_pid, parent_pid: parent_pid, config: config} = _options
        )
        when tag in [:failed, :invalid] do
-    increment_failure_counter(config.manager, test_module, length(tests))
-    {:ok, test_module}
+    failure_counter = increment_failure_counter(config.manager, test_module, length(tests))
+
+    if max_failures_exceeded?(failure_counter, config.max_failures) do
+      terminate_all_running_processes(config.manager, parent_pid, module_pid)
+      {:error, {:max_failures_exceeded, test_module}}
+    else
+      {:ok, test_module}
+    end
   end
 
   defp process_failure(%ExUnit.TestModule{} = test_module, _options) do
@@ -438,13 +440,17 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_on_exit(test_or_case, pid, timeout) do
-    case ExUnit.OnExitHandler.run(pid, timeout) do
-      :ok ->
-        test_or_case
+    if ExUnit.OnExitHandler.registered?(pid) do
+      case ExUnit.OnExitHandler.run(pid, timeout) do
+        :ok ->
+          test_or_case
 
-      {kind, reason, stack} ->
-        state = test_or_case.state || failed(kind, reason, prune_stacktrace(stack))
-        %{test_or_case | state: state}
+        {kind, reason, stack} ->
+          state = test_or_case.state || failed(kind, reason, prune_stacktrace(stack))
+          %{test_or_case | state: state}
+      end
+    else
+      test_or_case
     end
   end
 
