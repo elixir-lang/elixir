@@ -2,6 +2,8 @@ defmodule ExUnit.EventManager do
   @moduledoc false
   @timeout 30000
 
+  @type manager :: {supervisor_manager :: pid, event_manager :: pid}
+
   # TODO: Remove support for GenEvent formatters on 2.0
 
   @doc """
@@ -10,6 +12,7 @@ defmodule ExUnit.EventManager do
   This is what power formatters as well as the
   internal statistics server for ExUnit.
   """
+  @spec start_link() :: {:ok, manager}
   def start_link() do
     {:ok, sup} = DynamicSupervisor.start_link(strategy: :one_for_one)
     {:ok, event} = :gen_event.start_link()

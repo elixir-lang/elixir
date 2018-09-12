@@ -11,12 +11,14 @@ defmodule ExUnit.OnExitHandler do
 
   use Agent
 
+  @type manager :: ExUnit.EventManager.use(Agent)
+
   @spec start_link(keyword()) :: {:ok, pid}
   def start_link(_opts) do
     Agent.start_link(fn -> :ets.new(@name, @ets_opts) end, name: @name)
   end
 
-  @spec register(pid, term) :: :ok
+  @spec register(pid, manager) :: :ok
   def register(pid, manager) when is_pid(pid) do
     :ets.insert(@name, {pid, manager, nil, []})
   end
@@ -32,7 +34,7 @@ defmodule ExUnit.OnExitHandler do
     end
   end
 
-  @spec get_registered_pids(term) :: list()
+  @spec get_registered_pids(manager) :: list(pid)
   def get_registered_pids(manager) do
     :ets.match(@name, {:"$#{@pid}", manager, :_, :_})
     |> List.flatten()
@@ -76,18 +78,18 @@ defmodule ExUnit.OnExitHandler do
     exec_on_exit_callbacks(Enum.reverse(callbacks), timeout, error)
   end
 
-  @spec start_failure_counter({pid, pid}) :: :ok
+  @spec start_failure_counter(manager) :: :ok
   def start_failure_counter(manager) do
     :ets.insert(@name, {{:failure_counter, manager}, 0})
   end
 
-  @spec increment_failure_counter({pid, pid}, pos_integer) :: pos_integer()
+  @spec increment_failure_counter(manager, pos_integer) :: pos_integer()
   def increment_failure_counter(manager, increment \\ 1)
       when is_integer(increment) and increment >= 1 do
     :ets.update_counter(@name, {:failure_counter, manager}, increment)
   end
 
-  @spec get_failure_counter({pid, pid}) :: non_neg_integer()
+  @spec get_failure_counter(manager) :: non_neg_integer()
   def get_failure_counter(manager) do
     [{{:failure_counter, _manager}, counter}] = :ets.lookup(@name, {:failure_counter, manager})
 
