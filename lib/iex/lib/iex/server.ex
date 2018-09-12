@@ -82,20 +82,14 @@ defmodule IEx.Server do
   end
 
   @doc """
-  Starts IEx by executing a given callback and spawning
-  the server only after the callback is done.
-
-  The server responsibilities include:
-
-    * reading input
-    * sending messages to the evaluator
-    * handling takeover process of the evaluator
+  `start/0` with a callback. The server is spawned only after
+  the callback is done.
 
   If there is any takeover during the callback execution
   we spawn a new server for it without waiting for its
   conclusion.
   """
-  @spec start(list, {module, atom, [any]}) :: :ok
+  @spec start(keyword, {module, atom, [any]}) :: :ok
   def start(opts, {m, f, a}) do
     Process.flag(:trap_exit, true)
     {pid, ref} = spawn_monitor(m, f, a)
@@ -107,24 +101,34 @@ defmodule IEx.Server do
       {:take, take_pid, take_identifier, take_ref, take_opts} ->
         if allow_take?(take_identifier) do
           send(take_pid, {take_ref, Process.group_leader()})
-          run(take_opts)
+          start(take_opts)
         else
           send(take_pid, {take_ref, nil})
           start_loop(opts, pid, ref)
         end
 
       {:DOWN, ^ref, :process, ^pid, :normal} ->
-        run(opts)
+        start(opts)
 
       {:DOWN, ^ref, :process, ^pid, _reason} ->
         :ok
     end
   end
 
-  # Run loop: this is where the work is really
-  # done after the start loop.
+  @doc """
+  Starts IEx without a callback.
 
-  defp run(opts) when is_list(opts) do
+  The server responsibilities include:
+
+    * reading input
+    * sending messages to the evaluator
+    * handling takeover process of the evaluator
+
+  """
+  @spec start(keyword) :: :ok
+  def start(opts) when is_list(opts) do
+    Process.flag(:trap_exit, true)
+
     IO.puts(
       "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)"
     )
@@ -133,11 +137,11 @@ defmodule IEx.Server do
     loop(iex_state(opts), evaluator, Process.monitor(evaluator))
   end
 
-  defp rerun(opts, evaluator, evaluator_ref, input) do
+  defp restart(opts, evaluator, evaluator_ref, input) do
     kill_input(input)
     IO.puts("")
     stop_evaluator(evaluator, evaluator_ref)
-    run(opts)
+    start(opts)
   end
 
   @doc """
@@ -233,7 +237,7 @@ defmodule IEx.Server do
 
       allow_take?(identifier) ->
         send(other, {ref, Process.group_leader()})
-        rerun(opts, evaluator, evaluator_ref, input)
+        restart(opts, evaluator, evaluator_ref, input)
 
       true ->
         send(other, {ref, nil})
@@ -260,7 +264,7 @@ defmodule IEx.Server do
   end
 
   defp handle_take_over({:respawn, evaluator}, _state, evaluator, evaluator_ref, input, _callback) do
-    rerun([], evaluator, evaluator_ref, input)
+    restart([], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over({:continue, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
@@ -277,7 +281,7 @@ defmodule IEx.Server do
          input,
          _callback
        ) do
-    rerun([], evaluator, evaluator_ref, input)
+    restart([], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(
@@ -298,7 +302,7 @@ defmodule IEx.Server do
         io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
     end
 
-    rerun([], evaluator, evaluator_ref, input)
+    restart([], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(_, state, _evaluator, _evaluator_ref, _input, callback) do
