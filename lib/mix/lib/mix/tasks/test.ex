@@ -338,7 +338,7 @@ defmodule Mix.Tasks.Test do
       Mix.Project.compile(args)
     end
 
-    opts = validate_max_failures_opts(opts)
+    opts = normalize_max_failures(opts)
 
     project = Mix.Project.config()
 
@@ -575,31 +575,19 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp validate_max_failures_opts(opts) do
+  defp normalize_max_failures(opts) do
     case Keyword.fetch(opts, :max_failures) do
-      {:ok, value} ->
-        validate_max_failures_opt!(opts, value)
-
-      :error ->
+      value when value in ["infinity", ":infinity"] ->
         Keyword.put(opts, :max_failures, :infinity)
-    end
-  end
 
-  defp validate_max_failures_opt!(opts, value) when value in ["infinity", ":infinity"],
-    do: Keyword.put(opts, :max_failures, :infinity)
+      {:ok, value} ->
+        case Integer.parse(value) do
+          {max_failures, ""} when max_failures >= 1 ->
+            Keyword.put(opts, :max_failures, :infinity)
 
-  defp validate_max_failures_opt!(opts, value) do
-    try do
-      String.to_integer(value)
-    rescue
-      ArgumentError ->
-        opts
-    else
-      integer when integer >= 1 ->
-        Keyword.put(opts, :max_failures, integer)
-
-      _ ->
-        opts
+          _ ->
+            raise "--max-failures : Expected type positive integer or \"infinity\", got '#{value}'"
+        end
     end
   end
 
