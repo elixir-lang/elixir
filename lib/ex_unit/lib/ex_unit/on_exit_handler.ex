@@ -11,7 +11,7 @@ defmodule ExUnit.OnExitHandler do
 
   use Agent
 
-  @type manager :: ExUnit.EventManager.use(Agent)
+  @type manager :: ExUnit.EventManager.manager()
 
   @spec start_link(keyword()) :: {:ok, pid}
   def start_link(_opts) do
