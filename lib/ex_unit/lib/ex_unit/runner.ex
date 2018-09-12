@@ -455,14 +455,17 @@ defmodule ExUnit.Runner do
   end
 
   ## Helpers
+  defp max_failures_reached?(_failure_counter, :infinity),
+    do: false
 
-  defp max_failures_reached?(failure_counter, max_failures)
-       when is_integer(failure_counter) and failure_counter >= 0 do
-    is_integer(max_failures) and failure_counter >= max_failures
+  defp max_failures_reached?(manager, max_failures)
+       when is_tuple(manager) and is_integer(max_failures) do
+    get_failure_counter(manager) >= max_failures
   end
 
-  defp max_failures_reached?(manager, max_failures) when is_tuple(manager) do
-    is_integer(max_failures) and get_failure_counter(manager) >= max_failures
+  defp max_failures_reached?(failure_counter, max_failures)
+       when failure_counter >= 0 and is_integer(max_failures) do
+    failure_counter >= max_failures
   end
 
   defp get_timeout(tags, config) do
