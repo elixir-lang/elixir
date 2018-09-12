@@ -588,6 +588,9 @@ defmodule Mix.Tasks.Test do
           _ ->
             raise "--max-failures : Expected type positive integer or \"infinity\", got '#{value}'"
         end
+
+      :error ->
+        Keyword.put(opts, :max_failures, :infinity)
     end
   end
 
