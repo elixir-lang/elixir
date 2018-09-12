@@ -661,6 +661,24 @@ defmodule Kernel.ErrorsTest do
                       '''
   end
 
+  test "duplicated function on import options" do
+    assert_eval_raise CompileError,
+                      "nofile:2: invalid :only option for import, flatten/1 is duplicated",
+                      '''
+                      defmodule Kernel.ErrorsTest.DuplicatedFunctionOnImportOnly do
+                        import List, only: [flatten: 1, keyfind: 4, flatten: 1]
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      "nofile:2: invalid :except option for import, flatten/1 is duplicated",
+                      '''
+                      defmodule Kernel.ErrorsTest.DuplicatedFunctionOnImportExcept do
+                        import List, except: [flatten: 1, keyfind: 4, flatten: 1]
+                      end
+                      '''
+  end
+
   test "unrequired macro" do
     assert_eval_raise CompileError,
                       "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
