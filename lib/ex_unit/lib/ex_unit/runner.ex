@@ -400,11 +400,10 @@ defmodule ExUnit.Runner do
 
   # Stops all running tests in the suite
   defp terminate_all_running_processes(manager, parent_pid, current_pid) do
-    for registered_pid when registered_pid not in [parent_pid, current_pid] <-
-          ExUnit.OnExitHandler.get_registered_pids(manager) do
-      if Process.alive?(registered_pid) do
-        Process.exit(registered_pid, :max_failures_reached)
-      end
+    for registered_pid <- ExUnit.OnExitHandler.get_registered_pids(manager),
+        registered_pid not in [parent_pid, current_pid],
+        Process.alive?(registered_pid) do
+      Process.exit(registered_pid, :max_failures_reached)
     end
   end
 
