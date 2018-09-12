@@ -2,8 +2,8 @@ defmodule Version do
   @moduledoc ~S"""
   Functions for parsing and matching versions against requirements.
 
-  A [version](`t:version/0`) is a [string](`t:String.t/0`) in a specific
-  format or a [`%Version{}`](`t:Version.t/0`) struct
+  A [version](`t:version/0`) is a string in a specific
+  format or a [`%Version{}` struct](`t:Version.t/0`)
   generated after parsing a version string with `Version.parse/1`.
 
   `Version` parsing and requirements follow
