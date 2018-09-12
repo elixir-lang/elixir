@@ -32,7 +32,11 @@ defmodule ExUnitMaxFailuresTest do
       ExUnit.OnExitHandler.register(pid(0, 1, 4), manager1)
       ExUnit.OnExitHandler.register(pid(0, 1, 5), manager2)
       ExUnit.OnExitHandler.register(pid(0, 1, 6), manager2)
-      assert ExUnit.OnExitHandler.get_registered_pids(manager2) |> Enum.sort() == [pid(0, 1, 5), pid(0, 1, 6)]
+
+      assert ExUnit.OnExitHandler.get_registered_pids(manager2) |> Enum.sort() == [
+               pid(0, 1, 5),
+               pid(0, 1, 6)
+             ]
     end
 
     test "max failures are reached, async: false, max_cases: 1" do
