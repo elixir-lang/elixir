@@ -166,8 +166,7 @@ defmodule ExUnitMaxFailuresTest do
 
   # Strips the colors from IO.ANSI strings
   defp strip(string) do
-    string
-    |> String.replace(~r/\e\[(\d+;?)+m/, "")
+    String.replace(string, ~r/\e\[(\d+;?)+m/, "")
   end
 
   # Runs ExUnit.start/1 with common options needed for predictability

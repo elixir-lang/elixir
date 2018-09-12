@@ -64,10 +64,10 @@ defmodule ExUnit do
 
     1. Passed (also represented by `nil`)
     2. Failed
-    3. Skipped (via @tag :skip)
+    3. Skipped (via `@tag :skip`)
     4. Not executed, due to `:max_failures` passed before test completed.
-    5. Excluded (via :exclude filters)
-    6. Invalid (when setup_all fails)
+    5. Excluded (via `:exclude` filters)
+    6. Invalid (when `setup_all/1/2` fail)
 
   """
   @type state ::
