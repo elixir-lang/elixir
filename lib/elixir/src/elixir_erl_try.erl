@@ -73,7 +73,7 @@ dynamic_normalize(Meta, Var, [H | T]) ->
   {'case', Meta, [
     Var,
     [{do, [
-      {'->', Meta, [[{'when', Meta, [Var, Guards]}], {'__STACKTRACE__', Meta, nil}]},
+      {'->', ?generated(Meta), [[{'when', Meta, [Var, Guards]}], {'__STACKTRACE__', Meta, nil}]},
       {'->', Meta, [[{'_', Meta, nil}], []]}
     ]}]
   ]}.
@@ -86,7 +86,7 @@ erl_rescue_stacktrace_for(_Meta, _Var, 'Elixir.ErlangError') ->
   error(badarg);
 erl_rescue_stacktrace_for(Meta, Var, 'Elixir.KeyError') ->
   %% Only the two element tuple requires stacktrace.
-  erl_and(Meta, erl_tuple_size(Meta, Var, 2), erl_record_compare(Meta, Var, badkey));
+  erl_and(Meta, erl_tuple_size(?generated(Meta), Var, 2), erl_record_compare(Meta, Var, badkey));
 erl_rescue_stacktrace_for(Meta, Var, Module) ->
   erl_rescue_guard_for(Meta, Var, Module).
 
