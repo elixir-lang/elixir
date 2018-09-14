@@ -76,9 +76,46 @@ defmodule TypespecTest do
     end
 
     test "undefined type" do
-      assert_raise CompileError, ~r"type foo\(\) undefined", fn ->
+      assert_raise CompileError, ~r"type foo/0 undefined", fn ->
         test_module do
           @type omg :: foo
+        end
+      end
+
+      assert_raise CompileError, ~r"type foo/2 undefined", fn ->
+        test_module do
+          @type omg :: foo(atom, integer)
+        end
+      end
+
+      assert_raise CompileError, ~r"type bar/0 undefined", fn ->
+        test_module do
+          @spec foo(bar, integer) :: {atom, integer}
+          def foo(var1, var2), do: {var1, var2}
+        end
+      end
+    end
+
+    test "redefined type" do
+      assert_raise CompileError, ~r"type foo/0 is already defined", fn ->
+        test_module do
+          @type foo :: atom
+          @type foo :: integer
+        end
+      end
+
+      assert_raise CompileError, ~r"type foo/2 is already defined", fn ->
+        test_module do
+          @type foo :: atom
+          @type foo(var1, var2) :: {var1, var2}
+          @type foo(x, y) :: {x, y}
+        end
+      end
+
+      assert_raise CompileError, ~r"type foo/0 is already defined", fn ->
+        test_module do
+          @type foo :: atom
+          @typep foo :: integer
         end
       end
     end
