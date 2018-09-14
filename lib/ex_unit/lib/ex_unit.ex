@@ -147,7 +147,7 @@ defmodule ExUnit do
         2. per case by setting "@moduletag timeout: x"
         3. globally via "ExUnit.start(timeout: x)" configuration
         4. or set it to infinity per run by calling "mix test --trace"
-           (useful when using IEx.pry)
+           (useful when using IEx.pry/0)
 
       Timeouts are given as integers in milliseconds.
       """
