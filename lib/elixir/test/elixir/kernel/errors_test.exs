@@ -106,7 +106,7 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, message, 'Foó'
 
     message = ~r"""
-    Elixir expects unquoted Unicode atoms and variables to be in NFC form.
+    Elixir expects unquoted Unicode atoms, variables, and calls to be in NFC form.
 
     Got:
 
