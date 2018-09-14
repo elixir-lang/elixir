@@ -1451,7 +1451,7 @@ defmodule Kernel do
   Returns `true` if the two items are not equal.
 
   This operator considers 1 and 1.0 to be equal. For match
-  comparison, use `!==` instead.
+  comparison, use `!==/2` instead.
 
   All terms in Elixir can be compared with each other.
 

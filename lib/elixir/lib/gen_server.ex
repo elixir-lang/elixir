@@ -589,7 +589,7 @@ defmodule GenServer do
   receiving a `GenServer`'s exit signal and do not need to be closed manually
   in `c:terminate/2`.
 
-  If `reason` is not `:normal`, `:shutdown`, nor `{:shutdown, term}` an error is
+  If `reason` is neither `:normal`, `:shutdown`, nor `{:shutdown, term}` an error is
   logged.
 
   This callback is optional.

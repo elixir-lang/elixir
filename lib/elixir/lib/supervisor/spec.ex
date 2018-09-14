@@ -244,7 +244,7 @@ defmodule Supervisor.Spec do
   Defines the given `module` as a supervisor which will be started
   with the given arguments.
 
-      supervisor(ExUnit.Runner, [], restart: :permanent)
+      supervisor(module, [], restart: :permanent)
 
   By default, the function `start_link` is invoked on the given
   module. Overall, the default values for the options are:
