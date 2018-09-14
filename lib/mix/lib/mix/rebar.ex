@@ -180,7 +180,7 @@ defmodule Mix.Rebar do
             re
 
           {:error, reason} ->
-            Mix.raise("Unable to compile version regex: #{inspect(req)}, #{reason}")
+            Mix.raise("Unable to compile version regular expression: #{inspect(req)}, #{reason}")
         end
     end
   end
