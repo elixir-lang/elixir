@@ -16,7 +16,7 @@ defmodule ExUnit.Callbacks do
   test is run. All `setup` callbacks are run before each test. No callback
   is run if the test case has no tests or all tests have been filtered out.
 
-  `setup/1` and `setup_all` callbacks can be defined by a block, by passing
+  `setup` and `setup_all` callbacks can be defined by a block, by passing
   an atom naming a unary function, or by passing a list of such
   atoms. Both can opt to receive the current context by specifying it
   as parameter if defined by a block. Functions used to define a test
