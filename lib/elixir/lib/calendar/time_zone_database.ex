@@ -37,6 +37,8 @@ defmodule TimeZoneDatabase do
   @type time_zone_period_limit :: Calendar.naive_datetime()
 
   @doc """
+  Time zone period for a point in time in UTC for a specific time zone.
+
   Takes a time zone name and a point in time for UTC and returns a
   `time_zone_period` for that point in time.
   """
@@ -66,6 +68,8 @@ defmodule TimeZoneDatabase do
               | {:error, :time_zone_not_found}
 
   @doc """
+  Determine if a datetime is a leap second or not.
+
   Takes a `Calendar.naive_datetime` and returns {:ok, true} if it is a
   leap second. {:ok, false} if it is not.
 
@@ -80,6 +84,8 @@ defmodule TimeZoneDatabase do
               {:ok, boolean} | {:error, :outside_leap_second_data_range}
 
   @doc """
+  The difference in seconds between two datetimes.
+
   Takes two `Calendar.naive_datetime`s. They should represent UTC datetimes.
 
   Returns the difference in leap seconds between them. For instance when passed
@@ -97,7 +103,7 @@ defmodule TimeZoneDatabaseClient do
   """
 
   @typedoc """
-  Either a `TimeZoneDatabase.t()` or a `:from_config` atom.
+  Returns either a `TimeZoneDatabase.t()` or a `:from_config` atom.
 
   This can be passed to functions in e.g. the `DateTime` module. If `:from_config`
   is passed, a `TimeZoneDatabase` set via the `set_database/1` function is used.
