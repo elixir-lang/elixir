@@ -610,8 +610,8 @@ defmodule Supervisor do
     * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
 
-    * `:max_seconds` - the time frame *in seconds* in which `:max_restarts` applies.
-      Defaults to `5`.
+    * `:max_seconds` - the time frame in seconds in which `:max_restarts`
+      applies. Defaults to `5`.
 
   The `:strategy` option is required and by default a maximum of 3 restarts
   is allowed within 5 seconds. Check the `Supervisor` module for a detailed
