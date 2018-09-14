@@ -215,7 +215,7 @@ defmodule Kernel.Typespec do
 
   defp collect_defined_type_pairs(type_typespecs) do
     Enum.reduce(type_typespecs, %{}, fn {_, {_, expr, pos}}, type_pairs ->
-      env = :elixir_locals.get_cached_env(pos)
+      %{file: file, line: line} = env = :elixir_locals.get_cached_env(pos)
 
       case type_to_signature(expr) do
         {name, arity} = type_pair ->
@@ -228,7 +228,7 @@ defmodule Kernel.Typespec do
             compile_error(env, "type #{name}/#{arity} is already defined")
           end
 
-          Map.put(type_pairs, type_pair, env)
+          Map.put(type_pairs, type_pair, {file, line})
 
         :error ->
           compile_error(env, "invalid type specification: #{Macro.to_string(expr)}")
@@ -238,14 +238,12 @@ defmodule Kernel.Typespec do
 
   defp filter_used_types(types, state) do
     Enum.filter(types, fn {_kind, {name, arity} = type_pair, _line, _type, export} ->
-      case {type_pair in state.used_type_pairs, export} do
-        {false, false} ->
-          env = Map.fetch!(state.defined_type_pairs, type_pair)
-          :elixir_errors.warn(env.line, env.file, "type #{name}/#{arity} is unused")
-          false
-
-        _ ->
-          true
+      if type_pair not in state.used_type_pairs and not export do
+        %{^type_pair => {file, line}} = state.defined_type_pairs
+        :elixir_errors.warn(line, file, "type #{name}/#{arity} is unused")
+        false
+      else
+        true
       end
     end)
   end
