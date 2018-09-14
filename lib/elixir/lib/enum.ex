@@ -2132,21 +2132,21 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given `enumerable`, from `index_range.first` (zero-based) to
-  `index_range.last`.
+  Returns a subset list of the given `enumerable` by `index_range`.
 
-  `index_range` must be a [range](`t:Range.t/0`).
+  `index_range` must be a `Range`. Given an `enumerable`, it drops
+  elements before `index_range.first` (zero-base), then takes elements
+  until element `index_range.last` (inclusively).
 
-  Given an `enumerable`, it drops elements before `index_range.first`,
-  then takes elements until element `index_range.last` (inclusively).
+  Indexes are normalized, meaning that negative indexes will be counted
+  from the end (e.g. `-1` means the last element of the `enumerable`).
 
-  Indexes are normalized, meaning that negative indexes will be counted from the end
-  (e.g. `-1` means the last element of the `enumerable`).
+  If `index_range.last` is out of bounds, then it is assigned as the index
+  of the last element.
 
-  If `index_range.last` is out of bounds, then it is assigned as the index of the last element.
-
-  If the normalized `index_range.first` is out of bounds of the given `enumerable`,
-  or this one is greater than the normalized `index_range.last`, then `[]` is returned.
+  If the normalized `index_range.first` is out of bounds of the given
+  `enumerable`, or this one is greater than the normalized `index_range.last`,
+  then `[]` is returned.
 
   ## Examples
 
