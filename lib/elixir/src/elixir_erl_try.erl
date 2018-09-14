@@ -69,14 +69,14 @@ dynamic_normalize(Meta, Var, [H | T]) ->
 
   Guards =
     lists:foldl(fun(Alias, Acc) ->
-      {'when', Meta, [erl_rescue_stacktrace_for(Generated, Var, Alias), Acc]}
+      {'when', Generated, [erl_rescue_stacktrace_for(Generated, Var, Alias), Acc]}
     end, erl_rescue_stacktrace_for(Generated, Var, H), T),
 
-  {'case', Meta, [
+  {'case', Generated, [
     Var,
     [{do, [
-      {'->', Generated, [[{'when', Meta, [Var, Guards]}], {'__STACKTRACE__', Meta, nil}]},
-      {'->', Meta, [[{'_', Meta, nil}], []]}
+      {'->', Generated, [[{'when', Generated, [Var, Guards]}], {'__STACKTRACE__', Generated, nil}]},
+      {'->', Generated, [[{'_', Generated, nil}], []]}
     ]}]
   ]}.
 
