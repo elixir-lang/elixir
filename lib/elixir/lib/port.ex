@@ -129,9 +129,9 @@ defmodule Port do
   graceful termination by detecting if stdin/stdout has been closed, we do not
   always have control over how 3rd party software terminates. In those cases,
   you can wrap the application in a script that checks for stdin. Here is such
-  script in bash:
+  script in Bash:
 
-      #!/bin/sh
+      #!/bin/bash
       "$@" &
       pid=$!
       while read line ; do
