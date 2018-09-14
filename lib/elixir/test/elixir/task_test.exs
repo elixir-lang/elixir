@@ -168,7 +168,7 @@ defmodule TaskTest do
 
   describe "await/2" do
     test "exits on timeout" do
-      task = %Task{ref: make_ref(), owner: self()}
+      task = %Task{ref: make_ref(), owner: self(), pid: nil}
       assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
     end
 
@@ -223,7 +223,7 @@ defmodule TaskTest do
 
     test "exits on :noconnection from named monitor" do
       ref = make_ref()
-      task = %Task{ref: ref, pid: nil, owner: self()}
+      task = %Task{ref: ref, owner: self(), pid: nil}
       send(self(), {:DOWN, ref, :process, {:name, :node}, :noconnection})
       assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :node}
     end
@@ -241,7 +241,7 @@ defmodule TaskTest do
 
   describe "yield/2" do
     test "returns {:ok, result} when reply and :DOWN in message queue" do
-      task = %Task{ref: make_ref(), owner: self()}
+      task = %Task{ref: make_ref(), owner: self(), pid: nil}
       send(self(), {task.ref, :result})
       send(self(), {:DOWN, task.ref, :process, self(), :abnormal})
       assert Task.yield(task, 0) == {:ok, :result}
@@ -249,7 +249,7 @@ defmodule TaskTest do
     end
 
     test "returns nil on timeout" do
-      task = %Task{ref: make_ref(), owner: self()}
+      task = %Task{ref: make_ref(), pid: nil, owner: self()}
       assert Task.yield(task, 0) == nil
     end
 
@@ -278,7 +278,7 @@ defmodule TaskTest do
 
   describe "yield_many/2" do
     test "returns {:ok, result} when reply and :DOWN in message queue" do
-      task = %Task{ref: make_ref(), owner: self()}
+      task = %Task{ref: make_ref(), owner: self(), pid: nil}
       send(self(), {task.ref, :result})
       send(self(), {:DOWN, task.ref, :process, self(), :abnormal})
       assert Task.yield_many([task], 0) == [{task, {:ok, :result}}]
@@ -286,7 +286,7 @@ defmodule TaskTest do
     end
 
     test "returns nil on timeout" do
-      task = %Task{ref: make_ref(), owner: self()}
+      task = %Task{ref: make_ref(), owner: self(), pid: nil}
       assert Task.yield_many([task], 0) == [{task, nil}]
     end
 
@@ -313,9 +313,9 @@ defmodule TaskTest do
     end
 
     test "returns results from multiple tasks" do
-      task1 = %Task{ref: make_ref(), owner: self()}
-      task2 = %Task{ref: make_ref(), owner: self()}
-      task3 = %Task{ref: make_ref(), owner: self()}
+      task1 = %Task{ref: make_ref(), owner: self(), pid: nil}
+      task2 = %Task{ref: make_ref(), owner: self(), pid: nil}
+      task3 = %Task{ref: make_ref(), owner: self(), pid: nil}
 
       send(self(), {task1.ref, :result})
       send(self(), {:DOWN, task3.ref, :process, self(), :normal})
@@ -325,9 +325,9 @@ defmodule TaskTest do
     end
 
     test "returns results on infinity timeout" do
-      task1 = %Task{ref: make_ref(), owner: self()}
-      task2 = %Task{ref: make_ref(), owner: self()}
-      task3 = %Task{ref: make_ref(), owner: self()}
+      task1 = %Task{ref: make_ref(), owner: self(), pid: nil}
+      task2 = %Task{ref: make_ref(), owner: self(), pid: nil}
+      task3 = %Task{ref: make_ref(), owner: self(), pid: nil}
 
       send(self(), {task1.ref, :result})
       send(self(), {task2.ref, :result})
@@ -401,7 +401,7 @@ defmodule TaskTest do
     end
 
     test "raises if task PID is nil" do
-      task = %Task{ref: make_ref(), pid: nil}
+      task = %Task{ref: make_ref(), owner: nil, pid: nil}
       message = "task #{inspect(task)} does not have an associated task process"
       assert_raise ArgumentError, message, fn -> Task.shutdown(task) end
     end
