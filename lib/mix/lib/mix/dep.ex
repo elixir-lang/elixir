@@ -11,7 +11,7 @@ defmodule Mix.Dep do
 
     * `app` - the application name as an atom
 
-    * `requirement` - a binary or regex with the dependency's requirement
+    * `requirement` - a binary or regular expression with the dependency's requirement
 
     * `status` - the current status of the dependency, check
       `Mix.Dep.format_status/1` for more info
@@ -296,7 +296,7 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{status: {:nosemver, vsn}, requirement: req}) do
     "the app file specified a non-Semantic Versioning format: #{inspect(vsn)}. Mix can only match the " <>
       "requirement #{inspect(req)} against semantic versions. Please fix the application version " <>
-      "or use a regex as a requirement to match against any version"
+      "or use a regular expression as a requirement to match against any version"
   end
 
   def format_status(%Mix.Dep{status: {:nomatchvsn, vsn}, requirement: req}) do
