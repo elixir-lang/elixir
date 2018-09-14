@@ -65,16 +65,18 @@ normalize_rescue(Meta, Var, Pattern, Expr, ErlangAliases) ->
   prepend_to_block(Meta, {'=', Meta, [Pattern, Normalized]}, Expr).
 
 dynamic_normalize(Meta, Var, [H | T]) ->
+  Generated = ?generated(Meta),
+
   Guards =
     lists:foldl(fun(Alias, Acc) ->
-      {'when', Meta, [erl_rescue_stacktrace_for(Meta, Var, Alias), Acc]}
-    end, erl_rescue_stacktrace_for(Meta, Var, H), T),
+      {'when', Generated, [erl_rescue_stacktrace_for(Generated, Var, Alias), Acc]}
+    end, erl_rescue_stacktrace_for(Generated, Var, H), T),
 
-  {'case', Meta, [
+  {'case', Generated, [
     Var,
     [{do, [
-      {'->', Meta, [[{'when', Meta, [Var, Guards]}], {'__STACKTRACE__', Meta, nil}]},
-      {'->', Meta, [[{'_', Meta, nil}], []]}
+      {'->', Generated, [[{'when', Generated, [Var, Guards]}], {'__STACKTRACE__', Generated, nil}]},
+      {'->', Generated, [[{'_', Generated, nil}], []]}
     ]}]
   ]}.
 
