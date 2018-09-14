@@ -425,7 +425,8 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
         true ->
           elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
             "found quoted atom \"~ts\" but the quotes are not required. "
-            "Quotes should only be used to introduce atoms with foreign characters in them",
+            "Atoms made exclusively of Unicode letters, numbers, underscore, "
+            "and @ do not require quotes",
             [hd(Parts)]
           ));
 
@@ -645,8 +646,9 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
         true ->
           elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
             "found quoted keyword \"~ts\" but the quotes are not required. "
-            "Note that keywords are always atoms, even when quoted, and quotes "
-            "should only be used to introduce keywords with foreign characters in them",
+            "Note that keywords are always atoms, even when quoted. "
+            "Similar to atoms, keywords made exclusively of Unicode "
+            "letters, numbers, underscore, and @ do not require quotes",
             [hd(Parts)]
           ));
 
@@ -738,7 +740,8 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
         true ->
           elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
             "found quoted call \"~ts\" but the quotes are not required. "
-            "Quotes should only be used to perform calls with foreign characters in them",
+            "Calls made exclusively of Unicode letters, numbers, and underscore "
+            "do not require quotes",
             [Part]
           ));
 
@@ -1104,7 +1107,7 @@ tokenize_identifier(String, Line, Column, Scope) ->
       Right = unicode:characters_to_nfc_list(Wrong),
       RightCodepoints = list_to_codepoint_hex(Right),
       WrongCodepoints = list_to_codepoint_hex(Wrong),
-      Message = io_lib:format("Elixir expects unquoted Unicode atoms and variables to be in NFC form.\n\n"
+      Message = io_lib:format("Elixir expects unquoted Unicode atoms, variables, and calls to be in NFC form.\n\n"
                               "Got:\n\n    \"~ts\" (codepoints~ts)\n\n"
                               "Expected:\n\n    \"~ts\" (codepoints~ts)\n\n"
                               "Syntax error before: ",

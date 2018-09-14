@@ -21,7 +21,7 @@ Integers (`1234`) and floats (`123.4`) in Elixir are represented as a sequence o
 
 ### Atoms
 
-Atoms in Elixir start with a colon (`:`) which must be followed by a non-combining Unicode character or underscore. The atom may continue using a sequence of Unicode characters, including numbers, underscore, and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification.
+Atoms in Elixir start with a colon (`:`) which must be followed by a non-combining Unicode character or underscore. The atom may continue using a sequence of Unicode characters, including letters, numbers, underscore, and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification.
 
 All operators in Elixir are also valid atoms. Valid examples are `:foo`, `:FOO`, `:foo_42`, `:foo@bar` and `:++`. Invalid examples are `:@foo` (`@` is not allowed at start), `:123` (numbers are not allowed at start) and `:(*)` (not a valid operator).
 
@@ -437,7 +437,7 @@ However Elixir introduces a syntax sugar where the keywords above may be written
 [foo: 1, bar: 2]
 ```
 
-Atoms with foreign characters in their name, such as whitespace, must be wrapped in quotes. This rule applies to keywords as well:
+Atoms with foreign characters, such as whitespace, must be wrapped in quotes. This rule applies to keywords as well:
 
 ```elixir
 [{:"foo bar", 1}, {:"bar baz", 2}] == ["foo bar": 1, "bar baz": 2]

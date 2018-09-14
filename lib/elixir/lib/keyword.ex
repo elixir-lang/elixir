@@ -20,15 +20,18 @@ defmodule Keyword do
       iex> [{:active, :once}]
       [active: :once]
 
-  The two syntaxes are completely equivalent. If the keyword has foreign
-  characters, such as spaces, you can wrap it in quotes:
+  The two syntaxes are completely equivalent. Like atoms, keywords
+  must be composed of Unicode characters such as letters, numbers,
+  underscore, and `@`. If the keyword has a character that does not
+  belong to the category above, such as spaces, you can wrap it in
+  quotes:
 
       iex> ["exit on close": true]
       ["exit on close": true]
 
   Wrapping a keyword in quotes does not make it a string. Keywords are
-  always atoms and quotes should only be used to handle foreign characters.
-  In fact, if you attempt use quotes when not necessary, Elixir will warn.
+  always atoms. If you use quotes when all characters are a valid part
+  of a keyword without quotes, Elixir will warn.
 
   Note that when keyword lists are passed as the last argument to a function,
   if the short-hand syntax is used then the square brackets around the keyword list
