@@ -1089,20 +1089,20 @@ defmodule Registry do
   In the example below we register the current process under the same
   key in a duplicate registry but with different values:
 
-      iex> Registry.start_link(keys: :duplicate, name: Registry.MatchTest)
-      iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {1, :atom, 1})
-      iex> {:ok, _} = Registry.register(Registry.MatchTest, "hello", {2, :atom, 2})
-      iex> Registry.count_match(Registry.MatchTest, "hello", {1, :_, :_})
+      iex> Registry.start_link(keys: :duplicate, name: Registry.CountMatchTest)
+      iex> {:ok, _} = Registry.register(Registry.CountMatchTest, "hello", {1, :atom, 1})
+      iex> {:ok, _} = Registry.register(Registry.CountMatchTest, "hello", {2, :atom, 2})
+      iex> Registry.count_match(Registry.CountMatchTest, "hello", {1, :_, :_})
       1
-      iex> Registry.count_match(Registry.MatchTest, "hello", {2, :_, :_})
+      iex> Registry.count_match(Registry.CountMatchTest, "hello", {2, :_, :_})
       1
-      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :atom, :_})
+      iex> Registry.count_match(Registry.CountMatchTest, "hello", {:_, :atom, :_})
       2
-      iex> Registry.count_match(Registry.MatchTest, "hello", {:"$1", :_, :"$1"})
+      iex> Registry.count_match(Registry.CountMatchTest, "hello", {:"$1", :_, :"$1"})
       2
-      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}])
+      iex> Registry.count_match(Registry.CountMatchTest, "hello", {:_, :_, :"$1"}, [{:>, :"$1", 1}])
       1
-      iex> Registry.count_match(Registry.MatchTest, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}])
+      iex> Registry.count_match(Registry.CountMatchTest, "hello", {:_, :"$1", :_}, [{:is_atom, :"$1"}])
       2
 
   """
