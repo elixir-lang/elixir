@@ -352,7 +352,7 @@ defmodule Kernel.WarningTest do
                defp hello(1), do: :ok
              end
              """)
-           end) =~ "function hello/1 is unused\n  nofile:3"
+           end) =~ "function hello/1 is unused\n  nofile:2"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""

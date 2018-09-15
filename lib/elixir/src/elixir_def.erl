@@ -249,22 +249,23 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
       ok
   end,
 
-  MaxDefaults =
+  {MaxDefaults, FirstMeta} =
     case ets:lookup(Set, {def, Tuple}) of
       [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, LastDefaults}}] ->
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
         (Check and StoredCheck) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile),
         check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
-        max(Defaults, StoredDefaults);
+
+        {max(Defaults, StoredDefaults), StoredMeta};
       [] ->
         ets:insert(Bag, {defs, Tuple}),
-        Defaults
+        {Defaults, Meta}
     end,
 
   Check andalso ets:insert(Set, {?last_def, Tuple}),
   ets:insert(Bag, [{{clauses, Tuple}, Clause} || Clause <- Clauses]),
-  ets:insert(Set, {{def, Tuple}, Kind, Meta, File, Check, {MaxDefaults, HasBody, Defaults}}).
+  ets:insert(Set, {{def, Tuple}, Kind, FirstMeta, File, Check, {MaxDefaults, HasBody, Defaults}}).
 
 %% Handling of defaults
 
