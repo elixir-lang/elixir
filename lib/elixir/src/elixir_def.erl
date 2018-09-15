@@ -65,17 +65,17 @@ fetch_definitions(File, Module) ->
   {All, Unreachable}.
 
 fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
-  [{_, Kind, Meta, _, Check, {Defaults, _, _}}] = ets:lookup(Set, {def, Tuple}),
+  [{_, Kind, Meta, _, Check, {MaxDefaults, _, Defaults}}] = ets:lookup(Set, {def, Tuple}),
 
   try ets:lookup_element(Bag, {clauses, Tuple}, 2) of
     Clauses ->
       NewAll =
-        [{Tuple, Kind, add_defaults_to_meta(Defaults, Meta), Clauses} | All],
+        [{Tuple, Kind, add_defaults_to_meta(MaxDefaults, Meta), Clauses} | All],
       NewPrivate =
         case (Kind == defp) orelse (Kind == defmacrop) of
           true ->
-            WarnMeta = case Check of true -> Meta; false -> false end,
-            [{Tuple, Kind, WarnMeta, Defaults} | Private];
+            Metas = head_and_definition_meta(Check, Meta, MaxDefaults - Defaults, All),
+            [{Tuple, Kind, Metas, MaxDefaults} | Private];
           false ->
             Private
         end,
@@ -91,6 +91,13 @@ fetch_definition([], _File, _Module, _Set, _Bag, All, Private) ->
 
 add_defaults_to_meta(0, Meta) -> Meta;
 add_defaults_to_meta(Defaults, Meta) -> [{defaults, Defaults} | Meta].
+
+head_and_definition_meta(true, Meta, 0, _All) ->
+  {Meta, nil};
+head_and_definition_meta(true, Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
+  {Meta, HeadMeta};
+head_and_definition_meta(false, _Meta, _HeadDefaults, _All) ->
+  false.
 
 %% Section for storing definitions
 

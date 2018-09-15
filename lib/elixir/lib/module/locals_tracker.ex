@@ -122,7 +122,7 @@ defmodule Module.LocalsTracker do
     acc
   end
 
-  defp collect_warnings({tuple, kind, meta, 0}, acc, reachable) do
+  defp collect_warnings({tuple, kind, {meta, _head_meta}, 0}, acc, reachable) do
     if Map.has_key?(reachable, tuple) do
       acc
     else
@@ -130,7 +130,11 @@ defmodule Module.LocalsTracker do
     end
   end
 
-  defp collect_warnings({tuple, kind, meta, default}, acc, reachable) when default > 0 do
+  defp collect_warnings({tuple, kind, {meta, nil}, default}, acc, reachable) do
+    collect_warnings({tuple, kind, {meta, meta}, default}, acc, reachable)
+  end
+
+  defp collect_warnings({tuple, kind, {meta, head_meta}, default}, acc, reachable) do
     {name, arity} = tuple
     min = arity - default
     max = arity
@@ -138,8 +142,8 @@ defmodule Module.LocalsTracker do
     case min_reachable_default(max, min, :none, name, reachable) do
       :none -> [{meta, {:unused_def, tuple, kind}} | acc]
       ^min -> acc
-      ^max -> [{meta, {:unused_args, tuple}} | acc]
-      diff -> [{meta, {:unused_args, tuple, diff}} | acc]
+      ^max -> [{head_meta, {:unused_args, tuple}} | acc]
+      diff -> [{head_meta, {:unused_args, tuple, diff}} | acc]
     end
   end
 
