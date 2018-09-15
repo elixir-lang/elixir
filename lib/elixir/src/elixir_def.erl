@@ -93,9 +93,9 @@ add_defaults_to_meta(0, Meta) -> Meta;
 add_defaults_to_meta(Defaults, Meta) -> [{defaults, Defaults} | Meta].
 
 head_and_definition_meta(true, Meta, 0, _All) ->
-  {Meta, nil};
-head_and_definition_meta(true, Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
-  {Meta, HeadMeta};
+  Meta;
+head_and_definition_meta(true, _Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
+  HeadMeta;
 head_and_definition_meta(false, _Meta, _HeadDefaults, _All) ->
   false.
 

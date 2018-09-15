@@ -36,60 +36,35 @@ defmodule Module.LocalsTrackerTest do
   test "unused private definitions are marked as so", config do
     D.add_local(config[:ref], {:public, 1}, {:private, 1})
 
-    unused = D.collect_unused_locals(config[:ref], @used, [{{:private, 0}, :defp, {[], nil}, 0}])
+    unused = D.collect_unused_locals(config[:ref], @used, [{{:private, 0}, :defp, [], 0}])
     assert unused == {[private: 0], [{[], {:unused_def, {:private, 0}, :defp}}]}
 
-    unused = D.collect_unused_locals(config[:ref], @used, [{{:private, 1}, :defp, {[], nil}, 0}])
+    unused = D.collect_unused_locals(config[:ref], @used, [{{:private, 1}, :defp, [], 0}])
     assert unused == {[], []}
   end
 
-  @unused_private [
-    {{:private, 3}, :defp, {[], nil}, 3}
-  ]
-
-  @unused_private_with_head [
-    {{:private, 3}, :defp, {[], [line: 1]}, 3}
+  @unused [
+    {{:private, 3}, :defp, [], 3}
   ]
 
   test "private definitions with unused default arguments", config do
-    unused = D.collect_unused_locals(config[:ref], @used, @unused_private)
+    unused = D.collect_unused_locals(config[:ref], @used, @unused)
     assert unused == {[private: 3], [{[], {:unused_def, {:private, 3}, :defp}}]}
 
     D.add_local(config[:ref], {:public, 1}, {:private, 3})
-    unused = D.collect_unused_locals(config[:ref], @used, @unused_private)
+    unused = D.collect_unused_locals(config[:ref], @used, @unused)
     assert unused == {[], [{[], {:unused_args, {:private, 3}}}]}
-  end
-
-  test "private definitions with head and unused default arguments", config do
-    unused = D.collect_unused_locals(config[:ref], @used, @unused_private_with_head)
-    assert unused == {[private: 3], [{[], {:unused_def, {:private, 3}, :defp}}]}
-
-    D.add_local(config[:ref], {:public, 1}, {:private, 3})
-    unused = D.collect_unused_locals(config[:ref], @used, @unused_private_with_head)
-    assert unused == {[], [{[line: 1], {:unused_args, {:private, 3}}}]}
   end
 
   test "private definitions with some unused default arguments", config do
     D.add_local(config[:ref], {:public, 1}, {:private, 1})
-    unused = D.collect_unused_locals(config[:ref], @used, @unused_private)
+    unused = D.collect_unused_locals(config[:ref], @used, @unused)
     assert unused == {[private: 3], [{[], {:unused_args, {:private, 3}, 1}}]}
-  end
-
-  test "private definitions with head and some unused default arguments", config do
-    D.add_local(config[:ref], {:public, 1}, {:private, 1})
-    unused = D.collect_unused_locals(config[:ref], @used, @unused_private_with_head)
-    assert unused == {[private: 3], [{[line: 1], {:unused_args, {:private, 3}, 1}}]}
   end
 
   test "private definitions with all used default arguments", config do
     D.add_local(config[:ref], {:public, 1}, {:private, 0})
-    unused = D.collect_unused_locals(config[:ref], @used, @unused_private)
-    assert unused == {[private: 3], []}
-  end
-
-  test "private definitions with head and all used default arguments", config do
-    D.add_local(config[:ref], {:public, 1}, {:private, 0})
-    unused = D.collect_unused_locals(config[:ref], @used, @unused_private)
+    unused = D.collect_unused_locals(config[:ref], @used, @unused)
     assert unused == {[private: 3], []}
   end
 
