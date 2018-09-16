@@ -65,17 +65,17 @@ fetch_definitions(File, Module) ->
   {All, Unreachable}.
 
 fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
-  [{_, Kind, Meta, _, Check, {Defaults, _, _}}] = ets:lookup(Set, {def, Tuple}),
+  [{_, Kind, Meta, _, Check, {MaxDefaults, _, Defaults}}] = ets:lookup(Set, {def, Tuple}),
 
   try ets:lookup_element(Bag, {clauses, Tuple}, 2) of
     Clauses ->
       NewAll =
-        [{Tuple, Kind, add_defaults_to_meta(Defaults, Meta), Clauses} | All],
+        [{Tuple, Kind, add_defaults_to_meta(MaxDefaults, Meta), Clauses} | All],
       NewPrivate =
         case (Kind == defp) orelse (Kind == defmacrop) of
           true ->
-            WarnMeta = case Check of true -> Meta; false -> false end,
-            [{Tuple, Kind, WarnMeta, Defaults} | Private];
+            Metas = head_and_definition_meta(Check, Meta, MaxDefaults - Defaults, All),
+            [{Tuple, Kind, Metas, MaxDefaults} | Private];
           false ->
             Private
         end,
@@ -91,6 +91,13 @@ fetch_definition([], _File, _Module, _Set, _Bag, All, Private) ->
 
 add_defaults_to_meta(0, Meta) -> Meta;
 add_defaults_to_meta(Defaults, Meta) -> [{defaults, Defaults} | Meta].
+
+head_and_definition_meta(true, Meta, 0, _All) ->
+  Meta;
+head_and_definition_meta(true, _Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
+  HeadMeta;
+head_and_definition_meta(false, _Meta, _HeadDefaults, _All) ->
+  false.
 
 %% Section for storing definitions
 
@@ -242,22 +249,23 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
       ok
   end,
 
-  MaxDefaults =
+  {MaxDefaults, FirstMeta} =
     case ets:lookup(Set, {def, Tuple}) of
       [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, LastDefaults}}] ->
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
         (Check and StoredCheck) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile),
         check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
-        max(Defaults, StoredDefaults);
+
+        {max(Defaults, StoredDefaults), StoredMeta};
       [] ->
         ets:insert(Bag, {defs, Tuple}),
-        Defaults
+        {Defaults, Meta}
     end,
 
   Check andalso ets:insert(Set, {?last_def, Tuple}),
   ets:insert(Bag, [{{clauses, Tuple}, Clause} || Clause <- Clauses]),
-  ets:insert(Set, {{def, Tuple}, Kind, Meta, File, Check, {MaxDefaults, HasBody, Defaults}}).
+  ets:insert(Set, {{def, Tuple}, Kind, FirstMeta, File, Check, {MaxDefaults, HasBody, Defaults}}).
 
 %% Handling of defaults
 
