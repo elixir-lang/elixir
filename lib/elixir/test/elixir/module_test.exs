@@ -286,15 +286,19 @@ defmodule ModuleTest do
     assert ModuleHygiene.test() == [1, 2, 3]
   end
 
-  test "ensure function clauses are ordered" do
+  test "ensure function clauses are sorted (to avoid non-determinism in module vsn)" do
     {_, _, binary, _} =
       defmodule Ordered do
         def foo(:foo), do: :bar
         def baz(:baz), do: :bat
       end
 
-    atoms = :beam_lib.chunks(binary, [:atoms])
-    assert :erlang.phash2(atoms) == 61_635_213
+    {:ok, {ModuleTest.Ordered, [abstract_code: {:raw_abstract_v1, abstract_code}]}} =
+      :beam_lib.chunks(binary, [:abstract_code])
+
+    # We need to traverse functions instead of using :exports as exports are sorted
+    funs = for {:function, _, name, arity, _} <- abstract_code, do: {name, arity}
+    assert funs == [__info__: 1, baz: 1, foo: 1]
   end
 
   test "create with generated true does not emit warnings" do
