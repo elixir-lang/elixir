@@ -343,7 +343,7 @@ defmodule Kernel.WarningTest do
                defp hello, do: nil
              end
              """)
-           end) =~ "function hello/0 is unused"
+           end) =~ "function hello/0 is unused\n  nofile:2"
 
     assert capture_err(fn ->
              Code.eval_string("""
@@ -352,7 +352,7 @@ defmodule Kernel.WarningTest do
                defp hello(1), do: :ok
              end
              """)
-           end) =~ "function hello/1 is unused"
+           end) =~ "function hello/1 is unused\n  nofile:2"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -363,20 +363,34 @@ defmodule Kernel.WarningTest do
                defp d(x), do: x
              end
              """)
-           end) =~ "function c/2 is unused"
+           end) =~ "function c/2 is unused\n  nofile:4"
+
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+             defmodule Sample4 do
+               def a, do: nil
+               defp b(x \\ 1, y \\ 1)
+               defp b(x, y), do: [x, y]
+             end
+             """)
+           end) =~ "function b/2 is unused\n  nofile:3"
   after
-    purge([Sample1, Sample2, Sample3])
+    purge([Sample1, Sample2, Sample3, Sample4])
   end
 
   test "unused cyclic functions" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample do
-               defp a, do: b()
-               defp b, do: a()
-             end
-             """)
-           end) =~ "function a/0 is unused"
+    message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          defp a, do: b()
+          defp b, do: a()
+        end
+        """)
+      end)
+
+    assert message =~ "function a/0 is unused\n  nofile:2"
+    assert message =~ "function b/0 is unused\n  nofile:3"
   after
     purge(Sample)
   end
@@ -418,7 +432,7 @@ defmodule Kernel.WarningTest do
                defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "default arguments in b/3 are never used"
+           end) =~ "default arguments in b/3 are never used\n  nofile:3"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -427,7 +441,7 @@ defmodule Kernel.WarningTest do
                defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "the first 2 default arguments in b/3 are never used"
+           end) =~ "the first 2 default arguments in b/3 are never used\n  nofile:3"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -436,7 +450,7 @@ defmodule Kernel.WarningTest do
                defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "the first default argument in b/3 is never used"
+           end) =~ "the first default argument in b/3 is never used\n  nofile:3"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -446,8 +460,30 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) == ""
+
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+             defmodule Sample5 do
+               def a, do: b(1, 2, 3)
+               defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
+
+               defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
+             end
+             """)
+           end) =~ "default arguments in b/3 are never used\n  nofile:3"
+
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+             defmodule Sample6 do
+               def a, do: b(1, 2)
+               defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
+
+               defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
+             end
+             """)
+           end) =~ "the first 2 default arguments in b/3 are never used\n  nofile:3"
   after
-    purge([Sample1, Sample2, Sample3, Sample4])
+    purge([Sample1, Sample2, Sample3, Sample4, Sample5, Sample6])
   end
 
   test "unused import" do
