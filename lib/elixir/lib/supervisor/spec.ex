@@ -224,8 +224,8 @@ defmodule Supervisor.Spec do
         modules: [module]
       ]
 
-  Check the documentation for the `Supervisor.Spec` module for more
-  information on the options.
+  See the "Supervisor and worker options" section in the `Supervisor.Spec` module for more
+  information on the available options.
   """
   @spec worker(
           module,
@@ -257,8 +257,8 @@ defmodule Supervisor.Spec do
         modules: [module]
       ]
 
-  Check the documentation for the `Supervisor.Spec` module for more
-  information on the options.
+  See the "Supervisor and worker options" section in the `Supervisor.Spec` module for more
+  information on the available options.
   """
   @spec supervisor(
           module,
