@@ -389,7 +389,7 @@ defmodule ExUnit.Case do
   @doc false
   def __describe__(module, line, message) do
     if Module.get_attribute(module, :ex_unit_describe) do
-      raise "cannot call describe/2 inside another describe. See the documentation " <>
+      raise "cannot call \"describe\" inside another \"describe\". See the documentation " <>
               "for ExUnit.Case.describe/2 on named setups and how to handle hierarchies"
     end
 
