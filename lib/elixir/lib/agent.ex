@@ -84,7 +84,7 @@ defmodule Agent do
 
       use Agent, restart: :transient, shutdown: 10_000
 
-  See the "Child specification" section in the `Supervisor` module for more detailed information..
+  See the "Child specification" section in the `Supervisor` module for more detailed information.
 
   ## Name registration
 
@@ -140,7 +140,7 @@ defmodule Agent do
   @doc """
   Returns a specification to start an agent under a supervisor.
 
-  See `Supervisor.Spec` for more information.
+  See the "Child specification" section in the `Supervisor` module for more detailed information.
   """
   @doc since: "1.5.0"
   def child_spec(arg) do
