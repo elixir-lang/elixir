@@ -1256,6 +1256,77 @@ defmodule Kernel.WarningTest do
     after
       purge(Sample)
     end
+
+    test "nested type annotations" do
+      message = "invalid type annotation. Type annotations cannot be nested"
+
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @type my_type :: ann_type :: nested_ann_type :: atom
+               end
+               """)
+             end) =~ message
+
+      purge(Sample)
+
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @type my_type :: ann_type :: nested_ann_type :: atom | port
+               end
+               """)
+             end) =~ message
+
+      purge(Sample)
+
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @spec foo :: {pid, ann_type :: nested_ann_type :: atom}
+                 def foo, do: nil
+               end
+               """)
+             end) =~ message
+    after
+      purge(Sample)
+    end
+
+    test "invalid type annotations" do
+      message =
+        "invalid type annotation. When using the | operator to represent the union of types, " <>
+          "make sure to wrap type annotations in parentheses"
+
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @type my_type :: pid | integer :: atom
+               end
+               """)
+             end) =~ message
+
+      purge(Sample)
+
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @type my_type :: pid | integer :: atom | port
+               end
+               """)
+             end) =~ message
+
+      purge(Sample)
+
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @type my_type :: {port, pid | integer :: atom | port}
+               end
+               """)
+             end) =~ message
+    after
+      purge(Sample)
+    end
   end
 
   test "attribute with no use" do
