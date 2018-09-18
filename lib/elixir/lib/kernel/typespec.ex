@@ -585,7 +585,14 @@ defmodule Kernel.Typespec do
           "invalid type annotation. Type annotations cannot be nested: " <>
             "#{Macro.to_string(ann_type)}"
 
-        compile_error(caller, message)
+        # TODO: make this an error in elixir 2.0 and remove code below
+        :elixir_errors.warn(caller.line, caller.file, message)
+
+        # This may be generating an invalid typespec but we need to generate it
+        # to avoid breaking existing code that was valid but only broke dialyzer
+        {left, state} = typespec(var, [elem(var, 0) | vars], caller, state)
+        {right, state} = typespec(expr, vars, caller, state)
+        {{:ann_type, line(meta), [left, right]}, state}
 
       {right, state} ->
         {left, state} = typespec(var, [var_name | vars], caller, state)
@@ -593,12 +600,19 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp typespec({:::, _meta, _args} = ann_type, _vars, caller, _state) do
+  defp typespec({:::, meta, [var, expr]} = ann_type, vars, caller, state) do
     message =
       "invalid type annotation. When using the | operator to represent the union of types, " <>
         "make sure to wrap type annotations in parentheses: #{Macro.to_string(ann_type)}"
 
-    compile_error(caller, message)
+    # TODO: make this an error in elixir 2.0 and remove code below
+    :elixir_errors.warn(caller.line, caller.file, message)
+
+    # This may be generating an invalid typespec but we need to generate it
+    # to avoid breaking existing code that was valid but only broke dialyzer
+    {left, state} = typespec(var, [elem(var, 0) | vars], caller, state)
+    {right, state} = typespec(expr, vars, caller, state)
+    {{:ann_type, line(meta), [left, right]}, state}
   end
 
   # Handle unary ops
