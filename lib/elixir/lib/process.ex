@@ -294,7 +294,7 @@ defmodule Process do
   not refer to a process.
 
   This function returns a timer reference, and the message is not sent immediately.
-  Therefore, `dest` can receive other messages in-between even when `time` is 0.
+  Therefore, `dest` can receive other messages in-between even when `time` is `0`.
   This timer reference can be read with `read_timer/1` or cancelled with
   `cancel_timer/1`.
 
