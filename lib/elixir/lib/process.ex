@@ -293,8 +293,9 @@ defmodule Process do
   which is looked up at the time of delivery. No error is produced if the name does
   not refer to a process.
 
-  This function returns a timer reference, which can be read with `read_timer/1`
-  or canceled with `cancel_timer/1`.
+  This function returns a timer reference and it's not executed immediately,
+  even when `time` is 0. This timer reference can be read with `read_timer/1` or
+  cancelled with `cancel_timer/1`.
 
   The timer will be automatically canceled if the given `dest` is a PID
   which is not alive or when the given PID exits. Note that timers will not be
