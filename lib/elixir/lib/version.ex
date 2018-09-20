@@ -94,7 +94,9 @@ defmodule Version do
   @type patch :: non_neg_integer | nil
   @type pre :: [String.t() | non_neg_integer]
   @type build :: String.t() | nil
-  @type matchable :: {major :: major, minor :: minor, patch :: patch, pre :: pre}
+  @type matchable ::
+          {major :: major, minor :: minor, patch :: patch, pre :: pre,
+           build_parts :: [String.t()]}
   @type t :: %__MODULE__{major: major, minor: minor, patch: patch, pre: pre, build: build}
 
   defmodule Requirement do
