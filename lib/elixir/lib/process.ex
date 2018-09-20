@@ -293,6 +293,9 @@ defmodule Process do
   which is looked up at the time of delivery. No error is produced if the name does
   not refer to a process.
 
+  The message is not sent immediately. Therefore, `dest` can receive other messages
+  in-between even when `time` is `0`.
+
   This function returns a timer reference, which can be read with `read_timer/1`
   or canceled with `cancel_timer/1`.
 
