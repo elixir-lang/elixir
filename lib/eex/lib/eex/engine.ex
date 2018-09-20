@@ -65,24 +65,24 @@ defmodule EEx.Engine do
         EEx.Engine.init(opts)
       end
 
-      def handle_body(quoted) do
-        EEx.Engine.handle_body(quoted)
+      def handle_body(state) do
+        EEx.Engine.handle_body(state)
       end
 
-      def handle_begin(quoted) do
-        EEx.Engine.handle_begin(quoted)
+      def handle_begin(state) do
+        EEx.Engine.handle_begin(state)
       end
 
-      def handle_end(quoted) do
-        EEx.Engine.handle_end(quoted)
+      def handle_end(state) do
+        EEx.Engine.handle_end(state)
       end
 
-      def handle_text(buffer, text) do
-        EEx.Engine.handle_text(buffer, text)
+      def handle_text(state, text) do
+        EEx.Engine.handle_text(state, text)
       end
 
-      def handle_expr(buffer, marker, expr) do
-        EEx.Engine.handle_expr(buffer, marker, expr)
+      def handle_expr(state, marker, expr) do
+        EEx.Engine.handle_expr(state, marker, expr)
       end
 
       defoverridable EEx.Engine
