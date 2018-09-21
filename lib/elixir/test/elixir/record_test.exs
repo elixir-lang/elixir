@@ -268,4 +268,30 @@ defmodule RecordTest do
       end
     end
   end
+
+  test "macro and record with the same name defined" do
+    msg = "cannot define record :a because a definition a/1 already exists"
+
+    assert_raise ArgumentError, msg, fn ->
+      defmodule M do
+        defmacro a(_) do
+        end
+
+        require Record
+        Record.defrecord(:a, [:a])
+      end
+    end
+
+    msg = "cannot define record :a because a definition a/2 already exists"
+
+    assert_raise ArgumentError, msg, fn ->
+      defmodule M do
+        defmacro a(_, _) do
+        end
+
+        require Record
+        Record.defrecord(:a, [:a])
+      end
+    end
+  end
 end
