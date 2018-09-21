@@ -255,7 +255,15 @@ defmodule Record do
   """
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
+      if Module.defines?(__MODULE__, {name, 0}, :defmacro) do
+        raise CompileError,
+          file: __ENV__.file,
+          line: __ENV__.line,
+          description: "record #{inspect(name)} was previously defined"
+      end
+
       tag = tag || name
+
       fields = Record.__fields__(:defrecord, kv)
 
       defmacro unquote(name)(args \\ []) do
@@ -273,7 +281,15 @@ defmodule Record do
   """
   defmacro defrecordp(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
+      if Module.defines?(__MODULE__, {name, 0}, :defmacrop) do
+        raise CompileError,
+          file: __ENV__.file,
+          line: __ENV__.line,
+          description: "record #{inspect(name)} was previously defined"
+      end
+
       tag = tag || name
+
       fields = Record.__fields__(:defrecordp, kv)
 
       defmacrop unquote(name)(args \\ []) do

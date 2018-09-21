@@ -256,4 +256,16 @@ defmodule RecordTest do
     assert timestamp(record, :date) == :foo
     assert timestamp(record, :time) == :bar
   end
+
+  test "records defined multiple times" do
+    msg_regex = ~r/record :r was previously defined/
+
+    assert_raise CompileError, msg_regex, fn ->
+      defmodule M do
+        import Record
+        defrecord :r, [:a]
+        defrecord :r, [:a]
+      end
+    end
+  end
 end
