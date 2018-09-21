@@ -62,11 +62,11 @@ defmodule Record do
 
     * `:includes` - (a list of directories as binaries) if the record being
       extracted depends on relative includes, this option allows developers
-      to specify the directory those relative includes exist
+      to specify the directory where those relative includes exist.
 
     * `:macros` - (keyword list of macro names and values) if the record
-      being extract depends on the values of macros, this option allows
-      the value of those macros to be set
+      being extracted depends on the values of macros, this option allows
+      the value of those macros to be set.
 
   These options are expected to be literals (including the binary values) at
   compile time.
@@ -112,6 +112,7 @@ defmodule Record do
       that contains the record definitions to extract; with this option, this
       function uses the same path lookup used by the `-include` attribute used in
       Erlang modules.
+
     * `:from_lib` - (binary representing a path to a file) path to the Erlang
       file that contains the record definitions to extract; with this option,
       this function uses the same path lookup used by the `-include_lib`
