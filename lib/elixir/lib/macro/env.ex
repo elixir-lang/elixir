@@ -28,7 +28,7 @@ defmodule Macro.Env do
       element is the function name and the second its arity; returns
       `nil` if not inside a function
     * `context` - the context of the environment; it can be `nil`
-      (default context), inside a guard or inside a match
+      (default context), `:guard` (inside a guard) or `:match` (inside a match)
     * `aliases` -  a list of two-element tuples, where the first
       element is the aliased name and the second one the actual name
     * `requires` - the list of required modules
