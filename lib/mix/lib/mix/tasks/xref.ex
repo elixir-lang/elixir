@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Xref do
   ### graph
 
   Prints a file dependency graph where an edge from `A` to `B` indicates
-  that `A` depends on `B`.
+  that `A` (source) depends on `B` (sink).
 
       mix xref graph --format stats
 
@@ -70,13 +70,15 @@ defmodule Mix.Tasks.Xref do
     * `--exclude` - paths to exclude
 
     * `--label` - only shows relationships with the given label
-      The labels are "compile", "struct" and "runtime" (runtime is now shown on the graph)
+      The labels are "compile", "struct" and "runtime"
 
     * `--only-nodes` - only shows the node names (no edges)
 
-    * `--source` - displays all files that the given source file references (directly or indirectly)
+    * `--source` - displays all files that the given source file
+      references (directly or indirectly)
 
-    * `--sink` - displays all files that reference the given file (directly or indirectly)
+    * `--sink` - displays all files that reference the given file
+      (directly or indirectly)
 
     * `--format` - can be set to one of:
 
@@ -129,8 +131,9 @@ defmodule Mix.Tasks.Xref do
 
   All configuration for Xref should be placed under the key `:xref`.
 
-    * `:exclude` - a list of modules and `{module, function, arity}` tuples to ignore when checking
-      cross references. For example: `[MissingModule, {MissingModule2, :missing_func, 2}]`
+    * `:exclude` - a list of modules and `{module, function, arity}`
+      tuples to ignore when checking cross references. For example:
+      `[MissingModule, {MissingModule2, :missing_func, 2}]`
 
   """
 
