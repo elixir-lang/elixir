@@ -255,11 +255,9 @@ defmodule Record do
   """
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
-      if Module.defines?(__MODULE__, {name, 0}, :defmacro) do
-        raise CompileError,
-          file: __ENV__.file,
-          line: __ENV__.line,
-          description: "record #{inspect(name)} was previously defined"
+      if Module.defines?(__MODULE__, {name, 0}) do
+        raise ArgumentError,
+              "cannot define record #{inspect(name)} because a definition #{name}/0 already exists"
       end
 
       tag = tag || name
@@ -281,11 +279,9 @@ defmodule Record do
   """
   defmacro defrecordp(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
-      if Module.defines?(__MODULE__, {name, 0}, :defmacrop) do
-        raise CompileError,
-          file: __ENV__.file,
-          line: __ENV__.line,
-          description: "record #{inspect(name)} was previously defined"
+      if Module.defines?(__MODULE__, {name, 0}) do
+        raise ArgumentError,
+              "cannot define record #{inspect(name)} because a definition #{name}/0 already exists"
       end
 
       tag = tag || name

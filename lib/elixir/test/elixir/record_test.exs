@@ -258,9 +258,9 @@ defmodule RecordTest do
   end
 
   test "records defined multiple times" do
-    msg_regex = ~r/record :r was previously defined/
+    msg = "cannot define record :r because a definition r/0 already exists"
 
-    assert_raise CompileError, msg_regex, fn ->
+    assert_raise ArgumentError, msg, fn ->
       defmodule M do
         import Record
         defrecord :r, [:a]
