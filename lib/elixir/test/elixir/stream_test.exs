@@ -1110,6 +1110,9 @@ defmodule StreamTest do
 
     stream = %HaltAcc{acc: 1..3}
     assert Stream.zip([1..3, stream]) |> Enum.to_list() == [{1, 1}, {2, 2}, {3, 3}]
+
+    range_cycle = Stream.cycle(1..2)
+    assert Stream.zip([1..3, range_cycle]) |> Enum.to_list() == [{1, 1}, {2, 2}, {3, 1}]
   end
 
   test "zip/1 does not leave streams suspended" do

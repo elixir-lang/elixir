@@ -1244,7 +1244,8 @@ defmodule Stream do
     fn acc, fun ->
       inner = &do_cycle_each(&1, &2, fun)
       outer = &Enumerable.reduce(enumerable, &1, inner)
-      do_cycle(outer, outer, acc)
+      reduce = check_cycle_first_element(outer)
+      do_cycle(reduce, outer, acc)
     end
   end
 
@@ -1263,9 +1264,6 @@ defmodule Stream do
       {:stream_cycle, acc} ->
         {:halted, acc}
     else
-      {state, []} when state in [:done, :halted] ->
-        raise ArgumentError, "cannot cycle over empty enumerable"
-
       {state, acc} when state in [:done, :halted] ->
         do_cycle(cycle, cycle, {:cont, acc})
 
@@ -1278,6 +1276,18 @@ defmodule Stream do
     case f.(x, acc) do
       {:halt, h} -> throw({:stream_cycle, h})
       {_, _} = o -> o
+    end
+  end
+
+  defp check_cycle_first_element(reduce) do
+    fn acc ->
+      case reduce.(acc) do
+        {state, []} when state in [:done, :halted] ->
+          raise ArgumentError, "cannot cycle over empty enumerable"
+
+        other ->
+          other
+      end
     end
   end
 
