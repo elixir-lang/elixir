@@ -1297,8 +1297,73 @@ defmodule Kernel do
 
   """
   @spec list ++ term :: maybe_improper_list
-  def left ++ right do
-    :erlang.++(left, right)
+  defmacro left ++ right do
+    case __CALLER__.context do
+      :match ->
+        match_list_concat(left, right, __CALLER__)
+
+      _other ->
+        quote do
+          :erlang.++(unquote(left), unquote(right))
+        end
+    end
+  end
+
+  defp match_list_concat(left, right, caller) do
+    expand =
+      case bootstrapped?(Macro) do
+        true -> &Macro.expand(&1, caller)
+        false -> & &1
+      end
+
+    expanded_left = expand.(left)
+    expanded_right = expand.(right)
+
+    try do
+      static_append(expanded_left, expanded_right)
+    catch
+      :impossible ->
+        :erlang.error(
+          ArgumentError.exception(
+            "invalid argument for ++ operator inside a match, expected a " <>
+              "literal proper list, got: #{Macro.to_string(left)}"
+          )
+        )
+    end
+  end
+
+  defp static_append([], right) do
+    right
+  end
+
+  defp static_append([{:|, meta, [head, tail]}], right) when is_list(tail) do
+    new_tail = static_append(tail, right)
+
+    quote line: meta[:line] do
+      [unquote(head) | unquote(new_tail)]
+    end
+  end
+
+  defp static_append([{:|, _meta, [_head, _tail]}], _right) do
+    throw(:impossible)
+  end
+
+  defp static_append([last], right) do
+    quote do
+      [unquote(last) | unquote(right)]
+    end
+  end
+
+  defp static_append([head | tail], right) when is_list(tail) do
+    new_tail = static_append(tail, right)
+
+    quote do
+      [unquote(head) | unquote(new_tail)]
+    end
+  end
+
+  defp static_append(_left, _right) do
+    throw(:impossible)
   end
 
   @doc """

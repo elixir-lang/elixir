@@ -562,15 +562,15 @@ defmodule Kernel.ExpansionTest do
 
       message = ~r"invalid argument for \+\+ operator inside a match"
 
-      assert_raise CompileError, message, fn ->
+      assert_raise ArgumentError, message, fn ->
         expand(quote(do: "a" ++ "b" = "ab"))
       end
 
-      assert_raise CompileError, message, fn ->
+      assert_raise ArgumentError, message, fn ->
         expand(quote(do: [1 | 2] ++ [3] = [1, 2, 3]))
       end
 
-      assert_raise CompileError, message, fn ->
+      assert_raise ArgumentError, message, fn ->
         expand(quote(do: [1] ++ 2 ++ [3] = [1, 2, 3]))
       end
 
