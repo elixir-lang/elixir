@@ -952,6 +952,18 @@ defmodule Kernel.ErrorsTest do
     """
   end
 
+  test "def raises if there's only the else clause" do
+    assert_eval_raise CompileError, ~r"\"else\" can't be used as the only clause in \"def\"", """
+    defmodule Example do
+      def foo do
+        bar()
+      else
+        _other -> :ok
+      end
+    end
+    """
+  end
+
   defp bad_remote_call(x), do: x.foo
 
   defmacro sample(0), do: 0

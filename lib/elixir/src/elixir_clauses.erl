@@ -187,7 +187,12 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
 'try'(Meta, [{do, _}], E) ->
   form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after', 'else']});
 'try'(Meta, [{do, _}, {else, _}], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, try_with_only_else_clause);
+  Kind =
+    case lists:keyfind(origin, 1, Meta) of
+      {origin, Origin} -> Origin;
+      false -> 'try'
+    end,
+  form_error(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, Kind});
 'try'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, E) ->
@@ -346,9 +351,9 @@ format_error(invalid_rescue_clause) ->
 format_error(catch_before_rescue) ->
   "\"catch\" should always come after \"rescue\" in try";
 
-format_error(try_with_only_else_clause) ->
-  "\"else\" can't be used as the only clause in \"try\" since it's equivalent to not "
-    "having the \"try\" in the first place";
+format_error({try_with_only_else_clause, Kind}) ->
+  io_lib:format("\"else\" can't be used as the only clause in \"~ts\" since it's equivalent to not "
+                "having the \"try\" in the first place", [Kind]);
 
 format_error(unmatchable_else_in_with) ->
   "\"else\" clauses will never match because all patterns in \"with\" will always match";
