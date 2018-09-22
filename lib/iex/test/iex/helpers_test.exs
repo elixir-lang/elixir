@@ -671,8 +671,30 @@ defmodule IEx.HelpersTest do
   end
 
   describe "t" do
-    test "prints when there is no type information" do
+    test "prints when there is no type information or the type is private" do
       assert capture_io(fn -> t(IEx) end) == "No type information for IEx was found\n"
+
+      assert capture_io(fn -> t(Enum.doesnt_exist()) end) ==
+               "No type information for Enum.doesnt_exist was found or " <>
+                 "Enum.doesnt_exist is private\n"
+
+      contents = """
+      defmodule TypeSample do
+        @type public_so_t_doesnt_warn() :: t()
+        @typep t() :: term()
+      end
+      """
+
+      filename = "typesample.ex"
+
+      with_file(filename, contents, fn ->
+        assert c(filename, ".") == [TypeSample]
+
+        assert capture_io(fn -> t(TypeSample.t() / 0) end) ==
+                 "No type information for TypeSample.t was found or TypeSample.t is private\n"
+      end)
+    after
+      cleanup_modules([TypeSample])
     end
 
     test "prints all types in module" do
