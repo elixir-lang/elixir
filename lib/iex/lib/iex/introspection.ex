@@ -636,13 +636,14 @@ defmodule IEx.Introspection do
 
       {:ok, types} ->
         printed =
-          for {_, {^type, _, args}} = typespec <- types do
+          for {kind, {^type, _, args}} = typespec <- types,
+              kind != :typep do
             type_doc(module, type, length(args), typespec)
             |> print_typespec()
           end
 
         if printed == [] do
-          types_not_found("#{inspect(module)}.#{type}")
+          types_not_found_or_private("#{inspect(module)}.#{type}")
         end
     end
 
@@ -656,13 +657,15 @@ defmodule IEx.Introspection do
 
       {:ok, types} ->
         printed =
-          for {_, {^type, _, args}} = typespec <- types, length(args) == arity do
+          for {kind, {^type, _, args}} = typespec <- types,
+              kind != :typep,
+              length(args) == arity do
             type_doc(module, type, arity, typespec)
             |> print_typespec()
           end
 
         if printed == [] do
-          types_not_found("#{inspect(module)}.#{type}")
+          types_not_found_or_private("#{inspect(module)}.#{type}")
         end
     end
 
@@ -768,6 +771,10 @@ defmodule IEx.Introspection do
 
   defp types_not_found(for), do: not_found(for, "type information")
   defp docs_not_found(for), do: not_found(for, "documentation")
+
+  defp types_not_found_or_private(for) do
+    puts_error("No type information for #{for} was found or #{for} is private")
+  end
 
   defp behaviour_found(for) do
     puts_error("""
