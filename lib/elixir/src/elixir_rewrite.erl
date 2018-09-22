@@ -1,5 +1,5 @@
 -module(elixir_rewrite).
--export([rewrite/5, match_rewrite/5, guard_rewrite/5, inline/3, format_error/1]).
+-export([rewrite/5, guard_rewrite/5, inline/3, format_error/1]).
 -include("elixir.hrl").
 
 %% Convenience variables
@@ -42,10 +42,7 @@ inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?kernel, '!=', 2) -> {erlang, '/='};
 inline(?kernel, '!==', 2) -> {erlang, '=/='};
 inline(?kernel, '*', 2) -> {erlang, '*'};
-inline(?kernel, '+', 1) -> {erlang, '+'};
 inline(?kernel, '+', 2) -> {erlang, '+'};
-inline(?kernel, '++', 2) -> {erlang, '++'};
-inline(?kernel, '-', 1) -> {erlang, '-'};
 inline(?kernel, '-', 2) -> {erlang, '-'};
 inline(?kernel, '--', 2) -> {erlang, '--'};
 inline(?kernel, '/', 2) -> {erlang, '/'};
@@ -240,16 +237,6 @@ increment(Number) when is_number(Number) ->
   Number + 1;
 increment(Other) ->
   {{'.', [], [erlang, '+']}, [], [Other, 1]}.
-
-%% Match rewrite
-%%
-%% Match rewrite is similar to regular rewrite, except
-%% it also verifies the rewrite rule applies in a match context.
-%% The allowed operations are very limited.
-%% The Kernel operators are already inlined by now, we only need to
-%% care about Erlang ones.
-match_rewrite(Receiver, _, Right, _, Args) ->
-  {error, {invalid_match, Receiver, Right, length(Args)}}.
 
 %% Guard rewrite
 %%

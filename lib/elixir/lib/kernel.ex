@@ -1178,7 +1178,7 @@ defmodule Kernel do
   @doc """
   Arithmetic unary plus.
 
-  Allowed in guard tests. Inlined by the compiler.
+  Allowed in guard tests.
 
   ## Examples
 
@@ -1212,7 +1212,8 @@ defmodule Kernel do
   defp match_unary_plus(value) do
     :erlang.error(
       ArgumentError.exception(
-        "cannot invoke #{Macro.to_string(value)} inside a match"
+        <<"invalid argument for + unary operator inside a match, expected a ",
+          "literal number, got: #{Macro.to_string(value)}">>
       )
     )
   end
@@ -1220,7 +1221,7 @@ defmodule Kernel do
   @doc """
   Arithmetic unary minus.
 
-  Allowed in guard tests. Inlined by the compiler.
+  Allowed in guard tests.
 
   ## Examples
 
@@ -1254,7 +1255,8 @@ defmodule Kernel do
   defp match_unary_minus(value) do
     :erlang.error(
       ArgumentError.exception(
-        "cannot invoke #{Macro.to_string(value)} inside a match"
+        <<"invalid argument for - unary operator inside a match, expected a ",
+          "literal number, got: #{Macro.to_string(value)}">>
       )
     )
   end
@@ -1320,8 +1322,6 @@ defmodule Kernel do
   If the `right` operand is not a proper list, it returns an improper list.
   If the `left` operand is not a proper list, it raises `ArgumentError`.
 
-  Inlined by the compiler.
-
   ## Examples
 
       iex> [1] ++ [2, 3]
@@ -1372,8 +1372,8 @@ defmodule Kernel do
       :impossible ->
         :erlang.error(
           ArgumentError.exception(
-            "invalid argument for ++ operator inside a match, expected a " <>
-              "literal proper list, got: #{Macro.to_string(left)}"
+            <<"invalid argument for ++ operator inside a match, expected a ",
+              "literal proper list, got: #{Macro.to_string(left)}">>
           )
         )
     end
