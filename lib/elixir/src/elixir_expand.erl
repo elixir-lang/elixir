@@ -758,8 +758,8 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, E, _) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   form_error(Meta, ?key(E, file), ?MODULE, {invalid_call, Call}).
 
-rewrite(match, Receiver, DotMeta, Right, Meta, EArgs) ->
-  elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
+rewrite(match, Receiver, _DotMeta, Right, _Meta, EArgs) ->
+  {error, {invalid_match, Receiver, Right, length(EArgs)}};
 rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs) ->
   elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
 rewrite(_, Receiver, DotMeta, Right, Meta, EArgs) ->

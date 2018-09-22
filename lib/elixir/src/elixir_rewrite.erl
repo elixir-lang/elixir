@@ -1,5 +1,5 @@
 -module(elixir_rewrite).
--export([rewrite/5, match_rewrite/5, guard_rewrite/5, inline/3, format_error/1]).
+-export([rewrite/5, guard_rewrite/5, inline/3, format_error/1]).
 -include("elixir.hrl").
 
 %% Convenience variables
@@ -42,10 +42,7 @@ inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?kernel, '!=', 2) -> {erlang, '/='};
 inline(?kernel, '!==', 2) -> {erlang, '=/='};
 inline(?kernel, '*', 2) -> {erlang, '*'};
-inline(?kernel, '+', 1) -> {erlang, '+'};
 inline(?kernel, '+', 2) -> {erlang, '+'};
-inline(?kernel, '++', 2) -> {erlang, '++'};
-inline(?kernel, '-', 1) -> {erlang, '-'};
 inline(?kernel, '-', 2) -> {erlang, '-'};
 inline(?kernel, '--', 2) -> {erlang, '--'};
 inline(?kernel, '/', 2) -> {erlang, '/'};
@@ -241,30 +238,6 @@ increment(Number) when is_number(Number) ->
 increment(Other) ->
   {{'.', [], [erlang, '+']}, [], [Other, 1]}.
 
-%% Match rewrite
-%%
-%% Match rewrite is similar to regular rewrite, except
-%% it also verifies the rewrite rule applies in a match context.
-%% The allowed operations are very limited.
-%% The Kernel operators are already inlined by now, we only need to
-%% care about Erlang ones.
-match_rewrite(erlang, _, '+', _, [Arg]) when is_number(Arg) -> {ok, Arg};
-match_rewrite(erlang, _, '-', _, [Arg]) when is_number(Arg) -> {ok, -Arg};
-match_rewrite(erlang, _, '++', Meta, [Left, Right]) ->
-  try {ok, static_append(Left, Right, Meta)}
-  catch impossible -> {error, {invalid_match_append, Left}}
-  end;
-match_rewrite(Receiver, _, Right, _, Args) ->
-  {error, {invalid_match, Receiver, Right, length(Args)}}.
-
-static_append([], Right, _Meta) -> Right;
-static_append([{'|', InnerMeta, [Head, Tail]}], Right, Meta) when is_list(Tail) ->
-  [{'|', InnerMeta, [Head, static_append(Tail, Right, Meta)]}];
-static_append([{'|', _, [_, _]}], _, _) -> throw(impossible);
-static_append([Last], Right, Meta) -> [{'|', Meta, [Last, Right]}];
-static_append([Head | Tail], Right, Meta) -> [Head | static_append(Tail, Right, Meta)];
-static_append(_, _, _) -> throw(impossible).
-
 %% Guard rewrite
 %%
 %% Guard rewrite is similar to regular rewrite, except
@@ -288,7 +261,4 @@ format_error({invalid_guard, Receiver, Right, Arity}) ->
                 ['Elixir.Macro':to_string(Receiver), Right, Arity]);
 format_error({invalid_match, Receiver, Right, Arity}) ->
   io_lib:format("cannot invoke remote function ~ts.~ts/~B inside a match",
-                ['Elixir.Macro':to_string(Receiver), Right, Arity]);
-format_error({invalid_match_append, Arg}) ->
-  io_lib:format("invalid argument for ++ operator inside a match, expected a literal proper list, got: ~ts",
-                ['Elixir.Macro':to_string(Arg)]).
+                ['Elixir.Macro':to_string(Receiver), Right, Arity]).

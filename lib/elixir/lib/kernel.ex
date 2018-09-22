@@ -1178,7 +1178,7 @@ defmodule Kernel do
   @doc """
   Arithmetic unary plus.
 
-  Allowed in guard tests. Inlined by the compiler.
+  Allowed in guard tests.
 
   ## Examples
 
@@ -1187,15 +1187,41 @@ defmodule Kernel do
 
   """
   @doc guard: true
-  @spec +value :: value when value: number
-  def +value do
-    :erlang.+(value)
+  @spec +0 :: 0
+  @spec +pos_integer :: neg_integer
+  @spec +neg_integer :: pos_integer
+  @spec +float :: float
+  defmacro +value do
+    case __CALLER__.context do
+      :match ->
+        match_unary_plus(value)
+
+      _other ->
+        quote do
+          :erlang.+(unquote(value))
+        end
+    end
+  end
+
+  defp match_unary_plus(value) when is_number(value) do
+    quote do
+      unquote(value)
+    end
+  end
+
+  defp match_unary_plus(value) do
+    :erlang.error(
+      ArgumentError.exception(
+        <<"invalid argument for + unary operator inside a match, expected a ",
+          "literal number, got: #{Macro.to_string(value)}">>
+      )
+    )
   end
 
   @doc """
   Arithmetic unary minus.
 
-  Allowed in guard tests. Inlined by the compiler.
+  Allowed in guard tests.
 
   ## Examples
 
@@ -1208,8 +1234,31 @@ defmodule Kernel do
   @spec -pos_integer :: neg_integer
   @spec -neg_integer :: pos_integer
   @spec -float :: float
-  def -value do
-    :erlang.-(value)
+  defmacro -value do
+    case __CALLER__.context do
+      :match ->
+        match_unary_minus(value)
+
+      _other ->
+        quote do
+          :erlang.-(unquote(value))
+        end
+    end
+  end
+
+  defp match_unary_minus(value) when is_number(value) do
+    quote do
+      unquote(-value)
+    end
+  end
+
+  defp match_unary_minus(value) do
+    :erlang.error(
+      ArgumentError.exception(
+        <<"invalid argument for - unary operator inside a match, expected a ",
+          "literal number, got: #{Macro.to_string(value)}">>
+      )
+    )
   end
 
   @doc """
@@ -1273,8 +1322,6 @@ defmodule Kernel do
   If the `right` operand is not a proper list, it returns an improper list.
   If the `left` operand is not a proper list, it raises `ArgumentError`.
 
-  Inlined by the compiler.
-
   ## Examples
 
       iex> [1] ++ [2, 3]
@@ -1297,8 +1344,70 @@ defmodule Kernel do
 
   """
   @spec list ++ term :: maybe_improper_list
-  def left ++ right do
-    :erlang.++(left, right)
+  defmacro left ++ right do
+    case __CALLER__.context do
+      :match ->
+        match_list_concat(left, right, __CALLER__)
+
+      _other ->
+        quote do
+          :erlang.++(unquote(left), unquote(right))
+        end
+    end
+  end
+
+  defp match_list_concat(left, right, caller) do
+    expanded_left =
+      case bootstrapped?(Macro) do
+        true -> Macro.expand(left, caller)
+        false -> left
+      end
+
+    try do
+      static_append(expanded_left, right)
+    catch
+      :impossible ->
+        :erlang.error(
+          ArgumentError.exception(
+            <<"invalid argument for ++ operator inside a match, expected a ",
+              "literal proper list, got: #{Macro.to_string(left)}">>
+          )
+        )
+    end
+  end
+
+  defp static_append([], right) do
+    right
+  end
+
+  defp static_append([{:|, meta, [head, tail]}], right) when is_list(tail) do
+    new_tail = static_append(tail, right)
+
+    quote line: meta[:line] do
+      [unquote(head) | unquote(new_tail)]
+    end
+  end
+
+  defp static_append([{:|, _meta, [_head, _tail]}], _right) do
+    throw(:impossible)
+  end
+
+  defp static_append([last], right) do
+    quote do
+      [unquote(last) | unquote(right)]
+    end
+  end
+
+  defp static_append([head | tail], right) when is_list(tail) do
+    new_tail = static_append(tail, right)
+
+    quote do
+      [unquote(head) | unquote(new_tail)]
+    end
+  end
+
+  defp static_append(_left, _right) do
+    throw(:impossible)
   end
 
   @doc """
