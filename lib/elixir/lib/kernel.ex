@@ -1357,17 +1357,14 @@ defmodule Kernel do
   end
 
   defp match_list_concat(left, right, caller) do
-    expand =
+    expanded_left =
       case bootstrapped?(Macro) do
-        true -> &Macro.expand(&1, caller)
-        false -> & &1
+        true -> Macro.expand(left, caller)
+        false -> left
       end
 
-    expanded_left = expand.(left)
-    expanded_right = expand.(right)
-
     try do
-      static_append(expanded_left, expanded_right)
+      static_append(expanded_left, right)
     catch
       :impossible ->
         :erlang.error(
