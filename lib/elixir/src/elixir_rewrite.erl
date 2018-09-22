@@ -248,8 +248,6 @@ increment(Other) ->
 %% The allowed operations are very limited.
 %% The Kernel operators are already inlined by now, we only need to
 %% care about Erlang ones.
-match_rewrite(erlang, _, '+', _, [Arg]) when is_number(Arg) -> {ok, Arg};
-match_rewrite(erlang, _, '-', _, [Arg]) when is_number(Arg) -> {ok, -Arg};
 match_rewrite(Receiver, _, Right, _, Args) ->
   {error, {invalid_match, Receiver, Right, length(Args)}}.
 

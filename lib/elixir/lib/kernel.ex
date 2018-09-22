@@ -1187,9 +1187,34 @@ defmodule Kernel do
 
   """
   @doc guard: true
-  @spec +value :: value when value: number
-  def +value do
-    :erlang.+(value)
+  @spec +0 :: 0
+  @spec +pos_integer :: neg_integer
+  @spec +neg_integer :: pos_integer
+  @spec +float :: float
+  defmacro +value do
+    case __CALLER__.context do
+      :match ->
+        match_unary_plus(value)
+
+      _other ->
+        quote do
+          :erlang.+(unquote(value))
+        end
+    end
+  end
+
+  defp match_unary_plus(value) when is_number(value) do
+    quote do
+      unquote(value)
+    end
+  end
+
+  defp match_unary_plus(value) do
+    :erlang.error(
+      ArgumentError.exception(
+        "cannot invoke #{Macro.to_string(value)} inside a match"
+      )
+    )
   end
 
   @doc """
@@ -1208,8 +1233,30 @@ defmodule Kernel do
   @spec -pos_integer :: neg_integer
   @spec -neg_integer :: pos_integer
   @spec -float :: float
-  def -value do
-    :erlang.-(value)
+  defmacro -value do
+    case __CALLER__.context do
+      :match ->
+        match_unary_minus(value)
+
+      _other ->
+        quote do
+          :erlang.-(unquote(value))
+        end
+    end
+  end
+
+  defp match_unary_minus(value) when is_number(value) do
+    quote do
+      unquote(-value)
+    end
+  end
+
+  defp match_unary_minus(value) do
+    :erlang.error(
+      ArgumentError.exception(
+        "cannot invoke #{Macro.to_string(value)} inside a match"
+      )
+    )
   end
 
   @doc """
