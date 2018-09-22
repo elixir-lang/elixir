@@ -256,7 +256,18 @@ defmodule Record do
   """
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
+      defined_arity =
+        Enum.find(0..2, fn arity ->
+          Module.defines?(__MODULE__, {name, arity})
+        end)
+
+      if defined_arity do
+        raise ArgumentError,
+              "cannot define record #{inspect(name)} because a definition #{name}/#{defined_arity} already exists"
+      end
+
       tag = tag || name
+
       fields = Record.__fields__(:defrecord, kv)
 
       defmacro unquote(name)(args \\ []) do
@@ -274,7 +285,18 @@ defmodule Record do
   """
   defmacro defrecordp(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
+      defined_arity =
+        Enum.find(0..2, fn arity ->
+          Module.defines?(__MODULE__, {name, arity})
+        end)
+
+      if defined_arity do
+        raise ArgumentError,
+              "cannot define record #{inspect(name)} because a definition #{name}/#{defined_arity} already exists"
+      end
+
       tag = tag || name
+
       fields = Record.__fields__(:defrecordp, kv)
 
       defmacrop unquote(name)(args \\ []) do

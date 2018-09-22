@@ -256,4 +256,42 @@ defmodule RecordTest do
     assert timestamp(record, :date) == :foo
     assert timestamp(record, :time) == :bar
   end
+
+  test "records defined multiple times" do
+    msg = "cannot define record :r because a definition r/0 already exists"
+
+    assert_raise ArgumentError, msg, fn ->
+      defmodule M do
+        import Record
+        defrecord :r, [:a]
+        defrecord :r, [:a]
+      end
+    end
+  end
+
+  test "macro and record with the same name defined" do
+    msg = "cannot define record :a because a definition a/1 already exists"
+
+    assert_raise ArgumentError, msg, fn ->
+      defmodule M do
+        defmacro a(_) do
+        end
+
+        require Record
+        Record.defrecord(:a, [:a])
+      end
+    end
+
+    msg = "cannot define record :a because a definition a/2 already exists"
+
+    assert_raise ArgumentError, msg, fn ->
+      defmodule M do
+        defmacro a(_, _) do
+        end
+
+        require Record
+        Record.defrecord(:a, [:a])
+      end
+    end
+  end
 end
