@@ -228,7 +228,7 @@ optimized_or_test() ->
   } = to_erl("is_list([]) or :done").
 
 no_after_in_try_test() ->
-  {'try', _, [_], [_], _, []} = to_erl("try do :foo.bar() else _ -> :ok end").
+  {'try', _, [_], [], [_], []} = to_erl("try do :foo.bar() catch _ -> :ok end").
 
 optimized_inspect_interpolation_test() ->
     {bin, _,

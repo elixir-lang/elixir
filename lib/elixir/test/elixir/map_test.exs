@@ -60,6 +60,8 @@ defmodule MapTest do
     assert %{
              try do
                1
+             rescue
+               _exception -> :exception
              else
                a -> a
              end => 1

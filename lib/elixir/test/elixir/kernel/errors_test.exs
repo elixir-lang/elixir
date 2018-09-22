@@ -941,11 +941,11 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "def fails when rescue, else or catch don't have clauses" do
-    assert_eval_raise CompileError, ~r"expected -> clauses for :else in \"def\"", """
+    assert_eval_raise CompileError, ~r"expected -> clauses for :rescue in \"def\"", """
     defmodule Example do
       def foo do
         bar()
-      else
+      rescue
         baz()
       end
     end
