@@ -350,9 +350,9 @@ format_error(invalid_rescue_clause) ->
 format_error({catch_before_rescue, Origin}) ->
   io_lib:format("\"catch\" should always come after \"rescue\" in ~ts", [Origin]);
 
-format_error({try_with_only_else_clause, Kind}) ->
-  io_lib:format("\"else\" can't be used as the only clause in \"~ts\" since it's equivalent to not "
-                "having the \"try\" in the first place", [Kind]);
+format_error({try_with_only_else_clause, Origin}) ->
+  io_lib:format("\"else\" can't be used as the only clause in \"~ts\" since it doesn't do anything",
+                [Origin]);
 
 format_error(unmatchable_else_in_with) ->
   "\"else\" clauses will never match because all patterns in \"with\" will always match";
