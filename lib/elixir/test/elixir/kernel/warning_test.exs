@@ -1438,6 +1438,27 @@ defmodule Kernel.WarningTest do
     assert output =~ ~s("catch" should always come after "rescue" in try)
   end
 
+  test "catch comes before rescue in def" do
+    output =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          def foo do
+            :trying
+          catch
+            _, _ -> :caught
+          rescue
+            _ -> :error
+          end
+        end
+        """)
+      end)
+
+    assert output =~ ~s("catch" should always come after "rescue" in def)
+  after
+    purge(Sample)
+  end
+
   test "System.stacktrace is deprecated outside catch/rescue" do
     output = capture_err(fn -> Code.eval_string("System.stacktrace()") end)
     assert output =~ "System.stacktrace/0 outside of rescue/catch clauses is deprecated"
