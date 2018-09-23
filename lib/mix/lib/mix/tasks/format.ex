@@ -57,9 +57,9 @@ defmodule Mix.Tasks.Format do
       improvements and fixes are applied to the formatter.
 
     * `--check-equivalent` - checks if the files after formatting have the
-      same AST as before formatting. If the ASTs are not equivalent,
-      it is a bug in the code formatter. This option is recommended if you
-      are automatically formatting files.
+      same AST as before formatting. If the ASTs are not equivalent, it is
+      a bug in the code formatter. This option is useful if you suspect you
+      have ran into a formatter bug and you would like confirmation.
 
     * `--dry-run` - does not save files after formatting.
 
