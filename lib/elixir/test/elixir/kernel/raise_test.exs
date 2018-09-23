@@ -451,6 +451,9 @@ defmodule Kernel.RaiseTest do
         try do
           try do
             f.()
+          rescue
+            _exception ->
+              :ok
           else
             :other ->
               :ok

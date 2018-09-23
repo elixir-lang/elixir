@@ -1583,6 +1583,8 @@ defmodule Kernel.ExpansionTest do
         quote do
           try do
             x
+          catch
+            _, _ -> :ok
           else
             z -> z
           end
@@ -1594,6 +1596,8 @@ defmodule Kernel.ExpansionTest do
         quote do
           try do
             x()
+          catch
+            _, _ -> :ok
           else
             z -> z
           end
@@ -1650,6 +1654,21 @@ defmodule Kernel.ExpansionTest do
     test "raises if do is missing" do
       assert_raise CompileError, ~r"missing :do option in \"try\"", fn ->
         expand(quote(do: try([])))
+      end
+    end
+
+    test "raises if the only clause other than do is else" do
+      assert_raise CompileError, ~r"\"else\" can't be used as the only clause", fn ->
+        code =
+          quote do
+            try do
+              :ok
+            else
+              other -> other
+            end
+          end
+
+        expand(code)
       end
     end
 
@@ -1836,6 +1855,8 @@ defmodule Kernel.ExpansionTest do
           quote do
             try do
               e
+            catch
+              _ -> :ok
             else
               x
             end
@@ -1849,6 +1870,8 @@ defmodule Kernel.ExpansionTest do
           quote do
             try do
               e
+            catch
+              _ -> :ok
             else
               [:not, :clauses]
             end
