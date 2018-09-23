@@ -88,7 +88,7 @@ defmodule IEx do
   IEx will evaluate it at that point. This behaviour may produce errors for
   expressions that have been formatted across multiple lines which is often
   the case for piped expressions. Consider the following expression using
-  the `|>` operator:
+  the `|>/2` operator:
 
       iex(1)> [1, [2], 3] |> List.flatten()
       [1, 2, 3]
