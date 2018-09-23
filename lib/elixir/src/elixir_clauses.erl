@@ -187,12 +187,7 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
 'try'(Meta, [{do, _}], E) ->
   form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after', 'else']});
 'try'(Meta, [{do, _}, {else, _}], E) ->
-  Kind =
-    case lists:keyfind(origin, 1, Meta) of
-      {origin, Origin} -> Origin;
-      false -> 'try'
-    end,
-  form_error(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, Kind});
+  form_error(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, origin(Meta, 'try')});
 'try'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, E) ->
@@ -234,7 +229,8 @@ expand_catch(_Meta, [_] = Args, E) ->
 expand_catch(_Meta, [_, _] = Args, E) ->
   head(Args, E);
 expand_catch(Meta, _, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {wrong_number_of_args_for_clause, "one or two args", 'try', 'catch'}).
+  Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
+  form_error(Meta, ?key(E, file), ?MODULE, Error).
 
 expand_rescue(Meta, [Arg], E) ->
   case expand_rescue(Arg, E) of
@@ -244,7 +240,8 @@ expand_rescue(Meta, [Arg], E) ->
       form_error(Meta, ?key(E, file), ?MODULE, invalid_rescue_clause)
   end;
 expand_rescue(Meta, _, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {wrong_number_of_args_for_clause, "one arg", 'try', 'rescue'}).
+  Error = {wrong_number_of_args_for_clause, "one arg", origin(Meta, 'try'), 'rescue'},
+  form_error(Meta, ?key(E, file), ?MODULE, Error).
 
 %% rescue var
 expand_rescue({Name, _, Atom} = Var, E) when is_atom(Name), is_atom(Atom) ->
@@ -293,11 +290,7 @@ expand_one(Meta, Kind, Key, Fun) ->
 
 %% Expands all -> pairs in a given key but do not keep the overall vars.
 expand_clauses(Meta, Kind, Fun, Clauses, E) ->
-  NewKind =
-    case lists:keyfind(origin, 1, Meta) of
-      {origin, Origin} -> Origin;
-      _ -> Kind
-    end,
+  NewKind = origin(Meta, Kind),
   expand_clauses_origin(Meta, NewKind, Fun, Clauses, E).
 
 expand_clauses_origin(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) ->
@@ -321,11 +314,17 @@ assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
 warn_catch_before_rescue([], _, _, _) ->
   ok;
 warn_catch_before_rescue([{'rescue', _} | _], Meta, E, true) ->
-  form_warn(Meta, ?key(E, file), ?MODULE, catch_before_rescue);
+  form_warn(Meta, ?key(E, file), ?MODULE, {catch_before_rescue, origin(Meta, 'try')});
 warn_catch_before_rescue([{'catch', _} | Rest], Meta, E, _) ->
   warn_catch_before_rescue(Rest, Meta, E, true);
 warn_catch_before_rescue([_ | Rest], Meta, E, Found) ->
   warn_catch_before_rescue(Rest, Meta, E, Found).
+
+origin(Meta, Default) ->
+  case lists:keyfind(origin, 1, Meta) of
+    {origin, Origin} -> Origin;
+    false -> Default
+  end.
 
 format_error({bad_or_missing_clauses, {Kind, Key}}) ->
   io_lib:format("expected -> clauses for :~ts in \"~ts\"", [Key, Kind]);
@@ -348,12 +347,12 @@ format_error(invalid_rescue_clause) ->
   "invalid \"rescue\" clause. The clause should match on an alias, a variable "
     "or be in the \"var in [alias]\" format";
 
-format_error(catch_before_rescue) ->
-  "\"catch\" should always come after \"rescue\" in try";
+format_error({catch_before_rescue, Origin}) ->
+  io_lib:format("\"catch\" should always come after \"rescue\" in ~ts", [Origin]);
 
-format_error({try_with_only_else_clause, Kind}) ->
-  io_lib:format("\"else\" can't be used as the only clause in \"~ts\" since it's equivalent to not "
-                "having the \"try\" in the first place", [Kind]);
+format_error({try_with_only_else_clause, Origin}) ->
+  io_lib:format("\"else\" can't be used as the only clause in \"~ts\" since it doesn't do anything",
+                [Origin]);
 
 format_error(unmatchable_else_in_with) ->
   "\"else\" clauses will never match because all patterns in \"with\" will always match";
