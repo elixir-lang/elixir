@@ -81,6 +81,45 @@ defmodule IEx do
       ...(1)> #iex:break
       ** (TokenMissingError) iex:1: incomplete expression
 
+  ## Pasting multiline expressions into IEx
+
+  IEx evaluates its input line by line in an eagerly fashion which means
+  that if at the end of a line the code seen so far is a complete expression
+  IEx will evaluate it at that point. This behaviour may produce errors for
+  expressions that have been formatted across multiple lines which is often
+  the case for piped expressions. Consider the following expression using
+  the `|>/2` operator:
+
+      iex(1)> [1, [2], 3] |> List.flatten()
+      [1, 2, 3]
+
+  When written in multiline form and pasted into IEx this valid expression
+  produces a syntax error:
+
+      iex(1)> [1, [2], 3]
+      [1, [2], 3]
+      iex(2)> |> List.flatten()
+      ** (SyntaxError) iex:2: syntax error before: '|>'
+
+  As IEx evaluates its input line by line, it will first encounter
+  `[1, [2], 3]`. As a list is a valid expression, IEx will evaluate
+  it immediately before looking at the next input line. Only then
+  will IEx attempt to evaluate the now incomplete expression
+  `|> List.flatten()`, which on its own is missing its left operand.
+  The evaluation thus fails with the above syntax error.
+
+  In order to help IEx understand that an expression consists of multiple
+  lines we can wrap it into parentheses:
+
+      iex(1)> (
+      ...(1)> [1, [2], 3]
+      ...(1)> |> List.flatten()
+      ...(1)> )
+      [1, 2, 3]
+
+  Note that this not only works with single expressions but also with
+  arbitrary code blocks.
+
   ## The BREAK menu
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
