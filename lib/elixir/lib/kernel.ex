@@ -5021,6 +5021,8 @@ defmodule Kernel do
       for fun <- List.wrap(funs) do
         {name, args, as, as_args} = Kernel.Utils.defdelegate(fun, opts)
 
+        @doc delegate_to: "{#{inspect(target)}, :#{as}, #{:erlang.length(as_args)}}"
+
         def unquote(name)(unquote_splicing(args)) do
           unquote(target).unquote(as)(unquote_splicing(as_args))
         end

@@ -56,7 +56,7 @@ defmodule IO.ANSI.Docs do
   end
 
   @doc """
-  Prints documentation metadata (only `since` and `deprecated` for now).
+  Prints documentation metadata (only `delegate_to`, `deprecated`, `guard`, and `since` for now).
 
   See `default_options/0` for docs on the supported options.
   """
@@ -66,7 +66,7 @@ defmodule IO.ANSI.Docs do
     print_each_metadata(metadata, options) && IO.write("\n")
   end
 
-  @metadata_filter [:deprecated, :guard, :since]
+  @metadata_filter [:delegate_to, :deprecated, :guard, :since]
 
   defp print_each_metadata(metadata, options) do
     Enum.reduce(metadata, false, fn
