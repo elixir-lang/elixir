@@ -87,10 +87,16 @@ validate_match_key(_, _, _) ->
   ok.
 
 validate_not_repeated(Meta, Key, Used, E) ->
-  case Used of
+  case is_literal(Key) andalso Used of
     #{Key := true} -> form_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
-    #{} -> Used#{Key => true}
+    #{} -> Used#{Key => true};
+    false -> Used
   end.
+
+is_literal({_, _, _}) -> false;
+is_literal({Left, Right}) -> is_literal(Left) andalso is_literal(Right);
+is_literal([_ | _] = List) -> lists:all(fun is_literal/1, List);
+is_literal(_) -> true.
 
 validate_kv(Meta, KV, Original, #{context := Context} = E) ->
   lists:foldl(fun

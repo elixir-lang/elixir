@@ -589,6 +589,21 @@ defmodule Kernel.WarningTest do
 
     assert output =~ "key :a will be overridden in map"
     assert output =~ "key 1 will be overridden in map"
+
+    pid = start_supervised!({Agent, fn -> 1 end})
+
+    next = fn ->
+      Agent.get_and_update(pid, fn acc -> {acc, acc + 1} end)
+    end
+
+    output =
+      capture_err(fn ->
+        defmodule NonLiteralDuplicateMapKeys do
+          assert %{next.() => 1, next.() => 2} == %{1 => 1, 2 => 2}
+        end
+      end)
+
+    assert output == ""
   end
 
   test "unused guard" do
