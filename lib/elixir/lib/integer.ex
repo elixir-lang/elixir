@@ -158,7 +158,7 @@ defmodule Integer do
   Returns the integer represented by the ordered `digits`.
 
   An optional `base` value may be provided representing the radix for the `digits`.
-  Base has to be an integer greater or equal than `2`.
+  Base has to be an integer greater than or equal to `2`.
 
   ## Examples
 
