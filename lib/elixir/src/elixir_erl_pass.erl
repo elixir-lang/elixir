@@ -583,12 +583,10 @@ translate_remote(maps, put, Meta, [Key, Value, Map], S) ->
   {TExpr, ES} =
     case translate_args([Key, Value, Map], S) of
       {[TKey, TValue, {map, _, InnerMap, Pairs}], TS} ->
-        NewPairs = merge_pairs(Pairs, [{map_field_assoc, Ann, TKey, TValue}]),
-        {{map, Ann, InnerMap, NewPairs}, TS};
+        {{map, Ann, InnerMap, Pairs ++ [{map_field_assoc, Ann, TKey, TValue}]}, TS};
 
       {[TKey, TValue, {map, _, Pairs}], TS} ->
-        NewPairs = merge_pairs(Pairs, [{map_field_assoc, Ann, TKey, TValue}]),
-        {{map, Ann, NewPairs}, TS};
+        {{map, Ann, Pairs ++ [{map_field_assoc, Ann, TKey, TValue}]}, TS};
 
       {[TKey, TValue, TMap], TS} ->
         {{map, Ann, TMap, [{map_field_assoc, Ann, TKey, TValue}]}, TS}
@@ -599,10 +597,10 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
   {TExpr, ES} =
     case translate_args([Map1, Map2], S) of
       {[{map, _, Pairs1}, {map, _, Pairs2}], TS} ->
-        {{map, Ann, merge_pairs(Pairs1, Pairs2)}, TS};
+        {{map, Ann, Pairs1 ++ Pairs2}, TS};
 
       {[{map, _, InnerMap1, Pairs1}, {map, _, Pairs2}], TS} ->
-        {{map, Ann, InnerMap1, merge_pairs(Pairs1, Pairs2)}, TS};
+        {{map, Ann, InnerMap1, Pairs1 ++ Pairs2}, TS};
 
       {[TMap1, {map, _, Pairs2}], TS} ->
         {{map, Ann, TMap1, Pairs2}, TS};
@@ -631,36 +629,6 @@ translate_remote(Left, Right, Meta, Args, S) ->
     false ->
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
   end.
-
-merge_pairs(List1, List2) ->
-  IsDuplicatedKey = fun ({map_field_assoc, _, Key1, _}) ->
-    lists:all(fun ({_, _, Key2, _}) ->
-      not will_override(Key1, Key2, true)
-    end, List2)
-  end,
-  lists:filter(IsDuplicatedKey, List1) ++ List2.
-
-will_override(_, _, false) ->
-  false;
-will_override({Atom, _, Arg}, {Atom, _, Arg}, Result) when is_atom(Atom) ->
-  Result;
-will_override({map_field_assoc, _, Key1, Value1}, {map_field_assoc, _, Key2, Value2}, Result) ->
-  KeyOverride = will_override(Key1, Key2, Result),
-  will_override(Value1, Value2, KeyOverride);
-will_override({Atom, _, Args1}, {Atom, _, Args2}, Result) when is_list(Args1), is_list(Args2) ->
-  will_override(Args1, Args2, Result);
-will_override({cons, _, Head1, Tail1}, {cons, _, Head2, Tail2}, Result) ->
-  HeadOverride = will_override(Head1, Head2, Result),
-  will_override(Tail1, Tail2, HeadOverride);
-will_override({nil, _}, {nil, _}, Result) ->
-  Result;
-will_override([Head1 | Tail1], [Head2 | Tail2], Result) ->
-  HeadOverride = will_override(Head1, Head2, Result),
-  will_override(Tail1, Tail2, HeadOverride);
-will_override([], [], Result) ->
-  Result;
-will_override(_, _, _) ->
-  false.
 
 is_always_string({{'.', _, [Module, Function]}, _, Args}) ->
   is_always_string(Module, Function, length(Args));

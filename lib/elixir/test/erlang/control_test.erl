@@ -239,8 +239,8 @@ optimized_inspect_interpolation_test() ->
 optimized_map_put_test() ->
   {map, _,
     [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
-     {map_field_assoc, _, {atom, _, b}, {integer, _, 3}}]
-  } = to_erl("Map.put(%{a: 1, b: 2}, :b, 3)").
+     {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
+  } = to_erl("Map.put(%{a: 1}, :b, 2)").
 
 optimized_map_put_variable_test() ->
   {block, _,
@@ -262,9 +262,9 @@ optimized_nested_map_put_variable_test() ->
 optimized_map_merge_test() ->
   {map, _,
     [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
-     {map_field_assoc, _, {atom, _, b}, {integer, _, 3}},
-     {map_field_assoc, _, {atom, _, c}, {integer, _, 4}}]
-  } = to_erl("Map.merge(%{a: 1, b: 2}, %{b: 3, c: 4})").
+     {map_field_assoc, _, {atom, _, b}, {integer, _, 2}},
+     {map_field_assoc, _, {atom, _, c}, {integer, _, 3}}]
+  } = to_erl("Map.merge(%{a: 1, b: 2}, %{c: 3})").
 
 optimized_map_merge_variable_test() ->
   {block, _,
