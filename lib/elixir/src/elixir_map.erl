@@ -88,31 +88,31 @@ validate_match_key(_, _, _) ->
 
 validate_not_repeated(Meta, Key, Used, E) ->
   try
-    Literal = literal_key(Key),
+    KeyWithoutMeta = remove_key_meta(Key),
     case Used of
-      #{Literal := true} ->
+      #{KeyWithoutMeta := true} ->
         form_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
 
       #{} ->
-        Used#{Literal => true}
+        Used#{KeyWithoutMeta => true}
     end
   catch
     non_literal_key -> Used
   end.
 
-literal_key(Literal) when is_atom(Literal); is_number(Literal) ->
+remove_key_meta(Literal) when is_atom(Literal); is_number(Literal) ->
   Literal;
-literal_key({'%{}', _, Args}) ->
-  maps:from_list(literal_key(Args));
-literal_key({'{}', _, Args}) ->
-  erlang:list_to_tuple(literal_key(Args));
-literal_key({_, _} = Tuple) ->
-  Tuple;
-literal_key([Head | Tail]) ->
-  [literal_key(Head) | literal_key(Tail)];
-literal_key([]) ->
+remove_key_meta({'%{}', _, Args}) ->
+  {'%{}', remove_key_meta(Args)};
+remove_key_meta({'{}', _, Args}) ->
+  {'{}', remove_key_meta(Args)};
+remove_key_meta({Arg1, Arg2}) ->
+  {'{}', [Arg1, Arg2]};
+remove_key_meta([Head | Tail]) ->
+  [remove_key_meta(Head) | remove_key_meta(Tail)];
+remove_key_meta([]) ->
   [];
-literal_key(_) ->
+remove_key_meta(_) ->
   throw(non_literal_key).
 
 validate_kv(Meta, KV, Original, #{context := Context} = E) ->
