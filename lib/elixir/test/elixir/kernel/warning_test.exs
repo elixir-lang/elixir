@@ -589,6 +589,18 @@ defmodule Kernel.WarningTest do
 
     assert output =~ "key :a will be overridden in map"
     assert output =~ "key 1 will be overridden in map"
+
+    output =
+      capture_err(fn ->
+        defmodule NoWarningDuplicateMapKeys do
+          assert Map.merge(%{a: :b}, %{a: :c}) == %{a: :c}
+          assert Map.merge(%{1 => 2}, %{1 => 3}) == %{1 => 3}
+          assert Map.merge(%{[1] => 2}, %{[1] => 3}) == %{[1] => 3}
+          assert Map.merge(%{%{a: :b} => 2}, %{%{a: :b} => 3}) == %{%{a: :b} => 3}
+        end
+      end)
+
+    assert output == ""
   end
 
   test "unused guard" do

@@ -644,10 +644,20 @@ will_override(_, _, false) ->
   false;
 will_override({Atom, _, Arg}, {Atom, _, Arg}, Result) when is_atom(Atom) ->
   Result;
+will_override({map_field_assoc, _, Key1, Value1}, {map_field_assoc, _, Key2, Value2}, Result) ->
+  KeyOverride = will_override(Key1, Key2, Result),
+  will_override(Value1, Value2, KeyOverride);
+will_override({Atom, _, Args1}, {Atom, _, Args2}, Result) when is_list(Args1), is_list(Args2) ->
+  will_override(Args1, Args2, Result);
 will_override({cons, _, Head1, Tail1}, {cons, _, Head2, Tail2}, Result) ->
   HeadOverride = will_override(Head1, Head2, Result),
   will_override(Tail1, Tail2, HeadOverride);
 will_override({nil, _}, {nil, _}, Result) ->
+  Result;
+will_override([Head1 | Tail1], [Head2 | Tail2], Result) ->
+  HeadOverride = will_override(Head1, Head2, Result),
+  will_override(Tail1, Tail2, HeadOverride);
+will_override([], [], Result) ->
   Result;
 will_override(_, _, _) ->
   false.
