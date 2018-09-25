@@ -87,33 +87,10 @@ validate_match_key(_, _, _) ->
   ok.
 
 validate_not_repeated(Meta, Key, Used, E) ->
-  try
-    KeyWithoutMeta = remove_key_meta(Key),
-    case Used of
-      #{KeyWithoutMeta := true} ->
-        form_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
-
-      #{} ->
-        Used#{KeyWithoutMeta => true}
-    end
-  catch
-    non_literal_key -> Used
+  case Used of
+    #{Key := true} -> form_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
+    #{} -> Used#{Key => true}
   end.
-
-remove_key_meta(Literal) when is_atom(Literal); is_number(Literal) ->
-  Literal;
-remove_key_meta({'%{}', _, Args}) ->
-  {'%{}', remove_key_meta(Args)};
-remove_key_meta({'{}', _, Args}) ->
-  {'{}', remove_key_meta(Args)};
-remove_key_meta({Arg1, Arg2}) ->
-  {'{}', [Arg1, Arg2]};
-remove_key_meta([Head | Tail]) ->
-  [remove_key_meta(Head) | remove_key_meta(Tail)];
-remove_key_meta([]) ->
-  [];
-remove_key_meta(_) ->
-  throw(non_literal_key).
 
 validate_kv(Meta, KV, Original, #{context := Context} = E) ->
   lists:foldl(fun
