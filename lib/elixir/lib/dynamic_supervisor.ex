@@ -170,7 +170,7 @@ defmodule DynamicSupervisor do
           | :ignore
           | {:error, {:already_started, pid} | :max_children | term}
 
-  # NOTE: `args` refers to `init_arg`.
+  # In this struct, `args` refers to the arguments passed to init/1 (the `init_arg`).
   defstruct [
     :args,
     :extra_arguments,
