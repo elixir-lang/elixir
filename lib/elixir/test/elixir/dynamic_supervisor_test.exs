@@ -173,9 +173,9 @@ defmodule DynamicSupervisorTest do
       assert DynamicSupervisor.start_child(pid, {Task, fn -> :ok end}) == {:error, :max_children}
     end
 
-    defp fake_upgrade(pid, args) do
+    defp fake_upgrade(pid, init_arg) do
       :ok = :sys.suspend(pid)
-      :sys.replace_state(pid, fn state -> %{state | args: args} end)
+      :sys.replace_state(pid, fn state -> %{state | args: init_arg} end)
       res = :sys.change_code(pid, :gen_server, 123, :extra)
       :ok = :sys.resume(pid)
       res
