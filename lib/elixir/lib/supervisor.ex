@@ -353,12 +353,12 @@ defmodule Supervisor do
         # Automatically defines child_spec/1
         use Supervisor
 
-        def start_link(arg) do
-          Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
+        def start_link(init_arg) do
+          Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
         end
 
         @impl true
-        def init(_arg) do
+        def init(_init_arg) do
           children = [
             {Stack, [:hello]}
           ]
@@ -475,10 +475,10 @@ defmodule Supervisor do
 
       See `Supervisor`.
       """
-      def child_spec(arg) do
+      def child_spec(init_arg) do
         default = %{
           id: __MODULE__,
-          start: {__MODULE__, :start_link, [arg]},
+          start: {__MODULE__, :start_link, [init_arg]},
           type: :supervisor
         }
 
@@ -593,7 +593,7 @@ defmodule Supervisor do
 
   ## Examples
 
-      def init(_arg) do
+      def init(_init_arg) do
         children = [
           {Stack, [:hello]}
         ]
@@ -756,10 +756,10 @@ defmodule Supervisor do
   end
 
   @doc """
-  Starts a module-based supervisor process with the given `module` and `arg`.
+  Starts a module-based supervisor process with the given `module` and `init_arg`.
 
   To start the supervisor, the `c:init/1` callback will be invoked in the given
-  `module`, with `arg` as its argument. The `c:init/1` callback must return a
+  `module`, with `init_arg` as its argument. The `c:init/1` callback must return a
   supervisor specification which can be created with the help of the `init/2`
   function.
 
@@ -778,19 +778,19 @@ defmodule Supervisor do
   # all to start_link(children, options).
   @spec start_link(module, term) :: on_start
   @spec start_link(module, term, GenServer.options()) :: on_start
-  def start_link(module, arg, options \\ []) when is_list(options) do
+  def start_link(module, init_arg, options \\ []) when is_list(options) do
     case Keyword.get(options, :name) do
       nil ->
-        :supervisor.start_link(module, arg)
+        :supervisor.start_link(module, init_arg)
 
       atom when is_atom(atom) ->
-        :supervisor.start_link({:local, atom}, module, arg)
+        :supervisor.start_link({:local, atom}, module, init_arg)
 
       {:global, _term} = tuple ->
-        :supervisor.start_link(tuple, module, arg)
+        :supervisor.start_link(tuple, module, init_arg)
 
       {:via, via_module, _term} = tuple when is_atom(via_module) ->
-        :supervisor.start_link(tuple, module, arg)
+        :supervisor.start_link(tuple, module, init_arg)
 
       other ->
         raise ArgumentError, """
