@@ -78,9 +78,8 @@ defmodule IO.ANSI.Docs do
       {key, value}, _printed when is_boolean(value) and key in @metadata_filter ->
         IO.puts([metadata_label(key, options), ' ', to_string(value)])
 
-      {key, value}, _printed when is_tuple(value) and key == :delegate_to ->
-        label = metadata_label(key, options)
-        {m, f, a} = value
+      {:delegate_to, {m, f, a}}, _printed ->
+        label = metadata_label(:delegate_to, options)
         IO.puts([label, ' ', Exception.format_mfa(m, f, a)])
 
       _metadata, printed ->
