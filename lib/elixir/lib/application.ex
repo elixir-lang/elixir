@@ -452,7 +452,7 @@ defmodule Application do
   read our [library guidelines](library-guidelines.html).
   """
   @spec get_env(app, key, value) :: value
-  def get_env(app, key, default \\ nil) when is_atom(app) and is_atom(key) do
+  def get_env(app, key, default \\ nil) when is_atom(app) do
     :application.get_env(app, key, default)
   end
 
@@ -462,7 +462,7 @@ defmodule Application do
   If the configuration parameter does not exist, the function returns `:error`.
   """
   @spec fetch_env(app, key) :: {:ok, value} | :error
-  def fetch_env(app, key) when is_atom(app) and is_atom(key) do
+  def fetch_env(app, key) when is_atom(app) do
     case :application.get_env(app, key) do
       {:ok, value} -> {:ok, value}
       :undefined -> :error
@@ -475,7 +475,7 @@ defmodule Application do
   If the configuration parameter does not exist, raises `ArgumentError`.
   """
   @spec fetch_env!(app, key) :: value
-  def fetch_env!(app, key) when is_atom(app) and is_atom(key) do
+  def fetch_env!(app, key) when is_atom(app) do
     case fetch_env(app, key) do
       {:ok, value} ->
         value
@@ -519,7 +519,7 @@ defmodule Application do
   stick after the application is loaded and also on application reload.
   """
   @spec put_env(app, key, value, timeout: timeout, persistent: boolean) :: :ok
-  def put_env(app, key, value, opts \\ []) when is_atom(app) and is_atom(key) do
+  def put_env(app, key, value, opts \\ []) when is_atom(app) do
     :application.set_env(app, key, value, opts)
   end
 
@@ -529,7 +529,7 @@ defmodule Application do
   See `put_env/4` for a description of the options.
   """
   @spec delete_env(app, key, timeout: timeout, persistent: boolean) :: :ok
-  def delete_env(app, key, opts \\ []) when is_atom(app) and is_atom(key) do
+  def delete_env(app, key, opts \\ []) when is_atom(app) do
     :application.unset_env(app, key, opts)
   end
 
