@@ -32,13 +32,12 @@ defmodule IO.ANSI.DocsTest do
         delegate_to: {Foo, :bar, 3}
       })
 
-    assert result ==
-             """
-             \e[33mdelegate_to:\e[0m Foo.bar/3
-             \e[33mdeprecated:\e[0m Use that other one
-             \e[33msince:\e[0m 1.2.3
+    assert result == """
+           \e[33mdelegate_to:\e[0m Foo.bar/3
+           \e[33mdeprecated:\e[0m Use that other one
+           \e[33msince:\e[0m 1.2.3
 
-             """
+           """
 
     assert format_metadata(%{author: "Alice"}) == ""
   end
