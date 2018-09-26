@@ -170,8 +170,9 @@ defmodule DynamicSupervisor do
           | :ignore
           | {:error, {:already_started, pid} | :max_children | term}
 
+  # NOTE: `args` refers to `init_arg`.
   defstruct [
-    :init_arg,
+    :args,
     :extra_arguments,
     :mod,
     :name,
@@ -540,7 +541,7 @@ defmodule DynamicSupervisor do
             is_tuple(name) -> name
           end
 
-        state = %DynamicSupervisor{mod: mod, init_arg: init_arg, name: name}
+        state = %DynamicSupervisor{mod: mod, args: init_arg, name: name}
 
         case init(state, flags) do
           {:ok, state} -> {:ok, state}
@@ -745,12 +746,7 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
-  def code_change(old_vsn, %{args: init_arg} = state, extra) do
-    new_state = Map.delete(state, :args) |> Map.put(:init_arg, init_arg)
-    code_change(old_vsn, new_state, extra)
-  end
-
-  def code_change(_, %{mod: mod, init_arg: init_arg} = state, _) do
+  def code_change(_, %{mod: mod, args: init_arg} = state, _) do
     case mod.init(init_arg) do
       {:ok, flags} when is_map(flags) ->
         case init(state, flags) do

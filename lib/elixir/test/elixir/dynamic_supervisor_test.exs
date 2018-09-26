@@ -173,27 +173,9 @@ defmodule DynamicSupervisorTest do
       assert DynamicSupervisor.start_child(pid, {Task, fn -> :ok end}) == {:error, :max_children}
     end
 
-    test "with args" do
-      {:ok, pid} = DynamicSupervisor.start_link(Simple, {:ok, %{}})
-      {:ok, _} = DynamicSupervisor.start_child(pid, sleepy_worker())
-      assert %{active: 1} = DynamicSupervisor.count_children(pid)
-
-      :ok = :sys.suspend(pid)
-
-      :sys.replace_state(pid, fn %{init_arg: args} = state ->
-        Map.delete(state, :init_arg) |> Map.put(:args, args)
-      end)
-
-      res = :sys.change_code(pid, :gen_server, 123, :extra)
-      :ok = :sys.resume(pid)
-      assert res == :ok
-
-      assert %{active: 1} = DynamicSupervisor.count_children(pid)
-    end
-
     defp fake_upgrade(pid, init_arg) do
       :ok = :sys.suspend(pid)
-      :sys.replace_state(pid, fn state -> %{state | init_arg: init_arg} end)
+      :sys.replace_state(pid, fn state -> %{state | args: init_arg} end)
       res = :sys.change_code(pid, :gen_server, 123, :extra)
       :ok = :sys.resume(pid)
       res
