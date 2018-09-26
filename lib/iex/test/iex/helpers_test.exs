@@ -538,10 +538,10 @@ defmodule IEx.HelpersTest do
         assert c(filename, ".") |> Enum.sort() == [Delegated, Delegator]
 
         assert capture_io(fn -> h(Delegator.func1()) end) ==
-          "* def func1()\n\ndelegate_to: {Delegated, :func1, 0}\n\n\n"
+                 "* def func1()\n\ndelegate_to: Delegated.func1/0\n\n\n"
 
         assert capture_io(fn -> h(Delegator.func2()) end) ==
-          "* def func2()\n\ndelegate_to: {Delegated, :func2, 0}\n\nDelegator func2 doc\n"
+                 "* def func2()\n\ndelegate_to: Delegated.func2/0\n\nDelegator func2 doc\n"
       end)
     after
       cleanup_modules([Delegated, Delegator])

@@ -66,7 +66,7 @@ defmodule IO.ANSI.Docs do
     print_each_metadata(metadata, options) && IO.write("\n")
   end
 
-  @metadata_filter [:delegate_to, :deprecated, :guard, :since]
+  @metadata_filter [:deprecated, :guard, :since]
 
   defp print_each_metadata(metadata, options) do
     Enum.reduce(metadata, false, fn
@@ -77,6 +77,11 @@ defmodule IO.ANSI.Docs do
 
       {key, value}, _printed when is_boolean(value) and key in @metadata_filter ->
         IO.puts([metadata_label(key, options), ' ', to_string(value)])
+
+      {key, value}, _printed when is_tuple(value) and key == :delegate_to ->
+        label = metadata_label(key, options)
+        {m, f, a} = value
+        IO.puts([label, ' ', Exception.format_mfa(m, f, a)])
 
       _metadata, printed ->
         printed
