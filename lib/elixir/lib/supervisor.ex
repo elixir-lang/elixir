@@ -495,7 +495,7 @@ defmodule Supervisor do
   Developers typically invoke `Supervisor.init/2` at the end of their
   init callback to return the proper supervision flags.
   """
-  @callback init(args :: term) ::
+  @callback init(init_arg :: term) ::
               {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}}
               | :ignore
 

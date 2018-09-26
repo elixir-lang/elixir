@@ -135,7 +135,7 @@ defmodule DynamicSupervisor do
   Developers typically invoke `DynamicSupervisor.init/1` at the end of
   their init callback to return the proper supervision flags.
   """
-  @callback init(args :: term) :: {:ok, sup_flags()} | :ignore
+  @callback init(init_arg :: term) :: {:ok, sup_flags()} | :ignore
 
   @typedoc "The supervisor flags returned on init"
   @type sup_flags() :: %{
@@ -171,7 +171,7 @@ defmodule DynamicSupervisor do
           | {:error, {:already_started, pid} | :max_children | term}
 
   defstruct [
-    :args,
+    :init_arg,
     :extra_arguments,
     :mod,
     :name,
@@ -277,8 +277,8 @@ defmodule DynamicSupervisor do
   """
   @doc since: "1.6.0"
   @spec start_link(module, term, GenServer.options()) :: Supervisor.on_start()
-  def start_link(mod, args, opts \\ []) do
-    GenServer.start_link(__MODULE__, {mod, args, opts[:name]}, opts)
+  def start_link(mod, init_arg, opts \\ []) do
+    GenServer.start_link(__MODULE__, {mod, init_arg, opts[:name]}, opts)
   end
 
   @doc """
@@ -527,11 +527,11 @@ defmodule DynamicSupervisor do
   ## Callbacks
 
   @impl true
-  def init({mod, args, name}) do
+  def init({mod, init_arg, name}) do
     Process.put(:"$initial_call", {:supervisor, mod, 1})
     Process.flag(:trap_exit, true)
 
-    case mod.init(args) do
+    case mod.init(init_arg) do
       {:ok, flags} when is_map(flags) ->
         name =
           cond do
@@ -540,7 +540,7 @@ defmodule DynamicSupervisor do
             is_tuple(name) -> name
           end
 
-        state = %DynamicSupervisor{mod: mod, args: args, name: name}
+        state = %DynamicSupervisor{mod: mod, init_arg: init_arg, name: name}
 
         case init(state, flags) do
           {:ok, state} -> {:ok, state}
@@ -745,8 +745,13 @@ defmodule DynamicSupervisor do
   end
 
   @impl true
-  def code_change(_, %{mod: mod, args: args} = state, _) do
-    case mod.init(args) do
+  def code_change(old_vsn, %{args: init_arg} = state, extra) do
+    new_state = Map.delete(state, :args) |> Map.put(:init_arg, init_arg)
+    code_change(old_vsn, new_state, extra)
+  end
+
+  def code_change(_, %{mod: mod, init_arg: init_arg} = state, _) do
+    case mod.init(init_arg) do
       {:ok, flags} when is_map(flags) ->
         case init(state, flags) do
           {:ok, state} -> {:ok, state}

@@ -805,7 +805,7 @@ defmodule GenServer do
   This is often used to start the `GenServer` as part of a supervision tree.
 
   Once the server is started, the `c:init/1` function of the given `module` is
-  called with `init_arg` as its arguments to initialize the server. To ensure a
+  called with `init_arg` as its argument to initialize the server. To ensure a
   synchronized start-up procedure, this function does not return until `c:init/1`
   has returned.
 
