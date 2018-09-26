@@ -368,7 +368,7 @@ defmodule GenServer do
   Invoked when the server is started. `start_link/3` or `start/3` will
   block until it returns.
 
-  `args` is the argument term (second argument) passed to `start_link/3`.
+  `init_arg` is the argument term (second argument) passed to `start_link/3`.
 
   Returning `{:ok, state}` will cause `start_link/3` to return
   `{:ok, pid}` and the process to enter its loop.
@@ -405,7 +405,7 @@ defmodule GenServer do
   `{:error, reason}` and the process to exit with reason `reason` without
   entering the loop or calling `c:terminate/2`.
   """
-  @callback init(args :: term) ::
+  @callback init(init_arg :: term) ::
               {:ok, state}
               | {:ok, state, timeout | :hibernate | {:continue, term}}
               | :ignore
@@ -693,10 +693,10 @@ defmodule GenServer do
 
       See `Supervisor`.
       """
-      def child_spec(arg) do
+      def child_spec(init_arg) do
         default = %{
           id: __MODULE__,
-          start: {__MODULE__, :start_link, [arg]}
+          start: {__MODULE__, :start_link, [init_arg]}
         }
 
         Supervisor.child_spec(default, unquote(Macro.escape(opts)))
@@ -778,8 +778,8 @@ defmodule GenServer do
 
       We will inject a default implementation for now:
 
-          def init(args) do
-            {:ok, args}
+          def init(init_arg) do
+            {:ok, init_arg}
           end
 
       You can copy the implementation above or define your own that converts \
@@ -790,8 +790,8 @@ defmodule GenServer do
 
       quote do
         @doc false
-        def init(args) do
-          {:ok, args}
+        def init(init_arg) do
+          {:ok, init_arg}
         end
 
         defoverridable init: 1
@@ -805,7 +805,7 @@ defmodule GenServer do
   This is often used to start the `GenServer` as part of a supervision tree.
 
   Once the server is started, the `c:init/1` function of the given `module` is
-  called with `args` as its arguments to initialize the server. To ensure a
+  called with `init_arg` as its arguments to initialize the server. To ensure a
   synchronized start-up procedure, this function does not return until `c:init/1`
   has returned.
 
@@ -845,8 +845,8 @@ defmodule GenServer do
   `{:error, reason}` or `:ignore`, respectively.
   """
   @spec start_link(module, any, options) :: on_start
-  def start_link(module, args, options \\ []) when is_atom(module) and is_list(options) do
-    do_start(:link, module, args, options)
+  def start_link(module, init_arg, options \\ []) when is_atom(module) and is_list(options) do
+    do_start(:link, module, init_arg, options)
   end
 
   @doc """
@@ -855,23 +855,23 @@ defmodule GenServer do
   See `start_link/3` for more information.
   """
   @spec start(module, any, options) :: on_start
-  def start(module, args, options \\ []) when is_atom(module) and is_list(options) do
-    do_start(:nolink, module, args, options)
+  def start(module, init_arg, options \\ []) when is_atom(module) and is_list(options) do
+    do_start(:nolink, module, init_arg, options)
   end
 
-  defp do_start(link, module, args, options) do
+  defp do_start(link, module, init_arg, options) do
     case Keyword.pop(options, :name) do
       {nil, opts} ->
-        :gen.start(:gen_server, link, module, args, opts)
+        :gen.start(:gen_server, link, module, init_arg, opts)
 
       {atom, opts} when is_atom(atom) ->
-        :gen.start(:gen_server, link, {:local, atom}, module, args, opts)
+        :gen.start(:gen_server, link, {:local, atom}, module, init_arg, opts)
 
       {{:global, _term} = tuple, opts} ->
-        :gen.start(:gen_server, link, tuple, module, args, opts)
+        :gen.start(:gen_server, link, tuple, module, init_arg, opts)
 
       {{:via, via_module, _term} = tuple, opts} when is_atom(via_module) ->
-        :gen.start(:gen_server, link, tuple, module, args, opts)
+        :gen.start(:gen_server, link, tuple, module, init_arg, opts)
 
       {other, _} ->
         raise ArgumentError, """
