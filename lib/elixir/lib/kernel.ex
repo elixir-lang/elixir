@@ -3027,11 +3027,17 @@ defmodule Kernel do
       true
 
   """
-  defmacro first..last when is_integer(first) and is_integer(last) do
+  defmacro first..last do
+    first = Macro.expand(first, __CALLER__)
+    last = Macro.expand(last, __CALLER__)
+    range(__CALLER__.context, first, last)
+  end
+
+  defp range(_context, first, last) when is_integer(first) and is_integer(last) do
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
   end
 
-  defmacro first..last
+  defp range(_context, first, last)
            when is_float(first) or is_float(last) or is_atom(first) or is_atom(last) or
                   is_binary(first) or is_binary(last) or is_list(first) or is_list(last) do
     raise ArgumentError,
@@ -3039,14 +3045,12 @@ defmodule Kernel do
             "got: #{Macro.to_string({:.., [], [first, last]})}"
   end
 
-  defmacro first..last do
-    case __CALLER__.context do
-      nil ->
-        quote(do: Elixir.Range.new(unquote(first), unquote(last)))
+  defp range(nil, first, last) do
+    quote(do: Elixir.Range.new(unquote(first), unquote(last)))
+  end
 
-      _ ->
-        {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
-    end
+  defp range(_, first, last) do
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
   end
 
   @doc """

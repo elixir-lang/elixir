@@ -440,9 +440,7 @@ defmodule KernelTest do
       end
     end
 
-    test "is optimized" do
-      assert expand_to_string(quote(do: foo in [])) == "Enum.member?([], foo)"
-
+    test "hoists variables" do
       result = expand_to_string(quote(do: rand() in 1..2))
       assert result =~ "var = rand()"
 
@@ -461,6 +459,16 @@ defmodule KernelTest do
       assert result =~ "var = rand()"
       assert result =~ "{var0} = {some_call()}"
       assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :lists.member(var, var0))"
+    end
+
+    test "is optimized" do
+      assert expand_to_string(quote(do: foo in [])) == "Enum.member?([], foo)"
+
+      assert expand_to_string(quote(do: foo in 0..1)) ==
+               ":erlang.andalso(:erlang.is_integer(foo), :erlang.andalso(:erlang.>=(foo, 0), :erlang.\"=<\"(foo, 1)))"
+
+      assert expand_to_string(quote(do: foo in -1..0)) ==
+               ":erlang.andalso(:erlang.is_integer(foo), :erlang.andalso(:erlang.>=(foo, -1), :erlang.\"=<\"(foo, 0)))"
     end
 
     defp expand_to_string(ast) do

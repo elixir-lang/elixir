@@ -1255,6 +1255,12 @@ defmodule Macro do
           next = :erlang.unique_integer()
           {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
 
+        {:ok, Kernel, op, [arg]} when op in [:+, :-] ->
+          case expand_once(arg, env) do
+            integer when is_integer(integer) -> {apply(Kernel, op, [integer]), true}
+            _ -> {original, false}
+          end
+
         {:ok, _receiver, _name, _args} ->
           {original, false}
 
