@@ -3124,9 +3124,15 @@ defmodule Kernel do
 
   """
   defmacro first..last do
-    first = Macro.expand(first, __CALLER__)
-    last = Macro.expand(last, __CALLER__)
-    range(__CALLER__.context, first, last)
+    case bootstrapped?(Macro) do
+      true ->
+        first = Macro.expand(first, __CALLER__)
+        last = Macro.expand(last, __CALLER__)
+        range(__CALLER__.context, first, last)
+
+      false ->
+        range(__CALLER__.context, first, last)
+    end
   end
 
   defp range(_context, first, last) when is_integer(first) and is_integer(last) do
