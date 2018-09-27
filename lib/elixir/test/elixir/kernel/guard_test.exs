@@ -161,7 +161,7 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert_raise CompileError, ~r"undefined function is_even/1", fn ->
+      assert_raise CompileError, ~r"function is_even/1 undefined", fn ->
         defmodule IntegerPrivateFunctionUtils do
           import IntegerPrivateGuards
 

@@ -238,7 +238,7 @@ defmodule Mix.Tasks.TestTest do
 
       Port.command(port, "\n")
 
-      message = "undefined function error_not_a_var"
+      message = "function error_not_a_var/0 undefined"
       assert receive_until_match(port, message, "") =~ "test/b_test_stale.exs"
 
       File.write!("test/b_test_stale.exs", """

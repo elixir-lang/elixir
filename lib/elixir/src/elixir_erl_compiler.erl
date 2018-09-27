@@ -74,10 +74,6 @@ handle_file_error(File, {Line, Module, Desc}) ->
 
 %% Custom formatting
 
-%% Normalize formatting of functions
-format_error(erl_lint, {undefined_function, {F, A}}) ->
-  io_lib:format("undefined function ~ts/~B", [F, A]);
-
 %% Normalize formatting of specs
 format_error(erl_lint, {spec_fun_undefined, {M, F, A}}) ->
   io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]);
