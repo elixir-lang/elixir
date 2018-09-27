@@ -172,7 +172,7 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
              Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
 
   DefaultsLength = length(Defaults),
-  elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
+  elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength, Meta),
   check_previous_defaults(Meta, Module, Name, Arity, Kind, DefaultsLength, E),
 
   store_definition(CheckClauses, Kind, Meta, Name, Arity, File,

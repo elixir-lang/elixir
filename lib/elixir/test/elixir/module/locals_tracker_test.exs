@@ -14,18 +14,18 @@ defmodule Module.LocalsTrackerTest do
   ## Locals
 
   test "functions are reachable when connected through another one", config do
-    D.add_local(config[:ref], {:public, 1}, {:private, 1})
+    D.add_local(config[:ref], {:public, 1}, {:private, 1}, line: 1)
     assert {:private, 1} in D.reachable_from(config[:ref], {:public, 1})
   end
 
   test "can yank and reattach nodes", config do
-    D.add_local(config[:ref], {:foo, 1}, {:bar, 1})
+    D.add_local(config[:ref], {:foo, 1}, {:bar, 1}, line: 1)
 
     outfoo = D.yank(config[:ref], {:foo, 1})
     outbar = D.yank(config[:ref], {:bar, 1})
 
-    D.reattach(config[:ref], {:bar, 1}, :defp, {:bar, 1}, outbar)
-    D.reattach(config[:ref], {:foo, 1}, :def, {:foo, 1}, outfoo)
+    D.reattach(config[:ref], {:bar, 1}, :defp, {:bar, 1}, outbar, line: 2)
+    D.reattach(config[:ref], {:foo, 1}, :def, {:foo, 1}, outfoo, line: 3)
     assert {:bar, 1} in D.reachable_from(config[:ref], {:foo, 1})
   end
 
@@ -34,7 +34,7 @@ defmodule Module.LocalsTrackerTest do
   ]
 
   test "unused private definitions are marked as so", config do
-    D.add_local(config[:ref], {:public, 1}, {:private, 1})
+    D.add_local(config[:ref], {:public, 1}, {:private, 1}, line: 1)
 
     unused = D.collect_unused_locals(config[:ref], @used, [{{:private, 0}, :defp, [], 0}])
     assert unused == {[private: 0], [{[], {:unused_def, {:private, 0}, :defp}}]}
@@ -51,28 +51,37 @@ defmodule Module.LocalsTrackerTest do
     unused = D.collect_unused_locals(config[:ref], @used, @unused)
     assert unused == {[private: 3], [{[], {:unused_def, {:private, 3}, :defp}}]}
 
-    D.add_local(config[:ref], {:public, 1}, {:private, 3})
+    D.add_local(config[:ref], {:public, 1}, {:private, 3}, line: 1)
     unused = D.collect_unused_locals(config[:ref], @used, @unused)
     assert unused == {[], [{[], {:unused_args, {:private, 3}}}]}
   end
 
   test "private definitions with some unused default arguments", config do
-    D.add_local(config[:ref], {:public, 1}, {:private, 1})
+    D.add_local(config[:ref], {:public, 1}, {:private, 1}, line: 1)
     unused = D.collect_unused_locals(config[:ref], @used, @unused)
     assert unused == {[private: 3], [{[], {:unused_args, {:private, 3}, 1}}]}
   end
 
   test "private definitions with all used default arguments", config do
-    D.add_local(config[:ref], {:public, 1}, {:private, 0})
+    D.add_local(config[:ref], {:public, 1}, {:private, 0}, line: 1)
     unused = D.collect_unused_locals(config[:ref], @used, @unused)
     assert unused == {[private: 3], []}
+  end
+
+  ### Undefined functions
+
+  test "undefined functions are marked as so", config do
+    D.add_local(config[:ref], {:public, 1}, {:private, 1}, line: 1)
+
+    undefined = D.collect_undefined_locals(config[:ref], @used)
+    assert undefined == [{[line: 1], {:undefined_function, {:private, 1}}}]
   end
 
   ## Defaults
 
   test "defaults are connected to last clause only", config do
-    D.add_defaults(config[:ref], :defp, {:foo, 4}, 2)
-    D.add_local(config[:ref], {:public, 1}, {:foo, 2})
+    D.add_defaults(config[:ref], :defp, {:foo, 4}, 2, line: 1)
+    D.add_local(config[:ref], {:public, 1}, {:foo, 2}, line: 2)
     assert {:foo, 2} in D.reachable_from(config[:ref], {:public, 1})
     refute {:foo, 3} in D.reachable_from(config[:ref], {:public, 1})
     assert {:foo, 4} in D.reachable_from(config[:ref], {:public, 1})
@@ -84,7 +93,7 @@ defmodule Module.LocalsTrackerTest do
     entries = [{{:conflict, 1}, :def, [], []}]
     refute {[], {Module, {:conflict, 1}}} in D.collect_imports_conflicts(config[:ref], entries)
 
-    D.add_local(config[:ref], {:public, 1}, {:foo, 2})
+    D.add_local(config[:ref], {:public, 1}, {:foo, 2}, line: 1)
     D.add_import(config[:ref], {:foo, 2}, Module, {:conflict, 1})
     D.add_import(config[:ref], {:foo, 2}, Module, {:conflict, 1})
     assert {[], {Module, {:conflict, 1}}} in D.collect_imports_conflicts(config[:ref], entries)

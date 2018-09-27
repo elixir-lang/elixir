@@ -18,9 +18,9 @@ defmodule Module.LocalsTracker do
   @doc """
   Adds and tracks defaults for a definition into the tracker.
   """
-  def add_defaults({_set, bag}, _kind, {name, arity} = pair, defaults) do
+  def add_defaults({_set, bag}, _kind, {name, arity} = pair, defaults, meta) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
-      put_edge(bag, {:local, {name, i}}, pair)
+      put_edge(bag, {:local, {name, i}}, {pair, meta})
     end
 
     :ok
@@ -29,9 +29,9 @@ defmodule Module.LocalsTracker do
   @doc """
   Adds a local dispatch from-to the given target.
   """
-  def add_local({_set, bag}, from, to) when is_tuple(from) and is_tuple(to) do
+  def add_local({_set, bag}, from, to, meta) when is_tuple(from) and is_tuple(to) do
     if from != to do
-      put_edge(bag, {:local, from}, to)
+      put_edge(bag, {:local, from}, {to, meta})
     end
 
     :ok
@@ -56,14 +56,14 @@ defmodule Module.LocalsTracker do
   @doc """
   Reattach a previously yanked node.
   """
-  def reattach({_set, bag}, tuple, _kind, function, out_neigh) do
-    for to <- out_neigh do
-      put_edge(bag, {:local, function}, to)
+  def reattach({_set, bag}, tuple, _kind, function, out_neighbours, meta) do
+    for out_neighbour <- out_neighbours do
+      put_edge(bag, {:local, function}, out_neighbour)
     end
 
     # Make a call from the old function to the new one
     if function != tuple do
-      put_edge(bag, {:local, function}, tuple)
+      put_edge(bag, {:local, function}, {tuple, meta})
     end
 
     # Finally marked the new one as reattached
@@ -100,8 +100,8 @@ defmodule Module.LocalsTracker do
 
   def collect_undefined_locals({_set, bag}, all_defined) do
     undefined =
-      Enum.reduce(all_defined, %{}, fn {pair, _, meta, _}, acc ->
-        undefined_from(bag, pair, meta, acc)
+      Enum.reduce(all_defined, %{}, fn {pair, _, _, _}, acc ->
+        undefined_from(bag, pair, acc)
       end)
 
     for {pair, {:undefined_function, meta}} <- undefined do
@@ -181,7 +181,7 @@ defmodule Module.LocalsTracker do
   defp reachable_from(bag, local, vertices) do
     vertices = Map.put(vertices, local, true)
 
-    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {_, _} = local, acc ->
+    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {local, _meta}, acc ->
       case acc do
         %{^local => true} -> acc
         _ -> reachable_from(bag, local, acc)
@@ -189,10 +189,10 @@ defmodule Module.LocalsTracker do
     end)
   end
 
-  defp undefined_from(bag, pair, meta, undefined) do
+  defp undefined_from(bag, pair, undefined) do
     undefined = Map.put(undefined, pair, :ok)
 
-    Enum.reduce(out_neighbours(bag, {:local, pair}), undefined, fn local, acc ->
+    Enum.reduce(out_neighbours(bag, {:local, pair}), undefined, fn {local, meta}, acc ->
       case acc do
         %{^local => _} -> acc
         _ -> Map.put(acc, local, {:undefined_function, meta})

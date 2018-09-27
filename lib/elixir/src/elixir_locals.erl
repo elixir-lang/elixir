@@ -2,8 +2,8 @@
 -module(elixir_locals).
 -export([
   setup/1, stop/1, cache_env/1, get_cached_env/1,
-  record_local/3, record_import/4, record_defaults/4,
-  yank/2, reattach/5, ensure_no_import_conflict/3,
+  record_local/4, record_import/4, record_defaults/5,
+  yank/2, reattach/6, ensure_no_import_conflict/3,
   warn_unused_local/4, ensure_no_undefined_local/3, format_error/1
 ]).
 
@@ -28,23 +28,23 @@ stop({DataSet, _DataBag}) ->
 yank(Tuple, Module) ->
   if_tracker(Module, fun(Tracker) -> ?tracker:yank(Tracker, Tuple) end).
 
-reattach(Tuple, Kind, Module, Function, Neighbours) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:reattach(Tracker, Tuple, Kind, Function, Neighbours) end).
+reattach(Tuple, Kind, Module, Function, Neighbours, Meta) ->
+  if_tracker(Module, fun(Tracker) -> ?tracker:reattach(Tracker, Tuple, Kind, Function, Neighbours, Meta) end).
 
-record_local(Tuple, _Module, Function)
+record_local(Tuple, _Module, Function, _Meta)
   when Function == nil; Function == Tuple -> ok;
-record_local(Tuple, Module, Function) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:add_local(Tracker, Function, Tuple), ok end).
+record_local(Tuple, Module, Function, Meta) ->
+  if_tracker(Module, fun(Tracker) -> ?tracker:add_local(Tracker, Function, Tuple, Meta), ok end).
 
 record_import(_Tuple, Receiver, Module, Function)
   when Function == nil; Module == Receiver -> false;
 record_import(Tuple, Receiver, Module, Function) ->
   if_tracker(Module, fun(Tracker) -> ?tracker:add_import(Tracker, Function, Receiver, Tuple), ok end).
 
-record_defaults(_Tuple, _Kind, _Module, 0) ->
+record_defaults(_Tuple, _Kind, _Module, 0, _Meta) ->
   ok;
-record_defaults(Tuple, Kind, Module, Defaults) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:add_defaults(Tracker, Kind, Tuple, Defaults), ok end).
+record_defaults(Tuple, Kind, Module, Defaults, Meta) ->
+  if_tracker(Module, fun(Tracker) -> ?tracker:add_defaults(Tracker, Kind, Tuple, Defaults, Meta), ok end).
 
 if_tracker(Module, Callback) ->
   if_tracker(Module, ok, Callback).
