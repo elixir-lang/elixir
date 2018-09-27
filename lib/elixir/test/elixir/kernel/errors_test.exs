@@ -357,9 +357,13 @@ defmodule Kernel.ErrorsTest do
                       end
                       '''
 
-    assert_eval_raise CompileError, ~r"nofile:2: undefined function foo/0", ~C'''
+    assert_eval_raise CompileError, ~r"nofile:4: undefined function foo/0", ~C'''
     defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
-      def hello(foo, bar \\ foo())
+      def hello(
+            foo,
+            bar \\ foo()
+          )
+
       def hello(foo, bar), do: foo + bar
     end
     '''
@@ -388,6 +392,19 @@ defmodule Kernel.ErrorsTest do
     defmodule Kernel.ErrorsTest.BadForm do
       def foo do
         bar()
+      end
+    end
+    '''
+
+    assert_eval_raise CompileError, "nofile:8: undefined function baz/0", '''
+    defmodule Sample do
+      def foo do
+        bar()
+      end
+
+      defoverridable [foo: 0]
+      def foo do
+        baz()
       end
     end
     '''
