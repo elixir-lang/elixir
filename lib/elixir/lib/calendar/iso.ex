@@ -28,6 +28,7 @@ defmodule Calendar.ISO do
   @seconds_per_hour 60 * 60
   # Note that this does _not_ handle leap seconds.
   @seconds_per_day 24 * 60 * 60
+  @last_second_of_the_day @seconds_per_day - 1
   @microseconds_per_second 1_000_000
   @parts_per_day @seconds_per_day * @microseconds_per_second
 
@@ -491,7 +492,8 @@ defmodule Calendar.ISO do
   @impl true
   @spec valid_date?(year, month, day) :: boolean
   def valid_date?(year, month, day) do
-    month in 1..12 and year in -9999..9999 and day in 1..days_in_month(year, month)
+    month in 1..12 and year in -9999..9999 and
+      (is_integer(day) and day >= 1 and day <= days_in_month(year, month))
   end
 
   @doc """
@@ -853,7 +855,7 @@ defmodule Calendar.ISO do
     {date, time}
   end
 
-  defp seconds_to_time(seconds) when seconds in 0..(@seconds_per_day - 1) do
+  defp seconds_to_time(seconds) when seconds in 0..@last_second_of_the_day do
     {hour, rest_seconds} = div_mod(seconds, @seconds_per_hour)
     {minute, second} = div_mod(rest_seconds, @seconds_per_minute)
 
