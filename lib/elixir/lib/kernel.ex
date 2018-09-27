@@ -3038,8 +3038,8 @@ defmodule Kernel do
   end
 
   defp range(_context, first, last)
-           when is_float(first) or is_float(last) or is_atom(first) or is_atom(last) or
-                  is_binary(first) or is_binary(last) or is_list(first) or is_list(last) do
+       when is_float(first) or is_float(last) or is_atom(first) or is_atom(last) or
+              is_binary(first) or is_binary(last) or is_list(first) or is_list(last) do
     raise ArgumentError,
           "ranges (first..last) expect both sides to be integers, " <>
             "got: #{Macro.to_string({:.., [], [first, last]})}"
