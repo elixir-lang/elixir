@@ -283,6 +283,11 @@ defmodule Kernel.Typespec do
       compile_error(caller, message)
     end
 
+    if kind == :opaque and arity == 0 and underspecified?(spec) do
+      message = "opaque type #{name}/0 is underspecified and therefore meaningless"
+      :elixir_errors.warn(caller.line, caller.file, message)
+    end
+
     {{kind, {name, arity}, caller.line, type, export}, state}
   end
 
@@ -291,6 +296,9 @@ defmodule Kernel.Typespec do
        do: true
 
   defp valid_variable_ast?(_), do: false
+
+  defp underspecified?({:type, _, type, []}) when type in [:any, :term], do: true
+  defp underspecified?(_spec), do: false
 
   defp translate_spec({kind, {{:when, _meta, [spec, guard]}, pos}}, state) do
     caller = :elixir_locals.get_cached_env(pos)
