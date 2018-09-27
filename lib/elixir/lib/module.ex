@@ -1950,6 +1950,18 @@ defmodule Module do
             "representing the replacement for the deprecated entity, got: #{inspect(value)}"
   end
 
+  defp validate_doc_meta(:delegate_to, value) do
+    case value do
+      {m, f, a} when is_atom(m) and is_atom(f) and is_integer(a) and a >= 0 ->
+        :ok
+
+      _ ->
+        raise ArgumentError,
+              ":delegate_to is a built-in documentation metadata key. It should be a three-element " <>
+                "tuple in the form of {module, function, arity}, got: #{inspect(value)}"
+    end
+  end
+
   defp validate_doc_meta(_, _), do: :ok
 
   defp get_doc_info(table, env) do
