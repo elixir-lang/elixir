@@ -98,6 +98,17 @@ defmodule Module.LocalsTracker do
     {unreachable(reachable, reattached, private), collect_warnings(reachable, private)}
   end
 
+  def collect_undefined_locals({_set, bag}, all_defined) do
+    undefined =
+      Enum.reduce(all_defined, %{}, fn {pair, _, meta, _}, acc ->
+        undefined_from(bag, pair, meta, acc)
+      end)
+
+    for {pair, {:undefined_function, meta}} <- undefined do
+      {meta, {:undefined_function, pair}}
+    end
+  end
+
   defp unreachable(reachable, reattached, private) do
     for {tuple, kind, _, _} <- private,
         not reachable?(tuple, kind, reachable, reattached),
@@ -174,6 +185,17 @@ defmodule Module.LocalsTracker do
       case acc do
         %{^local => true} -> acc
         _ -> reachable_from(bag, local, acc)
+      end
+    end)
+  end
+
+  defp undefined_from(bag, pair, meta, undefined) do
+    undefined = Map.put(undefined, pair, :ok)
+
+    Enum.reduce(out_neighbours(bag, {:local, pair}), undefined, fn local, acc ->
+      case acc do
+        %{^local => _} -> acc
+        _ -> Map.put(acc, local, {:undefined_function, meta})
       end
     end)
   end

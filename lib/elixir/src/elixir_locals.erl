@@ -3,8 +3,8 @@
 -export([
   setup/1, stop/1, cache_env/1, get_cached_env/1,
   record_local/3, record_import/4, record_defaults/4,
-  yank/2, reattach/5,
-  ensure_no_import_conflict/3, warn_unused_local/4, format_error/1
+  yank/2, reattach/5, ensure_no_import_conflict/3,
+  warn_unused_local/4, ensure_no_undefined_local/3, format_error/1
 ]).
 
 -include("elixir.hrl").
@@ -102,6 +102,12 @@ warn_unused_local(File, Module, All, Private) ->
     Unreachable
   end).
 
+ensure_no_undefined_local(File, Module, All) ->
+  if_tracker(Module, [], fun(Tracker) ->
+    Warnings = ?tracker:collect_undefined_locals(Tracker, All),
+    [elixir_errors:form_error(Meta, File, ?MODULE, Error) || {Meta, Error} <- Warnings]
+  end).
+
 format_error({function_conflict, {Receiver, {Name, Arity}}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
@@ -119,4 +125,7 @@ format_error({unused_def, {Name, Arity}, defp}) ->
   io_lib:format("function ~ts/~B is unused", [Name, Arity]);
 
 format_error({unused_def, {Name, Arity}, defmacrop}) ->
-  io_lib:format("macro ~ts/~B is unused", [Name, Arity]).
+  io_lib:format("macro ~ts/~B is unused", [Name, Arity]);
+
+format_error({undefined_function, {F, A}}) ->
+  io_lib:format("undefined function ~ts/~B", [F, A]).
