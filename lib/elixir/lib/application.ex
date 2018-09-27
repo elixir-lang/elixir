@@ -365,7 +365,7 @@ defmodule Application do
   `fetch_env/2`. Returns `nil` if the application is not loaded.
   """
   @spec spec(app) :: [{key, value}] | nil
-  def spec(app) do
+  def spec(app) when is_atom(app) do
     case :application.get_all_key(app) do
       {:ok, info} -> :lists.keydelete(:env, 1, info)
       :undefined -> nil
@@ -380,7 +380,7 @@ defmodule Application do
   will raise. Returns `nil` if the application is not loaded.
   """
   @spec spec(app, key) :: value | nil
-  def spec(app, key) when key in @application_keys do
+  def spec(app, key) when is_atom(app) and key in @application_keys do
     case :application.get_key(app, key) do
       {:ok, value} -> value
       :undefined -> nil
@@ -406,7 +406,7 @@ defmodule Application do
   Returns all key-value pairs for `app`.
   """
   @spec get_all_env(app) :: [{key, value}]
-  def get_all_env(app) do
+  def get_all_env(app) when is_atom(app) do
     :application.get_all_env(app)
   end
 
@@ -452,7 +452,7 @@ defmodule Application do
   read our [library guidelines](library-guidelines.html).
   """
   @spec get_env(app, key, value) :: value
-  def get_env(app, key, default \\ nil) do
+  def get_env(app, key, default \\ nil) when is_atom(app) do
     :application.get_env(app, key, default)
   end
 
@@ -462,7 +462,7 @@ defmodule Application do
   If the configuration parameter does not exist, the function returns `:error`.
   """
   @spec fetch_env(app, key) :: {:ok, value} | :error
-  def fetch_env(app, key) do
+  def fetch_env(app, key) when is_atom(app) do
     case :application.get_env(app, key) do
       {:ok, value} -> {:ok, value}
       :undefined -> :error
@@ -475,7 +475,7 @@ defmodule Application do
   If the configuration parameter does not exist, raises `ArgumentError`.
   """
   @spec fetch_env!(app, key) :: value
-  def fetch_env!(app, key) do
+  def fetch_env!(app, key) when is_atom(app) do
     case fetch_env(app, key) do
       {:ok, value} ->
         value
@@ -519,7 +519,7 @@ defmodule Application do
   stick after the application is loaded and also on application reload.
   """
   @spec put_env(app, key, value, timeout: timeout, persistent: boolean) :: :ok
-  def put_env(app, key, value, opts \\ []) do
+  def put_env(app, key, value, opts \\ []) when is_atom(app) do
     :application.set_env(app, key, value, opts)
   end
 
@@ -529,7 +529,7 @@ defmodule Application do
   See `put_env/4` for a description of the options.
   """
   @spec delete_env(app, key, timeout: timeout, persistent: boolean) :: :ok
-  def delete_env(app, key, opts \\ []) do
+  def delete_env(app, key, opts \\ []) when is_atom(app) do
     :application.unset_env(app, key, opts)
   end
 
@@ -605,7 +605,7 @@ defmodule Application do
   When stopped, the application is still loaded.
   """
   @spec stop(app) :: :ok | {:error, term}
-  def stop(app) do
+  def stop(app) when is_atom(app) do
     :application.stop(app)
   end
 
@@ -688,11 +688,11 @@ defmodule Application do
   @spec app_dir(app, String.t() | [String.t()]) :: String.t()
   def app_dir(app, path)
 
-  def app_dir(app, path) when is_binary(path) do
+  def app_dir(app, path) when is_atom(app) and is_binary(path) do
     Path.join(app_dir(app), path)
   end
 
-  def app_dir(app, path) when is_list(path) do
+  def app_dir(app, path) when is_atom(app) and is_list(path) do
     Path.join([app_dir(app) | path])
   end
 
