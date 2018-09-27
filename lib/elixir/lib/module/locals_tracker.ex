@@ -20,7 +20,7 @@ defmodule Module.LocalsTracker do
   """
   def add_defaults({_set, bag}, _kind, {name, arity} = pair, defaults, meta) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
-      put_edge(bag, {:local, {name, i}}, {pair, meta})
+      put_edge(bag, {:local, {name, i}}, {pair, get_line(meta)})
     end
 
     :ok
@@ -31,7 +31,7 @@ defmodule Module.LocalsTracker do
   """
   def add_local({_set, bag}, from, to, meta) when is_tuple(from) and is_tuple(to) do
     if from != to do
-      put_edge(bag, {:local, from}, {to, meta})
+      put_edge(bag, {:local, from}, {to, get_line(meta)})
     end
 
     :ok
@@ -63,7 +63,7 @@ defmodule Module.LocalsTracker do
 
     # Make a call from the old function to the new one
     if function != tuple do
-      put_edge(bag, {:local, function}, {tuple, meta})
+      put_edge(bag, {:local, function}, {tuple, get_line(meta)})
     end
 
     # Finally marked the new one as reattached
@@ -181,7 +181,7 @@ defmodule Module.LocalsTracker do
   defp reachable_from(bag, local, vertices) do
     vertices = Map.put(vertices, local, true)
 
-    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {local, _meta}, acc ->
+    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {local, _line}, acc ->
       case acc do
         %{^local => true} -> acc
         _ -> reachable_from(bag, local, acc)
@@ -192,13 +192,18 @@ defmodule Module.LocalsTracker do
   defp undefined_from(bag, pair, undefined) do
     undefined = Map.put(undefined, pair, :ok)
 
-    Enum.reduce(out_neighbours(bag, {:local, pair}), undefined, fn {local, meta}, acc ->
+    Enum.reduce(out_neighbours(bag, {:local, pair}), undefined, fn {local, line}, acc ->
       case acc do
         %{^local => _} -> acc
-        _ -> Map.put(acc, local, {:undefined_function, meta})
+        _ -> Map.put(acc, local, {:undefined_function, to_meta(line)})
       end
     end)
   end
+
+  defp get_line(meta), do: Keyword.get(meta, :line)
+
+  defp to_meta(nil), do: []
+  defp to_meta(line), do: [line: line]
 
   ## Lightweight digraph implementation
 
