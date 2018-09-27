@@ -449,7 +449,7 @@ defmodule Application do
   **Important:** if you are writing a library to be used by other developers,
   it is generally recommended to avoid the application environment, as the
   application environment is effectively a global storage. For more information,
-  read our [library guidelines](library-guidelines.html).
+  read our [library guidelines](elixir/library-guidelines.html).
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) when is_atom(app) do
