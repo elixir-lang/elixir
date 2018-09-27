@@ -175,6 +175,10 @@ defmodule Calendar.ISO do
   @impl true
   @spec time_from_day_fraction(Calendar.day_fraction()) ::
           {Calendar.hour(), Calendar.minute(), Calendar.second(), Calendar.microsecond()}
+  def time_from_day_fraction({0, _}) do
+    {0, 0, 0, {0, 6}}
+  end
+
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
     total_microseconds = div(parts_in_day * @parts_per_day, parts_per_day)
 
