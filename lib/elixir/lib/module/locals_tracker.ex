@@ -98,6 +98,9 @@ defmodule Module.LocalsTracker do
     {unreachable(reachable, reattached, private), collect_warnings(reachable, private)}
   end
 
+  @doc """
+  Collect undefined functions based on local calls and existing definitions\][=]
+  """
   def collect_undefined_locals({_set, bag}, all_defined) do
     undefined =
       Enum.reduce(all_defined, %{}, fn {pair, _, _, _}, acc ->

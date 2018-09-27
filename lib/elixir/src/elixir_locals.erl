@@ -104,8 +104,9 @@ warn_unused_local(File, Module, All, Private) ->
 
 ensure_no_undefined_local(File, Module, All) ->
   if_tracker(Module, [], fun(Tracker) ->
-    Warnings = ?tracker:collect_undefined_locals(Tracker, All),
-    [elixir_errors:form_error(Meta, File, ?MODULE, Error) || {Meta, Error} <- Warnings]
+    [elixir_errors:form_error(Meta, File, ?MODULE, Error)
+     || {Meta, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
+    ok
   end).
 
 format_error({function_conflict, {Receiver, {Name, Arity}}}) ->
