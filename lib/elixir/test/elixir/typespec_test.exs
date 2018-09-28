@@ -120,10 +120,42 @@ defmodule TypespecTest do
       end
     end
 
-    test "undefined spec for function" do
+    test "type variable only used once (singleton type variable)" do
+      assert_raise CompileError, ~r"type variable x is only used once", fn ->
+        test_module do
+          @type foo(x) :: integer
+        end
+      end
+
+      # Raises on the first variable
+      assert_raise CompileError, ~r"type variable b is only used once", fn ->
+        test_module do
+          @type foo(b, a) :: integer
+        end
+      end
+    end
+
+    test "spec for undefined function" do
       assert_raise CompileError, ~r"spec for undefined function omg/0", fn ->
         test_module do
           @spec omg :: atom
+        end
+      end
+    end
+
+    test "spec variable only used once (singleton type variable)" do
+      assert_raise CompileError, ~r"type variable x is only used once", fn ->
+        test_module do
+          @spec foo(x, integer) :: integer when x: var
+          def foo(x, y), do: x + y
+        end
+      end
+
+      # Raises on the first variable
+      assert_raise CompileError, ~r"type variable b is only used once", fn ->
+        test_module do
+          @spec foo(b, a) :: integer when b: var, a: var
+          def foo(x, y), do: x + y
         end
       end
     end

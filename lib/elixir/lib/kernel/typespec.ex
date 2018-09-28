@@ -248,8 +248,10 @@ defmodule Kernel.Typespec do
     end)
   end
 
-  defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}}, state) do
+  defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}}, global_state) do
     caller = :elixir_locals.get_cached_env(pos)
+    local_state = %{used_vars: []}
+    state = {global_state, local_state}
 
     args =
       if is_atom(args) do
@@ -259,10 +261,14 @@ defmodule Kernel.Typespec do
       end
 
     vars = for {:var, _, var} <- args, do: var
+    state = Enum.reduce(vars, state, &update_used_vars(&2, &1))
     {spec, state} = typespec(definition, vars, caller, state)
     vars = for {:var, _, _} = var <- args, do: var
     type = {name, spec, vars}
     arity = length(args)
+    {global_state, local_state} = state
+
+    ensure_no_singleton_type_vars!(caller, local_state.used_vars)
 
     {kind, export} =
       case kind do
@@ -288,7 +294,7 @@ defmodule Kernel.Typespec do
       :elixir_errors.warn(caller.line, caller.file, message)
     end
 
-    {{kind, {name, arity}, caller.line, type, export}, state}
+    {{kind, {name, arity}, caller.line, type, export}, global_state}
   end
 
   defp valid_variable_ast?({variable_name, _, context})
@@ -329,26 +335,32 @@ defmodule Kernel.Typespec do
   defp translate_spec(kind, meta, name, args, return, guard, caller, state) when is_atom(args),
     do: translate_spec(kind, meta, name, [], return, guard, caller, state)
 
-  defp translate_spec(kind, meta, name, args, return, guard, caller, state) do
+  defp translate_spec(kind, meta, name, args, return, guard, caller, global_state) do
     ensure_no_defaults!(args)
+
+    local_state = %{used_vars: []}
+    state = {global_state, local_state}
 
     unless Keyword.keyword?(guard) do
       error = "expected keywords as guard in type specification, got: #{Macro.to_string(guard)}"
       compile_error(caller, error)
     end
 
+    line = line(meta)
     vars = Keyword.keys(guard)
     {fun_args, state} = fn_args(meta, args, return, vars, caller, state)
-    spec = {:type, line(meta), :fun, fun_args}
+    spec = {:type, line, :fun, fun_args}
 
-    {spec, state} =
+    {spec, {global_state, local_state}} =
       case guard_to_constraints(guard, vars, meta, caller, state) do
         {[], state} -> {spec, state}
-        {constraints, state} -> {{:type, line(meta), :bounded_fun, [spec, constraints]}, state}
+        {constraints, state} -> {{:type, line, :bounded_fun, [spec, constraints]}, state}
       end
 
+    ensure_no_singleton_type_vars!(caller, local_state.used_vars)
+
     arity = length(args)
-    {{kind, {name, arity}, caller.line, spec}, state}
+    {{kind, {name, arity}, caller.line, spec}, global_state}
   end
 
   # TODO: Remove char_list type by 2.0
@@ -390,6 +402,7 @@ defmodule Kernel.Typespec do
       {name, type}, state ->
         {spec, state} = typespec(type, vars, caller, state)
         constraint = [{:atom, line, :is_subtype}, [{:var, line, name}, spec]]
+        state = update_used_vars(state, name)
 
         {[{:type, line, :constraint, constraint}], state}
     end)
@@ -585,7 +598,12 @@ defmodule Kernel.Typespec do
   end
 
   # Handle type operator
-  defp typespec({:::, meta, [{var_name, _, context} = var, expr]} = ann_type, vars, caller, state)
+  defp typespec(
+         {:::, meta, [{var_name, var_meta, context}, expr]} = ann_type,
+         vars,
+         caller,
+         state
+       )
        when is_atom(var_name) and is_atom(context) do
     case typespec(expr, vars, caller, state) do
       {{:ann_type, _, _}, _state} ->
@@ -598,28 +616,26 @@ defmodule Kernel.Typespec do
 
         # This may be generating an invalid typespec but we need to generate it
         # to avoid breaking existing code that was valid but only broke dialyzer
-        {left, state} = typespec(var, [elem(var, 0) | vars], caller, state)
         {right, state} = typespec(expr, vars, caller, state)
-        {{:ann_type, line(meta), [left, right]}, state}
+        {{:ann_type, line(meta), [{:var, line(var_meta), var_name}, right]}, state}
 
       {right, state} ->
-        {left, state} = typespec(var, [var_name | vars], caller, state)
-        {{:ann_type, line(meta), [left, right]}, state}
+        {{:ann_type, line(meta), [{:var, line(var_meta), var_name}, right]}, state}
     end
   end
 
-  defp typespec({:::, meta, [var, expr]} = ann_type, vars, caller, state) do
+  defp typespec({:::, meta, [left, right]} = expr, vars, caller, state) do
     message =
       "invalid type annotation. When using the | operator to represent the union of types, " <>
-        "make sure to wrap type annotations in parentheses: #{Macro.to_string(ann_type)}"
+        "make sure to wrap type annotations in parentheses: #{Macro.to_string(expr)}"
 
     # TODO: make this an error in elixir 2.0 and remove code below
     :elixir_errors.warn(caller.line, caller.file, message)
 
     # This may be generating an invalid typespec but we need to generate it
     # to avoid breaking existing code that was valid but only broke dialyzer
-    {left, state} = typespec(var, [elem(var, 0) | vars], caller, state)
-    {right, state} = typespec(expr, vars, caller, state)
+    {left, state} = typespec(left, vars, caller, state)
+    {right, state} = typespec(right, vars, caller, state)
     {{:ann_type, line(meta), [left, right]}, state}
   end
 
@@ -692,6 +708,7 @@ defmodule Kernel.Typespec do
   # Handle variables or local calls
   defp typespec({name, meta, atom}, vars, caller, state) when is_atom(atom) do
     if name in vars do
+      state = update_used_vars(state, name)
       {{:var, line(meta), name}, state}
     else
       typespec({name, meta, []}, vars, caller, state)
@@ -763,15 +780,20 @@ defmodule Kernel.Typespec do
         {{:type, line(meta), name, arguments}, state}
 
       false ->
-        unless Map.has_key?(state.defined_type_pairs, {name, arity}) do
+        {global_state, local_state} = state
+
+        unless Map.has_key?(global_state.defined_type_pairs, {name, arity}) do
           compile_error(caller, "type #{name}/#{arity} undefined")
         end
 
-        state =
-          case {name, arity} in state.used_type_pairs do
-            true -> state
-            false -> Map.put(state, :used_type_pairs, [{name, arity} | state.used_type_pairs])
+        global_state =
+          if {name, arity} in global_state.used_type_pairs do
+            global_state
+          else
+            %{global_state | used_type_pairs: [{name, arity} | global_state.used_type_pairs]}
           end
+
+        state = {global_state, local_state}
 
         {{:user_type, line(meta), name, arguments}, state}
     end
@@ -861,4 +883,25 @@ defmodule Kernel.Typespec do
   end
 
   defp variable(expr), do: expr
+
+  defp update_used_vars({global_state, local_state}, var_name) do
+    case Keyword.fetch(local_state.used_vars, var_name) do
+      {:ok, :used_once} ->
+        used_vars = Keyword.put(local_state.used_vars, var_name, :used_multiple)
+        {global_state, %{local_state | used_vars: used_vars}}
+
+      {:ok, :used_multiple} ->
+        {global_state, local_state}
+
+      :error ->
+        used_vars = Keyword.put(local_state.used_vars, var_name, :used_once)
+        {global_state, %{local_state | used_vars: used_vars}}
+    end
+  end
+
+  defp ensure_no_singleton_type_vars!(caller, used_vars) do
+    for {name, :used_once} <- Enum.reverse(used_vars) do
+      compile_error(caller, "type variable #{name} is only used once (is unbound)")
+    end
+  end
 end
