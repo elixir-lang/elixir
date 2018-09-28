@@ -1214,9 +1214,9 @@ defmodule Kernel.WarningTest do
         end)
 
       assert output =~ "nofile:2"
-      assert output =~ "opaque type op1/0 is underspecified and therefore meaningless"
+      assert output =~ "@opaque type op1/0 is underspecified and therefore meaningless"
       assert output =~ "nofile:3"
-      assert output =~ "opaque type op2/0 is underspecified and therefore meaningless"
+      assert output =~ "@opaque type op2/0 is underspecified and therefore meaningless"
       refute output =~ "nofile:4"
       refute output =~ "op3"
     after
