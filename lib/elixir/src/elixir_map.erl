@@ -86,16 +86,29 @@ validate_match_key(Meta, List, E) when is_list(List) ->
 validate_match_key(_, _, _) ->
   ok.
 
+validate_not_repeated(Meta, Key, Used, E) ->
+  case is_literal(Key) andalso Used of
+    #{Key := true} -> form_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
+    #{} -> Used#{Key => true};
+    false -> Used
+  end.
+
+is_literal({_, _, _}) -> false;
+is_literal({Left, Right}) -> is_literal(Left) andalso is_literal(Right);
+is_literal([_ | _] = List) -> lists:all(fun is_literal/1, List);
+is_literal(_) -> true.
+
 validate_kv(Meta, KV, Original, #{context := Context} = E) ->
   lists:foldl(fun
-    ({{'^', _, [_]}, _}, Acc) ->
-      Acc + 1;
-    ({K, _V}, Acc) ->
+    ({{'^', _, [_]}, _}, {Index, Used}) ->
+      {Index + 1, Used};
+    ({K, _V}, {Index, Used}) ->
       (Context == match) andalso validate_match_key(Meta, K, E),
-      Acc + 1;
-    (_, Acc) ->
-      form_error(Meta, ?key(E, file), ?MODULE, {not_kv_pair, lists:nth(Acc, Original)})
-  end, 1, KV).
+      NewUsed = validate_not_repeated(Meta, K, Used, E),
+      {Index + 1, NewUsed};
+    (_, {Index, _Used}) ->
+      form_error(Meta, ?key(E, file), ?MODULE, {not_kv_pair, lists:nth(Index, Original)})
+  end, {1, #{}}, KV).
 
 extract_struct_assocs(_, {'%{}', Meta, [{'|', _, [_, Assocs]}]}, _) ->
   {update, Meta, delete_struct_key(Assocs)};
@@ -189,6 +202,8 @@ format_error({invalid_variable_in_map_key_match, Name}) ->
     "(such as atoms, strings, tuples, etc) or an existing variable matched with the pin operator "
     "(such as ^some_var)",
   io_lib:format(Message, [Name]);
+format_error({repeated_key, Key}) ->
+    io_lib:format("key ~ts will be overridden in map", ['Elixir.Macro':to_string(Key)]);
 format_error({not_kv_pair, Expr}) ->
   io_lib:format("expected key-value pairs in a map, got: ~ts",
                 ['Elixir.Macro':to_string(Expr)]);
