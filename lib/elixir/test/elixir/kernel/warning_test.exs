@@ -1203,6 +1203,28 @@ defmodule Kernel.WarningTest do
       purge(Sample)
     end
 
+    test "underspecified opaque types" do
+      output =
+        capture_err(fn ->
+          Code.eval_string("""
+          defmodule Sample do
+            @opaque op1 :: term
+            @opaque op2 :: any
+            @opaque op3 :: atom
+          end
+          """)
+        end)
+
+      assert output =~ "nofile:2"
+      assert output =~ "@opaque type op1/0 is underspecified and therefore meaningless"
+      assert output =~ "nofile:3"
+      assert output =~ "@opaque type op2/0 is underspecified and therefore meaningless"
+      refute output =~ "nofile:4"
+      refute output =~ "op3"
+    after
+      purge(Sample)
+    end
+
     test "typedoc on typep" do
       assert capture_err(fn ->
                Code.eval_string("""

@@ -52,6 +52,7 @@ handle_file_warning(_, _File, {_Line, erl_lint, {unused_function, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {unused_var, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, erl_lint, {underspecified_opaque, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 
 %% Ignore behaviour warnings as we check for these problem ourselves
