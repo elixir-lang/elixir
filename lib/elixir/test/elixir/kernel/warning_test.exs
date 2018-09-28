@@ -589,6 +589,8 @@ defmodule Kernel.WarningTest do
 
     assert output =~ "key :a will be overridden in map"
     assert output =~ "key 1 will be overridden in map"
+
+    assert map_size(%{System.unique_integer() => 1, System.unique_integer() => 2}) == 2
   end
 
   test "unused guard" do

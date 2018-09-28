@@ -578,6 +578,37 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
         {clause, Generated, [Var], [], [Slow]}
       ]}, VS}
   end;
+translate_remote(maps, put, Meta, [Key, Value, Map], S) ->
+  Ann = ?ann(Meta),
+  {TExpr, ES} =
+    case translate_args([Key, Value, Map], S) of
+      {[TKey, TValue, {map, _, InnerMap, Pairs}], TS} ->
+        {{map, Ann, InnerMap, Pairs ++ [{map_field_assoc, Ann, TKey, TValue}]}, TS};
+
+      {[TKey, TValue, {map, _, Pairs}], TS} ->
+        {{map, Ann, Pairs ++ [{map_field_assoc, Ann, TKey, TValue}]}, TS};
+
+      {[TKey, TValue, TMap], TS} ->
+        {{map, Ann, TMap, [{map_field_assoc, Ann, TKey, TValue}]}, TS}
+    end,
+  {TExpr, mergev(S, ES)};
+translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
+  Ann = ?ann(Meta),
+  {TExpr, ES} =
+    case translate_args([Map1, Map2], S) of
+      {[{map, _, Pairs1}, {map, _, Pairs2}], TS} ->
+        {{map, Ann, Pairs1 ++ Pairs2}, TS};
+
+      {[{map, _, InnerMap1, Pairs1}, {map, _, Pairs2}], TS} ->
+        {{map, Ann, InnerMap1, Pairs1 ++ Pairs2}, TS};
+
+      {[TMap1, {map, _, Pairs2}], TS} ->
+        {{map, Ann, TMap1, Pairs2}, TS};
+
+      {[TMap1, TMap2], TS} ->
+        {{call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, merge}}, [TMap1, TMap2]}, TS}
+    end,
+  {TExpr, mergev(S, ES)};
 translate_remote(Left, Right, Meta, Args, S) ->
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
