@@ -56,7 +56,7 @@ defmodule IO.ANSI.Docs do
   end
 
   @doc """
-  Prints documentation metadata (only `since` and `deprecated` for now).
+  Prints documentation metadata (only `delegate_to`, `deprecated`, `guard`, and `since` for now).
 
   See `default_options/0` for docs on the supported options.
   """
@@ -77,6 +77,10 @@ defmodule IO.ANSI.Docs do
 
       {key, value}, _printed when is_boolean(value) and key in @metadata_filter ->
         IO.puts([metadata_label(key, options), ' ', to_string(value)])
+
+      {:delegate_to, {m, f, a}}, _printed ->
+        label = metadata_label(:delegate_to, options)
+        IO.puts([label, ' ', Exception.format_mfa(m, f, a)])
 
       _metadata, printed ->
         printed
