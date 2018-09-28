@@ -235,3 +235,68 @@ optimized_inspect_interpolation_test() ->
      [{bin_element, _,
        {call, _, {remote, _,{atom, _, 'Elixir.Kernel'}, {atom, _, inspect}}, [_]},
        default, [binary]}]} = to_erl("\"#{inspect(1)}\"").
+
+optimized_map_put_test() ->
+  {map, _,
+    [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
+     {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
+  } = to_erl("Map.put(%{a: 1}, :b, 2)").
+
+optimized_map_put_variable_test() ->
+  {block, _,
+    [_,
+     {map, _, {var, _, _},
+       [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}}]
+     }]
+  } = to_erl("x = %{}; Map.put(x, :a, 1)").
+
+optimized_nested_map_put_variable_test() ->
+  {block, _,
+    [_,
+     {map, _, {var, _, _},
+       [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
+        {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
+     }]
+  } = to_erl("x = %{}; Map.put(Map.put(x, :a, 1), :b, 2)").
+
+optimized_map_merge_test() ->
+  {map, _,
+    [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
+     {map_field_assoc, _, {atom, _, b}, {integer, _, 2}},
+     {map_field_assoc, _, {atom, _, c}, {integer, _, 3}}]
+  } = to_erl("Map.merge(%{a: 1, b: 2}, %{c: 3})").
+
+optimized_map_merge_variable_test() ->
+  {block, _,
+    [_,
+     {map, _, {var, _, _},
+       [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}}]
+     }]
+  } = to_erl("x = %{}; Map.merge(x, %{a: 1})").
+
+optimized_map_update_and_merge_test() ->
+  {block, _,
+    [_,
+     {map, _, {var, _, _},
+       [{map_field_exact, _, {atom, _, a}, {integer, _, 2}},
+        {map_field_assoc, _, {atom, _, b}, {integer, _, 3}}]
+     }]
+  } = to_erl("x = %{a: 1}; Map.merge(%{x | a: 2}, %{b: 3})"),
+  {block, _,
+    [_,
+     {call, _, {remote, _, {atom, _, maps}, {atom, _, merge}},
+       [{map, _,
+          [{map_field_assoc, _, {atom, _, a}, {integer, _, 2}}]},
+        {map, _, {var, _, _},
+          [{map_field_exact, _, {atom, _, b}, {integer, _, 3}}]}]
+     }]
+  } = to_erl("x = %{a: 1}; Map.merge(%{a: 2}, %{x | b: 3})").
+
+optimized_nested_map_merge_variable_test() ->
+  {block, _,
+    [_,
+     {map, _, {var, _, _},
+       [{map_field_assoc, _, {atom, _, a}, {integer, _, 1}},
+        {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
+     }]
+  } = to_erl("x = %{}; Map.merge(Map.merge(x, %{a: 1}), %{b: 2})").

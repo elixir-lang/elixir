@@ -519,6 +519,34 @@ defmodule IEx.HelpersTest do
       cleanup_modules([Impl, MyBehaviour])
     end
 
+    test "prints documentation for delegates" do
+      filename = "delegate.ex"
+
+      content = """
+      defmodule Delegator do
+        defdelegate func1, to: Delegated
+        @doc "Delegator func2 doc"
+        defdelegate func2, to: Delegated
+      end
+      defmodule Delegated do
+        def func1, do: 1
+        def func2, do: 2
+      end
+      """
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") |> Enum.sort() == [Delegated, Delegator]
+
+        assert capture_io(fn -> h(Delegator.func1()) end) ==
+                 "* def func1()\n\ndelegate_to: Delegated.func1/0\n\n\n"
+
+        assert capture_io(fn -> h(Delegator.func2()) end) ==
+                 "* def func2()\n\ndelegate_to: Delegated.func2/0\n\nDelegator func2 doc\n"
+      end)
+    after
+      cleanup_modules([Delegated, Delegator])
+    end
+
     test "prints type documentation when function docs are not available" do
       content = """
       defmodule MyTypes do

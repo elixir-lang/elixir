@@ -53,6 +53,7 @@ handle_file_warning(_, _File, {_Line, erl_lint, {unused_var, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, {underspecified_opaque, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 
 %% Ignore behaviour warnings as we check for these problem ourselves
 handle_file_warning(_, _File, {_Line, erl_lint, {conflicting_behaviours, _, _, _, _}}) -> ok;
@@ -102,10 +103,6 @@ format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
 %% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc
 format_error(sys_core_fold, nomatch_guard) ->
   "this check/guard will always yield the same result";
-
-%% Properly format keys using inspect.
-format_error(v3_core, {map_key_repeated, Key}) ->
-    io_lib:format("key ~ts will be overridden in map", ['Elixir.Kernel':inspect(Key)]);
 
 %% Handle literal eval failures
 format_error(sys_core_fold, {eval_failure, Error}) ->
