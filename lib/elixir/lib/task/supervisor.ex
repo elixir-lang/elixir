@@ -226,8 +226,8 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Returns a stream that runs the given `module`, `function`, and `args`
-  concurrently on each item in `enumerable`.
+  Returns a stream where the given function (`module` and `function`)
+  is mapped concurrently on each item in `enumerable`.
 
   Each item will be prepended to the given `args` and processed by its
   own task. The tasks will be spawned under the given `supervisor` and
@@ -235,35 +235,38 @@ defmodule Task.Supervisor do
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
-  Results are emitted in the same order as the original `enumerable`.
+  The order of results depends on the value of the `:ordered` option.
 
-  The level of concurrency can be controlled via the `:max_concurrency`
-  option and defaults to `System.schedulers_online/0`. A timeout
-  can also be given as an option representing the maximum amount of
-  time to wait without a task reply.
+  The level of concurrency and the time tasks are allowed to run can
+  be controlled via options (see the "Options" section below).
 
-  Finally, if you find yourself trapping exits to handle exits inside
+  If you find yourself trapping exits to handle exits inside
   the async stream, consider using `async_stream_nolink/6` to start tasks
-  that are not linked to the current process.
+  that are not linked to the calling process.
 
   ## Options
 
     * `:max_concurrency` - sets the maximum number of tasks to run
       at the same time. Defaults to `System.schedulers_online/0`.
+
     * `:ordered` - whether the results should be returned in the same order
       as the input stream. This option is useful when you have large
       streams and don't want to buffer results before they are delivered.
+      This is also useful when you're using the tasks for side effects.
       Defaults to `true`.
+
     * `:timeout` - the maximum amount of time to wait (in milliseconds)
       without receiving a task reply (across all running tasks).
       Defaults to `5000`.
+
     * `:on_timeout` - what do to when a task times out. The possible
       values are:
       * `:exit` (default) - the process that spawned the tasks exits.
       * `:kill_task` - the task that timed out is killed. The value
         emitted for that task is `{:exit, :timeout}`.
+
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
-      or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      or an integer indicating the timeout value. Defaults to `5000` milliseconds.
 
   ## Examples
 
@@ -299,8 +302,8 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Returns a stream that runs the given `module`, `function`, and `args`
-  concurrently on each item in `enumerable`.
+  Returns a stream where the given function (`module` and `function`)
+  is mapped concurrently on each item in `enumerable`.
 
   Each item in `enumerable` will be prepended to the given `args` and processed
   by its own task. The tasks will be spawned under the given `supervisor` and
