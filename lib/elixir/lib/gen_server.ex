@@ -568,12 +568,15 @@ defmodule GenServer do
       process sends an exit signal
 
   If part of a supervision tree, a `GenServer`'s [supervisor](`Supervisor`) will send an exit
-  signal when shutting it down. The exit signal is based on the `shutdown`
-  strategy in the child's specification, where we this value can either be:
-  * `:brutal_kill`, where the `GenServer` is killed and so `c:terminate/2` is not called.
-  * or a timeout value, where the [supervisor](`Supervisor`) will send the exit signal `:shutdown` and
+  signal when shutting it down. The exit signal is based on the shutdown
+  strategy in the child's specification, where we this value can be:
+
+    * `:brutal_kill`: the `GenServer` is killed and so `c:terminate/2` is not called.
+
+    * a timeout value, where the supervisor will send the exit signal `:shutdown` and
     the `GenServer` will have the duration of the timeout to call `c:terminate/2`. If after
     duration of this timeout the process is still alive, it will be killed inmediately.
+
   For a more in-depth explanation, please read the "Shutdown values (:shutdown)"
   section in the `Supervisor` module.
 
