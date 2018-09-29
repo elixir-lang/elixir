@@ -61,34 +61,57 @@ defmodule Task.SupervisorTest do
              %{active: 0, specs: 0, supervisors: 0, workers: 0}
   end
 
-  test "async/1", config do
-    parent = self()
-    fun = fn -> wait_and_send(parent, :done) end
-    task = Task.Supervisor.async(config[:supervisor], fun)
-    assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
+  describe "async/1" do
+    test "spawns tasks under the supervisor", config do
+      parent = self()
+      fun = fn -> wait_and_send(parent, :done) end
+      task = Task.Supervisor.async(config[:supervisor], fun)
+      assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
-    # Assert the struct
-    assert task.__struct__ == Task
-    assert is_pid(task.pid)
-    assert is_reference(task.ref)
+      # Assert the struct
+      assert task.__struct__ == Task
+      assert is_pid(task.pid)
+      assert is_reference(task.ref)
 
-    # Assert the link
-    {:links, links} = Process.info(self(), :links)
-    assert task.pid in links
+      # Assert the link
+      {:links, links} = Process.info(self(), :links)
+      assert task.pid in links
 
-    receive do: (:ready -> :ok)
+      receive do: (:ready -> :ok)
 
-    # Assert the initial call
-    {:name, fun_name} = Function.info(fun, :name)
-    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
+      # Assert the initial call
+      {:name, fun_name} = Function.info(fun, :name)
+      assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
 
-    # Run the task
-    send(task.pid, true)
+      # Run the task
+      send(task.pid, true)
 
-    # Assert response and monitoring messages
-    ref = task.ref
-    assert_receive {^ref, :done}
-    assert_receive {:DOWN, ^ref, _, _, :normal}
+      # Assert response and monitoring messages
+      ref = task.ref
+      assert_receive {^ref, :done}
+      assert_receive {:DOWN, ^ref, _, _, :normal}
+    end
+
+    test "with custom shutdown", config do
+      Process.flag(:trap_exit, true)
+      parent = self()
+
+      fun = fn -> wait_and_send(parent, :done) end
+      %{pid: pid} = Task.Supervisor.async(config[:supervisor], fun, shutdown: :brutal_kill)
+
+      Process.exit(config[:supervisor], :shutdown)
+      assert_receive {:DOWN, _, _, ^pid, :killed}
+    end
+
+    test "raises when :max_children is reached" do
+      {:ok, sup} = Task.Supervisor.start_link(max_children: 1)
+
+      Task.Supervisor.async(sup, fn -> Process.sleep(:infinity) end)
+
+      assert_raise RuntimeError, ~r/reached the maximum number of tasks/, fn ->
+        Task.Supervisor.async(sup, fn -> :ok end)
+      end
+    end
   end
 
   test "async/3", config do
@@ -104,45 +127,57 @@ defmodule Task.SupervisorTest do
     assert Task.await(task) == :done
   end
 
-  test "async/1 with custom shutdown", config do
-    Process.flag(:trap_exit, true)
-    parent = self()
+  describe "async_nolink/1" do
+    test "spawns a task under the supervisor without linking to the caller", config do
+      parent = self()
+      fun = fn -> wait_and_send(parent, :done) end
+      task = Task.Supervisor.async_nolink(config[:supervisor], fun)
+      assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
-    fun = fn -> wait_and_send(parent, :done) end
-    %{pid: pid} = Task.Supervisor.async(config[:supervisor], fun, shutdown: :brutal_kill)
+      # Assert the struct
+      assert task.__struct__ == Task
+      assert is_pid(task.pid)
+      assert is_reference(task.ref)
 
-    Process.exit(config[:supervisor], :shutdown)
-    assert_receive {:DOWN, _, _, ^pid, :killed}
-  end
+      # Refute the link
+      {:links, links} = Process.info(self(), :links)
+      refute task.pid in links
 
-  test "async_nolink/1", config do
-    parent = self()
-    fun = fn -> wait_and_send(parent, :done) end
-    task = Task.Supervisor.async_nolink(config[:supervisor], fun)
-    assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
+      receive do: (:ready -> :ok)
 
-    # Assert the struct
-    assert task.__struct__ == Task
-    assert is_pid(task.pid)
-    assert is_reference(task.ref)
+      # Assert the initial call
+      {:name, fun_name} = Function.info(fun, :name)
+      assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
 
-    # Refute the link
-    {:links, links} = Process.info(self(), :links)
-    refute task.pid in links
+      # Run the task
+      send(task.pid, true)
 
-    receive do: (:ready -> :ok)
+      # Assert response and monitoring messages
+      ref = task.ref
+      assert_receive {^ref, :done}
+      assert_receive {:DOWN, ^ref, _, _, :normal}
+    end
 
-    # Assert the initial call
-    {:name, fun_name} = Function.info(fun, :name)
-    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
+    test "with custom shutdown", config do
+      Process.flag(:trap_exit, true)
+      parent = self()
 
-    # Run the task
-    send(task.pid, true)
+      fun = fn -> wait_and_send(parent, :done) end
+      %{pid: pid} = Task.Supervisor.async_nolink(config[:supervisor], fun, shutdown: :brutal_kill)
 
-    # Assert response and monitoring messages
-    ref = task.ref
-    assert_receive {^ref, :done}
-    assert_receive {:DOWN, ^ref, _, _, :normal}
+      Process.exit(config[:supervisor], :shutdown)
+      assert_receive {:DOWN, _, _, ^pid, :killed}
+    end
+
+    test "raises when :max_children is reached" do
+      {:ok, sup} = Task.Supervisor.start_link(max_children: 1)
+
+      Task.Supervisor.async_nolink(sup, fn -> Process.sleep(:infinity) end)
+
+      assert_raise RuntimeError, ~r/reached the maximum number of tasks/, fn ->
+        Task.Supervisor.async_nolink(sup, fn -> :ok end)
+      end
+    end
   end
 
   test "async_nolink/3", config do
@@ -156,17 +191,6 @@ defmodule Task.SupervisorTest do
     send(task.pid, true)
     assert task.__struct__ == Task
     assert Task.await(task) == :done
-  end
-
-  test "async_nolink/1 with custom shutdown", config do
-    Process.flag(:trap_exit, true)
-    parent = self()
-
-    fun = fn -> wait_and_send(parent, :done) end
-    %{pid: pid} = Task.Supervisor.async_nolink(config[:supervisor], fun, shutdown: :brutal_kill)
-
-    Process.exit(config[:supervisor], :shutdown)
-    assert_receive {:DOWN, _, _, ^pid, :killed}
   end
 
   test "start_child/1", config do
