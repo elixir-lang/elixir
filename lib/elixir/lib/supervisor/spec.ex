@@ -86,7 +86,7 @@ defmodule Supervisor.Spec do
   In this case the supervisor will only be restarted if its child specification was defined with
   the `:restart` option is set to `:permanent` (the default).
 
-  ### Shutdown values (:shutdown)
+  ### Shutdown values (`:shutdown`)
 
   The following shutdown values are supported in the `:shutdown` option:
 
@@ -97,7 +97,7 @@ defmodule Supervisor.Spec do
       to give the subtree enough time to shutdown; it can also be used with
       workers with care
 
-    * any integer >= 0 - the amount of time in milliseconds
+    * a non-negative integer - the amount of time in milliseconds
       that the supervisor tells the child process to terminate by calling
       `Process.exit(child, :shutdown)` and then waits for an exit signal back.
       If no exit signal is received within the specified time,
