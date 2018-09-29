@@ -60,11 +60,22 @@ defmodule Module do
   To aid in the correct implementation of behaviours, you may optionally declare
   `@impl` for implemented callbacks of a behaviour. This makes callbacks
   explicit and can help you to catch errors in your code. The compiler will warn
-  you if you mark a function as `@impl` when in fact it is not a callback, and
-  vice-versa. It also helps with maintainability by making it clear to other
-  developers that the function's purpose is to implement a callback.
+  in these cases:
 
-  Using `@impl` the example above can be rewritten as:
+    * if you mark a function with `@impl` when that function is not a callback.
+
+    * if you don't mark a function with `@impl` when other functions are marked
+      with `@impl`. If you mark one function with `@impl`, you must mark all
+      other callbacks for that behaviour as `@impl`.
+
+  `@impl` works on a per-context basis. If you generate a function through a macro
+  and mark it with `@impl`, that won't affect the module where that function is
+  generated in.
+
+  `@impl` also helps with maintainability by making it clear to other developers
+  that the function is implementing a callback.
+
+  Using `@impl`, the example above can be rewritten as:
 
       defmodule URI.HTTP do
         @behaviour URI.Parser
@@ -82,16 +93,16 @@ defmodule Module do
         @behaviour Bar
         @behaviour Baz
 
-        # will warn if neither Bar nor Baz specify a callback named bar/0
+        # Will warn if neither Bar nor Baz specify a callback named bar/0.
         @impl true
         def bar(), do: :ok
 
-        # will warn if Baz does not specify a callback named baz/0
+        # Will warn if Baz does not specify a callback named baz/0.
         @impl Baz
         def baz(), do: :ok
       end
 
-  Readability of the code is increased, as it is now clear which functions are
+  The code is now more readable, as it is now clear which functions are
   part of your API and which ones are callback implementations. To reinforce this
   idea, `@impl true` automatically marks the function as `@doc false`, disabling
   documentation unless `@doc` is explicitly set.
