@@ -42,7 +42,7 @@ defmodule Agent do
   concurrently.
 
   Agents provide a segregation between the client and server APIs (similar to
-  GenServers). In particular, the functions passed as arguments to the calls to
+  `GenServer`s). In particular, the functions passed as arguments to the calls to
   `Agent` functions are invoked inside the agent (the server). This distinction
   is important because you may want to avoid expensive operations inside the
   agent, as they will effectively block the agent until the request is
@@ -78,13 +78,13 @@ defmodule Agent do
     * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the child should be restarted, defaults to `:permanent`
-    * `:shutdown` - how to shut down the child
+    * `:shutdown` - how to shut down the child, either immediately or by giving it time to shut down
 
   For example:
 
       use Agent, restart: :transient, shutdown: 10_000
 
-  See the `Supervisor` docs for more information.
+  See the "Child specification" section in the `Supervisor` module for more detailed information.
 
   ## Name registration
 
@@ -140,7 +140,7 @@ defmodule Agent do
   @doc """
   Returns a specification to start an agent under a supervisor.
 
-  See `Supervisor`.
+  See the "Child specification" section in the `Supervisor` module for more detailed information.
   """
   @doc since: "1.5.0"
   def child_spec(arg) do
