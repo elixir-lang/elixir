@@ -99,17 +99,16 @@ defmodule Module.LocalsTracker do
   end
 
   @doc """
-  Collect undefined functions based on local calls and existing definitions\][=]
+  Collect undefined functions based on local calls and existing definitions
   """
-  def collect_undefined_locals({_set, bag}, all_defined) do
+  def collect_undefined_locals({set, bag}, all_defined) do
     undefined =
-      Enum.reduce(all_defined, %{}, fn {pair, _, _, _}, acc ->
-        undefined_from(bag, pair, acc)
-      end)
+      for {pair, _, _, _} <- all_defined,
+          {local, line} <- out_neighbours(bag, {:local, pair}),
+          not :ets.member(set, {:def, local}),
+          do: {build_meta(line), local}
 
-    for {pair, {:undefined_function, meta}} <- undefined do
-      {meta, {:undefined_function, pair}}
-    end
+    :lists.usort(undefined)
   end
 
   defp unreachable(reachable, reattached, private) do
@@ -192,21 +191,10 @@ defmodule Module.LocalsTracker do
     end)
   end
 
-  defp undefined_from(bag, pair, undefined) do
-    undefined = Map.put(undefined, pair, :ok)
-
-    Enum.reduce(out_neighbours(bag, {:local, pair}), undefined, fn {local, line}, acc ->
-      case acc do
-        %{^local => _} -> acc
-        _ -> Map.put(acc, local, {:undefined_function, to_meta(line)})
-      end
-    end)
-  end
-
   defp get_line(meta), do: Keyword.get(meta, :line)
 
-  defp to_meta(nil), do: []
-  defp to_meta(line), do: [line: line]
+  defp build_meta(nil), do: []
+  defp build_meta(line), do: [line: line]
 
   ## Lightweight digraph implementation
 

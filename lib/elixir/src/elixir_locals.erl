@@ -104,7 +104,7 @@ warn_unused_local(File, Module, All, Private) ->
 
 ensure_no_undefined_local(File, Module, All) ->
   if_tracker(Module, [], fun(Tracker) ->
-    [elixir_errors:form_error(Meta, File, ?MODULE, Error)
+    [elixir_errors:form_error(Meta, File, ?MODULE, {undefined_function, Error})
      || {Meta, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
     ok
   end).
