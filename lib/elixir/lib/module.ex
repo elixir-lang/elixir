@@ -89,7 +89,7 @@ defmodule Module do
         @impl true
         def bar(), do: :ok
 
-        # will warn if Baz does not specify a callback named baz/0.
+        # Will warn if Baz does not specify a callback named baz/0.
         @impl Baz
         def baz(), do: :ok
       end
