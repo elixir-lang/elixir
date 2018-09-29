@@ -78,7 +78,7 @@ defmodule Agent do
     * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the child should be restarted, defaults to `:permanent`
-    * `:shutdown` - the shut down strategy
+    * `:shutdown` - how to shut down the child, either immediately or by giving it time to shut down
 
   For example:
 
