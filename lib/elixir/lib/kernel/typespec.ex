@@ -194,7 +194,7 @@ defmodule Kernel.Typespec do
   def translate_typespecs_for_module(_set, bag) do
     type_typespecs = take_typespec(bag, :type)
     defined_type_pairs = collect_defined_type_pairs(type_typespecs)
-    state = %{defined_type_pairs: defined_type_pairs, used_type_pairs: []}
+    state = %{defined_type_pairs: defined_type_pairs, used_type_pairs: [], local_vars: %{}}
 
     {types, state} = Enum.map_reduce(type_typespecs, state, &translate_type/2)
     {specs, state} = Enum.map_reduce(take_typespec(bag, :spec), state, &translate_spec/2)
@@ -248,10 +248,10 @@ defmodule Kernel.Typespec do
     end)
   end
 
-  defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}}, global_state) do
+  defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}}, state) do
     caller = :elixir_locals.get_cached_env(pos)
-    local_state = %{used_vars: []}
-    state = {global_state, local_state}
+    # Clean local state
+    state = %{state | local_vars: %{}}
 
     args =
       if is_atom(args) do
@@ -261,14 +261,13 @@ defmodule Kernel.Typespec do
       end
 
     vars = for {:var, _, var} <- args, do: var
-    state = Enum.reduce(vars, state, &update_used_vars(&2, &1))
+    state = Enum.reduce(vars, state, &update_local_vars(&2, &1))
     {spec, state} = typespec(definition, vars, caller, state)
     vars = for {:var, _, _} = var <- args, do: var
     type = {name, spec, vars}
     arity = length(args)
-    {global_state, local_state} = state
 
-    ensure_no_singleton_type_vars!(caller, local_state.used_vars)
+    ensure_no_singleton_type_vars!(caller, state.local_vars)
 
     {kind, export} =
       case kind do
@@ -294,7 +293,7 @@ defmodule Kernel.Typespec do
       :elixir_errors.warn(caller.line, caller.file, message)
     end
 
-    {{kind, {name, arity}, caller.line, type, export}, global_state}
+    {{kind, {name, arity}, caller.line, type, export}, state}
   end
 
   defp valid_variable_ast?({variable_name, _, context})
@@ -335,11 +334,10 @@ defmodule Kernel.Typespec do
   defp translate_spec(kind, meta, name, args, return, guard, caller, state) when is_atom(args),
     do: translate_spec(kind, meta, name, [], return, guard, caller, state)
 
-  defp translate_spec(kind, meta, name, args, return, guard, caller, global_state) do
+  defp translate_spec(kind, meta, name, args, return, guard, caller, state) do
     ensure_no_defaults!(args)
-
-    local_state = %{used_vars: []}
-    state = {global_state, local_state}
+    # Clean local state
+    state = %{state | local_vars: %{}}
 
     unless Keyword.keyword?(guard) do
       error = "expected keywords as guard in type specification, got: #{Macro.to_string(guard)}"
@@ -351,16 +349,16 @@ defmodule Kernel.Typespec do
     {fun_args, state} = fn_args(meta, args, return, vars, caller, state)
     spec = {:type, line, :fun, fun_args}
 
-    {spec, {global_state, local_state}} =
+    {spec, state} =
       case guard_to_constraints(guard, vars, meta, caller, state) do
         {[], state} -> {spec, state}
         {constraints, state} -> {{:type, line, :bounded_fun, [spec, constraints]}, state}
       end
 
-    ensure_no_singleton_type_vars!(caller, local_state.used_vars)
+    ensure_no_singleton_type_vars!(caller, state.local_vars)
 
     arity = length(args)
-    {{kind, {name, arity}, caller.line, spec}, global_state}
+    {{kind, {name, arity}, caller.line, spec}, state}
   end
 
   # TODO: Remove char_list type by 2.0
@@ -402,7 +400,7 @@ defmodule Kernel.Typespec do
       {name, type}, state ->
         {spec, state} = typespec(type, vars, caller, state)
         constraint = [{:atom, line, :is_subtype}, [{:var, line, name}, spec]]
-        state = update_used_vars(state, name)
+        state = update_local_vars(state, name)
 
         {[{:type, line, :constraint, constraint}], state}
     end)
@@ -708,7 +706,7 @@ defmodule Kernel.Typespec do
   # Handle variables or local calls
   defp typespec({name, meta, atom}, vars, caller, state) when is_atom(atom) do
     if name in vars do
-      state = update_used_vars(state, name)
+      state = update_local_vars(state, name)
       {{:var, line(meta), name}, state}
     else
       typespec({name, meta, []}, vars, caller, state)
@@ -780,20 +778,16 @@ defmodule Kernel.Typespec do
         {{:type, line(meta), name, arguments}, state}
 
       false ->
-        {global_state, local_state} = state
-
-        unless Map.has_key?(global_state.defined_type_pairs, {name, arity}) do
+        unless Map.has_key?(state.defined_type_pairs, {name, arity}) do
           compile_error(caller, "type #{name}/#{arity} undefined")
         end
 
-        global_state =
-          if {name, arity} in global_state.used_type_pairs do
-            global_state
+        state =
+          if {name, arity} in state.used_type_pairs do
+            state
           else
-            %{global_state | used_type_pairs: [{name, arity} | global_state.used_type_pairs]}
+            %{state | used_type_pairs: [{name, arity} | state.used_type_pairs]}
           end
-
-        state = {global_state, local_state}
 
         {{:user_type, line(meta), name, arguments}, state}
     end
@@ -884,24 +878,17 @@ defmodule Kernel.Typespec do
 
   defp variable(expr), do: expr
 
-  defp update_used_vars({global_state, local_state}, var_name) do
-    case Keyword.fetch(local_state.used_vars, var_name) do
-      {:ok, :used_once} ->
-        used_vars = Keyword.put(local_state.used_vars, var_name, :used_multiple)
-        {global_state, %{local_state | used_vars: used_vars}}
-
-      {:ok, :used_multiple} ->
-        {global_state, local_state}
-
-      :error ->
-        used_vars = Keyword.put(local_state.used_vars, var_name, :used_once)
-        {global_state, %{local_state | used_vars: used_vars}}
+  defp update_local_vars(%{local_vars: local_vars} = state, var_name) do
+    case Map.fetch(local_vars, var_name) do
+      {:ok, :used_once} -> %{state | local_vars: Map.put(local_vars, var_name, :used_multiple)}
+      {:ok, :used_multiple} -> state
+      :error -> %{state | local_vars: Map.put(local_vars, var_name, :used_once)}
     end
   end
 
-  defp ensure_no_singleton_type_vars!(caller, used_vars) do
-    for {name, :used_once} <- Enum.reverse(used_vars) do
-      compile_error(caller, "type variable #{name} is only used once (is unbound)")
+  defp ensure_no_singleton_type_vars!(caller, local_vars) do
+    for {name, :used_once} <- local_vars do
+      compile_error(caller, "type variable #{name} is unused")
     end
   end
 end
