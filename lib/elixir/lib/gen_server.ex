@@ -123,13 +123,13 @@ defmodule GenServer do
     * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the child should be restarted, defaults to `:permanent`
-    * `:shutdown` - how to shut down the child
+    * `:shutdown` - how to shut down the child, either immediately or by giving it time to shut down
 
   For example:
 
       use GenServer, restart: :transient, shutdown: 10_000
 
-  See the `Supervisor` docs for more information.
+  See the "Child specification" section in the `Supervisor` module for more detailed information.
 
   ## Name registration
 
@@ -567,13 +567,18 @@ defmodule GenServer do
     * the `GenServer` traps exits (using `Process.flag/2`) *and* the parent
       process sends an exit signal
 
-  If part of a supervision tree, a `GenServer`'s `Supervisor` will send an exit
+  If part of a supervision tree, a `GenServer`'s [supervisor](`Supervisor`) will send an exit
   signal when shutting it down. The exit signal is based on the shutdown
-  strategy in the child's specification. If it is `:brutal_kill` the `GenServer`
-  is killed and so `c:terminate/2` is not called. However if it is a timeout the
-  `Supervisor` will send the exit signal `:shutdown` and the `GenServer` will
-  have the duration of the timeout to call `c:terminate/2` - if the process is
-  still alive after the timeout it is killed.
+  strategy in the child's specification, where we this value can be:
+
+    * `:brutal_kill`: the `GenServer` is killed and so `c:terminate/2` is not called.
+
+    * a timeout value, where the supervisor will send the exit signal `:shutdown` and
+    the `GenServer` will have the duration of the timeout to call `c:terminate/2`. If after
+    duration of this timeout the process is still alive, it will be killed inmediately.
+
+  For a more in-depth explanation, please read the "Shutdown values (:shutdown)"
+  section in the `Supervisor` module.
 
   If the `GenServer` receives an exit signal (that is not `:normal`) from any
   process when it is not trapping exits it will exit abruptly with the same

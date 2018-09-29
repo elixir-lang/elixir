@@ -99,7 +99,7 @@ defmodule Task do
     * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the child should be restarted, defaults to `:temporary`
-    * `:shutdown` - how to shut down the child
+    * `:shutdown` - how to shut down the child, either immediately or by giving it time to shut down
 
   Opposite to `GenServer`, `Agent` and `Supervisor`, a Task has
   a default `:restart` of `:temporary`. This means the task will
@@ -112,7 +112,7 @@ defmodule Task do
 
       use Task, restart: :permanent
 
-  See the `Supervisor` docs for more information.
+  See the "Child specification" section in the `Supervisor` module for more detailed information.
 
   ## Dynamically supervised tasks
 
