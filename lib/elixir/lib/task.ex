@@ -394,39 +394,41 @@ defmodule Task do
   end
 
   @doc """
-  Returns a stream that runs the given `module`, `function_name`, and `args`
-  concurrently on each item in `enumerable`.
+  Returns a stream where the given function (`module` and `function_name`)
+  is mapped concurrently on each item in `enumerable`.
 
-  Each item will be prepended to the given `args` and processed by its
-  own task. The tasks will be linked to an intermediate process that is
-  then linked to the current process. This means a failure in a task
-  terminates the current process and a failure in the current process
+  Each item of `enumerable` will be prepended to the given `args` and
+  processed by its own task. The tasks will be linked to an intermediate
+  process that is then linked to the current process. This means a failure
+  in a task terminates the current process and a failure in the current process
   terminates all tasks.
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
-  Results are emitted in the same order as the original `enumerable`.
+  The order of results depends on the value of the `:ordered` option.
 
-  The level of concurrency can be controlled via the `:max_concurrency`
-  option and defaults to `System.schedulers_online/0`. A timeout
-  can also be given as an option representing the maximum amount of
-  time to wait without a task reply.
+  The level of concurrency and the time tasks are allowed to run can
+  be controlled via options (see the "Options" section below).
 
-  Finally, consider using `Task.Supervisor.async_stream/6` to start tasks
+  Consider using `Task.Supervisor.async_stream/6` to start tasks
   under a supervisor. If you find yourself trapping exits to handle exits
   inside the async stream, consider using `Task.Supervisor.async_stream_nolink/6`
-  to start tasks that are not linked to the current process.
+  to start tasks that are not linked to the calling process.
 
   ## Options
 
     * `:max_concurrency` - sets the maximum number of tasks to run
       at the same time. Defaults to `System.schedulers_online/0`.
+
     * `:ordered` - whether the results should be returned in the same order
       as the input stream. This option is useful when you have large
       streams and don't want to buffer results before they are delivered.
+      This is also useful when you're using the tasks for side effects.
       Defaults to `true`.
+
     * `:timeout` - the maximum amount of time (in milliseconds) each
       task is allowed to execute for. Defaults to `5000`.
+
     * `:on_timeout` - what to do when a task times out. The possible
       values are:
       * `:exit` (default) - the process that spawned the tasks exits.
@@ -466,7 +468,8 @@ defmodule Task do
   Returns a stream that runs the given function `fun` concurrently
   on each item in `enumerable`.
 
-  `fun` must be a one-arity anonymous function.
+  Works the same as `async_stream/5` but with an anonymous function instead of a
+  module-function-arguments tuple. `fun` must be a one-arity anonymous function.
 
   Each `enumerable` item is passed as argument to the given function `fun` and
   processed by its own task. The tasks will be linked to the current process,
@@ -480,13 +483,6 @@ defmodule Task do
       iex> stream = Task.async_stream(strings, fn text -> text |> String.codepoints() |> Enum.count() end)
       iex> Enum.reduce(stream, 0, fn {:ok, num}, acc -> num + acc end)
       47
-
-  If you do not care about the results of the computation, you can run
-  the stream with `Stream.run/1`. Also set `ordered: false`, as you don't
-  care about the order of the results either:
-
-      stream = Task.async_stream(collection, fn item -> ... end, ordered: false)
-      Stream.run(stream)
 
   See `async_stream/5` for discussion, options, and more examples.
   """
