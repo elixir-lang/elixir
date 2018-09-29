@@ -421,11 +421,21 @@ defmodule Task.Supervisor do
     owner = self()
     args = [owner, :monitor, get_info(owner), {module, fun, args}]
     shutdown = options[:shutdown]
-    {:ok, pid} = start_child_with_spec(supervisor, args, :temporary, shutdown)
-    if link_type == :link, do: Process.link(pid)
-    ref = Process.monitor(pid)
-    send(pid, {owner, ref})
-    %Task{pid: pid, ref: ref, owner: owner}
+
+    case start_child_with_spec(supervisor, args, :temporary, shutdown) do
+      {:ok, pid} ->
+        if link_type == :link, do: Process.link(pid)
+        ref = Process.monitor(pid)
+        send(pid, {owner, ref})
+        %Task{pid: pid, ref: ref, owner: owner}
+
+      {:error, :max_children} ->
+        raise """
+        reached the maximum number of tasks for this task supervisor. The maximum number \
+        of tasks that are allowed to run at the same time under this supervisor can be \
+        configured with the :max_children option passed to Task.Supervisor.start_link/1\
+        """
+    end
   end
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
