@@ -60,9 +60,17 @@ defmodule Module do
   To aid in the correct implementation of behaviours, you may optionally declare
   `@impl` for implemented callbacks of a behaviour. This makes callbacks
   explicit and can help you to catch errors in your code. The compiler will warn
-  you if you mark a function as `@impl` when in fact it is not a callback. It will
-  also warn when you mark a function with `@impl` when it isn't a callback, but only
-  if you marked other callbacks with `@impl`.
+  in these cases:
+
+    * if you mark a function with `@impl` when that function is not a callback.
+
+    * if you don't mark a function with `@impl` when other functions are marked
+      with `@impl`. If you mark one function with `@impl`, you must mark all
+      other callbacks for that behaviour as `@impl`.
+
+  `@impl` works on a per-context basis. If you generate a function through a macro
+  and mark it with `@impl`, that won't affect the module where that function is
+  generated in.
 
   `@impl` also helps with maintainability by making it clear to other developers
   that the function is implementing a callback.
