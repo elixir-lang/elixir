@@ -250,8 +250,7 @@ defmodule Kernel.Typespec do
 
   defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}}, state) do
     caller = :elixir_locals.get_cached_env(pos)
-    # Clean local state
-    state = %{state | local_vars: %{}}
+    state = clean_local_state(state)
 
     args =
       if is_atom(args) do
@@ -336,8 +335,7 @@ defmodule Kernel.Typespec do
 
   defp translate_spec(kind, meta, name, args, return, guard, caller, state) do
     ensure_no_defaults!(args)
-    # Clean local state
-    state = %{state | local_vars: %{}}
+    state = clean_local_state(state)
 
     unless Keyword.keyword?(guard) do
       error = "expected keywords as guard in type specification, got: #{Macro.to_string(guard)}"
@@ -877,6 +875,10 @@ defmodule Kernel.Typespec do
   end
 
   defp variable(expr), do: expr
+
+  defp clean_local_state(state) do
+    %{state | local_vars: %{}}
+  end
 
   defp update_local_vars(%{local_vars: local_vars} = state, var_name) do
     case Map.fetch(local_vars, var_name) do
