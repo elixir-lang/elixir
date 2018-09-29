@@ -101,6 +101,9 @@ defmodule Task.Supervisor do
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
 
+  Raises an error if `supervisor` has reached the maximum number of
+  children.
+
   ## Options
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
@@ -119,6 +122,9 @@ defmodule Task.Supervisor do
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
 
+  Raises an error if `supervisor` has reached the maximum number of
+  children.
+
   ## Options
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
@@ -136,6 +142,9 @@ defmodule Task.Supervisor do
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
   The task won't be linked to the caller, see `Task.async/3` for
   more information.
+
+  Raises an error if `supervisor` has reached the maximum number of
+  children.
 
   ## Options
 
@@ -215,6 +224,9 @@ defmodule Task.Supervisor do
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
   The task won't be linked to the caller, see `Task.async/3` for
   more information.
+
+  Raises an error if `supervisor` has reached the maximum number of
+  children.
 
   Note this function requires the task supervisor to have `:temporary`
   as the `:restart` option (the default), as `async_nolink/4` keeps a
