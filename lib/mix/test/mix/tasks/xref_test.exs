@@ -491,6 +491,32 @@ defmodule Mix.Tasks.XrefTest do
     assert_warnings(files, warning)
   end
 
+  test "warnings: hints exclude deprecated functions" do
+    files = %{
+      "lib/a.ex" => """
+      defmodule A do
+        def to_charlist(a), do: a
+
+        @deprecated "Use String.to_charlist/1 instead"
+        def to_char_list(a), do: a
+
+        def c(a), do: A.to_list(a)
+      end
+      """
+    }
+
+    warning = """
+    warning: function A.to_list/1 is undefined or private. Did you mean one of:
+
+          * to_charlist/1
+
+      lib/a.ex:7
+
+    """
+
+    assert_warnings(files, warning)
+  end
+
   test "warnings: imports" do
     files = %{
       "lib/a.ex" => """

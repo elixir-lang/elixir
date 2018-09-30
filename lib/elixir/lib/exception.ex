@@ -968,9 +968,10 @@ defmodule UndefinedFunctionError do
     result =
       case Keyword.take(exports, [function]) do
         [] ->
+          candidates = exports -- deprecated_functions_for(module)
           base = Atom.to_string(function)
 
-          for {key, val} <- exports,
+          for {key, val} <- candidates,
               dist = String.jaro_distance(base, Atom.to_string(key)),
               dist >= @function_threshold,
               do: {dist, key, val}
@@ -997,6 +998,20 @@ defmodule UndefinedFunctionError do
       module.__info__(:macros) ++ module.__info__(:functions)
     else
       module.module_info(:exports)
+    end
+  rescue
+    # In case the module was removed while we are computing this
+    UndefinedFunctionError ->
+      []
+  end
+
+  defp deprecated_functions_for(module) do
+    if function_exported?(module, :__info__, 1) do
+      for {{name, arity}, _message} <- module.__info__(:deprecated) do
+        {name, arity}
+      end
+    else
+      []
     end
   rescue
     # In case the module was removed while we are computing this
