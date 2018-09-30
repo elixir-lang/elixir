@@ -353,6 +353,23 @@ defmodule Task.SupervisorTest do
 
       refute_received _
     end
+
+    test "raises an error if :max_children is reached with clean stream shutdown", %{
+      supervisor: unused_supervisor
+    } do
+      {:ok, supervisor} = Task.Supervisor.start_link(max_children: 1)
+      collection = [:infinity, :infinity, :infinity]
+
+      assert_raise RuntimeError, ~r/reached the maximum number of tasks/, fn ->
+        supervisor
+        |> Task.Supervisor.async_stream(collection, &sleep/1, max_concurrency: 2)
+        |> Enum.to_list()
+      end
+
+      {:links, links} = Process.info(self(), :links)
+      assert MapSet.new(links) == MapSet.new([unused_supervisor, supervisor])
+      refute_received _
+    end
   end
 
   describe "async_stream_nolink" do
@@ -407,6 +424,23 @@ defmodule Task.SupervisorTest do
              |> Task.Supervisor.async_stream_nolink(collection, &sleep/1, @opts)
              |> Enum.take(1) == [ok: 0]
 
+      refute_received _
+    end
+
+    test "raises an error if :max_children is reached with clean stream shutdown", %{
+      supervisor: unused_supervisor
+    } do
+      {:ok, supervisor} = Task.Supervisor.start_link(max_children: 1)
+      collection = [:infinity, :infinity, :infinity]
+
+      assert_raise RuntimeError, ~r/reached the maximum number of tasks/, fn ->
+        supervisor
+        |> Task.Supervisor.async_stream_nolink(collection, &sleep/1, max_concurrency: 2)
+        |> Enum.to_list()
+      end
+
+      {:links, links} = Process.info(self(), :links)
+      assert MapSet.new(links) == MapSet.new([unused_supervisor, supervisor])
       refute_received _
     end
   end

@@ -495,7 +495,7 @@ defmodule Task do
 
   defp build_stream(enumerable, fun, options) do
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
-      {:link, Task.Supervised.spawn_link(owner, get_info(owner), mfa)}
+      {:ok, :link, Task.Supervised.spawn_link(owner, get_info(owner), mfa)}
     end)
   end
 
