@@ -1007,9 +1007,7 @@ defmodule UndefinedFunctionError do
 
   defp deprecated_functions_for(module) do
     if function_exported?(module, :__info__, 1) do
-      for {{name, arity}, _message} <- module.__info__(:deprecated) do
-        {name, arity}
-      end
+      for {{name, arity} = key, _message} <- module.__info__(:deprecated), do: key
     else
       []
     end
