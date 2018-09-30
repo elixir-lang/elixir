@@ -266,7 +266,7 @@ defmodule Kernel.Typespec do
     type = {name, spec, vars}
     arity = length(args)
 
-    ensure_no_singleton_type_vars!(caller, state.local_vars)
+    ensure_no_unused_local_vars!(caller, state.local_vars)
 
     {kind, export} =
       case kind do
@@ -353,7 +353,7 @@ defmodule Kernel.Typespec do
         {constraints, state} -> {{:type, line, :bounded_fun, [spec, constraints]}, state}
       end
 
-    ensure_no_singleton_type_vars!(caller, state.local_vars)
+    ensure_no_unused_local_vars!(caller, state.local_vars)
 
     arity = length(args)
     {{kind, {name, arity}, caller.line, spec}, state}
@@ -888,7 +888,7 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp ensure_no_singleton_type_vars!(caller, local_vars) do
+  defp ensure_no_unused_local_vars!(caller, local_vars) do
     for {name, :used_once} <- local_vars do
       compile_error(caller, "type variable #{name} is unused")
     end
