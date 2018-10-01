@@ -734,7 +734,7 @@ expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match;
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   assert_no_clauses(Name, Meta, Args, E),
 
-  elixir_locals:record_local({Name, length(Args)}, Module, Function),
+  elixir_locals:record_local({Name, length(Args)}, Module, Function, Meta),
   {EArgs, EA} = expand_args(Args, E),
   {{Name, Meta, EArgs}, EA}.
 

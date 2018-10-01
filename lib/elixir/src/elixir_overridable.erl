@@ -59,7 +59,7 @@ store(Module, Function, Hidden) ->
           overridable(Module, maps:put(Function, {Count, Def, Neighbours, true}, Overridable)),
           elixir_def:store_definition(false, FinalKind, Meta, FinalName, FinalArity,
                                       File, Module, Defaults, FinalClauses),
-          elixir_locals:reattach(Tuple, FinalKind, Module, Function, Neighbours);
+          elixir_locals:reattach(Tuple, FinalKind, Module, Function, Neighbours, Meta);
         true ->
           ok
       end,
