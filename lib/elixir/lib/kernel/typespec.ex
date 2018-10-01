@@ -194,7 +194,7 @@ defmodule Kernel.Typespec do
   def translate_typespecs_for_module(_set, bag) do
     type_typespecs = take_typespec(bag, :type)
     defined_type_pairs = collect_defined_type_pairs(type_typespecs)
-    state = %{defined_type_pairs: defined_type_pairs, used_type_pairs: []}
+    state = %{defined_type_pairs: defined_type_pairs, used_type_pairs: [], local_vars: %{}}
 
     {types, state} = Enum.map_reduce(type_typespecs, state, &translate_type/2)
     {specs, state} = Enum.map_reduce(take_typespec(bag, :spec), state, &translate_spec/2)
@@ -250,6 +250,7 @@ defmodule Kernel.Typespec do
 
   defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}}, state) do
     caller = :elixir_locals.get_cached_env(pos)
+    state = clean_local_state(state)
 
     args =
       if is_atom(args) do
@@ -259,10 +260,13 @@ defmodule Kernel.Typespec do
       end
 
     vars = for {:var, _, var} <- args, do: var
+    state = Enum.reduce(vars, state, &update_local_vars(&2, &1))
     {spec, state} = typespec(definition, vars, caller, state)
     vars = for {:var, _, _} = var <- args, do: var
     type = {name, spec, vars}
     arity = length(args)
+
+    ensure_no_unused_local_vars!(caller, state.local_vars)
 
     {kind, export} =
       case kind do
@@ -331,21 +335,25 @@ defmodule Kernel.Typespec do
 
   defp translate_spec(kind, meta, name, args, return, guard, caller, state) do
     ensure_no_defaults!(args)
+    state = clean_local_state(state)
 
     unless Keyword.keyword?(guard) do
       error = "expected keywords as guard in type specification, got: #{Macro.to_string(guard)}"
       compile_error(caller, error)
     end
 
+    line = line(meta)
     vars = Keyword.keys(guard)
     {fun_args, state} = fn_args(meta, args, return, vars, caller, state)
-    spec = {:type, line(meta), :fun, fun_args}
+    spec = {:type, line, :fun, fun_args}
 
     {spec, state} =
       case guard_to_constraints(guard, vars, meta, caller, state) do
         {[], state} -> {spec, state}
-        {constraints, state} -> {{:type, line(meta), :bounded_fun, [spec, constraints]}, state}
+        {constraints, state} -> {{:type, line, :bounded_fun, [spec, constraints]}, state}
       end
+
+    ensure_no_unused_local_vars!(caller, state.local_vars)
 
     arity = length(args)
     {{kind, {name, arity}, caller.line, spec}, state}
@@ -390,6 +398,7 @@ defmodule Kernel.Typespec do
       {name, type}, state ->
         {spec, state} = typespec(type, vars, caller, state)
         constraint = [{:atom, line, :is_subtype}, [{:var, line, name}, spec]]
+        state = update_local_vars(state, name)
 
         {[{:type, line, :constraint, constraint}], state}
     end)
@@ -585,7 +594,12 @@ defmodule Kernel.Typespec do
   end
 
   # Handle type operator
-  defp typespec({:::, meta, [{var_name, _, context} = var, expr]} = ann_type, vars, caller, state)
+  defp typespec(
+         {:::, meta, [{var_name, var_meta, context}, expr]} = ann_type,
+         vars,
+         caller,
+         state
+       )
        when is_atom(var_name) and is_atom(context) do
     case typespec(expr, vars, caller, state) do
       {{:ann_type, _, _}, _state} ->
@@ -598,28 +612,26 @@ defmodule Kernel.Typespec do
 
         # This may be generating an invalid typespec but we need to generate it
         # to avoid breaking existing code that was valid but only broke dialyzer
-        {left, state} = typespec(var, [elem(var, 0) | vars], caller, state)
         {right, state} = typespec(expr, vars, caller, state)
-        {{:ann_type, line(meta), [left, right]}, state}
+        {{:ann_type, line(meta), [{:var, line(var_meta), var_name}, right]}, state}
 
       {right, state} ->
-        {left, state} = typespec(var, [var_name | vars], caller, state)
-        {{:ann_type, line(meta), [left, right]}, state}
+        {{:ann_type, line(meta), [{:var, line(var_meta), var_name}, right]}, state}
     end
   end
 
-  defp typespec({:::, meta, [var, expr]} = ann_type, vars, caller, state) do
+  defp typespec({:::, meta, [left, right]} = expr, vars, caller, state) do
     message =
       "invalid type annotation. When using the | operator to represent the union of types, " <>
-        "make sure to wrap type annotations in parentheses: #{Macro.to_string(ann_type)}"
+        "make sure to wrap type annotations in parentheses: #{Macro.to_string(expr)}"
 
     # TODO: make this an error in elixir 2.0 and remove code below
     :elixir_errors.warn(caller.line, caller.file, message)
 
     # This may be generating an invalid typespec but we need to generate it
     # to avoid breaking existing code that was valid but only broke dialyzer
-    {left, state} = typespec(var, [elem(var, 0) | vars], caller, state)
-    {right, state} = typespec(expr, vars, caller, state)
+    {left, state} = typespec(left, vars, caller, state)
+    {right, state} = typespec(right, vars, caller, state)
     {{:ann_type, line(meta), [left, right]}, state}
   end
 
@@ -692,6 +704,7 @@ defmodule Kernel.Typespec do
   # Handle variables or local calls
   defp typespec({name, meta, atom}, vars, caller, state) when is_atom(atom) do
     if name in vars do
+      state = update_local_vars(state, name)
       {{:var, line(meta), name}, state}
     else
       typespec({name, meta, []}, vars, caller, state)
@@ -768,9 +781,10 @@ defmodule Kernel.Typespec do
         end
 
         state =
-          case {name, arity} in state.used_type_pairs do
-            true -> state
-            false -> Map.put(state, :used_type_pairs, [{name, arity} | state.used_type_pairs])
+          if {name, arity} in state.used_type_pairs do
+            state
+          else
+            %{state | used_type_pairs: [{name, arity} | state.used_type_pairs]}
           end
 
         {{:user_type, line(meta), name, arguments}, state}
@@ -861,4 +875,22 @@ defmodule Kernel.Typespec do
   end
 
   defp variable(expr), do: expr
+
+  defp clean_local_state(state) do
+    %{state | local_vars: %{}}
+  end
+
+  defp update_local_vars(%{local_vars: local_vars} = state, var_name) do
+    case Map.fetch(local_vars, var_name) do
+      {:ok, :used_once} -> %{state | local_vars: Map.put(local_vars, var_name, :used_multiple)}
+      {:ok, :used_multiple} -> state
+      :error -> %{state | local_vars: Map.put(local_vars, var_name, :used_once)}
+    end
+  end
+
+  defp ensure_no_unused_local_vars!(caller, local_vars) do
+    for {name, :used_once} <- local_vars do
+      compile_error(caller, "type variable #{name} is unused")
+    end
+  end
 end
