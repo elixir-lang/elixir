@@ -18,9 +18,9 @@ defmodule Module.LocalsTracker do
   @doc """
   Adds and tracks defaults for a definition into the tracker.
   """
-  def add_defaults({_set, bag}, _kind, {name, arity} = pair, defaults) do
+  def add_defaults({_set, bag}, _kind, {name, arity} = pair, defaults, meta) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
-      put_edge(bag, {:local, {name, i}}, pair)
+      put_edge(bag, {:local, {name, i}}, {pair, get_line(meta)})
     end
 
     :ok
@@ -29,9 +29,9 @@ defmodule Module.LocalsTracker do
   @doc """
   Adds a local dispatch from-to the given target.
   """
-  def add_local({_set, bag}, from, to) when is_tuple(from) and is_tuple(to) do
+  def add_local({_set, bag}, from, to, meta) when is_tuple(from) and is_tuple(to) do
     if from != to do
-      put_edge(bag, {:local, from}, to)
+      put_edge(bag, {:local, from}, {to, get_line(meta)})
     end
 
     :ok
@@ -56,14 +56,14 @@ defmodule Module.LocalsTracker do
   @doc """
   Reattach a previously yanked node.
   """
-  def reattach({_set, bag}, tuple, _kind, function, out_neigh) do
-    for to <- out_neigh do
-      put_edge(bag, {:local, function}, to)
+  def reattach({_set, bag}, tuple, _kind, function, out_neighbours, meta) do
+    for out_neighbour <- out_neighbours do
+      put_edge(bag, {:local, function}, out_neighbour)
     end
 
     # Make a call from the old function to the new one
     if function != tuple do
-      put_edge(bag, {:local, function}, tuple)
+      put_edge(bag, {:local, function}, {tuple, get_line(meta)})
     end
 
     # Finally marked the new one as reattached
@@ -96,6 +96,19 @@ defmodule Module.LocalsTracker do
 
     reattached = :lists.usort(out_neighbours(bag, :reattach))
     {unreachable(reachable, reattached, private), collect_warnings(reachable, private)}
+  end
+
+  @doc """
+  Collect undefined functions based on local calls and existing definitions
+  """
+  def collect_undefined_locals({set, bag}, all_defined) do
+    undefined =
+      for {pair, _, _, _} <- all_defined,
+          {local, line} <- out_neighbours(bag, {:local, pair}),
+          not :ets.member(set, {:def, local}),
+          do: {build_meta(line), local}
+
+    :lists.usort(undefined)
   end
 
   defp unreachable(reachable, reattached, private) do
@@ -170,13 +183,18 @@ defmodule Module.LocalsTracker do
   defp reachable_from(bag, local, vertices) do
     vertices = Map.put(vertices, local, true)
 
-    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {_, _} = local, acc ->
+    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {local, _line}, acc ->
       case acc do
         %{^local => true} -> acc
         _ -> reachable_from(bag, local, acc)
       end
     end)
   end
+
+  defp get_line(meta), do: Keyword.get(meta, :line)
+
+  defp build_meta(nil), do: []
+  defp build_meta(line), do: [line: line]
 
   ## Lightweight digraph implementation
 
