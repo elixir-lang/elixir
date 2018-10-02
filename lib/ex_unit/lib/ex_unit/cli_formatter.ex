@@ -20,6 +20,7 @@ defmodule ExUnit.CLIFormatter do
       test_timings: [],
       failure_counter: 0,
       skipped_counter: 0,
+      not_executed_counter: 0,
       excluded_counter: 0,
       invalid_counter: 0
     }
@@ -60,6 +61,20 @@ defmodule ExUnit.CLIFormatter do
 
     test_counter = update_test_counter(config.test_counter, test)
     config = %{config | test_counter: test_counter, excluded_counter: config.excluded_counter + 1}
+
+    {:noreply, config}
+  end
+
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:not_executed, _}} = test}, config) do
+    if config.trace, do: IO.puts(trace_test_not_executed(test))
+
+    test_counter = update_test_counter(config.test_counter, test)
+
+    config = %{
+      config
+      | test_counter: test_counter,
+        not_executed_counter: config.not_executed_counter + 1
+    }
 
     {:noreply, config}
   end
@@ -159,6 +174,16 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
+  def handle_cast(:max_failures_reached, config) do
+    if config.trace() do
+      "max failures reached"
+      |> failure(config)
+      |> IO.puts()
+    end
+
+    {:noreply, config}
+  end
+
   def handle_cast(_, config) do
     {:noreply, config}
   end
@@ -175,6 +200,10 @@ defmodule ExUnit.CLIFormatter do
 
   defp trace_test_excluded(test) do
     "\r  * #{test.name} (excluded)"
+  end
+
+  defp trace_test_not_executed(test) do
+    "\r  * #{test.name} (not executed)"
   end
 
   defp trace_test_skipped(test) do
@@ -262,6 +291,10 @@ defmodule ExUnit.CLIFormatter do
         config.skipped_counter > 0,
         &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config))
       )
+      |> if_true(
+        config.not_executed_counter > 0,
+        &(&1 <> ", " <> not_executed("#{config.not_executed_counter} not executed", config))
+      )
 
     cond do
       config.failure_counter > 0 -> IO.puts(failure(message, config))
@@ -323,6 +356,10 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp skipped(msg, config) do
+    colorize(:yellow, msg, config)
+  end
+
+  defp not_executed(msg, config) do
     colorize(:yellow, msg, config)
   end
 

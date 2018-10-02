@@ -2,20 +2,42 @@ defmodule ExUnit.OnExitHandler do
   @moduledoc false
 
   @name __MODULE__
-  @supervisor 2
-  @on_exit 3
   @ets_opts [:public, :named_table, read_concurrency: true, write_concurrency: true]
 
+  # ETS column numbers
+  @pid 1
+  @supervisor 3
+  @on_exit 4
+
   use Agent
+
+  @type manager :: ExUnit.EventManager.manager()
 
   @spec start_link(keyword()) :: {:ok, pid}
   def start_link(_opts) do
     Agent.start_link(fn -> :ets.new(@name, @ets_opts) end, name: @name)
   end
 
-  @spec register(pid) :: :ok
-  def register(pid) when is_pid(pid) do
-    :ets.insert(@name, {pid, nil, []})
+  @spec register(pid, manager) :: :ok
+  def register(pid, manager) when is_pid(pid) do
+    :ets.insert(@name, {pid, manager, nil, []})
+  end
+
+  @spec registered?(pid) :: boolean
+  def registered?(pid) when is_pid(pid) do
+    case :ets.lookup(@name, pid) do
+      [] ->
+        false
+
+      _ ->
+        true
+    end
+  end
+
+  @spec get_registered_pids(manager) :: list(pid)
+  def get_registered_pids(manager) do
+    :ets.match(@name, {:"$#{@pid}", manager, :_, :_})
+    |> List.flatten()
   end
 
   @spec add(pid, term, (() -> term)) :: :ok | :error
@@ -51,9 +73,27 @@ defmodule ExUnit.OnExitHandler do
 
   @spec run(pid, timeout) :: :ok | {Exception.kind(), term, Exception.stacktrace()}
   def run(pid, timeout) when is_pid(pid) do
-    [{^pid, sup, callbacks}] = :ets.take(@name, pid)
+    [{^pid, _manager, sup, callbacks}] = :ets.take(@name, pid)
     error = terminate_supervisor(sup, timeout)
     exec_on_exit_callbacks(Enum.reverse(callbacks), timeout, error)
+  end
+
+  @spec start_failure_counter(manager) :: :ok
+  def start_failure_counter(manager) do
+    :ets.insert(@name, {{:failure_counter, manager}, 0})
+  end
+
+  @spec increment_failure_counter(manager, pos_integer) :: pos_integer()
+  def increment_failure_counter(manager, increment \\ 1)
+      when is_integer(increment) and increment >= 1 do
+    :ets.update_counter(@name, {:failure_counter, manager}, increment)
+  end
+
+  @spec get_failure_counter(manager) :: non_neg_integer()
+  def get_failure_counter(manager) do
+    [{{:failure_counter, _manager}, counter}] = :ets.lookup(@name, {:failure_counter, manager})
+
+    counter
   end
 
   defp terminate_supervisor(nil, _timeout), do: nil

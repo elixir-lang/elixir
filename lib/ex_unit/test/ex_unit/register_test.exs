@@ -31,7 +31,13 @@ defmodule ExUnit.RegisterTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 0, skipped: 0, total: 2, excluded: 0}
+             assert ExUnit.run() == %{
+                      failures: 0,
+                      skipped: 0,
+                      excluded: 0,
+                      not_executed: 0,
+                      total: 2
+                    }
            end) =~ "1 property, 1 test, 0 failures"
   end
 
@@ -71,7 +77,13 @@ defmodule ExUnit.RegisterTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 0, skipped: 0, total: 4, excluded: 0}
+             assert ExUnit.run() == %{
+                      failures: 0,
+                      skipped: 0,
+                      total: 4,
+                      excluded: 0,
+                      not_executed: 0
+                    }
            end) =~ "2 properties, 2 tests, 0 failures"
   end
 end

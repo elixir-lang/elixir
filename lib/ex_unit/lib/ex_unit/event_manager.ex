@@ -2,6 +2,8 @@ defmodule ExUnit.EventManager do
   @moduledoc false
   @timeout 30000
 
+  @type manager :: {supervisor_manager :: pid, event_manager :: pid}
+
   # TODO: Remove support for GenEvent formatters on 2.0
 
   @doc """
@@ -10,6 +12,7 @@ defmodule ExUnit.EventManager do
   This is what power formatters as well as the
   internal statistics server for ExUnit.
   """
+  @spec start_link() :: {:ok, manager}
   def start_link() do
     {:ok, sup} = DynamicSupervisor.start_link(strategy: :one_for_one)
     {:ok, event} = :gen_event.start_link()
@@ -54,8 +57,8 @@ defmodule ExUnit.EventManager do
 
   def module_started(ref, test_module) do
     # TODO: Remove case_started in Elixir v2.0
-    notify(ref, {:module_started, test_module})
     notify(ref, {:case_started, Map.put(test_module, :__struct__, ExUnit.TestCase)})
+    notify(ref, {:module_started, test_module})
   end
 
   def module_finished(ref, test_module) do
@@ -70,6 +73,10 @@ defmodule ExUnit.EventManager do
 
   def test_finished(ref, test) do
     notify(ref, {:test_finished, test})
+  end
+
+  def max_failures_reached(ref) do
+    notify(ref, :max_failures_reached)
   end
 
   defp notify({sup, event}, msg) do

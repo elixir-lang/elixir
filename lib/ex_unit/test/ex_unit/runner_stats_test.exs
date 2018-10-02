@@ -24,7 +24,7 @@ defmodule ExUnit.RunnerStatsTest do
           simulate_test(formatter, :test_10, :excluded)
         end)
 
-      assert stats == %{total: 10, failures: 2, skipped: 1, excluded: 4}
+      assert stats == %{total: 10, failures: 2, skipped: 1, excluded: 4, not_executed: 0}
     end
   end
 

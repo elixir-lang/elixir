@@ -157,6 +157,8 @@ defmodule Mix.Tasks.Test do
       external commands which produce output on stdout upon file system modification
     * `--max-cases` - sets the maximum number of tests running async. Only tests from
       different modules run in parallel. Defaults to twice the number of cores
+    * `--max-failures` - the suite stops evaluating tests when this number of test failures
+      is reached
     * `--no-archives-check` - does not check archives
     * `--no-color` - disables color in the output
     * `--no-compile` - does not compile, even if files require compilation
@@ -289,6 +291,7 @@ defmodule Mix.Tasks.Test do
     cover: :boolean,
     trace: :boolean,
     max_cases: :integer,
+    max_failures: :string,
     include: :keep,
     exclude: :keep,
     seed: :integer,
@@ -334,6 +337,8 @@ defmodule Mix.Tasks.Test do
     if Keyword.get(opts, :compile, true) do
       Mix.Project.compile(args)
     end
+
+    opts = normalize_max_failures(opts)
 
     project = Mix.Project.config()
 
@@ -439,6 +444,7 @@ defmodule Mix.Tasks.Test do
   @option_keys [
     :trace,
     :max_cases,
+    :max_failures,
     :include,
     :exclude,
     :seed,
@@ -566,6 +572,25 @@ defmodule Mix.Tasks.Test do
 
       :error ->
         opts
+    end
+  end
+
+  defp normalize_max_failures(opts) do
+    case Keyword.fetch(opts, :max_failures) do
+      {:ok, value} when value in ["infinity", ":infinity"] ->
+        Keyword.put(opts, :max_failures, :infinity)
+
+      {:ok, value} ->
+        case Integer.parse(value) do
+          {max_failures, ""} when max_failures >= 1 ->
+            Keyword.put(opts, :max_failures, :infinity)
+
+          _ ->
+            raise "--max-failures : Expected type positive integer or \"infinity\", got '#{value}'"
+        end
+
+      :error ->
+        Keyword.put(opts, :max_failures, :infinity)
     end
   end
 

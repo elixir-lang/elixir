@@ -14,6 +14,7 @@ defmodule ExUnit.RunnerStats do
     state = %{
       total: 0,
       failures: 0,
+      not_executed: 0,
       skipped: 0,
       excluded: 0,
       failures_manifest_file: opts[:failures_manifest_file],
@@ -24,7 +25,7 @@ defmodule ExUnit.RunnerStats do
   end
 
   def handle_call(:stats, _from, state) do
-    stats = Map.take(state, [:total, :failures, :skipped, :excluded])
+    stats = Map.take(state, [:total, :failures, :not_executed, :skipped, :excluded])
     {:reply, stats, state}
   end
 
@@ -70,6 +71,10 @@ defmodule ExUnit.RunnerStats do
 
   defp increment_status_counter(state, {tag, _}) when tag in [:failed, :invalid] do
     Map.update!(state, :failures, &(&1 + 1))
+  end
+
+  defp increment_status_counter(state, {:not_executed, _}) do
+    Map.update!(state, :not_executed, &(&1 + 1))
   end
 
   defp increment_status_counter(state, _), do: state

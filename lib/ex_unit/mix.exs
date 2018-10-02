@@ -26,6 +26,7 @@ defmodule ExUnit.MixProject do
         exclude: [],
         formatters: [ExUnit.CLIFormatter],
         include: [],
+        max_failures: :infinity,
         refute_receive_timeout: 100,
         slowest: 0,
         stacktrace_depth: 20,
