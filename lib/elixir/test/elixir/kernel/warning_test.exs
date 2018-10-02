@@ -1324,7 +1324,7 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn ->
                Code.eval_string("""
                defmodule Sample do
-                 @type my_type :: pid | integer :: atom
+                 @type my_type :: pid | ann_type :: atom
                end
                """)
              end) =~ message
@@ -1334,7 +1334,7 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn ->
                Code.eval_string("""
                defmodule Sample do
-                 @type my_type :: pid | integer :: atom | port
+                 @type my_type :: pid | ann_type :: atom | port
                end
                """)
              end) =~ message
@@ -1344,7 +1344,7 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn ->
                Code.eval_string("""
                defmodule Sample do
-                 @type my_type :: {port, pid | integer :: atom | port}
+                 @type my_type :: {port, pid | ann_type :: atom | port}
                end
                """)
              end) =~ message
