@@ -4,7 +4,7 @@
 -behaviour(application).
 -export([start_cli/0,
   string_to_tokens/4, tokens_to_quoted/3, 'string_to_quoted!'/4,
-  env_for_eval/1, env_for_eval/2, quoted_to_erl/2, quoted_to_erl/3,
+  env_for_eval/1, env_for_eval/2, quoted_to_erl/2,
   eval/2, eval/3, eval_forms/3, eval_forms/4, eval_quoted/3]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
