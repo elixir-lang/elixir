@@ -16,14 +16,22 @@ debug_info(erlang_v1, _Module, {elixir_v1, Map, Specs}, _Opts) ->
 debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
   {Prefix, Forms, _, _, _, _} = dynamic_form(Map),
   #{compile_opts := CompileOpts} = Map,
+  AllOpts = CompileOpts ++ Opts,
 
   %% Do not rely on elixir_erl_compiler because we don't
   %% warnings nor the other functionality provided there.
-  try compile:noenv_forms(Prefix ++ Specs ++ Forms, [core, return | CompileOpts] ++ Opts) of
-    {ok, _, Core, _} -> {ok, Core};
-    _What -> {error, failed_conversion}
-  catch
-    error:_ -> {error, failed_conversion}
+  case elixir_erl_compiler:erl_to_core(Prefix ++ Specs ++ Forms, AllOpts) of
+    {ok, CoreForms, _} ->
+      %% The dialyzer flag tells the Erlang compiler
+      %% to not start a new process to do this work.
+      try compile:noenv_forms(CoreForms, [dialyzer, from_core, core, return | AllOpts]) of
+        {ok, _, Core, _} -> {ok, Core};
+        _What -> {error, failed_conversion}
+      catch
+        error:_ -> {error, failed_conversion}
+      end;
+    _ ->
+      {error, failed_conversion}
   end;
 debug_info(_, _, _, _) ->
   {error, unknown_format}.
@@ -121,11 +129,22 @@ consolidate(Map, TypeSpecs, Chunks) ->
 
 %% Dynamic compilation hook, used in regular compiler
 
-compile(#{module := Module, line := Line} = Map) ->
+compile(#{module := Module} = Map) ->
   {Set, Bag} = elixir_module:data_tables(Module),
-  {Prefix, Forms, Def, Defmacro, Macros, Deprecated} = dynamic_form(Map),
-  {Types, Callbacks, TypeSpecs} = typespecs_form(Map, Set, Bag, Macros),
 
+  TranslatedTypespecs =
+    case elixir_config:get(bootstrap) of
+      true -> {[], [], [], [], []};
+      false -> 'Elixir.Kernel.Typespec':translate_typespecs_for_module(Set, Bag)
+    end,
+
+  elixir_erl_compiler:spawn(fun spawned_compile/4, [Map, Set, Bag, TranslatedTypespecs]).
+
+spawned_compile(Map, Set, _Bag, TranslatedTypespecs) ->
+  {Prefix, Forms, Def, Defmacro, Macros, Deprecated} = dynamic_form(Map),
+  {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
+
+  #{module := Module, line := Line} = Map,
   DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
   DeprecatedChunk = deprecated_chunk(Deprecated),
   Chunks = DocsChunk ++ DeprecatedChunk,
@@ -289,25 +308,19 @@ deprecated_info(Deprecated) ->
 
 % Typespecs
 
-typespecs_form(Map, Set, Bag, MacroNames) ->
-  case elixir_config:get(bootstrap) of
-    true ->
-      {[], [], []};
-    false ->
-      {Types, Specs, Callbacks, MacroCallbacks, OptionalCallbacks} =
-        'Elixir.Kernel.Typespec':translate_typespecs_for_module(Set, Bag),
+typespecs_form(Map, TranslatedTypespecs, MacroNames) ->
+  {Types, Specs, Callbacks, MacroCallbacks, OptionalCallbacks} = TranslatedTypespecs,
 
-      AllCallbacks = Callbacks ++ MacroCallbacks,
-      MacroCallbackNames = [NameArity || {_, NameArity, _, _} <- MacroCallbacks],
-      validate_behaviour_info_and_attributes(Map, AllCallbacks),
-      validate_optional_callbacks(Map, AllCallbacks, OptionalCallbacks),
+  AllCallbacks = Callbacks ++ MacroCallbacks,
+  MacroCallbackNames = [NameArity || {_, NameArity, _, _} <- MacroCallbacks],
+  validate_behaviour_info_and_attributes(Map, AllCallbacks),
+  validate_optional_callbacks(Map, AllCallbacks, OptionalCallbacks),
 
-      Forms0 = [],
-      Forms1 = types_form(Types, Forms0),
-      Forms2 = callspecs_form(spec, Specs, [], MacroNames, Forms1, Map),
-      Forms3 = callspecs_form(callback, AllCallbacks, OptionalCallbacks, MacroCallbackNames, Forms2, Map),
-      {Types, AllCallbacks, Forms3}
-  end.
+  Forms0 = [],
+  Forms1 = types_form(Types, Forms0),
+  Forms2 = callspecs_form(spec, Specs, [], MacroNames, Forms1, Map),
+  Forms3 = callspecs_form(callback, AllCallbacks, OptionalCallbacks, MacroCallbackNames, Forms2, Map),
+  {Types, AllCallbacks, Forms3}.
 
 %% Types
 
@@ -427,16 +440,16 @@ load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chu
   Binary.
 
 debug_opts(Map, Specs, Opts) ->
-  case include_debug_opts(Opts) of
-    true -> [{debug_info, {?MODULE, {elixir_v1, Map, Specs}}}];
-    false -> [{debug_info, {?MODULE, none}}]
+  case take_debug_opts(Opts) of
+    {true, Rest} -> [{debug_info, {?MODULE, {elixir_v1, Map, Specs}}} | Rest];
+    {false, Rest} -> [{debug_info, {?MODULE, none}} | Rest]
   end.
 
-include_debug_opts(Opts) ->
-  case proplists:get_value(debug_info, Opts) of
-    true -> true;
-    false -> false;
-    undefined -> elixir_compiler:get_opt(debug_info)
+take_debug_opts(Opts) ->
+  case lists:keytake(debug_info, 1, Opts) of
+    {value, {debug_info, true}, Rest} -> {true, Rest};
+    {value, {debug_info, false}, Rest} -> {false, Rest};
+    false -> {elixir_compiler:get_opt(debug_info), Opts}
   end.
 
 extra_chunks_opts([], Opts) -> Opts;

@@ -52,20 +52,28 @@ eval_forms(Forms, Vars, E) ->
       compile(Forms, Vars, E)
   end.
 
-compile(Forms, Vars, #{line := Line, file := File} = E) ->
+compile(Quoted, Vars, E) ->
+  Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
+  {Expanded, EE} = elixir_expand:expand(Quoted, E),
+  elixir_env:check_unused_vars(EE),
+
+  {Module, Fun, Purgeable} =
+    elixir_erl_compiler:spawn(fun spawned_compile/3, [Expanded, Vars, E]),
+
+  {dispatch(Module, Fun, Args, Purgeable), EE}.
+
+spawned_compile(ExExprs, Vars, #{line := Line, file := File} = E) ->
   Dict = [{{Name, Kind}, {0, Value}} || {Name, Kind, Value, _} <- Vars],
   S = elixir_env:env_to_scope_with_vars(E, Dict),
-  {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
-  elixir_env:check_unused_vars(EE),
+  {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, S),
 
   Module = retrieve_compiler_module(),
   Fun  = code_fun(?key(E, module)),
-  Form = code_mod(Fun, Expr, Line, File, Module, Vars),
-  Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
+  Forms = code_mod(Fun, ErlExprs, Line, File, Module, Vars),
 
-  {Module, Binary} = elixir_erl_compiler:noenv_forms(Form, File, [nowarn_nomatch]),
+  {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch]),
   code:load_binary(Module, "", Binary),
-  {dispatch(Module, Fun, Args, is_purgeable(Module, Binary)), EE}.
+  {Module, Fun, is_purgeable(Module, Binary)}.
 
 dispatch(Module, Fun, Args, Purgeable) ->
   Res = Module:Fun(Args),
