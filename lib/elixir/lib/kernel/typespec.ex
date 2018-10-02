@@ -194,7 +194,13 @@ defmodule Kernel.Typespec do
   def translate_typespecs_for_module(_set, bag) do
     type_typespecs = take_typespec(bag, :type)
     defined_type_pairs = collect_defined_type_pairs(type_typespecs)
-    state = %{defined_type_pairs: defined_type_pairs, used_type_pairs: [], local_vars: %{}}
+
+    state = %{
+      defined_type_pairs: defined_type_pairs,
+      used_type_pairs: [],
+      local_vars: %{},
+      undefined_type_error_enabled?: true
+    }
 
     {types, state} = Enum.map_reduce(type_typespecs, state, &translate_type/2)
     {specs, state} = Enum.map_reduce(take_typespec(bag, :spec), state, &translate_spec/2)
@@ -607,7 +613,7 @@ defmodule Kernel.Typespec do
           "invalid type annotation. Type annotations cannot be nested: " <>
             "#{Macro.to_string(ann_type)}"
 
-        # TODO: make this an error in elixir 2.0 and remove code below
+        # TODO: make this an error in elixir 2.0 and remove the code below
         :elixir_errors.warn(caller.line, caller.file, message)
 
         # This may be generating an invalid typespec but we need to generate it
@@ -625,12 +631,15 @@ defmodule Kernel.Typespec do
       "invalid type annotation. When using the | operator to represent the union of types, " <>
         "make sure to wrap type annotations in parentheses: #{Macro.to_string(expr)}"
 
-    # TODO: make this an error in elixir 2.0 and remove code below
+    # TODO: make this an error in Elixir 2.0, and remove the code below and the
+    # :undefined_type_error_enabled? key from the state
     :elixir_errors.warn(caller.line, caller.file, message)
 
     # This may be generating an invalid typespec but we need to generate it
     # to avoid breaking existing code that was valid but only broke dialyzer
+    state = %{state | undefined_type_error_enabled?: false}
     {left, state} = typespec(left, vars, caller, state)
+    state = %{state | undefined_type_error_enabled?: true}
     {right, state} = typespec(right, vars, caller, state)
     {{:ann_type, line(meta), [left, right]}, state}
   end
@@ -776,7 +785,8 @@ defmodule Kernel.Typespec do
         {{:type, line(meta), name, arguments}, state}
 
       false ->
-        unless Map.has_key?(state.defined_type_pairs, {name, arity}) do
+        if state.undefined_type_error_enabled? and
+             not Map.has_key?(state.defined_type_pairs, {name, arity}) do
           compile_error(caller, "type #{name}/#{arity} undefined")
         end
 
