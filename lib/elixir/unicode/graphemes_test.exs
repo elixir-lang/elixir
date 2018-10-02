@@ -1,8 +1,8 @@
 defmodule GraphemesTest do
   def run do
     IO.puts("Running GraphemeBreakTest.txt")
-    count = run_grapheme_break()
-    IO.puts("Got #{count} failures")
+    {cases, failures} = run_grapheme_break()
+    IO.puts("Ran #{cases} tests, got #{failures} failures")
   end
 
   defp run_grapheme_break do
@@ -10,17 +10,15 @@ defmodule GraphemesTest do
     |> File.stream!()
     |> Stream.filter(&match?("÷" <> _, &1))
     |> Stream.reject(&(&1 =~ "D800"))
-    |> Enum.reduce(0, fn line, acc ->
+    |> Enum.reduce({0, 0}, fn line, {cases, failures} ->
       [string | _] = String.split(line, "#", parts: 2)
       {string, graphemes} = parse_grapheme_break(string)
 
       if String.graphemes(string) == graphemes do
-        acc
+        {cases + 1, failures}
       else
-        acc = acc + 1
-
         IO.puts("""
-        ============== Failure ##{acc} ==============
+        ============== Failure ##{failures + 1} ==============
 
             String.graphemes(#{inspect(string)})
 
@@ -37,7 +35,7 @@ defmodule GraphemesTest do
             #{line}
         """)
 
-        acc
+        {cases + 1, failures + 1}
       end
     end)
   end
