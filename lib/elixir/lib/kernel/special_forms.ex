@@ -800,8 +800,19 @@ defmodule Kernel.SpecialForms do
 
   ## Options
 
-    * `:unquote` - when `false`, disables unquoting. Useful when you have a quote
-      inside another quote and want to control what quote is able to unquote.
+    * `:unquote` - when `false`, disables unquoting. This means any `unquote`
+      call will be kept as is in the AST, instead of replaced by the `unquote`
+      arguments. For example:
+
+          iex> quote do
+          ...>   unquote("hello")
+          ...> end
+          "hello"
+
+          iex> quote unquote: false do
+          ...>   unquote("hello")
+          ...> end
+          {:unquote, [], ["hello"]}
 
     * `:location` - when set to `:keep`, keeps the current line and file from
       quote. Read the Stacktrace information section below for more
@@ -1250,26 +1261,33 @@ defmodule Kernel.SpecialForms do
   defmacro quote(opts, block), do: error!([opts, block])
 
   @doc """
-  Unquotes the given expression from inside a macro.
+  Unquotes the given expression inside a quoted expression.
 
   ## Examples
 
-  Imagine the situation you have a variable `value` and
+  Imagine the situation you have a quoted expression and
   you want to inject it inside some quote. The first attempt
   would be:
 
-      value = 13
+      value =
+        quote do
+          13
+        end
+
       quote do
         sum(1, value, 3)
       end
 
   Which would then return:
 
-      {:sum, [], [1, {:value, [], quoted}, 3]}
+      {:sum, [], [1, {:value, [], Elixir}, 3]}
 
   Which is not the expected result. For this, we use unquote:
 
-      iex> value = 13
+      iex> value =
+      ...>   quote do
+      ...>     13
+      ...>   end
       iex> quote do
       ...>   sum(1, unquote(value), 3)
       ...> end
@@ -1279,8 +1297,9 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:unquote)(expr), do: error!([expr])
 
   @doc """
-  Unquotes the given list expanding its arguments. Similar
-  to `unquote/1`.
+  Unquotes the given list expanding its arguments.
+
+  Similar to `unquote/1`.
 
   ## Examples
 
