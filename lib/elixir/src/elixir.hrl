@@ -46,3 +46,15 @@
 -else.
 -define(WITH_STACKTRACE(K, R, S), K:R -> S = erlang:get_stacktrace(),).
 -endif.
+
+%% TODO: Remove this once we support Erlang/OTP 22+ exclusively.
+%% See https://github.com/erlang/otp/pull/1972
+-ifdef(OTP_RELEASE).
+  -if(?OTP_RELEASE >= 22).
+    -define(NO_SPAWN_COMPILER_PROCESS, no_spawn_compiler_process).
+  -elif(?OTP_RELEASE >= 21).
+    -define(NO_SPAWN_COMPILER_PROCESS, dialyzer).
+  -endif.
+-else.
+  -define(NO_SPAWN_COMPILER_PROCESS, dialyzer).
+-endif.

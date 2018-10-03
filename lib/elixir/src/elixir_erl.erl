@@ -22,9 +22,7 @@ debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
   %% warnings nor the other functionality provided there.
   case elixir_erl_compiler:erl_to_core(Prefix ++ Specs ++ Forms, AllOpts) of
     {ok, CoreForms, _} ->
-      %% The dialyzer flag tells the Erlang compiler
-      %% to not start a new process to do this work.
-      try compile:noenv_forms(CoreForms, [dialyzer, from_core, core, return | AllOpts]) of
+      try compile:noenv_forms(CoreForms, [?NO_SPAWN_COMPILER_PROCESS, from_core, core, return | AllOpts]) of
         {ok, _, Core, _} -> {ok, Core};
         _What -> {error, failed_conversion}
       catch

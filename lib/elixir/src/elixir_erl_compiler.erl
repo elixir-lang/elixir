@@ -36,7 +36,7 @@ erl_to_core(Forms, Opts) ->
     [] ->
       v3_core:module(Forms, Opts);
     _ ->
-      case compile:noenv_forms(Forms, [dialyzer, to_core0, return, no_auto_import | Opts]) of
+      case compile:noenv_forms(Forms, [?NO_SPAWN_COMPILER_PROCESS, to_core0, return, no_auto_import | Opts]) of
         {ok, _Module, Core, Warnings} -> {ok, Core, Warnings};
         {error, Errors, Warnings} -> {error, Errors, Warnings}
       end
@@ -49,9 +49,7 @@ compile(Fun, Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(Fi
     {ok, CoreForms, CoreWarnings} ->
       format_warnings(Opts, CoreWarnings),
 
-      %% The dialyzer flag tells the Erlang compiler
-      %% to not start a new process to do this work.
-      case Fun(CoreForms, [dialyzer, from_core, no_auto_import, return, {source, Source} | Opts]) of
+      case Fun(CoreForms, [?NO_SPAWN_COMPILER_PROCESS, from_core, no_auto_import, return, {source, Source} | Opts]) of
         {ok, Module, Binary, Warnings} ->
           format_warnings(Opts, Warnings),
           {Module, Binary};
