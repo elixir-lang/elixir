@@ -276,9 +276,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if the given `fun` evaluates to true on all of the items in the `enumerable`.
+  Returns `true` if the given `fun` evaluates to a truthy value (neither `false` nor `nil`)
+  on all of the items in the `enumerable`.
 
-  It stops the iteration at the first invocation that returns `false` or `nil`.
+  It stops the iteration at the first invocation that returns either `false` or `nil`.
 
   ## Examples
 

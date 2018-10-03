@@ -441,7 +441,7 @@ defmodule Kernel.RaiseTest do
           x in [CondClauseError] -> Exception.message(x)
         end
 
-      assert result == "no cond clause evaluated to a true value"
+      assert result == "no cond clause evaluated to a truthy value"
     end
 
     test "try clause error" do

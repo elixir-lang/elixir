@@ -2966,7 +2966,7 @@ defmodule Kernel do
       if(foo, do: bar)
 
   In the example above, `bar` will be returned if `foo` evaluates to
-  `true` (i.e., it is neither `false` nor `nil`). Otherwise, `nil` will be
+  a thruthy value (neither `false` nor `nil`). Otherwise, `nil` will be
   returned.
 
   An `else` option can be given to specify the opposite:
@@ -3021,8 +3021,8 @@ defmodule Kernel do
   Provides an `unless` macro.
 
   This macro evaluates and returns the `do` block passed in as the second
-  argument unless `clause` evaluates to `true`. Otherwise, it returns the value
-  of the `else` block if present or `nil` if not.
+  argument unless `clause` evaluates to a truthy value (neither `false` nor `nil`).
+  Otherwise, it returns the value of the `else` block if present or `nil` if not.
 
   See also `if/2`.
 
@@ -3157,8 +3157,8 @@ defmodule Kernel do
 
   @doc """
   Provides a short-circuit operator that evaluates and returns
-  the second expression only if the first one evaluates to `true`
-  (i.e., it is neither `nil` nor `false`). Returns the first expression
+  the second expression only if the first one evaluates to to a truthy value
+  (neither `false` nor `nil`). Returns the first expression
   otherwise.
 
   Not allowed in guard clauses.
@@ -3196,7 +3196,7 @@ defmodule Kernel do
 
   @doc """
   Provides a short-circuit operator that evaluates and returns the second
-  expression only if the first one does not evaluate to `true` (i.e., it
+  expression only if the first one does not evaluate to a truthy value (i.e., it
   is either `nil` or `false`). Returns the first expression otherwise.
 
   Not allowed in guard clauses.
