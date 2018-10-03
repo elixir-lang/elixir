@@ -323,7 +323,7 @@ defmodule Logger.Translator do
   defp sup_context(:start_error), do: "failed to start"
   defp sup_context(:child_terminated), do: "terminated"
   defp sup_context(:shutdown), do: "caused shutdown"
-  defp sup_context(:shutdown_error), do: "shutdown abnormally"
+  defp sup_context(:shutdown_error), do: "shut down abnormally"
 
   defp child_info(min_level, [{:mfargs, {mod, fun, args}} | debug]) do
     ["\nStart Call: ", format_mfa(mod, fun, args) | child_debug(min_level, debug)]
