@@ -541,7 +541,7 @@ defmodule ExUnitTest do
     Enum.each(cases, &ExUnit.Server.add_sync_module/1)
     ExUnit.Server.modules_loaded()
     opts = Keyword.merge(ExUnit.configuration(), filters)
-    output = capture_io(fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end)
+    output = capture_io(fn -> Process.put(:capture_result, ExUnit.Runner.run(nil, opts)) end)
     {Process.get(:capture_result), output}
   end
 

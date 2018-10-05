@@ -172,7 +172,7 @@ defmodule ExUnit do
   Starts ExUnit and automatically runs tests right before the
   VM terminates.
 
-  It accepts a set of options to configure `ExUnit`
+  It accepts a set of `options` to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 
   If you want to run tests manually, you can set the `:autorun` option
@@ -190,8 +190,8 @@ defmodule ExUnit do
       System.at_exit(fn
         0 ->
           time = ExUnit.Server.modules_loaded()
-          config = persist_defaults(configuration())
-          %{failures: failures} = ExUnit.Runner.run(config, time)
+          options = persist_defaults(configuration())
+          %{failures: failures} = ExUnit.Runner.run(time, options)
 
           System.at_exit(fn _ ->
             if failures > 0, do: exit({:shutdown, 1})
@@ -326,8 +326,8 @@ defmodule ExUnit do
   """
   @spec run() :: suite_result()
   def run do
-    config = persist_defaults(configuration())
-    ExUnit.Runner.run(config, nil)
+    options = persist_defaults(configuration())
+    ExUnit.Runner.run(nil, options)
   end
 
   @doc """

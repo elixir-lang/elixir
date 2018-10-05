@@ -5,45 +5,46 @@ defmodule ExUnit.Runner do
 
   @rand_algorithm :exs1024
 
-  def run(opts, load_us) do
-    {:ok, manager} = EM.start_link()
-    {:ok, stats} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
-    {opts, config} = configure(manager, opts)
+  @type manager :: ExUnit.EventManager.manager()
 
+  def run(load_time, opts) when (is_integer(load_time) or is_nil(load_time)) and is_list(opts) do
+    opts = normalize_opts(opts)
+
+    {:ok, manager} = EM.start_link()
+    {:ok, stats_pid} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
+    config = configure(opts, manager, self(), stats_pid)
     :erlang.system_flag(:backtrace_depth, Keyword.fetch!(opts, :stacktrace_depth))
 
-    {run_us, _} =
+    {run_time, _} =
       :timer.tc(fn ->
         EM.suite_started(config.manager, opts)
-        loop(config, 0)
+        loop(config)
       end)
 
-    EM.suite_finished(config.manager, run_us, load_us)
-    result = ExUnit.RunnerStats.stats(stats)
+    EM.suite_finished(config.manager, run_time, load_time)
+    stats = ExUnit.RunnerStats.stats(stats_pid)
     EM.stop(config.manager)
     after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
-    Enum.each(after_suite_callbacks, fn callback -> callback.(result) end)
-    result
+    Enum.each(after_suite_callbacks, fn callback -> callback.(stats) end)
+    stats
   end
 
-  defp configure(manager, opts) do
-    opts = normalize_opts(opts)
+  defp configure(opts, manager, runner_pid, stats_pid) do
     Enum.each(opts[:formatters], &EM.add_handler(manager, &1, opts))
 
-    config = %{
+    %{
       capture_log: opts[:capture_log],
       exclude: opts[:exclude],
       include: opts[:include],
       manager: manager,
       max_cases: opts[:max_cases],
       only_test_ids: opts[:only_test_ids],
+      runner_pid: runner_pid,
       seed: opts[:seed],
-      modules: :async,
+      stats_pid: stats_pid,
       timeout: opts[:timeout],
       trace: opts[:trace]
     }
-
-    {opts, config}
   end
 
   defp normalize_opts(opts) do
@@ -54,32 +55,34 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
   end
 
-  defp loop(%{modules: :async} = config, taken) do
+  defp loop(modules \\ :async, taken \\ 0, config)
+
+  defp loop(:async, taken, config) do
     available = config.max_cases - taken
 
     cond do
       # No modules available, wait for one
       available <= 0 ->
-        wait_until_available(config, taken)
+        wait_until_available(:async, taken, config)
 
       # Slots are available, start with async modules
       modules = ExUnit.Server.take_async_modules(available) ->
-        spawn_modules(config, modules, taken)
+        spawn_modules(modules, [], taken, config)
 
       true ->
         modules = ExUnit.Server.take_sync_modules()
-        loop(%{config | modules: modules}, taken)
+        loop(modules, taken, config)
     end
   end
 
-  defp loop(%{modules: modules} = config, taken) do
+  defp loop(modules, taken, config) do
     case modules do
       _ when taken > 0 ->
-        wait_until_available(config, taken)
+        wait_until_available(modules, taken, config)
 
       # So we can start all sync modules
-      [h | t] ->
-        spawn_modules(%{config | modules: t}, [h], taken)
+      [head | tail] ->
+        spawn_modules([head], tail, taken, config)
 
       # No more modules, we are done!
       [] ->
@@ -90,32 +93,30 @@ defmodule ExUnit.Runner do
   # Loop expecting messages from the spawned modules. Whenever
   # a module has finished executing, decrease the taken modules
   # counter and attempt to spawn new ones.
-  defp wait_until_available(config, taken) do
+  defp wait_until_available(modules, taken, config) do
     receive do
       {_pid, :module_finished, _test_case} ->
-        loop(config, taken - 1)
+        loop(modules, taken - 1, config)
     end
   end
 
-  defp spawn_modules(config, modules, taken) do
-    pid = self()
-
-    Enum.each(modules, fn module ->
+  defp spawn_modules(modules_to_take, modules_left, taken, config) do
+    Enum.each(modules_to_take, fn module ->
       spawn_link(fn ->
-        run_module(config, pid, module)
+        run_module(module, config)
       end)
     end)
 
-    loop(config, taken + length(modules))
+    loop(modules_left, taken + length(modules_to_take), config)
   end
 
-  defp run_module(config, pid, module) do
+  defp run_module(module, config) do
     test_module = module.__ex_unit__()
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should
     # run and which ones were skipped.
-    tests = prepare_tests(config, test_module.tests)
+    tests = prepare_tests(test_module.tests, config)
 
     {test_module, pending, finished_tests} =
       if Enum.all?(tests, & &1.state) do
@@ -123,19 +124,19 @@ defmodule ExUnit.Runner do
         # "finished"
         {test_module, tests, tests}
       else
-        spawn_module(config, test_module, tests)
+        spawn_module(test_module, tests, config)
       end
 
     # Run the pending tests. We don't actually spawn those
     # tests but we do send the notifications to formatter.
-    Enum.each(pending, &run_test(config, &1, []))
+    Enum.each(pending, &run_test(&1, [], config))
     test_module = %{test_module | tests: finished_tests}
     EM.module_finished(config.manager, test_module)
-    send(pid, {self(), :module_finished, test_module})
+    send(config.runner_pid, {self(), :module_finished, test_module})
   end
 
-  defp prepare_tests(config, tests) do
-    tests = shuffle(config, tests)
+  defp prepare_tests(tests, config) do
+    tests = shuffle(tests, config)
     include = config.include
     exclude = config.exclude
     test_ids = config.only_test_ids
@@ -156,8 +157,9 @@ defmodule ExUnit.Runner do
     MapSet.member?(test_ids, {test.module, test.name})
   end
 
-  defp spawn_module(config, test_module, tests) do
-    parent = self()
+  defp spawn_module(test_module, tests, config) do
+    parent_pid = self()
+    timeout = get_timeout(%{}, config)
 
     {module_pid, module_ref} =
       spawn_monitor(fn ->
@@ -165,12 +167,12 @@ defmodule ExUnit.Runner do
 
         case exec_module_setup(test_module) do
           {:ok, test_module, context} ->
-            finished_tests = Enum.map(tests, &run_test(config, &1, context))
-            send(parent, {self(), :module_finished, test_module, [], finished_tests})
+            finished_tests = Enum.map(tests, &run_test(&1, context, config))
+            send(parent_pid, {self(), :module_finished, test_module, [], finished_tests})
 
           {:error, test_module} ->
             failed_tests = Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
-            send(parent, {self(), :module_finished, test_module, failed_tests, []})
+            send(parent_pid, {self(), :module_finished, test_module, failed_tests, []})
         end
 
         exit(:shutdown)
@@ -187,7 +189,6 @@ defmodule ExUnit.Runner do
           {test_module, [], []}
       end
 
-    timeout = get_timeout(%{}, config)
     {exec_on_exit(test_module, module_pid, timeout), pending, finished_tests}
   end
 
@@ -199,20 +200,20 @@ defmodule ExUnit.Runner do
       {:error, %{test_module | state: failed}}
   end
 
-  defp run_test_with_capture_log(true, config, test, context) do
-    run_test_with_capture_log([], config, test, context)
+  defp run_test_with_capture_log(test, true, context, config) do
+    run_test_with_capture_log(test, [], context, config)
   end
 
-  defp run_test_with_capture_log(false, config, test, context) do
-    spawn_test(config, test, context)
+  defp run_test_with_capture_log(test, false, context, config) do
+    spawn_test(test, context, config)
   end
 
-  defp run_test_with_capture_log(opts, config, test, context) do
+  defp run_test_with_capture_log(test, config, context, config) do
     ref = make_ref()
 
     try do
-      ExUnit.CaptureLog.capture_log(opts, fn ->
-        send(self(), {ref, spawn_test(config, test, context)})
+      ExUnit.CaptureLog.capture_log(config, fn ->
+        send(self(), {ref, spawn_test(test, context, config)})
       end)
     catch
       :exit, :noproc ->
@@ -229,13 +230,13 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp run_test(config, %{tags: tags} = test, context) do
+  defp run_test(%{tags: tags} = test, context, config) do
     EM.test_started(config.manager, test)
 
     test =
       if is_nil(test.state) do
-        capture_log? = Map.get(tags, :capture_log, config.capture_log)
-        run_test_with_capture_log(capture_log?, config, test, Map.merge(tags, context))
+        capture_log = Map.get(tags, :capture_log, config.capture_log)
+        run_test_with_capture_log(test, capture_log, Map.merge(tags, context), config)
       else
         test
       end
@@ -244,14 +245,15 @@ defmodule ExUnit.Runner do
     test
   end
 
-  defp spawn_test(config, test, context) do
-    parent = self()
+  defp spawn_test(test, context, config) do
+    parent_pid = self()
+    timeout = get_timeout(test.tags, config)
 
     {test_pid, test_ref} =
       spawn_monitor(fn ->
         ExUnit.OnExitHandler.register(self())
 
-        generate_test_seed(config, test)
+        generate_test_seed(test, config)
 
         {us, test} =
           :timer.tc(fn ->
@@ -264,21 +266,25 @@ defmodule ExUnit.Runner do
             end
           end)
 
-        send(parent, {self(), :test_finished, %{test | time: us}})
+        send(parent_pid, {self(), :test_finished, %{test | time: us}})
         exit(:shutdown)
       end)
 
-    timeout = get_timeout(test.tags, config)
-    test = receive_test_reply(test, test_pid, test_ref, timeout)
+    reply_opts = %{
+      pid: test_pid,
+      ref: test_ref,
+      parent_pid: parent_pid,
+      timeout: timeout
+    }
+
+    test = receive_test_reply(test, reply_opts)
 
     exec_on_exit(test, test_pid, timeout)
   end
 
-  defp generate_test_seed(%{seed: seed}, %ExUnit.Test{module: module, name: name}) do
-    :rand.seed(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
-  end
+  defp receive_test_reply(test, opts) do
+    %{pid: test_pid, ref: test_ref, timeout: timeout} = opts
 
-  defp receive_test_reply(test, test_pid, test_ref, timeout) do
     receive do
       {^test_pid, :test_finished, test} ->
         Process.demonitor(test_ref, [:flush])
@@ -302,7 +308,7 @@ defmodule ExUnit.Runner do
             %{test | state: failed(:error, exception, stacktrace)}
 
           nil ->
-            receive_test_reply(test, test_pid, test_ref, timeout)
+            receive_test_reply(test, opts)
         end
     end
   end
@@ -335,6 +341,10 @@ defmodule ExUnit.Runner do
 
   ## Helpers
 
+  defp generate_test_seed(%ExUnit.Test{module: module, name: name}, %{seed: seed}) do
+    :rand.seed(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
+  end
+
   defp get_timeout(tags, config) do
     if config.trace() do
       :infinity
@@ -343,11 +353,11 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp shuffle(%{seed: 0}, list) do
+  defp shuffle(list, %{seed: 0}) do
     Enum.reverse(list)
   end
 
-  defp shuffle(%{seed: seed}, list) do
+  defp shuffle(list, %{seed: seed}) do
     _ = :rand.seed(@rand_algorithm, {seed, seed, seed})
     Enum.shuffle(list)
   end
