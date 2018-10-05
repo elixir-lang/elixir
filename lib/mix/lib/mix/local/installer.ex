@@ -65,7 +65,7 @@ defmodule Mix.Local.Installer do
       {:fetcher, dep_spec} ->
         if opts[:sha512] do
           Mix.raise(
-            "--sha512 is not supported when installing from git/github/hex\n\n" <> usage(module)
+            "--sha512 is not supported when installing from Git, GitHub, or Hex\n\n" <> usage(module)
           )
         end
 
