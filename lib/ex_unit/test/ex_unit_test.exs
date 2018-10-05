@@ -498,6 +498,31 @@ defmodule ExUnitTest do
     ExUnit.configure(seed: global_seed)
   end
 
+  describe "printing the seed after running the test suite can be disabled" do
+    defmodule PrintSeedTest do
+      use ExUnit.Case, async: true
+
+      test "sample", do: :ok
+    end
+
+    test "seed gets printed by default" do
+      ExUnit.Server.modules_loaded()
+
+      output = capture_io(fn -> ExUnit.run() end)
+      assert output =~ "Randomized with seed"
+    end
+
+    test "seed does not get printed when print_seed is false" do
+      ExUnit.configure(print_seed: false)
+      ExUnit.Server.modules_loaded()
+
+      output = capture_io(fn -> ExUnit.run() end)
+      refute output =~ "Randomized with seed"
+
+      ExUnit.configure(print_seed: true)
+    end
+  end
+
   describe "after_suite/1" do
     test "executes all callbacks set in reverse order" do
       Process.register(self(), :after_suite_test_process)

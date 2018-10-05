@@ -38,6 +38,7 @@ defmodule ExUnit.Runner do
       max_cases: opts[:max_cases],
       only_test_ids: opts[:only_test_ids],
       seed: opts[:seed],
+      print_seed: opts[:print_seed],
       modules: :async,
       timeout: opts[:timeout],
       trace: opts[:trace]

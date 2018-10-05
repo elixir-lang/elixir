@@ -12,6 +12,7 @@ defmodule ExUnit.CLIFormatter do
 
     config = %{
       seed: opts[:seed],
+      print_seed: opts[:print_seed],
       trace: opts[:trace],
       colors: Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?()),
       width: get_terminal_width(),
@@ -269,7 +270,9 @@ defmodule ExUnit.CLIFormatter do
       true -> IO.puts(success(message, config))
     end
 
-    IO.puts("\nRandomized with seed #{config.seed}")
+    if config.print_seed do
+      IO.puts("\nRandomized with seed #{config.seed}")
+    end
   end
 
   defp if_true(value, false, _fun), do: value

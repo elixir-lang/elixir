@@ -252,6 +252,9 @@ defmodule ExUnit do
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
       calls, defaults to `100` milliseconds;
 
+    * `:print_seed` - whether to print out the randomized seed when the test suite
+      finishes. This is enabled by default;
+
     * `:seed` - an integer seed value to randomize the test suite. This seed
       is also mixed with the test module and name to create a new unique seed
       on every test, which is automatically fed into the `:rand` module. This
@@ -288,6 +291,7 @@ defmodule ExUnit do
   def configuration do
     Application.get_all_env(:ex_unit)
     |> put_seed()
+    |> put_print_seed()
     |> put_slowest()
     |> put_max_cases()
   end
@@ -364,6 +368,10 @@ defmodule ExUnit do
       |> System.convert_time_unit(:native, :microsecond)
       |> rem(1_000_000)
     end)
+  end
+
+  defp put_print_seed(opts) do
+    Keyword.put_new(opts, :print_seed, true)
   end
 
   defp put_max_cases(opts) do
