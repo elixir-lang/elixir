@@ -183,6 +183,10 @@ defmodule Mix.Tasks.ArchiveTest do
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.Tasks.Archive.Uninstall.run(["archive-0.2.0"])
       refute File.dir?(tmp_path("userhome/.mix/archives/archive-0.2.0/archive-0.2.0/ebin"))
+
+      # Check old paths are unloaded
+      paths = Enum.map(:code.get_path(), &List.to_string/1)
+      refute tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin") in paths
     end)
   end
 
