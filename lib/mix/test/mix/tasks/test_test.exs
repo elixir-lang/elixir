@@ -144,15 +144,6 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
-  test "--no-print-seed does not print the random seed" do
-    in_fixture("test_failed", fn ->
-      output = mix(["test"])
-      assert output =~ "Randomized with seed"
-      output = mix(["test", "--no-print-seed"])
-      refute output =~ "Randomized with seed"
-    end)
-  end
-
   test "--failed: loads only files with failures and runs just the failures" do
     in_fixture("test_failed", fn ->
       loading_only_passing_test_msg = "loading OnlyPassingTest"
