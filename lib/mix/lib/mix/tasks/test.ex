@@ -162,6 +162,7 @@ defmodule Mix.Tasks.Test do
     * `--no-compile` - does not compile, even if files require compilation
     * `--no-deps-check` - does not check dependencies
     * `--no-elixir-version-check` - does not check the Elixir version from `mix.exs`
+    * `--no-print-seed` - does not print the random seed after test suite runs
     * `--no-start` - does not start applications after compilation
     * `--only` - runs only tests that match the filter
     * `--preload-modules` - preloads all modules defined in applications
@@ -305,7 +306,8 @@ defmodule Mix.Tasks.Test do
     listen_on_stdin: :boolean,
     formatter: :keep,
     slowest: :integer,
-    preload_modules: :boolean
+    preload_modules: :boolean,
+    print_seed: :boolean
   ]
 
   @cover [output: "cover", tool: Cover]
@@ -441,6 +443,7 @@ defmodule Mix.Tasks.Test do
     :max_cases,
     :include,
     :exclude,
+    :print_seed,
     :seed,
     :timeout,
     :formatters,
