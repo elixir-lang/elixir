@@ -269,7 +269,9 @@ defmodule ExUnit.CLIFormatter do
       true -> IO.puts(success(message, config))
     end
 
-    IO.puts("\nRandomized with seed #{config.seed}")
+    if config.seed != 0 do
+      IO.puts("\nRandomized with seed #{config.seed}")
+    end
   end
 
   defp if_true(value, false, _fun), do: value
