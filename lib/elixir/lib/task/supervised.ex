@@ -548,9 +548,11 @@ defmodule Task.Supervised do
   # The parent process is telling us to stop because the stream is being
   # closed. In this case, we forcibly kill all spawned processes and then
   # exit gracefully ourselves.
-  defp handle_stop_or_parent_down({:stop, monitor_ref}, running_tasks, %{
-         monitor_ref: monitor_ref
-       }) do
+  defp handle_stop_or_parent_down(
+         {:stop, monitor_ref},
+         running_tasks,
+         %{monitor_ref: monitor_ref}
+       ) do
     Process.flag(:trap_exit, true)
 
     for {ref, %{pid: pid}} <- running_tasks do
