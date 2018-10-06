@@ -458,7 +458,6 @@ defmodule Task.Supervised do
   defp stream_monitor_loop(running_tasks, config) do
     %{
       parent_pid: parent_pid,
-      parent_ref: parent_ref,
       mfa: mfa,
       spawn: spawn,
       monitor_ref: monitor_ref,
@@ -539,11 +538,6 @@ defmodule Task.Supervised do
   end
 
   defp stream_waiting_for_stop_loop(running_tasks, config) do
-    %{
-      parent_ref: parent_ref,
-      monitor_ref: monitor_ref
-    } = config
-
     receive do
       message ->
         handle_stop_or_parent_down(message, running_tasks, config)
@@ -570,14 +564,24 @@ defmodule Task.Supervised do
     exit(:normal)
   end
 
-  defp handle_stop_or_parent_down({:DOWN, parent_ref, _, _, reason}, running_tasks, %{
-         parent_ref: parent_ref
-       }) do
+  # The parent process went down with a given reason. We kill all the
+  # spawned processes (that are also linked) with the same reason, and then
+  # exit ourselves with the same reason.
+  defp handle_stop_or_parent_down(
+         {:DOWN, parent_ref, _, _, reason},
+         running_tasks,
+         %{parent_ref: parent_ref}
+       ) do
     for {_ref, %{type: :link, pid: pid}} <- running_tasks do
       Process.exit(pid, reason)
     end
 
     exit(reason)
+  end
+
+  # We ignore all other messages.
+  defp handle_stop_or_parent_down(_other, _running_tasks, _config) do
+    :ok
   end
 
   defp unlink_and_kill(pid) do
