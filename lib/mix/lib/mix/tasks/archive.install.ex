@@ -34,8 +34,9 @@ defmodule Mix.Tasks.Archive.Install do
 
       mix some_task
 
-  Note that installing via Git/GitHub/Hex fetches the source of the archive
-  and builds it, while using URL/local path fetches a pre-built archive.
+  Note that installing via Git, GitHub, or Hex fetches the source
+  of the archive and builds it, while using a URL or a local path
+  fetches a pre-built archive.
 
   ## Command line options
 
