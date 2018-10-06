@@ -113,8 +113,15 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   def build(_install_spec, _opts) do
+    src = Mix.Local.name_for(:archive, Mix.Project.config())
+    previous = find_previous_versions(src)
+
+    Enum.each(previous, fn path ->
+      Code.delete_path(Mix.Local.archive_ebin(path))
+    end)
+
     Mix.Task.run("archive.build", [])
-    Mix.Local.name_for(:archive, Mix.Project.config())
+    src
   end
 
   ### Private helpers
