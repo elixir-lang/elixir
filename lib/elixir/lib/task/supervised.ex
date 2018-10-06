@@ -532,7 +532,9 @@ defmodule Task.Supervised do
         stream_monitor_loop(running_tasks, config)
 
       other ->
-        handle_stop_or_parent_down(other, running_tasks, config)
+        handle_stop_or_parent_down(other, running_tasks, config) ||
+          raise "unexpected message: #{inspect(other)}"
+
         stream_monitor_loop(running_tasks, config)
     end
   end
@@ -581,7 +583,7 @@ defmodule Task.Supervised do
 
   # We ignore all other messages.
   defp handle_stop_or_parent_down(_other, _running_tasks, _config) do
-    :ok
+    false
   end
 
   defp unlink_and_kill(pid) do
