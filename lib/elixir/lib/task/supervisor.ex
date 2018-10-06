@@ -458,9 +458,15 @@ defmodule Task.Supervisor do
 
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
       args = [owner, :monitor, get_info(owner), mfa]
-      {:ok, pid} = start_child_with_spec(supervisor, args, :temporary, shutdown)
-      if link_type == :link, do: Process.link(pid)
-      {link_type, pid}
+
+      case start_child_with_spec(supervisor, args, :temporary, shutdown) do
+        {:ok, pid} ->
+          if link_type == :link, do: Process.link(pid)
+          {:ok, link_type, pid}
+
+        {:error, :max_children} ->
+          {:error, :max_children}
+      end
     end)
   end
 end
