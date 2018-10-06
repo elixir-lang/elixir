@@ -354,9 +354,8 @@ defmodule Task.SupervisorTest do
       refute_received _
     end
 
-    test "raises an error if :max_children is reached with clean stream shutdown", %{
-      supervisor: unused_supervisor
-    } do
+    test "raises an error if :max_children is reached with clean stream shutdown",
+         %{supervisor: unused_supervisor} do
       {:ok, supervisor} = Task.Supervisor.start_link(max_children: 1)
       collection = [:infinity, :infinity, :infinity]
 
@@ -427,9 +426,8 @@ defmodule Task.SupervisorTest do
       refute_received _
     end
 
-    test "raises an error if :max_children is reached with clean stream shutdown", %{
-      supervisor: unused_supervisor
-    } do
+    test "raises an error if :max_children is reached with clean stream shutdown",
+         %{supervisor: unused_supervisor} do
       {:ok, supervisor} = Task.Supervisor.start_link(max_children: 1)
       collection = [:infinity, :infinity, :infinity]
 
