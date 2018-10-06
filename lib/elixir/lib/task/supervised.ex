@@ -411,6 +411,18 @@ defmodule Task.Supervised do
         send(pid, {self(), {monitor_ref, spawned}})
         Map.put(waiting, spawned, {pid, :running})
 
+      {:max_children, ^monitor_ref} ->
+        stream_close(monitor_pid, monitor_ref, timeout)
+
+        raise """
+        reached the maximum number of tasks for this task supervisor. The maximum number \
+        of tasks that are allowed to run at the same time under this supervisor can be \
+        configured with the :max_children option passed to Task.Supervisor.start_link/1. When \
+        using async_stream or async_stream_nolink, make sure to configure :max_concurrency to \
+        be lower or equal to :max_children and pay attention to whether other tasks are also \
+        spawned under the same task supervisor.\
+        """
+
       {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
         stream_cleanup_inbox(monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
@@ -446,7 +458,6 @@ defmodule Task.Supervised do
   defp stream_monitor_loop(running_tasks, config) do
     %{
       parent_pid: parent_pid,
-      parent_ref: parent_ref,
       mfa: mfa,
       spawn: spawn,
       monitor_ref: monitor_ref,
@@ -457,54 +468,34 @@ defmodule Task.Supervised do
       # The parent process is telling us to spawn a new task to process
       # "value". We spawn it and notify the parent about its pid.
       {:spawn, position, value} ->
-        {type, pid} = spawn.(parent_pid, normalize_mfa_with_arg(mfa, value))
-        ref = Process.monitor(pid)
+        case spawn.(parent_pid, normalize_mfa_with_arg(mfa, value)) do
+          {:ok, type, pid} ->
+            ref = Process.monitor(pid)
 
-        # Schedule a timeout message to ourselves, unless the timeout was set to :infinity
-        timer_ref =
-          case timeout do
-            :infinity -> nil
-            timeout -> Process.send_after(self(), {:timeout, {monitor_ref, ref}}, timeout)
-          end
+            # Schedule a timeout message to ourselves, unless the timeout was set to :infinity
+            timer_ref =
+              case timeout do
+                :infinity -> nil
+                timeout -> Process.send_after(self(), {:timeout, {monitor_ref, ref}}, timeout)
+              end
 
-        send(parent_pid, {:spawned, {monitor_ref, position}, pid})
+            send(parent_pid, {:spawned, {monitor_ref, position}, pid})
 
-        task_info = %{
-          position: position,
-          type: type,
-          pid: pid,
-          timer_ref: timer_ref,
-          timed_out?: false
-        }
+            running_tasks =
+              Map.put(running_tasks, ref, %{
+                position: position,
+                type: type,
+                pid: pid,
+                timer_ref: timer_ref,
+                timed_out?: false
+              })
 
-        running_tasks = Map.put(running_tasks, ref, task_info)
-        stream_monitor_loop(running_tasks, config)
+            stream_monitor_loop(running_tasks, config)
 
-      # The parent process is telling us to stop because the stream is being
-      # closed. In this case, we forcibly kill all spawned processes and then
-      # exit gracefully ourselves.
-      {:stop, ^monitor_ref} ->
-        Process.flag(:trap_exit, true)
-
-        for {ref, %{pid: pid}} <- running_tasks do
-          Process.exit(pid, :kill)
-
-          receive do
-            {:DOWN, ^ref, _, _, _} -> :ok
-          end
+          {:error, :max_children} ->
+            send(parent_pid, {:max_children, monitor_ref})
+            stream_waiting_for_stop_loop(running_tasks, config)
         end
-
-        exit(:normal)
-
-      # The parent process went down with a given reason. We kill all the
-      # spawned processes (that are also linked) with the same reason, and then
-      # exit ourselves with the same reason.
-      {:DOWN, ^parent_ref, _, _, reason} ->
-        for {_ref, %{type: :link, pid: pid}} <- running_tasks do
-          Process.exit(pid, reason)
-        end
-
-        exit(reason)
 
       # One of the spawned processes went down. We inform the parent process of
       # this and keep going.
@@ -539,7 +530,60 @@ defmodule Task.Supervised do
 
       {:EXIT, _, _} ->
         stream_monitor_loop(running_tasks, config)
+
+      other ->
+        handle_stop_or_parent_down(other, running_tasks, config)
+        stream_monitor_loop(running_tasks, config)
     end
+  end
+
+  defp stream_waiting_for_stop_loop(running_tasks, config) do
+    receive do
+      message ->
+        handle_stop_or_parent_down(message, running_tasks, config)
+        stream_waiting_for_stop_loop(running_tasks, config)
+    end
+  end
+
+  # The parent process is telling us to stop because the stream is being
+  # closed. In this case, we forcibly kill all spawned processes and then
+  # exit gracefully ourselves.
+  defp handle_stop_or_parent_down(
+         {:stop, monitor_ref},
+         running_tasks,
+         %{monitor_ref: monitor_ref}
+       ) do
+    Process.flag(:trap_exit, true)
+
+    for {ref, %{pid: pid}} <- running_tasks do
+      Process.exit(pid, :kill)
+
+      receive do
+        {:DOWN, ^ref, _, _, _} -> :ok
+      end
+    end
+
+    exit(:normal)
+  end
+
+  # The parent process went down with a given reason. We kill all the
+  # spawned processes (that are also linked) with the same reason, and then
+  # exit ourselves with the same reason.
+  defp handle_stop_or_parent_down(
+         {:DOWN, parent_ref, _, _, reason},
+         running_tasks,
+         %{parent_ref: parent_ref}
+       ) do
+    for {_ref, %{type: :link, pid: pid}} <- running_tasks do
+      Process.exit(pid, reason)
+    end
+
+    exit(reason)
+  end
+
+  # We ignore all other messages.
+  defp handle_stop_or_parent_down(_other, _running_tasks, _config) do
+    :ok
   end
 
   defp unlink_and_kill(pid) do
