@@ -100,14 +100,14 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp spawn_modules(modules_to_take, modules_left, taken, config) do
-    Enum.each(modules_to_take, fn module ->
+  defp spawn_modules(modules, modules_left, taken, config) do
+    Enum.each(modules, fn module ->
       spawn_link(fn ->
         run_module(module, config)
       end)
     end)
 
-    loop(modules_left, taken + length(modules_to_take), config)
+    loop(modules_left, taken + length(modules), config)
   end
 
   defp run_module(module, config) do
