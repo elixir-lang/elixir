@@ -391,7 +391,11 @@ defmodule Kernel.ParallelCompiler do
         discard_down(child_pid)
         print_error(file, kind, reason, stack)
         cancel_waiting_timer(queued, child_pid)
-        terminate(queued)
+
+        queued
+        |> List.keydelete(child_pid, 0)
+        |> terminate()
+
         {:error, [to_error(file, kind, reason, stack)], warnings}
 
       {:DOWN, ref, :process, _pid, reason} ->
@@ -414,9 +418,13 @@ defmodule Kernel.ParallelCompiler do
 
   defp handle_down(queued, ref, reason) do
     case List.keyfind(queued, ref, 1) do
-      {_child, ^ref, file, _timer_ref} ->
+      {child_pid, ^ref, file, _timer_ref} ->
         print_error(file, :exit, reason, [])
-        terminate(queued)
+
+        queued
+        |> List.keydelete(child_pid, 0)
+        |> terminate()
+
         {:error, [to_error(file, :exit, reason, [])]}
 
       _ ->
@@ -462,8 +470,12 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp terminate(queued) do
-    for {pid, _, _, _} <- queued do
+    for {pid, ref, _, _} <- queued do
       Process.exit(pid, :kill)
+
+      receive do
+        {:DOWN, ^ref, _, _, _} -> :ok
+      end
     end
   end
 
