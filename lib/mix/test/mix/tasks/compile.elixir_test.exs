@@ -510,6 +510,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
+      File.rm!("lib/b.ex")
+
       file = Path.absname("lib/a.ex")
 
       ExUnit.CaptureIO.capture_io(fn ->
