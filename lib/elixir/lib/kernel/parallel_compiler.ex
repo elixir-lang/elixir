@@ -470,12 +470,9 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp terminate(queued) do
-    for {pid, ref, _, _} <- queued do
+    for {pid, _, _, _} <- queued do
       Process.exit(pid, :kill)
-
-      receive do
-        {:DOWN, ^ref, _, _, _} -> :ok
-      end
+      discard_down(pid)
     end
   end
 
