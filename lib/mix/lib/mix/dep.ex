@@ -131,18 +131,13 @@ defmodule Mix.Dep do
       for dep <- deps,
           dep.app == app,
           child <- dep.deps,
-          do: {child.app, Keyword.get(child.opts, :optional, false)},
+          do: {child.app, true},
           into: %{}
 
-    Enum.map(children, fn %{app: app, opts: opts} = dep ->
-      # optional only matters at the top level. Any non-top level dependency
-      # that is optional and is still available means it has been fulfilled.
+    Enum.map(children, fn %{app: app} = dep ->
       case top_level do
-        %{^app => optional} ->
-          %{dep | top_level: true, opts: Keyword.put(opts, :optional, optional)}
-
-        %{} ->
-          %{dep | top_level: false, opts: Keyword.delete(opts, :optional)}
+        %{^app => _} -> %{dep | top_level: true}
+        %{} -> %{dep | top_level: false}
       end
     end)
   end
