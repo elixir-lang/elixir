@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
     * `--no-deps-check` - does not check or compile deps, only load available ones
     * `--no-compile` - does not compile dependencies
+    * `--no-load-deps` - do not load deps from the code path
 
   """
 
@@ -26,14 +27,16 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       deps_check(all, "--no-compile" in args)
     end
 
-    load_paths =
-      for dep <- all,
-          path <- Mix.Dep.load_paths(dep) do
-        _ = Code.prepend_path(path)
-        path
-      end
+    unless "--no-load-deps" in args do
+      load_paths =
+        for dep <- all,
+            path <- Mix.Dep.load_paths(dep) do
+          _ = Code.prepend_path(path)
+          path
+        end
 
-    prune_deps(load_paths, "--no-deps-check" in args)
+      prune_deps(load_paths, "--no-deps-check" in args)
+    end
   end
 
   # If the build is per environment, we should be able to look
