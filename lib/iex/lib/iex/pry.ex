@@ -12,6 +12,13 @@ defmodule IEx.Pry do
 
   @type id :: integer()
   @type break :: {id, module, {function, arity}, pending :: non_neg_integer}
+  @type break_error ::
+          :recompilation_failed
+          | :no_beam_file
+          | :unknown_function_arity
+          | :missing_debug_info
+          | :outdated_debug_info
+          | :non_elixir_module
 
   @doc """
   Callback for `IEx.pry/0`.
@@ -146,32 +153,54 @@ defmodule IEx.Pry do
   end
 
   @doc """
-  Sets up a breakpoint on the given module/function/arity matching the given
-  args and guard.
+  Sets up a breakpoint on the given module/function/arity.
   """
-  @spec break(module, function, arity, Macro.t(), pos_integer) ::
-          {:ok, id()}
-          | {
-              :error,
-              :recompilation_failed
-              | :no_beam_file
-              | :unknown_function_arity
-              | :missing_debug_info
-              | :outdated_debug_info
-              | :non_elixir_module
-            }
-  def break(module, function, arity, condition, breaks \\ 1)
+  @spec break(module, function, arity, pos_integer) :: {:ok, id()} | {:error, break_error()}
+  def break(module, function, arity, breaks \\ 1)
       when is_atom(module) and is_atom(function) and is_integer(arity) and arity >= 0 and
              is_integer(breaks) and breaks > 0 do
+    break_call(module, function, arity, quote(do: _), breaks)
+  end
+
+  @doc """
+  Sets up a breakpoint on the given module/function/args with the given `guard`.
+
+  It requires an `env` to be given to make the expension of the guards.
+  """
+  @spec break(module, function, [Macro.t()], Macro.t(), Macro.Env.t(), pos_integer) ::
+          {:ok, id()} | {:error, break_error()}
+  def break(module, function, args, guard, env, breaks \\ 1)
+      when is_atom(module) and is_atom(function) and is_list(args) and is_integer(breaks) and
+             breaks > 0 do
+    condition = build_args_guard_condition(args, guard, env)
+    break_call(module, function, length(args), condition, breaks)
+  end
+
+  defp break_call(module, function, arity, condition, breaks) do
     GenServer.call(@server, {:break, module, {function, arity}, condition, breaks}, @timeout)
   end
 
   @doc """
-  Raising variant of `break/5`.
+  Raising variant of `break/4`.
   """
-  @spec break!(module, function, arity, Macro.t(), pos_integer) :: id()
-  def break!(module, function, arity, condition, breaks \\ 1) do
-    case break(module, function, arity, condition, breaks) do
+  @spec break!(module, function, arity, pos_integer) :: id()
+  def break!(module, function, arity, breaks \\ 1) do
+    break_call!(module, function, arity, quote(do: _), breaks)
+  end
+
+  @doc """
+  Raising variant of `break/6`.
+  """
+  @spec break!(module, function, [Macro.t()], Macro.t(), Macro.Env.t(), pos_integer) :: id()
+  def break!(module, function, args, guard, env, breaks \\ 1)
+      when is_atom(module) and is_atom(function) and is_list(args) and is_integer(breaks) and
+             breaks > 0 do
+    condition = build_args_guard_condition(args, guard, env)
+    break_call!(module, function, length(args), condition, breaks)
+  end
+
+  defp break_call!(module, function, arity, condition, breaks) do
+    case break_call(module, function, arity, condition, breaks) do
       {:ok, id} ->
         id
 
@@ -199,6 +228,22 @@ defmodule IEx.Pry do
 
         raise "could not set breakpoint, " <> message
     end
+  end
+
+  defp build_args_guard_condition(args, guards, env) do
+    pattern = {:when, [], [{:{}, [], args}, guards]}
+
+    to_expand =
+      quote do
+        case Unknown.module() do
+          unquote(pattern) -> :ok
+        end
+      end
+
+    {{:case, _, [_, [do: [{:->, [], [[condition], _]}]]]}, _} =
+      :elixir_expand.expand(to_expand, env)
+
+    condition
   end
 
   @doc """

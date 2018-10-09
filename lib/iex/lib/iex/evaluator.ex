@@ -136,8 +136,7 @@ defmodule IEx.Evaluator do
     env = %{env | prematch_vars: :apply}
     {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
     stacktrace = opts[:stacktrace]
-
-    binding = Keyword.get(opts, :binding, [])
+    binding = opts[:binding] || []
 
     state = %{
       binding: binding,
