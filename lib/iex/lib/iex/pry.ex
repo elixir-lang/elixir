@@ -3,6 +3,7 @@ defmodule IEx.Pry do
   The low-level API for prying sessions and setting up breakpoints.
   """
 
+  @doc false
   use GenServer
 
   @table __MODULE__

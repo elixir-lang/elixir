@@ -58,7 +58,9 @@ defmodule DynamicSupervisor do
       end
 
   See the `Supervisor` docs for a discussion of when you may want to use
-  module-based supervisors.
+  module-based supervisors. The `@doc` annotation immediately preceding
+  `use DymamicSupervisor` will be attached to the generated `child_spec/1`
+  function.
 
   ## Name registration
 
@@ -209,12 +211,14 @@ defmodule DynamicSupervisor do
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour DynamicSupervisor
+      if Module.get_attribute(__MODULE__, :doc) == nil do
+        @doc """
+        Returns a specification to start this module under a supervisor.
 
-      @doc """
-      Returns a specification to start this module under a supervisor.
+        See `Supervisor`.
+        """
+      end
 
-      See `Supervisor`.
-      """
       def child_spec(arg) do
         default = %{
           id: __MODULE__,

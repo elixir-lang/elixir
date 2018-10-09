@@ -129,7 +129,9 @@ defmodule GenServer do
 
       use GenServer, restart: :transient, shutdown: 10_000
 
-  See the "Child specification" section in the `Supervisor` module for more detailed information.
+  See the "Child specification" section in the `Supervisor` module for more
+  detailed information. The `@doc` annotation immediately preceding
+  `use GenServer` will be attached to the generated `child_spec/1` function.
 
   ## Name registration
 
@@ -693,11 +695,14 @@ defmodule GenServer do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour GenServer
 
-      @doc """
-      Returns a specification to start this module under a supervisor.
+      if Module.get_attribute(__MODULE__, :doc) == nil do
+        @doc """
+        Returns a specification to start this module under a supervisor.
 
-      See `Supervisor`.
-      """
+        See `Supervisor`.
+        """
+      end
+
       def child_spec(init_arg) do
         default = %{
           id: __MODULE__,
