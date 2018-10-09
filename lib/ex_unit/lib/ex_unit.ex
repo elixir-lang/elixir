@@ -190,8 +190,8 @@ defmodule ExUnit do
       System.at_exit(fn
         0 ->
           time = ExUnit.Server.modules_loaded()
-          config = persist_defaults(configuration())
-          %{failures: failures} = ExUnit.Runner.run(config, time)
+          options = persist_defaults(configuration())
+          %{failures: failures} = ExUnit.Runner.run(options, time)
 
           System.at_exit(fn _ ->
             if failures > 0, do: exit({:shutdown, 1})
@@ -326,8 +326,8 @@ defmodule ExUnit do
   """
   @spec run() :: suite_result()
   def run do
-    config = persist_defaults(configuration())
-    ExUnit.Runner.run(config, nil)
+    options = persist_defaults(configuration())
+    ExUnit.Runner.run(options, nil)
   end
 
   @doc """
