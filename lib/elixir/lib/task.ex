@@ -112,7 +112,10 @@ defmodule Task do
 
       use Task, restart: :permanent
 
-  See the "Child specification" section in the `Supervisor` module for more detailed information.
+  See the "Child specification" section in the `Supervisor` module
+  for more detailed information. The `@doc` annotation immediately
+  preceding `use Task` will be attached to the generated `child_spec/1`
+  function.
 
   ## Dynamically supervised tasks
 
@@ -224,17 +227,18 @@ defmodule Task do
   @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
-      @doc """
-      Returns a specification to start this module under a supervisor.
+      if Module.get_attribute(__MODULE__, :doc) == nil do
+        @doc """
+        Returns a specification to start this module under a supervisor.
 
-      `arg` is passed as the argument to `Task.start_link/1` in the `:start` field
-      of the spec.
+        `arg` is passed as the argument to `Task.start_link/1` in the `:start` field
+        of the spec.
 
-      For more information, see the `Supervisor` module,
-      the `Supervisor.child_spec/2` function and the `t:Supervisor.child_spec/0` type.
-      """
-      @doc since: "1.5.0"
-      @spec child_spec(term) :: Supervisor.child_spec()
+        For more information, see the `Supervisor` module,
+        the `Supervisor.child_spec/2` function and the `t:Supervisor.child_spec/0` type.
+        """
+      end
+
       def child_spec(arg) do
         default = %{
           id: __MODULE__,

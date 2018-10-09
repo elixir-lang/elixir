@@ -601,6 +601,13 @@ defmodule IEx.HelpersTest do
       Code.compiler_options(docs: true)
       cleanup_modules([Sample])
     end
+
+    test "does not print docs for @doc false functions" do
+      # Here we assert that @doc false works and that we are not leaking
+      # IEx.Pry internal functions.
+      assert capture_io(fn -> h(IEx.Pry.child_spec) end) ==
+               "No documentation for IEx.Pry.child_spec was found\n"
+    end
   end
 
   describe "b" do

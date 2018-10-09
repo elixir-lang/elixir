@@ -394,6 +394,9 @@ defmodule Supervisor do
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the supervisor should be restarted, defaults to `:permanent`
 
+  The `@doc` annotation immediately preceding `use Supervisor` will be
+  attached to the generated `child_spec/1` function.
+
   ## `start_link/2`, `init/2`, and strategies
 
   So far we have started the supervisor passing a single child as a tuple
@@ -470,11 +473,14 @@ defmodule Supervisor do
       import Supervisor.Spec
       @behaviour Supervisor
 
-      @doc """
-      Returns a specification to start this module under a supervisor.
+      if Module.get_attribute(__MODULE__, :doc) == nil do
+        @doc """
+        Returns a specification to start this module under a supervisor.
 
-      See `Supervisor`.
-      """
+        See `Supervisor`.
+        """
+      end
+
       def child_spec(init_arg) do
         default = %{
           id: __MODULE__,
