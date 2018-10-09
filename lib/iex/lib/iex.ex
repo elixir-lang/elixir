@@ -598,7 +598,7 @@ defmodule IEx do
   def __break__!({:/, _, [call, arity]} = ast, stops, env) when is_integer(arity) do
     with {module, fun, []} <- Macro.decompose_call(call),
          module when is_atom(module) <- Macro.expand(module, env) do
-      IEx.Pry.break!(module, fun, arity, quote(do: _), stops)
+      IEx.Pry.break!(module, fun, arity, stops)
     else
       _ ->
         raise_unknown_break_ast!(ast)
@@ -624,19 +624,7 @@ defmodule IEx do
       raise_unknown_break_ast!(ast)
     end
 
-    pattern = {:when, [], [{:{}, [], args}, guards]}
-
-    to_expand =
-      quote do
-        case Unknown.module() do
-          unquote(pattern) -> :ok
-        end
-      end
-
-    {{:case, _, [_, [do: [{:->, [], [[expanded], _]}]]]}, _} =
-      :elixir_expand.expand(to_expand, env)
-
-    IEx.Pry.break!(module, fun, length(args), expanded, stops)
+    IEx.Pry.break!(module, fun, args, guards, env, stops)
   end
 
   defp raise_unknown_break_ast!(ast) do
@@ -767,7 +755,7 @@ defmodule IEx do
   """
   @doc since: "1.5.0"
   def break!(module, function, arity, stops \\ 1) when is_integer(arity) do
-    IEx.Pry.break!(module, function, arity, quote(do: _), stops)
+    IEx.Pry.break!(module, function, arity, stops)
   end
 
   ## Callbacks
