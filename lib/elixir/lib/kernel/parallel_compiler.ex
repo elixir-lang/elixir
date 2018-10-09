@@ -472,6 +472,7 @@ defmodule Kernel.ParallelCompiler do
   defp terminate(queued) do
     for {pid, _, _, _} <- queued, do: Process.exit(pid, :kill)
     for {pid, _, _, _} <- queued, do: discard_down(pid)
+    :ok
   end
 
   defp print_error(file, kind, reason, stack) do
