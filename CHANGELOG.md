@@ -6,28 +6,36 @@
 
 #### Elixir
 
+  * [Exception] Exclude deprecated functions in "did you mean?" hints
   * [File] Allow `:raw` option in `File.exists?/2`, `File.regular?/2` and `File.dir?/2`
+  * [Inspect] Allow Inspect protocol to be derivable with the only/except options
   * [Kernel] Do not propagate counters to variables in quote inside another quote
+  * [Kernel] Warn on ambiguous use of `::` and `|` in typespecs
+  * [Kernel] Add `:delegate_to` `@doc` metadata tag when using `defdelegate`
+  * [Kernel] Improve compile-time building of ranges via the `..` operator
   * [List] Add `List.myers_difference/3`
+  * [Map] Optimize and merge nested maps `put` and `merge` operations
   * [Registry] Allow associating a value on `:via` tuple
   * [String] Add `String.bag_distance/2`
 
 #### ExUnit
 
-  * [ExUnit.Assertions] Show last n messages from mailbox on `assert_receive` fail
+  * [ExUnit.Assertions] Show last N messages (instead of first N) from mailbox on `assert_receive` fail
 
-#### Logger
+#### Mix 
+
+  * [Mix.Project] Add `:depth` and `:parents` options to `deps_paths/1`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Remove `Guard test tuple_size(...) can never succeed` dialyzer warning on try
 
 #### Mix
 
   * [mix compile.protocols] Reconsolidate protocols if local deps is stale
-  * [mix deps] Mark dependencies with different `:system_env` as diverged
-
-### 2. Bug fixes
-
-#### ExUnit
-
-  * [ExUnit.Assertions] Consistently expand patterns and guards in assertions
+  * [mix deps] Properly mark dependencies with different `:system_env` as diverged
 
 ### 3. Soft-deprecations (no warnings emitted)
 
