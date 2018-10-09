@@ -11,7 +11,7 @@ setup(DataTables) ->
   ok.
 
 reset_last({DataSet, _DataBag}) ->
-  ets:insert(DataSet, {?last_def, []});
+  ets:insert(DataSet, {?last_def, none});
 
 reset_last(Module) when is_atom(Module) ->
   reset_last(elixir_module:data_tables(Module)).

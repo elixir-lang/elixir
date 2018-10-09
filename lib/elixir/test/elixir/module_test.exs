@@ -85,7 +85,18 @@ defmodule ModuleTest do
     assert eval_quoted_info() == {ModuleTest, "sample.ex", 13}
   end
 
-  test "retrieves line from macros" do
+  test "resets last definition information on eval" do
+    # This should not emit any warning
+    defmodule LastDefinition do
+      def foo(0), do: 0
+      Module.eval_quoted(__ENV__, quote do
+        def bar, do: :ok
+      end)
+      def foo(1), do: 1
+    end
+  end
+
+  test "retrieves line from use callsite" do
     assert ModuleTest.ToUse.line() == 40
   end
 
