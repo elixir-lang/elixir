@@ -266,20 +266,12 @@ defmodule ExUnit.Runner do
         exit(:shutdown)
       end)
 
-    reply_config = %{
-      pid: test_pid,
-      ref: test_ref,
-      timeout: timeout
-    }
-
-    test = receive_test_reply(reply_config, test)
+    test = receive_test_reply(test, test_pid, test_ref, timeout)
 
     exec_on_exit(test, test_pid, timeout)
   end
 
-  defp receive_test_reply(reply_config, test) do
-    %{pid: test_pid, ref: test_ref, timeout: timeout} = reply_config
-
+  defp receive_test_reply(test, test_pid, test_ref, timeout) do
     receive do
       {^test_pid, :test_finished, test} ->
         Process.demonitor(test_ref, [:flush])
@@ -303,7 +295,7 @@ defmodule ExUnit.Runner do
             %{test | state: failed(:error, exception, stacktrace)}
 
           nil ->
-            receive_test_reply(reply_config, test)
+            receive_test_reply(test, test_pid, test_ref, timeout)
         end
     end
   end
