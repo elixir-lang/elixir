@@ -63,7 +63,7 @@ defmodule ExUnit.Runner do
 
       # Slots are available, start with async modules
       modules = ExUnit.Server.take_async_modules(available) ->
-        spawn_modules(config, modules, [], taken)
+        spawn_modules(config, modules, :async, taken)
 
       true ->
         modules = ExUnit.Server.take_sync_modules()
