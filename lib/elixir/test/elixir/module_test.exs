@@ -89,9 +89,14 @@ defmodule ModuleTest do
     # This should not emit any warning
     defmodule LastDefinition do
       def foo(0), do: 0
-      Module.eval_quoted(__ENV__, quote do
-        def bar, do: :ok
-      end)
+
+      Module.eval_quoted(
+        __ENV__,
+        quote do
+          def bar, do: :ok
+        end
+      )
+
       def foo(1), do: 1
     end
   end
