@@ -2,9 +2,11 @@ defmodule ExUnit.OnExitHandler do
   @moduledoc false
 
   @name __MODULE__
+  @ets_opts [:public, :named_table, read_concurrency: true, write_concurrency: true]
+
+  # ETS column numbers
   @supervisor 2
   @on_exit 3
-  @ets_opts [:public, :named_table, read_concurrency: true, write_concurrency: true]
 
   use Agent
 

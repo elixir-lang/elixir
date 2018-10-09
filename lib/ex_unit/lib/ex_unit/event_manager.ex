@@ -2,6 +2,8 @@ defmodule ExUnit.EventManager do
   @moduledoc false
   @timeout 30000
 
+  @typep manager :: {supervisor_manager :: pid, event_manager :: pid}
+
   # TODO: Remove support for GenEvent formatters on 2.0
 
   @doc """
@@ -10,6 +12,7 @@ defmodule ExUnit.EventManager do
   This is what power formatters as well as the
   internal statistics server for ExUnit.
   """
+  @spec start_link() :: {:ok, manager}
   def start_link() do
     {:ok, sup} = DynamicSupervisor.start_link(strategy: :one_for_one)
     {:ok, event} = :gen_event.start_link()
@@ -44,35 +47,35 @@ defmodule ExUnit.EventManager do
     end
   end
 
-  def suite_started(ref, opts) do
-    notify(ref, {:suite_started, opts})
+  def suite_started(manager, opts) do
+    notify(manager, {:suite_started, opts})
   end
 
-  def suite_finished(ref, run_us, load_us) do
-    notify(ref, {:suite_finished, run_us, load_us})
+  def suite_finished(manager, run_us, load_us) do
+    notify(manager, {:suite_finished, run_us, load_us})
   end
 
-  def module_started(ref, test_module) do
+  def module_started(manager, test_module) do
     # TODO: Remove case_started in Elixir v2.0
-    notify(ref, {:module_started, test_module})
-    notify(ref, {:case_started, Map.put(test_module, :__struct__, ExUnit.TestCase)})
+    notify(manager, {:case_started, Map.put(test_module, :__struct__, ExUnit.TestCase)})
+    notify(manager, {:module_started, test_module})
   end
 
-  def module_finished(ref, test_module) do
+  def module_finished(manager, test_module) do
     # TODO: Remove case_finished in Elixir v2.0
-    notify(ref, {:case_finished, Map.put(test_module, :__struct__, ExUnit.TestCase)})
-    notify(ref, {:module_finished, test_module})
+    notify(manager, {:case_finished, Map.put(test_module, :__struct__, ExUnit.TestCase)})
+    notify(manager, {:module_finished, test_module})
   end
 
-  def test_started(ref, test) do
-    notify(ref, {:test_started, test})
+  def test_started(manager, test) do
+    notify(manager, {:test_started, test})
   end
 
-  def test_finished(ref, test) do
-    notify(ref, {:test_finished, test})
+  def test_finished(manager, test) do
+    notify(manager, {:test_finished, test})
   end
 
-  defp notify({sup, event}, msg) do
+  defp notify({sup, event} = _manager, msg) do
     :gen_event.notify(event, msg)
 
     for {_, pid, _, _} <- Supervisor.which_children(sup) do
