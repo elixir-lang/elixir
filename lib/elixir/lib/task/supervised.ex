@@ -555,9 +555,9 @@ defmodule Task.Supervised do
        ) do
     Process.flag(:trap_exit, true)
 
-    for {ref, %{pid: pid}} <- running_tasks do
-      Process.exit(pid, :kill)
+    for {_ref, %{pid: pid}} <- running_tasks, do: Process.exit(pid, :kill)
 
+    for {ref, _task} <- running_tasks do
       receive do
         {:DOWN, ^ref, _, _, _} -> :ok
       end
