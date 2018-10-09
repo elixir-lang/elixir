@@ -502,8 +502,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "returns error diagnostics" do
-    in_fixture("no_mixfile", fn ->
+  test "returns error diagnostics", context do
+    in_tmp(context.test, fn ->
+      File.mkdir_p!("lib")
+
       File.write!("lib/a.ex", """
       defmodule A do
         def my_fn(), do: $$$
