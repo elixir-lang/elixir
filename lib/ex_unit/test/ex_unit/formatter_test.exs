@@ -182,7 +182,7 @@ defmodule ExUnit.FormatterTest do
     assert failure =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 
-  test "formats setup all errors" do
+  test "formats setup_all errors" do
     failure = [{:error, catch_error(raise "oops"), []}]
 
     assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) =~ """
