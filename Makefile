@@ -46,7 +46,7 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 	$(Q) cd lib/$(1) && ../../$$(ELIXIRC) "lib/**/*.ex" -o ebin
 
 test_$(1): compile $(1)
-	@ echo "==> $(1) (exunit)"
+	@ echo "==> $(1) (ex_unit)"
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
 endef
 
@@ -231,7 +231,7 @@ $(TEST_EBIN)/%.beam: $(TEST_ERL)/%.erl
 test_elixir: test_stdlib test_ex_unit test_logger test_mix test_eex test_iex
 
 test_stdlib: compile
-	@ echo "==> elixir (exunit)"
+	@ echo "==> elixir (ex_unit)"
 	$(Q) exec epmd & exit
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
 		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
