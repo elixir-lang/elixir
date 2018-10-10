@@ -322,8 +322,8 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.decode("http%3A%2F%2Felixir-lang.org")
-      "http://elixir-lang.org"
+      iex> URI.decode("https%3A%2F%2Felixir-lang.org")
+      "https://elixir-lang.org"
 
   """
   @spec decode(binary) :: binary
@@ -390,15 +390,15 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.parse("http://elixir-lang.org/")
+      iex> URI.parse("https://elixir-lang.org/")
       %URI{
         authority: "elixir-lang.org",
         fragment: nil,
         host: "elixir-lang.org",
         path: "/",
-        port: 80,
+        port: 443,
         query: nil,
-        scheme: "http",
+        scheme: "https",
         userinfo: nil
       }
 

@@ -46,6 +46,6 @@ If the file doesn't exist when a node starts, it will be created.
 This manual page contributed by Evgeny Golyshev.
 .Sh INTERNET RESOURCES
 .Bl -tag -width Ds
-.It Main website: http://elixir-lang.org
-.It Documentation: http://elixir-lang.org/docs.html
+.It Main website: https://elixir-lang.org
+.It Documentation: https://elixir-lang.org/docs.html
 .El
