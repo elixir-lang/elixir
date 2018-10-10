@@ -330,7 +330,7 @@ defmodule Task.SupervisorTest do
       Process.flag(:trap_exit, true)
 
       assert supervisor
-             |> Task.Supervisor.async_stream(1..4, &exit(Integer.to_string(&1)), @opts)
+             |> Task.Supervisor.async_stream(1..4, &yield_and_exit(Integer.to_string(&1)), @opts)
              |> Enum.to_list() == [exit: "1", exit: "2", exit: "3", exit: "4"]
     end
 
@@ -402,7 +402,7 @@ defmodule Task.SupervisorTest do
 
     test "streams an enumerable with exits", %{supervisor: supervisor} do
       assert supervisor
-             |> Task.Supervisor.async_stream_nolink(1..4, &exit/1, @opts)
+             |> Task.Supervisor.async_stream_nolink(1..4, &yield_and_exit/1, @opts)
              |> Enum.to_list() == [exit: 1, exit: 2, exit: 3, exit: 4]
     end
 
@@ -441,5 +441,11 @@ defmodule Task.SupervisorTest do
       assert MapSet.new(links) == MapSet.new([unused_supervisor, supervisor])
       refute_received _
     end
+  end
+
+  def yield_and_exit(value) do
+    # We call yield first so we give the parent a chance o monitor
+    :erlang.yield()
+    :erlang.exit(value)
   end
 end
