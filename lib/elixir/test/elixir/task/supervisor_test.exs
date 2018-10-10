@@ -444,7 +444,7 @@ defmodule Task.SupervisorTest do
   end
 
   def yield_and_exit(value) do
-    # We call yield first so we give the parent a chance o monitor
+    # We call yield first so we give the parent a chance to monitor
     :erlang.yield()
     :erlang.exit(value)
   end
