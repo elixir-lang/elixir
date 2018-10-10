@@ -88,11 +88,11 @@ defmodule Task do
       ])
 
   Since these tasks are supervised and not directly linked to
-  the caller, they cannot be awaited on. Note `start_link/1`,
+  the caller, they cannot be awaited on. Note that `start_link/1`,
   unlike `async/1`, returns `{:ok, pid}` (which is the result
   expected by supervisors).
 
-  Note `use Task` defines a `child_spec/1` function, allowing the
+  Note that `use Task` defines a `child_spec/1` function, allowing the
   defined module to be put under a supervision tree. The generated
   `child_spec/1` can be customized with the following options:
 

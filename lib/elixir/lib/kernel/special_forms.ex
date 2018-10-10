@@ -844,7 +844,7 @@ defmodule Kernel.SpecialForms do
   ## Quote and macros
 
   `quote/2` is commonly used with macros for code generation. As an exercise,
-  let's define a macro that multiplies a number by itself (squared). Note
+  let's define a macro that multiplies a number by itself (squared). Note that
   there is no reason to define such as a macro (and it would actually be
   seen as a bad practice), but it is simple enough that it allows us to focus
   on the important aspects of quotes and macros:
@@ -1182,7 +1182,7 @@ defmodule Kernel.SpecialForms do
   When using `location: :keep` and invalid arguments are given to
   `Sample.add/2`, the stacktrace information will point to the file
   and line inside the quote. Without `location: :keep`, the error is
-  reported to where `defadd` was invoked. Note `location: :keep` affects
+  reported to where `defadd` was invoked. Note that `location: :keep` affects
   only definitions inside the quote.
 
   ## Binding and unquote fragments
@@ -1338,7 +1338,7 @@ defmodule Kernel.SpecialForms do
       iex> for n <- [1, 2, 3, 4, 5, 6], rem(n, 2) == 0, do: n
       [2, 4, 6]
 
-  Note generators can also be used to filter as it removes any value
+  Note that generators can also be used to filter as it removes any value
   that doesn't match the pattern on the left side of `<-`:
 
       iex> users = [user: "john", admin: "meg", guest: "barbara"]
