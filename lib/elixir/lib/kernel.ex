@@ -4192,7 +4192,7 @@ defmodule Kernel do
       MyProtocol.call(john) #=> works
 
   For each protocol in the `@derive` list, Elixir will assert the protocol has
-  been implemented for the `Any` type. If the `Any` implementation defines a
+  been implemented for `Any`. If the `Any` implementation defines a
   `__deriving__/3` callback, the callback will be invoked and it should define
   the implementation module. Otherwise an implementation that simply points to
   the `Any` implementation is automatically derived. For more information on
