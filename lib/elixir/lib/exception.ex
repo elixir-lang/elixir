@@ -852,7 +852,7 @@ defmodule CondClauseError do
 
   @impl true
   def message(_exception) do
-    "no cond clause evaluated to a true value"
+    "no cond clause evaluated to a truthy value"
   end
 end
 
