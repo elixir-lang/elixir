@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Cmd do
 
   Beware that the Erlang VM does not terminate child processes
   when it shuts down. Therefore, if you use `mix cmd` to start
-  long running processes and then shutdown the VM, it is likely
+  long running processes and then shut down the VM, it is likely
   that those child processes won't be terminated with the VM.
 
   A solution is to make sure the child processes listen to the

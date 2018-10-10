@@ -6,7 +6,7 @@ defmodule DynamicSupervisor do
   that are started in the given order when the supervisor starts. A
   `DynamicSupervisor` starts with no children. Instead, children are
   started on demand via `start_child/2`. When a dynamic supervisor
-  terminates, all children are shutdown at the same time, with no guarantee
+  terminates, all children are shut down at the same time, with no guarantee
   of ordering.
 
   ## Examples

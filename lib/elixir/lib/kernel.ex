@@ -407,7 +407,7 @@ defmodule Kernel do
   This behaviour is relied on in many different places. For example,
   `ExUnit` uses `exit(:shutdown)` when exiting the test process to
   signal linked processes, supervision trees and so on to politely
-  shutdown too.
+  shut down too.
 
   ## CLI exits
 
@@ -423,7 +423,7 @@ defmodule Kernel do
 
   This will cause the OS process to exit with the status given by
   `integer` while signaling all linked Erlang processes to politely
-  shutdown.
+  shut down.
 
   Any other exit reason will cause the OS process to exit with
   status `1` and linked Erlang processes to crash.

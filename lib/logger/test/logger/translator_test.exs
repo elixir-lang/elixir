@@ -820,7 +820,7 @@ defmodule Logger.TranslatorTest do
              {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
              :ok = Supervisor.terminate_child(pid, __MODULE__)
            end) =~ ~r"""
-           \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
+           \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
            Start Call: Logger.TranslatorTest.abnormal\(\)
@@ -863,7 +863,7 @@ defmodule Logger.TranslatorTest do
              receive do: ({:EXIT, ^pid, _} -> :ok)
              Process.flag(:trap_exit, trap)
            end) =~ ~r"""
-           \[error\] Children Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
+           \[error\] Children Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
            Number: 1
            Start Call: Logger.TranslatorTest.abnormal\(\)
@@ -884,7 +884,7 @@ defmodule Logger.TranslatorTest do
              receive do: ({:EXIT, ^pid, _} -> :ok)
              Process.flag(:trap_exit, trap)
            end) =~ ~r"""
-           \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
+           \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
            Start Call: Logger.TranslatorTest.abnormal\(\)
@@ -908,7 +908,7 @@ defmodule Logger.TranslatorTest do
              receive do: ({:EXIT, ^pid, _} -> :ok)
              Process.flag(:trap_exit, trap)
            end) =~ ~r"""
-           \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
+           \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
            Start Call: Logger.TranslatorTest.abnormal\(:extra, :args\)
@@ -929,7 +929,7 @@ defmodule Logger.TranslatorTest do
              receive do: ({:EXIT, ^pid, _} -> :ok)
              Process.flag(:trap_exit, trap)
            end) =~ ~r"""
-           \[error\] Child :undefined of Supervisor Logger.TranslatorTest shutdown abnormally
+           \[error\] Child :undefined of Supervisor Logger.TranslatorTest shut down abnormally
            \*\* \(exit\) :stop
            Pid: #PID<\d+\.\d+\.\d+>
            Start Call: Logger.TranslatorTest.abnormal\(\)
