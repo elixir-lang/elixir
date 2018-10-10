@@ -62,6 +62,10 @@ defmodule TestOneOfEach do
   end
 
   test "12. assert that a message is received within a timeout" do
+    send self(), {:ok, 1}
+    send self(), :message_in_my_inbox
+    send self(), {:ok, 2}
+    send self(), :another_message
     assert_receive :no_message_after_timeout
   end
 
