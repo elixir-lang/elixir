@@ -2966,7 +2966,7 @@ defmodule Kernel do
       if(foo, do: bar)
 
   In the example above, `bar` will be returned if `foo` evaluates to
-  a thruthy value (neither `false` nor `nil`). Otherwise, `nil` will be
+  a truthy value (neither `false` nor `nil`). Otherwise, `nil` will be
   returned.
 
   An `else` option can be given to specify the opposite:
