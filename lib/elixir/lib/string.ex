@@ -206,7 +206,7 @@ defmodule String do
   @typedoc """
   A UTF-8 encoded binary.
 
-  Note that `String.t()` and `binary()` are equivalent to analysis tools.
+  The types `String.t()` and `binary()` are equivalent to analysis tools.
   Although, for those reading the documentation, `String.t()` implies
   it is a UTF-8 encoded binary.
   """
@@ -387,7 +387,7 @@ defmodule String do
       iex> String.split("abc", "", parts: 3)
       ["", "a", "bc"]
 
-  Note that this function can split within or across grapheme boundaries.
+  Be aware that this function can split within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
   "e" and the acute accent. The following returns `true`:
 
@@ -460,10 +460,10 @@ defmodule String do
   This is in contrast to `split/3` which splits the
   entire string upfront.
 
-  Note that splitter does not support regular expressions
-  (as it is often more efficient to have the regular
-  expressions traverse the string at once than in
-  multiple passes).
+  This function does not support regular expressions
+  by design. When using regular expressions, it is often
+  more efficient to have the regular expressions traverse
+  the string at once than in parts, like this function does.
 
   ## Options
 
@@ -2078,7 +2078,7 @@ defmodule String do
       iex> String.contains?("elixir of life", ["", "other"])
       true
 
-  Note that this function can match within or across grapheme boundaries.
+  Be aware that this function can match within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
   "e" and the acute accent. The following returns `true`:
 
