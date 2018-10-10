@@ -51,7 +51,7 @@ defmodule Mix.Compilers.Test do
         {:ok, results}
       catch
         kind, reason ->
-          # In case there is an error, shutdown the runner task
+          # In case there is an error, shut down the runner task
           # before the error propagates up and trigger links.
           Task.shutdown(task)
           :erlang.raise(kind, reason, __STACKTRACE__)

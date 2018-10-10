@@ -94,7 +94,7 @@ defmodule Supervisor.Spec do
       using `Process.exit(child, :kill)`
 
     * `:infinity` - if the child process is a supervisor, this is a mechanism
-      to give the subtree enough time to shutdown; it can also be used with
+      to give the subtree enough time to shut down; it can also be used with
       workers with care
 
     * a non-negative integer - the amount of time in milliseconds

@@ -703,7 +703,7 @@ defmodule Task do
 
       results =
         Enum.map(tasks_with_results, fn {task, res} ->
-          # Shutdown the tasks that did not reply nor exit
+          # Shut down the tasks that did not reply nor exit
           res || Task.shutdown(task, :brutal_kill)
         end)
 
@@ -784,7 +784,7 @@ defmodule Task do
   exiting with reason `:normal` or if the task is trapping exits. If the caller is
   exiting with a reason other than `:normal` and the task is not trapping exits, the
   caller's exit signal will stop the task. The caller can exit with reason
-  `:shutdown` to shutdown all of its linked processes, including tasks, that
+  `:shutdown` to shut down all of its linked processes, including tasks, that
   are not trapping exits without generating any log messages.
 
   If a task's monitor has already been demonitored or received and there is not

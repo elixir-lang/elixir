@@ -355,7 +355,7 @@ defmodule TaskTest do
       refute_received {:DOWN, _, _, _, _}
     end
 
-    test "returns {:ok, result} when reply and shutdown :DOWN in message queue" do
+    test "returns {:ok, result} when reply and shut down :DOWN in message queue" do
       task = create_dummy_task(:shutdown)
       send(self(), {task.ref, :result})
       send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
@@ -455,7 +455,7 @@ defmodule TaskTest do
       refute_received {:DOWN, _, _, _, _}
     end
 
-    test "returns {:ok, result} when reply and shutdown :DOWN in message queue" do
+    test "returns {:ok, result} when reply and shut down :DOWN in message queue" do
       task = create_dummy_task(:shutdown)
       send(self(), {task.ref, :result})
       send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
