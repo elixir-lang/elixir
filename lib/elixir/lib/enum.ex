@@ -2381,12 +2381,21 @@ defmodule Enum do
 
   @doc """
   Splits enumerable in two at the position of the element for which
-  `fun` returns `false` for the first time.
+  `fun` returns a falsy value (`false` or `nil`) for the first time.
+
+  It returns a two-element tuple with two lists of elements.
+  The element that triggered the split is part of the second list.
 
   ## Examples
 
       iex> Enum.split_while([1, 2, 3, 4], fn x -> x < 3 end)
       {[1, 2], [3, 4]}
+
+      iex> Enum.split_while([1, 2, 3, 4], fn x -> x < 0 end)
+      {[], [1, 2, 3, 4]}
+
+      iex> Enum.split_while([1, 2, 3, 4], fn x -> x > 0 end)
+      {[1, 2, 3, 4], []}
 
   """
   @spec split_while(t, (element -> as_boolean(term))) :: {list, list}
