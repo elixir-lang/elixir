@@ -7,7 +7,7 @@ Elixir is a dynamic, functional language designed for building scalable
 and maintainable applications.
 
 For more about Elixir, installation and documentation,
-[check Elixir's website](http://elixir-lang.org/).
+[check Elixir's website](https://elixir-lang.org/).
 
 ## Announcements
 
@@ -184,7 +184,7 @@ the `doc` directory. If you are planning to contribute documentation,
   [3]: https://groups.google.com/group/elixir-lang-core
   [4]: https://webchat.freenode.net/?channels=#elixir-lang
   [5]: http://www.freenode.net
-  [6]: http://elixir-lang.org/docs.html
+  [6]: https://elixir-lang.org/docs.html
   [7]: CODE_OF_CONDUCT.md
 
 ## License
