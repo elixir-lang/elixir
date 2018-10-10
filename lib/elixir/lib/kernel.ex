@@ -3196,8 +3196,8 @@ defmodule Kernel do
 
   @doc """
   Provides a short-circuit operator that evaluates and returns the second
-  expression only if the first one does not evaluate to a truthy value (i.e., it
-  is either `nil` or `false`). Returns the first expression otherwise.
+  expression only if the first one does not evaluate to a truthy value (that is,
+  it is either `nil` or `false`). Returns the first expression otherwise.
 
   Not allowed in guard clauses.
 
