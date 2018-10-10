@@ -4191,7 +4191,7 @@ defmodule Kernel do
 
       MyProtocol.call(john) #=> works
 
-  For each protocol in the `@derive` list, Elixir will assert there is an
+  For each protocol in the `@derive` list, Elixir will assert whether there is an
   implementation of that protocol for any (regardless if `@fallback_to_any`
   is `true`) and check if the any implementation defines a `__deriving__/3`
   callback (via `Protocol.derive/3`). If so, the callback is invoked,
