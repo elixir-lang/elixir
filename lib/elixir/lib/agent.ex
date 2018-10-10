@@ -71,7 +71,7 @@ defmodule Agent do
   than in the server can lead to race conditions if multiple clients are trying
   to update the same state to different values.
 
-  Finally note `use Agent` defines a `child_spec/1` function, allowing the
+  Finally note that `use Agent` defines a `child_spec/1` function, allowing the
   defined module to be put under a supervision tree. The generated
   `child_spec/1` can be customized with the following options:
 
