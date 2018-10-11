@@ -577,7 +577,7 @@ defmodule Mix.Tasks.Test do
   defp normalize_max_failures(opts) do
     case Keyword.fetch(opts, :max_failures) do
       {:ok, value} when value in ["infinity", ":infinity"] ->
-        Keyword.put(opts, :max_failures, :infinity)
+        opts
 
       {:ok, value} ->
         case Integer.parse(value) do
@@ -589,7 +589,7 @@ defmodule Mix.Tasks.Test do
         end
 
       :error ->
-        Keyword.put(opts, :max_failures, :infinity)
+        opts
     end
   end
 

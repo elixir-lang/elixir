@@ -2,14 +2,13 @@ defmodule ExUnit.Runner do
   @moduledoc false
 
   alias ExUnit.EventManager, as: EM
-  alias ExUnit.RunnerStats
 
   @rand_algorithm :exs1024
 
   def run(opts, load_us) when (is_integer(load_us) or is_nil(load_us)) and is_list(opts) do
     opts = normalize_opts(opts)
     {:ok, manager} = EM.start_link()
-    {:ok, stats_pid} = EM.add_handler(manager, RunnerStats, opts)
+    {:ok, stats_pid} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
     config = configure(opts, manager, self(), stats_pid)
 
     :erlang.system_flag(:backtrace_depth, Keyword.fetch!(opts, :stacktrace_depth))
@@ -25,7 +24,7 @@ defmodule ExUnit.Runner do
     end
 
     EM.suite_finished(config.manager, run_us, load_us)
-    stats = RunnerStats.stats(stats_pid)
+    stats = ExUnit.RunnerStats.stats(stats_pid)
 
     EM.stop(config.manager)
 
@@ -90,7 +89,7 @@ defmodule ExUnit.Runner do
 
       # No more modules, we are done!
       [] ->
-        :ok
+        config
     end
   end
 
@@ -99,7 +98,7 @@ defmodule ExUnit.Runner do
   # counter and attempt to spawn new ones.
   defp wait_until_available(config, modules, taken) do
     receive do
-      {_pid, :module_finished} ->
+      {_pid, :module_finished, _test_case} ->
         loop(config, modules, taken - 1)
 
       {_pid, :max_failures_reached} ->
@@ -129,27 +128,26 @@ defmodule ExUnit.Runner do
       # Prepare tests, selecting which ones should be run or skipped
       tests = prepare_tests(config, test_module.tests)
 
-      {test_module, test_results} =
+      {test_module, pending, finished_tests} =
         if Enum.all?(tests, & &1.state) do
           # The pending tests here aren't actually run,
           # so they're marked as "finished".
-          {test_module, %{pending: tests, finished: tests}}
+          {test_module, tests, tests}
         else
           spawn_module(config, test_module, tests)
         end
 
       # Do not run pending tests.
       # Just send the notifications to the formatter.
-      Enum.each(test_results.pending, fn test ->
+      Enum.each(pending, fn test ->
         EM.test_started(config.manager, test)
         EM.test_finished(config.manager, test)
       end)
 
-      test_module = %{test_module | tests: test_results.finished}
+      test_module = %{test_module | tests: finished_tests}
       EM.module_finished(config.manager, test_module)
 
-      # message loop/2
-      send(config.runner_pid, {self(), :module_finished})
+      send(config.runner_pid, {self(), :module_finished, test_module})
     end
   end
 
@@ -181,56 +179,43 @@ defmodule ExUnit.Runner do
 
     {module_pid, module_ref} = spawn_module_monitor(config, test_module, parent_pid, tests)
 
-    {test_module, test_results} =
+    {test_module, pending, finished_tests} =
       receive do
-        {^module_pid, :module_finished, test_module, tests} ->
+        {^module_pid, :module_finished, test_module, pending, finished_tests} ->
+          Process.demonitor(module_ref, [:flush])
+
           if max_failures_reached?(config.stats_pid, config.max_failures) do
-            Process.demonitor(module_ref, [:flush])
-            {test_module, %{pending: [], finished: []}}
+            {test_module, [], []}
           else
             process_failure(config, test_module)
-            Process.demonitor(module_ref, [:flush])
-            {test_module, tests}
-          end
-
-        {^module_pid, :max_failures_reached, test_module, tests} ->
-          if max_failures_reached?(config.stats_pid, config.max_failures) do
-            Process.demonitor(module_ref, [:flush])
-            {test_module, %{pending: [], finished: []}}
-          else
-            Process.demonitor(module_ref, [:flush])
-            {test_module, tests}
+            {test_module, pending, finished_tests}
           end
 
         {:DOWN, ^module_ref, :process, ^module_pid, error} ->
           if max_failures_reached?(config.stats_pid, config.max_failures) do
-            {test_module, %{pending: [], finished: []}}
+            {test_module, [], []}
           else
             test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
             process_failure(config, test_module)
-            {test_module, %{pending: [], finished: []}}
+            {test_module, [], []}
           end
       end
 
-    test_module = exec_on_exit(test_module, module_pid, timeout)
-    {test_module, test_results}
+    {exec_on_exit(test_module, module_pid, timeout), pending, finished_tests}
   end
 
   defp spawn_module_monitor(config, test_module, parent_pid, tests) do
     spawn_monitor(fn ->
-      module_pid = self()
-      register(module_pid)
+      ExUnit.OnExitHandler.register(self())
 
       case exec_module_setup(test_module) do
-        {:ok, _test_module, context} ->
+        {:ok, test_module, context} ->
           # max_failures can be reached during the execution of test_module,
-          # so we keep track of which tests are not executed and which ones are finished.
-          tests_run = run_tests(config, tests, context)
-
+          # so we keep track of which tests finished until max_failures were reached
+          # by calling run_tests/3
           send(
             parent_pid,
-            {module_pid, :module_finished, test_module,
-             %{pending: [], finished: tests_run.finished}}
+            {self(), :module_finished, test_module, [], run_tests(config, tests, context)}
           )
 
         {:error, test_module} ->
@@ -238,7 +223,7 @@ defmodule ExUnit.Runner do
 
           send(
             parent_pid,
-            {module_pid, :module_finished, test_module, %{pending: invalid_tests, finished: []}}
+            {self(), :module_finished, test_module, invalid_tests, []}
           )
       end
 
@@ -246,15 +231,20 @@ defmodule ExUnit.Runner do
     end)
   end
 
-  # returns a map in the shape of
-  # %{:not_executed => list(), :finished => list()}
+  # Runs a list of tests.
+  # Stops running them as soon as the status a test is :not_executed.
+  # It returns a list of tests with status :finished
   defp run_tests(config, tests, context) do
-    Enum.map(tests, fn test ->
-      run_test(config, test, context)
+    Enum.reduce_while(tests, [], fn test, acc ->
+      case run_test(config, test, context) do
+        {:finished, test_finished} ->
+          {:cont, [test_finished | acc]}
+
+        {:not_executed, _test_not_executed} ->
+          {:halt, acc}
+      end
     end)
-    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-    |> Map.put_new(:not_executed, [])
-    |> Map.put_new(:finished, [])
+    |> Enum.reverse()
   end
 
   defp exec_module_setup(%ExUnit.TestModule{name: module} = test_module) do
@@ -337,10 +327,8 @@ defmodule ExUnit.Runner do
 
   defp spawn_test_monitor(config, test, parent_pid, context) do
     spawn_monitor(fn ->
-      test_pid = self()
       generate_test_seed(config, test)
-
-      register(test_pid)
+      ExUnit.OnExitHandler.register(self())
 
       {time, test} =
         :timer.tc(fn ->
@@ -353,7 +341,7 @@ defmodule ExUnit.Runner do
           end
         end)
 
-      send(parent_pid, {test_pid, :test_finished, %{test | time: time}})
+      send(parent_pid, {self(), :test_finished, %{test | time: time}})
       exit(:shutdown)
     end)
   end
@@ -361,17 +349,14 @@ defmodule ExUnit.Runner do
   defp receive_test_reply(config, test, test_pid, test_ref, timeout) do
     receive do
       {^test_pid, :test_finished, test} ->
+        Process.demonitor(test_ref, [:flush])
+
         if max_failures_reached?(config.stats_pid, config.max_failures) do
           {:not_executed, test}
         else
           process_failure(config, test)
-          Process.demonitor(test_ref, [:flush])
           {:finished, test}
         end
-
-      {^test_pid, :max_failures_reached, test} ->
-        Process.demonitor(test_ref, [:flush])
-        {:finished, test}
 
       {:DOWN, ^test_ref, :process, ^test_pid, error} ->
         if max_failures_reached?(config.stats_pid, config.max_failures) do
@@ -420,17 +405,13 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_on_exit(test_or_case, pid, timeout) do
-    if ExUnit.OnExitHandler.registered?(pid) do
-      case ExUnit.OnExitHandler.run(pid, timeout) do
-        :ok ->
-          test_or_case
+    case ExUnit.OnExitHandler.run(pid, timeout) do
+      :ok ->
+        test_or_case
 
-        {kind, reason, stack} ->
-          state = test_or_case.state || failed(kind, reason, prune_stacktrace(stack))
-          %{test_or_case | state: state}
-      end
-    else
-      test_or_case
+      {kind, reason, stack} ->
+        state = test_or_case.state || failed(kind, reason, prune_stacktrace(stack))
+        %{test_or_case | state: state}
     end
   end
 
@@ -440,19 +421,15 @@ defmodule ExUnit.Runner do
     :rand.seed(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
   end
 
-  defp register(pid) do
-    ExUnit.OnExitHandler.register(pid)
-  end
-
   defp get_failure_counter(stats_pid) when is_pid(stats_pid),
-    do: RunnerStats.get_failure_counter(stats_pid)
+    do: ExUnit.RunnerStats.get_failure_counter(stats_pid)
 
   defp increment_failure_counter(stats_pid, struct),
     do: increment_failure_counter(stats_pid, struct, 1)
 
   defp increment_failure_counter(stats_pid, %struct{state: {tag, _}}, increment)
        when struct in [ExUnit.Test, ExUnit.TestModule] and tag in [:failed, :invalid],
-       do: RunnerStats.increment_failure_counter(stats_pid, increment)
+       do: ExUnit.RunnerStats.increment_failure_counter(stats_pid, increment)
 
   # Takes care of the logic when the failure counter should be incremented,
   # as well as stopping the suite if max_failures have been reached
