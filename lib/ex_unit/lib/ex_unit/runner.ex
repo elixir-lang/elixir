@@ -428,7 +428,10 @@ defmodule ExUnit.Runner do
   defp get_failure_counter(stats_pid) when is_pid(stats_pid),
     do: RunnerStats.get_failure_counter(stats_pid)
 
-  defp increment_failure_counter(stats_pid, %struct{state: {tag, _}}, increment \\ 1)
+  defp increment_failure_counter(stats_pid, struct),
+    do: increment_failure_counter(stats_pid, struct, 1)
+
+  defp increment_failure_counter(stats_pid, %struct{state: {tag, _}}, increment)
        when struct in [ExUnit.Test, ExUnit.TestModule] and tag in [:failed, :invalid],
        do: RunnerStats.increment_failure_counter(stats_pid, increment)
 
