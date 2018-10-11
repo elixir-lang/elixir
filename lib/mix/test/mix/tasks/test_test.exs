@@ -302,8 +302,7 @@ defmodule Mix.Tasks.TestTest do
     test "aborts concurrent running tests" do
       in_fixture("max_failures", fn ->
         # this will launch a test that will sleep for 1 second, when all other
-        # tests will sleep only for 500 milliseconds, and max-failures will be reached,
-        # having to kill the running tests
+        # tests will sleep only for 500 milliseconds, and max-failures will be reached
         assert mix(:concurrent, ~w[test --max-failures 2 --max-cases 4]) =~
                  "\n6 tests, 2 failures\n"
       end)

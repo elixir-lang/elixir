@@ -180,19 +180,36 @@ defmodule ExUnit.Runner do
     timeout = get_timeout(config, %{})
 
     {module_pid, module_ref} = spawn_module_monitor(config, test_module, parent_pid, tests)
-    process_failure_config = %{pid: module_pid, config: config}
 
     {test_module, test_results} =
       receive do
         {^module_pid, :module_finished, test_module, tests} ->
-          process_failure(process_failure_config, test_module)
-          Process.demonitor(module_ref, [:flush])
-          {test_module, tests}
+          if max_failures_reached?(config.stats_pid, config.max_failures) do
+            Process.demonitor(module_ref, [:flush])
+            {test_module, %{pending: [], finished: []}}
+          else
+            process_failure(config, test_module)
+            Process.demonitor(module_ref, [:flush])
+            {test_module, tests}
+          end
+
+        {^module_pid, :max_failures_reached, test_module, tests} ->
+          if max_failures_reached?(config.stats_pid, config.max_failures) do
+            Process.demonitor(module_ref, [:flush])
+            {test_module, %{pending: [], finished: []}}
+          else
+            Process.demonitor(module_ref, [:flush])
+            {test_module, tests}
+          end
 
         {:DOWN, ^module_ref, :process, ^module_pid, error} ->
-          test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
-          process_failure(process_failure_config, test_module)
-          {test_module, %{pending: [], finished: []}}
+          if max_failures_reached?(config.stats_pid, config.max_failures) do
+            {test_module, %{pending: [], finished: []}}
+          else
+            test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
+            process_failure(config, test_module)
+            {test_module, %{pending: [], finished: []}}
+          end
       end
 
     test_module = exec_on_exit(test_module, module_pid, timeout)
@@ -202,7 +219,7 @@ defmodule ExUnit.Runner do
   defp spawn_module_monitor(config, test_module, parent_pid, tests) do
     spawn_monitor(fn ->
       module_pid = self()
-      register_test_module(module_pid)
+      register(module_pid)
 
       case exec_module_setup(test_module) do
         {:ok, _test_module, context} ->
@@ -323,7 +340,7 @@ defmodule ExUnit.Runner do
       test_pid = self()
       generate_test_seed(config, test)
 
-      register_test(test_pid, config.stats_pid)
+      register(test_pid)
 
       {time, test} =
         :timer.tc(fn ->
@@ -342,21 +359,28 @@ defmodule ExUnit.Runner do
   end
 
   defp receive_test_reply(config, test, test_pid, test_ref, timeout) do
-    process_failure_config = %{pid: test_pid, config: config}
-
     receive do
       {^test_pid, :test_finished, test} ->
-        process_failure(process_failure_config, test)
+        if max_failures_reached?(config.stats_pid, config.max_failures) do
+          {:not_executed, test}
+        else
+          process_failure(config, test)
+          Process.demonitor(test_ref, [:flush])
+          {:finished, test}
+        end
+
+      {^test_pid, :max_failures_reached, test} ->
         Process.demonitor(test_ref, [:flush])
         {:finished, test}
 
-      {:DOWN, ^test_ref, :process, ^test_pid, :exit_max_failures_reached} ->
-        {:not_executed, test}
-
       {:DOWN, ^test_ref, :process, ^test_pid, error} ->
-        test = %{test | state: failed({:EXIT, test_pid}, error, [])}
-        process_failure(process_failure_config, test)
-        {:finished, test}
+        if max_failures_reached?(config.stats_pid, config.max_failures) do
+          {:not_executed, test}
+        else
+          test = %{test | state: failed({:EXIT, test_pid}, error, [])}
+          process_failure(config, test)
+          {:finished, test}
+        end
     after
       timeout ->
         case Process.info(test_pid, :current_stacktrace) do
@@ -371,7 +395,7 @@ defmodule ExUnit.Runner do
               )
 
             test = %{test | state: failed(:error, exception, stacktrace)}
-            process_failure(process_failure_config, test)
+            process_failure(config, test)
             {:finished, test}
 
           nil ->
@@ -416,12 +440,7 @@ defmodule ExUnit.Runner do
     :rand.seed(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
   end
 
-  defp register_test(pid, stats_pid) do
-    ExUnit.OnExitHandler.register(pid)
-    RunnerStats.register(stats_pid, pid)
-  end
-
-  defp register_test_module(pid) do
+  defp register(pid) do
     ExUnit.OnExitHandler.register(pid)
   end
 
@@ -436,55 +455,43 @@ defmodule ExUnit.Runner do
        do: RunnerStats.increment_failure_counter(stats_pid, increment)
 
   # Takes care of the logic when the failure counter should be incremented,
-  # as well as stopping the suite if max_failures has been reached
+  # as well as stopping the suite if max_failures have been reached
   defp process_failure(
-         process_failure_config,
+         config,
          %ExUnit.TestModule{state: {tag, _}, tests: tests} = test_module
        )
        when tag in [:failed, :invalid] do
-    %{config: config} = process_failure_config
     failure_counter = increment_failure_counter(config.stats_pid, test_module, length(tests))
 
     if max_failures_reached?(failure_counter, config.max_failures) do
-      max_failures_has_been_reached(config.manager, config.stats_pid, nil)
+      max_failures_have_been_reached(config.manager)
       {:error, :max_failures_reached}
     else
       :ok
     end
   end
 
-  defp process_failure(_process_failure, %ExUnit.TestModule{} = _test_module) do
+  defp process_failure(_config, %ExUnit.TestModule{} = _test_module) do
     :ok
   end
 
-  defp process_failure(process_failure_config, %ExUnit.Test{state: {:failed, _}} = test) do
-    %{pid: test_pid, config: config} = process_failure_config
+  defp process_failure(config, %ExUnit.Test{state: {:failed, _}} = test) do
     failure_counter = increment_failure_counter(config.stats_pid, test)
 
     if max_failures_reached?(failure_counter, config.max_failures) do
-      max_failures_has_been_reached(config.manager, config.stats_pid, test_pid)
+      max_failures_have_been_reached(config.manager)
       {:error, :max_failures_reached}
     else
       :ok
     end
   end
 
-  defp process_failure(_process_failure_config, %ExUnit.Test{} = _test) do
+  defp process_failure(_config, %ExUnit.Test{} = _test) do
     :ok
   end
 
-  # Notifies the event manager that max_failures has been reached
-  # and stops all running tests in the suite, except test_pid
-  defp max_failures_has_been_reached(manager, stats_pid, test_pid)
-       when is_tuple(manager) and is_pid(stats_pid) and (is_pid(test_pid) or is_nil(test_pid)) do
+  defp max_failures_have_been_reached(manager) do
     EM.max_failures_reached(manager)
-
-    # Note that we never kill any test_module. Actually they are not even registered in RunnerStats.
-    for registered_pid <- RunnerStats.get_registered_pids(stats_pid),
-        registered_pid != test_pid,
-        Process.alive?(registered_pid) do
-      Process.exit(registered_pid, :exit_max_failures_reached)
-    end
   end
 
   defp max_failures_reached?(_stats_pid_or_failure_counter, :infinity),

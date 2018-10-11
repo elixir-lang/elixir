@@ -27,16 +27,6 @@ defmodule ExUnit.RunnerStats do
     GenServer.call(sup, {:increment_failure_counter, increment})
   end
 
-  @spec register(pid, pid) :: :ok
-  def register(sup, pid) when is_pid(sup) and is_pid(pid) do
-    GenServer.cast(sup, {:register, pid})
-  end
-
-  @spec get_registered_pids(pid) :: [pid]
-  def get_registered_pids(sup) when is_pid(sup) do
-    GenServer.call(sup, :get_registered_pids)
-  end
-
   # Callbacks
 
   def init(opts) do
@@ -69,10 +59,6 @@ defmodule ExUnit.RunnerStats do
     {:reply, new_counter, %{state | failure_counter: new_counter}}
   end
 
-  def handle_call(:get_registered_pids, _from, state) do
-    {:reply, state.pids, state}
-  end
-
   def handle_cast({:test_finished, %Test{} = test}, state) do
     state =
       state
@@ -98,11 +84,6 @@ defmodule ExUnit.RunnerStats do
   def handle_cast({:suite_finished, _, _}, %{failures_manifest_file: file} = state)
       when is_binary(file) do
     FailuresManifest.write!(state.failures_manifest, file)
-    {:noreply, state}
-  end
-
-  def handle_cast({:register, pid}, state) do
-    state = Map.update!(state, :pids, &[pid | &1])
     {:noreply, state}
   end
 
