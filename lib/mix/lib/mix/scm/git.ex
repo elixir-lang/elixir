@@ -232,9 +232,10 @@ defmodule Mix.SCM.Git do
     # These commands can fail and we don't want to raise.
     origin_command = ["--git-dir=.git", "config", "remote.origin.url"]
     rev_command = ["--git-dir=.git", "rev-parse", "--verify", "--quiet", "HEAD"]
+    opts = cmd_opts([])
 
-    with {origin, 0} <- System.cmd("git", origin_command),
-         {rev, 0} <- System.cmd("git", rev_command) do
+    with {origin, 0} <- System.cmd("git", origin_command, opts),
+         {rev, 0} <- System.cmd("git", rev_command, opts) do
       %{origin: String.trim(origin), rev: String.trim(rev)}
     else
       _ -> %{origin: nil, rev: nil}
@@ -247,7 +248,9 @@ defmodule Mix.SCM.Git do
   end
 
   defp git!(args, into \\ default_into()) do
-    case System.cmd("git", args, into: into, stderr_to_stdout: true) do
+    opts = cmd_opts(into: into, stderr_to_stdout: true)
+
+    case System.cmd("git", args, opts) do
       {response, 0} -> response
       {_, _} -> Mix.raise("Command \"git #{Enum.join(args, " ")}\" failed")
     end
@@ -306,5 +309,15 @@ defmodule Mix.SCM.Git do
   defp to_integer(string) do
     {int, _} = Integer.parse(string)
     int
+  end
+
+  # Attempt to set the current working directory by default.
+  # This addresses an issue changing the working directory when executing from
+  # within a slave node since file I/O is done through the master node.
+  defp cmd_opts(opts) do
+    case File.cwd() do
+      {:ok, cwd} -> Keyword.put(opts, :cd, cwd)
+      _ -> opts
+    end
   end
 end
