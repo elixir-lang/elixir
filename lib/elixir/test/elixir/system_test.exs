@@ -177,6 +177,17 @@ defmodule SystemTest do
     after
       File.rm_rf!(tmp_path(@echo))
     end
+
+    test "cmd/3 uses cwd of slave node instead of master" do
+      {:ok, node} = start_slave_node()
+      home = System.user_home()
+
+      :rpc.call(node, File, :cd!, [home])
+      {cwd, 0} = :rpc.call(node, System, :cmd, ["pwd", []])
+      assert home == String.trim(cwd)
+    after
+      Node.stop()
+    end
   end
 
   test "find_executable/1" do
@@ -246,5 +257,25 @@ defmodule SystemTest do
 
   test "otp_release/0" do
     assert is_binary(System.otp_release())
+  end
+
+  defp start_slave_node() do
+    :os.cmd('epmd -daemon')
+    rand = System.unique_integer([:positive])
+
+    host_node = :"#{rand}_master@127.0.0.1"
+    {:ok, _pid} = :net_kernel.start([host_node])
+
+    path =
+      :code.get_path()
+      |> Enum.map(&to_string/1)
+      |> Enum.map(&"-pa #{&1}")
+      |> Enum.join(" ")
+
+    vm_args = '-setcookie #{:erlang.get_cookie()} -mode interactive #{path}'
+
+    slave_node = :"#{rand}_slave"
+
+    :slave.start('127.0.0.1', slave_node, vm_args)
   end
 end
