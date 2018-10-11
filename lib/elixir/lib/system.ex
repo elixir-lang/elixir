@@ -634,6 +634,12 @@ defmodule System do
         :os.find_executable(cmd) || :erlang.error(:enoent, [command, args, opts])
       end
 
+    opts =
+      case File.cwd() do
+        {:ok, cwd} -> Keyword.put_new(opts, :cd, cwd)
+        _ -> opts
+      end
+
     {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide, args: args], "")
     {initial, fun} = Collectable.into(into)
 
