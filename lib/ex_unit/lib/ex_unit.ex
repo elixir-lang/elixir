@@ -62,11 +62,11 @@ defmodule ExUnit do
 
   A finished test can be in one of five states:
 
-    1. Passed (represented by `nil`)
+    1. Passed (also represented by `nil`)
     2. Failed
-    3. Skipped (via `@tag :skip`)
-    4. Excluded (via `:exclude` filters)
-    5. Invalid (when `setup_all/1,2` fail)
+    3. Skipped (via @tag :skip)
+    4. Excluded (via :exclude filters)
+    5. Invalid (when setup_all fails)
 
   """
   @type state ::
