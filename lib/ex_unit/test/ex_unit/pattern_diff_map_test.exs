@@ -36,7 +36,7 @@ defmodule ExUnit.PatternDiffMapTest do
       ]
     }
 
-    actual = PatternDiff.cmp(pattern, %{a: 1})
+    actual = PatternDiff.compare(pattern, %{a: 1})
 
     assert actual == expected_match
 
@@ -63,7 +63,7 @@ defmodule ExUnit.PatternDiffMapTest do
       ]
     }
 
-    actual = PatternDiff.cmp(pattern, %{a: 2})
+    actual = PatternDiff.compare(pattern, %{a: 2})
 
     assert actual == expected_no_match
   end
@@ -94,7 +94,7 @@ defmodule ExUnit.PatternDiffMapTest do
       ]
     }
 
-    actual = PatternDiff.cmp(pattern, %{b: 2})
+    actual = PatternDiff.compare(pattern, %{b: 2})
 
     assert actual == expected_no_match
   end
@@ -119,7 +119,7 @@ defmodule ExUnit.PatternDiffMapTest do
       ]
     }
 
-    actual = PatternDiff.cmp(pattern, %{})
+    actual = PatternDiff.compare(pattern, %{})
 
     assert actual == expected_no_match
 
@@ -142,7 +142,7 @@ defmodule ExUnit.PatternDiffMapTest do
       ]
     }
 
-    actual = PatternDiff.cmp(pattern, %{a: 1})
+    actual = PatternDiff.compare(pattern, %{a: 1})
 
     assert actual == expected_no_match
   end
@@ -154,7 +154,7 @@ defmodule ExUnit.PatternDiffMapTest do
       end
 
     pattern = Pattern.new(simple, [a: :a], %{})
-    actual = PatternDiff.cmp(pattern, %{a: 1})
+    actual = PatternDiff.compare(pattern, %{a: 1})
 
     expected_match = %ContainerDiff{
       type: :map,
@@ -190,7 +190,7 @@ defmodule ExUnit.PatternDiffMapTest do
 
     pattern = Pattern.new(simple, [], %{})
 
-    actual = PatternDiff.cmp(pattern, %{a: nil, b: 1})
+    actual = PatternDiff.compare(pattern, %{a: nil, b: 1})
 
     expected_match = %ExUnit.ContainerDiff{
       items: [
