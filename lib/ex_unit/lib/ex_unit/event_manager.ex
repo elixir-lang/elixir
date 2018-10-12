@@ -79,7 +79,7 @@ defmodule ExUnit.EventManager do
     notify(manager, :max_failures_reached)
   end
 
-  def notify({sup, event} = _manager, msg) do
+  defp notify({sup, event}, msg) do
     :gen_event.notify(event, msg)
 
     for {_, pid, _, _} <- Supervisor.which_children(sup) do
