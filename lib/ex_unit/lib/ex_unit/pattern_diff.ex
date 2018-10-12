@@ -78,33 +78,34 @@ defmodule ExUnit.PatternDiff do
   # string
   # atom
 
-  def cmp(pattern, r) do
+  def compare(pattern, r) do
     l = %{ast: pattern.val}
-    {ret, _} = cmp(l, r, {pattern.vars, pattern.pins})
+    {ret, _} = compare(l, r, {pattern.vars, pattern.pins})
     ret
   end
 
-  def cmp(%{ast: lh_list} = pattern, rh_list, env) when is_list(lh_list) and is_list(rh_list) do
+  def compare(%{ast: lh_list} = pattern, rh_list, env)
+      when is_list(lh_list) and is_list(rh_list) do
     {items, env} = compare_list(pattern, rh_list, env)
     {%ContainerDiff{type: :list, items: items}, env}
   end
 
-  def cmp(%{ast: {:{}, _, _}} = pattern, rh_tuple, env) when is_tuple(rh_tuple) do
+  def compare(%{ast: {:{}, _, _}} = pattern, rh_tuple, env) when is_tuple(rh_tuple) do
     {items, env} = compare_tuple(pattern, rh_tuple, env)
     {%ContainerDiff{type: :tuple, items: items}, env}
   end
 
-  def cmp(%{ast: {_, _}} = pattern, rh_tuple, env) when is_tuple(rh_tuple) do
+  def compare(%{ast: {_, _}} = pattern, rh_tuple, env) when is_tuple(rh_tuple) do
     {items, env} = compare_tuple(pattern, rh_tuple, env)
     {%ContainerDiff{type: :tuple, items: items}, env}
   end
 
-  def cmp(%{ast: {:%{}, _, _}} = pattern, rh_map, env) when is_map(rh_map) do
+  def compare(%{ast: {:%{}, _, _}} = pattern, rh_map, env) when is_map(rh_map) do
     {items, env} = compare_map(pattern, rh_map, env)
     {%ContainerDiff{type: :map, items: items}, env}
   end
 
-  def cmp(%{ast: {:^, _, [{pin, _, _}]}} = pattern, rh_value, {_vars, pins} = env) do
+  def compare(%{ast: {:^, _, [{pin, _, _}]}} = pattern, rh_value, {_vars, pins} = env) do
     case Keyword.get(pins, pin) do
       ^rh_value ->
         {
@@ -119,18 +120,18 @@ defmodule ExUnit.PatternDiff do
 
       other_value ->
         val = Macro.escape(other_value)
-        cmp(%{ast: val}, rh_value, env)
+        compare(%{ast: val}, rh_value, env)
     end
   end
 
-  def cmp(%{ast: {:when, _, [ast, clause]}}, rh_value, env) do
+  def compare(%{ast: {:when, _, [ast, clause]}}, rh_value, env) do
     ast = %{ast: ast}
-    {ast_result, env} = cmp(ast, rh_value, env)
+    {ast_result, env} = compare(ast, rh_value, env)
     when_result = evaluate_when(clause, env)
     {%ContainerDiff{type: :when, items: [ast_result, when_result]}, env}
   end
 
-  def cmp(%{ast: {:=, _, [l, r]}}, rh_value, env) do
+  def compare(%{ast: {:=, _, [l, r]}}, rh_value, env) do
     # Assignment in a pattern, identify which is the binding and which is the source data
     val =
       case l do
@@ -138,10 +139,10 @@ defmodule ExUnit.PatternDiff do
         _ -> l
       end
 
-    cmp(%{ast: val}, rh_value, env)
+    compare(%{ast: val}, rh_value, env)
   end
 
-  def cmp(%{ast: {:_, _, _}} = pattern, rh_value, env) do
+  def compare(%{ast: {:_, _, _}} = pattern, rh_value, env) do
     {
       %__MODULE__{
         type: :value,
@@ -153,7 +154,7 @@ defmodule ExUnit.PatternDiff do
     }
   end
 
-  def cmp(%{ast: {var_name, _, var_ctx} = var} = pattern, rh_value, {vars, pins} = env)
+  def compare(%{ast: {var_name, _, var_ctx} = var} = pattern, rh_value, {vars, pins} = env)
       when is_atom(var_name) and is_atom(var_ctx) do
     var = get_var(var)
 
@@ -195,27 +196,27 @@ defmodule ExUnit.PatternDiff do
     end
   end
 
-  def cmp(%{ast: lh_value} = pattern, rh_value, env)
+  def compare(%{ast: lh_value} = pattern, rh_value, env)
       when is_integer(lh_value) and is_integer(rh_value) do
     like_value_compare(pattern, rh_value, env)
   end
 
-  def cmp(%{ast: lh_value} = pattern, rh_value, env)
+  def compare(%{ast: lh_value} = pattern, rh_value, env)
       when is_float(lh_value) and is_float(rh_value) do
     like_value_compare(pattern, rh_value, env)
   end
 
-  def cmp(%{ast: lh_value} = pattern, rh_value, env)
+  def compare(%{ast: lh_value} = pattern, rh_value, env)
       when is_binary(lh_value) and is_binary(rh_value) do
     like_value_compare(pattern, rh_value, env)
   end
 
-  def cmp(%{ast: lh_value} = pattern, rh_value, env)
+  def compare(%{ast: lh_value} = pattern, rh_value, env)
       when is_atom(lh_value) and is_atom(rh_value) do
     like_value_compare(pattern, rh_value, env)
   end
 
-  def cmp(%{ast: _lh_value} = pattern, rh_value, env) do
+  def compare(%{ast: _lh_value} = pattern, rh_value, env) do
     {
       %__MODULE__{
         type: :different,
@@ -227,7 +228,7 @@ defmodule ExUnit.PatternDiff do
     }
   end
 
-  def cmp(@no_value, rh_value, env) do
+  def compare(@no_value, rh_value, env) do
     {
       %__MODULE__{
         type: :different,
@@ -242,8 +243,8 @@ defmodule ExUnit.PatternDiff do
   defp compare_list(%{ast: [{:|, _, [head, tail]} | _rest]}, [rh_head | rh_tail], env) do
     head_pattern = %{ast: head, type: :cons_l}
     tail_pattern = %{ast: tail, type: :cons_r}
-    {h, env} = cmp(head_pattern, rh_head, env)
-    {t, env} = cmp(tail_pattern, rh_tail, env)
+    {h, env} = compare(head_pattern, rh_head, env)
+    {t, env} = compare(tail_pattern, rh_tail, env)
     {[h, t], env}
   end
 
@@ -253,7 +254,7 @@ defmodule ExUnit.PatternDiff do
   end
 
   defp compare_list_items([lh_h | lh_rest], [rh_h | rh_rest], env) do
-    {h, env} = cmp(lh_h, rh_h, env)
+    {h, env} = compare(lh_h, rh_h, env)
     {t, env} = compare_list_items(lh_rest, rh_rest, env)
     {[h | t], env}
   end
@@ -261,13 +262,13 @@ defmodule ExUnit.PatternDiff do
   defp compare_list_items([], [], env), do: {[], env}
 
   defp compare_list_items([lh_h | lh_rest], [], env) do
-    {h, env} = cmp(lh_h, @no_value, env)
+    {h, env} = compare(lh_h, @no_value, env)
     {t, env} = compare_list_items(lh_rest, [], env)
     {[h | t], env}
   end
 
   defp compare_list_items([], [rh_h | rh_rest], env) do
-    {h, env} = cmp(@no_value, rh_h, env)
+    {h, env} = compare(@no_value, rh_h, env)
     {t, env} = compare_list_items([], rh_rest, env)
     {[h | t], env}
   end
@@ -303,7 +304,7 @@ defmodule ExUnit.PatternDiff do
           {{map_key, val}, map}
       end
 
-    {h, env} = cmp(%{ast: {key, lh_value}}, rh_value, env)
+    {h, env} = compare(%{ast: {key, lh_value}}, rh_value, env)
     {t, env} = compare_map_items(pattern, lh_t, rh_map, env)
     {[h | t], env}
   end
@@ -321,7 +322,7 @@ defmodule ExUnit.PatternDiff do
       |> List.first()
 
     {rh_value, rh_map} = Map.pop(rh_map, rh_key)
-    {h, env} = cmp(lh, {rh_key, rh_value}, env)
+    {h, env} = compare(lh, {rh_key, rh_value}, env)
     {t, env} = compare_map_items(pattern, [], rh_map, env)
     {[h | t], env}
   end

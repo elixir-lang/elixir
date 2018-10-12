@@ -12,7 +12,7 @@ defmodule ExUnit.PatternFormat do
     ctx = new_context(:none, left)
 
     left
-    |> ExUnit.PatternDiff.cmp(right)
+    |> ExUnit.PatternDiff.compare(right)
     |> format(ctx)
     |> Enum.reject(&(&1 == ""))
   end
@@ -210,10 +210,11 @@ defmodule ExUnit.PatternFormat do
 
   def format(%WhenDiff{result: res, op: :or, bindings: keys}, ctx) do
     [left, right] = keys
+    prefix = if ctx.print_when?, do: "when ", else: ""
     ctx = %{ctx | print_when?: false}
     or_val = " or "
     or_val = if res == :neq, do: delete(or_val), else: or_val
-    [format(left, ctx), or_val, format(right, ctx)]
+    [prefix, format(left, ctx), or_val, format(right, ctx)]
   end
 
   def format(%WhenDiff{result: res, op: op, bindings: keys}, %{print_when?: print_when?}) do

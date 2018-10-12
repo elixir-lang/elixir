@@ -277,7 +277,7 @@ defmodule ExUnit.PatternFormatTest do
 
   test "using guards, but guard matches" do
     # send(self(), [1, 2, 3])
-    # assert_receive [a, b, 3, 4] when is_integer(a)
+    # assert_receive [a, b, 3, 4] when is_binary(a)
 
     left = quote do: [a, b, 3, 4] when is_binary(a)
 
@@ -349,6 +349,7 @@ defmodule ExUnit.PatternFormatTest do
       "3",
       "]",
       " ",
+      " when",
       {:diff_delete, "is_binary(a)"},
       {:diff_delete, " or "},
       {:diff_delete, "is_binary(b)"}

@@ -21,13 +21,13 @@ defmodule ExUnit.PatternDiffValueTest do
         diff_result: :eq
       }
 
-      actual = PatternDiff.cmp(pattern, 1)
+      actual = PatternDiff.compare(pattern, 1)
 
       assert actual == expected_match
 
       expected_no_match = %{expected_match | rh: 2, diff_result: :neq}
 
-      actual = PatternDiff.cmp(pattern, 2)
+      actual = PatternDiff.compare(pattern, 2)
 
       assert actual == expected_no_match
     end
@@ -47,7 +47,7 @@ defmodule ExUnit.PatternDiffValueTest do
         diff_result: :eq
       }
 
-      actual = PatternDiff.cmp(pattern, "hello")
+      actual = PatternDiff.compare(pattern, "hello")
 
       assert actual == expected_match
 
@@ -57,7 +57,7 @@ defmodule ExUnit.PatternDiffValueTest do
           diff_result: :neq
       }
 
-      actual = PatternDiff.cmp(pattern, "good bye")
+      actual = PatternDiff.compare(pattern, "good bye")
 
       assert actual == expected_no_match
     end
@@ -77,13 +77,13 @@ defmodule ExUnit.PatternDiffValueTest do
         diff_result: :eq
       }
 
-      actual = PatternDiff.cmp(pattern, :a)
+      actual = PatternDiff.compare(pattern, :a)
 
       assert actual == expected_match
 
       expected_no_match = %{expected_match | rh: :b, diff_result: :neq}
 
-      actual = PatternDiff.cmp(pattern, :b)
+      actual = PatternDiff.compare(pattern, :b)
 
       assert actual == expected_no_match
     end
@@ -103,13 +103,13 @@ defmodule ExUnit.PatternDiffValueTest do
         diff_result: :eq
       }
 
-      actual = PatternDiff.cmp(pattern, 1.0)
+      actual = PatternDiff.compare(pattern, 1.0)
 
       assert actual == expected_match
 
       expected_no_match = %{expected_match | rh: 2.0, diff_result: :neq}
 
-      actual = PatternDiff.cmp(pattern, 2.0)
+      actual = PatternDiff.compare(pattern, 2.0)
 
       assert actual == expected_no_match
     end
@@ -123,25 +123,25 @@ defmodule ExUnit.PatternDiffValueTest do
         end
 
       pattern = Pattern.new(map, [], %{})
-      actual = PatternDiff.cmp(pattern, 1)
+      actual = PatternDiff.compare(pattern, 1)
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, "string")
+      actual = PatternDiff.compare(pattern, "string")
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, 2.0)
+      actual = PatternDiff.compare(pattern, 2.0)
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, [1, 2, 3])
+      actual = PatternDiff.compare(pattern, [1, 2, 3])
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, {1, 2})
+      actual = PatternDiff.compare(pattern, {1, 2})
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, {1, 2, 3})
+      actual = PatternDiff.compare(pattern, {1, 2, 3})
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, :a)
+      actual = PatternDiff.compare(pattern, :a)
       assert actual.type == :different
     end
 
@@ -152,25 +152,25 @@ defmodule ExUnit.PatternDiffValueTest do
         end
 
       pattern = Pattern.new(map, [], %{})
-      actual = PatternDiff.cmp(pattern, 1)
+      actual = PatternDiff.compare(pattern, 1)
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, "string")
+      actual = PatternDiff.compare(pattern, "string")
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, 2.0)
+      actual = PatternDiff.compare(pattern, 2.0)
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, %{a: 1, b: 2})
+      actual = PatternDiff.compare(pattern, %{a: 1, b: 2})
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, {1, 2})
+      actual = PatternDiff.compare(pattern, {1, 2})
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, {1, 2, 3})
+      actual = PatternDiff.compare(pattern, {1, 2, 3})
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, :a)
+      actual = PatternDiff.compare(pattern, :a)
       assert actual.type == :different
     end
 
@@ -181,25 +181,25 @@ defmodule ExUnit.PatternDiffValueTest do
         end
 
       pattern = Pattern.new(tuple, [], %{})
-      actual = PatternDiff.cmp(pattern, 1)
+      actual = PatternDiff.compare(pattern, 1)
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, "string")
+      actual = PatternDiff.compare(pattern, "string")
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, 2.0)
+      actual = PatternDiff.compare(pattern, 2.0)
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, %{a: 1, b: 2})
+      actual = PatternDiff.compare(pattern, %{a: 1, b: 2})
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, [1, 2])
+      actual = PatternDiff.compare(pattern, [1, 2])
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, [1, 2, 3])
+      actual = PatternDiff.compare(pattern, [1, 2, 3])
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, :a)
+      actual = PatternDiff.compare(pattern, :a)
       assert actual.type == :different
 
       tuple =
@@ -208,25 +208,25 @@ defmodule ExUnit.PatternDiffValueTest do
         end
 
       pattern = Pattern.new(tuple, [], %{})
-      actual = PatternDiff.cmp(pattern, 1)
+      actual = PatternDiff.compare(pattern, 1)
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, "string")
+      actual = PatternDiff.compare(pattern, "string")
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, 2.0)
+      actual = PatternDiff.compare(pattern, 2.0)
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, %{a: 1, b: 2})
+      actual = PatternDiff.compare(pattern, %{a: 1, b: 2})
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, [1, 2])
+      actual = PatternDiff.compare(pattern, [1, 2])
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, [1, 2, 3])
+      actual = PatternDiff.compare(pattern, [1, 2, 3])
       assert actual.type == :different
 
-      actual = PatternDiff.cmp(pattern, :a)
+      actual = PatternDiff.compare(pattern, :a)
       assert actual.type == :different
     end
   end
@@ -246,7 +246,7 @@ defmodule ExUnit.PatternDiffValueTest do
       diff_result: :eq
     }
 
-    actual = PatternDiff.cmp(pattern, 1)
+    actual = PatternDiff.compare(pattern, 1)
     assert actual == expected_match
   end
 
@@ -277,7 +277,7 @@ defmodule ExUnit.PatternDiffValueTest do
       ]
     }
 
-    actual = PatternDiff.cmp(pattern, {1, 1})
+    actual = PatternDiff.compare(pattern, {1, 1})
     assert actual == expected_match
 
     expected_no_match = %ContainerDiff{
@@ -298,7 +298,7 @@ defmodule ExUnit.PatternDiffValueTest do
       ]
     }
 
-    actual = PatternDiff.cmp(pattern, {1, 2})
+    actual = PatternDiff.compare(pattern, {1, 2})
     assert actual == expected_no_match
   end
 
@@ -317,10 +317,10 @@ defmodule ExUnit.PatternDiffValueTest do
       diff_result: :eq
     }
 
-    actual = PatternDiff.cmp(pattern, 1)
+    actual = PatternDiff.compare(pattern, 1)
     assert actual == expected_match
 
-    actual = PatternDiff.cmp(pattern, 2)
+    actual = PatternDiff.compare(pattern, 2)
 
     expected_match = %PatternDiff{
       type: :value,

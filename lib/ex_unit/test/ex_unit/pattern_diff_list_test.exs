@@ -26,7 +26,7 @@ defmodule ExUnit.PatternDiffListTest do
         ]
       }
 
-      actual = PatternDiff.cmp(pattern, [1])
+      actual = PatternDiff.compare(pattern, [1])
 
       assert actual == expected_match
 
@@ -42,7 +42,7 @@ defmodule ExUnit.PatternDiffListTest do
         ]
       }
 
-      actual = PatternDiff.cmp(pattern, [2])
+      actual = PatternDiff.compare(pattern, [2])
 
       assert actual == expected_no_match
     end
@@ -73,7 +73,7 @@ defmodule ExUnit.PatternDiffListTest do
         ]
       }
 
-      actual = PatternDiff.cmp(pattern, [1, 2])
+      actual = PatternDiff.compare(pattern, [1, 2])
 
       assert actual == expected_match
 
@@ -95,7 +95,7 @@ defmodule ExUnit.PatternDiffListTest do
         ]
       }
 
-      actual = PatternDiff.cmp(pattern, [1, 1])
+      actual = PatternDiff.compare(pattern, [1, 1])
 
       assert actual == expected_no_match
     end
@@ -137,7 +137,7 @@ defmodule ExUnit.PatternDiffListTest do
         ]
       }
 
-      actual = PatternDiff.cmp(pattern, [1, 2, 3])
+      actual = PatternDiff.compare(pattern, [1, 2, 3])
       assert actual == expected
     end
 
@@ -183,7 +183,7 @@ defmodule ExUnit.PatternDiffListTest do
         ]
       }
 
-      actual = PatternDiff.cmp(pattern, [1, 2, 3])
+      actual = PatternDiff.compare(pattern, [1, 2, 3])
       assert actual == expected
     end
 
@@ -213,7 +213,7 @@ defmodule ExUnit.PatternDiffListTest do
         ]
       }
 
-      actual = PatternDiff.cmp(pattern, [1])
+      actual = PatternDiff.compare(pattern, [1])
 
       assert actual == expected
 
@@ -242,7 +242,7 @@ defmodule ExUnit.PatternDiffListTest do
         ]
       }
 
-      actual = PatternDiff.cmp(pattern, [1, 2])
+      actual = PatternDiff.compare(pattern, [1, 2])
 
       assert actual == expected
     end
