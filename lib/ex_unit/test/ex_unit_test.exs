@@ -532,6 +532,118 @@ defmodule ExUnitTest do
     end
   end
 
+  describe "max-failures" do
+    # NOTE: For other tests related to this feature see:
+    # - lib/mix/test/mix/tasks/test_test.exs
+    # - lib/mix/test/fixtures/max_failures/
+
+    test "default value to :infinity" do
+      on_exit_reload_config()
+      ExUnit.start(autorun: false)
+      config = ExUnit.configuration()
+      assert config[:max_failures] == :infinity
+    end
+
+    test "sets value of max-failures" do
+      on_exit_reload_config()
+      ExUnit.start(max_failures: 5, autorun: false)
+      config = ExUnit.configuration()
+      assert config[:max_failures] == 5
+    end
+
+    test "max-failures are reached" do
+      defmodule TestMaxFailuresReached do
+        use ExUnit.Case
+
+        test __ENV__.line, do: assert(true)
+        test __ENV__.line, do: assert(true)
+        test __ENV__.line, do: assert(false)
+        test __ENV__.line, do: assert(false)
+        test __ENV__.line, do: assert(true)
+      end
+
+      ExUnit.Server.modules_loaded()
+      on_exit_reload_config()
+
+      output =
+        capture_io(fn ->
+          predictable_ex_unit_start(max_failures: 2)
+
+          assert ExUnit.run() == %{
+                   total: 4,
+                   failures: 2,
+                   skipped: 0,
+                   excluded: 0
+                 }
+        end)
+
+      assert strip(output) =~ max_failures_reached_msg()
+      assert strip(output) =~ "4 tests, 2 failures"
+    end
+
+    test "failures are right bellow the max-failures" do
+      defmodule TestMaxFailures do
+        use ExUnit.Case, async: false
+
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "fail #{__ENV__.line}", do: assert(false)
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "fail #{__ENV__.line}", do: assert(false)
+        test "pass #{__ENV__.line}", do: assert(true)
+      end
+
+      ExUnit.Server.modules_loaded()
+      on_exit_reload_config()
+
+      output =
+        capture_io(fn ->
+          predictable_ex_unit_start(max_failures: 3)
+
+          assert ExUnit.run() == %{
+                   total: 5,
+                   excluded: 0,
+                   failures: 2,
+                   skipped: 0
+                 }
+        end)
+
+      refute strip(output) =~ max_failures_reached_msg()
+      assert strip(output) =~ "5 tests, 2 failures"
+    end
+
+    test "max-failures has been reached" do
+      defmodule TestMaxFailuresReached2 do
+        use ExUnit.Case, async: false
+
+        test "pass - #{__ENV__.line}", do: assert(true)
+        test "fail - #{__ENV__.line}", do: assert(false)
+        test "fail - #{__ENV__.line}", do: assert(false)
+        test "fail - #{__ENV__.line}", do: assert(false)
+        test "pass - #{__ENV__.line}", do: assert(true)
+      end
+
+      ExUnit.Server.modules_loaded()
+      on_exit_reload_config()
+
+      output =
+        capture_io(fn ->
+          predictable_ex_unit_start(max_failures: 2)
+
+          assert ExUnit.run() == %{
+                   total: 3,
+                   failures: 2,
+                   excluded: 0,
+                   skipped: 0
+                 }
+        end)
+
+      assert strip(output) =~ max_failures_reached_msg()
+      assert strip(output) =~ "3 tests, 2 failures"
+    end
+  end
+
+  ##  Helpers
+
   defp on_exit_reload_config(extra \\ []) do
     old_config = ExUnit.configuration()
     on_exit(fn -> ExUnit.configure(extra ++ old_config) end)
@@ -551,5 +663,19 @@ defmodule ExUnitTest do
     after
       0 -> nil
     end
+  end
+
+  # Strips escape-sequence colors from IO.ANSI strings
+  defp strip(string) do
+    String.replace(string, ~r/\e\[(\d+;?)+m/, "")
+  end
+
+  # Runs ExUnit.start/1 with common options needed for predictability
+  def predictable_ex_unit_start(options) do
+    ExUnit.start(options ++ [autorun: false, seed: 0])
+  end
+
+  defp max_failures_reached_msg() do
+    "--max-failures reached, aborting test suite"
   end
 end

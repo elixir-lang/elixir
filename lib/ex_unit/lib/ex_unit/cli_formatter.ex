@@ -159,6 +159,24 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
+  def handle_cast(:max_failures_reached, config) do
+    if config.trace() do
+      "\n  --max-failures reached"
+      |> failure(config)
+      |> IO.puts()
+    end
+
+    {:noreply, config}
+  end
+
+  def handle_cast(:aborting_max_failures_reached, config) do
+    "\n--max-failures reached, aborting test suite"
+    |> failure(config)
+    |> IO.puts()
+
+    {:noreply, config}
+  end
+
   def handle_cast(_, config) do
     {:noreply, config}
   end
