@@ -91,7 +91,7 @@ defmodule ExUnit.Runner do
   # counter and attempt to spawn new ones.
   defp wait_until_available(config, modules, taken) do
     receive do
-      {_pid, :module_finished, _test_case} ->
+      {_pid, :module_finished} ->
         loop(config, modules, taken - 1)
     end
   end
@@ -128,7 +128,7 @@ defmodule ExUnit.Runner do
     Enum.each(pending, &run_test(config, &1, []))
     test_module = %{test_module | tests: finished_tests}
     EM.module_finished(config.manager, test_module)
-    send(config.runner_pid, {self(), :module_finished, test_module})
+    send(config.runner_pid, {self(), :module_finished})
   end
 
   defp prepare_tests(config, tests) do
