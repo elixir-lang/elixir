@@ -542,7 +542,9 @@ defmodule Logger do
   Configures the logger.
 
   See the "Runtime Configuration" section in the `Logger` module
-  documentation for the available options.
+  documentation for the available options. The changes done here
+  are automatically persisted to the `:logger` application
+  environment.
   """
   @valid_options [
     :compile_time_application,
@@ -586,9 +588,9 @@ defmodule Logger do
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
 
-    case Logger.WatcherSupervisor.watch(Logger, Logger.Config.translate_backend(backend), backend) do
+    case Logger.BackendSupervisor.watch(backend) do
       {:ok, _} = ok ->
-        Logger.Config.add_backend(backend)
+        update_backends(&[backend | List.delete(&1, backend)])
         ok
 
       {:error, {:already_started, _pid}} ->
@@ -611,8 +613,13 @@ defmodule Logger do
   @spec remove_backend(backend, keyword) :: :ok | {:error, term}
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
-    Logger.Config.remove_backend(backend)
-    Logger.WatcherSupervisor.unwatch(Logger, Logger.Config.translate_backend(backend))
+    update_backends(&List.delete(&1, backend))
+    Logger.BackendSupervisor.unwatch(backend)
+  end
+
+  defp update_backends(fun) do
+    backends = fun.(Application.get_env(:logger, :backends, []))
+    Application.put_env(:logger, :backends, backends)
   end
 
   @doc """
@@ -639,7 +646,8 @@ defmodule Logger do
   """
   @spec configure_backend(backend, keyword) :: term
   def configure_backend(backend, options) when is_list(options) do
-    :gen_event.call(Logger, Logger.Config.translate_backend(backend), {:configure, options})
+    backend = Logger.BackendSupervisor.translate_backend(backend)
+    :gen_event.call(Logger, backend, {:configure, options})
   end
 
   @doc """

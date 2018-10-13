@@ -2,11 +2,8 @@ defmodule Logger.Config do
   @moduledoc false
 
   @behaviour :gen_event
-
   @name __MODULE__
   @table __MODULE__
-  @data :__data__
-  @deleted_handlers :__deleted_handlers__
 
   def start_link do
     GenServer.start_link(__MODULE__, :ok, name: @name)
@@ -24,30 +21,9 @@ defmodule Logger.Config do
     :gen_event.call(Logger, @name, {:remove_translator, translator})
   end
 
-  def handlers() do
-    for backend <- backends() do
-      {Logger, translate_backend(backend), backend}
-    end
-  end
-
-  def backends() do
-    :gen_event.call(Logger, @name, :backends)
-  end
-
-  def add_backend(backend) do
-    :gen_event.call(Logger, @name, {:add_backend, backend})
-  end
-
-  def remove_backend(backend) do
-    :gen_event.call(Logger, @name, {:remove_backend, backend})
-  end
-
-  def translate_backend(:console), do: Logger.Backends.Console
-  def translate_backend(other), do: other
-
   def __data__() do
     try do
-      :ets.lookup_element(@table, @data, 2)
+      :ets.lookup_element(@table, :data, 2)
     rescue
       ArgumentError ->
         raise "cannot use Logger, the :logger application is not running"
@@ -62,7 +38,7 @@ defmodule Logger.Config do
 
   def deleted_handlers() do
     try do
-      :ets.lookup_element(@table, @deleted_handlers, 2)
+      :ets.lookup_element(@table, :deleted_handlers, 2)
     rescue
       ArgumentError ->
         []
@@ -75,7 +51,7 @@ defmodule Logger.Config do
 
   def new() do
     tab = :ets.new(@table, [:named_table, :public, {:read_concurrency, true}])
-    true = :ets.insert_new(@table, [{@data, nil}, {@deleted_handlers, []}])
+    true = :ets.insert_new(@table, [{:data, nil}, {:deleted_handlers, []}])
     tab
   end
 
@@ -87,7 +63,7 @@ defmodule Logger.Config do
 
   def init(_) do
     thresholds = compute_thresholds()
-    state = :ets.lookup_element(@table, @data, 2) || compute_state(:async, thresholds)
+    state = :ets.lookup_element(@table, :data, 2) || compute_state(:async, thresholds)
     {:ok, {state, thresholds}}
   end
 
@@ -125,10 +101,6 @@ defmodule Logger.Config do
     end
   end
 
-  def handle_call(:backends, state) do
-    {:ok, Application.get_env(:logger, :backends), state}
-  end
-
   def handle_call({:configure, options}, {%{mode: mode}, _}) do
     Enum.each(options, fn {key, value} ->
       Application.put_env(:logger, key, value)
@@ -149,19 +121,9 @@ defmodule Logger.Config do
     {:ok, :ok, {state, thresholds}}
   end
 
-  def handle_call({:add_backend, backend}, state) do
-    update_backends(&[backend | List.delete(&1, backend)])
-    {:ok, :ok, state}
-  end
-
-  def handle_call({:remove_backend, backend}, state) do
-    update_backends(&List.delete(&1, backend))
-    {:ok, :ok, state}
-  end
-
   def handle_call({:deleted_handlers, new}, state) do
     old = deleted_handlers()
-    true = :ets.update_element(@table, @deleted_handlers, {2, new})
+    true = :ets.update_element(@table, :deleted_handlers, {2, new})
     {:ok, old, state}
   end
 
@@ -187,11 +149,6 @@ defmodule Logger.Config do
   defp message_queue_length() do
     {:message_queue_len, messages} = Process.info(self(), :message_queue_len)
     messages
-  end
-
-  defp update_backends(fun) do
-    backends = fun.(Application.get_env(:logger, :backends, []))
-    Application.put_env(:logger, :backends, backends)
   end
 
   defp update_translators(%{translators: translators} = state, fun) do
@@ -244,7 +201,7 @@ defmodule Logger.Config do
   end
 
   defp persist(state) do
-    :ets.update_element(@table, @data, {2, state})
+    :ets.update_element(@table, :data, {2, state})
     state
   end
 end
