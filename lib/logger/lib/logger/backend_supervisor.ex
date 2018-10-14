@@ -22,7 +22,7 @@ defmodule Logger.BackendSupervisor do
   end
 
   @doc """
-  Removes the given backend.
+  Removes the given `backend`.
   """
   def unwatch(backend) do
     handler = translate_backend(backend)
@@ -38,7 +38,7 @@ defmodule Logger.BackendSupervisor do
   end
 
   @doc """
-  Watches the given backend.
+  Watches the given `backend`.
   """
   def watch(backend) do
     handler = translate_backend(backend)
@@ -60,7 +60,7 @@ defmodule Logger.BackendSupervisor do
   end
 
   @doc """
-  Translate the shortbut backend name into its handler.
+  Translates the shortcut backend name into its handler.
   """
   def translate_backend(:console), do: Logger.Backends.Console
   def translate_backend(other), do: other
