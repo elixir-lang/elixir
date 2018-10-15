@@ -97,7 +97,7 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task that can be awaited on.
 
-  The `supervisor` must be a reference as defined in `Task.Supervisor`.
+  The `supervisor` must be a reference as defined in `Supervisor`.
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
 
@@ -118,7 +118,7 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task that can be awaited on.
 
-  The `supervisor` must be a reference as defined in `Task.Supervisor`.
+  The `supervisor` must be a reference as defined in `Supervisor`.
   The task will still be linked to the caller, see `Task.async/3` for
   more information and `async_nolink/2` for a non-linked variant.
 
@@ -139,7 +139,7 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task that can be awaited on.
 
-  The `supervisor` must be a reference as defined in `Task.Supervisor`.
+  The `supervisor` must be a reference as defined in `Supervisor`.
   The task won't be linked to the caller, see `Task.async/3` for
   more information.
 
@@ -221,7 +221,7 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task that can be awaited on.
 
-  The `supervisor` must be a reference as defined in `Task.Supervisor`.
+  The `supervisor` must be a reference as defined in `Supervisor`.
   The task won't be linked to the caller, see `Task.async/3` for
   more information.
 
