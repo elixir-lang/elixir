@@ -64,13 +64,13 @@ defmodule Macro.Env do
   @type macros :: [{module, [name_arity]}]
   @type context_modules :: [module]
   @type lexical_tracker :: pid | nil
-  @type var :: {atom, atom | term}
+  @type variable :: {atom, atom | term}
 
-  @typep vars :: [var]
+  @typep vars :: [variable]
   @typep var_type :: :term
   @typep var_version :: non_neg_integer
-  @typep unused_vars :: %{{var, var_version} => non_neg_integer | false}
-  @typep current_vars :: %{var => {var_version, var_type}}
+  @typep unused_vars :: %{{variable, var_version} => non_neg_integer | false}
+  @typep current_vars :: %{variable => {var_version, var_type}}
   @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
   @typep contextual_vars :: [atom]
 
@@ -132,7 +132,7 @@ defmodule Macro.Env do
   atom or an integer.
   """
   @doc since: "1.7.0"
-  @spec vars(t) :: [var]
+  @spec vars(t) :: [variable]
   def vars(env)
 
   def vars(%{__struct__: Macro.Env, current_vars: current_vars}) do
@@ -143,7 +143,7 @@ defmodule Macro.Env do
   Checks if a variable belongs to the environment.
   """
   @doc since: "1.7.0"
-  @spec has_var?(t, var) :: boolean()
+  @spec has_var?(t, variable) :: boolean()
   def has_var?(env, var)
 
   def has_var?(%{__struct__: Macro.Env, current_vars: current_vars}, var) do

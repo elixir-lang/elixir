@@ -373,6 +373,7 @@ defmodule Kernel.Typespec do
   defp builtin_type?(:nonempty_charlist, 0), do: true
   defp builtin_type?(:keyword, 0), do: true
   defp builtin_type?(:keyword, 1), do: true
+  defp builtin_type?(:var, 0), do: true
   defp builtin_type?(name, arity), do: :erl_internal.is_type(name, arity)
 
   defp ensure_no_defaults!(args) do
