@@ -99,8 +99,9 @@ defmodule Kernel.Typespec do
   Invoked by `Kernel.@/1` expansion.
   """
   def deftypespec(:spec, expr, _line, _file, module, pos) do
-    {_set, bag} = :elixir_module.data_tables(module)
+    {set, bag} = :elixir_module.data_tables(module)
     store_typespec(bag, :spec, {expr, pos})
+    store_module_attribute(set, :spec, {expr, pos})
   end
 
   def deftypespec(kind, expr, line, _file, module, pos)
@@ -150,6 +151,11 @@ defmodule Kernel.Typespec do
     :ets.lookup_element(bag, key, 2)
   catch
     :error, :badarg -> []
+  end
+
+  defp store_module_attribute(set, key, value) do
+    :ets.insert(set, {key, value, nil})
+    :ok
   end
 
   defp store_typespec(bag, key, value) do

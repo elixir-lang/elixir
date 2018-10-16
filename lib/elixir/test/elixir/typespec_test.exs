@@ -801,6 +801,27 @@ defmodule TypespecTest do
       assert [{:atom, _, :is_subtype}, [{:var, _, :y}, {:var, _, :x}]] = constraint_type
     end
 
+    test "@spec as module attribute" do
+      defmodule SpecModuleAttribute do
+        @spec my_fun1 :: boolean
+        def my_fun1, do: @spec
+
+        @spec my_fun2 :: atom
+        def my_fun2, do: @spec
+
+        @spec my_fun3 :: pid
+        def my_fun3, do: :ok
+        def my_fun4, do: @spec
+      end
+
+      assert {{:::, _, [{:my_fun1, _, _}, {:boolean, _, _}]}, _} = SpecModuleAttribute.my_fun1()
+      assert {{:::, _, [{:my_fun2, _, _}, {:atom, _, _}]}, _} = SpecModuleAttribute.my_fun2()
+      assert {{:::, _, [{:my_fun3, _, _}, {:pid, _, _}]}, _} = SpecModuleAttribute.my_fun4()
+    after
+      :code.delete(SpecModuleAttribute)
+      :code.purge(SpecModuleAttribute)
+    end
+
     test "@callback(callback)" do
       bytecode =
         test_module do
