@@ -105,7 +105,7 @@ merge_vars(V1, V2) ->
 %% UNUSED VARS
 
 check_unused_vars(#{unused_vars := Unused} = E) ->
-  [elixir_errors:form_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_var, Name, false}) ||
+  [elixir_errors:form_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_var, Name}) ||
     {{{Name, _}, _}, Line} <- maps:to_list(Unused), Line /= false, not_underscored(Name)],
   E.
 
@@ -136,12 +136,11 @@ merge_and_check_unused_vars(Unused, ClauseUnused, E) ->
 
           %% Otherwise we must warn
           _ ->
-            {{Name, _} = Pair, _} = Key,
+            {{Name, _}, _} = Key,
 
             case not_underscored(Name) of
               true ->
-                IsShadowing = maps:is_key(Pair, ?key(E, current_vars)),
-                Warn = {unused_var, Name, IsShadowing},
+                Warn = {unused_var, Name},
                 elixir_errors:form_warn([{line, ClauseValue}], ?key(E, file), ?MODULE, Warn);
 
               false ->
@@ -159,24 +158,5 @@ not_underscored(Name) ->
     _ -> true
   end.
 
-format_error({unused_var, Name, false}) ->
-  io_lib:format("variable \"~ts\" is unused (if the variable is not meant to be used, prefix it with an underscore)", [Name]);
-
-format_error({unused_var, Name, true}) ->
-  io_lib:format("variable \"~ts\" is unused\n\n"
-                "Note variables defined inside case, cond, fn, if and similar do not affect "
-                "variables defined outside of the construct. Instead you have to explicitly "
-                "return those values. For example:\n\n"
-                "    if some_condition? do\n"
-                "      atom = :one\n"
-                "    else\n"
-                "      atom = :two\n"
-                "    end\n\n"
-                "should be written as\n\n"
-                "    atom =\n"
-                "      if some_condition? do\n"
-                "        :one\n"
-                "      else\n"
-                "        :two\n"
-                "      end\n\n"
-                "Unused variable \"~ts\" found at:", [Name, Name]).
+format_error({unused_var, Name}) ->
+  io_lib:format("variable \"~ts\" is unused (if the variable is not meant to be used, prefix it with an underscore)", [Name]).
