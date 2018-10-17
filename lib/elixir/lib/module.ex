@@ -1726,7 +1726,16 @@ defmodule Module do
   def get_attribute(module, key, line) when is_atom(key) do
     assert_not_compiled!(:get_attribute, module)
     {set, bag} = data_tables_for(module)
+    get_attribute(module, key, line, set, bag)
+  end
 
+  defp get_attribute(_module, :spec, _line, _set, bag) do
+    specs = bag_lookup_element(bag, :spec, 2)
+    formatted_specs = :lists.map(fn {expr, pos} -> {:spec, expr, pos} end, specs)
+    :lists.reverse(formatted_specs)
+  end
+
+  defp get_attribute(module, key, line, set, bag) do
     case :ets.lookup(set, key) do
       [{_, _, :accumulate}] ->
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
@@ -1897,9 +1906,9 @@ defmodule Module do
     do: {atom, :__on_definition__}
 
   defp preprocess_attribute(key, _value)
-       when key in [:type, :typep, :opaque, :callback, :macrocallback] do
+       when key in [:type, :typep, :opaque, :spec, :callback, :macrocallback] do
     raise ArgumentError,
-          "attributes type, typep, opaque, callback, and macrocallback" <>
+          "attributes type, typep, opaque, spec, callback, and macrocallback" <>
             "must be set directly via the @ notation"
   end
 

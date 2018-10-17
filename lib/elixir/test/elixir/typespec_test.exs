@@ -803,20 +803,37 @@ defmodule TypespecTest do
 
     test "@spec as module attribute" do
       defmodule SpecModuleAttribute do
-        @spec my_fun1 :: boolean
-        def my_fun1, do: @spec
+        @spec fun1 :: boolean
+        def fun1, do: @spec
 
-        @spec my_fun2 :: atom
-        def my_fun2, do: @spec
+        @spec fun2 :: atom
+        def fun2, do: @spec
 
-        @spec my_fun3 :: pid
-        def my_fun3, do: :ok
-        def my_fun4, do: @spec
+        @spec fun3 :: pid
+        def fun3, do: :ok
+        def fun4, do: @spec
       end
 
-      assert {{:::, _, [{:my_fun1, _, _}, {:boolean, _, _}]}, _} = SpecModuleAttribute.my_fun1()
-      assert {{:::, _, [{:my_fun2, _, _}, {:atom, _, _}]}, _} = SpecModuleAttribute.my_fun2()
-      assert {{:::, _, [{:my_fun3, _, _}, {:pid, _, _}]}, _} = SpecModuleAttribute.my_fun4()
+      assert [
+               {:spec, {:::, _, [{:fun1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.SpecModuleAttribute, _}}
+             ] = SpecModuleAttribute.fun1()
+
+      assert [
+               {:spec, {:::, _, [{:fun2, _, _}, {:atom, _, _}]},
+                {TypespecTest.SpecModuleAttribute, _}},
+               {:spec, {:::, _, [{:fun1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.SpecModuleAttribute, _}}
+             ] = SpecModuleAttribute.fun2()
+
+      assert [
+               {:spec, {:::, _, [{:fun3, _, _}, {:pid, _, _}]},
+                {TypespecTest.SpecModuleAttribute, _}},
+               {:spec, {:::, _, [{:fun2, _, _}, {:atom, _, _}]},
+                {TypespecTest.SpecModuleAttribute, _}},
+               {:spec, {:::, _, [{:fun1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.SpecModuleAttribute, _}}
+             ] = SpecModuleAttribute.fun4()
     after
       :code.delete(SpecModuleAttribute)
       :code.purge(SpecModuleAttribute)
