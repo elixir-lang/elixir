@@ -801,7 +801,7 @@ defmodule TypespecTest do
       assert [{:atom, _, :is_subtype}, [{:var, _, :y}, {:var, _, :x}]] = constraint_type
     end
 
-    test "@type, @opaque, and typep as module attributes" do
+    test "@type, @opaque, and @typep as module attributes" do
       defmodule TypeModuleAttributes do
         @type type1 :: boolean
         @opaque opaque1 :: boolean
@@ -821,7 +821,8 @@ defmodule TypespecTest do
         def opaque2, do: @opaque
         def typep2, do: @typep
 
-        @spec foo(typep1) :: typep2 # Avoid unused warnings
+        # Avoid unused warnings
+        @spec foo(typep1) :: typep2
         def foo(_x), do: :ok
       end
 
