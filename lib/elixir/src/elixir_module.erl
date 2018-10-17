@@ -236,6 +236,9 @@ build(Line, File, Module, Lexical) ->
   %% In the bag table we store:
   %%
   %% * {{accumulate, Attribute}, ...}
+  %% * {{accumulate, type}, ...}, {{accumulate, opaque}, ...}, {{accumulate, typep}, ...}
+  %% * {{accumulate, spec}, ...}, {{accumulate, callback}, ...},
+  %%   {{accumulate, macrocallback}, ...}
   %% * {attributes, ...}
   %% * {impls, ...}
   %% * {deprecated, ...}
@@ -245,7 +248,6 @@ build(Line, File, Module, Lexical) ->
   %% * {{clauses, Tuple}, ...} (from elixir_def)
   %% * {reattach, ...} (from elixir_local)
   %% * {{local, Tuple}, ...} (from elixir_local)
-  %% * {spec, ...}, {type, ...}, {callback, ...}, {macrocallback, ...}
   %%
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
@@ -262,6 +264,12 @@ build(Line, File, Module, Lexical) ->
     {dialyzer, [], accumulate},
     {external_resource, [], accumulate},
     {on_definition, [], accumulate},
+    {type, [], accumulate},
+    {opaque, [], accumulate},
+    {typep, [], accumulate},
+    {spec, [], accumulate},
+    {callback, [], accumulate},
+    {macrocallback, [], accumulate},
     {optional_callbacks, [], accumulate},
 
     % Others
