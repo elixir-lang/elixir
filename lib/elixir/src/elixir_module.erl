@@ -235,10 +235,7 @@ build(Line, File, Module, Lexical) ->
 
   %% In the bag table we store:
   %%
-  %% * {{accumulate, Attribute}, ...}
-  %% * {{accumulate, type}, ...}, {{accumulate, opaque}, ...}, {{accumulate, typep}, ...}
-  %% * {{accumulate, spec}, ...}, {{accumulate, callback}, ...},
-  %%   {{accumulate, macrocallback}, ...}
+  %% * {{accumulate, Attribute}, ...} (includes typespecs)
   %% * {attributes, ...}
   %% * {impls, ...}
   %% * {deprecated, ...}
