@@ -71,24 +71,24 @@ defmodule Kernel.Typespec do
       type_to_signature(expr) == signature
     end
 
-    :lists.any(finder, get_typespec(bag, :type))
+    :lists.any(finder, get_typespecs(bag, [:type, :opaque, :typep]))
   end
 
   def spec_to_callback(module, {name, arity} = signature)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
     {_set, bag} = :elixir_module.data_tables(module)
 
-    filter = fn {expr, _} = object ->
+    filter = fn {:spec, expr, pos} ->
       if spec_to_signature(expr) == signature do
-        :ets.delete_object(bag, {:spec, object})
-        store_typespec(bag, :callback, object)
+        delete_typespec(bag, :spec, expr, pos)
+        store_typespec(bag, :callback, expr, pos)
         true
       else
         false
       end
     end
 
-    :lists.filter(filter, get_typespec(bag, :spec)) != []
+    :lists.filter(filter, get_typespecs(bag, :spec)) != []
   end
 
   ## Typespec definition and storage
@@ -100,7 +100,7 @@ defmodule Kernel.Typespec do
   """
   def deftypespec(:spec, expr, _line, _file, module, pos) do
     {_set, bag} = :elixir_module.data_tables(module)
-    store_typespec(bag, :spec, {expr, pos})
+    store_typespec(bag, :spec, expr, pos)
   end
 
   def deftypespec(kind, expr, line, _file, module, pos)
@@ -116,7 +116,7 @@ defmodule Kernel.Typespec do
         :error
     end
 
-    store_typespec(bag, kind, {expr, pos})
+    store_typespec(bag, kind, expr, pos)
   end
 
   def deftypespec(kind, expr, line, file, module, pos)
@@ -143,17 +143,34 @@ defmodule Kernel.Typespec do
         :error
     end
 
-    store_typespec(bag, :type, {kind, expr, pos})
+    store_typespec(bag, kind, expr, pos)
   end
 
-  defp get_typespec(bag, key) do
-    :ets.lookup_element(bag, key, 2)
+  defp get_typespecs(bag, keys) when is_list(keys) do
+    :lists.flatmap(&get_typespecs(bag, &1), keys)
+  end
+
+  defp get_typespecs(bag, key) do
+    :ets.lookup_element(bag, {:accumulate, key}, 2)
   catch
     :error, :badarg -> []
   end
 
-  defp store_typespec(bag, key, value) do
-    :ets.insert(bag, {key, value})
+  defp take_typespecs(bag, keys) when is_list(keys) do
+    :lists.flatmap(&take_typespecs(bag, &1), keys)
+  end
+
+  defp take_typespecs(bag, key) do
+    :lists.map(&elem(&1, 1), :ets.take(bag, {:accumulate, key}))
+  end
+
+  defp store_typespec(bag, key, expr, pos) do
+    :ets.insert(bag, {{:accumulate, key}, {key, expr, pos}})
+    :ok
+  end
+
+  defp delete_typespec(bag, key, expr, pos) do
+    :ets.delete_object(bag, {{:accumulate, key}, {key, expr, pos}})
     :ok
   end
 
@@ -192,7 +209,7 @@ defmodule Kernel.Typespec do
 
   @doc false
   def translate_typespecs_for_module(_set, bag) do
-    type_typespecs = take_typespec(bag, :type)
+    type_typespecs = take_typespecs(bag, [:type, :opaque, :typep])
     defined_type_pairs = collect_defined_type_pairs(type_typespecs)
 
     state = %{
@@ -203,24 +220,20 @@ defmodule Kernel.Typespec do
     }
 
     {types, state} = Enum.map_reduce(type_typespecs, state, &translate_type/2)
-    {specs, state} = Enum.map_reduce(take_typespec(bag, :spec), state, &translate_spec/2)
-    {callbacks, state} = Enum.map_reduce(take_typespec(bag, :callback), state, &translate_spec/2)
+    {specs, state} = Enum.map_reduce(take_typespecs(bag, :spec), state, &translate_spec/2)
+    {callbacks, state} = Enum.map_reduce(take_typespecs(bag, :callback), state, &translate_spec/2)
 
     {macrocallbacks, state} =
-      Enum.map_reduce(take_typespec(bag, :macrocallback), state, &translate_spec/2)
+      Enum.map_reduce(take_typespecs(bag, :macrocallback), state, &translate_spec/2)
 
-    optional_callbacks = List.flatten(get_typespec(bag, {:accumulate, :optional_callbacks}))
+    optional_callbacks = List.flatten(get_typespecs(bag, :optional_callbacks))
     used_types = filter_used_types(types, state)
 
     {used_types, specs, callbacks, macrocallbacks, optional_callbacks}
   end
 
-  defp take_typespec(bag, key) do
-    :ets.take(bag, key)
-  end
-
   defp collect_defined_type_pairs(type_typespecs) do
-    Enum.reduce(type_typespecs, %{}, fn {_, {_, expr, pos}}, type_pairs ->
+    Enum.reduce(type_typespecs, %{}, fn {_kind, expr, pos}, type_pairs ->
       %{file: file, line: line} = env = :elixir_locals.get_cached_env(pos)
 
       case type_to_signature(expr) do
@@ -254,7 +267,7 @@ defmodule Kernel.Typespec do
     end)
   end
 
-  defp translate_type({_, {kind, {:::, _, [{name, _, args}, definition]}, pos}}, state) do
+  defp translate_type({kind, {:::, _, [{name, _, args}, definition]}, pos}, state) do
     caller = :elixir_locals.get_cached_env(pos)
     state = clean_local_state(state)
 
@@ -310,12 +323,12 @@ defmodule Kernel.Typespec do
   defp underspecified?(:opaque, 0, {:type, _, type, []}) when type in [:any, :term], do: true
   defp underspecified?(_kind, _arity, _spec), do: false
 
-  defp translate_spec({kind, {{:when, _meta, [spec, guard]}, pos}}, state) do
+  defp translate_spec({kind, {:when, _meta, [spec, guard]}, pos}, state) do
     caller = :elixir_locals.get_cached_env(pos)
     translate_spec(kind, spec, guard, caller, state)
   end
 
-  defp translate_spec({kind, {spec, pos}}, state) do
+  defp translate_spec({kind, spec, pos}, state) do
     caller = :elixir_locals.get_cached_env(pos)
     translate_spec(kind, spec, [], caller, state)
   end
