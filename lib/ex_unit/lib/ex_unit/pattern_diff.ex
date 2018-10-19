@@ -1,4 +1,6 @@
 defmodule ExUnit.Pattern do
+  alias ExUnit.Pattern.DiffContext
+
   defstruct [:binary, :val, :match_single?, :vars, :pins]
 
   @type t :: %__MODULE__{
@@ -23,6 +25,28 @@ defmodule ExUnit.Pattern do
   def get_var({var, meta, context}) when is_atom(var) and is_atom(context) do
     {var, meta[:counter] || context}
   end
+
+  def format_diff(left, right) do
+    ctx = DiffContext.new_context(:none, left)
+    IO.inspect(left, label: "Left")
+    IO.inspect(right, label: "Right")
+
+    compare =
+      ExUnit.PatternDiff.compare(left, right)
+      |> IO.inspect(label: "Compare")
+
+    r_value =
+      compare
+      |> ExUnit.Pattern.FormatValue.format(ctx)
+      |> Enum.reject(&(&1 == ""))
+
+    l_value =
+      compare
+      |> ExUnit.Pattern.FormatPattern.format(ctx)
+      |> Enum.reject(&(&1 == ""))
+
+    {l_value, r_value} |> IO.inspect()
+  end
 end
 
 defmodule ExUnit.ContainerDiff do
@@ -44,8 +68,12 @@ defmodule ExUnit.WhenDiff do
         }
 end
 
+defmodule ExUnit.PinDiff do
+  defstruct [:pin, :diff, :diff_result]
+end
+
 defmodule ExUnit.PatternDiff do
-  alias ExUnit.{ContainerDiff, WhenDiff}
+  alias ExUnit.{ContainerDiff, PinDiff, WhenDiff}
 
   defstruct [:type, :lh, :rh, :diff_result]
 
@@ -79,9 +107,13 @@ defmodule ExUnit.PatternDiff do
   # atom
 
   def compare(pattern, r) do
+    IO.inspect(pattern, label: "Pattern")
+    IO.inspect(r, label: "r")
     l = %{ast: pattern.val}
     {ret, _} = compare(l, r, {pattern.vars, pattern.pins})
+
     ret
+    |> IO.inspect(label: "Compare Ret")
   end
 
   def compare(%{ast: lh_list} = pattern, rh_list, env)
@@ -120,7 +152,16 @@ defmodule ExUnit.PatternDiff do
 
       other_value ->
         val = Macro.escape(other_value)
-        compare(%{ast: val}, rh_value, env)
+        {diff, _} = compare(%{ast: val}, rh_value, env)
+
+        {
+          %PinDiff{
+            pin: pin,
+            diff_result: :neq,
+            diff: diff
+          },
+          env
+        }
     end
   end
 

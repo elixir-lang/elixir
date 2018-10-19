@@ -1,15 +1,16 @@
-defmodule ExUnit.PatternFormat do
+defmodule ExUnit.Pattern.FormatValue do
   @moduledoc """
   Formats the output of Pattern diff.
   1) Matches will be printed in green, conflicts in red, and neutral in the default color
   """
 
-  alias ExUnit.{ContainerDiff, PatternDiff, WhenDiff}
+  alias ExUnit.{ContainerDiff, PatternDiff, PinDiff, WhenDiff}
+  alias ExUnit.Pattern.DiffContext
 
   @no_value :ex_unit_no_meaningful_value
 
   def script(left, right) do
-    ctx = new_context(:none, left)
+    ctx = DiffContext.new_context(:none, left)
 
     left
     |> ExUnit.PatternDiff.compare(right)
@@ -35,7 +36,7 @@ defmodule ExUnit.PatternFormat do
   end
 
   def format(%ContainerDiff{type: :map, items: _items} = diff, ctx) do
-    map_ctx = create_context(diff, ctx)
+    map_ctx = DiffContext.create_context(diff, ctx)
 
     comma =
       case ctx do
@@ -51,7 +52,7 @@ defmodule ExUnit.PatternFormat do
         %ContainerDiff{type: :list, items: [%{lh: %{type: :cons_l}} = l, r]},
         %{comma: comma} = ctx
       ) do
-    new_ctx = new_context(:none, ctx)
+    new_ctx = DiffContext.new_context(:none, ctx)
 
     [comma, "[", format(l, new_ctx), " | ", format(r, new_ctx), "]"]
     |> List.flatten()
@@ -83,7 +84,7 @@ defmodule ExUnit.PatternFormat do
   end
 
   def format(%ContainerDiff{type: :list, items: _items} = diff, %{comma: comma} = ctx) do
-    ctx = create_context(diff, ctx)
+    ctx = DiffContext.create_context(diff, ctx)
 
     [comma, format(diff, ctx)]
     |> List.flatten()
@@ -121,7 +122,7 @@ defmodule ExUnit.PatternFormat do
           match("#{inspect(r.rh)}")
 
         %ContainerDiff{} ->
-          new_ctx = new_context(r, ctx)
+          new_ctx = DiffContext.new_context(r, ctx)
           format(r, new_ctx)
 
         _ ->
@@ -142,7 +143,7 @@ defmodule ExUnit.PatternFormat do
           match("#{l.rh}: ")
 
         %ContainerDiff{} ->
-          new_ctx = create_context(r, ctx)
+          new_ctx = DiffContext.create_context(r, ctx)
           delete(format(l, new_ctx))
 
         _ ->
@@ -155,7 +156,7 @@ defmodule ExUnit.PatternFormat do
           match("#{inspect(r.rh)}")
 
         %ContainerDiff{} ->
-          new_ctx = create_context(r, ctx)
+          new_ctx = DiffContext.create_context(r, ctx)
           format(r, new_ctx)
 
         _ ->
@@ -170,7 +171,7 @@ defmodule ExUnit.PatternFormat do
   end
 
   def format(diff, nil) do
-    format(diff, new_context(:none, [], []))
+    format(diff, DiffContext.new_context(:none, [], []))
   end
 
   def format(%PatternDiff{diff_result: :eq, rh: rh}, %{comma: comma}) do
@@ -226,46 +227,14 @@ defmodule ExUnit.PatternFormat do
   end
 
   # def format(%PatternDiff{diff_result: :neq, rh: rh, lh: lh})
+  def format(%PinDiff{diff: diff}, context) do
+    format(diff, context)
+  end
+
   def format(other, context) do
     IO.inspect(context, label: "context")
     IO.inspect(other, label: "No matching format")
     raise "Missing format for #{other}-#{context}"
-  end
-
-  defp create_context(%ContainerDiff{type: :list, items: items}, old_ctx) do
-    if Enum.all?(items, &keyword_tuple?/1),
-      do: new_context(:atom_keys, old_ctx),
-      else: new_context(:list, old_ctx)
-  end
-
-  defp create_context(%ContainerDiff{type: :map, items: items}, old_ctx) do
-    keys = if Enum.all?(items, &keyword_tuple?/1), do: :atom_keys, else: :non_atom_keys
-
-    new_context(keys, old_ctx)
-  end
-
-  def new_context(keys, %{vars: vars, pins: pins}), do: new_context(keys, vars, pins)
-
-  def new_context(keys, vars, pins) do
-    %{comma: "", keys: keys, print_when?: true, vars: vars, pins: pins}
-  end
-
-  defp keyword_tuple?(%ContainerDiff{items: [key, _value], type: :tuple}) do
-    l_matches = key.lh == @no_value || is_atom(key.lh.ast)
-    r_matches = key.rh == @no_value || is_atom(key.rh)
-    l_matches && r_matches
-  end
-
-  defp keyword_tuple?(%PatternDiff{rh: @no_value, lh: %{ast: {key, _value}}}) when is_atom(key) do
-    true
-  end
-
-  defp keyword_tuple?(%PatternDiff{rh: {key, _value}, lh: @no_value}) when is_atom(key) do
-    true
-  end
-
-  defp keyword_tuple?(_) do
-    false
   end
 
   defp textify_ast(%{ast: ast}, ctx) do

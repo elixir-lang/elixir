@@ -363,22 +363,31 @@ defmodule ExUnit.Formatter do
 
   defp format_pattern(left, right, formatter) do
     if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
-      if script = pattern_diff(left, right) do
-        list =
-          Enum.reduce(script, [], fn
-            {key, val}, acc ->
-              [formatter.(key, val) | acc]
+      case pattern_diff(left, right) do
+        {formatted_left, formatted_right} ->
+          {format_pattern_result(formatted_left, formatter),
+           format_pattern_result(formatted_right, formatter)}
 
-            v, acc ->
-              [v | acc]
-          end)
-
-        ret = Enum.reverse(list)
-        {left.binary, ret}
+        _ ->
+          {left.binary, inspect(right)}
       end
     else
       {left.binary, inspect(right)}
     end
+  end
+
+  defp format_pattern_result(result, _) when is_binary(result), do: result
+
+  defp format_pattern_result(result, formatter) when is_list(result) do
+    result
+    |> Enum.reduce([], fn
+      {key, val}, acc ->
+        [formatter.(key, val) | acc]
+
+      v, acc ->
+        [v | acc]
+    end)
+    |> Enum.reverse()
   end
 
   defp format_diff(left, right, formatter) do
@@ -421,7 +430,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp pattern_diff(left, right) do
-    task = Task.async(ExUnit.PatternFormat, :script, [left, right])
+    task = Task.async(ExUnit.Pattern, :format_diff, [left, right])
 
     case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
       {:ok, script} -> script
