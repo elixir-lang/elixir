@@ -141,11 +141,14 @@ defmodule ExUnit.Runner do
           nil
       end
 
-    if pending_tests do
-      test_module = %{test_module | tests: Enum.reverse(finished_tests, pending_tests)}
-      EM.module_finished(config.manager, test_module)
-    end
+    test_module =
+      if pending_tests do
+        %{test_module | tests: Enum.reverse(finished_tests, pending_tests)}
+      else
+        test_module
+      end
 
+    EM.module_finished(config.manager, test_module)
     send(config.runner_pid, {self(), :module_finished})
   end
 
