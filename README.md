@@ -32,7 +32,7 @@ If Elixir fails to build (specifically when pulling in a new version via
 `make clean`, then `make test`.
 
 If tests pass, you are ready to move on to the [Getting Started guide][1]
-or to try Interactive Elixir by running `bin/iex` in your terminal.
+or to try our Interactive Elixir by running `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang/OTP version
 (Elixir requires Erlang/OTP 20.0 or later). You can check your Erlang/OTP version
