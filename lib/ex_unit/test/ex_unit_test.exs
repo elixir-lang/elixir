@@ -498,6 +498,77 @@ defmodule ExUnitTest do
     ExUnit.configure(seed: global_seed)
   end
 
+  @doc """
+    Skipped and excluded tests should be included in the stats as well as printed to stdout.
+    On the other hand, invalid tests should be marked as failures in the stats,
+    but still be printed as "invalid" to stdout.
+
+    If setup_all fails, the skipped and excluded tests should not be counted as invalid or failures.
+  """
+  test "skipped and excluded" do
+    defmodule SkippedAndExcludedTests do
+      use ExUnit.Case
+
+      setup_all do
+        raise "oops"
+      end
+
+      @tag :skip
+      test "skipped", do: assert(false)
+
+      test "pass #{__ENV__.line}", do: assert(true)
+      test "pass #{__ENV__.line}", do: assert(true)
+      test "fail #{__ENV__.line}", do: assert(false)
+      test "fail #{__ENV__.line}", do: assert(false)
+
+      @tag :exclude
+      test "exclude me please", do: assert(false)
+    end
+
+    ExUnit.Server.modules_loaded()
+    on_exit_reload_config()
+
+    output =
+      capture_io(fn ->
+        predictable_ex_unit_start(exclude: [:exclude])
+        assert ExUnit.run() == %{total: 6, failures: 4, excluded: 1, skipped: 1}
+      end)
+
+    refute output =~ max_failures_reached_msg()
+    assert strip(output) =~ "6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped"
+  end
+
+  test "check for invalid and excluded tests in stdout" do
+    defmodule CheckForInvalidExcludedStdoutTest do
+      use ExUnit.Case
+
+      setup_all do
+        raise "oops"
+      end
+
+      @tag :skip
+      test "skipped", do: assert(true)
+
+      test "pass #{__ENV__.line}", do: assert(true)
+      test "pass #{__ENV__.line}", do: assert(true)
+      test "fail #{__ENV__.line}", do: assert(false)
+      test "fail #{__ENV__.line}", do: assert(false)
+
+      @tag :exclude
+      test "exclude me please", do: assert(true)
+    end
+
+    ExUnit.Server.modules_loaded()
+
+    output =
+      capture_io(fn ->
+        predictable_ex_unit_start(exclude: [:exclude])
+        assert ExUnit.run() == %{total: 6, failures: 4, skipped: 1, excluded: 1}
+      end)
+
+    assert strip(output) =~ "6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped"
+  end
+
   describe "after_suite/1" do
     test "executes all callbacks set in reverse order" do
       Process.register(self(), :after_suite_test_process)
@@ -625,6 +696,10 @@ defmodule ExUnitTest do
       assert output =~ "3 tests, 2 failures"
     end
 
+    @doc """
+    Excluded and skipped tests are detected before setup_all callback is executed,
+    therefore they are always included as part of the total number of tests in the stats.
+    """
     test ":max_failures on setup_all errors" do
       defmodule TestMaxFailuresSetupAll do
         use ExUnit.Case
@@ -635,10 +710,14 @@ defmodule ExUnitTest do
 
         @tag :skip
         test "skipped", do: assert(true)
+
         test "pass #{__ENV__.line}", do: assert(true)
         test "pass #{__ENV__.line}", do: assert(true)
         test "fail #{__ENV__.line}", do: assert(false)
         test "fail #{__ENV__.line}", do: assert(false)
+
+        @tag :exclude
+        test "exclude me please", do: assert(true)
       end
 
       ExUnit.Server.modules_loaded()
@@ -646,12 +725,12 @@ defmodule ExUnitTest do
 
       output =
         capture_io(fn ->
-          predictable_ex_unit_start(max_failures: 2)
-          assert ExUnit.run() == %{total: 2, failures: 2, excluded: 0, skipped: 0}
+          predictable_ex_unit_start(max_failures: 2, exclude: [:exclude])
+          assert ExUnit.run() == %{total: 4, failures: 2, excluded: 1, skipped: 1}
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "2 tests, 2 failures"
+      assert strip(output) =~ "4 tests, 0 failures, 1 excluded, 2 invalid, 1 skipped"
     end
 
     test ":max_failures flushes all async/sync cases" do
@@ -719,5 +798,10 @@ defmodule ExUnitTest do
 
   defp max_failures_reached_msg() do
     "--max-failures reached, aborting test suite"
+  end
+
+  # Strips escape-sequence colors from IO.ANSI strings
+  defp strip(string) do
+    String.replace(string, ~r/\e\[(\d+;?)+m/, "")
   end
 end

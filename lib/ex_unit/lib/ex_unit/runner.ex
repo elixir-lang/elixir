@@ -127,24 +127,28 @@ defmodule ExUnit.Runner do
     pending_tests =
       case process_max_failures(config, test_module) do
         :no ->
-          for test <- excluded_tests do
-            EM.test_started(config.manager, test)
-            EM.test_finished(config.manager, test)
-          end
-
           invalid_tests ++ excluded_tests
 
         {:reached, n} ->
-          Enum.take(invalid_tests, n)
+          Enum.take(invalid_tests, n) ++ excluded_tests
 
         :surpassed ->
           nil
       end
 
-    if pending_tests do
-      test_module = %{test_module | tests: Enum.reverse(finished_tests, pending_tests)}
-      EM.module_finished(config.manager, test_module)
-    end
+    test_module =
+      if pending_tests do
+        for pending_test <- pending_tests do
+          EM.test_started(config.manager, pending_test)
+          EM.test_finished(config.manager, pending_test)
+        end
+
+        %{test_module | tests: Enum.reverse(finished_tests, pending_tests)}
+      else
+        test_module
+      end
+
+    EM.module_finished(config.manager, test_module)
 
     send(config.runner_pid, {self(), :module_finished})
   end
@@ -376,7 +380,8 @@ defmodule ExUnit.Runner do
     process_max_failures(config.stats_pid, config.max_failures, length(tests))
   end
 
-  defp process_max_failures(config, %ExUnit.Test{state: {:failed, _}}) do
+  defp process_max_failures(config, %ExUnit.Test{state: {tag, _}})
+       when tag in [:failed, :invalid] do
     process_max_failures(config.stats_pid, config.max_failures, 1)
   end
 
