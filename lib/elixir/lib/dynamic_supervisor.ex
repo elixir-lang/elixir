@@ -467,13 +467,13 @@ defmodule DynamicSupervisor do
   end
 
   @doc """
-  Receives a set of options that initializes a dynamic supervisor.
+  Receives a set of `options` that initializes a dynamic supervisor.
 
   This is typically invoked at the end of the `c:init/1` callback of
   module-based supervisors. See the sections "Module-based supervisors"
   in the module documentation for more information.
 
-  The options received by this function are also supported by `start_link/2`.
+  The `options` received by this function are also supported by `start_link/2`.
 
   This function returns a tuple containing the supervisor options.
 
