@@ -1909,7 +1909,7 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(quote(do: {:foo, <<foo>>} = {<<baz>>, :baz} = bar()))
 
-      # 2-element tuples are special cased
+      # two-element tuples are special cased
       assert_raise CompileError, message, fn ->
         expand(quote(do: {:foo, <<foo>>} = {:foo, <<baz>>} = bar()))
       end
