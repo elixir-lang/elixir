@@ -68,7 +68,7 @@ The notation to represent the union of types is the pipe `|`. For example, the t
           | nonempty_maybe_improper_list(type1, type2)  # non-empty proper or improper list
 
           | Literals                # Described in section "Literals"
-          | Builtin                 # Described in section "Built-in types"
+          | BuiltIn                 # Described in section "Built-in types"
           | Remotes                 # Described in section "Remote types"
           | UserDefined             # Described in section "User-defined types"
 
