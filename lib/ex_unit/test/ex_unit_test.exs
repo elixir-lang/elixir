@@ -625,7 +625,7 @@ defmodule ExUnitTest do
       assert output =~ "3 tests, 2 failures"
     end
 
-    test ":max_failures on setup all errors" do
+    test ":max_failures on setup_all errors" do
       defmodule TestMaxFailuresSetupAll do
         use ExUnit.Case
 
@@ -636,8 +636,8 @@ defmodule ExUnitTest do
         @tag :skip
         test "skipped", do: assert(true)
         test "pass #{__ENV__.line}", do: assert(true)
-        test "fail #{__ENV__.line}", do: assert(true)
-        test "pass #{__ENV__.line}", do: assert(false)
+        test "pass #{__ENV__.line}", do: assert(true)
+        test "fail #{__ENV__.line}", do: assert(false)
         test "fail #{__ENV__.line}", do: assert(false)
       end
 
