@@ -135,8 +135,8 @@ defmodule Supervisor.Spec do
           {child_id, start_fun :: {module, atom, [term]}, restart, shutdown, worker, modules}
 
   @doc """
-  Receives a list of children (workers or supervisors) to
-  supervise and a set of options.
+  Receives a list of `children` (workers or supervisors) to
+  supervise and a set of `options`.
 
   Returns a tuple containing the supervisor specification. This tuple can be
   used as the return value of the `c:init/1` callback when implementing a

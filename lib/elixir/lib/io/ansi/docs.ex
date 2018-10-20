@@ -98,7 +98,7 @@ defmodule IO.ANSI.Docs do
   @doc """
   Prints the documentation body.
 
-  In addition to the printing string, takes a set of options
+  In addition to the printing string, takes a set of `options`
   defined in `default_options/0`.
   """
   @spec print(String.t(), keyword) :: :ok

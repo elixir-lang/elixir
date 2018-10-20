@@ -172,7 +172,7 @@ defmodule ExUnit do
   Starts ExUnit and automatically runs tests right before the
   VM terminates.
 
-  It accepts a set of options to configure `ExUnit`
+  It accepts a set of `options` to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 
   If you want to run tests manually, you can set the `:autorun` option
