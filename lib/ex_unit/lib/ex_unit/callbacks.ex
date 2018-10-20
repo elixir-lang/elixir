@@ -144,7 +144,7 @@ defmodule ExUnit.Callbacks do
   atoms.
 
   Can return values to be merged into the context, to set up state for
-  tests. See the section "Context" above for details.
+  tests. For more details, see the "Context" section shown above.
 
   ## Examples
 
@@ -178,7 +178,7 @@ defmodule ExUnit.Callbacks do
   atoms.
 
   Can return values to be merged into the context, to set up state for
-  tests. See the section "Context" above for details.
+  tests. For more details, see the "Context" section shown above.
 
   ## Examples
 
@@ -206,7 +206,7 @@ defmodule ExUnit.Callbacks do
   atoms.
 
   Can return values to be merged into the context, to set up state for
-  tests. See the section "Context" above for details.
+  tests. For more details, see the "Context" section shown above.
 
   ## Examples
 
@@ -244,7 +244,7 @@ defmodule ExUnit.Callbacks do
   atoms.
 
   Can return values to be merged into the context, to set up state for
-  tests. See the section "Context" above for details.
+  tests. For more details, see the "Context" section shown above.
 
   ## Examples
 
