@@ -14,7 +14,7 @@ defmodule Mix.Dep do
     * `requirement` - a binary or regular expression with the dependency's requirement
 
     * `status` - the current status of the dependency, check
-      `Mix.Dep.format_status/1` for more info
+      `Mix.Dep.format_status/1` for more information
 
     * `opts` - the options given by the developer
 
