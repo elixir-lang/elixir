@@ -127,7 +127,7 @@ defmodule Port do
   While most UNIX command line tools will exit once its communication channels
   are closed, not all command line applications will do so. While we encourage
   graceful termination by detecting if stdin/stdout has been closed, we do not
-  always have control over how 3rd party software terminates. In those cases,
+  always have control over how third-party software terminates. In those cases,
   you can wrap the application in a script that checks for stdin. Here is such
   script in Bash:
 

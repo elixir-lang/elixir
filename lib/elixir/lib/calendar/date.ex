@@ -25,7 +25,7 @@ defmodule Date do
 
   Developers should avoid creating the Date structs directly
   and instead rely on the functions provided by this module as well
-  as the ones in 3rd party calendar libraries.
+  as the ones in third-party calendar libraries.
 
   ## Comparing dates
 

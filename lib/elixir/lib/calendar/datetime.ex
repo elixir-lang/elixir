@@ -14,7 +14,7 @@ defmodule DateTime do
 
   Developers should avoid creating the `DateTime` struct directly
   and instead rely on the functions provided by this module as
-  well as the ones in 3rd party calendar libraries.
+  well as the ones in third-party calendar libraries.
 
   ## Where are my functions?
 
@@ -25,7 +25,7 @@ defmodule DateTime do
   of Elixir.
 
   Such may be addressed in upcoming versions, meanwhile,
-  use 3rd party packages to provide `DateTime` building and
+  use third-party packages to provide `DateTime` building and
   similar functionality with time zone backing.
   """
 
