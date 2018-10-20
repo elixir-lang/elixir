@@ -397,18 +397,18 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  @protocol_builtins for {_, type} <- Protocol.__builtin__(), do: type
+  @protocol_built_ins for {_, type} <- Protocol.__built_in__(), do: type
 
   defp skip_unreachable?(:erlang, func, 2) when func in [:andalso, :orelse] do
     true
   end
 
   defp skip_unreachable?(module, :__impl__, 1) do
-    {maybe_protocol, maybe_builtin} = module |> Module.split() |> Enum.split(-1)
+    {maybe_protocol, maybe_built_in} = module |> Module.split() |> Enum.split(-1)
     maybe_protocol = Module.concat(maybe_protocol)
-    maybe_builtin = Module.concat(maybe_builtin)
+    maybe_built_in = Module.concat(maybe_built_in)
 
-    maybe_builtin in @protocol_builtins and Code.ensure_loaded?(maybe_protocol) and
+    maybe_built_in in @protocol_built_ins and Code.ensure_loaded?(maybe_protocol) and
       function_exported?(maybe_protocol, :__protocol__, 1)
   end
 
