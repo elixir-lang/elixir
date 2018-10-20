@@ -15,8 +15,8 @@ defmodule Inspect.Opts do
       When the default `:infer`, the binary will be printed as a string if it
       is printable, otherwise in bit syntax.
 
-    * `:charlists` - when `:as_charlists` all lists will be printed as char
-      lists, non-printable elements will be escaped.
+    * `:charlists` - when `:as_charlists` all lists will be printed as charlists,
+      non-printable elements will be escaped.
 
       When `:as_lists` all lists will be printed as lists.
 
@@ -29,7 +29,7 @@ defmodule Inspect.Opts do
       the number of items to a particular number, use `:infinity`.
 
     * `:printable_limit` - limits the number of bytes that are printed for strings
-      and char lists. Defaults to 4096. If you don't want to limit the number of items
+      and charlists. Defaults to 4096. If you don't want to limit the number of items
       to a particular number, use `:infinity`.
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
