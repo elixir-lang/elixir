@@ -790,7 +790,7 @@ defmodule Code do
   @doc """
   Returns a list with the available compiler options.
 
-  See `compiler_options/1` for more info.
+  See `compiler_options/1` for more information.
 
   ## Examples
 
