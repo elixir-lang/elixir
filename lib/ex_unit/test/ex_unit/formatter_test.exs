@@ -186,7 +186,7 @@ defmodule ExUnit.FormatterTest do
     failure = [{:error, catch_error(raise "oops"), []}]
 
     assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) =~ """
-             1) Hello: failure on setup_all callback, test invalidated
+             1) Hello: failure on setup_all callback, all tests have been invalidated
                 ** (RuntimeError) oops
            """
   end
@@ -195,7 +195,7 @@ defmodule ExUnit.FormatterTest do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
 
     assert format_test_all_failure(test_module(), failure, 1, :infinity, &formatter/2) =~ """
-             1) Hello: failure on setup_all callback, test invalidated
+             1) Hello: failure on setup_all callback, all tests have been invalidated
                 Assertion with == failed
                 code:  assert [1, 2, 3] == [4, 5, 6]
                 left:  [1, 2, 3]
@@ -207,7 +207,7 @@ defmodule ExUnit.FormatterTest do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
 
     assert format_test_all_failure(test_module(), failure, 1, 15, &formatter/2) =~ """
-             1) Hello: failure on setup_all callback, test invalidated
+             1) Hello: failure on setup_all callback, all tests have been invalidated
                 Assertion with == failed
                 code:  assert [1, 2, 3] == [4, 5, 6]
                 left:  [1,
@@ -223,7 +223,7 @@ defmodule ExUnit.FormatterTest do
     failure = [{:error, catch_assertion(assert is_list(List.to_tuple([1, 2, 3]))), []}]
 
     assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) =~ """
-             1) Hello: failure on setup_all callback, test invalidated
+             1) Hello: failure on setup_all callback, all tests have been invalidated
                 Expected truthy, got false
                 code: assert is_list(List.to_tuple([1, 2, 3]))
                 arguments:
@@ -235,7 +235,7 @@ defmodule ExUnit.FormatterTest do
     failure = [{:error, catch_assertion(assert is_list({1, 2})), []}]
 
     assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) =~ """
-             1) Hello: failure on setup_all callback, test invalidated
+             1) Hello: failure on setup_all callback, all tests have been invalidated
                 Expected truthy, got false
                 code: assert is_list({1, 2})
            """
@@ -246,7 +246,7 @@ defmodule ExUnit.FormatterTest do
     failure = [{:error, catch_assertion(assert(false, message)), []}]
 
     assert format_test_all_failure(test_module(), failure, 1, :infinity, &formatter/2) =~ """
-             1) Hello: failure on setup_all callback, test invalidated
+             1) Hello: failure on setup_all callback, all tests have been invalidated
                 Some meaningful error:
                 useful info
                 another useful info
