@@ -140,7 +140,7 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block or the name of a publicly accessible one-arity function in the shape of an atom,
+  Accepts a block or the name of a one-arity function in the form of an atom,
   or a list of such atoms.
 
   Can return values to be merged into the context, to set up the state for
@@ -174,7 +174,7 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Pass a block or name of a publicly accessible one-arity function as an atom,
+  Accepts a block or the name of a one-arity function in the form of an atom,
   or a list of such atoms.
 
   Can return values to be merged into the `context`, to set up the state for
@@ -202,7 +202,7 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Accepts a block or the name of a publicly accessible one-arity function in the shape of an atom,
+  Accepts a block or the name of a one-arity function in the form of an atom,
   or a list of such atoms.
 
   Can return values to be merged into the `context`, to set up the state for
@@ -220,7 +220,7 @@ defmodule ExUnit.Callbacks do
         [conn: Plug.Conn.build_conn()]
       end
 
-      # on-arity function name
+      # one-arity function name
       setup_all :clean_up_tmp_directory
 
   """
@@ -242,7 +242,7 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Accepts a block or the name of a publicly accessible one-arity function in the shape of an atom,
+  Accepts a block or the name of a one-arity function in the form of an atom,
   or a list of such atoms.
 
   Can return values to be merged into the `context`, to set up the state for
