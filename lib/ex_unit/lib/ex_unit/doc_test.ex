@@ -84,7 +84,7 @@ defmodule ExUnit.DocTest do
 
   You can also select or skip functions when calling
   `doctest`. See the documentation on the `:except` and `:only` options below
-  for more info.
+  for more information.
 
   ## Opaque types
 

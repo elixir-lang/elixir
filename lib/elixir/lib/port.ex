@@ -265,7 +265,7 @@ defmodule Port do
     or `{name, node}` (when monitoring by a port name);
     * `reason` is the exit reason.
 
-  See `:erlang.monitor/2` for more info.
+  See `:erlang.monitor/2` for more information.
 
   Inlined by the compiler.
   """
@@ -282,7 +282,7 @@ defmodule Port do
   obtained by calling `monitor/1`, that monitoring is turned off.
   If the monitoring is already turned off, nothing happens.
 
-  See `:erlang.demonitor/2` for more info.
+  See `:erlang.demonitor/2` for more information.
 
   Inlined by the compiler.
   """
