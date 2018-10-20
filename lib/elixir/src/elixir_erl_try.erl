@@ -87,7 +87,7 @@ erl_rescue_stacktrace_for(_Meta, _Var, 'Elixir.ErlangError') ->
   %% ErlangError is a "meta" exception, we should never expand it here.
   error(badarg);
 erl_rescue_stacktrace_for(Meta, Var, 'Elixir.KeyError') ->
-  %% Only the two element tuple requires stacktrace.
+  %% Only the two-element tuple requires stacktrace.
   erl_and(Meta, erl_tuple_size(Meta, Var, 2), erl_record_compare(Meta, Var, badkey));
 erl_rescue_stacktrace_for(Meta, Var, Module) ->
   erl_rescue_guard_for(Meta, Var, Module).

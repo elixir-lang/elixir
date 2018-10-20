@@ -554,7 +554,7 @@ defmodule Supervisor do
   @doc """
   Starts a supervisor with the given children.
 
-  The children is a list of modules, 2-element tuples with module and
+  The children is a list of modules, two-element tuples with module and
   arguments or a map with the child specification. A strategy is required
   to be provided through the `:strategy` option. See
   "start_link/2, init/2, and strategies" for examples and other options.

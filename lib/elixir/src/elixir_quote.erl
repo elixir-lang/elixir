@@ -248,7 +248,7 @@ do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
 do_quote({Name, Meta, ArgsOrAtom}, #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(Name) ->
   do_quote_import(Name, Meta, ArgsOrAtom, Q, E);
 
-%% Two element tuples
+%% Two-element tuples
 
 do_quote({Left, Right}, #elixir_quote{unquote=true} = Q, E) when
     is_tuple(Left)  andalso (element(1, Left) == unquote_splicing);

@@ -45,7 +45,7 @@ defmodule Kernel.ParallelCompiler do
 
   It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`.
 
-  Both errors and warnings are a list of three element tuples containing
+  Both errors and warnings are a list of three-element tuples containing
   the file, line and the formatted error/warning.
 
   ## Options
@@ -90,7 +90,7 @@ defmodule Kernel.ParallelCompiler do
 
   It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`.
 
-  Both errors and warnings are a list of three element tuples containing
+  Both errors and warnings are a list of three-element tuples containing
   the file, line and the formatted error/warning.
 
   ## Options
