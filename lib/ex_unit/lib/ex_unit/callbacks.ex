@@ -17,7 +17,7 @@ defmodule ExUnit.Callbacks do
   is run if the test case has no tests or all tests have been filtered out.
 
   `setup` and `setup_all` callbacks can be defined by a block, by passing
-  an atom naming a unary function, or by passing a list of such
+  an atom naming a one-arity function, or by passing a list of such
   atoms. Both can opt to receive the current context by specifying it
   as parameter if defined by a block. Functions used to define a test
   setup must accept the context as single argument.
@@ -140,10 +140,10 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Pass a block or name of a unary function as atom, or list of such
-  atoms.
+  Accepts a block or the name of a publicly accessible one-arity function in the shape of an atom,
+  or a list of such atoms.
 
-  Can return values to be merged into the context, to set up state for
+  Can return values to be merged into the context, to set up the state for
   tests. For more details, see the "Context" section shown above.
 
   ## Examples
@@ -174,10 +174,10 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Pass a block or name of a unary function as atom, or list of such
-  atoms.
+  Pass a block or name of a publicly accessible one-arity function as an atom,
+  or a list of such atoms.
 
-  Can return values to be merged into the context, to set up state for
+  Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
 
   ## Examples
@@ -187,14 +187,14 @@ defmodule ExUnit.Callbacks do
       end
 
   """
-  defmacro setup(var, block) do
-    do_setup(var, block)
+  defmacro setup(context, block) do
+    do_setup(context, block)
   end
 
-  defp do_setup(var, block) do
-    quote bind_quoted: [var: escape(var), block: escape(block)] do
+  defp do_setup(context, block) do
+    quote bind_quoted: [context: escape(context), block: escape(block)] do
       name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
-      defp unquote(name)(unquote(var)), unquote(block)
+      defp unquote(name)(unquote(context)), unquote(block)
       @ex_unit_setup [{name, @ex_unit_describe} | @ex_unit_setup]
     end
   end
@@ -202,10 +202,10 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Pass a block or name of a unary function as atom, or list of such
-  atoms.
+  Accepts a block or the name of a publicly accessible one-arity function in the shape of an atom,
+  or a list of such atoms.
 
-  Can return values to be merged into the context, to set up state for
+  Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
 
   ## Examples
@@ -215,11 +215,13 @@ defmodule ExUnit.Callbacks do
         :ok
       end
 
-      setup_all :clean_up_tmp_directory
-
+      # block
       setup_all do
         [conn: Plug.Conn.build_conn()]
       end
+
+      # on-arity function name
+      setup_all :clean_up_tmp_directory
 
   """
   defmacro setup_all(block) do
@@ -240,10 +242,10 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Pass a block or name of a unary function as atom, or list of such
-  atoms.
+  Accepts a block or the name of a publicly accessible one-arity function in the shape of an atom,
+  or a list of such atoms.
 
-  Can return values to be merged into the context, to set up state for
+  Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
 
   ## Examples
@@ -253,15 +255,15 @@ defmodule ExUnit.Callbacks do
       end
 
   """
-  defmacro setup_all(var, block) do
-    do_setup_all(var, block)
+  defmacro setup_all(context, block) do
+    do_setup_all(context, block)
   end
 
-  defp do_setup_all(var, block) do
-    quote bind_quoted: [var: escape(var), block: escape(block)] do
+  defp do_setup_all(context, block) do
+    quote bind_quoted: [context: escape(context), block: escape(block)] do
       @ex_unit_describe && raise "cannot invoke setup_all/2 inside describe"
       name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
-      defp unquote(name)(unquote(var)), unquote(block)
+      defp unquote(name)(unquote(context)), unquote(block)
       @ex_unit_setup_all [{name, nil} | @ex_unit_setup_all]
     end
   end
