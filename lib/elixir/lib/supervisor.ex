@@ -587,7 +587,7 @@ defmodule Supervisor do
   end
 
   @doc """
-  Receives a list of children to initialize and a set of options.
+  Receives a list of `children` to initialize and a set of `options`.
 
   This is typically invoked at the end of the `c:init/1` callback of
   module-based supervisors. See the sections "Module-based supervisors"
