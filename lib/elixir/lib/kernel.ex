@@ -1920,8 +1920,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Matches the term on the left against the regular expression or string on the
-  right.
+  Matches the term on the `left` against the regular expression or string on the
+  `right`.
 
   Returns `true` if `left` matches `right` (if it's a regular expression)
   or contains `right` (if it's a string).
