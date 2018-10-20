@@ -47,7 +47,7 @@ defmodule ExUnit.Diff do
     end
   end
 
-  # Char lists and lists
+  # Charlists and lists
   def script(left, right) when is_list(left) and is_list(right) do
     if List.ascii_printable?(left) and List.ascii_printable?(right) do
       script_string(List.to_string(left), List.to_string(right), ?')

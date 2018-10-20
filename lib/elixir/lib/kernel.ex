@@ -104,7 +104,7 @@ defmodule Kernel do
     * `Inspect` - converts data types into their programming language
       representation
     * `List.Chars` - converts data types to their outside world
-      representation as char lists (non-programming based)
+      representation as charlists (non-programming based)
     * `String.Chars` - converts data types to their outside world
       representation as strings (non-programming based)
 
