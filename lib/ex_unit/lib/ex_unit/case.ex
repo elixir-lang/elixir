@@ -435,7 +435,7 @@ defmodule ExUnit.Case do
   @doc """
   Registers a function to run as part of this case.
 
-  This is used by 3rd party projects, like QuickCheck, to
+  This is used by third-party projects, like QuickCheck, to
   implement macros like `property/3` that works like `test`
   but instead defines a property. See `test/3` implementation
   for an example of invoking this function.
