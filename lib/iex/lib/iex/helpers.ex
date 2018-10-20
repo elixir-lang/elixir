@@ -152,7 +152,7 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      iex> c(["foo.ex", "bar.ex"], "ebin")
+      iex> c(["foo.ex", "bar.ex"], "src")
       [Foo, Bar]
 
       iex> c("baz.ex")
