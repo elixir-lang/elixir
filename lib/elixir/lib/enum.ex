@@ -1970,9 +1970,9 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.reduce_while(1..100, 0, fn x, acc ->
-      ...>   if x < 3, do: {:cont, acc + x}, else: {:halt, acc}
+      ...>   if x < 5, do: {:cont, acc + x}, else: {:halt, acc}
       ...> end)
-      3
+      10
 
   """
   @spec reduce_while(t, any, (element, any -> {:cont, any} | {:halt, any})) :: any
