@@ -238,8 +238,8 @@ defmodule Kernel.Typespec do
 
       case type_to_signature(expr) do
         {name, arity} = type_pair ->
-          if builtin_type?(name, arity) do
-            message = "type #{name}/#{arity} is a builtin type and it cannot be redefined"
+          if built_in_type?(name, arity) do
+            message = "type #{name}/#{arity} is a built-in type and it cannot be redefined"
             compile_error(env, message)
           end
 
@@ -379,15 +379,15 @@ defmodule Kernel.Typespec do
   end
 
   # TODO: Remove char_list type by 2.0
-  defp builtin_type?(:char_list, 0), do: true
-  defp builtin_type?(:charlist, 0), do: true
-  defp builtin_type?(:as_boolean, 1), do: true
-  defp builtin_type?(:struct, 0), do: true
-  defp builtin_type?(:nonempty_charlist, 0), do: true
-  defp builtin_type?(:keyword, 0), do: true
-  defp builtin_type?(:keyword, 1), do: true
-  defp builtin_type?(:var, 0), do: true
-  defp builtin_type?(name, arity), do: :erl_internal.is_type(name, arity)
+  defp built_in_type?(:char_list, 0), do: true
+  defp built_in_type?(:charlist, 0), do: true
+  defp built_in_type?(:as_boolean, 1), do: true
+  defp built_in_type?(:struct, 0), do: true
+  defp built_in_type?(:nonempty_charlist, 0), do: true
+  defp built_in_type?(:keyword, 0), do: true
+  defp built_in_type?(:keyword, 1), do: true
+  defp built_in_type?(:var, 0), do: true
+  defp built_in_type?(name, arity), do: :erl_internal.is_type(name, arity)
 
   defp ensure_no_defaults!(args) do
     Enum.each(args, fn

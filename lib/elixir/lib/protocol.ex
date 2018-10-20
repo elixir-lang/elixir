@@ -341,7 +341,7 @@ defmodule Protocol do
   # impl_for/1 dispatch version.
   defp change_debug_info(protocol, {any, definitions}, types) do
     types = if any, do: types, else: List.delete(types, Any)
-    all = [Any] ++ for {_guard, mod} <- __builtin__(), do: mod
+    all = [Any] ++ for {_guard, mod} <- __built_in__(), do: mod
     structs = types -- all
 
     case List.keytake(definitions, {:__protocol__, 1}, 0) do
@@ -376,9 +376,9 @@ defmodule Protocol do
     line = meta[:line]
 
     clauses =
-      for {guard, mod} <- __builtin__(),
+      for {guard, mod} <- __built_in__(),
           mod in types,
-          do: builtin_clause_for(mod, guard, protocol, meta, line)
+          do: built_in_clause_for(mod, guard, protocol, meta, line)
 
     struct_clause = struct_clause_for(meta, line)
     fallback_clause = fallback_clause_for(fallback, protocol, meta)
@@ -395,7 +395,7 @@ defmodule Protocol do
     {{:struct_impl_for, 1}, :defp, meta, clauses}
   end
 
-  defp builtin_clause_for(mod, guard, protocol, meta, line) do
+  defp built_in_clause_for(mod, guard, protocol, meta, line) do
     x = quote(line: line, do: x)
     guard = quote(line: line, do: :erlang.unquote(guard)(unquote(x)))
     body = load_impl(protocol, mod)
@@ -467,7 +467,7 @@ defmodule Protocol do
   end
 
   defp after_defprotocol do
-    quote bind_quoted: [builtin: __builtin__()] do
+    quote bind_quoted: [built_in: __built_in__()] do
       any_impl_for =
         if @fallback_to_any do
           quote do: unquote(__MODULE__.Any).__impl__(:target)
@@ -504,7 +504,7 @@ defmodule Protocol do
             end
           end
         end,
-        builtin
+        built_in
       )
 
       # Define a catch-all impl_for/1 clause to pacify Dialyzer (since
@@ -690,7 +690,7 @@ defmodule Protocol do
   ## Helpers
 
   @doc false
-  def __builtin__ do
+  def __built_in__ do
     [
       is_tuple: Tuple,
       is_atom: Atom,

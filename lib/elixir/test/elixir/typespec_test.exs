@@ -446,7 +446,7 @@ defmodule TypespecTest do
     end
 
     test "@type when overriding Elixir built-in" do
-      assert_raise CompileError, ~r"type struct/0 is a builtin type", fn ->
+      assert_raise CompileError, ~r"type struct/0 is a built-in type", fn ->
         test_module do
           @type struct :: :oops
         end
@@ -454,7 +454,7 @@ defmodule TypespecTest do
     end
 
     test "@type when overriding Erlang built-in" do
-      assert_raise CompileError, ~r"type list/0 is a builtin type", fn ->
+      assert_raise CompileError, ~r"type list/0 is a built-in type", fn ->
         test_module do
           @type list :: :oops
         end
@@ -1194,36 +1194,36 @@ defmodule TypespecTest do
           quote(do: @type(literal_2_element_tuple() :: {1, 2})),
 
           ## Built-in types
-          quote(do: @type(builtin_term() :: term())),
-          quote(do: @type(builtin_arity() :: arity())),
-          quote(do: @type(builtin_as_boolean() :: as_boolean(:t))),
-          quote(do: @type(builtin_binary() :: binary())),
-          quote(do: @type(builtin_bitstring() :: bitstring())),
-          quote(do: @type(builtin_boolean() :: boolean())),
-          quote(do: @type(builtin_byte() :: byte())),
-          quote(do: @type(builtin_char() :: char())),
-          quote(do: @type(builtin_charlist() :: charlist())),
-          quote(do: @type(builtin_nonempty_charlist() :: nonempty_charlist())),
-          quote(do: @type(builtin_fun() :: fun())),
-          quote(do: @type(builtin_function() :: function())),
-          quote(do: @type(builtin_identifier() :: identifier())),
-          quote(do: @type(builtin_iodata() :: iodata())),
-          quote(do: @type(builtin_iolist() :: iolist())),
-          quote(do: @type(builtin_keyword() :: keyword())),
-          quote(do: @type(builtin_keyword_value_type() :: keyword(:t))),
-          quote(do: @type(builtin_list() :: list())),
-          quote(do: @type(builtin_nonempty_list() :: nonempty_list())),
-          quote(do: @type(builtin_maybe_improper_list() :: maybe_improper_list())),
+          quote(do: @type(built_in_term() :: term())),
+          quote(do: @type(built_in_arity() :: arity())),
+          quote(do: @type(built_in_as_boolean() :: as_boolean(:t))),
+          quote(do: @type(built_in_binary() :: binary())),
+          quote(do: @type(built_in_bitstring() :: bitstring())),
+          quote(do: @type(built_in_boolean() :: boolean())),
+          quote(do: @type(built_in_byte() :: byte())),
+          quote(do: @type(built_in_char() :: char())),
+          quote(do: @type(built_in_charlist() :: charlist())),
+          quote(do: @type(built_in_nonempty_charlist() :: nonempty_charlist())),
+          quote(do: @type(built_in_fun() :: fun())),
+          quote(do: @type(built_in_function() :: function())),
+          quote(do: @type(built_in_identifier() :: identifier())),
+          quote(do: @type(built_in_iodata() :: iodata())),
+          quote(do: @type(built_in_iolist() :: iolist())),
+          quote(do: @type(built_in_keyword() :: keyword())),
+          quote(do: @type(built_in_keyword_value_type() :: keyword(:t))),
+          quote(do: @type(built_in_list() :: list())),
+          quote(do: @type(built_in_nonempty_list() :: nonempty_list())),
+          quote(do: @type(built_in_maybe_improper_list() :: maybe_improper_list())),
           quote(
-            do: @type(builtin_nonempty_maybe_improper_list() :: nonempty_maybe_improper_list())
+            do: @type(built_in_nonempty_maybe_improper_list() :: nonempty_maybe_improper_list())
           ),
-          quote(do: @type(builtin_mfa() :: mfa())),
-          quote(do: @type(builtin_module() :: module())),
-          quote(do: @type(builtin_no_return() :: no_return())),
-          quote(do: @type(builtin_node() :: node())),
-          quote(do: @type(builtin_number() :: number())),
-          quote(do: @type(builtin_struct() :: struct())),
-          quote(do: @type(builtin_timeout() :: timeout())),
+          quote(do: @type(built_in_mfa() :: mfa())),
+          quote(do: @type(built_in_module() :: module())),
+          quote(do: @type(built_in_no_return() :: no_return())),
+          quote(do: @type(built_in_node() :: node())),
+          quote(do: @type(built_in_number() :: number())),
+          quote(do: @type(built_in_struct() :: struct())),
+          quote(do: @type(built_in_timeout() :: timeout())),
 
           ## Remote types
           quote(do: @type(remote_enum_t0() :: Enum.t())),
@@ -1266,11 +1266,11 @@ defmodule TypespecTest do
             assert ast_string ==
                      "@type(literal_struct_all_fields_key_type() :: %TypespecTest.SomeStruct{key: integer()})"
 
-          {:builtin_fun, _, _} ->
-            assert ast_string == "@type(builtin_fun() :: (... -> any()))"
+          {:built_in_fun, _, _} ->
+            assert ast_string == "@type(built_in_fun() :: (... -> any()))"
 
-          {:builtin_nonempty_list, _, _} ->
-            assert ast_string == "@type(builtin_nonempty_list() :: [...])"
+          {:built_in_nonempty_list, _, _} ->
+            assert ast_string == "@type(built_in_nonempty_list() :: [...])"
 
           _ ->
             assert ast_string == Macro.to_string(definition)
