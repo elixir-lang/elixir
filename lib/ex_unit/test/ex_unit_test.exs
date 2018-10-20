@@ -136,7 +136,7 @@ defmodule ExUnitTest do
     assert config[:max_cases] == 1
   end
 
-  test "filters to the given test ids when an `only_test_ids` option is provided" do
+  test "filters to the given test IDs when the `only_test_ids` option is provided" do
     defmodule TestIdTestModule do
       use ExUnit.Case
 
