@@ -499,11 +499,11 @@ defmodule ExUnitTest do
   end
 
   @doc """
-    Skipped and excluded tests should be included in the stats as well as printed to stdout.
-    On the other hand, invalid tests should be marked as failures in the stats,
-    but still be printed as "invalid" to stdout.
+  Skipped and excluded tests should be included in the stats as well as printed to stdout.
+  On the other hand, invalid tests should be marked as failures in the stats,
+  but still be printed as "invalid" to stdout.
 
-    If setup_all fails, the skipped and excluded tests should not be counted as invalid or failures.
+  If setup_all fails, the skipped and excluded tests should not be counted as invalid or failures.
   """
   test "skipped and excluded" do
     defmodule SkippedAndExcludedTests do
