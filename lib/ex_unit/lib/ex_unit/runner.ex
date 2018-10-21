@@ -120,17 +120,17 @@ defmodule ExUnit.Runner do
 
     # Prepare tests, selecting which ones should be run or skipped
     tests = prepare_tests(config, test_module.tests)
-    {excluded_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
+    {excluded_and_skipped_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
 
     {test_module, invalid_tests, finished_tests} = spawn_module(config, test_module, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
         :no ->
-          invalid_tests ++ excluded_tests
+          invalid_tests ++ excluded_and_skipped_tests
 
         {:reached, n} ->
-          Enum.take(invalid_tests, n) ++ excluded_tests
+          Enum.take(invalid_tests, n) ++ excluded_and_skipped_tests
 
         :surpassed ->
           nil
