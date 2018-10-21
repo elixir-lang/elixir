@@ -106,9 +106,9 @@ To recompile (including Erlang modules):
 make compile
 ```
 
-After your changes are done, please remember to run the full suite with
-`make test` and then `mix format` to guarantee all files are properly
-formatted.
+After your changes are done, please remember to run `mix format` to guarantee
+all files are properly formatted and then run the full suite with
+`make test`.
 
 If your contribution fails during the bootstrapping of the language,
 you can rebuild the language from scratch with:
