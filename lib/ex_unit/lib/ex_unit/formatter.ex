@@ -397,7 +397,8 @@ defmodule ExUnit.Formatter do
     "#{counter}) #{msg}"
   end
 
-  defp test_module_info(msg, nil), do: msg <> "failure on setup_all callback, test invalidated\n"
+  defp test_module_info(msg, nil),
+    do: msg <> "failure on setup_all callback, all tests have been invalidated\n"
 
   defp test_module_info(msg, formatter),
     do: test_module_info(formatter.(:test_module_info, msg), nil)
