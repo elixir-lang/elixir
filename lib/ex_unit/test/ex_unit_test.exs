@@ -505,8 +505,8 @@ defmodule ExUnitTest do
 
   If setup_all fails, the skipped and excluded tests should not be counted as invalid or failures.
   """
-  test "skipped and excluded" do
-    defmodule SkippedAndExcludedTests do
+  test "setup_all fails and module has skipped and excluded tests" do
+    defmodule SetupAllFailsModuleHasSkippedExcludedTest do
       use ExUnit.Case
 
       setup_all do
@@ -535,37 +535,6 @@ defmodule ExUnitTest do
       end)
 
     refute output =~ max_failures_reached_msg()
-    assert strip(output) =~ "6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped"
-  end
-
-  test "check for invalid and excluded tests in stdout" do
-    defmodule CheckForInvalidExcludedStdoutTest do
-      use ExUnit.Case
-
-      setup_all do
-        raise "oops"
-      end
-
-      @tag :skip
-      test "skipped", do: assert(true)
-
-      test "pass #{__ENV__.line}", do: assert(true)
-      test "pass #{__ENV__.line}", do: assert(true)
-      test "fail #{__ENV__.line}", do: assert(false)
-      test "fail #{__ENV__.line}", do: assert(false)
-
-      @tag :exclude
-      test "exclude me please", do: assert(true)
-    end
-
-    ExUnit.Server.modules_loaded()
-
-    output =
-      capture_io(fn ->
-        predictable_ex_unit_start(exclude: [:exclude])
-        assert ExUnit.run() == %{total: 6, failures: 4, skipped: 1, excluded: 1}
-      end)
-
     assert strip(output) =~ "6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped"
   end
 
