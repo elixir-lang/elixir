@@ -180,34 +180,43 @@ defmodule VersionTest do
     assert Version.match?("2.3.0", "<= 2.3.0")
   end
 
-  test "~>" do
-    assert Version.match?("3.0.0", "~> 3.0")
-    assert Version.match?("3.2.0", "~> 3.0")
-    refute Version.match?("4.0.0", "~> 3.0")
-    refute Version.match?("4.4.0", "~> 3.0")
+  describe "~>" do
+    test "regular cases" do
+      assert Version.match?("3.0.0", "~> 3.0")
+      assert Version.match?("3.2.0", "~> 3.0")
+      refute Version.match?("4.0.0", "~> 3.0")
+      refute Version.match?("4.4.0", "~> 3.0")
 
-    assert Version.match?("3.0.2", "~> 3.0.0")
-    assert Version.match?("3.0.0", "~> 3.0.0")
-    refute Version.match?("3.1.0", "~> 3.0.0")
-    refute Version.match?("3.4.0", "~> 3.0.0")
+      assert Version.match?("3.0.2", "~> 3.0.0")
+      assert Version.match?("3.0.0", "~> 3.0.0")
+      refute Version.match?("3.1.0", "~> 3.0.0")
+      refute Version.match?("3.4.0", "~> 3.0.0")
 
-    assert Version.match?("3.6.0", "~> 3.5")
-    assert Version.match?("3.5.0", "~> 3.5")
-    refute Version.match?("4.0.0", "~> 3.5")
-    refute Version.match?("5.0.0", "~> 3.5")
+      assert Version.match?("3.6.0", "~> 3.5")
+      assert Version.match?("3.5.0", "~> 3.5")
+      refute Version.match?("4.0.0", "~> 3.5")
+      refute Version.match?("5.0.0", "~> 3.5")
 
-    assert Version.match?("3.5.2", "~> 3.5.0")
-    assert Version.match?("3.5.4", "~> 3.5.0")
-    refute Version.match?("3.6.0", "~> 3.5.0")
-    refute Version.match?("3.6.3", "~> 3.5.0")
+      assert Version.match?("3.5.2", "~> 3.5.0")
+      assert Version.match?("3.5.4", "~> 3.5.0")
+      refute Version.match?("3.6.0", "~> 3.5.0")
+      refute Version.match?("3.6.3", "~> 3.5.0")
 
-    assert Version.match?("0.9.3", "~> 0.9.3-dev")
-    refute Version.match?("0.10.0", "~> 0.9.3-dev")
+      assert Version.match?("0.9.3", "~> 0.9.3-dev")
+      refute Version.match?("0.10.0", "~> 0.9.3-dev")
 
-    refute Version.match?("0.3.0-dev", "~> 0.2.0")
+      refute Version.match?("0.3.0-dev", "~> 0.2.0")
 
-    assert_raise Version.InvalidRequirementError, fn ->
-      Version.match?("3.0.0", "~> 3")
+      assert_raise Version.InvalidRequirementError, fn ->
+        Version.match?("3.0.0", "~> 3")
+      end
+    end
+
+    test "~> will never include pre-release versions of its upper bound" do
+      refute Version.match?("2.2.0-dev", "~> 2.1.0")
+      refute Version.match?("2.2.0-dev", "~> 2.1.0", allow_pre: false)
+      refute Version.match?("2.2.0-dev", "~> 2.1.0-dev")
+      refute Version.match?("2.2.0-dev", "~> 2.1.0-dev", allow_pre: false)
     end
   end
 
