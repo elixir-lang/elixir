@@ -378,13 +378,11 @@ defmodule ExUnit.Runner do
 
   defp process_max_failures(%{max_failures: :infinity}, _), do: :no
 
-  defp process_max_failures(config, %ExUnit.TestModule{state: {tag, _}, tests: tests})
-       when tag in [:failed] do
+  defp process_max_failures(config, %ExUnit.TestModule{state: {:failed, _}, tests: tests}) do
     process_max_failures(config.stats_pid, config.max_failures, length(tests))
   end
 
-  defp process_max_failures(config, %ExUnit.Test{state: {tag, _}})
-       when tag in [:failed] do
+  defp process_max_failures(config, %ExUnit.Test{state: {:failed, _}}) do
     process_max_failures(config.stats_pid, config.max_failures, 1)
   end
 
