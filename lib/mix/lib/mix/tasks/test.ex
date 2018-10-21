@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Test do
 
   This task starts the current application, loads up
   `test/test_helper.exs` and then requires all files matching the
-  `test/**/_test.exs` pattern in parallel.
+  `test/**/*_test.exs` pattern in parallel.
 
   A list of files can be given after the task name in order to select
   the files to compile:
