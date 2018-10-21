@@ -636,7 +636,7 @@ defmodule ExUnitTest do
         end)
 
       refute output =~ max_failures_reached_msg()
-      assert output =~ "6 tests, 2 failures"
+      assert strip(output) =~ "6 tests, 2 failures, 1 skipped"
     end
 
     test ":max_failures has been reached" do
