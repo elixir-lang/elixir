@@ -2,7 +2,7 @@ defmodule ExUnit.RunnerStats do
   @moduledoc false
 
   use GenServer
-  alias ExUnit.{FailuresManifest, Test, TestModule}
+  alias ExUnit.{FailuresManifest, Test}
 
   @typep counter :: non_neg_integer
 
@@ -67,12 +67,6 @@ defmodule ExUnit.RunnerStats do
       |> increment_status_counter(test.state)
 
     {:noreply, state}
-  end
-
-  def handle_cast({:module_finished, %TestModule{state: {:failed, _}} = test_module}, state) do
-    %{failures: failures, total: total} = state
-    test_count = length(test_module.tests)
-    {:noreply, %{state | failures: failures + test_count, total: total + test_count}}
   end
 
   def handle_cast({:suite_started, _opts}, %{failures_manifest_file: file} = state)

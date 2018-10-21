@@ -150,12 +150,6 @@ defmodule ExUnit.CLIFormatter do
 
     print_failure(formatted, config)
 
-    test_counter =
-      Enum.reduce(test_module.tests, config.test_counter, &update_test_counter(&2, &1))
-
-    failure_counter = config.failure_counter + tests_length
-    config = %{config | test_counter: test_counter, failure_counter: failure_counter}
-
     {:noreply, config}
   end
 

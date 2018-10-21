@@ -347,15 +347,15 @@ defmodule ExUnitTest do
     end
 
     ExUnit.Server.modules_loaded()
+    on_exit_reload_config(colors: [enabled: false])
 
     output =
       capture_io(fn ->
+        predictable_ex_unit_start([])
         assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2, excluded: 0}
       end)
 
-    assert output =~ "2 tests"
-    assert output =~ "0 failures"
-    assert output =~ "2 skipped"
+    assert output =~ "2 tests, 0 failures, 2 skipped"
   end
 
   test "filtering cases with :module tag" do
@@ -498,6 +498,46 @@ defmodule ExUnitTest do
     ExUnit.configure(seed: global_seed)
   end
 
+  @doc """
+  Skipped and excluded tests should be included in the stats as well as printed to stdout.
+  On the other hand, invalid tests should be marked as failures in the stats,
+  but still be printed as "invalid" to stdout.
+
+  If setup_all fails, the skipped and excluded tests should not be counted as invalid or failures.
+  """
+  test "setup_all fails and module has skipped and excluded tests" do
+    defmodule SetupAllFailsModuleHasSkippedExcludedTest do
+      use ExUnit.Case
+
+      setup_all do
+        raise "oops"
+      end
+
+      @tag :skip
+      test "skipped #{__ENV__.line}", do: assert(false)
+
+      test "pass #{__ENV__.line}", do: assert(true)
+      test "pass #{__ENV__.line}", do: assert(true)
+      test "fail #{__ENV__.line}", do: assert(false)
+      test "fail #{__ENV__.line}", do: assert(false)
+
+      @tag :exclude
+      test "excluded #{__ENV__.line}", do: assert(false)
+    end
+
+    ExUnit.Server.modules_loaded()
+    on_exit_reload_config()
+
+    output =
+      capture_io(fn ->
+        predictable_ex_unit_start([])
+        assert ExUnit.run() == %{total: 6, failures: 4, excluded: 1, skipped: 1}
+      end)
+
+    refute output =~ max_failures_reached_msg()
+    assert output =~ "6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped"
+  end
+
   describe "after_suite/1" do
     test "executes all callbacks set in reverse order" do
       Process.register(self(), :after_suite_test_process)
@@ -552,12 +592,16 @@ defmodule ExUnitTest do
         use ExUnit.Case
 
         @tag :skip
-        test __ENV__.line, do: assert(true)
+        test "skipped #{__ENV__.line}", do: assert(false)
+
         test __ENV__.line, do: assert(true)
         test __ENV__.line, do: assert(true)
         test __ENV__.line, do: assert(false)
         test __ENV__.line, do: assert(false)
         test __ENV__.line, do: assert(true)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(false)
       end
 
       ExUnit.Server.modules_loaded()
@@ -566,11 +610,11 @@ defmodule ExUnitTest do
       output =
         capture_io(fn ->
           predictable_ex_unit_start(max_failures: 2)
-          assert ExUnit.run() == %{total: 4, failures: 2, skipped: 0, excluded: 0}
+          assert ExUnit.run() == %{total: 6, failures: 2, skipped: 1, excluded: 1}
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "4 tests, 2 failures"
+      assert output =~ "6 tests, 2 failures, 1 excluded, 1 skipped"
     end
 
     test ":max_failures is not reached" do
@@ -578,12 +622,19 @@ defmodule ExUnitTest do
         use ExUnit.Case
 
         @tag :skip
-        test "pass #{__ENV__.line}", do: assert(true)
+        test "skipped #{__ENV__.line}", do: assert(true)
+
         test "pass #{__ENV__.line}", do: assert(true)
         test "fail #{__ENV__.line}", do: assert(false)
         test "pass #{__ENV__.line}", do: assert(true)
         test "fail #{__ENV__.line}", do: assert(false)
         test "pass #{__ENV__.line}", do: assert(true)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(true)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(false)
       end
 
       ExUnit.Server.modules_loaded()
@@ -592,11 +643,11 @@ defmodule ExUnitTest do
       output =
         capture_io(fn ->
           predictable_ex_unit_start(max_failures: 3)
-          assert ExUnit.run() == %{total: 6, excluded: 0, failures: 2, skipped: 1}
+          assert ExUnit.run() == %{total: 8, excluded: 2, failures: 2, skipped: 1}
         end)
 
       refute output =~ max_failures_reached_msg()
-      assert output =~ "6 tests, 2 failures"
+      assert output =~ "8 tests, 2 failures, 2 excluded, 1 skipped"
     end
 
     test ":max_failures has been reached" do
@@ -604,12 +655,22 @@ defmodule ExUnitTest do
         use ExUnit.Case
 
         @tag :skip
-        test "pass #{__ENV__.line}", do: assert(true)
+        test "skipped #{__ENV__.line}", do: assert(true)
+
+        @tag :skip
+        test "skipped #{__ENV__.line}", do: assert(false)
+
         test "pass #{__ENV__.line}", do: assert(true)
         test "fail #{__ENV__.line}", do: assert(false)
         test "fail #{__ENV__.line}", do: assert(false)
         test "fail #{__ENV__.line}", do: assert(false)
         test "pass #{__ENV__.line}", do: assert(true)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(true)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(true)
       end
 
       ExUnit.Server.modules_loaded()
@@ -618,13 +679,17 @@ defmodule ExUnitTest do
       output =
         capture_io(fn ->
           predictable_ex_unit_start(max_failures: 2)
-          assert ExUnit.run() == %{total: 3, failures: 2, excluded: 0, skipped: 0}
+          assert ExUnit.run() == %{total: 7, failures: 2, excluded: 2, skipped: 2}
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "3 tests, 2 failures"
+      assert output =~ "7 tests, 2 failures, 2 excluded, 2 skipped"
     end
 
+    @doc """
+    Excluded and skipped tests are detected before setup_all callback is executed,
+    therefore they are always included as part of the total number of tests in the stats.
+    """
     test ":max_failures on setup_all errors" do
       defmodule TestMaxFailuresSetupAll do
         use ExUnit.Case
@@ -634,11 +699,15 @@ defmodule ExUnitTest do
         end
 
         @tag :skip
-        test "skipped", do: assert(true)
+        test "skipped #{__ENV__.line}", do: assert(true)
+
         test "pass #{__ENV__.line}", do: assert(true)
         test "pass #{__ENV__.line}", do: assert(true)
         test "fail #{__ENV__.line}", do: assert(false)
         test "fail #{__ENV__.line}", do: assert(false)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(false)
       end
 
       ExUnit.Server.modules_loaded()
@@ -647,11 +716,11 @@ defmodule ExUnitTest do
       output =
         capture_io(fn ->
           predictable_ex_unit_start(max_failures: 2)
-          assert ExUnit.run() == %{total: 2, failures: 2, excluded: 0, skipped: 0}
+          assert ExUnit.run() == %{total: 4, failures: 2, excluded: 1, skipped: 1}
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "2 tests, 2 failures"
+      assert output =~ "4 tests, 0 failures, 1 excluded, 2 invalid, 1 skipped"
     end
 
     test ":max_failures flushes all async/sync cases" do
@@ -714,7 +783,9 @@ defmodule ExUnitTest do
 
   # Runs ExUnit.start/1 with common options needed for predictability
   def predictable_ex_unit_start(options) do
-    ExUnit.start(options ++ [autorun: false, seed: 0])
+    ExUnit.start(
+      options ++ [autorun: false, seed: 0, colors: [enabled: false], exclude: [:exclude]]
+    )
   end
 
   defp max_failures_reached_msg() do

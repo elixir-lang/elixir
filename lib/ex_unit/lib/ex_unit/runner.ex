@@ -120,19 +120,19 @@ defmodule ExUnit.Runner do
 
     # Prepare tests, selecting which ones should be run or skipped
     tests = prepare_tests(config, test_module.tests)
-    {excluded_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
+    {excluded_and_skipped_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
+
+    for excluded_or_skipped_test <- excluded_and_skipped_tests do
+      EM.test_started(config.manager, excluded_or_skipped_test)
+      EM.test_finished(config.manager, excluded_or_skipped_test)
+    end
 
     {test_module, invalid_tests, finished_tests} = spawn_module(config, test_module, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
         :no ->
-          for test <- excluded_tests do
-            EM.test_started(config.manager, test)
-            EM.test_finished(config.manager, test)
-          end
-
-          invalid_tests ++ excluded_tests
+          invalid_tests
 
         {:reached, n} ->
           Enum.take(invalid_tests, n)
@@ -141,7 +141,14 @@ defmodule ExUnit.Runner do
           nil
       end
 
+    # If pending_tests is [], EM.module_finished is still called.
+    # Only if process_max_failures/2 returns :surpassed it is not.
     if pending_tests do
+      for pending_test <- pending_tests do
+        EM.test_started(config.manager, pending_test)
+        EM.test_finished(config.manager, pending_test)
+      end
+
       test_module = %{test_module | tests: Enum.reverse(finished_tests, pending_tests)}
       EM.module_finished(config.manager, test_module)
     end
@@ -371,8 +378,7 @@ defmodule ExUnit.Runner do
 
   defp process_max_failures(%{max_failures: :infinity}, _), do: :no
 
-  defp process_max_failures(config, %ExUnit.TestModule{state: {tag, _}, tests: tests})
-       when tag in [:failed, :invalid] do
+  defp process_max_failures(config, %ExUnit.TestModule{state: {:failed, _}, tests: tests}) do
     process_max_failures(config.stats_pid, config.max_failures, length(tests))
   end
 
