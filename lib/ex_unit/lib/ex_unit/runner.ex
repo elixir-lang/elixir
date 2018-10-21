@@ -141,6 +141,8 @@ defmodule ExUnit.Runner do
           nil
       end
 
+    # If pending_tests is [], EM.module_finished is still called.
+    # Only if process_max_failures/2 returns :surpassed it is not.
     if pending_tests do
       for pending_test <- pending_tests do
         EM.test_started(config.manager, pending_test)
