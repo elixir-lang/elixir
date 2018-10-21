@@ -637,11 +637,11 @@ defmodule ExUnitTest do
       output =
         capture_io(fn ->
           predictable_ex_unit_start(max_failures: 2)
-          assert ExUnit.run() == %{total: 4, failures: 2, skipped: 0, excluded: 0}
+          assert ExUnit.run() == %{total: 5, failures: 2, skipped: 1, excluded: 0}
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "4 tests, 2 failures"
+      assert strip(output) =~ "5 tests, 2 failures, 1 skipped"
     end
 
     test ":max_failures is not reached" do
@@ -689,11 +689,11 @@ defmodule ExUnitTest do
       output =
         capture_io(fn ->
           predictable_ex_unit_start(max_failures: 2)
-          assert ExUnit.run() == %{total: 3, failures: 2, excluded: 0, skipped: 0}
+          assert ExUnit.run() == %{total: 4, failures: 2, excluded: 0, skipped: 1}
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "3 tests, 2 failures"
+      assert strip(output) =~ "4 tests, 2 failures, 1 skipped"
     end
 
     @doc """

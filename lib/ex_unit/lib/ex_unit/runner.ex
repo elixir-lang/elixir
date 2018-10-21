@@ -122,33 +122,34 @@ defmodule ExUnit.Runner do
     tests = prepare_tests(config, test_module.tests)
     {excluded_and_skipped_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
 
+    for excluded_or_skipped_test <- excluded_and_skipped_tests do
+      EM.test_started(config.manager, excluded_or_skipped_test)
+      EM.test_finished(config.manager, excluded_or_skipped_test)
+    end
+
     {test_module, invalid_tests, finished_tests} = spawn_module(config, test_module, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
         :no ->
-          invalid_tests ++ excluded_and_skipped_tests
+          invalid_tests
 
         {:reached, n} ->
-          Enum.take(invalid_tests, n) ++ excluded_and_skipped_tests
+          Enum.take(invalid_tests, n)
 
         :surpassed ->
           nil
       end
 
-    test_module =
-      if pending_tests do
-        for pending_test <- pending_tests do
-          EM.test_started(config.manager, pending_test)
-          EM.test_finished(config.manager, pending_test)
-        end
-
-        %{test_module | tests: Enum.reverse(finished_tests, pending_tests)}
-      else
-        test_module
+    if pending_tests do
+      for pending_test <- pending_tests do
+        EM.test_started(config.manager, pending_test)
+        EM.test_finished(config.manager, pending_test)
       end
 
-    EM.module_finished(config.manager, test_module)
+      test_module = %{test_module | tests: Enum.reverse(finished_tests, pending_tests)}
+      EM.module_finished(config.manager, test_module)
+    end
 
     send(config.runner_pid, {self(), :module_finished})
   end
