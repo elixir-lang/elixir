@@ -535,7 +535,7 @@ defmodule ExUnitTest do
       end)
 
     refute output =~ max_failures_reached_msg()
-    assert strip(output) =~ "6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped"
+    assert output =~ "6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped"
   end
 
   describe "after_suite/1" do
@@ -610,7 +610,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert strip(output) =~ "5 tests, 2 failures, 1 skipped"
+      assert output =~ "5 tests, 2 failures, 1 skipped"
     end
 
     test ":max_failures is not reached" do
@@ -636,7 +636,7 @@ defmodule ExUnitTest do
         end)
 
       refute output =~ max_failures_reached_msg()
-      assert strip(output) =~ "6 tests, 2 failures, 1 skipped"
+      assert output =~ "6 tests, 2 failures, 1 skipped"
     end
 
     test ":max_failures has been reached" do
@@ -662,7 +662,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert strip(output) =~ "4 tests, 2 failures, 1 skipped"
+      assert output =~ "4 tests, 2 failures, 1 skipped"
     end
 
     @doc """
@@ -699,7 +699,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert strip(output) =~ "4 tests, 0 failures, 1 excluded, 2 invalid, 1 skipped"
+      assert output =~ "4 tests, 0 failures, 1 excluded, 2 invalid, 1 skipped"
     end
 
     test ":max_failures flushes all async/sync cases" do
@@ -762,15 +762,10 @@ defmodule ExUnitTest do
 
   # Runs ExUnit.start/1 with common options needed for predictability
   def predictable_ex_unit_start(options) do
-    ExUnit.start(options ++ [autorun: false, seed: 0])
+    ExUnit.start(options ++ [autorun: false, seed: 0, colors: [enabled: false]])
   end
 
   defp max_failures_reached_msg() do
     "--max-failures reached, aborting test suite"
-  end
-
-  # Strips escape-sequence colors from IO.ANSI strings
-  defp strip(string) do
-    String.replace(string, ~r/\e\[(\d+;?)+m/, "")
   end
 end
