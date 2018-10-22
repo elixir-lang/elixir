@@ -143,8 +143,8 @@ defmodule IEx.Helpers do
 
   It expects a list of files to compile and an optional path to write
   the compiled code to. By default files are in-memory compiled.
-  To write compiled files to a current directory use empty string "" for the path.
-  When compiling one file, there is no need to wrap it in a list.
+  To write compiled files to the current directory, an empty string
+  can be given. 
 
   It returns the names of the compiled modules.
 
@@ -152,8 +152,14 @@ defmodule IEx.Helpers do
 
   ## Examples
 
+  In the example below, we pass a directory to where the `c/2` function will 
+  write the compiled `.beam` files to. This directory is typically named "ebin"
+  in Erlang/Elixir systems:
+
       iex> c(["foo.ex", "bar.ex"], "ebin")
       [Foo, Bar]
+
+  When compiling one file, there is no need to wrap it in a list:
 
       iex> c("baz.ex")
       [Baz]
