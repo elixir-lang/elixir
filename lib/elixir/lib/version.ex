@@ -69,7 +69,7 @@ defmodule Version do
   `~> 2.0`       | `>= 2.0.0 and < 3.0.0`
   `~> 2.1`       | `>= 2.1.0 and < 3.0.0`
 
-  The requirement operand after the `~>` is allows to omit the PATCH part of the version,
+  The requirement operand after the `~>` is allowed to omit the PATCH part of the version,
   allowing us to express `~> 2.1` or `~> 2.1-dev`, something that wouldn't be allowed
   when using the common comparison operators.
 
