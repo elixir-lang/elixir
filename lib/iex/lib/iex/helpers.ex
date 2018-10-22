@@ -159,7 +159,7 @@ defmodule IEx.Helpers do
       iex> c(["foo.ex", "bar.ex"], "ebin")
       [Foo, Bar]
 
-  When compiling one file, there is no need to wrap it in a list.
+  When compiling one file, there is no need to wrap it in a list:
 
       iex> c("baz.ex")
       [Baz]
