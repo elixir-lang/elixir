@@ -36,8 +36,8 @@ defmodule Version do
 
   Requirements allow you to specify which versions of a given
   dependency you are willing to work against. Requirements support the common
-  operators such as `>`, `>=`, `<`, `<=`, `==`, `!=` that work as one would expect,
-  and additionally the special operator `~>` described in detail further bellow.
+  comparison operators such as `>`, `>=`, `<`, `<=`, `==`, `!=` that work as one would expect,
+  and additionally the special operator `~>` described in detail further below.
 
       # Only version 2.0.0
       "== 2.0.0"
@@ -56,9 +56,8 @@ defmodule Version do
       "~> 2.0.0"
 
   `~>` will never include pre-release versions of its upper bound,
-  regardless of the usage of the `allow_pre:` option, or whether the operand
-  is a pre-release version.
-  It can also be used to set an upper bound on only the major
+  regardless of the usage of the `:allow_pre` option, or whether the operand
+  is a pre-release version. It can also be used to set an upper bound on only the major
   version part. See the table below for `~>` requirements and
   their corresponding translations.
 
@@ -72,9 +71,9 @@ defmodule Version do
 
   The requirement operand after the `~>` is allows to omit the PATCH part of the version,
   allowing us to express `~> 2.1` or `~> 2.1-dev`, something that wouldn't be allowed
-  when using the common operators.
+  when using the common comparison operators.
 
-  When the option `allow_pre: false` is set in `Version.match?/3`, the requirement
+  When the `:allow_pre` option is set `false` in `Version.match?/3`, the requirement
   will not match a pre-release version unless the operand is a pre-release version.
   The default is to always allow pre-releases but note that in
   Hex `:allow_pre` is set to `false`. See the table below for examples.
