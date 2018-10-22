@@ -15,6 +15,9 @@ defmodule Mix.Tasks.Xref do
   your project is compiled via `mix compile.xref`. See
   `Mix.Tasks.Compile.Xref` for more information.
 
+  This task is automatically reenabled, so you can perform multiple
+  cross reference checks in the same Mix invocation.
+
   ## Xref modes
 
   The `xref` task expects a mode as first argument:
