@@ -35,9 +35,9 @@ defmodule Version do
   ## Requirements
 
   Requirements allow you to specify which versions of a given
-  dependency you are willing to work against. Requirements support common
-  operators like `>=`, `<=`, `>`, `==`, and friends that
-  work as one would expect:
+  dependency you are willing to work against. Requirements support the common
+  comparison operators such as `>`, `>=`, `<`, `<=`, `==`, `!=` that work as one would expect,
+  and additionally the special operator `~>` described in detail further below.
 
       # Only version 2.0.0
       "== 2.0.0"
@@ -55,10 +55,11 @@ defmodule Version do
 
       "~> 2.0.0"
 
-  `~>` will never include pre-release versions of its upper bound.
-  It can also be used to set an upper bound on only the major
+  `~>` will never include pre-release versions of its upper bound,
+  regardless of the usage of the `:allow_pre` option, or whether the operand
+  is a pre-release version. It can also be used to set an upper bound on only the major
   version part. See the table below for `~>` requirements and
-  their corresponding translation.
+  their corresponding translations.
 
   `~>`           | Translation
   :------------- | :---------------------
@@ -68,23 +69,28 @@ defmodule Version do
   `~> 2.0`       | `>= 2.0.0 and < 3.0.0`
   `~> 2.1`       | `>= 2.1.0 and < 3.0.0`
 
-  When `allow_pre: false` is set, the requirement will not match a
-  pre-release version unless the operand is a pre-release version.
+  The requirement operand after the `~>` is allowed to omit the patch version,
+  allowing us to express `~> 2.1` or `~> 2.1-dev`, something that wouldn't be allowed
+  when using the common comparison operators.
+
+  When the `:allow_pre` option is set `false` in `Version.match?/3`, the requirement
+  will not match a pre-release version unless the operand is a pre-release version.
   The default is to always allow pre-releases but note that in
   Hex `:allow_pre` is set to `false`. See the table below for examples.
 
-  Requirement    | Version     | `:allow_pre` | Matches
-  :------------- | :---------- | :----------- | :------
-  `~> 2.0`       | `2.1.0`     | -            | `true`
-  `~> 2.0`       | `3.0.0`     | -            | `false`
-  `~> 2.0.0`     | `2.0.1`     | -            | `true`
-  `~> 2.0.0`     | `2.1.0`     | -            | `false`
-  `~> 2.1.2`     | `2.1.3-dev` | `true`       | `true`
-  `~> 2.1.2`     | `2.1.3-dev` | `false`      | `false`
-  `~> 2.1-dev`   | `2.2.0-dev` | `false`      | `true`
-  `~> 2.1.2-dev` | `2.1.3-dev` | `false`      | `true`
-  `>= 2.1.0`     | `2.2.0-dev` | `false`      | `false`
-  `>= 2.1.0-dev` | `2.2.3-dev` | `true`       | `true`
+  Requirement    | Version     | `:allow_pre`      | Matches
+  :------------- | :---------- | :---------------- | :------
+  `~> 2.0`       | `2.1.0`     | `true` or `false` | `true`
+  `~> 2.0`       | `3.0.0`     | `true` or `false` | `false`
+  `~> 2.0.0`     | `2.0.5`     | `true` or `false` | `true`
+  `~> 2.0.0`     | `2.1.0`     | `true` or `false` | `false`
+  `~> 2.1.2`     | `2.1.6-dev` | `true`            | `true`
+  `~> 2.1.2`     | `2.1.6-dev` | `false`           | `false`
+  `~> 2.1-dev`   | `2.2.0-dev` | `true` or `false` | `true`
+  `~> 2.1.2-dev` | `2.1.6-dev` | `true` or `false` | `true`
+  `>= 2.1.0`     | `2.2.0-dev` | `true`            | `true`
+  `>= 2.1.0`     | `2.2.0-dev` | `false`           | `false`
+  `>= 2.1.0-dev` | `2.2.6-dev` | `true` or `false` | `true`
 
   """
 
@@ -146,8 +152,8 @@ defmodule Version do
   ## Options
 
     * `:allow_pre` (boolean) - when `false`, pre-release versions will not match
-      unless the operand is a pre-release version. See the table above
-      for examples. Defaults to `true`.
+      unless the operand is a pre-release version. Defaults to `true`.
+      For examples, please refer to the table above under the "Requirements" section.
 
   ## Examples
 
@@ -155,6 +161,12 @@ defmodule Version do
       true
 
       iex> Version.match?("2.0.0", "== 1.0.0")
+      false
+
+      iex> Version.match?("2.1.6-dev", "~> 2.1.2")
+      true
+
+      iex> Version.match?("2.1.6-dev", "~> 2.1.2", allow_pre: false)
       false
 
       iex> Version.match?("foo", "== 1.0.0")
