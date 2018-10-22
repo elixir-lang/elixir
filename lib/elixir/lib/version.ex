@@ -14,13 +14,17 @@ defmodule Version do
 
       MAJOR.MINOR.PATCH
 
-  Pre-releases are supported by appending `-[0-9A-Za-z-\.]`:
+  Pre-releases are supported by optionally appending a hyphen and a series of
+  period-separated identifiers immediately following the patch version.
+  Identifiers consist of only ASCII alphanumeric characters and hyphens (`[0-9A-Za-z-]`):
 
       "1.0.0-alpha.3"
 
-  Build information can be added by appending `+[0-9A-Za-z-\.]`:
+  Build information can be added by appending a plus sign and a series of
+  dot-separated identifiers immediately following the patch or pre-release version.
+  Identifiers consist of only ASCII alphanumeric characters and hyphens (`[0-9A-Za-z-]`):
 
-      "1.0.0-alpha.3+20130417140000"
+      "1.0.0-alpha.3+20130417140000.amd64"
 
   ## Struct
 
@@ -89,9 +93,9 @@ defmodule Version do
 
   @type version :: String.t() | t
   @type requirement :: String.t() | Version.Requirement.t()
-  @type major :: String.t() | non_neg_integer
-  @type minor :: non_neg_integer | nil
-  @type patch :: non_neg_integer | nil
+  @type major :: non_neg_integer
+  @type minor :: non_neg_integer
+  @type patch :: non_neg_integer
   @type pre :: [String.t() | non_neg_integer]
   @type build :: String.t() | nil
   @type t :: %__MODULE__{major: major, minor: minor, patch: patch, pre: pre, build: build}
@@ -99,7 +103,7 @@ defmodule Version do
   defmodule Requirement do
     @moduledoc false
     defstruct [:source, :matchspec, :compiled]
-    @type t :: %__MODULE__{}
+    @type t :: %__MODULE__{source: String.t(), matchspec: :ets.match_spec(), compiled: boolean}
   end
 
   defmodule InvalidRequirementError do
