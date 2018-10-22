@@ -501,7 +501,7 @@ defmodule Kernel.SpecialForms do
       Keyword.values   #=> uses MyKeyword.values
       Elixir.Keyword.values #=> uses Keyword.values
 
-  Notice that calling `alias` without the `as:` option automatically
+  Notice that calling `alias` without the `:as` option automatically
   sets an alias based on the last part of the module. For example:
 
       alias Foo.Bar.Baz
@@ -561,7 +561,7 @@ defmodule Kernel.SpecialForms do
 
   ## Alias shortcut
 
-  `require/2` also accepts `as:` as an option so it automatically sets
+  `require/2` also accepts `:as` as an option so it automatically sets
   up an alias. Please check `alias/2` for more information.
 
   """
