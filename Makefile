@@ -48,7 +48,6 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 test_$(1): compile $(1)
 	@ echo "==> $(1) (ex_unit)"
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
-	@ echo ""
 endef
 
 #==> Compilation tasks
@@ -239,7 +238,6 @@ test_stdlib: compile
 	else \
 		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
 	fi
-	@ echo ""
 
 #==> Dialyzer tasks
 
