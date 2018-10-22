@@ -19,6 +19,9 @@ defmodule Mix.Tasks.Cmd do
 
   Aborts when a command exits with a non-zero status.
 
+  This task is automatically reenabled, so it can be called multiple times
+  with different arguments.
+
   ## Zombie OS processes
 
   Beware that the Erlang VM does not terminate child processes
