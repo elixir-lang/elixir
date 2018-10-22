@@ -143,8 +143,8 @@ defmodule IEx.Helpers do
 
   It expects a list of files to compile and an optional path to write
   the compiled code to. By default files are in-memory compiled.
-  To write compiled files to a current directory use empty string "" for
-  the path. 
+  To write compiled files to the current directory, an empty string
+  can be given. 
 
   It returns the names of the compiled modules.
 
