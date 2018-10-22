@@ -100,7 +100,7 @@ defmodule ExUnitTest do
       end
     end
 
-    on_exit_reload_config()
+    configure_and_reload_on_exit([])
     ExUnit.start(slowest: 2)
     ExUnit.Server.modules_loaded()
 
@@ -112,7 +112,7 @@ defmodule ExUnitTest do
   end
 
   test "sets max cases to one with trace enabled" do
-    on_exit_reload_config()
+    configure_and_reload_on_exit([])
     ExUnit.start(trace: true, max_cases: 10, autorun: false)
     config = ExUnit.configuration()
     assert config[:trace]
@@ -121,7 +121,7 @@ defmodule ExUnitTest do
   end
 
   test "does not set timeout to infinity and the max cases to 1 with trace disabled" do
-    on_exit_reload_config()
+    configure_and_reload_on_exit([])
     ExUnit.start(trace: false, autorun: false)
     config = ExUnit.configuration()
     refute config[:trace]
@@ -130,7 +130,7 @@ defmodule ExUnitTest do
   end
 
   test "sets trace when slowest is enabled" do
-    on_exit_reload_config()
+    configure_and_reload_on_exit([])
     ExUnit.start(slowest: 10, max_cases: 10, autorun: false)
     config = ExUnit.configuration()
     assert config[:trace]
@@ -351,7 +351,7 @@ defmodule ExUnitTest do
     end
 
     ExUnit.Server.modules_loaded()
-    on_exit_reload_config()
+    configure_and_reload_on_exit([])
 
     output =
       capture_io(fn ->
@@ -528,7 +528,7 @@ defmodule ExUnitTest do
     end
 
     ExUnit.Server.modules_loaded()
-    on_exit_reload_config()
+    configure_and_reload_on_exit([])
 
     output =
       capture_io(fn ->
@@ -576,14 +576,14 @@ defmodule ExUnitTest do
 
   describe ":max_failures" do
     test "default value to :infinity" do
-      on_exit_reload_config()
+      configure_and_reload_on_exit([])
       ExUnit.start(autorun: false)
       config = ExUnit.configuration()
       assert config[:max_failures] == :infinity
     end
 
     test "sets value of :max_failures" do
-      on_exit_reload_config()
+      configure_and_reload_on_exit([])
       ExUnit.start(max_failures: 5, autorun: false)
       config = ExUnit.configuration()
       assert config[:max_failures] == 5
@@ -607,7 +607,7 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      on_exit_reload_config()
+      configure_and_reload_on_exit([])
 
       output =
         capture_io(fn ->
@@ -640,7 +640,7 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      on_exit_reload_config()
+      configure_and_reload_on_exit([])
 
       output =
         capture_io(fn ->
@@ -676,7 +676,7 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      on_exit_reload_config()
+      configure_and_reload_on_exit([])
 
       output =
         capture_io(fn ->
@@ -713,7 +713,7 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      on_exit_reload_config()
+      configure_and_reload_on_exit([])
 
       output =
         capture_io(fn ->
@@ -742,7 +742,7 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      on_exit_reload_config()
+      configure_and_reload_on_exit([])
 
       output =
         capture_io(fn ->
@@ -761,18 +761,6 @@ defmodule ExUnitTest do
   end
 
   ##  Helpers
-
-  defp on_exit_reload_config() do
-    old_config = ExUnit.configuration()
-    on_exit(fn -> ExUnit.configure(old_config) end)
-  end
-
-  defp configure_and_reload_on_exit(opts) do
-    old_config = ExUnit.configuration()
-    ExUnit.configure(opts)
-
-    on_exit(fn -> ExUnit.configure(old_config) end)
-  end
 
   defp run_with_filter(filters, cases) do
     Enum.each(cases, &ExUnit.Server.add_sync_module/1)
@@ -793,6 +781,13 @@ defmodule ExUnitTest do
     after
       0 -> nil
     end
+  end
+
+  defp configure_and_reload_on_exit(opts) do
+    old_opts = ExUnit.configuration()
+    ExUnit.configure(opts)
+
+    on_exit(fn -> ExUnit.configure(old_opts) end)
   end
 
   # Runs ExUnit.start/1 with common options needed for predictability
