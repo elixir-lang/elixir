@@ -119,7 +119,7 @@ defmodule Mix.Rebar do
     [fun.(config) | subs]
   end
 
-  # Translate a rebar dependency declaration to a mix declaration
+  # Translate a rebar dependency declaration to a Mix declaration
   # From http://www.rebar3.org/docs/dependencies#section-declaring-dependencies
   defp parse_dep(app) when is_atom(app) do
     {app, ">= 0.0.0", override: true}

@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Compile do
     * `--no-protocol-consolidation` - skips protocol consolidation
     * `--force` - forces compilation
     * `--return-errors` - returns error status and diagnostics instead of exiting on error
-    * `--erl-config` - path to an Erlang term file that will be loaded as mix config
+    * `--erl-config` - path to an Erlang term file that will be loaded as Mix config
 
   """
   def run(["--list"]) do
