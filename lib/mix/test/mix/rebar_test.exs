@@ -245,7 +245,7 @@ defmodule Mix.RebarTest do
     end
 
     # We run only on Unix because Windows has a hard time
-    # removing the rebar executable after executed.
+    # removing the Rebar executable after executed.
     @tag [unix: true]
     test "applies variables from :system_env option when compiling dependencies for Rebar" do
       Mix.Project.push(RebarAsDepWithEnv)
@@ -261,10 +261,10 @@ defmodule Mix.RebarTest do
       end)
     end
 
-    test "gets and compiles dependencies for rebar3" do
+    test "gets and compiles dependencies for Rebar3" do
       Mix.Project.push(Rebar3AsDep)
 
-      in_tmp("get and compile dependencies for rebar3", fn ->
+      in_tmp("get and compile dependencies for Rebar3", fn ->
         Mix.Tasks.Deps.Get.run([])
         assert_received {:mix_shell, :info, ["* Getting git_rebar " <> _]}
 
@@ -293,12 +293,12 @@ defmodule Mix.RebarTest do
     end
 
     # We run only on Unix because Windows has a hard time
-    # removing the rebar executable after executed.
+    # removing the Rebar executable after executed.
     @tag [unix: true]
-    test "applies variables from :system_env option when compiling dependencies for rebar3" do
+    test "applies variables from :system_env option when compiling dependencies for Rebar3" do
       Mix.Project.push(Rebar3AsDep)
 
-      in_tmp("applies variables from system_env for rebar3", fn ->
+      in_tmp("applies variables from system_env for Rebar3", fn ->
         expected_file = Path.join(tmp_path("rebar_dep"), "rebar-test-rebar3")
         File.rm(expected_file)
 
