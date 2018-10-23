@@ -451,6 +451,33 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "raises on conflicting .formatter.exs files", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [inputs: "{lib}/**/*.{ex,exs}", subdirectories: ["lib"]]
+      """)
+
+      File.mkdir_p!("lib")
+
+      File.write!("lib/.formatter.exs", """
+      [inputs: "a.ex", locals_without_parens: [my_fun: 2]]
+      """)
+
+      File.write!("lib/a.ex", """
+      my_fun :foo, :bar
+      other_fun :baz
+      """)
+
+      message =
+        "Both .formatter.exs and lib/.formatter.exs specify the file lib/a.ex in their " <>
+          ":inputs option"
+
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Format.run([])
+      end
+    end)
+  end
+
   test "raises on invalid arguments", context do
     in_tmp(context.test, fn ->
       assert_raise Mix.Error, ~r"Expected one or more files\/patterns to be given", fn ->

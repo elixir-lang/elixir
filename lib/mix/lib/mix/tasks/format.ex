@@ -325,7 +325,7 @@ defmodule Mix.Tasks.Format do
 
     dot_formatter
     |> expand_dot_inputs([], formatter_opts_and_subs, %{})
-    |> Enum.uniq()
+    |> Enum.map(fn {file, {_dot_formatter, formatter_opts}} -> {file, formatter_opts} end)
   end
 
   defp expand_args(files_and_patterns, _dot_formatter, {formatter_opts, subs}) do
@@ -360,10 +360,18 @@ defmodule Mix.Tasks.Format do
     map =
       for input <- List.wrap(formatter_opts[:inputs]),
           file <- Path.wildcard(Path.join(prefix ++ [input]), match_dot: true),
-          do: {file, formatter_opts},
+          do: {file, {dot_formatter, formatter_opts}},
           into: %{}
 
-    Enum.reduce(subs, Map.merge(acc, map), fn {sub, formatter_opts_and_subs}, acc ->
+    acc =
+      Map.merge(acc, map, fn file, {dot_formatter1, _}, {dot_formatter2, _} ->
+        Mix.raise(
+          "Both #{dot_formatter1} and #{dot_formatter2} specify the file #{file} " <>
+            "in their :inputs option"
+        )
+      end)
+
+    Enum.reduce(subs, acc, fn {sub, formatter_opts_and_subs}, acc ->
       sub_formatter = Path.join(sub, ".formatter.exs")
       expand_dot_inputs(sub_formatter, [sub], formatter_opts_and_subs, acc)
     end)
