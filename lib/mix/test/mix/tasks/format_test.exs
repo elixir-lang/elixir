@@ -468,13 +468,13 @@ defmodule Mix.Tasks.FormatTest do
       other_fun :baz
       """)
 
+      Mix.Tasks.Format.run([])
+
       message =
         "Both .formatter.exs and lib/.formatter.exs specify the file lib/a.ex in their " <>
           ":inputs option"
 
-      assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.Format.run([])
-      end
+      assert_received {:mix_shell, :error, [^message]}
     end)
   end
 

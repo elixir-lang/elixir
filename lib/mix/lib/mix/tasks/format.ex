@@ -364,11 +364,13 @@ defmodule Mix.Tasks.Format do
           into: %{}
 
     acc =
-      Map.merge(acc, map, fn file, {dot_formatter1, _}, {dot_formatter2, _} ->
-        Mix.raise(
+      Map.merge(acc, map, fn file, {dot_formatter1, _}, {dot_formatter2, formatter_opts} ->
+        Mix.shell().error(
           "Both #{dot_formatter1} and #{dot_formatter2} specify the file #{file} " <>
             "in their :inputs option"
         )
+
+        {dot_formatter2, formatter_opts}
       end)
 
     Enum.reduce(subs, acc, fn {sub, formatter_opts_and_subs}, acc ->
