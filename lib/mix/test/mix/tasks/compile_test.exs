@@ -183,7 +183,7 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "loads mix config with --erl-config" do
+  test "loads Mix config with --erl-config" do
     in_fixture("no_mixfile", fn ->
       File.write!("mix.config", "{erl_config_app, [{value, true}]}.")
       assert Mix.Task.run("compile", ["--erl-config", "mix.config"]) == {:ok, []}
