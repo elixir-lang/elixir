@@ -92,7 +92,7 @@ defmodule Mix.Rebar do
   Parses the dependencies in given `rebar.config` to Mix's dependency format.
   """
   def deps(config) do
-    # We don't have to handle rebar3 profiles because dependencies
+    # We don't have to handle Rebar3 profiles because dependencies
     # are always in the default profile which cannot be customized
     if deps = config[:deps] do
       Enum.map(deps, &parse_dep/1)
@@ -119,7 +119,7 @@ defmodule Mix.Rebar do
     [fun.(config) | subs]
   end
 
-  # Translate a rebar dependency declaration to a Mix declaration
+  # Translate a Rebar dependency declaration to a Mix declaration
   # From http://www.rebar3.org/docs/dependencies#section-declaring-dependencies
   defp parse_dep(app) when is_atom(app) do
     {app, ">= 0.0.0", override: true}
