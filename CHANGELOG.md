@@ -116,6 +116,32 @@ Percentage | Module
     77.19% | Total
 ```
 
+## v1.7.4 (2018-10-24)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Expand `left..right` at compile time in more cases, which leads to improved performance under different scenarios, especially on `x in left..right` expressions
+
+#### Mix
+
+  * [mix deps.loadpaths] Add `--no-load-deps` flag. This is useful for Rebar 3 compatibility
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Calendar] Fix for converting from negative iso days on New Year in a leap year
+  * [Kernel] Ensure `@spec`, `@callback`, `@type` and friends can be read accordingly
+  * [Module] Avoid warnings when using Module.eval_quoted in the middle of existing definitions
+
+#### Mix
+
+  * [mix archive.build] Unload previous archive versions before building
+  * [mix format] Expand paths so mix format `path\for\windows.ex` works
+  * [mix test] Ensure that `--cover` displays correct coverage in an umbrella app
+
 ## v1.7.3 (2018-08-24)
 
 ### 1. Bug fixes
