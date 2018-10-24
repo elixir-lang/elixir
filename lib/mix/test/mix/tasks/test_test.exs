@@ -257,6 +257,49 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
+  test "--include, --exclude, and --only" do
+    in_fixture("test_passed", fn ->
+      # --include has no effect without --exclude
+      output_no_options = mix(["test"])
+      output_include = mix(["test", "--include", "one"])
+      assert output_include =~ "5 tests, 0 failures, 1 skipped"
+      assert output_no_options =~ "5 tests, 0 failures, 1 skipped"
+
+      # --include + --exclude test
+      output = mix(["test", "--include", "two", "--exclude", "test"])
+      assert output =~ "5 tests, 0 failures, 3 excluded, 1 skipped"
+
+      # --exclude
+      output = mix(["test", "--exclude", "exclude"])
+      assert output =~ "5 tests, 0 failures, 1 excluded, 1 skipped"
+
+      # --only
+      output = mix(["test", "--only", "one"])
+      assert output =~ "5 tests, 0 failures, 4 excluded, 1 skipped"
+
+      only_error_message =
+        "\nThe --only option was given to \"mix test\" but no test was executed\n"
+
+      # --exclude test --include: doesn't match any test; it doesn't fail
+      output =
+        mix([
+          "test",
+          "--exclude",
+          "test",
+          "--include",
+          "one_hundred",
+          "test/test_passing_test_passed_.exs"
+        ])
+
+      refute output =~ only_error_message
+      assert output =~ "5 tests, 0 failures, 5 excluded"
+
+      # --only doesn't match any test; it fails
+      output = mix(["test", "--only", "one_hundred", "test/test_passing_test_passed_.exs"])
+      assert output =~ only_error_message
+    end)
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
