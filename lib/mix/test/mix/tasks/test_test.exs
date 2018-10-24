@@ -297,6 +297,12 @@ defmodule Mix.Tasks.TestTest do
       # --only doesn't match any test; it fails
       output = mix(["test", "--only", "one_hundred", "test/test_passing_test_passed_.exs"])
       assert output =~ only_error_message
+
+      # --only doesn't match any test, but the test_module contains skipped and excluded tests;
+      # it fails
+      output = mix(["test", "--only", "one_hundred"])
+      assert output =~ "5 tests, 0 failures, 4 excluded, 1 skipped"
+      assert output =~ only_error_message
     end)
   end
 
