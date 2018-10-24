@@ -210,8 +210,8 @@ defmodule Mix.Tasks.Test do
 
       mix test --only external
 
-  If no tests match and the `--only` option was used the test will raise an error.
-  The following produces a similar result, except it doesn't raise an error on no matches:
+  If no tests match and the `--only` option was used the test suite will fail.
+  The following produces a similar result, except it doesn't fail on no matches:
 
       mix test --include external --exclude test
 
