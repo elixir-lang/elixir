@@ -360,15 +360,15 @@ defmodule Mix.Tasks.Format do
     map =
       for input <- List.wrap(formatter_opts[:inputs]),
           file <- Path.wildcard(Path.join(prefix ++ [input]), match_dot: true),
-          do: {file, {dot_formatter, formatter_opts}},
+          do: {expand_relative_to_cwd(file), {dot_formatter, formatter_opts}},
           into: %{}
 
     acc =
       Map.merge(acc, map, fn file, {dot_formatter1, _}, {dot_formatter2, formatter_opts} ->
         Mix.shell().error(
-          "Both #{dot_formatter1} and #{dot_formatter2} specify the file #{file} " <>
-            "in their :inputs option. To resolve the conflict, the configuration in " <>
-            "#{dot_formatter1} will be ignored"
+          "Both #{dot_formatter1} and #{dot_formatter2} specify the file " <>
+            "#{Path.relative_to_cwd(file)} in their :inputs option. To resolve the " <>
+            "conflict, the configuration in #{dot_formatter1} will be ignored"
         )
 
         {dot_formatter2, formatter_opts}
@@ -378,6 +378,13 @@ defmodule Mix.Tasks.Format do
       sub_formatter = Path.join(sub, ".formatter.exs")
       expand_dot_inputs(sub_formatter, [sub], formatter_opts_and_subs, acc)
     end)
+  end
+
+  defp expand_relative_to_cwd(path) do
+    case File.cwd() do
+      {:ok, cwd} -> Path.expand(path, cwd)
+      _ -> path
+    end
   end
 
   defp find_formatter_opts_for_file(split, {formatter_opts, subs}) do

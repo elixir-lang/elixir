@@ -454,13 +454,19 @@ defmodule Mix.Tasks.FormatTest do
   test "prints an error on conflicting .formatter.exs files", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
-      [inputs: "{lib}/**/*.{ex,exs}", subdirectories: ["lib"]]
+      [inputs: "lib/**/*.{ex,exs}", subdirectories: ["lib", "foo"]]
       """)
 
       File.mkdir_p!("lib")
 
       File.write!("lib/.formatter.exs", """
       [inputs: "a.ex", locals_without_parens: [my_fun: 2]]
+      """)
+
+      File.mkdir_p!("foo")
+
+      File.write!("foo/.formatter.exs", """
+      [inputs: "../lib/a.ex", locals_without_parens: [my_fun: 2]]
       """)
 
       File.write!("lib/a.ex", """
@@ -470,12 +476,18 @@ defmodule Mix.Tasks.FormatTest do
 
       Mix.Tasks.Format.run([])
 
-      message =
+      message1 =
         "Both .formatter.exs and lib/.formatter.exs specify the file lib/a.ex in their " <>
           ":inputs option. To resolve the conflict, the configuration in .formatter.exs " <>
           "will be ignored"
 
-      assert_received {:mix_shell, :error, [^message]}
+      message2 =
+        "Both lib/.formatter.exs and foo/.formatter.exs specify the file lib/a.ex in their " <>
+          ":inputs option. To resolve the conflict, the configuration in lib/.formatter.exs " <>
+          "will be ignored"
+
+      assert_received {:mix_shell, :error, [^message1]}
+      assert_received {:mix_shell, :error, [^message2]}
     end)
   end
 
