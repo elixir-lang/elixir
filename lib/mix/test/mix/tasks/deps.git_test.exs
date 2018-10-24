@@ -213,7 +213,7 @@ defmodule Mix.Tasks.DepsGitTest do
     purge([A, B, GitRepo, GitRepo.MixProject])
   end
 
-  test "all up to date dependencies" do
+  test "all dependencies are up to date" do
     Mix.Project.push(GitApp)
 
     in_fixture("no_mixfile", fn ->
@@ -222,7 +222,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received {:mix_shell, :info, [^message]}
 
       Mix.Tasks.Deps.Get.run([])
-      assert_received {:mix_shell, :info, ["All dependencies up to date"]}
+      assert_received {:mix_shell, :info, ["All dependencies are up to date"]}
     end)
   after
     purge([GitRepo, GitRepo.MixProject])

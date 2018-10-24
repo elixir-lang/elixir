@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Deps.Get do
     apps = Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read(), fetch_opts)
 
     if apps == [] do
-      Mix.shell().info("All dependencies up to date")
+      Mix.shell().info("All dependencies are up to date")
     else
       :ok
     end
