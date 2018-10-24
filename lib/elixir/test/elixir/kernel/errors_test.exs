@@ -521,7 +521,7 @@ defmodule Kernel.ErrorsTest do
 
   test "typespec attributes set via Module.put_attribute/4" do
     message =
-      "attributes type, typep, opaque, spec, callback, and macrocallback" <>
+      "attributes type, typep, opaque, spec, callback, and macrocallback " <>
         "must be set directly via the @ notation"
 
     for kind <- [:type, :typep, :opaque, :spec, :callback, :macrocallback] do
