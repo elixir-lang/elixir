@@ -503,6 +503,22 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
+  test "typespec attributes set via Module.put_attribute/4" do
+    message =
+      "attributes type, typep, export_type, opaque, spec, callback, and macrocallback " <>
+        "must be set directly via the @ notation"
+
+    for kind <- [:type, :typep, :opaque, :spec, :callback, :macrocallback] do
+      assert_eval_raise ArgumentError,
+                        message,
+                        """
+                        defmodule PutTypespecAttribute do
+                          Module.put_attribute(__MODULE__, #{inspect(kind)}, {})
+                        end
+                        """
+    end
+  end
+
   test "invalid struct field value" do
     msg = ~r"invalid value for struct field baz, cannot escape "
 

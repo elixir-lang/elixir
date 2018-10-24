@@ -747,6 +747,136 @@ defmodule TypespecTest do
       assert [{:atom, _, :is_subtype}, [{:var, _, :y}, {:var, _, :x}]] = constraint_type
     end
 
+    test "@type, @opaque, and @typep as module attributes" do
+      defmodule TypeModuleAttributes do
+        @type type1 :: boolean
+        @opaque opaque1 :: boolean
+        @typep typep1 :: boolean
+
+        def type1, do: @type
+        def opaque1, do: @opaque
+        def typep1, do: @typep
+
+        @type type2 :: atom
+        @type type3 :: pid
+        @opaque opaque2 :: atom
+        @opaque opaque3 :: pid
+        @typep typep2 :: atom
+
+        def type2, do: @type
+        def opaque2, do: @opaque
+        def typep2, do: @typep
+
+        # Avoid unused warnings
+        @spec foo(typep1) :: typep2
+        def foo(_x), do: :ok
+      end
+
+      assert [
+               {:type, {:::, _, [{:type1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}}
+             ] = TypeModuleAttributes.type1()
+
+      assert [
+               {:type, {:::, _, [{:type3, _, _}, {:pid, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}},
+               {:type, {:::, _, [{:type2, _, _}, {:atom, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}},
+               {:type, {:::, _, [{:type1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}}
+             ] = TypeModuleAttributes.type2()
+
+      assert [
+               {:opaque, {:::, _, [{:opaque1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}}
+             ] = TypeModuleAttributes.opaque1()
+
+      assert [
+               {:opaque, {:::, _, [{:opaque3, _, _}, {:pid, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}},
+               {:opaque, {:::, _, [{:opaque2, _, _}, {:atom, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}},
+               {:opaque, {:::, _, [{:opaque1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}}
+             ] = TypeModuleAttributes.opaque2()
+
+      assert [
+               {:typep, {:::, _, [{:typep1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}}
+             ] = TypeModuleAttributes.typep1()
+
+      assert [
+               {:typep, {:::, _, [{:typep2, _, _}, {:atom, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}},
+               {:typep, {:::, _, [{:typep1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.TypeModuleAttributes, _}}
+             ] = TypeModuleAttributes.typep2()
+    after
+      :code.delete(TypeModuleAttributes)
+      :code.purge(TypeModuleAttributes)
+    end
+
+    test "@spec, @callback, and @macrocallback as module attributes" do
+      defmodule SpecModuleAttributes do
+        @callback callback1 :: integer
+        @macrocallback macrocallback1 :: integer
+
+        @spec spec1 :: boolean
+        def spec1, do: @spec
+
+        @callback callback2 :: boolean
+        @macrocallback macrocallback2 :: boolean
+
+        @spec spec2 :: atom
+        def spec2, do: @spec
+
+        @spec spec3 :: pid
+        def spec3, do: :ok
+        def spec4, do: @spec
+
+        def callback, do: @callback
+        def macrocallback, do: @macrocallback
+      end
+
+      assert [
+               {:spec, {:::, _, [{:spec1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}}
+             ] = SpecModuleAttributes.spec1()
+
+      assert [
+               {:spec, {:::, _, [{:spec2, _, _}, {:atom, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}},
+               {:spec, {:::, _, [{:spec1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}}
+             ] = SpecModuleAttributes.spec2()
+
+      assert [
+               {:spec, {:::, _, [{:spec3, _, _}, {:pid, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}},
+               {:spec, {:::, _, [{:spec2, _, _}, {:atom, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}},
+               {:spec, {:::, _, [{:spec1, _, _}, {:boolean, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}}
+             ] = SpecModuleAttributes.spec4()
+
+      assert [
+               {:callback, {:::, _, [{:callback2, _, _}, {:boolean, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}},
+               {:callback, {:::, _, [{:callback1, _, _}, {:integer, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}}
+             ] = SpecModuleAttributes.callback()
+
+      assert [
+               {:macrocallback, {:::, _, [{:macrocallback2, _, _}, {:boolean, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}},
+               {:macrocallback, {:::, _, [{:macrocallback1, _, _}, {:integer, _, _}]},
+                {TypespecTest.SpecModuleAttributes, _}}
+             ] = SpecModuleAttributes.macrocallback()
+    after
+      :code.delete(SpecModuleAttributes)
+      :code.purge(SpecModuleAttributes)
+    end
+
     test "@callback(callback)" do
       bytecode =
         test_module do
