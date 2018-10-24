@@ -466,7 +466,7 @@ defmodule Module do
       of the corresponding setting in `Code.compiler_options/1`
 
     * `@compile {:inline, some_fun: 2, other_fun: 3}` - inlines the given
-      name/arity pairs. Inlining is applied locally, calls from another 
+      name/arity pairs. Inlining is applied locally, calls from another
       module are not affected by this option
 
     * `@compile {:autoload, false}` - disables automatic loading of
@@ -1864,9 +1864,9 @@ defmodule Module do
     do: {atom, :__on_definition__}
 
   defp preprocess_attribute(key, _value)
-       when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
+       when key in [:type, :typep, :export_type, :opaque, :spec, :callback, :macrocallback] do
     raise ArgumentError,
-          "attributes type, typep, export_type, opaque, callback, and macrocallback" <>
+          "attributes type, typep, export_type, opaque, spec, callback, and macrocallback " <>
             "must be set directly via the @ notation"
   end
 
