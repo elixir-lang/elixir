@@ -307,9 +307,9 @@ defmodule String do
   defdelegate split(binary), to: String.Break
 
   @doc ~S"""
-  Divides a string into substrings based on a pattern.
+  Divides a string into parts based on a pattern.
 
-  Returns a list of these substrings. The pattern can
+  Returns a list of these parts. The pattern can
   be a string, a list of strings, a regular expression,
   or a compiled pattern.
 
@@ -389,13 +389,13 @@ defmodule String do
 
   Be aware that this function can split within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
-  "e" and the acute accent. The following returns `true`:
+  "e" and the acute accent. The following will split the string into two parts:
 
       iex> String.split(String.normalize("é", :nfd), "e")
       ["", "́"]
 
   However, if "é" is represented by the single character "e with acute"
-  accent, then it will return `false`:
+  accent, then it will split the string into just one part:
 
       iex> String.split(String.normalize("é", :nfc), "e")
       ["é"]
