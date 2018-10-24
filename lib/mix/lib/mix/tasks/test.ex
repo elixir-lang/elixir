@@ -210,10 +210,11 @@ defmodule Mix.Tasks.Test do
 
       mix test --only external
 
-  If no tests match and the `--only` option was used the test suite will fail.
-  The following produces a similar result, except it doesn't fail on no matches:
+  Which is similar to:
 
       mix test --include external --exclude test
+
+  It differs in that the test suite will fail if no tests are executed when the --only option is used.
 
   In case a single file is being tested, it is possible to pass a specific
   line number:
