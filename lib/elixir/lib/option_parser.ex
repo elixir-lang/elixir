@@ -495,7 +495,7 @@ defmodule OptionParser do
       {_key, nil} -> []
       {key, true} -> [to_switch(key)]
       {key, false} -> [to_switch(key, "--no-")]
-      {key, value} -> to_argv(key, value, switches)
+      {key, value} when is_atom(key) -> to_argv(key, value, switches)
     end)
   end
 
@@ -507,7 +507,7 @@ defmodule OptionParser do
     end
   end
 
-  defp to_switch(key, prefix \\ "--") when is_atom(key) do
+  defp to_switch(key, prefix \\ "--") do
     prefix <> String.replace(Atom.to_string(key), "_", "-")
   end
 
