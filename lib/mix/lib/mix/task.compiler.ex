@@ -122,7 +122,7 @@ defmodule Mix.Task.Compiler do
 
       _ ->
         Mix.shell().error(
-          "[warning] Mix compiler #{inspect(name)} was supposed to return " <>
+          "warning: Mix compiler #{inspect(name)} was supposed to return " <>
             "{:ok | :noop | :error, [diagnostic]} but it returned #{inspect(result)}"
         )
 
