@@ -367,7 +367,8 @@ defmodule Mix.Tasks.Format do
       Map.merge(acc, map, fn file, {dot_formatter1, _}, {dot_formatter2, formatter_opts} ->
         Mix.shell().error(
           "Both #{dot_formatter1} and #{dot_formatter2} specify the file #{file} " <>
-            "in their :inputs option"
+            "in their :inputs option. To resolve the conflict, the configuration in " <>
+            "#{dot_formatter1} will be ignored"
         )
 
         {dot_formatter2, formatter_opts}
