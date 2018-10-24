@@ -479,12 +479,14 @@ defmodule Mix.Tasks.FormatTest do
       message1 =
         "Both .formatter.exs and lib/.formatter.exs specify the file lib/a.ex in their " <>
           ":inputs option. To resolve the conflict, the configuration in .formatter.exs " <>
-          "will be ignored"
+          "will be ignored. Please change the list of :inputs in one of the formatter files " <>
+          "so only one of them matches lib/a.ex"
 
       message2 =
         "Both lib/.formatter.exs and foo/.formatter.exs specify the file lib/a.ex in their " <>
           ":inputs option. To resolve the conflict, the configuration in lib/.formatter.exs " <>
-          "will be ignored"
+          "will be ignored. Please change the list of :inputs in one of the formatter files " <>
+          "so only one of them matches lib/a.ex"
 
       assert_received {:mix_shell, :error, [^message1]}
       assert_received {:mix_shell, :error, [^message2]}

@@ -368,7 +368,9 @@ defmodule Mix.Tasks.Format do
         Mix.shell().error(
           "Both #{dot_formatter1} and #{dot_formatter2} specify the file " <>
             "#{Path.relative_to_cwd(file)} in their :inputs option. To resolve the " <>
-            "conflict, the configuration in #{dot_formatter1} will be ignored"
+            "conflict, the configuration in #{dot_formatter1} will be ignored. " <>
+            "Please change the list of :inputs in one of the formatter files so only " <>
+            "one of them matches #{Path.relative_to_cwd(file)}"
         )
 
         {dot_formatter2, formatter_opts}
