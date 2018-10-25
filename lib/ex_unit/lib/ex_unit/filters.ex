@@ -140,7 +140,7 @@ defmodule ExUnit.Filters do
           :ok | {:excluded, String.t()} | {:skipped, String.t()}
   def eval(include, exclude, tags, collection) when is_map(tags) do
     excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection))
-    excluded? = not (!excluded)
+    excluded? = excluded != nil
     included? = Enum.any?(include, &has_tag(&1, tags, collection))
 
     if included? or not excluded? do
