@@ -778,7 +778,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:sum, [], [1, 2, 3]}
 
-  ## Elixir's AST (abstract syntax tree)
+  ## Elixir's AST (Abstract Syntax Tree)
 
   Any Elixir code can be represented using Elixir data structures.
   The building block of Elixir macros is a tuple with three elements,
@@ -809,8 +809,8 @@ defmodule Kernel.SpecialForms do
       "strings"    #=> Strings
       {key, value} #=> Tuples with two elements
 
-  If you would like to introduce any other value into an AST, you need
-  to make sure those values are escaped before via `Macro.escape/1`.
+  Any other value, such as a map or a four-element tuple, must be escaped 
+  (`Macro.escape/1`) before being introduced into an AST.
 
   ## Options
 
@@ -1289,7 +1289,7 @@ defmodule Kernel.SpecialForms do
 
       {:sum, [], [1, {:value, [], Elixir}, 3]}
 
-  Which is not the expected result. For this, we use unquote:
+  Which is not the expected result. For this, we use `unquote`:
 
       iex> value =
       ...>   quote do
@@ -1300,7 +1300,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:sum, [], [1, 13, 3]}
 
-  Note, however, if you want to unquote a value into a AST,
+  Note that if you want to unquote a value that is not a quoted expression,
   you need to call `Macro.escape/1` before:
 
       iex> value = %{foo: :bar}
