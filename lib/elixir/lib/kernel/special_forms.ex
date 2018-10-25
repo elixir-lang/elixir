@@ -1300,8 +1300,8 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:sum, [], [1, 13, 3]}
 
-  Note that if you want to unquote a value that is not a quoted expression,
-  you need to call `Macro.escape/1` before:
+  If you want to unquote a value that is not a quoted expression,
+  such as a map, you need to call `Macro.escape/1` before:
 
       iex> value = %{foo: :bar}
       iex> quote do
