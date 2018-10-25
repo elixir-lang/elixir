@@ -5,6 +5,106 @@ defmodule ExUnit.FiltersTest do
 
   doctest ExUnit.Filters
 
+  setup do
+    [
+      one: %{
+        one: true,
+        numeric: true,
+        test: :"test one",
+        test_type: :test
+      },
+      two: %{
+        skip: true,
+        numeric: true,
+        test: :"test two",
+        test_type: :test,
+        two: true
+      }
+    ]
+  end
+
+  @doc """
+  Evaluates thew filter precedence.
+  Tests are excluded, then included, and if they have
+  The following setting is given:
+
+      @tag :one
+      test "one", do assert(true)
+
+      @tag :skip
+      @tag :two
+      test "two", do assert(true)
+
+  """
+  describe "filter precedence" do
+    test "no filters", tags do
+      assert ExUnit.Filters.eval([], [], tags.one, []) == :ok
+      assert ExUnit.Filters.eval([], [], tags.two, []) == {:skipped, "due to skip tag"}
+    end
+
+    test "exclude tests", tags do
+      assert ExUnit.Filters.eval([], [:two], tags.one, []) == :ok
+      assert ExUnit.Filters.eval([], [:test], tags.one, []) == {:excluded, "due to test filter"}
+      assert ExUnit.Filters.eval([], [:test], tags.two, []) == {:excluded, "due to test filter"}
+      assert ExUnit.Filters.eval([], [:numeric], tags.one, []) == {:excluded, "due to numeric filter"}
+      assert ExUnit.Filters.eval([], [:unknown], tags.one, []) == :ok
+      assert ExUnit.Filters.eval([], [:unknown], tags.two, []) == {:skipped, "due to skip tag"}
+    end
+
+    test "explicitely exclude a test with the `:skip` tag", tags do
+      # --exclude two
+      assert ExUnit.Filters.eval([], [:two], tags.two, []) == {:excluded, "due to two filter"}
+
+      assert ExUnit.Filters.eval([], [:two, :test], tags.two, []) ==
+               {:excluded, "due to two filter"}
+    end
+
+    test "include tests", tags do
+      # use --include, exclude is missing
+      assert ExUnit.Filters.eval([:two], [], tags.one, []) == :ok
+      assert ExUnit.Filters.eval([:unknown], [], tags.one, []) == :ok
+
+      # --only
+      assert ExUnit.Filters.eval([:one], [:test], tags.one, []) == :ok
+      assert ExUnit.Filters.eval([:two], [:test], tags.one, []) ==
+               {:excluded, "due to test filter"}
+      assert ExUnit.Filters.eval([:unknown], [:test], tags.one, []) ==
+               {:excluded, "due to test filter"}
+      assert ExUnit.Filters.eval([:unknown], [:test], tags.two, []) ==
+               {:excluded, "due to test filter"}
+    end
+
+    test "explicitely include a test with the `:skip` tag", tags do
+      # --include two, exclude is missing
+      assert ExUnit.Filters.eval([:two], [], tags.two, []) == {:skipped, "due to skip tag"}
+
+      # --only two
+      assert ExUnit.Filters.eval([:two], [:test], tags.two, []) == {:skipped, "due to skip tag"}
+    end
+
+    test "exception to the rule: include tests with the `:skip` tag", tags do
+      # --include skip, exclude is missing
+      assert ExUnit.Filters.eval([:skip], [], tags.two, []) == :ok
+      assert ExUnit.Filters.eval([:skip], [], %{tags.two | skip: "skip me please"}, []) == :ok
+      assert ExUnit.Filters.eval([skip: ~r/alpha/], [], %{tags.two | skip: "alpha"}, []) == :ok
+
+      assert ExUnit.Filters.eval([skip: ~r/alpha/], [], %{tags.two | skip: "beta"}, []) ==
+               {:skipped, "beta"}
+
+      # --only skip
+      assert ExUnit.Filters.eval([:skip], [:test], tags.two, []) == :ok
+
+      assert ExUnit.Filters.eval([:skip], [:test], %{tags.two | skip: "skip me please"}, []) ==
+               :ok
+
+      assert ExUnit.Filters.eval([skip: ~r/alpha/], [:test], %{tags.two | skip: "alpha"}, []) ==
+               :ok
+
+      assert ExUnit.Filters.eval([skip: ~r/alpha/], [:test], %{tags.two | skip: "beta"}, []) ==
+               {:excluded, "due to test filter"}
+    end
+  end
+
   test "evaluating filters" do
     assert ExUnit.Filters.eval([], [:os], %{}, []) == :ok
     assert ExUnit.Filters.eval([], [os: :win], %{os: :unix}, []) == :ok
@@ -21,13 +121,25 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([os: :win, os: :unix], [:os], %{os: :win}, []) == :ok
   end
 
-  test "evaluating filters with skip" do
-    assert ExUnit.Filters.eval([], [], %{}, []) == :ok
-    assert ExUnit.Filters.eval([], [], %{skip: true}, []) == {:skipped, "due to skip tag"}
-    assert ExUnit.Filters.eval([], [], %{skip: "skipped"}, []) == {:skipped, "skipped"}
-    assert ExUnit.Filters.eval([], [:os], %{skip: "skipped"}, []) == {:skipped, "skipped"}
-    assert ExUnit.Filters.eval([:skip], [], %{skip: true}, []) == :ok
-    assert ExUnit.Filters.eval([:skip], [], %{skip: "skipped"}, []) == :ok
+  describe "evaluating filters with skip" do
+    test "regular usage" do
+      assert ExUnit.Filters.eval([], [], %{}, []) == :ok
+      assert ExUnit.Filters.eval([], [], %{skip: true}, []) == {:skipped, "due to skip tag"}
+      assert ExUnit.Filters.eval([], [], %{skip: "skipped"}, []) == {:skipped, "skipped"}
+      assert ExUnit.Filters.eval([], [:os], %{skip: "skipped"}, []) == {:skipped, "skipped"}
+    end
+
+    test "exception to the rule: explicitely including tests with the `:skip` tag" do
+      assert ExUnit.Filters.eval([:skip], [], %{skip: true}, []) == :ok
+      assert ExUnit.Filters.eval([:skip], [], %{skip: "skipped"}, []) == :ok
+      assert ExUnit.Filters.eval([:skip], [:test], %{skip: true}, []) == :ok
+      assert ExUnit.Filters.eval([:skip], [:test], %{skip: "skipped"}, []) == :ok
+      assert ExUnit.Filters.eval([skip: true], [:test], %{skip: true}, []) == :ok
+      assert ExUnit.Filters.eval([skip: ~r/skip me/], [:test], %{skip: "skip me please"}, []) == :ok
+
+      assert ExUnit.Filters.eval([skip: ~r/skip me/], [:test], %{skip: "don't skip!"}, []) ==
+               {:skipped, "don't skip!"}
+    end
   end
 
   test "evaluating filters matches integers" do

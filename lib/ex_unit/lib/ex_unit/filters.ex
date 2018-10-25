@@ -109,12 +109,23 @@ defmodule ExUnit.Filters do
   Evaluates the `include` and `exclude` filters against the given `tags` to
   determine if tests should be skipped or excluded.
 
-  Some filters, like `:line`, may require the whole test collection to
+  Some filters, like `:line`, may require the whole test `collection` to
   find the closest line, that's why it must also be passed as an argument.
 
   Filters can either be a regular expression or any data structure
   that implements the `String.Chars` protocol, which is invoked before comparing
-  the filter with the tag value.
+  the filter with the `:tag` value.
+
+  ## Precedence
+
+  Tests are first excluded, then included, and then skipped (if any left).
+
+  If a `:skip` tag is found in `tags`, `{:skipped, message}` is returned if the test
+  has been left after the `exclude` and `include` filters. Otherwise `{:exclude, message}`
+  is returned.
+
+  The only exception to this rule is that `:skip` is found in the `include` filter,
+  `:ok` is returned regardless of wether the test was excluded or not.
 
   ## Examples
 
@@ -125,25 +136,34 @@ defmodule ExUnit.Filters do
       {:excluded, "due to foo filter"}
 
   """
-  @spec eval(t, t, map, [ExUnit.Test.t()]) :: :ok | {:error, binary}
+  @spec eval(t, t, map, [ExUnit.Test.t()]) ::
+          :ok | {:excluded, String.t()} | {:skipped, String.t()}
   def eval(include, exclude, tags, collection) when is_map(tags) do
-    skip? = not Enum.any?(include, &has_tag(&1, %{skip: true}, collection))
+    excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection))
+    excluded? = not (!excluded)
+    included? = Enum.any?(include, &has_tag(&1, tags, collection))
 
-    case Map.fetch(tags, :skip) do
-      {:ok, msg} when is_binary(msg) and skip? ->
-        {:skipped, msg}
+    skip_tag =
+      case Map.fetch(tags, :skip) do
+        {:ok, value} -> %{skip: value}
+        :error -> %{skip: true}
+      end
 
-      {:ok, true} when skip? ->
-        {:skipped, "due to skip tag"}
+    skip_included_explicitely? = Enum.any?(include, &has_tag(&1, skip_tag, collection))
 
-      _ ->
-        excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection))
+    if included? or not excluded? do
+      case Map.fetch(tags, :skip) do
+        {:ok, msg} when is_binary(msg) and not skip_included_explicitely? ->
+          {:skipped, msg}
 
-        if !excluded or Enum.any?(include, &has_tag(&1, tags, collection)) do
+        {:ok, true} when not skip_included_explicitely? ->
+          {:skipped, "due to skip tag"}
+
+        _ ->
           :ok
-        else
-          {:excluded, "due to #{excluded} filter"}
-        end
+      end
+    else
+      {:excluded, "due to #{excluded} filter"}
     end
   end
 
