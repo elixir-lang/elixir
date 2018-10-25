@@ -707,7 +707,7 @@ defmodule IEx.Helpers do
   Prints the current working directory.
   """
   def pwd do
-    IO.puts(IEx.color(:eval_info, System.cwd!()))
+    IO.puts(IEx.color(:eval_info, File.cwd!()))
     dont_display_result()
   end
 

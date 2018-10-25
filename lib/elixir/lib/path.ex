@@ -39,7 +39,7 @@ defmodule Path do
   """
   @spec absname(t) :: binary
   def absname(path) do
-    absname(path, System.cwd!())
+    absname(path, File.cwd!())
   end
 
   @doc """
@@ -151,7 +151,7 @@ defmodule Path do
   """
   @spec expand(t) :: binary
   def expand(path) do
-    expand_dot(absname(expand_home(path), System.cwd!()))
+    expand_dot(absname(expand_home(path), File.cwd!()))
   end
 
   @doc """
@@ -180,7 +180,7 @@ defmodule Path do
   """
   @spec expand(t, t) :: binary
   def expand(path, relative_to) do
-    expand_dot(absname(absname(expand_home(path), expand_home(relative_to)), System.cwd!()))
+    expand_dot(absname(absname(expand_home(path), expand_home(relative_to)), File.cwd!()))
   end
 
   @doc """
