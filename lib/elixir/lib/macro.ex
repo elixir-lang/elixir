@@ -131,13 +131,17 @@ defmodule Macro do
     raise ArgumentError, bad_pipe(expr, call_args)
   end
 
+  def pipe(expr, {unquote, _, []}, _integer) when unquote in [:unquote, :unquote_splicing] do
+    raise ArgumentError,
+          "cannot pipe #{to_string(expr)} into the special form #{unquote}/1 " <>
+            "since #{unquote}/1 is used to build the Elixir AST itself"
+  end
+
   # {:fn, _, _} is what we get when we pipe into an anonymous function without
   # calling it, e.g., `:foo |> (fn x -> x end)`.
   def pipe(expr, {:fn, _, _}, _integer) do
-    expr_str = to_string(expr)
-
     raise ArgumentError,
-          "cannot pipe #{expr_str} into an anonymous function without" <>
+          "cannot pipe #{to_string(expr)} into an anonymous function without" <>
             " calling the function; use something like (fn ... end).() or" <>
             " define the anonymous function as a regular private function"
   end
