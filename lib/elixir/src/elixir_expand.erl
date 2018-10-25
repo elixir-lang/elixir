@@ -1117,8 +1117,10 @@ format_error({invalid_call, Call}) ->
   io_lib:format("invalid call ~ts", ['Elixir.Macro':to_string(Call)]);
 format_error({invalid_quoted_expr, Expr}) ->
   Message =
-    "invalid quoted expression: ~ts\n"
-    "You may have meant to escape this with Macro.escape/1",
+    "invalid quoted expression: ~ts\n\n"
+    "Please make sure your quoted expressions are made of valid AST nodes."
+    "If you would like to introduce a value into the AST, such as a four-element"
+    "tuple or a map, make sure to call `Macro.escape/1` before",
   io_lib:format(Message, ['Elixir.Kernel':inspect(Expr, [])]);
 format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
   Message =
