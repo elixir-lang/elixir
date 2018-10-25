@@ -778,7 +778,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:sum, [], [1, 2, 3]}
 
-  ## Explanation
+  ## Elixir's AST (abstract syntax tree)
 
   Any Elixir code can be represented using Elixir data structures.
   The building block of Elixir macros is a tuple with three elements,
@@ -797,6 +797,20 @@ defmodule Kernel.SpecialForms do
     * The third element of the tuple are the arguments for the
       function call. The third argument may be an atom, which is
       usually a variable (or a local call).
+
+  Besides the tuple described above, Elixir has a few literals that
+  are also part of its AST. Those literals return themselves when
+  quoted. They are:
+
+      :sum         #=> Atoms
+      1            #=> Integers
+      2.0          #=> Floats
+      [1, 2]       #=> Lists
+      "strings"    #=> Strings
+      {key, value} #=> Tuples with two elements
+
+  If you would like to introduce any other value into an AST, you need
+  to make sure those values are escaped before via `Macro.escape/1`.
 
   ## Options
 
@@ -828,18 +842,6 @@ defmodule Kernel.SpecialForms do
 
     * `:bind_quoted` - passes a binding to the macro. Whenever a binding is
       given, `unquote/1` is automatically disabled.
-
-  ## Quote literals
-
-  Besides the tuple described above, Elixir has a few literals that
-  when quoted return themselves. They are:
-
-      :sum         #=> Atoms
-      1            #=> Integers
-      2.0          #=> Floats
-      [1, 2]       #=> Lists
-      "strings"    #=> Strings
-      {key, value} #=> Tuples with two elements
 
   ## Quote and macros
 
@@ -1263,6 +1265,11 @@ defmodule Kernel.SpecialForms do
   @doc """
   Unquotes the given expression inside a quoted expression.
 
+  This function expects a valid Elixir AST, also known as
+  quoted expression, as argument. If you would like to `unquote`
+  any value, such as a map or a four-element tuple, you should
+  call `Macro.escape/1` before unquoting.
+
   ## Examples
 
   Imagine the situation you have a quoted expression and
@@ -1293,6 +1300,17 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:sum, [], [1, 13, 3]}
 
+  Note, however, if you want to unquote a value into a AST,
+  you need to call `Macro.escape/1` before:
+
+      iex> value = %{foo: :bar}
+      iex> quote do
+      ...>   process_map(unquote(Macro.escape(value)))
+      ...> end
+      {:process_map, [], [{:%{}, [], [foo: :bar]}]}
+
+  If you forget to escape it, Elixir will raise an error
+  when compiling the code.
   """
   defmacro unquote(:unquote)(expr), do: error!([expr])
 
