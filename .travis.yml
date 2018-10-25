@@ -10,6 +10,7 @@ env:
     - OTP_RELEASE=OTP-20.2
     - OTP_RELEASE=OTP-20.3
     - OTP_RELEASE=OTP-21.0
+    - OTP_RELEASE=OTP-21.1
     - OTP_RELEASE=maint
     - OTP_RELEASE=master
 
