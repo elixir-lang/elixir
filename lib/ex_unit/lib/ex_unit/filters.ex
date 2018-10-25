@@ -125,7 +125,7 @@ defmodule ExUnit.Filters do
   is returned.
 
   The only exception to this rule is that `:skip` is found in the `include` filter,
-  `:ok` is returned regardless of wether the test was excluded or not.
+  `:ok` is returned regardless of whether the test was excluded or not.
 
   ## Examples
 
@@ -143,20 +143,15 @@ defmodule ExUnit.Filters do
     excluded? = not (!excluded)
     included? = Enum.any?(include, &has_tag(&1, tags, collection))
 
-    skip_tag =
-      case Map.fetch(tags, :skip) do
-        {:ok, value} -> %{skip: value}
-        :error -> %{skip: true}
-      end
-
-    skip_included_explicitely? = Enum.any?(include, &has_tag(&1, skip_tag, collection))
-
     if included? or not excluded? do
+      skip_tag = %{skip: Map.get(tags, :skip, true)}
+      skip_included_explicitly? = Enum.any?(include, &has_tag(&1, skip_tag, collection))
+
       case Map.fetch(tags, :skip) do
-        {:ok, msg} when is_binary(msg) and not skip_included_explicitely? ->
+        {:ok, msg} when is_binary(msg) and not skip_included_explicitly? ->
           {:skipped, msg}
 
-        {:ok, true} when not skip_included_explicitely? ->
+        {:ok, true} when not skip_included_explicitly? ->
           {:skipped, "due to skip tag"}
 
         _ ->
