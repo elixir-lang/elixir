@@ -688,7 +688,6 @@ defmodule ExUnitTest do
       assert output =~ "\n7 tests, 2 failures, 2 excluded, 2 skipped\n"
     end
 
-
     # Excluded and skipped tests are detected before setup_all
     # callback is executed, therefore they are always included
     # as part of the total number of tests in the stats.
