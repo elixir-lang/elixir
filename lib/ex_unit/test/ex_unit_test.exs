@@ -500,13 +500,13 @@ defmodule ExUnitTest do
            end) =~ "\n3 tests, 0 failures\n"
   end
 
-  @doc """
-  Skipped and excluded tests should be included in the stats as well as printed to stdout.
-  On the other hand, invalid tests should be marked as failures in the stats,
-  but still be printed as "invalid" to stdout.
-
-  If setup_all fails, the skipped and excluded tests should not be counted as invalid or failures.
-  """
+  # Skipped and excluded tests should be included in the stats
+  # as well as printed to stdout. On the other hand, invalid tests
+  # should be marked as failures in the stats, but still be printed
+  # as "invalid" to stdout.
+  #
+  # If setup_all fails, the skipped and excluded tests should not be
+  # counted as invalid or failures.
   test "setup_all fails and module has skipped and excluded tests" do
     defmodule SetupAllFailsModuleHasSkippedExcludedTest do
       use ExUnit.Case
@@ -688,10 +688,10 @@ defmodule ExUnitTest do
       assert output =~ "\n7 tests, 2 failures, 2 excluded, 2 skipped\n"
     end
 
-    @doc """
-    Excluded and skipped tests are detected before setup_all callback is executed,
-    therefore they are always included as part of the total number of tests in the stats.
-    """
+
+    # Excluded and skipped tests are detected before setup_all
+    # callback is executed, therefore they are always included
+    # as part of the total number of tests in the stats.
     test ":max_failures on setup_all errors" do
       defmodule TestMaxFailuresSetupAll do
         use ExUnit.Case
