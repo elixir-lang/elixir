@@ -706,7 +706,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid macro" do
     assert_eval_raise CompileError,
-                      "nofile: invalid quoted expression: {:foo, :bar, :baz, :bat}",
+                      ~r"nofile: invalid quoted expression: {:foo, :bar, :baz, :bat}",
                       '''
                       defmodule Kernel.ErrorsTest.InvalidMacro do
                         defmacrop oops do
