@@ -178,7 +178,7 @@ defmodule Mix.Tasks.TestTest do
 
       # `--failed` and `--stale` cannot be combined
       output = mix(["test", "--failed", "--stale"])
-      assert output =~ "Combining `--failed` and `--stale` is not supported"
+      assert output =~ "Combining --failed and --stale is not supported"
     end)
   after
     System.delete_env("PASS_FAILING_TESTS")

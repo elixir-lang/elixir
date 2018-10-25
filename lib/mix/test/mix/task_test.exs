@@ -197,11 +197,11 @@ defmodule Mix.TaskTest do
     assert Mix.Task.preferred_cli_env(:no_task) == nil
   end
 
-  test "preferred_cli_env/1 returns nil when task does not have `preferred_cli_env` attribute" do
+  test "preferred_cli_env/1 returns nil when task does not have :preferred_cli_env attribute" do
     assert Mix.Task.preferred_cli_env(:deps) == nil
   end
 
-  test "preferred_cli_env/1 returns specified `preferred_cli_env` attribute" do
+  test "preferred_cli_env/1 returns specified :preferred_cli_env attribute" do
     assert Mix.Task.preferred_cli_env(:test) == :test
   end
 
