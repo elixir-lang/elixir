@@ -101,7 +101,7 @@ defmodule System do
   # Read and strip the version from the VERSION file.
   defmacrop get_version do
     case read_stripped(@version_file) do
-      "" -> raise RuntimeError, message: "could not read the version number from VERSION"
+      "" -> raise "could not read the version number from VERSION"
       data -> data
     end
   end
@@ -239,9 +239,7 @@ defmodule System do
         cwd
 
       _ ->
-        raise RuntimeError,
-          message:
-            "could not get a current working directory, the current location is not accessible"
+        raise "could not get a current working directory, the current location is not accessible"
     end
   end
 
@@ -263,9 +261,7 @@ defmodule System do
   """
   @spec user_home!() :: String.t()
   def user_home! do
-    user_home() ||
-      raise RuntimeError,
-        message: "could not find the user home, please set the HOME environment variable"
+    user_home() || raise "could not find the user home, please set the HOME environment variable"
   end
 
   @doc ~S"""
@@ -304,10 +300,7 @@ defmodule System do
   @spec tmp_dir!() :: String.t()
   def tmp_dir! do
     tmp_dir() ||
-      raise RuntimeError,
-        message:
-          "could not get a writable temporary directory, " <>
-            "please set the TMPDIR environment variable"
+      raise "could not get a writable temporary directory, please set the TMPDIR environment variable"
   end
 
   defp write_env_tmp_dir(env) do
