@@ -556,6 +556,17 @@ defmodule Date do
   """
   @doc since: "1.5.0"
   @spec add(Calendar.date(), integer()) :: t
+  def add(%{calendar: Calendar.ISO} = date, days) do
+    %{year: year, month: month, day: day} = date
+
+    {year, month, day} =
+      Calendar.ISO.date_to_iso_days(year, month, day)
+      |> Kernel.+(days)
+      |> Calendar.ISO.date_from_iso_days()
+
+    %Date{calendar: Calendar.ISO, year: year, month: month, day: day}
+  end
+
   def add(%{calendar: calendar} = date, days) do
     {base_days, fraction} = to_iso_days(date)
     from_iso_days({base_days + days, fraction}, calendar)

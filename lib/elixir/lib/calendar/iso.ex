@@ -180,7 +180,7 @@ defmodule Calendar.ISO do
   end
 
   def time_from_day_fraction({parts_in_day, parts_per_day}) do
-    total_microseconds = div(parts_in_day * @parts_per_day, parts_per_day)
+    total_microseconds = divide_by_parts_per_day(parts_in_day, parts_per_day)
 
     {hours, rest_microseconds1} =
       div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
@@ -191,6 +191,11 @@ defmodule Calendar.ISO do
     {seconds, microseconds} = div_mod(rest_microseconds2, @microseconds_per_second)
     {hours, minutes, seconds, {microseconds, 6}}
   end
+
+  defp divide_by_parts_per_day(parts_in_day, @parts_per_day), do: parts_in_day
+
+  defp divide_by_parts_per_day(parts_in_day, parts_per_day),
+    do: div(parts_in_day * @parts_per_day, parts_per_day)
 
   # Converts year, month, day to count of days since 0000-01-01.
   @doc false
@@ -703,7 +708,7 @@ defmodule Calendar.ISO do
   @doc false
   def iso_days_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @parts_per_day
-    microseconds = div(parts * @parts_per_day, ppd)
+    microseconds = divide_by_parts_per_day(parts, ppd)
     System.convert_time_unit(day_microseconds + microseconds, :microsecond, unit)
   end
 

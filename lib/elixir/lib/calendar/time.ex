@@ -45,6 +45,8 @@ defmodule Time do
           calendar: Calendar.calendar()
         }
 
+  @parts_per_day 86_400_000_000
+
   @doc """
   Returns the current time in UTC.
 
@@ -405,12 +407,9 @@ defmodule Time do
   @spec add(Calendar.time(), integer, System.time_unit()) :: t
   def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
     number = System.convert_time_unit(number, unit, :microsecond)
-    iso_days = {0, to_day_fraction(time)}
-    total = Calendar.ISO.iso_days_to_unit(iso_days, :microsecond) + number
-    iso_ppd = 86_400_000_000
-    parts = Integer.mod(total, iso_ppd)
-
-    {hour, minute, second, microsecond} = calendar.time_from_day_fraction({parts, iso_ppd})
+    total = time_to_microseconds(time) + number
+    parts = Integer.mod(total, @parts_per_day)
+    {hour, minute, second, microsecond} = calendar.time_from_day_fraction({parts, @parts_per_day})
 
     %Time{
       hour: hour,
@@ -419,6 +418,21 @@ defmodule Time do
       microsecond: microsecond,
       calendar: calendar
     }
+  end
+
+  defp time_to_microseconds(%{
+         calendar: Calendar.ISO,
+         hour: 0,
+         minute: 0,
+         second: 0,
+         microsecond: {0, _}
+       }) do
+    0
+  end
+
+  defp time_to_microseconds(time) do
+    iso_days = {0, to_day_fraction(time)}
+    Calendar.ISO.iso_days_to_unit(iso_days, :microsecond)
   end
 
   @doc """
@@ -597,7 +611,33 @@ defmodule Time do
   """
   @doc since: "1.5.0"
   @spec diff(Calendar.time(), Calendar.time(), System.time_unit()) :: integer
-  def diff(time1, time2, unit \\ :second) do
+  def diff(time1, time2, unit \\ :second)
+
+  def diff(
+        %{
+          calendar: Calendar.ISO,
+          hour: hour1,
+          minute: minute1,
+          second: second1,
+          microsecond: {microsecond1, @parts_per_day}
+        },
+        %{
+          calendar: Calendar.ISO,
+          hour: hour2,
+          minute: minute2,
+          second: second2,
+          microsecond: {microsecond2, @parts_per_day}
+        },
+        unit
+      ) do
+    total =
+      (hour1 - hour2) * 3_600_000_000 + (minute1 - minute2) * 60_000_000 +
+        (second1 - second2) * 1_000_000 + (microsecond1 - microsecond2)
+
+    System.convert_time_unit(total, :microsecond, unit)
+  end
+
+  def diff(time1, time2, unit) do
     fraction1 = to_day_fraction(time1)
     fraction2 = to_day_fraction(time2)
 
