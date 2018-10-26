@@ -583,11 +583,13 @@ defmodule Kernel.WarningTest do
       capture_err(fn ->
         defmodule DuplicateMapKeys do
           assert %{a: :b, a: :c} == %{a: :c}
+          assert %{m: :n, m: :o, m: :p} == %{m: :p}
           assert %{1 => 2, 1 => 3} == %{1 => 3}
         end
       end)
 
     assert output =~ "key :a will be overridden in map"
+    assert output =~ "key :m will be overridden in map"
     assert output =~ "key 1 will be overridden in map"
 
     assert map_size(%{System.unique_integer() => 1, System.unique_integer() => 2}) == 2
