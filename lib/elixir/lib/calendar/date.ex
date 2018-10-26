@@ -465,7 +465,7 @@ defmodule Date do
       cannot compare #{inspect(date1)} with #{inspect(date2)}.
 
       This comparison would be ambiguous as their calendars have incompatible day rollover moments.
-      Specify an exact time of day (using `DateTime`s) to resolve this ambiguity
+      Specify an exact time of day (using DateTime) to resolve this ambiguity
       """
     end
   end

@@ -97,7 +97,7 @@ defmodule ExUnit.FailuresManifestTest do
   @manifest_path "example.manifest"
 
   describe "write!/2" do
-    test "stores a manifest that can later be read with `read/1`", context do
+    test "stores a manifest that can later be read with read/1", context do
       manifest = non_blank_manifest(context)
 
       in_tmp(context.test, fn ->
