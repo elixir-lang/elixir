@@ -549,7 +549,7 @@ defmodule Mix.Tasks.Test do
   defp failed_opts(opts) do
     if opts[:failed] do
       if opts[:stale] do
-        Mix.raise("Combining `--failed` and `--stale` is not supported.")
+        Mix.raise("Combining --failed and --stale is not supported.")
       end
 
       {allowed_files, failed_ids} = ExUnit.Filters.failure_info(opts[:failures_manifest_file])
