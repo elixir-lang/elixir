@@ -23,23 +23,6 @@ defmodule SystemTest do
     assert build_info[:build] =~ "compiled with Erlang/OTP"
   end
 
-  test "cwd/0" do
-    assert is_binary(System.cwd())
-    assert is_binary(System.cwd!())
-  end
-
-  if :file.native_name_encoding() == :utf8 do
-    test "cwd/0 with UTF-8" do
-      File.mkdir_p(tmp_path("héllò"))
-
-      File.cd!(tmp_path("héllò"), fn ->
-        assert Path.basename(System.cwd!()) == "héllò"
-      end)
-    after
-      File.rm_rf(tmp_path("héllò"))
-    end
-  end
-
   test "user_home/0" do
     assert is_binary(System.user_home())
     assert is_binary(System.user_home!())
@@ -105,7 +88,7 @@ defmodule SystemTest do
                  "cmd",
                  ~w[/c echo hello],
                  into: [],
-                 cd: System.cwd!(),
+                 cd: File.cwd!(),
                  env: %{"foo" => "bar", "baz" => nil},
                  arg0: "echo",
                  stderr_to_stdout: true,
@@ -129,7 +112,7 @@ defmodule SystemTest do
         end
 
         assert {"hello\r\n", 0} =
-                 System.cmd(Path.join(System.cwd!(), @echo), ~w[/c echo hello], [{:arg0, "echo"}])
+                 System.cmd(Path.join(File.cwd!(), @echo), ~w[/c echo hello], [{:arg0, "echo"}])
       end)
     after
       File.rm_rf!(tmp_path(@echo))
@@ -146,7 +129,7 @@ defmodule SystemTest do
     test "cmd/3 (with options)" do
       opts = [
         into: [],
-        cd: System.cwd!(),
+        cd: File.cwd!(),
         env: %{"foo" => "bar", "baz" => nil},
         arg0: "echo",
         stderr_to_stdout: true,
@@ -172,7 +155,7 @@ defmodule SystemTest do
         end
 
         assert {"hello\n", 0} =
-                 System.cmd(Path.join(System.cwd!(), @echo), ["hello"], [{:arg0, "echo"}])
+                 System.cmd(Path.join(File.cwd!(), @echo), ["hello"], [{:arg0, "echo"}])
       end)
     after
       File.rm_rf!(tmp_path(@echo))

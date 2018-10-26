@@ -103,10 +103,10 @@ defmodule PathTest do
   end
 
   test "relative_to_cwd/1" do
-    assert Path.relative_to_cwd(__ENV__.file) == Path.relative_to(__ENV__.file, System.cwd!())
+    assert Path.relative_to_cwd(__ENV__.file) == Path.relative_to(__ENV__.file, File.cwd!())
 
     assert Path.relative_to_cwd(to_charlist(__ENV__.file)) ==
-             Path.relative_to(to_charlist(__ENV__.file), to_charlist(System.cwd!()))
+             Path.relative_to(to_charlist(__ENV__.file), to_charlist(File.cwd!()))
   end
 
   test "absname/1,2" do
@@ -137,7 +137,7 @@ defmodule PathTest do
     assert Path.expand("~/file", "whatever") == Path.join(home, "file")
     assert Path.expand("file", Path.expand("~")) == Path.expand("~/file")
     assert Path.expand("file", "~") == Path.join(home, "file")
-    assert Path.expand("~file") == Path.join(System.cwd!(), "file")
+    assert Path.expand("~file") == Path.join(File.cwd!(), "file")
   end
 
   test "expand/1,2" do
