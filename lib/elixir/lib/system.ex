@@ -215,34 +215,34 @@ defmodule System do
   Returns the current working directory or `nil` if one
   is not available.
   """
+  # TODO: Remove by 2.0
+  @deprecated "Use File.cwd/0 instead"
   @spec cwd() :: String.t() | nil
   def cwd do
-    case :file.get_cwd() do
-      {:ok, base} -> IO.chardata_to_string(fix_drive_letter(base))
+    case File.cwd() do
+      {:ok, cwd} -> cwd
       _ -> nil
     end
   end
-
-  defp fix_drive_letter([l, ?:, ?/ | rest] = original) when l in ?A..?Z do
-    case :os.type() do
-      {:win32, _} -> [l + ?a - ?A, ?:, ?/ | rest]
-      _ -> original
-    end
-  end
-
-  defp fix_drive_letter(original), do: original
 
   @doc """
   Current working directory, exception on error.
 
   Returns the current working directory or raises `RuntimeError`.
   """
+  # TODO: Remove by 2.0
+  @deprecated "Use File.cwd!/0 instead"
   @spec cwd!() :: String.t()
   def cwd! do
-    cwd() ||
-      raise RuntimeError,
-        message:
-          "could not get a current working directory, the current location is not accessible"
+    case File.cwd() do
+      {:ok, cwd} ->
+        cwd
+
+      _ ->
+        raise RuntimeError,
+          message:
+            "could not get a current working directory, the current location is not accessible"
+    end
   end
 
   @doc """
@@ -285,7 +285,14 @@ defmodule System do
   @spec tmp_dir() :: String.t() | nil
   def tmp_dir do
     write_env_tmp_dir('TMPDIR') || write_env_tmp_dir('TEMP') || write_env_tmp_dir('TMP') ||
-      write_tmp_dir('/tmp') || ((cwd = cwd()) && write_tmp_dir(cwd))
+      write_tmp_dir('/tmp') || write_cwd_tmp_dir()
+  end
+
+  defp write_cwd_tmp_dir do
+    case File.cwd() do
+      {:ok, cwd} -> write_tmp_dir(cwd)
+      _ -> nil
+    end
   end
 
   @doc """
