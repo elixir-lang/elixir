@@ -282,8 +282,8 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp print_filters(include: include, exclude: exclude) do
-    if include != [], do: IO.puts(format_filters(include, :include))
     if exclude != [], do: IO.puts(format_filters(exclude, :exclude))
+    if include != [], do: IO.puts(format_filters(include, :include))
     IO.puts("")
     :ok
   end

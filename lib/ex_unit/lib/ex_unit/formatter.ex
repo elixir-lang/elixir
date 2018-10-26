@@ -109,8 +109,8 @@ defmodule ExUnit.Formatter do
   @spec format_filters(keyword, atom) :: String.t()
   def format_filters(filters, type) do
     case type do
-      :include -> "Including tags: #{inspect(filters)}"
       :exclude -> "Excluding tags: #{inspect(filters)}"
+      :include -> "Including tags: #{inspect(filters)}"
     end
   end
 
