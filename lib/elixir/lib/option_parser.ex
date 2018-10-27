@@ -479,7 +479,7 @@ defmodule OptionParser do
       ["--bool", "--no-bool"]
 
   Some switches will output different values based on the switches
-  flag:
+  types:
 
       iex> OptionParser.to_argv([number: 2], switches: [])
       ["--number", "2"]

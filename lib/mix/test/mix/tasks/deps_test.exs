@@ -779,8 +779,8 @@ defmodule Mix.Tasks.DepsTest do
       message =
         "\"mix deps.clean\" expects dependencies as arguments or " <>
           "a flag indicating which dependencies to clean. " <>
-          "The --all option will clean all dependencies while " <>
-          "the --unused option cleans unused dependencies"
+          "The --all flag will clean all dependencies while " <>
+          "the --unused flag cleans unused dependencies"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Deps.Clean.run([])
