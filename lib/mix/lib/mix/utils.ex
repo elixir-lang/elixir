@@ -576,8 +576,6 @@ defmodule Mix.Utils do
     # If a proxy environment variable was supplied add a proxy to httpc.
     http_options = [relaxed: true] ++ proxy_config(path)
 
-    :httpc.set_option(:ipfamily, :inet6fb4, :mix)
-
     case :httpc.request(:get, request, http_options, [body_format: :binary], :mix) do
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         {:ok, body}
