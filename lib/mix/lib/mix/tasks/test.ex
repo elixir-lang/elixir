@@ -423,11 +423,16 @@ defmodule Mix.Tasks.Test do
   end
 
   defp raise_or_error_at_exit(message, opts) do
-    if opts[:raise] do
-      Mix.raise(message)
-    else
-      Mix.shell().error(message)
-      System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+    cond do
+      Mix.Project.recursing?() ->
+        Mix.shell().info(message)
+
+      opts[:raise] ->
+        Mix.raise(message)
+
+      true ->
+        Mix.shell().error(message)
+        System.at_exit(fn _ -> exit({:shutdown, 1}) end)
     end
   end
 
