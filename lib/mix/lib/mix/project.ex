@@ -666,6 +666,16 @@ defmodule Mix.Project do
     end
   end
 
+  @doc """
+  Indicates if currently recursing through the project stack
+  """
+  def recursing?() do
+    case Mix.ProjectStack.recursing() do
+      nil -> false
+      _ -> true
+    end
+  end
+
   # Loads mix.exs in the current directory or loads the project from the
   # mixfile cache and pushes the project onto the project stack.
   defp load_project(app, post_config) do
