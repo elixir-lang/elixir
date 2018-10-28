@@ -80,7 +80,11 @@ defmodule Mix.UmbrellaTest do
         defmodule Elixir.Mix.Tasks.Umbrella.Recur do
           use Mix.Task
           @recursive true
-          def run(_), do: Mix.Task.run("compile", ["--verbose"])
+
+          def run(_) do
+            assert Mix.Task.recursing?
+            Mix.Task.run("compile", ["--verbose"])
+          end
         end
 
         Mix.Task.run("umbrella.recur")
