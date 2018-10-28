@@ -165,6 +165,8 @@ defmodule Mix.Task do
   This returns true if a task is marked as recursive
   and it is being executed inside an umbrella project.
   """
+  @doc since: "1.8.0"
+  @spec recursing?() :: boolean
   def recursing?() do
     Mix.ProjectStack.recursing() != nil
   end
