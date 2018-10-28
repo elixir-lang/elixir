@@ -160,6 +160,16 @@ defmodule Mix.Task do
   end
 
   @doc """
+  Indicates if the current task is recursing.
+
+  This returns true if a task is marked as recursive
+  and it is being executed inside an umbrella project.
+  """
+  def recursing?() do
+    Mix.ProjectStack.recursing() != nil
+  end
+
+  @doc """
   Gets preferred CLI environment for the task.
 
   Returns environment (for example, `:test`, or `:prod`), or `nil`.
