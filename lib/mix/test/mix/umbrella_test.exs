@@ -82,7 +82,7 @@ defmodule Mix.UmbrellaTest do
           @recursive true
 
           def run(_) do
-            assert Mix.Task.recursing?
+            assert Mix.Task.recursing?()
             Mix.Task.run("compile", ["--verbose"])
           end
         end
