@@ -1032,12 +1032,16 @@ warn_empty_paren({_, {Line, _, _}}) ->
     "to pass an empty block, pass a value instead, such as a nil or an atom").
 
 %% TODO: Make this an error on Elixir v2.0.
+warn_trailing_comma({',', {Line, _, _}}) ->
+  elixir_errors:warn(Line, ?file(),
+    "trailing commas are not allowed inside function/macro call arguments"
+  ).
+
 warn_empty_stab_clause({stab_op, {Line, _, _}, '->'}) ->
   elixir_errors:warn(Line, ?file(),
     "an expression is always required on the right side of ->. "
     "Please provide a value after ->").
 
-%% TODO: Make this an error on Elixir v2.0.
 warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
   elixir_errors:warn(Line, ?file(),
     io_lib:format(
@@ -1051,9 +1055,3 @@ warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
   );
 warn_pipe(_Token, _) ->
   ok.
-
-%% TODO: Make this an error on Elixir v2.0.
-warn_trailing_comma({',', {Line, _, _}}) ->
-  elixir_errors:warn(Line, ?file(),
-    "trailing commas are not allowed inside function/macro call arguments"
-  ).
