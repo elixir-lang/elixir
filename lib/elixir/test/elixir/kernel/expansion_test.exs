@@ -1637,7 +1637,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects more than do" do
-      assert_raise CompileError, ~r"missing :catch/:rescue/:after/:else option in \"try\"", fn ->
+      assert_raise CompileError, ~r"missing :catch/:rescue/:after option in \"try\"", fn ->
         code =
           quote do
             try do
@@ -1654,21 +1654,6 @@ defmodule Kernel.ExpansionTest do
     test "raises if do is missing" do
       assert_raise CompileError, ~r"missing :do option in \"try\"", fn ->
         expand(quote(do: try([])))
-      end
-    end
-
-    test "raises if the only clause other than do is else" do
-      assert_raise CompileError, ~r"\"else\" can't be used as the only clause", fn ->
-        code =
-          quote do
-            try do
-              :ok
-            else
-              other -> other
-            end
-          end
-
-        expand(code)
       end
     end
 

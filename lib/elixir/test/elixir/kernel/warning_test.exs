@@ -1640,6 +1640,40 @@ defmodule Kernel.WarningTest do
     assert message =~ "1 < x < y < 10"
   end
 
+  test "def warns if only clause is else" do
+    message =
+      capture_err(fn ->
+        Code.compile_string("""
+        defmodule Sample do
+          def foo do
+            :bar
+          else
+            _other -> :ok
+          end
+        end
+        """)
+      end)
+
+    assert message =~ "\"else\" shouldn't be used as the only clause in \"def\""
+  after
+    purge(Sample)
+  end
+
+  test "try warns if only clause is else" do
+    message =
+      capture_err(fn ->
+        Code.compile_string("""
+          try do
+            :ok
+          else
+            other -> other
+          end
+        """)
+      end)
+
+    assert message =~ "\"else\" shouldn't be used as the only clause in \"try\""
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end

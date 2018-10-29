@@ -185,12 +185,17 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
 'try'(Meta, [], E) ->
   form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', [do]});
 'try'(Meta, [{do, _}], E) ->
-  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after', 'else']});
-'try'(Meta, [{do, _}, {else, _}], E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, origin(Meta, 'try')});
+  form_error(Meta, ?key(E, file), elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after']});
 'try'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, E) ->
+  % TODO: Make this an error in Elixir 2.0
+  case Opts of
+    [{do, _}, {else, _}] ->
+      form_warn(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, origin(Meta, 'try')});
+    _ ->
+      ok
+  end,
   RaiseError = fun(Key) ->
     form_error(Meta, ?key(E, file), ?MODULE, {duplicated_clauses, 'try', Key})
   end,
@@ -351,7 +356,7 @@ format_error({catch_before_rescue, Origin}) ->
   io_lib:format("\"catch\" should always come after \"rescue\" in ~ts", [Origin]);
 
 format_error({try_with_only_else_clause, Origin}) ->
-  io_lib:format("\"else\" can't be used as the only clause in \"~ts\" since it doesn't do anything",
+  io_lib:format("\"else\" shouldn't be used as the only clause in \"~ts\", use \"case\" instead",
                 [Origin]);
 
 format_error(unmatchable_else_in_with) ->
