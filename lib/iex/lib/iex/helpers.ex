@@ -1076,6 +1076,10 @@ defmodule IEx.Helpers do
   This would be the equivalent of getting all of the file contents and
   packing it all into a single line in IEx and executing it.
 
+  By default, the contents of a `.iex.exs` file in the same directory
+  as you are starting IEx are automatically imported. See the section
+  for ".iex.exs" in the `IEx` module docs for more information.
+
   `path` has to be a literal string and is automatically expanded via
   `Path.expand/1`.
 
