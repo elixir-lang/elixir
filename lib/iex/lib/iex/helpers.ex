@@ -1070,10 +1070,13 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Evaluates the contents of the file at `path` as if it was directly typed into
+  Injects the contents of the file at `path` as if it was typed into
   the shell.
 
-  `path` has to be a literal string. `path` is automatically expanded via
+  This would be the equivalent of getting all of the file contents and
+  packing it all into a single line in IEx and executing it.
+
+  `path` has to be a literal string and is automatically expanded via
   `Path.expand/1`.
 
   ## Examples
