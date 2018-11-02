@@ -389,13 +389,13 @@ defmodule String do
 
   Note this function can split within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
-  "e" and the acute accent. The following returns `true`:
+  "e" and the acute accent. The following returns the acute accent separately:
 
       iex> String.split(String.normalize("é", :nfd), "e")
       ["", "́"]
 
   However, if "é" is represented by the single character "e with acute"
-  accent, then it will return `false`:
+  accent, then it will return "e with acute":
 
       iex> String.split(String.normalize("é", :nfc), "e")
       ["é"]
