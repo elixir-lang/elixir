@@ -499,8 +499,8 @@ defmodule ExUnit.Case do
   @doc """
   Registers a new attribute to be used during `ExUnit.Case` tests.
 
-  The attribute values will be available as a key/value pair in
-  `context.registered`. The key/value pairs will be cleared
+  The attribute values will be available as an accessible key/value
+  pair in `context.registered`. The key/value pairs will be cleared
   after each `ExUnit.Case.test/3` similar to `@tag`.
 
   `Module.register_attribute/3` is used to register the attribute,
@@ -514,7 +514,7 @@ defmodule ExUnit.Case do
 
         @foobar hello: "world"
         test "using custom test attribute", context do
-          assert context.registered.hello == "world"
+          assert context.registered.foobar[:hello] == "world"
         end
       end
 
