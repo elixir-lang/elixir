@@ -270,13 +270,12 @@ defmodule Float do
 
   defp round(float, precision, rounding) do
     <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
-    {num, count, _} = decompose(significant)
+    {num, count, _} = decompose(significant, 1)
     count = count - exp + 1023
 
     cond do
-      # There is no decimal precision
-      # zero or minus zero
-      count <= 0 or (0 == exp and <<0::52>> == significant) ->
+      # There is no decimal precision on subnormal floats
+      count <= 0 or exp == 0 ->
         float
 
       # Precision beyond 15 digits
@@ -385,6 +384,8 @@ defmodule Float do
 
   ## Examples
 
+      iex> Float.ratio(0.0)
+      {0, 1}
       iex> Float.ratio(3.14)
       {7070651414971679, 2251799813685248}
       iex> Float.ratio(-3.14)
@@ -401,26 +402,34 @@ defmodule Float do
   """
   @doc since: "1.4.0"
   @spec ratio(float) :: {pos_integer | neg_integer, pos_integer}
+  def ratio(0.0), do: {0, 1}
+
   def ratio(float) when is_float(float) do
-    <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
-    {num, _, den} = decompose(significant)
-    num = sign(sign, num)
+    case <<float::float>> do
+      <<sign::1, 0::11, significant::52-bitstring>> ->
+        {num, _, den} = decompose(significant, 0)
+        {sign(sign, num), shift_left(den, 1022)}
 
-    case exp - 1023 do
-      exp when exp > 0 ->
-        {den, exp} = shift_right(den, exp)
-        {shift_left(num, exp), den}
+      <<sign::1, exp::11, significant::52-bitstring>> ->
+        {num, _, den} = decompose(significant, 1)
+        num = sign(sign, num)
 
-      exp when exp < 0 ->
-        {num, shift_left(den, -exp)}
+        case exp - 1023 do
+          exp when exp > 0 ->
+            {den, exp} = shift_right(den, exp)
+            {shift_left(num, exp), den}
 
-      0 ->
-        {num, den}
+          exp when exp < 0 ->
+            {num, shift_left(den, -exp)}
+
+          0 ->
+            {num, den}
+        end
     end
   end
 
-  defp decompose(significant) do
-    decompose(significant, 1, 0, 2, 1, 1)
+  defp decompose(significant, initial) do
+    decompose(significant, 1, 0, 2, 1, initial)
   end
 
   defp decompose(<<1::1, bits::bitstring>>, count, last_count, power, _last_power, acc) do
