@@ -401,7 +401,7 @@ defmodule Float do
 
   """
   @doc since: "1.4.0"
-  @spec ratio(float) :: {pos_integer | neg_integer, pos_integer}
+  @spec ratio(float) :: {integer, pos_integer}
   def ratio(0.0), do: {0, 1}
 
   def ratio(float) when is_float(float) do
