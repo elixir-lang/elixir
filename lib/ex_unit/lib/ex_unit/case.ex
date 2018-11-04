@@ -511,7 +511,7 @@ defmodule ExUnit.Case do
       defmodule MyTest do
         use ExUnit.Case
 
-        ExUnit.Case.register_attribute __ENV__, :fixtures, accumulate: true
+        ExUnit.Case.register_attribute __MODULE__, :fixtures, accumulate: true
 
         @fixtures :user
         @fixtures {:post, insert: false}
