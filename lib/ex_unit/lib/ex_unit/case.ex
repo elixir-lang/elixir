@@ -499,9 +499,9 @@ defmodule ExUnit.Case do
   @doc """
   Registers a new attribute to be used during `ExUnit.Case` tests.
 
-  The attribute values will be available as an accessible key/value
-  pair in `context.registered`. The key/value pairs will be cleared
-  after each `ExUnit.Case.test/3` similar to `@tag`.
+  The attribute values will be available through `context.registered`.
+  Registered values are cleared after each `ExUnit.Case.test/3` similar
+  to `@tag`.
 
   `Module.register_attribute/3` is used to register the attribute,
   this function takes the same options.
@@ -510,11 +510,17 @@ defmodule ExUnit.Case do
 
       defmodule MyTest do
         use ExUnit.Case
-        ExUnit.Case.register_attribute __ENV__, :foobar
 
-        @foobar hello: "world"
-        test "using custom test attribute", context do
-          assert context.registered.foobar[:hello] == "world"
+        ExUnit.Case.register_attribute __ENV__, :fixtures, accumulate: true
+
+        @fixtures :user
+        @fixtures {:post, insert: false}
+        test "using custom attribute", context do
+          assert context.registered.fixtures == [{:post, insert: false}, :user]
+        end
+
+        test "custom attributes are cleared per test", context do
+          assert context.registered.fixtures == []
         end
       end
 
