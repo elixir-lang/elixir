@@ -100,7 +100,7 @@ This advice does not only apply to libraries but to any Elixir code. Every time 
 
 ### Avoid application configuration
 
-You should avoid using [the application environment](`Application.get_env/2`) as the configuration mechanism for libraries. The application environment is **global** which means it becomes impossible for two dependencies to use your library in two different ways.
+You should avoid using the application environment (see `Application.get_env/2`) as the configuration mechanism for libraries. The application environment is **global** which means it becomes impossible for two dependencies to use your library in two different ways.
 
 Let's see a simple example. Imagine that you implement a library that breaks a string in two parts based on the first occurrence of the dash `-` character:
 

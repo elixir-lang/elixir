@@ -5,7 +5,7 @@ defmodule NaiveDateTime do
   The NaiveDateTime struct contains the fields year, month, day, hour,
   minute, second, microsecond and calendar. New naive datetimes can be
   built with the `new/2` and `new/8` functions or using the
-  [`~N`](`Kernel.sigil_N/2`) sigil:
+  `~N` (see `Kernel.sigil_N/2`) sigil:
 
       iex> ~N[2000-01-01 23:00:07]
       ~N[2000-01-01 23:00:07]
