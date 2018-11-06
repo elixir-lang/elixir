@@ -272,7 +272,7 @@ defmodule Task do
   def start_link(module, function_name, args)
       when is_atom(module) and is_atom(function_name) and is_list(args) do
     self()
-    |> get_info()
+    |> get_owner()
     |> Task.Supervised.start_link({module, function_name, args})
   end
 
@@ -301,7 +301,7 @@ defmodule Task do
   def start(module, function_name, args)
       when is_atom(module) and is_atom(function_name) and is_list(args) do
     self()
-    |> get_info()
+    |> get_owner()
     |> Task.Supervised.start({module, function_name, args})
   end
 
@@ -391,7 +391,7 @@ defmodule Task do
       when is_atom(module) and is_atom(function_name) and is_list(args) do
     mfa = {module, function_name, args}
     owner = self()
-    pid = Task.Supervised.spawn_link(owner, get_info(owner), mfa)
+    {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor, mfa)
     ref = Process.monitor(pid)
     send(pid, {owner, ref})
     %Task{pid: pid, ref: ref, owner: owner}
@@ -499,21 +499,22 @@ defmodule Task do
 
   defp build_stream(enumerable, fun, options) do
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
-      {:ok, :link, Task.Supervised.spawn_link(owner, get_info(owner), mfa)}
+      {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor, mfa)
+      {:ok, :link, pid}
     end)
   end
 
   # Returns a tuple with the node where this is executed and either the
   # registered name of the given PID or the PID of where this is executed. Used
   # when exiting from tasks to print out from where the task was started.
-  defp get_info(pid) do
+  defp get_owner(pid) do
     self_or_name =
       case Process.info(pid, :registered_name) do
         {:registered_name, name} when is_atom(name) -> name
         _ -> pid
       end
 
-    {node(), self_or_name}
+    {node(), self_or_name, pid}
   end
 
   @doc """
