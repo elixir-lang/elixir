@@ -248,6 +248,8 @@ defmodule Date do
   Parses the extended "Dates" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
+  The year parsed by this function is limited to four digits.
+
   ## Examples
 
       iex> Date.from_iso8601("2015-01-23")
