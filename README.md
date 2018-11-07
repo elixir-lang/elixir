@@ -193,5 +193,4 @@ the `doc` directory. If you are planning to contribute documentation,
 
 Elixir source code is released under Apache 2 License.
 
-Check [NOTICE](NOTICE) and [LICENSE](LICENSE) files for more
-information.
+Check [NOTICE](NOTICE) and [LICENSE](LICENSE) files for more information.
