@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Loadconfig do
   multiple times to load different configs.
   """
 
+  @impl true
   def run(args) do
     config = Mix.Project.config()
 

@@ -11,6 +11,8 @@ defmodule Mix.Tasks.Archive.Check do
 
   This task guarantees this option is respected.
   """
+
+  @impl true
   def run(_) do
     archives = Mix.Project.config()[:archives] || []
 

@@ -41,9 +41,7 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   """
 
-  @doc """
-  Runs this task.
-  """
+  @impl true
   def run(args) do
     config = Mix.Project.config()
     Mix.Task.run("compile")

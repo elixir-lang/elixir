@@ -33,6 +33,7 @@ defmodule Mix.Tasks.App.Tree do
 
   @default_excluded [:kernel, :stdlib, :compiler]
 
+  @impl true
   def run(args) do
     Mix.Task.run("compile")
 

@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Deps.Unlock do
 
   @switches [all: :boolean, unused: :boolean, filter: :string]
 
+  @impl true
   def run(args) do
     Mix.Project.get!()
     {opts, apps, _} = OptionParser.parse(args, switches: @switches)

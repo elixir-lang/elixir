@@ -32,6 +32,7 @@ defmodule Mix.Tasks.Deps.Tree do
   """
   @switches [only: :string, exclude: :keep, format: :string]
 
+  @impl true
   def run(args) do
     Mix.Project.get!()
     {opts, args, _} = OptionParser.parse(args, switches: @switches)

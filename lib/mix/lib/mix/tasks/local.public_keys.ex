@@ -34,6 +34,7 @@ defmodule Mix.Tasks.Local.PublicKeys do
 
   """
 
+  @impl true
   def run(argv) do
     {opts, argv} = OptionParser.parse!(argv, switches: [force: :boolean, detailed: :boolean])
 

@@ -52,6 +52,8 @@ defmodule Mix.Tasks.Compile do
     * `--erl-config` - path to an Erlang term file that will be loaded as Mix config
 
   """
+
+  @impl true
   def run(["--list"]) do
     loadpaths!()
     _ = Mix.Task.load_all()

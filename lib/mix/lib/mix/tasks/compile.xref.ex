@@ -26,9 +26,7 @@ defmodule Mix.Tasks.Compile.Xref do
 
   """
 
-  @doc """
-  Runs this task.
-  """
+  @impl true
   def run(args) do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])

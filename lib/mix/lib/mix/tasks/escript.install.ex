@@ -69,6 +69,7 @@ defmodule Mix.Tasks.Escript.Install do
     organization: :string
   ]
 
+  @impl true
   def run(argv) do
     Mix.Local.Installer.install(__MODULE__, argv, @switches)
   end

@@ -15,6 +15,8 @@ defmodule Mix.Tasks.Deps.Precompile do
   loading is deliberately ad-hoc, loading as much as
   possible without validating the files.
   """
+
+  @impl true
   def run(_) do
     config = Mix.Project.config()
 

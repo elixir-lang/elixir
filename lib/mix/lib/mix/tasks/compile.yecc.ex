@@ -38,9 +38,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
   """
 
-  @doc """
-  Runs this task.
-  """
+  @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 

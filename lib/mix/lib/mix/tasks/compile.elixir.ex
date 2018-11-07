@@ -51,9 +51,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     all_warnings: :boolean
   ]
 
-  @doc """
-  Runs this task.
-  """
+  @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
