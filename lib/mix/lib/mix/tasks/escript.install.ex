@@ -74,15 +74,16 @@ defmodule Mix.Tasks.Escript.Install do
     Mix.Local.Installer.install(__MODULE__, argv, @switches)
   end
 
-  # Callbacks
-
+  @impl true
   def check_install_spec(_, _), do: :ok
 
+  @impl true
   def find_previous_versions(basename) do
     dst = destination(basename)
     if File.exists?(dst), do: [dst], else: []
   end
 
+  @impl true
   def install(basename, binary, _previous) do
     dst = destination(basename)
 
@@ -106,6 +107,7 @@ defmodule Mix.Tasks.Escript.Install do
     end
   end
 
+  @impl true
   def build(_spec, _opts) do
     Mix.Task.run("escript.build", [])
     Mix.Local.name_for(:escript, Mix.Project.config())

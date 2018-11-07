@@ -61,15 +61,12 @@ defmodule Mix.Tasks.Compile.Leex do
     end)
   end
 
-  @doc """
-  Returns Leex manifests.
-  """
+  @impl true
   def manifests, do: [manifest()]
+
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
-  @doc """
-  Cleans up compilation artifacts.
-  """
+  @impl true
   def clean do
     Erlang.clean(manifest())
   end

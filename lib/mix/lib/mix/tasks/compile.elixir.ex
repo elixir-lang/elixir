@@ -71,15 +71,12 @@ defmodule Mix.Tasks.Compile.Elixir do
     Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
   end
 
-  @doc """
-  Returns Elixir manifests.
-  """
+  @impl true
   def manifests, do: [manifest()]
+
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
-  @doc """
-  Cleans up compilation artifacts.
-  """
+  @impl true
   def clean do
     dest = Mix.Project.compile_path()
     Mix.Compilers.Elixir.clean(manifest(), dest)

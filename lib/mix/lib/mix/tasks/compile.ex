@@ -152,9 +152,7 @@ defmodule Mix.Tasks.Compile do
     Mix.Project.config()[:compilers] || Mix.compilers()
   end
 
-  @doc """
-  Returns manifests for all compilers.
-  """
+  @impl true
   def manifests do
     Enum.flat_map(compilers(), fn compiler ->
       module = Mix.Task.get("compile.#{compiler}")
