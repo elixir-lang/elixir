@@ -218,9 +218,9 @@ expand_each_spec(_Meta, [], Map, E) ->
 
 unpack_specs({'-', _, [H, T]}, Acc) ->
   unpack_specs(H, unpack_specs(T, Acc));
-unpack_specs({'*', _, [{'_', _, Atom}, Unit]}, Acc) when is_atom(Atom) and is_integer(Unit) ->
+unpack_specs({'*', _, [{'_', _, Atom}, Unit]}, Acc) when is_atom(Atom) ->
   [{unit, [], [Unit]} | Acc];
-unpack_specs({'*', _, [Size, Unit]}, Acc) when is_integer(Size) and is_integer(Unit) ->
+unpack_specs({'*', _, [Size, Unit]}, Acc) ->
   [{size, [], [Size]}, {unit, [], [Unit]} | Acc];
 unpack_specs(Size, Acc) when is_integer(Size) ->
   [{size, [], [Size]} | Acc];
