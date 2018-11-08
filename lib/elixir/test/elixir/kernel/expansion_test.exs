@@ -1988,6 +1988,7 @@ defmodule Kernel.ExpansionTest do
 
     test "expands size * unit" do
       import Kernel, except: [-: 2]
+      import Kernel.ExpansionTarget
 
       assert expand(quote(do: <<x::13>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer()-size(13)>>)
@@ -2003,6 +2004,18 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(quote(do: <<x::binary-(13 * 6)-binary>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::binary()-unit(6)-size(13)>>)
+
+      assert expand(quote(do: <<x::seventeen()>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()-size(17)>>)
+
+      assert expand(quote(do: <<x::seventeen()*2>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()-unit(2)-size(17)>>)
+
+      assert expand(quote(do: <<x::seventeen()*seventeen()>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::integer()-unit(17)-size(17)>>)
+
+      assert expand(quote(do: <<x::_*seventeen()-binary>>)) |> clean_meta([:alignment]) ==
+               quote(do: <<x()::binary()-unit(17)>>)
     end
 
     test "expands binary/bitstring specifiers" do
