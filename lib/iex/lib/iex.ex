@@ -132,7 +132,7 @@ defmodule IEx do
 
     * via the `BREAK` menu (available via `Ctrl+C`) by typing `q`, pressing enter
     * by hitting `Ctrl+C`, `Ctrl+C`
-    * by hitting `Ctrl+\ `
+    * by hitting `Ctrl+\`
 
   If you are connected to remote shell, it remains alive after disconnection.
 
@@ -155,7 +155,7 @@ defmodule IEx do
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
   on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible,  it does not contain
+  While `IEx.break!/4` is more flexible, it does not contain
   information about imports and aliases from the source code.
 
   ## The User switch command
@@ -248,8 +248,8 @@ defmodule IEx do
   Now we are connected into the remote node, as the prompt shows us,
   and we can access the information and modules defined over there:
 
-      rem(foo@macbook)1> Hello.world
-      "it works"
+      iex(foo@HOST)1> Hello.world
+      "it works!"
 
   In fact, connecting to remote shells is so common that we provide
   a shortcut via the command line as well:
