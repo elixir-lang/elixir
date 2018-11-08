@@ -113,6 +113,8 @@ defmodule Mix.Tasks.Compile.App do
       MyApp.start_phase(:finish, :normal, [])
 
   """
+
+  @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 

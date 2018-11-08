@@ -128,6 +128,7 @@ defmodule Mix.Tasks.Profile.Fprof do
 
   @aliases [r: :require, p: :parallel, e: :eval, c: :config]
 
+  @impl true
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args, aliases: @aliases, strict: @switches)
     Mix.Task.reenable("profile.fprof")

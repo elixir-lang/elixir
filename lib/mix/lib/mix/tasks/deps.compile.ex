@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   @switches [include_children: :boolean, force: :boolean]
 
-  @spec run(OptionParser.argv()) :: :ok
+  @impl true
   def run(args) do
     unless "--no-archives-check" in args do
       Mix.Task.run("archive.check", args)

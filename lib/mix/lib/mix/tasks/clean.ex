@@ -17,6 +17,7 @@ defmodule Mix.Tasks.Clean do
 
   @switches [deps: :boolean, only: :string]
 
+  @impl true
   def run(args) do
     Mix.Project.get!()
     loadpaths!()

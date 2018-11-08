@@ -33,6 +33,7 @@ defmodule Mix.Tasks.Deps.Update do
 
   """
 
+  @impl true
   def run(args) do
     unless "--no-archives-check" in args do
       Mix.Task.run("archive.check", args)

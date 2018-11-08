@@ -17,6 +17,7 @@ defmodule Mix.Tasks.Loadpaths do
 
   """
 
+  @impl true
   def run(args) do
     config = Mix.Project.config()
 

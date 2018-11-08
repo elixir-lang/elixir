@@ -124,6 +124,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     c: :config
   ]
 
+  @impl true
   def run(args) do
     {opts, head} = OptionParser.parse_head!(args, aliases: @aliases, strict: @switches)
     Mix.Task.reenable("profile.eprof")

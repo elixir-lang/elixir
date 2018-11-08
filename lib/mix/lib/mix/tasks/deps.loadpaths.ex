@@ -20,6 +20,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   """
 
+  @impl true
   def run(args) do
     all = Mix.Dep.load_and_cache()
 
