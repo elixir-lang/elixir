@@ -249,7 +249,7 @@ defmodule IEx do
   and we can access the information and modules defined over there:
 
       iex(foo@HOST)1> Hello.world
-      "it works"
+      "it works!"
 
   In fact, connecting to remote shells is so common that we provide
   a shortcut via the command line as well:
