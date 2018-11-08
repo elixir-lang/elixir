@@ -180,8 +180,8 @@ defmodule Mix do
       end
 
   In the example above we have created 2 aliases, the first example
-  `taskalias` will run task `hex.info`, then (`run`)[`Mix.Tasks.Run`]
-  to run an Elixir script, then (`cmd`)[`Mix.Tasks.Cmd`] to run a
+  `taskalias` will run task `mix hex.info`, then `mix run`
+  to run an Elixir script, then `mix cmd` to run a
   command line bash script. This shows how powerful aliases mixed
   with mix tasks can be.
 
