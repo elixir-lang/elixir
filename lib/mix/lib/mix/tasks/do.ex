@@ -19,6 +19,7 @@ defmodule Mix.Tasks.Do do
 
   """
 
+  @impl true
   def run(args) do
     Mix.Task.reenable("do")
     Enum.each(gather_commands(args), fn [task | args] -> Mix.Task.run(task, args) end)

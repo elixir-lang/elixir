@@ -52,6 +52,8 @@ defmodule Mix.Tasks.Compile do
     * `--erl-config` - path to an Erlang term file that will be loaded as Mix config
 
   """
+
+  @impl true
   def run(["--list"]) do
     loadpaths!()
     _ = Mix.Task.load_all()
@@ -150,9 +152,7 @@ defmodule Mix.Tasks.Compile do
     Mix.Project.config()[:compilers] || Mix.compilers()
   end
 
-  @doc """
-  Returns manifests for all compilers.
-  """
+  @impl true
   def manifests do
     Enum.flat_map(compilers(), fn compiler ->
       module = Mix.Task.get("compile.#{compiler}")

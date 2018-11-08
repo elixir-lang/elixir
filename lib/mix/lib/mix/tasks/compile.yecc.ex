@@ -38,9 +38,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
   """
 
-  @doc """
-  Runs this task.
-  """
+  @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
@@ -63,15 +61,12 @@ defmodule Mix.Tasks.Compile.Yecc do
     end)
   end
 
-  @doc """
-  Returns Yecc manifests.
-  """
+  @impl true
   def manifests, do: [manifest()]
+
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
-  @doc """
-  Cleans up compilation artifacts.
-  """
+  @impl true
   def clean do
     Erlang.clean(manifest())
   end

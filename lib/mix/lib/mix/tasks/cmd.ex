@@ -35,6 +35,7 @@ defmodule Mix.Tasks.Cmd do
   of the `Port` module documentation.
   """
 
+  @impl true
   def run(args) do
     {args, apps} = parse_apps(args, [])
 

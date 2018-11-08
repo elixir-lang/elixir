@@ -38,6 +38,7 @@ defmodule Mix.Tasks.Help do
 
   """
 
+  @impl true
   def run(argv)
 
   def run([]) do
