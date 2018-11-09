@@ -1,5 +1,5 @@
 -module(elixir_map).
--export([expand_map/3, expand_struct/4, format_error/1]).
+-export([expand_map/3, expand_struct/4, format_error/1, load_struct/4]).
 -import(elixir_errors, [form_error/4, form_warn/4]).
 -include("elixir.hrl").
 
@@ -24,13 +24,9 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
       %% as they expect the reference at compile time.
       elixir_lexical:record_struct(ELeft, ?line(Meta), ?key(E, lexical_tracker)),
 
-      %% We also include the current module because it won't be present
-      %% in context module in case the module name is defined dynamically.
-      InContext = lists:member(ELeft, [?key(E, module) | ?key(E, context_modules)]),
-
       case extract_struct_assocs(Meta, ERight, E) of
         {expand, MapMeta, Assocs} when Context /= match -> %% Expand
-          Struct = load_struct(Meta, ELeft, [Assocs], InContext, EE),
+          Struct = load_struct(Meta, ELeft, [Assocs], EE),
           assert_struct_keys(Meta, ELeft, Struct, Assocs, EE),
           Keys = ['__struct__'] ++ [K || {K, _} <- Assocs],
           WithoutKeys = maps:to_list(maps:without(Keys, Struct)),
@@ -38,7 +34,7 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
           {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, EE};
 
         {_, _, Assocs} -> %% Update or match
-          Struct = load_struct(Meta, ELeft, [], InContext, EE),
+          Struct = load_struct(Meta, ELeft, [], EE),
           assert_struct_keys(Meta, ELeft, Struct, Assocs, EE),
           {{'%', Meta, [ELeft, ERight]}, EE}
       end;
@@ -131,7 +127,11 @@ validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> tru
 validate_struct(Atom, _) when is_atom(Atom) -> true;
 validate_struct(_, _) -> false.
 
-load_struct(Meta, Name, Args, InContext, E) ->
+load_struct(Meta, Name, Args, E) ->
+  %% We also include the current module because it won't be present
+  %% in context module in case the module name is defined dynamically.
+  InContext = lists:member(Name, [?key(E, module) | ?key(E, context_modules)]),
+
   Arity = length(Args),
   Local = InContext orelse (not(ensure_loaded(Name)) andalso wait_for_struct(Name)),
 
