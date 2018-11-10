@@ -48,11 +48,13 @@ defmodule Mix do
         use Mix.Task
 
         def run(_) do
-          Mix.shell().info("hello")
+          Mix.shell().info("Hello world")
         end
       end
 
   The task can now be invoked with `mix hello`.
+
+  See the `Mix.Task` behaviour for detailed documentation on Mix tasks.
 
   ## Dependencies
 
@@ -103,7 +105,7 @@ defmodule Mix do
 
   Aliases are shortcuts or tasks specific to the current project.
 
-  In the `Mix.Task` section, we have defined a task that would be
+  In the "Mix.Task" section, we have defined a task that would be
   available to everyone using our project as a dependency. What if
   we wanted the task to only be available for our project? Just
   define an alias:
@@ -134,7 +136,7 @@ defmodule Mix do
   In the example above, we have defined two aliases. One is `mix c`
   which is a shortcut for `mix compile`. The other is named
   `mix hello`, which is the equivalent to the `Mix.Tasks.Hello`
-  we have defined in the `Mix.Task` section.
+  we have defined in the "Mix.Task" section.
 
   Aliases may also be lists, specifying multiple tasks to be run
   consecutively:
@@ -142,8 +144,8 @@ defmodule Mix do
       [all: [&hello/1, "deps.get --only #{Mix.env()}", "compile"]]
 
   In the example above, we have defined an alias named `mix all`,
-  that prints hello, then fetches dependencies specific to the
-  current environment and compiles the project.
+  that prints "Hello world", then fetches dependencies specific to the
+  current environment, and compiles the project.
 
   Arguments given to the alias will be appended to the arguments
   of the last task in the list, if the last task is a function
@@ -162,35 +164,51 @@ defmodule Mix do
   aliases defined in dependencies are not accessible from the current project.
 
   Aliases can be used very powerfully to also run Elixir scripts and
-  bash commands, for example:
+  shell commands, for example:
 
-      # priv/hello.exs
-      IO.puts("hello")
+      # priv/hello1.exs
+      IO.puts("Hello One")
+
+      # priv/hello2.exs
+      IO.puts("Hello Two")
 
       # priv/world.sh
       #!/bin/sh
       echo "world!"
 
       # mix.exs
-      defp create_aliases do
+      defp aliases do
         [
-          "taskalias": ["hex.info", "run priv/hello.exs", "cmd priv/world.sh"],
-          "taskalias2": ["run priv/hello1.exs", "run priv/hello2.exs"]
+          some_alias: ["hex.info", "run priv/hello1.exs", "cmd priv/world.sh"]
         ]
       end
 
-  In the example above we have created 2 aliases, the first example
-  `taskalias` will run task `mix hex.info`, then `mix run`
-  to run an Elixir script, then `mix cmd` to run a
-  command line bash script. This shows how powerful aliases mixed
-  with mix tasks can be.
+  In the example above we have created the alias `some_alias` that will run the
+  task `mix hex.info`, then `mix run` to run an Elixir script, then `mix cmd` to
+  execute a command line shell script. This shows how powerful aliases mixed with
+  Mix tasks can be.
 
-  `taskalias2` shows a limitation of tasks where only one of the given
-  tasks will run, the execution of `run priv/hello2.exs` will not run.
-  The `run` command, however, can accept multiple files, so in case
-  of running multiple files, it can be rewritten to:
+  Mix tasks are designed to run only once. This prevents the same task to be
+  executed multiple times. For example, if there are several tasks depending on
+  `mix compile`, the code will be compiled once. Tasks can be executed again if
+  they are explicitly reenabled using `Mix.Task.reenable/1`:
 
-      "taskalias2": ["run -r priv/hello1.exs -r priv/hello2.exs"]
+      another_alias: [
+        "format --check-formatted priv/hello1.exs",
+        "cmd priv/world.sh",
+        fn _ -> Mix.Task.reenable("format") end,
+        "format --check-formatted priv/hello2.exs"
+      ]
+
+  The following tasks are automatically reenabled: `mix cmd`, `mix do`,
+  `mix loadconfig`, `mix profile.cprof`, `mix profile.eprof`, `mix profile.fprof`,
+  `mix run`, and `mix xref`.
+
+  It is worth mentioning that some tasks, such as in the case of the `format`
+  command in the example above, can accept multiple files so it could be rewritten
+  as:
+
+      another_alias: ["format --check-formatted priv/hello1.exs priv/hello2.exs"]
 
   ## Environment variables
 
