@@ -13,8 +13,8 @@ You can find the built-in list of guards [in the `Kernel` module](Kernel.html#gu
   * strictly boolean operators ([`and`](`Kernel.and/2`), [`or`](`Kernel.or/2`), [`not`](`Kernel.not/1`)). Note [`&&`](`Kernel.&&/2`), [`||`](`Kernel.||/2`), and [`!`](`Kernel.!/1`) sibling operators are **not allowed** as they're not *strictly* boolean - meaning they don't require arguments to be booleans
   * arithmetic unary and binary operators ([`+`](`Kernel.+/1`), [`-`](`Kernel.-/1`), [`+`](`Kernel.+/2`), [`-`](`Kernel.-/2`), [`*`](`Kernel.*/2`), [`/`](`Kernel.//2`))
   * [`in`](`Kernel.in/2`) and [`not in`](`Kernel.in/2`) operators (as long as the right-hand side is a list or a range)
-  * "type-check" functions ([`is_list/1`](`Kernel.is_list/1`), [`is_number/1`](`Kernel.is_number/1`), etc)
-  * functions that work on built-in datatypes ([`abs/1`](`Kernel.abs/1`), [`map_size/1`](`Kernel.map_size/1`), etc)
+  * "type-check" functions ([`is_list/1`](`Kernel.is_list/1`), [`is_number/1`](`Kernel.is_number/1`), etc.)
+  * functions that work on built-in datatypes ([`abs/1`](`Kernel.abs/1`), [`map_size/1`](`Kernel.map_size/1`), etc.)
 
 The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
 

@@ -132,7 +132,7 @@ defmodule Mix.Dep.Converger do
   # fashion. The reason for this is that we converge
   # dependencies, but allow the parent to override any
   # dependency in the child. Consider this tree with
-  # dependencies "a", "b", etc and the order they are
+  # dependencies "a", "b", etc. and the order they are
   # converged:
   #
   #     * project
