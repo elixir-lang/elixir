@@ -54,6 +54,8 @@ defmodule Mix do
 
   The task can now be invoked with `mix hello`.
 
+  See the `Mix.Task` behaviour for detailed documentation on Mix tasks.
+
   ## Dependencies
 
   Mix also manages your dependencies and integrates nicely with the [Hex package
