@@ -204,8 +204,9 @@ defmodule Mix do
   `mix loadconfig`, `mix profile.cprof`, `mix profile.eprof`, `mix profile.fprof`,
   `mix run`, and `mix xref`.
 
-  It is worth mentioning that some tasks, such as in the case of the `format` command in the example above,
-  can accept multiple files so it could be rewritten as:
+  It is worth mentioning that some tasks, such as in the case of the `format`
+  command in the example above, can accept multiple files so it could be rewritten
+  as:
 
       another_alias: ["format --check-formatted priv/hello1.exs priv/hello2.exs"]
 
