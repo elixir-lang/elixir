@@ -469,7 +469,7 @@ defmodule OptionParser do
 
   It is advised to pass to `to_argv/2` the same set of `options`
   given to `parse/2`. Some switches can only be reconstructed
-  correctly with the `switches` information in hand.
+  correctly with the `:switches` information in hand.
 
   ## Examples
 
@@ -488,8 +488,8 @@ defmodule OptionParser do
 
   """
   @spec to_argv(Enumerable.t(), options) :: argv
-  def to_argv(enum, opts \\ []) do
-    switches = Keyword.get(opts, :switches, [])
+  def to_argv(enum, options \\ []) do
+    switches = Keyword.get(options, :switches, [])
 
     Enum.flat_map(enum, fn
       {_key, nil} -> []
