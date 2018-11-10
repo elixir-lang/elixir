@@ -205,7 +205,7 @@ format_error({invalid_pin_in_map_key_match, Name}) ->
 format_error({invalid_variable_in_map_key_match, Name}) ->
   Message =
     "cannot use variable ~ts as map key inside a pattern. Map keys in patterns can only be literals "
-    "(such as atoms, strings, tuples, etc) or an existing variable matched with the pin operator "
+    "(such as atoms, strings, tuples, etc.) or an existing variable matched with the pin operator "
     "(such as ^some_var)",
   io_lib:format(Message, [Name]);
 format_error({repeated_key, Key}) ->

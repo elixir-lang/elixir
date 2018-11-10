@@ -4,7 +4,7 @@ This document covers some naming conventions in Elixir code, from casing to punc
 
 ## Casing
 
-Elixir developers must use `snake_case` when defining variables, function names, module attributes, etc:
+Elixir developers must use `snake_case` when defining variables, function names, module attributes, etc.:
 
     some_map = %{this_is_a_key: "and a value"}
     is_map(some_map)

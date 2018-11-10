@@ -4,7 +4,7 @@ defmodule Kernel.SpecialForms do
   cannot be overridden by the developer.
 
   We define them in this module. Some of these forms are lexical (like
-  `alias/2`, `case/2`, etc). The macros `{}/1` and `<<>>/1` are also special
+  `alias/2`, `case/2`, etc.). The macros `{}/1` and `<<>>/1` are also special
   forms used to define tuple and binary data structures respectively.
 
   This module also documents macros that return information about Elixir's
@@ -809,7 +809,7 @@ defmodule Kernel.SpecialForms do
       "strings"    #=> Strings
       {key, value} #=> Tuples with two elements
 
-  Any other value, such as a map or a four-element tuple, must be escaped 
+  Any other value, such as a map or a four-element tuple, must be escaped
   (`Macro.escape/1`) before being introduced into an AST.
 
   ## Options

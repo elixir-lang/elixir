@@ -13,7 +13,7 @@ defmodule Kernel do
   It mainly consists of:
 
     * basic language primitives, such as arithmetic operators, spawning of processes,
-      data type handling, etc
+      data type handling, etc.
     * macros for control-flow and defining new functionality (modules, functions, and so on)
     * guard checks for augmenting pattern matching
 

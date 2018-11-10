@@ -50,7 +50,7 @@
   * [Kernel.ParallelCompiler] `files/2` is deprecated in favor of `compile/2`
   * [Kernel.ParallelCompiler] `files_to_path/2` is deprecated in favor of `compile_to_path/2`
   * [Kernel.ParallelRequire] `files/2` is deprecated in favor of `Kernel.ParallelCompiler.require/2`
-  * [System] `:seconds`, `:milliseconds`, etc as time units is deprecated in favor of `:second`, `:millisecond`, etc
+  * [System] `:seconds`, `:milliseconds`, etc. as time units is deprecated in favor of `:second`, `:millisecond`, etc.
   * [System] `System.cwd/0` and `System.cwd!/0` are deprecated in favor of `File.cwd/0` and `File.cwd!/0`
 
 #### Mix
