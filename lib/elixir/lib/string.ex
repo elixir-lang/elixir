@@ -2252,7 +2252,7 @@ defmodule String do
   end
 
   @doc """
-  Computes the bag distance of two strings.
+  Computes the bag distance between two strings.
 
   Returns a float value between 0 and 1 representing the bag
   distance between `string1` and `string2`.
@@ -2320,14 +2320,18 @@ defmodule String do
   end
 
   @doc """
-  Computes the jaro distance between two strings.
+  Computes the jaro distance (similarity) between two strings.
 
   Returns a float value between 0 (equates to no similarity) and 1
   (is an exact match) representing [Jaro](https://en.wikipedia.org/wiki/Jaro–Winkler_distance)
   distance between `string1` and `string2`.
 
   The Jaro distance metric is designed and best suited for short
-  strings such as person names.
+  strings such as person names. Elixir itself uses this function
+  to provide "did you mean?" functionality. For instance, when you
+  are calling a function in a module and you have a typo in the
+  function name, we attempt to suggest the most similar function
+  name available, if any, based on the `jaro_distance/2` score.
 
   ## Examples
 
