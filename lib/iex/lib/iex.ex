@@ -132,7 +132,7 @@ defmodule IEx do
 
     * via the `BREAK` menu (available via `Ctrl+C`) by typing `q`, pressing enter
     * by hitting `Ctrl+C`, `Ctrl+C`
-    * by hitting `Ctrl+\`
+    * by hitting `Ctrl+\ `
 
   If you are connected to remote shell, it remains alive after disconnection.
 
