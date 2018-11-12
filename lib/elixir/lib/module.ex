@@ -513,7 +513,7 @@ defmodule Module do
     * `:attributes` - a list with all persisted attributes
 
   """
-  def __info__(kind)
+  @callback __info__(:functions | :macros | :module | :md5 | :compile | :attributes) :: term()
 
   @doc """
   Checks if a module is open.
