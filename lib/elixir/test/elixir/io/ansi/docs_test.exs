@@ -237,6 +237,11 @@ defmodule IO.ANSI.DocsTest do
     assert result == "\e[36munit \e[0msize\n\e[0m"
   end
 
+  test "backtick does not escape characters" do
+    result = format("`Ctrl+\\ `")
+    assert result == "\e[36mCtrl+\\ \e[0m\n\e[0m"
+  end
+
   test "star/underscore/backtick with leading escape" do
     result = format("\\_unit_")
     assert result == "_unit_\n\e[0m"

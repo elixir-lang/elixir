@@ -538,8 +538,9 @@ defmodule IO.ANSI.Docs do
   # We have four entries: **, *, _ and `.
   #
   # The first three behave the same while the last one is simpler
-  # when it comes to delimiters. But, since the first has two
-  # characters, we need to handle 3 cases:
+  # when it comes to delimiters as it ignores spaces and escape
+  # characters. But, since the first has two characters, we need to
+  # handle 3 cases:
   #
   # 1. **
   # 2. _ and *
@@ -601,8 +602,7 @@ defmodule IO.ANSI.Docs do
   end
 
   # An escape is not valid inside `
-  defp handle_inline(<<?\\, mark, rest::binary>>, limit, buffer, acc, options)
-       when not (mark == limit and mark == ?`) do
+  defp handle_inline(<<?\\, mark, rest::binary>>, limit, buffer, acc, options) when limit != ?` do
     handle_inline(rest, limit, [mark | buffer], acc, options)
   end
 
