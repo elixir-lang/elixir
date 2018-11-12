@@ -141,13 +141,11 @@ defmodule NaiveDateTime do
       {:ok, ~N[2000-01-01 23:59:59.0]}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 999_999)
       {:ok, ~N[2000-01-01 23:59:59.999999]}
-      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 60, 999_999)
-      {:ok, ~N[2000-01-01 23:59:60.999999]}
       iex> NaiveDateTime.new(2000, 1, 1, 24, 59, 59, 999_999)
       {:error, :invalid_time}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 60, 59, 999_999)
       {:error, :invalid_time}
-      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 61, 999_999)
+      iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 60, 999_999)
       {:error, :invalid_time}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 1_000_000)
       {:error, :invalid_time}
@@ -513,8 +511,9 @@ defmodule NaiveDateTime do
 
   Time representations with reduced accuracy are not supported.
 
-  Note that while ISO 8601 allows datetimes to specify 24:00:00 as the
+  Note that while ISO 8601 allows times to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
+  Leap seconds are not supported as well by the built-in Calendar.ISO.
 
   ## Examples
 

@@ -1,6 +1,5 @@
 defmodule FakeTimeZoneDatabase do
   @behaviour TimeZoneDatabase
-  @tai_utc_second_difference_before_1972_06_30_23_59_60_utc 10
 
   @time_zone_period_cph_summer_2018 %{
     std_offset: 3600,
@@ -140,113 +139,6 @@ defmodule FakeTimeZoneDatabase do
 
   defp time_zone_periods_from_wall(time_zone, _) when time_zone != "Europe/Copenhagen" do
     {:error, :time_zone_not_found}
-  end
-
-  @impl true
-  def is_leap_second(%{year: year}) when year < 1972 do
-    {:ok, false}
-  end
-
-  def is_leap_second(naive_datetime) do
-    erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
-
-    leap_seconds_only = leap_seconds() |> Enum.map(fn {dt, _} -> dt end)
-
-    case Enum.member?(leap_seconds_only, erl_datetime) do
-      true ->
-        {:ok, true}
-
-      false ->
-        with :ok <- within_leap_second_data_range(naive_datetime) do
-          {:ok, false}
-        end
-    end
-  end
-
-  @spec leap_second_diff(Calendar.naive_datetime(), Calendar.naive_datetime()) :: integer
-  @impl true
-  def leap_second_diff(datetime1, datetime2) do
-    with :ok <- within_leap_second_data_range(datetime1),
-         :ok <- within_leap_second_data_range(datetime2) do
-      tai_diff1 = latest_utc_tai_difference(datetime1)
-      tai_diff2 = latest_utc_tai_difference(datetime2)
-      {:ok, tai_diff1 - tai_diff2}
-    end
-  end
-
-  # For a specific datetime (UTC) return the difference between UTC and TAI
-  @spec latest_utc_tai_difference(Calendar.naive_datetime()) :: integer
-  defp latest_utc_tai_difference(%{
-         year: year,
-         month: month,
-         day: day,
-         hour: hour,
-         minute: minute,
-         second: second
-       })
-       when {{year, month, day}, {hour, minute, second}} < {{1972, 6, 30}, {23, 59, 60}} do
-    @tai_utc_second_difference_before_1972_06_30_23_59_60_utc
-  end
-
-  defp latest_utc_tai_difference(naive_datetime) do
-    {_, utc_tai_diff} = latest_leap_second_for_datetime(naive_datetime)
-    utc_tai_diff
-  end
-
-  @spec latest_leap_second_for_datetime(Calendar.naive_datetime()) ::
-          {:calendar.datetime(), integer}
-  defp latest_leap_second_for_datetime(naive_datetime) do
-    p_erl_datetime = naive_datetime |> NaiveDateTime.to_erl()
-
-    leap_seconds()
-    |> Enum.filter(fn {leap_second_only, _tai_diff} -> p_erl_datetime >= leap_second_only end)
-    |> List.last()
-  end
-
-  @spec within_leap_second_data_range(Calendar.naive_datetime()) ::
-          :ok | {:error, :outside_leap_second_data_range}
-  defp within_leap_second_data_range(naive_datetime) do
-    if NaiveDateTime.to_erl(naive_datetime) > leap_second_data_valid_until() do
-      {:error, :outside_leap_second_data_range}
-    else
-      :ok
-    end
-  end
-
-  defp leap_seconds do
-    [
-      {{{1972, 6, 30}, {23, 59, 60}}, 11},
-      {{{1972, 12, 31}, {23, 59, 60}}, 12},
-      {{{1973, 12, 31}, {23, 59, 60}}, 13},
-      {{{1974, 12, 31}, {23, 59, 60}}, 14},
-      {{{1975, 12, 31}, {23, 59, 60}}, 15},
-      {{{1976, 12, 31}, {23, 59, 60}}, 16},
-      {{{1977, 12, 31}, {23, 59, 60}}, 17},
-      {{{1978, 12, 31}, {23, 59, 60}}, 18},
-      {{{1979, 12, 31}, {23, 59, 60}}, 19},
-      {{{1981, 6, 30}, {23, 59, 60}}, 20},
-      {{{1982, 6, 30}, {23, 59, 60}}, 21},
-      {{{1983, 6, 30}, {23, 59, 60}}, 22},
-      {{{1985, 6, 30}, {23, 59, 60}}, 23},
-      {{{1987, 12, 31}, {23, 59, 60}}, 24},
-      {{{1989, 12, 31}, {23, 59, 60}}, 25},
-      {{{1990, 12, 31}, {23, 59, 60}}, 26},
-      {{{1992, 6, 30}, {23, 59, 60}}, 27},
-      {{{1993, 6, 30}, {23, 59, 60}}, 28},
-      {{{1994, 6, 30}, {23, 59, 60}}, 29},
-      {{{1995, 12, 31}, {23, 59, 60}}, 30},
-      {{{1997, 6, 30}, {23, 59, 60}}, 31},
-      {{{1998, 12, 31}, {23, 59, 60}}, 32},
-      {{{2005, 12, 31}, {23, 59, 60}}, 33},
-      {{{2008, 12, 31}, {23, 59, 60}}, 34},
-      {{{2012, 6, 30}, {23, 59, 60}}, 35},
-      {{{2015, 6, 30}, {23, 59, 60}}, 36},
-      {{{2016, 12, 31}, {23, 59, 60}}, 37}
-    ]
-  end
-
-  defp leap_second_data_valid_until do
-    {{2018, 12, 28}, {0, 0, 0}}
   end
 
   defp naive_datetime_from_iso_days(iso_days) do

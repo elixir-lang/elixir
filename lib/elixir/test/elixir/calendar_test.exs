@@ -518,29 +518,6 @@ defmodule DateTimeTest do
     assert DateTime.from_iso8601("2015-01-23T23:50:07.123-00:60") == {:error, :invalid_format}
   end
 
-  test "from_iso8601 handles leap seconds correctly" do
-    assert DateTime.from_iso8601("2018-06-30 23:59:60Z", Calendar.ISO, FakeTimeZoneDatabase) ==
-             {:error, :invalid_leap_second}
-
-    {:ok, datetime, 0} =
-      DateTime.from_iso8601("2015-06-30 23:59:60Z", Calendar.ISO, FakeTimeZoneDatabase)
-
-    assert datetime == %DateTime{
-             calendar: Calendar.ISO,
-             day: 30,
-             hour: 23,
-             microsecond: {0, 0},
-             minute: 59,
-             month: 6,
-             second: 60,
-             std_offset: 0,
-             time_zone: "Etc/UTC",
-             utc_offset: 0,
-             year: 2015,
-             zone_abbr: "UTC"
-           }
-  end
-
   test "from_unix/2" do
     min_datetime = %DateTime{
       calendar: Calendar.ISO,
@@ -911,145 +888,84 @@ defmodule DateTimeTest do
     assert DateTime.diff(dt1, dt2) == 3_281_904_000
   end
 
-  test "from_naive" do
-    holocene_ndt = %NaiveDateTime{
-      calendar: Calendar.Holocene,
-      year: 12018,
-      month: 7,
-      day: 1,
-      hour: 12,
-      minute: 34,
-      second: 25,
-      microsecond: {123_456, 6}
-    }
+  describe "from_naive" do
+    test "with compatible calendar on unambiguous wall clock" do
+      holocene_ndt = %NaiveDateTime{
+        calendar: Calendar.Holocene,
+        year: 12018,
+        month: 7,
+        day: 1,
+        hour: 12,
+        minute: 34,
+        second: 25,
+        microsecond: {123_456, 6}
+      }
 
-    assert DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
-             {:ok,
-              %DateTime{
-                calendar: Calendar.Holocene,
-                day: 1,
-                hour: 12,
-                microsecond: {123_456, 6},
-                minute: 34,
-                month: 7,
-                second: 25,
-                std_offset: 3600,
-                time_zone: "Europe/Copenhagen",
-                utc_offset: 3600,
-                year: 12018,
-                zone_abbr: "CEST"
-              }}
+      assert DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
+               {:ok,
+                %DateTime{
+                  calendar: Calendar.Holocene,
+                  day: 1,
+                  hour: 12,
+                  microsecond: {123_456, 6},
+                  minute: 34,
+                  month: 7,
+                  second: 25,
+                  std_offset: 3600,
+                  time_zone: "Europe/Copenhagen",
+                  utc_offset: 3600,
+                  year: 12018,
+                  zone_abbr: "CEST"
+                }}
+    end
+
+    test "with compatible calendar on ambiguous wall clock" do
+      holocene_ndt = %NaiveDateTime{
+        calendar: Calendar.Holocene,
+        year: 12018,
+        month: 10,
+        day: 28,
+        hour: 02,
+        minute: 30,
+        second: 00,
+        microsecond: {123_456, 6}
+      }
+
+      assert {:ambiguous, first_dt, second_dt} =
+               DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+      assert %DateTime{calendar: Calendar.Holocene, zone_abbr: "CEST"} = first_dt
+      assert %DateTime{calendar: Calendar.Holocene, zone_abbr: "CET"} = second_dt
+    end
+
+    test "with compatible calendar on gap" do
+      holocene_ndt = %NaiveDateTime{
+        calendar: Calendar.Holocene,
+        year: 12019,
+        month: 03,
+        day: 31,
+        hour: 02,
+        minute: 30,
+        second: 00,
+        microsecond: {123_456, 6}
+      }
+
+      assert {:gap, first_dt, second_dt} =
+               DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+      assert %DateTime{calendar: Calendar.Holocene, zone_abbr: "CET"} = first_dt
+      assert %DateTime{calendar: Calendar.Holocene, zone_abbr: "CEST"} = second_dt
+    end
+
+    test "with incompatible calendar" do
+      ndt = %{~N[2018-07-20 00:00:00] | calendar: FakeCalendar}
+
+      assert DateTime.from_naive(ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
+               {:error, :incompatible_calendars}
+    end
   end
 
-  test "from_naive with calendar not compatible with ISO" do
-    ndt = %{~N[2018-07-20 00:00:00] | calendar: FakeCalendar}
-
-    assert DateTime.from_naive(ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
-             {:error, :incompatible_calendars}
-  end
-
-  test "from_naive with valid positive leap second UTC" do
-    ndt = ~N[1982-06-30 23:59:60]
-
-    {:ok, dt} = DateTime.from_naive(ndt, "Etc/UTC", FakeTimeZoneDatabase)
-    assert dt.second == 60
-    assert dt.time_zone == "Etc/UTC"
-  end
-
-  test "from_naive with possible but unknown future positive leap second UTC" do
-    ndt = ~N[2090-06-30 23:59:60]
-
-    {:outside_leap_second_data_range, datetime} =
-      DateTime.from_naive(ndt, "Etc/UTC", FakeTimeZoneDatabase)
-
-    assert datetime == %DateTime{
-             calendar: Calendar.ISO,
-             day: 30,
-             hour: 23,
-             microsecond: {0, 0},
-             minute: 59,
-             month: 6,
-             second: 60,
-             std_offset: 0,
-             time_zone: "Etc/UTC",
-             utc_offset: 0,
-             year: 2090,
-             zone_abbr: "UTC"
-           }
-  end
-
-  test "from_naive with invalid leap second UTC" do
-    # There were no leap seconds in the middle of 2018
-    assert DateTime.from_naive(~N[2018-06-30 23:59:60], "Etc/UTC", FakeTimeZoneDatabase) ==
-             {:error, :invalid_leap_second}
-  end
-
-  test "from_naive with valid positive leap second non-UTC" do
-    # 2015-07-01 01:59:60 in "Europe/Copenhagen" was 2015-06-30 23:59:60 in UTC
-    {:ok, dt} =
-      DateTime.from_naive(~N[2015-07-01 01:59:60], "Europe/Copenhagen", FakeTimeZoneDatabase)
-
-    assert dt.second == 60
-    assert dt.time_zone == "Europe/Copenhagen"
-  end
-
-  test "from_naive with invalid leap second non-UTC" do
-    # There were no leap seconds in the middle of 2018
-    assert DateTime.from_naive(~N[2018-07-01 02:59:60], "Europe/Copenhagen", FakeTimeZoneDatabase) ==
-             {:error, :invalid_leap_second}
-  end
-
-  test "from_naive with possible but unknown future positive leap second non-UTC" do
-    {:outside_leap_second_data_range, datetime} =
-      DateTime.from_naive(~N[2090-06-30 01:59:60], "Europe/Copenhagen", FakeTimeZoneDatabase)
-
-    assert datetime == %DateTime{
-             calendar: Calendar.ISO,
-             day: 30,
-             hour: 1,
-             microsecond: {0, 0},
-             minute: 59,
-             month: 6,
-             second: 60,
-             std_offset: 3600,
-             time_zone: "Europe/Copenhagen",
-             utc_offset: 3600,
-             year: 2090,
-             zone_abbr: "CEST"
-           }
-  end
-
-  test "shift_zone for DateTime with a calendar not compatible with ISO" do
-    {:ok, dt} =
-      DateTime.from_naive(~N[2018-07-20 00:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
-
-    dt_fake_calendar = %{dt | calendar: FakeCalendar}
-
-    assert DateTime.shift_zone(dt_fake_calendar, "America/Los_Angeles", FakeTimeZoneDatabase) ==
-             {:error, :incompatible_calendars}
-  end
-
-  test "shift zone of leap second from UTC" do
-    {:ok, dt} = DateTime.from_naive(~N[2015-06-30 23:59:60.123], "Etc/UTC", FakeTimeZoneDatabase)
-    {:ok, new_dt} = DateTime.shift_zone(dt, "Europe/Copenhagen", FakeTimeZoneDatabase)
-
-    assert new_dt |> Map.from_struct() == %{
-             calendar: Calendar.ISO,
-             day: 1,
-             hour: 1,
-             microsecond: {123_000, 3},
-             minute: 59,
-             month: 7,
-             second: 60,
-             std_offset: 3600,
-             time_zone: "Europe/Copenhagen",
-             utc_offset: 3600,
-             year: 2015,
-             zone_abbr: "CEST"
-           }
-  end
-
-  test "shift zone" do
+  test "shift_zone" do
     holocene_ndt = %NaiveDateTime{
       calendar: Calendar.Holocene,
       year: 12018,
@@ -1080,98 +996,5 @@ defmodule DateTimeTest do
              year: 12018,
              zone_abbr: "PDT"
            }
-  end
-end
-
-defmodule TimeZoneDatabaseClientTest do
-  use ExUnit.Case, async: true
-  doctest TimeZoneDatabaseClient
-
-  test "is leap second TimeZoneData test" do
-    assert TimeZoneDatabaseClient.is_leap_second(~N[1971-12-31 23:59:60], FakeTimeZoneDatabase) ==
-             {:ok, false}
-
-    assert TimeZoneDatabaseClient.is_leap_second(~N[2018-01-01 00:00:00], FakeTimeZoneDatabase) ==
-             {:ok, false}
-
-    assert TimeZoneDatabaseClient.is_leap_second(~N[1982-06-30 23:59:60], FakeTimeZoneDatabase) ==
-             {:ok, true}
-
-    assert TimeZoneDatabaseClient.is_leap_second(~N[2090-06-30 23:59:60], FakeTimeZoneDatabase) ==
-             {:error, :outside_leap_second_data_range}
-  end
-
-  test "leap seconds diff" do
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[2090-06-30 23:59:60],
-             ~N[2007-06-30 12:00:00],
-             FakeTimeZoneDatabase
-           ) == {:error, :outside_leap_second_data_range}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[2007-06-30 12:00:00],
-             ~N[2090-06-30 23:59:60],
-             FakeTimeZoneDatabase
-           ) == {:error, :outside_leap_second_data_range}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[1972-01-01 00:00:00],
-             ~N[1960-06-30 12:00:00],
-             FakeTimeZoneDatabase
-           ) == {:ok, 0}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[1972-07-01 00:00:00],
-             ~N[1960-06-30 12:00:00],
-             FakeTimeZoneDatabase
-           ) == {:ok, 1}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[1972-12-31 23:59:60],
-             ~N[1972-12-30 12:00:00],
-             FakeTimeZoneDatabase
-           ) == {:ok, 1}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[1972-06-30 23:59:60],
-             ~N[1960-06-30 12:00:00],
-             FakeTimeZoneDatabase
-           ) == {:ok, 1}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[2015-07-01 00:00:01],
-             ~N[2015-06-30 23:59:59],
-             FakeTimeZoneDatabase
-           ) == {:ok, 1}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[2015-06-30 23:59:60],
-             ~N[2015-06-30 23:59:59],
-             FakeTimeZoneDatabase
-           ) == {:ok, 1}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[2015-06-30 23:59:60],
-             ~N[2015-06-30 23:59:60],
-             FakeTimeZoneDatabase
-           ) == {:ok, 0}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[2016-12-31 23:59:60],
-             ~N[2015-06-30 23:59:60],
-             FakeTimeZoneDatabase
-           ) == {:ok, 1}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[2016-12-31 23:59:60],
-             ~N[2015-06-30 23:59:58],
-             FakeTimeZoneDatabase
-           ) == {:ok, 2}
-
-    assert TimeZoneDatabaseClient.leap_second_diff(
-             ~N[2017-01-01 00:59:59],
-             ~N[2015-06-30 23:59:58],
-             FakeTimeZoneDatabase
-           ) == {:ok, 2}
   end
 end

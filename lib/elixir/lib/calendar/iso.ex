@@ -26,7 +26,7 @@ defmodule Calendar.ISO do
 
   @seconds_per_minute 60
   @seconds_per_hour 60 * 60
-  # Note that this does _not_ handle leap seconds.
+  # Note that this does *not* handle leap seconds.
   @seconds_per_day 24 * 60 * 60
   @last_second_of_the_day @seconds_per_day - 1
   @microseconds_per_second 1_000_000
@@ -507,15 +507,17 @@ defmodule Calendar.ISO do
 
   @doc """
   Determines if the date given is valid according to the proleptic Gregorian calendar.
-  Note that leap seconds are considered valid, but the use of 24:00:00 as the
-  zero hour of the day is considered invalid.
+
+  Note that while ISO 8601 allows times to specify 24:00:00 as the
+  zero hour of the next day, this notation is not supported by Elixir.
+  Leap seconds are not supported as well by the built-in Calendar.ISO.
 
   ## Examples
 
       iex> Calendar.ISO.valid_time?(10, 50, 25, {3006, 6})
       true
       iex> Calendar.ISO.valid_time?(23, 59, 60, {0, 0})
-      true
+      false
       iex> Calendar.ISO.valid_time?(24, 0, 0, {0, 0})
       false
 
@@ -525,7 +527,7 @@ defmodule Calendar.ISO do
   @spec valid_time?(Calendar.hour(), Calendar.minute(), Calendar.second(), Calendar.microsecond()) ::
           boolean
   def valid_time?(hour, minute, second, {microsecond, precision}) do
-    hour in 0..23 and minute in 0..59 and second in 0..60 and microsecond in 0..999_999 and
+    hour in 0..23 and minute in 0..59 and second in 0..59 and microsecond in 0..999_999 and
       precision in 0..6
   end
 
@@ -856,7 +858,6 @@ defmodule Calendar.ISO do
     {12, day_of_year - (334 + extra_day)}
   end
 
-  @spec iso_seconds_to_datetime(integer) :: :calendar.datetime()
   defp iso_seconds_to_datetime(seconds) do
     {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
 

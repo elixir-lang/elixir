@@ -2,8 +2,8 @@ defmodule TimeZoneDatabase do
   @moduledoc """
   This module defines a behaviour for providing time zone data.
 
-  IANA provides time zone data that includes data about different UTC offsets,
-  standard offsets for timezones as well as leap second data.
+  IANA provides time zone data that includes data about different
+  UTC offsets and standard offsets for timezones.
   """
 
   @typedoc """
@@ -66,35 +66,6 @@ defmodule TimeZoneDatabase do
               | {:gap, {time_zone_period, time_zone_period_limit},
                  {time_zone_period, time_zone_period_limit}}
               | {:error, :time_zone_not_found}
-
-  @doc """
-  Determine if a datetime is a leap second or not.
-
-  Takes a `Calendar.naive_datetime` and returns {:ok, true} if it is a
-  leap second. {:ok, false} if it is not.
-
-  It cannot be predicted exactly when all leap seconds will be introduced in
-  the future. Every six months it is announced whether there will be a leap
-  second or not at the end of the coming June or December. If this function is
-  queried with a datetime that is so far into the future that it is has not
-  yet been announced if there will be a leap second or not
-  `{:error, :outside_leap_second_data_range}` should be returned.
-  """
-  @callback is_leap_second(Calander.naive_datetime()) ::
-              {:ok, boolean} | {:error, :outside_leap_second_data_range}
-
-  @doc """
-  The difference in seconds between two datetimes.
-
-  Takes two `Calendar.naive_datetime`s. They should represent UTC datetimes.
-
-  Returns the difference in leap seconds between them. For instance when passed
-  `~N[2018-01-01 00:00:00]` and `~N[2014-01-01 00:00:00]` it should return `{:ok, 2}`
-  representing two leap seconds.
-  """
-  @callback leap_second_diff(Calendar.naive_datetime(), Calendar.naive_datetime()) ::
-              {:ok, integer}
-              | {:error, :outside_leap_second_data_range}
 end
 
 defmodule TimeZoneDatabaseClient do
@@ -158,28 +129,6 @@ defmodule TimeZoneDatabaseClient do
       ) do
     with {:ok, time_zone_database} <- time_zone_database_from_tz_db_or_config(tz_db_or_config) do
       time_zone_database.time_zone_period_from_utc_iso_days(iso_days, time_zone)
-    end
-  end
-
-  @doc false
-  @spec is_leap_second(Calendar.naive_datetime(), tz_db_or_config) ::
-          {:ok, boolean}
-          | {:error, :outside_leap_second_data_range}
-          | {:error, :no_time_zone_database}
-  def is_leap_second(naive_datetime, tz_db_or_config) do
-    with {:ok, time_zone_database} <- time_zone_database_from_tz_db_or_config(tz_db_or_config) do
-      time_zone_database.is_leap_second(naive_datetime)
-    end
-  end
-
-  @doc false
-  @spec leap_second_diff(Calendar.naive_datetime(), Calendar.naive_datetime(), tz_db_or_config) ::
-          {:ok, boolean}
-          | {:error, :no_time_zone_database}
-          | {:error, :outside_leap_second_data_range}
-  def leap_second_diff(datetime1, datetime2, tz_db_or_config) do
-    with {:ok, time_zone_database} <- time_zone_database_from_tz_db_or_config(tz_db_or_config) do
-      time_zone_database.leap_second_diff(datetime1, datetime2)
     end
   end
 

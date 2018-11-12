@@ -217,7 +217,6 @@ defmodule DateTime do
           TimeZoneDatabaseClient.tz_db_or_config()
         ) ::
           {:ok, t}
-          | {:outside_leap_second_data_range, t}
           | {:ambiguous, t, t}
           | {:gap, t, t}
           | {:error, :time_zone_not_found}
@@ -226,23 +225,9 @@ defmodule DateTime do
 
   def from_naive(naive_datetime, time_zone, tz_db_or_config \\ :from_config)
 
-  def from_naive(%{second: 60} = naive_datetime, "Etc/UTC", tz_db_or_config) do
-    {:ok, dt} = do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
-
-    case validate_positive_leap_second(dt, tz_db_or_config) do
-      :ok ->
-        {:ok, dt}
-
-      {:error, :outside_leap_second_data_range} ->
-        {:outside_leap_second_data_range, dt}
-
-      error ->
-        error
-    end
-  end
-
   def from_naive(naive_datetime, "Etc/UTC", _) do
-    do_from_naive(naive_datetime, "Etc/UTC", 0, 0, "UTC")
+    utc_period = %{std_offset: 0, utc_offset: 0, zone_abbr: "UTC"}
+    {:ok, from_naive_with_period(naive_datetime, "Etc/UTC", utc_period)}
   end
 
   def from_naive(%{calendar: Calendar.ISO} = naive_datetime, time_zone, tz_db_or_config) do
@@ -252,34 +237,11 @@ defmodule DateTime do
            tz_db_or_config
          ) do
       {:single, period} ->
-        do_from_naive_check_leap_second(
-          naive_datetime,
-          time_zone,
-          period.std_offset,
-          period.utc_offset,
-          period.zone_abbr,
-          tz_db_or_config
-        )
+        {:ok, from_naive_with_period(naive_datetime, time_zone, period)}
 
       {:ambiguous, first_period, second_period} ->
-        {:ok, first_datetime} =
-          do_from_naive(
-            naive_datetime,
-            time_zone,
-            first_period.std_offset,
-            first_period.utc_offset,
-            first_period.zone_abbr
-          )
-
-        {:ok, second_datetime} =
-          do_from_naive(
-            naive_datetime,
-            time_zone,
-            second_period.std_offset,
-            second_period.utc_offset,
-            second_period.zone_abbr
-          )
-
+        first_datetime = from_naive_with_period(naive_datetime, time_zone, first_period)
+        second_datetime = from_naive_with_period(naive_datetime, time_zone, second_period)
         {:ambiguous, first_datetime, second_datetime}
 
       {:gap, {first_period, first_period_until_wall}, {second_period, second_period_from_wall}} ->
@@ -293,24 +255,8 @@ defmodule DateTime do
 
         after_naive = second_period_from_wall
 
-        {:ok, latest_datetime_before} =
-          do_from_naive(
-            before_naive,
-            time_zone,
-            first_period.std_offset,
-            first_period.utc_offset,
-            first_period.zone_abbr
-          )
-
-        {:ok, first_datetime_after} =
-          do_from_naive(
-            after_naive,
-            time_zone,
-            second_period.std_offset,
-            second_period.utc_offset,
-            second_period.zone_abbr
-          )
-
+        latest_datetime_before = from_naive_with_period(before_naive, time_zone, first_period)
+        first_datetime_after = from_naive_with_period(after_naive, time_zone, second_period)
         {:gap, latest_datetime_before, first_datetime_after}
 
       {:error, _} = error ->
@@ -346,39 +292,9 @@ defmodule DateTime do
     end
   end
 
-  # This assumes there are no time zones with offsets other than whole minutes during
-  # the period where leap seconds are in use.
-  defp do_from_naive_check_leap_second(
-         %{second: 60} = naive_datetime,
-         time_zone,
-         std_offset,
-         utc_offset,
-         zone_abbr,
-         tz_db_or_config
-       ) do
-    {:ok, datetime} = do_from_naive(naive_datetime, time_zone, std_offset, utc_offset, zone_abbr)
-    utc_dt = to_zero_total_offset(datetime)
+  defp from_naive_with_period(naive_datetime, time_zone, period) do
+    %{std_offset: std_offset, utc_offset: utc_offset, zone_abbr: zone_abbr} = period
 
-    case TimeZoneDatabaseClient.is_leap_second(utc_dt, tz_db_or_config) do
-      {:ok, true} -> {:ok, datetime}
-      {:ok, false} -> {:error, :invalid_leap_second}
-      {:error, :outside_leap_second_data_range} -> {:outside_leap_second_data_range, datetime}
-      {:error, _} = error -> error
-    end
-  end
-
-  defp do_from_naive_check_leap_second(
-         naive_datetime,
-         time_zone,
-         std_offset,
-         utc_offset,
-         zone_abbr,
-         _
-       ) do
-    do_from_naive(naive_datetime, time_zone, std_offset, utc_offset, zone_abbr)
-  end
-
-  defp do_from_naive(naive_datetime, time_zone, std_offset, utc_offset, zone_abbr) do
     %{
       calendar: calendar,
       hour: hour,
@@ -390,7 +306,7 @@ defmodule DateTime do
       day: day
     } = naive_datetime
 
-    datetime = %DateTime{
+    %DateTime{
       calendar: calendar,
       year: year,
       month: month,
@@ -404,8 +320,6 @@ defmodule DateTime do
       zone_abbr: zone_abbr,
       time_zone: time_zone
     }
-
-    {:ok, datetime}
   end
 
   @doc """
@@ -439,41 +353,12 @@ defmodule DateTime do
     end
   end
 
-  # Takes a datetime and in case it is is on the 61st second (60) it will check
-  # if it is a known leap second. All datetimes with non ISO calendars return :ok
-  @spec validate_positive_leap_second(
-          Calendar.datetime(),
-          TimeZoneDatabaseClient.tz_db_or_config()
-        ) :: :ok | {:error, atom}
-  defp validate_positive_leap_second(%{second: second, calendar: calendar}, _)
-       when second != 60 or calendar != Calendar.ISO do
-    :ok
-  end
-
-  defp validate_positive_leap_second(
-         %{utc_offset: utc_offset, std_offset: std_offset} = dt,
-         tz_db_or_config
-       )
-       when utc_offset + std_offset == 0 do
-    utc_dt = to_zero_total_offset(dt)
-
-    case TimeZoneDatabaseClient.is_leap_second(utc_dt, tz_db_or_config) do
-      {:ok, true} ->
-        :ok
-
-      {:ok, false} ->
-        {:error, :invalid_leap_second}
-
-      {:error, _} = error ->
-        error
-    end
-  end
-
   @doc """
   Changes the time zone of a `DateTime`.
 
   Returns a `DateTime` for the same point in time, but instead at the time zone
-  provided.
+  provided. It assumes that `DateTime` is valid and exists in the given timezone
+  and calendar.
 
   Requires passing a `TimeZoneDatabase` as an argument or setting it with
   `TimeZoneDatabaseClient.set_database/1`.
@@ -486,7 +371,7 @@ defmodule DateTime do
       #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
 
   """
-  @doc since: "1.8.0-dev"
+  @doc since: "1.8.0"
   @spec shift_zone(t, Calendar.time_zone(), TimeZoneDatabaseClient.tz_db_or_config()) ::
           {:ok, t} | {:error, :time_zone_not_found} | {:error, atom}
   def shift_zone(datetime, time_zone, tz_db_or_config \\ :from_config)
@@ -496,27 +381,8 @@ defmodule DateTime do
     {:ok, datetime}
   end
 
-  def shift_zone(%{second: 60, calendar: Calendar.ISO} = datetime, time_zone, tz_db_or_config) do
-    # If second is 60 (positive leap second) adjust it to 59, calculate, then adjust back to 60.
-    case shift_zone(%{datetime | second: 59}, time_zone, tz_db_or_config) do
-      {:ok, %{second: second} = dt_result} when second == 59 ->
-        {:ok, %{dt_result | second: 60}}
-
-      {:ok, _} ->
-        {:error, :non_whole_minute_offsets_not_supported_for_leap_seconds}
-
-      error ->
-        error
-    end
-  end
-
   def shift_zone(
-        %{
-          calendar: Calendar.ISO,
-          std_offset: std_offset,
-          utc_offset: utc_offset,
-          microsecond: {_, microsecond_precision}
-        } = datetime,
+        %{std_offset: std_offset, utc_offset: utc_offset} = datetime,
         time_zone,
         tz_db_or_config
       ) do
@@ -530,50 +396,34 @@ defmodule DateTime do
            time_zone,
            tz_db_or_config
          ) do
-      {:ok, period} ->
-        naive_datetime =
-          datetime_in_utc_iso_days
-          |> apply_tz_offset(-period.utc_offset - period.std_offset)
-          |> iso_days_to_iso_naive_datetime(microsecond_precision)
+      {:ok, %{std_offset: std_offset, utc_offset: utc_offset, zone_abbr: zone_abbr}} ->
+        %{calendar: calendar, microsecond: {_, microsecond_precision}} = datetime
 
-        do_from_naive(
-          naive_datetime,
-          time_zone,
-          period.std_offset,
-          period.utc_offset,
-          period.zone_abbr
-        )
+        {year, month, day, hour, minute, second, {microsecond_without_precision, _}} =
+          datetime_in_utc_iso_days
+          |> apply_tz_offset(-utc_offset - std_offset)
+          |> calendar.naive_datetime_from_iso_days()
+
+        datetime = %DateTime{
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: {microsecond_without_precision, microsecond_precision},
+          std_offset: std_offset,
+          utc_offset: utc_offset,
+          zone_abbr: zone_abbr,
+          time_zone: time_zone
+        }
+
+        {:ok, datetime}
 
       {:error, _} = error ->
         error
     end
-  end
-
-  def shift_zone(%{calendar: calendar} = datetime, time_zone, tz_db_or_config)
-      when calendar != Calendar.ISO do
-    with {:ok, iso_datetime} <- DateTime.convert(datetime, Calendar.ISO),
-         {:ok, shifted_zone_iso_dt} <- shift_zone(iso_datetime, time_zone, tz_db_or_config),
-         {:ok, shifted_zone_original_calendar_dt} <- convert(shifted_zone_iso_dt, calendar) do
-      {:ok, shifted_zone_original_calendar_dt}
-    end
-  end
-
-  # Takes Calendar.naive_datetime and makes sure it has a zero total offset
-  @spec to_zero_total_offset(Calendar.naive_datetime()) :: Calendar.naive_datetime()
-  defp to_zero_total_offset(%{utc_offset: utc_offset, std_offset: std_offset} = datetime)
-       when utc_offset + std_offset == 0 do
-    # If the offset is already zero, return the datetime unchanged
-    datetime
-  end
-
-  defp to_zero_total_offset(%{calendar: Calendar.ISO, second: 60} = datetime) do
-    datetime_with_second_59 = to_zero_total_offset(%{datetime | second: 59})
-    %{datetime_with_second_59 | second: 60}
-  end
-
-  defp to_zero_total_offset(%{calendar: Calendar.ISO} = datetime) do
-    datetime
-    |> NaiveDateTime.add(-1 * (datetime.utc_offset + datetime.std_offset))
   end
 
   @doc """
@@ -591,6 +441,7 @@ defmodule DateTime do
       {:error, :time_zone_not_found}
 
   """
+  @doc since: "1.8.0"
   @spec now(Calendar.time_zone(), TimeZoneDatabaseClient.tz_db_or_config()) ::
           {:ok, t} | {:error, :time_zone_not_found}
   def now(time_zone, tz_db_or_config \\ :from_config)
@@ -826,13 +677,9 @@ defmodule DateTime do
 
   Time representations with reduced accuracy are not supported.
 
-  Note that while ISO 8601 allows datetimes to specify 24:00:00 as the
+  Note that while ISO 8601 allows times to specify 24:00:00 as the
   zero hour of the next day, this notation is not supported by Elixir.
-
-  Validates positive leap seconds (when the second is 60). When passed a
-  valid positive leap second, `{:error, :no_time_zone_database}` an error will
-  be returned unless a `TimeZoneDatabase` has been passed as the third argument
-  or set with `TimeZoneDatabaseClient.set_database/1`.
+  Leap seconds are not supported as well by the built-in Calendar.ISO.
 
   ## Examples
 
@@ -867,45 +714,25 @@ defmodule DateTime do
       iex> DateTime.from_iso8601("2015-01-23T23:50:07.123-00:00")
       {:error, :invalid_format}
 
-  ## Examples with positive leap seconds
-
-      iex> {:ok, datetime, 0} = DateTime.from_iso8601("2015-06-30 23:59:60Z", Calendar.ISO, FakeTimeZoneDatabase)
-      iex> datetime
-      #DateTime<2015-06-30 23:59:60Z>
-
-      iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
-      {:error, :invalid_leap_second}
-      iex> {:outside_leap_second_data_range, datetime, 7200} = DateTime.from_iso8601("2090-07-01 01:59:60+02:00", Calendar.ISO, FakeTimeZoneDatabase)
-      iex> datetime
-      #DateTime<2090-06-30 23:59:60Z>
-
-   If a TimeZoneDatabase has not been set with
-   `TimeZoneDatabaseClient.set_database/1` and the second of the parsed datetime is 60:
-
-      iex> DateTime.from_iso8601("2018-07-01 01:59:60+02:00")
-      {:error, :no_time_zone_database}
-
   """
   @doc since: "1.4.0"
-  @spec from_iso8601(String.t(), Calendar.calendar(), TimeZoneDatabaseClient.tz_db_or_config()) ::
-          {:ok, t, Calendar.utc_offset()}
-          | {:outside_leap_second_data_range, t, Calendar.utc_offset()}
-          | {:error, atom}
-  def from_iso8601(string, calendar \\ Calendar.ISO, tz_db_or_config \\ :from_config)
+  @spec from_iso8601(String.t(), Calendar.calendar()) ::
+          {:ok, t, Calendar.utc_offset()} | {:error, atom}
+  def from_iso8601(string, calendar \\ Calendar.ISO)
 
-  def from_iso8601(<<?-, rest::binary>>, calendar, tz_db_or_config) do
-    raw_from_iso8601(rest, calendar, tz_db_or_config, true)
+  def from_iso8601(<<?-, rest::binary>>, calendar) do
+    raw_from_iso8601(rest, calendar, true)
   end
 
-  def from_iso8601(<<rest::binary>>, calendar, tz_db_or_config) do
-    raw_from_iso8601(rest, calendar, tz_db_or_config, false)
+  def from_iso8601(<<rest::binary>>, calendar) do
+    raw_from_iso8601(rest, calendar, false)
   end
 
   @sep [?\s, ?T]
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
   [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
 
-  defp raw_from_iso8601(string, calendar, tz_db_or_config, is_year_negative) do
+  defp raw_from_iso8601(string, calendar, is_year_negative) do
     with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
@@ -914,130 +741,68 @@ defmodule DateTime do
       {hour, minute, second} = unquote(read_time)
       year = if is_year_negative, do: -year, else: year
 
-      do_from_iso8601(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        offset,
-        calendar,
-        tz_db_or_config
-      )
+      cond do
+        not calendar.valid_date?(year, month, day) ->
+          {:error, :invalid_date}
+
+        not calendar.valid_time?(hour, minute, second, microsecond) ->
+          {:error, :invalid_time}
+
+        offset == 0 ->
+          datetime = %DateTime{
+            calendar: calendar,
+            year: year,
+            month: month,
+            day: day,
+            hour: hour,
+            minute: minute,
+            second: second,
+            microsecond: microsecond,
+            std_offset: 0,
+            utc_offset: 0,
+            zone_abbr: "UTC",
+            time_zone: "Etc/UTC"
+          }
+
+          {:ok, datetime, 0}
+
+        is_nil(offset) ->
+          {:error, :missing_offset}
+
+        true ->
+          day_fraction = Calendar.ISO.time_to_day_fraction(hour, minute, second, {0, 0})
+
+          {{year, month, day}, {hour, minute, second, _}} =
+            case apply_tz_offset({0, day_fraction}, offset) do
+              {0, day_fraction} ->
+                {{year, month, day}, Calendar.ISO.time_from_day_fraction(day_fraction)}
+
+              {extra_days, day_fraction} ->
+                base_days = Calendar.ISO.date_to_iso_days(year, month, day)
+
+                {Calendar.ISO.date_from_iso_days(base_days + extra_days),
+                 Calendar.ISO.time_from_day_fraction(day_fraction)}
+            end
+
+          datetime = %DateTime{
+            calendar: calendar,
+            year: year,
+            month: month,
+            day: day,
+            hour: hour,
+            minute: minute,
+            second: second,
+            microsecond: microsecond,
+            std_offset: 0,
+            utc_offset: 0,
+            zone_abbr: "UTC",
+            time_zone: "Etc/UTC"
+          }
+
+          {:ok, datetime, offset}
+      end
     else
       _ -> {:error, :invalid_format}
-    end
-  end
-
-  defp do_from_iso8601(
-         year,
-         month,
-         day,
-         hour,
-         minute,
-         second,
-         microsecond,
-         offset,
-         calendar,
-         tz_db_or_config
-       ) do
-    cond do
-      not calendar.valid_date?(year, month, day) ->
-        {:error, :invalid_date}
-
-      not calendar.valid_time?(hour, minute, second, microsecond) ->
-        {:error, :invalid_time}
-
-      offset == 0 ->
-        datetime = %DateTime{
-          calendar: calendar,
-          year: year,
-          month: month,
-          day: day,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          std_offset: 0,
-          utc_offset: 0,
-          zone_abbr: "UTC",
-          time_zone: "Etc/UTC"
-        }
-
-        case validate_positive_leap_second(datetime, tz_db_or_config) do
-          :ok ->
-            {:ok, datetime, 0}
-
-          error ->
-            error
-        end
-
-      is_nil(offset) ->
-        {:error, :missing_offset}
-
-      second == 60 && calendar == Calendar.ISO ->
-        # Get the datetime as if the second is 59, then set the second back to 60
-        # and check that it is a valid leap second.
-        with {:ok, datetime, offset} <-
-               do_from_iso8601(
-                 year,
-                 month,
-                 day,
-                 hour,
-                 minute,
-                 59,
-                 microsecond,
-                 offset,
-                 calendar,
-                 tz_db_or_config
-               ) do
-          datetime = %{datetime | second: 60, microsecond: microsecond}
-
-          case validate_positive_leap_second(datetime, tz_db_or_config) do
-            :ok ->
-              {:ok, datetime, offset}
-
-            {:error, :outside_leap_second_data_range} ->
-              {:outside_leap_second_data_range, datetime, offset}
-
-            error ->
-              error
-          end
-        end
-
-      true ->
-        day_fraction = Calendar.ISO.time_to_day_fraction(hour, minute, second, {0, 0})
-
-        {{year, month, day}, {hour, minute, second, _}} =
-          case apply_tz_offset({0, day_fraction}, offset) do
-            {0, day_fraction} ->
-              {{year, month, day}, Calendar.ISO.time_from_day_fraction(day_fraction)}
-
-            {extra_days, day_fraction} ->
-              base_days = Calendar.ISO.date_to_iso_days(year, month, day)
-
-              {Calendar.ISO.date_from_iso_days(base_days + extra_days),
-               Calendar.ISO.time_from_day_fraction(day_fraction)}
-          end
-
-        datetime = %DateTime{
-          calendar: calendar,
-          year: year,
-          month: month,
-          day: day,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          std_offset: 0,
-          utc_offset: 0,
-          zone_abbr: "UTC",
-          time_zone: "Etc/UTC"
-        }
-
-        {:ok, datetime, offset}
     end
   end
 
@@ -1343,23 +1108,6 @@ defmodule DateTime do
 
   defp apply_tz_offset(iso_days, offset) do
     Calendar.ISO.add_day_fraction_to_iso_days(iso_days, -offset, 86400)
-  end
-
-  @spec iso_days_to_iso_naive_datetime(Calendar.iso_days(), 0..6) :: NaiveDateTime.t()
-  defp iso_days_to_iso_naive_datetime(iso_days, microsecond_precision) do
-    {year, month, day, hour, minute, second, {microsecond_without_precision, _}} =
-      Calendar.ISO.naive_datetime_from_iso_days(iso_days)
-
-    %NaiveDateTime{
-      calendar: Calendar.ISO,
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: {microsecond_without_precision, microsecond_precision}
-    }
   end
 
   defimpl String.Chars do
