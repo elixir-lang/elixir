@@ -71,7 +71,7 @@ Deprecated feature                               | Hard-deprecated in | Replaced
 :----------------------------------------------- | :----------------- | :----------------------------
 Passing a non-empty list to `Enum.into/2`        | [v1.8]        | `Kernel.++/2` or `Keyword.merge/2` (v1.0)
 Passing a non-empty list to `:into` in `for`     | [v1.8]        | `Kernel.++/2` or `Keyword.merge/2` (v1.0)
-`:seconds`, `:milliseconds`, etc as time units   | [v1.8]        | `:second`, `:millisecond`, etc (v1.4)
+`:seconds`, `:milliseconds`, etc. as time units  | [v1.8]        | `:second`, `:millisecond`, etc. (v1.4)
 `Inspect.Algebra.surround/3`                     | [v1.8]        | `Inspect.Algebra.concat/2` and `Inspect.Algebra.nest/2` (v1.0)
 `Inspect.Algebra.surround_many/6`                | [v1.8]        | `Inspect.Algebra.container_doc/6` (v1.6)
 `Kernel.ParallelCompiler.files/2`                | [v1.8]        | `Kernel.ParallelCompiler.compile/2` (v1.6)

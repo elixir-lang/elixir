@@ -143,7 +143,8 @@ defmodule Mix.Tasks.Deps do
     * `--all` - checks all dependencies, regardless of specified environment
 
   """
-  @spec run(OptionParser.argv()) :: :ok
+
+  @impl true
   def run(args) do
     Mix.Project.get!()
     {opts, _, _} = OptionParser.parse(args, switches: [all: :boolean])

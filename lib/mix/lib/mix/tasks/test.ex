@@ -315,6 +315,7 @@ defmodule Mix.Tasks.Test do
 
   @cover [output: "cover", tool: Cover]
 
+  @impl true
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches)
 

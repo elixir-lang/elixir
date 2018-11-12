@@ -17,6 +17,7 @@ defmodule Mix.Tasks.Escript.Uninstall do
     force: :boolean
   ]
 
+  @impl true
   def run(argv) do
     if path =
          Mix.Local.Installer.uninstall(Mix.Local.path_for(:escript), "escript", argv, @switches) do

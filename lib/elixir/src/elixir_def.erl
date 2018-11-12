@@ -376,7 +376,7 @@ assert_no_aliases_name(Meta, '__aliases__', [Atom], #{file := File}) when is_ato
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.
 
-assert_valid_name(Meta, Kind, '__info__', [_], #{file := File, module := Module}) when Module /= 'Elixir.Module' ->
+assert_valid_name(Meta, Kind, '__info__', [_], #{file := File}) ->
   elixir_errors:form_error(Meta, File, ?MODULE, {'__info__', Kind});
 assert_valid_name(Meta, Kind, 'module_info', [], #{file := File}) ->
   elixir_errors:form_error(Meta, File, ?MODULE, {module_info, Kind, 0});

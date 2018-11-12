@@ -42,6 +42,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
   @switches [force: :boolean, sha512: :string]
 
+  @impl true
   def run(argv) do
     {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 

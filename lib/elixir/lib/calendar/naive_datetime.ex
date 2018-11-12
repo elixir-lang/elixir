@@ -5,7 +5,7 @@ defmodule NaiveDateTime do
   The NaiveDateTime struct contains the fields year, month, day, hour,
   minute, second, microsecond and calendar. New naive datetimes can be
   built with the `new/2` and `new/8` functions or using the
-  [`~N`](`Kernel.sigil_N/2`) sigil:
+  `~N` (see `Kernel.sigil_N/2`) sigil:
 
       iex> ~N[2000-01-01 23:00:07]
       ~N[2000-01-01 23:00:07]
@@ -509,11 +509,10 @@ defmodule NaiveDateTime do
   As specified in the standard, the separator "T" may be omitted if
   desired as there is no ambiguity within this function.
 
-  Time representations with reduced accuracy are not supported.
-
-  Note that while ISO 8601 allows times to specify 24:00:00 as the
-  zero hour of the next day, this notation is not supported by Elixir.
-  Leap seconds are not supported as well by the built-in Calendar.ISO.
+  The year parsed by this function is limited to four digits and,
+  while ISO 8601 allows datetimes to specify 24:00:00 as the zero
+  hour of the next day, this notation is not supported by Elixir.
+  Note leap seconds are not supported by the built-in Calendar.ISO.
 
   ## Examples
 

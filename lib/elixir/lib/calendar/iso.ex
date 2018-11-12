@@ -568,7 +568,7 @@ defmodule Calendar.ISO do
 
   defp zero_pad(val, count) when val >= 0 do
     num = Integer.to_string(val)
-    :binary.copy("0", count - byte_size(num)) <> num
+    :binary.copy("0", max(count - byte_size(num), 0)) <> num
   end
 
   defp zero_pad(val, count) do

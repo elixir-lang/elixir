@@ -395,7 +395,7 @@ defmodule Task.Supervisor do
   def start_child(supervisor, fun, options \\ []) do
     restart = options[:restart]
     shutdown = options[:shutdown]
-    args = [get_info(self()), {:erlang, :apply, [fun, []]}]
+    args = [get_owner(self()), {:erlang, :apply, [fun, []]}]
     start_child_with_spec(supervisor, args, restart, shutdown)
   end
 
@@ -411,7 +411,7 @@ defmodule Task.Supervisor do
       when is_atom(fun) and is_list(args) do
     restart = options[:restart]
     shutdown = options[:shutdown]
-    args = [get_info(self()), {module, fun, args}]
+    args = [get_owner(self()), {module, fun, args}]
     start_child_with_spec(supervisor, args, restart, shutdown)
   end
 
@@ -422,19 +422,19 @@ defmodule Task.Supervisor do
     GenServer.call(supervisor, {:start_task, args, restart, shutdown}, :infinity)
   end
 
-  defp get_info(self) do
-    name =
-      case Process.info(self, :registered_name) do
+  defp get_owner(pid) do
+    self_or_name =
+      case Process.info(pid, :registered_name) do
         {:registered_name, name} when is_atom(name) -> name
-        _ -> self
+        _ -> pid
       end
 
-    {node(), name}
+    {node(), self_or_name, pid}
   end
 
   defp async(supervisor, link_type, module, fun, args, options) do
     owner = self()
-    args = [owner, :monitor, get_info(owner), {module, fun, args}]
+    args = [get_owner(owner), :monitor, {module, fun, args}]
     shutdown = options[:shutdown]
 
     case start_child_with_spec(supervisor, args, :temporary, shutdown) do
@@ -457,7 +457,7 @@ defmodule Task.Supervisor do
     shutdown = options[:shutdown]
 
     &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
-      args = [owner, :monitor, get_info(owner), mfa]
+      args = [get_owner(owner), :monitor, mfa]
 
       case start_child_with_spec(supervisor, args, :temporary, shutdown) do
         {:ok, pid} ->

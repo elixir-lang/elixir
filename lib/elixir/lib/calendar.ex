@@ -148,7 +148,7 @@ defmodule Calendar do
   @callback time_to_string(hour, minute, second, microsecond) :: String.t()
 
   @doc """
-  Converts the given datetime (with time zone) into the `t:iso_days/0` format.
+  Converts the given datetime (without time zone) into the `t:iso_days/0` format.
   """
   @callback naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) ::
               iso_days

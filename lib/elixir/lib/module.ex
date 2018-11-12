@@ -513,7 +513,7 @@ defmodule Module do
     * `:attributes` - a list with all persisted attributes
 
   """
-  def __info__(kind)
+  @callback __info__(:functions | :macros | :module | :md5 | :compile | :attributes) :: term()
 
   @doc """
   Checks if a module is open.
@@ -1226,7 +1226,7 @@ defmodule Module do
   When registering an attribute, two options can be given:
 
     * `:accumulate` - several calls to the same attribute will
-      accumulate instead of override the previous one. New attributes
+      accumulate instead of overriding the previous one. New attributes
       are always added to the top of the accumulated list.
 
     * `:persist` - the attribute will be persisted in the Erlang

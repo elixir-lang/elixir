@@ -60,6 +60,7 @@ defmodule Mix.Tasks.Run do
 
   """
 
+  @impl true
   def run(args) do
     {opts, head} =
       OptionParser.parse_head!(

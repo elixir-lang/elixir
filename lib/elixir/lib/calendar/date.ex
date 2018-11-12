@@ -4,7 +4,7 @@ defmodule Date do
 
   The Date struct contains the fields year, month, day and calendar.
   New dates can be built with the `new/3` function or using the
-  [`~D`](`Kernel.sigil_D/2`) sigil:
+  `~D` (see `Kernel.sigil_D/2`) sigil:
 
       iex> ~D[2000-01-01]
       ~D[2000-01-01]
@@ -247,6 +247,8 @@ defmodule Date do
   @doc """
   Parses the extended "Dates" format described by
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+
+  The year parsed by this function is limited to four digits.
 
   ## Examples
 

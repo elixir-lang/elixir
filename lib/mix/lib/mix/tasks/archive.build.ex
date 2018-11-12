@@ -53,6 +53,7 @@ defmodule Mix.Tasks.Archive.Build do
     include_dot_files: :boolean
   ]
 
+  @impl true
   def run(args) do
     {opts, _} = OptionParser.parse!(args, aliases: [o: :output, i: :input], strict: @switches)
 

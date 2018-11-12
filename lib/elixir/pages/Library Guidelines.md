@@ -100,7 +100,7 @@ This advice does not only apply to libraries but to any Elixir code. Every time 
 
 ### Avoid application configuration
 
-You should avoid using [the application environment](`Application.get_env/2`) as the configuration mechanism for libraries. The application environment is **global** which means it becomes impossible for two dependencies to use your library in two different ways.
+You should avoid using the application environment (see `Application.get_env/2`) as the configuration mechanism for libraries. The application environment is **global** which means it becomes impossible for two dependencies to use your library in two different ways.
 
 Let's see a simple example. Imagine that you implement a library that breaks a string in two parts based on the first occurrence of the dash `-` character:
 
@@ -202,7 +202,7 @@ When you absolutely have to use a macro, make sure that a macro is not the only 
 
 A developer must never use a process for code organization purposes. A process must be used to model runtime properties such as:
 
-  * Mutable state and access to shared resources (such as ETS, files, etc)
+  * Mutable state and access to shared resources (such as ETS, files, etc.)
   * Concurrency and distribution
   * Initialization, shutdown and restart logic (as seen in supervisors)
   * System messages such as timer messages and monitoring events

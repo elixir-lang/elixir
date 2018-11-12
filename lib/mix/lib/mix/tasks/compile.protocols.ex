@@ -41,9 +41,7 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   """
 
-  @doc """
-  Runs this task.
-  """
+  @impl true
   def run(args) do
     config = Mix.Project.config()
     Mix.Task.run("compile")
@@ -72,18 +70,15 @@ defmodule Mix.Tasks.Compile.Protocols do
     end
   end
 
-  @doc """
-  Cleans up consolidated protocols.
-  """
+  @impl true
   def clean do
     File.rm(manifest())
     File.rm_rf(Mix.Project.consolidation_path())
   end
 
-  @doc """
-  Returns protocols manifests.
-  """
+  @impl true
   def manifests, do: [manifest()]
+
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @doc """

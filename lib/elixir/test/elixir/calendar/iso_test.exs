@@ -35,6 +35,13 @@ defmodule Calendar.ISOTest do
     end
   end
 
+  describe "date_to_iso8601/4" do
+    test "handles years > 9999" do
+      assert Calendar.ISO.date_to_iso8601(10000, 1, 1, :basic) == "100000101"
+      assert Calendar.ISO.date_to_iso8601(10000, 1, 1, :extended) == "10000-01-01"
+    end
+  end
+
   defp iso_day_roundtrip(year, month, day) do
     iso_days = Calendar.ISO.date_to_iso_days(year, month, day)
     Calendar.ISO.date_from_iso_days(iso_days)

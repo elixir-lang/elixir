@@ -135,6 +135,7 @@ defmodule Mix.Tasks.Format do
   @manifest "cached_dot_formatter"
   @manifest_vsn 1
 
+  @impl true
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
     {dot_formatter, formatter_opts} = eval_dot_formatter(opts)

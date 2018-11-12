@@ -416,7 +416,7 @@ defmodule Code do
   rules in the future. The goal of documenting them is to provide better
   understanding on what to expect from the formatter.
 
-  ### Multi-line lists, maps, tuples, etc
+  ### Multi-line lists, maps, tuples, etc.
 
   You can force lists, tuples, bitstrings, maps, structs and function
   calls to have one entry per line by adding a newline after the opening

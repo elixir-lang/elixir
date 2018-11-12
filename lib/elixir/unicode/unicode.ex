@@ -200,7 +200,7 @@ defmodule String.Unicode do
 
   for codepoint <- cluster["Extended_Pictographic"] do
     defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, :zwj) do
-      next_extend_size(rest, size + unquote(byte_size(codepoint)), :other)
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :emoji)
     end
   end
 

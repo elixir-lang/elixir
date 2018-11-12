@@ -155,6 +155,7 @@ defmodule Mix.Tasks.Xref do
     source: :string
   ]
 
+  @impl true
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
     Mix.Task.run("loadpaths")

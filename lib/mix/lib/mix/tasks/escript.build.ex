@@ -116,6 +116,8 @@ defmodule Mix.Tasks.Escript.Build do
       end
 
   """
+
+  @impl true
   def run(args) do
     Mix.Project.get!()
     Mix.Task.run("loadpaths", args)

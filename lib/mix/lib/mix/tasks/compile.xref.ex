@@ -26,9 +26,7 @@ defmodule Mix.Tasks.Compile.Xref do
 
   """
 
-  @doc """
-  Runs this task.
-  """
+  @impl true
   def run(args) do
     {opts, _, _} =
       OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
@@ -66,10 +64,9 @@ defmodule Mix.Tasks.Compile.Xref do
     end)
   end
 
-  @doc """
-  Returns xref manifests.
-  """
+  @impl true
   def manifests, do: [manifest()]
+
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   defp write_manifest(warnings, timestamp) do
@@ -90,9 +87,7 @@ defmodule Mix.Tasks.Compile.Xref do
     end
   end
 
-  @doc """
-  Cleans up xref manifest.
-  """
+  @impl true
   def clean do
     File.rm(manifest())
   end

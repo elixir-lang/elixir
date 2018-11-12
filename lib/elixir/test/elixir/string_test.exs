@@ -562,6 +562,7 @@ defmodule StringTest do
     assert String.length("סם ייםח") == 7
     assert String.length("がガちゃ") == 4
     assert String.length("Ā̀stute") == 6
+    assert String.length("👨‍👩‍👧‍👦") == 1
     assert String.length("") == 0
   end
 

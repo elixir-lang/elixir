@@ -13,7 +13,7 @@ defmodule Kernel do
   It mainly consists of:
 
     * basic language primitives, such as arithmetic operators, spawning of processes,
-      data type handling, etc
+      data type handling, etc.
     * macros for control-flow and defining new functionality (modules, functions, and so on)
     * guard checks for augmenting pattern matching
 
@@ -4239,7 +4239,7 @@ defmodule Kernel do
   `%User{}`.
 
   The types of the struct fields that are not included in `%User{}` default to
-  [`term()`](`t:term/0`).
+  `term()` (see `t:term/0`).
 
   Structs whose internal structure is private to the local module (pattern
   matching them or directly accessing their fields should not be allowed) should

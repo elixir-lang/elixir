@@ -12,6 +12,7 @@ defmodule Mix.Tasks.Escript do
 
   use Bitwise
 
+  @impl true
   def run(_) do
     escripts_path = Mix.Local.path_for(:escript)
 

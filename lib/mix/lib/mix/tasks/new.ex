@@ -55,6 +55,7 @@ defmodule Mix.Tasks.New do
     umbrella: :boolean
   ]
 
+  @impl true
   def run(argv) do
     {opts, argv} = OptionParser.parse!(argv, strict: @switches)
 

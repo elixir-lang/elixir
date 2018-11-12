@@ -2,40 +2,36 @@ defmodule Task.Supervised do
   @moduledoc false
   @ref_timeout 5000
 
-  def start(info, fun) do
-    {:ok, :proc_lib.spawn(__MODULE__, :noreply, [info, fun])}
+  def start(owner, fun) do
+    {:ok, :proc_lib.spawn(__MODULE__, :noreply, [owner, fun])}
   end
 
-  def start_link(info, fun) do
-    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [info, fun])}
+  def start_link(owner, fun) do
+    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [owner, fun])}
   end
 
-  def start_link(caller, monitor, info, fun) do
-    {:ok, spawn_link(caller, monitor, info, fun)}
+  def start_link(owner, monitor, fun) do
+    {:ok, :proc_lib.spawn_link(__MODULE__, :reply, [owner, monitor, fun])}
   end
 
-  def spawn_link(caller, monitor \\ :nomonitor, info, fun) do
-    :proc_lib.spawn_link(__MODULE__, :reply, [caller, monitor, info, fun])
-  end
-
-  def reply(caller, monitor, info, mfa) do
+  def reply({_, _, owner_pid} = owner, monitor, mfa) do
     initial_call(mfa)
 
     case monitor do
       :monitor ->
-        mref = Process.monitor(caller)
-        reply(caller, mref, @ref_timeout, info, mfa)
+        mref = Process.monitor(owner_pid)
+        reply(owner, owner_pid, mref, @ref_timeout, mfa)
 
       :nomonitor ->
-        reply(caller, nil, :infinity, info, mfa)
+        reply(owner, owner_pid, nil, :infinity, mfa)
     end
   end
 
-  defp reply(caller, mref, timeout, info, mfa) do
+  defp reply(owner, owner_pid, mref, timeout, mfa) do
     receive do
-      {^caller, ref} ->
+      {^owner_pid, ref} ->
         _ = if mref, do: Process.demonitor(mref, [:flush])
-        send(caller, {ref, do_apply(info, mfa)})
+        send(owner_pid, {ref, do_apply(owner, mfa)})
 
       {:DOWN, ^mref, _, _, reason} when is_reference(mref) ->
         exit({:shutdown, reason})
@@ -64,9 +60,9 @@ defmodule Task.Supervised do
     end
   end
 
-  def noreply(info, mfa) do
+  def noreply(owner, mfa) do
     initial_call(mfa)
-    do_apply(info, mfa)
+    do_apply(owner, mfa)
   end
 
   defp initial_call(mfa) do
@@ -83,7 +79,7 @@ defmodule Task.Supervised do
     {mod, fun, length(args)}
   end
 
-  defp do_apply(info, {module, fun, args} = mfa) do
+  defp do_apply(owner, {module, fun, args} = mfa) do
     try do
       apply(module, fun, args)
     catch
@@ -94,7 +90,7 @@ defmodule Task.Supervised do
         :erlang.raise(:exit, value, __STACKTRACE__)
 
       kind, value ->
-        log(info, mfa, {log_value(kind, value), __STACKTRACE__})
+        log(owner, mfa, {log_value(kind, value), __STACKTRACE__})
         :erlang.raise(kind, value, __STACKTRACE__)
     end
   end
@@ -102,7 +98,7 @@ defmodule Task.Supervised do
   defp log_value(:throw, value), do: {:nocatch, value}
   defp log_value(_, value), do: value
 
-  defp log(info, mfa, reason) do
+  defp log(owner, mfa, reason) do
     {fun, args} = get_running(mfa)
 
     message =
@@ -111,11 +107,12 @@ defmodule Task.Supervised do
         '** When function  == ~p~n' ++
         '**      arguments == ~p~n' ++ '** Reason for termination == ~n' ++ '** ~p~n'
 
-    :error_logger.format(message, [self(), get_from(info), fun, args, get_reason(reason)])
+    :error_logger.format(message, [self(), get_from(owner), fun, args, get_reason(reason)])
   end
 
-  defp get_from({node, pid_or_name}) when node == node(), do: pid_or_name
-  defp get_from(other), do: other
+  defp get_from({node, pid_or_name, _pid}) when node == node(), do: pid_or_name
+  defp get_from({node, name, _pid}) when is_atom(name), do: {node, name}
+  defp get_from({_node, _name, pid}), do: pid
 
   defp get_running({:erlang, :apply, [fun, []]}) when is_function(fun, 0), do: {fun, []}
   defp get_running({mod, fun, args}), do: {Function.capture(mod, fun, length(args)), args}
