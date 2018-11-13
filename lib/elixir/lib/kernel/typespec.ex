@@ -533,7 +533,8 @@ defmodule Kernel.Typespec do
     module = Macro.expand(name, caller)
 
     struct =
-      :elixir_map.load_struct(meta, module, [], caller)
+      module
+      |> Macro.struct!(caller)
       |> Map.from_struct()
       |> Map.to_list()
 

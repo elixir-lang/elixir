@@ -427,6 +427,24 @@ defmodule Macro do
   end
 
   @doc """
+  Expands the struct given by `module` in the given `env`.
+
+  This is useful when a struct needs to be expanded at
+  compilation time and the struct being expanded may or may
+  not have been compiled. This function is even capable of
+  expanding structs defined under the module being compiled.
+
+  It will raise `CompileError` if the struct is not available.
+  """
+  @doc since: "1.8.0"
+  @spec struct!(module, Macro.Env.t()) :: %{__struct__: module} when module: module()
+  def struct!(module, env) when is_atom(module) do
+    if module == env.module do
+      Module.get_attribute(module, :struct)
+    end || :elixir_map.load_struct([line: env.line], module, [], env)
+  end
+
+  @doc """
   Validates the given expressions are valid quoted expressions.
 
   Checks the `t:Macro.t/0` for the specification of a valid
