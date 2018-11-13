@@ -917,6 +917,24 @@ defmodule MacroTest do
     Macro.postwalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
   end
 
+  test "struct!/2 expands structs multiple levels deep" do
+    defmodule StructBang do
+      defstruct [:a, :b]
+
+      assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+
+      def within_function do
+        assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+      end
+
+      defmodule Nested do
+        assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+      end
+    end
+
+    assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+  end
+
   test "operator?/2" do
     assert Macro.operator?(:+, 2)
     assert Macro.operator?(:+, 1)

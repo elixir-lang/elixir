@@ -618,12 +618,7 @@ defmodule Protocol do
 
   @doc false
   def __derive__(derives, for, %Macro.Env{} = env) when is_atom(for) do
-    struct =
-      if for == env.module do
-        Module.get_attribute(for, :struct) || raise "struct is not defined for #{inspect(for)}"
-      else
-        for.__struct__
-      end
+    struct = Macro.struct!(for, env)
 
     foreach = fn
       proto when is_atom(proto) ->
