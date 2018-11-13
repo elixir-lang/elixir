@@ -384,7 +384,7 @@ defmodule DateTime do
   the time zone provided. It assumes that `DateTime` is valid and
   exists in the given timezone and calendar.
 
-  By default, it uses the default time_zone returned by
+  By default, it uses the default time zone database returned by
   `Calendar.get_time_zone_database/1`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC" datetimes.
   Another time zone database can be passed as argument or set globally.
