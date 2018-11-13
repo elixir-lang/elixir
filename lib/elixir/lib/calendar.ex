@@ -260,7 +260,7 @@ defmodule Calendar do
   def truncate(_, :second), do: {0, 0}
 
   @doc """
-  Sets the currente time zone database.
+  Sets the current time zone database.
   """
   @doc since: "1.8.0"
   @spec put_time_zone_database(time_zone_database()) :: :ok
