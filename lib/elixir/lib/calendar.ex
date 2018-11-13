@@ -91,7 +91,7 @@ defmodule Calendar do
         }
 
   @typedoc """
-  Speficies the time zone database for calendar operations.
+  Specifies the time zone database for calendar operations.
 
   Many functions in the `DateTime` module requires a time zone database.
   By default, it uses the default time zone database returned by
