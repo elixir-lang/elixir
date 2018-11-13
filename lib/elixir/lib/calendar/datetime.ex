@@ -20,7 +20,7 @@ defmodule DateTime do
 
   Many functions in this module require a time zone database.
   By default, it uses the default time zone database returned by
-  `Calendar.time_zone_database/1`, which defaults to
+  `Calendar.get_time_zone_database/1`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC"
   datetimes and returns `{:error, :utc_only_time_zone_database}`
   for any other time zone.
@@ -219,7 +219,7 @@ defmodule DateTime do
   @spec from_naive(
           NaiveDateTime.t(),
           Calendar.time_zone(),
-          Calendar.time_zone_database()
+          Calendar.get_time_zone_database()
         ) ::
           {:ok, t}
           | {:ambiguous, t, t}
@@ -230,7 +230,7 @@ defmodule DateTime do
   def from_naive(
         naive_datetime,
         time_zone,
-        time_zone_database \\ Calendar.time_zone_database()
+        time_zone_database \\ Calendar.get_time_zone_database()
       )
 
   def from_naive(naive_datetime, "Etc/UTC", _) do
@@ -348,12 +348,12 @@ defmodule DateTime do
   @spec from_naive!(
           NaiveDateTime.t(),
           Calendar.time_zone(),
-          Calendar.time_zone_database()
+          Calendar.get_time_zone_database()
         ) :: t
   def from_naive!(
         naive_datetime,
         time_zone,
-        time_zone_database \\ Calendar.time_zone_database()
+        time_zone_database \\ Calendar.get_time_zone_database()
       ) do
     case from_naive(naive_datetime, time_zone, time_zone_database) do
       {:ok, datetime} ->
@@ -385,7 +385,7 @@ defmodule DateTime do
   exists in the given timezone and calendar.
 
   By default, it uses the default time zone database returned by
-  `Calendar.time_zone_database/1`, which defaults to
+  `Calendar.get_time_zone_database/1`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC" datetimes.
   Other time zone databases can be passed as argument or set globally.
   See the "Time zone database" section in the module docs.
@@ -399,9 +399,9 @@ defmodule DateTime do
 
   """
   @doc since: "1.8.0"
-  @spec shift_zone(t, Calendar.time_zone(), Calendar.time_zone_database()) ::
+  @spec shift_zone(t, Calendar.time_zone(), Calendar.get_time_zone_database()) ::
           {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
-  def shift_zone(datetime, time_zone, time_zone_database \\ Calendar.time_zone_database())
+  def shift_zone(datetime, time_zone, time_zone_database \\ Calendar.get_time_zone_database())
 
   def shift_zone(%{time_zone: time_zone} = datetime, time_zone, _) do
     # When the desired time_zone is the same as the existing time_zone just return it unchanged.
@@ -453,7 +453,7 @@ defmodule DateTime do
   Returns the current datetime in the provided time zone.
 
   By default, it uses the default time_zone returned by
-  `Calendar.time_zone_database/1`, which defaults to
+  `Calendar.get_time_zone_database/1`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC" datetimes.
   Other time zone databases can be passed as argument or set globally.
   See the "Time zone database" section in the module docs.
@@ -468,9 +468,9 @@ defmodule DateTime do
 
   """
   @doc since: "1.8.0"
-  @spec now(Calendar.time_zone(), Calendar.time_zone_database()) ::
+  @spec now(Calendar.time_zone(), Calendar.get_time_zone_database()) ::
           {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
-  def now(time_zone, time_zone_database \\ Calendar.time_zone_database())
+  def now(time_zone, time_zone_database \\ Calendar.get_time_zone_database())
 
   def now("Etc/UTC", _) do
     {:ok, utc_now()}

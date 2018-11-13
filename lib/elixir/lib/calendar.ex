@@ -95,7 +95,7 @@ defmodule Calendar do
 
   Many functions in the `DateTime` module require a time zone database.
   By default, it uses the default time zone database returned by
-  `Calendar.time_zone_database/1`, which defaults to
+  `Calendar.get_time_zone_database/1`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC"
   datetimes and returns `{:error, :utc_only_time_zone_database}`
   for any other time zone.
