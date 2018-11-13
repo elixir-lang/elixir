@@ -1005,36 +1005,61 @@ defmodule DateTimeTest do
     end
   end
 
-  test "shift_zone" do
-    holocene_ndt = %NaiveDateTime{
-      calendar: Calendar.Holocene,
-      year: 12018,
-      month: 7,
-      day: 1,
-      hour: 12,
-      minute: 34,
-      second: 25,
-      microsecond: {123_456, 6}
-    }
+  describe "shift_zone" do
+    test "with compatible calendar" do
+      holocene_ndt = %NaiveDateTime{
+        calendar: Calendar.Holocene,
+        year: 12018,
+        month: 7,
+        day: 1,
+        hour: 12,
+        minute: 34,
+        second: 25,
+        microsecond: {123_456, 6}
+      }
 
-    {:ok, holocene_dt} =
-      DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase)
+      {:ok, holocene_dt} =
+        DateTime.from_naive(holocene_ndt, "Europe/Copenhagen", FakeTimeZoneDatabase)
 
-    {:ok, dt} = DateTime.shift_zone(holocene_dt, "America/Los_Angeles", FakeTimeZoneDatabase)
+      {:ok, dt} = DateTime.shift_zone(holocene_dt, "America/Los_Angeles", FakeTimeZoneDatabase)
 
-    assert dt == %DateTime{
-             calendar: Calendar.Holocene,
-             day: 1,
-             hour: 3,
-             microsecond: {123_456, 6},
-             minute: 34,
-             month: 7,
-             second: 25,
-             std_offset: 3600,
-             time_zone: "America/Los_Angeles",
-             utc_offset: -28800,
-             year: 12018,
-             zone_abbr: "PDT"
-           }
+      assert dt == %DateTime{
+               calendar: Calendar.Holocene,
+               day: 1,
+               hour: 3,
+               microsecond: {123_456, 6},
+               minute: 34,
+               month: 7,
+               second: 25,
+               std_offset: 3600,
+               time_zone: "America/Los_Angeles",
+               utc_offset: -28800,
+               year: 12018,
+               zone_abbr: "PDT"
+             }
+    end
+
+    test "uses default time zone database from config" do
+      Calendar.put_time_zone_database(FakeTimeZoneDatabase)
+
+      {:ok, dt} = DateTime.from_naive(~N[2018-07-01 12:34:25.123456], "Europe/Copenhagen")
+      {:ok, dt} = DateTime.shift_zone(dt, "America/Los_Angeles")
+
+      assert dt == %DateTime{
+               day: 1,
+               hour: 3,
+               microsecond: {123_456, 6},
+               minute: 34,
+               month: 7,
+               second: 25,
+               std_offset: 3600,
+               time_zone: "America/Los_Angeles",
+               utc_offset: -28800,
+               year: 2018,
+               zone_abbr: "PDT"
+             }
+    after
+      Calendar.put_time_zone_database(Calendar.UTCOnlyTimeZoneDatabase)
+    end
   end
 end

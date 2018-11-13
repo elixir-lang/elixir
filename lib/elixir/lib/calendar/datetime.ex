@@ -401,7 +401,7 @@ defmodule DateTime do
   @doc since: "1.8.0"
   @spec shift_zone(t, Calendar.time_zone(), Calendar.time_zone_database()) ::
           {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
-  def shift_zone(datetime, time_zone, time_zone_database)
+  def shift_zone(datetime, time_zone, time_zone_database \\ Calendar.get_time_zone_database())
 
   def shift_zone(%{time_zone: time_zone} = datetime, time_zone, _) do
     # When the desired time_zone is the same as the existing time_zone just return it unchanged.
