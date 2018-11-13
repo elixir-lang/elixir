@@ -422,14 +422,25 @@ defmodule TypespecTest do
       assert {:type, _, :map_field_exact, [{:atom, _, :other}, {:type, _, :term, []}]} = arg2
     end
 
+    test "@type with struct does not @enforce_keys" do
+      bytecode =
+        test_module do
+          @enforce_keys [:other]
+          defstruct hello: nil, other: nil
+          @type my_type :: %TypespecSample{hello: :world}
+        end
+
+      assert [type: {:my_type, type, []}] = types(bytecode)
+    end
+
     test "@type with undefined struct" do
-      assert_raise UndefinedFunctionError, fn ->
+      assert_raise CompileError, ~r"ThisModuleDoesNotExist.__struct__/0 is undefined", fn ->
         test_module do
           @type my_type :: %ThisModuleDoesNotExist{}
         end
       end
 
-      assert_raise CompileError, ~r"struct is not defined for TypespecSample", fn ->
+      assert_raise CompileError, ~r"cannot access struct TypespecTest.TypespecSample", fn ->
         test_module do
           @type my_type :: %TypespecSample{}
         end
@@ -437,7 +448,7 @@ defmodule TypespecTest do
     end
 
     test "@type with a struct with undefined field" do
-      assert_raise CompileError, ~r"undefined field no_field on struct TypespecSample", fn ->
+      assert_raise CompileError, ~r"undefined field :no_field on struct TypespecSample", fn ->
         test_module do
           defstruct [:hello, :eric]
           @type my_type :: %TypespecSample{no_field: :world}

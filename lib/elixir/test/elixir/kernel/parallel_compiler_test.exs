@@ -80,6 +80,30 @@ defmodule Kernel.ParallelCompilerTest do
       purge([FooStruct, BarStruct])
     end
 
+    test "solves dependencies between structs in typespecs" do
+      fixtures =
+        write_tmp(
+          "parallel_typespec_struct",
+          bar: """
+          defmodule BarStruct do
+            defstruct name: ""
+            @type t :: %FooStruct{}
+          end
+          """,
+          foo: """
+          defmodule FooStruct do
+            defstruct name: ""
+            @type t :: %BarStruct{}
+          end
+          """
+        )
+
+      assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
+      assert [BarStruct, FooStruct] = Enum.sort(modules)
+    after
+      purge([FooStruct, BarStruct])
+    end
+
     test "returns struct undefined error when local struct is undefined" do
       [fixture] =
         write_tmp(

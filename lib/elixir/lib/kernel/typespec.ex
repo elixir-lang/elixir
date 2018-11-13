@@ -533,14 +533,9 @@ defmodule Kernel.Typespec do
     module = Macro.expand(name, caller)
 
     struct =
-      if module == caller.module do
-        Module.get_attribute(module, :struct) ||
-          compile_error(caller, "struct is not defined for #{Macro.to_string(name)}")
-      else
-        module.__struct__
-      end
-
-    struct = struct |> Map.from_struct() |> Map.to_list()
+      :elixir_map.load_struct(meta, module, [], caller)
+      |> Map.from_struct()
+      |> Map.to_list()
 
     unless Keyword.keyword?(fields) do
       compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
@@ -553,7 +548,10 @@ defmodule Kernel.Typespec do
 
     Enum.each(fields, fn {field, _} ->
       unless Keyword.has_key?(struct, field) do
-        compile_error(caller, "undefined field #{field} on struct #{Macro.to_string(name)}")
+        compile_error(
+          caller,
+          "undefined field #{inspect(field)} on struct #{Macro.to_string(name)}"
+        )
       end
     end)
 
