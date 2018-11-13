@@ -889,6 +889,32 @@ defmodule DateTimeTest do
   end
 
   describe "from_naive" do
+    test "uses default time zone database from config" do
+      Calendar.put_time_zone_database(FakeTimeZoneDatabase)
+
+      assert DateTime.from_naive(
+               ~N[2018-07-01 12:34:25.123456],
+               "Europe/Copenhagen",
+               FakeTimeZoneDatabase
+             ) ==
+               {:ok,
+                %DateTime{
+                  day: 1,
+                  hour: 12,
+                  microsecond: {123_456, 6},
+                  minute: 34,
+                  month: 7,
+                  second: 25,
+                  std_offset: 3600,
+                  time_zone: "Europe/Copenhagen",
+                  utc_offset: 3600,
+                  year: 2018,
+                  zone_abbr: "CEST"
+                }}
+    after
+      Calendar.put_time_zone_database(Calendar.UTCOnlyTimeZoneDatabase)
+    end
+
     test "with compatible calendar on unambiguous wall clock" do
       holocene_ndt = %NaiveDateTime{
         calendar: Calendar.Holocene,
@@ -962,6 +988,20 @@ defmodule DateTimeTest do
 
       assert DateTime.from_naive(ndt, "Europe/Copenhagen", FakeTimeZoneDatabase) ==
                {:error, :incompatible_calendars}
+    end
+  end
+
+  describe "from_naive!" do
+    test "raises on ambiguous wall clock" do
+      assert_raise ArgumentError, ~r"ambiguous", fn ->
+        DateTime.from_naive!(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      end
+    end
+
+    test "raises on gap" do
+      assert_raise ArgumentError, ~r"gap", fn ->
+        DateTime.from_naive!(~N[2019-03-31 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      end
     end
   end
 

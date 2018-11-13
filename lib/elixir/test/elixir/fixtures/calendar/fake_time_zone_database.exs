@@ -1,5 +1,5 @@
 defmodule FakeTimeZoneDatabase do
-  @behaviour TimeZoneDatabase
+  @behaviour Calendar.TimeZoneDatabase
 
   @time_zone_period_cph_summer_2018 %{
     std_offset: 3600,
@@ -34,7 +34,7 @@ defmodule FakeTimeZoneDatabase do
   end
 
   @spec time_zone_periods_from_wall_datetime(Calendar.naive_datetime(), Calendar.time_zone()) ::
-          {:single, TimeZoneDatabase.time_zone_period()}
+          {:ok, TimeZoneDatabase.time_zone_period()}
           | {:ambiguous, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
           | {:gap,
              {TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period_limit()},
@@ -100,25 +100,25 @@ defmodule FakeTimeZoneDatabase do
   defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 3, 25}, {3, 0, 0}} and
               erl_datetime < {{2018, 10, 28}, {3, 0, 0}} do
-    {:single, @time_zone_period_cph_summer_2018}
+    {:ok, @time_zone_period_cph_summer_2018}
   end
 
   defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2018, 10, 28}, {2, 0, 0}} and
               erl_datetime < {{2019, 3, 31}, {2, 0, 0}} do
-    {:single, @time_zone_period_cph_winter_2018_2019}
+    {:ok, @time_zone_period_cph_winter_2018_2019}
   end
 
   defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2019, 3, 31}, {3, 0, 0}} and
               erl_datetime < {{2019, 10, 27}, {3, 0, 0}} do
-    {:single, @time_zone_period_cph_summer_2019}
+    {:ok, @time_zone_period_cph_summer_2019}
   end
 
   defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2015, 3, 29}, {3, 0, 0}} and
               erl_datetime < {{2015, 10, 25}, {3, 0, 0}} do
-    {:single,
+    {:ok,
      %{
        std_offset: 3600,
        utc_offset: 3600,
@@ -129,7 +129,7 @@ defmodule FakeTimeZoneDatabase do
   defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2090, 3, 26}, {3, 0, 0}} and
               erl_datetime < {{2090, 10, 29}, {3, 0, 0}} do
-    {:single,
+    {:ok,
      %{
        std_offset: 3600,
        utc_offset: 3600,

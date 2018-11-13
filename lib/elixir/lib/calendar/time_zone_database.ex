@@ -1,4 +1,4 @@
-defmodule TimeZoneDatabase do
+defmodule Calendar.TimeZoneDatabase do
   @moduledoc """
   This module defines a behaviour for providing time zone data.
 
@@ -43,7 +43,8 @@ defmodule TimeZoneDatabase do
   `time_zone_period` for that point in time.
   """
   @callback time_zone_period_from_utc_iso_days(Calendar.iso_days(), Calendar.time_zone()) ::
-              {:ok, time_zone_period} | {:error, :time_zone_not_found}
+              {:ok, time_zone_period}
+              | {:error, :time_zone_not_found | :utc_only_time_zone_database}
 
   @doc """
   Possible time zone periods for a certain time zone and wall clock date and time.
@@ -61,87 +62,28 @@ defmodule TimeZoneDatabase do
   and the `time_zone_period` is returned.
   """
   @callback time_zone_periods_from_wall_datetime(Calendar.naive_datetime(), Calendar.time_zone()) ::
-              {:single, time_zone_period}
+              {:ok, time_zone_period}
               | {:ambiguous, time_zone_period, time_zone_period}
               | {:gap, {time_zone_period, time_zone_period_limit},
                  {time_zone_period, time_zone_period_limit}}
-              | {:error, :time_zone_not_found}
+              | {:error, :time_zone_not_found | :utc_only_time_zone_database}
 end
 
-defmodule TimeZoneDatabaseClient do
+defmodule Calendar.UTCOnlyTimeZoneDatabase do
   @moduledoc """
-  Module used by Elixir for getting time zone data from a `TimeZoneDatabase` client.
+  Built-in time zone database that works only in Etc/UTC.
+
+  For all other time zones, it returns `{:error, :utc_only_time_zone_database}`.
   """
+  def time_zone_period_from_utc_iso_days(_, "Etc/UTC"),
+    do: {:ok, %{std_offset: 0, utc_offset: 0, zone_abbr: "UTC"}}
 
-  @typedoc """
-  Returns either a `TimeZoneDatabase.t()` or a `:from_config` atom.
+  def time_zone_period_from_utc_iso_days(_, _),
+    do: {:error, :utc_only_time_zone_database}
 
-  This can be passed to functions in e.g. the `DateTime` module. If `:from_config`
-  is passed, a `TimeZoneDatabase` set via the `set_database/1` function is used.
-  """
-  @type tz_db_or_config :: TimeZoneDatabase.t() | :from_config
+  def time_zone_periods_from_wall_datetime(_, "Etc/UTC"),
+    do: {:ok, %{std_offset: 0, utc_offset: 0, zone_abbr: "UTC"}}
 
-  @doc """
-  Function for setting a global time zone database.
-
-  Takes a module that implements the TimeZoneDatabase behaviour.
-  """
-  def set_database(time_zone_database) do
-    :elixir_config.put(:time_zone_database, time_zone_database)
-  end
-
-  @doc false
-  @spec time_zone_periods_from_wall_datetime(
-          Calendar.naive_datetime(),
-          Calendar.time_zone(),
-          tz_db_or_config
-        ) ::
-          {:single, TimeZoneDatabase.time_zone_period()}
-          | {:ambiguous, TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period()}
-          | {:gap,
-             {TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period_limit()},
-             {TimeZoneDatabase.time_zone_period(), TimeZoneDatabase.time_zone_period_limit()}}
-          | {:error, :time_zone_not_found}
-          | {:error, :no_time_zone_database}
-  def time_zone_periods_from_wall_datetime(
-        %{calendar: Calendar.ISO} = naive_datetime,
-        time_zone,
-        tz_db_or_config
-      ) do
-    with {:ok, time_zone_database} <- time_zone_database_from_tz_db_or_config(tz_db_or_config) do
-      time_zone_database.time_zone_periods_from_wall_datetime(naive_datetime, time_zone)
-    end
-  end
-
-  @doc false
-  @spec time_zone_period_from_utc_iso_days(
-          Calendar.iso_days(),
-          Calendar.time_zone(),
-          tz_db_or_config
-        ) ::
-          {:ok, TimeZoneDatabase.time_zone_period()}
-          | {:error, :time_zone_not_found}
-          | {:error, :no_time_zone_database}
-  def time_zone_period_from_utc_iso_days(
-        iso_days,
-        time_zone,
-        tz_db_or_config
-      ) do
-    with {:ok, time_zone_database} <- time_zone_database_from_tz_db_or_config(tz_db_or_config) do
-      time_zone_database.time_zone_period_from_utc_iso_days(iso_days, time_zone)
-    end
-  end
-
-  @spec time_zone_database_from_tz_db_or_config(tz_db_or_config) ::
-          {:ok, TimeZoneDatabase.t()} | {:error, :no_time_zone_database}
-  defp time_zone_database_from_tz_db_or_config(:from_config) do
-    case :elixir_config.get(:time_zone_database, :no_time_zone_database) do
-      :no_time_zone_database -> {:error, :no_time_zone_database}
-      atom when is_atom(atom) -> {:ok, atom}
-    end
-  end
-
-  defp time_zone_database_from_tz_db_or_config(time_zone_database) do
-    {:ok, time_zone_database}
-  end
+  def time_zone_periods_from_wall_datetime(_, _),
+    do: {:error, :utc_only_time_zone_database}
 end
