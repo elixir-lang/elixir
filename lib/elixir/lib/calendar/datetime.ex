@@ -469,7 +469,7 @@ defmodule DateTime do
   """
   @doc since: "1.8.0"
   @spec now(Calendar.time_zone(), Calendar.time_zone_database()) ::
-          {:ok, t} | {:error, :time_zone_not_found}
+          {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
   def now(time_zone, time_zone_database \\ Calendar.get_time_zone_database())
 
   def now("Etc/UTC", _) do
