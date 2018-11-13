@@ -93,15 +93,15 @@ defmodule Calendar do
   @typedoc """
   Specifies the time zone database for calendar operations.
 
-  Many functions in the `DateTime` module requires a time zone database.
+  Many functions in the `DateTime` module require a time zone database.
   By default, it uses the default time zone database returned by
-  `Calendar.get_time_zone_database/1`, which defaults to
+  `Calendar.time_zone_database/1`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC"
   datetimes and returns `{:error, :utc_only_time_zone_database}`
   for any other time zone.
 
-  Another time zone database, such as one originating from a package,
-  can be passed as argument or set globally, either via configuration:
+  Other time zone databases (including ones provided by packages)
+  can be configure as default either via configuration:
 
       config :elixir, :time_zone_database, CustomTimeZoneDatabase
 
