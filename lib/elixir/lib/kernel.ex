@@ -5205,7 +5205,7 @@ defmodule Kernel do
       ~D[2015-01-13]
 
   """
-  defmacro sigil_D(date, modifiers)
+  defmacro sigil_D(date_string, modifiers)
 
   defmacro sigil_D({:<<>>, _, [string]}, []) do
     Macro.escape(Date.from_iso8601!(string))
@@ -5227,7 +5227,7 @@ defmodule Kernel do
       ~T[13:00:07.001]
 
   """
-  defmacro sigil_T(date, modifiers)
+  defmacro sigil_T(time_string, modifiers)
 
   defmacro sigil_T({:<<>>, _, [string]}, []) do
     Macro.escape(Time.from_iso8601!(string))
@@ -5249,7 +5249,7 @@ defmodule Kernel do
       ~N[2015-01-13 13:00:07.001]
 
   """
-  defmacro sigil_N(date, modifiers)
+  defmacro sigil_N(naive_datetime_string, modifiers)
 
   defmacro sigil_N({:<<>>, _, [string]}, []) do
     Macro.escape(NaiveDateTime.from_iso8601!(string))
