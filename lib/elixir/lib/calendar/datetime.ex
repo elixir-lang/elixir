@@ -214,10 +214,11 @@ defmodule DateTime do
       iex> datetime
       #DateTime<2018-07-28 12:30:00+02:00 CEST Europe/Copenhagen>
 
-  Instead of passing a `NaiveDateTime` struct you can pass any map that contains the fields needed to
-  be a `Calendar.naive_datetime`. The most common example of that is a `DateTime`. In this case the
-  information about the time zone of that `DateTime` will be completely ignored. This is the same
-  principle as in for instance passing a `DateTime` to `Date.to_iso8601/2`.
+  This function accepts any map or struct that contains at least the same fields as a `NaiveDateTime`
+  struct. The most common example of that is a `DateTime`. In this case the information about the tim
+  zone of that `DateTime` is completely ignored. This is the same principle as passing a `DateTime` to
+  `Date.to_iso8601/2`. `Date.to_iso8601/2` extracts only the date-specific fields (i.e. calendar, year,
+  month and day) of the given structure and ignores all others.
 
   This way if you have a DateTime in one time zone, you can get the same wall time in another time zone.
   For instance if you have 2018-08-24 10:00:00 in Copenhagen and want a DateTime for 2018-08-24 10:00:00
