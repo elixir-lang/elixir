@@ -1,5 +1,5 @@
 Code.require_file("../test_helper.exs", __DIR__)
-Code.require_file("../fixtures/calendar/holocene.exs", __DIR__)
+Code.require_file("holocene.exs", __DIR__)
 
 defmodule Date.RangeTest do
   use ExUnit.Case, async: true

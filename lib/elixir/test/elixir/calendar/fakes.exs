@@ -1,3 +1,11 @@
+defmodule FakeCalendar do
+  def date_to_string(_, _, _), do: "boom"
+  def time_to_string(_, _, _, _), do: "boom"
+  def naive_datetime_to_string(_, _, _, _, _, _, _), do: "boom"
+  def datetime_to_string(_, _, _, _, _, _, _, _, _, _), do: "boom"
+  def day_rollover_relative_to_midnight_utc, do: {123_456, 123_457}
+end
+
 defmodule FakeTimeZoneDatabase do
   @behaviour Calendar.TimeZoneDatabase
 
