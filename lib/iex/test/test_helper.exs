@@ -57,14 +57,14 @@ defmodule IEx.Case do
   Options, if provided, will be set before the eval loop is started.
 
   If you provide server options, it will be passed to
-  IEx.Server.start to be used in the normal .iex loading process.
+  IEx.Server.run to be used in the normal .iex loading process.
   """
   def capture_iex(input, options \\ [], server_options \\ [], capture_prompt \\ false) do
     IEx.configure(options)
 
     ExUnit.CaptureIO.capture_io([input: input, capture_prompt: capture_prompt], fn ->
       server_options = Keyword.put_new(server_options, :dot_iex_path, "")
-      IEx.Server.start(server_options, {IEx, :dont_display_result, []})
+      IEx.Server.run(server_options)
     end)
     |> strip_iex
   end
