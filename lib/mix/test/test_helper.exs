@@ -63,7 +63,7 @@ defmodule MixTest.Case do
   end
 
   def fixture_path(extension) do
-    Path.join(fixture_path(), extension |> to_string() |> String.replace(":", ""))
+    Path.join(fixture_path(), remove_colons(extension))
   end
 
   def tmp_path do
@@ -71,7 +71,13 @@ defmodule MixTest.Case do
   end
 
   def tmp_path(extension) do
-    Path.join(tmp_path(), extension |> to_string() |> String.replace(":", ""))
+    Path.join(tmp_path(), remove_colons(extension))
+  end
+
+  defp remove_colons(term) do
+    term
+    |> to_string()
+    |> String.replace(":", "")
   end
 
   def purge(modules) do
