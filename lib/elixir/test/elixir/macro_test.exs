@@ -293,7 +293,7 @@ defmodule MacroTest do
            end).bar([1, 2, 3])
         end
 
-      assert Macro.to_string(quoted) == "(foo() do\n  :ok\nend).bar([1, 2, 3])"
+      assert Macro.to_string(quoted) == "(foo do\n  :ok\nend).bar([1, 2, 3])"
     end
 
     test "atom remote call" do
@@ -453,7 +453,7 @@ defmodule MacroTest do
         end
 
       expected = """
-      try() do
+      try do
         foo
       rescue
         ArgumentError ->

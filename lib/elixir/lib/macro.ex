@@ -758,9 +758,13 @@ defmodule Macro do
       {list, last} = split_last(args)
 
       result =
-        case kw_blocks?(last) do
-          true -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
-          false -> call_to_string_with_args(target, args, fun)
+        if kw_blocks?(last) do
+          case list do
+            [] -> call_to_string(target, fun) <> kw_blocks_to_string(last, fun)
+            _ -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
+          end
+        else
+          call_to_string_with_args(target, args, fun)
         end
 
       fun.(ast, result)
