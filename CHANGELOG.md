@@ -23,6 +23,7 @@
 #### ExUnit
 
   * [ExUnit.Assertions] Show last N messages (instead of first N) from mailbox on `assert_receive` fail
+  * [ExUnit] Add `ExUnit.after_suite/1` callback
 
 #### IEx
 
