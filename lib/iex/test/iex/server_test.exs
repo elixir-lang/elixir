@@ -22,7 +22,6 @@ defmodule IEx.ServerTest do
   describe "pry" do
     test "no sessions" do
       assert capture_io(fn ->
-               require IEx
                assert IEx.pry() == {:error, :no_iex}
              end) =~ "Is an IEx shell running?"
     end
