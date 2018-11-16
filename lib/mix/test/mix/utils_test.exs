@@ -97,6 +97,11 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.proxy_config("https://example.com") == []
   end
 
+  # 10.0.0.0 is a non-routable address
+  test "read_path timeouts requests" do
+    assert {:remote, :timeout} = Mix.Utils.read_path("http://10.0.0.0/", timeout: 0)
+  end
+
   defp assert_ebin_symlinked_or_copied(result) do
     case result do
       {:ok, paths} ->
