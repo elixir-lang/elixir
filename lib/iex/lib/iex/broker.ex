@@ -53,7 +53,7 @@ defmodule IEx.Broker do
   end
 
   @doc """
-  Register an IEx server in the broker.
+  Registers an IEx server in the broker.
 
   All instances, except shell ones, are registered.
   """
