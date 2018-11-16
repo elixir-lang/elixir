@@ -501,7 +501,7 @@ defmodule EExTest do
 
     test "begin/end" do
       assert_eval(
-        ~s[BODY(INIT:TEXT(foo):EQUAL(if() do\n  "BEGIN:TEXT(this):END"\nelse\n  "BEGIN:TEXT(that):END"\nend))],
+        ~s[BODY(INIT:TEXT(foo):EQUAL(if do\n  "BEGIN:TEXT(this):END"\nelse\n  "BEGIN:TEXT(that):END"\nend))],
         "foo <%= if do %>this<% else %>that<% end %>",
         [],
         engine: TestEngine
