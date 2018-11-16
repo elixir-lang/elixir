@@ -77,7 +77,7 @@ defmodule IEx.Broker do
   end
 
   @doc """
-  Client requests a take over.
+  Client requests a takeover.
   """
   @spec take_over(binary, keyword) ::
           {:ok, server :: pid, group_leader :: pid} | {:error, :no_iex | :refused}
