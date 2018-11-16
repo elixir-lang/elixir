@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Deps.Unlock do
       true ->
         Mix.raise(
           "\"mix deps.unlock\" expects dependencies as arguments or " <>
-            "a flag indicating which dependencies to unlock. " <>
+            "an option indicating which dependencies to unlock. " <>
             "The --all option will unlock all dependencies while " <>
             "the --unused option unlocks unused dependencies"
         )

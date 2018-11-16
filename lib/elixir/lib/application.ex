@@ -67,7 +67,7 @@ defmodule Application do
   accessing or modifying the environment of other applications.
 
   The application environment can be overridden via the `-config` option of
-  `erl`, as well as command-line flags, as we are going to see below.
+  `erl`, as well as command-line options, as we are going to see below.
 
   ## The application callback module
 
@@ -135,7 +135,7 @@ defmodule Application do
   is merged with any overrides from config files passed to `erl` via the
   `-config` option. It is worth highlighting that releases pass `sys.config`
   this way. The resulting environment can still be overridden again via specific
-  `-Application` flags passed to `erl`.
+  `-Application` options passed to `erl`.
 
   Loading an application *does not* load its modules.
 

@@ -97,7 +97,7 @@ defmodule Mix.Tasks.EscriptTest do
     end)
   end
 
-  test "generate escript with --no-compile flag" do
+  test "generate escript with --no-compile option" do
     Mix.Project.push(Escript)
 
     in_fixture("escript_test", fn ->

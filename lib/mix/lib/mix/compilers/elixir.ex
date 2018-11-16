@@ -22,7 +22,7 @@ defmodule Mix.Compilers.Elixir do
   Compiles stale Elixir files.
 
   It expects a `manifest` file, the source directories, the destination
-  directory, a flag to know if compilation is being forced or not, and a
+  directory, an option to know if compilation is being forced or not, and a
   list of any additional compiler options.
 
   The `manifest` is written down with information including dependencies

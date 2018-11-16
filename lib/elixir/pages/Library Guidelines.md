@@ -16,7 +16,7 @@ For more information on running your project, see the official [Mix & OTP guide]
 
 ### Applications with supervision tree
 
-The `mix new` command also allows the `--sup` flag to scaffold an application with a supervision tree out of the box. We talk about supervision trees later on when discussing one of the common anti-patterns when writing libraries.
+The `mix new` command also allows the `--sup` option to scaffold an application with a supervision tree out of the box. We talk about supervision trees later on when discussing one of the common anti-patterns when writing libraries.
 
 ## Publishing
 

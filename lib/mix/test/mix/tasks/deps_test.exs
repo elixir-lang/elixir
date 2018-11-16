@@ -711,7 +711,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "does not compile deps that have explicit flag" do
+  test "does not compile deps that have explicit option" do
     Mix.Project.push(NonCompilingDeps)
 
     in_fixture("deps_status", fn ->
@@ -778,7 +778,7 @@ defmodule Mix.Tasks.DepsTest do
 
       message =
         "\"mix deps.clean\" expects dependencies as arguments or " <>
-          "a flag indicating which dependencies to clean. " <>
+          "an option indicating which dependencies to clean. " <>
           "The --all option will clean all dependencies while " <>
           "the --unused option cleans unused dependencies"
 
