@@ -65,7 +65,7 @@ defmodule IEx.Broker do
   @doc """
   Client responds to a takeover request.
 
-  Note we need to pass the broker pid to support remote shells.
+  The broker's PID is needed to support remote shells.
   """
   @spec respond(pid, take_ref, boolean()) :: :ok | {:error, :refused | :already_accepted}
   def respond(broker_pid, take_ref, true) do
