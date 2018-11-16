@@ -487,8 +487,10 @@ defmodule Mix.Utils do
 
     * `:sha512` - checks against the given SHA-512 checksum. Returns
       `{:checksum, message}` in case it fails
+
     * `:timeout` - timeout the request after the given milliseconds.
-      Returns {:remote, :timeout} if it fails. Defaults to 30 seconds.
+      Returns {:remote, "request timed out after ...ms"} if it fails.
+      Defaults to 30 seconds
 
   """
   @spec read_path(String.t(), keyword) ::
@@ -503,12 +505,13 @@ defmodule Mix.Utils do
         task = Task.async(fn -> read_httpc(path) |> checksum(opts) end)
         timeout = Keyword.get(opts, :timeout, 30_000)
 
-        case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
+        case Task.yield(task, timeout) do
           {:ok, result} ->
             result
 
           _ ->
-            {:remote, :timeout}
+            Task.shutdown(task, :brutal_kill)
+            {:remote, "request timed out after #{timeout}ms"}
         end
 
       file?(path) ->
