@@ -76,7 +76,7 @@ defmodule IEx.Pry do
       {:error, :no_iex} ->
         extra =
           if match?({:win32, _}, :os.type()) do
-            " If you are using Windows, you may need to start IEx with the --werl flag."
+            " If you are using Windows, you may need to start IEx with the --werl option."
           else
             ""
           end

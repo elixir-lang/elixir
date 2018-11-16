@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Xref do
   The "file:line" represents the file and line a call to an unknown
   "module.function/arity" is made.
 
-  The flag `--abort-if-any` can be used for the command to fail if
+  The option `--abort-if-any` can be used for the command to fail if
   unreachable calls exist.
 
   ## deprecated
@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Xref do
   local calls (a call to a deprecated function or macro in the same module)
   nor calls to deprecated functionality in Elixir itself.
 
-  The flag `--abort-if-any` can be used for the command to fail if
+  The option `--abort-if-any` can be used for the command to fail if
   deprecated calls exist.
 
   ### callers CALLEE

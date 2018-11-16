@@ -195,7 +195,7 @@ defmodule Mix.Tasks.Test do
 
       mix test --include external:true
 
-  The example above will run all tests that have the external flag set to
+  The example above will run all tests that have the external option set to
   `true`. It is also possible to include all examples that have a given tag,
   regardless of its value:
 

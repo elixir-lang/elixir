@@ -166,7 +166,7 @@ defmodule ExUnit.Case do
       # Exclude all external tests from running
       ExUnit.configure(exclude: [external: true])
 
-  From now on, ExUnit will not run any test that has the `:external` flag
+  From now on, ExUnit will not run any test that has the `:external` option
   set to `true`. This behaviour can be reversed with the `:include` option
   which is usually passed through the command line:
 

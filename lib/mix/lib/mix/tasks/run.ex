@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Run do
   needed, unless you pass `--no-compile`.
 
   If for some reason the application needs to be configured before it is
-  started, the `--no-start` flag can be used and you are then responsible
+  started, the `--no-start` option can be used and you are then responsible
   for starting all applications by using functions such as
   `Application.ensure_all_started/1`. For more information about the
   application life-cycle and dynamically configuring applications, see
@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Run do
         Mix.raise(
           "Cannot execute \"mix run\" without a Mix.Project, " <>
             "please ensure you are running Mix in a directory with a mix.exs file " <>
-            "or pass the --no-mix-exs flag"
+            "or pass the --no-mix-exs option"
         )
     end
 

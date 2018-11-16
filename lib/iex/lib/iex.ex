@@ -25,13 +25,13 @@ defmodule IEx do
   documented and where the function name is in the form of `__foo__`.
 
   Autocomplete may not be available on some Windows shells. You may need
-  to pass the `--werl` flag when starting IEx, as in `iex --werl` for it
+  to pass the `--werl` option when starting IEx, as in `iex --werl` for it
   to work. `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
   environment variable.
 
   ## Shell history
 
-  It is possible to get shell history by passing some flags that enable it
+  It is possible to get shell history by passing some options that enable it
   in the VM. This can be done on a per-need basis when starting IEx:
 
       iex --erl "-kernel shell_history enabled"
