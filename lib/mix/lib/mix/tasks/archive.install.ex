@@ -56,7 +56,7 @@ defmodule Mix.Tasks.Archive.Install do
       from a private Hex repository
 
     * `--timeout` - sets a request timeout in milliseconds for fetching
-      the archives. Default is 60 seconds
+      archives from URLs. Default is 60 seconds
 
   """
 
