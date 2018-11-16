@@ -6,6 +6,8 @@ defmodule IEx.Broker do
 
   use GenServer
 
+  ## Shell API
+
   @doc """
   Finds the IEx server running inside `:user_drv`, on this node exclusively.
   """
@@ -85,6 +87,7 @@ defmodule IEx.Broker do
 
   ## Callbacks
 
+  @impl true
   def init(:ok) do
     state = %{
       servers: %{},
@@ -94,6 +97,7 @@ defmodule IEx.Broker do
     {:ok, state}
   end
 
+  @impl true
   def handle_call({:take_over, identifier, opts}, {_, ref} = from, state) do
     case servers(state) do
       [] ->
@@ -136,6 +140,7 @@ defmodule IEx.Broker do
     end
   end
 
+  @impl true
   def handle_info({:DOWN, server_ref, _, _, _}, state) do
     {_pid, state} = pop_in(state.servers[server_ref])
 
