@@ -28,12 +28,8 @@ defmodule ExUnit.Pattern do
 
   def format_diff(left, right) do
     ctx = DiffContext.new_context(:none, left)
-    IO.inspect(left, label: "Left")
-    IO.inspect(right, label: "Right")
 
-    compare =
-      ExUnit.PatternDiff.compare(left, right)
-      |> IO.inspect(label: "Compare")
+    compare = ExUnit.PatternDiff.compare(left, right)
 
     r_value =
       compare
@@ -43,9 +39,10 @@ defmodule ExUnit.Pattern do
     l_value =
       compare
       |> ExUnit.Pattern.FormatPattern.format(ctx)
-      |> Enum.reject(&(&1 == ""))
+      |> ExUnit.Pattern.FormatPattern.commaize()
+      |> List.flatten()
 
-    {l_value, r_value} |> IO.inspect()
+    {l_value, inspect(right)}
   end
 end
 
@@ -107,13 +104,10 @@ defmodule ExUnit.PatternDiff do
   # atom
 
   def compare(pattern, r) do
-    IO.inspect(pattern, label: "Pattern")
-    IO.inspect(r, label: "r")
     l = %{ast: pattern.val}
     {ret, _} = compare(l, r, {pattern.vars, pattern.pins})
 
     ret
-    |> IO.inspect(label: "Compare Ret")
   end
 
   def compare(%{ast: lh_list} = pattern, rh_list, env)

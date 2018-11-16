@@ -56,9 +56,9 @@ defmodule ExUnit.SeeItMatch do
   #   assert match?({1, %{a: [1, 1, 3]}}, {2, %{a: [1, 2, 3]}})
   # end
 
-  test "mismatched tuple size - right" do
-    assert match?({:a, :b, :c}, {:a, :b, :c, :d})
-  end
+  # test "mismatched tuple size - right" do
+  #   assert match?({:a, :b, :c}, {:b, :b, :c, :d})
+  # end
 
   # test "mismatched tuple size - left" do
   #   assert match?({:a, :b, :c, :d}, {:a, :b, :c})
@@ -89,7 +89,7 @@ defmodule ExUnit.SeeItMatch do
   # end
 
   # test "two-element map, keys don't match base" do
-  #   assert %{a: 1, c: 2} == %{a: 1, b: 1}
+  #   assert match?(%{a: 1, c: 2}, %{a: 1, b: 1})
   # end
 
   # test "simple list" do
@@ -106,5 +106,22 @@ defmodule ExUnit.SeeItMatch do
 
   # test "list cons operator" do
   #   assert match?([1 | _rest], [2, 3, 4])
+  # end
+
+  # test "gaurd" do
+  #   a = "foo"
+  #   assert match?(%{a: a} when is_integer(a), %{a: a})
+  # end
+
+  # test "mis-matched list, pattern is shorter" do
+  #   assert [1, 2, 3] = [1, 2, 3, 4]
+  # end
+
+  # test "mis-matched list, pattern is longer" do
+  #   assert [1, 2, 3, 4] = [1, 2, 3]
+  # end
+
+  # test "assert match" do
+  #   assert match?(%{a: 1, b: 2}, %{a: 1})
   # end
 end

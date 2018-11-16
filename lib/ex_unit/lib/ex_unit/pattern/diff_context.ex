@@ -1,6 +1,8 @@
 defmodule ExUnit.Pattern.DiffContext do
   alias ExUnit.{ContainerDiff, PatternDiff}
 
+  defstruct [{:comma, ""}, :keys, :print_when?, :vars, :pins]
+
   @no_value :ex_unit_no_meaningful_value
 
   def create_context(%ContainerDiff{type: :list, items: items}, old_ctx) do
@@ -18,7 +20,7 @@ defmodule ExUnit.Pattern.DiffContext do
   def new_context(keys, %{vars: vars, pins: pins}), do: new_context(keys, vars, pins)
 
   def new_context(keys, vars, pins) do
-    %{comma: "", keys: keys, print_when?: true, vars: vars, pins: pins}
+    %__MODULE__{keys: keys, print_when?: true, vars: vars, pins: pins}
   end
 
   defp keyword_tuple?(%ContainerDiff{items: [key, _value], type: :tuple}) do
