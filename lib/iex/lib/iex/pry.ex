@@ -70,8 +70,8 @@ defmodule IEx.Pry do
 
     # We cannot use colors because IEx may be off
     case IEx.Broker.take_over(request, [evaluator: self()] ++ opts) do
-      {:ok, server, leader} ->
-        IEx.Evaluator.init(:no_ack, server, leader, opts)
+      {:ok, server, group_leader} ->
+        IEx.Evaluator.init(:no_ack, server, group_leader, opts)
 
       {:error, :no_iex} ->
         extra =

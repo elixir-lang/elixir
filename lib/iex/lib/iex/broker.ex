@@ -121,13 +121,13 @@ defmodule IEx.Broker do
     {:reply, :ok, state}
   end
 
-  def handle_call({:accept, {ref, _server_ref}, leader}, {server, _}, state) do
+  def handle_call({:accept, {ref, _server_ref}, group_leader}, {server, _}, state) do
     case pop_in(state.takeovers[ref]) do
       {nil, state} ->
         {:reply, {:error, :already_accepted}, state}
 
       {{from, _}, state} ->
-        GenServer.reply(from, {:ok, server, leader})
+        GenServer.reply(from, {:ok, server, group_leader})
         {:reply, :ok, state}
     end
   end
