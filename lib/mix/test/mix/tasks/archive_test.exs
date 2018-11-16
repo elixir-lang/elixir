@@ -134,7 +134,7 @@ defmodule Mix.Tasks.ArchiveTest do
   end
 
   test "archive install timeout" do
-    message = ~r[request timed out after 30000ms]
+    message = ~r[request timed out after 60000ms]
 
     send(self(), {:mix_shell_input, :yes?, true})
     assert_raise Mix.Error, message, fn ->
