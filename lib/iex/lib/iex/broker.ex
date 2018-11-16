@@ -63,7 +63,7 @@ defmodule IEx.Broker do
   end
 
   @doc """
-  Respond to a broker take over request.
+  Client responds to a takeover request.
 
   Note we need to pass the broker pid to support remote shells.
   """
