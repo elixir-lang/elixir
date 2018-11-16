@@ -191,11 +191,11 @@ defmodule Mix.Tasks.Test do
       ExUnit.configure exclude: [external: true]
 
   Then, whenever desired, those tests could be included in the run via the
-  `--include` flag:
+  `--include` option:
 
       mix test --include external:true
 
-  The example above will run all tests that have the external flag set to
+  The example above will run all tests that have the external option set to
   `true`. It is also possible to include all examples that have a given tag,
   regardless of its value:
 
@@ -203,7 +203,7 @@ defmodule Mix.Tasks.Test do
 
   Note that all tests are included by default, so unless they are excluded
   first (either in the test helper or via the `--exclude` option) the
-  `--include` flag has no effect.
+  `--include` option has no effect.
 
   For this reason, Mix also provides an `--only` option that excludes all
   tests and includes only the given ones:

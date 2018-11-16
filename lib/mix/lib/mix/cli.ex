@@ -45,7 +45,7 @@ defmodule Mix.CLI do
     task = "mix #{Mix.Project.config()[:default_task]}"
 
     Mix.shell().error(
-      "** (Mix) Mix only recognizes the flags --help and --version.\n" <>
+      "** (Mix) Mix only recognizes the options --help and --version.\n" <>
         "You may have wanted to invoke a task instead, such as #{inspect(task)}"
     )
 
@@ -149,7 +149,7 @@ defmodule Mix.CLI do
         mix help        - Lists all available tasks
         mix help TASK   - Prints documentation for a given task
 
-    The --help and --version flags can be given instead of a task for usage and versioning information.
+    The --help and --version options can be given instead of a task for usage and versioning information.
     """)
   end
 

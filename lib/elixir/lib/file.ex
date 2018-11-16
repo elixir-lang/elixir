@@ -1595,7 +1595,7 @@ defmodule File do
 
   ## Permissions
 
-  File permissions are specified by adding together the following octal flags:
+  File permissions are specified by adding together the following octal modes:
 
     * `0o400` - read permission: owner
     * `0o200` - write permission: owner

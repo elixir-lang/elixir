@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Format do
       Defaults to `.formatter.exs` if one is available. See the "`.formatter.exs`"
       section for more information.
 
-  If any of the `--check-*` flags are given and a check fails, the formatted
+  If any of the `--check-*` options are given and a check fails, the formatted
   contents won't be written to disk nor printed to standard output.
 
   ## When to format code
