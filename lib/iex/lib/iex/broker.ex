@@ -77,7 +77,8 @@ defmodule IEx.Broker do
   @doc """
   Client requests a take over.
   """
-  @spec take_over(binary, keyword) :: {:ok, pid, pid} | {:error, :no_iex | :refused}
+  @spec take_over(binary, keyword) ::
+          {:ok, server :: pid, group_leader :: pid} | {:error, :no_iex | :refused}
   def take_over(identifier, opts) do
     GenServer.call(@name, {:take_over, identifier, opts}, :infinity)
   end
