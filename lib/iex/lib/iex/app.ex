@@ -4,7 +4,7 @@ defmodule IEx.App do
   use Application
 
   def start(_type, _args) do
-    children = [IEx.Config, IEx.Pry]
+    children = [IEx.Config, IEx.Broker, IEx.Pry]
     Supervisor.start_link(children, strategy: :one_for_one, name: IEx.Supervisor)
   end
 end
