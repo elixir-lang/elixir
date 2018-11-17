@@ -54,6 +54,9 @@ defmodule Mix.Tasks.Escript.Install do
     * `--organization` - specifies an organization to use if fetching the package
       from a private Hex repository
 
+    * `--timeout` - sets a request timeout in milliseconds for fetching
+      archives from URLs. Default is 60 seconds
+
   """
 
   @behaviour Mix.Local.Installer
@@ -66,7 +69,8 @@ defmodule Mix.Tasks.Escript.Install do
     sha512: :string,
     submodules: :boolean,
     app: :string,
-    organization: :string
+    organization: :string,
+    timeout: :integer
   ]
 
   @impl true

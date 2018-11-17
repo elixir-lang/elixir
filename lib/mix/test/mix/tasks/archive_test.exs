@@ -133,6 +133,20 @@ defmodule Mix.Tasks.ArchiveTest do
     end
   end
 
+  test "archive install timeout" do
+    message = ~r[request timed out after 0ms]
+
+    send(self(), {:mix_shell_input, :yes?, true})
+
+    assert_raise Mix.Error, message, fn ->
+      Mix.Tasks.Archive.Install.run([
+        "http://10.0.0.0/unlikely-to-exist-0.1.0.ez",
+        "--timeout",
+        "0"
+      ])
+    end
+  end
+
   test "archive update" do
     in_fixture("archive", fn ->
       # Install previous version
