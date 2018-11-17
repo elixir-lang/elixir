@@ -1,7 +1,7 @@
 defmodule IEx.Autocomplete do
   @moduledoc false
 
-  def expand(expr, server \\ IEx.Server)
+  def expand(expr, server \\ IEx.Broker)
 
   def expand('', server) do
     expand_variable_or_import("", server)
