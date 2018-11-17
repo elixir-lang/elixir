@@ -828,8 +828,8 @@ defmodule IEx.Helpers do
   Respawns the current shell by starting a new shell process.
   """
   def respawn do
-    if whereis = IEx.Server.whereis() do
-      send(whereis, {:respawn, self()})
+    if iex_server = Process.get(:iex_server) do
+      send(iex_server, {:respawn, self()})
     end
 
     dont_display_result()
@@ -852,8 +852,8 @@ defmodule IEx.Helpers do
   """
   @doc since: "1.5.0"
   def continue do
-    if whereis = IEx.Server.whereis() do
-      send(whereis, {:continue, self()})
+    if iex_server = Process.get(:iex_server) do
+      send(iex_server, {:continue, self()})
     end
 
     dont_display_result()

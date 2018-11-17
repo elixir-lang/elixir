@@ -5,7 +5,7 @@ defmodule IEx.InteractionTest do
 
   test "whole output" do
     assert capture_io("IO.puts \"Hello world\"", fn ->
-             IEx.Server.start([dot_iex_path: ""], {IEx, :dont_display_result, []})
+             IEx.Server.run(dot_iex_path: "")
            end) =~
              "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)" <>
                "\niex(1)> Hello world\n:ok\niex(2)>"

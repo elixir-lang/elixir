@@ -14,6 +14,9 @@ defmodule IEx.Evaluator do
     old_leader = Process.group_leader()
     Process.group_leader(self(), leader)
 
+    old_server = Process.get(:iex_server)
+    Process.put(:iex_server, server)
+
     evaluator = Process.get(:iex_evaluator)
     Process.put(:iex_evaluator, command)
 
@@ -24,6 +27,12 @@ defmodule IEx.Evaluator do
       loop(state)
     after
       Process.group_leader(self(), old_leader)
+
+      if old_server do
+        Process.put(:iex_server, old_server)
+      else
+        Process.delete(:iex_server)
+      end
 
       cond do
         is_nil(evaluator) ->

@@ -19,55 +19,6 @@ defmodule IEx.Server do
   """
 
   @doc """
-  Finds the IEx server running inside `:user_drv`, on this or another node.
-  """
-  @spec whereis :: pid | nil
-  def whereis() do
-    Enum.find_value([node() | Node.list()], fn node ->
-      server = :rpc.call(node, IEx.Server, :local, [])
-      if is_pid(server), do: server
-    end)
-  end
-
-  @doc """
-  Finds the IEx server running inside `:user_drv`, on this node exclusively.
-  """
-  @spec local :: pid | nil
-  def local() do
-    # Locate top group leader, always registered as user
-    # can be implemented by group (normally) or user
-    # (if oldshell or noshell)
-    if user = Process.whereis(:user) do
-      case :group.interfaces(user) do
-        # Old or no shell
-        [] ->
-          case :user.interfaces(user) do
-            [] -> nil
-            [shell: shell] -> shell
-          end
-
-        # Get current group from user_drv
-        [user_drv: user_drv] ->
-          case :user_drv.interfaces(user_drv) do
-            [] -> nil
-            [current_group: group] -> :group.interfaces(group)[:shell]
-          end
-      end
-    end
-  end
-
-  @doc """
-  Finds the evaluator and server running inside `:user_drv`, on this node exclusively.
-  """
-  @spec evaluator :: {evaluator :: pid, server :: pid} | nil
-  def evaluator() do
-    if pid = IEx.Server.local() do
-      {:dictionary, dictionary} = Process.info(pid, :dictionary)
-      {dictionary[:evaluator], pid}
-    end
-  end
-
-  @doc """
   Starts a new IEx server session.
 
   The accepted options are:
@@ -77,8 +28,13 @@ defmodule IEx.Server do
     * `:binding` - an initial set of variables for the evaluator
 
   """
-  @spec start(keyword) :: :ok
-  def start(opts) when is_list(opts) do
+  @spec run(keyword) :: :ok
+  def run(opts) when is_list(opts) do
+    IEx.Broker.register(self())
+    run_without_registration(opts)
+  end
+
+  defp run_without_registration(opts) do
     Process.flag(:trap_exit, true)
 
     IO.puts(
@@ -91,57 +47,35 @@ defmodule IEx.Server do
 
   ## Private APIs
 
-  # `start/1` with a callback. The server is spawned only after
-  # the callback is done.
+  # Starts IEx to run directly from the Erlang shell.
+  #
+  # The server is spawned only after the callback is done.
   #
   # If there is any takeover during the callback execution
   # we spawn a new server for it without waiting for its
   # conclusion.
   @doc false
-  @spec start(keyword, {module, atom, [any]}) :: :ok
-  def start(opts, {m, f, a}) do
+  @spec run_from_shell(keyword, {module, atom, [any]}) :: :ok
+  def run_from_shell(opts, {m, f, a}) do
     Process.flag(:trap_exit, true)
     {pid, ref} = spawn_monitor(m, f, a)
-    start_loop(opts, pid, ref)
+    shell_loop(opts, pid, ref)
   end
 
-  defp start_loop(opts, pid, ref) do
+  defp shell_loop(opts, pid, ref) do
     receive do
-      {:take, take_pid, take_identifier, take_ref, take_opts} ->
-        if allow_take?(take_identifier) do
-          send(take_pid, {take_ref, Process.group_leader()})
-          start(take_opts)
+      {:take_over, take_pid, take_ref, take_identifier, take_opts} ->
+        if take_over?(take_pid, take_ref, take_identifier) do
+          run_without_registration(take_opts)
         else
-          send(take_pid, {take_ref, nil})
-          start_loop(opts, pid, ref)
+          shell_loop(opts, pid, ref)
         end
 
       {:DOWN, ^ref, :process, ^pid, :normal} ->
-        start(opts)
+        run_without_registration(opts)
 
       {:DOWN, ^ref, :process, ^pid, _reason} ->
         :ok
-    end
-  end
-
-  # Requests to take over the given shell from the current process.
-  @doc false
-  @spec take_over(binary, keyword) :: :ok | {:error, :no_iex} | {:error, :refused}
-  def take_over(identifier, opts, server \\ whereis()) do
-    if is_nil(server) do
-      {:error, :no_iex}
-    else
-      ref = make_ref()
-      opts = [evaluator: self()] ++ opts
-      send(server, {:take, self(), identifier, ref, opts})
-
-      receive do
-        {^ref, nil} ->
-          {:error, :refused}
-
-        {^ref, leader} ->
-          IEx.Evaluator.init(:no_ack, server, leader, opts)
-      end
     end
   end
 
@@ -166,11 +100,11 @@ defmodule IEx.Server do
     :ok
   end
 
-  defp restart(opts, evaluator, evaluator_ref, input) do
+  defp rerun(opts, evaluator, evaluator_ref, input) do
     kill_input(input)
     IO.puts("")
     stop_evaluator(evaluator, evaluator_ref)
-    start(opts)
+    run_without_registration(opts)
   end
 
   defp loop(state, evaluator, evaluator_ref) do
@@ -231,7 +165,7 @@ defmodule IEx.Server do
   # A take process may also happen if the evaluator dies,
   # then a new evaluator is created to replace the dead one.
   defp handle_take_over(
-         {:take, other, identifier, ref, opts},
+         {:take_over, take_pid, take_ref, take_identifier, opts},
          state,
          evaluator,
          evaluator_ref,
@@ -240,16 +174,17 @@ defmodule IEx.Server do
        ) do
     cond do
       evaluator == opts[:evaluator] ->
-        send(other, {ref, Process.group_leader()})
-        kill_input(input)
-        loop(iex_state(opts), evaluator, evaluator_ref)
+        if take_over?(take_pid, take_ref, true) do
+          kill_input(input)
+          loop(iex_state(opts), evaluator, evaluator_ref)
+        else
+          callback.(state)
+        end
 
-      allow_take?(identifier) ->
-        send(other, {ref, Process.group_leader()})
-        restart(opts, evaluator, evaluator_ref, input)
+      take_over?(take_pid, take_ref, take_identifier) ->
+        rerun(opts, evaluator, evaluator_ref, input)
 
       true ->
-        send(other, {ref, nil})
         callback.(state)
     end
   end
@@ -273,7 +208,7 @@ defmodule IEx.Server do
   end
 
   defp handle_take_over({:respawn, evaluator}, _state, evaluator, evaluator_ref, input, _callback) do
-    restart([], evaluator, evaluator_ref, input)
+    rerun([], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over({:continue, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
@@ -290,7 +225,7 @@ defmodule IEx.Server do
          input,
          _callback
        ) do
-    restart([], evaluator, evaluator_ref, input)
+    rerun([], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(
@@ -311,20 +246,34 @@ defmodule IEx.Server do
         io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
     end
 
-    restart([], evaluator, evaluator_ref, input)
+    rerun([], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(_, state, _evaluator, _evaluator_ref, _input, callback) do
     callback.(state)
   end
 
+  defp take_over?(take_pid, take_ref, take_identifier) when is_binary(take_identifier) do
+    message = IEx.color(:eval_interrupt, "#{take_identifier}\nAllow? [Yn] ")
+    take_over?(take_pid, take_ref, yes?(IO.gets(:stdio, message)))
+  end
+
+  defp take_over?(take_pid, take_ref, take_response) do
+    case IEx.Broker.respond(take_pid, take_ref, take_response) do
+      :ok ->
+        true
+
+      {:error, :refused} ->
+        false
+
+      {:error, :already_accepted} ->
+        io_error("** session was already accepted elsewhere")
+        false
+    end
+  end
+
   defp kill_input(nil), do: :ok
   defp kill_input(input), do: Process.exit(input, :kill)
-
-  defp allow_take?(identifier) do
-    message = IEx.color(:eval_interrupt, "#{identifier}\nAllow? [Yn] ")
-    yes?(IO.gets(:stdio, message))
-  end
 
   defp yes?(string) do
     is_binary(string) and String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
