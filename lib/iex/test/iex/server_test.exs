@@ -113,17 +113,8 @@ defmodule IEx.ServerTest do
 
       send(evaluator1, :run)
       send(evaluator2, :run)
-      reply1 = Task.await(server1)
-      reply2 = Task.await(server2)
-
-      # We can have races, so make sure reply1 was first.
-      # This means we won't assert quite what we expect but
-      # we may have better luck next time.
-      {accepted, refused} =
-        if reply1 =~ ":inside_pry", do: {reply1, reply2}, else: {reply2, reply1}
-
-      assert accepted =~ ":inside_pry"
-      assert refused =~ "undefined function iex_context"
+      assert Task.await(server1) =~ ":inside_pry"
+      assert Task.await(server2) =~ "undefined function iex_context"
 
       assert Task.await(client) == :ok
     end
@@ -137,17 +128,8 @@ defmodule IEx.ServerTest do
 
       send(evaluator1, :run)
       send(evaluator2, :run)
-      reply1 = Task.await(server1)
-      reply2 = Task.await(server2)
-
-      # We can have races, so make sure reply1 was first.
-      # This means we won't assert quite what we expect but
-      # we may have better luck next time.
-      {accepted, refused} =
-        if reply1 =~ ":inside_pry", do: {reply1, reply2}, else: {reply2, reply1}
-
-      assert accepted =~ ":inside_pry"
-      assert refused =~ "undefined function iex_context"
+      assert Task.await(server1) =~ "undefined function iex_context"
+      assert Task.await(server2) =~ ":inside_pry"
 
       assert Task.await(client) == :ok
     end
