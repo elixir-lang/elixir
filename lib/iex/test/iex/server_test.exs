@@ -20,6 +20,8 @@ defmodule IEx.ServerTest do
   end
 
   describe "pry" do
+    setup :set_pry_tracers
+
     test "no sessions" do
       assert capture_io(fn ->
                assert IEx.pry() == {:error, :no_iex}
@@ -167,10 +169,13 @@ defmodule IEx.ServerTest do
     {task, evaluator}
   end
 
-  defp pry_request(how_many) do
-    :erlang.trace(Process.whereis(IEx.Broker), true, [:send, tracer: self()])
-    :erlang.trace_pattern(:send, [{[:_, {:take_over, :_, :_, :_, :_}], [], []}], [])
+  defp set_pry_tracers(_) do
+    :erlang.trace(:new_processes, true, [:receive, tracer: self()])
+    :erlang.trace_pattern(:receive, [{[:_, :_, {:take_over, :_, :_, :_, :_}], [], []}], [])
+    :ok
+  end
 
+  defp pry_request(how_many) do
     task =
       Task.async(fn ->
         iex_context = :inside_pry
@@ -178,7 +183,7 @@ defmodule IEx.ServerTest do
       end)
 
     for _ <- 1..how_many do
-      assert_receive {:trace, _, :send, _, _}
+      assert_receive {:trace, _, :receive, _}
     end
 
     task
