@@ -883,7 +883,7 @@ build_list_string({list_string, Location, Args}, ExtraMeta) ->
       true -> ExtraMeta ++ Meta;
       false -> Meta
     end,
-  {{'.', Meta, ['Elixir.String', to_charlist]}, Meta, [{'<<>>', MetaWithExtra, string_parts(Args)}]}.
+  {{'.', Meta, ['Elixir.List', to_charlist]}, MetaWithExtra, [charlist_parts(Args)]}.
 
 build_quoted_atom({_, _Location, [H]} = Token, Safe, ExtraMeta) when is_binary(H) ->
   Op = binary_to_atom_op(Safe),
@@ -899,6 +899,19 @@ build_quoted_atom({_, Location, Args}, Safe, ExtraMeta) ->
 
 binary_to_atom_op(true)  -> binary_to_existing_atom;
 binary_to_atom_op(false) -> binary_to_atom.
+
+charlist_parts(Parts) ->
+  [charlist_part(Part) || Part <- Parts].
+charlist_part(Binary) when is_binary(Binary) ->
+  Binary;
+charlist_part({{Line, _, EndLine}, Tokens}) ->
+  Form = string_tokens_parse(Tokens),
+  Meta =
+    case ?formatter_metadata() of
+      true -> [{line, Line}, {end_line, EndLine}];
+      false -> [{line, Line}]
+    end,
+  {{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}.
 
 string_parts(Parts) ->
   [string_part(Part) || Part <- Parts].
