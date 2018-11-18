@@ -237,7 +237,7 @@ defmodule DateTime do
   @spec from_naive(
           Calendar.naive_datetime(),
           Calendar.time_zone(),
-          Calendar.get_time_zone_database()
+          Calendar.time_zone_database()
         ) ::
           {:ok, t}
           | {:ambiguous, t, t}
@@ -366,7 +366,7 @@ defmodule DateTime do
   @spec from_naive!(
           NaiveDateTime.t(),
           Calendar.time_zone(),
-          Calendar.get_time_zone_database()
+          Calendar.time_zone_database()
         ) :: t
   def from_naive!(
         naive_datetime,
@@ -417,7 +417,7 @@ defmodule DateTime do
 
   """
   @doc since: "1.8.0"
-  @spec shift_zone(t, Calendar.time_zone(), Calendar.get_time_zone_database()) ::
+  @spec shift_zone(t, Calendar.time_zone(), Calendar.time_zone_database()) ::
           {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
   def shift_zone(datetime, time_zone, time_zone_database \\ Calendar.get_time_zone_database())
 
@@ -486,7 +486,7 @@ defmodule DateTime do
 
   """
   @doc since: "1.8.0"
-  @spec now(Calendar.time_zone(), Calendar.get_time_zone_database()) ::
+  @spec now(Calendar.time_zone(), Calendar.time_zone_database()) ::
           {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
   def now(time_zone, time_zone_database \\ Calendar.get_time_zone_database())
 
