@@ -865,6 +865,58 @@ defmodule List do
   end
 
   @doc """
+  Converts a list of integers representing codepoints, lists or
+  strings into a charlist.
+
+  Notice that this function expects a list of integers representing
+  UTF-8 codepoints. If you have a list of bytes, you must instead use
+  the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
+
+  ## Examples
+
+      iex> List.to_charlist([0x00E6, 0x00DF])
+      'æß'
+
+      iex> List.to_charlist([0x0061, "bc"])
+      'abc'
+
+      iex> List.to_charlist([0x0064, "ee", ['p']])
+      'deep'
+
+  """
+  @doc since: "1.8.0"
+  @spec to_charlist(:unicode.charlist()) :: charlist()
+  def to_charlist(list) when is_list(list) do
+    try do
+      :unicode.characters_to_list(list)
+    rescue
+      ArgumentError ->
+        raise ArgumentError, """
+        cannot convert the given list to a charlist.
+
+        To be converted to a charlist, a list must contain only:
+
+          * strings
+          * integers representing Unicode codepoints
+          * or a list containing one of these three elements
+
+        Please check the given list or call inspect/1 to get the list representation, got:
+
+        #{inspect(list)}
+        """
+    else
+      result when is_list(result) ->
+        result
+
+      {:error, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      {:incomplete, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
+  @doc """
   Returns a keyword list that represents an *edit script*.
 
   The algorithm is outlined in the
