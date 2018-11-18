@@ -367,24 +367,24 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra(
-         {{:., _, [String, :to_charlist]}, _, [{:<<>>, meta, entries}]} = quoted,
+         {{:., _, [List, :to_charlist]}, meta, [entries]} = quoted,
          context,
          state
        ) do
     cond do
-      not interpolated?(entries) ->
+      not list_interpolated?(entries) ->
         remote_to_algebra(quoted, context, state)
 
       meta[:format] == :list_heredoc ->
         {doc, state} =
           entries
           |> prepend_heredoc_line()
-          |> interpolation_to_algebra(:heredoc, state, @single_heredoc, @single_heredoc)
+          |> list_interpolation_to_algebra(:heredoc, state, @single_heredoc, @single_heredoc)
 
         {force_unfit(doc), state}
 
       true ->
-        interpolation_to_algebra(entries, @single_quote, state, @single_quote, @single_quote)
+        list_interpolation_to_algebra(entries, @single_quote, state, @single_quote, @single_quote)
     end
   end
 
@@ -1303,6 +1303,14 @@ defmodule Code.Formatter do
 
   ## Interpolation
 
+  defp list_interpolated?(entries) do
+    Enum.all?(entries, fn
+      {{:., _, [Kernel, :to_string]}, _, [_]} -> true
+      entry when is_binary(entry) -> true
+      _ -> false
+    end)
+  end
+
   defp interpolated?(entries) do
     Enum.all?(entries, fn
       {:::, _, [{{:., _, [Kernel, :to_string]}, _, [_]}, {:binary, _, _}]} -> true
@@ -1317,6 +1325,23 @@ defmodule Code.Formatter do
 
   defp prepend_heredoc_line(entries) do
     ["\n" | entries]
+  end
+
+  defp list_interpolation_to_algebra([entry | entries], escape, state, acc, last)
+       when is_binary(entry) do
+    acc = concat(acc, escape_string(entry, escape))
+    list_interpolation_to_algebra(entries, escape, state, acc, last)
+  end
+
+  defp list_interpolation_to_algebra([entry | entries], escape, state, acc, last) do
+    {{:., _, [Kernel, :to_string]}, meta, [quoted]} = entry
+    {doc, state} = block_to_algebra(quoted, line(meta), end_line(meta), state)
+    doc = surround("\#{", doc, "}")
+    list_interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
+  end
+
+  defp list_interpolation_to_algebra([], _escape, state, acc, last) do
+    {concat(acc, last), state}
   end
 
   defp interpolation_to_algebra([entry | entries], escape, state, acc, last)
@@ -2099,7 +2124,7 @@ defmodule Code.Formatter do
       (not interpolated?(entries) and eol_or_comments?(meta, state))
   end
 
-  defp next_break_fits?({{:., _, [String, :to_charlist]}, _, [{:<<>>, meta, [_ | _]}]}, _state) do
+  defp next_break_fits?({{:., _, [List, :to_charlist]}, meta, [[_ | _]]}, _state) do
     meta[:format] == :list_heredoc
   end
 
