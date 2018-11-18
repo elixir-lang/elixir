@@ -700,4 +700,36 @@ defmodule DateTimeTest do
       Calendar.put_time_zone_database(Calendar.UTCOnlyTimeZoneDatabase)
     end
   end
+
+  describe "add" do
+    test "error with UTC only database and non UTC datetime" do
+      dt =
+        DateTime.from_naive!(~N[2018-08-28 00:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+
+      assert_raise ArgumentError, fn ->
+        DateTime.add(dt, 1, :second)
+      end
+    end
+
+    test "add/2 with other calendars" do
+      assert ~N[2000-01-01 12:34:15.123456]
+             |> NaiveDateTime.convert!(Calendar.Holocene)
+             |> DateTime.from_naive!("Etc/UTC")
+             |> DateTime.add(10, :second) ==
+               %DateTime{
+                 calendar: Calendar.Holocene,
+                 year: 12000,
+                 month: 1,
+                 day: 1,
+                 hour: 12,
+                 minute: 34,
+                 second: 25,
+                 std_offset: 0,
+                 time_zone: "Etc/UTC",
+                 zone_abbr: "UTC",
+                 utc_offset: 0,
+                 microsecond: {123_456, 6}
+               }
+    end
+  end
 end
