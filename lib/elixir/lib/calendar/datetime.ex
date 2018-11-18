@@ -176,7 +176,7 @@ defmodule DateTime do
   Converts the given `NaiveDateTime` to `DateTime`.
 
   It expects a time zone to put the `NaiveDateTime` in.
-  If the timezone is "Etc/UTC", it always succeeds. Otherwise,
+  If the time zone is "Etc/UTC", it always succeeds. Otherwise,
   the NaiveDateTime is checked against the time zone database
   given as `time_zone_database`. See the "Time zone database"
   section in the module documentation.
@@ -348,7 +348,7 @@ defmodule DateTime do
   Converts the given `NaiveDateTime` to `DateTime`.
 
   It expects a time zone to put the NaiveDateTime in.
-  If the timezone is "Etc/UTC", it always succeeds. Otherwise,
+  If the time zone is "Etc/UTC", it always succeeds. Otherwise,
   the NaiveDateTime is checked against the time zone database
   given as `time_zone_database`. See the "Time zone database"
   section in the module documentation.
@@ -400,7 +400,7 @@ defmodule DateTime do
 
   Returns a `DateTime` for the same point in time, but instead at
   the time zone provided. It assumes that `DateTime` is valid and
-  exists in the given timezone and calendar.
+  exists in the given time zone and calendar.
 
   By default, it uses the default time zone database returned by
   `Calendar.get_time_zone_database/0`, which defaults to

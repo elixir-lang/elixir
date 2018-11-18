@@ -261,7 +261,7 @@ defmodule NaiveDateTime do
       ~N[2014-10-02 00:29:10]
 
   Passing a `Datetime` automatically converts it to `NaiveDateTime`,
-  discarding the timezone information:
+  discarding the time zone information:
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},

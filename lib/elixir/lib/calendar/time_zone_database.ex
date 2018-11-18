@@ -3,7 +3,7 @@ defmodule Calendar.TimeZoneDatabase do
   This module defines a behaviour for providing time zone data.
 
   IANA provides time zone data that includes data about different
-  UTC offsets and standard offsets for timezones.
+  UTC offsets and standard offsets for time zones.
   """
 
   @typedoc """
