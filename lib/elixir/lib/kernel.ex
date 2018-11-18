@@ -5135,9 +5135,8 @@ defmodule Kernel do
     String.to_charlist(:elixir_interpolation.unescape_chars(string))
   end
 
-  defmacro sigil_c({:<<>>, meta, pieces}, []) do
-    binary = {:<<>>, meta, unescape_tokens(pieces)}
-    quote(do: String.to_charlist(unquote(binary)))
+  defmacro sigil_c({:<<>>, _meta, pieces}, []) do
+    quote(do: List.to_charlist(unquote(unescape_list_tokens(pieces))))
   end
 
   @doc """
@@ -5398,6 +5397,15 @@ defmodule Kernel do
       {:ok, unescaped_tokens} -> unescaped_tokens
       {:error, reason} -> raise ArgumentError, to_string(reason)
     end
+  end
+
+  defp unescape_list_tokens(tokens) do
+    escape = fn
+      {:::, _, [expr, _]} -> expr
+      binary when is_binary(binary) -> :elixir_interpolation.unescape_chars(binary)
+    end
+
+    :lists.map(escape, tokens)
   end
 
   @doc false
