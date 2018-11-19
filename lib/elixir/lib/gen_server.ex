@@ -983,14 +983,12 @@ defmodule GenServer do
   `c:handle_cast/2` will be called on the server to handle
   the request. In case the `server` is on a node which is
   not yet connected to the caller one, the semantics differ
-  depending on the used Erlang version.
-  Before OTP 21 the call is going to block until a connection
-  happens. This is different than the behaviour in OTP's
-  `:gen_server` where the message is sent by another process
-  in this case, which could cause messages to other nodes to
-  arrive out of order.
-  Starting with OTP 21 the call is not going to block, the
-  behaviour of `GenServer` and `:gen_server` is identical.
+  depending on the used Erlang/OTP version.
+
+  Before Erlang/OTP 21, the call is going to block until a
+  connection happens. This was made to address an ordering
+  bug in Erlang's own `:gen_server.cast/2`. Starting with
+  Erlang/OTP 21, both Erlang and Elixir do not block the call.
   """
   @spec cast(server, term) :: :ok
   def cast(server, request)
