@@ -23,8 +23,15 @@ defmodule ExUnit.Pattern.FormatPattern do
         %{keys: key_type} = ctx
       )
       when key_type == :atom_keys or key_type == :non_atom_keys do
+    items =
+      items
+      |> Enum.map(&format(&1, ctx))
+      |> IO.inspect(label: "map")
+      |> Enum.reject(&(&1 == @no_value))
+      |> Enum.intersperse(", ")
+
     [
-      {:map, Enum.map(items, &format(&1, ctx))}
+      ["%{" | items] ++ ["}"]
     ]
   end
 
@@ -36,7 +43,7 @@ defmodule ExUnit.Pattern.FormatPattern do
   def format(%ContainerDiff{type: :list, items: [%{lh: %{type: :cons_l}} = l, r]}, ctx) do
     new_ctx = DiffContext.new_context(:none, ctx)
 
-    [{:list, format(l, new_ctx), :|, format(r, new_ctx)}]
+    ["[", format(l, new_ctx), " | ", format(r, new_ctx), "]"]
   end
 
   def format(
@@ -52,10 +59,16 @@ defmodule ExUnit.Pattern.FormatPattern do
           items
           |> Enum.reject(&(&1.lh == @no_value))
           |> Enum.map(&textify_ast(&1.lh, ctx))
+          |> Enum.intersperse(", ")
 
-        delete({:list, items})
+        delete(["[" | items] ++ ["]"])
       else
-        {:list, Enum.map(items, &format(&1, ctx))}
+        items =
+          items
+          |> Enum.map(&format(&1, ctx))
+          |> Enum.intersperse(", ")
+
+        ["[" | items] ++ ["]"]
       end
     ]
   end
@@ -65,7 +78,7 @@ defmodule ExUnit.Pattern.FormatPattern do
   end
 
   def format(%ContainerDiff{type: :list, items: []}, _ctx) do
-    {:list, []}
+    ["[]"]
   end
 
   def format(%ContainerDiff{type: :list, items: _items} = diff, ctx) do
@@ -84,10 +97,16 @@ defmodule ExUnit.Pattern.FormatPattern do
           items
           |> Enum.reject(&(&1.lh == @no_value))
           |> Enum.map(&textify_ast(&1.lh, ctx))
+          |> Enum.intersperse(", ")
 
-        delete({:tuple, items})
+        delete(["{" | items] ++ ["}"])
       else
-        {:tuple, Enum.map(items, &format(&1, ctx))}
+        items =
+          items
+          |> Enum.map(&format(&1, ctx))
+          |> Enum.intersperse(", ")
+
+        ["{" | items] ++ ["}"]
       end
     ]
   end
@@ -228,50 +247,6 @@ defmodule ExUnit.Pattern.FormatPattern do
     raise "Missing format for #{other}-#{context}"
   end
 
-  def commaize({:diff_delete, arg}), do: {:diff_delete, commaize(arg)}
-  def commaize({:diff_insert, arg}), do: {:diff_delete, commaize(arg)}
-
-  def commaize({:tuple, args}) do
-    items =
-      args
-      |> commaize
-      |> Enum.intersperse(", ")
-
-    ["{" | items] ++ ["}"]
-  end
-
-  def commaize({:list, args}) do
-    items =
-      args
-      |> commaize
-      |> Enum.intersperse(", ")
-
-    ["[" | items] ++ ["]"]
-  end
-
-  def commaize({:list, l, :|, r}) do
-    ["[", commaize(l), " | ", commaize(r), "]"]
-  end
-
-  def commaize({:map, args}) do
-    items =
-      args
-      |> commaize
-      |> Enum.intersperse(", ")
-
-    ["%{" | items] ++ ["}"]
-  end
-
-  def commaize(arg) when is_list(arg) do
-    arg
-    |> Enum.reject(&(&1 == @no_value))
-    |> Enum.map(&commaize/1)
-  end
-
-  def commaize(arg) do
-    arg
-  end
-
   defp textify_ast(%{ast: ast}, ctx) do
     textify_ast(ast, ctx)
   end
@@ -305,7 +280,7 @@ defmodule ExUnit.Pattern.FormatPattern do
   end
 
   defp insert(term) do
-    {:diff_insert, term}
+    {:diff_delete, term}
   end
 
   defp match(term) do

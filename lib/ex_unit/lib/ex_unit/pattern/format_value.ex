@@ -20,16 +20,14 @@ defmodule ExUnit.Pattern.FormatValue do
 
   def format(
         %ContainerDiff{type: :map, items: items},
-        %{keys: key_type, comma: comma} = ctx
+        %{keys: key_type} = ctx
       )
       when key_type == :atom_keys or key_type == :non_atom_keys do
-    [h | rest] = items
-
     [
-      comma,
       "%{",
-      format(h, ctx),
-      Enum.map(rest, &format(&1, %{ctx | comma: ", "})),
+      items
+      |> Enum.map(&format(&1, ctx))
+      |> Enum.intersperse(", "),
       "}"
     ]
     |> List.flatten()
@@ -38,66 +36,61 @@ defmodule ExUnit.Pattern.FormatValue do
   def format(%ContainerDiff{type: :map, items: _items} = diff, ctx) do
     map_ctx = DiffContext.create_context(diff, ctx)
 
-    comma =
-      case ctx do
-        %{comma: comma} -> comma
-        _ -> ""
-      end
-
-    [comma, format(diff, map_ctx)]
+    [
+      diff
+      |> format(map_ctx)
+      |> Enum.intersperse(", ")
+    ]
     |> List.flatten()
   end
 
   def format(
         %ContainerDiff{type: :list, items: [%{lh: %{type: :cons_l}} = l, r]},
-        %{comma: comma} = ctx
+        ctx
       ) do
     new_ctx = DiffContext.new_context(:none, ctx)
 
-    [comma, "[", format(l, new_ctx), " | ", format(r, new_ctx), "]"]
+    ["[", format(l, new_ctx), " | ", format(r, new_ctx), "]"]
     |> List.flatten()
   end
 
   def format(
         %ContainerDiff{type: :list, items: items},
-        %{keys: :list, comma: comma} = ctx
+        %{keys: :list} = ctx
       ) do
-    [h | rest] = items
-
     [
-      comma,
       "[",
-      format(h, %{ctx | comma: ""}),
-      Enum.map(rest, &format(&1, %{ctx | comma: ", "})),
+      items
+      |> Enum.map(&format(&1, ctx))
+      |> Enum.intersperse(", "),
       "]"
     ]
     |> List.flatten()
   end
 
-  def format(%ContainerDiff{type: :when, items: [l, r]}, %{comma: comma} = ctx) do
-    [comma, format(l, ctx), " ", format(r, ctx)]
+  def format(%ContainerDiff{type: :when, items: [l, r]}, ctx) do
+    [format(l, ctx), " ", format(r, ctx)]
     |> List.flatten()
   end
 
-  def format(%ContainerDiff{type: :list, items: []}, %{comma: comma}) do
-    [comma, "[]"]
+  def format(%ContainerDiff{type: :list, items: []}, _ctx) do
+    ["[]"]
   end
 
-  def format(%ContainerDiff{type: :list, items: _items} = diff, %{comma: comma} = ctx) do
+  def format(%ContainerDiff{type: :list, items: _items} = diff, ctx) do
     ctx = DiffContext.create_context(diff, ctx)
 
-    [comma, format(diff, ctx)]
+    diff
+    |> format(ctx)
+    |> Enum.intersperse(", ")
     |> List.flatten()
   end
 
-  def format(%ContainerDiff{type: :tuple, items: items}, %{keys: :none, comma: comma} = ctx) do
-    [h | rest] = items
-
+  def format(%ContainerDiff{type: :tuple, items: items}, %{keys: :none} = ctx) do
     [
-      comma,
       "{",
-      format(h, %{ctx | comma: ""}),
-      Enum.map(rest, &format(&1, %{ctx | comma: ", "})),
+      items
+      |> Enum.map(&format(&1, ctx)),
       "}"
     ]
     |> List.flatten()
@@ -105,7 +98,7 @@ defmodule ExUnit.Pattern.FormatValue do
 
   def format(
         %ContainerDiff{type: :tuple, items: [l, r]},
-        %{keys: :non_atom_keys, comma: comma} = ctx
+        %{keys: :non_atom_keys} = ctx
       ) do
     left =
       case l do
@@ -130,13 +123,12 @@ defmodule ExUnit.Pattern.FormatValue do
       end
 
     [
-      comma,
       left,
       right
     ]
   end
 
-  def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :atom_keys, comma: comma} = ctx) do
+  def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :atom_keys} = ctx) do
     left =
       case l do
         %PatternDiff{diff_result: :eq} ->
@@ -164,7 +156,6 @@ defmodule ExUnit.Pattern.FormatValue do
       end
 
     [
-      comma,
       left,
       right
     ]
@@ -174,30 +165,28 @@ defmodule ExUnit.Pattern.FormatValue do
     format(diff, DiffContext.new_context(:none, [], []))
   end
 
-  def format(%PatternDiff{diff_result: :eq, rh: rh}, %{comma: comma}) do
-    [comma, match(inspect(rh))]
+  def format(%PatternDiff{diff_result: :eq, rh: rh}, _ctx) do
+    [match(inspect(rh))]
   end
 
-  def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh}, %{comma: comma} = ctx) do
-    [comma, insert(textify_ast(lh, ctx))]
+  def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh}, ctx) do
+    [insert(textify_ast(lh, ctx))]
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: {key, value}, lh: @no_value}, %{
-        comma: comma,
         keys: :atom_keys
       }) do
-    [comma, match("#{to_string(key)}: #{inspect(value)}")]
+    [match("#{to_string(key)}: #{inspect(value)}")]
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: {key, value}, lh: @no_value}, %{
-        comma: comma,
         keys: :non_atom_keys
       }) do
-    [comma, "#{inspect(key)} => #{inspect(value)}"]
+    ["#{inspect(key)} => #{inspect(value)}"]
   end
 
-  def format(%PatternDiff{diff_result: :neq, rh: rh, lh: _lh}, %{comma: comma}) do
-    [comma, delete(inspect(rh))]
+  def format(%PatternDiff{diff_result: :neq, rh: rh, lh: _lh}, _ctx) do
+    [delete(inspect(rh))]
   end
 
   def format(%WhenDiff{result: res, op: :and, bindings: keys}, ctx) do

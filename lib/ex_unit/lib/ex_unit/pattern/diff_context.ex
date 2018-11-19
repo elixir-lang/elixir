@@ -1,7 +1,7 @@
 defmodule ExUnit.Pattern.DiffContext do
   alias ExUnit.{ContainerDiff, PatternDiff}
 
-  defstruct [{:comma, ""}, :keys, :print_when?, :vars, :pins]
+  defstruct [:keys, :print_when?, :vars, :pins]
 
   @no_value :ex_unit_no_meaningful_value
 

@@ -31,15 +31,14 @@ defmodule ExUnit.Pattern do
 
     compare = ExUnit.PatternDiff.compare(left, right)
 
-    r_value =
-      compare
-      |> ExUnit.Pattern.FormatValue.format(ctx)
-      |> Enum.reject(&(&1 == ""))
+    # r_value =
+    #   compare
+    #   |> ExUnit.Pattern.FormatValue.format(ctx)
+    #   |> Enum.reject(&(&1 == ""))
 
     l_value =
       compare
       |> ExUnit.Pattern.FormatPattern.format(ctx)
-      |> ExUnit.Pattern.FormatPattern.commaize()
       |> List.flatten()
 
     {l_value, inspect(right)}
