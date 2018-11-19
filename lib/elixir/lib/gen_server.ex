@@ -990,7 +990,7 @@ defmodule GenServer do
   in this case, which could cause messages to other nodes to
   arrive out of order.
   Starting with OTP 21 the call is not going to block, the
-  behaviour of `GenServer` and `:gen_server` is idendical.
+  behaviour of `GenServer` and `:gen_server` is identical.
   """
   @spec cast(server, term) :: :ok
   def cast(server, request)
