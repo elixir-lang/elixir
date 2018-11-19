@@ -788,6 +788,10 @@ defmodule BadFunctionError do
   defexception [:term]
 
   @impl true
+  def message(%{term: term}) when is_function(term) do
+    "function #{inspect(term)} is invalid, likely because it points to an old version of the code"
+  end
+
   def message(exception) do
     "expected a function, got: #{inspect(exception.term)}"
   end

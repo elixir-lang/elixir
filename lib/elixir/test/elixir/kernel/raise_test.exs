@@ -361,6 +361,32 @@ defmodule Kernel.RaiseTest do
       assert result == "expected a function, got: :example"
     end
 
+    test "badfun error when the function is gone" do
+      defmodule BadFunction.Missing do
+        def fun, do: fn -> :ok end
+      end
+
+      fun = BadFunction.Missing.fun()
+
+      :code.delete(BadFunction.Missing)
+
+      defmodule BadFunction.Missing do
+        def fun, do: fn -> :another end
+      end
+
+      :code.purge(BadFunction.Missing)
+
+      result =
+        try do
+          fun.()
+        rescue
+          x in [BadFunctionError] -> Exception.message(x)
+        end
+
+      assert result =~
+               ~r/function #Function<[0-9]\.[0-9]*\/0 in Kernel.RaiseTest.BadFunction.Missing> is invalid, likely because it points to an old version of the code/
+    end
+
     test "badmatch error" do
       x = :example
 
