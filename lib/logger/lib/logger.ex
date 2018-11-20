@@ -789,7 +789,7 @@ defmodule Logger do
         metadata = Keyword.merge(caller, metadata)
         {metadata, metadata}
       else
-        {metadata,
+        {[],
          quote do
            Keyword.merge(unquote(caller), unquote(metadata))
          end}
