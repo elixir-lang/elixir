@@ -422,23 +422,19 @@ defmodule DateTime do
   def shift_zone(datetime, time_zone, time_zone_database \\ Calendar.get_time_zone_database())
 
   def shift_zone(%{time_zone: time_zone} = datetime, time_zone, _) do
-    # When the desired time_zone is the same as the existing time_zone just return it unchanged.
     {:ok, datetime}
   end
 
-  def shift_zone(
-        %{
-          std_offset: std_offset,
-          utc_offset: utc_offset,
-          calendar: calendar,
-          microsecond: {_, precision}
-        } = datetime,
-        time_zone,
-        time_zone_database
-      ) do
+  def shift_zone(datetime, time_zone, time_zone_database) do
+    %{
+      std_offset: std_offset,
+      utc_offset: utc_offset,
+      calendar: calendar,
+      microsecond: {_, precision}
+    } = datetime
+
     datetime
     |> to_iso_days()
-    # shift to UTC
     |> apply_tz_offset(utc_offset + std_offset)
     |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
   end
@@ -1066,10 +1062,8 @@ defmodule DateTime do
 
       {:error, error} ->
         raise ArgumentError,
-              "cannot add #{amount_to_add} #{unit} to #{datetime}.\n" <>
-                " With time zone database: #{inspect(time_zone_database)}. Reason: #{
-                  inspect(error)
-                }"
+              "cannot add #{amount_to_add} #{unit} to #{datetime} (with time zone " <>
+                "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
     end
   end
 
