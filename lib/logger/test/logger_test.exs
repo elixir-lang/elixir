@@ -255,11 +255,13 @@ defmodule LoggerTest do
 
   test "remove unused calls at compile time based on matching metadata" do
     Logger.configure(
+      compile_time_application: :sample_app,
       compile_time_purge_matching: [
         [module: LoggerTest.PurgeMatching, function: "two_filters/0"],
         [function: "one_filter/0"],
         [custom: true],
-        [function: "level_filter/0", level_lower_than: :info]
+        [function: "level_filter/0", level_lower_than: :warn],
+        [application: :sample_app, level_lower_than: :info]
       ]
     )
 
@@ -277,12 +279,16 @@ defmodule LoggerTest do
       end
 
       def level_filter do
-        Logger.debug("debug_filter")
         Logger.info("info_filter")
+        Logger.warn("warn_filter")
       end
 
       def works do
-        Logger.debug("works")
+        Logger.info("works")
+      end
+
+      def log(level, metadata \\ []) do
+        Logger.log(level, "ok", metadata)
       end
     end
 
@@ -290,9 +296,13 @@ defmodule LoggerTest do
     assert capture_log(fn -> assert PurgeMatching.one_filter() == :ok end) == ""
     assert capture_log(fn -> assert PurgeMatching.two_filters() == :ok end) == ""
     assert capture_log(fn -> assert PurgeMatching.custom_filters() == :ok end) == ""
-    assert capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "info_filter"
-    refute capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "debug_filter"
+    assert capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "warn_filter"
+    refute capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "info_filter"
+
+    capture_log(fn -> assert PurgeMatching.log(:info) == :ok end)
+    capture_log(fn -> assert PurgeMatching.log(:debug) == :ok end)
   after
+    Logger.configure(compile_time_application: nil)
     Logger.configure(compile_time_purge_matching: [])
   end
 
