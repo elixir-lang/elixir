@@ -186,7 +186,7 @@ defmodule SupervisorTest do
     import Supervisor.Spec
 
     children = [
-      {Stack, {[:hello], [name: :dyn_stack]}},
+      {Stack, {[:hello], []}},
       worker(Stack, [{[:hello], []}], id: :old_stack)
     ]
 
