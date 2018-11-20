@@ -427,19 +427,25 @@ defmodule DateTime do
   end
 
   def shift_zone(
-        %{std_offset: std_offset, utc_offset: utc_offset} = datetime,
+        %{
+          std_offset: std_offset,
+          utc_offset: utc_offset,
+          calendar: calendar,
+          microsecond: {_, precision}
+        } = datetime,
         time_zone,
         time_zone_database
       ) do
-    iso_days_utc =
-      datetime
-      |> to_iso_days()
-      |> apply_tz_offset(utc_offset + std_offset)
+    datetime
+    |> to_iso_days()
+    # shift to UTC
+    |> apply_tz_offset(utc_offset + std_offset)
+    |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
+  end
 
-    case time_zone_database.time_zone_period_from_utc_iso_days(iso_days_utc, time_zone) do
+  defp shift_zone_for_iso_days_utc(iso_days_utc, calendar, precision, time_zone, time_zone_db) do
+    case time_zone_db.time_zone_period_from_utc_iso_days(iso_days_utc, time_zone) do
       {:ok, %{std_offset: std_offset, utc_offset: utc_offset, zone_abbr: zone_abbr}} ->
-        %{calendar: calendar, microsecond: {_, microsecond_precision}} = datetime
-
         {year, month, day, hour, minute, second, {microsecond_without_precision, _}} =
           iso_days_utc
           |> apply_tz_offset(-(utc_offset + std_offset))
@@ -453,7 +459,7 @@ defmodule DateTime do
           hour: hour,
           minute: minute,
           second: second,
-          microsecond: {microsecond_without_precision, microsecond_precision},
+          microsecond: {microsecond_without_precision, precision},
           std_offset: std_offset,
           utc_offset: utc_offset,
           zone_abbr: zone_abbr,
@@ -999,6 +1005,75 @@ defmodule DateTime do
   end
 
   @doc """
+  Adds a specified amount of time to a `DateTime`.
+
+  Accepts an `amount_to_add` in any `unit` available from `t:System.time_unit/0`.
+  Negative values will move backwards in time.
+
+  Takes changes such as summer time/DST into account. This means that adding time
+  can cause the wall time to "go backwards" during "fall back" during autumn.
+  Adding just a few seconds to a datetime just before "spring forward" can cause wall
+  time to increase by more than an hour.
+
+  Fractional second precision stays the same in a similar way to `NaiveDateTime.add/2`.
+
+  ### Examples
+
+      iex> dt = DateTime.from_naive!(~N[2018-11-15 10:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> dt |> DateTime.add(3600, :second, FakeTimeZoneDatabase)
+      #DateTime<2018-11-15 11:00:00+01:00 CET Europe/Copenhagen>
+
+      iex> dt = DateTime.from_naive!(~N[2018-11-15 10:00:00], "Etc/UTC")
+      iex> dt |> DateTime.add(3600, :second)
+      #DateTime<2018-11-15 11:00:00Z>
+
+  When adding 3 seconds just before "spring forward" we go from 1:59:59 to 3:00:02
+
+      iex> dt = DateTime.from_naive!(~N[2019-03-31 01:59:59.123], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> dt |> DateTime.add(3, :second, FakeTimeZoneDatabase)
+      #DateTime<2019-03-31 03:00:02.123+02:00 CEST Europe/Copenhagen>
+
+  """
+  @doc since: "1.8.0"
+  @spec add(t(), integer, System.time_unit(), Calendar.time_zone_database()) :: t()
+  def add(
+        datetime,
+        amount_to_add,
+        unit \\ :second,
+        time_zone_database \\ Calendar.get_time_zone_database()
+      )
+      when is_integer(amount_to_add) do
+    %DateTime{
+      utc_offset: utc_offset,
+      std_offset: std_offset,
+      calendar: calendar,
+      microsecond: {_, precision}
+    } = datetime
+
+    ppd = System.convert_time_unit(86400, :second, unit)
+    total_offset = System.convert_time_unit(utc_offset + std_offset, :second, unit)
+
+    result =
+      datetime
+      |> to_iso_days()
+      # Subtract total offset in order to get UTC and add the integer for the addition
+      |> Calendar.ISO.add_day_fraction_to_iso_days(amount_to_add - total_offset, ppd)
+      |> shift_zone_for_iso_days_utc(calendar, precision, datetime.time_zone, time_zone_database)
+
+    case result do
+      {:ok, result_datetime} ->
+        result_datetime
+
+      {:error, error} ->
+        raise ArgumentError,
+              "cannot add #{amount_to_add} #{unit} to #{datetime}.\n" <>
+                " With time zone database: #{inspect(time_zone_database)}. Reason: #{
+                  inspect(error)
+                }"
+    end
+  end
+
+  @doc """
   Returns the given datetime with the microsecond field truncated to the given
   precision (`:microsecond`, `millisecond` or `:second`).
 
@@ -1147,6 +1222,10 @@ defmodule DateTime do
       utc_offset: utc_offset,
       std_offset: std_offset
     }
+  end
+
+  defp apply_tz_offset(iso_days, 0) do
+    iso_days
   end
 
   defp apply_tz_offset(iso_days, offset) do

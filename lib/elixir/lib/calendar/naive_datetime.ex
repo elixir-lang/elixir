@@ -228,7 +228,7 @@ defmodule NaiveDateTime do
   @doc """
   Adds a specified amount of time to a `NaiveDateTime`.
 
-  Accepts an `integer` in any `unit` available from `t:System.time_unit/0`.
+  Accepts an `amount_to_add` in any `unit` available from `t:System.time_unit/0`.
   Negative values will move backwards in time.
 
   This operation is only possible if both calendars are convertible to `Calendar.ISO`.
@@ -274,15 +274,15 @@ defmodule NaiveDateTime do
   @spec add(Calendar.naive_datetime(), integer, System.time_unit()) :: t
   def add(
         %{microsecond: {_, precision}, calendar: calendar} = naive_datetime,
-        integer,
+        amount_to_add,
         unit \\ :second
       )
-      when is_integer(integer) do
+      when is_integer(amount_to_add) do
     ppd = System.convert_time_unit(86400, :second, unit)
 
     naive_datetime
     |> to_iso_days()
-    |> Calendar.ISO.add_day_fraction_to_iso_days(integer, ppd)
+    |> Calendar.ISO.add_day_fraction_to_iso_days(amount_to_add, ppd)
     |> from_iso_days(calendar, precision)
   end
 
