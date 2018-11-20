@@ -1062,7 +1062,7 @@ defmodule DateTime do
 
       {:error, error} ->
         raise ArgumentError,
-              "cannot add #{amount_to_add} #{unit} to #{datetime} (with time zone " <>
+              "cannot add #{amount_to_add} #{unit} to #{inspect(datetime)} (with time zone " <>
                 "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
     end
   end
