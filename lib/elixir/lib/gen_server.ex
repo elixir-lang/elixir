@@ -986,9 +986,9 @@ defmodule GenServer do
   depending on the used Erlang/OTP version.
 
   Before Erlang/OTP 21, the call is going to block until a
-  connection happens. This was done to guarantee ordering
-  in Erlang's own `:gen_server.cast/2`. Starting with
-  Erlang/OTP 21, both Erlang and Elixir do not block the call.
+  connection happens. This was done to guarantee ordering.
+  Starting with Erlang/OTP 21, both Erlang and Elixir do
+  not block the call.
   """
   @spec cast(server, term) :: :ok
   def cast(server, request)
