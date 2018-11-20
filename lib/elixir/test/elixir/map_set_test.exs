@@ -138,6 +138,10 @@ defmodule MapSetTest do
     refute MapSet.subset?(map_set_v1(7..12), MapSet.new(1..10))
   end
 
+  test "inspect" do
+    assert inspect(MapSet.new([?a])) == "#MapSet<[#{?a}]>"
+  end
+
   defp map_set_v1(enumerable) do
     map = Map.new(enumerable, &{&1, true})
     %{__struct__: MapSet, map: map}
