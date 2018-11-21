@@ -2,58 +2,70 @@ defmodule EEx.Engine do
   @moduledoc ~S"""
   Basic EEx engine that ships with Elixir.
 
-  An engine needs to implement six functions:
+  An engine needs to implement all callbacks below.
 
-    * `init(opts)` - called at the beginning of every text
-      and it must return the initial state.
-
-    * `handle_body(state)` - receives the state of the document
-      and it must return a quoted expression.
-
-    * `handle_text(state, text)` - it receives the state,
-      the text and must return a new quoted expression.
-
-    * `handle_expr(state, marker, expr)` - it receives the state,
-      the marker, the expr and must return a new state.
-
-    * `handle_begin(state)` - called every time a new state
-      is needed with an empty buffer. Typically called for do/end
-      blocks, case expressions, anonymous functions, etc.
-
-    * `handle_end(state)` - opposite of `handle_begin(state)` and
-      it must return quoted expression.
-
-      The marker is what follows exactly after `<%`. For example,
-      `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
-      as marker. The allowed markers so far are: 
-
-        * `""`
-        * `"="`
-        * `"/"`
-        * `"|"`
-
-      Markers `"/"` and `"|"` are only for use in custom EEx engines
-      and are not implemented by default. Using them without the
-      implementation raises `EEx.SyntaxError`.
-
-      If your engine does not implement all markers, please ensure that
-      `handle_expr/3` falls back to `EEx.Engine.handle_expr/3` 
-      to raise the proper error message.
-
-      Read `handle_expr/3` below for more information about the markers
-      implemented by default by this engine.
-
-  `EEx.Engine` can be used directly if one desires to use the
-  default implementations for the functions above.
+  An engine may also `use EEx.Engine` to get the default behaviour
+  but this is not advised. In such cases, if any of the callbacks
+  are overridden, they must call `super()` to delegate to the
+  underlying `EEx.Engine`.
   """
 
   @type state :: term
 
+  @doc """
+  Called at the beginning of every template.
+
+  It must return the initial state.
+  """
   @callback init(opts :: keyword) :: state
+
+  @doc """
+  Called at the end of every template.
+
+  It must return Elixir's quoted expressions for the template.
+  """
   @callback handle_body(state) :: Macro.t()
+
+  @doc """
+  Called for the text/static parts of a template.
+
+  It must return the updated state.
+  """
   @callback handle_text(state, text :: String.t()) :: state
+
+  @doc """
+  Called for the dynamic/code parts of a template.
+
+  The marker is what follows exactly after `<%`. For example,
+  `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
+  as marker. The allowed markers so far are:
+
+    * `""`
+    * `"="`
+    * `"/"`
+    * `"|"`
+
+  Markers `"/"` and `"|"` are only for use in custom EEx engines
+  and are not implemented by default. Using them without an
+  appropriate implementation raises `EEx.SyntaxError`.
+
+  It must return the updated state.
+  """
   @callback handle_expr(state, marker :: String.t(), expr :: Macro.t()) :: state
+
+  @doc """
+  Invoked at the beginning of every nesting.
+
+  It must return a new state that is used only inside the nesting.
+  Once the nesting terminates, the current `state` is resumed.
+  """
   @callback handle_begin(state) :: state
+
+  @doc """
+  Invokes at the end of a nesting.
+
+  It must return Elixir's quoted expressions for the nesting.
+  """
   @callback handle_end(state) :: Macro.t()
 
   @doc false
@@ -98,9 +110,9 @@ defmodule EEx.Engine do
   This can be added to any custom engine by invoking
   `handle_assign/1` with `Macro.prewalk/2`:
 
-      def handle_expr(buffer, token, expr) do
+      def handle_expr(state, token, expr) do
         expr = Macro.prewalk(expr, &EEx.Engine.handle_assign/1)
-        EEx.Engine.handle_expr(buffer, token, expr)
+        super(state, token, expr)
       end
 
   """
@@ -135,9 +147,7 @@ defmodule EEx.Engine do
     end
   end
 
-  @doc """
-  Returns an empty string as initial buffer.
-  """
+  @doc false
   def init(_opts) do
     %{
       binary: [],
@@ -146,23 +156,17 @@ defmodule EEx.Engine do
     }
   end
 
-  @doc """
-  Returns an empty string as the new buffer.
-  """
+  @doc false
   def handle_begin(state) do
     %{state | binary: [], dynamic: []}
   end
 
-  @doc """
-  End of the new buffer.
-  """
+  @doc false
   def handle_end(quoted) do
     handle_body(quoted)
   end
 
-  @doc """
-  The default implementation simply returns the given expression.
-  """
+  @doc false
   def handle_body(state) do
     %{binary: binary, dynamic: dynamic} = state
     binary = {:<<>>, [], Enum.reverse(binary)}
@@ -170,24 +174,13 @@ defmodule EEx.Engine do
     {:__block__, [], Enum.reverse(dynamic)}
   end
 
-  @doc """
-  The default implementation simply concatenates text to the buffer.
-  """
+  @doc false
   def handle_text(state, text) do
     %{binary: binary} = state
     %{state | binary: [text | binary]}
   end
 
-  @doc """
-  Implements expressions according to the markers.
-
-      <% Elixir expression - inline with output %>
-      <%= Elixir expression - replace with result %>
-      <%/ Elixir expression - raise EEx.SyntaxError, to be implemented by custom engines %>
-      <%| Elixir expression - raise EEx.SyntaxError, to be implemented by custom engines %>
-
-  All other markers are not implemented by this engine.
-  """
+  @doc false
   def handle_expr(state, "=", ast) do
     %{binary: binary, dynamic: dynamic, vars_count: vars_count} = state
     var = Macro.var(:"arg#{vars_count}", __MODULE__)
