@@ -183,7 +183,7 @@ defmodule String do
   ## Patterns
 
   Many functions in this module work with patterns. For example,
-  `String.split/2` can split a string into multiple patterns given
+  `String.split/2` can split a string into multiple strings given
   a pattern. This pattern can be a string, a list of strings or
   a compiled pattern:
 
@@ -200,7 +200,7 @@ defmodule String do
   The compiled pattern is useful when the same match will
   be done over and over again. Note though that the compiled
   pattern cannot be stored in a module attribute as the pattern
-  is generated at runtime and does not survive compile term.
+  is generated at runtime and does not survive compile time.
   """
 
   @typedoc """
