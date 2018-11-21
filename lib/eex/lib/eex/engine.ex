@@ -139,35 +139,43 @@ defmodule EEx.Engine do
   Returns an empty string as initial buffer.
   """
   def init(_opts) do
-    ""
+    %{
+      binary: [],
+      dynamic: [],
+      vars_count: 0
+    }
   end
 
   @doc """
   Returns an empty string as the new buffer.
   """
-  def handle_begin(_previous) do
-    ""
+  def handle_begin(state) do
+    %{state | binary: [], dynamic: []}
   end
 
   @doc """
   End of the new buffer.
   """
   def handle_end(quoted) do
-    quoted
+    handle_body(quoted)
   end
 
   @doc """
   The default implementation simply returns the given expression.
   """
-  def handle_body(quoted) do
-    quoted
+  def handle_body(state) do
+    %{binary: binary, dynamic: dynamic} = state
+    binary = {:<<>>, [], Enum.reverse(binary)}
+    dynamic = [binary | dynamic]
+    {:__block__, [], Enum.reverse(dynamic)}
   end
 
   @doc """
   The default implementation simply concatenates text to the buffer.
   """
-  def handle_text(buffer, text) do
-    quote(do: unquote(buffer) <> unquote(text))
+  def handle_text(state, text) do
+    %{binary: binary} = state
+    %{state | binary: [text | binary]}
   end
 
   @doc """
@@ -180,22 +188,29 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
-  def handle_expr(buffer, "=", expr) do
-    quote do
-      tmp1 = unquote(buffer)
-      tmp1 <> String.Chars.to_string(unquote(expr))
-    end
+  def handle_expr(state, "=", ast) do
+    %{binary: binary, dynamic: dynamic, vars_count: vars_count} = state
+    var = Macro.var(:"arg#{vars_count}", __MODULE__)
+
+    ast =
+      quote do
+        unquote(var) = String.Chars.to_string(unquote(ast))
+      end
+
+    segment =
+      quote do
+        unquote(var) :: binary
+      end
+
+    %{state | dynamic: [ast | dynamic], binary: [segment | binary], vars_count: vars_count + 1}
   end
 
-  def handle_expr(buffer, "", expr) do
-    quote do
-      tmp2 = unquote(buffer)
-      unquote(expr)
-      tmp2
-    end
+  def handle_expr(state, "", ast) do
+    %{dynamic: dynamic} = state
+    %{state | dynamic: [ast | dynamic]}
   end
 
-  def handle_expr(_buffer, marker, _expr) when marker in ["/", "|"] do
+  def handle_expr(_state, marker, _ast) when marker in ["/", "|"] do
     raise EEx.SyntaxError,
           "unsupported EEx syntax <%#{marker} %> (the syntax is valid but not supported by the current EEx engine)"
   end
