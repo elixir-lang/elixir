@@ -12,7 +12,7 @@ defmodule File.Stat do
 
     * `size` - size of file in bytes.
 
-    * `type` - `:device | :directory | :regular | :other`; the type of the
+    * `type` - `:device | :directory | :regular | :other | :symlink`; the type of the
       file.
 
     * `access` - `:read | :write | :read_write | :none`; the current system
@@ -58,7 +58,22 @@ defmodule File.Stat do
   pairs = :lists.zip(keys, vals)
 
   defstruct keys
-  @type t :: %__MODULE__{}
+
+  @type t :: %__MODULE__{
+          size: non_neg_integer(),
+          type: :device | :directory | :regular | :other | :symlink,
+          access: :read | :write | :read_write | :none,
+          atime: :calendar.datetime(),
+          mtime: :calendar.datetime(),
+          ctime: :calendar.datetime(),
+          mode: non_neg_integer(),
+          links: non_neg_integer(),
+          major_device: non_neg_integer(),
+          minor_device: non_neg_integer(),
+          inode: non_neg_integer(),
+          uid: non_neg_integer(),
+          gid: non_neg_integer()
+        }
 
   @doc """
   Converts a `File.Stat` struct to a `:file_info` record.
