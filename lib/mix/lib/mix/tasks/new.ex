@@ -93,6 +93,8 @@ defmodule Mix.Tasks.New do
       version: get_version(System.version())
     ]
 
+    mod_filename = Macro.underscore(mod)
+
     create_file("README.md", readme_template(assigns))
     create_file(".formatter.exs", formatter_template(assigns))
     create_file(".gitignore", gitignore_template(assigns))
@@ -107,15 +109,15 @@ defmodule Mix.Tasks.New do
     create_file("config/config.exs", config_template(assigns))
 
     create_directory("lib")
-    create_file("lib/#{app}.ex", lib_template(assigns))
+    create_file("lib/#{mod_filename}.ex", lib_template(assigns))
 
     if opts[:sup] do
-      create_file("lib/#{app}/application.ex", lib_app_template(assigns))
+      create_file("lib/#{mod_filename}/application.ex", lib_app_template(assigns))
     end
 
     create_directory("test")
     create_file("test/test_helper.exs", test_helper_template(assigns))
-    create_file("test/#{app}_test.exs", test_template(assigns))
+    create_file("test/#{mod_filename}_test.exs", test_template(assigns))
 
     """
 
