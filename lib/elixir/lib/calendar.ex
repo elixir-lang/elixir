@@ -137,6 +137,26 @@ defmodule Calendar do
   @callback day_of_week(year, month, day) :: non_neg_integer()
 
   @doc """
+  Calculates the day of the year from the given `year`, `month`, and `day`.
+  """
+  @callback day_of_year(year, month, day) :: non_neg_integer()
+
+  @doc """
+  Calculates the quarter of the year from the given `year`, `month`, and `day`.
+  """
+  @callback quarter_of_year(year, month, day) :: non_neg_integer()
+
+  @doc """
+  Calculates the year and era from the given `year`.
+  """
+  @callback year_of_era(year) :: {year, era :: non_neg_integer()}
+
+  @doc """
+  Calculates the day and era from the given `year`, `month`, and `day`.
+  """
+  @callback day_of_era(year, month, day) :: {day, era :: non_neg_integer()}
+
+  @doc """
   Converts the date into a string according to the calendar.
   """
   @callback date_to_string(year, month, day) :: String.t()

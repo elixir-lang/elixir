@@ -53,6 +53,21 @@ defmodule DateTest do
     assert Date.day_of_week(~D[2016-11-06]) == 7
   end
 
+  test "day_of_year/1" do
+    assert Date.day_of_year(~D[2004-03-01]) == 61
+    assert Date.day_of_year(~D[2004-12-31]) == 366
+    assert Date.day_of_year(~D[2015-03-01]) == 60
+    assert Date.day_of_year(~D[2018-01-01]) == 1
+    assert Date.day_of_year(~D[2018-12-31]) == 365
+  end
+
+  test "quarter_of_year/1" do
+    assert Date.quarter_of_year(~D[2004-03-01]) == 1
+    assert Date.quarter_of_year(~D[2015-04-01]) == 2
+    assert Date.quarter_of_year(~D[2018-09-01]) == 3
+    assert Date.quarter_of_year(~D[2004-12-31]) == 4
+  end
+
   test "convert/2" do
     assert Date.convert(~D[2000-01-01], Calendar.Holocene) ==
              {:ok, Calendar.Holocene.date(12000, 01, 01)}

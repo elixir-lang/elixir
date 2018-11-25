@@ -659,6 +659,58 @@ defmodule Date do
     calendar.day_of_week(year, month, day)
   end
 
+  @doc """
+  Calculates the day of the year of a given `date`.
+
+  Returns the day of the year as an integer. For the ISO 8601
+  calendar (the default), it is an integer from 1 to 366.
+
+  ## Examples
+
+      iex> Date.day_of_year(~D[2016-01-01])
+      1
+      iex> Date.day_of_year(~D[2016-11-01])
+      306
+      iex> Date.day_of_year(~D[-0015-10-30])
+      303
+      iex> Date.day_of_year(~D[2004-12-31])
+      366
+
+  """
+  @doc since: "1.8.0"
+  @spec day_of_year(Calendar.date()) :: non_neg_integer()
+  def day_of_year(date)
+
+  def day_of_year(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.day_of_year(year, month, day)
+  end
+
+  @doc """
+  Calculates the quarter of the year of a given `date`.
+
+  Returns the day of the year as an integer. For the ISO 8601
+  calendar (the default), it is an integer from 1 to 4.
+
+  ## Examples
+
+      iex> Date.quarter_of_year(~D[2016-10-31])
+      4
+      iex> Date.quarter_of_year(~D[2016-01-01])
+      1
+      iex> Date.quarter_of_year(~N[2016-04-01 01:23:45])
+      2
+      iex> Date.quarter_of_year(~D[-0015-09-30])
+      3
+
+  """
+  @doc since: "1.8.0"
+  @spec quarter_of_year(Calendar.date()) :: non_neg_integer()
+  def quarter_of_year(date)
+
+  def quarter_of_year(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.quarter_of_year(year, month, day)
+  end
+
   ## Helpers
 
   defimpl String.Chars do
