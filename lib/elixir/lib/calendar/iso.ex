@@ -383,7 +383,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec quarter_of_year(year, month, day) :: Calendar.quarter()
+  @spec quarter_of_year(year, month, day) :: 1..4
   @impl true
   def quarter_of_year(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
