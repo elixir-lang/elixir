@@ -781,7 +781,7 @@ defmodule Code.Formatter do
         true ->
           next_break_fits? =
             op in @next_break_fits_operators and next_break_fits?(right_arg, state) and
-              not Keyword.get(meta, :eol, false)
+              not eol?(meta)
 
           with_next_break_fits(next_break_fits?, right, fn right ->
             op_string = " " <> op_string
@@ -884,7 +884,7 @@ defmodule Code.Formatter do
     {docs, comments?, state} =
       quoted_to_algebra_with_comments(operands, [], min_line, max_line, 1, state, fun)
 
-    if comments? or Keyword.get(meta, :eol, false) do
+    if comments? or eol?(meta) do
       {docs |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
     else
       {docs |> Enum.reduce(&glue(&2, &1)), state}
@@ -1147,7 +1147,7 @@ defmodule Code.Formatter do
       end
 
     args = if keyword?, do: left ++ right, else: left ++ [right]
-    many_eol? = match?([_, _ | _], args) and Keyword.get(meta, :eol, false)
+    many_eol? = match?([_, _ | _], args) and eol?(meta)
     no_generators? = no_generators?(args)
     to_algebra_fun = &quoted_to_algebra(&1, context, &2)
 
@@ -1399,7 +1399,7 @@ defmodule Code.Formatter do
 
   defp bitstring_to_algebra(meta, args, state) do
     last = length(args) - 1
-    join = if Keyword.get(meta, :eol, false), do: :line, else: :flex_break
+    join = if eol?(meta), do: :line, else: :flex_break
     to_algebra_fun = &bitstring_segment_to_algebra(&1, &2, last)
 
     {args_doc, join, state} =
@@ -1467,7 +1467,7 @@ defmodule Code.Formatter do
   ## Literals
 
   defp list_to_algebra(meta, args, state) do
-    join = if Keyword.get(meta, :eol, false), do: :line, else: :break
+    join = if eol?(meta), do: :line, else: :break
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, _join, state} =
@@ -1477,7 +1477,7 @@ defmodule Code.Formatter do
   end
 
   defp map_to_algebra(meta, name_doc, [{:|, _, [left, right]}], state) do
-    join = if Keyword.get(meta, :eol, false), do: :line, else: :break
+    join = if eol?(meta), do: :line, else: :break
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
     {left_doc, state} = fun.(left, state)
 
@@ -1494,7 +1494,7 @@ defmodule Code.Formatter do
   end
 
   defp map_to_algebra(meta, name_doc, args, state) do
-    join = if Keyword.get(meta, :eol, false), do: :line, else: :break
+    join = if eol?(meta), do: :line, else: :break
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, _join, state} =
@@ -1505,7 +1505,7 @@ defmodule Code.Formatter do
   end
 
   defp tuple_to_algebra(meta, args, join, state) do
-    join = if Keyword.get(meta, :eol, false), do: :line, else: join
+    join = if eol?(meta), do: :line, else: join
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, join, state} =
@@ -1788,7 +1788,7 @@ defmodule Code.Formatter do
   ## Clauses
 
   defp maybe_force_clauses(doc, clauses) do
-    if Enum.any?(clauses, fn {:->, meta, _} -> Keyword.get(meta, :eol, false) end) do
+    if Enum.any?(clauses, fn {:->, meta, _} -> eol?(meta) end) do
       force_unfit(doc)
     else
       doc
@@ -2158,7 +2158,7 @@ defmodule Code.Formatter do
   end
 
   defp eol_or_comments?(meta, %{comments: comments}) do
-    Keyword.get(meta, :eol, false) or
+    eol?(meta) or
       (
         min_line = line(meta)
         max_line = end_line(meta)
