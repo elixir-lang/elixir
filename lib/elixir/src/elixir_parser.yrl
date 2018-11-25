@@ -5,7 +5,7 @@ Nonterminals
   bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
-  add_op_eol mult_op_eol two_op_eol three_op_eol pipe_op_eol stab_op_eol
+  dual_op_eol mult_op_eol two_op_eol three_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
   type_op_eol rel_op_eol
   open_paren close_paren empty_paren eoe
@@ -35,7 +35,7 @@ Terminals
   bin_heredoc list_heredoc
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
-  type_op dual_op add_op mult_op two_op three_op pipe_op stab_op when_op assoc_op
+  type_op dual_op mult_op two_op three_op pipe_op stab_op when_op assoc_op
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
@@ -69,7 +69,7 @@ Left     170 arrow_op_eol.    %% |>, <<<, >>>, ~>>, <<~, ~>, <~, <~>, <|>
 Left     180 in_op_eol.       %% in, not in
 Left     190 three_op_eol.    %% ^^^
 Right    200 two_op_eol.      %% ++, --, .., <>
-Left     210 add_op_eol.      %% +, -
+Left     210 dual_op_eol.     %% +, -
 Left     220 mult_op_eol.     %% *, /
 Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, ~~~
 Left     310 dot_call_op.
@@ -165,7 +165,7 @@ block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_no_pare
 block_expr -> dot_identifier call_args_no_parens_all do_block : build_no_parens('$1', '$2' ++ '$3').
 
 matched_op_expr -> match_op_eol matched_expr : {'$1', '$2'}.
-matched_op_expr -> add_op_eol matched_expr : {'$1', '$2'}.
+matched_op_expr -> dual_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> mult_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> two_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> three_op_eol matched_expr : {'$1', '$2'}.
@@ -183,7 +183,7 @@ matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol no_parens_one_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
 unmatched_op_expr -> match_op_eol unmatched_expr : {'$1', '$2'}.
-unmatched_op_expr -> add_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> dual_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> mult_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> two_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> three_op_eol unmatched_expr : {'$1', '$2'}.
@@ -199,7 +199,7 @@ unmatched_op_expr -> rel_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> arrow_op_eol unmatched_expr : {'$1', '$2'}.
 
 no_parens_op_expr -> match_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> add_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> dual_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> mult_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> two_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> three_op_eol no_parens_expr : {'$1', '$2'}.
@@ -389,40 +389,38 @@ capture_op_eol -> capture_op eol : '$1'.
 at_op_eol -> at_op : '$1'.
 at_op_eol -> at_op eol : '$1'.
 
-add_op_eol -> add_op : '$1'.
-add_op_eol -> add_op eol : '$1'.
-add_op_eol -> dual_op : '$1'.
-add_op_eol -> dual_op eol : '$1'.
+match_op_eol -> match_op : '$1'.
+match_op_eol -> match_op eol : '$1'.
+
+dual_op_eol -> dual_op : '$1'.
+dual_op_eol -> dual_op eol : next_is_eol('$1').
 
 mult_op_eol -> mult_op : '$1'.
-mult_op_eol -> mult_op eol : '$1'.
+mult_op_eol -> mult_op eol : next_is_eol('$1').
 
 two_op_eol -> two_op : '$1'.
-two_op_eol -> two_op eol : '$1'.
+two_op_eol -> two_op eol : next_is_eol('$1').
 
 three_op_eol -> three_op : '$1'.
-three_op_eol -> three_op eol : '$1'.
+three_op_eol -> three_op eol : next_is_eol('$1').
 
 pipe_op_eol -> pipe_op : '$1'.
 pipe_op_eol -> pipe_op eol : next_is_eol('$1').
 
-match_op_eol -> match_op : '$1'.
-match_op_eol -> match_op eol : '$1'.
-
 and_op_eol -> and_op : '$1'.
-and_op_eol -> and_op eol : '$1'.
+and_op_eol -> and_op eol : next_is_eol('$1').
 
 or_op_eol -> or_op : '$1'.
-or_op_eol -> or_op eol : '$1'.
+or_op_eol -> or_op eol : next_is_eol('$1').
 
 in_op_eol -> in_op : '$1'.
-in_op_eol -> in_op eol : '$1'.
+in_op_eol -> in_op eol : next_is_eol('$1').
 
 in_match_op_eol -> in_match_op : '$1'.
 in_match_op_eol -> in_match_op eol : next_is_eol('$1').
 
 type_op_eol -> type_op : '$1'.
-type_op_eol -> type_op eol : '$1'.
+type_op_eol -> type_op eol : next_is_eol('$1').
 
 when_op_eol -> when_op : '$1'.
 when_op_eol -> when_op eol : next_is_eol('$1').
