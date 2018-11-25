@@ -779,13 +779,16 @@ defmodule Code.Formatter do
           concat(concat(group(left), op_string), group(right))
 
         true ->
+          eol? = eol?(meta)
+
           next_break_fits? =
-            op in @next_break_fits_operators and next_break_fits?(right_arg, state) and
-              not eol?(meta)
+            op in @next_break_fits_operators and next_break_fits?(right_arg, state) and not eol?
 
           with_next_break_fits(next_break_fits?, right, fn right ->
             op_string = " " <> op_string
-            concat(group(left), group(nest(glue(op_string, group(right)), nesting, :break)))
+            right = nest(glue(op_string, group(right)), nesting, :break)
+            right = if eol?, do: force_unfit(right), else: right
+            concat(group(left), group(right))
           end)
       end
 

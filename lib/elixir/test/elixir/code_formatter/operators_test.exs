@@ -533,6 +533,40 @@ defmodule Code.Formatter.OperatorsTest do
         | :three
       """
     end
+
+    test "preserves user choice even when it fits and left associative" do
+      assert_same """
+      foo + bar +
+        baz + bat
+      """
+
+      assert_same """
+      foo +
+        bar +
+        baz +
+        bat
+      """
+    end
+
+    test "preserves user choice even when it fits and right associative" do
+      bad = """
+      foo ++ bar ++
+        baz ++ bat
+      """
+
+      assert_format bad, """
+      foo ++
+        bar ++
+        baz ++ bat
+      """
+
+      assert_same """
+      foo ++
+        bar ++
+        baz ++
+        bat
+      """
+    end
   end
 
   # Theoretically it fits under binary operators
