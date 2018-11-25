@@ -444,7 +444,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec day_of_era(year, month, day) :: {day, era :: non_neg_integer()}
+  @spec day_of_era(year, month, day) :: {day :: pos_integer(), era :: 0..1}
   @impl true
   def day_of_era(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) and year > 0 do
