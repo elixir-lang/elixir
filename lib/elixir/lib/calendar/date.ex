@@ -652,11 +652,111 @@ defmodule Date do
 
   """
   @doc since: "1.4.0"
-  @spec day_of_week(Calendar.date()) :: non_neg_integer()
+  @spec day_of_week(Calendar.date()) :: Calendar.day()
   def day_of_week(date)
 
   def day_of_week(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.day_of_week(year, month, day)
+  end
+
+  @doc """
+  Calculates the day of the year of a given `date`.
+
+  Returns the day of the year as an integer. For the ISO 8601
+  calendar (the default), it is an integer from 1 to 366.
+
+  ## Examples
+
+      iex> Date.day_of_year(~D[2016-01-01])
+      1
+      iex> Date.day_of_year(~D[2016-11-01])
+      306
+      iex> Date.day_of_year(~D[-0015-10-30])
+      303
+      iex> Date.day_of_year(~D[2004-12-31])
+      366
+
+  """
+  @doc since: "1.8.0"
+  @spec day_of_year(Calendar.date()) :: Calendar.day()
+  def day_of_year(date)
+
+  def day_of_year(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.day_of_year(year, month, day)
+  end
+
+  @doc """
+  Calculates the quarter of the year of a given `date`.
+
+  Returns the day of the year as an integer. For the ISO 8601
+  calendar (the default), it is an integer from 1 to 4.
+
+  ## Examples
+
+      iex> Date.quarter_of_year(~D[2016-10-31])
+      4
+      iex> Date.quarter_of_year(~D[2016-01-01])
+      1
+      iex> Date.quarter_of_year(~N[2016-04-01 01:23:45])
+      2
+      iex> Date.quarter_of_year(~D[-0015-09-30])
+      3
+
+  """
+  @doc since: "1.8.0"
+  @spec quarter_of_year(Calendar.date()) :: non_neg_integer()
+  def quarter_of_year(date)
+
+  def quarter_of_year(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.quarter_of_year(year, month, day)
+  end
+
+  @doc """
+  Calculates the year-of-era and era for a given
+  calendar year.
+
+  Returns a tuple `{year, era}` representing the
+  year within the era and the era number.
+
+  ## Examples
+
+      iex> Date.year_of_era(~D[0001-01-01])
+      {1, 1}
+      iex> Date.year_of_era(~D[0000-12-31])
+      {1, 0}
+      iex> Date.year_of_era(~D[-0001-01-01])
+      {2, 0}
+
+  """
+  @doc since: "1.8.0"
+  @spec year_of_era(Calendar.date()) :: {Calendar.year(), non_neg_integer()}
+  def year_of_era(date)
+
+  def year_of_era(%{calendar: calendar, year: year}) do
+    calendar.year_of_era(year)
+  end
+
+  @doc """
+  Calculates the day-of-era and era for a given
+  calendar `date`.
+
+  Returns a tuple `{day, era}` representing the
+  day within the era and the era number.
+
+  ## Examples
+
+    iex> Date.day_of_era(~D[0001-01-01])
+    {1, 1}
+    iex> Date.day_of_era(~D[0000-12-31])
+    {1, 0}
+
+  """
+  @doc since: "1.8.0"
+  @spec day_of_era(Calendar.date()) :: {Calendar.day(), non_neg_integer()}
+  def day_of_era(date)
+
+  def day_of_era(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.day_of_era(year, month, day)
   end
 
   ## Helpers

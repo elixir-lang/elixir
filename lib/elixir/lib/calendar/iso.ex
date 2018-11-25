@@ -37,6 +37,11 @@ defmodule Calendar.ISO do
 
   @months_in_year 12
 
+  # The ISO epoch starts, in this implementation,
+  # with ~D[0000-01-01]. Era "1" starts
+  # on ~D[0001-01-01] which is 366 days later.
+  @iso_epoch 366
+
   @doc false
   def __match_date__ do
     quote do
@@ -335,6 +340,118 @@ defmodule Calendar.ISO do
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
     Integer.mod(date_to_iso_days(year, month, day) + 5, 7) + 1
+  end
+
+  @doc """
+  Calculates the day of the year from the given `year`, `month`, and `day`.
+
+  It is an integer from 1 to 366.
+
+  ## Examples
+
+      iex> Calendar.ISO.day_of_year(2016, 1, 31)
+      31
+      iex> Calendar.ISO.day_of_year(-99, 2, 1)
+      32
+      iex> Calendar.ISO.day_of_year(2018, 2, 28)
+      59
+
+  """
+  @doc since: "1.8.0"
+  @spec day_of_year(year, month, day) :: 1..366
+  @impl true
+  def day_of_year(year, month, day)
+      when is_integer(year) and is_integer(month) and is_integer(day) do
+    true = day <= days_in_month(year, month)
+    days_before_month(month) + leap_day_offset(year, month) + day
+  end
+
+  @doc """
+  Calculates the quarter of the year from the given `year`, `month`, and `day`.
+
+  It is an integer from 1 to 4.
+
+  ## Examples
+
+      iex> Calendar.ISO.quarter_of_year(2016, 1, 31)
+      1
+      iex> Calendar.ISO.quarter_of_year(2016, 4, 3)
+      2
+      iex> Calendar.ISO.quarter_of_year(-99, 9, 31)
+      3
+      iex> Calendar.ISO.quarter_of_year(2018, 12, 28)
+      4
+
+  """
+  @doc since: "1.8.0"
+  @spec quarter_of_year(year, month, day) :: 1..4
+  @impl true
+  def quarter_of_year(year, month, day)
+      when is_integer(year) and is_integer(month) and is_integer(day) do
+    div(month - 1, 3) + 1
+  end
+
+  @doc """
+  Calculates the year and era from the given `year`.
+
+  The ISO calendar has two eras: the current era which
+  starts in year 1 and is defined as era "1". And a
+  second era for those years less than 1 defined as
+  era "0".
+
+  ## Examples
+
+      iex> Calendar.ISO.year_of_era(1)
+      {1, 1}
+      iex> Calendar.ISO.year_of_era(2018)
+      {2018, 1}
+      iex> Calendar.ISO.year_of_era(0)
+      {1, 0}
+      iex> Calendar.ISO.year_of_era(-1)
+      {2, 0}
+
+  """
+  @doc since: "1.8.0"
+  @spec year_of_era(year) :: {year, era :: 0..1}
+  @impl true
+  def year_of_era(year) when is_integer(year) and year > 0 do
+    {year, 1}
+  end
+
+  def year_of_era(year) when is_integer(year) and year < 1 do
+    {abs(year) + 1, 0}
+  end
+
+  @doc """
+  Calculates the day and era from the given `year`, `month`, and `day`.
+
+  ## Examples
+
+      iex> Calendar.ISO.day_of_era(0, 1, 1)
+      {366, 0}
+      iex> Calendar.ISO.day_of_era(1, 1, 1)
+      {1, 1}
+      iex> Calendar.ISO.day_of_era(0, 12, 31)
+      {1, 0}
+      iex> Calendar.ISO.day_of_era(0, 12, 30)
+      {2, 0}
+      iex> Calendar.ISO.day_of_era(-1, 12, 31)
+      {367, 0}
+
+  """
+  @doc since: "1.8.0"
+  @spec day_of_era(year, month, day) :: {day :: pos_integer(), era :: 0..1}
+  @impl true
+  def day_of_era(year, month, day)
+      when is_integer(year) and is_integer(month) and is_integer(day) and year > 0 do
+    day = date_to_iso_days(year, month, day) - @iso_epoch + 1
+    {day, 1}
+  end
+
+  def day_of_era(year, month, day)
+      when is_integer(year) and is_integer(month) and is_integer(day) and year < 1 do
+    day = abs(date_to_iso_days(year, month, day) - @iso_epoch)
+    {day, 0}
   end
 
   @doc """

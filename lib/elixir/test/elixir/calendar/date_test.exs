@@ -51,6 +51,7 @@ defmodule DateTest do
     assert Date.day_of_week(~D[2016-11-04]) == 5
     assert Date.day_of_week(~D[2016-11-05]) == 6
     assert Date.day_of_week(~D[2016-11-06]) == 7
+    assert Date.day_of_week(~D[2016-11-07]) == 1
   end
 
   test "convert/2" do

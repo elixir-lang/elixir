@@ -97,6 +97,18 @@ defmodule Calendar.Holocene do
   defdelegate day_of_week(year, month, day), to: Calendar.ISO
 
   @impl true
+  defdelegate day_of_year(year, month, day), to: Calendar.ISO
+
+  @impl true
+  defdelegate quarter_of_year(year, month, day), to: Calendar.ISO
+
+  @impl true
+  defdelegate year_of_era(year), to: Calendar.ISO
+
+  @impl true
+  defdelegate day_of_era(year, month, day), to: Calendar.ISO
+
+  @impl true
   def valid_date?(year, month, day) do
     :calendar.valid_date(year, month, day)
   end
