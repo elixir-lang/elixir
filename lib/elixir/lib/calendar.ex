@@ -17,11 +17,12 @@ defmodule Calendar do
   """
 
   @type year :: integer
-  @type month :: integer
-  @type day :: integer
-  @type hour :: integer
-  @type minute :: integer
-  @type second :: integer
+  @type month :: pos_integer
+  @type day :: pos_integer
+  @type hour :: non_neg_integer
+  @type minute :: non_neg_integer
+  @type second :: non_neg_integer
+  @type era :: non_neg_integer
 
   @typedoc """
   The internal time format is used when converting between calendars.
@@ -152,6 +153,26 @@ defmodule Calendar do
   Calculates the day of the week from the given `year`, `month`, and `day`.
   """
   @callback day_of_week(year, month, day) :: non_neg_integer()
+
+  @doc """
+  Calculates the day of the year from the given `year`, `month`, and `day`.
+  """
+  @callback day_of_year(year, month, day) :: non_neg_integer()
+
+  @doc """
+  Calculates the quarter of the year from the given `year`, `month`, and `day`.
+  """
+  @callback quarter_of_year(year, month, day) :: non_neg_integer()
+
+  @doc """
+  Calculates the year and era from the given `year`.
+  """
+  @callback year_of_era(year) :: {year, era}
+
+  @doc """
+  Calculates the day and era from the given `year`, `month`, and `day`.
+  """
+  @callback day_of_era(year, month, day) :: {day, era}
 
   @doc """
   Converts the date into a string according to the calendar.
