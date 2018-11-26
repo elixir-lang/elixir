@@ -581,7 +581,7 @@ defmodule Logger do
   Backends added by this function are not persisted. Therefore
   if the Logger application or supervision tree is restarted,
   the backend won't be available. If you need this guarantee,
-  the configure the backend via the application environment.
+  then configure the backend via the application environment.
 
   ## Options
 
