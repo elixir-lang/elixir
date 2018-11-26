@@ -349,7 +349,7 @@ defmodule Kernel.ParallelCompiler do
         # Alternatively, we're waiting on ourselves,
         # send :found so that we can crash with a better error.
         waiting =
-          if :lists.any(&match?({^kind, ^on}, &1), result) or on in defining do
+          if Enum.any?(result, &match?({^kind, ^on}, &1)) or on in defining do
             send(child, {ref, :found})
             waiting
           else

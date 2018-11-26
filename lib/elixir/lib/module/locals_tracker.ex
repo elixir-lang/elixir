@@ -120,7 +120,7 @@ defmodule Module.LocalsTracker do
   defp reachable?(tuple, :defmacrop, reachable, reattached) do
     # All private micros are unreachable unless they have been
     # reattached and they are reachable.
-    :lists.member(tuple, reattached) and Map.has_key?(reachable, tuple)
+    Enum.member?(reattached, tuple) and Map.has_key?(reachable, tuple)
   end
 
   defp reachable?(tuple, :defp, reachable, _reattached) do
@@ -128,7 +128,7 @@ defmodule Module.LocalsTracker do
   end
 
   defp collect_warnings(reachable, private) do
-    :lists.foldl(&collect_warnings(&1, &2, reachable), [], private)
+    List.foldl(private, [], &collect_warnings(&1, &2, reachable))
   end
 
   defp collect_warnings({_, _, false, _}, acc, _reachable) do

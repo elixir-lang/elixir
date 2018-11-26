@@ -136,8 +136,8 @@ defmodule Path do
 
   defp reverse_maybe_remove_dir_sep([?/, ?:, letter], :win32), do: [letter, ?:, ?/]
   defp reverse_maybe_remove_dir_sep([?/], _), do: [?/]
-  defp reverse_maybe_remove_dir_sep([?/ | name], _), do: :lists.reverse(name)
-  defp reverse_maybe_remove_dir_sep(name, _), do: :lists.reverse(name)
+  defp reverse_maybe_remove_dir_sep([?/ | name], _), do: Enum.reverse(name)
+  defp reverse_maybe_remove_dir_sep(name, _), do: Enum.reverse(name)
 
   @doc """
   Converts the path to an absolute one and expands
@@ -709,7 +709,12 @@ defmodule Path do
   defp do_expand_dot(["." | t], acc), do: do_expand_dot(t, acc)
   defp do_expand_dot([h | t], acc), do: do_expand_dot(t, ["/", h | acc])
   defp do_expand_dot([], []), do: ""
-  defp do_expand_dot([], ["/" | acc]), do: IO.iodata_to_binary(:lists.reverse(acc))
+
+  defp do_expand_dot([], ["/" | acc]) do
+    acc
+    |> Enum.reverse()
+    |> IO.iodata_to_binary()
+  end
 
   defp major_os_type do
     :os.type() |> elem(0)
