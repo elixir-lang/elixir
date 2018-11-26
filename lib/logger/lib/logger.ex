@@ -590,7 +590,6 @@ defmodule Logger do
 
     case Logger.BackendSupervisor.watch(backend) do
       {:ok, _} = ok ->
-        update_backends(&[backend | List.delete(&1, backend)])
         ok
 
       {:error, {:already_started, _pid}} ->
@@ -613,13 +612,7 @@ defmodule Logger do
   @spec remove_backend(backend, keyword) :: :ok | {:error, term}
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
-    update_backends(&List.delete(&1, backend))
     Logger.BackendSupervisor.unwatch(backend)
-  end
-
-  defp update_backends(fun) do
-    backends = fun.(Application.get_env(:logger, :backends, []))
-    Application.put_env(:logger, :backends, backends)
   end
 
   @doc """

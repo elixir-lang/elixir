@@ -69,13 +69,14 @@ defmodule Logger.TranslatorTest do
   end
 
   setup_all do
+    backends = Application.get_env(:logger, :backends)
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
-    Application.put_env(:logger, :handle_sasl_reports, true)
 
     # Configure backend specific for tests to assert on metadata
     # We could rely exclusively on this backend and skip the console one
     # but using capture_log+console is desired as an integration test
-    Logger.add_backend(Logger.TestBackend)
+    Application.put_env(:logger, :backends, [Logger.TestBackend | backends])
+    Application.put_env(:logger, :handle_sasl_reports, true)
 
     # Restart the app but change the level before to avoid warnings
     level = Logger.level()
@@ -85,7 +86,7 @@ defmodule Logger.TranslatorTest do
     Logger.configure(level: level)
 
     on_exit(fn ->
-      Logger.remove_backend(Logger.TestBackend)
+      Application.put_env(:logger, :backends, backends)
       Application.put_env(:logger, :handle_sasl_reports, sasl_reports?)
       Logger.App.stop()
       Application.start(:logger)
