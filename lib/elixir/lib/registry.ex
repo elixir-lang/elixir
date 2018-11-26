@@ -264,7 +264,7 @@ defmodule Registry do
 
       Supervisor.start_link([
         {Registry, keys: :unique, name: MyApp.Registry}
-      ])
+      ], strategy: :one_for_one)
 
   For intensive workloads, the registry may also be partitioned (by specifying
   the `:partitions` option). If partitioning is required then a good default is to
@@ -280,7 +280,7 @@ defmodule Registry do
 
       Supervisor.start_link([
         {Registry, keys: :unique, name: MyApp.Registry, partitions: System.schedulers_online()}
-      ])
+      ], strategy: :one_for_one)
 
   ## Options
 
