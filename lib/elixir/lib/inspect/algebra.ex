@@ -372,11 +372,11 @@ defmodule Inspect.Algebra do
   end
 
   defp container_each([], _limit, _opts, _fun, acc, simple?) do
-    {:lists.reverse(acc), simple?}
+    {Enum.reverse(acc), simple?}
   end
 
   defp container_each(_, 0, _opts, _fun, acc, simple?) do
-    {:lists.reverse(["..." | acc]), simple?}
+    {Enum.reverse(["..." | acc]), simple?}
   end
 
   defp container_each([term | terms], limit, opts, fun, acc, simple?) when is_list(terms) do
@@ -392,7 +392,7 @@ defmodule Inspect.Algebra do
     simple? = simple? and simple?(left) and simple?(right)
 
     doc = join(left, right, simple?, @tail_separator)
-    {:lists.reverse([doc | acc]), simple?}
+    {Enum.reverse([doc | acc]), simple?}
   end
 
   defp decrement(:infinity), do: :infinity

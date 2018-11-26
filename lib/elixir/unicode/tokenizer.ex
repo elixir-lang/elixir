@@ -203,7 +203,7 @@ defmodule String.Tokenizer do
   end
 
   defp validate({acc, rest, length, ascii_letters?, special}, kind) do
-    acc = :lists.reverse(acc)
+    acc = Enum.reverse(acc)
 
     if ascii_letters? or :unicode.characters_to_nfc_list(acc) == acc do
       {kind, acc, rest, length, ascii_letters?, special}

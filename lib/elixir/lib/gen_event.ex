@@ -500,7 +500,7 @@ defmodule GenEvent do
   @doc false
   def system_replace_state(fun, [name, handlers, hib]) do
     {handlers, states} =
-      :lists.unzip(
+      Enum.unzip(
         for handler <- handlers do
           handler(module: mod, id: id, state: state) = handler
           cur = {mod, id, state}
@@ -612,7 +612,7 @@ defmodule GenEvent do
   end
 
   defp server_info(event, handlers, name) do
-    handlers = :lists.reverse(handlers)
+    handlers = Enum.reverse(handlers)
     server_notify(event, :handle_info, handlers, name, handlers, [], false)
   end
 
@@ -715,7 +715,7 @@ defmodule GenEvent do
   end
 
   defp server_call(module, query, handlers, name) do
-    case :lists.keyfind(module, handler(:id) + 1, handlers) do
+    case List.keyfind(handlers, module, handler(:id)) do
       false ->
         {false, {:error, :not_found}, handlers}
 
@@ -782,7 +782,7 @@ defmodule GenEvent do
   end
 
   defp handle_down(ref, reason, handlers, name) do
-    case :lists.keyfind(ref, handler(:ref) + 1, handlers) do
+    case List.keyfind(handlers, ref, handler(:ref)) do
       false ->
         :error
 
@@ -793,7 +793,7 @@ defmodule GenEvent do
   end
 
   defp do_add_handler(module, handler, arg, handlers, succ) do
-    case :lists.keyfind(handler(handler, :id), handler(:id) + 1, handlers) do
+    case List.keyfind(handlers, handler(handler, :id), handler(:id)) do
       false ->
         case do_handler(module, :init, [arg]) do
           {:ok, res} ->

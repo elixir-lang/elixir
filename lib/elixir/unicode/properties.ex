@@ -142,10 +142,10 @@ defmodule String.Casing do
         [codepoint, lower, title, upper, _] = :binary.split(line, "; ", [:global])
         key = to_binary.(codepoint)
 
-        :lists.keystore(
-          key,
-          1,
+        List.keystore(
           acc,
+          key,
+          0,
           {key, to_binary.(upper), to_binary.(lower), to_binary.(title)}
         )
       end
@@ -180,7 +180,11 @@ defmodule String.Casing do
     downcase(rest, [<<char>> | acc], mode)
   end
 
-  def downcase("", acc, _mode), do: IO.iodata_to_binary(:lists.reverse(acc))
+  def downcase("", acc, _mode) do
+    acc
+    |> Enum.reverse()
+    |> IO.iodata_to_binary()
+  end
 
   # Sigma handling
 
@@ -240,7 +244,11 @@ defmodule String.Casing do
     upcase(rest, [char | acc], mode)
   end
 
-  def upcase("", acc, _mode), do: IO.iodata_to_binary(:lists.reverse(acc))
+  def upcase("", acc, _mode) do
+    acc
+    |> Enum.reverse()
+    |> IO.iodata_to_binary()
+  end
 
   # Titlecase once
 

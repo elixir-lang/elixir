@@ -99,21 +99,21 @@ defmodule Dict do
       def to_list(dict) do
         reduce(dict, {:cont, []}, fn kv, acc -> {:cont, [kv | acc]} end)
         |> elem(1)
-        |> :lists.reverse()
+        |> Enum.reverse()
       end
 
       @deprecated message
       def keys(dict) do
         reduce(dict, {:cont, []}, fn {k, _}, acc -> {:cont, [k | acc]} end)
         |> elem(1)
-        |> :lists.reverse()
+        |> Enum.reverse()
       end
 
       @deprecated message
       def values(dict) do
         reduce(dict, {:cont, []}, fn {_, v}, acc -> {:cont, [v | acc]} end)
         |> elem(1)
-        |> :lists.reverse()
+        |> Enum.reverse()
       end
 
       @deprecated message

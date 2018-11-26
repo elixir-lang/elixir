@@ -53,9 +53,9 @@ defmodule File.Stat do
   """
 
   record = Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-  keys = :lists.map(&elem(&1, 0), record)
-  vals = :lists.map(&{&1, [], nil}, keys)
-  pairs = :lists.zip(keys, vals)
+  keys = Enum.map(record, &elem(&1, 0))
+  vals = Enum.map(keys, &{&1, [], nil})
+  pairs = Enum.zip(keys, vals)
 
   defstruct keys
 

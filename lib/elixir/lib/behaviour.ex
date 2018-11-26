@@ -66,7 +66,7 @@ defmodule Behaviour do
         other
     end
 
-    :lists.foreach(fun, args)
+    Enum.each(args, fun)
 
     spec =
       quote do

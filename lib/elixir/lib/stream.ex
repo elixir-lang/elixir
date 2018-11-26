@@ -358,7 +358,7 @@ defmodule Stream do
     count = count + 1
 
     if count == n do
-      {reason, [h, {0, [], :lists.reverse(buf1)} | t]}
+      {reason, [h, {0, [], Enum.reverse(buf1)} | t]}
     else
       {reason, [h, {count, buf1, buf2} | t]}
     end
@@ -864,10 +864,10 @@ defmodule Stream do
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:suspended, vals, next} ->
-        do_transform_user(:lists.reverse(vals), user_acc, :cont, next, inner_acc, funs)
+        do_transform_user(Enum.reverse(vals), user_acc, :cont, next, inner_acc, funs)
 
       {_, vals} ->
-        do_transform_user(:lists.reverse(vals), user_acc, :halt, next, inner_acc, funs)
+        do_transform_user(Enum.reverse(vals), user_acc, :halt, next, inner_acc, funs)
     end
   end
 
@@ -1169,7 +1169,10 @@ defmodule Stream do
   # the next element of each zipped stream.
 
   defp do_zip_next_tuple([{_, [], :halt} | zips], acc, _callback, _yielded_elems, buffer) do
-    do_zip_close(:lists.reverse(buffer, zips))
+    buffer
+    |> Enum.reverse(zips)
+    |> do_zip_close()
+
     {:done, acc}
   end
 
@@ -1186,7 +1189,10 @@ defmodule Stream do
       {_, []} ->
         # The current zipped stream terminated, so we close all the streams
         # and return {:halted, acc} (which is returned as is by do_zip/3).
-        do_zip_close(:lists.reverse(buffer, zips))
+        buffer
+        |> Enum.reverse(zips)
+        |> do_zip_close()
+
         {:done, acc}
     end
   end
@@ -1201,16 +1207,20 @@ defmodule Stream do
     # "yielded_elems" is a reversed list of results for the current iteration of
     # zipping: it needs to be reversed and converted to a tuple to have the next
     # tuple in the list resulting from zipping.
-    zipped = List.to_tuple(:lists.reverse(yielded_elems))
-    {:next, :lists.reverse(buffer), callback.(zipped, acc)}
+    zipped =
+      yielded_elems
+      |> Enum.reverse()
+      |> List.to_tuple()
+
+    {:next, Enum.reverse(buffer), callback.(zipped, acc)}
   end
 
   defp do_zip_close(zips) do
-    :lists.foreach(fn {fun, _, _} -> fun.({:halt, []}) end, zips)
+    Enum.each(zips, fn {fun, _, _} -> fun.({:halt, []}) end)
   end
 
   defp do_zip_step(x, acc) do
-    {:suspend, :lists.reverse([x | acc])}
+    {:suspend, Enum.reverse([x | acc])}
   end
 
   ## Sources
@@ -1559,9 +1569,9 @@ defimpl Enumerable, for: Stream do
   end
 
   defp do_reduce(%Stream{enum: enum, funs: funs, accs: accs, done: done}, acc, fun) do
-    composed = :lists.foldl(fn entry_fun, acc -> entry_fun.(acc) end, fun, funs)
+    composed = List.foldl(funs, fun, fn entry_fun, acc -> entry_fun.(acc) end)
     reduce = &Enumerable.reduce(enum, &1, composed)
-    do_each(reduce, done && {done, fun}, :lists.reverse(accs), acc)
+    do_each(reduce, done && {done, fun}, Enum.reverse(accs), acc)
   end
 
   defp do_each(reduce, done, accs, {command, acc}) do

@@ -91,7 +91,7 @@ defimpl Collectable, for: List do
 
     fun = fn
       list, {:cont, x} -> [x | list]
-      list, :done -> original ++ :lists.reverse(list)
+      list, :done -> original ++ Enum.reverse(list)
       _, :halt -> :ok
     end
 

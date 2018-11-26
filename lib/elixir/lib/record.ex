@@ -330,7 +330,7 @@ defmodule Record do
         raise ArgumentError, "#{type} fields must be atoms, got: #{inspect(other)}"
     end
 
-    :lists.map(normalizer_fun, fields)
+    Enum.map(fields, normalizer_fun)
   end
 
   # Callback invoked from record/0 and record/1 macros.
@@ -478,7 +478,7 @@ defmodule Record do
   defp join_keyword([{field, _default} | fields], [value | values], acc),
     do: join_keyword(fields, values, [{field, value} | acc])
 
-  defp join_keyword([], [], acc), do: :lists.reverse(acc)
+  defp join_keyword([], [], acc), do: Enum.reverse(acc)
   defp join_keyword(rest_fields, _rest_values, acc), do: length(acc) + length(rest_fields)
 
   defp apply_underscore(fields, keyword) do

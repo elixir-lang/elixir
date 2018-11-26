@@ -651,7 +651,7 @@ defmodule Access do
   end
 
   defp all([], _next, gets, updates) do
-    {:lists.reverse(gets), :lists.reverse(updates)}
+    {Enum.reverse(gets), Enum.reverse(updates)}
   end
 
   @doc ~S"""
@@ -719,8 +719,8 @@ defmodule Access do
 
   defp get_and_update_at([head | rest], 0, next, updates) do
     case next.(head) do
-      {get, update} -> {get, :lists.reverse([update | updates], rest)}
-      :pop -> {head, :lists.reverse(updates, rest)}
+      {get, update} -> {get, Enum.reverse([update | updates], rest)}
+      :pop -> {head, Enum.reverse(updates, rest)}
     end
   end
 
@@ -729,7 +729,7 @@ defmodule Access do
   end
 
   defp get_and_update_at([], _index, _next, updates) do
-    {nil, :lists.reverse(updates)}
+    {nil, Enum.reverse(updates)}
   end
 
   @doc ~S"""
@@ -811,6 +811,6 @@ defmodule Access do
   end
 
   defp get_and_update_filter([], _func, _next, updates, gets) do
-    {:lists.reverse(gets), :lists.reverse(updates)}
+    {Enum.reverse(gets), Enum.reverse(updates)}
   end
 end

@@ -202,7 +202,7 @@ defmodule Map do
 
   defp new_transform([], _fun, acc) do
     acc
-    |> :lists.reverse()
+    |> Enum.reverse()
     |> :maps.from_list()
   end
 

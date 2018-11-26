@@ -367,7 +367,7 @@ defmodule Application do
   @spec spec(app) :: [{key, value}] | nil
   def spec(app) when is_atom(app) do
     case :application.get_all_key(app) do
-      {:ok, info} -> :lists.keydelete(:env, 1, info)
+      {:ok, info} -> List.keydelete(info, :env, 0)
       :undefined -> nil
     end
   end

@@ -52,7 +52,7 @@ defmodule HashSet do
 
   @deprecated message
   def to_list(set) do
-    set_fold(set, [], &[&1 | &2]) |> :lists.reverse()
+    set_fold(set, [], &[&1 | &2]) |> Enum.reverse()
   end
 
   @deprecated message
