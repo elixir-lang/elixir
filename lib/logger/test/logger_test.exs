@@ -41,7 +41,6 @@ defmodule LoggerTest do
 
   test "add_backend/1 and remove_backend/1" do
     assert :ok = Logger.remove_backend(:console)
-    assert Application.get_env(:logger, :backends) == []
     assert Logger.remove_backend(:console) == {:error, :not_found}
 
     assert capture_log(fn ->
@@ -49,9 +48,7 @@ defmodule LoggerTest do
            end) == ""
 
     assert {:ok, _pid} = Logger.add_backend(:console)
-    assert Application.get_env(:logger, :backends) == [:console]
     assert Logger.add_backend(:console) == {:error, :already_present}
-    assert Application.get_env(:logger, :backends) == [:console]
   end
 
   test "add_backend/1 with {module, id}" do
