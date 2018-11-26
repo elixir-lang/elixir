@@ -84,17 +84,6 @@ defmodule ExUnit.CaptureLogTest do
     end
   end
 
-  test "exit with noproc when the logger is down" do
-    Logger.App.stop()
-    on_exit(fn -> Logger.App.start() end)
-
-    message = "cannot capture_log/2 because the :logger application was not started"
-
-    assert_raise RuntimeError, message, fn ->
-      capture_log(fn -> Logger.info("one") end)
-    end
-  end
-
   defp wait_capture_removal() do
     case :gen_event.which_handlers(Logger) do
       [Logger.Config] ->
