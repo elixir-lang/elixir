@@ -48,8 +48,7 @@ defmodule Kernel do
 
     * `Atom` - literal constants with a name (`true`, `false`, and `nil` are atoms)
     * `Float` - numbers with floating point precision
-    * `Function` - a reference to code chunk, created with the `Kernel.SpecialForms.fn/2`
-      special form
+    * `Function` - a reference to code chunk, created with the `fn/1` special form
     * `Integer` - whole numbers (not fractions)
     * `List` - collections of a variable number of elements (linked lists)
     * `Map` - collections of key-value pairs
