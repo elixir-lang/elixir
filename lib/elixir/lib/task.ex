@@ -138,7 +138,7 @@ defmodule Task do
 
       Supervisor.start_link([
         {Task.Supervisor, name: MyApp.TaskSupervisor}
-      ])
+      ], strategy: :one_for_one)
 
   Now you can dynamically start supervised tasks:
 
