@@ -578,6 +578,11 @@ defmodule Logger do
   @doc """
   Adds a new backend.
 
+  Backends added by this function are not persisted. Therefore
+  if the Logger application or supervision tree is restarted,
+  the backend won't be available. If you need this guarantee,
+  the configure the backend via the application environment.
+
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
