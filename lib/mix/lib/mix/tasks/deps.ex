@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Deps do
 
     * `:runtime` - whether the dependency is part of runtime applications.
       If the `:applications` key is not provided in `def application` in your
-      mix.exs file, Mix will automatically included all dependencies as a runtime
+      `mix.exs` file, Mix will automatically include all dependencies as a runtime
       application, except if `runtime: false` is given. Defaults to true.
 
     * `:system_env` - an enumerable of key-value tuples of binaries to be set
