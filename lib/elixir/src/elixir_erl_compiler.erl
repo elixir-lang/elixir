@@ -1,5 +1,5 @@
 -module(elixir_erl_compiler).
--export([spawn/2, forms/3, noenv_forms/3, erl_to_core/2]).
+-export([spawn/2, forms/3, noenv_forms/3, erl_to_core/2, format_error/1]).
 -include("elixir.hrl").
 
 spawn(Fun, Args) ->
@@ -50,9 +50,12 @@ compile(Fun, Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(Fi
       format_warnings(Opts, CoreWarnings),
 
       case Fun(CoreForms, [?NO_SPAWN_COMPILER_PROCESS, from_core, no_auto_import, return, {source, Source} | Opts]) of
-        {ok, Module, Binary, Warnings} ->
+        {ok, Module, Binary, Warnings} when is_binary(Binary) ->
           format_warnings(Opts, Warnings),
           {Module, Binary};
+
+        {ok, Module, _Binary, _Warnings} ->
+          elixir_errors:form_error([], File, ?MODULE, {invalid_compilation, Module});
 
         {error, Errors, Warnings} ->
           format_warnings(Opts, Warnings),
@@ -95,7 +98,7 @@ handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> ok;
 handle_file_warning(_, _File, {_Line, erl_lint, _}) -> ok;
 
 handle_file_warning(_, File, {Line, Module, Desc}) ->
-  Message = format_error(Module, Desc),
+  Message = custom_format(Module, Desc),
   elixir_errors:warn(Line, File, Message).
 
 %% Handle warnings
@@ -103,17 +106,15 @@ handle_file_warning(_, File, {Line, Module, Desc}) ->
 handle_file_error(File, {beam_validator, Rest}) ->
   elixir_errors:form_error([{line, 0}], File, beam_validator, Rest);
 handle_file_error(File, {Line, Module, Desc}) ->
-  Message = format_error(Module, Desc),
+  Message = custom_format(Module, Desc),
   elixir_errors:compile_error([{line, Line}], File, Message).
 
-%% Custom formatting
-
 %% Mention the capture operator in make_fun
-format_error(sys_core_fold, {no_effect, {erlang, make_fun, 3}}) ->
+custom_format(sys_core_fold, {no_effect, {erlang, make_fun, 3}}) ->
   "the result of the capture operator & (:erlang.make_fun/3) is never used";
 
 %% Make no_effect clauses pretty
-format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
+custom_format(sys_core_fold, {no_effect, {erlang, F, A}}) ->
   {Fmt, Args} = case erl_internal:comp_op(F, A) of
     true -> {"use of operator ~ts has no effect", [elixir_utils:erlang_comparison_op_to_elixir(F)]};
     false ->
@@ -125,16 +126,26 @@ format_error(sys_core_fold, {no_effect, {erlang, F, A}}) ->
   io_lib:format(Fmt, Args);
 
 %% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc.
-format_error(sys_core_fold, nomatch_guard) ->
+custom_format(sys_core_fold, nomatch_guard) ->
   "this check/guard will always yield the same result";
 
 %% Handle literal eval failures
-format_error(sys_core_fold, {eval_failure, Error}) ->
+custom_format(sys_core_fold, {eval_failure, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
   ["this expression will fail with ", elixir_aliases:inspect(Struct)];
 
-format_error([], Desc) ->
+custom_format([], Desc) ->
   io_lib:format("~p", [Desc]);
 
-format_error(Module, Desc) ->
+custom_format(Module, Desc) ->
   Module:format_error(Desc).
+
+%% Error formatting
+
+format_error({invalid_compilation, Module}) ->
+  io_lib:format(
+    "could not compile module ~ts. We expected the compiler to return a .beam binary but "
+    "got something else. This usually happens because ERL_COMPILER_OPTIONS or @compile "
+    "was set to change the compilation outcome in a way that is incompatible with Elixir",
+    [elixir_aliases:inspect(Module)]
+  ).
