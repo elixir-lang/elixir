@@ -62,8 +62,8 @@ defmodule Task do
   a function to run:
 
       Supervisor.start_link([
-        {Task, fn -> ... some function ... end}
-      ])
+        {Task, fn -> :some_work end}
+      ], strategy: :one_for_one)
 
   However, if you want to invoke a specific module, function and
   arguments, or give the task process a name, you need to define
@@ -85,7 +85,7 @@ defmodule Task do
 
       Supervisor.start_link([
         {MyTask, arg}
-      ])
+      ], strategy: :one_for_one)
 
   Since these tasks are supervised and not directly linked to
   the caller, they cannot be awaited on. Note that `start_link/1`,
@@ -138,7 +138,7 @@ defmodule Task do
 
       Supervisor.start_link([
         {Task.Supervisor, name: MyApp.TaskSupervisor}
-      ])
+      ], strategy: :one_for_one)
 
   Now you can dynamically start supervised tasks:
 
