@@ -34,6 +34,7 @@ defmodule MixTest.Case do
   setup config do
     if apps = config[:apps] do
       Logger.remove_backend(:console)
+      Application.put_env(:logger, :backends, [])
     end
 
     on_exit(fn ->
@@ -52,6 +53,7 @@ defmodule MixTest.Case do
         end
 
         Logger.add_backend(:console, flush: true)
+        Application.put_env(:logger, :backends, [:console])
       end
     end)
 
