@@ -137,22 +137,29 @@ defmodule ExUnit.Formatter do
 
   def format_assertion_error(
         test,
-        %{left: %ExUnit.Pattern{match_single?: false} = pattern, right: mailbox} = struct,
+        %{left: %ExUnit.Pattern{} = pattern, right: %ExUnit.Mailbox{} = mailbox} = struct,
         stack,
         _width,
         formatter,
         counter_padding
-      )
-      when is_list(mailbox) do
+      ) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
 
     patterns =
       mailbox
+      |> ExUnit.Mailbox.get_messages()
       |> Enum.map(fn msg ->
-        {_left, right} = format_pattern(pattern, msg, formatter)
-        {:note, "message: " <> IO.iodata_to_binary(right)}
+        {left, right} = format_pattern(pattern, msg, formatter)
+
+        [
+          {:note, ""},
+          {:note, "pattern: " <> IO.iodata_to_binary(left)},
+          {:note, "message: " <> IO.iodata_to_binary(right)}
+        ]
       end)
+      |> List.flatten()
+      |> Enum.concat([{:note, ""}])
 
     ([
        note: if_value(struct.message, &format_message(&1, formatter))

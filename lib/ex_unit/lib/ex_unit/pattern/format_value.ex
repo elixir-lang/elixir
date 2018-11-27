@@ -15,6 +15,7 @@ defmodule ExUnit.Pattern.FormatValue do
     left
     |> ExUnit.PatternDiff.compare(right)
     |> format(ctx)
+    |> List.flatten()
     |> Enum.reject(&(&1 == ""))
   end
 
@@ -27,10 +28,10 @@ defmodule ExUnit.Pattern.FormatValue do
       "%{",
       items
       |> Enum.map(&format(&1, ctx))
+      |> Enum.reject(&(&1 == @no_value))
       |> Enum.intersperse(", "),
       "}"
     ]
-    |> List.flatten()
   end
 
   def format(%ContainerDiff{type: :map, items: _items} = diff, ctx) do
@@ -39,9 +40,7 @@ defmodule ExUnit.Pattern.FormatValue do
     [
       diff
       |> format(map_ctx)
-      |> Enum.intersperse(", ")
     ]
-    |> List.flatten()
   end
 
   def format(
@@ -51,26 +50,38 @@ defmodule ExUnit.Pattern.FormatValue do
     new_ctx = DiffContext.new_context(:none, ctx)
 
     ["[", format(l, new_ctx), " | ", format(r, new_ctx), "]"]
-    |> List.flatten()
   end
 
   def format(
         %ContainerDiff{type: :list, items: items},
         %{keys: :list} = ctx
       ) do
-    [
-      "[",
-      items
-      |> Enum.map(&format(&1, ctx))
-      |> Enum.intersperse(", "),
-      "]"
-    ]
-    |> List.flatten()
+    ret =
+      if Enum.any?(items, fn
+           %{rh: @no_value} -> true
+           _ -> false
+         end) do
+        items =
+          items
+          |> Enum.reject(&(&1.rh == @no_value))
+          |> Enum.map(&format(&1, ctx))
+          |> Enum.intersperse(", ")
+
+        delete(["[" | items] ++ ["]"])
+      else
+        items =
+          items
+          |> Enum.map(&format(&1, ctx))
+          |> Enum.intersperse(", ")
+
+        ["[" | items] ++ ["]"]
+      end
+
+    List.wrap(ret)
   end
 
   def format(%ContainerDiff{type: :when, items: [l, r]}, ctx) do
     [format(l, ctx), " ", format(r, ctx)]
-    |> List.flatten()
   end
 
   def format(%ContainerDiff{type: :list, items: []}, _ctx) do
@@ -82,18 +93,31 @@ defmodule ExUnit.Pattern.FormatValue do
 
     diff
     |> format(ctx)
-    |> Enum.intersperse(", ")
-    |> List.flatten()
   end
 
   def format(%ContainerDiff{type: :tuple, items: items}, %{keys: :none} = ctx) do
-    [
-      "{",
-      items
-      |> Enum.map(&format(&1, ctx)),
-      "}"
-    ]
-    |> List.flatten()
+    ret =
+      if Enum.any?(items, fn
+           %{rh: @no_value} -> true
+           _ -> false
+         end) do
+        items =
+          items
+          |> Enum.reject(&(&1.rh == @no_value))
+          |> Enum.map(&format(&1, ctx))
+          |> Enum.intersperse(", ")
+
+        delete(["{" | items] ++ ["}"])
+      else
+        items =
+          items
+          |> Enum.map(&format(&1, ctx))
+          |> Enum.intersperse(", ")
+
+        ["{" | items] ++ ["}"]
+      end
+
+    List.wrap(ret)
   end
 
   def format(
@@ -129,31 +153,8 @@ defmodule ExUnit.Pattern.FormatValue do
   end
 
   def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :atom_keys} = ctx) do
-    left =
-      case l do
-        %PatternDiff{diff_result: :eq} ->
-          match("#{l.rh}: ")
-
-        %ContainerDiff{} ->
-          new_ctx = DiffContext.create_context(r, ctx)
-          delete(format(l, new_ctx))
-
-        _ ->
-          delete(inspect(l.rh))
-      end
-
-    right =
-      case r do
-        %PatternDiff{diff_result: :eq} ->
-          match("#{inspect(r.rh)}")
-
-        %ContainerDiff{} ->
-          new_ctx = DiffContext.create_context(r, ctx)
-          format(r, new_ctx)
-
-        _ ->
-          delete(inspect(r.rh))
-      end
+    left = format(l, ctx)
+    right = format(r, ctx)
 
     [
       left,
@@ -165,12 +166,12 @@ defmodule ExUnit.Pattern.FormatValue do
     format(diff, DiffContext.new_context(:none, [], []))
   end
 
-  def format(%PatternDiff{diff_result: :eq, rh: rh}, _ctx) do
-    [match(inspect(rh))]
+  def format(%PatternDiff{diff_result: :eq, rh: rh}, ctx) do
+    [match(textify_ast(rh, ctx))]
   end
 
-  def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: lh}, ctx) do
-    [insert(textify_ast(lh, ctx))]
+  def format(%PatternDiff{diff_result: :neq, rh: @no_value, lh: _lh}, _ctx) do
+    @no_value
   end
 
   def format(%PatternDiff{diff_result: :neq, rh: {key, value}, lh: @no_value}, %{
@@ -246,16 +247,16 @@ defmodule ExUnit.Pattern.FormatValue do
     "#{inspect(key)} => #{textify_ast(value, ctx)}"
   end
 
+  defp textify_ast(key, %{keys: :atom_keys}) when is_atom(key) do
+    "#{key}: "
+  end
+
   defp textify_ast(elem, _ctx) do
     Macro.to_string(elem)
   end
 
   defp delete(term) do
     {:diff_delete, term}
-  end
-
-  defp insert(term) do
-    {:diff_insert, term}
   end
 
   defp match(term) do

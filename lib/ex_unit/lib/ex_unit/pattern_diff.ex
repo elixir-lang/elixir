@@ -1,24 +1,22 @@
 defmodule ExUnit.Pattern do
   alias ExUnit.Pattern.DiffContext
 
-  defstruct [:binary, :val, :match_single?, :vars, :pins]
+  defstruct [:binary, :val, :vars, :pins]
 
   @type t :: %__MODULE__{
           binary: String.t(),
           val: any(),
           vars: map,
-          pins: [key: atom()],
-          match_single?: boolean()
+          pins: [key: atom()]
         }
 
-  def new(lh_pattern, pins, unbound_vars, match_single? \\ true)
+  def new(lh_pattern, pins, unbound_vars)
       when is_list(pins) and is_map(unbound_vars) do
     %__MODULE__{
       binary: Macro.to_string(lh_pattern),
       val: lh_pattern,
       pins: pins,
-      vars: unbound_vars,
-      match_single?: match_single?
+      vars: unbound_vars
     }
   end
 
@@ -31,17 +29,21 @@ defmodule ExUnit.Pattern do
 
     compare = ExUnit.PatternDiff.compare(left, right)
 
+    # for right now, don't format the value
     # r_value =
     #   compare
     #   |> ExUnit.Pattern.FormatValue.format(ctx)
+    #   |> List.flatten()
     #   |> Enum.reject(&(&1 == ""))
+
+    r_value = inspect(right)
 
     l_value =
       compare
       |> ExUnit.Pattern.FormatPattern.format(ctx)
       |> List.flatten()
 
-    {l_value, inspect(right)}
+    {l_value, r_value}
   end
 end
 

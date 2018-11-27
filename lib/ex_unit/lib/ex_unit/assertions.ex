@@ -40,6 +40,13 @@ defmodule ExUnit.MultiError do
   end
 end
 
+defmodule ExUnit.Mailbox do
+  defstruct [:messages]
+
+  def new(messages), do: %__MODULE__{messages: messages}
+  def get_messages(%__MODULE__{messages: messages}), do: messages
+end
+
 defmodule ExUnit.Assertions do
   @moduledoc """
   This module contains a set of assertion functions that are
@@ -561,7 +568,7 @@ defmodule ExUnit.Assertions do
 
               {:pattern, messages, msg} ->
                 left = unquote(escape_pattern(expanded_pattern))
-                pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars), false)
+                pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
 
                 assert false,
                   right: messages,
@@ -615,7 +622,7 @@ defmodule ExUnit.Assertions do
             msg
         end
 
-      {:pattern, messages, msg}
+      {:pattern, ExUnit.Mailbox.new(messages), msg}
     end
   end
 

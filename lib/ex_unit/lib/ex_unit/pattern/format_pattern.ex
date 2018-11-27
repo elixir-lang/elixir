@@ -26,7 +26,6 @@ defmodule ExUnit.Pattern.FormatPattern do
     items =
       items
       |> Enum.map(&format(&1, ctx))
-      |> IO.inspect(label: "map")
       |> Enum.reject(&(&1 == @no_value))
       |> Enum.intersperse(", ")
 
@@ -118,23 +117,23 @@ defmodule ExUnit.Pattern.FormatPattern do
     left =
       case l do
         %PatternDiff{diff_result: :eq} ->
-          match("#{inspect(l.rh)} => ")
+          match("#{textify_ast(l.lh, ctx)} => ")
 
         _ ->
-          delete(inspect(l.rh))
+          delete(textify_ast(l.lh, ctx))
       end
 
     right =
       case r do
         %PatternDiff{diff_result: :eq} ->
-          match("#{inspect(r.rh)}")
+          match("#{textify_ast(r.lh, ctx)}")
 
         %ContainerDiff{} ->
           new_ctx = DiffContext.new_context(r, ctx)
           format(r, new_ctx)
 
         _ ->
-          delete(inspect(r.rh))
+          delete(textify_ast(r.lh, ctx))
       end
 
     [
@@ -144,31 +143,9 @@ defmodule ExUnit.Pattern.FormatPattern do
   end
 
   def format(%ContainerDiff{type: :tuple, items: [l, r]}, %{keys: :atom_keys} = ctx) do
-    left =
-      case l do
-        %PatternDiff{diff_result: :eq} ->
-          match(textify_ast(l.lh, ctx))
+    left = format(l, ctx)
 
-        %ContainerDiff{} ->
-          new_ctx = DiffContext.create_context(r, ctx)
-          delete(format(l, new_ctx))
-
-        _ ->
-          delete(textify_ast(l.lh, ctx))
-      end
-
-    right =
-      case r do
-        %PatternDiff{diff_result: :eq} ->
-          match(textify_ast(r.lh, ctx))
-
-        %ContainerDiff{} ->
-          new_ctx = DiffContext.create_context(r, ctx)
-          format(r, new_ctx)
-
-        _ ->
-          delete(textify_ast(r.lh, ctx))
-      end
+    right = format(r, ctx)
 
     [
       left,
@@ -240,7 +217,6 @@ defmodule ExUnit.Pattern.FormatPattern do
     [delete("^#{pin}")]
   end
 
-  # def format(%PatternDiff{diff_result: :neq, rh: rh, lh: lh})
   def format(other, context) do
     IO.inspect(context, label: "context")
     IO.inspect(other, label: "No matching format")
