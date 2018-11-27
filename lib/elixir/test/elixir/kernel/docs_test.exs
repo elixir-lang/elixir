@@ -307,4 +307,12 @@ defmodule Kernel.DocsTest do
              {{:fuz, 0}, :none}
            ] = Enum.sort(function_docs)
   end
+
+  describe "special signatures" do
+    test "fn" do
+      {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(Kernel.SpecialForms)
+      {_, _, fn_docs, _, _} = Enum.find(docs, &match?({_, :fn, 1}, elem(&1, 0)))
+      assert fn_docs == ["fn"]
+    end
+  end
 end

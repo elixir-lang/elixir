@@ -531,6 +531,9 @@ get_type_docs(Set, Types) ->
 signature_to_binary(_Module, Name, _Signature) when Name == '__aliases__'; Name == '__block__' ->
   <<(atom_to_binary(Name, utf8))/binary, "(args)">>;
 
+signature_to_binary(_Module, fn, _Signature) -> 
+  <<"fn">>;
+
 signature_to_binary(_Module, Name, _Signature)
     when Name == '__CALLER__'; Name == '__DIR__'; Name == '__ENV__';
          Name == '__MODULE__'; Name == '__STACKTRACE__'; Name == '%{}' ->
