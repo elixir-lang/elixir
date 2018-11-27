@@ -6,7 +6,7 @@
 %% Anonymous functions
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
-  Transformer = fun({_, _, [Left, Right]} = Clause, Acc) ->
+  Transformer = fun({_, _, [Left, _Right]} = Clause, Acc) ->
     case lists:any(fun is_invalid_arg/1, Left) of
       true ->
         form_error(Meta, ?key(E, file), ?MODULE, defaults_in_args);
