@@ -231,8 +231,6 @@ defmodule NaiveDateTime do
   Accepts an `amount_to_add` in any `unit` available from `t:System.time_unit/0`.
   Negative values will move backwards in time.
 
-  This operation is only possible if both calendars are convertible to `Calendar.ISO`.
-
   ## Examples
 
       # adds seconds by default
