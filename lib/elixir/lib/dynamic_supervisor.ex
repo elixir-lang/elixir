@@ -310,7 +310,7 @@ defmodule DynamicSupervisor do
   this function returns `{:error, :max_children}`.
   """
   @doc since: "1.6.0"
-  @spec start_child(Supervisor.supervisor(), :supervisor.child_spec() | {module, term} | module) ::
+  @spec start_child(Supervisor.supervisor(), Supervisor.child_spec() | {module, term} | module) ::
           on_start_child()
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     validate_and_start_child(supervisor, child_spec)
