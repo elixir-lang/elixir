@@ -82,6 +82,8 @@ defmodule Mix.Tasks.Compile.App do
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
+    * `--path path` - where to find `.beam` files and write the resulting
+      `.app` file, defaults to `Mix.Project.compile_path/0`
 
   ## Phases
 
@@ -116,7 +118,7 @@ defmodule Mix.Tasks.Compile.App do
 
   @impl true
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, path: :string])
 
     project = Mix.Project.get!()
     config = Mix.Project.config()
@@ -127,7 +129,7 @@ defmodule Mix.Tasks.Compile.App do
     validate_app(app)
     validate_version(version)
 
-    path = Mix.Project.compile_path()
+    path = Keyword.get_lazy(opts, :path, &Mix.Project.compile_path/0)
     mods = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort()
 
     target = Path.join(path, "#{app}.app")
