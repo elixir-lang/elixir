@@ -849,8 +849,6 @@ defmodule Mix.DepTest do
     test "considers only from current app on nested deps" do
       Process.put(:custom_deps_git_repo_opts, only: :other)
 
-      # Pass nil environment to mimic behaviour in umbrellas
-      # where the children are loaded without an environment.
       deps = [
         {:deps_repo, "0.1.0", path: "custom/deps_repo", from_umbrella: true},
         {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), from_umbrella: true}
