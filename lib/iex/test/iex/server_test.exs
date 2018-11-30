@@ -165,5 +165,7 @@ defmodule IEx.ServerTest do
     end
 
     task
+  after
+    :erlang.trace(Process.whereis(IEx.Broker), false, [:receive, tracer: self()])
   end
 end
