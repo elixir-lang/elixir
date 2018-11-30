@@ -38,6 +38,8 @@ defmodule IEx.Helpers do
     * `open/1`         - opens the source for the given module or function in your editor
     * `pid/1`          - creates a PID from a string
     * `pid/3`          - creates a PID with the 3 integer arguments passed
+    * `port/1`         - creates a Port from a string
+    * `port/2`         - creates a Port with the 2 non-negative integers passed
     * `ref/1`          - creates a Reference from a string
     * `ref/4`          - creates a Reference with the 4 integer arguments passed
     * `pwd/0`          - prints the current working directory
@@ -1207,6 +1209,35 @@ defmodule IEx.Helpers do
         Integer.to_charlist(x) ++
         '.' ++ Integer.to_charlist(y) ++ '.' ++ Integer.to_charlist(z) ++ '>'
     )
+  end
+
+  @doc """
+  Creates a Port from `string`.
+
+  ## Examples
+
+      iex> port("0.4")
+      #Port<0.4>
+
+  """
+  def port(string) when is_binary(string) do
+    :erlang.list_to_port('#Port<#{string}>')
+  end
+
+  @doc """
+  Creates a Port from two non-negative integers.
+
+  ## Examples
+
+      iex> port(0, 8080)
+      #Port<0.8080>
+      iex> port(0, 443)
+      #Port<0.443>
+
+  """
+  def port(major, minor)
+      when is_integer(major) and major >= 0 and is_integer(minor) and minor >= 0 do
+    :erlang.list_to_port('#Port<#{major}.#{minor}>')
   end
 
   @doc """
