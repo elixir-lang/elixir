@@ -114,8 +114,9 @@ defmodule Mix do
   project needs to compile to different architectures and some of the
   dependencies are only available to some of them. By default, the target
   is `:host` but it can be set via the `MIX_TARGET` environment variable.
-
   The target can be read via `Mix.target/0`.
+
+  This feature is considered experimental and may change in future releases.
 
   ## Aliases
 
