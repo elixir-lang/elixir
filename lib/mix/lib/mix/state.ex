@@ -12,6 +12,7 @@ defmodule Mix.State do
     %{
       shell: Mix.Shell.IO,
       env: String.to_atom(System.get_env("MIX_ENV") || "dev"),
+      target: String.to_atom(System.get_env("MIX_TARGET") || "host"),
       scm: [Mix.SCM.Git, Mix.SCM.Path]
     }
   end

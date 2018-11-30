@@ -472,14 +472,25 @@ defmodule Mix.Project do
   end
 
   defp env_path(config) do
-    build = config[:build_path] || "_build"
+    dir = config[:build_path] || "_build"
+    subdir = build_target() <> build_per_environment(config)
+    Path.expand(dir <> "/" <> subdir)
+  end
 
+  defp build_target() do
+    case Mix.target() do
+      :host -> ""
+      other -> "#{other}_"
+    end
+  end
+
+  defp build_per_environment(config) do
     case config[:build_per_environment] do
       true ->
-        Path.expand("#{build}/#{Mix.env()}")
+        Atom.to_string(Mix.env())
 
       false ->
-        Path.expand("#{build}/shared")
+        "shared"
 
       other ->
         Mix.raise("The :build_per_environment option should be a boolean, got: #{inspect(other)}")

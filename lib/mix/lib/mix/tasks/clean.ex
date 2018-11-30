@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Clean do
     build =
       Mix.Project.build_path()
       |> Path.dirname()
-      |> Path.join("#{opts[:only] || :*}")
+      |> Path.join("*#{opts[:only]}")
 
     if opts[:deps] do
       build
