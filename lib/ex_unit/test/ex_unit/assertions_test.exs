@@ -332,7 +332,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert_received :no_message_was_sent
     rescue
       error in [ExUnit.AssertionError] ->
-        %ExUnit.Pattern{match_single?: false} = error.left
+        %ExUnit.Mailbox{} = error.right
     end
   end
 
@@ -350,7 +350,7 @@ defmodule ExUnit.AssertionsTest do
           status = :valid\
         """ = error.message
 
-        %ExUnit.Pattern{match_single?: false} = error.left
+        %ExUnit.Mailbox{} = error.right
     end
   end
 

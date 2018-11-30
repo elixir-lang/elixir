@@ -101,7 +101,7 @@ defmodule ExUnit.PatternFormatTest do
     pattern = Pattern.new(left, [], %{})
 
     actual = FormatValue.script(pattern, [1, 2, 3])
-    expected = ["[", "1", ", ", "2", ", ", "3", ", ", {:diff_insert, "4"}, "]"]
+    expected = [{:diff_delete, ["[", ["1"], ", ", ["2"], ", ", ["3"], "]"]}]
 
     assert actual == expected
 
@@ -195,8 +195,6 @@ defmodule ExUnit.PatternFormatTest do
       "%{",
       "d: ",
       "4",
-      ", ",
-      {:diff_insert, "f: \"world\""},
       "}",
       "}",
       ", ",
@@ -265,7 +263,7 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: [a, 2, 3] when is_binary(a)
 
-    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var})
+    pattern = Pattern.new(left, [], %{{:a, __MODULE__} => :ex_unit_unbound_var})
 
     actual = FormatValue.script(pattern, [1, 2, 3])
 
@@ -275,26 +273,22 @@ defmodule ExUnit.PatternFormatTest do
 
   test "using guards, but guard matches" do
     # send(self(), [1, 2, 3])
-    # assert_receive [a, b, 3, 4] when is_binary(a)
+    # assert_receive [a, b, 3, 4] when is_integer(a)
 
-    left = quote do: [a, b, 3, 4] when is_binary(a)
+    left = quote do: [a, b, 3, 4] when is_integer(a)
 
-    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var, b: :ex_unit_unbound_var})
+    pattern =
+      Pattern.new(left, [], %{
+        {:a, __MODULE__} => :ex_unit_unbound_var,
+        {:b, __MODULE__} => :ex_unit_unbound_var
+      })
 
     actual = FormatValue.script(pattern, [1, 2, 3])
 
     expected = [
-      "[",
-      "1",
-      ", ",
-      "2",
-      ", ",
-      "3",
-      ", ",
-      {:diff_insert, "4"},
-      "]",
+      {:diff_delete, ["[", ["1"], ", ", ["2"], ", ", ["3"], "]"]},
       " ",
-      {:diff_delete, "when is_binary(a)"}
+      "when is_integer(a)"
     ]
 
     assert actual == expected
@@ -306,7 +300,11 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: [a, b, 3] when is_binary(a) and is_integer(b)
 
-    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var, b: :ex_unit_unbound_var})
+    pattern =
+      Pattern.new(left, [], %{
+        {:a, __MODULE__} => :ex_unit_unbound_var,
+        {:b, __MODULE__} => :ex_unit_unbound_var
+      })
 
     actual = FormatValue.script(pattern, [1, 2, 3])
 
@@ -334,7 +332,11 @@ defmodule ExUnit.PatternFormatTest do
 
     left = quote do: [a, b, 3] when is_binary(a) or is_binary(b)
 
-    pattern = Pattern.new(left, [], %{a: :ex_unit_unbound_var, b: :ex_unit_unbound_var})
+    pattern =
+      Pattern.new(left, [], %{
+        {:a, __MODULE__} => :ex_unit_unbound_var,
+        {:b, __MODULE__} => :ex_unit_unbound_var
+      })
 
     actual = FormatValue.script(pattern, [1, 2, 3])
 
@@ -442,7 +444,7 @@ defmodule ExUnit.PatternFormatTest do
     pattern = Pattern.new(left, [val: 3], %{})
     actual = FormatValue.script(pattern, %{a: 1, b: 2, c: 3})
 
-    expected = ["%{", "a: ", "1", ", ", {:diff_insert, "d: 3"}, ", ", "b: 2", ", ", "c: 3", "}"]
+    expected = ["%{", "a: ", "1", ", ", "b: 2", ", ", "c: 3", "}"]
 
     assert actual == expected
   end
@@ -461,8 +463,6 @@ defmodule ExUnit.PatternFormatTest do
 
     expected = [
       "%{",
-      {:diff_insert, "a: ~N[2018-01-01 12:30:00]"},
-      ", ",
       "b: ~N[2008-01-01 12:30:00]",
       "}"
     ]
@@ -476,7 +476,7 @@ defmodule ExUnit.PatternFormatTest do
     pattern = Pattern.new(left, [], %{})
     actual = FormatValue.script(pattern, {:a, :b, :c})
 
-    expected = ["{", ":a", ", ", ":b", ", ", ":c", ", ", {:diff_insert, ":d"}, "}"]
+    expected = [{:diff_delete, ["{", [":a"], ", ", [":b"], ", ", [":c"], "}"]}]
     assert actual == expected
   end
 

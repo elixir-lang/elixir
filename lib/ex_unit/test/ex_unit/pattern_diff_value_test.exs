@@ -3,7 +3,7 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule ExUnit.PatternDiffValueTest do
   use ExUnit.Case
 
-  alias ExUnit.{ContainerDiff, Pattern, PatternDiff}
+  alias ExUnit.{ContainerDiff, Pattern, PatternDiff, PinDiff}
 
   describe "value matching" do
     test "integer pattern match" do
@@ -322,11 +322,15 @@ defmodule ExUnit.PatternDiffValueTest do
 
     actual = PatternDiff.compare(pattern, 2)
 
-    expected_match = %PatternDiff{
-      type: :value,
-      lh: %{ast: 1},
-      rh: 2,
-      diff_result: :neq
+    expected_match = %PinDiff{
+      diff: %PatternDiff{
+        type: :value,
+        lh: %{ast: 1},
+        rh: 2,
+        diff_result: :neq
+      },
+      diff_result: :neq,
+      pin: :a
     }
 
     assert actual == expected_match

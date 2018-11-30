@@ -208,11 +208,11 @@ defmodule ExUnit.Pattern.FormatValue do
     [prefix, format(left, ctx), or_val, format(right, ctx)]
   end
 
-  def format(%WhenDiff{result: res, op: op, bindings: keys}, %{print_when?: print_when?}) do
-    [{{key, _}, _value}] = Map.to_list(keys)
+  def format(%WhenDiff{result: res, op: op, bindings: _keys}, %{print_when?: print_when?}) do
     prefix = if print_when?, do: "when ", else: ""
-    ret = "#{prefix}#{to_string(op)}(#{key})"
+    ret = prefix <> Macro.to_string(op)
     ret = if res == :neq, do: delete(ret), else: ret
+
     [ret]
   end
 

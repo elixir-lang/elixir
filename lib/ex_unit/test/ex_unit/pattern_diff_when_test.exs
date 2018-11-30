@@ -11,7 +11,7 @@ defmodule ExUnit.PatternDiffWhenTest do
         a when is_integer(a)
       end
 
-    pattern = Pattern.new(simple, [], %{a: :ex_unit_unbound_var})
+    pattern = Pattern.new(simple, [], %{{:a, ExUnit.PatternDiffWhenTest} => :ex_unit_unbound_var})
 
     expected_match = %ContainerDiff{
       type: :when,
@@ -23,7 +23,9 @@ defmodule ExUnit.PatternDiffWhenTest do
           diff_result: :eq
         },
         %WhenDiff{
-          op: :is_integer,
+          op:
+            {:is_integer, [context: ExUnit.PatternDiffWhenTest, import: Kernel],
+             [{:a, [], ExUnit.PatternDiffWhenTest}]},
           bindings: %{{:a, ExUnit.PatternDiffWhenTest} => 1},
           result: :eq
         }
@@ -31,6 +33,7 @@ defmodule ExUnit.PatternDiffWhenTest do
     }
 
     actual = PatternDiff.compare(pattern, 1)
+
     assert actual == expected_match
 
     expected_no_match = %ContainerDiff{
@@ -43,7 +46,9 @@ defmodule ExUnit.PatternDiffWhenTest do
           diff_result: :eq
         },
         %WhenDiff{
-          op: :is_integer,
+          op:
+            {:is_integer, [context: ExUnit.PatternDiffWhenTest, import: Kernel],
+             [{:a, [], ExUnit.PatternDiffWhenTest}]},
           bindings: %{{:a, ExUnit.PatternDiffWhenTest} => "foo"},
           result: :neq
         }
@@ -60,7 +65,7 @@ defmodule ExUnit.PatternDiffWhenTest do
         a when is_integer(a) or is_binary(a)
       end
 
-    pattern = Pattern.new(simple, [], %{a: :ex_unit_unbound_var})
+    pattern = Pattern.new(simple, [], %{{:a, ExUnit.PatternDiffWhenTest} => :ex_unit_unbound_var})
 
     expected_match = %ContainerDiff{
       type: :when,
@@ -75,12 +80,16 @@ defmodule ExUnit.PatternDiffWhenTest do
           op: :or,
           bindings: [
             %WhenDiff{
-              op: :is_integer,
+              op:
+                {:is_integer, [context: ExUnit.PatternDiffWhenTest, import: Kernel],
+                 [{:a, [], ExUnit.PatternDiffWhenTest}]},
               bindings: %{{:a, ExUnit.PatternDiffWhenTest} => 1},
               result: :eq
             },
             %WhenDiff{
-              op: :is_binary,
+              op:
+                {:is_binary, [context: ExUnit.PatternDiffWhenTest, import: Kernel],
+                 [{:a, [], ExUnit.PatternDiffWhenTest}]},
               bindings: %{{:a, ExUnit.PatternDiffWhenTest} => 1},
               result: :neq
             }
@@ -106,12 +115,16 @@ defmodule ExUnit.PatternDiffWhenTest do
           op: :or,
           bindings: [
             %WhenDiff{
-              op: :is_integer,
+              op:
+                {:is_integer, [context: ExUnit.PatternDiffWhenTest, import: Kernel],
+                 [{:a, [], ExUnit.PatternDiffWhenTest}]},
               bindings: %{{:a, ExUnit.PatternDiffWhenTest} => :foo},
               result: :neq
             },
             %WhenDiff{
-              op: :is_binary,
+              op:
+                {:is_binary, [context: ExUnit.PatternDiffWhenTest, import: Kernel],
+                 [{:a, [], ExUnit.PatternDiffWhenTest}]},
               bindings: %{{:a, ExUnit.PatternDiffWhenTest} => :foo},
               result: :neq
             }
@@ -131,7 +144,11 @@ defmodule ExUnit.PatternDiffWhenTest do
         {a, b} when is_integer(a) and is_binary(b)
       end
 
-    pattern = Pattern.new(simple, [], %{a: :ex_unit_unbound_var, b: :ex_unit_unbound_var})
+    pattern =
+      Pattern.new(simple, [], %{
+        {:a, ExUnit.PatternDiffWhenTest} => :ex_unit_unbound_var,
+        {:b, ExUnit.PatternDiffWhenTest} => :ex_unit_unbound_var
+      })
 
     expected_match = %ContainerDiff{
       type: :when,
@@ -157,13 +174,23 @@ defmodule ExUnit.PatternDiffWhenTest do
           op: :and,
           bindings: [
             %WhenDiff{
-              op: :is_integer,
-              bindings: %{{:a, ExUnit.PatternDiffWhenTest} => 1},
+              op:
+                {:is_integer, [context: ExUnit.PatternDiffWhenTest, import: Kernel],
+                 [{:a, [], ExUnit.PatternDiffWhenTest}]},
+              bindings: %{
+                {:a, ExUnit.PatternDiffWhenTest} => 1,
+                {:b, ExUnit.PatternDiffWhenTest} => "foo"
+              },
               result: :eq
             },
             %WhenDiff{
-              op: :is_binary,
-              bindings: %{{:b, ExUnit.PatternDiffWhenTest} => "foo"},
+              op:
+                {:is_binary, [context: ExUnit.PatternDiffWhenTest, import: Kernel],
+                 [{:b, [], ExUnit.PatternDiffWhenTest}]},
+              bindings: %{
+                {:b, ExUnit.PatternDiffWhenTest} => "foo",
+                {:a, ExUnit.PatternDiffWhenTest} => 1
+              },
               result: :eq
             }
           ],
