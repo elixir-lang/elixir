@@ -399,19 +399,10 @@ defmodule ExUnit.PatternDiff do
     evaluate_when({:or, env, when_vars}, {vars, pins})
   end
 
-  defp evaluate_when({atom, _, when_vars}, {vars, _pins}) do
-    v =
-      when_vars
-      |> Enum.map(fn var -> Map.get(vars, get_var(var)) end)
-
-    bindings =
-      when_vars
-      |> Enum.map(fn var -> {get_var(var), Map.get(vars, get_var(var))} end)
-      |> Map.new()
-
-    result = if :erlang.apply(Kernel, atom, v), do: :eq, else: :neq
-
-    %WhenDiff{op: atom, bindings: bindings, result: result}
+  defp evaluate_when({_atom, _, _when_vars} = op, {vars, _pins}) do
+    {match?, _bindings2} = Code.eval_quoted(op, Enum.to_list(vars))
+    result = if match?, do: :eq, else: :neq
+    %WhenDiff{op: op, bindings: vars, result: result}
   end
 
   defp translate_key({:^, _, [{pin, _, _}]}, {_vars, pins}) do
@@ -425,4 +416,6 @@ defmodule ExUnit.PatternDiff do
   defp get_var({var, meta, context}) when is_atom(var) and is_atom(context) do
     {var, meta[:counter] || context}
   end
+
+  defp get_var(_), do: nil
 end

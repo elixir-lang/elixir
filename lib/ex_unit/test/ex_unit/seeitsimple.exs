@@ -28,4 +28,20 @@ defmodule ExUnit.SeeItMatch do
   test "#6" do
     assert {1, 2, 3} = {1, 2, 3, 4}
   end
+
+  test "#7" do
+    send(self(), %{a: 1, b: 1, d: 2, c: 3})
+    send(self(), %{a: 3})
+    send(self(), %{a: 4, b: 2})
+    assert_receive %{a: 2}
+  end
+
+  test "#8" do
+    send(
+      self(),
+      {:save_doc, %{:status => :created, :sync_history => %{"map" => true}, "other" => true}}
+    )
+
+    assert_receive {:save_doc, %{status: :creted, sync_history: []} = doc}
+  end
 end
