@@ -752,11 +752,9 @@ defmodule Mix.DepTest do
     test "converges and diverges when only is not specified" do
       Process.put(:custom_deps_git_repo_opts, only: :test)
 
-      # Pass nil environment to mimic behaviour in umbrellas
-      # where the children are loaded without an environment.
       deps = [
-        {:abc_repo, "0.1.0", path: "custom/abc_repo", env: nil},
-        {:deps_repo, "0.1.0", path: "custom/deps_repo", env: nil}
+        {:abc_repo, "0.1.0", path: "custom/abc_repo", from_umbrella: true},
+        {:deps_repo, "0.1.0", path: "custom/deps_repo", from_umbrella: true}
       ]
 
       with_deps(deps, fn ->
@@ -834,6 +832,28 @@ defmodule Mix.DepTest do
       deps = [
         {:deps_repo, "0.1.0", path: "custom/deps_repo"},
         {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
+      ]
+
+      with_deps(deps, fn ->
+        in_fixture("deps_status", fn ->
+          Mix.Tasks.Deps.Compile.run([])
+
+          {:ok, [{:application, :deps_repo, opts}]} =
+            :file.consult("_build/dev/lib/deps_repo/ebin/deps_repo.app")
+
+          assert :git_repo not in Keyword.get(opts, :applications)
+        end)
+      end)
+    end
+
+    test "considers only from current app on nested deps" do
+      Process.put(:custom_deps_git_repo_opts, only: :other)
+
+      # Pass nil environment to mimic behaviour in umbrellas
+      # where the children are loaded without an environment.
+      deps = [
+        {:deps_repo, "0.1.0", path: "custom/deps_repo", from_umbrella: true},
+        {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), from_umbrella: true}
       ]
 
       with_deps(deps, fn ->
