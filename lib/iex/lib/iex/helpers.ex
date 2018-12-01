@@ -1237,7 +1237,9 @@ defmodule IEx.Helpers do
   """
   def port(major, minor)
       when is_integer(major) and major >= 0 and is_integer(minor) and minor >= 0 do
-    :erlang.list_to_port('#Port<#{major}.#{minor}>')
+    :erlang.list_to_port(
+      '#Port<' ++ Integer.to_charlist(major) ++ '.' ++ Integer.to_charlist(minor) ++ '>'
+    )
   end
 
   @doc """
