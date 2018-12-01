@@ -1143,6 +1143,26 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  describe "port" do
+    test "builds a port from string" do
+      assert inspect(port("0.8080")) == "#Port<0.8080>"
+      assert inspect(port("0.0")) == "#Port<0.0>"
+
+      assert_raise ArgumentError, fn ->
+        port("0.-6")
+      end
+    end
+
+    test "builds a port from integers" do
+      assert inspect(port(0, 8080)) == "#Port<0.8080>"
+      assert inspect(port(0, 0)) == "#Port<0.0>"
+
+      assert_raise FunctionClauseError, fn ->
+        port(-1, -6)
+      end
+    end
+  end
+
   describe "ref" do
     test "builds a ref from string" do
       ref = make_ref()
