@@ -337,7 +337,14 @@ defmodule Mix.Tasks.Compile.App do
   defp runtime_dep?(_), do: true
 
   defp runtime_opts?(opts) do
-    Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true)
+    Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) and matching_only?(opts)
+  end
+
+  defp matching_only?(opts) do
+    case Keyword.fetch(opts, :only) do
+      {:ok, value} -> Mix.env() in List.wrap(value)
+      :error -> true
+    end
   end
 
   defp normalize_apps(apps, extra, config) do
