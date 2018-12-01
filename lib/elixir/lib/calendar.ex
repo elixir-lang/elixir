@@ -90,6 +90,23 @@ defmodule Calendar do
           microsecond: microsecond
         }
 
+  @typedoc "Any map/struct that contains the datetime fields"
+  @type datetime :: %{
+          optional(any) => any,
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond,
+          time_zone: time_zone,
+          zone_abbr: zone_abbr,
+          utc_offset: utc_offset,
+          std_offset: std_offset
+        }
+
   @typedoc """
   Specifies the time zone database for calendar operations.
 
