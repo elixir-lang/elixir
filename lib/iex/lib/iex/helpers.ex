@@ -1220,6 +1220,7 @@ defmodule IEx.Helpers do
       #Port<0.4>
 
   """
+  @doc since: "1.8.0"
   def port(string) when is_binary(string) do
     :erlang.list_to_port('#Port<#{string}>')
   end
@@ -1235,6 +1236,7 @@ defmodule IEx.Helpers do
       #Port<0.443>
 
   """
+  @doc since: "1.8.0"
   def port(major, minor)
       when is_integer(major) and major >= 0 and is_integer(minor) and minor >= 0 do
     :erlang.list_to_port(
