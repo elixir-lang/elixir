@@ -8,8 +8,8 @@
 
 ### Environment
 
-* Elixir & Erlang/OTP versions (elixir --version):
-* Operating system:
+* Elixir & Erlang/OTP versions (elixir --version): 
+* Operating system: 
 
 ### Current behavior
 
