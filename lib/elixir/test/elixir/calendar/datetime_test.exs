@@ -22,6 +22,10 @@ defmodule DateTimeTest do
     }
 
     assert to_string(datetime) == "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
+    assert DateTime.to_string(datetime) == "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
+
+    assert DateTime.to_string(Map.from_struct(datetime)) ==
+             "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
   end
 
   test "from_iso8601/1 handles positive and negative offsets" do
@@ -256,6 +260,7 @@ defmodule DateTimeTest do
     }
 
     assert DateTime.to_unix(gregorian_0) == -62_167_219_200
+    assert DateTime.to_unix(Map.from_struct(gregorian_0)) == -62_167_219_200
 
     min_datetime = %DateTime{gregorian_0 | year: -9999}
 
@@ -311,6 +316,7 @@ defmodule DateTimeTest do
     assert DateTime.compare(datetime3, datetime3) == :eq
     assert DateTime.compare(datetime2, datetime3) == :gt
     assert DateTime.compare(datetime3, datetime1) == :lt
+    assert DateTime.compare(Map.from_struct(datetime3), Map.from_struct(datetime1)) == :lt
   end
 
   test "convert/2" do
@@ -354,6 +360,14 @@ defmodule DateTimeTest do
            |> DateTime.convert!(Calendar.ISO) == %{datetime_iso | microsecond: {123, 6}}
 
     assert DateTime.convert(datetime_iso, FakeCalendar) == {:error, :incompatible_calendars}
+
+    # Test passing non-struct map when converting to different calendar returns DateTime struct
+    assert DateTime.convert(Map.from_struct(datetime_iso), Calendar.Holocene) ==
+             {:ok, datetime_hol}
+
+    # Test passing non-struct map when converting to same calendar returns DateTime struct
+    assert DateTime.convert(Map.from_struct(datetime_iso), Calendar.ISO) ==
+             {:ok, datetime_iso}
   end
 
   test "from_iso8601/1 with tz offsets" do
@@ -469,7 +483,13 @@ defmodule DateTimeTest do
       time_zone: "Europe/Paris"
     }
 
+    datetime_map = Map.from_struct(datetime)
+
     assert DateTime.truncate(%{datetime | microsecond: {123_456, 6}}, :microsecond) ==
+             %{datetime | microsecond: {123_456, 6}}
+
+    # A struct should be returned when passing a map.
+    assert DateTime.truncate(%{datetime_map | microsecond: {123_456, 6}}, :microsecond) ==
              %{datetime | microsecond: {123_456, 6}}
 
     assert DateTime.truncate(%{datetime | microsecond: {0, 0}}, :millisecond) ==
@@ -524,6 +544,9 @@ defmodule DateTimeTest do
     }
 
     assert DateTime.diff(dt1, dt2) == 3_281_904_000
+
+    # Test with a non-struct map conforming to Calendar.datetime
+    assert DateTime.diff(Map.from_struct(dt1), Map.from_struct(dt2)) == 3_281_904_000
   end
 
   describe "from_naive" do
@@ -702,6 +725,25 @@ defmodule DateTimeTest do
   end
 
   describe "add" do
+    test "add with non-struct map that conforms to Calendar.datetime" do
+      dt_map = DateTime.from_naive!(~N[2018-08-28 00:00:00], "Etc/UTC") |> Map.from_struct()
+
+      assert DateTime.add(dt_map, 1, :second) == %DateTime{
+               calendar: Calendar.ISO,
+               year: 2018,
+               month: 8,
+               day: 28,
+               hour: 0,
+               minute: 0,
+               second: 1,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC",
+               utc_offset: 0,
+               microsecond: {0, 0}
+             }
+    end
+
     test "error with UTC only database and non UTC datetime" do
       dt =
         DateTime.from_naive!(~N[2018-08-28 00:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
@@ -730,6 +772,21 @@ defmodule DateTimeTest do
                  utc_offset: 0,
                  microsecond: {123_456, 6}
                }
+    end
+  end
+
+  describe "to_iso8601" do
+    test "to_iso8601/2 with a normal DateTime struct" do
+      datetime = DateTime.from_naive!(~N[2018-07-01 12:34:25.123456], "Etc/UTC")
+
+      assert DateTime.to_iso8601(datetime) == "2018-07-01T12:34:25.123456Z"
+    end
+
+    test "to_iso8601/2 with a non-struct map conforming to the Calendar.datetime type" do
+      datetime_map =
+        DateTime.from_naive!(~N[2018-07-01 12:34:25.123456], "Etc/UTC") |> Map.from_struct()
+
+      assert DateTime.to_iso8601(datetime_map) == "2018-07-01T12:34:25.123456Z"
     end
   end
 end
