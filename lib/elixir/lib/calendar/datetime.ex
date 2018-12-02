@@ -1098,8 +1098,12 @@ defmodule DateTime do
   """
   @doc since: "1.6.0"
   @spec truncate(Calendar.datetime(), :microsecond | :millisecond | :second) :: t()
-  def truncate(%{microsecond: microsecond} = datetime, precision) do
+  def truncate(%DateTime{microsecond: microsecond} = datetime, precision) do
     %{datetime | microsecond: Calendar.truncate(microsecond, precision)}
+  end
+
+  def truncate(%{} = datetime_map, precision) do
+    truncate(from_map(datetime_map), precision)
   end
 
   @doc """
@@ -1129,8 +1133,12 @@ defmodule DateTime do
   @spec convert(Calendar.datetime(), Calendar.calendar()) ::
           {:ok, t} | {:error, :incompatible_calendars}
 
-  def convert(%{calendar: calendar} = datetime, calendar) do
+  def convert(%DateTime{calendar: calendar} = datetime, calendar) do
     {:ok, datetime}
+  end
+
+  def convert(%{calendar: calendar} = datetime, calendar) do
+    {:ok, from_map(datetime)}
   end
 
   def convert(%{calendar: dt_calendar, microsecond: {_, precision}} = datetime, calendar) do
@@ -1226,6 +1234,22 @@ defmodule DateTime do
 
   defp apply_tz_offset(iso_days, offset) do
     Calendar.ISO.add_day_fraction_to_iso_days(iso_days, -offset, 86400)
+  end
+
+  defp from_map(%{} = datetime_map) do
+    %DateTime{
+      year: datetime_map.year,
+      month: datetime_map.month,
+      day: datetime_map.day,
+      hour: datetime_map.hour,
+      minute: datetime_map.minute,
+      second: datetime_map.second,
+      microsecond: datetime_map.microsecond,
+      time_zone: datetime_map.time_zone,
+      zone_abbr: datetime_map.zone_abbr,
+      utc_offset: datetime_map.utc_offset,
+      std_offset: datetime_map.std_offset
+    }
   end
 
   defimpl String.Chars do
