@@ -641,7 +641,7 @@ defmodule ExUnit.DocTestTest do
 
   test "fails in indentation mismatch" do
     message =
-      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: "   iex> bar = 2", should have been 2 spaces]
+      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch on doctest line: \"   iex> bar = 2\".*is exactly 2 spaces]s
 
     assert_raise ExUnit.DocTest.Error, message, fn ->
       defmodule NeverCompiled do
@@ -651,7 +651,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     message =
-      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: "    3", should have been 2 spaces]
+      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch on doctest line: \"    3\".*is exactly 2 spaces]s
 
     assert_raise ExUnit.DocTest.Error, message, fn ->
       defmodule NeverCompiled do
@@ -661,7 +661,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     message =
-      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: \"  3\", should have been 4 spaces]
+      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch on doctest line: \"  3\".*is exactly 4 spaces]s
 
     assert_raise ExUnit.DocTest.Error, message, fn ->
       defmodule NeverCompiled do
