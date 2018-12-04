@@ -349,6 +349,8 @@ defmodule Calendar.ISO do
   @doc """
   Returns the week of a given date according to ISO.
 
+  # Examples
+
       # First day of the year is a monday
       iex> Calendar.ISO.week_of_year(2017, 12, 31)
       {2017, 52, 7}
@@ -422,7 +424,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec week_of_year(year, month, day) :: {year, 1..54, 1..7}
+  @spec week_of_year(year, month, day) :: {year, 1..53, 1..7}
   @impl true
   def week_of_year(year, month, day) do
     true = day <= days_in_month(year, month)
