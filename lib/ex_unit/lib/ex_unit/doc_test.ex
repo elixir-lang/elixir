@@ -536,7 +536,7 @@ defmodule ExUnit.DocTest do
 
           If you are planning to assert on the result of an `iex>` expression, \
           make sure the result is indented at the beginning of `iex>`, which \
-          in this case is exactly #{n_spaces} spaces.
+          in this case is exactly #{n_spaces}.
 
           If instead you have an `iex>` expression that spans over multiple lines, \
           please make sure that each line after the first one begins with `...>`.
