@@ -426,19 +426,17 @@ defmodule Calendar.ISO do
   @impl true
   def week_of_year(year, month, day) do
     true = day <= days_in_month(year, month)
-
     {first_day_of_year, first_week_day_of_year} = first_day_and_week_day_of_year_in_iso_days(year)
 
-    leap_day_offset = leap_day_offset(year, month)
-    day_of_year = days_before_month(month) + leap_day_offset + day
-    iso_days = first_day_of_year + day_of_year - 1
+    iso_days =
+      first_day_of_year + days_before_month(month) + leap_day_offset(year, month) + day - 1
+
     day_of_week = iso_days_to_day_of_week(iso_days)
-    maybe_next_year_week_limit = @days_per_nonleap_year + leap_day_offset - 3
 
     cond do
       # If we are in a monday, tuesday or wednesday where the thursday
       # is in the next year, so we are already in the next year week.
-      month == 12 and day_of_year > maybe_next_year_week_limit and day_of_week < 4 ->
+      month == 12 and day >= 29 and day_of_week < 4 ->
         {year + 1, 1, day_of_week}
 
       # If we are in a friday, saturday, sunday as one of the first
