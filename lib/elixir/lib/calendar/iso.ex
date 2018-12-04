@@ -351,7 +351,7 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      # First day of the year is a monday
+      # First day of the year is a Monday
       iex> Calendar.ISO.week_of_year(2017, 12, 31)
       {2017, 52, 7}
       iex> Calendar.ISO.week_of_year(2018, 1, 1)
@@ -359,7 +359,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.week_of_year(2018, 1, 2)
       {2018, 1, 2}
 
-      # First day of the year is a tuesday
+      # First day of the year is a Tuesday
       iex> Calendar.ISO.week_of_year(2018, 12, 31)
       {2019, 1, 1}
       iex> Calendar.ISO.week_of_year(2019, 1, 1)
@@ -367,7 +367,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.week_of_year(2019, 1, 2)
       {2019, 1, 3}
 
-      # First day of the year is a wednesday
+      # First day of the year is a Wednesday
       iex> Calendar.ISO.week_of_year(2013, 12, 29)
       {2013, 52, 7}
       iex> Calendar.ISO.week_of_year(2013, 12, 30)
@@ -379,7 +379,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.week_of_year(2014, 1, 2)
       {2014, 1, 4}
 
-      # First day of the year is a thursday
+      # First day of the year is a Thursday
       iex> Calendar.ISO.week_of_year(2014, 12, 28)
       {2014, 52, 7}
       iex> Calendar.ISO.week_of_year(2014, 12, 29)
@@ -393,7 +393,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.week_of_year(2015, 1, 2)
       {2015, 1, 5}
 
-      # First day of the year is a friday
+      # First day of the year is a Friday
       iex> Calendar.ISO.week_of_year(2016, 1, 1)
       {2015, 53, 5}
       iex> Calendar.ISO.week_of_year(2016, 1, 2)
@@ -403,7 +403,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.week_of_year(2016, 1, 4)
       {2016, 1, 1}
 
-      # First day of the year is a saturday
+      # First day of the year is a Saturday
       iex> Calendar.ISO.week_of_year(2011, 1, 1)
       {2010, 52, 6}
       iex> Calendar.ISO.week_of_year(2011, 1, 2)
@@ -411,7 +411,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.week_of_year(2011, 1, 3)
       {2011, 1, 1}
 
-      # First day of the year is a sunday
+      # First day of the year is a Sunday
       iex> Calendar.ISO.week_of_year(2017, 1, 1)
       {2016, 52, 7}
       iex> Calendar.ISO.week_of_year(2017, 1, 2)
