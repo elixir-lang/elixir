@@ -660,6 +660,42 @@ defmodule Date do
   end
 
   @doc """
+  Calculates the week of year of a given `date`.
+
+  It returns a tuple with the year, the week and the day of week.
+  For the ISO 8601 calendar (the default), the first week of the
+  year is the first one that has a thursday.
+
+  ## Examples
+
+      iex> Date.week_of_year(~D[2016-01-01])
+      {2015, 53, 5}
+      iex> Date.week_of_year(~D[2016-01-04])
+      {2016, 1, 1}
+
+      iex> Date.week_of_year(~D[2018-12-31])
+      {2019, 1, 1}
+      iex> Date.week_of_year(~D[2019-01-01])
+      {2019, 1, 2}
+
+      iex> Date.week_of_year(~D[2016-11-01])
+      {2016, 44, 2}
+      iex> Date.week_of_year(~D[-0015-10-30])
+      {-15, 44, 3}
+      iex> Date.week_of_year(~D[2004-12-31])
+      {2004, 53, 5}
+
+  """
+  @doc since: "1.8.0"
+  @spec week_of_year(Calendar.date()) ::
+          {Calendar.year(), Calendar.week(), Calendar.day_of_week()}
+  def week_of_year(date)
+
+  def week_of_year(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.week_of_year(year, month, day)
+  end
+
+  @doc """
   Calculates the day of the year of a given `date`.
 
   Returns the day of the year as an integer. For the ISO 8601

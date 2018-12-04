@@ -339,7 +339,128 @@ defmodule Calendar.ISO do
   @impl true
   def day_of_week(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    Integer.mod(date_to_iso_days(year, month, day) + 5, 7) + 1
+    iso_days_to_day_of_week(date_to_iso_days(year, month, day))
+  end
+
+  defp iso_days_to_day_of_week(iso_days) do
+    Integer.mod(iso_days + 5, 7) + 1
+  end
+
+  @doc """
+  Returns the week of a given date according to ISO.
+
+      # First day of the year is a monday
+      iex> Calendar.ISO.week_of_year(2017, 12, 31)
+      {2017, 52, 7}
+      iex> Calendar.ISO.week_of_year(2018, 1, 1)
+      {2018, 1, 1}
+      iex> Calendar.ISO.week_of_year(2018, 1, 2)
+      {2018, 1, 2}
+
+      # First day of the year is a tuesday
+      iex> Calendar.ISO.week_of_year(2018, 12, 31)
+      {2019, 1, 1}
+      iex> Calendar.ISO.week_of_year(2019, 1, 1)
+      {2019, 1, 2}
+      iex> Calendar.ISO.week_of_year(2019, 1, 2)
+      {2019, 1, 3}
+
+      # First day of the year is a wednesday
+      iex> Calendar.ISO.week_of_year(2013, 12, 29)
+      {2013, 52, 7}
+      iex> Calendar.ISO.week_of_year(2013, 12, 30)
+      {2014, 1, 1}
+      iex> Calendar.ISO.week_of_year(2013, 12, 31)
+      {2014, 1, 2}
+      iex> Calendar.ISO.week_of_year(2014, 1, 1)
+      {2014, 1, 3}
+      iex> Calendar.ISO.week_of_year(2014, 1, 2)
+      {2014, 1, 4}
+
+      # First day of the year is a thursday
+      iex> Calendar.ISO.week_of_year(2014, 12, 28)
+      {2014, 52, 7}
+      iex> Calendar.ISO.week_of_year(2014, 12, 29)
+      {2015, 1, 1}
+      iex> Calendar.ISO.week_of_year(2014, 12, 30)
+      {2015, 1, 2}
+      iex> Calendar.ISO.week_of_year(2014, 12, 31)
+      {2015, 1, 3}
+      iex> Calendar.ISO.week_of_year(2015, 1, 1)
+      {2015, 1, 4}
+      iex> Calendar.ISO.week_of_year(2015, 1, 2)
+      {2015, 1, 5}
+
+      # First day of the year is a friday
+      iex> Calendar.ISO.week_of_year(2016, 1, 1)
+      {2015, 53, 5}
+      iex> Calendar.ISO.week_of_year(2016, 1, 2)
+      {2015, 53, 6}
+      iex> Calendar.ISO.week_of_year(2016, 1, 3)
+      {2015, 53, 7}
+      iex> Calendar.ISO.week_of_year(2016, 1, 4)
+      {2016, 1, 1}
+
+      # First day of the year is a saturday
+      iex> Calendar.ISO.week_of_year(2011, 1, 1)
+      {2010, 52, 6}
+      iex> Calendar.ISO.week_of_year(2011, 1, 2)
+      {2010, 52, 7}
+      iex> Calendar.ISO.week_of_year(2011, 1, 3)
+      {2011, 1, 1}
+
+      # First day of the year is a sunday
+      iex> Calendar.ISO.week_of_year(2017, 1, 1)
+      {2016, 52, 7}
+      iex> Calendar.ISO.week_of_year(2017, 1, 2)
+      {2017, 1, 1}
+
+  Any other date:
+
+      iex> Calendar.ISO.week_of_year(2018, 12, 4)
+      {2018, 49, 2}
+
+  """
+  @doc since: "1.8.0"
+  @spec week_of_year(year, month, day) :: {year, 1..54, 1..7}
+  @impl true
+  def week_of_year(year, month, day) do
+    true = day <= days_in_month(year, month)
+
+    {first_day_of_year, first_week_day_of_year} = first_day_and_week_day_of_year_in_iso_days(year)
+
+    leap_day_offset = leap_day_offset(year, month)
+    day_of_year = days_before_month(month) + leap_day_offset + day
+    iso_days = first_day_of_year + day_of_year - 1
+    day_of_week = iso_days_to_day_of_week(iso_days)
+    maybe_next_year_week_limit = @days_per_nonleap_year + leap_day_offset - 3
+
+    cond do
+      # If we are in a monday, tuesday or wednesday where the thursday
+      # is in the next year, so we are already in the next year week.
+      month == 12 and day_of_year > maybe_next_year_week_limit and day_of_week < 4 ->
+        {year + 1, 1, day_of_week}
+
+      # If we are in a friday, saturday, sunday as one of the first
+      # three days in the year, so we are still in the previous year.
+      iso_days < first_week_day_of_year ->
+        {_, first_week_day_of_year} = first_day_and_week_day_of_year_in_iso_days(year - 1)
+        {year - 1, div(iso_days - first_week_day_of_year, 7) + 1, day_of_week}
+
+      true ->
+        {year, div(iso_days - first_week_day_of_year, 7) + 1, day_of_week}
+    end
+  end
+
+  defp first_day_and_week_day_of_year_in_iso_days(year) do
+    first_day_of_year = days_in_previous_years(year)
+    day_of_week = iso_days_to_day_of_week(first_day_of_year)
+
+    if day_of_week > 4 do
+      {first_day_of_year, first_day_of_year + 7 - day_of_week + 1}
+    else
+      {first_day_of_year, first_day_of_year - day_of_week + 1}
+    end
   end
 
   @doc """
