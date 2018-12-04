@@ -662,7 +662,7 @@ defmodule Date do
   @doc """
   Calculates the week of year of a given `date`.
 
-  It returns a tuple with the year, the week and the day of week.
+  It returns a tuple with the year, the week, and the day of the week.
   For the ISO 8601 calendar (the default), the first week of the
   year is the first one that has a thursday.
 
