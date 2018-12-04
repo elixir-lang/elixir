@@ -664,7 +664,7 @@ defmodule Date do
 
   It returns a tuple with the year, the week, and the day of the week.
   For the ISO 8601 calendar (the default), the first week of the
-  year is the first one that has a thursday.
+  year is the first one that has a Thursday.
 
   ## Examples
 
