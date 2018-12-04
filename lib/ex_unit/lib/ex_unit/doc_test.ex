@@ -531,7 +531,16 @@ defmodule ExUnit.DocTest do
         raise Error,
           line: line_no,
           module: module,
-          message: "indentation level mismatch: #{inspect(line)}, should have been #{n_spaces}"
+          message: """
+          indentation level mismatch on doctest line: #{inspect(line)}
+
+          If you are planning to assert on the result of an `iex>` expression, \
+          make sure the result is indented at the beginning of `iex>`, which \
+          in this case is exactly #{n_spaces} spaces.
+
+          If instead you have a `iex>` expression that spans over multiple lines, \
+          please make sure that each line after the first one begins with `...>`.
+          """
     end
 
     adjusted_lines = [{stripped_line, line_no} | adjusted_lines]

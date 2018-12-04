@@ -640,8 +640,9 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "fails in indentation mismatch" do
-    message =
-      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: "   iex> bar = 2", should have been 2 spaces]
+    message = """
+    test/ex_unit/doc_test_test.exs:222: indentation level mismatch on doctest line: \"   iex> bar = 2\"\n\nIf you are planning to assert on the result of an `iex>` expression, make sure the result is indented at the beginning of `iex>`, which in this case is exactly 2 spaces spaces.\n\nIf instead you have a `iex>` expression that spans over multiple lines, please make sure that each line after the first one begins with `...>`.
+    """
 
     assert_raise ExUnit.DocTest.Error, message, fn ->
       defmodule NeverCompiled do
@@ -650,8 +651,9 @@ defmodule ExUnit.DocTestTest do
       end
     end
 
-    message =
-      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: "    3", should have been 2 spaces]
+    message = """
+    test/ex_unit/doc_test_test.exs:233: indentation level mismatch on doctest line: \"    3\"\n\nIf you are planning to assert on the result of an `iex>` expression, make sure the result is indented at the beginning of `iex>`, which in this case is exactly 2 spaces spaces.\n\nIf instead you have a `iex>` expression that spans over multiple lines, please make sure that each line after the first one begins with `...>`.
+    """
 
     assert_raise ExUnit.DocTest.Error, message, fn ->
       defmodule NeverCompiled do
@@ -660,8 +662,9 @@ defmodule ExUnit.DocTestTest do
       end
     end
 
-    message =
-      ~r[test/ex_unit/doc_test_test\.exs:\d+: indentation level mismatch: \"  3\", should have been 4 spaces]
+    message = """
+    test/ex_unit/doc_test_test.exs:242: indentation level mismatch on doctest line: \"  3\"\n\nIf you are planning to assert on the result of an `iex>` expression, make sure the result is indented at the beginning of `iex>`, which in this case is exactly 4 spaces spaces.\n\nIf instead you have a `iex>` expression that spans over multiple lines, please make sure that each line after the first one begins with `...>`.
+    """
 
     assert_raise ExUnit.DocTest.Error, message, fn ->
       defmodule NeverCompiled do
