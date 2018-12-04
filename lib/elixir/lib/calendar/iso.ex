@@ -349,7 +349,7 @@ defmodule Calendar.ISO do
   @doc """
   Returns the week of a given date according to ISO.
 
-  # Examples
+  ## Examples
 
       # First day of the year is a monday
       iex> Calendar.ISO.week_of_year(2017, 12, 31)
