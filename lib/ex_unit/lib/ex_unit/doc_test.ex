@@ -538,7 +538,7 @@ defmodule ExUnit.DocTest do
           make sure the result is indented at the beginning of `iex>`, which \
           in this case is exactly #{n_spaces} spaces.
 
-          If instead you have a `iex>` expression that spans over multiple lines, \
+          If instead you have an `iex>` expression that spans over multiple lines, \
           please make sure that each line after the first one begins with `...>`.
           """
     end
