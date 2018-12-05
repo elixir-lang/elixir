@@ -344,6 +344,7 @@ defmodule ExUnit do
   reverse order. In other words, the last callback set will be the first to be
   called.
   """
+  @doc since: "1.8.0"
   @spec after_suite((suite_result() -> any)) :: :ok
   def after_suite(function) when is_function(function) do
     current_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
