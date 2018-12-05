@@ -34,11 +34,7 @@ define APP_TEMPLATE
 $(1): lib/$(1)/ebin/Elixir.$(2).beam lib/$(1)/ebin/$(1).app
 
 lib/$(1)/ebin/$(1).app: lib/$(1)/mix.exs
-	$(Q) mkdir -p lib/$(1)/_build/shared/lib/$(1)
-	$(Q) cp -R lib/$(1)/ebin lib/$(1)/_build/shared/lib/$(1)/
-	$(Q) cd lib/$(1) && ../../bin/elixir -e 'Mix.start(:permanent, [])' -r mix.exs -e 'Mix.Task.run("compile.app")'
-	$(Q) cp lib/$(1)/_build/shared/lib/$(1)/ebin/$(1).app lib/$(1)/ebin/$(1).app
-	$(Q) rm -rf lib/$(1)/_build
+	$(Q) cd lib/$(1) && ../../bin/elixir -e 'Mix.start(:permanent, [])' -r mix.exs -e 'Mix.Task.run("compile.app", ~w[--compile-path ebin])'
 
 lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex)
 	@ echo "==> $(1) (compile)"
