@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Compile.App do
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
-    * `--compile-path path` - where to find `.beam` files and write the
+    * `--compile-path` - where to find `.beam` files and write the
       resulting `.app` file, defaults to `Mix.Project.compile_path/0`
 
   ## Phases
