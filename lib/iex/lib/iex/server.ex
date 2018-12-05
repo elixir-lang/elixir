@@ -28,6 +28,7 @@ defmodule IEx.Server do
     * `:binding` - an initial set of variables for the evaluator
 
   """
+  @doc since: "1.8.0"
   @spec run(keyword) :: :ok
   def run(opts) when is_list(opts) do
     IEx.Broker.register(self())
