@@ -77,12 +77,17 @@ defmodule Calendar.UTCOnlyTimeZoneDatabase do
 
   For all other time zones, it returns `{:error, :utc_only_time_zone_database}`.
   """
+
+  @behaviour Calendar.TimeZoneDatabase
+
+  @impl true
   def time_zone_period_from_utc_iso_days(_, "Etc/UTC"),
     do: {:ok, %{std_offset: 0, utc_offset: 0, zone_abbr: "UTC"}}
 
   def time_zone_period_from_utc_iso_days(_, _),
     do: {:error, :utc_only_time_zone_database}
 
+  @impl true
   def time_zone_periods_from_wall_datetime(_, "Etc/UTC"),
     do: {:ok, %{std_offset: 0, utc_offset: 0, zone_abbr: "UTC"}}
 
