@@ -314,6 +314,7 @@ defmodule Application do
   application environment. `new` is a keyword list with all new keys
   and their values. `removed` is a list with all removed keys.
   """
+  @doc since: "1.8.0"
   @callback config_change(changed, new, removed) :: :ok
             when changed: keyword, new: keyword, removed: [atom]
 

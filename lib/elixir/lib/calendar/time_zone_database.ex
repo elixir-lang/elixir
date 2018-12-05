@@ -42,6 +42,7 @@ defmodule Calendar.TimeZoneDatabase do
   Takes a time zone name and a point in time for UTC and returns a
   `time_zone_period` for that point in time.
   """
+  @doc since: "1.8.0"
   @callback time_zone_period_from_utc_iso_days(Calendar.iso_days(), Calendar.time_zone()) ::
               {:ok, time_zone_period}
               | {:error, :time_zone_not_found | :utc_only_time_zone_database}
@@ -61,6 +62,7 @@ defmodule Calendar.TimeZoneDatabase do
   If there is only a single possible period for the provided `datetime`, the a tuple with `:single`
   and the `time_zone_period` is returned.
   """
+  @doc since: "1.8.0"
   @callback time_zone_periods_from_wall_datetime(Calendar.naive_datetime(), Calendar.time_zone()) ::
               {:ok, time_zone_period}
               | {:ambiguous, time_zone_period, time_zone_period}
