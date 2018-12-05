@@ -477,7 +477,7 @@ defmodule Mix.Project do
     Path.expand(dir <> "/" <> subdir)
   end
 
-  defp build_target() do
+  defp build_target do
     case Mix.target() do
       :host -> ""
       other -> "#{other}_"
