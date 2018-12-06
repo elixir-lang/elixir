@@ -393,7 +393,7 @@ defmodule Macro do
       the metadata, we ensure that the module is deterministic and reduce
       the amount of data `ExUnit` needs to keep around.
 
-  ## Comparison to `Kernel.quote/2`
+  ## Comparison to `Kernel.SpecialForms.quote/2`
 
   The `escape/2` function is sometimes confused with `Kernel.SpecialForms.quote/2`,
   because the above examples behave the same with both. The key difference is
