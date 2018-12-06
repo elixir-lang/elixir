@@ -180,7 +180,7 @@ defmodule Calendar do
   @doc """
   Calculates the day and era from the given `year`, `month`, and `day`.
   """
-  @callback day_of_era(year, month, day) :: {day, era}
+  @callback day_of_era(year, month, day) :: {non_neg_integer(), era}
 
   @doc """
   Converts the date into a string according to the calendar.
