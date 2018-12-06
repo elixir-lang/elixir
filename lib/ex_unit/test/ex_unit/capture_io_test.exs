@@ -316,20 +316,26 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "device re-registering" do
-    {_pid, ref} =
-      spawn_monitor(fn ->
+    parent = self()
+
+    pid =
+      spawn(fn ->
         capture_io(:stderr, fn ->
-          spawn_link(Kernel, :exit, [:shutdown])
+          send(parent, :ready)
           Process.sleep(:infinity)
         end)
       end)
 
-    # Assert the process is down then invoke capture_io
-    # to trigger the ExUnit.Server, ensuring the DOWN
-    # message from previous capture_io has been processed
-    assert_receive {:DOWN, ^ref, _, _, :shutdown}
-    _ = capture_io(fn -> "trigger" end)
-    assert capture_io(:stderr, fn -> nil end)
+    assert_receive :ready
+
+    # Kill the process and make sure the capture server receives the down
+    :erlang.trace(Process.whereis(ExUnit.CaptureServer), true, [:receive, tracer: self()])
+    Process.exit(pid, :shutdown)
+    assert_receive {:trace, _, :receive, {:DOWN, _, _, _, :shutdown}}, 1000
+
+    assert capture_io(:stderr, fn -> :ok end)
+  after
+    :erlang.trace(Process.whereis(ExUnit.CaptureServer), false, [:receive, tracer: self()])
   end
 
   test "with assert inside" do
