@@ -2030,6 +2030,8 @@ defmodule Enum do
   Reverses the elements in `enumerable`, appends the `tail`, and returns
   it as a list.
 
+  If `tail` is an improper-list, it returns an improper-list.
+
   This is an optimization for
   `enumerable |> Enum.reverse() |> Enum.concat(tail)`.
 
@@ -2038,8 +2040,12 @@ defmodule Enum do
       iex> Enum.reverse([1, 2, 3], [4, 5, 6])
       [3, 2, 1, 4, 5, 6]
 
+      # Returns an improper-list when tail is an improper-list
+      iex> Enum.reverse(1..3, [:a, :b | :c])
+      [3, 2, 1, :a, :b | :c]
+
   """
-  @spec reverse(t, t) :: list
+  @spec reverse(t, t) :: maybe_improper_list()
   def reverse(enumerable, tail) when is_list(enumerable) do
     :lists.reverse(enumerable, to_list(tail))
   end

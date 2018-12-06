@@ -1226,6 +1226,10 @@ defmodule EnumTest.Range do
     assert Enum.reverse(1..3) == [3, 2, 1]
     assert Enum.reverse(-3..5) == [5, 4, 3, 2, 1, 0, -1, -2, -3]
     assert Enum.reverse(5..5) == [5]
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.reverse([1 | 2])
+    end
   end
 
   test "reverse/2" do
@@ -1234,6 +1238,10 @@ defmodule EnumTest.Range do
     assert Enum.reverse(1..3, [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
     assert Enum.reverse(-3..5, MapSet.new([-3, -2])) == [5, 4, 3, 2, 1, 0, -1, -2, -3, -3, -2]
     assert Enum.reverse(5..5, [5]) == [5, 5]
+
+    assert_raise ArgumentError, fn ->
+      Enum.reverse([1 | 2], [3])
+    end
   end
 
   test "reverse_slice/3" do
