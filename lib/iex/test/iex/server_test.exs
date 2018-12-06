@@ -161,7 +161,7 @@ defmodule IEx.ServerTest do
       end)
 
     for _ <- sessions do
-      assert_receive {:trace, _, :receive, _}
+      assert_receive {:trace, _, :receive, {_, _, call}} when elem(call, 0) in [:accept, :refuse]
     end
 
     task
