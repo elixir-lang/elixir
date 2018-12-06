@@ -38,10 +38,10 @@ defmodule IEx.Helpers do
     * `open/1`         - opens the source for the given module or function in your editor
     * `pid/1`          - creates a PID from a string
     * `pid/3`          - creates a PID with the 3 integer arguments passed
-    * `port/1`         - creates a Port from a string
-    * `port/2`         - creates a Port with the 2 non-negative integers passed
-    * `ref/1`          - creates a Reference from a string
-    * `ref/4`          - creates a Reference with the 4 integer arguments passed
+    * `port/1`         - creates a port from a string
+    * `port/2`         - creates a port with the 2 non-negative integers passed
+    * `ref/1`          - creates a reference from a string
+    * `ref/4`          - creates a reference with the 4 integer arguments passed
     * `pwd/0`          - prints the current working directory
     * `r/1`            - recompiles the given module's source file
     * `recompile/0`    - recompiles the current project
@@ -146,7 +146,7 @@ defmodule IEx.Helpers do
   It expects a list of files to compile and an optional path to write
   the compiled code to. By default files are in-memory compiled.
   To write compiled files to the current directory, an empty string
-  can be given. 
+  can be given.
 
   It returns the names of the compiled modules.
 
@@ -154,7 +154,7 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-  In the example below, we pass a directory to where the `c/2` function will 
+  In the example below, we pass a directory to where the `c/2` function will
   write the compiled `.beam` files to. This directory is typically named "ebin"
   in Erlang/Elixir systems:
 
