@@ -746,7 +746,7 @@ defmodule Kernel do
   In the example above, `max/1` returned March 31st instead of April 1st
   because the structural comparison compares the day before the year. In
   such cases it is common for modules to provide functions such as
-  `Date.compare/1` that perform semantic comparison.
+  `Date.compare/2` that perform semantic comparison.
   """
   @spec max(first, second) :: first | second when first: term, second: term
   def max(first, second) do
@@ -777,7 +777,7 @@ defmodule Kernel do
   In the example above, `min/1` returned April 1st instead of March 31st
   because the structural comparison compares the day before the year. In
   such cases it is common for modules to provide functions such as
-  `Date.compare/1` that perform semantic comparison.
+  `Date.compare/2` that perform semantic comparison.
   """
   @spec min(first, second) :: first | second when first: term, second: term
   def min(first, second) do
