@@ -166,7 +166,7 @@ defmodule IEx.Pry do
   @doc """
   Sets up a breakpoint on the given module/function/args with the given `guard`.
 
-  It requires an `env` to be given to make the expension of the guards.
+  It requires an `env` to be given to make the expansion of the guards.
   """
   @spec break(module, function, [Macro.t()], Macro.t(), Macro.Env.t(), pos_integer) ::
           {:ok, id()} | {:error, break_error()}

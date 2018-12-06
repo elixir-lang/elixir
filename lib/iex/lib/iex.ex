@@ -761,7 +761,7 @@ defmodule IEx do
   ## Callbacks
 
   # This is a callback invoked by Erlang shell utilities
-  # when someone press Ctrl+G and adds 's Elixir.IEx'.
+  # when someone presses Ctrl+G and adds 's Elixir.IEx'.
   @doc false
   def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
     spawn(fn ->
