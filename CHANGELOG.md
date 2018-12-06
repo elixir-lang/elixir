@@ -8,7 +8,7 @@ The language has been improved semantically and includes new types and APIs. Let
 
 ### Deprecation of imperative assignment
 
-Elixir will now warn if constructs like `if`, `case` and friends assign a value to a variable that is accessed in an outer scope. As an example, imagine a function called `format` that receives a message and some options and it must return a path alongside the message:
+Elixir will now warn if constructs like `if`, `case` and friends assign to a variable that is accessed in an outer scope. As an example, imagine a function called `format` that receives a message and some options and it must return a path alongside the message:
 
 ```elixir
 def format(message, opts) do
