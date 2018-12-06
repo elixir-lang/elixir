@@ -217,6 +217,34 @@ defmodule ListTest do
     end
   end
 
+  test "product/2" do
+    assert List.product([1], ["A"]) == [[[1, "A"]]]
+    assert List.product([1, 2], [3, 4]) == [[[1, 3], [1, 4]], [[2, 3], [2, 4]]]
+
+    assert_raise FunctionClauseError, fn ->
+      List.product([1, 2], 1)
+    end
+  end
+
+  test "product/3" do
+    assert List.product([1], ["A"], fn el1, el2 -> {el1 * 3, el2} end) == [[{3, "A"}]]
+
+    assert List.product([1, 2], [3, 4], fn el1, el2 -> {el1, el2} end) == [
+             [{1, 3}, {1, 4}],
+             [{2, 3}, {2, 4}]
+           ]
+
+    assert List.product([10, 21], [1, 2], fn el1, el2 -> el1 * el2 end) == [[10, 20], [21, 42]]
+
+    assert_raise FunctionClauseError, fn ->
+      List.product([1, 2], 1, fn el1, el2 -> {el1, el2} end)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      List.product([1, 2], [1], nil)
+    end
+  end
+
   describe "myers_difference/2" do
     test "follows paper implementation" do
       assert List.myers_difference([], []) == []

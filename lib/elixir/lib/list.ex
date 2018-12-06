@@ -920,6 +920,31 @@ defmodule List do
   end
 
   @doc """
+  Returns an list of all combinations of elements from given lists.
+
+  ## Examples
+
+      iex> List.product([1, 2, 3], ["A"])
+      [[[1, "A"]], [[2, "A"]], [[3, "A"]]]
+
+      iex> List.product([1, 2, 3], ["A"], fn a, b -> {a, b} end)
+      [[{1, "A"}], [{2, "A"}], [{3, "A"}]]
+  """
+  @spec product(list, list) :: list
+  def product(list1, list2) when is_list(list1) and is_list(list2) do
+    product(list1, list2, fn element1, element2 -> [element1, element2] end)
+  end
+
+  @spec product(list, list, (any, any -> any)) :: list
+  def product(list1, list2, fun) when is_list(list1) and is_list(list2) and is_function(fun) do
+    for elem1 <- list1 do
+      for elem2 <- list2 do
+        fun.(elem1, elem2)
+      end
+    end
+  end
+
+  @doc """
   Returns a keyword list that represents an *edit script*.
 
   The algorithm is outlined in the
