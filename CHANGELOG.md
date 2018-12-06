@@ -23,7 +23,7 @@ def format(message, opts) do
 end
 ```
 
-The `if` block above is implicitly changing the value in `message`. Now imagine we want to move the `if` block to its own function to clean up the implementation:
+The `if` block above is implicitly rebinding the outer scope variable `message` to a new value. Now imagine we want to move the `if` block to its own function to clean up the implementation:
 
 ```elixir
 def format(message, opts) do
