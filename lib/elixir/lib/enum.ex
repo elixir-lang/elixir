@@ -2633,13 +2633,18 @@ defmodule Enum do
   @doc """
   Converts `enumerable` to a list.
 
+  If `enumerable` is either a proper or an improper-list, it returns the list untouched.
+
   ## Examples
 
       iex> Enum.to_list(1..3)
       [1, 2, 3]
 
+      iex> Enum.to_list([:a, :b | :c])
+      [:a, :b  | :c]
+
   """
-  @spec to_list(t) :: [element]
+  @spec to_list(t) :: maybe_improper_list()
   def to_list(enumerable) when is_list(enumerable), do: enumerable
   def to_list(%_{} = enumerable), do: reverse(enumerable) |> :lists.reverse()
   def to_list(%{} = enumerable), do: Map.to_list(enumerable)

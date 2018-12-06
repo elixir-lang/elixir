@@ -1463,6 +1463,7 @@ defmodule EnumTest.Range do
 
   test "to_list/1" do
     assert Enum.to_list([1, 2, 3]) == [1, 2, 3]
+    assert Enum.to_list([1, 2 | 3]) == [1, 2 | 3]
     assert Enum.to_list(MapSet.new(1..3)) == [1, 2, 3]
     assert Enum.to_list(1..3) == [1, 2, 3]
   end
