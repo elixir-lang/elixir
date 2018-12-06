@@ -2,7 +2,8 @@ defmodule Range do
   @moduledoc """
   Defines a range.
 
-  A range represents a discrete number of consecutive integers.
+  A range represents a sequence of one or many,
+  ascending or descending, consecutive integers.
 
   Ranges can be either increasing (`first <= last`) or
   decreasing (`first > last`). Ranges are also always
@@ -34,7 +35,7 @@ defmodule Range do
       false
       iex> Enum.member?(range, 8)
       true
-      
+
   Such function calls are efficient memory-wise no matter the
   size of the range. The implementation of the `Enumerable`
   protocol uses logic based solely on the endpoints and does
