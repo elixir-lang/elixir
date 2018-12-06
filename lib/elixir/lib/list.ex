@@ -288,13 +288,16 @@ defmodule List do
   end
 
   @doc """
-  Receives a list of tuples and replaces the item
-  identified by `key` at `position` if it exists.
+  Receives a list of tuples and if the identified item by `key` at `position`
+  exists, it is replaced with `new_tuple`.
 
   ## Examples
 
       iex> List.keyreplace([a: 1, b: 2], :a, 0, {:a, 3})
       [a: 3, b: 2]
+
+      iex> List.keyreplace([a: 1, b: 2], :a, 1, {:a, 3})
+      [a: 1, b: 2]
 
   """
   @spec keyreplace([tuple], any, non_neg_integer, tuple) :: [tuple]
@@ -322,7 +325,7 @@ defmodule List do
 
   @doc """
   Receives a `list` of tuples and replaces the item
-  identified by `key` at `position`.
+  identified by `key` at `position` with `new_tuple`.
 
   If the item does not exist, it is added to the end of the `list`.
 
