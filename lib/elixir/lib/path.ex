@@ -12,7 +12,7 @@ defmodule Path do
   that require it (like `wildcard/2` and `expand/1`).
   """
 
-  @type t :: :unicode.chardata()
+  @type t :: IO.chardata()
 
   @doc """
   Converts the given path to an absolute one. Unlike
