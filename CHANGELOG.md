@@ -17,6 +17,7 @@
   * [List] Add `List.myers_difference/3`
   * [Macro] Add `Macro.struct!/2` for proper struct resolution during compile time
   * [Map] Optimize and merge nested maps `put` and `merge` operations
+  * [Range] Add `Range.disjoint?/2`
   * [Registry] Allow associating a value on `:via` tuple
   * [String] Add `String.bag_distance/2`
 

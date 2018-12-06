@@ -61,6 +61,33 @@ defmodule Range do
             "got: #{inspect(first)}..#{inspect(last)}"
   end
 
+  @doc """
+  Checks if two ranges are disjoint.
+
+  ## Examples
+
+      iex> Range.disjoint?(1..5, 6..9)
+      true
+      iex> Range.disjoint?(5..1, 6..9)
+      true
+      iex> Range.disjoint?(1..5, 5..9)
+      false
+      iex> Range.disjoint?(1..5, 2..7)
+      false
+
+  """
+  @doc since: "1.8.0"
+  @spec disjoint?(t, t) :: boolean
+  def disjoint?(first1..last1, first2..last2) do
+    {first1, last1} = normalize(first1, last1)
+    {first2, last2} = normalize(first2, last2)
+    last2 < first1 or last1 < first2
+  end
+
+  @compile inline: [normalize: 2]
+  defp normalize(first, last) when first > last, do: {last, first}
+  defp normalize(first, last), do: {first, last}
+
   # TODO: Remove by 2.0
   @doc false
   @deprecated "Pattern match on first..last instead"
