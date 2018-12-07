@@ -88,9 +88,9 @@ defmodule Mix do
 
   ## Environments
 
-  Mix supports different environments. Environments allow developers to prepare
-  and organize their project specifically for different scenarios. By default,
-  Mix provides three environments:
+  Mix supports different environments. Environments allow developers
+  to prepare and organize their project specifically for different
+  scenarios. By default, Mix provides three environments:
 
     * `:dev` - the default environment
     * `:test` - the environment `mix test` runs on
@@ -100,6 +100,23 @@ defmodule Mix do
   the `MIX_ENV` environment variable, for example:
 
       $ MIX_ENV=prod mix run server.exs
+
+  You can also specify that certain dependencies are available only for
+  certain environments:
+
+      {:some_test_dependency, "~> 1.0", only: :test}
+
+  The environment can be read via `Mix.env/0`.
+
+  ## Targets
+
+  Besides environments, Mix supports targets. Targets are useful when a
+  project needs to compile to different architectures and some of the
+  dependencies are only available to some of them. By default, the target
+  is `:host` but it can be set via the `MIX_TARGET` environment variable.
+  The target can be read via `Mix.target/0`.
+
+  This feature is considered experimental and may change in future releases.
 
   ## Aliases
 
@@ -220,6 +237,7 @@ defmodule Mix do
     * `MIX_BUILD_PATH` - sets the project build_path config
     * `MIX_DEBUG` - outputs debug information about each task before running it
     * `MIX_ENV` - specifies which environment should be used. See [Environments](#module-environments)
+    * `MIX_TARGET` - specifies which target should be used. See [Targets](#module-targets)
     * `MIX_EXS` - changes the full path to the `mix.exs` file
     * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
     * `MIX_PATH` - appends extra code paths
@@ -277,6 +295,24 @@ defmodule Mix do
   """
   def env(env) when is_atom(env) do
     Mix.State.put(:env, env)
+  end
+
+  @doc """
+  Returns the Mix target.
+  """
+  def target do
+    # target is not available on bootstrapping, so set a :host default
+    Mix.State.get(:target, :host)
+  end
+
+  @doc """
+  Changes the current Mix target to `target`.
+
+  Be careful when invoking this function as any project
+  configuration won't be reloaded.
+  """
+  def target(target) when is_atom(target) do
+    Mix.State.put(:target, target)
   end
 
   @doc """

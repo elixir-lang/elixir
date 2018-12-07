@@ -77,6 +77,10 @@ Sometimes you have to use a particular set of configuration parameter values or 
 The
 .Nm
 environments allow grouping values of configuration parameters and steps to switch between them by specifying the necessary environment via MIX_ENV.
+.It Ev MIX_TARGET
+Allows specifying which target should be used. The
+.Em host
+target is used by default if none other has been specified.
 .It Ev MIX_EXS
 Allows changing the full path to the
 .Em mix.exs
@@ -103,7 +107,7 @@ Allows expanding the code path. If the MIX_PATH environment variable has a value
 or semicolon-separated
 .Pq for Windows .
 .Pp
-As has already been mentioned above, there are two types of tasks: local and built-in. These tasks are always visible for
+As mentioned above, there are two types of tasks: local and built-in. These tasks are always visible for
 .Nm
 because the directories, in which they are located, are a part of code path. If a task belongs to neither the one type nor the other, MIX_PATH helps you say to
 .Nm
