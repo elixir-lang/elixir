@@ -38,7 +38,11 @@ defmodule MapSet do
 
   @type value :: term
 
-  @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
+  @opaque internal_data :: %{optional(value) => []}
+
+  @typep internal_key :: :map
+  @typep internal_value(value) :: %{optional(value) => []}
+  @type t(value) :: %{required(internal_key) => internal_value(value), __struct__: __MODULE__}
   @type t :: t(term)
 
   # TODO: Remove version key on Elixir 2.0
