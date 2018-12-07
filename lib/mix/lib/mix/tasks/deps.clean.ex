@@ -32,11 +32,15 @@ defmodule Mix.Tasks.Deps.Clean do
     build_path =
       Mix.Project.build_path()
       |> Path.dirname()
-      |> Path.join("#{opts[:only] || :*}/lib")
+      |> Path.join("*#{opts[:only]}/lib")
 
     deps_path = Mix.Project.deps_path()
 
-    loaded_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
+    loaded_opts =
+      for {switch, key} <- [only: :env, target: :target],
+          value = opts[switch],
+          do: {key, :"#{value}"}
+
     loaded_deps = Mix.Dep.load_on_environment(loaded_opts)
 
     apps_to_clean =

@@ -40,6 +40,7 @@ defmodule MixTest.Case do
     on_exit(fn ->
       Application.start(:logger)
       Mix.env(:dev)
+      Mix.target(:host)
       Mix.Task.clear()
       Mix.Shell.Process.flush()
       Mix.ProjectStack.clear_cache()

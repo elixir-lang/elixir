@@ -89,7 +89,7 @@ defmodule Mix.Dep do
   """
   def cached() do
     if project = Mix.Project.get() do
-      read_cached_deps(project, Mix.env()) || load_and_cache()
+      read_cached_deps(project, {Mix.env(), Mix.target()}) || load_and_cache()
     else
       load_and_cache()
     end
@@ -107,21 +107,22 @@ defmodule Mix.Dep do
   """
   def load_and_cache() do
     env = Mix.env()
+    target = Mix.target()
 
     case Mix.ProjectStack.top_and_bottom() do
       {%{name: top, config: config}, %{name: bottom}} ->
-        write_cached_deps(top, env, load_and_cache(config, top, bottom, env))
+        write_cached_deps(top, {env, target}, load_and_cache(config, top, bottom, env, target))
 
       _ ->
-        converge(env: env)
+        converge(env: env, target: target)
     end
   end
 
-  defp load_and_cache(_config, top, top, env) do
-    converge(env: env)
+  defp load_and_cache(_config, top, top, env, target) do
+    converge(env: env, target: target)
   end
 
-  defp load_and_cache(config, _top, bottom, _env) do
+  defp load_and_cache(config, _top, bottom, _env, _target) do
     {_, deps} = Mix.ProjectStack.read_cache({:cached_deps, bottom})
     app = Keyword.fetch!(config, :app)
     seen = populate_seen(MapSet.new(), [app])
@@ -142,15 +143,15 @@ defmodule Mix.Dep do
     end)
   end
 
-  defp read_cached_deps(project, env) do
+  defp read_cached_deps(project, env_target) do
     case Mix.ProjectStack.read_cache({:cached_deps, project}) do
-      {^env, deps} -> deps
+      {^env_target, deps} -> deps
       _ -> nil
     end
   end
 
-  defp write_cached_deps(project, env, deps) do
-    Mix.ProjectStack.write_cache({:cached_deps, project}, {env, deps})
+  defp write_cached_deps(project, env_target, deps) do
+    Mix.ProjectStack.write_cache({:cached_deps, project}, {env_target, deps})
     deps
   end
 
@@ -337,6 +338,20 @@ defmodule Mix.Dep do
       dep_status(other) <> "\n  #{recommendation}"
   end
 
+  def format_status(%Mix.Dep{app: app, status: {:divergedtargets, other}} = dep) do
+    recommendation =
+      if Keyword.has_key?(other.opts, :targets) do
+        "Ensure you specify at least the same targets in :targets in your dep"
+      else
+        "Remove the :targets restriction from your dep"
+      end
+
+    "the :targets option for dependency #{app}\n" <>
+      dep_status(dep) <>
+      "\n  does not match the :targets option calculated for\n" <>
+      dep_status(other) <> "\n  #{recommendation}"
+  end
+
   def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
       "#{dep_status(dep)}#{dep_status(other)}" <>
@@ -444,6 +459,7 @@ defmodule Mix.Dep do
   def diverged?(%Mix.Dep{status: {:diverged, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedreq, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedonly, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:divergedtargets, _}}), do: true
   def diverged?(%Mix.Dep{}), do: false
 
   @doc """
