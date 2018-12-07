@@ -4,6 +4,7 @@
   groups_for_functions: [
     Guards: & &1[:guard] == true
   ],
+  skip_undefined_reference_warnings_on: ["compatibility-and-deprecations"],
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 
