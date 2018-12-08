@@ -124,7 +124,7 @@ defmodule MixTest.Case do
       :code.set_path(get_path)
 
       for {mod, file} <- :code.all_loaded() -- previous,
-          file == [] or (is_list(file) and :lists.prefix(flag, file)) do
+          file == [] or (is_list(file) and List.starts_with?(file, flag)) do
         purge([mod])
       end
     end

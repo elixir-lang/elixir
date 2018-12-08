@@ -6,7 +6,7 @@ defmodule ListTest do
   doctest List
 
   test "cons cell precedence" do
-    assert [1 | :lists.flatten([2, 3])] == [1, 2, 3]
+    assert [1 | List.flatten([2, 3])] == [1, 2, 3]
   end
 
   test "optional comma" do
