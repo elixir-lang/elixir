@@ -448,7 +448,7 @@ defmodule List do
     do_zip(list_of_lists, [])
   end
 
-  @doc """
+  @doc ~S"""
   Checks if a list is a charlist made only of printable ASCII characters.
 
   Takes an optional `limit` as a second argument. `ascii_printable?/2` only
@@ -458,17 +458,17 @@ defmodule List do
   standard seven-bit ASCII character encoding, which are characters ranging from
   32 to 126 in decimal notation, plus  the following control characters:
 
-  - `?\\a` - Bell
-  - `?\\b` - Backspace
-  - `?\\t` - Horizontal tab
-  - `?\\n` - Line feed
-  - `?\\v` - Vertical tab
-  - `?\\f` - Form feed
-  - `?\\r` - Carriage return
-  - `?\\e` - Escape
+    * `?\a` - Bell
+    * `?\b` - Backspace
+    * `?\t` - Horizontal tab
+    * `?\n` - Line feed
+    * `?\v` - Vertical tab
+    * `?\f` - Form feed
+    * `?\r` - Carriage return
+    * `?\e` - Escape
 
   For more information read the [Character groups](https://en.wikipedia.org/wiki/ASCII#Character_groups)
-  section in the Wikipedia article about [ASCII](https://en.wikipedia.org/wiki/ASCII) standard.
+  section in the Wikipedia article of the [ASCII](https://en.wikipedia.org/wiki/ASCII) standard.
 
   ## Examples
 
