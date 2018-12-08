@@ -456,7 +456,7 @@ defmodule List do
 
   A printable charlist in Elixir contains only the printable characters in the
   standard seven-bit ASCII character encoding, which are characters ranging from
-  32 to 126 in decimal notation, plus  the following control characters:
+  32 to 126 in decimal notation, plus the following control characters:
 
     * `?\a` - Bell
     * `?\b` - Backspace
