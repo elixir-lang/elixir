@@ -1487,22 +1487,28 @@ defmodule String do
   @spec codepoints(t) :: [codepoint]
   defdelegate codepoints(string), to: String.Unicode
 
-  @doc """
+  @doc ~S"""
   Returns the next codepoint in a string.
 
   The result is a tuple with the codepoint and the
   remainder of the string or `nil` in case
   the string reached its end.
 
-  As with other functions in the String module, this
-  function does not check for the validity of the codepoint.
-  That said, if an invalid codepoint is found, it will
-  be returned by this function.
+  As with other functions in the `String` module, `next_codepoint/1`
+  works with binaries that are invalid UTF-8. If the string starts
+  with a sequence of bytes that is not valid in UTF-8 encoding, the
+  first element of the returned tuple is a binary with the first byte.
 
   ## Examples
 
       iex> String.next_codepoint("olá")
       {"o", "lá"}
+
+      iex> invalid = "\x80\x80OK" # first two bytes are invalid in UTF-8
+      iex> {_, rest} = String.next_codepoint(invalid)
+      {<<128>>, <<128, 79, 75>>}
+      iex> String.next_codepoint(rest)
+      {<<128>>, "OK"}
 
   ## Comparison with binary pattern matching
 
