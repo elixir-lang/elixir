@@ -488,8 +488,9 @@ defmodule List do
 
   """
   @doc since: "1.6.0"
-  @spec ascii_printable?(list, limit) :: boolean
-        when limit: :infinity | non_neg_integer
+  @spec ascii_printable?(list, 0) :: true
+  @spec ascii_printable?([], limit) :: true when limit: :infinity | non_neg_integer
+  @spec ascii_printable?(nonempty_list, limit) :: boolean when limit: :infinity | non_neg_integer
   def ascii_printable?(list, limit \\ :infinity)
       when is_list(list) and (limit == :infinity or (is_integer(limit) and limit >= 0)) do
     ascii_printable_guarded?(list, limit)
