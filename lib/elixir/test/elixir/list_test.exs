@@ -185,7 +185,7 @@ defmodule ListTest do
       assert List.starts_with?([1, 2, 3], [])
     end
 
-    test "only accepts lists" do
+    test "only accepts proper lists" do
       message = "no function clause matching in List.starts_with?/2"
 
       assert_raise FunctionClauseError, message, fn ->
@@ -241,6 +241,20 @@ defmodule ListTest do
 
       assert List.myers_difference([3, 2, 0, 2], [2, 2, 1, 0, 2]) ==
                [del: [3], eq: [2], ins: [2, 1], eq: [0, 2]]
+    end
+  end
+
+  test "improper?/1" do
+    assert List.improper?([1 | 2])
+    assert List.improper?([1, 2, 3 | 4])
+    refute List.improper?([])
+    refute List.improper?([1])
+    refute List.improper?([[1]])
+    refute List.improper?([1, 2])
+    refute List.improper?([1, 2, 3])
+
+    assert_raise FunctionClauseError, fn ->
+      List.improper?(%{})
     end
   end
 end
