@@ -349,7 +349,8 @@ defmodule IEx.Autocomplete do
 
   defp match_modules(hint, root) do
     get_modules(root)
-    |> :lists.usort()
+    |> Enum.sort()
+    |> Enum.dedup()
     |> Enum.drop_while(&(not String.starts_with?(&1, hint)))
     |> Enum.take_while(&String.starts_with?(&1, hint))
   end
