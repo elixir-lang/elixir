@@ -1504,6 +1504,23 @@ defmodule String do
       iex> String.next_codepoint("olá")
       {"o", "lá"}
 
+  ## Comparison with binary pattern matching
+
+  Binary pattern matching provides a similar way to decompose
+  a string:
+
+      iex> <<codepoint::utf8, rest::binary>> = "Elixir"
+      "Elixir"
+      iex> codepoint
+      69
+      iex> rest
+      "lixir"
+
+  though not entirely equivalent because `codepoint` comes as
+  an integer, and the pattern won't match invalid UTF-8.
+
+  Binary pattern matching, however, is simpler and more efficient,
+  so pick the option that better suits your use case.
   """
   @compile {:inline, next_codepoint: 1}
   @spec next_codepoint(t) :: {codepoint, t} | nil
