@@ -157,10 +157,7 @@ defmodule IEx.Config do
   end
 
   def handle_configure(tab, options) do
-    options =
-      options
-      |> List.keysort(0)
-      |> Enum.dedup_by(fn {k, _} -> k end)
+    options = :lists.ukeysort(1, options)
 
     configuration()
     |> Keyword.merge(options, &merge_option/3)
