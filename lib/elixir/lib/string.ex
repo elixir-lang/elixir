@@ -1494,15 +1494,20 @@ defmodule String do
   remainder of the string or `nil` in case
   the string reached its end.
 
-  As with other functions in the String module, this
-  function does not check for the validity of the codepoint.
-  That said, if an invalid codepoint is found, it will
-  be returned by this function.
+  As with other functions in the `String` module, `next_codepoint/1`
+  works with binaries that are invalid UTF-8. If the string starts
+  with a sequence of bytes that is not valid in UTF-8 encoding, the
+  first element of the returned tuple is a binary with the first byte.
 
   ## Examples
 
       iex> String.next_codepoint("olá")
       {"o", "lá"}
+
+      {first, rest} = String.next_codepoint("\x80\x80invalid UTF-8")
+      {<<128>>, <<128, 105, 110, 118, 97, 108, 105, 100>>}
+      String.next_codepoint(rest)
+      {<<128>>, "invalid UTF-8"}
 
   ## Comparison with binary pattern matching
 

@@ -284,8 +284,8 @@ defmodule String.Unicode do
     {<<cp::utf8>>, rest}
   end
 
-  def next_codepoint(<<cp, rest::binary>>) do
-    {<<cp>>, rest}
+  def next_codepoint(<<byte, rest::binary>>) do
+    {<<byte>>, rest}
   end
 
   def next_codepoint(<<>>) do
