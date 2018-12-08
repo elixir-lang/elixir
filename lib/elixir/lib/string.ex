@@ -1487,7 +1487,7 @@ defmodule String do
   @spec codepoints(t) :: [codepoint]
   defdelegate codepoints(string), to: String.Unicode
 
-  @doc """
+  @doc ~S"""
   Returns the next codepoint in a string.
 
   The result is a tuple with the codepoint and the
@@ -1504,10 +1504,11 @@ defmodule String do
       iex> String.next_codepoint("olá")
       {"o", "lá"}
 
-      {first, rest} = String.next_codepoint("\x80\x80invalid UTF-8")
-      {<<128>>, <<128, 105, 110, 118, 97, 108, 105, 100>>}
-      String.next_codepoint(rest)
-      {<<128>>, "invalid UTF-8"}
+      iex> invalid = "\x80\x80OK" # first two bytes are invalid in UTF-8
+      iex> {_, rest} = String.next_codepoint(invalid)
+      {<<128>>, <<128, 79, 75>>}
+      iex> String.next_codepoint(rest)
+      {<<128>>, "OK"}
 
   ## Comparison with binary pattern matching
 
