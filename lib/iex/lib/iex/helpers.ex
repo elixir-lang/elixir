@@ -493,6 +493,7 @@ defmodule IEx.Helpers do
     |> Protocol.extract_protocols()
     |> Enum.uniq()
     |> Enum.reject(fn protocol -> is_nil(protocol.impl_for(term)) end)
+    |> Enum.sort()
     |> Enum.map_join(", ", &inspect/1)
   end
 
