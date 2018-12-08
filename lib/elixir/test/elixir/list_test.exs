@@ -257,4 +257,23 @@ defmodule ListTest do
       List.improper?(%{})
     end
   end
+
+  describe "ascii_printable?/1" do
+    test "proper lists without limit" do
+      assert List.ascii_printable?([])
+      assert List.ascii_printable?('abc')
+      refute(List.ascii_printable?('abc' ++ [0]))
+      assert List.ascii_printable?('abc \a\b\e\f\n\r\t\v def')
+      refute List.ascii_printable?('mañana')
+    end
+
+    test "proper lists with limit" do
+      assert List.ascii_printable?([], 100)
+      assert List.ascii_printable?('abc' ++ [0], 2)
+    end
+
+    test "improper lists" do
+      refute List.ascii_printable?('abc' ++ ?d)
+    end
+  end
 end
