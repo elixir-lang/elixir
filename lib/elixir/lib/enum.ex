@@ -1479,7 +1479,8 @@ defmodule Enum do
 
   """
   @spec max(t, (() -> empty_result)) :: element | empty_result when empty_result: any
-  def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
+  def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
+      when is_function(empty_fallback, 0) do
     aggregate(enumerable, &Kernel.max/2, empty_fallback)
   end
 
@@ -1507,7 +1508,8 @@ defmodule Enum do
   """
   @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
         when empty_result: any
-  def max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end) do
+  def max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
+      when is_function(fun, 1) and is_function(empty_fallback, 0) do
     first_fun = &{&1, fun.(&1)}
 
     reduce_fun = fn entry, {_, fun_max} = old ->
@@ -1599,7 +1601,8 @@ defmodule Enum do
 
   """
   @spec min(t, (() -> empty_result)) :: element | empty_result when empty_result: any
-  def min(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end) do
+  def min(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
+      when is_function(empty_fallback, 0) do
     aggregate(enumerable, &Kernel.min/2, empty_fallback)
   end
 
@@ -1627,7 +1630,8 @@ defmodule Enum do
   """
   @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
         when empty_result: any
-  def min_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end) do
+  def min_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
+      when is_function(fun, 1) and is_function(empty_fallback, 0) do
     first_fun = &{&1, fun.(&1)}
 
     reduce_fun = fn entry, {_, fun_min} = old ->
@@ -1664,11 +1668,11 @@ defmodule Enum do
         when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
-  def min_max(first..last, _empty_fallback) do
+  def min_max(first..last, empty_fallback) when is_function(empty_fallback, 0) do
     {Kernel.min(first, last), Kernel.max(first, last)}
   end
 
-  def min_max(enumerable, empty_fallback) do
+  def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     first_fun = &{&1, &1}
 
     reduce_fun = fn entry, {min, max} ->
@@ -1706,8 +1710,7 @@ defmodule Enum do
   @spec min_max_by(t, (element -> any), (() -> empty_result)) :: {element, element} | empty_result
         when empty_result: any
   def min_max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
-
-  def min_max_by(enumerable, fun, empty_fallback) do
+      when is_function(fun, 1) and is_function(empty_fallback, 0) do
     first_fun = fn entry ->
       fun_entry = fun.(entry)
       {{entry, entry}, {fun_entry, fun_entry}}
