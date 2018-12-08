@@ -525,6 +525,23 @@ defmodule List do
   defp decrement(counter), do: counter - 1
 
   @doc """
+  Returns `true` if `list` is an improper list. Otherwise returns `false`.
+
+  ## Examples
+
+     iex> List.improper?([1, 2 | 3])
+     true
+
+     iex> List.improper?([1, 2, 3])
+     false
+
+  """
+  @doc since: "1.8.0"
+  @spec improper?(list) :: boolean
+  def improper?(list) when is_list(list) and length(list) >= 0, do: false
+  def improper?(list) when is_list(list), do: true
+
+  @doc """
   Returns a list with `value` inserted at the specified `index`.
 
   Note that `index` is capped at the list length. Negative indices
