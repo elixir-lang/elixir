@@ -363,4 +363,8 @@ defmodule IO.ANSI.DocsTest do
     assert format("  [id]: //example.com\n  [Elixir]:  https://elixir-lang.org") ==
              "  [id]: //example.com\n  [Elixir]:  https://elixir-lang.org"
   end
+
+  test "should not escape _ inside backtick" do
+    assert format("`https_proxy`") == "\e[36mhttps_proxy\e[0m\n\e[0m"
+  end
 end
