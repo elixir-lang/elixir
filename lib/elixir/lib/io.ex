@@ -36,7 +36,7 @@ defmodule IO do
 
   @type device :: atom | pid
   @type nodata :: {:error, term} | :eof
-  @type chardata() :: :unicode.chardata()
+  @type chardata :: String.t() | maybe_improper_list(char | chardata, String.t() | [])
 
   defmacrop is_iodata(data) do
     quote do
