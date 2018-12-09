@@ -313,6 +313,10 @@ defmodule IO.ANSI.DocsTest do
              "\e[4memphasis\e[0m (https://en.wikipedia.org/wiki/ANSI_escape_code) more \e[4memphasis\e[0m\n\e[0m"
   end
 
+  test "escaping of underlines within links avoids false positives" do
+    assert format("`https_proxy`") == "\e[36mhttps_proxy\e[0m\n\e[0m"
+  end
+
   test "lone thing that looks like a table line isn't" do
     assert format("one\n2 | 3\ntwo\n") == "one 2 | 3 two\n\e[0m"
   end

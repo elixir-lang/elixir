@@ -524,7 +524,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp escape_underlines_in_link(text) do
-    ~r{https?\S*}
+    ~r{https?://\S*}
     |> Regex.recompile!()
     |> Regex.replace(text, &String.replace(&1, "_", "\\_"))
   end
