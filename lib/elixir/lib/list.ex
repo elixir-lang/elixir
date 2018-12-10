@@ -96,7 +96,7 @@ defmodule List do
       #=>    {:logger, 'logger', '1.0.0'}
       #=>  ]
 
-  A list can be checked if it is made of printable ascii
+  A list can be checked if it is made of printable ASCII
   codepoints with `ascii_printable?/2`.
   """
 
@@ -481,7 +481,7 @@ defmodule List do
       iex> List.ascii_printable?('abc' ++ [0], 2)
       true
 
-  Improper lists are not printable, even if made only of ascii characters:
+  Improper lists are not printable, even if made only of ASCII characters:
 
       iex> List.ascii_printable?('abc' ++ ?d)
       false
