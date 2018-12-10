@@ -13,9 +13,7 @@ defmodule IEx.ServerTest do
     end
 
     test "env" do
-      assert capture_io("__ENV__.file", fn ->
-               IEx.Server.run(env: __ENV__)
-             end) =~ "server_test.exs"
+      assert capture_iex("__ENV__.file", [], env: __ENV__) =~ "server_test.exs"
     end
   end
 
