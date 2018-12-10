@@ -101,7 +101,7 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, message, 'Foo?'
 
     message =
-      "nofile:1: invalid character \"ó\" (codepoint U+00F3) in alias (only ascii characters are allowed): Foó"
+      "nofile:1: invalid character \"ó\" (codepoint U+00F3) in alias (only ASCII characters are allowed): Foó"
 
     assert_eval_raise SyntaxError, message, 'Foó'
 

@@ -1125,7 +1125,7 @@ tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) 
     not Ascii ->
       AtomName = atom_to_list(Atom),
       Invalid = hd([C || C <- AtomName, C > 127]),
-      Reason = {Line, Column, invalid_character_error("alias (only ascii characters are allowed)", Invalid), AtomName},
+      Reason = {Line, Column, invalid_character_error("alias (only ASCII characters are allowed)", Invalid), AtomName},
       {error, Reason, AtomName ++ Rest, Tokens};
     Special /= [] ->
       AtomName = atom_to_list(Atom),
