@@ -447,7 +447,7 @@ defmodule URI do
   def parse(string) when is_binary(string) do
     # From https://tools.ietf.org/html/rfc3986#appendix-B
     regex =
-      Regex.recompile!(~r{^(([a-z][a-z0-9+-.]*):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?}i)
+      Regex.recompile!(~r{^(([a-z][a-z0-9\+\-\.]*):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?}i)
 
     parts = Regex.run(regex, string)
 
