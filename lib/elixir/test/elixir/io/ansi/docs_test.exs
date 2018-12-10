@@ -302,8 +302,12 @@ defmodule IO.ANSI.DocsTest do
   test "escaping of underlines within links" do
     result = format("(https://en.wikipedia.org/wiki/ANSI_escape_code)")
     assert result == "(https://en.wikipedia.org/wiki/ANSI_escape_code)\n\e[0m"
+
     result = format("[ANSI escape code](https://en.wikipedia.org/wiki/ANSI_escape_code)")
     assert result == "ANSI escape code (https://en.wikipedia.org/wiki/ANSI_escape_code)\n\e[0m"
+
+    result = format("(ftp://example.com/ANSI_escape_code.zip)")
+    assert result == "(ftp://example.com/ANSI_escape_code.zip)\n\e[0m"
   end
 
   test "escaping of underlines within links does not escape surrounding text" do
