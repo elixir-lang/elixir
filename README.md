@@ -127,9 +127,9 @@ With tests running and passing, you are ready to contribute to Elixir and
 We have saved some excellent pull requests we have received in the past in
 case you are looking for some examples:
 
-* [Implement Enum.member? – Pull Request](https://github.com/elixir-lang/elixir/pull/992)
-* [Add String.valid? – Pull Request](https://github.com/elixir-lang/elixir/pull/1058)
-* [Implement capture_io for ExUnit – Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
+* [Implement Enum.member? - Pull Request](https://github.com/elixir-lang/elixir/pull/992)
+* [Add String.valid? - Pull Request](https://github.com/elixir-lang/elixir/pull/1058)
+* [Implement capture_io for ExUnit - Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
 
 ### Reviewing changes
 
