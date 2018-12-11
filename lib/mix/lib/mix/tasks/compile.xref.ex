@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Compile.Xref do
   end
 
   defp run_xref do
-    timestamp = :calendar.universal_time()
+    timestamp = System.os_time(:second)
     warnings = Mix.Tasks.Xref.warnings([])
     write_manifest(warnings, timestamp)
     warnings
