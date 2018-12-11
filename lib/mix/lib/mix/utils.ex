@@ -176,7 +176,7 @@ defmodule Mix.Utils do
   (1970-01-01 00:00:00).
   """
   def last_modified_and_size(path) do
-    now = System.system_time(:second)
+    now = System.os_time(:second)
 
     case :elixir_utils.read_posix_mtime_and_size(path) do
       {:ok, mtime, size} when mtime > now ->
@@ -184,8 +184,7 @@ defmodule Mix.Utils do
           "warning: mtime (modified time) for #{inspect(path)} was set to the future, resetting to now"
 
         Mix.shell().error(message)
-
-        :elixir_utils.change_posix_time(path, now)
+        File.touch(path, now)
         {mtime, size}
 
       {:ok, mtime, size} ->

@@ -114,6 +114,12 @@ defmodule File do
           | {:read_ahead, pos_integer | false}
           | {:delayed_write, non_neg_integer, non_neg_integer}
 
+  @type erlang_time ::
+          {{year :: non_neg_integer(), month :: 1..12, day :: 1..13},
+           {hour :: 0..23, minute :: 0..59, second :: 0..59}}
+
+  @type posix_time :: integer()
+
   @doc """
   Returns `true` if the path is a regular file.
 
@@ -522,7 +528,9 @@ defmodule File do
   Updates modification time (mtime) and access time (atime) of
   the given file.
 
-  The file is created if it doesn’t exist. Requires datetime in UTC.
+  The file is created if it doesn’t exist. Requires datetime in UTC
+  (as returned by `:erlang.universaltime()`) or  or an integer
+  representing the POSIX timestamp (as returned by `System.os_time(:second)`).
 
   ## Examples
 
@@ -531,29 +539,36 @@ defmodule File do
       File.touch("/fakedir/b.txt", {{2018, 1, 30}, {13, 59, 59}})
       {:error, :enoent}
 
+      File.touch("/tmp/a.txt", 1544519753)
+      #=> :ok
+
   """
-  @spec touch(Path.t(), :calendar.datetime()) :: :ok | {:error, posix}
-  def touch(path, time \\ :calendar.universal_time()) do
+  @spec touch(Path.t(), erlang_time() | posix_time()) :: :ok | {:error, posix}
+  def touch(path, time \\ System.os_time(:second))
+
+  def touch(path, time) when is_tuple(time) do
     path = IO.chardata_to_string(path)
 
-    case :elixir_utils.change_universal_time(path, time) do
-      {:error, :enoent} -> touch_new(path, time)
-      other -> other
-    end
+    with {:error, :enoent} <- :elixir_utils.change_universal_time(path, time),
+         :ok <- write(path, "", [:append]),
+         do: :elixir_utils.change_universal_time(path, time)
   end
 
-  defp touch_new(path, time) do
-    case write(path, "", [:append]) do
-      :ok -> :elixir_utils.change_universal_time(path, time)
-      {:error, _reason} = error -> error
-    end
+  def touch(path, time) when is_integer(time) do
+    path = IO.chardata_to_string(path)
+
+    with {:error, :enoent} <- :elixir_utils.change_posix_time(path, time),
+         :ok <- write(path, "", [:append]),
+         do: :elixir_utils.change_posix_time(path, time)
   end
 
   @doc """
   Same as `touch/2` but raises a `File.Error` exception if it fails.
   Returns `:ok` otherwise.
 
-  Requires datetime in UTC.
+  The file is created if it doesn’t exist. Requires datetime in UTC
+  (as returned by `:erlang.universaltime()`) or  or an integer
+  representing the POSIX timestamp (as returned by `System.os_time(:second)`).
 
   ## Examples
 
@@ -562,9 +577,11 @@ defmodule File do
       File.touch!("/fakedir/b.txt", {{2018, 1, 30}, {13, 59, 59}})
       #=> ** (File.Error) could not touch "/fakedir/b.txt": no such file or directory
 
+      File.touch!("/tmp/a.txt", 1544519753)
+
   """
-  @spec touch!(Path.t(), :calendar.datetime()) :: :ok
-  def touch!(path, time \\ :calendar.universal_time()) do
+  @spec touch!(Path.t(), erlang_time() | posix_time()) :: :ok
+  def touch!(path, time \\ System.os_time(:second)) do
     case touch(path, time) do
       :ok ->
         :ok
