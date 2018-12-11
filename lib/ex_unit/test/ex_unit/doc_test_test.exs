@@ -356,7 +356,7 @@ defmodule ExUnit.DocTestTest.Haiku do
         古池や
         蛙飛びこむ
         水の音
-        ― Matsuo Basho
+        -- Matsuo Basho
       >
 
   """
@@ -372,7 +372,7 @@ defmodule ExUnit.DocTestTest.Haiku do
 
   defimpl Inspect do
     def inspect(haiku, _opts) do
-      author = if haiku.author == "", do: "", else: "\n  ― #{haiku.author}"
+      author = if haiku.author == "", do: "", else: "\n  -- #{haiku.author}"
 
       """
       #Haiku<
