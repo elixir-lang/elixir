@@ -395,7 +395,7 @@ defmodule Task.Supervisor do
   def start_child(supervisor, fun, options \\ []) do
     restart = options[:restart]
     shutdown = options[:shutdown]
-    args = [get_owner(self()), {:erlang, :apply, [fun, []]}]
+    args = [get_owner(self()), get_callers(self()), {:erlang, :apply, [fun, []]}]
     start_child_with_spec(supervisor, args, restart, shutdown)
   end
 
@@ -411,7 +411,7 @@ defmodule Task.Supervisor do
       when is_atom(fun) and is_list(args) do
     restart = options[:restart]
     shutdown = options[:shutdown]
-    args = [get_owner(self()), {module, fun, args}]
+    args = [get_owner(self()), get_callers(self()), {module, fun, args}]
     start_child_with_spec(supervisor, args, restart, shutdown)
   end
 
@@ -432,9 +432,16 @@ defmodule Task.Supervisor do
     {node(), self_or_name, pid}
   end
 
+  defp get_callers(owner) do
+    case :erlang.get(:"$callers") do
+      [_ | _] = list -> [owner | list]
+      _ -> [owner]
+    end
+  end
+
   defp async(supervisor, link_type, module, fun, args, options) do
     owner = self()
-    args = [get_owner(owner), :monitor, {module, fun, args}]
+    args = [get_owner(owner), get_callers(owner), :monitor, {module, fun, args}]
     shutdown = options[:shutdown]
 
     case start_child_with_spec(supervisor, args, :temporary, shutdown) do
@@ -456,8 +463,8 @@ defmodule Task.Supervisor do
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
     shutdown = options[:shutdown]
 
-    &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
-      args = [get_owner(owner), :monitor, mfa]
+    &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn [owner | _] = callers, mfa ->
+      args = [get_owner(owner), callers, :monitor, mfa]
 
       case start_child_with_spec(supervisor, args, :temporary, shutdown) do
         {:ok, pid} ->

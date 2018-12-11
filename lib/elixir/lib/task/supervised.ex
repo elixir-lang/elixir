@@ -2,20 +2,21 @@ defmodule Task.Supervised do
   @moduledoc false
   @ref_timeout 5000
 
-  def start(owner, fun) do
-    {:ok, :proc_lib.spawn(__MODULE__, :noreply, [owner, fun])}
+  def start(owner, callers, fun) do
+    {:ok, :proc_lib.spawn(__MODULE__, :noreply, [owner, callers, fun])}
   end
 
-  def start_link(owner, fun) do
-    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [owner, fun])}
+  def start_link(owner, callers, fun) do
+    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [owner, callers, fun])}
   end
 
-  def start_link(owner, monitor, fun) do
-    {:ok, :proc_lib.spawn_link(__MODULE__, :reply, [owner, monitor, fun])}
+  def start_link(owner, callers, monitor, fun) do
+    {:ok, :proc_lib.spawn_link(__MODULE__, :reply, [owner, callers, monitor, fun])}
   end
 
-  def reply({_, _, owner_pid} = owner, monitor, mfa) do
+  def reply({_, _, owner_pid} = owner, callers, monitor, mfa) do
     initial_call(mfa)
+    put_callers(callers)
 
     case monitor do
       :monitor ->
@@ -31,7 +32,7 @@ defmodule Task.Supervised do
     receive do
       {^owner_pid, ref} ->
         _ = if mref, do: Process.demonitor(mref, [:flush])
-        send(owner_pid, {ref, do_apply(owner, mfa)})
+        send(owner_pid, {ref, invoke_mfa(owner, mfa)})
 
       {:DOWN, ^mref, _, _, reason} when is_reference(mref) ->
         exit({:shutdown, reason})
@@ -60,9 +61,14 @@ defmodule Task.Supervised do
     end
   end
 
-  def noreply(owner, mfa) do
+  def noreply(owner, callers, mfa) do
     initial_call(mfa)
-    do_apply(owner, mfa)
+    put_callers(callers)
+    invoke_mfa(owner, mfa)
+  end
+
+  defp put_callers(callers) do
+    Process.put(:"$callers", callers)
   end
 
   defp initial_call(mfa) do
@@ -79,7 +85,7 @@ defmodule Task.Supervised do
     {mod, fun, length(args)}
   end
 
-  defp do_apply(owner, {module, fun, args} = mfa) do
+  defp invoke_mfa(owner, {module, fun, args} = mfa) do
     try do
       apply(module, fun, args)
     catch
@@ -147,6 +153,7 @@ defmodule Task.Supervised do
     timeout = Keyword.get(options, :timeout, 5000)
     on_timeout = Keyword.get(options, :on_timeout, :exit)
     parent = self()
+    callers = get_callers()
 
     {:trap_exit, trap_exit?} = Process.info(self(), :trap_exit)
 
@@ -156,7 +163,10 @@ defmodule Task.Supervised do
     spawn_opts = [:link, :monitor]
 
     {monitor_pid, monitor_ref} =
-      Process.spawn(fn -> stream_monitor(parent, mfa, spawn, trap_exit?, timeout) end, spawn_opts)
+      Process.spawn(
+        fn -> stream_monitor(callers, mfa, spawn, trap_exit?, timeout) end,
+        spawn_opts
+      )
 
     # Now that we have the pid of the "monitor" process and the reference of the
     # monitor we use to monitor such process, we can inform the monitor process
@@ -181,6 +191,13 @@ defmodule Task.Supervised do
       next,
       config
     )
+  end
+
+  defp get_callers do
+    case :erlang.get(:"$callers") do
+      [_ | _] = list -> [self() | list]
+      _ -> [self()]
+    end
   end
 
   defp stream_reduce({:halt, acc}, _max, _spawned, _delivered, _waiting, next, config) do
@@ -426,9 +443,8 @@ defmodule Task.Supervised do
     end
   end
 
-  defp stream_monitor(parent_pid, mfa, spawn, trap_exit?, timeout) do
+  defp stream_monitor([parent_pid | _] = callers, mfa, spawn, trap_exit?, timeout) do
     Process.flag(:trap_exit, trap_exit?)
-
     parent_ref = Process.monitor(parent_pid)
 
     # Let's wait for the parent process to tell this process the monitor ref
@@ -437,7 +453,7 @@ defmodule Task.Supervised do
     receive do
       {^parent_pid, monitor_ref} ->
         config = %{
-          parent_pid: parent_pid,
+          callers: callers,
           parent_ref: parent_ref,
           mfa: mfa,
           spawn: spawn,
@@ -454,7 +470,7 @@ defmodule Task.Supervised do
 
   defp stream_monitor_loop(running_tasks, config) do
     %{
-      parent_pid: parent_pid,
+      callers: [parent_pid | _] = callers,
       mfa: mfa,
       spawn: spawn,
       monitor_ref: monitor_ref,
@@ -465,7 +481,7 @@ defmodule Task.Supervised do
       # The parent process is telling us to spawn a new task to process
       # "value". We spawn it and notify the parent about its pid.
       {:spawn, position, value} ->
-        case spawn.(parent_pid, normalize_mfa_with_arg(mfa, value)) do
+        case spawn.(callers, normalize_mfa_with_arg(mfa, value)) do
           {:ok, type, pid} ->
             ref = Process.monitor(pid)
 
