@@ -40,7 +40,7 @@ defmodule IEx do
   the `ERL_AFLAGS` environment variable and make sure that it is set
   accordingly on your terminal/shell configuration.
 
-  On Linux:
+  On Unix-like / Bash:
 
       export ERL_AFLAGS="-kernel shell_history enabled"
 
