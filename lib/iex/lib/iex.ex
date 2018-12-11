@@ -48,6 +48,10 @@ defmodule IEx do
 
       set ERL_AFLAGS "-kernel shell_history enabled"
 
+  On Windows10 / Powershell:
+
+      $env:ERL_AFLAGS = "-kernel shell_history enabled"
+
   ## Expressions in IEx
 
   As an interactive shell, IEx evaluates expressions. This has some
