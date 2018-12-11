@@ -115,7 +115,7 @@ defmodule File do
           | {:delayed_write, non_neg_integer, non_neg_integer}
 
   @type erlang_time ::
-          {{year :: non_neg_integer(), month :: 1..12, day :: 1..13},
+          {{year :: non_neg_integer(), month :: 1..12, day :: 1..31},
            {hour :: 0..23, minute :: 0..59, second :: 0..59}}
 
   @type posix_time :: integer()
