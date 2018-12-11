@@ -61,7 +61,7 @@ iex> 1 < :an_atom
 true
 ```
 
-The reason we can compare different data types is pragmatism. Sorting algorithms don’t need to worry about different data types in order to sort. For reference, the overall sorting order is defined below:
+The reason we can compare different data types is pragmatism. Sorting algorithms don't need to worry about different data types in order to sort. For reference, the overall sorting order is defined below:
 
 ```
 number < atom < reference < function < port < pid < tuple < map < list < bitstring

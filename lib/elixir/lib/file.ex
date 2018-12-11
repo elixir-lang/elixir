@@ -528,7 +528,7 @@ defmodule File do
   Updates modification time (mtime) and access time (atime) of
   the given file.
 
-  The file is created if it doesn’t exist. Requires datetime in UTC
+  The file is created if it doesn't exist. Requires datetime in UTC
   (as returned by `:erlang.universaltime()`) or an integer
   representing the POSIX timestamp (as returned by `System.os_time(:second)`).
 
@@ -566,7 +566,7 @@ defmodule File do
   Same as `touch/2` but raises a `File.Error` exception if it fails.
   Returns `:ok` otherwise.
 
-  The file is created if it doesn’t exist. Requires datetime in UTC
+  The file is created if it doesn't exist. Requires datetime in UTC
   (as returned by `:erlang.universaltime()`) or an integer
   representing the POSIX timestamp (as returned by `System.os_time(:second)`).
 
