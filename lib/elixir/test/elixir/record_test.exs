@@ -3,9 +3,8 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule RecordTest do
   use ExUnit.Case, async: true
 
-  doctest Record
-
   require Record
+  doctest Record
 
   import ExUnit.CaptureIO
 
@@ -130,7 +129,7 @@ defmodule RecordTest do
     refute match?(user(_: "other"), user())
   end
 
-  test "watns when updating a record with default value" do
+  test "warns when updating a record with default value" do
     captured =
       capture_io(:stderr, fn ->
         expanded = Macro.expand(quote(do: user(user(), _: :_, name: "meg")), __ENV__)
