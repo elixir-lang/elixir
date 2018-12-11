@@ -449,7 +449,7 @@ defmodule List do
   end
 
   @doc ~S"""
-  Checks if a list is a charlist made only of printable ASCII characters.
+  Checks if `list` is a charlist made only of printable ASCII characters.
 
   Takes an optional `limit` as a second argument. `ascii_printable?/2` only
   checks the printability of the list up to the `limit`.
@@ -488,51 +488,56 @@ defmodule List do
 
   """
   @doc since: "1.6.0"
-  def ascii_printable?(list, counter \\ :infinity)
+  @spec ascii_printable?(list, limit) :: boolean
+        when limit: :infinity | non_neg_integer
+  def ascii_printable?(list, limit \\ :infinity)
+      when is_list(list) and (limit == :infinity or (is_integer(limit) and limit >= 0)) do
+    ascii_printable_guarded?(list, limit)
+  end
 
-  def ascii_printable?(_, 0) do
+  defp ascii_printable_guarded?(_, 0) do
     true
   end
 
-  def ascii_printable?([char | rest], counter)
-      when is_integer(char) and char >= 32 and char <= 126 do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([char | rest], counter)
+       when is_integer(char) and char >= 32 and char <= 126 do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([?\n | rest], counter) do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([?\n | rest], counter) do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([?\r | rest], counter) do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([?\r | rest], counter) do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([?\t | rest], counter) do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([?\t | rest], counter) do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([?\v | rest], counter) do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([?\v | rest], counter) do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([?\b | rest], counter) do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([?\b | rest], counter) do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([?\f | rest], counter) do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([?\f | rest], counter) do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([?\e | rest], counter) do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([?\e | rest], counter) do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([?\a | rest], counter) do
-    ascii_printable?(rest, decrement(counter))
+  defp ascii_printable_guarded?([?\a | rest], counter) do
+    ascii_printable_guarded?(rest, decrement(counter))
   end
 
-  def ascii_printable?([], _counter), do: true
-  def ascii_printable?(_, _counter), do: false
+  defp ascii_printable_guarded?([], _counter), do: true
+  defp ascii_printable_guarded?(_, _counter), do: false
 
   @compile {:inline, decrement: 1}
   defp decrement(:infinity), do: :infinity
