@@ -2343,22 +2343,22 @@ defmodule String do
   end
 
   @doc """
-  Computes the jaro distance (similarity) between two strings.
+  Computes the Jaro distance (similarity) between two strings.
 
-  Returns a float value between 0 (equates to no similarity) and 1
+  Returns a float value between `0.0` (equates to no similarity) and `1.0`
   (is an exact match) representing [Jaro](https://en.wikipedia.org/wiki/Jaro-Winkler_distance)
   distance between `string1` and `string2`.
 
   The Jaro distance metric is designed and best suited for short
   strings such as person names. Elixir itself uses this function
-  to provide "did you mean?" functionality. For instance, when you
+  to provide the "did you mean?" functionality. For instance, when you
   are calling a function in a module and you have a typo in the
   function name, we attempt to suggest the most similar function
   name available, if any, based on the `jaro_distance/2` score.
 
   ## Examples
 
-      iex> String.jaro_distance("dwayne", "duane")
+      iex> String.jaro_distance("Dwayne", "Duane")
       0.8222222222222223
       iex> String.jaro_distance("even", "odd")
       0.0
