@@ -3,9 +3,10 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule RecordTest do
   use ExUnit.Case, async: true
 
+  require Record
   doctest Record
 
-  require Record
+  import ExUnit.CaptureIO
 
   test "extract/2 extracts information from an Erlang file" do
     assert Record.extract(:file_info, from_lib: "kernel/include/file.hrl") == [
@@ -126,10 +127,19 @@ defmodule RecordTest do
 
     assert match?(user(_: _), user())
     refute match?(user(_: "other"), user())
+  end
 
-    record = user(user(), _: :_, name: "meg")
-    assert user(record, :name) == "meg"
-    assert user(record, :age) == :_
+  test "warns when updating a record with default value" do
+    captured =
+      capture_io(:stderr, fn ->
+        expanded = Macro.expand(quote(do: user(user(), _: :_, name: "meg")), __ENV__)
+        {record, _} = Code.eval_quoted(expanded)
+
+        assert user(record, :name) == "meg"
+        assert user(record, :age) == :_
+      end)
+
+    assert captured =~ "updating a record with a default"
   end
 
   Record.defrecord(
