@@ -1886,11 +1886,25 @@ defmodule FileTest do
     end
   end
 
-  test "touch with timestamp" do
-    fixture = tmp_path("tmp_test.txt")
+  test "touch with erlang timestamp" do
+    fixture = tmp_path("tmp_erlang_touch.txt")
 
     try do
-      assert File.touch!(fixture) == :ok
+      assert File.touch!(fixture, :erlang.universaltime()) == :ok
+      stat = File.stat!(fixture)
+
+      assert File.touch!(fixture, last_year()) == :ok
+      assert stat.mtime > File.stat!(fixture).mtime
+    after
+      File.rm(fixture)
+    end
+  end
+
+  test "touch with posix timestamp" do
+    fixture = tmp_path("tmp_posix_touch.txt")
+
+    try do
+      assert File.touch!(fixture, System.os_time(:second)) == :ok
       stat = File.stat!(fixture)
 
       assert File.touch!(fixture, last_year()) == :ok
@@ -1909,11 +1923,7 @@ defmodule FileTest do
     assert io_error?(File.touch(fixture))
   end
 
-  test "touch! with success" do
-    assert File.touch!(fixture_path()) == :ok
-  end
-
-  test "touch! with failure" do
+  test "touch! raises" do
     fixture = fixture_path("file.txt/bar")
 
     message =
@@ -2019,15 +2029,7 @@ defmodule FileTest do
   end
 
   defp last_year do
-    last_year(:calendar.local_time())
-  end
-
-  defp last_year({{year, 2, 29}, time}) do
-    {{year - 1, 2, 28}, time}
-  end
-
-  defp last_year({{year, month, day}, time}) do
-    {{year - 1, month, day}, time}
+    System.os_time(:second) - 365 * 24 * 60 * 60
   end
 
   defp io_error?(result) do

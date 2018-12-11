@@ -33,7 +33,7 @@ defmodule Mix.Compilers.Elixir do
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
-    timestamp = :calendar.universal_time()
+    timestamp = System.os_time(:second)
     all_paths = MapSet.new(Mix.Utils.extract_files(srcs, exts))
 
     {all_modules, all_sources} = parse_manifest(manifest, dest)
