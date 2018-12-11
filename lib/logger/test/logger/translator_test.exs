@@ -512,6 +512,8 @@ defmodule Logger.TranslatorTest do
 
     assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
 
+    assert is_pid(process_metadata[:pid])
+    assert is_list(process_metadata[:ancestors])
     assert process_metadata[:foo] == :bar
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
@@ -634,7 +636,7 @@ defmodule Logger.TranslatorTest do
            Message Queue Length: 1
            Messages: \[:message\]
            Links: \[\]
-           Dictionary: \[\]
+           Dictionary: \["\$callers": \[#PID<\d+\.\d+\.\d+>\]\]
            Trapping Exits: false
            Status: :running
            Heap Size: \d+
@@ -644,6 +646,10 @@ defmodule Logger.TranslatorTest do
 
     assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
     assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+
+    assert process_metadata[:pid] == task_metadata[:pid]
+    assert is_list(process_metadata[:callers])
+    assert is_list(process_metadata[:ancestors])
 
     assert {%RuntimeError{message: "oops"}, [_ | _]} = task_metadata[:crash_reason]
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]

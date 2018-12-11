@@ -271,9 +271,8 @@ defmodule Task do
   @spec start_link(module, atom, [term]) :: {:ok, pid}
   def start_link(module, function_name, args)
       when is_atom(module) and is_atom(function_name) and is_list(args) do
-    self()
-    |> get_owner()
-    |> Task.Supervised.start_link({module, function_name, args})
+    mfa = {module, function_name, args}
+    Task.Supervised.start_link(get_owner(self()), get_callers(self()), mfa)
   end
 
   @doc """
@@ -300,9 +299,8 @@ defmodule Task do
   @spec start(module, atom, [term]) :: {:ok, pid}
   def start(module, function_name, args)
       when is_atom(module) and is_atom(function_name) and is_list(args) do
-    self()
-    |> get_owner()
-    |> Task.Supervised.start({module, function_name, args})
+    mfa = {module, function_name, args}
+    Task.Supervised.start(get_owner(self()), get_callers(self()), mfa)
   end
 
   @doc """
@@ -391,7 +389,7 @@ defmodule Task do
       when is_atom(module) and is_atom(function_name) and is_list(args) do
     mfa = {module, function_name, args}
     owner = self()
-    {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor, mfa)
+    {:ok, pid} = Task.Supervised.start_link(get_owner(owner), get_callers(owner), :nomonitor, mfa)
     ref = Process.monitor(pid)
     send(pid, {owner, ref})
     %Task{pid: pid, ref: ref, owner: owner}
@@ -498,8 +496,8 @@ defmodule Task do
   end
 
   defp build_stream(enumerable, fun, options) do
-    &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn owner, mfa ->
-      {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor, mfa)
+    &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn [owner | _] = callers, mfa ->
+      {:ok, pid} = Task.Supervised.start_link(get_owner(owner), callers, :nomonitor, mfa)
       {:ok, :link, pid}
     end)
   end
@@ -515,6 +513,13 @@ defmodule Task do
       end
 
     {node(), self_or_name, pid}
+  end
+
+  defp get_callers(owner) do
+    case :erlang.get(:"$callers") do
+      [_ | _] = list -> [owner | list]
+      _ -> [owner]
+    end
   end
 
   @doc """

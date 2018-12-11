@@ -105,12 +105,29 @@ defmodule Task.SupervisorTest do
 
     test "raises when :max_children is reached" do
       {:ok, sup} = Task.Supervisor.start_link(max_children: 1)
-
       Task.Supervisor.async(sup, fn -> Process.sleep(:infinity) end)
 
       assert_raise RuntimeError, ~r/reached the maximum number of tasks/, fn ->
         Task.Supervisor.async(sup, fn -> :ok end)
       end
+    end
+
+    test "with $callers", config do
+      sup = config[:supervisor]
+      grandparent = self()
+
+      Task.Supervisor.async(sup, fn ->
+        parent = self()
+        assert Process.get(:"$callers") == [grandparent]
+        assert Process.get(:"$ancestors") == [sup, grandparent]
+
+        Task.Supervisor.async(sup, fn ->
+          assert Process.get(:"$callers") == [parent, grandparent]
+          assert Process.get(:"$ancestors") == [sup, grandparent]
+        end)
+        |> Task.await()
+      end)
+      |> Task.await()
     end
   end
 
@@ -262,6 +279,25 @@ defmodule Task.SupervisorTest do
     assert_receive :ready
   end
 
+  test "start_child/1 with $callers", config do
+    sup = config[:supervisor]
+    grandparent = self()
+
+    Task.Supervisor.start_child(sup, fn ->
+      parent = self()
+      assert Process.get(:"$callers") == [grandparent]
+      assert Process.get(:"$ancestors") == [sup, grandparent]
+
+      Task.Supervisor.start_child(sup, fn ->
+        assert Process.get(:"$callers") == [parent, grandparent]
+        assert Process.get(:"$ancestors") == [sup, grandparent]
+        send(grandparent, :done)
+      end)
+    end)
+
+    assert_receive :done
+  end
+
   test "terminate_child/2", config do
     args = [self(), :done]
 
@@ -368,6 +404,27 @@ defmodule Task.SupervisorTest do
       {:links, links} = Process.info(self(), :links)
       assert MapSet.new(links) == MapSet.new([unused_supervisor, supervisor])
       refute_received _
+    end
+
+    test "with $callers", config do
+      sup = config[:supervisor]
+      grandparent = self()
+
+      Task.Supervisor.async_stream(sup, [1], fn 1 ->
+        parent = self()
+        assert Process.get(:"$callers") == [grandparent]
+        assert Process.get(:"$ancestors") == [sup, grandparent]
+
+        Task.Supervisor.async_stream(sup, [1], fn 1 ->
+          assert Process.get(:"$callers") == [parent, grandparent]
+          assert Process.get(:"$ancestors") == [sup, grandparent]
+          send(grandparent, :done)
+        end)
+        |> Stream.run()
+      end)
+      |> Stream.run()
+
+      assert_receive :done
     end
   end
 
