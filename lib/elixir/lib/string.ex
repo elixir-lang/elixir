@@ -2346,7 +2346,7 @@ defmodule String do
   Computes the jaro distance (similarity) between two strings.
 
   Returns a float value between 0 (equates to no similarity) and 1
-  (is an exact match) representing [Jaro](https://en.wikipedia.org/wiki/Jaro–Winkler_distance)
+  (is an exact match) representing [Jaro](https://en.wikipedia.org/wiki/Jaro-Winkler_distance)
   distance between `string1` and `string2`.
 
   The Jaro distance metric is designed and best suited for short
