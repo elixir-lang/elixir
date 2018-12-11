@@ -176,7 +176,7 @@ defmodule Mix.Utils do
   (1970-01-01 00:00:00).
   """
   def last_modified_and_size(path) do
-    now = System.system_time(:second)
+    now = System.os_time(:second)
 
     case :elixir_utils.read_posix_mtime_and_size(path) do
       {:ok, mtime, size} when mtime > now ->
