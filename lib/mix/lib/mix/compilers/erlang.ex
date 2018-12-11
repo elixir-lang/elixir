@@ -82,7 +82,7 @@ defmodule Mix.Compilers.Erlang do
     stale = for {:stale, src, dest} <- mappings, do: {src, dest}
 
     # Get the previous entries from the manifest
-    timestamp = :calendar.universal_time()
+    timestamp = System.os_time(:second)
     entries = read_manifest(manifest)
 
     # Files to remove are the ones in the manifest
