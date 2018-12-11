@@ -67,8 +67,8 @@ defmodule ExUnit.CaptureIOTest do
            end) == "ab"
 
     assert capture_io(fn ->
-             :io.put_chars("josé")
-           end) == "josé"
+             :io.put_chars("José")
+           end) == "José"
 
     assert capture_io(fn ->
              spawn(fn -> :io.put_chars("a") end)

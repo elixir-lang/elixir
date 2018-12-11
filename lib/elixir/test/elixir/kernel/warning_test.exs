@@ -1429,8 +1429,8 @@ defmodule Kernel.WarningTest do
   test ":__struct__ is ignored when using structs" do
     assert capture_err(fn ->
              code = """
-             assert %Kernel.WarningTest.User{__struct__: Ignored, name: "joe"} ==
-                    %Kernel.WarningTest.User{name: "joe"}
+             assert %Kernel.WarningTest.User{__struct__: Ignored, name: "Joe"} ==
+                    %Kernel.WarningTest.User{name: "Joe"}
              """
 
              Code.eval_string(code, [], __ENV__)
@@ -1439,8 +1439,8 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
              code = """
              user = %Kernel.WarningTest.User{name: "meg"}
-             assert %Kernel.WarningTest.User{user | __struct__: Ignored, name: "joe"} ==
-                    %Kernel.WarningTest.User{__struct__: Kernel.WarningTest.User, name: "joe"}
+             assert %Kernel.WarningTest.User{user | __struct__: Ignored, name: "Joe"} ==
+                    %Kernel.WarningTest.User{__struct__: Kernel.WarningTest.User, name: "Joe"}
              """
 
              Code.eval_string(code, [], __ENV__)

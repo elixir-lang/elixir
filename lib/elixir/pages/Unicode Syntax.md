@@ -56,6 +56,6 @@ Identifiers in Elixir are case sensitive.
 
 Elixir requires all atoms and variables to be in NFC form. Any other form will fail with a relevant error message. Quoted-atoms and strings can, however, be in any form and are not verified by the parser.
 
-In other words, the atom `:josé` can only be written with the codepoints `006A 006F 0073 00E9`. Using another normalization form will lead to a tokenizer error. On the other hand, `:"josé"` may be written as `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301`, since it is written between quotes.
+In other words, the atom `:José` can only be written with the codepoints `004A 006F 0073 00E9`. Using another normalization form will lead to a tokenizer error. On the other hand, `:"José"` may be written as `004A 006F 0073 00E9` or `004A 006F 0073 0065 0301`, since it is written between quotes.
 
 Choosing requirement R6 automatically excludes requirements R4, R5 and R7.
