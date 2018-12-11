@@ -529,7 +529,7 @@ defmodule File do
   the given file.
 
   The file is created if it doesn’t exist. Requires datetime in UTC
-  (as returned by `:erlang.universaltime()`) or  or an integer
+  (as returned by `:erlang.universaltime()`) or an integer
   representing the POSIX timestamp (as returned by `System.os_time(:second)`).
 
   ## Examples
@@ -567,7 +567,7 @@ defmodule File do
   Returns `:ok` otherwise.
 
   The file is created if it doesn’t exist. Requires datetime in UTC
-  (as returned by `:erlang.universaltime()`) or  or an integer
+  (as returned by `:erlang.universaltime()`) or an integer
   representing the POSIX timestamp (as returned by `System.os_time(:second)`).
 
   ## Examples
