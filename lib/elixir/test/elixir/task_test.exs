@@ -95,13 +95,26 @@ defmodule TaskTest do
     assert task.pid in links
 
     receive do: (:ready -> :ok)
-
     assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(task.pid)
 
     send(task.pid, true)
-
     assert Task.await(task) === :done
     assert_receive :done
+  end
+
+  test "async with $callers" do
+    grandparent = self()
+
+    Task.async(fn ->
+      parent = self()
+      assert Process.get(:"$callers") == [grandparent]
+
+      Task.async(fn ->
+        assert Process.get(:"$callers") == [parent, grandparent]
+      end)
+      |> Task.await()
+    end)
+    |> Task.await()
   end
 
   test "start/1" do
@@ -163,6 +176,22 @@ defmodule TaskTest do
     assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(pid)
 
     send(pid, true)
+    assert_receive :done
+  end
+
+  test "start_link with $callers" do
+    grandparent = self()
+
+    Task.start_link(fn ->
+      parent = self()
+      assert Process.get(:"$callers") == [grandparent]
+
+      Task.start_link(fn ->
+        assert Process.get(:"$callers") == [parent, grandparent]
+        send(grandparent, :done)
+      end)
+    end)
+
     assert_receive :done
   end
 
@@ -549,6 +578,24 @@ defmodule TaskTest do
 
     test "streams an enumerable with infinite timeout" do
       [ok: :ok] = Task.async_stream([1], fn _ -> :ok end, timeout: :infinity) |> Enum.to_list()
+    end
+
+    test "with $callers" do
+      grandparent = self()
+
+      Task.async_stream([1], fn 1 ->
+        parent = self()
+        assert Process.get(:"$callers") == [grandparent]
+
+        Task.async_stream([1], fn 1 ->
+          assert Process.get(:"$callers") == [parent, grandparent]
+          send(grandparent, :done)
+        end)
+        |> Stream.run()
+      end)
+      |> Stream.run()
+
+      assert_receive :done
     end
   end
 

@@ -368,9 +368,10 @@ defmodule Logger.Translator do
       {:error_info, {kind, reason, stack}} | crashed
     ] = crashed
 
+    dictionary = crashed[:dictionary]
     reason = Exception.normalize(kind, reason, stack)
 
-    case crashed[:dictionary][:logger_metadata] || {true, []} do
+    case Keyword.get(dictionary, :logger_metadata, {true, []}) do
       {false, _} ->
         :skip
 
@@ -379,8 +380,14 @@ defmodule Logger.Translator do
           ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
             [crash_info(min_level, extra ++ crashed, [?\n]), crash_linked(min_level, linked)]
 
-        crash_metadata = [crash_reason: exit_reason(kind, reason, stack)] ++ registered_name(name)
-        {:ok, msg, crash_metadata ++ extra ++ user_metadata}
+        extra =
+          if ancestors = crashed[:ancestors], do: [{:ancestors, ancestors} | extra], else: extra
+
+        extra =
+          if callers = dictionary[:"$callers"], do: [{:callers, callers} | extra], else: extra
+
+        extra = [{:crash_reason, exit_reason(kind, reason, stack)} | extra]
+        {:ok, msg, registered_name(name) ++ extra ++ user_metadata}
     end
   end
 

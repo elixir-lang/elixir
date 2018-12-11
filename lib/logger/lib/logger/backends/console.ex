@@ -192,7 +192,7 @@ defmodule Logger.Backends.Console do
   end
 
   defp take_metadata(metadata, :all) do
-    Keyword.drop(metadata, [:crash_reason])
+    Keyword.drop(metadata, [:crash_reason, :ancestors, :callers])
   end
 
   defp take_metadata(metadata, keys) do
