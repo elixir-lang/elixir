@@ -1674,6 +1674,21 @@ defmodule Kernel.WarningTest do
     assert message =~ "\"else\" shouldn't be used as the only clause in \"try\""
   end
 
+  test "warns on bad record update input" do
+    assert capture_err(fn ->
+             defmodule Sample do
+               require Record
+               Record.defrecord(:user, __MODULE__, name: "john", age: 25)
+
+               def fun do
+                 user(user(), _: :_, name: "meg")
+               end
+             end
+           end) =~ "updating a record with a default (:_) is equivalent to creating a new record"
+  after
+    purge([Sample])
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end

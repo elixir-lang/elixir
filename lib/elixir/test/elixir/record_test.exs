@@ -129,19 +129,6 @@ defmodule RecordTest do
     refute match?(user(_: "other"), user())
   end
 
-  test "warns when updating a record with default value" do
-    captured =
-      capture_io(:stderr, fn ->
-        expanded = Macro.expand(quote(do: user(user(), _: :_, name: "meg")), __ENV__)
-        {record, _} = Code.eval_quoted(expanded)
-
-        assert user(record, :name) == "meg"
-        assert user(record, :age) == :_
-      end)
-
-    assert captured =~ "updating a record with a default"
-  end
-
   Record.defrecord(
     :defaults,
     struct: ~D[2016-01-01],
