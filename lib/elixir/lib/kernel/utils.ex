@@ -157,7 +157,7 @@ defmodule Kernel.Utils do
   macro.
 
   Secondly, if the expression is being used outside of a guard, we want to unquote
-  `value`––but only once, and then re-use the unquoted form throughout the expression.
+  `value`, but only once, and then re-use the unquoted form throughout the expression.
 
   This helper does exactly that: takes the AST for an expression and a list of
   variable references it should be aware of, and rewrites it into a new expression
