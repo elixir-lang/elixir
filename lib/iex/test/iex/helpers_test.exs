@@ -611,7 +611,7 @@ defmodule IEx.HelpersTest do
   end
 
   describe "b" do
-    test "lists all callbacks for a module" do
+    test "lists all callbacks for an Elixir module" do
       assert capture_io(fn -> b(Mix) end) == "No callbacks for Mix were found\n"
       assert capture_io(fn -> b(NoMix) end) == "Could not load module NoMix, got: nofile\n"
 
@@ -620,21 +620,14 @@ defmodule IEx.HelpersTest do
 
              @callback checked_out?(opts()) :: boolean()
              """
+    end
 
-      assert capture_io(fn -> b(:gen_server) end) =~ """
-             @callback handle_info(info :: :timeout | term(), state :: term()) ::
-                         {:noreply, newState :: term()}
-                         | {:noreply, newState :: term(),
-                            timeout() | :hibernate | {:continue, term()}}
-                         | {:stop, reason :: term(), newState :: term()}
+    test "lists all callbacks for an Erlang module" do
+      output = capture_io(fn -> b(:gen_server) end)
 
-             @callback init(args :: term()) ::
-                         {:ok, state :: term()}
-                         | {:ok, state :: term(),
-                            timeout() | :hibernate | {:continue, term()}}
-                         | {:stop, reason :: term()}
-                         | :ignore
-             """
+      assert output =~ "@callback handle_cast(request :: term(), state :: term()) ::"
+      assert output =~ "@callback handle_info(info :: :timeout | term(), state :: term()) ::"
+      assert output =~ "@callback init(args :: term()) ::"
     end
 
     test "lists all macrocallbacks for a module" do
@@ -701,14 +694,8 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> b(Exception.message() / 1) end) ==
                "@callback message(t()) :: String.t()\n\n"
 
-      assert capture_io(fn -> b(:gen_server.handle_cast() / 2) end) == """
-             @callback handle_cast(request :: term(), state :: term()) ::
-                         {:noreply, newState :: term()}
-                         | {:noreply, newState :: term(),
-                            timeout() | :hibernate | {:continue, term()}}
-                         | {:stop, reason :: term(), newState :: term()}
-
-             """
+      assert capture_io(fn -> b(:gen_server.handle_cast() / 2) end) =~
+               "@callback handle_cast(request :: term(), state :: term()) ::"
     end
 
     test "prints callback documentation metadata" do
