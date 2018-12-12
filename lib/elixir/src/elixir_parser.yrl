@@ -49,6 +49,7 @@ Rootsymbol grammar.
 Expect 3.
 
 %% Changes in ops and precedence should be reflected on lib/elixir/lib/code/identifier.ex
+%% and lib/elixir/pages/Operators.md
 %% Note though the operator => in practice has lower precedence than all others,
 %% its entry in the table is only to support the %{user | foo => bar} syntax.
 Left       5 do.
