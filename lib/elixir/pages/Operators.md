@@ -16,7 +16,7 @@ Operator                                                                        
 `++` `--` `..` `<>`                                                                      | Right to left
 `^^^`                                                                                    | Left to right
 `in` `not in`                                                                            | Left to right
-`\|>` `<<<` `>>>` `~>>` `<<~` `~>` `<~` `<~>` `<\|>`                                     | Left to right
+`\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>` `<\|>`                                     | Left to right
 `<` `>` `<=` `>=`                                                                        | Left to right
 `==` `!=` `=~` `===` `!==`                                                               | Left to right
 `&&` `&&&` `and`                                                                         | Left to right
@@ -37,10 +37,10 @@ Elixir provides the following built-in comparison operators:
   * [`===`](`Kernel.===/2`) - strict equality
   * [`!=`](`Kernel.!=/2`) - inequality
   * [`!==`](`Kernel.!==/2`) - strict inequality
-  * [`>`](`Kernel.>/2`) - greater than
   * [`<`](`Kernel.</2`) - less than
-  * [`>=`](`Kernel.>=/2`) - greater than or equal
+  * [`>`](`Kernel.>/2`) - greater than
   * [`<=`](`Kernel.<=/2`) - less than or equal
+  * [`>=`](`Kernel.>=/2`) - greater than or equal
 
 The only difference between [`==`](`Kernel.==/2`) and [`===`](`Kernel.===/2`) is that [`===`](`Kernel.===/2`) is stricter when it comes to comparing integers and floats:
 
@@ -112,10 +112,10 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `&&&`
   * `<<<`
   * `>>>`
-  * `~>>`
   * `<<~`
-  * `~>`
+  * `~>>`
   * `<~`
+  * `~>`
   * `<~>`
   * `<|>`
   * `^^^`
