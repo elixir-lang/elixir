@@ -42,7 +42,7 @@ Elixir provides the following built-in comparison operators:
   * [`<=`](`Kernel.<=/2`) - less than or equal
   * [`>=`](`Kernel.>=/2`) - greater than or equal
 
-The only difference between [`==`](`Kernel.==/2`) and [`===`](`Kernel.===/2`) is that [`===`](`Kernel.===/2`) is stricter when it comes to comparing integers and floats:
+The only difference between [`==`](`Kernel.==/2`) and [`===`](`Kernel.===/2`) is that [`===`](`Kernel.===/2`) is strict when it comes to comparing integers and floats:
 
 ```elixir
 iex> 1 == 1.0
@@ -68,12 +68,12 @@ The reason we can compare different data types is pragmatism. Sorting algorithms
 number < atom < reference < function < port < pid < tuple < map < list < bitstring
 ```
 
-When comparing two numbers of different types (a number is either an integer or a float), a conversion to the type with greater precision will always occur, unless the comparison operator used is either `===` or `!==`. A float will be considered more precise than an integer, unless the float is greater/less than +/-9007199254740992.0, at which point all the significant figures of the float are to the left of the decimal point. This behavior exists so that the comparison of large numbers remains transitive.
+When comparing two numbers of different types (a number being either an integer or a float), a conversion to the type with greater precision will always occur, unless the comparison operator used is either [`===`](`===/2`) or [`!==`](`!==/2`). A float will be considered more precise than an integer, unless the float is greater/less than +/-9007199254740992.0 respectively, at which point all the significant figures of the float are to the left of the decimal point. This behavior exists so that the comparison of large numbers remains transitive.
 
 The collection types are compared using the following rules:
 
-* Tuples are compared by size then element by element.
-* Maps are compared by size then by keys in ascending term order then by values in key order. In the specific case of maps' key ordering, integers are always considered to be less than floats.
+* Tuples are compared by size, then element by element.
+* Maps are compared by size, then by keys in ascending term order, then by values in key order. In the specific case of maps' key ordering, integers are always considered to be less than floats.
 * Lists are compared element by element.
 * Bitstrings are compared byte by byte, incomplete bytes are compared bit by bit.
 
