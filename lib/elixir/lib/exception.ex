@@ -945,6 +945,10 @@ defmodule UndefinedFunctionError do
           behaviour -> ", but the behaviour #{inspect(behaviour)} expects it to be present"
         end
     end
+  rescue
+    # In case the module was removed while we are computing this
+    UndefinedFunctionError ->
+      []
   end
 
   defp expects_callback?(behaviour, function, arity) do
@@ -1018,17 +1022,9 @@ defmodule UndefinedFunctionError do
   end
 
   defp behaviours_for(module) do
-    attributes =
-      case function_exported?(module, :__info__, 1) do
-        true -> module.__info__(:attributes)
-        false -> module.module_info(:attributes)
-      end
-
-    Keyword.get(attributes, :behaviour, [])
-  rescue
-    # In case the module was removed while we are computing this
-    UndefinedFunctionError ->
-      []
+    :attributes
+    |> module.module_info()
+    |> Keyword.get(:behaviour, [])
   end
 
   defp exports_for(module) do
