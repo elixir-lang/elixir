@@ -2,6 +2,7 @@ defmodule Mix.Tasks.Archive.Build do
   use Mix.Task
 
   @shortdoc "Archives this project into a .ez file"
+  @recursive true
 
   @moduledoc """
   Builds an archive according to the specification of the
