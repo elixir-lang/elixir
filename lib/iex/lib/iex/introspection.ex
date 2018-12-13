@@ -552,7 +552,7 @@ defmodule IEx.Introspection do
           callbacks
           |> Enum.map(&translate_callback/1)
           |> Enum.filter(filter)
-          |> Enum.sort_by(&elem(&1, 0), &>=/2)
+          |> Enum.sort()
           |> Enum.reduce([], fn {{_, function, arity}, _specs} = callback, acc ->
             case find_doc(docs, function, arity) do
               nil ->
@@ -565,6 +565,7 @@ defmodule IEx.Introspection do
                 [{format_callback(callback), doc, metadata} | acc]
             end
           end)
+          |> Enum.reverse()
 
         {:ok, docs}
     end
