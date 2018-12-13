@@ -727,6 +727,17 @@ defmodule ExceptionTest do
 
       assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0}
              |> message == "function nil.bar/0 is undefined"
+
+      defmodule(Behaviour, do: @callback(required() :: :ok))
+
+      defmodule Implementation do
+        @behaviour Behaviour
+      end
+
+      assert %UndefinedFunctionError{module: Implementation, function: :required, arity: 0}
+             |> message ==
+               "function ExceptionTest.Implementation.required/0 is undefined or private" <>
+                 ", but the behaviour ExceptionTest.Behaviour expects it to be present"
     end
 
     test "FunctionClauseError" do
