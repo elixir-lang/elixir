@@ -283,14 +283,14 @@ defmodule Protocol do
   are retrieved with the help of `extract_impls/2`.
 
   It returns the updated version of the protocol bytecode.
+  If the first element of the tuple is `:ok`, it means
+  the protocol was consolidated.
+
   A given bytecode or protocol implementation can be checked
   to be consolidated or not by analyzing the protocol
   attribute:
 
       Protocol.consolidated?(Enumerable)
-
-  If the first element of the tuple is `true`, it means
-  the protocol was consolidated.
 
   This function does not load the protocol at any point
   nor loads the new bytecode for the compiled module.
