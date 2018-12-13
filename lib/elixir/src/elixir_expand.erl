@@ -211,6 +211,8 @@ expand({'&', Meta, [Arg]}, E) ->
       is_atom(Remote) andalso
         elixir_lexical:record_remote(Remote, Fun, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
       {{'&', Meta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, EE};
+    {{local, Fun, Arity}, #{function := nil}} ->
+      form_error(Meta, ?key(E, file), ?MODULE, {undefined_local_capture, Fun, Arity});
     {{local, Fun, Arity}, EE} ->
       {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, EE};
     {expand, Expr, EE} ->
@@ -1179,7 +1181,8 @@ format_error({nested_comparison, CompExpr}) ->
                 "Instead, consider joining together each comparison segment with an \"and\", e.g.\n\n"
                 "     x < y and y < z\n\n"
                 "You wrote: ~ts", [String]);
-
+format_error({undefined_local_capture, Fun, Arity}) ->
+  io_lib:format("undefined function ~ts/~B", [Fun, Arity]);
 format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
 format_error(stacktrace_not_allowed) ->
