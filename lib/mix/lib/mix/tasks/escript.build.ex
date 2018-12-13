@@ -3,6 +3,7 @@ defmodule Mix.Tasks.Escript.Build do
   use Bitwise, only_operators: true
 
   @shortdoc "Builds an escript for the project"
+  @recursive true
 
   @moduledoc ~S"""
   Builds an escript for the project.
@@ -133,11 +134,6 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp escriptize(project, language) do
     escript_opts = project[:escript] || []
-
-    if Mix.Project.umbrella?() do
-      Mix.raise("Building escripts for umbrella projects is unsupported")
-    end
-
     script_name = Mix.Local.name_for(:escript, project)
     filename = escript_opts[:path] || script_name
     main = escript_opts[:main_module]
