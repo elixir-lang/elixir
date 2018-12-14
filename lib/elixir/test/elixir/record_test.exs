@@ -6,8 +6,6 @@ defmodule RecordTest do
   require Record
   doctest Record
 
-  import ExUnit.CaptureIO
-
   test "extract/2 extracts information from an Erlang file" do
     assert Record.extract(:file_info, from_lib: "kernel/include/file.hrl") == [
              size: :undefined,
