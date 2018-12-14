@@ -729,6 +729,22 @@ defmodule ExceptionTest do
              |> message == "function nil.bar/0 is undefined"
     end
 
+    test "UndefinedFunctionError for a callback" do
+      defmodule Behaviour do
+        @callback callback() :: :ok
+        @optional_callbacks callback: 0
+      end
+
+      defmodule Implementation do
+        @behaviour Behaviour
+      end
+
+      assert %UndefinedFunctionError{module: Implementation, function: :callback, arity: 0}
+             |> message ==
+               "function ExceptionTest.Implementation.callback/0 is undefined or private" <>
+                 ", but the behaviour ExceptionTest.Behaviour expects it to be present"
+    end
+
     test "FunctionClauseError" do
       assert %FunctionClauseError{} |> message == "no function clause matches"
 
