@@ -5,27 +5,6 @@
 defmodule Mix.Dep.Lock do
   @moduledoc false
 
-  @manifest "compile.lock"
-
-  @doc """
-  Returns the manifest file for dependencies.
-
-  The manifest is used to check if the lockfile
-  itself is up to date.
-  """
-  def manifest(path \\ Mix.Project.manifest_path()) do
-    Path.join(path, @manifest)
-  end
-
-  @doc """
-  Touches the manifest file to force recompilation.
-  """
-  def touch_manifest do
-    path = Mix.Project.manifest_path()
-    File.mkdir_p!(path)
-    File.touch!(manifest(path))
-  end
-
   @doc """
   Reads the lockfile, returns a map containing
   each app name and its current lock information.
@@ -57,7 +36,7 @@ defmodule Mix.Dep.Lock do
         end
 
       File.write!(lockfile(), ["%{\n", lines, "}\n"])
-      touch_manifest()
+      Mix.Task.run("will_recompile")
     end
 
     :ok

@@ -207,7 +207,7 @@ defmodule Mix.Project do
   """
   @spec config_files() :: [Path.t()]
   def config_files do
-    [Mix.Dep.Lock.manifest() | Mix.ProjectStack.config_files()]
+    [Mix.Tasks.WillRecompile.manifest() | Mix.ProjectStack.config_files()]
   end
 
   @doc """
@@ -220,7 +220,7 @@ defmodule Mix.Project do
   @doc since: "1.7.0"
   @spec config_mtime() :: posix_mtime when posix_mtime: integer()
   def config_mtime do
-    Mix.Dep.Lock.manifest()
+    Mix.Tasks.WillRecompile.manifest()
     |> Mix.Utils.last_modified()
     |> max(Mix.ProjectStack.config_mtime())
   end
