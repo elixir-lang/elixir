@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Deps.Compile do
         compiled? and fetchable?
       end)
 
-    if true in compiled, do: Mix.Dep.Lock.touch_manifest(), else: :ok
+    if true in compiled, do: Mix.Task.run("will_recompile"), else: :ok
   end
 
   defp maybe_clean(dep, opts) do
