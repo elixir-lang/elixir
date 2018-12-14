@@ -48,7 +48,7 @@ defmodule IEx do
 
       set ERL_AFLAGS "-kernel shell_history enabled"
 
-  On Windows10 / Powershell:
+  On Windows 10 / PowerShell:
 
       $env:ERL_AFLAGS = "-kernel shell_history enabled"
 
