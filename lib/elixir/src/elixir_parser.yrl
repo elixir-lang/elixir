@@ -49,6 +49,7 @@ Rootsymbol grammar.
 Expect 3.
 
 %% Changes in ops and precedence should be reflected on lib/elixir/lib/code/identifier.ex
+%% and lib/elixir/pages/Operators.md
 %% Note though the operator => in practice has lower precedence than all others,
 %% its entry in the table is only to support the %{user | foo => bar} syntax.
 Left       5 do.
@@ -65,7 +66,7 @@ Left     130 or_op_eol.       %% ||, |||, or
 Left     140 and_op_eol.      %% &&, &&&, and
 Left     150 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     160 rel_op_eol.      %% <, >, <=, >=
-Left     170 arrow_op_eol.    %% |>, <<<, >>>, ~>>, <<~, ~>, <~, <~>, <|>
+Left     170 arrow_op_eol.    %% |>, <<<, >>>, <<~, ~>>, <~, ~>, <~>, <|>
 Left     180 in_op_eol.       %% in, not in
 Left     190 three_op_eol.    %% ^^^
 Right    200 two_op_eol.      %% ++, --, .., <>
