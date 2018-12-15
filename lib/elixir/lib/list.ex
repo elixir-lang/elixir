@@ -410,9 +410,11 @@ defmodule List do
       []
 
   """
+  @spec wrap(improper_list) :: improper_list
+        when improper_list: nonempty_improper_list(any(), any())
+  @spec wrap(list) :: list
   @spec wrap(nil) :: []
-  @spec wrap(list) :: list when list: maybe_improper_list()
-  @spec wrap(term) :: nonempty_list(term) when term: any()
+  @spec wrap(term) :: [term] when term: any()
   def wrap(term)
 
   def wrap(list) when is_list(list) do
