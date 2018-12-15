@@ -556,7 +556,8 @@ defmodule List do
 
   """
   @doc since: "1.8.0"
-  @spec improper?(maybe_improper_list) :: boolean
+  @spec improper?(nonempty_improper_list(any, any)) :: true
+  @spec improper?(list) :: false
   def improper?(list) when is_list(list) and length(list) >= 0, do: false
   def improper?(list) when is_list(list), do: true
 
