@@ -34,6 +34,14 @@ defmodule Inspect.Opts do
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
+    * `:records` - map of records that should be formatted, defaults to `%{}`.
+
+       For example, if we have a `{:person, "Alice", "alice@example.com"}` record,
+       by default it would be formatted as any other tuple.
+       By setting `[records: %{person: [:name, :email]}]` it would be formatted as:
+
+          #person(name: "Alice", email: "alice@example.com")
+
     * `:width` - defaults to 80 characters, used when pretty is `true` or when
       printing to IO devices. Set to 0 to force each item to be printed on its
       own line. If you don't want to limit the number of items to a particular
@@ -66,6 +74,7 @@ defmodule Inspect.Opts do
             width: 80,
             base: :decimal,
             pretty: false,
+            records: %{},
             safe: true,
             syntax_colors: []
 
@@ -82,6 +91,7 @@ defmodule Inspect.Opts do
           width: pos_integer | :infinity,
           base: :decimal | :binary | :hex | :octal,
           pretty: boolean,
+          records: %{optional(atom) => [atom()]},
           safe: boolean,
           syntax_colors: [{color_key, IO.ANSI.ansidata()}]
         }

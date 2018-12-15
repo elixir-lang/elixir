@@ -229,12 +229,36 @@ defimpl Inspect, for: List do
 end
 
 defimpl Inspect, for: Tuple do
+  def inspect({}, opts), do: inspect_tuple([], opts)
+
   def inspect(tuple, opts) do
-    open = color("{", :tuple, opts)
+    list = Tuple.to_list(tuple)
+    [record_name | values] = list
+
+    with {:ok, fields} <- Map.fetch(opts.records, record_name),
+         true <- length(fields) == tuple_size(tuple) - 1 do
+      inspect_record(record_name, fields, values, opts)
+    else
+      _ ->
+        inspect_tuple(list, opts)
+    end
+  end
+
+  defp inspect_tuple(list, opts) do
+    inspect("{", list, "}", &to_doc/2, :flex, opts)
+  end
+
+  defp inspect_record(record_name, fields, values, opts) do
+    kwlist = Enum.zip(fields, values)
+    inspect("##{record_name}(", kwlist, ")", &Inspect.List.keyword/2, :strict, opts)
+  end
+
+  defp inspect(open, list, close, fun, break, opts) do
+    open = color(open, :tuple, opts)
     sep = color(",", :tuple, opts)
-    close = color("}", :tuple, opts)
-    container_opts = [separator: sep, break: :flex]
-    container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, container_opts)
+    close = color(close, :tuple, opts)
+    container_opts = [separator: sep, break: break]
+    container_doc(open, list, close, opts, fun, container_opts)
   end
 end
 

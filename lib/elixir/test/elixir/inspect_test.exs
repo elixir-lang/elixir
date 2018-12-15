@@ -251,6 +251,35 @@ defmodule Inspect.TupleTest do
     assert inspect({:x, :y}, opts) ==
              "\e[32m{\e[36m\e[31m:x\e[36m\e[32m,\e[36m \e[31m:y\e[36m\e[32m}\e[36m"
   end
+
+  require Record
+  Record.defrecord(:person, [:name, :email])
+
+  describe "records" do
+    test "matching tuple" do
+      opts = [records: %{person: [:name, :email]}]
+      person = person(name: "Alice", email: "alice@example.com")
+      assert inspect(person, opts) == ~s|#person(name: "Alice", email: "alice@example.com")|
+    end
+
+    test "no match" do
+      opts = [records: %{person: [:name, :email]}]
+      assert inspect({:person}, opts) == ~s|{:person}|
+      assert inspect({:person, "Alice"}, opts) == ~s|{:person, "Alice"}|
+    end
+
+    test "colors" do
+      opts = [
+        records: %{person: [:name, :email]},
+        syntax_colors: [tuple: :green, reset: :cyan, atom: :red]
+      ]
+
+      person = person(name: "Alice", email: "alice@example.com")
+
+      assert inspect(person, opts) ==
+               "\e[32m#person(\e[36m\e[31mname:\e[36m \"Alice\"\e[32m,\e[36m \e[31memail:\e[36m \"alice@example.com\"\e[32m)\e[36m"
+    end
+  end
 end
 
 defmodule Inspect.ListTest do
