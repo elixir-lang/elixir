@@ -33,16 +33,16 @@ Operator                                                                        
 
 Elixir provides the following built-in comparison operators:
 
-  * [`==`](`Kernel.==/2`) - equality
-  * [`===`](`Kernel.===/2`) - strict equality
-  * [`!=`](`Kernel.!=/2`) - inequality
-  * [`!==`](`Kernel.!==/2`) - strict inequality
-  * [`<`](`Kernel.</2`) - less than
-  * [`>`](`Kernel.>/2`) - greater than
-  * [`<=`](`Kernel.<=/2`) - less than or equal
-  * [`>=`](`Kernel.>=/2`) - greater than or equal
+  * [`==`](`==/2`) - equality
+  * [`===`](`===/2`) - strict equality
+  * [`!=`](`!=/2`) - inequality
+  * [`!==`](`!==/2`) - strict inequality
+  * [`<`](`</2`) - less than
+  * [`>`](`>/2`) - greater than
+  * [`<=`](`<=/2`) - less than or equal
+  * [`>=`](`>=/2`) - greater than or equal
 
-The only difference between [`==`](`Kernel.==/2`) and [`===`](`Kernel.===/2`) is that [`===`](`Kernel.===/2`) is strict when it comes to comparing integers and floats:
+The only difference between [`==`](`==/2`) and [`===`](`===/2`) is that [`===`](`===/2`) is strict when it comes to comparing integers and floats:
 
 ```elixir
 iex> 1 == 1.0
@@ -51,7 +51,7 @@ iex> 1 === 1.0
 false
 ```
 
-[`!=`](`Kernel.!=/2`) and [`!==`](`Kernel.!==/2`) act as the negation of [`==`](`Kernel.==/2`) and [`===`](`Kernel.===/2`), respectively.
+[`!=`](`!=/2`) and [`!==`](`!==/2`) act as the negation of [`==`](`==/2`) and [`===`](`===/2`), respectively.
 
 ### Term ordering
 
