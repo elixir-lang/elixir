@@ -565,9 +565,9 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp translate_callback({{name, arity}, specs}) do
-    case Atom.to_string(name) do
-      "MACRO-" <> macro_name ->
+  defp translate_callback({name_arity, specs}) do
+    case translate_callback_name_arity(name_arity) do
+      {:macrocallback, _, _} = kind_name_arity ->
         # The typespec of a macrocallback differs from the one expressed
         # via @macrocallback:
         #
@@ -580,10 +580,17 @@ defmodule IEx.Introspection do
             {:type, line1, :fun, [{:type, line2, :product, args}, spec]}
           end)
 
-        {{:macrocallback, String.to_atom(macro_name), arity - 1}, specs}
+        {kind_name_arity, specs}
 
-      _ ->
-        {{:callback, name, arity}, specs}
+      kind_name_arity ->
+        {kind_name_arity, specs}
+    end
+  end
+
+  defp translate_callback_name_arity({name, arity}) do
+    case Atom.to_string(name) do
+      "MACRO-" <> macro_name -> {:macrocallback, String.to_atom(macro_name), arity - 1}
+      _ -> {:callback, name, arity}
     end
   end
 
@@ -599,6 +606,11 @@ defmodule IEx.Introspection do
     optional_callbacks =
       if Code.ensure_loaded?(mod) and function_exported?(mod, :behaviour_info, 1) do
         mod.behaviour_info(:optional_callbacks)
+        |> Enum.map(fn name_arity ->
+          {_kind, name, arity} = translate_callback_name_arity(name_arity)
+          {name, arity}
+        end)
+        |> Enum.sort()
       else
         []
       end

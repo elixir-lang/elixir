@@ -725,8 +725,9 @@ defmodule IEx.HelpersTest do
       content = """
       defmodule OptionalCallbacks do
         @doc "callback"
-        @callback optional_1(:foo) :: integer
-        @optional_callbacks optional_1: 1
+        @callback optional_callback(:foo) :: integer
+        @macrocallback optional_macrocallback(:bar) :: atom
+        @optional_callbacks optional_callback: 1, optional_macrocallback: 1
       end
       """
 
@@ -734,9 +735,11 @@ defmodule IEx.HelpersTest do
         assert c(filename, ".") == [OptionalCallbacks]
 
         assert capture_io(fn -> b(OptionalCallbacks) end) =~ """
-               @callback optional_1(:foo) :: integer()
+               @callback optional_callback(:foo) :: integer()
 
-               @optional_callbacks [optional_1: 1]
+               @macrocallback optional_macrocallback(:bar) :: atom()
+
+               @optional_callbacks [optional_callback: 1, optional_macrocallback: 1]
 
                """
       end)
