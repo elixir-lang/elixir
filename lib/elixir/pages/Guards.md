@@ -8,13 +8,13 @@ Not all expressions are allowed in guard clauses, but only a handful of them. Th
 
 You can find the built-in list of guards [in the `Kernel` module](Kernel.html#guards). Here is an overview:
 
-  * comparison operators ([`==`](`Kernel.==/2`), [`!=`](`Kernel.!=/2`), [`===`](`Kernel.===/2`), [`!==`](`Kernel.!==/2`),
-    [`>`](`Kernel.>/2`), [`>=`](`Kernel.>=/2`), [`<`](`Kernel.</2`), [`<=`](`Kernel.<=/2`))
-  * strictly boolean operators ([`and`](`Kernel.and/2`), [`or`](`Kernel.or/2`), [`not`](`Kernel.not/1`)). Note [`&&`](`Kernel.&&/2`), [`||`](`Kernel.||/2`), and [`!`](`Kernel.!/1`) sibling operators are **not allowed** as they're not *strictly* boolean - meaning they don't require arguments to be booleans
-  * arithmetic unary and binary operators ([`+`](`Kernel.+/1`), [`-`](`Kernel.-/1`), [`+`](`Kernel.+/2`), [`-`](`Kernel.-/2`), [`*`](`Kernel.*/2`), [`/`](`Kernel.//2`))
-  * [`in`](`Kernel.in/2`) and [`not in`](`Kernel.in/2`) operators (as long as the right-hand side is a list or a range)
-  * "type-check" functions ([`is_list/1`](`Kernel.is_list/1`), [`is_number/1`](`Kernel.is_number/1`), etc.)
-  * functions that work on built-in datatypes ([`abs/1`](`Kernel.abs/1`), [`map_size/1`](`Kernel.map_size/1`), etc.)
+  * comparison operators ([`==`](`==/2`), [`!=`](`!=/2`), [`===`](`===/2`), [`!==`](`!==/2`),
+    [`>`](`>/2`), [`>=`](`>=/2`), [`<`](`</2`), [`<=`](`<=/2`))
+  * strictly boolean operators ([`and`](`and/2`), [`or`](`or/2`), [`not`](`not/1`)). Note [`&&`](`&&/2`), [`||`](`||/2`), and [`!`](`!/1`) sibling operators are **not allowed** as they're not *strictly* boolean - meaning they don't require arguments to be booleans
+  * arithmetic unary and binary operators ([`+`](`+/1`), [`-`](`-/1`), [`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), [`/`](`//2`))
+  * [`in`](`in/2`) and [`not in`](`in/2`) operators (as long as the right-hand side is a list or a range)
+  * "type-check" functions ([`is_list/1`](`is_list/1`), [`is_number/1`](`is_number/1`), etc.)
+  * functions that work on built-in datatypes ([`abs/1`](`abs/1`), [`map_size/1`](`map_size/1`), etc.)
 
 The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
 
@@ -44,7 +44,7 @@ In the example above, we show how guards can be used in function clauses. There 
   def foo(term) when is_float(term), do: round(term)
   ```
 
-  * [`case`](`Kernel.SpecialForms.case/2`) expressions:
+  * [`case`](`case/2`) expressions:
 
   ```elixir
   case x do
@@ -54,7 +54,7 @@ In the example above, we show how guards can be used in function clauses. There 
   end
   ```
 
-  * anonymous functions ([`fn`](`Kernel.SpecialForms.fn/1`)s):
+  * anonymous functions ([`fn`](`fn/1`)s):
 
   ```elixir
   larger_than_two? = fn
@@ -63,10 +63,10 @@ In the example above, we show how guards can be used in function clauses. There 
   end
   ```
 
-  * custom guards can also be defined with `Kernel.defguard/1` and `Kernel.defguardp/1`.
+  * custom guards can also be defined with `defguard/1` and `defguardp/1`.
     A custom guard is always defined based on existing guards.
 
-Other constructs are [`for`](`Kernel.SpecialForms.for/1`), [`with`](`Kernel.SpecialForms.with/1`), [`try/rescue/catch/else`](`Kernel.SpecialForms.try/1`), and the `Kernel.match?/2`.
+Other constructs are [`for`](`for/1`), [`with`](`with/1`), [`try/rescue/catch/else`](`try/1`), and the `match?/2`.
 
 ## Failing guards
 
