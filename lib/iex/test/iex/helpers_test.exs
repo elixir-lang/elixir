@@ -611,7 +611,7 @@ defmodule IEx.HelpersTest do
   end
 
   describe "b" do
-    test "lists all callbacks for a module" do
+    test "lists all callbacks for an Elixir module" do
       assert capture_io(fn -> b(Mix) end) == "No callbacks for Mix were found\n"
       assert capture_io(fn -> b(NoMix) end) == "Could not load module NoMix, got: nofile\n"
 
@@ -619,6 +619,43 @@ defmodule IEx.HelpersTest do
              @callback accepts_options(app :: atom(), opts()) :: opts() | nil
 
              @callback checked_out?(opts()) :: boolean()
+             """
+    end
+
+    test "lists all callbacks for an Erlang module" do
+      output = capture_io(fn -> b(:gen_server) end)
+
+      assert output =~ "@callback handle_cast(request :: term(), state :: term()) ::"
+      assert output =~ "@callback handle_info(info :: :timeout | term(), state :: term()) ::"
+      assert output =~ "@callback init(args :: term()) ::"
+    end
+
+    test "lists all macrocallbacks for a module" do
+      filename = "macrocallbacks.ex"
+
+      content = """
+      defmodule Macrocallbacks do
+        @macrocallback test(:foo) :: integer
+      end
+      """
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [Macrocallbacks]
+
+        assert capture_io(fn -> b(Macrocallbacks) end) =~
+                 "@macrocallback test(:foo) :: integer()\n\n"
+      end)
+    after
+      cleanup_modules([Macrocallbacks])
+    end
+
+    test "lists all callbacks for a protocol" do
+      assert capture_io(fn -> b(Enumerable) end) =~ """
+             @callback count(t()) :: {:ok, non_neg_integer()} | {:error, module()}
+
+             @callback member?(t(), term()) :: {:ok, boolean()} | {:error, module()}
+
+             @callback reduce(t(), acc(), reducer()) :: result()
              """
     end
 
@@ -656,6 +693,9 @@ defmodule IEx.HelpersTest do
 
       assert capture_io(fn -> b(Exception.message() / 1) end) ==
                "@callback message(t()) :: String.t()\n\n"
+
+      assert capture_io(fn -> b(:gen_server.handle_cast() / 2) end) =~
+               "@callback handle_cast(request :: term(), state :: term()) ::"
     end
 
     test "prints callback documentation metadata" do
@@ -702,6 +742,29 @@ defmodule IEx.HelpersTest do
       end)
     after
       cleanup_modules([OptionalCallbacks])
+    end
+
+    test "does not print docs for @doc false callbacks" do
+      filename = "hidden_callbacks.ex"
+
+      content = """
+      defmodule HiddenCallbacks do
+        @doc false
+        @callback hidden_callback() :: integer
+
+        @doc false
+        @macrocallback hidden_macrocallback() :: integer
+      end
+      """
+
+      with_file(filename, content, fn ->
+        assert c(filename, ".") == [HiddenCallbacks]
+
+        assert capture_io(fn -> b(HiddenCallbacks) end) =~
+                 "No callbacks for HiddenCallbacks were found\n"
+      end)
+    after
+      cleanup_modules([HiddenCallbacks])
     end
   end
 
