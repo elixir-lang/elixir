@@ -1283,6 +1283,10 @@ defmodule TypespecTest do
           {:built_in_nonempty_list, _, _} ->
             assert ast_string == "@type(built_in_nonempty_list() :: [...])"
 
+          {:built_in_nonempty_improper_list, _, _} ->
+            assert ast_string ==
+                     "@type(built_in_nonempty_improper_list() :: nonempty_improper_list(any(), any()))"
+
           _ ->
             assert ast_string == Macro.to_string(definition)
         end

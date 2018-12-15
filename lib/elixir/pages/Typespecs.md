@@ -140,6 +140,7 @@ Built-in type           | Defined as
 `list()`                | `[any()]`
 `nonempty_list()`       | `nonempty_list(any())`
 `maybe_improper_list()` | `maybe_improper_list(any(), any())`
+`nonempty_improper_list()`       | `nonempty_improper_list(any(), any())`
 `nonempty_maybe_improper_list()` | `nonempty_maybe_improper_list(any(), any())`
 `mfa()`                 | `{module(), atom(), arity()}`
 `module()`              | `atom()`

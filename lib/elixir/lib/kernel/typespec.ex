@@ -387,6 +387,7 @@ defmodule Kernel.Typespec do
   defp built_in_type?(:keyword, 0), do: true
   defp built_in_type?(:keyword, 1), do: true
   defp built_in_type?(:var, 0), do: true
+  defp built_in_type?(:nonempty_improper_list, 0), do: true
   defp built_in_type?(name, arity), do: :erl_internal.is_type(name, arity)
 
   defp ensure_no_defaults!(args) do
@@ -778,6 +779,10 @@ defmodule Kernel.Typespec do
 
   defp typespec({:as_boolean, _meta, [arg]}, vars, caller, state) do
     typespec(quote(do: :elixir.as_boolean(unquote(arg))), vars, caller, state)
+  end
+
+  defp typespec({:nonempty_improper_list, _meta, []}, vars, caller, state) do
+    typespec(quote(do: :elixir.nonempty_improper_list()), vars, caller, state)
   end
 
   defp typespec({:keyword, _meta, args}, vars, caller, state) when length(args) <= 1 do

@@ -382,6 +382,10 @@ defmodule Code.Typespec do
     typespec_to_quoted({:type, line, :as_boolean, [arg]})
   end
 
+  defp remote_type(line, {:atom, _, :elixir}, {:atom, _, :nonempty_improper_list}, []) do
+    typespec_to_quoted({:type, line, :nonempty_improper_list, [{:any, [], []}, {:any, [], []}]})
+  end
+
   defp remote_type(line, {:atom, _, :elixir}, {:atom, _, :keyword}, args) do
     typespec_to_quoted({:type, line, :keyword, args})
   end
