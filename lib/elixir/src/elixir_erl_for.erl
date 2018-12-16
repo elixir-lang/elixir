@@ -19,7 +19,7 @@ translate(Meta, Args, Return, S) ->
   {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr(Expr, TInto), SC),
   SF = elixir_erl_var:mergec(SI, SE),
 
-  case inline_or_into(TInto, TExpr) of
+  case inline_or_into(TInto) of
     inline -> build_inline(Ann, TCases, TExpr, TInto, TUniq, SF);
     into -> build_into(Ann, TCases, TExpr, TInto, TUniq, SF)
   end.
@@ -291,8 +291,6 @@ no_var_expr(Ann, _) -> [{var, Ann, '_'}].
 no_var_size({var, _, _}) -> throw(unbound_size);
 no_var_size(Size) -> Size.
 
-build_comprehension(Ann, Clauses, Expr, false) ->
-  {lc, Ann, Expr, comprehension_clause(Clauses)};
 build_comprehension(Ann, Clauses, Expr, Into) ->
   {comprehension_kind(Into), Ann, Expr, comprehension_clause(Clauses)}.
 
@@ -304,6 +302,7 @@ comprehension_clause([{Kind, Meta, Left, Right, Filters} | T]) ->
 comprehension_clause([]) ->
   [].
 
+comprehension_kind(false) -> lc;
 comprehension_kind({nil, _}) -> lc;
 comprehension_kind({bin, _, []}) -> bc.
 
