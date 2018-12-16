@@ -449,13 +449,13 @@ defmodule Kernel.Typespec do
          _,
          state
        )
-       when is_atom(ctx1) and is_atom(ctx2) and is_integer(unit) do
+       when is_atom(ctx1) and is_atom(ctx2) and is_integer(unit) and unit >= 0 do
     line = line(meta)
     {{:type, line, :binary, [{:integer, line, 0}, {:integer, line(unit_meta), unit}]}, state}
   end
 
   defp typespec({:<<>>, meta, [{:::, size_meta, [{:_, _, ctx}, size]}]}, _, _, state)
-       when is_atom(ctx) and is_integer(size) do
+       when is_atom(ctx) and is_integer(size) and size >= 0 do
     line = line(meta)
     {{:type, line, :binary, [{:integer, line(size_meta), size}, {:integer, line, 0}]}, state}
   end
@@ -474,9 +474,17 @@ defmodule Kernel.Typespec do
          state
        )
        when is_atom(ctx1) and is_atom(ctx2) and is_atom(ctx3) and is_integer(size) and
-              is_integer(unit) do
+              is_integer(unit) and size >= 0 and unit >= 0 do
     args = [{:integer, line(size_meta), size}, {:integer, line(unit_meta), unit}]
     {{:type, line(meta), :binary, args}, state}
+  end
+
+  defp typespec({:<<>>, _meta, _args}, _vars, caller, _state) do
+    message =
+      "invalid binary specification, expected <<_::size>>, <<_::_*unit>>, " <>
+        "or <<_::size, _::_*unit>> with size and unit being non-negative integers"
+
+    compile_error(caller, message)
   end
 
   ## Handle maps and structs
