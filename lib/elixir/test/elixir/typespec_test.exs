@@ -367,9 +367,33 @@ defmodule TypespecTest do
     end
 
     test "@type with invalid binary spec" do
-      assert_raise CompileError, fn ->
+      assert_raise CompileError, ~r"invalid binary specification", fn ->
         test_module do
           @type my_type :: <<_::3*8>>
+        end
+      end
+
+      assert_raise CompileError, ~r"invalid binary specification", fn ->
+        test_module do
+          @type my_type :: <<_::atom>>
+        end
+      end
+
+      assert_raise CompileError, ~r"invalid binary specification", fn ->
+        test_module do
+          @type my_type :: <<_::(-4)>>
+        end
+      end
+
+      assert_raise CompileError, ~r"invalid binary specification", fn ->
+        test_module do
+          @type my_type :: <<_::3, _::_*atom>>
+        end
+      end
+
+      assert_raise CompileError, ~r"invalid binary specification", fn ->
+        test_module do
+          @type my_type :: <<_::3, _::_*(-8)>>
         end
       end
     end
