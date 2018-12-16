@@ -568,11 +568,11 @@ defmodule Kernel.Typespec do
   end
 
   # Handle records
-  defp typespec({:record, meta, [atom]}, vars, caller, state) do
+  defp typespec({:record, meta, [atom]}, vars, caller, state) when is_atom(atom) do
     typespec({:record, meta, [atom, []]}, vars, caller, state)
   end
 
-  defp typespec({:record, meta, [tag, field_specs]}, vars, caller, state) do
+  defp typespec({:record, meta, [tag, field_specs]}, vars, caller, state) when is_atom(tag) do
     # We cannot set a function name to avoid tracking
     # as a compile time dependency because for records it actually is one.
     case Macro.expand({tag, [], [{:{}, [], []}]}, caller) do
@@ -593,6 +593,10 @@ defmodule Kernel.Typespec do
       _ ->
         compile_error(caller, "unknown record #{inspect(tag)}")
     end
+  end
+
+  defp typespec({:record, _meta, _args}, _vars, caller, _state) do
+    compile_error(caller, "invalid record specification, expected the record name to be an atom")
   end
 
   # Handle ranges
