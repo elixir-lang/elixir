@@ -588,9 +588,12 @@ defmodule Kernel.Typespec do
   end
 
   # Handle ranges
-  defp typespec({:.., meta, args}, vars, caller, state) do
-    {args, state} = Enum.map_reduce(args, state, &typespec(&1, vars, caller, &2))
-    {{:type, line(meta), :range, args}, state}
+  defp typespec({:.., meta, [left, right]}, vars, caller, state) do
+    {left, state} = typespec(left, vars, caller, state)
+    {right, state} = typespec(right, vars, caller, state)
+    :ok = validate_range(left, right, caller)
+
+    {{:type, line(meta), :range, [left, right]}, state}
   end
 
   # Handle special forms
@@ -872,6 +875,26 @@ defmodule Kernel.Typespec do
 
   defp validate_kw(_, original, caller) do
     compile_error(caller, "unexpected list in typespec: #{Macro.to_string(original)}")
+  end
+
+  defp validate_range({:op, _, :-, {:integer, meta, first}}, last, caller) do
+    validate_range({:integer, meta, -first}, last, caller)
+  end
+
+  defp validate_range(first, {:op, _, :-, {:integer, meta, last}}, caller) do
+    validate_range(first, {:integer, meta, -last}, caller)
+  end
+
+  defp validate_range({:integer, _, first}, {:integer, _, last}, _caller) when first < last do
+    :ok
+  end
+
+  defp validate_range(_, _, caller) do
+    message =
+      "invalid range specification, expected both sides to be integers, " <>
+        "with the left side lower than the right side"
+
+    compile_error(caller, message)
   end
 
   defp fn_args(meta, args, return, vars, caller, state) do

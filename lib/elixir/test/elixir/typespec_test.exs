@@ -377,11 +377,25 @@ defmodule TypespecTest do
     test "@type with a range op" do
       bytecode =
         test_module do
-          @type my_type :: 1..10
+          @type range1 :: 1..10
+          @type range2 :: -1..1
         end
 
-      assert [type: {:my_type, {:type, _, :range, [{:integer, _, 1}, {:integer, _, 10}]}, []}] =
-               types(bytecode)
+      assert [
+               {:type, {:range1, {:type, _, :range, range1_args}, []}},
+               {:type, {:range2, {:type, _, :range, range2_args}, []}}
+             ] = types(bytecode)
+
+      assert [{:integer, _, 1}, {:integer, _, 10}] = range1_args
+      assert [{:op, _, :-, {:integer, _, 1}}, {:integer, _, 1}] = range2_args
+    end
+
+    test "@type with invalid range" do
+      assert_raise CompileError, ~r"invalid range specification", fn ->
+        test_module do
+          @type my_type :: atom..10
+        end
+      end
     end
 
     test "@type with a keyword map" do
