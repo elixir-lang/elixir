@@ -571,6 +571,14 @@ defmodule TypespecTest do
       end
     end
 
+    test "@type with invalid record" do
+      assert_raise CompileError, ~r"invalid record specification", fn ->
+        test_module do
+          @type my_type :: record(atom)
+        end
+      end
+    end
+
     test "@type with an invalid map notation" do
       assert_raise CompileError, ~r"invalid map specification", fn ->
         test_module do
