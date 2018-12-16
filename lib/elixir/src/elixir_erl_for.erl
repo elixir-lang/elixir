@@ -3,8 +3,29 @@
 -include("elixir.hrl").
 
 translate(Meta, Args, Return, S) ->
-  Ann = ?ann(Meta),
   {Cases, [{do, Expr} | Opts]} = elixir_utils:split_last(Args),
+
+  case lists:keyfind(reduce, 1, Opts) of
+    {reduce, Reduce} -> translate_reduce(Meta, Cases, Expr, Reduce, S);
+    false -> translate_into(Meta, Cases, Expr, Opts, Return, S)
+  end.
+
+translate_reduce(Meta, Cases, Expr, Reduce, S) ->
+  Ann = ?ann(Meta),
+  {TReduce, SR} = elixir_erl_pass:translate(Reduce, S),
+  {TCases, SC} = translate_gen(Meta, Cases, [], SR),
+  CaseExpr = {'case', Meta, [ok, [{do, Expr}]]},
+  {TExpr, SE} = elixir_erl_pass:translate(CaseExpr, SC),
+
+  InnerFun = fun
+    ({'case', CaseAnn, _, CaseBlock}, InnerAcc) -> {'case', CaseAnn, InnerAcc, CaseBlock}
+  end,
+
+  SF = elixir_erl_var:mergec(SR, SE),
+  {build_reduce(Ann, TCases, InnerFun, TExpr, TReduce, false, SF), SF}.
+
+translate_into(Meta, Cases, Expr, Opts, Return, S) ->
+  Ann = ?ann(Meta),
 
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of
@@ -16,7 +37,7 @@ translate(Meta, Args, Return, S) ->
   TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
-  {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr(Expr, TInto), SC),
+  {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr_if_unused(Expr, TInto), SC),
   SF = elixir_erl_var:mergec(SI, SE),
 
   case comprehension_expr(TInto, TExpr) of
@@ -28,8 +49,8 @@ translate(Meta, Args, Return, S) ->
 
 %% In case we have no return, we wrap the expression
 %% in a block that returns nil.
-wrap_expr(Expr, false) -> {'__block__', [], [Expr, nil]};
-wrap_expr(Expr, _)  -> Expr.
+wrap_expr_if_unused(Expr, false) -> {'__block__', [], [Expr, nil]};
+wrap_expr_if_unused(Expr, _)  -> Expr.
 
 translate_gen(ForMeta, [{'<-', Meta, [Left, Right]} | T], Acc, S) ->
   {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),

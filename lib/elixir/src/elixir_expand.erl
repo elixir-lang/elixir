@@ -262,7 +262,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         {Args, []}
     end,
 
-  validate_opts(Meta, for, [do, into, uniq], Block, E),
+  validate_opts(Meta, for, [do, into, uniq, reduce], Block, E),
 
   {Expr, Opts} =
     case lists:keytake(do, 1, Block) of
@@ -272,6 +272,22 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         form_error(Meta, ?key(E, file), ?MODULE, {missing_option, for, [do]})
     end,
 
+  IsReducing = lists:keymember(reduce, 1, Opts),
+  IsClauses = is_list(Expr) andalso lists:any(fun({'->', _, _}) -> true; (_) -> false end, Expr),
+
+  case IsReducing andalso (lists:keymember(into, 1, Opts) orelse lists:keymember(uniq, 1, Opts)) of
+    true ->
+      form_error(Meta, ?key(E, file), ?MODULE, for_duplicate_reduce_into_uniq);
+    false ->
+      ok
+  end,
+
+  case {IsReducing, IsClauses} of
+    {true, false} -> form_error(Meta, ?key(E, file), ?MODULE, for_with_reduce_bad_args);
+    {false, true} -> form_error(Meta, ?key(E, file), ?MODULE, for_without_reduce_with_arg);
+    {_, _} -> ok
+  end,
+
   case lists:keyfind(uniq, 1, Opts) of
     false -> ok;
     {uniq, Value} when is_boolean(Value) -> ok;
@@ -280,7 +296,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
 
   {EOpts, EO} = expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand_for/2, EO, Cases),
-  {EExpr, EE} = expand(Expr, EC),
+  {EExpr, EE} = expand_for_do_block(Meta, Expr, EC, IsReducing),
   assert_generator_start(Meta, ECases, E),
   {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, elixir_env:merge_and_check_unused_vars(E, EE)};
 
@@ -697,6 +713,24 @@ generated_case_clauses([{do, Clauses}]) ->
   RClauses = [{'->', ?generated(Meta), Args} || {'->', Meta, Args} <- Clauses],
   [{do, RClauses}].
 
+%% Comprehensions
+
+expand_for_do_block(_Meta, Expr, E, false) ->
+  expand(Expr, E);
+
+expand_for_do_block(Meta, Clauses, E, true) ->
+  Transformer = fun({_, _, [Left, _Right]} = Clause, Acc) ->
+    case Left of
+      [_] ->
+        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, Acc),
+        {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)};
+      _ ->
+        form_error(Meta, ?key(E, file), ?MODULE, for_with_reduce_bad_args)
+    end
+  end,
+
+  lists:mapfoldl(Transformer, E, Clauses).
+
 %% Locals
 
 assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
@@ -1045,6 +1079,12 @@ format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error({for_invalid_uniq, Value}) ->
   io_lib:format(":uniq option for comprehensions only accepts a boolean, got: ~ts", ['Elixir.Macro':to_string(Value)]);
+format_error(for_duplicate_reduce_into_uniq) ->
+  "cannot use :reduce alongside :into/:uniq in comprehension";
+format_error(for_with_reduce_bad_args) ->
+  "when using :reduce with comprehensions, the do block must be written using acc -> expr clauses, where each clause expects the accumulator as a single argument";
+format_error(for_without_reduce_with_arg) ->
+  "the do block was written using acc -> expr clauses but there :reduce option was not given";
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->

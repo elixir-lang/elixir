@@ -1376,7 +1376,7 @@ defmodule Kernel.SpecialForms do
   filters or inside the block, are not reflected outside of the
   comprehension.
 
-  ## Into
+  ## The :into and :uniq options
 
   In the examples above, the result returned by the comprehension was
   always a list. The returned result can be configured by passing an
@@ -1396,18 +1396,57 @@ defmodule Kernel.SpecialForms do
         String.upcase(line)
       end
 
-  ## Uniq
-
-  `uniq: true` can also be given to comprehensions to guarantee that
-  that results are only added to the collection if they were not returned
+  Similarly,  `uniq: true` can also be given to comprehensions to guarantee
+  the results are only added to the collection if they were not returned
   before. For example:
 
-      iex> for(x <- [1, 1, 2, 3], uniq: true, do: x * 2)
+      iex> for x <- [1, 1, 2, 3], uniq: true, do: x * 2
       [2, 4, 6]
 
-      iex> for(<<x <- "abcabc">>, uniq: true, into: "", do: <<x - 32>>)
+      iex> for <<x <- "abcabc">>, uniq: true, into: "", do: <<x - 32>>
       "ABC"
 
+  ## The :reduce option
+
+  While the `:into` option allows us to customize the comprehension behaviour
+  to a given data type, such as putting all of the values inside a map or inside
+  a binary, it is not always enough.
+
+  For example, imagine that you have a binary with letters where you want to
+  count how many times each lowercase letter happens, ignoring all uppercase
+  ones. For instance, for the string `"AbCabCABc"`, we want to return the map
+  `%{"a" => 1, "b" => 2, "c" => 1}`.
+
+  If we were to use `:into`, we would need a data type that computes the
+  frequency of each element it holds. While there is no such data type in
+  Elixir, you could implement one yourself.
+
+  A simpler option would be to use comprehensions for the mapping and
+  filtering of letters, and then we invoke `Enum.reduce/3` to build a map,
+  for example:
+
+      iex> letters = for <<x <- "AbCabCABc">>, x in ?a..?z, do: <<x>>
+      iex> Enum.reduce(letters, %{}, fn x, acc -> Map.update(acc, x, 1, & &1 + 1) end)
+      %{"a" => 1, "b" => 2, "c" => 1}
+
+  While the above is straight-forward, it has the downside of traversing the
+  data at least twice. If you are expecting long strings as inputs, this can
+  be quite expensive.
+
+  Luckily, comprehensions also support the `:reduce` option, which would allow
+  us to fuse both steps above into a single step:
+
+      iex> for <<x <- "AbCabCABc">>, x in ?a..?z, reduce: %{} do
+      ...>   acc -> Map.update(acc, <<x>>, 1, & &1 + 1)
+      ...> end
+      %{"a" => 1, "b" => 2, "c" => 1}
+
+  When the `:reduce` key is given, its value is used as the initial accumulator
+  and the `do` block must be changed to use `->` clauses, where the left side
+  of `->` receives the accumulated value of the previous iteraction and the
+  `expression` must return the new accumulator value. Once there are no more
+  elements, the final accumulated value is returned. If there are no elements
+  at all, then the initial accumulator value is returned.
   """
   defmacro for(args), do: error!([args])
 
