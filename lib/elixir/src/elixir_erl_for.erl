@@ -19,11 +19,9 @@ translate(Meta, Args, Return, S) ->
   {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr(Expr, TInto), SC),
   SF = elixir_erl_var:mergec(SI, SE),
 
-  case comprehension_expr(TInto, TExpr) of
-    {inline, TIntoExpr} ->
-      build_inline(Ann, TCases, TIntoExpr, TInto, TUniq, SF);
-    {into, TIntoExpr} ->
-      build_into(Ann, TCases, TIntoExpr, TInto, TUniq, SF)
+  case inline_or_into(TInto) of
+    inline -> build_inline(Ann, TCases, TExpr, TInto, TUniq, SF);
+    into -> build_into(Ann, TCases, TExpr, TInto, TUniq, SF)
   end.
 
 %% In case we have no return, we wrap the expression
@@ -87,7 +85,6 @@ collect_filters([H | T], Acc) ->
   collect_filters(T, [H | Acc]);
 collect_filters([], Acc) ->
   {Acc, []}.
-
 
 build_inline(Ann, Clauses, Expr, Into, Uniq, S) ->
   case not Uniq and lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
@@ -294,8 +291,6 @@ no_var_expr(Ann, _) -> [{var, Ann, '_'}].
 no_var_size({var, _, _}) -> throw(unbound_size);
 no_var_size(Size) -> Size.
 
-build_comprehension(Ann, Clauses, Expr, false) ->
-  {lc, Ann, Expr, comprehension_clause(Clauses)};
 build_comprehension(Ann, Clauses, Expr, Into) ->
   {comprehension_kind(Into), Ann, Expr, comprehension_clause(Clauses)}.
 
@@ -307,23 +302,17 @@ comprehension_clause([{Kind, Meta, Left, Right, Filters} | T]) ->
 comprehension_clause([]) ->
   [].
 
+comprehension_kind(false) -> lc;
 comprehension_kind({nil, _}) -> lc;
 comprehension_kind({bin, _, []}) -> bc.
 
 comprehension_generator(enum) -> generate;
 comprehension_generator(bin) -> b_generate.
 
-comprehension_expr({bin, _, []}, {bin, _, _} = Expr) ->
-  {inline, Expr};
-comprehension_expr({bin, Ann, []}, Expr) ->
-  BinExpr = {bin, Ann, [{bin_element, Ann, Expr, default, [bitstring]}]},
-  {inline, BinExpr};
-comprehension_expr({nil, _}, Expr) ->
-  {inline, Expr};
-comprehension_expr(false, Expr) ->
-  {inline, Expr};
-comprehension_expr(_, Expr) ->
-  {into, Expr}.
+inline_or_into({bin, _, []}) -> inline;
+inline_or_into({nil, _}) -> inline;
+inline_or_into(false) -> inline;
+inline_or_into(_) -> into.
 
 comprehension_filter(Ann, Filters) ->
   [join_filter(Ann, Filter, {atom, Ann, true}, {atom, Ann, false}) ||
