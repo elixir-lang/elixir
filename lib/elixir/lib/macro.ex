@@ -1408,6 +1408,7 @@ defmodule Macro do
       "Hello10"
 
   """
+  @spec underscore(atom | String.t()) :: String.t()
   def underscore(atom) when is_atom(atom) do
     "Elixir." <> rest = Atom.to_string(atom)
     underscore(rest)
