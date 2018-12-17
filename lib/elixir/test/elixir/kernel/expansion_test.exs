@@ -705,7 +705,7 @@ defmodule Kernel.ExpansionTest do
                    end
 
       assert_raise CompileError,
-                   ~r"the do block was written using acc -> expr clauses but there :reduce option was not given",
+                   ~r"the do block was written using acc -> expr clauses but the :reduce option was not given",
                    fn -> expand(quote(do: for(x <- 1..3, do: (acc -> acc)))) end
 
       assert_raise CompileError,
