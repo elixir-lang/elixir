@@ -503,12 +503,12 @@ defmodule Kernel.Typespec do
           {{:type, line(meta2), :map_field_assoc, [arg1, arg2]}, state}
 
         {k, v}, state ->
-          # TODO: Warn on Elixir v1.8 (since v1.6 is the first version to drop support for 18 and
-          # older)
-          # warning =
-          #   "invalid map specification. %{foo => bar} is deprecated in favor of " <>
-          #   "%{required(foo) => bar} and %{optional(foo) => bar}."
-          # :elixir_errors.warn(caller.line, caller.file, warning)
+          warning =
+            "invalid map specification. %{foo => bar} is deprecated in favor of " <>
+              "%{required(foo) => bar} and %{optional(foo) => bar}."
+
+          :elixir_errors.warn(caller.line, caller.file, warning)
+
           {arg1, state} = typespec(k, vars, caller, state)
           {arg2, state} = typespec(v, vars, caller, state)
           {{:type, line(meta), :map_field_assoc, [arg1, arg2]}, state}
