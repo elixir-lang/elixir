@@ -235,13 +235,28 @@ defimpl Inspect, for: Tuple do
     list = Tuple.to_list(tuple)
     [record_name | values] = list
 
-    with {:ok, fields} <- Map.fetch(opts.records, record_name),
-         true <- length(fields) == tuple_size(tuple) - 1 do
-      inspect_record(record_name, fields, values, opts)
-    else
+    case record_fields(opts.records, record_name, tuple) do
+      {:ok, fields} ->
+        inspect_record(record_name, fields, values, opts)
+
       _ ->
         inspect_tuple(list, opts)
     end
+  end
+
+  defp record_fields(records, record_name, tuple) do
+    with {:ok, fields} <- Map.fetch(records, record_name),
+         validate_fields(fields, records),
+         true <- length(fields) == tuple_size(tuple) - 1,
+         do: {:ok, fields}
+  end
+
+  defp validate_fields(fields, _records) when is_list(fields), do: true
+
+  defp validate_fields(fields, records) do
+    raise ArgumentError,
+          "expected a list of field names, got #{Kernel.inspect(fields)}" <>
+            " in #{Kernel.inspect(records)}"
   end
 
   defp inspect_tuple(list, opts) do
