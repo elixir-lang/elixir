@@ -158,11 +158,6 @@ defmodule Calendar do
   @callback day_of_week(year, month, day) :: day_of_week()
 
   @doc """
-  Calculates the week of year from the given `year`, `month`, and `day`.
-  """
-  @callback week_of_year(year, month, day) :: {year(), week(), day_of_week()}
-
-  @doc """
   Calculates the day of the year from the given `year`, `month`, and `day`.
   """
   @callback day_of_year(year, month, day) :: non_neg_integer()

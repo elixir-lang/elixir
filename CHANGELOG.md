@@ -11,9 +11,9 @@
 #### Elixir
 
   * [Calendar] Add `Calendar.TimeZoneDatabase` and a `Calendar.UTCOnlyTimeZoneDatabase` implementation
-  * [Calendar] Add callbacks `day_of_year/3`, `quarter_of_year/3`, `year_of_era/1`, `day_of_era/3` and `week_of_year/3`
+  * [Calendar] Add callbacks `day_of_year/3`, `quarter_of_year/3`, `year_of_era/1`, and `day_of_era/3`
   * [Code.Formatter] Preserve user's choice of new line after most operators
-  * [Date] Add `Date.day_of_year/1`, `Date.quarter_of_year/1`, `Date.year_of_era/1`, `Date.day_of_era/1` and `Date.week_of_year/1`
+  * [Date] Add `Date.day_of_year/1`, `Date.quarter_of_year/1`, `Date.year_of_era/1`, and `Date.day_of_era/1`
   * [DateTime] Add `DateTime.from_naive/3`, `DateTime.now/1` and `DateTime.shift_zone/3`
   * [File] Allow `:raw` option in `File.exists?/2`, `File.regular?/2` and `File.dir?/2`
   * [File] Allow POSIX time as an integer in `File.touch/2` and `File.touch!/2`
