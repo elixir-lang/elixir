@@ -277,6 +277,10 @@ defmodule Record do
       defmacro unquote(name)(record, args) do
         Record.__access__(unquote(tag), unquote(fields), record, args, __CALLER__)
       end
+
+      def __record__(unquote(name)) do
+        unquote(Keyword.keys(fields))
+      end
     end
   end
 

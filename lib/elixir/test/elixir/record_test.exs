@@ -127,6 +127,16 @@ defmodule RecordTest do
     refute match?(user(_: "other"), user())
   end
 
+  test "__record__/1" do
+    assert __record__(:timestamp) == [:date, :time]
+    assert __record__(:user) == [:name, :age]
+
+    # private record
+    assert_raise FunctionClauseError, fn ->
+      __record__(:certificate)
+    end
+  end
+
   Record.defrecord(
     :defaults,
     struct: ~D[2016-01-01],
