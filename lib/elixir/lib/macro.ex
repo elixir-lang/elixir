@@ -1408,6 +1408,7 @@ defmodule Macro do
       "Hello10"
 
   """
+  @spec underscore(atom | String.t()) :: String.t()
   def underscore(atom) when is_atom(atom) do
     "Elixir." <> rest = Atom.to_string(atom)
     underscore(rest)
@@ -1421,6 +1422,7 @@ defmodule Macro do
     ""
   end
 
+  @spec do_underscore(String.t(), char) :: String.t()
   defp do_underscore(<<h, t, rest::binary>>, _)
        when h >= ?A and h <= ?Z and not (t >= ?A and t <= ?Z) and t != ?. and t != ?_ do
     <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
