@@ -1084,7 +1084,7 @@ format_error(for_duplicate_reduce_into_uniq) ->
 format_error(for_with_reduce_bad_args) ->
   "when using :reduce with comprehensions, the do block must be written using acc -> expr clauses, where each clause expects the accumulator as a single argument";
 format_error(for_without_reduce_with_arg) ->
-  "the do block was written using acc -> expr clauses but there :reduce option was not given";
+  "the do block was written using acc -> expr clauses but the :reduce option was not given";
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->
