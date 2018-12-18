@@ -1406,7 +1406,7 @@ defmodule Kernel.SpecialForms do
       iex> for <<x <- "abcabc">>, uniq: true, into: "", do: <<x - 32>>
       "ABC"
 
-  ## The :reduce option
+  ## The `:reduce` option
 
   While the `:into` option allows us to customize the comprehension behaviour
   to a given data type, such as putting all of the values inside a map or inside
