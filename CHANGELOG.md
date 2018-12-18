@@ -14,10 +14,10 @@
   * [Calendar] Add callbacks `day_of_year/3`, `quarter_of_year/3`, `year_of_era/1`, and `day_of_era/3`
   * [Code.Formatter] Preserve user's choice of new line after most operators
   * [Date] Add `Date.day_of_year/1`, `Date.quarter_of_year/1`, `Date.year_of_era/1`, and `Date.day_of_era/1`
-  * [DateTime] Add `DateTime.from_naive/3`, `DateTime.now/1` and `DateTime.shift_zone/3`
-  * [File] Allow `:raw` option in `File.exists?/2`, `File.regular?/2` and `File.dir?/2`
+  * [DateTime] Add `DateTime.from_naive/3`, `DateTime.now/1`, and `DateTime.shift_zone/3`
+  * [File] Allow `:raw` option in `File.exists?/2`, `File.regular?/2`, and `File.dir?/2`
   * [File] Allow POSIX time as an integer in `File.touch/2` and `File.touch!/2`
-  * [Inspect] Allow Inspect protocol to be derivable with the only/except options
+  * [Inspect] Allow `Inspect` protocol to be derivable with the `:only`/`:except` options
   * [Kernel] Do not propagate counters to variables in quote inside another quote
   * [Kernel] Warn on ambiguous use of `::` and `|` in typespecs
   * [Kernel] Add `:delegate_to` `@doc` metadata tag when using `defdelegate`
@@ -72,7 +72,7 @@
 #### Mix
 
   * [mix compile.app] Respect the `:only` option between umbrella siblings
-  * [mix compile.protocols] Reconsolidate protocols if local deps is stale
+  * [mix compile.protocols] Reconsolidate protocols if local dependencies are stale
   * [mix deps] Properly mark dependencies with different `:system_env` as diverged
   * [mix new] Use `--module` value when setting up filenames
 
