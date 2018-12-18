@@ -1376,7 +1376,7 @@ defmodule Kernel.SpecialForms do
   filters or inside the block, are not reflected outside of the
   comprehension.
 
-  ## The :into and :uniq options
+  ## The `:into` and `:uniq` options
 
   In the examples above, the result returned by the comprehension was
   always a list. The returned result can be configured by passing an
