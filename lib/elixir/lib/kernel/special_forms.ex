@@ -1443,7 +1443,7 @@ defmodule Kernel.SpecialForms do
 
   When the `:reduce` key is given, its value is used as the initial accumulator
   and the `do` block must be changed to use `->` clauses, where the left side
-  of `->` receives the accumulated value of the previous iteraction and the
+  of `->` receives the accumulated value of the previous iteration and the
   `expression` must return the new accumulator value. Once there are no more
   elements, the final accumulated value is returned. If there are no elements
   at all, then the initial accumulator value is returned.
