@@ -134,7 +134,7 @@ defmodule Regex do
 
   """
   @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
-  def compile(source, options \\ "") do
+  def compile(source, options \\ "") when is_binary(source) do
     compile(source, options, version())
   end
 
@@ -152,7 +152,7 @@ defmodule Regex do
     compile(source, options, "", version)
   end
 
-  defp compile(source, opts, doc_opts, version) when is_binary(source) do
+  defp compile(source, opts, doc_opts, version) do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
         {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: doc_opts}}
@@ -166,7 +166,7 @@ defmodule Regex do
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
   """
   @spec compile!(binary, binary | [term]) :: t
-  def compile!(source, options \\ "") do
+  def compile!(source, options \\ "") when is_binary(source) do
     case compile(source, options) do
       {:ok, regex} -> regex
       {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
