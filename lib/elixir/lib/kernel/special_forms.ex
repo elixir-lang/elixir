@@ -1396,7 +1396,7 @@ defmodule Kernel.SpecialForms do
         String.upcase(line)
       end
 
-  Similarly,  `uniq: true` can also be given to comprehensions to guarantee
+  Similarly, `uniq: true` can also be given to comprehensions to guarantee
   the results are only added to the collection if they were not returned
   before. For example:
 
