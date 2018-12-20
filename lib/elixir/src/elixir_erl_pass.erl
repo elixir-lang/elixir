@@ -109,16 +109,16 @@ translate({fn, Meta, Clauses}, S) ->
 %% Cond
 
 translate({'cond', CondMeta, [[{do, Clauses}]]}, S) ->
-  [{'->', Meta, [[Condition], Body]} = H | T] = lists:reverse(Clauses),
+  [{'->', Meta, [[Condition], _]} = H | T] = lists:reverse(Clauses),
 
-  Case =
-    case Condition of
-      X when is_atom(X) and (X /= false) and (X /= nil) ->
-        build_cond_clauses(T, Body, Meta);
-      _ ->
-        Error = {{'.', Meta, [erlang, error]}, [], [cond_clause]},
-        build_cond_clauses([H | T], Error, Meta)
+  FirstMeta =
+    if
+      is_atom(Condition), Condition /= false, Condition /= nil -> ?generated(Meta);
+      true -> Meta
     end,
+
+  Error = {{'.', Meta, [erlang, error]}, [], [cond_clause]},
+  Case = build_cond_clauses([H | T], Error, FirstMeta),
   translate(replace_case_meta(CondMeta, Case), S);
 
 %% Case

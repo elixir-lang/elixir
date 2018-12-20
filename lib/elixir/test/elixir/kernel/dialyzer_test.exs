@@ -121,6 +121,11 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
+  test "no warnings on cond", context do
+    copy_beam!(context, Dialyzer.Cond)
+    assert_dialyze_no_warnings!(context)
+  end
+
   test "no warnings on for comprehensions with bitstrings", context do
     copy_beam!(context, Dialyzer.ForBitstring)
     assert_dialyze_no_warnings!(context)
