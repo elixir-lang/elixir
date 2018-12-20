@@ -41,7 +41,7 @@ defprotocol Collectable do
   implementation for `MapSet`. In this implementation "collecting" elements
   simply means inserting them in the set through `MapSet.put/2`.
 
-      defimpl Collectable do
+      defimpl Collectable, for: MapSet do
         def into(original) do
           collector_fun = fn
             set, {:cont, elem} -> MapSet.put(set, elem)
