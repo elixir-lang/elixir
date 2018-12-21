@@ -1,5 +1,4 @@
 defmodule Kernel.ParallelRequire do
-  # TODO: Remove on 2.0
   @moduledoc false
 
   @deprecated "Use Kernel.ParallelCompiler.require/2 instead"

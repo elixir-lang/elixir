@@ -683,7 +683,7 @@ number_value({_, {_, _, Value}, _}) ->
 %% Operators
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
-  %% TODO: Remove "not left in right" rearrangement on 2.0
+  %% TODO: Remove "not left in right" rearrangement on v2.0
   elixir_errors:warn(line_from_location(Location), ?file(),
     "\"not expr1 in expr2\" is deprecated. "
     "Instead use \"expr1 not in expr2\" if you require Elixir v1.5+, "
@@ -1035,7 +1035,7 @@ error_invalid_kw_identifier({_, _, do} = Token) ->
 error_invalid_kw_identifier({_, _, KW} = Token) ->
   return_error(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ ":'").
 
-%% TODO: Make this an error on Elixir v2.0.
+%% TODO: Make this an error on v2.0
 warn_empty_paren({_, {Line, _, _}}) ->
   elixir_errors:warn(Line, ?file(),
     "invalid expression (). "
@@ -1043,7 +1043,7 @@ warn_empty_paren({_, {Line, _, _}}) ->
     "no spaces between the function name and its arguments. If you wanted "
     "to pass an empty block, pass a value instead, such as a nil or an atom").
 
-%% TODO: Make this an error on Elixir v2.0.
+%% TODO: Make this an error on v2.0
 warn_trailing_comma({',', {Line, _, _}}) ->
   elixir_errors:warn(Line, ?file(),
     "trailing commas are not allowed inside function/macro call arguments"

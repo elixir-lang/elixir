@@ -4,8 +4,8 @@ defmodule Logger.Watcher do
   require Logger
   use GenServer
 
-  # TODO: Once we remove :error_logger, there is no reason to pass
-  # the `mod` argument in, as we will only ever watch Logger handlers
+  # TODO: Once we remove :error_logger in Erlang/OTP 21+, there is no reason
+  # to pass the `mod` argument in, as we will only ever watch Logger handlers
 
   @doc """
   Starts a watcher server.

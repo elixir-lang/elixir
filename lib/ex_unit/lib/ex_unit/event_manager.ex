@@ -4,8 +4,6 @@ defmodule ExUnit.EventManager do
 
   @typep manager :: {supervisor_manager :: pid, event_manager :: pid}
 
-  # TODO: Remove support for GenEvent formatters on 2.0
-
   @doc """
   Starts an event manager that publishes events during the suite run.
 
@@ -56,13 +54,13 @@ defmodule ExUnit.EventManager do
   end
 
   def module_started(manager, test_module) do
-    # TODO: Remove case_started in Elixir v2.0
+    # TODO: Remove case_started on v2.0
     notify(manager, {:case_started, Map.put(test_module, :__struct__, ExUnit.TestCase)})
     notify(manager, {:module_started, test_module})
   end
 
   def module_finished(manager, test_module) do
-    # TODO: Remove case_finished in Elixir v2.0
+    # TODO: Remove case_finished on v2.0
     notify(manager, {:case_finished, Map.put(test_module, :__struct__, ExUnit.TestCase)})
     notify(manager, {:module_finished, test_module})
   end

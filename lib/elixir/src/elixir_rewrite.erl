@@ -114,7 +114,6 @@ inline(?list, to_tuple, 1) -> {erlang, list_to_tuple};
 
 inline(?map, keys, 1) -> {maps, keys};
 inline(?map, merge, 2) -> {maps, merge};
-inline(?map, size, 1) -> {maps, size}; %% TODO: Remove on 2.0
 inline(?map, to_list, 1) -> {maps, to_list};
 inline(?map, values, 1) -> {maps, values};
 

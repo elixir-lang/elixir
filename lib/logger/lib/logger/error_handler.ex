@@ -2,7 +2,7 @@ defmodule Logger.ErrorHandler do
   @moduledoc false
   @behaviour :gen_event
 
-  # TODO: Remove this when we require Erlang/OTP 21+.
+  # TODO: Remove this module when we require Erlang/OTP 21+.
 
   def init({otp?, sasl?, threshold}) do
     # We store the Logger PID in the state because when we are shutting

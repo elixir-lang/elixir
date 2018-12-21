@@ -1733,7 +1733,7 @@ defmodule File do
     [read_ahead: @read_ahead_size] ++ normalize_modes(rest, binary?)
   end
 
-  # TODO: Remove :char_list mode by 2.0
+  # TODO: Remove :char_list mode on v2.0
   defp normalize_modes([mode | rest], _binary?) when mode in [:charlist, :char_list] do
     if mode == :char_list do
       IO.warn("the :char_list mode is deprecated, use :charlist")

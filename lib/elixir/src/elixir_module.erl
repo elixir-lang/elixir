@@ -142,7 +142,7 @@ compile(Line, Module, Block, Vars, E) ->
 validate_compile_opts(Opts, Defs, Unreachable, File, Line) ->
   lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Unreachable, File, Line) end, Opts).
 
-%% TODO: Make this an error on 2.0
+%% TODO: Make this an error on v2.0
 validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, File, Line) ->
   elixir_errors:form_warn([{line, Line}], File, ?MODULE, {parse_transform, Module}),
   [Opt];

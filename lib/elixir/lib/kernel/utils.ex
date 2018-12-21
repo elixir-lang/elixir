@@ -25,7 +25,7 @@ defmodule Kernel.Utils do
   Callback for defdelegate.
   """
   def defdelegate(fun, opts) when is_list(opts) do
-    # TODO: Remove by 2.0
+    # TODO: Remove on v2.0
     append_first? = Keyword.get(opts, :append_first, false)
 
     {name, args} =

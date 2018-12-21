@@ -4385,7 +4385,7 @@ defmodule Kernel do
         end
       end
 
-      # TODO: Only call Kernel.struct! by 2.0
+      # TODO: Change the implementation on v2.0 to simply call Kernel.struct!/2
       @impl true
       def exception(args) when is_list(args) do
         struct = __struct__()
@@ -5011,7 +5011,6 @@ defmodule Kernel do
       target =
         Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
 
-      # TODO: Raise on 2.0
       %{file: file, line: line} = __ENV__
 
       if is_list(funs) do
@@ -5407,7 +5406,7 @@ defmodule Kernel do
   end
 
   @doc false
-  # TODO: Remove by 2.0 (also hard-coded in elixir_dispatch)
+  # TODO: Remove on v2.0 (also hard-coded in elixir_dispatch)
   @deprecated "Use Kernel.to_charlist/1 instead"
   defmacro to_char_list(arg) do
     quote(do: Kernel.to_charlist(unquote(arg)))

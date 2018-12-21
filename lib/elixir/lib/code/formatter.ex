@@ -796,7 +796,7 @@ defmodule Code.Formatter do
   end
 
   # TODO: We can remove this workaround once we remove
-  # ?rearrange_uop from the parser in Elixir v2.0.
+  # ?rearrange_uop from the parser on v2.0.
   # (! left) in right
   # (not left) in right
   defp binary_operand_to_algebra(
@@ -2021,7 +2021,7 @@ defmodule Code.Formatter do
   end
 
   # TODO: We can remove this workaround once we remove
-  # ?rearrange_uop from the parser in Elixir v2.0.
+  # ?rearrange_uop from the parser on v2.0.
   defp wrap_in_parens_if_operator(doc, {:__block__, _, [expr]}) do
     wrap_in_parens_if_operator(doc, expr)
   end

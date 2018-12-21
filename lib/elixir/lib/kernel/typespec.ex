@@ -377,7 +377,7 @@ defmodule Kernel.Typespec do
     {{kind, {name, arity}, caller.line, spec}, state}
   end
 
-  # TODO: Remove char_list type by 2.0
+  # TODO: Remove char_list type by v2.0
   defp built_in_type?(:char_list, 0), do: true
   defp built_in_type?(:charlist, 0), do: true
   defp built_in_type?(:as_boolean, 1), do: true
@@ -640,7 +640,7 @@ defmodule Kernel.Typespec do
           "invalid type annotation. Type annotations cannot be nested: " <>
             "#{Macro.to_string(ann_type)}"
 
-        # TODO: make this an error in elixir 2.0 and remove the code below
+        # TODO: Make this an error on v2.0 and remove the code below
         :elixir_errors.warn(caller.line, caller.file, message)
 
         # This may be generating an invalid typespec but we need to generate it
@@ -658,8 +658,8 @@ defmodule Kernel.Typespec do
       "invalid type annotation. When using the | operator to represent the union of types, " <>
         "make sure to wrap type annotations in parentheses: #{Macro.to_string(expr)}"
 
-    # TODO: make this an error in Elixir 2.0, and remove the code below and the
-    # :undefined_type_error_enabled? key from the state
+    # TODO: Make this an error on v2.0, and remove the code below and
+    # the :undefined_type_error_enabled? key from the state
     :elixir_errors.warn(caller.line, caller.file, message)
 
     # This may be generating an invalid typespec but we need to generate it

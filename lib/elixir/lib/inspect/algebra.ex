@@ -56,7 +56,7 @@ defmodule Inspect.Opts do
 
   """
 
-  # TODO: Remove :char_lists key by 2.0
+  # TODO: Remove :char_lists key on v2.0
   defstruct structs: true,
             binaries: :infer,
             charlists: :infer,
@@ -71,7 +71,7 @@ defmodule Inspect.Opts do
 
   @type color_key :: atom
 
-  # TODO: Remove :char_lists key and :as_char_lists value by 2.0
+  # TODO: Remove :char_lists key and :as_char_lists value on v2.0
   @type t :: %__MODULE__{
           structs: boolean,
           binaries: :infer | :as_binaries | :as_strings,

@@ -716,7 +716,7 @@ defmodule GenServer do
 
       defoverridable child_spec: 1
 
-      # TODO: Remove this on Elixir v2.0
+      # TODO: Remove this on v2.0
       @before_compile GenServer
 
       @doc false

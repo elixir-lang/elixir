@@ -403,7 +403,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
         _ ->
           case ?key(E, prematch_vars) of
             warn ->
-              %% TODO: Remove warn option on 2.0
+              %% TODO: Remove warn option on v2.0
               Message =
                 io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                   " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),
@@ -489,7 +489,7 @@ expand(Pid, E) when is_pid(Pid) ->
     nil ->
       {Pid, E};
     Function ->
-      %% TODO: Make me an error on 2.0
+      %% TODO: Make me an error on v2.0
       elixir_errors:form_warn([], ?key(E, file), ?MODULE,
                               {invalid_pid_in_function, Pid, Function}),
       {Pid, E}

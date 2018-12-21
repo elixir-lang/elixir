@@ -99,7 +99,7 @@ defmodule ExUnit do
     """
     defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: ""]
 
-    # TODO: Remove the `:case` field on Elixir v2.0
+    # TODO: Remove the `:case` field on v2.0
     @type t :: %__MODULE__{
             name: atom,
             case: module,
@@ -128,7 +128,7 @@ defmodule ExUnit do
   end
 
   defmodule TestCase do
-    # TODO: Remove this on Elixir v2.0 as well as uses of it.
+    # TODO: Remove this module on v2.0 (it has been replacede by TestModule)
     @moduledoc false
     defstruct [:name, :state, tests: []]
 

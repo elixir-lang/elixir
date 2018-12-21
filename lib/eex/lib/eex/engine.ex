@@ -127,7 +127,7 @@ defmodule EEx.Engine do
   end
 
   @doc false
-  # TODO: Raise on 2.0
+  # TODO: Raise on v2.0
   @spec fetch_assign!(Access.t(), Access.key()) :: term | nil
   def fetch_assign!(assigns, key) do
     case Access.fetch(assigns, key) do
