@@ -76,14 +76,14 @@ defmodule Inspect.Opts do
 
   By setting the `:records` option we can ensure they will be formatted as records:
 
-      iex> opts = [records: %{person: [:name, :email]}]
+      iex> opts = [records: %{{:person, 2} => {Records, [:name, :email]}}]
       iex> person(name: "Alice", email: "alice@example.com") |> inspect(opts)
       "#person(name: \"Alice\", email: \"alice@example.com\")"
 
   Some functions, e.g. `IEx.configure/1`, provide a way to automatically extract
   record fields from the modules that define them:
 
-      iex> IEx.configure(inspect: [records: %{person: Records}])
+      iex> IEx.configure(inspect: [records: [person: Records]])
       iex> person(name: "Alice", email: "alice@example.com")
       #person(name: "Alice", email: "alice@example.com")
 
@@ -116,7 +116,7 @@ defmodule Inspect.Opts do
           width: pos_integer | :infinity,
           base: :decimal | :binary | :hex | :octal,
           pretty: boolean,
-          records: %{optional(atom) => [atom()]},
+          records: %{optional({atom, pos_integer()}) => [{module(), atom()}]},
           safe: boolean,
           syntax_colors: [{color_key, IO.ANSI.ansidata()}]
         }
@@ -124,12 +124,13 @@ defmodule Inspect.Opts do
   @doc false
   def normalize_records(records) do
     Enum.into(records, %{}, fn
-      {record_name, fields} when is_list(fields) ->
-        {record_name, fields}
+      {{record_name, size}, {module, fields}} = entry
+      when is_atom(record_name) and is_integer(size) and is_atom(module) and is_list(fields) ->
+        entry
 
-      {record_name, module} when is_atom(module) ->
+      {record_name, module} when is_atom(record_name) and is_atom(module) ->
         fields = module.__record__(record_name)
-        {record_name, fields}
+        {{record_name, length(fields)}, {module, fields}}
     end)
   end
 end

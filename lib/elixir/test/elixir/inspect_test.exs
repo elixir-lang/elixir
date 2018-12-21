@@ -257,27 +257,20 @@ defmodule Inspect.TupleTest do
 
   describe "records" do
     test "matching tuple" do
-      opts = [records: %{person: [:name, :email]}]
+      opts = [records: %{{:person, 2} => {__MODULE__, [:name, :email]}}]
       person = person(name: "Alice", email: "alice@example.com")
       assert inspect(person, opts) == ~s|#person(name: "Alice", email: "alice@example.com")|
     end
 
     test "no match" do
-      opts = [records: %{person: [:name, :email]}]
+      opts = [records: %{{:person, 2} => {__MODULE__, [:name, :email]}}]
       assert inspect({:person}, opts) == ~s|{:person}|
       assert inspect({:person, "Alice"}, opts) == ~s|{:person, "Alice"}|
     end
 
-    test "invalid fields in inspect opts" do
-      opts = [records: %{person: :bad}]
-      person = person(name: "Alice", email: "alice@example.com")
-      expected_message = "expected a list of field names, got :bad in %{person: :bad}"
-      assert_raise ArgumentError, expected_message, fn -> inspect(person, opts) end
-    end
-
     test "colors" do
       opts = [
-        records: %{person: [:name, :email]},
+        records: %{{:person, 2} => {__MODULE__, [:name, :email]}},
         syntax_colors: [tuple: :green, reset: :cyan, atom: :red]
       ]
 

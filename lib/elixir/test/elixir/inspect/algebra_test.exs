@@ -284,17 +284,27 @@ end
 defmodule Inspect.OptsTest do
   use ExUnit.Case, async: true
 
-  require Record
-  Record.defrecord(:person, [:name])
+  defmodule Person1 do
+    require Record
+    Record.defrecord(:person, [:name])
+  end
+
+  defmodule Person2 do
+    require Record
+    Record.defrecord(:person, [:name, :email])
+  end
 
   describe "normalize_records/1" do
     test "with fields" do
-      assert Inspect.Opts.normalize_records(person: [:name]) == %{person: [:name]}
-      assert Inspect.Opts.normalize_records(%{person: [:name]}) == %{person: [:name]}
+      normalized = %{{:person, 1} => {Person1, [:name]}}
+      assert Inspect.Opts.normalize_records(normalized) == normalized
     end
 
     test "with module" do
-      assert Inspect.Opts.normalize_records(person: __MODULE__) == %{person: [:name]}
+      assert Inspect.Opts.normalize_records(person: Person1, person: Person2) == %{
+               {:person, 1} => {Person1, [:name]},
+               {:person, 2} => {Person2, [:name, :email]}
+             }
     end
   end
 end
