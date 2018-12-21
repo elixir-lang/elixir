@@ -165,13 +165,6 @@ defmodule Mix.Dep do
     end
   end
 
-  # TODO: Remove this on v1.8
-  @doc false
-  @deprecated "Mix.Dep.loaded/1 was private API and you should not use it"
-  def loaded(opts) do
-    load_on_environment(opts)
-  end
-
   @doc """
   Returns loaded dependencies recursively on the given environment.
 
