@@ -1353,6 +1353,22 @@ defmodule Kernel.WarningTest do
     after
       purge(Sample)
     end
+
+    test "invalid map specification" do
+      message =
+        "invalid map specification. %{foo => bar} is deprecated in favor of " <>
+          "%{required(foo) => bar} and %{optional(foo) => bar}."
+
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 @type my_type :: %{atom => integer}
+               end
+               """)
+             end) =~ message
+    after
+      purge(Sample)
+    end
   end
 
   test "attribute with no use" do

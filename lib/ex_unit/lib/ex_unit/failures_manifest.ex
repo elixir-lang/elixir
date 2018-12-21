@@ -2,7 +2,7 @@ defmodule ExUnit.FailuresManifest do
   @moduledoc false
 
   @type test_id :: {module, name :: atom}
-  @opaque t :: %{test_id => test_file :: Path.t()}
+  @opaque t :: %{optional(test_id) => test_file :: Path.t()}
 
   @manifest_vsn 1
 
