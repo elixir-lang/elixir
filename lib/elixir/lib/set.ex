@@ -11,7 +11,6 @@ defmodule Set do
   @type values :: [value]
   @type t :: map
 
-  # TODO: Remove by 2.0
   message = "Use the MapSet module for working with sets"
 
   defmacrop target(set) do

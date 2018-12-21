@@ -80,7 +80,7 @@ defmodule Logger.Translator do
   end
 
   ## Erlang/OTP 20 and before
-  # TODO: This clauses can be removed when we support only Erlang/OTP 21+.
+  # TODO: These clauses can be removed when we support only Erlang/OTP 21+.
 
   def translate(min_level, :error, :format, message) do
     opts = Application.get_env(:logger, :translator_inspect_opts)

@@ -189,7 +189,7 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
 'try'(Meta, Opts, E) when not is_list(Opts) ->
   form_error(Meta, ?key(E, file), elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, E) ->
-  % TODO: Make this an error in Elixir 2.0
+  % TODO: Make this an error on v2.0
   case Opts of
     [{do, _}, {else, _}] ->
       form_warn(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, origin(Meta, 'try')});

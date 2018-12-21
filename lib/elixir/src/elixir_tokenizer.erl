@@ -1393,7 +1393,7 @@ invalid_do_with_fn_error(Prefix) ->
   {Prefix, ". Anonymous functions are written as:\n\n"
   "    fn pattern -> expression end"}.
 
-% TODO: Turn into an error on Elixir 2.0.
+% TODO: Turn into an error on v2.0
 maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) ->
   Warning =
     case T of
@@ -1405,7 +1405,7 @@ maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) 
 maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, _Scope) ->
   ok.
 
-%% TODO: Turn into an error on Elixir v2.0
+%% TODO: Turn into an error on v2.0
 maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) ->
   {What, Identifier} =
     case Kind of

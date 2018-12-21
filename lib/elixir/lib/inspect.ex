@@ -160,7 +160,7 @@ defimpl Inspect, for: List do
     color("[]", :list, opts)
   end
 
-  # TODO: Remove :char_list and :as_char_lists handling in 2.0
+  # TODO: Remove :char_list and :as_char_lists handling on v2.0
   def inspect(term, opts) do
     %Inspect.Opts{
       charlists: lists,

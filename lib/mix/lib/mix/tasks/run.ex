@@ -98,7 +98,6 @@ defmodule Mix.Tasks.Run do
           (String.t() -> term())
         ) :: :ok
   def run(args, opts, head, expr_evaluator, file_evaluator) do
-    # TODO: Remove on v2.0
     opts =
       Enum.flat_map(opts, fn
         {:parallel_require, value} ->

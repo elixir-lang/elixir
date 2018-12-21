@@ -1118,7 +1118,6 @@ defmodule Enum do
     end)
   end
 
-  # TODO: Remove on 2.0
   def group_by(enumerable, dict, fun) do
     IO.warn(
       "Enum.group_by/3 with a map/dictionary as second element is deprecated. " <>

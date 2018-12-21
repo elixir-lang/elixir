@@ -4,7 +4,6 @@
 -include("elixir.hrl").
 -define(attr, {elixir, overridable}).
 
-%% TODO: Use DataSet/DataBag for overridables
 setup({DataSet, _DataBag}) ->
   ets:insert(DataSet, {?attr, #{}}).
 

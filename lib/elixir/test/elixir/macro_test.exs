@@ -788,7 +788,7 @@ defmodule MacroTest do
       Macro.pipe(1, quote(do: unquote()), 0)
     end
 
-    # TODO: restore this test when we drop unary operator support in pipes
+    # TODO: Restore this test when we drop unary operator support in pipes
     # assert_raise ArgumentError, ~r"cannot pipe 1 into \+1", fn ->
     #   Macro.pipe(1, quote(do: + 1), 0)
     # end
