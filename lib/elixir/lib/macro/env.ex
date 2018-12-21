@@ -69,8 +69,8 @@ defmodule Macro.Env do
   @typep vars :: [variable]
   @typep var_type :: :term
   @typep var_version :: non_neg_integer
-  @typep unused_vars :: %{{variable, var_version} => non_neg_integer | false}
-  @typep current_vars :: %{variable => {var_version, var_type}}
+  @typep unused_vars :: %{optional({variable, var_version}) => non_neg_integer | false}
+  @typep current_vars :: %{optional(variable) => {var_version, var_type}}
   @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
   @typep contextual_vars :: [atom]
 
