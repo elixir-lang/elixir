@@ -34,13 +34,8 @@ defmodule Inspect.Opts do
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
-    * `:records` - map of records that should be formatted, defaults to `%{}`.
-
-       For example, if we have a `{:person, "Alice", "alice@example.com"}` record,
-       by default it would be formatted as any other tuple.
-       By setting `[records: %{person: [:name, :email]}]` it would be formatted as:
-
-          #person(name: "Alice", email: "alice@example.com")
+    * `:records` - map of records and their fields that should be formatted,
+      defaults to `%{}`. See section "Records" below for more information.
 
     * `:width` - defaults to 80 characters, used when pretty is `true` or when
       printing to IO devices. Set to 0 to force each item to be printed on its
@@ -61,6 +56,29 @@ defmodule Inspect.Opts do
       each type (for example, `[number: :red, atom: :blue]`). Types can include
       `:number`, `:atom`, `regex`, `:tuple`, `:map`, `:list`, and `:reset`.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
+
+  ## Records
+
+  The `:records` option allows to format tuples as records.
+
+  Let's say we have a `person` record defined in `Records` module.
+
+      defmodule Records do
+        import Record
+        defrecord :person, [:name, :email]
+      end
+
+  Since record is just a tuple, by default it's formatted as such:
+
+      iex> import Records
+      iex> person(name: "Alice", email: "alice@example.com")
+      {:person, "Alice", "alice@example.com"}
+
+  By setting the `:records` option we can ensure they will be formatted as records:
+
+      iex> opts = [records: %{person: [:name, :email]}]
+      iex> person(name: "Alice", email: "alice@example.com") |> inspect(opts)
+      "#person(name: \"Alice\", email: \"alice@example.com\")"
 
   """
 
