@@ -709,6 +709,7 @@ defmodule StringTest do
 
   test "to_float/1" do
     assert String.to_float("3.0") == 3.0
+    assert String.to_float(".7") == 0.7
 
     three = fn -> "3" end
     assert_raise ArgumentError, fn -> String.to_float(three.()) end
