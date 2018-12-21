@@ -160,7 +160,6 @@ inline(?process, unlink, 1) -> {erlang, unlink};
 inline(?process, unregister, 1) -> {erlang, unregister};
 
 inline(?string, duplicate, 2) -> {binary, copy};
-inline(?string, to_float, 1) -> {erlang, binary_to_float};
 inline(?string, to_integer, 1) -> {erlang, binary_to_integer};
 inline(?string, to_integer, 2) -> {erlang, binary_to_integer};
 

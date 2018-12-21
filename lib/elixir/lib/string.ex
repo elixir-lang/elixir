@@ -2272,7 +2272,9 @@ defmodule String do
       #=> ** (ArgumentError) argument error
 
   """
+
   @spec to_float(String.t()) :: float
+  @compile {:inline, to_float: 1}
   def to_float(string) do
     case String.at(string, 0) == "." do
       true ->
