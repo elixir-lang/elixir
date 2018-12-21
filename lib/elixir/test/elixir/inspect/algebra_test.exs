@@ -280,3 +280,21 @@ defmodule Inspect.AlgebraTest do
     assert sm.([empty() | "b"]) |> render(80) == "[b]"
   end
 end
+
+defmodule Inspect.OptsTest do
+  use ExUnit.Case, async: true
+
+  require Record
+  Record.defrecord(:person, [:name])
+
+  describe "normalize_records/1" do
+    test "with fields" do
+      assert Inspect.Opts.normalize_records(person: [:name]) == %{person: [:name]}
+      assert Inspect.Opts.normalize_records(%{person: [:name]}) == %{person: [:name]}
+    end
+
+    test "with module" do
+      assert Inspect.Opts.normalize_records(person: __MODULE__) == %{person: [:name]}
+    end
+  end
+end

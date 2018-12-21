@@ -113,6 +113,18 @@ defmodule Inspect.Opts do
           safe: boolean,
           syntax_colors: [{color_key, IO.ANSI.ansidata()}]
         }
+
+  @doc false
+  def normalize_records(records) do
+    Enum.into(records, %{}, fn
+      {record_name, fields} when is_list(fields) ->
+        {record_name, fields}
+
+      {record_name, module} when is_atom(module) ->
+        fields = module.__record__(record_name)
+        {record_name, fields}
+    end)
+  end
 end
 
 defmodule Inspect.Error do
