@@ -131,7 +131,6 @@ defmodule URI do
   @spec decode_query(binary, %{optional(binary) => binary}) :: %{optional(binary) => binary}
   def decode_query(query, map \\ %{})
 
-  # TODO: Remove on 2.0
   def decode_query(query, %_{} = dict) when is_binary(query) do
     IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
     decode_query_into_dict(query, dict)
@@ -141,7 +140,6 @@ defmodule URI do
     decode_query_into_map(query, map)
   end
 
-  # TODO: Remove on 2.0
   def decode_query(query, dict) when is_binary(query) do
     IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
     decode_query_into_dict(query, dict)

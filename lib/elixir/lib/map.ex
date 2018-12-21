@@ -892,7 +892,6 @@ defmodule Map do
   def equal?(term, other), do: :erlang.error({:badmap, term}, [term, other])
 
   @doc false
-  # TODO: Remove on 2.0
   @deprecated "Use Kernel.map_size/1 instead"
   def size(map) do
     map_size(map)

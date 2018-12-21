@@ -215,7 +215,6 @@ defmodule System do
   Returns the current working directory or `nil` if one
   is not available.
   """
-  # TODO: Remove by 2.0
   @deprecated "Use File.cwd/0 instead"
   @spec cwd() :: String.t() | nil
   def cwd do
@@ -230,7 +229,6 @@ defmodule System do
 
   Returns the current working directory or raises `RuntimeError`.
   """
-  # TODO: Remove by 2.0
   @deprecated "Use File.cwd!/0 instead"
   @spec cwd!() :: String.t()
   def cwd! do
@@ -458,7 +456,7 @@ defmodule System do
   latest exception. To retrieve the stacktrace of the current process,
   use `Process.info(self(), :current_stacktrace)` instead.
   """
-  # TODO: Fully deprecate it on Elixir v1.11.
+  # TODO: Fully deprecate it on Elixir v1.11 via @deprecated
   # It is currently partially deprecated in elixir_dispatch.erl
   def stacktrace do
     apply(:erlang, :get_stacktrace, [])

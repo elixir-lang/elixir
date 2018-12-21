@@ -153,7 +153,6 @@ defmodule ExUnit.Formatter do
     |> make_into_lines(counter_padding)
   end
 
-  # TODO: Remove on 2.0
   @doc false
   @deprecated "Use ExUnit.Formatter.format_test_all_failure/5 instead"
   def format_test_case_failure(test_case, failures, counter, width, formatter) do

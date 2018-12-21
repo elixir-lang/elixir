@@ -842,7 +842,7 @@ defmodule Logger do
   end
 
   # TODO: Either deprecate compile_time_purge_level in favor of
-  # compile_time_purge_matching or document it again on 1.9 based
+  # compile_time_purge_matching or document it again on v1.9 based
   # on feedback
   defp maybe_log(level, data, metadata, caller) do
     min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)

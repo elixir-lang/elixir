@@ -7,8 +7,6 @@ defmodule HashDict do
 
   @moduledoc deprecated: "Use Map instead"
 
-  # TODO: Remove by 2.0
-
   use Dict
 
   @node_bitmap 0b111

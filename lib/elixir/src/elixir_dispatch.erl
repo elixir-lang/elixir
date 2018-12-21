@@ -333,7 +333,6 @@ check_deprecation(_, ?kernel, _, _, _) ->
   ok;
 check_deprecation(_, erlang, _, _, _) ->
   ok;
-%% TODO: Fully deprecate System.stacktrace and eventually remove it on v2.0.
 check_deprecation(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars} = E) ->
   case lists:member('__STACKTRACE__', Vars) of
     true ->

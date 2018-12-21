@@ -5022,7 +5022,6 @@ defmodule Kernel do
         :elixir_errors.warn(line, file, message)
       end
 
-      # TODO: Remove on 2.0
       if Keyword.has_key?(opts, :append_first) do
         :elixir_errors.warn(line, file, "Kernel.defdelegate/2 :append_first option is deprecated")
       end

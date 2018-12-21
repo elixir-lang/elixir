@@ -18,8 +18,6 @@ defmodule Dict do
   message =
     "Use the Map module for working with maps or the Keyword module for working with keyword lists"
 
-  # TODO: Remove by 2.0
-
   @deprecated message
   defmacro __using__(_) do
     # Use this import to guarantee proper code expansion

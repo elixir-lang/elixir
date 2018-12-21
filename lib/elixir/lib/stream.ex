@@ -125,19 +125,16 @@ defmodule Stream do
 
   ## Transformers
 
-  # TODO: Remove by 2.0
   @doc false
   @deprecated "Use Stream.chunk_every/2 instead"
   def chunk(enum, n), do: chunk(enum, n, n, nil)
 
-  # TODO: Remove by 2.0
   @doc false
   @deprecated "Use Stream.chunk_every/3 instead"
   def chunk(enum, n, step) do
     chunk_every(enum, n, step, nil)
   end
 
-  # TODO: Remove by 2.0
   @doc false
   @deprecated "Use Stream.chunk_every/4 instead"
   def chunk(enum, n, step, leftover)
@@ -477,7 +474,6 @@ defmodule Stream do
   end
 
   @doc false
-  # TODO: Remove on 2.0
   @deprecated "Use Stream.filter/2 + Stream.map/2 instead"
   def filter_map(enum, filter, mapper) do
     lazy(enum, fn f1 -> R.filter_map(filter, mapper, f1) end)
@@ -993,7 +989,6 @@ defmodule Stream do
   end
 
   @doc false
-  # TODO: Remove on 2.0
   @deprecated "Use Stream.uniq_by/2 instead"
   def uniq(enum, fun) do
     uniq_by(enum, fun)

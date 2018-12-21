@@ -409,12 +409,10 @@ defmodule Integer do
   defp gcd_positive(integer1, 0), do: integer1
   defp gcd_positive(integer1, integer2), do: gcd_positive(integer2, rem(integer1, integer2))
 
-  # TODO: Remove by 2.0
   @doc false
   @deprecated "Use Integer.to_charlist/1 instead"
   def to_char_list(integer), do: Integer.to_charlist(integer)
 
-  # TODO: Remove by 2.0
   @doc false
   @deprecated "Use Integer.to_charlist/2 instead"
   def to_char_list(integer, base), do: Integer.to_charlist(integer, base)
