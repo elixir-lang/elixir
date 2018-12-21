@@ -1,6 +1,4 @@
 defmodule GenEvent do
-  # TODO: Remove by 2.0
-
   # Functions from this module are deprecated in elixir_dispatch.
 
   @moduledoc """

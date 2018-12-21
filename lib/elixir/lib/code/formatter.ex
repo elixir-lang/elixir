@@ -1058,7 +1058,7 @@ defmodule Code.Formatter do
   end
 
   # We can only rename functions in the same module because
-  # introducing a new module may wrong due to aliases.
+  # introducing a new module may be wrong due to aliases.
   defp deprecated(Enum, :partition, 2), do: {"split_with", "~> 1.4"}
   defp deprecated(Code, :unload_files, 2), do: {"unrequire_files", "~> 1.7"}
   defp deprecated(Code, :loaded_files, 2), do: {"required_files", "~> 1.7"}

@@ -46,7 +46,7 @@ defmodule Code do
     :elixir_code_server.call(:required)
   end
 
-  # TODO: Deprecate me on 1.9
+  # TODO: Deprecate on v1.9
   @doc false
   def loaded_files do
     required_files()
@@ -78,7 +78,7 @@ defmodule Code do
     :elixir_code_server.cast({:unrequire_files, files})
   end
 
-  # TODO: Deprecate me on 1.9
+  # TODO: Deprecate on v1.9
   @doc false
   def unload_files(files) do
     unrequire_files(files)
@@ -707,7 +707,7 @@ defmodule Code do
     eval_string(File.read!(file), [], file: file, line: 1)
   end
 
-  # TODO: Deprecate me on 1.9
+  # TODO: Deprecate on v1.9
   @doc false
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)

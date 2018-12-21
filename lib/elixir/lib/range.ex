@@ -88,7 +88,6 @@ defmodule Range do
   defp normalize(first, last) when first > last, do: {last, first}
   defp normalize(first, last), do: {first, last}
 
-  # TODO: Remove by 2.0
   @doc false
   @deprecated "Pattern match on first..last instead"
   def range?(term)

@@ -107,7 +107,6 @@ defmodule Kernel.ParallelCompiler do
     spawn_workers(files, :require, options)
   end
 
-  # TODO: Remove on 2.0
   @doc false
   @deprecated "Use Kernel.ParallelCompiler.compile/2 instead"
   def files(files, options \\ []) when is_list(options) do
@@ -117,7 +116,6 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  # TODO: Remove on 2.0
   @doc false
   @deprecated "Use Kernel.ParallelCompiler.compile_to_path/2 instead"
   def files_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do

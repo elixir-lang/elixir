@@ -427,7 +427,6 @@ defmodule OptionParser do
         option_key = config.aliases[key]
 
         if key && option_key do
-          # TODO: Remove this in Elixir v2.0
           IO.warn("multi-letter aliases are deprecated, got: #{inspect(key)}")
           next_tagged({:default, option_key}, value, original, rest, config)
         else
@@ -580,7 +579,6 @@ defmodule OptionParser do
           {strict, true}
 
         true ->
-          # TODO: Remove this in Elixir v2.0
           IO.warn("not passing the :switches or :strict option to OptionParser is deprecated")
           {[], false}
       end

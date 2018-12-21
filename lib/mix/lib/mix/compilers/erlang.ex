@@ -56,7 +56,6 @@ defmodule Mix.Compilers.Erlang do
 
   def compile(manifest, mappings, src_ext, dest_ext, force, callback)
       when is_boolean(force) or is_nil(force) do
-    # TODO: Remove this on v2.0
     IO.warn(
       "Mix.Compilers.Erlang.compile/6 with a boolean or nil as 5th argument is deprecated, " <>
         "please pass [force: true] or [] instead"
@@ -227,7 +226,6 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp do_compile({input, output}, callback, timestamp, verbose) do
-    # TODO: Remove deprecated {:ok, _} and :error on 2.0
     case callback.(input, output) do
       {:ok, _, warnings} ->
         File.touch!(output, timestamp)

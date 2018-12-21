@@ -37,7 +37,6 @@ defmodule Atom do
     :erlang.atom_to_list(atom)
   end
 
-  # TODO: Remove by 2.0
   @doc false
   @deprecated "Use Atom.to_charlist/1 instead"
   @spec to_char_list(atom) :: charlist

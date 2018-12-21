@@ -1,5 +1,4 @@
 defmodule Kernel.Typespec do
-  # TODO: Remove deprecated code on 2.0 and move this module to Module.Typespec.
   @moduledoc false
 
   ## Deprecated API moved to Code.Typespec
@@ -773,7 +772,6 @@ defmodule Kernel.Typespec do
     {{:type, line(meta), :nonempty_string, arguments}, state}
   end
 
-  # TODO: Remove char_list type by 2.0
   defp typespec({type, _meta, []}, vars, caller, state) when type in [:charlist, :char_list] do
     if type == :char_list do
       warning = "the char_list() type is deprecated, use charlist()"

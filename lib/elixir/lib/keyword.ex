@@ -1048,7 +1048,6 @@ defmodule Keyword do
   end
 
   @doc false
-  # TODO: Remove on 2.0
   @deprecated "Use Kernel.length/1 instead"
   def size(keyword) do
     length(keyword)
