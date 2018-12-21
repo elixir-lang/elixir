@@ -69,7 +69,7 @@ defmodule Regex do
     * `firstline` (f) - forces the unanchored pattern to match before or at the
       first newline, though the matched text may continue over the newline
 
-    * `ungreedy` (U) - inverts the "greediness" of the regexp
+    * `ungreedy` (U) - inverts the "greediness" of the regular expression
       (the previous `r` option is deprecated in favor of `U`)
 
   The options not available are:
@@ -78,12 +78,12 @@ defmodule Regex do
     * `dollar_endonly` - not available, use `\z` instead
     * `no_auto_capture` - not available, use `?:` instead
     * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
-      `(*ANYCRLF)` or `(*ANY)` at the beginning of the regexp according to the
+      `(*ANYCRLF)` or `(*ANY)` at the beginning of the regular expression according to the
       `:re` documentation
 
   ## Captures
 
-  Many functions in this module handle what to capture in a regex
+  Many functions in this module handle what to capture in a regular expression
   match via the `:capture` option. The supported values are:
 
     * `:all` - all captured subpatterns including the complete matching string
@@ -110,14 +110,14 @@ defmodule Regex do
   @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary}
 
   defmodule CompileError do
-    defexception message: "regex could not be compiled"
+    defexception message: "regular expression could not be compiled"
   end
 
   @doc """
   Compiles the regular expression.
 
   The given options can either be a binary with the characters
-  representing the same regex options given to the
+  representing the same regular expression options given to the
   `~r` (see `Kernel.sigil_r/2`) sigil, or a list of options, as
   expected by the Erlang's `:re` module.
 
@@ -177,7 +177,7 @@ defmodule Regex do
   Recompiles the existing regular expression if necessary.
 
   This checks the version stored in the regular expression
-  and recompiles the regex in case of version mismatch.
+  and recompiles the regular expression in case of version mismatch.
   """
   @doc since: "1.4.0"
   @spec recompile(t) :: t
@@ -233,7 +233,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns `true` if the given `term` is a regex.
+  Returns `true` if the given `term` is a regular expression.
   Otherwise returns `false`.
 
   ## Examples
@@ -324,7 +324,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the regex source as a binary.
+  Returns the regular expression source as a binary.
 
   ## Examples
 
@@ -338,7 +338,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the regex options as a string.
+  Returns the regular expression options as a string.
 
   ## Examples
 
@@ -352,7 +352,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns a list of names in the regex.
+  Returns a list of names in the regular expression.
 
   ## Examples
 
@@ -428,8 +428,8 @@ defmodule Regex do
       Defaults to `false`.
 
     * `:on` - specifies which captures to split the string on, and in what
-      order. Defaults to `:first` which means captures inside the regex do not
-      affect the splitting process.
+      order. Defaults to `:first` which means captures inside the regular
+      expression do not affect the splitting process.
 
     * `:include_captures` - when `true`, includes in the result the matches of
       the regular expression. Defaults to `false`.
@@ -540,14 +540,14 @@ defmodule Regex do
   end
 
   @doc ~S"""
-  Receives a regex, a binary and a replacement, returns a new
+  Receives a regular expression, a binary and a replacement, returns a new
   binary where all matches are replaced by the replacement.
 
   The replacement can be either a string or a function. The string
   is used as a replacement for every match and it allows specific
   captures to be accessed via `\N` or `\g{N}`, where `N` is the
   capture. In case `\0` is used, the whole match is inserted. Note
-  that in regexes the backslash needs to be escaped, hence in practice
+  that in regular expressions the backslash needs to be escaped, hence in practice
   you'll need to use `\\N` and `\\g{N}`.
 
   When the replacement is a function, the function may have arity
@@ -721,7 +721,7 @@ defmodule Regex do
   end
 
   @doc ~S"""
-  Escapes a string to be literally matched in a regex.
+  Escapes a string to be literally matched in a regular expression.
 
   ## Examples
 
