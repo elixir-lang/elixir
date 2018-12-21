@@ -262,7 +262,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         {Args, []}
     end,
 
-  validate_opts(Meta, for, [do, into, uniq], Block, E),
+  validate_opts(Meta, for, [do, into, uniq, reduce], Block, E),
 
   {Expr, Opts} =
     case lists:keytake(do, 1, Block) of
@@ -272,16 +272,16 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         form_error(Meta, ?key(E, file), ?MODULE, {missing_option, for, [do]})
     end,
 
-  case lists:keyfind(uniq, 1, Opts) of
-    false -> ok;
-    {uniq, Value} when is_boolean(Value) -> ok;
-    {uniq, Value} -> form_error(Meta, ?key(E, file), ?MODULE, {for_invalid_uniq, Value})
-  end,
-
   {EOpts, EO} = expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand_for/2, EO, Cases),
-  {EExpr, EE} = expand(Expr, EC),
   assert_generator_start(Meta, ECases, E),
+
+  {EExpr, EE} =
+    case validate_for_options(EOpts, false, false, false) of
+      {ok, MaybeReduce} -> expand_for_do_block(Meta, Expr, EC, MaybeReduce);
+      {error, Error} -> form_error(Meta, ?key(E, file), ?MODULE, Error)
+    end,
+
   {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, elixir_env:merge_and_check_unused_vars(E, EE)};
 
 %% With
@@ -697,6 +697,42 @@ generated_case_clauses([{do, Clauses}]) ->
   RClauses = [{'->', ?generated(Meta), Args} || {'->', Meta, Args} <- Clauses],
   [{do, RClauses}].
 
+%% Comprehensions
+
+validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce) ->
+  validate_for_options(Opts, Pair, Uniq, Reduce);
+validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce) when is_boolean(Boolean) ->
+  validate_for_options(Opts, Into, Pair, Reduce);
+validate_for_options([{uniq, Value} | _], _, _, _) ->
+  {error, {for_invalid_uniq, Value}};
+validate_for_options([{reduce, _} = Pair | Opts], Into, Uniq, _Reduce) ->
+  validate_for_options(Opts, Into, Uniq, Pair);
+validate_for_options([], Into, Uniq, {reduce, _}) when Into /= false; Uniq /= false ->
+  {error, for_conflicting_reduce_into_uniq};
+validate_for_options([], _Into, _Uniq, Reduce) ->
+  {ok, Reduce}.
+
+expand_for_do_block(Meta, Expr, E, false) ->
+  case Expr of
+    [{'->', _, _} | _] -> form_error(Meta, ?key(E, file), ?MODULE, for_without_reduce_bad_block);
+    _ -> expand(Expr, E)
+  end;
+expand_for_do_block(Meta, Clauses, E, {reduce, _}) ->
+  Transformer = fun({_, _, [Left, _Right]} = Clause, Acc) ->
+    case Left of
+      [_] ->
+        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, Acc),
+        {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)};
+      _ ->
+        form_error(Meta, ?key(E, file), ?MODULE, for_with_reduce_bad_block)
+    end
+  end,
+
+  case Clauses of
+    [{'->', _, _} | _] -> lists:mapfoldl(Transformer, E, Clauses);
+    _ -> form_error(Meta, ?key(E, file), ?MODULE, for_with_reduce_bad_block)
+  end.
+
 %% Locals
 
 assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
@@ -1045,6 +1081,12 @@ format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error({for_invalid_uniq, Value}) ->
   io_lib:format(":uniq option for comprehensions only accepts a boolean, got: ~ts", ['Elixir.Macro':to_string(Value)]);
+format_error(for_conflicting_reduce_into_uniq) ->
+  "cannot use :reduce alongside :into/:uniq in comprehension";
+format_error(for_with_reduce_bad_block) ->
+  "when using :reduce with comprehensions, the do block must be written using acc -> expr clauses, where each clause expects the accumulator as a single argument";
+format_error(for_without_reduce_bad_block) ->
+  "the do block was written using acc -> expr clauses but the :reduce option was not given";
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
 format_error(unhandled_arrow_op) ->

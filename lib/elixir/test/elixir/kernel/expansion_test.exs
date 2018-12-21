@@ -697,6 +697,26 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "raise error on invalid reduce" do
+      assert_raise CompileError,
+                   ~r"cannot use :reduce alongside :into/:uniq in comprehension",
+                   fn ->
+                     expand(quote(do: for(x <- 1..3, reduce: %{}, into: %{}, do: (acc -> acc))))
+                   end
+
+      assert_raise CompileError,
+                   ~r"the do block was written using acc -> expr clauses but the :reduce option was not given",
+                   fn -> expand(quote(do: for(x <- 1..3, do: (acc -> acc)))) end
+
+      assert_raise CompileError,
+                   ~r"when using :reduce with comprehensions, the do block must be written using acc -> expr clauses",
+                   fn -> expand(quote(do: for(x <- 1..3, reduce: %{}, do: x))) end
+
+      assert_raise CompileError,
+                   ~r"when using :reduce with comprehensions, the do block must be written using acc -> expr clauses",
+                   fn -> expand(quote(do: for(x <- 1..3, reduce: %{}, do: (acc, x -> x)))) end
+    end
+
     test "raise error for unknown options" do
       assert_raise CompileError, ~r"unsupported option :else given to for", fn ->
         expand(quote(do: for(_ <- 1..2, do: 1, else: 1)))
