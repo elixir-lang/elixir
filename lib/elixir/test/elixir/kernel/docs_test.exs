@@ -164,6 +164,10 @@ defmodule Kernel.DocsTest do
           @callback bar() :: term
           @callback baz(any, term) :: any
 
+          @doc "Callback with multiple clauses"
+          @callback qux(integer) :: integer
+          @callback qux(atom) :: atom
+
           @doc "Macrocallback doc"
           @macrocallback qux(any) :: any
 
@@ -211,6 +215,8 @@ defmodule Kernel.DocsTest do
         callback_bar,
         callback_baz,
         callback_foo,
+        callback_qux,
+        callback_qux,
         function_struct_0,
         function_struct_1,
         function_bar,
@@ -230,6 +236,9 @@ defmodule Kernel.DocsTest do
       assert {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"},
               %{since: "1.2.3", deprecated: "use baz/2 instead", color: :blue, stable: true}} =
                callback_foo
+
+      assert {{:callback, :qux, 1}, _, [], %{"en" => "Callback with multiple clauses"}, %{}} =
+               callback_qux
 
       assert {{:function, :__struct__, 0}, _, ["%Kernel.DocsTest.SampleDocs{}"],
               %{"en" => "My struct"}, %{}} = function_struct_0
