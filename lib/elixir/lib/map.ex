@@ -409,8 +409,9 @@ defmodule Map do
   Gets the value for a specific `key` in `map`.
 
   If `key` is present in `map` with value `value`, then `value` is
-  returned. Otherwise, `default` is returned (which is `nil` unless
-  specified otherwise).
+  returned. Otherwise, `default` is returned.
+
+  If `default` is not provided, `nil` is used.
 
   ## Examples
 
