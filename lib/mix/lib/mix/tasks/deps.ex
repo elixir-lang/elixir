@@ -33,7 +33,8 @@ defmodule Mix.Tasks.Deps do
 
   By specifying such dependencies, Mix will automatically install
   Hex (if it wasn't previously installed) and download a package
-  suitable to your project.
+  suitable to your project. Note Hex expects the dependency
+  requirement to always be given and it will warn otherwise.
 
   Mix also supports Git and path dependencies:
 
