@@ -112,6 +112,7 @@ defmodule IEx.Config do
     Application.get_env(:iex, :inspect, [])
     |> Keyword.put_new_lazy(:width, &width/0)
     |> update_syntax_colors()
+    |> Keyword.update(:records, %{}, &Inspect.Opts.normalize_records(&1))
   end
 
   defp update_syntax_colors(opts) do

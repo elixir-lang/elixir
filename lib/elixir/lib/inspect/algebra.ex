@@ -80,6 +80,13 @@ defmodule Inspect.Opts do
       iex> person(name: "Alice", email: "alice@example.com") |> inspect(opts)
       "#person(name: \"Alice\", email: \"alice@example.com\")"
 
+  Some functions, e.g. `IEx.configure/1`, provide a way to automatically extract
+  record fields from the modules that define them:
+
+      iex> IEx.configure(inspect: [records: %{person: Records}])
+      iex> person(name: "Alice", email: "alice@example.com")
+      #person(name: "Alice", email: "alice@example.com")
+
   """
 
   # TODO: Remove :char_lists key on v2.0
