@@ -321,7 +321,7 @@ defmodule Mix.Tasks.New do
     defp deps do
       [
         # {:dep_from_hexpm, "~> 0.3.0"},
-        # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+        # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
       ]
     end
   end
@@ -357,7 +357,7 @@ defmodule Mix.Tasks.New do
       [
         # {:dep_from_hexpm, "~> 0.3.0"},
         # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
-        # {:sibling_app_in_umbrella, in_umbrella: true},
+        # {:sibling_app_in_umbrella, in_umbrella: true}
       ]
     end
   end
@@ -475,7 +475,7 @@ defmodule Mix.Tasks.New do
       # List all child processes to be supervised
       children = [
         # Starts a worker by calling: <%= @mod %>.Worker.start_link(arg)
-        # {<%= @mod %>.Worker, arg},
+        # {<%= @mod %>.Worker, arg}
       ]
 
       # See https://hexdocs.pm/elixir/Supervisor.html
