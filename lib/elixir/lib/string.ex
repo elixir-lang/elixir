@@ -2265,13 +2265,23 @@ defmodule String do
       iex> String.to_float("3.0")
       3.0
 
+      iex> String.to_float(".7")
+      0.7
+
       String.to_float("3")
       #=> ** (ArgumentError) argument error
 
   """
   @spec to_float(String.t()) :: float
   def to_float(string) do
-    :erlang.binary_to_float(string)
+    case String.at(string, 0) == "." do
+      true ->
+        ("0" <> string)
+        |> :erlang.binary_to_float()
+
+      false ->
+        :erlang.binary_to_float(string)
+    end
   end
 
   @doc """
