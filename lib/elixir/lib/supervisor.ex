@@ -624,7 +624,7 @@ defmodule Supervisor do
   description of the available strategies.
   """
   @doc since: "1.5.0"
-  # TODO: Warn if simple_one_for_one strategy is used on Elixir v1.9
+  # TODO: Warn if simple_one_for_one strategy is used on Elixir v1.10
   @spec init([:supervisor.child_spec() | {module, term} | module], [init_option]) :: {:ok, tuple}
   def init(children, options) when is_list(children) and is_list(options) do
     unless strategy = options[:strategy] do
@@ -842,7 +842,7 @@ defmodule Supervisor do
     call(supervisor, {:start_child, child_spec})
   end
 
-  # TODO: Deprecate this on Elixir v1.9. Remove and update typespec on v2.0.
+  # TODO: Deprecate this clause on Elixir v1.10
   def start_child(supervisor, args) when is_list(args) do
     call(supervisor, {:start_child, args})
   end
@@ -869,7 +869,7 @@ defmodule Supervisor do
         when error: :not_found | :simple_one_for_one
   def terminate_child(supervisor, child_id)
 
-  # TODO: Deprecate this clause on Elixir v1.9
+  # TODO: Deprecate this clause on Elixir v1.10
   def terminate_child(supervisor, pid) when is_pid(pid) do
     call(supervisor, {:terminate_child, pid})
   end

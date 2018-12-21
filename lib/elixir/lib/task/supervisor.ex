@@ -78,7 +78,7 @@ defmodule Task.Supervisor do
   give them directly to `start_child` and `async`.
   """
   @spec start_link([option]) :: Supervisor.on_start()
-  # TODO: Deprecate passing restart and shutdown here on Elixir v1.9.
+  # TODO: Deprecate passing restart and shutdown here on Elixir v1.10.
   def start_link(options \\ []) do
     {restart, options} = Keyword.pop(options, :restart, :temporary)
     {shutdown, options} = Keyword.pop(options, :shutdown, 5000)
