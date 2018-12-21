@@ -1,6 +1,23 @@
 defmodule OptionParser do
   @moduledoc """
-  This module contains functions to parse command line options.
+  Functions for parsing command line options.
+
+  The main function in this module is `parse/2`, which allows
+  developers to parse a list of arguments into options:
+
+      iex> OptionParser.parse(["--debug"], strict: [debug: :boolean])
+      {[debug: true], [], []}
+
+  `OptionParser` provides some conveniences out of the box,
+  such as aliases and automatic handling of negation switches.
+
+  The `parse_head/2` function is an alternative to `parse/2`
+  which stops parsing as soon as it finds a value that is not
+  a switch nor a value for a previous switch.
+
+  This module also provides low-level functions, such as `next/2`,
+  for parsing switches manually, as well as `split/1` and `to_argv/1`
+  for parsing from and converting switches to strings.
   """
 
   @type argv :: [String.t()]
@@ -65,10 +82,9 @@ defmodule OptionParser do
     * `:switches` - defines some switches and their types. This function
       still attempts to parse switches that are not in this list.
 
-  Both these options accept a keyword list of `{name, type}` tuples where `name`
-  is an atom defining the name of the switch and `type` is an atom that
-  specifies the type for the value of this switch (see the "Types" section below
-  for the possible types and more information about type casting).
+  Both these options accept a keyword list where the key is an atom
+  defining the name of the switch and value is the `type` of the
+  switch (see the "Types" section below for more information).
 
   Note that you should only supply the `:switches` or the `:strict` option.
   If you supply both, an `ArgumentError` exception will be raised.
