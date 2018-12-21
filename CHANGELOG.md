@@ -23,12 +23,15 @@
   * [Kernel] Add `:delegate_to` `@doc` metadata tag when using `defdelegate`
   * [Kernel] Improve compile-time building of ranges via the `..` operator
   * [Kernel] Compile charlist interpolation more efficiently
+  * [Kernel.SpecialForms] Add `:reduce` option to `for` comprehensions
   * [List] Add `List.myers_difference/3` and `List.improper?/1`
   * [Macro] Add `Macro.struct!/2` for proper struct resolution during compile time
   * [Map] Optimize and merge nested maps `put` and `merge` operations
   * [Range] Add `Range.disjoint?/2`
+  * [Record] Reduce memory allocation when updating multiple fields in a record
   * [Registry] Allow associating a value on `:via` tuple
   * [String] Add `String.bag_distance/2`
+  * [Task] Add `$callers` tracking to `Task` - this makes it easier to find which process spawned a task and use it for tracking ownership and monitoring
 
 #### ExUnit
 
@@ -62,8 +65,13 @@
   * [Kernel] Expand operands in `size*unit` bitstring modifier instead of expecting `size` and `unit` to be literal integers
   * [Kernel] Do not deadlock on circular struct dependencies in typespecs
   * [Kernel] Raise proper error message when passing flags to the Erlang compiler that Elixir cannot handle
+  * [Kernel] Do not leak variables in `cond` clauses with a single matching at compile-time clause
   * [NaiveDateTime] Do not accept leap seconds in builder and parsing functions
   * [String] Fix ZWJ handling in Unicode grapheme clusters
+
+#### IEx
+
+  * [IEx.Helpers] Use typespec info (instead of docs chunk) and properly format callbacks in `b/1`
 
 #### Logger
 
@@ -71,12 +79,16 @@
 
 #### Mix
 
+  * [mix compile] Ensure changes in deps propagate to all umbrella children - this fix a long standing issue where updating a dependency would not recompile all projecys accordingly, requiring a complete removal of `_build`
+  * [mix compile] Avoid time drift when checking and updating compiler manifest files
   * [mix compile.app] Respect the `:only` option between umbrella siblings
   * [mix compile.protocols] Reconsolidate protocols if local dependencies are stale
   * [mix deps] Properly mark dependencies with different `:system_env` as diverged
   * [mix new] Use `--module` value when setting up filenames
 
 ### 3. Soft-deprecations (no warnings emitted)
+
+None.
 
 ### 4. Hard-deprecations
 
