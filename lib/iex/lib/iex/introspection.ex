@@ -413,7 +413,7 @@ defmodule IEx.Introspection do
     |> Enum.any?(&match?({_, ^fun, ^arity}, elem(&1, 0)))
   end
 
-  defp get_docs(mod, kinds) do
+  def get_docs(mod, kinds) do
     case Code.fetch_docs(mod) do
       {:docs_v1, _, _, _, _, _, docs} ->
         for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc

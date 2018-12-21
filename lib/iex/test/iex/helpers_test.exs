@@ -659,14 +659,17 @@ defmodule IEx.HelpersTest do
              """
     end
 
-    test "lists callback with multiple clauses" do
+    test "callback with multiple clauses" do
       filename = "multiple_clauses_callback.ex"
 
       content = """
       defmodule MultipleClauseCallback do
-        @doc "callback"
+        @doc "A callback"
         @callback test(:foo) :: integer
         @callback test(:bar) :: [integer]
+
+        @doc "Another callback"
+        @callback test2(:foo) :: integer
       end
       """
 
@@ -676,6 +679,25 @@ defmodule IEx.HelpersTest do
         assert capture_io(fn -> b(MultipleClauseCallback) end) =~ """
                @callback test(:foo) :: integer()
                @callback test(:bar) :: [integer()]
+
+               @callback test2(:foo) :: integer()
+               """
+
+        IO.inspect IEx.Introspection.get_docs(MultipleClauseCallback, [:callback])
+
+        # This passes. Don't need that in final test as it's redundant with other tests below
+        assert capture_io(fn -> b(MultipleClauseCallback.test2) end) =~ """
+               @callback test2(:foo) :: integer()
+
+               Another callback
+               """
+
+        # This fails:
+        assert capture_io(fn -> b(MultipleClauseCallback.test) end) =~ """
+               @callback test(:foo) :: integer()
+               @callback test(:bar) :: [integer()]
+
+               A callback
                """
       end)
     after
