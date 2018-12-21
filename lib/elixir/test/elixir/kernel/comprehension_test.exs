@@ -226,6 +226,20 @@ defmodule Kernel.ComprehensionTest do
     assert IO.iodata_to_binary(Process.get(:into_cont)) == "roohkpmmfi"
   end
 
+  test "for comprehensions of map into map" do
+    enum = %{a: 2, b: 3}
+    assert for({k, v} <- enum, into: %{}, do: {k, v * v}) == %{a: 4, b: 9}
+  end
+
+  test "for comprehensions with reduce, generators and filters" do
+    acc =
+      for x <- 1..3, Integer.is_odd(x), <<y <- "hello">>, reduce: %{} do
+        acc -> Map.update(acc, x, [y], &[y | &1])
+      end
+
+    assert acc == %{1 => 'olleh', 3 => 'olleh'}
+  end
+
   ## List generators (inlined by the compiler)
 
   test "list for comprehensions" do
@@ -303,11 +317,6 @@ defmodule Kernel.ComprehensionTest do
             end) == <<7::size(1), 0::size(2), 1::size(1), 2::size(2), 3::size(1)>>
   end
 
-  test "map for comprehensions into map" do
-    enum = %{a: 2, b: 3}
-    assert for({k, v} <- enum, into: %{}, do: {k, v * v}) == %{a: 4, b: 9}
-  end
-
   test "list for comprehensions where value is not used" do
     enum = [1, 2, 3]
 
@@ -315,6 +324,15 @@ defmodule Kernel.ComprehensionTest do
              for x <- enum, do: IO.puts(x)
              nil
            end) == "1\n2\n3\n"
+  end
+
+  test "list for comprehensions with reduce, generators and filters" do
+    acc =
+      for x <- [1, 2, 3], Integer.is_odd(x), <<y <- "hello">>, reduce: %{} do
+        acc -> Map.update(acc, x, [y], &[y | &1])
+      end
+
+    assert acc == %{1 => 'olleh', 3 => 'olleh'}
   end
 
   ## Binary generators (inlined by the compiler)
@@ -429,5 +447,16 @@ defmodule Kernel.ComprehensionTest do
              for <<x <- bin>>, do: IO.puts(x)
              nil
            end) == "1\n2\n3\n"
+  end
+
+  test "binary for comprehensions with reduce, generators and filters" do
+    bin = <<1, 2, 3>>
+
+    acc =
+      for <<x <- bin>>, Integer.is_odd(x), <<y <- "hello">>, reduce: %{} do
+        acc -> Map.update(acc, x, [y], &[y | &1])
+      end
+
+    assert acc == %{1 => 'olleh', 3 => 'olleh'}
   end
 end
