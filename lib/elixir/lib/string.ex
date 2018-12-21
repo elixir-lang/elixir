@@ -2276,12 +2276,12 @@ defmodule String do
   def to_float(string) do
     case String.at(string, 0) == "." do
       true ->
-        ("0" <> string)
-        |> :erlang.binary_to_float()
+        "0" <> string
 
       false ->
-        :erlang.binary_to_float(string)
+        string
     end
+    |> :erlang.binary_to_float()
   end
 
   @doc """
