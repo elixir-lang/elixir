@@ -271,10 +271,8 @@ defmodule Inspect.TupleTest do
     test "invalid fields in inspect opts" do
       opts = [records: %{person: :bad}]
       person = person(name: "Alice", email: "alice@example.com")
-
-      assert_raise ArgumentError, "expected a list of field names, got :bad in %{person: :bad}", fn ->
-        inspect(person, opts)
-      end
+      expected_message = "expected a list of field names, got :bad in %{person: :bad}"
+      assert_raise ArgumentError, expected_message, fn -> inspect(person, opts) end
     end
 
     test "colors" do
