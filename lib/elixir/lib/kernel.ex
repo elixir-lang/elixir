@@ -4567,10 +4567,17 @@ defmodule Kernel do
 
   Any protocol module contains three extra functions:
 
-    * `__protocol__/1` - returns the protocol name when `:name` is given, a
-      keyword list with the protocol functions and their arities when
-      `:functions` is given, and a list of the implementations when `:impls` is
-      given
+    * `__protocol__/1` - returns the protocol information. The function takes
+      one of the following atoms:
+
+      * `:consolidated?` - returns whether the protocol is consolidated
+
+      * `:functions` - returns keyword list of protocol functions and their arities
+
+      * `:impls` - if consolidated, returns `{:consolidated, modules}` with the list of modules
+         implementing the protocol, otherwise `:not_consolidated`
+
+      * `:module` - the protocol module atom name
 
     * `impl_for/1` - receives a structure and returns the module that
       implements the protocol for the structure, `nil` otherwise
@@ -4578,14 +4585,16 @@ defmodule Kernel do
     * `impl_for!/1` - same as above but raises an error if an implementation is
       not found
 
-          Enumerable.__protocol__(:functions)
-          #=> [count: 1, member?: 2, reduce: 3]
+  For example, for the `Enumerable` protocol we have:
 
-          Enumerable.impl_for([])
-          #=> Enumerable.List
+      iex> Enumerable.__protocol__(:functions)
+      [count: 1, member?: 2, reduce: 3, slice: 1]
 
-          Enumerable.impl_for(42)
-          #=> nil
+      iex> Enumerable.impl_for([])
+      Enumerable.List
+
+      iex> Enumerable.impl_for(42)
+      nil
 
   ## Consolidation
 
