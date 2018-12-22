@@ -533,31 +533,31 @@ defmodule ExceptionTest do
       test "annotates band arithmetic errors" do
         use Bitwise
 
-        assert blame_message(:foo, &band(10, &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.band(10, :foo)"
+        assert blame_message(:foo, &band(&1, 10)) ==
+                 "bad argument in arithmetic expression: Bitwise.band(:foo, 10)"
 
-        assert blame_message(:foo, &(10 &&& &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.band(10, :foo)"
+        assert blame_message(:foo, &(&1 &&& 10)) ==
+                 "bad argument in arithmetic expression: Bitwise.band(:foo, 10)"
       end
 
       test "annotates bor arithmetic errors" do
         use Bitwise
 
-        assert blame_message(:foo, &bor(10, &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bor(10, :foo)"
+        assert blame_message(:foo, &bor(&1, 10)) ==
+                 "bad argument in arithmetic expression: Bitwise.bor(:foo, 10)"
 
-        assert blame_message(:foo, &(10 ||| &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bor(10, :foo)"
+        assert blame_message(:foo, &(&1 ||| 10)) ==
+                 "bad argument in arithmetic expression: Bitwise.bor(:foo, 10)"
       end
 
       test "annotates bxor arithmetic errors" do
         use Bitwise
 
-        assert blame_message(:foo, &bxor(10, &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bxor(10, :foo)"
+        assert blame_message(:foo, &bxor(&1, 10)) ==
+                 "bad argument in arithmetic expression: Bitwise.bxor(:foo, 10)"
 
-        assert blame_message(:foo, &(10 ^^^ &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bxor(10, :foo)"
+        assert blame_message(:foo, &(&1 ^^^ 10)) ==
+                 "bad argument in arithmetic expression: Bitwise.bxor(:foo, 10)"
       end
 
       test "annotates bsl arithmetic errors" do
