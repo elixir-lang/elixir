@@ -21,6 +21,10 @@ defmodule User do
 end
 ```
 
+Now all user structs will be printed with all remaining fields collapsed:
+
+    #User<id: 1, name: "Jane", age: 33, ...>
+
 You can also pass `@derive {Inspect, except: [...]}` in case you want to keep all fields by default and exclude only some.
 
 ## Time zone database support
