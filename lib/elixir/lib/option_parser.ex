@@ -77,9 +77,11 @@ defmodule OptionParser do
 
   Switches can be specified via one of two options:
 
-    * `:strict` - defines strict switches. Any switch in `argv` that is not
-      specified in the list is returned in the invalid options list.
-    * `:switches` - defines some switches and their types. This function
+    * `:strict` - defines strict switches and their types. Any switch
+      in `argv` that is not specified in the list is returned in the
+      invalid options list. This is the preferred way to parse options.
+
+    * `:switches` - defines switches and their types. This function
       still attempts to parse switches that are not in this list.
 
   Both these options accept a keyword list where the key is an atom
@@ -157,16 +159,17 @@ defmodule OptionParser do
       # The :option_parser_example atom is not used anywhere below
 
   However, the code below would work as long as `:option_parser_example` atom is
-  used at some point later (or earlier) **in the same module**:
+  used at some point later (or earlier) **in the same module**. For example:
 
       {opts, _, _} = OptionParser.parse(["--option-parser-example"], switches: [debug: :boolean])
+      # ... then somewhere in the same module you access it ...
       opts[:option_parser_example]
 
-  In other words, Elixir will do the correct thing and only parse options that are
-  used by the runtime, ignoring all others. If you would like to parse all switches,
-  regardless if they exist or not, you can force creation of atoms by passing
-  `allow_nonexistent_atoms: true` as option. Use this option with care. It is only
-  useful when you are building command-line applications that receive
+  In other words, Elixir will only parse options that are used by the runtime,
+  ignoring all others. If you would like to parse all switches, regardless if
+  they exist or not, you can force creation of atoms by passing
+  `allow_nonexistent_atoms: true` as option. Use this option with care. It is
+  only useful when you are building command-line applications that receive
   dynamically-named arguments and must be avoided in long-running systems.
 
   ## Aliases
