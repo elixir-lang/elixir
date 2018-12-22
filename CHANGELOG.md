@@ -1,6 +1,6 @@
 # Changelog for Elixir v1.8
 
-Elixir v1.8 comes with many improvements at the infrastructure level, improving compilation time, speeding up common patterns and adding features around introspection of the system.
+Elixir v1.8 comes with many improvements at the infrastructure level, improving compilation time, speeding up common patterns, and adding features around introspection of the system.
 
 ## Custom struct inspections
 
@@ -21,9 +21,9 @@ defmodule User do
 end
 ```
 
-You can also pass `@derive {Inspect, except: ...}` in case you want to keep all fields by default and exclude only some.
+You can also pass `@derive {Inspect, except: [...]}` in case you want to keep all fields by default and exclude only some.
 
-## TimeZone database support
+## Time zone database support
 
 In Elixir v1.3, Elixir added four types, known as Calendar types, to work with dates and times: `Time`, `Date`, `NaiveDateTime` (without timezone) and `DateTime` (with timezone). Over the last releases we have added many enhancements to the Calendar types but the `DateTime` module always evolved at a slower pace since Elixir did not provide support for a TimeZone database.
 
