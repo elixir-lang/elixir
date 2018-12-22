@@ -50,7 +50,7 @@ set originPath=%~dp0
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
 
-rem Option which determines whether or not to use werl vs erl
+rem Option which determines whether to use werl or erl
 set useWerl=0
 
 rem Designates which mode / Elixir component to run as
