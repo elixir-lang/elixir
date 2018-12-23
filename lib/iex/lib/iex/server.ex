@@ -2,7 +2,7 @@ defmodule IEx.State do
   @moduledoc false
   # This state is exchanged between IEx.Server and
   # IEx.Evaluator which is why it is a struct.
-  defstruct cache: '', counter: 1, prefix: "iex"
+  defstruct cache: '', counter: 1, prefix: "iex", on_eof: :stop_evaluator
   @type t :: %__MODULE__{}
 end
 
@@ -26,6 +26,7 @@ defmodule IEx.Server do
     * `:prefix` - the IEx prefix
     * `:env` - the `Macro.Env` used for the evaluator
     * `:binding` - an initial set of variables for the evaluator
+    * `:on_eof` - if it should `:stop_evaluator` (default) or `:halt` the system
 
   """
   @doc since: "1.8.0"
@@ -128,7 +129,10 @@ defmodule IEx.Server do
         loop(%{state | cache: ''}, evaluator, evaluator_ref)
 
       {:input, ^input, :eof} ->
-        stop_evaluator(evaluator, evaluator_ref)
+        case state.on_eof do
+          :halt -> System.halt(0)
+          :stop_evaluator -> stop_evaluator(evaluator, evaluator_ref)
+        end
 
       {:input, ^input, {:error, :terminated}} ->
         stop_evaluator(evaluator, evaluator_ref)
@@ -284,7 +288,8 @@ defmodule IEx.Server do
 
   defp iex_state(opts) do
     prefix = Keyword.get(opts, :prefix, "iex")
-    %IEx.State{prefix: prefix}
+    on_eof = Keyword.get(opts, :on_eof, :stop_evaluator)
+    %IEx.State{prefix: prefix, on_eof: on_eof}
   end
 
   ## IO
