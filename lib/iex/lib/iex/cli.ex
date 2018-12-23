@@ -56,7 +56,7 @@ defmodule IEx.CLI do
       if get_remsh(:init.get_plain_arguments()) do
         IO.puts(
           :stderr,
-          "warning: Connecting to a remote node via --remsh is not possible using the 'dumb' terminal"
+          "warning: the --remsh option will be ignored because IEx is running on limited shell"
         )
       end
 
