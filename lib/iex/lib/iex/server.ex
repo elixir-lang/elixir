@@ -2,7 +2,7 @@ defmodule IEx.State do
   @moduledoc false
   # This state is exchanged between IEx.Server and
   # IEx.Evaluator which is why it is a struct.
-  defstruct cache: '', counter: 1, prefix: "iex", on_eof: :halt
+  defstruct cache: '', counter: 1, prefix: "iex", on_eof: :stop_evaluator
   @type t :: %__MODULE__{}
 end
 
@@ -288,7 +288,7 @@ defmodule IEx.Server do
 
   defp iex_state(opts) do
     prefix = Keyword.get(opts, :prefix, "iex")
-    on_eof = Keyword.get(opts, :on_eof, :halt)
+    on_eof = Keyword.get(opts, :on_eof, :stop_evaluator)
     %IEx.State{prefix: prefix, on_eof: on_eof}
   end
 
