@@ -53,6 +53,13 @@ defmodule IEx.CLI do
     if tty_works?() do
       :user_drv.start([:"tty_sl -c -e", tty_args()])
     else
+      if get_remsh(:init.get_plain_arguments()) do
+        IO.puts(
+          :stderr,
+          "warning: Connecting to a remote node via --remsh is not possible using the 'dumb' terminal"
+        )
+      end
+
       :application.set_env(:stdlib, :shell_prompt_func, {__MODULE__, :prompt})
       :user.start()
       local_start()
