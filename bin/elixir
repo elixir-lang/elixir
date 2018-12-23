@@ -107,7 +107,6 @@ SCRIPT_PATH=$(dirname "$SELF")
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
-# Check for terminal support
 if [ "$OS" != "Windows_NT" ]; then
   if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
 fi
@@ -116,8 +115,4 @@ if [ "$OS" = "Windows_NT" ] && [ $USE_WERL ]; then
     ERL_EXEC="werl"
 fi
 
-if [ -z "$ERL_PATH" ]; then
-  ERL_PATH="$ERL_EXEC"
-fi
-
-exec "$ERL_PATH" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
+exec "$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
