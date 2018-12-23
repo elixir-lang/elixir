@@ -10,17 +10,17 @@ goto parseopts
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
-echo   -e COMMAND                  Evaluates the given command (*)
-echo   -r FILE                     Requires the given files/patterns (*)
+echo   -e "COMMAND"                Evaluates the given command (*)
+echo   -r "FILE"                   Requires the given files/patterns (*)
 echo   -S SCRIPT                   Finds and executes the given script in PATH
-echo   -pr FILE                    Requires the given files/patterns in parallel (*)
-echo   -pa PATH                    Prepends the given path to Erlang code path (*)
-echo   -pz PATH                    Appends the given path to Erlang code path (*)
+echo   -pr "FILE"                  Requires the given files/patterns in parallel (*)
+echo   -pa "PATH"                  Prepends the given path to Erlang code path (*)
+echo   -pz "PATH"                  Appends the given path to Erlang code path (*)
 echo.
 echo   --app APP                   Starts the given app and its dependencies (*)
 echo   --cookie COOKIE             Sets a cookie for this distributed node
 echo   --detached                  Starts the Erlang VM detached from console
-echo   --erl SWITCHES              Switches to be passed down to Erlang (*)
+echo   --erl "SWITCHES"            Switches to be passed down to Erlang (*)
 echo   --help, -h                  Prints this message and exits
 echo   --hidden                    Makes a hidden node
 echo   --logger-otp-reports BOOL   Enables or disables OTP reporting
