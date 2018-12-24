@@ -56,14 +56,14 @@ In Elixir v1.8, we now track the relationship between your code and the task via
 which means we store the following relationships:
 
     [your code]              [supervisor] <-- ancestor -- [task]
-        ^                                                   |
-        |---------------------- caller ---------------------|
+         ^                                                  |
+         |--------------------- caller ---------------------|
 
 When a task is spawned directly from your code, without a supervisor, then the process running your code will be listed under both `$ancestors` and `$callers`.
 
 This small feature is very powerful. It allows instrumentation and monitoring tools to better track and relate the events happening in your system. This feature can also be used by tools like the "Ecto Sandbox". The "Ecto Sandbox" allows developers to run tests concurrently against the database, by using transactions and an ownership mechanism where each process explicitly gets a connection assigned to it. Without `$callers`, every time you spawned a task that queries the database, the task would not know its caller, and therefore it would be unable to know which connection was assigned to it. This often meant features that relies on tasks could not be tested concurrently. With `$callers`, figuring out this relationship is trivial and you have more tests using the full power of your machine.
 
-## v1.8.0-dev
+## v1.8.0-rc.0 (2018-12-24)
 
 ### 1. Enhancements
 
