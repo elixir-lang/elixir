@@ -142,7 +142,7 @@ This small feature is very powerful. It allows instrumentation and monitoring to
 
 #### Mix
 
-  * [mix compile] Ensure changes in deps propagate to all umbrella children - this fix a long standing issue where updating a dependency would not recompile all projecys accordingly, requiring a complete removal of `_build`
+  * [mix compile] Ensure changes in deps propagate to all umbrella children - this fix a long standing issue where updating a dependency would not recompile all projects accordingly, requiring a complete removal of `_build`
   * [mix compile] Avoid time drift when checking and updating compiler manifest files
   * [mix compile.app] Respect the `:only` option between umbrella siblings
   * [mix compile.protocols] Reconsolidate protocols if local dependencies are stale
