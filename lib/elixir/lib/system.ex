@@ -106,9 +106,29 @@ defmodule System do
     end
   end
 
-  # Returns OTP version that Elixir was compiled with.
+  # From https://github.com/fishcakez/dialyze/blob/6698ae582c77940ee10b4babe4adeff22f1b7779/lib/mix/tasks/dialyze.ex#L168
+  defp get_otp_release_data do
+    major = :erlang.system_info(:otp_release) |> List.to_string()
+    vsn_file = Path.join([:code.root_dir(), "releases", major, "OTP_VERSION"])
+    {major, vsn_file}
+  end
+
+  defp parse_otp_release_data({major, vsn_file}) do
+    try do
+      {:ok, contents} = File.read(vsn_file)
+      String.split(contents, "\n", trim: true)
+    else
+      [full] -> full
+      _ -> major
+    catch
+      :error, _ -> major
+    end
+  end
+
+  # Returns Erlang/OTP version that Elixir was compiled with.
   defmacrop get_otp_release do
-    :erlang.list_to_binary(:erlang.system_info(:otp_release))
+    get_otp_release_data()
+    |> parse_otp_release_data()
   end
 
   # Tries to run "git rev-parse --short HEAD". In the case of success returns
@@ -817,11 +837,18 @@ defmodule System do
   end
 
   @doc """
-  Returns the Erlang/OTP release number.
+  Returns Erlang/OTP's full release number
+
+  ## Example
+
+      System.otp_release()
+      "21.0.6"
+
   """
   @spec otp_release :: String.t()
   def otp_release do
-    :erlang.list_to_binary(:erlang.system_info(:otp_release))
+    get_otp_release_data()
+    |> parse_otp_release_data()
   end
 
   @doc """

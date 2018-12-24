@@ -542,7 +542,7 @@ defmodule IEx.Helpers do
     print_pane("System and architecture")
 
     print_entry("Elixir version", System.version())
-    print_entry("Erlang/OTP version", :erlang.system_info(:otp_release))
+    print_entry("Erlang/OTP version", System.otp_release())
     print_entry("ERTS version", :erlang.system_info(:version))
     print_entry("Compiled for", :erlang.system_info(:system_architecture))
     print_entry("Schedulers", :erlang.system_info(:schedulers))
