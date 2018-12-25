@@ -1,6 +1,6 @@
 defmodule Mix.Config do
   @moduledoc ~S"""
-  A simply configuration API and functions for managing config files.
+  A simple configuration API and functions for managing config files.
 
   ## Setting configuration
 
@@ -91,14 +91,14 @@ defmodule Mix.Config do
   ## User API
 
   @doc """
-  Configures the given application.
+  Configures the given `root_key`.
 
   Keyword lists are always deep merged.
 
   ## Examples
 
   The given `opts` are merged into the existing configuration
-  for the given `app`. Conflicting keys are overridden by the
+  for the given `root_key`. Conflicting keys are overridden by the
   ones specified in `opts`. For example, the application
   configuration below
 
@@ -115,21 +115,21 @@ defmodule Mix.Config do
       [level: :info, backends: [:console], truncate: 1024]
 
   """
-  def config(app, opts) when is_atom(app) and is_list(opts) do
+  def config(root_key, opts) when is_atom(root_key) and is_list(opts) do
     get_config!()
-    |> merge([{app, opts}])
+    |> merge([{root_key, opts}])
     |> put_config()
   end
 
   @doc """
-  Configures the given key for the given application.
+  Configures the given `key` for the given `root_key`.
 
   Keyword lists are always deep merged.
 
   ## Examples
 
   The given `opts` are merged into the existing values for `key`
-  in the given `app`. Conflicting keys are overridden by the
+  in the given `root_key`. Conflicting keys are overridden by the
   ones specified in `opts`. For example, the application
   configuration below
 
@@ -147,9 +147,9 @@ defmodule Mix.Config do
       [log_level: :info, pool_size: 10, adapter: Ecto.Adapters.Postgres]
 
   """
-  def config(app, key, opts) when is_atom(app) do
+  def config(root_key, key, opts) when is_atom(root_key) do
     get_config!()
-    |> merge([{app, [{key, opts}]}])
+    |> merge([{root_key, [{key, opts}]}])
     |> put_config()
   end
 
@@ -222,6 +222,7 @@ defmodule Mix.Config do
 
   It returns a tuple with the configuration and the imported paths.
   """
+  @spec eval!(Path.t(), [Path.t()]) :: {keyword, [Path.t()]}
   def eval!(file, imported_paths \\ []) do
     previous_config = put_config([])
     previous_files = put_files(imported_paths)
@@ -242,10 +243,22 @@ defmodule Mix.Config do
     end
   end
 
-  @doc false
-  @deprecated "Use eval!/2 instead"
-  def read!(file, loaded_paths \\ []) do
-    eval!(file, loaded_paths) |> elem(0)
+  @doc """
+  Reads the configuration file.
+
+  The same as `eval!/2` but only returns the configuration
+  in the given file, without returning the imported paths.
+
+  It exists for convenience purposes. For example, you could
+  invoke it inside your `mix.exs` to read some external data
+  you decided to move to a configuration file:
+
+      releases: Mix.Config.read!("rel/releases.exs")
+
+  """
+  @spec read!(Path.t(), [Path.t()]) :: keyword
+  def read!(file, imported_paths \\ []) do
+    eval!(file, imported_paths) |> elem(0)
   end
 
   @doc false
@@ -322,14 +335,18 @@ defmodule Mix.Config do
   @doc """
   Merges two configurations.
 
-  The configuration of each application is merged together
-  with the values in the second one having higher preference
-  than the first in case of conflicts.
+  The configurations are merged together with the values in
+  the second one having higher preference than the first in
+  case of conflicts. In case both values are set to keyword
+  lists, it deep merges them.
 
   ## Examples
 
       iex> Mix.Config.merge([app: [k: :v1]], [app: [k: :v2]])
       [app: [k: :v2]]
+
+      iex> Mix.Config.merge([app: [k: [v1: 1, v2: 2]]], [app: [k: [v2: :a, v3: :b]]])
+      [app: [k: [v1: 1, v2: :a, v3: :b]]]
 
       iex> Mix.Config.merge([app1: []], [app2: []])
       [app1: [], app2: []]

@@ -121,6 +121,17 @@ defmodule Mix.ConfigTest do
                  fn -> Mix.Config.eval!(fixture_path("configs/bad_import.exs")) end
   end
 
+  test "read!/2" do
+    assert Mix.Config.read!(fixture_path("configs/good_kw.exs")) ==
+             [my_app: [key: :value]]
+
+    assert Mix.Config.read!(fixture_path("configs/good_config.exs")) ==
+             [my_app: [key: :value]]
+
+    assert Mix.Config.read!(fixture_path("configs/good_import.exs")) ==
+             [my_app: [key: :value]]
+  end
+
   test "persist/1" do
     assert Application.get_env(:my_app, :key) == nil
     Mix.Config.persist(my_app: [key: :value])
