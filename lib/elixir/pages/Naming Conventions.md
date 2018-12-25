@@ -67,9 +67,9 @@ The version without `!` is preferred when you want to handle different outcomes 
 
 However, if you expect the outcome to always to be successful (e.g. if you expect the file always to exist), the bang variation can be more convenient and will raise a more helpful error message (than a failed pattern match) on failure.
 
-More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `File.cwd/0` and `File.cwd!/0`
+More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `File.cwd/0` and `File.cwd!/0`.
 
-There are also some non-paired functions, with no non-bang variant. The bang still signifies that it will raise an exception on failure. Examples: `Mix.Config.validate!/1`, `Protocol.assert_protocol!/1`
+There are also some non-paired functions, with no non-bang variant. The bang still signifies that it will raise an exception on failure. Example: `Protocol.assert_protocol!/1`.
 
 In macro code, the bang on `Kernel.alias!/1` and `Kernel.var!/2` signifies that [macro hygiene](https://elixir-lang.org/getting-started/meta/macros.html#macros-hygiene) is set aside.
 

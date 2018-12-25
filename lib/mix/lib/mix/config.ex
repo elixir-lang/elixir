@@ -1,39 +1,53 @@
 defmodule Mix.Config do
   @moduledoc ~S"""
-  Module for defining, reading and merging app configurations.
+  A simply configuration API and functions for managing config files.
+
+  ## Setting configuration
 
   Most commonly, this module is used to define your own configuration:
 
       use Mix.Config
 
-      config :plug,
+      config :some_app,
         key1: "value1",
         key2: "value2"
 
-      import_config "#{Mix.env}.exs"
+      import_config "#{Mix.env()}.exs"
 
-  All `config/*` macros, including `import_config/1`, are used
-  to help define such configuration files.
+  `use Mix.Config` will import the functions `config/2`, `config/3`
+  and `import_config/1` to help you manage your configuration.
 
-  Furthermore, this module provides functions like `read!/1`,
-  `merge/2` and friends which help manipulate configurations
-  in general.
+  ## Evaluating configuration
 
-  Configuration set using `Mix.Config` will set the application environment, so
-  that `Application.get_env/3` and other `Application` functions can be used
-  at run or compile time to retrieve or change the configuration.
+  Once a configuration is written to a file, the functions in this
+  module can be used to read and merge said configuration. The `eval!/2`
+  function allows you evaluate a given configuration file and `merge/2`
+  allows to deep merge the results of multiple configurations. Those
+  functions should not be invoked by users writing configurations but
+  rather by library authors.
 
-  For example, the `:key1` value from the application `:plug` (see example above) can be
-  retrieved with:
+  ## Examples
 
-      "value1" = Application.fetch_env!(:plug, :key1)
+  The most common use of `Mix.Config` is to define application
+  configuration so that `Application.get_env/3` and other `Application`
+  functions can be used to retrieve or change configuration.
+
+  Such configurations are typically placed in the `config/` directory
+  of your Mix projects. For example, the following config
+
+      config :my_app, :key, "value"
+
+  can be accessed in your application code as follows:
+
+      "value" = Application.fetch_env!(:my_app, :key1)
 
   """
+
+  # TODO: Break the user API and the reader API apart.
 
   @doc false
   defmacro __using__(_) do
     quote do
-      # TODO: If we split User API from Mix API, we no longer need to use Mix.Config.
       import Mix.Config, only: [config: 2, config: 3, import_config: 1]
     end
   end
@@ -298,6 +312,7 @@ defmodule Mix.Config do
       #=> [:logger, :my_app]
 
   """
+  # TODO: Deprecate this once merge_env is added to Application/OTP
   def persist(config) do
     for {app, kw} <- config do
       for {k, v} <- kw do
