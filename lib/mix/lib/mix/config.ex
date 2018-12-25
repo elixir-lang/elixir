@@ -8,7 +8,7 @@ defmodule Mix.Config do
 
       use Mix.Config
 
-      config :some_app,
+      config :root_key,
         key1: "value1",
         key2: "value2"
 
@@ -30,14 +30,17 @@ defmodule Mix.Config do
 
   The most common use of `Mix.Config` is to define application
   configuration so that `Application.get_env/3` and other `Application`
-  functions can be used to retrieve or change configuration.
+  functions can be used to retrieve or further change them.
 
-  Such configurations are typically placed in the `config/` directory
-  of your Mix projects. For example, the following config
+  Application config files are typically placed in the `config/`
+  directory of your Mix projects. For example, the following config
 
+      # config/config.exs
       config :my_app, :key, "value"
 
-  can be accessed in your application code as follows:
+  will be automatically loaded by Mix and persisted into the
+  `:my_app`'s application environment, which can be accessed in
+  its source code as follows:
 
       "value" = Application.fetch_env!(:my_app, :key1)
 
@@ -96,23 +99,20 @@ defmodule Mix.Config do
 
   The given `opts` are merged into the existing configuration
   for the given `app`. Conflicting keys are overridden by the
-  ones specified in `opts`. For example, the declaration below:
+  ones specified in `opts`. For example, the application
+  configuration below
 
-      config :lager,
-        log_level: :warn,
-        mode: :truncate
+      config :logger,
+        level: :warn,
+        backends: [:console]
 
-      config :lager,
-        log_level: :info,
-        threshold: 1024
+      config :logger,
+        level: :info,
+        truncate: 1024
 
-  Will have a final configuration of:
+  will have a final configuration for `:logger` of:
 
-      [log_level: :info, mode: :truncate, threshold: 1024]
-
-  This final configuration can be retrieved at run or compile time:
-
-      Application.get_all_env(:lager)
+      [level: :info, backends: [:console], truncate: 1024]
 
   """
   def config(app, opts) when is_atom(app) and is_list(opts) do
@@ -130,8 +130,8 @@ defmodule Mix.Config do
 
   The given `opts` are merged into the existing values for `key`
   in the given `app`. Conflicting keys are overridden by the
-  ones specified in `opts`. For example, given the two configurations
-  below:
+  ones specified in `opts`. For example, the application
+  configuration below
 
       config :ecto, Repo,
         log_level: :warn,
@@ -141,14 +141,10 @@ defmodule Mix.Config do
         log_level: :info,
         pool_size: 10
 
-  the final value of the configuration for the `Repo` key in the `:ecto`
-  application will be:
+  will have a final value of the configuration for the `Repo`
+  key in the `:ecto` application of:
 
       [log_level: :info, pool_size: 10, adapter: Ecto.Adapters.Postgres]
-
-  This final value can be retrieved at runtime or compile time with:
-
-      Application.get_env(:ecto, Repo)
 
   """
   def config(app, key, opts) when is_atom(app) do
@@ -312,7 +308,7 @@ defmodule Mix.Config do
       #=> [:logger, :my_app]
 
   """
-  # TODO: Deprecate this once merge_env is added to Application/OTP
+  # TODO: Deprecate this once merge_env is added to Application
   def persist(config) do
     for {app, kw} <- config do
       for {k, v} <- kw do
