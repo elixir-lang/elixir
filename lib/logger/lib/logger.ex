@@ -133,15 +133,16 @@ defmodule Logger do
       `:sync_threshold` messages in its queue, `Logger` will change
       to *sync mode*, to apply backpressure to the clients.
       `Logger` will return to *async mode* once the number of messages
-      in the queue is reduced to `sync_threshold * 0.75` messages.
-      Defaults to 20 messages. `:sync_threshold` can be set to `0` to force *sync mode*.
+      in the queue is reduced to one below the `sync_threshold`.
+      Defaults to 20 messages. `:sync_threshold` can be set to `0` to
+      force *sync mode*.
 
     * `:discard_threshold` - if the `Logger` manager has more than
       `:discard_threshold` messages in its queue, `Logger` will change
       to *discard mode* and messages will be discarded directly in the
       clients. `Logger` will return to *sync mode* once the number of
-      messages in the queue is reduced to `discard_threshold * 0.75`
-      messages. Defaults to 500 messages.
+      messages in the queue is reduced to one below `discard_threshold`.
+      Defaults to 500 messages.
 
     * `:translator_inspect_opts` - when translating OTP reports and
       errors, the last message and state must be inspected in the
@@ -501,10 +502,7 @@ defmodule Logger do
   The `Logger` level can be changed via `configure/1`.
   """
   @spec level() :: level
-  def level() do
-    %{level: level} = Logger.Config.__data__()
-    level
-  end
+  defdelegate level(), to: Logger.Config
 
   @doc """
   Compares log levels.
@@ -669,10 +667,10 @@ defmodule Logger do
   def __should_log__(level) when level in @levels do
     case __metadata__() do
       {true, pdict} ->
-        %{mode: mode, level: min_level} = config = Logger.Config.__data__()
+        {mode, %{level: min_level} = config} = Logger.Config.log_data()
 
         if compare_levels(level, min_level) != :lt and mode != :discard do
-          {level, config, pdict}
+          {level, mode, config, pdict}
         else
           :error
         end
@@ -683,8 +681,9 @@ defmodule Logger do
   end
 
   @doc false
-  def __do_log__({level, config, pdict}, chardata_or_fun, metadata) when is_list(metadata) do
-    %{utc_log: utc_log?, truncate: truncate, mode: mode} = config
+  def __do_log__({level, mode, config, pdict}, chardata_or_fun, metadata)
+      when is_list(metadata) do
+    %{utc_log: utc_log?, truncate: truncate} = config
     metadata = [pid: self()] ++ into_metadata(metadata, pdict)
 
     case normalize_message(chardata_or_fun, metadata) do

@@ -92,7 +92,7 @@ defmodule Logger.ErlangHandler do
       level: min_level,
       truncate: truncate,
       translators: translators
-    } = Logger.Config.__data__()
+    } = Logger.Config.translation_data()
 
     case translate(translators, min_level, level, kind, data, meta) do
       :none -> {translate_fallback(kind, data, erl_meta, truncate), meta}

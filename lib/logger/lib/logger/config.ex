@@ -21,9 +21,203 @@ defmodule Logger.Config do
     :gen_event.call(Logger, @name, {:remove_translator, translator})
   end
 
-  def __data__() do
+  def level do
+    %{level: level} = read_translation_data!()
+    level
+  end
+
+  def translation_data do
+    read_translation_data!()
+  end
+
+  def log_data do
+    {:log_data, config, message_queue_length} = read_log_data!()
+    %{thresholds: {counter, sync, discard}} = config
+    counter = message_queue_length + bump_counter(counter)
+
+    cond do
+      counter >= discard -> {:discard, config}
+      counter >= sync -> {:sync, config}
+      true -> {:async, config}
+    end
+  end
+
+  def deleted_handlers do
     try do
-      :ets.lookup_element(@table, :data, 2)
+      :ets.lookup_element(@table, :deleted_handlers, 2)
+    rescue
+      ArgumentError -> []
+    end
+  end
+
+  def deleted_handlers(handlers) do
+    :gen_event.call(Logger, @name, {:deleted_handlers, handlers})
+  end
+
+  def new do
+    {new_data(), new_counter()}
+  end
+
+  def delete({data, counter}) do
+    delete_data(data)
+    delete_counter(counter)
+  end
+
+  ## Callbacks
+
+  def init({@table, counter}) do
+    :ets.lookup_element(@table, :log_data, 2) || compute_state(counter)
+    reset_counter(counter)
+    update_message_queue_length()
+    {:ok, counter}
+  end
+
+  def handle_event({_type, gl, _msg} = event, counter) when node(gl) != node() do
+    # Cross node messages are always async which also
+    # means this handler won't crash in case Logger
+    # is not installed in the other node.
+    :gen_event.notify({Logger, node(gl)}, event)
+    {:ok, counter}
+  end
+
+  def handle_event(_event, counter) do
+    reset_counter(counter)
+    update_message_queue_length()
+    {:ok, counter}
+  end
+
+  def handle_call({:configure, options}, counter) do
+    Enum.each(options, fn {key, value} ->
+      Application.put_env(:logger, key, value)
+    end)
+
+    _ = compute_state(counter)
+    {:ok, :ok, counter}
+  end
+
+  def handle_call({:add_translator, translator}, counter) do
+    update_translators(fn t -> [translator | List.delete(t, translator)] end)
+    {:ok, :ok, counter}
+  end
+
+  def handle_call({:remove_translator, translator}, counter) do
+    update_translators(&List.delete(&1, translator))
+    {:ok, :ok, counter}
+  end
+
+  def handle_call({:deleted_handlers, new}, counter) do
+    old = deleted_handlers()
+    true = :ets.update_element(@table, :deleted_handlers, {2, new})
+    {:ok, old, counter}
+  end
+
+  def handle_info(_msg, counter) do
+    {:ok, counter}
+  end
+
+  def terminate(_reason, _counter) do
+    :ok
+  end
+
+  def code_change(_old, counter, _extra) do
+    {:ok, counter}
+  end
+
+  ## Counter Helpers
+
+  # TODO: Use counters exclusively when we require Erlang/OTP 22+.
+  defp new_counter() do
+    if Code.ensure_loaded?(:counters) do
+      {:counters, :counters.new(1, [:atomics])}
+    else
+      table = :ets.new(@table.Counter, [:public, write_concurrency: true])
+      :ets.insert(table, {:counter, 0})
+      {:ets, table}
+    end
+  end
+
+  defp reset_counter({:ets, counter}), do: :ets.update_element(counter, :counter, {2, 0})
+  defp reset_counter({:counters, counter}), do: :counters.put(counter, 1, 0)
+
+  defp bump_counter({:ets, counter}), do: :ets.update_counter(counter, :counter, {2, 1})
+
+  defp bump_counter({:counters, counter}) do
+    :counters.add(counter, 1, 1)
+    :counters.get(counter, 1)
+  end
+
+  defp delete_counter({:ets, counter}), do: :ets.delete(counter)
+  defp delete_counter({:counters, _}), do: :ok
+
+  ## Data helpers
+
+  defp new_data do
+    entries = [
+      {:log_data, nil, 0},
+      {:translation_data, nil},
+      {:deleted_handlers, []}
+    ]
+
+    table = :ets.new(@table, [:named_table, :public, {:read_concurrency, true}])
+    true = :ets.insert_new(@table, entries)
+    table
+  end
+
+  defp delete_data(@table), do: :ets.delete(@table)
+
+  defp update_message_queue_length do
+    {:message_queue_len, length} = Process.info(self(), :message_queue_len)
+    :ets.update_element(@table, :log_data, {3, length})
+  end
+
+  defp update_translators(fun) do
+    translation_data = read_translation_data!()
+    translators = fun.(translation_data.translators)
+    Application.put_env(:logger, :translators, translators)
+    update_translation_data(%{translation_data | translators: translators})
+  end
+
+  defp compute_state(counter) do
+    sync_threshold = Application.get_env(:logger, :sync_threshold)
+    discard_threshold = Application.get_env(:logger, :discard_threshold)
+
+    log_data = %{
+      level: Application.get_env(:logger, :level),
+      utc_log: Application.get_env(:logger, :utc_log),
+      truncate: Application.get_env(:logger, :truncate),
+      thresholds: {counter, sync_threshold, discard_threshold}
+    }
+
+    translation_data = %{
+      level: Application.get_env(:logger, :level),
+      translators: Application.get_env(:logger, :translators),
+      truncate: Application.get_env(:logger, :truncate)
+    }
+
+    update_log_data(log_data)
+    update_translation_data(translation_data)
+    :ok
+  end
+
+  defp read_log_data! do
+    try do
+      :ets.lookup(@table, :log_data)
+    rescue
+      ArgumentError ->
+        raise "cannot use Logger, the :logger application is not running"
+    else
+      [log_data] -> log_data
+      [] -> raise "cannot use Logger, the :logger application is not running"
+    end
+  end
+
+  defp update_log_data(log_data) do
+    :ets.update_element(@table, :log_data, {2, log_data})
+  end
+
+  defp read_translation_data! do
+    try do
+      :ets.lookup_element(@table, :translation_data, 2)
     rescue
       ArgumentError ->
         raise "cannot use Logger, the :logger application is not running"
@@ -36,172 +230,7 @@ defmodule Logger.Config do
     end
   end
 
-  def deleted_handlers() do
-    try do
-      :ets.lookup_element(@table, :deleted_handlers, 2)
-    rescue
-      ArgumentError ->
-        []
-    end
-  end
-
-  def deleted_handlers(handlers) do
-    :gen_event.call(Logger, @name, {:deleted_handlers, handlers})
-  end
-
-  def new() do
-    tab = :ets.new(@table, [:named_table, :public, {:read_concurrency, true}])
-    true = :ets.insert_new(@table, [{:data, nil}, {:deleted_handlers, []}])
-    tab
-  end
-
-  def delete(@table) do
-    :ets.delete(@table)
-  end
-
-  ## Callbacks
-
-  def init(_) do
-    thresholds = compute_thresholds()
-    state = :ets.lookup_element(@table, :data, 2) || compute_state(:async, thresholds)
-    {:ok, {state, thresholds}}
-  end
-
-  def handle_event({_type, gl, _msg} = event, state) when node(gl) != node() do
-    # Cross node messages are always async which also
-    # means this handler won't crash in case Logger
-    # is not installed in the other node.
-    :gen_event.notify({Logger, node(gl)}, event)
-    {:ok, state}
-  end
-
-  def handle_event(_event, {state, thresholds}) do
-    %{mode: mode} = state
-
-    case compute_mode(mode, thresholds) do
-      ^mode ->
-        {:ok, {state, thresholds}}
-
-      new_mode ->
-        if new_mode == :discard do
-          message =
-            "Logger has #{message_queue_length()} messages in its queue, " <>
-              "which is above :discard_threshold. Messages will be discarded " <>
-              "until the message queue goes back to 75% of the threshold size"
-
-          log(:warn, message, state)
-        end
-
-        if mode == :discard do
-          log(:warn, "Logger has stopped discarding messages", state)
-        end
-
-        state = persist(%{state | mode: new_mode})
-        {:ok, {state, thresholds}}
-    end
-  end
-
-  def handle_call({:configure, options}, {%{mode: mode}, _}) do
-    Enum.each(options, fn {key, value} ->
-      Application.put_env(:logger, key, value)
-    end)
-
-    thresholds = compute_thresholds()
-    state = compute_state(mode, thresholds)
-    {:ok, :ok, {state, thresholds}}
-  end
-
-  def handle_call({:add_translator, translator}, {state, thresholds}) do
-    state = update_translators(state, fn t -> [translator | List.delete(t, translator)] end)
-    {:ok, :ok, {state, thresholds}}
-  end
-
-  def handle_call({:remove_translator, translator}, {state, thresholds}) do
-    state = update_translators(state, &List.delete(&1, translator))
-    {:ok, :ok, {state, thresholds}}
-  end
-
-  def handle_call({:deleted_handlers, new}, state) do
-    old = deleted_handlers()
-    true = :ets.update_element(@table, :deleted_handlers, {2, new})
-    {:ok, old, state}
-  end
-
-  def handle_info(_msg, state) do
-    {:ok, state}
-  end
-
-  def terminate(_reason, _state) do
-    :ok
-  end
-
-  def code_change(_old, state, _extra) do
-    {:ok, state}
-  end
-
-  ## Helpers
-
-  defp log(level, message, state) do
-    event = {Logger, message, Logger.Utils.timestamp(state.utc_log), pid: self()}
-    :gen_event.notify(self(), {level, Process.group_leader(), event})
-  end
-
-  defp message_queue_length() do
-    {:message_queue_len, messages} = Process.info(self(), :message_queue_len)
-    messages
-  end
-
-  defp update_translators(%{translators: translators} = state, fun) do
-    translators = fun.(translators)
-    Application.put_env(:logger, :translators, translators)
-    persist(%{state | translators: translators})
-  end
-
-  defp compute_state(mode, thresholds) do
-    persist(%{
-      mode: compute_mode(mode, thresholds),
-      level: Application.get_env(:logger, :level),
-      translators: Application.get_env(:logger, :translators),
-      truncate: Application.get_env(:logger, :truncate),
-      utc_log: Application.get_env(:logger, :utc_log)
-    })
-  end
-
-  defp compute_mode(mode, thresholds) do
-    %{
-      async_threshold: async_threshold,
-      sync_threshold: sync_threshold,
-      keep_threshold: keep_threshold,
-      discard_threshold: discard_threshold
-    } = thresholds
-
-    Logger.Utils.compute_mode(
-      mode,
-      message_queue_length(),
-      async_threshold,
-      sync_threshold,
-      keep_threshold,
-      discard_threshold
-    )
-  end
-
-  defp compute_thresholds() do
-    sync_threshold = Application.get_env(:logger, :sync_threshold)
-    async_threshold = trunc(sync_threshold * 0.75)
-
-    discard_threshold = Application.get_env(:logger, :discard_threshold)
-    keep_threshold = trunc(discard_threshold * 0.75)
-
-    %{
-      async_threshold: async_threshold,
-      sync_threshold: sync_threshold,
-      keep_threshold: keep_threshold,
-      discard_threshold: discard_threshold
-    }
-  end
-
-  defp persist(state) do
-    :ets.update_element(@table, :data, {2, state})
-    state
+  defp update_translation_data(translation_data) do
+    :ets.update_element(@table, :translation_data, {2, translation_data})
   end
 end

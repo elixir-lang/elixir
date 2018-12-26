@@ -2,37 +2,6 @@ defmodule Logger.Utils do
   @moduledoc false
 
   @doc """
-  Computes the logging mode.
-
-  The result may be either :sync, :async or :discard.
-  """
-  @spec compute_mode(
-          mode,
-          non_neg_integer(),
-          non_neg_integer(),
-          non_neg_integer(),
-          non_neg_integer(),
-          non_neg_integer()
-        ) :: mode
-        when mode: :sync | :async | :discard
-  def compute_mode(
-        mode,
-        messages,
-        async_threshold,
-        sync_threshold,
-        keep_threshold,
-        discard_threshold
-      ) do
-    case mode do
-      _ when messages >= discard_threshold -> :discard
-      :discard when messages > keep_threshold -> :discard
-      _ when messages >= sync_threshold -> :sync
-      :sync when messages > async_threshold -> :sync
-      _ -> :async
-    end
-  end
-
-  @doc """
   Truncates a `chardata` into `n` bytes.
 
   There is a chance we truncate in the middle of a grapheme
