@@ -142,7 +142,7 @@ defmodule Logger do
       to *discard mode* and messages will be discarded directly in the
       clients. `Logger` will return to *sync mode* once the number of
       messages in the queue is reduced to one below `discard_threshold`.
-      Defaults to 500 messages.
+      Defaults to 10_000 messages.
 
     * `:translator_inspect_opts` - when translating OTP reports and
       errors, the last message and state must be inspected in the
