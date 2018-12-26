@@ -67,8 +67,7 @@ defmodule Logger.Config do
 
   def init({@table, counter}) do
     :ets.lookup_element(@table, :log_data, 2) || compute_state(counter)
-    reset_counter(counter)
-    update_message_queue_length()
+    reset_counter_and_update_message_queue_length(counter)
     {:ok, counter}
   end
 
@@ -81,8 +80,7 @@ defmodule Logger.Config do
   end
 
   def handle_event(_event, counter) do
-    reset_counter(counter)
-    update_message_queue_length()
+    reset_counter_and_update_message_queue_length(counter)
     {:ok, counter}
   end
 
@@ -121,6 +119,15 @@ defmodule Logger.Config do
 
   def code_change(_old, counter, _extra) do
     {:ok, counter}
+  end
+
+  # It is very important to reset the counter first and then update
+  # the message queue length because that's the pessimistic approach.
+  # If the system is overloaded, then we will overestimate the overall
+  # size this is better than the inverse.
+  defp reset_counter_and_update_message_queue_length(counter) do
+    reset_counter(counter)
+    update_message_queue_length()
   end
 
   ## Counter Helpers
