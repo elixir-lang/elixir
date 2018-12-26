@@ -523,18 +523,7 @@ defmodule Logger do
 
   """
   @spec compare_levels(level, level) :: :lt | :eq | :gt
-  def compare_levels(level, level) do
-    :eq
-  end
-
-  def compare_levels(left, right) do
-    if level_to_number(left) > level_to_number(right), do: :gt, else: :lt
-  end
-
-  defp level_to_number(:debug), do: 0
-  defp level_to_number(:info), do: 1
-  defp level_to_number(:warn), do: 2
-  defp level_to_number(:error), do: 3
+  defdelegate compare_levels(left, right), to: Logger.Config
 
   @doc """
   Configures the logger.
@@ -667,12 +656,9 @@ defmodule Logger do
   def __should_log__(level) when level in @levels do
     case __metadata__() do
       {true, pdict} ->
-        {mode, %{level: min_level} = config} = Logger.Config.log_data()
-
-        if compare_levels(level, min_level) != :lt and mode != :discard do
-          {level, mode, config, pdict}
-        else
-          :error
+        case Logger.Config.log_data(level) do
+          {:discard, _config} -> :error
+          {mode, config} -> {level, mode, config, pdict}
         end
 
       {false, _} ->
@@ -828,7 +814,7 @@ defmodule Logger do
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
-          compare_levels(level, min_level) == :lt
+          Logger.Config.compare_levels(level, min_level) == :lt
 
         {k, v} when is_atom(k) ->
           Keyword.fetch(compile_metadata, k) == {:ok, v}
@@ -844,7 +830,7 @@ defmodule Logger do
   defp maybe_log(level, data, metadata, caller) do
     min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)
 
-    if compare_levels(level, min_level) != :lt do
+    if Logger.Config.compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
       no_log(data, metadata)

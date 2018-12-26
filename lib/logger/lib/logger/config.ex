@@ -22,19 +22,35 @@ defmodule Logger.Config do
     level
   end
 
+  def compare_levels(level, level), do: :eq
+
+  def compare_levels(left, right) do
+    if level_to_number(left) > level_to_number(right), do: :gt, else: :lt
+  end
+
+  defp level_to_number(:debug), do: 0
+  defp level_to_number(:info), do: 1
+  defp level_to_number(:warn), do: 2
+  defp level_to_number(:error), do: 3
+
   def translation_data do
     read_translation_data!()
   end
 
-  def log_data do
-    {:log_data, config, message_queue_length} = read_log_data!()
-    %{thresholds: {counter, sync, discard}} = config
-    counter = message_queue_length + bump_counter(counter)
+  def log_data(level) do
+    {:log_data, %{level: min_level} = config, message_queue_length} = read_log_data!()
 
-    cond do
-      counter >= discard -> {:discard, config}
-      counter >= sync -> {:sync, config}
-      true -> {:async, config}
+    if compare_levels(level, min_level) != :lt do
+      %{thresholds: {counter, sync, discard}} = config
+      counter = message_queue_length + bump_counter(counter)
+
+      cond do
+        counter >= discard -> {:discard, config}
+        counter >= sync -> {:sync, config}
+        true -> {:async, config}
+      end
+    else
+      {:discard, config}
     end
   end
 

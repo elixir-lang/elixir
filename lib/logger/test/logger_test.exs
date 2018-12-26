@@ -426,7 +426,7 @@ defmodule LoggerTest do
     assert Application.get_env(:logger, :discard_threshold) == 10_000
     assert Application.get_env(:logger, :translator_inspect_opts) == [limit: 3]
 
-    {_, log_data} = Logger.Config.log_data()
+    {_, log_data} = Logger.Config.log_data(:debug)
     assert log_data.utc_log == true
 
     translation_data = Logger.Config.translation_data()
