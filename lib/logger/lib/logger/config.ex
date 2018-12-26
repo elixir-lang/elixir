@@ -5,10 +5,6 @@ defmodule Logger.Config do
   @name __MODULE__
   @table __MODULE__
 
-  def start_link do
-    GenServer.start_link(__MODULE__, :ok, name: @name)
-  end
-
   def configure(options) do
     :gen_event.call(Logger, @name, {:configure, options})
   end
