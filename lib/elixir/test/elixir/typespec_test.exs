@@ -571,12 +571,23 @@ defmodule TypespecTest do
       end
     end
 
-    test "@type with invalid record" do
-      assert_raise CompileError, ~r"invalid record specification", fn ->
+    test "@type with a record which declares the name as the type `atom` rather than an atom literal" do
+      assert_raise CompileError, ~r"expected the record name to be an atom literal", fn ->
         test_module do
-          @type my_type :: record(atom)
+          @type my_type :: record(atom, field: :foo)
         end
       end
+    end
+
+    test "@type can be named record" do
+      bytecode =
+        test_module do
+          @type record :: binary
+          @spec foo?(record) :: boolean
+          def foo?(_), do: true
+        end
+
+      assert [type: {:record, {:type, _, :binary, []}, []}] = types(bytecode)
     end
 
     test "@type with an invalid map notation" do

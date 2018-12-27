@@ -567,11 +567,12 @@ defmodule Kernel.Typespec do
   end
 
   # Handle records
-  defp typespec({:record, meta, [atom]}, vars, caller, state) when is_atom(atom) do
+  defp typespec({:record, meta, [atom]}, vars, caller, state) do
     typespec({:record, meta, [atom, []]}, vars, caller, state)
   end
 
-  defp typespec({:record, meta, [tag, field_specs]}, vars, caller, state) when is_atom(tag) do
+  defp typespec({:record, meta, [tag, field_specs]}, vars, caller, state)
+       when is_atom(tag) and is_list(field_specs) do
     # We cannot set a function name to avoid tracking
     # as a compile time dependency because for records it actually is one.
     case Macro.expand({tag, [], [{:{}, [], []}]}, caller) do
@@ -594,8 +595,9 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp typespec({:record, _meta, _args}, _vars, caller, _state) do
-    compile_error(caller, "invalid record specification, expected the record name to be an atom")
+  defp typespec({:record, _meta, [_tag, _field_specs]}, _vars, caller, _state) do
+    message = "invalid record specification, expected the record name to be an atom literal"
+    compile_error(caller, message)
   end
 
   # Handle ranges
