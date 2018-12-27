@@ -1178,7 +1178,7 @@ defmodule KeyError do
   def message(exception = %{message: nil}), do: message(exception.key, exception.term)
   def message(%{message: message}), do: message
 
-  def message(key, term) do
+  defp message(key, term) do
     message = "key #{inspect(key)} not found"
 
     if term != nil do
