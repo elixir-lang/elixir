@@ -16,8 +16,8 @@ defmodule Agent do
       defmodule Counter do
         use Agent
 
-        def start_link do
-          Agent.start_link(fn -> 0 end, name: __MODULE__)
+        def start_link(initial_value) do
+          Agent.start_link(fn -> initial_value end, name: __MODULE__)
         end
 
         def value do
@@ -31,7 +31,7 @@ defmodule Agent do
 
   Usage would be:
 
-      Counter.start_link
+      Counter.start_link(0)
 
       Counter.value     #=> 0
       Counter.increment #=> :ok
@@ -71,9 +71,37 @@ defmodule Agent do
   than in the server can lead to race conditions if multiple clients are trying
   to update the same state to different values.
 
-  Finally note that `use Agent` defines a `child_spec/1` function, allowing the
-  defined module to be put under a supervision tree. The generated
-  `child_spec/1` can be customized with the following options:
+  ## How to supervise
+
+  An `Agent` is most commonly started under a supervision tree.
+  When we invoke `use Agent`, it automatically defines a `child_spec/1`
+  function that allows us to start the agent directly under a supervisor.
+  To start an agent under a supervisor with an initial counter of 0,
+  one may do:
+
+      children = [
+        {Counter, 0}
+      ]
+
+      Supervisor.start_link(children, strategy: :one_for_all)
+
+  While one could also simply pass the `Counter` as a child to the supervisor,
+  such as:
+
+      children = [
+        Counter # Same as {Counter, []}
+      ]
+
+      Supervisor.start_link(children, strategy: :one_for_all)
+
+  The definition above wouldn't work for this particular example,
+  as it would attempt to start the counter with an initial value
+  of an empty list. However, this may be a viable option in your
+  own agents.
+
+  `use Agent` also accepts a list of options which configures the
+  child specification and therefore how it runs under a supervisor.
+  The generated `child_spec/1` can be customized with the following options:
 
     * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
