@@ -218,21 +218,21 @@ defmodule Kernel.Typespec do
       undefined_type_error_enabled?: true
     }
 
-    {types, state} = Enum.map_reduce(type_typespecs, state, &translate_type/2)
-    {specs, state} = Enum.map_reduce(take_typespecs(bag, :spec), state, &translate_spec/2)
-    {callbacks, state} = Enum.map_reduce(take_typespecs(bag, :callback), state, &translate_spec/2)
+    {types, state} = :lists.mapfoldl(&translate_type/2, state, type_typespecs)
+    {specs, state} = :lists.mapfoldl(&translate_spec/2, state, take_typespecs(bag, :spec))
+    {callbacks, state} = :lists.mapfoldl(&translate_spec/2, state, take_typespecs(bag, :callback))
 
     {macrocallbacks, state} =
-      Enum.map_reduce(take_typespecs(bag, :macrocallback), state, &translate_spec/2)
+      :lists.mapfoldl(&translate_spec/2, state, take_typespecs(bag, :macrocallback))
 
-    optional_callbacks = List.flatten(get_typespecs(bag, :optional_callbacks))
+    optional_callbacks = :lists.flatten(get_typespecs(bag, :optional_callbacks))
     used_types = filter_used_types(types, state)
 
     {used_types, specs, callbacks, macrocallbacks, optional_callbacks}
   end
 
   defp collect_defined_type_pairs(type_typespecs) do
-    Enum.reduce(type_typespecs, %{}, fn {_kind, expr, pos}, type_pairs ->
+    fun = fn {_kind, expr, pos}, type_pairs ->
       %{file: file, line: line} = env = :elixir_locals.get_cached_env(pos)
 
       case type_to_signature(expr) do
@@ -251,19 +251,23 @@ defmodule Kernel.Typespec do
         :error ->
           compile_error(env, "invalid type specification: #{Macro.to_string(expr)}")
       end
-    end)
+    end
+
+    :lists.foldl(fun, %{}, type_typespecs)
   end
 
   defp filter_used_types(types, state) do
-    Enum.filter(types, fn {_kind, {name, arity} = type_pair, _line, _type, export} ->
-      if type_pair not in state.used_type_pairs and not export do
+    fun = fn {_kind, {name, arity} = type_pair, _line, _type, export} ->
+      if not export and not :lists.member(type_pair, state.used_type_pairs) do
         %{^type_pair => {file, line}} = state.defined_type_pairs
         :elixir_errors.warn(line, file, "type #{name}/#{arity} is unused")
         false
       else
         true
       end
-    end)
+    end
+
+    :lists.filter(fun, types)
   end
 
   defp translate_type({kind, {:::, _, [{name, _, args}, definition]}, pos}, state) do
@@ -277,10 +281,10 @@ defmodule Kernel.Typespec do
         for(arg <- args, do: variable(arg))
       end
 
-    vars = for {:var, _, var} <- args, do: var
-    state = Enum.reduce(vars, state, &update_local_vars(&2, &1))
-    {spec, state} = typespec(definition, vars, caller, state)
-    vars = for {:var, _, _} = var <- args, do: var
+    vars = :lists.filter(&match?({:var, _, _}, &1), args)
+    var_names = :lists.map(&elem(&1, 2), vars)
+    state = :lists.foldl(&update_local_vars(&2, &1), state, var_names)
+    {spec, state} = typespec(definition, var_names, caller, state)
     type = {name, spec, vars}
     arity = length(args)
 
@@ -293,10 +297,10 @@ defmodule Kernel.Typespec do
         :opaque -> {:opaque, true}
       end
 
-    invalid_args = Enum.reject(args, &valid_variable_ast?/1)
+    invalid_args = :lists.filter(&(not valid_variable_ast?(&1)), args)
 
     unless invalid_args == [] do
-      invalid_args = invalid_args |> Enum.map(&Macro.to_string/1) |> Enum.join(", ")
+      invalid_args = :lists.join(", ", :lists.map(&Macro.to_string/1, invalid_args))
 
       message =
         "@type definitions expect all arguments to be variables. The type " <>
@@ -389,7 +393,7 @@ defmodule Kernel.Typespec do
   defp built_in_type?(name, arity), do: :erl_internal.is_type(name, arity)
 
   defp ensure_no_defaults!(args) do
-    Enum.each(args, fn
+    fun = fn
       {:::, _, [left, right]} ->
         ensure_not_default(left)
         ensure_not_default(right)
@@ -398,7 +402,9 @@ defmodule Kernel.Typespec do
       other ->
         ensure_not_default(other)
         other
-    end)
+    end
+
+    :lists.foreach(fun, args)
   end
 
   defp ensure_not_default({:\\, _, [_, _]}) do
@@ -410,17 +416,19 @@ defmodule Kernel.Typespec do
   defp guard_to_constraints(guard, vars, meta, caller, state) do
     line = line(meta)
 
-    Enum.flat_map_reduce(guard, state, fn
-      {_name, {:var, _, context}}, state when is_atom(context) ->
-        {[], state}
+    fun = fn
+      {_name, {:var, _, context}}, {constraints, state} when is_atom(context) ->
+        {constraints, state}
 
-      {name, type}, state ->
+      {name, type}, {constraints, state} ->
         {spec, state} = typespec(type, vars, caller, state)
         constraint = [{:atom, line, :is_subtype}, [{:var, line, name}, spec]]
         state = update_local_vars(state, name)
+        {[{:type, line, :constraint, constraint} | constraints], state}
+    end
 
-        {[{:type, line, :constraint, constraint}], state}
-    end)
+    {constraints, state} = :lists.foldl(fun, {[], state}, guard)
+    {:lists.reverse(constraints), state}
   end
 
   ## To typespec conversion
@@ -432,7 +440,7 @@ defmodule Kernel.Typespec do
   # Handle unions
   defp typespec({:|, meta, [_, _]} = exprs, vars, caller, state) do
     exprs = collect_union(exprs)
-    {union, state} = Enum.map_reduce(exprs, state, &typespec(&1, vars, caller, &2))
+    {union, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, exprs)
     {{:type, line(meta), :union, union}, state}
   end
 
@@ -492,45 +500,45 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:%{}, meta, fields} = map, vars, caller, state) do
-    {fields, state} =
-      Enum.map_reduce(fields, state, fn
-        {k, v}, state when is_atom(k) ->
-          {arg1, state} = typespec(k, vars, caller, state)
-          {arg2, state} = typespec(v, vars, caller, state)
-          {{:type, line(meta), :map_field_exact, [arg1, arg2]}, state}
+    fun = fn
+      {k, v}, state when is_atom(k) ->
+        {arg1, state} = typespec(k, vars, caller, state)
+        {arg2, state} = typespec(v, vars, caller, state)
+        {{:type, line(meta), :map_field_exact, [arg1, arg2]}, state}
 
-        {{:required, meta2, [k]}, v}, state ->
-          {arg1, state} = typespec(k, vars, caller, state)
-          {arg2, state} = typespec(v, vars, caller, state)
-          {{:type, line(meta2), :map_field_exact, [arg1, arg2]}, state}
+      {{:required, meta2, [k]}, v}, state ->
+        {arg1, state} = typespec(k, vars, caller, state)
+        {arg2, state} = typespec(v, vars, caller, state)
+        {{:type, line(meta2), :map_field_exact, [arg1, arg2]}, state}
 
-        {{:optional, meta2, [k]}, v}, state ->
-          {arg1, state} = typespec(k, vars, caller, state)
-          {arg2, state} = typespec(v, vars, caller, state)
-          {{:type, line(meta2), :map_field_assoc, [arg1, arg2]}, state}
+      {{:optional, meta2, [k]}, v}, state ->
+        {arg1, state} = typespec(k, vars, caller, state)
+        {arg2, state} = typespec(v, vars, caller, state)
+        {{:type, line(meta2), :map_field_assoc, [arg1, arg2]}, state}
 
-        {k, v}, state ->
-          warning =
-            "invalid map specification. %{foo => bar} is deprecated in favor of " <>
-              "%{required(foo) => bar} and %{optional(foo) => bar}."
+      {k, v}, state ->
+        warning =
+          "invalid map specification. %{foo => bar} is deprecated in favor of " <>
+            "%{required(foo) => bar} and %{optional(foo) => bar}."
 
-          :elixir_errors.warn(caller.line, caller.file, warning)
+        :elixir_errors.warn(caller.line, caller.file, warning)
 
-          {arg1, state} = typespec(k, vars, caller, state)
-          {arg2, state} = typespec(v, vars, caller, state)
-          {{:type, line(meta), :map_field_assoc, [arg1, arg2]}, state}
+        {arg1, state} = typespec(k, vars, caller, state)
+        {arg2, state} = typespec(v, vars, caller, state)
+        {{:type, line(meta), :map_field_assoc, [arg1, arg2]}, state}
 
-        {:|, _, [_, _]}, _state ->
-          error =
-            "invalid map specification. When using the | operator in the map key, " <>
-              "make sure to wrap the key type in parentheses: #{Macro.to_string(map)}"
+      {:|, _, [_, _]}, _state ->
+        error =
+          "invalid map specification. When using the | operator in the map key, " <>
+            "make sure to wrap the key type in parentheses: #{Macro.to_string(map)}"
 
-          compile_error(caller, error)
+        compile_error(caller, error)
 
-        _, _state ->
-          compile_error(caller, "invalid map specification: #{Macro.to_string(map)}")
-      end)
+      _, _state ->
+        compile_error(caller, "invalid map specification: #{Macro.to_string(map)}")
+    end
 
+    {fields, state} = :lists.mapfoldl(fun, state, fields)
     {{:type, line(meta), :map, fields}, state}
   end
 
@@ -542,7 +550,7 @@ defmodule Kernel.Typespec do
     struct =
       module
       |> Macro.struct!(caller)
-      |> Map.from_struct()
+      |> Map.delete(:__struct__)
       |> Map.to_list()
 
     unless Keyword.keyword?(fields) do
@@ -550,19 +558,21 @@ defmodule Kernel.Typespec do
     end
 
     types =
-      Enum.map(struct, fn {field, _} ->
-        {field, Keyword.get(fields, field, quote(do: term()))}
-      end)
+      :lists.map(
+        fn {field, _} -> {field, Keyword.get(fields, field, quote(do: term()))} end,
+        struct
+      )
 
-    Enum.each(fields, fn {field, _} ->
+    fun = fn {field, _} ->
       unless Keyword.has_key?(struct, field) do
         compile_error(
           caller,
           "undefined field #{inspect(field)} on struct #{Macro.to_string(name)}"
         )
       end
-    end)
+    end
 
+    :lists.foreach(fun, fields)
     typespec({:%{}, meta, [__struct__: module] ++ types}, vars, caller, state)
   end
 
@@ -577,16 +587,18 @@ defmodule Kernel.Typespec do
     case Macro.expand({tag, [], [{:{}, [], []}]}, caller) do
       {_, _, [name, fields | _]} when is_list(fields) ->
         types =
-          Enum.map(fields, fn {field, _} ->
-            Keyword.get(field_specs, field, quote(do: term()))
-          end)
+          :lists.map(
+            fn {field, _} -> Keyword.get(field_specs, field, quote(do: term())) end,
+            fields
+          )
 
-        Enum.each(field_specs, fn {field, _} ->
+        fun = fn {field, _} ->
           unless Keyword.has_key?(fields, field) do
             compile_error(caller, "undefined field #{field} on record #{inspect(tag)}")
           end
-        end)
+        end
 
+        :lists.foreach(fun, field_specs)
         typespec({:{}, meta, [name | types]}, vars, caller, state)
 
       _ ->
@@ -620,9 +632,9 @@ defmodule Kernel.Typespec do
   end
 
   # Handle funs
-  defp typespec([{:->, meta, [arguments, return]}], vars, caller, state)
-       when is_list(arguments) do
-    {args, state} = fn_args(meta, arguments, return, vars, caller, state)
+  defp typespec([{:->, meta, [args, return]}], vars, caller, state)
+       when is_list(args) do
+    {args, state} = fn_args(meta, args, return, vars, caller, state)
     {{:type, line(meta), :fun, args}, state}
   end
 
@@ -724,7 +736,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:{}, meta, t}, vars, caller, state) when is_list(t) do
-    {args, state} = Enum.map_reduce(t, state, &typespec(&1, vars, caller, &2))
+    {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, t)
     {{:type, line(meta), :tuple, args}, state}
   end
 
@@ -739,7 +751,7 @@ defmodule Kernel.Typespec do
 
   # Handle variables or local calls
   defp typespec({name, meta, atom}, vars, caller, state) when is_atom(atom) do
-    if name in vars do
+    if :lists.member(name, vars) do
       state = update_local_vars(state, name)
       {{:var, line(meta), name}, state}
     else
@@ -748,7 +760,7 @@ defmodule Kernel.Typespec do
   end
 
   # Handle local calls
-  defp typespec({:string, meta, arguments}, vars, caller, state) do
+  defp typespec({:string, meta, args}, vars, caller, state) do
     warning =
       "string() type use is discouraged. " <>
         "For character lists, use charlist() type, for strings, String.t()\n" <>
@@ -756,11 +768,11 @@ defmodule Kernel.Typespec do
 
     :elixir_errors.warn(caller.line, caller.file, warning)
 
-    {arguments, state} = Enum.map_reduce(arguments, state, &typespec(&1, vars, caller, &2))
-    {{:type, line(meta), :string, arguments}, state}
+    {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
+    {{:type, line(meta), :string, args}, state}
   end
 
-  defp typespec({:nonempty_string, meta, arguments}, vars, caller, state) do
+  defp typespec({:nonempty_string, meta, args}, vars, caller, state) do
     warning =
       "nonempty_string() type use is discouraged. " <>
         "For non-empty character lists, use nonempty_charlist() type, for strings, String.t()\n" <>
@@ -768,8 +780,8 @@ defmodule Kernel.Typespec do
 
     :elixir_errors.warn(caller.line, caller.file, warning)
 
-    {arguments, state} = Enum.map_reduce(arguments, state, &typespec(&1, vars, caller, &2))
-    {{:type, line(meta), :nonempty_string, arguments}, state}
+    {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
+    {{:type, line(meta), :nonempty_string, args}, state}
   end
 
   defp typespec({type, _meta, []}, vars, caller, state) when type in [:charlist, :char_list] do
@@ -798,17 +810,17 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:fun, meta, args}, vars, caller, state) do
-    {args, state} = Enum.map_reduce(args, state, &typespec(&1, vars, caller, &2))
+    {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
     {{:type, line(meta), :fun, args}, state}
   end
 
-  defp typespec({name, meta, arguments}, vars, caller, state) do
-    {arguments, state} = Enum.map_reduce(arguments, state, &typespec(&1, vars, caller, &2))
-    arity = length(arguments)
+  defp typespec({name, meta, args}, vars, caller, state) do
+    {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
+    arity = length(args)
 
     case :erl_internal.is_type(name, arity) do
       true ->
-        {{:type, line(meta), name, arguments}, state}
+        {{:type, line(meta), name, args}, state}
 
       false ->
         if state.undefined_type_error_enabled? and
@@ -817,13 +829,13 @@ defmodule Kernel.Typespec do
         end
 
         state =
-          if {name, arity} in state.used_type_pairs do
+          if :lists.member({name, arity}, state.used_type_pairs) do
             state
           else
             %{state | used_type_pairs: [{name, arity} | state.used_type_pairs]}
           end
 
-        {{:user_type, line(meta), name, arguments}, state}
+        {{:user_type, line(meta), name, args}, state}
     end
   end
 
@@ -853,12 +865,14 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec(list, vars, caller, state) when is_list(list) do
-    [head | tail] = Enum.reverse(list)
+    [head | tail] = :lists.reverse(list)
 
     union =
-      Enum.reduce(tail, validate_kw(head, list, caller), fn elem, acc ->
-        {:|, [], [validate_kw(elem, list, caller), acc]}
-      end)
+      :lists.foldl(
+        fn elem, acc -> {:|, [], [validate_kw(elem, list, caller), acc]} end,
+        validate_kw(head, list, caller),
+        tail
+      )
 
     typespec({:list, [], [union]}, vars, caller, state)
   end
@@ -873,9 +887,9 @@ defmodule Kernel.Typespec do
     raise CompileError, file: caller.file, line: caller.line, description: desc
   end
 
-  defp remote_type({remote, meta, name, arguments}, vars, caller, state) do
-    {arguments, state} = Enum.map_reduce(arguments, state, &typespec(&1, vars, caller, &2))
-    {{:remote_type, line(meta), [remote, name, arguments]}, state}
+  defp remote_type({remote, meta, name, args}, vars, caller, state) do
+    {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
+    {{:remote_type, line(meta), [remote, name, args]}, state}
   end
 
   defp collect_union({:|, _, [a, b]}), do: [a | collect_union(b)]
@@ -922,7 +936,7 @@ defmodule Kernel.Typespec do
   end
 
   defp fn_args(meta, args, vars, caller, state) do
-    {args, state} = Enum.map_reduce(args, state, &typespec(&1, vars, caller, &2))
+    {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
     {{:type, line(meta), :product, args}, state}
   end
 
@@ -945,8 +959,11 @@ defmodule Kernel.Typespec do
   end
 
   defp ensure_no_unused_local_vars!(caller, local_vars) do
-    for {name, :used_once} <- local_vars do
-      compile_error(caller, "type variable #{name} is unused")
+    fun = fn
+      {name, :used_once} -> compile_error(caller, "type variable #{name} is unused")
+      _ -> :ok
     end
+
+    :lists.foreach(fun, :maps.to_list(local_vars))
   end
 end

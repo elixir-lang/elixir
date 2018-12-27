@@ -183,14 +183,13 @@ validate_on_load_attribute(false, _Defs, _File, _Line) -> ok.
 %% exception message suggesting the current module is not loaded. This is
 %% misleading so use a custom reason.
 compile_undef(Module, Fun, Arity, Stack) ->
-  ExMod = 'Elixir.UndefinedFunctionError',
-  case code:ensure_loaded(ExMod) of
-    {module, _} ->
+  case elixir_config:get(bootstrap) of
+    false ->
       Opts = [{module, Module}, {function, Fun}, {arity, Arity},
               {reason, 'function not available'}],
       Exception = 'Elixir.UndefinedFunctionError':exception(Opts),
       erlang:raise(error, Exception, Stack);
-    {_, _} ->
+    true ->
       erlang:raise(error, undef, Stack)
   end.
 
