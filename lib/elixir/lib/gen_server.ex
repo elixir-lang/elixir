@@ -61,7 +61,9 @@ defmodule GenServer do
 
   Every time you do a `GenServer.call/3`, the client will send a message
   that must be handled by the `c:handle_call/3` callback in the GenServer.
-  A `cast/2` message must be handled by `c:handle_cast/2`.
+  A `cast/2` message must be handled by `c:handle_cast/2`. There are 7 possible
+  callbacks to be implemented when you use a `GenServer`. The only required
+  callback is `init/1`.
 
   ## Client / Server APIs
 
@@ -111,14 +113,33 @@ defmodule GenServer do
   the same module. If the server and/or client implementations are growing
   complex, you may want to have them in different modules.
 
-  ## use GenServer and callbacks
+  ## How to supervise
 
-  There are 7 callbacks to be implemented when you use a `GenServer`.
-  The only required callback is `init/1`.
+  A `GenServer` is most commonly started under a supervision tree.
+  When we invoke `use GenServer`, it automatically defines a `child_spec/1`
+  function that allows us to start the `Stack` directly under a supervisor.
+  To start a default stack of `[:hello]` under a supervisor, one may do:
 
-  `use GenServer` also defines a `child_spec/1` function, allowing the
-  defined module to be put under a supervision tree. The generated
-  `child_spec/1` can be customized with the following options:
+      children = [
+        {Stack, [:hello]}
+      ]
+
+      Supervisor.start_link(children, strategy: :one_for_all)
+
+  Note you can also start it simply as `Stack`, which is the same as
+  `{Stack, []}`:
+
+      children = [
+        Stack # The same as {Stack, []}
+      ]
+
+      Supervisor.start_link(children, strategy: :one_for_all)
+
+  In both cases, `Stack.start_link/1` is alwaus invoked.
+
+  `use GenServer` also accepts a list of options which configures the
+  child specification and therefore how it runs under a supervisor.
+  The generated `child_spec/1` can be customized with the following options:
 
     * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
