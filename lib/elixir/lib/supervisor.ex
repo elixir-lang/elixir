@@ -99,48 +99,9 @@ defmodule Supervisor do
   workers and/or supervisors as children, with each one having its own
   configuration (as outlined in the "Child specification" section).
 
-  The rest of this document will cover how child processes are started,
-  how they can be specified, different supervision strategies and more.
-
-  ## Start and shutdown
-
-  When the supervisor starts, it traverses all child specifications and
-  then starts each child in the order they are defined. This is done by
-  calling the function defined under the `:start` key in the child
-  specification and typically defaults to `start_link/1`.
-
-  The `start_link/1` (or a custom) is then called for each child process.
-  The `start_link/1` function must return `{:ok, pid}` where `pid` is the
-  process identifier of a new process that is linked to the supervisor.
-  The child process usually starts its work by executing the `init/1`
-  callback. Generally speaking, the `init` callback is where we initialize
-  and configure the child process.
-
-  The shutdown process happens in reverse order.
-
-  When a supervisor shuts down, it terminates all children in the opposite
-  order they are listed. The termination happens by sending a shutdown exit
-  signal, via `Process.exit(child_pid, :shutdown)`, to the child process and
-  then awaiting for a time interval for the child process to terminate. This
-  interval defaults to 5000 milliseconds. If the child process does not
-  terminate in this interval, the supervisor abruptly terminates the child
-  with reason `:kill`. The shutdown time can be configured in the child
-  specification which is fully detailed in the next section.
-
-  If the child process is not trapping exits, it will shutdown immediately
-  when it receives the first exit signal. If the child process is trapping
-  exits, then the `terminate` callback is invoked, and the child process
-  must terminate in a reasonable time interval before being abruptly
-  terminated by the supervisor.
-
-  In other words, if it is important that a process cleans after itself
-  when your application or the supervision tree is shutting down, then
-  this process must trap exits and its child specification should specify
-  the proper `:shutdown` value, ensuring it terminates within a reasonable
-  interval.
-
-  Now that we understand the start and shutdown process, let's take a
-  complete look at all of the options provided in the child specification.
+  The rest of this document will cover how child processes are specified,
+  how they can be started and stopped, different supervision strategies
+  and more.
 
   ## Child specification
 
@@ -247,30 +208,31 @@ defmodule Supervisor do
 
   The supervisor will then invoke `Stack.child_spec([:hello])` to retrieve a
   child specification. Now the `Stack` module is responsible for building its
-  own specification. By default, `use GenServer` defines a `Stack.child_spec/1`
-  function which returns the same child specification we had before:
+  own specification, for example, we could write:
 
-      %{
-        id: Stack,
-        start: {Stack, :start_link, [[:hello]]}
-      }
+      def child_spec(arg) do
+        %{
+          id: Stack,
+          start: {Stack, :start_link, [arg]}
+        }
+      end
 
-  It is also possible to simply pass the `Stack` module as a child:
+  Luckily for us, `use GenServer` already defines a `Stack.child_spec/1`
+  exactly like above. If you need to customize the `GenServer`, you can
+  pass the options directly to `use GenServer`:
+
+      use GenServer, restart: :transient
+
+  Finally, note it is also possible to simply pass the `Stack` module as
+  a child:
 
       children = [
         Stack
       ]
 
-  When only the module name is given, it is equivalent to `{Stack, []}`. In this
-  case, we will end-up with a child specification that looks like this:
-
-      %{
-        id: Stack,
-        start: {Stack, :start_link, [[]]}
-      }
-
+  When only the module name is given, it is equivalent to `{Stack, []}`.
   By replacing the map specification by `{Stack, [:hello]}` or `Stack`, we keep
-  the child specification encapsulated in the Stack module, using the default
+  the child specification encapsulated in the `Stack` module, using the default
   implementation defined by `use GenServer`. We can now share our `Stack` worker
   with other developers and they can add it directly to their supervision tree
   without worrying about the low-level details of the worker.
@@ -293,55 +255,6 @@ defmodule Supervisor do
       children = [
         Supervisor.child_spec({Stack, [:hello]}, id: MyStack, shutdown: 10_000)
       ]
-
-  The call to `Supervisor.child_spec/2` above will return the following specification:
-
-      %{
-        id: MyStack,
-        start: {Stack, :start_link, [[:hello]]},
-        shutdown: 10_000
-      }
-
-  You may also configure the child specification in the Stack module itself to
-  use a different `:id` or `:shutdown` value by passing options to `use GenServer`:
-
-      defmodule Stack do
-        use GenServer, id: MyStack, shutdown: 10_000
-
-  The options above will customize the `Stack.child_spec/1` function defined
-  by `use GenServer`. It accepts the same options as the `Supervisor.child_spec/2`
-  function.
-
-  You may also completely override the `child_spec/1` function in the Stack module
-  and return your own child specification. Note there is no guarantee the `child_spec/1`
-  function will be called by the Supervisor process, as other processes may invoke
-  it to retrieve the child specification before reaching the supervisor.
-
-  ## Exit reasons and restarts
-
-  A supervisor restarts a child process depending on its `:restart`
-  configuration. For example, when `:restart` is set to `:transient`, the
-  supervisor does not restart the child in case it exits with reason `:normal`,
-  `:shutdown` or `{:shutdown, term}`.
-
-  So one may ask: which exit reason should I choose when exiting? There are
-  three options:
-
-    * `:normal` - in such cases, the exit won't be logged, there is no restart
-      in transient mode, and linked processes do not exit
-
-    * `:shutdown` or `{:shutdown, term}` - in such cases, the exit won't be
-      logged, there is no restart in transient mode, and linked processes exit
-      with the same reason unless they're trapping exits
-
-    * any other term - in such cases, the exit will be logged, there are
-      restarts in transient mode, and linked processes exit with the same
-      reason unless they're trapping exits
-
-  Notice that the supervisor that reaches maximum restart intensity will exit with
-  `:shutdown` reason. In this case the supervisor will only be restarted if its
-  child specification was defined with the `:restart` option set to `:permanent`
-  (the default).
 
   ## Module-based supervisors
 
@@ -375,7 +288,8 @@ defmodule Supervisor do
   `c:init/1` callback.
 
   `use Supervisor` also defines a `child_spec/1` function which allows
-  us to run `MyApp.Supervisor` as a child of another supervisor:
+  us to run `MyApp.Supervisor` as a child of another supervisor or
+  at the top of your supervision tree as:
 
       children = [
         MyApp.Supervisor
@@ -387,8 +301,9 @@ defmodule Supervisor do
   module only at the top of your supervision tree, generally in the
   `c:Application.start/2` callback. We recommend using module-based
   supervisors for any other supervisor in your application, so they
-  can run as a child of another supervision in the tree. The generated
-  `child_spec/1` can be customized with the following options:
+  can run as a child of another supervisor in the tree. The `child_spec/1`
+  generated automatically by `Supervisor` can be customized with the
+  following options:
 
     * `:id` - the child specification identifier, defaults to the current module
     * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
@@ -461,10 +376,73 @@ defmodule Supervisor do
   differently when this strategy was used. See the `DynamicSupervisor` module
   for more information and migration strategies.
 
-  ## Name registration
+  ### Name registration
 
   A supervisor is bound to the same name registration rules as a `GenServer`.
   Read more about these rules in the documentation for `GenServer`.
+
+  ## Start and shutdown
+
+  When the supervisor starts, it traverses all child specifications and
+  then starts each child in the order they are defined. This is done by
+  calling the function defined under the `:start` key in the child
+  specification and typically defaults to `start_link/1`.
+
+  The `start_link/1` (or a custom) is then called for each child process.
+  The `start_link/1` function must return `{:ok, pid}` where `pid` is the
+  process identifier of a new process that is linked to the supervisor.
+  The child process usually starts its work by executing the `init/1`
+  callback. Generally speaking, the `init` callback is where we initialize
+  and configure the child process.
+
+  The shutdown process happens in reverse order.
+
+  When a supervisor shuts down, it terminates all children in the opposite
+  order they are listed. The termination happens by sending a shutdown exit
+  signal, via `Process.exit(child_pid, :shutdown)`, to the child process and
+  then awaiting for a time interval for the child process to terminate. This
+  interval defaults to 5000 milliseconds. If the child process does not
+  terminate in this interval, the supervisor abruptly terminates the child
+  with reason `:kill`. The shutdown time can be configured in the child
+  specification which is fully detailed in the next section.
+
+  If the child process is not trapping exits, it will shutdown immediately
+  when it receives the first exit signal. If the child process is trapping
+  exits, then the `terminate` callback is invoked, and the child process
+  must terminate in a reasonable time interval before being abruptly
+  terminated by the supervisor.
+
+  In other words, if it is important that a process cleans after itself
+  when your application or the supervision tree is shutting down, then
+  this process must trap exits and its child specification should specify
+  the proper `:shutdown` value, ensuring it terminates within a reasonable
+  interval.
+
+  ## Exit reasons and restarts
+
+  A supervisor restarts a child process depending on its `:restart` configuration.
+  For example, when `:restart` is set to `:transient`, the supervisor does not
+  restart the child in case it exits with reason `:normal`, `:shutdown` or
+  `{:shutdown, term}`.
+
+  So one may ask: which exit reason should I choose when exiting? There are
+  three options:
+
+    * `:normal` - in such cases, the exit won't be logged, there is no restart
+      in transient mode, and linked processes do not exit
+
+    * `:shutdown` or `{:shutdown, term}` - in such cases, the exit won't be
+      logged, there is no restart in transient mode, and linked processes exit
+      with the same reason unless they're trapping exits
+
+    * any other term - in such cases, the exit will be logged, there are
+      restarts in transient mode, and linked processes exit with the same
+      reason unless they're trapping exits
+
+  Notice that the supervisor that reaches maximum restart intensity will exit with
+  `:shutdown` reason. In this case the supervisor will only be restarted if its
+  child specification was defined with the `:restart` option set to `:permanent`
+  (the default).
   """
 
   @doc false
