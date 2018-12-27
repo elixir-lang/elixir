@@ -300,11 +300,14 @@ defmodule ExUnit.Callbacks do
   given to `Supervisor.start_link/2`. For example, if your application
   starts a supervision tree by running:
 
-      Supervisor.start_link([MyServer, {OtherSupervisor, ...}], ...)
+      Supervisor.start_link([
+        {MyServer, []},
+        {OtherSupervisor, :initial_value}
+      ], ...)
 
   You can start those processes under test in isolation by running:
 
-      start_supervised(MyServer)
+      start_supervised({MyServer, []})
       start_supervised({OtherSupervisor, :initial_value})
 
   A keyword list can also be given if there is a need to change

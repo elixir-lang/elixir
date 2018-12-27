@@ -70,16 +70,13 @@ defmodule SupervisorTest do
   end
 
   test "child_spec/2" do
-    assert Supervisor.child_spec(Task, []) ==
-             %{id: Task, restart: :temporary, start: {Task, :start_link, [[]]}}
-
     assert Supervisor.child_spec({Task, :foo}, []) ==
              %{id: Task, restart: :temporary, start: {Task, :start_link, [:foo]}}
 
     assert Supervisor.child_spec(%{id: Task}, []) == %{id: Task}
 
     assert Supervisor.child_spec(
-             Task,
+             {Task, []},
              id: :foo,
              start: {:foo, :bar, []},
              restart: :permanent,
@@ -89,13 +86,13 @@ defmodule SupervisorTest do
     message = ~r"The module SupervisorTest was given as a child.*\nbut it does not implement"m
 
     assert_raise ArgumentError, message, fn ->
-      Supervisor.child_spec(SupervisorTest, [])
+      Supervisor.child_spec({SupervisorTest, []}, [])
     end
 
     message = ~r"The module Unknown was given as a child.*but it does not exist"m
 
     assert_raise ArgumentError, message, fn ->
-      Supervisor.child_spec(Unknown, [])
+      Supervisor.child_spec({Unknown, []}, [])
     end
 
     message = ~r"supervisors expect each child to be one of"
@@ -108,7 +105,7 @@ defmodule SupervisorTest do
   test "init/2" do
     flags = %{intensity: 3, period: 5, strategy: :one_for_one}
     children = [%{id: Task, restart: :temporary, start: {Task, :start_link, [[]]}}]
-    assert Supervisor.init([Task], strategy: :one_for_one) == {:ok, {flags, children}}
+    assert Supervisor.init([{Task, []}], strategy: :one_for_one) == {:ok, {flags, children}}
 
     flags = %{intensity: 1, period: 2, strategy: :one_for_all}
     children = [%{id: Task, restart: :temporary, start: {Task, :start_link, [:foo]}}]
@@ -135,7 +132,7 @@ defmodule SupervisorTest do
       {Task, {Task, :start_link, []}, :permanent, 5000, :worker, [Task]}
     ]
 
-    assert Supervisor.init([Task, worker(Task, [])], strategy: :one_for_one) ==
+    assert Supervisor.init([{Task, []}, worker(Task, [])], strategy: :one_for_one) ==
              {:ok, {flags, children}}
   end
 

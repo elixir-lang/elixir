@@ -49,7 +49,7 @@ defmodule ExUnit.SupervisedTest do
   end
 
   test "starts a supervised process that terminates before on_exit" do
-    {:ok, pid} = start_supervised(MyAgent)
+    {:ok, pid} = start_supervised({MyAgent, 0})
     assert Process.alive?(pid)
     on_exit(fn -> refute Process.alive?(pid) end)
   end

@@ -24,7 +24,7 @@ defmodule Logger.App do
         modules: :dynamic
       },
       {Logger.Watcher, {Logger, Logger.Config, []}},
-      Logger.BackendSupervisor
+      {Logger.BackendSupervisor, []}
       | otp_children
     ]
 

@@ -223,15 +223,7 @@ defmodule Supervisor do
 
       use GenServer, restart: :transient
 
-  Finally, note it is also possible to simply pass the `Stack` module as
-  a child:
-
-      children = [
-        Stack
-      ]
-
-  When only the module name is given, it is equivalent to `{Stack, []}`.
-  By replacing the map specification by `{Stack, [:hello]}` or `Stack`, we keep
+  By replacing the map specification by `{Stack, [:hello]}`, we keep
   the child specification encapsulated in the `Stack` module, using the default
   implementation defined by `use GenServer`. We can now share our `Stack` worker
   with other developers and they can add it directly to their supervision tree
@@ -241,11 +233,12 @@ defmodule Supervisor do
 
     * a map representing the child specification itself - as outlined in the
       "Child specification" section
-    * a tuple with a module as first element and the start argument as second -
-      such as `{Stack, [:hello]}`. In this case, `Stack.child_spec([:hello])`
-      is called to retrieve the child specification
-    * a module - such as `Stack`. In this case, `Stack.child_spec([])`
-      is called to retrieve the child specification
+    * a two-element tuple with a module as first element and the start argument
+      as second - such as `{Stack, [:hello]}`. In this case,
+      `Stack.child_spec([:hello])` is called to retrieve the child specification
+    * Finally, note Elixir supports Erlang old child specifications, which are
+      made by tuples of 6 elements, but their usage is discouraged in both Erlang
+      and Elixir
 
   If you need to convert a tuple or a module child specification to a map or
   modify a child specification, you can use the `Supervisor.child_spec/2` function.
@@ -292,7 +285,7 @@ defmodule Supervisor do
   at the top of your supervision tree as:
 
       children = [
-        MyApp.Supervisor
+        {MyApp.Supervisor, []}
       ]
 
       Supervisor.start_link(children, strategy: :one_for_one)
@@ -616,6 +609,11 @@ defmodule Supervisor do
   end
 
   defp init_child(module) when is_atom(module) do
+    IO.warn(
+      "passing a module as a Supervisor child spec is deprecated, " <>
+        "instead of `#{inspect(module)}`, please pass `#{inspect({module, []})}`"
+    )
+
     init_child({module, []})
   end
 

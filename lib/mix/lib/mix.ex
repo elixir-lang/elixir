@@ -262,7 +262,12 @@ defmodule Mix do
 
   @doc false
   def start(_type, []) do
-    children = [Mix.State, Mix.TasksServer, Mix.ProjectStack]
+    children = [
+      {Mix.State, []},
+      {Mix.TasksServer, []},
+      {Mix.ProjectStack, []}
+    ]
+
     opts = [strategy: :one_for_one, name: Mix.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)
   end
