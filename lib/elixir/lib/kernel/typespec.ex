@@ -501,11 +501,6 @@ defmodule Kernel.Typespec do
 
   defp typespec({:%{}, meta, fields} = map, vars, caller, state) do
     fun = fn
-      {k, v}, state when is_atom(k) ->
-        {arg1, state} = typespec(k, vars, caller, state)
-        {arg2, state} = typespec(v, vars, caller, state)
-        {{:type, line(meta), :map_field_exact, [arg1, arg2]}, state}
-
       {{:required, meta2, [k]}, v}, state ->
         {arg1, state} = typespec(k, vars, caller, state)
         {arg2, state} = typespec(v, vars, caller, state)
@@ -517,15 +512,9 @@ defmodule Kernel.Typespec do
         {{:type, line(meta2), :map_field_assoc, [arg1, arg2]}, state}
 
       {k, v}, state ->
-        warning =
-          "invalid map specification. %{foo => bar} is deprecated in favor of " <>
-            "%{required(foo) => bar} and %{optional(foo) => bar}."
-
-        :elixir_errors.warn(caller.line, caller.file, warning)
-
         {arg1, state} = typespec(k, vars, caller, state)
         {arg2, state} = typespec(v, vars, caller, state)
-        {{:type, line(meta), :map_field_assoc, [arg1, arg2]}, state}
+        {{:type, line(meta), :map_field_exact, [arg1, arg2]}, state}
 
       {:|, _, [_, _]}, _state ->
         error =
