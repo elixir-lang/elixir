@@ -1463,9 +1463,7 @@ defmodule Module do
           message =
             "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
 
-          unless standard_behaviour?(behaviour) do
-            :elixir_errors.warn(env.line, env.file, message)
-          end
+          :elixir_errors.warn(env.line, env.file, message)
 
           acc
 
@@ -1473,9 +1471,7 @@ defmodule Module do
           message =
             "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(env.module)})"
 
-          unless standard_behaviour?(behaviour) do
-            :elixir_errors.warn(env.line, env.file, message)
-          end
+          :elixir_errors.warn(env.line, env.file, message)
 
           acc
 
@@ -1504,16 +1500,6 @@ defmodule Module do
     end
 
     Map.put(acc, callback, {kind, behaviour, original in optional_callbacks})
-  end
-
-  defp standard_behaviour?(behaviour) do
-    behaviour in [
-      Collectable,
-      Enumerable,
-      Inspect,
-      List.Chars,
-      String.Chars
-    ]
   end
 
   defp check_callbacks(env, callbacks, all_definitions) do

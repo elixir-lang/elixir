@@ -3,6 +3,7 @@
 -export([elixir_to_erl/1, definition_to_anonymous/4, compile/1, consolidate/3,
          get_ann/1, debug_info/4, scope/1, format_error/1]).
 -include("elixir.hrl").
+-define(typespecs, 'Elixir.Kernel.Typespec').
 
 %% debug_info callback
 
@@ -131,9 +132,10 @@ compile(#{module := Module} = Map) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   TranslatedTypespecs =
-    case elixir_config:get(bootstrap) of
+    case elixir_config:get(bootstrap) andalso
+          (code:ensure_loaded(?typespecs) /= {module, ?typespecs}) of
       true -> {[], [], [], [], []};
-      false -> 'Elixir.Kernel.Typespec':translate_typespecs_for_module(Set, Bag)
+      false -> ?typespecs:translate_typespecs_for_module(Set, Bag)
     end,
 
   elixir_erl_compiler:spawn(fun spawned_compile/4, [Map, Set, Bag, TranslatedTypespecs]).
@@ -531,7 +533,7 @@ get_type_docs(Set, Types) ->
 signature_to_binary(_Module, Name, _Signature) when Name == '__aliases__'; Name == '__block__' ->
   <<(atom_to_binary(Name, utf8))/binary, "(args)">>;
 
-signature_to_binary(_Module, fn, _Signature) -> 
+signature_to_binary(_Module, fn, _Signature) ->
   <<"fn">>;
 
 signature_to_binary(_Module, Name, _Signature)
