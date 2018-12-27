@@ -160,6 +160,7 @@ None.
   * [Enum] Passing a non-empty list to `Enum.into/2` was inconsistent with maps and is deprecated in favor of `Kernel.++/2` or `Keyword.merge/2`
   * [Inspect.Algebra] `surround/3` is deprecated in favor of `Inspect.Algebra.concat/2` and `Inspect.Algebra.nest/2`
   * [Inspect.Algebra] `surround_many/6` is deprecated in favor of `container_doc/6`
+  * [Kernel] Using `@since` will now emit a unused attribute warning. Use `@doc since: "1.7.2"` instead
   * [Kernel] Passing a non-empty list as `:into` in `for` comprehensions was inconsistent with maps and is deprecated in favor of `Kernel.++/2` or `Keyword.merge/2`
   * [Kernel.ParallelCompiler] `files/2` is deprecated in favor of `compile/2`
   * [Kernel.ParallelCompiler] `files_to_path/2` is deprecated in favor of `compile_to_path/2`
