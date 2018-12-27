@@ -2803,7 +2803,7 @@ defmodule Kernel do
               "invalid write attribute syntax, you probably meant to use: @#{name} expression"
 
       # Typespecs attributes are currently special cased by the compiler
-      is_list(args) and args != [] and tl(args) == [] and typespec?(name) ->
+      is_list(args) and typespec?(name) ->
         case bootstrapped?(Kernel.Typespec) do
           false ->
             :ok
