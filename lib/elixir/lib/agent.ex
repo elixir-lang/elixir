@@ -97,7 +97,18 @@ defmodule Agent do
   The definition above wouldn't work for this particular example,
   as it would attempt to start the counter with an initial value
   of an empty list. However, this may be a viable option in your
-  own agents.
+  own agents. A common approach is to use a keyword list, as that
+  would allow setting the initial value and giving a name to the
+  counter process, for example:
+
+      def start_link(opts) do
+        {initial_value, opts} = Keyword.pop(opts, :initial_value, 0)
+        Agent.start_link(fn -> initial_value end, opts)
+      end
+
+  and then you can use `Counter`, `{Counter, name: :my_counter}` or
+  even `{Counter, initial_value: 0, name: :my_counter}` as a child
+  specification.
 
   `use Agent` also accepts a list of options which configures the
   child specification and therefore how it runs under a supervisor.
