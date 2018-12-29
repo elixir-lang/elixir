@@ -229,10 +229,11 @@ defmodule SystemTest do
 
   test "otp_release/0" do
     otp_release = System.otp_release()
-    assert is_binary(System.otp_release())
-    version = otp_release |> Version.parse!()
+    major = otp_release |> String.split(".") |> List.to_tuple() |> elem(0)
 
-    assert version.major == :erlang.system_info(:otp_release) |> List.to_integer()
-    assert version.major >= 20
+    assert is_binary(System.otp_release())
+
+    assert major == :erlang.system_info(:otp_release) |> List.to_string()
+    assert major >= 20
   end
 end
