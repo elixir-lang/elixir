@@ -182,11 +182,11 @@ defmodule System do
 
   ## Examples
 
-      System.build_info()
+      iex> System.build_info()
       %{
-        build: "1.9.0-dev (772a00a0c) (compiled with Erlang/OTP 21.0.6)",
+        build: "1.9.0-dev (772a00a0c) (compiled with Erlang/OTP 21)",
         date: "2018-12-24T01:09:21Z",
-        otp_release: "21.0.6",
+        otp_release: "21",
         revision: "772a00a0c",
         version: "1.9.0-dev"
       }
