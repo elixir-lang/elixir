@@ -165,9 +165,34 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a keyword list with Elixir version, Git short revision hash and compilation date.
+  Returns a map with the Elixir version, short Git revision hash and compilation date.
+
+  Every value in the map is a string, and these are:
+
+    * `:build` - the Elixir version, short Git revision hash and
+      Erlang/OTP release it was compiled with
+    * `:date` - a string representation of the ISO8601 date and time it was built
+    * `:opt_release` - OTP release it was compiled with
+    * `:revision` - short Git revision hash
+    * `:version` - the Elixir version
+
+  One should not rely on the specific formats returned by each of those fields.
+  Instead one should use specialized functions, such as `version/0` to retrieve
+  the Elixir version and `otp_release/0` to retrieve the Erlang/OTP release.
+
+  ## Examples
+
+      System.build_info()
+      %{
+        build: "1.9.0-dev (772a00a0c) (compiled with Erlang/OTP 21.0.6)",
+        date: "2018-12-24T01:09:21Z",
+        otp_release: "21.0.6",
+        revision: "772a00a0c",
+        version: "1.9.0-dev"
+      }
+
   """
-  @spec build_info() :: map
+  @spec build_info() :: %{required(atom) => String.t()}
   def build_info do
     %{
       build: build(),
