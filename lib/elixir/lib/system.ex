@@ -165,17 +165,20 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a maps with the Elixir version, short Git revision hash and compilation date.
+  Returns a map with the Elixir version, short Git revision hash and compilation date.
 
-  Every value in the maps is a string, and these are:
+  Every value in the map is a string, and these are:
 
-    - `build:` the Elixir version, short Git revision hash and
-      Erlang/OTP release it was compiled with.
-    - `date:` a string representation of the ISO8601 date and time it was built.
-    - `opt_release:` OTP release it was compiled with.
-    - `revision:` short Git revision hash.
-    - `version:` the Elixir version.
-      is a pre-release (such as -dev or -rc). Otherwise, it omits the revision.
+    * `:build` - the Elixir version, short Git revision hash and
+      Erlang/OTP release it was compiled with
+    * `:date` - a string representation of the ISO8601 date and time it was built
+    * `:opt_release` - OTP release it was compiled with
+    * `:revision` - short Git revision hash
+    * `:version` - the Elixir version
+
+  One should not rely on the specific formats returned by each of those fields.
+  Instead one should use specialized functions, such as `version/0` to retrieve
+  the Elixir version and `otp_release/0` to retrieve the Erlang/OTP release.
 
   ## Examples
 
