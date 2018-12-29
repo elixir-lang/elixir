@@ -704,8 +704,8 @@ defmodule Keyword do
   @spec merge(t, t) :: t
   def merge(keywords1, keywords2)
 
-  def merge(keywords1, []), do: keywords1
-  def merge([], keywords2), do: keywords2
+  def merge(keywords1, []) when is_list(keywords1), do: keywords1
+  def merge([], keywords2) when is_list(keywords2), do: keywords2
 
   def merge(keywords1, keywords2) when is_list(keywords1) and is_list(keywords2) do
     if keyword?(keywords2) do
