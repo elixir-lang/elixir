@@ -79,6 +79,7 @@ Passing a non-empty list to `:into` in `for`     | [v1.8]        | `Kernel.++/2`
 `Kernel.ParallelCompiler.files_to_path/2`        | [v1.8]        | `Kernel.ParallelCompiler.compile_to_path/2` (v1.6)
 `Kernel.ParallelRequire.files/2`                 | [v1.8]        | `Kernel.ParallelCompiler.require/2` (v1.6)
 `System.cwd/0` and `System.cwd!/0`               | [v1.8]        | `File.cwd/0` and `File.cwd!/0` (v1.0)
+`mix compile.erlang` returning `{:ok, contents}` or `:error` as the callback in `Mix.Compilers.Erlang.compile/6`| [v1.8] | Return `{:ok, contents, warnings}` or `{:error, errors, warnings}`
 `Code.get_docs/2`                                | [v1.7]        | `Code.fetch_docs/1` (v1.7)
 Calling `super/1` on GenServer callbacks         | [v1.7]        | Not calling `super/1` (v1.0)
 `Enum.chunk/2`[`/3/4`](`Enum.chunk/4`)           | [v1.7]        | `Enum.chunk_every/2`[`/3/4`](`Enum.chunk_every/4`) (v1.5)
