@@ -508,7 +508,7 @@ defmodule Module do
 
     * `:md5` - the MD5 of the module
 
-    * `:compile` - a keyword list with compiler metadata
+    * `:compile` - a list with compiler metadata
 
     * `:attributes` - a keyword list with all persisted attributes
 
