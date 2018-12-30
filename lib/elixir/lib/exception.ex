@@ -1175,8 +1175,8 @@ defmodule Protocol.UndefinedError do
         ". There are no implementations for this protocol."
 
       {:consolidated, types} ->
-        ". This protocol is implemented for the following type(s): "
-          <> Enum.map_join(types, ", ", &inspect/1)
+        ". This protocol is implemented for the following type(s): " <>
+          Enum.map_join(types, ", ", &inspect/1)
 
       :not_consolidated ->
         ""
