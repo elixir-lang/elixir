@@ -318,7 +318,23 @@ typespecs_form(Map, TranslatedTypespecs, MacroNames) ->
   Forms1 = types_form(Types, Forms0),
   Forms2 = callspecs_form(spec, Specs, [], MacroNames, Forms1, Map),
   Forms3 = callspecs_form(callback, AllCallbacks, OptionalCallbacks, MacroCallbackNames, Forms2, Map),
-  {Types, AllCallbacks, Forms3}.
+  AllCallbacks2 = typespecs_back_to_callbacks(Forms3),
+  {Types, AllCallbacks2, Forms3}.
+
+typespecs_back_to_callbacks(TypeSpecs) ->
+  [
+    typespec_back_to_callback(FA, Line, Rest) ||
+    {attribute, Line, callback, {FA, Rest}} <- TypeSpecs
+  ].
+
+typespec_back_to_callback({Name, Arity}, Line, Rest) ->
+  {Kind, FA} =
+    case atom_to_list(Name) of
+      "MACRO-" ++ Name2 -> {macrocallback, {list_to_atom(Name2), Arity - 1}};
+      _ -> {callback, {Name, Arity}}
+    end,
+
+  {Kind, FA, Line, Rest}.
 
 %% Types
 

@@ -165,11 +165,15 @@ defmodule Kernel.DocsTest do
           @callback baz(any, term) :: any
 
           @doc "Callback with multiple clauses"
-          @callback qux(integer) :: integer
-          @callback qux(atom) :: atom
+          @callback callback_multi(integer) :: integer
+          @callback callback_multi(atom) :: atom
 
           @doc "Macrocallback doc"
           @macrocallback qux(any) :: any
+
+          @doc "Macrocallback with multiple clauses"
+          @macrocallback macrocallback_multi(integer) :: integer
+          @macrocallback macrocallback_multi(atom) :: atom
 
           @doc "Function doc"
           @doc since: "1.2.3", color: :red
@@ -214,9 +218,8 @@ defmodule Kernel.DocsTest do
       [
         callback_bar,
         callback_baz,
+        callback_multi,
         callback_foo,
-        callback_qux,
-        callback_qux,
         function_struct_0,
         function_struct_1,
         function_bar,
@@ -225,6 +228,7 @@ defmodule Kernel.DocsTest do
         function_nullary,
         function_qux,
         guard_is_zero,
+        macrocallback_multi,
         macrocallback_qux,
         type_bar,
         type_foo
@@ -237,8 +241,8 @@ defmodule Kernel.DocsTest do
               %{since: "1.2.3", deprecated: "use baz/2 instead", color: :blue, stable: true}} =
                callback_foo
 
-      assert {{:callback, :qux, 1}, _, [], %{"en" => "Callback with multiple clauses"}, %{}} =
-               callback_qux
+      assert {{:callback, :callback_multi, 1}, _, [], %{"en" => "Callback with multiple clauses"},
+              %{}} = callback_multi
 
       assert {{:function, :__struct__, 0}, _, ["%Kernel.DocsTest.SampleDocs{}"],
               %{"en" => "My struct"}, %{}} = function_struct_0
@@ -267,6 +271,9 @@ defmodule Kernel.DocsTest do
 
       assert {{:macro, :is_zero, 1}, _, ["is_zero(v)"], %{"en" => "A guard"}, %{guard: true}} =
                guard_is_zero
+
+      assert {{:macrocallback, :macrocallback_multi, 1}, _, [],
+              %{"en" => "Macrocallback with multiple clauses"}, %{}} = macrocallback_multi
 
       assert {{:macrocallback, :qux, 1}, _, [], %{"en" => "Macrocallback doc"}, %{}} =
                macrocallback_qux
