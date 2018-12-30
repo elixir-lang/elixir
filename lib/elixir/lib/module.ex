@@ -517,7 +517,7 @@ defmodule Module do
   @callback __info__(:macros) :: keyword()
   @callback __info__(:module) :: module()
   @callback __info__(:md5) :: binary()
-  @callback __info__(:compile) :: keyword()
+  @callback __info__(:compile) :: [term()]
   @callback __info__(:attributes) :: keyword()
 
   @doc """
