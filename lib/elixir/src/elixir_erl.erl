@@ -318,23 +318,15 @@ typespecs_form(Map, TranslatedTypespecs, MacroNames) ->
   Forms1 = types_form(Types, Forms0),
   Forms2 = callspecs_form(spec, Specs, [], MacroNames, Forms1, Map),
   Forms3 = callspecs_form(callback, AllCallbacks, OptionalCallbacks, MacroCallbackNames, Forms2, Map),
-  AllCallbacks2 = typespecs_back_to_callbacks(Forms3),
-  {Types, AllCallbacks2, Forms3}.
 
-typespecs_back_to_callbacks(TypeSpecs) ->
-  [
-    typespec_back_to_callback(FA, Line, Rest) ||
-    {attribute, Line, callback, {FA, Rest}} <- TypeSpecs
-  ].
+  AllCallbacksWithoutSpecs = [
+    {Kind, NameArity, Line} || {Kind, NameArity, Line, _Spec} <- AllCallbacks
+  ],
+  AllCallbacksWithoutSpecs2 =
+    lists:usort(fun({Kind1, NameArity1, _Line1}, {Kind2, NameArity2, _Line2}) ->
+      Kind1 == Kind2 andalso NameArity1 == NameArity2 end, AllCallbacksWithoutSpecs),
 
-typespec_back_to_callback({Name, Arity}, Line, Rest) ->
-  {Kind, FA} =
-    case atom_to_list(Name) of
-      "MACRO-" ++ Name2 -> {macrocallback, {list_to_atom(Name2), Arity - 1}};
-      _ -> {callback, {Name, Arity}}
-    end,
-
-  {Kind, FA, Line, Rest}.
+  {Types, AllCallbacksWithoutSpecs2, Forms3}.
 
 %% Types
 
@@ -532,7 +524,7 @@ get_callback_docs(Set, Callbacks) ->
     [],
     doc_value(Doc),
     Meta
-   } || {Kind, {Name, Arity}, _, _} <- Callbacks,
+   } || {Kind, {Name, Arity}, _} <- Callbacks,
         {Key, Line, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_type_docs(Set, Types) ->
