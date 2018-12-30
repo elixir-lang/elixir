@@ -1150,12 +1150,10 @@ defmodule Protocol.UndefinedError do
 
   @impl true
   def message(%{protocol: protocol, value: value, description: description}) do
-    "protocol #{inspect(protocol)} not implemented for #{inspect(value)} of type #{
-      value_type(value)
-    }" <> maybe_description(description) <> maybe_available(protocol)
+    "protocol #{inspect(protocol)} not implemented for #{inspect(value)} of type " <>
+      value_type(value) <> maybe_description(description) <> maybe_available(protocol)
   end
 
-  defp value_type(value) when is_binary(value), do: "Binary"
   defp value_type(value) when is_bitstring(value), do: "BitString"
   defp value_type(value) when is_atom(value), do: "Atom"
   defp value_type(value) when is_function(value), do: "Function"
@@ -1177,9 +1175,8 @@ defmodule Protocol.UndefinedError do
         ". There are no implementations for this protocol."
 
       {:consolidated, types} ->
-        ". This protocol is implemented for the following type(s): #{
-          Enum.map_join(types, ", ", &inspect/1)
-        }"
+        ". This protocol is implemented for the following type(s): "
+          <> Enum.map_join(types, ", ", &inspect/1)
 
       :not_consolidated ->
         ""
