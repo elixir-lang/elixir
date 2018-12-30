@@ -102,7 +102,7 @@ defmodule ProtocolTest do
   end
 
   test "protocol not implemented" do
-    message = "protocol ProtocolTest.Sample not implemented for :foo"
+    message = "protocol ProtocolTest.Sample not implemented for :foo of type Atom"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       sample = Sample
@@ -431,8 +431,8 @@ defmodule Protocol.ConsolidationTest do
 
   test "protocol not implemented" do
     message =
-      "protocol Protocol.ConsolidationTest.Sample not implemented for :foo. " <>
-        "This protocol is implemented for: Protocol.ConsolidationTest.ImplStruct"
+      "protocol Protocol.ConsolidationTest.Sample not implemented for :foo of type Atom. " <>
+        "This protocol is implemented for the following type(s): Protocol.ConsolidationTest.ImplStruct"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       sample = Sample
