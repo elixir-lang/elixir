@@ -741,6 +741,41 @@ defmodule List do
   end
 
   @doc """
+  Returns `true` if `list` ends with the given `tail` list; otherwise returns `false`.
+
+  If `tail` is an empty list, it returns `true`.
+
+  ### Examples
+
+      iex> List.ends_with?('this is a charlist', 'a charlist')
+      true
+
+      iex> List.ends_with?([1, 2, 3], [2, 3])
+      true
+
+      iex> List.ends_with?([2, 3], [1, 2, 3])
+      false
+
+      iex> List.ends_with?([:alpha], [])
+      true
+
+      iex> List.ends_with?([], [:alpha])
+      false
+
+  """
+  @doc since: "1.10.0"
+  @spec ends_with?(nonempty_list, nonempty_list) :: boolean
+  @spec ends_with?(list, []) :: true
+  @spec ends_with?([], nonempty_list) :: false
+  def ends_with?(list, tail)
+
+  def ends_with?(list, []) when is_list(list), do: true
+  def ends_with?([], tail) when is_list(tail), do: false
+
+  def ends_with?(list, tail) when is_list(list) and is_list(tail),
+    do: starts_with?(:lists.reverse(list), :lists.reverse(tail))
+
+  @doc """
   Returns `true` if `list` starts with the given `prefix` list; otherwise returns `false`.
 
   If `prefix` is an empty list, it returns `true`.
