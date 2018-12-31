@@ -2444,11 +2444,16 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the first `amount` items from the `enumerable`.
+  Takes an `amount` of items from the beginning or the end of the `enumerable`.
 
-  If a negative `amount` is given, the `amount` of last values will be taken.
+  If a possitive `amount` is given, it takes the `amount` items from the
+  beginning of the `enumerable`.
+
+  If a negative `amount` is given, the `amount` of items will be taken from the end.
   The `enumerable` will be enumerated once to retrieve the proper index and
   the remaining calculation is performed from the end.
+
+  If amount is `0`, it returns `[]`.
 
   ## Examples
 
