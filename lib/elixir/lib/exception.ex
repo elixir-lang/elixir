@@ -1154,16 +1154,13 @@ defmodule Protocol.UndefinedError do
       value_type(value) <> maybe_description(description) <> maybe_available(protocol)
   end
 
+  defp value_type(%{__struct__: struct}), do: "#{inspect(struct)} (a struct)"
   defp value_type(value) when is_atom(value), do: "Atom"
   defp value_type(value) when is_bitstring(value), do: "BitString"
   defp value_type(value) when is_float(value), do: "Float"
   defp value_type(value) when is_function(value), do: "Function"
   defp value_type(value) when is_integer(value), do: "Integer"
   defp value_type(value) when is_list(value), do: "List"
-
-  defp value_type(%{__struct__: struct} = user_defined_struct) when is_map(user_defined_struct),
-    do: "#{inspect(struct)} (a struct)"
-
   defp value_type(value) when is_map(value), do: "Map"
   defp value_type(value) when is_pid(value), do: "PID"
   defp value_type(value) when is_port(value), do: "Port"
