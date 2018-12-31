@@ -99,6 +99,10 @@ end
 defmodule String.Chars.ErrorsTest do
   use ExUnit.Case, async: true
 
+  defmodule Foo do
+    defstruct foo: "bar"
+  end
+
   test "bitstring" do
     message =
       "protocol String.Chars not implemented for <<0, 1::size(4)>> of type BitString, cannot convert a bitstring to a string"
@@ -146,6 +150,15 @@ defmodule String.Chars.ErrorsTest do
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(port)
+    end
+  end
+
+  test "user-defined struct" do
+    message =
+      "protocol String\.Chars not implemented for %String.Chars.ErrorsTest.Foo{foo: \"bar\"} of type String.Chars.ErrorsTest.Foo (a struct)"
+
+    assert_raise Protocol.UndefinedError, message, fn ->
+      to_string(%Foo{})
     end
   end
 end

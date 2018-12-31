@@ -1155,6 +1155,10 @@ defmodule Protocol.UndefinedError do
   end
 
   defp value_type(value) when is_bitstring(value), do: "BitString"
+
+  defp value_type(%{__struct__: struct} = user_defined_struct) when is_map(user_defined_struct),
+    do: "#{inspect(struct)} (a struct)"
+
   defp value_type(value) when is_atom(value), do: "Atom"
   defp value_type(value) when is_function(value), do: "Function"
   defp value_type(value) when is_list(value), do: "List"
