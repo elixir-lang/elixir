@@ -92,7 +92,7 @@ defmodule ExUnit do
       * `:name` - the test name
       * `:module` - the test module
       * `:state` - the finished test state (see `t:ExUnit.state/0`)
-      * `:time` - the duration of the test's runtime (in microseconds)
+      * `:time` - the duration in microseconds of the test's runtime
       * `:tags` - the test tags
       * `:logs` - the captured logs
 
