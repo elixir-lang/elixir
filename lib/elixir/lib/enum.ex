@@ -2465,7 +2465,8 @@ defmodule Enum do
       [3]
 
   """
-  @spec take(t, integer) :: list
+  @spec take(t, 0) :: []
+  @spec take(t, pos_integer | neg_integer) :: list
   def take(enumerable, amount)
 
   def take(_enumerable, 0), do: []
@@ -2514,7 +2515,8 @@ defmodule Enum do
       [1, 2, 3]
 
   """
-  @spec take_every(t, non_neg_integer) :: list
+  @spec take_every(t, 0) :: []
+  @spec take_every(t, pos_integer) :: list
   def take_every(enumerable, nth)
 
   def take_every(enumerable, 1), do: to_list(enumerable)
@@ -2544,7 +2546,8 @@ defmodule Enum do
       'ipybz'
 
   """
-  @spec take_random(t, non_neg_integer) :: list
+  @spec take_random(t, 0) :: []
+  @spec take_random(t, pos_integer) :: list
   def take_random(enumerable, count)
   def take_random(_enumerable, 0), do: []
 
