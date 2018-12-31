@@ -279,14 +279,7 @@ defmodule ExUnit.DocTest do
         test_case_content(expr, expected, location, stack)
       end)
 
-    quote do
-      unquote_splicing(test_import(module, do_import))
-      unquote(gen_code_for_tests(tests, whole_expr(exprs), stack))
-    end
-  end
-
-  defp whole_expr(exprs) do
-    Enum.map_join(exprs, "\n", &elem(&1, 0))
+    {:__block__, [], test_import(module, do_import) ++ tests}
   end
 
   defp multiple_exceptions?(exprs) do
@@ -294,28 +287,6 @@ defmodule ExUnit.DocTest do
       {_, {:error, _, _}} -> true
       _ -> false
     end) > 1
-  end
-
-  defp gen_code_for_tests(tests, whole_expr, stack) do
-    quote do
-      stack = unquote(stack)
-
-      try do
-        # Put all tests into one context
-        (unquote_splicing(tests))
-      rescue
-        e in ExUnit.AssertionError ->
-          reraise e, stack
-
-        error ->
-          message =
-            "Doctest failed: got #{inspect(error.__struct__)} with message " <>
-              inspect(Exception.message(error))
-
-          error = [message: message, expr: unquote(String.trim(whole_expr))]
-          reraise ExUnit.AssertionError, error, __STACKTRACE__
-      end
-    end
   end
 
   defp test_case_content(expr, {:test, expected}, location, stack) do
