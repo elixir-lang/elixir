@@ -10,11 +10,12 @@ unless {1, 7, 4} <= Mix.SCM.Git.git_version() do
   ExUnit.configure(exclude: :git_sparse)
 end
 
-# Clear proxy variables that may affect tests
+# Clear environment variables that may affect tests
 System.delete_env("http_proxy")
 System.delete_env("https_proxy")
 System.delete_env("HTTP_PROXY")
 System.delete_env("HTTPS_PROXY")
+System.delete_env("MIX_ENV")
 
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate
