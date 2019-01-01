@@ -2446,7 +2446,7 @@ defmodule Enum do
   @doc """
   Takes an `amount` of items from the beginning or the end of the `enumerable`.
 
-  If a possitive `amount` is given, it takes the `amount` items from the
+  If a positive `amount` is given, it takes the `amount` items from the
   beginning of the `enumerable`.
 
   If a negative `amount` is given, the `amount` of items will be taken from the end.
