@@ -4,8 +4,7 @@ defmodule Logger.Config do
   @behaviour :gen_event
   @name __MODULE__
   @table __MODULE__
-  @message_queue_len_pos 1
-  @counter_pos 2
+  @counter_pos 1
 
   def configure(options) do
     :gen_event.call(Logger, @name, {:configure, options})
@@ -44,11 +43,11 @@ defmodule Logger.Config do
 
     if compare_levels(level, min_level) != :lt do
       %{thresholds: {counter, sync, discard}} = config
-      counter = read_message_queue_len(counter) + bump_counter(counter)
+      value = bump_counter(counter)
 
       cond do
-        counter >= discard -> {:discard, config}
-        counter >= sync -> {:sync, config}
+        value >= discard -> {:discard, config}
+        value >= sync -> {:sync, config}
         true -> {:async, config}
       end
     else
@@ -85,7 +84,7 @@ defmodule Logger.Config do
        Application.fetch_env!(:logger, :discard_threshold_periodic_check)}
 
     :ets.lookup_element(@table, :log_data, 2) || compute_data(state)
-    state = update_counters(state, false)
+    state = update_counter(state, false)
     {:ok, state}
   end
 
@@ -98,7 +97,7 @@ defmodule Logger.Config do
   end
 
   def handle_event(_event, state) do
-    state = update_counters(state, false)
+    state = update_counter(state, false)
     {:ok, state}
   end
 
@@ -126,9 +125,9 @@ defmodule Logger.Config do
     {:ok, old, state}
   end
 
-  def handle_info({__MODULE__, :update_counters}, state) do
-    state = update_counters(state, true)
-    schedule_update_counters(state)
+  def handle_info({__MODULE__, :update_counter}, state) do
+    state = update_counter(state, true)
+    schedule_update_counter(state)
     {:ok, state}
   end
 
@@ -144,22 +143,25 @@ defmodule Logger.Config do
     {:ok, state}
   end
 
-  # It is very important to reset the counter first and then update
-  # the message queue length because that's the pessimistic approach.
-  # If the system is approaching overloaded, then we will overestimate
-  # the overall size, which is better than the inverse. However, once
-  # we reach overload, we will underestimate the value, as the counter
-  # is increased by cleaned. Therefore some messages may make it back
-  # to the logger as we circle around the discard threshold value.
-  defp update_counters({counter, log, discard_threshold, discard_period}, periodic_check?) do
-    reset = reset_counter(counter)
+  defp update_counter({counter, log, discard_threshold, discard_period}, periodic_check?) do
+    # If length is more than the total, it means the counter is behind,
+    # due to non-log messages, so we need to increase the counter.
+    #
+    # If length is less than the total, then we either have a spike or
+    # the counter drifted due to failures.
+    #
+    # Because we always bump the counter and then we send the message,
+    # there is a chance clients have bumped the counter but they did not
+    # deliver the message yet. Those bumps will be lost. At the same time,
+    # we are careful to read the counter first here, so if the counter is
+    # bumped after we read from it, those bumps won't be lost.
+    total = read_counter(counter)
     {:message_queue_len, length} = Process.info(self(), :message_queue_len)
-    update_message_queue_len(counter, length)
-    total = reset + length
+    add_counter(counter, length - total)
 
-    # In case we are logging but we reached the threshold,
-    # we log that we started discarding messages. This
-    # can only be reverted by the periodic discard check.
+    # In case we are logging but we reached the threshold, we log that we
+    # started discarding messages. This can only be reverted by the periodic
+    # discard check.
     cond do
       total >= discard_threshold ->
         if log == :log or periodic_check? do
@@ -183,8 +185,8 @@ defmodule Logger.Config do
     :gen_event.notify(self(), {:warn, Process.group_leader(), event})
   end
 
-  defp schedule_update_counters({_, _, _, discard_period}) do
-    Process.send_after(self(), {__MODULE__, :update_counters}, discard_period)
+  defp schedule_update_counter({_, _, _, discard_period}) do
+    Process.send_after(self(), {__MODULE__, :update_counter}, discard_period)
   end
 
   ## Counter Helpers
@@ -192,10 +194,10 @@ defmodule Logger.Config do
   # TODO: Use counters exclusively when we require Erlang/OTP 22+.
   defp new_counter() do
     if Code.ensure_loaded?(:counters) do
-      {:counters, :counters.new(2, [:atomics])}
+      {:counters, :counters.new(1, [:atomics])}
     else
-      table = :ets.new(@table.Counter, [:public, write_concurrency: true])
-      :ets.insert(table, [{:counter, 0}, {:message_queue_len, 0}])
+      table = :ets.new(@table.Counter, [:public])
+      :ets.insert(table, [{@counter_pos, 0}])
       {:ets, table}
     end
   end
@@ -203,36 +205,22 @@ defmodule Logger.Config do
   defp delete_counter({:ets, counter}), do: :ets.delete(counter)
   defp delete_counter({:counters, _}), do: :ok
 
-  defp reset_counter({:ets, counter}) do
-    value = :ets.lookup_element(counter, :counter, 2)
-    :ets.update_counter(counter, :counter, {2, -value})
-    value
-  end
+  defp read_counter({:ets, counter}), do: :ets.lookup_element(counter, @counter_pos, 2)
+  defp read_counter({:counters, counter}), do: :counters.get(counter, @counter_pos)
 
-  defp reset_counter({:counters, counter}) do
-    value = :counters.get(counter, @counter_pos)
-    :counters.sub(counter, @counter_pos, value)
-    value
-  end
+  defp add_counter({:ets, counter}, value),
+    do: :ets.update_counter(counter, @counter_pos, {2, value})
 
-  defp bump_counter({:ets, counter}), do: :ets.update_counter(counter, :counter, {2, 1})
+  defp add_counter({:counters, counter}, value),
+    do: :counters.add(counter, @counter_pos, value)
+
+  defp bump_counter({:ets, counter}),
+    do: :ets.update_counter(counter, @counter_pos, {2, 1})
 
   defp bump_counter({:counters, counter}) do
     :counters.add(counter, @counter_pos, 1)
     :counters.get(counter, @counter_pos)
   end
-
-  defp read_message_queue_len({:ets, counter}),
-    do: :ets.lookup_element(counter, :message_queue_len, 2)
-
-  defp read_message_queue_len({:counters, counter}),
-    do: :counters.get(counter, @message_queue_len_pos)
-
-  defp update_message_queue_len({:ets, counter}, message_queue_len),
-    do: :ets.insert(counter, {:message_queue_len, message_queue_len})
-
-  defp update_message_queue_len({:counters, counter}, message_queue_len),
-    do: :counters.put(counter, @message_queue_len_pos, message_queue_len)
 
   ## Data helpers
 

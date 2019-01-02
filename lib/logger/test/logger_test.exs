@@ -445,17 +445,11 @@ defmodule LoggerTest do
     assert capture_log(fn ->
              :sys.suspend(Logger)
 
-             task =
-               Task.async(fn ->
-                 for _ <- 1..10 do
-                   Logger.warn("warning!")
-                 end
-               end)
+             for _ <- 1..10 do
+               Logger.warn("warning!")
+             end
 
              :sys.resume(Logger)
-             Task.await(task)
-
-             Logger.warn("done!")
              Logger.flush()
            end) =~ ~r"Attempted to log \d+ messages, which is above :discard_threshold"
   after
