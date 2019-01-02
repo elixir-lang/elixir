@@ -185,7 +185,7 @@ defmodule Logger.Config do
 
   defp update_message_queue_len({:counters, counter}) do
     {:message_queue_len, length} = Process.info(self(), :message_queue_len)
-    :counters.put(counter, @counter_pos, length)
+    :counters.put(counter, @message_queue_len_pos, length)
   end
 
   ## Data helpers
