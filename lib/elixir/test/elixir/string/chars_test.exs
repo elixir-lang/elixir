@@ -99,9 +99,13 @@ end
 defmodule String.Chars.ErrorsTest do
   use ExUnit.Case, async: true
 
+  defmodule Foo do
+    defstruct foo: "bar"
+  end
+
   test "bitstring" do
     message =
-      "protocol String.Chars not implemented for <<0, 1::size(4)>>, cannot convert a bitstring to a string"
+      "protocol String.Chars not implemented for <<0, 1::size(4)>> of type BitString, cannot convert a bitstring to a string"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(<<1::size(12)-integer-signed>>)
@@ -109,7 +113,7 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test "tuple" do
-    message = "protocol String.Chars not implemented for {1, 2, 3}"
+    message = "protocol String.Chars not implemented for {1, 2, 3} of type Tuple"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string({1, 2, 3})
@@ -117,7 +121,7 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test "PID" do
-    message = ~r"^protocol String\.Chars not implemented for #PID<.+?>$"
+    message = ~r"^protocol String\.Chars not implemented for #PID<.+?> of type PID$"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(self())
@@ -125,7 +129,7 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test "ref" do
-    message = ~r"^protocol String\.Chars not implemented for #Reference<.+?>$"
+    message = ~r"^protocol String\.Chars not implemented for #Reference<.+?> of type Reference$"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(make_ref()) == ""
@@ -133,7 +137,7 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test "function" do
-    message = ~r"^protocol String\.Chars not implemented for #Function<.+?>$"
+    message = ~r"^protocol String\.Chars not implemented for #Function<.+?> of type Function$"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(fn -> nil end)
@@ -142,10 +146,19 @@ defmodule String.Chars.ErrorsTest do
 
   test "port" do
     [port | _] = Port.list()
-    message = ~r"^protocol String\.Chars not implemented for #Port<.+?>$"
+    message = ~r"^protocol String\.Chars not implemented for #Port<.+?> of type Port$"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(port)
+    end
+  end
+
+  test "user-defined struct" do
+    message =
+      "protocol String\.Chars not implemented for %String.Chars.ErrorsTest.Foo{foo: \"bar\"} of type String.Chars.ErrorsTest.Foo (a struct)"
+
+    assert_raise Protocol.UndefinedError, message, fn ->
+      to_string(%Foo{})
     end
   end
 end

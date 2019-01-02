@@ -382,9 +382,9 @@ defmodule LoggerTest do
   end
 
   test "logging something that is not a binary or chardata fails right away" do
-    assert_raise Protocol.UndefinedError, "protocol String.Chars not implemented for %{}", fn ->
-      Logger.log(:debug, %{})
-    end
+    assert_raise Protocol.UndefinedError,
+                 "protocol String.Chars not implemented for %{} of type Map",
+                 fn -> Logger.log(:debug, %{}) end
 
     message =
       "cannot truncate chardata because it contains something that is not valid chardata: %{}"
