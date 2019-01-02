@@ -144,6 +144,13 @@ defmodule Logger do
       messages in the queue is reduced to one below the `discard_threshold`.
       Defaults to 500 messages.
 
+    * `:discard_threshold_periodic_check` - a periodic check that
+      checks and reports if logger is discarding messages. It logs a warn
+      message whenever the system is (or continues) in discard mode and
+      it logs a warn message whenever if the system was discarding messages
+      but stopped doing so after the previous check. By default it runs
+      every `30_000` milliseconds.
+
     * `:translator_inspect_opts` - when translating OTP reports and
       errors, the last message and state must be inspected in the
       error reports. This configuration allow developers to change

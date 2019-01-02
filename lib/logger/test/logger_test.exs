@@ -438,4 +438,46 @@ defmodule LoggerTest do
     Logger.configure(discard_threshold: 500)
     Logger.configure(translator_inspect_opts: [])
   end
+
+  test "logs when discarding messages" do
+    assert :ok = Logger.configure(discard_threshold: 5)
+
+    assert capture_log(fn ->
+             :sys.suspend(Logger)
+
+             task =
+               Task.async(fn ->
+                 for _ <- 1..10 do
+                   Logger.warn("warning!")
+                 end
+               end)
+
+             :sys.resume(Logger)
+             Task.await(task)
+
+             Logger.warn("done!")
+             Logger.flush()
+           end) =~ ~r"Attempted to log \d+ messages, which is above :discard_threshold"
+  after
+    :sys.resume(Logger)
+    assert :ok = Logger.configure(discard_threshold: 500)
+  end
+
+  test "restarts Logger.Config on Logger exits" do
+    Process.whereis(Logger) |> Process.exit(:kill)
+    wait_for_logger()
+    wait_for_handler(Logger, Logger.Config)
+  end
+
+  test "updates config on config_change/3" do
+    :ok = Logger.configure(level: :debug)
+
+    try do
+      Application.put_env(:logger, :level, :error)
+      assert Logger.App.config_change([level: :error], [], []) === :ok
+      assert Logger.level() === :error
+    after
+      Logger.configure(level: :debug)
+    end
+  end
 end
