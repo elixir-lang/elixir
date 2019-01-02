@@ -1150,9 +1150,22 @@ defmodule Protocol.UndefinedError do
 
   @impl true
   def message(%{protocol: protocol, value: value, description: description}) do
-    "protocol #{inspect(protocol)} not implemented for #{inspect(value)}" <>
-      maybe_description(description) <> maybe_available(protocol)
+    "protocol #{inspect(protocol)} not implemented for #{inspect(value)} of type " <>
+      value_type(value) <> maybe_description(description) <> maybe_available(protocol)
   end
+
+  defp value_type(%{__struct__: struct}), do: "#{inspect(struct)} (a struct)"
+  defp value_type(value) when is_atom(value), do: "Atom"
+  defp value_type(value) when is_bitstring(value), do: "BitString"
+  defp value_type(value) when is_float(value), do: "Float"
+  defp value_type(value) when is_function(value), do: "Function"
+  defp value_type(value) when is_integer(value), do: "Integer"
+  defp value_type(value) when is_list(value), do: "List"
+  defp value_type(value) when is_map(value), do: "Map"
+  defp value_type(value) when is_pid(value), do: "PID"
+  defp value_type(value) when is_port(value), do: "Port"
+  defp value_type(value) when is_reference(value), do: "Reference"
+  defp value_type(value) when is_tuple(value), do: "Tuple"
 
   defp maybe_description(""), do: ""
   defp maybe_description(description), do: ", " <> description
@@ -1163,7 +1176,8 @@ defmodule Protocol.UndefinedError do
         ". There are no implementations for this protocol."
 
       {:consolidated, types} ->
-        ". This protocol is implemented for: #{Enum.map_join(types, ", ", &inspect/1)}"
+        ". This protocol is implemented for the following type(s): " <>
+          Enum.map_join(types, ", ", &inspect/1)
 
       :not_consolidated ->
         ""
