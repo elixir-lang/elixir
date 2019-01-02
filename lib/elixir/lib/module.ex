@@ -494,15 +494,15 @@ defmodule Module do
   @typep def_kind :: :def | :defp | :defmacro | :defmacrop
 
   @doc """
-  Provides runtime information about functions and macros defined by the
-  module, etc.
+  Provides runtime information about functions, macros, and other information
+  defined by the module.
 
   Each module gets an `__info__/1` function when it's compiled. The function
   takes one of the following atoms:
 
-    * `:functions` - keyword list of public functions along with their arities
+    * `:functions` - a keyword list of public functions and their arities
 
-    * `:macros` - keyword list of public macros along with their arities
+    * `:macros` - a keyword list of public macros and their arities
 
     * `:module` - the module atom name
 
@@ -510,10 +510,15 @@ defmodule Module do
 
     * `:compile` - a list with compiler metadata
 
-    * `:attributes` - a list with all persisted attributes
+    * `:attributes` - a keyword list with all persisted attributes
 
   """
-  @callback __info__(:functions | :macros | :module | :md5 | :compile | :attributes) :: term()
+  @callback __info__(:functions) :: keyword()
+  @callback __info__(:macros) :: keyword()
+  @callback __info__(:module) :: module()
+  @callback __info__(:md5) :: binary()
+  @callback __info__(:compile) :: [term()]
+  @callback __info__(:attributes) :: keyword()
 
   @doc """
   Checks if a module is open.
