@@ -2,17 +2,17 @@
 if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
   echo "Usage: `basename $0` [options] [.exs file] [data]
 
-  -e COMMAND                  Evaluates the given command (*)
-  -r FILE                     Requires the given files/patterns (*)
+  -e \"COMMAND\"                Evaluates the given command (*)
+  -r \"FILE\"                   Requires the given files/patterns (*)
   -S SCRIPT                   Finds and executes the given script in PATH
-  -pr FILE                    Requires the given files/patterns in parallel (*)
-  -pa PATH                    Prepends the given path to Erlang code path (*)
-  -pz PATH                    Appends the given path to Erlang code path (*)
+  -pr \"FILE\"                  Requires the given files/patterns in parallel (*)
+  -pa \"PATH\"                  Prepends the given path to Erlang code path (*)
+  -pz \"PATH\"                  Appends the given path to Erlang code path (*)
 
   --app APP                   Starts the given app and its dependencies (*)
   --cookie COOKIE             Sets a cookie for this distributed node
   --detached                  Starts the Erlang VM detached from console
-  --erl SWITCHES              Switches to be passed down to Erlang (*)
+  --erl \"SWITCHES\"            Switches to be passed down to Erlang (*)
   --help, -h                  Prints this message and exits
   --hidden                    Makes a hidden node
   --logger-otp-reports BOOL   Enables or disables OTP reporting
