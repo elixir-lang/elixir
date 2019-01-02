@@ -12,7 +12,6 @@
       Atom,
       Base,
       Bitwise,
-      Calendar,
       Date,
       DateTime,
       Exception,
@@ -53,6 +52,7 @@
       System
     ],
     "Calendar": [
+      Calendar,
       Calendar.ISO,
       Calendar.TimeZoneDatabase,
       Calendar.UTCOnlyTimeZoneDatabase
