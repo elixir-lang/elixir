@@ -108,8 +108,11 @@ defmodule Kernel.Typespec do
 
     case spec_to_signature(expr) do
       {name, arity} ->
-        {line, doc} = get_doc_info(set, :doc, line)
-        store_doc(set, kind, name, arity, line, :doc, doc, %{})
+        # store doc only once in case callback has multiple clauses
+        unless :ets.member(set, {kind, name, arity}) do
+          {line, doc} = get_doc_info(set, :doc, line)
+          store_doc(set, kind, name, arity, line, :doc, doc, %{})
+        end
 
       :error ->
         :error
