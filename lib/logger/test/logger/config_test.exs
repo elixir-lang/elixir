@@ -16,7 +16,7 @@ defmodule Logger.ConfigTest do
     Logger.configure(discard_threshold: 0)
     for _ <- 1..1000, do: Logger.log(:info, "some message")
   after
-    Logger.configure(discard_threshold: 10000)
+    Logger.configure(discard_threshold: 500)
     Logger.add_backend(:console)
   end
 

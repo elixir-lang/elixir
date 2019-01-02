@@ -20,7 +20,7 @@ defmodule Logger.MixProject do
         backends: [:console],
         translators: [{Logger.Translator, :translate}],
         sync_threshold: 20,
-        discard_threshold: 10_000,
+        discard_threshold: 500,
         handle_otp_reports: true,
         handle_sasl_reports: false,
         discard_threshold_for_error_logger: 500,
