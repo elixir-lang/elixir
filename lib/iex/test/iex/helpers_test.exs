@@ -677,6 +677,13 @@ defmodule IEx.HelpersTest do
                @callback test(:foo) :: integer()
                @callback test(:bar) :: [integer()]
                """
+
+        assert capture_io(fn -> b(MultipleClauseCallback.test()) end) =~ """
+               @callback test(:foo) :: integer()
+               @callback test(:bar) :: [integer()]
+
+               callback
+               """
       end)
     after
       cleanup_modules([MultipleClauseCallback])
