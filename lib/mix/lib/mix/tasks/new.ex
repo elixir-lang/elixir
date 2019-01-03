@@ -472,7 +472,6 @@ defmodule Mix.Tasks.New do
     use Application
 
     def start(_type, _args) do
-      # List all child processes to be supervised
       children = [
         # Starts a worker by calling: <%= @mod %>.Worker.start_link(arg)
         # {<%= @mod %>.Worker, arg}
