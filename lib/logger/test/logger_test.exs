@@ -442,16 +442,23 @@ defmodule LoggerTest do
   test "logs when discarding messages" do
     assert :ok = Logger.configure(discard_threshold: 5)
 
-    assert capture_log(fn ->
-             :sys.suspend(Logger)
+    log =
+      capture_log(fn ->
+        :sys.suspend(Logger)
+        for _ <- 1..10, do: Logger.warn("warning!")
+        :sys.resume(Logger)
+        Logger.flush()
 
-             for _ <- 1..10 do
-               Logger.warn("warning!")
-             end
+        # This is a private message but the simplest way to test this functionality
+        send(Logger, {Logger.Config, :update_counter})
 
-             :sys.resume(Logger)
-             Logger.flush()
-           end) =~ ~r"Attempted to log \d+ messages, which is above :discard_threshold"
+        # We need to flush twice. Once for the send and another for the log in send
+        Logger.flush()
+        Logger.flush()
+      end)
+
+    assert log =~ ~r"\[warn\]  Attempted to log \d+ messages, which is above :discard_threshold"
+    assert log =~ ~r"\[warn\]  Attempted to log \d+ messages, which is below :discard_threshold"
   after
     :sys.resume(Logger)
     assert :ok = Logger.configure(discard_threshold: 500)

@@ -5,6 +5,7 @@ defmodule Logger.Config do
   @name __MODULE__
   @table __MODULE__
   @counter_pos 1
+  @update_counter_message {__MODULE__, :update_counter}
 
   def configure(options) do
     :gen_event.call(Logger, @name, {:configure, options})
@@ -125,7 +126,7 @@ defmodule Logger.Config do
     {:ok, old, state}
   end
 
-  def handle_info({__MODULE__, :update_counter}, state) do
+  def handle_info(@update_counter_message, state) do
     state = update_counter(state, true)
     schedule_update_counter(state)
     {:ok, state}
@@ -186,7 +187,7 @@ defmodule Logger.Config do
   end
 
   defp schedule_update_counter({_, _, _, discard_period}) do
-    Process.send_after(self(), {__MODULE__, :update_counter}, discard_period)
+    Process.send_after(self(), @update_counter_message, discard_period)
   end
 
   ## Counter Helpers
