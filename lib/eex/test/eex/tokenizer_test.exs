@@ -122,6 +122,18 @@ defmodule EEx.TokenizerTest do
              {:ok, exprs}
   end
 
+  test "strings with multiple callbacks" do
+    exprs = [
+      {:start_expr, 1, '=', ' a fn -> '},
+      {:text, 'foo'},
+      {:middle_expr, 1, '', ' end, fn -> '},
+      {:text, 'bar'},
+      {:end_expr, 1, '', ' end '}
+    ]
+
+    assert T.tokenize('<%= a fn -> %>foo<% end, fn -> %>bar<% end %>', 1) == {:ok, exprs}
+  end
+
   test "strings with embedded keywords blocks" do
     exprs = [
       {:text, 'foo '},

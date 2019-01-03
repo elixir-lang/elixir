@@ -123,24 +123,28 @@ defmodule EEx.Tokenizer do
   defp token_name('>-' ++ rest) do
     rest = Enum.reverse(rest)
 
-    # Tokenize the remaining passing check_terminators as
-    # false, which relax the tokenizer to not error on
-    # unmatched pairs. Then, we check if there is a "fn"
-    # token and, if so, it is not followed by an "end"
-    # token. If this is the case, we are on a start expr.
-    case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
-      {:ok, tokens} ->
-        tokens = Enum.reverse(tokens)
-        fn_index = fn_index(tokens)
+    if started_with_end_expr(rest) do
+      :middle_expr
+    else
+      # Tokenize the remaining passing check_terminators as
+      # false, which relax the tokenizer to not error on
+      # unmatched pairs. Then, we check if there is a "fn"
+      # token and, if so, it is not followed by an "end"
+      # token. If this is the case, we are on a start expr.
+      case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
+        {:ok, tokens} ->
+          tokens = Enum.reverse(tokens)
+          fn_index = fn_index(tokens)
 
-        if fn_index && end_index(tokens) > fn_index do
-          :start_expr
-        else
+          if fn_index && end_index(tokens) > fn_index do
+            :start_expr
+          else
+            :middle_expr
+          end
+
+        _error ->
           :middle_expr
-        end
-
-      _error ->
-        :middle_expr
+      end
     end
   end
 
@@ -152,6 +156,18 @@ defmodule EEx.Tokenizer do
 
   defp token_name(_) do
     :expr
+  end
+
+  defp started_with_end_expr([h | t]) when h in [?\s, ?\t] do
+    started_with_end_expr(t)
+  end
+
+  defp started_with_end_expr('end' ++ _rest) do
+    true
+  end
+
+  defp started_with_end_expr(_) do
+    false
   end
 
   defp fn_index(tokens) do
