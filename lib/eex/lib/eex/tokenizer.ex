@@ -119,15 +119,15 @@ defmodule EEx.Tokenizer do
   end
 
   defp token_name('od' ++ [h | rest]) when h in [?\s, ?\t, ?)] do
-    case check_rest(rest) do
-      :starts_with_end -> :middle_expr
+    case tokenize_rest(rest) do
+      {:ok, [{:end, _} | _]} -> :middle_expr
       _ -> :start_expr
     end
   end
 
   defp token_name('>-' ++ rest) do
-    case check_rest(rest) do
-      :starts_with_end ->
+    case tokenize_rest(rest) do
+      {:ok, [{:end, _} | _]} ->
         :middle_expr
 
       # Check if there is a "fn" token and, if so, it is not
@@ -158,17 +158,11 @@ defmodule EEx.Tokenizer do
     :expr
   end
 
-  defp check_rest(rest) do
-    rest = Enum.reverse(rest)
-
-    # Tokenize the remaining passing check_terminators as
-    # false, which relax the tokenizer to not error on
-    # unmatched pairs. If the tokens start with an "end"
-    # we have a middle expr.
-    case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
-      {:ok, [{:end, _} | _]} -> :starts_with_end
-      result -> result
-    end
+  # Tokenize the remaining passing check_terminators as false,
+  # which relax the tokenizer to not error on unmatched pairs.
+  # If the tokens start with an "end" we have a middle expr.
+  defp tokenize_rest(rest) do
+    :elixir_tokenizer.tokenize(Enum.reverse(rest), 1, file: "eex", check_terminators: false)
   end
 
   defp fn_index(tokens) do
