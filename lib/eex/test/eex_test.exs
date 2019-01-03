@@ -364,6 +364,30 @@ defmodule EExTest do
       assert_eval(expected, string)
     end
 
+    test "inside callback and do block" do
+      expected = """
+
+
+      A 1
+
+      B 2
+
+      A 3
+
+      """
+
+      string = """
+      <% require #{__MODULE__} %>
+      <%= #{__MODULE__}.switching_macro [1, 2, 3], fn x -> %>
+      A <%= x %>
+      <% end do %>
+      B <%= x %>
+      <% end %>
+      """
+
+      assert_eval(expected, string)
+    end
+
     test "inside cond" do
       expected = """
       foo
@@ -557,5 +581,15 @@ defmodule EExTest do
       {item, index} when rem(index, 2) == 0 -> a.(item)
       {item, index} when rem(index, 2) == 1 -> b.(item)
     end)
+  end
+
+  defmacro switching_macro(list, a, do: block) do
+    quote do
+      b = fn var!(x) ->
+        unquote(block)
+      end
+
+      unquote(__MODULE__).switching_map(unquote(list), unquote(a), b)
+    end
   end
 end

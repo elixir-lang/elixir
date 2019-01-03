@@ -118,35 +118,33 @@ defmodule EEx.Tokenizer do
     token_name(t)
   end
 
-  defp token_name('od' ++ [h | _]) when h in [?\s, ?\t, ?)] do
-    :start_expr
+  defp token_name('od' ++ [h | rest]) when h in [?\s, ?\t, ?)] do
+    case check_rest(rest) do
+      :starts_with_end -> :middle_expr
+      _ -> :start_expr
+    end
   end
 
   defp token_name('>-' ++ rest) do
-    rest = Enum.reverse(rest)
+    case check_rest(rest) do
+      :starts_with_end ->
+        :middle_expr
 
-    if starts_with_end_expr?(rest) do
-      :middle_expr
-    else
-      # Tokenize the remaining passing check_terminators as
-      # false, which relax the tokenizer to not error on
-      # unmatched pairs. Then, we check if there is a "fn"
-      # token and, if so, it is not followed by an "end"
-      # token. If this is the case, we are on a start expr.
-      case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
-        {:ok, tokens} ->
-          tokens = Enum.reverse(tokens)
-          fn_index = fn_index(tokens)
+      # Check if there is a "fn" token and, if so, it is not
+      # followed by an "end" token. If this is the case, we
+      # are on a start expr.
+      {:ok, tokens} ->
+        tokens = Enum.reverse(tokens)
+        fn_index = fn_index(tokens)
 
-          if fn_index && end_index(tokens) > fn_index do
-            :start_expr
-          else
-            :middle_expr
-          end
-
-        _error ->
+        if fn_index && end_index(tokens) > fn_index do
+          :start_expr
+        else
           :middle_expr
-      end
+        end
+
+      _error ->
+        :middle_expr
     end
   end
 
@@ -160,9 +158,18 @@ defmodule EEx.Tokenizer do
     :expr
   end
 
-  defp starts_with_end_expr?([h | t]) when h in @spaces, do: starts_with_end_expr?(t)
-  defp starts_with_end_expr?('end' ++ _rest), do: true
-  defp starts_with_end_expr?(_), do: false
+  defp check_rest(rest) do
+    rest = Enum.reverse(rest)
+
+    # Tokenize the remaining passing check_terminators as
+    # false, which relax the tokenizer to not error on
+    # unmatched pairs. If the tokens start with an "end"
+    # we have a middle expr.
+    case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
+      {:ok, [{:end, _} | _]} -> :starts_with_end
+      result -> result
+    end
+  end
 
   defp fn_index(tokens) do
     Enum.find_index(tokens, fn
