@@ -8,6 +8,8 @@ defmodule EEx.Tokenizer do
           {:text, content}
           | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
 
+  @spaces [?\s, ?\t]
+
   @doc """
   Tokenizes the given charlist or binary.
 
@@ -123,7 +125,7 @@ defmodule EEx.Tokenizer do
   defp token_name('>-' ++ rest) do
     rest = Enum.reverse(rest)
 
-    if started_with_end_expr(rest) do
+    if starts_with_end_expr?(rest) do
       :middle_expr
     else
       # Tokenize the remaining passing check_terminators as
@@ -158,17 +160,9 @@ defmodule EEx.Tokenizer do
     :expr
   end
 
-  defp started_with_end_expr([h | t]) when h in [?\s, ?\t] do
-    started_with_end_expr(t)
-  end
-
-  defp started_with_end_expr('end' ++ _rest) do
-    true
-  end
-
-  defp started_with_end_expr(_) do
-    false
-  end
+  defp starts_with_end_expr?([h | t]) when h in @spaces, do: starts_with_end_expr?(t)
+  defp starts_with_end_expr?('end' ++ _rest), do: true
+  defp starts_with_end_expr?(_), do: false
 
   defp fn_index(tokens) do
     Enum.find_index(tokens, fn
@@ -183,7 +177,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp check_spaces(string, token) do
-    if Enum.all?(string, &(&1 in [?\s, ?\t])) do
+    if Enum.all?(string, &(&1 in @spaces)) do
       token
     else
       :expr
@@ -237,7 +231,7 @@ defmodule EEx.Tokenizer do
     end
   end
 
-  defp trim_whitespace([h | t]) when h == ?\s or h == ?\t do
+  defp trim_whitespace([h | t]) when h in @spaces do
     trim_whitespace(t)
   end
 
