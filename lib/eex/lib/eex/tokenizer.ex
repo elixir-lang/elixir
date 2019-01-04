@@ -9,8 +9,7 @@ defmodule EEx.Tokenizer do
           | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
 
   @spaces [?\s, ?\t]
-
-  @closing_brackets [?), ?], ?}]
+  @closing_brackets ')]}'
 
   @doc """
   Tokenizes the given charlist or binary.
@@ -117,11 +116,11 @@ defmodule EEx.Tokenizer do
   # End tokens contain only the end word and optionally
   # combinations of ")", "]" and "}".
 
-  defp token_name([h | t]) when h in @spaces or h in @closing_brackets do
+  defp token_name([h | t]) when h in @spaces do
     token_name(t)
   end
 
-  defp token_name('od' ++ [h | rest]) when h in @spaces or h in [?)] do
+  defp token_name('od' ++ [h | rest]) when h in @spaces or h in @closing_brackets do
     case tokenize_rest(rest) do
       {:ok, [{:end, _} | _]} -> :middle_expr
       _ -> :start_expr
@@ -155,10 +154,12 @@ defmodule EEx.Tokenizer do
   defp token_name('retfa' ++ t), do: check_spaces(t, :middle_expr)
   defp token_name('hctac' ++ t), do: check_spaces(t, :middle_expr)
   defp token_name('eucser' ++ t), do: check_spaces(t, :middle_expr)
-  defp token_name('dne' ++ t), do: check_spaces(t, :end_expr)
 
-  defp token_name(_) do
-    :expr
+  defp token_name(rest) do
+    case Enum.drop_while(rest, & &1 in @spaces or &1 in @closing_brackets) do
+      'dne' ++ t -> check_spaces(t, :end_expr)
+      _ -> :expr
+    end
   end
 
   # Tokenize the remaining passing check_terminators as false,
