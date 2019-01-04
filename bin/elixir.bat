@@ -19,7 +19,6 @@ echo   -pz "PATH"                  Appends the given path to Erlang code path (*
 echo.
 echo   --app APP                   Starts the given app and its dependencies (*)
 echo   --cookie COOKIE             Sets a cookie for this distributed node
-echo   --detached                  Starts the Erlang VM detached from console
 echo   --erl "SWITCHES"            Switches to be passed down to Erlang (*)
 echo   --help, -h                  Prints this message and exits
 echo   --hidden                    Makes a hidden node
@@ -81,7 +80,6 @@ if """"=="%par:-pz=%"     (shift)
 if """"=="%par:--app=%"   (shift)
 if """"=="%par:--remsh=%" (shift)
 rem ******* ERLANG PARAMETERS **********************
-if """"=="%par:--detached=%"            (set parsErlang=%parsErlang% -detached)
 if """"=="%par:--hidden=%"              (set parsErlang=%parsErlang% -hidden)
 if """"=="%par:--cookie=%"              (set parsErlang=%parsErlang% -setcookie %1 && shift)
 if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 && shift)

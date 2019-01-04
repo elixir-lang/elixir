@@ -240,18 +240,21 @@ defmodule Kernel.CLI do
     parse_shared(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
-  @erl_arg_options ["--erl", "--sname", "--name", "--cookie"] ++
-                     ["--logger-otp-reports", "--logger-sasl-reports"]
+  @erl_two_args_options ["--pipe-to", "--boot-var"]
 
-  @erl_boolean_options ["--detached", "--hidden", "--werl"]
+  @erl_one_arg_options ["--erl", "--sname", "--name", "--cookie", "--boot", "--vm-args"] ++
+                         ["--logger-otp-reports", "--logger-sasl-reports"]
 
-  defp parse_shared([erl, _ | t], config) when erl in @erl_arg_options do
-    parse_shared(t, config)
-  end
+  @erl_zero_args_options ["--hidden", "--werl"]
 
-  defp parse_shared([erl | t], config) when erl in @erl_boolean_options do
-    parse_shared(t, config)
-  end
+  defp parse_shared([erl, _, _ | t], config) when erl in @erl_two_args_options,
+    do: parse_shared(t, config)
+
+  defp parse_shared([erl, _ | t], config) when erl in @erl_one_arg_options,
+    do: parse_shared(t, config)
+
+  defp parse_shared([erl | t], config) when erl in @erl_zero_args_options,
+    do: parse_shared(t, config)
 
   defp parse_shared(list, config) do
     {list, config}

@@ -1,35 +1,14 @@
 #!/bin/sh
 if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
-  echo "Usage: `basename $0` [options] [.exs file] [data]
+  echo "Usage: $(basename $0) [options] [.exs file] [data]
 
-  -e \"COMMAND\"                Evaluates the given command (*)
-  -r \"FILE\"                   Requires the given files/patterns (*)
-  -S SCRIPT                   Finds and executes the given script in PATH
-  -pr \"FILE\"                  Requires the given files/patterns in parallel (*)
-  -pa \"PATH\"                  Prepends the given path to Erlang code path (*)
-  -pz \"PATH\"                  Appends the given path to Erlang code path (*)
+The following options are exclusive to IEx:
 
-  --app APP                   Starts the given app and its dependencies (*)
-  --cookie COOKIE             Sets a cookie for this distributed node
-  --detached                  Starts the Erlang VM detached from console
-  --erl \"SWITCHES\"            Switches to be passed down to Erlang (*)
-  --help, -h                  Prints this message and exits
-  --hidden                    Makes a hidden node
-  --logger-otp-reports BOOL   Enables or disables OTP reporting
-  --logger-sasl-reports BOOL  Enables or disables SASL reporting
-  --name NAME                 Makes and assigns a name to the distributed node
-  --no-halt                   Does not halt the Erlang VM after execution
-  --sname NAME                Makes and assigns a short name to the distributed node
-  --version, -v               Prints IEx version and exits
-  --werl                      Uses Erlang's Windows shell GUI (Windows only)
+  --dot-iex \"PATH\"    Overrides default .iex.exs file and uses path instead;
+                      path can be empty, then no file will be loaded
+  --remsh NAME        Connects to a node using a remote shell
 
-  --dot-iex PATH              Overrides default .iex.exs file and uses path instead;
-                              path can be empty, then no file will be loaded
-  --remsh NAME                Connects to a node using a remote shell
-
-** Options marked with (*) can be given more than once
-** Options given after the .exs file or -- are passed down to the executed code
-** Options can be passed to the VM using ELIXIR_ERL_OPTIONS or --erl" >&2
+The remaining options are the same as in the elixir executable. See: elixir -h" >&2
   exit 1
 fi
 
@@ -39,7 +18,7 @@ readlink_f () {
   if [ -h "$filename" ]; then
     readlink_f "$(readlink "$filename")"
   else
-    echo "`pwd -P`/$filename"
+    echo "$(pwd -P)/$filename"
   fi
 }
 

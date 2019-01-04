@@ -1,31 +1,58 @@
 #!/bin/sh
+set -e
+
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-  echo "Usage: `basename $0` [options] [.exs file] [data]
+  echo "Usage: $(basename $0) [options] [.exs file] [data]
 
-  -e \"COMMAND\"                Evaluates the given command (*)
-  -r \"FILE\"                   Requires the given files/patterns (*)
-  -S SCRIPT                   Finds and executes the given script in PATH
-  -pr \"FILE\"                  Requires the given files/patterns in parallel (*)
-  -pa \"PATH\"                  Prepends the given path to Erlang code path (*)
-  -pz \"PATH\"                  Appends the given path to Erlang code path (*)
+## General options
 
-  --app APP                   Starts the given app and its dependencies (*)
-  --cookie COOKIE             Sets a cookie for this distributed node
-  --detached                  Starts the Erlang VM detached from console
-  --erl \"SWITCHES\"            Switches to be passed down to Erlang (*)
-  --help, -h                  Prints this message and exits
-  --hidden                    Makes a hidden node
-  --logger-otp-reports BOOL   Enables or disables OTP reporting
-  --logger-sasl-reports BOOL  Enables or disables SASL reporting
-  --name NAME                 Makes and assigns a name to the distributed node
-  --no-halt                   Does not halt the Erlang VM after execution
-  --sname NAME                Makes and assigns a short name to the distributed node
-  --version, -v               Prints Elixir version and exits
-  --werl                      Uses Erlang's Windows shell GUI (Windows only)
+  -e \"COMMAND\"                 Evaluates the given command (*)
+  -h, --help                   Prints this message and exits
+  -r \"FILE\"                    Requires the given files/patterns (*)
+  -S SCRIPT                    Finds and executes the given script in \$PATH
+  -pr \"FILE\"                   Requires the given files/patterns in parallel (*)
+  -pa \"PATH\"                   Prepends the given path to Erlang code path (*)
+  -pz \"PATH\"                   Appends the given path to Erlang code path (*)
+  -v, --version                Prints Elixir version and exits
 
-** Options marked with (*) can be given more than once
-** Options given after the .exs file or -- are passed down to the executed code
-** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS or --erl" >&2
+  --app APP                    Starts the given app and its dependencies (*)
+  --erl \"SWITCHES\"             Switches to be passed down to Erlang (*)
+  --eval \"COMMAND\"             Evaluates the given command, same as -e (*)
+  --logger-otp-reports BOOL    Enables or disables OTP reporting
+  --logger-sasl-reports BOOL   Enables or disables SASL reporting
+  --no-halt                    Does not halt the Erlang VM after execution
+  --werl                       Uses Erlang's Windows shell GUI (Windows only)
+
+Options given after the .exs file or -- are passed down to the executed code.
+Options can be passed to the Erlang runtime using \$ELIXIR_ERL_OPTIONS or --erl.
+
+## Distribution options
+
+The following options are related to node distribution.
+
+  --cookie COOKIE              Sets a cookie for this distributed node
+  --hidden                     Makes a hidden node
+  --name NAME                  Makes and assigns a name to the distributed node
+  --rpc-eval NODE \"COMMAND\"    Evaluates the given command on the given remote node (*)
+  --sname NAME                 Makes and assigns a short name to the distributed node
+
+## Release options
+
+The following options are generally used under releases.
+
+  --boot \"FILE\"                Uses the given FILE.boot to start the system
+  --boot-var VAR \"VALUE\"       Makes \$VAR available as VALUE to FILE.boot (*)
+  --pipe-to \"PIPEDIR\" \"LOGDIR\" Starts the Erlang VM as a named PIPEDIR and LOGDIR
+  --vm-args \"FILE\"             Passes the contents in file as arguments to the VM
+
+--pipe-to (UNIX only) starts Elixir under run_erl dettached from
+console. You can reattach to it by running: to_erl PIPEDIR.
+It will attempt to create PIPEDIR and LOGDIR if they don't exist.
+
+--pipe-to automatically sets \$HEART_COMMAND if none is set.
+See the -heart mode of the Erlang VM for more information.
+
+** Options marked with (*) can be given more than once." >&2
   exit 1
 fi
 
@@ -35,7 +62,7 @@ readlink_f () {
   if [ -h "$filename" ]; then
     readlink_f "$(readlink "$filename")"
   else
-    echo "`pwd -P`/$filename"
+    echo "$(pwd -P)/$filename"
   fi
 }
 
@@ -56,40 +83,72 @@ while [ $I -le $# ]; do
         ;;
     -v|--compile|--no-halt)
         ;;
-    -e|-r|-pr|-pa|-pz|--remsh|--app)
+    -e|-r|-pr|-pa|-pz|--app|--eval|--rpc-eval|--remsh)
         S=2
         ;;
-    --detached|--hidden)
-        ERL="$ERL `echo $PEEK | cut -c 2-`"
+    --hidden)
+        ERL="$ERL -hidden"
         ;;
     --cookie)
-        I=$(expr $I + 1)
+        I=$(($I + 1))
         eval "VAL=\${$I}"
         ERL="$ERL -setcookie "$VAL""
         ;;
     --sname|--name)
-        I=$(expr $I + 1)
+        I=$(($I + 1))
         eval "VAL=\${$I}"
-        ERL="$ERL `echo $PEEK | cut -c 2-` "$VAL""
+        ERL="$ERL $(echo $PEEK | cut -c 2-) "$VAL""
         ;;
     --logger-otp-reports)
-        I=$(expr $I + 1)
+        I=$(($I + 1))
         eval "VAL=\${$I}"
         if [ "$VAL" = 'true' ] || [ "$VAL" = 'false' ]; then
-            ERL="$ERL -logger handle_otp_reports "$VAL""
+          ERL="$ERL -logger handle_otp_reports "$VAL""
         fi
         ;;
     --logger-sasl-reports)
-        I=$(expr $I + 1)
+        I=$(($I + 1))
         eval "VAL=\${$I}"
         if [ "$VAL" = 'true' ] || [ "$VAL" = 'false' ]; then
-            ERL="$ERL -logger handle_sasl_reports "$VAL""
+          ERL="$ERL -logger handle_sasl_reports "$VAL""
         fi
         ;;
     --erl)
-        I=$(expr $I + 1)
+        I=$(($I + 1))
         eval "VAL=\${$I}"
         ERL="$ERL "$VAL""
+        ;;
+    --vm-args)
+        I=$(($I + 1))
+        eval "VAL=\${$I}"
+        ERL="$ERL -args_file "$VAL""
+        ;;
+    --boot)
+        I=$(($I + 1))
+        eval "VAL=\${$I}"
+        ERL="$ERL -boot "$VAL""
+        ;;
+    --boot-var)
+        I=$(($I + 1))
+        eval "KEY=\${$I}"
+        I=$(($I + 1))
+        eval "VAL=\${$I}"
+        ERL="$ERL -boot_var "$KEY" "$VAL""
+        ;;
+    --pipe-to)
+        I=$(($I + 1))
+        eval "RUN_ERL_PIPE=\${$I}"
+        if [[ "$RUN_ERL_PIPE" == "-"* ]]; then
+          echo "--pipe-to : PIPEDIR cannot be a switch" >&2
+          exit 1
+        fi
+
+        I=$(($I + 1))
+        eval "RUN_ERL_LOG=\${$I}"
+        if [[ "$RUN_ERL_LOG" == "-"* ]]; then
+          echo "--pipe-to : LOGDIR cannot be a switch" >&2
+          exit 1
+        fi
         ;;
     --werl)
         USE_WERL=true
@@ -98,21 +157,30 @@ while [ $I -le $# ]; do
         break
         ;;
   esac
-  I=$(expr $I + $S)
+  I=$(($I + $S))
 done
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
+ERTS_BIN=""
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
 if [ "$OS" != "Windows_NT" ]; then
   if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
+else
+  if [ $USE_WERL ]; then ERL_EXEC="werl"; fi
 fi
 
-if [ "$OS" = "Windows_NT" ] && [ $USE_WERL ]; then
-    ERL_EXEC="werl"
+set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
+
+if [ -n "$RUN_ERL_PIPE" ]; then
+  mkdir -p "$RUN_ERL_PIPE"
+  mkdir -p "$RUN_ERL_LOG"
+  ERL_EXEC="run_erl"
+  set -- "$ERTS_BIN$ERL_EXEC" -daemon "$RUN_ERL_PIPE/" "$RUN_ERL_LOG/" "$(printf "%q " "$@")"
+  export HEART_COMMAND=${HEART_COMMAND:-$(printf "%q " "$@")}
 fi
 
-exec "$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
+exec "$@"
