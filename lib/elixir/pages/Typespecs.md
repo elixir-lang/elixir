@@ -149,6 +149,8 @@ Built-in type           | Defined as
 `struct()`              | `%{:__struct__ => atom(), optional(atom()) => any()}`
 `timeout()`             | `:infinity` \| `non_neg_integer()`
 
+`as_boolean(t)` exists to signal users that the given value will be treated as a boolean, where `nil` and `false` will be evaluated as `false` and everything else is `true`. For example, `Enum.filter/2` has the following specification: `filter(t, (element -> as_boolean(term))) :: list`.
+
 ### Remote types
 
 Any module is also able to define its own types and the modules in Elixir are no exception. For example, the `Range` module defines a `t/0` type that represents a range: this type can be referred to as `t:Range.t/0`. In a similar fashion, a string is `t:String.t/0`, any enumerable can be `t:Enum.t/0`, and so on.
