@@ -138,31 +138,30 @@ defmodule EExTest do
       )
     end
 
-    test "embedded code with parentheses after end in end token" do
+    test "embedded code with end followed by bracket" do
       assert_eval(
         " 101  102  103 ",
-        "<%= Enum.map([1, 2, 3], (fn x -> %> <%= 100 + x %> <% end) ) %>"
+        "<%= Enum.map([1, 2, 3], fn x -> %> <%= 100 + x %> <% end) %>"
       )
-    end
 
-    test "embedded code with square bracket after end in end token" do
       assert_eval(
         " 101  102  103 ",
         "<%= apply Enum, :map, [[1, 2, 3], fn x -> %> <%= 100 + x %> <% end] %>"
       )
-    end
 
-    test "embedded code with curly bracket after end in end token" do
       assert_eval(
         " 101  102  103 ",
         "<%= #{__MODULE__}.tuple_map {[1, 2, 3], fn x -> %> <%= 100 + x %> <% end} %>"
       )
-    end
 
-    test "embedded code with multiple brackets after end in end token" do
       assert_eval(
         " 101  102  103 ",
         "<%= apply(Enum, :map, [[1, 2, 3], fn x -> %> <%= 100 + x %> <% end]) %>"
+      )
+
+      assert_eval(
+        " 101  102  103 ",
+        "<%= Enum.map([1, 2, 3], (fn x -> %> <%= 100 + x %> <% end) ) %>"
       )
     end
 

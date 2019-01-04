@@ -156,7 +156,7 @@ defmodule EEx.Tokenizer do
   defp token_name('eucser' ++ t), do: check_spaces(t, :middle_expr)
 
   defp token_name(rest) do
-    case Enum.drop_while(rest, & &1 in @spaces or &1 in @closing_brackets) do
+    case Enum.drop_while(rest, &(&1 in @spaces or &1 in @closing_brackets)) do
       'dne' ++ t -> check_spaces(t, :end_expr)
       _ -> :expr
     end
