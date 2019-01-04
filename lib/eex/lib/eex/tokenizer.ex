@@ -10,6 +10,8 @@ defmodule EEx.Tokenizer do
 
   @spaces [?\s, ?\t]
 
+  @closing_brackets [?), ?], ?}]
+
   @doc """
   Tokenizes the given charlist or binary.
 
@@ -112,13 +114,14 @@ defmodule EEx.Tokenizer do
   #
   # Start tokens finish with "do" and "fn ->"
   # Middle tokens are marked with "->" or keywords
-  # End tokens contain only the end word and optionally ")"
+  # End tokens contain only the end word and optionally
+  # combinations of ")", "]" and "}".
 
-  defp token_name([h | t]) when h in [?\s, ?\t, ?)] do
+  defp token_name([h | t]) when h in @spaces or h in @closing_brackets do
     token_name(t)
   end
 
-  defp token_name('od' ++ [h | rest]) when h in [?\s, ?\t, ?)] do
+  defp token_name('od' ++ [h | rest]) when h in @spaces or h in [?)] do
     case tokenize_rest(rest) do
       {:ok, [{:end, _} | _]} -> :middle_expr
       _ -> :start_expr
