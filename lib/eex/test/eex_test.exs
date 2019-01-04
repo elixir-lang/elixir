@@ -139,6 +139,27 @@ defmodule EExTest do
       )
     end
 
+    test "embedded code with square bracket after end in end token" do
+      assert_eval(
+        " 101  102  103 ",
+        "<%= apply Enum, :map, [[1, 2, 3], fn x -> %> <%= 100 + x %> <% end] %>"
+      )
+    end
+
+    test "embedded code with curly bracket after end in end token" do
+      assert_eval(
+        " 101  102  103 ",
+        "<%= #{__MODULE__}.tuple_map {[1, 2, 3], fn x -> %> <%= 100 + x %> <% end} %>"
+      )
+    end
+
+    test "embedded code with multiple brackets after end in end token" do
+      assert_eval(
+        " 101  102  103 ",
+        "<%= apply(Enum, :map, [[1, 2, 3], fn x -> %> <%= 100 + x %> <% end]) %>"
+      )
+    end
+
     test "embedded code with variable definition" do
       assert_eval("foo 1", "foo <% bar = 1 %><%= bar %>")
     end
@@ -572,6 +593,10 @@ defmodule EExTest do
 
   defp assert_normalized_newline_equal(expected, actual) do
     assert String.replace(expected, "\r\n", "\n") == String.replace(actual, "\r\n", "\n")
+  end
+
+  def tuple_map({list, callback}) do
+    Enum.map(list, callback)
   end
 
   def switching_map(list, a, b) do
