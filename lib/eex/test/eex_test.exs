@@ -342,6 +342,52 @@ defmodule EExTest do
       assert_eval(expected, string)
     end
 
+    test "inside multiple functions" do
+      expected = """
+
+      A 1
+
+      B 2
+
+      A 3
+
+      """
+
+      string = """
+      <%= #{__MODULE__}.switching_map [1, 2, 3], fn x -> %>
+      A <%= x %>
+      <% end, fn x -> %>
+      B <%= x %>
+      <% end %>
+      """
+
+      assert_eval(expected, string)
+    end
+
+    test "inside callback and do block" do
+      expected = """
+
+
+      A 1
+
+      B 2
+
+      A 3
+
+      """
+
+      string = """
+      <% require #{__MODULE__} %>
+      <%= #{__MODULE__}.switching_macro [1, 2, 3], fn x -> %>
+      A <%= x %>
+      <% end do %>
+      B <%= x %>
+      <% end %>
+      """
+
+      assert_eval(expected, string)
+    end
+
     test "inside cond" do
       expected = """
       foo
@@ -526,5 +572,24 @@ defmodule EExTest do
 
   defp assert_normalized_newline_equal(expected, actual) do
     assert String.replace(expected, "\r\n", "\n") == String.replace(actual, "\r\n", "\n")
+  end
+
+  def switching_map(list, a, b) do
+    list
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {item, index} when rem(index, 2) == 0 -> a.(item)
+      {item, index} when rem(index, 2) == 1 -> b.(item)
+    end)
+  end
+
+  defmacro switching_macro(list, a, do: block) do
+    quote do
+      b = fn var!(x) ->
+        unquote(block)
+      end
+
+      unquote(__MODULE__).switching_map(unquote(list), unquote(a), b)
+    end
   end
 end

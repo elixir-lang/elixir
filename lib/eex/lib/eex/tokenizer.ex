@@ -8,6 +8,8 @@ defmodule EEx.Tokenizer do
           {:text, content}
           | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
 
+  @spaces [?\s, ?\t]
+
   @doc """
   Tokenizes the given charlist or binary.
 
@@ -116,19 +118,21 @@ defmodule EEx.Tokenizer do
     token_name(t)
   end
 
-  defp token_name('od' ++ [h | _]) when h in [?\s, ?\t, ?)] do
-    :start_expr
+  defp token_name('od' ++ [h | rest]) when h in [?\s, ?\t, ?)] do
+    case tokenize_rest(rest) do
+      {:ok, [{:end, _} | _]} -> :middle_expr
+      _ -> :start_expr
+    end
   end
 
   defp token_name('>-' ++ rest) do
-    rest = Enum.reverse(rest)
+    case tokenize_rest(rest) do
+      {:ok, [{:end, _} | _]} ->
+        :middle_expr
 
-    # Tokenize the remaining passing check_terminators as
-    # false, which relax the tokenizer to not error on
-    # unmatched pairs. Then, we check if there is a "fn"
-    # token and, if so, it is not followed by an "end"
-    # token. If this is the case, we are on a start expr.
-    case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
+      # Check if there is a "fn" token and, if so, it is not
+      # followed by an "end" token. If this is the case, we
+      # are on a start expr.
       {:ok, tokens} ->
         tokens = Enum.reverse(tokens)
         fn_index = fn_index(tokens)
@@ -154,6 +158,13 @@ defmodule EEx.Tokenizer do
     :expr
   end
 
+  # Tokenize the remaining passing check_terminators as false,
+  # which relax the tokenizer to not error on unmatched pairs.
+  # If the tokens start with an "end" we have a middle expr.
+  defp tokenize_rest(rest) do
+    :elixir_tokenizer.tokenize(Enum.reverse(rest), 1, file: "eex", check_terminators: false)
+  end
+
   defp fn_index(tokens) do
     Enum.find_index(tokens, fn
       {:fn_paren, _} -> true
@@ -167,7 +178,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp check_spaces(string, token) do
-    if Enum.all?(string, &(&1 in [?\s, ?\t])) do
+    if Enum.all?(string, &(&1 in @spaces)) do
       token
     else
       :expr
@@ -221,7 +232,7 @@ defmodule EEx.Tokenizer do
     end
   end
 
-  defp trim_whitespace([h | t]) when h == ?\s or h == ?\t do
+  defp trim_whitespace([h | t]) when h in @spaces do
     trim_whitespace(t)
   end
 
