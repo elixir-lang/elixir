@@ -10,29 +10,55 @@ goto parseopts
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
-echo   -e "COMMAND"                Evaluates the given command (*)
-echo   -r "FILE"                   Requires the given files/patterns (*)
-echo   -S SCRIPT                   Finds and executes the given script in PATH
-echo   -pr "FILE"                  Requires the given files/patterns in parallel (*)
-echo   -pa "PATH"                  Prepends the given path to Erlang code path (*)
-echo   -pz "PATH"                  Appends the given path to Erlang code path (*)
+echo ## General options
 echo.
-echo   --app APP                   Starts the given app and its dependencies (*)
-echo   --cookie COOKIE             Sets a cookie for this distributed node
-echo   --erl "SWITCHES"            Switches to be passed down to Erlang (*)
-echo   --help, -h                  Prints this message and exits
-echo   --hidden                    Makes a hidden node
-echo   --logger-otp-reports BOOL   Enables or disables OTP reporting
-echo   --logger-sasl-reports BOOL  Enables or disables SASL reporting
-echo   --name NAME                 Makes and assigns a name to the distributed node
-echo   --no-halt                   Does not halt the Erlang VM after execution
-echo   --sname NAME                Makes and assigns a short name to the distributed node
-echo   --version, -v               Prints Elixir version and exits
-echo   --werl                      Uses Erlang's Windows shell GUI
+echo   -e "COMMAND"                 Evaluates the given command (*)
+echo   -h, --help                   Prints this message and exits
+echo   -r "FILE"                    Requires the given files/patterns (*)
+echo   -S SCRIPT                    Finds and executes the given script in $PATH
+echo   -pr "FILE"                   Requires the given files/patterns in parallel (*)
+echo   -pa "PATH"                   Prepends the given path to Erlang code path (*)
+echo   -pz "PATH"                   Appends the given path to Erlang code path (*)
+echo   -v, --version                Prints Elixir version and exits
 echo.
-echo ** Options marked with (*) can be given more than once
-echo ** Options given after the .exs file or -- are passed down to the executed code
-echo ** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS or --erl
+echo   --app APP                    Starts the given app and its dependencies (*)
+echo   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
+echo   --eval "COMMAND"             Evaluates the given command, same as -e (*)
+echo   --logger-otp-reports BOOL    Enables or disables OTP reporting
+echo   --logger-sasl-reports BOOL   Enables or disables SASL reporting
+echo   --no-halt                    Does not halt the Erlang VM after execution
+echo   --werl                       Uses Erlang's Windows shell GUI (Windows only)
+echo.
+echo Options given after the .exs file or -- are passed down to the executed code.
+echo Options can be passed to the Erlang runtime using $ELIXIR_ERL_OPTIONS or --erl.
+echo.
+echo ## Distribution options
+echo.
+echo The following options are related to node distribution.
+echo.
+echo   --cookie COOKIE              Sets a cookie for this distributed node
+echo   --hidden                     Makes a hidden node
+echo   --name NAME                  Makes and assigns a name to the distributed node
+echo   --rpc-eval NODE "COMMAND"    Evaluates the given command on the given remote node (*)
+echo   --sname NAME                 Makes and assigns a short name to the distributed node
+echo.
+echo ## Release options
+echo.
+echo The following options are generally used under releases.
+echo.
+echo   --boot "FILE"                Uses the given FILE.boot to start the system
+echo   --boot-var VAR "VALUE"       Makes $VAR available as VALUE to FILE.boot (*)
+echo   --pipe-to "PIPEDIR" "LOGDIR" Starts the Erlang VM as a named PIPEDIR and LOGDIR
+echo   --vm-args "FILE"             Passes the contents in file as arguments to the VM
+echo.
+echo --pipe-to (UNIX only) starts Elixir under run_erl dettached from
+echo console. You can reattach to it by running: to_erl PIPEDIR.
+echo It will attempt to create PIPEDIR and LOGDIR if they don't exist.
+echo.
+echo --pipe-to automatically sets $HEART_COMMAND if none is set.
+echo See the -heart mode of the Erlang VM for more information.
+echo.
+echo ** Options marked with (*) can be given more than once.
 goto end
 
 :parseopts
