@@ -88,6 +88,13 @@ defmodule Kernel.CLI do
     [iodata, ?\n, Exception.format_stacktrace(prune_stacktrace(stacktrace))]
   end
 
+  @doc false
+  def rpc_eval(expr) do
+    wrapper(fn -> :elixir.eval(to_charlist(expr), [], []) end)
+  catch
+    kind, reason -> {kind, reason, __STACKTRACE__}
+  end
+
   ## Helpers
 
   defp at_exit(res) do
@@ -232,6 +239,14 @@ defmodule Kernel.CLI do
     parse_shared(t, %{config | commands: [{:eval, h} | config.commands]})
   end
 
+  defp parse_shared(["--eval", h | t], config) do
+    parse_shared(t, %{config | commands: [{:eval, h} | config.commands]})
+  end
+
+  defp parse_shared(["--rpc-eval", node, h | t], config) do
+    parse_shared(t, %{config | commands: [{:rpc_eval, node, h} | config.commands]})
+  end
+
   defp parse_shared(["-r", h | t], config) do
     parse_shared(t, %{config | commands: [{:require, h} | config.commands]})
   end
@@ -293,7 +308,7 @@ defmodule Kernel.CLI do
         shared_option?(list, config, &parse_argv(&1, &2))
 
       _ ->
-        if Keyword.has_key?(config.commands, :eval) do
+        if List.keymember?(config.commands, :eval, 0) do
           {config, list}
         else
           {%{config | commands: [{:file, h} | config.commands]}, t}
@@ -396,6 +411,15 @@ defmodule Kernel.CLI do
 
   defp process_command({:eval, expr}, _config) when is_binary(expr) do
     wrapper(fn -> Code.eval_string(expr, []) end)
+  end
+
+  defp process_command({:rpc_eval, node, expr}, _config) when is_binary(expr) do
+    case :rpc.call(String.to_atom(node), __MODULE__, :rpc_eval, [expr]) do
+      :ok -> :ok
+      {:badrpc, {:EXIT, exit}} -> Process.exit(self(), exit)
+      {:badrpc, reason} -> {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
+      {kind, error, stack} -> :erlang.raise(kind, error, stack)
+    end
   end
 
   defp process_command({:app, app}, _config) when is_binary(app) do

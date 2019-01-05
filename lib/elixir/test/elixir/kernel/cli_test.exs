@@ -2,7 +2,7 @@ Code.require_file("../test_helper.exs", __DIR__)
 
 import PathHelpers
 
-defmodule Kernel.CLI.ARGVTest do
+defmodule Kernel.CLITest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
@@ -25,12 +25,12 @@ defmodule Kernel.CLI.ARGVTest do
            end) == "ok\n"
 
     assert capture_io(fn ->
-             assert run(["-e", "IO.puts :ok", "--hidden", "sample.exs", "-o", "1", "2"]) ==
+             assert run(["--eval", "IO.puts :ok", "--hidden", "sample.exs", "-o", "1", "2"]) ==
                       ["sample.exs", "-o", "1", "2"]
            end) == "ok\n"
 
     assert capture_io(fn ->
-             assert run(["-e", "IO.puts :ok", "--", "--hidden", "sample.exs", "-o", "1", "2"]) ==
+             assert run(["--eval", "IO.puts :ok", "--", "--hidden", "sample.exs", "-o", "1", "2"]) ==
                       ["--hidden", "sample.exs", "-o", "1", "2"]
            end) == "ok\n"
   end
@@ -49,24 +49,14 @@ defmodule Kernel.CLI.ARGVTest do
     # pz
     assert to_charlist(Path.expand('lib/list', root)) in path
   end
-end
 
-defmodule Kernel.CLI.AtExitTest do
-  use ExUnit.Case, async: true
-
-  test "invokes at_exit callbacks" do
-    assert elixir(fixture_path("at_exit.exs") |> to_charlist) ==
-             "goodbye cruel world with status 1\n"
-  end
-end
-
-defmodule Kernel.CLI.ErrorTest do
-  use ExUnit.Case, async: true
-
-  test "properly format errors" do
+  test "properly formats errors" do
     assert String.starts_with?(elixir('-e ":erlang.throw 1"'), "** (throw) 1")
     assert String.starts_with?(elixir('-e ":erlang.error 1"'), "** (ErlangError) Erlang error: 1")
     assert String.starts_with?(elixir('-e "1 +"'), "** (TokenMissingError)")
+
+    assert elixir('-e "Task.async(fn -> raise ArgumentError end) |> Task.await"') =~
+             "an exception was raised:\n    ** (ArgumentError) argument error"
 
     assert elixir('-e "IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})"') ==
              "false\n"
@@ -79,6 +69,40 @@ defmodule Kernel.CLI.ErrorTest do
     assert error =~ ":foo"
     assert error =~ "def fetch(-%module{} = container-, +key+)"
     assert error =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
+  end
+end
+
+defmodule Kernel.CLI.RPCTest do
+  use ExUnit.Case, async: true
+
+  defp rpc_eval(command) do
+    node = "cli-rpc#{System.unique_integer()}@127.0.0.1"
+    elixir('--name #{node} --rpc-eval #{node} \'#{command}\'')
+  end
+
+  test "invokes command on remote node" do
+    assert rpc_eval("IO.puts :ok") == "ok\n"
+  end
+
+  test "properly formats errors" do
+    assert String.starts_with?(rpc_eval(":erlang.throw 1"), "** (throw) 1")
+    assert String.starts_with?(rpc_eval(":erlang.error 1"), "** (ErlangError) Erlang error: 1")
+    assert String.starts_with?(rpc_eval("1 +"), "** (TokenMissingError)")
+
+    assert rpc_eval("Task.async(fn -> raise ArgumentError end) |> Task.await") =~
+             "an exception was raised:\n    ** (ArgumentError) argument error"
+
+    assert rpc_eval("IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})") ==
+             "false\n"
+  end
+end
+
+defmodule Kernel.CLI.AtExitTest do
+  use ExUnit.Case, async: true
+
+  test "invokes at_exit callbacks" do
+    assert elixir(fixture_path("at_exit.exs") |> to_charlist) ==
+             "goodbye cruel world with status 1\n"
   end
 end
 
@@ -108,8 +132,8 @@ defmodule Kernel.CLI.CompileTest do
 
   test "fails on missing patterns", context do
     output = elixirc('#{context[:fixture]} non_existing.ex -o #{context[:tmp_dir_path]}')
-    assert String.contains?(output, "non_existing.ex")
-    refute String.contains?(output, "compile_sample.ex")
+    assert output =~ "non_existing.ex"
+    refute output =~ "compile_sample.ex"
     refute File.exists?(context[:beam_file_path])
   end
 
