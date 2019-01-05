@@ -529,6 +529,38 @@ defmodule System do
   end
 
   @doc """
+  Returns the operating system PID for the current Erlang runtime system instance.
+
+  Returns a string containing the (usually) numerical identifier for a process.
+  On UNIX, this is typically the return value of the `getpid()` system call.
+  On Windows, the process id as returned by the `GetCurrentProcessId()` system
+  call is used.
+
+  ## Examples
+
+      System.pid
+
+  """
+  @doc since: "1.9.0"
+  def pid do
+    List.to_string(:os.getpid())
+  end
+
+  @doc """
+  Restarts all applications in the Erlang runtime system.
+
+  All applications are taken down smoothly, all code is unloaded, and all ports
+  are closed before the system starts all applications once again.
+
+  ## Examples
+
+      System.restart()
+
+  """
+  @doc since: "1.9.0"
+  defdelegate restart(), to: :init
+
+  @doc """
   Carefully stops the Erlang runtime system.
 
   All applications are taken down smoothly, all code is unloaded, and all ports
@@ -539,8 +571,6 @@ defmodule System do
 
   Note that on many platforms, only the status codes 0-255 are supported
   by the operating system.
-
-  For more information, see `:init.stop/1`.
 
   ## Examples
 
