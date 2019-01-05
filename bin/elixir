@@ -83,8 +83,11 @@ while [ $I -le $# ]; do
         ;;
     -v|--compile|--no-halt)
         ;;
-    -e|-r|-pr|-pa|-pz|--app|--eval|--rpc-eval|--remsh)
+    -e|-r|-pr|-pa|-pz|--app|--eval|--remsh)
         S=2
+        ;;
+    --rpc-eval)
+        S=3
         ;;
     --hidden)
         ERL="$ERL -hidden"
