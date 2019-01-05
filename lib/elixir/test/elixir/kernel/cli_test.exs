@@ -77,7 +77,7 @@ defmodule Kernel.CLI.RPCTest do
 
   defp rpc_eval(command) do
     node = "cli-rpc#{System.unique_integer()}@127.0.0.1"
-    elixir('--name #{node} --rpc-eval #{node} \'#{command}\'')
+    elixir('--name #{node} --rpc-eval #{node} "#{command}"')
   end
 
   test "invokes command on remote node" do
