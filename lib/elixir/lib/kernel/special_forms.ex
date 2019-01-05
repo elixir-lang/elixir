@@ -246,13 +246,13 @@ defmodule Kernel.SpecialForms do
       iex> {name, species}
       {"Frank", "Walrus"}
 
-  And the variable can be defined in the match itself:
+  And the variable can be defined in the match itself (prior to its use):
 
       iex> <<name_size::size(8), name::binary-size(name_size), " the ", species::binary>> = <<5, "Frank the Walrus">>
       iex> {name, species}
       {"Frank", "Walrus"}
 
-  However, the size cannot be defined outside the binary/bitstring match:
+  However, the size cannot be defined in the match outside the binary/bitstring match:
 
       {name_size, <<name::binary-size(name_size), _rest::binary>>} = {5, <<"Frank the Walrus">>}
       ** (CompileError): undefined variable "name_size" in bitstring segment
