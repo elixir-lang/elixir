@@ -426,14 +426,59 @@ defmodule LoggerTest do
     assert Application.get_env(:logger, :discard_threshold) == 10_000
     assert Application.get_env(:logger, :translator_inspect_opts) == [limit: 3]
 
-    logger_data = Logger.Config.__data__()
-    assert logger_data.truncate == 4048
-    assert logger_data.utc_log == true
+    {_, log_data} = Logger.Config.log_data(:debug)
+    assert log_data.utc_log == true
+
+    translation_data = Logger.Config.translation_data()
+    assert translation_data.truncate == 4048
   after
     Logger.configure(sync_threshold: 20)
     Logger.configure(truncate: 8096)
     Logger.configure(utc_log: false)
     Logger.configure(discard_threshold: 500)
     Logger.configure(translator_inspect_opts: [])
+  end
+
+  test "logs when discarding messages" do
+    assert :ok = Logger.configure(discard_threshold: 5)
+
+    log =
+      capture_log(fn ->
+        :sys.suspend(Logger)
+        for _ <- 1..10, do: Logger.warn("warning!")
+        :sys.resume(Logger)
+        Logger.flush()
+
+        # This is a private message but the simplest way to test this functionality
+        send(Logger, {Logger.Config, :update_counter})
+
+        # We need to flush twice. Once for the send and another for the log in send
+        Logger.flush()
+        Logger.flush()
+      end)
+
+    assert log =~ ~r"\[warn\]  Attempted to log \d+ messages, which is above :discard_threshold"
+    assert log =~ ~r"\[warn\]  Attempted to log \d+ messages, which is below :discard_threshold"
+  after
+    :sys.resume(Logger)
+    assert :ok = Logger.configure(discard_threshold: 500)
+  end
+
+  test "restarts Logger.Config on Logger exits" do
+    Process.whereis(Logger) |> Process.exit(:kill)
+    wait_for_logger()
+    wait_for_handler(Logger, Logger.Config)
+  end
+
+  test "updates config on config_change/3" do
+    :ok = Logger.configure(level: :debug)
+
+    try do
+      Application.put_env(:logger, :level, :error)
+      assert Logger.App.config_change([level: :error], [], []) === :ok
+      assert Logger.level() === :error
+    after
+      Logger.configure(level: :debug)
+    end
   end
 end

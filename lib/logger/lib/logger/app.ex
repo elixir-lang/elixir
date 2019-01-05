@@ -17,18 +17,18 @@ defmodule Logger.App do
         [%{id: Logger.ErrorHandler, start: {Logger.Watcher, :start_link, [arg]}}]
       end
 
+    config = Logger.Config.new()
+
     children = [
       %{
         id: :gen_event,
         start: {:gen_event, :start_link, [{:local, Logger}]},
         modules: :dynamic
       },
-      {Logger.Watcher, {Logger, Logger.Config, []}},
+      {Logger.Watcher, {Logger, Logger.Config, config}},
       Logger.BackendSupervisor
       | otp_children
     ]
-
-    config = Logger.Config.new()
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->

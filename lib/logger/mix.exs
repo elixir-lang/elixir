@@ -23,6 +23,7 @@ defmodule Logger.MixProject do
         discard_threshold: 500,
         handle_otp_reports: true,
         handle_sasl_reports: false,
+        discard_threshold_periodic_check: 30_000,
         discard_threshold_for_error_logger: 500,
         compile_time_purge_level: :debug,
         compile_time_purge_matching: [],
