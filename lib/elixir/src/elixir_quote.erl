@@ -140,9 +140,8 @@ annotate(Tree, _Context) -> Tree.
 
 has_unquotes({unquote, _, [_]}) -> true;
 has_unquotes({unquote_splicing, _, [_]}) -> true;
+has_unquotes({{'.', _, [_, unquote]}, _, [_]}) -> true;
 has_unquotes({Var, _, Ctx}) when is_atom(Var), is_atom(Ctx) -> false;
-has_unquotes({Name, _, Args}) when is_atom(Name), is_list(Args) ->
-  lists:any(fun has_unquotes/1, Args);
 has_unquotes({Name, _, Args}) when is_list(Args) ->
   has_unquotes(Name) orelse lists:any(fun has_unquotes/1, Args);
 has_unquotes({Left, Right}) ->
