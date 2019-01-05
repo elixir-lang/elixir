@@ -133,15 +133,23 @@ defmodule Logger do
       `:sync_threshold` messages in its queue, `Logger` will change
       to *sync mode*, to apply backpressure to the clients.
       `Logger` will return to *async mode* once the number of messages
-      in the queue is reduced to `sync_threshold * 0.75` messages.
-      Defaults to 20 messages. `:sync_threshold` can be set to `0` to force *sync mode*.
+      in the queue is reduced to one below the `sync_threshold`.
+      Defaults to 20 messages. `:sync_threshold` can be set to `0` to
+      force *sync mode*.
 
     * `:discard_threshold` - if the `Logger` manager has more than
       `:discard_threshold` messages in its queue, `Logger` will change
       to *discard mode* and messages will be discarded directly in the
       clients. `Logger` will return to *sync mode* once the number of
-      messages in the queue is reduced to `discard_threshold * 0.75`
-      messages. Defaults to 500 messages.
+      messages in the queue is reduced to one below the `discard_threshold`.
+      Defaults to 500 messages.
+
+    * `:discard_threshold_periodic_check` - a periodic check that
+      checks and reports if logger is discarding messages. It logs a warn
+      message whenever the system is (or continues) in discard mode and
+      it logs a warn message whenever if the system was discarding messages
+      but stopped doing so after the previous check. By default it runs
+      every `30_000` milliseconds.
 
     * `:translator_inspect_opts` - when translating OTP reports and
       errors, the last message and state must be inspected in the
@@ -501,10 +509,7 @@ defmodule Logger do
   The `Logger` level can be changed via `configure/1`.
   """
   @spec level() :: level
-  def level() do
-    %{level: level} = Logger.Config.__data__()
-    level
-  end
+  defdelegate level(), to: Logger.Config
 
   @doc """
   Compares log levels.
@@ -525,18 +530,7 @@ defmodule Logger do
 
   """
   @spec compare_levels(level, level) :: :lt | :eq | :gt
-  def compare_levels(level, level) do
-    :eq
-  end
-
-  def compare_levels(left, right) do
-    if level_to_number(left) > level_to_number(right), do: :gt, else: :lt
-  end
-
-  defp level_to_number(:debug), do: 0
-  defp level_to_number(:info), do: 1
-  defp level_to_number(:warn), do: 2
-  defp level_to_number(:error), do: 3
+  defdelegate compare_levels(left, right), to: Logger.Config
 
   @doc """
   Configures the logger.
@@ -669,12 +663,9 @@ defmodule Logger do
   def __should_log__(level) when level in @levels do
     case __metadata__() do
       {true, pdict} ->
-        %{mode: mode, level: min_level} = config = Logger.Config.__data__()
-
-        if compare_levels(level, min_level) != :lt and mode != :discard do
-          {level, config, pdict}
-        else
-          :error
+        case Logger.Config.log_data(level) do
+          {:discard, _config} -> :error
+          {mode, config} -> {level, mode, config, pdict}
         end
 
       {false, _} ->
@@ -683,8 +674,9 @@ defmodule Logger do
   end
 
   @doc false
-  def __do_log__({level, config, pdict}, chardata_or_fun, metadata) when is_list(metadata) do
-    %{utc_log: utc_log?, truncate: truncate, mode: mode} = config
+  def __do_log__({level, mode, config, pdict}, chardata_or_fun, metadata)
+      when is_list(metadata) do
+    %{utc_log: utc_log?, truncate: truncate} = config
     metadata = [pid: self()] ++ into_metadata(metadata, pdict)
 
     case normalize_message(chardata_or_fun, metadata) do
@@ -829,7 +821,7 @@ defmodule Logger do
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
-          compare_levels(level, min_level) == :lt
+          Logger.Config.compare_levels(level, min_level) == :lt
 
         {k, v} when is_atom(k) ->
           Keyword.fetch(compile_metadata, k) == {:ok, v}
@@ -845,7 +837,7 @@ defmodule Logger do
   defp maybe_log(level, data, metadata, caller) do
     min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)
 
-    if compare_levels(level, min_level) != :lt do
+    if Logger.Config.compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
       no_log(data, metadata)

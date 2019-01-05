@@ -82,13 +82,9 @@ defmodule Logger.ErrorHandler do
   defp log_event(_, _state), do: :ok
 
   defp log_event(level, kind, gl, pid, {type, _} = data, state) do
-    %{
-      mode: mode,
-      level: min_level,
-      utc_log: utc_log?
-    } = Logger.Config.__data__()
+    {mode, %{utc_log: utc_log?}} = Logger.Config.log_data(level)
 
-    with true <- Logger.compare_levels(level, min_level) != :lt and mode != :discard,
+    with true <- mode != :discard,
          meta = [pid: ensure_pid(pid), error_logger: ensure_type(type)],
          {message, meta} <- Logger.ErlangHandler.translate(level, kind, data, meta, %{}) do
       # Mode is always async to avoid clogging the error_logger
@@ -126,9 +122,12 @@ defmodule Logger.ErrorHandler do
           "its inbox, exceeding the amount of :discard_threshold #{discard_threshold} messages. " <>
           "The number of messages was reduced to #{keep_threshold} (75% of the threshold)"
 
-      %{utc_log: utc_log?} = Logger.Config.__data__()
-      event = {Logger, message, Logger.Utils.timestamp(utc_log?), pid: self()}
-      :gen_event.notify(state.logger, {:warn, Process.group_leader(), event})
+      {mode, %{utc_log: utc_log?}} = Logger.Config.log_data(:warn)
+
+      if mode != :discard do
+        event = {Logger, message, Logger.Utils.timestamp(utc_log?), pid: self()}
+        :gen_event.notify(state.logger, {:warn, Process.group_leader(), event})
+      end
 
       # We won't check the threshold for the next 10% of the threshold messages
       %{state | skip: trunc(discard_threshold * 0.1)}
