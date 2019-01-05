@@ -2394,6 +2394,24 @@ defmodule Kernel.ExpansionTest do
       expand(code)
     end
 
+    assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
+      code =
+        quote do
+          fn <<_::size(foo), foo::size(8)>> -> :ok end
+        end
+
+      expand(code)
+    end
+
+    assert_raise CompileError, ~r/undefined variable "foo" in bitstring segment/, fn ->
+      code =
+        quote do
+          fn foo, <<_::size(foo)>> -> :ok end
+        end
+
+      expand(code)
+    end
+
     message = ~r"size in bitstring expects an integer or a variable as argument, got: foo()"
 
     assert_raise CompileError, message, fn ->
