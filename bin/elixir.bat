@@ -51,12 +51,7 @@ echo   --boot-var VAR "VALUE"       Makes $VAR available as VALUE to FILE.boot (
 echo   --pipe-to "PIPEDIR" "LOGDIR" Starts the Erlang VM as a named PIPEDIR and LOGDIR
 echo   --vm-args "FILE"             Passes the contents in file as arguments to the VM
 echo.
-echo --pipe-to (UNIX only) starts Elixir under run_erl dettached from
-echo console. You can reattach to it by running: to_erl PIPEDIR.
-echo It will attempt to create PIPEDIR and LOGDIR if they don't exist.
-echo.
-echo --pipe-to automatically sets $HEART_COMMAND if none is set.
-echo See the -heart mode of the Erlang VM for more information.
+echo --pipe-to is not supported on Windows. If set, Elixir won't boot.
 echo.
 echo ** Options marked with (*) can be given more than once.
 goto end
@@ -118,6 +113,7 @@ if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 &&
 if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 && shift)
 if """"=="%par:--vm-args=%"             (set parsErlang=%parsErlang% -args_file %1 && shift)
 if """"=="%par:--erl=%"                 (set "beforeExtra=%beforeExtra% %~1" && shift)
+if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto:end)
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
