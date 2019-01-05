@@ -925,7 +925,7 @@ defmodule IEx.HelpersTest do
   describe "exports" do
     test "prints module exports" do
       exports = capture_io(fn -> exports(IEx.Autocomplete) end)
-      assert exports == "expand/1      expand/2      exports/1     \n"
+      assert exports == "expand/1      expand/2      exports/1     remsh/1       \n"
     end
   end
 
