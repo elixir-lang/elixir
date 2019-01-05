@@ -24,7 +24,7 @@ defmodule PathHelpers do
   end
 
   def elixir(args) do
-    runcmd(elixir_executable(), args)
+    run_cmd(elixir_executable(), args)
   end
 
   def elixir_executable do
@@ -32,7 +32,7 @@ defmodule PathHelpers do
   end
 
   def elixirc(args) do
-    runcmd(elixirc_executable(), args)
+    run_cmd(elixirc_executable(), args)
   end
 
   def elixirc_executable do
@@ -46,12 +46,10 @@ defmodule PathHelpers do
     res
   end
 
-  defp runcmd(executable, args) do
-    :os.cmd(
-      :binary.bin_to_list(
-        "#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win()}"
-      )
-    )
+  defp run_cmd(executable, args) do
+    '#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win()}'
+    |> :os.cmd()
+    |> :binary.list_to_bin()
   end
 
   defp executable_path(name) do
