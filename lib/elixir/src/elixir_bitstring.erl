@@ -395,5 +395,6 @@ format_error({nested_match, Expr}) ->
 format_error({undefined_var_in_spec, Var}) ->
   Message =
     "undefined variable \"~ts\" in bitstring segment. If the size of the binary is a "
-      "variable, the variable must be defined prior to the pattern match",
+      "variable, the variable must be defined prior to its use in the binary/bitstring match "
+      "itself, or outside the pattern match",
   io_lib:format(Message, ['Elixir.Macro':to_string(Var)]).
