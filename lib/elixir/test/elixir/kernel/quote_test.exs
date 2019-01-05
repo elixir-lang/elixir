@@ -91,16 +91,24 @@ defmodule Kernel.QuoteTest do
     assert nested_quote_in_macro() == 1
   end
 
-  Enum.each([foo: 1, bar: 2, baz: 3], fn {k, v} ->
-    def unquote(k)(arg) do
-      unquote(v) + arg
+  defmodule Dyn do
+    for {k, v} <- [foo: 1, bar: 2, baz: 3] do
+      # Local call unquote
+      def unquote(k)(), do: unquote(v)
+
+      # Remote call unquote
+      def unquote(k)(arg), do: __MODULE__.unquote(k)() + arg
     end
-  end)
+  end
 
   test "dynamic definition with unquote" do
-    assert foo(1) == 2
-    assert bar(2) == 4
-    assert baz(3) == 6
+    assert Dyn.foo() == 1
+    assert Dyn.bar() == 2
+    assert Dyn.baz() == 3
+
+    assert Dyn.foo(1) == 2
+    assert Dyn.bar(2) == 4
+    assert Dyn.baz(3) == 6
   end
 
   test "splice on root" do
@@ -287,7 +295,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, :will_raise, 2, [file: ^file, line: 267]} | _] = __STACKTRACE__
+        assert [{^mod, :will_raise, 2, [file: ^file, line: 275]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -300,7 +308,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, _, _, [file: ^file, line: 298]} | _] = __STACKTRACE__
+        assert [{^mod, _, _, [file: ^file, line: 306]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
