@@ -358,9 +358,23 @@ defmodule Mix.Tasks.Format do
       Mix.raise("Expected :inputs or :subdirectories key in #{dot_formatter}")
     end
 
+    subdirectories =
+      formatter_opts[:subdirectories]
+      |> List.wrap()
+      |> Enum.map(&Path.join(prefix ++ [&1]))
+      |> Enum.map(&Path.wildcard(&1))
+
+    files =
+      formatter_opts[:inputs]
+      |> List.wrap()
+      |> Enum.map(&Path.join(prefix ++ [&1]))
+      |> Enum.flat_map(&Path.wildcard(&1, match_dot: true))
+      |> Enum.reject(fn file ->
+        Enum.any?(subdirectories, &String.starts_with?(file, &1))
+      end)
+
     map =
-      for input <- List.wrap(formatter_opts[:inputs]),
-          file <- Path.wildcard(Path.join(prefix ++ [input]), match_dot: true),
+      for file <- files,
           do: {expand_relative_to_cwd(file), {dot_formatter, formatter_opts}},
           into: %{}
 
