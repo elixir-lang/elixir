@@ -34,10 +34,6 @@ defmodule Kernel.CLI.ARGVTest do
                       ["--hidden", "sample.exs", "-o", "1", "2"]
            end) == "ok\n"
   end
-end
-
-defmodule Kernel.CLI.OptionParsingTest do
-  use ExUnit.Case, async: true
 
   test "properly parses paths" do
     root = fixture_path("../../..") |> to_charlist
@@ -60,7 +56,7 @@ defmodule Kernel.CLI.AtExitTest do
 
   test "invokes at_exit callbacks" do
     assert elixir(fixture_path("at_exit.exs") |> to_charlist) ==
-             'goodbye cruel world with status 1\n'
+             "goodbye cruel world with status 1\n"
   end
 end
 
@@ -68,15 +64,16 @@ defmodule Kernel.CLI.ErrorTest do
   use ExUnit.Case, async: true
 
   test "properly format errors" do
-    assert :string.str('** (throw) 1', elixir('-e "throw 1"')) == 0
-    assert :string.str('** (ErlangError) Erlang error: 1', elixir('-e "error 1"')) == 0
+    assert String.starts_with?(elixir('-e ":erlang.throw 1"'), "** (throw) 1")
+    assert String.starts_with?(elixir('-e ":erlang.error 1"'), "** (ErlangError) Erlang error: 1")
+    assert String.starts_with?(elixir('-e "1 +"'), "** (TokenMissingError)")
 
     assert elixir('-e "IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})"') ==
-             'false\n'
+             "false\n"
   end
 
   test "blames exceptions" do
-    error = to_string(elixir('-e "Access.fetch :foo, :bar"'))
+    error = elixir('-e "Access.fetch :foo, :bar"')
     assert error =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
     assert error =~ "The following arguments were given to Access.fetch/2"
     assert error =~ ":foo"
@@ -99,7 +96,7 @@ defmodule Kernel.CLI.CompileTest do
   end
 
   test "compiles code", context do
-    assert elixirc('#{context[:fixture]} -o #{context[:tmp_dir_path]}') == ''
+    assert elixirc('#{context[:fixture]} -o #{context[:tmp_dir_path]}') == ""
     assert File.regular?(context[:beam_file_path])
 
     # Assert that the module is loaded into memory with the proper destination for the BEAM file.
@@ -111,23 +108,19 @@ defmodule Kernel.CLI.CompileTest do
 
   test "fails on missing patterns", context do
     output = elixirc('#{context[:fixture]} non_existing.ex -o #{context[:tmp_dir_path]}')
-    assert :string.str(output, 'non_existing.ex') > 0, "expected non_existing.ex to be mentioned"
-
-    assert :string.str(output, 'compile_sample.ex') == 0,
-           "expected compile_sample.ex to not be mentioned"
-
-    refute File.exists?(context[:beam_file_path]), "expected the sample to not be compiled"
+    assert String.contains?(output, "non_existing.ex")
+    refute String.contains?(output, "compile_sample.ex")
+    refute File.exists?(context[:beam_file_path])
   end
 
   test "fails on missing write access to .beam file", context do
     compilation_args = '#{context[:fixture]} -o #{context[:tmp_dir_path]}'
 
-    assert elixirc(compilation_args) == ''
+    assert elixirc(compilation_args) == ""
     assert File.regular?(context[:beam_file_path])
 
     # Set the .beam file to read-only
     File.chmod!(context[:beam_file_path], 4)
-
     {:ok, %{access: access}} = File.stat(context[:beam_file_path])
 
     # Can only assert when read-only applies to the user
@@ -135,11 +128,9 @@ defmodule Kernel.CLI.CompileTest do
       output = elixirc(compilation_args)
 
       expected =
-        '(File.Error) could not write to "' ++
-          String.to_charlist(context[:beam_file_path]) ++ '": permission denied'
+        "(File.Error) could not write to #{inspect(context[:beam_file_path])}: permission denied"
 
-      assert :string.str(output, expected) > 0,
-             "expected compilation error message due to not having write access"
+      assert String.contains?(output, expected)
     end
   end
 end
