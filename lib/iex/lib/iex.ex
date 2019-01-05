@@ -797,8 +797,7 @@ defmodule IEx do
 
     expand_fun =
       if glnode != node() do
-        _ = ensure_module_exists(glnode, IEx.Remsh)
-        IEx.Remsh.expand(node())
+        IEx.Autocomplete.remsh(node())
       else
         &IEx.Autocomplete.expand(&1)
       end
@@ -808,13 +807,6 @@ defmodule IEx do
     # about the result of the expand_fun one.
     _ = :io.setopts(gl, expand_fun: expand_fun)
     :io.setopts(gl, binary: true, encoding: :unicode)
-  end
-
-  defp ensure_module_exists(node, mod) do
-    unless :rpc.call(node, :code, :is_loaded, [mod]) do
-      {m, b, f} = :code.get_object_code(mod)
-      {:module, _} = :rpc.call(node, :code, :load_binary, [m, f, b])
-    end
   end
 
   defp run_after_spawn do
