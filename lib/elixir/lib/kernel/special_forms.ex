@@ -252,6 +252,11 @@ defmodule Kernel.SpecialForms do
       iex> {name, species}
       {"Frank", "Walrus"}
 
+  However, the size cannot be defined outside the binary/bitstring match:
+
+      {name_size, <<name::binary-size(name_size), _rest::binary>>} = {5, <<"Frank the Walrus">>}
+      ** (CompileError): undefined variable "name_size" in bitstring segment
+
   Failing to specify the size for the non-last causes compilation to fail:
 
       <<name::binary, " the ", species::binary>> = <<"Frank the Walrus">>
