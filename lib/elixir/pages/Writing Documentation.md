@@ -17,6 +17,7 @@ Documentation in Elixir is usually attached to module attributes. Let's see an e
       @moduledoc """
       This is the Hello module.
       """
+      @moduledoc since: "1.0.0"
 
       @doc """
       Says hello to the given `name`.
@@ -29,12 +30,13 @@ Documentation in Elixir is usually attached to module attributes. Let's see an e
           :ok
 
       """
+      @doc since: "1.3.0"
       def world(name) do
         IO.puts "hello #{name}"
       end
     end
 
-The `@moduledoc` attribute is used to add documentation to the module. `@doc` is used before a function to provide documentation for it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs.
+The `@moduledoc` attribute is used to add documentation to the module. `@doc` is used before a function to provide documentation for it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs. Elixir also allows metadata to be attached to documentation, by passing a keyword list to `@doc` and friends.
 
 ## Function Arguments
 
@@ -53,17 +55,9 @@ The compiler will infer this argument as `map`. Sometimes the inference will be 
 
 ## Documentation metadata
 
-Elixir allows developers to attach random metadata to the documentation too. This is done by using the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`) and passing a keyword list where the key is the metadata key and the value is the metadata value. A commonly used metadata is `:since`, which annotates in which version that particular module, function, type, or callback was added. For instance, in the example above we could have added:
+Elixir allows developers to attach random metadata to the documentation. This is done by passing a keyword list to the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`). A commonly used metadata is `:since`, which annotates in which version that particular module, function, type, or callback was added on, as shown in the example above.
 
-    defmodule MyApp.Hello do
-      ...
-      @moduledoc since: "1.0.0"
-      
-      ...
-      @doc since: "1.3.0"
-    end
-
-Another existing metadata is `:deprecated`, which emits a warning in the documentation that usage of the function is discouraged:
+Another common metadata is `:deprecated`, which emits a warning in the documentation that usage of the function is discouraged:
 
     @doc deprecated: "Use Foo.bar/2 instead"
 
@@ -71,7 +65,7 @@ Note the `:deprecated` does not warn when a developer invokes the functions. If 
 
     @deprecated "Use Foo.bar/2 instead"
 
-Metadata can have any key and is often used by documentation tools to provide more accessible ways to traverse your project's documentation.
+Metadata can have any key. Documentation tools often use metadata to provide more data to readers and enrich the user experience.
 
 ## Recommendations
 
@@ -101,20 +95,20 @@ We recommend that developers include examples in their documentation, often unde
 
 Notice doctests have limitations. When you cannot doctest a function, because it relies on state or side-effects, we recommend developers include examples directly without the `iex>` prompt.
 
-## Documentation != Code Comments
+## Documentation != Code comments
 
 Elixir treats documentation and code comments as different concepts. Documentation is a explicit contract between you and users of your Application Programming Interface (API), be them 3rd-party developers, co-workers or your future self. Modules and functions must always be documented if they are part of your API.
 
 Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, why you had to resort to a workaround due to a bug in a library) and so forth. Code comments are tied to the source code. You can completely rewrite a function, remove all existing code comments, and it can continue to behave the same, with no change to its behaviour or its documentation.
 
-Because private functions cannot be accessed externally and effectively exist only in your source code, you can't attach a `@doc` attribute to private functions. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to readers and maintainers of the code.
+Because private functions cannot be accessed externally and effectively exist only in your source code, Elixir will warns if a private function has a `@doc` attribute and discards its content. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to readers and maintainers of the code.
 
 Finally, beware of redundant code comments, such as code comments that are describing the exact same as the code:
 
     # Total is the sum of the batch and individual entries
     total = batch_sum + individual_sum
 
-In summary, documentation is a contract with users of your API (who do not necessarily have access to source) and code comments are for those who interact directly with the source. You can learn and express many different things about your software by separating those two concepts.
+In summary, documentation is a contract with users of your API (who do not necessarily have access to source) and code comments are for those who interact directly with the source. You can learn and express different guarantees about your software by separating those two concepts.
 
 ## Hiding Internal Modules and Functions
 
