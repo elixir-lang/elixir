@@ -77,13 +77,22 @@ We recommend that developers include examples in their documentation, often unde
 
 Notice doctests have limitations. When you cannot doctest a function, because it relies on state or side-effects, we recommend developers include examples directly without the `iex>` prompt.
 
-## Documentation != Comments
+## Documentation != Code Comments
 
 Elixir treats documentation and code comments as different concepts. Documentation is for users of your Application Programming Interface (API), be it your co-worker or your future self. Modules and functions must always be documented if they are part of your API.
 
 Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, you decided not to call a function due to a bug in a library) and so forth.
 
-In other words: documentation is required, code comments are optional.
+Because private functions cannot be accessed externally and effectively exist only in your source code, you can't attach a `@doc` attribute to private functions. However, you can attach code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to readers and maintainers of the code.
+
+Finally, beware of redundant code comments, such as code comments that are describing the exact same as the code:
+
+```elixir
+# Total is the sum of the batch and invidual entries
+total = batch_sum + individual_sum
+```
+
+In other words, documentation are for users of your API (who do not necessarily have access to source) and code comments are for those who interact with the source.
 
 ## Hiding Internal Modules and Functions
 
@@ -114,12 +123,6 @@ However, keep in mind that adding `@doc false` does not make the function privat
   * Move the undocumented function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. Remember you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
 
   * Start the function name with one or two underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with leading underscores and they hint to anyone reading the code of their intended private usage.
-
-## Documenting Private Functions
-
-Elixir warns if a private function has a `@doc` attribute and discards its content, because `@doc` is intended to be used only for your public interface.
-
-Private functions may still need internal documentation for maintainers, though. That can be accomplished with code comments.
 
 ## Code.fetch_docs/1
 
