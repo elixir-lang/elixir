@@ -279,6 +279,8 @@ defmodule StringIO do
       {_, _, _} ->
         {{:error, req}, state}
     end
+  rescue
+    ArgumentError -> {{:error, req}, state}
   end
 
   ## get_chars

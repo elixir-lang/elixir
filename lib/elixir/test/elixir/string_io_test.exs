@@ -137,6 +137,14 @@ defmodule StringIOTest do
     assert StringIO.contents(pid) == {"", "あいう"}
   end
 
+  test "IO.write with non-printable arguments" do
+    {:ok, pid} = StringIO.open("")
+
+    assert_raise ArgumentError, fn ->
+      IO.write(pid, [<<1::1>>])
+    end
+  end
+
   test "IO.binwrite" do
     {:ok, pid} = StringIO.open("")
     assert IO.binwrite(pid, "foo") == :ok
@@ -158,6 +166,14 @@ defmodule StringIOTest do
     {:ok, pid} = StringIO.open("")
     assert IO.puts(pid, "abc") == :ok
     assert StringIO.contents(pid) == {"", "abc\n"}
+  end
+
+  test "IO.puts with non-printable arguments" do
+    {:ok, pid} = StringIO.open("")
+
+    assert_raise ArgumentError, fn ->
+      IO.puts(pid, [<<1::1>>])
+    end
   end
 
   test "IO.inspect" do
