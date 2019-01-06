@@ -51,6 +51,28 @@ The compiler will infer this argument as `map`. Sometimes the inference will be 
       size
     end
 
+## Documentation metadata
+
+Elixir allows developers to attach random metadata to the documentation too. This is done by using the relevant attribute, such as `@moduledoc`, `@typedoc` and `@doc` and passing a keyword list where the key is the metadata key and value is the metadata value. A commonly used metadata is `:since`, which annotates which version that particular module, function, type or callback was added. For instance, in the example above we could have added:
+
+    defmodule MyApp.Hello do
+      ...
+      @moduledoc since: "1.0.0"
+      
+      ...
+      @doc since: "1.3.0"
+    end
+
+Another existing metadata is `:deprecated`, which emits a warning in the documentation that usage of the function is discouraged:
+
+    @doc deprecated: "Use Foo.bar/2 instead"
+
+Note the `:deprecated` does not warn when a developer invokes the functions. If you want the code to also emit a warning, you can use the `@deprecated` attribute:
+
+    @deprecated "Use Foo.bar/2 instead"
+
+Metadata can have any key and is often by documentation tools to provide more accessible ways to traverse your project's documentation.
+
 ## Recommendations
 
 When writing documentation:
@@ -59,7 +81,7 @@ When writing documentation:
 
   * Reference modules by their full name.
 
-  Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when module or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``.
+    Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when module or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``.
 
   * Reference functions by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``.
 
@@ -70,6 +92,8 @@ When writing documentation:
   * Start new sections with second level Markdown headers `##`. First level headers are reserved for module and function names.
 
   * Place documentation before the first clause of multi-clause functions. Documentation is always per function and arity and not per clause.
+  
+  * Use the `:since` key in the documentation metadata to annotate whenever new functions are added to your API.
 
 ## Doctests
 
@@ -83,22 +107,20 @@ Elixir treats documentation and code comments as different concepts. Documentati
 
 Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, you decided not to call a function due to a bug in a library) and so forth.
 
-Because private functions cannot be accessed externally and effectively exist only in your source code, you can't attach a `@doc` attribute to private functions. However, you can attach code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to readers and maintainers of the code.
+Because private functions cannot be accessed externally and effectively exist only in your source code, you can't attach a `@doc` attribute to private functions. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to readers and maintainers of the code.
 
 Finally, beware of redundant code comments, such as code comments that are describing the exact same as the code:
 
-```elixir
-# Total is the sum of the batch and invidual entries
-total = batch_sum + individual_sum
-```
+    # Total is the sum of the batch and invidual entries
+    total = batch_sum + individual_sum
 
-In other words, documentation are for users of your API (who do not necessarily have access to source) and code comments are for those who interact with the source.
+In summary, documentation are for users of your API (who do not necessarily have access to source) and code comments are for those who interact with the source.
 
 ## Hiding Internal Modules and Functions
 
 Besides the modules and functions libraries provide as part of their public interface, libraries may also implement important functionality that is not part of their API. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
 
-Luckily, Elixir allows developers to hide modules and functions from the documentation. For example, one common practice for documenting internal behaviour is to set the `@moduledoc` attribute to `false` while documenting each function:
+Luckily, Elixir allows developers to hide modules and functions from the documentation by setting `@doc false`, to hide a particular function, or `@moduledoc false` to hide the whole module. If a module is hidden, you may even document the functions in the module, but the module itself nor any of its functions will be included in the documentation:
 
     defmodule MyApp.Hidden do
       @moduledoc false
@@ -109,13 +131,6 @@ Luckily, Elixir allows developers to hide modules and functions from the documen
       def function_that_wont_be_listed_in_docs do
         # ...
       end
-    end
-
-Similarly, developers can add `@doc false` to functions they do not want to be publicly exposed:
-
-    defmodule MyApp.Sample do
-      @doc false
-      def add(a, b), do: a + b
     end
 
 However, keep in mind that adding `@doc false` does not make the function private. The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead use one of these two options:
