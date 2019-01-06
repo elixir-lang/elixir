@@ -103,9 +103,9 @@ Notice doctests have limitations. When you cannot doctest a function, because it
 
 ## Documentation != Code Comments
 
-Elixir treats documentation and code comments as different concepts. Documentation is for users of your Application Programming Interface (API), be it your co-worker or your future self. Modules and functions must always be documented if they are part of your API.
+Elixir treats documentation and code comments as different concepts. Documentation is a explicit contract between you and users of your Application Programming Interface (API), be them 3rd-party developers, co-workers or your future self. Modules and functions must always be documented if they are part of your API.
 
-Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, you decided not to call a function due to a bug in a library) and so forth.
+Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, why you had to resort to a workaround due to a bug in a library) and so forth. Code comments are tied to the source code. You can completely rewrite a function, remove all existing code comments, and it can continue to behave the same, with no change to its behaviour or its documentation.
 
 Because private functions cannot be accessed externally and effectively exist only in your source code, you can't attach a `@doc` attribute to private functions. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to readers and maintainers of the code.
 
@@ -114,7 +114,7 @@ Finally, beware of redundant code comments, such as code comments that are descr
     # Total is the sum of the batch and invidual entries
     total = batch_sum + individual_sum
 
-In summary, documentation are for users of your API (who do not necessarily have access to source) and code comments are for those who interact with the source.
+In summary, documentation is a contract with users of your API (who do not necessarily have access to source) and code comments are for those who interact directly with the source. You can learn and express many different things about your software by separating those two concepts.
 
 ## Hiding Internal Modules and Functions
 
