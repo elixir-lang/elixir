@@ -748,15 +748,19 @@ defmodule List do
   @doc """
   Converts a charlist to an atom.
 
-  Currently Elixir does not support conversions from charlists
-  which contains Unicode codepoints greater than 0xFF.
+  As of Erlang/OTP 20, Elixir supports conversions from charlists which contains
+  any Unicode codepoint. Earlier versions did not support convertions from
+  charlists which contained Unicode codepoints greater than `0xFF`.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> List.to_atom('elixir')
-      :elixir
+      iex> List.to_atom('Elixir')
+      :Elixir
+
+      iex> List.to_atom('🌢 Elixir')
+      :"🌢 Elixir"
 
   """
   @spec to_atom(charlist) :: atom
@@ -768,8 +772,9 @@ defmodule List do
   Converts a charlist to an existing atom. Raises an `ArgumentError`
   if the atom does not exist.
 
-  Currently Elixir does not support conversions from charlists
-  which contains Unicode codepoints greater than 0xFF.
+  As of Erlang/OTP 20, Elixir supports conversions from charlists which contains
+  any Unicode codepoint. Earlier versions dit not supportconvertions from
+  charlists which contained Unicode codepoints greater than `0xFF`.
 
   Inlined by the compiler.
 
@@ -778,6 +783,10 @@ defmodule List do
       iex> _ = :my_atom
       iex> List.to_existing_atom('my_atom')
       :my_atom
+
+      iex> _ = :"🌢 Elixir"
+      iex> List.to_existing_atom('🌢 Elixir')
+      :"🌢 Elixir"
 
       iex> List.to_existing_atom('this_atom_will_never_exist')
       ** (ArgumentError) argument error
