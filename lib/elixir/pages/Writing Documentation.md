@@ -53,7 +53,7 @@ The compiler will infer this argument as `map`. Sometimes the inference will be 
 
 ## Documentation metadata
 
-Elixir allows developers to attach random metadata to the documentation too. This is done by using the relevant attribute, such as `@moduledoc`, `@typedoc` and `@doc` and passing a keyword list where the key is the metadata key and value is the metadata value. A commonly used metadata is `:since`, which annotates which version that particular module, function, type or callback was added. For instance, in the example above we could have added:
+Elixir allows developers to attach random metadata to the documentation too. This is done by using the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`) and passing a keyword list where the key is the metadata key and the value is the metadata value. A commonly used metadata is `:since`, which annotates in which version that particular module, function, type, or callback was added. For instance, in the example above we could have added:
 
     defmodule MyApp.Hello do
       ...
@@ -71,7 +71,7 @@ Note the `:deprecated` does not warn when a developer invokes the functions. If 
 
     @deprecated "Use Foo.bar/2 instead"
 
-Metadata can have any key and is often by documentation tools to provide more accessible ways to traverse your project's documentation.
+Metadata can have any key and is often used by documentation tools to provide more accessible ways to traverse your project's documentation.
 
 ## Recommendations
 
@@ -93,7 +93,7 @@ When writing documentation:
 
   * Place documentation before the first clause of multi-clause functions. Documentation is always per function and arity and not per clause.
   
-  * Use the `:since` key in the documentation metadata to annotate whenever new functions are added to your API.
+  * Use the `:since` key in the documentation metadata to annotate whenever new functions or modules are added to your API.
 
 ## Doctests
 
@@ -111,7 +111,7 @@ Because private functions cannot be accessed externally and effectively exist on
 
 Finally, beware of redundant code comments, such as code comments that are describing the exact same as the code:
 
-    # Total is the sum of the batch and invidual entries
+    # Total is the sum of the batch and individual entries
     total = batch_sum + individual_sum
 
 In summary, documentation is a contract with users of your API (who do not necessarily have access to source) and code comments are for those who interact directly with the source. You can learn and express many different things about your software by separating those two concepts.
@@ -120,7 +120,7 @@ In summary, documentation is a contract with users of your API (who do not neces
 
 Besides the modules and functions libraries provide as part of their public interface, libraries may also implement important functionality that is not part of their API. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
 
-Luckily, Elixir allows developers to hide modules and functions from the documentation by setting `@doc false`, to hide a particular function, or `@moduledoc false` to hide the whole module. If a module is hidden, you may even document the functions in the module, but the module itself nor any of its functions will be included in the documentation:
+Luckily, Elixir allows developers to hide modules and functions from the documentation, by setting `@doc false` to hide a particular function, or `@moduledoc false` to hide the whole module. If a module is hidden, you may even document the functions in the module, but neither the module itself nor any of its functions will be included in the documentation:
 
     defmodule MyApp.Hidden do
       @moduledoc false
