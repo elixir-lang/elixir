@@ -55,7 +55,7 @@ The compiler will infer this argument as `map`. Sometimes the inference will be 
 
 ## Documentation metadata
 
-Elixir allows developers to attach random metadata to the documentation. This is done by passing a keyword list to the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`). A commonly used metadata is `:since`, which annotates in which version that particular module, function, type, or callback was added on, as shown in the example above.
+Elixir allows developers to attach arbitrary metadata to the documentation. This is done by passing a keyword list to the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`). A commonly used metadata is `:since`, which annotates in which version that particular module, function, type, or callback was added, as shown in the example above.
 
 Another common metadata is `:deprecated`, which emits a warning in the documentation that usage of the function is discouraged:
 
