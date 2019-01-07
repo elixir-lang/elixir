@@ -69,7 +69,7 @@ defmodule Calendar.ISOTest do
   describe "day_of_year/3" do
     test "raises with invalid dates" do
       assert_raise ArgumentError, "invalid date", fn ->
-        Calendar.ISO.day_of_era(2018, 2, 30)
+        Calendar.ISO.day_of_year(2018, 2, 30)
       end
     end
   end
