@@ -97,7 +97,7 @@ Notice doctests have limitations. When you cannot doctest a function, because it
 
 ## Documentation != Code comments
 
-Elixir treats documentation and code comments as different concepts. Documentation is a explicit contract between you and users of your Application Programming Interface (API), be them third-party developers, co-workers or your future self. Modules and functions must always be documented if they are part of your API.
+Elixir treats documentation and code comments as different concepts. Documentation is an explicit contract between you and users of your Application Programming Interface (API), be them third-party developers, co-workers, or your future self. Modules and functions must always be documented if they are part of your API.
 
 Code comments are aimed at developers reading the code. They are useful to mark improvements, leave notes (for example, why you had to resort to a workaround due to a bug in a library), and so forth. Code comments are tied to the source code. You can completely rewrite a function, remove all existing code comments, and it will continue to behave the same, with no change to either its behaviour or its documentation.
 
