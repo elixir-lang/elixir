@@ -353,7 +353,7 @@ expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
 
 expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #{unused_vars := Unused, current_vars := Current, prematch_vars := Prematch} = E,
-  Pair = {Name, var_context(Meta, Kind)},
+  Pair = {Name, elixir_utils:var_context(Meta, Kind)},
   PrematchVersion = var_version(Prematch, Pair),
 
   EE =
@@ -381,7 +381,7 @@ expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is
   {Var, EE};
 expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
   #{unused_vars := Unused, current_vars := Current} = E,
-  Pair = {Name, var_context(Meta, Kind)},
+  Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
   case Current of
     #{Pair := {Version, _}} ->
@@ -616,12 +616,6 @@ var_version(Map, Pair) ->
   case Map of
     #{Pair := {Version, _}} -> Version;
     _ -> -1
-  end.
-
-var_context(Meta, Kind) ->
-  case lists:keyfind(counter, 1, Meta) of
-    {counter, Counter} -> Counter;
-    false -> Kind
   end.
 
 maybe_warn_underscored_var_repeat(Meta, Name, Kind, E) ->
