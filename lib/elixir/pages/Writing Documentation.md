@@ -103,7 +103,7 @@ Code comments are aimed at developers reading the code. They are useful to mark 
 
 Because private functions cannot be accessed externally, Elixir will warn if a private function has a `@doc` attribute and will discard its content. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to the readers and maintainers of such code.
 
-Finally, beware of redundant code comments, such as code comments that are describing the exact same as the code:
+Finally, beware of redundant code comments, such as the ones describing the exact same that the code does:
 
     # Total is the sum of the batch and individual entries
     total = batch_sum + individual_sum
