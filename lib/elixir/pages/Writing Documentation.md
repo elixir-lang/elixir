@@ -99,7 +99,7 @@ Notice doctests have limitations. When you cannot doctest a function, because it
 
 Elixir treats documentation and code comments as different concepts. Documentation is an explicit contract between you and users of your Application Programming Interface (API), be them third-party developers, co-workers, or your future self. Modules and functions must always be documented if they are part of your API.
 
-Code comments are aimed at developers reading the code. They are useful to mark improvements, leave notes (for example, why you had to resort to a workaround due to a bug in a library), and so forth. Code comments are tied to the source code. You can completely rewrite a function, remove all existing code comments, and it will continue to behave the same, with no change to either its behaviour or its documentation.
+Code comments are aimed at developers reading the code. They are useful for marking improvements, leaving notes (for example, why you had to resort to a workaround due to a bug in a library), and so forth. They are tied to the source code, to the point that you can completely rewrite a function and remove all existing code comments, and it will continue to behave the same, with no change to either its behaviour or its documentation.
 
 Because private functions cannot be accessed externally, Elixir will warn if a private function has a `@doc` attribute and will discard its content. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to the readers and maintainers of such code.
 
