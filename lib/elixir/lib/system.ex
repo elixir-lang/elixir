@@ -538,7 +538,7 @@ defmodule System do
 
   ## Examples
 
-      System.pid
+      System.pid()
 
   """
   @doc since: "1.9.0"
