@@ -114,7 +114,7 @@ In summary, documentation is a contract with users of your API, who may not nece
 
 Besides the modules and functions libraries provide as part of their public interface, libraries may also implement important functionality that is not part of their API. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
 
-Conveniently, Elixir allows developers to hide modules and functions from the documentation, by setting `@doc false` to hide a particular function, or `@moduledoc false` to hide the whole module. If a module is hidden, you may even document the functions in the module, but neither the module itself nor any of its functions will be included in the documentation:
+Conveniently, Elixir allows developers to hide modules and functions from the documentation, by setting `@doc false` to hide a particular function, or `@moduledoc false` to hide the whole module. If a module is hidden, you may even document the functions in the module, but the module itself won't be listed in the documentation:
 
     defmodule MyApp.Hidden do
       @moduledoc false
