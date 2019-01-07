@@ -101,7 +101,7 @@ Elixir treats documentation and code comments as different concepts. Documentati
 
 Code comments are aimed at developers reading the code. They are useful to mark improvements, leave notes (for example, why you had to resort to a workaround due to a bug in a library), and so forth. Code comments are tied to the source code. You can completely rewrite a function, remove all existing code comments, and it will continue to behave the same, with no change to either its behaviour or its documentation.
 
-Because private functions cannot be accessed externally and effectively exist only in your source code, Elixir will warn if a private function has a `@doc` attribute and will discard its content. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to the readers and maintainers of such code.
+Because private functions cannot be accessed externally, Elixir will warn if a private function has a `@doc` attribute and will discard its content. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to the readers and maintainers of such code.
 
 Finally, beware of redundant code comments, such as code comments that are describing the exact same as the code:
 
