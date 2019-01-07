@@ -45,9 +45,9 @@ The following options are generally used under releases.
   --pipe-to \"PIPEDIR\" \"LOGDIR\" Starts the Erlang VM as a named PIPEDIR and LOGDIR
   --vm-args \"FILE\"             Passes the contents in file as arguments to the VM
 
---pipe-to (UNIX only) starts Elixir under run_erl dettached from
-console. You can reattach to it by running: to_erl PIPEDIR.
+--pipe-to starts Elixir dettached from console (UNIX only).
 It will attempt to create PIPEDIR and LOGDIR if they don't exist.
+See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
 
 --pipe-to automatically sets \$HEART_COMMAND if none is set.
 See the -heart mode of the Erlang VM for more information.
