@@ -57,7 +57,7 @@ The compiler will infer this argument as `map`. Sometimes the inference will be 
 
 Elixir allows developers to attach arbitrary metadata to the documentation. This is done by passing a keyword list to the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`). A commonly used metadata is `:since`, which annotates in which version that particular module, function, type, or callback was added, as shown in the example above.
 
-Another common metadata is `:deprecated`, which emits a warning in the documentation, explaining that its usage of is discouraged:
+Another common metadata is `:deprecated`, which emits a warning in the documentation, explaining that its usage is discouraged:
 
     @doc deprecated: "Use Foo.bar/2 instead"
 
