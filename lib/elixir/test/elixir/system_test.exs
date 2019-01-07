@@ -118,8 +118,6 @@ defmodule SystemTest do
         assert {"hello\r\n", 0} =
                  System.cmd(Path.join(File.cwd!(), @echo), ~w[/c echo hello], [{:arg0, "echo"}])
       end)
-    after
-      File.rm_rf!(tmp_path(@echo))
     end
   end
 
@@ -161,8 +159,6 @@ defmodule SystemTest do
         assert {"hello\n", 0} =
                  System.cmd(Path.join(File.cwd!(), @echo), ["hello"], [{:arg0, "echo"}])
       end)
-    after
-      File.rm_rf!(tmp_path(@echo))
     end
   end
 
