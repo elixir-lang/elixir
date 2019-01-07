@@ -94,6 +94,7 @@ This small feature is very powerful. It allows instrumentation and monitoring to
   * [Kernel] Add `:delegate_to` `@doc` metadata tag when using `defdelegate`
   * [Kernel] Improve compile-time building of ranges via the `..` operator
   * [Kernel] Compile charlist interpolation more efficiently
+  * [Kernel] Add `floor/1` and `ceil/1` guards
   * [Kernel.SpecialForms] Add `:reduce` option to `for` comprehensions
   * [List] Add `List.myers_difference/3` and `List.improper?/1`
   * [Macro] Add `Macro.struct!/2` for proper struct resolution during compile time
