@@ -665,18 +665,6 @@ defmodule Mix.Project do
     end
   end
 
-  @doc """
-  Returns all load paths for the given project.
-  """
-  @spec load_paths(keyword) :: [Path.t()]
-  def load_paths(config \\ config()) do
-    if umbrella?(config) do
-      []
-    else
-      [compile_path(config)]
-    end
-  end
-
   # Loads mix.exs in the current directory or loads the project from the
   # mixfile cache and pushes the project onto the project stack.
   defp load_project(app, post_config) do
