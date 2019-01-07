@@ -2160,6 +2160,17 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
     end
 
+    defmacro offset(size, binary) do
+      quote do
+        offset = unquote(size)
+        <<_::size(offset)>> = unquote(binary)
+      end
+    end
+
+    test "supports size from counters" do
+      assert offset(8, <<0>>)
+    end
+
     test "merges bitstrings" do
       import Kernel, except: [-: 2]
 
@@ -2232,6 +2243,44 @@ defmodule Kernel.ExpansionTest do
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: <<"foo"::size(:oops)>>))
+      end
+
+      assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
+        code =
+          quote do
+            fn <<_::size(foo)>> -> :ok end
+          end
+
+        expand(code)
+      end
+
+      assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
+        code =
+          quote do
+            fn <<_::size(foo), foo::size(8)>> -> :ok end
+          end
+
+        expand(code)
+      end
+
+      assert_raise CompileError, ~r/undefined variable "foo" in bitstring segment/, fn ->
+        code =
+          quote do
+            fn foo, <<_::size(foo)>> -> :ok end
+          end
+
+        expand(code)
+      end
+
+      message = ~r"size in bitstring expects an integer or a variable as argument, got: foo()"
+
+      assert_raise CompileError, message, fn ->
+        code =
+          quote do
+            fn <<_::size(foo())>> -> :ok end
+          end
+
+        expand(code)
       end
     end
 
@@ -2380,44 +2429,6 @@ defmodule Kernel.ExpansionTest do
           length do
             _ -> :ok
           end
-        end
-
-      expand(code)
-    end
-
-    assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
-      code =
-        quote do
-          fn <<_::size(foo)>> -> :ok end
-        end
-
-      expand(code)
-    end
-
-    assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
-      code =
-        quote do
-          fn <<_::size(foo), foo::size(8)>> -> :ok end
-        end
-
-      expand(code)
-    end
-
-    assert_raise CompileError, ~r/undefined variable "foo" in bitstring segment/, fn ->
-      code =
-        quote do
-          fn foo, <<_::size(foo)>> -> :ok end
-        end
-
-      expand(code)
-    end
-
-    message = ~r"size in bitstring expects an integer or a variable as argument, got: foo()"
-
-    assert_raise CompileError, message, fn ->
-      code =
-        quote do
-          fn <<_::size(foo())>> -> :ok end
         end
 
       expand(code)
