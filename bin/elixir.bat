@@ -76,6 +76,9 @@ set useWerl=0
 rem Designates which mode / Elixir component to run as
 set runMode="elixir"
 
+rem Designates the path to the ERTS system
+set ERTS_BIN=""
+
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
 set par="%1"
@@ -131,9 +134,9 @@ if not %runMode% == "iex" (
   set beforeExtra=-noshell -s elixir start_cli %beforeExtra%
 )
 if %useWerl% equ 1 (
-  start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
+  start %ERTS_BIN%werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 ) else (
-  erl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
+  %ERTS_BIN%erl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 )
 :end
 endlocal
