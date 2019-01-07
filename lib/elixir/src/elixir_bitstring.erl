@@ -253,13 +253,17 @@ expand_spec_arg(Expr, E) -> elixir_expand:expand(Expr, E).
 
 validate_spec_arg(Meta, size, Value, E, OriginalE) ->
   case Value of
-    {Var, _, Context} when is_atom(Var) and is_atom(Context) ->
-      case is_valid_spec_arg_var({Var, Context}, E, OriginalE) of
+    {Var, VarMeta, Context} when is_atom(Var) and is_atom(Context) ->
+      Tuple = {Var, elixir_utils:var_context(VarMeta, Context)},
+
+      case is_valid_spec_arg_var(Tuple, E, OriginalE) of
         true -> ok;
         false -> form_error(Meta, ?key(E, file), ?MODULE, {undefined_var_in_spec, Value})
       end;
+
     _ when is_integer(Value) ->
       ok;
+
     _ ->
       form_error(Meta, ?key(E, file), ?MODULE, {bad_size_argument, Value})
   end;

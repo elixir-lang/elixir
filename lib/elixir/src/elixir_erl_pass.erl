@@ -178,7 +178,7 @@ translate({with, Meta, [_ | _] = Args}, S) ->
 %% Variables
 
 translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match} = S) when is_atom(Name), is_atom(Kind) ->
-  Tuple = {Name, var_context(VarMeta, Kind)},
+  Tuple = {Name, elixir_utils:var_context(VarMeta, Kind)},
   {ok, {_Counter, Value}} = maps:find(Tuple, S#elixir_erl.backup_vars),
 
   PAnn = ?ann(?generated(Meta)),
@@ -186,7 +186,7 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_erl{context=match} = S) 
 
   case S#elixir_erl.extra of
     pin_guard ->
-      {TVar, TS} = elixir_erl_var:translate(VarMeta, Name, var_context(VarMeta, Kind), S),
+      {TVar, TS} = elixir_erl_var:translate(VarMeta, Name, elixir_utils:var_context(VarMeta, Kind), S),
       Guard = {op, PAnn, '=:=', PVar, TVar},
       {TVar, TS#elixir_erl{extra_guards=[Guard | TS#elixir_erl.extra_guards]}};
     _ ->
@@ -197,7 +197,7 @@ translate({'_', Meta, Kind}, #elixir_erl{context=match} = S) when is_atom(Kind) 
   {{var, ?ann(Meta), '_'}, S};
 
 translate({Name, Meta, Kind}, S) when is_atom(Name), is_atom(Kind) ->
-  elixir_erl_var:translate(Meta, Name, var_context(Meta, Kind), S);
+  elixir_erl_var:translate(Meta, Name, elixir_utils:var_context(Meta, Kind), S);
 
 %% Local calls
 
@@ -282,12 +282,6 @@ build_list([H | T], Acc) ->
   build_list(T, {cons, 0, H, Acc});
 build_list([], Acc) ->
   Acc.
-
-var_context(Meta, Kind) ->
-  case lists:keyfind(counter, 1, Meta) of
-    {counter, Counter} -> Counter;
-    false -> Kind
-  end.
 
 %% Pack a list of expressions from a block.
 unblock({'block', _, Exprs}) -> Exprs;
