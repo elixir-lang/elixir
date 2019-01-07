@@ -113,8 +113,8 @@ if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 &&
 if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 && shift)
 if """"=="%par:--vm-args=%"             (set parsErlang=%parsErlang% -args_file %1 && shift)
 if """"=="%par:--erl=%"                 (set "beforeExtra=%beforeExtra% %~1" && shift)
-if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto:end)
-goto:startloop
+if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto end)
+goto startloop
 
 rem ******* assume all pre-params are parsed ********************
 :expand_erl_libs
