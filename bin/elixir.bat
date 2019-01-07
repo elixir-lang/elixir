@@ -110,6 +110,7 @@ if """"=="%par:--boot=%"                (set parsErlang=%parsErlang% -boot %1 &&
 if """"=="%par:--boot-var=%"            (set parsErlang=%parsErlang% -boot_var %1 %2 && shift && shift)
 if """"=="%par:--cookie=%"              (set parsErlang=%parsErlang% -setcookie %1 && shift)
 if """"=="%par:--hidden=%"              (set parsErlang=%parsErlang% -hidden)
+if """"=="%par:--detached=%"            (set parsErlang=%parsErlang% -detached && echo warning: the --detached option is deprecated)
 if """"=="%par:--logger-otp-reports=%"  (set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift)
 if """"=="%par:--logger-sasl-reports=%" (set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift)
 if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 && shift)

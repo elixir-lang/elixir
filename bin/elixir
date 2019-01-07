@@ -89,6 +89,10 @@ while [ $I -le $# ]; do
     --rpc-eval)
         S=3
         ;;
+    --detached)
+        echo "warning: the --detached option is deprecated" >&2
+        ERL="$ERL -detached"
+        ;;
     --hidden)
         ERL="$ERL -hidden"
         ;;

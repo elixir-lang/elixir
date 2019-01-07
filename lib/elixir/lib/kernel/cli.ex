@@ -260,7 +260,8 @@ defmodule Kernel.CLI do
   @erl_one_arg_options ["--erl", "--sname", "--name", "--cookie", "--boot", "--vm-args"] ++
                          ["--logger-otp-reports", "--logger-sasl-reports"]
 
-  @erl_zero_args_options ["--hidden", "--werl"]
+  # TODO: Remove --detached on 2.0
+  @erl_zero_args_options ["--hidden", "--werl", "--detached"]
 
   defp parse_shared([erl, _, _ | t], config) when erl in @erl_two_args_options,
     do: parse_shared(t, config)
