@@ -213,7 +213,7 @@ defmodule Calendar.ISO do
   end
 
   def date_to_iso_days(year, month, day) when year in -9999..9999 do
-    ensure_day_in_month(year, month, day)
+    ensure_day_in_month!(year, month, day)
 
     days_in_previous_years(year) + days_before_month(month) + leap_day_offset(year, month) + day -
       1
@@ -366,7 +366,7 @@ defmodule Calendar.ISO do
   @impl true
   def day_of_year(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    ensure_day_in_month(year, month, day)
+    ensure_day_in_month!(year, month, day)
     days_before_month(month) + leap_day_offset(year, month) + day
   end
 
@@ -994,7 +994,7 @@ defmodule Calendar.ISO do
     {hour, minute, second}
   end
 
-  defp ensure_day_in_month(year, month, day) do
+  defp ensure_day_in_month!(year, month, day) do
     if day < 1 or day > days_in_month(year, month) do
       raise ArgumentError, "invalid date: #{date_to_string(year, month, day)}"
     end
