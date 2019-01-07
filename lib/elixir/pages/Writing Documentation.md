@@ -57,15 +57,15 @@ The compiler will infer this argument as `map`. Sometimes the inference will be 
 
 Elixir allows developers to attach arbitrary metadata to the documentation. This is done by passing a keyword list to the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`). A commonly used metadata is `:since`, which annotates in which version that particular module, function, type, or callback was added, as shown in the example above.
 
-Another common metadata is `:deprecated`, which emits a warning in the documentation that usage of the function is discouraged:
+Another common metadata is `:deprecated`, which emits a warning in the documentation, explaining that its usage of is discouraged:
 
     @doc deprecated: "Use Foo.bar/2 instead"
 
-Note the `:deprecated` does not warn when a developer invokes the functions. If you want the code to also emit a warning, you can use the `@deprecated` attribute:
+Note the `:deprecated` key does not warn when a developer invokes the functions. If you want the code to also emit a warning, you can use the `@deprecated` attribute:
 
     @deprecated "Use Foo.bar/2 instead"
 
-Metadata can have any key. Documentation tools often use metadata to provide more data to readers and enrich the user experience.
+Metadata can have any key. Documentation tools often use metadata to provide more data to readers and to enrich the user experience.
 
 ## Recommendations
 
@@ -97,24 +97,24 @@ Notice doctests have limitations. When you cannot doctest a function, because it
 
 ## Documentation != Code comments
 
-Elixir treats documentation and code comments as different concepts. Documentation is a explicit contract between you and users of your Application Programming Interface (API), be them 3rd-party developers, co-workers or your future self. Modules and functions must always be documented if they are part of your API.
+Elixir treats documentation and code comments as different concepts. Documentation is a explicit contract between you and users of your Application Programming Interface (API), be them third-party developers, co-workers or your future self. Modules and functions must always be documented if they are part of your API.
 
-Code comments are for developers reading the code. They are useful to mark improvements, leave notes for developers reading the code (for example, why you had to resort to a workaround due to a bug in a library) and so forth. Code comments are tied to the source code. You can completely rewrite a function, remove all existing code comments, and it can continue to behave the same, with no change to its behaviour or its documentation.
+Code comments are aimed at developers reading the code. They are useful to mark improvements, leave notes (for example, why you had to resort to a workaround due to a bug in a library), and so forth. Code comments are tied to the source code. You can completely rewrite a function, remove all existing code comments, and it will continue to behave the same, with no change to either its behaviour or its documentation.
 
-Because private functions cannot be accessed externally and effectively exist only in your source code, Elixir will warns if a private function has a `@doc` attribute and discards its content. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to readers and maintainers of the code.
+Because private functions cannot be accessed externally and effectively exist only in your source code, Elixir will warn if a private function has a `@doc` attribute and will discard its content. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to the readers and maintainers of such code.
 
 Finally, beware of redundant code comments, such as code comments that are describing the exact same as the code:
 
     # Total is the sum of the batch and individual entries
     total = batch_sum + individual_sum
 
-In summary, documentation is a contract with users of your API (who do not necessarily have access to source) and code comments are for those who interact directly with the source. You can learn and express different guarantees about your software by separating those two concepts.
+In summary, documentation is a contract with users of your API, who may not necessarily have access to the source code; whereas code comments are for those who interact directly with the source. You can learn and express different guarantees about your software by separating those two concepts.
 
 ## Hiding Internal Modules and Functions
 
 Besides the modules and functions libraries provide as part of their public interface, libraries may also implement important functionality that is not part of their API. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
 
-Luckily, Elixir allows developers to hide modules and functions from the documentation, by setting `@doc false` to hide a particular function, or `@moduledoc false` to hide the whole module. If a module is hidden, you may even document the functions in the module, but neither the module itself nor any of its functions will be included in the documentation:
+Conveniently, Elixir allows developers to hide modules and functions from the documentation, by setting `@doc false` to hide a particular function, or `@moduledoc false` to hide the whole module. If a module is hidden, you may even document the functions in the module, but neither the module itself nor any of its functions will be included in the documentation:
 
     defmodule MyApp.Hidden do
       @moduledoc false
