@@ -73,6 +73,9 @@ set useWerl=0
 rem Designates which mode / Elixir component to run as
 set runMode="elixir"
 
+rem Designates the path to the current script
+set SCRIPT_PATH=%~dp0
+
 rem Designates the path to the ERTS system
 set ERTS_BIN=""
 
@@ -116,15 +119,16 @@ if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 &&
 if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 && shift && goto startloop)
 if """"=="%par:--vm-args=%"             (set parsErlang=%parsErlang% -args_file %1 && shift && goto startloop)
 if """"=="%par:--erl=%"                 (set "beforeExtra=%beforeExtra% %~1" && shift && goto startloop)
-if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto end && goto startloop)
-goto expand_erl_libs
+if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto end)
+set parsElixir=%parsElixir% %1
+goto startloop
 
 rem ******* assume all pre-params are parsed ********************
 :expand_erl_libs
 rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
 setlocal enabledelayedexpansion
 set ext_libs=
-for  /d %%d in ("%~dp0%..\lib\*.") do (
+for  /d %%d in ("%SCRIPT_PATH%..\lib\*.") do (
   set ext_libs=!ext_libs! -pa "%%~fd\ebin"
 )
 setlocal disabledelayedexpansion
