@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Loadpaths do
       _ -> :ok
     end
 
-    Enum.each(Mix.Project.load_paths(config), &Code.prepend_path(&1))
+    Code.prepend_path(Mix.Project.compile_path(config))
   end
 
   defp rm_rf_app(config) do

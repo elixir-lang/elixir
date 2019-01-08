@@ -665,10 +665,7 @@ defmodule Mix.Project do
     end
   end
 
-  @doc """
-  Returns all load paths for the given project.
-  """
-  @spec load_paths(keyword) :: [Path.t()]
+  @deprecated "Use Mix.Project.compile_path/1 instead"
   def load_paths(config \\ config()) do
     if umbrella?(config) do
       []
