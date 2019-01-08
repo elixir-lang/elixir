@@ -23,16 +23,6 @@ defmodule Kernel.CLITest do
              assert run(["-e", "IO.puts :ok", "--", "sample.exs", "-o", "1", "2"]) ==
                       ["sample.exs", "-o", "1", "2"]
            end) == "ok\n"
-
-    assert capture_io(fn ->
-             assert run(["--eval", "IO.puts :ok", "--hidden", "sample.exs", "-o", "1", "2"]) ==
-                      ["sample.exs", "-o", "1", "2"]
-           end) == "ok\n"
-
-    assert capture_io(fn ->
-             assert run(["--eval", "IO.puts :ok", "--", "--hidden", "sample.exs", "-o", "1", "2"]) ==
-                      ["--hidden", "sample.exs", "-o", "1", "2"]
-           end) == "ok\n"
   end
 
   test "properly parses paths" do

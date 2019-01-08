@@ -255,23 +255,6 @@ defmodule Kernel.CLI do
     parse_shared(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
-  @erl_two_args_options ["--pipe-to", "--boot-var"]
-
-  @erl_one_arg_options ["--erl", "--sname", "--name", "--cookie", "--boot", "--erl-config"] ++
-                         ["--logger-otp-reports", "--logger-sasl-reports", "--vm-args"]
-
-  # TODO: Remove --detached on 2.0
-  @erl_zero_args_options ["--hidden", "--werl", "--detached"]
-
-  defp parse_shared([erl, _, _ | t], config) when erl in @erl_two_args_options,
-    do: parse_shared(t, config)
-
-  defp parse_shared([erl, _ | t], config) when erl in @erl_one_arg_options,
-    do: parse_shared(t, config)
-
-  defp parse_shared([erl | t], config) when erl in @erl_zero_args_options,
-    do: parse_shared(t, config)
-
   defp parse_shared(list, config) do
     {list, config}
   end

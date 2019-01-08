@@ -58,14 +58,11 @@ goto end
 
 :parseopts
 
+rem Parameters for Elixir
+set parsElixir=
+
 rem Parameters for Erlang
 set parsErlang=
-
-rem Make sure we keep a copy of all parameters
-set allPars=%*
-
-rem Get the original path name from the batch file
-set originPath=%~dp0
 
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
@@ -92,41 +89,42 @@ if "%par%"=="""" (
   goto expand_erl_libs
 )
 rem ******* EXECUTION OPTIONS **********************
-if "%par%"==""--werl"" (set useWerl=1)
-if "%par%"==""+iex"" (set runMode="iex")
+if "%par%"==""--werl"" (set useWerl=1 && goto startloop)
+if "%par%"==""+iex"" (set parsElixir=%parsElixir% +iex && set runMode="iex" && goto startloop)
+if "%par%"==""+elixirc"" (set parsElixir=%parsElixir% +elixirc && set runMode="elixirc" && goto startloop)
 rem ******* ELIXIR PARAMETERS **********************
 rem Note: we don't have to do anything with options that don't take an argument
-if """"=="%par:-e=%"          (shift)
-if """"=="%par:-r=%"          (shift)
-if """"=="%par:-pr=%"         (shift)
-if """"=="%par:-pa=%"         (shift)
-if """"=="%par:-pz=%"         (shift)
-if """"=="%par:--app=%"       (shift)
-if """"=="%par:--eval=%"      (shift)
-if """"=="%par:--remsh=%"     (shift)
-if """"=="%par:--rpc-eval=%"  (shift && shift)
+if """"=="%par:-e=%"          (set parsElixir=%parsElixir% -e %1 && shift && goto startloop)
+if """"=="%par:-r=%"          (set parsElixir=%parsElixir% -r %1 && shift && goto startloop)
+if """"=="%par:-pr=%"         (set parsElixir=%parsElixir% -pr %1 && shift && goto startloop)
+if """"=="%par:-pa=%"         (set parsElixir=%parsElixir% -pa %1 && shift && goto startloop)
+if """"=="%par:-pz=%"         (set parsElixir=%parsElixir% -pz %1 && shift && goto startloop)
+if """"=="%par:--app=%"       (set parsElixir=%parsElixir% --app %1 && shift && goto startloop)
+if """"=="%par:--eval=%"      (set parsElixir=%parsElixir% --eval %1 && shift && goto startloop)
+if """"=="%par:--remsh=%"     (set parsElixir=%parsElixir% --remsh %1 && shift && goto startloop)
+if """"=="%par:--rpc-eval=%"  (set parsElixir=%parsElixir% --rpc-eval %1 %2 && shift && shift && goto startloop)
 rem ******* ERLANG PARAMETERS **********************
-if """"=="%par:--boot=%"                (set parsErlang=%parsErlang% -boot %1 && shift)
-if """"=="%par:--boot-var=%"            (set parsErlang=%parsErlang% -boot_var %1 %2 && shift && shift)
-if """"=="%par:--cookie=%"              (set parsErlang=%parsErlang% -setcookie %1 && shift)
-if """"=="%par:--hidden=%"              (set parsErlang=%parsErlang% -hidden)
-if """"=="%par:--detached=%"            (set parsErlang=%parsErlang% -detached && echo warning: the --detached option is deprecated)
-if """"=="%par:--erl-config=%"          (set parsErlang=%parsErlang% -config %1 && shift)
-if """"=="%par:--logger-otp-reports=%"  (set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift)
-if """"=="%par:--logger-sasl-reports=%" (set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift)
-if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 && shift)
-if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 && shift)
-if """"=="%par:--vm-args=%"             (set parsErlang=%parsErlang% -args_file %1 && shift)
-if """"=="%par:--erl=%"                 (set "beforeExtra=%beforeExtra% %~1" && shift)
-if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto end)
-goto startloop
+if """"=="%par:--boot=%"                (set parsErlang=%parsErlang% -boot %1 && shift && goto startloop)
+if """"=="%par:--boot-var=%"            (set parsErlang=%parsErlang% -boot_var %1 %2 && shift && shift && goto startloop)
+if """"=="%par:--cookie=%"              (set parsErlang=%parsErlang% -setcookie %1 && shift && goto startloop)
+if """"=="%par:--hidden=%"              (set parsErlang=%parsErlang% -hidden && goto startloop)
+if """"=="%par:--detached=%"            (set parsErlang=%parsErlang% -detached && echo warning: the --detached option is deprecated && goto startloop)
+if """"=="%par:--erl-config=%"          (set parsErlang=%parsErlang% -config %1 && shift && goto startloop)
+if """"=="%par:--logger-otp-reports=%"  (set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift && goto startloop)
+if """"=="%par:--logger-sasl-reports=%" (set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift && goto startloop)
+if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 && shift && goto startloop)
+if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 && shift && goto startloop)
+if """"=="%par:--vm-args=%"             (set parsErlang=%parsErlang% -args_file %1 && shift && goto startloop)
+if """"=="%par:--erl=%"                 (set "beforeExtra=%beforeExtra% %~1" && shift && goto startloop)
+if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto end && goto startloop)
+goto expand_erl_libs
 
 rem ******* assume all pre-params are parsed ********************
 :expand_erl_libs
 rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
 setlocal enabledelayedexpansion
 set ext_libs=
-for  /d %%d in ("%originPath%..\lib\*.") do (
+for  /d %%d in ("%~dp0%..\lib\*.") do (
   set ext_libs=!ext_libs! -pa "%%~fd\ebin"
 )
 setlocal disabledelayedexpansion
@@ -136,9 +134,9 @@ if not %runMode% == "iex" (
   set beforeExtra=-noshell -s elixir start_cli %beforeExtra%
 )
 if %useWerl% equ 1 (
-  start %ERTS_BIN%werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
+  start %ERTS_BIN%werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %parsElixir%
 ) else (
-  %ERTS_BIN%erl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
+  %ERTS_BIN%erl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %parsElixir%
 )
 :end
 endlocal

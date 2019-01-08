@@ -70,25 +70,34 @@ readlink_f () {
 MODE="elixir"
 ERL_EXEC="erl"
 ERL=""
+ELIXIR=""
 I=1
 
 while [ $I -le $# ]; do
-  S=1
   eval "PEEK=\${$I}"
   case "$PEEK" in
     +iex)
+        ELIXIR="$ELIXIR +iex"
         MODE="iex"
         ;;
     +elixirc)
+        ELIXIR="$ELIXIR +elixirc"
         MODE="elixirc"
         ;;
-    -v|--compile|--no-halt)
+    -v|--no-halt)
+        ELIXIR="$ELIXIR $PEEK"
         ;;
     -e|-r|-pr|-pa|-pz|--app|--eval|--remsh)
-        S=2
+        I=$(($I + 1))
+        eval "VAL=\${$I}"
+        ELIXIR="$ELIXIR $PEEK \"$VAL\""
         ;;
     --rpc-eval)
-        S=3
+        I=$(($I + 1))
+        eval "VAL1=\${$I}"
+        I=$(($I + 1))
+        eval "VAL2=\${$I}"
+        ELIXIR="$ELIXIR $PEEK \"$VAL1\" \"$VAL2\""
         ;;
     --detached)
         echo "warning: the --detached option is deprecated" >&2
@@ -170,7 +179,7 @@ while [ $I -le $# ]; do
         break
         ;;
   esac
-  I=$(($I + $S))
+  I=$(($I + 1))
 done
 
 SELF=$(readlink_f "$0")
@@ -186,6 +195,7 @@ else
   if [ $USE_WERL ]; then ERL_EXEC="werl"; fi
 fi
 
+eval set -- "$ELIXIR" ${@:$I}
 set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
