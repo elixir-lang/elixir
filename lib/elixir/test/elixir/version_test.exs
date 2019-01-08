@@ -55,6 +55,10 @@ defmodule VersionTest do
     assert Parser.lexer(">2.4.0", []) == [:>, "2.4.0"]
     assert Parser.lexer("> 2.4.0", []) == [:>, "2.4.0"]
     assert Parser.lexer("    >     2.4.0", []) == [:>, "2.4.0"]
+    assert Parser.lexer(" or 2.1.0", []) == [:||, :==, "2.1.0"]
+    assert Parser.lexer(" and 2.1.0", []) == [:&&, :==, "2.1.0"]
+    assert Parser.lexer(">= 2.0.0 and < 2.1.0", []) == [:>=, "2.0.0", :&&, :<, "2.1.0"]
+    assert Parser.lexer(">= 2.0.0 or < 2.1.0", []) == [:>=, "2.0.0", :||, :<, "2.1.0"]
   end
 
   test "parse/1" do
@@ -87,6 +91,8 @@ defmodule VersionTest do
     assert Version.parse("2.3.00") == :error
     assert Version.parse("2.03.0") == :error
     assert Version.parse("02.3.0") == :error
+    assert Version.parse("0. 0.0") == :error
+    assert Version.parse("0.1.0-&&pre") == :error
   end
 
   test "Kernel.to_string/1" do
