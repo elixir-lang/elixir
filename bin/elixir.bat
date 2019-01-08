@@ -67,6 +67,9 @@ set parsErlang=
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
 
+rem Option which determines whether the loop is over
+set endLoop=0
+
 rem Option which determines whether to use werl or erl
 set useWerl=0
 
@@ -83,13 +86,24 @@ rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
 set unquotepar=%1
 set par="%1"
+if "%par%"=="" (
+  rem if no parameters defined
+  goto expand_erl_libs
+)
+if "%par%"=="""" (
+  rem if no parameters defined - special case for parameter that is already quoted
+  goto expand_erl_libs
+)
 shift
+if %endLoop% == 1 (
+  set parsElixir=%parsElixir% %unquotepar%
+  goto startloop
+)
 rem ******* EXECUTION OPTIONS **********************
-if "%par%"==""--werl"" (set useWerl=1 && goto startloop)
-if "%par%"==""+iex"" (set parsElixir=%parsElixir% +iex && set runMode="iex" && goto startloop)
+if "%par%"==""--werl""   (set useWerl=1 && goto startloop)
+if "%par%"==""+iex""     (set parsElixir=%parsElixir% +iex && set runMode="iex" && goto startloop)
 if "%par%"==""+elixirc"" (set parsElixir=%parsElixir% +elixirc && set runMode="elixirc" && goto startloop)
 rem ******* ELIXIR PARAMETERS **********************
-rem Note: we don't have to do anything with options that don't take an argument
 if """"=="%par:-e=%"          (set parsElixir=%parsElixir% -e %1 && shift && goto startloop)
 if """"=="%par:-r=%"          (set parsElixir=%parsElixir% -r %1 && shift && goto startloop)
 if """"=="%par:-pr=%"         (set parsElixir=%parsElixir% -pr %1 && shift && goto startloop)
@@ -115,19 +129,9 @@ if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 &
 if """"=="%par:--vm-args=%"             (set parsErlang=%parsErlang% -args_file %1 && shift && goto startloop)
 if """"=="%par:--erl=%"                 (set "beforeExtra=%beforeExtra% %~1" && shift && goto startloop)
 if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto end)
-:endloop
-if "%par%"=="" (
-  rem if no parameters defined
-  goto expand_erl_libs
-)
-if "%par%"=="""" (
-  rem if no parameters defined - special case for parameter that is already quoted
-  goto expand_erl_libs
-)
+set endLoop=1
 set parsElixir=%parsElixir% %unquotepar%
-set unquotepar=%1
-set par="%1"
-goto endloop
+goto startloop
 
 rem ******* assume all pre-params are parsed ********************
 :expand_erl_libs
