@@ -86,7 +86,7 @@ rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
 set "par=%~1"
 if "!par!"=="" (
-  rem if no parameters defined
+  rem if no parameter is defined
   goto expand_erl_libs
 )
 shift
@@ -100,19 +100,19 @@ if !par!=="--werl"   (set useWerl=1 && goto startloop)
 if !par!=="+iex"     (set parsElixir=!parsElixir! +iex && set runMode="iex" && goto startloop)
 if !par!=="+elixirc" (set parsElixir=!parsElixir! +elixirc && set runMode="elixirc" && goto startloop)
 rem ******* EVAL PARAMETERS ************************
-if ""==!par:-e=! (
+if """"=="!par:-e=!" (
   set "VAR=%~1"
   set parsElixir=!parsElixir! -e "!VAR:"=\"!"
   shift
   goto startloop
 )
-if ""==!par:--eval=! (
+if """"=="!par:--eval=!" (
   set "VAR=%~1"
   set parsElixir=!parsElixir! --eval "!VAR:"=\"!"
   shift
   goto startloop
 )
-if ""==!par:--rpc-eval=! (
+if """"=="!par:--rpc-eval=!" (
   set "VAR=%~2"
   set parsElixir=!parsElixir! --rpc-eval %1 "!VAR:"=\"!"
   shift
@@ -120,30 +120,28 @@ if ""==!par:--rpc-eval=! (
   goto startloop
 )
 rem ******* ELIXIR PARAMETERS **********************
-if ""==!%par:-r=!          (set parsElixir=!parsElixir! -r %1 && shift && goto startloop)
-if ""==!%par:-pr=!         (set parsElixir=!parsElixir! -pr %1 && shift && goto startloop)
-if ""==!%par:-pa=!         (set parsElixir=!parsElixir! -pa %1 && shift && goto startloop)
-if ""==!%par:-pz=!         (set parsElixir=!parsElixir! -pz %1 && shift && goto startloop)
-if ""==!%par:-v=!          (set parsElixir=!parsElixir! -v && goto startloop)
-if ""==!%par:--app=!       (set parsElixir=!parsElixir! --app %1 && shift && goto startloop)
-if ""==!%par:--eval=!      (set parsElixir=!parsElixir! --eval %1 && shift && goto startloop)
-if ""==!%par:--no-halt=!   (set parsElixir=!parsElixir! --no-halt && goto startloop)
-if ""==!%par:--remsh=!     (set parsElixir=!parsElixir! --remsh %1 && shift && goto startloop)
-if ""==!%par:--rpc-eval=!  (set parsElixir=!parsElixir! --rpc-eval %1 %2 && shift && shift && goto startloop)
+if """"=="!%par:-r=!"          (set parsElixir=!parsElixir! -r %1 && shift && goto startloop)
+if """"=="!%par:-pr=!"         (set parsElixir=!parsElixir! -pr %1 && shift && goto startloop)
+if """"=="!%par:-pa=!"         (set parsElixir=!parsElixir! -pa %1 && shift && goto startloop)
+if """"=="!%par:-pz=!"         (set parsElixir=!parsElixir! -pz %1 && shift && goto startloop)
+if """"=="!%par:-v=!"          (set parsElixir=!parsElixir! -v && goto startloop)
+if """"=="!%par:--app=!"       (set parsElixir=!parsElixir! --app %1 && shift && goto startloop)
+if """"=="!%par:--no-halt=!"   (set parsElixir=!parsElixir! --no-halt && goto startloop)
+if """"=="!%par:--remsh=!"     (set parsElixir=!parsElixir! --remsh %1 && shift && goto startloop)
 rem ******* ERLANG PARAMETERS **********************
-if ""==!%par:--boot=!                (set parsErlang=!parsErlang! -boot %1 && shift && goto startloop)
-if ""==!%par:--boot-var=!            (set parsErlang=!parsErlang! -boot_var %1 %2 && shift && shift && goto startloop)
-if ""==!%par:--cookie=!              (set parsErlang=!parsErlang! -setcookie %1 && shift && goto startloop)
-if ""==!%par:--hidden=!              (set parsErlang=!parsErlang! -hidden && goto startloop)
-if ""==!%par:--detached=!            (set parsErlang=!parsErlang! -detached && echo warning: the --detached option is deprecated && goto startloop)
-if ""==!%par:--erl-config=!          (set parsErlang=!parsErlang! -config %1 && shift && goto startloop)
-if ""==!%par:--logger-otp-reports=!  (set parsErlang=!parsErlang! -logger handle_otp_reports %1 && shift && goto startloop)
-if ""==!%par:--logger-sasl-reports=! (set parsErlang=!parsErlang! -logger handle_sasl_reports %1 && shift && goto startloop)
-if ""==!%par:--name=!                (set parsErlang=!parsErlang! -name %1 && shift && goto startloop)
-if ""==!%par:--sname=!               (set parsErlang=!parsErlang! -sname %1 && shift && goto startloop)
-if ""==!%par:--vm-args=!             (set parsErlang=!parsErlang! -args_file %1 && shift && goto startloop)
-if ""==!%par:--erl=!                 (set "beforeExtra=!beforeExtra! %~1" && shift && goto startloop)
-if ""==!%par:--pipe-to=!             (echo --pipe-to : Option is not supported on Windows && goto end)
+if """"=="!%par:--boot=!"                (set parsErlang=!parsErlang! -boot %1 && shift && goto startloop)
+if """"=="!%par:--boot-var=!"            (set parsErlang=!parsErlang! -boot_var %1 %2 && shift && shift && goto startloop)
+if """"=="!%par:--cookie=!"              (set parsErlang=!parsErlang! -setcookie %1 && shift && goto startloop)
+if """"=="!%par:--hidden=!"              (set parsErlang=!parsErlang! -hidden && goto startloop)
+if """"=="!%par:--detached=!"            (set parsErlang=!parsErlang! -detached && echo warning: the --detached option is deprecated && goto startloop)
+if """"=="!%par:--erl-config=!"          (set parsErlang=!parsErlang! -config %1 && shift && goto startloop)
+if """"=="!%par:--logger-otp-reports=!"  (set parsErlang=!parsErlang! -logger handle_otp_reports %1 && shift && goto startloop)
+if """"=="!%par:--logger-sasl-reports=!" (set parsErlang=!parsErlang! -logger handle_sasl_reports %1 && shift && goto startloop)
+if """"=="!%par:--name=!"                (set parsErlang=!parsErlang! -name %1 && shift && goto startloop)
+if """"=="!%par:--sname=!"               (set parsErlang=!parsErlang! -sname %1 && shift && goto startloop)
+if """"=="!%par:--vm-args=!"             (set parsErlang=!parsErlang! -args_file %1 && shift && goto startloop)
+if """"=="!%par:--erl=!"                 (set "beforeExtra=!beforeExtra! %~1" && shift && goto startloop)
+if """"=="!%par:--pipe-to=!"             (echo --pipe-to : Option is not supported on Windows && goto end)
 set endLoop=1
 set parsElixir=!parsElixir! !par!
 goto startloop
