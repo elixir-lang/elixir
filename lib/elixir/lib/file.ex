@@ -734,7 +734,7 @@ defmodule File do
   The same as `rename/2` but raises a `File.RenameError` exception if it fails.
   Returns `:ok` otherwise.
   """
-
+  @doc since: "1.9.0"
   @spec rename!(Path.t(), Path.t()) :: :ok | {:error, posix}
   def rename!(source, destination) do
     case rename(source, destination) do
