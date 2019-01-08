@@ -745,8 +745,8 @@ defmodule File do
         raise File.RenameError,
           reason: reason,
           action: "rename",
-          source: maybe_to_string(source),
-          destination: maybe_to_string(destination)
+          source: IO.chardata_to_string(source),
+          destination: IO.chardata_to_string(destination)
     end
   end
 
