@@ -1,5 +1,5 @@
 @if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
-setlocal
+setlocal enabledelayedexpansion
 if    ""%1""==""""       goto documentation
 if /I ""%1""==""--help"" goto documentation
 if /I ""%1""==""-h""     goto documentation
@@ -15,7 +15,7 @@ echo.
 echo   -e "COMMAND"                 Evaluates the given command (*)
 echo   -h, --help                   Prints this message and exits
 echo   -r "FILE"                    Requires the given files/patterns (*)
-echo   -S SCRIPT                    Finds and executes the given script in $PATH
+echo   -S SCRIPT                    Finds and executes the given script in $PATH
 echo   -pr "FILE"                   Requires the given files/patterns in parallel (*)
 echo   -pa "PATH"                   Prepends the given path to Erlang code path (*)
 echo   -pz "PATH"                   Appends the given path to Erlang code path (*)
@@ -84,73 +84,85 @@ set ERTS_BIN=""
 
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
-set unquotepar=%1
-set par="%1"
-if "%par%"=="" (
+set "par=%~1"
+if "!par!"=="" (
   rem if no parameters defined
   goto expand_erl_libs
 )
-if "%par%"=="""" (
-  rem if no parameters defined - special case for parameter that is already quoted
-  goto expand_erl_libs
-)
 shift
-if %endLoop% == 1 (
-  set parsElixir=%parsElixir% %unquotepar%
+set par="!par:"=\"!"
+if !endLoop! == 1 (
+  set parsElixir=!parsElixir! !par!
   goto startloop
 )
 rem ******* EXECUTION OPTIONS **********************
-if "%par%"==""--werl""   (set useWerl=1 && goto startloop)
-if "%par%"==""+iex""     (set parsElixir=%parsElixir% +iex && set runMode="iex" && goto startloop)
-if "%par%"==""+elixirc"" (set parsElixir=%parsElixir% +elixirc && set runMode="elixirc" && goto startloop)
+if !par!=="--werl"   (set useWerl=1 && goto startloop)
+if !par!=="+iex"     (set parsElixir=!parsElixir! +iex && set runMode="iex" && goto startloop)
+if !par!=="+elixirc" (set parsElixir=!parsElixir! +elixirc && set runMode="elixirc" && goto startloop)
+rem ******* EVAL PARAMETERS ************************
+if ""==!par:-e=! (
+  set "VAR=%~1"
+  set parsElixir=!parsElixir! -e "!VAR:"=\"!"
+  shift
+  goto startloop
+)
+if ""==!par:--eval=! (
+  set "VAR=%~1"
+  set parsElixir=!parsElixir! --eval "!VAR:"=\"!"
+  shift
+  goto startloop
+)
+if ""==!par:--rpc-eval=! (
+  set "VAR=%~2"
+  set parsElixir=!parsElixir! --rpc-eval %1 "!VAR:"=\"!"
+  shift
+  shift
+  goto startloop
+)
 rem ******* ELIXIR PARAMETERS **********************
-if """"=="%par:-e=%"          (set parsElixir=%parsElixir% -e %1 && shift && goto startloop)
-if """"=="%par:-r=%"          (set parsElixir=%parsElixir% -r %1 && shift && goto startloop)
-if """"=="%par:-pr=%"         (set parsElixir=%parsElixir% -pr %1 && shift && goto startloop)
-if """"=="%par:-pa=%"         (set parsElixir=%parsElixir% -pa %1 && shift && goto startloop)
-if """"=="%par:-pz=%"         (set parsElixir=%parsElixir% -pz %1 && shift && goto startloop)
-if """"=="%par:-v=%"          (set parsElixir=%parsElixir% -v && goto startloop)
-if """"=="%par:--app=%"       (set parsElixir=%parsElixir% --app %1 && shift && goto startloop)
-if """"=="%par:--eval=%"      (set parsElixir=%parsElixir% --eval %1 && shift && goto startloop)
-if """"=="%par:--no-halt=%"   (set parsElixir=%parsElixir% --no-halt && goto startloop)
-if """"=="%par:--remsh=%"     (set parsElixir=%parsElixir% --remsh %1 && shift && goto startloop)
-if """"=="%par:--rpc-eval=%"  (set parsElixir=%parsElixir% --rpc-eval %1 %2 && shift && shift && goto startloop)
+if ""==!%par:-r=!          (set parsElixir=!parsElixir! -r %1 && shift && goto startloop)
+if ""==!%par:-pr=!         (set parsElixir=!parsElixir! -pr %1 && shift && goto startloop)
+if ""==!%par:-pa=!         (set parsElixir=!parsElixir! -pa %1 && shift && goto startloop)
+if ""==!%par:-pz=!         (set parsElixir=!parsElixir! -pz %1 && shift && goto startloop)
+if ""==!%par:-v=!          (set parsElixir=!parsElixir! -v && goto startloop)
+if ""==!%par:--app=!       (set parsElixir=!parsElixir! --app %1 && shift && goto startloop)
+if ""==!%par:--eval=!      (set parsElixir=!parsElixir! --eval %1 && shift && goto startloop)
+if ""==!%par:--no-halt=!   (set parsElixir=!parsElixir! --no-halt && goto startloop)
+if ""==!%par:--remsh=!     (set parsElixir=!parsElixir! --remsh %1 && shift && goto startloop)
+if ""==!%par:--rpc-eval=!  (set parsElixir=!parsElixir! --rpc-eval %1 %2 && shift && shift && goto startloop)
 rem ******* ERLANG PARAMETERS **********************
-if """"=="%par:--boot=%"                (set parsErlang=%parsErlang% -boot %1 && shift && goto startloop)
-if """"=="%par:--boot-var=%"            (set parsErlang=%parsErlang% -boot_var %1 %2 && shift && shift && goto startloop)
-if """"=="%par:--cookie=%"              (set parsErlang=%parsErlang% -setcookie %1 && shift && goto startloop)
-if """"=="%par:--hidden=%"              (set parsErlang=%parsErlang% -hidden && goto startloop)
-if """"=="%par:--detached=%"            (set parsErlang=%parsErlang% -detached && echo warning: the --detached option is deprecated && goto startloop)
-if """"=="%par:--erl-config=%"          (set parsErlang=%parsErlang% -config %1 && shift && goto startloop)
-if """"=="%par:--logger-otp-reports=%"  (set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift && goto startloop)
-if """"=="%par:--logger-sasl-reports=%" (set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift && goto startloop)
-if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 && shift && goto startloop)
-if """"=="%par:--sname=%"               (set parsErlang=%parsErlang% -sname %1 && shift && goto startloop)
-if """"=="%par:--vm-args=%"             (set parsErlang=%parsErlang% -args_file %1 && shift && goto startloop)
-if """"=="%par:--erl=%"                 (set "beforeExtra=%beforeExtra% %~1" && shift && goto startloop)
-if """"=="%par:--pipe-to=%"             (echo --pipe-to : Option is not supported on Windows && goto end)
+if ""==!%par:--boot=!                (set parsErlang=!parsErlang! -boot %1 && shift && goto startloop)
+if ""==!%par:--boot-var=!            (set parsErlang=!parsErlang! -boot_var %1 %2 && shift && shift && goto startloop)
+if ""==!%par:--cookie=!              (set parsErlang=!parsErlang! -setcookie %1 && shift && goto startloop)
+if ""==!%par:--hidden=!              (set parsErlang=!parsErlang! -hidden && goto startloop)
+if ""==!%par:--detached=!            (set parsErlang=!parsErlang! -detached && echo warning: the --detached option is deprecated && goto startloop)
+if ""==!%par:--erl-config=!          (set parsErlang=!parsErlang! -config %1 && shift && goto startloop)
+if ""==!%par:--logger-otp-reports=!  (set parsErlang=!parsErlang! -logger handle_otp_reports %1 && shift && goto startloop)
+if ""==!%par:--logger-sasl-reports=! (set parsErlang=!parsErlang! -logger handle_sasl_reports %1 && shift && goto startloop)
+if ""==!%par:--name=!                (set parsErlang=!parsErlang! -name %1 && shift && goto startloop)
+if ""==!%par:--sname=!               (set parsErlang=!parsErlang! -sname %1 && shift && goto startloop)
+if ""==!%par:--vm-args=!             (set parsErlang=!parsErlang! -args_file %1 && shift && goto startloop)
+if ""==!%par:--erl=!                 (set "beforeExtra=!beforeExtra! %~1" && shift && goto startloop)
+if ""==!%par:--pipe-to=!             (echo --pipe-to : Option is not supported on Windows && goto end)
 set endLoop=1
-set parsElixir=%parsElixir% %unquotepar%
+set parsElixir=!parsElixir! !par!
 goto startloop
 
-rem ******* assume all pre-params are parsed ********************
 :expand_erl_libs
-rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
-setlocal enabledelayedexpansion
+rem expand all ebin paths as Windows does not support the ..\*\ebin wildcard
 set ext_libs=
-for  /d %%d in ("%SCRIPT_PATH%..\lib\*.") do (
+for  /d %%d in ("!SCRIPT_PATH!..\lib\*.") do (
   set ext_libs=!ext_libs! -pa "%%~fd\ebin"
 )
-setlocal disabledelayedexpansion
 
 :run
-if not %runMode% == "iex" (
-  set beforeExtra=-noshell -s elixir start_cli %beforeExtra%
+if not !runMode! == "iex" (
+  set beforeExtra=-noshell -s elixir start_cli !beforeExtra!
 )
-if %useWerl% equ 1 (
-  start %ERTS_BIN%werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %parsElixir%
+if !useWerl! equ 1 (
+  start !ERTS_BIN!werl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
 ) else (
-  %ERTS_BIN%erl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %parsElixir%
+  !ERTS_BIN!erl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
 )
 :end
 endlocal
