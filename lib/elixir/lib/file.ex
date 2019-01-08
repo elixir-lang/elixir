@@ -735,7 +735,7 @@ defmodule File do
   Returns `:ok` otherwise.
   """
   @doc since: "1.9.0"
-  @spec rename!(Path.t(), Path.t()) :: :ok | {:error, posix}
+  @spec rename!(Path.t(), Path.t()) :: :ok
   def rename!(source, destination) do
     case rename(source, destination) do
       :ok ->
