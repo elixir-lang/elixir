@@ -86,7 +86,7 @@ When writing documentation:
   * Start new sections with second level Markdown headers `##`. First level headers are reserved for module and function names.
 
   * Place documentation before the first clause of multi-clause functions. Documentation is always per function and arity and not per clause.
-  
+
   * Use the `:since` key in the documentation metadata to annotate whenever new functions or modules are added to your API.
 
 ## Doctests

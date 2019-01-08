@@ -71,7 +71,8 @@ Elixir deprecations happen in 3 steps:
 
 Deprecated feature                               | Hard-deprecated in | Replaced by (available since)
 :----------------------------------------------- | :----------------- | :----------------------------
-`%{key => value}` in typespecs                   | [v1.9]        | `%{required(key) => value}` or `%{optional(key) => value}` (v1.4 and Erlang/OTP 19)
+`Mix.Project.load_paths/1`                       | [v1.9]        | `Mix.Project.compile_path/1` (v1.0)
+`--detached` in CLI                              | [v1.9]        | `--erl "-detached"` (v1.0)
 Passing a non-empty list to `Enum.into/2`        | [v1.8]        | `Kernel.++/2` or `Keyword.merge/2` (v1.0)
 Passing a non-empty list to `:into` in `for`     | [v1.8]        | `Kernel.++/2` or `Keyword.merge/2` (v1.0)
 `:seconds`, `:milliseconds`, etc. as time units  | [v1.8]        | `:second`, `:millisecond`, etc. (v1.4)
