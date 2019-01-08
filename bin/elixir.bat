@@ -48,7 +48,7 @@ echo The following options are generally used under releases.
 echo.
 echo   --boot "FILE"                Uses the given FILE.boot to start the system
 echo   --boot-var VAR "VALUE"       Makes $VAR available as VALUE to FILE.boot (*)
-echo   --erl-config "FILE"          Configures the system using an Erlang .config file
+echo   --erl-config "FILE"          Loads configuration in FILE.config written in Erlang (*)
 echo   --vm-args "FILE"             Passes the contents in file as arguments to the VM
 echo.
 echo --pipe-to is not supported on Windows. If set, Elixir won't boot.
