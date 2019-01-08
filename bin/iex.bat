@@ -15,7 +15,7 @@ echo   --dot-iex "PATH"    Overrides default .iex.exs file and uses path instead
 echo                       path can be empty, then no file will be loaded
 echo   --remsh NAME        Connects to a node using a remote shell
 echo.
-echo The remaining options are the same as in the elixir executable. See: elixir -h
+echo The remaining options are the same as in the "elixir" executable. Run "elixir --help" to see them
 goto end
 
 :run
