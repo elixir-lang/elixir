@@ -731,6 +731,26 @@ defmodule File do
   end
 
   @doc """
+  The same as `rename/2` but raises a `File.RenameError` exception if it fails.
+  Returns `:ok` otherwise.
+  """
+  @doc since: "1.9.0"
+  @spec rename!(Path.t(), Path.t()) :: :ok
+  def rename!(source, destination) do
+    case rename(source, destination) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        raise File.RenameError,
+          reason: reason,
+          action: "rename",
+          source: IO.chardata_to_string(source),
+          destination: IO.chardata_to_string(destination)
+    end
+  end
+
+  @doc """
   Copies the contents in `source` to `destination` preserving its mode.
 
   If a file already exists in the destination, it invokes a

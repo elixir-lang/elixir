@@ -140,6 +140,35 @@ defmodule FileTest do
       end
     end
 
+    test "rename! file to existing file default behaviour" do
+      src = tmp_fixture_path("file.txt")
+      dest = tmp_path("tmp.file")
+
+      File.write!(dest, "hello")
+
+      try do
+        assert File.exists?(dest)
+        assert File.rename!(src, dest) == :ok
+        refute File.exists?(src)
+        assert File.read!(dest) == "FOO\n"
+      after
+        File.rm_rf(src)
+        File.rm_rf(dest)
+      end
+    end
+
+    test "rename! with invalid file" do
+      src = tmp_fixture_path("invalid.txt")
+      dest = tmp_path("tmp.file")
+
+      message =
+        "could not rename from #{inspect(src)} to #{inspect(dest)}: no such file or directory"
+
+      assert_raise File.RenameError, message, fn ->
+        File.rename!(src, dest)
+      end
+    end
+
     test "rename dir to existing file" do
       src = tmp_fixture_path("cp_r")
       dest = tmp_path("tmp.file")

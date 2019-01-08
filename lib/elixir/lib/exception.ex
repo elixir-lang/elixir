@@ -1321,6 +1321,24 @@ defmodule File.CopyError do
   end
 end
 
+defmodule File.RenameError do
+  defexception [:reason, :source, :destination, on: "", action: ""]
+
+  @impl true
+  def message(exception) do
+    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
+
+    location =
+      case exception.on() do
+        "" -> ""
+        on -> ". #{on}"
+      end
+
+    "could not #{exception.action} from #{inspect(exception.source)} to " <>
+      "#{inspect(exception.destination)}#{location}: #{formatted}"
+  end
+end
+
 defmodule File.LinkError do
   defexception [:reason, :existing, :new, action: ""]
 
