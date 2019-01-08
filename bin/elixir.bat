@@ -48,7 +48,7 @@ echo The following options are generally used under releases.
 echo.
 echo   --boot "FILE"                Uses the given FILE.boot to start the system
 echo   --boot-var VAR "VALUE"       Makes $VAR available as VALUE to FILE.boot (*)
-echo   --pipe-to "PIPEDIR" "LOGDIR" Starts the Erlang VM as a named PIPEDIR and LOGDIR
+echo   --erl-config "FILE"          Configures the system using an Erlang .config file
 echo   --vm-args "FILE"             Passes the contents in file as arguments to the VM
 echo.
 echo --pipe-to is not supported on Windows. If set, Elixir won't boot.
@@ -111,6 +111,7 @@ if """"=="%par:--boot-var=%"            (set parsErlang=%parsErlang% -boot_var %
 if """"=="%par:--cookie=%"              (set parsErlang=%parsErlang% -setcookie %1 && shift)
 if """"=="%par:--hidden=%"              (set parsErlang=%parsErlang% -hidden)
 if """"=="%par:--detached=%"            (set parsErlang=%parsErlang% -detached && echo warning: the --detached option is deprecated)
+if """"=="%par:--erl-config=%"          (set parsErlang=%parsErlang% -config %1 && shift)
 if """"=="%par:--logger-otp-reports=%"  (set parsErlang=%parsErlang% -logger handle_otp_reports %1 && shift)
 if """"=="%par:--logger-sasl-reports=%" (set parsErlang=%parsErlang% -logger handle_sasl_reports %1 && shift)
 if """"=="%par:--name=%"                (set parsErlang=%parsErlang% -name %1 && shift)

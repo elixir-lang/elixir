@@ -257,8 +257,8 @@ defmodule Kernel.CLI do
 
   @erl_two_args_options ["--pipe-to", "--boot-var"]
 
-  @erl_one_arg_options ["--erl", "--sname", "--name", "--cookie", "--boot", "--vm-args"] ++
-                         ["--logger-otp-reports", "--logger-sasl-reports"]
+  @erl_one_arg_options ["--erl", "--sname", "--name", "--cookie", "--boot", "--erl-config"] ++
+                         ["--logger-otp-reports", "--logger-sasl-reports", "--vm-args"]
 
   # TODO: Remove --detached on 2.0
   @erl_zero_args_options ["--hidden", "--werl", "--detached"]
