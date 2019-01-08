@@ -749,7 +749,7 @@ defmodule List do
   Converts a charlist to an atom.
 
   As of Erlang/OTP 20, Elixir supports conversions from charlists which contains
-  any Unicode codepoint. Earlier versions did not support convertions from
+  any Unicode codepoint. Earlier versions did not support conversions from
   charlists which contained Unicode codepoints greater than `0xFF`.
 
   Inlined by the compiler.
@@ -773,7 +773,7 @@ defmodule List do
   if the atom does not exist.
 
   As of Erlang/OTP 20, Elixir supports conversions from charlists which contains
-  any Unicode codepoint. Earlier versions dit not supportconvertions from
+  any Unicode codepoint. Earlier versions did not support conversions from
   charlists which contained Unicode codepoints greater than `0xFF`.
 
   Inlined by the compiler.
