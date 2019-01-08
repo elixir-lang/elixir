@@ -273,6 +273,9 @@ defmodule Mix.Tasks.New do
   # The directory Mix will write compiled artifacts to.
   /_build/
 
+  # The directory for Elixir Language Server temporary files
+  **/.elixir_ls
+
   # If you run "mix test --cover", coverage assets end up here.
   /cover/
 
