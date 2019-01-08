@@ -70,34 +70,30 @@ readlink_f () {
 MODE="elixir"
 ERL_EXEC="erl"
 ERL=""
-ELIXIR=""
 I=1
+LENGTH=$#
 
-while [ $I -le $# ]; do
-  eval "PEEK=\${$I}"
-  case "$PEEK" in
+while [ $I -le $LENGTH ]; do
+  S=1
+  case "$1" in
     +iex)
-        ELIXIR="$ELIXIR +iex"
+        set -- "$@" "$1"
         MODE="iex"
         ;;
     +elixirc)
-        ELIXIR="$ELIXIR +elixirc"
+        set -- "$@" "$1"
         MODE="elixirc"
         ;;
     -v|--no-halt)
-        ELIXIR="$ELIXIR $PEEK"
+        set -- "$@" "$1"
         ;;
     -e|-r|-pr|-pa|-pz|--app|--eval|--remsh)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        ELIXIR="$ELIXIR $PEEK \"$VAL\""
+        S=2
+        set -- "$@" "$1" "$2"
         ;;
     --rpc-eval)
-        I=$(($I + 1))
-        eval "VAL1=\${$I}"
-        I=$(($I + 1))
-        eval "VAL2=\${$I}"
-        ELIXIR="$ELIXIR $PEEK \"$VAL1\" \"$VAL2\""
+        S=3
+        set -- "$@" "$1" "$2" "$3"
         ;;
     --detached)
         echo "warning: the --detached option is deprecated" >&2
@@ -107,66 +103,54 @@ while [ $I -le $# ]; do
         ERL="$ERL -hidden"
         ;;
     --cookie)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        ERL="$ERL -setcookie "$VAL""
+        S=2
+        ERL="$ERL -setcookie "$2""
         ;;
     --sname|--name)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        ERL="$ERL $(echo $PEEK | cut -c 2-) "$VAL""
+        S=2
+        ERL="$ERL $(echo $1 | cut -c 2-) "$2""
         ;;
     --logger-otp-reports)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        if [ "$VAL" = 'true' ] || [ "$VAL" = 'false' ]; then
-          ERL="$ERL -logger handle_otp_reports "$VAL""
+        S=2
+        if [ "$2" = 'true' ] || [ "$2" = 'false' ]; then
+          ERL="$ERL -logger handle_otp_reports "$2""
         fi
         ;;
     --logger-sasl-reports)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        if [ "$VAL" = 'true' ] || [ "$VAL" = 'false' ]; then
-          ERL="$ERL -logger handle_sasl_reports "$VAL""
+        S=2
+        if [ "$2" = 'true' ] || [ "$2" = 'false' ]; then
+          ERL="$ERL -logger handle_sasl_reports "$2""
         fi
         ;;
     --erl)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        ERL="$ERL "$VAL""
+        S=2
+        ERL="$ERL "$2""
         ;;
     --erl-config)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        ERL="$ERL -config "$VAL""
+        S=2
+        ERL="$ERL -config "$2""
         ;;
     --vm-args)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        ERL="$ERL -args_file "$VAL""
+        S=2
+        ERL="$ERL -args_file "$2""
         ;;
     --boot)
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        ERL="$ERL -boot "$VAL""
+        S=2
+        ERL="$ERL -boot "$2""
         ;;
     --boot-var)
-        I=$(($I + 1))
-        eval "KEY=\${$I}"
-        I=$(($I + 1))
-        eval "VAL=\${$I}"
-        ERL="$ERL -boot_var "$KEY" "$VAL""
+        S=3
+        ERL="$ERL -boot_var "$2" "$3""
         ;;
     --pipe-to)
-        I=$(($I + 1))
-        eval "RUN_ERL_PIPE=\${$I}"
+        S=3
+        RUN_ERL_PIPE="$2"
         if [[ "$RUN_ERL_PIPE" == "-"* ]]; then
           echo "--pipe-to : PIPEDIR cannot be a switch" >&2
           exit 1
         fi
 
-        I=$(($I + 1))
-        eval "RUN_ERL_LOG=\${$I}"
+        RUN_ERL_LOG="$3"
         if [[ "$RUN_ERL_LOG" == "-"* ]]; then
           echo "--pipe-to : LOGDIR cannot be a switch" >&2
           exit 1
@@ -176,15 +160,17 @@ while [ $I -le $# ]; do
         USE_WERL=true
         ;;
     *)
-        while [ $I -le $# ]; do
-          eval "PEEK=\${$I}"
-          ELIXIR="$ELIXIR \"$PEEK\""
+        while [ $I -le $LENGTH ]; do
           I=$(($I + 1))
+          set -- "$@" "$1"
+          shift
         done
         break
         ;;
   esac
-  I=$(($I + 1))
+
+  I=$(($I + $S))
+  shift $S
 done
 
 SELF=$(readlink_f "$0")
@@ -200,7 +186,6 @@ else
   if [ $USE_WERL ]; then ERL_EXEC="werl"; fi
 fi
 
-eval set -- "$ELIXIR"
 set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
