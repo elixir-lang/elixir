@@ -160,7 +160,9 @@ defmodule FileTest do
     test "rename! with invalid file" do
       src = tmp_fixture_path("invalid.txt")
       dest = tmp_path("tmp.file")
-      message = "could not rename from #{inspect(src)} to #{inspect(dest)}: no such file or directory"
+
+      message =
+        "could not rename from #{inspect(src)} to #{inspect(dest)}: no such file or directory"
 
       assert_raise File.RenameError, message, fn ->
         File.rename!(src, dest)
