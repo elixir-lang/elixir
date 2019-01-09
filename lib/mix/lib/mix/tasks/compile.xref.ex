@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Compile.Xref do
   Performs remote dispatch checking.
 
   It uses `mix xref` to check if any remote call does not exist or is
-  deprecated, and emits a warnings in such cases. This tasks does not show
+  deprecated, and emits warnings in such cases. This tasks does not show
   deprecated local calls (a call to a deprecated function or macro in the
   same module) nor calls to deprecated functionality in Elixir itself.
 
