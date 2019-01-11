@@ -583,6 +583,9 @@ defmodule DateTime do
   Because `Date` does not hold time nor time zone information,
   data will be lost during the conversion.
 
+  In addition to a `DateTime` any map containing the required fields can be
+  passed to this function. This includes `Date` or a `NaiveDateTime`.
+
   ## Examples
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
@@ -591,10 +594,16 @@ defmodule DateTime do
       iex> DateTime.to_date(dt)
       ~D[2000-02-29]
 
+      iex> DateTime.to_date(~D[2000-02-29])
+      ~D[2000-02-29]
+
+      iex> DateTime.to_date(~N[2000-02-29 01:23:45.67])
+      ~D[2000-02-29]
+
   """
-  @spec to_date(Calendar.datetime()) :: Date.t()
-  def to_date(datetime) do
-    %{year: year, month: month, day: day, calendar: calendar} = datetime
+  @spec to_date(Calendar.date()) :: Date.t()
+  def to_date(map_with_date) do
+    %{year: year, month: month, day: day, calendar: calendar} = map_with_date
     %Date{year: year, month: month, day: day, calendar: calendar}
   end
 
@@ -604,6 +613,9 @@ defmodule DateTime do
   Because `Time` does not hold date nor time zone information,
   data will be lost during the conversion.
 
+  Also accepts other maps that contain the necessary time fields.
+  Including `Time` and `NaiveDateTime` structs.
+
   ## Examples
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
@@ -612,11 +624,16 @@ defmodule DateTime do
       iex> DateTime.to_time(dt)
       ~T[23:00:07.0]
 
+      iex> DateTime.to_time(~N[2000-01-01 23:00:07.0])
+      ~T[23:00:07.0]
+      iex> DateTime.to_time(~T[23:00:07.0])
+      ~T[23:00:07.0]
+
   """
-  @spec to_time(Calendar.datetime()) :: Time.t()
-  def to_time(datetime) do
+  @spec to_time(Calendar.time()) :: Time.t()
+  def to_time(map_with_time) do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar} =
-      datetime
+      map_with_time
 
     %Time{
       hour: hour,

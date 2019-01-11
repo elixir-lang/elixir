@@ -391,21 +391,9 @@ defmodule NaiveDateTime do
       ~D[2002-01-13]
 
   """
-  @spec to_date(Calendar.naive_datetime()) :: Date.t()
-  def to_date(%NaiveDateTime{year: year, month: month, day: day, calendar: calendar}) do
-    %Date{year: year, month: month, day: day, calendar: calendar}
-  end
-
-  def to_date(%{
-        year: year,
-        month: month,
-        day: day,
-        calendar: calendar,
-        hour: _,
-        minute: _,
-        second: _,
-        microsecond: _
-      }) do
+  @spec to_date(Calendar.date()) :: Date.t()
+  def to_date(map_with_date) do
+    %{year: year, month: month, day: day, calendar: calendar} = map_with_date
     %Date{year: year, month: month, day: day, calendar: calendar}
   end
 
@@ -421,35 +409,11 @@ defmodule NaiveDateTime do
       ~T[23:00:07]
 
   """
-  @spec to_time(Calendar.naive_datetime()) :: Time.t()
-  def to_time(%NaiveDateTime{} = naive_datetime) do
-    %{
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      calendar: calendar
-    } = naive_datetime
+  @spec to_time(Calendar.time()) :: Time.t()
+  def to_time(map_with_time) do
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond, calendar: calendar} =
+      map_with_time
 
-    %Time{
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      calendar: calendar
-    }
-  end
-
-  def to_time(%{
-        year: _,
-        month: _,
-        day: _,
-        calendar: calendar,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond
-      }) do
     %Time{
       hour: hour,
       minute: minute,

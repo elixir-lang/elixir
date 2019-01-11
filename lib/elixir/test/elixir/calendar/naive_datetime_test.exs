@@ -192,7 +192,7 @@ defmodule NaiveDateTimeTest do
     }
 
     assert NaiveDateTime.to_date(dt) == ~D[2000-02-29]
-    assert catch_error(NaiveDateTime.to_date(~D[2000-02-29]))
+    assert NaiveDateTime.to_date(~D[2000-02-29]) == ~D[2000-02-29]
   end
 
   test "to_time/2 with datetime" do
@@ -211,6 +211,6 @@ defmodule NaiveDateTimeTest do
     }
 
     assert NaiveDateTime.to_time(dt) == ~T[23:00:07.003000]
-    assert catch_error(NaiveDateTime.to_time(~T[00:00:00.000000]))
+    assert NaiveDateTime.to_time(~T[00:00:00.000000]) == ~T[00:00:00.000000]
   end
 end
