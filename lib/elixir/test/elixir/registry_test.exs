@@ -148,7 +148,6 @@ defmodule RegistryTest do
 
         Registry.unregister_match(registry, :_, :foo)
         assert Registry.lookup(registry, :_) == []
-
         assert Registry.keys(registry, self()) |> Enum.sort() == ["hello"]
       end
 
@@ -181,7 +180,7 @@ defmodule RegistryTest do
         assert_received {:dispatch, :value}
       end
 
-      test "allows process unregistering", %{registry: registry} do
+      test "unregisters process by key", %{registry: registry} do
         :ok = Registry.unregister(registry, "hello")
 
         {:ok, _} = Registry.register(registry, "hello", :value)
@@ -195,8 +194,17 @@ defmodule RegistryTest do
         assert Registry.keys(registry, self()) == []
       end
 
-      test "allows unregistering with no entries", %{registry: registry} do
+      test "unregisters with no entries", %{registry: registry} do
         assert Registry.unregister(registry, "hello") == :ok
+      end
+
+      test "unregisters with tricky keys", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, :_, :foo)
+        {:ok, _} = Registry.register(registry, "hello", "b")
+
+        Registry.unregister(registry, :_)
+        assert Registry.lookup(registry, :_) == []
+        assert Registry.keys(registry, self()) |> Enum.sort() == ["hello"]
       end
 
       @tag listener: :"unique_listener_#{partitions}"
@@ -362,6 +370,41 @@ defmodule RegistryTest do
           Registry.select(registry, [{:_, [], []}])
         end
       end
+
+      test "doesn't grow ets on already_registered",
+           %{registry: registry, partitions: partitions} do
+        assert sum_pid_entries(registry, partitions) == 0
+
+        {:ok, pid} = Registry.register(registry, "hello", :value)
+        assert is_pid(pid)
+        assert sum_pid_entries(registry, partitions) == 1
+
+        {:ok, pid} = Registry.register(registry, "world", :value)
+        assert is_pid(pid)
+        assert sum_pid_entries(registry, partitions) == 2
+
+        assert {:error, {:already_registered, pid}} = Registry.register(registry, "hello", :value)
+        assert sum_pid_entries(registry, partitions) == 2
+      end
+
+      test "doesn't grow ets on already_registered across processes",
+           %{registry: registry, partitions: partitions} do
+        assert sum_pid_entries(registry, partitions) == 0
+
+        {_, task} = register_task(registry, "hello", :value)
+        Process.link(Process.whereis(registry))
+
+        assert sum_pid_entries(registry, partitions) == 1
+
+        {:ok, pid} = Registry.register(registry, "world", :value)
+        assert is_pid(pid)
+        assert sum_pid_entries(registry, partitions) == 2
+
+        assert {:error, {:already_registered, ^task}} =
+                 Registry.register(registry, "hello", :recent)
+
+        assert sum_pid_entries(registry, partitions) == 2
+      end
     end
   end
 
@@ -487,7 +530,7 @@ defmodule RegistryTest do
         refute_received {:EXIT, _, _}
       end
 
-      test "allows process unregistering", %{registry: registry} do
+      test "unregisters by key", %{registry: registry} do
         {:ok, _} = Registry.register(registry, "hello", :value)
         {:ok, _} = Registry.register(registry, "hello", :value)
         {:ok, _} = Registry.register(registry, "world", :value)
@@ -500,8 +543,18 @@ defmodule RegistryTest do
         assert Registry.keys(registry, self()) == []
       end
 
-      test "allows unregistering with no entries", %{registry: registry} do
+      test "unregistes with no entries", %{registry: registry} do
         assert Registry.unregister(registry, "hello") == :ok
+      end
+
+      test "unregisters with tricky keys", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, :_, :foo)
+        {:ok, _} = Registry.register(registry, :_, :bar)
+        {:ok, _} = Registry.register(registry, "hello", "a")
+        {:ok, _} = Registry.register(registry, "hello", "b")
+
+        Registry.unregister(registry, :_)
+        assert Registry.keys(registry, self()) |> Enum.sort() == ["hello", "hello"]
       end
 
       test "supports match patterns", %{registry: registry} do
@@ -825,5 +878,21 @@ defmodule RegistryTest do
     ref = Process.monitor(pid)
     Process.exit(pid, :kill)
     assert_receive {:DOWN, ^ref, _, _, _}
+  end
+
+  defp sum_pid_entries(registry, partitions) do
+    Enum.map(0..(partitions - 1), &Module.concat(registry, "PIDPartition#{&1}"))
+    |> sum_ets_entries()
+  end
+
+  defp sum_ets_entries(table_names) do
+    table_names
+    |> Enum.map(&ets_entries/1)
+    |> Enum.sum()
+  end
+
+  defp ets_entries(table_name) do
+    :ets.all()
+    |> Enum.find_value(fn id -> :ets.info(id, :name) == table_name and :ets.info(id, :size) end)
   end
 end
