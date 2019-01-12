@@ -789,4 +789,22 @@ defmodule DateTimeTest do
       assert DateTime.to_iso8601(datetime_map) == "2018-07-01T12:34:25.123456Z"
     end
   end
+
+  describe "to_date/1" do
+    test "upcasting" do
+      assert catch_error(DateTime.to_date(~N[2000-02-29 12:23:34]))
+    end
+  end
+
+  describe "to_time/1" do
+    test "upcasting" do
+      assert catch_error(DateTime.to_time(~N[2000-02-29 12:23:34]))
+    end
+  end
+
+  describe "to_naive/1" do
+    test "upcasting" do
+      assert catch_error(DateTime.to_naive(~N[2000-02-29 12:23:34]))
+    end
+  end
 end
