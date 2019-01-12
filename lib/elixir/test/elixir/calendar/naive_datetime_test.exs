@@ -176,41 +176,51 @@ defmodule NaiveDateTimeTest do
     assert catch_error(NaiveDateTime.truncate(~T[00:00:00.000000], :millisecond))
   end
 
-  test "to_date/2 with datetime" do
-    dt = %DateTime{
-      year: 2000,
-      month: 2,
-      day: 29,
-      zone_abbr: "CET",
-      hour: 23,
-      minute: 0,
-      second: 7,
-      microsecond: {3000, 6},
-      utc_offset: 3600,
-      std_offset: 0,
-      time_zone: "Europe/Warsaw"
-    }
+  describe "to_date/2" do
+    test "downcasting" do
+      dt = %DateTime{
+        year: 2000,
+        month: 2,
+        day: 29,
+        zone_abbr: "CET",
+        hour: 23,
+        minute: 0,
+        second: 7,
+        microsecond: {3000, 6},
+        utc_offset: 3600,
+        std_offset: 0,
+        time_zone: "Europe/Warsaw"
+      }
 
-    assert NaiveDateTime.to_date(dt) == ~D[2000-02-29]
-    assert catch_error(NaiveDateTime.to_date(~D[2000-02-29]))
+      assert NaiveDateTime.to_date(dt) == ~D[2000-02-29]
+    end
+
+    test "upcasting" do
+      assert catch_error(NaiveDateTime.to_date(~D[2000-02-29]))
+    end
   end
 
-  test "to_time/2 with datetime" do
-    dt = %DateTime{
-      year: 2000,
-      month: 2,
-      day: 29,
-      zone_abbr: "CET",
-      hour: 23,
-      minute: 0,
-      second: 7,
-      microsecond: {3000, 6},
-      utc_offset: 3600,
-      std_offset: 0,
-      time_zone: "Europe/Warsaw"
-    }
+  describe "to_time/2" do
+    test "downcasting" do
+      dt = %DateTime{
+        year: 2000,
+        month: 2,
+        day: 29,
+        zone_abbr: "CET",
+        hour: 23,
+        minute: 0,
+        second: 7,
+        microsecond: {3000, 6},
+        utc_offset: 3600,
+        std_offset: 0,
+        time_zone: "Europe/Warsaw"
+      }
 
-    assert NaiveDateTime.to_time(dt) == ~T[23:00:07.003000]
-    assert catch_error(NaiveDateTime.to_time(~T[00:00:00.000000]))
+      assert NaiveDateTime.to_time(dt) == ~T[23:00:07.003000]
+    end
+
+    test "upcasting" do
+      assert catch_error(NaiveDateTime.to_time(~T[00:00:00.000000]))
+    end
   end
 end

@@ -392,10 +392,6 @@ defmodule NaiveDateTime do
 
   """
   @spec to_date(Calendar.naive_datetime()) :: Date.t()
-  def to_date(%NaiveDateTime{year: year, month: month, day: day, calendar: calendar}) do
-    %Date{year: year, month: month, day: day, calendar: calendar}
-  end
-
   def to_date(%{
         year: year,
         month: month,
@@ -422,24 +418,6 @@ defmodule NaiveDateTime do
 
   """
   @spec to_time(Calendar.naive_datetime()) :: Time.t()
-  def to_time(%NaiveDateTime{} = naive_datetime) do
-    %{
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      calendar: calendar
-    } = naive_datetime
-
-    %Time{
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      calendar: calendar
-    }
-  end
-
   def to_time(%{
         year: _,
         month: _,
