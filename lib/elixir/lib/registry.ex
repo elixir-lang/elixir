@@ -922,6 +922,11 @@ defmodule Registry do
         ok
 
       {:error, {:already_registered, ^self}} = error ->
+        # This is an error for the :unique case, so there are two entries.
+        # :ets.delete_object deletes both since pid_ets is a :duplicate_bag so
+        # add one back.
+        true = :ets.delete_object(pid_ets, {self, key, key_ets})
+        true = :ets.insert(pid_ets, {self, key, key_ets})
         error
 
       {:error, _} = error ->

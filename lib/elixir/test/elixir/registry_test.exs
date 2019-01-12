@@ -261,6 +261,41 @@ defmodule RegistryTest do
         {:ok, pid} = Agent.start_link(fn -> 0 end, name: name)
         assert Registry.lookup(registry, "hello") == [{pid, :value}]
       end
+
+      test "doesn't grow ets on already_registered",
+           %{registry: registry, partitions: partitions} do
+        assert sum_pid_entries(registry, partitions) == 0
+
+        {:ok, pid} = Registry.register(registry, "hello", :value)
+        assert is_pid(pid)
+        assert sum_pid_entries(registry, partitions) == 1
+
+        {:ok, pid} = Registry.register(registry, "world", :value)
+        assert is_pid(pid)
+        assert sum_pid_entries(registry, partitions) == 2
+
+        assert {:error, {:already_registered, pid}} = Registry.register(registry, "hello", :value)
+        assert sum_pid_entries(registry, partitions) == 2
+      end
+
+      test "doesn't grow ets on already_registered across processes",
+           %{registry: registry, partitions: partitions} do
+        assert sum_pid_entries(registry, partitions) == 0
+
+        {_, task} = register_task(registry, "hello", :value)
+        Process.link(Process.whereis(registry))
+
+        assert sum_pid_entries(registry, partitions) == 1
+
+        {:ok, pid} = Registry.register(registry, "world", :value)
+        assert is_pid(pid)
+        assert sum_pid_entries(registry, partitions) == 2
+
+        assert {:error, {:already_registered, ^task}} =
+                 Registry.register(registry, "hello", :recent)
+
+        assert sum_pid_entries(registry, partitions) == 2
+      end
     end
   end
 
@@ -618,5 +653,21 @@ defmodule RegistryTest do
     ref = Process.monitor(pid)
     Process.exit(pid, :kill)
     assert_receive {:DOWN, ^ref, _, _, _}
+  end
+
+  defp sum_pid_entries(registry, partitions) do
+    Enum.map(0..(partitions - 1), &Module.concat(registry, "PIDPartition#{&1}"))
+    |> sum_ets_entries()
+  end
+
+  defp sum_ets_entries(table_names) do
+    table_names
+    |> Enum.map(&ets_entries/1)
+    |> Enum.sum()
+  end
+
+  defp ets_entries(table_name) do
+    :ets.all()
+    |> Enum.find_value(fn id -> :ets.info(id, :name) == table_name and :ets.info(id, :size) end)
   end
 end
