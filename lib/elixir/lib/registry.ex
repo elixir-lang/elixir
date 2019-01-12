@@ -691,7 +691,7 @@ defmodule Registry do
 
     keys =
       try do
-        spec = [{{pid, :"$1", :"$2"}, [], [{{:"$1", :"$2"}}]}]
+        spec = [{{pid, :"$1", :"$2", :_}, [], [{{:"$1", :"$2"}}]}]
         :ets.select(pid_ets, spec)
       catch
         :error, :badarg -> []
@@ -768,8 +768,8 @@ defmodule Registry do
     # Remove first from the key_ets because in case of crashes
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
-    true = :ets.match_delete(key_ets, {key, {self, :_}})
-    true = :ets.delete_object(pid_ets, {self, key, key_ets})
+    true = __unregister__(key_ets, {key, {self, :_}}, 1)
+    true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
 
     unlink_if_unregistered(pid_server, pid_ets, self)
 
@@ -831,8 +831,7 @@ defmodule Registry do
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
 
-    # Here we want to count all entries for this pid under this key, regardless
-    # of pattern.
+    # Here we want to count all entries for this pid under this key, regardless of pattern.
     underscore_guard = {:"=:=", {:element, 1, :"$_"}, {:const, key}}
     total_spec = [{{:_, {self, :_}}, [underscore_guard], [true]}]
     total = :ets.select_count(key_ets, total_spec)
@@ -843,8 +842,7 @@ defmodule Registry do
     case :ets.select_delete(key_ets, delete_spec) do
       # We deleted everything, we can just delete the object
       ^total ->
-        true = :ets.delete_object(pid_ets, {self, key, key_ets})
-
+        true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
         unlink_if_unregistered(pid_server, pid_ets, self)
 
         for listener <- listeners do
@@ -859,11 +857,12 @@ defmodule Registry do
         # duplicate_bag tables will remove every entry, but we only want to
         # remove those we have deleted. The solution is to introduce a temp_entry
         # that indicates how many keys WILL be remaining after the delete operation.
+        counter = System.unique_integer()
         remaining = total - deleted
-        temp_entry = {self, key, {key_ets, remaining}}
+        temp_entry = {self, key, {key_ets, remaining}, counter}
         true = :ets.insert(pid_ets, temp_entry)
-        true = :ets.delete_object(pid_ets, {self, key, key_ets})
-        real_keys = List.duplicate({self, key, key_ets}, remaining)
+        true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
+        real_keys = List.duplicate({self, key, key_ets, counter}, remaining)
         true = :ets.insert(pid_ets, real_keys)
         # We've recreated the real remaining key entries, so we can now delete
         # our temporary entry.
@@ -924,7 +923,9 @@ defmodule Registry do
     # always be able to do the cleanup. If we register first to the
     # key one and the process crashes, the key will stay there forever.
     Process.link(pid_server)
-    true = :ets.insert(pid_ets, {self, key, key_ets})
+
+    counter = System.unique_integer()
+    true = :ets.insert(pid_ets, {self, key, key_ets, counter})
 
     case register_key(kind, pid_server, key_ets, key, {key, {self, value}}) do
       {:ok, _} = ok ->
@@ -935,10 +936,11 @@ defmodule Registry do
         ok
 
       {:error, {:already_registered, ^self}} = error ->
+        true = :ets.delete_object(pid_ets, {self, key, key_ets, counter})
         error
 
       {:error, _} = error ->
-        true = :ets.delete_object(pid_ets, {self, key, key_ets})
+        true = :ets.delete_object(pid_ets, {self, key, key_ets, counter})
         unlink_if_unregistered(pid_server, pid_ets, self)
         error
     end
@@ -1280,6 +1282,24 @@ defmodule Registry do
       Process.unlink(pid_server)
     end
   end
+
+  @doc false
+  def __unregister__(table, match, pos) do
+    key = :erlang.element(pos, match)
+
+    # We need to perform an element comparison if we have an special atom key.
+    if is_atom(key) and reserved_atom?(Atom.to_string(key)) do
+      match = :erlang.setelement(pos, match, :_)
+      guard = {:"=:=", {:element, pos, :"$_"}, {:const, key}}
+      :ets.select_delete(table, [{match, [guard], [true]}]) >= 0
+    else
+      :ets.match_delete(table, match)
+    end
+  end
+
+  defp reserved_atom?("_"), do: true
+  defp reserved_atom?("$" <> _), do: true
+  defp reserved_atom?(_), do: false
 end
 
 defmodule Registry.Supervisor do
@@ -1409,7 +1429,7 @@ defmodule Registry.Partition do
   def handle_info({:EXIT, pid, _reason}, ets) do
     entries = :ets.take(ets, pid)
 
-    for {_pid, key, key_ets} <- entries do
+    for {_pid, key, key_ets, _counter} <- entries do
       key_ets =
         case key_ets do
           # In case the fake key_ets is being used. See unregister_match/2.
@@ -1421,7 +1441,7 @@ defmodule Registry.Partition do
         end
 
       try do
-        :ets.match_delete(key_ets, {key, {pid, :_}})
+        Registry.__unregister__(key_ets, {key, {pid, :_}}, 1)
       catch
         :error, :badarg -> :badarg
       end
