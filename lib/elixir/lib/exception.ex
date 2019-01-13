@@ -924,36 +924,12 @@ defmodule UndefinedFunctionError do
 
   defp message(:"function not exported", module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
-    fun_message = "function #{formatted_fun} is undefined or private"
-    behaviour_hint = behaviour_hint(module, function, arity)
-    {fun_message <> behaviour_hint, true}
+    {"function #{formatted_fun} is undefined or private", true}
   end
 
   defp message(reason, module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
     {"function #{formatted_fun} is undefined (#{reason})", false}
-  end
-
-  defp behaviour_hint(module, function, arity) do
-    case behaviours_for(module) do
-      [] ->
-        ""
-
-      behaviours ->
-        case Enum.find(behaviours, &expects_callback?(&1, function, arity)) do
-          nil -> ""
-          behaviour -> ", but the behaviour #{inspect(behaviour)} expects it to be present"
-        end
-    end
-  rescue
-    # In case the module was removed while we are computing this
-    UndefinedFunctionError ->
-      []
-  end
-
-  defp expects_callback?(behaviour, function, arity) do
-    callbacks = behaviour.behaviour_info(:callbacks)
-    Enum.member?(callbacks, {function, arity})
   end
 
   @impl true
@@ -970,7 +946,8 @@ defmodule UndefinedFunctionError do
   end
 
   defp hint(module, function, arity, true) do
-    hint_for_loaded_module(module, function, arity, nil)
+    behaviour_hint(module, function, arity) <>
+      hint_for_loaded_module(module, function, arity, nil)
   end
 
   defp hint(_module, _function, _arity, _loaded?) do
@@ -1021,10 +998,31 @@ defmodule UndefinedFunctionError do
     ["      * ", Code.Identifier.inspect_as_function(fun), ?/, Integer.to_string(arity), ?\n]
   end
 
+  defp behaviour_hint(module, function, arity) do
+    case behaviours_for(module) do
+      [] ->
+        ""
+
+      behaviours ->
+        case Enum.find(behaviours, &expects_callback?(&1, function, arity)) do
+          nil -> ""
+          behaviour -> ", but the behaviour #{inspect(behaviour)} expects it to be present"
+        end
+    end
+  rescue
+    # In case the module was removed while we are computing this
+    UndefinedFunctionError -> ""
+  end
+
   defp behaviours_for(module) do
     :attributes
     |> module.module_info()
     |> Keyword.get(:behaviour, [])
+  end
+
+  defp expects_callback?(behaviour, function, arity) do
+    callbacks = behaviour.behaviour_info(:callbacks)
+    Enum.member?(callbacks, {function, arity})
   end
 
   defp exports_for(module) do

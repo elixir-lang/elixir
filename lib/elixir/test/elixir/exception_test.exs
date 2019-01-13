@@ -739,7 +739,8 @@ defmodule ExceptionTest do
         @behaviour Behaviour
       end
 
-      assert %UndefinedFunctionError{module: Implementation, function: :callback, arity: 0}
+      assert Exception.blame(:error, :undef, [{Implementation, :callback, 0, []}])
+             |> elem(0)
              |> message ==
                "function ExceptionTest.Implementation.callback/0 is undefined or private" <>
                  ", but the behaviour ExceptionTest.Behaviour expects it to be present"
