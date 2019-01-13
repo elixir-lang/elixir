@@ -89,14 +89,6 @@ defmodule Logger.Config do
     {:ok, state}
   end
 
-  def handle_event({_type, gl, _msg} = event, state) when node(gl) != node() do
-    # Cross node messages are always async which also
-    # means this handler won't crash in case Logger
-    # is not installed in the other node.
-    :gen_event.notify({Logger, node(gl)}, event)
-    {:ok, state}
-  end
-
   def handle_event(_event, state) do
     state = update_counter(state, false)
     {:ok, state}
