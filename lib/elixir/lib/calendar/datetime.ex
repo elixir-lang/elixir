@@ -247,7 +247,7 @@ defmodule DateTime do
 
   def from_naive(
         naive_datetime,
-        time_zone,
+        time_zone \\ "Etc/UTC",
         time_zone_database \\ Calendar.get_time_zone_database()
       )
 
@@ -370,7 +370,7 @@ defmodule DateTime do
         ) :: t
   def from_naive!(
         naive_datetime,
-        time_zone,
+        time_zone \\ "Etc/UTC",
         time_zone_database \\ Calendar.get_time_zone_database()
       ) do
     case from_naive(naive_datetime, time_zone, time_zone_database) do
