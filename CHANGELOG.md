@@ -63,15 +63,7 @@ When a task is spawned directly from your code, without a supervisor, then the p
 
 This small feature is very powerful. It allows instrumentation and monitoring tools to better track and relate the events happening in your system. This feature can also be used by tools like the "Ecto Sandbox". The "Ecto Sandbox" allows developers to run tests concurrently against the database, by using transactions and an ownership mechanism where each process explicitly gets a connection assigned to it. Without `$callers`, every time you spawned a task that queries the database, the task would not know its caller, and therefore it would be unable to know which connection was assigned to it. This often meant features that relies on tasks could not be tested concurrently. With `$callers`, figuring out this relationship is trivial and you have more tests using the full power of your machine.
 
-## v1.8.0-rc.1 (2018-01-03)
-
-### 1. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Only validate the argument of `record/1` and `record/2` types in typespecs (regression)
-
-## v1.8.0-rc.0 (2018-12-24)
+## v1.8.0 (2018-01-14)
 
 ### 1. Enhancements
 
@@ -140,6 +132,7 @@ This small feature is very powerful. It allows instrumentation and monitoring to
   * [Kernel] Do not leak variables in `cond` clauses with a single matching at compile-time clause
   * [NaiveDateTime] Do not accept leap seconds in builder and parsing functions
   * [String] Fix ZWJ handling in Unicode grapheme clusters
+  * [StringIO] Handle non-printable args in StringIO gracefully
 
 #### IEx
 
