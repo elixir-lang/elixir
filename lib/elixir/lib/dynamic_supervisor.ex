@@ -487,7 +487,7 @@ defmodule DynamicSupervisor do
 
     * `:strategy` - the restart strategy option. The only supported
       value is `:one_for_one` which means that no other child is
-      terminate if a child process terminates. You can learn more
+      terminated if a child process terminates. You can learn more
       about strategies in the `Supervisor` module docs.
 
     * `:max_restarts` - the maximum number of restarts allowed in
