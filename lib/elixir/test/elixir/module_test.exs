@@ -259,12 +259,24 @@ defmodule ModuleTest do
     assert {:module, :root_defmodule, _, _} = result
   end
 
-  test "defmodule with alias as atom" do
+  test "does not leak alias from atom" do
     defmodule :"Elixir.ModuleTest.RawModule" do
       def hello, do: :world
     end
 
-    assert RawModule.hello() == :world
+    refute __ENV__.aliases[Elixir.ModuleTest]
+    refute __ENV__.aliases[Elixir.RawModule]
+    assert ModuleTest.RawModule.hello() == :world
+  end
+
+  test "does not leak alias from non-atom alias" do
+    defmodule __MODULE__.NonAtomAlias do
+      def hello, do: :world
+    end
+
+    refute __ENV__.aliases[Elixir.ModuleTest]
+    refute __ENV__.aliases[Elixir.NonAtomAlias]
+    assert Elixir.ModuleTest.NonAtomAlias.hello() == :world
   end
 
   test "create" do
