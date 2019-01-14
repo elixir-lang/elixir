@@ -3718,7 +3718,8 @@ defmodule Kernel do
   In the example above, two modules - `Foo` and `Foo.Bar` - are created.
   When nesting, Elixir automatically creates an alias to the inner module,
   allowing the second module `Foo.Bar` to be accessed as `Bar` in the same
-  lexical scope where it's defined (the `Foo` module).
+  lexical scope where it's defined (the `Foo` module). This only happens
+  if the nested module is defined via an alias.
 
   If the `Foo.Bar` module is moved somewhere else, the references to `Bar` in
   the `Foo` module need to be updated to the fully-qualified name (`Foo.Bar`) or
@@ -3734,15 +3735,6 @@ defmodule Kernel do
         # code here can refer to "Foo.Bar" as just "Bar"
       end
 
-  ## Module names
-
-  A module name can be any atom, but Elixir provides a special syntax which is
-  usually used for module names. What is called a module name is an
-  _uppercase ASCII letter_ followed by any number of _lowercase or
-  uppercase ASCII letters_, _numbers_, or _underscores_.
-  This identifier is equivalent to an atom prefixed by `Elixir.`. So in the
-  `defmodule Foo` example `Foo` is equivalent to `:"Elixir.Foo"`
-
   ## Dynamic names
 
   Elixir module names can be dynamically generated. This is very
@@ -3754,8 +3746,8 @@ defmodule Kernel do
 
   Elixir will accept any module name as long as the expression passed as the
   first argument to `defmodule/2` evaluates to an atom.
-  Note that, when a dynamic name is used, Elixir won't nest the name under the
-  current module nor automatically set up an alias.
+  Note that, when a dynamic name is used, Elixir won't nest the name under
+  the current module nor automatically set up an alias.
 
   ## Reserved module names
 
@@ -3790,12 +3782,8 @@ defmodule Kernel do
       case boot? and is_atom(expanded) do
         true ->
           # Expand the module considering the current environment/nesting
-          full = expand_module(alias, expanded, env)
-
-          # Generate the alias for this module definition
-          {new, old} = module_nesting(env.module, full)
+          {full, old, new} = expand_module(alias, expanded, env)
           meta = [defined: full, context: env.module] ++ alias_meta(alias)
-
           {full, {:alias, meta, [old, [as: new, warn: false]]}}
 
         false ->
@@ -3835,21 +3823,29 @@ defmodule Kernel do
   defp alias_meta({:__aliases__, meta, _}), do: meta
   defp alias_meta(_), do: []
 
-  # defmodule :foo
-  defp expand_module(raw, _module, _env) when is_atom(raw), do: raw
-
   # defmodule Elixir.Alias
-  defp expand_module({:__aliases__, _, [:"Elixir" | t]}, module, _env) when t != [], do: module
+  defp expand_module({:__aliases__, _, [:"Elixir", _ | _]}, module, _env),
+    do: {module, module, nil}
 
   # defmodule Alias in root
-  defp expand_module({:__aliases__, _, _}, module, %{module: nil}), do: module
+  defp expand_module({:__aliases__, _, _}, module, %{module: nil}),
+    do: {module, module, nil}
 
   # defmodule Alias nested
-  defp expand_module({:__aliases__, _, t}, _module, env),
-    do: :elixir_aliases.concat([env.module | t])
+  defp expand_module({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
+    module = :elixir_aliases.concat([env.module, h])
+    alias = String.to_atom("Elixir.#{h}")
+
+    case t do
+      [] -> {module, module, alias}
+      _ -> {String.to_atom(Enum.join([module | t], ".")), module, alias}
+    end
+  end
 
   # defmodule _
-  defp expand_module(_raw, module, env), do: :elixir_aliases.concat([env.module, module])
+  defp expand_module(_raw, module, _env) do
+    {module, module, nil}
+  end
 
   # quote vars to be injected into the module definition
   defp module_vars([{key, kind} | vars], counter) do
@@ -3866,53 +3862,6 @@ defmodule Kernel do
 
   defp module_vars([], _counter) do
     []
-  end
-
-  # Gets two modules' names and returns an alias
-  # which can be passed down to the alias directive
-  # and it will create a proper shortcut representing
-  # the given nesting.
-  #
-  # Examples:
-  #
-  #     module_nesting(:"Elixir.Foo.Bar", :"Elixir.Foo.Bar.Baz.Bat")
-  #     {:"Elixir.Baz", :"Elixir.Foo.Bar.Baz"}
-  #
-  # In case there is no nesting/no module:
-  #
-  #     module_nesting(nil, :"Elixir.Foo.Bar.Baz.Bat")
-  #     {nil, :"Elixir.Foo.Bar.Baz.Bat"}
-  #
-  defp module_nesting(nil, full) do
-    {nil, full}
-  end
-
-  defp module_nesting(prefix, full) do
-    case split_module(prefix) do
-      [] -> {nil, full}
-      prefix -> module_nesting(prefix, split_module(full), [], full)
-    end
-  end
-
-  defp module_nesting([x | t1], [x | t2], acc, full) do
-    module_nesting(t1, t2, [x | acc], full)
-  end
-
-  defp module_nesting([], [h | _], acc, _full) do
-    as = String.to_atom(<<"Elixir.", h::binary>>)
-    alias = :elixir_aliases.concat(:lists.reverse([h | acc]))
-    {as, alias}
-  end
-
-  defp module_nesting(_, _, _acc, full) do
-    {nil, full}
-  end
-
-  defp split_module(atom) do
-    case :binary.split(Atom.to_string(atom), ".", [:global]) do
-      ["Elixir" | t] -> t
-      _ -> []
-    end
   end
 
   @doc ~S"""
