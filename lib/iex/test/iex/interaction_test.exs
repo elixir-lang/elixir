@@ -108,6 +108,8 @@ defmodule IEx.InteractionTest do
              ~r/^#{exception}.+\n:this_is_still_working$/s
 
     refute capture_iex("1 + :atom\n:this_is_still_working") =~ ~r/erl_eval/s
+=======
+>>>>>>> 5229b0709... Remove redundant capture_io from "malformed .iex" iex test
   end
 
   test "exception while invoking conflicting helpers" do
@@ -183,9 +185,9 @@ defmodule IEx.InteractionTest do
 
     test "malformed .iex" do
       File.write!("dot-iex", "malformed")
-      capture_io(:stderr, fn ->
-        assert capture_iex("malformed", [], [dot_iex_path: "dot-iex"]) =~
-          ~r"\*\* \(CompileError\) iex:1: undefined function malformed\/0" end)
+
+      assert capture_iex("malformed", [], [dot_iex_path: "dot-iex"]) =~
+               "** (CompileError) iex:1: undefined function malformed/0"
     after
       File.rm("dot-iex")
     end
