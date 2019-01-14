@@ -192,7 +192,7 @@ defmodule IEx.Evaluator do
       kind, error ->
         io_result("Error while evaluating: #{path}")
         print_error(kind, error, __STACKTRACE__)
-        System.halt(1)
+        state
     end
   end
 

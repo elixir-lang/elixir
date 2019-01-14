@@ -131,6 +131,50 @@ defmodule IEx.ServerTest do
     end
   end
 
+  describe ".iex.exs" do
+    test "loads .iex.exs" do
+      :ok = File.write!("/tmp/valid_dot_iex.exs", valid_dot_iex())
+
+      assert capture_io(fn ->
+               IEx.Server.run(dot_iex_path: "/tmp/valid_dot_iex.exs")
+             end) =~ "valid .iex.exs"
+    end
+
+    test "syntax error in .iex.exs won't exit" do
+      :ok = File.write!("/tmp/syntax_error_dot_iex.exs", syntax_error_dot_iex())
+
+      assert capture_io(fn ->
+               IEx.Server.run(dot_iex_path: "/tmp/syntax_error_dot_iex.exs")
+             end) =~ "(TokenMissingError)"
+    end
+
+    test "runtime exception in .iex.exs won't exit" do
+      :ok = File.write!("/tmp/runtime_exception_dot_iex.exs", runtime_exception_dot_iex())
+
+      assert capture_io(fn ->
+               IEx.Server.run(dot_iex_path: "/tmp/runtime_exception_dot_iex.exs")
+             end) =~ "(RuntimeError) this should not cause Elixir to halt"
+    end
+
+    defp valid_dot_iex do
+      """
+      IO.puts("valid .iex.exs")
+      """
+    end
+
+    defp syntax_error_dot_iex do
+      """
+      uh oh i'm new at this
+      """
+    end
+
+    defp runtime_exception_dot_iex do
+      """
+      raise("this should not cause Elixir to halt")
+      """
+    end
+  end
+
   # Helpers
 
   defp pry_session(name, session) do
