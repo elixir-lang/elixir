@@ -47,12 +47,12 @@ defmodule DynamicSupervisor do
         # Automatically defines child_spec/1
         use DynamicSupervisor
 
-        def start_link(arg) do
-          DynamicSupervisor.start_link(__MODULE__, arg, name: __MODULE__)
+        def start_link(init_arg) do
+          DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
         end
 
         @impl true
-        def init(_arg) do
+        def init(_init_arg) do
           DynamicSupervisor.init(strategy: :one_for_one)
         end
       end
@@ -78,20 +78,20 @@ defmodule DynamicSupervisor do
       defmodule MySupervisor do
         use Supervisor
 
-        def start_link(arg) do
-          Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
+        def start_link(init_arg) do
+          Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
         end
 
         def start_child(foo, bar, baz) do
-          # This will start child by calling MyWorker.start_link(initial_arg, foo, bar, baz)
+          # This will start child by calling MyWorker.start_link(init_arg, foo, bar, baz)
           Supervisor.start_child(__MODULE__, [foo, bar, baz])
         end
 
         @impl true
-        def init(initial_arg) do
+        def init(init_arg) do
           children = [
-            # Or the deprecated: worker(MyWorker, [initial_arg])
-            %{id: MyWorker, start: {MyWorker, :start_link, [initial_arg]}}
+            # Or the deprecated: worker(MyWorker, [init_arg])
+            %{id: MyWorker, start: {MyWorker, :start_link, [init_arg]}}
           ]
 
           Supervisor.init(children, strategy: :simple_one_for_one)
@@ -103,8 +103,8 @@ defmodule DynamicSupervisor do
       defmodule MySupervisor do
         use DynamicSupervisor
 
-        def start_link(arg) do
-          DynamicSupervisor.start_link(__MODULE__, arg, name: __MODULE__)
+        def start_link(init_arg) do
+          DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
         end
 
         def start_child(foo, bar, baz) do
@@ -115,10 +115,10 @@ defmodule DynamicSupervisor do
         end
 
         @impl true
-        def init(initial_arg) do
+        def init(init_arg) do
           DynamicSupervisor.init(
             strategy: :one_for_one,
-            extra_arguments: [initial_arg]
+            extra_arguments: [init_arg]
           )
         end
       end
