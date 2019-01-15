@@ -814,7 +814,7 @@ defmodule File do
   source directory structure and modes.
 
   If `source` is a file or a symbolic link to it, `destination` must be a path
-  to an existent file, a sysmbolic link to one, or a path to a non-existent file.
+  to an existent file, a symbolic link to one, or a path to a non-existent file.
 
   If `source` is a directory, or a symbolic link to it, then `destination` must
   be an existent `directory` or a symbolic link to one, or a path to a non-existent directory.
