@@ -135,7 +135,7 @@ defmodule GenServer do
 
       Supervisor.start_link(children, strategy: :one_for_all)
 
-  In both cases, `Stack.start_link/1` is alwaus invoked.
+  In both cases, `Stack.start_link/1` is always invoked.
 
   `use GenServer` also accepts a list of options which configures the
   child specification and therefore how it runs under a supervisor.
