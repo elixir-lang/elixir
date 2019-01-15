@@ -32,11 +32,19 @@ defmodule Agent do
   Usage would be:
 
       Counter.start_link(0)
+      #=> {:ok, #PID<0.123.0>}
 
-      Counter.value     #=> 0
-      Counter.increment #=> :ok
-      Counter.increment #=> :ok
-      Counter.value     #=> 2
+      Counter.value
+      #=> 0
+
+      Counter.increment
+      #=> :ok
+
+      Counter.increment
+      #=> :ok
+
+      Counter.value
+      #=> 2
 
   Thanks to the agent server process, the counter can be safely incremented
   concurrently.
