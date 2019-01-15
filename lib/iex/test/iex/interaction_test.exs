@@ -164,30 +164,31 @@ defmodule IEx.InteractionTest do
     end
 
     test "single .iex" do
-      File.write!("dot-iex", "my_variable = 144")
-      assert capture_iex("my_variable", [], dot_iex_path: "dot-iex") == "144"
-    after
-      File.rm("dot-iex")
+      path = write_dot_iex!("dot-iex", "my_variable = 144")
+      assert capture_iex("my_variable", [], dot_iex_path: path) == "144"
     end
 
     test "nested .iex" do
-      File.write!("dot-iex-1", "nested_var = 13\nimport IO")
-      File.write!("dot-iex", "import_file \"dot-iex-1\"\nmy_variable=14")
+      write_dot_iex!("dot-iex-1", "nested_var = 13\nimport IO")
+      path = write_dot_iex!("dot-iex", "import_file \"tmp/dot-iex-1\"\nmy_variable=14")
 
       input = "nested_var\nmy_variable\nputs \"hello\""
-      assert capture_iex(input, [], dot_iex_path: "dot-iex") == "13\n14\nhello\n:ok"
-    after
-      File.rm("dot-iex-1")
-      File.rm("dot-iex")
+      assert capture_iex(input, [], dot_iex_path: path) == "13\n14\nhello\n:ok"
     end
 
     test "malformed .iex" do
-      File.write!("dot-iex", "malformed")
+      path = write_dot_iex!("dot-iex", "malformed")
 
-      assert capture_iex("1 + 2", [], dot_iex_path: "dot-iex") =~
-               "** (CompileError) dot-iex:1: undefined function malformed/0"
-    after
-      File.rm("dot-iex")
+      assert capture_iex("1 + 2", [], dot_iex_path: path) =~
+               "dot-iex:1: undefined function malformed/0"
     end
+  end
+
+  defp write_dot_iex!(name, contents) do
+    dir = "#{__DIR__}/../../tmp"
+    File.mkdir_p!(dir)
+    path = Path.join(dir, name)
+    File.write!(path, contents)
+    path
   end
 end
