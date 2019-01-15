@@ -180,5 +180,14 @@ defmodule IEx.InteractionTest do
       File.rm("dot-iex-1")
       File.rm("dot-iex")
     end
+
+    test "malformed .iex" do
+      File.write!("dot-iex", "malformed")
+
+      assert capture_iex("1 + 2", [], dot_iex_path: "dot-iex") =~
+               "** (CompileError) dot-iex:1: undefined function malformed/0"
+    after
+      File.rm("dot-iex")
+    end
   end
 end
