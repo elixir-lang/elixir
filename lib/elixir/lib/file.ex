@@ -769,7 +769,7 @@ defmodule File do
   preserving modes, check `copy/3` instead.
 
   Note: The command `cp` in Unix systems behaves differently depending on
-  whether destination is an existing directory or not. We have chosen to
+  whether the destination is an existing directory or not. We have chosen to
   explicitly disallow copying to a destination which is a directory,
   and an error will be returned if tried.
   """
