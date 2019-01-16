@@ -78,14 +78,14 @@ defmodule Registry do
   Now, an entity interested in dispatching events for a given key may call
   `dispatch/3` passing in the key and a callback. This callback will be invoked
   with a list of all the values registered under the requested key, alongside
-  the pid of the process that registered each value, in the form of `{pid,
+  the PID of the process that registered each value, in the form of `{pid,
   value}` tuples. In our example, `value` will be the `{module, function}` tuple
   in the code above:
 
       Registry.dispatch(Registry.DispatcherTest, "hello", fn entries ->
         for {pid, {module, function}} <- entries, do: apply(module, function, [pid])
       end)
-      # Prints #PID<...> where the pid is for the process that called register/3 above
+      # Prints #PID<...> where the PID is for the process that called register/3 above
       #=> :ok
 
   Dispatching happens in the process that calls `dispatch/3` either serially or
@@ -161,7 +161,7 @@ defmodule Registry do
   in the function documentation.
 
   However, keep in mind those cases are typically not an issue. After all, a
-  process referenced by a pid may crash at any time, including between getting
+  process referenced by a PID may crash at any time, including between getting
   the value from the registry and sending it a message. Many parts of the standard
   library are designed to cope with that, such as `Process.monitor/1` which will
   deliver the `:DOWN` message immediately if the monitored process is already dead
@@ -423,8 +423,8 @@ defmodule Registry do
   for the given `registry`.
 
   The list of `entries` is a non-empty list of two-element tuples where
-  the first element is the pid and the second element is the value
-  associated to the pid. If there are no entries for the given key,
+  the first element is the PID and the second element is the value
+  associated to the PID. If there are no entries for the given key,
   the callback is never invoked.
 
   If the registry is partitioned, the callback is invoked multiple times
@@ -868,11 +868,11 @@ defmodule Registry do
   lookup.
 
   This function returns `{:ok, owner}` or `{:error, reason}`.
-  The `owner` is the pid in the registry partition responsible for
-  the pid. The owner is automatically linked to the caller.
+  The `owner` is the PID in the registry partition responsible for
+  the PID. The owner is automatically linked to the caller.
 
   If the registry has unique keys, it will return `{:ok, owner}` unless
-  the key is already associated to a pid, in which case it returns
+  the key is already associated to a PID, in which case it returns
   `{:error, {:already_registered, pid}}`.
 
   If the registry has duplicate keys, multiple registrations from the
@@ -1220,12 +1220,12 @@ defmodule Registry.Supervisor do
   end
 
   # Unique registries have their key partition hashed by key.
-  # This means that, if a pid partition crashes, it may have
+  # This means that, if a PID partition crashes, it may have
   # entries from all key partitions, so we need to crash all.
   defp strategy_for_kind(:unique), do: :one_for_all
 
   # Duplicate registries have both key and pid partitions hashed
-  # by pid. This means that, if a pid partition crashes, all of
+  # by pid. This means that, if a PID partition crashes, all of
   # its associated entries are in its sibling table, so we crash one.
   defp strategy_for_kind(:duplicate), do: :one_for_one
 end

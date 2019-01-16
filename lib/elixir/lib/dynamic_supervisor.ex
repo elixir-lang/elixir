@@ -405,7 +405,7 @@ defmodule DynamicSupervisor do
 
     * `id` - it is always `:undefined` for dynamic supervisors
 
-    * `child` - the pid of the corresponding child process or the
+    * `child` - the PID of the corresponding child process or the
       atom `:restarting` if the process is about to be restarted
 
     * `type` - `:worker` or `:supervisor` as defined in the child
