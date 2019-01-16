@@ -428,9 +428,9 @@ defmodule Task do
 
   @doc """
   Returns a stream where the given function (`module` and `function_name`)
-  is mapped concurrently on each item in `enumerable`.
+  is mapped concurrently on each element in `enumerable`.
 
-  Each item of `enumerable` will be prepended to the given `args` and
+  Each element of `enumerable` will be prepended to the given `args` and
   processed by its own task. The tasks will be linked to an intermediate
   process that is then linked to the current process. This means a failure
   in a task terminates the current process and a failure in the current process
@@ -499,12 +499,12 @@ defmodule Task do
 
   @doc """
   Returns a stream that runs the given function `fun` concurrently
-  on each item in `enumerable`.
+  on each element in `enumerable`.
 
   Works the same as `async_stream/5` but with an anonymous function instead of a
   module-function-arguments tuple. `fun` must be a one-arity anonymous function.
 
-  Each `enumerable` item is passed as argument to the given function `fun` and
+  Each `enumerable` element is passed as argument to the given function `fun` and
   processed by its own task. The tasks will be linked to the current process,
   similarly to `async/1`.
 

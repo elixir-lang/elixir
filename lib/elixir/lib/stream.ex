@@ -4,7 +4,7 @@ defmodule Stream do
 
   Streams are composable, lazy enumerables (for an introduction on
   enumerables, see the `Enum` module). Any enumerable that generates
-  items one by one during enumeration is called a stream. For example,
+  elements one by one during enumeration is called a stream. For example,
   Elixir's `Range` is a stream:
 
       iex> range = 1..5
@@ -22,9 +22,9 @@ defmodule Stream do
       [3, 5, 7]
 
   Notice we started with a range and then we created a stream that is
-  meant to multiply each item in the range by 2. At this point, no
+  meant to multiply each element in the range by 2. At this point, no
   computation was done. Only when `Enum.map/2` is called we actually
-  enumerate over each item in the range, multiplying it by 2 and adding 1.
+  enumerate over each element in the range, multiplying it by 2 and adding 1.
   We say the functions in `Stream` are *lazy* and the functions in `Enum`
   are *eager*.
 
@@ -46,7 +46,7 @@ defmodule Stream do
       6
       #=> [2, 4, 6]
 
-  Notice that we first printed each item in the list, then multiplied each
+  Notice that we first printed each element in the list, then multiplied each
   element by 2 and finally printed each new value. In this example, the list
   was enumerated three times. Let's see an example with streams:
 
@@ -63,8 +63,8 @@ defmodule Stream do
       6
       #=> [2, 4, 6]
 
-  Although the end result is the same, the order in which the items were
-  printed changed! With streams, we print the first item and then print
+  Although the end result is the same, the order in which the elements were
+  printed changed! With streams, we print the first element and then print
   its double. In this example, the list was enumerated just once!
 
   That's what we meant when we said earlier that streams are composable,
@@ -150,7 +150,7 @@ defmodule Stream do
   def chunk_every(enum, count), do: chunk_every(enum, count, count, [])
 
   @doc """
-  Streams the enumerable in chunks, containing `count` items each,
+  Streams the enumerable in chunks, containing `count` elements each,
   where each new chunk starts `step` elements into the enumerable.
 
   `step` is optional and, if not passed, defaults to `count`, i.e.
@@ -217,11 +217,11 @@ defmodule Stream do
 
   ## Examples
 
-      iex> chunk_fun = fn item, acc ->
-      ...>   if rem(item, 2) == 0 do
-      ...>     {:cont, Enum.reverse([item | acc]), []}
+      iex> chunk_fun = fn element, acc ->
+      ...>   if rem(element, 2) == 0 do
+      ...>     {:cont, Enum.reverse([element | acc]), []}
       ...>   else
-      ...>     {:cont, [item | acc]}
+      ...>     {:cont, [element | acc]}
       ...>   end
       ...> end
       iex> after_fun = fn
@@ -254,9 +254,9 @@ defmodule Stream do
     fn entry, acc(head, [acc | after_fun], tail) ->
       case callback.(entry, acc) do
         {:cont, emit, acc} ->
-          # If we emit an item and then we have to halt,
+          # If we emit an element and then we have to halt,
           # we need to disable the after_fun callback to
-          # avoid emitting even more items.
+          # avoid emitting even more elements.
           case next(fun, emit, [head | tail]) do
             {:halt, [head | tail]} -> {:halt, acc(head, [acc | &{:cont, &1}], tail)}
             {command, [head | tail]} -> {command, acc(head, [acc | after_fun], tail)}
@@ -312,11 +312,11 @@ defmodule Stream do
   end
 
   @doc """
-  Lazily drops the next `n` items from the enumerable.
+  Lazily drops the next `n` elements from the enumerable.
 
-  If a negative `n` is given, it will drop the last `n` items from
+  If a negative `n` is given, it will drop the last `n` elements from
   the collection. Note that the mechanism by which this is implemented
-  will delay the emission of any item until `n` additional items have
+  will delay the emission of any element until `n` additional elements have
   been emitted by the enum.
 
   ## Examples
@@ -362,9 +362,9 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that drops every `nth` item from the enumerable.
+  Creates a stream that drops every `nth` element from the enumerable.
 
-  The first item is always dropped, unless `nth` is 0.
+  The first element is always dropped, unless `nth` is 0.
 
   `nth` must be a non-negative integer.
 
@@ -409,7 +409,7 @@ defmodule Stream do
   end
 
   @doc """
-  Executes the given function for each item.
+  Executes the given function for each element.
 
   Useful for adding side effects (like printing) to a stream.
 
@@ -485,7 +485,7 @@ defmodule Stream do
 
   The values emitted are an increasing counter starting at `0`.
   This operation will block the caller by the given interval
-  every time a new item is streamed.
+  every time a new element is streamed.
 
   Do not use this function to generate a sequence of numbers.
   If blocking the caller process is not necessary, use
@@ -563,9 +563,9 @@ defmodule Stream do
 
   @doc """
   Creates a stream that will apply the given function on
-  every `nth` item from the enumerable.
+  every `nth` element from the enumerable.
 
-  The first item is always passed to the given function.
+  The first element is always passed to the given function.
 
   `nth` must be a non-negative integer.
 
@@ -673,7 +673,7 @@ defmodule Stream do
   end
 
   @doc """
-  Lazily takes the next `count` items from the enumerable and stops
+  Lazily takes the next `count` elements from the enumerable and stops
   enumeration.
 
   If a negative `count` is given, the last `count` values will be taken.
@@ -710,9 +710,9 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that takes every `nth` item from the enumerable.
+  Creates a stream that takes every `nth` element from the enumerable.
 
-  The first item is always included, unless `nth` is 0.
+  The first element is always included, unless `nth` is 0.
 
   `nth` must be a non-negative integer.
 
@@ -760,7 +760,7 @@ defmodule Stream do
   Creates a stream that emits a single value after `n` milliseconds.
 
   The value emitted is `0`. This operation will block the caller by
-  the given time until the item is streamed.
+  the given time until the element is streamed.
 
   ## Examples
 
@@ -776,7 +776,7 @@ defmodule Stream do
   @doc """
   Transforms an existing stream.
 
-  It expects an accumulator and a function that receives each stream item
+  It expects an accumulator and a function that receives each stream element
   and an accumulator, and must return a tuple containing a new stream
   (often a list) with the new accumulator or a tuple with `:halt` as first
   element and the accumulator as second.
@@ -975,7 +975,7 @@ defmodule Stream do
   Keep in mind that, in order to know if an element is unique
   or not, this function needs to store all unique values emitted
   by the stream. Therefore, if the stream is infinite, the number
-  of items stored will grow infinitely, never being garbage-collected.
+  of elements stored will grow infinitely, never being garbage-collected.
 
   ## Examples
 
@@ -996,7 +996,7 @@ defmodule Stream do
 
   @doc """
   Creates a stream that only emits elements if they are unique, by removing the
-  elements for which function `fun` returned duplicate items.
+  elements for which function `fun` returned duplicate elements.
 
   The function `fun` maps every element to a term which is used to
   determine if two elements are duplicates.
@@ -1004,7 +1004,7 @@ defmodule Stream do
   Keep in mind that, in order to know if an element is unique
   or not, this function needs to store all unique values emitted
   by the stream. Therefore, if the stream is infinite, the number
-  of items stored will grow infinitely, never being garbage-collected.
+  of elements stored will grow infinitely, never being garbage-collected.
 
   ## Example
 
@@ -1021,7 +1021,7 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream where each item in the enumerable will
+  Creates a stream where each element in the enumerable will
   be wrapped in a tuple alongside its index.
 
   If an `offset` is given, we will index from the given offset instead of from zero.
@@ -1346,7 +1346,7 @@ defmodule Stream do
   Successive values are generated by calling `next_fun` with the
   previous accumulator (the initial value being the result returned
   by `start_fun`) and it must return a tuple containing a list
-  of items to be emitted and the next accumulator. The enumeration
+  of elements to be emitted and the next accumulator. The enumeration
   finishes if it returns `{:halt, acc}`.
 
   As the name says, this function is useful to stream values from

@@ -16,7 +16,7 @@ defmodule GenServer do
 
   Let's start with a code example and then explore the available callbacks.
   Imagine we want a GenServer that works like a stack, allowing us to push
-  and pop items:
+  and pop elements:
 
       defmodule Stack do
         use GenServer
@@ -34,8 +34,8 @@ defmodule GenServer do
         end
 
         @impl true
-        def handle_cast({:push, item}, state) do
-          {:noreply, [item | state]}
+        def handle_cast({:push, element}, state) do
+          {:noreply, [element | state]}
         end
       end
 
@@ -54,7 +54,7 @@ defmodule GenServer do
 
   We start our `Stack` by calling `start_link/2`, passing the module
   with the server implementation and its initial argument (a list
-  representing the stack containing the item `:hello`). We can primarily
+  representing the stack containing the element `:hello`). We can primarily
   interact with the server by sending two types of messages. **call**
   messages expect a reply from the server (and are therefore synchronous)
   while **cast** messages do not.
@@ -83,8 +83,8 @@ defmodule GenServer do
           GenServer.start_link(__MODULE__, default)
         end
 
-        def push(pid, item) do
-          GenServer.cast(pid, {:push, item})
+        def push(pid, element) do
+          GenServer.cast(pid, {:push, element})
         end
 
         def pop(pid) do
@@ -104,8 +104,8 @@ defmodule GenServer do
         end
 
         @impl true
-        def handle_cast({:push, item}, state) do
-          {:noreply, [item | state]}
+        def handle_cast({:push, element}, state) do
+          {:noreply, [element | state]}
         end
       end
 

@@ -121,7 +121,7 @@ defprotocol Enumerable do
 
   Most of the operations in `Enum` are implemented in terms of reduce.
   This function should apply the given `t:reducer/0` function to each
-  item in the `enumerable` and proceed as expected by the returned
+  element in the `enumerable` and proceed as expected by the returned
   accumulator.
 
   See the documentation of the types `t:result/0` and `t:acc/0` for
@@ -276,9 +276,9 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if `fun.(item)` is truthy for all items in `enumerable`.
+  Returns `true` if `fun.(element)` is truthy for all elements in `enumerable`.
 
-  Iterates over the `enumerable` and invokes `fun` on each item. When an invocation
+  Iterates over the `enumerable` and invokes `fun` on each element. When an invocation
   of `fun` returns a falsy value (`false` or `nil`) iteration stops immediately and
   `false` is returned. In all other cases `true` is returned.
 
@@ -289,12 +289,12 @@ defmodule Enum do
 
       iex> Enum.all?([2, 3, 4], fn x -> rem(x, 2) == 0 end)
       false
-      
+
       iex> Enum.all?([], fn x -> x > 0 end)
       true
 
-  If no function is given, the truthiness of each item is checked during iteration.
-  When an item has a falsy value (`false` or `nil`) iteration stops immediately and
+  If no function is given, the truthiness of each element is checked during iteration.
+  When an element has a falsy value (`false` or `nil`) iteration stops immediately and
   `false` is returned. In all other cases `true` is returned.
 
       iex> Enum.all?([1, 2, 3])
@@ -302,7 +302,7 @@ defmodule Enum do
 
       iex> Enum.all?([1, nil, 3])
       false
-      
+
       iex> Enum.all?([])
       true
 
@@ -323,9 +323,9 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if `fun.(item)` is truthy for at least one item in `enumerable`.
+  Returns `true` if `fun.(element)` is truthy for at least one element in `enumerable`.
 
-  Iterates over the `enumerable` and invokes `fun` on each item. When an invocation
+  Iterates over the `enumerable` and invokes `fun` on each element. When an invocation
   of `fun` returns a truthy value (neither `false` nor `nil`) iteration stops
   immediately and `true` is returned. In all other cases `false` is returned.
 
@@ -336,12 +336,12 @@ defmodule Enum do
 
       iex> Enum.any?([2, 3, 4], fn x -> rem(x, 2) == 1 end)
       true
-      
+
       iex> Enum.any?([], fn x -> x > 0 end)
       false
 
-  If no function is given, the truthiness of each item is checked during iteration.
-  When an item has a truthy value (neither `false` nor `nil`) iteration stops
+  If no function is given, the truthiness of each element is checked during iteration.
+  When an element has a truthy value (neither `false` nor `nil`) iteration stops
   immediately and `true` is returned. In all other cases `false` is returned.
 
       iex> Enum.any?([false, false, false])
@@ -349,7 +349,7 @@ defmodule Enum do
 
       iex> Enum.any?([false, true, false])
       true
-      
+
       iex> Enum.any?([])
       false
 
@@ -425,7 +425,7 @@ defmodule Enum do
   def chunk_every(enumerable, count), do: chunk_every(enumerable, count, count, [])
 
   @doc """
-  Returns list of lists containing `count` items each, where
+  Returns list of lists containing `count` elements each, where
   each new chunk starts `step` elements into the `enumerable`.
 
   `step` is optional and, if not passed, defaults to `count`, i.e.
@@ -482,11 +482,11 @@ defmodule Enum do
 
   ## Examples
 
-      iex> chunk_fun = fn item, acc ->
-      ...>   if rem(item, 2) == 0 do
-      ...>     {:cont, Enum.reverse([item | acc]), []}
+      iex> chunk_fun = fn element, acc ->
+      ...>   if rem(element, 2) == 0 do
+      ...>     {:cont, Enum.reverse([element | acc]), []}
       ...>   else
-      ...>     {:cont, [item | acc]}
+      ...>     {:cont, [element | acc]}
       ...>   end
       ...> end
       iex> after_fun = fn
@@ -607,7 +607,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the count of items in the `enumerable` for which `fun` returns
+  Returns the count of elements in the `enumerable` for which `fun` returns
   a truthy value.
 
   ## Examples
@@ -669,7 +669,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the `amount` of items from the `enumerable`.
+  Drops the `amount` of elements from the `enumerable`.
 
   If a negative `amount` is given, the `amount` of last values will be dropped.
   The `enumerable` will be enumerated once to retrieve the proper index and
@@ -713,12 +713,12 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list of every `nth` item in the `enumerable` dropped,
+  Returns a list of every `nth` element in the `enumerable` dropped,
   starting with the first element.
 
-  The first item is always dropped, unless `nth` is 0.
+  The first element is always dropped, unless `nth` is 0.
 
-  The second argument specifying every `nth` item must be a non-negative
+  The second argument specifying every `nth` element must be a non-negative
   integer.
 
   ## Examples
@@ -746,7 +746,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops items at the beginning of the `enumerable` while `fun` returns a
+  Drops elements at the beginning of the `enumerable` while `fun` returns a
   truthy value.
 
   ## Examples
@@ -766,7 +766,7 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `enumerable`.
+  Invokes the given `fun` for each element in the `enumerable`.
 
   Returns `:ok`.
 
@@ -924,7 +924,7 @@ defmodule Enum do
   @doc false
   @deprecated "Use Enum.filter/2 + Enum.map/2 or for comprehensions instead"
   def filter_map(enumerable, filter, mapper) when is_list(enumerable) do
-    for item <- enumerable, filter.(item), do: mapper.(item)
+    for element <- enumerable, filter.(element), do: mapper.(element)
   end
 
   def filter_map(enumerable, filter, mapper) do
@@ -934,8 +934,8 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the first item for which `fun` returns a truthy value.
-  If no such item is found, returns `default`.
+  Returns the first element for which `fun` returns a truthy value.
+  If no such element is found, returns `default`.
 
   ## Examples
 
@@ -1062,7 +1062,7 @@ defmodule Enum do
   Maps and reduces an `enumerable`, flattening the given results (only one level deep).
 
   It expects an accumulator and a function that receives each enumerable
-  item, and must return a tuple containing a new enumerable (often a list)
+  element, and must return a tuple containing a new enumerable (often a list)
   with the new accumulator or a tuple with `:halt` as first element and
   the accumulator as second.
 
@@ -1288,7 +1288,7 @@ defmodule Enum do
 
   If `joiner` is not passed at all, it defaults to the empty binary.
 
-  All items in the `enumerable` must be convertible to a binary,
+  All elements in the `enumerable` must be convertible to a binary,
   otherwise an error is raised.
 
   ## Examples
@@ -1318,8 +1318,8 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list where each item is the result of invoking
-  `fun` on each corresponding item of `enumerable`.
+  Returns a list where each element is the result of invoking
+  `fun` on each corresponding element of `enumerable`.
 
   For maps, the function expects a key-value tuple.
 
@@ -1345,11 +1345,11 @@ defmodule Enum do
 
   @doc """
   Returns a list of results of invoking `fun` on every `nth`
-  item of `enumerable`, starting with the first element.
+  element of `enumerable`, starting with the first element.
 
-  The first item is always passed to the given function, unless `nth` is `0`.
+  The first element is always passed to the given function, unless `nth` is `0`.
 
-  The second argument specifying every `nth` item must be a non-negative
+  The second argument specifying every `nth` element must be a non-negative
   integer.
 
   If `nth` is `0`, then `enumerable` is directly converted to a list,
@@ -1390,7 +1390,7 @@ defmodule Enum do
   the same type as `joiner`.
   If `joiner` is not passed at all, it defaults to an empty binary.
 
-  All items returned from invoking the `mapper` must be convertible to
+  All elements returned from invoking the `mapper` must be convertible to
   a binary, otherwise an error is raised.
 
   ## Examples
@@ -1420,7 +1420,7 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given function to each item in the `enumerable` to reduce
+  Invokes the given function to each element in the `enumerable` to reduce
   it to a single element, while keeping an accumulator.
 
   Returns a tuple where the first element is the mapped enumerable and
@@ -2036,8 +2036,8 @@ defmodule Enum do
 
   def reverse([]), do: []
   def reverse([_] = list), do: list
-  def reverse([item1, item2]), do: [item2, item1]
-  def reverse([item1, item2 | rest]), do: :lists.reverse(rest, [item2, item1])
+  def reverse([element1, element2]), do: [element2, element1]
+  def reverse([element1, element2 | rest]), do: :lists.reverse(rest, [element2, element1])
   def reverse(enumerable), do: reduce(enumerable, [], &[&1 | &2])
 
   @doc """
@@ -2461,12 +2461,12 @@ defmodule Enum do
   end
 
   @doc """
-  Takes an `amount` of items from the beginning or the end of the `enumerable`.
+  Takes an `amount` of elements from the beginning or the end of the `enumerable`.
 
-  If a positive `amount` is given, it takes the `amount` items from the
+  If a positive `amount` is given, it takes the `amount` elements from the
   beginning of the `enumerable`.
 
-  If a negative `amount` is given, the `amount` of items will be taken from the end.
+  If a negative `amount` is given, the `amount` of elements will be taken from the end.
   The `enumerable` will be enumerated once to retrieve the proper index and
   the remaining calculation is performed from the end.
 
@@ -2516,12 +2516,12 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list of every `nth` item in the `enumerable`,
+  Returns a list of every `nth` element in the `enumerable`,
   starting with the first element.
 
-  The first item is always included, unless `nth` is 0.
+  The first element is always included, unless `nth` is 0.
 
-  The second argument specifying every `nth` item must be a non-negative
+  The second argument specifying every `nth` element must be a non-negative
   integer.
 
   ## Examples
@@ -2549,7 +2549,7 @@ defmodule Enum do
   end
 
   @doc """
-  Takes `count` random items from `enumerable`.
+  Takes `count` random elements from `enumerable`.
 
   Notice this function will traverse the whole `enumerable` to
   get the random sublist.
@@ -2622,7 +2622,7 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the items from the beginning of the `enumerable` while `fun` returns
+  Takes the elements from the beginning of the `enumerable` while `fun` returns
   a truthy value.
 
   ## Examples
@@ -2686,7 +2686,7 @@ defmodule Enum do
 
   @doc """
   Enumerates the `enumerable`, by removing the elements for which
-  function `fun` returned duplicate items.
+  function `fun` returned duplicate elements.
 
   The function `fun` maps every element to a term. Two elements are
   considered duplicates if the return value of `fun` is equal for
@@ -2718,7 +2718,7 @@ defmodule Enum do
   Opposite of `zip/2`. Extracts two-element tuples from the
   given `enumerable` and groups them together.
 
-  It takes an `enumerable` with items being two-element tuples and returns
+  It takes an `enumerable` with elements being two-element tuples and returns
   a tuple with two lists, each of which is formed by the first and
   second element of each tuple, respectively.
 

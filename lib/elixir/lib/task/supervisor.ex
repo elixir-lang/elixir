@@ -239,9 +239,9 @@ defmodule Task.Supervisor do
 
   @doc """
   Returns a stream where the given function (`module` and `function`)
-  is mapped concurrently on each item in `enumerable`.
+  is mapped concurrently on each element in `enumerable`.
 
-  Each item will be prepended to the given `args` and processed by its
+  Each element will be prepended to the given `args` and processed by its
   own task. The tasks will be spawned under the given `supervisor` and
   linked to the current process, similarly to `async/4`.
 
@@ -298,9 +298,9 @@ defmodule Task.Supervisor do
 
   @doc """
   Returns a stream that runs the given function `fun` concurrently
-  on each item in `enumerable`.
+  on each element in `enumerable`.
 
-  Each item in `enumerable` is passed as argument to the given function `fun`
+  Each element in `enumerable` is passed as argument to the given function `fun`
   and processed by its own task. The tasks will be spawned under the given
   `supervisor` and linked to the current process, similarly to `async/2`.
 
@@ -315,9 +315,9 @@ defmodule Task.Supervisor do
 
   @doc """
   Returns a stream where the given function (`module` and `function`)
-  is mapped concurrently on each item in `enumerable`.
+  is mapped concurrently on each element in `enumerable`.
 
-  Each item in `enumerable` will be prepended to the given `args` and processed
+  Each element in `enumerable` will be prepended to the given `args` and processed
   by its own task. The tasks will be spawned under the given `supervisor` and
   will not be linked to the current process, similarly to `async_nolink/4`.
 
@@ -339,9 +339,9 @@ defmodule Task.Supervisor do
 
   @doc """
   Returns a stream that runs the given `function` concurrently on each
-  item in `enumerable`.
+  element in `enumerable`.
 
-  Each item in `enumerable` is passed as argument to the given function `fun`
+  Each element in `enumerable` is passed as argument to the given function `fun`
   and processed by its own task. The tasks will be spawned under the given
   `supervisor` and will not be linked to the current process, similarly to `async_nolink/2`.
 

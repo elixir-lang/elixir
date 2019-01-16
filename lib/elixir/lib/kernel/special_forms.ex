@@ -37,7 +37,7 @@ defmodule Kernel.SpecialForms do
 
   ## AST representation
 
-  Only two-item tuples are considered literals in Elixir and return themselves
+  Only two-element tuples are considered literals in Elixir and return themselves
   when quoted. Therefore, all other tuples are represented in the AST as calls to
   the `:{}` special form.
 
