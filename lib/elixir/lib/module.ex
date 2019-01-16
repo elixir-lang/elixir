@@ -212,6 +212,9 @@ defmodule Module do
   there are a few reserved keys that will be ignored and warned if used.
   Currently these are: `:opaque` and `:defaults`.
 
+  Once this module is compiled, this information becomes available via
+  the `Code.fetch_docs/1` function.
+
   ### `@dialyzer`
 
   Defines warnings to request or suppress when using a version of
@@ -275,6 +278,9 @@ defmodule Module do
   Similarly to `@doc` also accepts a keyword list to provide metadata
   about the module. For more details, see the documentation of `@doc`
   above.
+
+  Once this module is compiled, this information becomes available via
+  the `Code.fetch_docs/1` function.
 
   ### `@on_definition`
 
