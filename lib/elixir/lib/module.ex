@@ -498,7 +498,7 @@ defmodule Module do
   defined by the module.
 
   Each module gets an `__info__/1` function when it's compiled. The function
-  takes one of the following atoms:
+  takes one of the following items:
 
     * `:attributes` - a keyword list with all persisted attributes
 
