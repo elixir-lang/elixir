@@ -500,25 +500,25 @@ defmodule Module do
   Each module gets an `__info__/1` function when it's compiled. The function
   takes one of the following atoms:
 
+    * `:attributes` - a keyword list with all persisted attributes
+
+    * `:compile` - a list with compiler metadata
+
     * `:functions` - a keyword list of public functions and their arities
 
     * `:macros` - a keyword list of public macros and their arities
 
-    * `:module` - the module atom name
-
     * `:md5` - the MD5 of the module
 
-    * `:compile` - a list with compiler metadata
-
-    * `:attributes` - a keyword list with all persisted attributes
+    * `:module` - the module atom name
 
   """
+  @callback __info__(:attributes) :: keyword()
+  @callback __info__(:compile) :: [term()]
   @callback __info__(:functions) :: keyword()
   @callback __info__(:macros) :: keyword()
-  @callback __info__(:module) :: module()
   @callback __info__(:md5) :: binary()
-  @callback __info__(:compile) :: [term()]
-  @callback __info__(:attributes) :: keyword()
+  @callback __info__(:module) :: module()
 
   @doc """
   Checks if a module is open.
