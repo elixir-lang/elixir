@@ -103,10 +103,10 @@ defmodule List do
   @compile :inline_list_funcs
 
   @doc """
-  Deletes the given `item` from the `list`. Returns a new list without
-  the item.
+  Deletes the given `element` from the `list`. Returns a new list without
+  the element.
 
-  If the `item` occurs more than once in the `list`, just
+  If the `element` occurs more than once in the `list`, just
   the first occurrence is removed.
 
   ## Examples
@@ -119,10 +119,10 @@ defmodule List do
 
   """
   @spec delete(list, any) :: list
-  def delete(list, item)
-  def delete([item | list], item), do: list
-  def delete([other | list], item), do: [other | delete(list, item)]
-  def delete([], _item), do: []
+  def delete(list, element)
+  def delete([element | list], element), do: list
+  def delete([other | list], element), do: [other | delete(list, element)]
+  def delete([], _element), do: []
 
   @doc """
   Duplicates the given element `n` times in a list.
@@ -245,7 +245,7 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and returns the first tuple
-  where the item at `position` in the tuple matches the
+  where the element at `position` in the tuple matches the
   given `key`.
 
   ## Examples
@@ -267,7 +267,7 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and returns `true` if there is
-  a tuple where the item at `position` in the tuple matches
+  a tuple where the element at `position` in the tuple matches
   the given `key`.
 
   ## Examples
@@ -288,7 +288,7 @@ defmodule List do
   end
 
   @doc """
-  Receives a list of tuples and if the identified item by `key` at `position`
+  Receives a list of tuples and if the identified element by `key` at `position`
   exists, it is replaced with `new_tuple`.
 
   ## Examples
@@ -306,7 +306,7 @@ defmodule List do
   end
 
   @doc """
-  Receives a list of tuples and sorts the items
+  Receives a list of tuples and sorts the elements
   at `position` of the tuples. The sort is stable.
 
   ## Examples
@@ -324,10 +324,10 @@ defmodule List do
   end
 
   @doc """
-  Receives a `list` of tuples and replaces the item
+  Receives a `list` of tuples and replaces the element
   identified by `key` at `position` with `new_tuple`.
 
-  If the item does not exist, it is added to the end of the `list`.
+  If the element does not exist, it is added to the end of the `list`.
 
   ## Examples
 
@@ -345,7 +345,7 @@ defmodule List do
 
   @doc """
   Receives a `list` of tuples and deletes the first tuple
-  where the item at `position` matches the
+  where the element at `position` matches the
   given `key`. Returns the new list.
 
   ## Examples
@@ -387,7 +387,7 @@ defmodule List do
   @spec keytake([tuple], any, non_neg_integer) :: {tuple, [tuple]} | nil
   def keytake(list, key, position) do
     case :lists.keytake(key, position + 1, list) do
-      {:value, item, list} -> {item, list}
+      {:value, element, list} -> {element, list}
       false -> nil
     end
   end
