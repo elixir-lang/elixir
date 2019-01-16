@@ -986,8 +986,8 @@ defmodule Module do
   @doc """
   Returns all functions and macros defined in `module`.
 
-  It returns a list with all functions and macros, public and private
-  defined, in the shape of `[{name, arity}, ...]`.
+  It returns a list with all defined functions and macros, public and private,
+  in the shape of `[{name, arity}, ...]`.
 
   This function can only be used on modules that have not yet been compiled.
   Use the `c:Module.__info__/1` callback to get the public functions and macros in
