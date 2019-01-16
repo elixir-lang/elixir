@@ -426,4 +426,14 @@ defmodule ModuleTest do
   after
     purge(Foo)
   end
+
+  test "raise when called with already compiled module" do
+    message =
+      "could not call Module.get_attribute/2 with module argument Enum because the module is already compiled. " <>
+        "Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
+
+    assert_raise ArgumentError, message, fn ->
+      Module.get_attribute(Enum, :moduledoc)
+    end
+  end
 end

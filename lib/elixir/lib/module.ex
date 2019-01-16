@@ -589,7 +589,7 @@ defmodule Module do
 
   def eval_quoted(module, quoted, binding, opts)
       when is_atom(module) and is_list(binding) and is_list(opts) do
-    assert_not_compiled!(:eval_quoted, module)
+    assert_not_compiled!(__ENV__.function, module)
     :elixir_def.reset_last(module)
 
     {value, binding, _env, _scope} =
@@ -905,7 +905,8 @@ defmodule Module do
   Use `defines?/3` to assert for a specific type.
 
   This function can only be used on modules that have not yet been compiled.
-  Use `Kernel.function_exported?/3` to check compiled modules.
+  Use `Kernel.function_exported?/3` and `Kernel.macro_exported?/3` to check for
+  public functions and macros respectively in compiled modules.
 
   ## Examples
 
@@ -919,7 +920,7 @@ defmodule Module do
   @spec defines?(module, definition) :: boolean
   def defines?(module, {name, arity} = tuple)
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 do
-    assert_not_compiled!(:defines?, module)
+    assert_not_compiled!(__ENV__.function, module)
     {set, _bag} = data_tables_for(module)
     :ets.member(set, {:def, tuple})
   end
@@ -931,7 +932,8 @@ defmodule Module do
   `kind` can be any of `:def`, `:defp`, `:defmacro`, or `:defmacrop`.
 
   This function can only be used on modules that have not yet been compiled.
-  Use `Kernel.function_exported?/3` to check compiled modules.
+  Use `Kernel.function_exported?/3` and `Kernel.macro_exported?/3` to check for
+  public functions and macros respectively in compiled modules.
 
   ## Examples
 
@@ -946,7 +948,7 @@ defmodule Module do
   def defines?(module, {name, arity} = tuple, def_kind)
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 and
              def_kind in [:def, :defp, :defmacro, :defmacrop] do
-    assert_not_compiled!(:defines?, module)
+    assert_not_compiled!(__ENV__.function, module)
     {set, _bag} = data_tables_for(module)
 
     case :ets.lookup(set, {:def, tuple}) do
@@ -978,19 +980,27 @@ defmodule Module do
   end
 
   @doc """
-  Returns all functions defined in `module`.
+  Returns all functions and macros defined in `module`.
+
+  It returns a list with all functions and macros, public and private
+  defined, in the shape of `[{name, arity}, ...]`.
+
+  This function can only be used on modules that have not yet been compiled.
+  Use the `c:Module.__info__/1` callback to get the public functions and macros in
+  compiled modules.
 
   ## Examples
 
       defmodule Example do
         def version, do: 1
-        Module.definitions_in(__MODULE__) #=> [{:version, 0}]
+        defmacrop test(arg), do: arg
+        Module.definitions_in(__MODULE__) #=> [{:version, 0}, {:test, 1}]
       end
 
   """
   @spec definitions_in(module) :: [definition]
   def definitions_in(module) when is_atom(module) do
-    assert_not_compiled!(:definitions_in, module)
+    assert_not_compiled!(__ENV__.function, module)
     {_, bag} = data_tables_for(module)
     bag_lookup_element(bag, :defs, 2)
   end
@@ -1011,7 +1021,7 @@ defmodule Module do
   @spec definitions_in(module, def_kind) :: [definition]
   def definitions_in(module, def_kind)
       when is_atom(module) and def_kind in [:def, :defp, :defmacro, :defmacrop] do
-    assert_not_compiled!(:definitions_in, module)
+    assert_not_compiled!(__ENV__.function, module)
     {set, _} = data_tables_for(module)
     :lists.concat(:ets.match(set, {{:def, :"$1"}, def_kind, :_, :_, :_, :_}))
   end
@@ -1025,7 +1035,7 @@ defmodule Module do
   """
   @spec make_overridable(module, [definition]) :: :ok
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
-    assert_not_compiled!(:make_overridable, module)
+    assert_not_compiled!(__ENV__.function, module)
 
     func = fn
       {function_name, arity} = tuple
@@ -1169,6 +1179,11 @@ defmodule Module do
 
       Module.get_attribute(__MODULE__, :foo)
 
+  This function can only be used on modules that have not yet been compiled.
+  Use the `c:Module.__info__/1` callback to get all persisted attributes, or
+  `Code.fetch_docs/1` to retrieve all documentation related attributes in
+  compiled modules.
+
   ## Examples
 
       defmodule Foo do
@@ -1201,7 +1216,7 @@ defmodule Module do
   """
   @spec delete_attribute(module, atom) :: term
   def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
-    assert_not_compiled!(:delete_attribute, module)
+    assert_not_compiled!(__ENV__.function, module)
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
@@ -1253,7 +1268,7 @@ defmodule Module do
   @spec register_attribute(module, atom, [{:accumulate, boolean}, {:persist, boolean}]) :: :ok
   def register_attribute(module, attribute, options)
       when is_atom(module) and is_atom(attribute) and is_list(options) do
-    assert_not_compiled!(:register_attribute, module)
+    assert_not_compiled!(__ENV__.function, module)
     {set, bag} = data_tables_for(module)
 
     if Keyword.get(options, :persist) do
@@ -1307,7 +1322,7 @@ defmodule Module do
   @doc false
   @deprecated "Use @doc instead"
   def add_doc(module, line, kind, {name, arity}, signature \\ [], doc) do
-    assert_not_compiled!(:add_doc, module)
+    assert_not_compiled!(__ENV__.function, module)
 
     if kind in [:defp, :defmacrop, :typep] do
       if doc, do: {:error, :private_doc}, else: :ok
@@ -1714,7 +1729,7 @@ defmodule Module do
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
   def get_attribute(module, key, line) when is_atom(key) do
-    assert_not_compiled!(:get_attribute, module)
+    assert_not_compiled!({:get_attribute, 2}, module)
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
@@ -1746,7 +1761,7 @@ defmodule Module do
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
   def put_attribute(module, key, value, line) when is_atom(key) do
-    assert_not_compiled!(:put_attribute, module)
+    assert_not_compiled!(__ENV__.function, module)
     {set, bag} = data_tables_for(module)
     value = preprocess_attribute(key, value)
     put_attribute(module, key, value, line, set, bag)
@@ -1985,9 +2000,29 @@ defmodule Module do
     :error, :badarg -> []
   end
 
-  defp assert_not_compiled!(fun, module) do
+  defp assert_not_compiled!(function_name_arity, module) do
     open?(module) ||
-      raise ArgumentError,
-            "could not call #{fun} with argument #{inspect(module)} because the module is already compiled"
+      raise ArgumentError, assert_not_compiled_message(function_name_arity, module)
+  end
+
+  defp assert_not_compiled_message({function_name, arity} = function_name_arity, module) do
+    mfa = "Module.#{function_name}/#{arity}"
+
+    "could not call #{mfa} with module argument #{inspect(module)} because the module is already compiled" <>
+      case function_name_arity do
+        {:defines?, arity} when arity in [2, 3] ->
+          ". Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 to " <>
+            "check for public functions and macros instead"
+
+        {:definitions_in, 1} ->
+          ". Use the Module.__info__/1 callback to get public functions and " <>
+            "macros instead"
+
+        {:get_attribute, 2} ->
+          ". Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
+
+        _ ->
+          ""
+      end
   end
 end
