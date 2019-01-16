@@ -68,13 +68,13 @@ defmodule IEx.PryTest do
       assert [_, _] = IEx.Pry.breaks()
     end
 
-    test "returns id when breakpoint is already set" do
+    test "returns ID when breakpoint is already set" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert [_] = IEx.Pry.breaks()
     end
 
-    test "returns id even when breakpoint is already set on deinstrument" do
+    test "returns ID even when breakpoint is already set on deinstrument" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       deinstrument!(URI)
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
@@ -121,7 +121,7 @@ defmodule IEx.PryTest do
   end
 
   describe "reset_break" do
-    test "resets break for given id" do
+    test "resets break for given ID" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert IEx.Pry.reset_break(1) == :ok
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
@@ -144,14 +144,14 @@ defmodule IEx.PryTest do
       assert IEx.Pry.reset_break(URI, :decode_query, 2) == :not_found
     end
 
-    test "returns not_found if id is deinstrumented" do
+    test "returns not_found if ID is deinstrumented" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       deinstrument!(URI)
       assert IEx.Pry.reset_break(1) == :not_found
       assert IEx.Pry.breaks() == []
     end
 
-    test "returns not_found if id has no break" do
+    test "returns not_found if ID has no break" do
       assert IEx.Pry.reset_break(1) == :not_found
     end
   end

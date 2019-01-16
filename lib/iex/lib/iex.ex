@@ -665,12 +665,12 @@ defmodule IEx do
 
     * `IEx.Helpers.break!/2` - sets up a breakpoint for a given `Mod.fun/arity`
     * `IEx.Helpers.break!/4` - sets up a breakpoint for the given module, function, arity
-    * `IEx.Helpers.breaks/0` - prints all breakpoints and their ids
+    * `IEx.Helpers.breaks/0` - prints all breakpoints and their IDs
     * `IEx.Helpers.continue/0` - continues until the next breakpoint in the same shell
     * `IEx.Helpers.open/0` - opens editor on the current breakpoint
     * `IEx.Helpers.remove_breaks/0` - removes all breakpoints in all modules
     * `IEx.Helpers.remove_breaks/1` - removes all breakpoints in a given module
-    * `IEx.Helpers.reset_break/1` - sets the number of stops on the given id to zero
+    * `IEx.Helpers.reset_break/1` - sets the number of stops on the given ID to zero
     * `IEx.Helpers.reset_break/3` - sets the number of stops on the given module, function, arity to zero
     * `IEx.Helpers.respawn/0` - starts a new shell (breakpoints will ask for permission once more)
     * `IEx.Helpers.whereami/1` - shows the current location

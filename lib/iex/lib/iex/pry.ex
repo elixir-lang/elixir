@@ -248,7 +248,7 @@ defmodule IEx.Pry do
   end
 
   @doc """
-  Resets the breaks on a given breakpoint id.
+  Resets the breaks on a given breakpoint ID.
   """
   @spec reset_break(id) :: :ok | :not_found
   def reset_break(id) when is_integer(id) do

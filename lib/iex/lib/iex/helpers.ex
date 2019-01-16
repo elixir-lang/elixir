@@ -949,9 +949,9 @@ defmodule IEx.Helpers do
 
   @doc """
   Sets the number of pending stops in the breakpoint
-  with the given id to zero.
+  with the given `id` to zero.
 
-  Returns `:ok` if there is such breakpoint id. `:not_found`
+  Returns `:ok` if there is such breakpoint ID. `:not_found`
   otherwise.
 
   Note the module remains "instrumented" on reset. If you would
