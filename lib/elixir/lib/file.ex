@@ -373,6 +373,8 @@ defmodule File do
       machine
     * `:posix` - returns the time as integer seconds since epoch
 
+  Note: Since file times are stored in POSIX time format on most operating systems,
+  it is faster to retrieve file information with the `time: :posix` option.
   """
   @spec stat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix}
   def stat(path, opts \\ []) do
@@ -424,6 +426,8 @@ defmodule File do
     * `:local` - returns a `{date, time}` tuple using the machine time
     * `:posix` - returns the time as integer seconds since epoch
 
+  Note: Since file times are stored in POSIX time format on most operating systems,
+  it is faster to retrieve file information with the `time: :posix` option.
   """
   @spec lstat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix}
   def lstat(path, opts \\ []) do
