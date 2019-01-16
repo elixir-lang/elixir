@@ -321,6 +321,11 @@ defmodule IO.ANSI.DocsTest do
     assert format("`https_proxy`") == "\e[36mhttps_proxy\e[0m\n\e[0m"
   end
 
+  test "escaping of several Markdown links in one line" do
+    assert format("[List](`List`) (`[1, 2, 3]`), [Map](`Map`)") ==
+             "List (\e[36mList\e[0m) (\e[36m[1, 2, 3]\e[0m), Map (\e[36mMap\e[0m)\n\e[0m"
+  end
+
   test "lone thing that looks like a table line isn't" do
     assert format("one\n2 | 3\ntwo\n") == "one 2 | 3 two\n\e[0m"
   end

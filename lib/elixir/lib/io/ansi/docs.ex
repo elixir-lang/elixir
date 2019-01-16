@@ -531,7 +531,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp remove_square_brackets_in_link(text) do
-    ~r{\[(.*?)\]\((.*?)\)}
+    ~r{\[([^\]]*?)\]\((.*?)\)}
     |> Regex.recompile!()
     |> Regex.replace(text, "\\1 (\\2)")
   end
