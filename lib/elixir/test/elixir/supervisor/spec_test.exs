@@ -52,7 +52,7 @@ defmodule Supervisor.SpecTest do
     assert supervise(children, options) == {:ok, {{:one_for_all, 1, 1}, children}}
   end
 
-  test "supervise/2 with duplicated ids" do
+  test "supervise/2 with duplicated IDs" do
     children = [worker(GenEvent, []), worker(GenEvent, [])]
 
     assert_raise ArgumentError, fn ->

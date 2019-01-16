@@ -52,7 +52,7 @@ defmodule IEx.HelpersTest do
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
     end
 
-    test "resets breaks on the given id" do
+    test "resets breaks on the given ID" do
       assert break!(URI, :decode_query, 2) == 1
       assert reset_break(1) == :ok
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]

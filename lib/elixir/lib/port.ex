@@ -261,7 +261,7 @@ defmodule Port do
   where:
 
     * `ref` is a monitor reference returned by this function;
-    * `object` is either the `port` being monitored (when monitoring by port id)
+    * `object` is either the `port` being monitored (when monitoring by port ID)
     or `{name, node}` (when monitoring by a port name);
     * `reason` is the exit reason.
 

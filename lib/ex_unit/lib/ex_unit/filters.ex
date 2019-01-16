@@ -96,7 +96,7 @@ defmodule ExUnit.Filters do
 
     * A set of files that contain tests that failed the last time they ran.
       The paths are absolute paths.
-    * A set of test ids that failed the last time they ran
+    * A set of test IDs that failed the last time they ran
 
   """
   @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(FailuresManifest.test_id())}

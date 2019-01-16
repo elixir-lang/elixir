@@ -796,7 +796,7 @@ defmodule Supervisor do
   `child_spec` should be a valid child specification. The child process will
   be started as defined in the child specification.
 
-  If a child specification with the specified id already exists, `child_spec` is
+  If a child specification with the specified ID already exists, `child_spec` is
   discarded and this function returns an error with `:already_started` or
   `:already_present` if the corresponding child process is running or not,
   respectively.
@@ -830,7 +830,7 @@ defmodule Supervisor do
   end
 
   @doc """
-  Terminates the given child identified by child id.
+  Terminates the given child identified by `child_id`.
 
   The process is terminated, if there's one. The child specification is
   kept unless the child is temporary.
@@ -840,7 +840,7 @@ defmodule Supervisor do
   Use `delete_child/2` to remove the child specification.
 
   If successful, this function returns `:ok`. If there is no child
-  specification for the given child id, this function returns
+  specification for the given child ID, this function returns
   `{:error, :not_found}`.
   """
   @spec terminate_child(supervisor, term()) :: :ok | {:error, error}

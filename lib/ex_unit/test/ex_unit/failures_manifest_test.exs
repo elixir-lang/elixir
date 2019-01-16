@@ -26,7 +26,7 @@ defmodule ExUnit.FailuresManifestTest do
   end
 
   describe "failed_test_ids/1" do
-    test "returns the set of failed test ids" do
+    test "returns the set of failed test IDs" do
       manifest =
         new()
         |> put_test(failed_1 = new_test(@failed))

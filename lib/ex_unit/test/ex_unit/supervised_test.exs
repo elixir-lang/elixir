@@ -71,7 +71,7 @@ defmodule ExUnit.SupervisedTest do
     refute Process.whereis(MyAgent)
   end
 
-  test "starts a supervised process with id checks" do
+  test "starts a supervised process with ID checks" do
     {:ok, pid} = start_supervised({MyAgent, 0})
     assert {:error, {:already_started, ^pid}} = start_supervised({MyAgent, 0})
     assert {:error, {{:already_started, ^pid}, _}} = start_supervised({MyAgent, 0}, id: :another)

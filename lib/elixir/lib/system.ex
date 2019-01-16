@@ -533,7 +533,7 @@ defmodule System do
 
   Returns a string containing the (usually) numerical identifier for a process.
   On UNIX, this is typically the return value of the `getpid()` system call.
-  On Windows, the process id as returned by the `GetCurrentProcessId()` system
+  On Windows, the process ID as returned by the `GetCurrentProcessId()` system
   call is used.
 
   ## Examples
