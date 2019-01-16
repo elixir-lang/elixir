@@ -127,7 +127,7 @@ defmodule Supervisor.Spec do
   @typedoc "Supported module values"
   @type modules :: :dynamic | [module]
 
-  @typedoc "Supported id values"
+  @typedoc "Supported ID values"
   @type child_id :: term
 
   @typedoc "The supervisor specification"
@@ -196,7 +196,7 @@ defmodule Supervisor.Spec do
   defp assert_unique_ids([id | rest]) do
     if id in rest do
       raise ArgumentError,
-            "duplicated id #{inspect(id)} found in the supervisor specification, " <>
+            "duplicated ID #{inspect(id)} found in the supervisor specification, " <>
               "please explicitly pass the :id option when defining this worker/supervisor"
     else
       assert_unique_ids(rest)

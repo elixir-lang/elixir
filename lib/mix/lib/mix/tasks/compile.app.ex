@@ -230,7 +230,7 @@ defmodule Mix.Tasks.Compile.App do
 
       {:id, value} ->
         unless is_list(value) do
-          Mix.raise("Application id (:id) is not a character list, got: " <> inspect(value))
+          Mix.raise("Application ID (:id) is not a character list, got: " <> inspect(value))
         end
 
       {:vsn, value} ->

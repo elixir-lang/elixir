@@ -1679,7 +1679,7 @@ defmodule File do
   end
 
   @doc """
-  Changes the group given by the group id `gid`
+  Changes the group given by the group ID `gid`
   for a given `file`. Returns `:ok` on success, or
   `{:error, reason}` on failure.
   """
@@ -1707,7 +1707,7 @@ defmodule File do
   end
 
   @doc """
-  Changes the owner given by the user id `uid`
+  Changes the owner given by the user ID `uid`
   for a given `file`. Returns `:ok` on success,
   or `{:error, reason}` on failure.
   """
