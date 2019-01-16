@@ -899,6 +899,8 @@ defmodule Module do
   # Otherwise, returns a generic guess
   defp merge_signature({_, meta, _}, _newer, i), do: {:"arg#{i}", meta, Elixir}
 
+  @extra_error_msg_defines? "Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 " <>
+                              "to check for public functions and macros instead"
   @doc """
   Checks if the module defines the given function or macro.
 
@@ -920,7 +922,7 @@ defmodule Module do
   @spec defines?(module, definition) :: boolean
   def defines?(module, {name, arity} = tuple)
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_compiled!(__ENV__.function, module, @extra_error_msg_defines?)
     {set, _bag} = data_tables_for(module)
     :ets.member(set, {:def, tuple})
   end
@@ -948,7 +950,8 @@ defmodule Module do
   def defines?(module, {name, arity} = tuple, def_kind)
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 and
              def_kind in [:def, :defp, :defmacro, :defmacrop] do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_compiled!(__ENV__.function, module, @extra_error_msg_defines?)
+
     {set, _bag} = data_tables_for(module)
 
     case :ets.lookup(set, {:def, tuple}) do
@@ -979,6 +982,7 @@ defmodule Module do
     Kernel.Typespec.spec_to_callback(module, definition)
   end
 
+  @extra_error_msg_definitions_in "Use the Module.__info__/1 callback to get public functions and macros instead"
   @doc """
   Returns all functions and macros defined in `module`.
 
@@ -1000,7 +1004,7 @@ defmodule Module do
   """
   @spec definitions_in(module) :: [definition]
   def definitions_in(module) when is_atom(module) do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_compiled!(__ENV__.function, module, @extra_error_msg_definitions_in)
     {_, bag} = data_tables_for(module)
     bag_lookup_element(bag, :defs, 2)
   end
@@ -1008,6 +1012,10 @@ defmodule Module do
   @doc """
   Returns all functions defined in `module`, according
   to its kind.
+
+  This function can only be used on modules that have not yet been compiled.
+  Use the `c:Module.__info__/1` callback to get the public functions and macros in
+  compiled modules.
 
   ## Examples
 
@@ -1729,7 +1737,12 @@ defmodule Module do
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
   def get_attribute(module, key, line) when is_atom(key) do
-    assert_not_compiled!({:get_attribute, 2}, module)
+    assert_not_compiled!(
+      {:get_attribute, 2},
+      module,
+      "Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
+    )
+
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
@@ -2000,29 +2013,19 @@ defmodule Module do
     :error, :badarg -> []
   end
 
-  defp assert_not_compiled!(function_name_arity, module) do
+  defp assert_not_compiled!(function_name_arity, module, extra_msg \\ "") do
     open?(module) ||
-      raise ArgumentError, assert_not_compiled_message(function_name_arity, module)
+      raise ArgumentError,
+            assert_not_compiled_message(function_name_arity, module, extra_msg)
   end
 
-  defp assert_not_compiled_message({function_name, arity} = function_name_arity, module) do
+  defp assert_not_compiled_message({function_name, arity}, module, extra_msg) do
     mfa = "Module.#{function_name}/#{arity}"
 
-    "could not call #{mfa} with module argument #{inspect(module)} because the module is already compiled" <>
-      case function_name_arity do
-        {:defines?, arity} when arity in [2, 3] ->
-          ". Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 to " <>
-            "check for public functions and macros instead"
-
-        {:definitions_in, 1} ->
-          ". Use the Module.__info__/1 callback to get public functions and " <>
-            "macros instead"
-
-        {:get_attribute, 2} ->
-          ". Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
-
-        _ ->
-          ""
+    "could not call #{mfa} because the module #{inspect(module)} is already compiled" <>
+      case extra_msg do
+        "" -> ""
+        _ -> ". " <> extra_msg
       end
   end
 end
