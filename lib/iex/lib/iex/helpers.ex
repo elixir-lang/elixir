@@ -246,7 +246,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Opens the given `module`, `module.function/arity` or `{file, line}`.
+  Opens the given `module`, `module.function/arity`, or `{file, line}`.
 
   This function uses the `ELIXIR_EDITOR` environment variable
   and falls back to `EDITOR` if the former is not available.
