@@ -1196,8 +1196,8 @@ defmodule IEx.HelpersTest do
     end
   end
 
-  describe "pid" do
-    test "builds a pid from string" do
+  describe "pid/1,3" do
+    test "builds a PID from string" do
       assert inspect(pid("0.32767.3276")) == "#PID<0.32767.3276>"
       assert inspect(pid("0.5.6")) == "#PID<0.5.6>"
 
@@ -1206,7 +1206,7 @@ defmodule IEx.HelpersTest do
       end
     end
 
-    test "builds a pid from integers" do
+    test "builds a PID from integers" do
       assert inspect(pid(0, 32767, 3276)) == "#PID<0.32767.3276>"
       assert inspect(pid(0, 5, 6)) == "#PID<0.5.6>"
 
