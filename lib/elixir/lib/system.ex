@@ -36,11 +36,11 @@ defmodule System do
 
   Generally speaking, the VM provides three time measurements:
 
-    * `os_time/0` - the time reported by the OS. This time may be
+    * `os_time/0` - the time reported by the operating system. This time may be
       adjusted forwards or backwards in time with no limitation;
 
-    * `system_time/0` - the VM view of the `os_time/0`. The system time and OS
-      time may not match in case of time warps although the VM works towards
+    * `system_time/0` - the VM view of the `os_time/0`. The system time and operating
+      system time may not match in case of time warps although the VM works towards
       aligning them. This time is not monotonic (i.e., it may decrease)
       as its behaviour is configured [by the VM time warp
       mode](http://www.erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
@@ -49,7 +49,7 @@ defmodule System do
       by the Erlang VM.
 
   The time functions in this module work in the `:native` unit
-  (unless specified otherwise), which is OS dependent. Most of
+  (unless specified otherwise), which is operating system dependent. Most of
   the time, all calculations are done in the `:native` unit, to
   avoid loss of precision, with `convert_time_unit/3` being
   invoked at the end to convert to a specific time unit like
@@ -374,7 +374,7 @@ defmodule System do
   This function looks up an executable program given
   its name using the environment variable PATH on Unix
   and Windows. It also considers the proper executable
-  extension for each OS, so for Windows it will try to
+  extension for each operating system, so for Windows it will try to
   lookup files with `.com`, `.cmd` or similar extensions.
   """
   @spec find_executable(binary) :: binary | nil
@@ -846,7 +846,7 @@ defmodule System do
   end
 
   @doc """
-  Returns the current OS time.
+  Returns the current operating system time.
 
   The result is returned in the `:native` time unit.
 
@@ -861,7 +861,7 @@ defmodule System do
   end
 
   @doc """
-  Returns the current OS time in the given time `unit`.
+  Returns the current operating system time in the given time `unit`.
 
   This time may be adjusted forwards or backwards in time
   with no limitation and is not monotonic.

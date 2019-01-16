@@ -420,11 +420,11 @@ defmodule Kernel do
 
       exit({:shutdown, integer})
 
-  This will cause the OS process to exit with the status given by
+  This will cause the operating system process to exit with the status given by
   `integer` while signaling all linked Erlang processes to politely
   shut down.
 
-  Any other exit reason will cause the OS process to exit with
+  Any other exit reason will cause the operating system process to exit with
   status `1` and linked Erlang processes to crash.
   """
   @spec exit(term) :: no_return

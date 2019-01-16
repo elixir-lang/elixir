@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Cmd do
   This task is automatically reenabled, so it can be called multiple times
   with different arguments.
 
-  ## Zombie OS processes
+  ## Zombie operating system processes
 
   Beware that the Erlang VM does not terminate child processes
   when it shuts down. Therefore, if you use `mix cmd` to start
@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Cmd do
 
   A solution is to make sure the child processes listen to the
   standard input and terminate when standard input is closed.
-  We discuss this topic at length in the "Zombie OS processes"
+  We discuss this topic at length in the "Zombie operating system processes"
   of the `Port` module documentation.
   """
 
