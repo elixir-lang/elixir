@@ -137,8 +137,7 @@ defmodule IEx.ServerTest do
     task =
       Task.async(fn ->
         capture_iex("""
-        send(#{inspect(name)}, {:running, self()})
-        receive do: (:run -> :ok)
+        send(#{inspect(name)}, {:running, self()}) && receive do: (:run -> :ok)
         #{session}
         """)
       end)
