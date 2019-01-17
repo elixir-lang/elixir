@@ -49,7 +49,7 @@ defmodule Code.Formatter do
     :<>
   ]
 
-  locals_without_parens = [
+  @locals_without_parens [
     # Special forms
     alias: 1,
     alias: 2,
@@ -137,8 +137,6 @@ defmodule Code.Formatter do
     config: 3,
     import_config: 1
   ]
-
-  @locals_without_parens MapSet.new(locals_without_parens)
 
   @doc """
   Checks if two strings are equivalent.
@@ -255,11 +253,7 @@ defmodule Code.Formatter do
       end
 
     locals_without_parens =
-      opts
-      |> Keyword.get(:locals_without_parens, [])
-      |> MapSet.new()
-      |> MapSet.union(@locals_without_parens)
-      |> MapSet.to_list()
+      Keyword.get(opts, :locals_without_parens, []) ++ @locals_without_parens
 
     %{
       locals_without_parens: locals_without_parens,
