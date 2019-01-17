@@ -36,7 +36,7 @@ defmodule ExUnit.CaptureIO do
   process and therefore can be done concurrently.
 
   However, the capturing of any other named device, such as `:stderr`,
-  happens globally and require `async: false`.
+  happens globally and requires `async: false`.
 
   When capturing `:stdio`, if the `:capture_prompt` option is `false`,
   prompts (specified as arguments to `IO.get*` functions) are not
