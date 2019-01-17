@@ -352,7 +352,7 @@ defmodule IEx.Introspection do
     )
 
     puts_error(
-      "If instead of accessing documentation you would like to more information about a value " <>
+      "If instead of accessing documentation you would like more information about a value " <>
         "or about the result of an expression, use the \"i\" helper instead"
     )
 
