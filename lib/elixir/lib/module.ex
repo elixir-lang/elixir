@@ -1,4 +1,9 @@
 defmodule Module do
+  @extra_error_msg_defines? "Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 " <>
+                              "to check for public functions and macros instead"
+
+  @extra_error_msg_definitions_in "Use the Module.__info__/1 callback to get public functions and macros instead"
+
   @moduledoc ~S'''
   Provides functions to deal with modules during compilation time.
 
@@ -899,8 +904,6 @@ defmodule Module do
   # Otherwise, returns a generic guess
   defp merge_signature({_, meta, _}, _newer, i), do: {:"arg#{i}", meta, Elixir}
 
-  @extra_error_msg_defines? "Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 " <>
-                              "to check for public functions and macros instead"
   @doc """
   Checks if the module defines the given function or macro.
 
@@ -982,7 +985,6 @@ defmodule Module do
     Kernel.Typespec.spec_to_callback(module, definition)
   end
 
-  @extra_error_msg_definitions_in "Use the Module.__info__/1 callback to get public functions and macros instead"
   @doc """
   Returns all functions and macros defined in `module`.
 
@@ -1029,7 +1031,7 @@ defmodule Module do
   @spec definitions_in(module, def_kind) :: [definition]
   def definitions_in(module, def_kind)
       when is_atom(module) and def_kind in [:def, :defp, :defmacro, :defmacrop] do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_compiled!(__ENV__.function, module, @extra_error_msg_definitions_in)
     {set, _} = data_tables_for(module)
     :lists.concat(:ets.match(set, {{:def, :"$1"}, def_kind, :_, :_, :_, :_}))
   end
