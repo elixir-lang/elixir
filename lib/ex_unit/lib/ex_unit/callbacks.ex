@@ -316,12 +316,12 @@ defmodule ExUnit.Callbacks do
   and the available specification keys.
 
   The advantage of starting a process under the test supervisor is that
-  it is guaranteed to exit before the next test starts. Furthermore,
-  because the child process is supervised, it will be restarted in case
-  of crashes according to the `:restart` strategy in the child
-  specification, even if stopped manually. Therefore, to guarantee a
-  process started with `start_supervised/2` terminates without restarts,
-  see `stop_supervised/1`.
+  it is guaranteed to exit before the next test starts. Therefore, you
+  don't need to remove the process at the end of your tests via
+  `stop_supervised/1`. You only need to use `stop_supervised/1 ` if you
+  want to remove a process from the supervision tree in the middle of a
+  test, as simply shutting down the process would cause it to be restarted
+  according to its `:restart` value.
 
   This function returns `{:ok, pid}` in case of success, otherwise it
   returns `{:error, reason}`.
