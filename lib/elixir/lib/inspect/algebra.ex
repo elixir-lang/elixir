@@ -880,10 +880,11 @@ defmodule Inspect.Algebra do
   #   * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
   #   * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
   #
-  @typep mode :: :flat | :flat_no_break | :break
+  @typep mode :: :flat | :flat_no_break | :break | :break_no_flat
 
   @spec fits?(width :: integer(), column :: integer(), break? :: boolean(), entries) :: boolean()
-        when entries: [{integer(), mode(), t()}] | {:tail, boolean(), entries}
+        when entries:
+               maybe_improper_list({integer(), mode(), t()}, {:tail, boolean(), entries} | [])
 
   # We need at least a break to consider the document does not fit since a
   # large document without breaks has no option but fitting its current line.
