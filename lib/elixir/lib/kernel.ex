@@ -835,7 +835,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Rounds a number to the nearest integer. Rounds half away from 0.
+  Rounds a number to the nearest integer, half away from 0.
 
   Allowed in guard tests. Inlined by the compiler.
 
