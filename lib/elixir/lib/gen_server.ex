@@ -819,7 +819,7 @@ defmodule GenServer do
       the arguments given to GenServer.start_link/3 to the server state.
       """
 
-      :elixir_errors.warn(env.line, env.file, message)
+      IO.warn(message, Macro.Env.stacktrace(env))
 
       quote do
         @doc false

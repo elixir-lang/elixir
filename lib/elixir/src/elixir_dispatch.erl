@@ -328,7 +328,7 @@ elixir_imported_macros() ->
 %% Inline common cases.
 check_deprecation(Meta, ?kernel, to_char_list, 1, E) ->
   Message = "Kernel.to_char_list/1 is deprecated. Use Kernel.to_charlist/1 instead",
-  elixir_errors:warn(?line(Meta), ?key(E, file), Message);
+  elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message);
 check_deprecation(_, ?kernel, _, _, _) ->
   ok;
 check_deprecation(_, erlang, _, _, _) ->
@@ -343,7 +343,7 @@ check_deprecation(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Var
           "If you want to support only Elixir v1.7+, you must access __STACKTRACE__ "
           "inside a rescue/catch. If you want to support earlier Elixir versions, "
           "move System.stacktrace/0 inside a rescue/catch",
-      elixir_errors:warn(?line(Meta), ?key(E, file), Message)
+      elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message)
   end;
 check_deprecation(Meta, Receiver, Name, Arity, E) ->
   case (get(elixir_compiler_dest) == undefined) andalso is_module_loaded(Receiver) andalso
@@ -352,7 +352,7 @@ check_deprecation(Meta, Receiver, Name, Arity, E) ->
       case lists:keyfind({Name, Arity}, 1, Deprecations) of
         {_, Message} ->
           Warning = deprecation_message(Receiver, Name, Arity, Message),
-          elixir_errors:warn(?line(Meta), ?key(E, file), Warning);
+          elixir_errors:erl_warn(?line(Meta), ?key(E, file), Warning);
         false ->
           ok
       end;

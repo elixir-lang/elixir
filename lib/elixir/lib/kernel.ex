@@ -2843,7 +2843,7 @@ defmodule Kernel do
 
       name == :behavior ->
         warn_message = "@behavior attribute is not supported, please use @behaviour instead"
-        :elixir_errors.warn(env.line, env.file, warn_message)
+        IO.warn(warn_message, Macro.Env.stacktrace(env))
 
       :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
         arg = {env.line, arg}
@@ -3318,7 +3318,7 @@ defmodule Kernel do
             <<"piping into a unary operator is deprecated, please use the ",
               "qualified name. For example, Kernel.+(5), instead of +5">>
 
-          :elixir_errors.warn(__CALLER__.line, __CALLER__.file, message)
+          IO.warn(message, Macro.Env.stacktrace(__CALLER__))
 
         _ ->
           :ok
@@ -4969,18 +4969,18 @@ defmodule Kernel do
       target =
         Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
 
-      %{file: file, line: line} = __ENV__
-
       if is_list(funs) do
-        message =
-          "passing a list to Kernel.defdelegate/2 is deprecated, " <>
-            "please define each delegate separately"
-
-        :elixir_errors.warn(line, file, message)
+        IO.warn(
+          "passing a list to Kernel.defdelegate/2 is deprecated, please define each delegate separately",
+          Macro.Env.stacktrace(__ENV__)
+        )
       end
 
       if Keyword.has_key?(opts, :append_first) do
-        :elixir_errors.warn(line, file, "Kernel.defdelegate/2 :append_first option is deprecated")
+        IO.warn(
+          "Kernel.defdelegate/2 :append_first option is deprecated",
+          Macro.Env.stacktrace(__ENV__)
+        )
       end
 
       for fun <- List.wrap(funs) do

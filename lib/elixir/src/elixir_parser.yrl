@@ -684,7 +684,7 @@ number_value({_, {_, _, Value}, _}) ->
 
 build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
   %% TODO: Remove "not left in right" rearrangement on v2.0
-  elixir_errors:warn(line_from_location(Location), ?file(),
+  elixir_errors:erl_warn(line_from_location(Location), ?file(),
     "\"not expr1 in expr2\" is deprecated. "
     "Instead use \"expr1 not in expr2\" if you require Elixir v1.5+, "
     "or \"not(expr1 in expr2)\" if you have to support earlier Elixir versions"),
@@ -1037,7 +1037,7 @@ error_invalid_kw_identifier({_, _, KW} = Token) ->
 
 %% TODO: Make this an error on v2.0
 warn_empty_paren({_, {Line, _, _}}) ->
-  elixir_errors:warn(Line, ?file(),
+  elixir_errors:erl_warn(Line, ?file(),
     "invalid expression (). "
     "If you want to invoke or define a function, make sure there are "
     "no spaces between the function name and its arguments. If you wanted "
@@ -1045,17 +1045,17 @@ warn_empty_paren({_, {Line, _, _}}) ->
 
 %% TODO: Make this an error on v2.0
 warn_trailing_comma({',', {Line, _, _}}) ->
-  elixir_errors:warn(Line, ?file(),
+  elixir_errors:erl_warn(Line, ?file(),
     "trailing commas are not allowed inside function/macro call arguments"
   ).
 
 warn_empty_stab_clause({stab_op, {Line, _, _}, '->'}) ->
-  elixir_errors:warn(Line, ?file(),
+  elixir_errors:erl_warn(Line, ?file(),
     "an expression is always required on the right side of ->. "
     "Please provide a value after ->").
 
 warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
-  elixir_errors:warn(Line, ?file(),
+  elixir_errors:erl_warn(Line, ?file(),
     io_lib:format(
       "parentheses are required when piping into a function call. For example:\n\n"
       "    foo 1 ~ts bar 2 ~ts baz 3\n\n"

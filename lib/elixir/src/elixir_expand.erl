@@ -311,7 +311,7 @@ expand({super, Meta, Args}, E) when is_list(Args) ->
               [element(1, Function), Arity]
             ),
 
-          elixir_errors:warn(?line(Meta), ?key(E, file), Message);
+          elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message);
 
         _ ->
           ok
@@ -407,7 +407,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
               Message =
                 io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                   " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]),
-              elixir_errors:warn(?line(Meta), ?key(E, file), Message),
+              elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message),
               expand({Name, Meta, []}, E);
 
             raise ->

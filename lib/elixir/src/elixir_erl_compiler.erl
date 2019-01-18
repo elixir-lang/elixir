@@ -99,7 +99,7 @@ handle_file_warning(_, _File, {_Line, erl_lint, _}) -> ok;
 
 handle_file_warning(_, File, {Line, Module, Desc}) ->
   Message = custom_format(Module, Desc),
-  elixir_errors:warn(Line, File, Message).
+  elixir_errors:erl_warn(Line, File, Message).
 
 %% Handle warnings
 

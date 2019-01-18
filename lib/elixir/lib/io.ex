@@ -214,7 +214,7 @@ defmodule IO do
   """
   @spec warn(chardata | String.Chars.t(), Exception.stacktrace()) :: :ok
   def warn(message, []) do
-    :elixir_errors.bare_warn(nil, nil, [to_chardata(message), ?\n])
+    :elixir_errors.io_warn(nil, nil, [to_chardata(message), ?\n])
   end
 
   def warn(message, [{_, _, _, opts} | _] = stacktrace) do
@@ -222,7 +222,7 @@ defmodule IO do
     message = [to_chardata(message), ?\n, "  ", formatted_trace, ?\n]
     line = opts[:line]
     file = opts[:file]
-    :elixir_errors.bare_warn(line, file && List.to_string(file), message)
+    :elixir_errors.io_warn(line, file && List.to_string(file), message)
   end
 
   @doc """
