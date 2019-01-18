@@ -1349,7 +1349,7 @@ defmodule Module do
         "#{kind} #{name}/#{arity} is private, " <>
           "@doc attribute is always discarded for private functions/macros/types"
 
-      :elixir_errors.warn(line, env.file, message)
+      IO.warn(message, Macro.Env.stacktrace(%{env | line: line}))
     end
   end
 
@@ -1449,7 +1449,7 @@ defmodule Module do
 
     pending_callbacks =
       if impls != [] do
-        {non_implemented_callbacks, contexts} = check_impls(behaviours, callbacks, impls)
+        {non_implemented_callbacks, contexts} = check_impls(env, behaviours, callbacks, impls)
         warn_missing_impls(env, non_implemented_callbacks, contexts, all_definitions)
         non_implemented_callbacks
       else
@@ -1467,23 +1467,21 @@ defmodule Module do
           message =
             "@behaviour #{inspect(behaviour)} must be an atom (in module #{inspect(env.module)})"
 
-          :elixir_errors.warn(env.line, env.file, message)
+          IO.warn(message, Macro.Env.stacktrace(env))
           acc
 
         not Code.ensure_compiled?(behaviour) ->
           message =
             "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
 
-          :elixir_errors.warn(env.line, env.file, message)
-
+          IO.warn(message, Macro.Env.stacktrace(env))
           acc
 
         not function_exported?(behaviour, :behaviour_info, 1) ->
           message =
             "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(env.module)})"
 
-          :elixir_errors.warn(env.line, env.file, message)
-
+          IO.warn(message, Macro.Env.stacktrace(env))
           acc
 
         true ->
@@ -1504,7 +1502,7 @@ defmodule Module do
           "conflicting behaviours found. #{format_definition(kind, callback)} is required by " <>
             "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(env.module)})"
 
-        :elixir_errors.warn(env.line, env.file, message)
+        IO.warn(message, Macro.Env.stacktrace(env))
 
       %{} ->
         :ok
@@ -1521,7 +1519,7 @@ defmodule Module do
             format_callback(callback, kind, behaviour) <>
               " is not implemented (in module #{inspect(env.module)})"
 
-          :elixir_errors.warn(env.line, env.file, message)
+          IO.warn(message, Macro.Env.stacktrace(env))
 
         {_, wrong_kind, _, _} when kind != wrong_kind ->
           message =
@@ -1529,7 +1527,7 @@ defmodule Module do
               " was implemented as \"#{wrong_kind}\" but should have been \"#{kind}\" " <>
               "(in module #{inspect(env.module)})"
 
-          :elixir_errors.warn(env.line, env.file, message)
+          IO.warn(message, Macro.Env.stacktrace(env))
 
         _ ->
           :ok
@@ -1551,7 +1549,7 @@ defmodule Module do
       module.__protocol__(:module) == module
   end
 
-  defp check_impls(behaviours, callbacks, impls) do
+  defp check_impls(env, behaviours, callbacks, impls) do
     acc = {callbacks, %{}}
 
     Enum.reduce(impls, acc, fn {fa, context, defaults, kind, line, file, value}, acc ->
@@ -1564,7 +1562,8 @@ defmodule Module do
           end)
 
         {:error, message} ->
-          :elixir_errors.warn(line, file, format_impl_warning(fa, kind, message))
+          formatted = format_impl_warning(fa, kind, message)
+          IO.warn(formatted, Macro.Env.stacktrace(%{env | line: line, file: file}))
           acc
       end
     end)
@@ -1680,7 +1679,7 @@ defmodule Module do
             "This either means you forgot to add the \"@impl true\" annotation before the " <>
             "definition or that you are accidentally overriding this callback"
 
-        :elixir_errors.warn(:elixir_utils.get_line(meta), env.file, message)
+        IO.warn(message, Macro.Env.stacktrace(%{env | line: :elixir_utils.get_line(meta)}))
       end
     end
 

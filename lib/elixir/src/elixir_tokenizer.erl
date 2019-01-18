@@ -236,7 +236,7 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
     {Escape, Name} ->
       Msg = io_lib:format("found ? followed by codepoint 0x~.16B (~ts), please use ?~ts instead",
                           [Char, Name, Escape]),
-      elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
+      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg);
     false ->
       ok
   end,
@@ -423,7 +423,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
     {NewLine, NewColumn, Parts, Rest} ->
       case is_unnecessary_quote(Parts, Scope) of
         true ->
-          elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
             "found quoted atom \"~ts\" but the quotes are not required. "
             "Atoms made exclusively of Unicode letters, numbers, underscore, "
             "and @ do not require quotes",
@@ -644,7 +644,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
     {NewLine, NewColumn, Parts, [$: | Rest]} when ?is_space(hd(Rest)) ->
       case is_unnecessary_quote(Parts, Scope) of
         true ->
-          elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
             "found quoted keyword \"~ts\" but the quotes are not required. "
             "Note that keywords are always atoms, even when quoted. "
             "Similar to atoms, keywords made exclusively of Unicode "
@@ -738,7 +738,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
     {NewLine, NewColumn, [Part], Rest} when is_list(Part) ->
       case is_unnecessary_quote([Part], Scope) of
         true ->
-          elixir_errors:warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
             "found quoted call \"~ts\" but the quotes are not required. "
             "Calls made exclusively of Unicode letters, numbers, and underscore "
             "do not require quotes",
@@ -900,7 +900,7 @@ remove_heredoc_spaces(Body, Spaces, Marker, Scope) ->
                           "      \"\"\"~n"
                           "    end~n~n"
                           "The current heredoc line is indented too little", [[Marker, Marker, Marker]]),
-      elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg),
+      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg),
       Acc
   end.
 
@@ -1401,7 +1401,7 @@ maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) 
       _ -> io_lib:format("please use a space between \"~ts\" and the next \"~ts\"", [Token, [T]])
     end,
   Message = io_lib:format("found \"~ts\" followed by \"~ts\", ~ts", [Token, [T], Warning]),
-  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Message);
+  elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Message);
 maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, _Scope) ->
   ok.
 
@@ -1419,7 +1419,7 @@ maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) -
                           "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
                           "a space before or after ~ts to remove the ambiguity",
                           [What, Identifier, [Last], lists:droplast(Identifier), [Last], Identifier, [Last]]),
-      elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
+      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg);
     _ ->
       ok
   end;

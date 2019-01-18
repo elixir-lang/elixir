@@ -88,12 +88,10 @@ defmodule GenEvent do
   @deprecated message
   @doc false
   defmacro __using__(_) do
-    %{file: file, line: line} = __CALLER__
-
     deprecation_message =
       "the GenEvent module is deprecated, see its documentation for alternatives"
 
-    :elixir_errors.warn(line, file, deprecation_message)
+    IO.warn(deprecation_message, Macro.Env.stacktrace(__CALLER__))
 
     quote location: :keep do
       @behaviour :gen_event

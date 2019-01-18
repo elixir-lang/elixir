@@ -468,7 +468,7 @@ defmodule Mix.Compilers.Elixir do
       file = Path.absname(source)
 
       for {line, message} <- warnings do
-        :elixir_errors.warn(line, file, message)
+        :elixir_errors.erl_warn(line, file, message)
       end
     end
   end

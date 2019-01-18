@@ -133,7 +133,7 @@ defmodule Kernel.Typespec do
           warning =
             "type #{name}/#{arity} is private, @typedoc's are always discarded for private types"
 
-          :elixir_errors.warn(line, file, warning)
+          :elixir_errors.erl_warn(line, file, warning)
         end
 
       {name, arity} ->
@@ -263,7 +263,7 @@ defmodule Kernel.Typespec do
     fun = fn {_kind, {name, arity} = type_pair, _line, _type, export} ->
       if not export and not :lists.member(type_pair, state.used_type_pairs) do
         %{^type_pair => {file, line}} = state.defined_type_pairs
-        :elixir_errors.warn(line, file, "type #{name}/#{arity} is unused")
+        :elixir_errors.erl_warn(line, file, "type #{name}/#{arity} is unused")
         false
       else
         true
@@ -314,7 +314,7 @@ defmodule Kernel.Typespec do
 
     if underspecified?(kind, arity, spec) do
       message = "@#{kind} type #{name}/#{arity} is underspecified and therefore meaningless"
-      :elixir_errors.warn(caller.line, caller.file, message)
+      :elixir_errors.erl_warn(caller.line, caller.file, message)
     end
 
     {{kind, {name, arity}, caller.line, type, export}, state}
@@ -647,7 +647,7 @@ defmodule Kernel.Typespec do
             "#{Macro.to_string(ann_type)}"
 
         # TODO: Make this an error on v2.0 and remove the code below
-        :elixir_errors.warn(caller.line, caller.file, message)
+        :elixir_errors.erl_warn(caller.line, caller.file, message)
 
         # This may be generating an invalid typespec but we need to generate it
         # to avoid breaking existing code that was valid but only broke dialyzer
@@ -666,7 +666,7 @@ defmodule Kernel.Typespec do
 
     # TODO: Make this an error on v2.0, and remove the code below and
     # the :undefined_type_error_enabled? key from the state
-    :elixir_errors.warn(caller.line, caller.file, message)
+    :elixir_errors.erl_warn(caller.line, caller.file, message)
 
     # This may be generating an invalid typespec but we need to generate it
     # to avoid breaking existing code that was valid but only broke dialyzer
@@ -760,8 +760,7 @@ defmodule Kernel.Typespec do
         "For character lists, use charlist() type, for strings, String.t()\n" <>
         Exception.format_stacktrace(Macro.Env.stacktrace(caller))
 
-    :elixir_errors.warn(caller.line, caller.file, warning)
-
+    :elixir_errors.erl_warn(caller.line, caller.file, warning)
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
     {{:type, line(meta), :string, args}, state}
   end
@@ -772,8 +771,7 @@ defmodule Kernel.Typespec do
         "For non-empty character lists, use nonempty_charlist() type, for strings, String.t()\n" <>
         Exception.format_stacktrace(Macro.Env.stacktrace(caller))
 
-    :elixir_errors.warn(caller.line, caller.file, warning)
-
+    :elixir_errors.erl_warn(caller.line, caller.file, warning)
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
     {{:type, line(meta), :nonempty_string, args}, state}
   end
@@ -781,7 +779,7 @@ defmodule Kernel.Typespec do
   defp typespec({type, _meta, []}, vars, caller, state) when type in [:charlist, :char_list] do
     if type == :char_list do
       warning = "the char_list() type is deprecated, use charlist()"
-      :elixir_errors.warn(caller.line, caller.file, warning)
+      :elixir_errors.erl_warn(caller.line, caller.file, warning)
     end
 
     typespec(quote(do: :elixir.charlist()), vars, caller, state)

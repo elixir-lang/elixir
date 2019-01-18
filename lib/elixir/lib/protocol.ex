@@ -676,7 +676,7 @@ defmodule Protocol do
           "implement protocols after compilation or during tests, check the " <>
           "\"Consolidation\" section in the documentation for Kernel.defprotocol/2"
 
-      :elixir_errors.warn(env.line, env.file, message)
+      IO.warn(message, Macro.Env.stacktrace(env))
     end
 
     :ok
