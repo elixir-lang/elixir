@@ -70,14 +70,21 @@ defmodule List do
 
   ## Charlists
 
-  If a list is made of non-negative integers, it can also be called
-  a charlist. Elixir uses single quotes to define charlists:
+  If a list is made of non-negative integers, where each integer represents a
+  Unicode codepoint, the list can also be called a charlist. These integers
+  must:
+
+    * be within the range `0..0x10FFFF` (`0..1_114_111`);
+    * and be out of the range `0xD800..0xDFFF` (`55_296..57_343`), which is
+      reserved in Unicode for UTF-16 surrogate pairs.
+
+  Elixir uses single quotes to define charlists:
 
       iex> 'héllo'
       [104, 233, 108, 108, 111]
 
-  In particular, charlists may be printed back in single
-  quotes if they contain only ASCII-printable codepoints:
+  In particular, charlists will be printed back by default in single
+  quotes if they contain only printable ASCII characters:
 
       iex> 'abc'
       'abc'
@@ -96,8 +103,10 @@ defmodule List do
       #=>    {:logger, 'logger', '1.0.0'}
       #=>  ]
 
-  A list can be checked if it is made of printable ASCII
-  codepoints with `ascii_printable?/2`.
+  A list can be checked if it is made of only printable ASCII
+  characters with `ascii_printable?/2`.
+
+  Improper lists are never deemed as charlists.
   """
 
   @compile :inline_list_funcs
