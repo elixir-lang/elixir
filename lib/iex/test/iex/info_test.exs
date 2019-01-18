@@ -55,9 +55,9 @@ defmodule IEx.InfoTest do
   end
 
   describe "lists" do
-    test "charlists" do
+    test "printable charlists" do
       info = Info.info('foo')
-      assert get_key(info, "Description") =~ "This is a list of integers that is printed"
+      assert get_key(info, "Description") =~ "referred to as a \"printable charlist\""
       assert get_key(info, "Raw representation") == "[102, 111, 111]"
     end
 
@@ -67,6 +67,7 @@ defmodule IEx.InfoTest do
     end
 
     test "regular lists" do
+      assert get_key(Info.info([]), "Reference modules") == "List"
       assert get_key(Info.info([:foo, :bar, :baz]), "Reference modules") == "List"
     end
   end

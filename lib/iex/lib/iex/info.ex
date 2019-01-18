@@ -120,7 +120,7 @@ defimpl IEx.Info, for: List do
     specific_info =
       cond do
         list == [] -> info_list(list)
-        List.ascii_printable?(list) -> info_charlist(list)
+        List.ascii_printable?(list) -> info_printable_charlist(list)
         Keyword.keyword?(list) -> info_kw_list(list)
         List.improper?(list) -> info_improper_list(list)
         true -> info_list(list)
@@ -129,13 +129,12 @@ defimpl IEx.Info, for: List do
     [{"Data type", "List"}] ++ specific_info
   end
 
-  defp info_charlist(charlist) do
+  defp info_printable_charlist(charlist) do
     description = """
     This is a list of integers that is printed as a sequence of characters
-    delimited by single quotes because all the integers in it represent valid
-    ASCII characters. Conventionally, such lists of integers are referred to
-    as "charlists" (more precisely, a charlist is a list of Unicode codepoints,
-    and ASCII is a subset of Unicode).
+    delimited by single quotes because all the integers in it represent printable
+    ASCII characters. Conventionally, a list of Unicode codepoints is known as a
+    charlist and a list of ASCII characters is a subset of it.
     """
 
     [
