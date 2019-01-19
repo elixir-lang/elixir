@@ -2,6 +2,7 @@ Code.require_file("test_helper.exs", __DIR__)
 
 defmodule KernelTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureIO
 
   doctest Kernel
 
@@ -1095,6 +1096,27 @@ defmodule KernelTest do
 
     assert_raise ArgumentError, ~r"reason: :non_utc_offset", fn ->
       Code.eval_string(~s{~U[2015-01-13 13:00:07+00:30]})
+    end
+  end
+
+  describe "dbg/2" do
+    test "with default options" do
+      assert capture_io(fn -> dbg(1 + 2) end) =~ "test/elixir/kernel_test.exs"
+      assert capture_io(fn -> dbg(1 + 2) end) =~ "1 + 2 #=> 3 ("
+      assert capture_io(fn -> dbg(1 + 2) end) =~ "µs)"
+    end
+
+    test "with IO device" do
+      assert capture_io(:stderr, fn -> dbg(1 + 2, device: :stderr) end) =~
+               "test/elixir/kernel_test.exs"
+    end
+
+    test "with inspect options" do
+      assert capture_io(fn -> dbg(1 + 2, inspect: [base: :binary]) end) =~ "1 + 2 #=> 0b11"
+    end
+
+    test "with label" do
+      assert capture_io(fn -> dbg(1 + 2, label: :custom) end) =~ "custom #=> 3"
     end
   end
 

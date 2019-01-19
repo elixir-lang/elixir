@@ -5288,4 +5288,78 @@ defmodule Kernel do
   defmacro to_char_list(arg) do
     quote(do: Kernel.to_charlist(unquote(arg)))
   end
+
+  @doc """
+  Evaluates the expression and prints additional debugging information.
+
+  The output includes the current file and line, the given expression, the result
+  of evaluating the expression, and time measurement (using `:timer.tc/1`).
+
+  ## Examples
+
+  Imagine you have a `run.exs` file with the following line:
+
+      now = dbg Time.utc_now()
+
+  The `Time.utc_now()` expression is evaluated, it's result is bound to the
+  `now` variable, and the following is printed:
+
+      run.exs:1: Time.utc_now() #=> ~T[07:03:39.303151] (49µs)
+
+  ## Options
+
+    * `:device` - IO device to write the output to (default: `:stdio`)
+    * `:inspect` - list of options passed to `Kernel.inspect/2` to pretty-print
+      the result. See `Inspect.Opts` for a full list of options (default:
+      `[pretty: true]`)
+    * `:label` - print a given label instead of the expression. This is especially
+      useful for pipelines which can expand to very long expressions.
+      (default: `Macro.to_string(expr)`)
+
+  """
+  @doc since: "1.9.0"
+  defmacro dbg(expr, opts \\ []) do
+    inspect_opts =
+      opts
+      |> Keyword.get(:inspect, [])
+      |> Keyword.put_new(:pretty, true)
+
+    label =
+      case Keyword.get(opts, :label, Macro.to_string(expr)) do
+        list when is_list(list) -> list
+        other -> to_string(other)
+      end
+
+    device = Keyword.get(opts, :device, :stdio)
+    file = Path.relative_to_cwd(__CALLER__.file)
+    line = to_string(__CALLER__.line)
+
+    quote do
+      {time, result} = :timer.tc(fn -> unquote(expr) end)
+
+      formatted_time =
+        if time > 1000 do
+          [time |> div(1000) |> Integer.to_string(), "ms"]
+        else
+          [Integer.to_string(time), "µs"]
+        end
+
+      IO.puts(unquote(device), [
+        IO.ANSI.yellow(),
+        unquote(file),
+        ":",
+        unquote(line),
+        ": ",
+        IO.ANSI.reset(),
+        unquote(label),
+        " #=> ",
+        inspect(result, unquote(inspect_opts)),
+        " (",
+        formatted_time,
+        ")"
+      ])
+
+      result
+    end
+  end
 end
