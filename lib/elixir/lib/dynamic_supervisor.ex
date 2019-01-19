@@ -302,8 +302,8 @@ defmodule DynamicSupervisor do
 
   If the child process start function returns an error tuple or an erroneous
   value, or if it fails, the child specification is discarded and this function
-  returns `{:error, error}` where `error` is a term containing information about
-  the error and child specification.
+  returns `{:error, error}` where `error` is the error or erroneous value
+  returned from child process start function, or failure reason if it fails.
 
   If the supervisor already has N children in a way that N exceeds the amount
   of `:max_children` set on the supervisor initialization (see `init/1`), then
