@@ -1,9 +1,4 @@
 defmodule Module do
-  @extra_error_msg_defines? "Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 " <>
-                              "to check for public functions and macros instead"
-
-  @extra_error_msg_definitions_in "Use the Module.__info__/1 callback to get public functions and macros instead"
-
   @moduledoc ~S'''
   Provides functions to deal with modules during compilation time.
 
@@ -497,6 +492,11 @@ defmodule Module do
 
   @typep definition :: {atom, arity}
   @typep def_kind :: :def | :defp | :defmacro | :defmacrop
+
+  @extra_error_msg_defines? "Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 " <>
+                              "to check for public functions and macros instead"
+
+  @extra_error_msg_definitions_in "Use the Module.__info__/1 callback to get public functions and macros instead"
 
   @doc """
   Provides runtime information about functions, macros, and other information
