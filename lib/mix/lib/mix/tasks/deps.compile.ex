@@ -12,11 +12,11 @@ defmodule Mix.Tasks.Deps.Compile do
   This task attempts to detect if the project contains one of
   the following files and act accordingly:
 
-    * `mix.exs`      - invokes `mix compile`
+    * `mix.exs` - invokes `mix compile`
     * `rebar.config` - invokes `rebar compile`
-    * `Makefile.win` - invokes `nmake /F Makefile.win` (only on Windows)
-    * `Makefile`     - invokes `gmake` on FreeBSD and OpenBSD, invokes `make` on
-                       any other operating system (except on Windows)
+    * `Makefile.win`- invokes `nmake /F Makefile.win` (only on Windows)
+    * `Makefile` - invokes `gmake` on FreeBSD and OpenBSD, invokes `make`
+      on any other operating system (except on Windows)
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
