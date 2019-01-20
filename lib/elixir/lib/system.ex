@@ -36,7 +36,7 @@ defmodule System do
 
   Generally speaking, the VM provides three time measurements:
 
-    * `os_time/0` - the time reported by the operating system. This time may be
+    * `os_time/0` - the time reported by the operating system (OS). This time may be
       adjusted forwards or backwards in time with no limitation;
 
     * `system_time/0` - the VM view of the `os_time/0`. The system time and operating
@@ -846,7 +846,7 @@ defmodule System do
   end
 
   @doc """
-  Returns the current operating system time.
+  Returns the current operating system (OS) time.
 
   The result is returned in the `:native` time unit.
 
@@ -861,7 +861,7 @@ defmodule System do
   end
 
   @doc """
-  Returns the current operating system time in the given time `unit`.
+  Returns the current operating system (OS) time in the given time `unit`.
 
   This time may be adjusted forwards or backwards in time
   with no limitation and is not monotonic.
