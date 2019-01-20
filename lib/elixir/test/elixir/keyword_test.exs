@@ -176,4 +176,21 @@ defmodule KeywordTest do
       assert_raise ArgumentError, error.message, fn -> Keyword.merge(arg1, arg2, fun) end
     end
   end
+
+  test "take!/2 behaves as take/2 when keys exist" do
+    args = [
+      {[], []},
+      {[a: 1, b: 2], [:a]},
+      {[a: 1, b: 2], [:b]},
+      {[a: 1, b: 2], [:a, :b]}
+    ]
+
+    for {arg1, arg2} <- args do
+      assert Keyword.take!(arg1, arg2) == Keyword.take(arg1, arg2)
+    end
+  end
+
+  test "take!/2 throws KeyError when key is missing" do
+    assert_raise KeyError, "key :b not found in: [a: 1]", fn -> Keyword.take!([a: 1], [:b]) end
+  end
 end

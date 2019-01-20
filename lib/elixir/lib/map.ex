@@ -406,6 +406,45 @@ defmodule Map do
   end
 
   @doc """
+  Returns a new map with all the key-value pairs in `map` where the key
+  is in `keys`.
+
+  If `keys` contains keys that are not in `map`, a `KeyError` exception is raised.
+
+  ## Examples
+
+      iex> Map.take(%{a: 1, b: 2, c: 3}, [:a, :c, :e])
+      %{a: 1, c: 3}
+
+  """
+  @spec take!(map, Enumerable.t()) :: map
+  def take!(map, keys)
+
+  def take!(map, keys) when is_map(map) do
+    keys
+    |> Enum.to_list()
+    |> take!(map, [])
+  end
+
+  def take!(non_map, _keys) do
+    :erlang.error({:badmap, non_map})
+  end
+
+  defp take!([], _map, acc) do
+    :maps.from_list(acc)
+  end
+
+  defp take!([key | rest], map, acc) do
+    acc =
+      case map do
+        %{^key => value} -> [{key, value} | acc]
+        %{} -> raise(KeyError, key: key, term: map)
+      end
+
+    take!(rest, map, acc)
+  end
+
+  @doc """
   Gets the value for a specific `key` in `map`.
 
   If `key` is present in `map` with value `value`, then `value` is

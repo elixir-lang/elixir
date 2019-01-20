@@ -928,6 +928,28 @@ defmodule Keyword do
   end
 
   @doc """
+  Takes all entries corresponding to the given keys and returns them in a new
+  keyword list.
+
+  Duplicated keys are preserved in the new keyword list.
+
+  If `keys` contains keys that are not in `keywords`, a `KeyError` exception is raised.
+
+  """
+  @spec take!(t, [key]) :: t
+  def take!(keywords, target_keys) when is_list(keywords) do
+    existing_keys = keys(keywords)
+
+    Enum.each(target_keys, fn key ->
+      if key not in existing_keys do
+        raise(KeyError, key: key, term: keywords)
+      end
+    end)
+
+    take(keywords, target_keys)
+  end
+
+  @doc """
   Drops the given keys from the keyword list.
 
   Duplicated keys are preserved in the new keyword list.

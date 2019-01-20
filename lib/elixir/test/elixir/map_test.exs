@@ -101,6 +101,13 @@ defmodule MapTest do
     assert_raise BadMapError, fn -> Map.take(:foo, []) end
   end
 
+  test "take!/2" do
+    assert Map.take!(%{a: 1, b: 2, c: 3}, [:a, :b]) == %{a: 1, b: 2}
+    assert Map.take(%{a: 1, b: 2}, MapSet.new([:a, :b])) == %{a: 1, b: 2}
+    assert_raise KeyError, "key :b not found in: %{a: 1}", fn -> Map.take!(%{a: 1}, [:a, :b]) end
+    assert_raise BadMapError, fn -> Map.take!(:foo, []) end
+  end
+
   test "drop/2" do
     assert Map.drop(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{a: 1}
     assert Map.drop(%{a: 1, b: 2, c: 3}, MapSet.new([:b, :c])) == %{a: 1}
