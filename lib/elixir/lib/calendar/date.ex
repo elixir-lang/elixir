@@ -745,10 +745,11 @@ defmodule Date do
 
   ## Examples
 
-    iex> Date.day_of_era(~D[0001-01-01])
-    {1, 1}
-    iex> Date.day_of_era(~D[0000-12-31])
-    {1, 0}
+      iex> Date.day_of_era(~D[0001-01-01])
+      {1, 1}
+
+      iex> Date.day_of_era(~D[0000-12-31])
+      {1, 0}
 
   """
   @doc since: "1.8.0"
