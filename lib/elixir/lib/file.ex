@@ -30,7 +30,7 @@ defmodule File do
   always treated as UTF-8. In particular, we expect that the
   shell and the operating system are configured to use UTF-8
   encoding. Binary filenames are considered raw and passed
-  to the OS as is.
+  to the operating system as is.
 
   ## API
 
