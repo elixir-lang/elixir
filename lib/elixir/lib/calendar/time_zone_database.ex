@@ -43,7 +43,7 @@ defmodule Calendar.TimeZoneDatabase do
   `time_zone_period` for that point in time.
   """
   @doc since: "1.8.0"
-  @callback time_zone_period_from_utc_iso_days(Calendar.iso_days(), Calendar.time_zone()) ::
+  @callback time_zone_period_from_utc_iso_days(iso_days :: Calendar.iso_days(), time_zone :: Calendar.time_zone()) ::
               {:ok, time_zone_period}
               | {:error, :time_zone_not_found | :utc_only_time_zone_database}
 
@@ -63,7 +63,7 @@ defmodule Calendar.TimeZoneDatabase do
   and the `time_zone_period` is returned.
   """
   @doc since: "1.8.0"
-  @callback time_zone_periods_from_wall_datetime(Calendar.naive_datetime(), Calendar.time_zone()) ::
+  @callback time_zone_periods_from_wall_datetime(naive_datetime :: Calendar.naive_datetime(), time_zone :: Calendar.time_zone()) ::
               {:ok, time_zone_period}
               | {:ambiguous, time_zone_period, time_zone_period}
               | {:gap, {time_zone_period, time_zone_period_limit},
