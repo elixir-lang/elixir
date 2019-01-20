@@ -837,6 +837,8 @@ defmodule Kernel do
   @doc """
   Rounds a number to the nearest integer.
 
+  If the number is equidistant to the two nearest integers, rounds away from zero.
+
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
@@ -852,6 +854,12 @@ defmodule Kernel do
 
       iex> round(-9)
       -9
+
+      iex> round(2.5)
+      3
+
+      iex> round(-2.5)
+      -3
 
   """
   @doc guard: true
