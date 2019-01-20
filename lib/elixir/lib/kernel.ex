@@ -415,7 +415,7 @@ defmodule Kernel do
   reasons above, its exit is considered normal and the Operating
   System process will exit with status 0.
 
-  It is, however, possible to customize the Operating System exit
+  It is, however, possible to customize the operating system exit
   signal by invoking:
 
       exit({:shutdown, integer})
