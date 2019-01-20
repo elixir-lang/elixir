@@ -18,6 +18,7 @@
       Float,
       Function,
       Integer,
+      Module,
       NaiveDateTime,
       Record,
       Regex,
@@ -57,13 +58,6 @@
       Calendar.TimeZoneDatabase,
       Calendar.UTCOnlyTimeZoneDatabase
     ],
-    "Modules & Code": [
-      Code,
-      Kernel.ParallelCompiler,
-      Macro,
-      Macro.Env,
-      Module
-    ],
     "Processes & Applications": [
       Agent,
       Application,
@@ -85,6 +79,12 @@
       List.Chars,
       Protocol,
       String.Chars
+    ],
+    "Code & Macros": [
+      Code,
+      Kernel.ParallelCompiler,
+      Macro,
+      Macro.Env
     ],
     Deprecated: [
       Behaviour,
