@@ -1118,7 +1118,7 @@ tokenize_identifier(String, Line, Column, Scope) ->
   end.
 
 list_to_codepoint_hex(List) ->
-  [io_lib:format(" ~4.16.0B", [Codepoint]) || Codepoint <- List].
+  [io_lib:format(" 0x~4.16.0B", [Codepoint]) || Codepoint <- List].
 
 tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) ->
   if

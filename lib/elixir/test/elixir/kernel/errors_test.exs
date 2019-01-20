@@ -110,11 +110,11 @@ defmodule Kernel.ErrorsTest do
 
     Got:
 
-        "foó" \(codepoints 0066 006F 006F 0301\)
+        "foó" \(codepoints 0x0066 0x006F 0x006F 0x0301\)
 
     Expected:
 
-        "foó" \(codepoints 0066 006F 00F3\)
+        "foó" \(codepoints 0x0066 0x006F 0x00F3\)
 
     """
 
