@@ -258,7 +258,7 @@ defmodule ListTest do
     end
   end
 
-  describe "ascii_printable?/1" do
+  describe "ascii_printable?/2" do
     test "proper lists without limit" do
       assert List.ascii_printable?([])
       assert List.ascii_printable?('abc')
