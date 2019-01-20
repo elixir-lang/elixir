@@ -89,7 +89,7 @@ defmodule Port do
       {#Port<0.1444>, {:data, "hello\n"}}
 
   `:spawn` will retrieve the program name from the argument and traverse your
-  OS `$PATH` environment variable looking for a matching program.
+  operating system `$PATH` environment variable looking for a matching program.
 
   Although the above is handy, it means it is impossible to invoke an executable
   that has whitespaces on its name or in any of its arguments. For those reasons,
@@ -117,7 +117,7 @@ defmodule Port do
   reimplementing core part of the Runtime System, such as the `:user` and
   `:shell` processes.
 
-  ## Zombie OS processes
+  ## Zombie operating system processes
 
   A port can be closed via the `close/1` function or by sending a `{pid, :close}`
   message. However, if the VM crashes, a long-running program started by the port
