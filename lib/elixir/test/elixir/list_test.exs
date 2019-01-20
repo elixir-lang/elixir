@@ -274,6 +274,7 @@ defmodule ListTest do
 
     test "improper lists" do
       refute List.ascii_printable?('abc' ++ ?d)
+      assert List.ascii_printable?('abc' ++ ?d, 3)
     end
   end
 end
