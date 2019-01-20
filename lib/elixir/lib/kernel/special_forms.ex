@@ -808,14 +808,16 @@ defmodule Kernel.SpecialForms do
   quoted. They are:
 
       :sum         #=> Atoms
-      1            #=> Integers
-      2.0          #=> Floats
+      1            #=> Unsigned integers (*)
+      2.0          #=> Unsigned floats (*)
       [1, 2]       #=> Lists
       "strings"    #=> Strings
       {key, value} #=> Tuples with two elements
 
   Any other value, such as a map or a four-element tuple, must be escaped
   (`Macro.escape/1`) before being introduced into an AST.
+
+  _(*): By unsigned integers and floats we mean numbers without the `+` and `-` sign._
 
   ## Options
 
