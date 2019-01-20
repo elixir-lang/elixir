@@ -500,39 +500,9 @@ defmodule List do
   end
 
   defp ascii_printable_guarded?([char | rest], counter)
-       when is_integer(char) and char >= 32 and char <= 126 do
-    ascii_printable_guarded?(rest, decrement(counter))
-  end
-
-  defp ascii_printable_guarded?([?\n | rest], counter) do
-    ascii_printable_guarded?(rest, decrement(counter))
-  end
-
-  defp ascii_printable_guarded?([?\r | rest], counter) do
-    ascii_printable_guarded?(rest, decrement(counter))
-  end
-
-  defp ascii_printable_guarded?([?\t | rest], counter) do
-    ascii_printable_guarded?(rest, decrement(counter))
-  end
-
-  defp ascii_printable_guarded?([?\v | rest], counter) do
-    ascii_printable_guarded?(rest, decrement(counter))
-  end
-
-  defp ascii_printable_guarded?([?\b | rest], counter) do
-    ascii_printable_guarded?(rest, decrement(counter))
-  end
-
-  defp ascii_printable_guarded?([?\f | rest], counter) do
-    ascii_printable_guarded?(rest, decrement(counter))
-  end
-
-  defp ascii_printable_guarded?([?\e | rest], counter) do
-    ascii_printable_guarded?(rest, decrement(counter))
-  end
-
-  defp ascii_printable_guarded?([?\a | rest], counter) do
+       # when char in '\a\b\t\n\v\f\r' or char == ?\e or char in 32..126 (ASCII printables)
+       when is_integer(char) and
+              ((char >= 7 and char <= 13) or char == 27 or (char >= 32 and char <= 126)) do
     ascii_printable_guarded?(rest, decrement(counter))
   end
 
