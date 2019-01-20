@@ -4,9 +4,9 @@ defmodule Tuple do
 
   Please note the following functions for tuples are found in `Kernel`:
 
-    * `elem/2` - access a tuple by index
-    * `put_elem/3` - insert a value into a tuple by index
-    * `tuple_size/1` - get the number of elements in a tuple
+    * `elem/2` - accesses a tuple by index
+    * `put_elem/3` - inserts a value into a tuple by index
+    * `tuple_size/1` - gets the number of elements in a tuple
 
   Tuples are intended as fixed-size containers for multiple elements.
   To manipulate a collection of elements, use a list instead. `Enum`
