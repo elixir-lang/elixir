@@ -548,11 +548,11 @@ defmodule List do
 
   ## Examples
 
-     iex> List.improper?([1, 2 | 3])
-     true
+      iex> List.improper?([1, 2 | 3])
+      true
 
-     iex> List.improper?([1, 2, 3])
-     false
+      iex> List.improper?([1, 2, 3])
+      false
 
   """
   @doc since: "1.8.0"
