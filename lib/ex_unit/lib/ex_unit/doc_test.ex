@@ -147,7 +147,7 @@ defmodule ExUnit.DocTest do
   suite run.
   """
 
-  @opaque_type_regex ~r{#.*<.*>}
+  @opaque_type_regex ~r/#[\w\.]+</
 
   defmodule Error do
     defexception [:message]
@@ -397,8 +397,8 @@ defmodule ExUnit.DocTest do
             message <>
               """
               . If you are planning to assert on the result of an iex> expression \
-              using an opaque type (with the format #Name<...>), please make sure \
-              the opaque type is placed at the beginning of the expression; \
+              which contains a value inspected as #Name<...>, please make sure \
+              the inspected value is placed at the beginning of the expression; \
               otherwise Elixir will treat it as a comment due to the leading sign #.\
               """
           else
