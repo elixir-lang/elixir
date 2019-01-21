@@ -211,7 +211,7 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  def read_manifest(manifest) do
+  defp read_manifest(manifest) do
     with {:ok, binary} <- File.read(manifest),
          {:ok, {@manifest_vsn, entry, sources}} <- safe_binary_to_term(binary),
          expanded_sources = Enum.flat_map(sources, &Path.wildcard(&1, match_dot: true)),
