@@ -792,7 +792,6 @@ defmodule TypespecTest do
         test_module do
           @spec foo() :: term()
           def foo(), do: :ok
-
           Kernel.Typespec.spec_to_callback(__MODULE__, {:foo, 0})
         end
 
