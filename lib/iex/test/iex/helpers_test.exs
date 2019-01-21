@@ -519,6 +519,12 @@ defmodule IEx.HelpersTest do
       cleanup_modules([Impl, MyBehaviour])
     end
 
+    test "prints protocol function docs" do
+      output = capture_io(fn -> h(Enumerable.reduce()) end)
+      assert output =~ "@spec reduce(t(), acc(), reducer()) :: result()"
+      assert output =~ "Reduces the `enumerable`"
+    end
+
     test "prints documentation for delegates" do
       filename = "delegate.ex"
 
@@ -657,6 +663,12 @@ defmodule IEx.HelpersTest do
 
              @callback reduce(t(), acc(), reducer()) :: result()
              """
+    end
+
+    test "prints protocol function docs" do
+      output = capture_io(fn -> b(Enumerable.reduce()) end)
+      assert output =~ "@callback reduce(t(), acc(), reducer()) :: result()"
+      assert output =~ "Reduces the `enumerable`"
     end
 
     test "lists callback with multiple clauses" do
