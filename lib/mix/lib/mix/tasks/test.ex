@@ -532,7 +532,7 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  def formatter_opts(opts) do
+  defp formatter_opts(opts) do
     if Keyword.has_key?(opts, :formatter) do
       formatters =
         opts
