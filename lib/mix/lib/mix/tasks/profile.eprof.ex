@@ -320,7 +320,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     :io.format(@format, to_print)
   end
 
-  def print_function_count(count) do
+  defp print_function_count(count) do
     IO.puts("Profile done over #{count} matching functions")
   end
 end
