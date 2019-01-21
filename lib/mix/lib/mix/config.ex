@@ -169,7 +169,7 @@ defmodule Mix.Config do
 
   This is often used to emulate configuration across environments:
 
-      import_config "#{Mix.env}.exs"
+      import_config "#{Mix.env()}.exs"
 
   Or to import files from children in umbrella projects:
 
