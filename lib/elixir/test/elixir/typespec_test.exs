@@ -787,6 +787,18 @@ defmodule TypespecTest do
       end
     end
 
+    test "spec_to_callback/2" do
+      bytecode =
+        test_module do
+          @spec foo() :: term()
+          def foo(), do: :ok
+
+          Kernel.Typespec.spec_to_callback(__MODULE__, {:foo, 0})
+        end
+
+      assert specs(bytecode) == callbacks(bytecode)
+    end
+
     test "@spec(spec)" do
       bytecode =
         test_module do
