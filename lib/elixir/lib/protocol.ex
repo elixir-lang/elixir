@@ -42,7 +42,7 @@ defmodule Protocol do
         impl_for!(term).unquote(name)(unquote_splicing(call_args))
       end
 
-      # Convert the spec to callback if possible,
+      # Copy spec as callback if possible,
       # otherwise generate a dummy callback
       Module.spec_to_callback(__MODULE__, {name, arity}) ||
         @callback unquote(name)(unquote_splicing(type_args)) :: term
