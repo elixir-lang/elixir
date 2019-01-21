@@ -982,9 +982,11 @@ defmodule Module do
   end
 
   @doc """
-  Converts the given spec to a callback.
+  Copies the given spec as a callback.
 
-  Returns `true` if there is such a spec and it was converted to a callback.
+  Returns `true` if there is such a spec and it was copied as a callback.
+  If the function associated to the spec has documentation defined prior to
+  invoking this function, the docs are copied too.
   """
   @doc since: "1.7.0"
   @spec spec_to_callback(module, definition) :: boolean

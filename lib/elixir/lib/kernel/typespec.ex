@@ -75,12 +75,21 @@ defmodule Kernel.Typespec do
 
   def spec_to_callback(module, {name, arity} = signature)
       when is_atom(module) and is_atom(name) and arity in 0..255 do
-    {_set, bag} = :elixir_module.data_tables(module)
+    {set, bag} = :elixir_module.data_tables(module)
 
     filter = fn {:spec, expr, pos} ->
       if spec_to_signature(expr) == signature do
-        delete_typespec(bag, :spec, expr, pos)
-        store_typespec(bag, :callback, expr, pos)
+        kind = :callback
+        store_typespec(bag, kind, expr, pos)
+
+        case :ets.lookup(set, {:function, name, arity}) do
+          [{{:function, ^name, ^arity}, line, _, doc, doc_meta}] ->
+            store_doc(set, kind, name, arity, line, :doc, doc, doc_meta)
+
+          _ ->
+            nil
+        end
+
         true
       else
         false
@@ -168,11 +177,6 @@ defmodule Kernel.Typespec do
 
   defp store_typespec(bag, key, expr, pos) do
     :ets.insert(bag, {{:accumulate, key}, {key, expr, pos}})
-    :ok
-  end
-
-  defp delete_typespec(bag, key, expr, pos) do
-    :ets.delete_object(bag, {{:accumulate, key}, {key, expr, pos}})
     :ok
   end
 
