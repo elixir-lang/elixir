@@ -326,7 +326,7 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.in_project(:my_app, "/path/to/my_app", fn module ->
-        "Mix project is: #{inspect module}"
+        "Mix project is: #{inspect(module)}"
       end)
       #=> "Mix project is: MyApp.MixProject"
 
