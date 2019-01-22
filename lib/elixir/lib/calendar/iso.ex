@@ -482,6 +482,24 @@ defmodule Calendar.ISO do
     time_to_string(hour, minute, second, microsecond, :extended)
   end
 
+  @doc """
+  Converts the given time into a string in the given format.
+
+  ## Examples
+
+      iex> Calendar.ISO.time_to_string(2, 2, 2, {2, 6}, :basic)
+      "020202.000002"
+      iex> Calendar.ISO.time_to_string(2, 2, 2, {2, 6}, :extended)
+      "02:02:02.000002"
+
+  """
+  @spec time_to_string(
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          :basic | :extended
+        ) :: String.t()
   def time_to_string(hour, minute, second, {_, 0}, format) do
     time_to_string_format(hour, minute, second, format)
   end
