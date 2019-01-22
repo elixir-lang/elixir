@@ -34,16 +34,16 @@ defmodule Agent do
       Counter.start_link(0)
       #=> {:ok, #PID<0.123.0>}
 
-      Counter.value
+      Counter.value()
       #=> 0
 
-      Counter.increment
+      Counter.increment()
       #=> :ok
 
-      Counter.increment
+      Counter.increment()
       #=> :ok
 
-      Counter.value
+      Counter.value()
       #=> 2
 
   Thanks to the agent server process, the counter can be safely incremented
