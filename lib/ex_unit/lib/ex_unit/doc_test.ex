@@ -147,6 +147,8 @@ defmodule ExUnit.DocTest do
   suite run.
   """
 
+  @opaque_type_regex ~r/#[\w\.]+</
+
   defmodule Error do
     defexception [:message]
 
@@ -389,6 +391,19 @@ defmodule ExUnit.DocTest do
       e ->
         ex_message = "(#{inspect(e.__struct__)}) #{Exception.message(e)}"
         message = "Doctest did not compile, got: #{ex_message}"
+
+        message =
+          if e.__struct__ == TokenMissingError and expr =~ Regex.recompile!(@opaque_type_regex) do
+            message <>
+              """
+              . If you are planning to assert on the result of an iex> expression \
+              which contains a value inspected as #Name<...>, please make sure \
+              the inspected value is placed at the beginning of the expression; \
+              otherwise Elixir will treat it as a comment due to the leading sign #.\
+              """
+          else
+            message
+          end
 
         opts =
           if String.valid?(expr) do
