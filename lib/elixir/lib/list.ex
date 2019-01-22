@@ -500,7 +500,7 @@ defmodule List do
   end
 
   defp ascii_printable_guarded?([char | rest], counter)
-       # when char in '\a\b\t\n\v\f\r' or char == ?\e or char in 32..126 (ASCII printables)
+       # 7..13 is the range '\a\b\t\n\v\f\r'. 32..126 are ASCII printables.
        when is_integer(char) and
               ((char >= 7 and char <= 13) or char == 27 or (char >= 32 and char <= 126)) do
     ascii_printable_guarded?(rest, decrement(counter))
