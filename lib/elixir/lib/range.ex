@@ -78,7 +78,7 @@ defmodule Range do
   """
   @doc since: "1.8.0"
   @spec disjoint?(t, t) :: boolean
-  def disjoint?(first1..last1, first2..last2) do
+  def disjoint?(first1..last1 = _range1, first2..last2 = _range2) do
     {first1, last1} = normalize(first1, last1)
     {first2, last2} = normalize(first2, last2)
     last2 < first1 or last1 < first2
