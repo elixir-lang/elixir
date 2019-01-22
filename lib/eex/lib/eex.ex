@@ -105,7 +105,7 @@ defmodule EEx do
 
       iex> defmodule Sample do
       ...>   require EEx
-      ...>   EEx.function_from_string :def, :sample, "<%= a + b %>", [:a, :b]
+      ...>   EEx.function_from_string(:def, :sample, "<%= a + b %>", [:a, :b])
       ...> end
       iex> Sample.sample(1, 2)
       "3"
@@ -141,11 +141,12 @@ defmodule EEx do
       # sample.ex
       defmodule Sample do
         require EEx
-        EEx.function_from_file :def, :sample, "sample.eex", [:a, :b]
+        EEx.function_from_file(:def, :sample, "sample.eex", [:a, :b])
       end
 
       # iex
-      Sample.sample(1, 2) #=> "3"
+      Sample.sample(1, 2)
+      #=> "3"
 
   """
   defmacro function_from_file(kind, name, file, args \\ [], options \\ []) do
@@ -207,7 +208,8 @@ defmodule EEx do
       foo <%= bar %>
 
       # iex
-      EEx.eval_file "sample.eex", [bar: "baz"] #=> "foo baz"
+      EEx.eval_file("sample.eex", bar: "baz")
+      #=> "foo baz"
 
   """
   @spec eval_file(String.t(), keyword, keyword) :: any
