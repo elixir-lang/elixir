@@ -263,8 +263,22 @@ defmodule ListTest do
       assert List.ascii_printable?([])
       assert List.ascii_printable?('abc')
       refute(List.ascii_printable?('abc' ++ [0]))
-      assert List.ascii_printable?('abc \a\b\e\f\n\r\t\v def')
       refute List.ascii_printable?('mañana')
+
+      printable_chars = '\a\b\t\n\v\f\r\e' ++ Enum.to_list(32..126)
+      non_printable_chars = '🌢áéíóúźç©¢🂭'
+
+      assert List.ascii_printable?(printable_chars)
+
+      for char <- printable_chars do
+        assert List.ascii_printable?([char])
+      end
+
+      refute List.ascii_printable?(non_printable_chars)
+
+      for char <- non_printable_chars do
+        refute List.ascii_printable?([char])
+      end
     end
 
     test "proper lists with limit" do
