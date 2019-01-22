@@ -716,8 +716,8 @@ defmodule File do
 
   Returns `:ok` in case of success, `{:error, reason}` otherwise.
 
-  Note: The command `mv` in Unix systems behaves differently depending
-  if `source` is a file and the `destination` is an existing directory.
+  Note: The command `mv` in Unix systems behaves differently depending on
+  whether `source` is a file and the `destination` is an existing directory.
   We have chosen to explicitly disallow this behaviour.
 
   ## Examples
@@ -755,30 +755,34 @@ defmodule File do
   end
 
   @doc """
-  Copies the contents in `source` to `destination` preserving its mode.
+  Copies the contents in `source_file` to `destination_file` preserving its modes.
+
+  `source_file` and `destination_file` must be a file or a symbolic link to one,
+  or in the case of destination, a path to a non-existent file. If either one of
+  them is a directory, `{:error, :eisdir}` will be returned.
 
   If a file already exists in the destination, it invokes a
   callback which should return `true` if the existing file
   should be overwritten, `false` otherwise. The callback defaults to return `true`.
 
-  The function returns `:ok` in case of success, returns
-  `{:error, reason}` otherwise.
+  The function returns `:ok` in case of success. Otherwise, it returns
+  `{:error, reason}`.
 
   If you want to copy contents from an IO device to another device
   or do a straight copy from a source to a destination without
   preserving modes, check `copy/3` instead.
 
-  Note: The command `cp` in Unix systems behaves differently depending
-  if `destination` is an existing directory or not. We have chosen to
-  explicitly disallow this behaviour. If destination is a directory, an
-  error will be returned.
+  Note: The command `cp` in Unix systems behaves differently depending on
+  whether the destination is an existing directory or not. We have chosen to
+  explicitly disallow copying to a destination which is a directory,
+  and an error will be returned if tried.
   """
   @spec cp(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: :ok | {:error, posix}
-  def cp(source, destination, callback \\ fn _, _ -> true end) do
-    source = IO.chardata_to_string(source)
-    destination = IO.chardata_to_string(destination)
+  def cp(source_file, destination_file, callback \\ fn _, _ -> true end) do
+    source_file = IO.chardata_to_string(source_file)
+    destination_file = IO.chardata_to_string(destination_file)
 
-    case do_cp_file(source, destination, callback, []) do
+    case do_cp_file(source_file, destination_file, callback, []) do
       {:error, reason, _} -> {:error, reason}
       _ -> :ok
     end
@@ -795,8 +799,8 @@ defmodule File do
   Returns `:ok` otherwise.
   """
   @spec cp!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: :ok
-  def cp!(source, destination, callback \\ fn _, _ -> true end) do
-    case cp(source, destination, callback) do
+  def cp!(source_file, destination_file, callback \\ fn _, _ -> true end) do
+    case cp(source_file, destination_file, callback) do
       :ok ->
         :ok
 
@@ -804,25 +808,28 @@ defmodule File do
         raise File.CopyError,
           reason: reason,
           action: "copy",
-          source: IO.chardata_to_string(source),
-          destination: IO.chardata_to_string(destination)
+          source: IO.chardata_to_string(source_file),
+          destination: IO.chardata_to_string(destination_file)
     end
   end
 
   @doc ~S"""
-  Copies the contents in source to destination.
+  Copies the contents in `source` to `destination` recursively, maintaining the
+  source directory structure and modes.
+
+  If `source` is a file or a symbolic link to it, `destination` must be a path
+  to an existent file, a symbolic link to one, or a path to a non-existent file.
+
+  If `source` is a directory, or a symbolic link to it, then `destination` must
+  be an existent `directory` or a symbolic link to one, or a path to a non-existent directory.
 
   If the source is a file, it copies `source` to
-  `destination`. If the source is a directory, it copies
-  the contents inside source into the destination.
+  `destination`. If the `source` is a directory, it copies
+  the contents inside source into the `destination` directory.
 
   If a file already exists in the destination, it invokes `callback`.
   `callback` must be a function that takes two arguments: `source` and `destination`.
   The callback should return `true` if the existing file should be overwritten and `false` otherwise.
-
-  If a directory already exists in the destination
-  where a file is meant to be (or vice versa), this
-  function will fail.
 
   This function may fail while copying files,
   in such cases, it will leave the destination
@@ -833,9 +840,10 @@ defmodule File do
   success, `files_and_directories` lists all files and directories copied in no
   specific order. It returns `{:error, reason, file}` otherwise.
 
-  Note: The command `cp` in Unix systems behaves differently
-  depending if `destination` is an existing directory or not.
-  We have chosen to explicitly disallow this behaviour.
+  Note: The command `cp` in Unix systems behaves differently depending on
+  whether `destination` is an existing directory or not. We have chosen to
+  explicitly disallow this behaviour. If `source` is a `file` and `destination`
+  is a directory, `{:error, :eisdir}` will be returned.
 
   ## Examples
 
@@ -890,8 +898,6 @@ defmodule File do
     end
   end
 
-  # src may be a file or a directory, dest is definitely
-  # a directory. Returns nil unless an error is found.
   defp do_cp_r(src, dest, callback, acc) when is_list(acc) do
     case :elixir_utils.read_link_type(src) do
       {:ok, :regular} ->
