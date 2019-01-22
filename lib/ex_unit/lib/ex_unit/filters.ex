@@ -14,16 +14,31 @@ defmodule ExUnit.Filters do
   on the command line) includes a line number filter, and if so returns the
   appropriate ExUnit configuration options.
   """
-  @spec parse_path(String.t()) :: {String.t(), any}
+  @spec parse_path(String.t()) :: {String.t(), Keyword.t()}
   def parse_path(file) do
-    {paths, [line]} = file |> String.split(":") |> Enum.split(-1)
+    {paths, lines, _, _} =
+      file
+      |> String.split(":")
+      |> Enum.reduce({[], [], false, false}, &reduce_line_numbers/2)
 
-    case Integer.parse(line) do
-      {_, ""} ->
-        {Enum.join(paths, ":"), exclude: [:test], include: [line: line]}
+    path = Enum.join(paths, ":")
 
-      _ ->
-        {file, []}
+    case lines do
+      [] -> {path, []}
+      _ -> {path, exclude: [:test], include: Enum.map(lines, &{:line, &1})}
+    end
+  end
+
+  defp reduce_line_numbers(part, {paths, _, false, false}) do
+    {paths ++ [part], [], false, String.match?(part, ~r/\.exs/)}
+  end
+
+  defp reduce_line_numbers(part, {paths, _, true, _}), do: {paths ++ [part], [], true, false}
+
+  defp reduce_line_numbers(part, {paths, parts, _, true}) do
+    case Integer.parse(part) do
+      {_, ""} -> {paths, parts ++ [part], false, true}
+      _ -> {paths ++ parts ++ [part], [], true, true}
     end
   end
 
