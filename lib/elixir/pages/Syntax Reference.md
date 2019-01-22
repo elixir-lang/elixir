@@ -58,11 +58,13 @@ Strings are always represented as themselves in the AST.
 
 ### Charlists
 
-Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are a list of integers, each integer representing a Unicode character.
+Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are made of non-negative integers, where each integer represents a Unicode codepoint.
 
 Multi-line charlists are written with three single-quotes (`'''`), the same multi-line strings are.
 
 Charlists are always represented as themselves in the AST.
+
+For more in-depth information, please read the "Charlists" section in the `List` module.
 
 ### Lists, tuples and binaries
 

@@ -67,6 +67,7 @@ defmodule IEx.InfoTest do
     end
 
     test "regular lists" do
+      assert get_key(Info.info([]), "Reference modules") == "List"
       assert get_key(Info.info([:foo, :bar, :baz]), "Reference modules") == "List"
     end
   end
