@@ -48,8 +48,8 @@ defmodule Inspect.Opts do
       is useful when debugging failures and crashes for custom inspect
       implementations
 
-    * `:syntax_colors` - when set to a keyword list of colors the output will
-      be colorized. The keys are types and the values are the colors to use for
+    * `:syntax_colors` - when set to a keyword list of colors the output is
+      colorized. The keys are types and the values are the colors to use for
       each type (for example, `[number: :red, atom: :blue]`). Types can include
       `:number`, `:atom`, `regex`, `:tuple`, `:map`, `:list`, and `:reset`.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
