@@ -847,10 +847,10 @@ defmodule File do
       File.cp_r("a.txt", "b.txt")
 
       # Copies all files in "samples" to "tmp"
-      File.cp_r("samples/", "tmp/")
+      File.cp_r("samples", "tmp")
 
       # Same as before, but asks the user how to proceed in case of conflicts
-      File.cp_r("samples/", "tmp/", fn source, destination ->
+      File.cp_r("samples", "tmp", fn source, destination ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
       end)
 
