@@ -24,11 +24,12 @@ defmodule EEx.SmartEngine do
       # sample.ex
       defmodule Sample do
         require EEx
-        EEx.function_from_file :def, :sample, "sample.eex", [:assigns]
+        EEx.function_from_file(:def, :sample, "sample.eex", [:assigns])
       end
 
       # iex
-      Sample.sample(a: 1, b: 2) #=> "3"
+      Sample.sample(a: 1, b: 2)
+      #=> "3"
 
   """
 
