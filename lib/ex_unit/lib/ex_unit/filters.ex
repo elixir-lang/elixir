@@ -16,29 +16,34 @@ defmodule ExUnit.Filters do
   """
   @spec parse_path(String.t()) :: {String.t(), Keyword.t()}
   def parse_path(file) do
-    {paths, lines, _, _} =
-      file
-      |> String.split(":")
-      |> Enum.reduce({[], [], false, false}, &reduce_line_numbers/2)
-
-    path = Enum.join(paths, ":")
-
-    case lines do
-      [] -> {path, []}
-      _ -> {path, exclude: [:test], include: Enum.map(lines, &{:line, &1})}
+    case extract_line_numbers(file) do
+      {path, []} -> {path, []}
+      {path, line_numbers} -> {path, exclude: [:test], include: line_numbers}
     end
   end
 
-  defp reduce_line_numbers(part, {paths, _, false, false}) do
-    {paths ++ [part], [], false, String.match?(part, ~r/\.exs/)}
-  end
+  defp extract_line_numbers(file) do
+    case String.split(file, ":") do
+      [part] ->
+        {part, []}
 
-  defp reduce_line_numbers(part, {paths, _, true, _}), do: {paths ++ [part], [], true, false}
+      parts ->
+        {reversed_line_numbers, reversed_path_parts} =
+          parts
+          |> Enum.reverse()
+          |> Enum.split_while(&match?({_, ""}, Integer.parse(&1)))
 
-  defp reduce_line_numbers(part, {paths, parts, _, true}) do
-    case Integer.parse(part) do
-      {_, ""} -> {paths, parts ++ [part], false, true}
-      _ -> {paths ++ parts ++ [part], [], true, true}
+        line_numbers =
+          reversed_line_numbers
+          |> Enum.reverse()
+          |> Enum.map(&{:line, &1})
+
+        path =
+          reversed_path_parts
+          |> Enum.reverse()
+          |> Enum.join(":")
+
+        {path, line_numbers}
     end
   end
 
