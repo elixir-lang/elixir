@@ -2689,10 +2689,7 @@ defmodule Kernel do
       true
 
   """
-  @doc guard: true
-  defmacro is_nil(term) do
-    quote(do: unquote(term) == nil)
-  end
+  defguard is_nil(term) when term == nil
 
   @doc """
   A convenience macro that checks if the right side (an expression) matches the
