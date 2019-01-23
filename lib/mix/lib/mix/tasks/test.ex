@@ -216,21 +216,28 @@ defmodule Mix.Tasks.Test do
 
   It differs in that the test suite will fail if no tests are executed when the `--only` option is used.
 
-  In case a single file is being tested, it is possible to pass a specific
-  line number:
+  In case a single file is being tested, it is possible to pass one or more specific
+  line numbers to run only those given tests:
 
       mix test test/some/particular/file_test.exs:12
 
   Which is equivalent to:
 
-      mix test --only line:12 test/some/particular/file_test.exs
+      mix test --exclude test --include line:12 test/some/particular/file_test.exs
 
-  If the given line starts a `describe` block, the line filter runs all tests in it.
+  Or:
+
+      mix test test/some/particular/file_test.exs:12:24
+
+  Which is equivalent to:
+
+      mix test --exclude test --include line:12 --include line:24 test/some/particular/file_test.exs
+
+  If a given line starts a `describe` block, that line filter runs all tests in it.
   Otherwise, it runs the closest test on or before the given line number.
 
   Note that in the case where a single file contains more than one test module (test case),
-  the line filter applies to every test case before the given line number. Thus, more
-  than one test might be executed for the run.
+  the line filters apply to every test case before the given line number.
 
   ## Configuration
 
