@@ -257,6 +257,38 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
+  test "raises an exception if line numbers are given with multiple files" do
+    Mix.env(:test)
+
+    in_fixture("test_failed", fn ->
+      Mix.Project.in_project(:test_only_failures, ".", fn _ ->
+        # fails if a line number is given for one file
+        assert_raise(
+          Mix.Error,
+          "Line numbers can only be used when running a single test file",
+          fn ->
+            Mix.Tasks.Test.run([
+              "test/only_failing_test_failed.exs",
+              "test/passing_and_failing_test_failed.exs:4"
+            ])
+          end
+        )
+
+        # fails if a line number is given for both files
+        assert_raise(
+          Mix.Error,
+          "Line numbers can only be used when running a single test file",
+          fn ->
+            Mix.Tasks.Test.run([
+              "test/only_failing_test_failed.exs:4",
+              "test/passing_and_failing_test_failed.exs:4"
+            ])
+          end
+        )
+      end)
+    end)
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->

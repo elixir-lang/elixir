@@ -505,7 +505,11 @@ defmodule Mix.Tasks.Test do
   end
 
   defp parse_files(files, _test_paths) do
-    files
+    if Enum.any?(files, &match?({_, [_ | _]}, ExUnit.Filters.parse_path(&1))) do
+      Mix.raise("Line numbers can only be used when running a single test file")
+    else
+      files
+    end
   end
 
   defp parse_filters(opts, key) do
