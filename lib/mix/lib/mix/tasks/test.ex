@@ -236,9 +236,6 @@ defmodule Mix.Tasks.Test do
   If a given line starts a `describe` block, that line filter runs all tests in it.
   Otherwise, it runs the closest test on or before the given line number.
 
-  Note that in the case where a single file contains more than one test module (test case),
-  the line filters apply to every test case before the given line number.
-
   ## Configuration
 
     * `:test_paths` - list of paths containing test files. Defaults to
