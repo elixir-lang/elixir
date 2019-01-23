@@ -490,8 +490,8 @@ defmodule IO do
 
   """
   @spec iodata_to_binary(iodata) :: binary
-  def iodata_to_binary(item) do
-    :erlang.iolist_to_binary(item)
+  def iodata_to_binary(iodata) do
+    :erlang.iolist_to_binary(iodata)
   end
 
   @doc """
@@ -506,8 +506,8 @@ defmodule IO do
 
   """
   @spec iodata_length(iodata) :: non_neg_integer
-  def iodata_length(item) do
-    :erlang.iolist_size(item)
+  def iodata_length(iodata) do
+    :erlang.iolist_size(iodata)
   end
 
   @doc false
