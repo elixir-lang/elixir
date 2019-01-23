@@ -243,7 +243,7 @@ defmodule Mix.Release do
     File.cp_r!(release.erts_source, destination)
 
     _ = File.rm(Path.join(destination, "bin/erl"))
-    _ = File.rm(Path.join(destination, "bin/erl.init"))
+    _ = File.rm(Path.join(destination, "bin/erl.ini"))
 
     destination
     |> Path.join("bin/erl")
