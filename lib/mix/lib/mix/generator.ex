@@ -1,18 +1,18 @@
 defmodule Mix.Generator do
   @moduledoc """
   Conveniences for working with paths and generating content.
-
-  All of these functions are verbose, in the sense they log
-  the action to be performed via `Mix.shell/0`.
   """
 
   @doc ~S"""
   Creates a file with the given contents.
-  If the file already exists, asks for user confirmation.
+
+  If the file already exists and the contents are not the same,
+  it asks for user confirmation.
 
   ## Options
 
-    * `:force` - forces installation without a shell prompt.
+    * `:force` - forces installation without a shell prompt
+    * `:quiet` - do not log command output
 
   ## Examples
 
@@ -21,13 +21,16 @@ defmodule Mix.Generator do
       :ok
 
   """
-  @spec create_file(Path.t(), iodata, keyword) :: any
+  @spec create_file(Path.t(), iodata, keyword) :: boolean()
   def create_file(path, contents, opts \\ []) when is_binary(path) do
-    Mix.shell().info([:green, "* creating ", :reset, Path.relative_to_cwd(path)])
+    log(:green, :creating, Path.relative_to_cwd(path), opts)
 
-    if opts[:force] || Mix.Utils.can_write?(path) do
+    if opts[:force] || overwrite?(path, contents) do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)
+      true
+    else
+      false
     end
   end
 
@@ -37,6 +40,10 @@ defmodule Mix.Generator do
   This function does nothing if the given directory already exists; in this
   case, it still logs the directory creation.
 
+  ## Options
+
+    * `:quiet` - do not log command output
+
   ## Examples
 
       iex> Mix.Generator.create_directory("path/to/dir")
@@ -44,10 +51,59 @@ defmodule Mix.Generator do
       :ok
 
   """
-  @spec create_directory(Path.t()) :: any
-  def create_directory(path) when is_binary(path) do
-    Mix.shell().info([:green, "* creating ", :reset, Path.relative_to_cwd(path)])
+  @spec create_directory(Path.t(), keyword) :: true
+  def create_directory(path, options \\ []) when is_binary(path) do
+    log(:green, "creating", Path.relative_to_cwd(path), options)
     File.mkdir_p!(path)
+    true
+  end
+
+  @doc """
+  Prompts the user to overwrite the file if it exists.
+
+  Returns false if the file exists and the user forbade
+  to override it. Returns true otherwise.
+  """
+  @doc since: "1.9.0"
+  @spec overwrite?(Path.t(), iodata) :: boolean
+  def overwrite?(path) do
+    if File.exists?(path) do
+      full = Path.expand(path)
+      Mix.shell().yes?(Path.relative_to_cwd(full) <> " already exists, overwrite?")
+    else
+      true
+    end
+  end
+
+  @doc """
+  Prompts the user to overwrite the file if it exists.
+
+  The contents are compared to avoid asking the user to
+  override if the contents did not change. Returns false
+  if the file exists and the content is the same or the
+  user forbade to override it. Returns true otherwise.
+  """
+  @doc since: "1.9.0"
+  @spec overwrite?(Path.t(), iodata) :: boolean
+  def overwrite?(path, contents) do
+    case File.read(path) do
+      {:ok, binary} ->
+        if binary == IO.iodata_to_binary(contents) do
+          false
+        else
+          full = Path.expand(path)
+          Mix.shell().yes?(Path.relative_to_cwd(full) <> " already exists, overwrite?")
+        end
+
+      _ ->
+        true
+    end
+  end
+
+  defp log(color, command, message, opts) do
+    unless opts[:quiet] do
+      Mix.shell().info([color, "* #{command} ", :reset, message])
+    end
   end
 
   @doc """

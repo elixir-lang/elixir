@@ -272,7 +272,7 @@ defmodule Mix.Release do
   It assumes the application exists.
   """
   # TODO: Do not copy ERTS apps if include ERTS is false
-  @spec copy_app(t, application) :: :ok
+  @spec copy_app(t, application) :: boolean()
   def copy_app(release, app_spec) do
     app = elem(app_spec, 0)
     vsn = elem(app_spec, 1)
@@ -291,14 +291,14 @@ defmodule Mix.Release do
       File.exists?(source_dir) && File.cp_r!(source_dir, target_dir)
     end
 
-    :ok
+    true
   end
 
   @doc """
   Copies the ebin directory at `source` to `target`
   respecting release options such a `:strip_beams`.
   """
-  @spec copy_ebin(t, Path.t(), Path.t()) :: {:ok, [String.t()]} | {:error, File.posix()}
+  @spec copy_ebin(t, Path.t(), Path.t()) :: boolean()
   def copy_ebin(release, source, target) do
     with {:ok, [_ | _] = files} <- File.ls(source) do
       File.mkdir_p!(target)
@@ -316,7 +316,9 @@ defmodule Mix.Release do
         end
       end
 
-      {:ok, files}
+      true
+    else
+      _ -> false
     end
   end
 
@@ -332,5 +334,48 @@ defmodule Mix.Release do
     {:ok, binary} = :ram_file.get_file(fd)
     :ok = :ram_file.close(fd)
     binary
+  end
+
+  @doc """
+  Copies the cookie to the given path.
+
+  If a cookie option was given, we compare it with
+  the contents of the file (if any), and as the user
+  if they want to override.
+
+  If there is no option, we generate a random one
+  the first time.
+
+  Returns a boolean saying if the cookie was copied
+  or not.
+  """
+  @spec copy_cookie(t, Path.t()) :: boolean()
+  def copy_cookie(release, path) do
+    cookie_path = Path.join(release.path, path)
+
+    cond do
+      cookie = release.options[:cookie] ->
+        Mix.Generator.create_file(cookie_path, cookie, quiet: true)
+
+      File.exists?(cookie_path) ->
+        false
+
+      true ->
+        File.write!(cookie_path, random_cookie())
+        true
+    end
+  end
+
+  defp random_cookie, do: Base.url_encode64(:crypto.strong_rand_bytes(40))
+
+  @doc """
+  Copies the start_erl.data file with the
+  ERTS version and release versions.
+  """
+  @spec copy_start_erl(t, Path.t()) :: true
+  def copy_start_erl(release, path) do
+    start_erl_path = Path.join(release.path, path)
+    File.write!(start_erl_path, "#{release.erts_version} #{release.version}")
+    true
   end
 end

@@ -381,11 +381,6 @@ defmodule Mix.Tasks.Release do
     #     sys.config
     build_rel(release)
 
-    # releases/
-    #   COOKIE
-    #   start_erl.data
-    build_meta(release)
-
     [
       # bin/
       #   RELEASE_NAME
@@ -399,6 +394,10 @@ defmodule Mix.Tasks.Release do
       #     iex
       #     iex.bat
       :executables,
+      # releases/
+      #   COOKIE
+      #   start_erl.data
+      :releases,
       # erts-VSN/
       :erts,
       # releases/VERSION/consolidated
@@ -410,7 +409,7 @@ defmodule Mix.Tasks.Release do
     |> Stream.run()
   end
 
-  # build_rel and build_meta
+  # build_rel
 
   defp build_rel(release) do
     File.rm_rf!(release.version_path)
@@ -542,22 +541,6 @@ defmodule Mix.Tasks.Release do
     :io_lib.format("%% coding: utf-8~n%% ~ts generated at ~p ~p~n~p.~n", args)
   end
 
-  defp build_meta(release) do
-    cookie_path = Path.join(release.path, "releases/COOKIE")
-
-    # TODO: If there is a cookie option and the cookie option
-    # is not the same as the file, ask to override.
-    unless File.exists?(cookie_path) do
-      File.write!(cookie_path, random_cookie())
-    end
-
-    start_erl_path = Path.join(release.path, "releases/start_erl.data")
-    File.write!(start_erl_path, "#{release.erts_version} #{release.version}")
-    :ok
-  end
-
-  defp random_cookie, do: Base.url_encode64(:crypto.strong_rand_bytes(40))
-
   defp announce(release) do
     path = Path.relative_to_cwd(release.path)
     cmd = "#{path}/bin/#{release.name}"
@@ -590,6 +573,12 @@ defmodule Mix.Tasks.Release do
 
   defp copy(:erts, release) do
     _ = Mix.Release.copy_erts(release)
+    :ok
+  end
+
+  defp copy(:releases, release) do
+    Mix.Release.copy_cookie(release, "releases/COOKIE")
+    Mix.Release.copy_start_erl(release, "releases/start_erl.data")
     :ok
   end
 
