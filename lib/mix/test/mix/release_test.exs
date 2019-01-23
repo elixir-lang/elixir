@@ -6,6 +6,14 @@ defmodule Mix.ReleaseTest do
   import Mix.Release
   doctest Mix.Release
 
+  @erts_version :erlang.system_info(:version)
+  @erts_source Path.join(:code.root_dir(), "erts-#{@erts_version}")
+
+  setup do
+    File.rm_rf!(tmp_path("from_config"))
+    :ok
+  end
+
   describe "from_config!/3" do
     test "uses default configuration if no release is specified" do
       assert %Mix.Release{
@@ -120,6 +128,18 @@ defmodule Mix.ReleaseTest do
       release = from_config!(nil, release_config(applications: [mix: :none]), [])
       assert {:mix, _, :none} = List.keyfind(release.applications, :mix, 0)
     end
+
+    test "raises on unknown app" do
+      assert_raise ArgumentError, "unknown application: :unknown", fn ->
+        from_config!(nil, release_config(applications: [unknown: :none]), [])
+      end
+    end
+
+    test "raises on unknown mode" do
+      assert_raise Mix.Error, ~r"Unknown mode :what for :mix", fn ->
+        from_config!(nil, release_config(applications: [mix: :what]), [])
+      end
+    end
   end
 
   describe "from_config!/3 + umbrella" do
@@ -150,9 +170,6 @@ defmodule Mix.ReleaseTest do
   end
 
   describe "from_config!/3 + include_erts" do
-    @erts_version :erlang.system_info(:version)
-    @erts_source Path.join(:code.root_dir(), "erts-#{@erts_version}")
-
     test "when true (default)" do
       release = from_config!(nil, config(), [])
       assert release.erts_version == @erts_version
@@ -178,6 +195,29 @@ defmodule Mix.ReleaseTest do
     end
   end
 
+  describe "copy_erts/1" do
+    test "copies to directory" do
+      assert copy_erts(release(include_erts: true))
+      destination = tmp_path("from_config/_build/dev/rel/demo/erts-#{@erts_version}")
+      assert File.exists?(destination)
+
+      assert File.read!(Path.join(destination, "bin/erl")) =~
+               ~s|ROOTDIR="$(dirname "$(dirname "$BINDIR")")"|
+
+      refute File.exists?(Path.join(destination, "bin/erl.ini"))
+    end
+
+    test "does not copy when include_erts is false" do
+      refute copy_erts(release(include_erts: false))
+      destination = tmp_path("from_config/_build/dev/rel/demo/erts-#{@erts_version}")
+      refute File.exists?(destination)
+    end
+  end
+
+  defp release(config) do
+    from_config!(nil, release_config(config), [])
+  end
+
   defp release_config(config) do
     config(releases: [demo: config])
   end
@@ -188,7 +228,7 @@ defmodule Mix.ReleaseTest do
       version: "0.1.0",
       build_path: tmp_path("from_config/_build"),
       build_per_environment: true,
-      config_path: tmp_path("from_config/config/unavailable.exs")
+      config_path: tmp_path("from_config/config/config.exs")
     ]
     |> Keyword.merge(extra)
   end

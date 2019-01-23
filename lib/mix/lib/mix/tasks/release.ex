@@ -2,8 +2,8 @@ defmodule Mix.Tasks.Release do
   @moduledoc """
   Assembles a release for the current project:
 
-      mix release
-      mix release NAME
+      MIX_ENV=prod mix release
+      MIX_ENV=prod mix release NAME
 
   Once a release is assembled, it can be packaged and deployed to a
   remote host, as long as the remote host runs on the same operating
@@ -29,13 +29,38 @@ defmodule Mix.Tasks.Release do
   Each key represents the release name. Releasing a certain name is done
   with:
 
-      mix release demo
+      MIX_ENV=prod mix release demo
 
   If the given name does not exist, an error is raised.
 
   If `mix release`, without a name, is invoked and there are multiple names,
   the first name is used. If `mix release` is invoked and there are no names,
   a release using the application name and default values is assembled.
+
+  ## Running the release
+
+  Once a release is assembled, you can start it by calling `bin/start`
+  inside the release. In production, you would do:
+
+      MIX_ENV=prod mix release
+      _build/prod/rel/my_app/bin/start
+
+  `bin/start` is a very short script that invokes the proper instruction
+  on `bin/RELEASE_NAME`. You can customize `bin/start` in any way you want,
+  but you are not supposed to change `bin/RELEASE_NAME`.
+
+  `bin/start` will start the system connected to the current standard
+  input/output, where logs are also written by default. That's the
+  preferred way to run the system. Many tools, such as `systemd`, platforms
+  as a service, such as Heroku, and many containers platforms, such as Docker,
+  are capable of processing the standard input/output and redirecting
+  the log contents elsewhere.
+
+  If you open up `bin/start`, you will also see there is an option to
+  run the release in daemon mode. In daemon mode, the system is started
+  on the background via [run_erl](http://erlang.org/doc/man/run_erl.html)
+  on Unix-like systems and [erlsrv](http://erlang.org/doc/man/erlsrv.html)
+  on Windows systems.
 
   ## Deployments
 
@@ -750,28 +775,14 @@ defmodule Mix.Tasks.Release do
 
   The known commands are:
 
-    - start [elixir | iex]
-      Starts the system using elixir or iex.
-
-    - daemon [elixir | iex]
-      Starts the system as a deamon using elixir or iex.
-      See the --pipe-to option in elixir --help for more info.
-
-    - remote
-      Connects to the currently running system via a remote shell.
-
-    - rpc \"EXPR\"
-      Executes the given expression remotely on the running system.
-
-    - restart
-      Restarts the running system via a remote command.
-
-    - stop
-      Stops the running system via a remote command.
-
-    - pid
-      Prints the OS PID of the running system via a remote command.
-    " >&2
+      start [elixir | iex]   Starts the system using elixir or iex
+      daemon [elixir | iex]  Starts the system as a daemon using elixir or iex
+      remote                 Connects to the running system via a remote shell
+      rpc \"EXPR\"             Executes the given expression remotely on the running system
+      restart                Restarts the running system via a remote command
+      stop                   Stops the running system via a remote command
+      pid                    Prints the OS PID of the running system via a remote command
+  " >&2
 
       if [ -n "$1" ]; then
         echo "ERROR: Unknown command $1" >&2

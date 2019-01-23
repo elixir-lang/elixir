@@ -49,7 +49,7 @@ defmodule Mix.Release do
   @default_apps %{iex: :permanent, elixir: :permanent, sasl: :permanent}
   @valid_modes [:permanent, :temporary, :transient, :load, :none]
   @significant_chunks ~w(Atom AtU8 Attr Code StrT ImpT ExpT FunT LitT Line)c
-  @copy_app_dirs ["include", "priv"]
+  @copy_app_dirs ["priv"]
 
   @doc false
   @spec from_config!(atom, keyword, keyword) :: t
@@ -202,7 +202,7 @@ defmodule Mix.Release do
 
     unless mode in @valid_modes do
       Mix.raise(
-        "unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
+        "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
           "Valid modes are: #{inspect(@valid_modes)}"
       )
     end
@@ -239,6 +239,7 @@ defmodule Mix.Release do
 
   def copy_erts(release) do
     destination = Path.join(release.path, "erts-#{release.erts_version}")
+    File.mkdir_p!(destination)
     File.cp_r!(release.erts_source, destination)
 
     _ = File.rm(Path.join(destination, "bin/erl"))
