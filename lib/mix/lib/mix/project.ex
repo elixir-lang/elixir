@@ -231,7 +231,7 @@ defmodule Mix.Project do
   When called with no arguments, tells whether the current project is
   an umbrella project.
   """
-  @spec umbrella?() :: boolean
+  @spec umbrella?(keyword) :: boolean
   def umbrella?(config \\ config()) do
     config[:apps_path] != nil
   end
@@ -255,7 +255,7 @@ defmodule Mix.Project do
 
   """
   @doc since: "1.4.0"
-  @spec apps_paths() :: %{optional(atom) => Path.t()} | nil
+  @spec apps_paths(keyword) :: %{optional(atom) => Path.t()} | nil
   def apps_paths(config \\ config()) do
     if apps_path = config[:apps_path] do
       key = {:apps_paths, Mix.Project.get!()}
