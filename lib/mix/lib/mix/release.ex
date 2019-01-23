@@ -58,7 +58,7 @@ defmodule Mix.Release do
     apps = Map.merge(@default_apps, apps)
 
     opts =
-      [force: false, quiet: false, strip_beams: false]
+      [force: false, quiet: false, strip_beams: true]
       |> Keyword.merge(opts)
       |> Keyword.merge(overrides)
 
@@ -76,6 +76,8 @@ defmodule Mix.Release do
       Keyword.pop_lazy(opts, :path, fn ->
         Path.join([Mix.Project.build_path(config), "rel", Atom.to_string(name)])
       end)
+
+    path = Path.absname(path)
 
     {version, opts} =
       Keyword.pop_lazy(opts, :version, fn ->
@@ -110,6 +112,65 @@ defmodule Mix.Release do
     }
   end
 
+  defp find_release(name, config) do
+    {name, opts} = lookup_release(name, config) || infer_release(config)
+    {apps, opts} = Keyword.pop(opts, :applications, [])
+    apps = Map.new(apps)
+
+    if Mix.Project.umbrella?(config) do
+      if apps == %{} do
+        bad_umbrella!()
+      end
+
+      {name, apps, opts}
+    else
+      {name, Map.put_new(apps, Keyword.fetch!(config, :app), :permanent), opts}
+    end
+  end
+
+  defp lookup_release(nil, config) do
+    case Keyword.get(config, :releases, []) do
+      [{name, opts} | _] -> {name, opts}
+      _ -> nil
+    end
+  end
+
+  defp lookup_release(name, config) do
+    if opts = config[:releases][name] do
+      {name, opts}
+    else
+      found = Keyword.get(config, :releases, [])
+      Mix.raise("Unknown release #{inspect(name)}. Found: #{inspect(Keyword.keys(found))}")
+    end
+  end
+
+  defp infer_release(config) do
+    if Mix.Project.umbrella?(config) do
+      bad_umbrella!()
+    else
+      {Keyword.fetch!(config, :app), []}
+    end
+  end
+
+  defp bad_umbrella! do
+    Mix.raise("""
+    Umbrella projects require releases to be explicitly defined with \
+    a non-empty applications key that choses which umbrella children \
+    should be part of the releases:
+
+        releases: [
+          foo: [
+            applications: [child_app_foo: :permanent]
+          ],
+          bar: [
+            applications: [child_app_bar: :permanent]
+          ]
+        ]
+
+    Alternatively you can perform the release from the children applications
+    """)
+  end
+
   defp erts_data(false) do
     {nil, :erlang.system_info(:version)}
   end
@@ -125,39 +186,6 @@ defmodule Mix.Release do
       {to_charlist(erts_source), to_charlist(erts_version)}
     else
       Mix.raise("Could not find ERTS system at #{inspect(erts_source)}")
-    end
-  end
-
-  # TODO: Support name
-  defp find_release(_name, config) do
-    {name, opts} = lookup_release(config) || infer_release(config)
-    {apps, opts} = Keyword.pop(opts, :applications, [])
-    apps = Map.new(apps)
-
-    if Mix.Project.umbrella?(config) do
-      if apps == %{} do
-        Mix.raise(
-          "No applications found for release #{inspect(name)}. " <>
-            "Releases inside umbrella must have :applications set to a non-empty list"
-        )
-      end
-
-      {name, apps, opts}
-    else
-      {name, Map.put_new(apps, Keyword.fetch!(config, :app), :permanent), opts}
-    end
-  end
-
-  defp lookup_release(_config) do
-    # TODO: Implement me
-    nil
-  end
-
-  defp infer_release(config) do
-    if Mix.Project.umbrella?(config) do
-      Mix.raise("TODO: we can't infer, raise nice error")
-    else
-      {Keyword.fetch!(config, :app), []}
     end
   end
 

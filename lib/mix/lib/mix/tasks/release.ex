@@ -115,9 +115,15 @@ defmodule Mix.Tasks.Release do
         * `:none` - the application is part of the release but it isn't loaded nor
           started
 
-      All applications default to `:permanent`. You can use this configuration
-      to change the mode of an existing application or to add new application.
-      If a release is assembled from an umbrella project, `:applications` is required.
+      All applications default to `:permanent`.
+
+      It defaults to the current application and then we proceed to include all
+      applications the current application depends on recursively. You can
+      include new applications or change the mode of existing ones by listing
+      them here.
+
+      Releases assembled from an umbrella project require this configuration
+      to be explicitly given.
 
     * `:strip_beams` - a boolean that controls if BEAM files should have their debug
       information, documentation chunks and other non-essential metadata removed.
@@ -134,7 +140,7 @@ defmodule Mix.Tasks.Release do
       `Base.url_encode64(:crypto.strong_rand_bytes(40))`
 
     * `:path` - the path the release should be installed to.
-      Defaults to `_build/MIX_ENV/rel/RELEASE_NAME`.
+      Defaults to `"_build/MIX_ENV/rel/RELEASE_NAME"`.
 
     * `:version` - the release version as a string. Defaults to the current
       application version.
@@ -325,7 +331,7 @@ defmodule Mix.Tasks.Release do
       end
 
     if not File.exists?(release.version_path) or
-         yes?(release, "Release #{release.name}-#{release.version} already exists. Override?") do
+         yes?(release, "Release #{release.name}-#{release.version} already exists. Overwrite?") do
       assemble(release)
 
       unless release.options[:quiet] do
