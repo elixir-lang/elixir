@@ -38,11 +38,7 @@ defmodule IO do
   @type nodata :: {:error, term} | :eof
   @type chardata :: String.t() | maybe_improper_list(char | chardata, String.t() | [])
 
-  defmacrop is_iodata(data) do
-    quote do
-      is_list(unquote(data)) or is_binary(unquote(data))
-    end
-  end
+  defguardp is_iodata(data) when is_list(data) or is_binary(data)
 
   @doc """
   Reads from the IO `device`.
