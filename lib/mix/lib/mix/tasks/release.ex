@@ -312,6 +312,134 @@ defmodule Mix.Tasks.Release do
 
     * `COOKIE` - the release COOKIE. It can be overridden when the release
       is started
+
+  ### Hot Code Upgrades
+
+  Erlang and Elixir are known for the ability of upgrading the code that
+  is running live in production, without bringing the system down. However,
+  this feature is not supported out of the box by Elixir releases.
+
+  The reason we don't provide hot code upgrades is because they are very
+  complicated to perform in practice, as they require careful coding of
+  your process and applications as well as extensive testing. Given most
+  systems can use other techniques that are language agnostic to upgrade
+  their systems, such as Blue/Green deployments, Canary deployments, and
+  Rolling deployments, hot upgrades are rarely a viable option. Let's
+  understand why.
+
+  In a hot code upgrades, you want to update the system from version A to
+  version B. To do so, the first step is to write recipes for every application
+  that changed between those two releases, telling exactly how the application
+  changed between versions, those recipes are called `.appup` files.
+  While some of the steps in building `.appup` files can be automated,
+  not all of them can. Furthermore, each process in the application needs
+  to be explicitly coded with hot code upgrades in mind. Let's see an example.
+  Imagine your application has a counter process as a GenServer:
+
+      defmodule Counter do
+        use GenServer
+
+        def start_link(_) do
+          GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+        end
+
+        def bump do
+          GenServer.call(__MODULE__, :bump)
+        end
+
+        ## Callbacks
+
+        def init(:ok) do
+          {:ok, 0}
+        end
+
+        def handle_call(:bump, counter) do
+          {:reply, :ok, counter + 1}
+        end
+      end
+
+  You add this process as part of your supervision tree and ship version
+  0.1.0 of your system. Now let's imagine that on version 0.2.0 you added
+  two changes: instead of `bump/0`, that always increments the counter by
+  one, you introduce `bump/1` that passes the exact value to bump the
+  counter. You also change the state, because you want to store the maximum
+  bump value:
+
+      defmodule Counter do
+        use GenServer
+
+        def start_link(_) do
+          GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+        end
+
+        def bump(by) do
+          GenServer.call(__MODULE__, {:bump, by})
+        end
+
+        ## Callbacks
+
+        def init(:ok) do
+          {:ok, {0, 0}}
+        end
+
+        def handle_call({:bump, by}, {counter, max}) do
+          {:reply, :ok, {counter + by, max(max, by)}}
+        end
+      end
+
+  If you to perform a hot code upgrade in such application, it would
+  crash, because in the initial version, the state was just a counter,
+  but in the new version the state is a tuple. Furthermore, you changed
+  the format of the `call` message from `:bump` to  `{:bump, by}` and
+  the process may have both old and new messages temporarily mixed, so
+  we need to handle both of them. The final version would be:
+
+     defmodule Counter do
+        use GenServer
+
+        def start_link(_) do
+          GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+        end
+
+        def bump(by) do
+          GenServer.call(__MODULE__, {:bump, by})
+        end
+
+        ## Callbacks
+
+        def init(:ok) do
+          {:ok, {0, 0}}
+        end
+
+        def handle_call(:bump, {counter, max}) do
+          {:reply, :ok, {counter + 1, max(max, 1)}}
+        end
+
+        def handle_call({:bump, by}, {counter, max}) do
+          {:reply, :ok, {counter + by, max(max, by)}}
+        end
+
+        def code_change(_, counter, _) do
+          {:ok, {counter, 0}}
+        end
+      end
+
+  Now you can proceed to list this process in the `.appup` file and
+  hot code upgrade it. This is one of the many steps one necessary
+  to perform hot code upgrades and it must be taken into account by
+  every process and application being upgraded in the system.
+  The [`.appup` cookbook](http://erlang.org/doc/design_principles/appup_cookbook.html)
+  provides a good reference and more examples.
+
+  Once `.appup`s are created, the next step is to create a `.relup`
+  file with all instructions necessary to update the release itself.
+  Erlang documentation does provide a chapter on
+  [Creating and Upgrading a Target System](http://erlang.org/doc/system_principles/create_target.html).
+  [Learn You Some Erlang has a chapter on hot code upgrades](https://learnyousomeerlang.com/relups).
+
+  Overall, there are many steps, complexities and assumptions made
+  during hot code upgrades, which is ultimately why they are not
+  tackled by Elixir out of the box.
   """
 
   # v0.1
@@ -560,7 +688,8 @@ defmodule Mix.Tasks.Release do
         # To stop it gracefully (you may also send SIGINT/SIGTERM)
         #{cmd} stop
 
-        # To list all commands
+    To list all commands:
+
         #{cmd}
     """)
   end
