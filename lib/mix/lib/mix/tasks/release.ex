@@ -847,12 +847,14 @@ defmodule Mix.Tasks.Release do
   }
 
   start () {
-    exec "$REL_VSN_DIR/$1" --no-halt \
+    REL_EXEC="$1"
+    shift
+    exec "$REL_VSN_DIR/$REL_EXEC" --no-halt \
          --werl --name "$RELEASE_NAME@127.0.0.1" --cookie "$COOKIE" \
          --erl-config "${REL_VSN_DIR}/sys" \
          --boot "${REL_VSN_DIR}/start" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-         --vm-args "${REL_VSN_DIR}/vm.args" "${@:2}"
+         --vm-args "${REL_VSN_DIR}/vm.args" "$@"
   }
 
   case $1 in
