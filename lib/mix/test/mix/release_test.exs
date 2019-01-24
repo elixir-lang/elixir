@@ -109,6 +109,12 @@ defmodule Mix.ReleaseTest do
         from_config!(nil, config() |> Keyword.drop([:version]), [])
       end
     end
+
+    test "raises on invalid release names" do
+      assert_raise Mix.Error, ~r"Invalid release name", fn ->
+        from_config!(nil, config(releases: ["invalid name": []]), [])
+      end
+    end
   end
 
   describe "from_config!/3 + applications" do
