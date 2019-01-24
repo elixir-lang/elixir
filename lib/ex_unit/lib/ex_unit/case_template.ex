@@ -14,7 +14,7 @@ defmodule ExUnit.CaseTemplate do
         use ExUnit.CaseTemplate
 
         setup do
-          IO.puts "This will run before each test that uses this case"
+          IO.puts("This will run before each test that uses this case")
         end
       end
 
