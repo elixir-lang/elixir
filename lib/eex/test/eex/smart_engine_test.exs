@@ -35,10 +35,13 @@ defmodule EEx.SmartEngineTest do
     Macro.prewalk(result, fn
       {_left, meta, [_, :hello]} ->
         assert Keyword.get(meta, :line) == 2
+        send(self(), :found)
 
-      _ ->
-        :ok
+      node ->
+        node
     end)
+
+    assert_received :found
   end
 
   defp assert_eval(expected, actual, binding \\ []) do
