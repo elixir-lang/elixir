@@ -6,11 +6,17 @@ defmodule Mix.ReleaseTest do
   import Mix.Release
   doctest Mix.Release
 
+  _ = Application.ensure_started(:eex)
+  _ = Application.ensure_started(:runtime_tools)
+
   @erts_version :erlang.system_info(:version)
   @erts_source Path.join(:code.root_dir(), "erts-#{@erts_version}")
+  @eex_ebin Application.app_dir(:eex, "ebin")
+  @eex_version Application.spec(:eex, :vsn)
+  @runtime_tools_version Application.spec(:runtime_tools, :vsn)
 
   setup do
-    File.rm_rf!(tmp_path("from_config"))
+    File.rm_rf!(tmp_path("mix_release"))
     :ok
   end
 
@@ -25,17 +31,17 @@ defmodule Mix.ReleaseTest do
                version_path: version_path
              } = from_config!(nil, config(), [])
 
-      assert String.ends_with?(path, "from_config/_build/dev/rel/mix")
-      assert String.ends_with?(version_path, "from_config/_build/dev/rel/mix/releases/0.1.0")
+      assert String.ends_with?(path, "mix_release/_build/dev/rel/mix")
+      assert String.ends_with?(version_path, "mix_release/_build/dev/rel/mix/releases/0.1.0")
     end
 
     test "checks for config" do
-      config = tmp_path("from_config/custom.exs")
+      config = tmp_path("mix_release/custom.exs")
       File.mkdir_p!(Path.dirname(config))
       File.write!(config, "[]")
 
       release = from_config!(nil, config(config_path: config), [])
-      assert String.ends_with?(release.config_source(), "from_config/custom.exs")
+      assert String.ends_with?(release.config_source(), "mix_release/custom.exs")
     end
 
     test "checks for consolidation" do
@@ -43,7 +49,7 @@ defmodule Mix.ReleaseTest do
 
       assert String.ends_with?(
                release.consolidation_source(),
-               "from_config/_build/dev/lib/mix/consolidated"
+               "mix_release/_build/dev/lib/mix/consolidated"
              )
     end
 
@@ -72,11 +78,11 @@ defmodule Mix.ReleaseTest do
 
       assert release.name == :foo
       assert release.version == "0.2.0"
-      assert String.ends_with?(release.path, "from_config/_build/dev/rel/foo")
+      assert String.ends_with?(release.path, "mix_release/_build/dev/rel/foo")
 
       assert String.ends_with?(
                release.version_path,
-               "from_config/_build/dev/rel/foo/releases/0.2.0"
+               "mix_release/_build/dev/rel/foo/releases/0.2.0"
              )
     end
 
@@ -90,11 +96,11 @@ defmodule Mix.ReleaseTest do
 
       assert release.name == :bar
       assert release.version == "0.3.0"
-      assert String.ends_with?(release.path, "from_config/_build/dev/rel/bar")
+      assert String.ends_with?(release.path, "mix_release/_build/dev/rel/bar")
 
       assert String.ends_with?(
                release.version_path,
-               "from_config/_build/dev/rel/bar/releases/0.3.0"
+               "mix_release/_build/dev/rel/bar/releases/0.3.0"
              )
     end
 
@@ -204,7 +210,7 @@ defmodule Mix.ReleaseTest do
   describe "copy_erts/1" do
     test "copies to directory" do
       assert copy_erts(release(include_erts: true))
-      destination = tmp_path("from_config/_build/dev/rel/demo/erts-#{@erts_version}")
+      destination = tmp_path("mix_release/_build/dev/rel/demo/erts-#{@erts_version}")
       assert File.exists?(destination)
 
       assert File.read!(Path.join(destination, "bin/erl")) =~
@@ -215,14 +221,12 @@ defmodule Mix.ReleaseTest do
 
     test "does not copy when include_erts is false" do
       refute copy_erts(release(include_erts: false))
-      destination = tmp_path("from_config/_build/dev/rel/demo/erts-#{@erts_version}")
+      destination = tmp_path("mix_release/_build/dev/rel/demo/erts-#{@erts_version}")
       refute File.exists?(destination)
     end
   end
 
   describe "copy_ebin/3" do
-    @eex_ebin Application.app_dir(:eex, "ebin")
-
     test "copies and strips beams" do
       assert copy_ebin(release([]), @eex_ebin, tmp_path("eex_ebin"))
 
@@ -244,11 +248,48 @@ defmodule Mix.ReleaseTest do
     end
 
     test "returns false for unknown or empty directories" do
-      source = tmp_path("copy_ebin_source")
-      File.rm_rf!(source)
-      refute copy_ebin(release([]), source, tmp_path("copy_ebin_target"))
+      source = tmp_path("mix_release")
+      refute copy_ebin(release([]), source, tmp_path("mix_release"))
       File.mkdir_p!(source)
-      refute copy_ebin(release([]), source, tmp_path("copy_ebin_target"))
+      refute copy_ebin(release([]), source, tmp_path("mix_release"))
+    end
+  end
+
+  describe "copy_app/2" do
+    @eex_app {:eex, @eex_version, :permanent}
+    @runtime_tools_app {:runtime_tools, @runtime_tools_version, :permanent}
+    @release_lib tmp_path("mix_release/_build/dev/rel/demo/lib")
+
+    test "copies and strips beams" do
+      assert copy_app(release([]), @eex_app)
+
+      assert size!(Path.join(@eex_ebin, "eex.app")) ==
+               size!(Path.join(@release_lib, "eex-#{@eex_version}/ebin/eex.app"))
+
+      assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) >
+               size!(Path.join(@release_lib, "eex-#{@eex_version}/ebin/Elixir.EEx.beam"))
+    end
+
+    test "copies without stripping beams" do
+      assert copy_app(release(strip_beams: false), @eex_app)
+
+      assert size!(Path.join(@eex_ebin, "eex.app")) ==
+               size!(Path.join(@release_lib, "eex-#{@eex_version}/ebin/eex.app"))
+
+      assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) ==
+               size!(Path.join(@release_lib, "eex-#{@eex_version}/ebin/Elixir.EEx.beam"))
+    end
+
+    test "copies OTP apps" do
+      assert copy_app(release([]), @runtime_tools_app)
+      assert File.exists?(Path.join(@release_lib, "runtime_tools-#{@runtime_tools_version}/ebin"))
+      assert File.exists?(Path.join(@release_lib, "runtime_tools-#{@runtime_tools_version}/priv"))
+    end
+
+    test "does not copy OTP app if include_erts is  false" do
+      refute copy_app(release(include_erts: false), @runtime_tools_app)
+      refute File.exists?(Path.join(@release_lib, "runtime_tools-#{@runtime_tools_version}/ebin"))
+      refute File.exists?(Path.join(@release_lib, "runtime_tools-#{@runtime_tools_version}/priv"))
     end
   end
 
@@ -268,9 +309,9 @@ defmodule Mix.ReleaseTest do
     [
       app: :mix,
       version: "0.1.0",
-      build_path: tmp_path("from_config/_build"),
+      build_path: tmp_path("mix_release/_build"),
       build_per_environment: true,
-      config_path: tmp_path("from_config/config/config.exs")
+      config_path: tmp_path("mix_release/config/config.exs")
     ]
     |> Keyword.merge(extra)
   end

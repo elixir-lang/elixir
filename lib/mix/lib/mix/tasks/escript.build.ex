@@ -269,27 +269,13 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp strip_beams(tuples) do
     for {basename, maybe_beam} <- tuples do
-      case Path.extname(basename) do
-        ".beam" -> {basename, strip_beam(maybe_beam)}
+      with ".beam" <- Path.extname(basename),
+           {:ok, binary} <- Mix.Release.strip_beam(maybe_beam) do
+        {basename, binary}
+      else
         _ -> {basename, maybe_beam}
       end
     end
-  end
-
-  defp strip_beam(beam) when is_binary(beam) do
-    {:ok, _, all_chunks} = :beam_lib.all_chunks(beam)
-    strip_chunks = ['Abst', 'CInf', 'Dbgi', 'Docs']
-    preserved_chunks = for {name, _} = chunk <- all_chunks, name not in strip_chunks, do: chunk
-    {:ok, content} = :beam_lib.build_module(preserved_chunks)
-    compress(content)
-  end
-
-  defp compress(binary) do
-    {:ok, file} = :ram_file.open(binary, [:write, :binary])
-    {:ok, _} = :ram_file.compress(file)
-    {:ok, binary} = :ram_file.get_file(file)
-    :ok = :ram_file.close(file)
-    binary
   end
 
   defp consolidated_paths(config) do

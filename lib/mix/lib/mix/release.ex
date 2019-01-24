@@ -324,8 +324,8 @@ defmodule Mix.Release do
         target_file = Path.join(target, file)
 
         with true <- strip_beams? and String.ends_with?(file, ".beam"),
-             {:ok, {_, chunks}} <- read_significant_chunks(File.read!(source_file)) do
-          File.write!(target_file, build_beam(chunks))
+             {:ok, binary} <- strip_beam(File.read!(source_file)) do
+          File.write!(target_file, binary)
         else
           _ -> File.copy(source_file, target_file)
         end
@@ -337,18 +337,30 @@ defmodule Mix.Release do
     end
   end
 
-  defp read_significant_chunks(binary) do
-    :beam_lib.chunks(binary, @significant_chunks, [:allow_missing_chunks])
-  end
+  @doc """
+  Strips a beam file for a release.
 
-  defp build_beam(chunks) do
-    chunks = for {name, chunk} <- chunks, is_binary(chunk), do: {name, chunk}
-    {:ok, binary} = :beam_lib.build_module(chunks)
-    {:ok, fd} = :ram_file.open(binary, [:write, :binary])
-    {:ok, _} = :ram_file.compress(fd)
-    {:ok, binary} = :ram_file.get_file(fd)
-    :ok = :ram_file.close(fd)
-    binary
+  This keeps only significant chunks necessary for the VM operation,
+  discarding documentation, debug info, compile information and others.
+
+  The exact chunks that are kept are not documented and may change in
+  future versions.
+  """
+  @spec strip_beam(binary()) :: {:ok, binary} | {:error, :beam_lib, :beam_lib.chnk_rsn()}
+  def strip_beam(binary) do
+    case :beam_lib.chunks(binary, @significant_chunks, [:allow_missing_chunks]) do
+      {:ok, {_, chunks}} ->
+        chunks = for {name, chunk} <- chunks, is_binary(chunk), do: {name, chunk}
+        {:ok, binary} = :beam_lib.build_module(chunks)
+        {:ok, fd} = :ram_file.open(binary, [:write, :binary])
+        {:ok, _} = :ram_file.compress(fd)
+        {:ok, binary} = :ram_file.get_file(fd)
+        :ok = :ram_file.close(fd)
+        {:ok, binary}
+
+      {:error, _, _} = error ->
+        error
+    end
   end
 
   @doc """
