@@ -104,6 +104,9 @@ defmodule Mix.Tasks.Release do
   as long as they were compiled for the same target. If doing so, you need to
   update LD_LIBRARY_PATH with the paths containing the bundled objects.
 
+  Currently, there is no official way to cross-compile a release from one
+  target triple to another, due to the complexities involved in the process.
+
   ### Techniques
 
   There a couple ways to guarantee that a release is built on a host with
@@ -201,7 +204,8 @@ defmodule Mix.Tasks.Release do
       cookie will be written to `releases/COOKIE` and shared across multiple release
       versions. If you are setting this option manually, we recommend the cookie option
       to be a long and randomly generated, such as:
-      `Base.url_encode64(:crypto.strong_rand_bytes(40))`
+      `Base.url_encode64(:crypto.strong_rand_bytes(40))`. We also recommend to restrict
+      the characters in the cookie to the subset returned by `Base.url_encode64/1`.
 
     * `:path` - the path the release should be installed to.
       Defaults to `"_build/MIX_ENV/rel/RELEASE_NAME"`.
