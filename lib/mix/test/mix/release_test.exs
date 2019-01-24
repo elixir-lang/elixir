@@ -220,6 +220,42 @@ defmodule Mix.ReleaseTest do
     end
   end
 
+  describe "copy_ebin/3" do
+    @eex_ebin Application.app_dir(:eex, "ebin")
+
+    test "copies and strips beams" do
+      assert copy_ebin(release([]), @eex_ebin, tmp_path("eex_ebin"))
+
+      assert size!(Path.join(@eex_ebin, "eex.app")) ==
+               size!(tmp_path("eex_ebin/eex.app"))
+
+      assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) >
+               size!(tmp_path("eex_ebin/Elixir.EEx.beam"))
+    end
+
+    test "copies without stripping beams" do
+      assert copy_ebin(release(strip_beams: false), @eex_ebin, tmp_path("eex_ebin"))
+
+      assert size!(Path.join(@eex_ebin, "eex.app")) ==
+               size!(tmp_path("eex_ebin/eex.app"))
+
+      assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) ==
+               size!(tmp_path("eex_ebin/Elixir.EEx.beam"))
+    end
+
+    test "returns false for unknown or empty directories" do
+      source = tmp_path("copy_ebin_source")
+      File.rm_rf!(source)
+      refute copy_ebin(release([]), source, tmp_path("copy_ebin_target"))
+      File.mkdir_p!(source)
+      refute copy_ebin(release([]), source, tmp_path("copy_ebin_target"))
+    end
+  end
+
+  defp size!(path) do
+    File.stat!(path).size
+  end
+
   defp release(config) do
     from_config!(nil, release_config(config), [])
   end
