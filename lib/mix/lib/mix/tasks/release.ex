@@ -828,7 +828,8 @@ defmodule Mix.Tasks.Release do
 
   SELF=$(readlink "$0" || true)
   if [ -z "$SELF" ]; then SELF="$0"; fi
-  export RELEASE_ROOT="$(cd "$(dirname "$SELF")/.." && pwd -P)"
+  export RELEASE_ROOT
+  RELEASE_ROOT="$(cd "$(dirname "$SELF")/.." && pwd -P)"
   export RELEASE_NAME="${RELEASE_NAME:-"<%= @name %>"}"
   export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
   export COOKIE=${COOKIE:-$(cat "$RELEASE_ROOT/releases/COOKIE")}
