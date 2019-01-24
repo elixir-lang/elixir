@@ -376,8 +376,8 @@ callspecs_form(_Kind, [], _Optional, _Macros, Forms, _ModuleMap) ->
 callspecs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
   #{unreachable := Unreachable} = ModuleMap,
 
-  SpecsMap =
-    lists:foldl(fun({_, NameArity, Line, Spec}, Acc) ->
+  {SpecsMap, Signatures} =
+    lists:foldl(fun({_, NameArity, Line, Spec}, {Acc, NA}) ->
       case Kind of
         spec -> validate_spec_for_existing_function(ModuleMap, NameArity, Line);
         _ -> ok
@@ -386,15 +386,16 @@ callspecs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
       case lists:member(NameArity, Unreachable) of
         false ->
           case Acc of
-            #{NameArity := List} -> Acc#{NameArity := [{Spec, Line} | List]};
-            #{} -> Acc#{NameArity => [{Spec, Line}]}
+            #{NameArity := List} -> {Acc#{NameArity := [{Spec, Line} | List]}, NA};
+            #{} -> {Acc#{NameArity => [{Spec, Line}]}, [NameArity | NA]}
           end;
         true ->
-          Acc
+          {Acc, NA}
       end
-    end, #{}, Entries),
+    end, {#{}, []}, Entries),
 
-  maps:fold(fun(NameArity, ExprsLines, Acc) ->
+  lists:foldl(fun(NameArity, Acc) ->
+    #{NameArity := ExprsLines} = SpecsMap,
     {Exprs, Lines} = lists:unzip(ExprsLines),
     Line = lists:min(Lines),
 
@@ -415,7 +416,7 @@ callspecs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
       false ->
         [{attribute, Line, Kind, {Key, lists:reverse(Value)}} | Acc]
     end
-  end, Forms, SpecsMap).
+  end, Forms, lists:sort(Signatures)).
 
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
   NewArgs = [{type, Line, term, []} | Args],
