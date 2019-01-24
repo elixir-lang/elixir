@@ -7,8 +7,8 @@ defmodule Mix.Tasks.Release do
 
   Once a release is assembled, it can be packaged and deployed to a
   remote host, as long as the remote host runs on the same operating
-  system (OS) and versions as the machine running the `mix release`
-  command.
+  system (OS) distribution and version as the machine running the
+  `mix release` command.
 
   A release can be configured in your `mix.exs` file under the releases
   key inside `def project`:
@@ -114,7 +114,7 @@ defmodule Mix.Tasks.Release do
   In other words, there are multiple ways systems can be deployed and
   releases can be automated and incorporated into all of them as long
   as you remember that the release must be assembled in the same
-  operating system and operating system version as the production server.
+  operating system distribution and version as the production server.
 
   Once a system is deployed, shutting down said systems can be done by
   sending SIGINT/SIGTERM to the system, which is what most containers,
