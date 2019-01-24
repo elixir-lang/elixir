@@ -2142,18 +2142,7 @@ defmodule Kernel do
 
   Uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
-  function.
-
-  If a key is a function, the function will be invoked
-  passing three arguments:
-
-    * the operation (`:get`)
-    * the data to be accessed
-    * a function to be invoked next
-
-  This means `get_in/2` can be extended to provide
-  custom lookups. The downside is that functions cannot be
-  stored as keys in the accessed data structures.
+  function, which is detailed in a later section.
 
   ## Examples
 
@@ -2168,9 +2157,21 @@ defmodule Kernel do
       iex> get_in(users, ["unknown", :age])
       nil
 
-  When one of the keys is a function that takes three arguments, the function
-  is invoked. In the example below, we use a function to get all the maps
-  inside a list:
+  ## Functions as keys
+
+  If a key is a function, the function will be invoked passing three
+  arguments:
+
+    * the operation (`:get`)
+    * the data to be accessed
+    * a function to be invoked next
+
+  This means `get_in/2` can be extended to provide custom lookups.
+  The downside is that functions cannot be stored as keys in the accessed
+  data structures.
+
+  In the example below, we use a function to get all the maps inside
+  a list:
 
       iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
       iex> all = fn :get, data, next -> Enum.map(data, next) end
@@ -2180,6 +2181,10 @@ defmodule Kernel do
   If the previous value before invoking the function is `nil`,
   the function *will* receive `nil` as a value and must handle it
   accordingly.
+
+  The `Access` module ships with many convenience accessor functions,
+  like the `all` anonymous function defined above. See `Access.all/0`,
+  `Access.key/2`, and others as examples.
   """
   @spec get_in(Access.t(), nonempty_list(term)) :: term
   def get_in(data, keys)
@@ -2254,19 +2259,8 @@ defmodule Kernel do
       should be removed from the structure and returned.
 
   This function uses the `Access` module to traverse the structures
-  according to the given `keys`, unless the `key` is a
-  function.
-
-  If a key is a function, the function will be invoked
-  passing three arguments:
-
-    * the operation (`:get_and_update`)
-    * the data to be accessed
-    * a function to be invoked next
-
-  This means `get_and_update_in/3` can be extended to provide
-  custom lookups. The downside is that functions cannot be stored
-  as keys in the accessed data structures.
+  according to the given `keys`, unless the `key` is a function,
+  which is detailed in a later section.
 
   ## Examples
 
@@ -2278,6 +2272,19 @@ defmodule Kernel do
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_and_update_in(users, ["john", :age], &{&1, &1 + 1})
       {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
+
+  ## Functions as keys
+
+  If a key is a function, the function will be invoked passing three
+  arguments:
+
+    * the operation (`:get_and_update`)
+    * the data to be accessed
+    * a function to be invoked next
+
+  This means `get_and_update_in/3` can be extended to provide custom
+  lookups. The downside is that functions cannot be stored as keys
+  in the accessed data structures.
 
   When one of the keys is a function, the function is invoked.
   In the example below, we use a function to get and increment all
