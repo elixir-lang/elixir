@@ -10,15 +10,14 @@ defmodule ExUnit.CaptureIO do
         import ExUnit.CaptureIO
 
         test "example" do
-          assert capture_io(fn ->
-            IO.puts "a"
-          end) == "a\n"
+          assert capture_io(fn -> IO.puts("a") end) == "a\n"
         end
 
         test "checking the return value and the IO output" do
           fun = fn ->
-            assert Enum.each(["some", "example"], &(IO.puts &1)) == :ok
+            assert Enum.each(["some", "example"], &IO.puts(&1)) == :ok
           end
+
           assert capture_io(fun) == "some\nexample\n"
           # tip: or use only: "capture_io(fun)" to silence the IO output (so only assert the return value)
         end
@@ -54,14 +53,14 @@ defmodule ExUnit.CaptureIO do
       true
 
       iex> capture_io("this is input", fn ->
-      ...>   input = IO.gets "> "
-      ...>   IO.write input
+      ...>   input = IO.gets("> ")
+      ...>   IO.write(input)
       ...> end) == "> this is input"
       true
 
       iex> capture_io([input: "this is input", capture_prompt: false], fn ->
-      ...>   input = IO.gets "> "
-      ...>   IO.write input
+      ...>   input = IO.gets("> ")
+      ...>   IO.write(input)
       ...> end) == "this is input"
       true
 
@@ -73,7 +72,7 @@ defmodule ExUnit.CaptureIO do
   and use `ExUnit.Assertions.assert_received/2` to match on the results:
 
       capture_io([input: "this is input", capture_prompt: false], fn ->
-        send self(), {:block_result, 42}
+        send(self(), {:block_result, 42})
         # ...
       end)
 
