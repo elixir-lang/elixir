@@ -129,8 +129,21 @@ defmodule System do
   defp revision, do: get_revision()
 
   # Get the date at compilation time.
+  # Follows https://reproducible-builds.org/specs/source-date-epoch/
   defmacrop get_date do
-    {{year, month, day}, {hour, minute, second}} = :calendar.universal_time()
+    unix_epoch =
+      if source_date_epoch = :os.getenv('SOURCE_DATE_EPOCH') do
+        try do
+          List.to_integer(source_date_epoch)
+        rescue
+          _ -> nil
+        end
+      end
+
+    unix_epoch = unix_epoch || :os.system_time(:second)
+
+    {{year, month, day}, {hour, minute, second}} =
+      :calendar.gregorian_seconds_to_datetime(unix_epoch + 62_167_219_200)
 
     "~4..0b-~2..0b-~2..0bT~2..0b:~2..0b:~2..0bZ"
     |> :io_lib.format([year, month, day, hour, minute, second])
