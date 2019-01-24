@@ -637,7 +637,7 @@ defmodule ExUnit.Assertions do
     {name, meta, [expr, [do: clauses]]}
   end
 
-  @doc """
+  @doc ~S"""
   Asserts the `exception` is raised during `function` execution with
   the expected `message`, which can be a `Regex` or an exact `String`.
   Returns the rescued exception, fails otherwise.
