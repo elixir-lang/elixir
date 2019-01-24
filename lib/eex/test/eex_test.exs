@@ -243,6 +243,20 @@ defmodule EExTest do
     end
   end
 
+  describe "error messages" do
+    test "honor line numbers" do
+      assert_raise EEx.SyntaxError, "nofile:99: missing token '%>'", fn ->
+        EEx.compile_string("foo <%= bar", line: 99)
+      end
+    end
+
+    test "honor file names" do
+      assert_raise EEx.SyntaxError, "my_file.eex:1: missing token '%>'", fn ->
+        EEx.compile_string("foo <%= bar", file: "my_file.eex")
+      end
+    end
+  end
+
   describe "environment" do
     test "respects line numbers" do
       expected = """
