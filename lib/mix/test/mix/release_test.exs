@@ -80,7 +80,7 @@ defmodule Mix.ReleaseTest do
              )
     end
 
-    test "uses choosen release" do
+    test "uses chosen release" do
       release =
         from_config!(
           :bar,
