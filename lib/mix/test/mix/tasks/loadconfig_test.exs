@@ -63,7 +63,7 @@ defmodule Mix.Tasks.LoadconfigTest do
       assert Mix.Project.config_mtime() > mtime
 
       # Touching it should not have any deadlocks
-      File.touch!(config, {{2030, 1, 1}, {0, 0, 0}})
+      File.touch!(config, {{2038, 1, 1}, {0, 0, 0}})
       Mix.Task.run("loadconfig", [config])
       assert config in Mix.Project.config_files()
       assert Mix.Project.config_mtime() > mtime

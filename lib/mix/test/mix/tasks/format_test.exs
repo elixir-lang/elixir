@@ -368,7 +368,7 @@ defmodule Mix.Tasks.FormatTest do
       [inputs: "a.ex"]
       """)
 
-      File.touch!("lib/sub/.formatter.exs", {{2030, 1, 1}, {0, 0, 0}})
+      File.touch!("lib/sub/.formatter.exs", {{2038, 1, 1}, {0, 0, 0}})
       Mix.Tasks.Format.run([])
 
       assert File.read!("lib/sub/a.ex") == """
@@ -388,7 +388,7 @@ defmodule Mix.Tasks.FormatTest do
       other_fun :baz
       """)
 
-      File.touch!("lib/extra/.formatter.exs", {{2030, 1, 1}, {0, 0, 0}})
+      File.touch!("lib/extra/.formatter.exs", {{2038, 1, 1}, {0, 0, 0}})
       Mix.Tasks.Format.run([])
 
       formatter_opts = Mix.Tasks.Format.formatter_opts_for_file("lib/extra/a.ex")
