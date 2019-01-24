@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
       end)
 
       [manifest] = Mix.Tasks.Compile.Elixir.manifests()
-      future = {{2020, 1, 1}, {0, 0, 0}}
+      future = {{2038, 1, 1}, {0, 0, 0}}
       File.touch!(manifest, future)
 
       Mix.Task.reenable("xref")
