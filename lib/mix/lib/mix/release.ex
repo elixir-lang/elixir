@@ -254,7 +254,7 @@ defmodule Mix.Release do
     BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
     ROOTDIR="$(dirname "$(dirname "$BINDIR")")"
     EMU=beam
-    PROGNAME=$(echo $0 | sed 's/.*\///')
+    PROGNAME=$(echo "$0" | sed 's/.*\///')
     export EMU
     export ROOTDIR
     export BINDIR
