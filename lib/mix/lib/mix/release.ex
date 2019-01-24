@@ -271,7 +271,6 @@ defmodule Mix.Release do
 
   It assumes the application exists.
   """
-  # TODO: Do not copy ERTS apps if include ERTS is false
   @spec copy_app(t, application) :: boolean()
   def copy_app(release, app_spec) do
     app = elem(app_spec, 0)
@@ -280,19 +279,28 @@ defmodule Mix.Release do
     source_app = Application.app_dir(app)
     target_app = Path.join([release.path, "lib", "#{app}-#{vsn}"])
 
-    File.rm_rf!(target_app)
-    File.mkdir_p!(target_app)
+    if skip_app?(release, source_app) do
+      false
+    else
+      File.rm_rf!(target_app)
+      File.mkdir_p!(target_app)
 
-    copy_ebin(release, Path.join(source_app, "ebin"), Path.join(target_app, "ebin"))
+      copy_ebin(release, Path.join(source_app, "ebin"), Path.join(target_app, "ebin"))
 
-    for dir <- @copy_app_dirs do
-      source_dir = Path.join(source_app, dir)
-      target_dir = Path.join(target_app, dir)
-      File.exists?(source_dir) && File.cp_r!(source_dir, target_dir)
+      for dir <- @copy_app_dirs do
+        source_dir = Path.join(source_app, dir)
+        target_dir = Path.join(target_app, dir)
+        File.exists?(source_dir) && File.cp_r!(source_dir, target_dir)
+      end
+
+      true
     end
-
-    true
   end
+
+  defp skip_app?(%{erts_source: nil}, source_app),
+    do: String.starts_with?(source_app, List.to_string(:code.lib_dir()))
+
+  defp skip_app?(_, _), do: false
 
   @doc """
   Copies the ebin directory at `source` to `target`

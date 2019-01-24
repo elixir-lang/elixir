@@ -443,7 +443,6 @@ defmodule Mix.Tasks.Release do
   """
 
   # v0.1
-  # All other pending TODOs
   # TODO: Test protocol consolidation and environment variables
 
   use Mix.Task
