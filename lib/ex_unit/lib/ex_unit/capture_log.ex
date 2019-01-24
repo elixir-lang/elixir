@@ -12,17 +12,19 @@ defmodule ExUnit.CaptureLog do
 
         test "example" do
           assert capture_log(fn ->
-            Logger.error "log msg"
-          end) =~ "log msg"
+                   Logger.error("log msg")
+                 end) =~ "log msg"
         end
 
         test "check multiple captures concurrently" do
           fun = fn ->
             for msg <- ["hello", "hi"] do
-              assert capture_log(fn -> Logger.error msg end) =~ msg
+              assert capture_log(fn -> Logger.error(msg) end) =~ msg
             end
-            Logger.debug "testing"
+
+            Logger.debug("testing")
           end
+
           assert capture_log(fun) =~ "hello"
           assert capture_log(fun) =~ "testing"
         end
