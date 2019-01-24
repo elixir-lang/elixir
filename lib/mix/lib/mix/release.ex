@@ -361,8 +361,7 @@ defmodule Mix.Release do
   If there is no option, we generate a random one
   the first time.
 
-  Returns a boolean saying if the cookie was copied
-  or not.
+  Returns true if the cookie was copied, false otherwise.
   """
   @spec copy_cookie(t, Path.t()) :: boolean()
   def copy_cookie(release, path) do
