@@ -207,6 +207,8 @@ defmodule Mix.Release do
   defp traverse_app(app, seen, modes) do
     mode = Map.get(modes, app, :permanent)
 
+    # TODO: Check there are no dependencies on projects
+    # started with none / load/
     unless mode in @valid_modes do
       Mix.raise(
         "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>

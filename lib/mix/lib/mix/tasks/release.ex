@@ -6,9 +6,9 @@ defmodule Mix.Tasks.Release do
       MIX_ENV=prod mix release NAME
 
   Once a release is assembled, it can be packaged and deployed to a
-  remote host, as long as the remote host runs on the same operating
-  system (OS) distribution and version as the machine running the
-  `mix release` command.
+  target, as long as the target runs on the same operating system (OS)
+  distribution and version as the machine running the `mix release`
+  command.
 
   A release can be configured in your `mix.exs` file under the releases
   key inside `def project`:
@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Release do
   but you are not supposed to change `bin/RELEASE_NAME`.
 
   `bin/start` will start the system connected to the current standard
-  input/output, where logs are also written by default. That's the
+  input/output, where logs are also written to by default. That's the
   preferred way to run the system. Many tools, such as `systemd`, platforms
   as a service, such as Heroku, and many containers platforms, such as Docker,
   are capable of processing the standard input/output and redirecting
@@ -64,13 +64,52 @@ defmodule Mix.Tasks.Release do
 
   ## Deployments
 
-  It is very important that a release is assembled on a machine with the
-  same operating system (OS) version and tooling as the machine the system
-  is meant to run on.
+  ### Requirements
 
-  There are a couple ways this can be achieved. A simple option is to
-  fetch the source, compile the code and assemble the release on the
-  production machine itself. It would be something like this:
+  A release is built on a **host**, a machine which contains Erlang, Elixir,
+  and any other dependencies needed to compile your application. A release is
+  then deployed to a **target**, potentially the same machine as the host,
+  but usually separate, and often there are many targets (either multiple
+  instances, or the release is deployed to heterogeneous environments).
+
+  To deploy straight from a host to a separate target without cross-compilation,
+  the following must be the same between the host and the target:
+
+    * Target architecture (e.g. x86_64 vs ARM)
+    * Target Vendor+OS (e.g. Windows, Linux, Darwin/macOS)
+    * Target ABI (e.g. musl, gnu)
+
+  This is often represented in the form of target triples, e.g.
+  x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl, x86_64-apple-darwin.
+
+  So to be more precise, to deploy straight from a host to a separate target,
+  the Erlang Runtime System (ERTS), and any native dependencies (NIFs), must
+  be compiled for the same target triple. If you are building on a MacBook
+  (x86_64-apple-darwin) and trying to deploy to a typical Ubuntu machine
+  (x86_64-unknown-linux-gnu), the release will not work. Instead you should
+  build the release on a x86_64-unknown-linux-gnu host. As we will see, this
+  can be done in multiple ways, such as releasing on the target itself, or by
+  using virtual machines or containers, usually as part of your release pipeline.
+
+  In addition to matching the target triple, it is also important that the
+  target has all of the system packages that your application will need at
+  runtime. A common one is the need for OpenSSL when building an application
+  that uses `:crypto` or `:ssl, which is dynamically linked to ERTS. The other
+  common source for native dependencies like this comes from dependencies
+  containing NIFs (natively-implemented functions) which may expect to
+  dynamically link to libraries they use.
+
+  These system packages are typically managed using the system package manager,
+  but if necessary, you can also bundle the compiled object files in the release,
+  as long as they were compiled for the same target. If doing so, you need to
+  update LD_LIBRARY_PATH with the paths containing the bundled objects.
+
+  ### Techniques
+
+  There a couple ways to guarantee that a release is built on a host with
+  the same properties as the target. A simple option is to fetch the source,
+  compile the code and assemble the release on the target itself. It would
+  be something like this:
 
       git clone remote://path/to/my_app.git my_app_source
       cd my_app_source
@@ -89,8 +128,8 @@ defmodule Mix.Tasks.Release do
       rm -rf ../my_app_source
       bin/start
 
-  However, this option can be expensive if you have multiple nodes or
-  if the release assembling process is a long one, as each node needs
+  However, this option can be expensive if you have multiple target or
+  if the release assembling process is a long one, as each target needs
   to individually assemble the release.
 
   You can automate this process in a couple different ways. One option
@@ -105,16 +144,16 @@ defmodule Mix.Tasks.Release do
 
   Another mechanism to automate deployments is to use images, such as
   Amazon Machine Images, or container platforms, such as Docker.
-  For instance, you can use Docker to locally run the same operating
-  system that you have in your production servers, allowing you to
-  assemble a release or build a container or image locally, which is
-  then pushed to production. One can also build images and/or containers
-  at the end of their CI/CD pipelines.
+  For instance, you can use Docker to run locally under the same
+  specifications as your production servers, allowing you to assemble
+  a release which is then pushed to production. One can also build
+  images and/or containers at the end of their CI/CD pipelines, that
+  contain the whole operating system and all dependencies alongside
+  the release.
 
   In other words, there are multiple ways systems can be deployed and
   releases can be automated and incorporated into all of them as long
-  as you remember that the release must be assembled in the same
-  operating system distribution and version as the production server.
+  as you follow the requirements outlined above.
 
   Once a system is deployed, shutting down said systems can be done by
   sending SIGINT/SIGTERM to the system, which is what most containers,
