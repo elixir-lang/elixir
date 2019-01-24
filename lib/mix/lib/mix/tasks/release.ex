@@ -315,19 +315,19 @@ defmodule Mix.Tasks.Release do
 
   ### Hot Code Upgrades
 
-  Erlang and Elixir are known for the ability of upgrading the code that
-  is running live in production, without bringing the system down. However,
-  this feature is not supported out of the box by Elixir releases.
+  Erlang and Elixir are sometimes known for the capability of upgrading
+  a node that is running in production without shutting down that node.
+  However, this feature is not supported out of the box by Elixir releases.
 
   The reason we don't provide hot code upgrades is because they are very
   complicated to perform in practice, as they require careful coding of
-  your process and applications as well as extensive testing. Given most
-  systems can use other techniques that are language agnostic to upgrade
-  their systems, such as Blue/Green deployments, Canary deployments, and
-  Rolling deployments, hot upgrades are rarely a viable option. Let's
-  understand why.
+  your processes and applications as well as extensive testing. Given most
+  teams can use other techniques that are language agnostic to upgrade
+  their systems, such as Blue/Green deployments, Canary deployments,
+  Rolling deployments, and others, hot upgrades are rarely a viable
+  option. Let's understand why.
 
-  In a hot code upgrades, you want to update the system from version A to
+  In a hot code upgrade, you want to update a node from version A to
   version B. To do so, the first step is to write recipes for every application
   that changed between those two releases, telling exactly how the application
   changed between versions, those recipes are called `.appup` files.
@@ -388,11 +388,11 @@ defmodule Mix.Tasks.Release do
       end
 
   If you to perform a hot code upgrade in such application, it would
-  crash, because in the initial version, the state was just a counter,
+  crash, because in the initial version the state was just a counter
   but in the new version the state is a tuple. Furthermore, you changed
   the format of the `call` message from `:bump` to  `{:bump, by}` and
   the process may have both old and new messages temporarily mixed, so
-  we need to handle both of them. The final version would be:
+  we need to handle both. The final version would be:
 
      defmodule Counter do
         use GenServer
@@ -439,7 +439,9 @@ defmodule Mix.Tasks.Release do
 
   Overall, there are many steps, complexities and assumptions made
   during hot code upgrades, which is ultimately why they are not
-  tackled by Elixir out of the box.
+  provided by Elixir out of the box. However, hot code upgrades can
+  still be achieved by teams who desire to implement those steps
+  on top of `mix release` in their projects or as separate libraries.
   """
 
   # v0.1
