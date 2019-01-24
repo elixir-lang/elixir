@@ -857,12 +857,12 @@ defmodule Mix.Tasks.Release do
 
   case $1 in
     start)
-      start ${2:-elixir}
+      start "${2:-elixir}"
       ;;
 
     daemon)
       export RELEASE_TMP="${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}"
-      start ${2:-elixir} --pipe-to "${RELEASE_TMP}/pipe" "${RELEASE_TMP}/log"
+      start "${2:-elixir}" --pipe-to "${RELEASE_TMP}/pipe" "${RELEASE_TMP}/log"
       ;;
 
     remote)
@@ -890,7 +890,7 @@ defmodule Mix.Tasks.Release do
       ;;
 
     *)
-      echo "Usage: $(basename $0) COMMAND [ARGS]
+      echo "Usage: $(basename "$0") COMMAND [ARGS]
 
   The known commands are:
 
