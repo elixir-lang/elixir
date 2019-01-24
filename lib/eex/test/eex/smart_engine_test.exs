@@ -29,12 +29,12 @@ defmodule EEx.SmartEngineTest do
     assert_eval("1\n2\n3\n", "<%= for x <- [1, 2, 3] do %><%= x %>\n<% end %>")
   end
 
-  test "preserves line numbers" do
-    result = EEx.compile_string("<%= @hello %>", engine: EEx.SmartEngine)
+  test "preserves line numbers in assignments" do
+    result = EEx.compile_string("foo\n<%= @hello %>", engine: EEx.SmartEngine)
 
     Macro.prewalk(result, fn
-      {_left, meta, _right} ->
-        assert Keyword.get(meta, :line, 0) in [0, 1]
+      {_left, meta, [_, :hello]} ->
+        assert Keyword.get(meta, :line) == 2
 
       _ ->
         :ok
