@@ -344,6 +344,13 @@ defmodule Mix.Release do
       for dir <- @copy_app_dirs do
         source_dir = Path.join(source_app, dir)
         target_dir = Path.join(target_app, dir)
+
+        source_dir =
+          case File.read_link(source_dir) do
+            {:ok, link_target} -> Path.expand(link_target, source_app)
+            _ -> source_dir
+          end
+
         File.exists?(source_dir) && File.cp_r!(source_dir, target_dir)
       end
 
