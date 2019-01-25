@@ -51,11 +51,6 @@ script:
   - diff -r lib/iex/ebin/ lib/iex/ebin_reproducible/
   - diff -r lib/logger/ebin/ lib/logger/ebin_reproducible/
   - diff -r lib/mix/ebin/ lib/mix/ebin_reproducible/
-  - rm -rf lib/elixir/ebin_reproducible/
-           lib/eex/ebin_reproducible/
-           lib/iex/ebin_reproducible/
-           lib/logger/ebin_reproducible/
-           lib/mix/ebin_reproducible/
 
 notifications:
   recipients:
