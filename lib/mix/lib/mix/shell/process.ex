@@ -41,7 +41,7 @@ defmodule Mix.Shell.Process do
 
   ## Examples
 
-      flush(&IO.inspect(&1))
+      flush(&IO.inspect/1)
 
   """
   def flush(callback \\ fn x -> x end) do
