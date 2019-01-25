@@ -332,8 +332,8 @@ defmodule Mix.ReleaseTest do
         |> File.read!()
         |> strip_beam()
 
-      assert {:error, :beam_lib, {:missing_chunk, _, 'Dbgi'}}= :beam_lib.chunks(beam, ['Dbgi'])
-      assert {:error, :beam_lib, {:missing_chunk, _, 'Docs'}}= :beam_lib.chunks(beam, ['Docs'])
+      assert {:error, :beam_lib, {:missing_chunk, _, 'Dbgi'}} = :beam_lib.chunks(beam, ['Dbgi'])
+      assert {:error, :beam_lib, {:missing_chunk, _, 'Docs'}} = :beam_lib.chunks(beam, ['Docs'])
     end
   end
 
@@ -346,21 +346,21 @@ defmodule Mix.ReleaseTest do
     end
 
     test "uses the given cookie" do
-      release = release([cookie: "abcdefghijk"])
+      release = release(cookie: "abcdefghijk")
       assert copy_cookie(release, "COOKIE")
       assert File.read!(Path.join(@release_root, "COOKIE")) == "abcdefghijk"
       refute copy_cookie(release, "COOKIE")
     end
 
     test "asks to change if the cookie changes" do
-      assert copy_cookie(release([cookie: "abcdefghijk"]), "COOKIE")
+      assert copy_cookie(release(cookie: "abcdefghijk"), "COOKIE")
 
       send(self(), {:mix_shell_input, :yes?, false})
-      refute copy_cookie(release([cookie: "lmnopqrstuv"]), "COOKIE")
+      refute copy_cookie(release(cookie: "lmnopqrstuv"), "COOKIE")
       assert File.read!(Path.join(@release_root, "COOKIE")) == "abcdefghijk"
 
       send(self(), {:mix_shell_input, :yes?, true})
-      assert copy_cookie(release([cookie: "lmnopqrstuv"]), "COOKIE")
+      assert copy_cookie(release(cookie: "lmnopqrstuv"), "COOKIE")
       assert File.read!(Path.join(@release_root, "COOKIE")) == "lmnopqrstuv"
     end
   end
