@@ -825,8 +825,8 @@ defmodule Mix.Tasks.Release do
        Path.join(bin_path, "elixir.bat")
        |> File.read!()
        |> String.replace(~s[goto expand_erl_libs], ~s[goto run])
-       |> replace_erts_bin(release, ~s["%dp0\\..\\..\\erts-#{release.erts_version}\\bin\\"])},
-      {"iex.bat", File.read!(Path.join(bin_path, "iex"))}
+       |> replace_erts_bin(release, ~s[%~dp0\\..\\..\\erts-#{release.erts_version}\\bin\\])},
+      {"iex.bat", File.read!(Path.join(bin_path, "iex.bat"))}
     ]
   end
 
@@ -883,7 +883,7 @@ defmodule Mix.Tasks.Release do
   REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
 
   gen_id () {
-    od -t x -N 4 /dev/urandom | head -n1 | awk '{print $2}'
+    od -t x -N 4 -A n /dev/urandom | tr -d " \n"
   }
 
   rpc () {
