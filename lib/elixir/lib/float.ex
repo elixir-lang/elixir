@@ -268,16 +268,14 @@ defmodule Float do
     raise ArgumentError, invalid_precision_message(precision)
   end
 
+  defp round(0.0, _precision, _rounding), do: 0.0
+
   defp round(float, precision, rounding) do
     <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
     {num, count, _} = decompose(significant, 1)
     count = count - exp + 1023
 
     cond do
-      # There is no decimal precision on subnormal floats
-      count <= 0 or exp == 0 ->
-        float
-
       # Precision beyond 15 digits
       count >= 104 ->
         case rounding do
@@ -444,11 +442,11 @@ defmodule Float do
     {acc, last_count, last_power}
   end
 
+  @compile {:inline, sign: 2, shift_left: 2}
   defp sign(0, num), do: num
   defp sign(1, num), do: -num
 
-  defp shift_left(num, 0), do: num
-  defp shift_left(num, times), do: shift_left(num <<< 1, times - 1)
+  defp shift_left(num, times), do: num <<< times
 
   defp shift_right(num, 0), do: {num, 0}
   defp shift_right(1, times), do: {1, times}
