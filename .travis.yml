@@ -29,7 +29,7 @@ install:
   - PATH=$(pwd)/otp/bin:$PATH
 
 script:
-  - make compile
+  - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
   - rm -rf .git
   - make test
   - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
