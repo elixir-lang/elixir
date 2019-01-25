@@ -260,6 +260,7 @@ defmodule Calendar.ISO do
       31
 
   """
+  @doc since: "1.4.0"
   @spec days_in_month(year, month) :: 28..31
   @impl true
   def days_in_month(year, month)
@@ -304,6 +305,7 @@ defmodule Calendar.ISO do
       true
 
   """
+  @doc since: "1.3.0"
   @spec leap_year?(year) :: boolean()
   @impl true
   def leap_year?(year) when is_integer(year) do
@@ -335,6 +337,7 @@ defmodule Calendar.ISO do
       4
 
   """
+  @doc since: "1.4.0"
   @spec day_of_week(year, month, day) :: 1..7
   @impl true
   def day_of_week(year, month, day)
@@ -471,6 +474,7 @@ defmodule Calendar.ISO do
       "02:02:02"
 
   """
+  @doc since: "1.5.0"
   @spec time_to_string(
           Calendar.hour(),
           Calendar.minute(),
@@ -493,6 +497,7 @@ defmodule Calendar.ISO do
       "02:02:02.000002"
 
   """
+  @doc since: "1.5.0"
   @spec time_to_string(
           Calendar.hour(),
           Calendar.minute(),
@@ -530,6 +535,7 @@ defmodule Calendar.ISO do
       "-0099-01-31"
 
   """
+  @doc since: "1.4.0"
   @spec date_to_string(year, month, day) :: String.t()
   @impl true
   def date_to_string(year, month, day) do
@@ -555,6 +561,7 @@ defmodule Calendar.ISO do
       "2017-08-01 01:02:03.00000"
 
   """
+  @doc since: "1.4.0"
   @impl true
   @spec naive_datetime_to_string(
           year,
@@ -587,6 +594,7 @@ defmodule Calendar.ISO do
       "2015-02-28 01:02:03.00000-07:00 PDT America/Los_Angeles"
 
   """
+  @doc since: "1.4.0"
   @impl true
   @spec datetime_to_string(
           year,
