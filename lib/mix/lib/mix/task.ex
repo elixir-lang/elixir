@@ -12,7 +12,7 @@ defmodule Mix.Task do
 
         @impl Mix.Task
         def run(args) do
-          Mix.shell.info Enum.join(args, " ")
+          Mix.shell().info(Enum.join(args, " "))
         end
       end
 
