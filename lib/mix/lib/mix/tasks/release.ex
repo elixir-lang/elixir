@@ -232,7 +232,7 @@ defmodule Mix.Tasks.Release do
         * `:temporary` - the application is started and the node does not
           shut down if the application terminates
         * `:load` - the application is only loaded
-        * `:none` - the application is part of the release but it isn't loaded nor
+        * `:none` - the application is part of the release but it is neither loaded nor
           started
 
       All applications default to `:permanent`.
