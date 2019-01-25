@@ -552,7 +552,7 @@ defmodule Calendar.ISO do
 
   By default, returns datetimes formatted in the "extended" format,
   for human readability. It also supports the "basic" format
-  through passing the `:basic` option.
+  by passing the `:basic` option.
 
   ## Examples
 
