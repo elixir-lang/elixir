@@ -1901,7 +1901,6 @@ defmodule FileTest do
            end) == :cd_result
   end
 
-  @tag :skip
   test "touch with no file" do
     fixture = tmp_path("tmp_test.txt")
     time = {{2010, 4, 17}, {14, 0, 0}}
