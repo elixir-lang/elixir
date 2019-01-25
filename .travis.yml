@@ -31,6 +31,9 @@ install:
 script:
   - export SOURCE_DATE_EPOCH=$(date +%s)
   - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
+  - rm -rf .git
+  - make test
+  - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
   - mkdir -p lib/elixir/ebin_reproducible/
              lib/eex/ebin_reproducible/
              lib/iex/ebin_reproducible/
@@ -52,9 +55,6 @@ script:
            lib/iex/ebin_reproducible/
            lib/logger/ebin_reproducible/
            lib/mix/ebin_reproducible/
-  - rm -rf .git
-  - make test
-  - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
 notifications:
   recipients:
