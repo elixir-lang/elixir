@@ -146,8 +146,21 @@ defmodule Mix.ReleaseTest do
     end
 
     test "configures other applications" do
+      release = from_config!(nil, release_config(applications: [mix: :temporary]), [])
+      assert {:mix, _, :temporary} = List.keyfind(release.applications, :mix, 0)
+    end
+
+    test "works when :load/:none is set at the leaf" do
       release = from_config!(nil, release_config(applications: [mix: :none]), [])
       assert {:mix, _, :none} = List.keyfind(release.applications, :mix, 0)
+    end
+
+    test "works when :load/:none is set at the subtree" do
+      apps = [mix: :load, elixir: :load, iex: :load]
+      release = from_config!(nil, release_config(applications: apps), [])
+      assert {:elixir, _, :load} = List.keyfind(release.applications, :elixir, 0)
+      assert {:iex, _, :load} = List.keyfind(release.applications, :iex, 0)
+      assert {:mix, _, :load} = List.keyfind(release.applications, :mix, 0)
     end
 
     test "raises on unknown app" do
@@ -160,6 +173,16 @@ defmodule Mix.ReleaseTest do
       assert_raise Mix.Error, ~r"Unknown mode :what for :mix", fn ->
         from_config!(nil, release_config(applications: [mix: :what]), [])
       end
+    end
+
+    test "raises on bad load/none" do
+      assert_raise Mix.Error,
+                   ~r"application :kernel was set to mode :load but the application :stdlib depends on it",
+                   fn -> from_config!(nil, release_config(applications: [kernel: :load]), []) end
+
+      assert_raise Mix.Error,
+                   ~r"application :elixir was set to mode :none but the application :mix depends on it",
+                   fn -> from_config!(nil, release_config(applications: [elixir: :none]), []) end
     end
   end
 

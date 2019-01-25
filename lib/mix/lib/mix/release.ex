@@ -47,7 +47,8 @@ defmodule Mix.Release do
         }
 
   @default_apps %{iex: :permanent, elixir: :permanent, sasl: :permanent}
-  @valid_modes [:permanent, :temporary, :transient, :load, :none]
+  @safe_modes [:permanent, :temporary, :transient]
+  @unsafe_modes [:load, :none]
   @significant_chunks ~w(Atom AtU8 Attr Code StrT ImpT ExpT FunT LitT Line)c
   @copy_app_dirs ["priv"]
 
@@ -75,8 +76,8 @@ defmodule Mix.Release do
     rel_apps =
       apps
       |> Map.keys()
-      |> traverse_apps(%{}, apps)
-      |> Map.values()
+      |> load_apps(%{})
+      |> app_to_rel(apps)
       |> Enum.sort()
 
     {path, opts} =
@@ -205,35 +206,70 @@ defmodule Mix.Release do
     end
   end
 
-  defp traverse_apps(apps, seen, modes) do
+  defp load_apps(apps, seen) do
     for app <- apps,
         not Map.has_key?(seen, app),
         reduce: seen do
-      seen -> traverse_app(app, seen, modes)
+      seen -> load_app(app, seen)
     end
   end
 
-  defp traverse_app(app, seen, modes) do
-    mode = Map.get(modes, app, :permanent)
-
-    # TODO: Check there are no dependencies on projects
-    # started with none / load/
-    unless mode in @valid_modes do
-      Mix.raise(
-        "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
-          "Valid modes are: #{inspect(@valid_modes)}"
-      )
-    end
-
+  defp load_app(app, seen) do
     case :file.consult(Application.app_dir(app, "ebin/#{app}.app")) do
       {:ok, terms} ->
         [{:application, ^app, properties}] = terms
-        seen = Map.put(seen, app, build_app_for_release(app, mode, properties))
-        traverse_apps(Keyword.get(properties, :applications, []), seen, modes)
+        seen = Map.put(seen, app, properties)
+        load_apps(Keyword.get(properties, :applications, []), seen)
 
       {:error, reason} ->
         Mix.raise("Could not load #{app}.app. Reason: #{inspect(reason)}")
     end
+  end
+
+  defp app_to_rel(apps, modes) do
+    for {app, properties} <- apps do
+      mode = Map.get(modes, app, :permanent)
+
+      cond do
+        mode in @safe_modes ->
+          :ok
+
+        mode in @unsafe_modes ->
+          parent =
+            apps
+            |> depends_on(app)
+            |> Enum.reverse()
+            |> Enum.find(&(Map.get(modes, &1, :permanent) not in @unsafe_modes))
+
+          if parent do
+            Mix.raise("""
+            Failed to assemble release because application #{inspect(app)} was set to \
+            mode #{inspect(mode)} but the application #{inspect(parent)} depends on it \
+            and it does not have its mode set to :load nor :none. If you really want \
+            to set the mode for #{inspect(app)} to #{inspect(mode)}, make sure that all \
+            applications that depend on it are also set to :load or :none
+            """)
+          end
+
+        true ->
+          Mix.raise(
+            "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
+              "Valid modes are: #{inspect(@safe_modes ++ @unsafe_modes)}"
+          )
+      end
+
+      build_app_for_release(app, mode, properties)
+    end
+  end
+
+  defp depends_on(apps, pin) do
+    children =
+      for {app, properties} <- apps,
+          children = Keyword.get(properties, :applications, []),
+          pin in children,
+          do: app
+
+    Enum.flat_map(children, &depends_on(apps, &1)) ++ children
   end
 
   defp build_app_for_release(app, mode, properties) do
