@@ -162,7 +162,7 @@ defmodule Mix.Tasks.Release do
   sending SIGINT/SIGTERM to the system, which is what most containers,
   platforms and tools do, or by explicitly invoking `bin/RELEASE_NAME stop`.
   Shutting down the system consists of stopping each application and
-  their respective supervisiont trees, one by one, in the opposite order
+  their respective supervision trees, one by one, in the opposite order
   that they were started.
 
   ## Options
