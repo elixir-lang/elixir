@@ -480,9 +480,11 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> {:ok, datetime} = DateTime.now("Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> {:ok, datetime} = DateTime.now("Etc/UTC")
       iex> datetime.time_zone
-      "Europe/Copenhagen"
+      "Etc/UTC"
+      iex> DateTime.now("Europe/Copenhagen")
+      {:error, :utc_only_time_zone_database}
       iex> DateTime.now("not a real time zone name", FakeTimeZoneDatabase)
       {:error, :time_zone_not_found}
 
