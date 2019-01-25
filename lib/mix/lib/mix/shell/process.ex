@@ -19,12 +19,15 @@ defmodule Mix.Shell.Process do
 
   ## Examples
 
-      Mix.shell.info "hello"
-      receive do {:mix_shell, :info, [msg]} -> msg end
+      Mix.shell().info("hello")
+
+      receive do
+        {:mix_shell, :info, [msg]} -> msg
+      end
       #=> "hello"
 
-      send self(), {:mix_shell_input, :prompt, "Pretty cool"}
-      Mix.shell.prompt?("How cool was that?!")
+      send(self(), {:mix_shell_input, :prompt, "Pretty cool"})
+      Mix.shell().prompt?("How cool was that?!")
       #=> "Pretty cool"
 
   """
@@ -38,7 +41,7 @@ defmodule Mix.Shell.Process do
 
   ## Examples
 
-      flush &IO.inspect(&1)
+      flush(&IO.inspect(&1))
 
   """
   def flush(callback \\ fn x -> x end) do
@@ -103,8 +106,8 @@ defmodule Mix.Shell.Process do
   `"What's your name?"`:
 
       # The response is sent before calling prompt/1 so that prompt/1 can read it
-      send self(), {:mix_shell_input, :prompt, "Meg"}
-      Mix.shell.prompt("What's your name?")
+      send(self(), {:mix_shell_input, :prompt, "Meg"})
+      Mix.shell().prompt("What's your name?")
 
   """
   def prompt(message) do
@@ -131,8 +134,8 @@ defmodule Mix.Shell.Process do
   ## Example
 
       # Send the response to self() first so that yes?/1 will be able to read it
-      send self(), {:mix_shell_input, :yes?, true}
-      Mix.shell.yes?("Are you sure you want to continue?")
+      send(self(), {:mix_shell_input, :yes?, true})
+      Mix.shell().yes?("Are you sure you want to continue?")
 
   """
   def yes?(message) do
