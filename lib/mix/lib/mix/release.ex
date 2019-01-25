@@ -434,6 +434,7 @@ defmodule Mix.Release do
         false
 
       true ->
+        File.mkdir_p!(Path.dirname(cookie_path))
         File.write!(cookie_path, random_cookie())
         true
     end
@@ -448,6 +449,7 @@ defmodule Mix.Release do
   @spec copy_start_erl(t, Path.t()) :: true
   def copy_start_erl(release, path) do
     start_erl_path = Path.join(release.path, path)
+    File.mkdir_p!(Path.dirname(start_erl_path))
     File.write!(start_erl_path, "#{release.erts_version} #{release.version}")
     true
   end

@@ -325,6 +325,55 @@ defmodule Mix.ReleaseTest do
     end
   end
 
+  describe "strip_beam/1" do
+    test "excludes at least docs and dbgi chunks" do
+      {:ok, beam} =
+        Path.join(@eex_ebin, "Elixir.EEx.beam")
+        |> File.read!()
+        |> strip_beam()
+
+      assert {:error, :beam_lib, {:missing_chunk, _, 'Dbgi'}}= :beam_lib.chunks(beam, ['Dbgi'])
+      assert {:error, :beam_lib, {:missing_chunk, _, 'Docs'}}= :beam_lib.chunks(beam, ['Docs'])
+    end
+  end
+
+  describe "copy_cookie/1" do
+    @release_root tmp_path("mix_release/_build/dev/rel/demo")
+
+    test "creates a random cookie if no cookie" do
+      assert copy_cookie(release([]), "COOKIE")
+      assert byte_size(File.read!(Path.join(@release_root, "COOKIE"))) == 56
+    end
+
+    test "uses the given cookie" do
+      release = release([cookie: "abcdefghijk"])
+      assert copy_cookie(release, "COOKIE")
+      assert File.read!(Path.join(@release_root, "COOKIE")) == "abcdefghijk"
+      refute copy_cookie(release, "COOKIE")
+    end
+
+    test "asks to change if the cookie changes" do
+      assert copy_cookie(release([cookie: "abcdefghijk"]), "COOKIE")
+
+      send(self(), {:mix_shell_input, :yes?, false})
+      refute copy_cookie(release([cookie: "lmnopqrstuv"]), "COOKIE")
+      assert File.read!(Path.join(@release_root, "COOKIE")) == "abcdefghijk"
+
+      send(self(), {:mix_shell_input, :yes?, true})
+      assert copy_cookie(release([cookie: "lmnopqrstuv"]), "COOKIE")
+      assert File.read!(Path.join(@release_root, "COOKIE")) == "lmnopqrstuv"
+    end
+  end
+
+  describe "copy_start_erl/1" do
+    @release_root tmp_path("mix_release/_build/dev/rel/demo")
+
+    test "writes erts and release versions" do
+      assert copy_start_erl(release([]), "start_erl.data")
+      assert File.read!(Path.join(@release_root, "start_erl.data")) == "#{@erts_version} 0.1.0"
+    end
+  end
+
   defp size!(path) do
     File.stat!(path).size
   end
