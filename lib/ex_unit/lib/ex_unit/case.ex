@@ -28,15 +28,15 @@ defmodule ExUnit.Case do
 
   ## Examples
 
-       defmodule AssertionTest do
-         # Use the module
-         use ExUnit.Case, async: true
+      defmodule AssertionTest do
+        # Use the module
+        use ExUnit.Case, async: true
 
-         # The "test" macro is imported by ExUnit.Case
-         test "always pass" do
-           assert true
-         end
-       end
+        # The "test" macro is imported by ExUnit.Case
+        test "always pass" do
+          assert true
+        end
+      end
 
   ## Context
 
@@ -47,7 +47,7 @@ defmodule ExUnit.Case do
         use ExUnit.Case
 
         setup do
-          {:ok, pid} = KV.start_link
+          {:ok, pid} = KV.start_link()
           {:ok, pid: pid}
         end
 
@@ -82,9 +82,9 @@ defmodule ExUnit.Case do
         setup context do
           # Read the :cd tag value
           if cd = context[:cd] do
-            prev_cd = File.cwd!
+            prev_cd = File.cwd!()
             File.cd!(cd)
-            on_exit fn -> File.cd!(prev_cd) end
+            on_exit(fn -> File.cd!(prev_cd) end)
           end
 
           :ok
@@ -511,7 +511,7 @@ defmodule ExUnit.Case do
       defmodule MyTest do
         use ExUnit.Case
 
-        ExUnit.Case.register_attribute __MODULE__, :fixtures, accumulate: true
+        ExUnit.Case.register_attribute(__MODULE__, :fixtures, accumulate: true)
 
         @fixtures :user
         @fixtures {:post, insert: false}
