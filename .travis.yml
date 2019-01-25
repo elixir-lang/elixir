@@ -1,10 +1,14 @@
 language: bash
 sudo: false
 
+before_install:
+  - sudo apt-get install -y faketime
+
 env:
   global:
     - ELIXIR_ASSERT_TIMEOUT=2000
-    - LAST_OTP_RELEASE=OTP-21.2
+    - LATEST_OTP_RELEASE=false
+    - FUTURE=false
   matrix:
     - OTP_RELEASE=OTP-20.0
     - OTP_RELEASE=OTP-20.1
@@ -12,7 +16,7 @@ env:
     - OTP_RELEASE=OTP-20.3
     - OTP_RELEASE=OTP-21.0
     - OTP_RELEASE=OTP-21.1
-    - OTP_RELEASE=OTP-21.2
+    - OTP_RELEASE=OTP-21.2 LATEST_OTP_RELEASE=true FUTURE=true
     - OTP_RELEASE=maint
     - OTP_RELEASE=master
 
@@ -21,6 +25,7 @@ matrix:
   allow_failures:
     - env: OTP_RELEASE=maint
     - env: OTP_RELEASE=master
+    - env: OTP_RELEASE=OTP-21.2 FUTURE=true
 
 install:
   - wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-14.04/${OTP_RELEASE}.tar.gz
@@ -30,6 +35,7 @@ install:
   - PATH=$(pwd)/otp/bin:$PATH
 
 script:
+  # Check for test in the future, only in the latest OTP release
   - export SOURCE_DATE_EPOCH=$(date +%s)
   - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
   - rm -rf .git
@@ -53,10 +59,22 @@ script:
   - diff -r lib/logger/ebin/ lib/logger/ebin_reproducible/
   - diff -r lib/mix/ebin/ lib/mix/ebin_reproducible/
 
-  # Check for reproducible build only in last OTP release
+  # Run tests in the future
   - |
-    if [ "${OTP_RELEASE}" == "${LAST_OTP_RELEASE}" ]; then
+    if [ "${FUTURE}" == true ]; then
+      echo "Emulate \"make test\" in 12 years"
+      faketime -f '+12y' make test
+    fi;
+
+  # Check for reproducible build and test in the future, only in the latest OTP release
+  - |
+    if [ "${LATEST_OTP_RELEASE}" == true ]; then
       echo "Checking for reproducible builds"
+      mkdir -p lib/elixir/ebin_reproducible/
+               lib/eex/ebin_reproducible/
+               lib/iex/ebin_reproducible/
+               lib/logger/ebin_reproducible/
+               lib/mix/ebin_reproducible/
       mv lib/elixir/ebin/* lib/elixir/ebin_reproducible/
       mv lib/eex/ebin/* lib/eex/ebin_reproducible/
       mv lib/iex/ebin/* lib/iex/ebin_reproducible/
