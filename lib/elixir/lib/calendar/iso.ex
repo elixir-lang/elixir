@@ -777,16 +777,6 @@ defmodule Calendar.ISO do
     do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc false
-  def date_to_iso8601(year, month, day, format \\ :extended) do
-    date_to_string(year, month, day, format)
-  end
-
-  @doc false
-  def time_to_iso8601(hour, minute, second, microsecond, format \\ :extended) do
-    time_to_string(hour, minute, second, microsecond, format)
-  end
-
-  @doc false
   def naive_datetime_to_iso8601(
         year,
         month,
