@@ -494,11 +494,12 @@ defmodule Calendar.ISO do
         ) :: String.t()
   def time_to_string(hour, minute, second, microsecond, format \\ :extended)
 
-  def time_to_string(hour, minute, second, {_, 0}, format) do
+  def time_to_string(hour, minute, second, {_, 0}, format) when format in [:basic, :extended] do
     time_to_string_format(hour, minute, second, format)
   end
 
-  def time_to_string(hour, minute, second, {microsecond, precision}, format) do
+  def time_to_string(hour, minute, second, {microsecond, precision}, format)
+      when format in [:basic, :extended] do
     time_to_string_format(hour, minute, second, format) <>
       "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
   end
@@ -514,6 +515,10 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given date into a string.
 
+  By default, returns dates formatted in the "extended" format,
+  for human readability. It also supports the "basic" format
+  through passing the `:basic` option.
+
   ## Examples
 
       iex> Calendar.ISO.date_to_string(2015, 2, 28)
@@ -523,24 +528,31 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.date_to_string(-99, 1, 31)
       "-0099-01-31"
 
+      iex> Calendar.ISO.date_to_string(2015, 2, 28, :basic)
+      "20150228"
+      iex> Calendar.ISO.date_to_string(-99, 1, 31, :basic)
+      "-00990131"
+
   """
   @doc since: "1.4.0"
-  @spec date_to_string(year, month, day) :: String.t()
+  @spec date_to_string(year, month, day, :basic | :extended) :: String.t()
   @impl true
-  def date_to_string(year, month, day) do
-    date_to_string(year, month, day, :extended)
-  end
+  def date_to_string(year, month, day, format \\ :extended)
 
-  defp date_to_string(year, month, day, :extended) do
+  def date_to_string(year, month, day, :extended) do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
   end
 
-  defp date_to_string(year, month, day, :basic) do
+  def date_to_string(year, month, day, :basic) do
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 
   @doc """
   Converts the datetime (without time zone) into a string.
+
+  By default, returns datetimes formatted in the "extended" format,
+  for human readability. It also supports the "basic" format
+  through passing the `:basic` option.
 
   ## Examples
 
@@ -548,6 +560,9 @@ defmodule Calendar.ISO do
       "2015-02-28 01:02:03.000004"
       iex> Calendar.ISO.naive_datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5})
       "2017-08-01 01:02:03.00000"
+
+      iex> Calendar.ISO.naive_datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 6}, :basic)
+      "20150228 010203.000004"
 
   """
   @doc since: "1.4.0"
@@ -559,14 +574,30 @@ defmodule Calendar.ISO do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond()
+          Calendar.microsecond(),
+          :basic | :extended
         ) :: String.t()
-  def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) do
-    date_to_string(year, month, day) <> " " <> time_to_string(hour, minute, second, microsecond)
+  def naive_datetime_to_string(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        format \\ :extended
+      )
+      when format in [:basic, :extended] do
+    date_to_string(year, month, day, format) <>
+      " " <> time_to_string(hour, minute, second, microsecond, format)
   end
 
   @doc """
   Converts the datetime (with time zone) into a string.
+
+  By default, returns datetimes formatted in the "extended" format,
+  for human readability. It also supports the "basic" format
+  through passing the `:basic` option.
 
   ## Examples
 
@@ -582,6 +613,10 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.datetime_to_string(2015, 2, 28, 1, 2, 3, {4, 5}, time_zone, "PDT", -28800, 3600)
       "2015-02-28 01:02:03.00000-07:00 PDT America/Los_Angeles"
 
+      iex> time_zone = "Europe/Berlin"
+      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "CET", 3600, 0, :basic)
+      "20170801 010203.00000+0100 CET Europe/Berlin"
+
   """
   @doc since: "1.4.0"
   @impl true
@@ -596,7 +631,8 @@ defmodule Calendar.ISO do
           Calendar.time_zone(),
           Calendar.zone_abbr(),
           Calendar.utc_offset(),
-          Calendar.std_offset()
+          Calendar.std_offset(),
+          :basic | :extended
         ) :: String.t()
   def datetime_to_string(
         year,
@@ -609,12 +645,14 @@ defmodule Calendar.ISO do
         time_zone,
         zone_abbr,
         utc_offset,
-        std_offset
-      ) do
-    date_to_string(year, month, day) <>
+        std_offset,
+        format \\ :extended
+      )
+      when format in [:basic, :extended] do
+    date_to_string(year, month, day, format) <>
       " " <>
-      time_to_string(hour, minute, second, microsecond) <>
-      offset_to_string(utc_offset, std_offset, time_zone) <>
+      time_to_string(hour, minute, second, microsecond, format) <>
+      offset_to_string(utc_offset, std_offset, time_zone, format) <>
       zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
   end
 
@@ -677,7 +715,6 @@ defmodule Calendar.ISO do
     {0, 1}
   end
 
-  defp offset_to_string(utc, std, zone, format \\ :extended)
   defp offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
 
   defp offset_to_string(utc, std, _zone, format) do
