@@ -60,11 +60,60 @@ defmodule Mix.Tasks.Release do
   are capable of processing the standard input/output and redirecting
   the log contents elsewhere.
 
+  For those looking for alternate ways of running the system, you can
+  run it as a daemon on Unix-like system or install it as a service on
+  Windows.
+
+  ### Daemon mode (Unix-like)
+
   If you open up `bin/start`, you will also see there is an option to
-  run the release in daemon mode. In daemon mode, the system is started
-  on the background via [run_erl](http://erlang.org/doc/man/run_erl.html)
-  on Unix-like systems and [erlsrv](http://erlang.org/doc/man/erlsrv.html)
-  on Windows systems.
+  run the release in daemon mode:
+
+      bin/RELEASE_NAME daemon iex
+
+  In daemon mode, the system is started on the background via
+  [run_erl](http://erlang.org/doc/man/run_erl.html). Running in
+  daemon mode also allows developers to enable [heart](http://erlang.org/doc/man/heart.html)
+  by adding `-heart` to their vm.args file (see a later section
+  on customizing vm.args). `heart` automatically restarts the
+  system in case it crashes.
+
+  The daemon will write all of its standard output to the "tmp/log/"
+  directory in the release root. A developer can also attach
+  to the standard input of the daemon by invoking "to_erl tmp/pipe/"
+  from the release root. However, note that attaching to the system
+  should be done with extreme care, since the usual commands for
+  exiting an Elixir system, such as hitting Ctrl+C twice or Ctrl+\\,
+  whill actually shut down the daemon. Therefore, using
+  `bin/RELEASE_NAME remote` should be preferred, even in daemon mode.
+
+  You can customize the tmp directory used both for logging and for piping
+  in daemon mode by setting the `RELEASE_TMP` environment variable before
+  starting the system.
+
+  ### Services mode
+
+  While daemons are not available on Windows, it is possible to install a
+  released system as a service on Windows with the help of
+  [erlsrv](http://erlang.org/doc/man/erlsrv.html). This can be done by
+  running:
+
+      bin/RELEASE_NAME install
+
+  Once installed, the service must be explicitly managed via the `erlsrv`
+  executable, which is included in the `erts-VSN/bin` directory.
+  The service is not started automatically after installing.
+
+  For example, if you have a release named `demo`, you can install
+  the service and then start it from the release root as follows:
+
+      bin/demo install
+      erts-VSN/bin/erlsrv.exs start demo_demo
+
+  The name of the service is `demo_demo` because the name is built
+  by concatenating the node name with the release name. Since Elixir
+  automatically uses the same name for both, the service will be
+  referenced as `demo_demo`.
 
   ## Deployments
 
@@ -492,7 +541,7 @@ defmodule Mix.Tasks.Release do
   """
 
   # v0.1
-  # TODO: Test protocol consolidation and environment variables
+  # TODO: Test protocol consolidation and environment variables.
 
   use Mix.Task
   import Mix.Generator
@@ -800,11 +849,17 @@ defmodule Mix.Tasks.Release do
     end
   end
 
-  # TODO: Implement windows CLI
-  defp cli_for(_os, release) do
+  defp cli_for(:unix, release) do
     [
       {"start", start_template(name: release.name)},
       {"#{release.name}", cli_template(name: release.name)}
+    ]
+  end
+
+  defp cli_for(:windows, release) do
+    [
+      {"start.bat", start_bat_template(name: release.name)},
+      {"#{release.name}.bat", cli_bat_template(name: release.name)}
     ]
   end
 
@@ -959,5 +1014,105 @@ defmodule Mix.Tasks.Release do
       fi
       ;;
   esac
+  """)
+
+  embed_template(:start_bat, ~S"""
+  @echo off
+  rem Feel free to edit this file in anyway you want
+  rem To start your system using IEx: %~dp0/<%= @name %> start iex
+  %~dp0/<%= @name %> start
+  """)
+
+  embed_template(:cli_bat, ~S"""
+  @echo off
+  setlocal enabledelayedexpansion
+
+  pushd .
+  cd "%~dp0/.."
+  set RELEASE_ROOT=%cd%
+  popd
+
+  if not defined RELEASE_NAME (set RELEASE_NAME=<%= @name %>)
+  if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!/releases/start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
+  if not defined COOKIE (set /p COOKIE=<!RELEASE_ROOT!/releases/COOKIE)
+  set REL_VSN_DIR=!RELEASE_ROOT!/releases/!RELEASE_VSN!
+
+  if "%~1" == "start" (goto start)
+  if "%~1" == "remote" (goto remote)
+  if "%~1" == "install" (goto install)
+  if "%~1" == "stop" (set REL_RPC="System.stop()" && goto rpc)
+  if "%~1" == "restart" (set REL_RPC="System.stop()" && goto rpc)
+  if "%~1" == "pid" (set REL_RPC="IO.puts System.pid" && goto rpc)
+  if "%~1" == "rpc" (
+    if "%~2" == "" (
+      echo ERROR: RPC expects an expression as argument
+    goto end
+    )
+    set REL_RPC="%~2" && goto rpc
+  )
+
+  echo Usage: %~nx0 COMMAND [ARGS]
+  echo.
+  echo The known commands are:
+  echo.
+  echo    start [elixir ^| iex]   Starts the system using elixir or iex
+  echo    install                Installs this system as a Windows service
+  echo    remote                 Connects to the running system via a remote shell
+  echo    rpc "EXPR"             Executes the given expression remotely on the running system
+  echo    restart                Restarts the running system via a remote command
+  echo    stop                   Stops the running system via a remote command
+  echo    pid                    Prints the OS PID of the running system via a remote command
+  echo.
+  if not "%~1" == "" (echo ERROR: Unknown command %~1)
+  goto end
+
+  :start
+  if not "%~2" == "" (set REL_EXEC=%~2) else (set REL_EXEC=elixir)
+  "!REL_VSN_DIR!/!REL_EXEC!.bat" --no-halt ^
+    --werl --name "!RELEASE_NAME!@127.0.0.1" --cookie "!COOKIE!" ^
+    --erl-config "!REL_VSN_DIR!\sys" ^
+    --boot "!REL_VSN_DIR!\start" ^
+    --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
+    --vm-args "!REL_VSN_DIR!\vm.args"
+  goto end
+
+  :remote
+  "!REL_VSN_DIR!/iex.bat" ^
+    --werl --hidden --name "remote-!RANDOM!@127.0.0.1" --cookie "!COOKIE!" ^
+    --boot "!REL_VSN_DIR!\remote" ^
+    --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
+    --remsh "!RELEASE_NAME!@127.0.0.1"
+  goto end
+
+  :rpc
+  "!REL_VSN_DIR!/elixir.bat" ^
+    --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!COOKIE!" ^
+    --boot "!REL_VSN_DIR!\remote" ^
+    --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
+    --rpc-eval "!RELEASE_NAME!@127.0.0.1" !REL_RPC!
+  goto end
+
+  :install
+  set ERLSRV=!RELEASE_ROOT!\erts-!ERTS_VSN!\bin\erlsrv.exe
+
+  !ERLSRV! add !RELEASE_NAME!_!RELEASE_NAME! ^
+    -machine !RELEASE_ROOT!/erts-!ERTS_VSN!/bin/start_erl.exe ^
+    -name "!RELEASE_NAME!@127.0.0.1" ^
+    -args "-setcookie !COOKIE! -config !REL_VSN_DIR!\sys -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
+
+  if %ERRORLEVEL% EQU 0 (
+    echo Service installed but not started. From now on, it must be started and stopped by erlsrv:
+    echo.
+    echo     !ERLSRV! start !RELEASE_NAME!_!RELEASE_NAME!
+    echo     !ERLSRV! stop !RELEASE_NAME!_!RELEASE_NAME!
+    echo     !ERLSRV! remove !RELEASE_NAME!_!RELEASE_NAME!
+    echo     !ERLSRV! list
+    echo     !ERLSRV! help
+    echo.
+  )
+  goto end
+
+  :end
+  endlocal
   """)
 end
