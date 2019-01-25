@@ -201,7 +201,7 @@ defmodule ExUnit.Assertions do
   The correct way to write the refutation above is to use
   `Kernel.match?/2`:
 
-      refute match? {:ok, _}, some_function_that_returns_error_tuple()
+      refute match?({:ok, _}, some_function_that_returns_error_tuple())
 
   ## Examples
 
@@ -413,10 +413,10 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      send self(), :hello
+      send(self(), :hello)
       assert_received :hello
 
-      send self(), :bye
+      send(self(), :bye)
       assert_received :hello, "Oh No!"
       ** (ExUnit.AssertionError) Oh No!
       Process mailbox:
@@ -424,7 +424,7 @@ defmodule ExUnit.Assertions do
 
   You can also match against specific patterns:
 
-      send self(), {:hello, "world"}
+      send(self(), {:hello, "world"})
       assert_received {:hello, _}
 
   """
@@ -758,7 +758,7 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      assert catch_throw(throw 1) == 1
+      assert catch_throw(throw(1)) == 1
 
   """
   defmacro catch_throw(expression) do
@@ -772,7 +772,7 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      assert catch_exit(exit 1) == 1
+      assert catch_exit(exit(1)) == 1
 
   To assert exits from linked processes started from the test, trap exits
   with `Process.flag/2` and assert the exit message with `assert_received/2`.
@@ -793,7 +793,7 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      assert catch_error(error 1) == 1
+      assert catch_error(error(1)) == 1
 
   """
   defmacro catch_error(expression) do
@@ -861,10 +861,10 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      send self(), :hello
+      send(self(), :hello)
       refute_received :bye
 
-      send self(), :hello
+      send(self(), :hello)
       refute_received :hello, "Oh No!"
       ** (ExUnit.AssertionError) Oh No!
       Process mailbox:
@@ -940,7 +940,7 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      flunk "This should raise an error"
+      flunk("This should raise an error")
 
   """
   @spec flunk :: no_return
