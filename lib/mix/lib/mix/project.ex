@@ -590,6 +590,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/dev/consolidated"
 
   """
+  @spec consolidation_path(keyword) :: Path.t()
   def consolidation_path(config \\ config()) do
     if umbrella?(config) do
       Path.join(build_path(config), "consolidated")
