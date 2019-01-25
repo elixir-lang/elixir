@@ -135,6 +135,7 @@ defmodule Mix.Release do
     end
   end
 
+  # TODO: Raise if there are multiple releases and no name is given.
   defp lookup_release(nil, config) do
     case Keyword.get(config, :releases, []) do
       [{name, opts} | _] -> {name, opts}
