@@ -39,9 +39,9 @@ defmodule ExUnit.DocTest do
 
   Expressions on multiple lines are also supported:
 
-      iex> Enum.map [1, 2, 3], fn(x) ->
+      iex> Enum.map([1, 2, 3], fn x ->
       ...>   x * 2
-      ...> end
+      ...> end)
       [2, 4, 6]
 
   Multiple results can be checked within the same test:
@@ -126,7 +126,7 @@ defmodule ExUnit.DocTest do
 
   You can also showcase expressions raising an exception, for example:
 
-      iex(1)> String.to_atom((fn() -> 1 end).())
+      iex(1)> String.to_atom((fn -> 1 end).())
       ** (ArgumentError) argument error
 
   What DocTest will be looking for is a line starting with `** (` and it
