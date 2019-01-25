@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Release do
   distribution and version as the machine running the `mix release`
   command.
 
-  A release can be configured in your `mix.exs` file under the releases
+  A release can be configured in your `mix.exs` file under the `:releases`
   key inside `def project`:
 
       def project do
@@ -26,16 +26,20 @@ defmodule Mix.Tasks.Release do
         ]
       end
 
-  Each key represents the release name. Releasing a certain name is done
-  with:
+  You can specify multiple releases where the key is the release name
+  and the value is a keyword list with the release configuration.
+  Releasing a certain name is done with:
 
       MIX_ENV=prod mix release demo
 
   If the given name does not exist, an error is raised.
 
   If `mix release`, without a name, is invoked and there are multiple names,
-  the first name is used. If `mix release` is invoked and there are no names,
-  a release using the application name and default values is assembled.
+  an error will be raised unless you set `default_release: NAME` at the root
+  of your project configuration.
+
+  If `mix release` is invoked and there are no names, a release using the
+  application name and default values is assembled.
 
   ## Running the release
 

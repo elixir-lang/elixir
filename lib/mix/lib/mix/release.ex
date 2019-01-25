@@ -135,11 +135,19 @@ defmodule Mix.Release do
     end
   end
 
-  # TODO: Raise if there are multiple releases and no name is given.
   defp lookup_release(nil, config) do
     case Keyword.get(config, :releases, []) do
-      [{name, opts} | _] -> {name, opts}
-      _ -> nil
+      [] ->
+        nil
+
+      [{name, opts}] ->
+        {name, opts}
+
+      [_ | _] ->
+        Mix.raise(
+          "\"mix release\" was invoked without a name but there are multiple releases. " <>
+            "Please call \"mix release NAME\" or set :default_release in your project configuration"
+        )
     end
   end
 

@@ -68,25 +68,7 @@ defmodule Mix.ReleaseTest do
       assert release.options[:quiet]
     end
 
-    test "uses first release available" do
-      release =
-        from_config!(
-          nil,
-          config(releases: [foo: [version: "0.2.0"], bar: [version: "0.3.0"]]),
-          []
-        )
-
-      assert release.name == :foo
-      assert release.version == "0.2.0"
-      assert String.ends_with?(release.path, "mix_release/_build/dev/rel/foo")
-
-      assert String.ends_with?(
-               release.version_path,
-               "mix_release/_build/dev/rel/foo/releases/0.2.0"
-             )
-    end
-
-    test "uses chosen release" do
+    test "uses chosen release via the CLI" do
       release =
         from_config!(
           :bar,
@@ -102,6 +84,33 @@ defmodule Mix.ReleaseTest do
                release.version_path,
                "mix_release/_build/dev/rel/bar/releases/0.3.0"
              )
+    end
+
+    test "uses chosen release via the default_release" do
+      release =
+        from_config!(
+          :bar,
+          config(
+            default_release: :bar,
+            releases: [foo: [version: "0.2.0"], bar: [version: "0.3.0"]]
+          ),
+          []
+        )
+
+      assert release.name == :bar
+      assert release.version == "0.3.0"
+      assert String.ends_with?(release.path, "mix_release/_build/dev/rel/bar")
+
+      assert String.ends_with?(
+               release.version_path,
+               "mix_release/_build/dev/rel/bar/releases/0.3.0"
+             )
+    end
+
+    test "raises for multiple releases and no name" do
+      assert_raise Mix.Error,
+                   ~r"\"mix release\" was invoked without a name but there are multiple releases",
+                   fn -> from_config!(nil, config(releases: [foo: [], bar: []]), []) end
     end
 
     test "raises for unknown release" do
