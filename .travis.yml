@@ -67,6 +67,7 @@ script:
       mv lib/iex/ebin/* lib/iex/ebin_reproducible/
       mv lib/logger/ebin/* lib/logger/ebin_reproducible/
       mv lib/mix/ebin/* lib/mix/ebin_reproducible/
+      make clean
       make compile
       diff -r lib/elixir/ebin/ lib/elixir/ebin_reproducible/
       diff -r lib/eex/ebin/ lib/eex/ebin_reproducible/
