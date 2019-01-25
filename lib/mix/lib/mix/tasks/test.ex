@@ -188,7 +188,7 @@ defmodule Mix.Tasks.Test do
   some particular tests from running by default in your test helper file:
 
       # Exclude all external tests from running
-      ExUnit.configure exclude: [external: true]
+      ExUnit.configure(exclude: [external: true])
 
   Then, whenever desired, those tests could be included in the run via the
   `--include` option:
