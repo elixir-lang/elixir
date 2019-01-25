@@ -72,7 +72,7 @@ defmodule ExUnit.Callbacks do
 
         # "setup_all" is called once per module before any test runs
         setup_all do
-          IO.puts "Starting AssertionTest"
+          IO.puts("Starting AssertionTest")
 
           # Context is not updated here
           :ok
@@ -80,11 +80,11 @@ defmodule ExUnit.Callbacks do
 
         # "setup" is called before each test
         setup do
-          IO.puts "This is a setup callback for #{inspect self()}"
+          IO.puts("This is a setup callback for #{inspect(self())}")
 
-          on_exit fn ->
-            IO.puts "This is invoked once the test is done. Process: #{inspect self()}"
-          end
+          on_exit(fn ->
+            IO.puts("This is invoked once the test is done. Process: #{inspect(self())}")
+          end)
 
           # Returns extra metadata to be merged into context
           [hello: "world"]
@@ -97,7 +97,7 @@ defmodule ExUnit.Callbacks do
 
         # Same as above, but receives the context as argument
         setup context do
-          IO.puts "Setting up: #{context.test}"
+          IO.puts("Setting up: #{context.test}")
           :ok
         end
 
