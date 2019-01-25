@@ -115,6 +115,8 @@ defmodule Mix.Tasks.Release do
   automatically uses the same name for both, the service will be
   referenced as `demo_demo`.
 
+  The `install` command must be executed as an administrator.
+
   ## Deployments
 
   ### Requirements
@@ -542,6 +544,7 @@ defmodule Mix.Tasks.Release do
 
   # v0.1
   # TODO: Test protocol consolidation and environment variables.
+  # TODO: Test symlinks.
 
   use Mix.Task
   import Mix.Generator
@@ -583,10 +586,7 @@ defmodule Mix.Tasks.Release do
     if not File.exists?(release.version_path) or
          yes?(release, "Release #{release.name}-#{release.version} already exists. Overwrite?") do
       assemble(release)
-
-      unless release.options[:quiet] do
-        announce(release)
-      end
+      announce(release)
     end
   end
 
@@ -595,6 +595,9 @@ defmodule Mix.Tasks.Release do
   end
 
   defp assemble(release) do
+    message = "#{release.name}-#{release.version} on MIX_ENV=#{Mix.env()}"
+    info(release, [:green, "* assembling ", :reset, message])
+
     # releases/
     #   VERSION/
     #     consolidated/
@@ -770,9 +773,9 @@ defmodule Mix.Tasks.Release do
     path = Path.relative_to_cwd(release.path)
     cmd = "#{path}/bin/#{release.name}"
 
-    Mix.shell().info([:green, "Release created at #{path}!"])
+    info(release, """
 
-    Mix.shell().info("""
+    Release created at #{path}!
 
         # To start your system
         #{path}/bin/start
@@ -789,6 +792,12 @@ defmodule Mix.Tasks.Release do
 
         #{cmd}
     """)
+  end
+
+  defp info(release, command) do
+    unless release.options[:quiet] do
+      Mix.shell().info(command)
+    end
   end
 
   ## Copy operations
@@ -1093,10 +1102,13 @@ defmodule Mix.Tasks.Release do
   goto end
 
   :install
-  set ERLSRV=!RELEASE_ROOT!\erts-!ERTS_VSN!\bin\erlsrv.exe
+  if exist !RELEASE_ROOT!\erts-!ERTS_VSN! (
+    set ERLSRV=!RELEASE_ROOT!\erts-!ERTS_VSN!\bin\erlsrv.exe
+  ) else (
+    set ERLSRV=erlsrv.exe
+  )
 
   !ERLSRV! add !RELEASE_NAME!_!RELEASE_NAME! ^
-    -machine !RELEASE_ROOT!/erts-!ERTS_VSN!/bin/start_erl.exe ^
     -name "!RELEASE_NAME!@127.0.0.1" ^
     -args "-setcookie !COOKIE! -config !REL_VSN_DIR!\sys -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
 
