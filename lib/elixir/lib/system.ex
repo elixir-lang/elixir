@@ -555,6 +555,7 @@ defmodule System do
 
   """
   @doc since: "1.9.0"
+  @spec pid :: String.t()
   def pid do
     List.to_string(:os.getpid())
   end
@@ -571,6 +572,7 @@ defmodule System do
 
   """
   @doc since: "1.9.0"
+  @spec restart :: :ok
   defdelegate restart(), to: :init
 
   @doc """
