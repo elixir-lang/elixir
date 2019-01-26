@@ -115,10 +115,11 @@ install: compile
 
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
-	$(Q) export SOURCE_DATE_EPOCH="$(shell bin/elixir -e 'IO.puts System.build_info()[:date] |> \
-                                                  DateTime.from_iso8601() |> \
-                                                  elem(1) |> \
-                                                  DateTime.to_unix()')"
+	$(Q) export SOURCE_DATE_EPOCH="$(shell bin/elixir -e \
+                                               'IO.puts System.build_info()[:date] |> \
+                                                DateTime.from_iso8601() |> \
+                                                elem(1) |> \
+                                                DateTime.to_unix()')"
 	$(Q) $(MAKE) clean_reproducible_files
 	$(Q) echo "Moving files to ebin_reproducible/ ..."
 	$(Q) mkdir -p lib/elixir/ebin_reproducible/ \
@@ -131,7 +132,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/ebin_reproducible/
-	SOURCE_DATE_EPOCH="$(call SOURCE_DATE_EPOCH)" $(MAKE) compile
+	$(MAKE) compile
 	$(Q) echo "Diffing..."
 	$(Q) diff -r lib/elixir/ebin/ lib/elixir/ebin_reproducible/
 	$(Q) diff -r lib/eex/ebin/ lib/eex/ebin_reproducible/
