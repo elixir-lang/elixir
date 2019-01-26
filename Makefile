@@ -139,7 +139,6 @@ check_reproducible: compile
 	$(Q) diff -r lib/iex/ebin/ lib/iex/tmp/ebin_reproducible/
 	$(Q) diff -r lib/logger/ebin/ lib/logger/tmp/ebin_reproducible/
 	$(Q) diff -r lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
-	$(Q) $(MAKE) clean_reproducible_files
 	$(Q) echo "Builds are reproducible"
 
 clean:
