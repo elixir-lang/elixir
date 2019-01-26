@@ -6,14 +6,14 @@ env:
     - ELIXIR_ASSERT_TIMEOUT=2000
   matrix:
     - OTP_RELEASE=OTP-20.0
-    # - OTP_RELEASE=OTP-20.1
-    # - OTP_RELEASE=OTP-20.2
-    # - OTP_RELEASE=OTP-20.3
-    # - OTP_RELEASE=OTP-21.0
-    # - OTP_RELEASE=OTP-21.1
+    - OTP_RELEASE=OTP-20.1
+    - OTP_RELEASE=OTP-20.2
+    - OTP_RELEASE=OTP-20.3
+    - OTP_RELEASE=OTP-21.0
+    - OTP_RELEASE=OTP-21.1
     - OTP_RELEASE=OTP-21.2 CHECK_REPRODUCIBLE=true
-    # - OTP_RELEASE=maint
-    # - OTP_RELEASE=master
+    - OTP_RELEASE=maint
+    - OTP_RELEASE=master
 
 matrix:
   fast_finish: true
