@@ -17,7 +17,7 @@ INSTALL_PROGRAM = $(INSTALL) -m755
 GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
 GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1) )
 
-.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files clean_reproducible_files install_man clean_man docs Docs.zip Precompiled.zip zips
+.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -120,7 +120,7 @@ check_reproducible: compile
                                             |> DateTime.from_iso8601() \
                                             |> elem(1) \
                                             |> DateTime.to_unix()')"
-	$(Q) $(MAKE) clean_reproducible_files
+	$(Q) rm -rf lib/*/tmp/ebin_reproducible
 	$(Q) echo "Moving files to ebin_reproducible/ ..."
 	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
                       lib/eex/tmp/ebin_reproducible/ \
@@ -160,9 +160,6 @@ clean_residual_files:
 	rm -rf lib/mix/test/fixtures/git_sparse_repo/
 	rm -f erl_crash.dump
 	$(Q) $(MAKE) clean_man
-
-clean_reproducible_files:
-	rm -rf lib/*/tmp/ebin_reproducible
 
 #==> Documentation tasks
 
