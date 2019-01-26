@@ -17,7 +17,7 @@ INSTALL_PROGRAM = $(INSTALL) -m755
 GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
 GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1) )
 
-.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
+.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files clean_reproducible_files install_man clean_man docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -113,11 +113,40 @@ install: compile
 	done
 	$(MAKE) install_man
 
+check_reproducible: compile
+	$(Q) echo "==> Checking for reproducible builds..."
+	$(Q) SOURCE_DATE_EPOCH=$(shell bin/elixir -e 'IO.puts System.build_info()[:date] |> \
+                                                  DateTime.from_iso8601() |> \
+                                                  elem(1) |> \
+                                                  DateTime.to_unix()')
+	$(Q) $(MAKE) clean_reproducible_files
+	$(Q) echo "Moving files to ebin_reproducible/ ..."
+	$(Q) mkdir -p lib/elixir/ebin_reproducible/ \
+                      lib/eex/ebin_reproducible/ \
+	              lib/iex/ebin_reproducible/ \
+	              lib/logger/ebin_reproducible/ \
+	              lib/mix/ebin_reproducible/
+	$(Q) mv lib/elixir/ebin/* lib/elixir/ebin_reproducible/
+	$(Q) mv lib/eex/ebin/* lib/eex/ebin_reproducible/
+	$(Q) mv lib/iex/ebin/* lib/iex/ebin_reproducible/
+	$(Q) mv lib/logger/ebin/* lib/logger/ebin_reproducible/
+	$(Q) mv lib/mix/ebin/* lib/mix/ebin_reproducible/
+	SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}" $(MAKE) compile
+	$(Q) echo "Diffing..."
+	$(Q) diff -r lib/elixir/ebin/ lib/elixir/ebin_reproducible/
+	$(Q) diff -r lib/eex/ebin/ lib/eex/ebin_reproducible/
+	$(Q) diff -r lib/iex/ebin/ lib/iex/ebin_reproducible/
+	$(Q) diff -r lib/logger/ebin/ lib/logger/ebin_reproducible/
+	$(Q) diff -r lib/mix/ebin/ lib/mix/ebin_reproducible/
+	$(Q) $(MAKE) clean_reproducible_files
+	$(Q) echo "Builds are reproducible"
+
 clean:
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf $(PARSER)
 	$(Q) $(MAKE) clean_residual_files
+	$(Q) $(MAKE) clean_reproducible_files
 
 clean_elixir:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
@@ -132,6 +161,9 @@ clean_residual_files:
 	rm -rf lib/mix/test/fixtures/git_sparse_repo/
 	rm -f erl_crash.dump
 	$(Q) $(MAKE) clean_man
+
+clean_reproducible_files:
+	rm -rf lib/*/ebin_reproducible
 
 #==> Documentation tasks
 

@@ -30,52 +30,16 @@ install:
   - PATH=$(pwd)/otp/bin:$PATH
 
 script:
-  - export SOURCE_DATE_EPOCH=$(date +%s)
-  - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
   - rm -rf .git
-  - make compile
+  - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
   - make test
   - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
-  - mkdir -p lib/elixir/ebin_reproducible/
-             lib/eex/ebin_reproducible/
-             lib/iex/ebin_reproducible/
-             lib/logger/ebin_reproducible/
-             lib/mix/ebin_reproducible/
-  - mv lib/elixir/ebin/* lib/elixir/ebin_reproducible/
-  - mv lib/eex/ebin/* lib/eex/ebin_reproducible/
-  - mv lib/iex/ebin/* lib/iex/ebin_reproducible/
-  - mv lib/logger/ebin/* lib/logger/ebin_reproducible/
-  - mv lib/mix/ebin/* lib/mix/ebin_reproducible/
-  - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
-  - diff -r lib/elixir/ebin/ lib/elixir/ebin_reproducible/
-  - diff -r lib/eex/ebin/ lib/eex/ebin_reproducible/
-  - diff -r lib/iex/ebin/ lib/iex/ebin_reproducible/
-  - diff -r lib/logger/ebin/ lib/logger/ebin_reproducible/
-  - diff -r lib/mix/ebin/ lib/mix/ebin_reproducible/
 
   # Check for reproducible builds only in the latest OTP release
   - |
     if [ "${LATEST_OTP_RELEASE}" == true ]; then
-      echo "Checking for reproducible builds"
-      mkdir -p lib/elixir/ebin_reproducible/
-               lib/eex/ebin_reproducible/
-               lib/iex/ebin_reproducible/
-               lib/logger/ebin_reproducible/
-               lib/mix/ebin_reproducible/
-      mv lib/elixir/ebin/* lib/elixir/ebin_reproducible/
-      mv lib/eex/ebin/* lib/eex/ebin_reproducible/
-      mv lib/iex/ebin/* lib/iex/ebin_reproducible/
-      mv lib/logger/ebin/* lib/logger/ebin_reproducible/
-      mv lib/mix/ebin/* lib/mix/ebin_reproducible/
-      make clean
-      make compile
-      diff -r lib/elixir/ebin/ lib/elixir/ebin_reproducible/
-      diff -r lib/eex/ebin/ lib/eex/ebin_reproducible/
-      diff -r lib/iex/ebin/ lib/iex/ebin_reproducible/
-      diff -r lib/logger/ebin/ lib/logger/ebin_reproducible/
-      diff -r lib/mix/ebin/ lib/mix/ebin_reproducible/
+      make check_reproducible
     fi;
->>>>>>> Only execute reproducible build in lastest OTP release
 
 notifications:
   recipients:
