@@ -226,6 +226,7 @@ defmodule Port do
 
   For more information, see `:erlang.port_info/1`.
   """
+  @spec info(port) :: keyword | nil
   def info(port) do
     nillify(:erlang.port_info(port))
   end
