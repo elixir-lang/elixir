@@ -16,6 +16,8 @@ INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
 GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1) )
+SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
+SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
 .PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
@@ -46,12 +48,16 @@ test_$(1): compile $(1)
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
 endef
 
-define SOURCE_DATE_EPOCH
-$(shell bin/elixir -e \
+define write_SOURCE_DATE_EPOCH
+$(shell mkdir -p $(SOURCE_DATE_EPOCH_PATH) && bin/elixir -e \
   'IO.puts System.build_info()[:date] \
    |> DateTime.from_iso8601() \
    |> elem(1) \
-   |> DateTime.to_unix()')
+   |> DateTime.to_unix()' > $(SOURCE_DATE_EPOCH_FILE))
+endef
+
+define read_SOURCE_DATE_EPOCH
+$(strip $(shell cat $(SOURCE_DATE_EPOCH_FILE)))
 endef
 
 #==> Compilation tasks
@@ -123,8 +129,9 @@ install: compile
 
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
-	$(Q) rm -rf lib/*/tmp/ebin_reproducible
-	$(Q) echo "Moving files to ebin_reproducible/ ..."
+	$(Q) rm -rf lib/*/tmp/ebin_reproducible/
+	$(Q) echo "Moving files lib/*/tmp/ebin_reproducible/ ..."
+	$(call write_SOURCE_DATE_EPOCH)
 	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
                       lib/eex/tmp/ebin_reproducible/ \
 	              lib/iex/tmp/ebin_reproducible/ \
@@ -135,7 +142,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
-	SOURCE_DATE_EPOCH=$(call SOURCE_DATE_EPOCH) $(MAKE) compile
+	SOURCE_DATE_EPOCH=$(call read_SOURCE_DATE_EPOCH) $(MAKE) compile
 	$(Q) echo "Diffing..."
 	$(Q) diff -r lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
 	$(Q) diff -r lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
