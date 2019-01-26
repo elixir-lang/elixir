@@ -163,7 +163,13 @@ to be installed and built alongside Elixir:
 # After cloning and compiling Elixir, in its parent directory:
 git clone git://github.com/elixir-lang/ex_doc.git
 cd ex_doc && ../elixir/bin/mix do deps.get, compile
-cd ../elixir && make docs # Or: make docs DOCS_FORMAT=epub
+```
+
+Now go back to Elixir's root directory and run:
+
+```sh
+make docs                  # to generate HTML pages
+make docs DOCS_FORMAT=epub # to generate EPUB documents
 ```
 
 This will produce documentation sets for `elixir`, `mix`, etc. under
