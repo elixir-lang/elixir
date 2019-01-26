@@ -40,10 +40,13 @@ defmodule Mix.Tasks.Compile.App do
   For example:
 
       def application do
-        [extra_applications: [:logger, :crypto],
-         env: [key: :value],
-         registered: [MyServer]]
+        [
+          extra_applications: [:logger, :crypto],
+          env: [key: :value],
+          registered: [MyServer]
+        ]
       end
+
 
   Other options include:
 
@@ -94,15 +97,19 @@ defmodule Mix.Tasks.Compile.App do
   Let's see an example `MyApp.application/0` function:
 
       def application do
-        [start_phases: [init: [], go: [], finish: []],
-         included_applications: [:my_included_app]]
+        [
+          start_phases: [init: [], go: [], finish: []],
+          included_applications: [:my_included_app]
+        ]
       end
 
   And an example `:my_included_app` defines on its `mix.exs` the function:
 
       def application do
-        [mod: {MyIncludedApp, []},
-         start_phases: [go: []]]
+        [
+          mod: {MyIncludedApp, []},
+          start_phases: [go: []]
+        ]
       end
 
   In this example, the order that the application callbacks are called in is:
