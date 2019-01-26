@@ -115,7 +115,7 @@ install: compile
 
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
-	$(Q) SOURCE_DATE_EPOCH="$(shell bin/elixir -e 'IO.puts System.build_info()[:date] |> \
+	$(Q) export SOURCE_DATE_EPOCH="$(shell bin/elixir -e 'IO.puts System.build_info()[:date] |> \
                                                   DateTime.from_iso8601() |> \
                                                   elem(1) |> \
                                                   DateTime.to_unix()')"
