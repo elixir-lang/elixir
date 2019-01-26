@@ -17,13 +17,15 @@ defmodule Mix.Compilers.Erlang do
   For example, a simple compiler for Lisp Flavored Erlang
   would be implemented like:
 
-      manifest = Path.join Mix.Project.manifest_path, "compile.lfe"
-      dest = Mix.Project.compile_path
+      manifest = Path.join(Mix.Project.manifest_path(), "compile.lfe")
+      dest = Mix.Project.compile_path()
 
-      compile manifest, [{"src", dest}], :lfe, :beam, opts, fn input, output ->
-        :lfe_comp.file(to_erl_file(input),
-                       [{:outdir, Path.dirname(output)}, :return, :report])
-      end
+      compile(manifest, [{"src", dest}], :lfe, :beam, opts, fn input, output ->
+        :lfe_comp.file(
+          to_erl_file(input),
+          [{:outdir, Path.dirname(output)}, :return, :report]
+        )
+      end)
 
   The command above will:
 
