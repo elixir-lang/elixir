@@ -46,6 +46,14 @@ test_$(1): compile $(1)
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
 endef
 
+define SOURCE_DATE_EPOCH
+$(shell bin/elixir -e \
+  'IO.puts System.build_info()[:date] \
+   |> DateTime.from_iso8601() \
+   |> elem(1) \
+   |> DateTime.to_unix()')
+endef
+
 #==> Compilation tasks
 
 APP := lib/elixir/ebin/elixir.app
@@ -115,11 +123,6 @@ install: compile
 
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
-	export SOURCE_DATE_EPOCH="$(shell bin/elixir -e \
-                                           'IO.puts System.build_info()[:date] \
-                                            |> DateTime.from_iso8601() \
-                                            |> elem(1) \
-                                            |> DateTime.to_unix()')"
 	$(Q) rm -rf lib/*/tmp/ebin_reproducible
 	$(Q) echo "Moving files to ebin_reproducible/ ..."
 	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
@@ -132,7 +135,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
-	SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}" $(MAKE) compile
+	SOURCE_DATE_EPOCH=$(call SOURCE_DATE_EPOCH) $(MAKE) compile
 	$(Q) echo "Diffing..."
 	$(Q) diff -r lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
 	$(Q) diff -r lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
