@@ -806,6 +806,7 @@ defmodule Registry do
 
   """
   @doc since: "1.5.0"
+  @spec unregister_match(registry, key, match_pattern, guards) :: :ok
   def unregister_match(registry, key, pattern, guards \\ []) when is_list(guards) do
     self = self()
 
