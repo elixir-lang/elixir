@@ -343,7 +343,7 @@ defmodule Date do
 
   def to_iso8601(%{calendar: Calendar.ISO} = date, format) when format in [:basic, :extended] do
     %{year: year, month: month, day: day} = date
-    Calendar.ISO.date_to_iso8601(year, month, day, format)
+    Calendar.ISO.date_to_string(year, month, day, format)
   end
 
   def to_iso8601(%{calendar: _} = date, format) when format in [:basic, :extended] do

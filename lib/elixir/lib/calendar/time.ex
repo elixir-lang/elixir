@@ -301,7 +301,7 @@ defmodule Time do
       microsecond: microsecond
     } = time
 
-    Calendar.ISO.time_to_iso8601(hour, minute, second, microsecond, format)
+    Calendar.ISO.time_to_string(hour, minute, second, microsecond, format)
   end
 
   def to_iso8601(%{calendar: _} = time, format) when format in [:extended, :basic] do
