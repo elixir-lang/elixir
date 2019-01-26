@@ -115,30 +115,30 @@ install: compile
 
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
-	$(Q) export SOURCE_DATE_EPOCH="$(shell bin/elixir -e \
-                                               'IO.puts System.build_info()[:date] |> \
-                                                DateTime.from_iso8601() |> \
-                                                elem(1) |> \
-                                                DateTime.to_unix()')"
+	export SOURCE_DATE_EPOCH="$(shell bin/elixir -e \
+                                           'IO.puts System.build_info()[:date] \
+                                            |> DateTime.from_iso8601() \
+                                            |> elem(1) \
+                                            |> DateTime.to_unix()')"
 	$(Q) $(MAKE) clean_reproducible_files
 	$(Q) echo "Moving files to ebin_reproducible/ ..."
-	$(Q) mkdir -p lib/elixir/ebin_reproducible/ \
-                      lib/eex/ebin_reproducible/ \
-	              lib/iex/ebin_reproducible/ \
-	              lib/logger/ebin_reproducible/ \
-	              lib/mix/ebin_reproducible/
-	$(Q) mv lib/elixir/ebin/* lib/elixir/ebin_reproducible/
-	$(Q) mv lib/eex/ebin/* lib/eex/ebin_reproducible/
-	$(Q) mv lib/iex/ebin/* lib/iex/ebin_reproducible/
-	$(Q) mv lib/logger/ebin/* lib/logger/ebin_reproducible/
-	$(Q) mv lib/mix/ebin/* lib/mix/ebin_reproducible/
-	$(MAKE) compile
+	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
+                      lib/eex/tmp/ebin_reproducible/ \
+	              lib/iex/tmp/ebin_reproducible/ \
+	              lib/logger/tmp/ebin_reproducible/ \
+	              lib/mix/tmp/ebin_reproducible/
+	$(Q) mv lib/elixir/ebin/* lib/elixir/tmp/ebin_reproducible/
+	$(Q) mv lib/eex/ebin/* lib/eex/tmp/ebin_reproducible/
+	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
+	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
+	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
+	SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH}" $(MAKE) compile
 	$(Q) echo "Diffing..."
-	$(Q) diff -r lib/elixir/ebin/ lib/elixir/ebin_reproducible/
-	$(Q) diff -r lib/eex/ebin/ lib/eex/ebin_reproducible/
-	$(Q) diff -r lib/iex/ebin/ lib/iex/ebin_reproducible/
-	$(Q) diff -r lib/logger/ebin/ lib/logger/ebin_reproducible/
-	$(Q) diff -r lib/mix/ebin/ lib/mix/ebin_reproducible/
+	$(Q) diff -r lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
+	$(Q) diff -r lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
+	$(Q) diff -r lib/iex/ebin/ lib/iex/tmp/ebin_reproducible/
+	$(Q) diff -r lib/logger/ebin/ lib/logger/tmp/ebin_reproducible/
+	$(Q) diff -r lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
 	$(Q) $(MAKE) clean_reproducible_files
 	$(Q) echo "Builds are reproducible"
 
@@ -147,7 +147,6 @@ clean:
 	rm -rf lib/*/ebin
 	rm -rf $(PARSER)
 	$(Q) $(MAKE) clean_residual_files
-	$(Q) $(MAKE) clean_reproducible_files
 
 clean_elixir:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
@@ -164,7 +163,7 @@ clean_residual_files:
 	$(Q) $(MAKE) clean_man
 
 clean_reproducible_files:
-	rm -rf lib/*/ebin_reproducible
+	rm -rf lib/*/tmp/ebin_reproducible
 
 #==> Documentation tasks
 

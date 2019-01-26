@@ -1,6 +1,5 @@
 /doc/
 /lib/*/ebin/
-/lib/*/ebin_reproducible/
 /lib/*/_build/
 /lib/*/tmp/
 /lib/elixir/src/*_parser.erl
