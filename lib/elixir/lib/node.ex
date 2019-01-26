@@ -250,6 +250,7 @@ defmodule Node do
 
   This function will raise `FunctionClauseError` if the given `node` is not alive.
   """
+  @spec set_cookie(t, atom) :: true
   def set_cookie(node \\ Node.self(), cookie) when is_atom(cookie) do
     :erlang.set_cookie(node, cookie)
   end
@@ -259,6 +260,7 @@ defmodule Node do
 
   Returns the cookie if the node is alive, otherwise `:nocookie`.
   """
+  @spec get_cookie() :: atom
   def get_cookie() do
     :erlang.get_cookie()
   end
