@@ -580,7 +580,7 @@ defmodule Mix.Tasks.Release do
       case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do
         {overrides, [name]} -> Mix.Release.from_config!(name, config, overrides)
         {overrides, []} -> Mix.Release.from_config!(nil, config, overrides)
-        {_, _} -> Mix.raise("Expected `mix release` or `mix release NAME`")
+        {_, _} -> Mix.raise("Expected \"mix release\" or \"mix release NAME\"")
       end
 
     if not File.exists?(release.version_path) or

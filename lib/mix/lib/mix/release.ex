@@ -206,7 +206,7 @@ defmodule Mix.Release do
   defp load_app(app, seen, otp_root) do
     case :code.lib_dir(app) do
       {:error, :bad_name} ->
-        Mix.raise("Could not find application #{inspect app}")
+        Mix.raise("Could not find application #{inspect(app)}")
 
       path ->
         case :file.consult(Path.join(path, "ebin/#{app}.app")) do
