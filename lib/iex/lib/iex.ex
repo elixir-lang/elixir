@@ -239,7 +239,7 @@ defmodule IEx do
   If we try to dispatch to `Hello.world`, it won't be available
   as it was defined only in the other shell:
 
-      iex(bar@HOST)1> Hello.world
+      iex(bar@HOST)1> Hello.world()
       ** (UndefinedFunctionError) undefined function Hello.world/0
 
   However, we can connect to the other shell remotely. Open up
@@ -252,7 +252,7 @@ defmodule IEx do
   Now we are connected into the remote node, as the prompt shows us,
   and we can access the information and modules defined over there:
 
-      iex(foo@HOST)1> Hello.world
+      iex(foo@HOST)1> Hello.world()
       "it works!"
 
   In fact, connecting to remote shells is so common that we provide
@@ -281,13 +281,13 @@ defmodule IEx do
   For example, take the following `.iex.exs` file:
 
       # Load another ".iex.exs" file
-      import_file "~/.iex.exs"
+      import_file("~/.iex.exs")
 
       # Import some module from lib that may not yet have been defined
-      import_if_available MyApp.Mod
+      import_if_available(MyApp.Mod)
 
       # Print something before the shell starts
-      IO.puts "hello world"
+      IO.puts("hello world")
 
       # Bind a variable that'll be accessible in the shell
       value = 13
@@ -374,11 +374,11 @@ defmodule IEx do
   IEx will also color inspected expressions using the `:syntax_colors`
   option. Such can be disabled with:
 
-      IEx.configure [colors: [syntax_colors: false]]
+      IEx.configure(colors: [syntax_colors: false])
 
   You can also configure the syntax colors, however, as desired:
 
-      IEx.configure [colors: [syntax_colors: [atom: :red]]]
+      IEx.configure(colors: [syntax_colors: [atom: :red]])
 
   Configuration for most built-in data types are supported: `:atom`,
   `:string`, `:binary`, `:list`, `:number`, `:boolean`, `:nil`, etc.
@@ -395,7 +395,7 @@ defmodule IEx do
 
   To show all entries, configure the limit to `:infinity`:
 
-      IEx.configure [inspect: [limit: :infinity]]
+      IEx.configure(inspect: [limit: :infinity])
 
   See `Inspect.Opts` for the full list of options.
 
