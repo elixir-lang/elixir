@@ -10,7 +10,10 @@ defmodule Mix.Release do
     * `:version` - the version of the release as a string
     * `:path` - the path to the release root
     * `:version_path` - the path to the release version inside the release
-    * `:applications` - a list of application release definitions
+    * `:applications` - a map of application with their definitions
+    * `:boot_scripts` - a map of boot scripts with the boot script name
+      as key and a keyword list with **all** applications that are part of
+      it and their modes as value
     * `:erts_source` - the erts source as a charlist (or nil)
     * `:erts_version` - the erts version as a charlist
     * `:config_source` - the path to the build configuration source (or nil)
@@ -24,6 +27,7 @@ defmodule Mix.Release do
     :path,
     :version_path,
     :applications,
+    :boot_scripts,
     :erts_source,
     :erts_version,
     :config_source,
@@ -32,13 +36,14 @@ defmodule Mix.Release do
   ]
 
   @type mode :: :permanent | :transient | :temporary | :load | :none
-  @type application :: {atom(), charlist(), mode} | {atom(), charlist(), mode, [atom()]}
+  @type application :: atom()
   @type t :: %{
           name: atom(),
           version: String.t(),
           path: String.t(),
           version_path: String.t(),
-          applications: [application],
+          applications: %{application() => keyword()},
+          boot_scripts: %{atom() => [{application(), mode()}]},
           erts_version: charlist(),
           erts_source: charlist() | nil,
           config_source: String.t() | nil,
@@ -73,12 +78,9 @@ defmodule Mix.Release do
     {include_erts, opts} = Keyword.pop(opts, :include_erts, true)
     {erts_source, erts_version} = erts_data(include_erts)
 
-    rel_apps =
-      apps
-      |> Map.keys()
-      |> load_apps(%{})
-      |> app_to_rel(apps)
-      |> Enum.sort()
+    loaded_apps = apps |> Map.keys() |> load_apps(%{}, :code.lib_dir())
+    start_boot = build_start_boot(loaded_apps, apps)
+    remote_boot = build_remote_boot()
 
     {path, opts} =
       Keyword.pop_lazy(opts, :path, fn ->
@@ -113,7 +115,8 @@ defmodule Mix.Release do
       version_path: Path.join([path, "releases", version]),
       erts_source: erts_source,
       erts_version: erts_version,
-      applications: rel_apps,
+      applications: loaded_apps,
+      boot_scripts: %{start: start_boot, remote: remote_boot},
       consolidation_source: consolidation_source,
       config_source: config_source,
       options: opts
@@ -206,70 +209,101 @@ defmodule Mix.Release do
     end
   end
 
-  defp load_apps(apps, seen) do
+  defp load_apps(apps, seen, otp_root) do
     for app <- apps,
         not Map.has_key?(seen, app),
         reduce: seen do
-      seen -> load_app(app, seen)
+      seen -> load_app(app, seen, otp_root)
     end
   end
 
-  defp load_app(app, seen) do
-    case :file.consult(Application.app_dir(app, "ebin/#{app}.app")) do
-      {:ok, terms} ->
-        [{:application, ^app, properties}] = terms
-        seen = Map.put(seen, app, properties)
-        load_apps(Keyword.get(properties, :applications, []), seen)
+  defp load_app(app, seen, otp_root) do
+    case :code.lib_dir(app) do
+      {:error, :bad_name} ->
+        Mix.raise("Could not find application #{inspect app}")
 
-      {:error, reason} ->
-        Mix.raise("Could not load #{app}.app. Reason: #{inspect(reason)}")
+      path ->
+        case :file.consult(Path.join(path, "ebin/#{app}.app")) do
+          {:ok, terms} ->
+            [{:application, ^app, properties}] = terms
+            otp_app? = List.starts_with?(path, otp_root)
+            seen = Map.put(seen, app, [path: path, otp_app?: otp_app?] ++ properties)
+            load_apps(Keyword.get(properties, :applications, []), seen, otp_root)
+
+          {:error, reason} ->
+            Mix.raise("Could not load #{app}.app. Reason: #{inspect(reason)}")
+        end
     end
   end
 
-  defp app_to_rel(apps, modes) do
-    for {app, properties} <- apps do
-      mode = Map.get(modes, app, :permanent)
+  defp build_start_boot(apps, modes) do
+    for {app, _} <- apps, do: {app, Map.get(modes, app, :permanent)}
+  end
 
-      cond do
-        mode in @safe_modes ->
-          :ok
+  defp build_remote_boot() do
+    [
+      kernel: :permanent,
+      stdlib: :permanent,
+      compiler: :permanent,
+      elixir: :permanent,
+      iex: :permanent,
+      logger: :permanent
+    ]
+  end
 
-        mode in @unsafe_modes ->
-          parent =
-            apps
-            |> depends_on(app)
-            |> Enum.reverse()
-            |> Enum.find(&(Map.get(modes, &1, :permanent) not in @unsafe_modes))
+  @doc """
+  Builds a rel script with the given modes.
+  """
+  @spec build_release_spec(t, [{application(), mode()}]) ::
+          {:release, {charlist(), charlist()}, {:erts, charlist()},
+           {atom(), charlist(), mode} | {atom(), charlist(), mode, [atom()]}}
+  def build_release_spec(release, modes) do
+    %{name: name, version: version, erts_version: erts_version, applications: apps} = release
 
-          if parent do
-            Mix.raise("""
-            Failed to assemble release because application #{inspect(app)} was set to \
-            mode #{inspect(mode)} but the application #{inspect(parent)} depends on it \
-            and it does not have its mode set to :load nor :none. If you really want \
-            to set the mode for #{inspect(app)} to #{inspect(mode)}, make sure that all \
-            applications that depend on it are also set to :load or :none
-            """)
-          end
-
-        true ->
-          Mix.raise(
-            "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
-              "Valid modes are: #{inspect(@safe_modes ++ @unsafe_modes)}"
-          )
+    rel_apps =
+      for {app, mode} <- modes do
+        properties = Map.get(apps, app) || Mix.raise("Unkown application #{inspect(app)}")
+        children = Keyword.get(properties, :applications, [])
+        validate_mode!(app, mode, modes, children)
+        build_app_for_release(app, mode, properties)
       end
 
-      build_app_for_release(app, mode, properties)
-    end
+    {:release, {to_charlist(name), to_charlist(version)}, {:erts, erts_version}, rel_apps}
   end
 
-  defp depends_on(apps, pin) do
-    children =
-      for {app, properties} <- apps,
-          children = Keyword.get(properties, :applications, []),
-          pin in children,
-          do: app
+  defp validate_mode!(app, mode, modes, children) do
+    safe_mode? = mode in @safe_modes
 
-    Enum.flat_map(children, &depends_on(apps, &1)) ++ children
+    if not safe_mode? and mode not in @unsafe_modes do
+      Mix.raise(
+        "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
+          "Valid modes are: #{inspect(@safe_modes ++ @unsafe_modes)}"
+      )
+    end
+
+    for child <- children do
+      child_mode = Keyword.get(modes, child)
+
+      cond do
+        is_nil(child_mode) ->
+          Mix.raise(
+            "Application #{inspect(app)} is listed in the release boot, " <>
+              "but not its child #{inspect(child)}"
+          )
+
+        safe_mode? and child_mode in @unsafe_modes ->
+          Mix.raise("""
+          Failed to assemble release because application #{inspect(app)} was set to \
+          mode #{inspect(mode)} but its child #{inspect(child)} has its mode set to \
+          #{inspect(child_mode)}. If you really want to set such mode for #{inspect(child)} \
+          make sure that all applications that depend on it are also set to :load or :none,
+          otherwise your release will fail to boot
+          """)
+
+        true ->
+          :ok
+      end
+    end
   end
 
   defp build_app_for_release(app, mode, properties) do
@@ -323,17 +357,17 @@ defmodule Mix.Release do
   @doc """
   Copies the given application specification into the release.
 
-  It assumes the application exists.
+  It assumes the application exists in the release.
   """
   @spec copy_app(t, application) :: boolean()
-  def copy_app(release, app_spec) do
-    app = elem(app_spec, 0)
-    vsn = elem(app_spec, 1)
+  def copy_app(release, app) do
+    properties = Map.fetch!(release.applications, app)
+    vsn = Keyword.fetch!(properties, :vsn)
 
-    source_app = Application.app_dir(app)
+    source_app = Keyword.fetch!(properties, :path)
     target_app = Path.join([release.path, "lib", "#{app}-#{vsn}"])
 
-    if skip_app?(release, source_app) do
+    if is_nil(release.erts_source) and Keyword.fetch!(properties, :otp_app?) do
       false
     else
       File.rm_rf!(target_app)
@@ -357,11 +391,6 @@ defmodule Mix.Release do
       true
     end
   end
-
-  defp skip_app?(%{erts_source: nil}, source_app),
-    do: String.starts_with?(source_app, List.to_string(:code.lib_dir()))
-
-  defp skip_app?(_, _), do: false
 
   @doc """
   Copies the ebin directory at `source` to `target`
