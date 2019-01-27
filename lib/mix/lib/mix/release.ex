@@ -335,11 +335,10 @@ defmodule Mix.Release do
   be accordingly set with `--boot-var` and point to the release lib dir.
   """
   @spec make_boot_script(t, Path.t(), [{application(), mode()}], [String.t()]) ::
-          {:ok, Path.t()} | {:error, String.t()}
+          :ok | {:error, String.t()}
   def make_boot_script(release, path, modes, prepend_paths \\ []) do
     with {:ok, rel_spec} <- build_release_spec(release, modes) do
-      rel_path = path <> ".rel"
-      File.write!(rel_path, consultable("rel", rel_spec))
+      File.write!(path <> ".rel", consultable("rel", rel_spec))
 
       sys_path = String.to_charlist(path)
       sys_options = [:silent, :no_dot_erlang, :no_warn_sasl, variables: build_variables(release)]
@@ -347,7 +346,7 @@ defmodule Mix.Release do
       case :systools.make_script(sys_path, sys_options) do
         {:ok, _module, _warnings} ->
           prepend_paths != [] && prepend_paths_to_script(sys_path, prepend_paths)
-          {:ok, rel_path}
+          :ok
 
         {:error, module, info} ->
           message = module.format_error(info) |> to_string() |> String.trim()

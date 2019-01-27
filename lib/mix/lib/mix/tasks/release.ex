@@ -685,12 +685,12 @@ defmodule Mix.Tasks.Release do
       for {boot_name, modes} <- release.boot_scripts do
         sys_path = Path.join(version_path, Atom.to_string(boot_name))
 
-        with {:ok, rel_path} <-
-               Mix.Release.make_boot_script(release, sys_path, modes, prepend_paths) do
+        with :ok <- Mix.Release.make_boot_script(release, sys_path, modes, prepend_paths) do
           if boot_name == :start do
-            File.rename!(rel_path, Path.join(Path.dirname(rel_path), "#{release.name}.rel"))
+            rel_path = Path.join(Path.dirname(sys_path), "#{release.name}.rel")
+            File.rename!(sys_path <> ".rel", rel_path)
           else
-            File.rm(rel_path)
+            File.rm(sys_path <> ".rel")
           end
 
           :ok

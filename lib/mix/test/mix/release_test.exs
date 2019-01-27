@@ -12,6 +12,7 @@ defmodule Mix.ReleaseTest do
   @erts_version :erlang.system_info(:version)
   @erts_source Path.join(:code.root_dir(), "erts-#{@erts_version}")
   @elixir_version Application.spec(:elixir, :vsn)
+  @kernel_version Application.spec(:kernel, :vsn)
   @runtime_tools_version Application.spec(:runtime_tools, :vsn)
   @eex_ebin Application.app_dir(:eex, "ebin")
 
@@ -232,9 +233,9 @@ defmodule Mix.ReleaseTest do
   describe "make_boot_script/4" do
     @boot_script_path tmp_path("mix_release/start")
 
-    test "builds the release specification" do
+    test "writes .rel, .boot, and .script files" do
       release = release([])
-      {:ok, rel_path} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
+      assert make_boot_script(release, @boot_script_path, release.boot_scripts.start) == :ok
 
       assert {:ok,
               [
@@ -248,20 +249,51 @@ defmodule Mix.ReleaseTest do
                    {:sasl, _, :permanent},
                    {:stdlib, _, :permanent}
                  ]}
-              ]} = :file.consult(rel_path)
+              ]} = :file.consult(@boot_script_path <> ".rel")
+
+      assert {:ok, [{:script, {'demo', '0.1.0'}, instructions}]} =
+               :file.consult(@boot_script_path <> ".script")
+
+      assert {:path, ['$ROOT/lib/kernel-#{@kernel_version}/ebin']} in instructions
+      assert {:path, ['$RELEASE_LIB/elixir-#{@elixir_version}/ebin']} in instructions
+
+      assert File.read!(@boot_script_path <> ".boot") |> :erlang.binary_to_term() ==
+               {:script, {'demo', '0.1.0'}, instructions}
+    end
+
+    test "prepends relevant paths" do
+      release = release([])
+
+      assert make_boot_script(
+               release,
+               @boot_script_path,
+               release.boot_scripts.start,
+               ["$RELEASE_LIB/sample"]
+             ) == :ok
+
+      assert {:ok, [{:script, {'demo', '0.1.0'}, instructions}]} =
+               :file.consult(@boot_script_path <> ".script")
+
+      assert {:path, ['$ROOT/lib/kernel-#{@kernel_version}/ebin']} in instructions
+      refute {:path, ['$RELEASE_LIB/elixir-#{@elixir_version}/ebin']} in instructions
+
+      assert {:path, ['$RELEASE_LIB/sample', '$RELEASE_LIB/elixir-#{@elixir_version}/ebin']} in instructions
+
+      assert File.read!(@boot_script_path <> ".boot") |> :erlang.binary_to_term() ==
+               {:script, {'demo', '0.1.0'}, instructions}
     end
 
     test "works when :load/:none is set at the leaf" do
       release = release(applications: [mix: :none])
-      {:ok, rel_path} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
-      {:ok, [{:release, _, _, rel_apps}]} = :file.consult(rel_path)
+      assert make_boot_script(release, @boot_script_path, release.boot_scripts.start) == :ok
+      {:ok, [{:release, _, _, rel_apps}]} = :file.consult(@boot_script_path <> ".rel")
       assert List.keyfind(rel_apps, :mix, 0) == {:mix, @elixir_version, :none}
     end
 
     test "works when :load/:none is set at the subtree" do
       release = release(applications: [mix: :load, elixir: :load, iex: :load])
-      {:ok, rel_path} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
-      {:ok, [{:release, _, _, rel_apps}]} = :file.consult(rel_path)
+      assert make_boot_script(release, @boot_script_path, release.boot_scripts.start) == :ok
+      {:ok, [{:release, _, _, rel_apps}]} = :file.consult(@boot_script_path <> ".rel")
       assert {:elixir, _, :load} = List.keyfind(rel_apps, :elixir, 0)
       assert {:iex, _, :load} = List.keyfind(rel_apps, :iex, 0)
       assert {:mix, _, :load} = List.keyfind(rel_apps, :mix, 0)
