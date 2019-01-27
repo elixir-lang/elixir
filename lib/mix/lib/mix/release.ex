@@ -4,18 +4,21 @@ defmodule Mix.Release do
   """
 
   @doc """
-  The Mix.Release struct has the following fields:
+  The Mix.Release struct has the following read-only fields:
 
     * `:name` - the name of the release as an atom
     * `:version` - the version of the release as a string
     * `:path` - the path to the release root
     * `:version_path` - the path to the release version inside the release
     * `:applications` - a map of application with their definitions
+    * `:erts_source` - the erts source as a charlist (or nil)
+    * `:erts_version` - the erts version as a charlist
+
+  The following fields may be modified as long as they keep their defined types:
+
     * `:boot_scripts` - a map of boot scripts with the boot script name
       as key and a keyword list with **all** applications that are part of
       it and their modes as value
-    * `:erts_source` - the erts source as a charlist (or nil)
-    * `:erts_version` - the erts version as a charlist
     * `:options` - a keyword list with all other user supplied release options
 
   """
@@ -238,32 +241,152 @@ defmodule Mix.Release do
   end
 
   @doc """
-  Builds a rel script with the given modes.
+  Makes the `sys.config` structure.
+
+  It receives the path to the directory where `sys.config`
+  should be added to.
   """
-  @spec build_release_spec(t, [{application(), mode()}]) ::
-          {:release, {charlist(), charlist()}, {:erts, charlist()},
-           {atom(), charlist(), mode} | {atom(), charlist(), mode, [atom()]}}
-  def build_release_spec(release, modes) do
+  @spec make_sys_config(t, Path.t(), keyword()) :: :ok | {:error, String.t()}
+  def make_sys_config(_release, path, sys_config) do
+    File.write!(path, consultable("config", sys_config))
+
+    case :file.consult(path) do
+      {:ok, _} ->
+        :ok
+
+      {:error, reason} ->
+        {:error, "Could not read configuration file. Reason: #{inspect(reason)}"}
+    end
+  end
+
+  @doc """
+  Copies the cookie to the given path.
+
+  If a cookie option was given, we compare it with
+  the contents of the file (if any), and as the user
+  if they want to override.
+
+  If there is no option, we generate a random one
+  the first time.
+  """
+  @spec make_cookie(t, Path.t()) :: :ok
+  def make_cookie(release, path) do
+    cond do
+      cookie = release.options[:cookie] ->
+        Mix.Generator.create_file(path, cookie, quiet: true)
+        :ok
+
+      File.exists?(path) ->
+        :ok
+
+      true ->
+        File.write!(path, random_cookie())
+        :ok
+    end
+  end
+
+  defp random_cookie, do: Base.url_encode64(:crypto.strong_rand_bytes(40))
+
+  @doc """
+  Makes the start_erl.data file with the
+  ERTS version and release versions.
+  """
+  @spec make_start_erl(t, Path.t()) :: :ok
+  def make_start_erl(release, path) do
+    File.write!(path, "#{release.erts_version} #{release.version}")
+    :ok
+  end
+
+  @doc """
+  Makes a vm.args file at the given `path`.
+  """
+  @spec make_vm_args(t, Path.t()) :: :ok
+  def make_vm_args(_release, path) do
+    File.write!(path, ~S"""
+    ## Do not load code from filesystem as all modules are preloaded
+    -mode embedded
+
+    ## Disable the heartbeat system to automatically restart the VM
+    ## if it dies or becomes unresponsive. Useful only in daemon mode.
+    ##-heart
+
+    ## Number of diry schedulers doing IO work (file, sockets, etc)
+    ##+SDio 5
+
+    ## Increase number of concurrent ports/sockets
+    ##-env ERL_MAX_PORTS 4096
+
+    ## Tweak GC to run more often
+    ##-env ERL_FULLSWEEP_AFTER 10
+    """)
+
+    :ok
+  end
+
+  @doc """
+  Makes boot scripts.
+
+  It receives a path to the boot file, without extension, such as
+  `releases/0.1.0/start` and this command will write `start.rel`,
+  `start.boot`, and `start.script` to the given path, returning
+  `{:ok, rel_path}` or `{:error, message}`.
+
+  The boot script uses the RELEASE_LIB environemnt variable, which must
+  be accordingly set with `--boot-var` and point to the release lib dir.
+  """
+  @spec make_boot_script(t, Path.t(), [{application(), mode()}], [String.t()]) ::
+          {:ok, Path.t()} | {:error, String.t()}
+  def make_boot_script(release, path, modes, prepend_paths \\ []) do
+    with {:ok, rel_spec} <- build_release_spec(release, modes) do
+      rel_path = path <> ".rel"
+      File.write!(rel_path, consultable("rel", rel_spec))
+
+      sys_path = String.to_charlist(path)
+      sys_options = [:silent, :no_dot_erlang, :no_warn_sasl, variables: build_variables(release)]
+
+      case :systools.make_script(sys_path, sys_options) do
+        {:ok, _module, _warnings} ->
+          prepend_paths != [] && prepend_paths_to_script(sys_path, prepend_paths)
+          {:ok, rel_path}
+
+        {:error, module, info} ->
+          message = module.format_error(info) |> to_string() |> String.trim()
+          {:error, message}
+      end
+    end
+  end
+
+  defp build_variables(release) do
+    for {_, properties} <- release.applications,
+        not Keyword.fetch!(properties, :otp_app?),
+        uniq: true,
+        do: {'RELEASE_LIB', properties |> Keyword.fetch!(:path) |> :filename.dirname()}
+  end
+
+  defp build_release_spec(release, modes) do
     %{name: name, version: version, erts_version: erts_version, applications: apps} = release
 
     rel_apps =
       for {app, mode} <- modes do
-        properties = Map.get(apps, app) || Mix.raise("Unkown application #{inspect(app)}")
+        properties = Map.get(apps, app) || throw({:error, "Unkown application #{inspect(app)}"})
         children = Keyword.get(properties, :applications, [])
         validate_mode!(app, mode, modes, children)
         build_app_for_release(app, mode, properties)
       end
 
-    {:release, {to_charlist(name), to_charlist(version)}, {:erts, erts_version}, rel_apps}
+    {:ok, {:release, {to_charlist(name), to_charlist(version)}, {:erts, erts_version}, rel_apps}}
+  catch
+    {:error, message} -> {:error, message}
   end
 
   defp validate_mode!(app, mode, modes, children) do
     safe_mode? = mode in @safe_modes
 
     if not safe_mode? and mode not in @unsafe_modes do
-      Mix.raise(
-        "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
-          "Valid modes are: #{inspect(@safe_modes ++ @unsafe_modes)}"
+      throw(
+        {:error,
+         "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
+           "Valid modes are: #{inspect(@safe_modes ++ @unsafe_modes)}"}
       )
     end
 
@@ -272,18 +395,22 @@ defmodule Mix.Release do
 
       cond do
         is_nil(child_mode) ->
-          Mix.raise(
-            "Application #{inspect(app)} is listed in the release boot, " <>
-              "but it depends on #{inspect(child)}, which isn't"
+          throw(
+            {:error,
+             "Application #{inspect(app)} is listed in the release boot, " <>
+               "but it depends on #{inspect(child)}, which isn't"}
           )
 
         safe_mode? and child_mode in @unsafe_modes ->
-          Mix.raise("""
-          Application #{inspect(app)} has mode #{inspect(mode)} but it depends on \
-          #{inspect(child)} which is set to #{inspect(child_mode)}. If you really want \
-          to set such mode for #{inspect(child)} make sure that all applications that depend \
-          on it are also set to :load or :none, otherwise your release will fail to boot
-          """)
+          throw(
+            {:error,
+             """
+             Application #{inspect(app)} has mode #{inspect(mode)} but it depends on \
+             #{inspect(child)} which is set to #{inspect(child_mode)}. If you really want \
+             to set such mode for #{inspect(child)} make sure that all applications that depend \
+             on it are also set to :load or :none, otherwise your release will fail to boot
+             """}
+          )
 
         true ->
           :ok
@@ -298,6 +425,35 @@ defmodule Mix.Release do
       [] -> {app, vsn, mode}
       included_apps -> {app, vsn, mode, included_apps}
     end
+  end
+
+  defp prepend_paths_to_script(sys_path, prepend_paths) do
+    prepend_paths = Enum.map(prepend_paths, &String.to_charlist/1)
+    script_path = sys_path ++ '.script'
+    {:ok, [{:script, rel_info, instructions}]} = :file.consult(script_path)
+
+    new_instructions =
+      Enum.map(instructions, fn
+        {:path, paths} ->
+          if Enum.any?(paths, &List.starts_with?(&1, '$RELEASE_LIB')) do
+            {:path, prepend_paths ++ paths}
+          else
+            {:path, paths}
+          end
+
+        other ->
+          other
+      end)
+
+    script = {:script, rel_info, new_instructions}
+    File.write!(script_path, consultable("script", script))
+    :ok = :systools.script2boot(sys_path)
+  end
+
+  defp consultable(kind, term) do
+    {date, time} = :erlang.localtime()
+    args = [kind, date, time, term]
+    :io_lib.format("%% coding: utf-8~n%% ~ts generated at ~p ~p~n~p.~n", args)
   end
 
   @doc """
@@ -429,49 +585,5 @@ defmodule Mix.Release do
       {:error, _, _} = error ->
         error
     end
-  end
-
-  @doc """
-  Copies the cookie to the given path.
-
-  If a cookie option was given, we compare it with
-  the contents of the file (if any), and as the user
-  if they want to override.
-
-  If there is no option, we generate a random one
-  the first time.
-
-  Returns true if the cookie was copied, false otherwise.
-  """
-  @spec copy_cookie(t, Path.t()) :: boolean()
-  def copy_cookie(release, path) do
-    cookie_path = Path.join(release.path, path)
-
-    cond do
-      cookie = release.options[:cookie] ->
-        Mix.Generator.create_file(cookie_path, cookie, quiet: true)
-
-      File.exists?(cookie_path) ->
-        false
-
-      true ->
-        File.mkdir_p!(Path.dirname(cookie_path))
-        File.write!(cookie_path, random_cookie())
-        true
-    end
-  end
-
-  defp random_cookie, do: Base.url_encode64(:crypto.strong_rand_bytes(40))
-
-  @doc """
-  Copies the start_erl.data file with the
-  ERTS version and release versions.
-  """
-  @spec copy_start_erl(t, Path.t()) :: true
-  def copy_start_erl(release, path) do
-    start_erl_path = Path.join(release.path, path)
-    File.mkdir_p!(Path.dirname(start_erl_path))
-    File.write!(start_erl_path, "#{release.erts_version} #{release.version}")
-    true
   end
 end

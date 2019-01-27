@@ -639,8 +639,9 @@ defmodule Mix.Tasks.Release do
   # build_rel
 
   defp build_rel(release, config) do
-    File.rm_rf!(release.version_path)
-    File.mkdir_p!(release.version_path)
+    version_path = release.version_path
+    File.rm_rf!(version_path)
+    File.mkdir_p!(version_path)
 
     consolidation_path =
       if config[:consolidate_protocols] do
@@ -654,118 +655,49 @@ defmodule Mix.Tasks.Release do
         []
       end
 
-    with :ok <- build_vm_args(release),
-         :ok <- build_sys_config(release, sys_config),
-         :ok <- build_boot_scripts(release, consolidation_path) do
-      Mix.Release.copy_cookie(release, "releases/COOKIE")
-      Mix.Release.copy_start_erl(release, "releases/start_erl.data")
+    vm_args_path = Path.join(version_path, "vm.args")
+    sys_config_path = Path.join(version_path, "sys.config")
+    cookie_path = Path.join(release.path, "releases/COOKIE")
+    start_erl_path = Path.join(release.path, "releases/start_erl.data")
+
+    with :ok <- make_boot_scripts(release, version_path, consolidation_path),
+         :ok <- Mix.Release.make_vm_args(release, vm_args_path),
+         :ok <- Mix.Release.make_sys_config(release, sys_config_path, sys_config),
+         :ok <- Mix.Release.make_cookie(release, cookie_path),
+         :ok <- Mix.Release.make_start_erl(release, start_erl_path) do
       consolidation_path
     else
       {:error, message} ->
-        File.rm_rf!(release.version_path)
+        File.rm_rf!(version_path)
         Mix.raise(message)
     end
   end
 
-  defp build_vm_args(release) do
-    File.write!(Path.join(release.version_path, "vm.args"), vm_args_text())
-    :ok
-  end
-
-  defp build_sys_config(release, sys_config) do
-    sys_config_path = Path.join(release.version_path, "sys.config")
-    File.write!(sys_config_path, consultable("config", sys_config))
-
-    case :file.consult(sys_config_path) do
-      {:ok, _} ->
-        :ok
-
-      {:error, reason} ->
-        {:error, "Could not read configuration file. Reason: #{inspect(reason)}"}
-    end
-  end
-
-  defp build_boot_scripts(release, consolidation_path) do
+  defp make_boot_scripts(release, version_path, consolidation_path) do
     prepend_paths =
       if consolidation_path do
-        ['$RELEASE_LIB/../releases/#{release.version}/consolidated']
+        ["$RELEASE_LIB/../releases/#{release.version}/consolidated"]
       else
         []
       end
 
     results =
       for {boot_name, modes} <- release.boot_scripts do
-        rel_path = Path.join(release.version_path, "#{boot_name}.rel")
+        sys_path = Path.join(version_path, Atom.to_string(boot_name))
 
-        case build_rel_boot_and_script(release, rel_path, modes, prepend_paths) do
-          :ok ->
-            if boot_name == :start do
-              File.rename!(rel_path, Path.join(release.version_path, "#{release.name}.rel"))
-            else
-              File.rm(rel_path)
-            end
+        with {:ok, rel_path} <-
+               Mix.Release.make_boot_script(release, sys_path, modes, prepend_paths) do
+          if boot_name == :start do
+            File.rename!(rel_path, Path.join(Path.dirname(rel_path), "#{release.name}.rel"))
+          else
+            File.rm(rel_path)
+          end
 
-          {:error, message} ->
-            {:error, message}
+          :ok
         end
       end
 
     Enum.find(results, :ok, &(&1 != :ok))
-  end
-
-  # TODO: Move this to Mix.Release as copy_boot_scripts(release, path, modes, prepend_paths \\ [])
-  defp build_rel_boot_and_script(release, rel_path, modes, prepend_paths) do
-    variables = build_variables(release)
-    rel_spec = Mix.Release.build_release_spec(release, modes)
-    File.write!(rel_path, consultable("rel", rel_spec))
-
-    sys_path = rel_path |> Path.rootname() |> to_charlist()
-    sys_options = [:silent, :no_dot_erlang, :no_warn_sasl, variables: variables]
-
-    case :systools.make_script(sys_path, sys_options) do
-      {:ok, _module, _warnings} ->
-        prepend_paths != [] && prepend_paths_to_script(sys_path, prepend_paths)
-        :ok
-
-      {:error, module, info} ->
-        message = module.format_error(info) |> to_string() |> String.trim()
-        {:error, message}
-    end
-  end
-
-  defp prepend_paths_to_script(sys_path, prepend_paths) do
-    script_path = sys_path ++ '.script'
-    {:ok, [{:script, rel_info, instructions}]} = :file.consult(script_path)
-
-    new_instructions =
-      Enum.map(instructions, fn
-        {:path, paths} ->
-          if Enum.any?(paths, &List.starts_with?(&1, '$RELEASE_LIB')) do
-            {:path, prepend_paths ++ paths}
-          else
-            {:path, paths}
-          end
-
-        other ->
-          other
-      end)
-
-    script = {:script, rel_info, new_instructions}
-    File.write!(script_path, consultable("script", script))
-    :ok = :systools.script2boot(sys_path)
-  end
-
-  defp consultable(kind, term) do
-    {date, time} = :erlang.localtime()
-    args = [kind, date, time, term]
-    :io_lib.format("%% coding: utf-8~n%% ~ts generated at ~p ~p~n~p.~n", args)
-  end
-
-  defp build_variables(release) do
-    for {_, properties} <- release.applications,
-        not Keyword.fetch!(properties, :otp_app?),
-        uniq: true,
-        do: {'RELEASE_LIB', properties |> Keyword.fetch!(:path) |> :filename.dirname()}
   end
 
   defp announce(release) do
@@ -896,26 +828,6 @@ defmodule Mix.Tasks.Release do
   end
 
   defp executable!(path), do: File.chmod!(path, 0o744)
-
-  ## Templates
-
-  embed_text(:vm_args, ~S"""
-  ## Do not load code from filesystem as all modules are preloaded
-  -mode embedded
-
-  ## Disable the heartbeat system to automatically restart the VM
-  ## if it dies or becomes unresponsive. Useful only in daemon mode.
-  ##-heart
-
-  ## Number of diry schedulers doing IO work (file, sockets, etc)
-  ##+SDio 5
-
-  ## Increase number of concurrent ports/sockets
-  ##-env ERL_MAX_PORTS 4096
-
-  ## Tweak GC to run more often
-  ##-env ERL_FULLSWEEP_AFTER 10
-  """)
 
   embed_template(:start, ~S"""
   #!/bin/sh

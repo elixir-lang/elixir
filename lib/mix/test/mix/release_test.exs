@@ -17,6 +17,7 @@ defmodule Mix.ReleaseTest do
 
   setup do
     File.rm_rf!(tmp_path("mix_release"))
+    File.mkdir_p!(tmp_path("mix_release"))
     :ok
   end
 
@@ -228,70 +229,110 @@ defmodule Mix.ReleaseTest do
     end
   end
 
-  describe "build_release_spec/2" do
+  describe "make_boot_script/4" do
+    @boot_script_path tmp_path("mix_release/start")
+
     test "builds the release specification" do
       release = release([])
+      {:ok, rel_path} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
 
-      assert {:release, {'demo', '0.1.0'}, {:erts, @erts_version},
+      assert {:ok,
               [
-                {:compiler, _, :permanent},
-                {:elixir, @elixir_version, :permanent},
-                {:iex, @elixir_version, :permanent},
-                {:kernel, _, :permanent},
-                {:mix, @elixir_version, :permanent},
-                {:sasl, _, :permanent},
-                {:stdlib, _, :permanent}
-              ]} = build_release_spec(release, release.boot_scripts.start)
+                {:release, {'demo', '0.1.0'}, {:erts, @erts_version},
+                 [
+                   {:compiler, _, :permanent},
+                   {:elixir, @elixir_version, :permanent},
+                   {:iex, @elixir_version, :permanent},
+                   {:kernel, _, :permanent},
+                   {:mix, @elixir_version, :permanent},
+                   {:sasl, _, :permanent},
+                   {:stdlib, _, :permanent}
+                 ]}
+              ]} = :file.consult(rel_path)
     end
 
     test "works when :load/:none is set at the leaf" do
       release = release(applications: [mix: :none])
-      {:release, _, _, rel_apps} = build_release_spec(release, release.boot_scripts.start)
+      {:ok, rel_path} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
+      {:ok, [{:release, _, _, rel_apps}]} = :file.consult(rel_path)
       assert List.keyfind(rel_apps, :mix, 0) == {:mix, @elixir_version, :none}
     end
 
     test "works when :load/:none is set at the subtree" do
       release = release(applications: [mix: :load, elixir: :load, iex: :load])
-      {:release, _, _, rel_apps} = build_release_spec(release, release.boot_scripts.start)
+      {:ok, rel_path} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
+      {:ok, [{:release, _, _, rel_apps}]} = :file.consult(rel_path)
       assert {:elixir, _, :load} = List.keyfind(rel_apps, :elixir, 0)
       assert {:iex, _, :load} = List.keyfind(rel_apps, :iex, 0)
       assert {:mix, _, :load} = List.keyfind(rel_apps, :mix, 0)
     end
 
     test "raises on unknown app" do
-      assert_raise Mix.Error, "Unkown application :unknown", fn ->
-        build_release_spec(release([]), unknown: :permanent)
-      end
+      {:error, message} = make_boot_script(release([]), @boot_script_path, unknown: :permanent)
+      assert message =~ "Unkown application :unknown"
     end
 
     test "raises on missing dependency" do
-      assert_raise Mix.Error,
-                   "Application :elixir is listed in the release boot, but it depends on :kernel, which isn't",
-                   fn ->
-                     build_release_spec(release([]), elixir: :permanent)
-                   end
+      {:error, message} = make_boot_script(release([]), @boot_script_path, elixir: :permanent)
+
+      assert message =~
+               "Application :elixir is listed in the release boot, but it depends on :kernel, which isn't"
     end
 
     test "raises on unknown mode" do
-      assert_raise Mix.Error, ~r"Unknown mode :what for :mix", fn ->
-        build_release_spec(release([]), mix: :what)
-      end
+      {:error, message} = make_boot_script(release([]), @boot_script_path, mix: :what)
+      assert message =~ "Unknown mode :what for :mix"
     end
 
     test "raises on bad load/none" do
-      assert_raise Mix.Error,
-                   ~r"Application :compiler has mode :permanent but it depends on :kernel which is set to :load",
-                   fn ->
-                     release = release(applications: [kernel: :load])
-                     build_release_spec(release, release.boot_scripts.start)
-                   end
+      release = release(applications: [kernel: :load])
+      {:error, message} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
 
-      assert_raise Mix.Error,
-                   ~r"Application :iex has mode :permanent but it depends on :elixir which is set to :none",
-                   fn ->
-                     release = release(applications: [elixir: :none])
-                     build_release_spec(release, release.boot_scripts.start)
-                   end
+      assert message =~
+               "Application :compiler has mode :permanent but it depends on :kernel which is set to :load"
+
+      release = release(applications: [elixir: :none])
+      {:error, message} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
+
+      assert message =~
+               "Application :iex has mode :permanent but it depends on :elixir which is set to :none"
+    end
+  end
+
+  describe "make_cookie/1" do
+    @cookie_path tmp_path("mix_release/cookie")
+
+    test "creates a random cookie if no cookie" do
+      assert make_cookie(release([]), @cookie_path) == :ok
+      assert byte_size(File.read!(@cookie_path)) == 56
+    end
+
+    test "uses the given cookie" do
+      release = release(cookie: "abcdefghijk")
+      assert make_cookie(release, @cookie_path) == :ok
+      assert File.read!(@cookie_path) == "abcdefghijk"
+      assert make_cookie(release, @cookie_path) == :ok
+    end
+
+    test "asks to change if the cookie changes" do
+      assert make_cookie(release(cookie: "abcdefghijk"), @cookie_path) == :ok
+
+      send(self(), {:mix_shell_input, :yes?, false})
+      assert make_cookie(release(cookie: "lmnopqrstuv"), @cookie_path) == :ok
+      assert File.read!(@cookie_path) == "abcdefghijk"
+
+      send(self(), {:mix_shell_input, :yes?, true})
+      assert make_cookie(release(cookie: "lmnopqrstuv"), @cookie_path) == :ok
+      assert File.read!(@cookie_path) == "lmnopqrstuv"
+    end
+  end
+
+  describe "make_start_erl/1" do
+    @start_erl_path tmp_path("mix_release/start_erl.data")
+
+    test "writes erts and release versions" do
+      assert make_start_erl(release([]), @start_erl_path) == :ok
+      assert File.read!(@start_erl_path) == "#{@erts_version} 0.1.0"
     end
   end
 
@@ -390,43 +431,6 @@ defmodule Mix.ReleaseTest do
 
       assert {:error, :beam_lib, {:missing_chunk, _, 'Dbgi'}} = :beam_lib.chunks(beam, ['Dbgi'])
       assert {:error, :beam_lib, {:missing_chunk, _, 'Docs'}} = :beam_lib.chunks(beam, ['Docs'])
-    end
-  end
-
-  describe "copy_cookie/1" do
-    @release_root tmp_path("mix_release/_build/dev/rel/demo")
-
-    test "creates a random cookie if no cookie" do
-      assert copy_cookie(release([]), "COOKIE")
-      assert byte_size(File.read!(Path.join(@release_root, "COOKIE"))) == 56
-    end
-
-    test "uses the given cookie" do
-      release = release(cookie: "abcdefghijk")
-      assert copy_cookie(release, "COOKIE")
-      assert File.read!(Path.join(@release_root, "COOKIE")) == "abcdefghijk"
-      refute copy_cookie(release, "COOKIE")
-    end
-
-    test "asks to change if the cookie changes" do
-      assert copy_cookie(release(cookie: "abcdefghijk"), "COOKIE")
-
-      send(self(), {:mix_shell_input, :yes?, false})
-      refute copy_cookie(release(cookie: "lmnopqrstuv"), "COOKIE")
-      assert File.read!(Path.join(@release_root, "COOKIE")) == "abcdefghijk"
-
-      send(self(), {:mix_shell_input, :yes?, true})
-      assert copy_cookie(release(cookie: "lmnopqrstuv"), "COOKIE")
-      assert File.read!(Path.join(@release_root, "COOKIE")) == "lmnopqrstuv"
-    end
-  end
-
-  describe "copy_start_erl/1" do
-    @release_root tmp_path("mix_release/_build/dev/rel/demo")
-
-    test "writes erts and release versions" do
-      assert copy_start_erl(release([]), "start_erl.data")
-      assert File.read!(Path.join(@release_root, "start_erl.data")) == "#{@erts_version} 0.1.0"
     end
   end
 
