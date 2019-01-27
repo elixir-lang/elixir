@@ -276,7 +276,9 @@ defmodule Mix.Tasks.Release do
 
     * `:include_erts` - a boolean indicating if the Erlang Runtime System (ERTS)
       should be included in the release. The default is `true`, which is also the
-      recommended value. It may also be a path to an existing ERTS installation.
+      recommended value. It may also be a path to an existing ERTS installation or
+      an anonymous function of zero arity which should return any of the above.
+
       You may also set it to `false` if you desire to use the ERTS version installed
       on the target. Note, however, the ERTS version on the target must have THE EXACT
       VERSION as the ERTS version used when the release is assembled. Setting it to
@@ -583,7 +585,7 @@ defmodule Mix.Tasks.Release do
 
     if not File.exists?(release.version_path) or
          yes?(release, "Release #{release.name}-#{release.version} already exists. Overwrite?") do
-      assemble(release)
+      assemble(release, config)
       announce(release)
     end
   end
@@ -592,7 +594,7 @@ defmodule Mix.Tasks.Release do
     release.options[:force] or Mix.shell().yes?(message)
   end
 
-  defp assemble(release) do
+  defp assemble(release, config) do
     message = "#{release.name}-#{release.version} on MIX_ENV=#{Mix.env()}"
     info(release, [:green, "* assembling ", :reset, message])
 
@@ -605,9 +607,16 @@ defmodule Mix.Tasks.Release do
     #     start.boot
     #     start.script
     #     sys.config
-    build_rel(release)
+    # releases/
+    #   COOKIE
+    #   start_erl.data
+    consolidation_path = build_rel(release, config)
 
     [
+      # erts-VSN/
+      :erts,
+      # releases/VERSION/consolidated
+      {:consolidated, consolidation_path},
       # bin/
       #   RELEASE_NAME
       #   RELEASE_NAME.bat
@@ -619,15 +628,7 @@ defmodule Mix.Tasks.Release do
       #     elixir.bat
       #     iex
       #     iex.bat
-      {:root, :executables},
-      # releases/
-      #   COOKIE
-      #   start_erl.data
-      {:root, :releases},
-      # erts-VSN/
-      {:root, :erts},
-      # releases/VERSION/consolidated
-      {:root, :consolidated}
+      {:executables, Keyword.get(release.options, :include_executables_for, [:unix, :windows])}
       # lib/APP_NAME-APP_VSN/
       | Map.keys(release.applications)
     ]
@@ -637,14 +638,28 @@ defmodule Mix.Tasks.Release do
 
   # build_rel
 
-  defp build_rel(release) do
+  defp build_rel(release, config) do
     File.rm_rf!(release.version_path)
     File.mkdir_p!(release.version_path)
 
-    with :ok <- build_sys_config(release),
-         :ok <- build_vm_args(release),
-         :ok <- build_boot_scripts(release) do
-      :ok
+    consolidation_path =
+      if config[:consolidate_protocols] do
+        Mix.Project.consolidation_path(config)
+      end
+
+    sys_config =
+      if File.regular?(config[:config_path]) do
+        config[:config_path] |> Mix.Config.eval!() |> elem(0)
+      else
+        []
+      end
+
+    with :ok <- build_vm_args(release),
+         :ok <- build_sys_config(release, sys_config),
+         :ok <- build_boot_scripts(release, consolidation_path) do
+      Mix.Release.copy_cookie(release, "releases/COOKIE")
+      Mix.Release.copy_start_erl(release, "releases/start_erl.data")
+      consolidation_path
     else
       {:error, message} ->
         File.rm_rf!(release.version_path)
@@ -652,30 +667,16 @@ defmodule Mix.Tasks.Release do
     end
   end
 
-  defp build_variables(release) do
-    for {_, properties} <- release.applications,
-        not Keyword.fetch!(properties, :otp_app?),
-        uniq: true,
-        do: {'RELEASE_LIB', properties |> Keyword.fetch!(:path) |> :filename.dirname()}
-  end
-
   defp build_vm_args(release) do
     File.write!(Path.join(release.version_path, "vm.args"), vm_args_text())
     :ok
   end
 
-  defp build_sys_config(release) do
-    contents =
-      if release.config_source do
-        release.config_source |> Mix.Config.eval!() |> elem(0)
-      else
-        []
-      end
+  defp build_sys_config(release, sys_config) do
+    sys_config_path = Path.join(release.version_path, "sys.config")
+    File.write!(sys_config_path, consultable("config", sys_config))
 
-    sys_config = Path.join(release.version_path, "sys.config")
-    File.write!(sys_config, consultable("config", contents))
-
-    case :file.consult(sys_config) do
+    case :file.consult(sys_config_path) do
       {:ok, _} ->
         :ok
 
@@ -684,26 +685,37 @@ defmodule Mix.Tasks.Release do
     end
   end
 
-  defp build_boot_scripts(release) do
-    variables = build_variables(release)
-
-    for {boot_name, modes} <- release.boot_scripts do
-      rel_path = Path.join(release.version_path, "#{boot_name}.rel")
-      build_rel_boot_and_script(release, rel_path, modes, variables)
-
-      if boot_name == :start do
-        File.rename!(rel_path, Path.join(release.version_path, "#{release.name}.rel"))
+  defp build_boot_scripts(release, consolidation_path) do
+    prepend_paths =
+      if consolidation_path do
+        ['$RELEASE_LIB/../releases/#{release.version}/consolidated']
       else
-        File.rm(rel_path)
+        []
       end
-    end
 
-    :ok
-  catch
-    {:error, message} -> {:error, message}
+    results =
+      for {boot_name, modes} <- release.boot_scripts do
+        rel_path = Path.join(release.version_path, "#{boot_name}.rel")
+
+        case build_rel_boot_and_script(release, rel_path, modes, prepend_paths) do
+          :ok ->
+            if boot_name == :start do
+              File.rename!(rel_path, Path.join(release.version_path, "#{release.name}.rel"))
+            else
+              File.rm(rel_path)
+            end
+
+          {:error, message} ->
+            {:error, message}
+        end
+      end
+
+    Enum.find(results, :ok, &(&1 != :ok))
   end
 
-  defp build_rel_boot_and_script(release, rel_path, modes, variables) do
+  # TODO: Move this to Mix.Release as copy_boot_scripts(release, path, modes, prepend_paths \\ [])
+  defp build_rel_boot_and_script(release, rel_path, modes, prepend_paths) do
+    variables = build_variables(release)
     rel_spec = Mix.Release.build_release_spec(release, modes)
     File.write!(rel_path, consultable("rel", rel_spec))
 
@@ -712,17 +724,16 @@ defmodule Mix.Tasks.Release do
 
     case :systools.make_script(sys_path, sys_options) do
       {:ok, _module, _warnings} ->
-        release.consolidation_source && rewrite_rel_script_with_consolidated(release, sys_path)
+        prepend_paths != [] && prepend_paths_to_script(sys_path, prepend_paths)
         :ok
 
       {:error, module, info} ->
         message = module.format_error(info) |> to_string() |> String.trim()
-        throw({:error, message})
+        {:error, message}
     end
   end
 
-  defp rewrite_rel_script_with_consolidated(release, sys_path) do
-    consolidated = '$RELEASE_LIB/../releases/#{release.version}/consolidated'
+  defp prepend_paths_to_script(sys_path, prepend_paths) do
     script_path = sys_path ++ '.script'
     {:ok, [{:script, rel_info, instructions}]} = :file.consult(script_path)
 
@@ -730,7 +741,7 @@ defmodule Mix.Tasks.Release do
       Enum.map(instructions, fn
         {:path, paths} ->
           if Enum.any?(paths, &List.starts_with?(&1, '$RELEASE_LIB')) do
-            {:path, [consolidated | paths]}
+            {:path, prepend_paths ++ paths}
           else
             {:path, paths}
           end
@@ -748,6 +759,13 @@ defmodule Mix.Tasks.Release do
     {date, time} = :erlang.localtime()
     args = [kind, date, time, term]
     :io_lib.format("%% coding: utf-8~n%% ~ts generated at ~p ~p~n~p.~n", args)
+  end
+
+  defp build_variables(release) do
+    for {_, properties} <- release.applications,
+        not Keyword.fetch!(properties, :otp_app?),
+        uniq: true,
+        do: {'RELEASE_LIB', properties |> Keyword.fetch!(:path) |> :filename.dirname()}
   end
 
   defp announce(release) do
@@ -783,36 +801,30 @@ defmodule Mix.Tasks.Release do
 
   ## Copy operations
 
-  defp copy(app, release) when is_atom(app) do
-    Mix.Release.copy_app(release, app)
-  end
-
-  defp copy({:root, :erts}, release) do
+  defp copy(:erts, release) do
     _ = Mix.Release.copy_erts(release)
     :ok
   end
 
-  defp copy({:root, :releases}, release) do
-    Mix.Release.copy_cookie(release, "releases/COOKIE")
-    Mix.Release.copy_start_erl(release, "releases/start_erl.data")
-    :ok
+  defp copy(app, release) when is_atom(app) do
+    Mix.Release.copy_app(release, app)
   end
 
-  defp copy({:root, :consolidated}, release) do
-    if consolidation_source = release.consolidation_source do
+  defp copy({:consolidated, consolidation_path}, release) do
+    if consolidation_path do
       consolidation_target = Path.join(release.version_path, "consolidated")
-      _ = Mix.Release.copy_ebin(release, consolidation_source, consolidation_target)
+      _ = Mix.Release.copy_ebin(release, consolidation_path, consolidation_target)
     end
 
     :ok
   end
 
-  defp copy({:root, :executables}, release) do
+  defp copy({:executables, include_executables_for}, release) do
     elixir_bin_path = Application.app_dir(:elixir, "../../bin")
     bin_path = Path.join(release.path, "bin")
     File.mkdir_p!(bin_path)
 
-    for os <- Keyword.get(release.options, :include_executables_for, [:unix, :windows]) do
+    for os <- include_executables_for do
       [{start, contents} | clis] = cli_for(os, release)
       start_path = Path.join(bin_path, start)
 
@@ -875,8 +887,6 @@ defmodule Mix.Tasks.Release do
     ]
   end
 
-  defp executable!(path), do: File.chmod!(path, 0o744)
-
   defp replace_erts_bin(contents, release, new_path) do
     if release.erts_source do
       String.replace(contents, ~s[ERTS_BIN=""], ~s[ERTS_BIN=#{new_path}])
@@ -884,6 +894,8 @@ defmodule Mix.Tasks.Release do
       contents
     end
   end
+
+  defp executable!(path), do: File.chmod!(path, 0o744)
 
   ## Templates
 

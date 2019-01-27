@@ -16,8 +16,6 @@ defmodule Mix.Release do
       it and their modes as value
     * `:erts_source` - the erts source as a charlist (or nil)
     * `:erts_version` - the erts version as a charlist
-    * `:config_source` - the path to the build configuration source (or nil)
-    * `:consolidation_source` - the path to consolidated protocols source (or nil)
     * `:options` - a keyword list with all other user supplied release options
 
   """
@@ -30,8 +28,6 @@ defmodule Mix.Release do
     :boot_scripts,
     :erts_source,
     :erts_version,
-    :config_source,
-    :consolidation_source,
     :options
   ]
 
@@ -46,8 +42,6 @@ defmodule Mix.Release do
           boot_scripts: %{atom() => [{application(), mode()}]},
           erts_version: charlist(),
           erts_source: charlist() | nil,
-          config_source: String.t() | nil,
-          consolidation_source: String.t() | nil,
           options: keyword()
         }
 
@@ -98,16 +92,6 @@ defmodule Mix.Release do
           )
       end)
 
-    consolidation_source =
-      if config[:consolidate_protocols] do
-        Mix.Project.consolidation_path(config)
-      end
-
-    config_source =
-      if File.regular?(config[:config_path]) do
-        config[:config_path]
-      end
-
     %Mix.Release{
       name: name,
       version: version,
@@ -117,8 +101,6 @@ defmodule Mix.Release do
       erts_version: erts_version,
       applications: loaded_apps,
       boot_scripts: %{start: start_boot, remote: remote_boot},
-      consolidation_source: consolidation_source,
-      config_source: config_source,
       options: opts
     }
   end
@@ -189,6 +171,10 @@ defmodule Mix.Release do
 
     Alternatively you can perform the release from the children applications
     """)
+  end
+
+  defp erts_data(erts_data) when is_function(erts_data) do
+    erts_data(erts_data.())
   end
 
   defp erts_data(false) do
@@ -288,16 +274,15 @@ defmodule Mix.Release do
         is_nil(child_mode) ->
           Mix.raise(
             "Application #{inspect(app)} is listed in the release boot, " <>
-              "but not its child #{inspect(child)}"
+              "but it depends on #{inspect(child)}, which isn't"
           )
 
         safe_mode? and child_mode in @unsafe_modes ->
           Mix.raise("""
-          Failed to assemble release because application #{inspect(app)} was set to \
-          mode #{inspect(mode)} but its child #{inspect(child)} has its mode set to \
-          #{inspect(child_mode)}. If you really want to set such mode for #{inspect(child)} \
-          make sure that all applications that depend on it are also set to :load or :none,
-          otherwise your release will fail to boot
+          Application #{inspect(app)} has mode #{inspect(mode)} but it depends on \
+          #{inspect(child)} which is set to #{inspect(child_mode)}. If you really want \
+          to set such mode for #{inspect(child)} make sure that all applications that depend \
+          on it are also set to :load or :none, otherwise your release will fail to boot
           """)
 
         true ->
