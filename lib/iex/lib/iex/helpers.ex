@@ -1049,8 +1049,8 @@ defmodule IEx.Helpers do
   expanded:
 
       # This raises a File.Error if ~/.iex.exs doesn't exist.
-      if ("~/.iex.exs" |> Path.expand |> File.exists?) do
-        import_file "~/.iex.exs"
+      if "~/.iex.exs" |> Path.expand() |> File.exists?() do
+        import_file("~/.iex.exs")
       end
 
   This macro addresses this issue by checking if the file exists or not
@@ -1092,7 +1092,7 @@ defmodule IEx.Helpers do
       value = 13
 
       # in the shell
-      iex(1)> import_file "~/file.exs"
+      iex(1)> import_file("~/file.exs")
       13
       iex(2)> value
       13
@@ -1122,7 +1122,7 @@ defmodule IEx.Helpers do
   ## Example
 
       # In ~/.iex.exs
-      import_if_available Ecto.Query
+      import_if_available(Ecto.Query)
 
   """
   defmacro import_if_available(quoted_module, opts \\ []) do
@@ -1144,7 +1144,7 @@ defmodule IEx.Helpers do
   ## Example
 
       # In ~/.iex.exs
-      use_if_available Phoenix.HTML
+      use_if_available(Phoenix.HTML)
 
   """
   @doc since: "1.7.0"
@@ -1295,8 +1295,11 @@ defmodule IEx.Helpers do
   ## Examples
 
       iex> nl(HelloWorld)
-      {:ok, [{:node1@easthost, :loaded, HelloWorld},
-             {:node1@westhost, :loaded, HelloWorld}]}
+      {:ok,
+       [
+         {:node1@easthost, :loaded, HelloWorld},
+         {:node1@westhost, :loaded, HelloWorld}
+       ]}
 
       iex> nl(NoSuchModuleExists)
       {:error, :nofile}
