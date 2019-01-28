@@ -544,10 +544,6 @@ defmodule Mix.Tasks.Release do
   on top of `mix release` in their projects or as separate libraries.
   """
 
-  # v0.1
-  # TODO: Test protocol consolidation and environment variables.
-  # TODO: Test symlinks.
-
   use Mix.Task
   import Mix.Generator
 
