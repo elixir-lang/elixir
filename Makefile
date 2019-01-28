@@ -48,7 +48,7 @@ test_$(1): compile $(1)
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
 endef
 
-define write_SOURCE_DATE_EPOCH
+define WRITE_SOURCE_DATE_EPOCH
 $(shell mkdir -p $(SOURCE_DATE_EPOCH_PATH) && bin/elixir -e \
   'IO.puts System.build_info()[:date] \
    |> DateTime.from_iso8601() \
@@ -56,7 +56,7 @@ $(shell mkdir -p $(SOURCE_DATE_EPOCH_PATH) && bin/elixir -e \
    |> DateTime.to_unix()' > $(SOURCE_DATE_EPOCH_FILE))
 endef
 
-define read_SOURCE_DATE_EPOCH
+define READ_SOURCE_DATE_EPOCH
 $(strip $(shell cat $(SOURCE_DATE_EPOCH_FILE)))
 endef
 
@@ -130,8 +130,7 @@ install: compile
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
 	$(Q) rm -rf lib/*/tmp/ebin_reproducible/
-	$(Q) echo "Moving files lib/*/tmp/ebin_reproducible/ ..."
-	$(call write_SOURCE_DATE_EPOCH)
+	$(call WRITE_SOURCE_DATE_EPOCH)
 	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
                       lib/eex/tmp/ebin_reproducible/ \
 	              lib/iex/tmp/ebin_reproducible/ \
@@ -142,7 +141,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
-	SOURCE_DATE_EPOCH=$(call read_SOURCE_DATE_EPOCH) $(MAKE) compile
+	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) $(MAKE) compile
 	$(Q) echo "Diffing..."
 	$(Q) diff -r lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
 	$(Q) diff -r lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
