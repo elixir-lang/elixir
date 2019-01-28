@@ -11,7 +11,7 @@ env:
     - OTP_RELEASE=OTP-20.3
     - OTP_RELEASE=OTP-21.0
     - OTP_RELEASE=OTP-21.1
-    - OTP_RELEASE=OTP-21.2
+    - OTP_RELEASE=OTP-21.2 CHECK_REPRODUCIBLE=true
     - OTP_RELEASE=maint
     - OTP_RELEASE=master
 
@@ -29,7 +29,9 @@ install:
   - PATH=$(pwd)/otp/bin:$PATH
 
 script:
-  - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
   - rm -rf .git
+  - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
   - make test
   - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
+  # Check for reproducible builds only in the latest OTP release
+  - if [ -n "$CHECK_REPRODUCIBLE" ]; then make check_reproducible; fi
