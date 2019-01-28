@@ -54,7 +54,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "_build/dev/rel/RELEAS~1/lib/release_test-0.1.0")
-          assert String.ends_with?(release_root, "_build\\dev\\rel\\release_test")
+          assert String.ends_with?(release_root, "_build\\dev\\rel\\RELEAS~1")
         else
           assert app_dir == Path.join(root, "lib/release_test-0.1.0")
           assert release_root == root
@@ -167,7 +167,7 @@ defmodule Mix.Tasks.ReleaseTest do
                }
 
         assert File.read!(Path.join(root, "tmp/log/erlang.log.1")) =~
-                 "iex(permanent2@127.0.0.1)1>"
+                 :erlang.system_info(:system_version) |> List.to_string() |> String.trim()
 
         assert System.cmd(Path.join(root, "bin/permanent2"), ["rpc", "ReleaseTest.hello_world"]) ==
                  {"hello world\n", 0}
