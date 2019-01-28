@@ -136,7 +136,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert System.cmd(Path.join(root, "bin/permanent1"), ["stop"]) ==
                  {"", 0}
 
-        assert {_, 0} = Task.await(task)
+        assert {_, 0} = Task.await(task, :infinity)
       end)
     end)
   end
