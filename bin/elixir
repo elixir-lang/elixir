@@ -158,16 +158,16 @@ while [ $I -le $LENGTH ]; do
     --pipe-to)
         S=3
         RUN_ERL_PIPE="$2"
-        if [[ "$RUN_ERL_PIPE" == "-"* ]]; then
-          echo "--pipe-to : PIPEDIR cannot be a switch" >&2
-          exit 1
-        fi
+        case "$RUN_ERL_PIPE" in
+          -*) echo "--pipe-to : PIPEDIR cannot be a switch" >&2 && exit 1;;
+          *);;
+        esac
 
         RUN_ERL_LOG="$3"
-        if [[ "$RUN_ERL_LOG" == "-"* ]]; then
-          echo "--pipe-to : LOGDIR cannot be a switch" >&2
-          exit 1
-        fi
+        case "$RUN_ERL_LOG" in
+          -*) echo "--pipe-to : LOGDIR cannot be a switch" >&2 && exit 1;;
+          *);;
+        esac
         ;;
     --werl)
         USE_WERL=true
