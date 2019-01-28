@@ -33,23 +33,34 @@ defmodule Mix.Tasks.ReleaseTest do
                |> File.read_link()
                |> elem(0) == :error
 
-        cookie = File.read!(Path.join(root, "releases/COOKIE"))
+        cookie_string = File.read!(Path.join(root, "releases/COOKIE"))
+        cookie_atom = String.to_atom(cookie_string)
 
         # Assert runtime
         assert System.cmd(Path.join(root, "bin/start"), []) == {"", 0}
 
-        assert Code.eval_file("RELEASE_BOOTED") |> elem(0) == %{
-                 app_dir: Path.join(root, "lib/release_test-0.1.0"),
-                 cookie_env: cookie,
-                 cookie_node: String.to_atom(cookie),
+        assert %{
+                 app_dir: app_dir,
+                 cookie_env: ^cookie_string,
+                 cookie_node: ^cookie_atom,
                  node: :"release_test@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "release_test",
-                 release_root: root,
+                 release_root: release_root,
                  release_vsn: "0.1.0",
-                 root_dir: root,
+                 root_dir: root_dir,
                  static_config: :was_set
-               }
+               } = Code.eval_file("RELEASE_BOOTED") |> elem(0)
+
+        if match?({:win32, _}, :os.type()) do
+          assert String.ends_with?(app_dir, "_build/dev/rel/release_test/lib/release_test-0.1.0")
+          assert String.ends_with?(release_root, "_build/dev/rel/release_test")
+        else
+          assert app_dir == Path.join(root, "lib/release_test-0.1.0")
+          assert release_root == root
+        end
+
+        assert root_dir == release_root
       end)
     end)
   end
@@ -79,18 +90,28 @@ defmodule Mix.Tasks.ReleaseTest do
         # Assert runtime
         assert System.cmd(Path.join(root, "bin/start"), []) == {"", 0}
 
-        assert Code.eval_file("RELEASE_BOOTED") |> elem(0) == %{
-                 app_dir: Path.join(root, "lib/release_test-0.1.0"),
+        assert %{
+                 app_dir: app_dir,
                  cookie_env: "abcdefghijk",
                  cookie_node: :abcdefghijk,
                  node: :"demo@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "demo",
-                 release_root: root,
+                 release_root: release_root,
                  release_vsn: "0.2.0",
-                 root_dir: :code.root_dir() |> to_string(),
+                 root_dir: root_dir,
                  static_config: :was_set
-               }
+               } = Code.eval_file("RELEASE_BOOTED") |> elem(0)
+
+        if match?({:win32, _}, :os.type()) do
+          assert String.ends_with?(app_dir, "demo/lib/release_test-0.1.0")
+          assert String.ends_with?(release_root, "demo")
+        else
+          assert app_dir == Path.join(root, "lib/release_test-0.1.0")
+          assert release_root == root
+        end
+
+        assert root_dir == :code.root_dir() |> to_string()
       end)
     end)
   end
@@ -115,7 +136,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert System.cmd(Path.join(root, "bin/permanent1"), ["stop"]) ==
                  {"", 0}
 
-        assert Task.await(task) == {"", 0}
+        assert {_, 0} = Task.await(task)
       end)
     end)
   end
