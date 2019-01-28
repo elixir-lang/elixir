@@ -33,13 +33,5 @@ script:
   - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
   - make test
   - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
-
   # Check for reproducible builds only in the latest OTP release
   - if [ -n "$CHECK_REPRODUCIBLE" ]; then make check_reproducible; fi
-
-notifications:
-  recipients:
-    - jose.valim@gmail.com
-    - eric.meadows.jonsson@gmail.com
-    - lexmag@me.com
-    - an.leopardi@gmail.com
