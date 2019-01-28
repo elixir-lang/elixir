@@ -53,7 +53,7 @@ defmodule Mix.Tasks.ReleaseTest do
                } = Code.eval_file("RELEASE_BOOTED") |> elem(0)
 
         if match?({:win32, _}, :os.type()) do
-          assert String.ends_with?(app_dir, "_build/dev/rel/release_test/lib/release_test-0.1.0")
+          assert String.ends_with?(app_dir, "_build/dev/rel/RELEAS~1/lib/release_test-0.1.0")
           assert String.ends_with?(release_root, "_build/dev/rel/release_test")
         else
           assert app_dir == Path.join(root, "lib/release_test-0.1.0")
