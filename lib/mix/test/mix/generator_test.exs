@@ -9,59 +9,143 @@ defmodule Mix.GeneratorTest do
   embed_text(:self, from_file: __ENV__.file)
   embed_template(:bar, "<%= @a + @b %>")
 
-  test "embed text" do
-    assert foo_text() == "foo"
+  describe "embed_text/2" do
+    test "with contents" do
+      assert foo_text() == "foo"
+    end
+
+    test "from file" do
+      assert self_text() =~ "import Mix.Generator"
+    end
   end
 
   test "embed template" do
     assert bar_template(a: 1, b: 2) == "3"
   end
 
-  test "from file" do
-    assert self_text() =~ "import Mix.Generator"
+  describe "overwrite?/1" do
+    test "without conflict" do
+      in_tmp("ovewrite", fn ->
+        assert overwrite?("foo")
+        refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
+
+    test "with conflict returning true" do
+      in_tmp("ovewrite", fn ->
+        File.write!("foo", "HELLO")
+        send(self(), {:mix_shell_input, :yes?, true})
+
+        assert overwrite?("foo")
+        assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
+
+    test "with conflict returning false" do
+      in_tmp("ovewrite", fn ->
+        File.write!("foo", "HELLO")
+        send(self(), {:mix_shell_input, :yes?, false})
+
+        refute overwrite?("foo")
+        assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
   end
 
-  test "create file" do
-    in_tmp("create_file", fn ->
-      create_file("foo", "HELLO")
-      assert File.read!("foo") == "HELLO"
-      assert_received {:mix_shell, :info, ["* creating foo"]}
-    end)
+  describe "overwrite?/2" do
+    test "without conflict" do
+      in_tmp("ovewrite", fn ->
+        assert overwrite?("foo", "HELLO")
+        refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
+
+    test "with same contents" do
+      in_tmp("ovewrite", fn ->
+        File.write!("foo", "HELLO")
+        refute overwrite?("foo", "HELLO")
+        refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
+
+    test "with conflict returning true" do
+      in_tmp("ovewrite", fn ->
+        File.write!("foo", "HELLO")
+        send(self(), {:mix_shell_input, :yes?, true})
+
+        assert overwrite?("foo", "WORLD")
+        assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
+
+    test "with conflict returning false" do
+      in_tmp("ovewrite", fn ->
+        File.write!("foo", "HELLO")
+        send(self(), {:mix_shell_input, :yes?, false})
+
+        refute overwrite?("foo", "WORLD")
+        assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
   end
 
-  test "force create file" do
-    in_tmp("create_file", fn ->
-      File.write!("foo", "HELLO")
+  describe "create_file/3" do
+    test "create file" do
+      in_tmp("create_file", fn ->
+        create_file("foo", "HELLO")
+        assert File.read!("foo") == "HELLO"
+        assert_received {:mix_shell, :info, ["* creating foo"]}
+      end)
+    end
 
-      create_file("foo", "WORLD", force: true)
-      assert File.read!("foo") == "WORLD"
+    test "with quiet" do
+      in_tmp("create_file", fn ->
+        create_file("foo", "HELLO", quiet: true)
+        assert File.read!("foo") == "HELLO"
+        refute_received {:mix_shell, :info, ["* creating foo"]}
+      end)
+    end
 
-      refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
-      assert_received {:mix_shell, :info, ["* creating foo"]}
-    end)
-  end
+    test "with force" do
+      in_tmp("create_file", fn ->
+        File.write!("foo", "HELLO")
+        create_file("foo", "WORLD", force: true)
+        assert File.read!("foo") == "WORLD"
 
-  test "create with conflict returning true" do
-    in_tmp("create_file", fn ->
-      File.write!("foo", "HELLO")
-      send(self(), {:mix_shell_input, :yes?, true})
+        refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+        assert_received {:mix_shell, :info, ["* creating foo"]}
+      end)
+    end
 
-      create_file("foo", "WORLD")
-      assert File.read!("foo") == "WORLD"
+    test "with same contents" do
+      in_tmp("create_file", fn ->
+        File.write!("foo", "HELLO")
+        create_file("foo", "HELLO")
+        assert File.read!("foo") == "HELLO"
+        refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
 
-      assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
-    end)
-  end
+    test "with conflict returning true" do
+      in_tmp("create_file", fn ->
+        File.write!("foo", "HELLO")
+        send(self(), {:mix_shell_input, :yes?, true})
 
-  test "create with conflict returning false" do
-    in_tmp("create_file", fn ->
-      File.write!("foo", "HELLO")
-      send(self(), {:mix_shell_input, :yes?, false})
+        create_file("foo", "WORLD")
+        assert File.read!("foo") == "WORLD"
+        assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
 
-      create_file("foo", "WORLD")
-      assert File.read!("foo") == "HELLO"
+    test "with conflict returning false" do
+      in_tmp("create_file", fn ->
+        File.write!("foo", "HELLO")
+        send(self(), {:mix_shell_input, :yes?, false})
 
-      assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
-    end)
+        create_file("foo", "WORLD")
+        assert File.read!("foo") == "HELLO"
+        assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
   end
 end
