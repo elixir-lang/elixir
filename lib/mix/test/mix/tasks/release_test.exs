@@ -125,7 +125,7 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
 
         task = Task.async(fn -> System.cmd(Path.join(root, "bin/start"), []) end)
-        wait_until_file("RELEASE_BOOTED")
+        wait_until_evaled("RELEASE_BOOTED")
 
         assert {pid, 0} = System.cmd(Path.join(root, "bin/permanent1"), ["pid"])
         assert pid != "\n"
@@ -151,9 +151,8 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
 
         assert System.cmd(Path.join(root, "bin/permanent2"), ["daemon", "iex"]) == {"", 0}
-        wait_until_file("RELEASE_BOOTED")
 
-        assert Code.eval_file("RELEASE_BOOTED") |> elem(0) == %{
+        assert wait_until_evaled("RELEASE_BOOTED") == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
                  cookie_env: "abcdefghij",
                  cookie_node: :abcdefghij,
@@ -207,12 +206,12 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
-  defp wait_until_file(file) do
-    if File.exists?(file) do
-      :ok
+  defp wait_until_evaled(file) do
+    if evaled = File.exists?(file) && Code.eval_file("RELEASE_BOOTED") |> elem(0) do
+      evaled
     else
       Process.sleep(10)
-      wait_until_file(file)
+      wait_until_evaled(file)
     end
   end
 end
