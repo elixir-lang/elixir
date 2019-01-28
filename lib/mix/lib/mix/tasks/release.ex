@@ -657,7 +657,7 @@ defmodule Mix.Tasks.Release do
     start_erl_path = Path.join(release.path, "releases/start_erl.data")
 
     with :ok <- make_boot_scripts(release, version_path, consolidation_path),
-         :ok <- Mix.Release.make_vm_args(release, vm_args_path),
+         :ok <- make_vm_args(release, vm_args_path),
          :ok <- Mix.Release.make_sys_config(release, sys_config_path, sys_config),
          :ok <- Mix.Release.make_cookie(release, cookie_path),
          :ok <- Mix.Release.make_start_erl(release, start_erl_path) do
@@ -694,6 +694,11 @@ defmodule Mix.Tasks.Release do
       end
 
     Enum.find(results, :ok, &(&1 != :ok))
+  end
+
+  defp make_vm_args(_release, path) do
+    File.write!(path, vm_args_text())
+    :ok
   end
 
   defp announce(release) do
@@ -825,9 +830,28 @@ defmodule Mix.Tasks.Release do
 
   defp executable!(path), do: File.chmod!(path, 0o744)
 
+  embed_text(:vm_args, ~S"""
+  ## Preloads all modules instead of loading them dynamically
+  -mode embedded
+
+  ## Enables the heart system to restart the VM if it dies or
+  ## becomes unresponsive (requires using daemon in bin/start)
+  ##-heart
+
+  ## Number of diry schedulers doing IO work (file, sockets, etc)
+  ##+SDio 5
+
+  ## Increase number of concurrent ports/sockets
+  ##-env ERL_MAX_PORTS 4096
+
+  ## Tweak GC to run more often
+  ##-env ERL_FULLSWEEP_AFTER 10
+  """)
+
   embed_template(:start, ~S"""
   #!/bin/sh
   set -e
+  export HEART_COMMAND="$(dirname "$0")/start"
   # Feel free to edit this file in anyway you want
   # To start your system using IEx: "$(dirname "$0")/<%= @name %>" start iex
   # To start it as a daemon using IEx: "$(dirname "$0")/<%= @name %>" daemon iex

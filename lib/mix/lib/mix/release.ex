@@ -302,32 +302,6 @@ defmodule Mix.Release do
   end
 
   @doc """
-  Makes a vm.args file at the given `path`.
-  """
-  @spec make_vm_args(t, Path.t()) :: :ok
-  def make_vm_args(_release, path) do
-    File.write!(path, ~S"""
-    ## Do not load code from filesystem as all modules are preloaded
-    -mode embedded
-
-    ## Disable the heartbeat system to automatically restart the VM
-    ## if it dies or becomes unresponsive. Useful only in daemon mode.
-    ##-heart
-
-    ## Number of diry schedulers doing IO work (file, sockets, etc)
-    ##+SDio 5
-
-    ## Increase number of concurrent ports/sockets
-    ##-env ERL_MAX_PORTS 4096
-
-    ## Tweak GC to run more often
-    ##-env ERL_FULLSWEEP_AFTER 10
-    """)
-
-    :ok
-  end
-
-  @doc """
   Makes boot scripts.
 
   It receives a path to the boot file, without extension, such as
