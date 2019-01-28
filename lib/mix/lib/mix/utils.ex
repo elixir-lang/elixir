@@ -545,19 +545,6 @@ defmodule Mix.Utils do
     Base.encode16(:crypto.hash(hash, binary), case: :lower)
   end
 
-  @doc """
-  Prompts the user to overwrite the file if it exists. Returns
-  the user input.
-  """
-  def can_write?(path) do
-    if File.exists?(path) do
-      full = Path.expand(path)
-      Mix.shell().yes?(Path.relative_to_cwd(full) <> " already exists, overwrite?")
-    else
-      true
-    end
-  end
-
   defp read_file(path) do
     try do
       {:ok, File.read!(path)}

@@ -50,9 +50,6 @@ The following options are generally used under releases.
 It will attempt to create PIPEDIR and LOGDIR if they don't exist.
 See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
 
---pipe-to automatically sets \$HEART_COMMAND if none is set.
-See the -heart mode of the Erlang VM for more information.
-
 ** Options marked with (*) can be given more than once." >&2
   exit 1
 fi
@@ -67,11 +64,20 @@ readlink_f () {
   fi
 }
 
-MODE="elixir"
-ERL_EXEC="erl"
+# Stores static erlang arguments and --erl (which is passed as is)
 ERL=""
+
+# Stores erl arguments preserving spaces/quotes (mimics an array)
+erl () {
+  eval "E$E=\$1"
+  E=$(($E + 1))
+}
+
+MODE="elixir"
 I=1
+E=0
 LENGTH=$#
+set -- "$@" -extra
 
 while [ $I -le $LENGTH ]; do
   S=1
@@ -102,59 +108,66 @@ while [ $I -le $LENGTH ]; do
     --hidden)
         ERL="$ERL -hidden"
         ;;
-    --cookie)
-        S=2
-        ERL="$ERL -setcookie "$2""
-        ;;
-    --sname|--name)
-        S=2
-        ERL="$ERL $(echo $1 | cut -c 2-) "$2""
-        ;;
     --logger-otp-reports)
         S=2
         if [ "$2" = 'true' ] || [ "$2" = 'false' ]; then
-          ERL="$ERL -logger handle_otp_reports "$2""
+          ERL="$ERL -logger handle_otp_reports $2"
         fi
         ;;
     --logger-sasl-reports)
         S=2
         if [ "$2" = 'true' ] || [ "$2" = 'false' ]; then
-          ERL="$ERL -logger handle_sasl_reports "$2""
+          ERL="$ERL -logger handle_sasl_reports $2"
         fi
         ;;
     --erl)
         S=2
-        ERL="$ERL "$2""
+        ERL="$ERL $2"
+        ;;
+    --cookie)
+        S=2
+        erl "-setcookie"
+        erl "$2"
+        ;;
+    --sname|--name)
+        S=2
+        erl $(echo $1 | cut -c 2-)
+        erl "$2"
         ;;
     --erl-config)
         S=2
-        ERL="$ERL -config "$2""
+        erl "-config"
+        erl "$2"
         ;;
     --vm-args)
         S=2
-        ERL="$ERL -args_file "$2""
+        erl "-args_file"
+        erl "$2"
         ;;
     --boot)
         S=2
-        ERL="$ERL -boot "$2""
+        erl "-boot"
+        erl "$2"
         ;;
     --boot-var)
         S=3
-        ERL="$ERL -boot_var "$2" "$3""
+        erl "-boot_var"
+        erl "$2"
+        erl "$3"
         ;;
     --pipe-to)
         S=3
         RUN_ERL_PIPE="$2"
-        if [[ "$RUN_ERL_PIPE" == "-"* ]]; then
-          echo "--pipe-to : PIPEDIR cannot be a switch" >&2
-          exit 1
-        fi
+        case "$RUN_ERL_PIPE" in
+          -*) echo "--pipe-to : PIPEDIR cannot be a switch" >&2 && exit 1;;
+          *);;
+        esac
 
         RUN_ERL_LOG="$3"
-        if [[ "$RUN_ERL_LOG" == "-"* ]]; then
-          echo "--pipe-to : LOGDIR cannot be a switch" >&2
-          exit 1
-        fi
+        case "$RUN_ERL_LOG" in
+          -*) echo "--pipe-to : LOGDIR cannot be a switch" >&2 && exit 1;;
+          *);;
+        esac
         ;;
     --werl)
         USE_WERL=true
@@ -173,9 +186,16 @@ while [ $I -le $LENGTH ]; do
   shift $S
 done
 
+I=$(($E - 1))
+while [ $I -ge 0 ]; do
+  eval "VAL=\$E$I"
+  set -- "$VAL" "$@"
+  I=$(($I - 1))
+done
+
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-ERTS_BIN=""
+ERL_EXEC="erl"
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
@@ -186,14 +206,18 @@ else
   if [ $USE_WERL ]; then ERL_EXEC="werl"; fi
 fi
 
-set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
+ERTS_BIN=""
+set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
+  ESCAPED=""
+  for PART in "$@"; do
+    ESCAPED=""$ESCAPED" $(echo "$PART" | sed 's/[^a-zA-Z0-9_\-\/]/\\&/g')"
+  done
   mkdir -p "$RUN_ERL_PIPE"
   mkdir -p "$RUN_ERL_LOG"
   ERL_EXEC="run_erl"
-  set -- "$ERTS_BIN$ERL_EXEC" -daemon "$RUN_ERL_PIPE/" "$RUN_ERL_LOG/" "$(printf "%q " "$@")"
-  export HEART_COMMAND=${HEART_COMMAND:-$(printf "%q " "$@")}
+  set -- "$ERTS_BIN$ERL_EXEC" -daemon "$RUN_ERL_PIPE/" "$RUN_ERL_LOG/" "$ESCAPED"
 fi
 
 exec "$@"
