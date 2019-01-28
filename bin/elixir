@@ -50,9 +50,6 @@ The following options are generally used under releases.
 It will attempt to create PIPEDIR and LOGDIR if they don't exist.
 See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
 
---pipe-to automatically sets \$HEART_COMMAND if none is set.
-See the -heart mode of the Erlang VM for more information.
-
 ** Options marked with (*) can be given more than once." >&2
   exit 1
 fi
@@ -213,11 +210,14 @@ ERTS_BIN=""
 set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
+  ESCAPED=""
+  for PART in "$@"; do
+    ESCAPED=""$ESCAPED" $(echo "$PART" | sed 's/[^a-zA-Z0-9_\-\/]/\\&/g')"
+  done
   mkdir -p "$RUN_ERL_PIPE"
   mkdir -p "$RUN_ERL_LOG"
   ERL_EXEC="run_erl"
-  set -- "$ERTS_BIN$ERL_EXEC" -daemon "$RUN_ERL_PIPE/" "$RUN_ERL_LOG/" "$(printf "%q " "$@")"
-  export HEART_COMMAND=${HEART_COMMAND:-$(printf "%q " "$@")}
+  set -- "$ERTS_BIN$ERL_EXEC" -daemon "$RUN_ERL_PIPE/" "$RUN_ERL_LOG/" "$ESCAPED"
 fi
 
 exec "$@"
