@@ -283,6 +283,7 @@ defmodule IEx.Introspection do
             true ->
               module.module_info(:exports)
           end
+          |> Enum.sort()
 
         result =
           for {^function, arity} <- exports,

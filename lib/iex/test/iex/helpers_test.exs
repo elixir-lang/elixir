@@ -343,6 +343,12 @@ defmodule IEx.HelpersTest do
              """
 
       assert capture_io(fn -> h(:timer.send_interval()) end) == """
+             * :timer.send_interval/2
+
+               @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
+                     when time: time(), message: term(), tRef: tref(), reason: term()
+
+             Module was compiled without docs. Showing only specs.
              * :timer.send_interval/3
 
                @spec send_interval(time, pid, message) :: {:ok, tRef} | {:error, reason}
@@ -351,12 +357,6 @@ defmodule IEx.HelpersTest do
                           message: term(),
                           tRef: tref(),
                           reason: term()
-
-             Module was compiled without docs. Showing only specs.
-             * :timer.send_interval/2
-
-               @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
-                     when time: time(), message: term(), tRef: tref(), reason: term()
 
              Module was compiled without docs. Showing only specs.
              """
