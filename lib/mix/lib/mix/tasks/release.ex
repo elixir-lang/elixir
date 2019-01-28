@@ -829,9 +829,9 @@ defmodule Mix.Tasks.Release do
   #!/bin/sh
   set -e
   # Feel free to edit this file in anyway you want
-  # To start your system using IEx: . "$(dirname "$0")/<%= @name %>" start iex
-  # To start it as a daemon using IEx: . "$(dirname "$0")/<%= @name %>" daemon iex
-  . "$(dirname "$0")/<%= @name %>" start
+  # To start your system using IEx: "$(dirname "$0")/<%= @name %>" start iex
+  # To start it as a daemon using IEx: "$(dirname "$0")/<%= @name %>" daemon iex
+  "$(dirname "$0")/<%= @name %>" start
   """)
 
   embed_template(:cli, ~S"""
