@@ -35,7 +35,7 @@ script:
   - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
 notifications:
-  recipients:
+  email:
     - jose.valim@gmail.com
     - eric.meadows.jonsson@gmail.com
     - lexmag@me.com
