@@ -67,11 +67,20 @@ readlink_f () {
   fi
 }
 
-MODE="elixir"
-ERL_EXEC="erl"
+# Stores static erlang arguments and --erl (which is passed as is)
 ERL=""
+
+# Stores erl arguments preserving spaces/quotes (mimics an array)
+erl () {
+  eval "E$E=\$1"
+  E=$(($E + 1))
+}
+
+MODE="elixir"
 I=1
+E=0
 LENGTH=$#
+set -- "$@" -extra
 
 while [ $I -le $LENGTH ]; do
   S=1
@@ -102,45 +111,52 @@ while [ $I -le $LENGTH ]; do
     --hidden)
         ERL="$ERL -hidden"
         ;;
-    --cookie)
-        S=2
-        ERL="$ERL -setcookie "$2""
-        ;;
-    --sname|--name)
-        S=2
-        ERL="$ERL $(echo $1 | cut -c 2-) "$2""
-        ;;
     --logger-otp-reports)
         S=2
         if [ "$2" = 'true' ] || [ "$2" = 'false' ]; then
-          ERL="$ERL -logger handle_otp_reports "$2""
+          ERL="$ERL -logger handle_otp_reports $2"
         fi
         ;;
     --logger-sasl-reports)
         S=2
         if [ "$2" = 'true' ] || [ "$2" = 'false' ]; then
-          ERL="$ERL -logger handle_sasl_reports "$2""
+          ERL="$ERL -logger handle_sasl_reports $2"
         fi
         ;;
     --erl)
         S=2
-        ERL="$ERL "$2""
+        ERL="$ERL $2"
+        ;;
+    --cookie)
+        S=2
+        erl "-setcookie"
+        erl "$2"
+        ;;
+    --sname|--name)
+        S=2
+        erl $(echo $1 | cut -c 2-)
+        erl "$2"
         ;;
     --erl-config)
         S=2
-        ERL="$ERL -config "$2""
+        erl "-config"
+        erl "$2"
         ;;
     --vm-args)
         S=2
-        ERL="$ERL -args_file "$2""
+        erl "-args_file"
+        erl "$2"
         ;;
     --boot)
         S=2
-        ERL="$ERL -boot "$2""
+        erl "-boot"
+        erl "$2"
         ;;
     --boot-var)
         S=3
-        ERL="$ERL -boot_var "$2" "$3""
+        erl "-boot_var"
+        erl "$2"
+        erl "$3"
         ;;
     --pipe-to)
         S=3
@@ -173,9 +189,16 @@ while [ $I -le $LENGTH ]; do
   shift $S
 done
 
+I=$(($E - 1))
+while [ $I -ge 0 ]; do
+  eval "VAL=\$E$I"
+  set -- "$VAL" "$@"
+  I=$(($I - 1))
+done
+
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-ERTS_BIN=""
+ERL_EXEC="erl"
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
@@ -186,7 +209,8 @@ else
   if [ $USE_WERL ]; then ERL_EXEC="werl"; fi
 fi
 
-set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL -extra "$@"
+ERTS_BIN=""
+set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
   mkdir -p "$RUN_ERL_PIPE"
