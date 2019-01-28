@@ -25,6 +25,6 @@ defmodule ReleaseTest do
   end
 
   def hello_world do
-    IO.puts "hello world"
+    IO.puts("hello world")
   end
 end
