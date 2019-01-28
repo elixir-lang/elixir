@@ -54,7 +54,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "_build/dev/rel/RELEAS~1/lib/release_test-0.1.0")
-          assert String.ends_with?(release_root, "_build/dev/rel/release_test")
+          assert String.ends_with?(release_root, "_build\\dev\\rel\\release_test")
         else
           assert app_dir == Path.join(root, "lib/release_test-0.1.0")
           assert release_root == root
@@ -211,7 +211,7 @@ defmodule Mix.Tasks.ReleaseTest do
     if File.exists?(file) do
       :ok
     else
-      Process.sleep(100)
+      Process.sleep(10)
       wait_until_file(file)
     end
   end

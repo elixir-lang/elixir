@@ -54,11 +54,12 @@ defmodule Mix.Tasks.Release do
   but you are not supposed to change `bin/RELEASE_NAME`.
 
   `bin/start` will start the system connected to the current standard
-  input/output, where logs are also written to by default. That's the
+  input/output, where logs are also written to by default. This is the
   preferred way to run the system. Many tools, such as `systemd`, platforms
   as a service, such as Heroku, and many containers platforms, such as Docker,
   are capable of processing the standard input/output and redirecting
-  the log contents elsewhere.
+  the log contents elsewhere. Those tools and platforms also take care
+  of restarting the system in case it crashes.
 
   For those looking for alternate ways of running the system, you can
   run it as a daemon on Unix-like system or install it as a service on
@@ -67,7 +68,7 @@ defmodule Mix.Tasks.Release do
   ### Daemon mode (Unix-like)
 
   If you open up `bin/start`, you will also see there is an option to
-  run the release in daemon mode:
+  run the release in daemon mode written as a comment:
 
       bin/RELEASE_NAME daemon iex
 
@@ -186,39 +187,39 @@ defmodule Mix.Tasks.Release do
       rm -rf ../my_app_source
       bin/start
 
-  However, this option can be expensive if you have multiple target or
-  if the release assembling process is a long one, as each target needs
-  to individually assemble the release.
+  However, this option can be expensive if you have multiple production
+  nodes or if the release assembling process is a long one, as each node
+  needs to individually assemble the release.
 
   You can automate this process in a couple different ways. One option
   is to make it part of your Continuous Integration (CI) / Continuous
   Deployment (CD) pipeline. When you have a CI/CD pipeline, it is common
-  that the machines in your CI/CD pipeline run on the exact same operating
-  system and tooling than your production servers (if they don't, they should).
+  that the machines in your CI/CD pipeline run on the exact same target
+  triple as your production servers (if they don't, they should).
   In this case, you can assemble the release at the end of your CI/CD
-  pipeline and push it to S3 or any other network storage. To perform the
-  deployment, your production machines can fetch the deployment from the
-  network storage.
+  pipeline by calling `MIX_ENV=prod mix release` and push the artifict
+  to S3 or any other network storage. To perform the deployment, your
+  production machines can fetch the deployment from the network storage
+  and run the `bin/start` script.
 
   Another mechanism to automate deployments is to use images, such as
   Amazon Machine Images, or container platforms, such as Docker.
-  For instance, you can use Docker to run locally under the same
-  specifications as your production servers, allowing you to assemble
-  a release which is then pushed to production. One can also build
-  images and/or containers at the end of their CI/CD pipelines, that
-  contain the whole operating system and all dependencies alongside
-  the release.
+  For instance, you can use Docker to run locally a system with the
+  exact same target triple as your production servers. Inside the
+  container, you can invoke `MIX_ENV=prod mix release` and build
+  a complete image and/or container with the operating system, all
+  dependencies as well as the releases.
 
   In other words, there are multiple ways systems can be deployed and
   releases can be automated and incorporated into all of them as long
-  as you follow the requirements outlined above.
+  as you remember to build the system in the same target triple.
 
-  Once a system is deployed, shutting down said systems can be done by
+  Once a system is deployed, shutting down the system can be done by
   sending SIGINT/SIGTERM to the system, which is what most containers,
   platforms and tools do, or by explicitly invoking `bin/RELEASE_NAME stop`.
-  Shutting down the system consists of stopping each application and
-  their respective supervision trees, one by one, in the opposite order
-  that they were started.
+  Once the system receives the shutdown request, each application and
+  their respective supervision trees will stop, one by one, in the
+  opposite order that they were started.
 
   ## Options
 
