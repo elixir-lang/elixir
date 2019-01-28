@@ -58,19 +58,25 @@ defmodule Kernel.CLI do
     end
   end
 
-  @doc false
+  @doc """
+  Parses the CLI arguments. Made public for testing.
+  """
   def parse_argv(argv) do
     parse_argv(argv, @blank_config)
   end
 
-  @doc false
+  @doc """
+  Process CLI commands. Made public for testing.
+  """
   def process_commands(config) do
     results = Enum.map(Enum.reverse(config.commands), &process_command(&1, config))
     errors = for {:error, msg} <- results, do: msg
     Enum.reverse(config.errors, errors)
   end
 
-  @doc false
+  @doc """
+  Shared helper for error formatting on CLI tools.
+  """
   def format_error(kind, reason, stacktrace) do
     {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
 
@@ -88,7 +94,9 @@ defmodule Kernel.CLI do
     [iodata, ?\n, Exception.format_stacktrace(prune_stacktrace(stacktrace))]
   end
 
-  @doc false
+  @doc """
+  Function invoked across nodes for `--rpc-eval`.
+  """
   def rpc_eval(expr) do
     wrapper(fn -> :elixir.eval(to_charlist(expr), [], []) end)
   catch
