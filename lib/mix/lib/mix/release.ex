@@ -145,7 +145,7 @@ defmodule Mix.Release do
       {name, opts}
     else
       found = Keyword.get(config, :releases, [])
-      Mix.raise("Unknown release #{inspect(name)}. Found: #{inspect(Keyword.keys(found))}")
+      Mix.raise("Unknown release #{inspect(name)}. The available releases are: #{inspect(Keyword.keys(found))}")
     end
   end
 

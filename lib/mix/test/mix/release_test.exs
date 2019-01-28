@@ -105,7 +105,7 @@ defmodule Mix.ReleaseTest do
     end
 
     test "raises for unknown release" do
-      assert_raise Mix.Error, "Unknown release :foo. Found: []", fn ->
+      assert_raise Mix.Error, "Unknown release :foo. The available releases are: []", fn ->
         from_config!(:foo, config(), [])
       end
     end

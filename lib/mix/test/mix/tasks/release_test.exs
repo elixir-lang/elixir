@@ -3,13 +3,39 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.ReleaseTest do
   use MixTest.Case
 
-  test "ships a bootable release with ERTS" do
+  @erts_version :erlang.system_info(:version)
+
+  test "assembles a bootable release with ERTS" do
     in_fixture("release_test", fn ->
       Mix.Project.in_project(:release_test, ".", fn _ ->
         root = Path.absname("_build/dev/rel/release_test")
+
+        # Assert command
         Mix.Task.run("release")
+        assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+
+        assert_received {:mix_shell, :info,
+                         ["\nRelease created at _build/dev/rel/release_test!" <> _]}
+
+        # Assert structure
+        assert root |> Path.join("bin/release_test") |> File.exists?()
+        assert root |> Path.join("erts-#{@erts_version}") |> File.exists?()
+        assert root |> Path.join("lib/release_test-0.1.0/ebin") |> File.exists?()
+        assert root |> Path.join("lib/release_test-0.1.0/priv/hello") |> File.exists?()
+        assert root |> Path.join("releases/COOKIE") |> File.exists?()
+        assert root |> Path.join("releases/start_erl.data") |> File.exists?()
+        assert root |> Path.join("releases/0.1.0/release_test.rel") |> File.exists?()
+        assert root |> Path.join("releases/0.1.0/sys.config") |> File.exists?()
+        assert root |> Path.join("releases/0.1.0/vm.args") |> File.exists?()
+
+        assert root
+               |> Path.join("lib/release_test-0.1.0/priv")
+               |> File.read_link()
+               |> elem(0) == :error
 
         cookie = File.read!(Path.join(root, "releases/COOKIE"))
+
+        # Assert runtime
         assert System.cmd(Path.join(root, "bin/start"), []) == {"", 0}
 
         assert Code.eval_file("RELEASE_BOOTED") |> elem(0) == %{
@@ -28,14 +54,29 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
-  test "ships a bootable release without ERTS" do
+  test "assembles a custom release" do
     in_fixture("release_test", fn ->
       config = [releases: [demo: [include_erts: false, cookie: "abcdefghijk"]]]
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
-        root = Path.absname("_build/dev/rel/demo")
-        Mix.Task.run("release")
+        root = Path.absname("demo")
 
+        Mix.Task.run("release", ["demo", "--path", "demo", "--version", "0.2.0", "--quiet"])
+        refute_received {:mix_shell, :info, ["* assembling " <> _]}
+        refute_received {:mix_shell, :info, ["\nRelease created " <> _]}
+
+        # Assert structure
+        assert root |> Path.join("bin/demo") |> File.exists?()
+        refute root |> Path.join("erts-#{@erts_version}") |> File.exists?()
+        assert root |> Path.join("lib/release_test-0.1.0/ebin") |> File.exists?()
+        assert root |> Path.join("lib/release_test-0.1.0/priv/hello") |> File.exists?()
+        assert root |> Path.join("releases/COOKIE") |> File.exists?()
+        assert root |> Path.join("releases/start_erl.data") |> File.exists?()
+        assert root |> Path.join("releases/0.2.0/demo.rel") |> File.exists?()
+        assert root |> Path.join("releases/0.2.0/sys.config") |> File.exists?()
+        assert root |> Path.join("releases/0.2.0/vm.args") |> File.exists?()
+
+        # Assert runtime
         assert System.cmd(Path.join(root, "bin/start"), []) == {"", 0}
 
         assert Code.eval_file("RELEASE_BOOTED") |> elem(0) == %{
@@ -46,7 +87,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "demo",
                  release_root: root,
-                 release_vsn: "0.1.0",
+                 release_vsn: "0.2.0",
                  root_dir: :code.root_dir() |> to_string(),
                  static_config: :was_set
                }
@@ -56,22 +97,22 @@ defmodule Mix.Tasks.ReleaseTest do
 
   test "executes rpc instructions" do
     in_fixture("release_test", fn ->
-      config = [releases: [permanent: [include_erts: false]]]
+      config = [releases: [permanent1: [include_erts: false]]]
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
-        root = Path.absname("_build/dev/rel/permanent")
+        root = Path.absname("_build/dev/rel/permanent1")
         Mix.Task.run("release")
 
         task = Task.async(fn -> System.cmd(Path.join(root, "bin/start"), []) end)
         wait_until_file("RELEASE_BOOTED")
 
-        assert {pid, 0} = System.cmd(Path.join(root, "bin/permanent"), ["pid"])
+        assert {pid, 0} = System.cmd(Path.join(root, "bin/permanent1"), ["pid"])
         assert pid != "\n"
 
-        assert System.cmd(Path.join(root, "bin/permanent"), ["rpc", "ReleaseTest.hello_world"]) ==
+        assert System.cmd(Path.join(root, "bin/permanent1"), ["rpc", "ReleaseTest.hello_world"]) ==
                  {"hello world\n", 0}
 
-        assert System.cmd(Path.join(root, "bin/permanent"), ["stop"]) ==
+        assert System.cmd(Path.join(root, "bin/permanent1"), ["stop"]) ==
                  {"", 0}
 
         assert Task.await(task) == {"", 0}
@@ -82,23 +123,52 @@ defmodule Mix.Tasks.ReleaseTest do
   @tag :unix
   test "runs in daemon mode" do
     in_fixture("release_test", fn ->
-      config = [releases: [daemon: [include_erts: false]]]
+      config = [releases: [permanent2: [include_erts: false]]]
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
-        root = Path.absname("_build/dev/rel/daemon")
+        root = Path.absname("_build/dev/rel/permanent2")
         Mix.Task.run("release")
 
-        assert System.cmd(Path.join(root, "bin/daemon"), ["daemon", "iex"]) == {"", 0}
+        assert System.cmd(Path.join(root, "bin/permanent2"), ["daemon", "iex"]) == {"", 0}
         wait_until_file("RELEASE_BOOTED")
 
         assert File.read!(Path.join(root, "tmp/log/erlang.log.1")) =~
-                 "iex(daemon@127.0.0.1)1>"
+                 "iex(permanent2@127.0.0.1)1>"
 
-        assert System.cmd(Path.join(root, "bin/daemon"), ["rpc", "ReleaseTest.hello_world"]) ==
+        assert System.cmd(Path.join(root, "bin/permanent2"), ["rpc", "ReleaseTest.hello_world"]) ==
                  {"hello world\n", 0}
 
-        assert System.cmd(Path.join(root, "bin/daemon"), ["stop"]) ==
+        assert System.cmd(Path.join(root, "bin/permanent2"), ["stop"]) ==
                  {"", 0}
+      end)
+    end)
+  end
+
+  test "requires confirmation if release already exists unless forcing" do
+    in_fixture("release_test", fn ->
+      Mix.Project.in_project(:release_test, ".", fn _ ->
+        Mix.Task.rerun("release")
+        assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+
+        send(self(), {:mix_shell_input, :yes?, false})
+        Mix.Task.rerun("release")
+        refute_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+
+        assert_received {:mix_shell, :yes?,
+                         ["Release release_test-0.1.0 already exists. Overwrite?"]}
+
+        Mix.Task.rerun("release", ["--force"])
+        assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+      end)
+    end)
+  end
+
+  test "requires a matching name" do
+    in_fixture("release_test", fn ->
+      Mix.Project.in_project(:release_test, ".", fn _ ->
+        assert_raise Mix.Error, ~r"Unknown release :unknown", fn ->
+          Mix.Task.run("release", ["unknown"])
+        end
       end)
     end)
   end
@@ -111,8 +181,4 @@ defmodule Mix.Tasks.ReleaseTest do
       wait_until_file(file)
     end
   end
-
-  # Test confirmation for existing release
-  # Test command line flags
-  # Test directory structure
 end

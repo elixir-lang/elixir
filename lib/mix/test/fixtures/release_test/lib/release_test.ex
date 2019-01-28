@@ -17,7 +17,7 @@ defmodule ReleaseTest do
 
     File.write!("RELEASE_BOOTED", inspect(info))
 
-    if System.get_env("RELEASE_NAME") in ["permanent", "daemon"] do
+    if System.get_env("RELEASE_NAME") =~ "permanent" do
       Supervisor.start_link([], strategy: :one_for_one)
     else
       System.halt(0)
@@ -25,6 +25,6 @@ defmodule ReleaseTest do
   end
 
   def hello_world do
-    IO.puts("hello world")
+    IO.puts "hello world"
   end
 end
