@@ -203,7 +203,7 @@ SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
 # shellcheck disable=SC2039,SC2086
-if [ -n "$OSTYPE" ] && [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
+if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
