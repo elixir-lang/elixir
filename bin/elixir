@@ -3,6 +3,7 @@ set -e
 
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   printf "Usage: %s [options] [.exs file] [data]\n" "$(basename "$0")"
+# shellcheck disable=SC2016
   printf '
 ## General options
 
@@ -201,11 +202,9 @@ done
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
-# $OSTYPE is not POSIX compliant
-# https://github.com/pstadler/metrics.sh/blob/master/lib/utils/os.sh
-if [ -z "$OSTYPE" ]; then OSTYPE=$(uname | tr '[:upper:]' '[:lower:]'); fi
+# shellcheck disable=SC2039,SC2086
+if [ -n "$OSTYPE" ] && [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 
-if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
 if [ "$OS" != "Windows_NT" ]; then
@@ -213,6 +212,7 @@ if [ "$OS" != "Windows_NT" ]; then
 fi
 
 ERTS_BIN=
+# shellcheck disable=SC2086
 set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
