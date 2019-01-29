@@ -73,13 +73,12 @@ erl () {
   E=$((E + 1))
 }
 
-# Checks if a line starts with char
-# starts_with "$LINE", "$CHAR"
+# Checks if a line starts with char starts_with "$LINE", "$CHAR"
 starts_with () {
-case $1 in
-  "$2"*) true;;
-  *) false;;
-esac
+  case $1 in
+    "$2"*) true;;
+    *) false;;
+  esac
 }
 
 ERL_EXEC="erl"
