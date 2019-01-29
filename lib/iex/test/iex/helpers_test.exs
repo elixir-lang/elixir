@@ -1111,12 +1111,14 @@ defmodule IEx.HelpersTest do
   end
 
   describe "l" do
-    test "loads a given module" do
-      assert_raise UndefinedFunctionError, ~r"function Sample.run/0 is undefined", fn ->
-        Sample.run()
-      end
-
+    test "returns error tuple for nonexistent modules" do
       assert l(:nonexistent_module) == {:error, :nofile}
+    end
+
+    test "loads a given module" do
+      assert_raise UndefinedFunctionError,
+                   ~r"function Sample.run/0 is undefined",
+                   fn -> Sample.run() end
 
       filename = "sample.ex"
 
@@ -1126,14 +1128,11 @@ defmodule IEx.HelpersTest do
 
         File.write!(filename, "defmodule Sample do end")
         elixirc(["sample.ex"])
-
         assert l(Sample) == {:module, Sample}
 
-        message = "function Sample.run/0 is undefined or private"
-
-        assert_raise UndefinedFunctionError, message, fn ->
-          Sample.run()
-        end
+        assert_raise UndefinedFunctionError,
+                     ~r"function Sample.run/0 is undefined",
+                     fn -> Sample.run() end
       end)
     after
       # Clean up the old version left over after l()
