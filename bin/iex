@@ -8,7 +8,7 @@ The following options are exclusive to IEx:
                       path can be empty, then no file will be loaded
   --remsh NAME        Connects to a node using a remote shell
 
-The remaining options are the same as in the \"elixir\" executable. Run \"elixir --help\" to see them" >&2
+It accepts all other options listed by \"elixir --help\"." >&2
   exit 1
 fi
 

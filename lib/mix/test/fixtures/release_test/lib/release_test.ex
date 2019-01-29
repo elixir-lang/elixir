@@ -2,13 +2,14 @@ defmodule ReleaseTest do
   use Application
 
   def start(_type, _args) do
-    cookie = System.get_env("COOKIE")
+    cookie = System.get_env("RELEASE_COOKIE")
 
     info = %{
       protocols_consolidated?: Protocol.consolidated?(Enumerable),
       app_dir: Application.app_dir(:release_test),
       release_root: System.get_env("RELEASE_ROOT"),
       release_name: System.get_env("RELEASE_NAME"),
+      release_node: System.get_env("RELEASE_NODE"),
       release_vsn: System.get_env("RELEASE_VSN"),
       cookie_env: cookie,
       cookie_node: wait_until_connected(String.to_atom(cookie)),
