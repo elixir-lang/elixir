@@ -1054,7 +1054,11 @@ defmodule StreamTest do
     stream = Stream.timer(10)
     now = :os.timestamp()
     assert Enum.to_list(stream) == [0]
-    assert :timer.now_diff(:os.timestamp(), now) >= 10000
+    # We check for >= 5000 (us) instead of >= 10000 (us)
+    # because the resolution on Windows system is not high
+    # enough and we would get a difference of 9000 from
+    # time to time. So a value halfway is good enough.
+    assert :timer.now_diff(:os.timestamp(), now) >= 5000
   end
 
   test "unfold/2" do
