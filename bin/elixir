@@ -218,8 +218,7 @@ set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""
   for PART in "$@"; do
-    PART_ESCAPED="$(echo "$PART" | sed 's/[^a-zA-Z0-9_\-\/]/\\&/g')"
-    ESCAPED="$(printf "%s %s" "$ESCAPED" "$PART_ESCAPED")"
+    ESCAPED="$ESCAPED $(echo "$PART" | sed 's/[^a-zA-Z0-9_\-\/]/\\&/g')"
   done
   mkdir -p "$RUN_ERL_PIPE"
   mkdir -p "$RUN_ERL_LOG"
