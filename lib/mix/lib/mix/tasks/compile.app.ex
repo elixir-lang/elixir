@@ -212,7 +212,7 @@ defmodule Mix.Tasks.Compile.App do
     apps =
       properties
       |> Keyword.get(:applications)
-      |> Kernel.||(apps_from_prod_deps(properties, config))
+      |> Kernel.||(apps_from_prod_non_optional_deps(properties, config))
       |> normalize_apps(extra, config)
 
     Keyword.put(properties, :applications, apps)
@@ -317,11 +317,12 @@ defmodule Mix.Tasks.Compile.App do
     end)
   end
 
-  defp apps_from_prod_deps(properties, config) do
+  defp apps_from_prod_non_optional_deps(properties, config) do
     included_applications = Keyword.get(properties, :included_applications, [])
     non_runtime_deps = non_runtime_deps(config)
 
-    for %{app: app, top_level: true} <- Mix.Dep.cached(),
+    for %{app: app, opts: opts, top_level: true} <- Mix.Dep.cached(),
+        not Keyword.get(opts, :optional, false),
         not Map.has_key?(non_runtime_deps, app),
         app not in included_applications,
         do: app
