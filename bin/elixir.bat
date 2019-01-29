@@ -157,7 +157,7 @@ if not !runMode! == "iex" (
 )
 if defined useWerl (
   start !ERTS_BIN!werl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
-else (
+) else (
   !ERTS_BIN!erl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
 )
 :end
