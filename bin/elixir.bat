@@ -67,11 +67,11 @@ set parsErlang=
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
 
+rem Option which determines whether to use werl or erl
+set useWerl=
+
 rem Option which determines whether the loop is over
 set endLoop=0
-
-rem Option which determines whether to use werl or erl
-set useWerl=0
 
 rem Designates which mode / Elixir component to run as
 set runMode="elixir"
@@ -128,6 +128,7 @@ if ""==!par:-v=!          (set parsElixir=!parsElixir! -v && goto startloop)
 if ""==!par:--app=!       (set parsElixir=!parsElixir! --app %1 && shift && goto startloop)
 if ""==!par:--no-halt=!   (set parsElixir=!parsElixir! --no-halt && goto startloop)
 if ""==!par:--remsh=!     (set parsElixir=!parsElixir! --remsh %1 && shift && goto startloop)
+if ""==!par:--dot-iex=!   (set parsElixir=!parsElixir! --dot-iex %1 && shift && goto startloop)
 rem ******* ERLANG PARAMETERS **********************
 if ""==!par:--boot=!                (set parsErlang=!parsErlang! -boot %1 && shift && goto startloop)
 if ""==!par:--boot-var=!            (set parsErlang=!parsErlang! -boot_var %1 %2 && shift && shift && goto startloop)
@@ -157,10 +158,10 @@ for  /d %%d in ("!SCRIPT_PATH!..\lib\*.") do (
 if not !runMode! == "iex" (
   set beforeExtra=-noshell -s elixir start_cli !beforeExtra!
 )
-if !useWerl! equ 1 (
-  start !ERTS_BIN!werl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
-) else (
+if !useWerl! == "" (
   !ERTS_BIN!erl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+) else (
+  start !ERTS_BIN!werl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
 )
 :end
 endlocal

@@ -73,6 +73,7 @@ erl () {
   E=$(($E + 1))
 }
 
+ERL_EXEC="erl"
 MODE="elixir"
 I=1
 E=0
@@ -93,7 +94,7 @@ while [ $I -le $LENGTH ]; do
     -v|--no-halt)
         set -- "$@" "$1"
         ;;
-    -e|-r|-pr|-pa|-pz|--app|--eval|--remsh)
+    -e|-r|-pr|-pa|-pz|--app|--eval|--remsh|--dot-iex)
         S=2
         set -- "$@" "$1" "$2"
         ;;
@@ -170,7 +171,7 @@ while [ $I -le $LENGTH ]; do
         esac
         ;;
     --werl)
-        USE_WERL=true
+        if [ "$OS" == "Windows_NT" ]; then ERL_EXEC="werl"; fi
         ;;
     *)
         while [ $I -le $LENGTH ]; do
@@ -195,15 +196,12 @@ done
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-ERL_EXEC="erl"
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
 if [ "$OS" != "Windows_NT" ]; then
   if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
-else
-  if [ $USE_WERL ]; then ERL_EXEC="werl"; fi
 fi
 
 ERTS_BIN=""

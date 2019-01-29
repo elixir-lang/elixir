@@ -412,8 +412,11 @@ defmodule Mix.Tasks.Release do
     * `RELEASE_VSN` - the version of the release. It can be overridden when
       the release is started
 
-    * `COOKIE` - the release COOKIE. It can be overridden when the release
-      is started
+    * `RELEASE_COOKIE` - the release cookie. It can be overridden when the
+      release is started
+
+    * `RELEASE_NODE` - the release node name. It can be overridden when the
+      release is started
 
   ### Hot Code Upgrades
 
@@ -870,7 +873,8 @@ defmodule Mix.Tasks.Release do
   export RELEASE_ROOT
   export RELEASE_NAME="${RELEASE_NAME:-"<%= @name %>"}"
   export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
-  export COOKIE=${COOKIE:-$(cat "$RELEASE_ROOT/releases/COOKIE")}
+  export RELEASE_COOKIE=${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}
+  export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME@127.0.0.1"}
   REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
 
   gen_id () {
@@ -879,17 +883,17 @@ defmodule Mix.Tasks.Release do
 
   rpc () {
     exec "$REL_VSN_DIR/elixir" \
-         --hidden --name "rpc-$(gen_id)@127.0.0.1" --cookie "$COOKIE" \
+         --hidden --name "rpc-$(gen_id)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
          --boot "${REL_VSN_DIR}/remote" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-         --rpc-eval "$RELEASE_NAME@127.0.0.1" "$1"
+         --rpc-eval "$RELEASE_NODE" "$1"
   }
 
   start () {
     REL_EXEC="$1"
     shift
     exec "$REL_VSN_DIR/$REL_EXEC" --no-halt \
-         --werl --name "$RELEASE_NAME@127.0.0.1" --cookie "$COOKIE" \
+         --werl --name "$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
          --erl-config "${REL_VSN_DIR}/sys" \
          --boot "${REL_VSN_DIR}/start" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
@@ -908,10 +912,10 @@ defmodule Mix.Tasks.Release do
 
     remote)
       exec "$REL_VSN_DIR/iex" \
-           --werl --hidden --name "remote-$(gen_id)@127.0.0.1" --cookie "$COOKIE" \
+           --werl --hidden --name "remote-$(gen_id)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
            --boot "${REL_VSN_DIR}/remote" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-           --remsh "$RELEASE_NAME@127.0.0.1"
+           --remsh "$RELEASE_NODE"
       ;;
 
     rpc)
@@ -970,7 +974,8 @@ defmodule Mix.Tasks.Release do
 
   if not defined RELEASE_NAME (set RELEASE_NAME=<%= @name %>)
   if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!/releases/start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
-  if not defined COOKIE (set /p COOKIE=<!RELEASE_ROOT!/releases/COOKIE)
+  if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!/releases/COOKIE)
+  if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
   set REL_VSN_DIR=!RELEASE_ROOT!/releases/!RELEASE_VSN!
 
   if "%~1" == "start" (goto start)
@@ -1005,7 +1010,7 @@ defmodule Mix.Tasks.Release do
   :start
   if not "%~2" == "" (set REL_EXEC=%~2) else (set REL_EXEC=elixir)
   "!REL_VSN_DIR!/!REL_EXEC!.bat" --no-halt ^
-    --werl --name "!RELEASE_NAME!@127.0.0.1" --cookie "!COOKIE!" ^
+    --werl --name "!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
     --erl-config "!REL_VSN_DIR!\sys" ^
     --boot "!REL_VSN_DIR!\start" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
@@ -1014,18 +1019,18 @@ defmodule Mix.Tasks.Release do
 
   :remote
   "!REL_VSN_DIR!/iex.bat" ^
-    --werl --hidden --name "remote-!RANDOM!@127.0.0.1" --cookie "!COOKIE!" ^
+    --werl --hidden --name "remote-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
     --boot "!REL_VSN_DIR!\remote" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-    --remsh "!RELEASE_NAME!@127.0.0.1"
+    --remsh "!RELEASE_NODE!"
   goto end
 
   :rpc
   "!REL_VSN_DIR!/elixir.bat" ^
-    --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!COOKIE!" ^
+    --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
     --boot "!REL_VSN_DIR!\remote" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-    --rpc-eval "!RELEASE_NAME!@127.0.0.1" !REL_RPC!
+    --rpc-eval "!RELEASE_NODE!" !REL_RPC!
   goto end
 
   :install
@@ -1036,8 +1041,8 @@ defmodule Mix.Tasks.Release do
   )
 
   !ERLSRV! add !RELEASE_NAME!_!RELEASE_NAME! ^
-    -name "!RELEASE_NAME!@127.0.0.1" ^
-    -args "-setcookie !COOKIE! -config !REL_VSN_DIR!\sys -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
+    -name "!RELEASE_NODE!" ^
+    -args "-setcookie !RELEASE_COOKIE! -config !REL_VSN_DIR!\sys -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
 
   if %ERRORLEVEL% EQU 0 (
     echo Service installed but not started. From now on, it must be started and stopped by erlsrv:
