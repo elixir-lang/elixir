@@ -2,6 +2,7 @@
 =========
 [![Travis build](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
 "Build Status")](https://travis-ci.org/elixir-lang/elixir)
+[![Windows build](https://ci.appveyor.com/api/projects/status/macwuxq7aiiv61g1?svg=true)](https://ci.appveyor.com/project/josevalim/elixir)
 
 Elixir is a dynamic, functional language designed for building scalable
 and maintainable applications.
