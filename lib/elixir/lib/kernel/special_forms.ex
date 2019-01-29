@@ -346,7 +346,7 @@ defmodule Kernel.SpecialForms do
 
         def type(<<@png_signature, rest::binary>>), do: :png
         def type(<<@jpg_signature, rest::binary>>), do: :jpg
-        def type(_), do :unknown
+        def type(_), do: :unknown
       end
 
   ### Performance & Optimizations
@@ -486,11 +486,11 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:.)(left, right), do: error!([left, right])
 
   @doc """
-  `alias/2` is used to setup aliases, often useful with modules names.
+  `alias/2` is used to setup aliases, often useful with modules' names.
 
   ## Examples
 
-  `alias/2` can be used to setup an alias for any module:
+  `alias/2` can be used to set up an alias for any module:
 
       defmodule Math do
         alias MyKeyword, as: Keyword
@@ -503,7 +503,7 @@ defmodule Kernel.SpecialForms do
   In case one wants to access the original `Keyword`, it can be done
   by accessing `Elixir`:
 
-      Keyword.values   #=> uses MyKeyword.values
+      Keyword.values #=> uses MyKeyword.values
       Elixir.Keyword.values #=> uses Keyword.values
 
   Notice that calling `alias` without the `:as` option automatically
@@ -542,6 +542,7 @@ defmodule Kernel.SpecialForms do
 
   Both warning behaviours could be changed by explicitly
   setting the `:warn` option to `true` or `false`.
+
   """
   defmacro alias(module, opts), do: error!([module, opts])
 
@@ -576,7 +577,7 @@ defmodule Kernel.SpecialForms do
   Imports functions and macros from other modules.
 
   `import/2` allows one to easily access functions or macros from
-  others modules without using the qualified name.
+  other modules without using the qualified name.
 
   ## Examples
 
