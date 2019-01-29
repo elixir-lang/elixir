@@ -82,7 +82,13 @@ defmodule IEx.Broker do
   @spec take_over(binary, keyword) ::
           {:ok, server :: pid, group_leader :: pid} | {:error, :no_iex | :refused}
   def take_over(identifier, opts) do
-    GenServer.call(@name, {:take_over, identifier, opts}, :infinity)
+    case GenServer.whereis(@name) do
+      nil ->
+        {:error, :no_iex}
+
+      _pid ->
+        GenServer.call(@name, {:take_over, identifier, opts}, :infinity)
+    end
   end
 
   ## Callbacks
