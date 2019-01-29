@@ -171,7 +171,7 @@ while [ $I -le $LENGTH ]; do
         esac
         ;;
     --werl)
-        if [ "$OS" == "Windows_NT" ]; then ERL_EXEC="werl"; fi
+        if [ "$OS" = "Windows_NT" ]; then ERL_EXEC="werl"; fi
         ;;
     *)
         while [ $I -le $LENGTH ]; do
