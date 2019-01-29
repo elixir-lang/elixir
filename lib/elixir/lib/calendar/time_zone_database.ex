@@ -26,7 +26,7 @@ defmodule Calendar.TimeZoneDatabase do
 
   A beginning is inclusive. An ending is exclusive. Eg. if a period is from
   2015-03-29 01:00:00 and until 2015-10-25 01:00:00, the period includes and
-  begins from the begining of 2015-03-29 01:00:00 and lasts until just before
+  begins from the beginning of 2015-03-29 01:00:00 and lasts until just before
   2015-10-25 01:00:00.
 
   A beginning or end for certain periods are infinite. For instance the latest
