@@ -856,7 +856,8 @@ defmodule Mix.Tasks.Release do
   embed_template(:start, ~S"""
   #!/bin/sh
   set -e
-  export HEART_COMMAND="$(dirname "$0")/start"
+  HEART_COMMAND="$(dirname "$0")/start"
+  export HEART_COMMAND
   # Feel free to edit this file in anyway you want
   # To start your system using IEx: "$(dirname "$0")/<%= @name %>" start iex
   # To start it as a daemon using IEx: "$(dirname "$0")/<%= @name %>" daemon iex
