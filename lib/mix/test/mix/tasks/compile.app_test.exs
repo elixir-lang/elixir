@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       properties = parse_resource_file(:custom_deps)
 
       assert properties[:applications] ==
-               [:kernel, :stdlib, :elixir, :logger, :ok1, :ok3, :ok4, :ok6, :ok7]
+               [:kernel, :stdlib, :elixir, :logger, :ok1, :ok3, :ok4, :ok7]
     end)
   end
 
