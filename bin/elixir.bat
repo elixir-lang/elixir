@@ -67,9 +67,6 @@ set parsErlang=
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
 
-rem Option which determines whether to use werl or erl
-set useWerl=
-
 rem Option which determines whether the loop is over
 set endLoop=0
 
@@ -80,7 +77,7 @@ rem Designates the path to the current script
 set SCRIPT_PATH=%~dp0
 
 rem Designates the path to the ERTS system
-set ERTS_BIN=""
+set ERTS_BIN=
 
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
@@ -158,10 +155,10 @@ for  /d %%d in ("!SCRIPT_PATH!..\lib\*.") do (
 if not !runMode! == "iex" (
   set beforeExtra=-noshell -s elixir start_cli !beforeExtra!
 )
-if !useWerl! == "" (
-  !ERTS_BIN!erl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
-) else (
+if defined useWerl (
   start !ERTS_BIN!werl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+else (
+  !ERTS_BIN!erl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
 )
 :end
 endlocal

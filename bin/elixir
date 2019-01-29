@@ -204,7 +204,7 @@ if [ "$OS" != "Windows_NT" ]; then
   if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
 fi
 
-ERTS_BIN=""
+ERTS_BIN=
 set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
