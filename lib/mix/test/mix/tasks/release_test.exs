@@ -168,8 +168,10 @@ defmodule Mix.Tasks.ReleaseTest do
                  static_config: :was_set
                }
 
-        assert File.read!(Path.join(root, "tmp/log/erlang.log.1")) =~
-                 :erlang.system_info(:system_version) |> List.to_string() |> String.trim()
+        assert wait_until(fn ->
+                 File.read!(Path.join(root, "tmp/log/erlang.log.1")) =~
+                   "iex(permanent2@127.0.0.1)1> "
+               end)
 
         assert System.cmd(Path.join(root, "bin/permanent2"), ["rpc", "ReleaseTest.hello_world"]) ==
                  {"hello world\n", 0}
@@ -210,11 +212,15 @@ defmodule Mix.Tasks.ReleaseTest do
   end
 
   defp wait_until_evaled(file) do
-    if evaled = File.exists?(file) && Code.eval_file("RELEASE_BOOTED") |> elem(0) do
-      evaled
+    wait_until(fn -> File.exists?(file) && Code.eval_file("RELEASE_BOOTED") |> elem(0) end)
+  end
+
+  defp wait_until(fun) do
+    if value = fun.() do
+      value
     else
       Process.sleep(10)
-      wait_until_evaled(file)
+      wait_until(fun)
     end
   end
 end
