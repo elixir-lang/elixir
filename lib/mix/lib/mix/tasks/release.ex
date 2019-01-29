@@ -150,7 +150,7 @@ defmodule Mix.Tasks.Release do
   In addition to matching the target triple, it is also important that the
   target has all of the system packages that your application will need at
   runtime. A common one is the need for OpenSSL when building an application
-  that uses `:crypto` or `:ssl, which is dynamically linked to ERTS. The other
+  that uses `:crypto` or `:ssl`, which is dynamically linked to ERTS. The other
   common source for native dependencies like this comes from dependencies
   containing NIFs (natively-implemented functions) which may expect to
   dynamically link to libraries they use.
