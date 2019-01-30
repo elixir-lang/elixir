@@ -3,7 +3,7 @@ set -e
 
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   printf "Usage: %s [options] [.exs file] [data]\n" "$(basename "$0")"
-  printf '
+  echo '
 ## General options
 
   -e "COMMAND"                 Evaluates the given command (*)
@@ -50,7 +50,7 @@ The following options are generally used under releases.
 It will attempt to create PIPEDIR and LOGDIR if they don'\''t exist.
 See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
 
-** Options marked with (*) can be given more than once.\n' >&2
+** Options marked with (*) can be given more than once.' >&2
   exit 1
 fi
 
