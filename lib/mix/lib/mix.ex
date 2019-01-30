@@ -268,7 +268,7 @@ defmodule Mix do
   end
 
   @doc """
-  Returns the Mix environment.
+  Returns the current Mix environment.
 
   This function should not be used at runtime in application code (as opposed
   to infrastructure and build code like Mix tasks). Mix is a build tool and may
@@ -279,6 +279,7 @@ defmodule Mix do
   Proper configuration can be set in `Mix.Config` files, often per-environment
   (see `Mix.Config.import_config/1` for more information).
   """
+  @spec env() :: atom()
   def env do
     # env is not available on bootstrapping, so set a :dev default
     Mix.State.get(:env, :dev)
@@ -293,6 +294,7 @@ defmodule Mix do
   This function should not be used at runtime in application code
   (see `env/0` for more information).
   """
+  @spec env(atom()) :: :ok
   def env(env) when is_atom(env) do
     Mix.State.put(:env, env)
   end
@@ -300,6 +302,7 @@ defmodule Mix do
   @doc """
   Returns the Mix target.
   """
+  @spec target() :: atom()
   def target do
     # target is not available on bootstrapping, so set a :host default
     Mix.State.get(:target, :host)
@@ -311,6 +314,7 @@ defmodule Mix do
   Be careful when invoking this function as any project
   configuration won't be reloaded.
   """
+  @spec target(atom()) :: :ok
   def target(target) when is_atom(target) do
     Mix.State.put(:target, target)
   end
@@ -326,6 +330,7 @@ defmodule Mix do
       end
 
   """
+  @spec compilers() :: [atom()]
   def compilers do
     [:yecc, :leex, :erlang, :elixir, :xref, :app]
   end
@@ -341,6 +346,7 @@ defmodule Mix do
 
   By default, this returns `Mix.Shell.IO`.
   """
+  @spec shell() :: module
   def shell do
     Mix.State.get(:shell, Mix.Shell.IO)
   end
@@ -351,13 +357,15 @@ defmodule Mix do
   After calling this function, `shell` becomes the shell that is returned by
   `shell/0`.
   """
+  @spec shell(module) :: :ok
   def shell(shell) do
     Mix.State.put(:shell, shell)
   end
 
   @doc """
-  Returns `true` if Mix is in debug mode.
+  Returns `true` if Mix is in debug mode, `false` otherwise.
   """
+  @spec debug?() :: boolean()
   def debug? do
     Mix.State.get(:debug, false)
   end
@@ -365,6 +373,7 @@ defmodule Mix do
   @doc """
   Sets Mix debug mode.
   """
+  @spec debug(boolean()) :: :ok
   def debug(debug) when is_boolean(debug) do
     Mix.State.put(:debug, debug)
   end
