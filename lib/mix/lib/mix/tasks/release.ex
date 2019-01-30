@@ -380,7 +380,7 @@ defmodule Mix.Tasks.Release do
         start
       erts-ERTS_VSN/
       lib/
-        APP_VSN/
+        APP_NAME-APP_VSN/
           ebin/
           include/
           priv/
@@ -850,7 +850,7 @@ defmodule Mix.Tasks.Release do
 
   embed_template(:start, ~S"""
   #!/bin/sh
-  # Feel free to edit this file in anyway you want
+  # Feel free to edit this file in any way you want
   set -e
 
   # Sets and enables heart (recommended only in daemon mode)
@@ -878,7 +878,7 @@ defmodule Mix.Tasks.Release do
   REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
 
   gen_id () {
-    od -t x -N 4 -A n /dev/urandom | tr -d " \n"
+    od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
   }
 
   rpc () {
