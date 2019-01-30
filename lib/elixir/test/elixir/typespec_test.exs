@@ -521,8 +521,8 @@ defmodule TypespecTest do
       assert [type: {:my_type, type, []}] = types(bytecode)
       assert {:type, _, :tuple, [timestamp, term, foo]} = type
       assert {:atom, 0, :timestamp} = timestamp
-      assert {:type, 0, :term, []} = term
-      assert {:atom, 0, :foo} = foo
+      assert {:ann_type, 0, [{:var, 0, :date}, {:type, 0, :term, []}]} = term
+      assert {:ann_type, 0, [{:var, 0, :time}, {:atom, 0, :foo}]} = foo
     end
 
     test "@type with private record" do
@@ -535,7 +535,12 @@ defmodule TypespecTest do
 
       assert [type: {:my_type, type, []}] = types(bytecode)
       assert {:type, _, :tuple, args} = type
-      assert [{:atom, 0, :timestamp}, {:type, 0, :term, []}, {:atom, 0, :foo}] = args
+
+      assert [
+               {:atom, 0, :timestamp},
+               {:ann_type, 0, [{:var, 0, :date}, {:type, 0, :term, []}]},
+               {:ann_type, 0, [{:var, 0, :time}, {:atom, 0, :foo}]}
+             ] = args
     end
 
     test "@type with named record" do
@@ -549,8 +554,8 @@ defmodule TypespecTest do
       assert [type: {:my_type, type, []}] = types(bytecode)
       assert {:type, _, :tuple, [my_timestamp, term, foo]} = type
       assert {:atom, 0, :my_timestamp} = my_timestamp
-      assert {:type, 0, :term, []} = term
-      assert {:atom, 0, :foo} = foo
+      assert {:ann_type, 0, [{:var, 0, :date}, {:type, 0, :term, []}]} = term
+      assert {:ann_type, 0, [{:var, 0, :time}, {:atom, 0, :foo}]}
     end
 
     test "@type with undefined record" do
