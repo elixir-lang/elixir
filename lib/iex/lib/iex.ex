@@ -794,10 +794,17 @@ defmodule IEx do
   defp set_expand_fun do
     gl = Process.group_leader()
 
+    expand_fun =
+      if node(gl) != node() do
+        IEx.Autocomplete.remsh(node())
+      else
+        &IEx.Autocomplete.expand/1
+      end
+
     # expand_fun is not supported by a shell variant
     # on Windows, so we do two IO calls, not caring
     # about the result of the expand_fun one.
-    _ = :io.setopts(gl, expand_fun: &IEx.Autocomplete.expand/1)
+    _ = :io.setopts(gl, expand_fun: expand_fun)
     :io.setopts(gl, binary: true, encoding: :unicode)
   end
 
