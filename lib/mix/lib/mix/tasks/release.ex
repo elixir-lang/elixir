@@ -73,11 +73,10 @@ defmodule Mix.Tasks.Release do
       bin/RELEASE_NAME daemon iex
 
   In daemon mode, the system is started on the background via
-  [run_erl](http://erlang.org/doc/man/run_erl.html). Running in
-  daemon mode also allows developers to enable [heart](http://erlang.org/doc/man/heart.html)
-  by adding `-heart` to their vm.args file (see a later section
-  on customizing vm.args). `heart` automatically restarts the
-  system in case it crashes.
+  [run_erl](http://erlang.org/doc/man/run_erl.html). You may also
+  want to enable [heart](http://erlang.org/doc/man/heart.html)
+  in daemon mode so it automatically restarts the system in casee
+  of crashes. See the generated `bin/start`.
 
   The daemon will write all of its standard output to the "tmp/log/"
   directory in the release root. A developer can also attach
@@ -369,13 +368,12 @@ defmodule Mix.Tasks.Release do
 
   TODO: Implement custom vm.args.
 
-  ## Internals
+  You may also set `ELIXIR_ERL_OPTIONS` inside `bin/start` to dynamically
+  set VM options.
 
-  This section covers some details about how releases are assembled.
+  ## Directory structure and environment variables
 
-  ### Structure of a release
-
-  A release is orgnized as follows:
+  A release is organized as follows:
 
       bin/
         RELEASE_NAME
@@ -399,26 +397,27 @@ defmodule Mix.Tasks.Release do
         COOKIE
         start_erl.data
 
-  ### Environment variables
+  Furthermore, the system can be configured and sets the following
+  environment variables:
 
-  The system running under releases has the following environment variables set:
-
-    * `RELEASE_ROOT` - points to the root of the release. In the system
+    * `RELEASE_ROOT` - points to the root of the release. If the system
       includes ERTS, then it is the same as `:code.root_dir/0`
 
-    * `RELEASE_NAME` - the name of the release. It can be overridden when
-      the release is started
+    * `RELEASE_NAME` - the name of the release. It can be overridden on
+      `bin/start` to a custom value
 
-    * `RELEASE_VSN` - the version of the release. It can be overridden when
-      the release is started
+    * `RELEASE_VSN` - the version of the release, otherwise the latest
+      version is used. It can be overridden on `bin/start` to a custom
+      value
 
-    * `RELEASE_COOKIE` - the release cookie. It can be overridden when the
-      release is started
+    * `RELEASE_COOKIE` - the release cookie. By default uses the value
+      in `releases/COOKIE` . It can be overridden on `bin/start` to a
+      custom value
 
-    * `RELEASE_NODE` - the release node name. It can be overridden when the
-      release is started
+    * `RELEASE_NODE` - the release node name, in the format `name@host`.
+      It can be overridden on `bin/start` to a custom value
 
-  ### Hot Code Upgrades
+  ## Hot Code Upgrades
 
   Erlang and Elixir are sometimes known for the capability of upgrading
   a node that is running in production without shutting down that node.
@@ -839,10 +838,6 @@ defmodule Mix.Tasks.Release do
   ## Preloads all modules instead of loading them dynamically
   -mode embedded
 
-  ## Enables the heart system to restart the VM if it dies or
-  ## becomes unresponsive (requires using daemon in bin/start)
-  ##-heart
-
   ## Number of diry schedulers doing IO work (file, sockets, etc)
   ##+SDio 5
 
@@ -855,10 +850,14 @@ defmodule Mix.Tasks.Release do
 
   embed_template(:start, ~S"""
   #!/bin/sh
-  set -e
-  HEART_COMMAND="$(dirname "$0")/start"
-  export HEART_COMMAND
   # Feel free to edit this file in anyway you want
+  set -e
+
+  # Sets and enables heart (recommended only in daemon mode)
+  # HEART_COMMAND="$(dirname "$0")/start"
+  # export HEART_COMMAND
+  # export ELIXIR_ERL_OPTIONS="-heart"
+
   # To start your system using IEx: "$(dirname "$0")/<%= @name %>" start iex
   # To start it as a daemon using IEx: "$(dirname "$0")/<%= @name %>" daemon iex
   "$(dirname "$0")/<%= @name %>" start
