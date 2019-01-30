@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Release do
   In daemon mode, the system is started on the background via
   [run_erl](http://erlang.org/doc/man/run_erl.html). You may also
   want to enable [heart](http://erlang.org/doc/man/heart.html)
-  in daemon mode so it automatically restarts the system in casee
+  in daemon mode so it automatically restarts the system in case
   of crashes. See the generated `bin/start`.
 
   The daemon will write all of its standard output to the "tmp/log/"
@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Release do
   from the release root. However, note that attaching to the system
   should be done with extreme care, since the usual commands for
   exiting an Elixir system, such as hitting Ctrl+C twice or Ctrl+\\,
-  whill actually shut down the daemon. Therefore, using
+  will actually shut down the daemon. Therefore, using
   `bin/RELEASE_NAME remote` should be preferred, even in daemon mode.
 
   You can customize the tmp directory used both for logging and for piping
@@ -196,7 +196,7 @@ defmodule Mix.Tasks.Release do
   that the machines in your CI/CD pipeline run on the exact same target
   triple as your production servers (if they don't, they should).
   In this case, you can assemble the release at the end of your CI/CD
-  pipeline by calling `MIX_ENV=prod mix release` and push the artifict
+  pipeline by calling `MIX_ENV=prod mix release` and push the artifact
   to S3 or any other network storage. To perform the deployment, your
   production machines can fetch the deployment from the network storage
   and run the `bin/start` script.
@@ -838,7 +838,7 @@ defmodule Mix.Tasks.Release do
   ## Preloads all modules instead of loading them dynamically
   -mode embedded
 
-  ## Number of diry schedulers doing IO work (file, sockets, etc)
+  ## Number of dirty schedulers doing IO work (file, sockets, etc)
   ##+SDio 5
 
   ## Increase number of concurrent ports/sockets
