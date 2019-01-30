@@ -585,7 +585,13 @@ defmodule Kernel.Typespec do
       {_, _, [name, fields | _]} when is_list(fields) ->
         types =
           :lists.map(
-            fn {field, _} -> Keyword.get(field_specs, field, quote(do: term())) end,
+            fn {field, _} ->
+              {:::, [],
+               [
+                 {field, [], nil},
+                 Keyword.get(field_specs, field, quote(do: term()))
+               ]}
+            end,
             fields
           )
 
