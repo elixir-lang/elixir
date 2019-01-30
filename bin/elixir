@@ -202,7 +202,6 @@ SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
-
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
 if [ "$OS" != "Windows_NT" ]; then
