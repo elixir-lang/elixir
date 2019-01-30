@@ -73,7 +73,7 @@ erl () {
   E=$((E + 1))
 }
 
-# Checks if a line starts with char starts_with "$LINE", "$CHAR"
+# Checks if a string starts with prefix. Usage: starts_with "$STRING" "$PREFIX"
 starts_with () {
   case $1 in
     "$2"*) true;;
