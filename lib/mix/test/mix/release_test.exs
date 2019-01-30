@@ -301,7 +301,7 @@ defmodule Mix.ReleaseTest do
 
     test "raises on unknown app" do
       {:error, message} = make_boot_script(release([]), @boot_script_path, unknown: :permanent)
-      assert message =~ "Unkown application :unknown"
+      assert message =~ "Unknown application :unknown"
     end
 
     test "raises on missing dependency" do

@@ -164,7 +164,7 @@ defmodule Mix.Release do
   defp bad_umbrella! do
     Mix.raise("""
     Umbrella projects require releases to be explicitly defined with \
-    a non-empty applications key that choses which umbrella children \
+    a non-empty applications key that chooses which umbrella children \
     should be part of the releases:
 
         releases: [
@@ -309,7 +309,7 @@ defmodule Mix.Release do
   `start.boot`, and `start.script` to the given path, returning
   `{:ok, rel_path}` or `{:error, message}`.
 
-  The boot script uses the RELEASE_LIB environemnt variable, which must
+  The boot script uses the RELEASE_LIB environment variable, which must
   be accordingly set with `--boot-var` and point to the release lib dir.
   """
   @spec make_boot_script(t, Path.t(), [{application(), mode()}], [String.t()]) ::
@@ -345,7 +345,7 @@ defmodule Mix.Release do
 
     rel_apps =
       for {app, mode} <- modes do
-        properties = Map.get(apps, app) || throw({:error, "Unkown application #{inspect(app)}"})
+        properties = Map.get(apps, app) || throw({:error, "Unknown application #{inspect(app)}"})
         children = Keyword.get(properties, :applications, [])
         validate_mode!(app, mode, modes, children)
         build_app_for_release(app, mode, properties)
