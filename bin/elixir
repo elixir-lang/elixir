@@ -2,7 +2,7 @@
 set -e
 
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-  echo "Usage: $(basename $0) [options] [.exs file] [data]
+  echo "Usage: $(basename "$0") [options] [.exs file] [data]
 
 ## General options
 
@@ -69,8 +69,16 @@ ERL=""
 
 # Stores erl arguments preserving spaces/quotes (mimics an array)
 erl () {
-  eval "E$E=\$1"
-  E=$(($E + 1))
+  eval "E${E}=\$1"
+  E=$((E + 1))
+}
+
+# Checks if a string starts with prefix. Usage: starts_with "$STRING" "$PREFIX"
+starts_with () {
+  case $1 in
+    "$2"*) true;;
+    *) false;;
+  esac
 }
 
 ERL_EXEC="erl"
@@ -132,7 +140,7 @@ while [ $I -le $LENGTH ]; do
         ;;
     --sname|--name)
         S=2
-        erl $(echo $1 | cut -c 2-)
+        erl "$(echo "$1" | cut -c 2-)"
         erl "$2"
         ;;
     --erl-config)
@@ -159,23 +167,19 @@ while [ $I -le $LENGTH ]; do
     --pipe-to)
         S=3
         RUN_ERL_PIPE="$2"
-        case "$RUN_ERL_PIPE" in
-          -*) echo "--pipe-to : PIPEDIR cannot be a switch" >&2 && exit 1;;
-          *);;
-        esac
-
         RUN_ERL_LOG="$3"
-        case "$RUN_ERL_LOG" in
-          -*) echo "--pipe-to : LOGDIR cannot be a switch" >&2 && exit 1;;
-          *);;
-        esac
+        if [ "$(starts_with "$RUN_ERL_PIPE" "-")" ]; then
+          echo "--pipe-to : PIPEDIR cannot be a switch" >&2 && exit 1
+        elif [ "$(starts_with "$RUN_ERL_LOG" "-")" ]; then
+          echo "--pipe-to : LOGDIR cannot be a switch" >&2 && exit 1
+        fi
         ;;
     --werl)
         if [ "$OS" = "Windows_NT" ]; then ERL_EXEC="werl"; fi
         ;;
     *)
         while [ $I -le $LENGTH ]; do
-          I=$(($I + 1))
+          I=$((I + 1))
           set -- "$@" "$1"
           shift
         done
@@ -183,15 +187,15 @@ while [ $I -le $LENGTH ]; do
         ;;
   esac
 
-  I=$(($I + $S))
+  I=$((I + S))
   shift $S
 done
 
-I=$(($E - 1))
+I=$((E - 1))
 while [ $I -ge 0 ]; do
   eval "VAL=\$E$I"
   set -- "$VAL" "$@"
-  I=$(($I - 1))
+  I=$((I - 1))
 done
 
 SELF=$(readlink_f "$0")
@@ -210,7 +214,7 @@ set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""
   for PART in "$@"; do
-    ESCAPED=""$ESCAPED" $(echo "$PART" | sed 's/[^a-zA-Z0-9_\-\/]/\\&/g')"
+    ESCAPED="$ESCAPED $(echo "$PART" | sed 's/[^a-zA-Z0-9_\-\/]/\\&/g')"
   done
   mkdir -p "$RUN_ERL_PIPE"
   mkdir -p "$RUN_ERL_LOG"
