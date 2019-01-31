@@ -137,7 +137,7 @@ defmodule IO do
   end
 
   @doc """
-  Writes `item` to the given `device`.
+  Writes `chardata` to the given `device`.
 
   By default, the `device` is the standard output.
 
@@ -151,23 +151,28 @@ defmodule IO do
 
   """
   @spec write(device, chardata | String.Chars.t()) :: :ok
-  def write(device \\ :stdio, item) do
-    :io.put_chars(map_dev(device), to_chardata(item))
+  def write(device \\ :stdio, chardata) do
+    :io.put_chars(map_dev(device), to_chardata(chardata))
   end
 
   @doc """
-  Writes `item` as a binary to the given `device`.
-  No Unicode conversion happens.
-  The operation is Unicode unsafe.
+  Writes `iodata` to the given `device`.
 
-  Check `write/2` for more information.
+  This operation is meant to be used with "raw" devices
+  that are started without an encoding. The given `iodata`
+  is written as is to the device, without conversion.
 
-  Note: do not use this function on IO devices in Unicode mode
-  as it will return the wrong result.
+  Use `write/2` for devices with encoding.
+
+  Important: do **not** use this function on IO devices in
+  Unicode mode as it will write the wrong data. In particular,
+  the standard IO device is set to Unicode by default, so writing
+  to stdio with this function will likely result in the wrong data
+  being sent down the wire.
   """
   @spec binwrite(device, iodata) :: :ok | {:error, term}
-  def binwrite(device \\ :stdio, item) when is_iodata(item) do
-    :file.write(map_dev(device), item)
+  def binwrite(device \\ :stdio, iodata) when is_iodata(iodata) do
+    :file.write(map_dev(device), iodata)
   end
 
   @doc """
