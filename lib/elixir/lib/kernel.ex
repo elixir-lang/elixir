@@ -3035,7 +3035,7 @@ defmodule Kernel do
   Provides an `unless` macro.
 
   This macro evaluates and returns the `do` block passed in as the second
-  argument unless `clause` evaluates to a truthy value (neither `false` nor `nil`).
+  argument if `condition` evaluates to a falsy value (`false` or `nil`).
   Otherwise, it returns the value of the `else` block if present or `nil` if not.
 
   See also `if/2`.
