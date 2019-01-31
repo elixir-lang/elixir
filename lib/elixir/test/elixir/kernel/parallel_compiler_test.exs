@@ -180,18 +180,18 @@ defmodule Kernel.ParallelCompilerTest do
              end) =~ "== Compilation error"
     end
 
-    test "handles possible deadlocks" do
+    test "handles deadlocks" do
       [foo, bar] =
         write_tmp(
           "parallel_deadlock",
           foo: """
           defmodule FooDeadlock do
-            BarDeadlock.__info__(:macros)
+            BarDeadlock.__info__(:module)
           end
           """,
           bar: """
           defmodule BarDeadlock do
-            FooDeadlock.__info__(:macros)
+            FooDeadlock.__info__(:module)
           end
           """
         )
@@ -211,6 +211,34 @@ defmodule Kernel.ParallelCompilerTest do
       assert msg =~ "** (CompileError)  deadlocked waiting on module BarDeadlock"
       assert msg =~ ~r"== Compilation error in file .+parallel_deadlock/bar\.ex =="
       assert msg =~ "** (CompileError)  deadlocked waiting on module FooDeadlock"
+    end
+
+    test "handles async deadlocks" do
+      [foo, bar] =
+        write_tmp(
+          "async_deadlock",
+          foo: """
+          defmodule FooAsyncDeadlock do
+            Kernel.ParallelCompiler.async(fn ->
+              BarAsyncDeadlock.__info__(:module)
+            end)
+
+            BarAsyncDeadlock.__info__(:module)
+          end
+          """,
+          bar: """
+          defmodule BarAsyncDeadlock do
+            FooAsyncDeadlock.__info__(:module)
+          end
+          """
+        )
+
+      capture_io(fn ->
+        fixtures = [foo, bar]
+        assert {:error, [bar_error, foo_error], []} = Kernel.ParallelCompiler.compile(fixtures)
+        assert bar_error == {bar, nil, "deadlocked waiting on module FooAsyncDeadlock"}
+        assert foo_error == {foo, nil, "deadlocked waiting on module BarAsyncDeadlock"}
+      end)
     end
 
     test "supports warnings as errors" do
