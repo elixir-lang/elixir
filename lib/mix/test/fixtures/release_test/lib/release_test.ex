@@ -18,7 +18,8 @@ defmodule ReleaseTest do
       static_config: Application.fetch_env!(:release_test, :static)
     }
 
-    File.write!("RELEASE_BOOTED", inspect(info))
+    path = Path.join(System.get_env("RELEASE_ROOT"), "RELEASE_BOOTED")
+    File.write!(path, inspect(info))
 
     if System.get_env("RELEASE_NAME") =~ "permanent" do
       Supervisor.start_link([], strategy: :one_for_one)
