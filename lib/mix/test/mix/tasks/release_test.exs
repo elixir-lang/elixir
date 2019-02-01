@@ -148,7 +148,7 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
 
         script = Path.join(root, "bin/permanent2")
-        Port.open({:spawn_executable, to_charlist(script)}, [args: ['daemon', 'iex']])
+        Port.open({:spawn_executable, to_charlist(script)}, args: ['daemon', 'iex'])
 
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
