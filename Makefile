@@ -132,7 +132,7 @@ check_reproducible: compile
 	$(Q) rm -rf lib/*/tmp/ebin_reproducible/
 	$(call WRITE_SOURCE_DATE_EPOCH)
 	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
-                      lib/eex/tmp/ebin_reproducible/ \
+	              lib/eex/tmp/ebin_reproducible/ \
 	              lib/iex/tmp/ebin_reproducible/ \
 	              lib/logger/tmp/ebin_reproducible/ \
 	              lib/mix/tmp/ebin_reproducible/
