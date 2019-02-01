@@ -1,6 +1,8 @@
 #!/bin/sh
-if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
-  echo "Usage: $(basename $0) [options] [.exs file] [data]
+set -e
+
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  echo "Usage: $(basename "$0") [options] [.exs file] [data]
 
 The following options are exclusive to IEx:
 
