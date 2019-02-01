@@ -33,8 +33,6 @@ Distributed nodes can interact with each other only when their magic cookies are
 .Pp
 See also the function
 .Sy Node.set_cookie/2 .
-.It Fl -detached
-Runs the Erlang runtime system detached from the controlling terminal.
 .It Fl -hidden
 Starts a hidden node.
 .Pp
