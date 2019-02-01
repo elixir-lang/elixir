@@ -37,7 +37,7 @@ defmodule Mix.Tasks.ReleaseTest do
         cookie_atom = String.to_atom(cookie_string)
 
         # Assert runtime
-        assert System.cmd(Path.join(root, "bin/start"), []) == {"", 0}
+        open_port(Path.join(root, "bin/start"))
 
         assert %{
                  app_dir: app_dir,
@@ -51,7 +51,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
                  static_config: :was_set
-               } = Code.eval_file("RELEASE_BOOTED") |> elem(0)
+               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "_build/dev/rel/RELEAS~1/lib/release_test-0.1.0")
@@ -89,7 +89,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.2.0/vm.args") |> File.exists?()
 
         # Assert runtime
-        assert System.cmd(Path.join(root, "bin/start"), []) == {"", 0}
+        open_port(Path.join(root, "bin/start"))
 
         assert %{
                  app_dir: app_dir,
@@ -103,7 +103,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_vsn: "0.2.0",
                  root_dir: root_dir,
                  static_config: :was_set
-               } = Code.eval_file("RELEASE_BOOTED") |> elem(0)
+               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "demo/lib/release_test-0.1.0")
@@ -126,19 +126,14 @@ defmodule Mix.Tasks.ReleaseTest do
         root = Path.absname("_build/dev/rel/permanent1")
         Mix.Task.run("release")
 
-        task = Task.async(fn -> System.cmd(Path.join(root, "bin/start"), []) end)
-        wait_until_evaled("RELEASE_BOOTED")
+        open_port(Path.join(root, "bin/start"))
+        wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
+        script = Path.join(root, "bin/permanent1")
+        assert System.cmd(script, ["rpc", "ReleaseTest.hello_world"]) == {"hello world\n", 0}
+        assert System.cmd(script, ["stop"]) == {"", 0}
 
-        assert {pid, 0} = System.cmd(Path.join(root, "bin/permanent1"), ["pid"])
+        assert {pid, 0} = System.cmd(script, ["pid"])
         assert pid != "\n"
-
-        assert System.cmd(Path.join(root, "bin/permanent1"), ["rpc", "ReleaseTest.hello_world"]) ==
-                 {"hello world\n", 0}
-
-        assert System.cmd(Path.join(root, "bin/permanent1"), ["stop"]) ==
-                 {"", 0}
-
-        assert {_, 0} = Task.await(task, :infinity)
       end)
     end)
   end
@@ -152,9 +147,10 @@ defmodule Mix.Tasks.ReleaseTest do
         root = Path.absname("_build/dev/rel/permanent2")
         Mix.Task.run("release")
 
-        assert System.cmd(Path.join(root, "bin/permanent2"), ["daemon", "iex"]) == {"", 0}
+        script = Path.join(root, "bin/permanent2")
+        open_port(script, ['daemon', 'iex'])
 
-        assert wait_until_evaled("RELEASE_BOOTED") == %{
+        assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
                  cookie_env: "abcdefghij",
                  cookie_node: :abcdefghij,
@@ -173,11 +169,8 @@ defmodule Mix.Tasks.ReleaseTest do
                    "iex(permanent2@127.0.0.1)1> "
                end)
 
-        assert System.cmd(Path.join(root, "bin/permanent2"), ["rpc", "ReleaseTest.hello_world"]) ==
-                 {"hello world\n", 0}
-
-        assert System.cmd(Path.join(root, "bin/permanent2"), ["stop"]) ==
-                 {"", 0}
+        assert System.cmd(script, ["rpc", "ReleaseTest.hello_world"]) == {"hello world\n", 0}
+        assert System.cmd(script, ["stop"]) == {"", 0}
       end)
     end)
   end
@@ -211,8 +204,12 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
+  defp open_port(command, args \\ []) do
+    Port.open({:spawn_executable, to_charlist(command)}, [:hide, args: args])
+  end
+
   defp wait_until_evaled(file) do
-    wait_until(fn -> File.exists?(file) && Code.eval_file("RELEASE_BOOTED") |> elem(0) end)
+    wait_until(fn -> File.exists?(file) && Code.eval_file(file) |> elem(0) end)
   end
 
   defp wait_until(fun) do
