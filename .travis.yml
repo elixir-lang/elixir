@@ -39,6 +39,6 @@ script:
 
   # Check for POSIX compliant shell scripts
   - if [ -n "$CHECK_POSIX_COMPLIANT" ]; then
-      shellcheck -e SC2039,2086 bin/elixir && \
-      echo "bin/elixir is POSIX compliant";
+      shellcheck -e SC2039,2086 bin/elixir && echo "bin/elixir is POSIX compliant";
+      shellcheck bin/iex && echo "bin/iex is POSIX compliant";
     fi
