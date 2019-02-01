@@ -37,7 +37,7 @@ defmodule Mix.Tasks.ReleaseTest do
         cookie_atom = String.to_atom(cookie_string)
 
         # Assert runtime
-        Port.open({:spawn_executable, Path.join(root, "bin/start") |> to_charlist}, [])
+        open_port(Path.join(root, "bin/start"))
 
         assert %{
                  app_dir: app_dir,
@@ -89,7 +89,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.2.0/vm.args") |> File.exists?()
 
         # Assert runtime
-        Port.open({:spawn_executable, Path.join(root, "bin/start") |> to_charlist}, [])
+        open_port(Path.join(root, "bin/start"))
 
         assert %{
                  app_dir: app_dir,
@@ -126,7 +126,7 @@ defmodule Mix.Tasks.ReleaseTest do
         root = Path.absname("_build/dev/rel/permanent1")
         Mix.Task.run("release")
 
-        Port.open({:spawn_executable, Path.join(root, "bin/start") |> to_charlist}, [])
+        open_port(Path.join(root, "bin/start"))
         wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
         script = Path.join(root, "bin/permanent1")
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world"]) == {"hello world\n", 0}
@@ -148,7 +148,7 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
 
         script = Path.join(root, "bin/permanent2")
-        Port.open({:spawn_executable, to_charlist(script)}, args: ['daemon', 'iex'])
+        open_port(script, ['daemon', 'iex'])
 
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
@@ -202,6 +202,10 @@ defmodule Mix.Tasks.ReleaseTest do
         end
       end)
     end)
+  end
+
+  defp open_port(command, args \\ []) do
+    Port.open({:spawn_executable, to_charlist(command)}, [:hide, args: args])
   end
 
   defp wait_until_evaled(file) do
