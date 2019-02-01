@@ -173,6 +173,46 @@ defmodule Task do
   the same module version to exist on all involved nodes. Check the `Agent` module
   documentation for more information on distributed processes as the limitations
   described there apply to the whole ecosystem.
+
+  ## Ancestor and Caller Tracking
+
+  Whenever you spawn a new process, Elixir annotates the parent of that process
+  through the $ancestors key. This information can be used by instrumentation
+  tools to track the relationship between events occurring within multiple
+  processes. However, many times, tracking only the $ancestors is not enough.
+
+  For example, we recommend developers to always start tasks under a supervisor.
+  This provides more visibility and allows us to control how those tasks are
+  terminated when a node shuts down. That might look something like
+  `Task.Supervisor.start_child(MySupervisor, task_specification)`. This means
+  that, although your code is the one who invokes the task, the actual parent of
+  the task would be the supervisor, as the supervisor is the one spawning it. We
+  would list the supervisor as one of the $ancestors for the task, but the
+  relationship between your code and the task is lost.
+
+  Starting in Elixir v1.8, we now track the relationship between your code and
+  the task via the $callers key in the process dictionary, which aligns well
+  with the existing $ancestors key. Therefore, assuming the Task.Supervisor call
+  above, we have:
+
+  ```
+  [your code] -- calls --> [supervisor] ---- spawns --> [task]
+  ```
+
+  Which means we store the following relationships:
+
+  ```
+  [your code]              [supervisor] <-- ancestor -- [task]
+  ^                                                  |
+  |--------------------- caller ---------------------|
+  ```
+
+  The list of callers of the current process can be retrieved from the Process
+  dictionary: `Process.get(:"$callers")`. This will return either:
+  * `nil`: indicates that this was not a process spawned by the `Task` module
+  * `[pid]`: Where `pid` is the PID that spawed the current process
+  * `[pid_n, pid2, pid1]`: Where `pid_n` is the PID that spawned the current
+    process, `pid2` spawned `pid_n`, and `pid2` was spawned by `pid1`
   """
 
   @doc """
