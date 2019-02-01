@@ -11,7 +11,7 @@ env:
     - OTP_RELEASE=OTP-20.3
     - OTP_RELEASE=OTP-21.0
     - OTP_RELEASE=OTP-21.1
-    - OTP_RELEASE=OTP-21.2 CHECK_REPRODUCIBLE=true
+    - OTP_RELEASE=OTP-21.2 CHECK_REPRODUCIBLE=true CHECK_TRAVIS_YML=true
     - OTP_RELEASE=maint
     - OTP_RELEASE=master
 
@@ -22,6 +22,7 @@ matrix:
     - env: OTP_RELEASE=master
 
 install:
+  - gem install travis
   - wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-14.04/${OTP_RELEASE}.tar.gz
   - mkdir -p otp
   - tar zxf otp.tar.gz -C otp --strip-components=1
@@ -35,3 +36,5 @@ script:
   - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
   # Check for reproducible builds only in the latest OTP release
   - if [ -n "$CHECK_REPRODUCIBLE" ]; then make check_reproducible; fi
+  # Check for .travis.yml validity
+  - if [ -n "$CHECK_TRAVIS_YML" ]; then echo "y" | travis lint .travis.yml; fi
