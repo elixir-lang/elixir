@@ -37,8 +37,7 @@ defmodule Mix.Tasks.ReleaseTest do
         cookie_atom = String.to_atom(cookie_string)
 
         # Assert runtime
-        assert {_, 0} =
-                 System.cmd(Path.join(root, "bin/start"), [], into: IO.stream(:stdio, :line))
+        Port.open({:spawn_executable, Path.join(root, "bin/start") |> to_charlist}, [])
 
         assert %{
                  app_dir: app_dir,
@@ -52,7 +51,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
                  static_config: :was_set
-               } = root |> Path.join("RELEASE_BOOTED") |> Code.eval_file() |> elem(0)
+               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "_build/dev/rel/RELEAS~1/lib/release_test-0.1.0")
@@ -90,8 +89,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.2.0/vm.args") |> File.exists?()
 
         # Assert runtime
-        assert {_, 0} =
-                 System.cmd(Path.join(root, "bin/start"), [], into: IO.stream(:stdio, :line))
+        Port.open({:spawn_executable, Path.join(root, "bin/start") |> to_charlist}, [])
 
         assert %{
                  app_dir: app_dir,
@@ -105,7 +103,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_vsn: "0.2.0",
                  root_dir: root_dir,
                  static_config: :was_set
-               } = root |> Path.join("RELEASE_BOOTED") |> Code.eval_file() |> elem(0)
+               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "demo/lib/release_test-0.1.0")
@@ -128,11 +126,7 @@ defmodule Mix.Tasks.ReleaseTest do
         root = Path.absname("_build/dev/rel/permanent1")
         Mix.Task.run("release")
 
-        task =
-          Task.async(fn ->
-            System.cmd(Path.join(root, "bin/start"), [], into: IO.stream(:stdio, :line))
-          end)
-
+        Port.open({:spawn_executable, Path.join(root, "bin/start") |> to_charlist}, [])
         wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
         script = Path.join(root, "bin/permanent1")
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world"]) == {"hello world\n", 0}
@@ -140,8 +134,6 @@ defmodule Mix.Tasks.ReleaseTest do
 
         assert {pid, 0} = System.cmd(script, ["pid"])
         assert pid != "\n"
-
-        assert {_, 0} = Task.await(task, :infinity)
       end)
     end)
   end
@@ -156,7 +148,7 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
 
         script = Path.join(root, "bin/permanent2")
-        assert {_, 0} = System.cmd(script, ["daemon", "iex"], into: IO.stream(:stdio, :line))
+        Port.open({:spawn_executable, to_charlist(script)}, [args: ['daemon', 'iex']])
 
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
