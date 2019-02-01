@@ -486,7 +486,7 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:.)(left, right), do: error!([left, right])
 
   @doc """
-  `alias/2` is used to setup aliases, often useful with modules' names.
+  `alias/2` is used to set up aliases, often useful with modules' names.
 
   ## Examples
 
@@ -853,7 +853,7 @@ defmodule Kernel.SpecialForms do
 
   `quote/2` is commonly used with macros for code generation. As an exercise,
   let's define a macro that multiplies a number by itself (squared). In practice,
-  there is no reason to define such as a macro (and it would actually be
+  there is no reason to define such a macro (and it would actually be
   seen as a bad practice), but it is simple enough that it allows us to focus
   on the important aspects of quotes and macros:
 
