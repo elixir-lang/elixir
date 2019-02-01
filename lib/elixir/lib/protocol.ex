@@ -497,10 +497,11 @@ defmodule Protocol do
           target = Module.concat(__MODULE__, mod)
 
           Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
-            case Code.ensure_compiled?(unquote(target)) and
-                   function_exported?(unquote(target), :__impl__, 1) do
-              true -> unquote(target).__impl__(:target)
-              false -> unquote(any_impl_for)
+            try do
+              unquote(target).__impl__(:target)
+            rescue
+              UndefinedFunctionError ->
+                unquote(any_impl_for)
             end
           end
         end,
@@ -533,9 +534,11 @@ defmodule Protocol do
       Kernel.defp struct_impl_for(struct) do
         target = Module.concat(__MODULE__, struct)
 
-        case Code.ensure_compiled?(target) and function_exported?(target, :__impl__, 1) do
-          true -> target.__impl__(:target)
-          false -> unquote(any_impl_for)
+        try do
+          target.__impl__(:target)
+        rescue
+          UndefinedFunctionError ->
+            unquote(any_impl_for)
         end
       end
 
