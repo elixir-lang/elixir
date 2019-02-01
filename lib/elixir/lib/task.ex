@@ -158,7 +158,7 @@ defmodule Task do
   ## Distributed tasks
 
   Since Elixir provides a `Task.Supervisor`, it is easy to use one
-  to dynamically spawn tasks across nodes:
+  to dynamically start tasks across nodes:
 
       # On the remote node
       Task.Supervisor.start_link(name: MyApp.DistSupervisor)
@@ -173,6 +173,37 @@ defmodule Task do
   the same module version to exist on all involved nodes. Check the `Agent` module
   documentation for more information on distributed processes as the limitations
   described there apply to the whole ecosystem.
+
+  ## Ancestor and Caller Tracking
+
+  Whenever you start a new process, Elixir annotates the parent of that process
+  through the `$ancestors` key in the process dictionary. This is often used to
+  track the hierarchy inside a supervision tree.
+
+  For example, we recommend developers to always start tasks under a supervisor.
+  This provides more visibility and allows you to control how those tasks are
+  terminated when a node shuts down. That might look something like
+  `Task.Supervisor.start_child(MySupervisor, task_specification)`. This means
+  that, although your code is the one who invokes the task, the actual ancestor of
+  the task is the supervisor, as the supervisor is the one effectively starting it.
+
+  To track the relationship between your code and the task, we use the `$callers`
+  key in the process dictionary. Therefore, assuming the `Task.Supervisor` call
+  above, we have:
+
+      [your code] -- calls --> [supervisor] ---- spawns --> [task]
+
+  Which means we store the following relationships:
+
+      [your code]              [supervisor] <-- ancestor -- [task]
+          ^                                                  |
+          |--------------------- caller ---------------------|
+
+  The list of callers of the current process can be retrieved from the Process
+  dictionary with `Process.get(:"$callers")`. This will return either `nil` or
+  a list `[pid_n, ..., pid2, pid1]` with at least one entry Where `pid_n` is
+  the PID that called the current process, `pid2` called `pid_n`, and `pid2` was
+  called by `pid1`.
   """
 
   @doc """
