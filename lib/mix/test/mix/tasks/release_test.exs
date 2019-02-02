@@ -33,16 +33,14 @@ defmodule Mix.Tasks.ReleaseTest do
                |> File.read_link()
                |> elem(0) == :error
 
-        cookie_string = File.read!(Path.join(root, "releases/COOKIE"))
-        cookie_atom = String.to_atom(cookie_string)
+        cookie = File.read!(Path.join(root, "releases/COOKIE"))
 
         # Assert runtime
         open_port(Path.join(root, "bin/start"))
 
         assert %{
                  app_dir: app_dir,
-                 cookie_env: ^cookie_string,
-                 cookie_node: ^cookie_atom,
+                 cookie_env: ^cookie,
                  node: :"release_test@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "release_test",
@@ -94,7 +92,6 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: "abcdefghijk",
-                 cookie_node: :abcdefghijk,
                  node: :"demo@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "demo",
@@ -158,7 +155,6 @@ defmodule Mix.Tasks.ReleaseTest do
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
                  cookie_env: "abcdefghij",
-                 cookie_node: false,
                  node: :nonode@nohost,
                  protocols_consolidated?: true,
                  release_name: "eval",
@@ -187,7 +183,6 @@ defmodule Mix.Tasks.ReleaseTest do
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
                  cookie_env: "abcdefghij",
-                 cookie_node: :abcdefghij,
                  node: :"permanent2@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "permanent2",

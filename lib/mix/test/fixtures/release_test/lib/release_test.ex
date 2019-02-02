@@ -12,7 +12,6 @@ defmodule ReleaseTest do
       release_node: System.get_env("RELEASE_NODE"),
       release_vsn: System.get_env("RELEASE_VSN"),
       cookie_env: cookie,
-      cookie_node: node() != :nonode@nohost and wait_until_connected(String.to_atom(cookie)),
       node: node(),
       root_dir: :code.root_dir() |> to_string(),
       static_config: Application.fetch_env!(:release_test, :static)
@@ -25,14 +24,6 @@ defmodule ReleaseTest do
       Supervisor.start_link([], strategy: :one_for_one)
     else
       System.halt(0)
-    end
-  end
-
-  def wait_until_connected(cookie) do
-    if Node.get_cookie() == cookie do
-      cookie
-    else
-      wait_until_connected(cookie)
     end
   end
 
