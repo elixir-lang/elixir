@@ -388,10 +388,10 @@ defmodule Mix.Tasks.Release do
         RELEASE_VSN/
           elixir
           iex
-          remote.boot
-          remote.script
           start.boot
           start.script
+          start_clean.boot
+          start_clean.script
           sys.config
           vm.args
         COOKIE
@@ -602,10 +602,10 @@ defmodule Mix.Tasks.Release do
     #   VERSION/
     #     consolidated/
     #     NAME.rel
-    #     remote.boot
-    #     remote.script
     #     start.boot
     #     start.script
+    #     start_clean.boot
+    #     start_clean.script
     #     sys.config
     # releases/
     #   COOKIE
@@ -884,7 +884,7 @@ defmodule Mix.Tasks.Release do
   rpc () {
     exec "$REL_VSN_DIR/elixir" \
          --hidden --name "rpc-$(gen_id)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
-         --boot "${REL_VSN_DIR}/remote" \
+         --boot "${REL_VSN_DIR}/start_clean" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
          --rpc-eval "$RELEASE_NODE" "$1"
   }
@@ -913,7 +913,7 @@ defmodule Mix.Tasks.Release do
     remote)
       exec "$REL_VSN_DIR/iex" \
            --werl --hidden --name "remote-$(gen_id)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
-           --boot "${REL_VSN_DIR}/remote" \
+           --boot "${REL_VSN_DIR}/start_clean" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --remsh "$RELEASE_NODE"
       ;;
@@ -1020,7 +1020,7 @@ defmodule Mix.Tasks.Release do
   :remote
   "!REL_VSN_DIR!/iex.bat" ^
     --werl --hidden --name "remote-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
-    --boot "!REL_VSN_DIR!\remote" ^
+    --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
     --remsh "!RELEASE_NODE!"
   goto end
@@ -1028,7 +1028,7 @@ defmodule Mix.Tasks.Release do
   :rpc
   "!REL_VSN_DIR!/elixir.bat" ^
     --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
-    --boot "!REL_VSN_DIR!\remote" ^
+    --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
     --rpc-eval "!RELEASE_NODE!" !REL_RPC!
   goto end

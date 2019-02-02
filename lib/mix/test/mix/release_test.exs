@@ -161,7 +161,7 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start == [
                compiler: :permanent,
                elixir: :permanent,
-               iex: :permanent,
+               iex: :none,
                kernel: :permanent,
                mix: :permanent,
                sasl: :permanent,
@@ -178,18 +178,22 @@ defmodule Mix.ReleaseTest do
     test "configures other applications" do
       release = release(applications: [mix: :temporary])
       assert release.boot_scripts.start[:mix] == :temporary
+
+      release = release(applications: [iex: :temporary])
+      assert release.boot_scripts.start[:iex] == :temporary
     end
 
-    test "generates a remote boot script only with elixir+logger+iex" do
+    test "generates a start_clean script with only kernel and stdlib starting up" do
       release = release([])
 
-      assert release.boot_scripts.remote == [
-               kernel: :permanent,
+      assert release.boot_scripts.start_clean == [
                stdlib: :permanent,
-               compiler: :permanent,
-               elixir: :permanent,
-               iex: :permanent,
-               logger: :permanent
+               kernel: :permanent,
+               compiler: :none,
+               elixir: :none,
+               iex: :none,
+               mix: :none,
+               sasl: :none
              ]
     end
   end
@@ -243,7 +247,7 @@ defmodule Mix.ReleaseTest do
                  [
                    {:compiler, _, :permanent},
                    {:elixir, @elixir_version, :permanent},
-                   {:iex, @elixir_version, :permanent},
+                   {:iex, @elixir_version, :none},
                    {:kernel, _, :permanent},
                    {:mix, @elixir_version, :permanent},
                    {:sasl, _, :permanent},
@@ -327,7 +331,7 @@ defmodule Mix.ReleaseTest do
       {:error, message} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
 
       assert message =~
-               "Application :iex has mode :permanent but it depends on :elixir which is set to :none"
+               "Application :mix has mode :permanent but it depends on :elixir which is set to :none"
     end
   end
 
