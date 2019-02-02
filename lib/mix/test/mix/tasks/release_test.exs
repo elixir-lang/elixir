@@ -154,8 +154,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
         open_port(script, ['eval', 'Application.ensure_all_started(:release_test)'])
 
-        assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
-                 app_dir: Path.join(root, "lib/release_test-0.1.0"),
+        assert %{
                  cookie_env: "abcdefghij",
                  node: :nonode@nohost,
                  protocols_consolidated?: true,
@@ -163,9 +162,8 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_node: "eval@127.0.0.1",
                  release_root: root,
                  release_vsn: "0.1.0",
-                 root_dir: :code.root_dir() |> to_string(),
                  static_config: :was_set
-               }
+               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
   end
