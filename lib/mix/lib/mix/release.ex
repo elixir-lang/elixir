@@ -48,7 +48,7 @@ defmodule Mix.Release do
           options: keyword()
         }
 
-  @default_apps %{iex: :permanent, elixir: :permanent, sasl: :permanent}
+  @default_apps %{elixir: :permanent, sasl: :permanent}
   @safe_modes [:permanent, :temporary, :transient]
   @unsafe_modes [:load, :none]
   @significant_chunks ~w(Atom AtU8 Attr Code StrT ImpT ExpT FunT LitT Line)c
@@ -75,9 +75,20 @@ defmodule Mix.Release do
     {include_erts, opts} = Keyword.pop(opts, :include_erts, true)
     {erts_source, erts_version} = erts_data(include_erts)
 
-    loaded_apps = apps |> Map.keys() |> load_apps(%{}, :code.lib_dir())
+    erts_lib_dir = :code.lib_dir()
+    loaded_apps = apps |> Map.keys() |> load_apps(%{}, erts_lib_dir)
+
+    # First we built the release without IEx, if IEx is included,
+    # then use it as is, otherwise add it as none.
+    {loaded_apps, apps} =
+      if Map.has_key?(loaded_apps, :iex) do
+        {loaded_apps, apps}
+      else
+        {load_apps([:iex], loaded_apps, erts_lib_dir), Map.put(apps, :iex, :none)}
+      end
+
     start_boot = build_start_boot(loaded_apps, apps)
-    remote_boot = build_remote_boot()
+    start_clean_boot = build_start_clean_boot(start_boot)
 
     {path, opts} =
       Keyword.pop_lazy(opts, :path, fn ->
@@ -103,7 +114,7 @@ defmodule Mix.Release do
       erts_source: erts_source,
       erts_version: erts_version,
       applications: loaded_apps,
-      boot_scripts: %{start: start_boot, remote: remote_boot},
+      boot_scripts: %{start: start_boot, start_clean: start_clean_boot},
       options: opts
     }
   end
@@ -230,18 +241,13 @@ defmodule Mix.Release do
   end
 
   defp build_start_boot(apps, modes) do
-    for {app, _} <- apps, do: {app, Map.get(modes, app, :permanent)}
+    for {app, _properties} <- apps, do: {app, Map.get(modes, app, :permanent)}
   end
 
-  defp build_remote_boot() do
-    [
-      kernel: :permanent,
-      stdlib: :permanent,
-      compiler: :permanent,
-      elixir: :permanent,
-      iex: :permanent,
-      logger: :permanent
-    ]
+  defp build_start_clean_boot(boot) do
+    (for {app, _mode} <- boot, do: {app, :none})
+    |> Keyword.put(:kernel, :permanent)
+    |> Keyword.put(:stdlib, :permanent)
   end
 
   @doc """
