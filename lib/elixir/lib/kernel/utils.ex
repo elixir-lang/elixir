@@ -164,11 +164,13 @@ defmodule Kernel.Utils do
   that checks for its presence in a guard, then unquotes the variable references as
   appropriate.
 
-  The resulting transformation looks something like this:
+  The following code
 
-      > expression = quote do: is_integer(value) and rem(value, 2) == 0
-      > variable_references = [value: Elixir]
-      > Kernel.Utils.defguard(expression, variable_references) |> Macro.to_string() |> IO.puts()
+      expression = quote do: is_integer(value) and rem(value, 2) == 0
+      variable_references = [value: Elixir]
+      Kernel.Utils.defguard(expression, variable_references) |> Macro.to_string() |> IO.puts()
+
+  would print a code similar to:
 
       case Macro.Env.in_guard?(__CALLER__) do
         true ->
