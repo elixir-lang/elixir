@@ -1026,14 +1026,14 @@ defmodule Mix.Tasks.Release do
   if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
   set REL_VSN_DIR=!RELEASE_ROOT!/releases/!RELEASE_VSN!
 
-  if "%~1" == "start" (set REL_EXEC="elixir" && set REL_EXTRA="--no-halt" && goto start)
-  if "%~1" == "start_iex" (set REL_EXEC="iex" && set REL_EXTRA="--werl" && goto start)
+  if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && goto start)
+  if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && goto start)
   if "%~1" == "remote" (goto remote)
   if "%~1" == "install" (goto install)
   if "%~1" == "version" (goto version)
-  if "%~1" == "stop" (set REL_RPC="System.stop()" && goto rpc)
-  if "%~1" == "restart" (set REL_RPC="System.stop()" && goto rpc)
-  if "%~1" == "pid" (set REL_RPC="IO.puts System.pid" && goto rpc)
+  if "%~1" == "stop" (set "REL_RPC=System.stop()" && goto rpc)
+  if "%~1" == "restart" (set "REL_RPC=System.stop()" && goto rpc)
+  if "%~1" == "pid" (set "REL_RPC=IO.puts(System.pid())" && goto rpc)
   if "%~1" == "eval" (
     if "%~2" == "" (
       echo ERROR: EVAL expects an expression as argument
@@ -1046,7 +1046,8 @@ defmodule Mix.Tasks.Release do
       echo ERROR: RPC expects an expression as argument
       goto end
     )
-    set REL_RPC="%~2" && goto rpc
+    set REL_RPC="%~2"
+    goto rpc
   )
 
   echo Usage: %~nx0 COMMAND [ARGS]
