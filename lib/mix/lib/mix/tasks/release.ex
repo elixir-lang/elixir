@@ -63,14 +63,14 @@ defmodule Mix.Tasks.Release do
 
   For those looking for alternate ways of running the system, you can
   run it as a daemon on Unix-like system or install it as a service on
-  Windows.
+  Windows. Then we list all commands supported by `bin/RELEASE_NAME`.
 
   ### Daemon mode (Unix-like)
 
   If you open up `bin/start`, you will also see there is an option to
   run the release in daemon mode written as a comment:
 
-      bin/RELEASE_NAME daemon iex
+      bin/RELEASE_NAME daemon_iex
 
   In daemon mode, the system is started on the background via
   [run_erl](http://erlang.org/doc/man/run_erl.html). You may also
@@ -87,9 +87,9 @@ defmodule Mix.Tasks.Release do
   will actually shut down the daemon. Therefore, using
   `bin/RELEASE_NAME remote` should be preferred, even in daemon mode.
 
-  You can customize the tmp directory used both for logging and for piping
-  in daemon mode by setting the `RELEASE_TMP` environment variable before
-  starting the system.
+  You can customize the tmp directory used both for logging and for
+  piping in daemon mode by setting the `RELEASE_TMP` environment
+  variable before starting the system.
 
   ### Services mode
 
@@ -116,6 +116,23 @@ defmodule Mix.Tasks.Release do
   referenced as `demo_demo`.
 
   The `install` command must be executed as an administrator.
+
+  ## `bin/RELEASE_NAME` commands
+
+  The following commands are supported by `bin/RELEASE_NAME`:
+
+      start        Starts the system
+      start_iex    Starts the system with IEx attached
+      daemon       Starts the system as a daemon (Unix-like only)
+      daemon_iex   Starts the system as a daemon with IEx attached (Unix-like only)
+      install      Installs this system as a Windows service (Windows only)
+      eval "EXPR"  Executes the given expression on a new, non-booted system
+      rpc "EXPR"   Executes the given expression remotely on the running system
+      remote       Connects to the running system via a remote shell
+      restart      Restarts the running system via a remote command
+      stop         Stops the running system via a remote command
+      pid          Prints the OS PID of the running system via a remote command
+      version      Prints the release name and version to be booted
 
   ## Deployments
 
@@ -1045,6 +1062,7 @@ defmodule Mix.Tasks.Release do
   echo    restart      Restarts the running system via a remote command
   echo    stop         Stops the running system via a remote command
   echo    pid          Prints the OS PID of the running system via a remote command
+  echo    version      Prints the release name and version to be booted
   echo.
   if not "%~1" == "" (echo ERROR: Unknown command %~1)
   goto end

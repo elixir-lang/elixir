@@ -154,6 +154,7 @@ defmodule Mix.Tasks.ReleaseTest do
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
         open_port(script, ['eval', 'Application.ensure_all_started(:release_test)'])
+
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
                  cookie_env: "abcdefghij",
