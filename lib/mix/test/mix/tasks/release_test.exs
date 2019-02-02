@@ -33,16 +33,14 @@ defmodule Mix.Tasks.ReleaseTest do
                |> File.read_link()
                |> elem(0) == :error
 
-        cookie_string = File.read!(Path.join(root, "releases/COOKIE"))
-        cookie_atom = String.to_atom(cookie_string)
+        cookie = File.read!(Path.join(root, "releases/COOKIE"))
 
         # Assert runtime
         open_port(Path.join(root, "bin/start"))
 
         assert %{
                  app_dir: app_dir,
-                 cookie_env: ^cookie_string,
-                 cookie_node: ^cookie_atom,
+                 cookie_env: ^cookie,
                  node: :"release_test@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "release_test",
@@ -94,7 +92,6 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: "abcdefghijk",
-                 cookie_node: :abcdefghijk,
                  node: :"demo@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "demo",
@@ -138,6 +135,39 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
+  test "runs eval and version commands" do
+    in_fixture("release_test", fn ->
+      config = [releases: [eval: [include_erts: false, cookie: "abcdefghij"]]]
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        root = Path.absname("_build/dev/rel/eval")
+        Mix.Task.run("release")
+
+        script = Path.join(root, "bin/eval")
+        {version, 0} = System.cmd(script, ["version"])
+        assert String.trim_trailing(version) == "eval 0.1.0"
+        refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
+
+        {hello_world, 0} = System.cmd(script, ["eval", ~s[IO.puts :hello_world]])
+        assert String.trim_trailing(hello_world) == "hello_world"
+        refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
+
+        open_port(script, ['eval', 'Application.ensure_all_started(:release_test)'])
+
+        assert %{
+                 cookie_env: "abcdefghij",
+                 node: :nonode@nohost,
+                 protocols_consolidated?: true,
+                 release_name: "eval",
+                 release_node: "eval@127.0.0.1",
+                 release_root: root,
+                 release_vsn: "0.1.0",
+                 static_config: :was_set
+               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
+      end)
+    end)
+  end
+
   @tag :unix
   test "runs in daemon mode" do
     in_fixture("release_test", fn ->
@@ -148,12 +178,11 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
 
         script = Path.join(root, "bin/permanent2")
-        open_port(script, ['daemon', 'iex'])
+        open_port(script, ['daemon_iex'])
 
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
                  cookie_env: "abcdefghij",
-                 cookie_node: :abcdefghij,
                  node: :"permanent2@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "permanent2",
