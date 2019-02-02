@@ -63,14 +63,14 @@ defmodule Mix.Tasks.Release do
 
   For those looking for alternate ways of running the system, you can
   run it as a daemon on Unix-like system or install it as a service on
-  Windows.
+  Windows. Then we list all commands supported by `bin/RELEASE_NAME`.
 
   ### Daemon mode (Unix-like)
 
   If you open up `bin/start`, you will also see there is an option to
   run the release in daemon mode written as a comment:
 
-      bin/RELEASE_NAME daemon iex
+      bin/RELEASE_NAME daemon_iex
 
   In daemon mode, the system is started on the background via
   [run_erl](http://erlang.org/doc/man/run_erl.html). You may also
@@ -87,9 +87,9 @@ defmodule Mix.Tasks.Release do
   will actually shut down the daemon. Therefore, using
   `bin/RELEASE_NAME remote` should be preferred, even in daemon mode.
 
-  You can customize the tmp directory used both for logging and for piping
-  in daemon mode by setting the `RELEASE_TMP` environment variable before
-  starting the system.
+  You can customize the tmp directory used both for logging and for
+  piping in daemon mode by setting the `RELEASE_TMP` environment
+  variable before starting the system.
 
   ### Services mode
 
@@ -116,6 +116,23 @@ defmodule Mix.Tasks.Release do
   referenced as `demo_demo`.
 
   The `install` command must be executed as an administrator.
+
+  ## `bin/RELEASE_NAME` commands
+
+  The following commands are supported by `bin/RELEASE_NAME`:
+
+      start        Starts the system
+      start_iex    Starts the system with IEx attached
+      daemon       Starts the system as a daemon (Unix-like only)
+      daemon_iex   Starts the system as a daemon with IEx attached (Unix-like only)
+      install      Installs this system as a Windows service (Windows only)
+      eval "EXPR"  Executes the given expression on a new, non-booted system
+      rpc "EXPR"   Executes the given expression remotely on the running system
+      remote       Connects to the running system via a remote shell
+      restart      Restarts the running system via a remote command
+      stop         Stops the running system via a remote command
+      pid          Prints the OS PID of the running system via a remote command
+      version      Prints the release name and version to be booted
 
   ## Deployments
 
@@ -858,8 +875,8 @@ defmodule Mix.Tasks.Release do
   # export HEART_COMMAND
   # export ELIXIR_ERL_OPTIONS="-heart"
 
-  # To start your system using IEx: "$(dirname "$0")/<%= @name %>" start iex
-  # To start it as a daemon using IEx: "$(dirname "$0")/<%= @name %>" daemon iex
+  # To start your system using IEx: "$(dirname "$0")/<%= @name %>" start_iex
+  # To start it as a daemon using IEx: "$(dirname "$0")/<%= @name %>" daemon_iex
   "$(dirname "$0")/<%= @name %>" start
   """)
 
@@ -884,7 +901,7 @@ defmodule Mix.Tasks.Release do
   rpc () {
     exec "$REL_VSN_DIR/elixir" \
          --hidden --name "rpc-$(gen_id)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
-         --boot "${REL_VSN_DIR}/start_clean" \
+         --boot "$REL_VSN_DIR/start_clean" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
          --rpc-eval "$RELEASE_NODE" "$1"
   }
@@ -892,28 +909,51 @@ defmodule Mix.Tasks.Release do
   start () {
     REL_EXEC="$1"
     shift
-    exec "$REL_VSN_DIR/$REL_EXEC" --no-halt \
-         --werl --name "$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
-         --erl-config "${REL_VSN_DIR}/sys" \
-         --boot "${REL_VSN_DIR}/start" \
+    exec "$REL_VSN_DIR/$REL_EXEC" \
+         --name "$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
+         --erl-config "$REL_VSN_DIR/sys" \
+         --boot "$REL_VSN_DIR/start" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-         --vm-args "${REL_VSN_DIR}/vm.args" "$@"
+         --vm-args "$REL_VSN_DIR/vm.args" "$@"
   }
 
   case $1 in
     start)
-      start "${2:-elixir}"
+      start "elixir" --no-halt
+      ;;
+
+    start_iex)
+      start "iex" --werl
       ;;
 
     daemon)
       export RELEASE_TMP="${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}"
-      start "${2:-elixir}" --pipe-to "${RELEASE_TMP}/pipe" "${RELEASE_TMP}/log"
+      start "elixir" --no-halt --pipe-to "${RELEASE_TMP}/pipe" "${RELEASE_TMP}/log"
+      ;;
+
+    daemon_iex)
+      export RELEASE_TMP="${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}"
+      start "iex" --pipe-to "${RELEASE_TMP}/pipe" "${RELEASE_TMP}/log"
+      ;;
+
+    eval)
+      if [ -z "$2" ]; then
+        echo "ERROR: EVAL expects an expression as argument" >&2
+        exit 1
+      fi
+
+      exec "$REL_VSN_DIR/elixir" \
+         --cookie "$RELEASE_COOKIE" \
+         --erl-config "$REL_VSN_DIR/sys" \
+         --boot "$REL_VSN_DIR/start_clean" \
+         --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
+         --vm-args "$REL_VSN_DIR/vm.args" --eval "$2"
       ;;
 
     remote)
       exec "$REL_VSN_DIR/iex" \
            --werl --hidden --name "remote-$(gen_id)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
-           --boot "${REL_VSN_DIR}/start_clean" \
+           --boot "$REL_VSN_DIR/start_clean" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --remsh "$RELEASE_NODE"
       ;;
@@ -934,18 +974,26 @@ defmodule Mix.Tasks.Release do
       rpc "IO.puts System.pid"
       ;;
 
+    version)
+      echo "$RELEASE_NAME $RELEASE_VSN"
+      ;;
+
     *)
       echo "Usage: $(basename "$0") COMMAND [ARGS]
 
   The known commands are:
 
-      start [elixir | iex]   Starts the system using elixir or iex
-      daemon [elixir | iex]  Starts the system as a daemon using elixir or iex
-      remote                 Connects to the running system via a remote shell
-      rpc \"EXPR\"             Executes the given expression remotely on the running system
-      restart                Restarts the running system via a remote command
-      stop                   Stops the running system via a remote command
-      pid                    Prints the OS PID of the running system via a remote command
+      start          Starts the system
+      start_iex      Starts the system with IEx attached
+      daemon         Starts the system as a daemon
+      daemon_iex     Starts the system as a daemon with IEx attached
+      eval \"EXPR\"    Executes the given expression on a new, non-booted system
+      rpc \"EXPR\"     Executes the given expression remotely on the running system
+      remote         Connects to the running system via a remote shell
+      restart        Restarts the running system via a remote command
+      stop           Stops the running system via a remote command
+      pid            Prints the OS PID of the running system via a remote command
+      version        Prints the release name and version to be booted
   " >&2
 
       if [ -n "$1" ]; then
@@ -959,7 +1007,7 @@ defmodule Mix.Tasks.Release do
   embed_template(:start_bat, ~S"""
   @echo off
   rem Feel free to edit this file in anyway you want
-  rem To start your system using IEx: %~dp0/<%= @name %> start iex
+  rem To start your system using IEx: %~dp0/<%= @name %> start_iex
   %~dp0/<%= @name %> start
   """)
 
@@ -978,41 +1026,63 @@ defmodule Mix.Tasks.Release do
   if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
   set REL_VSN_DIR=!RELEASE_ROOT!/releases/!RELEASE_VSN!
 
-  if "%~1" == "start" (goto start)
+  if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && goto start)
+  if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && goto start)
   if "%~1" == "remote" (goto remote)
   if "%~1" == "install" (goto install)
-  if "%~1" == "stop" (set REL_RPC="System.stop()" && goto rpc)
-  if "%~1" == "restart" (set REL_RPC="System.stop()" && goto rpc)
-  if "%~1" == "pid" (set REL_RPC="IO.puts System.pid" && goto rpc)
+  if "%~1" == "version" (goto version)
+  if "%~1" == "stop" (set "REL_RPC=System.stop()" && goto rpc)
+  if "%~1" == "restart" (set "REL_RPC=System.stop()" && goto rpc)
+  if "%~1" == "pid" (set "REL_RPC=IO.puts(System.pid())" && goto rpc)
+  if "%~1" == "eval" (
+    if "%~2" == "" (
+      echo ERROR: EVAL expects an expression as argument
+      goto end
+    )
+    goto eval
+  )
   if "%~1" == "rpc" (
     if "%~2" == "" (
       echo ERROR: RPC expects an expression as argument
-    goto end
+      goto end
     )
-    set REL_RPC="%~2" && goto rpc
+    set "REL_RPC=%~2"
+    goto rpc
   )
 
   echo Usage: %~nx0 COMMAND [ARGS]
   echo.
   echo The known commands are:
   echo.
-  echo    start [elixir ^| iex]   Starts the system using elixir or iex
-  echo    install                Installs this system as a Windows service
-  echo    remote                 Connects to the running system via a remote shell
-  echo    rpc "EXPR"             Executes the given expression remotely on the running system
-  echo    restart                Restarts the running system via a remote command
-  echo    stop                   Stops the running system via a remote command
-  echo    pid                    Prints the OS PID of the running system via a remote command
+  echo    start        Starts the system
+  echo    start_iex    Starts the system with IEx attached
+  echo    install      Installs this system as a Windows service
+  echo    eval "EXPR"  Executes the given expression on a new, non-booted system
+  echo    rpc "EXPR"   Executes the given expression remotely on the running system
+  echo    remote       Connects to the running system via a remote shell
+  echo    restart      Restarts the running system via a remote command
+  echo    stop         Stops the running system via a remote command
+  echo    pid          Prints the OS PID of the running system via a remote command
+  echo    version      Prints the release name and version to be booted
   echo.
   if not "%~1" == "" (echo ERROR: Unknown command %~1)
   goto end
 
   :start
-  if not "%~2" == "" (set REL_EXEC=%~2) else (set REL_EXEC=elixir)
-  "!REL_VSN_DIR!/!REL_EXEC!.bat" --no-halt ^
-    --werl --name "!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
+  "!REL_VSN_DIR!/!REL_EXEC!.bat" !REL_EXTRA! ^
+    --name "!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
     --erl-config "!REL_VSN_DIR!\sys" ^
     --boot "!REL_VSN_DIR!\start" ^
+    --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
+    --vm-args "!REL_VSN_DIR!\vm.args"
+  goto end
+
+  :eval
+  "!REL_VSN_DIR!/elixir.bat" ^
+    --eval "%~2" ^
+    --cookie "!RELEASE_COOKIE!" ^
+    --erl-config "!REL_VSN_DIR!\sys" ^
+    --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
     --vm-args "!REL_VSN_DIR!\vm.args"
   goto end
@@ -1030,7 +1100,11 @@ defmodule Mix.Tasks.Release do
     --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
     --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-    --rpc-eval "!RELEASE_NODE!" !REL_RPC!
+    --rpc-eval "!RELEASE_NODE!" "!REL_RPC!"
+  goto end
+
+  :version
+  echo !RELEASE_NAME! !RELEASE_VSN!
   goto end
 
   :install
