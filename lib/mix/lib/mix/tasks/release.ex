@@ -1079,7 +1079,7 @@ defmodule Mix.Tasks.Release do
 
   :eval
   "!REL_VSN_DIR!/elixir.bat" ^
-    --eval "%~2"
+    --eval "%~2" ^
     --cookie "!RELEASE_COOKIE!" ^
     --erl-config "!REL_VSN_DIR!\sys" ^
     --boot "!REL_VSN_DIR!\start_clean" ^
