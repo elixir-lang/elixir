@@ -12,7 +12,7 @@ defmodule ReleaseTest do
       release_node: System.get_env("RELEASE_NODE"),
       release_vsn: System.get_env("RELEASE_VSN"),
       cookie_env: cookie,
-      cookie_node: wait_until_connected(String.to_atom(cookie)),
+      cookie_node: node() != :nonode@nohost and wait_until_connected(String.to_atom(cookie)),
       node: node(),
       root_dir: :code.root_dir() |> to_string(),
       static_config: Application.fetch_env!(:release_test, :static)
