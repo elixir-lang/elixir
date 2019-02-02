@@ -148,8 +148,8 @@ defmodule Mix.Tasks.ReleaseTest do
         assert String.trim_trailing(version) == "eval 0.1.0"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
-        {foobar, 0} = System.cmd(script, ["eval", ~s[IO.puts "foo" <> "bar"]])
-        assert String.trim_trailing(foobar) == "foobar"
+        {hello_world, 0} = System.cmd(script, ["eval", ~s[IO.puts :hello_world]])
+        assert String.trim_trailing(hello_world) == "hello_world"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
         open_port(script, ['eval', 'Application.ensure_all_started(:release_test)'])

@@ -1046,7 +1046,7 @@ defmodule Mix.Tasks.Release do
       echo ERROR: RPC expects an expression as argument
       goto end
     )
-    set REL_RPC="%~2"
+    set "REL_RPC=%~2"
     goto rpc
   )
 
@@ -1100,7 +1100,7 @@ defmodule Mix.Tasks.Release do
     --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
     --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-    --rpc-eval "!RELEASE_NODE!" !REL_RPC!
+    --rpc-eval "!RELEASE_NODE!" "!REL_RPC!"
   goto end
 
   :version
