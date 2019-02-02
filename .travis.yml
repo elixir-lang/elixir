@@ -5,7 +5,7 @@ env:
   global:
     - ELIXIR_ASSERT_TIMEOUT=2000
   matrix:
-    - OTP_RELEASE=OTP-21.2 CHECK_REPRODUCIBLE=true
+    - OTP_RELEASE=OTP-21.2 CHECK_REPRODUCIBLE=true CHECK_POSIX_COMPLIANT=true
     - OTP_RELEASE=OTP-21.1
     - OTP_RELEASE=OTP-21.0
     - OTP_RELEASE=OTP-20.3
@@ -33,5 +33,13 @@ script:
   - ELIXIRC_OPTS="--warnings-as-errors" ERLC_OPTS="+warning_as_errors" make compile
   - make test
   - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
+
   # Check for reproducible builds only in the latest OTP release
   - if [ -n "$CHECK_REPRODUCIBLE" ]; then make check_reproducible; fi
+
+  # Check for POSIX compliant shell scripts
+  - if [ -n "$CHECK_POSIX_COMPLIANT" ]; then
+      shellcheck -e SC2039,2086 bin/elixir && echo "bin/elixir is POSIX compliant";
+      shellcheck bin/elixirc && echo "bin/elixirc is POSIX compliant";
+      shellcheck bin/iex && echo "bin/iex is POSIX compliant";
+    fi
