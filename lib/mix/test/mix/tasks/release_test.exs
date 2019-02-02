@@ -144,10 +144,12 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
 
         script = Path.join(root, "bin/eval")
-        {"eval 0.1.0\n", 0} = System.cmd(script, ["version"])
+        {version, 0} = System.cmd(script, ["version"])
+        assert String.trim_trailing(version) == "eval 0.1.0"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
-        {"foobar\n", 0} = System.cmd(script, ["eval", ~s[IO.puts "foo" <> "bar"]])
+        {foobar, 0} = System.cmd(script, ["eval", ~s[IO.puts "foo" <> "bar"]])
+        assert String.trim_trailing(foobar) == "foobar"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
         open_port(script, ['eval', 'Application.ensure_all_started(:release_test)'])
