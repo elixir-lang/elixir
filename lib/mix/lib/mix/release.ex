@@ -245,7 +245,7 @@ defmodule Mix.Release do
   end
 
   defp build_start_clean_boot(boot) do
-    (for {app, _mode} <- boot, do: {app, :none})
+    for({app, _mode} <- boot, do: {app, :none})
     |> Keyword.put(:kernel, :permanent)
     |> Keyword.put(:stdlib, :permanent)
   end
