@@ -1,4 +1,4 @@
-.Dd April 10, 2015
+.Dd February 3, 2019
 .Dt ELIXIR 1
 .Os
 .Sh NAME
@@ -25,6 +25,9 @@ Does not halt the Erlang VM after execution.
 .It Fl -
 Separates the options passed to the compiler from the options passed to the executed code.
 .El
+.Sh NOTES
+The following options can be given more than once:
+.Fl -boot-var Ns , Fl -erl-config Ns , Fl -eval Ns , Fl -rpc-eval Ns .
 .Sh ENVIRONMENT
 .Bl -tag -width Ds
 .It Ev ELIXIR_ERL_OPTIONS

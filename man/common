@@ -1,5 +1,10 @@
-.It Fl e Ar expression
-Evaluates the specified expression.
+.It Fl h , -help
+Displays the help message to the standard error (stderr) and exits.
+.It Fl v , -version
+Displays the Elixir version to the standard output (stdout) and exits.
+.It Fl e , -eval Ar expression
+Evaluates the specified expression
+.Pq see the Fl -rpc-eval No option .
 .It Fl r Ar file
 Requires the specified file. In other words, the file is checked for existence at the start of
 .Nm .
@@ -22,9 +27,35 @@ See also the function
 .Sy Code.append_path/1 .
 .It Fl -app Ar application
 Starts the specified application and all its dependencies.
+.It Fl -boot Ar file
+Specifies the name of the boot file,
+.Ar file Ns .boot, which is used to start the system. Unless File contains an absolute path, the system searches for Ar file Ns .boot in the current and $ROOT/bin directories.
+.Pp
+Defaults to $ROOT/bin/start.boot.
+.Pp
+The option is equivalent to Erlang's
+.Fl boot .
+.It Fl -boot-var Ar var Ar dir
+If the boot script contains a path variable
+.Ar var
+other than $ROOT, this variable is expanded to
+.Ar dir .
+Used when applications are installed in another directory than $ROOT/lib.
+.Pp
+The option is equivalent to Erlang's
+.Fl boot_var .
+.Pp
+See also the function
+.Sy :systools.make_script/1,2 No in SASL .
 .It Fl -erl Ar parameters
 Serves the same purpose as ELIXIR_ERL_OPTIONS
 .Pq see the Sy ENVIRONMENT No section
+.It Fl -erl-config Ar file
+Specifies the name of a configuration file,
+.Ar file Ns .config, which is used to configure applications. Note that the configuration file must be written in Erlang.
+.Pp
+The option is equivalent to Erlang's
+.Fl config .
 .It Fl -cookie Ar value
 Specifies the magic cookie value. If the value isn't specified via the option when the node starts, it will be taken from the file
 .Pa ~/.erlang.cookie
@@ -48,6 +79,12 @@ allows getting the list which contains only hidden nodes
 .Pq the parameter Ar :hidden
 or both hidden and not hidden nodes
 .Pq the parameter Ar :connected .
+.It Fl -logger-otp-reports Ar val
+Enables or disables OTP reporting
+.Pq Ar val No can be either true or false .
+.It Fl -logger-sasl-reports Ar val
+Enables or disables SASL reporting
+.Pq Ar val No can be either true or false .
 .It Fl -sname Ar name
 Gives a node a short name and starts it. Short names take the form of
 .Ar name Ns
@@ -59,3 +96,22 @@ Gives a node a long name and starts it. Long names take the form of
 .Ar name Ns
 @host, where host is the IP address of the host which runs the node. In contrast to the nodes with short names, the nodes with long names aren't limited by boundaries of a local network
 .Pq see above .
+.It Fl -pipe-to Ar pipedir Ar logdir
+Starts the Erlang VM as a named
+.Ar pipedir
+and
+.Ar logdir
+.Pq only for Unix-like operating systems .
+.It Fl -rpc-eval Ar node Ar expression
+Evaluates the specified expression on the specified node
+.Pq see the Fl -eval No option .
+.It Fl -vm-args Ar file
+Reads the command-line arguments from
+.Ar file
+and passes them to the Erlang VM.
+.Pp
+The option is equivalent to Erlang's
+.Fl args_file .
+.It Fl -werl
+Uses Erlang's Windows shell GUI
+.Pq only for Windows .
