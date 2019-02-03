@@ -46,7 +46,11 @@ If the file doesn't exist when a node starts, it will be created.
 .Xr iex 1 ,
 .Xr mix 1
 .Sh AUTHOR
-This manual page contributed by Evgeny Golyshev.
+.Bl -tag -width Ds
+.It Elixir is maintained by the Elixir Core Team.
+.It This manual page was contributed by Evgeny Golyshev.
+.It Copyright (c) 2012 Plataformatec.
+.El
 .Sh INTERNET RESOURCES
 .Bl -tag -width Ds
 .It Main website: https://elixir-lang.org
