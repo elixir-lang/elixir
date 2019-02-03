@@ -292,7 +292,7 @@ defmodule Mix.Tasks.Release do
       output its steps. Defaults to `false`.
 
     * `:include_erts` - a boolean indicating if the Erlang Runtime System (ERTS),
-      which includes the ERlang VM, should be included in the release. The default
+      which includes the Erlang VM, should be included in the release. The default
       is `true`, which is also the recommended value. It may also be a string as a
       path to an existing ERTS installation or an anonymous function of zero arity
       which should return any of the above.
