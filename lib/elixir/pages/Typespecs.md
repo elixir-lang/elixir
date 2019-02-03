@@ -125,7 +125,7 @@ Built-in type           | Defined as
 `as_boolean(t)`         | `t`
 `binary()`              | `<<_::_*8>>`
 `bitstring()`           | `<<_::_*1>>`
-`boolean()`             | `false` \| `true`
+`boolean()`             | `true` \| `false`
 `byte()`                | `0..255`
 `char()`                | `0..0x10FFFF`
 `charlist()`            | `[char()]`
