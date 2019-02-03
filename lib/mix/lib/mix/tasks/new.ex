@@ -9,11 +9,17 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--sup] [--module MODULE] [--app APP] [--umbrella]
+      mix new PATH [--app APP] [--module MODULE] [--sup] [--umbrella]
 
   A project at the given PATH will be created. The
   application name and module name will be retrieved
   from the path, unless `--module` or `--app` is given.
+
+  An `--app` option can be given in order to
+  name the OTP application for the project.
+
+  A `--module` option can be given in order
+  to name the modules in the generated code skeleton.
 
   A `--sup` option can be given to generate an OTP application
   skeleton including a supervision tree. Normally an app is
@@ -22,11 +28,6 @@ defmodule Mix.Tasks.New do
   An `--umbrella` option can be given to generate an
   umbrella project.
 
-  An `--app` option can be given in order to
-  name the OTP application for the project.
-
-  A `--module` option can be given in order
-  to name the modules in the generated code skeleton.
 
   ## Examples
 
