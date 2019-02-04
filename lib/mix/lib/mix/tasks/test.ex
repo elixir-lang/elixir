@@ -177,7 +177,7 @@ defmodule Mix.Tasks.Test do
       in the "Stale" section below
     * `--timeout` - sets the timeout for the tests
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to 1.
-      Note that in trace mode test timeouts will be ignored
+      Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
   See `ExUnit.configure/1` for more information on configuration options.
 
