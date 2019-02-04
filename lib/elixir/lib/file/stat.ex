@@ -78,6 +78,7 @@ defmodule File.Stat do
   @doc """
   Converts a `File.Stat` struct to a `:file_info` record.
   """
+  @spec to_record(t()) :: :file.file_info()
   def to_record(%File.Stat{unquote_splicing(pairs)}) do
     {:file_info, unquote_splicing(vals)}
   end
@@ -85,6 +86,7 @@ defmodule File.Stat do
   @doc """
   Converts a `:file_info` record into a `File.Stat`.
   """
+  @spec from_record(:file.file_info()) :: t()
   def from_record(file_info)
 
   def from_record({:file_info, unquote_splicing(vals)}) do
