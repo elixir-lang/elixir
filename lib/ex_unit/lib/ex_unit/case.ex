@@ -151,7 +151,8 @@ defmodule ExUnit.Case do
 
     * `:capture_log` - see the "Log Capture" section below
     * `:skip` - skips the test with the given reason
-    * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000)
+    * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000).
+      Accepts `:infinity` as a timeout value.
 
   The `:test_type` tag is automatically set by ExUnit, but is _not_ reserved.
   This tag is available for users to customize if they desire.

@@ -143,13 +143,14 @@ defmodule ExUnit do
       """
       #{type} timed out after #{timeout}ms. You can change the timeout:
 
-        1. per test by setting "@tag timeout: x"
-        2. per case by setting "@moduletag timeout: x"
+        1. per test by setting "@tag timeout: x" (accepts :infinity)
+        2. per test module by setting "@moduletag timeout: x" (accepts :infinity)
         3. globally via "ExUnit.start(timeout: x)" configuration
-        4. or set it to infinity per run by calling "mix test --trace"
+        4. by running "mix test --timeout x" which sets timeout
+        5. or by running "mix test --trace" which sets timeout to infinity
            (useful when using IEx.pry/0)
 
-      Timeouts are given as integers in milliseconds.
+      where "x" is the timeout given as integer in milliseconds (defaults to 60_000).
       """
     end
   end
@@ -213,7 +214,7 @@ defmodule ExUnit do
   ExUnit supports the following options:
 
     * `:assert_receive_timeout` - the timeout to be used on `assert_receive`
-      calls, defaults to `100` milliseconds;
+      calls in milliseconds, defaults to `100`;
 
     * `:autorun` - if ExUnit should run by default on exit. Defaults to `true`;
 
@@ -247,14 +248,14 @@ defmodule ExUnit do
       is reached. All tests within a module that fail when using the `setup_all/1,2` callbacks
       are counted as failures. Defaults to `:infinity`;
 
-    * `:module_load_timeout` - the timeout to be used when loading a test module,
-      defaults to `60_000` milliseconds;
+    * `:module_load_timeout` - the timeout to be used when loading a test module in milliseconds,
+      defaults to `60_000`;
 
     * `:only_test_ids` - a list of `{module_name, test_name}` tuples that limits
       what tests get run;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
-      calls, defaults to `100` milliseconds;
+      calls in milliseconds, defaults to `100`;
 
     * `:seed` - an integer seed value to randomize the test suite. This seed
       is also mixed with the test module and name to create a new unique seed
@@ -268,11 +269,11 @@ defmodule ExUnit do
     * `:stacktrace_depth` - configures the stacktrace depth to be used
       on formatting and reporters, defaults to `20`;
 
-    * `:timeout` - sets the timeout for the tests, defaults to `60_000` milliseconds;
+    * `:timeout` - sets the timeout for the tests in milliseconds, defaults to `60_000`;
 
     * `:trace` - sets ExUnit into trace mode, this sets `:max_cases` to `1` and
       prints each test case and test while running. Note that in trace mode test timeouts
-      will be ignored.
+      will be ignored as timeout is set to `:infinity`.
 
   Any arbitrary configuration can also be passed to `configure/1` or `start/1`,
   and these options can then be used in places such as custom formatters. These
