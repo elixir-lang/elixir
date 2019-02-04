@@ -1,4 +1,4 @@
-.Dd April 10, 2015
+.Dd February 3, 2019
 .Dt IEX 1
 .Os
 .Sh NAME
@@ -29,6 +29,9 @@ options
 .It Fl -
 Separates the options passed to the compiler from the options passed to the executed code.
 .El
+.Sh NOTES
+The following options can be given more than once:
+.Fl -boot-var Ns , Fl -erl-config Ns , Fl -eval Ns , Fl -rpc-eval Ns .
 .Sh ENVIRONMENT
 .Bl -tag -width Ds
 .It Ev ELIXIR_ERL_OPTIONS
@@ -53,7 +56,11 @@ and, in a case of success, executes the code from the file in the context of the
 .Xr elixirc 1 ,
 .Xr mix 1
 .Sh AUTHOR
-This manual page contributed by Evgeny Golyshev.
+.Bl -tag -width Ds
+.It Elixir is maintained by the Elixir Core Team.
+.It This manual page was contributed by Evgeny Golyshev.
+.It Copyright (c) 2012 Plataformatec.
+.El
 .Sh INTERNET RESOURCES
 .Bl -tag -width Ds
 .It Main website: https://elixir-lang.org
