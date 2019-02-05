@@ -878,7 +878,7 @@ defmodule Kernel.SpecialForms do
 
       import Math
       my_number = fn ->
-        IO.puts "Returning 5"
+        IO.puts("Returning 5")
         5
       end
       IO.puts "Got #{squared(my_number.())}"
@@ -947,7 +947,8 @@ defmodule Kernel.SpecialForms do
 
       import Math
       squared(5)
-      x #=> ** (CompileError) undefined variable x or undefined function x/0
+      x
+      #=> ** (CompileError) undefined variable x or undefined function x/0
 
   We can see that `x` did not leak to the user context. This happens
   because Elixir macros are hygienic, a topic we will discuss at length
@@ -968,8 +969,9 @@ defmodule Kernel.SpecialForms do
       require Hygiene
 
       a = 10
-      Hygiene.no_interference
-      a #=> 10
+      Hygiene.no_interference()
+      a
+      #=> 10
 
   In the example above, `a` returns 10 even if the macro
   is apparently setting it to 1 because variables defined
@@ -988,8 +990,9 @@ defmodule Kernel.SpecialForms do
       require NoHygiene
 
       a = 10
-      NoHygiene.interference
-      a #=> 1
+      NoHygiene.interference()
+      a
+      #=> 1
 
   You cannot even access variables defined in the same module unless
   you explicitly give it a context:
@@ -1008,8 +1011,8 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-      Hygiene.write
-      Hygiene.read
+      Hygiene.write()
+      Hygiene.read()
       #=> ** (RuntimeError) undefined variable a or undefined function a/0
 
   For such, you can explicitly pass the current module scope as
@@ -1029,8 +1032,8 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-      ContextHygiene.write
-      ContextHygiene.read
+      ContextHygiene.write()
+      ContextHygiene.read()
       #=> 1
 
   ## Hygiene in aliases
@@ -1043,13 +1046,14 @@ defmodule Kernel.SpecialForms do
 
         defmacro no_interference do
           quote do
-            M.new
+            M.new()
           end
         end
       end
 
       require Hygiene
-      Hygiene.no_interference #=> %{}
+      Hygiene.no_interference()
+      #=> %{}
 
   Notice that, even though the alias `M` is not available
   in the context the macro is expanded, the code above works
@@ -1070,24 +1074,25 @@ defmodule Kernel.SpecialForms do
 
       require Hygiene
       alias SomethingElse, as: M
-      Hygiene.no_interference #=> %{}
+      Hygiene.no_interference()
+      #=> %{}
 
   In some cases, you want to access an alias or a module defined
   in the caller. For such, you can use the `alias!` macro:
 
       defmodule Hygiene do
-        # This will expand to Elixir.Nested.hello
+        # This will expand to Elixir.Nested.hello()
         defmacro no_interference do
           quote do
-            Nested.hello
+            Nested.hello()
           end
         end
 
-        # This will expand to Nested.hello for
+        # This will expand to Nested.hello() for
         # whatever is Nested in the caller
         defmacro interference do
           quote do
-            alias!(Nested).hello
+            alias!(Nested).hello()
           end
         end
       end
@@ -1098,10 +1103,10 @@ defmodule Kernel.SpecialForms do
         end
 
         require Hygiene
-        Hygiene.no_interference
+        Hygiene.no_interference()
         #=> ** (UndefinedFunctionError) ...
 
-        Hygiene.interference
+        Hygiene.interference()
         #=> "world"
       end
 
@@ -1123,7 +1128,8 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-      Hygiene.return_length #=> 3
+      Hygiene.return_length()
+      #=> 3
 
   Notice how `Hygiene.return_length/0` returns `3` even though the `Kernel.length/1`
   function is not imported. In fact, even if `return_length/0`
@@ -1158,7 +1164,8 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-      Lazy.return_length #=> 5
+      Lazy.return_length()
+      #=> 5
 
   ## Stacktrace information
 
@@ -1200,20 +1207,20 @@ defmodule Kernel.SpecialForms do
   functions on the fly. Consider this example:
 
       kv = [foo: 1, bar: 2]
-      Enum.each kv, fn {k, v} ->
+      Enum.each(kv, fn {k, v} ->
         def unquote(k)(), do: unquote(v)
-      end
+      end)
 
   In the example above, we have generated the functions `foo/0` and
   `bar/0` dynamically. Now, imagine that, we want to convert this
   functionality into a macro:
 
       defmacro defkv(kv) do
-        Enum.map kv, fn {k, v} ->
+        Enum.map(kv, fn {k, v} ->
           quote do
             def unquote(k)(), do: unquote(v)
           end
-        end
+        end)
       end
 
   We can invoke this macro as:
@@ -1236,9 +1243,9 @@ defmodule Kernel.SpecialForms do
 
       defmacro defkv(kv) do
         quote do
-          Enum.each unquote(kv), fn {k, v} ->
+          Enum.each(unquote(kv), fn {k, v} ->
             def unquote(k)(), do: unquote(v)
-          end
+          end)
         end
       end
 
@@ -1257,9 +1264,9 @@ defmodule Kernel.SpecialForms do
 
       defmacro defkv(kv) do
         quote bind_quoted: [kv: kv] do
-          Enum.each kv, fn {k, v} ->
+          Enum.each(kv, fn {k, v} ->
             def unquote(k)(), do: unquote(v)
-          end
+          end)
         end
       end
 
