@@ -21,7 +21,7 @@ Integers (`1234`) and floats (`123.4`) in Elixir are represented as a sequence o
 
 ### Atoms
 
-Unquoted atoms start with a colon (`:`) which must be inmediately followed by an underscore or a Unicode letter. The atom may continue using a sequence of Unicode letters, numbers, underscores, and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification. Valid unquoted atoms are: `:ok`, `:ISO8601`, and `:integer?`.
+Unquoted atoms start with a colon (`:`) which must be immediately followed by an underscore or a Unicode letter. The atom may continue using a sequence of Unicode letters, numbers, underscores, and `@`. Atoms may end in `!` or `?`. See [Unicode Syntax](unicode-syntax.html) for a formal specification. Valid unquoted atoms are: `:ok`, `:ISO8601`, and `:integer?`.
 
 If the colon is immediately followed by a pair of double- or single-quotes surrounding the atom name, the atom is considered quoted. In contrast with an unquoted atom, this one can be made of any Unicode character (not only letters), such as `:'🌢 Elixir'`, `:"++olá++"`, and `:"123"`.
 
