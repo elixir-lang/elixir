@@ -868,7 +868,7 @@ defmodule Kernel.SpecialForms do
   We can invoke it as:
 
       import Math
-      IO.puts "Got #{squared(5)}"
+      IO.puts("Got #{squared(5)}")
 
   At first, there is nothing in this example that actually reveals it is a
   macro. But what is happening is that, at compilation time, `squared(5)`
@@ -881,7 +881,7 @@ defmodule Kernel.SpecialForms do
         IO.puts("Returning 5")
         5
       end
-      IO.puts "Got #{squared(my_number.())}"
+      IO.puts("Got #{squared(my_number.())}")
 
   The example above will print:
 
@@ -1067,7 +1067,7 @@ defmodule Kernel.SpecialForms do
 
         defmacro no_interference do
           quote do
-            M.new
+            M.new()
           end
         end
       end
