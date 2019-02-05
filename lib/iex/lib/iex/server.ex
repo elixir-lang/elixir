@@ -14,7 +14,7 @@ defmodule IEx.Server do
 
     * reading input from the group leader and writing to the group leader
     * sending messages to the evaluator
-    * taking over the evaluator process when using `IEx.pry` or setting up breakpoints
+    * taking over the evaluator process when using `IEx.pry/0` or setting up breakpoints
 
   """
 
