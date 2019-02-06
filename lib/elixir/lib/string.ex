@@ -4,15 +4,15 @@ defmodule String do
   @moduledoc ~S"""
   A String in Elixir is a UTF-8 encoded binary.
 
-  ## Codepoints and grapheme cluster
+  ## Code points and grapheme cluster
 
   The functions in this module act according to the Unicode
   Standard, version 11.0.0.
 
-  As per the standard, a codepoint is a single Unicode Character,
+  As per the standard, a code point is a single Unicode Character,
   which may be represented by one or more bytes.
 
-  For example, the codepoint "é" is two bytes:
+  For example, the code point "é" is two bytes:
 
       iex> byte_size("é")
       2
@@ -24,9 +24,9 @@ defmodule String do
 
   Furthermore, this module also presents the concept of grapheme cluster
   (from now on referenced as graphemes). Graphemes can consist of multiple
-  codepoints that may be perceived as a single character by readers. For
-  example, "é" can be represented either as a single "e with acute" codepoint
-  or as the letter "e" followed by a "combining acute accent" (two codepoints):
+  code points that may be perceived as a single character by readers. For
+  example, "é" can be represented either as a single "e with acute" code point
+  or as the letter "e" followed by a "combining acute accent" (two code points):
 
       iex> string = "\u0065\u0301"
       iex> byte_size(string)
@@ -62,7 +62,7 @@ defmodule String do
 
   To act according to the Unicode Standard, many functions
   in this module run in linear time, as they need to traverse
-  the whole string considering the proper Unicode codepoints.
+  the whole string considering the proper Unicode code points.
 
   For example, `String.length/1` will take longer as
   the input grows. On the other hand, `Kernel.byte_size/1` always runs
@@ -110,7 +110,7 @@ defmodule String do
   it could still be improved. In this case, since we want to
   extract a substring from a string, we can use `Kernel.byte_size/1`
   and `Kernel.binary_part/3` as there is no chance we will slice in
-  the middle of a codepoint made of more than one byte:
+  the middle of a code point made of more than one byte:
 
       iex> take_prefix = fn full, prefix ->
       ...>   base = byte_size(prefix)
@@ -132,18 +132,18 @@ defmodule String do
   On the other hand, if you want to dynamically slice a string
   based on an integer value, then using `String.slice/3` is the
   best option as it guarantees we won't incorrectly split a valid
-  codepoint into multiple bytes.
+  code point into multiple bytes.
 
-  ## Integer codepoints
+  ## Integer code points
 
-  Although codepoints could be represented as integers, this
-  module represents all codepoints as strings. For example:
+  Although code points could be represented as integers, this
+  module represents all code points as strings. For example:
 
       iex> String.codepoints("olá")
       ["o", "l", "á"]
 
   There are a couple of ways to retrieve a character integer
-  codepoint. One may use the `?` construct:
+  code point. One may use the `?` construct:
 
       iex> ?o
       111
@@ -157,7 +157,7 @@ defmodule String do
       iex> aacute
       225
 
-  As we have seen above, codepoints can be inserted into
+  As we have seen above, code points can be inserted into
   a string by their hexadecimal code:
 
       "ol\u0061\u0301" #=>
@@ -168,11 +168,11 @@ defmodule String do
   The UTF-8 encoding is self-synchronizing. This means that
   if malformed data (i.e., data that is not possible according
   to the definition of the encoding) is encountered, only one
-  codepoint needs to be rejected.
+  code point needs to be rejected.
 
   This module relies on this behaviour to ignore such invalid
   characters. For example, `length/1` will return
-  a correct result even if an invalid codepoint is fed into it.
+  a correct result even if an invalid code point is fed into it.
 
   In other words, this module expects invalid data to be detected
   elsewhere, usually when retrieving data from the external source.
@@ -212,10 +212,10 @@ defmodule String do
   """
   @type t :: binary
 
-  @typedoc "A UTF-8 codepoint. It may be one or more bytes."
+  @typedoc "A UTF-8 code point. It may be one or more bytes."
   @type codepoint :: t
 
-  @typedoc "Multiple codepoints that may be perceived as a single character by readers"
+  @typedoc "Multiple code points that may be perceived as a single character by readers"
   @type grapheme :: t
 
   @typedoc "Pattern used in functions like `replace/3` and `split/2`"
@@ -1452,9 +1452,9 @@ defmodule String do
   end
 
   @doc """
-  Returns all codepoints in the string.
+  Returns all code points in the string.
 
-  For details about codepoints and graphemes, see the `String` module documentation.
+  For details about code points and graphemes, see the `String` module documentation.
 
   ## Examples
 
@@ -1478,9 +1478,9 @@ defmodule String do
   defdelegate codepoints(string), to: String.Unicode
 
   @doc ~S"""
-  Returns the next codepoint in a string.
+  Returns the next code point in a string.
 
-  The result is a tuple with the codepoint and the
+  The result is a tuple with the code point and the
   remainder of the string or `nil` in case
   the string reached its end.
 
@@ -1625,7 +1625,7 @@ defmodule String do
   The algorithm is outlined in the [Unicode Standard Annex #29,
   Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
 
-  For details about codepoints and graphemes, see the `String` module documentation.
+  For details about code points and graphemes, see the `String` module documentation.
 
   ## Examples
 
@@ -2121,7 +2121,7 @@ defmodule String do
   Converts a string into a charlist.
 
   Specifically, this function takes a UTF-8 encoded binary and returns a list of its integer
-  codepoints. It is similar to `codepoints/1` except that the latter returns a list of codepoints as
+  code points. It is similar to `codepoints/1` except that the latter returns a list of code points as
   strings.
 
   In case you need to work with bytes, take a look at the
@@ -2158,7 +2158,7 @@ defmodule String do
   By default, the maximum number of atoms is `1_048_576`. This limit
   can be raised or lowered using the VM option `+t`.
 
-  The maximum atom size is of 255 Unicode codepoints.
+  The maximum atom size is of 255 Unicode code points.
 
   Inlined by the compiler.
 
@@ -2176,7 +2176,7 @@ defmodule String do
   @doc """
   Converts a string to an existing atom.
 
-  The maximum atom size is of 255 Unicode codepoints.
+  The maximum atom size is of 255 Unicode code points.
 
   Inlined by the compiler.
 

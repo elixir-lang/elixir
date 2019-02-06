@@ -502,7 +502,7 @@ defmodule Macro do
 
   In this setup, Elixir will escape the following: `\0`, `\a`, `\b`,
   `\d`, `\e`, `\f`, `\n`, `\r`, `\s`, `\t` and `\v`. Bytes can be
-  given as hexadecimals via `\xNN` and Unicode Codepoints as
+  given as hexadecimals via `\xNN` and Unicode code points as
   `\uNNNN` escapes.
 
   This function is commonly used on sigil implementations
@@ -531,7 +531,7 @@ defmodule Macro do
   ## Map
 
   The map must be a function. The function receives an integer
-  representing the codepoint of the character it wants to unescape.
+  representing the code point of the character it wants to unescape.
   Here is the default mapping function implemented by Elixir:
 
       def unescape_map(unicode), do: true
@@ -552,8 +552,8 @@ defmodule Macro do
   If the `unescape_map/1` function returns `false`, the char is
   not escaped and the backslash is kept in the string.
 
-  Hexadecimals and Unicode codepoints will be escaped if the map
-  function returns `true` for `?x`. Unicode codepoints if the map
+  Hexadecimals and Unicode code points will be escaped if the map
+  function returns `true` for `?x`. Unicode code points if the map
   function returns `true` for `?u`.
 
   ## Examples

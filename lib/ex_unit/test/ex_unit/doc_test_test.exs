@@ -526,7 +526,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              8) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:189: unexpected token: "`" (column 5, codepoint U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:189: unexpected token: "`" (column 5, code point U+0060)
                 code: 3
                           ```
                 stacktrace:
@@ -536,7 +536,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              9) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:173: unexpected token: "`" (column 1, codepoint U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:173: unexpected token: "`" (column 1, code point U+0060)
                 code: 3
                       `
                 stacktrace:
@@ -546,7 +546,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
             10) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:181: unexpected token: "`" (column 3, codepoint U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:181: unexpected token: "`" (column 3, code point U+0060)
                 code: 3
                         ```
                 stacktrace:
