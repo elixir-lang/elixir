@@ -47,7 +47,7 @@ defmodule Logger.Formatter do
   @replacement "�"
 
   @doc """
-  Prunes non-valid UTF-8 codepoints.
+  Prunes non-valid UTF-8 code points.
 
   Typically called after formatting when the data cannot be printed.
   """

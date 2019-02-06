@@ -58,7 +58,7 @@ Strings are always represented as themselves in the AST.
 
 ### Charlists
 
-Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are made of non-negative integers, where each integer represents a Unicode codepoint.
+Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are made of non-negative integers, where each integer represents a Unicode code point.
 
 Multi-line charlists are written with three single-quotes (`'''`), the same multi-line strings are.
 
@@ -378,7 +378,7 @@ end
 
 All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that "desugar" to one of the constructs explored above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence.
 
-### Integers in other bases and Unicode codepoints
+### Integers in other bases and Unicode code points
 
 Elixir allows integers to contain `_` to separate digits and provides conveniences to represent integers in other bases:
 
@@ -396,7 +396,7 @@ Elixir allows integers to contain `_` to separate digits and provides convenienc
 #=> 170 (Binary base)
 
 ?é
-#=> 233 (Unicode codepoint)
+#=> 233 (Unicode code point)
 ```
 
 Those constructs exist only at the syntax level. All of the examples above are represented as their underlying integers in the AST.

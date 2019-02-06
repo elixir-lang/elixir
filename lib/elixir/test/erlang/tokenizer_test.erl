@@ -221,4 +221,4 @@ sigil_terminator_test() ->
 
 invalid_sigil_delimiter_test() ->
   {1, 1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
-  true = lists:prefix("\"\\\" (column 3, codepoint U+005C)", lists:flatten(Message)).
+  true = lists:prefix("\"\\\" (column 3, code point U+005C)", lists:flatten(Message)).

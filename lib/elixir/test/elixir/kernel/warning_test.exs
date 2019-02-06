@@ -1124,10 +1124,10 @@ defmodule Kernel.WarningTest do
     purge(Sample2)
   end
 
-  test "warning on codepoint escape" do
+  test "warning on code point escape" do
     assert capture_err(fn ->
              Code.eval_string("? ")
-           end) =~ "found ? followed by codepoint 0x20 (space), please use ?\\s instead"
+           end) =~ "found ? followed by code point 0x20 (space), please use ?\\s instead"
   end
 
   test "duplicated docs in the same clause" do

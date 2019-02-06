@@ -213,7 +213,7 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
 
 tokenize([$~, S, H | _] = Original, Line, Column, _Scope, Tokens) when ?is_upcase(S) orelse ?is_downcase(S) ->
   MessageString =
-    "\"~ts\" (column ~p, codepoint U+~4.16.0B). The available delimiters are: "
+    "\"~ts\" (column ~p, code point U+~4.16.0B). The available delimiters are: "
     "//, ||, \"\", '', (), [], {}, <>",
   Message = io_lib:format(MessageString, [[H], Column + 2, H]),
   {error, {Line, Column, "invalid sigil delimiter: ", Message}, Original, Tokens};
@@ -234,7 +234,7 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
   case handle_char(Char) of
     {Escape, Name} ->
-      Msg = io_lib:format("found ? followed by codepoint 0x~.16B (~ts), please use ?~ts instead",
+      Msg = io_lib:format("found ? followed by code point 0x~.16B (~ts), please use ?~ts instead",
                           [Char, Name, Escape]),
       elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg);
     false ->
@@ -579,7 +579,7 @@ tokenize(String, Line, Column, Scope, Tokens) ->
   end.
 
 unexpected_token([T | Rest], Line, Column, Tokens) ->
-  Message = io_lib:format("\"~ts\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
+  Message = io_lib:format("\"~ts\" (column ~p, code point U+~4.16.0B)", [[T], Column, T]),
   {error, {Line, Column, "unexpected token: ", Message}, Rest, Tokens}.
 
 tokenize_eol(Rest, Line, Scope, Tokens) ->
@@ -1108,8 +1108,8 @@ tokenize_identifier(String, Line, Column, Scope) ->
       RightCodepoints = list_to_codepoint_hex(Right),
       WrongCodepoints = list_to_codepoint_hex(Wrong),
       Message = io_lib:format("Elixir expects unquoted Unicode atoms, variables, and calls to be in NFC form.\n\n"
-                              "Got:\n\n    \"~ts\" (codepoints~ts)\n\n"
-                              "Expected:\n\n    \"~ts\" (codepoints~ts)\n\n"
+                              "Got:\n\n    \"~ts\" (code points~ts)\n\n"
+                              "Expected:\n\n    \"~ts\" (code points~ts)\n\n"
                               "Syntax error before: ",
                               [Wrong, WrongCodepoints, Right, RightCodepoints]),
       {error, {Line, Column, Message, Wrong}};
@@ -1374,7 +1374,7 @@ keyword('catch')  -> block;
 keyword(_) -> false.
 
 invalid_character_error(What, Char) ->
-  io_lib:format("invalid character \"~ts\" (codepoint U+~4.16.0B) in ~ts: ", [[Char], Char, What]).
+  io_lib:format("invalid character \"~ts\" (code point U+~4.16.0B) in ~ts: ", [[Char], Char, What]).
 
 invalid_do_error(Prefix) ->
   {Prefix, ". In case you wanted to write a \"do\" expression, "

@@ -278,7 +278,7 @@ defmodule String.Unicode do
     {acc, string}
   end
 
-  # Codepoints
+  # Code points
 
   def next_codepoint(<<cp::utf8, rest::binary>>) do
     {<<cp::utf8>>, rest}
