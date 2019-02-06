@@ -22,8 +22,8 @@ defprotocol Collectable do
 
   The `Collectable` module was designed to fill the gap left by the
   `Enumerable` protocol. `Collectable.into/1` can be seen as the opposite of
-  `Enumerable.reduce/3`. The former is about taking values out, while the
-  latter is about collecting those values into a structure.
+  `Enumerable.reduce/3`. If the functions in `Enumerable` are about taking values out,
+  then `Collectable.into/1` is about collecting those values into a structure.
 
   ## Examples
 
