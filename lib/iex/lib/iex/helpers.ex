@@ -499,7 +499,7 @@ defmodule IEx.Helpers do
 
   @runtime_info_topics [:system, :memory, :allocators, :limits, :applications]
   @doc """
-  Prints vm/runtime information such as versions, memory usage and statistics.
+  Prints VM/runtime information such as versions, memory usage and statistics.
   Additional topics are available via `runtime_info/1`.
   """
   @doc since: "1.5.0"
