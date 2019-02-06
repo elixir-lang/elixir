@@ -71,7 +71,7 @@ defmodule List do
   ## Charlists
 
   If a list is made of non-negative integers, where each integer represents a
-  Unicode codepoint, the list can also be called a charlist. These integers
+  Unicode code point, the list can also be called a charlist. These integers
   must:
 
     * be within the range `0..0x10FFFF` (`0..1_114_111`);
@@ -731,7 +731,7 @@ defmodule List do
   Converts a charlist to an atom.
 
   Elixir supports conversions from charlists which contains any Unicode
-  codepoint.
+  code point.
 
   Inlined by the compiler.
 
@@ -754,7 +754,7 @@ defmodule List do
   if the atom does not exist.
 
   Elixir supports conversions from charlists which contains any Unicode
-  codepoint.
+  code point.
 
   Inlined by the compiler.
 
@@ -842,11 +842,11 @@ defmodule List do
   end
 
   @doc """
-  Converts a list of integers representing codepoints, lists or
+  Converts a list of integers representing code points, lists or
   strings into a string.
 
   Notice that this function expects a list of integers representing
-  UTF-8 codepoints. If you have a list of bytes, you must instead use
+  UTF-8 code points. If you have a list of bytes, you must instead use
   the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
 
   ## Examples
@@ -873,7 +873,7 @@ defmodule List do
         To be converted to a string, a list must contain only:
 
           * strings
-          * integers representing Unicode codepoints
+          * integers representing Unicode code points
           * or a list containing one of these three elements
 
         Please check the given list or call inspect/1 to get the list representation, got:
@@ -893,11 +893,11 @@ defmodule List do
   end
 
   @doc """
-  Converts a list of integers representing codepoints, lists or
+  Converts a list of integers representing code points, lists or
   strings into a charlist.
 
   Notice that this function expects a list of integers representing
-  UTF-8 codepoints. If you have a list of bytes, you must instead use
+  UTF-8 code points. If you have a list of bytes, you must instead use
   the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
 
   ## Examples
@@ -925,7 +925,7 @@ defmodule List do
         To be converted to a charlist, a list must contain only:
 
           * strings
-          * integers representing Unicode codepoints
+          * integers representing Unicode code points
           * or a list containing one of these three elements
 
         Please check the given list or call inspect/1 to get the list representation, got:

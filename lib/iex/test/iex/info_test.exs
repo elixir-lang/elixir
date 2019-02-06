@@ -87,7 +87,7 @@ defmodule IEx.InfoTest do
       assert get_key(info, "Byte size") == 7
       assert description =~ "This is a string"
       assert description =~ "It's printed with the `<<>>`"
-      assert description =~ "the first non-printable codepoint being\n`<<0>>`"
+      assert description =~ "the first non-printable code point being\n`<<0>>`"
     end
 
     test "binary" do

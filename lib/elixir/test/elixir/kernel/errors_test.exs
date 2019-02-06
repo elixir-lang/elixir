@@ -31,7 +31,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid token" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: unexpected token: \"\u200B\" (column 7, codepoint U+200B)",
+                      "nofile:1: unexpected token: \"\u200B\" (column 7, code point U+200B)",
                       '[foo: \u200B]\noops'
   end
 
@@ -80,7 +80,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid identifier" do
     message = fn name ->
-      "nofile:1: invalid character \"@\" (codepoint U+0040) in identifier: #{name}"
+      "nofile:1: invalid character \"@\" (code point U+0040) in identifier: #{name}"
     end
 
     assert_eval_raise SyntaxError, message.("foo@"), 'foo@'
@@ -88,20 +88,20 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, message.("foo@bar"), 'foo@bar'
 
     message = fn name ->
-      "nofile:1: invalid character \"@\" (codepoint U+0040) in alias: #{name}"
+      "nofile:1: invalid character \"@\" (code point U+0040) in alias: #{name}"
     end
 
     assert_eval_raise SyntaxError, message.("Foo@"), 'Foo@'
     assert_eval_raise SyntaxError, message.("Foo@bar"), 'Foo@bar'
 
-    message = "nofile:1: invalid character \"!\" (codepoint U+0021) in alias: Foo!"
+    message = "nofile:1: invalid character \"!\" (code point U+0021) in alias: Foo!"
     assert_eval_raise SyntaxError, message, 'Foo!'
 
-    message = "nofile:1: invalid character \"?\" (codepoint U+003F) in alias: Foo?"
+    message = "nofile:1: invalid character \"?\" (code point U+003F) in alias: Foo?"
     assert_eval_raise SyntaxError, message, 'Foo?'
 
     message =
-      "nofile:1: invalid character \"ó\" (codepoint U+00F3) in alias (only ASCII characters are allowed): Foó"
+      "nofile:1: invalid character \"ó\" (code point U+00F3) in alias (only ASCII characters are allowed): Foó"
 
     assert_eval_raise SyntaxError, message, 'Foó'
 
@@ -110,11 +110,11 @@ defmodule Kernel.ErrorsTest do
 
     Got:
 
-        "foó" \(codepoints 0x0066 0x006F 0x006F 0x0301\)
+        "foó" \(code points 0x0066 0x006F 0x006F 0x0301\)
 
     Expected:
 
-        "foó" \(codepoints 0x0066 0x006F 0x00F3\)
+        "foó" \(code points 0x0066 0x006F 0x00F3\)
 
     """
 

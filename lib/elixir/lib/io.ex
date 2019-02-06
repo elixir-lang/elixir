@@ -316,7 +316,7 @@ defmodule IO do
   Gets a number of bytes from IO device `:stdio`.
 
   If `:stdio` is a Unicode device, `count` implies
-  the number of Unicode codepoints to be retrieved.
+  the number of Unicode code points to be retrieved.
   Otherwise, `count` is the number of raw bytes to be retrieved.
 
   See `IO.getn/3` for a description of return values.
@@ -338,7 +338,7 @@ defmodule IO do
   Gets a number of bytes from the IO `device`.
 
   If the IO `device` is a Unicode device, `count` implies
-  the number of Unicode codepoints to be retrieved.
+  the number of Unicode code points to be retrieved.
   Otherwise, `count` is the number of raw bytes to be retrieved.
 
   It returns:
@@ -440,7 +440,7 @@ defmodule IO do
   end
 
   @doc """
-  Converts chardata (a list of integers representing codepoints,
+  Converts chardata (a list of integers representing code points,
   lists and strings) into a string.
 
   In case the conversion fails, it raises an `UnicodeConversionError`.

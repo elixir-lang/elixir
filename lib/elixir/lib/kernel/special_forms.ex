@@ -192,7 +192,7 @@ defmodule Kernel.SpecialForms do
       iex> <<102, rest::binary>>
       "foo"
 
-  The `utf8`, `utf16`, and `utf32` types are for Unicode codepoints. They
+  The `utf8`, `utf16`, and `utf32` types are for Unicode code points. They
   can also be applied to literal strings and charlists:
 
       iex> <<"foo"::utf16>>
