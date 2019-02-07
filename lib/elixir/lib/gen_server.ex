@@ -251,16 +251,17 @@ defmodule GenServer do
   ## Timeouts
 
   The return value of `c:init/1` or any of the `handle_*` callbacks may include
-  a timeout value in milliseconds; if not, `:infinity` is assumed. Each time a
-  timeout is set, it replaces the previously set timeout.
+  a timeout value in milliseconds; if not, `:infinity` is assumed.
+  The timeout can be used to detect a lull in incoming messages.
 
   If the process has no messages waiting when the timeout is set and the
   number of given milliseconds pass without any message arriving,
   then `handle_info/2` will be called with `:timeout` as the first argument.
+  The timeout is cleared if any message is waiting or arrives before the timeout.
 
-  Because the timeout is cleared by each received message, even a timeout of `0` milliseconds
-  is not guaranteed to execute. To take another action immediately and
-  unconditionally, use a `:continue` instruction.
+  Because a message may arrive before the timeout is set, even a timeout of `0`
+  milliseconds is not guaranteed to execute. To take another action immediately
+  and unconditionally, use a `:continue` instruction.
 
   ## When (not) to use a GenServer
 
