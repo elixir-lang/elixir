@@ -17,13 +17,13 @@ defmodule URI do
             port: nil
 
   @type t :: %__MODULE__{
-          scheme: nil | binary,
-          path: nil | binary,
-          query: nil | binary,
-          fragment: nil | binary,
-          authority: nil | binary,
-          userinfo: nil | binary,
-          host: nil | binary,
+          scheme: nil | String.t(),
+          path: nil | String.t(),
+          query: nil | String.t(),
+          fragment: nil | String.t(),
+          authority: nil | String.t(),
+          userinfo: nil | String.t(),
+          host: nil | String.t(),
           port: nil | :inet.port_number()
         }
 
@@ -45,7 +45,7 @@ defmodule URI do
       nil
 
   """
-  @spec default_port(binary) :: nil | non_neg_integer
+  @spec default_port(String.t()) :: nil | non_neg_integer
   def default_port(scheme) when is_binary(scheme) do
     :elixir_config.get({:uri, scheme}, nil)
   end
@@ -62,7 +62,7 @@ defmodule URI do
   application's start callback in case you want to register
   new URIs.
   """
-  @spec default_port(binary, non_neg_integer) :: :ok
+  @spec default_port(String.t(), non_neg_integer) :: :ok
   def default_port(scheme, port) when is_binary(scheme) and is_integer(port) and port >= 0 do
     :elixir_config.put({:uri, scheme}, port)
   end
@@ -128,7 +128,9 @@ defmodule URI do
       %{"percent" => "oh yes!", "starting" => "map"}
 
   """
-  @spec decode_query(binary, %{optional(binary) => binary}) :: %{optional(binary) => binary}
+  @spec decode_query(String.t(), %{optional(String.t()) => String.t()}) :: %{
+          optional(String.t()) => String.t()
+        }
   def decode_query(query, map \\ %{})
 
   def decode_query(query, %_{} = dict) when is_binary(query) do
@@ -179,7 +181,7 @@ defmodule URI do
       [{"foo", "1"}, {"bar", "2"}]
 
   """
-  @spec query_decoder(binary) :: Enumerable.t()
+  @spec query_decoder(String.t()) :: Enumerable.t()
   def query_decoder(query) when is_binary(query) do
     Stream.unfold(query, &decode_next_query_pair/1)
   end
@@ -280,7 +282,7 @@ defmodule URI do
       "a str%69ng"
 
   """
-  @spec encode(binary, as_boolean(char)) :: binary
+  @spec encode(String.t(), as_boolean(char)) :: String.t()
   def encode(string, fun \\ &char_unescaped?/1)
       when is_binary(string) and is_function(fun, 1) do
     for <<char <- string>>, into: "", do: percent(char, fun)
@@ -295,7 +297,7 @@ defmodule URI do
       "put%3A+it%2B%D0%B9"
 
   """
-  @spec encode_www_form(binary) :: String.t()
+  @spec encode_www_form(String.t()) :: String.t()
   def encode_www_form(string) when is_binary(string) do
     for <<char <- string>>, into: "" do
       case percent(char, &char_unreserved?/1) do
@@ -325,7 +327,7 @@ defmodule URI do
       "https://elixir-lang.org"
 
   """
-  @spec decode(binary) :: String.t()
+  @spec decode(String.t()) :: String.t()
   def decode(uri) do
     unpercent(uri, "", false)
   catch
@@ -342,7 +344,7 @@ defmodule URI do
       "<all in/"
 
   """
-  @spec decode_www_form(binary) :: String.t()
+  @spec decode_www_form(String.t()) :: String.t()
   def decode_www_form(string) when is_binary(string) do
     unpercent(string, "", true)
   catch
@@ -438,7 +440,7 @@ defmodule URI do
       }
 
   """
-  @spec parse(t | binary) :: t
+  @spec parse(t | String.t()) :: t
   def parse(%URI{} = uri), do: uri
 
   def parse(string) when is_binary(string) do
@@ -541,7 +543,7 @@ defmodule URI do
       "http://google.com"
 
   """
-  @spec merge(t | binary, t | binary) :: t
+  @spec merge(t | String.t(), t | String.t()) :: t
   def merge(uri, rel)
 
   def merge(%URI{authority: nil}, _rel) do
