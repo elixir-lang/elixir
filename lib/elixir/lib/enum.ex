@@ -1761,7 +1761,7 @@ defmodule Enum do
 
   """
   @doc since: "1.4.0"
-  @spec split_with(t, (element -> any)) :: {list, list}
+  @spec split_with(t, (element -> as_boolean(term))) :: {list, list}
   def split_with(enumerable, fun) do
     {acc1, acc2} =
       reduce(enumerable, {[], []}, fn entry, {acc1, acc2} ->
