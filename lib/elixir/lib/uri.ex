@@ -92,7 +92,7 @@ defmodule URI do
       ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
 
   """
-  @spec encode_query(term) :: String.t()
+  @spec encode_query(Enum.t()) :: String.t()
   def encode_query(enumerable) do
     Enum.map_join(enumerable, "&", &encode_kv_pair/1)
   end
@@ -282,7 +282,7 @@ defmodule URI do
       "a str%69ng"
 
   """
-  @spec encode(String.t(), as_boolean(char)) :: String.t()
+  @spec encode(String.t(), (char -> as_boolean(term))) :: String.t()
   def encode(string, fun \\ &char_unescaped?/1)
       when is_binary(string) and is_function(fun, 1) do
     for <<char <- string>>, into: "", do: percent(char, fun)
