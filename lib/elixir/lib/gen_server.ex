@@ -260,7 +260,7 @@ defmodule GenServer do
 
   Because the timeout is cleared by each received message, even a timeout of `0` milliseconds
   is not guaranteed to execute. To take another action immediately and
-  unconditionally, use a `continue` instruction.
+  unconditionally, use a `:continue` instruction.
 
   ## When (not) to use a GenServer
 
