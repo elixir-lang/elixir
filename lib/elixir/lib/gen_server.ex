@@ -255,7 +255,7 @@ defmodule GenServer do
   timeout is set, it replaces the previously set timeout.
 
   If the process has no messages waiting when the timeout is set and the
-  number of millseconds specified pass without any message arriving,
+  number of given milliseconds pass without any message arriving,
   `handle_info(:timeout, new_state)` will be called.
 
   Because the timeout is cleared by each message received, even a timeout of `0`
