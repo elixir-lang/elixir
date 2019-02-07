@@ -258,7 +258,7 @@ defmodule GenServer do
   number of given milliseconds pass without any message arriving,
   then `handle_info/2` will be called with `:timeout` as the first argument.
 
-  Because the timeout is cleared by each message received, even a timeout of `0`
+  Because the timeout is cleared by each received message, even a timeout of `0` milliseconds
   is not guaranteed to execute. To take another action immediately and
   unconditionally, use a `continue` instruction.
 
