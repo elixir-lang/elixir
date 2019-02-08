@@ -18,7 +18,7 @@ defimpl IEx.Info, for: Atom do
   def info(atom) do
     specific_info =
       cond do
-        Code.ensure_loaded?(atom) ->
+        module?(atom) ->
           info_module(atom)
 
         match?("Elixir." <> _, Atom.to_string(atom)) ->
@@ -41,6 +41,22 @@ defimpl IEx.Info, for: Atom do
       end
 
     [{"Data type", "Atom"}] ++ description ++ specific_info
+  end
+
+  defp module?(atom) do
+    case :code.get_object_code(atom) do
+      :error ->
+        Code.ensure_loaded?(atom)
+
+      {^atom, beam, _path} ->
+        module_name =
+          beam
+          |> :beam_lib.info()
+          # Prevent match on `nil`
+          |> Keyword.get(:module, 0)
+
+        module_name == atom
+    end
   end
 
   defp info_module(mod) do
