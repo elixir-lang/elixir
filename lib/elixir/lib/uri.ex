@@ -76,7 +76,7 @@ defmodule URI do
   values are URL encoded as per `encode_www_form/1`.
 
   Keys and values can be any term that implements the `String.Chars`
-  protocol, except lists – which are explicitly forbidden.
+  protocol with the exception of lists, which are explicitly forbidden.
 
   ## Examples
 
@@ -265,11 +265,11 @@ defmodule URI do
   See `encode_www_form` if you are interested in escaping reserved
   characters too.
 
-  It also accepts a function as an optional argument. If passed, `fun` will be
-  called with each byte in `string` as its argument and should return a truthy
-  value (anything other than `false` or `nil`) if the given byte should be left
-  as is, or return a falsy value (`false` or `nil`) if the character should be
-  escaped.
+  This function also accepts a `predicate` function as an optional
+  argument. If passed, this function will be called with each byte
+  in `string` as its argument and should return a truthy value (anything other
+  than `false` or `nil`) if the given byte should be left as is, or return a
+  falsy value (`false` or `nil`) if the character should be escaped.
 
   ## Examples
 
@@ -281,9 +281,9 @@ defmodule URI do
 
   """
   @spec encode(binary, (char -> as_boolean(term))) :: binary
-  def encode(string, fun \\ &char_unescaped?/1)
-      when is_binary(string) and is_function(fun, 1) do
-    for <<char <- string>>, into: "", do: percent(char, fun)
+  def encode(string, predicate \\ &char_unescaped?/1)
+      when is_binary(string) and is_function(predicate, 1) do
+    for <<char <- string>>, into: "", do: percent(char, predicate)
   end
 
   @doc """
