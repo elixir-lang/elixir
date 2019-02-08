@@ -1202,7 +1202,7 @@ defmodule Kernel.SpecialForms do
 
   ## Binding and unquote fragments
 
-  Elixir quote/unquote mechanisms provides a functionality called
+  Elixir quote/unquote mechanisms provide a functionality called
   unquote fragments. Unquote fragments provide an easy way to generate
   functions on the fly. Consider this example:
 
@@ -1212,7 +1212,7 @@ defmodule Kernel.SpecialForms do
       end)
 
   In the example above, we have generated the functions `foo/0` and
-  `bar/0` dynamically. Now, imagine that, we want to convert this
+  `bar/0` dynamically. Now, imagine that we want to convert this
   functionality into a macro:
 
       defmacro defkv(kv) do
