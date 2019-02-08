@@ -51,7 +51,7 @@ defimpl IEx.Info, for: Atom do
       {^atom, beam, _path} ->
         info = :beam_lib.info(beam)
 
-        match?({:ok, ^atom}, Keyword.fetch(info, :module))
+        {:ok, atom} == Keyword.fetch(info, :module)
     end
   end
 
