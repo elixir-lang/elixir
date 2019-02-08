@@ -257,7 +257,8 @@ defmodule GenServer do
   If the process has no messages waiting when the timeout is set and the
   number of given milliseconds pass without any message arriving,
   then `handle_info/2` will be called with `:timeout` as the first argument.
-  The timeout is cleared if any message is waiting or arrives before the timeout.
+  The timeout is cleared if any message is waiting or arrives before the
+  given timeout.
 
   Because a message may arrive before the timeout is set, even a timeout of `0`
   milliseconds is not guaranteed to execute. To take another action immediately
