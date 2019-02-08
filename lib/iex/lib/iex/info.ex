@@ -49,13 +49,9 @@ defimpl IEx.Info, for: Atom do
         Code.ensure_loaded?(atom)
 
       {^atom, beam, _path} ->
-        module_name =
-          beam
-          |> :beam_lib.info()
-          # Prevent match on `nil`
-          |> Keyword.get(:module, 0)
+        info = :beam_lib.info(beam)
 
-        module_name == atom
+        match?({:ok, ^atom}, Keyword.fetch(info, :module))
     end
   end
 
