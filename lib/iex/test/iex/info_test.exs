@@ -56,12 +56,7 @@ defmodule IEx.InfoTest do
     end
 
     test "do not log errors if module exists with different casing" do
-      log_output =
-        capture_log(fn ->
-          Info.info(Datetime)
-        end)
-
-      assert log_output == ""
+      assert capture_log(fn -> Info.info(Datetime) end) == ""
     end
   end
 
