@@ -3,6 +3,8 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule IEx.InfoTest do
   use ExUnit.Case
 
+  import ExUnit.CaptureLog
+
   alias IEx.Info
 
   defmodule Foo do
@@ -51,6 +53,10 @@ defmodule IEx.InfoTest do
 
     test "regular atom" do
       assert Info.info(:foo) == [{"Data type", "Atom"}, {"Reference modules", "Atom"}]
+    end
+
+    test "do not log errors if module exists with different casing" do
+      assert capture_log(fn -> Info.info(Datetime) end) == ""
     end
   end
 
