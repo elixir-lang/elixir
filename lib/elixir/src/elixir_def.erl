@@ -60,6 +60,7 @@ fetch_definitions(File, Module) ->
   end,
 
   {All, Private} = fetch_definition(Entries, File, Module, Set, Bag, [], []),
+  elixir_overridable:ensure_no_kind_conflict(File, Module, All),
   Unreachable = elixir_locals:warn_unused_local(File, Module, All, Private),
   elixir_locals:ensure_no_undefined_local(File, Module, All),
   elixir_locals:ensure_no_import_conflict(File, Module, All),

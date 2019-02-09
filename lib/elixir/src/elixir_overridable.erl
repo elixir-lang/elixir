@@ -1,6 +1,7 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_overridable).
--export([setup/1, overridable/1, overridable/2, super/4, store_pending/1, format_error/1]).
+-export([setup/1, overridable/1, overridable/2, super/4, store_pending/1,
+         ensure_no_kind_conflict/3, format_error/1]).
 -include("elixir.hrl").
 -define(attr, {elixir, overridable}).
 
@@ -31,6 +32,32 @@ store_pending(Module) ->
     Pair
    end || {Pair, {_, _, _, false}} <- maps:to_list(overridable(Module)),
           not ets:member(Set, {def, Pair})].
+
+ensure_no_kind_conflict(File, Module, Definitions) ->
+  Overridable = overridable(Module),
+
+  if
+    Overridable =/= #{} ->
+      lists:foreach(fun({Pair, FinalKind, Meta, _}) ->
+        case maps:find(Pair, Overridable) of
+          {ok, {_, {{_, OriginalKind, _, _, _, _}, _}, _, _}} ->
+            case is_conflicting_kind(OriginalKind, FinalKind) of
+              true ->
+                elixir_errors:form_error(Meta, File, ?MODULE, {kind_conflict, Pair, OriginalKind, FinalKind});
+
+              false ->
+                ok
+            end;
+
+          _ ->
+            ok
+        end
+      end, Definitions);
+
+    true ->
+      ok
+  end.
+
 
 %% Private
 
@@ -71,7 +98,18 @@ store(Module, Function, Hidden) ->
 name(Name, Count) when is_integer(Count) ->
   list_to_atom(atom_to_list(Name) ++ " (overridable " ++ integer_to_list(Count) ++ ")").
 
+is_conflicting_kind(OriginalKind, FinalKind) ->
+  type(OriginalKind) =/= type(FinalKind).
+
+type(defmacro) -> macro;
+type(defmacrop) -> macro;
+type(_) -> function.
+
 %% Error handling
+
+format_error({kind_conflict, {Name, Arity}, OriginalKind, FinalKind}) ->
+  io_lib:format("cannot override ~ts ~ts/~B with a ~ts",
+    [type(OriginalKind), Name, Arity, type(FinalKind)]);
 
 format_error({no_super, Module, {Name, Arity}}) ->
   Bins   = [format_fa(X) || {X, {_, _, _, _}} <- maps:to_list(overridable(Module))],

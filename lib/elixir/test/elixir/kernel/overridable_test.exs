@@ -218,6 +218,34 @@ defmodule Kernel.OverridableTest do
     purge(Kernel.OverridableOrder.Forwarding)
   end
 
+  test "does not allow to override a function with a macro" do
+    assert_raise CompileError, "nofile:4: cannot override macro foo/0 with a function", fn ->
+      Code.eval_string("""
+      defmodule Kernel.OverridableMacro.FunctionOverride do
+        defmacro foo(), do: :ok
+        defoverridable foo: 0
+        def foo(), do: :invalid
+      end
+      """)
+    end
+
+    purge(Kernel.OverridableMacro.FunctionOverride)
+  end
+
+  test "does not allow to override a macro with a function" do
+    assert_raise CompileError, "nofile:4: cannot override function foo/0 with a macro", fn ->
+      Code.eval_string("""
+      defmodule Kernel.OverridableFunction.MacroOverride do
+        def foo(), do: :ok
+        defoverridable foo: 0
+        defmacro foo(), do: :invalid
+      end
+      """)
+    end
+
+    purge(Kernel.OverridableFunction.MacroOverride)
+  end
+
   test "undefined functions can't be marked as overridable" do
     message = "cannot make function foo/2 overridable because it was not defined"
 

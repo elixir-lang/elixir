@@ -4633,6 +4633,8 @@ defmodule Kernel do
   An overridable function is lazily defined, allowing a developer to override
   it.
 
+  Macros cannot be overridden by functions and vice-versa.
+
   ## Example
 
       defmodule DefaultMod do
