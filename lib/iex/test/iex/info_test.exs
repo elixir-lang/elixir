@@ -61,7 +61,7 @@ defmodule IEx.InfoTest do
           Info.info(Datetime)
         end)
 
-      assert "" == log_output
+      assert log_output == ""
     end
   end
 
