@@ -452,7 +452,7 @@ defmodule Mix.Release do
   def copy_erts(release) do
     destination = Path.join(release.path, "erts-#{release.erts_version}")
     File.mkdir_p!(destination)
-    File.cp_r!(release.erts_source, destination)
+    File.cp_r!(release.erts_source, destination, fn _, _ -> false end)
 
     _ = File.rm(Path.join(destination, "bin/erl"))
     _ = File.rm(Path.join(destination, "bin/erl.ini"))
