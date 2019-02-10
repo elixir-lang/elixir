@@ -103,6 +103,41 @@ defmodule Regex do
 
     * `list(binary)` - a list of named captures to capture
 
+  ## Character classes
+
+  Regex supports several built in named character classes. These are used by
+  enclosing the class name in `[: :]` inside a group. For example:
+
+      iex> String.match?("123", ~r/^[[:alnum:]]+$/)
+      true
+      iex> String.match?("123 456", ~r/^[[:alnum:][:blank:]]+$/)
+      true
+
+  The supported class names are:
+
+    * alnum - Letters and digits
+    * alpha - Letters
+    * ascii - Character codes 0-127
+    * blank - Space or tab only
+    * cntrl - Control characters
+    * digit - Decimal digits (same as \\d)
+    * graph - Printing characters, excluding space
+    * lower - Lowercase letters
+    * print - Printing characters, including space
+    * punct - Printing characters, excluding letters, digits, and space
+    * space - Whitespace (the same as \s from PCRE 8.34)
+    * upper - Uppercase letters
+    * word  - "Word" characters (same as \w)
+    * xdigit - Hexadecimal digits
+
+  Note the behaviour of those classes may change according to the Unicode
+  and other modifiers:
+
+      iex> String.match?("josé", ~r/^[[:lower:]]+$/)
+      false
+      iex> String.match?("josé", ~r/^[[:lower:]]+$/u)
+      true
+
   """
 
   defstruct re_pattern: nil, source: "", opts: "", re_version: ""
