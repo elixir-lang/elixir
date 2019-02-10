@@ -33,19 +33,6 @@ defmodule Regex do
 
       ~r/(?<foo>.)(?<bar>.)/.source == ~r/(?<foo>.)(?<bar>.)/.source
 
-  ## Precompilation
-
-  Regular expressions built with sigil are precompiled and stored in `.beam`
-  files. This may be a problem if you are precompiling Elixir to run in
-  different OTP releases, as OTP releases may update the underlying regular
-  expression engine at any time.
-
-  For such reasons, we always recommend precompiling Elixir projects using
-  the Erlang/OTP version meant to run in production. In case cross-compilation is
-  really necessary, you can manually invoke `Regex.recompile/1` or
-  `Regex.recompile!/1` to perform a runtime version check and recompile the
-  regex if necessary.
-
   ## Modifiers
 
   The modifiers available when creating a Regex are:
@@ -138,6 +125,20 @@ defmodule Regex do
       iex> String.match?("josé", ~r/^[[:lower:]]+$/u)
       true
 
+  ## Precompilation
+
+  Regular expressions built with sigil are precompiled and stored in `.beam`
+  files. Precompiled regexes are not guaranteed to be compatible between OSes
+  and OTP releases. This is rarely a problem, as most Elixir code shared
+  during development is compiled on the target (such as dependencies, archives,
+  and escripts) and, when running in production, the code must either be
+  compiled on the target (via `mix compile` or similar) or released on the
+  host (via `mix releases` or similar) with a matching OTP, OS and architecture
+  as as the target.
+
+  However, if you find yourself in a scenario where cross-compilation is
+  necessary, you can manually invoke `Regex.recompile/1` or `Regex.recompile!/1`
+  to perform a runtime version check and recompile the regex if necessary.
   """
 
   defstruct re_pattern: nil, source: "", opts: "", re_version: ""
