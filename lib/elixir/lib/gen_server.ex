@@ -248,6 +248,22 @@ defmodule GenServer do
         end
       end
 
+  ## Timeouts
+
+  The return value of `c:init/1` or any of the `handle_*` callbacks may include
+  a timeout value in milliseconds; if not, `:infinity` is assumed.
+  The timeout can be used to detect a lull in incoming messages.
+
+  If the process has no messages waiting when the timeout is set and the
+  number of given milliseconds pass without any message arriving,
+  then `handle_info/2` will be called with `:timeout` as the first argument.
+  The timeout is cleared if any message is waiting or arrives before the
+  given timeout.
+
+  Because a message may arrive before the timeout is set, even a timeout of `0`
+  milliseconds is not guaranteed to execute. To take another action immediately
+  and unconditionally, use a `:continue` instruction.
+
   ## When (not) to use a GenServer
 
   So far, we have learned that a `GenServer` can be used as a supervised process
@@ -396,9 +412,9 @@ defmodule GenServer do
   Returning `{:ok, state}` will cause `start_link/3` to return
   `{:ok, pid}` and the process to enter its loop.
 
-  Returning `{:ok, state, timeout}` is similar to `{:ok, state}`
-  except `handle_info(:timeout, state)` will be called after `timeout`
-  milliseconds if no messages are received within the timeout.
+  Returning `{:ok, state, timeout}` is similar to `{:ok, state}`,
+  except that it also sets a timeout. See the "Timeouts" section
+  in the module documentation for more information.
 
   Returning `{:ok, state, :hibernate}` is similar to `{:ok, state}`
   except the process is hibernated before entering the loop. See
@@ -447,8 +463,8 @@ defmodule GenServer do
   caller and continues the loop with new state `new_state`.
 
   Returning `{:reply, reply, new_state, timeout}` is similar to
-  `{:reply, reply, new_state}` except `handle_info(:timeout, new_state)` will be
-  called after `timeout` milliseconds if no messages are received.
+  `{:reply, reply, new_state}` except that it also sets a timeout.
+  See the "Timeouts" section in the module documentation for more information.
 
   Returning `{:reply, reply, new_state, :hibernate}` is similar to
   `{:reply, reply, new_state}` except the process is hibernated and will
@@ -513,9 +529,9 @@ defmodule GenServer do
 
   Returning `{:noreply, new_state}` continues the loop with new state `new_state`.
 
-  Returning `{:noreply, new_state, timeout}` is similar to
-  `{:noreply, new_state}` except `handle_info(:timeout, new_state)` will be
-  called after `timeout` milliseconds if no messages are received.
+  Returning `{:noreply, new_state, timeout}` is similar to `{:noreply, new_state}`
+  except that it also sets a timeout. See the "Timeouts" section in the module
+  documentation for more information.
 
   Returning `{:noreply, new_state, :hibernate}` is similar to
   `{:noreply, new_state}` except the process is hibernated before continuing the
