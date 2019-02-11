@@ -414,7 +414,7 @@ defmodule GenServer do
 
   Returning `{:ok, state, timeout}` is similar to `{:ok, state}`,
   except that it also sets a timeout. See the "Timeouts" section
-  in the module documentation.
+  in the module documentation for more information.
 
   Returning `{:ok, state, :hibernate}` is similar to `{:ok, state}`
   except the process is hibernated before entering the loop. See
