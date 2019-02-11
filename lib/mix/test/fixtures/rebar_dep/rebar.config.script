@@ -1,6 +1,7 @@
 CFG1 = CONFIG ++
 [{'SCRIPT', SCRIPT}] ++
 [{erl_opts, [warnings_as_errors]}] ++
+[{project_plugins, [remove_me]}] ++
 [{deps, [{git_rebar, "0.1..*", {git, filename:absname("../../test/fixtures/git_rebar"), master}}]}].
 
 case {os:getenv("FILE_FROM_ENV"), os:getenv("CONTENTS_FROM_ENV")} of

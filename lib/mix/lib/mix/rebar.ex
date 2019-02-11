@@ -75,16 +75,17 @@ defmodule Mix.Rebar do
 
   @doc """
   Updates Rebar configuration to be more suitable for dependencies.
-
-  Drops `warnings_as_errors` from `erl_opts`.
   """
   def dependency_config(config) do
-    Enum.map(config, fn
+    Enum.flat_map(config, fn
       {:erl_opts, opts} ->
-        {:erl_opts, List.delete(opts, :warnings_as_errors)}
+        [{:erl_opts, List.delete(opts, :warnings_as_errors)}]
+
+      {:project_plugins, _} ->
+        []
 
       other ->
-        other
+        [other]
     end)
   end
 
