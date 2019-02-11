@@ -3920,7 +3920,7 @@ defmodule Kernel do
       #=> 8
 
   The compiler translates this into multiple functions with different arities,
-  here `Foo.multiply_by/1` and `Foo.multiply_by/2`, that represent cases when
+  here `MyMath.multiply_by/1` and `MyMath.multiply_by/2`, that represent cases when
   arguments for parameters with default values are passed or not passed.
 
   When defining a function with default arguments as well as multiple
