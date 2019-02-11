@@ -154,7 +154,9 @@ defmodule Mix.RebarTest do
       dep_config = Mix.Rebar.dependency_config(config)
 
       assert config[:erl_opts] == [:warnings_as_errors]
+      assert config[:project_plugins] == [:remove_me]
       assert dep_config[:erl_opts] == []
+      refute dep_config[:project_plugins]
     end
   end
 
