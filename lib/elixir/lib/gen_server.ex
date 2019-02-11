@@ -464,7 +464,7 @@ defmodule GenServer do
 
   Returning `{:reply, reply, new_state, timeout}` is similar to
   `{:reply, reply, new_state}` except that it also sets a timeout.
-  See the "Timeouts" section in the module documentation.
+  See the "Timeouts" section in the module documentation for more information.
 
   Returning `{:reply, reply, new_state, :hibernate}` is similar to
   `{:reply, reply, new_state}` except the process is hibernated and will
@@ -531,7 +531,7 @@ defmodule GenServer do
 
   Returning `{:noreply, new_state, timeout}` is similar to `{:noreply, new_state}`
   except that it also sets a timeout. See the "Timeouts" section in the module
-  documentation.
+  documentation for more information.
 
   Returning `{:noreply, new_state, :hibernate}` is similar to
   `{:noreply, new_state}` except the process is hibernated before continuing the
