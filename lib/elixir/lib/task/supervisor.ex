@@ -187,7 +187,7 @@ defmodule Task.Supervisor do
         end
 
         # The task is not running yet, so let's start it.
-        def handle_cast(:start_task, %{ref: nil} = state) do
+        def handle_call(:start_task, %{ref: nil} = state) do
           task =
             Task.Supervisor.async_nolink(MyApp.TaskSupervisor, fn ->
               ...
