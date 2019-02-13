@@ -4377,7 +4377,7 @@ defmodule Kernel do
     end
   end
 
-  @doc ~S"""
+  @doc """
   Defines a protocol.
 
   See the `Protocol` module for more information.

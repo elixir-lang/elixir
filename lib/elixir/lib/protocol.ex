@@ -1,5 +1,5 @@
 defmodule Protocol do
-  @moduledoc """
+  @moduledoc ~S"""
   Reference and functions for working with protocols.
 
   A protocol specifies an API that should be defined by its
