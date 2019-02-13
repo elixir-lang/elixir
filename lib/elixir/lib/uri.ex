@@ -112,7 +112,7 @@ defmodule URI do
   @doc """
   Decodes a query string into a map.
 
-  Given a query string of the form of `key1=value1&key2=value2...`, this
+  Given a query string in the form of `key1=value1&key2=value2...`, this
   function inserts each key-value pair in the query string as one entry in the
   given `map`. Keys and values in the resulting map will be binaries. Keys and
   values will be percent-unescaped.
@@ -205,7 +205,7 @@ defmodule URI do
   end
 
   @doc """
-  Checks if the `character` is a reserved one in a URI.
+  Checks if `character` is a reserved one in a URI.
 
   Reserved characters are specified in
   [RFC 3986, section 2.2](https://tools.ietf.org/html/rfc3986#section-2.2).
@@ -256,7 +256,7 @@ defmodule URI do
   end
 
   @doc """
-  Percent-escapes all characters that require escaping in a string.
+  Percent-escapes all characters that require escaping in `string`.
 
   This means reserved characters, such as `:` and `/`, and the so-
   called unreserved characters, which have the same meaning both
@@ -287,7 +287,7 @@ defmodule URI do
   end
 
   @doc """
-  Encodes a string as "x-www-form-urlencoded".
+  Encodes `string` as "x-www-form-urlencoded".
 
   ## Example
 
@@ -334,7 +334,7 @@ defmodule URI do
   end
 
   @doc """
-  Decodes a string as "x-www-form-urlencoded".
+  Decodes `string` as "x-www-form-urlencoded".
 
   ## Examples
 
@@ -494,7 +494,7 @@ defmodule URI do
   defp nillify(other), do: other
 
   @doc """
-  Returns the string representation of the given `URI` struct.
+  Returns the string representation of the given [URI struct](`t:t/0`).
 
   ## Examples
 
@@ -504,8 +504,8 @@ defmodule URI do
       iex> URI.to_string(%URI{scheme: "foo", host: "bar.baz"})
       "foo://bar.baz"
 
-  Note that when creating this string representation, the `authority` will be
-  used if the host is `nil`. Otherwise, the `userinfo`, `host`, and `port` will
+  Note that when creating this string representation, the `:authority` value will be
+  used if the `:host` is `nil`. Otherwise, the `:userinfo`, `:host`, and `:port` will
   be used.
 
       iex> URI.to_string(%URI{authority: "foo@example.com:80"})
