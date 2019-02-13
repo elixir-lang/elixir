@@ -182,12 +182,12 @@ defmodule Task.Supervisor do
         end
 
         # In this case the task is already running, so we just return :ok.
-        def handle_call(:start_task, %{ref: ref} = state) when is_reference(ref) do
+        def handle_call(:start_task, _from, %{ref: ref} = state) when is_reference(ref) do
           {:reply, :ok, state}
         end
 
         # The task is not running yet, so let's start it.
-        def handle_call(:start_task, %{ref: nil} = state) do
+        def handle_call(:start_task, _from, %{ref: nil} = state) do
           task =
             Task.Supervisor.async_nolink(MyApp.TaskSupervisor, fn ->
               ...
