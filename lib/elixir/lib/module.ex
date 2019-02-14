@@ -1067,18 +1067,7 @@ defmodule Module do
 
           clause ->
             neighbours = :elixir_locals.yank(tuple, module)
-            overridable_definitions = :elixir_overridable.overridable(module)
-
-            count =
-              case :maps.find(tuple, overridable_definitions) do
-                {:ok, {count, _, _, _}} -> count + 1
-                :error -> 1
-              end
-
-            overridable_definitions =
-              :maps.put(tuple, {count, clause, neighbours, false}, overridable_definitions)
-
-            :elixir_overridable.overridable(module, overridable_definitions)
+            :elixir_overridable.record_overridable(module, tuple, clause, neighbours)
         end
 
       other ->
@@ -1163,7 +1152,7 @@ defmodule Module do
   @spec overridable?(module, definition) :: boolean
   def overridable?(module, {function_name, arity} = tuple)
       when is_atom(function_name) and is_integer(arity) and arity >= 0 and arity <= 255 do
-    :maps.is_key(tuple, :elixir_overridable.overridable(module))
+    :elixir_overridable.overridable_for(module, tuple) != :not_overridable
   end
 
   @doc """

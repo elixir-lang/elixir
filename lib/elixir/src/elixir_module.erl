@@ -287,7 +287,6 @@ build(Line, File, Module, Lexical) ->
   Tables = {DataSet, DataBag},
   elixir_def:setup(Tables),
   elixir_locals:setup(Tables),
-  elixir_overridable:setup(Tables),
   Tuple = {Module, Tables, Line, File},
 
   Ref =
@@ -307,10 +306,10 @@ build(Line, File, Module, Lexical) ->
 
 eval_form(Line, Module, DataBag, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
-  elixir_overridable:store_pending(Module),
+  elixir_overridable:store_not_overriden(Module),
   EV = elixir_env:linify({Line, elixir_env:reset_vars(EE)}),
   EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
-  elixir_overridable:store_pending(Module),
+  elixir_overridable:store_not_overriden(Module),
   {Value, EC}.
 
 eval_callbacks(Line, DataBag, Name, Args, E) ->
