@@ -106,15 +106,11 @@ def my_function(number) when is_integer(number) and rem(number, 2) == 0 do
 end
 ```
 
-This would be repetitive to write every time we need this check, so, as mentioned at the beginning of this section, we can abstract this away using a macro. Remember that defining a function that performs this check wouldn't work because we can't use custom functions in guards. Our macro would look like this:
+This would be repetitive to write every time we need this check, so, as mentioned at the beginning of this section, we can abstract this away using a macro. Remember that defining a function that performs this check wouldn't work because we can't use custom functions in guards. Use `defguard` and `defguardp` to create guard macros. Here's an example:
 
 ```elixir
 defmodule MyInteger do
-  defmacro is_even(number) do
-    quote do
-      is_integer(unquote(number)) and rem(unquote(number), 2) == 0
-    end
-  end
+  defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
 end
 ```
 
@@ -128,13 +124,7 @@ def my_function(number) when is_even(number) do
 end
 ```
 
-While it's possible to create custom guards with macros, it's recommended to define them using `defguard` and `defguardp` which perform additional compile-time checks. Here's an example:
-
-```elixir
-defmodule MyInteger do
-  defguard is_even(value) when is_integer(value) and rem(value, 2) == 0
-end
-```
+While it's possible to create custom guards with macros, it's recommended to define them using `defguard` and `defguardp` which perform additional compile-time checks.
 
 ## Multiple guards in the same clause
 
