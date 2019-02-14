@@ -409,8 +409,8 @@ defmodule Code do
       broken into multiple lines if they are followed by a newline in the
       opening bracket and preceded by a new line in the closing bracket
 
-    * Pipeline operators, like `|>` and others with the same precedence,
-      will span multiple lines if they spanned multiple lines in the input
+    * Newlines before certain operators (such as the pipeline operators)
+      and before other operators (such as comparison operators)
 
   The behaviours above are not guaranteed. We may remove or add new
   rules in the future. The goal of documenting them is to provide better
