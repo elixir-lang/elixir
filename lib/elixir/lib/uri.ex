@@ -616,7 +616,6 @@ defmodule URI do
 end
 
 defimpl String.Chars, for: URI do
-  @spec to_string(URI.t()) :: binary
   def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do
     uri =
       case scheme && URI.default_port(scheme) do
