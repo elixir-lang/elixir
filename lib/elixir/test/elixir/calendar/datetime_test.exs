@@ -216,6 +216,14 @@ defmodule DateTimeTest do
     }
 
     assert DateTime.from_unix(-1, :microsecond) == {:ok, minus_datetime}
+
+    assert_raise ArgumentError, fn ->
+      DateTime.from_unix(0, :unknown_atom)
+    end
+
+    assert_raise ArgumentError, fn ->
+      DateTime.from_unix(0, "invalid type")
+    end
   end
 
   test "from_unix!/2" do
@@ -239,6 +247,14 @@ defmodule DateTimeTest do
 
     assert_raise ArgumentError, fn ->
       DateTime.from_unix!(-377_705_116_801)
+    end
+
+    assert_raise ArgumentError, fn ->
+      DateTime.from_unix!(0, :unknown_atom)
+    end
+
+    assert_raise ArgumentError, fn ->
+      DateTime.from_unix!(0, "invalid type")
     end
   end
 
