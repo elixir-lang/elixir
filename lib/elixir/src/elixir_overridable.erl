@@ -4,7 +4,7 @@
 -include("elixir.hrl").
 -define(overriden_pos, 5).
 
-overridable_for(Module) ->
+overridables_for(Module) ->
   {Set, _} = elixir_module:data_tables(Module),
   match_overridables(Set, '_').
 
@@ -84,7 +84,7 @@ name(Name, Count) when is_integer(Count) ->
 %% Error handling
 
 format_error({no_super, Module, {Name, Arity}}) ->
-  Bins   = [format_fa(Tuple) || {{overridable, Tuple}, _, _, _, _} <- overridable_for(Module)],
+  Bins   = [format_fa(Tuple) || {{overridable, Tuple}, _, _, _, _} <- overridables_for(Module)],
   Joined = 'Elixir.Enum':join(Bins, <<", ">>),
   io_lib:format("no super defined for ~ts/~B in module ~ts. Overridable functions available are: ~ts",
     [Name, Arity, elixir_aliases:inspect(Module), Joined]).
