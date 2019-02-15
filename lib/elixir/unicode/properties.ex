@@ -151,6 +151,29 @@ defmodule String.Casing do
       end
     end)
 
+  # Guards
+
+  [lowers, uppers] =
+    codes
+    |> Enum.reduce([[], []], fn
+      {_codepoint, upper, lower, _title}, [lowers, uppers] ->
+        [[lower | lowers], [upper | uppers]]
+    end)
+    |> Enum.map(&MapSet.new/1)
+    |> Enum.map(&MapSet.delete(&1, nil))
+    |> Enum.map(&MapSet.to_list/1)
+    |> Enum.map(&Enum.chunk_every(&1, 700))
+    |> Enum.map(fn chunks ->
+      for chunk <- chunks do
+        {:in, [context: Elixir, import: Kernel], [{:value, [], nil}, chunk]}
+      end
+    end)
+
+  defmodule Guards do
+    defguard is_lowercase(value) when unquote({:or, [context: Elixir, import: Kernel], lowers})
+    defguard is_uppercase(value) when unquote({:or, [context: Elixir, import: Kernel], uppers})
+  end
+
   # Downcase
 
   @conditional_downcase [

@@ -185,6 +185,36 @@ defmodule StringTest do
     assert String.downcase("OLÁ", :ascii) == "olÁ"
   end
 
+  require String.Casing.Guards
+
+  test "assert is_lowercase/1" do
+    "olá"
+    |> String.normalize(:nfc)
+    |> String.codepoints()
+    |> Enum.each(&assert(String.Casing.Guards.is_lowercase(&1)))
+  end
+
+  test "refute is_lowercase/1" do
+    "OLÁ"
+    |> String.normalize(:nfc)
+    |> String.codepoints()
+    |> Enum.each(&refute(String.Casing.Guards.is_lowercase(&1)))
+  end
+
+  test "assert is_uppercase/1" do
+    "OLÁ"
+    |> String.normalize(:nfc)
+    |> String.codepoints()
+    |> Enum.each(&assert(String.Casing.Guards.is_uppercase(&1)))
+  end
+
+  test "refute is_uppercase/1" do
+    "olá"
+    |> String.normalize(:nfc)
+    |> String.codepoints()
+    |> Enum.each(&refute(String.Casing.Guards.is_uppercase(&1)))
+  end
+
   test "capitalize/1" do
     assert String.capitalize("") == ""
     assert String.capitalize("abc") == "Abc"
