@@ -20,8 +20,8 @@ record_overridable(Module, Tuple, Def, Neighbours) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   case ets:lookup(Set, {overridable, Tuple}) of
-    [{_, Count, Def, Neighbours, Overriden}] ->
-      ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, Neighbours, Overriden});
+    [{_, Count, _, _, _}] ->
+      ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, Neighbours, false});
     [] ->
       ets:insert_new(Set, {{overridable, Tuple}, 1, Def, Neighbours, false}),
       ets:insert(Bag, {overridable, Tuple})
