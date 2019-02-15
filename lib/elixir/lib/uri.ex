@@ -280,10 +280,10 @@ defmodule URI do
       "a str%69ng"
 
   """
-  @spec encode(binary, (char -> as_boolean(term))) :: binary
+  @spec encode(binary, (byte -> as_boolean(term))) :: binary
   def encode(string, predicate \\ &char_unescaped?/1)
       when is_binary(string) and is_function(predicate, 1) do
-    for <<char <- string>>, into: "", do: percent(char, predicate)
+    for <<byte <- string>>, into: "", do: percent(byte, predicate)
   end
 
   @doc """
