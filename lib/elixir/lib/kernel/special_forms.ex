@@ -1684,7 +1684,7 @@ defmodule Kernel.SpecialForms do
   it can be sure that it represents a call and the second argument
   in the list is an atom.
 
-  On the other hand, aliases holds some properties:
+  On the other hand, aliases hold some properties:
 
     1. The head element of aliases can be any term that must expand to
        an atom at compilation time.
@@ -1733,7 +1733,7 @@ defmodule Kernel.SpecialForms do
       end
       #=> "This clause would match any value (x = 10)"
 
-  ## Variables handling
+  ## Variable handling
 
   Notice that variables bound in a clause "head" do not leak to the
   outer context:
@@ -1743,7 +1743,8 @@ defmodule Kernel.SpecialForms do
         :error -> nil
       end
 
-      value #=> unbound variable value
+      value
+      #=> unbound variable value
 
   However, variables explicitly bound in the clause "body" are
   accessible from the outer context:
@@ -1752,12 +1753,13 @@ defmodule Kernel.SpecialForms do
 
       case lucky? do
         false -> value = 13
-        true  -> true
+        true -> true
       end
 
-      value #=> 7 or 13
+      value
+      #=> 7 or 13
 
-  In the example above, value is going to be `7` or `13` depending on
+  In the example above, `value` is going to be `7` or `13` depending on
   the value of `lucky?`. In case `value` has no previous value before
   case, clauses that do not explicitly bind a value have the variable
   bound to `nil`.
@@ -1769,7 +1771,7 @@ defmodule Kernel.SpecialForms do
 
       case 10 do
         ^x -> "Won't match"
-        _  -> "Will match"
+        _ -> "Will match"
       end
       #=> "Will match"
 
