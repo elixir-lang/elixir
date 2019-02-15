@@ -160,6 +160,8 @@ defmodule DateTime do
       iex> DateTime.from_unix!(1_432_560_368_868_569, :microsecond)
       #DateTime<2015-05-25 13:26:08.868569Z>
 
+      iex> DateTime.from_unix!(143_256_036_886_856, 1024)
+      #DateTime<6403-03-17 07:05:22.320Z>
   """
   @spec from_unix!(integer, :native | System.time_unit(), Calendar.calendar()) :: t
   def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_atom(unit) do
