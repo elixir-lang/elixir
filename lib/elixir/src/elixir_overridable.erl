@@ -5,8 +5,8 @@
 -define(overriden_pos, 5).
 
 overridables_for(Module) ->
-  {Set, _} = elixir_module:data_tables(Module),
-  match_overridables(Set, '_').
+  {_, Bag} = elixir_module:data_tables(Module),
+  ets:lookup(Bag, overridable).
 
 overridable_for(Module, Tuple) ->
   {Set, _} = elixir_module:data_tables(Module),
@@ -17,13 +17,14 @@ overridable_for(Module, Tuple) ->
   end.
 
 record_overridable(Module, Tuple, Def, Neighbours) ->
-  {Set, _} = elixir_module:data_tables(Module),
+  {Set, Bag} = elixir_module:data_tables(Module),
 
   case ets:lookup(Set, {overridable, Tuple}) of
     [{_, Count, Def, Neighbours, Overriden}] ->
       ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, Neighbours, Overriden});
     [] ->
-      ets:insert_new(Set, {{overridable, Tuple}, 1, Def, Neighbours, false})
+      ets:insert_new(Set, {{overridable, Tuple}, 1, Def, Neighbours, false}),
+      ets:insert(Bag, {overridable, Tuple})
   end,
 
   ok.
@@ -39,18 +40,16 @@ super(Meta, Module, Tuple, E) ->
   end.
 
 store_not_overriden(Module) ->
-  {Set, _} = elixir_module:data_tables(Module),
+  {Set, Bag} = elixir_module:data_tables(Module),
 
   [begin
+    [Overridable] = ets:lookup(Set, {overridable, Tuple}),
     {_, _, _} = store(Set, Module, Tuple, Overridable, false),
     Tuple
-  end || {{_, Tuple}, _, _, _, _} = Overridable <- match_overridables(Set, false),
+  end || {overridable, Tuple} <- ets:lookup(Bag, overridable),
           not ets:member(Set, {def, Tuple})].
 
 %% Private
-
-match_overridables(Set, OverridenSpec) ->
-  ets:match_object(Set, {{overridable, '_'}, '_', '_', '_', OverridenSpec}).
 
 store(Set, Module, Tuple, {_, Count, Def, Neighbours, Overriden}, Hidden) ->
   {{{def, {Name, Arity}}, Kind, Meta, File, _Check,
@@ -84,7 +83,7 @@ name(Name, Count) when is_integer(Count) ->
 %% Error handling
 
 format_error({no_super, Module, {Name, Arity}}) ->
-  Bins   = [format_fa(Tuple) || {{overridable, Tuple}, _, _, _, _} <- overridables_for(Module)],
+  Bins   = [format_fa(Tuple) || {overridable, Tuple} <- overridables_for(Module)],
   Joined = 'Elixir.Enum':join(Bins, <<", ">>),
   io_lib:format("no super defined for ~ts/~B in module ~ts. Overridable functions available are: ~ts",
     [Name, Arity, elixir_aliases:inspect(Module), Joined]).
