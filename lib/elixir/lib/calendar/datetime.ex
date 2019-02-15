@@ -164,7 +164,7 @@ defmodule DateTime do
       #DateTime<6403-03-17 07:05:22.320Z>
   """
   @spec from_unix!(integer, :native | System.time_unit(), Calendar.calendar()) :: t
-  def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) when is_atom(unit) do
+  def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) do
     case from_unix(integer, unit, calendar) do
       {:ok, datetime} ->
         datetime
