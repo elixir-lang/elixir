@@ -6,7 +6,7 @@
 
 overridables_for(Module) ->
   {_, Bag} = elixir_module:data_tables(Module),
-  ets:lookup(Bag, overridable).
+  ets:lookup(Bag, overridables).
 
 overridable_for(Module, Tuple) ->
   {Set, _} = elixir_module:data_tables(Module),
@@ -21,9 +21,9 @@ record_overridable(Module, Tuple, Def, Neighbours) ->
 
   case ets:insert_new(Set, {{overridable, Tuple}, 1, Def, Neighbours, false}) of
     true ->
-      ets:insert(Bag, {overridable, Tuple});
+      ets:insert(Bag, {overridables, Tuple});
     false ->
-      [{_, Count, _, _, _}] = ets:lookup(Set, {overridable, Tuple}),
+      Count = ets:lookup_element(Set, {overridable, Tuple}, 2),
       ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, Neighbours, false})
   end,
 
@@ -46,8 +46,8 @@ store_not_overriden(Module) ->
     [Overridable] = ets:lookup(Set, {overridable, Tuple}),
     {_, _, _} = store(Set, Module, Tuple, Overridable, false),
     Tuple
-  end || {overridable, Tuple} <- ets:lookup(Bag, overridable),
-          not ets:member(Set, {def, Tuple})].
+  end || {_, Tuple} <- ets:lookup(Bag, overridables),
+         not ets:member(Set, {def, Tuple})].
 
 %% Private
 
@@ -83,7 +83,7 @@ name(Name, Count) when is_integer(Count) ->
 %% Error handling
 
 format_error({no_super, Module, {Name, Arity}}) ->
-  Bins   = [format_fa(Tuple) || {overridable, Tuple} <- overridables_for(Module)],
+  Bins   = [format_fa(Tuple) || {_, Tuple} <- overridables_for(Module)],
   Joined = 'Elixir.Enum':join(Bins, <<", ">>),
   io_lib:format("no super defined for ~ts/~B in module ~ts. Overridable functions available are: ~ts",
     [Name, Arity, elixir_aliases:inspect(Module), Joined]).

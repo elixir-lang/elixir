@@ -228,7 +228,8 @@ build(Line, File, Module, Lexical) ->
   %% * {{type, Tuple}, ...}, {{opaque, Tuple}, ...}
   %% * {{callback, Tuple}, ...}, {{macrocallback, Tuple}, ...}
   %% * {{def, Tuple}, ...} (from elixir_def)
-  %% * {{import, Tuple}, ...} (from_elixir_locals)
+  %% * {{import, Tuple}, ...} (from_elixir_local)
+  %% * {{overridable, Tuple}, ...} (from elixir_overridable)
   %%
   DataSet = ets:new(Module, [set, public]),
 
@@ -240,6 +241,7 @@ build(Line, File, Module, Lexical) ->
   %% * {deprecated, ...}
   %% * {persisted_attributes, ...}
   %% * {defs, ...} (from elixir_def)
+  %% * {overridables, ...} (from elixir_overridable)
   %% * {{default, Name}, ...} (from elixir_def)
   %% * {{clauses, Tuple}, ...} (from elixir_def)
   %% * {reattach, ...} (from elixir_local)
