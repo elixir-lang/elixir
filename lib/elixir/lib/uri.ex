@@ -297,8 +297,8 @@ defmodule URI do
   """
   @spec encode_www_form(binary) :: binary
   def encode_www_form(string) when is_binary(string) do
-    for <<char <- string>>, into: "" do
-      case percent(char, &char_unreserved?/1) do
+    for <<byte <- string>>, into: "" do
+      case percent(byte, &char_unreserved?/1) do
         "%20" -> "+"
         percent -> percent
       end
