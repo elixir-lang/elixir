@@ -228,7 +228,8 @@ build(Line, File, Module, Lexical) ->
   %% * {{type, Tuple}, ...}, {{opaque, Tuple}, ...}
   %% * {{callback, Tuple}, ...}, {{macrocallback, Tuple}, ...}
   %% * {{def, Tuple}, ...} (from elixir_def)
-  %% * {{import, Tuple}, ...} (from_elixir_locals)
+  %% * {{import, Tuple}, ...} (from elixir_locals)
+  %% * {{overridable, Tuple}, ...} (from elixir_overridable)
   %%
   DataSet = ets:new(Module, [set, public]),
 
@@ -240,10 +241,11 @@ build(Line, File, Module, Lexical) ->
   %% * {deprecated, ...}
   %% * {persisted_attributes, ...}
   %% * {defs, ...} (from elixir_def)
+  %% * {overridables, ...} (from elixir_overridable)
   %% * {{default, Name}, ...} (from elixir_def)
   %% * {{clauses, Tuple}, ...} (from elixir_def)
-  %% * {reattach, ...} (from elixir_local)
-  %% * {{local, Tuple}, ...} (from elixir_local)
+  %% * {reattach, ...} (from elixir_locals)
+  %% * {{local, Tuple}, ...} (from elixir_locals)
   %%
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
@@ -287,7 +289,6 @@ build(Line, File, Module, Lexical) ->
   Tables = {DataSet, DataBag},
   elixir_def:setup(Tables),
   elixir_locals:setup(Tables),
-  elixir_overridable:setup(Tables),
   Tuple = {Module, Tables, Line, File},
 
   Ref =
@@ -307,10 +308,10 @@ build(Line, File, Module, Lexical) ->
 
 eval_form(Line, Module, DataBag, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
-  elixir_overridable:store_pending(Module),
+  elixir_overridable:store_not_overriden(Module),
   EV = elixir_env:linify({Line, elixir_env:reset_vars(EE)}),
   EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
-  elixir_overridable:store_pending(Module),
+  elixir_overridable:store_not_overriden(Module),
   {Value, EC}.
 
 eval_callbacks(Line, DataBag, Name, Args, E) ->
