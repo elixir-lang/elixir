@@ -22,6 +22,11 @@ defmodule ListTest do
     assert (&[&1, &2 | &3]).(1, 2, 3) == [1, 2 | 3]
   end
 
+  test "delete/2" do
+    assert List.delete([:a, :b, :c], :a) == [:b, :c]
+    assert List.delete([:a, :b, :b, :c], :b) == [:a, :b, :c]
+  end
+
   test "wrap/1" do
     assert List.wrap([1, 2, 3]) == [1, 2, 3]
     assert List.wrap(1) == [1]
@@ -58,6 +63,12 @@ defmodule ListTest do
   test "duplicate/2" do
     assert List.duplicate(1, 3) == [1, 1, 1]
     assert List.duplicate([1], 1) == [[1]]
+  end
+
+  test "first/1" do
+    assert List.first([]) == nil
+    assert List.first([1]) == 1
+    assert List.first([1, 2, 3]) == 1
   end
 
   test "last/1" do
@@ -104,6 +115,12 @@ defmodule ListTest do
     assert List.keydelete([a: 1, b: 2], :a, 0) == [{:b, 2}]
     assert List.keydelete([a: 1, b: 2], 2, 1) == [{:a, 1}]
     assert List.keydelete([a: 1, b: 2], :c, 0) == [{:a, 1}, {:b, 2}]
+  end
+
+  test "keytake/3" do
+    assert List.keytake([a: 1, b: 2], :a, 0) == {{:a, 1}, [b: 2]}
+    assert List.keytake([a: 1, b: 2], 2, 1) == {{:b, 2}, [a: 1]}
+    assert List.keytake([a: 1, b: 2], :c, 0) == nil
   end
 
   test "insert_at/3" do
@@ -214,6 +231,24 @@ defmodule ListTest do
 
     assert_raise ArgumentError, ~r"cannot convert the given list to a string", fn ->
       List.to_string([:a, :b])
+    end
+  end
+
+  test "to_charlist/1" do
+    assert List.to_charlist([0x00E6, 0x00DF]) == 'æß'
+    assert List.to_charlist([0x0061, "bc"]) == 'abc'
+    assert List.to_charlist([0x0064, "ee", ['p']]) == 'deep'
+
+    assert_raise UnicodeConversionError, "invalid code point 57343", fn ->
+      List.to_charlist([0xDFFF])
+    end
+
+    assert_raise UnicodeConversionError, "invalid encoding starting at <<216, 0>>", fn ->
+      List.to_charlist(["a", "b", <<0xD800::size(16)>>])
+    end
+
+    assert_raise ArgumentError, ~r"cannot convert the given list to a charlist", fn ->
+      List.to_charlist([:a, :b])
     end
   end
 
