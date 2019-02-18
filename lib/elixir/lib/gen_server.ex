@@ -606,9 +606,9 @@ defmodule GenServer do
     * the `GenServer` traps exits (using `Process.flag/2`) *and* the parent
       process sends an exit signal
 
-  If part of a supervision tree, a `GenServer`'s will receive an exit
+  If part of a supervision tree, a `GenServer` will receive an exit
   signal when the tree is shutting down. The exit signal is based on
-  the shutdown strategy in the child's specification, where we this
+  the shutdown strategy in the child's specification, where this
   value can be:
 
     * `:brutal_kill`: the `GenServer` is killed and so `c:terminate/2` is not called.
