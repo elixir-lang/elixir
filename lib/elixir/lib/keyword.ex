@@ -2,7 +2,7 @@ defmodule Keyword do
   @moduledoc """
   A set of functions for working with keywords.
 
-  A keyword is a list of two-element tuples where the first
+  A keyword list is a list of two-element tuples where the first
   element of the tuple is an atom and the second element
   can be any value.
 
@@ -116,7 +116,7 @@ defmodule Keyword do
   def new, do: []
 
   @doc """
-  Creates a keyword from an enumerable.
+  Creates a keyword list from an enumerable.
 
   Duplicated entries are removed, the latest one prevails.
   Unlike `Enum.into(enumerable, [])`, `Keyword.new(enumerable)`
@@ -137,7 +137,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Creates a keyword from an enumerable via the transformation function.
+  Creates a keyword list from an enumerable via the transformation function.
 
   Duplicated entries are removed, the latest one prevails.
   Unlike `Enum.into(enumerable, [], fun)`,
