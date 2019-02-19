@@ -451,7 +451,7 @@ Remember that, because lists and two-element tuples are quoted literals, by defi
 
 ### Keywords as last arguments
 
-Elixir also supports a syntax where if the last argument of a call is a keyword then the square brackets can be skipped. This means that the following:
+Elixir also supports a syntax where if the last argument of a call is a keyword list then the square brackets can be skipped. This means that the following:
 
 ```elixir
 if(condition, do: this, else: that)
