@@ -123,7 +123,11 @@ defmodule Mix.Dep do
   end
 
   defp load_and_cache(config, _top, bottom, _env, _target) do
-    {_, deps} = Mix.ProjectStack.read_cache({:cached_deps, bottom})
+    {_, deps} =
+      Mix.ProjectStack.read_cache({:cached_deps, bottom}) ||
+        raise "cannot retrieve dependencies information because dependencies were not loaded. " <>
+                "Please invoke one of \"deps.loadpaths\", \"loadpaths\", or \"compile\" Mix task"
+
     app = Keyword.fetch!(config, :app)
     seen = populate_seen(MapSet.new(), [app])
     children = get_deps(deps, tl(Enum.uniq(get_children(deps, seen, [app]))))
