@@ -1851,7 +1851,7 @@ defmodule Module do
 
   defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
     case value do
-      {line, doc} when is_integer(line) and (is_binary(doc) or is_boolean(doc) or is_nil(doc)) ->
+      {line, doc} when is_integer(line) and (is_binary(doc) or doc == false or is_nil(doc)) ->
         value
 
       {line, [{key, _} | _]} when is_integer(line) and is_atom(key) ->
@@ -1860,12 +1860,12 @@ defmodule Module do
       {line, doc} when is_integer(line) ->
         raise ArgumentError,
               "@#{key} is a built-in module attribute for documentation. It should be " <>
-                "a string, boolean, keyword list, or nil, got: #{inspect(doc)}"
+                "a string, false, keyword list, or nil, got: #{inspect(doc)}"
 
       _other ->
         raise ArgumentError,
               "@#{key} is a built-in module attribute for documentation. When set dynamically, " <>
-                "it should be {line, doc} (where \"doc\" is a string, boolean, keyword list, or nil), " <>
+                "it should be {line, doc} (where \"doc\" is a string, false, keyword list, or nil), " <>
                 "got: #{inspect(value)}"
     end
   end
