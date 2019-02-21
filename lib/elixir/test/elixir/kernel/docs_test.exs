@@ -70,9 +70,15 @@ defmodule Kernel.DocsTest do
       end
     end
 
-    assert_raise ArgumentError, ~r/should be a string, boolean, keyword list, or nil/, fn ->
+    assert_raise ArgumentError, ~r/should be a string, false, keyword list, or nil/, fn ->
       defmodule AtSyntaxDocAttributesFormat do
         @moduledoc :not_a_binary
+      end
+    end
+
+    assert_raise ArgumentError, ~r/should be a string, false, keyword list, or nil/, fn ->
+      defmodule AtSyntaxDocAttributesFormat do
+        @moduledoc true
       end
     end
   end
