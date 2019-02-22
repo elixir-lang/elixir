@@ -1825,7 +1825,7 @@ defmodule Kernel.SpecialForms do
         value ->
           IO.puts "Success! The result was #{inspect(value)}"
       after
-        IO.puts "This is printed regardless if it failed or succeed"
+        IO.puts "This is printed regardless if it failed or succeeded"
       end
 
   The `rescue` clause is used to handle exceptions while the `catch`
@@ -2078,7 +2078,8 @@ defmodule Kernel.SpecialForms do
         _, _ -> :failed
       end
 
-      x #=> unbound variable "x"
+      x
+      #=> unbound variable "x"
 
   In the example above, `x` cannot be accessed since it was defined
   inside the `try` clause. A common practice to address this issue
@@ -2143,7 +2144,7 @@ defmodule Kernel.SpecialForms do
       in hexadecimal notation) - it should be possible to represent the timeout
       value as an unsigned 32-bit integer.
 
-  ## Variables handling
+  ## Variable handling
 
   The `receive/1` special form handles variables exactly as the `case/2`
   special macro. For more information, check the docs for `case/2`.
