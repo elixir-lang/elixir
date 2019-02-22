@@ -8,7 +8,7 @@
 # resembling a graph. The keys and what they point to are:
 #
 #   * `:reattach` points to `{name, arity}`
-#   * `{:local, {name, arity}}` points to `{name, arity}`
+#   * `{:local, {name, arity}}` points to `{{name, arity}, line, macro_dispatch?}`
 #   * `{:import, {name, arity}}` points to `Module`
 #
 # This is built on top of the internal module tables.
@@ -18,9 +18,9 @@ defmodule Module.LocalsTracker do
   @doc """
   Adds and tracks defaults for a definition into the tracker.
   """
-  def add_defaults({_set, bag}, _kind, {name, arity} = pair, defaults, meta) do
+  def add_defaults({_set, bag}, kind, {name, arity} = pair, defaults, meta) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
-      put_edge(bag, {:local, {name, i}}, {pair, get_line(meta)})
+      put_edge(bag, {:local, {name, i}}, {pair, get_line(meta), is_macro(kind)})
     end
 
     :ok
@@ -29,9 +29,10 @@ defmodule Module.LocalsTracker do
   @doc """
   Adds a local dispatch from-to the given target.
   """
-  def add_local({_set, bag}, from, to, meta) when is_tuple(from) and is_tuple(to) do
+  def add_local({_set, bag}, from, to, meta, macro_dispatch?)
+      when is_tuple(from) and is_tuple(to) and is_boolean(macro_dispatch?) do
     if from != to do
-      put_edge(bag, {:local, from}, {to, get_line(meta)})
+      put_edge(bag, {:local, from}, {to, get_line(meta), macro_dispatch?})
     end
 
     :ok
@@ -56,14 +57,14 @@ defmodule Module.LocalsTracker do
   @doc """
   Reattach a previously yanked node.
   """
-  def reattach({_set, bag}, tuple, _kind, function, out_neighbours, meta) do
+  def reattach({_set, bag}, tuple, kind, function, out_neighbours, meta) do
     for out_neighbour <- out_neighbours do
       put_edge(bag, {:local, function}, out_neighbour)
     end
 
     # Make a call from the old function to the new one
     if function != tuple do
-      put_edge(bag, {:local, function}, {tuple, get_line(meta)})
+      put_edge(bag, {:local, function}, {tuple, get_line(meta), is_macro(kind)})
     end
 
     # Finally marked the new one as reattached
@@ -104,11 +105,29 @@ defmodule Module.LocalsTracker do
   def collect_undefined_locals({set, bag}, all_defined) do
     undefined =
       for {pair, _, _, _} <- all_defined,
-          {local, line} <- out_neighbours(bag, {:local, pair}),
+          {local, line, _} <- out_neighbours(bag, {:local, pair}),
           not :ets.member(set, {:def, local}),
           do: {build_meta(line), local}
 
     :lists.usort(undefined)
+  end
+
+  @doc """
+  Collects incorrect dispatches based on local calls and existing
+  definitions.
+
+  An incorrect dispatch occurs when a macro is invoked before its
+  definition.
+  """
+  def collect_incorrect_dispatches({set, bag}, all_defined) do
+    incorrect_dispatches =
+      for {pair, _, _, _} <- all_defined,
+          {local, line, false} <- out_neighbours(bag, {:local, pair}),
+          {_, kind, _, _, _, _} <- :ets.lookup(set, {:def, local}),
+          is_macro(kind),
+          do: {build_meta(line), local}
+
+    :lists.usort(incorrect_dispatches)
   end
 
   defp unreachable(reachable, reattached, private) do
@@ -183,7 +202,7 @@ defmodule Module.LocalsTracker do
   defp reachable_from(bag, local, vertices) do
     vertices = Map.put(vertices, local, true)
 
-    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {local, _line}, acc ->
+    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {local, _line, _}, acc ->
       case acc do
         %{^local => true} -> acc
         _ -> reachable_from(bag, local, acc)
@@ -195,6 +214,10 @@ defmodule Module.LocalsTracker do
 
   defp build_meta(nil), do: []
   defp build_meta(line), do: [line: line]
+
+  defp is_macro(:defmacro), do: true
+  defp is_macro(:defmacrop), do: true
+  defp is_macro(_), do: false
 
   ## Lightweight digraph implementation
 

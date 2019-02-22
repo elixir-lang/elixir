@@ -63,6 +63,7 @@ fetch_definitions(File, Module) ->
   Unreachable = elixir_locals:warn_unused_local(File, Module, All, Private),
   elixir_locals:ensure_no_undefined_local(File, Module, All),
   elixir_locals:ensure_no_import_conflict(File, Module, All),
+  elixir_locals:ensure_no_incorrect_dispatches(File, Module, All),
   {All, Unreachable}.
 
 fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
