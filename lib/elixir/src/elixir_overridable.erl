@@ -23,8 +23,16 @@ record_overridable(Module, Tuple, Def, Neighbours) ->
     true ->
       ets:insert(Bag, {overridables, Tuple});
     false ->
-      Count = ets:lookup_element(Set, {overridable, Tuple}, 2),
-      ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, Neighbours, false})
+      [{_, Count, PreviousDef, _, _}] = ets:lookup(Set, {overridable, Tuple}),
+      {{_, Kind, Meta, File, _, _}, _} = Def,
+      {{_, PreviousKind, _, _, _, _}, _} = PreviousDef,
+
+      case is_valid_kind(Kind, PreviousKind) of
+        true ->
+          ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, Neighbours, false});
+        false ->
+          elixir_errors:form_error(Meta, File, ?MODULE, {bad_kind, Module, Tuple, Kind})
+      end
   end,
 
   ok.
@@ -42,12 +50,21 @@ super(Meta, Module, Tuple, E) ->
 store_not_overriden(Module) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
-  [begin
+  lists:foreach(fun({_, Tuple}) ->
     [Overridable] = ets:lookup(Set, {overridable, Tuple}),
-    {_, _, _} = store(Set, Module, Tuple, Overridable, false),
-    Tuple
-  end || {_, Tuple} <- ets:lookup(Bag, overridables),
-         not ets:member(Set, {def, Tuple})].
+
+    case ets:lookup(Set, {def, Tuple}) of
+      [] ->
+        store(Set, Module, Tuple, Overridable, false);
+      [{_, Kind, Meta, File, _, _}] ->
+        {{_, OverridableKind, _, _, _, _}, _} = element(3, Overridable),
+
+        case is_valid_kind(Kind, OverridableKind) of
+          true -> ok;
+          false -> elixir_errors:form_error(Meta, File, ?MODULE, {bad_kind, Module, Tuple, Kind})
+        end
+    end
+  end, ets:lookup(Bag, overridables)).
 
 %% Private
 
@@ -80,7 +97,23 @@ store(Set, Module, Tuple, {_, Count, Def, Neighbours, Overriden}, Hidden) ->
 name(Name, Count) when is_integer(Count) ->
   list_to_atom(atom_to_list(Name) ++ " (overridable " ++ integer_to_list(Count) ++ ")").
 
+is_valid_kind(NewKind, PreviousKind) ->
+  is_macro(NewKind) =:= is_macro(PreviousKind).
+
+is_macro(defmacro) -> true;
+is_macro(defmacrop) -> true;
+is_macro(_) -> false.
+
 %% Error handling
+format_error({bad_kind, Module, {Name, Arity}, Kind}) ->
+  case is_macro(Kind) of
+    true ->
+      io_lib:format("cannot override function (def, defp) ~ts/~B in module ~ts as a macro (defmacro, defmacrop)",
+        [Name, Arity, elixir_aliases:inspect(Module)]);
+    false ->
+      io_lib:format("cannot override macro (defmacro, defmacrop) ~ts/~B in module ~ts as a function (def, defp)",
+        [Name, Arity, elixir_aliases:inspect(Module)])
+  end;
 
 format_error({no_super, Module, {Name, Arity}}) ->
   Bins   = [format_fa(Tuple) || {_, Tuple} <- overridables_for(Module)],
