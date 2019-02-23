@@ -989,6 +989,18 @@ defmodule GenServer do
   element.
   """
   @spec call(server, term, timeout) :: term
+  def call(_server, _request, timeout)
+      when (not is_integer(timeout) or timeout < 0) and timeout != :infinity do
+    raise ArgumentError, """
+    expected timeout to be one of the following:
+
+    * integer greater than 0
+    * atom :infinity
+
+    Got: #{inspect(timeout)}
+    """
+  end
+
   def call(server, request, timeout \\ 5000) do
     case whereis(server) do
       nil ->

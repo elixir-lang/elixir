@@ -145,6 +145,25 @@ defmodule GenServerTest do
              {{:nodedown, :bogus_node}, {GenServer, :call, [{:stack, :bogus_node}, :pop, 5000]}}
   end
 
+  test "call/3 with invalid timeouts" do
+    {:ok, pid} = GenServer.start_link(Stack, [:hello])
+
+    {:links, links} = Process.info(self(), :links)
+    assert pid in links
+
+    assert_raise ArgumentError, fn ->
+      GenServer.call(pid, :pop, nil)
+    end
+
+    assert_raise ArgumentError, fn ->
+      GenServer.call(pid, :pop, :invalid)
+    end
+
+    assert_raise ArgumentError, fn ->
+      GenServer.call(pid, :pop, 4.2)
+    end
+  end
+
   test "nil name" do
     {:ok, pid} = GenServer.start_link(Stack, [:hello], name: nil)
     assert Process.info(pid, :registered_name) == {:registered_name, []}
