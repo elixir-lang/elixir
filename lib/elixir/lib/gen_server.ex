@@ -234,7 +234,7 @@ defmodule GenServer do
         @impl true
         def handle_info(:work, state) do
           # Do the desired work here
-          ...
+          # ...
 
           # Reschedule once more
           schedule_work()
