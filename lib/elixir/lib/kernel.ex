@@ -4999,6 +4999,53 @@ defmodule Kernel do
   end
 
   @doc ~S"""
+  Handles the sigil `~U` for UTC date times.
+
+  The lower case `~u` variant does not exist as interpolation
+  and escape characters are not useful for datetime sigils.
+
+  More information on date times can be found in the `DateTime` module.
+
+  ## Examples
+
+      iex> ~U[2015-01-13 13:00:07Z]
+      ~U[2015-01-13 13:00:07Z]
+      iex> ~U[2015-01-13T13:00:07.001+00:00]
+      ~U[2015-01-13 13:00:07.001Z]
+
+  """
+  @doc since: "1.9.0"
+  defmacro sigil_U(datetime_string, modifiers)
+
+  defmacro sigil_U({:<<>>, _, [string]}, []) do
+    Macro.escape(datetime_from_utc_iso8601!(string))
+  end
+
+  defp datetime_from_utc_iso8601!(string) do
+    case datetime_from_utc_iso8601(string) do
+      {:ok, utc_datetime} ->
+        utc_datetime
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "cannot parse #{inspect(string)} as UTC datetime, reason: #{inspect(reason)}"
+    end
+  end
+
+  defp datetime_from_utc_iso8601(string) do
+    case DateTime.from_iso8601(string) do
+      {:ok, datetime, 0} ->
+        {:ok, datetime}
+
+      {:ok, _datetime, _offset} ->
+        {:error, :invalid_offset}
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
+  @doc ~S"""
   Handles the sigil `~w` for list of words.
 
   It returns a list of "words" split by whitespace. Character unescaping and

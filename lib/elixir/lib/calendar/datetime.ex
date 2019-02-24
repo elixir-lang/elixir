@@ -97,17 +97,17 @@ defmodule DateTime do
 
       iex> {:ok, datetime} = DateTime.from_unix(1_464_096_368)
       iex> datetime
-      #DateTime<2016-05-24 13:26:08Z>
+      ~U[2016-05-24 13:26:08Z]
 
       iex> {:ok, datetime} = DateTime.from_unix(1_432_560_368_868_569, :microsecond)
       iex> datetime
-      #DateTime<2015-05-25 13:26:08.868569Z>
+      ~U[2015-05-25 13:26:08.868569Z]
 
   The unit can also be an integer as in `t:System.time_unit/0`:
 
       iex> {:ok, datetime} = DateTime.from_unix(143_256_036_886_856, 1024)
       iex> datetime
-      #DateTime<6403-03-17 07:05:22.320Z>
+      ~U[6403-03-17 07:05:22.320Z]
 
   Negative Unix times are supported, up to -62167219200 seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
@@ -152,16 +152,16 @@ defmodule DateTime do
 
       # An easy way to get the Unix epoch is passing 0 to this function
       iex> DateTime.from_unix!(0)
-      #DateTime<1970-01-01 00:00:00Z>
+      ~U[1970-01-01 00:00:00Z]
 
       iex> DateTime.from_unix!(1_464_096_368)
-      #DateTime<2016-05-24 13:26:08Z>
+      ~U[2016-05-24 13:26:08Z]
 
       iex> DateTime.from_unix!(1_432_560_368_868_569, :microsecond)
-      #DateTime<2015-05-25 13:26:08.868569Z>
+      ~U[2015-05-25 13:26:08.868569Z]
 
       iex> DateTime.from_unix!(143_256_036_886_856, 1024)
-      #DateTime<6403-03-17 07:05:22.320Z>
+      ~U[6403-03-17 07:05:22.320Z]
   """
   @spec from_unix!(integer, :native | System.time_unit(), Calendar.calendar()) :: t
   def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) do
@@ -185,9 +185,8 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> {:ok, datetime} = DateTime.from_naive(~N[2016-05-24 13:26:08.003], "Etc/UTC")
-      iex> datetime
-      #DateTime<2016-05-24 13:26:08.003Z>
+      iex> DateTime.from_naive(~N[2016-05-24 13:26:08.003], "Etc/UTC")
+      {:ok, ~U[2016-05-24 13:26:08.003Z]}
 
   When the datetime is ambiguous - for instance during changing from summer
   to winter time - the two possible valid datetimes are returned. First the one
@@ -229,7 +228,7 @@ defmodule DateTime do
       iex> cph_datetime = DateTime.from_naive!(~N[2018-08-24 10:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> {:ok, utc_datetime} = DateTime.from_naive(cph_datetime, "Etc/UTC", FakeTimeZoneDatabase)
       iex> utc_datetime
-      #DateTime<2018-08-24 10:00:00Z>
+      ~U[2018-08-24 10:00:00Z]
 
   If instead you want a `DateTime` for the same point time in a different time zone see the
   `DateTime.shift_zone/3` function which would convert 2018-08-24 10:00:00 in Copenhagen
@@ -358,7 +357,7 @@ defmodule DateTime do
   ## Examples
 
       iex> DateTime.from_naive!(~N[2016-05-24 13:26:08.003], "Etc/UTC")
-      #DateTime<2016-05-24 13:26:08.003Z>
+      ~U[2016-05-24 13:26:08.003Z]
 
       iex> DateTime.from_naive!(~N[2018-05-24 13:26:08.003], "Europe/Copenhagen", FakeTimeZoneDatabase)
       #DateTime<2018-05-24 13:26:08.003+02:00 CEST Europe/Copenhagen>
@@ -749,23 +748,23 @@ defmodule DateTime do
 
       iex> {:ok, datetime, 0} = DateTime.from_iso8601("2015-01-23T23:50:07Z")
       iex> datetime
-      #DateTime<2015-01-23 23:50:07Z>
+      ~U[2015-01-23 23:50:07Z]
 
       iex> {:ok, datetime, 9000} = DateTime.from_iso8601("2015-01-23T23:50:07.123+02:30")
       iex> datetime
-      #DateTime<2015-01-23 21:20:07.123Z>
+      ~U[2015-01-23 21:20:07.123Z]
 
       iex> {:ok, datetime, 9000} = DateTime.from_iso8601("2015-01-23T23:50:07,123+02:30")
       iex> datetime
-      #DateTime<2015-01-23 21:20:07.123Z>
+      ~U[2015-01-23 21:20:07.123Z]
 
       iex> {:ok, datetime, 0} = DateTime.from_iso8601("-2015-01-23T23:50:07Z")
       iex> datetime
-      #DateTime<-2015-01-23 23:50:07Z>
+      ~U[-2015-01-23 23:50:07Z]
 
       iex> {:ok, datetime, 9000} = DateTime.from_iso8601("-2015-01-23T23:50:07,123+02:30")
       iex> datetime
-      #DateTime<-2015-01-23 21:20:07.123Z>
+      ~U[-2015-01-23 21:20:07.123Z]
 
       iex> DateTime.from_iso8601("2015-01-23P23:50:07")
       {:error, :invalid_format}
@@ -1038,9 +1037,8 @@ defmodule DateTime do
       iex> dt |> DateTime.add(3600, :second, FakeTimeZoneDatabase)
       #DateTime<2018-11-15 11:00:00+01:00 CET Europe/Copenhagen>
 
-      iex> dt = DateTime.from_naive!(~N[2018-11-15 10:00:00], "Etc/UTC")
-      iex> dt |> DateTime.add(3600, :second)
-      #DateTime<2018-11-15 11:00:00Z>
+      iex> DateTime.add(~U[2018-11-15 10:00:00Z], 3600, :second)
+      ~U[2018-11-15 11:00:00Z]
 
   When adding 3 seconds just before "spring forward" we go from 1:59:59 to 3:00:02
 
@@ -1320,7 +1318,7 @@ defmodule DateTime do
         std_offset: std_offset
       } = datetime
 
-      "#DateTime<" <>
+      formatted =
         Calendar.ISO.datetime_to_string(
           year,
           month,
@@ -1333,7 +1331,15 @@ defmodule DateTime do
           zone_abbr,
           utc_offset,
           std_offset
-        ) <> ">"
+        )
+
+      case datetime do
+        %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"} ->
+          "~U[" <> formatted <> "]"
+
+        _ ->
+          "#DateTime<" <> formatted <> ">"
+      end
     end
 
     def inspect(datetime, opts) do

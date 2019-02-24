@@ -975,6 +975,20 @@ defmodule KernelTest do
     assert match?(x when ceil(x) == 1, 0.2)
   end
 
+  test "sigil_U/2" do
+    assert_raise ArgumentError, ~r"reason: :invalid_format", fn ->
+      Code.eval_string(~s{~U[2015-01-13 13:00]})
+    end
+
+    assert_raise ArgumentError, ~r"reason: :missing_offset", fn ->
+      Code.eval_string(~s{~U[2015-01-13 13:00:07]})
+    end
+
+    assert_raise ArgumentError, ~r"reason: :invalid_offset", fn ->
+      Code.eval_string(~s{~U[2015-01-13 13:00:07+00:30]})
+    end
+  end
+
   defp purge(module) do
     :code.delete(module)
     :code.purge(module)
