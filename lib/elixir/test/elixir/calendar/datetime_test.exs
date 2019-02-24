@@ -181,6 +181,23 @@ defmodule DateTimeTest do
     assert DateTime.from_unix(-377_705_116_800_000_001, :microsecond) ==
              {:error, :invalid_unix_time}
 
+    assert DateTime.from_unix(143_256_036_886_856, 1024) ==
+             {:ok,
+              %DateTime{
+                calendar: Calendar.ISO,
+                day: 17,
+                hour: 7,
+                microsecond: {320_312, 6},
+                minute: 5,
+                month: 3,
+                second: 22,
+                std_offset: 0,
+                time_zone: "Etc/UTC",
+                utc_offset: 0,
+                year: 6403,
+                zone_abbr: "UTC"
+              }}
+
     max_datetime = %DateTime{
       calendar: Calendar.ISO,
       day: 31,
