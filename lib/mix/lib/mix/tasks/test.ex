@@ -40,6 +40,8 @@ defmodule Mix.Tasks.Test do
       # Each line is only considered once.
       #
       # We use ETS for performance, to avoid working with nested maps.
+      results = discard_protocol_definitions(results)
+
       table = :ets.new(__MODULE__, [:set, :private])
 
       try do
@@ -61,6 +63,14 @@ defmodule Mix.Tasks.Test do
       after
         :ets.delete(table)
       end
+    end
+
+    # protocol definitions have no testable code they shouldn't show up in coverage results
+    # see #8825
+    defp discard_protocol_definitions(coverage_results) do
+      Enum.reject(coverage_results, fn {{module, _}, _} ->
+        function_exported?(module, :__protocol__, 1)
+      end)
     end
 
     defp read_module_cover_results(table, module) do

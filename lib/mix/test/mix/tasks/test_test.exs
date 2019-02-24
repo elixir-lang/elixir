@@ -144,6 +144,15 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
+  test "--cover: doesn't count coverage for protocol definitions" do
+    in_fixture("protocol_cover", fn ->
+      output = mix(["test", "--cover"])
+
+      assert output =~ "100.00% | ProtocolCover.BitString"
+      assert output =~ "100.00% | Total"
+    end)
+  end
+
   test "--failed: loads only files with failures and runs just the failures" do
     in_fixture("test_failed", fn ->
       loading_only_passing_test_msg = "loading OnlyPassingTest"
