@@ -429,6 +429,7 @@ defmodule IEx do
     * `%node`    - the name of the local node
 
   """
+  @spec configure(keyword()) :: :ok
   def configure(options) do
     IEx.Config.configure(options)
   end
@@ -436,6 +437,7 @@ defmodule IEx do
   @doc """
   Returns IEx configuration.
   """
+  @spec configuration() :: keyword()
   def configuration do
     IEx.Config.configuration()
   end
@@ -443,6 +445,7 @@ defmodule IEx do
   @doc """
   Registers a function to be invoked after the IEx process is spawned.
   """
+  @spec after_spawn(fun()) :: :ok
   def after_spawn(fun) when is_function(fun) do
     IEx.Config.after_spawn(fun)
   end
@@ -450,13 +453,15 @@ defmodule IEx do
   @doc """
   Returns registered `after_spawn` callbacks.
   """
+  @spec after_spawn() :: [fun()]
   def after_spawn do
     IEx.Config.after_spawn()
   end
 
   @doc """
-  Returns `true` if IEx was started.
+  Returns `true` if IEx was started, `false` otherwise.
   """
+  @spec started?() :: boolean()
   def started? do
     IEx.Config.started?()
   end
@@ -466,6 +471,7 @@ defmodule IEx do
 
   ANSI escapes in `string` are not processed in any way.
   """
+  @spec color(atom(), String.t()) :: String.t()
   def color(color, string) do
     case IEx.Config.color(color) do
       nil ->
@@ -477,17 +483,19 @@ defmodule IEx do
   end
 
   @doc """
-  Gets the IEx width for printing.
+  Returns the IEx width for printing.
 
   Used by helpers and it has a default maximum cap of 80 chars.
   """
+  @spec width() :: integer()
   def width do
     IEx.Config.width()
   end
 
   @doc """
-  Gets the options used for inspecting.
+  Returns the options used for inspecting.
   """
+  @spec inspect_opts() :: keyword()
   def inspect_opts do
     IEx.Config.inspect_opts()
   end
