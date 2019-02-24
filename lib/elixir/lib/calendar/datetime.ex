@@ -107,7 +107,7 @@ defmodule DateTime do
 
       iex> {:ok, datetime} = DateTime.from_unix(143_256_036_886_856, 1024)
       iex> datetime
-      ~U[6403-03-17 07:05:22.320Z]
+      ~U[6403-03-17 07:05:22.320312Z]
 
   Negative Unix times are supported, up to -62167219200 seconds,
   which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
@@ -161,7 +161,8 @@ defmodule DateTime do
       ~U[2015-05-25 13:26:08.868569Z]
 
       iex> DateTime.from_unix!(143_256_036_886_856, 1024)
-      ~U[6403-03-17 07:05:22.320Z]
+      ~U[6403-03-17 07:05:22.320312Z]
+
   """
   @spec from_unix!(integer, :native | System.time_unit(), Calendar.calendar()) :: t
   def from_unix!(integer, unit \\ :second, calendar \\ Calendar.ISO) do
