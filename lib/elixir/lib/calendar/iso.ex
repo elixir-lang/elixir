@@ -766,15 +766,16 @@ defmodule Calendar.ISO do
   end
 
   defp precision_for_unit(unit) do
-    subsecond = div(System.convert_time_unit(1, :second, unit), 10)
-    precision_for_unit(subsecond, 0)
+    case System.convert_time_unit(1, :second, unit) do
+      1 -> 0
+      10 -> 1
+      100 -> 2
+      1_000 -> 3
+      10_000 -> 4
+      100_000 -> 5
+      _ -> 6
+    end
   end
-
-  defp precision_for_unit(0, precision), do: precision
-  defp precision_for_unit(_, 6), do: 6
-
-  defp precision_for_unit(number, precision),
-    do: precision_for_unit(div(number, 10), precision + 1)
 
   @doc false
   def naive_datetime_to_iso8601(
