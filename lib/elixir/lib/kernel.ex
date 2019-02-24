@@ -5004,6 +5004,9 @@ defmodule Kernel do
   The lower case `~u` variant does not exist as interpolation
   and escape characters are not useful for datetime sigils.
 
+  The given `datetime_string` must include "Z" or "00:00" offset which marks it
+  as UTC, otherwise an error is raised.
+
   More information on date times can be found in the `DateTime` module.
 
   ## Examples
