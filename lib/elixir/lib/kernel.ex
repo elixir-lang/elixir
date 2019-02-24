@@ -4999,7 +4999,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil `~U` for UTC date times.
+  Handles the sigil `~U` to create a UTC `DateTime`.
 
   The lower case `~u` variant does not exist as interpolation
   and escape characters are not useful for datetime sigils.
