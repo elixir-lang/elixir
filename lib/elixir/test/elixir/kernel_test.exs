@@ -976,6 +976,21 @@ defmodule KernelTest do
   end
 
   test "sigil_U/2" do
+    assert ~U[2015-01-13 13:00:07.123Z] == %DateTime{
+             calendar: Calendar.ISO,
+             day: 13,
+             hour: 13,
+             microsecond: {123_000, 3},
+             minute: 0,
+             month: 1,
+             second: 7,
+             std_offset: 0,
+             time_zone: "Etc/UTC",
+             utc_offset: 0,
+             year: 2015,
+             zone_abbr: "UTC"
+           }
+
     assert_raise ArgumentError, ~r"reason: :invalid_format", fn ->
       Code.eval_string(~s{~U[2015-01-13 13:00]})
     end
