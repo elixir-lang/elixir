@@ -123,24 +123,32 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
-  test "--cover: in an umbrella application, reports on the coverage of each app's modules exactly once" do
+  test "--cover: reports the coverage of each app's modules in an umbrella" do
     in_fixture("umbrella_cover", fn ->
       output = mix(["test", "--cover"])
 
-      occurrences_of_bar_coverage =
-        output
-        |> String.split("100.00% | Bar")
-        |> length()
-        |> (&(&1 - 1)).()
+      # For bar, we do regular --cover and also test protocols
+      assert output =~ """
+             Generating cover results ...
 
-      occurrences_of_foo_coverage =
-        output
-        |> String.split("100.00% | Foo")
-        |> length()
-        |> (&(&1 - 1)).()
+             Percentage | Module
+             -----------|--------------------------
+                100.00% | Bar
+                100.00% | Bar.Protocol.BitString
+             -----------|--------------------------
+                100.00% | Total
+             """
 
-      assert occurrences_of_bar_coverage == 1
-      assert occurrences_of_foo_coverage == 1
+      # For foo, we do regular --cover and test it does not include bar
+      assert output =~ """
+             Generating cover results ...
+
+             Percentage | Module
+             -----------|--------------------------
+                100.00% | Foo
+             -----------|--------------------------
+                100.00% | Total
+             """
     end)
   end
 
