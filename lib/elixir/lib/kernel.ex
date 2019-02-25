@@ -5002,7 +5002,7 @@ defmodule Kernel do
   Handles the sigil `~U` to create a UTC `DateTime`.
 
   The lower case `~u` variant does not exist as interpolation
-  and escape characters are not useful for datetime sigils.
+  and escape characters are not useful for date time sigils.
 
   The given `datetime_string` must include "Z" or "00:00" offset which marks it
   as UTC, otherwise an error is raised.
