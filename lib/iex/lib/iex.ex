@@ -487,7 +487,7 @@ defmodule IEx do
 
   Used by helpers and it has a default maximum cap of 80 chars.
   """
-  @spec width() :: integer()
+  @spec width() :: pos_integer()
   def width do
     IEx.Config.width()
   end
