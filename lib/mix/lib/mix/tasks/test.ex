@@ -33,6 +33,8 @@ defmodule Mix.Tasks.Test do
     end
 
     defp gather_coverage(results, keep) do
+      keep_set = MapSet.new(keep)
+
       # When gathering coverage results, we need to skip any
       # entry with line equal to 0 as those are generated code.
       #
@@ -43,11 +45,12 @@ defmodule Mix.Tasks.Test do
       table = :ets.new(__MODULE__, [:set, :private])
 
       try do
-        Enum.each(results, fn
-          {{module, 0}, _} -> :ets.insert(table, {{module, 0}, :dummy})
-          {{module, line}, {1, 0}} -> :ets.insert(table, {{module, line}, true})
-          {{module, line}, {0, 1}} -> :ets.insert_new(table, {{module, line}, false})
-        end)
+        for {{module, line}, cov} <- results, module in keep_set, line != 0 do
+          case cov do
+            {1, 0} -> :ets.insert(table, {{module, line}, true})
+            {0, 1} -> :ets.insert_new(table, {{module, line}, false})
+          end
+        end
 
         module_results =
           for module <- keep,
@@ -74,7 +77,7 @@ defmodule Mix.Tasks.Test do
     defp console(results, totals, opts) when is_list(opts) do
       Mix.shell().info("Percentage | Module")
       Mix.shell().info("-----------|--------------------------")
-      Enum.each(results, &display(&1, opts))
+      results |> Enum.sort() |> Enum.each(&display(&1, opts))
       Mix.shell().info("-----------|--------------------------")
       display({"Total", totals}, opts)
       Mix.shell().info("")

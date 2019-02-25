@@ -143,7 +143,7 @@ defmodule Mix.CLITest do
     System.delete_env("MIX_EXS")
   end
 
-  test "new with tests" do
+  test "new with tests and cover" do
     in_tmp("new_with_tests", fn ->
       output = mix(~w[new .])
       assert output =~ "* creating lib/new_with_tests.ex"
