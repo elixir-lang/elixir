@@ -5041,7 +5041,7 @@ defmodule Kernel do
         {:ok, datetime}
 
       {:ok, _datetime, _offset} ->
-        {:error, :invalid_offset}
+        {:error, :non_utc_offset}
 
       {:error, _reason} = error ->
         error
