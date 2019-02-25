@@ -100,34 +100,28 @@ defmodule Module.LocalsTracker do
   end
 
   @doc """
-  Collect undefined functions based on local calls and existing definitions
+  Collect undefined functions based on local calls and existing definitions.
   """
   def collect_undefined_locals({set, bag}, all_defined) do
     undefined =
       for {pair, _, _, _} <- all_defined,
-          {local, line, _} <- out_neighbours(bag, {:local, pair}),
-          not :ets.member(set, {:def, local}),
-          do: {build_meta(line), local}
+          {local, line, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
+          reduce: [] do
+        acc ->
+          case :ets.lookup(set, {:def, local}) do
+            [] ->
+              [{build_meta(line), local, :undefined_function} | acc]
+
+            [{_, kind, _, _, _, _}] ->
+              if is_macro(kind) and not macro_dispatch? do
+                [{build_meta(line), local, :incorrect_dispatch} | acc]
+              else
+                acc
+              end
+          end
+      end
 
     :lists.usort(undefined)
-  end
-
-  @doc """
-  Collects incorrect dispatches based on local calls and existing
-  definitions.
-
-  An incorrect dispatch occurs when a macro is invoked before its
-  definition.
-  """
-  def collect_incorrect_dispatches({set, bag}, all_defined) do
-    incorrect_dispatches =
-      for {pair, _, _, _} <- all_defined,
-          {local, line, false} <- out_neighbours(bag, {:local, pair}),
-          {_, kind, _, _, _, _} <- :ets.lookup(set, {:def, local}),
-          is_macro(kind),
-          do: {build_meta(line), local}
-
-    :lists.usort(incorrect_dispatches)
   end
 
   defp unreachable(reachable, reattached, private) do

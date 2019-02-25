@@ -5,7 +5,7 @@
   record_local/5, record_import/4, record_defaults/5,
   yank/2, reattach/6, ensure_no_import_conflict/3,
   warn_unused_local/4, ensure_no_undefined_local/3,
-  ensure_no_incorrect_dispatches/3, format_error/1
+  format_error/1
 ]).
 
 -include("elixir.hrl").
@@ -105,15 +105,8 @@ warn_unused_local(File, Module, All, Private) ->
 
 ensure_no_undefined_local(File, Module, All) ->
   if_tracker(Module, [], fun(Tracker) ->
-    [elixir_errors:form_error(Meta, File, ?MODULE, {undefined_function, Error})
-     || {Meta, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
-    ok
-  end).
-
-ensure_no_incorrect_dispatches(File, Module, All) ->
-  if_tracker(Module, [], fun(Tracker) ->
-    [elixir_errors:form_error(Meta, File, ?MODULE, {incorrect_dispatch, Error})
-     || {Meta, Error} <- ?tracker:collect_incorrect_dispatches(Tracker, All)],
+    [elixir_errors:form_error(Meta, File, ?MODULE, {Error, Tuple})
+     || {Meta, Tuple, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
     ok
   end).
 
