@@ -4980,7 +4980,7 @@ defmodule Kernel do
   Handles the sigil `~N` for naive date times.
 
   The lower case `~n` variant does not exist as interpolation
-  and escape characters are not useful for datetime sigils.
+  and escape characters are not useful for date time sigils.
 
   More information on naive date times can be found in the `NaiveDateTime` module.
 
@@ -4996,6 +4996,47 @@ defmodule Kernel do
 
   defmacro sigil_N({:<<>>, _, [string]}, []) do
     Macro.escape(NaiveDateTime.from_iso8601!(string))
+  end
+
+  @doc ~S"""
+  Handles the sigil `~U` to create a UTC `DateTime`.
+
+  The lower case `~u` variant does not exist as interpolation
+  and escape characters are not useful for date time sigils.
+
+  The given `datetime_string` must include "Z" or "00:00" offset which marks it
+  as UTC, otherwise an error is raised.
+
+  More information on date times can be found in the `DateTime` module.
+
+  ## Examples
+
+      iex> ~U[2015-01-13 13:00:07Z]
+      ~U[2015-01-13 13:00:07Z]
+      iex> ~U[2015-01-13T13:00:07.001+00:00]
+      ~U[2015-01-13 13:00:07.001Z]
+
+  """
+  @doc since: "1.9.0"
+  defmacro sigil_U(datetime_string, modifiers)
+
+  defmacro sigil_U({:<<>>, _, [string]}, []) do
+    Macro.escape(datetime_from_utc_iso8601!(string))
+  end
+
+  defp datetime_from_utc_iso8601!(string) do
+    case DateTime.from_iso8601(string) do
+      {:ok, utc_datetime, 0} ->
+        utc_datetime
+
+      {:ok, _datetime, _offset} ->
+        raise ArgumentError,
+              "cannot parse #{inspect(string)} as UTC datetime, reason: :non_utc_offset"
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "cannot parse #{inspect(string)} as UTC datetime, reason: #{inspect(reason)}"
+    end
   end
 
   @doc ~S"""
