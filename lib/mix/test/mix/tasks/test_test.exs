@@ -129,26 +129,26 @@ defmodule Mix.Tasks.TestTest do
 
       # For bar, we do regular --cover and also test protocols
       assert output =~ """
-      Generating cover results ...
+             Generating cover results ...
 
-      Percentage | Module
-      -----------|--------------------------
-         100.00% | Bar
-         100.00% | Bar.Protocol.BitString
-      -----------|--------------------------
-         100.00% | Total
-      """
+             Percentage | Module
+             -----------|--------------------------
+                100.00% | Bar
+                100.00% | Bar.Protocol.BitString
+             -----------|--------------------------
+                100.00% | Total
+             """
 
       # For foo, we do regular --cover and test it does not include bar
       assert output =~ """
-      Generating cover results ...
+             Generating cover results ...
 
-      Percentage | Module
-      -----------|--------------------------
-         100.00% | Foo
-      -----------|--------------------------
-         100.00% | Total
-      """
+             Percentage | Module
+             -----------|--------------------------
+                100.00% | Foo
+             -----------|--------------------------
+                100.00% | Total
+             """
     end)
   end
 
