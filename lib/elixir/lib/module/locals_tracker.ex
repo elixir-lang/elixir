@@ -106,22 +106,23 @@ defmodule Module.LocalsTracker do
     undefined =
       for {pair, _, _, _} <- all_defined,
           {local, line, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
-          reduce: [] do
-        acc ->
-          case :ets.lookup(set, {:def, local}) do
-            [] ->
-              [{build_meta(line), local, :undefined_function} | acc]
-
-            [{_, kind, _, _, _, _}] ->
-              if is_macro(kind) and not macro_dispatch? do
-                [{build_meta(line), local, :incorrect_dispatch} | acc]
-              else
-                acc
-              end
-          end
-      end
+          error = undefined_local_error(set, local, macro_dispatch?),
+          do: {build_meta(line), local, error}
 
     :lists.usort(undefined)
+  end
+
+  defp undefined_local_error(set, local, macro_dispatch?) do
+    case :ets.lookup(set, {:def, local}) do
+      [] ->
+        :undefined_function
+
+      [{_, kind, _, _, _, _}] when kind in [:defmacro, :defmacrop] and not macro_dispatch? ->
+        :incorrect_dispatch
+
+      _ ->
+        false
+    end
   end
 
   defp unreachable(reachable, reattached, private) do

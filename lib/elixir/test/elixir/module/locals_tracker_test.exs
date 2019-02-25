@@ -77,6 +77,19 @@ defmodule Module.LocalsTrackerTest do
     assert undefined == [{[line: 1], {:private, 1}, :undefined_function}]
   end
 
+  ### Incorrect dispatches
+
+  test "incorrect dispatches are marked as so", config do
+    {set, _bag} = config[:ref]
+    :ets.insert(set, {{:def, {:macro, 1}}, :defmacro, [], "nofile", false, {0, true, 0}})
+    definitions = [{{:public, 1}, :def, [], 0}, {{:macro, 1}, :defmacro, [], 0}]
+
+    D.add_local(config[:ref], {:public, 1}, {:macro, 1}, [line: 5], false)
+
+    undefined = D.collect_undefined_locals(config[:ref], definitions)
+    assert undefined == [{[line: 5], {:macro, 1}, :incorrect_dispatch}]
+  end
+
   ## Defaults
 
   test "defaults are connected to last clause only", config do
