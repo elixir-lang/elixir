@@ -5025,26 +5025,17 @@ defmodule Kernel do
   end
 
   defp datetime_from_utc_iso8601!(string) do
-    case datetime_from_utc_iso8601(string) do
-      {:ok, utc_datetime} ->
+    case DateTime.from_iso8601(string) do
+      {:ok, utc_datetime, 0} ->
         utc_datetime
+
+      {:ok, _datetime, _offset} ->
+        raise ArgumentError,
+              "cannot parse #{inspect(string)} as UTC datetime, reason: :non_utc_offset"
 
       {:error, reason} ->
         raise ArgumentError,
               "cannot parse #{inspect(string)} as UTC datetime, reason: #{inspect(reason)}"
-    end
-  end
-
-  defp datetime_from_utc_iso8601(string) do
-    case DateTime.from_iso8601(string) do
-      {:ok, datetime, 0} ->
-        {:ok, datetime}
-
-      {:ok, _datetime, _offset} ->
-        {:error, :non_utc_offset}
-
-      {:error, _reason} = error ->
-        error
     end
   end
 
