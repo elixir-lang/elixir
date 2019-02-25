@@ -52,7 +52,7 @@ import_function(Meta, Name, Arity, E) ->
       case elixir_import:special_form(Name, Arity) of
         true  -> false;
         false ->
-          elixir_locals:record_local(Tuple, ?key(E, module), ?key(E, function), Meta),
+          elixir_locals:record_local(Tuple, ?key(E, module), ?key(E, function), Meta, false),
           {local, Name, Arity}
       end
   end.
@@ -131,7 +131,7 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
 
         %% Dispatch to the local.
         _ ->
-          elixir_locals:record_local(Tuple, Module, Function, Meta),
+          elixir_locals:record_local(Tuple, Module, Function, Meta, true),
           {ok, Module, expand_macro_fun(Meta, Local, Module, Name, Args, E)}
       end
   end.

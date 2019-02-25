@@ -4024,6 +4024,8 @@ defmodule Kernel do
   @doc """
   Defines a macro with the given name and body.
 
+  Macros must be defined before its usage.
+
   Check `def/2` for rules on naming and default arguments.
 
   ## Examples
@@ -4052,6 +4054,8 @@ defmodule Kernel do
 
   Private macros are only accessible from the same module in which they are
   defined.
+
+  Private macros must be defined before its usage.
 
   Check `defmacro/2` for more information, and check `def/2` for rules on
   naming and default arguments.

@@ -2,9 +2,10 @@
 -module(elixir_locals).
 -export([
   setup/1, stop/1, cache_env/1, get_cached_env/1,
-  record_local/4, record_import/4, record_defaults/5,
+  record_local/5, record_import/4, record_defaults/5,
   yank/2, reattach/6, ensure_no_import_conflict/3,
-  warn_unused_local/4, ensure_no_undefined_local/3, format_error/1
+  warn_unused_local/4, ensure_no_undefined_local/3,
+  format_error/1
 ]).
 
 -include("elixir.hrl").
@@ -31,10 +32,10 @@ yank(Tuple, Module) ->
 reattach(Tuple, Kind, Module, Function, Neighbours, Meta) ->
   if_tracker(Module, fun(Tracker) -> ?tracker:reattach(Tracker, Tuple, Kind, Function, Neighbours, Meta) end).
 
-record_local(Tuple, _Module, Function, _Meta)
+record_local(Tuple, _Module, Function, _Meta, _IsMacroDispatch)
   when Function == nil; Function == Tuple -> ok;
-record_local(Tuple, Module, Function, Meta) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:add_local(Tracker, Function, Tuple, Meta), ok end).
+record_local(Tuple, Module, Function, Meta, IsMacroDispatch) ->
+  if_tracker(Module, fun(Tracker) -> ?tracker:add_local(Tracker, Function, Tuple, Meta, IsMacroDispatch), ok end).
 
 record_import(_Tuple, Receiver, Module, Function)
   when Function == nil; Module == Receiver -> false;
@@ -104,8 +105,8 @@ warn_unused_local(File, Module, All, Private) ->
 
 ensure_no_undefined_local(File, Module, All) ->
   if_tracker(Module, [], fun(Tracker) ->
-    [elixir_errors:form_error(Meta, File, ?MODULE, {undefined_function, Error})
-     || {Meta, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
+    [elixir_errors:form_error(Meta, File, ?MODULE, {Error, Tuple})
+     || {Meta, Tuple, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
     ok
   end).
 
@@ -129,4 +130,7 @@ format_error({unused_def, {Name, Arity}, defmacrop}) ->
   io_lib:format("macro ~ts/~B is unused", [Name, Arity]);
 
 format_error({undefined_function, {F, A}}) ->
-  io_lib:format("undefined function ~ts/~B", [F, A]).
+  io_lib:format("undefined function ~ts/~B", [F, A]);
+
+format_error({incorrect_dispatch, {F, A}}) ->
+  io_lib:format("cannot invoke macro ~ts/~B before its definition", [F, A]).

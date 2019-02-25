@@ -615,6 +615,41 @@ defmodule Kernel.ErrorsTest do
                       '''
   end
 
+  test "macro invoked before its definition" do
+    assert_eval_raise CompileError,
+                      "nofile:2: cannot invoke macro bar/0 before its definition",
+                      '''
+                      defmodule Kernel.ErrorsTest.IncorrectMacroDispatch do
+                        def foo, do: bar()
+                        defmacro bar, do: :bar
+                      end
+                      '''
+
+    assert_eval_raise CompileError,
+                      "nofile:2: cannot invoke macro bar/0 before its definition",
+                      '''
+                      defmodule Kernel.ErrorsTest.IncorrectMacropDispatch do
+                        def foo, do: bar()
+                        defmacrop bar, do: :ok
+                      end
+                      '''
+  end
+
+  test "macro captured before its definition" do
+    assert_eval_raise CompileError,
+                      "nofile:3: cannot invoke macro is_ok/1 before its definition",
+                      '''
+                      defmodule Kernel.ErrorsTest.IncorrectMacroDispatch.Capture do
+                        def foo do
+                          predicate = &is_ok/1
+                          Enum.any?([:ok, :error, :foo], predicate)
+                        end
+
+                        defmacro is_ok(atom), do: atom == :ok
+                      end
+                      '''
+  end
+
   test "function definition with alias" do
     assert_eval_raise CompileError,
                       "nofile:2: function names should start with lowercase characters or underscore, invalid name Bar",
