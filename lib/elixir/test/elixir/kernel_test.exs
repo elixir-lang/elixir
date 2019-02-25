@@ -984,7 +984,7 @@ defmodule KernelTest do
       Code.eval_string(~s{~U[2015-01-13 13:00:07]})
     end
 
-    assert_raise ArgumentError, ~r"reason: :invalid_offset", fn ->
+    assert_raise ArgumentError, ~r"reason: :non_utc_offset", fn ->
       Code.eval_string(~s{~U[2015-01-13 13:00:07+00:30]})
     end
   end
