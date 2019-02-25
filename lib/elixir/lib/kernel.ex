@@ -4980,7 +4980,7 @@ defmodule Kernel do
   Handles the sigil `~N` for naive date times.
 
   The lower case `~n` variant does not exist as interpolation
-  and escape characters are not useful for datetime sigils.
+  and escape characters are not useful for date time sigils.
 
   More information on naive date times can be found in the `NaiveDateTime` module.
 
