@@ -15,12 +15,14 @@
 defmodule Module.LocalsTracker do
   @moduledoc false
 
+  @defmacros [:defmacro, :defmacrop]
+
   @doc """
   Adds and tracks defaults for a definition into the tracker.
   """
   def add_defaults({_set, bag}, kind, {name, arity} = pair, defaults, meta) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
-      put_edge(bag, {:local, {name, i}}, {pair, get_line(meta), is_macro(kind)})
+      put_edge(bag, {:local, {name, i}}, {pair, get_line(meta), kind in @defmacros})
     end
 
     :ok
@@ -64,7 +66,7 @@ defmodule Module.LocalsTracker do
 
     # Make a call from the old function to the new one
     if function != tuple do
-      put_edge(bag, {:local, function}, {tuple, get_line(meta), is_macro(kind)})
+      put_edge(bag, {:local, function}, {tuple, get_line(meta), kind in @defmacros})
     end
 
     # Finally marked the new one as reattached
@@ -117,7 +119,7 @@ defmodule Module.LocalsTracker do
       [] ->
         :undefined_function
 
-      [{_, kind, _, _, _, _}] when kind in [:defmacro, :defmacrop] and not macro_dispatch? ->
+      [{_, kind, _, _, _, _}] when kind in @defmacros and not macro_dispatch? ->
         :incorrect_dispatch
 
       _ ->
@@ -209,10 +211,6 @@ defmodule Module.LocalsTracker do
 
   defp build_meta(nil), do: []
   defp build_meta(line), do: [line: line]
-
-  defp is_macro(:defmacro), do: true
-  defp is_macro(:defmacrop), do: true
-  defp is_macro(_), do: false
 
   ## Lightweight digraph implementation
 
