@@ -98,7 +98,6 @@ defmodule Code.Formatter do
     defrecordp: 3,
 
     # Testing
-    all: :*,
     assert: 1,
     assert: 2,
     assert_in_delta: 3,
@@ -110,12 +109,8 @@ defmodule Code.Formatter do
     assert_receive: 3,
     assert_received: 1,
     assert_received: 2,
-    check: 1,
-    check: 2,
     doctest: 1,
     doctest: 2,
-    property: 1,
-    property: 2,
     refute: 1,
     refute: 2,
     refute_in_delta: 3,
