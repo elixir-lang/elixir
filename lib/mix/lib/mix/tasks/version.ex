@@ -3,7 +3,6 @@ defmodule Mix.Tasks.Version do
 
   @impl Mix.Task
   def run(_args) do
-    Mix.shell.info Mix.Project.config()[:version]
+    Mix.shell().info(Mix.Project.config()[:version])
   end
-
 end
