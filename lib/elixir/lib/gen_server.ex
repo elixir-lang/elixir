@@ -989,7 +989,8 @@ defmodule GenServer do
   element.
   """
   @spec call(server, term, timeout) :: term
-  def call(server, request, timeout \\ 5000) do
+  def call(server, request, timeout \\ 5000)
+      when (is_integer(timeout) and timeout >= 0) or timeout == :infinity do
     case whereis(server) do
       nil ->
         exit({:noproc, {__MODULE__, :call, [server, request, timeout]}})
