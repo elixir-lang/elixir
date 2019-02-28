@@ -415,8 +415,7 @@ defimpl Inspect, for: Any do
       defimpl Inspect, for: unquote(module) do
         def inspect(struct, opts) do
           map = Map.take(struct, unquote(filtered_fields))
-          colorless_opts = %{opts | syntax_colors: []}
-          name = Inspect.Atom.inspect(unquote(module), colorless_opts)
+          name = Identifier.inspect_as_atom(unquote(module))
           unquote(inspect_module).inspect(map, name, opts)
         end
       end
@@ -432,8 +431,7 @@ defimpl Inspect, for: Any do
       dunder ->
         if :maps.keys(dunder) == :maps.keys(struct) do
           pruned = :maps.remove(:__exception__, :maps.remove(:__struct__, struct))
-          colorless_opts = %{opts | syntax_colors: []}
-          Inspect.Map.inspect(pruned, Inspect.Atom.inspect(module, colorless_opts), opts)
+          Inspect.Map.inspect(pruned, Identifier.inspect_as_atom(module), opts)
         else
           Inspect.Map.inspect(struct, opts)
         end
