@@ -415,33 +415,33 @@ defmodule Code.Formatter.CallsTest do
     end
 
     test "without parens on unique argument" do
-      assert_same "foo(all 1, 2, 3)"
-      assert_same "foo(bar, all(1, 2, 3))"
-      assert_same "check all 1, 2, 3"
-      assert_same "check foo, all(1, 2, 3)"
+      assert_same "foo(for 1, 2, 3)"
+      assert_same "foo(bar, for(1, 2, 3))"
+      assert_same "assert for 1, 2, 3"
+      assert_same "assert foo, for(1, 2, 3)"
 
       assert_same """
-      check all 1, 2, 3 do
+      assert for 1, 2, 3 do
         :ok
       end
       """
 
       assert_same """
-      check foo, all(1, 2, 3) do
+      assert foo, for(1, 2, 3) do
         :ok
       end
       """
 
       assert_same """
-      check all(1, 2, 3) do
+      assert for(1, 2, 3) do
         :ok
       end
       """
 
       assert_same """
-      check (all 1, 2, 3 do
-               :ok
-             end)
+      assert (for 1, 2, 3 do
+                :ok
+              end)
       """
     end
 
