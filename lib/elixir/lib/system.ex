@@ -481,7 +481,9 @@ defmodule System do
   @doc since: "1.9.0"
   @spec fetch_env!(String.t()) :: String.t()
   def fetch_env!(varname) when is_binary(varname) do
-    get_env(varname) || raise "environment variable #{inspect(varname)} is not defined"
+    get_env(varname) ||
+      raise ArgumentError,
+            "could not fetch environment variable #{inspect(varname)} because it is not set"
   end
 
   @doc """
