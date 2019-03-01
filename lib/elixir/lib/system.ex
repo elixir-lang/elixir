@@ -421,6 +421,15 @@ defmodule System do
   The returned value of the environment variable
   `varname` is a string, or `nil` if the environment
   variable is undefined.
+
+  ## Examples
+
+      iex> System.get_env("PORT")
+      "4000"
+
+      iex> System.get_env("NOT_DEFINED")
+      nil
+
   """
   @spec get_env(String.t()) :: String.t() | nil
   def get_env(varname) when is_binary(varname) do
@@ -428,6 +437,51 @@ defmodule System do
       false -> nil
       other -> List.to_string(other)
     end
+  end
+
+  @doc """
+  Returns the value of the given environment variable or `:error` if not found.
+
+  If `varname` is a defined environment variable, then `{:ok, value}` is returned
+  where `value` is a string. If `varname` is not defined, `:error` is returned.
+
+  ## Examples
+
+      iex> System.fetch_env("PORT")
+      {:ok, "4000"}
+
+      iex> System.fetch_env("NOT_DEFINED")
+      :error
+
+  """
+  @doc since: "1.9.0"
+  @spec fetch_env(String.t()) :: {:ok, String.t()} | :error
+  def fetch_env(varname) when is_binary(varname) do
+    case :os.getenv(String.to_charlist(varname)) do
+      false -> :error
+      other -> {:ok, List.to_string(other)}
+    end
+  end
+
+  @doc """
+  Returns the value of the given environment variable or raises if not found.
+
+  Same as `get_env/1` but raises instead of returning `nil` when the variable is
+  not defined.
+
+  ## Examples
+
+      iex> System.fetch_env!("PORT")
+      "4000"
+
+      iex> System.fetch_env!("NOT_DEFINED")
+      ** (RuntimeError) environment variable "NOT_DEFINED" is not defined
+
+  """
+  @doc since: "1.9.0"
+  @spec fetch_env!(String.t()) :: String.t()
+  def fetch_env!(varname) when is_binary(varname) do
+    get_env(varname) || raise "environment variable #{inspect(varname)} is not defined"
   end
 
   @doc """
