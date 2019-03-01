@@ -610,10 +610,16 @@ defmodule Access do
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.at(1), :name])
       "mary"
+      iex> get_in(list, [Access.at(-1), :name])
+      "mary"
       iex> get_and_update_in(list, [Access.at(0), :name], fn prev ->
       ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", [%{name: "JOHN"}, %{name: "mary"}]}
+      iex> get_and_update_in(list, [Access.at(-1), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {"mary", [%{name: "john"}, %{name: "MARY"}]}
 
   `at/1` can also be used to pop elements out of a list or
   a key inside of a list:
@@ -634,19 +640,14 @@ defmodule Access do
       ...> end)
       {nil, [%{name: "john"}, %{name: "mary"}]}
 
-  An error is raised for negative indexes:
-
-      iex> get_in([], [Access.at(-1)])
-      ** (FunctionClauseError) no function clause matching in Access.at/1
-
   An error is raised if the accessed structure is not a list:
 
       iex> get_in(%{}, [Access.at(1)])
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
 
   """
-  @spec at(non_neg_integer) :: access_fun(data :: list, get_value :: term)
-  def at(index) when is_integer(index) and index >= 0 do
+  @spec at(integer) :: access_fun(data :: list, get_value :: term)
+  def at(index) when is_integer(index) do
     fn op, data, next -> at(op, data, index, next) end
   end
 
@@ -669,7 +670,17 @@ defmodule Access do
     end
   end
 
-  defp get_and_update_at([head | rest], index, next, updates) do
+  defp get_and_update_at(list, index, next, updates) when index < 0 do
+    list_length = length(list)
+
+    if list_length + index >= 0 do
+      get_and_update_at(list, list_length + index, next, updates)
+    else
+      {nil, list}
+    end
+  end
+
+  defp get_and_update_at([head | rest], index, next, updates) when index > 0 do
     get_and_update_at(rest, index - 1, next, [head | updates])
   end
 
