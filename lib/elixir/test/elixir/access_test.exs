@@ -122,4 +122,28 @@ defmodule AccessTest do
                [1, 2, 3]
     end
   end
+
+  describe "at/1" do
+    @test_list [1, 2, 3, 4, 5, 6]
+
+    test "returns element from the end if index is negative" do
+      assert get_in(@test_list, [Access.at(-2)]) == 5
+    end
+
+    test "returns nil if index is out of bounds counting from the end" do
+      assert get_in(@test_list, [Access.at(-10)]) == nil
+    end
+
+    test "updates the element counting from the end if index is negative" do
+      assert get_and_update_in(@test_list, [Access.at(-2)], fn prev ->
+               {prev, :foo}
+             end) == {5, [1, 2, 3, 4, :foo, 6]}
+    end
+
+    test "returns nil and does not update if index is out of bounds" do
+      assert get_and_update_in(@test_list, [Access.at(-10)], fn prev ->
+               {prev, :foo}
+             end) == {nil, [1, 2, 3, 4, 5, 6]}
+    end
+  end
 end
