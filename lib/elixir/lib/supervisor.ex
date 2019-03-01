@@ -558,7 +558,8 @@ defmodule Supervisor do
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
   """
-  @spec start_link([:supervisor.child_spec() | {module, term} | module], options) :: on_start
+  @spec start_link([:supervisor.child_spec() | {module, term} | module], options) ::
+          {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
   def start_link(children, options) when is_list(children) do
     {sup_opts, start_opts} = Keyword.split(options, [:strategy, :max_seconds, :max_restarts])
     start_link(Supervisor.Default, init(children, sup_opts), start_opts)
