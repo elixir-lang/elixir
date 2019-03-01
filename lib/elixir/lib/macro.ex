@@ -206,9 +206,11 @@ defmodule Macro do
 
   """
   @doc since: "1.5.0"
-  @spec generate_arguments(0, term) :: []
+  @spec generate_arguments(0, context :: atom) :: []
   @spec generate_arguments(pos_integer, context) :: [{atom, [], context}, ...] when context: atom
-  def generate_arguments(0, _), do: []
+  def generate_arguments(amount, context)
+
+  def generate_arguments(0, context) when is_atom(context), do: []
 
   def generate_arguments(amount, context)
       when is_integer(amount) and amount > 0 and is_atom(context) do
