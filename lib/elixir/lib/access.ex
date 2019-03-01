@@ -670,14 +670,14 @@ defmodule Access do
     end
   end
 
-  defp get_and_update_at(list, index, next, updates)
-       when index < 0 and length(list) + index >= 0 do
-    get_and_update_at(list, length(list) + index, next, updates)
-  end
+  defp get_and_update_at(list, index, next, updates) when index < 0 do
+    list_length = length(list)
 
-  defp get_and_update_at(list, index, _next, _updates)
-       when index < 0 and length(list) + index < 0 do
-    {nil, list}
+    if list_length + index >= 0 do
+      get_and_update_at(list, list_length + index, next, updates)
+    else
+      {nil, list}
+    end
   end
 
   defp get_and_update_at([head | rest], index, next, updates) when index > 0 do
