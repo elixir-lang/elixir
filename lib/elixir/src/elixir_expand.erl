@@ -318,7 +318,7 @@ expand({super, Meta, Args}, E) when is_list(Args) ->
       end,
 
       {EArgs, EA} = expand_args(Args, E),
-      {{super, Meta, [{Kind, Name} | EArgs]}, EA};
+      {{super, [{super, {Kind, Name}} | Meta], EArgs}, EA};
     _ ->
       form_error(Meta, ?key(E, file), ?MODULE, wrong_number_of_args_for_super)
   end;
