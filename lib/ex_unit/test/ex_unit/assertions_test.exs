@@ -648,6 +648,30 @@ defmodule ExUnit.AssertionsTest do
       "assert(1 > 2)" = Macro.to_string(error.expr)
   end
 
+  test "assert greater than operator error fails with nil" do
+    user = %{id: nil}
+
+    try do
+      "This should never be tested" = assert user.id > 0
+    rescue
+      error in [ExUnit.AssertionError] ->
+        nil = error.left
+        0 = error.right
+        "assert(user.id() > 0)" = Macro.to_string(error.expr)
+        error.message =~ "`nil` is not allowed"
+    end
+
+    try do
+      "This should never be tested" = assert 0 > user.id
+    rescue
+      error in [ExUnit.AssertionError] ->
+        0 = error.left
+        nil = error.right
+        "assert(0 > user.id())" = Macro.to_string(error.expr)
+        error.message =~ "`nil` is not allowed"
+    end
+  end
+
   test "assert less or equal than operator" do
     true = assert 1 <= 2
   end
@@ -659,6 +683,30 @@ defmodule ExUnit.AssertionsTest do
       "assert(2 <= 1)" = Macro.to_string(error.expr)
       2 = error.left
       1 = error.right
+  end
+
+  test "assert less or equal than operator error fails with nil" do
+    user = %{id: nil}
+
+    try do
+      "This should never be tested" = assert user.id <= 0
+    rescue
+      error in [ExUnit.AssertionError] ->
+        nil = error.left
+        0 = error.right
+        "assert(user.id() <= 0)" = Macro.to_string(error.expr)
+        error.message =~ "`nil` is not allowed"
+    end
+
+    try do
+      "This should never be tested" = assert 0 <= user.id
+    rescue
+      error in [ExUnit.AssertionError] ->
+        0 = error.left
+        nil = error.right
+        "assert(0 <= user.id())" = Macro.to_string(error.expr)
+        error.message =~ "`nil` is not allowed"
+    end
   end
 
   test "assert operator with expressions" do

@@ -151,6 +151,31 @@ defmodule ExUnit.Assertions do
     end
   end
 
+  defmacro assert({operator, meta, [left, right]} = assertion)
+           when operator in [:>, :<, :>=, :<=] do
+    call = {operator, meta, [Macro.var(:left, __MODULE__), Macro.var(:right, __MODULE__)]}
+    expr = escape_quoted(:assert, assertion)
+
+    quote do
+      left = unquote(left)
+      right = unquote(right)
+
+      if is_nil(left) or is_nil(right) do
+        assert false,
+          left: left,
+          right: right,
+          expr: unquote(expr),
+          message: "`nil` is not allowed as an argument to #{unquote(operator)} in assertions"
+      else
+        assert unquote(call),
+          left: left,
+          right: right,
+          expr: unquote(expr),
+          message: "Assertion with #{unquote(operator)} failed"
+      end
+    end
+  end
+
   defmacro assert({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
@@ -248,14 +273,14 @@ defmodule ExUnit.Assertions do
 
   ## START HELPERS
 
-  @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
+  @operator [:==, :===, :=~, :!==, :!=, :in]
 
   defp translate_assertion(:assert, {operator, meta, [_, _]} = expr, caller)
        when operator in @operator do
     left = Macro.var(:left, __MODULE__)
     right = Macro.var(:right, __MODULE__)
     call = {operator, meta, [left, right]}
-    equality_check? = operator in [:<, :>, :!==, :!=]
+    equality_check? = operator in [:!==, :!=]
     message = "Assertion with #{operator} failed"
     translate_operator(:assert, expr, call, message, equality_check?, caller)
   end
@@ -265,7 +290,7 @@ defmodule ExUnit.Assertions do
     left = Macro.var(:left, __MODULE__)
     right = Macro.var(:right, __MODULE__)
     call = {:not, meta, [{operator, meta, [left, right]}]}
-    equality_check? = operator in [:<=, :>=, :===, :==, :=~]
+    equality_check? = operator in [:===, :==, :=~]
     message = "Refute with #{operator} failed"
     translate_operator(:refute, expr, call, message, equality_check?, caller)
   end
