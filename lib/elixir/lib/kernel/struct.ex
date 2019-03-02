@@ -33,12 +33,6 @@ defmodule Kernel.Struct do
         end
 
       true ->
-        IO.puts("2 - 3")
-
-        {:%, meta, [struct_or_match, map]}
-        |> Macro.to_string()
-        |> IO.puts()
-
         expand_to_map(meta, struct_or_match, map)
 
       false when context == :match ->
