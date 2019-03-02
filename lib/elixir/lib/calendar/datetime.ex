@@ -33,6 +33,7 @@ defmodule DateTime do
   or by calling `Calendar.put_time_zone_database/1`.
   """
 
+  @derive Inspect
   @enforce_keys [:year, :month, :day, :hour, :minute, :second] ++
                   [:time_zone, :zone_abbr, :utc_offset, :std_offset]
 

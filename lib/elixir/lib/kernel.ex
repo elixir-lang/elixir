@@ -2032,6 +2032,80 @@ defmodule Kernel do
   end
 
   @doc """
+  Matches on or builds a struct.
+
+  A struct is a tagged map that allows developers to provide
+  default values for keys, tags to be used in polymorphic
+  dispatches and compile time assertions.
+
+  Structs are usually defined with the `Kernel.defstruct/1` macro:
+
+      defmodule User do
+        defstruct name: "john", age: 27
+      end
+
+  Now a struct can be created as follows:
+
+      %User{}
+
+  Underneath a struct is just a map with a `:__struct__` key
+  pointing to the `User` module:
+
+      %User{} == %{__struct__: User, name: "john", age: 27}
+
+  The struct fields can be given when building the struct:
+
+      %User{age: 31}
+      #=> %{__struct__: User, name: "john", age: 31}
+
+  Or also on pattern matching to extract values out:
+
+      %User{age: age} = user
+
+  An update operation specific for structs is also available:
+
+      %User{user | age: 28}
+
+  The advantage of structs is that they validate that the given
+  keys are part of the defined struct. The example below will fail
+  because there is no key `:full_name` in the `User` struct:
+
+      %User{full_name: "john doe"}
+
+  The syntax above will guarantee the given keys are valid at
+  compilation time and it will guarantee at runtime the given
+  argument is a struct, failing with `BadStructError` otherwise.
+
+  Although structs are maps, by default structs do not implement
+  any of the protocols implemented for maps. Check
+  `Kernel.defprotocol/2` for more information on how structs
+  can be used with protocols for polymorphic dispatch. Also
+  see `Kernel.struct/2` and `Kernel.struct!/2` for examples on
+  how to create and update structs dynamically.
+
+  ## Pattern matching on struct names
+
+  Besides allowing pattern matching on struct fields, such as:
+
+      %User{age: age} = user
+
+  Structs also allow pattern matching on the struct name:
+
+      %struct_name{} = user
+      struct_name #=> User
+
+  You can also assign the struct name to `_` when you want to
+  check if something is a struct but you are not interested in
+  its name:
+
+      %_{} = user
+
+  """
+  defmacro unquote(:%)(struct, map) do
+    Kernel.Struct.expand(struct, map, __CALLER__)
+  end
+
+  @doc """
   Creates and updates structs.
 
   The `struct` argument may be an atom (which defines `defstruct`)
