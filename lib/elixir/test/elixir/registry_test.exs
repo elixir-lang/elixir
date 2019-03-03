@@ -607,6 +607,12 @@ defmodule RegistryTest do
     end
   end
 
+  test "raises if :name is not an atom" do
+    assert_raise ArgumentError, ~r/expected :name to be an atom, got/, fn ->
+      Registry.start_link(keys: :unique, name: [])
+    end
+  end
+
   defp register_task(registry, key, value) do
     parent = self()
 
