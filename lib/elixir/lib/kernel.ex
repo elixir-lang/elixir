@@ -173,9 +173,9 @@ defmodule Kernel do
 
   Those functions will be explicitly marked in their docs as
   "inlined by the compiler".
-  
+
   ## Truthy and falsy values
-  
+
   Besides the booleans `true` and `false` Elixir also has the
   concept of a "truthy" or "falsy" value.
 
@@ -187,12 +187,12 @@ defmodule Kernel do
   truthy/falsy values, like `&&/2` and `!/1`.
 
   ### Examples
-  
+
   We can check the truthiness of a value by using the `!/1`
   function twice.
 
   Truthy values:
-  
+
       iex> !!true
       true
       iex> !!5
@@ -203,7 +203,7 @@ defmodule Kernel do
       true
       
   Falsy values (of which there are exactly two):  
-  
+
       iex> !!false
       false
       iex> !!nil
