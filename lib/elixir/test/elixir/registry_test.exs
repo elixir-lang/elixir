@@ -602,7 +602,7 @@ defmodule RegistryTest do
   end
 
   test "raises if :name is missing" do
-    assert_raise ArgumentError, ~r/expected :name/, fn ->
+    assert_raise ArgumentError, ~r/expected :name option to be present/, fn ->
       Registry.start_link(keys: :unique)
     end
   end

@@ -316,11 +316,17 @@ defmodule Registry do
             "expected :keys to be given and be one of :unique or :duplicate, got: #{inspect(keys)}"
     end
 
-    name = Keyword.get(options, :name)
+    name =
+      case Keyword.fetch(options, :name) do
+        {:ok, name} when is_atom(name) ->
+          name
 
-    unless Keyword.has_key?(options, :name) and is_atom(name) do
-      raise ArgumentError, "expected :name to be given and to be an atom, got: #{inspect(name)}"
-    end
+        {:ok, other} ->
+          raise ArgumentError, "expected :name to be an atom, got: #{inspect(other)}"
+
+        :error ->
+          raise ArgumentError, "expected :name option to be present"
+      end
 
     meta = Keyword.get(options, :meta, [])
 
