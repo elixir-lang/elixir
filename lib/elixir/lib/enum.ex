@@ -276,6 +276,8 @@ defmodule Enum do
   end
 
   @doc """
+  Returns `true` if `fun.(item)` is truthy for all items in `enumerable`.
+
   Iterates over the `enumerable` and invokes `fun` on each item. When an invocation
   of `fun` returns a falsy value (`false` or `nil`) iteration stops immediately and
   `false` is returned. In all other cases `true` is returned.
@@ -321,6 +323,8 @@ defmodule Enum do
   end
 
   @doc """
+  Returns `true` if `fun.(item)` is truthy for at least one item in `enumerable`.
+
   Iterates over the `enumerable` and invokes `fun` on each item. When an invocation
   of `fun` returns a truthy value (neither `false` nor `nil`) iteration stops
   immediately and `true` is returned. In all other cases `false` is returned.
