@@ -23,8 +23,8 @@ defmodule Mix.Tasks.Escript.Build do
   Escripts should be used as a mechanism to share scripts between
   developers and not as a deployment mechanism. For running live
   systems, consider using `mix run` or building releases. See
-  the `Application` module for more information on systems life-
-  cycles.
+  the `Application` module for more information on systems
+  life- cycles.
 
   By default, this task starts the current application. If this
   is not desired, set the `:app` configuration to nil.
