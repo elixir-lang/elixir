@@ -318,7 +318,7 @@ defmodule Registry do
 
     name = Keyword.get(options, :name)
 
-    unless is_atom(name) do
+    unless Keyword.has_key?(options, :name) and is_atom(name) do
       raise ArgumentError, "expected :name to be given and to be an atom, got: #{inspect(name)}"
     end
 

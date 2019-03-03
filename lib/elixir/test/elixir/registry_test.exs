@@ -601,6 +601,12 @@ defmodule RegistryTest do
     assert %{id: Registry} = Registry.child_spec([])
   end
 
+  test "raises if :name is missing" do
+    assert_raise ArgumentError, ~r/expected :name/, fn ->
+      Registry.start_link(keys: :unique)
+    end
+  end
+
   defp register_task(registry, key, value) do
     parent = self()
 
