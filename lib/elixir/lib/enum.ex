@@ -276,10 +276,9 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if the given `fun` evaluates to a truthy value (neither `false` nor `nil`)
-  on all of the items in the `enumerable`.
-
-  It stops the iteration at the first invocation that returns either `false` or `nil`.
+  Iterates over the `enumerable` and invokes `fun` on each item. When an invocation
+  of `fun` returns a falsy value (`false` or `nil`) iteration stops immediately and
+  `false` is returned. In all other cases `true` is returned.
 
   ## Examples
 
@@ -288,15 +287,22 @@ defmodule Enum do
 
       iex> Enum.all?([2, 3, 4], fn x -> rem(x, 2) == 0 end)
       false
+      
+      iex> Enum.all?([], fn x -> x > 0 end)
+      true
 
-  If no function is given, it defaults to checking if
-  all items in the `enumerable` are truthy values.
-
+  If no function is given, the truthiness of each item is checked during iteration.
+  When an item has a falsy value (`false` or `nil`) iteration stops immediately and
+  `false` is returned. In all other cases `true` is returned.
+  
       iex> Enum.all?([1, 2, 3])
       true
 
       iex> Enum.all?([1, nil, 3])
       false
+      
+      iex> Enum.all?([])
+      true
 
   """
   @spec all?(t, (element -> as_boolean(term))) :: boolean
@@ -315,10 +321,10 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if the given `fun` evaluates to true on any of the items in the `enumerable`.
-
-  It stops the iteration at the first invocation that returns a truthy value (neither `false` nor `nil`).
-
+  Iterates over the `enumerable` and invokes `fun` on each item. When an invocation
+  of `fun` returns a truthy value (neither `false` nor `nil`) iteration stops
+  immediately and `true` is returned. In all other cases `false` is returned.
+  
   ## Examples
 
       iex> Enum.any?([2, 4, 6], fn x -> rem(x, 2) == 1 end)
@@ -326,15 +332,22 @@ defmodule Enum do
 
       iex> Enum.any?([2, 3, 4], fn x -> rem(x, 2) == 1 end)
       true
-
-  If no function is given, it defaults to checking if at least one item
-  in the `enumerable` is a truthy value.
+      
+      iex> Enum.any?([], fn x -> x > 0 end)
+      false
+  
+  If no function is given, the truthiness of each item is checked during iteration.
+  When an item has a truthy value (neither `false` nor `nil`) iteration stops
+  immediately and `true` is returned. In all other cases `false` is returned.
 
       iex> Enum.any?([false, false, false])
       false
 
       iex> Enum.any?([false, true, false])
       true
+      
+      iex> Enum.any?([])
+      false
 
   """
   @spec any?(t, (element -> as_boolean(term))) :: boolean
