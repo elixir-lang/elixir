@@ -1859,13 +1859,13 @@ defmodule Module do
 
       {line, doc} when is_integer(line) ->
         raise ArgumentError,
-              "@#{key} is a built-in module attribute for documentation. It should be " <>
-                "a string, false, keyword list, or nil, got: #{inspect(doc)}"
+              "@#{key} is a built-in module attribute for documentation. It should be either " <>
+                "false, nil, a string, or a keyword list, got: #{inspect(doc)}"
 
       _other ->
         raise ArgumentError,
               "@#{key} is a built-in module attribute for documentation. When set dynamically, " <>
-                "it should be {line, doc} (where \"doc\" is a string, false, keyword list, or nil), " <>
+                "it should be {line, doc} (where \"doc\" is either false, nil, a string, or a keyword list), " <>
                 "got: #{inspect(value)}"
     end
   end
