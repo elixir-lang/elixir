@@ -420,14 +420,14 @@ defmodule System do
 
   The returned value of the environment variable
   `varname` is a string, or `nil` if the environment
-  variable is undefined.
+  variable is not set.
 
   ## Examples
 
       iex> System.get_env("PORT")
       "4000"
 
-      iex> System.get_env("NOT_DEFINED")
+      iex> System.get_env("NOT_SET")
       nil
 
   """
@@ -442,15 +442,15 @@ defmodule System do
   @doc """
   Returns the value of the given environment variable or `:error` if not found.
 
-  If `varname` is a defined environment variable, then `{:ok, value}` is returned
-  where `value` is a string. If `varname` is not defined, `:error` is returned.
+  If the environment variable `varname` is set, then `{:ok, value}` is returned
+  where `value` is a string. If `varname` is not set, `:error` is returned.
 
   ## Examples
 
       iex> System.fetch_env("PORT")
       {:ok, "4000"}
 
-      iex> System.fetch_env("NOT_DEFINED")
+      iex> System.fetch_env("NOT_SET")
       :error
 
   """
@@ -467,15 +467,15 @@ defmodule System do
   Returns the value of the given environment variable or raises if not found.
 
   Same as `get_env/1` but raises instead of returning `nil` when the variable is
-  not defined.
+  not set.
 
   ## Examples
 
       iex> System.fetch_env!("PORT")
       "4000"
 
-      iex> System.fetch_env!("NOT_DEFINED")
-      ** (RuntimeError) environment variable "NOT_DEFINED" is not defined
+      iex> System.fetch_env!("NOT_SET")
+      ** (ArgumentError) could not fetch environment variable "NOT_SET" because it is not set
 
   """
   @doc since: "1.9.0"
