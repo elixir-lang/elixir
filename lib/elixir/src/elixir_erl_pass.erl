@@ -620,7 +620,7 @@ translate_remote(Left, Right, Meta, Args, S) ->
   SC = mergev(SL, SA),
 
   %% Rewrite Erlang function calls as operators so they
-  %% work on guards, matches and so on.
+  %% work in guards, matches and so on.
   case (Left == erlang) andalso elixir_utils:guard_op(Right, Arity) of
     true ->
       case TArgs of
