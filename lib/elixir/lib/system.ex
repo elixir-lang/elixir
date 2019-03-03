@@ -442,7 +442,7 @@ defmodule System do
   @doc """
   Returns the value of the given environment variable or `:error` if not found.
 
-  If `varname` is a set environment variable, then `{:ok, value}` is returned
+  If the environment variable `varname` is set, then `{:ok, value}` is returned
   where `value` is a string. If `varname` is not set, `:error` is returned.
 
   ## Examples
