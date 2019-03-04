@@ -181,7 +181,7 @@ defmodule Kernel do
 
     *  a value is truthy when it is neither `false` nor `nil`
     *  a value is falsy when it is `false` or `nil`
-    
+
   Elixir has functions, like `and/2`, that *only* work with
   booleans, but also functions that work with these
   truthy/falsy values, like `&&/2` and `!/1`.
@@ -201,14 +201,14 @@ defmodule Kernel do
       true
       iex> !!"foo"
       true
-      
-  Falsy values (of which there are exactly two):  
+
+  Falsy values (of which there are exactly two):
 
       iex> !!false
       false
       iex> !!nil
       false
-    
+
   """
 
   # We need this check only for bootstrap purposes.
@@ -5205,7 +5205,7 @@ defmodule Kernel do
 
   defp invalid_match!(exp) do
     raise ArgumentError,
-          "invalid expression in match, #{exp} is not allowed on patterns " <>
+          "invalid expression in match, #{exp} is not allowed in patterns " <>
             "such as function clauses, case clauses or on the left side of the = operator"
   end
 
