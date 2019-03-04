@@ -46,7 +46,7 @@ defmodule Inspect.Opts do
     * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the `Inspect.Error` exception. This
       is useful when debugging failures and crashes for custom inspect
-      implementations
+      implementations.
 
     * `:syntax_colors` - when set to a keyword list of colors the output is
       colorized. The keys are types and the values are the colors to use for
