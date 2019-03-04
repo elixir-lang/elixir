@@ -295,7 +295,7 @@ end
 #=> {:{}, [], [1, 2, 3]}
 ```
 
-Binaries have a representation similar to tuples. They are tagged with with `:<<>>` instead of `:{}`:
+Binaries have a representation similar to tuples, except they are tagged with `:<<>>` instead of `:{}`:
 
 ```elixir
 quote do
