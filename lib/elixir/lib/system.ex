@@ -111,7 +111,7 @@ defmodule System do
     :erlang.list_to_binary(:erlang.system_info(:otp_release))
   end
 
-  # Tries to run "git rev-parse --short HEAD". In the case of success returns
+  # Tries to run "git rev-parse --short=7 HEAD". In the case of success returns
   # the short revision hash. If that fails, returns an empty string.
   defmacrop get_revision do
     null =
@@ -120,7 +120,7 @@ defmodule System do
         _ -> '/dev/null'
       end
 
-    'git rev-parse --short HEAD 2> '
+    'git rev-parse --short=7 HEAD 2> '
     |> Kernel.++(null)
     |> :os.cmd()
     |> strip
